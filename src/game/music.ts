@@ -1,12 +1,10 @@
 // Procedural orchestral soundtrack — no audio files, pure WebAudio synthesis.
-// Inspired by vanilla-WoW zone scoring: a pastoral town theme, a mysterious
-// wilderness theme, a dread-laden dungeon theme, and a percussion layer that
-// fades in during combat. Each theme is a composed multi-track loop scheduled
-// with a lookahead timer; zone changes crossfade.
+// Inspired by vanilla-WoW zone scoring: a pastoral town theme, a wilderness
+// theme per biome (vale, marsh, peaks), a dread-laden dungeon theme, and a
+// percussion layer that fades in during combat. Each theme is a composed
+// multi-track loop scheduled with a lookahead timer; zone changes crossfade.
 
-// Zone themes: each biome gets its own wilds theme ('vale' falls back to the
-// original wilds composition until per-biome themes land).
-export type MusicZone = 'town' | 'vale' | 'marsh' | 'peaks' | 'wilds' | 'dungeon';
+export type MusicZone = 'town' | 'vale' | 'marsh' | 'peaks' | 'dungeon';
 
 type Inst = 'strings' | 'flute' | 'harp' | 'horn' | 'choir' | 'bell' | 'timpani' | 'bass' | 'stacc';
 
@@ -115,7 +113,7 @@ function composeTown(): Theme {
   return { bpm: 80, bars: 16, events: ev };
 }
 
-function composeWilds(): Theme {
+function composeVale(): Theme {
   const ev: NoteEvent[] = [];
   // A dorian, spacious and mysterious
   const Am = { root: 57, minor: true }, C = { root: 60 }, G = { root: 55 };
@@ -153,6 +151,87 @@ function composeWilds(): Theme {
 
   ev.sort((a, b) => a.beat - b.beat);
   return { bpm: 66, bars: 16, events: ev };
+}
+
+function composeMarsh(): Theme {
+  const ev: NoteEvent[] = [];
+  // E aeolian, low and waterlogged — the fen at dusk
+  const Em = { root: 52, minor: true }, Am = { root: 57, minor: true };
+  const Bm = { root: 59, minor: true }, C = { root: 60 }, G = { root: 55 }, Dmaj = { root: 62 };
+  const chords: ChordDef[] = [Em, Em, Am, Em, C, G, Bm, Em, Em, Am, C, Em, Dmaj, Bm, Am, Em];
+
+  chords.forEach((c, bar) => {
+    const b0 = bar * 4;
+    const t = triad(c);
+    // long overlapping low drones every other bar — the marsh breathing
+    if (bar % 2 === 0) {
+      pushNote(ev, b0, c.root - 24, 8.6, 0.42, 'strings');
+      pushNote(ev, b0, c.root - 17, 8.6, 0.22, 'strings');
+    }
+    // hollow half-light choir: root + fifth only, no third — damp and open
+    if (bar % 2 === 0) {
+      pushNote(ev, b0, c.root - 12, 4.1, 0.14, 'choir');
+      pushNote(ev, b0, c.root - 5, 4.1, 0.1, 'choir');
+    }
+    // slow cello: root on the downbeat, a sagging step late in some bars
+    pushNote(ev, b0, c.root - 12, 2.2, 0.28, 'bass');
+    if (bar % 4 === 2) pushNote(ev, b0 + 2.5, c.root - 14, 1.6, 0.2, 'bass');
+    // drip-plucks: lone high harp notes at uneven offsets, like water falling
+    if (bar % 4 === 1) pushNote(ev, b0 + 1.5, t[2] + 12, 0.5, 0.16, 'harp');
+    if (bar % 4 === 3) {
+      pushNote(ev, b0 + 0.5, t[0] + 24, 0.5, 0.14, 'harp');
+      pushNote(ev, b0 + 2.75, t[1] + 12, 0.5, 0.12, 'harp');
+    }
+  });
+
+  // a half-heard flute, low in its register, only twice a loop
+  const motifs: [number, Phrase][] = [
+    [12, [[0, 64, 1.5], [1.5, 67, 0.5], [2, 66, 2], [4, 64, 3]]],
+    [44, [[0, 67, 1], [1, 64, 1], [2, 62, 1.5], [3.5, 64, 3]]],
+  ];
+  for (const [start, ph] of motifs) pushPhrase(ev, start, ph, 0.2, 'flute');
+
+  ev.sort((a, b) => a.beat - b.beat);
+  return { bpm: 56, bars: 16, events: ev };
+}
+
+function composePeaks(): Theme {
+  const ev: NoteEvent[] = [];
+  // G with a flat seventh, harmonized in bare fifths (no thirds) —
+  // vast, cold, heroic. Roots: G, C, D, F.
+  const roots = [55, 55, 60, 55, 62, 60, 55, 53, 55, 60, 62, 55, 53, 60, 62, 55];
+
+  roots.forEach((r, bar) => {
+    const b0 = bar * 4;
+    // wind pad: open fifth in the choir, swelling across each bar
+    pushNote(ev, b0, r, 4.2, 0.15, 'choir');
+    pushNote(ev, b0, r + 7, 4.2, 0.12, 'choir');
+    if (bar % 2 === 0) pushNote(ev, b0, r + 12, 4.2, 0.08, 'choir');
+    // thin high string shimmer on the off bars, an octave above the pad
+    if (bar % 2 === 1) pushNote(ev, b0, r + 12, 4.3, 0.14, 'strings');
+    // granite bass: root, then the fifth below on the off bars
+    pushNote(ev, b0, r - 24, 2.4, 0.4, 'bass');
+    if (bar % 2 === 1) pushNote(ev, b0 + 2, r - 17, 1.8, 0.3, 'bass');
+    // far-off horn calls in open fifths every fourth bar
+    if (bar % 4 === 0) {
+      pushNote(ev, b0, r - 12, 3, 0.18, 'horn');
+      pushNote(ev, b0 + 0.02, r - 5, 3, 0.14, 'horn');
+    }
+  });
+
+  // high flute over the wind — thirdless (G A C D F) so the harmony stays cold
+  const motifs: [number, Phrase][] = [
+    [8, [[0, 79, 2], [2, 81, 2], [4, 86, 3], [7, 84, 1], [8, 86, 4]]],
+    [40, [[0, 86, 2], [2, 84, 1], [3, 81, 1], [4, 79, 2], [6, 77, 1], [7, 79, 4]]],
+  ];
+  for (const [start, ph] of motifs) pushPhrase(ev, start, ph, 0.22, 'flute');
+
+  // two glassy bell glints per loop, on the G bars
+  pushNote(ev, 0, 79, 4, 0.12, 'bell');
+  pushNote(ev, 32, 79, 4, 0.1, 'bell');
+
+  ev.sort((a, b) => a.beat - b.beat);
+  return { bpm: 60, bars: 16, events: ev };
 }
 
 function composeDungeon(): Theme {
@@ -212,6 +291,21 @@ const FADE_SECONDS = 2.2;
 const LOOKAHEAD = 0.6;
 const STORAGE_KEY = 'ev_music_on';
 
+// The combat ostinato is written from D3; transpose it onto each zone's tonal
+// center so it never fights the theme underneath:
+//   town  0 → D (town is D major)
+//   vale  7 → A (vale is A dorian; same value the old wilds layer used)
+//   marsh 2 → E (marsh is E aeolian; the ostinato becomes E minor pentatonic)
+//   peaks 5 → G (peaks is rooted on G in bare fifths — no third to clash with)
+//   dungeon 0 → D (dungeon is D phrygian)
+const COMBAT_TRANSPOSE: Record<MusicZone, number> = {
+  town: 0,
+  vale: 7,
+  marsh: 2,
+  peaks: 5,
+  dungeon: 0,
+};
+
 export class MusicDirector {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -258,7 +352,9 @@ export class MusicDirector {
 
     const themes: Record<string, Theme> = {
       town: composeTown(),
-      wilds: composeWilds(),
+      vale: composeVale(),
+      marsh: composeMarsh(),
+      peaks: composePeaks(),
       dungeon: composeDungeon(),
       combat: composeCombat(),
     };
@@ -285,14 +381,12 @@ export class MusicDirector {
   // called every frame by the HUD; cheap unless the state changed
   update(zone: MusicZone, inCombat: boolean): void {
     if (!this.ctx) return;
-    // biome themes not composed yet: all map onto the wilds layer
-    if (zone === 'vale' || zone === 'marsh' || zone === 'peaks') zone = 'wilds';
     if (zone === this.zone && inCombat === this.combat) return;
     this.zone = zone;
     this.combat = inCombat;
     const now = this.ctx.currentTime;
-    for (const name of ['town', 'wilds', 'dungeon']) {
-      const layer = this.layers[name];
+    for (const [name, layer] of Object.entries(this.layers)) {
+      if (name === 'combat') continue;
       // the zone theme keeps playing (quieter) under the combat layer
       const target = name === zone ? (inCombat ? 0.45 : 1) : 0;
       if (layer.target !== target) {
@@ -305,8 +399,8 @@ export class MusicDirector {
     if (combatLayer.target !== combatTarget) {
       combatLayer.target = combatTarget;
       combatLayer.gain.gain.setTargetAtTime(combatTarget, now, inCombat ? 0.35 : FADE_SECONDS / 3);
-      // ostinato follows the zone's tonal center (D for town/dungeon, A for wilds)
-      combatLayer.transpose = zone === 'wilds' ? 7 : 0;
+      // ostinato follows the zone's tonal center (see COMBAT_TRANSPOSE)
+      combatLayer.transpose = COMBAT_TRANSPOSE[zone];
     }
   }
 

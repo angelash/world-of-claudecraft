@@ -11,11 +11,13 @@ import { AbilityEffect, CONSUME_DURATION, Entity, GCD, ItemDef, SimEvent, dist2d
 import { terrainHeight, WATER_LEVEL, roadDistance } from '../sim/world';
 import { audio } from '../game/audio';
 import { music } from '../game/music';
+import { iconDataUrl, QUALITY_COLOR } from './icons';
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 
 const FAMILY_GLYPH: Record<string, string> = {
   beast: '🐾', humanoid: '🗡️', murloc: '🐟', spider: '🕷️', kobold: '⛏️', undead: '💀',
+  troll: '🦴', ogre: '👊', elemental: '🌀', dragonkin: '🐉',
 };
 const CLASS_GLYPH: Record<string, string> = {
   warrior: '⚔️', paladin: '🔨', hunter: '🏹', rogue: '🗡️', priest: '✝️',
@@ -23,7 +25,7 @@ const CLASS_GLYPH: Record<string, string> = {
 };
 
 export class Hud {
-  private abilityButtons: { btn: HTMLButtonElement; label: HTMLSpanElement; cdOverlay: HTMLDivElement; cdText: HTMLDivElement }[] = [];
+  private abilityButtons: { btn: HTMLButtonElement; label: HTMLSpanElement; cdOverlay: HTMLDivElement; cdText: HTMLDivElement; lastIcon: string }[] = [];
   private logEl = $('#combatlog');
   private errorEl = $('#error-msg');
   private bannerEl = $('#banner');
@@ -105,8 +107,7 @@ export class Hud {
 
   private itemIcon(item: ItemDef): string {
     const q = item.quality ?? 'common';
-    const initials = item.name.replace(/[^A-Za-z ]/g, '').split(' ').map((w) => w[0]).join('').slice(0, 2);
-    return `<div class="item-icon q-${q}">${initials}</div>`;
+    return `<img class="item-icon q-${q}" src="${iconDataUrl('item', item.id)}" alt="" draggable="false">`;
   }
 
   moneyHtml(copper: number): string {
@@ -138,7 +139,7 @@ export class Hud {
   }
 
   private itemTooltip(item: ItemDef): string {
-    const qColor = item.quality === 'poor' ? '#9d9d9d' : item.quality === 'uncommon' ? '#1eff00' : '#fff';
+    const qColor = QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff';
     let html = `<div class="tt-title" style="color:${qColor}">${item.name}</div>`;
     if (item.slot) {
       const slotNames: Record<string, string> = { mainhand: 'Main Hand', chest: 'Chest', legs: 'Legs', feet: 'Feet' };
@@ -218,7 +219,7 @@ export class Hud {
         return known ? this.abilityTooltip(known) : '<div class="tt-sub">Empty slot</div>';
       });
       bar.appendChild(btn);
-      this.abilityButtons.push({ btn, label, cdOverlay, cdText });
+      this.abilityButtons.push({ btn, label, cdOverlay, cdText, lastIcon: '' });
     }
   }
 
@@ -317,15 +318,21 @@ export class Hud {
       const known = sim.known[i];
       if (!known) {
         ab.btn.classList.add('empty');
-        ab.label.textContent = '';
+        if (ab.lastIcon !== '') {
+          ab.lastIcon = '';
+          ab.label.style.backgroundImage = '';
+        }
         ab.cdOverlay.style.height = '0%';
         ab.cdText.textContent = '';
         continue;
       }
       const a = known.def;
       ab.btn.classList.remove('empty');
-      ab.label.textContent = a.icon;
-      ab.label.style.color = a.iconColor;
+      // set the painted icon once per slot change, not every frame
+      if (ab.lastIcon !== a.id) {
+        ab.lastIcon = a.id;
+        ab.label.style.backgroundImage = `url(${iconDataUrl('ability', a.id)})`;
+      }
       const cd = p.cooldowns.get(a.id) ?? 0;
       const gcdActive = !a.offGcd && p.gcdRemaining > 0;
       const shown = Math.max(cd, gcdActive ? p.gcdRemaining : 0);
@@ -397,7 +404,7 @@ export class Hud {
       if (mode === 'debuffs' && !isDebuff) continue;
       const d = document.createElement('div');
       d.className = 'buff' + (isDebuff ? ' debuff' : '');
-      d.textContent = a.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+      d.style.backgroundImage = `url(${iconDataUrl('aura', ABILITIES[a.id] ? a.id : `aura_${a.kind}`)})`;
       const dur = document.createElement('div');
       dur.className = 'dur';
       dur.textContent = a.remaining < 99 ? `${Math.ceil(a.remaining)}s` : '';
@@ -879,7 +886,7 @@ export class Hud {
     const rewardItem = quest.itemRewards[this.sim.cfg.playerClass];
     if (rewardItem) {
       const item = ITEMS[rewardItem];
-      html += `<div class="qd-reward-row" data-reward>${this.itemIcon(item)}<span style="color:${item.quality === 'uncommon' ? '#1eff00' : '#fff'};font-size:12px">${item.name}</span></div>`;
+      html += `<div class="qd-reward-row" data-reward>${this.itemIcon(item)}<span style="color:${QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff'};font-size:12px">${item.name}</span></div>`;
     }
     el.innerHTML = html;
     const rewardRow = el.querySelector('[data-reward]') as HTMLElement | null;
@@ -933,7 +940,7 @@ export class Hud {
     const el = $('#loot-window');
     let html = `<div class="panel-title"><span>${mob.name}</span><span class="x-btn" data-close>✕</span></div>`;
     if (mob.loot.copper > 0) {
-      html += `<div class="loot-item"><div class="item-icon q-common" style="color:#ffd100">$</div><span>${this.moneyHtml(mob.loot.copper)}</span></div>`;
+      html += `<div class="loot-item"><img class="item-icon q-common" src="${iconDataUrl('item', 'coin_gold')}" alt="" draggable="false"><span>${this.moneyHtml(mob.loot.copper)}</span></div>`;
     }
     for (const s of mob.loot.items) {
       const item = ITEMS[s.itemId];
@@ -1035,7 +1042,7 @@ export class Hud {
       if (!item) continue;
       const row = document.createElement('div');
       row.className = 'bag-item';
-      const qColor = item.quality === 'poor' ? '#9d9d9d' : item.quality === 'uncommon' ? '#1eff00' : '#fff';
+      const qColor = QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff';
       row.innerHTML = `${this.itemIcon(item)}<span style="color:${qColor}">${item.name}</span><span class="bi-count">${s.count > 1 ? 'x' + s.count : ''}</span>`;
       row.addEventListener('click', () => {
         if (this.tradeOpen) {
@@ -1105,8 +1112,8 @@ export class Hud {
       const item = itemId ? ITEMS[itemId] : null;
       const row = document.createElement('div');
       row.className = 'equip-slot';
-      const qColor = !item ? '#666' : item.quality === 'uncommon' ? '#1eff00' : '#fff';
-      row.innerHTML = `${item ? this.itemIcon(item) : '<div class="item-icon" style="border-color:#444;background:#0d0d13"></div>'}
+      const qColor = !item ? '#666' : QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff';
+      row.innerHTML = `${item ? this.itemIcon(item) : `<img class="item-icon" style="border-color:#444" src="${iconDataUrl('item', 'slot_empty')}" alt="" draggable="false">`}
         <div><div class="slot-name">${slot.name}</div><div class="slot-item" style="color:${qColor}">${item ? item.name : 'Empty'}</div></div>`;
       if (item) this.attachTooltip(row, () => this.itemTooltip(item));
       col.appendChild(row);
@@ -1136,7 +1143,7 @@ export class Hud {
       const row = document.createElement('div');
       row.className = 'spell-row';
       const locked = !known;
-      row.innerHTML = `<div class="spell-icon" style="color:${def.iconColor};${locked ? 'filter:grayscale(1) brightness(0.5)' : ''}">${def.icon}</div>
+      row.innerHTML = `<div class="spell-icon" style="background-image:url(${iconDataUrl('ability', abilityId)});${locked ? 'filter:grayscale(1) brightness(0.5)' : ''}"></div>
         <div><div class="spell-name" style="${locked ? 'color:#777' : ''}">${def.name}${known && known.rank > 1 ? ` <span style="color:#998d6a;font-size:11px">Rank ${known.rank}</span>` : ''}</div>
         <div class="spell-sub">${locked ? `Trainable at level ${def.learnLevel}` : describeCost(known!, sim)}</div></div>`;
       if (known) this.attachTooltip(row, () => this.abilityTooltip(known));

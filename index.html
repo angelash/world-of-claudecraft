@@ -101,11 +101,10 @@
 
   /* ---------- buff bar ---------- */
   #buff-bar { position: absolute; right: 196px; top: 14px; display: flex; flex-direction: row-reverse; flex-wrap: wrap; gap: 4px; max-width: 320px; pointer-events: auto; }
-  .buff { width: 28px; height: 28px; border: 1px solid #777; border-radius: 4px; font-size: 10px;
-    display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold;
-    position: relative; text-shadow: 1px 1px 1px #000; cursor: default;
-    background: radial-gradient(circle at 35% 30%, #2c4a6e, #16243a); }
-  .buff.debuff { background: radial-gradient(circle at 35% 30%, #6e2c2c, #3a1616); border-color: #c0392b; }
+  .buff { width: 28px; height: 28px; border: 1px solid #3a6ea8; border-radius: 4px;
+    position: relative; cursor: default; background-color: #10141c;
+    background-size: cover; background-position: center; background-repeat: no-repeat; }
+  .buff.debuff { border-color: #c0392b; }
   .buff .dur { position: absolute; bottom: -13px; left: 0; right: 0; text-align: center; font-size: 9px; color: #eee; text-shadow: 1px 1px 1px #000; }
 
   /* ---------- cast bar ---------- */
@@ -130,9 +129,10 @@
   #actionbar { display: flex; gap: 4px; padding: 6px; }
   .action-btn { width: 46px; height: 46px; position: relative; border: 2px solid #4a3d1d; border-radius: 6px;
     background: radial-gradient(circle at 35% 30%, #2c2c3a, #15151f); color: #fff; cursor: pointer;
-    font-weight: bold; font-size: 14px; font-family: var(--title-font);
-    display: flex; align-items: center; justify-content: center; text-shadow: 1px 1px 2px #000;
+    font-family: var(--title-font); text-shadow: 1px 1px 2px #000;
     box-shadow: inset 0 1px 0 #ffffff18, 0 2px 4px #0009; }
+  .action-btn .icon-label { position: absolute; inset: 1px; border-radius: 4px;
+    background-size: cover; background-position: center; background-repeat: no-repeat; pointer-events: none; }
   .action-btn:hover { border-color: var(--gold); }
   .action-btn:active { transform: translateY(1px); }
   .action-btn.empty { background: #0d0d13; cursor: default; box-shadow: inset 0 0 10px #000; }
@@ -140,8 +140,8 @@
   .action-btn .cdtext { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     font-size: 17px; color: var(--gold); text-shadow: 1px 1px 2px #000; }
   .action-btn .cd-overlay { position: absolute; left: 0; right: 0; bottom: 0; background: #000d; height: 0%; border-radius: 0 0 4px 4px; }
-  .action-btn.unusable .icon-label { color: #d44 !important; }
-  .action-btn.oor .icon-label { color: #888 !important; }
+  .action-btn.unusable .icon-label { filter: grayscale(1) brightness(0.5); }
+  .action-btn.oor .icon-label { filter: brightness(0.55) saturate(0.4); }
   .action-btn.queued { border-color: #fff; box-shadow: 0 0 9px #ffd100cc, inset 0 1px 0 #ffffff18; }
   #side-buttons { display: flex; flex-direction: column; gap: 4px; padding-bottom: 6px; }
   .micro-btn { width: 34px; height: 30px; border: 2px solid #4a3d1d; border-radius: 5px;
@@ -193,13 +193,13 @@
   .loot-item { display: flex; align-items: center; gap: 8px; padding: 4px; font-size: 12px; cursor: default; border-radius: 4px; }
   .loot-item:hover { background: #ffffff10; }
 
-  .item-icon { width: 28px; height: 28px; border-radius: 4px; flex: none;
-    display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;
-    font-family: var(--title-font); color: #fff; text-shadow: 1px 1px 1px #000;
-    background: radial-gradient(circle at 35% 30%, #3a3a4a, #1a1a24); border: 1px solid #888; }
-  .q-poor { border-color: #9d9d9d !important; color: #9d9d9d; }
-  .q-common { border-color: #ffffff !important; color: #fff; }
-  .q-uncommon { border-color: #1eff00 !important; color: #1eff00; }
+  .item-icon { width: 28px; height: 28px; border-radius: 4px; flex: none; display: block;
+    object-fit: cover; background: #0d0d13; border: 1px solid #888; }
+  .q-poor { border-color: #9d9d9d !important; }
+  .q-common { border-color: #b8b8b8 !important; }
+  .q-uncommon { border-color: #1eff00 !important; }
+  .q-rare { border-color: #0070dd !important; }
+  .q-epic { border-color: #a335ee !important; box-shadow: 0 0 6px #a335ee66; }
 
   /* character window */
   #char-window { left: 16px; top: 90px; width: 320px; }
@@ -218,9 +218,9 @@
   .spell-row:hover { background: #ffffff0e; }
   .spell-row .spell-name { font-size: 13px; color: #fff; font-family: var(--title-font); }
   .spell-row .spell-sub { font-size: 11px; color: #998d6a; }
-  .spell-icon { width: 34px; height: 34px; border-radius: 5px; flex: none; display: flex; align-items: center; justify-content: center;
-    font-weight: bold; font-size: 13px; font-family: var(--title-font); text-shadow: 1px 1px 1px #000;
-    background: radial-gradient(circle at 35% 30%, #2c2c3a, #15151f); border: 2px solid #4a3d1d; }
+  .spell-icon { width: 34px; height: 34px; border-radius: 5px; flex: none;
+    background-color: #15151f; background-size: cover; background-position: center; background-repeat: no-repeat;
+    border: 2px solid #4a3d1d; }
 
   /* quest log */
   #quest-log-window { left: 50%; top: 14%; transform: translateX(-50%); width: 520px; max-height: 66%; display: none; }
@@ -231,12 +231,12 @@
   .ql-detail { flex: 1; font-size: 12px; max-height: 380px; overflow-y: auto; }
 
   /* vendor */
-  #vendor-window { left: 50%; top: 16%; transform: translateX(-50%); width: 400px; }
+  #vendor-window { left: 50%; top: 16%; transform: translateX(-50%); width: 400px; max-height: 68%; overflow-y: auto; }
   .vendor-item { display: flex; gap: 8px; align-items: center; padding: 5px; border-radius: 4px; cursor: pointer; }
   .vendor-item:hover { background: #ffffff10; }
   .vendor-item .vi-name { font-size: 12px; flex: 1; }
   .vendor-item .vi-price { font-size: 11px; color: #ddd; }
-  .vendor-hint { font-size: 10px; color: #887c5c; margin-top: 8px; }
+  .vendor-hint { font-size: 11px; color: #c8b888; margin-top: 8px; border-top: 1px solid #463a1c; padding-top: 6px; }
 
   /* bags */
   #bags { right: 12px; bottom: 64px; width: 310px; max-height: 60%; overflow-y: auto; }

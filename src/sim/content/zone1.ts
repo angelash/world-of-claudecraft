@@ -167,8 +167,22 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
   brother_aldric: {
     id: 'brother_aldric', name: 'Brother Aldric', title: 'Priest of the Vale',
     pos: { x: -14, z: -10 }, facing: 0.8, color: 0xf7f9f9,
-    questIds: ['q_bones'],
+    questIds: [
+      'q_bones', 'q_whispers', 'q_names_of_the_dead', 'q_silence_the_call',
+      'q_rite', 'q_sexton', 'q_hollow', 'q_gravecallers_trail', 'q_fenbridge_muster',
+    ],
     greeting: 'The Light keep you. Even the dead find no rest here of late.',
+  },
+  smith_haldren: {
+    id: 'smith_haldren', name: 'Smith Haldren', title: 'Armorer & Weaponsmith',
+    pos: { x: 7, z: 16.5 }, facing: -2.7, color: 0x707b7c,
+    questIds: [],
+    vendorItems: [
+      'eastbrook_arming_sword', 'bronzework_mace', 'vale_carving_knife', 'hickory_shortstaff',
+      'eastbrook_chain_vest', 'valespun_robe', 'tanned_leather_jerkin',
+      'hobnail_boots', 'eastbrook_wool_trousers',
+    ],
+    greeting: 'Mind the sparks, $C. Good steel is the difference between a scar and a grave.',
   },
   fisherman_brandt: {
     id: 'fisherman_brandt', name: 'Fisherman Brandt', title: 'Old Salt',
@@ -272,6 +286,24 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     xpReward: 400, copperReward: 150, itemRewards: {},
     requiresQuest: 'q_bones',
   },
+  q_names_of_the_dead: {
+    id: 'q_names_of_the_dead', name: 'The Names of the Dead',
+    giverNpcId: 'brother_aldric', turnInNpcId: 'brother_aldric',
+    text: 'If the Gravecallers raised our dead, I must know whose graves they robbed. The chapel sexton kept a burial ledger, and the wind has scattered its pages across the chapel yard. Gather 3 of them for me, $N — the dead deserve to be called by their names.',
+    completionText: 'These poor souls... and look here. Sexton Marrow — the chapel\'s own living caretaker — his grave the first disturbed. Morthen began with the very man who buried Eastbrook\'s dead.',
+    objectives: [{ type: 'collect', itemId: 'weathered_ledger_page', count: 3, label: 'Weathered Ledger Page' }],
+    xpReward: 600, copperReward: 250, itemRewards: {},
+    requiresQuest: 'q_whispers',
+  },
+  q_silence_the_call: {
+    id: 'q_silence_the_call', name: 'Silence the Call',
+    giverNpcId: 'brother_aldric', turnInNpcId: 'brother_aldric',
+    text: 'Every name in that ledger is a soul Morthen means to drag from the earth, and the chapel yard already crawls with those he has called. Return 12 Restless Bones to their graves, $N, before the Gravecaller\'s whisper swells into a chorus.',
+    completionText: 'The yard grows quieter — but the calling has not stopped. It rises from below now, $N. From the crypt itself.',
+    objectives: [{ type: 'kill', targetMobId: 'restless_bones', count: 12, label: 'Restless Bones silenced' }],
+    xpReward: 750, copperReward: 300, itemRewards: {},
+    requiresQuest: 'q_names_of_the_dead',
+  },
   q_rite: {
     id: 'q_rite', name: 'The Binding Rite',
     giverNpcId: 'brother_aldric', turnInNpcId: 'brother_aldric',
@@ -294,6 +326,26 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     itemRewards: { warrior: 'gravecaller_blade', rogue: 'widowfang_dirk', mage: 'gravecaller_staff' },
     requiresQuest: 'q_rite',
     suggestedPlayers: 5,
+  },
+  q_sexton: {
+    id: 'q_sexton', name: "The Sexton's Bell",
+    giverNpcId: 'brother_aldric', turnInNpcId: 'brother_aldric',
+    text: 'The ledger named him and the crypt holds him: Sexton Marrow, the chapel\'s caretaker, the first man Morthen raised — guarding his master\'s door in death as faithfully as he kept the chapel in life. Take four companions into the Hollow Crypt and grant the old sexton the rest he was robbed of, $N.',
+    completionText: 'So Marrow is free at last. Ring no bell for him — he heard enough of them in life.',
+    objectives: [{ type: 'kill', targetMobId: 'sexton_marrow', count: 1, label: 'Sexton Marrow laid to rest' }],
+    xpReward: 1000, copperReward: 600,
+    itemRewards: { warrior: 'marrowtread_boots', mage: 'sextons_slippers', rogue: 'gravewalker_softboots' },
+    requiresQuest: 'q_rite',
+    suggestedPlayers: 5,
+  },
+  q_gravecallers_trail: {
+    id: 'q_gravecallers_trail', name: "The Gravecaller's Trail",
+    giverNpcId: 'brother_aldric', turnInNpcId: 'brother_aldric',
+    text: 'Morthen is dead, yet a question gnaws at me: a sect that hid for a century does not spend itself on one village chapel. He kept a grimoire — his rites, his correspondence. If anything of it survives, it lies in the vestry of the ruined chapel above the crypt. Search the ruin and bring me whatever remains of his writings, $N.',
+    completionText: 'Morthen wrote to a \'Mistcaller\' in the southern fen. The sect is not dead, $N — it has merely been patient.',
+    objectives: [{ type: 'collect', itemId: 'morthen_grimoire', count: 1, label: "Morthen's Grimoire" }],
+    xpReward: 900, copperReward: 400, itemRewards: {},
+    requiresQuest: 'q_hollow',
   },
   q_bandits: {
     id: 'q_bandits', name: 'Bandits of the Vale',
@@ -320,7 +372,8 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
 export const ZONE1_QUEST_ORDER = [
   'q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw', 'q_murlocs',
   'q_supplies', 'q_bandits', 'q_mine', 'q_bones', 'q_ringleader',
-  'q_whispers', 'q_rite', 'q_hollow',
+  'q_whispers', 'q_names_of_the_dead', 'q_silence_the_call',
+  'q_rite', 'q_sexton', 'q_hollow', 'q_gravecallers_trail',
 ];
 
 // ---------------------------------------------------------------------------
@@ -364,6 +417,16 @@ export const ZONE1_OBJECTS: GroundObjectDef[] = [
     name: "Gravecaller's Sigil",
     positions: [{ x: 84, z: 88 }, { x: 76, z: 92 }],
   },
+  {
+    itemId: 'weathered_ledger_page',
+    name: 'Weathered Ledger Page',
+    positions: [{ x: 78, z: 84 }, { x: 83, z: 88 }, { x: 86, z: 92 }],
+  },
+  {
+    itemId: 'morthen_grimoire',
+    name: "Morthen's Grimoire",
+    positions: [{ x: 78, z: 86 }],
+  },
 ];
 
 // Roads from town toward each hub — used for terrain painting and the map.
@@ -389,7 +452,10 @@ export const ZONE1_PROPS: ZonePropsDef = {
     { kind: 'chapel', x: -16, z: -8, w: 5, d: 7, rot: 0.9 },
   ],
   wells: [{ x: 0, z: 2, r: 1.5 }],
-  stalls: [{ x: -8.5, z: 3, rot: Math.PI / 2, r: 1.7 }],
+  stalls: [
+    { x: -8.5, z: 3, rot: Math.PI / 2, r: 1.7 },
+    { x: 9.5, z: 17.5, rot: -2.7, r: 1.7 }, // Smith Haldren's smithy stall
+  ],
   mines: [{ x: -88, z: -68, rot: 0.8 }],
   docks: [{ x: -64, z: 60, rot: -2.2, hutLocal: { x: 2.8, z: 2.4, hw: 1.7, hd: 1.5 } }],
   tents: [

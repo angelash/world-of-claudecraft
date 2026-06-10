@@ -588,7 +588,7 @@ export class Renderer {
 
   private buildInterior(interior: string, ox: number, oz: number): void {
     // one builder per DungeonDef.interior key
-    if (interior === 'crypt') this.buildCrypt(ox, oz);
+    if (interior === 'sanctum') this.buildSanctum(ox, oz);
     else this.buildCrypt(ox, oz);
   }
 
@@ -652,6 +652,79 @@ export class Renderer {
     // boss dais
     const dais = new THREE.Mesh(new THREE.CylinderGeometry(9, 10, 1, 12), stone);
     dais.position.set(0, 0.5, 96);
+    dais.receiveShadow = true;
+    g.add(dais);
+
+    g.position.set(ox, 0, oz);
+    this.scene.add(g);
+  }
+
+  // Gravewyrm Sanctum: a stretched three-chamber crypt (z 0..158) — the
+  // Boneworks, the Ritual Vault and the Wyrm's Hollow — separated by narrowed
+  // waists, lit by green ritual fire. Wall/pillar geometry must stay in sync
+  // with SANCTUM_COLLIDERS in sim/colliders.ts.
+  private buildSanctum(ox: number, oz: number): void {
+    const g = new THREE.Group();
+    const stone = new THREE.MeshLambertMaterial({ color: 0x5e5a66 });
+    const stoneDark = new THREE.MeshLambertMaterial({ color: 0x3f3b48 });
+    const bone = new THREE.MeshLambertMaterial({ color: 0xd8d4c0, flatShading: true });
+
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(46, 0.5, 168), stoneDark);
+    floor.position.set(0, -0.25, 74.5);
+    floor.receiveShadow = true;
+    g.add(floor);
+    // walls
+    for (const sx of [-23, 23]) {
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(2, 9, 168), stone);
+      wall.position.set(sx, 4.5, 74.5);
+      g.add(wall);
+    }
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(48, 9, 2), stone);
+    backWall.position.set(0, 4.5, 158);
+    g.add(backWall);
+    const frontWall = new THREE.Mesh(new THREE.BoxGeometry(48, 9, 2), stone);
+    frontWall.position.set(0, 4.5, -9);
+    g.add(frontWall);
+    // chamber waists: wall stubs leaving a ~10yd centre passage
+    for (const sx of [-14, 14]) {
+      const stub1 = new THREE.Mesh(new THREE.BoxGeometry(18, 9, 10), stone);
+      stub1.position.set(sx, 4.5, 67); // Boneworks -> Korgath's Hall
+      g.add(stub1);
+      const stub2 = new THREE.Mesh(new THREE.BoxGeometry(18, 9, 6), stone);
+      stub2.position.set(sx, 4.5, 115); // Ritual Vault -> Wyrm's Hollow
+      g.add(stub2);
+    }
+    // pillars + green ritual torches (waist bands skipped)
+    for (const z of [10, 25, 40, 55, 85, 100, 125, 140]) {
+      for (const sx of [-14, 14]) {
+        const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.1, 8, 7), stone);
+        pillar.position.set(sx, 4, z);
+        pillar.castShadow = true;
+        g.add(pillar);
+        const flame = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.6, 6), new THREE.MeshLambertMaterial({
+          color: 0xa6ffb8, emissive: 0x22cc55, emissiveIntensity: 1.6, transparent: true, opacity: 0.92,
+        }));
+        flame.position.set(sx, 8.4, z);
+        g.add(flame);
+        this.flames.push(flame);
+        const light = new THREE.PointLight(0x55e08a, 10, 22, 2);
+        light.position.set(sx, 8.2, z);
+        g.add(light);
+        this.fireLights.push(light);
+      }
+    }
+    // bone piles strewn between the chambers (none inside the waist walls)
+    for (let i = 0; i < 14; i++) {
+      const z = 12 + i * 10;
+      if ((z > 60 && z < 74) || (z > 110 && z < 120)) continue;
+      const b = new THREE.Mesh(new THREE.DodecahedronGeometry(0.5, 0), bone);
+      b.position.set(Math.sin(i * 2.1) * 14, 0.3, z);
+      b.scale.set(1.3, 0.5, 1.1);
+      g.add(b);
+    }
+    // Korzul's great dais
+    const dais = new THREE.Mesh(new THREE.CylinderGeometry(11, 12, 1.2, 14), stone);
+    dais.position.set(0, 0.6, 146);
     dais.receiveShadow = true;
     g.add(dais);
 

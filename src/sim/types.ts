@@ -96,7 +96,9 @@ export interface LootEntry {
   questId?: string; // only drops while this quest is active and not complete
 }
 
-export type MobFamily = 'beast' | 'humanoid' | 'murloc' | 'spider' | 'kobold' | 'undead';
+export type MobFamily =
+  | 'beast' | 'humanoid' | 'murloc' | 'spider' | 'kobold' | 'undead'
+  | 'troll' | 'ogre' | 'elemental' | 'dragonkin';
 
 export interface MobTemplate {
   id: string;

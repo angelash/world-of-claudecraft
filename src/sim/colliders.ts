@@ -95,9 +95,31 @@ const CRYPT_COLLIDERS: Collider[] = (() => {
   return out;
 })();
 
+// Gravewyrm Sanctum interior — a stretched three-chamber crypt (z 0..158)
+// with narrowed waists between chambers. Mirrors Renderer.buildSanctum
+// geometry; the boss dais is walkable and deliberately has no collider.
+const SANCTUM_COLLIDERS: Collider[] = (() => {
+  const out: Collider[] = [];
+  out.push({ type: 'obb', x: -23, z: 74.5, hw: 1, hd: 84, rot: 0 }); // side walls
+  out.push({ type: 'obb', x: 23, z: 74.5, hw: 1, hd: 84, rot: 0 });
+  out.push({ type: 'obb', x: 0, z: 158, hw: 24, hd: 1, rot: 0 }); // back wall
+  out.push({ type: 'obb', x: 0, z: -9, hw: 24, hd: 1, rot: 0 }); // front wall
+  // chamber waists: wall stubs leaving a ~10yd centre passage at x in [-5,5]
+  for (const sx of [-14, 14]) {
+    out.push({ type: 'obb', x: sx, z: 67, hw: 9, hd: 5, rot: 0 }); // Boneworks -> Korgath's Hall
+    out.push({ type: 'obb', x: sx, z: 115, hw: 9, hd: 3, rot: 0 }); // Ritual Vault -> Wyrm's Hollow
+  }
+  // pillars (waist bands skipped)
+  for (const z of [10, 25, 40, 55, 85, 100, 125, 140]) {
+    for (const sx of [-14, 14]) out.push({ type: 'circle', x: sx, z, r: 1.0 });
+  }
+  return out;
+})();
+
 // Interior collider sets keyed by DungeonDef.interior.
 const INTERIOR_COLLIDERS: Record<string, Collider[]> = {
   crypt: CRYPT_COLLIDERS,
+  sanctum: SANCTUM_COLLIDERS,
 };
 
 // ---------------------------------------------------------------------------

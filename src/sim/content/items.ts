@@ -92,6 +92,51 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
     id: 'conjured_water', name: 'Conjured Spring Water', kind: 'drink', quality: 'common',
     drinkMana: 76, sellValue: 0,
   },
+  conjured_water2: {
+    id: 'conjured_water2', name: 'Conjured Mineral Water', kind: 'drink', quality: 'common',
+    drinkMana: 288, sellValue: 0,
+  },
+  conjured_water3: {
+    id: 'conjured_water3', name: 'Conjured Sparkling Water', kind: 'drink', quality: 'common',
+    drinkMana: 672, sellValue: 0,
+  },
+  // --- Smith Haldren's stock (common/white, levels 3-7) ---
+  eastbrook_arming_sword: {
+    id: 'eastbrook_arming_sword', name: 'Eastbrook Arming Sword', kind: 'weapon', slot: 'mainhand', quality: 'common',
+    weapon: { min: 5, max: 9, speed: 2.2 }, sellValue: 140, buyValue: 1400,
+  },
+  bronzework_mace: {
+    id: 'bronzework_mace', name: 'Bronzework Mace', kind: 'weapon', slot: 'mainhand', quality: 'common',
+    weapon: { min: 6, max: 10, speed: 2.6 }, sellValue: 140, buyValue: 1400,
+  },
+  vale_carving_knife: {
+    id: 'vale_carving_knife', name: 'Vale Carving Knife', kind: 'weapon', slot: 'mainhand', quality: 'common',
+    weapon: { min: 4, max: 7, speed: 1.8, dagger: true }, sellValue: 120, buyValue: 1200,
+  },
+  hickory_shortstaff: {
+    id: 'hickory_shortstaff', name: 'Hickory Shortstaff', kind: 'weapon', slot: 'mainhand', quality: 'common',
+    weapon: { min: 6, max: 11, speed: 3.0 }, stats: { int: 1 }, sellValue: 150, buyValue: 1500,
+  },
+  eastbrook_chain_vest: {
+    id: 'eastbrook_chain_vest', name: 'Eastbrook Chainmail Vest', kind: 'armor', slot: 'chest', quality: 'common',
+    stats: { armor: 60 }, sellValue: 180, buyValue: 1800,
+  },
+  valespun_robe: {
+    id: 'valespun_robe', name: 'Valespun Robe', kind: 'armor', slot: 'chest', quality: 'common',
+    stats: { armor: 22 }, sellValue: 140, buyValue: 1400,
+  },
+  tanned_leather_jerkin: {
+    id: 'tanned_leather_jerkin', name: 'Tanned Leather Jerkin', kind: 'armor', slot: 'chest', quality: 'common',
+    stats: { armor: 40 }, sellValue: 160, buyValue: 1600,
+  },
+  hobnail_boots: {
+    id: 'hobnail_boots', name: 'Hobnailed Boots', kind: 'armor', slot: 'feet', quality: 'common',
+    stats: { armor: 18 }, sellValue: 90, buyValue: 900,
+  },
+  eastbrook_wool_trousers: {
+    id: 'eastbrook_wool_trousers', name: 'Eastbrook Wool Trousers', kind: 'armor', slot: 'legs', quality: 'common',
+    stats: { armor: 24 }, sellValue: 110, buyValue: 1100,
+  },
   // --- Hollow Crypt rewards (rare/blue) ---
   gravecaller_blade: {
     id: 'gravecaller_blade', name: "Gravecaller's Broadblade", kind: 'weapon', slot: 'mainhand', quality: 'rare',
@@ -105,6 +150,18 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
     id: 'gravecaller_staff', name: 'Staff of the Hollow', kind: 'weapon', slot: 'mainhand', quality: 'rare',
     weapon: { min: 10, max: 17, speed: 3.0 }, stats: { int: 4, spi: 2 }, sellValue: 800,
   },
+  marrowtread_boots: {
+    id: 'marrowtread_boots', name: 'Marrowtread Boots', kind: 'armor', slot: 'feet', quality: 'rare',
+    stats: { armor: 45, sta: 2, str: 1 }, sellValue: 500, requiredClass: ['warrior'],
+  },
+  sextons_slippers: {
+    id: 'sextons_slippers', name: "Sexton's Slippers", kind: 'armor', slot: 'feet', quality: 'rare',
+    stats: { armor: 20, int: 2, spi: 2 }, sellValue: 500, requiredClass: ['mage'],
+  },
+  gravewalker_softboots: {
+    id: 'gravewalker_softboots', name: 'Gravewalker Softboots', kind: 'armor', slot: 'feet', quality: 'rare',
+    stats: { armor: 32, agi: 3 }, sellValue: 500, requiredClass: ['rogue'],
+  },
   // --- quest items ---
   boar_hide: { id: 'boar_hide', name: 'Bristly Boar Hide', kind: 'quest', sellValue: 0, questId: 'q_boars' },
   gravecaller_sigil: { id: 'gravecaller_sigil', name: "Gravecaller's Sigil", kind: 'quest', sellValue: 0, questId: 'q_whispers' },
@@ -113,6 +170,8 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
   webwood_silk: { id: 'webwood_silk', name: 'Webwood Silk Gland', kind: 'quest', sellValue: 0, questId: 'q_spiders' },
   supply_crate: { id: 'supply_crate', name: 'Stolen Supply Crate', kind: 'quest', sellValue: 0, questId: 'q_supplies' },
   greyjaw_fang: { id: 'greyjaw_fang', name: "Old Greyjaw's Fang", kind: 'quest', sellValue: 0, questId: 'q_greyjaw' },
+  weathered_ledger_page: { id: 'weathered_ledger_page', name: 'Weathered Ledger Page', kind: 'quest', sellValue: 0, questId: 'q_names_of_the_dead' },
+  morthen_grimoire: { id: 'morthen_grimoire', name: "Morthen's Grimoire", kind: 'quest', sellValue: 0, questId: 'q_gravecallers_trail' },
   // --- junk (gray) ---
   wolf_fang: { id: 'wolf_fang', name: 'Cracked Wolf Fang', kind: 'junk', quality: 'poor', sellValue: 4 },
   bandit_bandana: { id: 'bandit_bandana', name: 'Red Bandana', kind: 'junk', quality: 'poor', sellValue: 6 },

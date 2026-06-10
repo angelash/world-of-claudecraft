@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Sim } from '../src/sim/sim';
-import { ALL_CLASSES, dist2d } from '../src/sim/types';
+import { ALL_CLASSES, MAX_LEVEL, dist2d } from '../src/sim/types';
 import { CLASSES, MOBS, abilitiesKnownAt, instanceOrigin, CRYPT_SPAWNS } from '../src/sim/data';
 import { groundHeight } from '../src/sim/world';
 
@@ -38,10 +38,14 @@ describe('nine classes', () => {
       const p = sim.player;
       expect(p.maxHp).toBeGreaterThan(30);
       expect(sim.known.length).toBeGreaterThan(0);
-      expect(CLASSES[cls].abilities.length).toBeLessThanOrEqual(10);
-      // all kit abilities resolve at level 10
-      const kit = abilitiesKnownAt(cls, 10);
+      // 12 action-bar slots cap the kit
+      expect(CLASSES[cls].abilities.length).toBeLessThanOrEqual(12);
+      // the full kit resolves at MAX_LEVEL; the 10-20 band still has things to learn
+      const kit = abilitiesKnownAt(cls, MAX_LEVEL);
       expect(kit.length).toBe(CLASSES[cls].abilities.length);
+      expect(abilitiesKnownAt(cls, 10).length).toBeLessThan(kit.length);
+      // every class's core kit keeps scaling: something reaches rank 3+ by 20
+      expect(kit.some((k) => k.rank >= 3)).toBe(true);
       // resource type sane
       if (cls === 'warrior') expect(p.resourceType).toBe('rage');
       else if (cls === 'rogue') expect(p.resourceType).toBe('energy');

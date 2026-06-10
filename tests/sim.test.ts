@@ -78,6 +78,30 @@ describe('classic formulas', () => {
     expect(m8).toContain('polymorph');
     expect(m8).not.toContain('frost_nova'); // level 10
   });
+
+  it('ranks and new abilities carry the kit through the 10-20 band', () => {
+    // warrior: heroic strike rank 4 at 20; execute unlocks at 14, not before
+    expect(abilitiesKnownAt('warrior', 13).map((k) => k.def.id)).not.toContain('execute');
+    const w20 = abilitiesKnownAt('warrior', 20);
+    expect(w20.map((k) => k.def.id)).toContain('execute');
+    const hs20 = w20.find((k) => k.def.id === 'heroic_strike')!;
+    expect(hs20.rank).toBe(4);
+    expect(hs20.effects).toEqual([{ type: 'weaponDamage', bonus: 44 }]);
+    // shaman: lightning bolt keeps pace — rank 2 at 10, rank 3 at 14, rank 4 at 20
+    const lbAt = (lvl: number) => abilitiesKnownAt('shaman', lvl).find((k) => k.def.id === 'lightning_bolt')!;
+    expect(lbAt(10).rank).toBe(2);
+    const lb14 = lbAt(14);
+    expect(lb14.rank).toBe(3);
+    expect(lb14.cost).toBe(40);
+    expect(lb14.castTime).toBe(2.5);
+    const lb20 = lbAt(20);
+    expect(lb20.rank).toBe(4);
+    expect(lb20.cost).toBe(60);
+    expect(lb20.effects).toEqual([{ type: 'directDamage', min: 75, max: 85 }]);
+    // rogue: kidney shot is the finisherStun new ability
+    const ks = abilitiesKnownAt('rogue', 14).find((k) => k.def.id === 'kidney_shot')!;
+    expect(ks.effects).toEqual([{ type: 'finisherStun', base: 1, perCombo: 1 }]);
+  });
 });
 
 describe('world generation', () => {

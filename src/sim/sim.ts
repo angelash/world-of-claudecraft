@@ -878,6 +878,12 @@ export class Sim {
       if (ability.minRange && d < ability.minRange) { this.error(p.id, 'Too close!'); return; }
       const facingDiff = Math.abs(normAngle(angleTo(p.pos, target.pos) - p.facing));
       if (facingDiff > MELEE_ARC) { this.error(p.id, 'You must be facing your target.'); return; }
+      // execute-style gate: only usable while the target is nearly dead
+      if (ability.requiresTargetHpBelow !== undefined
+        && target.hp > target.maxHp * ability.requiresTargetHpBelow) {
+        this.error(p.id, `That ability requires the target below ${Math.round(ability.requiresTargetHpBelow * 100)}% health.`);
+        return;
+      }
       for (const eff of res.effects) {
         if (eff.type === 'weaponStrike' && eff.requiresBehind) {
           if (!p.weapon.dagger) { this.error(p.id, 'You must wield a dagger.'); return; }
@@ -979,7 +985,9 @@ export class Sim {
     const ability = res.def;
     if (ability.id === 'conjure_water') {
       this.spendResource(p, res.cost);
-      this.addItem('conjured_water', 2, p.id);
+      // higher ranks conjure better water (falls back if the item isn't defined)
+      const tiered = `conjured_water${res.rank}`;
+      this.addItem(res.rank > 1 && ITEMS[tiered] ? tiered : 'conjured_water', 2, p.id);
       return;
     }
 
