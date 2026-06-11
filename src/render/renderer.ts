@@ -7,7 +7,7 @@ import {
   instanceOrigin, INSTANCE_SLOT_COUNT,
 } from '../sim/data';
 import type { BiomeId } from '../sim/types';
-import { buildBear, buildFarRig, buildRigFor, buildSheep, Rig } from './models';
+import { AnimState, CharacterVisual, createCharacterVisual } from './characters';
 import { buildProps } from './props';
 import { plankTexture, sparkleTexture } from './textures';
 import { DungeonInteriors } from './dungeon';
@@ -58,11 +58,14 @@ const DUNGEON_RIM_BOOST = 2.4;
 
 interface EntityView {
   group: THREE.Group;
-  rig: Rig;
-  sheepRig: Rig | null; // polymorph form, built lazily
-  bearRig: Rig | null; // druid bear form, built lazily
-  walkPhase: number;
-  attackAnim: number;
+  /** rigged glTF visual for characters; null for object views (doors/crates) */
+  visual: CharacterVisual | null;
+  sheepVisual: CharacterVisual | null; // polymorph form, built lazily
+  bearVisual: CharacterVisual | null; // druid bear form, built lazily
+  /** unscaled height — nameplate/vfx anchor reads height * e.scale */
+  height: number;
+  /** what removeView pulls back out of clickTargets */
+  clickTarget: THREE.Object3D;
   nameplate: HTMLDivElement;
   nameEl: HTMLDivElement;
   hpBar: HTMLDivElement;
@@ -71,34 +74,18 @@ interface EntityView {
   sparkle?: THREE.Sprite; // ground objects
   objectMesh?: THREE.Object3D;
   portal?: THREE.Mesh; // dungeon door swirl
-  casters: THREE.Object3D[]; // shadow-casting meshes, distance-gated in sync
+  objectCasters: THREE.Object3D[]; // object-view shadow meshes, distance-gated
   shadowOn: boolean;
-  // sheep/bear form casters keep their (1-2 draw) articulated shadows through
-  // the whole proxy band — the frozen humanoid proxy silhouette would be wrong
-  formCasters: THREE.Object3D[];
-  formShadowOn: boolean;
-  farMesh: THREE.Mesh | null; // single-draw merged LOD shown beyond 55u
-  shadowProxy: THREE.Mesh | null; // shadow-only static-pose caster, 25-62u
   isFar: boolean;
+  // render-space position last frame, for true u/s locomotion speed
+  lastX: number;
+  lastZ: number;
 }
 
 function collectCasters(root: THREE.Object3D, into: THREE.Object3D[]): void {
   root.traverse((o) => {
     if ((o as THREE.Mesh).isMesh && (o as THREE.Mesh).castShadow) into.push(o);
   });
-}
-
-// Shadow-only material for the static-pose proxy casters: it writes neither
-// color nor depth, so the main pass rasterizes nothing visible, while the
-// shadow pass (which swaps in its own depth material and only checks
-// castShadow + the main camera's layer mask in three r165) still renders the
-// mesh into the shadow map. One shared instance for every proxy.
-let shadowOnlyMatSingleton: THREE.Material | null = null;
-function shadowOnlyMat(): THREE.Material {
-  if (!shadowOnlyMatSingleton) {
-    shadowOnlyMatSingleton = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false });
-  }
-  return shadowOnlyMatSingleton;
 }
 
 export class Renderer {
@@ -135,6 +122,7 @@ export class Renderer {
   private doomedIds: number[] = [];
   private dungeons: DungeonInteriors | null = null;
   private time = 0;
+  private frameIdx = 0;
   vfx: Vfx;
 
   private lowGfx: boolean;
@@ -306,7 +294,7 @@ export class Renderer {
       const v = this.views.get(id);
       if (!v) return null;
       const e = this.sim.entities.get(id);
-      const h = v.rig.height * (e?.scale ?? 1) * frac;
+      const h = v.height * (e?.scale ?? 1) * frac;
       return new THREE.Vector3(v.group.position.x, v.group.position.y + h, v.group.position.z);
     });
     this.vfx.setViewportScale(this.webgl.domElement.clientHeight * this.webgl.getPixelRatio(), 60);
@@ -344,8 +332,10 @@ export class Renderer {
       case 'damage':
         // every melee/ranged swing animates the attacker for all to see
         if (ev.school === 'physical' && ev.sourceId !== -1) this.triggerAttack(ev.sourceId);
-        if (ev.kind === 'hit' && ev.amount > 0 && ev.school === 'physical') {
-          this.vfx.meleeSpark(ev.targetId, ev.crit);
+        if (ev.kind === 'hit' && ev.amount > 0) {
+          // landed blows flinch the victim (rate-limited inside the visual)
+          this.triggerHit(ev.targetId);
+          if (ev.school === 'physical') this.vfx.meleeSpark(ev.targetId, ev.crit);
         }
         break;
       case 'heal2':
@@ -375,7 +365,9 @@ export class Renderer {
 
   private createView(e: Entity): void {
     const group = new THREE.Group();
-    let rig: Rig;
+    let visual: CharacterVisual | null = null;
+    let body: THREE.Group | null = null; // object views build meshes into this
+    let height = 1.2;
     let sparkle: THREE.Sprite | undefined;
     let objectMesh: THREE.Object3D | undefined;
 
@@ -384,7 +376,8 @@ export class Renderer {
       // dungeon doorway: stone arch with a swirling portal
       const entering = e.templateId === 'dungeon_door';
       const tint = entering ? 0x9a5df0 : 0x6ab8ff;
-      rig = { body: new THREE.Group(), parts: {}, kind: 'humanoid', height: 4.6 };
+      body = new THREE.Group();
+      height = 4.6;
       this.doorStoneMat ??= new THREE.MeshLambertMaterial({ color: 0x6a6a72 });
       const stone = this.doorStoneMat;
       // carved stone arch: pointed outer/inner outline + keystone + plinths
@@ -410,16 +403,16 @@ export class Renderer {
       archGeo.translate(0, 0, -0.35);
       const arch = new THREE.Mesh(archGeo, stone);
       arch.castShadow = true;
-      rig.body.add(arch);
+      body!.add(arch);
       const keystone = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.0, 0.95), stone);
       keystone.position.set(0, 4.75, 0);
       keystone.castShadow = true;
-      rig.body.add(keystone);
+      body!.add(keystone);
       for (const sx of [-1.7, 1.7]) {
         const plinth = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.7, 1.15), stone);
         plinth.position.set(sx, 0.35, 0);
         plinth.castShadow = true;
-        rig.body.add(plinth);
+        body!.add(plinth);
       }
       const portalMat = new THREE.MeshBasicMaterial({
         color: tint, transparent: true, opacity: 0.55, side: THREE.DoubleSide,
@@ -429,25 +422,26 @@ export class Renderer {
       portal = new THREE.Mesh(new THREE.CircleGeometry(1.55, 24), portalMat);
       portal.position.y = 2.15;
       portal.scale.set(1, 1.35, 1);
-      rig.body.add(portal);
+      body!.add(portal);
       const glow = new THREE.PointLight(tint, 9, 15, 2);
       glow.position.y = 2.4;
-      rig.body.add(glow);
-      objectMesh = rig.body;
+      body!.add(glow);
+      objectMesh = body!;
     } else if (e.kind === 'object') {
-      rig = { body: new THREE.Group(), parts: {}, kind: 'humanoid', height: 1.2 };
+      body = new THREE.Group();
+      height = 1.2;
       // braced plank crate matching the props.ts crates — never a bare cube
       this.crateMat ??= new THREE.MeshLambertMaterial({ map: plankTexture() });
       this.crateLidMat ??= new THREE.MeshLambertMaterial({ color: 0x4a3320 });
       const crate = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.78, 0.78), this.crateMat);
       crate.position.y = 0.42;
       crate.castShadow = true;
-      rig.body.add(crate);
+      body!.add(crate);
       for (const sx of [1, -1]) {
         for (const sz of [1, -1]) {
           const brace = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.86, 0.1), this.crateLidMat);
           brace.position.set(sx * 0.37, 0.42, sz * 0.37);
-          rig.body.add(brace);
+          body!.add(brace);
         }
       }
       for (const sy of [0.06, 0.78]) {
@@ -456,11 +450,11 @@ export class Renderer {
           stripA.position.set(0, sy, s * 0.38);
           const stripB = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.82), this.crateLidMat);
           stripB.position.set(s * 0.38, sy, 0);
-          rig.body.add(stripA, stripB);
+          body!.add(stripA, stripB);
         }
       }
-      rig.body.rotation.y = (e.id % 7) * 0.45; // break identical alignment
-      objectMesh = rig.body;
+      body!.rotation.y = (e.id % 7) * 0.45; // break identical alignment
+      objectMesh = body!;
       if (!this.sparkleMat) {
         this.sparkleMat = new THREE.SpriteMaterial({ map: sparkleTexture(), transparent: true, depthWrite: false });
         if (!this.lowGfx) this.sparkleMat.color.setScalar(SPARKLE_BOOST); // gold glint via bloom
@@ -470,16 +464,28 @@ export class Renderer {
       sparkle.position.y = 1.35;
       group.add(sparkle);
     } else {
-      rig = buildRigFor(e);
+      visual = createCharacterVisual(e);
+      visual.root.scale.multiplyScalar(e.scale);
+      group.add(visual.root);
+      height = visual.height;
     }
-    rig.body.scale.multiplyScalar(e.scale);
-    group.add(rig.body);
 
+    let clickTarget: THREE.Object3D;
+    if (visual) {
+      // raycasting skinned meshes is expensive — pick against the invisible
+      // capsule proxy instead (three's raycaster ignores `visible`)
+      visual.clickProxy.userData.entityId = e.id;
+      clickTarget = visual.clickProxy;
+    } else {
+      body!.scale.multiplyScalar(e.scale);
+      group.add(body!);
+      body!.traverse((o) => { o.userData.entityId = e.id; });
+      clickTarget = body!;
+    }
     group.position.set(e.pos.x, e.pos.y, e.pos.z);
     group.userData.entityId = e.id;
-    rig.body.traverse((o) => { o.userData.entityId = e.id; });
     this.scene.add(group);
-    this.clickTargets.push(rig.body);
+    this.clickTargets.push(clickTarget);
 
     // nameplate
     const np = document.createElement('div');
@@ -497,40 +503,32 @@ export class Renderer {
     np.append(marker, nameEl, hpBar);
     this.nameplateLayer.appendChild(np);
 
-    const casters: THREE.Object3D[] = [];
-    collectCasters(group, casters);
-    // far LOD must be captured from the pristine pose, before any animation
-    let farMesh: THREE.Mesh | null = null;
-    let shadowProxy: THREE.Mesh | null = null;
-    if (e.kind !== 'object') {
-      farMesh = buildFarRig(rig);
-      if (farMesh) {
-        farMesh.scale.copy(rig.body.scale);
-        farMesh.visible = false;
-        farMesh.userData.entityId = e.id;
-        group.add(farMesh);
-        if (!this.lowGfx) {
-          // shares the far-LOD geometry; the shadow-only material writes no
-          // color/depth so the main camera draws nothing visible while the
-          // shadow pass still renders it into the shadow map
-          shadowProxy = new THREE.Mesh(farMesh.geometry, shadowOnlyMat());
-          shadowProxy.scale.copy(rig.body.scale);
-          shadowProxy.castShadow = true;
-          shadowProxy.visible = false;
-          group.add(shadowProxy);
-        }
-      }
-    }
+    // object views gate their own casters; character shadows live in visual
+    const objectCasters: THREE.Object3D[] = [];
+    if (!visual) collectCasters(group, objectCasters);
     this.views.set(e.id, {
-      group, rig, sheepRig: null, bearRig: null, walkPhase: 0, attackAnim: 0,
+      group, visual, sheepVisual: null, bearVisual: null, height, clickTarget,
       nameplate: np, nameEl, hpBar, hpFill, markerEl: marker, sparkle, objectMesh, portal,
-      casters, shadowOn: true, formCasters: [], formShadowOn: true, farMesh, shadowProxy, isFar: false,
+      objectCasters, shadowOn: true, isFar: false,
+      lastX: e.pos.x, lastZ: e.pos.z,
     });
+  }
+
+  /** The visual the player currently sees (form swaps hide the base rig). */
+  private activeVisual(v: EntityView): CharacterVisual | null {
+    if (v.sheepVisual?.root.visible) return v.sheepVisual;
+    if (v.bearVisual?.root.visible) return v.bearVisual;
+    return v.visual;
   }
 
   triggerAttack(entityId: number): void {
     const v = this.views.get(entityId);
-    if (v) v.attackAnim = 0.35;
+    if (v) this.activeVisual(v)?.playAttack();
+  }
+
+  triggerHit(entityId: number): void {
+    const v = this.views.get(entityId);
+    if (v) this.activeVisual(v)?.playHit();
   }
 
   // -------------------------------------------------------------------------
@@ -624,20 +622,24 @@ export class Renderer {
     if (!v) return;
     this.scene.remove(v.group);
     v.nameplate.remove();
-    const idx = this.clickTargets.indexOf(v.rig.body);
+    const idx = this.clickTargets.indexOf(v.clickTarget);
     if (idx >= 0) this.clickTargets.splice(idx, 1);
-    // Free this view's GPU resources: geometries are unique per view (merged
-    // rig buckets, far LOD, lazy form rigs, door/crate boxes) and leak GL
-    // buffers + VAOs for the renderer's lifetime if not disposed on interest
-    // churn / instance despawn. Materials and textures are shared caches
-    // (rigMergedMat / surfaceMat / sparkle / door stone) and must survive —
-    // the per-view portal swirl material is the only one owned here. Sprites
-    // share three's global sprite geometry, so only real meshes are disposed.
-    v.group.traverse((o) => {
-      const mesh = o as THREE.Mesh;
-      if (mesh.isMesh) mesh.geometry.dispose();
-    });
-    if (v.portal) (v.portal.material as THREE.Material).dispose();
+    if (v.visual) {
+      // Character geometry/materials are shared per-asset caches and must
+      // survive interest churn — dispose only per-instance mixer bindings.
+      v.visual.dispose();
+      v.sheepVisual?.dispose();
+      v.bearVisual?.dispose();
+    } else {
+      // Object views (door arch, loot crates) own their geometries; their
+      // materials are shared caches (door stone / crate planks / sparkle) and
+      // must survive. The per-view portal swirl material is owned here.
+      v.group.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (mesh.isMesh) mesh.geometry.dispose();
+      });
+      if (v.portal) (v.portal.material as THREE.Material).dispose();
+    }
     this.views.delete(id);
   }
 
@@ -658,17 +660,20 @@ export class Renderer {
     }
     for (const id of this.doomedIds) this.removeView(id);
 
+    // frame parity for distance-tiered mixer throttling
+    this.frameIdx = (this.frameIdx + 1) & 0xffff;
+
     for (const e of sim.entities.values()) {
       const v = this.views.get(e.id);
       if (!v) continue;
       // form swaps (polymorph sheep, druid bear) — computed up front because
-      // the shadow gates below must not show the humanoid proxy under a form
+      // the shadow gates below must not run the base rig's proxy under a form
       const polyed = e.auras.some((a) => a.kind === 'polymorph');
       const bear = !polyed && e.auras.some((a) => a.kind === 'form_bear');
       // distance cull: far rigs are invisible specks but cost real draw calls
+      const cdx = e.pos.x - p.pos.x, cdz = e.pos.z - p.pos.z;
+      const d2 = cdx * cdx + cdz * cdz;
       if (e.id !== p.id) {
-        const cdx = e.pos.x - p.pos.x, cdz = e.pos.z - p.pos.z;
-        const d2 = cdx * cdx + cdz * cdz;
         if (d2 > ENTITY_DRAW_RANGE * ENTITY_DRAW_RANGE) {
           v.group.visible = false;
           continue;
@@ -676,19 +681,21 @@ export class Renderer {
         v.group.visible = true; // the object branch below may re-hide loot
         // mid-distance rigs keep rendering but leave the shadow pass
         const wantShadow = d2 < ENTITY_SHADOW_RANGE_SQ;
-        if (wantShadow !== v.shadowOn) {
-          v.shadowOn = wantShadow;
-          for (const caster of v.casters) (caster as THREE.Mesh).castShadow = wantShadow;
-        }
-        v.isFar = d2 > ENTITY_LOD_RANGE_SQ;
-        // past the articulated gate the static-pose proxy carries the shadow;
-        // while a form is active its own rig keeps casting instead
         const inProxyBand = d2 < ENTITY_PROXY_SHADOW_RANGE_SQ;
-        if (v.shadowProxy) v.shadowProxy.visible = !wantShadow && inProxyBand && !polyed && !bear;
-        const wantFormShadow = wantShadow || inProxyBand;
-        if (wantFormShadow !== v.formShadowOn) {
-          v.formShadowOn = wantFormShadow;
-          for (const caster of v.formCasters) (caster as THREE.Mesh).castShadow = wantFormShadow;
+        if (v.visual) {
+          v.visual.setShadow(wantShadow);
+          v.isFar = d2 > ENTITY_LOD_RANGE_SQ;
+          // past the articulated gate the static-pose proxy carries the
+          // shadow; an active form's own rig keeps casting instead
+          v.visual.setProxyShadow(!wantShadow && inProxyBand && !polyed && !bear);
+          // sheep/bear keep articulated shadows through the whole proxy band —
+          // a frozen humanoid proxy silhouette would be wrong under a form
+          const wantFormShadow = wantShadow || inProxyBand;
+          v.sheepVisual?.setShadow(wantFormShadow);
+          v.bearVisual?.setShadow(wantFormShadow);
+        } else if (wantShadow !== v.shadowOn) {
+          v.shadowOn = wantShadow;
+          for (const caster of v.objectCasters) (caster as THREE.Mesh).castShadow = wantShadow;
         }
       }
       const x = e.prevPos.x + (e.pos.x - e.prevPos.x) * alpha;
@@ -716,123 +723,64 @@ export class Renderer {
         }
         continue;
       }
+      if (!v.visual) continue;
 
-      // swimming pose: prone at the surface, stroking arms
+      // swimming pose: prone at the surface (derived here — the sim is unaware)
       const swimming = !e.dead
         && groundHeight(e.pos.x, e.pos.z, this.sim.cfg.seed) < WATER_LEVEL - 0.8
         && e.pos.y <= WATER_LEVEL - 0.5;
 
-      // lazy form rig builds; form casters follow the wider proxy-band gate
-      if (polyed && !v.sheepRig) {
-        v.sheepRig = buildSheep();
-        v.sheepRig.body.scale.multiplyScalar(e.scale);
-        v.group.add(v.sheepRig.body);
-        collectCasters(v.sheepRig.body, v.formCasters);
-        if (!v.formShadowOn) v.sheepRig.body.traverse((o) => { (o as THREE.Mesh).castShadow = false; });
+      // lazy form visuals, swapped by visibility like the old sheep/bear rigs
+      if (polyed && !v.sheepVisual) {
+        v.sheepVisual = createCharacterVisual(e, 'form_sheep');
+        v.sheepVisual.root.scale.multiplyScalar(e.scale);
+        v.group.add(v.sheepVisual.root);
       }
-      if (bear && !v.bearRig) {
-        v.bearRig = buildBear();
-        v.bearRig.body.scale.multiplyScalar(e.scale);
-        v.group.add(v.bearRig.body);
-        collectCasters(v.bearRig.body, v.formCasters);
-        if (!v.formShadowOn) v.bearRig.body.traverse((o) => { (o as THREE.Mesh).castShadow = false; });
+      if (bear && !v.bearVisual) {
+        v.bearVisual = createCharacterVisual(e, 'form_bear');
+        v.bearVisual.root.scale.multiplyScalar(e.scale);
+        v.group.add(v.bearVisual.root);
       }
-      if (v.sheepRig) v.sheepRig.body.visible = polyed;
-      if (v.bearRig) v.bearRig.body.visible = bear;
-      // distant rigs render as their single-draw merged LOD instead
-      const useFar = v.isFar && !polyed && !bear && v.farMesh !== null;
-      if (v.farMesh) v.farMesh.visible = useFar;
-      v.rig.body.visible = !polyed && !bear && !useFar;
-      const activeRig = polyed && v.sheepRig ? v.sheepRig : bear && v.bearRig ? v.bearRig : v.rig;
-      const parts = activeRig.parts;
+      if (v.sheepVisual) v.sheepVisual.root.visible = polyed;
+      if (v.bearVisual) v.bearVisual.root.visible = bear;
+      const active = polyed && v.sheepVisual ? v.sheepVisual
+        : bear && v.bearVisual ? v.bearVisual : v.visual;
+      v.visual.root.visible = active === v.visual;
+      // distant rigs swap to the single-draw baked idle-pose mesh
+      v.visual.setFar(v.isFar && active === v.visual);
 
-      // animation
-      const speed = Math.hypot(e.pos.x - e.prevPos.x, e.pos.z - e.prevPos.z) / Math.max(dt, 1e-4) * 0.05;
-      const moving = speed > 0.02;
-      if (moving) v.walkPhase += dt * 9 * Math.min(2, speed * 6);
-      const swing = moving ? Math.sin(v.walkPhase) * 0.55 : 0;
+      // animation state machine inputs, derived from render-space motion
+      const vx = x - v.lastX, vz = z - v.lastZ;
+      v.lastX = x;
+      v.lastZ = z;
+      const dist = Math.hypot(vx, vz);
+      let speed = dist / Math.max(dt, 1e-4);
+      if (speed > 25) speed = 0; // teleport snap, not locomotion
+      const moving = speed > 0.4;
+      const backwards = moving && dist > 1e-6
+        && (vx * Math.sin(facing) + vz * Math.cos(facing)) / dist < -0.3;
+      const st: AnimState = {
+        speed,
+        moving,
+        backwards,
+        dead: e.dead,
+        casting: e.castingAbility !== null && !e.dead,
+        swimming,
+        sitting: e.kind === 'player' && (e.sitting || e.eating !== null || e.drinking !== null),
+      };
+      // distance-tiered mixer updates: near = every frame, mid = every 2nd,
+      // far (static LOD mesh visible) = every 6th; edges latch regardless
+      let animate = true;
+      if (e.id !== p.id) {
+        if (v.isFar) animate = ((this.frameIdx + e.id) % 6) === 0;
+        else if (d2 > ENTITY_SHADOW_RANGE_SQ) animate = ((this.frameIdx + e.id) & 1) === 0;
+      }
+      active.update(dt, st, animate);
 
-      if (parts.leftLeg || parts.rightLeg) {
-        // biped
-        if (parts.leftLeg) parts.leftLeg.rotation.x = swing;
-        if (parts.rightLeg) parts.rightLeg.rotation.x = -swing;
-        if (parts.leftArm) parts.leftArm.rotation.x = -swing * 0.65;
-        if (parts.rightArm && v.attackAnim <= 0) parts.rightArm.rotation.x = swing * 0.65;
-        if (v.attackAnim > 0) {
-          v.attackAnim -= dt;
-          const t = 1 - Math.max(0, v.attackAnim) / 0.35;
-          if (parts.rightArm) parts.rightArm.rotation.x = -Math.sin(t * Math.PI) * 1.9;
-        }
-        // idle breathing — absolute around the captured rest height (adding
-        // to the current position accumulated frame-rate-dependent drift)
-        if (!moving && parts.head && activeRig.headRestY !== undefined) {
-          parts.head.position.y = activeRig.headRestY + Math.sin(this.time * 1.8 + e.id) * 0.012;
-        }
-      } else if (parts.legs) {
-        if (activeRig.kind === 'spider') {
-          parts.legs.forEach((leg, i) => {
-            const base = (i % 2 === 0 ? 1 : -1) * 0.18;
-            leg.rotation.x = moving ? Math.sin(v.walkPhase * 1.6 + i * 0.9) * 0.35 : Math.sin(this.time * 2 + i) * 0.05;
-            leg.rotation.z = base;
-          });
-        } else {
-          parts.legs.forEach((leg, i) => {
-            leg.rotation.x = moving ? Math.sin(v.walkPhase + (i % 2) * Math.PI) * 0.7 : 0;
-          });
-        }
-        if (v.attackAnim > 0) {
-          v.attackAnim -= dt;
-          const t = 1 - Math.max(0, v.attackAnim) / 0.35;
-          if (parts.head) parts.head.rotation.x = Math.sin(t * Math.PI) * 0.6;
-        } else if (parts.head) {
-          parts.head.rotation.x = 0;
-        }
-        if (parts.tail) parts.tail.rotation.x = 0.55 + Math.sin(this.time * 4 + e.id) * 0.15;
+      if (st.casting) {
+        this.vfx.castSparkle(e.id, ABILITIES[e.castingAbility!]?.school ?? 'arcane', dt);
       }
-
-      // death pose
-      if (e.dead) {
-        activeRig.body.rotation.z = Math.PI / 2;
-        activeRig.body.rotation.x = 0;
-        activeRig.body.position.y = 0.4;
-      } else {
-        activeRig.body.rotation.z = 0;
-        activeRig.body.rotation.x = 0;
-        activeRig.body.position.y = 0;
-        if (e.castingAbility && parts.leftArm && parts.rightArm) {
-          parts.leftArm.rotation.x = -2.4;
-          parts.rightArm.rotation.x = -2.4;
-          this.vfx.castSparkle(e.id, ABILITIES[e.castingAbility]?.school ?? 'arcane', dt);
-        }
-        // sitting pose
-        if (e.kind === 'player' && (e.sitting || e.eating || e.drinking)) {
-          activeRig.body.position.y = -0.8;
-          if (parts.leftLeg) parts.leftLeg.rotation.x = -1.4;
-          if (parts.rightLeg) parts.rightLeg.rotation.x = -1.4;
-        }
-        if (swimming) {
-          // prone freestyle at the surface
-          activeRig.body.rotation.x = 1.18;
-          activeRig.body.position.y = 1.0 + Math.sin(this.time * 2 + e.id) * 0.08;
-          const ph = moving ? v.walkPhase : this.time * 2.4;
-          if (parts.leftArm) parts.leftArm.rotation.x = Math.sin(ph) * 1.25 - 1.5;
-          if (parts.rightArm && v.attackAnim <= 0) parts.rightArm.rotation.x = Math.sin(ph + Math.PI) * 1.25 - 1.5;
-          if (parts.leftLeg) parts.leftLeg.rotation.x = Math.sin(ph * 2) * 0.4;
-          if (parts.rightLeg) parts.rightLeg.rotation.x = Math.sin(ph * 2 + Math.PI) * 0.4;
-          if (moving) this.vfx.swimRipple(v.group.position, dt * 3);
-          else this.vfx.swimRipple(v.group.position, dt);
-        }
-      }
-      // the far LOD and shadow proxy mirror the body pose (death tip-over,
-      // sitting, swimming)
-      if (v.farMesh && v.farMesh.visible) {
-        v.farMesh.rotation.copy(activeRig.body.rotation);
-        v.farMesh.position.copy(activeRig.body.position);
-      }
-      if (v.shadowProxy && v.shadowProxy.visible) {
-        v.shadowProxy.rotation.copy(activeRig.body.rotation);
-        v.shadowProxy.position.copy(activeRig.body.position);
-      }
+      if (swimming) this.vfx.swimRipple(v.group.position, moving ? dt * 3 : dt);
     }
 
     // selection ring
@@ -1000,7 +948,7 @@ export class Renderer {
         continue;
       }
       this.tmpV.copy(v.group.position);
-      this.tmpV.y += v.rig.height * e.scale + 0.5;
+      this.tmpV.y += v.height * e.scale + 0.5;
       this.tmpV.project(this.camera);
       if (this.tmpV.z > 1) { v.nameplate.style.display = 'none'; continue; }
       const sx = (this.tmpV.x * 0.5 + 0.5) * w;
