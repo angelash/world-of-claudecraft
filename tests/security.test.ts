@@ -92,6 +92,40 @@ describe('rate-limit client IP selection', () => {
   });
 });
 
+describe('malformed websocket frames cannot crash the server', () => {
+  // Mirrors the guard in GameServer.dispatchMessage. Regression for the outage
+  // where a WS frame containing the literal `null` reached `msg.t`: JSON.parse
+  // returns null for valid-but-non-object JSON (also numbers/strings/arrays),
+  // and `null.t` threw an uncaught TypeError that killed the whole process,
+  // disconnecting every player.
+  function parseFrame(raw: string): Record<string, unknown> | null {
+    let msg: any;
+    try {
+      msg = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+    if (typeof msg !== 'object' || msg === null || Array.isArray(msg)) return null;
+    return msg;
+  }
+
+  it('rejects null / primitives / arrays / unparseable frames', () => {
+    for (const raw of ['null', 'false', '0', '"hello"', '[1,2,3]', '{bad', '']) {
+      expect(parseFrame(raw)).toBeNull();
+    }
+  });
+
+  it('reading .t on every rejected frame never throws', () => {
+    for (const raw of ['null', 'false', '0', '"hello"', '[1,2,3]', '{bad', '']) {
+      expect(() => parseFrame(raw)?.t).not.toThrow();
+    }
+  });
+
+  it('still accepts a well-formed object frame', () => {
+    expect(parseFrame(JSON.stringify({ t: 'input', mi: { f: 1 } }))).toEqual({ t: 'input', mi: { f: 1 } });
+  });
+});
+
 describe('gm privilege boundaries', () => {
   it('normal character names cannot create reserved GM-style names', () => {
     expect(validCharName('GM01')).toBe(false);

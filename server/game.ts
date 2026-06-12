@@ -274,6 +274,10 @@ export class GameServer {
   }
 
   private dispatchMessage(session: ClientSession, msg: any): void {
+    // JSON.parse returns null / numbers / strings / arrays for valid JSON that
+    // isn't an object — `null` in particular threw on `msg.t`. Drop anything
+    // that isn't a plain object before touching its fields.
+    if (typeof msg !== 'object' || msg === null || Array.isArray(msg)) return;
     const sim = this.sim;
     const pid = session.pid;
     if (msg.t === 'input') {

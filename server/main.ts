@@ -296,6 +296,18 @@ async function main(): Promise<void> {
   };
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
+
+  // Last-resort net: one player's request must never crash the process and
+  // disconnect everyone. handleMessage already guards itself, but any future
+  // uncaught throw in a timer or async path would otherwise be fatal. Log and
+  // keep serving — a live world staying up beats a clean crash-loop. Genuinely
+  // fatal startup errors are still handled by main().catch() below.
+  process.on('uncaughtException', (err) => {
+    console.error('uncaughtException (kept alive):', err);
+  });
+  process.on('unhandledRejection', (reason) => {
+    console.error('unhandledRejection (kept alive):', reason);
+  });
 }
 
 main().catch((err) => {
