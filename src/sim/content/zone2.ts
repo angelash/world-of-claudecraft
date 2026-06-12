@@ -35,7 +35,7 @@ export const ZONE2_ZONE: ZoneDef = {
 };
 
 // Causeway north from Eastbrook to Fenbridge, then spokes to each hub.
-// The Drowned Chapel spoke rounds the lake at (60,380) along its eastern
+// The Drowned Chapel spoke rounds the lake at (60,380) along its western
 // shore via Widow Thicket — the whole polyline stays clear of the lake carve
 // so the road never dips under the waterline (tests/progression.test.ts
 // samples every road against the heightfield to lock this in).
@@ -198,7 +198,7 @@ export const ZONE2_NPCS: Record<string, NpcDef> = {
     id: 'herbalist_yara', name: 'Herbalist Yara', title: 'Herbalist',
     pos: { x: 10, z: 295 }, facing: -Math.PI / 2, color: 0x7d3c98,
     questIds: ['q_widows', 'q_broodmother'],
-    greeting: 'Mind the thicket east of the road. The webs are thick as sailcloth this season.',
+    greeting: 'Mind the thicket west of the road. The webs are thick as sailcloth this season.',
   },
   scout_maren: {
     id: 'scout_maren', name: 'Scout Maren', title: "Marshal's Scout",
@@ -250,7 +250,7 @@ export const ZONE2_QUESTS: Record<string, QuestDef> = {
   q_deepfen: {
     id: 'q_deepfen', name: 'The Deepfen Stirs',
     giverNpcId: 'warden_fenwick', turnInNpcId: 'warden_fenwick',
-    text: 'The Deepfen murlocs kept to their shallows for twenty years. Now they swarm the west bank like flies on a carcass — and my wardens say they are dragging things up from the lake bed. Whatever has them stirred, I want it stopped. Cull 12 of the snappers.',
+    text: 'The Deepfen murlocs kept to their shallows for twenty years. Now they swarm the east bank like flies on a carcass — and my wardens say they are dragging things up from the lake bed. Whatever has them stirred, I want it stopped. Cull 12 of the snappers.',
     completionText: "That will push them back to the mud for a while. But something set them digging, and I mean to learn what.",
     objectives: [{ type: 'kill', targetMobId: 'deepfen_murloc', count: 12, label: 'Deepfen Snapper slain' }],
     xpReward: 1000, copperReward: 400, itemRewards: {},
@@ -277,7 +277,7 @@ export const ZONE2_QUESTS: Record<string, QuestDef> = {
   q_widows: {
     id: 'q_widows', name: 'Silk and Venom',
     giverNpcId: 'herbalist_yara', turnInNpcId: 'herbalist_yara',
-    text: "Widow venom is the only thing that draws fen-rot from a wound — I bled a man of it just this morning. But the thicket east of the road has gone from nuisance to horror; the webs are taking deer whole now. Kill 10 widows and cut me 6 venom sacs, whole and unburst.",
+    text: "Widow venom is the only thing that draws fen-rot from a wound — I bled a man of it just this morning. But the thicket west of the road has gone from nuisance to horror; the webs are taking deer whole now. Kill 10 widows and cut me 6 venom sacs, whole and unburst.",
     completionText: 'Whole sacs, every one. You have steadier hands than half the surgeons in the south, $N.',
     objectives: [
       { type: 'kill', targetMobId: 'mire_widow', count: 10, label: 'Mirefen Widow slain' },
@@ -329,7 +329,7 @@ export const ZONE2_QUESTS: Record<string, QuestDef> = {
   q_trolls: {
     id: 'q_trolls', name: 'Mounds of the Mirefen',
     giverNpcId: 'warden_fenwick', turnInNpcId: 'warden_fenwick',
-    text: 'The Mirefen trolls have torn open the old barrow-mounds west of the far lake — burial mounds, $N, older than any kingdom of men. Whatever gold they think is down there, what they are letting OUT is worse. Drive them off the mounds: 12 trolls dead ought to do it.',
+    text: 'The Mirefen trolls have torn open the old barrow-mounds east of the far lake — burial mounds, $N, older than any kingdom of men. Whatever gold they think is down there, what they are letting OUT is worse. Drive them off the mounds: 12 trolls dead ought to do it.',
     completionText: "Trolls don't dig without a reason. Someone told them where to dig — and I'd wager my gate it wears a grey robe.",
     objectives: [{ type: 'kill', targetMobId: 'fen_troll', count: 12, label: 'Mirefen Troll slain' }],
     xpReward: 1600, copperReward: 600, itemRewards: {},
@@ -348,7 +348,7 @@ export const ZONE2_QUESTS: Record<string, QuestDef> = {
   q_grubjaw: {
     id: 'q_grubjaw', name: 'The Glutton',
     giverNpcId: 'provisioner_hale', turnInNpcId: 'provisioner_hale',
-    text: "There's one troll the others won't dig beside — Grubjaw, the Glutton. He ate my last two pack-mules, harness and all, and my insurance man drowned years ago. He prowls the far western mounds, $N. Bring me his tusk and I will outfit you proper.",
+    text: "There's one troll the others won't dig beside — Grubjaw, the Glutton. He ate my last two pack-mules, harness and all, and my insurance man drowned years ago. He prowls the far eastern mounds, $N. Bring me his tusk and I will outfit you proper.",
     completionText: "That tusk is long as my forearm! The mules are avenged, and Fenbridge owes you a round.",
     objectives: [{ type: 'collect', itemId: 'grubjaw_tusk', count: 1, label: "Grubjaw's Tusk" }],
     xpReward: 1700, copperReward: 700,
@@ -431,24 +431,25 @@ export const ZONE2_QUEST_ORDER = [
 ];
 
 // ---------------------------------------------------------------------------
-// World layout. Fenbridge sits at (0,300); +x east, +z north (deeper fen).
+// World layout. Fenbridge sits at (0,300); +z north (deeper fen), +x west
+// (east is -x — see the zone1 layout note).
 // ---------------------------------------------------------------------------
 
 export const ZONE2_CAMPS: CampDef[] = [
   // Prowlers: reed beds flanking the causeway south of town
   { mobId: 'mire_prowler', center: { x: -40, z: 230 }, radius: 22, count: 7 },
   { mobId: 'mire_prowler', center: { x: 35, z: 225 }, radius: 20, count: 6 },
-  // Murlocs: shores of the big west lake — camps straddle the waterline
+  // Murlocs: shores of the big east lake — camps straddle the waterline
   { mobId: 'deepfen_murloc', center: { x: -82, z: 273 }, radius: 15, count: 8 },
   { mobId: 'deepfen_murloc', center: { x: -120, z: 350 }, radius: 13, count: 6 },
-  // Widows: thicket east of Fenbridge
+  // Widows: thicket west of Fenbridge
   { mobId: 'mire_widow', center: { x: 70, z: 300 }, radius: 20, count: 7 },
   { mobId: 'mire_widow', center: { x: 95, z: 340 }, radius: 16, count: 6 },
   { mobId: 'mirefen_broodmother', center: { x: 98, z: 348 }, radius: 3, count: 1 },
   // Drowned dead: the Drowned Chapel and the shallows beyond
   { mobId: 'drowned_dead', center: { x: 90, z: 420 }, radius: 20, count: 8 },
   { mobId: 'drowned_dead', center: { x: 115, z: 450 }, radius: 16, count: 6 },
-  // Trolls: barrow-mounds in the southwest
+  // Trolls: barrow-mounds in the southeast
   { mobId: 'fen_troll', center: { x: -80, z: 420 }, radius: 22, count: 7 },
   { mobId: 'fen_troll', center: { x: -105, z: 455 }, radius: 18, count: 6 },
   { mobId: 'grubjaw', center: { x: -120, z: 480 }, radius: 8, count: 1 },

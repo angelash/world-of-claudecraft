@@ -227,7 +227,7 @@ export const ZONE3_QUESTS: Record<string, QuestDef> = {
   q_stalker_pelts: {
     id: 'q_stalker_pelts', name: 'Winter Is Coming to Highwatch',
     giverNpcId: 'quartermaster_bree', turnInNpcId: 'quartermaster_bree',
-    text: 'Winter on this mountain does not knock, $N — it kicks the door in. Eight ridge stalker pelts will line enough cloaks to see the wall through the first snows. The beasts prowl the ridge west of the road south.',
+    text: 'Winter on this mountain does not knock, $N — it kicks the door in. Eight ridge stalker pelts will line enough cloaks to see the wall through the first snows. The beasts prowl the ridges flanking the road south.',
     completionText: 'Thick as my arm, these. The watch will not freeze this year — take these treads for your trouble.',
     objectives: [{ type: 'collect', itemId: 'ridge_stalker_pelt', count: 8, label: 'Ridge Stalker Pelt' }],
     xpReward: 2300, copperReward: 1000,
@@ -254,7 +254,7 @@ export const ZONE3_QUESTS: Record<string, QuestDef> = {
   q_ogre_edges: {
     id: 'q_ogre_edges', name: 'Ogres at the Foothills',
     giverNpcId: 'scout_maren_highwatch', turnInNpcId: 'scout_maren_highwatch',
-    text: 'The Thornpeak clans never come this far east — yet here they are, camped in the western foothills with war paint on. Somebody is paying them, $N, and ogres do not take promises. Cut twelve of them down while I find out who holds the purse.',
+    text: 'The Thornpeak clans never come this far east — yet here they are, camped in the eastern foothills with war paint on. Somebody is paying them, $N, and ogres do not take promises. Cut twelve of them down while I find out who holds the purse.',
     completionText: 'Twelve down, and still they are not pulling back. Whoever bought them paid in something heavier than gold.',
     objectives: [{ type: 'kill', targetMobId: 'thornpeak_ogre', count: 12, label: 'Thornpeak Ogre slain' }],
     xpReward: 2900, copperReward: 1400, itemRewards: {},
@@ -281,7 +281,7 @@ export const ZONE3_QUESTS: Record<string, QuestDef> = {
   q_crushers: {
     id: 'q_crushers', name: 'Break the War-Camp',
     giverNpcId: 'captain_thessaly', turnInNpcId: 'captain_thessaly',
-    text: "Drogmar's war-camp squats in the western crags, and his crushers are the spine of it — each one worth three of my soldiers. Take companions; this is no errand for one blade. Break ten crushers and the warlord's muster breaks with them.",
+    text: "Drogmar's war-camp squats in the eastern crags, and his crushers are the spine of it — each one worth three of my soldiers. Take companions; this is no errand for one blade. Break ten crushers and the warlord's muster breaks with them.",
     completionText: 'Ten crushers down. The war-camp is a body without a spine — time to take the head.',
     objectives: [{ type: 'kill', targetMobId: 'ogre_crusher', count: 10, label: 'Thornpeak Crusher slain' }],
     xpReward: 3600, copperReward: 2000, itemRewards: {},
@@ -318,7 +318,7 @@ export const ZONE3_QUESTS: Record<string, QuestDef> = {
   q_kazzix: {
     id: 'q_kazzix', name: 'The Shardlord',
     giverNpcId: 'loremaster_caddis', turnInNpcId: 'loremaster_caddis',
-    text: 'Among the elementals one burns brighter than the rest: Shardlord Kazzix, a storm given shoulders. Its heartshard would anchor every reading I have taken — if you can wrench it from the thing. It walks the far crags east of Stormcrag, beyond the second camp.',
+    text: 'Among the elementals one burns brighter than the rest: Shardlord Kazzix, a storm given shoulders. Its heartshard would anchor every reading I have taken — if you can wrench it from the thing. It walks the far crags west of Stormcrag, beyond the second camp.',
     completionText: 'The heartshard! Still crackling — magnificent. Take these leggings; I sized them off a guess and a prayer.',
     objectives: [{ type: 'collect', itemId: 'kazzix_heartshard', count: 1, label: "Kazzix's Heartshard" }],
     xpReward: 3800, copperReward: 2000,
@@ -361,7 +361,7 @@ export const ZONE3_QUESTS: Record<string, QuestDef> = {
   q_revenants: {
     id: 'q_revenants', name: 'The Revenant Fields',
     giverNpcId: 'captain_thessaly', turnInNpcId: 'captain_thessaly',
-    text: 'West of the Sanctum road lies an old battlefield — the vanguard of the last army that tried to take this mountain, two hundred years buried. The cult has called them up, bones in rusted plate. Put twelve revenants back in the ground, $N.',
+    text: 'East of the Sanctum road lies an old battlefield — the vanguard of the last army that tried to take this mountain, two hundred years buried. The cult has called them up, bones in rusted plate. Put twelve revenants back in the ground, $N.',
     completionText: 'They were soldiers once, like mine. Whatever called them up has no respect for the dead — or a use for them I do not care to learn.',
     objectives: [{ type: 'kill', targetMobId: 'boneclad_revenant', count: 12, label: 'Boneclad Revenant slain' }],
     xpReward: 4300, copperReward: 2200, itemRewards: {},
@@ -465,15 +465,15 @@ export const ZONE3_CAMPS: CampDef[] = [
   // Ridge stalkers: the ridge flanking the road from the pass
   { mobId: 'ridge_stalker', center: { x: -50, z: 590 }, radius: 22, count: 7 },
   { mobId: 'ridge_stalker', center: { x: 45, z: 600 }, radius: 20, count: 6 },
-  // Kobolds: Deeprock Burrows, east
+  // Kobolds: Deeprock Burrows, west
   { mobId: 'deeprock_kobold', center: { x: 75, z: 625 }, radius: 18, count: 8 },
   { mobId: 'deeprock_kobold', center: { x: 105, z: 600 }, radius: 14, count: 6 },
-  // Ogres: western foothills rising to Drogmar's war-camp
+  // Ogres: eastern foothills rising to Drogmar's war-camp
   { mobId: 'thornpeak_ogre', center: { x: -90, z: 700 }, radius: 22, count: 7 },
   { mobId: 'thornpeak_ogre', center: { x: -60, z: 730 }, radius: 18, count: 6 },
   { mobId: 'ogre_crusher', center: { x: -125, z: 740 }, radius: 18, count: 8 },
   { mobId: 'warlord_drogmar', center: { x: -132, z: 748 }, radius: 2, count: 1 },
-  // Elementals: Stormcrag, far east
+  // Elementals: Stormcrag, far west
   { mobId: 'stormcrag_elemental', center: { x: 110, z: 760 }, radius: 20, count: 8 },
   { mobId: 'stormcrag_elemental', center: { x: 135, z: 795 }, radius: 16, count: 6 },
   { mobId: 'shardlord_kazzix', center: { x: 145, z: 815 }, radius: 8, count: 1 },
@@ -713,8 +713,8 @@ export const ZONE3_PROPS: ZonePropsDef = {
     { x: 12, z: 858, ringR: 6, columns: 5 },
   ],
   fences: [
-    { x1: -14, z1: 649, x2: -4, z2: 647 },           // south gate, west run
-    { x1: 4, z1: 647, x2: 14, z2: 649 },             // south gate, east run
+    { x1: -14, z1: 649, x2: -4, z2: 647 },           // south gate, east run
+    { x1: 4, z1: 647, x2: 14, z2: 649 },             // south gate, west run
   ],
   graveyards: [{ x: 15, z: 645 }],
 };

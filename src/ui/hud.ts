@@ -480,7 +480,10 @@ export class Hud {
     const seed = this.sim.cfg.seed;
     for (let iy = 0; iy < H; iy++) {
       for (let ix = 0; ix < W; ix++) {
-        const x = region.minX + (ix / W) * spanX;
+        // +Z up, +X LEFT: facing 0 is +Z ("north") and turning right
+        // decreases facing, so the world's east is -X — drawing +X to the
+        // right mirrored the whole map east-west
+        const x = region.maxX - (ix / W) * spanX;
         const z = region.maxZ - (iy / H) * spanZ;
         const h = terrainHeight(x, z, seed);
         const biome = zoneAt(z).biome;
@@ -519,13 +522,13 @@ export class Hud {
     const bg = this.minimapBg;
     const bgPxPerYard = bg.width / (WORLD_MAX_X - WORLD_MIN_X);
     const sw = S / (pxPerYard / bgPxPerYard);
-    const sx = (p.pos.x - WORLD_MIN_X) * bgPxPerYard - sw / 2;
+    const sx = (WORLD_MAX_X - p.pos.x) * bgPxPerYard - sw / 2; // bg is +X-left
     const sy = (WORLD_MAX_Z - p.pos.z) * bgPxPerYard - sw / 2;
     ctx.drawImage(bg, sx, sy, sw, sw, 0, 0, S, S);
 
     for (const e of this.sim.entities.values()) {
       if (e.id === p.id) continue;
-      const dx = (e.pos.x - p.pos.x) * pxPerYard;
+      const dx = -(e.pos.x - p.pos.x) * pxPerYard; // +X is map-left
       const dz = -(e.pos.z - p.pos.z) * pxPerYard;
       const mx = S / 2 + dx, my = S / 2 + dz;
       if ((mx - S / 2) ** 2 + (my - S / 2) ** 2 > (S / 2 - 7) ** 2) continue;
@@ -557,7 +560,7 @@ export class Hud {
       ctx.fillStyle = '#5fa8ff';
       for (const m of party.members) {
         if (m.pid === p.id) continue;
-        const mx = S / 2 + (m.x - p.pos.x) * pxPerYard;
+        const mx = S / 2 - (m.x - p.pos.x) * pxPerYard;
         const my = S / 2 - (m.z - p.pos.z) * pxPerYard;
         if ((mx - S / 2) ** 2 + (my - S / 2) ** 2 > (S / 2 - 7) ** 2) continue;
         ctx.beginPath();
@@ -566,7 +569,7 @@ export class Hud {
       }
     }
     ctx.translate(S / 2, S / 2);
-    ctx.rotate(p.facing);
+    ctx.rotate(-p.facing); // canvas rotates clockwise; facing increases turning left
     ctx.fillStyle = '#fff';
     ctx.strokeStyle = '#000';
     ctx.beginPath();
@@ -608,7 +611,7 @@ export class Hud {
     const spanX = region.maxX - region.minX;
     const spanZ = region.maxZ - region.minZ;
     const toMap = (x: number, z: number) => ({
-      mx: ((x - region.minX) / spanX) * S,
+      mx: ((region.maxX - x) / spanX) * S, // +X is map-left (east = -X)
       my: ((region.maxZ - z) / spanZ) * S,
     });
     // zone title
@@ -662,7 +665,7 @@ export class Hud {
       const { mx, my } = toMap(p.pos.x, p.pos.z);
       ctx.save();
       ctx.translate(mx, my);
-      ctx.rotate(p.facing);
+      ctx.rotate(-p.facing); // matches the flipped map (see toMap)
       ctx.fillStyle = '#fff';
       ctx.beginPath();
       ctx.moveTo(0, -7); ctx.lineTo(5, 6); ctx.lineTo(-5, 6);

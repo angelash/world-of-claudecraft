@@ -6,7 +6,7 @@ import type { CampDef, GroundObjectDef, MobTemplate, NpcDef, QuestDef, ZoneDef, 
 
 export const TOWN_RADIUS = 26;
 export const GRAVEYARD_POS = { x: -12, z: -14 };
-// Basin carved into the heightfield. Pushed to the far northwest so its
+// Basin carved into the heightfield. Pushed to the far northeast so its
 // shoreline meets the fishing dock and the murloc camp instead of drowning them.
 export const LAKE = { x: -92, z: 88, radius: 30 };
 
@@ -162,7 +162,7 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     id: 'apothecary_lin', name: 'Apothecary Lin', title: 'Herbalist',
     pos: { x: 11, z: -3 }, facing: -Math.PI / 2, color: 0x7d3c98,
     questIds: ['q_spiders'],
-    greeting: 'Careful where you step in the western woods, friend.',
+    greeting: 'Careful where you step in the eastern woods, friend.',
   },
   brother_aldric: {
     id: 'brother_aldric', name: 'Brother Aldric', title: 'Priest of the Vale',
@@ -186,7 +186,7 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
   },
   fisherman_brandt: {
     id: 'fisherman_brandt', name: 'Fisherman Brandt', title: 'Old Salt',
-    // in town (west edge, glaring out at Mirror Lake) — his old spot by the
+    // in town (east edge, glaring out at Mirror Lake) — his old spot by the
     // dock sat inside the Mudfin spawn radius and new players got ambushed
     // walking up to a quest giver
     pos: { x: -16, z: 6 }, facing: -0.75, color: 0x2471a3,
@@ -229,7 +229,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
   q_boars: {
     id: 'q_boars', name: 'Bristleback Hides',
     giverNpcId: 'trader_wilkes', turnInNpcId: 'trader_wilkes',
-    text: 'Boar hide makes the finest travel packs, and the meadows east of town are crawling with the beasts. Bring me 5 Bristly Boar Hides and I will make it worth your time.',
+    text: 'Boar hide makes the finest travel packs, and the meadows west of town are crawling with the beasts. Bring me 5 Bristly Boar Hides and I will make it worth your time.',
     completionText: 'Ah, fine bristly hides! These will fetch a good price.',
     objectives: [{ type: 'collect', itemId: 'boar_hide', count: 5, label: 'Bristly Boar Hide' }],
     xpReward: 350, copperReward: 120, itemRewards: {},
@@ -237,7 +237,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
   q_spiders: {
     id: 'q_spiders', name: 'Webwood Menace',
     giverNpcId: 'apothecary_lin', turnInNpcId: 'apothecary_lin',
-    text: 'The lurkers in the western woods spin a silk I need for my poultices — and they have grown far too numerous besides. Cull 6 Webwood Lurkers and cut 4 silk glands from their bellies.',
+    text: 'The lurkers in the eastern woods spin a silk I need for my poultices — and they have grown far too numerous besides. Cull 6 Webwood Lurkers and cut 4 silk glands from their bellies.',
     completionText: 'Ugh, still twitching. Perfect. Here, you\'ve earned this.',
     objectives: [
       { type: 'kill', targetMobId: 'webwood_spider', count: 6, label: 'Webwood Lurker slain' },
@@ -267,7 +267,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
   q_bones: {
     id: 'q_bones', name: 'The Restless Dead',
     giverNpcId: 'brother_aldric', turnInNpcId: 'brother_aldric',
-    text: 'The old ruin on the northeast hill was a chapel once, and its yard a resting place. Something has stirred the dead from their sleep. Grant them peace, $N — return 8 Restless Bones to the earth.',
+    text: 'The old ruin on the northwest hill was a chapel once, and its yard a resting place. Something has stirred the dead from their sleep. Grant them peace, $N — return 8 Restless Bones to the earth.',
     completionText: 'May they rest now, and may the Light forgive whatever woke them.',
     objectives: [{ type: 'kill', targetMobId: 'restless_bones', count: 8, label: 'Restless Bones laid to rest' }],
     xpReward: 700, copperReward: 260, itemRewards: {},
@@ -355,7 +355,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
   q_bandits: {
     id: 'q_bandits', name: 'Bandits of the Vale',
     giverNpcId: 'marshal_redbrook', turnInNpcId: 'marshal_redbrook',
-    text: 'A pack of cutthroats has made camp in the southeast hills. They have robbed three wagons this week. Drive them out — slay 10 Vale Bandits.',
+    text: 'A pack of cutthroats has made camp in the southwest hills. They have robbed three wagons this week. Drive them out — slay 10 Vale Bandits.',
     completionText: 'Ten fewer knives in the dark. Take this — you have earned it.',
     objectives: [{ type: 'kill', targetMobId: 'vale_bandit', count: 10, label: 'Vale Bandit slain' }],
     xpReward: 550, copperReward: 200,
@@ -382,7 +382,9 @@ export const ZONE1_QUEST_ORDER = [
 ];
 
 // ---------------------------------------------------------------------------
-// World layout. Town sits at origin. +x east, +z north.
+// World layout. Town sits at origin. +z north, +x WEST (east is -x:
+// facing 0 looks along +z and turning right decreases facing, so the
+// rendered world and the corrected map both put -x on your right).
 // ---------------------------------------------------------------------------
 
 export const ZONE1_CAMPS: CampDef[] = [
