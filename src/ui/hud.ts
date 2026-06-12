@@ -30,7 +30,8 @@ const ZONE_BANNER_DEADBAND = 5;
 
 export class Hud {
   private abilityButtons: { btn: HTMLButtonElement; label: HTMLSpanElement; cdOverlay: HTMLDivElement; cdText: HTMLDivElement; lastIcon: string }[] = [];
-  private logEl = $('#combatlog');
+  private chatLogEl = $('#chatlog');
+  private combatLogEl = $('#combatlog');
   private errorEl = $('#error-msg');
   private bannerEl = $('#banner');
   private tooltipEl = $('#tooltip');
@@ -57,6 +58,7 @@ export class Hud {
 
   constructor(private sim: IWorld, private renderer: Renderer) {
     this.meters = new Meters(sim);
+    this.bindLogTabs();
     this.buildActionBar();
     this.buildXpTicks();
     $('#pf-name').textContent = sim.player.name;
@@ -91,6 +93,18 @@ export class Hud {
     this.showBanner(startZone.name);
     this.log(`Welcome to ${startZone.name}!`, '#ffd100');
     this.log(startZone.welcome, '#ffd100');
+  }
+
+  private bindLogTabs(): void {
+    const tabs = document.querySelectorAll<HTMLButtonElement>('.chat-tab');
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const which = tab.dataset.logTab;
+        tabs.forEach((t) => t.classList.toggle('active', t === tab));
+        $('#chatlog').classList.toggle('active', which === 'chat');
+        $('#combatlog').classList.toggle('active', which === 'combat');
+      });
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -707,7 +721,7 @@ export class Hud {
           if (ev.kind === 'miss' || ev.kind === 'dodge') {
             this.fct(tgt, ev.kind === 'miss' ? 'Miss' : 'Dodge', isPlayerTarget ? '#bbb' : '#fff', false);
             if (isPlayerSource) {
-              this.log(`Your ${ev.ability ?? 'attack'} ${ev.kind === 'miss' ? 'misses' : 'is dodged by'} ${tgt.name}.`, '#ccc');
+              this.combatLog(`Your ${ev.ability ?? 'attack'} ${ev.kind === 'miss' ? 'misses' : 'is dodged by'} ${tgt.name}.`, '#ccc');
               audio.meleeMiss();
             }
             break;
@@ -715,14 +729,14 @@ export class Hud {
           if (isPlayerSource && !isPlayerTarget) {
             const color = ev.ability ? '#ffe97a' : '#fff';
             this.fct(tgt, `${ev.amount}${ev.crit ? '!' : ''}`, color, ev.crit);
-            this.log(`Your ${ev.ability ?? 'attack'} hits ${tgt.name} for ${ev.amount}${ev.crit ? ' (Critical)' : ''}.`, ev.ability ? '#ffe97a' : '#eee');
+            this.combatLog(`Your ${ev.ability ?? 'attack'} hits ${tgt.name} for ${ev.amount}${ev.crit ? ' (Critical)' : ''}.`, ev.ability ? '#ffe97a' : '#eee');
             if (ev.school === 'fire') audio.fire();
             else if (ev.school === 'frost') audio.frost();
             else if (ev.school === 'arcane') audio.arcane();
             else audio.meleeHit(ev.crit);
           } else if (isPlayerTarget) {
             this.fct(tgt, `-${ev.amount}`, '#ff5544', ev.crit);
-            this.log(`${src?.name ?? 'Something'} hits you for ${ev.amount}${ev.crit ? ' (Critical)' : ''}.`, '#ff8877');
+            this.combatLog(`${src?.name ?? 'Something'} hits you for ${ev.amount}${ev.crit ? ' (Critical)' : ''}.`, '#ff8877');
             audio.hitTaken();
           }
           break;
@@ -735,7 +749,7 @@ export class Hud {
         }
         case 'death': {
           const e = sim.entities.get(ev.entityId);
-          if (e && ev.entityId !== sim.playerId) this.log(`${e.name} dies.`, '#aaa');
+          if (e && ev.entityId !== sim.playerId) this.combatLog(`${e.name} dies.`, '#aaa');
           break;
         }
         case 'xp': {
@@ -779,16 +793,32 @@ export class Hud {
           audio.questDone();
           this.refreshGossip();
           break;
-        case 'chat':
-          if (ev.channel === 'party') this.log(`[Party] ${ev.from}: ${ev.text}`, '#7fd4ff');
-          else this.log(`[${ev.from}]: ${ev.text}`, '#9adcf0');
+        case 'chat': {
+          switch (ev.channel) {
+            case 'party': this.log(`[Party] ${ev.from}: ${ev.text}`, '#7fd4ff'); break;
+            case 'yell': this.log(`${ev.from} yells: ${ev.text}`, '#ff5040'); break;
+            case 'whisper':
+              if (ev.to) this.log(`To ${ev.to}: ${ev.text}`, '#ff80ff');
+              else { this.log(`${ev.from} whispers: ${ev.text}`, '#ff80ff'); audio.whisper(); }
+              break;
+            case 'general': this.log(`[General] ${ev.from}: ${ev.text}`, '#ffc864'); break;
+            default: this.log(`${ev.from} says: ${ev.text}`, '#f0ead8'); break;
+          }
+          if ((ev.channel === 'say' || ev.channel === 'yell') && ev.entityId !== undefined) {
+            this.renderer.showChatBubble(ev.entityId, ev.text, ev.channel === 'yell');
+          }
+          break;
+        }
+        case 'tradeDone':
+          if ($('#bags').style.display === 'block') this.renderBags();
+          audio.coin();
           break;
         case 'heal2': {
           const tgt = sim.entities.get(ev.targetId);
           if (tgt && ev.amount > 0) {
             this.fct(tgt, `+${ev.amount}${ev.crit ? '!' : ''}`, '#3ce63c', ev.crit);
             if (ev.sourceId === sim.playerId) {
-              this.log(`Your ${ev.ability} heals ${ev.targetId === sim.playerId ? 'you' : tgt.name} for ${ev.amount}${ev.crit ? ' (Critical)' : ''}.`, '#7fdc4f');
+              this.combatLog(`Your ${ev.ability} heals ${ev.targetId === sim.playerId ? 'you' : tgt.name} for ${ev.amount}${ev.crit ? ' (Critical)' : ''}.`, '#7fdc4f');
             }
           }
           break;
@@ -804,17 +834,21 @@ export class Hud {
             () => this.sim.tradeAccept(), () => { /* let it expire */ });
           break;
         case 'duelRequest':
-          audio.aggro();
+          audio.duelChallenge();
           this.showPrompt(`<b>${ev.fromName}</b> has challenged you to a duel!`, 'Accept Duel',
             () => this.sim.duelAccept(), () => this.sim.duelDecline());
           break;
         case 'duelCountdown':
           this.showBanner(`Duel begins in ${ev.seconds}…`);
+          audio.duelCountdownTick();
+          break;
+        case 'duelStart':
+          audio.duelStart();
           break;
         case 'duelEnd':
           this.showBanner(`${ev.winnerName} has defeated ${ev.loserName} in a duel!`);
-          this.log(`${ev.winnerName} has defeated ${ev.loserName} in a duel.`, '#fa6');
-          audio.levelUp();
+          this.combatLog(`${ev.winnerName} has defeated ${ev.loserName} in a duel.`, '#fa6');
+          audio.duelEnd();
           break;
         case 'log': this.log(ev.text, ev.color ?? '#ccc'); break;
         case 'playerDeath': {
@@ -835,9 +869,9 @@ export class Hud {
           const tgt = sim.entities.get(ev.targetId);
           if (ev.name === 'Polymorph' && ev.gained) audio.sheep();
           if (ev.targetId === sim.playerId) {
-            this.log(ev.gained ? `You gain ${ev.name}.` : `${ev.name} fades from you.`, '#d8a0d8');
+            this.combatLog(ev.gained ? `You gain ${ev.name}.` : `${ev.name} fades from you.`, '#d8a0d8');
           } else if (tgt && ev.gained) {
-            this.log(`${tgt.name} is afflicted by ${ev.name}.`, '#d8a0d8');
+            this.combatLog(`${tgt.name} is afflicted by ${ev.name}.`, '#d8a0d8');
           }
           break;
         }
@@ -846,11 +880,21 @@ export class Hud {
   }
 
   log(text: string, color = '#ccc'): void {
+    this.appendLog(this.chatLogEl, text, color);
+  }
+
+  private combatLog(text: string, color = '#ccc'): void {
+    this.appendLog(this.combatLogEl, text, color);
+  }
+
+  private appendLog(el: HTMLElement, text: string, color: string): void {
+    const wasNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
     const div = document.createElement('div');
     div.textContent = text;
     div.style.color = color;
-    this.logEl.appendChild(div);
-    while (this.logEl.children.length > 11) this.logEl.removeChild(this.logEl.firstChild!);
+    el.appendChild(div);
+    while (el.children.length > 200) el.removeChild(el.firstChild!);
+    if (wasNearBottom) el.scrollTop = el.scrollHeight;
   }
 
   private fct(target: Entity, text: string, color: string, crit: boolean): void {
@@ -1079,9 +1123,10 @@ export class Hud {
 
   toggleBags(): void {
     const el = $('#bags');
-    if (el.style.display === 'block') { el.style.display = 'none'; this.hideTooltip(); return; }
+    if (el.style.display === 'block') { el.style.display = 'none'; this.hideTooltip(); audio.bagClose(); return; }
     this.renderBags();
     el.style.display = 'block';
+    audio.bagOpen();
   }
 
   renderBags(): void {

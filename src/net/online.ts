@@ -81,6 +81,12 @@ export class Api {
 // World mirror
 // ---------------------------------------------------------------------------
 
+function wrapAngle(d: number): number {
+  while (d > Math.PI) d -= 2 * Math.PI;
+  while (d < -Math.PI) d += 2 * Math.PI;
+  return d;
+}
+
 function blankEntity(id: number): Entity {
   return {
     id, kind: 'mob', templateId: '', name: '', level: 1,
@@ -223,6 +229,13 @@ export class ClientWorld implements IWorld {
 
   private applySnapshot(snap: any): void {
     const now = performance.now();
+    // the interpolation alpha the render loop reached on its last frame
+    // (same formula and caps as main.ts); used below to re-anchor the new
+    // interpolation segment at the pose currently on screen
+    const contAlpha = this.lastSnapAt > 0
+      ? Math.min(1.25, (now - this.lastSnapAt) / Math.max(20, this.snapInterval))
+      : 1;
+    const contFacingAlpha = Math.min(1, contAlpha);
     if (this.lastSnapAt > 0) {
       const gap = now - this.lastSnapAt;
       if (gap > 5 && gap < 500) this.snapInterval = this.snapInterval * 0.9 + gap * 0.1;
@@ -254,9 +267,16 @@ export class ClientWorld implements IWorld {
         }
         this.entities.set(w.id, e);
       }
-      // interpolation bases
-      e.prevPos = { ...e.pos };
-      e.prevFacing = e.facing;
+      // interpolation bases: re-anchor at the pose the renderer last drew,
+      // not at the previous server pose — when a frame extrapolated past the
+      // last snapshot, restarting from the server pose snapped entities
+      // backwards every snapshot (visible rubber-banding while running)
+      e.prevPos = {
+        x: e.prevPos.x + (e.pos.x - e.prevPos.x) * contAlpha,
+        y: e.prevPos.y + (e.pos.y - e.prevPos.y) * contAlpha,
+        z: e.prevPos.z + (e.pos.z - e.prevPos.z) * contAlpha,
+      };
+      e.prevFacing = e.prevFacing + wrapAngle(e.facing - e.prevFacing) * contFacingAlpha;
       e.pos.x = w.x; e.pos.y = w.y; e.pos.z = w.z;
       e.facing = w.f;
       e.level = w.lv;

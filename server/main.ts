@@ -206,7 +206,10 @@ async function main(): Promise<void> {
     else serveStatic(req, res);
   });
 
-  const wss = new WebSocketServer({ noServer: true });
+  // cap frame size: the largest legitimate client message is a small JSON
+  // command; without this the ws default (~100 MiB) lets one socket force a
+  // huge allocation + parse before any field-level validation runs
+  const wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 });
   server.on('upgrade', (req, socket, head) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
     if (url.pathname !== '/ws') {
@@ -272,6 +275,15 @@ async function main(): Promise<void> {
       ws.send(JSON.stringify({ t: 'error', error: 'authentication timed out' }));
       ws.close();
     }, 10_000);
+
+    // Pre-auth socket errors (e.g. a first frame over maxPayload, which ws
+    // surfaces as an 'error' event) would otherwise be an unhandled exception
+    // and crash the process. Tear the connection down quietly instead. The
+    // post-auth game.leave handler is attached separately once joined.
+    ws.on('error', () => {
+      clearTimeout(authTimer);
+      try { ws.close(); } catch { /* already closing */ }
+    });
 
     ws.once('message', (data) => {
       clearTimeout(authTimer);

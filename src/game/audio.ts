@@ -141,6 +141,43 @@ export class GameAudio {
   sheep(): void {
     this.tone(620, 0.4, 0.13, 'sawtooth', 0, 520);
   }
+
+  bagOpen(): void {
+    // leather flap + soft clasp
+    this.noise(0.09, 1400, 0.16, 0.7);
+    this.tone(660, 0.05, 0.06, 'triangle', 0.03);
+  }
+
+  bagClose(): void {
+    this.noise(0.08, 900, 0.14, 0.7);
+    this.tone(440, 0.05, 0.06, 'triangle', 0.01);
+  }
+
+  whisper(): void {
+    this.tone(1175, 0.09, 0.09, 'sine');
+    this.tone(1568, 0.12, 0.07, 'sine', 0.07);
+  }
+
+  duelChallenge(): void {
+    // war horn: two rising fifths
+    this.tone(196, 0.35, 0.2, 'sawtooth');
+    this.tone(294, 0.45, 0.2, 'sawtooth', 0.18);
+  }
+
+  duelCountdownTick(): void {
+    this.tone(880, 0.07, 0.12, 'square');
+  }
+
+  duelStart(): void {
+    // gong + cymbal wash
+    this.tone(220, 0.7, 0.28, 'triangle', 0, 110);
+    this.noise(0.4, 3000, 0.14, 0.5, 'highpass');
+  }
+
+  duelEnd(): void {
+    this.tone(392, 0.18, 0.18, 'triangle');
+    this.tone(523, 0.3, 0.18, 'triangle', 0.12);
+  }
 }
 
 export const audio = new GameAudio();

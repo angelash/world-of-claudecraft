@@ -106,6 +106,8 @@ export class Renderer {
   showNameplates = true;
   private tmpV = new THREE.Vector3();
   private tmpV2 = new THREE.Vector3();
+  // floating /say-/yell bubbles, keyed by speaker entity id
+  private chatBubbles = new Map<number, { el: HTMLDivElement; until: number }>();
   private sun: THREE.DirectionalLight;
   private hemi!: THREE.HemisphereLight;
   private sky!: THREE.Mesh;
@@ -902,6 +904,7 @@ export class Renderer {
     this.updateGodRays();
 
     this.updateNameplates();
+    this.updateChatBubbles();
     if (this.post) this.post.render();
     else this.webgl.render(this.scene, this.camera);
   }
@@ -1034,6 +1037,51 @@ export class Renderer {
         v.markerEl.textContent = e.lootable ? '$' : elite && !e.dead ? '◆' : '';
         v.markerEl.className = 'np-marker loot';
       }
+    }
+  }
+
+  // Hang a speech bubble over an entity's head; it follows the entity and
+  // fades out after a few seconds (longer for longer messages).
+  showChatBubble(entityId: number, text: string, yell: boolean): void {
+    let b = this.chatBubbles.get(entityId);
+    if (!b) {
+      const el = document.createElement('div');
+      el.className = 'chat-bubble';
+      this.nameplateLayer.appendChild(el);
+      b = { el, until: 0 };
+      this.chatBubbles.set(entityId, b);
+    }
+    b.el.textContent = text; // textContent: chat is player input, never HTML
+    b.el.classList.toggle('yell', yell);
+    // wall-clock ttl: sim/render time can run slower than real time under
+    // frame-delta clamping, which would keep bubbles up too long
+    b.until = performance.now() + 1000 * Math.min(10, 3.5 + text.length * 0.045);
+  }
+
+  private updateChatBubbles(): void {
+    if (this.chatBubbles.size === 0) return;
+    const w = window.innerWidth, h = window.innerHeight;
+    const now = performance.now();
+    for (const [id, b] of this.chatBubbles) {
+      const e = this.sim.entities.get(id);
+      const v = e ? this.views.get(id) : undefined;
+      if (!e || !v || now >= b.until) {
+        b.el.remove();
+        this.chatBubbles.delete(id);
+        continue;
+      }
+      // culled rigs (beyond ENTITY_DRAW_RANGE) stop updating group.position,
+      // so a yell from 80–100u away would hang frozen over empty terrain —
+      // fall back to the live entity position when the rig isn't being drawn
+      if (v.group.visible) this.tmpV.copy(v.group.position);
+      else this.tmpV.set(e.pos.x, e.pos.y, e.pos.z);
+      this.tmpV.y += v.height * e.scale + 1.0;
+      this.tmpV.project(this.camera);
+      if (this.tmpV.z > 1) { b.el.style.display = 'none'; continue; }
+      b.el.style.display = '';
+      const sx = (this.tmpV.x * 0.5 + 0.5) * w;
+      const sy = (-this.tmpV.y * 0.5 + 0.5) * h;
+      b.el.style.transform = `translate(${sx.toFixed(0)}px, ${sy.toFixed(0)}px) translate(-50%, -100%)`;
     }
   }
 

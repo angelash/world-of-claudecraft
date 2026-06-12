@@ -31,6 +31,10 @@ const OBJECT_RESPAWN = 30;
 const PARTY_MAX = 5;
 const PARTY_XP_RANGE = 80; // yards: members this close share kill xp/credit
 const DUEL_COUNTDOWN = 3;
+const SAY_RANGE = 25; // /say carries a short distance; /yell across a camp
+const YELL_RANGE = 100;
+const CHAT_BURST = 8; // messages a player may send back-to-back...
+const CHAT_REFILL = 2; // ...then this many more per second (caps spam amplifiers)
 const DUEL_FORFEIT_DISTANCE = 60;
 const TRADE_RANGE = 10;
 const INSTANCE_EMPTY_TIMEOUT = 300; // seconds before an empty instance resets
@@ -174,6 +178,8 @@ export class Sim {
   tradeInvites = new Map<number, { fromPid: number; expires: number }>();
   duels = new Map<number, DuelState>(); // pid -> shared duel (both pids)
   duelInvites = new Map<number, { fromPid: number; expires: number }>();
+  // per-player chat token bucket (anti-spam); refilled lazily by sim time
+  private chatTokens = new Map<number, { tokens: number; at: number }>();
   // dungeon instances
   instances: InstanceSlot[] = [];
 
@@ -356,6 +362,7 @@ export class Sim {
     }
     this.dropEntity(pid);
     this.players.delete(pid);
+    this.chatTokens.delete(pid);
     if (this.primaryId === pid) this.primaryId = this.players.size > 0 ? [...this.players.keys()][0] : -1;
   }
 
@@ -2464,14 +2471,58 @@ export class Sim {
     this.emit({ type: 'respawn', pid: meta.entityId });
   }
 
+  // Token-bucket throttle: returns false (and notifies the player once) when
+  // they are out of chat tokens. Keeps /g and /w from being spam amplifiers.
+  private chatAllowed(pid: number): boolean {
+    let b = this.chatTokens.get(pid);
+    if (!b) { b = { tokens: CHAT_BURST, at: this.time }; this.chatTokens.set(pid, b); }
+    b.tokens = Math.min(CHAT_BURST, b.tokens + (this.time - b.at) * CHAT_REFILL);
+    b.at = this.time;
+    if (b.tokens < 1) return false;
+    b.tokens -= 1;
+    return true;
+  }
+
   chat(text: string, pid?: number): void {
     const r = this.resolve(pid);
     if (!r) return;
-    let clean = text.trim().slice(0, 200);
-    if (!clean) return;
+    const raw = text.trim().slice(0, 200);
+    if (!raw) return;
+    if (!this.chatAllowed(r.meta.entityId)) {
+      this.error(r.meta.entityId, 'You are sending messages too quickly.');
+      return;
+    }
+
+    // "/w name message" — private whisper to an online player
+    const wm = /^\/(?:w|whisper|t|tell)\s+(\S+)\s+([\s\S]+)$/i.exec(raw);
+    if (wm) {
+      const targetName = wm[1];
+      const msg = wm[2].trim();
+      if (!msg) return;
+      // exact case wins outright; otherwise a case-insensitive match is used
+      // only when unambiguous, so 'Bet' and 'bet' can't silently intercept
+      // each other's whispers
+      let target: PlayerMeta | null = null;
+      const ciMatches: PlayerMeta[] = [];
+      const wanted = targetName.toLowerCase();
+      for (const meta of this.players.values()) {
+        if (meta.name === targetName) { target = meta; break; }
+        if (meta.name.toLowerCase() === wanted) ciMatches.push(meta);
+      }
+      if (!target) {
+        if (ciMatches.length === 1) target = ciMatches[0];
+        else if (ciMatches.length > 1) { this.error(r.meta.entityId, `Several players match '${targetName}'. Use exact capitalization.`); return; }
+      }
+      if (!target) { this.error(r.meta.entityId, `There is no player named '${targetName}' online.`); return; }
+      if (target.entityId === r.meta.entityId) { this.error(r.meta.entityId, 'You mutter to yourself. Nobody hears it.'); return; }
+      this.emit({ type: 'chat', from: r.meta.name, text: msg, channel: 'whisper', pid: target.entityId });
+      this.emit({ type: 'chat', from: r.meta.name, to: target.name, text: msg, channel: 'whisper', pid: r.meta.entityId });
+      return;
+    }
+
     // "/p message" goes to the party channel
-    if (clean.startsWith('/p ') || clean.startsWith('/party ')) {
-      clean = clean.replace(/^\/p(arty)? /, '').trim();
+    if (/^\/p(arty)?\s/i.test(raw)) {
+      const clean = raw.replace(/^\/p(arty)?\s+/i, '').trim();
       if (!clean) return;
       const party = this.partyOf(r.meta.entityId);
       if (!party) { this.error(r.meta.entityId, 'You are not in a party.'); return; }
@@ -2480,7 +2531,28 @@ export class Sim {
       }
       return;
     }
-    this.emit({ type: 'chat', from: r.meta.name, text: clean, channel: 'say' });
+
+    // "/g message" — world-wide general channel (no pid = broadcast to all)
+    if (/^\/g(eneral)?\s/i.test(raw)) {
+      const clean = raw.replace(/^\/g(eneral)?\s+/i, '').trim();
+      if (clean) this.emit({ type: 'chat', from: r.meta.name, text: clean, channel: 'general' });
+      return;
+    }
+
+    // bare text and "/s" are local say; "/y" carries further — both are
+    // delivered per-player by range and carry the speaker for chat bubbles
+    let channel: 'say' | 'yell' = 'say';
+    let clean = raw;
+    if (/^\/y(ell)?\s/i.test(raw)) { channel = 'yell'; clean = raw.replace(/^\/y(ell)?\s+/i, '').trim(); }
+    else if (/^\/s(ay)?\s/i.test(raw)) { clean = raw.replace(/^\/s(ay)?\s+/i, '').trim(); }
+    else if (raw.startsWith('/')) { this.error(r.meta.entityId, `Unknown command: ${raw.split(' ')[0]}. Try /s /y /w /p /g.`); return; }
+    if (!clean) return;
+    const range = channel === 'yell' ? YELL_RANGE : SAY_RANGE;
+    for (const meta of this.players.values()) {
+      const e = this.entities.get(meta.entityId);
+      if (!e || dist2d(r.e.pos, e.pos) > range) continue;
+      this.emit({ type: 'chat', from: r.meta.name, text: clean, channel, entityId: r.e.id, pid: meta.entityId });
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -2658,6 +2730,7 @@ export class Sim {
           duel.state = 'active';
           for (const dPid of [duel.a, duel.b]) {
             this.emit({ type: 'log', text: 'The duel has begun!', color: '#fa6', pid: dPid });
+            this.emit({ type: 'duelStart', pid: dPid });
           }
         }
         continue;
@@ -2802,6 +2875,7 @@ export class Sim {
     }
     for (const tPid of [session.a, session.b]) {
       this.emit({ type: 'log', text: 'Trade complete.', color: '#8df', pid: tPid });
+      this.emit({ type: 'tradeDone', pid: tPid });
     }
     this.closeTrade(session);
   }
