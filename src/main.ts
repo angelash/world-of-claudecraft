@@ -9,6 +9,8 @@ import { Api, ClientWorld, CharacterSummary } from './net/online';
 import type { IWorld } from './world_api';
 import { assetsReady } from './render/assets/preload';
 import { DT, INTERACT_RANGE, PlayerClass, dist2d } from './sim/types';
+import { togglePasswordVisibility, syncInputAriaState, validateForm, handleKeyboardActivation, validateCharacterName } from './ui/auth_utils';
+
 
 const WORLD_SEED = 20061; // fixed: World of Claudecraft is a persistent place
 
@@ -72,6 +74,9 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
   // builds its scene synchronously, so everything must be resolved first.
   // The loading screen covers the gap — not a silent black screen.
   showLoadingScreen('Loading world…');
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
   $('#start-screen').style.display = 'none';
   try {
     await assetsReady((done, total) => setLoadingProgress(done, total));
@@ -283,8 +288,11 @@ function startOffline(playerClass: PlayerClass, name: string): void {
 const api = new Api();
 
 function show(el: string): void {
+  if (document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement) {
+    document.activeElement.blur();
+  }
   for (const id of ['#mode-select', '#login-panel', '#charselect-panel']) {
-    $(id).style.display = id === el ? 'block' : 'none';
+    $(id).toggleAttribute('hidden', id !== el);
   }
 }
 
@@ -295,15 +303,15 @@ function loginError(text: string): void {
 
 async function refreshCharacters(): Promise<void> {
   const listEl = $('#char-list');
-  listEl.innerHTML = '<div style="color:#887c5c;font-size:12px">Loading…</div>';
+  listEl.innerHTML = '<li class="char-list-message">Loading…</li>';
   try {
     const chars = await api.characters();
     listEl.innerHTML = '';
     if (chars.length === 0) {
-      listEl.innerHTML = '<div style="color:#887c5c;font-size:12px;padding:6px 0">No characters yet — create one below.</div>';
+      listEl.innerHTML = '<li class="char-list-message">No characters yet — create one below.</li>';
     }
     for (const c of chars) {
-      const row = document.createElement('div');
+      const row = document.createElement('li');
       row.className = 'char-row' + (c.online ? ' online' : '');
       row.innerHTML = `<span class="char-name">${c.name}</span>
         <span class="char-sub">Level ${c.level} ${c.class[0].toUpperCase()}${c.class.slice(1)}${c.online ? ' — in world' : ''}</span>
@@ -312,7 +320,7 @@ async function refreshCharacters(): Promise<void> {
       listEl.appendChild(row);
     }
   } catch (err: any) {
-    listEl.innerHTML = `<div style="color:#ff6b5e;font-size:12px">${err.message}</div>`;
+    listEl.innerHTML = `<li class="char-list-message char-list-error">${err.message}</li>`;
   }
 }
 
@@ -321,7 +329,7 @@ function fatalOverlay(message: string): void {
   if (document.getElementById('disconnect-overlay')) return; // first reason wins
   const el = document.createElement('div');
   el.id = 'disconnect-overlay';
-  el.style.cssText = 'position:absolute;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:200;color:#e8d8a8;font-family:Georgia,serif;font-size:20px;';
+  el.className = 'fatal-overlay';
   el.innerHTML = `<div>${message}</div>`;
   const btn = document.createElement('button');
   btn.className = 'btn';
@@ -359,21 +367,65 @@ function enterWorld(c: CharacterSummary): void {
 
 function wireStartScreens(): void {
   // mode select
-  $('#btn-online').addEventListener('click', () => show('#login-panel'));
-  $('#btn-offline').addEventListener('click', () => {
-    $('#mode-select').style.display = 'none';
-    $('#offline-select').style.display = 'block';
-  });
+  const onlineBtn = $('#btn-online');
+  const offlineBtn = $('#btn-offline');
+  
+  const handleOnlineSelect = () => show('#login-panel');
+  const handleOfflineSelect = () => {
+    $('#mode-select').toggleAttribute('hidden', true);
+    $('#offline-select').toggleAttribute('hidden', false);
+  };
+  
+  onlineBtn.addEventListener('click', handleOnlineSelect);
+  onlineBtn.addEventListener('keydown', (e) => handleKeyboardActivation(e as KeyboardEvent, handleOnlineSelect));
+  
+  offlineBtn.addEventListener('click', handleOfflineSelect);
+  offlineBtn.addEventListener('keydown', (e) => handleKeyboardActivation(e as KeyboardEvent, handleOfflineSelect));
 
   // offline class cards
+  const offlineNameInput = $('#char-name') as HTMLInputElement;
+  const offlineError = $('#offline-error');
   document.querySelectorAll('.class-card').forEach((card) => {
-    card.addEventListener('click', () => {
+    const handleClassSelect = () => {
+      const rawName = offlineNameInput.value.trim();
+      if (!rawName) {
+        offlineError.textContent = 'Please enter a character name.';
+        offlineNameInput.classList.add('user-invalid-fallback');
+        offlineNameInput.setAttribute('aria-invalid', 'true');
+        offlineNameInput.focus();
+        return;
+      }
+      if (!validateCharacterName(rawName)) {
+        offlineError.textContent = 'Name must be 2-16 characters, start with a letter, and contain only letters, spaces, hyphens, or apostrophes.';
+        offlineNameInput.classList.add('user-invalid-fallback');
+        offlineNameInput.setAttribute('aria-invalid', 'true');
+        offlineNameInput.focus();
+        return;
+      }
+
+      offlineError.textContent = '';
+      offlineNameInput.classList.remove('user-invalid-fallback');
+      offlineNameInput.removeAttribute('aria-invalid');
+
       audio.init();
       music.init();
-      const name = sanitizeOfflineName(($('#char-name') as unknown as HTMLInputElement).value.trim());
+      const name = sanitizeOfflineName(rawName);
       startOffline((card as HTMLElement).dataset.class as PlayerClass, name);
-    });
+    };
+    card.addEventListener('click', handleClassSelect);
+    card.addEventListener('keydown', (e) => handleKeyboardActivation(e as KeyboardEvent, handleClassSelect));
   });
+
+  const offlineBackBtn = $('#btn-offline-back');
+  const handleOfflineBack = () => {
+    $('#offline-select').toggleAttribute('hidden', true);
+    $('#mode-select').toggleAttribute('hidden', false);
+    offlineError.textContent = '';
+    offlineNameInput.value = '';
+    offlineNameInput.classList.remove('user-invalid-fallback');
+    offlineNameInput.removeAttribute('aria-invalid');
+  };
+  offlineBackBtn.addEventListener('click', handleOfflineBack);
 
   // login
   const doAuth = async (mode: 'login' | 'register') => {
@@ -390,35 +442,218 @@ function wireStartScreens(): void {
       loginError(err.message);
     }
   };
-  $('#btn-login').addEventListener('click', () => void doAuth('login'));
-  $('#btn-register').addEventListener('click', () => void doAuth('register'));
-  $('#login-pass').addEventListener('keydown', (e) => {
-    if ((e as KeyboardEvent).key === 'Enter') void doAuth('login');
+
+  const loginForm = $('#login-panel') as HTMLFormElement;
+  const userInput = $('#login-user') as HTMLInputElement;
+  const passInput = $('#login-pass') as HTMLInputElement;
+  const togglePassBtn = $('#btn-toggle-password') as HTMLButtonElement;
+
+  // Wire password visibility toggle
+  togglePassBtn.addEventListener('click', () => {
+    togglePasswordVisibility(passInput, togglePassBtn);
   });
-  $('#btn-login-back').addEventListener('click', () => show('#mode-select'));
+
+  // Sync aria-invalid and error elements dynamically on interaction
+  [userInput, passInput].forEach((input) => {
+    input.addEventListener('blur', () => {
+      const isValid = syncInputAriaState(input);
+      input.classList.toggle('user-invalid-fallback', !isValid);
+    });
+    input.addEventListener('input', () => {
+      // Clear general login error on typing
+      loginError('');
+      if (input.classList.contains('user-invalid-fallback') || input.hasAttribute('aria-invalid')) {
+        const isValid = syncInputAriaState(input);
+        input.classList.toggle('user-invalid-fallback', !isValid);
+        
+        // Update error display element
+        const errorEl = $('#' + input.id + '-error');
+        if (errorEl) {
+          errorEl.style.display = isValid ? 'none' : 'block';
+        }
+      }
+    });
+  });
+
+  // Prevent default submission and perform validation
+  loginForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (validateForm(loginForm)) {
+      void doAuth('login');
+    }
+  });
+
+  // Custom keydown helper for compatibility with edge cases / legacy scripts
+  passInput.addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key === 'Enter') {
+      e.preventDefault();
+      loginForm.requestSubmit();
+    }
+  });
+
+  // Legacy clicks of Login/Register buttons
+  $('#btn-login').addEventListener('click', (e) => {
+    // Let the form submit handle it if it was clicked, but prevent default click just in case
+  });
+
+  $('#btn-register').addEventListener('click', (e) => {
+    e.preventDefault();
+    if (validateForm(loginForm)) {
+      void doAuth('register');
+    }
+  });
+
+  $('#btn-login-back').addEventListener('click', (e) => {
+    e.preventDefault();
+    // Clear validation state on back
+    [userInput, passInput].forEach((input) => {
+      input.classList.remove('user-invalid-fallback');
+      input.removeAttribute('aria-invalid');
+      const errEl = $('#' + input.id + '-error');
+      if (errEl) errEl.style.display = 'none';
+    });
+    loginError('');
+    show('#mode-select');
+  });
 
   // character creation
   document.querySelectorAll('#charselect-panel .mini-class').forEach((el) => {
-    el.addEventListener('click', () => {
-      document.querySelectorAll('#charselect-panel .mini-class').forEach((x) => x.classList.remove('sel'));
+    const handleMiniClassSelect = () => {
+      document.querySelectorAll('#charselect-panel .mini-class').forEach((x) => {
+        x.classList.remove('sel');
+        x.setAttribute('aria-pressed', 'false');
+      });
       el.classList.add('sel');
+      el.setAttribute('aria-pressed', 'true');
+    };
+    el.addEventListener('click', handleMiniClassSelect);
+    el.addEventListener('keydown', (e) => handleKeyboardActivation(e as KeyboardEvent, handleMiniClassSelect));
+  });
+  const newCharNameInput = $('#new-char-name') as HTMLInputElement;
+  const charselectError = $('#charselect-error');
+
+  // Wire Enter key inside new-char-name to trigger character creation
+  newCharNameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      $('#btn-create-char').click();
+    }
+  });
+
+  // Wire dynamic validation clearing on typing
+  [offlineNameInput, newCharNameInput].forEach((input) => {
+    const errorEl = input.id === 'char-name' ? offlineError : charselectError;
+    input.addEventListener('input', () => {
+      errorEl.textContent = '';
+      if (input.classList.contains('user-invalid-fallback') || input.hasAttribute('aria-invalid')) {
+        const val = input.value.trim();
+        if (!val || validateCharacterName(val)) {
+          input.classList.remove('user-invalid-fallback');
+          input.removeAttribute('aria-invalid');
+        }
+      }
     });
   });
+
   $('#btn-create-char').addEventListener('click', async () => {
-    const name = ($('#new-char-name') as unknown as HTMLInputElement).value.trim();
+    const name = newCharNameInput.value.trim();
     const clsEl = document.querySelector('#charselect-panel .mini-class.sel') as HTMLElement | null;
     loginError('');
-    if (!clsEl) { $('#charselect-error').textContent = 'Pick a class.'; return; }
+    charselectError.textContent = '';
+    
+    if (!name) {
+      charselectError.textContent = 'Please enter a character name.';
+      newCharNameInput.classList.add('user-invalid-fallback');
+      newCharNameInput.setAttribute('aria-invalid', 'true');
+      newCharNameInput.focus();
+      return;
+    }
+    if (!validateCharacterName(name)) {
+      charselectError.textContent = 'Name must be 2-16 characters, start with a letter, and contain only letters, spaces, hyphens, or apostrophes.';
+      newCharNameInput.classList.add('user-invalid-fallback');
+      newCharNameInput.setAttribute('aria-invalid', 'true');
+      newCharNameInput.focus();
+      return;
+    }
+    if (!clsEl) { charselectError.textContent = 'Pick a class.'; return; }
+
+    newCharNameInput.classList.remove('user-invalid-fallback');
+    newCharNameInput.removeAttribute('aria-invalid');
+
     try {
       await api.createCharacter(name, clsEl.dataset.class as PlayerClass);
-      ($('#new-char-name') as unknown as HTMLInputElement).value = '';
-      $('#charselect-error').textContent = '';
+      newCharNameInput.value = '';
+      charselectError.textContent = '';
       await refreshCharacters();
     } catch (err: any) {
-      $('#charselect-error').textContent = err.message;
+      charselectError.textContent = err.message;
     }
   });
   $('#btn-charselect-back').addEventListener('click', () => show('#login-panel'));
+
+  // Collapsible Controls Drawer toggle
+  const controlsDrawer = $('#controls-drawer');
+  const toggleControlsBtn = $('#btn-toggle-controls');
+  const closeControlsBtn = $('#btn-close-controls');
+
+  const toggleControls = (show: boolean) => {
+    controlsDrawer.toggleAttribute('hidden', !show);
+    toggleControlsBtn.setAttribute('aria-expanded', show ? 'true' : 'false');
+    if (show) {
+      closeControlsBtn.focus();
+    } else {
+      toggleControlsBtn.focus();
+    }
+  };
+
+  toggleControlsBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const isVisible = !controlsDrawer.hasAttribute('hidden');
+    toggleControls(!isVisible);
+  });
+
+  closeControlsBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    toggleControls(false);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !controlsDrawer.hasAttribute('hidden')) {
+      toggleControls(false);
+    }
+  });
+
+  // Dynamically initialize background embers
+  const initBackgroundEmbers = () => {
+    const backdrop = $('#start-screen-backdrop');
+    if (!backdrop) return;
+    
+    const container = document.createElement('div');
+    container.className = 'embers-container';
+    backdrop.appendChild(container);
+    
+    for (let i = 0; i < 24; i++) {
+      const ember = document.createElement('div');
+      ember.className = 'ember';
+      ember.style.left = `${Math.random() * 100}%`;
+      ember.style.bottom = `${Math.random() * 20 - 10}%`;
+      
+      const size = Math.random() * 4 + 2;
+      ember.style.width = `${size}px`;
+      ember.style.height = `${size}px`;
+      
+      ember.style.setProperty('--drift', `${Math.random() * 120 - 60}px`);
+      ember.style.setProperty('--ember-scale', `${Math.random() * 0.8 + 0.6}`);
+      ember.style.setProperty('--ember-opacity', `${Math.random() * 0.4 + 0.5}`);
+      
+      ember.style.animationDelay = `${Math.random() * 10}s`;
+      ember.style.animationDuration = `${Math.random() * 8 + 6}s`;
+      
+      container.appendChild(ember);
+    }
+  };
+
+  initBackgroundEmbers();
 }
 
 wireStartScreens();
