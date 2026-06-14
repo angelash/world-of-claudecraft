@@ -2,7 +2,7 @@ import { Sim } from './sim/sim';
 import { Renderer } from './render/renderer';
 import { Input } from './game/input';
 import { Keybinds } from './game/keybinds';
-import { Settings, GameSettings } from './game/settings';
+import { Settings, GameSettings, SETTING_RANGES } from './game/settings';
 import { MobileControls, PHONE_TOUCH_QUERY, isPhoneTouchDevice } from './game/mobile_controls';
 import { Hud } from './ui/hud';
 import { audio } from './game/audio';
@@ -377,6 +377,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       }
     },
     onClickPick: (x, y, button) => handlePick(x, y, button),
+    canUseGameKeys: () => !hud.isModalOpen() && chatInput.style.display !== 'block',
   }, keybinds);
   input.camYaw = world.player.facing;
 
@@ -397,8 +398,13 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
   mobileControls.start();
 
   // apply a setting to its live subsystem (also used to apply all on startup)
-  function applySetting(key: keyof GameSettings, value: number): void {
-    const v = settings.set(key, value);
+  function applySetting(key: keyof GameSettings, value: number | boolean): void {
+    if (key === 'mouseCamera') {
+      const v = settings.set('mouseCamera', !!value);
+      input.setMouseCameraEnabled(v);
+      return;
+    }
+    const v = settings.set(key as keyof typeof SETTING_RANGES, value as number);
     switch (key) {
       case 'cameraSpeed': input.setCameraSpeed(v); break;
       case 'sfxVolume': audio.setVolume(v); break;
@@ -491,6 +497,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
   }
 
   function updateCamera(frameDt: number, interpFacing: number): void {
+    if (input.isMouseCameraMode()) return;
     if (!input.isMouselookActive()) {
       // follow turns 1:1 (keeps any manual orbit offset constant)
       if (lastInterpFacing !== null) input.camYaw += wrapAngle(interpFacing - lastInterpFacing);
@@ -504,6 +511,19 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     lastInterpFacing = interpFacing; // track through mouselook too — no snap on release
   }
 
+  function applyCameraFacing(): boolean {
+    if (!input.isMouseCameraMode()) return false;
+    const mi = input.readMoveInput();
+    return !!(mi.forward || mi.back || mi.strafeLeft || mi.strafeRight) && !world.player.dead;
+  }
+
+  function renderFacingOverride(): number | null {
+    if (input.isMouseCameraMode()) {
+      return applyCameraFacing() ? input.camYaw : null;
+    }
+    return input.isMouselookActive() && !world.player.dead ? input.camYaw : null;
+  }
+
   function frame(now: number): void {
     requestAnimationFrame(frame);
     let frameDt = (now - last) / 1000;
@@ -515,14 +535,15 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     input.suspendMovement = hud.isModalOpen();
     input.updateTouchLook(frameDt);
 
-    const mouselook = input.isMouselookActive() && !world.player.dead;
+    const renderFacing = renderFacingOverride();
+    const faceFromCamera = renderFacing !== null;
 
     if (offlineSim) {
       acc += frameDt;
       while (acc >= DT) {
         const mi = input.readMoveInput();
         Object.assign(offlineSim.moveInput, mi);
-        if (mouselook) offlineSim.player.facing = input.camYaw;
+        if (faceFromCamera) offlineSim.player.facing = input.camYaw;
         const events = offlineSim.tick();
         hud.handleEvents(events);
         acc -= DT;
@@ -532,7 +553,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       renderer.camYaw = input.camYaw;
       renderer.camPitch = input.camPitch;
       renderer.camDist = input.camDist;
-      renderer.sync(acc / DT, frameDt, mouselook ? input.camYaw : null);
+      renderer.sync(acc / DT, frameDt, renderFacing);
       hud.update();
       return;
     }
@@ -540,7 +561,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     // online: inputs stream on a timer inside ClientWorld; here we mirror state
     const net = online!;
     Object.assign(net.moveInput, input.readMoveInput());
-    net.setMouselookFacing(mouselook ? input.camYaw : null);
+    net.setMouselookFacing(renderFacing);
     net.pendingFacingDelta = 0; // superseded by the interpolated follow below
     hud.handleEvents(net.drainEvents());
     if (net.consumeInventoryChanged()) hud.onInventoryChanged();
@@ -553,7 +574,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     renderer.camYaw = input.camYaw;
     renderer.camPitch = input.camPitch;
     renderer.camDist = input.camDist;
-    renderer.sync(alpha, frameDt, mouselook ? input.camYaw : null);
+    renderer.sync(alpha, frameDt, renderFacing);
     hud.update();
   }
   requestAnimationFrame(frame);
