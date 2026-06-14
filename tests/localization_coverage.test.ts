@@ -36,6 +36,7 @@ import {
   resetEntityTranslationFallbackLog,
   tEntity,
 } from "../src/ui/entity_i18n";
+import type { PlayerClass } from "../src/sim/types";
 
 const locales: Record<string, typeof en> = {
   es,
@@ -254,6 +255,19 @@ describe("i18n Localization Key Coverage", () => {
     return entityTranslationManifest().filter((entry) => entry.kind === kind && entry.field === field).length;
   }
 
+  type EntityManifestEntry = ReturnType<typeof entityTranslationManifest>[number];
+  type EntityRequest = Parameters<typeof tEntity>[0];
+
+  function phaseSevenRequest(entry: EntityManifestEntry): EntityRequest {
+    if (entry.kind === "class") {
+      return { kind: "class", id: entry.id as PlayerClass, field: entry.field as "name" | "description" };
+    }
+    if (entry.kind === "ability") {
+      return { kind: "ability", id: entry.id, field: entry.field as "name" | "description", values: { damage: "11-14" } };
+    }
+    throw new Error(`Unexpected Phase 7 entity kind: ${entry.kind}`);
+  }
+
   function sourceFilesUnder(relativeDir: string): string[] {
     const root = path.resolve(process.cwd(), relativeDir);
     if (!fs.existsSync(root)) return [];
@@ -393,7 +407,7 @@ describe("i18n Localization Key Coverage", () => {
     expect(entityCount("questObjective", "label")).toBe(Object.values(QUESTS).reduce((sum, quest) => sum + quest.objectives.length, 0));
   });
 
-  it("should resolve entity text through the client resolver and record canonical fallbacks", () => {
+  it("should resolve Phase 7 class and ability text without canonical fallbacks", () => {
     resetEntityTranslationFallbackLog();
     setLanguage("de_DE");
     expect(tEntity({ kind: "class", id: "mage", field: "name" })).toBe(t("classes.mage"));
@@ -402,32 +416,57 @@ describe("i18n Localization Key Coverage", () => {
     const ability = ABILITIES.fireball;
     const abilityName = tEntity({ kind: "ability", id: ability.id, field: "name" });
     const abilityDescription = tEntity({ kind: "ability", id: ability.id, field: "description", values: { damage: "11-14" } });
-    const npcGreeting = tEntity({ kind: "npc", id: "marshal_redbrook", field: "greeting", values: { className: "Magier", classNameLower: "magier" } });
-    expect(abilityName).toBe(ability.name);
+    expect(abilityName).toBe("Feuerball");
+    expect(abilityName).not.toBe(ability.name);
     expect(abilityDescription).toContain("11-14");
     expect(abilityDescription).not.toContain("$d");
+    expect(abilityDescription).not.toContain("{damage}");
+    expect(entityTranslationFallbackLog()).toHaveLength(0);
+
+    const npcGreeting = tEntity({ kind: "npc", id: "marshal_redbrook", field: "greeting", values: { className: "Magier", classNameLower: "magier" } });
     expect(npcGreeting).toContain("magier");
     expect(npcGreeting).not.toContain("$C");
-    expect(entityTranslationFallbackLog().map((entry) => entry.key)).toEqual(expect.arrayContaining([
-      entityTranslationKey({ kind: "ability", id: ability.id, field: "name" }),
-      entityTranslationKey({ kind: "ability", id: ability.id, field: "description" }),
+    expect(entityTranslationFallbackLog().map((entry) => entry.key)).toEqual([
       entityTranslationKey({ kind: "npc", id: "marshal_redbrook", field: "greeting" }),
-    ]));
+    ]);
 
     setLanguage("en");
     resetEntityTranslationFallbackLog();
   });
 
+  it("should provide every Phase 7 class and ability translation in every locale", () => {
+    const phaseSevenEntries = entityTranslationManifest().filter((entry) => entry.phase === "phase7");
+    expect(phaseSevenEntries).toHaveLength((Object.keys(CLASSES).length * 2) + (Object.keys(ABILITIES).length * 2));
+    expect(missingEntityTranslationsForPhases(["phase7"])).toHaveLength(0);
+
+    for (const lang of supportedLanguages) {
+      setLanguage(lang);
+      resetEntityTranslationFallbackLog();
+      for (const entry of phaseSevenEntries) {
+        const rendered = tEntity(phaseSevenRequest(entry));
+        expect(rendered.trim().length, `${lang}.${entry.key}`).toBeGreaterThan(0);
+        expect(rendered, `${lang}.${entry.key}`).not.toBe(entry.key);
+        expect(rendered, `${lang}.${entry.key}`).not.toContain("$d");
+        expect(rendered, `${lang}.${entry.key}`).not.toMatch(/\{damage\}/);
+        if (entry.kind === "ability" && entry.field === "description" && entry.source.includes("$d")) {
+          expect(rendered, `${lang}.${entry.key}`).toContain("11-14");
+        }
+      }
+      expect(entityTranslationFallbackLog(), `${lang} Phase 7 fallback log`).toHaveLength(0);
+    }
+
+    setLanguage("en");
+  });
+
   it("should expose phase-gated missing entity translations before later phases are accepted", () => {
     const phaseSevenMissing = missingEntityTranslationsForPhases(["phase7"]);
-    expect(phaseSevenMissing.some((entry) => entry.key === entityTranslationKey({ kind: "ability", id: "fireball", field: "name" }))).toBe(true);
-    expect(phaseSevenMissing.some((entry) => entry.key === entityTranslationKey({ kind: "class", id: "mage", field: "name" }))).toBe(false);
+    expect(phaseSevenMissing).toHaveLength(0);
 
     expect(missingEntityTranslationsForPhases(["phase8"]).some((entry) => entry.key === entityTranslationKey({ kind: "item", id: "worn_sword", field: "name" }))).toBe(true);
     expect(missingEntityTranslationsForPhases(["phase9"]).some((entry) => entry.key === entityTranslationKey({ kind: "npc", id: "marshal_redbrook", field: "greeting" }))).toBe(true);
     expect(missingEntityTranslationsForPhases(["phase9"]).some((entry) => entry.key === entityTranslationKey({ kind: "questObjective", questId: "q_wolves", objectiveIndex: 0, field: "label" }))).toBe(true);
     expect(() => assertEntityTranslationsReady([])).not.toThrow();
-    expect(() => assertEntityTranslationsReady(["phase7"])).toThrow(/Missing entity translations/);
+    expect(() => assertEntityTranslationsReady(["phase7"])).not.toThrow();
   });
 
   it("should keep the entity resolver out of simulation and server modules", () => {
