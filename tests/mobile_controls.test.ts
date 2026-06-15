@@ -220,6 +220,7 @@ function installMobileControlDom(): {
   moveZone: FakeElement;
   moveJoystick: FakeElement;
   cameraJoystick: FakeElement;
+  emoteButton: FakeElement;
   windowTarget: EventTarget;
 } {
   const elements = new Map<string, FakeElement>([
@@ -229,6 +230,7 @@ function installMobileControlDom(): {
     ['mobile-move-stick', new FakeElement()],
     ['mobile-camera-joystick', new FakeElement()],
     ['mobile-camera-stick', new FakeElement()],
+    ['mobile-emote', new FakeElement()],
   ]);
   const body = new FakeElement();
   const documentTarget = new EventTarget();
@@ -251,6 +253,7 @@ function installMobileControlDom(): {
     moveZone: elements.get('mobile-move-zone')!,
     moveJoystick: elements.get('mobile-move-joystick')!,
     cameraJoystick: elements.get('mobile-camera-joystick')!,
+    emoteButton: elements.get('mobile-emote')!,
     windowTarget,
   };
 }
@@ -276,6 +279,7 @@ function mobileCallbacks() {
     onChat: noop,
     onMenu: noop,
     onSocial: noop,
+    onEmotes: noop,
     onArena: noop,
     onQuestLog: noop,
     onCharacter: noop,
@@ -338,5 +342,23 @@ describe('MobileControls pointer lifecycle', () => {
 
     expect(touchLookActive).toBe(false);
     expect(lastLook).toEqual({ x: 0, y: 0 });
+  });
+
+  it('fires the emote callback when the on-screen Emotes button is tapped', () => {
+    const { emoteButton } = installMobileControlDom();
+    const input = {
+      setTouchMove: () => {},
+      clearTouchMove: () => {},
+      setTouchLook: () => {},
+      setTouchLookVector: () => {},
+    } as unknown as Input;
+
+    let emotes = 0;
+    const callbacks = { ...mobileCallbacks(), onEmotes: () => { emotes += 1; } };
+    new MobileControls(input, callbacks).start();
+
+    emoteButton.dispatchEvent(new Event('click', { bubbles: true, cancelable: true }));
+
+    expect(emotes).toBe(1);
   });
 });

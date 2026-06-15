@@ -58,6 +58,7 @@ export interface MobileControlCallbacks {
   onChat(): void;
   onMenu(): void;
   onSocial(): void;
+  onEmotes(): void;
   onArena(): void;
   onQuestLog(): void;
   onCharacter(): void;
@@ -196,6 +197,7 @@ export class MobileControls {
     this.bindButton('mobile-chat', () => this.toggleChat());
     this.bindButton('mobile-menu', () => this.callbacks.onMenu());
     this.bindButton('mobile-social', () => this.callbacks.onSocial());
+    this.bindButton('mobile-emote', () => this.callbacks.onEmotes());
     this.bindButton('mobile-arena', () => this.callbacks.onArena());
     this.bindButton('mobile-quest', () => this.callbacks.onQuestLog());
     this.bindButton('mobile-char', () => this.callbacks.onCharacter());
