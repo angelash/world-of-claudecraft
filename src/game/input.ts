@@ -81,7 +81,7 @@ export class Input {
     window.addEventListener('mousemove', (e) => this.onMouseMove(e));
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
-      this.camDist = Math.min(22, Math.max(3, this.camDist + Math.sign(e.deltaY) * 1.4));
+      this.zoomBy(Math.sign(e.deltaY) * 1.4);
     }, { passive: false });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     canvas.addEventListener('mouseenter', () => { this.hoverActive = true; });
@@ -90,6 +90,11 @@ export class Input {
       this.setHoverCursor('default');
     });
     this.updateCursor();
+  }
+
+  /** Move the camera in/out, clamped to the zoom limits. Shared by wheel + touch pinch. */
+  zoomBy(delta: number): void {
+    this.camDist = Math.min(22, Math.max(3, this.camDist + delta));
   }
 
   /** True while a mouse button is held for camera drag. */
