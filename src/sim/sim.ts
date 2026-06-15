@@ -4280,6 +4280,9 @@ export class Sim {
     // still be repurchased (each at its sell value); never broadcast.
     if (/^\/(?:buyback|bb|repurchase)(?:\s|$)/i.test(raw)) {
       this.error(r.meta.entityId, this.buybackReadout(r.meta));
+    // "/combo" — self-only readout of combo points built on the current target
+    if (/^\/(?:combo|cp|combopoints)(?:\s|$)/i.test(raw)) {
+      this.error(r.meta.entityId, this.comboReadout(r.e));
       return null;
     }
 
@@ -5766,6 +5769,11 @@ export class Sim {
       return `${def.name}${qty} (${formatMoney(def.sellValue)} each)`;
     });
     return `Vendor buyback (${slots.length}): ${parts.join(', ')}. Repurchase at any merchant.`;
+  private comboReadout(e: Entity): string {
+    if (e.comboPoints <= 0) return 'You have no combo points built up.';
+    const target = e.comboTargetId !== null ? this.entities.get(e.comboTargetId) : undefined;
+    const on = target ? ` on ${target.name}` : '';
+    return `Combo points: ${e.comboPoints}/5${on}.`;
   }
 
   private error(pid: number, text: string): void {
