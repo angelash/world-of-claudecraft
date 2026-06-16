@@ -18,9 +18,6 @@ import { manifestUrls, SKINS, VISUALS, VisualDef, type AttachDef } from './manif
 const DEFAULT_TINT_STRENGTH = 0.4;
 
 const LOW_URL_ALIAS: Record<string, string> = {
-  'models/chars/enemies/skeleton_warrior.glb': 'models/chars/enemies/skeleton_minion.glb',
-  'models/chars/enemies/skeleton_rogue.glb': 'models/chars/enemies/skeleton_minion.glb',
-  'models/chars/enemies/skeleton_mage.glb': 'models/chars/enemies/skeleton_minion.glb',
   'models/chars/players/rogue_hooded.glb': 'models/chars/players/rogue.glb',
 };
 
@@ -319,19 +316,23 @@ export function tintedMaterial(src: THREE.Material, tint: number | null, strengt
   if (cached) return cached;
 
   const s = src as THREE.MeshStandardMaterial;
-  let mat: THREE.MeshStandardMaterial | THREE.MeshLambertMaterial;
+  let mat: THREE.MeshStandardMaterial | THREE.MeshLambertMaterial | THREE.MeshBasicMaterial;
   if (GFX.standardMaterials) {
     mat = s.clone();
     addRimGlow(mat); // dungeon silhouette rim (uRimBoost contract)
   } else {
-    // low tier: Lambert with the same texture map — no PBR, no rim
-    mat = new THREE.MeshLambertMaterial({
-      map: s.map ?? null,
-      color: s.color ? s.color.clone() : new THREE.Color(0xffffff),
-      transparent: s.transparent,
-      opacity: s.opacity,
-      side: s.side,
-    });
+    if ((src as THREE.MeshBasicMaterial).isMeshBasicMaterial) {
+      mat = (src as THREE.MeshBasicMaterial).clone();
+    } else {
+      // low tier: Lambert with the same texture map — no PBR, no rim
+      mat = new THREE.MeshLambertMaterial({
+        map: s.map ?? null,
+        color: s.color ? s.color.clone() : new THREE.Color(0xffffff),
+        transparent: s.transparent,
+        opacity: s.opacity,
+        side: s.side,
+      });
+    }
   }
   if (tint !== null) {
     // subtle pull toward the template color — hard multiplies turn the

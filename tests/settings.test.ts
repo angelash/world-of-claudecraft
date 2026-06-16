@@ -19,6 +19,11 @@ describe('Settings', () => {
     expect(s.get('cameraSpeed')).toBe(SETTING_RANGES.cameraSpeed.def);
     expect(s.get('cameraSpeed')).toBeLessThan(1); // addresses the "too fast" complaint
     expect(s.get('sfxVolume')).toBe(SETTING_RANGES.sfxVolume.def);
+    expect(s.get('graphicsPreset')).toBe(SETTING_RANGES.graphicsPreset.def);
+    expect(s.get('terrainDetail')).toBe(SETTING_RANGES.terrainDetail.def);
+    expect(s.get('foliageDensity')).toBe(SETTING_RANGES.foliageDensity.def);
+    expect(s.get('effectsQuality')).toBe(SETTING_RANGES.effectsQuality.def);
+    expect(s.get('shadowQuality')).toBe(SETTING_RANGES.shadowQuality.def);
     expect(s.get('renderScale')).toBe(1);
     expect(s.get('fullscreen')).toBe(1);
     expect(s.get('clickToMove')).toBe(0);
@@ -31,6 +36,11 @@ describe('Settings', () => {
     expect(s.set('cameraSpeed', 99)).toBe(SETTING_RANGES.cameraSpeed.max);
     expect(s.set('cameraSpeed', -5)).toBe(SETTING_RANGES.cameraSpeed.min);
     expect(s.set('sfxVolume', 0.5)).toBe(0.5);
+    expect(s.set('graphicsPreset', 99)).toBe(SETTING_RANGES.graphicsPreset.max);
+    expect(s.set('terrainDetail', -1)).toBe(SETTING_RANGES.terrainDetail.min);
+    expect(s.set('foliageDensity', -1)).toBe(SETTING_RANGES.foliageDensity.min);
+    expect(s.set('effectsQuality', 99)).toBe(SETTING_RANGES.effectsQuality.max);
+    expect(s.set('shadowQuality', -1)).toBe(SETTING_RANGES.shadowQuality.min);
     expect(s.set('fullscreen', -1)).toBe(0);
   });
 
@@ -96,11 +106,21 @@ describe('Settings', () => {
     const s = new Settings();
     s.set('cameraSpeed', 1.2);
     s.set('renderScale', 0.5);
+    s.set('graphicsPreset', 4);
+    s.set('terrainDetail', 0);
+    s.set('foliageDensity', 0);
+    s.set('effectsQuality', 0);
+    s.set('shadowQuality', 0);
     s.set('fullscreen', 0);
     s.set('mouseCamera', true);
     s.reset();
     expect(s.get('cameraSpeed')).toBe(SETTING_RANGES.cameraSpeed.def);
     expect(s.get('renderScale')).toBe(SETTING_RANGES.renderScale.def);
+    expect(s.get('graphicsPreset')).toBe(SETTING_RANGES.graphicsPreset.def);
+    expect(s.get('terrainDetail')).toBe(SETTING_RANGES.terrainDetail.def);
+    expect(s.get('foliageDensity')).toBe(SETTING_RANGES.foliageDensity.def);
+    expect(s.get('effectsQuality')).toBe(SETTING_RANGES.effectsQuality.def);
+    expect(s.get('shadowQuality')).toBe(SETTING_RANGES.shadowQuality.def);
     expect(s.get('fullscreen')).toBe(SETTING_RANGES.fullscreen.def);
     expect(s.get('clickToMoveButton')).toBe(SETTING_RANGES.clickToMoveButton.def);
     expect(s.get('mouseCamera')).toBe(false);

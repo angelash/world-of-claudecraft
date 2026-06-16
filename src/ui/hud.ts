@@ -5484,6 +5484,44 @@ export class Hud {
     parent.appendChild(row);
   }
 
+  private settingChoice(parent: HTMLElement, label: string, key: NumericSettingKey, options: { value: number; label: string }[], onChange?: () => void): void {
+    const hooks = this.optionsHooks;
+    if (!hooks) return;
+    const row = document.createElement('div');
+    row.className = 'set-row';
+    const name = document.createElement('span');
+    name.className = 'set-name';
+    name.textContent = label;
+    const wrap = document.createElement('div');
+    wrap.className = 'set-choice';
+    const sync = () => {
+      const current = Math.round(hooks.settings.get(key));
+      for (const btn of [...wrap.querySelectorAll<HTMLButtonElement>('button[data-value]')]) {
+        const selected = Number(btn.dataset.value) === current;
+        btn.classList.toggle('sel', selected);
+        btn.setAttribute('aria-pressed', String(selected));
+      }
+    };
+    for (const option of options) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn set-choice-btn';
+      btn.dataset.value = String(option.value);
+      btn.textContent = option.label;
+      btn.setAttribute('aria-label', option.label);
+      btn.addEventListener('click', () => {
+        audio.click();
+        hooks.onSettingChange(key, option.value);
+        sync();
+        onChange?.();
+      });
+      wrap.appendChild(btn);
+    }
+    row.append(name, wrap);
+    parent.appendChild(row);
+    sync();
+  }
+
   private settingsViewShell(title: string): HTMLElement {
     const el = $('#options-menu');
     el.innerHTML = `<div class="panel-title"><span>${esc(title)}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('hud.options.returnToGame'))}">${svgIcon('close')}</button></div>`;
@@ -5516,6 +5554,32 @@ export class Hud {
 
   private renderGraphics(): void {
     const body = this.settingsViewShell(t('hud.options.graphics'));
+    this.settingChoice(body, t('hud.options.graphicsQuality'), 'graphicsPreset', [
+      { value: 0, label: t('hud.options.graphicsPresetAuto') },
+      { value: 1, label: t('hud.options.graphicsPresetLow') },
+      { value: 2, label: t('hud.options.graphicsPresetMedium') },
+      { value: 3, label: t('hud.options.graphicsPresetHigh') },
+      { value: 4, label: t('hud.options.graphicsPresetUltra') },
+      { value: 5, label: t('hud.options.graphicsPresetAdvanced') },
+    ], () => this.renderGraphics());
+    if (Math.round(this.optionsHooks?.settings.get('graphicsPreset') ?? 0) === 5) {
+      this.settingChoice(body, t('hud.options.terrainDetail'), 'terrainDetail', [
+        { value: 0, label: t('hud.options.terrainLow') },
+        { value: 1, label: t('hud.options.terrainHigh') },
+      ]);
+      this.settingChoice(body, t('hud.options.foliageDensity'), 'foliageDensity', [
+        { value: 0, label: t('hud.options.terrainLow') },
+        { value: 1, label: t('hud.options.terrainHigh') },
+      ]);
+      this.settingChoice(body, t('hud.options.effectsQuality'), 'effectsQuality', [
+        { value: 0, label: t('hud.options.terrainLow') },
+        { value: 1, label: t('hud.options.terrainHigh') },
+      ]);
+      this.settingChoice(body, t('hud.options.shadowQuality'), 'shadowQuality', [
+        { value: 0, label: t('hud.options.terrainLow') },
+        { value: 1, label: t('hud.options.terrainHigh') },
+      ]);
+    }
     this.settingSlider(body, t('hud.options.cameraSpeed'), 'cameraSpeed');
     // Camera Speed only scales mouselook; on touch the camera joystick has its
     // own rate, so phones get a dedicated sensitivity slider here.
@@ -5525,11 +5589,20 @@ export class Hud {
     this.settingToggle(body, t('hud.options.fullscreen'), 'fullscreen');
     this.settingToggle(body, t('game.settings.showOverflowXp'), 'showOverflowXp');
     // Touch-only: lets phone players dim the on-screen joysticks + buttons.
-    if (isPhoneTouchDevice()) this.settingSlider(body, 'Touch Controls Opacity', 'touchOpacity');
+    if (isPhoneTouchDevice()) this.settingSlider(body, t('hud.options.touchOpacity'), 'touchOpacity');
     const note = document.createElement('div');
     note.className = 'set-note';
     note.textContent = t('hud.options.graphicsNote');
     $('#options-menu').appendChild(note);
+    const reloadNote = document.createElement('div');
+    reloadNote.className = 'set-note';
+    reloadNote.textContent = t('hud.options.graphicsReloadNote');
+    const reload = document.createElement('button');
+    reload.type = 'button';
+    reload.className = 'btn';
+    reload.textContent = t('hud.options.reloadNow');
+    reload.addEventListener('click', () => { audio.click(); location.reload(); });
+    $('#options-menu').append(reloadNote, reload);
     this.settingsViewFooter();
   }
 

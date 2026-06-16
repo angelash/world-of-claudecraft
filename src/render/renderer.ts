@@ -278,7 +278,9 @@ export class Renderer {
       this.captureGlIdentity();
     });
     initGfxTier(this.webgl); // software-GL autodetect needs the live context
-    this.lowGfx = GFX.tier === 'low';
+    // The lightweight material path does not preload HDR sky/water assets.
+    // Keep the renderer's HDR/IBL branch aligned with that preload decision.
+    this.lowGfx = !GFX.standardMaterials;
     const LOW_GFX = this.lowGfx;
     this.viewport = this.measureViewport();
     this.webgl.setPixelRatio(Math.min(window.devicePixelRatio, GFX.pixelRatioCap));
@@ -289,7 +291,7 @@ export class Renderer {
     this.webgl.toneMappingExposure = this.baseExposure;
     this.camera = new THREE.PerspectiveCamera(CAMERA_BASE_FOV, this.viewport.width / this.viewport.height, 0.1, 950);
 
-    this.scene.fog = new THREE.Fog(0xa6c6e0, 130, 470);
+    this.scene.fog = new THREE.Fog(LOW_GFX ? 0xb6cddd : 0xa6c6e0, LOW_GFX ? 150 : 130, LOW_GFX ? 520 : 470);
 
     // sky dome — follows the camera so the world strip never outruns it.
     // High tier: shader gradient + sun glow with biome-aware horizon tints;
@@ -324,10 +326,10 @@ export class Renderer {
       pmrem.dispose(); // prefiltered envRTs stay alive for the session
     }
 
-    const hemi = new THREE.HemisphereLight(0xcfe8ff, 0x46603a, LOW_GFX ? 1.0 : HEMI_INTENSITY);
+    const hemi = new THREE.HemisphereLight(0xd8ecff, 0x405a35, LOW_GFX ? 0.9 : HEMI_INTENSITY);
     this.scene.add(hemi);
     this.hemi = hemi;
-    const sun = new THREE.DirectionalLight(LOW_GFX ? 0xfff0cd : 0xffedd0, LOW_GFX ? 2.2 : SUN_INTENSITY);
+    const sun = new THREE.DirectionalLight(LOW_GFX ? 0xfff2d6 : 0xffedd0, LOW_GFX ? 2.45 : SUN_INTENSITY);
     sun.position.copy(SUN_ANCHOR);
     sun.castShadow = !LOW_GFX;
     sun.shadow.mapSize.set(GFX.shadowMap, GFX.shadowMap);
@@ -609,7 +611,7 @@ export class Renderer {
     }
 
     const mobile = this.isMobileRuntime();
-    const minScale = mobile ? 0.55 : (GFX.tier === 'low' ? 0.6 : 0.7);
+    const minScale = mobile ? 0.55 : (GFX.tier === 'low' ? 0.9 : 0.7);
     const dropThreshold = mobile ? 20 : 24; // ~50fps mobile, ~42fps desktop
     const urgentThreshold = mobile ? 28 : 34;
     const recoverThreshold = mobile ? 15.5 : 14.5;
