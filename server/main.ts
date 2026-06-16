@@ -23,6 +23,7 @@ import { requestIp, rateLimited, authThrottled, recordAuthFailure, clearAuthFail
 import { handleAdminApi } from './admin';
 import { GameServer } from './game';
 import { REALM, REALM_DIRECTORY, REALM_ORIGINS } from './realm';
+import { webLoginEnforced, isWebClientRequest } from './web_login_guard';
 import { cacheControlFor, etagFor, isNotModified } from './static_cache';
 
 const PORT = Number(process.env.PORT ?? 8787);
@@ -207,9 +208,16 @@ function maybeCors(req: http.IncomingMessage, res: http.ServerResponse): void {
   }
 }
 
+// Anti-bot: when enabled, /api/login + /api/register require a same-origin browser
+// request (a recognised Origin header), so only the web client can obtain a token.
+const REQUIRE_WEB_LOGIN = webLoginEnforced();
+
 async function handleApi(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   const url = (req.url ?? '').split('?')[0];
   try {
+    if (REQUIRE_WEB_LOGIN && req.method === 'POST' && (url === '/api/register' || url === '/api/login') && !isWebClientRequest(req)) {
+      return json(res, 403, { error: 'logins are only allowed from the game client' });
+    }
     if (req.method === 'POST' && (url === '/api/register' || url === '/api/login') && rateLimited(req)) {
       return json(res, 429, { error: 'too many attempts — wait a minute and try again' });
     }
