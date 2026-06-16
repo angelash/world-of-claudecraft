@@ -16,6 +16,7 @@ import {
   dist2d, xpForLevel, MAX_LEVEL, MELEE_RANGE, MILESTONES, virtualLevel, canPrestige, xpUntilNextPrestige,
 } from '../sim/types';
 import { xpBarView, formatXp } from './xp_bar';
+import { formatClockTime } from './clock';
 import { terrainHeight, WATER_LEVEL, roadDistance, generateDecorations } from '../sim/world';
 import type { Decoration } from '../sim/world';
 import { Meters } from './meters';
@@ -272,6 +273,9 @@ export class Hud {
   private hotDomSkippedWrites = 0;
   private minimapCtx: CanvasRenderingContext2D;
   private minimapBg: HTMLCanvasElement;
+  private clockEl: HTMLElement | null = null;
+  private clock24 = false;          // 24-hour vs 12-hour AM/PM display
+  private lastClockText = '';       // avoid redundant DOM writes each frame
   private mapBg: HTMLCanvasElement | null = null;
   private openLootMobId: number | null = null;
   private openVendorNpcId: number | null = null;
@@ -392,6 +396,19 @@ export class Hud {
       document.getElementById('mobile-controls')?.classList.remove('expanded');
       document.getElementById('mobile-more')?.classList.remove('active');
     });
+    // classic-WoW minimap clock: real local time under the minimap; click it to
+    // flip between 12-hour (AM/PM) and 24-hour display. Real-time clocks are a
+    // UI-only concern, so `new Date()` here is fine (the sim-only time ban
+    // doesn't apply — cf. meters.ts using performance.now()).
+    this.clockEl = $('#minimap-clock');
+    this.clock24 = (() => { try { return localStorage.getItem('clock24h') === '1'; } catch { return false; } })();
+    this.clockEl?.addEventListener('click', () => {
+      this.clock24 = !this.clock24;
+      try { localStorage.setItem('clock24h', this.clock24 ? '1' : '0'); } catch { /* private mode */ }
+      this.lastClockText = ''; // force a redraw in the new format
+      this.updateClock();
+    });
+    this.updateClock();
     // classic MMOs: the player interaction menu opens from the target portrait
     $('#target-frame').addEventListener('contextmenu', (ev) => {
       ev.preventDefault();
@@ -1817,6 +1834,7 @@ export class Hud {
     }
     this.arenaMatchSeen = inArenaMatch;
     if (fastHud) this.updateMinimap();
+    if (fastHud) this.updateClock();
     if (slowHud && $('#social-window').classList.contains('open')) {
       const struct = this.socialStructSig();
       if (struct !== this.lastSocialStruct) {
@@ -1926,6 +1944,18 @@ export class Hud {
     }
     ctx.putImageData(img, 0, 0);
     return c;
+  }
+
+  // Refresh the minimap clock to the current real local time. Cheap to call
+  // every frame: the formatted string only changes once a minute, and we skip
+  // the DOM write whenever it is unchanged.
+  private updateClock(): void {
+    if (!this.clockEl) return;
+    const text = formatClockTime(new Date(), this.clock24);
+    if (text !== this.lastClockText) {
+      this.lastClockText = text;
+      this.clockEl.textContent = text;
+    }
   }
 
   private updateMinimap(): void {
