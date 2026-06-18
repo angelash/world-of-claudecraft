@@ -55,7 +55,7 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
     startWeapon: 'gnarled_staff',
     startChest: 'apprentice_robe',
     ranged: { min: 3, max: 6, speed: 1.8, maxRange: 30, minRange: 0, wand: true, school: 'arcane' },
-    abilities: ['fireball', 'frost_armor', 'arcane_intellect', 'frostbolt', 'conjure_water', 'conjure_food', 'fire_blast', 'arcane_missiles', 'polymorph', 'frost_nova', 'arcane_explosion', 'scorch', 'ice_barrier'],
+    abilities: ['fireball', 'frost_armor', 'arcane_intellect', 'frostbolt', 'conjure_water', 'conjure_food', 'fire_blast', 'arcane_missiles', 'polymorph', 'frost_nova', 'arcane_explosion', 'scorch', 'ice_barrier', 'pyroblast'],
     color: 0x69ccf0,
   },
   rogue: {
@@ -454,6 +454,13 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: true,
     effects: [{ type: 'directDamage', min: 32, max: 40 }],
     description: 'Scorches the enemy for $d Fire damage. Quick to cast.',
+  },
+  pyroblast: {
+    id: 'pyroblast', name: 'Pyroblast', class: 'mage', learnLevel: 20,
+    cost: 125, castTime: 6.0, cooldown: 0, range: 30, school: 'fire',
+    requiresTarget: true,
+    effects: [{ type: 'directDamage', min: 75, max: 100 }, { type: 'dot', total: 24, duration: 12, interval: 2 }],
+    description: 'Hurls an immense fiery boulder that causes $d Fire damage plus additional damage over time.',
   },
   ice_barrier: {
     id: 'ice_barrier', name: 'Ice Barrier', class: 'mage', learnLevel: 20,

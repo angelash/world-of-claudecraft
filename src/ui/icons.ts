@@ -1003,6 +1003,7 @@ const ABILITY_RECIPES: Record<string, IconRecipe> = {
   overpower: r('fury', 'gold', ['sword', { p: 'sunburst', ...TL }]),
   // mage
   fireball: r('fire', 'ember', ['bolt', { p: 'flame', ...BR }], ['glow']),
+  pyroblast: r('fire', 'ember', [{ p: 'sunburst', ...BIG }, { p: 'flame', s: 0.9 }], ['glow']),
   frost_armor: r('frost', 'ice', ['chestplate', { p: 'snowflake', ...TR }]),
   arcane_intellect: r('arcane', 'arcanePink', ['eye'], ['sparkle']),
   frostbolt: r('frost', 'ice', ['bolt', { p: 'snowflake', ...BR }], ['motion']),

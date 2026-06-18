@@ -84,6 +84,7 @@
 | `arcane_explosion` | 14 | 60 | inst | aoeDamage 26–31, radius 10 (caster-centered) |
 | `scorch` | 16 | 35 | 1.5s | directDamage 32–40 (fast fire filler) |
 | `ice_barrier` | 20 | 90 | inst, 30cd | absorb 130, 60s (self) |
+| `pyroblast` | 20 | 125 | 6.0s cast | directDamage 75–100 + dot 24/12s (6×4) — big nuke + burn |
 
 **Sanity** — L14: Fireball R3 avg 42 (+6 dot) ≈ 48/cast → 292 hp ≈ 6.1 casts ✓. L20: FB R4 avg 68 (+12) = 80 → 400 hp = 5 casts (+Fire Blast R3 trims one) ✓.
 
@@ -351,7 +352,7 @@
 | Class | New abilities (id @ level) | New sim work |
 |---|---|---|
 | Warrior | execute@14, slam@16, cleave@18 | wire existing `requiresTargetHpBelow` |
-| Mage | arcane_explosion@14, scorch@16, ice_barrier@20 | none |
+| Mage | arcane_explosion@14, scorch@16, ice_barrier@20, pyroblast@20 | none |
 | Rogue | kidney_shot@14, ambush@16, adrenaline_rush@20 | **finisherStun effect (the only new effect type)** |
 | Paladin | flash_of_light@12, exorcism@14, consecration@18 | none |
 | Hunter | aspect_of_the_cheetah@14, aimed_shot@16, rapid_fire@20 | none |
