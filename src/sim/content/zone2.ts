@@ -104,6 +104,25 @@ export const ZONE2_MOBS: Record<string, MobTemplate> = {
     loot: [],
     scale: 0.75, color: 0x1abc9c,
   },
+  sloomtooth_the_drowned: {
+    id: 'sloomtooth_the_drowned', name: 'Sloomtooth the Drowned', minLevel: 11, maxLevel: 11, family: 'murloc', rare: true,
+    elite: true, canSwim: true, ccImmune: true, respawnMult: 648,
+    hpBase: 340, hpPerLevel: 60, dmgBase: 16, dmgPerLevel: 3.8, attackSpeed: 1.9,
+    armorPerLevel: 28, moveSpeed: 8.4, aggroRadius: 14,
+    // Tidal Sweep: a wide gaff-swing that splashes onto allies near the target.
+    cleave: { radius: 8, mult: 0.5, name: 'Tidal Sweep' },
+    // Drowning Resurgence: the drowned do not stay dead — one desperate surge of brine
+    // heals the tyrant the first time it is brought low.
+    desperateHeal: { belowHpPct: 0.3, healPct: 0.25 },
+    loot: [
+      { copper: 280, chance: 1 },
+      { itemId: 'mudfin_scale', chance: 1 },
+      { itemId: 'tidereaver_gaff', chance: 0.25, rollGroup: 'sloomtooth_chase' },
+      { itemId: 'sloomtooth_tidefang', chance: 0.25, rollGroup: 'sloomtooth_chase' },
+      { itemId: 'drowned_tide_scepter', chance: 0.25, rollGroup: 'sloomtooth_chase' },
+    ],
+    scale: 1.1, color: 0x2e86c1,
+  },
   mire_widow: {
     id: 'mire_widow', name: 'Mirefen Widow', minLevel: 8, maxLevel: 10, family: 'spider',
     hpBase: 48, hpPerLevel: 19, dmgBase: 8, dmgPerLevel: 2.2, attackSpeed: 1.8,
@@ -547,6 +566,7 @@ export const ZONE2_CAMPS: CampDef[] = [
   // Drowned dead: the Drowned Chapel and the shallows beyond
   { mobId: 'drowned_dead', center: { x: 90, z: 420 }, radius: 20, count: 8 },
   { mobId: 'drowned_dead', center: { x: 115, z: 450 }, radius: 16, count: 6 },
+  { mobId: 'sloomtooth_the_drowned', center: { x: 118, z: 455 }, radius: 5, count: 1 },
   // Trolls: barrow-mounds in the southeast
   { mobId: 'fen_troll', center: { x: -80, z: 420 }, radius: 22, count: 7 },
   { mobId: 'fen_troll', center: { x: -105, z: 455 }, radius: 18, count: 6 },
@@ -664,6 +684,19 @@ export const ZONE2_ITEMS: Record<string, ItemDef> = {
   mirejaw_scale_vest: {
     id: 'mirejaw_scale_vest', name: 'Mirejaw Scale Vest', kind: 'armor', slot: 'chest', quality: 'uncommon',
     stats: { armor: 115, str: 2, sta: 3 }, sellValue: 480, requiredClass: WAR,
+  },
+  // --- Sloomtooth the Drowned chase drops (rare) ---
+  tidereaver_gaff: {
+    id: 'tidereaver_gaff', name: 'Tidereaver Gaff', kind: 'weapon', slot: 'mainhand', quality: 'rare',
+    weapon: { min: 17, max: 28, speed: 2.5 }, stats: { str: 5, sta: 4 }, sellValue: 1400, requiredClass: WAR,
+  },
+  sloomtooth_tidefang: {
+    id: 'sloomtooth_tidefang', name: "Sloomtooth's Tidefang", kind: 'weapon', slot: 'mainhand', quality: 'rare',
+    weapon: { min: 10, max: 17, speed: 1.7, dagger: true }, stats: { agi: 6, sta: 3 }, sellValue: 1400, requiredClass: ROG,
+  },
+  drowned_tide_scepter: {
+    id: 'drowned_tide_scepter', name: 'Drowned Tide Scepter', kind: 'weapon', slot: 'mainhand', quality: 'rare',
+    weapon: { min: 16, max: 28, speed: 3.0 }, stats: { int: 6, spi: 3 }, sellValue: 1400, requiredClass: MAG,
   },
   nhalias_funeral_wraps: {
     id: 'nhalias_funeral_wraps', name: "Nhalia's Funeral Wraps", kind: 'armor', slot: 'legs', quality: 'uncommon',
