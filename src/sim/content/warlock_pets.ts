@@ -23,4 +23,12 @@ export const WARLOCK_PET_MOBS: Record<string, MobTemplate> = {
     armorPerLevel: 45, moveSpeed: 5.0, aggroRadius: 8,
     loot: [], scale: 1.15, color: 0x3a3a6e,
   },
+  succubus: {
+    id: 'succubus', name: 'Succubus', minLevel: 1, maxLevel: 60, family: 'demon',
+    // melee DPS: fast attacks and the heaviest demon damage, but lightly armored
+    hpBase: 45, hpPerLevel: 18,
+    dmgBase: 7, dmgPerLevel: 2.0, attackSpeed: 1.8,
+    armorPerLevel: 15, moveSpeed: 5.4, aggroRadius: 8,
+    loot: [], scale: 0.92, color: 0xc23ad6,
+  },
 };

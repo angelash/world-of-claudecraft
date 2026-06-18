@@ -148,7 +148,7 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
     startWeapon: 'gnarled_staff',
     startChest: 'apprentice_robe',
     ranged: { min: 3, max: 6, speed: 1.8, maxRange: 30, minRange: 0, wand: true, school: 'shadow' },
-    abilities: ['shadow_bolt', 'summon_imp', 'demon_skin', 'immolate', 'corruption', 'life_tap', 'summon_voidwalker', 'curse_of_agony', 'drain_life', 'fear', 'searing_pain', 'shadowburn'],
+    abilities: ['shadow_bolt', 'summon_imp', 'demon_skin', 'immolate', 'corruption', 'life_tap', 'summon_voidwalker', 'summon_succubus', 'curse_of_agony', 'drain_life', 'fear', 'searing_pain', 'shadowburn'],
     color: 0x9482c9,
   },
   druid: {
@@ -1075,6 +1075,13 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: false,
     effects: [{ type: 'summonDemon', mobId: 'voidwalker' }],
     description: 'Summons a Voidwalker under the command of the Warlock. The Voidwalker is a sturdy demon that taunts your enemies and soaks up punishment. Summoning a new demon dismisses your current one. You may have one demon at a time.',
+  },
+  summon_succubus: {
+    id: 'summon_succubus', name: 'Summon Succubus', class: 'warlock', learnLevel: 20,
+    cost: 120, castTime: 5, cooldown: 0, range: 0, school: 'shadow',
+    requiresTarget: false,
+    effects: [{ type: 'summonDemon', mobId: 'succubus' }],
+    description: 'Summons a Succubus under the command of the Warlock. The Succubus is a swift demon that tears your enemies apart with savage melee strikes. Summoning a new demon dismisses your current one. You may have one demon at a time.',
   },
 
   // ====================== DRUID ======================
