@@ -148,7 +148,7 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
     startWeapon: 'gnarled_staff',
     startChest: 'apprentice_robe',
     ranged: { min: 3, max: 6, speed: 1.8, maxRange: 30, minRange: 0, wand: true, school: 'shadow' },
-    abilities: ['shadow_bolt', 'summon_imp', 'demon_skin', 'immolate', 'corruption', 'life_tap', 'summon_voidwalker', 'summon_succubus', 'curse_of_agony', 'drain_life', 'fear', 'searing_pain', 'shadowburn'],
+    abilities: ['shadow_bolt', 'summon_imp', 'demon_skin', 'immolate', 'corruption', 'life_tap', 'summon_voidwalker', 'curse_of_agony', 'drain_life', 'fear', 'searing_pain', 'shadowburn', 'summon_succubus', 'summon_felhunter', 'summon_felguard', 'summon_infernal', 'summon_doomguard'],
     color: 0x9482c9,
   },
   druid: {
@@ -1212,11 +1212,39 @@ export const ABILITIES: Record<string, AbilityDef> = {
     description: 'Summons a Voidwalker under the command of the Warlock. The Voidwalker is a sturdy demon that taunts your enemies and soaks up punishment. Summoning a new demon dismisses your current one. You may have one demon at a time.',
   },
   summon_succubus: {
-    id: 'summon_succubus', name: 'Summon Succubus', class: 'warlock', learnLevel: 20,
-    cost: 120, castTime: 5, cooldown: 0, range: 0, school: 'shadow',
+    id: 'summon_succubus', name: 'Summon Succubus', class: 'warlock', learnLevel: 12,
+    cost: 100, castTime: 5, cooldown: 0, range: 0, school: 'shadow',
     requiresTarget: false,
     effects: [{ type: 'summonDemon', mobId: 'succubus' }],
-    description: 'Summons a Succubus under the command of the Warlock. The Succubus is a swift demon that tears your enemies apart with savage melee strikes. Summoning a new demon dismisses your current one. You may have one demon at a time.',
+    description: 'Summons a Succubus under the command of the Warlock. The Succubus is a fragile demon that strikes quickly and hits hard in melee. Summoning a new demon dismisses your current one. You may have one demon at a time.',
+  },
+  summon_felhunter: {
+    id: 'summon_felhunter', name: 'Summon Felhunter', class: 'warlock', learnLevel: 14,
+    cost: 120, castTime: 5, cooldown: 0, range: 0, school: 'shadow',
+    requiresTarget: false,
+    effects: [{ type: 'summonDemon', mobId: 'felhunter' }],
+    description: 'Summons a Felhunter under the command of the Warlock. The Felhunter harries enemies from range with Shadow Bite and excels at hunting spellcasters. Summoning a new demon dismisses your current one. You may have one demon at a time.',
+  },
+  summon_felguard: {
+    id: 'summon_felguard', name: 'Summon Felguard', class: 'warlock', learnLevel: 16,
+    cost: 150, castTime: 5, cooldown: 0, range: 0, school: 'shadow',
+    requiresTarget: false,
+    effects: [{ type: 'summonDemon', mobId: 'felguard' }],
+    description: 'Summons a Felguard under the command of the Warlock. The Felguard is a durable melee demon that wades into battle and holds its own. Summoning a new demon dismisses your current one. You may have one demon at a time.',
+  },
+  summon_infernal: {
+    id: 'summon_infernal', name: 'Summon Infernal', class: 'warlock', learnLevel: 18,
+    cost: 140, castTime: 6, cooldown: 180, range: 0, school: 'fire',
+    requiresTarget: false,
+    effects: [{ type: 'summonDemon', mobId: 'infernal' }],
+    description: 'Binds an Infernal to your will — a hulking juggernaut with crushing melee and the deepest health and armor of any demon. A long cooldown gates its raw power. Summoning a new demon dismisses your current one. You may have one demon at a time.',
+  },
+  summon_doomguard: {
+    id: 'summon_doomguard', name: 'Summon Doomguard', class: 'warlock', learnLevel: 20,
+    cost: 150, castTime: 6, cooldown: 180, range: 0, school: 'shadow',
+    requiresTarget: false,
+    effects: [{ type: 'summonDemon', mobId: 'doomguard' }],
+    description: 'Binds a Doomguard to your will — an elite demon that rains heavy Shadow damage from afar. A long cooldown gates its devastating power. Summoning a new demon dismisses your current one. You may have one demon at a time.',
   },
 
   // ====================== DRUID ======================

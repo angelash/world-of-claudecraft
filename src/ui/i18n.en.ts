@@ -6172,7 +6172,11 @@ const classAbilityNamesEn = {
       ["berserker_rage", "Berserker Rage", "Enter a berserker rage, generating 20 rage. (Warrior talent)"],
       ["summon_imp", "Summon Imp", "Summons an Imp under the command of the Warlock. The Imp hurls Firebolts at your enemies from afar. Summoning a new demon dismisses your current one. You may have one demon at a time."],
       ["summon_voidwalker", "Summon Voidwalker", "Summons a Voidwalker under the command of the Warlock. The Voidwalker is a sturdy demon that taunts your enemies and soaks up punishment. Summoning a new demon dismisses your current one. You may have one demon at a time."],
-      ["summon_succubus", "Summon Succubus", "Summons a Succubus under the command of the Warlock. The Succubus is a swift demon that tears your enemies apart with savage melee strikes. Summoning a new demon dismisses your current one. You may have one demon at a time."],
+      ["summon_succubus", "Summon Succubus", "Summons a Succubus under the command of the Warlock. The Succubus is a fragile demon that strikes quickly and hits hard in melee. Summoning a new demon dismisses your current one. You may have one demon at a time."],
+      ["summon_felhunter", "Summon Felhunter", "Summons a Felhunter under the command of the Warlock. The Felhunter harries enemies from range with Shadow Bite and excels at hunting spellcasters. Summoning a new demon dismisses your current one. You may have one demon at a time."],
+      ["summon_felguard", "Summon Felguard", "Summons a Felguard under the command of the Warlock. The Felguard is a durable melee demon that wades into battle and holds its own. Summoning a new demon dismisses your current one. You may have one demon at a time."],
+      ["summon_infernal", "Summon Infernal", "Binds an Infernal to your will — a hulking juggernaut with crushing melee and the deepest health and armor of any demon. A long cooldown gates its raw power. Summoning a new demon dismisses your current one. You may have one demon at a time."],
+      ["summon_doomguard", "Summon Doomguard", "Binds a Doomguard to your will — an elite demon that rains heavy Shadow damage from afar. A long cooldown gates its devastating power. Summoning a new demon dismisses your current one. You may have one demon at a time."],
     ]),
   },
 };
@@ -8115,6 +8119,7 @@ const MERGE_MOB_IDS = [
   'imp', 'voidwalker', 'succubus',
   'grix_the_tunnelking',
   'brutok_skullsmasher', 'captain_verlan', 'old_cragmaw', 'sloomtooth_the_drowned', 'voskar_emberwing', 'wraithbinder_maldrec',
+  'felhunter', 'felguard', 'infernal', 'doomguard',
 ] as const;
 
 type MergeNameTranslations<TId extends string> = Record<TId, { name: string }>;
@@ -9981,6 +9986,7 @@ const mergeEntitiesEn = {
     "Imp", "Voidwalker", "Succubus",
     "Grix the Tunnelking",
     "Brutok Skullsmasher", "Captain Verlan", "Old Cragmaw", "Sloomtooth the Drowned", "Voskar the Emberwing", "Wraithbinder Maldrec",
+    "Felhunter", "Felguard", "Infernal", "Doomguard",
   ], 'mob'),
   quests: {
     q_mogger_tracks: {
@@ -10021,6 +10027,7 @@ export const mergeEntities = {
       "Diablillo", "Caminante del Vacío", "Súcubo",
       "Grix el Rey del Túnel",
       "Brutok Rompecráneos", "Capitán Verlan", "Viejo Cragmaw", "Sloomtooth el Ahogado", "Voskar Aladebrasa", "Maldrec el Ataespectros",
+      "Cazador vil", "Guardia vil", "Infernal", "Guardián del Terror",
     ], 'mob'),
     quests: {
       q_mogger_tracks: {
@@ -10059,6 +10066,7 @@ export const mergeEntities = {
       "Diablotin", "Marcheur du Vide", "Succube",
       "Grix le Roi des tunnels",
       "Brutok Brise-crânes", "Capitaine Verlan", "Vieux Cragmaw", "Sloomtooth le Noyé", "Voskar Aile-de-braise", "Maldrec le Lie-spectres",
+      "Limier corrompu", "Gangregarde", "Infernal", "Seigneur de l'effroi",
     ], 'mob'),
     quests: {
       q_mogger_tracks: {
@@ -10098,6 +10106,7 @@ export const mergeEntities = {
       "Folletto", "Camminatore del Vuoto", "Succube",
       "Grix il Re dei tunnel",
       "Brutok Spaccacranio", "Capitano Verlan", "Vecchio Cragmaw", "Sloomtooth l'Annegato", "Voskar Aladibrace", "Maldrec il Legaspettri",
+      "Segugio vile", "Guardia vile", "Infernale", "Guardia del Terrore",
     ], 'mob'),
     quests: {
       q_mogger_tracks: {
@@ -10135,6 +10144,7 @@ export const mergeEntities = {
       "Wichtel", "Leerwandler", "Sukkubus",
       "Grix der Tunnelkönig",
       "Brutok Schädelschmetterer", "Hauptmann Verlan", "Alter Cragmaw", "Sloomzahn der Ertrunkene", "Voskar Glutschwinge", "Maldrec der Geisterbinder",
+      "Teufelsjäger", "Teufelswache", "Inferno", "Schreckenswache",
     ], 'mob'),
     quests: {
       q_mogger_tracks: {
@@ -10172,6 +10182,7 @@ export const mergeEntities = {
       "小鬼", "虚空行者", "魅魔",
       "Grix the Tunnelking",
       "碎颅者布鲁托克", "维尔兰队长", "老裂颚", "溺亡者涝牙", "炽翼沃斯卡", "缚魂者玛尔德雷克",
+      "地狱猎犬", "恶魔卫士", "地狱火", "末日守卫",
     ], 'mob'),
     quests: {
       q_mogger_tracks: {
@@ -10209,6 +10220,7 @@ export const mergeEntities = {
       "小鬼", "虛空行者", "魅魔",
       "Grix the Tunnelking",
       "碎顱者布魯托克", "維爾蘭隊長", "老裂顎", "溺亡者澇牙", "熾翼沃斯卡", "縛魂者瑪爾德雷克",
+      "地獄獵犬", "惡魔守衛", "地獄火", "末日守衛",
     ], 'mob'),
     quests: {
       q_mogger_tracks: {
@@ -10246,6 +10258,7 @@ export const mergeEntities = {
       "임프", "공허추적자", "서큐버스",
       "Grix the Tunnelking",
       "해골분쇄자 브루톡", "베를란 대장", "늙은 크래그모", "익사한 슬룸투스", "잿불날개 보스카르", "영혼결속자 말드렉",
+      "지옥사냥개", "지옥수호병", "지옥불정령", "파멸의 수호병",
     ], 'mob'),
     quests: {
       q_mogger_tracks: {
@@ -10283,6 +10296,7 @@ export const mergeEntities = {
       "インプ", "ヴォイドウォーカー", "サキュバス",
       "Grix the Tunnelking",
       "頭蓋砕きブルトーク", "ヴァーラン隊長", "老いたるクラッグモウ", "溺れし者スルームトゥース", "燃え翼のヴォスカル", "魂縛りマルドレク",
+      "フェルハンター", "フェルガード", "インファーナル", "ドゥームガード",
     ], 'mob'),
     quests: {
       q_mogger_tracks: {
@@ -10320,6 +10334,7 @@ export const mergeEntities = {
       "Diabrete", "Caminhante do Vazio", "Súcubo",
       "Grix, o Rei dos Túneis",
       "Brutok Quebra-crânios", "Capitão Verlan", "Velho Cragmaw", "Sloomtooth o Afogado", "Voskar Asa-de-brasa", "Maldrec o Atador-de-espectros",
+      "Caçador Vil", "Guarda Vil", "Infernal", "Guarda Sinistro",
     ], 'mob'),
     quests: {
       q_mogger_tracks: {
@@ -10357,6 +10372,7 @@ export const mergeEntities = {
       "Бес", "Страж Бездны", "Суккуб",
       "Грикс, Король туннелей",
       "Бруток Сокрушитель черепов", "Капитан Верлан", "Старый Крэгмо", "Слумтус Утопший", "Воскар Жарокрыл", "Малдрек Пленитель призраков",
+      "Охотник Скверны", "Страж Скверны", "Инфернал", "Страж Рока",
     ], 'mob'),
     quests: {
       q_mogger_tracks: {
