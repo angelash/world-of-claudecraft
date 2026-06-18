@@ -416,6 +416,18 @@
   .np-name { font-size: 12px; font-weight: bold; font-family: var(--title-font); letter-spacing: 0.3px; }
   .np-hpbar { width: 78px; height: 6px; background: #2a0000; border: 1px solid #000; margin: 1px auto 0; border-radius: 2px; }
   .np-hpfill { height: 100%; background: linear-gradient(#48e060, #1d7a32); border-radius: 2px; }
+  .np-castbar { position: relative; width: 78px; height: 8px; background: #1a1205; border: 1px solid #000;
+    margin: 1px auto 0; border-radius: 2px; overflow: hidden; }
+  .np-castfill { height: 100%; background: linear-gradient(#ffe27a, #d99a18); border-radius: 1px; transition: width 0.05s linear; }
+  .np-castbar.channel .np-castfill { background: linear-gradient(#7ad0ff, #2f7fd6); }
+  .np-castlabel { position: absolute; inset: 0; font-size: 8px; line-height: 8px; font-weight: bold;
+    color: #fff; text-shadow: 1px 1px 1px #000; letter-spacing: 0.2px; }
+  /* threat plate: this mob is aggroed on me — red bar + soft glow */
+  .nameplate.np-threat .np-hpbar { border-color: #ff5a4a; box-shadow: 0 0 6px #ff3b2e99; }
+  .nameplate.np-threat .np-hpfill { background: linear-gradient(#ff6b5e, #a01818); }
+  /* classic "dragon frame" cue: elite mobs get a golden bar frame, bosses a red one */
+  .np-hpbar.elite { border-color: #f2c84b; box-shadow: 0 0 5px 1px #f2c84baa, inset 0 0 2px #ffe9a0cc; }
+  .np-hpbar.boss { border-color: #ff5a3c; box-shadow: 0 0 7px 1px #ff5a3ccc, inset 0 0 2px #ffd2a0dd; }
   .np-marker { font-size: 24px; font-weight: bold; height: 26px; font-family: var(--title-font); }
   .np-marker.avail { color: var(--gold); text-shadow: 0 0 6px #ffd10088, 1px 1px 2px #000; }
   .np-marker.ready { color: var(--gold); text-shadow: 0 0 6px #ffd10088, 1px 1px 2px #000; }
@@ -487,6 +499,15 @@
     display: flex; align-items: center; justify-content: center;
     text-shadow: 1px 1px 1px #000; z-index: 3;
   }
+  /* crossed-swords combat indicator on the player portrait (classic WoW) */
+  .combat-flash {
+    position: absolute; top: -4px; right: -4px; width: 22px; height: 22px;
+    display: none; align-items: center; justify-content: center;
+    color: #ff5040; font-size: 15px; line-height: 1; z-index: 4;
+    pointer-events: none; text-shadow: 0 0 4px #000, 0 0 6px #ff5040;
+  }
+  #player-frame.combat .combat-flash { display: flex; animation: pf-combat-pulse 1s ease-in-out infinite; }
+  #player-frame.combat .portrait { border-color: #e74c3c; box-shadow: 0 0 8px #e74c3c99, inset 0 0 12px #0009; }
   .uf-bars { width: 190px; margin-left: -8px; padding: 5px 8px 5px 14px;
     background: var(--panel-bg); border: 2px solid var(--border); outline: 1px solid #000;
     border-radius: 0 6px 6px 0; box-shadow: 0 2px 10px #000a; }
@@ -503,6 +524,13 @@
   .mana .bar-fill { background-color: var(--color-mana); }
   .rage .bar-fill { background-color: var(--color-rage); }
   .energy .bar-fill { background-color: var(--color-energy); }
+  /* Damage-absorb shield overlay (Power Word: Shield, Ice Barrier, …): a hatched
+     translucent segment laid over the health bar, extending past current health. */
+  .bar-absorb { position: absolute; inset: 0; width: 100%; transform-origin: left; transform: scaleX(0);
+    background: repeating-linear-gradient(115deg, rgba(255,255,255,0.42) 0 5px, rgba(190,225,255,0.16) 5px 10px);
+    box-shadow: inset 0 0 6px rgba(255,255,255,0.4); pointer-events: none; transition: transform 0.12s linear; }
+  .bar-absorb.overshield { background: repeating-linear-gradient(115deg, rgba(255,236,160,0.55) 0 5px, rgba(255,214,90,0.24) 5px 10px);
+    box-shadow: inset 0 0 7px rgba(255,225,140,0.6); }
   .combo-row { display: flex; gap: 4px; margin-top: 4px; height: 10px; }
   .combo-pip { width: 12px; height: 10px; border-radius: 50%; border: 1px solid #5c2020; background: #2a0d0d; }
   .combo-pip.on { background: radial-gradient(circle at 35% 30%, #ff7a5e, #c0392b); box-shadow: 0 0 5px #ff5533aa; border-color: #ffad99; }
@@ -525,6 +553,15 @@
     color: #fff; text-shadow: 1px 1px 2px #000; font-family: var(--title-font); }
   #castbar .timer { position: absolute; top: 0; right: 6px; line-height: 21px; font-size: 11px;
     color: #fff; text-shadow: 1px 1px 2px #000; font-family: var(--title-font); font-variant-numeric: tabular-nums; }
+  /* swing timer: sits just under the cast bar, steel-on-amber to read as melee */
+  #swingbar { position: absolute; left: 50%; transform: translateX(-50%); bottom: 174px; width: 220px;
+    height: 12px; display: none; border: 1px solid var(--border); outline: 1px solid #000; border-radius: 3px;
+    background: #0c0a07; overflow: hidden; }
+  #swingbar .fill { height: 100%; width: 0%; background: linear-gradient(#ffcf7a, #d97b1e 60%, #8a4a10);
+    box-shadow: inset 0 1px 0 #fff4; transition: width 60ms linear; }
+  #swingbar.ready .fill { background: linear-gradient(#d8e8ff, #8fb6e6 60%, #5b86b8); }
+  #swingbar .label { position: absolute; inset: 0; text-align: center; font-size: 9px; line-height: 12px;
+    color: #fff; text-shadow: 1px 1px 1px #000; font-family: var(--title-font); letter-spacing: .5px; }
 
   /* ---------- bottom cluster ---------- */
   #bottom-bar { position: absolute; left: 50%; transform: translateX(-50%); bottom: 6px; text-align: center; }
@@ -1272,6 +1309,25 @@
   #banner { position: absolute; left: 50%; top: 28%; transform: translateX(-50%); color: var(--gold);
     font-size: 38px; font-weight: bold; text-shadow: 0 0 18px #00000088, 2px 2px 6px #000; opacity: 0;
     transition: opacity 1.2s; pointer-events: none; font-family: var(--title-font); letter-spacing: 1px; white-space: nowrap; }
+
+  /* ---------- low-health screen vignette ---------- */
+  /* Pulsing red edge glow that fades in as the player nears death. Opacity and
+     pulse cadence are driven from JS via the --lhv-* custom properties; the
+     element stays hidden (display:none) until .active is set. Sits above the
+     world but below the HUD frames, and never eats pointer events. */
+  #low-health-vignette { position: fixed; inset: 0; display: none; z-index: 4; pointer-events: none;
+    --lhv-opacity: 0; --lhv-pulse: 1.6s;
+    background: radial-gradient(ellipse at center,
+      rgba(120,0,0,0) 42%, rgba(150,0,0,0.35) 74%, rgba(190,0,0,0.85) 100%);
+    animation: lhv-breathe var(--lhv-pulse) ease-in-out infinite; }
+  #low-health-vignette.active { display: block; }
+  @keyframes lhv-breathe {
+    0%, 100% { opacity: calc(var(--lhv-opacity) * 0.55); }
+    50%      { opacity: var(--lhv-opacity); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #low-health-vignette { animation: none; opacity: var(--lhv-opacity); }
+  }
 
   /* ---------- death overlay ---------- */
   #death-overlay { position: absolute; inset: 0; background: radial-gradient(ellipse at center, #40000077 0%, #300000bb 100%);
@@ -5851,7 +5907,7 @@
       </div>
       <div class="uf-bars">
         <div class="uf-name" id="tf-name"></div>
-        <div class="bar hp"><div class="bar-fill" id="tf-hp"></div><div class="bar-text" id="tf-hp-text"></div></div>
+        <div class="bar hp"><div class="bar-fill" id="tf-hp"></div><div class="bar-absorb" id="tf-absorb"></div><div class="bar-text" id="tf-hp-text"></div></div>
         <div class="combo-row" id="combo-row"></div>
         <div class="uf-buffs" id="tf-debuffs"></div>
       </div>
@@ -5866,6 +5922,7 @@
     <div id="trade-window" class="window panel"></div>
 
     <div id="castbar"><div class="fill"></div><div class="label"></div><div class="timer"></div></div>
+    <div id="swingbar"><div class="fill"></div><div class="label"></div></div>
 
     <div id="minimap-wrap">
       <div id="zone-label" data-i18n="entities.zones.eastbrook_vale.name">Eastbrook Vale</div>
@@ -5903,10 +5960,11 @@
             <div class="portrait-wrap">
               <div class="portrait"><canvas id="pf-portrait" width="54" height="54"></canvas></div>
               <div class="level-chip" id="pf-level">1</div>
+              <div class="combat-flash" id="pf-combat" title="In Combat">⚔</div>
             </div>
             <div class="uf-bars">
               <div class="uf-name" id="pf-name"></div>
-              <div class="bar hp"><div class="bar-fill" id="pf-hp"></div><div class="bar-text" id="pf-hp-text"></div></div>
+              <div class="bar hp"><div class="bar-fill" id="pf-hp"></div><div class="bar-absorb" id="pf-absorb"></div><div class="bar-text" id="pf-hp-text"></div></div>
               <div class="bar mana" id="pf-resource"><div class="bar-fill" id="pf-res"></div><div class="bar-text" id="pf-res-text"></div></div>
             </div>
           </div>
@@ -5988,6 +6046,7 @@
 
     <div id="error-msg"></div>
     <div id="banner"></div>
+    <div id="low-health-vignette"></div>
 
     <div id="death-overlay">
       <h2 data-i18n="hud.core.deathTitle">You have died.</h2>

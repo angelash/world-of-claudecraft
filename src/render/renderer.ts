@@ -37,6 +37,8 @@ import { raidMarkerDataUrl } from '../ui/icons';
 import { isProjectedNameplateAnchorVisible, nameplateScreenTransform } from './nameplate_projection';
 import { comboPipsFor, COMBO_PIP_MAX } from './nameplate_combo';
 import { stepCameraOcclusion, type CameraOcclusionState } from './camera_collision';
+import { castBarState } from './cast_bar';
+import { isMobThreateningViewer } from './nameplate_threat';
 
 const NAMEPLATE_RANGE = 55;
 const NAMEPLATE_RANGE_SQ = NAMEPLATE_RANGE * NAMEPLATE_RANGE;
@@ -129,6 +131,9 @@ interface EntityView {
   emoteIconEl: HTMLImageElement;
   emoteLabelEl: HTMLSpanElement;
   markerEl: HTMLDivElement;
+  castBar: HTMLDivElement; // overhead spell cast/channel bar, below the hp bar
+  castFill: HTMLDivElement;
+  castLabel: HTMLDivElement;
   raidMarkEl: HTMLDivElement; // party raid/target marker, above the name
   comboRow: HTMLDivElement; // rogue/druid combo-point pips, above the name
   comboPips: HTMLDivElement[]; // the COMBO_PIP_MAX pip cells, lit left-to-right
@@ -896,7 +901,16 @@ export class Renderer {
     const hpFill = document.createElement('div');
     hpFill.className = 'np-hpfill';
     hpBar.appendChild(hpFill);
-    np.append(emoteEl, raidMark, comboRow, marker, nameEl, hpBar);
+    // overhead cast bar — hidden until the entity starts casting/channeling
+    const castBar = document.createElement('div');
+    castBar.className = 'np-castbar';
+    castBar.style.display = 'none';
+    const castFill = document.createElement('div');
+    castFill.className = 'np-castfill';
+    const castLabel = document.createElement('div');
+    castLabel.className = 'np-castlabel';
+    castBar.append(castFill, castLabel);
+    np.append(emoteEl, raidMark, comboRow, marker, nameEl, hpBar, castBar);
     this.nameplateLayer.appendChild(np);
 
     // object views gate their own casters; character shadows live in visual
@@ -904,7 +918,7 @@ export class Renderer {
     if (!visual) collectCasters(group, objectCasters);
     this.views.set(e.id, {
       group, visual, sheepVisual: null, bearVisual: null, catVisual: null, height, clickTarget,
-      nameplate: np, nameEl, hpBar, hpFill, emoteEl, emoteIconEl, emoteLabelEl, markerEl: marker, raidMarkEl: raidMark, comboRow, comboPips, sparkle, objectMesh, portal,
+      nameplate: np, nameEl, hpBar, hpFill, emoteEl, emoteIconEl, emoteLabelEl, markerEl: marker, raidMarkEl: raidMark, comboRow, comboPips, castBar, castFill, castLabel, sparkle, objectMesh, portal,
       nameplateDisplay: 'none', nameplateTransform: '', nameplateSig: '', nameplateHpWidth: '', comboSig: '',
       objectCasters, shadowOn: true, isFar: false, lastOverheadEmoteKey: null,
       lastX: e.pos.x, lastZ: e.pos.z, skin: e.skin,
@@ -1669,14 +1683,21 @@ export class Renderer {
         const diff = e.level - p.level;
         const template = MOBS[e.templateId];
         const elite = !!template?.elite;
+        const boss = !!template?.boss;
         const color = e.dead ? '#999' : diff >= 3 ? '#ff4444' : diff >= 1 ? '#ffaa33' : diff >= -2 ? '#ffe97a' : diff >= -5 ? '#7fdc4f' : '#9d9d9d';
         const mobName = e.ownerId !== null ? e.name : mobDisplayName(e.templateId);
         const name = e.dead ? t('worldContent.corpseName', { name: mobName }) : `[${e.level}${elite ? '+' : ''}] ${mobName}`;
         const hpDisplay = e.dead ? 'none' : '';
         const marker = e.lootable ? '$' : elite && !e.dead ? '◆' : '';
-        this.setNameplateStatic(v, `mob|${name}|${color}|${hpDisplay}|${marker}`, name, color, hpDisplay, marker, 'np-marker loot', '1');
+        // classic "dragon frame" cue: gold bar frame for elites, red for bosses (live mobs only)
+        const frame = e.dead ? '' : boss ? 'boss' : elite ? 'elite' : '';
+        this.setNameplateStatic(v, `mob|${name}|${color}|${hpDisplay}|${marker}|${frame}`, name, color, hpDisplay, marker, 'np-marker loot', '1', frame);
         this.setNameplateHp(v, e);
+        // threat plate: tint the bar red when this mob is aggroed on me
+        v.nameplate.classList.toggle('np-threat', isMobThreateningViewer(e, this.sim.playerId));
       }
+
+      this.updateCastBar(v, e);
     }
   }
 
@@ -1689,12 +1710,15 @@ export class Renderer {
     marker: string,
     markerClass: string,
     opacity: string,
+    frame = '',
   ): void {
     if (sig === v.nameplateSig) return;
     v.nameplateSig = sig;
     v.nameEl.textContent = name;
     v.nameEl.style.color = color;
     v.hpBar.style.display = hpDisplay;
+    v.hpBar.classList.toggle('elite', frame === 'elite');
+    v.hpBar.classList.toggle('boss', frame === 'boss');
     v.markerEl.textContent = marker;
     v.markerEl.className = markerClass;
     v.nameplate.style.opacity = opacity;
@@ -1718,6 +1742,22 @@ export class Renderer {
     for (let i = 0; i < v.comboPips.length; i++) {
       v.comboPips[i].classList.toggle('lit', i < n);
     }
+  }
+
+  // Overhead spell cast/channel bar. The fill + label rules live in the DOM-free
+  // castBarState() helper (cast_bar.ts); here we just push them to the DOM. Casts
+  // fill up toward completion, channels drain down — both honest to the live
+  // cast fields the sim and the online snapshot already expose.
+  private updateCastBar(v: EntityView, e: Entity): void {
+    const st = castBarState(e);
+    if (!st.visible) {
+      if (v.castBar.style.display !== 'none') v.castBar.style.display = 'none';
+      return;
+    }
+    v.castBar.style.display = '';
+    v.castBar.classList.toggle('channel', st.channel);
+    v.castFill.style.width = `${(st.fill * 100).toFixed(1)}%`;
+    v.castLabel.textContent = st.label;
   }
 
   // Hang a speech bubble over an entity's head; it follows the entity and

@@ -18,6 +18,8 @@ import {
   dist2d, xpForLevel, MAX_LEVEL, MELEE_RANGE, MILESTONES, virtualLevel, canPrestige, xpUntilNextPrestige,
 } from '../sim/types';
 import { xpBarView, formatXp } from './xp_bar';
+import { lowHealthVignette } from './low_health';
+import { absorbBarView } from './absorb_bar';
 import { terrainHeight, WATER_LEVEL, roadDistance, generateDecorations } from '../sim/world';
 import type { Decoration } from '../sim/world';
 import { Meters } from './meters';
@@ -304,6 +306,10 @@ export class Hud {
   private questDialogReturnFocus: HTMLElement | null = null;
   private questLogReturnFocus: HTMLElement | null = null;
   private lastPortraitTarget = -999;
+  // swing timer: the period is captured from the reset edge (swingTimer jumping
+  // up), so the bar tracks real swing speed including haste / ranged weapons.
+  private swingPeriod = 0;
+  private lastSwingTimer = 0;
   // trading: locally staged offer, pushed to the server on change
   private stagedTrade: { items: InvSlot[]; copper: number } = { items: [], copper: 0 };
   private tradeWasOpen = false;
@@ -1780,6 +1786,22 @@ export class Hud {
   // Frame update
   // -------------------------------------------------------------------------
 
+  // Pulsing red screen edge that fades in as the player nears death. Driven
+  // from the pure lowHealthVignette() curve; purely presentational (CSS vars on
+  // a fixed overlay), works on every GFX tier since it's DOM, not a post pass.
+  private updateLowHealthVignette(hp: number, maxHp: number): void {
+    const el = document.getElementById('low-health-vignette');
+    if (!el) return;
+    const v = lowHealthVignette(hp, maxHp);
+    if (!v.active) {
+      el.classList.remove('active');
+      return;
+    }
+    el.style.setProperty('--lhv-opacity', v.opacity.toFixed(3));
+    el.style.setProperty('--lhv-pulse', `${v.pulseSeconds.toFixed(3)}s`);
+    el.classList.add('active');
+  }
+
   update(): void {
     const sim = this.sim;
     const p = sim.player;
@@ -1804,7 +1826,9 @@ export class Hud {
     // player frame
     this.setText(this.pfLevelEl, String(p.level));
     this.setTransform(this.pfHpEl, `scaleX(${p.hp / Math.max(1, p.maxHp)})`);
+    this.updateAbsorb('#pf-absorb', p);
     this.setText(this.pfHpTextEl, `${p.hp} / ${p.maxHp}`);
+    this.updateLowHealthVignette(p.hp, p.maxHp);
     const resFrac = p.resource / Math.max(1, p.maxResource);
     this.setTransform(this.pfResEl, `scaleX(${resFrac})`);
     this.setText(this.pfResTextEl, `${Math.round(p.resource)} / ${p.maxResource}`);
@@ -1823,6 +1847,7 @@ export class Hud {
       this.setText(this.targetNameEl, entityDisplayName(target));
       this.setText(this.targetLevelEl, MOBS[target.templateId]?.boss ? '☠' : String(target.level));
       this.setTransform(this.targetHpEl, `scaleX(${target.hp / Math.max(1, target.maxHp)})`);
+      this.updateAbsorb('#tf-absorb', target.dead ? null : target);
       this.setText(this.targetHpTextEl, target.dead ? t('hud.core.dead') : `${target.hp} / ${target.maxHp}`);
       const targetNameColor = target.hostile ? 'var(--color-hostile)' : 'var(--color-friendly)';
       if (this.targetNameEl.style.color !== targetNameColor) this.targetNameEl.style.color = targetNameColor;
@@ -1886,6 +1911,29 @@ export class Hud {
       this.setWidth(this.castbarFillEl, '0%');
       this.setText(this.castbarLabelEl, '');
       this.setText(this.castbarTimerEl, '');
+    }
+
+    // swing timer — fills between melee/ranged auto-attack swings. swingTimer
+    // counts DOWN to 0 (ready); we recover the full interval from the reset
+    // edge so the bar stays accurate under haste and for ranged weapons.
+    const sw = $('#swingbar');
+    if (p.autoAttack && target && !target.dead && target.kind !== 'object') {
+      if (p.swingTimer > this.lastSwingTimer + 1e-4 || this.swingPeriod <= 0) {
+        this.swingPeriod = Math.max(p.swingTimer, p.weapon.speed);
+      }
+      this.lastSwingTimer = p.swingTimer;
+      const frac = this.swingPeriod > 0
+        ? Math.min(1, Math.max(0, 1 - p.swingTimer / this.swingPeriod))
+        : 1;
+      sw.style.display = 'block';
+      (sw.querySelector('.fill') as HTMLElement).style.width = `${(frac * 100).toFixed(1)}%`;
+      sw.classList.toggle('ready', p.swingTimer <= 0);
+      (sw.querySelector('.label') as HTMLElement).textContent =
+        p.swingTimer <= 0 ? 'Swing' : `${p.swingTimer.toFixed(1)}s`;
+    } else {
+      sw.style.display = 'none';
+      this.lastSwingTimer = 0;
+      this.swingPeriod = 0;
     }
 
     // action bar
@@ -2032,6 +2080,9 @@ export class Hud {
       );
       music.update(zone, inCombat);
 
+      // classic combat indicator: crossed swords + red ring on the player portrait
+      $('#player-frame').classList.toggle('combat', inCombat);
+
       this.updateQuestTracker();
       this.updatePartyFrames();
       this.updateTradeWindow();
@@ -2070,6 +2121,15 @@ export class Hud {
       if (!this.nearbyMarketNpc()) this.closeMarket();
       else this.refreshMarket();
     }
+  }
+
+  // Overlay the absorb-shield segment on a unit-frame health bar. A null entity
+  // (no target / dead) hides it.
+  private updateAbsorb(sel: string, e: Entity | null): void {
+    const el = $(sel) as HTMLElement;
+    const v = e ? absorbBarView(e) : { fillFrac: 0, overshield: false, total: 0 };
+    el.style.transform = `scaleX(${v.fillFrac})`;
+    el.classList.toggle('overshield', v.overshield);
   }
 
   private renderAuras(el: HTMLElement, e: Entity, mode: 'all' | 'debuffs'): void {
