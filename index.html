@@ -691,6 +691,18 @@
     filter: drop-shadow(0 1px 1px #000); }
   #compass-heading { margin-top: 2px; font-family: var(--title-font); font-size: 12px;
     color: var(--gold); letter-spacing: 1px; text-shadow: 1px 1px 2px #000; }
+  /* minimap zoom control: a compact gold pill pinned to the bottom rim of the
+     round minimap. Vertical centre holds the live zoom readout (e.g. "2×"). */
+  #minimap-zoom { position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 4px; padding: 1px 4px; z-index: 2;
+    background: radial-gradient(circle at 50% 30%, #2c2c3a, #15151f); border: 1px solid #4a3d1d;
+    border-radius: 9px; box-shadow: 0 1px 3px #000a; }
+  .minimap-zoom-btn { width: 17px; height: 17px; padding: 0; line-height: 1; font-size: 14px; font-weight: bold;
+    color: #d8c89a; background: none; border: none; cursor: pointer; border-radius: 4px; font-family: var(--title-font); }
+  .minimap-zoom-btn:hover:not(:disabled) { color: #fff; background: #ffffff1a; }
+  .minimap-zoom-btn:disabled { opacity: 0.3; cursor: default; }
+  #minimap-zoom-label { min-width: 24px; font-size: 11px; color: var(--gold); font-family: var(--title-font);
+    text-shadow: 1px 1px 2px #000; letter-spacing: 0.3px; }
 
   /* ---------- community HUD ---------- */
   /* Discord/GitHub: bottom-right, directly below the micro-menu, right-aligned with it. */
@@ -5349,6 +5361,10 @@
         <div id="compass-strip"><div id="compass-track"></div></div>
         <div id="compass-center"></div>
         <div id="compass-heading">N</div>
+      <div id="minimap-zoom" aria-label="Minimap zoom">
+        <button class="minimap-zoom-btn" id="minimap-zoom-out" title="Zoom out" aria-label="Zoom out minimap">&minus;</button>
+        <span id="minimap-zoom-label" aria-live="polite">1×</span>
+        <button class="minimap-zoom-btn" id="minimap-zoom-in" title="Zoom in" aria-label="Zoom in minimap">+</button>
       </div>
     </div>
 
