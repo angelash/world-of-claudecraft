@@ -3,7 +3,7 @@ import {
   DUNGEON_X_THRESHOLD, GROUND_OBJECTS, GROUP_XP_BONUS, INSTANCE_SLOT_COUNT, isArenaPos,
   ITEMS, MOBS, NPCS, PLAYER_START, PROPS, QUESTS, questRewardItemId, abilitiesKnownAt, instanceOrigin,
   DEEPFEN_SHALLOWS_LAKE,
-  zoneAt, ZONES,
+  zoneAt, ZONES, FISHING_TABLES, FISHING_RARE_ID,
 } from './data';
 import { ARENA_SPAWN_A, ARENA_SPAWN_B, ARENA_SPAWNS_A_2v2, ARENA_SPAWNS_B_2v2 } from './dungeon_layout';
 import { lineOfSightClear, resolvePosition } from './colliders';
@@ -4978,14 +4978,25 @@ export class Sim {
       this.addItem(THE_CODFATHER_ITEM_ID, 1, meta.entityId);
       return;
     }
-    const roll = this.rng.next();
-    if (roll < 0.7) {
-      this.addItem('raw_mirror_trout', 1, meta.entityId);
-    } else if (roll < 0.9) {
-      this.addItem('tangled_weed', 1, meta.entityId);
-    } else {
-      this.emit({ type: 'log', text: 'No fish are biting.', color: '#999', pid: p.id });
+    // The catch depends on which zone's water you're fishing — each has its own
+    // weighted table (src/sim/content/items.ts). Fall back to the Vale table for
+    // any spot without its own (e.g. fishable water inside a dungeon zone).
+    const table = FISHING_TABLES[zoneAt(p.pos.z).id] ?? FISHING_TABLES.eastbrook_vale;
+    const total = table.reduce((sum, e) => sum + e.weight, 0);
+    let roll = this.rng.next() * total;
+    let caught: string | null = null;
+    for (const entry of table) {
+      roll -= entry.weight;
+      if (roll < 0) { caught = entry.itemId; break; }
     }
+    if (caught === null) {
+      this.emit({ type: 'log', text: 'No fish are biting.', color: '#999', pid: p.id });
+      return;
+    }
+    if (caught === FISHING_RARE_ID) {
+      this.emit({ type: 'log', text: 'A rare catch! Something gleams on your line.', color: '#1eff00', pid: p.id });
+    }
+    this.addItem(caught, 1, meta.entityId);
   }
 
   useItem(itemId: string, pid?: number): void {

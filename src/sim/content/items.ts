@@ -138,6 +138,37 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
     id: 'tangled_weed', name: 'Tangled Weed', kind: 'junk', quality: 'poor',
     sellValue: 1,
   },
+  // --- fishing catches (see FISHING_TABLES below). Food heals scale with the
+  // depth/level of the zone you fish in; junk just vendors for coppers. ---
+  raw_river_perch: {
+    id: 'raw_river_perch', name: 'Raw River Perch', kind: 'food', quality: 'common',
+    foodHp: 45, sellValue: 2,
+  },
+  raw_marsh_pike: {
+    id: 'raw_marsh_pike', name: 'Raw Marsh Pike', kind: 'food', quality: 'common',
+    foodHp: 90, sellValue: 6,
+  },
+  raw_bog_eel: {
+    id: 'raw_bog_eel', name: 'Raw Bog Eel', kind: 'food', quality: 'common',
+    foodHp: 90, sellValue: 6,
+  },
+  raw_frostgill_trout: {
+    id: 'raw_frostgill_trout', name: 'Raw Frostgill Trout', kind: 'food', quality: 'common',
+    foodHp: 117, sellValue: 10,
+  },
+  raw_stonescale_carp: {
+    id: 'raw_stonescale_carp', name: 'Raw Stonescale Carp', kind: 'food', quality: 'common',
+    foodHp: 117, sellValue: 10,
+  },
+  soggy_boot: {
+    id: 'soggy_boot', name: 'Soggy Boot', kind: 'junk', quality: 'poor',
+    sellValue: 1,
+  },
+  // The prized rare catch, reelable from any water — a lucky hook.
+  glimmerfin_koi: {
+    id: 'glimmerfin_koi', name: 'Glimmerfin Koi', kind: 'food', quality: 'uncommon',
+    foodHp: 117, sellValue: 75,
+  },
   roasted_boar: {
     id: 'roasted_boar', name: 'Roasted Boar Meat', kind: 'food', quality: 'common',
     foodHp: 117, sellValue: 12, buyValue: 100,
@@ -266,3 +297,38 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
   bone_fragments: { id: 'bone_fragments', name: 'Bone Fragments', kind: 'junk', quality: 'poor', sellValue: 7 },
   linen_scrap: { id: 'linen_scrap', name: 'Linen Scrap', kind: 'junk', quality: 'poor', sellValue: 3 },
 };
+
+// --- Zone-aware fishing loot ----------------------------------------------
+// A cast resolves to one weighted draw from the table for the zone the angler
+// is standing in. `itemId: null` means "no fish are biting" (an empty hook).
+// The engine (Sim.completeFishing) rolls a single this.rng draw against the
+// running weight total, so catches stay replay-deterministic.
+export interface FishingEntry { itemId: string | null; weight: number }
+
+export const FISHING_TABLES: Record<string, FishingEntry[]> = {
+  eastbrook_vale: [
+    { itemId: 'raw_mirror_trout', weight: 45 },
+    { itemId: 'raw_river_perch', weight: 30 },
+    { itemId: 'tangled_weed', weight: 12 },
+    { itemId: 'glimmerfin_koi', weight: 3 },
+    { itemId: null, weight: 10 },
+  ],
+  mirefen_marsh: [
+    { itemId: 'raw_marsh_pike', weight: 40 },
+    { itemId: 'raw_bog_eel', weight: 30 },
+    { itemId: 'soggy_boot', weight: 8 },
+    { itemId: 'tangled_weed', weight: 9 },
+    { itemId: 'glimmerfin_koi', weight: 3 },
+    { itemId: null, weight: 10 },
+  ],
+  thornpeak_heights: [
+    { itemId: 'raw_frostgill_trout', weight: 40 },
+    { itemId: 'raw_stonescale_carp', weight: 30 },
+    { itemId: 'tangled_weed', weight: 14 },
+    { itemId: 'glimmerfin_koi', weight: 4 },
+    { itemId: null, weight: 12 },
+  ],
+};
+
+// The rare catch worth a celebratory shout in the combat log.
+export const FISHING_RARE_ID = 'glimmerfin_koi';

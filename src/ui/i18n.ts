@@ -7542,6 +7542,7 @@ const MERGE_ITEM_IDS = [
   'nhalias_funeral_wraps', 'raw_mirror_trout', 'sableweb_slippers', 'simple_fishing_pole', 'tangled_weed', 'tideguard_greaves',
   'tideguard_sabatons', 'valeborn_spellblade', 'voss_sanctified_mace', 'wyrmcult_soulsteps', 'wyrmshadow_harness', 'wyrmshadow_legguards',
   'wyrmshadow_treads',
+  'glimmerfin_koi', 'raw_bog_eel', 'raw_frostgill_trout', 'raw_marsh_pike', 'raw_river_perch', 'raw_stonescale_carp', 'soggy_boot',
 ] as const;
 
 const MERGE_MOB_IDS = [
@@ -9420,6 +9421,7 @@ const mergeEntitiesEn = {
     "Nhalia's Funeral Wraps", "Raw Mirror Trout", "Sableweb Slippers", "Simple Fishing Pole", "Tangled Weed", "Tideguard Greaves",
     "Tideguard Sabatons", "Valeborn Spellblade", "Voss's Sanctified Mace", "Wyrmcult Soulsteps", "Wyrmshadow Harness", "Wyrmshadow Legguards",
     "Wyrmshadow Treads",
+    "Glimmerfin Koi", "Raw Bog Eel", "Raw Frostgill Trout", "Raw Marsh Pike", "Raw River Perch", "Raw Stonescale Carp", "Soggy Boot",
   ], 'item'),
   mobs: mergeNameTranslations(MERGE_MOB_IDS, [
     "Elder Bristleback", "Ironvein Foreman", "Ironvein Sapper", "Marrowlord Varkas", "Mirejaw Frenzy", "Mirejaw the Ravenous",
@@ -9455,6 +9457,7 @@ const mergeEntities = {
       "Envolturas funerarias de Nhalia", "Trucha espejo cruda", "Zapatillas Sableweb", "Caña de pescar sencilla", "Hierba enredada", "Grebas Guardamarea",
       "Escarpes Guardamarea", "Hoja mágica Natavalle", "Maza santificada de Voss", "Pisadas de alma del Culto del Wyrm", "Arnés Sombravermis", "Guardapiernas Sombravermis",
       "Botines Sombravermis",
+      "Koi Aletadestello", "Anguila de Ciénaga Cruda", "Trucha Branquiescarcha Cruda", "Lucio de Marisma Crudo", "Perca de Río Cruda", "Carpa Escamapétrea Cruda", "Bota Empapada",
     ], 'item'),
     mobs: mergeNameTranslations(MERGE_MOB_IDS, [
       "Viejo Bristleback", "Capataz Vena de Hierro", "Zapador Vena de Hierro", "Señor de Médula Varkas", "Frenesí Mirejaw", "Mirejaw el Voraz",
@@ -9488,6 +9491,7 @@ const mergeEntities = {
       "Bandelettes funéraires de Nhalia", "Truite miroir crue", "Mules Sableweb", "Canne à pêche simple", "Herbe emmêlée", "Grèves Garde-marée",
       "Solerets Garde-marée", "Lame-sort née du Val", "Masse sanctifiée de Voss", "Pas-d'âme du Culte du Wyrm", "Harnais Ombrewyrm", "Garde-jambes Ombrewyrm",
       "Bottines Ombrewyrm",
+      "Koï Nageoluisante", "Anguille des marais crue", "Truite Givrebranchie crue", "Brochet des marais cru", "Perche de rivière crue", "Carpe Écaillepierre crue", "Botte détrempée",
     ], 'item'),
     mobs: mergeNameTranslations(MERGE_MOB_IDS, [
       "Ancien Bristleback", "Contremaître Veinefer", "Sapeur Veinefer", "Seigneur de moelle Varkas", "Frénésie Mirejaw", "Mirejaw l'Affamé",
@@ -9522,6 +9526,7 @@ const mergeEntities = {
       "Bende funebri di Nhalia", "Trota specchio cruda", "Pantofole Sableweb", "Canna da pesca semplice", "Erbaccia aggrovigliata", "Schinieri Guardiamarea",
       "Calzari Guardiamarea", "Lama magica Natavalle", "Mazza santificata di Voss", "Passi d'anima del Culto del Wyrm", "Finimenti Ombrawyrm", "Gambiere Ombrawyrm",
       "Calzari Ombrawyrm",
+      "Koi Pinnabaglio", "Anguilla di Palude Cruda", "Trota Branchiebrina Cruda", "Luccio di Palude Crudo", "Pesce Persico di Fiume Crudo", "Carpa Squamapietra Cruda", "Stivale Fradicio",
     ], 'item'),
     mobs: mergeNameTranslations(MERGE_MOB_IDS, [
       "Bristleback anziano", "Caposquadra Venaferrata", "Zappatore Venaferrata", "Signore del Midollo Varkas", "Furia Mirejaw", "Mirejaw il Famelico",
@@ -9554,6 +9559,7 @@ const mergeEntities = {
       "Nhalias Leichenwickel", "Rohe Spiegeltrutte", "Sableweb-Pantoffeln", "Einfache Angel", "Verheddertes Kraut", "Gezeitenwachtbeinschienen",
       "Gezeitenwachtsabatons", "Talgeborene Zauberklinge", "Voss' geheiligter Streitkolben", "Seelenschritte des Wyrmkults", "Wyrmschattenharnisch", "Wyrmschattenbeinschützer",
       "Wyrmschattentreter",
+      "Schimmerflossen-Koi", "Roher Moor-Aal", "Rohe Frostkiemen-Forelle", "Roher Sumpfhecht", "Roher Flussbarsch", "Roher Steinschuppen-Karpfen", "Durchnässter Stiefel",
     ], 'item'),
     mobs: mergeNameTranslations(MERGE_MOB_IDS, [
       "Alter Bristleback", "Eisenader-Vorarbeiter", "Eisenader-Pionier", "Marklord Varkas", "Mirejaw-Raserei", "Mirejaw der Gefräßige",
@@ -9586,6 +9592,7 @@ const mergeEntities = {
       "娜莉娅的葬缠", "生镜鳟鱼", "黑网便鞋", "简易鱼竿", "缠结水草", "潮卫护胫",
       "潮卫护靴", "谷裔法刃", "沃斯的圣化战锤", "龙教魂步", "龙影挽具", "龙影腿甲",
       "龙影足垫",
+      "闪鳍锦鲤", "生沼鳗", "生霜鳃鳟", "生沼狗鱼", "生河鲈", "生石鳞鲤", "湿透的靴子",
     ], 'item'),
     mobs: mergeNameTranslations(MERGE_MOB_IDS, [
       "年长硬鬃", "铁脉工头", "铁脉爆破手", "髓王瓦尔卡斯", "泥颚狂鱼", "贪食者泥颚",
@@ -9618,6 +9625,7 @@ const mergeEntities = {
       "娜莉亞的葬纏", "生鏡鱒魚", "黑網便鞋", "簡易釣竿", "纏結水草", "潮衛護脛",
       "潮衛護靴", "谷裔法刃", "沃斯的聖化戰錘", "龍教魂步", "龍影挽具", "龍影腿甲",
       "龍影足墊",
+      "閃鰭錦鯉", "生沼鰻", "生霜鰓鱒", "生沼狗魚", "生河鱸", "生石鱗鯉", "濕透的靴子",
     ], 'item'),
     mobs: mergeNameTranslations(MERGE_MOB_IDS, [
       "年長硬鬃", "鐵脈工頭", "鐵脈爆破手", "髓王瓦爾卡斯", "泥顎狂魚", "貪食者泥顎",
@@ -9650,6 +9658,7 @@ const mergeEntities = {
       "날리아의 장례 붕대", "날거울송어", "검은그물 슬리퍼", "간단한 낚싯대", "엉킨 물풀", "파도수호 경갑",
       "파도수호 쇠장화", "계곡태생 주문검", "보스의 성화된 철퇴", "고룡교단 영혼걸음", "고룡그림자 멜빵", "고룡그림자 다리보호구",
       "고룡그림자 발보호구",
+      "빛지느러미 잉어", "생 늪장어", "생 서리아가미 송어", "생 늪 창꼬치", "생 강 농어", "생 돌비늘 잉어", "흠뻑 젖은 장화",
     ], 'item'),
     mobs: mergeNameTranslations(MERGE_MOB_IDS, [
       "늙은 뻣센등뼈", "철맥 감독관", "철맥 폭파병", "골수군주 바르카스", "마이어죠 광란어", "굶주린 마이어죠",
@@ -9682,6 +9691,7 @@ const mergeEntities = {
       "ナリアの葬送巻き", "生の鏡マス", "セーブルウェブのスリッパ", "簡素な釣り竿", "絡まった水草", "潮守りのグリーヴ",
       "潮守りのサバトン", "谷生まれの呪文刃", "ヴォスの聖別メイス", "ワーム教団の魂歩き", "ワーム影のハーネス", "ワーム影のレッグガード",
       "ワーム影の足具",
+      "輝きビレの鯉", "生の沼ウナギ", "生のフロストギル・トラウト", "生の沼カワカマス", "生の川スズキ", "生の石鱗コイ", "ずぶ濡れのブーツ",
     ], 'item'),
     mobs: mergeNameTranslations(MERGE_MOB_IDS, [
       "老ブリストルバック", "鉄脈の現場監督", "鉄脈の爆破兵", "髄王ヴァーカス", "マイアジョーの狂魚", "貪るマイアジョー",
@@ -9714,6 +9724,7 @@ const mergeEntities = {
       "Bandagens funerárias de Nhalia", "Truta-espelho crua", "Pantufas Sableweb", "Vara de pesca simples", "Erva emaranhada", "Grevas Guardamaré",
       "Escarpes Guardamaré", "Lâmina mágica Nascivale", "Maça santificada de Voss", "Passos de alma do Culto do Wyrm", "Arnês Sombra de Wyrm", "Guarda-pernas Sombra de Wyrm",
       "Pisantes Sombra de Wyrm",
+      "Carpa Koi Brilhobarbatana", "Enguia do Pântano Crua", "Truta Brânquia-Gélida Crua", "Lúcio do Brejo Cru", "Perca de Rio Crua", "Carpa Escama-de-Pedra Crua", "Bota Encharcada",
     ], 'item'),
     mobs: mergeNameTranslations(MERGE_MOB_IDS, [
       "Bristleback ancião", "Capataz Veio de Ferro", "Sapador Veio de Ferro", "Senhor da Medula Varkas", "Frenesi Mirejaw", "Mirejaw, o Voraz",
@@ -9746,6 +9757,7 @@ const mergeEntities = {
       "Погребальные обмотки Налии", "Сырая зеркальная форель", "Туфли Сейблвеб", "Простая удочка", "Спутанные водоросли", "Наголенники Стража прилива",
       "Сабатоны Стража прилива", "Долиннорожденный чароклинок", "Освященная булава Восса", "Шаги души Культа вирма", "Сбруя Тени вирма", "Поножи Тени вирма",
       "Ступни Тени вирма",
+      "Карп Сияющий Плавник", "Сырой болотный угорь", "Сырая морозножаберная форель", "Сырая болотная щука", "Сырой речной окунь", "Сырой камнечешуйчатый карп", "Промокший сапог",
     ], 'item'),
     mobs: mergeNameTranslations(MERGE_MOB_IDS, [
       "Старый Щетиноспин", "Прораб Железной жилы", "Сапер Железной жилы", "Владыка костного мозга Варкас", "Бешенство Миреджо", "Миреджо Ненасытный",
