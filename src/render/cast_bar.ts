@@ -16,6 +16,10 @@ export interface CastBarState {
 }
 
 const HIDDEN: CastBarState = { visible: false, channel: false, fill: 0, label: '' };
+const CUSTOM_CAST_LABELS: Record<string, string> = {
+  nythraxis_deathless_rage: 'Deathless Rage',
+  nythraxis_ward_channel: 'Wardstone Channel',
+};
 
 export function castBarState(e: Entity): CastBarState {
   // corpses, doors/crates, and idle entities show nothing; guard the divide too
@@ -24,6 +28,6 @@ export function castBarState(e: Entity): CastBarState {
   const fill = e.channeling ? remaining : 1 - remaining;
   const label = e.castingAbility === FISHING_CAST_ID
     ? 'Fishing'
-    : ABILITIES[e.castingAbility]?.name ?? e.castingAbility;
+    : CUSTOM_CAST_LABELS[e.castingAbility] ?? ABILITIES[e.castingAbility]?.name ?? e.castingAbility;
   return { visible: true, channel: e.channeling, fill, label };
 }

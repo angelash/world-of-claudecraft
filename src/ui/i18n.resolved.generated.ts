@@ -4271,8 +4271,13 @@ export const en: EnTranslations = {
       },
       "nythraxis_crypt": {
         "name": "Abandoned Crypt",
-        "enterText": "You descend into the abandoned crypt beneath the forgotten ruins of Thornpeak.",
-        "leaveText": "You climb back out of the abandoned crypt into the mountain wind."
+        "enterText": "You cross the threshold of the Abandoned Crypt.",
+        "leaveText": "You return to the cold air of Thornpeak."
+      },
+      "nythraxis_boss_arena": {
+        "name": "Nythraxis Raid Arena",
+        "enterText": "You pass through the sealed royal door.",
+        "leaveText": "You return to the cold air of Thornpeak."
       },
       "drowned_temple": {
         "name": "The Drowned Temple",
@@ -8554,6 +8559,11 @@ export const es: EnTranslations = {
         "enterText": "Cruzas el umbral de la cripta abandonada.",
         "leaveText": "Vuelves a salir al aire frío de Thornpeak."
       },
+      "nythraxis_boss_arena": {
+        "name": "Nythraxis Raid Arena",
+        "enterText": "You pass through the sealed royal door.",
+        "leaveText": "You return to the cold air of Thornpeak."
+      },
       "drowned_temple": {
         "name": "El Templo Ahogado",
         "enterText": "Atraviesas la puerta lunar: el aire se vuelve agua fría y luz pálida, y el canto se cierra sobre tu cabeza.",
@@ -12833,6 +12843,11 @@ export const es_ES: EnTranslations = {
         "name": "Cripta abandonada",
         "enterText": "Cruzas el umbral de la cripta abandonada.",
         "leaveText": "Vuelves a salir al aire frío de Thornpeak."
+      },
+      "nythraxis_boss_arena": {
+        "name": "Nythraxis Raid Arena",
+        "enterText": "You pass through the sealed royal door.",
+        "leaveText": "You return to the cold air of Thornpeak."
       },
       "drowned_temple": {
         "name": "El Templo Ahogado",
@@ -17114,6 +17129,11 @@ export const fr_FR: EnTranslations = {
         "enterText": "Vous franchissez le seuil de la crypte abandonnée.",
         "leaveText": "Vous ressortez dans l'air froid de Thornpeak."
       },
+      "nythraxis_boss_arena": {
+        "name": "Nythraxis Raid Arena",
+        "enterText": "You pass through the sealed royal door.",
+        "leaveText": "You return to the cold air of Thornpeak."
+      },
       "drowned_temple": {
         "name": "Le Temple noyé",
         "enterText": "Tu franchis la porte de lune — l'air se mue en eau froide et en lumière blafarde, et le chant se referme au-dessus de ta tête.",
@@ -21394,6 +21414,11 @@ export const fr_CA: EnTranslations = {
         "enterText": "Vous franchissez le seuil de la crypte abandonnée.",
         "leaveText": "Vous ressortez dans l'air froid de Thornpeak."
       },
+      "nythraxis_boss_arena": {
+        "name": "Nythraxis Raid Arena",
+        "enterText": "You pass through the sealed royal door.",
+        "leaveText": "You return to the cold air of Thornpeak."
+      },
       "drowned_temple": {
         "name": "Le Temple noyé",
         "enterText": "Tu franchis la porte de lune — l'air se mue en eau froide et en lumière blafarde, et le chant se referme au-dessus de ta tête.",
@@ -25671,8 +25696,13 @@ export const en_CA: EnTranslations = {
       },
       "nythraxis_crypt": {
         "name": "Abandoned Crypt",
-        "enterText": "You descend into the abandoned crypt beneath the forgotten ruins of Thornpeak.",
-        "leaveText": "You climb back out of the abandoned crypt into the mountain wind."
+        "enterText": "You cross the threshold of the Abandoned Crypt.",
+        "leaveText": "You return to the cold air of Thornpeak."
+      },
+      "nythraxis_boss_arena": {
+        "name": "Nythraxis Raid Arena",
+        "enterText": "You pass through the sealed royal door.",
+        "leaveText": "You return to the cold air of Thornpeak."
       },
       "drowned_temple": {
         "name": "The Drowned Temple",
@@ -29954,6 +29984,11 @@ export const it_IT: EnTranslations = {
         "enterText": "Attraversi la soglia della cripta abbandonata.",
         "leaveText": "Riemergi nell'aria fredda di Thornpeak."
       },
+      "nythraxis_boss_arena": {
+        "name": "Nythraxis Raid Arena",
+        "enterText": "You pass through the sealed royal door.",
+        "leaveText": "You return to the cold air of Thornpeak."
+      },
       "drowned_temple": {
         "name": "Il Tempio Annegato",
         "enterText": "Attraversi il cancello lunare — l'aria si fa acqua gelida e luce pallida, e il canto si richiude sopra la tua testa.",
@@ -34233,6 +34268,11 @@ export const de_DE: EnTranslations = {
         "name": "Verlassene Krypta",
         "enterText": "Du überschreitest die Schwelle der verlassenen Krypta.",
         "leaveText": "Du trittst wieder in die kalte Luft von Thornpeak."
+      },
+      "nythraxis_boss_arena": {
+        "name": "Nythraxis Raid Arena",
+        "enterText": "You pass through the sealed royal door.",
+        "leaveText": "You return to the cold air of Thornpeak."
       },
       "drowned_temple": {
         "name": "Der Ertränkte Tempel",
@@ -38514,6 +38554,11 @@ export const zh_CN: EnTranslations = {
         "enterText": "你跨过废弃墓穴的门槛。",
         "leaveText": "你回到 Thornpeak 的寒冷空气中。"
       },
+      "nythraxis_boss_arena": {
+        "name": "Nythraxis Raid Arena",
+        "enterText": "You pass through the sealed royal door.",
+        "leaveText": "You return to the cold air of Thornpeak."
+      },
       "drowned_temple": {
         "name": "溺亡神殿",
         "enterText": "你踏过那道月门——空气化作冰冷的水与苍白的光，歌声在你头顶合拢。",
@@ -42793,6 +42838,11 @@ export const zh_TW: EnTranslations = {
         "name": "廢棄墓穴",
         "enterText": "你跨過廢棄墓穴的門檻。",
         "leaveText": "你回到 Thornpeak 的寒冷空氣中。"
+      },
+      "nythraxis_boss_arena": {
+        "name": "Nythraxis Raid Arena",
+        "enterText": "You pass through the sealed royal door.",
+        "leaveText": "You return to the cold air of Thornpeak."
       },
       "drowned_temple": {
         "name": "溺亡神殿",
@@ -47074,6 +47124,11 @@ export const ko_KR: EnTranslations = {
         "enterText": "버려진 납골당의 문턱을 넘습니다.",
         "leaveText": "Thornpeak의 차가운 공기 속으로 돌아옵니다."
       },
+      "nythraxis_boss_arena": {
+        "name": "Nythraxis Raid Arena",
+        "enterText": "You pass through the sealed royal door.",
+        "leaveText": "You return to the cold air of Thornpeak."
+      },
       "drowned_temple": {
         "name": "익사한 신전",
         "enterText": "당신은 달의 관문을 지나갑니다 — 공기가 차가운 물과 창백한 빛으로 변하고, 노랫소리가 당신의 머리 위로 닫혀 옵니다.",
@@ -51353,6 +51408,11 @@ export const ja_JP: EnTranslations = {
         "name": "放棄された地下墓所",
         "enterText": "放棄された地下墓所の敷居を越えます。",
         "leaveText": "Thornpeakの冷たい空気へ戻ります。"
+      },
+      "nythraxis_boss_arena": {
+        "name": "Nythraxis Raid Arena",
+        "enterText": "You pass through the sealed royal door.",
+        "leaveText": "You return to the cold air of Thornpeak."
       },
       "drowned_temple": {
         "name": "溺れし神殿",
@@ -55634,6 +55694,11 @@ export const pt_BR: EnTranslations = {
         "enterText": "Você cruza o limiar da cripta abandonada.",
         "leaveText": "Você retorna ao ar frio de Thornpeak."
       },
+      "nythraxis_boss_arena": {
+        "name": "Nythraxis Raid Arena",
+        "enterText": "You pass through the sealed royal door.",
+        "leaveText": "You return to the cold air of Thornpeak."
+      },
       "drowned_temple": {
         "name": "O Templo Afogado",
         "enterText": "Você atravessa o portão lunar — o ar se transforma em água fria e luz pálida, e o cântico se fecha sobre a sua cabeça.",
@@ -59914,6 +59979,11 @@ export const ru_RU: EnTranslations = {
         "enterText": "Вы переступаете порог заброшенного склепа.",
         "leaveText": "Вы возвращаетесь в холодный воздух Thornpeak."
       },
+      "nythraxis_boss_arena": {
+        "name": "Nythraxis Raid Arena",
+        "enterText": "You pass through the sealed royal door.",
+        "leaveText": "You return to the cold air of Thornpeak."
+      },
       "drowned_temple": {
         "name": "Утонувший храм",
         "enterText": "Ты проходишь сквозь лунные врата — воздух обращается в холодную воду и бледный свет, и пение смыкается над твоей головой.",
@@ -59948,6 +60018,9 @@ export const translations = {
 
 export const pending: Record<string, readonly string[]> = {
   "es": [
+    "entities.dungeons.nythraxis_boss_arena.enterText",
+    "entities.dungeons.nythraxis_boss_arena.leaveText",
+    "entities.dungeons.nythraxis_boss_arena.name",
     "entities.mobs.bramble_lynx.name",
     "entities.mobs.brightwood_hare.name",
     "entities.mobs.brightwood_monarch.name",
@@ -60018,6 +60091,9 @@ export const pending: Record<string, readonly string[]> = {
     "hud.options.voiceVolume"
   ],
   "es_ES": [
+    "entities.dungeons.nythraxis_boss_arena.enterText",
+    "entities.dungeons.nythraxis_boss_arena.leaveText",
+    "entities.dungeons.nythraxis_boss_arena.name",
     "entities.mobs.bramble_lynx.name",
     "entities.mobs.brightwood_hare.name",
     "entities.mobs.brightwood_monarch.name",
@@ -60088,6 +60164,9 @@ export const pending: Record<string, readonly string[]> = {
     "hud.options.voiceVolume"
   ],
   "fr_FR": [
+    "entities.dungeons.nythraxis_boss_arena.enterText",
+    "entities.dungeons.nythraxis_boss_arena.leaveText",
+    "entities.dungeons.nythraxis_boss_arena.name",
     "entities.mobs.bramble_lynx.name",
     "entities.mobs.brightwood_hare.name",
     "entities.mobs.brightwood_monarch.name",
@@ -60158,6 +60237,9 @@ export const pending: Record<string, readonly string[]> = {
     "hud.options.voiceVolume"
   ],
   "fr_CA": [
+    "entities.dungeons.nythraxis_boss_arena.enterText",
+    "entities.dungeons.nythraxis_boss_arena.leaveText",
+    "entities.dungeons.nythraxis_boss_arena.name",
     "entities.mobs.bramble_lynx.name",
     "entities.mobs.brightwood_hare.name",
     "entities.mobs.brightwood_monarch.name",
@@ -60229,6 +60311,9 @@ export const pending: Record<string, readonly string[]> = {
   ],
   "en_CA": [],
   "it_IT": [
+    "entities.dungeons.nythraxis_boss_arena.enterText",
+    "entities.dungeons.nythraxis_boss_arena.leaveText",
+    "entities.dungeons.nythraxis_boss_arena.name",
     "entities.mobs.bramble_lynx.name",
     "entities.mobs.brightwood_hare.name",
     "entities.mobs.brightwood_monarch.name",
@@ -60299,6 +60384,9 @@ export const pending: Record<string, readonly string[]> = {
     "hud.options.voiceVolume"
   ],
   "de_DE": [
+    "entities.dungeons.nythraxis_boss_arena.enterText",
+    "entities.dungeons.nythraxis_boss_arena.leaveText",
+    "entities.dungeons.nythraxis_boss_arena.name",
     "entities.mobs.bramble_lynx.name",
     "entities.mobs.brightwood_hare.name",
     "entities.mobs.brightwood_monarch.name",
@@ -60369,6 +60457,9 @@ export const pending: Record<string, readonly string[]> = {
     "hud.options.voiceVolume"
   ],
   "zh_CN": [
+    "entities.dungeons.nythraxis_boss_arena.enterText",
+    "entities.dungeons.nythraxis_boss_arena.leaveText",
+    "entities.dungeons.nythraxis_boss_arena.name",
     "entities.mobs.bramble_lynx.name",
     "entities.mobs.brightwood_hare.name",
     "entities.mobs.brightwood_monarch.name",
@@ -60439,6 +60530,9 @@ export const pending: Record<string, readonly string[]> = {
     "hud.options.voiceVolume"
   ],
   "zh_TW": [
+    "entities.dungeons.nythraxis_boss_arena.enterText",
+    "entities.dungeons.nythraxis_boss_arena.leaveText",
+    "entities.dungeons.nythraxis_boss_arena.name",
     "entities.mobs.bramble_lynx.name",
     "entities.mobs.brightwood_hare.name",
     "entities.mobs.brightwood_monarch.name",
@@ -60509,6 +60603,9 @@ export const pending: Record<string, readonly string[]> = {
     "hud.options.voiceVolume"
   ],
   "ko_KR": [
+    "entities.dungeons.nythraxis_boss_arena.enterText",
+    "entities.dungeons.nythraxis_boss_arena.leaveText",
+    "entities.dungeons.nythraxis_boss_arena.name",
     "entities.mobs.bramble_lynx.name",
     "entities.mobs.brightwood_hare.name",
     "entities.mobs.brightwood_monarch.name",
@@ -60579,6 +60676,9 @@ export const pending: Record<string, readonly string[]> = {
     "hud.options.voiceVolume"
   ],
   "ja_JP": [
+    "entities.dungeons.nythraxis_boss_arena.enterText",
+    "entities.dungeons.nythraxis_boss_arena.leaveText",
+    "entities.dungeons.nythraxis_boss_arena.name",
     "entities.mobs.bramble_lynx.name",
     "entities.mobs.brightwood_hare.name",
     "entities.mobs.brightwood_monarch.name",
@@ -60649,6 +60749,9 @@ export const pending: Record<string, readonly string[]> = {
     "hud.options.voiceVolume"
   ],
   "pt_BR": [
+    "entities.dungeons.nythraxis_boss_arena.enterText",
+    "entities.dungeons.nythraxis_boss_arena.leaveText",
+    "entities.dungeons.nythraxis_boss_arena.name",
     "entities.mobs.bramble_lynx.name",
     "entities.mobs.brightwood_hare.name",
     "entities.mobs.brightwood_monarch.name",
@@ -60719,6 +60822,9 @@ export const pending: Record<string, readonly string[]> = {
     "hud.options.voiceVolume"
   ],
   "ru_RU": [
+    "entities.dungeons.nythraxis_boss_arena.enterText",
+    "entities.dungeons.nythraxis_boss_arena.leaveText",
+    "entities.dungeons.nythraxis_boss_arena.name",
     "entities.mobs.bramble_lynx.name",
     "entities.mobs.brightwood_hare.name",
     "entities.mobs.brightwood_monarch.name",
@@ -65052,8 +65158,13 @@ export const en_XA: EnTranslations = {
       },
       "nythraxis_crypt": {
         "name": "[Áƀáñðóñéð Çŕýþţ]",
-        "enterText": "[Ýóú ðéšçéñð íñţó ţĥé áƀáñðóñéð çŕýþţ ƀéñéáţĥ ţĥé ƒóŕĝóţţéñ ŕúíñš óƒ Ţĥóŕñþéáķ.]",
-        "leaveText": "[Ýóú çļíɱƀ ƀáçķ óúţ óƒ ţĥé áƀáñðóñéð çŕýþţ íñţó ţĥé ɱóúñţáíñ ŵíñð.]"
+        "enterText": "[Ýóú çŕóšš ţĥé ţĥŕéšĥóļð óƒ ţĥé Áƀáñðóñéð Çŕýþţ.]",
+        "leaveText": "[Ýóú ŕéţúŕñ ţó ţĥé çóļð áíŕ óƒ Ţĥóŕñþéáķ.]"
+      },
+      "nythraxis_boss_arena": {
+        "name": "[Ñýţĥŕáẋíš Ŕáíð Áŕéñá]",
+        "enterText": "[Ýóú þášš ţĥŕóúĝĥ ţĥé šéáļéð ŕóýáļ ðóóŕ.]",
+        "leaveText": "[Ýóú ŕéţúŕñ ţó ţĥé çóļð áíŕ óƒ Ţĥóŕñþéáķ.]"
       },
       "drowned_temple": {
         "name": "[Ţĥé Ðŕóŵñéð Ţéɱþļé]",
