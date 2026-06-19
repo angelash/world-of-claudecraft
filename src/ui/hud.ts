@@ -243,6 +243,17 @@ const MAP_BG_RES = 480;
 const MAP_MAX_ZOOM = 6;
 const MAP_DETAIL_ZOOM = 2.2; // at/above this zoom, overlay buildings + vegetation
 
+// Stable voice-clip key for a spoken yell line. MUST match the generator slug in
+// scripts/voices/extra_lines.mjs (yellKey) so encounter dialogue (e.g. the
+// Nythraxis raid) plays the right clip from the live chat event text.
+function yellVoiceKey(text: string): string {
+  return 'yell__' + text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 60);
+}
+
 export class Hud {
   private static readonly BAR_ABILITY_SLOTS = 11; // bar slots 1..11; slot 0 is the fixed Attack toggle
   private abilityButtons: { btn: HTMLButtonElement; label: HTMLSpanElement; countEl: HTMLSpanElement; keybindEl: HTMLSpanElement; cdOverlay: HTMLDivElement; cdText: HTMLDivElement; lastIcon: string }[] = [];
@@ -3190,6 +3201,9 @@ export class Hud {
             const bubble = ev.channel === 'emote' ? `${ev.from} ${masked}` : masked;
             this.renderer.showChatBubble(ev.entityId, bubble, ev.channel === 'yell');
           }
+          // Voiced encounter dialogue (boss/NPC yells) — no-op unless a clip was
+          // generated for this exact line (scripts/voices/extra_lines.mjs).
+          if (ev.channel === 'yell') voice.play(yellVoiceKey(ev.text));
           break;
         }
         case 'tradeDone':
