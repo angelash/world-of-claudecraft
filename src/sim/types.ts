@@ -134,7 +134,7 @@ export interface ItemDef {
   // `aura` is a flavor name shown in the buff frame; `value` is the stat amount,
   // `duration` the buff length in seconds. Folds through the normal aura/stat path.
   elixir?: { aura: string; kind: AuraKind; value: number; duration: number };
-  quality?: 'poor' | 'common' | 'uncommon' | 'rare' | 'epic'; // gray/white/green/blue/purple name colors
+  quality?: 'poor' | 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'; // gray/white/green/blue/purple/orange name colors
   requiredClass?: PlayerClass[];
 }
 
@@ -876,6 +876,7 @@ export interface Entity {
   respawnTimer: number;
   corpseTimer: number;
   despawnTimer?: number;
+  damageIdleDespawnTimer?: number;
   lootable: boolean;
   loot: CorpseLoot | null;
   xpValue: number;

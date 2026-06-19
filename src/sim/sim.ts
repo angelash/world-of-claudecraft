@@ -108,6 +108,12 @@ const NYTHRAXIS_ROOM_RADIUS = 260;
 const NYTHRAXIS_ALDRIC_SPAWN_DIST = 50;
 const NYTHRAXIS_ALDRIC_WALK_DIST = 30;
 const PARTY_MAX = 5;
+const RAID_MIN = 5;
+const RAID_MAX = 10;
+const RAID_GROUP_MAX = 5;
+const VARKAS_BONEGUARD_DAMAGE_IDLE_DESPAWN_SECONDS = 60;
+const RAID_ALLOWED_DUNGEON_IDS = new Set(['nythraxis_crypt', 'nythraxis_boss_arena']);
+const RAID_REQUIRED_DUNGEON_IDS = new Set(['nythraxis_boss_arena']);
 const PARTY_XP_RANGE = 80; // yards: members this close share kill xp/credit
 // Rested XP (classic inn-rested bonus). Resting inside an inn footprint accrues a
 // pool that doubles KILL xp (200%) until spent — vanilla's signature casual-pacing
@@ -259,6 +265,8 @@ export interface Party {
   id: number;
   leader: number; // pid
   members: number[]; // pids
+  raid: boolean;
+  raidGroups: Map<number, 1 | 2>; // pid -> raid subgroup
   lootStrategies: LootStrategies;
 }
 
@@ -1378,6 +1386,10 @@ export class Sim {
       if (e.despawnTimer !== undefined) {
         e.despawnTimer -= DT;
         if (e.despawnTimer <= 0) despawnIds.push(e.id);
+      }
+      if (e.kind === 'mob' && e.templateId === 'varkas_boneguard' && !e.dead) {
+        e.damageIdleDespawnTimer = (e.damageIdleDespawnTimer ?? VARKAS_BONEGUARD_DAMAGE_IDLE_DESPAWN_SECONDS) - DT;
+        if (e.damageIdleDespawnTimer <= 0) despawnIds.push(e.id);
       }
       if (e.overheadEmoteId && this.time >= e.overheadEmoteUntil) {
         e.overheadEmoteId = null;
@@ -3691,6 +3703,9 @@ export class Sim {
     this.emit({ type: 'damage', sourceId: source?.id ?? -1, targetId: target.id, amount, crit, school, ability, kind });
 
     if (amount > 0) {
+      if (target.kind === 'mob' && target.templateId === 'varkas_boneguard') {
+        target.damageIdleDespawnTimer = VARKAS_BONEGUARD_DAMAGE_IDLE_DESPAWN_SECONDS;
+      }
       for (let i = target.auras.length - 1; i >= 0; i--) {
         if (target.auras[i].breaksOnDamage) {
           this.emit({ type: 'aura', targetId: target.id, name: target.auras[i].name, gained: false });
@@ -7176,6 +7191,9 @@ export class Sim {
       return;
     }
     meta.questLog.set(questId, { questId, counts: quest.objectives.map(() => 0), state: 'active' });
+    if (questId === 'q_nythraxis_bound_guardian' && this.countItem('crypt_keystone', meta.entityId) <= 0) {
+      this.addItem('crypt_keystone', 1, meta.entityId);
+    }
     this.emit({ type: 'questAccepted', questId, pid: meta.entityId });
     this.emit({ type: 'log', text: `Quest accepted: ${quest.name}`, color: '#ff0', pid: meta.entityId });
     this.onInventoryChangedForQuests(meta);
@@ -7865,6 +7883,10 @@ export class Sim {
     return dungeonAt(e.pos.x)?.id === dungeonId;
   }
 
+  private partyCapacity(party: Party | null): number {
+    return party?.raid ? RAID_MAX : PARTY_MAX;
+  }
+
   partyInvite(targetPid: number, pid?: number): void {
     const r = this.resolve(pid);
     const target = this.players.get(targetPid);
@@ -7872,7 +7894,7 @@ export class Sim {
     if (targetPid === r.meta.entityId) return;
     const myParty = this.partyOf(r.meta.entityId);
     if (myParty && myParty.leader !== r.meta.entityId) { this.error(r.meta.entityId, 'Only the party leader may invite.'); return; }
-    if (myParty && myParty.members.length >= PARTY_MAX) { this.error(r.meta.entityId, 'Your party is full.'); return; }
+    if (myParty && myParty.members.length >= this.partyCapacity(myParty)) { this.error(r.meta.entityId, myParty.raid ? 'Your raid is full.' : 'Your party is full.'); return; }
     if (this.partyOf(targetPid)) { this.error(r.meta.entityId, `${target.name} is already in a party.`); return; }
     if (this.hasPendingSocialInvite(targetPid)) { this.error(r.meta.entityId, `${target.name} already has a pending invitation.`); return; }
     this.partyInvites.set(targetPid, { fromPid: r.meta.entityId, expires: this.time + 30 });
@@ -7899,13 +7921,17 @@ export class Sim {
         id: this.nextPartyId++,
         leader: invite.fromPid,
         members: [invite.fromPid],
+        raid: false,
+        raidGroups: new Map([[invite.fromPid, 1]]),
         lootStrategies: { ...DEFAULT_PARTY_LOOT_STRATEGIES },
       };
       this.parties.set(party.id, party);
       this.partyByPid.set(invite.fromPid, party.id);
     }
-    if (party.members.length >= PARTY_MAX) { this.error(r.meta.entityId, 'That party is full.'); return; }
+    if (party.members.length >= this.partyCapacity(party)) { this.error(r.meta.entityId, party.raid ? 'That raid is full.' : 'That party is full.'); return; }
+    const raidGroup = this.nextRaidGroupFor(party);
     party.members.push(r.meta.entityId);
+    party.raidGroups.set(r.meta.entityId, raidGroup);
     this.partyByPid.set(r.meta.entityId, party.id);
     for (const mPid of party.members) {
       this.emit({ type: 'log', text: `${r.meta.name} joins the party.`, color: '#aaf', pid: mPid });
@@ -7937,11 +7963,57 @@ export class Sim {
     this.removeFromParty(targetPid, 'has been removed from the party');
   }
 
+  convertPartyToRaid(pid?: number): void {
+    const r = this.resolve(pid);
+    if (!r) return;
+    const party = this.partyOf(r.meta.entityId);
+    if (!party) { this.error(r.meta.entityId, 'You need a full party of five before converting to raid.'); return; }
+    if (party.leader !== r.meta.entityId) { this.error(r.meta.entityId, 'Only the party leader may convert to raid.'); return; }
+    if (party.raid) { this.error(r.meta.entityId, 'Your group is already a raid.'); return; }
+    if (party.members.length < RAID_MIN) { this.error(r.meta.entityId, 'You need a full party of five before converting to raid.'); return; }
+    party.raid = true;
+    this.normalizeRaidGroups(party);
+    for (const mPid of party.members) {
+      this.emit({ type: 'log', text: 'Your party has converted to a raid group.', color: '#aaf', pid: mPid });
+    }
+  }
+
+  moveRaidMember(targetPid: number, group: 1 | 2, pid?: number): void {
+    const r = this.resolve(pid);
+    if (!r) return;
+    const party = this.partyOf(r.meta.entityId);
+    if (!party || !party.raid) { this.error(r.meta.entityId, 'You are not in a raid group.'); return; }
+    if (party.leader !== r.meta.entityId) { this.error(r.meta.entityId, 'Only the raid leader may adjust groups.'); return; }
+    if (!party.members.includes(targetPid)) return;
+    const current = party.raidGroups.get(targetPid) ?? 1;
+    if (current === group) return;
+    const inTargetGroup = party.members.filter((mPid) => (party.raidGroups.get(mPid) ?? 1) === group).length;
+    if (inTargetGroup >= RAID_GROUP_MAX) { this.error(r.meta.entityId, `Raid group ${group} is full.`); return; }
+    party.raidGroups.set(targetPid, group);
+    const moved = this.players.get(targetPid)?.name ?? 'Someone';
+    for (const mPid of party.members) {
+      this.emit({ type: 'log', text: `${moved} has been moved to raid group ${group}.`, color: '#aaf', pid: mPid });
+    }
+  }
+
+  private nextRaidGroupFor(party: Party): 1 | 2 {
+    const g1 = party.members.filter((mPid) => (party.raidGroups.get(mPid) ?? 1) === 1).length;
+    return g1 < RAID_GROUP_MAX ? 1 : 2;
+  }
+
+  private normalizeRaidGroups(party: Party): void {
+    party.raidGroups.clear();
+    for (let i = 0; i < party.members.length; i++) {
+      party.raidGroups.set(party.members[i], i < RAID_GROUP_MAX ? 1 : 2);
+    }
+  }
+
   private removeFromParty(pid: number, verb: string): void {
     const party = this.partyOf(pid);
     if (!party) return;
     const meta = this.players.get(pid);
     party.members = party.members.filter((m) => m !== pid);
+    party.raidGroups.delete(pid);
     this.partyByPid.delete(pid);
     for (const mPid of [...party.members, pid]) {
       this.emit({ type: 'log', text: `${meta?.name ?? 'Someone'} ${verb}.`, color: '#aaf', pid: mPid });
@@ -7960,6 +8032,7 @@ export class Sim {
         this.emit({ type: 'log', text: `${newLeader?.name ?? 'Someone'} is now the party leader.`, color: '#aaf', pid: mPid });
       }
     }
+    if (party.raid) this.normalizeRaidGroups(party);
   }
 
   // -------------------------------------------------------------------------
@@ -9246,7 +9319,18 @@ export class Sim {
     const r = this.resolve(pid);
     const dungeon = DUNGEONS[dungeonId];
     if (!r || !dungeon || r.e.dead) return;
-    if (dungeonId === 'nythraxis_boss_arena' && !this.canEnterNythraxisCrypt(r.meta)) {
+    const party = this.partyOf(r.meta.entityId);
+    const raidAllowed = RAID_ALLOWED_DUNGEON_IDS.has(dungeonId);
+    const raidRequired = RAID_REQUIRED_DUNGEON_IDS.has(dungeonId);
+    if (party?.raid && !raidAllowed) {
+      this.error(r.meta.entityId, 'Raid groups cannot enter standard dungeons.');
+      return;
+    }
+    if (!party?.raid && raidRequired) {
+      this.error(r.meta.entityId, 'You must convert your party to a raid group first.');
+      return;
+    }
+    if (dungeonId === 'nythraxis_boss_arena' && !this.canEnterNythraxisRaid(r.meta)) {
       this.error(r.meta.entityId, 'The royal door is sealed to you.');
       return;
     }
@@ -9268,7 +9352,6 @@ export class Sim {
       if (!inst) { this.error(r.meta.entityId, `All instances of ${dungeon.name} are busy. Try again soon.`); return; }
       this.claimInstance(inst, key);
     }
-    const party = this.partyOf(r.meta.entityId);
     if (!party || party.members.length < dungeon.suggestedPlayers) {
       this.emit({ type: 'log', text: `${dungeon.name} is meant for a full party of ${dungeon.suggestedPlayers}. Tread carefully.`, color: '#f96', pid: r.meta.entityId });
     }
@@ -9291,6 +9374,10 @@ export class Sim {
       if (meta.questsDone.has(questId)) return true;
     }
     return false;
+  }
+
+  private canEnterNythraxisRaid(meta: PlayerMeta): boolean {
+    return meta.questsDone.has('q_nythraxis_bound_guardian');
   }
 
   private isRaidLocked(meta: PlayerMeta, dungeonId: string): boolean {
@@ -9429,6 +9516,7 @@ export class Sim {
     if (!party) return null;
     return {
       leader: party.leader,
+      raid: party.raid,
       members: party.members.flatMap((mPid) => {
         const meta = this.players.get(mPid);
         const e = this.entities.get(mPid);
@@ -9436,6 +9524,7 @@ export class Sim {
           pid: mPid, name: meta.name, cls: meta.cls, level: e.level,
           hp: e.hp, mhp: e.maxHp, res: Math.round(e.resource), mres: e.maxResource, rtype: e.resourceType,
           x: e.pos.x, z: e.pos.z, dead: e.dead ? 1 : 0, inCombat: e.inCombat ? 1 : 0,
+          group: party.raidGroups.get(mPid) ?? 1,
         }] : [];
       }),
     };
@@ -9526,7 +9615,7 @@ export class Sim {
       const tag = mPid === party.leader ? ' [leader]' : '';
       return `${meta.name} (Lvl ${e.level} ${cls}, ${state})${tag}`;
     });
-    return `Party (${party.members.length}/${PARTY_MAX}): ${parts.join(', ')}.`;
+    return `${party.raid ? 'Raid' : 'Party'} (${party.members.length}/${this.partyCapacity(party)}): ${parts.join(', ')}.`;
   }
   // Self-only readout for "/zones": lists every overworld zone in travel order
   // (south -> north) with its level range, tagging the zone the player is in.

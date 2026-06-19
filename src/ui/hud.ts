@@ -142,6 +142,7 @@ const ITEM_QUALITY_LABEL_KEYS: Record<ItemQuality, TranslationKey> = {
   uncommon: 'itemUi.quality.uncommon',
   rare: 'itemUi.quality.rare',
   epic: 'itemUi.quality.epic',
+  legendary: 'itemUi.quality.legendary',
 };
 const ITEM_KIND_LABEL_KEYS: Record<ItemDef['kind'], TranslationKey> = {
   weapon: 'itemUi.kind.weapon',
@@ -372,7 +373,7 @@ export class Hud {
   private windowObserver: MutationObserver | null = null;
   private windowZ = 50;
   private ignoredChatNames = new Set<string>();
-  private socialTab: 'friends' | 'guild' | 'ignore' = 'friends';
+  private socialTab: 'friends' | 'guild' | 'ignore' | 'raid' = 'friends';
   // split signatures: structural changes (tab, guild membership) rebuild the
   // whole panel; content-only changes (a friend's presence) refresh just the
   // list, so an open typeahead / half-typed name survives a snapshot
@@ -490,6 +491,10 @@ export class Hud {
         // menu never appears for a pet/non-hostile mob where it would be a no-op.
         this.openMarkerMenu(t.id, t.name, (ev as MouseEvent).clientX, (ev as MouseEvent).clientY);
       }
+    });
+    $('#player-frame').addEventListener('contextmenu', (ev) => {
+      ev.preventDefault();
+      this.openSelfContextMenu((ev as MouseEvent).clientX, (ev as MouseEvent).clientY);
     });
     $('#mm-char').addEventListener('click', () => this.toggleChar());
     $('#mm-spell').addEventListener('click', () => this.toggleSpellbook());
@@ -2227,10 +2232,10 @@ export class Hud {
       const struct = this.socialStructSig();
       if (struct !== this.lastSocialStruct) {
         this.lastSocialStruct = struct;
-        this.lastSocialContent = JSON.stringify(this.sim.socialInfo);
+        this.lastSocialContent = JSON.stringify({ social: this.sim.socialInfo, party: this.sim.partyInfo });
         this.renderSocial();
       } else {
-        const content = JSON.stringify(this.sim.socialInfo);
+        const content = JSON.stringify({ social: this.sim.socialInfo, party: this.sim.partyInfo });
         if (content !== this.lastSocialContent) { this.lastSocialContent = content; this.refreshSocialList(); }
       }
     }
@@ -5467,12 +5472,13 @@ export class Hud {
       return;
     }
     const p = this.sim.player;
+    const myGroup = info.members.find((m) => m.pid === this.sim.playerId)?.group ?? 1;
     const others = info.members.map((m) => ({
       ...m,
       oor: !m.dead && Math.hypot(m.x - p.pos.x, m.z - p.pos.z) > PARTY_RANGE_YD,
-    })).filter((m) => m.pid !== this.sim.playerId);
+    })).filter((m) => m.pid !== this.sim.playerId && (!info.raid || m.group === myGroup));
     // include combat/range state so the frames rebuild when a badge changes
-    const sig = others.map((m) => `${m.pid}:${m.hp}/${m.mhp}:${m.res}:${m.dead}:${m.inCombat}:${m.oor ? 1 : 0}:${m.level}`).join('|') + `L${info.leader}`;
+    const sig = others.map((m) => `${m.pid}:${m.group}:${m.hp}/${m.mhp}:${m.res}:${m.dead}:${m.inCombat}:${m.oor ? 1 : 0}:${m.level}`).join('|') + `L${info.leader}:R${info.raid ? 1 : 0}:G${myGroup}`;
     if (sig === this.lastPartySig) return;
     this.lastPartySig = sig;
     el.innerHTML = '';
@@ -5509,6 +5515,27 @@ export class Hud {
   // -------------------------------------------------------------------------
   // Context menu on players
   // -------------------------------------------------------------------------
+
+  private openSelfContextMenu(x: number, y: number): void {
+    const el = $('#ctx-menu');
+    const party = this.sim.partyInfo;
+    const canConvert = !!party && party.leader === this.sim.playerId && !party.raid && party.members.length >= 5;
+    let html = `<div class="ctx-title ctx-title-player">${portraitChipHtml({ cls: this.sim.cfg.playerClass, skin: this.sim.player.skin ?? 0, name: this.sim.player.name, variant: 'sm' })}<span class="ctx-title-name">${esc(this.sim.player.name)}</span></div>`;
+    if (canConvert) html += `<div class="ctx-item" data-act="convert-raid">${esc(t('hud.chat.context.convertToRaid'))}</div>`;
+    html += `<div class="ctx-item" data-act="close">${esc(t('hud.chat.context.cancel'))}</div>`;
+    el.innerHTML = html;
+    hydratePortraits(el);
+    el.style.left = `${Math.min(window.innerWidth - 170, x)}px`;
+    el.style.top = `${Math.min(window.innerHeight - 160, y)}px`;
+    el.style.display = 'block';
+    this.bindContextMenuActions((act) => {
+      if (act === 'convert-raid') {
+        this.sim.convertPartyToRaid();
+        this.socialTab = 'raid';
+        if ($('#social-window').classList.contains('open')) this.renderSocial();
+      }
+    });
+  }
 
   openContextMenu(pid: number, name: string, x: number, y: number): void {
     const el = $('#ctx-menu');
@@ -5858,7 +5885,7 @@ export class Hud {
     el.classList.add('open');
     this.socialNotice = null;
     this.lastSocialStruct = this.socialStructSig();
-    this.lastSocialContent = JSON.stringify(this.sim.socialInfo);
+    this.lastSocialContent = JSON.stringify({ social: this.sim.socialInfo, party: this.sim.partyInfo });
     this.renderSocial();
   }
 
@@ -5867,7 +5894,9 @@ export class Hud {
   // friend's zone, the roster — doesn't count, so it can refresh in place.
   private socialStructSig(): string {
     const g = this.sim.socialInfo?.guild;
-    return `${this.socialTab}|${this.sim.socialInfo !== null}|${g?.id ?? 0}|${g?.rank ?? ''}`;
+    const p = this.sim.partyInfo;
+    const raidSig = p ? `${p.raid ? 1 : 0}:${p.leader}:${p.members.map((m) => `${m.pid}.${m.group}`).join(',')}` : 'solo';
+    return `${this.socialTab}|${this.sim.socialInfo !== null}|${g?.id ?? 0}|${g?.rank ?? ''}|${raidSig}`;
   }
 
   // Full rebuild: title, tabs, body, notice, and the tab's footer (with its
@@ -5883,10 +5912,11 @@ export class Hud {
       + `<button type="button" class="soc-tab ${tab === 'friends' ? 'on' : ''}" data-tab="friends" aria-pressed="${tab === 'friends' ? 'true' : 'false'}">${esc(t('hud.social.friendsTab'))}</button>`
       + `<button type="button" class="soc-tab ${tab === 'guild' ? 'on' : ''}" data-tab="guild" aria-pressed="${tab === 'guild' ? 'true' : 'false'}">${esc(t('hud.social.guildTab'))}</button>`
       + `<button type="button" class="soc-tab ${tab === 'ignore' ? 'on' : ''}" data-tab="ignore" aria-pressed="${tab === 'ignore' ? 'true' : 'false'}">${esc(t('hud.social.ignoreTab'))}</button>`
+      + `<button type="button" class="soc-tab ${tab === 'raid' ? 'on' : ''}" data-tab="raid" aria-pressed="${tab === 'raid' ? 'true' : 'false'}">${esc(t('hud.social.raidTab'))}</button>`
       + `</div>`
       + `<div class="soc-body"></div>`
       + `<div class="soc-notice"></div>`
-      + (online ? this.socialFooter() : '');
+      + (tab === 'raid' ? '' : online ? this.socialFooter() : '');
     this.wireSocialChrome(el);
     this.refreshSocialList();
     this.renderSocialNotice();
@@ -5898,11 +5928,12 @@ export class Hud {
     const body = $('#social-window').querySelector('.soc-body') as HTMLElement | null;
     if (!body) return;
     const online = this.sim.socialInfo !== null;
-    body.innerHTML = !online
-      ? `<div class="soc-empty">${esc(t('hud.social.offlineEmpty'))}</div>`
-      : this.socialTab === 'friends' ? this.friendsHtml()
-        : this.socialTab === 'guild' ? this.guildHtml()
-          : this.ignoreHtml();
+    body.innerHTML = this.socialTab === 'raid' ? this.raidHtml()
+      : !online
+        ? `<div class="soc-empty">${esc(t('hud.social.offlineEmpty'))}</div>`
+        : this.socialTab === 'friends' ? this.friendsHtml()
+          : this.socialTab === 'guild' ? this.guildHtml()
+            : this.ignoreHtml();
     this.wireSocialRows(body);
   }
 
@@ -5972,6 +6003,36 @@ export class Hud {
     return head + rows;
   }
 
+  private raidHtml(): string {
+    const party = this.sim.partyInfo;
+    if (!party?.raid) {
+      const canConvert = !!party && party.leader === this.sim.playerId && party.members.length >= 5;
+      return `<div class="soc-empty">${esc(t('hud.social.raidEmpty'))}${canConvert ? `<div class="soc-empty-action"><button type="button" class="soc-x" data-act="convert-raid">${esc(t('hud.chat.context.convertToRaid'))}</button></div>` : ''}</div>`;
+    }
+    const leader = party.leader === this.sim.playerId;
+    const groups: Record<1 | 2, typeof party.members> = {
+      1: party.members.filter((m) => m.group === 1),
+      2: party.members.filter((m) => m.group === 2),
+    };
+    const groupHtml = (group: 1 | 2): string => {
+      const rows = groups[group].map((m) => {
+        const isLead = m.pid === party.leader;
+        const otherGroup = group === 1 ? 2 : 1;
+        const otherFull = groups[otherGroup].length >= 5;
+        const move = leader && !otherFull
+          ? `<button type="button" class="soc-x" data-act="raid-move" data-pid="${m.pid}" data-group="${otherGroup}" title="${esc(t('hud.social.raidMoveToGroup', { group: formatNumber(otherGroup, { maximumFractionDigits: 0 }) }))}">${esc(formatNumber(otherGroup, { maximumFractionDigits: 0 }))}</button>`
+          : '';
+        return `<div class="soc-row raid-row">`
+          + `<span class="soc-id"><span class="soc-name">${esc(m.name)}${isLead ? `<span class="rank">${esc(t('hud.social.raidLeader'))}</span>` : ''}</span><span class="soc-sub">${esc(t('hud.social.levelClass', { level: formatNumber(m.level, { maximumFractionDigits: 0 }), className: playerClassDisplayName(m.cls) }))}</span></span>`
+          + `<span class="soc-meta">${esc(formatNumber(Math.round((m.hp / Math.max(1, m.mhp)) * 100), { maximumFractionDigits: 0 }))}%</span>`
+          + (move ? `<span class="soc-actions">${move}</span>` : '')
+          + `</div>`;
+      }).join('') || `<div class="soc-empty">${esc(t('hud.social.raidGroupEmpty'))}</div>`;
+      return `<div class="raid-group"><div class="soc-guild-head">${esc(t('hud.social.raidGroupTitle', { position: formatNumber(group, { maximumFractionDigits: 0 }), count: formatNumber(groups[group].length, { maximumFractionDigits: 0 }) }))}</div>${rows}</div>`;
+    };
+    return `<div class="raid-groups">${groupHtml(1)}${groupHtml(2)}</div>`;
+  }
+
   // The add/action row changes with the tab (and guild membership). Inputs
   // tagged data-suggest get the username typeahead.
   private socialFooter(): string {
@@ -6000,7 +6061,7 @@ export class Hud {
   private wireSocialChrome(el: HTMLElement): void {
     el.querySelector('[data-close]')?.addEventListener('click', () => this.toggleSocial());
     el.querySelectorAll('.soc-tab').forEach((t) => t.addEventListener('click', () => {
-      this.socialTab = (t as HTMLElement).dataset.tab as 'friends' | 'guild' | 'ignore';
+      this.socialTab = (t as HTMLElement).dataset.tab as 'friends' | 'guild' | 'ignore' | 'raid';
       this.socialNotice = null;
       this.lastSocialStruct = this.socialStructSig();
       this.renderSocial();
@@ -6035,6 +6096,16 @@ export class Hud {
       else if (act === 'promote') this.sim.guildPromote(name);
       else if (act === 'demote') this.sim.guildDemote(name);
       else if (act === 'gtransfer') this.showPrompt(t('hud.social.transferPrompt', { name: `<b>${esc(name)}</b>` }), t('hud.social.transferConfirm'), () => this.sim.guildTransfer(name), () => { /* keep */ });
+      else if (act === 'raid-move') {
+        const pid = Number((x as HTMLElement).dataset.pid);
+        const group = Number((x as HTMLElement).dataset.group);
+        if (Number.isFinite(pid) && (group === 1 || group === 2)) this.sim.moveRaidMember(pid, group);
+      }
+      else if (act === 'convert-raid') {
+        this.sim.convertPartyToRaid();
+        this.socialTab = 'raid';
+        this.renderSocial();
+      }
     }));
     scope.querySelectorAll('[data-whisper]').forEach((w) => w.addEventListener('click', () => {
       this.startWhisper((w as HTMLElement).dataset.whisper ?? '');

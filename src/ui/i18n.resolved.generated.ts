@@ -687,6 +687,7 @@ export const en: EnTranslations = {
         "unignoreChat": "Unignore Chat",
         "report": "Report Player",
         "removeParty": "Remove from Party",
+        "convertToRaid": "Convert to raid",
         "cancel": "Cancel"
       }
     },
@@ -902,10 +903,16 @@ export const en: EnTranslations = {
       "friendsTab": "Friends",
       "guildTab": "Guild",
       "ignoreTab": "Ignore",
+      "raidTab": "Raid",
       "leaveParty": "Leave Party",
       "offlineEmpty": "Friends, guilds, and ignore lists are available in online play.",
       "friendsEmpty": "No friends yet. Search for someone by name below.",
       "ignoreEmpty": "Your ignore list is empty.",
+      "raidEmpty": "Convert a party to a raid to manage raid groups here.",
+      "raidGroupEmpty": "No players in this group.",
+      "raidGroupTitle": "Group {position} ({count}/5)",
+      "raidMoveToGroup": "Move to group {position}",
+      "raidLeader": "Raid Leader",
       "noGuild": "You are not in a guild. Found one below, or get invited by an existing guild.",
       "whisperTitle": "Whisper {name}",
       "removeFriendTitle": "Remove {name} from friends",
@@ -1137,7 +1144,8 @@ export const en: EnTranslations = {
       "common": "Common",
       "uncommon": "Uncommon",
       "rare": "Rare",
-      "epic": "Epic"
+      "epic": "Epic",
+      "legendary": "Legendary"
     },
     "kind": {
       "weapon": "Weapon",
@@ -2793,6 +2801,36 @@ export const en: EnTranslations = {
       },
       "kings_signet": {
         "name": "King's Signet"
+      },
+      "deathless_heartwood": {
+        "name": "Heartwood of the Deathless Crown"
+      },
+      "kingsbane_last_oath": {
+        "name": "Kingsbane, Last Oath of Thornpeak"
+      },
+      "crownforged_dreadhelm": {
+        "name": "Crownforged Dreadhelm"
+      },
+      "crownforged_warspaulders": {
+        "name": "Crownforged Warspaulders"
+      },
+      "nighttalon_crown": {
+        "name": "Nighttalon Crown"
+      },
+      "nighttalon_shoulderguards": {
+        "name": "Nighttalon Shoulderguards"
+      },
+      "soulflame_cowl": {
+        "name": "Soulflame Cowl"
+      },
+      "soulflame_mantle": {
+        "name": "Soulflame Mantle"
+      },
+      "stormcallers_crown": {
+        "name": "Stormcaller's Crown"
+      },
+      "stormcallers_spaulders": {
+        "name": "Stormcaller's Spaulders"
       }
     },
     "mobs": {
@@ -2957,6 +2995,15 @@ export const en: EnTranslations = {
       },
       "bound_guardian": {
         "name": "The Bound Guardian"
+      },
+      "nythraxis_skeleton_warrior": {
+        "name": "Risen Royal Guard"
+      },
+      "brother_aldric_raid": {
+        "name": "Brother Aldric"
+      },
+      "nythraxis_scourge_of_thornpeak": {
+        "name": "Nythraxis, Scourge of Thornpeak"
       },
       "brightwood_hare": {
         "name": "Brightwood Hare"
@@ -3926,7 +3973,7 @@ export const en: EnTranslations = {
       "q_nythraxis_bound_guardian": {
         "title": "The Bound Guardian",
         "text": "Voss wrote that the survivors sealed the King's Signet behind an ancient guardian, so no one could reach the tomb of Nythraxis by accident or ambition. Take the Crypt Keystone to the ritual circle on the flat ground east of the abandoned crypt and south-east of the western grave. Use it there, break the guardian, and bring back the signet.",
-        "completion": "The three relics tell the same story: Aldren fought to defend his king, Malric broke the boundary of death, and Voss tried to stop what followed. The seal is weakening, and this signet is the key to Nythraxis's tomb. You are now attuned to enter The Crypt of Nythraxis.",
+        "completion": "The three relics tell the same story: Aldren fought to defend his king, Malric broke the boundary of death, and Voss tried to stop what followed. The seal is weakening, and this signet is the key to Nythraxis's tomb. You are now attuned to enter The Crypt of Nythraxis. Return to the abandoned crypt, unlock the royal door, and face Nythraxis before the old king's rage spills beyond Thornpeak.",
         "objectives": {
           "0": {
             "label": "Crypt Keystone used at the ritual circle"
@@ -4972,6 +5019,7 @@ export const es: EnTranslations = {
         "unignoreChat": "Dejar de ignorar chat",
         "report": "Reportar jugador",
         "removeParty": "Expulsar del grupo",
+        "convertToRaid": "Convertir en banda",
         "cancel": "Cancelar"
       }
     },
@@ -5187,10 +5235,16 @@ export const es: EnTranslations = {
       "friendsTab": "Amigos",
       "guildTab": "Hermandad",
       "ignoreTab": "Ignorar",
+      "raidTab": "Banda",
       "leaveParty": "Salir del grupo",
       "offlineEmpty": "Amigos, hermandades y listas de ignorados están disponibles en juego en línea.",
       "friendsEmpty": "Aún no tienes amigos. Busca a alguien por nombre abajo.",
       "ignoreEmpty": "Tu lista de ignorados está vacía.",
+      "raidEmpty": "Convierte un grupo en banda para gestionar los grupos de banda aquí.",
+      "raidGroupEmpty": "No hay jugadores en este grupo.",
+      "raidGroupTitle": "Grupo {position} ({count}/5)",
+      "raidMoveToGroup": "Mover al grupo {position}",
+      "raidLeader": "Líder de banda",
       "noGuild": "No estás en una hermandad. Funda una abajo o recibe una invitación.",
       "whisperTitle": "Susurrar a {name}",
       "removeFriendTitle": "Eliminar a {name} de amigos",
@@ -5422,7 +5476,8 @@ export const es: EnTranslations = {
       "common": "Común",
       "uncommon": "Poco común",
       "rare": "Raro",
-      "epic": "Épico"
+      "epic": "Épico",
+      "legendary": "Legendario"
     },
     "kind": {
       "weapon": "Arma",
@@ -7078,6 +7133,36 @@ export const es: EnTranslations = {
       },
       "kings_signet": {
         "name": "Anillo del rey"
+      },
+      "deathless_heartwood": {
+        "name": "Duramen de la Corona Inmortal"
+      },
+      "kingsbane_last_oath": {
+        "name": "Matarrayes, último juramento de Thornpeak"
+      },
+      "crownforged_dreadhelm": {
+        "name": "Yelmo aterrador Forjacorona"
+      },
+      "crownforged_warspaulders": {
+        "name": "Hombreras de guerra Forjacorona"
+      },
+      "nighttalon_crown": {
+        "name": "Corona Garra Nocturna"
+      },
+      "nighttalon_shoulderguards": {
+        "name": "Guardahombros Garra Nocturna"
+      },
+      "soulflame_cowl": {
+        "name": "Caperuza Llama de Alma"
+      },
+      "soulflame_mantle": {
+        "name": "Manto Llama de Alma"
+      },
+      "stormcallers_crown": {
+        "name": "Corona del Invocatormentas"
+      },
+      "stormcallers_spaulders": {
+        "name": "Bufas del Invocatormentas"
       }
     },
     "mobs": {
@@ -7242,6 +7327,15 @@ export const es: EnTranslations = {
       },
       "bound_guardian": {
         "name": "Guardián Vinculado"
+      },
+      "nythraxis_skeleton_warrior": {
+        "name": "Guardia real alzado"
+      },
+      "brother_aldric_raid": {
+        "name": "Hermano Aldric"
+      },
+      "nythraxis_scourge_of_thornpeak": {
+        "name": "Nythraxis, Azote de Thornpeak"
       },
       "brightwood_hare": {
         "name": "Brightwood Hare"
@@ -8211,7 +8305,7 @@ export const es: EnTranslations = {
       "q_nythraxis_bound_guardian": {
         "title": "El Guardián Vinculado",
         "text": "Voss escribio que los supervivientes sellaron el Anillo del rey tras un guardian antiguo, para que nadie pudiera alcanzar la tumba de Nythraxis por accidente o ambicion. Lleva la Piedra clave de la cripta al circulo ritual en el terreno llano al este de la cripta abandonada y al sureste de la tumba occidental. Usala alli, rompe al guardian y trae el anillo.",
-        "completion": "Las tres reliquias cuentan la misma historia: Aldren lucho para defender a su rey, Malric rompio el limite de la muerte y Voss intento detener lo que vino despues. El sello se debilita, y este anillo es la llave de la tumba de Nythraxis. Ahora estas armonizado para entrar en La Cripta de Nythraxis.",
+        "completion": "Las tres reliquias cuentan la misma historia: Aldren lucho para defender a su rey, Malric rompio el limite de la muerte y Voss intento detener lo que vino despues. El sello se debilita, y este anillo es la llave de la tumba de Nythraxis. Ahora estas armonizado para entrar en La Cripta de Nythraxis. Vuelve a la cripta abandonada, abre la puerta real y enfrenta a Nythraxis antes de que la ira del viejo rey desborde Thornpeak.",
         "objectives": {
           "0": {
             "label": "Piedra clave usada en el círculo ritual"
@@ -9257,6 +9351,7 @@ export const es_ES: EnTranslations = {
         "unignoreChat": "Dejar de ignorar chat",
         "report": "Reportar jugador",
         "removeParty": "Expulsar del grupo",
+        "convertToRaid": "Convertir en banda",
         "cancel": "Cancelar"
       }
     },
@@ -9472,10 +9567,16 @@ export const es_ES: EnTranslations = {
       "friendsTab": "Amigos",
       "guildTab": "Hermandad",
       "ignoreTab": "Ignorar",
+      "raidTab": "Banda",
       "leaveParty": "Salir del grupo",
       "offlineEmpty": "Amigos, hermandades y listas de ignorados están disponibles en juego en línea.",
       "friendsEmpty": "Aún no tienes amigos. Busca a alguien por nombre abajo.",
       "ignoreEmpty": "Tu lista de ignorados está vacía.",
+      "raidEmpty": "Convierte un grupo en banda para gestionar los grupos de banda aquí.",
+      "raidGroupEmpty": "No hay jugadores en este grupo.",
+      "raidGroupTitle": "Grupo {position} ({count}/5)",
+      "raidMoveToGroup": "Mover al grupo {position}",
+      "raidLeader": "Líder de banda",
       "noGuild": "No estás en una hermandad. Funda una abajo o recibe una invitación.",
       "whisperTitle": "Susurrar a {name}",
       "removeFriendTitle": "Eliminar a {name} de amigos",
@@ -9707,7 +9808,8 @@ export const es_ES: EnTranslations = {
       "common": "Común",
       "uncommon": "Poco común",
       "rare": "Raro",
-      "epic": "Épico"
+      "epic": "Épico",
+      "legendary": "Legendario"
     },
     "kind": {
       "weapon": "Arma",
@@ -11363,6 +11465,36 @@ export const es_ES: EnTranslations = {
       },
       "kings_signet": {
         "name": "Anillo del rey"
+      },
+      "deathless_heartwood": {
+        "name": "Duramen de la Corona Inmortal"
+      },
+      "kingsbane_last_oath": {
+        "name": "Matarrayes, último juramento de Thornpeak"
+      },
+      "crownforged_dreadhelm": {
+        "name": "Yelmo aterrador Forjacorona"
+      },
+      "crownforged_warspaulders": {
+        "name": "Hombreras de guerra Forjacorona"
+      },
+      "nighttalon_crown": {
+        "name": "Corona Garra Nocturna"
+      },
+      "nighttalon_shoulderguards": {
+        "name": "Guardahombros Garra Nocturna"
+      },
+      "soulflame_cowl": {
+        "name": "Caperuza Llama de Alma"
+      },
+      "soulflame_mantle": {
+        "name": "Manto Llama de Alma"
+      },
+      "stormcallers_crown": {
+        "name": "Corona del Invocatormentas"
+      },
+      "stormcallers_spaulders": {
+        "name": "Bufas del Invocatormentas"
       }
     },
     "mobs": {
@@ -11527,6 +11659,15 @@ export const es_ES: EnTranslations = {
       },
       "bound_guardian": {
         "name": "Guardián Vinculado"
+      },
+      "nythraxis_skeleton_warrior": {
+        "name": "Guardia real alzado"
+      },
+      "brother_aldric_raid": {
+        "name": "Hermano Aldric"
+      },
+      "nythraxis_scourge_of_thornpeak": {
+        "name": "Nythraxis, Azote de Thornpeak"
       },
       "brightwood_hare": {
         "name": "Brightwood Hare"
@@ -12496,7 +12637,7 @@ export const es_ES: EnTranslations = {
       "q_nythraxis_bound_guardian": {
         "title": "El Guardián Vinculado",
         "text": "Voss escribio que los supervivientes sellaron el Anillo del rey tras un guardian antiguo, para que nadie pudiera alcanzar la tumba de Nythraxis por accidente o ambicion. Lleva la Piedra clave de la cripta al circulo ritual en el terreno llano al este de la cripta abandonada y al sureste de la tumba occidental. Usala alli, rompe al guardian y trae el anillo.",
-        "completion": "Las tres reliquias cuentan la misma historia: Aldren lucho para defender a su rey, Malric rompio el limite de la muerte y Voss intento detener lo que vino despues. El sello se debilita, y este anillo es la llave de la tumba de Nythraxis. Ahora estas armonizado para entrar en La Cripta de Nythraxis.",
+        "completion": "Las tres reliquias cuentan la misma historia: Aldren lucho para defender a su rey, Malric rompio el limite de la muerte y Voss intento detener lo que vino despues. El sello se debilita, y este anillo es la llave de la tumba de Nythraxis. Ahora estas armonizado para entrar en La Cripta de Nythraxis. Vuelve a la cripta abandonada, abre la puerta real y enfrenta a Nythraxis antes de que la ira del viejo rey desborde Thornpeak.",
         "objectives": {
           "0": {
             "label": "Piedra clave usada en el círculo ritual"
@@ -13542,6 +13683,7 @@ export const fr_FR: EnTranslations = {
         "unignoreChat": "Ne plus ignorer la discussion",
         "report": "Signaler le joueur",
         "removeParty": "Retirer du groupe",
+        "convertToRaid": "Convertir en raid",
         "cancel": "Annuler"
       }
     },
@@ -13757,10 +13899,16 @@ export const fr_FR: EnTranslations = {
       "friendsTab": "Amis",
       "guildTab": "Guilde",
       "ignoreTab": "Ignorer",
+      "raidTab": "Raid",
       "leaveParty": "Quitter le groupe",
       "offlineEmpty": "Les amis, guildes et listes d'ignorés sont disponibles en jeu en ligne.",
       "friendsEmpty": "Aucun ami pour l'instant. Cherchez quelqu'un par nom ci-dessous.",
       "ignoreEmpty": "Votre liste d'ignorés est vide.",
+      "raidEmpty": "Convertissez un groupe en raid pour gérer les groupes de raid ici.",
+      "raidGroupEmpty": "Aucun joueur dans ce groupe.",
+      "raidGroupTitle": "Groupe {position} ({count}/5)",
+      "raidMoveToGroup": "Déplacer vers le groupe {position}",
+      "raidLeader": "Chef de raid",
       "noGuild": "Vous n'êtes pas dans une guilde. Fondez-en une ci-dessous ou recevez une invitation.",
       "whisperTitle": "Chuchoter à {name}",
       "removeFriendTitle": "Retirer {name} des amis",
@@ -13992,7 +14140,8 @@ export const fr_FR: EnTranslations = {
       "common": "Commun",
       "uncommon": "Inhabituel",
       "rare": "Rare",
-      "epic": "Épique"
+      "epic": "Épique",
+      "legendary": "Légendaire"
     },
     "kind": {
       "weapon": "Arme",
@@ -15648,6 +15797,36 @@ export const fr_FR: EnTranslations = {
       },
       "kings_signet": {
         "name": "Chevalière du roi"
+      },
+      "deathless_heartwood": {
+        "name": "Bois-coeur de la Couronne immortelle"
+      },
+      "kingsbane_last_oath": {
+        "name": "Fléau-du-roi, dernier serment de Thornpeak"
+      },
+      "crownforged_dreadhelm": {
+        "name": "Heaume d'effroi Forgécouronne"
+      },
+      "crownforged_warspaulders": {
+        "name": "Spallières de guerre Forgécouronne"
+      },
+      "nighttalon_crown": {
+        "name": "Couronne Serre-de-nuit"
+      },
+      "nighttalon_shoulderguards": {
+        "name": "Garde-épaules Serre-de-nuit"
+      },
+      "soulflame_cowl": {
+        "name": "Capuche Flamme-d'âme"
+      },
+      "soulflame_mantle": {
+        "name": "Mantelet Flamme-d'âme"
+      },
+      "stormcallers_crown": {
+        "name": "Couronne d'Appel-tempête"
+      },
+      "stormcallers_spaulders": {
+        "name": "Spallières d'Appel-tempête"
       }
     },
     "mobs": {
@@ -15812,6 +15991,15 @@ export const fr_FR: EnTranslations = {
       },
       "bound_guardian": {
         "name": "Gardien lié"
+      },
+      "nythraxis_skeleton_warrior": {
+        "name": "Garde royal relevé"
+      },
+      "brother_aldric_raid": {
+        "name": "Frère Aldric"
+      },
+      "nythraxis_scourge_of_thornpeak": {
+        "name": "Nythraxis, Fléau de Thornpeak"
       },
       "brightwood_hare": {
         "name": "Brightwood Hare"
@@ -16781,7 +16969,7 @@ export const fr_FR: EnTranslations = {
       "q_nythraxis_bound_guardian": {
         "title": "Le Gardien lié",
         "text": "Voss ecrivit que les survivants scellerent la Chevaliere du roi derriere un gardien ancien, afin que nul n atteigne la tombe de Nythraxis par accident ou par ambition. Portez la Clef de la crypte au cercle rituel sur le terrain plat a l est de la crypte abandonnee et au sud-est de la tombe occidentale. Utilisez-la la-bas, brisez le gardien et rapportez la chevaliere.",
-        "completion": "Les trois reliques racontent la meme histoire: Aldren combattit pour defendre son roi, Malric franchit la frontiere de la mort, et Voss tenta d arreter ce qui suivit. Le sceau faiblit, et cette chevaliere est la clef de la tombe de Nythraxis. Vous etes maintenant harmonise pour entrer dans la Crypte de Nythraxis.",
+        "completion": "Les trois reliques racontent la meme histoire: Aldren combattit pour defendre son roi, Malric franchit la frontiere de la mort, et Voss tenta d arreter ce qui suivit. Le sceau faiblit, et cette chevaliere est la clef de la tombe de Nythraxis. Vous etes maintenant harmonise pour entrer dans la Crypte de Nythraxis. Retournez a la crypte abandonnee, ouvrez la porte royale et affrontez Nythraxis avant que la rage du vieux roi ne deborde Thornpeak.",
         "objectives": {
           "0": {
             "label": "Clef utilisée au cercle rituel"
@@ -17827,6 +18015,7 @@ export const fr_CA: EnTranslations = {
         "unignoreChat": "Ne plus ignorer la discussion",
         "report": "Signaler le joueur",
         "removeParty": "Retirer du groupe",
+        "convertToRaid": "Convertir en raid",
         "cancel": "Annuler"
       }
     },
@@ -18042,10 +18231,16 @@ export const fr_CA: EnTranslations = {
       "friendsTab": "Amis",
       "guildTab": "Guilde",
       "ignoreTab": "Ignorer",
+      "raidTab": "Raid",
       "leaveParty": "Quitter le groupe",
       "offlineEmpty": "Les amis, guildes et listes d'ignorés sont disponibles en jeu en ligne.",
       "friendsEmpty": "Aucun ami pour l'instant. Cherchez quelqu'un par nom ci-dessous.",
       "ignoreEmpty": "Votre liste d'ignorés est vide.",
+      "raidEmpty": "Convertissez un groupe en raid pour gérer les groupes de raid ici.",
+      "raidGroupEmpty": "Aucun joueur dans ce groupe.",
+      "raidGroupTitle": "Groupe {position} ({count}/5)",
+      "raidMoveToGroup": "Déplacer vers le groupe {position}",
+      "raidLeader": "Chef de raid",
       "noGuild": "Vous n'êtes pas dans une guilde. Fondez-en une ci-dessous ou recevez une invitation.",
       "whisperTitle": "Chuchoter à {name}",
       "removeFriendTitle": "Retirer {name} des amis",
@@ -18277,7 +18472,8 @@ export const fr_CA: EnTranslations = {
       "common": "Commun",
       "uncommon": "Inhabituel",
       "rare": "Rare",
-      "epic": "Épique"
+      "epic": "Épique",
+      "legendary": "Légendaire"
     },
     "kind": {
       "weapon": "Arme",
@@ -19933,6 +20129,36 @@ export const fr_CA: EnTranslations = {
       },
       "kings_signet": {
         "name": "Chevalière du roi"
+      },
+      "deathless_heartwood": {
+        "name": "Bois-coeur de la Couronne immortelle"
+      },
+      "kingsbane_last_oath": {
+        "name": "Fléau-du-roi, dernier serment de Thornpeak"
+      },
+      "crownforged_dreadhelm": {
+        "name": "Heaume d'effroi Forgécouronne"
+      },
+      "crownforged_warspaulders": {
+        "name": "Spallières de guerre Forgécouronne"
+      },
+      "nighttalon_crown": {
+        "name": "Couronne Serre-de-nuit"
+      },
+      "nighttalon_shoulderguards": {
+        "name": "Garde-épaules Serre-de-nuit"
+      },
+      "soulflame_cowl": {
+        "name": "Capuche Flamme-d'âme"
+      },
+      "soulflame_mantle": {
+        "name": "Mantelet Flamme-d'âme"
+      },
+      "stormcallers_crown": {
+        "name": "Couronne d'Appel-tempête"
+      },
+      "stormcallers_spaulders": {
+        "name": "Spallières d'Appel-tempête"
       }
     },
     "mobs": {
@@ -20097,6 +20323,15 @@ export const fr_CA: EnTranslations = {
       },
       "bound_guardian": {
         "name": "Gardien lié"
+      },
+      "nythraxis_skeleton_warrior": {
+        "name": "Garde royal relevé"
+      },
+      "brother_aldric_raid": {
+        "name": "Frère Aldric"
+      },
+      "nythraxis_scourge_of_thornpeak": {
+        "name": "Nythraxis, Fléau de Thornpeak"
       },
       "brightwood_hare": {
         "name": "Brightwood Hare"
@@ -21066,7 +21301,7 @@ export const fr_CA: EnTranslations = {
       "q_nythraxis_bound_guardian": {
         "title": "Le Gardien lié",
         "text": "Voss ecrivit que les survivants scellerent la Chevaliere du roi derriere un gardien ancien, afin que nul n atteigne la tombe de Nythraxis par accident ou par ambition. Portez la Clef de la crypte au cercle rituel sur le terrain plat a l est de la crypte abandonnee et au sud-est de la tombe occidentale. Utilisez-la la-bas, brisez le gardien et rapportez la chevaliere.",
-        "completion": "Les trois reliques racontent la meme histoire: Aldren combattit pour defendre son roi, Malric franchit la frontiere de la mort, et Voss tenta d arreter ce qui suivit. Le sceau faiblit, et cette chevaliere est la clef de la tombe de Nythraxis. Vous etes maintenant harmonise pour entrer dans la Crypte de Nythraxis.",
+        "completion": "Les trois reliques racontent la meme histoire: Aldren combattit pour defendre son roi, Malric franchit la frontiere de la mort, et Voss tenta d arreter ce qui suivit. Le sceau faiblit, et cette chevaliere est la clef de la tombe de Nythraxis. Vous etes maintenant harmonise pour entrer dans la Crypte de Nythraxis. Retournez a la crypte abandonnee, ouvrez la porte royale et affrontez Nythraxis avant que la rage du vieux roi ne deborde Thornpeak.",
         "objectives": {
           "0": {
             "label": "Clef utilisée au cercle rituel"
@@ -22112,6 +22347,7 @@ export const en_CA: EnTranslations = {
         "unignoreChat": "Unignore Chat",
         "report": "Report Player",
         "removeParty": "Remove from Party",
+        "convertToRaid": "Convert to raid",
         "cancel": "Cancel"
       }
     },
@@ -22327,10 +22563,16 @@ export const en_CA: EnTranslations = {
       "friendsTab": "Friends",
       "guildTab": "Guild",
       "ignoreTab": "Ignore",
+      "raidTab": "Raid",
       "leaveParty": "Leave Party",
       "offlineEmpty": "Friends, guilds, and ignore lists are available in online play.",
       "friendsEmpty": "No friends yet. Search for someone by name below.",
       "ignoreEmpty": "Your ignore list is empty.",
+      "raidEmpty": "Convert a party to a raid to manage raid groups here.",
+      "raidGroupEmpty": "No players in this group.",
+      "raidGroupTitle": "Group {position} ({count}/5)",
+      "raidMoveToGroup": "Move to group {position}",
+      "raidLeader": "Raid Leader",
       "noGuild": "You are not in a guild. Found one below, or get invited by an existing guild.",
       "whisperTitle": "Whisper {name}",
       "removeFriendTitle": "Remove {name} from friends",
@@ -22562,7 +22804,8 @@ export const en_CA: EnTranslations = {
       "common": "Common",
       "uncommon": "Uncommon",
       "rare": "Rare",
-      "epic": "Epic"
+      "epic": "Epic",
+      "legendary": "Legendary"
     },
     "kind": {
       "weapon": "Weapon",
@@ -24218,6 +24461,36 @@ export const en_CA: EnTranslations = {
       },
       "kings_signet": {
         "name": "King's Signet"
+      },
+      "deathless_heartwood": {
+        "name": "Heartwood of the Deathless Crown"
+      },
+      "kingsbane_last_oath": {
+        "name": "Kingsbane, Last Oath of Thornpeak"
+      },
+      "crownforged_dreadhelm": {
+        "name": "Crownforged Dreadhelm"
+      },
+      "crownforged_warspaulders": {
+        "name": "Crownforged Warspaulders"
+      },
+      "nighttalon_crown": {
+        "name": "Nighttalon Crown"
+      },
+      "nighttalon_shoulderguards": {
+        "name": "Nighttalon Shoulderguards"
+      },
+      "soulflame_cowl": {
+        "name": "Soulflame Cowl"
+      },
+      "soulflame_mantle": {
+        "name": "Soulflame Mantle"
+      },
+      "stormcallers_crown": {
+        "name": "Stormcaller's Crown"
+      },
+      "stormcallers_spaulders": {
+        "name": "Stormcaller's Spaulders"
       }
     },
     "mobs": {
@@ -24382,6 +24655,15 @@ export const en_CA: EnTranslations = {
       },
       "bound_guardian": {
         "name": "The Bound Guardian"
+      },
+      "nythraxis_skeleton_warrior": {
+        "name": "Risen Royal Guard"
+      },
+      "brother_aldric_raid": {
+        "name": "Brother Aldric"
+      },
+      "nythraxis_scourge_of_thornpeak": {
+        "name": "Nythraxis, Scourge of Thornpeak"
       },
       "brightwood_hare": {
         "name": "Brightwood Hare"
@@ -25351,7 +25633,7 @@ export const en_CA: EnTranslations = {
       "q_nythraxis_bound_guardian": {
         "title": "The Bound Guardian",
         "text": "Voss wrote that the survivors sealed the King's Signet behind an ancient guardian, so no one could reach the tomb of Nythraxis by accident or ambition. Take the Crypt Keystone to the ritual circle on the flat ground east of the abandoned crypt and south-east of the western grave. Use it there, break the guardian, and bring back the signet.",
-        "completion": "The three relics tell the same story: Aldren fought to defend his king, Malric broke the boundary of death, and Voss tried to stop what followed. The seal is weakening, and this signet is the key to Nythraxis's tomb. You are now attuned to enter The Crypt of Nythraxis.",
+        "completion": "The three relics tell the same story: Aldren fought to defend his king, Malric broke the boundary of death, and Voss tried to stop what followed. The seal is weakening, and this signet is the key to Nythraxis's tomb. You are now attuned to enter The Crypt of Nythraxis. Return to the abandoned crypt, unlock the royal door, and face Nythraxis before the old king's rage spills beyond Thornpeak.",
         "objectives": {
           "0": {
             "label": "Crypt Keystone used at the ritual circle"
@@ -26397,6 +26679,7 @@ export const it_IT: EnTranslations = {
         "unignoreChat": "Non ignorare la chat",
         "report": "Segnala giocatore",
         "removeParty": "Rimuovi dal gruppo",
+        "convertToRaid": "Converti in incursione",
         "cancel": "Annulla"
       }
     },
@@ -26612,10 +26895,16 @@ export const it_IT: EnTranslations = {
       "friendsTab": "Amici",
       "guildTab": "Gilda",
       "ignoreTab": "Ignora",
+      "raidTab": "Incursione",
       "leaveParty": "Lascia gruppo",
       "offlineEmpty": "Amici, gilde e liste ignorati sono disponibili nel gioco online.",
       "friendsEmpty": "Non hai ancora amici. Cerca qualcuno per nome qui sotto.",
       "ignoreEmpty": "La tua lista ignorati è vuota.",
+      "raidEmpty": "Converti un gruppo in incursione per gestire qui i gruppi dell'incursione.",
+      "raidGroupEmpty": "Nessun giocatore in questo gruppo.",
+      "raidGroupTitle": "Gruppo {position} ({count}/5)",
+      "raidMoveToGroup": "Sposta nel gruppo {position}",
+      "raidLeader": "Capo incursione",
       "noGuild": "Non sei in una gilda. Fondane una qui sotto o ricevi un invito.",
       "whisperTitle": "Sussurra a {name}",
       "removeFriendTitle": "Rimuovi {name} dagli amici",
@@ -26847,7 +27136,8 @@ export const it_IT: EnTranslations = {
       "common": "Comune",
       "uncommon": "Non comune",
       "rare": "Raro",
-      "epic": "Epico"
+      "epic": "Epico",
+      "legendary": "Leggendario"
     },
     "kind": {
       "weapon": "Arma",
@@ -28503,6 +28793,36 @@ export const it_IT: EnTranslations = {
       },
       "kings_signet": {
         "name": "Anello con sigillo del re"
+      },
+      "deathless_heartwood": {
+        "name": "Cuorlegno della Corona immortale"
+      },
+      "kingsbane_last_oath": {
+        "name": "Flagello dei re, ultimo giuramento di Thornpeak"
+      },
+      "crownforged_dreadhelm": {
+        "name": "Elmo del terrore Forgiacorona"
+      },
+      "crownforged_warspaulders": {
+        "name": "Spallacci da guerra Forgiacorona"
+      },
+      "nighttalon_crown": {
+        "name": "Corona Artiglio Notturno"
+      },
+      "nighttalon_shoulderguards": {
+        "name": "Guardaspalle Artiglio Notturno"
+      },
+      "soulflame_cowl": {
+        "name": "Cappuccio Fiammanima"
+      },
+      "soulflame_mantle": {
+        "name": "Manto Fiammanima"
+      },
+      "stormcallers_crown": {
+        "name": "Corona del Chiamatempeste"
+      },
+      "stormcallers_spaulders": {
+        "name": "Spallacci del Chiamatempeste"
       }
     },
     "mobs": {
@@ -28667,6 +28987,15 @@ export const it_IT: EnTranslations = {
       },
       "bound_guardian": {
         "name": "Guardiano Vincolato"
+      },
+      "nythraxis_skeleton_warrior": {
+        "name": "Guardia reale risorta"
+      },
+      "brother_aldric_raid": {
+        "name": "Fratello Aldric"
+      },
+      "nythraxis_scourge_of_thornpeak": {
+        "name": "Nythraxis, Flagello di Thornpeak"
       },
       "brightwood_hare": {
         "name": "Brightwood Hare"
@@ -29636,7 +29965,7 @@ export const it_IT: EnTranslations = {
       "q_nythraxis_bound_guardian": {
         "title": "Il Guardiano Vincolato",
         "text": "Voss scrisse che i sopravvissuti sigillarono l Anello del re dietro un antico guardiano, cosi che nessuno potesse raggiungere la tomba di Nythraxis per caso o ambizione. Porta la Chiave della cripta al cerchio rituale sul terreno piano a est della cripta abbandonata e a sud-est della tomba occidentale. Usala li, spezza il guardiano e riporta l anello.",
-        "completion": "Le tre reliquie raccontano la stessa storia: Aldren combatte per difendere il suo re, Malric spezzo il confine della morte e Voss tento di fermare cio che segui. Il sigillo si indebolisce, e questo anello e la chiave della tomba di Nythraxis. Ora sei armonizzato per entrare nella Cripta di Nythraxis.",
+        "completion": "Le tre reliquie raccontano la stessa storia: Aldren combatte per difendere il suo re, Malric spezzo il confine della morte e Voss tento di fermare cio che segui. Il sigillo si indebolisce, e questo anello e la chiave della tomba di Nythraxis. Ora sei armonizzato per entrare nella Cripta di Nythraxis. Torna alla cripta abbandonata, apri la porta reale e affronta Nythraxis prima che la furia del vecchio re trabocchi oltre Thornpeak.",
         "objectives": {
           "0": {
             "label": "Chiave di volta usata al cerchio rituale"
@@ -30682,6 +31011,7 @@ export const de_DE: EnTranslations = {
         "unignoreChat": "Chat nicht mehr ignorieren",
         "report": "Spieler melden",
         "removeParty": "Aus Gruppe entfernen",
+        "convertToRaid": "In Schlachtzug umwandeln",
         "cancel": "Abbrechen"
       }
     },
@@ -30897,10 +31227,16 @@ export const de_DE: EnTranslations = {
       "friendsTab": "Freunde",
       "guildTab": "Gilde",
       "ignoreTab": "Ignorieren",
+      "raidTab": "Schlachtzug",
       "leaveParty": "Gruppe verlassen",
       "offlineEmpty": "Freunde, Gilden und Ignorierlisten sind im Onlinespiel verfügbar.",
       "friendsEmpty": "Noch keine Freunde. Sucht unten jemanden nach Namen.",
       "ignoreEmpty": "Eure Ignorierliste ist leer.",
+      "raidEmpty": "Wandelt eine Gruppe in einen Schlachtzug um, um hier Schlachtzugsgruppen zu verwalten.",
+      "raidGroupEmpty": "Keine Spieler in dieser Gruppe.",
+      "raidGroupTitle": "Gruppe {position} ({count}/5)",
+      "raidMoveToGroup": "In Gruppe {position} verschieben",
+      "raidLeader": "Schlachtzugsleiter",
       "noGuild": "Ihr seid in keiner Gilde. Gründet unten eine oder lasst Euch einladen.",
       "whisperTitle": "{name} anflüstern",
       "removeFriendTitle": "{name} aus Freunden entfernen",
@@ -31132,7 +31468,8 @@ export const de_DE: EnTranslations = {
       "common": "Gewöhnlich",
       "uncommon": "Ungewöhnlich",
       "rare": "Selten",
-      "epic": "Episch"
+      "epic": "Episch",
+      "legendary": "Legendär"
     },
     "kind": {
       "weapon": "Waffe",
@@ -32788,6 +33125,36 @@ export const de_DE: EnTranslations = {
       },
       "kings_signet": {
         "name": "Siegelring des Königs"
+      },
+      "deathless_heartwood": {
+        "name": "Herzholz der todlosen Krone"
+      },
+      "kingsbane_last_oath": {
+        "name": "Königsbann, letzter Eid von Thornpeak"
+      },
+      "crownforged_dreadhelm": {
+        "name": "Kronengeschmiedeter Schreckenshelm"
+      },
+      "crownforged_warspaulders": {
+        "name": "Kronengeschmiedete Kriegsschultern"
+      },
+      "nighttalon_crown": {
+        "name": "Nachtklauenkrone"
+      },
+      "nighttalon_shoulderguards": {
+        "name": "Nachtklauen-Schulterschützer"
+      },
+      "soulflame_cowl": {
+        "name": "Seelenflammenkapuze"
+      },
+      "soulflame_mantle": {
+        "name": "Seelenflammenmantel"
+      },
+      "stormcallers_crown": {
+        "name": "Krone des Sturmrufers"
+      },
+      "stormcallers_spaulders": {
+        "name": "Schulterplatten des Sturmrufers"
       }
     },
     "mobs": {
@@ -32952,6 +33319,15 @@ export const de_DE: EnTranslations = {
       },
       "bound_guardian": {
         "name": "Gebundener Wächter"
+      },
+      "nythraxis_skeleton_warrior": {
+        "name": "Auferstandene Koenigswache"
+      },
+      "brother_aldric_raid": {
+        "name": "Bruder Aldric"
+      },
+      "nythraxis_scourge_of_thornpeak": {
+        "name": "Nythraxis, Geissel von Thornpeak"
       },
       "brightwood_hare": {
         "name": "Brightwood Hare"
@@ -33921,7 +34297,7 @@ export const de_DE: EnTranslations = {
       "q_nythraxis_bound_guardian": {
         "title": "Der Gebundene Wächter",
         "text": "Voss schrieb, dass die Uberlebenden den Siegelring des Konigs hinter einem uralten Wachter versiegelten, damit niemand Nythraxis Grab durch Zufall oder Ehrgeiz erreicht. Bring den Kryptenschlussel zum Ritualkreis auf dem flachen Boden ostlich der verlassenen Krypta und sudostlich des westlichen Grabes. Benutze ihn dort, brich den Wachter und bring den Ring zuruck.",
-        "completion": "Die drei Relikte erzahlen dieselbe Geschichte: Aldren kampfte, um seinen Konig zu verteidigen, Malric durchbrach die Grenze des Todes, und Voss versuchte aufzuhalten, was folgte. Das Siegel wird schwacher, und dieser Ring ist der Schlussel zu Nythraxis Grab. Du bist nun eingestimmt, die Krypta von Nythraxis zu betreten.",
+        "completion": "Die drei Relikte erzahlen dieselbe Geschichte: Aldren kampfte, um seinen Konig zu verteidigen, Malric durchbrach die Grenze des Todes, und Voss versuchte aufzuhalten, was folgte. Das Siegel wird schwacher, und dieser Ring ist der Schlussel zu Nythraxis Grab. Du bist nun eingestimmt, die Krypta von Nythraxis zu betreten. Kehrt zur verlassenen Krypta zuruck, offnet die konigliche Tur und stellt Euch Nythraxis, bevor der Zorn des alten Konigs uber Thornpeak hinausbricht.",
         "objectives": {
           "0": {
             "label": "Schlüsselstein am Ritualkreis benutzt"
@@ -34967,6 +35343,7 @@ export const zh_CN: EnTranslations = {
         "unignoreChat": "取消屏蔽聊天",
         "report": "举报玩家",
         "removeParty": "移出队伍",
+        "convertToRaid": "转换为团队",
         "cancel": "取消"
       }
     },
@@ -35182,10 +35559,16 @@ export const zh_CN: EnTranslations = {
       "friendsTab": "好友",
       "guildTab": "公会",
       "ignoreTab": "忽略",
+      "raidTab": "团队",
       "leaveParty": "离开队伍",
       "offlineEmpty": "好友、公会和忽略列表仅在在线游戏中可用。",
       "friendsEmpty": "还没有好友。请在下方按名称搜索。",
       "ignoreEmpty": "你的忽略列表为空。",
+      "raidEmpty": "将小队转换为团队后，可在这里管理团队分组。",
+      "raidGroupEmpty": "此小组没有玩家。",
+      "raidGroupTitle": "小组 {position} ({count}/5)",
+      "raidMoveToGroup": "移动到小组 {position}",
+      "raidLeader": "团队领袖",
       "noGuild": "你尚未加入公会。可在下方创建，或接受现有公会邀请。",
       "whisperTitle": "密语 {name}",
       "removeFriendTitle": "将 {name} 从好友中移除",
@@ -35417,7 +35800,8 @@ export const zh_CN: EnTranslations = {
       "common": "普通",
       "uncommon": "优秀",
       "rare": "精良",
-      "epic": "史诗"
+      "epic": "史诗",
+      "legendary": "传说"
     },
     "kind": {
       "weapon": "武器",
@@ -37073,6 +37457,36 @@ export const zh_CN: EnTranslations = {
       },
       "kings_signet": {
         "name": "国王印戒"
+      },
+      "deathless_heartwood": {
+        "name": "不朽王冠之心木"
+      },
+      "kingsbane_last_oath": {
+        "name": "弑王者，Thornpeak 最后的誓言"
+      },
+      "crownforged_dreadhelm": {
+        "name": "铸冠恐惧头盔"
+      },
+      "crownforged_warspaulders": {
+        "name": "铸冠战肩甲"
+      },
+      "nighttalon_crown": {
+        "name": "夜爪之冠"
+      },
+      "nighttalon_shoulderguards": {
+        "name": "夜爪护肩"
+      },
+      "soulflame_cowl": {
+        "name": "魂焰兜帽"
+      },
+      "soulflame_mantle": {
+        "name": "魂焰披肩"
+      },
+      "stormcallers_crown": {
+        "name": "唤雷者之冠"
+      },
+      "stormcallers_spaulders": {
+        "name": "唤雷者肩甲"
       }
     },
     "mobs": {
@@ -37237,6 +37651,15 @@ export const zh_CN: EnTranslations = {
       },
       "bound_guardian": {
         "name": "受缚守卫者"
+      },
+      "nythraxis_skeleton_warrior": {
+        "name": "复苏王室卫兵"
+      },
+      "brother_aldric_raid": {
+        "name": "奥德里克修士"
+      },
+      "nythraxis_scourge_of_thornpeak": {
+        "name": "尼瑟拉克斯，荆峰之灾"
       },
       "brightwood_hare": {
         "name": "Brightwood Hare"
@@ -38206,7 +38629,7 @@ export const zh_CN: EnTranslations = {
       "q_nythraxis_bound_guardian": {
         "title": "受缚守卫者",
         "text": "沃斯写道，幸存者把国王印戒封在一名古老守卫身后，免得任何人因偶然或野心抵达尼思拉克西斯的陵墓。把墓穴钥石带到废弃墓穴以东、西侧坟墓东南方平地上的仪式法阵。在那里使用它，击破守卫，并带回印戒。",
-        "completion": "三件遗物讲述着同一个故事：奥德伦为守护国王而战，马尔里克打破了死亡的界限，沃斯试图阻止随后发生的一切。封印正在减弱，而这枚印戒就是尼思拉克西斯陵墓的钥匙。你现在已经完成调谐，可以进入尼思拉克西斯墓穴。",
+        "completion": "三件遗物讲述着同一个故事：奥德伦为守护国王而战，马尔里克打破了死亡的界限，沃斯试图阻止随后发生的一切。封印正在减弱，而这枚印戒就是尼思拉克西斯陵墓的钥匙。你现在已经完成调谐，可以进入尼思拉克西斯墓穴。回到废弃墓穴，打开王室之门，在旧王的怒火溢出荆峰之前直面尼思拉克西斯。",
         "objectives": {
           "0": {
             "label": "在仪式法阵使用墓穴钥石"
@@ -39252,6 +39675,7 @@ export const zh_TW: EnTranslations = {
         "unignoreChat": "取消封鎖聊天",
         "report": "檢舉玩家",
         "removeParty": "移出隊伍",
+        "convertToRaid": "轉換為團隊",
         "cancel": "取消"
       }
     },
@@ -39467,10 +39891,16 @@ export const zh_TW: EnTranslations = {
       "friendsTab": "好友",
       "guildTab": "公會",
       "ignoreTab": "忽略",
+      "raidTab": "團隊",
       "leaveParty": "離開隊伍",
       "offlineEmpty": "好友、公會和忽略名單僅在線上遊戲中可用。",
       "friendsEmpty": "還沒有好友。請在下方按名稱搜尋。",
       "ignoreEmpty": "你的忽略名單是空的。",
+      "raidEmpty": "將隊伍轉換為團隊後，可在這裡管理團隊分組。",
+      "raidGroupEmpty": "此小隊沒有玩家。",
+      "raidGroupTitle": "小隊 {position} ({count}/5)",
+      "raidMoveToGroup": "移動到小隊 {position}",
+      "raidLeader": "團隊領袖",
       "noGuild": "你尚未加入公會。可在下方創立，或接受現有公會邀請。",
       "whisperTitle": "密語 {name}",
       "removeFriendTitle": "將 {name} 從好友中移除",
@@ -39702,7 +40132,8 @@ export const zh_TW: EnTranslations = {
       "common": "普通",
       "uncommon": "優秀",
       "rare": "精良",
-      "epic": "史詩"
+      "epic": "史詩",
+      "legendary": "傳說"
     },
     "kind": {
       "weapon": "武器",
@@ -41358,6 +41789,36 @@ export const zh_TW: EnTranslations = {
       },
       "kings_signet": {
         "name": "國王印戒"
+      },
+      "deathless_heartwood": {
+        "name": "不朽王冠之心木"
+      },
+      "kingsbane_last_oath": {
+        "name": "弒王者，Thornpeak 最後的誓言"
+      },
+      "crownforged_dreadhelm": {
+        "name": "鑄冠恐懼頭盔"
+      },
+      "crownforged_warspaulders": {
+        "name": "鑄冠戰肩甲"
+      },
+      "nighttalon_crown": {
+        "name": "夜爪之冠"
+      },
+      "nighttalon_shoulderguards": {
+        "name": "夜爪護肩"
+      },
+      "soulflame_cowl": {
+        "name": "魂焰兜帽"
+      },
+      "soulflame_mantle": {
+        "name": "魂焰披肩"
+      },
+      "stormcallers_crown": {
+        "name": "喚雷者之冠"
+      },
+      "stormcallers_spaulders": {
+        "name": "喚雷者肩甲"
       }
     },
     "mobs": {
@@ -41522,6 +41983,15 @@ export const zh_TW: EnTranslations = {
       },
       "bound_guardian": {
         "name": "受縛守衛者"
+      },
+      "nythraxis_skeleton_warrior": {
+        "name": "復甦王室衛兵"
+      },
+      "brother_aldric_raid": {
+        "name": "奧德里克修士"
+      },
+      "nythraxis_scourge_of_thornpeak": {
+        "name": "尼瑟拉克斯，荊峰之災"
       },
       "brightwood_hare": {
         "name": "Brightwood Hare"
@@ -42491,7 +42961,7 @@ export const zh_TW: EnTranslations = {
       "q_nythraxis_bound_guardian": {
         "title": "受縛守衛者",
         "text": "沃斯寫道，倖存者把國王印戒封在一名古老守衛身後，免得任何人因偶然或野心抵達尼思拉克西斯的陵墓。把墓穴鑰石帶到廢棄墓穴以東、西側墳墓東南方平地上的儀式法陣。在那裡使用它，擊破守衛，並帶回印戒。",
-        "completion": "三件遺物講述著同一個故事：阿爾德倫為守護國王而戰，馬爾里克打破了死亡的界限，沃斯試圖阻止隨後發生的一切。封印正在減弱，而這枚印戒就是尼思拉克西斯陵墓的鑰匙。你現在已經完成調諧，可以進入尼思拉克西斯墓穴。",
+        "completion": "三件遺物講述著同一個故事：阿爾德倫為守護國王而戰，馬爾里克打破了死亡的界限，沃斯試圖阻止隨後發生的一切。封印正在減弱，而這枚印戒就是尼思拉克西斯陵墓的鑰匙。你現在已經完成調諧，可以進入尼思拉克西斯墓穴。回到廢棄墓穴，打開王室之門，在舊王的怒火溢出荊峰之前直面尼思拉克西斯。",
         "objectives": {
           "0": {
             "label": "在儀式法陣使用墓穴鑰石"
@@ -43537,6 +44007,7 @@ export const ko_KR: EnTranslations = {
         "unignoreChat": "채팅 차단 해제",
         "report": "플레이어 신고",
         "removeParty": "파티에서 제거",
+        "convertToRaid": "공격대로 전환",
         "cancel": "취소"
       }
     },
@@ -43752,10 +44223,16 @@ export const ko_KR: EnTranslations = {
       "friendsTab": "친구",
       "guildTab": "길드",
       "ignoreTab": "차단",
+      "raidTab": "공격대",
       "leaveParty": "파티 떠나기",
       "offlineEmpty": "친구, 길드, 차단 목록은 온라인 플레이에서 사용할 수 있습니다.",
       "friendsEmpty": "아직 친구가 없습니다. 아래에서 이름으로 검색하세요.",
       "ignoreEmpty": "차단 목록이 비어 있습니다.",
+      "raidEmpty": "파티를 공격대로 전환하면 여기에서 공격대 조를 관리할 수 있습니다.",
+      "raidGroupEmpty": "이 조에는 플레이어가 없습니다.",
+      "raidGroupTitle": "{position}조 ({count}/5)",
+      "raidMoveToGroup": "{position}조로 이동",
+      "raidLeader": "공격대장",
       "noGuild": "길드에 속해 있지 않습니다. 아래에서 만들거나 기존 길드의 초대를 받으세요.",
       "whisperTitle": "{name}에게 귓속말",
       "removeFriendTitle": "{name}을(를) 친구에서 제거",
@@ -43987,7 +44464,8 @@ export const ko_KR: EnTranslations = {
       "common": "일반",
       "uncommon": "고급",
       "rare": "희귀",
-      "epic": "영웅"
+      "epic": "영웅",
+      "legendary": "전설"
     },
     "kind": {
       "weapon": "무기",
@@ -45643,6 +46121,36 @@ export const ko_KR: EnTranslations = {
       },
       "kings_signet": {
         "name": "왕의 인장 반지"
+      },
+      "deathless_heartwood": {
+        "name": "죽지 않는 왕관의 심재"
+      },
+      "kingsbane_last_oath": {
+        "name": "왕살해자, 손피크의 마지막 맹세"
+      },
+      "crownforged_dreadhelm": {
+        "name": "왕관벼림 공포투구"
+      },
+      "crownforged_warspaulders": {
+        "name": "왕관벼림 전쟁 어깨갑옷"
+      },
+      "nighttalon_crown": {
+        "name": "밤발톱 왕관"
+      },
+      "nighttalon_shoulderguards": {
+        "name": "밤발톱 어깨수호대"
+      },
+      "soulflame_cowl": {
+        "name": "영혼불꽃 두건"
+      },
+      "soulflame_mantle": {
+        "name": "영혼불꽃 어깨덮개"
+      },
+      "stormcallers_crown": {
+        "name": "폭풍소환사의 관"
+      },
+      "stormcallers_spaulders": {
+        "name": "폭풍소환사의 어깨갑옷"
       }
     },
     "mobs": {
@@ -45807,6 +46315,15 @@ export const ko_KR: EnTranslations = {
       },
       "bound_guardian": {
         "name": "속박된 수호자"
+      },
+      "nythraxis_skeleton_warrior": {
+        "name": "되살아난 왕실 근위병"
+      },
+      "brother_aldric_raid": {
+        "name": "수사 알드릭"
+      },
+      "nythraxis_scourge_of_thornpeak": {
+        "name": "나이트락시스, 손피크의 재앙"
       },
       "brightwood_hare": {
         "name": "Brightwood Hare"
@@ -46776,7 +47293,7 @@ export const ko_KR: EnTranslations = {
       "q_nythraxis_bound_guardian": {
         "title": "속박된 수호자",
         "text": "보스는 생존자들이 니트락시스의 무덤에 우연이나 야심으로 닿는 일을 막기 위해 왕의 인장 반지를 고대 수호자 뒤에 봉인했다고 썼습니다. 묘실 열쇠돌을 버려진 묘실 동쪽, 서쪽 무덤 남동쪽 평지의 의식진으로 가져가십시오. 그곳에서 사용하고, 수호자를 쓰러뜨린 뒤 반지를 가져오십시오.",
-        "completion": "세 유물은 같은 이야기를 전합니다. 알드렌은 왕을 지키려 싸웠고, 말릭은 죽음의 경계를 깨뜨렸으며, 보스는 그 뒤에 벌어진 일을 막으려 했습니다. 봉인이 약해지고 있으며, 이 반지는 니트락시스의 무덤으로 가는 열쇠입니다. 이제 당신은 니트락시스의 묘실에 들어갈 수 있도록 조율되었습니다.",
+        "completion": "세 유물은 같은 이야기를 전합니다. 알드렌은 왕을 지키려 싸웠고, 말릭은 죽음의 경계를 깨뜨렸으며, 보스는 그 뒤에 벌어진 일을 막으려 했습니다. 봉인이 약해지고 있으며, 이 반지는 니트락시스의 무덤으로 가는 열쇠입니다. 이제 당신은 니트락시스의 묘실에 들어갈 수 있도록 조율되었습니다. 버려진 묘실로 돌아가 왕실 문을 열고, 옛 왕의 분노가 손피크 밖으로 넘치기 전에 니트락시스와 맞서십시오.",
         "objectives": {
           "0": {
             "label": "의식 원에서 납골당 쐐기돌 사용"
@@ -47822,6 +48339,7 @@ export const ja_JP: EnTranslations = {
         "unignoreChat": "チャット無視解除",
         "report": "プレイヤーを通報",
         "removeParty": "パーティから外す",
+        "convertToRaid": "レイドに変換",
         "cancel": "キャンセル"
       }
     },
@@ -48037,10 +48555,16 @@ export const ja_JP: EnTranslations = {
       "friendsTab": "フレンド",
       "guildTab": "ギルド",
       "ignoreTab": "無視",
+      "raidTab": "レイド",
       "leaveParty": "パーティを抜ける",
       "offlineEmpty": "フレンド、ギルド、無視リストはオンラインプレイで利用できます。",
       "friendsEmpty": "フレンドはまだいません。下で名前を検索してください。",
       "ignoreEmpty": "無視リストは空です。",
+      "raidEmpty": "パーティをレイドに変換すると、ここでレイドグループを管理できます。",
+      "raidGroupEmpty": "このグループにプレイヤーはいません。",
+      "raidGroupTitle": "グループ {position} ({count}/5)",
+      "raidMoveToGroup": "グループ {position} に移動",
+      "raidLeader": "レイドリーダー",
       "noGuild": "ギルドに所属していません。下で創設するか、既存ギルドから招待を受けてください。",
       "whisperTitle": "{name}にささやく",
       "removeFriendTitle": "{name}をフレンドから削除",
@@ -48272,7 +48796,8 @@ export const ja_JP: EnTranslations = {
       "common": "一般",
       "uncommon": "良質",
       "rare": "レア",
-      "epic": "エピック"
+      "epic": "エピック",
+      "legendary": "伝説"
     },
     "kind": {
       "weapon": "武器",
@@ -49928,6 +50453,36 @@ export const ja_JP: EnTranslations = {
       },
       "kings_signet": {
         "name": "王の印章指輪"
+      },
+      "deathless_heartwood": {
+        "name": "不死王冠の心材"
+      },
+      "kingsbane_last_oath": {
+        "name": "キングスベイン、ソーンピーク最後の誓い"
+      },
+      "crownforged_dreadhelm": {
+        "name": "冠鍛えの恐怖兜"
+      },
+      "crownforged_warspaulders": {
+        "name": "冠鍛えの戦肩当て"
+      },
+      "nighttalon_crown": {
+        "name": "夜爪の冠"
+      },
+      "nighttalon_shoulderguards": {
+        "name": "夜爪の肩守り"
+      },
+      "soulflame_cowl": {
+        "name": "魂炎の頭巾"
+      },
+      "soulflame_mantle": {
+        "name": "魂炎のマント"
+      },
+      "stormcallers_crown": {
+        "name": "嵐呼びの冠"
+      },
+      "stormcallers_spaulders": {
+        "name": "嵐呼びの肩当て"
       }
     },
     "mobs": {
@@ -50092,6 +50647,15 @@ export const ja_JP: EnTranslations = {
       },
       "bound_guardian": {
         "name": "縛られし守護者"
+      },
+      "nythraxis_skeleton_warrior": {
+        "name": "Risen Royal Guard"
+      },
+      "brother_aldric_raid": {
+        "name": "Brother Aldric"
+      },
+      "nythraxis_scourge_of_thornpeak": {
+        "name": "Nythraxis, Scourge of Thornpeak"
       },
       "brightwood_hare": {
         "name": "Brightwood Hare"
@@ -51061,7 +51625,7 @@ export const ja_JP: EnTranslations = {
       "q_nythraxis_bound_guardian": {
         "title": "縛られし守護者",
         "text": "ヴォスは、生存者たちが偶然や野心でニスラクシスの墓に辿り着く者を防ぐため、王の印章指輪を古代の守護者の奥に封じたと記しています。墓所の要石を、廃棄された墓所の東、西の墓の南東にある平地の儀式陣へ持っていってください。そこで使い、守護者を破り、指輪を持ち帰ってください。",
-        "completion": "三つの遺物は同じ物語を語っています。アルドレンは王を守るために戦い、マルリックは死の境界を破り、ヴォスはその後に起きたことを止めようとしました。封印は弱まり、この指輪こそニスラクシスの墓への鍵です。あなたは今、ニスラクシスの墓所へ入るための調律を終えました。",
+        "completion": "三つの遺物は同じ物語を語っています。アルドレンは王を守るために戦い、マルリックは死の境界を破り、ヴォスはその後に起きたことを止めようとしました。封印は弱まり、この指輪こそニスラクシスの墓への鍵です。あなたは今、ニスラクシスの墓所へ入るための調律を終えました。廃れた墓所へ戻り、王家の扉を開き、古き王の怒りがソーンピークの外へ溢れる前にニスラクシスと対峙してください。",
         "objectives": {
           "0": {
             "label": "儀式の円で地下墓所の要石を使用"
@@ -52107,6 +52671,7 @@ export const pt_BR: EnTranslations = {
         "unignoreChat": "Parar de ignorar chat",
         "report": "Denunciar jogador",
         "removeParty": "Remover do grupo",
+        "convertToRaid": "Converter em raide",
         "cancel": "Cancelar"
       }
     },
@@ -52322,10 +52887,16 @@ export const pt_BR: EnTranslations = {
       "friendsTab": "Amigos",
       "guildTab": "Guilda",
       "ignoreTab": "Ignorar",
+      "raidTab": "Raide",
       "leaveParty": "Sair do grupo",
       "offlineEmpty": "Amigos, guildas e listas de ignorados ficam disponíveis no jogo online.",
       "friendsEmpty": "Você ainda não tem amigos. Busque alguém pelo nome abaixo.",
       "ignoreEmpty": "Sua lista de ignorados está vazia.",
+      "raidEmpty": "Converta um grupo em raide para gerenciar os grupos de raide aqui.",
+      "raidGroupEmpty": "Nenhum jogador neste grupo.",
+      "raidGroupTitle": "Grupo {position} ({count}/5)",
+      "raidMoveToGroup": "Mover para o grupo {position}",
+      "raidLeader": "Líder de raide",
       "noGuild": "Você não está em uma guilda. Crie uma abaixo ou receba convite de uma guilda existente.",
       "whisperTitle": "Sussurrar para {name}",
       "removeFriendTitle": "Remover {name} dos amigos",
@@ -52557,7 +53128,8 @@ export const pt_BR: EnTranslations = {
       "common": "Comum",
       "uncommon": "Incomum",
       "rare": "Raro",
-      "epic": "Épico"
+      "epic": "Épico",
+      "legendary": "Lendário"
     },
     "kind": {
       "weapon": "Arma",
@@ -54213,6 +54785,36 @@ export const pt_BR: EnTranslations = {
       },
       "kings_signet": {
         "name": "Anel-sinete do rei"
+      },
+      "deathless_heartwood": {
+        "name": "Cerne da Coroa Imortal"
+      },
+      "kingsbane_last_oath": {
+        "name": "Flagelo dos Reis, último juramento de Thornpeak"
+      },
+      "crownforged_dreadhelm": {
+        "name": "Elmo aterrador Forjacoroa"
+      },
+      "crownforged_warspaulders": {
+        "name": "Espaldares de guerra Forjacoroa"
+      },
+      "nighttalon_crown": {
+        "name": "Coroa Garra Noturna"
+      },
+      "nighttalon_shoulderguards": {
+        "name": "Guarda-ombros Garra Noturna"
+      },
+      "soulflame_cowl": {
+        "name": "Capuz Chama d'Alma"
+      },
+      "soulflame_mantle": {
+        "name": "Manto Chama d'Alma"
+      },
+      "stormcallers_crown": {
+        "name": "Coroa do Chamatormenta"
+      },
+      "stormcallers_spaulders": {
+        "name": "Espaldares do Chamatormenta"
       }
     },
     "mobs": {
@@ -54377,6 +54979,15 @@ export const pt_BR: EnTranslations = {
       },
       "bound_guardian": {
         "name": "Guardião Vinculado"
+      },
+      "nythraxis_skeleton_warrior": {
+        "name": "Guarda real reerguido"
+      },
+      "brother_aldric_raid": {
+        "name": "Irmao Aldric"
+      },
+      "nythraxis_scourge_of_thornpeak": {
+        "name": "Nythraxis, Flagelo de Thornpeak"
       },
       "brightwood_hare": {
         "name": "Brightwood Hare"
@@ -55346,7 +55957,7 @@ export const pt_BR: EnTranslations = {
       "q_nythraxis_bound_guardian": {
         "title": "O Guardião Vinculado",
         "text": "Voss escreveu que os sobreviventes selaram o Anel-sinete do rei atras de um guardiao antigo, para que ninguem chegasse a tumba de Nythraxis por acidente ou ambicao. Leve a Pedra-chave da cripta ao circulo ritual no terreno plano a leste da cripta abandonada e a sudeste da tumba oeste. Use-a ali, quebre o guardiao e traga o anel.",
-        "completion": "As tres reliquias contam a mesma historia: Aldren lutou para defender seu rei, Malric rompeu a fronteira da morte e Voss tentou impedir o que veio depois. O selo esta enfraquecendo, e este anel e a chave da tumba de Nythraxis. Agora voce esta sintonizado para entrar na Cripta de Nythraxis.",
+        "completion": "As tres reliquias contam a mesma historia: Aldren lutou para defender seu rei, Malric rompeu a fronteira da morte e Voss tentou impedir o que veio depois. O selo esta enfraquecendo, e este anel e a chave da tumba de Nythraxis. Agora voce esta sintonizado para entrar na Cripta de Nythraxis. Volte a cripta abandonada, destranque a porta real e enfrente Nythraxis antes que a furia do velho rei transborde por Thornpeak.",
         "objectives": {
           "0": {
             "label": "Pedra-chave usada no círculo ritual"
@@ -56392,6 +57003,7 @@ export const ru_RU: EnTranslations = {
         "unignoreChat": "Убрать игнор чата",
         "report": "Пожаловаться на игрока",
         "removeParty": "Удалить из группы",
+        "convertToRaid": "Преобразовать в рейд",
         "cancel": "Отмена"
       }
     },
@@ -56607,10 +57219,16 @@ export const ru_RU: EnTranslations = {
       "friendsTab": "Друзья",
       "guildTab": "Гильдия",
       "ignoreTab": "Игнор",
+      "raidTab": "Рейд",
       "leaveParty": "Покинуть группу",
       "offlineEmpty": "Друзья, гильдии и списки игнорирования доступны в онлайн-игре.",
       "friendsEmpty": "Друзей пока нет. Найдите игрока по имени ниже.",
       "ignoreEmpty": "Ваш список игнорирования пуст.",
+      "raidEmpty": "Преобразуйте группу в рейд, чтобы управлять рейдовыми группами здесь.",
+      "raidGroupEmpty": "В этой группе нет игроков.",
+      "raidGroupTitle": "Группа {position} ({count}/5)",
+      "raidMoveToGroup": "Переместить в группу {position}",
+      "raidLeader": "Лидер рейда",
       "noGuild": "Вы не состоите в гильдии. Создайте ее ниже или получите приглашение.",
       "whisperTitle": "Шепнуть {name}",
       "removeFriendTitle": "Удалить {name} из друзей",
@@ -56842,7 +57460,8 @@ export const ru_RU: EnTranslations = {
       "common": "Обычное",
       "uncommon": "Необычное",
       "rare": "Редкое",
-      "epic": "Эпическое"
+      "epic": "Эпическое",
+      "legendary": "Легендарное"
     },
     "kind": {
       "weapon": "Оружие",
@@ -58498,6 +59117,36 @@ export const ru_RU: EnTranslations = {
       },
       "kings_signet": {
         "name": "Перстень короля"
+      },
+      "deathless_heartwood": {
+        "name": "Сердцевина бессмертной короны"
+      },
+      "kingsbane_last_oath": {
+        "name": "Цареубийца, последняя клятва Торнпика"
+      },
+      "crownforged_dreadhelm": {
+        "name": "Короннокованый шлем ужаса"
+      },
+      "crownforged_warspaulders": {
+        "name": "Короннокованые боевые наплечники"
+      },
+      "nighttalon_crown": {
+        "name": "Корона Ночного Когтя"
+      },
+      "nighttalon_shoulderguards": {
+        "name": "Наплечные стражи Ночного Когтя"
+      },
+      "soulflame_cowl": {
+        "name": "Клобук Пламени души"
+      },
+      "soulflame_mantle": {
+        "name": "Оплечье Пламени души"
+      },
+      "stormcallers_crown": {
+        "name": "Корона призывателя бурь"
+      },
+      "stormcallers_spaulders": {
+        "name": "Наплечники призывателя бурь"
       }
     },
     "mobs": {
@@ -58662,6 +59311,15 @@ export const ru_RU: EnTranslations = {
       },
       "bound_guardian": {
         "name": "Связанный страж"
+      },
+      "nythraxis_skeleton_warrior": {
+        "name": "Восставший королевский страж"
+      },
+      "brother_aldric_raid": {
+        "name": "Брат Олдрик"
+      },
+      "nythraxis_scourge_of_thornpeak": {
+        "name": "Нитраксис, Бич Торнпика"
       },
       "brightwood_hare": {
         "name": "Brightwood Hare"
@@ -59631,7 +60289,7 @@ export const ru_RU: EnTranslations = {
       "q_nythraxis_bound_guardian": {
         "title": "Связанный страж",
         "text": "Восс писал, что выжившие запечатали Перстень короля за древним стражем, чтобы никто не достиг гробницы Нитраксиса случайно или из честолюбия. Отнесите ключ-камень крипты к ритуальному кругу на ровной земле восточнее заброшенной крипты и юго-восточнее западной могилы. Используйте его там, сокрушите стража и принесите перстень.",
-        "completion": "Три реликвии рассказывают одну историю: Алдрен сражался, защищая своего короля, Малрик нарушил границу смерти, а Восс пытался остановить то, что последовало. Печать слабеет, и этот перстень - ключ к гробнице Нитраксиса. Теперь вы настроены для входа в Крипту Нитраксиса.",
+        "completion": "Три реликвии рассказывают одну историю: Алдрен сражался, защищая своего короля, Малрик нарушил границу смерти, а Восс пытался остановить то, что последовало. Печать слабеет, и этот перстень - ключ к гробнице Нитраксиса. Теперь вы настроены для входа в Крипту Нитраксиса. Вернитесь в заброшенную крипту, откройте королевскую дверь и сразитесь с Нитраксисом, пока ярость старого короля не вырвалась за пределы Торнпика.",
         "objectives": {
           "0": {
             "label": "Ключ-камень использован у ритуального круга"
@@ -60683,10 +61341,13 @@ export const pending: Record<string, readonly string[]> = {
     "entities.mobs.brightwood_hare.name",
     "entities.mobs.brightwood_monarch.name",
     "entities.mobs.brightwood_stag.name",
+    "entities.mobs.brother_aldric_raid.name",
     "entities.mobs.dawnmane_doe.name",
     "entities.mobs.glade_fox.name",
     "entities.mobs.grovetusk_boar.name",
     "entities.mobs.meadow_crane.name",
+    "entities.mobs.nythraxis_scourge_of_thornpeak.name",
+    "entities.mobs.nythraxis_skeleton_warrior.name",
     "entities.mobs.spotted_fawn.name",
     "entities.mobs.sunhide_bear.name",
     "entities.mobs.thornpelt_badger.name",
@@ -61574,6 +62235,7 @@ export const en_XA: EnTranslations = {
         "unignoreChat": "[Úñíĝñóŕé Çĥáţ]",
         "report": "[Ŕéþóŕţ Þļáýéŕ]",
         "removeParty": "[Ŕéɱóʋé ƒŕóɱ Þáŕţý]",
+        "convertToRaid": "[Çóñʋéŕţ ţó ŕáíð]",
         "cancel": "[Çáñçéļ]"
       }
     },
@@ -61789,10 +62451,16 @@ export const en_XA: EnTranslations = {
       "friendsTab": "[Ƒŕíéñðš]",
       "guildTab": "[Ĝúíļð]",
       "ignoreTab": "[Íĝñóŕé]",
+      "raidTab": "[Ŕáíð]",
       "leaveParty": "[Ļéáʋé Þáŕţý]",
       "offlineEmpty": "[Ƒŕíéñðš, ĝúíļðš, áñð íĝñóŕé ļíšţš áŕé áʋáíļáƀļé íñ óñļíñé þļáý.]",
       "friendsEmpty": "[Ñó ƒŕíéñðš ýéţ. Šéáŕçĥ ƒóŕ šóɱéóñé ƀý ñáɱé ƀéļóŵ.]",
       "ignoreEmpty": "[Ýóúŕ íĝñóŕé ļíšţ íš éɱþţý.]",
+      "raidEmpty": "[Çóñʋéŕţ á þáŕţý ţó á ŕáíð ţó ɱáñáĝé ŕáíð ĝŕóúþš ĥéŕé.]",
+      "raidGroupEmpty": "[Ñó þļáýéŕš íñ ţĥíš ĝŕóúþ.]",
+      "raidGroupTitle": "[Ĝŕóúþ {position} ({count}/5)]",
+      "raidMoveToGroup": "[Ɱóʋé ţó ĝŕóúþ {position}]",
+      "raidLeader": "[Ŕáíð Ļéáðéŕ]",
       "noGuild": "[Ýóú áŕé ñóţ íñ á ĝúíļð. Ƒóúñð óñé ƀéļóŵ, óŕ ĝéţ íñʋíţéð ƀý áñ éẋíšţíñĝ ĝúíļð.]",
       "whisperTitle": "[Ŵĥíšþéŕ {name}]",
       "removeFriendTitle": "[Ŕéɱóʋé {name} ƒŕóɱ ƒŕíéñðš]",
@@ -62024,7 +62692,8 @@ export const en_XA: EnTranslations = {
       "common": "[Çóɱɱóñ]",
       "uncommon": "[Úñçóɱɱóñ]",
       "rare": "[Ŕáŕé]",
-      "epic": "[Éþíç]"
+      "epic": "[Éþíç]",
+      "legendary": "[Ļéĝéñðáŕý]"
     },
     "kind": {
       "weapon": "[Ŵéáþóñ]",
@@ -63680,6 +64349,36 @@ export const en_XA: EnTranslations = {
       },
       "kings_signet": {
         "name": "[Ķíñĝ'š Šíĝñéţ]"
+      },
+      "deathless_heartwood": {
+        "name": "[Ĥéáŕţŵóóð óƒ ţĥé Ðéáţĥļéšš Çŕóŵñ]"
+      },
+      "kingsbane_last_oath": {
+        "name": "[Ķíñĝšƀáñé, Ļášţ Óáţĥ óƒ Ţĥóŕñþéáķ]"
+      },
+      "crownforged_dreadhelm": {
+        "name": "[Çŕóŵñƒóŕĝéð Ðŕéáðĥéļɱ]"
+      },
+      "crownforged_warspaulders": {
+        "name": "[Çŕóŵñƒóŕĝéð Ŵáŕšþáúļðéŕš]"
+      },
+      "nighttalon_crown": {
+        "name": "[Ñíĝĥţţáļóñ Çŕóŵñ]"
+      },
+      "nighttalon_shoulderguards": {
+        "name": "[Ñíĝĥţţáļóñ Šĥóúļðéŕĝúáŕðš]"
+      },
+      "soulflame_cowl": {
+        "name": "[Šóúļƒļáɱé Çóŵļ]"
+      },
+      "soulflame_mantle": {
+        "name": "[Šóúļƒļáɱé Ɱáñţļé]"
+      },
+      "stormcallers_crown": {
+        "name": "[Šţóŕɱçáļļéŕ'š Çŕóŵñ]"
+      },
+      "stormcallers_spaulders": {
+        "name": "[Šţóŕɱçáļļéŕ'š Šþáúļðéŕš]"
       }
     },
     "mobs": {
@@ -63844,6 +64543,15 @@ export const en_XA: EnTranslations = {
       },
       "bound_guardian": {
         "name": "[Ţĥé Ɓóúñð Ĝúáŕðíáñ]"
+      },
+      "nythraxis_skeleton_warrior": {
+        "name": "[Ŕíšéñ Ŕóýáļ Ĝúáŕð]"
+      },
+      "brother_aldric_raid": {
+        "name": "[Ɓŕóţĥéŕ Áļðŕíç]"
+      },
+      "nythraxis_scourge_of_thornpeak": {
+        "name": "[Ñýţĥŕáẋíš, Šçóúŕĝé óƒ Ţĥóŕñþéáķ]"
       },
       "brightwood_hare": {
         "name": "[Ɓŕíĝĥţŵóóð Ĥáŕé]"
@@ -64813,7 +65521,7 @@ export const en_XA: EnTranslations = {
       "q_nythraxis_bound_guardian": {
         "title": "[Ţĥé Ɓóúñð Ĝúáŕðíáñ]",
         "text": "[Ʋóšš ŵŕóţé ţĥáţ ţĥé šúŕʋíʋóŕš šéáļéð ţĥé Ķíñĝ'š Šíĝñéţ ƀéĥíñð áñ áñçíéñţ ĝúáŕðíáñ, šó ñó óñé çóúļð ŕéáçĥ ţĥé ţóɱƀ óƒ Ñýţĥŕáẋíš ƀý áççíðéñţ óŕ áɱƀíţíóñ. Ţáķé ţĥé Çŕýþţ Ķéýšţóñé ţó ţĥé ŕíţúáļ çíŕçļé óñ ţĥé ƒļáţ ĝŕóúñð éášţ óƒ ţĥé áƀáñðóñéð çŕýþţ áñð šóúţĥ-éášţ óƒ ţĥé ŵéšţéŕñ ĝŕáʋé. Úšé íţ ţĥéŕé, ƀŕéáķ ţĥé ĝúáŕðíáñ, áñð ƀŕíñĝ ƀáçķ ţĥé šíĝñéţ.]",
-        "completion": "[Ţĥé ţĥŕéé ŕéļíçš ţéļļ ţĥé šáɱé šţóŕý: Áļðŕéñ ƒóúĝĥţ ţó ðéƒéñð ĥíš ķíñĝ, Ɱáļŕíç ƀŕóķé ţĥé ƀóúñðáŕý óƒ ðéáţĥ, áñð Ʋóšš ţŕíéð ţó šţóþ ŵĥáţ ƒóļļóŵéð. Ţĥé šéáļ íš ŵéáķéñíñĝ, áñð ţĥíš šíĝñéţ íš ţĥé ķéý ţó Ñýţĥŕáẋíš'š ţóɱƀ. Ýóú áŕé ñóŵ áţţúñéð ţó éñţéŕ Ţĥé Çŕýþţ óƒ Ñýţĥŕáẋíš.]",
+        "completion": "[Ţĥé ţĥŕéé ŕéļíçš ţéļļ ţĥé šáɱé šţóŕý: Áļðŕéñ ƒóúĝĥţ ţó ðéƒéñð ĥíš ķíñĝ, Ɱáļŕíç ƀŕóķé ţĥé ƀóúñðáŕý óƒ ðéáţĥ, áñð Ʋóšš ţŕíéð ţó šţóþ ŵĥáţ ƒóļļóŵéð. Ţĥé šéáļ íš ŵéáķéñíñĝ, áñð ţĥíš šíĝñéţ íš ţĥé ķéý ţó Ñýţĥŕáẋíš'š ţóɱƀ. Ýóú áŕé ñóŵ áţţúñéð ţó éñţéŕ Ţĥé Çŕýþţ óƒ Ñýţĥŕáẋíš. Ŕéţúŕñ ţó ţĥé áƀáñðóñéð çŕýþţ, úñļóçķ ţĥé ŕóýáļ ðóóŕ, áñð ƒáçé Ñýţĥŕáẋíš ƀéƒóŕé ţĥé óļð ķíñĝ'š ŕáĝé šþíļļš ƀéýóñð Ţĥóŕñþéáķ.]",
         "objectives": {
           "0": {
             "label": "[Çŕýþţ Ķéýšţóñé úšéð áţ ţĥé ŕíţúáļ çíŕçļé]"

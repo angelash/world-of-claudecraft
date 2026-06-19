@@ -727,7 +727,7 @@ export const ZONE3_QUESTS: Record<string, QuestDef> = {
     id: 'q_nythraxis_bound_guardian', name: 'The Bound Guardian',
     giverNpcId: 'brother_aldric_highwatch', turnInNpcId: 'brother_aldric_highwatch',
     text: 'Voss wrote that the survivors sealed the King\'s Signet behind an ancient guardian, so no one could reach the tomb of Nythraxis by accident or ambition. Take the Crypt Keystone to the ritual circle on the flat ground east of the abandoned crypt and south-east of the western grave. Use it there, break the guardian, and bring back the signet.',
-    completionText: 'The three relics tell the same story: Aldren fought to defend his king, Malric broke the boundary of death, and Voss tried to stop what followed. The seal is weakening, and this signet is the key to Nythraxis\'s tomb. You are now attuned to enter The Crypt of Nythraxis.',
+    completionText: 'The three relics tell the same story: Aldren fought to defend his king, Malric broke the boundary of death, and Voss tried to stop what followed. The seal is weakening, and this signet is the key to Nythraxis\'s tomb. You are now attuned to enter The Crypt of Nythraxis. Return to the abandoned crypt, unlock the royal door, and face Nythraxis before the old king\'s rage spills beyond Thornpeak.',
     objectives: [
       { type: 'interact', targetObjectItemId: 'crypt_ritual_circle', count: 1, label: 'Crypt Keystone used at the ritual circle' },
       { type: 'kill', targetMobId: 'bound_guardian', count: 1, label: 'The Bound Guardian defeated' },
@@ -1064,6 +1064,46 @@ export const ZONE3_ITEMS: Record<string, ItemDef> = {
   wyrmshadow_talongrips: {
     id: 'wyrmshadow_talongrips', name: 'Wyrmshadow Talongrips', kind: 'armor', slot: 'gloves', quality: 'epic',
     stats: { armor: 110, agi: 10, sta: 5 }, sellValue: 9000, requiredClass: ['rogue', 'hunter'],
+  },
+  deathless_heartwood: {
+    id: 'deathless_heartwood', name: 'Heartwood of the Deathless Crown', kind: 'weapon', slot: 'mainhand', quality: 'legendary',
+    weapon: { min: 42, max: 68, speed: 3.2 }, stats: { agi: 24, sta: 18, int: 20 }, sellValue: 25000, requiredClass: ['druid'],
+  },
+  kingsbane_last_oath: {
+    id: 'kingsbane_last_oath', name: 'Kingsbane, Last Oath of Thornpeak', kind: 'weapon', slot: 'mainhand', quality: 'legendary',
+    weapon: { min: 46, max: 74, speed: 2.8 }, stats: { str: 24, sta: 20 }, sellValue: 25000, requiredClass: ['warrior', 'paladin'],
+  },
+  crownforged_dreadhelm: {
+    id: 'crownforged_dreadhelm', name: 'Crownforged Dreadhelm', kind: 'armor', slot: 'helmet', quality: 'epic',
+    stats: { armor: 310, str: 12, sta: 14 }, sellValue: 12000, requiredClass: ['warrior', 'paladin'],
+  },
+  crownforged_warspaulders: {
+    id: 'crownforged_warspaulders', name: 'Crownforged Warspaulders', kind: 'armor', slot: 'shoulder', quality: 'epic',
+    stats: { armor: 260, str: 10, sta: 12 }, sellValue: 12000, requiredClass: ['warrior', 'paladin'],
+  },
+  nighttalon_crown: {
+    id: 'nighttalon_crown', name: 'Nighttalon Crown', kind: 'armor', slot: 'helmet', quality: 'epic',
+    stats: { armor: 190, agi: 16, sta: 10 }, sellValue: 12000, requiredClass: ['rogue', 'hunter', 'druid'],
+  },
+  nighttalon_shoulderguards: {
+    id: 'nighttalon_shoulderguards', name: 'Nighttalon Shoulderguards', kind: 'armor', slot: 'shoulder', quality: 'epic',
+    stats: { armor: 165, agi: 14, sta: 9 }, sellValue: 12000, requiredClass: ['rogue', 'hunter', 'druid'],
+  },
+  soulflame_cowl: {
+    id: 'soulflame_cowl', name: 'Soulflame Cowl', kind: 'armor', slot: 'helmet', quality: 'epic',
+    stats: { armor: 105, int: 17, sta: 10 }, sellValue: 12000, requiredClass: ['mage', 'priest', 'warlock', 'druid'],
+  },
+  soulflame_mantle: {
+    id: 'soulflame_mantle', name: 'Soulflame Mantle', kind: 'armor', slot: 'shoulder', quality: 'epic',
+    stats: { armor: 92, int: 15, sta: 9 }, sellValue: 12000, requiredClass: ['mage', 'priest', 'warlock', 'druid'],
+  },
+  stormcallers_crown: {
+    id: 'stormcallers_crown', name: "Stormcaller's Crown", kind: 'armor', slot: 'helmet', quality: 'epic',
+    stats: { armor: 225, int: 16, sta: 12 }, sellValue: 12000, requiredClass: ['shaman'],
+  },
+  stormcallers_spaulders: {
+    id: 'stormcallers_spaulders', name: "Stormcaller's Spaulders", kind: 'armor', slot: 'shoulder', quality: 'epic',
+    stats: { armor: 190, int: 14, sta: 11 }, sellValue: 12000, requiredClass: ['shaman'],
   },
   // --- vendor food & drink (Quartermaster Bree) ---
   trail_hardtack: {

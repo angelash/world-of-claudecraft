@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Sim } from '../src/sim/sim';
 import { dist2d, type Entity } from '../src/sim/types';
-import { DUNGEONS, MOBS, instanceOrigin } from '../src/sim/data';
+import { DUNGEONS, ITEMS, MOBS, instanceOrigin } from '../src/sim/data';
 import { isBlocked } from '../src/sim/colliders';
 import { groundHeight } from '../src/sim/world';
 import { NYTHRAXIS_LAYOUT } from '../src/sim/dungeon_layout';
@@ -23,8 +23,18 @@ function attune(sim: Sim, pid: number) {
   sim.players.get(pid)!.questsDone.add('q_nythraxis_bound_guardian');
 }
 
+function formRaid(sim: Sim, leaderPid: number) {
+  while ((sim.partyOf(leaderPid)?.members.length ?? 1) < 5) {
+    const pid = sim.addPlayer('priest', `RaidFill${sim.players.size}`);
+    sim.partyInvite(pid, leaderPid);
+    sim.partyAccept(pid);
+  }
+  sim.convertPartyToRaid(leaderPid);
+}
+
 function enterRaid(sim: Sim, pid: number) {
   attune(sim, pid);
+  formRaid(sim, pid);
   sim.enterDungeon('nythraxis_boss_arena', pid);
   const p = sim.entities.get(pid)!;
   return instanceOrigin(DUNGEONS.nythraxis_boss_arena.index, sim.instanceSlotAt(p.pos)!);
@@ -95,6 +105,52 @@ describe('Nythraxis raid encounter', () => {
     expect(isBlocked(sim.cfg.seed, origin.x + 0, origin.z + 96)).toBe(false);
     expect(isBlocked(sim.cfg.seed, origin.x + 18, origin.z + 82)).toBe(false);
     expect(isBlocked(sim.cfg.seed, origin.x + 230, origin.z + 82)).toBe(true);
+  });
+
+  it('defines four Nythraxis equipment drops with 3 percent legendary rolls', () => {
+    const loot = MOBS.nythraxis_scourge_of_thornpeak.loot.filter((entry) => entry.itemId);
+    const groups = new Map<string, typeof loot>();
+    for (const entry of loot) {
+      expect(entry.rollGroup).toMatch(/^nythraxis_drop_[1-4]$/);
+      const group = entry.rollGroup!;
+      groups.set(group, [...(groups.get(group) ?? []), entry]);
+      expect(ITEMS[entry.itemId!], entry.itemId).toBeTruthy();
+    }
+
+    expect(groups.size).toBe(4);
+    for (const entries of groups.values()) {
+      const total = entries.reduce((sum, entry) => sum + entry.chance, 0);
+      expect(total).toBeCloseTo(1, 5);
+    }
+
+    for (const itemId of ['deathless_heartwood', 'kingsbane_last_oath']) {
+      const item = ITEMS[itemId];
+      expect(item.quality).toBe('legendary');
+      expect(loot.find((entry) => entry.itemId === itemId)?.chance).toBe(0.03);
+    }
+
+    for (const itemId of [
+      'crownforged_dreadhelm',
+      'crownforged_warspaulders',
+      'nighttalon_crown',
+      'nighttalon_shoulderguards',
+      'soulflame_cowl',
+      'soulflame_mantle',
+      'stormcallers_crown',
+      'stormcallers_spaulders',
+    ]) {
+      const item = ITEMS[itemId];
+      expect(item.quality).toBe('epic');
+      expect(['helmet', 'shoulder']).toContain(item.slot);
+      expect(loot.some((entry) => entry.itemId === itemId)).toBe(true);
+    }
+
+    expect(ITEMS.crownforged_dreadhelm.requiredClass).toEqual(['warrior', 'paladin']);
+    expect(ITEMS.crownforged_warspaulders.requiredClass).toEqual(['warrior', 'paladin']);
+    expect(ITEMS.soulflame_cowl.requiredClass).toEqual(['mage', 'priest', 'warlock', 'druid']);
+    expect(ITEMS.soulflame_mantle.requiredClass).toEqual(['mage', 'priest', 'warlock', 'druid']);
+    expect(ITEMS.stormcallers_crown.requiredClass).toEqual(['shaman']);
+    expect(ITEMS.stormcallers_spaulders.requiredClass).toEqual(['shaman']);
   });
 
   it('keeps Nythraxis fixed at his throne facing the entrance before pull', () => {
@@ -668,6 +724,9 @@ describe('Nythraxis raid encounter', () => {
     const b = sim.addPlayer('mage', 'Mage');
     attune(sim, a);
     attune(sim, b);
+    sim.partyInvite(b, a);
+    sim.partyAccept(b);
+    formRaid(sim, a);
     sim.enterDungeon('nythraxis_boss_arena', a);
     sim.enterDungeon('nythraxis_boss_arena', b);
     const ae = sim.entities.get(a)!;

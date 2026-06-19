@@ -33,6 +33,15 @@ function faceTarget(actor: Entity, target: Entity) {
   actor.facing = Math.atan2(target.pos.x - actor.pos.x, target.pos.z - actor.pos.z);
 }
 
+function formRaid(sim: Sim) {
+  while ((sim.partyOf(sim.playerId)?.members.length ?? 1) < 5) {
+    const pid = sim.addPlayer('priest', `RaidFill${sim.players.size}`);
+    sim.partyInvite(pid);
+    sim.partyAccept(pid);
+  }
+  sim.convertPartyToRaid();
+}
+
 describe('quest lifecycle', () => {
   it('stops showing the Redbrook starter hint after the first quest is accepted', () => {
     const sim = makeSim();
@@ -403,7 +412,8 @@ describe('dungeon instance placement and targetability', () => {
     for (const dungeon of DUNGEON_LIST) {
       const sim = makeSim();
       if (dungeon.id === 'nythraxis_boss_arena') {
-        sim.questLog.set('q_nythraxis_sealed_crypt', { questId: 'q_nythraxis_sealed_crypt', counts: [0, 0, 0], state: 'active' });
+        sim.players.get(sim.playerId)!.questsDone.add('q_nythraxis_bound_guardian');
+        formRaid(sim);
       }
       sim.enterDungeon(dungeon.id);
       const p = sim.player;
@@ -782,6 +792,27 @@ describe('quest npc roles', () => {
     expect(QUESTS).not.toHaveProperty('q_nythraxis_deathless_king');
   });
 
+  it('restores the Crypt Keystone when reaccepting the Bound Guardian quest', () => {
+    const sim = makeSim();
+    sim.player.level = 20;
+    const aldric = [...sim.entities.values()].find((e) => e.templateId === 'brother_aldric_highwatch')!;
+    teleportTo(sim, aldric.pos.x + 2, aldric.pos.z);
+    sim.questLog.set('q_nythraxis_sealed_crypt', { questId: 'q_nythraxis_sealed_crypt', counts: [3, 1, 1], state: 'ready' });
+    sim.turnInQuest('q_nythraxis_sealed_crypt');
+    expect(sim.countItem('crypt_keystone')).toBe(1);
+
+    sim.removeItem('crypt_keystone', 1);
+    expect(sim.countItem('crypt_keystone')).toBe(0);
+    sim.acceptQuest('q_nythraxis_bound_guardian');
+    expect(sim.questState('q_nythraxis_bound_guardian')).toBe('active');
+    expect(sim.countItem('crypt_keystone')).toBe(1);
+
+    sim.removeItem('crypt_keystone', 1);
+    sim.abandonQuest('q_nythraxis_bound_guardian');
+    sim.acceptQuest('q_nythraxis_bound_guardian');
+    expect(sim.countItem('crypt_keystone')).toBe(1);
+  });
+
   it('gates the sealed crypt and grave visions behind Nythraxis quests', () => {
     const sim = makeSim();
     const crypt = DUNGEON_LIST.find((d) => d.id === 'nythraxis_crypt')!;
@@ -794,11 +825,16 @@ describe('quest npc roles', () => {
     expect(dist2d(sim.player.pos, outerCryptPos)).toBeLessThan(0.1);
 
     sim.questLog.set('q_nythraxis_sealed_crypt', { questId: 'q_nythraxis_sealed_crypt', counts: [0, 0, 0], state: 'active' });
+    formRaid(sim);
+    sim.enterDungeon(bossArena.id);
+    expect(dist2d(sim.player.pos, outerCryptPos)).toBeLessThan(0.1);
+
+    sim.questLog.delete('q_nythraxis_sealed_crypt');
+    sim.players.get(sim.playerId)!.questsDone.add('q_nythraxis_bound_guardian');
     sim.enterDungeon(bossArena.id);
     expect(dungeonAt(sim.player.pos.x)?.id).toBe('nythraxis_boss_arena');
 
     teleportTo(sim, 0, 660);
-    sim.questLog.delete('q_nythraxis_sealed_crypt');
     const grave = [...sim.entities.values()].find((e) => e.kind === 'object' && e.objectItemId === 'grave_sir_aldren')!;
     teleportTo(sim, grave.pos.x, grave.pos.z);
     sim.pickUpObject(grave.id);
@@ -865,6 +901,28 @@ describe('quest npc roles', () => {
       expect(['chase', 'attack']).toContain(boneguard.aiState);
       expect(boneguard.aggroTargetId).toBe(sim.player.id);
     }
+  });
+
+  it('despawns Varkas Boneguards after 60 seconds without damage and resets on damage taken', () => {
+    const sim = makeSim();
+    const boneguard = createMob(909900, MOBS.varkas_boneguard, 19, { x: 0, y: 0, z: 0 });
+    boneguard.maxHp = 1000;
+    boneguard.hp = 1000;
+    (sim as unknown as { addEntity(e: Entity): void }).addEntity(boneguard);
+
+    for (let i = 0; i < 59 * 20; i++) sim.tick();
+    expect(sim.entities.has(boneguard.id)).toBe(true);
+
+    (sim as unknown as {
+      dealDamage(source: Entity, target: Entity, amount: number, crit: boolean, school: string, ability: string | null, kind: 'hit', noRage?: boolean): void;
+    }).dealDamage(sim.player, boneguard, 5, false, 'physical', 'Test Strike', 'hit', true);
+    expect(boneguard.damageIdleDespawnTimer).toBe(60);
+
+    for (let i = 0; i < 59 * 20; i++) sim.tick();
+    expect(sim.entities.has(boneguard.id)).toBe(true);
+
+    for (let i = 0; i < 2 * 20; i++) sim.tick();
+    expect(sim.entities.has(boneguard.id)).toBe(false);
   });
 
   it('shares Nythraxis ritual circle progress with nearby party members', () => {

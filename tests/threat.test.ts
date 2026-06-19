@@ -1161,7 +1161,7 @@ describe('shaman travel and shock mechanics', () => {
     sim.startAutoAttack();
     expect(sim.player.auras.some((a) => a.id === 'ghost_wolf')).toBe(true);
 
-    teleport(sim, sim.player, wolf.pos.x + 20, wolf.pos.z);
+    teleport(sim, sim.player, wolf.pos.x + 35, wolf.pos.z);
     sim.targetEntity(wolf.id);
     sim.player.facing = Math.atan2(wolf.pos.x - sim.player.pos.x, wolf.pos.z - sim.player.pos.z);
     sim.startAutoAttack();
@@ -1213,7 +1213,7 @@ describe('shaman travel and shock mechanics', () => {
     beefUp(wolf);
     wolf.level = sim.player.level;
     wolf.weapon = { min: 10, max: 10, speed: 2 };
-    teleport(sim, sim.player, wolf.pos.x + 20, wolf.pos.z);
+    teleport(sim, sim.player, wolf.pos.x + 35, wolf.pos.z);
     sim.targetEntity(wolf.id);
     sim.player.facing = Math.atan2(wolf.pos.x - sim.player.pos.x, wolf.pos.z - sim.player.pos.z);
     sim.player.resource = sim.player.maxResource;

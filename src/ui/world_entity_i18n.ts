@@ -29,7 +29,8 @@ const MOB_IDS = [
   'grand_necromancer_velkhar', 'korzul_the_gravewyrm', 'bog_bloat',
   'fallen_captain_aldren', 'corrupted_priest_malric', 'deathstalker_voss',
   'vision_aldren_warrior', 'vision_malric_mage', 'vision_deathstalker_voss',
-  'bound_guardian',
+  'bound_guardian', 'nythraxis_skeleton_warrior', 'brother_aldric_raid',
+  'nythraxis_scourge_of_thornpeak',
   // Brightwood Glade wildlife pack
   'brightwood_hare', 'glade_fox', 'spotted_fawn', 'meadow_crane', 'thornpelt_badger',
   'dawnmane_doe', 'bramble_lynx', 'brightwood_stag', 'grovetusk_boar', 'sunhide_bear',
