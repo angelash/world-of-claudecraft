@@ -2513,14 +2513,14 @@ export class Hud {
 
   private renderAuras(el: HTMLElement, e: Entity, mode: 'all' | 'debuffs'): void {
     // cheap diff: rebuild only when the aura set changes
-    const sig = e.auras.map((a) => a.id + Math.ceil(a.remaining)).join('|');
+    const sig = e.auras.map((a) => a.id + Math.ceil(a.remaining) + 'x' + (a.stacks ?? 0)).join('|');
     if ((el as any).__sig === sig) return;
     (el as any).__sig = sig;
     el.innerHTML = '';
     for (const a of e.auras) {
       // A negative-value stat aura (e.g. a mob's Withering Wail sapping attack
       // power, or an Intellect-draining curse) is a debuff even though it reuses a buff_* kind.
-      const isDebuff = ['dot', 'slow', 'root', 'stun', 'incapacitate', 'polymorph', 'attackspeed', 'debuff_ap', 'blind', 'expose', 'spellvuln', 'lockout', 'vulnerability', 'hex', 'tongues', 'cost_tax', 'heal_absorb', 'critvuln'].includes(a.kind)
+      const isDebuff = ['dot', 'slow', 'root', 'stun', 'incapacitate', 'polymorph', 'attackspeed', 'debuff_ap', 'sunder', 'mortal_wound', 'silence', 'disarm', 'blind', 'expose', 'spellvuln', 'lockout', 'vulnerability', 'hex', 'tongues', 'cost_tax', 'heal_absorb', 'critvuln'].includes(a.kind)
         || (a.kind.startsWith('buff_') && a.value < 0);
       if (mode === 'debuffs' && !isDebuff) continue;
       const d = document.createElement('div');
@@ -2530,6 +2530,12 @@ export class Hud {
       dur.className = 'dur';
       dur.textContent = a.remaining < 99 ? `${Math.ceil(a.remaining)}s` : '';
       d.appendChild(dur);
+      if (a.stacks && a.stacks > 1) {
+        const st = document.createElement('div');
+        st.className = 'stacks';
+        st.textContent = formatNumber(a.stacks, { maximumFractionDigits: 0 });
+        d.appendChild(st);
+      }
       const auraName = ABILITIES[a.id] ? abilityDisplayName(ABILITIES[a.id]) : auraDisplayNameFromSource(a.name);
       this.attachTooltip(d, () => `<div class="tt-title">${esc(auraName)}</div><div class="tt-sub">${esc(t('hud.core.secondsRemaining', { seconds: Math.ceil(a.remaining) }))}</div>`);
       el.appendChild(d);

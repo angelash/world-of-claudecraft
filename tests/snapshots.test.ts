@@ -726,6 +726,16 @@ describe('client-side delta merge', () => {
     }
   });
 
+  it('reconstructs stacking-debuff stack counts from the wire (Sunder Armor)', () => {
+    const client = bareClient(1);
+    (client as any).applySnapshot({ ents: [{
+      id: 2, k: 'mob', tid: 'wolf', nm: 'Wolf', lv: 3, x: 0, y: 0, z: 0, f: 0, hp: 40, mhp: 40,
+      auras: [{ id: 'sunder_armor', name: 'Sunder Armor', kind: 'sunder', rem: 30, dur: 30, stacks: 3 }],
+    }] });
+    const aura = client.entities.get(2)!.auras.find((a) => a.kind === 'sunder');
+    expect(aura?.stacks, 'client should mirror the wire stack count').toBe(3);
+  });
+
   it('snaps the interpolation anchor on a teleport but tweens normal moves', () => {
     const client = bareClient(1);
     const ent = (x: number, z: number) => ({

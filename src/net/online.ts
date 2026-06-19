@@ -649,7 +649,7 @@ export class ClientWorld implements IWorld {
       e.threat = new Map(w.thr ?? []);
       e.auras = (w.auras ?? []).map((a: any) => ({
         id: a.id, name: a.name, kind: a.kind, remaining: a.rem, duration: a.dur,
-        value: 0, sourceId: 0, school: 'physical' as const,
+        value: 0, sourceId: 0, school: 'physical' as const, stacks: a.stacks,
       }));
       e.loot = w.lootList ?? null;
       return e;
