@@ -21,6 +21,10 @@ tmp/
 .codex-research/
 .playwright-mcp/
 
+# local agent/tooling workspaces
+.agents/
+.codex/
+
 # i18n release-fill worklist (generated; regenerate via `npm run i18n:worklist`)
 docs/i18n-scaling/worklist/
 
