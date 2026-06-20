@@ -14,32 +14,28 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.chatWindow.note",
     "hudChrome.chatWindow.reset",
     "hudChrome.chatWindow.resetAction",
-    "hudChrome.chatWindow.resize",
-    "hudChrome.options.footstepSounds"
+    "hudChrome.chatWindow.resize"
   ],
   "es_ES": [
     "hudChrome.chatWindow.move",
     "hudChrome.chatWindow.note",
     "hudChrome.chatWindow.reset",
     "hudChrome.chatWindow.resetAction",
-    "hudChrome.chatWindow.resize",
-    "hudChrome.options.footstepSounds"
+    "hudChrome.chatWindow.resize"
   ],
   "fr_FR": [
     "hudChrome.chatWindow.move",
     "hudChrome.chatWindow.note",
     "hudChrome.chatWindow.reset",
     "hudChrome.chatWindow.resetAction",
-    "hudChrome.chatWindow.resize",
-    "hudChrome.options.footstepSounds"
+    "hudChrome.chatWindow.resize"
   ],
   "fr_CA": [
     "hudChrome.chatWindow.move",
     "hudChrome.chatWindow.note",
     "hudChrome.chatWindow.reset",
     "hudChrome.chatWindow.resetAction",
-    "hudChrome.chatWindow.resize",
-    "hudChrome.options.footstepSounds"
+    "hudChrome.chatWindow.resize"
   ],
   "en_CA": [],
   "it_IT": [
@@ -47,16 +43,14 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.chatWindow.note",
     "hudChrome.chatWindow.reset",
     "hudChrome.chatWindow.resetAction",
-    "hudChrome.chatWindow.resize",
-    "hudChrome.options.footstepSounds"
+    "hudChrome.chatWindow.resize"
   ],
   "de_DE": [
     "hudChrome.chatWindow.move",
     "hudChrome.chatWindow.note",
     "hudChrome.chatWindow.reset",
     "hudChrome.chatWindow.resetAction",
-    "hudChrome.chatWindow.resize",
-    "hudChrome.options.footstepSounds"
+    "hudChrome.chatWindow.resize"
   ],
   "zh_CN": [],
   "zh_TW": [],
@@ -67,8 +61,7 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.chatWindow.note",
     "hudChrome.chatWindow.reset",
     "hudChrome.chatWindow.resetAction",
-    "hudChrome.chatWindow.resize",
-    "hudChrome.options.footstepSounds"
+    "hudChrome.chatWindow.resize"
   ],
   "ru_RU": []
 };

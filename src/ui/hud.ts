@@ -42,7 +42,7 @@ import { iconDataUrl, QUALITY_COLOR, raidMarkerDataUrl, RAID_MARKER_NAMES } from
 import { UnitPortraitPainter } from './unit_portrait_painter';
 import { crestIdForEntity } from './unit_portrait';
 import { svgIcon } from './ui_icons';
-import { walletUiEnabled, wocBalance, wocBalanceVerified, verifiedWocBalance, onWalletUiChange } from './wallet_balance';
+import { walletDisplayAvailable, walletUiEnabled, wocBalance, wocBalanceVerified, verifiedWocBalance, onWalletUiChange } from './wallet_balance';
 import {
   renderPlayerCardCanvas, cardCanvasToBlob, cardCanvasToUploadBlob, CARD_POSES,
   type PlayerCardData, type PlayerCardStat,
@@ -6138,6 +6138,7 @@ export class Hud {
       + `<div class="panel-title"><span id="player-card-modal-title">${esc(t('playerCard.title'))}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('playerCard.close'))}">${svgIcon('close')}</button></div>`
       + `<div class="pc-preview pc-loading">${esc(t('playerCard.loading'))}</div>`
       + `<div class="pc-poses" role="group" aria-label="${esc(t('playerCard.poseGroup'))}">${poseBtns}</div>`
+      + `<div class="pc-options"><button type="button" class="btn pc-wallet-toggle" data-wallet-card-toggle><span>${esc(t('hudChrome.playerCard.showWalletBadge'))}</span><span class="pc-toggle-state"></span></button></div>`
       + `<div class="pc-actions"></div>`
       + `<div class="pc-link" hidden><span class="pc-link-label">${esc(t('playerCard.referralLinkLabel'))}</span>`
       + `<input class="pc-link-input" type="text" readonly aria-label="${esc(t('playerCard.referralLinkAria'))}"></div>`
@@ -6160,6 +6161,8 @@ export class Hud {
     const status = back.querySelector('.pc-status') as HTMLElement;
     const linkRow = back.querySelector('.pc-link') as HTMLElement;
     const setStatus = (msg: string) => { status.textContent = msg; };
+    const walletToggle = back.querySelector<HTMLButtonElement>('[data-wallet-card-toggle]');
+    const walletToggleState = walletToggle?.querySelector<HTMLElement>('.pc-toggle-state') ?? null;
 
     // Current card state, shared with the action handlers by reference so a pose
     // change (which re-captures + re-composites) also invalidates any publish.
@@ -6168,6 +6171,7 @@ export class Hud {
 
     const poseButtons = Array.from(back.querySelectorAll<HTMLButtonElement>('.pc-pose'));
     let requestedPoseIndex = 0;
+    let showWalletOnCard = walletDisplayAvailable() && (this.optionsHooks?.settings.get('showWalletOnPlayerCard') ?? true);
     let metadataReady = false;
     let referral: Awaited<ReturnType<typeof fetchReferralInfo>> = null;
     let standing: CharacterStanding | null = null;
@@ -6175,6 +6179,15 @@ export class Hud {
       requestedPoseIndex = poseIndex;
       poseButtons.forEach((b, i) => b.classList.toggle('sel', i === poseIndex));
     };
+    const syncWalletToggle = (): void => {
+      if (!walletToggle || !walletToggleState) return;
+      const on = walletDisplayAvailable() && showWalletOnCard;
+      walletToggle.classList.toggle('off', !on);
+      walletToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+      walletToggle.setAttribute('aria-label', t('hudChrome.playerCard.showWalletBadge'));
+      walletToggleState.textContent = on ? t('hud.options.on') : t('hud.options.off');
+    };
+    syncWalletToggle();
     // Generation guard: rapid pose clicks fire concurrent async renders; only the
     // most recent one may apply its result, or a slow earlier render could
     // overwrite a newer pose and desync state.canvas from what's shown.
@@ -6185,7 +6198,7 @@ export class Hud {
       selectPose(poseIndex);
       try {
         const characterImage = preview.captureCloseup({ poseClips: pose.clips, poseFraction: pose.fraction });
-        const data = this.buildPlayerCardData(characterImage, referral, standing);
+        const data = this.buildPlayerCardData(characterImage, referral, standing, walletDisplayAvailable() && showWalletOnCard);
         const canvas = await renderPlayerCardCanvas(data);
         if (this.cardModalEl !== back || seq !== composeSeq) return; // closed or superseded
         canvas.classList.add('pc-card-canvas');
@@ -6216,6 +6229,17 @@ export class Hud {
       }
       void compose(i);
     }));
+    walletToggle?.addEventListener('click', () => {
+      if (!walletDisplayAvailable()) return;
+      audio.click();
+      showWalletOnCard = !showWalletOnCard;
+      this.optionsHooks?.onSettingChange('showWalletOnPlayerCard', showWalletOnCard);
+      syncWalletToggle();
+      state.published = null;
+      linkRow.hidden = true;
+      setStatus('');
+      if (metadataReady) void compose(requestedPoseIndex);
+    });
 
     // Referral info + realm standing are online-only (null offline). Fetch once
     // and reuse across pose re-renders. Pose clicks before this resolves update
@@ -6304,7 +6328,6 @@ export class Hud {
           xb.disabled = false;
         }
       });
-
       const cb = mkBtn(t('playerCard.actionCopyReferral'));
       cb.addEventListener('click', async () => {
         audio.click();
@@ -6387,6 +6410,7 @@ export class Hud {
     characterImage: string,
     referral: { count: number; slug: string | null } | null,
     standing: CharacterStanding | null,
+    showWallet: boolean,
   ): PlayerCardData {
     const sim = this.sim;
     const p = sim.player;
@@ -6450,7 +6474,7 @@ export class Hud {
       combatStats,
       gear,
       topPercent,
-      balance: verifiedWocBalance(),
+      balance: showWallet ? verifiedWocBalance() : null,
       referralHandle: referral?.slug ?? this.cardSlug(p.name),
       referralCount: referral?.count ?? null,
       siteUrl: 'worldofclaudecraft.com',
@@ -8524,6 +8548,8 @@ export class Hud {
     this.settingBoolToggle(body, t('hud.options.highContrastText'), 'highContrastText');
     this.settingBoolToggle(body, t('hud.options.reduceMotion'), 'reduceMotion');
     this.settingBoolToggle(body, t('hud.options.showFps'), 'showFps');
+    this.settingBoolToggle(body, t('hudChrome.options.showWalletOnCharacterScreen'), 'showWalletOnCharacterScreen');
+    this.settingBoolToggle(body, t('hudChrome.options.showWalletOnPlayerCard'), 'showWalletOnPlayerCard');
     this.settingBoolToggle(body, t('hud.options.invertLookY'), 'invertLookY');
 
     // On/off toggle for chat timestamps.
