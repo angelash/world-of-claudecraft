@@ -25,6 +25,9 @@ PRDs say so explicitly) and note the deviation.
 ## design/ — how systems are/should be built
 | File | What it is |
 |---|---|
+| `current-game-design.md` | Current code-aligned game design overview: pillars, world, progression, classes, systems, dungeons, economy, presentation, and known gaps. |
+| `current-game-design.zh_CN.md` | Chinese companion to `current-game-design.md`, kept as a manually maintained planning reference. |
+| `planning-docs.zh_CN.md` | Chinese guide to the existing design and PRD documents, including current-use notes and implementation caveats. |
 | `master-spec.md` | The big design doc: levels 6–20 expansion (story arc, zones, dungeons, XP math, ids). |
 | `spell-ranks.md` | Vanilla-style ability rank progressions L1–20 for all 9 classes; the reference for sim ability content. |
 | `icon-system.md` | Procedural icon system spec. Note: it proposes a multi-file `src/ui/icons/` module (`index.ts`, `compose.ts`, `palettes.ts`, …); the shipped code is the flat `src/ui/icons.ts` — re-verify against code. |
@@ -33,6 +36,15 @@ PRDs say so explicitly) and note the deviation.
 | `ue5-overhaul-plan.md` | Plan to swap procedural assets for CC0 packs + skeletal anim + PBR/IBL (the `public/` assets came from this). |
 | `npc_voices.md` | Procedural NPC voice/voiceline design. |
 | `sound_effects.md` | Procedural WebAudio sound-effect design. |
+
+### Planning companion naming
+| Convention | Rule |
+|---|---|
+| Canonical design docs | Keep the English source at the normal basename, e.g. `current-game-design.md`. |
+| Language-specific planning companions | Put them beside the source doc and suffix the locale before `.md`, e.g. `current-game-design.zh_CN.md`. |
+| Cross-document guides | Use a descriptive basename plus locale suffix, e.g. `planning-docs.zh_CN.md`. |
+| `docs/i18n/` boundary | Reserve `docs/i18n/` for localized `README` and `CONTRIBUTING` mirrors only. Do not place planning companions there. |
+| Maintenance | Treat companions as manually maintained references. When the canonical design or code changes, update the companion in the same docs change when feasible. |
 
 ## prd/ — feature specs (requirements + `file:line` hook points + acceptance criteria)
 | File | What it is |
@@ -46,8 +58,11 @@ JPG/PNG assets embedded by the repo-root `README.md` (title screen, zones, dunge
 Replacing one ⇒ keep the same filename so README links don't break.
 
 ## i18n note (the only player/contributor-facing strings under `docs/`)
-The doc *prose* here is dev/design reference and is English-only. The exception
-is `i18n/`: `README.<lang>.md` and `CONTRIBUTING.<lang>.md` are the **localized
+The doc *prose* here is dev/design reference and is English-only unless a
+language-specific planning companion is explicitly requested. Current Chinese
+planning companions live under `design/*.zh_CN.md` and are manually maintained
+for design discussion. The player/contributor-facing exception is `i18n/`:
+`README.<lang>.md` and `CONTRIBUTING.<lang>.md` are the **localized
 mirrors** of the English root `README.md` / `CONTRIBUTING.md` (linked from the
 language switcher at the top of each), one per translated locale (the 12
 non-English, non-`en_CA` codes; the near-English `en_CA` overlay gets no separate
