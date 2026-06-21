@@ -3,7 +3,7 @@ import type { Entity } from '../src/sim/types';
 import { droppedItemSemantic, type SceneFrameV1 } from '../server/ai/scene_frame';
 import { sceneSemanticsAt } from '../server/ai/scene_semantics';
 import { timeWeatherMood } from '../server/ai/time_weather_model';
-import { applyIndividualBiasToItemReaction, individualProfileFor } from '../server/ai/singularity';
+import { applyIndividualBiasToItemReaction, individualProfileFor, isSingularityLineId } from '../server/ai/singularity';
 
 function mob(id: number, templateId: string): Entity {
   return {
@@ -45,7 +45,7 @@ describe('AI singularity profiles', () => {
     expect(profile.traits.length).toBeGreaterThan(0);
   });
 
-  it('uses singularity lineIds when a trait strongly changes item interest', () => {
+  it('uses trait-specific singularity lineIds when a trait strongly changes item interest', () => {
     const profile = {
       ...individualProfileFor(mob(9, 'forest_wolf'), 1, { quirkThreshold: 0, singularityThreshold: 0 }),
       traits: ['foodFixated' as const],
@@ -58,7 +58,8 @@ describe('AI singularity profiles', () => {
       frame(),
     );
     expect(biased.reaction).toBe('approach');
-    expect(biased.lineId).toBe('hudChrome.aiSpeech.singularityApproach');
+    expect(biased.lineId).toBe('hudChrome.aiSpeech.singularityFoodFixated');
+    expect(isSingularityLineId(biased.lineId)).toBe(true);
     expect(biased.score).toBeGreaterThan(0.35);
   });
 });

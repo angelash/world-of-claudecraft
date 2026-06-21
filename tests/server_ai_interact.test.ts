@@ -15,6 +15,8 @@ vi.mock('../server/db', () => ({
 }));
 
 import { GameServer, type ClientSession } from '../server/game';
+import { individualProfileFor } from '../server/ai/singularity';
+import type { Entity } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
 
 interface FakeClient {
@@ -55,6 +57,13 @@ function eventsOf(fc: FakeClient, type: string): any[] {
   return fc.sent
     .flatMap((msg: any) => (msg.t === 'events' ? msg.list : []))
     .filter((ev: any) => ev.type === type);
+}
+
+function seedThatMakesSingularity(entity: Entity): number {
+  for (let seed = 1; seed < 10000; seed++) {
+    if (individualProfileFor(entity, seed).tier === 'singularity') return seed;
+  }
+  throw new Error(`No singularity seed found for ${entity.templateId}`);
 }
 
 async function flushAi(): Promise<void> {
@@ -247,7 +256,7 @@ describe('server AI interact command', () => {
     expect(eventsOf(fc, 'aiSpeech').some((event) =>
       event.speakerId !== object.id
       && event.pid === session.pid
-      && /^hudChrome\.aiSpeech\.(itemInterest|singularity)(Approach|Avoid|Inspect)$/.test(event.speech.lineId)
+      && /^hudChrome\.aiSpeech\.(itemInterest(Approach|Avoid|Inspect)|singularity[A-Z].*)$/.test(event.speech.lineId)
       && event.reaction?.targetItemId === 'gravecaller_sigil'
       && event.reaction?.targetObjectId === object.id,
     )).toBe(true);
@@ -310,6 +319,41 @@ describe('server AI interact command', () => {
     const afterObjects = [...server.sim.entities.values()].filter((entity) => entity.kind === 'object' && entity.objectItemId === 'roasted_boar').length;
     expect(afterObjects).toBe(beforeObjects);
     expect(server.sim.countItem('roasted_boar', session.pid)).toBe(0);
+  });
+
+  it('lets singularity item reactions become NPC rumors through real server commands', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'smith_haldren')!;
+    server.sim.cfg.seed = seedThatMakesSingularity(wolf);
+    npc.pos.x = wolf.pos.x + 2;
+    npc.pos.z = wolf.pos.z;
+    npc.pos.y = groundHeight(npc.pos.x, npc.pos.z, server.sim.cfg.seed);
+    npc.prevPos = { ...npc.pos };
+    server.sim.grid.update(npc);
+    teleportNear(server, session.pid, wolf.id);
+    server.sim.addItem('roasted_boar', 1, session.pid);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: wolf.id,
+      speech: expect.objectContaining({ lineId: expect.stringMatching(/^hudChrome\.aiSpeech\.singularity[A-Z].*/) }),
+      reaction: expect.objectContaining({ individualTier: 'singularity', targetItemId: 'roasted_boar' }),
+      pid: session.pid,
+    }));
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.memorySingularityRumorEcho' }),
+      pid: session.pid,
+    }));
   });
 
   it('adds a scene-awareness line when an NPC is interacted with in a death-pressure area', async () => {

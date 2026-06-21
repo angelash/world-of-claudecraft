@@ -3880,11 +3880,16 @@ export class Hud {
       case 'hudChrome.aiSpeech.itemInterestInspect':
         return t('hudChrome.aiSpeech.itemInterestInspect', { speakerName, itemName });
       case 'hudChrome.aiSpeech.singularityApproach':
-        return t('hudChrome.aiSpeech.singularityApproach', { speakerName, itemName });
       case 'hudChrome.aiSpeech.singularityAvoid':
-        return t('hudChrome.aiSpeech.singularityAvoid', { speakerName, itemName });
       case 'hudChrome.aiSpeech.singularityInspect':
-        return t('hudChrome.aiSpeech.singularityInspect', { speakerName, itemName });
+      case 'hudChrome.aiSpeech.singularityFoodFixated':
+      case 'hudChrome.aiSpeech.singularityCollector':
+      case 'hudChrome.aiSpeech.singularityOmenSensitive':
+      case 'hudChrome.aiSpeech.singularityCowardly':
+      case 'hudChrome.aiSpeech.singularityTerritorial':
+      case 'hudChrome.aiSpeech.singularityVengeful':
+      case 'hudChrome.aiSpeech.singularityStargazer':
+        return t(ev.speech.lineId as TranslationKey, { speakerName, itemName });
       case 'hudChrome.aiSpeech.companionUndeadFear':
         return t('hudChrome.aiSpeech.companionUndeadFear', { speakerName, companionName });
       case 'hudChrome.aiSpeech.companionSelfUndeadFear':
@@ -3908,6 +3913,8 @@ export class Hud {
         return t('hudChrome.aiSpeech.memoryRecognizesPlayer', { speakerName, playerName: String(values.playerName ?? this.sim.player.name) });
       case 'hudChrome.aiSpeech.memoryRumorEcho':
         return t('hudChrome.aiSpeech.memoryRumorEcho', { speakerName, playerName: String(values.playerName ?? this.sim.player.name), itemName });
+      case 'hudChrome.aiSpeech.memorySingularityRumorEcho':
+        return t('hudChrome.aiSpeech.memorySingularityRumorEcho', { speakerName, playerName: String(values.playerName ?? this.sim.player.name), itemName });
       case 'hudChrome.aiSpeech.memoryPriestRecognizesPlayer':
       case 'hudChrome.aiSpeech.memoryMerchantRecognizesPlayer':
       case 'hudChrome.aiSpeech.memorySmithRecognizesPlayer':

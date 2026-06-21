@@ -126,8 +126,12 @@ export function applyIndividualBiasToItemReaction(
     score,
     fear,
     curiosity,
-    lineId: lineIdForIndividual(individual.tier, reaction, base.lineId),
+    lineId: lineIdForIndividual(individual, reaction, base.lineId),
   };
+}
+
+export function isSingularityLineId(lineId: string): boolean {
+  return lineId.startsWith('hudChrome.aiSpeech.singularity');
 }
 
 function traitsFor(entity: Entity, family: MobFamily | null, worldSeed: number, tier: IndividualTier): IndividualTrait[] {
@@ -142,8 +146,20 @@ function traitsFor(entity: Entity, family: MobFamily | null, worldSeed: number, 
   return traits;
 }
 
-function lineIdForIndividual(tier: IndividualTier, reaction: ItemReactionKind, fallback: string): string {
-  if (tier !== 'singularity') return fallback;
+function lineIdForIndividual(individual: IndividualAiProfile, reaction: ItemReactionKind, fallback: string): string {
+  if (individual.tier !== 'singularity') return fallback;
+  const trait = individual.traits[0];
+  if (trait) {
+    switch (trait) {
+      case 'foodFixated': return 'hudChrome.aiSpeech.singularityFoodFixated';
+      case 'collector': return 'hudChrome.aiSpeech.singularityCollector';
+      case 'omenSensitive': return 'hudChrome.aiSpeech.singularityOmenSensitive';
+      case 'cowardly': return 'hudChrome.aiSpeech.singularityCowardly';
+      case 'territorial': return 'hudChrome.aiSpeech.singularityTerritorial';
+      case 'vengeful': return 'hudChrome.aiSpeech.singularityVengeful';
+      case 'stargazer': return 'hudChrome.aiSpeech.singularityStargazer';
+    }
+  }
   switch (reaction) {
     case 'approach': return 'hudChrome.aiSpeech.singularityApproach';
     case 'avoid': return 'hudChrome.aiSpeech.singularityAvoid';

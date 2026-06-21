@@ -103,6 +103,22 @@ describe('AI social memory', () => {
     });
   });
 
+  it('turns singularity item reactions into a special rumor echo', () => {
+    const store = new AiSocialMemoryStore();
+    const memory = store.noteNpcInteraction(context, 0);
+    const rumor = store.noteItemRumor({
+      sceneId: 'eastbrook_forge',
+      itemId: 'roasted_boar',
+      sourcePlayerEntityId: 1,
+      lineIds: ['hudChrome.aiSpeech.singularityFoodFixated'],
+      nowSeconds: 1,
+    });
+
+    expect(memoryReactionEvent(context, speaker, memory, rumor)).toMatchObject({
+      speech: { lineId: 'hudChrome.aiSpeech.memorySingularityRumorEcho' },
+    });
+  });
+
   it('keeps named NPC social profile snapshots distinct', () => {
     const expected = [
       ['brother_aldric', 'hudChrome.aiSpeech.memoryPriestRumorEcho'],

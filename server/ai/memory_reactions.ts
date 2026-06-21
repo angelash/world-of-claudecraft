@@ -1,6 +1,7 @@
 import type { Entity, SimEvent } from '../../src/sim/types';
 import type { AiJobContextV1 } from './ai_types';
 import type { AiNpcMemory, AiRumorMemory } from './social_memory';
+import { isSingularityLineId } from './singularity';
 
 export function memoryReactionEvent(
   context: AiJobContextV1,
@@ -9,7 +10,10 @@ export function memoryReactionEvent(
   rumor: AiRumorMemory | null,
 ): SimEvent | null {
   if (rumor) {
-    return line(context, speaker, context.profile?.socialMemory?.rumorLineId ?? 'hudChrome.aiSpeech.memoryRumorEcho', {
+    const lineId = rumor.lineIds.some(isSingularityLineId)
+      ? 'hudChrome.aiSpeech.memorySingularityRumorEcho'
+      : context.profile?.socialMemory?.rumorLineId ?? 'hudChrome.aiSpeech.memoryRumorEcho';
+    return line(context, speaker, lineId, {
       speakerName: speaker.name,
       playerName: context.player.name,
       itemId: rumor.itemId,
