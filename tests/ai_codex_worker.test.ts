@@ -66,6 +66,93 @@ describe('Codex CLI AI provider', () => {
     });
   });
 
+  it('passes director proposals and persisted memory signals through job.json and the prompt', async () => {
+    const provider = await providerWithFakeCodexScript(`
+import { readFile, writeFile } from 'node:fs/promises';
+const args = process.argv.slice(2);
+const outputPath = args[args.indexOf('-o') + 1];
+const prompt = args[args.length - 1] ?? '';
+const context = JSON.parse(await readFile('job.json', 'utf8'));
+if (context.directorProposals?.[0]?.targetRef !== 'redbrook_blade') {
+  throw new Error('missing director proposal in job.json');
+}
+if (context.memorySignals?.[0]?.refId !== 'persisted-director-covetous') {
+  throw new Error('missing persisted memory signal in job.json');
+}
+if (!prompt.includes('Director proposals and memory signals are read-only context')) {
+  throw new Error('prompt missing read-only context rule');
+}
+if (!prompt.includes('Director proposals: nudgeNpcRumor:preview:low:intensity=0.72:target=redbrook_blade')) {
+  throw new Error('prompt missing director proposal summary');
+}
+if (!prompt.includes('Memory signals: worldDirectorState:persisted-director-covetous:region:salience=0.72:persistedRestart:covetous:npcTopicShift')) {
+  throw new Error('prompt missing memory signal summary');
+}
+await writeFile(outputPath, JSON.stringify({
+  schemaVersion: 1,
+  jobId: context.jobId,
+  entityRef: {
+    kind: context.entity.kind,
+    entityId: context.entity.entityId,
+    templateId: context.entity.templateId
+  },
+  ttlMs: 5000,
+  confidence: 0.9,
+  speech: [{
+    mode: 'lineId',
+    lineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+    values: { itemId: 'redbrook_blade' }
+  }],
+  intents: [{ type: 'commentOnScene', lineId: 'hudChrome.aiSpeech.worldDirectorCovetous' }],
+  audit: { shortReason: 'used restored director context', usedPlayerInput: false, safetyNotes: [] }
+}));
+`);
+    const richContext: AiJobContextV1 = {
+      ...context,
+      jobId: 'job-codex-rich-context',
+      recentObservations: ['persistedMemory:worldDirectorState:region:redbrook_blade'],
+      directorProposals: [{
+        proposalId: 'director-restore:proposal',
+        intent: 'nudgeNpcRumor',
+        status: 'preview',
+        risk: 'low',
+        intensity: 0.72,
+        targetRef: 'redbrook_blade',
+        sceneId: 'eastbrook_forge',
+        zoneId: 'eastbrook_vale',
+        suggestedLineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+        expiresAt: 160,
+        reasonTags: ['mood:covetous', 'subject:item', 'proposal:npcTopicShift'],
+        safetyNotes: ['presentationOnly', 'noQuestMutation', 'noCombatMutation', 'noLootOrEconomyMutation'],
+      }],
+      memorySignals: [{
+        kind: 'worldDirectorState',
+        refId: 'persisted-director-covetous',
+        scope: 'region',
+        sceneId: 'eastbrook_forge',
+        zoneId: 'eastbrook_vale',
+        sourcePlayerEntityId: 1,
+        itemId: 'redbrook_blade',
+        subjectKind: 'item',
+        lineIds: ['hudChrome.aiSpeech.worldDirectorCovetous'],
+        salience: 0.72,
+        createdAt: 12,
+        expiresAt: 160,
+        reason: 'persistedRestart:covetous:npcTopicShift',
+      }],
+      allowedLineIds: ['hudChrome.aiSpeech.worldDirectorCovetous'],
+    };
+
+    await expect(provider.decide(richContext)).resolves.toMatchObject({
+      jobId: 'job-codex-rich-context',
+      speech: [{
+        mode: 'lineId',
+        lineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+        values: { itemId: 'redbrook_blade' },
+      }],
+    });
+  });
+
   it('rejects invalid JSON written by codex before it reaches the intent validator', async () => {
     const provider = await providerWithFakeCodex(`'{ invalid json'`);
 
