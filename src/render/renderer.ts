@@ -598,12 +598,14 @@ export class Renderer {
   private tmpV = new THREE.Vector3();
   private viewCandidates: ViewCandidate[] = [];
   private tmpV2 = new THREE.Vector3();
+  private tmpV3 = new THREE.Vector3();
   private selfRenderPosition = new THREE.Vector3();
   private selfRenderPositionReady = false;
   private cameraLookAt = new THREE.Vector3();
   // floating /say-/yell bubbles, keyed by speaker entity id
   private chatBubbles = new Map<number, { el: HTMLDivElement; until: number }>();
   private aiReactionBadges = new Map<number, { el: HTMLDivElement; until: number; kind: string }>();
+  private aiAttentionLinks = new Map<number, { el: HTMLDivElement; until: number; kind: string; targetId: number }>();
   private sun: THREE.DirectionalLight;
   private hemi!: THREE.HemisphereLight;
   private sky!: THREE.Mesh;
@@ -1534,6 +1536,7 @@ export class Renderer {
     this.updateNameplates(true);
     this.updateChatBubbles();
     this.updateAiReactionBadges();
+    this.updateAiAttentionLinks();
   }
 
   private prewarmEntity(kind: 'player' | 'mob', templateId: string, color: number, scale: number, skin = 0, id = -10_000): Entity {
@@ -2709,6 +2712,16 @@ export class Renderer {
       badge.el.remove();
       this.aiReactionBadges.delete(id);
     }
+    const ownLink = this.aiAttentionLinks.get(id);
+    if (ownLink) {
+      ownLink.el.remove();
+      this.aiAttentionLinks.delete(id);
+    }
+    for (const [sourceId, link] of this.aiAttentionLinks) {
+      if (link.targetId !== id) continue;
+      link.el.remove();
+      this.aiAttentionLinks.delete(sourceId);
+    }
     const idx = this.clickTargets.indexOf(v.clickTarget);
     if (idx >= 0) this.clickTargets.splice(idx, 1);
     if (v.visual) {
@@ -3149,6 +3162,7 @@ export class Renderer {
     this.updateNameplates(fullNameplatePass);
     this.updateChatBubbles();
     this.updateAiReactionBadges();
+    this.updateAiAttentionLinks();
     markPhase('nameplates');
     // Fiesta screen shake: trauma^2 jitter offsets the camera for the draw only.
     let shakeX = 0, shakeY = 0;
@@ -3599,6 +3613,23 @@ export class Renderer {
     b.until = performance.now() + 1800;
   }
 
+  showAiAttentionLink(sourceEntityId: number, targetEntityId: number, kind: 'approach' | 'avoid' | 'inspect'): void {
+    if (sourceEntityId === targetEntityId) return;
+    let link = this.aiAttentionLinks.get(sourceEntityId);
+    if (!link) {
+      const el = document.createElement('div');
+      el.className = 'ai-attention-link';
+      this.nameplateLayer.appendChild(el);
+      link = { el, until: 0, kind: '', targetId: targetEntityId };
+      this.aiAttentionLinks.set(sourceEntityId, link);
+    }
+    if (link.kind) link.el.classList.remove(link.kind);
+    link.kind = kind;
+    link.targetId = targetEntityId;
+    link.el.classList.add(kind);
+    link.until = performance.now() + 1400;
+  }
+
   private updateChatBubbles(): void {
     if (this.chatBubbles.size === 0) return;
     const { width: w, height: h } = this.viewport;
@@ -3655,6 +3686,62 @@ export class Renderer {
       const sx = (this.tmpV.x * 0.5 + 0.5) * w;
       const sy = (-this.tmpV.y * 0.5 + 0.5) * h;
       b.el.style.transform = nameplateScreenTransform(sx, sy);
+    }
+  }
+
+  private updateAiAttentionLinks(): void {
+    if (this.aiAttentionLinks.size === 0) return;
+    const { width: w, height: h } = this.viewport;
+    const now = performance.now();
+    for (const [sourceId, link] of this.aiAttentionLinks) {
+      const source = this.sim.entities.get(sourceId);
+      const target = this.sim.entities.get(link.targetId);
+      const sourceView = source ? this.views.get(sourceId) : undefined;
+      const targetView = target ? this.views.get(link.targetId) : undefined;
+      if (!source || !target || !sourceView || !targetView || now >= link.until) {
+        link.el.remove();
+        this.aiAttentionLinks.delete(sourceId);
+        continue;
+      }
+      if (sourceView.group.visible) this.tmpV.copy(sourceView.group.position);
+      else this.tmpV.set(source.pos.x, source.pos.y, source.pos.z);
+      this.tmpV.y += sourceView.height * source.scale + 1.15;
+      if (!isProjectedNameplateAnchorVisible(this.camera, this.tmpV, this.tmpV2)) {
+        link.el.style.display = 'none';
+        continue;
+      }
+      this.tmpV.project(this.camera);
+      if (this.tmpV.z < -1 || this.tmpV.z > 1) {
+        link.el.style.display = 'none';
+        continue;
+      }
+      const sx = (this.tmpV.x * 0.5 + 0.5) * w;
+      const sy = (-this.tmpV.y * 0.5 + 0.5) * h;
+
+      if (targetView.group.visible) this.tmpV3.copy(targetView.group.position);
+      else this.tmpV3.set(target.pos.x, target.pos.y, target.pos.z);
+      this.tmpV3.y += targetView.height * target.scale + 0.65;
+      if (!isProjectedNameplateAnchorVisible(this.camera, this.tmpV3, this.tmpV2)) {
+        link.el.style.display = 'none';
+        continue;
+      }
+      this.tmpV3.project(this.camera);
+      if (this.tmpV3.z < -1 || this.tmpV3.z > 1) {
+        link.el.style.display = 'none';
+        continue;
+      }
+      const tx = (this.tmpV3.x * 0.5 + 0.5) * w;
+      const ty = (-this.tmpV3.y * 0.5 + 0.5) * h;
+      const dx = tx - sx;
+      const dy = ty - sy;
+      const length = Math.hypot(dx, dy);
+      if (length < 8) {
+        link.el.style.display = 'none';
+        continue;
+      }
+      link.el.style.display = '';
+      link.el.style.width = `${length.toFixed(1)}px`;
+      link.el.style.transform = `translate3d(${sx.toFixed(2)}px, ${sy.toFixed(2)}px, 0) rotate(${Math.atan2(dy, dx).toFixed(4)}rad)`;
     }
   }
 

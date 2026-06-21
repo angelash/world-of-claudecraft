@@ -46,14 +46,20 @@ describe('AI scene reactions', () => {
       structureTags: ['forge'],
       environmentalTags: ['warmLight'],
       companions: [{ entityId: 2, templateId: 'void_demon', displayName: 'Void Demon', family: 'demon', tags: ['pet', 'demon'] }],
-    })), speaker)).toMatchObject({ speech: { lineId: 'hudChrome.aiSpeech.sceneDemonCompanionUnease' } });
+    })), speaker)).toMatchObject({
+      speech: { lineId: 'hudChrome.aiSpeech.sceneDemonCompanionUnease' },
+      reaction: { targetEntityId: 2 },
+    });
 
     expect(sceneAwarenessEvent(context(frame({
       locationTags: ['town', 'safeTown'],
       structureTags: ['forge'],
       environmentalTags: ['sunlit'],
       companions: [{ entityId: 3, templateId: 'restless_bones', displayName: 'Restless Bones', family: 'undead', tags: ['pet', 'undead'] }],
-    })), speaker)).toMatchObject({ speech: { lineId: 'hudChrome.aiSpeech.sceneUndeadCompanionUnease' } });
+    })), speaker)).toMatchObject({
+      speech: { lineId: 'hudChrome.aiSpeech.sceneUndeadCompanionUnease' },
+      reaction: { targetEntityId: 3 },
+    });
   });
 
   it('prioritizes companion fear in undead pressure scenes', () => {
@@ -66,6 +72,7 @@ describe('AI scene reactions', () => {
       mode: 'lineId',
       lineId: 'hudChrome.aiSpeech.companionUndeadFear',
     });
+    expect(event && event.type === 'aiSpeech' ? event.reaction : null).toMatchObject({ targetEntityId: 2 });
   });
 
   it('reacts to rain, fog, and starry lake scenes with distinct lines', () => {

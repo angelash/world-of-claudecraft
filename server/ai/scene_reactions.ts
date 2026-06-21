@@ -26,21 +26,21 @@ export function sceneAwarenessEvent(context: AiJobContextV1, speaker: Entity): S
       ...commonValues,
       companionName: demonCompanion.displayName,
       companionTemplateId: demonCompanion.templateId,
-    }, 'avoid');
+    }, 'avoid', demonCompanion.entityId);
   }
   if (undeadCompanion && isLivingTownScene(scene)) {
     return line(context, speaker, 'hudChrome.aiSpeech.sceneUndeadCompanionUnease', {
       ...commonValues,
       companionName: undeadCompanion.displayName,
       companionTemplateId: undeadCompanion.templateId,
-    }, 'avoid');
+    }, 'avoid', undeadCompanion.entityId);
   }
   if (companion && scene.danger.undeadPressure >= 0.3) {
     return line(context, speaker, 'hudChrome.aiSpeech.companionUndeadFear', {
       ...commonValues,
       companionName: companion.displayName,
       companionTemplateId: companion.templateId,
-    }, 'avoid');
+    }, 'avoid', companion.entityId);
   }
   const profileFearsUndeadPressure = profileAvoidsAny(profile, ['deathPressure', 'undeadMemory', 'graveSoil', 'cursed']);
   if (scene.danger.undeadPressure >= (profileFearsUndeadPressure ? 0.28 : 0.45) || scene.environmentalTags.includes('deathPressure')) {
@@ -96,6 +96,7 @@ function line(
   lineId: string,
   values: Record<string, string | number>,
   kind: 'avoid' | 'inspect' | 'seekShelter',
+  targetEntityId?: number,
 ): SimEvent {
   return {
     type: 'aiSpeech',
@@ -105,6 +106,7 @@ function line(
     source: 'fallback',
     reaction: {
       kind: kind === 'seekShelter' ? 'inspect' : kind,
+      ...(targetEntityId !== undefined ? { targetEntityId } : {}),
       sceneTags: context.scene ? [...new Set([...context.scene.locationTags, ...context.scene.structureTags, ...context.scene.environmentalTags])].slice(0, 8) : [],
     },
     pid: context.player.entityId,

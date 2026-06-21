@@ -8,6 +8,7 @@ export type VisibleAiReactionKind = Exclude<AiReactionKind, 'ignore'>;
 export interface AiReactionBadgeView {
   kind: VisibleAiReactionKind;
   labelKey: TranslationKey;
+  targetEntityId?: number;
 }
 
 const BADGE_KEYS: Record<VisibleAiReactionKind, TranslationKey> = {
@@ -18,5 +19,12 @@ const BADGE_KEYS: Record<VisibleAiReactionKind, TranslationKey> = {
 
 export function aiReactionBadgeView(reaction: AiSpeechEvent['reaction']): AiReactionBadgeView | null {
   if (!reaction || reaction.kind === 'ignore') return null;
-  return { kind: reaction.kind, labelKey: BADGE_KEYS[reaction.kind] };
+  const targetEntityId = typeof reaction.targetEntityId === 'number'
+    ? reaction.targetEntityId
+    : typeof reaction.targetObjectId === 'number'
+      ? reaction.targetObjectId
+      : undefined;
+  return targetEntityId === undefined
+    ? { kind: reaction.kind, labelKey: BADGE_KEYS[reaction.kind] }
+    : { kind: reaction.kind, labelKey: BADGE_KEYS[reaction.kind], targetEntityId };
 }

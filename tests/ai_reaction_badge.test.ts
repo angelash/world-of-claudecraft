@@ -4,8 +4,11 @@ import type { SimEvent } from '../src/sim/types';
 
 type AiSpeechEvent = Extract<SimEvent, { type: 'aiSpeech' }>;
 
-function reaction(kind: NonNullable<AiSpeechEvent['reaction']>['kind']): AiSpeechEvent['reaction'] {
-  return { kind };
+function reaction(
+  kind: NonNullable<AiSpeechEvent['reaction']>['kind'],
+  rest: Omit<NonNullable<AiSpeechEvent['reaction']>, 'kind'> = {},
+): AiSpeechEvent['reaction'] {
+  return { kind, ...rest };
 }
 
 describe('AI reaction badge view', () => {
@@ -27,5 +30,16 @@ describe('AI reaction badge view', () => {
   it('does not show a badge for ignored or missing reactions', () => {
     expect(aiReactionBadgeView(reaction('ignore'))).toBeNull();
     expect(aiReactionBadgeView(undefined)).toBeNull();
+  });
+
+  it('exposes the target entity for attention links', () => {
+    expect(aiReactionBadgeView(reaction('inspect', { targetObjectId: 42 }))).toMatchObject({
+      kind: 'inspect',
+      targetEntityId: 42,
+    });
+    expect(aiReactionBadgeView(reaction('avoid', { targetEntityId: 13, targetObjectId: 42 }))).toMatchObject({
+      kind: 'avoid',
+      targetEntityId: 13,
+    });
   });
 });

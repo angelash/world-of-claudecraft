@@ -942,6 +942,7 @@ export type SimEvent = { pid?: number } & (
       source: 'fallback' | 'codex';
       reaction?: {
         kind: 'approach' | 'avoid' | 'inspect' | 'ignore';
+        targetEntityId?: number;
         targetItemId?: string;
         targetObjectId?: number;
         score?: number;

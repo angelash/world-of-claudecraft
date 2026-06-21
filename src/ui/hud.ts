@@ -3573,7 +3573,12 @@ export class Hud {
           const speaker = sim.entities.get(ev.speakerId);
           if (speaker) {
             const reactionBadge = aiReactionBadgeView(ev.reaction);
-            if (reactionBadge) this.renderer.showAiReactionBadge(ev.speakerId, t(reactionBadge.labelKey), reactionBadge.kind);
+            if (reactionBadge) {
+              this.renderer.showAiReactionBadge(ev.speakerId, t(reactionBadge.labelKey), reactionBadge.kind);
+              if (reactionBadge.targetEntityId !== undefined) {
+                this.renderer.showAiAttentionLink(ev.speakerId, reactionBadge.targetEntityId, reactionBadge.kind);
+              }
+            }
             this.renderer.showChatBubble(ev.speakerId, this.maskChat(text), false);
           }
           break;
