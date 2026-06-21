@@ -17,7 +17,7 @@ vi.mock('../server/db', () => ({
 import { AI_MEMORY_PRUNE_INTERVAL_MS, GameServer, type ClientSession } from '../server/game';
 import { pool } from '../server/db';
 import { AiLifeLayer } from '../server/ai/life_layer';
-import type { AiDecisionV1, AiJobContextV1, AiProvider } from '../server/ai/ai_types';
+import type { AiDecisionV1, AiJobContextV1, AiMemoryAuditRecord, AiProvider } from '../server/ai/ai_types';
 import { individualProfileFor } from '../server/ai/singularity';
 import type { Entity } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
@@ -111,6 +111,24 @@ function seedThatMakesSingularity(entity: Entity): number {
     if (individualProfileFor(entity, seed).tier === 'singularity') return seed;
   }
   throw new Error(`No singularity seed found for ${entity.templateId}`);
+}
+
+function persistedDirectorSignal(playerEntityId: number): AiMemoryAuditRecord {
+  return {
+    kind: 'worldDirectorState',
+    refId: 'persisted-director-covetous',
+    scope: 'region',
+    sceneId: 'eastbrook_forge',
+    zoneId: 'eastbrook_vale',
+    sourcePlayerEntityId: playerEntityId,
+    itemId: 'redbrook_blade',
+    subjectKind: 'item',
+    lineIds: ['hudChrome.aiSpeech.worldDirectorCovetous'],
+    salience: 0.72,
+    createdAt: 12,
+    expiresAt: 160,
+    reason: 'persistedRestart:covetous:npcTopicShift',
+  };
 }
 
 async function flushAi(): Promise<void> {
@@ -291,6 +309,48 @@ describe('server AI interact command', () => {
       server.stop();
       vi.useRealTimers();
     }
+  });
+
+  it('restores persisted director region echoes through the real GameServer memory DB path', async () => {
+    const query = dbQueryMock();
+    query.mockClear();
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
+    teleportNear(server, session.pid, npc.id);
+    query.mockImplementation(async (sql: unknown, values?: readonly unknown[]) => {
+      if (typeof sql === 'string' && sql.includes('SELECT payload') && sql.includes('ai_memory_records')) {
+        expect(values?.[1]).toBe(session.pid);
+        expect(values?.[3]).toBe('eastbrook_vale');
+        return { rows: [{ payload: persistedDirectorSignal(session.pid) }], rowCount: 1 };
+      }
+      return { rows: [], rowCount: 0 };
+    });
+    const before = mainlineSnapshot(server, session.pid);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: session.pid,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+        values: expect.objectContaining({
+          itemId: 'redbrook_blade',
+          directorMood: 'covetous',
+          directorHeat: 72,
+        }),
+      }),
+      reaction: expect.objectContaining({
+        kind: 'inspect',
+        targetItemId: 'redbrook_blade',
+        sceneTags: expect.arrayContaining(['director:covetous', 'persistedMemory']),
+      }),
+      pid: session.pid,
+    }));
+    expect(mainlineSnapshot(server, session.pid)).toEqual(before);
+    query.mockResolvedValue({ rows: [], rowCount: 0 });
   });
 
   it('keeps mainline quest, inventory, currency, and XP state identical with AI enabled or disabled', async () => {
