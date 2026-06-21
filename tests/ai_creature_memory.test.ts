@@ -30,7 +30,13 @@ describe('AI creature memory', () => {
     expect(singularityCreatureMemoryEvent(player, creature, item, second)).toMatchObject({
       speech: {
         lineId: 'hudChrome.aiSpeech.singularityRemembersPlayer',
-        values: expect.objectContaining({ itemId: 'roasted_boar', playerName: 'Ari', interactionCount: 2 }),
+        values: expect.objectContaining({
+          speakerTemplateId: 'forest_wolf',
+          individualAlias: 'foodFixated',
+          itemId: 'roasted_boar',
+          playerName: 'Ari',
+          interactionCount: 2,
+        }),
       },
       reaction: {
         kind: 'inspect',

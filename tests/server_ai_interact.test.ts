@@ -603,7 +603,13 @@ describe('server AI interact command', () => {
 
     expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
       speakerId: wolf.id,
-      speech: expect.objectContaining({ lineId: expect.stringMatching(/^hudChrome\.aiSpeech\.singularity[A-Z].*/) }),
+      speech: expect.objectContaining({
+        lineId: expect.stringMatching(/^hudChrome\.aiSpeech\.singularity[A-Z].*/),
+        values: expect.objectContaining({
+          speakerTemplateId: 'forest_wolf',
+          individualAlias: expect.any(String),
+        }),
+      }),
       reaction: expect.objectContaining({ individualTier: 'singularity', targetItemId: 'roasted_boar' }),
       pid: session.pid,
     }));
@@ -638,7 +644,13 @@ describe('server AI interact command', () => {
       speakerId: wolf.id,
       speech: expect.objectContaining({
         lineId: 'hudChrome.aiSpeech.singularityRemembersPlayer',
-        values: expect.objectContaining({ itemId: 'roasted_boar', playerName: 'Ari', interactionCount: 2 }),
+        values: expect.objectContaining({
+          speakerTemplateId: 'forest_wolf',
+          individualAlias: expect.any(String),
+          itemId: 'roasted_boar',
+          playerName: 'Ari',
+          interactionCount: 2,
+        }),
       }),
       reaction: expect.objectContaining({
         kind: 'inspect',

@@ -1,7 +1,7 @@
 import type { Entity, MobFamily, SimEvent } from '../../src/sim/types';
 import type { SceneFrameV1 } from './scene_frame';
 import { familySemanticsFor, mobFamilyForEntity } from './family_semantics';
-import { individualProfileFor } from './singularity';
+import { individualProfileFor, individualSpeechValues } from './singularity';
 import type { IndividualAiProfile } from './singularity';
 
 export type FamilySceneReactionKind = 'approach' | 'avoid' | 'inspect' | 'ignore';
@@ -120,9 +120,11 @@ export function familySceneReactionEvent(reaction: FamilySceneReaction, scene: S
       lineId: reaction.lineId,
       values: {
         speakerName: reaction.entity.name,
+        speakerTemplateId: reaction.entity.templateId,
         family: reaction.family,
         reaction: reaction.reaction,
         score: Math.round(reaction.score * 100),
+        ...individualSpeechValues(reaction.individual),
       },
     },
     source: 'fallback',

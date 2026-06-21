@@ -32,6 +32,7 @@ import { topicReactionEvent } from './question_reactions';
 import { droppedItemSemantic, sceneFrameFor } from './scene_frame';
 import { sceneInspectionEvent } from './scene_inspection';
 import { sceneAwarenessEvent } from './scene_reactions';
+import { individualSpeechValues } from './singularity';
 import { AiSocialMemoryStore } from './social_memory';
 import type { AiNpcMemory, AiRumorMemory } from './social_memory';
 import { AiWorldDirectorStore, worldDirectorEvent } from './world_director';
@@ -377,9 +378,11 @@ export class AiLifeLayer {
         lineId: reaction.lineId,
         values: {
           speakerName: reaction.entity.name,
+          speakerTemplateId: reaction.entity.templateId,
           itemId: dropped.itemId,
           reaction: reaction.reaction,
           score: Math.round(reaction.score * 100),
+          ...individualSpeechValues(reaction.individual),
         },
       },
       source: 'fallback',
@@ -451,9 +454,11 @@ export class AiLifeLayer {
           lineId: reaction.lineId,
           values: {
             speakerName: reaction.entity.name,
+            speakerTemplateId: reaction.entity.templateId,
             itemId: inspectedItem.itemId,
             reaction: reaction.reaction,
             score: Math.round(reaction.score * 100),
+            ...individualSpeechValues(reaction.individual),
           },
         },
         source: 'fallback' as const,
@@ -515,10 +520,12 @@ export class AiLifeLayer {
             lineId: reaction.lineId,
             values: {
               speakerName: reaction.entity.name,
+              speakerTemplateId: reaction.entity.templateId,
               itemId: tracedItem.itemId,
               traceKind: trace.kind,
               reaction: reaction.reaction,
               score: Math.round(reaction.score * 100),
+              ...individualSpeechValues(reaction.individual),
             },
           },
           source: 'fallback' as const,

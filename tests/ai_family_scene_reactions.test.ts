@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Entity } from '../src/sim/types';
-import { rankFamilySceneReactions, scoreFamilySceneReaction } from '../server/ai/family_scene_reactions';
+import { familySceneReactionEvent, rankFamilySceneReactions, scoreFamilySceneReaction } from '../server/ai/family_scene_reactions';
 import type { SceneFrameV1 } from '../server/ai/scene_frame';
 import { sceneSemanticsAt } from '../server/ai/scene_semantics';
 import { timeWeatherMood } from '../server/ai/time_weather_model';
@@ -72,6 +72,14 @@ describe('AI family scene reactions', () => {
       family: 'elemental',
       lineId: 'hudChrome.aiSpeech.familySceneElementalResonance',
       individual: expect.objectContaining({ tier: 'singularity' }),
+    });
+    expect(familySceneReactionEvent(reactions[0], scene, 1)).toMatchObject({
+      speech: {
+        values: expect.objectContaining({
+          speakerTemplateId: 'stormcrag_elemental',
+          individualAlias: expect.any(String),
+        }),
+      },
     });
   });
 });

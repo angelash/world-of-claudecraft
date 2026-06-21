@@ -29,6 +29,10 @@ export interface IndividualThresholds {
   singularityThreshold?: number;
 }
 
+export interface IndividualSpeechValues {
+  individualAlias?: IndividualTrait | 'singularity';
+}
+
 export interface BiasedItemReaction {
   reaction: ItemReactionKind;
   score: number;
@@ -134,6 +138,16 @@ export function isSingularityLineId(lineId: string): boolean {
   return lineId.startsWith('hudChrome.aiSpeech.singularity');
 }
 
+export function individualSpeechValues(individual: IndividualAiProfile | null | undefined): IndividualSpeechValues {
+  if (!individual || individual.tier !== 'singularity') return {};
+  return { individualAlias: individual.traits[0] ?? 'singularity' };
+}
+
+export function individualSpeechValuesFromTraits(traits: readonly string[] | null | undefined): IndividualSpeechValues {
+  const alias = traits?.find(isIndividualTrait);
+  return alias ? { individualAlias: alias } : {};
+}
+
 function traitsFor(entity: Entity, family: MobFamily | null, worldSeed: number, tier: IndividualTier): IndividualTrait[] {
   const pool: readonly IndividualTrait[] = family ? FAMILY_TRAITS[family] : ['collector', 'cowardly', 'omenSensitive'];
   const count = tier === 'singularity' ? 2 : 1;
@@ -179,4 +193,16 @@ function hashUnit(input: string): number {
 
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
+}
+
+function isIndividualTrait(value: string): value is IndividualTrait {
+  return (
+    value === 'foodFixated'
+    || value === 'collector'
+    || value === 'omenSensitive'
+    || value === 'cowardly'
+    || value === 'territorial'
+    || value === 'vengeful'
+    || value === 'stargazer'
+  );
 }

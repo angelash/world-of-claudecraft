@@ -1,5 +1,6 @@
 import type { Entity, SimEvent } from '../../src/sim/types';
 import type { DroppedItemSemantic } from './scene_frame';
+import { individualSpeechValuesFromTraits } from './singularity';
 import type { IndividualAiProfile } from './singularity';
 
 export interface AiCreatureMemory {
@@ -79,9 +80,11 @@ export function singularityCreatureMemoryEvent(
       lineId: 'hudChrome.aiSpeech.singularityRemembersPlayer',
       values: {
         speakerName: creature.name,
+        speakerTemplateId: creature.templateId,
         playerName: player.name,
         itemId: item.itemId,
         interactionCount: memory.interactionCount,
+        ...individualSpeechValuesFromTraits(memory.traits),
       },
     },
     source: 'fallback',

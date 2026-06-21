@@ -3,7 +3,13 @@ import type { Entity } from '../src/sim/types';
 import { droppedItemSemantic, type SceneFrameV1 } from '../server/ai/scene_frame';
 import { sceneSemanticsAt } from '../server/ai/scene_semantics';
 import { timeWeatherMood } from '../server/ai/time_weather_model';
-import { applyIndividualBiasToItemReaction, individualProfileFor, isSingularityLineId } from '../server/ai/singularity';
+import {
+  applyIndividualBiasToItemReaction,
+  individualProfileFor,
+  individualSpeechValues,
+  individualSpeechValuesFromTraits,
+  isSingularityLineId,
+} from '../server/ai/singularity';
 
 function mob(id: number, templateId: string): Entity {
   return {
@@ -43,6 +49,23 @@ describe('AI singularity profiles', () => {
     const profile = individualProfileFor(mob(12, 'wild_boar'), 1, { quirkThreshold: 0, singularityThreshold: 0 });
     expect(profile.tier).toBe('singularity');
     expect(profile.traits.length).toBeGreaterThan(0);
+  });
+
+  it('adds display alias values only for singularity individuals', () => {
+    const singularity = {
+      ...individualProfileFor(mob(9, 'forest_wolf'), 1, { quirkThreshold: 0, singularityThreshold: 0 }),
+      traits: ['territorial' as const],
+      tier: 'singularity' as const,
+    };
+    const quirk = {
+      ...singularity,
+      tier: 'quirk' as const,
+    };
+
+    expect(individualSpeechValues(singularity)).toEqual({ individualAlias: 'territorial' });
+    expect(individualSpeechValues(quirk)).toEqual({});
+    expect(individualSpeechValuesFromTraits(['vengeful', 'unknown'])).toEqual({ individualAlias: 'vengeful' });
+    expect(individualSpeechValuesFromTraits(['unknown'])).toEqual({});
   });
 
   it('uses trait-specific singularity lineIds when a trait strongly changes item interest', () => {

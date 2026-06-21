@@ -78,6 +78,7 @@ import { localizeServerText, localizeZone } from './server_i18n';
 import { localizeSimText, localizeSimAuraName } from './sim_i18n';
 import { tTalent, localizeTalentTitle } from './talent_i18n';
 import { type ChatClock, clampChatClock, formatChatTimestamp } from './chat_timestamp';
+import { singularityAliasTranslationKey } from './ai_speech_name';
 import {
   talentsFor, computeTalentModifiers, validateAllocation, dormantNodes, pointsSpent,
   exportBuild, importBuild, cloneAllocation, talentPointsAtLevel, FIRST_TALENT_LEVEL,
@@ -3565,8 +3566,9 @@ export class Hud {
           this.refreshGossip();
           break;
         case 'aiSpeech': {
-          const text = this.aiSpeechText(ev);
-          this.chatLogFrom(ev.speakerName, text, '#b9e4ff', CHAT_TEMPLATE_KEYS.say, 'say');
+          const speakerName = this.aiSpeechSpeakerName(ev);
+          const text = this.aiSpeechText(ev, speakerName);
+          this.chatLogFrom(speakerName, text, '#b9e4ff', CHAT_TEMPLATE_KEYS.say, 'say');
           const speaker = sim.entities.get(ev.speakerId);
           if (speaker) this.renderer.showChatBubble(ev.speakerId, this.maskChat(text), false);
           break;
@@ -3859,10 +3861,10 @@ export class Hud {
     if (wasNearBottom) this.chatLogEl.scrollTop = this.chatLogEl.scrollHeight;
   }
 
-  private aiSpeechText(ev: Extract<SimEvent, { type: 'aiSpeech' }>): string {
+  private aiSpeechText(ev: Extract<SimEvent, { type: 'aiSpeech' }>, resolvedSpeakerName?: string): string {
     if (ev.speech.mode === 'dynamicText') return ev.speech.text;
     const values = ev.speech.values ?? {};
-    const speakerName = String(values.speakerName ?? ev.speakerName);
+    const speakerName = resolvedSpeakerName ?? this.aiSpeechSpeakerName(ev);
     const itemName = this.aiSpeechItemName(values);
     const companionName = this.aiSpeechCompanionName(values);
     const objectName = this.aiSpeechObjectName(values);
@@ -3996,8 +3998,21 @@ export class Hud {
       case 'hudChrome.aiSpeech.sceneInspectGeneric':
         return t(ev.speech.lineId as TranslationKey);
       default:
-        return t('hudChrome.aiSpeech.genericNpcAwake', { speakerName: ev.speakerName });
+        return t('hudChrome.aiSpeech.genericNpcAwake', { speakerName });
     }
+  }
+
+  private aiSpeechSpeakerName(ev: Extract<SimEvent, { type: 'aiSpeech' }>): string {
+    if (ev.speech.mode === 'dynamicText') return ev.speakerName;
+    const values = ev.speech.values ?? {};
+    const baseName = typeof values.speakerName === 'string' ? values.speakerName : ev.speakerName;
+    const templateId = typeof values.speakerTemplateId === 'string'
+      ? values.speakerTemplateId
+      : this.sim.entities.get(ev.speakerId)?.templateId;
+    const localizedBaseName = templateId && MOBS[templateId] ? mobDisplayName(templateId) : baseName;
+    const alias = typeof values.individualAlias === 'string' ? values.individualAlias : '';
+    const aliasKey = singularityAliasTranslationKey(alias);
+    return aliasKey ? t(aliasKey, { baseName: localizedBaseName }) : localizedBaseName;
   }
 
   private aiSpeechItemName(values: Record<string, string | number>): string {
