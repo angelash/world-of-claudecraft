@@ -1141,7 +1141,7 @@ export class AiLifeLayer {
       const familyReactions = rankFamilySceneReactions(
         scene,
         nearbyFamilySceneCandidates(scene, request.sim.entities.values(), player),
-        { worldSeed: request.sim.cfg.seed },
+        { worldSeed: request.sim.cfg.seed, directorProposals: directorState ? [directorState.proposal] : [] },
       ).slice(0, 2);
       for (const reaction of familyReactions) {
         let localEvent = familySceneReactionEvent(reaction, scene, request.pid) as Extract<SimEvent, { type: 'aiSpeech' }>;

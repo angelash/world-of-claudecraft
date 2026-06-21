@@ -4,6 +4,7 @@ import { familySceneReactionEvent, rankFamilySceneReactions, scoreFamilySceneRea
 import type { SceneFrameV1, SceneObjectSemantic } from '../server/ai/scene_frame';
 import { sceneSemanticsAt } from '../server/ai/scene_semantics';
 import { timeWeatherMood } from '../server/ai/time_weather_model';
+import type { AiWorldDirectorProposal } from '../server/ai/world_director';
 
 function mob(id: number, templateId: string, x = 0, z = 0): Entity {
   return {
@@ -42,6 +43,24 @@ function sceneObject(overrides: Partial<SceneObjectSemantic> & Pick<SceneObjectS
     featureTags: [],
     affordanceTags: [],
     distance: 6,
+    ...overrides,
+  };
+}
+
+function directorProposal(overrides: Partial<AiWorldDirectorProposal> = {}): AiWorldDirectorProposal {
+  return {
+    proposalId: 'director-1:proposal',
+    intent: 'echoTrace',
+    status: 'preview',
+    risk: 'low',
+    intensity: 0.8,
+    targetRef: 'roasted_boar',
+    sceneId: 'brightwood_path',
+    zoneId: 'eastbrook_vale',
+    suggestedLineId: 'hudChrome.aiSpeech.worldDirectorHungry',
+    expiresAt: 180,
+    reasonTags: ['mood:hungry', 'subject:item', 'proposal:traceEcho', 'trace:food'],
+    safetyNotes: ['presentationOnly', 'noQuestMutation', 'noCombatMutation', 'noLootOrEconomyMutation'],
     ...overrides,
   };
 }
@@ -176,6 +195,37 @@ describe('AI family scene reactions', () => {
       }),
     });
     expect(event.type === 'aiSpeech' ? event.reaction : null).not.toHaveProperty('targetObjectId');
+  });
+
+  it('lets world director proposals bias ordinary creature body language without a spawned object', () => {
+    const scene = frame(-10, 120, 10 * 60, {
+      biomeTags: ['vale'],
+      locationTags: ['forest'],
+      structureTags: [],
+      environmentalTags: [],
+      nearbySemanticObjects: [],
+    });
+    const reaction = scoreFamilySceneReaction(scene, mob(18, 'forest_wolf'), {
+      directorProposals: [directorProposal()],
+    });
+
+    expect(reaction).toMatchObject({
+      family: 'beast',
+      reaction: 'approach',
+      focusedObject: expect.objectContaining({
+        objectId: 'roasted_boar',
+        entityId: null,
+        templateId: 'world_director:echoTrace',
+        reasonTags: expect.arrayContaining(['director:echoTrace', 'mood:hungry', 'trace:food']),
+      }),
+    });
+    expect(familySceneReactionEvent(reaction!, scene, 1)).toMatchObject({
+      reaction: expect.objectContaining({
+        kind: 'approach',
+        targetItemId: 'roasted_boar',
+        sceneTags: expect.arrayContaining(['director:echoTrace']),
+      }),
+    });
   });
 
   it('ranks star-aware singularity creatures above ordinary scene readers', () => {
