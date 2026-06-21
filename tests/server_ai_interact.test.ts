@@ -380,6 +380,18 @@ describe('server AI interact command', () => {
       }),
       pid: session.pid,
     }));
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: wolf!.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.itemInterestApproach',
+        values: expect.objectContaining({ itemId: 'roasted_boar', traceKind: 'food' }),
+      }),
+      reaction: expect.objectContaining({
+        kind: 'approach',
+        targetItemId: 'roasted_boar',
+      }),
+      pid: session.pid,
+    }));
     const afterObjects = [...server.sim.entities.values()].filter((entity) => entity.kind === 'object').length;
     expect(afterObjects).toBe(beforeObjects);
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);

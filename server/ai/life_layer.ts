@@ -273,7 +273,46 @@ export class AiLifeLayer {
     const sceneId = scene.subsceneId ?? scene.zoneId;
     const trace = this.worldTraces.traceForScene(sceneId, request.pid, request.sim.time);
     const event = sceneInspectionEvent(scene, player, trace);
+    const events: SimEvent[] = [event];
     const lineIds = event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [];
+    if (trace) {
+      const tracedItem = droppedItemSemantic(trace.itemId, Math.max(0, request.sim.time - trace.createdAt), trace.sourcePlayerEntityId);
+      if (tracedItem) {
+        const reactions = rankItemReactions(
+          scene,
+          tracedItem,
+          nearbyReactionCandidates(scene, request.sim.entities.values(), player),
+          { worldSeed: request.sim.cfg.seed },
+        ).slice(0, 2);
+        lineIds.push(...reactions.map((reaction) => reaction.lineId));
+        events.push(...reactions.map((reaction) => ({
+          type: 'aiSpeech' as const,
+          speakerId: reaction.entity.id,
+          speakerName: reaction.entity.name,
+          speech: {
+            mode: 'lineId' as const,
+            lineId: reaction.lineId,
+            values: {
+              speakerName: reaction.entity.name,
+              itemId: tracedItem.itemId,
+              traceKind: trace.kind,
+              reaction: reaction.reaction,
+              score: Math.round(reaction.score * 100),
+            },
+          },
+          source: 'fallback' as const,
+          reaction: {
+            kind: reaction.reaction,
+            targetItemId: tracedItem.itemId,
+            score: Math.round(reaction.score * 100) / 100,
+            sceneTags: [...new Set([...scene.locationTags, ...scene.structureTags, ...scene.environmentalTags, `trace:${trace.kind}`])].slice(0, 8),
+            individualTier: reaction.individual?.tier,
+            individualTraits: reaction.individual?.traits,
+          },
+          pid: request.pid,
+        })));
+      }
+    }
     this.journal.recordLocalReaction({
       jobId: `scene-${request.pid}-${++this.sequence}`,
       trigger: 'scene_inspected',
@@ -282,10 +321,10 @@ export class AiLifeLayer {
       playerEntityId: request.pid,
       reason: `inspectScene:${scene.subsceneId ?? scene.zoneId}`,
       lineIds,
-      intents: ['inspectObject', 'commentOnScene'],
+      intents: trace ? ['inspectObject', 'commentOnScene', 'reactToWorldTrace'] : ['inspectObject', 'commentOnScene'],
       sceneId,
     });
-    request.deliver([event]);
+    request.deliver(events);
   }
 
   private buildNpcContext(request: NpcAiInteractionRequest): AiJobContextV1 | null {
