@@ -81,6 +81,22 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
   if (context.recentObservations.length > 0) {
     lines.push(`Recent observations: ${context.recentObservations.join(', ')}`);
   }
+  if (context.directorProposals && context.directorProposals.length > 0) {
+    lines.push(`Director proposals: ${context.directorProposals
+      .slice(0, 4)
+      .map((proposal) => [
+        `${proposal.intent}:${proposal.status}:${proposal.risk}`,
+        `intensity=${proposal.intensity.toFixed(2)}`,
+        `target=${proposal.targetRef}`,
+        `scene=${proposal.sceneId}`,
+        `zone=${proposal.zoneId}`,
+        `line=${proposal.suggestedLineId}`,
+        `expires=${Math.round(proposal.expiresAt)}`,
+        `reasons=${proposal.reasonTags.slice(0, 6).join('/') || 'none'}`,
+        `safety=${proposal.safetyNotes.join('/') || 'none'}`,
+      ].join(':'))
+      .join(', ')}`);
+  }
   if (context.memorySignals && context.memorySignals.length > 0) {
     lines.push(`Memory signals: ${context.memorySignals
       .slice(0, 8)

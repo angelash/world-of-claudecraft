@@ -67,6 +67,20 @@ const context: AiJobContextV1 = {
   familySemantics: null,
   questFacts: [{ questId: 'q_bones', visibility: 'currentObjective', summary: 'Gather bones.', source: 'quest-log' }],
   recentObservations: ['scene:fallen_chapel', 'tag:deathPressure', 'creaturePlan:followScent', 'planEvidence:trait:foodFixated'],
+  directorProposals: [{
+    proposalId: 'director-1:proposal',
+    intent: 'nudgeNpcRumor',
+    status: 'preview',
+    risk: 'low',
+    intensity: 0.66,
+    targetRef: 'gravecaller_sigil',
+    sceneId: 'fallen_chapel',
+    zoneId: 'eastbrook_vale',
+    suggestedLineId: 'hudChrome.aiSpeech.worldDirectorHaunted',
+    expiresAt: 144,
+    reasonTags: ['mood:haunted', 'subject:item', 'proposal:npcTopicShift', 'trace:cursed'],
+    safetyNotes: ['presentationOnly', 'noQuestMutation', 'noCombatMutation', 'noLootOrEconomyMutation'],
+  }],
   memorySignals: [{
     kind: 'rumor',
     refId: 'rumor-7',
@@ -110,6 +124,9 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('Companions: Fang:forest_wolf:beast(pet/beast)');
     expect(prompt).toContain('Recent scene events: playerDiscarded:gravecaller_sigil');
     expect(prompt).toContain('Recent observations: scene:fallen_chapel, tag:deathPressure, creaturePlan:followScent, planEvidence:trait:foodFixated');
+    expect(prompt).toContain('Director proposals: nudgeNpcRumor:preview:low:intensity=0.66:target=gravecaller_sigil:scene=fallen_chapel:zone=eastbrook_vale');
+    expect(prompt).toContain('reasons=mood:haunted/subject:item/proposal:npcTopicShift/trace:cursed');
+    expect(prompt).toContain('safety=presentationOnly/noQuestMutation/noCombatMutation/noLootOrEconomyMutation');
     expect(prompt).toContain('Memory signals: rumor:rumor-7:region:salience=0.65:readRegionRumor');
     expect(prompt).toContain('Return only JSON');
   });

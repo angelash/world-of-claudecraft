@@ -1130,7 +1130,26 @@ describe('server AI interact command', () => {
   });
 
   it('lets NPC place questions read active world director state', async () => {
+    const calls: AiJobContextV1[] = [];
+    const provider: AiProvider = {
+      async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
+        calls.push(context);
+        const lineId = context.allowedLineIds?.[0] ?? 'hudChrome.aiSpeech.genericNpcAwake';
+        context.directorProposals?.[0]?.reasonTags.push('provider-mutated');
+        return {
+          schemaVersion: 1,
+          jobId: context.jobId,
+          entityRef: { kind: context.entity.kind, entityId: context.entity.entityId, templateId: context.entity.templateId },
+          ttlMs: 5000,
+          confidence: 1,
+          speech: [{ mode: 'lineId', lineId, values: { playerName: context.player.name } }],
+          intents: [{ type: 'commentOnScene', lineId }],
+          audit: { shortReason: 'provider read active world director proposal', usedPlayerInput: false, safetyNotes: [] },
+        };
+      },
+    };
     const server = new GameServer();
+    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
     const fc = fakeWs();
     const session = joinServer(server, fc);
     const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'smith_haldren')!;
@@ -1141,11 +1160,29 @@ describe('server AI interact command', () => {
 
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'redbrook_blade', count: 1 }));
     await flushAi();
+    calls.length = 0;
     fc.sent.length = 0;
 
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en', topic: 'place' }));
     await flushAi();
 
+    expect(calls).toHaveLength(1);
+    expect(calls[0].directorProposals).toContainEqual(expect.objectContaining({
+      intent: 'nudgeNpcRumor',
+      status: 'preview',
+      risk: 'low',
+      targetRef: 'redbrook_blade',
+      sceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
+      suggestedLineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+      safetyNotes: expect.arrayContaining([
+        'presentationOnly',
+        'noQuestMutation',
+        'noCombatMutation',
+        'noLootOrEconomyMutation',
+      ]),
+    }));
+    expect((server as any).aiLifeLayer.worldDirectorDiagnostics()[0].proposal.reasonTags).not.toContain('provider-mutated');
     expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
       speakerId: npc.id,
       speech: expect.objectContaining({
@@ -1163,6 +1200,11 @@ describe('server AI interact command', () => {
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en', topic: 'recent' }));
     await flushAi();
 
+    expect(calls).toHaveLength(2);
+    expect(calls[1].directorProposals).toContainEqual(expect.objectContaining({
+      intent: 'nudgeNpcRumor',
+      targetRef: 'redbrook_blade',
+    }));
     expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
       speakerId: npc.id,
       speech: expect.objectContaining({
@@ -1365,6 +1407,19 @@ describe('server AI interact command', () => {
           ]));
           expect(context.memorySignals?.some((record) =>
             record.kind === 'creatureMemory' && record.reason.includes(':plan:'))).toBe(true);
+          expect(context.directorProposals).toContainEqual(expect.objectContaining({
+            intent: 'raiseCampCaution',
+            status: 'preview',
+            risk: 'low',
+            targetRef: 'roasted_boar',
+            suggestedLineId: 'hudChrome.aiSpeech.worldDirectorUncanny',
+            safetyNotes: expect.arrayContaining([
+              'presentationOnly',
+              'noQuestMutation',
+              'noCombatMutation',
+              'noLootOrEconomyMutation',
+            ]),
+          }));
         }
         return {
           schemaVersion: 1,

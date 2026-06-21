@@ -2,6 +2,7 @@ import type { Entity, SimEvent } from '../../src/sim/types';
 import type { AiNpcInteractionTopic } from '../../src/world_api';
 import type { CompactFamilySemantics } from './family_semantics';
 import type { SceneFrameV1 } from './scene_frame';
+import type { AiWorldDirectorProposal } from './world_director';
 
 export type AiEntityKind = 'npc' | 'mob' | 'object';
 export type AiOutputMode = 'line_id_only' | 'dynamic_text_experiment' | 'mixed_living_world';
@@ -88,6 +89,7 @@ export interface AiJobContextV1 {
   questFacts: AiQuestFact[];
   recentObservations: string[];
   memorySignals?: AiMemoryAuditRecord[];
+  directorProposals?: AiWorldDirectorProposal[];
   allowedIntents: AiIntentType[];
   allowedLineIds?: string[];
   outputMode: AiOutputMode;

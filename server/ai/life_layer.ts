@@ -48,7 +48,7 @@ import { individualProfileFor, individualSpeechValues } from './singularity';
 import { AiSocialMemoryStore } from './social_memory';
 import type { AiNpcMemory, AiRumorMemory } from './social_memory';
 import { AiWorldDirectorStore, worldDirectorEvent } from './world_director';
-import type { AiWorldDirectorState } from './world_director';
+import type { AiWorldDirectorProposal, AiWorldDirectorState } from './world_director';
 import { AiWorldTraceStore } from './world_traces';
 import type { AiWorldTrace } from './world_traces';
 import { worldTraceReactionEvent } from './world_trace_reactions';
@@ -566,6 +566,8 @@ export class AiLifeLayer {
     const directorState = this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time)
       ?? this.worldDirector.stateForRegion({ zoneId, sceneId, playerEntityId: request.pid, nowSeconds: request.sim.time });
     if (directorState) context.recentObservations.push(`worldDirector:${directorState.mood}:${directorState.itemId}:${directorState.heat.toFixed(2)}`);
+    const directorProposals = cloneDirectorProposals([directorState?.proposal]);
+    if (directorProposals.length > 0) context.directorProposals = directorProposals;
     const encounterMemory = this.bossMemory.memoryForScene(sceneId, request.pid, request.sim.time);
     if (encounterMemory) context.recentObservations.push(`bossMemory:${encounterMemory.outcome}:${encounterMemory.templateId}:${encounterMemory.heat.toFixed(2)}`);
     const sceneRumor = this.socialMemory.rumorForScene(sceneId, request.pid, request.sim.time);
@@ -740,6 +742,7 @@ export class AiLifeLayer {
           individualTraits: reaction.individual.traits,
           plan,
           memorySignals: memoryWrites,
+          directorProposals: [directorState?.proposal],
         });
         if (context) reactionEvents = await this.decideSingularityReactionEvents(context, reaction.entity, localEvent, memoryWrites);
         if (memoryEvent) reactionEvents.push(memoryEvent);
@@ -952,6 +955,7 @@ export class AiLifeLayer {
     individualTraits: readonly string[];
     plan?: AiCreaturePlan | null;
     memorySignals: readonly AiMemoryAuditRecord[];
+    directorProposals?: readonly (AiWorldDirectorProposal | null | undefined)[];
   }): AiJobContextV1 | null {
     const meta = input.sim.meta(input.pid);
     if (!meta || input.entity.kind !== 'mob') return null;
@@ -1010,6 +1014,9 @@ export class AiLifeLayer {
         `weather:${input.scene.weather.kind}`,
       ],
       memorySignals: input.memorySignals.map(cloneMemoryAudit),
+      ...(input.directorProposals && input.directorProposals.length > 0
+        ? { directorProposals: cloneDirectorProposals(input.directorProposals) }
+        : {}),
       allowedIntents: profile.allowedIntentTypes,
       allowedLineIds: profile.allowedLineIds,
       outputMode: 'line_id_only',
@@ -1193,6 +1200,10 @@ export class AiLifeLayer {
             individualTraits: reaction.individual.traits,
             plan,
             memorySignals: memoryWrites,
+            directorProposals: [
+              directorState?.proposal,
+              directorMemory?.proposal,
+            ],
           });
           if (context) reactionEvents = await this.decideSingularityReactionEvents(context, reaction.entity, localEvent, memoryWrites);
           if (memoryEvent) {
@@ -1476,6 +1487,23 @@ export class AiLifeLayer {
 export function normalizeLocale(locale: string): string {
   const trimmed = locale.trim();
   return /^[a-z]{2}([_-][A-Z]{2})?$/.test(trimmed) ? trimmed : 'en';
+}
+
+function cloneDirectorProposals(
+  proposals: readonly (AiWorldDirectorProposal | null | undefined)[],
+): AiWorldDirectorProposal[] {
+  const seen = new Set<string>();
+  const cloned: AiWorldDirectorProposal[] = [];
+  for (const proposal of proposals) {
+    if (!proposal || seen.has(proposal.proposalId)) continue;
+    seen.add(proposal.proposalId);
+    cloned.push({
+      ...proposal,
+      reasonTags: [...proposal.reasonTags],
+      safetyNotes: [...proposal.safetyNotes],
+    });
+  }
+  return cloned;
 }
 
 function shouldShareWorldDirector(
