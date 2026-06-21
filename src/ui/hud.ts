@@ -3563,6 +3563,13 @@ export class Hud {
           audio.questDone();
           this.refreshGossip();
           break;
+        case 'aiSpeech': {
+          const text = this.aiSpeechText(ev);
+          this.chatLogFrom(ev.speakerName, text, '#b9e4ff', CHAT_TEMPLATE_KEYS.say, 'say');
+          const speaker = sim.entities.get(ev.speakerId);
+          if (speaker) this.renderer.showChatBubble(ev.speakerId, this.maskChat(text), false);
+          break;
+        }
         case 'chat': {
           if (this.isChatIgnored(ev.from)) break;
           switch (ev.channel) {
@@ -3849,6 +3856,21 @@ export class Hud {
     this.chatLogEl.appendChild(div);
     while (this.chatLogEl.children.length > 200) this.chatLogEl.removeChild(this.chatLogEl.firstChild!);
     if (wasNearBottom) this.chatLogEl.scrollTop = this.chatLogEl.scrollHeight;
+  }
+
+  private aiSpeechText(ev: Extract<SimEvent, { type: 'aiSpeech' }>): string {
+    if (ev.speech.mode === 'dynamicText') return ev.speech.text;
+    const values = ev.speech.values ?? {};
+    switch (ev.speech.lineId) {
+      case 'hudChrome.aiSpeech.brotherAldricAwake':
+        return t('hudChrome.aiSpeech.brotherAldricAwake', { playerName: String(values.playerName ?? this.sim.player.name) });
+      case 'hudChrome.aiSpeech.merchantMarketPulse':
+        return t('hudChrome.aiSpeech.merchantMarketPulse', { playerName: String(values.playerName ?? this.sim.player.name) });
+      case 'hudChrome.aiSpeech.genericNpcAwake':
+        return t('hudChrome.aiSpeech.genericNpcAwake', { speakerName: String(values.speakerName ?? ev.speakerName) });
+      default:
+        return t('hudChrome.aiSpeech.genericNpcAwake', { speakerName: ev.speakerName });
+    }
   }
 
   /** Replace the server-supplied soft word list (online play only). */
@@ -4416,6 +4438,7 @@ export class Hud {
     // re-greeting would be noise.
     voice.play(`greeting__${npc.templateId}`);
     this.renderGossip(npc);
+    this.sim.aiInteractNpc(npc.id, getLanguage());
   }
 
   private renderGossip(npc: Entity): void {

@@ -241,6 +241,11 @@ export const ru_RU: EnTranslations = {
     "tips": {
       "joinChannels": "Совет: введите /join world или /join lfg, чтобы общаться с игроками по всему миру."
     },
+    "aiSpeech": {
+      "brotherAldricAwake": "The dead are restless tonight. Keep your journal close, {playerName}.",
+      "merchantMarketPulse": "Coin moves faster than rumor, {playerName}, but rumor leaves better footprints.",
+      "genericNpcAwake": "{speakerName} studies the road, then turns back to you with fresh attention."
+    },
     "plurals": {
       "guildMembers": {
         "one": "вы {rank}, {count} участник",

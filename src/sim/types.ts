@@ -932,6 +932,15 @@ export type SimEvent = { pid?: number } & (
   | { type: 'learnAbility'; abilityId: string; rank: number }
   | { type: 'loot'; text: string }
   | { type: 'error'; text: string }
+  | {
+      type: 'aiSpeech';
+      speakerId: number;
+      speakerName: string;
+      speech:
+        | { mode: 'lineId'; lineId: string; values?: Record<string, string | number> }
+        | { mode: 'dynamicText'; language: string; text: string };
+      source: 'fallback' | 'codex';
+    }
   | { type: 'questAccepted'; questId: string }
   | { type: 'questProgress'; questId: string; text: string }
   | { type: 'questReady'; questId: string }

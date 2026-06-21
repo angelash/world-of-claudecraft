@@ -241,6 +241,11 @@ export const en_XA: EnTranslations = {
     "tips": {
       "joinChannels": "[Ţíþ: ţýþé /ĵóíñ ŵóŕļð óŕ /ĵóíñ ļƒĝ ţó çĥáţ ŵíţĥ þļáýéŕš áçŕóšš ţĥé ŕéáļɱ.]"
     },
+    "aiSpeech": {
+      "brotherAldricAwake": "[Ţĥé ðéáð áŕé ŕéšţļéšš ţóñíĝĥţ. Ķééþ ýóúŕ ĵóúŕñáļ çļóšé, {playerName}.]",
+      "merchantMarketPulse": "[Çóíñ ɱóʋéš ƒášţéŕ ţĥáñ ŕúɱóŕ, {playerName}, ƀúţ ŕúɱóŕ ļéáʋéš ƀéţţéŕ ƒóóţþŕíñţš.]",
+      "genericNpcAwake": "[{speakerName} šţúðíéš ţĥé ŕóáð, ţĥéñ ţúŕñš ƀáçķ ţó ýóú ŵíţĥ ƒŕéšĥ áţţéñţíóñ.]"
+    },
     "plurals": {
       "guildMembers": {
         "one": "[ýóú áŕé {rank}, {count} ɱéɱƀéŕ]",

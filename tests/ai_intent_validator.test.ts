@@ -1,0 +1,71 @@
+import { describe, expect, it } from 'vitest';
+import type { Entity } from '../src/sim/types';
+import type { AiDecisionV1, AiJobContextV1 } from '../server/ai/ai_types';
+import { validateAiDecision } from '../server/ai/intent_validator';
+
+const entity = {
+  id: 7,
+  kind: 'npc',
+  templateId: 'brother_aldric',
+  name: 'Brother Aldric',
+  questIds: ['q_bones'],
+} as Entity;
+
+const context: AiJobContextV1 = {
+  schemaVersion: 1,
+  jobId: 'job-7',
+  trigger: 'npc_gossip_opened',
+  entity: { kind: 'npc', entityId: 7, templateId: 'brother_aldric', name: 'Brother Aldric', level: 1, questIds: ['q_bones'], dead: false },
+  player: { entityId: 1, name: 'Ari', level: 1, classId: 'warrior', activeQuestIds: ['q_bones'], completedQuestIds: [] },
+  locale: 'en',
+  questFacts: [{ questId: 'q_bones', visibility: 'knownToPlayer', summary: 'The dead are restless.', source: 'quest-log' }],
+  recentObservations: [],
+  allowedIntents: ['commentOnScene'],
+  outputMode: 'line_id_only',
+};
+
+const decision: AiDecisionV1 = {
+  schemaVersion: 1,
+  jobId: 'job-7',
+  entityRef: { kind: 'npc', entityId: 7, templateId: 'brother_aldric' },
+  ttlMs: 5_000,
+  confidence: 1,
+  speech: [{ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake', values: { playerName: 'Ari' } }],
+  intents: [{ type: 'commentOnScene', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
+  audit: { shortReason: 'test', usedPlayerInput: false, safetyNotes: [] },
+};
+
+describe('AI intent validator', () => {
+  it('turns a valid profile-approved decision into a personal aiSpeech event', () => {
+    const result = validateAiDecision({ decision, context, entity, subject: 'criticalQuestNpc' });
+    expect(result.ok).toBe(true);
+    expect(result.events).toEqual([{
+      type: 'aiSpeech',
+      speakerId: 7,
+      speakerName: 'Brother Aldric',
+      speech: { mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake', values: { playerName: 'Ari' } },
+      source: 'fallback',
+      pid: 1,
+    }]);
+  });
+
+  it('rejects decisions for another entity', () => {
+    const result = validateAiDecision({
+      decision: { ...decision, entityRef: { kind: 'npc', entityId: 8, templateId: 'brother_aldric' } },
+      context,
+      entity,
+      subject: 'criticalQuestNpc',
+    });
+    expect(result).toMatchObject({ ok: false, reason: 'entity ref mismatch' });
+  });
+
+  it('rejects lineIds that are not allowed by the target profile', () => {
+    const result = validateAiDecision({
+      decision: { ...decision, speech: [{ mode: 'lineId', lineId: 'hudChrome.aiSpeech.merchantMarketPulse' }] },
+      context,
+      entity,
+      subject: 'criticalQuestNpc',
+    });
+    expect(result.ok).toBe(false);
+  });
+});

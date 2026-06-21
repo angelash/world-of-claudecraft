@@ -23,6 +23,7 @@ import { REALM } from './realm';
 import { isOverheadEmoteId } from '../src/world_api';
 import * as antibot from './antibot';
 import type { BotTracker } from './antibot';
+import { AiLifeLayer } from './ai/life_layer';
 
 const WORLD_SEED = 20061;
 const ALDRIC_METEOR_QUEST_ID = 'q_aldrics_fallen_star';
@@ -85,6 +86,7 @@ const TICK_EMA_ALPHA = 0.05;
 // wallet read is additionally cached for minutes in woc_balance.ts, so this is
 // the upper bound on how stale an in-world badge can be.
 const HOLDER_TIER_REFRESH_MS = 120_000;
+const AI_NPC_INTERACTION_COOLDOWN_SECONDS = 4;
 
 export interface ClientSession {
   ws: WebSocket;
@@ -105,6 +107,7 @@ export interface ClientSession {
   chatCooldownUntil: number;
   chatMutedUntil: number | null;
   chatMuteReason: string;
+  aiInteractReadyAt: number;
   // Hard-word enforcement strike count driving the mute ladder. Account-scoped:
   // seeded from the DB at join, kept live by enforcement/admin actions.
   chatStrikes: number;
@@ -366,6 +369,7 @@ export class GameServer {
   private peakOnline = 0;
   private tickMsAvg = 0;
   private readonly ipSessionCounts = new Map<string, number>();
+  private readonly aiLifeLayer: AiLifeLayer;
 
   constructor() {
     this.sim = new Sim({
@@ -375,6 +379,7 @@ export class GameServer {
       devCommands: process.env.ALLOW_DEV_COMMANDS === '1',
     });
     this.social = new SocialService(this.socialDb, this.socialTransport());
+    this.aiLifeLayer = new AiLifeLayer();
   }
 
   // Returns the number of currently active WS sessions from the given IP.
@@ -732,6 +737,7 @@ export class GameServer {
       chatRateViolations: 0, chatCooldownUntil: 0,
       chatMutedUntil: meta.mutedUntil ? new Date(meta.mutedUntil).getTime() : null,
       chatMuteReason: meta.reason ?? '',
+      aiInteractReadyAt: 0,
       chatStrikes: meta.chatStrikes ?? 0,
       blockedIds: new Set(),
       blockListLoaded: false,
@@ -1131,6 +1137,9 @@ export class GameServer {
       case 'attack': sim.startAutoAttack(pid); break;
       case 'stopattack': sim.stopAutoAttack(pid); break;
       case 'interact': sim.interact(pid); break;
+      case 'ai_interact_npc':
+        if (typeof msg.npc === 'number') this.handleAiInteractNpc(session, msg.npc, typeof msg.locale === 'string' ? msg.locale : 'en');
+        break;
       case 'loot': if (typeof msg.id === 'number') sim.lootCorpse(msg.id, pid); break;
       case 'pickup': if (typeof msg.id === 'number') sim.pickUpObject(msg.id, pid); break;
       case 'accept': if (typeof msg.quest === 'string') { sim.acceptQuest(msg.quest, pid); this.resyncQuests(session); } break;
@@ -1394,6 +1403,24 @@ export class GameServer {
         break;
       }
     }
+  }
+
+  private handleAiInteractNpc(session: ClientSession, npcId: number, locale: string): void {
+    if (session.left || this.clients.get(session.pid) !== session) return;
+    if (this.sim.time < session.aiInteractReadyAt) return;
+    session.aiInteractReadyAt = this.sim.time + AI_NPC_INTERACTION_COOLDOWN_SECONDS;
+    void this.aiLifeLayer.handleNpcInteraction({
+      sim: this.sim,
+      pid: session.pid,
+      npcId,
+      locale,
+      deliver: (events) => {
+        if (session.left || this.clients.get(session.pid) !== session) return;
+        if (events.length > 0) this.send(session, { t: 'events', list: events });
+      },
+    }).catch((err) => {
+      console.error('ai npc interaction failed:', err);
+    });
   }
 
   // -------------------------------------------------------------------------
