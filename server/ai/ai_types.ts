@@ -116,6 +116,15 @@ export type AiSpeech =
   | { mode: 'lineId'; lineId: string; values?: Record<string, string | number> }
   | { mode: 'dynamicText'; language: string; text: string };
 
+export interface AiIntent {
+  type: AiIntentType;
+  lineId?: string;
+  targetEntityId?: number;
+  targetObjectId?: number;
+  targetItemId?: string;
+  seconds?: number;
+}
+
 export interface AiDecisionV1 {
   schemaVersion: 1;
   jobId: string;
@@ -123,7 +132,7 @@ export interface AiDecisionV1 {
   ttlMs: number;
   confidence: number;
   speech: AiSpeech[];
-  intents: Array<{ type: AiIntentType; lineId?: string }>;
+  intents: AiIntent[];
   audit: {
     shortReason: string;
     usedPlayerInput: boolean;

@@ -13,6 +13,7 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
     '- Use dynamicText only when outputMode is dynamic_text_experiment or mixed_living_world.',
     '- Speech must fit the allowedLineIds list when it is present.',
     '- Intents must fit the allowedIntents list.',
+    '- Intent targetEntityId/targetObjectId values must be visible in job.json: the player, the acting entity, scene companions, or nearby semantic object entity ids.',
     '- Do not reveal hidden quest answers or promise task completion.',
     '',
     `Trigger: ${context.trigger}`,

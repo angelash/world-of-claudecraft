@@ -1,5 +1,5 @@
 import type { Entity, SimEvent } from '../../src/sim/types';
-import type { AiDecisionV1, AiJobContextV1, AiValidationResult } from './ai_types';
+import type { AiDecisionV1, AiIntent, AiJobContextV1, AiValidationResult } from './ai_types';
 import { validateCanonDecision } from './canon_guard';
 import type { CanonGuardSubject } from './canon_guard';
 import { profileFor } from './profiles';
@@ -9,6 +9,7 @@ const MIN_CONFIDENCE = 0;
 const MAX_CONFIDENCE = 1;
 const MAX_DYNAMIC_TEXT_CHARS = 280;
 type AiSpeechSource = Extract<SimEvent, { type: 'aiSpeech' }>['source'];
+type AiSpeechReaction = NonNullable<Extract<SimEvent, { type: 'aiSpeech' }>['reaction']>;
 
 export interface AiIntentValidationInput {
   decision: AiDecisionV1;
@@ -39,6 +40,8 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
 
   const canon = validateCanonDecision(decision, context, subject);
   if (!canon.ok) return rejected(canon.reason ?? 'canon guard rejected decision');
+  const intentReaction = reactionFromProviderIntents(decision.intents, context);
+  if (!intentReaction.ok) return rejected(intentReaction.reason);
 
   const events: SimEvent[] = [];
   for (const speech of decision.speech) {
@@ -51,6 +54,7 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
         speakerName: entity.name,
         speech,
         source,
+        ...(intentReaction.reaction ? { reaction: intentReaction.reaction } : {}),
         pid: context.player.entityId,
       });
       continue;
@@ -64,10 +68,99 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
       speakerName: entity.name,
       speech,
       source,
+      ...(intentReaction.reaction ? { reaction: intentReaction.reaction } : {}),
       pid: context.player.entityId,
     });
   }
   return { ok: true, events };
+}
+
+function reactionFromProviderIntents(
+  intents: readonly AiIntent[],
+  context: AiJobContextV1,
+): { ok: true; reaction?: AiSpeechReaction } | { ok: false; reason: string } {
+  for (const intent of intents) {
+    const kind = reactionKindForIntent(intent.type);
+    if (!kind) continue;
+    const target = validateIntentTargets(intent, context);
+    if (!target.ok) return target;
+    if (!target.hasTarget) continue;
+    return {
+      ok: true,
+      reaction: {
+        kind,
+        ...(target.targetEntityId === undefined ? {} : { targetEntityId: target.targetEntityId }),
+        ...(target.targetObjectId === undefined ? {} : { targetObjectId: target.targetObjectId }),
+        ...(target.targetItemId === undefined ? {} : { targetItemId: target.targetItemId }),
+      },
+    };
+  }
+  return { ok: true };
+}
+
+function reactionKindForIntent(intent: AiIntent['type']): AiSpeechReaction['kind'] | null {
+  switch (intent) {
+    case 'approachObject': return 'approach';
+    case 'avoidObject':
+    case 'seekShelter':
+      return 'avoid';
+    case 'lookAt':
+    case 'faceEntity':
+    case 'inspectObject':
+    case 'commentOnScene':
+    case 'pause':
+      return 'inspect';
+    default:
+      return null;
+  }
+}
+
+function validateIntentTargets(
+  intent: AiIntent,
+  context: AiJobContextV1,
+): { ok: true; hasTarget: boolean; targetEntityId?: number; targetObjectId?: number; targetItemId?: string } | { ok: false; reason: string } {
+  const visibleEntityIds = visibleIntentEntityIds(context);
+  const visibleObjectEntityIds = visibleIntentObjectEntityIds(context);
+  const visibleItemIds = visibleIntentItemIds(context);
+  const targetEntityId = intent.targetEntityId;
+  const targetObjectId = intent.targetObjectId;
+  const targetItemId = intent.targetItemId;
+  if (targetEntityId !== undefined && (!Number.isInteger(targetEntityId) || !visibleEntityIds.has(targetEntityId))) {
+    return { ok: false, reason: 'intent targetEntityId is not visible in context' };
+  }
+  if (targetObjectId !== undefined && (!Number.isInteger(targetObjectId) || !visibleObjectEntityIds.has(targetObjectId))) {
+    return { ok: false, reason: 'intent targetObjectId is not visible in context' };
+  }
+  if (targetItemId !== undefined && !visibleItemIds.has(targetItemId)) {
+    return { ok: false, reason: 'intent targetItemId is not visible in context' };
+  }
+  return {
+    ok: true,
+    hasTarget: targetEntityId !== undefined || targetObjectId !== undefined || targetItemId !== undefined,
+    ...(targetEntityId === undefined ? {} : { targetEntityId }),
+    ...(targetObjectId === undefined ? {} : { targetObjectId }),
+    ...(targetItemId === undefined ? {} : { targetItemId }),
+  };
+}
+
+function visibleIntentEntityIds(context: AiJobContextV1): Set<number> {
+  return new Set([
+    context.player.entityId,
+    context.entity.entityId,
+    ...(context.scene?.companions.map((companion) => companion.entityId) ?? []),
+    ...(context.scene?.nearbySemanticObjects.flatMap((object) => object.entityId === null ? [] : [object.entityId]) ?? []),
+  ]);
+}
+
+function visibleIntentObjectEntityIds(context: AiJobContextV1): Set<number> {
+  return new Set(context.scene?.nearbySemanticObjects.flatMap((object) => object.entityId === null ? [] : [object.entityId]) ?? []);
+}
+
+function visibleIntentItemIds(context: AiJobContextV1): Set<string> {
+  return new Set([
+    ...(context.scene?.droppedItems.map((item) => item.itemId) ?? []),
+    ...(context.scene?.nearbySemanticObjects.map((object) => object.objectId) ?? []),
+  ]);
 }
 
 function rejected(reason: string): AiValidationResult {

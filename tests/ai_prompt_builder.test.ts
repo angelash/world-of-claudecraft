@@ -93,6 +93,7 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('Never change quest state');
     expect(prompt).toContain('Use only lineId speech when outputMode is line_id_only');
     expect(prompt).toContain('Use dynamicText only when outputMode is dynamic_text_experiment or mixed_living_world');
+    expect(prompt).toContain('Intent targetEntityId/targetObjectId values must be visible in job.json');
     expect(prompt).toContain('Allowed lineIds: hudChrome.aiSpeech.brotherAldricAwake');
     expect(prompt).toContain('Scene: fallen_chapel');
     expect(prompt).toContain('deathPressure');

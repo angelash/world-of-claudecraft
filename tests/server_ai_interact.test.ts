@@ -1547,7 +1547,7 @@ describe('server AI interact command', () => {
             lineId: suggestedLineId,
             values: { playerName: context.player.name },
           }],
-          intents: [{ type: 'commentOnScene', lineId: suggestedLineId }],
+          intents: [{ type: 'faceEntity', targetEntityId: context.player.entityId, lineId: suggestedLineId }],
           audit: { shortReason: 'codex noticed a singularity scene reaction', usedPlayerInput: false, safetyNotes: [] },
         };
       },
@@ -1582,6 +1582,7 @@ describe('server AI interact command', () => {
       reaction: expect.objectContaining({
         sceneTags: expect.arrayContaining(['forge', 'workNoise']),
         individualTier: 'singularity',
+        targetEntityId: session.pid,
       }),
       pid: session.pid,
     }));

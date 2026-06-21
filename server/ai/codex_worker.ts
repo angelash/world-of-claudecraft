@@ -88,6 +88,10 @@ const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
             ],
           },
           lineId: { type: 'string' },
+          targetEntityId: { type: 'number' },
+          targetObjectId: { type: 'number' },
+          targetItemId: { type: 'string' },
+          seconds: { type: 'number', minimum: 0.1, maximum: 10 },
         },
         required: ['type'],
       },
@@ -280,10 +284,21 @@ function parseSpeechValues(value: unknown): Record<string, string | number> {
 
 function parseIntent(value: unknown): AiDecisionV1['intents'][number] {
   const record = requireRecord(value, 'intent');
-  rejectUnexpectedKeys(record, ['type', 'lineId'], 'intent');
+  rejectUnexpectedKeys(record, ['type', 'lineId', 'targetEntityId', 'targetObjectId', 'targetItemId', 'seconds'], 'intent');
   const type = requireIntentType(record.type, 'intent.type');
   const lineId = record.lineId === undefined ? undefined : requireString(record.lineId, 'intent.lineId');
-  return lineId ? { type, lineId } : { type };
+  const targetEntityId = record.targetEntityId === undefined ? undefined : requireNumber(record.targetEntityId, 'intent.targetEntityId');
+  const targetObjectId = record.targetObjectId === undefined ? undefined : requireNumber(record.targetObjectId, 'intent.targetObjectId');
+  const targetItemId = record.targetItemId === undefined ? undefined : requireString(record.targetItemId, 'intent.targetItemId');
+  const seconds = record.seconds === undefined ? undefined : requireNumberInRange(record.seconds, 'intent.seconds', 0.1, 10);
+  return {
+    type,
+    ...(lineId ? { lineId } : {}),
+    ...(targetEntityId === undefined ? {} : { targetEntityId }),
+    ...(targetObjectId === undefined ? {} : { targetObjectId }),
+    ...(targetItemId === undefined ? {} : { targetItemId }),
+    ...(seconds === undefined ? {} : { seconds }),
+  };
 }
 
 function parseAudit(value: unknown): AiDecisionV1['audit'] {

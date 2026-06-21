@@ -98,6 +98,40 @@ describe('AI intent validator', () => {
     expect(result).toMatchObject({ ok: false, reason: 'intent inspectObject not allowed by context' });
   });
 
+  it('turns visible provider intent targets into presentation reaction metadata', () => {
+    const result = validateAiDecision({
+      decision: {
+        ...decision,
+        intents: [{ type: 'faceEntity', targetEntityId: context.player.entityId, lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
+      },
+      context: { ...context, allowedIntents: ['faceEntity'] },
+      entity,
+      subject: 'criticalQuestNpc',
+      source: 'codex',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      reaction: { kind: 'inspect', targetEntityId: context.player.entityId },
+    }));
+  });
+
+  it('rejects provider intent targets outside the visible context', () => {
+    const result = validateAiDecision({
+      decision: {
+        ...decision,
+        intents: [{ type: 'lookAt', targetEntityId: 999, lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
+      },
+      context: { ...context, allowedIntents: ['lookAt'] },
+      entity,
+      subject: 'criticalQuestNpc',
+      source: 'codex',
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: 'intent targetEntityId is not visible in context' });
+  });
+
   it('rejects dynamicText when the context is line_id_only', () => {
     const result = validateAiDecision({
       decision: {

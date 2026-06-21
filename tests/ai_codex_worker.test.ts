@@ -129,6 +129,27 @@ describe('Codex CLI AI provider', () => {
     await expect(provider.decide(context)).rejects.toThrow('codex worker output intent.type is invalid');
   });
 
+  it('accepts bounded presentation intent targets from the Codex CLI worker', async () => {
+    const provider = await providerWithFakeCodex(`{
+      schemaVersion: 1,
+      jobId: context.jobId,
+      entityRef: {
+        kind: context.entity.kind,
+        entityId: context.entity.entityId,
+        templateId: context.entity.templateId
+      },
+      ttlMs: 5000,
+      confidence: 1,
+      speech: [],
+      intents: [{ type: 'lookAt', targetEntityId: context.player.entityId, seconds: 1.5 }],
+      audit: { shortReason: 'targeted presentation intent', usedPlayerInput: false, safetyNotes: [] }
+    }`);
+
+    await expect(provider.decide(context)).resolves.toMatchObject({
+      intents: [{ type: 'lookAt', targetEntityId: 1, seconds: 1.5 }],
+    });
+  });
+
   it('bounds stderr captured from a failing codex process', async () => {
     const provider = await providerWithFakeCodexScript(`
 process.stderr.write('x'.repeat(40));
