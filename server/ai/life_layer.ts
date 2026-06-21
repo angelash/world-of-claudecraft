@@ -23,6 +23,8 @@ import { sceneInspectionEvent } from './scene_inspection';
 import { sceneAwarenessEvent } from './scene_reactions';
 import { AiSocialMemoryStore } from './social_memory';
 import type { AiNpcMemory, AiRumorMemory } from './social_memory';
+import { AiWorldTraceStore } from './world_traces';
+import type { AiWorldTrace } from './world_traces';
 
 export interface AiLifeLayerOptions {
   enabled?: boolean;
@@ -68,6 +70,7 @@ export class AiLifeLayer {
   private readonly provider: AiProvider;
   private readonly journal: AiDecisionJournal;
   private readonly socialMemory = new AiSocialMemoryStore();
+  private readonly worldTraces = new AiWorldTraceStore();
   private sequence = 0;
 
   constructor(options: AiLifeLayerOptions = {}) {
@@ -84,6 +87,10 @@ export class AiLifeLayer {
 
   memoryDiagnostics(): { npcMemories: AiNpcMemory[]; rumors: AiRumorMemory[] } {
     return this.socialMemory.snapshot();
+  }
+
+  worldTraceDiagnostics(): AiWorldTrace[] {
+    return this.worldTraces.snapshot();
   }
 
   async handleNpcInteraction(request: NpcAiInteractionRequest): Promise<void> {
@@ -131,15 +138,25 @@ export class AiLifeLayer {
     });
     const candidates = nearbyReactionCandidates(scene, request.sim.entities.values(), player);
     const reactions = rankItemReactions(scene, dropped, candidates, { worldSeed: request.sim.cfg.seed }).slice(0, 2);
+    const sceneId = scene.subsceneId ?? scene.zoneId;
+    const reactionLineIds = reactions.map((reaction) => reaction.lineId);
+    const trace = this.worldTraces.noteItemTrace({
+      sceneId,
+      item: dropped,
+      sourcePlayerEntityId: request.pid,
+      reasonLineIds: reactionLineIds,
+      nowSeconds: request.sim.time,
+    });
     if (reactions.length > 0) {
-      const sceneId = scene.subsceneId ?? scene.zoneId;
       this.socialMemory.noteItemRumor({
         sceneId,
         itemId: dropped.itemId,
         sourcePlayerEntityId: request.pid,
-        lineIds: reactions.map((reaction) => reaction.lineId),
+        lineIds: reactionLineIds,
         nowSeconds: request.sim.time,
       });
+    }
+    if (reactions.length > 0 || trace) {
       this.journal.recordLocalReaction({
         jobId: `local-${request.pid}-${++this.sequence}`,
         trigger: 'item_discarded',
@@ -147,8 +164,8 @@ export class AiLifeLayer {
         templateId: player.templateId,
         playerEntityId: request.pid,
         reason: `discarded:${request.itemId}`,
-        lineIds: reactions.map((reaction) => reaction.lineId),
-        intents: reactions.map((reaction) => reaction.reaction),
+        lineIds: trace ? [...reactionLineIds, trace.lineId] : reactionLineIds,
+        intents: trace ? [...reactions.map((reaction) => reaction.reaction), 'leaveWorldTrace'] : reactions.map((reaction) => reaction.reaction),
         sceneId,
       });
     }
@@ -253,7 +270,9 @@ export class AiLifeLayer {
     const player = request.sim.entities.get(request.pid);
     if (!player) return;
     const scene = sceneFrameFor(request.sim, player.pos);
-    const event = sceneInspectionEvent(scene, player);
+    const sceneId = scene.subsceneId ?? scene.zoneId;
+    const trace = this.worldTraces.traceForScene(sceneId, request.pid, request.sim.time);
+    const event = sceneInspectionEvent(scene, player, trace);
     const lineIds = event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [];
     this.journal.recordLocalReaction({
       jobId: `scene-${request.pid}-${++this.sequence}`,
@@ -264,7 +283,7 @@ export class AiLifeLayer {
       reason: `inspectScene:${scene.subsceneId ?? scene.zoneId}`,
       lineIds,
       intents: ['inspectObject', 'commentOnScene'],
-      sceneId: scene.subsceneId ?? scene.zoneId,
+      sceneId,
     });
     request.deliver([event]);
   }

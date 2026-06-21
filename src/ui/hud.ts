@@ -3949,6 +3949,12 @@ export class Hud {
         return t(ev.speech.lineId as TranslationKey, { itemName, objectName });
       case 'hudChrome.aiSpeech.objectInspectDoor':
         return t('hudChrome.aiSpeech.objectInspectDoor');
+      case 'hudChrome.aiSpeech.sceneTraceSingularity':
+      case 'hudChrome.aiSpeech.sceneTraceCursed':
+      case 'hudChrome.aiSpeech.sceneTraceFood':
+      case 'hudChrome.aiSpeech.sceneTraceValuable':
+      case 'hudChrome.aiSpeech.sceneTraceGeneric':
+        return t(ev.speech.lineId as TranslationKey, { itemName });
       case 'hudChrome.aiSpeech.sceneInspectForge':
       case 'hudChrome.aiSpeech.sceneInspectChapel':
       case 'hudChrome.aiSpeech.sceneInspectLake':

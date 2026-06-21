@@ -349,6 +349,43 @@ describe('server AI interact command', () => {
     expect(server.sim.countItem('roasted_boar', session.pid)).toBe(0);
   });
 
+  it('turns a discarded item into an inspectable short-term scene trace', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf');
+    expect(wolf).toBeTruthy();
+    teleportNear(server, session.pid, wolf!.id);
+    server.sim.addItem('roasted_boar', 1, session.pid);
+    const beforeObjects = [...server.sim.entities.values()].filter((entity) => entity.kind === 'object').length;
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+    const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    await flushAi();
+    fc.sent.length = 0;
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: session.pid,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.sceneTraceFood',
+        values: expect.objectContaining({ itemId: 'roasted_boar', traceKind: 'food' }),
+      }),
+      reaction: expect.objectContaining({
+        kind: 'inspect',
+        targetItemId: 'roasted_boar',
+      }),
+      pid: session.pid,
+    }));
+    const afterObjects = [...server.sim.entities.values()].filter((entity) => entity.kind === 'object').length;
+    expect(afterObjects).toBe(beforeObjects);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
+  });
+
   it('lets singularity item reactions become NPC rumors through real server commands', async () => {
     const server = new GameServer();
     const fc = fakeWs();
