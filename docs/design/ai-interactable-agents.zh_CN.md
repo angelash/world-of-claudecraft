@@ -1413,6 +1413,77 @@ tests/ai_canon_guard.test.ts
 | 测试不稳定 | AI 输出不可复现。 | fake provider、fixture replay、AI result 持久化为外部输入。 |
 | 体验变怪 | 怪物行为过度离谱，破坏经典 MMO 感。 | 用 profile 本能和区域风格约束，而不是用单纯禁用来处理。 |
 
+## 风险规避执行协议
+
+这一节用于把上面的风险表落到开发动作里。AI 生命层可以很激进，但每一次螺旋都必须同时回答三个问题：玩家实际能玩到什么变化，主线和结算为什么没有被破坏，测试如何证明这不是一次只会调用 API 的演示。
+
+### 阶段准入
+
+每一轮螺旋开始前先确认以下条件：
+
+- 目标玩法路径明确：写清楚玩家从哪里开始，和谁或什么交互，预期在 5 到 15 分钟内感到什么变化。
+- 受保护对象明确：列出本轮涉及的关键 NPC、任务怪、任务物、副本门、奖励来源和 lore 来源。
+- AI 权限明确：列出本轮允许的 intent、只读感知、可写 overlay、禁止触碰的 sim action。
+- 复现方式明确：fake provider、fixture replay、本地规则或固定 seed 至少有一种能稳定复现。
+- 回退方式明确：`AI_LIVING_WORLD_EXPERIMENT=0` 时，本轮新增表现必须退回原始任务、战斗、拾取和副本流程。
+
+### 分层隔离
+
+AI 输出不能直接进入权威结算。所有能力按风险进入不同层：
+
+| 层 | 可做 | 不可做 | 证明方式 |
+|---|---|---|---|
+| 表现层 | lineId、mood、注视、短暂停顿、场景评论。 | 改任务状态、改掉落、改战斗结果。 | HUD 事件测试、i18n guard、无 sim 状态差异。 |
+| 记忆层 | NPC 记住玩家、短期传闻、物件痕迹、区域气氛。 | 写入永久账号价值或永久奖励。 | TTL 测试、作用域测试、重启或关闭开关后的回退测试。 |
+| 行为层 | 靠近、后退、逃跑、呼救、寻求庇护。 | 让关键实体离开服务范围或任务区域。 | Canon Guard 测试、leash 测试、关键任务回归。 |
+| 规则层 | 只能通过显式白名单 sim action。 | 模型直接决定伤害、XP、金币、掉落、任务完成。 | determinism 测试、replay fixture、战斗和任务回归。 |
+| 导演层 | 生成 proposal、短期区域事件、GM 审核队列。 | 自动改主线事实或正式服长期世界状态。 | 审计日志、人工可读 reason、正式服审核门槛。 |
+
+### 主线保护回归矩阵
+
+每次改到 NPC、怪物、物件、任务提示、副本门或奖励周边时，至少覆盖这些路径：
+
+| 场景 | AI 关闭 | AI 开启 | 实验 dynamicText 开启 |
+|---|---|---|---|
+| 接任务 | 原按钮、条件和文本入口可用。 | AI greeting 不挡 quest dialog。 | 不伪装任务日志，不承诺额外奖励。 |
+| 做任务 | 击杀计数、拾取、护送、探索按原规则推进。 | AI 行为不让目标永久不可达。 | 不泄露隐藏结局或内部触发条件。 |
+| 交任务 | 交付条件和奖励由 sim/server 决定。 | NPC 记忆只能包装表达。 | 不说“我给你额外奖励”之类承诺。 |
+| 进副本 | 原有入口、权限和传送流程不变。 | 副本门可以评论队伍状态。 | 不改变锁定、CD、进入条件。 |
+| 战斗和掉落 | 命中、伤害、仇恨、掉落、XP 不变。 | 怪物可喊话或短期表现。 | 不承诺掉落，不改 loot table。 |
+
+### 可玩验收
+
+本项目不接受“API 能调用”作为完成标准。每个可提交版本都要同时满足：
+
+- 真实入口：玩家可以通过现有 UI、键位、右键、gossip 或可见世界对象触发，不只靠测试脚本发命令。
+- 可感知反馈：屏幕上能看到对话、动作、靠近、后退、痕迹、传闻或 mood 变化。
+- 环境相关：反馈至少引用一个实际 scene、object、weather、time、player history、companion 或 quest-visible fact。
+- 个体差异：同类对象中至少有 profile、family、memory、singularity 或 scene context 带来的差异。
+- 可复现：同一 fixture 或 fake provider 能稳定得到同类结果，失败时有 fallback。
+- 可解释：decision log 或 audit 能说明触发来源、选用 profile、通过或拒绝的 guard 原因。
+
+### 测试设计和自测门槛
+
+每一轮螺旋提交前，根据触及范围选择最小但足够的验证集：
+
+- AI profile、prompt、provider：跑 `tests/ai_prompt_builder.test.ts`、`tests/ai_intent_validator.test.ts`、相关 provider 或 schema 测试。
+- NPC、记忆、传闻：跑 `tests/ai_social_memory.test.ts`、`tests/server_ai_interact.test.ts`，并覆盖 TTL、作用域和限流。
+- 场景、物件、痕迹：增加或更新 `tests/ai_item_interest.test.ts`、`tests/server_ai_interact.test.ts`，证明检视不拾取、不进门、不改任务。
+- 奇点怪和行为 intent：跑怪物 AI、战斗、leash、掉落和任务计数相关测试，证明个性不改变结算。
+- IWorld、ClientWorld、wire：跑 `npx tsc --noEmit`，并覆盖 `src/world_api.ts`、`src/net/online.ts`、`server/game.ts` 的命令路径。
+- 玩家可见文本：跑 `npm run i18n:build`、`npm run i18n:scan`、`npx vitest run tests/localization_fixes.test.ts`。
+- 每个阶段至少做一次人工可玩或脚本化端到端路径，记录入口、操作、观察到的反馈和失败回退。
+
+### 提交和推送节奏
+
+后续实现按螺旋推进，不把大量未验证能力堆在一个提交里：
+
+- 文档或设计补充可以单独提交，确保后续执行有明确依据。
+- 每个可玩切片完成后先验证，再只 staging 本切片相关文件，提交并推送。
+- 如果一个螺旋太大，就拆成多个仍然可玩的切片，例如“物件检视入口”、“痕迹记忆”、“周边对象兴趣反应”分别提交。
+- 每次提交信息写明本次玩家能体验到的变化和已跑的验证命令。
+- 工作树出现无关改动时不纳入提交，除非用户明确要求。
+
 ## 完整实现的螺旋式执行计划
 
 这里不按“最小版本”思路收缩目标，而是按完整目标拆成连续螺旋。每一轮都要形成一个可玩、可观察、可回归验证的版本：玩家能在游戏里感到变化，开发者能用测试和日志复现变化，策划能继续往上加内容。
