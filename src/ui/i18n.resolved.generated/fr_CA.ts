@@ -334,6 +334,49 @@ export const fr_CA: EnTranslations = {
         "many": "Qui : {count} joueurs en ligne sur {realm}.",
         "other": "Qui : {count} joueurs en ligne sur {realm}."
       }
+    },
+    "account": {
+      "title": "Account",
+      "loggedOutPrompt": "Log in to manage your account.",
+      "memberSince": "Member since {date}",
+      "sectionSettings": "Account Settings",
+      "sectionWallet": "$WOC Wallet",
+      "sectionCharacters": "Characters",
+      "sectionDanger": "Danger Zone",
+      "changePassword": "Change Password",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmNewPassword": "Confirmer le nouveau mot de passe",
+      "savePassword": "Update Password",
+      "passwordChanged": "Password updated. Other devices have been signed out.",
+      "errCurrentRequired": "Enter your current password.",
+      "errPasswordShort": "New password must be at least 6 characters.",
+      "errPasswordLong": "New password must be at most 128 characters.",
+      "errPasswordUnchanged": "New password must be different from the current one.",
+      "errPasswordConfirm": "Les nouveaux mots de passe ne correspondent pas.",
+      "emailLabel": "Email (optional)",
+      "emailHint": "Used only for account recovery. We never send marketing email.",
+      "saveEmail": "Save Email",
+      "emailSaved": "Email saved.",
+      "errEmailInvalid": "Enter a valid email address.",
+      "errCurrentPassword": "Your current password is incorrect.",
+      "errUsernameMatch": "That username does not match your account.",
+      "errPasswordIncorrect": "Your password is incorrect.",
+      "errCharactersOnline": "Log out all of your characters before deactivating.",
+      "deactivatedLocked": "This account has been deactivated. Contact an admin to restore it.",
+      "charactersSummary": "Manage your characters and enter the world.",
+      "charactersCount": "Characters: {count}",
+      "goToCharacters": "View Characters",
+      "walletSummary": "Verify a Solana wallet to show holder flair on your player card.",
+      "manageWallet": "Manage Wallet",
+      "deactivate": "Deactivate Account",
+      "deactivateWarning": "Deactivation locks your account and signs you out everywhere. Contact an admin to restore it. Confirm by re-entering your username and password.",
+      "confirmUsername": "Type your username to confirm",
+      "confirmPassword": "Password",
+      "deactivateConfirm": "Deactivate My Account",
+      "deactivated": "Your account has been deactivated.",
+      "logOut": "Log Out",
+      "logOutSummary": "Sign out of this device."
     }
   },
   "skinEvent": {
@@ -378,6 +421,8 @@ export const fr_CA: EnTranslations = {
     "news": "Actualités",
     "download": "Télécharger",
     "loginRegister": "Se connecter/S'enregistrer",
+    "account": "Account",
+    "logout": "Déconnexion",
     "donate": "Faire un don"
   },
   "stats": {
@@ -571,36 +616,36 @@ export const fr_CA: EnTranslations = {
         "flavor": "Les marchés sentent chacun de vos mouvements: 1 % de l'offre."
       },
       "tidelord": {
-        "name": "Tidelord",
-        "flavor": "The tide answers your call: 2% of supply."
+        "name": "Seigneur des marées",
+        "flavor": "La marée répond à votre appel: 2 % de l'offre."
       },
       "stormcaller": {
-        "name": "Stormcaller",
-        "flavor": "Storms gather at your name: 3% of supply."
+        "name": "Invocateur de tempêtes",
+        "flavor": "Les tempêtes se rassemblent à votre nom: 3 % de l'offre."
       },
       "krakencrown": {
-        "name": "Krakencrown",
-        "flavor": "Crowned by the deep: 4% of supply."
+        "name": "Couronne du kraken",
+        "flavor": "Couronné par les profondeurs: 4 % de l'offre."
       },
       "titanforged": {
-        "name": "Titanforged",
-        "flavor": "Forged among titans: 5% of supply."
+        "name": "Forgé parmi les titans",
+        "flavor": "Forgé parmi les titans: 5 % de l'offre."
       },
       "starhoard": {
-        "name": "Starhoard",
-        "flavor": "A hoard that bends starlight: 6% of supply."
+        "name": "Trésor d'étoiles",
+        "flavor": "Un trésor qui courbe la lumière des étoiles: 6 % de l'offre."
       },
       "voidwarden": {
-        "name": "Voidwarden",
-        "flavor": "Keeper at the void's edge: 7% of supply."
+        "name": "Gardien du vide",
+        "flavor": "Gardien au bord du vide: 7 % de l'offre."
       },
       "realmshaper": {
-        "name": "Realmshaper",
-        "flavor": "You reshape the realm: 8% of supply."
+        "name": "Façonneur de royaume",
+        "flavor": "Vous remodelez le royaume: 8 % de l'offre."
       },
       "worldforger": {
-        "name": "Worldforger",
-        "flavor": "Forging a world of your own: 9% of supply."
+        "name": "Forgeur de monde",
+        "flavor": "Vous forgez votre propre monde: 9 % de l'offre."
       },
       "worldbearer": {
         "name": "Porte-monde",
