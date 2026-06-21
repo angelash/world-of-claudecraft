@@ -35,6 +35,8 @@ const context: AiJobContextV1 = {
       templateId: 'scene_anchor:fallen_crypt_gate',
       displayName: 'Crypt Gate',
       tags: ['cryptGate', 'sealedAir', 'deathPressure', 'dungeonEntrance'],
+      featureTags: ['rustedBars', 'coldDraft', 'boneDust'],
+      affordanceTags: ['hesitateAtThreshold', 'guardEntrance', 'fleeFromDark'],
       distance: 6.5,
     }],
     droppedItems: [{
@@ -102,7 +104,7 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('Taboo topics: hidden quest conclusions');
     expect(prompt).toContain('Social memory style: Recognizes repeated visitors');
     expect(prompt).toContain('Time/weather mood: dayEnergy=0.00, nightFatigue=0.70');
-    expect(prompt).toContain('Nearby semantic objects: fallen_crypt_gate:Crypt Gate[sceneAnchor](cryptGate/sealedAir/deathPressure/dungeonEntrance, 6.5yd)');
+    expect(prompt).toContain('Nearby semantic objects: fallen_crypt_gate:Crypt Gate[sceneAnchor](tags=cryptGate/sealedAir/deathPressure/dungeonEntrance; features=rustedBars/coldDraft/boneDust; affordances=hesitateAtThreshold/guardEntrance/fleeFromDark; 6.5yd)');
     expect(prompt).toContain('Dropped items: gravecaller_sigil:Gravecaller Sigil(quest/grave/undead/cursed/story, fresh=4s)');
     expect(prompt).toContain('Companions: Fang:forest_wolf:beast(pet/beast)');
     expect(prompt).toContain('Recent scene events: playerDiscarded:gravecaller_sigil');

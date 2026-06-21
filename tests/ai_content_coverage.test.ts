@@ -36,6 +36,8 @@ describe('AI content coverage report', () => {
     expect(report.scenes.anchorsMissingTagDepth).toEqual([]);
     expect(report.scenes.semanticObjectsMissingTags).toEqual([]);
     expect(report.scenes.semanticObjectsMissingTagDepth).toEqual([]);
+    expect(report.scenes.semanticObjectsMissingFeatureTags).toEqual([]);
+    expect(report.scenes.semanticObjectsMissingAffordanceTags).toEqual([]);
     expect(report.scenes.semanticObjectsMissingAnchorOverlap).toEqual([]);
   });
 

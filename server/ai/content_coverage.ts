@@ -52,6 +52,8 @@ export interface AiContentCoverageReport {
     anchorsMissingTagDepth: string[];
     semanticObjectsMissingTags: string[];
     semanticObjectsMissingTagDepth: string[];
+    semanticObjectsMissingFeatureTags: string[];
+    semanticObjectsMissingAffordanceTags: string[];
     semanticObjectsMissingAnchorOverlap: string[];
   };
   items: {
@@ -195,6 +197,14 @@ export function aiContentCoverageReport(): AiContentCoverageReport {
     .flatMap((anchor) => anchor.semanticObjects.map((object) => ({ anchorId: anchor.id, objectId: object.id, tags: object.tags })))
     .filter((object) => object.tags.length < 3)
     .map((object) => `${object.anchorId}:${object.objectId}`);
+  const semanticObjectsMissingFeatureTags = SCENE_ANCHORS
+    .flatMap((anchor) => anchor.semanticObjects.map((object) => ({ anchorId: anchor.id, objectId: object.id, featureTags: object.featureTags })))
+    .filter((object) => object.featureTags.length < 2)
+    .map((object) => `${object.anchorId}:${object.objectId}`);
+  const semanticObjectsMissingAffordanceTags = SCENE_ANCHORS
+    .flatMap((anchor) => anchor.semanticObjects.map((object) => ({ anchorId: anchor.id, objectId: object.id, affordanceTags: object.affordanceTags })))
+    .filter((object) => object.affordanceTags.length < 2)
+    .map((object) => `${object.anchorId}:${object.objectId}`);
   const semanticObjectsMissingAnchorOverlap = SCENE_ANCHORS
     .flatMap((anchor) => {
       const anchorTags = new Set([
@@ -258,6 +268,8 @@ export function aiContentCoverageReport(): AiContentCoverageReport {
       anchorsMissingTagDepth,
       semanticObjectsMissingTags,
       semanticObjectsMissingTagDepth,
+      semanticObjectsMissingFeatureTags,
+      semanticObjectsMissingAffordanceTags,
       semanticObjectsMissingAnchorOverlap,
     },
     items: {

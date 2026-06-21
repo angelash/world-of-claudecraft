@@ -49,7 +49,7 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
     if (scene.nearbySemanticObjects.length > 0) {
       lines.push(`Nearby semantic objects: ${scene.nearbySemanticObjects
         .slice(0, 6)
-        .map((object) => `${object.objectId}:${object.displayName}[${object.source}](${object.tags.slice(0, 4).join('/')}, ${object.distance}yd)`)
+        .map((object) => `${object.objectId}:${object.displayName}[${object.source}](tags=${object.tags.slice(0, 4).join('/')}; features=${object.featureTags.slice(0, 4).join('/')}; affordances=${object.affordanceTags.slice(0, 4).join('/')}; ${object.distance}yd)`)
         .join(', ')}`);
     }
     if (scene.droppedItems.length > 0) {

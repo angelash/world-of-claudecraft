@@ -14,6 +14,8 @@ export interface SceneObjectSemantic {
   templateId: string;
   displayName: string;
   tags: string[];
+  featureTags: string[];
+  affordanceTags: string[];
   distance: number;
 }
 
@@ -117,6 +119,8 @@ function nearbyObjects(sim: Sim, pos: Vec3): SceneObjectSemantic[] {
       templateId: entity.templateId,
       displayName: ITEMS[entity.objectItemId]?.name ?? entity.name,
       tags: semantic.itemTags,
+      featureTags: itemObjectFeatureTags(semantic),
+      affordanceTags: itemObjectAffordanceTags(semantic),
       distance: Math.round(distance * 10) / 10,
     });
   }
@@ -136,10 +140,36 @@ function nearbyAnchorObjects(pos: Vec3): SceneObjectSemantic[] {
         templateId: `scene_anchor:${object.id}`,
         displayName: object.label,
         tags: object.tags,
+        featureTags: object.featureTags,
+        affordanceTags: object.affordanceTags,
         distance: Math.round(dist2d(pos, objectPos) * 10) / 10,
       };
     })
     .filter((object) => object.distance <= (anchor.semanticObjects.find((candidate) => candidate.id === object.objectId)?.radius ?? anchor.radius));
+}
+
+function itemObjectFeatureTags(semantic: ReturnType<typeof itemSemanticFor>): string[] {
+  const tags = new Set([...semantic.itemTags, ...semantic.smellTags, ...semantic.dangerTags, ...semantic.valueSignals]);
+  const features = new Set<string>();
+  if (tags.has('food') || tags.has('fish') || tags.has('meat')) features.add('strongScent');
+  if (tags.has('weapon') || tags.has('armor') || tags.has('metal')) features.add('workedMetal');
+  if (tags.has('valuable') || tags.has('coin')) features.add('glintingSurface');
+  if (tags.has('quest') || tags.has('document')) features.add('markedPaper');
+  if (tags.has('relic') || tags.has('ritual') || tags.has('grave')) features.add('ritualMarkings');
+  if (tags.has('alchemy')) features.add('bottledLiquid');
+  if (tags.has('cursed') || tags.has('unknownPower')) features.add('uneasyAura');
+  if (features.size === 0) features.add('portableObject');
+  return [...features].slice(0, 4);
+}
+
+function itemObjectAffordanceTags(semantic: ReturnType<typeof itemSemanticFor>): string[] {
+  const tags = new Set([...semantic.itemTags, ...semantic.smellTags, ...semantic.dangerTags, ...semantic.valueSignals]);
+  const affordances = new Set<string>(['inspectObject']);
+  if (tags.has('food') || tags.has('fish') || tags.has('meat')) affordances.add('sniffObject');
+  if (tags.has('valuable') || tags.has('coin') || tags.has('gear')) affordances.add('collectObject');
+  if (tags.has('cursed') || tags.has('undead') || tags.has('unknownPower') || tags.has('poison')) affordances.add('avoidObject');
+  if (tags.has('document') || tags.has('quest') || tags.has('story')) affordances.add('readObject');
+  return [...affordances].slice(0, 5);
 }
 
 function nearbyCompanions(sim: Sim, pos: Vec3, excludeEntityIds: ReadonlySet<number>): CompanionSemantic[] {

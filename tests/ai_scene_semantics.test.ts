@@ -27,13 +27,35 @@ describe('AI scene semantics', () => {
         objectId: 'eastbrook_forge_hearth',
         entityId: null,
         tags: expect.arrayContaining(['forge', 'hotIron', 'sparks']),
+        featureTags: expect.arrayContaining(['orangeCoals', 'hammerMarks']),
+        affordanceTags: expect.arrayContaining(['warmHands', 'repairGear']),
       }),
       expect.objectContaining({
         source: 'sceneAnchor',
         objectId: 'eastbrook_smithy_house',
         tags: expect.arrayContaining(['house', 'warmLight', 'livedIn']),
+        featureTags: expect.arrayContaining(['litWindows', 'smokeCurl']),
+        affordanceTags: expect.arrayContaining(['seekShelter', 'askForHelp']),
       }),
     ]));
+  });
+
+  it('adds feature and affordance semantics for real object entities', () => {
+    const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+    const object = [...sim.entities.values()].find((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil');
+    expect(object).toBeTruthy();
+    object!.pos = pos(80, 86, sim.cfg.seed);
+    object!.prevPos = { ...object!.pos };
+    sim.grid.update(object!);
+    const frame = sceneFrameFor(sim, pos(80, 86, sim.cfg.seed));
+
+    expect(frame.nearbySemanticObjects).toContainEqual(expect.objectContaining({
+      source: 'entity',
+      objectId: 'gravecaller_sigil',
+      tags: expect.arrayContaining(['quest', 'grave']),
+      featureTags: expect.arrayContaining(['markedPaper', 'ritualMarkings', 'uneasyAura']),
+      affordanceTags: expect.arrayContaining(['inspectObject', 'avoidObject', 'readObject']),
+    }));
   });
 
   it('adds death pressure and low safe-haven score near the Fallen Chapel', () => {
