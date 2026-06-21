@@ -3887,6 +3887,11 @@ export class Hud {
         return t('hudChrome.aiSpeech.singularityInspect', { speakerName, itemName });
       case 'hudChrome.aiSpeech.companionUndeadFear':
         return t('hudChrome.aiSpeech.companionUndeadFear', { speakerName, companionName });
+      case 'hudChrome.aiSpeech.companionSelfUndeadFear':
+      case 'hudChrome.aiSpeech.companionSelfRainTired':
+      case 'hudChrome.aiSpeech.companionSelfStarrySky':
+      case 'hudChrome.aiSpeech.companionSelfNightNervous':
+        return t(ev.speech.lineId as TranslationKey, { companionName });
       case 'hudChrome.aiSpeech.sceneUndeadPressure':
         return t('hudChrome.aiSpeech.sceneUndeadPressure', { speakerName });
       case 'hudChrome.aiSpeech.sceneRainWeariness':

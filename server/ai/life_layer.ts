@@ -7,6 +7,7 @@ import type { AiDecisionV1, AiJobContextV1, AiProvider } from './ai_types';
 import { aiEntityKind } from './ai_types';
 import { classifyCanonSubject } from './canon_guard';
 import { CodexCliProvider } from './codex_worker';
+import { companionReactionEvents } from './companion_reactions';
 import { AiDecisionJournal } from './decision_journal';
 import type { AiDecisionJournalEntry } from './decision_journal';
 import { compactFamilySemanticsForEntity } from './family_semantics';
@@ -101,6 +102,7 @@ export class AiLifeLayer {
       const events = [...result.events];
       const sceneEvent = sceneAwarenessEvent(context, npc);
       if (sceneEvent) events.push(sceneEvent);
+      events.push(...companionReactionEvents(context));
       const memoryEvent = memoryReactionEvent(context, npc, memory, rumor);
       if (memoryEvent) events.push(memoryEvent);
       const topicEvent = topicReactionEvent(context, npc, memory, rumor);
@@ -179,6 +181,7 @@ export class AiLifeLayer {
     const event = objectInspectionEvent(context, object);
     if (!event) return;
     const events: SimEvent[] = [event];
+    events.push(...companionReactionEvents(context));
     const lineIds = event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [];
     const inspectedItem = object.objectItemId ? droppedItemSemantic(object.objectItemId, 0, request.pid) : null;
     if (inspectedItem && context.scene) {

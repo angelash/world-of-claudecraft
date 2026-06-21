@@ -263,6 +263,31 @@ describe('server AI interact command', () => {
     }));
   });
 
+  it('lets a non-undead companion react fearfully while inspecting an undead scene object', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const object = [...server.sim.entities.values()].find((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil')!;
+    const companion = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    companion.ownerId = session.pid;
+    companion.pos.x = object.pos.x + 1;
+    companion.pos.z = object.pos.z + 1;
+    companion.pos.y = groundHeight(companion.pos.x, companion.pos.z, server.sim.cfg.seed);
+    companion.prevPos = { ...companion.pos };
+    server.sim.grid.update(companion);
+    teleportNear(server, session.pid, object.id);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_object', object: object.id, locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: companion.id,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.companionSelfUndeadFear' }),
+      reaction: expect.objectContaining({ kind: 'avoid' }),
+      pid: session.pid,
+    }));
+  });
+
   it('turns a discarded item into a local scene-interest reaction without leaving loot behind', async () => {
     const server = new GameServer();
     const fc = fakeWs();
