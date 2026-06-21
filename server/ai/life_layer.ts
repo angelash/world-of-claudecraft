@@ -25,6 +25,8 @@ import { sceneInspectionEvent } from './scene_inspection';
 import { sceneAwarenessEvent } from './scene_reactions';
 import { AiSocialMemoryStore } from './social_memory';
 import type { AiNpcMemory, AiRumorMemory } from './social_memory';
+import { AiWorldDirectorStore, worldDirectorEvent } from './world_director';
+import type { AiWorldDirectorState } from './world_director';
 import { AiWorldTraceStore } from './world_traces';
 import type { AiWorldTrace } from './world_traces';
 import { worldTraceReactionEvent } from './world_trace_reactions';
@@ -75,6 +77,7 @@ export class AiLifeLayer {
   private readonly socialMemory = new AiSocialMemoryStore();
   private readonly worldTraces = new AiWorldTraceStore();
   private readonly creatureMemory = new AiCreatureMemoryStore();
+  private readonly worldDirector = new AiWorldDirectorStore();
   private sequence = 0;
 
   constructor(options: AiLifeLayerOptions = {}) {
@@ -101,6 +104,10 @@ export class AiLifeLayer {
     return this.creatureMemory.snapshot();
   }
 
+  worldDirectorDiagnostics(): AiWorldDirectorState[] {
+    return this.worldDirector.snapshot();
+  }
+
   async handleNpcInteraction(request: NpcAiInteractionRequest): Promise<void> {
     if (!this.enabled) return;
     const context = this.buildNpcContext(request);
@@ -112,6 +119,8 @@ export class AiLifeLayer {
     context.recentObservations.push(`npcMemory:${memory.interactionCount}`);
     const trace = this.worldTraces.traceForScene(context.scene?.subsceneId ?? context.scene?.zoneId, request.pid, request.sim.time);
     if (trace) context.recentObservations.push(`worldTrace:${trace.kind}:${trace.itemId}:${trace.strength.toFixed(2)}`);
+    const directorState = this.worldDirector.stateForScene(context.scene?.subsceneId ?? context.scene?.zoneId, request.pid, request.sim.time);
+    if (directorState) context.recentObservations.push(`worldDirector:${directorState.mood}:${directorState.itemId}:${directorState.heat.toFixed(2)}`);
     const rumor = this.socialMemory.rumorForScene(context.scene?.subsceneId ?? context.scene?.zoneId, request.pid, request.sim.time);
     if (rumor) context.recentObservations.push(`sceneRumor:${rumor.itemId}:${rumor.strength.toFixed(2)}`);
     let decision: AiDecisionV1;
@@ -129,6 +138,10 @@ export class AiLifeLayer {
       if (sceneEvent) events.push(sceneEvent);
       const traceEvent = worldTraceReactionEvent(context, npc, trace);
       if (traceEvent) events.push(traceEvent);
+      const directorEvent = request.topic === 'place'
+        ? worldDirectorEvent(context.scene ?? null, npc, directorState, request.pid)
+        : null;
+      if (directorEvent) events.push(directorEvent);
       events.push(...companionReactionEvents(context));
       const memoryEvent = memoryReactionEvent(context, npc, memory, rumor);
       if (memoryEvent) events.push(memoryEvent);
@@ -159,6 +172,7 @@ export class AiLifeLayer {
       reasonLineIds: reactionLineIds,
       nowSeconds: request.sim.time,
     });
+    if (trace) this.worldDirector.noteTrace({ trace, nowSeconds: request.sim.time });
     if (reactions.length > 0) {
       this.socialMemory.noteItemRumor({
         sceneId,
@@ -216,6 +230,13 @@ export class AiLifeLayer {
       });
       const memoryEvent = singularityCreatureMemoryEvent(player, reaction.entity, dropped, memory);
       if (memoryEvent) events.push(memoryEvent);
+      this.worldDirector.noteCreatureMemory({
+        sceneId,
+        itemId: dropped.itemId,
+        memory,
+        sourcePlayerEntityId: request.pid,
+        nowSeconds: request.sim.time,
+      });
     }
     if (events.length > 0) request.deliver(events);
   }
@@ -295,6 +316,7 @@ export class AiLifeLayer {
     const scene = sceneFrameFor(request.sim, player.pos);
     const sceneId = scene.subsceneId ?? scene.zoneId;
     const trace = this.worldTraces.traceForScene(sceneId, request.pid, request.sim.time);
+    const directorState = this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time);
     const event = sceneInspectionEvent(scene, player, trace);
     const events: SimEvent[] = [event];
     const lineIds = event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [];
@@ -336,6 +358,13 @@ export class AiLifeLayer {
         })));
       }
     }
+    if (!trace) {
+      const directorEvent = worldDirectorEvent(scene, player, directorState, request.pid);
+      if (directorEvent) {
+        events.push(directorEvent);
+        if (directorEvent.type === 'aiSpeech' && directorEvent.speech.mode === 'lineId') lineIds.push(directorEvent.speech.lineId);
+      }
+    }
     this.journal.recordLocalReaction({
       jobId: `scene-${request.pid}-${++this.sequence}`,
       trigger: 'scene_inspected',
@@ -344,7 +373,12 @@ export class AiLifeLayer {
       playerEntityId: request.pid,
       reason: `inspectScene:${scene.subsceneId ?? scene.zoneId}`,
       lineIds,
-      intents: trace ? ['inspectObject', 'commentOnScene', 'reactToWorldTrace'] : ['inspectObject', 'commentOnScene'],
+      intents: [
+        'inspectObject',
+        'commentOnScene',
+        ...(trace ? ['reactToWorldTrace'] : []),
+        ...(!trace && directorState ? ['readWorldDirectorState'] : []),
+      ],
       sceneId,
     });
     request.deliver(events);

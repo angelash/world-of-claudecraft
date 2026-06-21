@@ -398,6 +398,42 @@ describe('server AI interact command', () => {
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
 
+  it('lets world director mood remain briefly after a source trace expires', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    teleportNear(server, session.pid, wolf.id);
+    server.sim.addItem('roasted_boar', 1, session.pid);
+    const beforeObjects = [...server.sim.entities.values()].filter((entity) => entity.kind === 'object').length;
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    for (let i = 0; i < 91 * 20; i++) server.sim.tick();
+    await flushAi();
+    fc.sent.length = 0;
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: session.pid,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.worldDirectorHungry',
+        values: expect.objectContaining({ itemId: 'roasted_boar', directorMood: 'hungry' }),
+      }),
+      reaction: expect.objectContaining({
+        kind: 'inspect',
+        targetItemId: 'roasted_boar',
+      }),
+      pid: session.pid,
+    }));
+    expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.sceneTraceFood')).toBe(false);
+    const afterObjects = [...server.sim.entities.values()].filter((entity) => entity.kind === 'object').length;
+    expect(afterObjects).toBe(beforeObjects);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+  });
+
   it('lets NPC gossip respond to active world traces in the same scene', async () => {
     const server = new GameServer();
     const fc = fakeWs();
@@ -420,6 +456,36 @@ describe('server AI interact command', () => {
       speech: expect.objectContaining({
         lineId: 'hudChrome.aiSpeech.worldTraceNpcValuable',
         values: expect.objectContaining({ itemId: 'redbrook_blade', traceKind: 'valuable' }),
+      }),
+      reaction: expect.objectContaining({ kind: 'inspect', targetItemId: 'redbrook_blade' }),
+      pid: session.pid,
+    }));
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
+  });
+
+  it('lets NPC place questions read active world director state', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'smith_haldren')!;
+    teleportNear(server, session.pid, npc.id);
+    server.sim.addItem('redbrook_blade', 1, session.pid);
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+    const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'redbrook_blade', count: 1 }));
+    await flushAi();
+    fc.sent.length = 0;
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en', topic: 'place' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+        values: expect.objectContaining({ itemId: 'redbrook_blade', directorMood: 'covetous' }),
       }),
       reaction: expect.objectContaining({ kind: 'inspect', targetItemId: 'redbrook_blade' }),
       pid: session.pid,
