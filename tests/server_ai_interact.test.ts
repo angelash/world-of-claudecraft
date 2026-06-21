@@ -16,6 +16,8 @@ vi.mock('../server/db', () => ({
 
 import { GameServer, type ClientSession } from '../server/game';
 import { pool } from '../server/db';
+import { AiLifeLayer } from '../server/ai/life_layer';
+import type { AiDecisionV1, AiProvider } from '../server/ai/ai_types';
 import { individualProfileFor } from '../server/ai/singularity';
 import type { Entity } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
@@ -121,6 +123,39 @@ describe('server AI interact command', () => {
       speech: expect.objectContaining({ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
       pid: session.pid,
     }));
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
+  });
+
+  it('delivers a safe NPC fallback when the AI provider fails', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
+    const provider: AiProvider = {
+      async decide(): Promise<AiDecisionV1> {
+        throw new Error('codex worker timed out');
+      },
+    };
+    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    teleportNear(server, session.pid, npc.id);
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+    const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      speakerName: 'Brother Aldric',
+      speech: expect.objectContaining({ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
+      source: 'fallback',
+      pid: session.pid,
+    }));
+    expect((server as any).aiLifeLayer.diagnostics()).toEqual([
+      expect.objectContaining({ status: 'provider_error', reason: 'codex worker timed out' }),
+      expect.objectContaining({ status: 'accepted', lineIds: ['hudChrome.aiSpeech.brotherAldricAwake'] }),
+    ]);
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });

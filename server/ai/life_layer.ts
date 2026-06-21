@@ -393,9 +393,9 @@ export class AiLifeLayer {
     try {
       decision = await this.provider.decide(context);
     } catch (err) {
-      this.journal.recordProviderError(context, err instanceof Error ? err.message : String(err), memoryWrites);
-      this.enqueueMemoryWrites(memoryWrites);
-      throw err;
+      const reason = err instanceof Error ? err.message : String(err);
+      this.journal.recordProviderError(context, reason, memoryWrites);
+      decision = fallbackDecisionForProviderError(context, reason);
     }
     const result = validateAiDecision({ decision, context, entity: npc, subject });
     this.journal.recordDecision(context, decision, result, memoryWrites);
@@ -923,4 +923,34 @@ function shouldShareWorldDirector(
   if (topic === 'place' || topic === 'recent') return true;
   if (topic === 'rumor') return rumor === null;
   return false;
+}
+
+function fallbackDecisionForProviderError(context: AiJobContextV1, reason: string): AiDecisionV1 {
+  const profile = profileFor(context.entity.kind, context.entity.templateId);
+  const lineId = profile.fallbackLineId;
+  return {
+    schemaVersion: 1,
+    jobId: context.jobId,
+    entityRef: {
+      kind: context.entity.kind,
+      entityId: context.entity.entityId,
+      templateId: context.entity.templateId,
+    },
+    ttlMs: 5_000,
+    confidence: 0.15,
+    speech: [{
+      mode: 'lineId',
+      lineId,
+      values: {
+        playerName: context.player.name,
+        speakerName: context.entity.name,
+      },
+    }],
+    intents: [{ type: 'commentOnScene', lineId }],
+    audit: {
+      shortReason: `provider error fallback: ${reason.slice(0, 120)}`,
+      usedPlayerInput: false,
+      safetyNotes: ['Codex provider failed; local profile fallback preserved quest, combat, reward, and economy state.'],
+    },
+  };
 }

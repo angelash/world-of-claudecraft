@@ -59,6 +59,41 @@ describe('AI decision journal', () => {
     })]);
   });
 
+  it('records provider errors and still delivers a validated local fallback', async () => {
+    const provider: AiProvider = {
+      async decide(): Promise<AiDecisionV1> {
+        throw new Error('codex worker timed out');
+      },
+    };
+    const { sim, pid, npcId } = makeSim();
+    const layer = new AiLifeLayer({ enabled: true, provider });
+    const delivered: unknown[] = [];
+
+    await expect(layer.handleNpcInteraction({ sim, pid, npcId, locale: 'en', deliver: (events) => delivered.push(...events) })).resolves.toBeUndefined();
+
+    expect(delivered).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speakerId: npcId,
+      speech: expect.objectContaining({ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
+      source: 'fallback',
+      pid,
+    }));
+    expect(layer.diagnostics()).toEqual([
+      expect.objectContaining({
+        status: 'provider_error',
+        reason: 'codex worker timed out',
+        templateId: 'brother_aldric',
+        memoryWrites: [expect.objectContaining({ kind: 'npcInteraction' })],
+      }),
+      expect.objectContaining({
+        status: 'accepted',
+        templateId: 'brother_aldric',
+        lineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
+        memoryWrites: [expect.objectContaining({ kind: 'npcInteraction' })],
+      }),
+    ]);
+  });
+
   it('records local item-discard reactions for replay diagnostics', () => {
     const { sim, pid } = makeSim();
     const layer = new AiLifeLayer({ enabled: true, journalSize: 4 });
