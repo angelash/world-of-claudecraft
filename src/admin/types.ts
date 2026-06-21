@@ -171,6 +171,44 @@ export interface AiContentCoverageReport {
   };
 }
 
+export interface AiProfilePreviewTarget {
+  kind: string;
+  templateId: string;
+}
+
+export interface AiProfilePreviewRow {
+  id: string;
+  appliesTo: AiProfilePreviewTarget[];
+  personaExcerpt: string;
+  canonSensitive: boolean;
+  fallbackLineId: string;
+  allowedIntentTypes: string[];
+  allowedLineIdCount: number;
+  knowledgeScopeCount: number;
+  tabooTopicCount: number;
+  socialMemoryLineIds: string[];
+  sceneAffinities: {
+    likes: number;
+    avoids: number;
+    comments: number;
+  };
+  itemInterest: {
+    attracted: number;
+    avoids: number;
+  };
+  hasTimeWeatherSensitivity: boolean;
+  companionReactionCount: number;
+  missingAuthoringFields: string[];
+}
+
+export interface AiProfilePreviewReport {
+  authoredTotal: number;
+  genericTotal: number;
+  limit: number;
+  truncated: boolean;
+  rows: AiProfilePreviewRow[];
+}
+
 export interface Overview {
   accounts: number;
   characters: number;
@@ -183,6 +221,7 @@ export interface Overview {
   ai: AiLifeLayerMetricsSnapshot;
   aiDiagnostics: AiLifeLayerDiagnosticsSnapshot;
   aiCoverage: AiContentCoverageReport;
+  aiProfiles: AiProfilePreviewReport;
 }
 
 export interface LivePlayer {

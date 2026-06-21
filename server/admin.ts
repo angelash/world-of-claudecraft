@@ -16,7 +16,7 @@ import {
 } from './chat_filter_db';
 import type { GameServer } from './game';
 import { providerUsageSnapshot } from './provider_usage';
-import { aiContentCoverageReport } from './ai/content_coverage';
+import { aiContentCoverageReport, aiProfilePreviewReport } from './ai/content_coverage';
 
 // Admin API: everything under /admin/api/*. Auth is a bearer token whose
 // account has is_admin = TRUE — the admin.* hostname is routing, not security.
@@ -225,6 +225,7 @@ export async function handleAdminApi(
         ai: game.aiLifeLayerMetrics(),
         aiDiagnostics: game.aiLifeLayerDiagnostics(),
         aiCoverage: aiContentCoverageReport(),
+        aiProfiles: aiProfilePreviewReport(),
       });
     }
     if (path === '/admin/api/online') {

@@ -67,6 +67,47 @@ export interface AiContentCoverageReport {
   };
 }
 
+export interface AiProfilePreviewTarget {
+  kind: 'npc' | 'mob' | 'object';
+  templateId: string;
+}
+
+export interface AiProfilePreviewRow {
+  id: string;
+  appliesTo: AiProfilePreviewTarget[];
+  personaExcerpt: string;
+  canonSensitive: boolean;
+  fallbackLineId: string;
+  allowedIntentTypes: string[];
+  allowedLineIdCount: number;
+  knowledgeScopeCount: number;
+  tabooTopicCount: number;
+  socialMemoryLineIds: string[];
+  sceneAffinities: {
+    likes: number;
+    avoids: number;
+    comments: number;
+  };
+  itemInterest: {
+    attracted: number;
+    avoids: number;
+  };
+  hasTimeWeatherSensitivity: boolean;
+  companionReactionCount: number;
+  missingAuthoringFields: string[];
+}
+
+export interface AiProfilePreviewReport {
+  authoredTotal: number;
+  genericTotal: number;
+  limit: number;
+  truncated: boolean;
+  rows: AiProfilePreviewRow[];
+}
+
+const PROFILE_PREVIEW_LIMIT = 64;
+const PERSONA_EXCERPT_MAX = 110;
+
 export function aiContentCoverageReport(): AiContentCoverageReport {
   const expected = [...MOB_FAMILIES];
   const inContent = unique(Object.values(MOBS).map((mob) => mob.family)).sort();
@@ -214,6 +255,72 @@ export function aiContentCoverageReport(): AiContentCoverageReport {
   };
 }
 
+export function aiProfilePreviewReport(limit = PROFILE_PREVIEW_LIMIT): AiProfilePreviewReport {
+  const boundedLimit = Math.max(0, Math.floor(limit));
+  const authoredRows = [...AI_AGENT_PROFILES]
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map(profilePreviewRow);
+  return {
+    authoredTotal: AI_AGENT_PROFILES.length,
+    genericTotal: 2,
+    limit: boundedLimit,
+    truncated: authoredRows.length > boundedLimit,
+    rows: authoredRows.slice(0, boundedLimit),
+  };
+}
+
+function profilePreviewRow(profile: AiAgentProfile): AiProfilePreviewRow {
+  const socialMemoryLineIds = unique([
+    profile.socialMemory.recognitionLineId,
+    profile.socialMemory.rumorLineId,
+    ...(profile.socialMemory.questRumorLineId ? [profile.socialMemory.questRumorLineId] : []),
+  ]);
+  return {
+    id: profile.id,
+    appliesTo: profile.appliesTo.map((target) => ({ kind: target.kind, templateId: target.templateId })),
+    personaExcerpt: excerpt(profile.persona, PERSONA_EXCERPT_MAX),
+    canonSensitive: profile.canonSensitive,
+    fallbackLineId: profile.fallbackLineId,
+    allowedIntentTypes: [...profile.allowedIntentTypes],
+    allowedLineIdCount: profile.allowedLineIds.length,
+    knowledgeScopeCount: profile.knowledgeScope.length,
+    tabooTopicCount: profile.tabooTopics.length,
+    socialMemoryLineIds,
+    sceneAffinities: {
+      likes: profile.sceneAffinities?.likesTags.length ?? 0,
+      avoids: profile.sceneAffinities?.avoidsTags.length ?? 0,
+      comments: profile.sceneAffinities?.commentsOnTags.length ?? 0,
+    },
+    itemInterest: {
+      attracted: profile.itemInterest?.attractedToTags.length ?? 0,
+      avoids: profile.itemInterest?.avoidsTags.length ?? 0,
+    },
+    hasTimeWeatherSensitivity: profile.timeWeatherSensitivity !== undefined,
+    companionReactionCount: profile.companionReactions?.length ?? 0,
+    missingAuthoringFields: profileMissingAuthoringFields(profile),
+  };
+}
+
+function profileMissingAuthoringFields(profile: AiAgentProfile): string[] {
+  const missing: string[] = [];
+  if (profile.appliesTo.length === 0) missing.push('appliesTo');
+  if (profile.persona.trim().length < 24) missing.push('persona');
+  if (profile.allowedIntentTypes.length === 0) missing.push('allowedIntentTypes');
+  if (profile.allowedLineIds.length === 0) missing.push('allowedLineIds');
+  if (profile.fallbackLineId.trim().length === 0) missing.push('fallbackLineId');
+  if (profile.knowledgeScope.length < 4) missing.push('knowledgeScope');
+  if (profile.tabooTopics.length < 2) missing.push('tabooTopics');
+  if (profile.socialMemory.style.trim().length === 0) missing.push('socialMemory.style');
+  if (profile.socialMemory.recognitionLineId.trim().length === 0) missing.push('socialMemory.recognitionLineId');
+  if (profile.socialMemory.rumorLineId.trim().length === 0) missing.push('socialMemory.rumorLineId');
+  if ((profile.socialMemory.questRumorLineId?.trim().length ?? 0) === 0) missing.push('socialMemory.questRumorLineId');
+  if (!profile.sceneAffinities) missing.push('sceneAffinities');
+  if (!profile.itemInterest) missing.push('itemInterest');
+  if (!profile.timeWeatherSensitivity) missing.push('timeWeatherSensitivity');
+  if (profile.timeWeatherSensitivity && !profileTimeWeatherIsValid(profile)) missing.push('timeWeatherSensitivity.range');
+  return missing;
+}
+
 function profileLineIds(profile: AiAgentProfile): string[] {
   return unique([
     ...profile.allowedLineIds,
@@ -262,6 +369,12 @@ function isImportantForAi(item: ItemDef): boolean {
     || item.quality === 'rare'
     || item.quality === 'epic'
     || item.sellValue >= 500;
+}
+
+function excerpt(value: string, maxLength: number): string {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
 }
 
 function unique<T>(values: Iterable<T>): T[] {

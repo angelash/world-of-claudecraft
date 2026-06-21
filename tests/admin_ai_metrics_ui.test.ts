@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { renderAiLifeLayerMetrics } from '../src/admin/tables';
 import { setAdminLanguage } from '../src/admin/i18n';
-import type { AiContentCoverageReport, AiLifeLayerDiagnosticsSnapshot, AiLifeLayerMetricsSnapshot } from '../src/admin/types';
+import type {
+  AiContentCoverageReport, AiLifeLayerDiagnosticsSnapshot, AiLifeLayerMetricsSnapshot,
+  AiProfilePreviewReport,
+} from '../src/admin/types';
 
 function metrics(overrides: Partial<AiLifeLayerMetricsSnapshot> = {}): AiLifeLayerMetricsSnapshot {
   return {
@@ -130,6 +133,33 @@ function diagnostics(overrides: Partial<AiLifeLayerDiagnosticsSnapshot> = {}): A
   };
 }
 
+function profiles(overrides: Partial<AiProfilePreviewReport> = {}): AiProfilePreviewReport {
+  const base: AiProfilePreviewReport = {
+    authoredTotal: 1,
+    genericTotal: 2,
+    limit: 64,
+    truncated: false,
+    rows: [{
+      id: 'npc.brother_aldric.living_world',
+      appliesTo: [{ kind: 'npc', templateId: 'brother_aldric' }],
+      personaExcerpt: 'A worried priest who reads weather, graves, and player choices as omens.',
+      canonSensitive: true,
+      fallbackLineId: 'hudChrome.aiSpeech.brotherAldricAwake',
+      allowedIntentTypes: ['commentOnScene', 'questHint'],
+      allowedLineIdCount: 1,
+      knowledgeScopeCount: 5,
+      tabooTopicCount: 3,
+      socialMemoryLineIds: ['hudChrome.aiSpeech.memoryPriestRecognizesPlayer'],
+      sceneAffinities: { likes: 4, avoids: 2, comments: 4 },
+      itemInterest: { attracted: 5, avoids: 2 },
+      hasTimeWeatherSensitivity: true,
+      companionReactionCount: 1,
+      missingAuthoringFields: [],
+    }],
+  };
+  return { ...base, ...overrides };
+}
+
 describe('admin AI life layer metrics renderer', () => {
   it('shows a healthy status when provider and memory errors are clear', () => {
     setAdminLanguage('en');
@@ -204,5 +234,29 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('trace:cursed&lt;script&gt;');
     expect(html).not.toContain('npc<script>');
     expect(html).not.toContain('db <offline>');
+  });
+
+  it('shows AI profile previews and escapes authored profile values', () => {
+    setAdminLanguage('en');
+    const html = renderAiLifeLayerMetrics(metrics(), coverage(), diagnostics(), profiles({
+      rows: [{
+        ...profiles().rows[0],
+        id: 'npc.<script>.living_world',
+        appliesTo: [{ kind: 'npc', templateId: 'aldric<script>' }],
+        personaExcerpt: 'Persona with <danger>',
+        fallbackLineId: 'hudChrome.aiSpeech.bad<script>',
+        missingAuthoringFields: ['sceneAffinities<script>'],
+      }],
+    }));
+
+    expect(html).toContain('AI profile preview');
+    expect(html).toContain('canon sensitive');
+    expect(html).toContain('NPC: aldric&lt;script&gt;');
+    expect(html).toContain('npc.&lt;script&gt;.living_world');
+    expect(html).toContain('Persona with &lt;danger&gt;');
+    expect(html).toContain('hudChrome.aiSpeech.bad&lt;script&gt;');
+    expect(html).toContain('sceneAffinities&lt;script&gt;');
+    expect(html).not.toContain('aldric<script>');
+    expect(html).not.toContain('Persona with <danger>');
   });
 });

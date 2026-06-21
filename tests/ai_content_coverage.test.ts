@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aiContentCoverageReport } from '../server/ai/content_coverage';
+import { aiContentCoverageReport, aiProfilePreviewReport } from '../server/ai/content_coverage';
 import { hudChromeStrings } from '../src/ui/i18n.catalog/hud_chrome';
 
 describe('AI content coverage report', () => {
@@ -57,5 +57,32 @@ describe('AI content coverage report', () => {
 
     expect(report.lineIds.referenced.length).toBeGreaterThan(0);
     expect(unknown).toEqual([]);
+  });
+
+  it('summarizes authored profiles for admin authoring review', () => {
+    const preview = aiProfilePreviewReport();
+    const aldric = preview.rows.find((row) => row.id === 'npc.brother_aldric.living_world');
+
+    expect(preview.authoredTotal).toBeGreaterThan(0);
+    expect(preview.genericTotal).toBe(2);
+    expect(preview.truncated).toBe(false);
+    expect(aldric).toMatchObject({
+      fallbackLineId: 'hudChrome.aiSpeech.brotherAldricAwake',
+      canonSensitive: true,
+      hasTimeWeatherSensitivity: true,
+      sceneAffinities: { likes: expect.any(Number), avoids: expect.any(Number), comments: expect.any(Number) },
+      itemInterest: { attracted: expect.any(Number), avoids: expect.any(Number) },
+      missingAuthoringFields: [],
+    });
+    expect(aldric?.appliesTo).toEqual(expect.arrayContaining([{ kind: 'npc', templateId: 'brother_aldric' }]));
+    expect(aldric?.personaExcerpt.length ?? 0).toBeLessThanOrEqual(110);
+  });
+
+  it('bounds profile preview rows for admin payload safety', () => {
+    const preview = aiProfilePreviewReport(1);
+
+    expect(preview.limit).toBe(1);
+    expect(preview.rows).toHaveLength(1);
+    expect(preview.truncated).toBe(true);
   });
 });

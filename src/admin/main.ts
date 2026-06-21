@@ -125,7 +125,12 @@ async function refreshLive(): Promise<void> {
       statCard(`${s.tickMsAvg} ms`, t('stats.avgTick')),
       statCard(fmtBytes(s.rssBytes), t('stats.serverRss')),
     ].join('');
-    $('ai-usage').innerHTML = renderAiLifeLayerMetrics(overview.ai, overview.aiCoverage, overview.aiDiagnostics);
+    $('ai-usage').innerHTML = renderAiLifeLayerMetrics(
+      overview.ai,
+      overview.aiCoverage,
+      overview.aiDiagnostics,
+      overview.aiProfiles,
+    );
     $('usage').innerHTML = renderProviderUsage(overview.usage);
     $('online').innerHTML = renderOnlineTable(online.players);
   } catch (err) {

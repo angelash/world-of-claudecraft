@@ -4,7 +4,8 @@ import type {
   AccountDetail, AccountRow, CharacterRow, ChatFilterData, ChatModeratedAccount,
   ChatModerationDetail, FilterWord, LivePlayer, ModerationAccountDetail, ModerationQueueRow,
   AiContentCoverageReport, AiDecisionJournalEntry, AiLifeLayerDiagnosticsSnapshot,
-  AiLifeLayerMetricsSnapshot, AiWorldDirectorState,
+  AiLifeLayerMetricsSnapshot, AiProfilePreviewReport, AiProfilePreviewRow,
+  AiProfilePreviewTarget, AiWorldDirectorState,
   ProviderUsageCache, ProviderUsageSnapshot,
 } from './types';
 
@@ -119,6 +120,72 @@ function renderAiDelimitedItems(items: readonly string[], limit = 4): string {
   return remaining > 0
     ? `${visible} <span class="hint">${escapeHtml(t('usage.aiDiagnosticsMore', { count: fmtNumber(remaining) }))}</span>`
     : visible;
+}
+
+function aiProfileTargetKindLabel(kind: string): string {
+  switch (kind) {
+    case 'npc': return t('usage.aiProfileKindNpc');
+    case 'mob': return t('usage.aiProfileKindMob');
+    case 'object': return t('usage.aiProfileKindObject');
+    default: return t('usage.aiDiagnosticsUnknownValue', { value: kind });
+  }
+}
+
+function renderAiProfileTargets(targets: readonly AiProfilePreviewTarget[]): string {
+  if (targets.length === 0) return `<span class="hint">${escapeHtml(t('usage.aiDiagnosticsNone'))}</span>`;
+  const visible = targets.slice(0, 3).map((target) => escapeHtml(t('usage.aiProfileTargetSummary', {
+    kind: aiProfileTargetKindLabel(target.kind),
+    templateId: target.templateId,
+  }))).join(', ');
+  const remaining = targets.length - 3;
+  return remaining > 0
+    ? `${visible} <span class="hint">${escapeHtml(t('usage.aiDiagnosticsMore', { count: fmtNumber(remaining) }))}</span>`
+    : visible;
+}
+
+function renderAiProfileGaps(row: AiProfilePreviewRow): string {
+  if (row.missingAuthoringFields.length === 0) {
+    return `<span class="hint">${escapeHtml(t('usage.aiProfileNoGaps'))}</span>`;
+  }
+  return renderAiDelimitedItems(row.missingAuthoringFields, 4);
+}
+
+function renderAiProfileRow(row: AiProfilePreviewRow): string {
+  const canonLabel = row.canonSensitive
+    ? t('usage.aiProfileCanonSensitive')
+    : t('usage.aiProfileCanonFlexible');
+  const canonClass = row.canonSensitive ? ' warn' : '';
+  const sceneItemSummary = t('usage.aiProfileSceneItemSummary', {
+    likes: fmtNumber(row.sceneAffinities.likes),
+    avoids: fmtNumber(row.sceneAffinities.avoids),
+    comments: fmtNumber(row.sceneAffinities.comments),
+    attracted: fmtNumber(row.itemInterest.attracted),
+    itemAvoids: fmtNumber(row.itemInterest.avoids),
+  });
+  const timeCompanionSummary = t('usage.aiProfileTimeCompanionSummary', {
+    time: row.hasTimeWeatherSensitivity ? t('usage.aiProfileTimeReady') : t('usage.aiProfileTimeMissing'),
+    companions: fmtNumber(row.companionReactionCount),
+  });
+  const knowledgeSummary = t('usage.aiProfileKnowledgeSummary', {
+    knowledge: fmtNumber(row.knowledgeScopeCount),
+    taboo: fmtNumber(row.tabooTopicCount),
+  });
+  const linesIntentsSummary = t('usage.aiProfileLinesIntentsSummary', {
+    lines: fmtNumber(row.allowedLineIdCount),
+    intents: fmtNumber(row.allowedIntentTypes.length),
+  });
+
+  return `<tr>
+    <td>${escapeHtml(row.id)}<div class="hint">${escapeHtml(t('usage.aiProfileFallbackLine', { lineId: row.fallbackLineId }))}</div></td>
+    <td>${renderAiProfileTargets(row.appliesTo)}</td>
+    <td><span class="badge${canonClass}">${escapeHtml(canonLabel)}</span></td>
+    <td>${escapeHtml(row.personaExcerpt)}</td>
+    <td>${escapeHtml(knowledgeSummary)}</td>
+    <td>${escapeHtml(sceneItemSummary)}</td>
+    <td>${escapeHtml(timeCompanionSummary)}</td>
+    <td>${escapeHtml(linesIntentsSummary)}</td>
+    <td>${renderAiProfileGaps(row)}</td>
+  </tr>`;
 }
 
 function aiDecisionStatusClass(status: string): string {
@@ -377,10 +444,63 @@ function renderAiContentCoverage(coverage: AiContentCoverageReport): string {
     </div>`;
 }
 
+function renderAiProfilePreview(profiles: AiProfilePreviewReport): string {
+  const totalGaps = profiles.rows.reduce((sum, row) => sum + row.missingAuthoringFields.length, 0);
+  const visibleRows = profiles.rows.slice(0, 12);
+  const hiddenCount = Math.max(0, profiles.authoredTotal - visibleRows.length);
+  const rows = visibleRows.length === 0
+    ? `<tr><td colspan="9" class="empty">${t('usage.aiProfilesNoRows')}</td></tr>`
+    : visibleRows.map(renderAiProfileRow).join('');
+  const truncatedHint = profiles.truncated || hiddenCount > 0
+    ? `<div class="hint">${escapeHtml(t('usage.aiProfilesTruncated', { count: fmtNumber(hiddenCount) }))}</div>`
+    : '';
+
+  return `
+    <div class="usage-section">
+      <h4>${t('usage.aiProfilesTitle')}</h4>
+      <div class="ai-health-grid">
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(profiles.authoredTotal)}</div>
+          <div class="ai-health-label">${t('usage.aiProfilesAuthored')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(profiles.genericTotal)}</div>
+          <div class="ai-health-label">${t('usage.aiProfilesGeneric')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(visibleRows.length)}</div>
+          <div class="ai-health-label">${t('usage.aiProfilesShowing')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value"><span class="badge${totalGaps > 0 ? ' warn' : ''}">${renderAiNumber(totalGaps)}</span></div>
+          <div class="ai-health-label">${t('usage.aiProfilesAuthoringGaps')}</div>
+        </div>
+      </div>
+      ${truncatedHint}
+      <div class="table-scroll">
+        <table class="usage-table">
+          <thead><tr>
+            <th>${t('usage.aiProfileColProfile')}</th>
+            <th>${t('usage.aiProfileColTargets')}</th>
+            <th>${t('usage.aiProfileColCanon')}</th>
+            <th>${t('usage.aiProfileColPersona')}</th>
+            <th>${t('usage.aiProfileColKnowledge')}</th>
+            <th>${t('usage.aiProfileColSceneItem')}</th>
+            <th>${t('usage.aiProfileColTimeCompanion')}</th>
+            <th>${t('usage.aiProfileColLinesIntents')}</th>
+            <th>${t('usage.aiProfileColGaps')}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
 export function renderAiLifeLayerMetrics(
   ai: AiLifeLayerMetricsSnapshot,
   coverage?: AiContentCoverageReport,
   diagnostics?: AiLifeLayerDiagnosticsSnapshot,
+  profiles?: AiProfilePreviewReport,
 ): string {
   const needsAttention = ai.providerErrors > 0 || ai.memoryFlushFailures > 0;
   const statusKey = needsAttention ? 'usage.aiStatusAttention' : 'usage.aiStatusHealthy';
@@ -421,6 +541,7 @@ export function renderAiLifeLayerMetrics(
       </div>
     </div>
     ${coverage ? renderAiContentCoverage(coverage) : ''}
+    ${profiles ? renderAiProfilePreview(profiles) : ''}
     ${diagnostics ? renderAiDiagnostics(diagnostics) : ''}
     <div class="usage-section">
       <h4>${t('usage.aiDetailsTitle')}</h4>

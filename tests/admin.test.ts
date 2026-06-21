@@ -215,6 +215,14 @@ describe('admin api auth', () => {
             interactiveTotal: expect.any(Number),
           }),
         }),
+        aiProfiles: expect.objectContaining({
+          authoredTotal: expect.any(Number),
+          genericTotal: 2,
+          rows: expect.arrayContaining([expect.objectContaining({
+            id: 'npc.brother_aldric.living_world',
+            fallbackLineId: 'hudChrome.aiSpeech.brotherAldricAwake',
+          })]),
+        }),
         usage: expect.objectContaining({
           metrics: expect.arrayContaining([expect.objectContaining({ key: 'woc.balance.rpc' })]),
           caches: expect.arrayContaining([expect.objectContaining({ key: 'woc.balance' })]),
