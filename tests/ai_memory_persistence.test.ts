@@ -57,6 +57,7 @@ class FakeMemoryDb implements AiMemoryPersistence {
   async clearRecords(): Promise<number> {
     this.clearCalls++;
     if (this.failClear) throw new Error('memory clear offline');
+    this.saved = [];
     this.loaded = [];
     return this.clearCount;
   }
@@ -123,6 +124,18 @@ function persistedDirectorSignal(playerEntityId: number): AiMemoryAuditRecord {
     expiresAt: 160,
     reason: 'persistedRestart:covetous:npcTopicShift',
   };
+}
+
+function aiSpeechLineIds(events: readonly unknown[]): string[] {
+  return events
+    .map((event) => {
+      if (!event || typeof event !== 'object') return null;
+      const speech = (event as { type?: string; speech?: { mode?: string; lineId?: string } }).speech;
+      return (event as { type?: string }).type === 'aiSpeech' && speech?.mode === 'lineId'
+        ? speech.lineId ?? null
+        : null;
+    })
+    .filter((lineId): lineId is string => lineId !== null);
 }
 
 describe('AI memory persistence integration', () => {
@@ -385,6 +398,41 @@ describe('AI memory persistence integration', () => {
     expect(layer.worldDirectorDiagnostics()).toEqual([]);
     expect(layer.diagnostics()).toEqual([]);
     expect(layer.memoryPersistenceDiagnostics()).toMatchObject({ pending: 0, errors: [] });
+  });
+
+  it('prevents restart-style persisted memory echoes after an admin clear', async () => {
+    const { sim, pid, wolfId } = makeSim();
+    teleportNear(sim, pid, wolfId);
+    const db = new FakeMemoryDb();
+    const firstLayer = new AiLifeLayer({ enabled: true, memoryDb: db });
+    const discardedEvents: unknown[] = [];
+
+    firstLayer.handleItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, deliver: (events) => discardedEvents.push(...events) });
+    await firstLayer.flushMemoryWrites();
+    db.loaded = db.saved.flat().map(cloneMemoryAudit);
+
+    const restartedLayer = new AiLifeLayer({ enabled: true, memoryDb: db });
+    const beforeQuestLog = JSON.stringify([...sim.meta(pid)!.questLog]);
+    const beforeDone = JSON.stringify([...sim.meta(pid)!.questsDone]);
+    const restoredEvents: unknown[] = [];
+    await restartedLayer.handleSceneInspection({ sim, pid, locale: 'en', deliver: (events) => restoredEvents.push(...events) });
+
+    expect(discardedEvents.length).toBeGreaterThan(0);
+    expect(aiSpeechLineIds(restoredEvents)).toContain('hudChrome.aiSpeech.worldDirectorHungry');
+    expect(JSON.stringify([...sim.meta(pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...sim.meta(pid)!.questsDone])).toBe(beforeDone);
+
+    db.clearCount = db.loaded.length;
+    const clearResult = await restartedLayer.clearMemory(sim.time);
+    expect(clearResult.persistedMemoryRecords).toBeGreaterThan(0);
+
+    const clearedRestartLayer = new AiLifeLayer({ enabled: true, memoryDb: db });
+    const afterClearEvents: unknown[] = [];
+    await clearedRestartLayer.handleSceneInspection({ sim, pid, locale: 'en', deliver: (events) => afterClearEvents.push(...events) });
+
+    expect(aiSpeechLineIds(afterClearEvents)).not.toContain('hudChrome.aiSpeech.worldDirectorHungry');
+    expect(JSON.stringify([...sim.meta(pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...sim.meta(pid)!.questsDone])).toBe(beforeDone);
   });
 
   it('surfaces persisted clear failures instead of claiming restart-safe memory removal', async () => {
