@@ -189,7 +189,7 @@ const fakeGame: any = {
     },
     memoryPersistence: { pending: 1, flushing: false, pruning: false, lastPruneDeleted: 2, errors: [] },
   }),
-  clearAiLifeLayerMemory: vi.fn(() => ({
+  clearAiLifeLayerMemory: vi.fn(async () => ({
     npcMemories: 1,
     rumors: 1,
     worldTraces: 1,
@@ -200,7 +200,8 @@ const fakeGame: any = {
     worldDirectorStates: 1,
     decisionJournalEntries: 2,
     pendingMemoryWrites: 1,
-    totalCleared: 7,
+    persistedMemoryRecords: 4,
+    totalCleared: 11,
   })),
   liveSessions: () => [],
   liveAccountIds: () => new Set([9]),
@@ -315,7 +316,7 @@ describe('admin api auth', () => {
     });
   });
 
-  it('clears volatile AI memory through an authenticated admin endpoint', async () => {
+  it('clears AI memory through an authenticated admin endpoint', async () => {
     vi.mocked(accountForToken).mockResolvedValue(7);
     vi.mocked(isAdminAccount).mockResolvedValue(true);
     const res = fakeRes();
@@ -331,7 +332,8 @@ describe('admin api auth', () => {
         rumors: 1,
         worldDirectorStates: 1,
         pendingMemoryWrites: 1,
-        totalCleared: 7,
+        persistedMemoryRecords: 4,
+        totalCleared: 11,
       }),
     });
   });

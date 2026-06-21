@@ -12,8 +12,11 @@ class FakeMemoryDb implements AiMemoryPersistence {
   loadCalls: AiMemoryPersistenceQuery[] = [];
   failSave = false;
   failPrune = false;
+  failClear = false;
   pruneCount = 0;
   pruneCalls: { nowSeconds: number; batchSize?: number }[] = [];
+  clearCount = 0;
+  clearCalls = 0;
   private blockPrune = false;
   private pruneResolvers: (() => void)[] = [];
 
@@ -49,6 +52,13 @@ class FakeMemoryDb implements AiMemoryPersistence {
     }
     if (this.failPrune) throw new Error('memory prune offline');
     return this.pruneCount;
+  }
+
+  async clearRecords(): Promise<number> {
+    this.clearCalls++;
+    if (this.failClear) throw new Error('memory clear offline');
+    this.loaded = [];
+    return this.clearCount;
   }
 
   holdPrune(): void {
@@ -346,6 +356,48 @@ describe('AI memory persistence integration', () => {
       memoryPruneRuns: 1,
       memoryPruneDeleted: 3,
       memoryPruneFailures: 0,
+    });
+  });
+
+  it('clears volatile overlays and persisted audit records as one admin memory operation', async () => {
+    const { sim, pid, wolfId } = makeSim();
+    teleportNear(sim, pid, wolfId);
+    const db = new FakeMemoryDb();
+    db.clearCount = 4;
+    const layer = new AiLifeLayer({ enabled: true, memoryDb: db });
+    const delivered: unknown[] = [];
+
+    layer.handleItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, deliver: (events) => delivered.push(...events) });
+    await layer.flushMemoryWrites();
+
+    expect(delivered.length).toBeGreaterThan(0);
+    expect(layer.memoryDiagnostics().rumors.length).toBeGreaterThan(0);
+    const result = await layer.clearMemory(sim.time);
+
+    expect(db.clearCalls).toBe(1);
+    expect(result.persistedMemoryRecords).toBe(4);
+    expect(result.rumors).toBeGreaterThan(0);
+    expect(result.worldTraces).toBeGreaterThan(0);
+    expect(result.worldDirectorStates).toBeGreaterThan(0);
+    expect(result.totalCleared).toBeGreaterThanOrEqual(result.persistedMemoryRecords + result.rumors + result.worldTraces + result.worldDirectorStates);
+    expect(layer.memoryDiagnostics()).toEqual({ npcMemories: [], rumors: [] });
+    expect(layer.worldTraceDiagnostics()).toEqual([]);
+    expect(layer.worldDirectorDiagnostics()).toEqual([]);
+    expect(layer.diagnostics()).toEqual([]);
+    expect(layer.memoryPersistenceDiagnostics()).toMatchObject({ pending: 0, errors: [] });
+  });
+
+  it('surfaces persisted clear failures instead of claiming restart-safe memory removal', async () => {
+    const db = new FakeMemoryDb();
+    db.failClear = true;
+    const layer = new AiLifeLayer({ enabled: true, memoryDb: db });
+
+    await expect(layer.clearMemory(10)).rejects.toThrow('memory clear offline');
+
+    expect(db.clearCalls).toBe(1);
+    expect(layer.memoryPersistenceDiagnostics().errors[0]).toBe('memory clear offline');
+    expect(layer.runtimeMetrics()).toMatchObject({
+      lastMemoryPersistenceError: 'memory clear offline',
     });
   });
 

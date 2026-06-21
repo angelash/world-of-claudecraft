@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import type { AiMemoryAuditRecord } from '../server/ai/ai_types';
 import { AI_MEMORY_SCHEMA, PgAiMemoryDb, normalizeAiMemoryAuditRecord } from '../server/ai_memory_db';
+import { REALM } from '../server/realm';
 
 class FakePool {
   calls: Array<{ sql: string; values?: readonly unknown[] }> = [];
@@ -204,5 +205,18 @@ describe('AI memory DB', () => {
     await expect(db.pruneExpired(300, 50)).resolves.toBe(3);
     expect(pool.calls[0].sql).toContain('DELETE FROM ai_memory_records');
     expect(pool.calls[0].values).toEqual(expect.arrayContaining([300, 50]));
+  });
+
+  it('clears all persisted AI memory records for the current realm only', async () => {
+    const pool = new FakePool();
+    pool.rowCount = 9;
+    const db = new PgAiMemoryDb(pool);
+
+    await expect(db.clearRecords()).resolves.toBe(9);
+
+    expect(pool.calls[0].sql).toContain('DELETE FROM ai_memory_records');
+    expect(pool.calls[0].sql).toContain('WHERE realm = $1');
+    expect(pool.calls[0].sql).not.toContain('characters');
+    expect(pool.calls[0].values).toEqual([REALM]);
   });
 });

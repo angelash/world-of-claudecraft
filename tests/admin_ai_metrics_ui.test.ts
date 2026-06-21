@@ -299,6 +299,7 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('mood:haunted&lt;script&gt;');
     expect(html).toContain('presentationOnly&lt;script&gt;');
     expect(html).toContain('Clear AI memory');
+    expect(html).toContain('Clears volatile AI overlay and persisted AI memory audit for this realm only.');
     expect(html).toContain('NPC memories');
     expect(html).toContain('Rumors');
     expect(html).toContain('Alice&lt;script&gt;');

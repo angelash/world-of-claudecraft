@@ -202,6 +202,7 @@ export interface AiVolatileMemoryClearResult {
   worldDirectorStates: number;
   decisionJournalEntries: number;
   pendingMemoryWrites: number;
+  persistedMemoryRecords: number;
   totalCleared: number;
 }
 

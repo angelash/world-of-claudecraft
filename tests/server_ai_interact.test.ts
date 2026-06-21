@@ -1191,7 +1191,15 @@ describe('server AI interact command', () => {
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
 
-  it('lets admins clear volatile AI memory without changing mainline character state', async () => {
+  it('lets admins clear AI memory without changing mainline character state', async () => {
+    const query = dbQueryMock();
+    query.mockClear();
+    query.mockImplementation(async (sql: unknown) => {
+      if (typeof sql === 'string' && sql.includes('DELETE FROM ai_memory_records') && !sql.includes('sim_expires_at')) {
+        return { rows: [], rowCount: 5 };
+      }
+      return { rows: [], rowCount: 0 };
+    });
     const server = new GameServer();
     const fc = fakeWs();
     const session = joinServer(server, fc);
@@ -1208,25 +1216,35 @@ describe('server AI interact command', () => {
     expect(server.aiLifeLayerDiagnostics().worldDirectorStates.length).toBeGreaterThan(0);
     expect((server as any).aiLifeLayer.worldTraceDiagnostics().length).toBeGreaterThan(0);
 
-    const result = server.clearAiLifeLayerMemory();
+    try {
+      const result = await server.clearAiLifeLayerMemory();
 
-    expect(result.rumors).toBeGreaterThan(0);
-    expect(result.worldTraces).toBeGreaterThan(0);
-    expect(result.worldDirectorStates).toBeGreaterThan(0);
-    expect(result.totalCleared).toBeGreaterThanOrEqual(result.rumors + result.worldTraces + result.worldDirectorStates);
-    expect(mainlineSnapshot(server, session.pid)).toEqual(beforeClear);
-    expect(server.aiLifeLayerDiagnostics().socialMemory.rumors).toEqual([]);
-    expect(server.aiLifeLayerDiagnostics().worldDirectorStates).toEqual([]);
-    expect(server.aiLifeLayerDiagnostics().recentDecisions).toEqual([]);
-    expect((server as any).aiLifeLayer.worldTraceDiagnostics()).toEqual([]);
+      expect(result.rumors).toBeGreaterThan(0);
+      expect(result.worldTraces).toBeGreaterThan(0);
+      expect(result.worldDirectorStates).toBeGreaterThan(0);
+      expect(result.persistedMemoryRecords).toBe(5);
+      expect(result.totalCleared).toBeGreaterThanOrEqual(result.persistedMemoryRecords + result.rumors + result.worldTraces + result.worldDirectorStates);
+      expect(query.mock.calls.some(([sql]) =>
+        typeof sql === 'string'
+        && sql.includes('DELETE FROM ai_memory_records')
+        && sql.includes('WHERE realm = $1')
+        && !sql.includes('characters'))).toBe(true);
+      expect(mainlineSnapshot(server, session.pid)).toEqual(beforeClear);
+      expect(server.aiLifeLayerDiagnostics().socialMemory.rumors).toEqual([]);
+      expect(server.aiLifeLayerDiagnostics().worldDirectorStates).toEqual([]);
+      expect(server.aiLifeLayerDiagnostics().recentDecisions).toEqual([]);
+      expect((server as any).aiLifeLayer.worldTraceDiagnostics()).toEqual([]);
 
-    fc.sent.length = 0;
-    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
-    await flushAi();
+      fc.sent.length = 0;
+      server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+      await flushAi();
 
-    expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.sceneTraceFood')).toBe(false);
-    expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.worldDirectorHungry')).toBe(false);
-    expect(mainlineSnapshot(server, session.pid)).toEqual(beforeClear);
+      expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.sceneTraceFood')).toBe(false);
+      expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.worldDirectorHungry')).toBe(false);
+      expect(mainlineSnapshot(server, session.pid)).toEqual(beforeClear);
+    } finally {
+      query.mockResolvedValue({ rows: [], rowCount: 0 });
+    }
   });
 
   it('lets world director mood remain briefly after a source trace expires', async () => {

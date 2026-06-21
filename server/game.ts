@@ -975,8 +975,8 @@ export class GameServer {
     return this.aiLifeLayer.diagnosticsSnapshot();
   }
 
-  clearAiLifeLayerMemory(): AiVolatileMemoryClearResult {
-    return this.aiLifeLayer.clearVolatileMemory(this.sim.time);
+  async clearAiLifeLayerMemory(): Promise<AiVolatileMemoryClearResult> {
+    return this.aiLifeLayer.clearMemory(this.sim.time);
   }
 
   liveSessions(): AdminLivePlayer[] {

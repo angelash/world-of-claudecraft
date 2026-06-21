@@ -466,6 +466,7 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
       <div class="admin-actions">
         <button class="danger" data-clear-ai-memory>${t('usage.aiClearMemory')}</button>
       </div>
+      <div class="hint">${escapeHtml(t('usage.aiClearScopeHint'))}</div>
       <div class="ai-health-grid">
         <div class="ai-health-cell">
           <div class="ai-health-value">${renderAiNumber(diagnostics.recentDecisions.length)}</div>

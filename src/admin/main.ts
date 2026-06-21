@@ -143,7 +143,10 @@ async function clearAiMemory(): Promise<void> {
   try {
     const result = await apiPost<AiVolatileMemoryClearResult>('/admin/api/ai/memory/clear', {});
     await refreshLive();
-    window.alert(t('usage.aiClearSuccess', { count: result.totalCleared }));
+    window.alert(t('usage.aiClearSuccess', {
+      count: result.totalCleared,
+      persisted: result.persistedMemoryRecords,
+    }));
   } catch (err) {
     if (!handleAuthFailure(err)) window.alert(err instanceof Error ? localizeAdminError(err.message) : t('usage.aiClearFailed'));
   }

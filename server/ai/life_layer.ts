@@ -75,6 +75,7 @@ export interface AiMemoryPersistence {
   saveRecords(records: readonly AiMemoryAuditRecord[]): Promise<void>;
   loadRecords?(query: AiMemoryPersistenceQuery): Promise<AiMemoryAuditRecord[]>;
   pruneExpired?(nowSeconds: number, batchSize?: number): Promise<number>;
+  clearRecords?(): Promise<number>;
 }
 
 export interface AiLifeLayerMetricsSnapshot {
@@ -152,6 +153,7 @@ export interface AiVolatileMemoryClearResult {
   worldDirectorStates: number;
   decisionJournalEntries: number;
   pendingMemoryWrites: number;
+  persistedMemoryRecords: number;
   totalCleared: number;
 }
 
@@ -324,12 +326,30 @@ export class AiLifeLayer {
       worldDirectorStates: this.worldDirector.clearStates(nowSeconds),
       decisionJournalEntries: this.journal.clear(),
       pendingMemoryWrites: this.pendingMemoryWrites.length,
+      persistedMemoryRecords: 0,
     };
     this.pendingMemoryWrites.splice(0);
     return {
       ...result,
       totalCleared: Object.values(result).reduce((sum, count) => sum + count, 0),
     };
+  }
+
+  async clearMemory(nowSeconds = 0): Promise<AiVolatileMemoryClearResult> {
+    if (this.memoryFlushPromise) await this.memoryFlushPromise.catch(() => {});
+    const volatileResult = this.clearVolatileMemory(nowSeconds);
+    if (!this.memoryDb?.clearRecords) return volatileResult;
+    try {
+      const persistedMemoryRecords = normalizeDeletedCount(await this.memoryDb.clearRecords());
+      return {
+        ...volatileResult,
+        persistedMemoryRecords,
+        totalCleared: volatileResult.totalCleared + persistedMemoryRecords,
+      };
+    } catch (err) {
+      this.recordMemoryPersistenceError(err, 'clear');
+      throw err;
+    }
   }
 
   runtimeMetrics(): AiLifeLayerMetricsSnapshot {
@@ -1376,7 +1396,7 @@ export class AiLifeLayer {
     }
   }
 
-  private recordMemoryPersistenceError(err: unknown, source: 'flush' | 'prune'): void {
+  private recordMemoryPersistenceError(err: unknown, source: 'flush' | 'prune' | 'clear'): void {
     const message = err instanceof Error ? err.message : String(err);
     this.memoryPersistenceErrors.unshift(message);
     this.memoryPersistenceErrors.splice(5);
@@ -1590,6 +1610,10 @@ export class AiLifeLayer {
 export function normalizeLocale(locale: string): string {
   const trimmed = locale.trim();
   return /^[a-z]{2}([_-][A-Z]{2})?$/.test(trimmed) ? trimmed : 'en';
+}
+
+function normalizeDeletedCount(value: number): number {
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
 }
 
 function cloneDirectorProposals(

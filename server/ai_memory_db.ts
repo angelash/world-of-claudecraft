@@ -159,6 +159,15 @@ export class PgAiMemoryDb {
     );
     return res.rowCount ?? 0;
   }
+
+  async clearRecords(): Promise<number> {
+    const res = await this.db.query(
+      `DELETE FROM ai_memory_records
+        WHERE realm = $1`,
+      [REALM],
+    );
+    return res.rowCount ?? 0;
+  }
 }
 
 export function normalizeAiMemoryAuditRecord(value: unknown): AiMemoryAuditRecord | null {
