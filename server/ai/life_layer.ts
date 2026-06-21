@@ -47,7 +47,7 @@ import { sceneAwarenessEvent } from './scene_reactions';
 import { individualProfileFor, individualSpeechValues } from './singularity';
 import { AiSocialMemoryStore } from './social_memory';
 import type { AiNpcMemory, AiRumorMemory } from './social_memory';
-import { AiWorldDirectorStore, worldDirectorEvent } from './world_director';
+import { AiWorldDirectorStore, worldDirectorEvent, worldDirectorEventFromMemoryAudit } from './world_director';
 import type { AiWorldDirectorProposal, AiWorldDirectorState } from './world_director';
 import { AiWorldTraceStore } from './world_traces';
 import type { AiWorldTrace } from './world_traces';
@@ -793,6 +793,14 @@ export class AiLifeLayer {
         worldDirectorMemoryAudit(directorState, 'readObjectWorldDirectorState'),
       ];
     }
+    const persistedSignals = await this.loadPersistedMemorySignals({
+      sourcePlayerEntityId: request.pid,
+      nowSeconds: request.sim.time,
+      sceneId,
+      zoneId,
+      limit: 8,
+    });
+    appendMemorySignals(context, persistedSignals);
     const memoryWrites: AiMemoryAuditRecord[] = [];
     const sideEvents: SimEvent[] = [];
     sideEvents.push(...companionReactionEvents(context));
@@ -1092,6 +1100,13 @@ export class AiLifeLayer {
     const directorState = this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time)
       ?? this.worldDirector.stateForRegion({ zoneId: scene.zoneId, sceneId, playerEntityId: request.pid, nowSeconds: request.sim.time });
     const encounterMemory = this.bossMemory.memoryForScene(sceneId, request.pid, request.sim.time);
+    const persistedSignals = await this.loadPersistedMemorySignals({
+      sourcePlayerEntityId: request.pid,
+      nowSeconds: request.sim.time,
+      sceneId,
+      zoneId: scene.zoneId,
+      limit: 8,
+    });
     const event = sceneInspectionEvent(scene, player, trace);
     const events: SimEvent[] = [event];
     const lineIds = event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [];
@@ -1151,6 +1166,20 @@ export class AiLifeLayer {
       if (directorEvent) {
         events.push(directorEvent);
         if (directorEvent.type === 'aiSpeech' && directorEvent.speech.mode === 'lineId') lineIds.push(directorEvent.speech.lineId);
+      }
+      if (!directorState) {
+        const persistedDirectorEvent = worldDirectorEventFromMemoryAudit(
+          scene,
+          player,
+          firstPersistedWorldDirectorSignal(persistedSignals),
+          request.pid,
+        );
+        if (persistedDirectorEvent) {
+          events.push(persistedDirectorEvent);
+          if (persistedDirectorEvent.type === 'aiSpeech' && persistedDirectorEvent.speech.mode === 'lineId') {
+            lineIds.push(persistedDirectorEvent.speech.lineId);
+          }
+        }
       }
       const familyReactions = rankFamilySceneReactions(
         scene,
@@ -1243,6 +1272,7 @@ export class AiLifeLayer {
         ...(trace ? ['reactToWorldTrace'] : []),
         ...(encounterMemory ? ['readEncounterMemory'] : []),
         ...(!trace && directorState ? ['readWorldDirectorState'] : []),
+        ...(!trace && !directorState && persistedSignals.some((record) => record.kind === 'worldDirectorState') ? ['readPersistedWorldDirectorState'] : []),
         ...(!trace && lineIds.some((lineId) => lineId.startsWith('hudChrome.aiSpeech.familyScene')) ? ['reactToFamilyScene'] : []),
         ...(memoryWrites.some((record) => record.kind === 'creatureMemory') ? ['rememberSingularityScene'] : []),
         ...(memoryWrites.some((record) => record.kind === 'worldDirectorState') ? ['writeWorldDirectorState'] : []),
@@ -1518,6 +1548,31 @@ function cloneDirectorProposals(
     });
   }
   return cloned;
+}
+
+function appendMemorySignals(context: AiJobContextV1, signals: readonly AiMemoryAuditRecord[]): void {
+  if (signals.length === 0) return;
+  const existing = context.memorySignals ?? [];
+  const seen = new Set(existing.map(memorySignalKey));
+  const merged = [...existing.map(cloneMemoryAudit)];
+  for (const signal of signals) {
+    const key = memorySignalKey(signal);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(cloneMemoryAudit(signal));
+  }
+  context.memorySignals = merged;
+  for (const signal of signals.slice(0, 4)) {
+    context.recentObservations.push(`persistedMemory:${signal.kind}:${signal.scope}:${signal.itemId || signal.questId || signal.templateId || signal.sceneId || 'none'}`);
+  }
+}
+
+function firstPersistedWorldDirectorSignal(signals: readonly AiMemoryAuditRecord[]): AiMemoryAuditRecord | null {
+  return signals.find((signal) => signal.kind === 'worldDirectorState') ?? null;
+}
+
+function memorySignalKey(signal: AiMemoryAuditRecord): string {
+  return `${signal.kind}:${signal.refId}:${signal.sourcePlayerEntityId}`;
 }
 
 function shouldShareWorldDirector(

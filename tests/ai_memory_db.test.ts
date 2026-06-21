@@ -12,12 +12,44 @@ class FakePool {
     this.calls.push({ sql, values });
     if (sql.includes('INSERT INTO ai_memory_records') && values) {
       const payload = JSON.parse(String(values[17])) as Record<string, unknown>;
-      this.payloadRows = [{ payload }];
+      this.payloadRows.push({ payload });
       return { rows: [], rowCount: 1 };
     }
-    if (sql.includes('SELECT payload')) return { rows: this.payloadRows, rowCount: this.payloadRows.length };
+    if (sql.includes('SELECT payload')) {
+      const rows = this.filteredPayloadRows(values);
+      return { rows, rowCount: rows.length };
+    }
     if (sql.includes('DELETE FROM ai_memory_records')) return { rows: [], rowCount: this.rowCount };
     return { rows: [], rowCount: 0 };
+  }
+
+  private filteredPayloadRows(values?: readonly unknown[]): Array<Record<string, unknown>> {
+    if (!values) return this.payloadRows;
+    const sourcePlayerEntityId = typeof values[1] === 'number' ? values[1] : null;
+    const sceneId = typeof values[2] === 'string' ? values[2] : '';
+    const zoneId = typeof values[3] === 'string' ? values[3] : '';
+    const kinds = Array.isArray(values[4]) ? new Set(values[4].filter((value): value is string => typeof value === 'string')) : null;
+    const scopes = Array.isArray(values[5]) ? new Set(values[5].filter((value): value is string => typeof value === 'string')) : null;
+    const nowSeconds = typeof values[6] === 'number' ? values[6] : 0;
+    const limit = typeof values[7] === 'number' ? values[7] : 20;
+    return this.payloadRows
+      .filter((row) => {
+        const payload = row.payload as Partial<AiMemoryAuditRecord> | undefined;
+        if (!payload || sourcePlayerEntityId === null || payload.sourcePlayerEntityId !== sourcePlayerEntityId) return false;
+        if (kinds && (!payload.kind || !kinds.has(payload.kind))) return false;
+        if (scopes && (!payload.scope || !scopes.has(payload.scope))) return false;
+        if (typeof payload.expiresAt === 'number' && payload.expiresAt <= nowSeconds) return false;
+        if (!sceneId && !zoneId) return true;
+        if (sceneId && payload.sceneId === sceneId) return true;
+        return Boolean(zoneId && payload.scope === 'region' && payload.zoneId === zoneId);
+      })
+      .sort((a, b) => {
+        const left = a.payload as Partial<AiMemoryAuditRecord>;
+        const right = b.payload as Partial<AiMemoryAuditRecord>;
+        return (right.salience ?? 0) - (left.salience ?? 0)
+          || (right.createdAt ?? 0) - (left.createdAt ?? 0);
+      })
+      .slice(0, Math.max(1, limit));
   }
 }
 
@@ -88,6 +120,74 @@ describe('AI memory DB', () => {
     const select = pool.calls[1];
     expect(select.sql).toContain('source_player_entity_id = $2');
     expect(select.sql).toContain('sim_expires_at > $7');
+  });
+
+  it('loads same-scene records and same-zone region records while isolating players and expired rows', async () => {
+    const pool = new FakePool();
+    pool.payloadRows = [
+      {
+        payload: {
+          ...record,
+          refId: 'scene-match',
+          scope: 'scene',
+          sceneId: 'mirror_lake_dock',
+          zoneId: 'eastbrook_vale',
+          salience: 0.6,
+        },
+      },
+      {
+        payload: {
+          ...record,
+          refId: 'region-match',
+          scope: 'region',
+          sceneId: 'eastbrook_forge',
+          zoneId: 'eastbrook_vale',
+          salience: 0.9,
+        },
+      },
+      {
+        payload: {
+          ...record,
+          refId: 'other-player',
+          sourcePlayerEntityId: 438,
+          scope: 'region',
+          zoneId: 'eastbrook_vale',
+          salience: 1,
+        },
+      },
+      {
+        payload: {
+          ...record,
+          refId: 'expired-region',
+          scope: 'region',
+          zoneId: 'eastbrook_vale',
+          expiresAt: 19,
+          salience: 1,
+        },
+      },
+      {
+        payload: {
+          ...record,
+          refId: 'wrong-zone',
+          scope: 'region',
+          sceneId: 'mirefen_reeds',
+          zoneId: 'mirefen_marsh',
+          salience: 1,
+        },
+      },
+    ];
+    const db = new PgAiMemoryDb(pool);
+
+    const loaded = await db.loadRecords({
+      sourcePlayerEntityId: 437,
+      nowSeconds: 20,
+      sceneId: 'mirror_lake_dock',
+      zoneId: 'eastbrook_vale',
+      limit: 10,
+    });
+
+    expect(loaded.map((entry) => entry.refId)).toEqual(['region-match', 'scene-match']);
+    expect(pool.calls[0].sql).toContain("scope = 'region' AND zone_id = $4");
   });
 
   it('normalizes persisted payloads and drops malformed rows', () => {

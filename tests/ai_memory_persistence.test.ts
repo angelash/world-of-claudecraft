@@ -3,12 +3,13 @@ import { Sim } from '../src/sim/sim';
 import { groundHeight } from '../src/sim/world';
 import type { AiDecisionV1, AiJobContextV1, AiMemoryAuditRecord } from '../server/ai/ai_types';
 import { cloneMemoryAudit } from '../server/ai/memory_audit';
-import { AiLifeLayer, type AiMemoryPersistence } from '../server/ai/life_layer';
+import { AiLifeLayer, type AiMemoryPersistence, type AiMemoryPersistenceQuery } from '../server/ai/life_layer';
 import type { AiProvider } from '../server/ai/ai_types';
 
 class FakeMemoryDb implements AiMemoryPersistence {
   saved: AiMemoryAuditRecord[][] = [];
   loaded: AiMemoryAuditRecord[] = [];
+  loadCalls: AiMemoryPersistenceQuery[] = [];
   failSave = false;
   failPrune = false;
   pruneCount = 0;
@@ -21,8 +22,24 @@ class FakeMemoryDb implements AiMemoryPersistence {
     this.saved.push(records.map(cloneMemoryAudit));
   }
 
-  async loadRecords(): Promise<AiMemoryAuditRecord[]> {
-    return this.loaded.map(cloneMemoryAudit);
+  async loadRecords(query: AiMemoryPersistenceQuery): Promise<AiMemoryAuditRecord[]> {
+    this.loadCalls.push({ ...query });
+    const sceneId = query.sceneId ?? '';
+    const zoneId = query.zoneId ?? '';
+    const kinds = query.kinds && query.kinds.length > 0 ? new Set(query.kinds) : null;
+    const limit = Math.max(1, Math.min(100, Math.floor(query.limit ?? 20)));
+    return this.loaded
+      .filter((record) => {
+        if (record.sourcePlayerEntityId !== query.sourcePlayerEntityId) return false;
+        if (kinds && !kinds.has(record.kind)) return false;
+        if (record.expiresAt !== undefined && record.expiresAt <= query.nowSeconds) return false;
+        if (!sceneId && !zoneId) return true;
+        if (sceneId && record.sceneId === sceneId) return true;
+        return Boolean(zoneId && record.scope === 'region' && record.zoneId === zoneId);
+      })
+      .sort((a, b) => b.salience - a.salience || (b.createdAt ?? 0) - (a.createdAt ?? 0))
+      .slice(0, limit)
+      .map(cloneMemoryAudit);
   }
 
   async pruneExpired(nowSeconds: number, batchSize?: number): Promise<number> {
@@ -79,6 +96,24 @@ const persistedSignal: AiMemoryAuditRecord = {
   expiresAt: 90,
   reason: 'persistedFixture',
 };
+
+function persistedDirectorSignal(playerEntityId: number): AiMemoryAuditRecord {
+  return {
+    kind: 'worldDirectorState',
+    refId: 'persisted-director-covetous',
+    scope: 'region',
+    sceneId: 'eastbrook_forge',
+    zoneId: 'eastbrook_vale',
+    sourcePlayerEntityId: playerEntityId,
+    itemId: 'redbrook_blade',
+    subjectKind: 'item',
+    lineIds: ['hudChrome.aiSpeech.worldDirectorCovetous'],
+    salience: 0.72,
+    createdAt: 12,
+    expiresAt: 160,
+    reason: 'persistedRestart:covetous:npcTopicShift',
+  };
+}
 
 describe('AI memory persistence integration', () => {
   it('persists item-discard memory writes without delaying local AI speech delivery', async () => {
@@ -139,6 +174,100 @@ describe('AI memory persistence integration', () => {
     await layer.flushMemoryWrites();
 
     expect(db.saved.flat()).toContainEqual(expect.objectContaining({ kind: 'npcInteraction' }));
+  });
+
+  it('feeds persisted director signals into object inspection context after a fresh life layer starts', async () => {
+    const { sim, pid } = makeSim();
+    const object = [...sim.entities.values()].find((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil')!;
+    teleportNear(sim, pid, object.id);
+    const db = new FakeMemoryDb();
+    db.loaded = [
+      persistedDirectorSignal(pid),
+      { ...persistedDirectorSignal(pid + 1), refId: 'other-player-director', sourcePlayerEntityId: pid + 1 },
+      { ...persistedDirectorSignal(pid), refId: 'expired-director', expiresAt: 1, salience: 1 },
+    ];
+    const calls: AiJobContextV1[] = [];
+    const provider: AiProvider = {
+      async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
+        calls.push(context);
+        expect(context.memorySignals).toContainEqual(expect.objectContaining({
+          kind: 'worldDirectorState',
+          refId: 'persisted-director-covetous',
+          itemId: 'redbrook_blade',
+        }));
+        expect(context.memorySignals?.some((signal) => signal.refId === 'other-player-director')).toBe(false);
+        expect(context.memorySignals?.some((signal) => signal.refId === 'expired-director')).toBe(false);
+        expect(context.recentObservations).toContain('persistedMemory:worldDirectorState:region:redbrook_blade');
+        return {
+          schemaVersion: 1,
+          jobId: context.jobId,
+          entityRef: { kind: context.entity.kind, entityId: context.entity.entityId, templateId: context.entity.templateId },
+          ttlMs: 5000,
+          confidence: 1,
+          speech: [{ mode: 'lineId', lineId: 'hudChrome.aiSpeech.objectInspectGrave' }],
+          intents: [{ type: 'inspectObject', lineId: 'hudChrome.aiSpeech.objectInspectGrave' }],
+          audit: { shortReason: 'uses restored director memory', usedPlayerInput: false, safetyNotes: [] },
+        };
+      },
+    };
+    const layer = new AiLifeLayer({ enabled: true, provider, memoryDb: db });
+    const delivered: unknown[] = [];
+    const beforeQuestLog = JSON.stringify([...sim.meta(pid)!.questLog]);
+    const beforeDone = JSON.stringify([...sim.meta(pid)!.questsDone]);
+
+    await layer.handleObjectInspection({ sim, pid, objectId: object.id, locale: 'en', deliver: (events) => delivered.push(...events) });
+
+    expect(calls).toHaveLength(1);
+    expect(db.loadCalls).toContainEqual(expect.objectContaining({
+      sourcePlayerEntityId: pid,
+      zoneId: 'eastbrook_vale',
+      limit: 8,
+    }));
+    expect(delivered).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speakerId: object.id,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.objectInspectGrave' }),
+    }));
+    expect(JSON.stringify([...sim.meta(pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...sim.meta(pid)!.questsDone])).toBe(beforeDone);
+  });
+
+  it('restores persisted director region echoes during scene inspection without active in-memory director state', async () => {
+    const { sim, pid, npcId } = makeSim();
+    teleportNear(sim, pid, npcId);
+    const db = new FakeMemoryDb();
+    db.loaded = [persistedDirectorSignal(pid)];
+    const layer = new AiLifeLayer({ enabled: true, memoryDb: db });
+    const delivered: unknown[] = [];
+    const beforeQuestLog = JSON.stringify([...sim.meta(pid)!.questLog]);
+    const beforeDone = JSON.stringify([...sim.meta(pid)!.questsDone]);
+
+    await layer.handleSceneInspection({ sim, pid, locale: 'en', deliver: (events) => delivered.push(...events) });
+
+    expect(delivered).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speakerId: pid,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+        values: expect.objectContaining({
+          itemId: 'redbrook_blade',
+          directorMood: 'covetous',
+          directorHeat: 72,
+        }),
+      }),
+      reaction: expect.objectContaining({
+        kind: 'inspect',
+        targetItemId: 'redbrook_blade',
+        sceneTags: expect.arrayContaining(['director:covetous', 'persistedMemory']),
+      }),
+      pid,
+    }));
+    expect(layer.diagnostics()).toContainEqual(expect.objectContaining({
+      status: 'local_reaction',
+      intents: expect.arrayContaining(['readPersistedWorldDirectorState']),
+    }));
+    expect(JSON.stringify([...sim.meta(pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...sim.meta(pid)!.questsDone])).toBe(beforeDone);
   });
 
   it('keeps gameplay feedback flowing when persistence is temporarily unavailable', async () => {

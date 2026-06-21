@@ -1,4 +1,5 @@
 import type { Entity, SimEvent } from '../../src/sim/types';
+import type { AiMemoryAuditRecord } from './ai_types';
 import type { AiBossEncounterMemory } from './boss_memory';
 import type { AiCreatureMemory, AiCreaturePlan } from './creature_memory';
 import type { SceneFrameV1 } from './scene_frame';
@@ -318,6 +319,59 @@ export function worldDirectorEvent(scene: SceneFrameV1 | null, speaker: Entity, 
   };
 }
 
+export function worldDirectorEventFromMemoryAudit(
+  scene: SceneFrameV1 | null,
+  speaker: Entity,
+  record: AiMemoryAuditRecord | null,
+  pid: number,
+): SimEvent | null {
+  if (!record || record.kind !== 'worldDirectorState') return null;
+  const lineId = record.lineIds.find(isWorldDirectorLineId);
+  if (!lineId) return null;
+  const mood = moodFromAuditReason(record.reason) ?? moodForLineId(lineId);
+  const encounter = record.subjectKind === 'encounter';
+  const quest = record.subjectKind === 'quest';
+  const sceneSubject = record.subjectKind === 'scene';
+  const subjectId = quest
+    ? record.questId || record.itemId
+    : sceneSubject
+      ? record.sceneId || record.itemId
+      : record.itemId || record.templateId;
+  if (!subjectId) return null;
+  return {
+    type: 'aiSpeech',
+    speakerId: speaker.id,
+    speakerName: speaker.name,
+    speech: {
+      mode: 'lineId',
+      lineId,
+      values: {
+        ...(quest ? { questId: subjectId } : sceneSubject ? { sceneId: subjectId } : { itemId: subjectId }),
+        ...(encounter ? {
+          bossTemplateId: record.templateId || record.itemId || subjectId,
+          bossName: record.templateId || record.itemId || subjectId,
+        } : {}),
+        directorMood: mood,
+        directorHeat: Math.round(record.salience * 100),
+      },
+    },
+    source: 'fallback',
+    reaction: {
+      kind: mood === 'haunted' || mood === 'dread' ? 'avoid' : 'inspect',
+      ...(encounter || quest || sceneSubject ? {} : { targetItemId: subjectId }),
+      score: Math.round(record.salience * 100) / 100,
+      sceneTags: scene ? [...new Set([
+        `director:${mood}`,
+        'persistedMemory',
+        ...scene.locationTags,
+        ...scene.structureTags,
+        ...scene.environmentalTags,
+      ])].slice(0, 8) : [`director:${mood}`, 'persistedMemory'],
+    },
+    pid,
+  };
+}
+
 export function moodForTraceKind(kind: AiWorldTraceKind): AiWorldDirectorMood {
   switch (kind) {
     case 'singularity': return 'uncanny';
@@ -351,6 +405,63 @@ function lineIdForMood(mood: AiWorldDirectorMood): AiWorldDirectorLineId {
     case 'triumphant': return 'hudChrome.aiSpeech.worldDirectorBossDefeated';
     case 'dread': return 'hudChrome.aiSpeech.worldDirectorBossWipe';
     case 'relieved': return 'hudChrome.aiSpeech.worldDirectorQuestComplete';
+  }
+}
+
+function isWorldDirectorLineId(value: string): value is AiWorldDirectorLineId {
+  switch (value) {
+    case 'hudChrome.aiSpeech.worldDirectorUncanny':
+    case 'hudChrome.aiSpeech.worldDirectorSceneUncanny':
+    case 'hudChrome.aiSpeech.worldDirectorHaunted':
+    case 'hudChrome.aiSpeech.worldDirectorHungry':
+    case 'hudChrome.aiSpeech.worldDirectorCovetous':
+    case 'hudChrome.aiSpeech.worldDirectorStirred':
+    case 'hudChrome.aiSpeech.worldDirectorBossDefeated':
+    case 'hudChrome.aiSpeech.worldDirectorBossWipe':
+    case 'hudChrome.aiSpeech.worldDirectorQuestComplete':
+      return true;
+    default:
+      return false;
+  }
+}
+
+function moodForLineId(lineId: AiWorldDirectorLineId): AiWorldDirectorMood {
+  switch (lineId) {
+    case 'hudChrome.aiSpeech.worldDirectorUncanny':
+    case 'hudChrome.aiSpeech.worldDirectorSceneUncanny':
+      return 'uncanny';
+    case 'hudChrome.aiSpeech.worldDirectorHaunted':
+      return 'haunted';
+    case 'hudChrome.aiSpeech.worldDirectorHungry':
+      return 'hungry';
+    case 'hudChrome.aiSpeech.worldDirectorCovetous':
+      return 'covetous';
+    case 'hudChrome.aiSpeech.worldDirectorStirred':
+      return 'stirred';
+    case 'hudChrome.aiSpeech.worldDirectorBossDefeated':
+      return 'triumphant';
+    case 'hudChrome.aiSpeech.worldDirectorBossWipe':
+      return 'dread';
+    case 'hudChrome.aiSpeech.worldDirectorQuestComplete':
+      return 'relieved';
+  }
+}
+
+function moodFromAuditReason(reason: string): AiWorldDirectorMood | null {
+  const match = /:([a-z]+):(?:npcTopicShift|campAlert|traceEcho|encounterEcho|questEcho)$/.exec(reason);
+  const mood = match?.[1] ?? '';
+  switch (mood) {
+    case 'uncanny':
+    case 'haunted':
+    case 'hungry':
+    case 'covetous':
+    case 'stirred':
+    case 'triumphant':
+    case 'dread':
+    case 'relieved':
+      return mood;
+    default:
+      return null;
   }
 }
 

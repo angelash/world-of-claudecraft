@@ -115,8 +115,11 @@ export class PgAiMemoryDb {
          FROM ai_memory_records
         WHERE realm = $1
           AND source_player_entity_id = $2
-          AND ($3::text = '' OR scene_id = $3)
-          AND ($4::text = '' OR zone_id = $4)
+          AND (
+            ($3::text = '' AND $4::text = '')
+            OR ($3::text <> '' AND scene_id = $3)
+            OR ($4::text <> '' AND scope = 'region' AND zone_id = $4)
+          )
           AND ($5::text[] IS NULL OR kind = ANY($5::text[]))
           AND ($6::text[] IS NULL OR scope = ANY($6::text[]))
           AND (sim_expires_at IS NULL OR sim_expires_at > $7)
