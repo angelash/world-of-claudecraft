@@ -6,7 +6,7 @@ import type {
   AiContentCoverageReport, AiDecisionJournalEntry, AiLifeLayerDiagnosticsSnapshot, AiNpcMemory, AiRumorMemory,
   AiLifeLayerMetricsSnapshot, AiProfileAuthoringIssue, AiProfileAuthoringValidationReport,
   AiProfilePreviewReport, AiProfilePreviewRow,
-  AiProfilePreviewTarget, AiWorldDirectorState,
+  AiProfilePreviewTarget, AiWorldDirectorProposalAuditEntry, AiWorldDirectorState,
   ProviderUsageCache, ProviderUsageSnapshot,
 } from './types';
 
@@ -327,6 +327,16 @@ function aiSubjectKindLabel(kind: string): string {
   }
 }
 
+function aiProposalLifecycleLabel(lifecycle: string): string {
+  switch (lifecycle) {
+    case 'created': return t('usage.aiProposalLifecycleCreated');
+    case 'refreshed': return t('usage.aiProposalLifecycleRefreshed');
+    case 'expired': return t('usage.aiProposalLifecycleExpired');
+    case 'evicted': return t('usage.aiProposalLifecycleEvicted');
+    default: return t('usage.aiDiagnosticsUnknownValue', { value: lifecycle });
+  }
+}
+
 function renderAiMemoryWrites(entry: AiDecisionJournalEntry): string {
   return renderAiDelimitedItems(entry.memoryWrites.map((record) => `${record.kind}:${record.refId}`), 3);
 }
@@ -372,6 +382,19 @@ function renderAiDirectorRow(state: AiWorldDirectorState): string {
   </tr>`;
 }
 
+function renderAiProposalJournalRow(entry: AiWorldDirectorProposalAuditEntry): string {
+  return `<tr>
+    <td><span class="badge">${escapeHtml(aiProposalLifecycleLabel(entry.lifecycle))}</span></td>
+    <td>${escapeHtml(aiMoodLabel(entry.mood))}</td>
+    <td>${escapeHtml(aiProposalLabel(entry.proposalType))}</td>
+    <td>${escapeHtml(entry.intent)}</td>
+    <td>${escapeHtml(t('usage.aiSubjectSummary', { kind: aiSubjectKindLabel(entry.subjectKind), value: entry.targetRef }))}</td>
+    <td>${escapeHtml(t('usage.aiSceneZoneSummary', { sceneId: entry.sceneId, zoneId: entry.zoneId }))}</td>
+    <td class="num">${escapeHtml(fmtPercent(entry.intensity))}</td>
+    <td>${renderAiDelimitedItems([...entry.reasonTags, ...entry.safetyNotes], 5)}</td>
+  </tr>`;
+}
+
 function renderAiNpcMemoryRow(memory: AiNpcMemory): string {
   return `<tr>
     <td><span class="badge">${escapeHtml(t('usage.aiSocialTypeNpcMemory'))}</span></td>
@@ -407,6 +430,7 @@ function renderAiRumorRow(rumor: AiRumorMemory): string {
 function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): string {
   const recentDecisions = diagnostics.recentDecisions.slice(-8).reverse();
   const directorStates = diagnostics.worldDirectorStates.slice(0, 8);
+  const proposalJournal = (diagnostics.worldDirectorProposalJournal ?? []).slice(0, 8);
   const socialMemory = diagnostics.socialMemory ?? { npcMemories: [], rumors: [] };
   const socialRows = [
     ...socialMemory.rumors.slice(0, 6).map(renderAiRumorRow),
@@ -429,6 +453,9 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
   const directorRows = directorStates.length === 0
     ? `<tr><td colspan="7" class="empty">${t('usage.aiDiagnosticsNoDirectorStates')}</td></tr>`
     : directorStates.map(renderAiDirectorRow).join('');
+  const proposalJournalRows = proposalJournal.length === 0
+    ? `<tr><td colspan="8" class="empty">${t('usage.aiDiagnosticsNoProposalJournal')}</td></tr>`
+    : proposalJournal.map(renderAiProposalJournalRow).join('');
   const socialTableRows = socialRows.length === 0
     ? `<tr><td colspan="8" class="empty">${t('usage.aiDiagnosticsNoSocialMemory')}</td></tr>`
     : socialRows.join('');
@@ -447,6 +474,10 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
         <div class="ai-health-cell">
           <div class="ai-health-value">${renderAiNumber(diagnostics.worldDirectorStates.length)}</div>
           <div class="ai-health-label">${t('usage.aiDiagnosticsDirectorStates')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(diagnostics.worldDirectorProposalJournal?.length ?? 0)}</div>
+          <div class="ai-health-label">${t('usage.aiDiagnosticsProposalJournal')}</div>
         </div>
         <div class="ai-health-cell">
           <div class="ai-health-value">${renderAiNumber(socialMemory.npcMemories.length)}</div>
@@ -508,6 +539,21 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
             <th>${t('usage.aiDirectorColEvidence')}</th>
           </tr></thead>
           <tbody>${directorRows}</tbody>
+        </table>
+      </div>
+      <div class="table-scroll">
+        <table class="usage-table">
+          <thead><tr>
+            <th>${t('usage.aiProposalColLifecycle')}</th>
+            <th>${t('usage.aiDirectorColMood')}</th>
+            <th>${t('usage.aiDirectorColProposal')}</th>
+            <th>${t('usage.aiProposalColIntent')}</th>
+            <th>${t('usage.aiDirectorColSubject')}</th>
+            <th>${t('usage.aiDirectorColScene')}</th>
+            <th class="num">${t('usage.aiProposalColIntensity')}</th>
+            <th>${t('usage.aiProposalColEvidence')}</th>
+          </tr></thead>
+          <tbody>${proposalJournalRows}</tbody>
         </table>
       </div>
       <div class="table-scroll">

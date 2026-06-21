@@ -132,6 +132,29 @@ function diagnostics(overrides: Partial<AiLifeLayerDiagnosticsSnapshot> = {}): A
       expiresAt: 120,
       evidence: ['trace:cursed<script>'],
     }],
+    worldDirectorProposalJournal: [{
+      auditId: 'director-audit-1',
+      lifecycle: 'created',
+      observedAt: 12,
+      stateId: 'director-1',
+      proposalId: 'director-1:proposal',
+      sourcePlayerEntityId: 1,
+      sourceRef: 'trace-1',
+      mood: 'haunted',
+      proposalType: 'campAlert',
+      subjectKind: 'item',
+      targetRef: 'gravecaller_sigil<script>',
+      sceneId: 'fallen_chapel<script>',
+      zoneId: 'eastbrook_vale<script>',
+      intent: 'raiseCampCaution<script>',
+      status: 'preview',
+      risk: 'low',
+      intensity: 0.75,
+      suggestedLineId: 'hudChrome.aiSpeech.worldDirectorHaunted',
+      expiresAt: 120,
+      reasonTags: ['mood:haunted<script>'],
+      safetyNotes: ['presentationOnly<script>'],
+    }],
     socialMemory: {
       npcMemories: [{
         playerEntityId: 1,
@@ -270,6 +293,11 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('provider error');
     expect(html).toContain('NPC question');
     expect(html).toContain('camp alert');
+    expect(html).toContain('Proposal journal');
+    expect(html).toContain('created');
+    expect(html).toContain('raiseCampCaution&lt;script&gt;');
+    expect(html).toContain('mood:haunted&lt;script&gt;');
+    expect(html).toContain('presentationOnly&lt;script&gt;');
     expect(html).toContain('Clear AI memory');
     expect(html).toContain('NPC memories');
     expect(html).toContain('Rumors');
@@ -284,6 +312,7 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).not.toContain('npc<script>');
     expect(html).not.toContain('db <offline>');
     expect(html).not.toContain('Alice<script>');
+    expect(html).not.toContain('raiseCampCaution<script>');
   });
 
   it('shows AI profile previews and escapes authored profile values', () => {
