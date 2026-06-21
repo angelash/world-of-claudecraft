@@ -227,6 +227,32 @@ describe('AI social memory', () => {
     expect(topicReactionEvent({ ...context, topic: 'quest_hint' }, speaker, memory, null)).toMatchObject({
       speech: { lineId: 'hudChrome.aiSpeech.topicQuestNoHint' },
     });
+
+    expect(topicReactionEvent({
+      ...context,
+      topic: 'place',
+      directorProposals: [{
+        proposalId: 'director-question:proposal',
+        intent: 'nudgeNpcRumor',
+        status: 'preview',
+        risk: 'low',
+        intensity: 0.72,
+        targetRef: 'gravecaller_sigil',
+        sceneId: 'fallen_chapel',
+        zoneId: 'eastbrook_vale',
+        suggestedLineId: 'hudChrome.aiSpeech.worldDirectorHaunted',
+        expiresAt: 180,
+        reasonTags: ['mood:haunted', 'subject:item', 'proposal:npcTopicShift', 'trace:cursed'],
+        safetyNotes: ['presentationOnly', 'noQuestMutation', 'noCombatMutation', 'noLootOrEconomyMutation'],
+      }],
+    }, speaker, memory, null)).toMatchObject({
+      speech: { lineId: 'hudChrome.aiSpeech.topicPlace' },
+      reaction: expect.objectContaining({
+        kind: 'avoid',
+        targetItemId: 'gravecaller_sigil',
+        sceneTags: expect.arrayContaining(['directorProjection:mortalFear', 'family:humanoid']),
+      }),
+    });
   });
 
   it('keeps item rumors short-lived, scene-scoped, and source-player scoped', () => {

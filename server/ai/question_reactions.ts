@@ -1,5 +1,6 @@
 import type { Entity, SimEvent } from '../../src/sim/types';
 import type { AiJobContextV1 } from './ai_types';
+import { familyDirectorProjectionFor, mobFamilyFromValue } from './director_family_projection';
 import type { AiNpcMemory, AiRumorMemory } from './social_memory';
 
 export function topicReactionEvent(
@@ -42,6 +43,7 @@ export function topicReactionEvent(
 }
 
 function line(context: AiJobContextV1, speaker: Entity, lineId: string, values: Record<string, string | number>): SimEvent {
+  const projection = topicDirectorProjection(context);
   return {
     type: 'aiSpeech',
     speakerId: speaker.id,
@@ -49,9 +51,34 @@ function line(context: AiJobContextV1, speaker: Entity, lineId: string, values: 
     speech: { mode: 'lineId', lineId, values },
     source: 'fallback',
     reaction: {
-      kind: 'inspect',
-      sceneTags: context.scene ? [...new Set([...context.scene.locationTags, ...context.scene.structureTags, ...context.scene.environmentalTags])].slice(0, 8) : [],
+      kind: projection?.reaction ?? 'inspect',
+      ...(projection ? { targetItemId: projection.targetRef } : {}),
+      sceneTags: topicSceneTags(context, projection?.reasonTags ?? []),
     },
     pid: context.player.entityId,
   };
+}
+
+function topicDirectorProjection(context: AiJobContextV1): { reaction: 'approach' | 'avoid' | 'inspect'; targetRef: string; reasonTags: string[] } | null {
+  const family = mobFamilyFromValue(context.familySemantics?.family) ?? (context.entity.kind === 'npc' ? 'humanoid' : null);
+  if (!family || !context.directorProposals) return null;
+  for (const proposal of context.directorProposals.slice(0, 3)) {
+    const projection = familyDirectorProjectionFor(proposal, { family });
+    if (!projection) continue;
+    return {
+      reaction: projection.reaction,
+      targetRef: proposal.targetRef,
+      reasonTags: projection.reasonTags,
+    };
+  }
+  return null;
+}
+
+function topicSceneTags(context: AiJobContextV1, projectionTags: readonly string[]): string[] {
+  return context.scene ? [...new Set([
+    ...context.scene.locationTags,
+    ...context.scene.structureTags,
+    ...context.scene.environmentalTags,
+    ...projectionTags,
+  ])].slice(0, 8) : [...projectionTags].slice(0, 8);
 }
