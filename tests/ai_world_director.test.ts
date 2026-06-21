@@ -72,8 +72,24 @@ describe('AI world director', () => {
       proposalType: 'traceEcho',
       itemId: 'roasted_boar',
       lineId: 'hudChrome.aiSpeech.worldDirectorHungry',
+      proposal: {
+        proposalId: 'director-1:proposal',
+        intent: 'echoTrace',
+        status: 'preview',
+        risk: 'low',
+        targetRef: 'roasted_boar',
+        sceneId: 'eastbrook_forge',
+        zoneId: 'eastbrook_vale',
+        suggestedLineId: 'hudChrome.aiSpeech.worldDirectorHungry',
+        safetyNotes: expect.arrayContaining(['presentationOnly', 'noQuestMutation', 'noCombatMutation', 'noLootOrEconomyMutation']),
+        reasonTags: expect.arrayContaining(['mood:hungry', 'subject:item', 'proposal:traceEcho', 'trace:food']),
+      },
     });
-    expect(store.stateForScene('eastbrook_forge', 1, 15)).toMatchObject({ mood: 'hungry', heat: expect.any(Number) });
+    expect(store.stateForScene('eastbrook_forge', 1, 15)).toMatchObject({
+      mood: 'hungry',
+      heat: expect.any(Number),
+      proposal: expect.objectContaining({ intent: 'echoTrace', intensity: expect.any(Number) }),
+    });
     expect(store.stateForRegion({
       zoneId: 'eastbrook_vale',
       sceneId: 'mirror_lake_dock',
@@ -117,6 +133,32 @@ describe('AI world director', () => {
       pid: 1,
     });
     expect(worldDirectorEvent(null, speaker, null, 1)).toBeNull();
+  });
+
+  it('keeps director proposals refreshed and cloned with their state', () => {
+    const store = new AiWorldDirectorStore();
+    const first = store.noteTrace({ trace: trace('valuable', 'redbrook_blade'), nowSeconds: 10 });
+    const second = store.noteTrace({
+      trace: { ...trace('valuable', 'redbrook_blade'), traceId: 'trace-valuable-2', reasonLineIds: ['reason:glint', 'reason:market'] },
+      nowSeconds: 20,
+    });
+
+    expect(second.stateId).toBe(first.stateId);
+    expect(second.heat).toBeGreaterThan(first.heat);
+    expect(second.proposal).toMatchObject({
+      proposalId: `${first.stateId}:proposal`,
+      intent: 'nudgeNpcRumor',
+      targetRef: 'redbrook_blade',
+      suggestedLineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+      intensity: Math.round(second.heat * 100) / 100,
+      reasonTags: expect.arrayContaining(['mood:covetous', 'proposal:npcTopicShift', 'reason:market']),
+    });
+
+    const [snapshot] = store.snapshot();
+    snapshot.proposal.reasonTags.push('mutated-outside');
+    snapshot.proposal.safetyNotes.length = 0;
+    expect(store.snapshot()[0].proposal.reasonTags).not.toContain('mutated-outside');
+    expect(store.snapshot()[0].proposal.safetyNotes).toContain('presentationOnly');
   });
 
   it('lets repeated singularity scene memories wake a scene director state without item targeting', () => {
@@ -180,6 +222,11 @@ describe('AI world director', () => {
       itemId: 'gorrak',
       subjectKind: 'encounter',
       lineId: 'hudChrome.aiSpeech.worldDirectorBossDefeated',
+      proposal: expect.objectContaining({
+        intent: 'echoEncounterMemory',
+        targetRef: 'gorrak',
+        safetyNotes: expect.arrayContaining(['presentationOnly', 'noCombatMutation']),
+      }),
     });
     expect(worldDirectorEvent(null, speaker, state, 1)).toMatchObject({
       type: 'aiSpeech',
@@ -210,6 +257,12 @@ describe('AI world director', () => {
       subjectKind: 'quest',
       itemId: 'q_wolves',
       lineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
+      proposal: expect.objectContaining({
+        intent: 'echoQuestRelief',
+        risk: 'low',
+        targetRef: 'q_wolves',
+        safetyNotes: expect.arrayContaining(['presentationOnly', 'noQuestMutation']),
+      }),
     });
     expect(store.stateForRegion({
       zoneId: 'eastbrook_vale',

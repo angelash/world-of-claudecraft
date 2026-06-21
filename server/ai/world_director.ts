@@ -6,6 +6,12 @@ import type { AiWorldTrace, AiWorldTraceKind } from './world_traces';
 
 export type AiWorldDirectorMood = 'uncanny' | 'haunted' | 'hungry' | 'covetous' | 'stirred' | 'triumphant' | 'dread' | 'relieved';
 export type AiWorldDirectorProposalType = 'npcTopicShift' | 'campAlert' | 'traceEcho' | 'encounterEcho' | 'questEcho';
+export type AiWorldDirectorProposalIntent =
+  | 'nudgeNpcRumor'
+  | 'raiseCampCaution'
+  | 'echoTrace'
+  | 'echoEncounterMemory'
+  | 'echoQuestRelief';
 
 export type AiWorldDirectorLineId =
   | 'hudChrome.aiSpeech.worldDirectorUncanny'
@@ -36,6 +42,22 @@ export interface AiWorldDirectorState {
   updatedAt: number;
   expiresAt: number;
   evidence: string[];
+  proposal: AiWorldDirectorProposal;
+}
+
+export interface AiWorldDirectorProposal {
+  proposalId: string;
+  intent: AiWorldDirectorProposalIntent;
+  status: 'preview';
+  risk: 'low';
+  intensity: number;
+  targetRef: string;
+  sceneId: string;
+  zoneId: string;
+  suggestedLineId: AiWorldDirectorLineId;
+  expiresAt: number;
+  reasonTags: string[];
+  safetyNotes: string[];
 }
 
 export interface AiWorldDirectorStoreOptions {
@@ -221,10 +243,11 @@ export class AiWorldDirectorStore {
       existing.updatedAt = input.nowSeconds;
       existing.expiresAt = input.nowSeconds + this.stateTtlSeconds;
       existing.evidence = mergeRecent(existing.evidence, input.evidence, 8);
+      existing.proposal = proposalForState(existing);
       return copyState(existing);
     }
 
-    const state: AiWorldDirectorState = {
+    const stateCore: Omit<AiWorldDirectorState, 'proposal'> = {
       stateId: `director-${++this.sequence}`,
       sceneId: input.sceneId,
       zoneId: input.zoneId ?? input.sceneId,
@@ -243,6 +266,7 @@ export class AiWorldDirectorStore {
       expiresAt: input.nowSeconds + this.stateTtlSeconds,
       evidence: mergeRecent([], input.evidence, 8),
     };
+    const state: AiWorldDirectorState = { ...stateCore, proposal: proposalForState(stateCore) };
     this.states.unshift(state);
     this.states.splice(this.maxStates);
     return copyState(state);
@@ -343,12 +367,18 @@ function creatureMemoryEvidence(
 }
 
 function decayedState(state: AiWorldDirectorState, nowSeconds: number, ttlSeconds: number): AiWorldDirectorState {
-  const age = Math.max(0, nowSeconds - state.updatedAt);
-  return {
+  const heat = Math.max(0.15, state.heat * (1 - Math.max(0, nowSeconds - state.updatedAt) / ttlSeconds));
+  const decayed = {
     ...state,
-    heat: Math.max(0.15, state.heat * (1 - age / ttlSeconds)),
+    heat,
     evidence: [...state.evidence],
+    proposal: copyProposal(state.proposal),
   };
+  decayed.proposal = {
+    ...decayed.proposal,
+    intensity: Math.round(heat * 100) / 100,
+  };
+  return decayed;
 }
 
 function mergeRecent(previous: readonly string[], next: readonly string[], limit: number): string[] {
@@ -356,9 +386,58 @@ function mergeRecent(previous: readonly string[], next: readonly string[], limit
 }
 
 function copyState(state: AiWorldDirectorState): AiWorldDirectorState {
-  return { ...state, evidence: [...state.evidence] };
+  return { ...state, evidence: [...state.evidence], proposal: copyProposal(state.proposal) };
 }
 
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
+}
+
+function proposalForState(state: Omit<AiWorldDirectorState, 'proposal'>): AiWorldDirectorProposal {
+  return {
+    proposalId: `${state.stateId}:proposal`,
+    intent: proposalIntentForState(state),
+    status: 'preview',
+    risk: 'low',
+    intensity: Math.round(state.heat * 100) / 100,
+    targetRef: state.itemId,
+    sceneId: state.sceneId,
+    zoneId: state.zoneId,
+    suggestedLineId: state.lineId,
+    expiresAt: state.expiresAt,
+    reasonTags: proposalReasonTags(state),
+    safetyNotes: [
+      'presentationOnly',
+      'noQuestMutation',
+      'noCombatMutation',
+      'noLootOrEconomyMutation',
+    ],
+  };
+}
+
+function proposalIntentForState(state: Omit<AiWorldDirectorState, 'proposal'>): AiWorldDirectorProposalIntent {
+  switch (state.proposalType) {
+    case 'npcTopicShift': return 'nudgeNpcRumor';
+    case 'campAlert': return 'raiseCampCaution';
+    case 'traceEcho': return 'echoTrace';
+    case 'encounterEcho': return 'echoEncounterMemory';
+    case 'questEcho': return 'echoQuestRelief';
+  }
+}
+
+function proposalReasonTags(state: Omit<AiWorldDirectorState, 'proposal'>): string[] {
+  return [...new Set([
+    `mood:${state.mood}`,
+    `subject:${state.subjectKind}`,
+    `proposal:${state.proposalType}`,
+    ...state.evidence,
+  ])].slice(0, 8);
+}
+
+function copyProposal(proposal: AiWorldDirectorProposal): AiWorldDirectorProposal {
+  return {
+    ...proposal,
+    reasonTags: [...proposal.reasonTags],
+    safetyNotes: [...proposal.safetyNotes],
+  };
 }
