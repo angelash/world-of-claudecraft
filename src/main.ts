@@ -285,7 +285,7 @@ window.addEventListener('orientationchange', () => {
 window.visualViewport?.addEventListener('resize', syncAppViewport);
 document.addEventListener('fullscreenchange', syncAppViewport);
 
-function requestMobileFullscreenLandscape(): void {
+function requestMobileFullscreen(): void {
   if (!isPhoneTouchDevice()) return;
   const root = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> | void };
   try {
@@ -293,10 +293,6 @@ function requestMobileFullscreenLandscape(): void {
     const result = request?.();
     if (result && typeof (result as Promise<void>).catch === 'function') void (result as Promise<void>).catch(() => {});
   } catch { /* browser declined fullscreen */ }
-  try {
-    const orientation = screen.orientation as ScreenOrientation & { lock?: (orientation: string) => Promise<void> };
-    void orientation.lock?.('landscape').catch(() => {});
-  } catch { /* browser declined orientation lock */ }
 }
 
 function mobilePlatform(): 'ios' | 'android' | 'other' {
@@ -377,7 +373,7 @@ function showMobilePreflightPrompt(): Promise<void> {
   prompt.classList.add('visible');
   mobilePreflightPromptPromise = new Promise((resolve) => {
     continueBtn.onclick = () => {
-      requestMobileFullscreenLandscape();
+      requestMobileFullscreen();
       syncAppViewport();
       window.setTimeout(syncAppViewport, 250);
       window.setTimeout(syncAppViewport, 800);
@@ -436,7 +432,7 @@ function exitBrowserFullscreen(): void {
 
 function requestPreferredFullscreen(): void {
   if (isPhoneTouchDevice()) {
-    requestMobileFullscreenLandscape();
+    requestMobileFullscreen();
     return;
   }
   if (new Settings().get('fullscreen') >= 0.5) requestBrowserFullscreen();

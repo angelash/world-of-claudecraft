@@ -302,13 +302,22 @@ describe('client HTML shell', () => {
     expect(attack).toBeGreaterThanOrEqual(0);
     expect(autorun).toBeGreaterThan(attack);
     expect(jump).toBeGreaterThan(autorun);
+    expect(html).toContain('<meta name="screen-orientation" content="any" />');
+    expect(html).toContain('<meta name="orientation" content="any" />');
     expect(html).toContain('grid-template-columns: 124px repeat(6, 58px);');
     expect(html).toContain('grid-template-columns: 115px repeat(6, 54px);');
-    expect(html).toContain('grid-template-columns: 96px repeat(6, 42px);');
+    expect(html).toContain('body.mobile-touch.game-active #rotate-device { display: none; }');
+    expect(html).toContain('bottom: calc(204px + env(safe-area-inset-bottom));');
+    expect(html).toContain('bottom: calc(142px + env(safe-area-inset-bottom));');
+    expect(html).toContain('grid-template-columns: repeat(4, minmax(0, 1fr));');
+    expect(html).toContain('bottom: calc(122px + env(safe-area-inset-bottom));');
+    expect(html).toContain('grid-template-columns: repeat(2, minmax(0, 1fr));');
     expect(html).toContain('position: absolute; left: 50%; bottom: calc(3px + env(safe-area-inset-bottom));');
     expect(html).toContain('bottom: calc(2px + env(safe-area-inset-bottom)); grid-template-columns: 115px repeat(6, 54px);');
     expect(html).toContain('pointer-events: auto; align-items: end; z-index: 30;');
     expect(html).toContain('body.mobile-touch #mobile-more {\n    position: static;');
+    expect(mainTs).toContain('function requestMobileFullscreen(): void {');
+    expect(mainTs).not.toContain("orientation.lock?.('landscape')");
     expect(mainTs).toContain('onMenu: () => hud.toggleOptionsMenu(),');
   });
 

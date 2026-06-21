@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="ClaudeCraft" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="screen-orientation" content="landscape" />
-<meta name="orientation" content="landscape" />
+<meta name="screen-orientation" content="any" />
+<meta name="orientation" content="any" />
 <title data-i18n="seo.title">World of ClaudeCraft: Classic-Style Web MMO</title>
 <meta name="description" data-i18n-content="seo.description" content="Embark on an epic adventure in World of ClaudeCraft, a classic-style micro-MMO playable directly in your browser. Join a persistent shared realm, level up classes, and defeat enemies!" />
 <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -5746,13 +5746,193 @@
   #rotate-device .rotate-sub { font-family: var(--ui-font); font-size: 13px; color: #c9b27a; line-height: 1.45; }
 
   @media (orientation: portrait) {
-    body.mobile-touch.game-active #rotate-device { display: flex; }
+    body.mobile-touch.game-active #rotate-device { display: none; }
+    body.mobile-touch .mobile-joystick {
+      width: 108px;
+      height: 108px;
+      bottom: calc(204px + env(safe-area-inset-bottom));
+      opacity: 0.58;
+    }
+    body.mobile-touch #mobile-move-zone {
+      width: min(45vw, 180px);
+      min-width: 140px;
+      max-width: 180px;
+      height: 220px;
+      bottom: calc(142px + env(safe-area-inset-bottom));
+    }
+    body.mobile-touch .mobile-joystick::before { inset: 24px; }
+    body.mobile-touch .mobile-stick {
+      width: 46px;
+      height: 46px;
+      margin: -23px 0 0 -23px;
+    }
+    body.mobile-touch .mobile-joy-label {
+      bottom: -16px;
+      font-size: 8px;
+    }
+    body.mobile-touch #mobile-camera-joystick {
+      right: max(12px, env(safe-area-inset-right));
+    }
+    body.mobile-touch #mobile-move-joystick {
+      left: max(12px, env(safe-area-inset-left));
+    }
     body.mobile-touch #mobile-combat-controls {
-      grid-template-columns: 96px repeat(6, 42px);
+      left: max(8px, env(safe-area-inset-left));
+      right: max(8px, env(safe-area-inset-right));
+      bottom: calc(8px + env(safe-area-inset-bottom));
+      width: auto;
+      transform: none;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-auto-rows: 48px;
+      gap: 6px;
+    }
+    body.mobile-touch .mobile-btn {
+      width: 100%;
+      min-width: 0;
+      height: 48px;
+      font-size: 18px;
+    }
+    body.mobile-touch .mobile-btn .ui-icon {
+      width: 20px;
+      height: 20px;
+    }
+    body.mobile-touch #mobile-attack-nearest {
+      width: 100%;
+      grid-column: span 2;
+    }
+    body.mobile-touch #bottom-bar {
+      left: max(10px, env(safe-area-inset-left));
+      right: max(10px, env(safe-area-inset-right));
+      bottom: calc(122px + env(safe-area-inset-bottom));
+    }
+    body.mobile-touch #actionbar {
+      min-height: 48px;
+      padding: 4px;
       gap: 4px;
     }
-    body.mobile-touch .mobile-btn { width: 42px; height: 44px; font-size: 16px; }
-    body.mobile-touch #mobile-attack-nearest { width: 96px; }
+    body.mobile-touch .action-btn {
+      width: 40px;
+      height: 40px;
+      flex-basis: 40px;
+    }
+    body.mobile-touch #castbar {
+      left: 50%;
+      bottom: calc(178px + env(safe-area-inset-bottom));
+      width: min(160px, calc(100vw - 160px));
+      min-width: 120px;
+      transform: translateX(-50%);
+    }
+    body.mobile-touch #player-frame {
+      left: max(6px, env(safe-area-inset-left));
+      top: max(6px, env(safe-area-inset-top));
+      width: 300px;
+      transform: scale(0.58);
+    }
+    body.mobile-touch #target-frame {
+      left: max(6px, env(safe-area-inset-left));
+      top: calc(max(6px, env(safe-area-inset-top)) + 54px);
+      transform: scale(0.58);
+    }
+    body.mobile-touch #party-frames {
+      left: max(6px, env(safe-area-inset-left));
+      top: calc(max(6px, env(safe-area-inset-top)) + 56px);
+    }
+    body.mobile-touch #party-frames.below-target {
+      top: calc(max(6px, env(safe-area-inset-top)) + 98px);
+    }
+    body.mobile-touch #party-frames .party-frame {
+      width: 116px;
+      min-height: 25px;
+      padding: 2px 5px;
+    }
+    body.mobile-touch #party-frames #party-leave {
+      width: 116px;
+      min-height: 28px;
+    }
+    body.mobile-touch #minimap-wrap {
+      right: max(4px, env(safe-area-inset-right));
+      top: max(4px, env(safe-area-inset-top));
+      transform: scale(0.48);
+    }
+    body.mobile-touch #buff-bar {
+      right: calc(94px + env(safe-area-inset-right));
+      top: max(8px, env(safe-area-inset-top));
+      max-width: 124px;
+      transform: scale(0.82);
+      transform-origin: right top;
+    }
+    body.mobile-touch #quest-tracker,
+    body.mobile-touch #meters-window {
+      display: none;
+    }
+    body.mobile-touch #petbar {
+      top: calc(max(6px, env(safe-area-inset-top)) + 88px);
+      transform: translateX(-50%) scale(0.84);
+      transform-origin: center top;
+    }
+    body.mobile-touch #community-hud {
+      top: 108px;
+      right: max(6px, env(safe-area-inset-right));
+      width: 56px;
+      padding: 3px;
+    }
+    body.mobile-touch .community-toggle {
+      width: 40px;
+      height: 40px;
+    }
+    body.mobile-touch #chatlog-wrap {
+      left: max(10px, env(safe-area-inset-left));
+      bottom: calc(232px + env(safe-area-inset-bottom));
+      width: min(360px, calc(100vw - 20px));
+    }
+    body.mobile-touch #chatlog-frame { height: 124px; }
+    body.mobile-touch #chat-input {
+      left: max(10px, env(safe-area-inset-left));
+      bottom: calc(368px + env(safe-area-inset-bottom));
+      width: min(360px, calc(100vw - 20px));
+    }
+    body.mobile-touch #mobile-extra-controls {
+      width: calc(100vw - 20px - env(safe-area-inset-left) - env(safe-area-inset-right));
+      max-width: calc(100vw - 20px - env(safe-area-inset-left) - env(safe-area-inset-right));
+      max-height: calc(100dvh - 144px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+      padding: 8px;
+    }
+    body.mobile-touch #mobile-extra-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: 44px;
+      gap: 6px;
+    }
+    body.mobile-touch #mobile-extra-controls .mobile-btn {
+      height: 44px;
+      font-size: 16px;
+      padding: 0 8px;
+    }
+    body.mobile-touch #spellbook,
+    body.mobile-touch #options-menu,
+    body.mobile-touch #options-menu.kb-wide,
+    body.mobile-touch #quest-log-window,
+    body.mobile-touch #vendor-window,
+    body.mobile-touch #market-window,
+    body.mobile-touch #quest-dialog,
+    body.mobile-touch #social-window,
+    body.mobile-touch #trade-window,
+    body.mobile-touch #talents-window,
+    body.mobile-touch #char-window,
+    body.mobile-touch #map-window {
+      left: max(10px, env(safe-area-inset-left));
+      right: max(10px, env(safe-area-inset-right));
+      top: max(10px, env(safe-area-inset-top));
+      bottom: calc(122px + env(safe-area-inset-bottom));
+      width: auto;
+      max-width: none;
+      max-height: none;
+      height: auto;
+      transform: none;
+      box-sizing: border-box;
+    }
+    body.mobile-touch #map-window {
+      padding: 8px;
+    }
   }
 
   @media (orientation: landscape) {
