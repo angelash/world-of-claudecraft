@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { AiBossEncounterMemoryStore } from '../server/ai/boss_memory';
 import { AiWorldDirectorStore, moodForTraceKind, worldDirectorEvent } from '../server/ai/world_director';
 import type { AiWorldTrace } from '../server/ai/world_traces';
 import type { Entity } from '../src/sim/types';
@@ -59,5 +60,37 @@ describe('AI world director', () => {
       pid: 1,
     });
     expect(worldDirectorEvent(null, speaker, null, 1)).toBeNull();
+  });
+
+  it('lets boss encounter memories become encounter director states', () => {
+    const memories = new AiBossEncounterMemoryStore();
+    const memory = memories.noteEncounter({
+      sceneId: 'bandit_camp',
+      entity: { id: 9, kind: 'mob', templateId: 'gorrak', name: 'Gorrak the Ruthless' } as Entity,
+      scale: 'boss',
+      outcome: 'defeated',
+      sourcePlayerEntityId: 1,
+      nowSeconds: 10,
+      evidence: ['simEvent:death'],
+    });
+    const store = new AiWorldDirectorStore();
+    const state = store.noteBossMemory({ memory, nowSeconds: 10 });
+    expect(state).toMatchObject({
+      sceneId: 'bandit_camp',
+      mood: 'triumphant',
+      proposalType: 'encounterEcho',
+      itemId: 'gorrak',
+      subjectKind: 'encounter',
+      lineId: 'hudChrome.aiSpeech.worldDirectorBossDefeated',
+    });
+    expect(worldDirectorEvent(null, speaker, state, 1)).toMatchObject({
+      type: 'aiSpeech',
+      speech: {
+        lineId: 'hudChrome.aiSpeech.worldDirectorBossDefeated',
+        values: expect.objectContaining({ bossTemplateId: 'gorrak', directorMood: 'triumphant' }),
+      },
+      reaction: { kind: 'inspect' },
+      pid: 1,
+    });
   });
 });

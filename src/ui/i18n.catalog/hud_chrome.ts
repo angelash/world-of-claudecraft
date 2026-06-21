@@ -200,6 +200,10 @@ export const hudChromeStrings = {
     worldDirectorHungry: "Small tracks and smells gather into a hungry pattern around {itemName}.",
     worldDirectorCovetous: "Fresh scuffs around {itemName} make the place feel watchful and calculating.",
     worldDirectorStirred: "The place has not settled since {itemName} disturbed it.",
+    bossMemoryDefeated: "The air still knows where {bossName} fell; the room seems to look at you differently.",
+    bossMemoryWipe: "{bossName}'s victory still presses on this place; even your shadow seems to remember falling.",
+    worldDirectorBossDefeated: "The area carries the shock of {bossName} being brought down.",
+    worldDirectorBossWipe: "The area feels bent around {bossName}'s last victory.",
     sceneInspectForge: "You take in the forge: hot iron, work noise, and a house-warm edge of town.",
     sceneInspectChapel: "You take in the ruined chapel: old stone, grave soil, and a bell that feels remembered.",
     sceneInspectLake: "You take in the lake dock: fish smell, open water, and quiet ripples under the sky.",
@@ -209,6 +213,7 @@ export const hudChromeStrings = {
     unknownItem: "something left behind",
     unknownObject: "the thing before you",
     unknownCompanion: "your companion",
+    unknownBoss: "the encounter",
   },
   // CLDR-categorized count strings resolved through tPlural(base, count) in
   // src/ui/i18n.ts: it selects the active locale's cardinal category (one / few /

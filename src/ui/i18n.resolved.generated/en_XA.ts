@@ -324,6 +324,10 @@ export const en_XA: EnTranslations = {
       "worldDirectorHungry": "[Šɱáļļ ţŕáçķš áñð šɱéļļš ĝáţĥéŕ íñţó á ĥúñĝŕý þáţţéŕñ áŕóúñð {itemName}.]",
       "worldDirectorCovetous": "[Ƒŕéšĥ šçúƒƒš áŕóúñð {itemName} ɱáķé ţĥé þļáçé ƒééļ ŵáţçĥƒúļ áñð çáļçúļáţíñĝ.]",
       "worldDirectorStirred": "[Ţĥé þļáçé ĥáš ñóţ šéţţļéð šíñçé {itemName} ðíšţúŕƀéð íţ.]",
+      "bossMemoryDefeated": "[Ţĥé áíŕ šţíļļ ķñóŵš ŵĥéŕé {bossName} ƒéļļ; ţĥé ŕóóɱ šééɱš ţó ļóóķ áţ ýóú ðíƒƒéŕéñţļý.]",
+      "bossMemoryWipe": "[{bossName}'š ʋíçţóŕý šţíļļ þŕéššéš óñ ţĥíš þļáçé; éʋéñ ýóúŕ šĥáðóŵ šééɱš ţó ŕéɱéɱƀéŕ ƒáļļíñĝ.]",
+      "worldDirectorBossDefeated": "[Ţĥé áŕéá çáŕŕíéš ţĥé šĥóçķ óƒ {bossName} ƀéíñĝ ƀŕóúĝĥţ ðóŵñ.]",
+      "worldDirectorBossWipe": "[Ţĥé áŕéá ƒééļš ƀéñţ áŕóúñð {bossName}'š ļášţ ʋíçţóŕý.]",
       "sceneInspectForge": "[Ýóú ţáķé íñ ţĥé ƒóŕĝé: ĥóţ íŕóñ, ŵóŕķ ñóíšé, áñð á ĥóúšé-ŵáŕɱ éðĝé óƒ ţóŵñ.]",
       "sceneInspectChapel": "[Ýóú ţáķé íñ ţĥé ŕúíñéð çĥáþéļ: óļð šţóñé, ĝŕáʋé šóíļ, áñð á ƀéļļ ţĥáţ ƒééļš ŕéɱéɱƀéŕéð.]",
       "sceneInspectLake": "[Ýóú ţáķé íñ ţĥé ļáķé ðóçķ: ƒíšĥ šɱéļļ, óþéñ ŵáţéŕ, áñð ɋúíéţ ŕíþþļéš úñðéŕ ţĥé šķý.]",
@@ -332,7 +336,8 @@ export const en_XA: EnTranslations = {
       "sceneInspectGeneric": "[Ýóú ţáķé íñ ţĥé þļáçé: ŵéáţĥéŕ, ţŕáçķš, áñð šɱáļļ ðéţáíļš ƀéĝíñ ţó áŕŕáñĝé ţĥéɱšéļʋéš.]",
       "unknownItem": "[šóɱéţĥíñĝ ļéƒţ ƀéĥíñð]",
       "unknownObject": "[ţĥé ţĥíñĝ ƀéƒóŕé ýóú]",
-      "unknownCompanion": "[ýóúŕ çóɱþáñíóñ]"
+      "unknownCompanion": "[ýóúŕ çóɱþáñíóñ]",
+      "unknownBoss": "[ţĥé éñçóúñţéŕ]"
     },
     "plurals": {
       "guildMembers": {

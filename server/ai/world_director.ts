@@ -1,17 +1,20 @@
 import type { Entity, SimEvent } from '../../src/sim/types';
+import type { AiBossEncounterMemory } from './boss_memory';
 import type { AiCreatureMemory } from './creature_memory';
 import type { SceneFrameV1 } from './scene_frame';
 import type { AiWorldTrace, AiWorldTraceKind } from './world_traces';
 
-export type AiWorldDirectorMood = 'uncanny' | 'haunted' | 'hungry' | 'covetous' | 'stirred';
-export type AiWorldDirectorProposalType = 'npcTopicShift' | 'campAlert' | 'traceEcho';
+export type AiWorldDirectorMood = 'uncanny' | 'haunted' | 'hungry' | 'covetous' | 'stirred' | 'triumphant' | 'dread';
+export type AiWorldDirectorProposalType = 'npcTopicShift' | 'campAlert' | 'traceEcho' | 'encounterEcho';
 
 export type AiWorldDirectorLineId =
   | 'hudChrome.aiSpeech.worldDirectorUncanny'
   | 'hudChrome.aiSpeech.worldDirectorHaunted'
   | 'hudChrome.aiSpeech.worldDirectorHungry'
   | 'hudChrome.aiSpeech.worldDirectorCovetous'
-  | 'hudChrome.aiSpeech.worldDirectorStirred';
+  | 'hudChrome.aiSpeech.worldDirectorStirred'
+  | 'hudChrome.aiSpeech.worldDirectorBossDefeated'
+  | 'hudChrome.aiSpeech.worldDirectorBossWipe';
 
 export interface AiWorldDirectorState {
   stateId: string;
@@ -21,6 +24,9 @@ export interface AiWorldDirectorState {
   sourcePlayerEntityId: number;
   sourceRef: string;
   itemId: string;
+  subjectKind: 'item' | 'encounter';
+  subjectTemplateId?: string;
+  subjectName?: string;
   lineId: AiWorldDirectorLineId;
   heat: number;
   createdAt: number;
@@ -55,6 +61,7 @@ export class AiWorldDirectorStore {
       sourcePlayerEntityId: input.trace.sourcePlayerEntityId,
       sourceRef: input.trace.traceId,
       itemId: input.trace.itemId,
+      subjectKind: 'item',
       heatGain: 0.35 + input.trace.strength * 0.65,
       evidence: [`trace:${input.trace.kind}`, ...input.trace.reasonLineIds.slice(0, 3)],
       nowSeconds: input.nowSeconds,
@@ -77,8 +84,28 @@ export class AiWorldDirectorStore {
       sourcePlayerEntityId: input.sourcePlayerEntityId,
       sourceRef: input.memory.memoryId,
       itemId: input.itemId,
+      subjectKind: 'item',
       heatGain: Math.min(1, 0.4 + input.memory.interactionCount * 0.18),
       evidence: [`creatureMemory:${input.memory.templateId}`, ...input.memory.traits.slice(0, 3)],
+      nowSeconds: input.nowSeconds,
+    });
+  }
+
+  noteBossMemory(input: { memory: AiBossEncounterMemory; nowSeconds: number }): AiWorldDirectorState {
+    this.prune(input.nowSeconds);
+    const mood: AiWorldDirectorMood = input.memory.outcome === 'defeated' ? 'triumphant' : 'dread';
+    return this.upsert({
+      sceneId: input.memory.sceneId,
+      mood,
+      proposalType: 'encounterEcho',
+      sourcePlayerEntityId: input.memory.sourcePlayerEntityId,
+      sourceRef: input.memory.memoryId,
+      itemId: input.memory.templateId,
+      subjectKind: 'encounter',
+      subjectTemplateId: input.memory.templateId,
+      subjectName: input.memory.entityName,
+      heatGain: input.memory.heat,
+      evidence: [`bossMemory:${input.memory.outcome}`, `scale:${input.memory.scale}`, ...input.memory.evidence.slice(0, 3)],
       nowSeconds: input.nowSeconds,
     });
   }
@@ -101,6 +128,9 @@ export class AiWorldDirectorStore {
     sourcePlayerEntityId: number;
     sourceRef: string;
     itemId: string;
+    subjectKind: 'item' | 'encounter';
+    subjectTemplateId?: string;
+    subjectName?: string;
     heatGain: number;
     evidence: string[];
     nowSeconds: number;
@@ -127,6 +157,9 @@ export class AiWorldDirectorStore {
       sourcePlayerEntityId: input.sourcePlayerEntityId,
       sourceRef: input.sourceRef,
       itemId: input.itemId,
+      subjectKind: input.subjectKind,
+      ...(input.subjectTemplateId ? { subjectTemplateId: input.subjectTemplateId } : {}),
+      ...(input.subjectName ? { subjectName: input.subjectName } : {}),
       lineId: lineIdForMood(input.mood),
       heat: clamp01(input.heatGain),
       createdAt: input.nowSeconds,
@@ -148,6 +181,7 @@ export class AiWorldDirectorStore {
 
 export function worldDirectorEvent(scene: SceneFrameV1 | null, speaker: Entity, state: AiWorldDirectorState | null, pid: number): SimEvent | null {
   if (!state) return null;
+  const encounter = state.subjectKind === 'encounter';
   return {
     type: 'aiSpeech',
     speakerId: speaker.id,
@@ -157,14 +191,18 @@ export function worldDirectorEvent(scene: SceneFrameV1 | null, speaker: Entity, 
       lineId: state.lineId,
       values: {
         itemId: state.itemId,
+        ...(encounter ? {
+          bossTemplateId: state.subjectTemplateId ?? state.itemId,
+          bossName: state.subjectName ?? state.itemId,
+        } : {}),
         directorMood: state.mood,
         directorHeat: Math.round(state.heat * 100),
       },
     },
     source: 'fallback',
     reaction: {
-      kind: state.mood === 'haunted' ? 'avoid' : 'inspect',
-      targetItemId: state.itemId,
+      kind: state.mood === 'haunted' || state.mood === 'dread' ? 'avoid' : 'inspect',
+      ...(encounter ? {} : { targetItemId: state.itemId }),
       score: Math.round(state.heat * 100) / 100,
       sceneTags: scene ? [...new Set([
         ...scene.locationTags,
@@ -194,6 +232,8 @@ function proposalTypeForMood(mood: AiWorldDirectorMood): AiWorldDirectorProposal
     case 'hungry': return 'traceEcho';
     case 'covetous': return 'npcTopicShift';
     case 'stirred': return 'traceEcho';
+    case 'triumphant': return 'encounterEcho';
+    case 'dread': return 'encounterEcho';
   }
 }
 
@@ -204,6 +244,8 @@ function lineIdForMood(mood: AiWorldDirectorMood): AiWorldDirectorLineId {
     case 'hungry': return 'hudChrome.aiSpeech.worldDirectorHungry';
     case 'covetous': return 'hudChrome.aiSpeech.worldDirectorCovetous';
     case 'stirred': return 'hudChrome.aiSpeech.worldDirectorStirred';
+    case 'triumphant': return 'hudChrome.aiSpeech.worldDirectorBossDefeated';
+    case 'dread': return 'hudChrome.aiSpeech.worldDirectorBossWipe';
   }
 }
 

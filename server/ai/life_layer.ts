@@ -2,9 +2,11 @@ import { NPCS, QUESTS } from '../../src/sim/data';
 import type { Sim } from '../../src/sim/sim';
 import type { AiNpcInteractionTopic } from '../../src/world_api';
 import { INTERACT_RANGE, dist2d } from '../../src/sim/types';
-import type { SimEvent } from '../../src/sim/types';
+import type { Entity, SimEvent } from '../../src/sim/types';
 import type { AiDecisionV1, AiJobContextV1, AiProvider } from './ai_types';
 import { aiEntityKind } from './ai_types';
+import { AiBossEncounterMemoryStore, bossEncounterMemoryEvent, bossEncounterScale } from './boss_memory';
+import type { AiBossEncounterMemory } from './boss_memory';
 import { classifyCanonSubject } from './canon_guard';
 import { CodexCliProvider } from './codex_worker';
 import { companionReactionEvents } from './companion_reactions';
@@ -77,6 +79,7 @@ export class AiLifeLayer {
   private readonly socialMemory = new AiSocialMemoryStore();
   private readonly worldTraces = new AiWorldTraceStore();
   private readonly creatureMemory = new AiCreatureMemoryStore();
+  private readonly bossMemory = new AiBossEncounterMemoryStore();
   private readonly worldDirector = new AiWorldDirectorStore();
   private sequence = 0;
 
@@ -104,8 +107,82 @@ export class AiLifeLayer {
     return this.creatureMemory.snapshot();
   }
 
+  bossMemoryDiagnostics(): AiBossEncounterMemory[] {
+    return this.bossMemory.snapshot();
+  }
+
   worldDirectorDiagnostics(): AiWorldDirectorState[] {
     return this.worldDirector.snapshot();
+  }
+
+  handleSimEvents(request: { sim: Sim; events: SimEvent[] }): SimEvent[] {
+    if (!this.enabled || request.events.length === 0) return [];
+    const out: SimEvent[] = [];
+    for (const event of request.events) {
+      if (event.type !== 'death') continue;
+      const dead = request.sim.entities.get(event.entityId);
+      const killer = request.sim.entities.get(event.killerId);
+      if (!dead) continue;
+
+      if (dead.kind === 'mob') {
+        const scale = bossEncounterScale(dead);
+        if (!scale) continue;
+        const sourcePlayer = this.playerForEncounterSource(request.sim, killer) ?? this.playerForPid(request.sim, dead.tappedById);
+        if (!sourcePlayer) continue;
+        const scene = sceneFrameFor(request.sim, dead.pos);
+        const sceneId = scene.subsceneId ?? scene.zoneId;
+        const memory = this.bossMemory.noteEncounter({
+          sceneId,
+          entity: dead,
+          scale,
+          outcome: 'defeated',
+          sourcePlayerEntityId: sourcePlayer.id,
+          nowSeconds: request.sim.time,
+          evidence: [`simEvent:death`, `killer:${killer?.templateId ?? 'unknown'}`],
+        });
+        this.worldDirector.noteBossMemory({ memory, nowSeconds: request.sim.time });
+        this.journal.recordLocalReaction({
+          jobId: `encounter-${sourcePlayer.id}-${++this.sequence}`,
+          trigger: 'encounter_memory',
+          entityId: dead.id,
+          templateId: dead.templateId,
+          playerEntityId: sourcePlayer.id,
+          reason: `boss:${memory.outcome}:${dead.templateId}`,
+          lineIds: [memory.lineId],
+          intents: ['rememberEncounter', 'readWorldDirectorState'],
+          sceneId,
+        });
+        out.push(bossEncounterMemoryEvent(memory, dead, sourcePlayer.id));
+      } else if (dead.kind === 'player' && killer?.kind === 'mob') {
+        const scale = bossEncounterScale(killer);
+        if (!scale) continue;
+        const scene = sceneFrameFor(request.sim, killer.pos);
+        const sceneId = scene.subsceneId ?? scene.zoneId;
+        const memory = this.bossMemory.noteEncounter({
+          sceneId,
+          entity: killer,
+          scale,
+          outcome: 'wipe',
+          sourcePlayerEntityId: dead.id,
+          nowSeconds: request.sim.time,
+          evidence: [`simEvent:playerDeath`, `killer:${killer.templateId}`],
+        });
+        this.worldDirector.noteBossMemory({ memory, nowSeconds: request.sim.time });
+        this.journal.recordLocalReaction({
+          jobId: `encounter-${dead.id}-${++this.sequence}`,
+          trigger: 'encounter_memory',
+          entityId: killer.id,
+          templateId: killer.templateId,
+          playerEntityId: dead.id,
+          reason: `boss:${memory.outcome}:${killer.templateId}`,
+          lineIds: [memory.lineId],
+          intents: ['rememberEncounter', 'readWorldDirectorState'],
+          sceneId,
+        });
+        out.push(bossEncounterMemoryEvent(memory, killer, dead.id));
+      }
+    }
+    return out;
   }
 
   async handleNpcInteraction(request: NpcAiInteractionRequest): Promise<void> {
@@ -121,6 +198,8 @@ export class AiLifeLayer {
     if (trace) context.recentObservations.push(`worldTrace:${trace.kind}:${trace.itemId}:${trace.strength.toFixed(2)}`);
     const directorState = this.worldDirector.stateForScene(context.scene?.subsceneId ?? context.scene?.zoneId, request.pid, request.sim.time);
     if (directorState) context.recentObservations.push(`worldDirector:${directorState.mood}:${directorState.itemId}:${directorState.heat.toFixed(2)}`);
+    const encounterMemory = this.bossMemory.memoryForScene(context.scene?.subsceneId ?? context.scene?.zoneId, request.pid, request.sim.time);
+    if (encounterMemory) context.recentObservations.push(`bossMemory:${encounterMemory.outcome}:${encounterMemory.templateId}:${encounterMemory.heat.toFixed(2)}`);
     const rumor = this.socialMemory.rumorForScene(context.scene?.subsceneId ?? context.scene?.zoneId, request.pid, request.sim.time);
     if (rumor) context.recentObservations.push(`sceneRumor:${rumor.itemId}:${rumor.strength.toFixed(2)}`);
     let decision: AiDecisionV1;
@@ -317,6 +396,7 @@ export class AiLifeLayer {
     const sceneId = scene.subsceneId ?? scene.zoneId;
     const trace = this.worldTraces.traceForScene(sceneId, request.pid, request.sim.time);
     const directorState = this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time);
+    const encounterMemory = this.bossMemory.memoryForScene(sceneId, request.pid, request.sim.time);
     const event = sceneInspectionEvent(scene, player, trace);
     const events: SimEvent[] = [event];
     const lineIds = event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [];
@@ -359,6 +439,11 @@ export class AiLifeLayer {
       }
     }
     if (!trace) {
+      if (encounterMemory) {
+        const memoryEvent = bossEncounterMemoryEvent(encounterMemory, player, request.pid);
+        events.push(memoryEvent);
+        lineIds.push(encounterMemory.lineId);
+      }
       const directorEvent = worldDirectorEvent(scene, player, directorState, request.pid);
       if (directorEvent) {
         events.push(directorEvent);
@@ -377,11 +462,25 @@ export class AiLifeLayer {
         'inspectObject',
         'commentOnScene',
         ...(trace ? ['reactToWorldTrace'] : []),
+        ...(encounterMemory ? ['readEncounterMemory'] : []),
         ...(!trace && directorState ? ['readWorldDirectorState'] : []),
       ],
       sceneId,
     });
     request.deliver(events);
+  }
+
+  private playerForEncounterSource(sim: Sim, source: Entity | undefined): Entity | null {
+    if (!source) return null;
+    if (source.kind === 'player') return this.playerForPid(sim, source.id);
+    if (source.kind === 'mob' && source.ownerId !== null) return this.playerForPid(sim, source.ownerId);
+    return null;
+  }
+
+  private playerForPid(sim: Sim, pid: number | null | undefined): Entity | null {
+    if (pid === null || pid === undefined) return null;
+    const entity = sim.entities.get(pid);
+    return entity?.kind === 'player' ? entity : null;
   }
 
   private buildNpcContext(request: NpcAiInteractionRequest): AiJobContextV1 | null {

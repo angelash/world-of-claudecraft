@@ -59,6 +59,12 @@ function eventsOf(fc: FakeClient, type: string): any[] {
     .filter((ev: any) => ev.type === type);
 }
 
+function routeSimEventsThroughAi(server: GameServer, events: any[]): any[] {
+  const aiEvents = (server as any).aiLifeLayer.handleSimEvents({ sim: server.sim, events });
+  (server as any).routeEvents(aiEvents.length > 0 ? [...events, ...aiEvents] : events);
+  return aiEvents;
+}
+
 function seedThatMakesSingularity(entity: Entity): number {
   for (let seed = 1; seed < 10000; seed++) {
     if (individualProfileFor(entity, seed).tier === 'singularity') return seed;
@@ -626,5 +632,96 @@ describe('server AI interact command', () => {
     await flushAi();
 
     expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.memorySmithRumorEcho')).toBe(false);
+  });
+
+  it('records a real boss defeat as encounter memory without changing quest state', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const player = server.sim.entities.get(session.pid)!;
+    const boss = [...server.sim.entities.values()].find((entity) => entity.kind === 'mob' && entity.templateId === 'gorrak')!;
+    teleportNear(server, session.pid, boss.id);
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+    const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
+    server.sim.events = [];
+    fc.sent.length = 0;
+
+    (server.sim as any).dealDamage(player, boss, boss.hp + 1000, false, 'physical', 'Test Strike', 'hit');
+    const events = server.sim.tick();
+    const aiEvents = routeSimEventsThroughAi(server, events);
+
+    expect(events).toContainEqual(expect.objectContaining({ type: 'death', entityId: boss.id, killerId: player.id }));
+    expect(aiEvents).toContainEqual(expect.objectContaining({
+      speakerId: boss.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.bossMemoryDefeated',
+        values: expect.objectContaining({ bossTemplateId: 'gorrak', encounterOutcome: 'defeated' }),
+      }),
+      pid: session.pid,
+    }));
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: boss.id,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.bossMemoryDefeated' }),
+      pid: session.pid,
+    }));
+    fc.sent.length = 0;
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: session.pid,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.bossMemoryDefeated',
+        values: expect.objectContaining({ bossTemplateId: 'gorrak', encounterOutcome: 'defeated' }),
+      }),
+      pid: session.pid,
+    }));
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: session.pid,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.worldDirectorBossDefeated',
+        values: expect.objectContaining({ bossTemplateId: 'gorrak', directorMood: 'triumphant' }),
+      }),
+      pid: session.pid,
+    }));
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
+  });
+
+  it('records a personal wipe memory when a real boss death event kills the player', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const player = server.sim.entities.get(session.pid)!;
+    const boss = [...server.sim.entities.values()].find((entity) => entity.kind === 'mob' && entity.templateId === 'gorrak')!;
+    teleportNear(server, session.pid, boss.id);
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+    const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
+    server.sim.events = [];
+    fc.sent.length = 0;
+
+    (server.sim as any).dealDamage(boss, player, player.hp + 1000, false, 'physical', 'Test Strike', 'hit');
+    const events = server.sim.tick();
+    const aiEvents = routeSimEventsThroughAi(server, events);
+
+    expect(events).toContainEqual(expect.objectContaining({ type: 'death', entityId: player.id, killerId: boss.id }));
+    expect(events).toContainEqual(expect.objectContaining({ type: 'playerDeath', pid: player.id }));
+    expect(aiEvents).toContainEqual(expect.objectContaining({
+      speakerId: boss.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.bossMemoryWipe',
+        values: expect.objectContaining({ bossTemplateId: 'gorrak', encounterOutcome: 'wipe' }),
+      }),
+      reaction: expect.objectContaining({ kind: 'avoid' }),
+      pid: session.pid,
+    }));
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: boss.id,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.bossMemoryWipe' }),
+      pid: session.pid,
+    }));
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
 });

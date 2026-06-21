@@ -518,7 +518,8 @@ export class GameServer {
       while (acc >= DT) {
         this.clearStaleInputs();
         const events = this.sim.tick();
-        this.routeEvents(events);
+        const aiEvents = this.aiLifeLayer.handleSimEvents({ sim: this.sim, events });
+        this.routeEvents(aiEvents.length > 0 ? [...events, ...aiEvents] : events);
         this.runAntibotTick();
         acc -= DT;
       }

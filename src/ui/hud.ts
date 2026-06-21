@@ -3866,6 +3866,7 @@ export class Hud {
     const itemName = this.aiSpeechItemName(values);
     const companionName = this.aiSpeechCompanionName(values);
     const objectName = this.aiSpeechObjectName(values);
+    const bossName = this.aiSpeechBossName(values);
     switch (ev.speech.lineId) {
       case 'hudChrome.aiSpeech.brotherAldricAwake':
         return t('hudChrome.aiSpeech.brotherAldricAwake', { playerName: String(values.playerName ?? this.sim.player.name) });
@@ -3969,6 +3970,11 @@ export class Hud {
       case 'hudChrome.aiSpeech.worldDirectorCovetous':
       case 'hudChrome.aiSpeech.worldDirectorStirred':
         return t(ev.speech.lineId as TranslationKey, { itemName });
+      case 'hudChrome.aiSpeech.bossMemoryDefeated':
+      case 'hudChrome.aiSpeech.bossMemoryWipe':
+      case 'hudChrome.aiSpeech.worldDirectorBossDefeated':
+      case 'hudChrome.aiSpeech.worldDirectorBossWipe':
+        return t(ev.speech.lineId as TranslationKey, { bossName });
       case 'hudChrome.aiSpeech.sceneInspectForge':
       case 'hudChrome.aiSpeech.sceneInspectChapel':
       case 'hudChrome.aiSpeech.sceneInspectLake':
@@ -3999,6 +4005,12 @@ export class Hud {
     const item = itemId ? ITEMS[itemId] : undefined;
     if (item) return itemDisplayName(item);
     return typeof values.objectName === 'string' ? values.objectName : t('hudChrome.aiSpeech.unknownObject');
+  }
+
+  private aiSpeechBossName(values: Record<string, string | number>): string {
+    const templateId = typeof values.bossTemplateId === 'string' ? values.bossTemplateId : '';
+    if (templateId && MOBS[templateId]) return mobDisplayName(templateId);
+    return typeof values.bossName === 'string' ? values.bossName : t('hudChrome.aiSpeech.unknownBoss');
   }
 
   /** Replace the server-supplied soft word list (online play only). */

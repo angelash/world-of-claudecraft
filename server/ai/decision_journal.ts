@@ -5,7 +5,7 @@ export type AiDecisionJournalStatus = 'accepted' | 'rejected' | 'provider_error'
 export interface AiDecisionJournalEntry {
   sequence: number;
   jobId: string;
-  trigger: AiJobContextV1['trigger'] | 'item_discarded' | 'scene_inspected';
+  trigger: AiJobContextV1['trigger'] | 'item_discarded' | 'scene_inspected' | 'encounter_memory';
   entityId: number;
   templateId: string;
   playerEntityId: number;
