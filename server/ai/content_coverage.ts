@@ -69,6 +69,25 @@ export interface AiContentCoverageReport {
   };
 }
 
+export type AiContentReviewChecklistStatus = 'pass' | 'needs_attention';
+
+export interface AiContentReviewChecklistItem {
+  id: string;
+  label: string;
+  status: AiContentReviewChecklistStatus;
+  issueCount: number;
+  examples: string[];
+  reviewPrompt: string;
+  validationCommand: string;
+}
+
+export interface AiContentReviewChecklist {
+  status: AiContentReviewChecklistStatus;
+  generatedFrom: 'aiContentCoverageReport';
+  items: AiContentReviewChecklistItem[];
+  validationCommands: string[];
+}
+
 export interface AiProfilePreviewTarget {
   kind: 'npc' | 'mob' | 'object';
   templateId: string;
@@ -286,6 +305,79 @@ export function aiContentCoverageReport(): AiContentCoverageReport {
   };
 }
 
+export function aiContentReviewChecklist(
+  report: AiContentCoverageReport = aiContentCoverageReport(),
+): AiContentReviewChecklist {
+  const validation = aiProfileAuthoringValidationReport();
+  const items: AiContentReviewChecklistItem[] = [
+    reviewItem({
+      id: 'mob-family-semantics',
+      label: 'Mob family semantics',
+      issues: [
+        ...report.families.missingSemantics.map((family) => `missingSemantics:${family}`),
+        ...report.families.semanticsWithoutContent.map((family) => `semanticsWithoutContent:${family}`),
+        ...report.families.familiesMissingDepth.map((family) => `missingDepth:${family}`),
+        ...report.families.familiesWithInvalidMoodBias.map((family) => `invalidMoodBias:${family}`),
+        ...report.families.expected
+          .filter((family) => report.families.templateCountByFamily[family] <= 0)
+          .map((family) => `noTemplate:${family}`),
+      ],
+      reviewPrompt: 'When adding a mob family or template, verify family instincts, scene amplifiers, suppressors, item tags, visible behaviors, mood bias, and at least one content template.',
+    }),
+    reviewItem({
+      id: 'interactive-npc-profiles',
+      label: 'Interactive NPC profiles',
+      issues: [
+        ...report.npcs.missingInteractiveProfiles.map((id) => `missingProfile:${id}`),
+        ...report.npcs.authoredNpcProfilesMissingSceneAffinities.map((id) => `thinSceneAffinities:${id}`),
+        ...report.npcs.authoredNpcProfilesMissingItemInterest.map((id) => `thinItemInterest:${id}`),
+        ...report.npcs.authoredNpcProfilesMissingTimeWeatherSensitivity.map((id) => `missingTimeWeather:${id}`),
+        ...report.npcs.authoredNpcProfilesWithThinMemory.map((id) => `thinMemory:${id}`),
+        ...validation.issues.map((issue) => `${issue.code}:${issue.profileId}${issue.targetTemplateId ? `:${issue.targetTemplateId}` : ''}`),
+      ],
+      reviewPrompt: 'When adding a quest, vendor, market, or named NPC, verify a non-generic living-world profile, scene and item interests, time and weather sensitivity, memory lineIds, and canon taboos.',
+    }),
+    reviewItem({
+      id: 'scene-semantic-anchors',
+      label: 'Scene semantic anchors',
+      issues: [
+        ...report.scenes.anchorsMissingSemanticObjects.map((id) => `missingObjects:${id}`),
+        ...report.scenes.anchorsMissingTags.map((id) => `missingTags:${id}`),
+        ...report.scenes.anchorsMissingTagDepth.map((id) => `thinAnchorTags:${id}`),
+        ...report.scenes.semanticObjectsMissingTags.map((id) => `missingObjectTags:${id}`),
+        ...report.scenes.semanticObjectsMissingTagDepth.map((id) => `thinObjectTags:${id}`),
+        ...report.scenes.semanticObjectsMissingFeatureTags.map((id) => `thinFeatureTags:${id}`),
+        ...report.scenes.semanticObjectsMissingAffordanceTags.map((id) => `thinAffordanceTags:${id}`),
+        ...report.scenes.semanticObjectsMissingAnchorOverlap.map((id) => `missingAnchorOverlap:${id}`),
+      ],
+      reviewPrompt: 'When adding a zone, subscene, house, camp, gate, dungeon door, or semantic object, verify tags, featureTags, affordanceTags, anchor overlap, danger cues, and time or weather readability.',
+    }),
+    reviewItem({
+      id: 'discardable-item-semantics',
+      label: 'Discardable item semantics',
+      issues: [
+        ...report.items.missingRequiredItems.map((id) => `missingRequired:${id}`),
+        ...report.items.requiredItemsMissingSignals.map((id) => `thinRequiredSignals:${id}`),
+        ...report.items.discardableItemsMissingSignals.map((id) => `thinDiscardSignals:${id}`),
+        ...report.items.importantItemsMissingSignals.map((id) => `thinImportantSignals:${id}`),
+      ],
+      reviewPrompt: 'When adding a discardable, quest, rare, tool, valuable, food, weapon, relic, or odd object, verify item tags, smell tags, danger tags, and value signals.',
+    }),
+    reviewItem({
+      id: 'ai-lineid-registration',
+      label: 'AI lineId registration',
+      issues: report.lineIds.referenced.length === 0 ? ['noReferencedAiLineIds'] : [],
+      reviewPrompt: 'When adding AI speech or fallback lines, verify every hudChrome.aiSpeech.* id is registered and covered by localization drift tests.',
+    }),
+  ];
+  return {
+    status: items.some((item) => item.status === 'needs_attention') ? 'needs_attention' : 'pass',
+    generatedFrom: 'aiContentCoverageReport',
+    items,
+    validationCommands: unique(items.map((item) => item.validationCommand)),
+  };
+}
+
 export function aiProfilePreviewReport(limit = PROFILE_PREVIEW_LIMIT): AiProfilePreviewReport {
   const boundedLimit = Math.max(0, Math.floor(limit));
   const authoredRows = [...AI_AGENT_PROFILES]
@@ -313,6 +405,23 @@ export function aiProfileAuthoringValidationReport(
     limit: boundedLimit,
     truncated: issues.length > boundedLimit,
     issues: issues.slice(0, boundedLimit),
+  };
+}
+
+function reviewItem(input: {
+  id: string;
+  label: string;
+  issues: string[];
+  reviewPrompt: string;
+}): AiContentReviewChecklistItem {
+  return {
+    id: input.id,
+    label: input.label,
+    status: input.issues.length > 0 ? 'needs_attention' : 'pass',
+    issueCount: input.issues.length,
+    examples: input.issues.slice(0, 8),
+    reviewPrompt: input.reviewPrompt,
+    validationCommand: 'npx vitest run tests/ai_content_coverage.test.ts',
   };
 }
 

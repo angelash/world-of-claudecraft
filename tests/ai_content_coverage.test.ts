@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  aiContentCoverageReport, aiProfileAuthoringValidationReport, aiProfilePreviewReport,
+  aiContentCoverageReport, aiContentReviewChecklist, aiProfileAuthoringValidationReport, aiProfilePreviewReport,
 } from '../server/ai/content_coverage';
 import { hudChromeStrings } from '../src/ui/i18n.catalog/hud_chrome';
 
@@ -98,5 +98,49 @@ describe('AI content coverage report', () => {
     expect(validation.errorCount).toBe(0);
     expect(validation.warningCount).toBe(0);
     expect(validation.issues).toEqual([]);
+  });
+
+  it('turns the coverage report into a reusable content review checklist', () => {
+    const checklist = aiContentReviewChecklist();
+
+    expect(checklist.status).toBe('pass');
+    expect(checklist.generatedFrom).toBe('aiContentCoverageReport');
+    expect(checklist.validationCommands).toEqual(['npx vitest run tests/ai_content_coverage.test.ts']);
+    expect(checklist.items.map((item) => item.id)).toEqual([
+      'mob-family-semantics',
+      'interactive-npc-profiles',
+      'scene-semantic-anchors',
+      'discardable-item-semantics',
+      'ai-lineid-registration',
+    ]);
+    expect(checklist.items.every((item) => item.status === 'pass')).toBe(true);
+    expect(checklist.items.every((item) => item.reviewPrompt.length > 40)).toBe(true);
+  });
+
+  it('points content reviewers at the exact coverage category with examples', () => {
+    const base = aiContentCoverageReport();
+    const checklist = aiContentReviewChecklist({
+      ...base,
+      scenes: {
+        ...base.scenes,
+        anchorsMissingTagDepth: ['new_zone_watchtower'],
+      },
+      items: {
+        ...base.items,
+        importantItemsMissingSignals: ['strange_relic'],
+      },
+    });
+
+    expect(checklist.status).toBe('needs_attention');
+    expect(checklist.items.find((item) => item.id === 'scene-semantic-anchors')).toMatchObject({
+      status: 'needs_attention',
+      issueCount: 1,
+      examples: ['thinAnchorTags:new_zone_watchtower'],
+    });
+    expect(checklist.items.find((item) => item.id === 'discardable-item-semantics')).toMatchObject({
+      status: 'needs_attention',
+      issueCount: 1,
+      examples: ['thinImportantSignals:strange_relic'],
+    });
   });
 });
