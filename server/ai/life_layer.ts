@@ -781,6 +781,18 @@ export class AiLifeLayer {
     if (!localEvent || localEvent.type !== 'aiSpeech') return;
     const localLineIds = aiSpeechLineIds([localEvent]);
     if (localLineIds[0]) context.recentObservations.push(`suggestedLineId:${localLineIds[0]}`);
+    const sceneId = context.scene?.subsceneId ?? context.scene?.zoneId;
+    const zoneId = context.scene?.zoneId ?? sceneId;
+    const directorState = this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time)
+      ?? this.worldDirector.stateForRegion({ zoneId, sceneId, playerEntityId: request.pid, nowSeconds: request.sim.time });
+    if (directorState) {
+      context.recentObservations.push(`worldDirector:${directorState.mood}:${directorState.itemId}:${directorState.heat.toFixed(2)}`);
+      context.directorProposals = cloneDirectorProposals([directorState.proposal]);
+      context.memorySignals = [
+        ...(context.memorySignals ?? []),
+        worldDirectorMemoryAudit(directorState, 'readObjectWorldDirectorState'),
+      ];
+    }
     const memoryWrites: AiMemoryAuditRecord[] = [];
     const sideEvents: SimEvent[] = [];
     sideEvents.push(...companionReactionEvents(context));

@@ -365,11 +365,22 @@ describe('server AI interact command', () => {
   });
 
   it('routes object inspection through the AI provider while preserving scene reaction metadata', async () => {
+    const calls: AiJobContextV1[] = [];
     const provider: AiProvider = {
       async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
+        calls.push(context);
         expect(context.trigger).toBe('object_inspected');
         expect(context.entity.kind).toBe('object');
         expect(context.recentObservations).toContain('suggestedLineId:hudChrome.aiSpeech.objectInspectGrave');
+        expect(context.recentObservations.some((observation) =>
+          observation.startsWith('worldDirector:covetous:redbrook_blade:'))).toBe(true);
+        expect(context.directorProposals).toContainEqual(expect.objectContaining({
+          intent: 'nudgeNpcRumor',
+          targetRef: 'redbrook_blade',
+          suggestedLineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+        }));
+        expect(context.memorySignals?.some((record) =>
+          record.kind === 'worldDirectorState' && record.itemId === 'redbrook_blade')).toBe(true);
         expect(context.allowedLineIds).toContain('hudChrome.aiSpeech.objectInspectGrave');
         return {
           schemaVersion: 1,
@@ -388,7 +399,6 @@ describe('server AI interact command', () => {
       },
     };
     const server = new GameServer();
-    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
     const fc = fakeWs();
     const session = joinServer(server, fc);
     const object = [...server.sim.entities.values()].find((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil')!;
@@ -396,9 +406,15 @@ describe('server AI interact command', () => {
     const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
     const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
 
+    server.sim.addItem('redbrook_blade', 1, session.pid);
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'redbrook_blade', count: 1 }));
+    await flushAi();
+    fc.sent.length = 0;
+    (server as any).aiLifeLayer.provider = provider;
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_object', object: object.id, locale: 'en' }));
     await flushAi();
 
+    expect(calls).toHaveLength(1);
     expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
       speakerId: object.id,
       speech: expect.objectContaining({
