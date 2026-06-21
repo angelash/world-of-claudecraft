@@ -4,7 +4,7 @@ import type { Sim } from '../../src/sim/sim';
 import type { AiNpcInteractionTopic } from '../../src/world_api';
 import { INTERACT_RANGE, dist2d } from '../../src/sim/types';
 import type { Entity, SimEvent } from '../../src/sim/types';
-import type { AiDecisionV1, AiJobContextV1, AiMemoryAuditRecord, AiProvider } from './ai_types';
+import type { AiDecisionV1, AiIntentType, AiJobContextV1, AiMemoryAuditRecord, AiProvider } from './ai_types';
 import { aiEntityKind } from './ai_types';
 import {
   AiBossEncounterMemoryStore,
@@ -25,6 +25,7 @@ import { familySceneReactionEvent, nearbyFamilySceneCandidates, rankFamilySceneR
 import { compactFamilySemanticsForEntity } from './family_semantics';
 import { FakeAiProvider } from './fake_ai_provider';
 import { nearbyReactionCandidates, rankItemReactions } from './item_interest';
+import type { ItemInterestReaction } from './item_interest';
 import { validateAiDecision } from './intent_validator';
 import { memoryReactionEvent } from './memory_reactions';
 import {
@@ -40,6 +41,7 @@ import { objectInspectionEvent, objectInspectionLineIds } from './object_reactio
 import { compactProfileSnapshot, profileFor } from './profiles';
 import { topicReactionEvent } from './question_reactions';
 import { droppedItemSemantic, sceneFrameFor } from './scene_frame';
+import type { DroppedItemSemantic, SceneFrameV1 } from './scene_frame';
 import { sceneInspectionEvent } from './scene_inspection';
 import { sceneAwarenessEvent } from './scene_reactions';
 import { individualSpeechValues } from './singularity';
@@ -562,7 +564,7 @@ export class AiLifeLayer {
     }
   }
 
-  handleItemDiscarded(request: ItemDiscardedAiRequest): void {
+  async handleItemDiscarded(request: ItemDiscardedAiRequest): Promise<void> {
     if (!this.enabled) return;
     const player = request.sim.entities.get(request.pid);
     if (!player || request.count <= 0) return;
@@ -603,57 +605,55 @@ export class AiLifeLayer {
       });
       memoryWrites.push(rumorMemoryAudit(rumor, `discarded:${request.itemId}`));
     }
-    const events: SimEvent[] = reactions.map((reaction) => ({
-      type: 'aiSpeech',
-      speakerId: reaction.entity.id,
-      speakerName: reaction.entity.name,
-      speech: {
-        mode: 'lineId',
-        lineId: reaction.lineId,
-        values: {
-          speakerName: reaction.entity.name,
-          speakerTemplateId: reaction.entity.templateId,
-          itemId: dropped.itemId,
-          reaction: reaction.reaction,
-          score: Math.round(reaction.score * 100),
-          ...individualSpeechValues(reaction.individual),
-        },
-      },
-      source: 'fallback',
-      reaction: {
-        kind: reaction.reaction,
-        targetItemId: dropped.itemId,
-        score: Math.round(reaction.score * 100) / 100,
-        sceneTags: [...new Set([...scene.locationTags, ...scene.structureTags, ...scene.environmentalTags])].slice(0, 8),
-        individualTier: reaction.individual?.tier,
-        individualTraits: reaction.individual?.traits,
-      },
-      pid: request.pid,
-    }));
+    const events: SimEvent[] = [];
     for (const reaction of reactions) {
-      if (reaction.individual?.tier !== 'singularity') continue;
-      const memory = this.creatureMemory.noteSingularityReaction({
-        entity: reaction.entity,
-        player,
-        individual: reaction.individual,
-        nowSeconds: request.sim.time,
-      });
-      const memoryEvent = singularityCreatureMemoryEvent(player, reaction.entity, dropped, memory);
-      if (memoryEvent) events.push(memoryEvent);
-      memoryWrites.push(creatureMemoryAudit({
-        memory,
-        sceneId,
-        itemId: dropped.itemId,
-        reason: `singularityReaction:${dropped.itemId}`,
-      }));
-      const directorState = this.worldDirector.noteCreatureMemory({
-        sceneId,
-        itemId: dropped.itemId,
-        memory,
-        sourcePlayerEntityId: request.pid,
-        nowSeconds: request.sim.time,
-      });
-      if (directorState) memoryWrites.push(worldDirectorMemoryAudit(directorState, `creatureMemory:${dropped.itemId}`));
+      const localEvent = itemInterestReactionEvent(reaction, dropped, scene, request.pid);
+      let reactionEvents: SimEvent[] = [localEvent];
+      if (reaction.individual?.tier === 'singularity') {
+        const memory = this.creatureMemory.noteSingularityReaction({
+          entity: reaction.entity,
+          player,
+          individual: reaction.individual,
+          nowSeconds: request.sim.time,
+        });
+        const memoryEvent = singularityCreatureMemoryEvent(player, reaction.entity, dropped, memory);
+        const creatureWrite = creatureMemoryAudit({
+          memory,
+          sceneId,
+          itemId: dropped.itemId,
+          reason: `singularityReaction:${dropped.itemId}`,
+        });
+        memoryWrites.push(creatureWrite);
+        const directorState = this.worldDirector.noteCreatureMemory({
+          sceneId,
+          itemId: dropped.itemId,
+          memory,
+          sourcePlayerEntityId: request.pid,
+          nowSeconds: request.sim.time,
+        });
+        if (directorState) memoryWrites.push(worldDirectorMemoryAudit(directorState, `creatureMemory:${dropped.itemId}`));
+        const context = this.buildSingularityContext({
+          sim: request.sim,
+          pid: request.pid,
+          player,
+          entity: reaction.entity,
+          scene,
+          locale: 'en',
+          eventKind: 'item_discarded',
+          reactionKind: reaction.reaction,
+          suggestedLineId: reaction.lineId,
+          item: dropped,
+          score: reaction.score,
+          fear: reaction.fear,
+          curiosity: reaction.curiosity,
+          reasonTags: reaction.reasonTags,
+          individualTraits: reaction.individual.traits,
+          memorySignals: memoryWrites,
+        });
+        if (context) reactionEvents = await this.decideSingularityReactionEvents(context, reaction.entity, localEvent, memoryWrites);
+        if (memoryEvent) reactionEvents.push(memoryEvent);
+      }
+      events.push(...reactionEvents);
     }
     if (reactions.length > 0 || trace) {
       this.journal.recordLocalReaction({
@@ -793,7 +793,130 @@ export class AiLifeLayer {
     return mergeObjectInspectionShell(result.events, localEvent);
   }
 
-  handleSceneInspection(request: SceneAiInspectionRequest): void {
+  private buildSingularityContext(input: {
+    sim: Sim;
+    pid: number;
+    player: Entity;
+    entity: Entity;
+    scene: SceneFrameV1;
+    locale: string;
+    eventKind: 'item_discarded' | 'scene_inspected';
+    reactionKind: 'approach' | 'avoid' | 'inspect' | 'ignore';
+    suggestedLineId: string;
+    item?: DroppedItemSemantic;
+    score: number;
+    fear: number;
+    curiosity: number;
+    reasonTags: readonly string[];
+    individualTraits: readonly string[];
+    memorySignals: readonly AiMemoryAuditRecord[];
+  }): AiJobContextV1 | null {
+    const meta = input.sim.meta(input.pid);
+    if (!meta || input.entity.kind !== 'mob') return null;
+    const profile = profileFor('mob', input.entity.templateId);
+    const item = input.item;
+    return {
+      schemaVersion: 1,
+      jobId: `ai-singularity-${input.pid}-${input.entity.id}-${++this.sequence}`,
+      trigger: 'singularity_candidate',
+      entity: {
+        kind: 'mob',
+        entityId: input.entity.id,
+        templateId: input.entity.templateId,
+        name: input.entity.name,
+        level: input.entity.level,
+        questIds: [...input.entity.questIds],
+        dead: input.entity.dead,
+      },
+      player: {
+        entityId: input.player.id,
+        name: input.player.name,
+        level: input.player.level,
+        classId: input.player.templateId,
+        activeQuestIds: [...meta.questLog.keys()],
+        completedQuestIds: [...meta.questsDone],
+      },
+      locale: normalizeLocale(input.locale),
+      profile: compactProfileSnapshot(profile),
+      scene: input.scene,
+      familySemantics: compactFamilySemanticsForEntity(input.entity),
+      questFacts: [],
+      recentObservations: [
+        `event:${input.eventKind}`,
+        `scene:${input.scene.subsceneId ?? input.scene.zoneId}`,
+        `reaction:${input.reactionKind}`,
+        `score:${input.score.toFixed(2)}`,
+        `fear:${input.fear.toFixed(2)}`,
+        `curiosity:${input.curiosity.toFixed(2)}`,
+        `individualTier:singularity`,
+        `individualTraits:${input.individualTraits.join('|') || 'none'}`,
+        `suggestedLineId:${input.suggestedLineId}`,
+        ...input.reasonTags.slice(0, 5).map((tag) => `reasonTag:${tag}`),
+        ...(item ? [
+          `item:${item.itemId}`,
+          ...item.itemTags.slice(0, 4).map((tag) => `itemTag:${tag}`),
+          ...item.dangerTags.slice(0, 3).map((tag) => `dangerTag:${tag}`),
+          ...item.valueSignals.slice(0, 3).map((tag) => `valueSignal:${tag}`),
+        ] : []),
+        ...input.scene.environmentalTags.slice(0, 4).map((tag) => `sceneTag:${tag}`),
+        `time:${input.scene.time.phase}`,
+        `weather:${input.scene.weather.kind}`,
+      ],
+      memorySignals: input.memorySignals.map(cloneMemoryAudit),
+      allowedIntents: profile.allowedIntentTypes,
+      allowedLineIds: profile.allowedLineIds,
+      outputMode: 'line_id_only',
+    };
+  }
+
+  private async decideSingularityReactionEvents(
+    context: AiJobContextV1,
+    entity: Entity,
+    localEvent: Extract<SimEvent, { type: 'aiSpeech' }>,
+    memoryWrites: readonly AiMemoryAuditRecord[],
+  ): Promise<SimEvent[]> {
+    const subject = classifyCanonSubject(entity);
+    let decision: AiDecisionV1;
+    let decisionSource: Extract<SimEvent, { type: 'aiSpeech' }>['source'] = 'codex';
+    const providerStartedAt = performance.now();
+    this.metrics.providerCalls++;
+    try {
+      decision = await this.provider.decide(context);
+      this.recordProviderLatency(performance.now() - providerStartedAt);
+      this.metrics.providerSuccesses++;
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      this.recordProviderLatency(performance.now() - providerStartedAt);
+      this.metrics.providerErrors++;
+      this.metrics.providerFallbacks++;
+      this.metrics.lastProviderError = reason;
+      this.journal.recordProviderError(context, reason, memoryWrites);
+      decision = fallbackDecisionForSingularityReaction(context, localEvent, reason);
+      decisionSource = 'fallback';
+    }
+    const result = validateAiDecision({ decision, context, entity, subject, source: decisionSource });
+    if (result.ok) this.metrics.acceptedDecisions++;
+    else this.metrics.rejectedDecisions++;
+    this.journal.recordDecision(context, decision, result, memoryWrites);
+    if (!result.ok) {
+      this.journal.recordLocalReaction({
+        jobId: `${context.jobId}-local-fallback`,
+        trigger: context.trigger,
+        entityId: entity.id,
+        templateId: entity.templateId,
+        playerEntityId: context.player.entityId,
+        reason: `singularityProviderRejected:${result.reason ?? 'unknown'}`,
+        lineIds: aiSpeechLineIds([localEvent]),
+        intents: [reactionIntentType(localEvent.reaction?.kind ?? 'inspect'), 'commentOnScene'],
+        sceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? null,
+        memoryWrites,
+      });
+      return [localEvent];
+    }
+    return mergeSingularityReactionShell(result.events, localEvent);
+  }
+
+  async handleSceneInspection(request: SceneAiInspectionRequest): Promise<void> {
     if (!this.enabled) return;
     const player = request.sim.entities.get(request.pid);
     if (!player) return;
@@ -863,34 +986,56 @@ export class AiLifeLayer {
         nearbyFamilySceneCandidates(scene, request.sim.entities.values(), player),
         { worldSeed: request.sim.cfg.seed },
       ).slice(0, 2);
-      events.push(...familyReactions.map((reaction) => familySceneReactionEvent(reaction, scene, request.pid)));
-      lineIds.push(...familyReactions.map((reaction) => reaction.lineId));
       for (const reaction of familyReactions) {
-        if (reaction.individual.tier !== 'singularity') continue;
-        const memory = this.creatureMemory.noteSingularityReaction({
-          entity: reaction.entity,
-          player,
-          individual: reaction.individual,
-          nowSeconds: request.sim.time,
-        });
-        const memoryEvent = singularityCreatureSceneMemoryEvent(player, reaction.entity, scene, memory);
-        if (memoryEvent) {
-          events.push(memoryEvent);
-          if (memoryEvent.type === 'aiSpeech' && memoryEvent.speech.mode === 'lineId') lineIds.push(memoryEvent.speech.lineId);
+        const localEvent = familySceneReactionEvent(reaction, scene, request.pid) as Extract<SimEvent, { type: 'aiSpeech' }>;
+        lineIds.push(reaction.lineId);
+        let reactionEvents: SimEvent[] = [localEvent];
+        if (reaction.individual.tier === 'singularity') {
+          const memory = this.creatureMemory.noteSingularityReaction({
+            entity: reaction.entity,
+            player,
+            individual: reaction.individual,
+            nowSeconds: request.sim.time,
+          });
+          const memoryEvent = singularityCreatureSceneMemoryEvent(player, reaction.entity, scene, memory);
+          const creatureWrite = creatureMemoryAudit({
+            memory,
+            sceneId,
+            reason: `singularityScene:${sceneId}`,
+          });
+          memoryWrites.push(creatureWrite);
+          const directorMemory = this.worldDirector.noteCreatureSceneMemory({
+            sceneId,
+            zoneId: scene.zoneId,
+            memory,
+            sourcePlayerEntityId: request.pid,
+            nowSeconds: request.sim.time,
+          });
+          if (directorMemory) memoryWrites.push(worldDirectorMemoryAudit(directorMemory, `creatureSceneMemory:${sceneId}`));
+          const context = this.buildSingularityContext({
+            sim: request.sim,
+            pid: request.pid,
+            player,
+            entity: reaction.entity,
+            scene,
+            locale: request.locale,
+            eventKind: 'scene_inspected',
+            reactionKind: reaction.reaction,
+            suggestedLineId: reaction.lineId,
+            score: reaction.score,
+            fear: reaction.fear,
+            curiosity: reaction.curiosity,
+            reasonTags: reaction.reasonTags,
+            individualTraits: reaction.individual.traits,
+            memorySignals: memoryWrites,
+          });
+          if (context) reactionEvents = await this.decideSingularityReactionEvents(context, reaction.entity, localEvent, memoryWrites);
+          if (memoryEvent) {
+            reactionEvents.push(memoryEvent);
+            if (memoryEvent.type === 'aiSpeech' && memoryEvent.speech.mode === 'lineId') lineIds.push(memoryEvent.speech.lineId);
+          }
         }
-        memoryWrites.push(creatureMemoryAudit({
-          memory,
-          sceneId,
-          reason: `singularityScene:${sceneId}`,
-        }));
-        const directorMemory = this.worldDirector.noteCreatureSceneMemory({
-          sceneId,
-          zoneId: scene.zoneId,
-          memory,
-          sourcePlayerEntityId: request.pid,
-          nowSeconds: request.sim.time,
-        });
-        if (directorMemory) memoryWrites.push(worldDirectorMemoryAudit(directorMemory, `creatureSceneMemory:${sceneId}`));
+        events.push(...reactionEvents);
       }
     }
     this.journal.recordLocalReaction({
@@ -1189,6 +1334,35 @@ function fallbackDecisionForObjectInspection(
   };
 }
 
+function fallbackDecisionForSingularityReaction(
+  context: AiJobContextV1,
+  localEvent: Extract<SimEvent, { type: 'aiSpeech' }>,
+  reason: string,
+): AiDecisionV1 {
+  const lineId = localEvent.speech.mode === 'lineId'
+    ? localEvent.speech.lineId
+    : profileFor(context.entity.kind, context.entity.templateId).fallbackLineId;
+  const values = localEvent.speech.mode === 'lineId' ? localEvent.speech.values : undefined;
+  return {
+    schemaVersion: 1,
+    jobId: context.jobId,
+    entityRef: {
+      kind: context.entity.kind,
+      entityId: context.entity.entityId,
+      templateId: context.entity.templateId,
+    },
+    ttlMs: 5_000,
+    confidence: 0.15,
+    speech: [{ mode: 'lineId', lineId, ...(values ? { values } : {}) }],
+    intents: [{ type: reactionIntentType(localEvent.reaction?.kind ?? 'inspect'), lineId }],
+    audit: {
+      shortReason: `singularity provider fallback: ${reason.slice(0, 120)}`,
+      usedPlayerInput: false,
+      safetyNotes: ['Singularity reaction used local creature semantics after provider failure; quest, combat, reward, and economy state were unchanged.'],
+    },
+  };
+}
+
 function mergeObjectInspectionShell(
   events: SimEvent[],
   localEvent: Extract<SimEvent, { type: 'aiSpeech' }>,
@@ -1205,6 +1379,68 @@ function mergeObjectInspectionShell(
       reaction: event.reaction ?? localEvent.reaction,
     };
   });
+}
+
+function mergeSingularityReactionShell(
+  events: SimEvent[],
+  localEvent: Extract<SimEvent, { type: 'aiSpeech' }>,
+): SimEvent[] {
+  const localValues = localEvent.speech.mode === 'lineId' ? localEvent.speech.values ?? {} : {};
+  return events.map((event) => {
+    if (event.type !== 'aiSpeech') return event;
+    const speech = event.speech.mode === 'lineId'
+      ? { ...event.speech, values: { ...localValues, ...(event.speech.values ?? {}) } }
+      : event.speech;
+    return {
+      ...event,
+      speech,
+      reaction: event.reaction ?? localEvent.reaction,
+    };
+  });
+}
+
+function itemInterestReactionEvent(
+  reaction: ItemInterestReaction,
+  dropped: DroppedItemSemantic,
+  scene: SceneFrameV1,
+  pid: number,
+): Extract<SimEvent, { type: 'aiSpeech' }> {
+  return {
+    type: 'aiSpeech',
+    speakerId: reaction.entity.id,
+    speakerName: reaction.entity.name,
+    speech: {
+      mode: 'lineId',
+      lineId: reaction.lineId,
+      values: {
+        speakerName: reaction.entity.name,
+        speakerTemplateId: reaction.entity.templateId,
+        itemId: dropped.itemId,
+        reaction: reaction.reaction,
+        score: Math.round(reaction.score * 100),
+        ...individualSpeechValues(reaction.individual),
+      },
+    },
+    source: 'fallback',
+    reaction: {
+      kind: reaction.reaction,
+      targetItemId: dropped.itemId,
+      score: Math.round(reaction.score * 100) / 100,
+      sceneTags: [...new Set([...scene.locationTags, ...scene.structureTags, ...scene.environmentalTags])].slice(0, 8),
+      individualTier: reaction.individual?.tier,
+      individualTraits: reaction.individual?.traits,
+    },
+    pid,
+  };
+}
+
+function reactionIntentType(reaction: 'approach' | 'avoid' | 'inspect' | 'ignore'): AiIntentType {
+  switch (reaction) {
+    case 'approach': return 'approachObject';
+    case 'avoid': return 'avoidObject';
+    case 'inspect': return 'inspectObject';
+    case 'ignore': return 'commentOnScene';
+  }
 }
 
 function aiSpeechLineIds(events: readonly SimEvent[]): string[] {

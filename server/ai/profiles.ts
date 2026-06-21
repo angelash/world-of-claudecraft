@@ -579,6 +579,56 @@ export const GENERIC_NPC_AI_PROFILE: AiAgentProfile = {
   timeWeatherSensitivity: { dayEnergy: 0.5, nightFatigue: 0.55, clearNightAwe: 0.35, rainIrritation: 0.4, fogFear: 0.35 },
 };
 
+export const GENERIC_MOB_AI_PROFILE: AiAgentProfile = {
+  id: 'mob.generic.living_world',
+  appliesTo: [],
+  persona: 'A creature ruled by family instinct, immediate scene pressure, and rare individual quirks.',
+  allowedIntentTypes: ['lookAt', 'faceEntity', 'pause', 'commentOnScene', 'inspectObject', 'approachObject', 'avoidObject', 'seekShelter'],
+  allowedLineIds: [
+    'hudChrome.aiSpeech.itemInterestApproach',
+    'hudChrome.aiSpeech.itemInterestAvoid',
+    'hudChrome.aiSpeech.itemInterestInspect',
+    'hudChrome.aiSpeech.singularityApproach',
+    'hudChrome.aiSpeech.singularityAvoid',
+    'hudChrome.aiSpeech.singularityInspect',
+    'hudChrome.aiSpeech.singularityFoodFixated',
+    'hudChrome.aiSpeech.singularityCollector',
+    'hudChrome.aiSpeech.singularityOmenSensitive',
+    'hudChrome.aiSpeech.singularityCowardly',
+    'hudChrome.aiSpeech.singularityTerritorial',
+    'hudChrome.aiSpeech.singularityVengeful',
+    'hudChrome.aiSpeech.singularityStargazer',
+    'hudChrome.aiSpeech.singularityRemembersPlayer',
+    'hudChrome.aiSpeech.singularityRemembersScene',
+    'hudChrome.aiSpeech.familySceneApproach',
+    'hudChrome.aiSpeech.familySceneAvoid',
+    'hudChrome.aiSpeech.familySceneInspect',
+    'hudChrome.aiSpeech.familySceneBeastUneasy',
+    'hudChrome.aiSpeech.familySceneUndeadDrawn',
+    'hudChrome.aiSpeech.familySceneElementalResonance',
+    'hudChrome.aiSpeech.familySceneDemonAmused',
+  ],
+  fallbackLineId: 'hudChrome.aiSpeech.itemInterestInspect',
+  canonSensitive: false,
+  knowledgeScope: ['visible creature family instinct', 'nearby dropped objects', 'weather', 'time of day', 'immediate danger'],
+  tabooTopics: ['quest truth', 'reward promises', 'private player data', 'combat outcome guarantees'],
+  socialMemory: {
+    style: 'Keeps only creature-level impressions: scent, fear, possession, repeated player patterns, and scene pressure.',
+    recognitionLineId: 'hudChrome.aiSpeech.singularityRemembersPlayer',
+    rumorLineId: 'hudChrome.aiSpeech.singularityRemembersScene',
+  },
+  sceneAffinities: {
+    likesTags: ['camp', 'food', 'water', 'starrySky', 'undeadMemory'],
+    avoidsTags: ['safeTown', 'forge', 'fire', 'holy', 'deathPressure'],
+    commentsOnTags: ['weather', 'nearbyObject', 'hostileDensity', 'rain', 'fog', 'night'],
+  },
+  itemInterest: {
+    attractedToTags: ['food', 'meat', 'fish', 'valuable', 'trophy', 'relic', 'singularity'],
+    avoidsTags: ['fire', 'holy', 'cursed', 'unknownPower'],
+  },
+  timeWeatherSensitivity: { dayEnergy: 0.45, nightFatigue: 0.35, clearNightAwe: 0.3, rainIrritation: 0.25, fogFear: 0.45 },
+};
+
 export const GENERIC_OBJECT_AI_PROFILE: AiAgentProfile = {
   id: 'object.generic.living_world',
   appliesTo: [],
@@ -607,7 +657,11 @@ export const GENERIC_OBJECT_AI_PROFILE: AiAgentProfile = {
 export function profileFor(kind: 'npc' | 'mob' | 'object', templateId: string): AiAgentProfile {
   return AI_AGENT_PROFILES.find((profile) =>
     profile.appliesTo.some((target) => target.kind === kind && target.templateId === templateId),
-  ) ?? (kind === 'object' ? GENERIC_OBJECT_AI_PROFILE : GENERIC_NPC_AI_PROFILE);
+  ) ?? (kind === 'object'
+    ? GENERIC_OBJECT_AI_PROFILE
+    : kind === 'mob'
+      ? GENERIC_MOB_AI_PROFILE
+      : GENERIC_NPC_AI_PROFILE);
 }
 
 export function compactProfileSnapshot(profile: AiAgentProfile): AiProfileSnapshot {

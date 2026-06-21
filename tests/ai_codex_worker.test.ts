@@ -5,7 +5,9 @@ import { describe, expect, it } from 'vitest';
 import { CodexCliProvider, type CodexCliProviderOptions } from '../server/ai/codex_worker';
 import { AiLifeLayer } from '../server/ai/life_layer';
 import type { AiJobContextV1 } from '../server/ai/ai_types';
+import { individualProfileFor } from '../server/ai/singularity';
 import { Sim } from '../src/sim/sim';
+import type { Entity } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
 
 const context: AiJobContextV1 = {
@@ -242,6 +244,78 @@ process.exit(3);
     expect(JSON.stringify([...sim.meta(pid)!.questLog])).toBe(beforeQuestLog);
     expect(JSON.stringify([...sim.meta(pid)!.questsDone])).toBe(beforeDone);
   });
+
+  it('drives a singularity item reaction through the Codex CLI provider while keeping creature metadata', async () => {
+    const provider = await providerWithFakeCodex(`(() => {
+      const suggestedLineId = context.recentObservations
+        .find((observation) => observation.startsWith('suggestedLineId:'))
+        ?.slice('suggestedLineId:'.length) ?? 'hudChrome.aiSpeech.itemInterestInspect';
+      return {
+        schemaVersion: 1,
+        jobId: context.jobId,
+        entityRef: {
+          kind: context.entity.kind,
+          entityId: context.entity.entityId,
+          templateId: context.entity.templateId
+        },
+        ttlMs: 5000,
+        confidence: 0.88,
+        speech: [{
+          mode: 'lineId',
+          lineId: suggestedLineId,
+          values: { playerName: context.player.name }
+        }],
+        intents: [{ type: 'inspectObject', lineId: suggestedLineId }],
+        audit: { shortReason: 'fake codex singularity item path', usedPlayerInput: false, safetyNotes: [] }
+      };
+    })()`);
+    const { sim, pid } = makeSim();
+    const player = sim.entities.get(pid)!;
+    const wolf = [...sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    sim.cfg.seed = seedThatMakesSingularity(wolf);
+    moveEntity(sim, player, 900, 900);
+    moveEntity(sim, wolf, 902, 900);
+    const layer = new AiLifeLayer({ enabled: true, provider });
+    const delivered: unknown[] = [];
+    const beforeQuestLog = JSON.stringify([...sim.meta(pid)!.questLog]);
+    const beforeDone = JSON.stringify([...sim.meta(pid)!.questsDone]);
+
+    await layer.handleItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, deliver: (events) => delivered.push(...events) });
+
+    expect(delivered).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speakerId: wolf.id,
+      source: 'codex',
+      speech: expect.objectContaining({
+        mode: 'lineId',
+        values: expect.objectContaining({
+          itemId: 'roasted_boar',
+          speakerTemplateId: 'forest_wolf',
+          individualAlias: expect.any(String),
+          playerName: 'Ari',
+        }),
+      }),
+      reaction: expect.objectContaining({
+        targetItemId: 'roasted_boar',
+        individualTier: 'singularity',
+        individualTraits: expect.any(Array),
+      }),
+      pid,
+    }));
+    expect(layer.diagnostics()).toContainEqual(expect.objectContaining({
+      status: 'accepted',
+      trigger: 'singularity_candidate',
+      templateId: 'forest_wolf',
+    }));
+    expect(layer.runtimeMetrics()).toMatchObject({
+      providerCalls: 1,
+      providerSuccesses: 1,
+      providerErrors: 0,
+      acceptedDecisions: 1,
+    });
+    expect(JSON.stringify([...sim.meta(pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...sim.meta(pid)!.questsDone])).toBe(beforeDone);
+  });
 });
 
 function teleportNear(sim: Sim, pid: number, targetId: number): void {
@@ -255,12 +329,28 @@ function teleportNear(sim: Sim, pid: number, targetId: number): void {
   sim.playerGrid.update(player);
 }
 
+function moveEntity(sim: Sim, entity: Entity, x: number, z: number): void {
+  entity.pos.x = x;
+  entity.pos.z = z;
+  entity.pos.y = groundHeight(x, z, sim.cfg.seed);
+  entity.prevPos = { ...entity.pos };
+  sim.grid.update(entity);
+  if (entity.kind === 'player') sim.playerGrid.update(entity);
+}
+
 function makeSim(): { sim: Sim; pid: number; npcId: number } {
   const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
   const pid = sim.addPlayer('warrior', 'Ari');
   const npc = [...sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
   teleportNear(sim, pid, npc.id);
   return { sim, pid, npcId: npc.id };
+}
+
+function seedThatMakesSingularity(entity: Entity): number {
+  for (let seed = 1; seed < 10000; seed++) {
+    if (individualProfileFor(entity, seed).tier === 'singularity') return seed;
+  }
+  throw new Error(`No singularity seed found for ${entity.templateId}`);
 }
 
 async function providerWithFakeCodex(

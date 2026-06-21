@@ -63,6 +63,15 @@ function teleportNear(server: GameServer, pid: number, targetId: number): void {
   server.sim.playerGrid.update(player);
 }
 
+function moveEntity(server: GameServer, entity: Entity, x: number, z: number): void {
+  entity.pos.x = x;
+  entity.pos.z = z;
+  entity.pos.y = groundHeight(x, z, server.sim.cfg.seed);
+  entity.prevPos = { ...entity.pos };
+  server.sim.grid.update(entity);
+  if (entity.kind === 'player') server.sim.playerGrid.update(entity);
+}
+
 function eventsOf(fc: FakeClient, type: string): any[] {
   return fc.sent
     .flatMap((msg: any) => (msg.t === 'events' ? msg.list : []))
@@ -980,6 +989,266 @@ describe('server AI interact command', () => {
       speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.memorySingularityRumorEcho' }),
       pid: session.pid,
     }));
+  });
+
+  it('routes singularity item reactions through the AI provider while preserving creature metadata', async () => {
+    const calls: AiJobContextV1[] = [];
+    const provider: AiProvider = {
+      async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
+        calls.push(context);
+        const suggestedLineId = context.recentObservations
+          .find((observation) => observation.startsWith('suggestedLineId:'))
+          ?.slice('suggestedLineId:'.length) ?? 'hudChrome.aiSpeech.itemInterestInspect';
+        expect(context.trigger).toBe('singularity_candidate');
+        expect(context.entity.kind).toBe('mob');
+        expect(context.recentObservations).toEqual(expect.arrayContaining([
+          'event:item_discarded',
+          'item:roasted_boar',
+          'individualTier:singularity',
+        ]));
+        expect(context.memorySignals?.some((record) => record.kind === 'creatureMemory')).toBe(true);
+        return {
+          schemaVersion: 1,
+          jobId: context.jobId,
+          entityRef: { kind: context.entity.kind, entityId: context.entity.entityId, templateId: context.entity.templateId },
+          ttlMs: 5000,
+          confidence: 0.92,
+          speech: [{
+            mode: 'lineId',
+            lineId: suggestedLineId,
+            values: { playerName: context.player.name },
+          }],
+          intents: [{ type: 'inspectObject', lineId: suggestedLineId }],
+          audit: { shortReason: 'codex deepened a singularity item reaction', usedPlayerInput: false, safetyNotes: [] },
+        };
+      },
+    };
+    const server = new GameServer();
+    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const player = server.sim.entities.get(session.pid)!;
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    server.sim.cfg.seed = seedThatMakesSingularity(wolf);
+    moveEntity(server, player, 900, 900);
+    moveEntity(server, wolf, 902, 900);
+    server.sim.addItem('roasted_boar', 1, session.pid);
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+    const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
+    const beforeLevel = player.level;
+    const beforeXp = server.sim.meta(session.pid)!.xp;
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    await flushAi();
+
+    expect(calls).toHaveLength(1);
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: wolf.id,
+      source: 'codex',
+      speech: expect.objectContaining({
+        values: expect.objectContaining({
+          itemId: 'roasted_boar',
+          speakerTemplateId: 'forest_wolf',
+          individualAlias: expect.any(String),
+          playerName: 'Ari',
+        }),
+      }),
+      reaction: expect.objectContaining({
+        targetItemId: 'roasted_boar',
+        individualTier: 'singularity',
+        individualTraits: expect.any(Array),
+      }),
+      pid: session.pid,
+    }));
+    expect((server as any).aiLifeLayer.diagnostics()).toContainEqual(expect.objectContaining({
+      trigger: 'singularity_candidate',
+      status: 'accepted',
+      templateId: 'forest_wolf',
+    }));
+    expect((server as any).aiLifeLayer.runtimeMetrics()).toMatchObject({
+      providerCalls: 1,
+      providerSuccesses: 1,
+      acceptedDecisions: 1,
+      providerErrors: 0,
+    });
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
+    expect(server.sim.entities.get(session.pid)!.level).toBe(beforeLevel);
+    expect(server.sim.meta(session.pid)!.xp).toBe(beforeXp);
+  });
+
+  it('falls back to local singularity item behavior when the creature AI provider fails', async () => {
+    const provider: AiProvider = {
+      async decide(): Promise<AiDecisionV1> {
+        throw new Error('codex singularity worker timed out');
+      },
+    };
+    const server = new GameServer();
+    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const player = server.sim.entities.get(session.pid)!;
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    server.sim.cfg.seed = seedThatMakesSingularity(wolf);
+    moveEntity(server, player, 920, 920);
+    moveEntity(server, wolf, 922, 920);
+    server.sim.addItem('roasted_boar', 1, session.pid);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: wolf.id,
+      source: 'fallback',
+      speech: expect.objectContaining({
+        lineId: expect.stringMatching(/^hudChrome\.aiSpeech\.singularity[A-Z].*/),
+        values: expect.objectContaining({ itemId: 'roasted_boar', speakerTemplateId: 'forest_wolf' }),
+      }),
+      reaction: expect.objectContaining({ targetItemId: 'roasted_boar', individualTier: 'singularity' }),
+      pid: session.pid,
+    }));
+    expect((server as any).aiLifeLayer.diagnostics()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ status: 'provider_error', trigger: 'singularity_candidate', reason: 'codex singularity worker timed out' }),
+      expect.objectContaining({ status: 'accepted', trigger: 'singularity_candidate' }),
+      expect.objectContaining({ status: 'local_reaction', trigger: 'item_discarded' }),
+    ]));
+    expect((server as any).aiLifeLayer.runtimeMetrics()).toMatchObject({
+      providerCalls: 1,
+      providerSuccesses: 0,
+      providerErrors: 1,
+      providerFallbacks: 1,
+      acceptedDecisions: 1,
+      lastProviderError: 'codex singularity worker timed out',
+    });
+  });
+
+  it('rejects unsafe singularity provider output and keeps the local creature reaction', async () => {
+    const provider: AiProvider = {
+      async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
+        return {
+          schemaVersion: 1,
+          jobId: context.jobId,
+          entityRef: { kind: context.entity.kind, entityId: context.entity.entityId, templateId: context.entity.templateId },
+          ttlMs: 5000,
+          confidence: 0.9,
+          speech: [{ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
+          intents: [{ type: 'questHint', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
+          audit: { shortReason: 'unsafe quest-like output from a creature', usedPlayerInput: false, safetyNotes: [] },
+        };
+      },
+    };
+    const server = new GameServer();
+    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const player = server.sim.entities.get(session.pid)!;
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    server.sim.cfg.seed = seedThatMakesSingularity(wolf);
+    moveEntity(server, player, 940, 940);
+    moveEntity(server, wolf, 942, 940);
+    server.sim.addItem('roasted_boar', 1, session.pid);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: wolf.id,
+      source: 'fallback',
+      speech: expect.objectContaining({
+        lineId: expect.stringMatching(/^hudChrome\.aiSpeech\.singularity[A-Z].*/),
+        values: expect.objectContaining({ itemId: 'roasted_boar', speakerTemplateId: 'forest_wolf' }),
+      }),
+      reaction: expect.objectContaining({ targetItemId: 'roasted_boar', individualTier: 'singularity' }),
+      pid: session.pid,
+    }));
+    expect((server as any).aiLifeLayer.diagnostics()).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        status: 'rejected',
+        trigger: 'singularity_candidate',
+        reason: expect.stringContaining('questHint'),
+      }),
+      expect.objectContaining({
+        status: 'local_reaction',
+        trigger: 'singularity_candidate',
+        reason: expect.stringContaining('singularityProviderRejected'),
+      }),
+    ]));
+    expect((server as any).aiLifeLayer.runtimeMetrics()).toMatchObject({
+      providerCalls: 1,
+      providerSuccesses: 1,
+      rejectedDecisions: 1,
+      acceptedDecisions: 0,
+    });
+  });
+
+  it('routes singularity scene reactions through the AI provider without moving the creature or changing quests', async () => {
+    const calls: AiJobContextV1[] = [];
+    const provider: AiProvider = {
+      async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
+        calls.push(context);
+        const suggestedLineId = context.recentObservations
+          .find((observation) => observation.startsWith('suggestedLineId:'))
+          ?.slice('suggestedLineId:'.length) ?? 'hudChrome.aiSpeech.familySceneInspect';
+        expect(context.trigger).toBe('singularity_candidate');
+        expect(context.recentObservations).toEqual(expect.arrayContaining([
+          'event:scene_inspected',
+          'scene:eastbrook_forge',
+          'individualTier:singularity',
+        ]));
+        expect(context.scene?.structureTags).toContain('forge');
+        return {
+          schemaVersion: 1,
+          jobId: context.jobId,
+          entityRef: { kind: context.entity.kind, entityId: context.entity.entityId, templateId: context.entity.templateId },
+          ttlMs: 5000,
+          confidence: 0.9,
+          speech: [{
+            mode: 'lineId',
+            lineId: suggestedLineId,
+            values: { playerName: context.player.name },
+          }],
+          intents: [{ type: 'commentOnScene', lineId: suggestedLineId }],
+          audit: { shortReason: 'codex noticed a singularity scene reaction', usedPlayerInput: false, safetyNotes: [] },
+        };
+      },
+    };
+    const server = new GameServer();
+    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const player = server.sim.entities.get(session.pid)!;
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    server.sim.cfg.seed = seedThatMakesSingularity(wolf);
+    moveEntity(server, player, 8, 17);
+    moveEntity(server, wolf, 10, 17);
+    const beforeWolfPos = { ...wolf.pos };
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+    const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+
+    expect(calls).toHaveLength(1);
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: wolf.id,
+      source: 'codex',
+      speech: expect.objectContaining({
+        values: expect.objectContaining({
+          speakerTemplateId: 'forest_wolf',
+          individualAlias: expect.any(String),
+          playerName: 'Ari',
+        }),
+      }),
+      reaction: expect.objectContaining({
+        sceneTags: expect.arrayContaining(['forge', 'workNoise']),
+        individualTier: 'singularity',
+      }),
+      pid: session.pid,
+    }));
+    expect(wolf.pos.x).toBe(beforeWolfPos.x);
+    expect(wolf.pos.z).toBe(beforeWolfPos.z);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
 
   it('lets singularity creatures remember repeated player item patterns', async () => {

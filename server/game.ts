@@ -1502,7 +1502,7 @@ export class GameServer {
     if (session.left || this.clients.get(session.pid) !== session) return;
     if (this.sim.time < session.aiObjectInspectReadyAt) return;
     session.aiObjectInspectReadyAt = this.sim.time + AI_OBJECT_INSPECT_COOLDOWN_SECONDS;
-    this.aiLifeLayer.handleSceneInspection({
+    void this.aiLifeLayer.handleSceneInspection({
       sim: this.sim,
       pid: session.pid,
       locale,
@@ -1510,12 +1510,14 @@ export class GameServer {
         if (session.left || this.clients.get(session.pid) !== session) return;
         if (events.length > 0) this.send(session, { t: 'events', list: events });
       },
+    }).catch((err) => {
+      console.error('ai scene inspection failed:', err);
     });
   }
 
   private handleAiItemDiscarded(session: ClientSession, itemId: string, count: number): void {
     if (session.left || this.clients.get(session.pid) !== session) return;
-    this.aiLifeLayer.handleItemDiscarded({
+    void this.aiLifeLayer.handleItemDiscarded({
       sim: this.sim,
       pid: session.pid,
       itemId,
@@ -1524,6 +1526,8 @@ export class GameServer {
         if (session.left || this.clients.get(session.pid) !== session) return;
         if (events.length > 0) this.send(session, { t: 'events', list: events });
       },
+    }).catch((err) => {
+      console.error('ai item discard failed:', err);
     });
   }
 
