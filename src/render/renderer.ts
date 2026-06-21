@@ -2875,10 +2875,13 @@ export class Renderer {
       // rig, click proxy, and any form visual grow/shrink together.
       if (e.scale !== v.liveScale) { v.liveScale = e.scale; v.group.scale.setScalar(e.scale); }
 
-      // swimming pose: prone at the surface (derived here — the sim is unaware)
+      // swimming pose: prone at the surface (derived here — the sim is unaware).
+      // The cheap feet-depth test gates the expensive terrain-noise sample: an
+      // entity whose feet are above the swim line can't be swimming, so the vast
+      // majority (everyone on land) skip groundHeight() entirely each frame.
       const swimming = !e.dead
-        && groundHeight(e.pos.x, e.pos.z, this.sim.cfg.seed) < WATER_LEVEL - 0.8
-        && e.pos.y <= WATER_LEVEL - 0.5;
+        && e.pos.y <= WATER_LEVEL - 0.5
+        && groundHeight(e.pos.x, e.pos.z, this.sim.cfg.seed) < WATER_LEVEL - 0.8;
 
       // lazy form visuals, swapped by visibility like the old sheep/bear rigs
       if (polyed && !v.sheepVisual) {
