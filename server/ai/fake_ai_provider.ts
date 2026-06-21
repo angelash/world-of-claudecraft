@@ -4,7 +4,14 @@ import { profileFor } from './profiles';
 export class FakeAiProvider implements AiProvider {
   async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
     const profile = profileFor(context.entity.kind, context.entity.templateId);
-    const lineId = profile.fallbackLineId;
+    const suggestedLineId = context.recentObservations
+      .find((observation) => observation.startsWith('suggestedLineId:'))
+      ?.slice('suggestedLineId:'.length);
+    const lineId = suggestedLineId
+      && profile.allowedLineIds.includes(suggestedLineId)
+      && (!context.allowedLineIds || context.allowedLineIds.includes(suggestedLineId))
+      ? suggestedLineId
+      : profile.fallbackLineId;
     return {
       schemaVersion: 1,
       jobId: context.jobId,

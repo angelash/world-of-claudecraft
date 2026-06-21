@@ -677,18 +677,20 @@ export class AiLifeLayer {
     }
   }
 
-  handleObjectInspection(request: ObjectAiInspectionRequest): void {
+  async handleObjectInspection(request: ObjectAiInspectionRequest): Promise<void> {
     if (!this.enabled) return;
     const context = this.buildObjectContext(request);
     if (!context) return;
     const object = request.sim.entities.get(request.objectId);
     if (!object || object.kind !== 'object') return;
-    const event = objectInspectionEvent(context, object);
-    if (!event) return;
-    const events: SimEvent[] = [event];
-    events.push(...companionReactionEvents(context));
-    const lineIds = event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [];
+    const localEvent = objectInspectionEvent(context, object);
+    if (!localEvent || localEvent.type !== 'aiSpeech') return;
+    const localLineIds = aiSpeechLineIds([localEvent]);
+    if (localLineIds[0]) context.recentObservations.push(`suggestedLineId:${localLineIds[0]}`);
     const memoryWrites: AiMemoryAuditRecord[] = [];
+    const sideEvents: SimEvent[] = [];
+    sideEvents.push(...companionReactionEvents(context));
+    const sideLineIds = aiSpeechLineIds(sideEvents);
     const inspectedItem = object.objectItemId ? droppedItemSemantic(object.objectItemId, 0, request.pid) : null;
     if (inspectedItem && context.scene) {
       const reactions = rankItemReactions(
@@ -697,17 +699,17 @@ export class AiLifeLayer {
         nearbyReactionCandidates(context.scene, request.sim.entities.values(), object),
         { worldSeed: request.sim.cfg.seed },
       ).slice(0, 2);
-      lineIds.push(...reactions.map((reaction) => reaction.lineId));
+      sideLineIds.push(...reactions.map((reaction) => reaction.lineId));
       const rumor = this.socialMemory.noteItemRumor({
         sceneId: context.scene.subsceneId ?? context.scene.zoneId,
         zoneId: context.scene.zoneId,
         itemId: inspectedItem.itemId,
         sourcePlayerEntityId: request.pid,
-        lineIds,
+        lineIds: [...localLineIds, ...sideLineIds],
         nowSeconds: request.sim.time,
       });
       memoryWrites.push(rumorMemoryAudit(rumor, `inspect:${object.objectItemId ?? object.templateId}`));
-      events.push(...reactions.map((reaction) => ({
+      sideEvents.push(...reactions.map((reaction) => ({
         type: 'aiSpeech' as const,
         speakerId: reaction.entity.id,
         speakerName: reaction.entity.name,
@@ -736,22 +738,59 @@ export class AiLifeLayer {
         pid: request.pid,
       })));
     }
-    this.journal.recordLocalReaction({
-      jobId: context.jobId,
-      trigger: 'object_inspected',
-      entityId: object.id,
-      templateId: object.templateId,
-      playerEntityId: request.pid,
-      reason: `inspect:${object.objectItemId ?? object.templateId}`,
-      lineIds,
-      intents: ['inspectObject', 'commentOnScene'],
-      sceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? null,
-      memoryWrites,
-    });
+    const objectEvents = await this.decideObjectInspectionEvents(context, object, localEvent, memoryWrites);
+    const events: SimEvent[] = [...objectEvents, ...sideEvents];
     this.metrics.localReactions++;
     this.enqueueMemoryWrites(memoryWrites);
     this.metrics.generatedEvents += events.length;
     request.deliver(events);
+  }
+
+  private async decideObjectInspectionEvents(
+    context: AiJobContextV1,
+    object: Entity,
+    localEvent: Extract<SimEvent, { type: 'aiSpeech' }>,
+    memoryWrites: AiMemoryAuditRecord[],
+  ): Promise<SimEvent[]> {
+    const subject = classifyCanonSubject(object);
+    let decision: AiDecisionV1;
+    let decisionSource: Extract<SimEvent, { type: 'aiSpeech' }>['source'] = 'codex';
+    const providerStartedAt = performance.now();
+    this.metrics.providerCalls++;
+    try {
+      decision = await this.provider.decide(context);
+      this.recordProviderLatency(performance.now() - providerStartedAt);
+      this.metrics.providerSuccesses++;
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      this.recordProviderLatency(performance.now() - providerStartedAt);
+      this.metrics.providerErrors++;
+      this.metrics.providerFallbacks++;
+      this.metrics.lastProviderError = reason;
+      this.journal.recordProviderError(context, reason, memoryWrites);
+      decision = fallbackDecisionForObjectInspection(context, localEvent, reason);
+      decisionSource = 'fallback';
+    }
+    const result = validateAiDecision({ decision, context, entity: object, subject, source: decisionSource });
+    if (result.ok) this.metrics.acceptedDecisions++;
+    else this.metrics.rejectedDecisions++;
+    this.journal.recordDecision(context, decision, result, memoryWrites);
+    if (!result.ok) {
+      this.journal.recordLocalReaction({
+        jobId: `${context.jobId}-local-fallback`,
+        trigger: 'object_inspected',
+        entityId: object.id,
+        templateId: object.templateId,
+        playerEntityId: context.player.entityId,
+        reason: `objectProviderRejected:${result.reason ?? 'unknown'}`,
+        lineIds: aiSpeechLineIds([localEvent]),
+        intents: ['inspectObject', 'commentOnScene'],
+        sceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? null,
+        memoryWrites,
+      });
+      return [localEvent];
+    }
+    return mergeObjectInspectionShell(result.events, localEvent);
   }
 
   handleSceneInspection(request: SceneAiInspectionRequest): void {
@@ -1119,4 +1158,59 @@ function fallbackDecisionForProviderError(context: AiJobContextV1, reason: strin
       safetyNotes: ['Codex provider failed; local profile fallback preserved quest, combat, reward, and economy state.'],
     },
   };
+}
+
+function fallbackDecisionForObjectInspection(
+  context: AiJobContextV1,
+  localEvent: Extract<SimEvent, { type: 'aiSpeech' }>,
+  reason: string,
+): AiDecisionV1 {
+  const lineId = localEvent.speech.mode === 'lineId'
+    ? localEvent.speech.lineId
+    : profileFor(context.entity.kind, context.entity.templateId).fallbackLineId;
+  const values = localEvent.speech.mode === 'lineId' ? localEvent.speech.values : undefined;
+  return {
+    schemaVersion: 1,
+    jobId: context.jobId,
+    entityRef: {
+      kind: context.entity.kind,
+      entityId: context.entity.entityId,
+      templateId: context.entity.templateId,
+    },
+    ttlMs: 5_000,
+    confidence: 0.15,
+    speech: [{ mode: 'lineId', lineId, ...(values ? { values } : {}) }],
+    intents: [{ type: 'inspectObject', lineId }],
+    audit: {
+      shortReason: `object provider fallback: ${reason.slice(0, 120)}`,
+      usedPlayerInput: false,
+      safetyNotes: ['Object inspection used local scene semantics after provider failure; quest, combat, reward, and economy state were unchanged.'],
+    },
+  };
+}
+
+function mergeObjectInspectionShell(
+  events: SimEvent[],
+  localEvent: Extract<SimEvent, { type: 'aiSpeech' }>,
+): SimEvent[] {
+  const localValues = localEvent.speech.mode === 'lineId' ? localEvent.speech.values ?? {} : {};
+  return events.map((event) => {
+    if (event.type !== 'aiSpeech') return event;
+    const speech = event.speech.mode === 'lineId'
+      ? { ...event.speech, values: { ...localValues, ...(event.speech.values ?? {}) } }
+      : event.speech;
+    return {
+      ...event,
+      speech,
+      reaction: event.reaction ?? localEvent.reaction,
+    };
+  });
+}
+
+function aiSpeechLineIds(events: readonly SimEvent[]): string[] {
+  const lineIds: string[] = [];
+  for (const event of events) {
+    if (event.type === 'aiSpeech' && event.speech.mode === 'lineId') lineIds.push(event.speech.lineId);
+  }
+  return lineIds;
 }

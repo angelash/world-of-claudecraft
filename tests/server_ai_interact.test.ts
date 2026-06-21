@@ -17,7 +17,7 @@ vi.mock('../server/db', () => ({
 import { AI_MEMORY_PRUNE_INTERVAL_MS, GameServer, type ClientSession } from '../server/game';
 import { pool } from '../server/db';
 import { AiLifeLayer } from '../server/ai/life_layer';
-import type { AiDecisionV1, AiProvider } from '../server/ai/ai_types';
+import type { AiDecisionV1, AiJobContextV1, AiProvider } from '../server/ai/ai_types';
 import { individualProfileFor } from '../server/ai/singularity';
 import type { Entity } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
@@ -353,6 +353,102 @@ describe('server AI interact command', () => {
     expect(server.sim.countItem('gravecaller_sigil', session.pid)).toBe(0);
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
+  });
+
+  it('routes object inspection through the AI provider while preserving scene reaction metadata', async () => {
+    const provider: AiProvider = {
+      async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
+        expect(context.trigger).toBe('object_inspected');
+        expect(context.entity.kind).toBe('object');
+        expect(context.recentObservations).toContain('suggestedLineId:hudChrome.aiSpeech.objectInspectGrave');
+        expect(context.allowedLineIds).toContain('hudChrome.aiSpeech.objectInspectGrave');
+        return {
+          schemaVersion: 1,
+          jobId: context.jobId,
+          entityRef: { kind: context.entity.kind, entityId: context.entity.entityId, templateId: context.entity.templateId },
+          ttlMs: 5000,
+          confidence: 0.95,
+          speech: [{
+            mode: 'lineId',
+            lineId: 'hudChrome.aiSpeech.objectInspectGrave',
+            values: { playerName: context.player.name },
+          }],
+          intents: [{ type: 'inspectObject', lineId: 'hudChrome.aiSpeech.objectInspectGrave' }],
+          audit: { shortReason: 'codex chose the grave object line', usedPlayerInput: false, safetyNotes: [] },
+        };
+      },
+    };
+    const server = new GameServer();
+    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const object = [...server.sim.entities.values()].find((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil')!;
+    teleportNear(server, session.pid, object.id);
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+    const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_object', object: object.id, locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: object.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.objectInspectGrave',
+        values: expect.objectContaining({ itemId: 'gravecaller_sigil', objectName: object.name }),
+      }),
+      source: 'codex',
+      reaction: expect.objectContaining({
+        kind: 'inspect',
+        targetItemId: 'gravecaller_sigil',
+        targetObjectId: object.id,
+      }),
+      pid: session.pid,
+    }));
+    expect((server as any).aiLifeLayer.runtimeMetrics()).toMatchObject({
+      providerCalls: 1,
+      providerSuccesses: 1,
+      acceptedDecisions: 1,
+      providerErrors: 0,
+    });
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
+  });
+
+  it('falls back to local object semantics when the object AI provider fails', async () => {
+    const provider: AiProvider = {
+      async decide(): Promise<AiDecisionV1> {
+        throw new Error('codex object worker timed out');
+      },
+    };
+    const server = new GameServer();
+    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const object = [...server.sim.entities.values()].find((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil')!;
+    teleportNear(server, session.pid, object.id);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_object', object: object.id, locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: object.id,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.objectInspectGrave' }),
+      source: 'fallback',
+      reaction: expect.objectContaining({ targetObjectId: object.id, targetItemId: 'gravecaller_sigil' }),
+      pid: session.pid,
+    }));
+    expect((server as any).aiLifeLayer.diagnostics()).toEqual([
+      expect.objectContaining({ status: 'provider_error', trigger: 'object_inspected', reason: 'codex object worker timed out' }),
+      expect.objectContaining({ status: 'accepted', trigger: 'object_inspected', lineIds: ['hudChrome.aiSpeech.objectInspectGrave'] }),
+    ]);
+    expect((server as any).aiLifeLayer.runtimeMetrics()).toMatchObject({
+      providerCalls: 1,
+      providerSuccesses: 0,
+      providerErrors: 1,
+      providerFallbacks: 1,
+      acceptedDecisions: 1,
+      lastProviderError: 'codex object worker timed out',
+    });
   });
 
   it('inspects a dungeon door without entering the instance', async () => {

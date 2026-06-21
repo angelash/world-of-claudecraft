@@ -185,6 +185,63 @@ process.exit(3);
     expect(JSON.stringify([...sim.meta(pid)!.questLog])).toBe(beforeQuestLog);
     expect(JSON.stringify([...sim.meta(pid)!.questsDone])).toBe(beforeDone);
   });
+
+  it('drives object inspection through the Codex CLI provider while keeping local object metadata', async () => {
+    const provider = await providerWithFakeCodex(`{
+      schemaVersion: 1,
+      jobId: context.jobId,
+      entityRef: {
+        kind: context.entity.kind,
+        entityId: context.entity.entityId,
+        templateId: context.entity.templateId
+      },
+      ttlMs: 5000,
+      confidence: 0.9,
+      speech: [{
+        mode: 'lineId',
+        lineId: 'hudChrome.aiSpeech.objectInspectGrave',
+        values: { playerName: context.player.name }
+      }],
+      intents: [{ type: 'inspectObject', lineId: 'hudChrome.aiSpeech.objectInspectGrave' }],
+      audit: { shortReason: 'fake codex object inspection path', usedPlayerInput: false, safetyNotes: [] }
+    }`);
+    const { sim, pid } = makeSim();
+    const object = [...sim.entities.values()].find((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil')!;
+    teleportNear(sim, pid, object.id);
+    const layer = new AiLifeLayer({ enabled: true, provider });
+    const delivered: unknown[] = [];
+    const beforeQuestLog = JSON.stringify([...sim.meta(pid)!.questLog]);
+    const beforeDone = JSON.stringify([...sim.meta(pid)!.questsDone]);
+
+    await layer.handleObjectInspection({ sim, pid, objectId: object.id, locale: 'en', deliver: (events) => delivered.push(...events) });
+
+    expect(delivered).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speakerId: object.id,
+      speech: expect.objectContaining({
+        mode: 'lineId',
+        lineId: 'hudChrome.aiSpeech.objectInspectGrave',
+        values: expect.objectContaining({ itemId: 'gravecaller_sigil', objectName: object.name }),
+      }),
+      source: 'codex',
+      reaction: expect.objectContaining({ targetObjectId: object.id, targetItemId: 'gravecaller_sigil' }),
+      pid,
+    }));
+    expect(layer.diagnostics()).toEqual([expect.objectContaining({
+      status: 'accepted',
+      trigger: 'object_inspected',
+      templateId: object.templateId,
+      lineIds: ['hudChrome.aiSpeech.objectInspectGrave'],
+    })]);
+    expect(layer.runtimeMetrics()).toMatchObject({
+      providerCalls: 1,
+      providerSuccesses: 1,
+      providerErrors: 0,
+      acceptedDecisions: 1,
+    });
+    expect(JSON.stringify([...sim.meta(pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...sim.meta(pid)!.questsDone])).toBe(beforeDone);
+  });
 });
 
 function teleportNear(sim: Sim, pid: number, targetId: number): void {

@@ -1484,7 +1484,7 @@ export class GameServer {
     if (session.left || this.clients.get(session.pid) !== session) return;
     if (this.sim.time < session.aiObjectInspectReadyAt) return;
     session.aiObjectInspectReadyAt = this.sim.time + AI_OBJECT_INSPECT_COOLDOWN_SECONDS;
-    this.aiLifeLayer.handleObjectInspection({
+    void this.aiLifeLayer.handleObjectInspection({
       sim: this.sim,
       pid: session.pid,
       objectId,
@@ -1493,6 +1493,8 @@ export class GameServer {
         if (session.left || this.clients.get(session.pid) !== session) return;
         if (events.length > 0) this.send(session, { t: 'events', list: events });
       },
+    }).catch((err) => {
+      console.error('ai object inspection failed:', err);
     });
   }
 
