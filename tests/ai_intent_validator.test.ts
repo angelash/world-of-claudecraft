@@ -68,4 +68,38 @@ describe('AI intent validator', () => {
     });
     expect(result.ok).toBe(false);
   });
+
+  it('rejects dynamicText when the context is line_id_only', () => {
+    const result = validateAiDecision({
+      decision: {
+        ...decision,
+        speech: [{ mode: 'dynamicText', language: 'en', text: 'The chapel air tastes of old rain.' }],
+      },
+      context,
+      entity,
+      subject: 'criticalQuestNpc',
+    });
+    expect(result).toMatchObject({ ok: false, reason: 'dynamic speech is blocked in line_id_only mode' });
+  });
+
+  it('allows safe dynamicText only in an explicit experiment output mode', () => {
+    const result = validateAiDecision({
+      decision: {
+        ...decision,
+        speech: [{ mode: 'dynamicText', language: 'en', text: 'The chapel air tastes of old rain.' }],
+      },
+      context: { ...context, outputMode: 'dynamic_text_experiment' },
+      entity,
+      subject: 'criticalQuestNpc',
+    });
+    expect(result.ok).toBe(true);
+    expect(result.events).toEqual([{
+      type: 'aiSpeech',
+      speakerId: 7,
+      speakerName: 'Brother Aldric',
+      speech: { mode: 'dynamicText', language: 'en', text: 'The chapel air tastes of old rain.' },
+      source: 'codex',
+      pid: 1,
+    }]);
+  });
 });

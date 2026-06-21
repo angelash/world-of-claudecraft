@@ -52,6 +52,7 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
       });
       continue;
     }
+    if (context.outputMode === 'line_id_only') return rejected('dynamic speech is blocked in line_id_only mode');
     if (speech.language !== context.locale) return rejected('dynamic speech language does not match player locale');
     if (speech.text.length === 0 || speech.text.length > MAX_DYNAMIC_TEXT_CHARS) return rejected('dynamic speech length out of range');
     events.push({
