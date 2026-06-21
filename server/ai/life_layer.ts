@@ -16,7 +16,7 @@ import type { AiBossEncounterMemory, AiBossEncounterPhaseCue } from './boss_memo
 import { classifyCanonSubject } from './canon_guard';
 import { CodexCliProvider } from './codex_worker';
 import { companionReactionEvents } from './companion_reactions';
-import { AiCreatureMemoryStore, singularityCreatureMemoryEvent } from './creature_memory';
+import { AiCreatureMemoryStore, singularityCreatureMemoryEvent, singularityCreatureSceneMemoryEvent } from './creature_memory';
 import type { AiCreatureMemory } from './creature_memory';
 import { AiDecisionJournal } from './decision_journal';
 import type { AiDecisionJournalEntry } from './decision_journal';
@@ -618,6 +618,7 @@ export class AiLifeLayer {
     const event = sceneInspectionEvent(scene, player, trace);
     const events: SimEvent[] = [event];
     const lineIds = event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [];
+    const memoryWrites: AiMemoryAuditRecord[] = [];
     if (trace) {
       const tracedItem = droppedItemSemantic(trace.itemId, Math.max(0, request.sim.time - trace.createdAt), trace.sourcePlayerEntityId);
       if (tracedItem) {
@@ -676,6 +677,25 @@ export class AiLifeLayer {
       ).slice(0, 2);
       events.push(...familyReactions.map((reaction) => familySceneReactionEvent(reaction, scene, request.pid)));
       lineIds.push(...familyReactions.map((reaction) => reaction.lineId));
+      for (const reaction of familyReactions) {
+        if (reaction.individual.tier !== 'singularity') continue;
+        const memory = this.creatureMemory.noteSingularityReaction({
+          entity: reaction.entity,
+          player,
+          individual: reaction.individual,
+          nowSeconds: request.sim.time,
+        });
+        const memoryEvent = singularityCreatureSceneMemoryEvent(player, reaction.entity, scene, memory);
+        if (memoryEvent) {
+          events.push(memoryEvent);
+          if (memoryEvent.type === 'aiSpeech' && memoryEvent.speech.mode === 'lineId') lineIds.push(memoryEvent.speech.lineId);
+        }
+        memoryWrites.push(creatureMemoryAudit({
+          memory,
+          sceneId,
+          reason: `singularityScene:${sceneId}`,
+        }));
+      }
     }
     this.journal.recordLocalReaction({
       jobId: `scene-${request.pid}-${++this.sequence}`,
@@ -692,9 +712,12 @@ export class AiLifeLayer {
         ...(encounterMemory ? ['readEncounterMemory'] : []),
         ...(!trace && directorState ? ['readWorldDirectorState'] : []),
         ...(!trace && lineIds.some((lineId) => lineId.startsWith('hudChrome.aiSpeech.familyScene')) ? ['reactToFamilyScene'] : []),
+        ...(memoryWrites.some((record) => record.kind === 'creatureMemory') ? ['rememberSingularityScene'] : []),
       ],
       sceneId,
+      memoryWrites,
     });
+    this.enqueueMemoryWrites(memoryWrites);
     request.deliver(events);
   }
 

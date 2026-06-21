@@ -279,6 +279,7 @@ export const en_XA: EnTranslations = {
       "singularityVengeful": "[{speakerName} ƒíẋéš óñ {itemName} áš íƒ íţ ĥáš ƒóúñð áñ óļð íñšúļţ.]",
       "singularityStargazer": "[{speakerName} ĝļáñçéš ƒŕóɱ {itemName} ţó ţĥé šķý, ðíšţŕáçţéð ƀý šóɱéţĥíñĝ ʋášţ.]",
       "singularityRemembersPlayer": "[{speakerName} ŕéáçţš ţó {itemName} ļíķé íţ ŕéçóĝñížéš ýóúŕ þáţţéŕñ ñóŵ, {playerName}.]",
+      "singularityRemembersScene": "[{speakerName} ñóţíçéš ýóú íñ ţĥíš þļáçé áĝáíñ, {playerName}, áñð ŵáţçĥéš áš íƒ ţĥé šçéñé íţšéļƒ ļéƒţ á ɱáŕķ.]",
       "singularityAliasFoodFixated": "[Ĥúñĝéŕ-Ñáɱéð {baseName}]",
       "singularityAliasCollector": "[Ţŕíñķéţ-Éýéð {baseName}]",
       "singularityAliasOmenSensitive": "[Óɱéñ-Ţóúçĥéð {baseName}]",

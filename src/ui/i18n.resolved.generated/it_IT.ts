@@ -279,6 +279,7 @@ export const it_IT: EnTranslations = {
       "singularityVengeful": "{speakerName} fixes on {itemName} as if it has found an old insult.",
       "singularityStargazer": "{speakerName} glances from {itemName} to the sky, distracted by something vast.",
       "singularityRemembersPlayer": "{speakerName} reacts to {itemName} like it recognizes your pattern now, {playerName}.",
+      "singularityRemembersScene": "{speakerName} notices you in this place again, {playerName}, and watches as if the scene itself left a mark.",
       "singularityAliasFoodFixated": "Hunger-Named {baseName}",
       "singularityAliasCollector": "Trinket-Eyed {baseName}",
       "singularityAliasOmenSensitive": "Omen-Touched {baseName}",

@@ -322,6 +322,73 @@ describe('server AI interact command', () => {
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
 
+  it('lets singularity creatures remember repeated scene sightings without changing quests', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const player = server.sim.entities.get(session.pid)!;
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    server.sim.cfg.seed = seedThatMakesSingularity(wolf);
+    player.pos.x = 8;
+    player.pos.z = 17;
+    player.pos.y = groundHeight(player.pos.x, player.pos.z, server.sim.cfg.seed);
+    player.prevPos = { ...player.pos };
+    server.sim.grid.update(player);
+    server.sim.playerGrid.update(player);
+    wolf.pos.x = player.pos.x + 2;
+    wolf.pos.z = player.pos.z;
+    wolf.pos.y = groundHeight(wolf.pos.x, wolf.pos.z, server.sim.cfg.seed);
+    wolf.prevPos = { ...wolf.pos };
+    server.sim.grid.update(wolf);
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+    const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+    fc.sent.length = 0;
+    session.aiObjectInspectReadyAt = 0;
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: wolf.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.singularityRemembersScene',
+        values: expect.objectContaining({
+          speakerTemplateId: 'forest_wolf',
+          individualAlias: expect.any(String),
+          sceneId: 'eastbrook_forge',
+          playerName: 'Ari',
+          interactionCount: 2,
+        }),
+      }),
+      reaction: expect.objectContaining({
+        kind: 'inspect',
+        sceneTags: expect.arrayContaining(['forge', 'workNoise']),
+        individualTier: 'singularity',
+      }),
+      pid: session.pid,
+    }));
+    expect((server as any).aiLifeLayer.creatureMemoryDiagnostics()).toContainEqual(expect.objectContaining({
+      entityId: wolf.id,
+      playerEntityId: session.pid,
+      interactionCount: 2,
+    }));
+    expect((server as any).aiLifeLayer.diagnostics()).toContainEqual(expect.objectContaining({
+      trigger: 'scene_inspected',
+      intents: expect.arrayContaining(['reactToFamilyScene', 'rememberSingularityScene']),
+      memoryWrites: expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'creatureMemory',
+          sceneId: 'eastbrook_forge',
+          reason: expect.stringContaining('singularityScene:eastbrook_forge'),
+        }),
+      ]),
+    }));
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
+  });
+
   it('turns inspected objects into nearby reactions and short-term NPC rumors', async () => {
     const server = new GameServer();
     const fc = fakeWs();

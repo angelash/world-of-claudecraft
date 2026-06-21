@@ -1,5 +1,5 @@
 import type { Entity, SimEvent } from '../../src/sim/types';
-import type { DroppedItemSemantic } from './scene_frame';
+import type { DroppedItemSemantic, SceneFrameV1 } from './scene_frame';
 import { individualSpeechValuesFromTraits } from './singularity';
 import type { IndividualAiProfile } from './singularity';
 
@@ -99,6 +99,41 @@ export function singularityCreatureMemoryEvent(
   };
 }
 
+export function singularityCreatureSceneMemoryEvent(
+  player: Entity,
+  creature: Entity,
+  scene: SceneFrameV1,
+  memory: AiCreatureMemory,
+): SimEvent | null {
+  if (memory.interactionCount < 2) return null;
+  return {
+    type: 'aiSpeech',
+    speakerId: creature.id,
+    speakerName: creature.name,
+    speech: {
+      mode: 'lineId',
+      lineId: 'hudChrome.aiSpeech.singularityRemembersScene',
+      values: {
+        speakerName: creature.name,
+        speakerTemplateId: creature.templateId,
+        playerName: player.name,
+        sceneId: scene.subsceneId ?? scene.zoneId,
+        interactionCount: memory.interactionCount,
+        ...individualSpeechValuesFromTraits(memory.traits),
+      },
+    },
+    source: 'fallback',
+    reaction: {
+      kind: 'inspect',
+      score: Math.min(1, 0.5 + memory.interactionCount * 0.12),
+      sceneTags: sceneMemoryTags(scene),
+      individualTier: 'singularity',
+      individualTraits: memory.traits,
+    },
+    pid: player.id,
+  };
+}
+
 export function creatureMemoryKey(entityId: number, playerEntityId: number): string {
   return `${entityId}:${playerEntityId}`;
 }
@@ -109,4 +144,15 @@ function mergeRecent(previous: readonly string[], next: readonly string[], limit
 
 function copyMemory(memory: AiCreatureMemory): AiCreatureMemory {
   return { ...memory, traits: [...memory.traits] };
+}
+
+function sceneMemoryTags(scene: SceneFrameV1): string[] {
+  return [...new Set([
+    ...scene.structureTags.slice(0, 2),
+    ...scene.environmentalTags,
+    ...scene.locationTags,
+    ...scene.time.tags,
+    ...scene.weather.tags,
+    ...scene.light.tags,
+  ])].slice(0, 8);
 }
