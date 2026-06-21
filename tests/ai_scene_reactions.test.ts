@@ -22,12 +22,12 @@ function frame(overrides: Partial<SceneFrameV1>): SceneFrameV1 {
   };
 }
 
-function context(scene: SceneFrameV1): AiJobContextV1 {
+function context(scene: SceneFrameV1, entity: Entity = speaker): AiJobContextV1 {
   return {
     schemaVersion: 1,
     jobId: 'scene-reaction',
     trigger: 'npc_gossip_opened',
-    entity: { kind: 'npc', entityId: 7, templateId: 'brother_aldric', name: 'Brother Aldric', level: 1, questIds: [], dead: false },
+    entity: { kind: 'npc', entityId: entity.id, templateId: entity.templateId, name: entity.name, level: 1, questIds: [], dead: false },
     player: { entityId: 1, name: 'Ari', level: 1, classId: 'hunter', activeQuestIds: [], completedQuestIds: [] },
     locale: 'en',
     scene,
@@ -84,5 +84,22 @@ describe('AI scene reactions', () => {
       subsceneId: 'mirror_lake_dock',
       light: { level: 'dark', tags: ['starrySky'] },
     })), speaker)).toMatchObject({ speech: { lineId: 'hudChrome.aiSpeech.sceneClearNightAwe' } });
+  });
+
+  it('uses profile sensitivity for starry skies and low undead pressure', () => {
+    const loremaster = { id: 8, name: 'Loremaster Caddis', kind: 'npc', templateId: 'loremaster_caddis' } as Entity;
+    expect(sceneAwarenessEvent(context(frame({
+      environmentalTags: [],
+      subsceneId: 'highwatch_wall',
+      light: { level: 'dark', tags: ['starrySky'] },
+      time: { hour: 23, phase: 'night', isNight: true, tags: ['night'] },
+      danger: { undeadPressure: 0, hostileDensity: 0, corpseDensity: 0, recentDeaths: 0, safeHavenScore: 0.2 },
+    }), loremaster), loremaster)).toMatchObject({ speech: { lineId: 'hudChrome.aiSpeech.sceneClearNightAwe' } });
+
+    const warden = { id: 9, name: 'Warden Fenwick', kind: 'npc', templateId: 'warden_fenwick' } as Entity;
+    expect(sceneAwarenessEvent(context(frame({
+      environmentalTags: [],
+      danger: { undeadPressure: 0.32, hostileDensity: 0, corpseDensity: 0, recentDeaths: 0, safeHavenScore: 0.2 },
+    }), warden), warden)).toMatchObject({ speech: { lineId: 'hudChrome.aiSpeech.sceneUndeadPressure' } });
   });
 });

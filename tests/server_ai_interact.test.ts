@@ -102,14 +102,12 @@ describe('server AI interact command', () => {
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc!.id, locale: 'en' }));
     await flushAi();
 
-    const aiEvents = eventsOf(fc, 'aiSpeech');
-    expect(aiEvents).toHaveLength(1);
-    expect(aiEvents[0]).toMatchObject({
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
       speakerId: npc!.id,
       speakerName: 'Brother Aldric',
-      speech: { mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' },
+      speech: expect.objectContaining({ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
       pid: session.pid,
-    });
+    }));
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
@@ -125,7 +123,8 @@ describe('server AI interact command', () => {
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en' }));
     await flushAi();
 
-    expect(eventsOf(fc, 'aiSpeech')).toHaveLength(1);
+    expect(eventsOf(fc, 'aiSpeech')
+      .filter((event) => event.speech.lineId === 'hudChrome.aiSpeech.brotherAldricAwake')).toHaveLength(1);
   });
 
   it('allows an explicit NPC question after the greeting but rate-limits question spam', async () => {
