@@ -46,7 +46,7 @@ import { comboPipsFor, COMBO_PIP_MAX } from './nameplate_combo';
 import { stepCameraOcclusion, type CameraOcclusionState } from './camera_collision';
 import { castBarState } from './cast_bar';
 import { isMobThreateningViewer } from './nameplate_threat';
-import { aiAttentionFacing } from './ai_attention';
+import { aiAttentionBodyOffset, aiAttentionFacing, type AiAttentionReactionKind } from './ai_attention';
 
 const NAMEPLATE_RANGE = 55;
 const NAMEPLATE_RANGE_SQ = NAMEPLATE_RANGE * NAMEPLATE_RANGE;
@@ -606,7 +606,7 @@ export class Renderer {
   // floating /say-/yell bubbles, keyed by speaker entity id
   private chatBubbles = new Map<number, { el: HTMLDivElement; until: number }>();
   private aiReactionBadges = new Map<number, { el: HTMLDivElement; until: number; kind: string }>();
-  private aiAttentionLinks = new Map<number, { el: HTMLDivElement; until: number; kind: string; targetId: number }>();
+  private aiAttentionLinks = new Map<number, { el: HTMLDivElement; until: number; startedAt: number; kind: AiAttentionReactionKind; targetId: number }>();
   private sun: THREE.DirectionalLight;
   private hemi!: THREE.HemisphereLight;
   private sky!: THREE.Mesh;
@@ -2861,10 +2861,13 @@ export class Renderer {
       const x = isSelf ? selfPos.x : e.prevPos.x + (e.pos.x - e.prevPos.x) * ea;
       const y = isSelf ? selfPos.y : e.prevPos.y + (e.pos.y - e.prevPos.y) * ea;
       const z = isSelf ? selfPos.z : e.prevPos.z + (e.pos.z - e.prevPos.z) * ea;
-      v.group.position.set(x, y, z);
+      const bodyOffset = this.aiAttentionVisualBodyOffset(id, e, x, z, now);
+      const renderX = bodyOffset ? x + bodyOffset.x : x;
+      const renderZ = bodyOffset ? z + bodyOffset.z : z;
+      v.group.position.set(renderX, y, renderZ);
       let facing = e.prevFacing + shortestAngle(e.prevFacing, e.facing) * ea;
       if (id === p.id && renderFacingOverride !== null) facing = renderFacingOverride;
-      v.group.rotation.y = this.aiAttentionVisualFacing(id, e, x, z, now) ?? facing;
+      v.group.rotation.y = this.aiAttentionVisualFacing(id, e, renderX, renderZ, now) ?? facing;
 
       if (e.kind === 'object') {
         const isPortalObject = isPersistentPortalObject(e);
@@ -3598,7 +3601,7 @@ export class Renderer {
     b.until = performance.now() + 1000 * Math.min(10, 3.5 + text.length * 0.045);
   }
 
-  showAiReactionBadge(entityId: number, label: string, kind: 'approach' | 'avoid' | 'inspect'): void {
+  showAiReactionBadge(entityId: number, label: string, kind: AiAttentionReactionKind): void {
     let b = this.aiReactionBadges.get(entityId);
     if (!b) {
       const el = document.createElement('div');
@@ -3614,21 +3617,37 @@ export class Renderer {
     b.until = performance.now() + 1800;
   }
 
-  showAiAttentionLink(sourceEntityId: number, targetEntityId: number, kind: 'approach' | 'avoid' | 'inspect'): void {
+  showAiAttentionLink(sourceEntityId: number, targetEntityId: number, kind: AiAttentionReactionKind): void {
     if (sourceEntityId === targetEntityId) return;
     let link = this.aiAttentionLinks.get(sourceEntityId);
+    const now = performance.now();
     if (!link) {
       const el = document.createElement('div');
       el.className = 'ai-attention-link';
       this.nameplateLayer.appendChild(el);
-      link = { el, until: 0, kind: '', targetId: targetEntityId };
+      link = { el, until: 0, startedAt: now, kind, targetId: targetEntityId };
       this.aiAttentionLinks.set(sourceEntityId, link);
     }
-    if (link.kind) link.el.classList.remove(link.kind);
+    link.el.classList.remove(link.kind);
     link.kind = kind;
     link.targetId = targetEntityId;
+    link.startedAt = now;
     link.el.classList.add(kind);
-    link.until = performance.now() + 1400;
+    link.until = now + 1400;
+  }
+
+  private aiAttentionVisualBodyOffset(sourceEntityId: number, source: Entity, x: number, z: number, now: number): { x: number; z: number } | null {
+    const link = this.aiAttentionLinks.get(sourceEntityId);
+    if (!link || now >= link.until) return null;
+    const target = this.sim.entities.get(link.targetId);
+    if (!target) return null;
+    return aiAttentionBodyOffset(
+      source,
+      target.pos,
+      { x, z },
+      link.kind,
+      { elapsedMs: now - link.startedAt, durationMs: link.until - link.startedAt },
+    );
   }
 
   private aiAttentionVisualFacing(sourceEntityId: number, source: Entity, x: number, z: number, now: number): number | null {
