@@ -518,7 +518,7 @@ export const AI_AGENT_PROFILES: readonly AiAgentProfile[] = [
     },
     itemInterest: {
       attractedToTags: ['quest', 'relic', 'singularity', 'rareCuriosity', 'tool'],
-      avoidsTags: ['cursed'],
+      avoidsTags: ['cursed', 'demon', 'oldBlood'],
     },
     timeWeatherSensitivity: { dayEnergy: 0.45, nightFatigue: 0.3, clearNightAwe: 0.5, rainIrritation: 0.2, fogFear: 0.25 },
   },

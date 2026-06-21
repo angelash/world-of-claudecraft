@@ -64,6 +64,55 @@ export function itemSemanticFor(itemId: string): ItemSemantic {
     itemTags.add('quest');
     valueSignals.add('story');
   }
+  if (/fish|trout|perch|pike|eel|cod|koi/.test(lower)) {
+    itemTags.add('fish');
+    itemTags.add('water');
+    smellTags.add('fish');
+  }
+  if (/pelt|hide|fur|fang|antler|tusk|scale|heartscale|cinderscale|claw|venison|down|feather/.test(lower)) {
+    itemTags.add('beast');
+    itemTags.add('trophy');
+    smellTags.add(/venison/.test(lower) ? 'meat' : /down|feather/.test(lower) ? 'feather' : 'hide');
+  }
+  if (/silk|web|spider|venom/.test(lower)) {
+    itemTags.add('silk');
+    itemTags.add('spider');
+    if (/venom/.test(lower)) dangerTags.add('poison');
+  }
+  if (/candle|wax|tallow|ember|fire|flame|cinder/.test(lower)) {
+    itemTags.add('fire');
+    itemTags.add('ritual');
+  }
+  if (/order|ledger|cipher|grimoire|diary|summons|rubbing|page/.test(lower)) {
+    itemTags.add('document');
+    valueSignals.add('story');
+  }
+  if (/crate|goods|supply|boot|moccasin|scrap|cloth|bandana|weed|reeds?/.test(lower)) {
+    itemTags.add('tool');
+    valueSignals.add('campLife');
+  }
+  if (/pearl|nugget|ring|signet|crest|gem|gold|silver|copper|amber|onyx|ivory|steel|iron/.test(lower)) {
+    itemTags.add('metal');
+    valueSignals.add('valuable');
+  }
+  if (/idol|fetish|totem|censer|ritual|phylactery|offering|ward|keystone|shard|core/.test(lower)) {
+    itemTags.add('relic');
+    itemTags.add('ritual');
+    valueSignals.add('rareCuriosity');
+  }
+  if (/prayer|bead|blessed|holy|chapel|light/.test(lower)) {
+    itemTags.add('relic');
+    valueSignals.add('story');
+    dangerTags.add('holy');
+  }
+  if (/storm|glowing|runed|bound|magic|arcane|moon|pale|wyrm|dragon/.test(lower)) {
+    itemTags.add('magic');
+    valueSignals.add('rareCuriosity');
+  }
+  if (/ogre|troll|cult|zealot|bandit|war|skull|bonecharm/.test(lower)) {
+    itemTags.add('threat');
+    valueSignals.add('rumor');
+  }
   if ((item.quality ?? 'common') === 'uncommon' || item.quality === 'rare' || item.quality === 'epic') valueSignals.add('valuable');
   if ((item.sellValue ?? 0) >= 500) valueSignals.add('coin');
   if (/grave|crypt|bone|sigil|censer|relic|ritual|undead|dead|morthen|gravecaller|keystone|wyrm/.test(lower)) {

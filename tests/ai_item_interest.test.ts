@@ -38,6 +38,15 @@ describe('AI item interest', () => {
     expect(itemSemanticFor('gravecaller_sigil').dangerTags).toContain('undead');
   });
 
+  it('gives ordinary loot, documents, ritual items, and magic scraps inspectable living-world semantics', () => {
+    expect(itemSemanticFor('wolf_fang').itemTags).toEqual(expect.arrayContaining(['beast', 'trophy']));
+    expect(itemSemanticFor('raw_bog_eel').itemTags).toEqual(expect.arrayContaining(['fish', 'water']));
+    expect(itemSemanticFor('weathered_ledger_page').itemTags).toContain('document');
+    expect(itemSemanticFor('troll_fetish').itemTags).toEqual(expect.arrayContaining(['relic', 'ritual']));
+    expect(itemSemanticFor('storm_core').itemTags).toContain('magic');
+    expect(itemSemanticFor('inert_storm_shard').valueSignals).toContain('rareCuriosity');
+  });
+
   it('makes food pull beasts closer while a cursed object pushes living beasts away', () => {
     const beast = entity(1, 'forest_wolf');
     const food = droppedItemSemantic('roasted_boar', 0, 99)!;
