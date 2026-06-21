@@ -217,7 +217,12 @@ export async function handleAdminApi(
 
     if (path === '/admin/api/overview') {
       const counts = await overviewCounts();
-      return ok(res, { ...counts, server: game.adminStats(), usage: providerUsageSnapshot() });
+      return ok(res, {
+        ...counts,
+        server: game.adminStats(),
+        usage: providerUsageSnapshot(),
+        ai: game.aiLifeLayerMetrics(),
+      });
     }
     if (path === '/admin/api/online') {
       return ok(res, { players: game.liveSessions() });

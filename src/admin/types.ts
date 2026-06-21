@@ -46,6 +46,25 @@ export interface ProviderUsageSnapshot {
   caches: ProviderUsageCache[];
 }
 
+export interface AiLifeLayerMetricsSnapshot {
+  providerCalls: number;
+  providerSuccesses: number;
+  providerErrors: number;
+  providerFallbacks: number;
+  acceptedDecisions: number;
+  rejectedDecisions: number;
+  localReactions: number;
+  generatedEvents: number;
+  memoryWritesQueued: number;
+  memoryFlushFailures: number;
+  totalProviderLatencyMs: number;
+  averageProviderLatencyMs: number;
+  maxProviderLatencyMs: number;
+  lastProviderLatencyMs: number;
+  lastProviderError?: string;
+  lastMemoryPersistenceError?: string;
+}
+
 export interface Overview {
   accounts: number;
   characters: number;
@@ -55,6 +74,7 @@ export interface Overview {
   activeAccountsToday: number;
   server: ServerStats;
   usage: ProviderUsageSnapshot;
+  ai: AiLifeLayerMetricsSnapshot;
 }
 
 export interface LivePlayer {
