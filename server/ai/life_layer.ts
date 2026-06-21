@@ -1,5 +1,6 @@
 import { NPCS, QUESTS } from '../../src/sim/data';
 import type { Sim } from '../../src/sim/sim';
+import type { AiNpcInteractionTopic } from '../../src/world_api';
 import { INTERACT_RANGE, dist2d } from '../../src/sim/types';
 import type { SimEvent } from '../../src/sim/types';
 import type { AiDecisionV1, AiJobContextV1, AiProvider } from './ai_types';
@@ -14,6 +15,7 @@ import { nearbyReactionCandidates, rankItemReactions } from './item_interest';
 import { validateAiDecision } from './intent_validator';
 import { memoryReactionEvent } from './memory_reactions';
 import { compactProfileSnapshot, profileFor } from './profiles';
+import { topicReactionEvent } from './question_reactions';
 import { droppedItemSemantic, sceneFrameFor } from './scene_frame';
 import { sceneAwarenessEvent } from './scene_reactions';
 import { AiSocialMemoryStore } from './social_memory';
@@ -31,6 +33,7 @@ export interface NpcAiInteractionRequest {
   pid: number;
   npcId: number;
   locale: string;
+  topic?: AiNpcInteractionTopic;
   deliver(events: SimEvent[]): void;
 }
 
@@ -91,6 +94,8 @@ export class AiLifeLayer {
       if (sceneEvent) events.push(sceneEvent);
       const memoryEvent = memoryReactionEvent(context, npc, memory, rumor);
       if (memoryEvent) events.push(memoryEvent);
+      const topicEvent = topicReactionEvent(context, npc, memory, rumor);
+      if (topicEvent) events.push(topicEvent);
       if (events.length > 0) request.deliver(events);
     }
   }
@@ -184,7 +189,7 @@ export class AiLifeLayer {
     return {
       schemaVersion: 1,
       jobId: `ai-${request.pid}-${request.npcId}-${++this.sequence}`,
-      trigger: 'npc_gossip_opened',
+      trigger: request.topic && request.topic !== 'greeting' ? 'npc_question' : 'npc_gossip_opened',
       entity: {
         kind,
         entityId: npc.id,
@@ -203,11 +208,13 @@ export class AiLifeLayer {
         completedQuestIds: [...meta.questsDone],
       },
       locale: normalizeLocale(request.locale),
+      topic: request.topic ?? 'greeting',
       profile: compactProfileSnapshot(profile),
       scene,
       familySemantics: compactFamilySemanticsForEntity(npc),
       questFacts,
       recentObservations: [
+        `playerQuestion:${request.topic ?? 'greeting'}`,
         `scene:${scene.subsceneId ?? scene.zoneId}`,
         ...scene.environmentalTags.slice(0, 4).map((tag) => `tag:${tag}`),
       ],

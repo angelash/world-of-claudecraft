@@ -9,6 +9,7 @@ const context: AiJobContextV1 = {
   entity: { kind: 'npc', entityId: 7, templateId: 'brother_aldric', name: 'Brother Aldric', level: 1, questIds: ['q_bones'], dead: false },
   player: { entityId: 1, name: 'Ari', level: 4, classId: 'hunter', activeQuestIds: ['q_bones'], completedQuestIds: [] },
   locale: 'en',
+  topic: 'rumor',
   profile: {
     profileId: 'npc.brother_aldric.living_world',
     persona: 'A worried priest who reads weather, graves, and player choices as omens.',
@@ -54,6 +55,7 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('deathPressure');
     expect(prompt).toContain('undead=0.70');
     expect(prompt).toContain('q_bones:currentObjective');
+    expect(prompt).toContain('Topic: rumor');
     expect(prompt).toContain('Profile: npc.brother_aldric.living_world');
     expect(prompt).toContain('Knowledge scope: chapel rites, restless dead');
     expect(prompt).toContain('Taboo topics: hidden quest conclusions');

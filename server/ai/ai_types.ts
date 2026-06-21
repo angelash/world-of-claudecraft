@@ -1,4 +1,5 @@
 import type { Entity, SimEvent } from '../../src/sim/types';
+import type { AiNpcInteractionTopic } from '../../src/world_api';
 import type { CompactFamilySemantics } from './family_semantics';
 import type { SceneFrameV1 } from './scene_frame';
 
@@ -47,10 +48,11 @@ export interface AiProfileSnapshot {
 export interface AiJobContextV1 {
   schemaVersion: 1;
   jobId: string;
-  trigger: 'npc_gossip_opened' | 'object_inspected' | 'singularity_candidate';
+  trigger: 'npc_gossip_opened' | 'npc_question' | 'object_inspected' | 'singularity_candidate';
   entity: AiEntitySnapshot;
   player: AiPlayerSnapshot;
   locale: string;
+  topic?: AiNpcInteractionTopic;
   profile?: AiProfileSnapshot;
   scene?: SceneFrameV1;
   familySemantics?: CompactFamilySemantics | null;

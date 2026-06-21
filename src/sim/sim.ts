@@ -6821,7 +6821,7 @@ export class Sim {
     if (npc) this.talkToNpc(npc.id, p.id);
   }
 
-  aiInteractNpc(_npcId: number, _locale: string): void {
+  aiInteractNpc(_npcId: number, _locale: string, _topic?: string): void {
     // Offline simulation keeps AI life-layer side effects out of the deterministic core.
   }
 

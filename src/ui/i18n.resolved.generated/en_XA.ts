@@ -241,6 +241,13 @@ export const en_XA: EnTranslations = {
     "tips": {
       "joinChannels": "[Ţíþ: ţýþé /ĵóíñ ŵóŕļð óŕ /ĵóíñ ļƒĝ ţó çĥáţ ŵíţĥ þļáýéŕš áçŕóšš ţĥé ŕéáļɱ.]"
     },
+    "aiQuestion": {
+      "heading": "[Ášķ]",
+      "recent": "[Ŵĥáţ ĥáʋé ýóú ĥéáŕð ļáţéļý?]",
+      "rumor": "[Áñý ŕúɱóŕš áƀóúţ ţĥíš þļáçé?]",
+      "place": "[Ŵĥáţ ðó ýóú ñóţíçé ĥéŕé?]",
+      "questHint": "[Áñý áðʋíçé ƒóŕ ɱý çúŕŕéñţ ŵóŕķ?]"
+    },
     "aiSpeech": {
       "brotherAldricAwake": "[Ţĥé ðéáð áŕé ŕéšţļéšš ţóñíĝĥţ. Ķééþ ýóúŕ ĵóúŕñáļ çļóšé, {playerName}.]",
       "merchantMarketPulse": "[Çóíñ ɱóʋéš ƒášţéŕ ţĥáñ ŕúɱóŕ, {playerName}, ƀúţ ŕúɱóŕ ļéáʋéš ƀéţţéŕ ƒóóţþŕíñţš.]",
@@ -272,6 +279,12 @@ export const en_XA: EnTranslations = {
       "memoryLoremasterRumorEcho": "[{speakerName} šţúðíéš {itemName} áš éʋíðéñçé, ñóţ ĝóššíþ, ţĥóúĝĥ ĝóššíþ ŵíļļ çáŕŕý íţ ƒíŕšţ.]",
       "memoryTidewatcherRecognizesPlayer": "[{speakerName} ķñóŵš ýóú ñóŵ, {playerName}. Ýóúŕ ñáɱé ĥáš çŕóššéð ţĥé ŵáţéŕ ɱóŕé ţĥáñ óñçé.]",
       "memoryTidewatcherRumorEcho": "[{speakerName} ŵáţçĥéš {itemName} ļíķé á ŕíþþļé ţĥáţ ĥáš ñóţ ƒíñíšĥéð ŵíðéñíñĝ.]",
+      "topicRecentFirstMeet": "[{speakerName} šţúðíéš ýóú çáŕéƒúļļý. Ţĥéŕé íš ñóţ éñóúĝĥ ĥíšţóŕý ƀéţŵééñ ýóú ýéţ, {playerName}.]",
+      "topicRecentKnown": "[{speakerName} áñšŵéŕš ŵíţĥ ţĥé ţóñé óƒ šóɱéóñé ŵĥó ĥáš šţáŕţéð ķééþíñĝ ţŕáçķ óƒ ýóú, {playerName}.]",
+      "topicRumorQuiet": "[{speakerName} ļíšţéñš ƒóŕ ĝóššíþ, ƀúţ ñóţĥíñĝ çéŕţáíñ ĥáš ŕéáçĥéð ţĥíš çóŕñéŕ ýéţ.]",
+      "topicPlace": "[{speakerName} ļóóķš óʋéŕ ţĥé ñéáŕƀý ŕóáð, ŵéáţĥéŕ, áñð ŵáļļš ƀéƒóŕé áñšŵéŕíñĝ.]",
+      "topicQuestHint": "[{speakerName} ķééþš ţĥé áðʋíçé ţíéð ţó ŵĥáţ ýóúŕ ĵóúŕñáļ áļŕéáðý ķñóŵš.]",
+      "topicQuestNoHint": "[{speakerName} ĥáš ñó ĥóñéšţ ļéáð ƒóŕ ýóúŕ çúŕŕéñţ ŵóŕķ ýéţ.]",
       "unknownItem": "[šóɱéţĥíñĝ ļéƒţ ƀéĥíñð]",
       "unknownCompanion": "[ýóúŕ çóɱþáñíóñ]"
     },

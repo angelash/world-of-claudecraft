@@ -15,7 +15,7 @@ import { normalizeMoveFacing, sanitizeMoveInput } from '../sim/move_input';
 import {
   isOverheadEmoteId,
   type AccountCosmetics, type ArenaInfo, type CharacterSearchResult, type DuelInfo, type FriendInfo,
-  type IWorld, type LeaderboardEntry, type MarketInfo, type OverheadEmoteId, type PartyInfo,
+  type AiNpcInteractionTopic, type IWorld, type LeaderboardEntry, type MarketInfo, type OverheadEmoteId, type PartyInfo,
   type PresenceStatus, type SocialInfo, type TradeInfo,
 } from '../world_api';
 
@@ -878,8 +878,8 @@ export class ClientWorld implements IWorld {
   interact(): void {
     this.cmd({ cmd: 'interact' });
   }
-  aiInteractNpc(npcId: number, locale: string): void {
-    this.cmd({ cmd: 'ai_interact_npc', npc: npcId, locale });
+  aiInteractNpc(npcId: number, locale: string, topic: AiNpcInteractionTopic = 'greeting'): void {
+    this.cmd({ cmd: 'ai_interact_npc', npc: npcId, locale, topic });
   }
   lootCorpse(id: number): void {
     this.cmd({ cmd: 'loot', id });

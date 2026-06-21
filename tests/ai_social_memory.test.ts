@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AiJobContextV1 } from '../server/ai/ai_types';
 import { memoryReactionEvent } from '../server/ai/memory_reactions';
 import { compactProfileSnapshot, profileFor } from '../server/ai/profiles';
+import { topicReactionEvent } from '../server/ai/question_reactions';
 import { AiSocialMemoryStore } from '../server/ai/social_memory';
 import type { Entity } from '../src/sim/types';
 
@@ -119,6 +120,21 @@ describe('AI social memory', () => {
       expect(snapshot.tabooTopics.length).toBeGreaterThan(0);
       expect(snapshot.socialMemory?.rumorLineId).toBe(rumorLineId);
     }
+  });
+
+  it('turns explicit NPC question topics into local lineId answers', () => {
+    const store = new AiSocialMemoryStore();
+    const memory = store.noteNpcInteraction({ ...context, topic: 'place' }, 0);
+
+    expect(topicReactionEvent({ ...context, topic: 'place' }, speaker, memory, null)).toMatchObject({
+      speech: { lineId: 'hudChrome.aiSpeech.topicPlace' },
+    });
+    expect(topicReactionEvent({ ...context, topic: 'rumor' }, speaker, memory, null)).toMatchObject({
+      speech: { lineId: 'hudChrome.aiSpeech.topicRumorQuiet' },
+    });
+    expect(topicReactionEvent({ ...context, topic: 'quest_hint' }, speaker, memory, null)).toMatchObject({
+      speech: { lineId: 'hudChrome.aiSpeech.topicQuestNoHint' },
+    });
   });
 
   it('keeps item rumors short-lived, scene-scoped, and source-player scoped', () => {

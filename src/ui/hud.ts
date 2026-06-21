@@ -1,5 +1,5 @@
 import type { ResolvedAbility } from '../sim/sim';
-import { OVERHEAD_EMOTES, isOverheadEmoteId, type ArenaFormat, type FriendInfo, type IWorld, type LeaderboardEntry, type MarketInfo, type OverheadEmoteId } from '../world_api';
+import { OVERHEAD_EMOTES, isOverheadEmoteId, type AiNpcInteractionTopic, type ArenaFormat, type FriendInfo, type IWorld, type LeaderboardEntry, type MarketInfo, type OverheadEmoteId } from '../world_api';
 import { Renderer } from '../render/renderer';
 import { CharacterPreview } from '../render/characters';
 import { portraitChipHtml, hydratePortraits } from './portrait_chip';
@@ -3915,6 +3915,13 @@ export class Hud {
       case 'hudChrome.aiSpeech.memoryLoremasterRumorEcho':
       case 'hudChrome.aiSpeech.memoryTidewatcherRumorEcho':
         return t(ev.speech.lineId as TranslationKey, { speakerName, playerName: String(values.playerName ?? this.sim.player.name), itemName });
+      case 'hudChrome.aiSpeech.topicRecentFirstMeet':
+      case 'hudChrome.aiSpeech.topicRecentKnown':
+      case 'hudChrome.aiSpeech.topicRumorQuiet':
+      case 'hudChrome.aiSpeech.topicPlace':
+      case 'hudChrome.aiSpeech.topicQuestHint':
+      case 'hudChrome.aiSpeech.topicQuestNoHint':
+        return t(ev.speech.lineId as TranslationKey, { speakerName, playerName: String(values.playerName ?? this.sim.player.name) });
       default:
         return t('hudChrome.aiSpeech.genericNpcAwake', { speakerName: ev.speakerName });
     }
@@ -4529,6 +4536,17 @@ export class Hud {
     const npcTitle = def ? npcDisplayTitle(def.id) : '';
     let html = `<div class="panel-title"><span id="quest-dialog-title">${esc(npcName)}<span class="quest-muted"> &lt;${esc(npcTitle)}&gt;</span></span><button type="button" class="x-btn" data-close aria-label="${esc(t('questUi.dialog.close'))}">${svgIcon('close')}</button></div>`;
     html += `<div class="qd-text">"${esc(def ? npcGreeting(def.id, this.sim.cfg.playerClass, this.sim.player.name) : t('questUi.dialog.greetingFallback'))}"</div>`;
+    const aiQuestionTopics: Array<{ topic: AiNpcInteractionTopic; labelKey: TranslationKey }> = [
+      { topic: 'recent', labelKey: 'hudChrome.aiQuestion.recent' },
+      { topic: 'rumor', labelKey: 'hudChrome.aiQuestion.rumor' },
+      { topic: 'place', labelKey: 'hudChrome.aiQuestion.place' },
+      { topic: 'quest_hint', labelKey: 'hudChrome.aiQuestion.questHint' },
+    ];
+    html += `<div class="qd-sub">${esc(t('hudChrome.aiQuestion.heading'))}</div>`;
+    for (const option of aiQuestionTopics) {
+      const label = t(option.labelKey);
+      html += `<button type="button" class="qd-list-item" data-ai-topic="${option.topic}" aria-label="${esc(label)}">${esc(label)}</button>`;
+    }
     if (interesting.length > 0) {
       for (const qid of interesting) {
         const st = this.sim.questState(qid);
@@ -4562,6 +4580,17 @@ export class Hud {
         this.sim.targetEntity(npc.id);
         this.sim.interact();
         (item as HTMLButtonElement).disabled = true;
+      });
+    });
+    el.querySelectorAll('[data-ai-topic]').forEach((item) => {
+      item.addEventListener('click', () => {
+        const button = item as HTMLButtonElement;
+        const topic = button.dataset.aiTopic as AiNpcInteractionTopic;
+        this.sim.aiInteractNpc(npc.id, getLanguage(), topic);
+        button.disabled = true;
+        window.setTimeout(() => {
+          if (button.isConnected) button.disabled = false;
+        }, 1500);
       });
     });
     el.querySelector('[data-vendor]')?.addEventListener('click', () => {

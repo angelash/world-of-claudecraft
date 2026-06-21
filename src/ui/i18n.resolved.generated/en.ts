@@ -241,6 +241,13 @@ export const en: EnTranslations = {
     "tips": {
       "joinChannels": "Tip: type /join world or /join lfg to chat with players across the realm."
     },
+    "aiQuestion": {
+      "heading": "Ask",
+      "recent": "What have you heard lately?",
+      "rumor": "Any rumors about this place?",
+      "place": "What do you notice here?",
+      "questHint": "Any advice for my current work?"
+    },
     "aiSpeech": {
       "brotherAldricAwake": "The dead are restless tonight. Keep your journal close, {playerName}.",
       "merchantMarketPulse": "Coin moves faster than rumor, {playerName}, but rumor leaves better footprints.",
@@ -272,6 +279,12 @@ export const en: EnTranslations = {
       "memoryLoremasterRumorEcho": "{speakerName} studies {itemName} as evidence, not gossip, though gossip will carry it first.",
       "memoryTidewatcherRecognizesPlayer": "{speakerName} knows you now, {playerName}. Your name has crossed the water more than once.",
       "memoryTidewatcherRumorEcho": "{speakerName} watches {itemName} like a ripple that has not finished widening.",
+      "topicRecentFirstMeet": "{speakerName} studies you carefully. There is not enough history between you yet, {playerName}.",
+      "topicRecentKnown": "{speakerName} answers with the tone of someone who has started keeping track of you, {playerName}.",
+      "topicRumorQuiet": "{speakerName} listens for gossip, but nothing certain has reached this corner yet.",
+      "topicPlace": "{speakerName} looks over the nearby road, weather, and walls before answering.",
+      "topicQuestHint": "{speakerName} keeps the advice tied to what your journal already knows.",
+      "topicQuestNoHint": "{speakerName} has no honest lead for your current work yet.",
       "unknownItem": "something left behind",
       "unknownCompanion": "your companion"
     },

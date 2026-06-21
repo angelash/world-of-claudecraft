@@ -275,7 +275,7 @@ export interface IWorld {
   startAutoAttack(): void;
   stopAutoAttack(): void;
   interact(): void;
-  aiInteractNpc(npcId: number, locale: string): void;
+  aiInteractNpc(npcId: number, locale: string, topic?: AiNpcInteractionTopic): void;
   lootCorpse(id: number): void;
   pickUpObject(id: number): void;
   acceptQuest(questId: string): void;
@@ -378,3 +378,5 @@ export interface IWorld {
   switchLoadout(index: number): void;
   deleteLoadout(index: number): void;
 }
+
+export type AiNpcInteractionTopic = 'greeting' | 'recent' | 'rumor' | 'place' | 'quest_hint';

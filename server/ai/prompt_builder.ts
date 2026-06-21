@@ -22,6 +22,7 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
     `Allowed lineIds: ${(context.allowedLineIds ?? []).join(', ') || 'none provided'}`,
     `Quest facts visible to player: ${context.questFacts.map((fact) => `${fact.questId}:${fact.visibility}`).join(', ') || 'none'}`,
   ];
+  if (context.topic) lines.push(`Topic: ${context.topic}`);
   if (context.profile) {
     lines.push(
       `Profile: ${context.profile.profileId}`,

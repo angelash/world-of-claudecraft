@@ -20,7 +20,7 @@ import { SocialService } from './social';
 import type { Presence, PresenceStatus, SocialActor, SocialEvent, SocialTransport } from './social';
 import { PgSocialDb } from './social_db';
 import { REALM } from './realm';
-import { isOverheadEmoteId } from '../src/world_api';
+import { isOverheadEmoteId, type AiNpcInteractionTopic } from '../src/world_api';
 import * as antibot from './antibot';
 import type { BotTracker } from './antibot';
 import { AiLifeLayer } from './ai/life_layer';
@@ -87,6 +87,7 @@ const TICK_EMA_ALPHA = 0.05;
 // the upper bound on how stale an in-world badge can be.
 const HOLDER_TIER_REFRESH_MS = 120_000;
 const AI_NPC_INTERACTION_COOLDOWN_SECONDS = 4;
+const AI_NPC_QUESTION_COOLDOWN_SECONDS = 2;
 
 export interface ClientSession {
   ws: WebSocket;
@@ -108,6 +109,7 @@ export interface ClientSession {
   chatMutedUntil: number | null;
   chatMuteReason: string;
   aiInteractReadyAt: number;
+  aiQuestionReadyAt: number;
   // Hard-word enforcement strike count driving the mute ladder. Account-scoped:
   // seeded from the DB at join, kept live by enforcement/admin actions.
   chatStrikes: number;
@@ -738,6 +740,7 @@ export class GameServer {
       chatMutedUntil: meta.mutedUntil ? new Date(meta.mutedUntil).getTime() : null,
       chatMuteReason: meta.reason ?? '',
       aiInteractReadyAt: 0,
+      aiQuestionReadyAt: 0,
       chatStrikes: meta.chatStrikes ?? 0,
       blockedIds: new Set(),
       blockListLoaded: false,
@@ -1138,7 +1141,14 @@ export class GameServer {
       case 'stopattack': sim.stopAutoAttack(pid); break;
       case 'interact': sim.interact(pid); break;
       case 'ai_interact_npc':
-        if (typeof msg.npc === 'number') this.handleAiInteractNpc(session, msg.npc, typeof msg.locale === 'string' ? msg.locale : 'en');
+        if (typeof msg.npc === 'number') {
+          this.handleAiInteractNpc(
+            session,
+            msg.npc,
+            typeof msg.locale === 'string' ? msg.locale : 'en',
+            parseAiNpcInteractionTopic(msg.topic),
+          );
+        }
         break;
       case 'loot': if (typeof msg.id === 'number') sim.lootCorpse(msg.id, pid); break;
       case 'pickup': if (typeof msg.id === 'number') sim.pickUpObject(msg.id, pid); break;
@@ -1408,15 +1418,21 @@ export class GameServer {
     }
   }
 
-  private handleAiInteractNpc(session: ClientSession, npcId: number, locale: string): void {
+  private handleAiInteractNpc(session: ClientSession, npcId: number, locale: string, topic: AiNpcInteractionTopic): void {
     if (session.left || this.clients.get(session.pid) !== session) return;
-    if (this.sim.time < session.aiInteractReadyAt) return;
-    session.aiInteractReadyAt = this.sim.time + AI_NPC_INTERACTION_COOLDOWN_SECONDS;
+    if (topic === 'greeting') {
+      if (this.sim.time < session.aiInteractReadyAt) return;
+      session.aiInteractReadyAt = this.sim.time + AI_NPC_INTERACTION_COOLDOWN_SECONDS;
+    } else {
+      if (this.sim.time < session.aiQuestionReadyAt) return;
+      session.aiQuestionReadyAt = this.sim.time + AI_NPC_QUESTION_COOLDOWN_SECONDS;
+    }
     void this.aiLifeLayer.handleNpcInteraction({
       sim: this.sim,
       pid: session.pid,
       npcId,
       locale,
+      topic,
       deliver: (events) => {
         if (session.left || this.clients.get(session.pid) !== session) return;
         if (events.length > 0) this.send(session, { t: 'events', list: events });
@@ -1990,5 +2006,18 @@ export class GameServer {
     if (session.ws.readyState === 1) {
       session.ws.send(payload);
     }
+  }
+}
+
+function parseAiNpcInteractionTopic(value: unknown): AiNpcInteractionTopic {
+  switch (value) {
+    case 'recent':
+    case 'rumor':
+    case 'place':
+    case 'quest_hint':
+    case 'greeting':
+      return value;
+    default:
+      return 'greeting';
   }
 }

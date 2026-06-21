@@ -113,6 +113,37 @@ describe('server AI interact command', () => {
     expect(eventsOf(fc, 'aiSpeech')).toHaveLength(1);
   });
 
+  it('allows an explicit NPC question after the greeting but rate-limits question spam', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
+    teleportNear(server, session.pid, npc.id);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en' }));
+    await flushAi();
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en', topic: 'place' }));
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en', topic: 'place' }));
+    await flushAi();
+
+    const placeReplies = eventsOf(fc, 'aiSpeech').filter((event) => event.speech.lineId === 'hudChrome.aiSpeech.topicPlace');
+    expect(placeReplies).toHaveLength(1);
+  });
+
+  it('falls back to greeting behavior for invalid AI question topics', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
+    teleportNear(server, session.pid, npc.id);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en', topic: 'unsafe_topic' }));
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en', topic: 'place' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.topicPlace')).toBe(true);
+  });
+
   it('does nothing when the experiment flag is disabled', async () => {
     delete process.env.AI_LIVING_WORLD_EXPERIMENT;
     const server = new GameServer();
