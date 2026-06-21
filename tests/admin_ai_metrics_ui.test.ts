@@ -139,6 +139,14 @@ function profiles(overrides: Partial<AiProfilePreviewReport> = {}): AiProfilePre
     genericTotal: 2,
     limit: 64,
     truncated: false,
+    validation: {
+      totalIssues: 0,
+      errorCount: 0,
+      warningCount: 0,
+      limit: 48,
+      truncated: false,
+      issues: [],
+    },
     rows: [{
       id: 'npc.brother_aldric.living_world',
       appliesTo: [{ kind: 'npc', templateId: 'brother_aldric' }],
@@ -250,6 +258,7 @@ describe('admin AI life layer metrics renderer', () => {
     }));
 
     expect(html).toContain('AI profile preview');
+    expect(html).toContain('Profile authoring validation passed.');
     expect(html).toContain('canon sensitive');
     expect(html).toContain('NPC: aldric&lt;script&gt;');
     expect(html).toContain('npc.&lt;script&gt;.living_world');
@@ -258,5 +267,34 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('sceneAffinities&lt;script&gt;');
     expect(html).not.toContain('aldric<script>');
     expect(html).not.toContain('Persona with <danger>');
+  });
+
+  it('shows AI profile validation issues and escapes issue values', () => {
+    setAdminLanguage('en');
+    const html = renderAiLifeLayerMetrics(metrics(), coverage(), diagnostics(), profiles({
+      validation: {
+        totalIssues: 1,
+        errorCount: 1,
+        warningCount: 0,
+        limit: 48,
+        truncated: false,
+        issues: [{
+          severity: 'error',
+          code: 'fallback<script>',
+          profileId: 'npc.bad<script>',
+          detail: 'bad detail <script>',
+          targetKind: 'npc',
+          targetTemplateId: 'target<script>',
+        }],
+      },
+    }));
+
+    expect(html).toContain('errors');
+    expect(html).toContain('fallback&lt;script&gt;');
+    expect(html).toContain('npc.bad&lt;script&gt;');
+    expect(html).toContain('NPC: target&lt;script&gt;');
+    expect(html).toContain('unknown (fallback&lt;script&gt;)');
+    expect(html).not.toContain('target<script>');
+    expect(html).not.toContain('bad detail <script>');
   });
 });

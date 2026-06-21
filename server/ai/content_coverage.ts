@@ -97,15 +97,37 @@ export interface AiProfilePreviewRow {
   missingAuthoringFields: string[];
 }
 
+export type AiProfileAuthoringIssueSeverity = 'error' | 'warning';
+
+export interface AiProfileAuthoringIssue {
+  severity: AiProfileAuthoringIssueSeverity;
+  code: string;
+  profileId: string;
+  detail: string;
+  targetKind?: 'npc' | 'mob' | 'object';
+  targetTemplateId?: string;
+}
+
+export interface AiProfileAuthoringValidationReport {
+  totalIssues: number;
+  errorCount: number;
+  warningCount: number;
+  limit: number;
+  truncated: boolean;
+  issues: AiProfileAuthoringIssue[];
+}
+
 export interface AiProfilePreviewReport {
   authoredTotal: number;
   genericTotal: number;
   limit: number;
   truncated: boolean;
   rows: AiProfilePreviewRow[];
+  validation: AiProfileAuthoringValidationReport;
 }
 
 const PROFILE_PREVIEW_LIMIT = 64;
+const PROFILE_VALIDATION_ISSUE_LIMIT = 48;
 const PERSONA_EXCERPT_MAX = 110;
 
 export function aiContentCoverageReport(): AiContentCoverageReport {
@@ -118,10 +140,7 @@ export function aiContentCoverageReport(): AiContentCoverageReport {
   const templateCountByFamily = Object.fromEntries(expected.map((family) => [family, 0])) as Record<MobFamily, number>;
   for (const mob of Object.values(MOBS)) templateCountByFamily[mob.family] += 1;
 
-  const interactiveNpcIds = Object.values(NPCS)
-    .filter((npc) => npc.questIds.length > 0 || (npc.vendorItems?.length ?? 0) > 0 || npc.market === true)
-    .map((npc) => npc.id)
-    .sort();
+  const interactiveNpcIds = interactiveAiNpcIds();
   const missingInteractiveProfiles = interactiveNpcIds
     .filter((npcId) => profileFor('npc', npcId).id === GENERIC_NPC_AI_PROFILE.id);
   const authoredNpcProfiles = AI_AGENT_PROFILES
@@ -266,6 +285,22 @@ export function aiProfilePreviewReport(limit = PROFILE_PREVIEW_LIMIT): AiProfile
     limit: boundedLimit,
     truncated: authoredRows.length > boundedLimit,
     rows: authoredRows.slice(0, boundedLimit),
+    validation: aiProfileAuthoringValidationReport(),
+  };
+}
+
+export function aiProfileAuthoringValidationReport(
+  issueLimit = PROFILE_VALIDATION_ISSUE_LIMIT,
+): AiProfileAuthoringValidationReport {
+  const boundedLimit = Math.max(0, Math.floor(issueLimit));
+  const issues = profileAuthoringIssues().sort(compareProfileAuthoringIssues);
+  return {
+    totalIssues: issues.length,
+    errorCount: issues.filter((issue) => issue.severity === 'error').length,
+    warningCount: issues.filter((issue) => issue.severity === 'warning').length,
+    limit: boundedLimit,
+    truncated: issues.length > boundedLimit,
+    issues: issues.slice(0, boundedLimit),
   };
 }
 
@@ -321,6 +356,93 @@ function profileMissingAuthoringFields(profile: AiAgentProfile): string[] {
   return missing;
 }
 
+function profileAuthoringIssues(): AiProfileAuthoringIssue[] {
+  const issues: AiProfileAuthoringIssue[] = [];
+  const profileIds = new Set<string>();
+  const targetOwners = new Map<string, string>();
+
+  for (const profile of AI_AGENT_PROFILES) {
+    if (profileIds.has(profile.id)) {
+      issues.push(issue('error', 'duplicateProfileId', profile.id, 'Profile id is duplicated.'));
+    }
+    profileIds.add(profile.id);
+
+    for (const field of profileMissingAuthoringFields(profile)) {
+      issues.push(issue('error', 'missingAuthoringField', profile.id, `Missing or thin authoring field: ${field}.`));
+    }
+
+    if (!profile.allowedLineIds.includes(profile.fallbackLineId)) {
+      issues.push(issue('error', 'fallbackNotAllowed', profile.id, 'Fallback lineId is not present in allowedLineIds.'));
+    }
+
+    for (const lineId of profileLineIds(profile)) {
+      if (!lineId.startsWith('hudChrome.aiSpeech.')) {
+        issues.push(issue('error', 'invalidLineIdShape', profile.id, `LineId must use hudChrome.aiSpeech.*: ${lineId}.`));
+      }
+    }
+
+    for (const target of profile.appliesTo) {
+      const targetKey = `${target.kind}:${target.templateId}`;
+      const previousOwner = targetOwners.get(targetKey);
+      if (previousOwner && previousOwner !== profile.id) {
+        issues.push(issue(
+          'error',
+          'duplicateProfileTarget',
+          profile.id,
+          `Target is already owned by profile ${previousOwner}.`,
+          target,
+        ));
+      }
+      targetOwners.set(targetKey, profile.id);
+
+      if (target.kind === 'npc' && !NPCS[target.templateId]) {
+        issues.push(issue('error', 'unknownNpcTarget', profile.id, 'NPC target does not exist in content data.', target));
+      }
+      if (target.kind === 'mob' && !MOBS[target.templateId]) {
+        issues.push(issue('error', 'unknownMobTarget', profile.id, 'Mob target does not exist in content data.', target));
+      }
+    }
+  }
+
+  for (const npcId of interactiveAiNpcIds()) {
+    if (profileFor('npc', npcId).id === GENERIC_NPC_AI_PROFILE.id) {
+      issues.push(issue('error', 'missingInteractiveProfile', GENERIC_NPC_AI_PROFILE.id, 'Interactive NPC resolves to the generic profile.', {
+        kind: 'npc',
+        templateId: npcId,
+      }));
+    }
+  }
+
+  return issues;
+}
+
+function issue(
+  severity: AiProfileAuthoringIssueSeverity,
+  code: string,
+  profileId: string,
+  detail: string,
+  target?: AiProfilePreviewTarget,
+): AiProfileAuthoringIssue {
+  return {
+    severity,
+    code,
+    profileId,
+    detail,
+    ...(target ? { targetKind: target.kind, targetTemplateId: target.templateId } : {}),
+  };
+}
+
+function compareProfileAuthoringIssues(a: AiProfileAuthoringIssue, b: AiProfileAuthoringIssue): number {
+  const severityOrder = severityRank(a.severity) - severityRank(b.severity);
+  if (severityOrder !== 0) return severityOrder;
+  return `${a.code}:${a.profileId}:${a.targetTemplateId ?? ''}`
+    .localeCompare(`${b.code}:${b.profileId}:${b.targetTemplateId ?? ''}`);
+}
+
+function severityRank(severity: AiProfileAuthoringIssueSeverity): number {
+  return severity === 'error' ? 0 : 1;
+}
+
 function profileLineIds(profile: AiAgentProfile): string[] {
   return unique([
     ...profile.allowedLineIds,
@@ -356,6 +478,13 @@ function familyMoodBiasIsValid(family: MobFamily): boolean {
 function profileTimeWeatherIsValid(profile: AiAgentProfile): boolean {
   const values = profile.timeWeatherSensitivity ? Object.values(profile.timeWeatherSensitivity) : [];
   return values.length > 0 && values.every((value) => Number.isFinite(value) && value >= 0 && value <= 1);
+}
+
+function interactiveAiNpcIds(): string[] {
+  return Object.values(NPCS)
+    .filter((npc) => npc.questIds.length > 0 || (npc.vendorItems?.length ?? 0) > 0 || npc.market === true)
+    .map((npc) => npc.id)
+    .sort();
 }
 
 function isDiscardableForAi(item: ItemDef): boolean {

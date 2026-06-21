@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { aiContentCoverageReport, aiProfilePreviewReport } from '../server/ai/content_coverage';
+import {
+  aiContentCoverageReport, aiProfileAuthoringValidationReport, aiProfilePreviewReport,
+} from '../server/ai/content_coverage';
 import { hudChromeStrings } from '../src/ui/i18n.catalog/hud_chrome';
 
 describe('AI content coverage report', () => {
@@ -66,6 +68,7 @@ describe('AI content coverage report', () => {
     expect(preview.authoredTotal).toBeGreaterThan(0);
     expect(preview.genericTotal).toBe(2);
     expect(preview.truncated).toBe(false);
+    expect(preview.validation.totalIssues).toBe(0);
     expect(aldric).toMatchObject({
       fallbackLineId: 'hudChrome.aiSpeech.brotherAldricAwake',
       canonSensitive: true,
@@ -84,5 +87,14 @@ describe('AI content coverage report', () => {
     expect(preview.limit).toBe(1);
     expect(preview.rows).toHaveLength(1);
     expect(preview.truncated).toBe(true);
+  });
+
+  it('keeps authored profile validation free of structural issues', () => {
+    const validation = aiProfileAuthoringValidationReport();
+
+    expect(validation.totalIssues).toBe(0);
+    expect(validation.errorCount).toBe(0);
+    expect(validation.warningCount).toBe(0);
+    expect(validation.issues).toEqual([]);
   });
 });

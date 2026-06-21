@@ -218,6 +218,10 @@ describe('admin api auth', () => {
         aiProfiles: expect.objectContaining({
           authoredTotal: expect.any(Number),
           genericTotal: 2,
+          validation: expect.objectContaining({
+            errorCount: 0,
+            warningCount: 0,
+          }),
           rows: expect.arrayContaining([expect.objectContaining({
             id: 'npc.brother_aldric.living_world',
             fallbackLineId: 'hudChrome.aiSpeech.brotherAldricAwake',

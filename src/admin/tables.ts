@@ -4,7 +4,8 @@ import type {
   AccountDetail, AccountRow, CharacterRow, ChatFilterData, ChatModeratedAccount,
   ChatModerationDetail, FilterWord, LivePlayer, ModerationAccountDetail, ModerationQueueRow,
   AiContentCoverageReport, AiDecisionJournalEntry, AiLifeLayerDiagnosticsSnapshot,
-  AiLifeLayerMetricsSnapshot, AiProfilePreviewReport, AiProfilePreviewRow,
+  AiLifeLayerMetricsSnapshot, AiProfileAuthoringIssue, AiProfileAuthoringValidationReport,
+  AiProfilePreviewReport, AiProfilePreviewRow,
   AiProfilePreviewTarget, AiWorldDirectorState,
   ProviderUsageCache, ProviderUsageSnapshot,
 } from './types';
@@ -148,6 +149,79 @@ function renderAiProfileGaps(row: AiProfilePreviewRow): string {
     return `<span class="hint">${escapeHtml(t('usage.aiProfileNoGaps'))}</span>`;
   }
   return renderAiDelimitedItems(row.missingAuthoringFields, 4);
+}
+
+function aiProfileIssueSeverityClass(severity: string): string {
+  if (severity === 'error') return ' bad';
+  if (severity === 'warning') return ' warn';
+  return '';
+}
+
+function aiProfileIssueSeverityLabel(severity: string): string {
+  switch (severity) {
+    case 'error': return t('usage.aiProfileIssueError');
+    case 'warning': return t('usage.aiProfileIssueWarning');
+    default: return t('usage.aiDiagnosticsUnknownValue', { value: severity });
+  }
+}
+
+function aiProfileIssueDescription(issue: AiProfileAuthoringIssue): string {
+  switch (issue.code) {
+    case 'duplicateProfileId': return t('usage.aiProfileIssueDuplicateProfileId');
+    case 'missingAuthoringField': return t('usage.aiProfileIssueMissingAuthoringField');
+    case 'fallbackNotAllowed': return t('usage.aiProfileIssueFallbackNotAllowed');
+    case 'invalidLineIdShape': return t('usage.aiProfileIssueInvalidLineIdShape');
+    case 'duplicateProfileTarget': return t('usage.aiProfileIssueDuplicateProfileTarget');
+    case 'unknownNpcTarget': return t('usage.aiProfileIssueUnknownNpcTarget');
+    case 'unknownMobTarget': return t('usage.aiProfileIssueUnknownMobTarget');
+    case 'missingInteractiveProfile': return t('usage.aiProfileIssueMissingInteractiveProfile');
+    default: return t('usage.aiDiagnosticsUnknownValue', { value: issue.code });
+  }
+}
+
+function renderAiProfileIssueTarget(issue: AiProfileAuthoringIssue): string {
+  if (!issue.targetKind || !issue.targetTemplateId) {
+    return `<span class="hint">${escapeHtml(t('usage.aiDiagnosticsNone'))}</span>`;
+  }
+  return escapeHtml(t('usage.aiProfileTargetSummary', {
+    kind: aiProfileTargetKindLabel(issue.targetKind),
+    templateId: issue.targetTemplateId,
+  }));
+}
+
+function renderAiProfileIssueRow(issue: AiProfileAuthoringIssue): string {
+  return `<tr>
+    <td><span class="badge${aiProfileIssueSeverityClass(issue.severity)}">${escapeHtml(aiProfileIssueSeverityLabel(issue.severity))}</span></td>
+    <td>${escapeHtml(issue.code)}</td>
+    <td>${escapeHtml(issue.profileId)}</td>
+    <td>${renderAiProfileIssueTarget(issue)}</td>
+    <td>${escapeHtml(aiProfileIssueDescription(issue))}</td>
+  </tr>`;
+}
+
+function renderAiProfileValidation(validation: AiProfileAuthoringValidationReport): string {
+  if (validation.totalIssues === 0) {
+    return `<div class="hint">${escapeHtml(t('usage.aiProfileValidationNoIssues'))}</div>`;
+  }
+  const visibleIssues = validation.issues.slice(0, 8);
+  const hiddenCount = Math.max(0, validation.totalIssues - visibleIssues.length);
+  const hiddenHint = validation.truncated || hiddenCount > 0
+    ? `<div class="hint">${escapeHtml(t('usage.aiProfileValidationMore', { count: fmtNumber(hiddenCount) }))}</div>`
+    : '';
+  return `
+    ${hiddenHint}
+    <div class="table-scroll">
+      <table class="usage-table">
+        <thead><tr>
+          <th>${t('usage.aiProfileIssueColSeverity')}</th>
+          <th>${t('usage.aiProfileIssueColCode')}</th>
+          <th>${t('usage.aiProfileIssueColProfile')}</th>
+          <th>${t('usage.aiProfileIssueColTarget')}</th>
+          <th>${t('usage.aiProfileIssueColDetail')}</th>
+        </tr></thead>
+        <tbody>${visibleIssues.map(renderAiProfileIssueRow).join('')}</tbody>
+      </table>
+    </div>`;
 }
 
 function renderAiProfileRow(row: AiProfilePreviewRow): string {
@@ -448,6 +522,14 @@ function renderAiProfilePreview(profiles: AiProfilePreviewReport): string {
   const totalGaps = profiles.rows.reduce((sum, row) => sum + row.missingAuthoringFields.length, 0);
   const visibleRows = profiles.rows.slice(0, 12);
   const hiddenCount = Math.max(0, profiles.authoredTotal - visibleRows.length);
+  const validationStatusKey = profiles.validation.errorCount > 0
+    ? 'usage.aiProfileValidationErrors'
+    : profiles.validation.warningCount > 0
+      ? 'usage.aiProfileValidationWarnings'
+      : 'usage.aiProfileValidationPassed';
+  const validationStatusClass = profiles.validation.errorCount > 0
+    ? ' bad'
+    : profiles.validation.warningCount > 0 ? ' warn' : '';
   const rows = visibleRows.length === 0
     ? `<tr><td colspan="9" class="empty">${t('usage.aiProfilesNoRows')}</td></tr>`
     : visibleRows.map(renderAiProfileRow).join('');
@@ -475,8 +557,17 @@ function renderAiProfilePreview(profiles: AiProfilePreviewReport): string {
           <div class="ai-health-value"><span class="badge${totalGaps > 0 ? ' warn' : ''}">${renderAiNumber(totalGaps)}</span></div>
           <div class="ai-health-label">${t('usage.aiProfilesAuthoringGaps')}</div>
         </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value"><span class="badge${validationStatusClass}">${escapeHtml(t(validationStatusKey))}</span></div>
+          <div class="ai-health-label">${t('usage.aiProfileValidationTitle')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(profiles.validation.warningCount)}</div>
+          <div class="ai-health-label">${t('usage.aiProfileValidationWarningCount')}</div>
+        </div>
       </div>
       ${truncatedHint}
+      ${renderAiProfileValidation(profiles.validation)}
       <div class="table-scroll">
         <table class="usage-table">
           <thead><tr>

@@ -201,12 +201,31 @@ export interface AiProfilePreviewRow {
   missingAuthoringFields: string[];
 }
 
+export interface AiProfileAuthoringIssue {
+  severity: string;
+  code: string;
+  profileId: string;
+  detail: string;
+  targetKind?: string;
+  targetTemplateId?: string;
+}
+
+export interface AiProfileAuthoringValidationReport {
+  totalIssues: number;
+  errorCount: number;
+  warningCount: number;
+  limit: number;
+  truncated: boolean;
+  issues: AiProfileAuthoringIssue[];
+}
+
 export interface AiProfilePreviewReport {
   authoredTotal: number;
   genericTotal: number;
   limit: number;
   truncated: boolean;
   rows: AiProfilePreviewRow[];
+  validation: AiProfileAuthoringValidationReport;
 }
 
 export interface Overview {
