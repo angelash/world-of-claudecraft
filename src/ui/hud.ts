@@ -3901,6 +3901,20 @@ export class Hud {
         return t('hudChrome.aiSpeech.memoryRecognizesPlayer', { speakerName, playerName: String(values.playerName ?? this.sim.player.name) });
       case 'hudChrome.aiSpeech.memoryRumorEcho':
         return t('hudChrome.aiSpeech.memoryRumorEcho', { speakerName, playerName: String(values.playerName ?? this.sim.player.name), itemName });
+      case 'hudChrome.aiSpeech.memoryPriestRecognizesPlayer':
+      case 'hudChrome.aiSpeech.memoryMerchantRecognizesPlayer':
+      case 'hudChrome.aiSpeech.memorySmithRecognizesPlayer':
+      case 'hudChrome.aiSpeech.memoryScoutRecognizesPlayer':
+      case 'hudChrome.aiSpeech.memoryLoremasterRecognizesPlayer':
+      case 'hudChrome.aiSpeech.memoryTidewatcherRecognizesPlayer':
+        return t(ev.speech.lineId as TranslationKey, { speakerName, playerName: String(values.playerName ?? this.sim.player.name) });
+      case 'hudChrome.aiSpeech.memoryPriestRumorEcho':
+      case 'hudChrome.aiSpeech.memoryMerchantRumorEcho':
+      case 'hudChrome.aiSpeech.memorySmithRumorEcho':
+      case 'hudChrome.aiSpeech.memoryScoutRumorEcho':
+      case 'hudChrome.aiSpeech.memoryLoremasterRumorEcho':
+      case 'hudChrome.aiSpeech.memoryTidewatcherRumorEcho':
+        return t(ev.speech.lineId as TranslationKey, { speakerName, playerName: String(values.playerName ?? this.sim.player.name), itemName });
       default:
         return t('hudChrome.aiSpeech.genericNpcAwake', { speakerName: ev.speakerName });
     }

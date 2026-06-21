@@ -32,6 +32,18 @@ export interface AiQuestFact {
   source: string;
 }
 
+export interface AiProfileSnapshot {
+  profileId: string;
+  persona: string;
+  knowledgeScope: string[];
+  tabooTopics: string[];
+  socialMemory?: {
+    style: string;
+    recognitionLineId: string;
+    rumorLineId: string;
+  };
+}
+
 export interface AiJobContextV1 {
   schemaVersion: 1;
   jobId: string;
@@ -39,6 +51,7 @@ export interface AiJobContextV1 {
   entity: AiEntitySnapshot;
   player: AiPlayerSnapshot;
   locale: string;
+  profile?: AiProfileSnapshot;
   scene?: SceneFrameV1;
   familySemantics?: CompactFamilySemantics | null;
   questFacts: AiQuestFact[];

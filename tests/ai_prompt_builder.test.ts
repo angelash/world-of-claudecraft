@@ -9,6 +9,17 @@ const context: AiJobContextV1 = {
   entity: { kind: 'npc', entityId: 7, templateId: 'brother_aldric', name: 'Brother Aldric', level: 1, questIds: ['q_bones'], dead: false },
   player: { entityId: 1, name: 'Ari', level: 4, classId: 'hunter', activeQuestIds: ['q_bones'], completedQuestIds: [] },
   locale: 'en',
+  profile: {
+    profileId: 'npc.brother_aldric.living_world',
+    persona: 'A worried priest who reads weather, graves, and player choices as omens.',
+    knowledgeScope: ['chapel rites', 'restless dead'],
+    tabooTopics: ['hidden quest conclusions'],
+    socialMemory: {
+      style: 'Recognizes repeated visitors as names carried by the dead and by chapel road whispers.',
+      recognitionLineId: 'hudChrome.aiSpeech.memoryPriestRecognizesPlayer',
+      rumorLineId: 'hudChrome.aiSpeech.memoryPriestRumorEcho',
+    },
+  },
   scene: {
     zoneId: 'eastbrook_vale',
     subsceneId: 'fallen_chapel',
@@ -43,6 +54,10 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('deathPressure');
     expect(prompt).toContain('undead=0.70');
     expect(prompt).toContain('q_bones:currentObjective');
+    expect(prompt).toContain('Profile: npc.brother_aldric.living_world');
+    expect(prompt).toContain('Knowledge scope: chapel rites, restless dead');
+    expect(prompt).toContain('Taboo topics: hidden quest conclusions');
+    expect(prompt).toContain('Social memory style: Recognizes repeated visitors');
     expect(prompt).toContain('Return only JSON');
   });
 });

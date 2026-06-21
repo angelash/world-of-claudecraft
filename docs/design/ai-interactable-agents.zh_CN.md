@@ -1555,11 +1555,12 @@ tests/ai_canon_guard.test.ts
 - NPC 后续在同一场景与同一玩家交互时，可以提起刚刚被留下的物件；rumor 使用 sim time 衰减和过期，不会永久污染世界。
 - HUD 已支持 `hudChrome.aiSpeech.memoryRecognizesPlayer` 和 `hudChrome.aiSpeech.memoryRumorEcho` 两条 lineId，本地化产物已登记 pending。
 - `tests/ai_social_memory.test.ts` 覆盖互动记忆、rumor 衰减、过期、同场景和同来源边界；`tests/server_ai_interact.test.ts` 覆盖真实 `discard` 到 NPC gossip 的可玩链路。
+- Brother Aldric、The Merchant、Smith Haldren、Scout Maren、Loremaster Caddis、Tidewatcher Ondrel 已接入 profile 级 knowledgeScope、tabooTopics 和社交记忆 lineId，让记忆与传闻有不同角色口吻。
 
 后续仍需完成：
 
 - 持久化 relationship、rumor、scene、creature、world memory，并增加迁移和保存回读测试。
-- 扩展 named NPC profile、rumor 风格和 knowledgeScope。
+- 继续扩展剩余 named NPC profile、rumor 风格和 knowledgeScope，直到所有重要 NPC 都有明确配置。
 - 在 gossip UI 增加“询问近况”、“询问传闻”、“询问地点”、“询问任务线索”的实验入口。
 - 将 rumor write、memory write 和 world trace write 统一进审计日志和 Codex job schema。
 - 补齐跨 NPC、跨区域和任务完成后的传闻传播验证。

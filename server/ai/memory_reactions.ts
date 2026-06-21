@@ -9,14 +9,14 @@ export function memoryReactionEvent(
   rumor: AiRumorMemory | null,
 ): SimEvent | null {
   if (rumor) {
-    return line(context, speaker, 'hudChrome.aiSpeech.memoryRumorEcho', {
+    return line(context, speaker, context.profile?.socialMemory?.rumorLineId ?? 'hudChrome.aiSpeech.memoryRumorEcho', {
       speakerName: speaker.name,
       playerName: context.player.name,
       itemId: rumor.itemId,
     });
   }
   if (memory.interactionCount >= 2) {
-    return line(context, speaker, 'hudChrome.aiSpeech.memoryRecognizesPlayer', {
+    return line(context, speaker, context.profile?.socialMemory?.recognitionLineId ?? 'hudChrome.aiSpeech.memoryRecognizesPlayer', {
       speakerName: speaker.name,
       playerName: context.player.name,
       count: memory.interactionCount,

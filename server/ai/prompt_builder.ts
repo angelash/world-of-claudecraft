@@ -22,6 +22,15 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
     `Allowed lineIds: ${(context.allowedLineIds ?? []).join(', ') || 'none provided'}`,
     `Quest facts visible to player: ${context.questFacts.map((fact) => `${fact.questId}:${fact.visibility}`).join(', ') || 'none'}`,
   ];
+  if (context.profile) {
+    lines.push(
+      `Profile: ${context.profile.profileId}`,
+      `Persona: ${context.profile.persona}`,
+      `Knowledge scope: ${context.profile.knowledgeScope.join(', ') || 'local scene only'}`,
+      `Taboo topics: ${context.profile.tabooTopics.join(', ') || 'none'}`,
+      `Social memory style: ${context.profile.socialMemory?.style ?? 'grounded local recollection'}`,
+    );
+  }
   if (scene) {
     lines.push(
       `Scene: ${scene.subsceneId ?? scene.zoneId}`,

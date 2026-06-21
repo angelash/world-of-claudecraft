@@ -13,7 +13,7 @@ import { FakeAiProvider } from './fake_ai_provider';
 import { nearbyReactionCandidates, rankItemReactions } from './item_interest';
 import { validateAiDecision } from './intent_validator';
 import { memoryReactionEvent } from './memory_reactions';
-import { profileFor } from './profiles';
+import { compactProfileSnapshot, profileFor } from './profiles';
 import { droppedItemSemantic, sceneFrameFor } from './scene_frame';
 import { sceneAwarenessEvent } from './scene_reactions';
 import { AiSocialMemoryStore } from './social_memory';
@@ -203,6 +203,7 @@ export class AiLifeLayer {
         completedQuestIds: [...meta.questsDone],
       },
       locale: normalizeLocale(request.locale),
+      profile: compactProfileSnapshot(profile),
       scene,
       familySemantics: compactFamilySemanticsForEntity(npc),
       questFacts,

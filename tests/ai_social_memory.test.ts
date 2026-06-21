@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AiJobContextV1 } from '../server/ai/ai_types';
 import { memoryReactionEvent } from '../server/ai/memory_reactions';
+import { compactProfileSnapshot, profileFor } from '../server/ai/profiles';
 import { AiSocialMemoryStore } from '../server/ai/social_memory';
 import type { Entity } from '../src/sim/types';
 
@@ -65,6 +66,59 @@ describe('AI social memory', () => {
     expect(memoryReactionEvent(context, speaker, second, rumor)).toMatchObject({
       speech: { lineId: 'hudChrome.aiSpeech.memoryRumorEcho' },
     });
+  });
+
+  it('uses profile-specific recognition and rumor lines when available', () => {
+    const profiledContext: AiJobContextV1 = {
+      ...context,
+      profile: {
+        profileId: 'npc.brother_aldric.living_world',
+        persona: 'A worried priest who reads weather, graves, and player choices as omens.',
+        knowledgeScope: ['chapel rites'],
+        tabooTopics: ['hidden quest conclusions'],
+        socialMemory: {
+          style: 'chapel road memory',
+          recognitionLineId: 'hudChrome.aiSpeech.memoryPriestRecognizesPlayer',
+          rumorLineId: 'hudChrome.aiSpeech.memoryPriestRumorEcho',
+        },
+      },
+    };
+    const store = new AiSocialMemoryStore();
+    store.noteNpcInteraction(profiledContext, 0);
+    const second = store.noteNpcInteraction(profiledContext, 1);
+
+    expect(memoryReactionEvent(profiledContext, speaker, second, null)).toMatchObject({
+      speech: { lineId: 'hudChrome.aiSpeech.memoryPriestRecognizesPlayer' },
+    });
+    const rumor = store.noteItemRumor({
+      sceneId: 'eastbrook_forge',
+      itemId: 'roasted_boar',
+      sourcePlayerEntityId: 1,
+      lineIds: ['hudChrome.aiSpeech.itemInterestApproach'],
+      nowSeconds: 2,
+    });
+    expect(memoryReactionEvent(profiledContext, speaker, second, rumor)).toMatchObject({
+      speech: { lineId: 'hudChrome.aiSpeech.memoryPriestRumorEcho' },
+    });
+  });
+
+  it('keeps named NPC social profile snapshots distinct', () => {
+    const expected = [
+      ['brother_aldric', 'hudChrome.aiSpeech.memoryPriestRumorEcho'],
+      ['the_merchant', 'hudChrome.aiSpeech.memoryMerchantRumorEcho'],
+      ['smith_haldren', 'hudChrome.aiSpeech.memorySmithRumorEcho'],
+      ['scout_maren', 'hudChrome.aiSpeech.memoryScoutRumorEcho'],
+      ['loremaster_caddis', 'hudChrome.aiSpeech.memoryLoremasterRumorEcho'],
+      ['tidewatcher_ondrel', 'hudChrome.aiSpeech.memoryTidewatcherRumorEcho'],
+    ] as const;
+
+    for (const [templateId, rumorLineId] of expected) {
+      const snapshot = compactProfileSnapshot(profileFor('npc', templateId));
+      expect(snapshot.profileId).not.toBe('npc.generic.living_world');
+      expect(snapshot.knowledgeScope.length).toBeGreaterThan(0);
+      expect(snapshot.tabooTopics.length).toBeGreaterThan(0);
+      expect(snapshot.socialMemory?.rumorLineId).toBe(rumorLineId);
+    }
   });
 
   it('keeps item rumors short-lived, scene-scoped, and source-player scoped', () => {
