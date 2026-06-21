@@ -178,6 +178,51 @@ export class AiLifeLayer {
     if (!object || object.kind !== 'object') return;
     const event = objectInspectionEvent(context, object);
     if (!event) return;
+    const events: SimEvent[] = [event];
+    const lineIds = event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [];
+    const inspectedItem = object.objectItemId ? droppedItemSemantic(object.objectItemId, 0, request.pid) : null;
+    if (inspectedItem && context.scene) {
+      const reactions = rankItemReactions(
+        context.scene,
+        inspectedItem,
+        nearbyReactionCandidates(context.scene, request.sim.entities.values(), object),
+        { worldSeed: request.sim.cfg.seed },
+      ).slice(0, 2);
+      lineIds.push(...reactions.map((reaction) => reaction.lineId));
+      this.socialMemory.noteItemRumor({
+        sceneId: context.scene.subsceneId ?? context.scene.zoneId,
+        itemId: inspectedItem.itemId,
+        sourcePlayerEntityId: request.pid,
+        lineIds,
+        nowSeconds: request.sim.time,
+      });
+      events.push(...reactions.map((reaction) => ({
+        type: 'aiSpeech' as const,
+        speakerId: reaction.entity.id,
+        speakerName: reaction.entity.name,
+        speech: {
+          mode: 'lineId' as const,
+          lineId: reaction.lineId,
+          values: {
+            speakerName: reaction.entity.name,
+            itemId: inspectedItem.itemId,
+            reaction: reaction.reaction,
+            score: Math.round(reaction.score * 100),
+          },
+        },
+        source: 'fallback' as const,
+        reaction: {
+          kind: reaction.reaction,
+          targetItemId: inspectedItem.itemId,
+          targetObjectId: object.id,
+          score: Math.round(reaction.score * 100) / 100,
+          sceneTags: [...new Set([...context.scene!.locationTags, ...context.scene!.structureTags, ...context.scene!.environmentalTags])].slice(0, 8),
+          individualTier: reaction.individual?.tier,
+          individualTraits: reaction.individual?.traits,
+        },
+        pid: request.pid,
+      })));
+    }
     this.journal.recordLocalReaction({
       jobId: context.jobId,
       trigger: 'object_inspected',
@@ -185,11 +230,11 @@ export class AiLifeLayer {
       templateId: object.templateId,
       playerEntityId: request.pid,
       reason: `inspect:${object.objectItemId ?? object.templateId}`,
-      lineIds: event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [],
+      lineIds,
       intents: ['inspectObject', 'commentOnScene'],
       sceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? null,
     });
-    request.deliver([event]);
+    request.deliver(events);
   }
 
   private buildNpcContext(request: NpcAiInteractionRequest): AiJobContextV1 | null {

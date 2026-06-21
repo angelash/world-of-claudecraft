@@ -228,6 +228,41 @@ describe('server AI interact command', () => {
     expect(eventsOf(fc, 'aiSpeech').filter((event) => event.speech.lineId === 'hudChrome.aiSpeech.objectInspectGrave')).toHaveLength(1);
   });
 
+  it('turns inspected objects into nearby reactions and short-term NPC rumors', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const object = [...server.sim.entities.values()].find((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil')!;
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
+    npc.pos.x = object.pos.x + 2;
+    npc.pos.z = object.pos.z;
+    npc.pos.y = groundHeight(npc.pos.x, npc.pos.z, server.sim.cfg.seed);
+    npc.prevPos = { ...npc.pos };
+    server.sim.grid.update(npc);
+    teleportNear(server, session.pid, object.id);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_object', object: object.id, locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech').some((event) =>
+      event.speakerId !== object.id
+      && event.pid === session.pid
+      && /^hudChrome\.aiSpeech\.(itemInterest|singularity)(Approach|Avoid|Inspect)$/.test(event.speech.lineId)
+      && event.reaction?.targetItemId === 'gravecaller_sigil'
+      && event.reaction?.targetObjectId === object.id,
+    )).toBe(true);
+
+    teleportNear(server, session.pid, npc.id);
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.memoryPriestRumorEcho' }),
+      pid: session.pid,
+    }));
+  });
+
   it('turns a discarded item into a local scene-interest reaction without leaving loot behind', async () => {
     const server = new GameServer();
     const fc = fakeWs();
