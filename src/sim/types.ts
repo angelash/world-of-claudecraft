@@ -945,6 +945,8 @@ export type SimEvent = { pid?: number } & (
         targetItemId?: string;
         score?: number;
         sceneTags?: string[];
+        individualTier?: 'none' | 'quirk' | 'singularity';
+        individualTraits?: string[];
       };
     }
   | { type: 'questAccepted'; questId: string }

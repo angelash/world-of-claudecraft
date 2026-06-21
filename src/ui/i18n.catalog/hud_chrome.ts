@@ -124,6 +124,9 @@ export const hudChromeStrings = {
     itemInterestApproach: "{speakerName} notices {itemName} and edges closer.",
     itemInterestAvoid: "{speakerName} pulls back from {itemName}.",
     itemInterestInspect: "{speakerName} studies {itemName} with wary interest.",
+    singularityApproach: "{speakerName} reacts unlike the others, guarding {itemName} with strange focus.",
+    singularityAvoid: "{speakerName} freezes, then backs away from {itemName} with almost personal fear.",
+    singularityInspect: "{speakerName} watches {itemName} too carefully, as if forming a memory.",
     unknownItem: "something left behind",
   },
   // CLDR-categorized count strings resolved through tPlural(base, count) in

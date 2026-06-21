@@ -3876,6 +3876,12 @@ export class Hud {
         return t('hudChrome.aiSpeech.itemInterestAvoid', { speakerName, itemName });
       case 'hudChrome.aiSpeech.itemInterestInspect':
         return t('hudChrome.aiSpeech.itemInterestInspect', { speakerName, itemName });
+      case 'hudChrome.aiSpeech.singularityApproach':
+        return t('hudChrome.aiSpeech.singularityApproach', { speakerName, itemName });
+      case 'hudChrome.aiSpeech.singularityAvoid':
+        return t('hudChrome.aiSpeech.singularityAvoid', { speakerName, itemName });
+      case 'hudChrome.aiSpeech.singularityInspect':
+        return t('hudChrome.aiSpeech.singularityInspect', { speakerName, itemName });
       default:
         return t('hudChrome.aiSpeech.genericNpcAwake', { speakerName: ev.speakerName });
     }

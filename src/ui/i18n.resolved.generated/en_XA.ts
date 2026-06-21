@@ -248,6 +248,9 @@ export const en_XA: EnTranslations = {
       "itemInterestApproach": "[{speakerName} ñóţíçéš {itemName} áñð éðĝéš çļóšéŕ.]",
       "itemInterestAvoid": "[{speakerName} þúļļš ƀáçķ ƒŕóɱ {itemName}.]",
       "itemInterestInspect": "[{speakerName} šţúðíéš {itemName} ŵíţĥ ŵáŕý íñţéŕéšţ.]",
+      "singularityApproach": "[{speakerName} ŕéáçţš úñļíķé ţĥé óţĥéŕš, ĝúáŕðíñĝ {itemName} ŵíţĥ šţŕáñĝé ƒóçúš.]",
+      "singularityAvoid": "[{speakerName} ƒŕééžéš, ţĥéñ ƀáçķš áŵáý ƒŕóɱ {itemName} ŵíţĥ áļɱóšţ þéŕšóñáļ ƒéáŕ.]",
+      "singularityInspect": "[{speakerName} ŵáţçĥéš {itemName} ţóó çáŕéƒúļļý, áš íƒ ƒóŕɱíñĝ á ɱéɱóŕý.]",
       "unknownItem": "[šóɱéţĥíñĝ ļéƒţ ƀéĥíñð]"
     },
     "plurals": {

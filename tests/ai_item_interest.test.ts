@@ -64,4 +64,15 @@ describe('AI item interest', () => {
     expect(reactions[0].entity.templateId).toBe('forest_wolf');
     expect(reactions[0].reaction).toBe('approach');
   });
+
+  it('can surface a singularity line for an otherwise ordinary nearby mob', () => {
+    const reaction = scoreItemReaction(
+      frame(),
+      droppedItemSemantic('roasted_boar', 0, 99)!,
+      entity(4, 'forest_wolf'),
+      { worldSeed: 1, quirkThreshold: 0, singularityThreshold: 0 },
+    );
+    expect(reaction.individual?.tier).toBe('singularity');
+    expect(reaction.lineId.startsWith('hudChrome.aiSpeech.singularity')).toBe(true);
+  });
 });

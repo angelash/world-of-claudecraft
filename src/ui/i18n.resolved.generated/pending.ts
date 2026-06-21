@@ -16,6 +16,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.itemInterestAvoid",
     "hudChrome.aiSpeech.itemInterestInspect",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.singularityApproach",
+    "hudChrome.aiSpeech.singularityAvoid",
+    "hudChrome.aiSpeech.singularityInspect",
     "hudChrome.aiSpeech.unknownItem"
   ],
   "es_ES": [
@@ -25,6 +28,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.itemInterestAvoid",
     "hudChrome.aiSpeech.itemInterestInspect",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.singularityApproach",
+    "hudChrome.aiSpeech.singularityAvoid",
+    "hudChrome.aiSpeech.singularityInspect",
     "hudChrome.aiSpeech.unknownItem"
   ],
   "fr_FR": [
@@ -34,6 +40,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.itemInterestAvoid",
     "hudChrome.aiSpeech.itemInterestInspect",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.singularityApproach",
+    "hudChrome.aiSpeech.singularityAvoid",
+    "hudChrome.aiSpeech.singularityInspect",
     "hudChrome.aiSpeech.unknownItem"
   ],
   "fr_CA": [
@@ -43,6 +52,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.itemInterestAvoid",
     "hudChrome.aiSpeech.itemInterestInspect",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.singularityApproach",
+    "hudChrome.aiSpeech.singularityAvoid",
+    "hudChrome.aiSpeech.singularityInspect",
     "hudChrome.aiSpeech.unknownItem"
   ],
   "en_CA": [],
@@ -53,6 +65,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.itemInterestAvoid",
     "hudChrome.aiSpeech.itemInterestInspect",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.singularityApproach",
+    "hudChrome.aiSpeech.singularityAvoid",
+    "hudChrome.aiSpeech.singularityInspect",
     "hudChrome.aiSpeech.unknownItem"
   ],
   "de_DE": [
@@ -62,6 +77,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.itemInterestAvoid",
     "hudChrome.aiSpeech.itemInterestInspect",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.singularityApproach",
+    "hudChrome.aiSpeech.singularityAvoid",
+    "hudChrome.aiSpeech.singularityInspect",
     "hudChrome.aiSpeech.unknownItem"
   ],
   "zh_CN": [
@@ -71,6 +89,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.itemInterestAvoid",
     "hudChrome.aiSpeech.itemInterestInspect",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.singularityApproach",
+    "hudChrome.aiSpeech.singularityAvoid",
+    "hudChrome.aiSpeech.singularityInspect",
     "hudChrome.aiSpeech.unknownItem"
   ],
   "zh_TW": [
@@ -80,6 +101,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.itemInterestAvoid",
     "hudChrome.aiSpeech.itemInterestInspect",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.singularityApproach",
+    "hudChrome.aiSpeech.singularityAvoid",
+    "hudChrome.aiSpeech.singularityInspect",
     "hudChrome.aiSpeech.unknownItem"
   ],
   "ko_KR": [
@@ -89,6 +113,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.itemInterestAvoid",
     "hudChrome.aiSpeech.itemInterestInspect",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.singularityApproach",
+    "hudChrome.aiSpeech.singularityAvoid",
+    "hudChrome.aiSpeech.singularityInspect",
     "hudChrome.aiSpeech.unknownItem"
   ],
   "ja_JP": [
@@ -98,6 +125,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.itemInterestAvoid",
     "hudChrome.aiSpeech.itemInterestInspect",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.singularityApproach",
+    "hudChrome.aiSpeech.singularityAvoid",
+    "hudChrome.aiSpeech.singularityInspect",
     "hudChrome.aiSpeech.unknownItem"
   ],
   "pt_BR": [
@@ -107,6 +137,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.itemInterestAvoid",
     "hudChrome.aiSpeech.itemInterestInspect",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.singularityApproach",
+    "hudChrome.aiSpeech.singularityAvoid",
+    "hudChrome.aiSpeech.singularityInspect",
     "hudChrome.aiSpeech.unknownItem"
   ],
   "ru_RU": [
@@ -116,6 +149,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.itemInterestAvoid",
     "hudChrome.aiSpeech.itemInterestInspect",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.singularityApproach",
+    "hudChrome.aiSpeech.singularityAvoid",
+    "hudChrome.aiSpeech.singularityInspect",
     "hudChrome.aiSpeech.unknownItem"
   ]
 };

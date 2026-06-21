@@ -2,6 +2,8 @@ import { ITEMS, MOBS } from '../../src/sim/data';
 import type { Entity, MobFamily } from '../../src/sim/types';
 import type { DroppedItemSemantic, SceneFrameV1 } from './scene_frame';
 import { familySemanticsFor, mobFamilyForEntity } from './family_semantics';
+import { individualProfileFor, applyIndividualBiasToItemReaction } from './singularity';
+import type { IndividualAiProfile } from './singularity';
 
 export type ItemReactionKind = 'approach' | 'avoid' | 'inspect' | 'ignore';
 
@@ -22,6 +24,7 @@ export interface ItemInterestReaction {
   curiosity: number;
   reasonTags: string[];
   lineId: string;
+  individual?: IndividualAiProfile;
 }
 
 export function itemSemanticFor(itemId: string): ItemSemantic {
@@ -83,14 +86,30 @@ export function itemSemanticFor(itemId: string): ItemSemantic {
   };
 }
 
-export function rankItemReactions(scene: SceneFrameV1, item: DroppedItemSemantic, candidates: Entity[]): ItemInterestReaction[] {
+export interface ItemReactionOptions {
+  worldSeed?: number;
+  singularityThreshold?: number;
+  quirkThreshold?: number;
+}
+
+export function rankItemReactions(
+  scene: SceneFrameV1,
+  item: DroppedItemSemantic,
+  candidates: Entity[],
+  options: ItemReactionOptions = {},
+): ItemInterestReaction[] {
   return candidates
-    .map((entity) => scoreItemReaction(scene, item, entity))
+    .map((entity) => scoreItemReaction(scene, item, entity, options))
     .filter((reaction) => reaction.reaction !== 'ignore')
     .sort((a, b) => b.score - a.score || a.entity.id - b.entity.id);
 }
 
-export function scoreItemReaction(scene: SceneFrameV1, item: DroppedItemSemantic, entity: Entity): ItemInterestReaction {
+export function scoreItemReaction(
+  scene: SceneFrameV1,
+  item: DroppedItemSemantic,
+  entity: Entity,
+  options: ItemReactionOptions = {},
+): ItemInterestReaction {
   const family = mobFamilyForEntity(entity);
   if (entity.kind !== 'mob' && entity.kind !== 'npc') return ignored(entity, family);
   if (entity.dead) return ignored(entity, family);
@@ -118,9 +137,20 @@ export function scoreItemReaction(scene: SceneFrameV1, item: DroppedItemSemantic
 
   curiosity = clamp01(curiosity);
   fear = clamp01(fear);
-  const score = clamp01(Math.max(curiosity, fear) - safeTownCaution);
+  let score = clamp01(Math.max(curiosity, fear) - safeTownCaution);
   if (score < 0.28) return ignored(entity, family);
-  const reaction: ItemReactionKind = fear > curiosity + 0.12 ? 'avoid' : curiosity > 0.62 ? 'approach' : 'inspect';
+  let reaction: ItemReactionKind = fear > curiosity + 0.12 ? 'avoid' : curiosity > 0.62 ? 'approach' : 'inspect';
+  let lineId = lineIdForReaction(reaction);
+  const individual = individualProfileFor(entity, options.worldSeed ?? 0, {
+    singularityThreshold: options.singularityThreshold,
+    quirkThreshold: options.quirkThreshold,
+  });
+  const biased = applyIndividualBiasToItemReaction({ reaction, score, fear, curiosity, lineId }, individual, item, scene);
+  reaction = biased.reaction;
+  score = biased.score;
+  fear = biased.fear;
+  curiosity = biased.curiosity;
+  lineId = biased.lineId;
   return {
     entity,
     family,
@@ -129,7 +159,8 @@ export function scoreItemReaction(scene: SceneFrameV1, item: DroppedItemSemantic
     fear,
     curiosity,
     reasonTags: explainTags(item, reaction, scene),
-    lineId: lineIdForReaction(reaction),
+    lineId,
+    individual,
   };
 }
 
@@ -146,7 +177,7 @@ export function nearbyReactionCandidates(scene: SceneFrameV1, entities: Iterable
 }
 
 function ignored(entity: Entity, family: MobFamily | null): ItemInterestReaction {
-  return { entity, family, reaction: 'ignore', score: 0, fear: 0, curiosity: 0, reasonTags: [], lineId: 'hudChrome.aiSpeech.itemInterestInspect' };
+  return { entity, family, reaction: 'ignore', score: 0, fear: 0, curiosity: 0, reasonTags: [], lineId: 'hudChrome.aiSpeech.itemInterestInspect', individual: individualProfileFor(entity, 0) };
 }
 
 function lineIdForReaction(reaction: ItemReactionKind): string {

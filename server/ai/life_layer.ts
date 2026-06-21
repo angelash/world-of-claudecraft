@@ -72,7 +72,7 @@ export class AiLifeLayer {
       recentSceneEvents: [`playerDiscarded:${request.itemId}`],
     });
     const candidates = nearbyReactionCandidates(scene, request.sim.entities.values(), player);
-    const reactions = rankItemReactions(scene, dropped, candidates).slice(0, 2);
+    const reactions = rankItemReactions(scene, dropped, candidates, { worldSeed: request.sim.cfg.seed }).slice(0, 2);
     const events: SimEvent[] = reactions.map((reaction) => ({
       type: 'aiSpeech',
       speakerId: reaction.entity.id,
@@ -93,6 +93,8 @@ export class AiLifeLayer {
         targetItemId: dropped.itemId,
         score: Math.round(reaction.score * 100) / 100,
         sceneTags: [...new Set([...scene.locationTags, ...scene.structureTags, ...scene.environmentalTags])].slice(0, 8),
+        individualTier: reaction.individual?.tier,
+        individualTraits: reaction.individual?.traits,
       },
       pid: request.pid,
     }));
