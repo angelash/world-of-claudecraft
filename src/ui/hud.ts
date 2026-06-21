@@ -3867,6 +3867,7 @@ export class Hud {
     const companionName = this.aiSpeechCompanionName(values);
     const objectName = this.aiSpeechObjectName(values);
     const bossName = this.aiSpeechBossName(values);
+    const questName = this.aiSpeechQuestName(values);
     switch (ev.speech.lineId) {
       case 'hudChrome.aiSpeech.brotherAldricAwake':
         return t('hudChrome.aiSpeech.brotherAldricAwake', { playerName: String(values.playerName ?? this.sim.player.name) });
@@ -3937,6 +3938,14 @@ export class Hud {
       case 'hudChrome.aiSpeech.memoryLoremasterRumorEcho':
       case 'hudChrome.aiSpeech.memoryTidewatcherRumorEcho':
         return t(ev.speech.lineId as TranslationKey, { speakerName, playerName: String(values.playerName ?? this.sim.player.name), itemName });
+      case 'hudChrome.aiSpeech.memoryQuestRumorEcho':
+      case 'hudChrome.aiSpeech.memoryPriestQuestRumorEcho':
+      case 'hudChrome.aiSpeech.memoryMerchantQuestRumorEcho':
+      case 'hudChrome.aiSpeech.memorySmithQuestRumorEcho':
+      case 'hudChrome.aiSpeech.memoryScoutQuestRumorEcho':
+      case 'hudChrome.aiSpeech.memoryLoremasterQuestRumorEcho':
+      case 'hudChrome.aiSpeech.memoryTidewatcherQuestRumorEcho':
+        return t(ev.speech.lineId as TranslationKey, { speakerName, playerName: String(values.playerName ?? this.sim.player.name), questName });
       case 'hudChrome.aiSpeech.topicRecentFirstMeet':
       case 'hudChrome.aiSpeech.topicRecentKnown':
       case 'hudChrome.aiSpeech.topicRumorQuiet':
@@ -4013,6 +4022,12 @@ export class Hud {
     const templateId = typeof values.bossTemplateId === 'string' ? values.bossTemplateId : '';
     if (templateId && MOBS[templateId]) return mobDisplayName(templateId);
     return typeof values.bossName === 'string' ? values.bossName : t('hudChrome.aiSpeech.unknownBoss');
+  }
+
+  private aiSpeechQuestName(values: Record<string, string | number>): string {
+    const questId = typeof values.questId === 'string' ? values.questId : '';
+    if (questId && QUESTS[questId]) return questTitle(questId);
+    return typeof values.questName === 'string' ? values.questName : t('hudChrome.aiSpeech.unknownQuest');
   }
 
   /** Replace the server-supplied soft word list (online play only). */

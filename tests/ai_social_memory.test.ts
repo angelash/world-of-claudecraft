@@ -81,6 +81,7 @@ describe('AI social memory', () => {
           style: 'chapel road memory',
           recognitionLineId: 'hudChrome.aiSpeech.memoryPriestRecognizesPlayer',
           rumorLineId: 'hudChrome.aiSpeech.memoryPriestRumorEcho',
+          questRumorLineId: 'hudChrome.aiSpeech.memoryPriestQuestRumorEcho',
         },
       },
     };
@@ -100,6 +101,21 @@ describe('AI social memory', () => {
     });
     expect(memoryReactionEvent(profiledContext, speaker, second, rumor)).toMatchObject({
       speech: { lineId: 'hudChrome.aiSpeech.memoryPriestRumorEcho' },
+    });
+
+    const questRumor = store.noteQuestRumor({
+      sceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
+      questId: 'q_wolves',
+      sourcePlayerEntityId: 1,
+      lineIds: ['hudChrome.aiSpeech.memoryQuestRumorEcho'],
+      nowSeconds: 3,
+    });
+    expect(memoryReactionEvent(profiledContext, speaker, second, questRumor)).toMatchObject({
+      speech: {
+        lineId: 'hudChrome.aiSpeech.memoryPriestQuestRumorEcho',
+        values: expect.objectContaining({ questId: 'q_wolves' }),
+      },
     });
   });
 
@@ -135,6 +151,7 @@ describe('AI social memory', () => {
       expect(snapshot.knowledgeScope.length).toBeGreaterThan(0);
       expect(snapshot.tabooTopics.length).toBeGreaterThan(0);
       expect(snapshot.socialMemory?.rumorLineId).toBe(rumorLineId);
+      expect(snapshot.socialMemory?.questRumorLineId).toMatch(/^hudChrome\.aiSpeech\.memory[A-Z].*QuestRumorEcho$/);
     }
   });
 
@@ -218,6 +235,49 @@ describe('AI social memory', () => {
       sceneId: 'mirror_lake_dock',
       playerEntityId: 1,
       nowSeconds: 15,
+    })).toBeNull();
+  });
+
+  it('keeps completed quest rumors scoped and identifiable as quest facts', () => {
+    const store = new AiSocialMemoryStore({ rumorTtlSeconds: 8 });
+    store.noteQuestRumor({
+      sceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
+      questId: 'q_wolves',
+      sourcePlayerEntityId: 1,
+      lineIds: ['hudChrome.aiSpeech.memoryQuestRumorEcho'],
+      nowSeconds: 20,
+    });
+
+    const rumor = store.rumorForRegion({
+      zoneId: 'eastbrook_vale',
+      sceneId: 'fallen_chapel',
+      playerEntityId: 1,
+      nowSeconds: 22,
+    });
+    expect(rumor).toMatchObject({
+      subjectKind: 'quest',
+      questId: 'q_wolves',
+      itemId: 'q_wolves',
+      scope: 'region',
+    });
+    expect(memoryReactionEvent(context, speaker, store.noteNpcInteraction(context, 22), rumor)).toMatchObject({
+      speech: {
+        lineId: 'hudChrome.aiSpeech.memoryQuestRumorEcho',
+        values: expect.objectContaining({ questId: 'q_wolves' }),
+      },
+    });
+    expect(store.rumorForRegion({
+      zoneId: 'mirefen_marsh',
+      sceneId: 'fenbridge_bridge',
+      playerEntityId: 1,
+      nowSeconds: 22,
+    })).toBeNull();
+    expect(store.rumorForRegion({
+      zoneId: 'eastbrook_vale',
+      sceneId: 'fallen_chapel',
+      playerEntityId: 1,
+      nowSeconds: 28,
     })).toBeNull();
   });
 });

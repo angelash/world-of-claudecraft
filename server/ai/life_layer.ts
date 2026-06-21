@@ -130,6 +130,34 @@ export class AiLifeLayer {
     if (!this.enabled || request.events.length === 0) return [];
     const out: SimEvent[] = [];
     for (const event of request.events) {
+      if (event.type === 'questDone') {
+        const player = this.playerForPid(request.sim, event.pid);
+        const quest = QUESTS[event.questId];
+        if (!player || !quest) continue;
+        const scene = sceneFrameFor(request.sim, player.pos);
+        const sceneId = scene.subsceneId ?? scene.zoneId;
+        const lineId = 'hudChrome.aiSpeech.memoryQuestRumorEcho';
+        this.socialMemory.noteQuestRumor({
+          sceneId,
+          zoneId: scene.zoneId,
+          questId: event.questId,
+          sourcePlayerEntityId: player.id,
+          lineIds: [lineId],
+          nowSeconds: request.sim.time,
+        });
+        this.journal.recordLocalReaction({
+          jobId: `quest-rumor-${player.id}-${++this.sequence}`,
+          trigger: 'quest_completed',
+          entityId: player.id,
+          templateId: player.templateId,
+          playerEntityId: player.id,
+          reason: `questDone:${event.questId}`,
+          lineIds: [lineId],
+          intents: ['rememberQuestFact', 'spreadRumor'],
+          sceneId,
+        });
+        continue;
+      }
       if (event.type === 'damage') {
         if (event.kind !== 'hit' || event.amount <= 0) continue;
         const target = request.sim.entities.get(event.targetId);
@@ -255,8 +283,8 @@ export class AiLifeLayer {
       nowSeconds: request.sim.time,
     });
     const rumor = sceneRumor ?? regionRumor;
-    if (sceneRumor) context.recentObservations.push(`sceneRumor:${sceneRumor.itemId}:${sceneRumor.strength.toFixed(2)}`);
-    if (regionRumor) context.recentObservations.push(`regionRumor:${regionRumor.originSceneId}:${regionRumor.itemId}:${regionRumor.strength.toFixed(2)}`);
+    if (sceneRumor) context.recentObservations.push(`${sceneRumor.subjectKind}SceneRumor:${sceneRumor.itemId}:${sceneRumor.strength.toFixed(2)}`);
+    if (regionRumor) context.recentObservations.push(`${regionRumor.subjectKind}RegionRumor:${regionRumor.originSceneId}:${regionRumor.itemId}:${regionRumor.strength.toFixed(2)}`);
     let decision: AiDecisionV1;
     try {
       decision = await this.provider.decide(context);

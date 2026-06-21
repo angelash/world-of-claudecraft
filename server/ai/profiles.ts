@@ -14,6 +14,7 @@ export interface AiAgentProfile {
     style: string;
     recognitionLineId: string;
     rumorLineId: string;
+    questRumorLineId?: string;
   };
   sceneAffinities?: {
     likesTags: string[];
@@ -70,6 +71,7 @@ export const AI_AGENT_PROFILES: readonly AiAgentProfile[] = [
       style: 'Recognizes repeated visitors as names carried by the dead and by chapel road whispers.',
       recognitionLineId: 'hudChrome.aiSpeech.memoryPriestRecognizesPlayer',
       rumorLineId: 'hudChrome.aiSpeech.memoryPriestRumorEcho',
+      questRumorLineId: 'hudChrome.aiSpeech.memoryPriestQuestRumorEcho',
     },
     sceneAffinities: {
       likesTags: ['chapel', 'graveyard', 'graveSoil', 'undeadMemory'],
@@ -97,6 +99,7 @@ export const AI_AGENT_PROFILES: readonly AiAgentProfile[] = [
       style: 'Turns memory into trade weather: who left what, what it may be worth, and who noticed.',
       recognitionLineId: 'hudChrome.aiSpeech.memoryMerchantRecognizesPlayer',
       rumorLineId: 'hudChrome.aiSpeech.memoryMerchantRumorEcho',
+      questRumorLineId: 'hudChrome.aiSpeech.memoryMerchantQuestRumorEcho',
     },
     sceneAffinities: {
       likesTags: ['market', 'safeTown', 'coin', 'road'],
@@ -123,6 +126,7 @@ export const AI_AGENT_PROFILES: readonly AiAgentProfile[] = [
       style: 'Frames rumors as marks on steel, workbench talk, and practical warnings.',
       recognitionLineId: 'hudChrome.aiSpeech.memorySmithRecognizesPlayer',
       rumorLineId: 'hudChrome.aiSpeech.memorySmithRumorEcho',
+      questRumorLineId: 'hudChrome.aiSpeech.memorySmithQuestRumorEcho',
     },
     sceneAffinities: {
       likesTags: ['forge', 'warmLight', 'market', 'safeTown'],
@@ -152,6 +156,7 @@ export const AI_AGENT_PROFILES: readonly AiAgentProfile[] = [
       style: 'Keeps memory terse: where the player was seen, what they left, and what that changes tactically.',
       recognitionLineId: 'hudChrome.aiSpeech.memoryScoutRecognizesPlayer',
       rumorLineId: 'hudChrome.aiSpeech.memoryScoutRumorEcho',
+      questRumorLineId: 'hudChrome.aiSpeech.memoryScoutQuestRumorEcho',
     },
     sceneAffinities: {
       likesTags: ['road', 'camp', 'bridge', 'highwatch', 'tower'],
@@ -178,6 +183,7 @@ export const AI_AGENT_PROFILES: readonly AiAgentProfile[] = [
       style: 'Speaks of rumors as notes, marginalia, and evidence that still needs a witness.',
       recognitionLineId: 'hudChrome.aiSpeech.memoryLoremasterRecognizesPlayer',
       rumorLineId: 'hudChrome.aiSpeech.memoryLoremasterRumorEcho',
+      questRumorLineId: 'hudChrome.aiSpeech.memoryLoremasterQuestRumorEcho',
     },
     sceneAffinities: {
       likesTags: ['tower', 'highwatch', 'ancient', 'ruins', 'starrySky'],
@@ -204,6 +210,7 @@ export const AI_AGENT_PROFILES: readonly AiAgentProfile[] = [
       style: 'Lets rumors sound like ripples: something left on shore, a name carried across water, a warning not yet proven.',
       recognitionLineId: 'hudChrome.aiSpeech.memoryTidewatcherRecognizesPlayer',
       rumorLineId: 'hudChrome.aiSpeech.memoryTidewatcherRumorEcho',
+      questRumorLineId: 'hudChrome.aiSpeech.memoryTidewatcherQuestRumorEcho',
     },
     sceneAffinities: {
       likesTags: ['lake', 'dock', 'moonlight', 'water', 'starrySky'],
@@ -232,6 +239,7 @@ export const GENERIC_NPC_AI_PROFILE: AiAgentProfile = {
     style: 'Keeps memory grounded in what was seen nearby.',
     recognitionLineId: 'hudChrome.aiSpeech.memoryRecognizesPlayer',
     rumorLineId: 'hudChrome.aiSpeech.memoryRumorEcho',
+    questRumorLineId: 'hudChrome.aiSpeech.memoryQuestRumorEcho',
   },
   sceneAffinities: {
     likesTags: ['safeTown', 'warmLight', 'road'],
@@ -266,6 +274,7 @@ export const GENERIC_OBJECT_AI_PROFILE: AiAgentProfile = {
     style: 'Stores only short-lived scene impressions, never quest state or rewards.',
     recognitionLineId: 'hudChrome.aiSpeech.objectInspectGeneric',
     rumorLineId: 'hudChrome.aiSpeech.objectInspectGeneric',
+    questRumorLineId: 'hudChrome.aiSpeech.memoryQuestRumorEcho',
   },
 };
 
@@ -285,6 +294,7 @@ export function compactProfileSnapshot(profile: AiAgentProfile): AiProfileSnapsh
       style: profile.socialMemory.style,
       recognitionLineId: profile.socialMemory.recognitionLineId,
       rumorLineId: profile.socialMemory.rumorLineId,
+      questRumorLineId: profile.socialMemory.questRumorLineId,
     },
   };
 }

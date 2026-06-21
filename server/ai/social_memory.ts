@@ -16,6 +16,8 @@ export interface AiRumorMemory {
   originSceneId: string;
   zoneId: string;
   itemId: string;
+  subjectKind: 'item' | 'quest';
+  questId?: string;
   sourcePlayerEntityId: number;
   lineIds: string[];
   strength: number;
@@ -70,6 +72,36 @@ export class AiSocialMemoryStore {
       originSceneId: input.sceneId,
       zoneId: input.zoneId ?? input.sceneId,
       itemId: input.itemId,
+      subjectKind: 'item',
+      sourcePlayerEntityId: input.sourcePlayerEntityId,
+      lineIds: [...input.lineIds],
+      strength: 1,
+      scope: 'scene',
+      createdAt: input.nowSeconds,
+      expiresAt: input.nowSeconds + this.rumorTtlSeconds,
+    };
+    this.rumors.unshift(rumor);
+    this.rumors.splice(12);
+    return rumor;
+  }
+
+  noteQuestRumor(input: {
+    sceneId: string;
+    zoneId?: string;
+    questId: string;
+    sourcePlayerEntityId: number;
+    lineIds: string[];
+    nowSeconds: number;
+  }): AiRumorMemory {
+    this.pruneRumors(input.nowSeconds);
+    const rumor: AiRumorMemory = {
+      rumorId: `rumor-${++this.rumorSequence}`,
+      sceneId: input.sceneId,
+      originSceneId: input.sceneId,
+      zoneId: input.zoneId ?? input.sceneId,
+      itemId: input.questId,
+      subjectKind: 'quest',
+      questId: input.questId,
       sourcePlayerEntityId: input.sourcePlayerEntityId,
       lineIds: [...input.lineIds],
       strength: 1,

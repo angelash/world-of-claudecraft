@@ -652,6 +652,56 @@ describe('server AI interact command', () => {
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
 
+  it('turns real quest completion into same-zone NPC rumors without deciding quest state', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const marshal = [...server.sim.entities.values()].find((entity) => entity.templateId === 'marshal_redbrook')!;
+    const priest = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
+    teleportNear(server, session.pid, marshal.id);
+    const meta = server.sim.meta(session.pid)!;
+    meta.questLog.set('q_wolves', { questId: 'q_wolves', counts: [8], state: 'ready' });
+    server.sim.events = [];
+    fc.sent.length = 0;
+
+    server.sim.turnInQuest('q_wolves', session.pid);
+    const questEvents = server.sim.tick();
+    routeSimEventsThroughAi(server, questEvents);
+
+    expect(questEvents).toContainEqual(expect.objectContaining({
+      type: 'questDone',
+      questId: 'q_wolves',
+      pid: session.pid,
+    }));
+    expect(meta.questsDone.has('q_wolves')).toBe(true);
+    expect(meta.questLog.has('q_wolves')).toBe(false);
+    const [rumor] = (server as any).aiLifeLayer.memoryDiagnostics().rumors;
+    expect(rumor).toMatchObject({
+      subjectKind: 'quest',
+      questId: 'q_wolves',
+      zoneId: 'eastbrook_vale',
+      sourcePlayerEntityId: session.pid,
+    });
+    const afterQuestLog = JSON.stringify([...meta.questLog]);
+    const afterDone = JSON.stringify([...meta.questsDone]);
+    fc.sent.length = 0;
+
+    teleportNear(server, session.pid, priest.id);
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: priest.id, locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: priest.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.memoryPriestQuestRumorEcho',
+        values: expect.objectContaining({ questId: 'q_wolves' }),
+      }),
+      pid: session.pid,
+    }));
+    expect(JSON.stringify([...meta.questLog])).toBe(afterQuestLog);
+    expect(JSON.stringify([...meta.questsDone])).toBe(afterDone);
+  });
+
   it('lets discarded item rumors expire before later NPC interactions', async () => {
     const server = new GameServer();
     const fc = fakeWs();

@@ -10,13 +10,16 @@ export function memoryReactionEvent(
   rumor: AiRumorMemory | null,
 ): SimEvent | null {
   if (rumor) {
-    const lineId = rumor.lineIds.some(isSingularityLineId)
+    const lineId = rumor.subjectKind === 'quest'
+      ? context.profile?.socialMemory?.questRumorLineId ?? 'hudChrome.aiSpeech.memoryQuestRumorEcho'
+      : rumor.lineIds.some(isSingularityLineId)
       ? 'hudChrome.aiSpeech.memorySingularityRumorEcho'
       : context.profile?.socialMemory?.rumorLineId ?? 'hudChrome.aiSpeech.memoryRumorEcho';
     return line(context, speaker, lineId, {
       speakerName: speaker.name,
       playerName: context.player.name,
       itemId: rumor.itemId,
+      questId: rumor.questId ?? rumor.itemId,
     });
   }
   if (memory.interactionCount >= 2) {

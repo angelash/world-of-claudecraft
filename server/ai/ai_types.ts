@@ -42,6 +42,7 @@ export interface AiProfileSnapshot {
     style: string;
     recognitionLineId: string;
     rumorLineId: string;
+    questRumorLineId?: string;
   };
 }
 
