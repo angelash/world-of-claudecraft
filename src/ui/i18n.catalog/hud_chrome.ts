@@ -127,7 +127,15 @@ export const hudChromeStrings = {
     singularityApproach: "{speakerName} reacts unlike the others, guarding {itemName} with strange focus.",
     singularityAvoid: "{speakerName} freezes, then backs away from {itemName} with almost personal fear.",
     singularityInspect: "{speakerName} watches {itemName} too carefully, as if forming a memory.",
+    companionUndeadFear: "{companionName} stays close; even {speakerName} notices the fear in this place.",
+    sceneUndeadPressure: "{speakerName} lowers their voice, uneasy with the dead so near.",
+    sceneRainWeariness: "Rain beads on {speakerName}'s shoulders; the answer comes shorter than usual.",
+    sceneFogUnease: "{speakerName} keeps watching the fog between words.",
+    sceneClearNightAwe: "{speakerName} steals a glance at the stars before speaking.",
+    sceneDayEnergy: "{speakerName} looks sharper in the daylight.",
+    sceneNightFatigue: "{speakerName}'s voice softens with late-night weariness.",
     unknownItem: "something left behind",
+    unknownCompanion: "your companion",
   },
   // CLDR-categorized count strings resolved through tPlural(base, count) in
   // src/ui/i18n.ts: it selects the active locale's cardinal category (one / few /

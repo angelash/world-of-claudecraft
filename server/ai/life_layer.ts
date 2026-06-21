@@ -12,6 +12,7 @@ import { nearbyReactionCandidates, rankItemReactions } from './item_interest';
 import { validateAiDecision } from './intent_validator';
 import { profileFor } from './profiles';
 import { droppedItemSemantic, sceneFrameFor } from './scene_frame';
+import { sceneAwarenessEvent } from './scene_reactions';
 
 export interface AiLifeLayerOptions {
   enabled?: boolean;
@@ -56,8 +57,11 @@ export class AiLifeLayer {
     const subject = classifyCanonSubject(npc);
     const decision = await this.provider.decide(context);
     const result = validateAiDecision({ decision, context, entity: npc, subject });
-    if (result.ok && result.events.length > 0) {
-      request.deliver(result.events);
+    if (result.ok) {
+      const events = [...result.events];
+      const sceneEvent = sceneAwarenessEvent(context, npc);
+      if (sceneEvent) events.push(sceneEvent);
+      if (events.length > 0) request.deliver(events);
     }
   }
 

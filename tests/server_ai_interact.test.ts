@@ -150,4 +150,22 @@ describe('server AI interact command', () => {
     expect(afterObjects).toBe(beforeObjects);
     expect(server.sim.countItem('roasted_boar', session.pid)).toBe(0);
   });
+
+  it('adds a scene-awareness line when an NPC is interacted with in a death-pressure area', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
+    npc.pos.x = 80;
+    npc.pos.z = 86;
+    npc.pos.y = groundHeight(npc.pos.x, npc.pos.z, server.sim.cfg.seed);
+    npc.prevPos = { ...npc.pos };
+    server.sim.grid.update(npc);
+    teleportNear(server, session.pid, npc.id);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.sceneUndeadPressure')).toBe(true);
+  });
 });

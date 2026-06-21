@@ -3863,6 +3863,7 @@ export class Hud {
     const values = ev.speech.values ?? {};
     const speakerName = String(values.speakerName ?? ev.speakerName);
     const itemName = this.aiSpeechItemName(values);
+    const companionName = this.aiSpeechCompanionName(values);
     switch (ev.speech.lineId) {
       case 'hudChrome.aiSpeech.brotherAldricAwake':
         return t('hudChrome.aiSpeech.brotherAldricAwake', { playerName: String(values.playerName ?? this.sim.player.name) });
@@ -3882,6 +3883,20 @@ export class Hud {
         return t('hudChrome.aiSpeech.singularityAvoid', { speakerName, itemName });
       case 'hudChrome.aiSpeech.singularityInspect':
         return t('hudChrome.aiSpeech.singularityInspect', { speakerName, itemName });
+      case 'hudChrome.aiSpeech.companionUndeadFear':
+        return t('hudChrome.aiSpeech.companionUndeadFear', { speakerName, companionName });
+      case 'hudChrome.aiSpeech.sceneUndeadPressure':
+        return t('hudChrome.aiSpeech.sceneUndeadPressure', { speakerName });
+      case 'hudChrome.aiSpeech.sceneRainWeariness':
+        return t('hudChrome.aiSpeech.sceneRainWeariness', { speakerName });
+      case 'hudChrome.aiSpeech.sceneFogUnease':
+        return t('hudChrome.aiSpeech.sceneFogUnease', { speakerName });
+      case 'hudChrome.aiSpeech.sceneClearNightAwe':
+        return t('hudChrome.aiSpeech.sceneClearNightAwe', { speakerName });
+      case 'hudChrome.aiSpeech.sceneDayEnergy':
+        return t('hudChrome.aiSpeech.sceneDayEnergy', { speakerName });
+      case 'hudChrome.aiSpeech.sceneNightFatigue':
+        return t('hudChrome.aiSpeech.sceneNightFatigue', { speakerName });
       default:
         return t('hudChrome.aiSpeech.genericNpcAwake', { speakerName: ev.speakerName });
     }
@@ -3892,6 +3907,12 @@ export class Hud {
     const item = itemId ? ITEMS[itemId] : undefined;
     if (item) return itemDisplayName(item);
     return typeof values.itemName === 'string' ? values.itemName : t('hudChrome.aiSpeech.unknownItem');
+  }
+
+  private aiSpeechCompanionName(values: Record<string, string | number>): string {
+    const templateId = typeof values.companionTemplateId === 'string' ? values.companionTemplateId : '';
+    if (templateId && MOBS[templateId]) return mobDisplayName(templateId);
+    return typeof values.companionName === 'string' ? values.companionName : t('hudChrome.aiSpeech.unknownCompanion');
   }
 
   /** Replace the server-supplied soft word list (online play only). */

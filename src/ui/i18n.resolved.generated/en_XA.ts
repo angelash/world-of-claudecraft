@@ -251,7 +251,15 @@ export const en_XA: EnTranslations = {
       "singularityApproach": "[{speakerName} ŕéáçţš úñļíķé ţĥé óţĥéŕš, ĝúáŕðíñĝ {itemName} ŵíţĥ šţŕáñĝé ƒóçúš.]",
       "singularityAvoid": "[{speakerName} ƒŕééžéš, ţĥéñ ƀáçķš áŵáý ƒŕóɱ {itemName} ŵíţĥ áļɱóšţ þéŕšóñáļ ƒéáŕ.]",
       "singularityInspect": "[{speakerName} ŵáţçĥéš {itemName} ţóó çáŕéƒúļļý, áš íƒ ƒóŕɱíñĝ á ɱéɱóŕý.]",
-      "unknownItem": "[šóɱéţĥíñĝ ļéƒţ ƀéĥíñð]"
+      "companionUndeadFear": "[{companionName} šţáýš çļóšé; éʋéñ {speakerName} ñóţíçéš ţĥé ƒéáŕ íñ ţĥíš þļáçé.]",
+      "sceneUndeadPressure": "[{speakerName} ļóŵéŕš ţĥéíŕ ʋóíçé, úñéášý ŵíţĥ ţĥé ðéáð šó ñéáŕ.]",
+      "sceneRainWeariness": "[Ŕáíñ ƀéáðš óñ {speakerName}'š šĥóúļðéŕš; ţĥé áñšŵéŕ çóɱéš šĥóŕţéŕ ţĥáñ úšúáļ.]",
+      "sceneFogUnease": "[{speakerName} ķééþš ŵáţçĥíñĝ ţĥé ƒóĝ ƀéţŵééñ ŵóŕðš.]",
+      "sceneClearNightAwe": "[{speakerName} šţéáļš á ĝļáñçé áţ ţĥé šţáŕš ƀéƒóŕé šþéáķíñĝ.]",
+      "sceneDayEnergy": "[{speakerName} ļóóķš šĥáŕþéŕ íñ ţĥé ðáýļíĝĥţ.]",
+      "sceneNightFatigue": "[{speakerName}'š ʋóíçé šóƒţéñš ŵíţĥ ļáţé-ñíĝĥţ ŵéáŕíñéšš.]",
+      "unknownItem": "[šóɱéţĥíñĝ ļéƒţ ƀéĥíñð]",
+      "unknownCompanion": "[ýóúŕ çóɱþáñíóñ]"
     },
     "plurals": {
       "guildMembers": {
