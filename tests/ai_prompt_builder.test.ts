@@ -28,7 +28,15 @@ const context: AiJobContextV1 = {
     locationTags: ['questSite', 'dungeonEntrance'],
     structureTags: ['ruinedChapel', 'cryptGate'],
     environmentalTags: ['deathPressure', 'graveSoil'],
-    nearbySemanticObjects: [],
+    nearbySemanticObjects: [{
+      source: 'sceneAnchor',
+      objectId: 'fallen_crypt_gate',
+      entityId: null,
+      templateId: 'scene_anchor:fallen_crypt_gate',
+      displayName: 'Crypt Gate',
+      tags: ['cryptGate', 'sealedAir', 'deathPressure', 'dungeonEntrance'],
+      distance: 6.5,
+    }],
     droppedItems: [],
     companions: [],
     time: { hour: 23, phase: 'night', isNight: true, tags: ['night'] },
@@ -60,6 +68,7 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('Knowledge scope: chapel rites, restless dead');
     expect(prompt).toContain('Taboo topics: hidden quest conclusions');
     expect(prompt).toContain('Social memory style: Recognizes repeated visitors');
+    expect(prompt).toContain('Nearby semantic objects: fallen_crypt_gate(cryptGate/sealedAir/deathPressure/dungeonEntrance, 6.5yd)');
     expect(prompt).toContain('Return only JSON');
   });
 });

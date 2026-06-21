@@ -44,6 +44,12 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
       `Time/weather: ${scene.time.phase}, ${scene.weather.kind}, light ${scene.light.level}`,
       `Danger: undead=${scene.danger.undeadPressure.toFixed(2)}, hostile=${scene.danger.hostileDensity.toFixed(2)}, safe=${scene.danger.safeHavenScore.toFixed(2)}`,
     );
+    if (scene.nearbySemanticObjects.length > 0) {
+      lines.push(`Nearby semantic objects: ${scene.nearbySemanticObjects
+        .slice(0, 6)
+        .map((object) => `${object.objectId}(${object.tags.slice(0, 4).join('/')}, ${object.distance}yd)`)
+        .join(', ')}`);
+    }
   }
   if (family) {
     lines.push(

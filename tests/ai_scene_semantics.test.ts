@@ -18,6 +18,24 @@ describe('AI scene semantics', () => {
     expect(scene.locationTags).toContain('safeTown');
   });
 
+  it('adds static building and environment anchors as semantic scene objects', () => {
+    const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+    const frame = sceneFrameFor(sim, pos(8, 17, sim.cfg.seed));
+    expect(frame.nearbySemanticObjects).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        source: 'sceneAnchor',
+        objectId: 'eastbrook_forge_hearth',
+        entityId: null,
+        tags: expect.arrayContaining(['forge', 'hotIron', 'sparks']),
+      }),
+      expect.objectContaining({
+        source: 'sceneAnchor',
+        objectId: 'eastbrook_smithy_house',
+        tags: expect.arrayContaining(['house', 'warmLight', 'livedIn']),
+      }),
+    ]));
+  });
+
   it('adds death pressure and low safe-haven score near the Fallen Chapel', () => {
     const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
     const frame = sceneFrameFor(sim, pos(80, 86, sim.cfg.seed));

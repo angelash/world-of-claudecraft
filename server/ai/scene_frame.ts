@@ -3,13 +3,14 @@ import type { Sim } from '../../src/sim/sim';
 import type { Entity, Vec3 } from '../../src/sim/types';
 import { dist2d } from '../../src/sim/types';
 import { itemSemanticFor } from './item_interest';
-import { sceneSemanticsAt } from './scene_semantics';
+import { sceneAnchorAt, sceneSemanticsAt } from './scene_semantics';
 import type { LightSemantic, TimeSemantic, WeatherSemantic } from './time_weather_model';
 import { timeWeatherMood } from './time_weather_model';
 
 export interface SceneObjectSemantic {
+  source: 'entity' | 'sceneAnchor';
   objectId: string;
-  entityId: number;
+  entityId: number | null;
   templateId: string;
   displayName: string;
   tags: string[];
@@ -102,13 +103,14 @@ export function droppedItemSemantic(itemId: string, freshnessSeconds: number, ow
 }
 
 function nearbyObjects(sim: Sim, pos: Vec3): SceneObjectSemantic[] {
-  const out: SceneObjectSemantic[] = [];
+  const out: SceneObjectSemantic[] = nearbyAnchorObjects(pos);
   for (const entity of sim.entities.values()) {
     if (entity.kind !== 'object' || !entity.objectItemId) continue;
     const distance = dist2d(pos, entity.pos);
     if (distance > OBJECT_RADIUS) continue;
     const semantic = itemSemanticFor(entity.objectItemId);
     out.push({
+      source: 'entity',
       objectId: entity.objectItemId,
       entityId: entity.id,
       templateId: entity.templateId,
@@ -118,6 +120,25 @@ function nearbyObjects(sim: Sim, pos: Vec3): SceneObjectSemantic[] {
     });
   }
   return out.sort((a, b) => a.distance - b.distance).slice(0, 8);
+}
+
+function nearbyAnchorObjects(pos: Vec3): SceneObjectSemantic[] {
+  const anchor = sceneAnchorAt(pos);
+  if (!anchor) return [];
+  return anchor.semanticObjects
+    .map((object) => {
+      const objectPos = { x: anchor.x + (object.dx ?? 0), y: pos.y, z: anchor.z + (object.dz ?? 0) };
+      return {
+        source: 'sceneAnchor' as const,
+        objectId: object.id,
+        entityId: null,
+        templateId: `scene_anchor:${object.id}`,
+        displayName: object.label,
+        tags: object.tags,
+        distance: Math.round(dist2d(pos, objectPos) * 10) / 10,
+      };
+    })
+    .filter((object) => object.distance <= (anchor.semanticObjects.find((candidate) => candidate.id === object.objectId)?.radius ?? anchor.radius));
 }
 
 function nearbyCompanions(sim: Sim, pos: Vec3): CompanionSemantic[] {
