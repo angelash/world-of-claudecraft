@@ -785,9 +785,132 @@ Intent 风险等级：
 - `castAbility` 必须是对象 profile 白名单技能，目标合法，距离合法，冷却合法。
 - `offerMicroQuest` 必须有过期时间，奖励默认是文本、声誉或小额无经济价值反馈。
 - `directorRequest` 在实验 realm 可以自动进入世界导演队列，正式服再改成 GM 审核。
+- 所有涉及任务、主线、关键 NPC、任务物、任务怪、副本门和奖励暗示的输出都必须再经过 Canon Guard。
 - 任意失败都走 fallback，不抛到主循环。
 
 激进原型建议有一个 `AI_LIVING_WORLD_EXPERIMENT=1` 开关。开关开启时允许 dynamicText、奇点个体、真实逃跑、传闻扩散、世界痕迹和微任务。开关关闭时退回 lineId、固定喊话和只读提示。
+
+## 主线、任务与 Canon Guard
+
+AI 生命层会影响主线体感，但不能影响主线事实。玩家应当感觉任务 NPC、任务怪、任务物和副本门更活，但任务系统的真相、进度、奖励、权限和结局仍由现有 `src/sim`、server command 和内容数据决定。Canon Guard 是 AI 生命层和主线游戏之间的硬护栏。
+
+### 核心原则
+
+- AI 是演员，不是任务裁判。
+- AI 可以解释、提醒、评论、害怕、误会、传闻和表现，但不能决定任务状态。
+- `src/sim` 和现有服务器命令仍是任务接取、交付、拾取、击杀计数、副本权限、奖励发放的唯一来源。
+- AI 读取的是玩家已知事实和当前阶段摘要，不读取未解锁结局和隐藏任务真相。
+- 所有任务相关表达都必须能被关闭。关闭 AI 后，主线任务仍按原始流程完整可玩。
+
+### 受保护对象
+
+建议给任务和主线相关对象建立 `CanonGuardSubject` 分类，第一阶段可以放在 `server/ai/canon_guard.ts` 的只读配置里，后续再从内容数据生成。
+
+| 分类 | 示例 | 允许 AI 做什么 | 禁止 AI 做什么 |
+|---|---|---|---|
+| `criticalQuestNpc` | 接任务、交任务、关键对话 NPC | 换开场、解释已知事实、评论天气和玩家声誉。 | 拒绝服务、离开交互范围、改接交任务条件、发明剧情结局。 |
+| `criticalQuestMob` | 任务击杀怪、任务首领、护送攻击者 | 喊话、恐惧、记住玩家、短暂停顿。 | 永久逃出区域、阻止刷新、改变击杀计数、改变掉落和 XP。 |
+| `criticalQuestObject` | 任务拾取物、祭坛、机关、钥匙物 | 增加 inspect 文本、残留记忆、环境反应。 | 改拾取结果、隐藏自己、改变使用条件、生成额外任务物。 |
+| `dungeonGate` | 副本门、传送门、入口封印 | 给 lore 提示、记住队伍上次失败、评论队伍状态。 | 改进入权限、改变副本锁定、替代现有传送逻辑。 |
+| `questRewardSource` | 交任务奖励、宝箱、声望奖励 | 用语气包装奖励来源。 | 发奖励、承诺额外奖励、改变价格、改变声望数值。 |
+| `canonLoreSource` | 主线真相、阵营秘密、后续章节伏笔 | 只说玩家已解锁内容。 | 剧透未解锁内容、改写角色动机、发明官方设定。 |
+
+### 任务事实可见性
+
+给 `questFacts` 做可见性分级，不能把完整任务数据库直接交给 Codex。
+
+| 等级 | 可给模型的信息 | 用途 |
+|---|---|---|
+| `knownToPlayer` | 玩家已经接触过的任务目标、NPC、地点、已完成步骤。 | 允许 NPC 回忆、提示和评论。 |
+| `currentObjective` | 当前任务日志已经显示的目标和地点。 | 允许 `questHint` 引用。 |
+| `nearbyClue` | 玩家所在场景能合理观察到的线索。 | 允许物件 inspect 和环境反馈。 |
+| `rumored` | NPC 可能听过但不确定的传闻。 | 只能用不确定语气表达。 |
+| `hiddenCanon` | 后续剧情、隐藏身份、未触发结局、未揭示 boss 动机。 | 不进入 AI job。 |
+| `systemOnly` | 奖励表、掉落表、触发条件、内部脚本状态。 | 不进入 AI job。 |
+
+`questFacts` 的生成规则：
+
+- 只包含 `knownToPlayer`、`currentObjective`、`nearbyClue` 和必要的 `rumored`。
+- 每条 fact 带 `visibility`、`questId`、`stageId`、`source`、`expiresAt`。
+- 如果玩家未接任务，只能给公开地点和环境事实，不能给任务目标答案。
+- 如果任务要求探索，AI 只能给方向性线索，不能直接说坐标或最终解法，除非任务日志已经公开。
+- 如果 NPC 不应知道某事实，即使玩家知道，也不能给该 NPC。
+
+### AI 任务输出规则
+
+允许的任务相关输出：
+
+- `questHint`：必须引用已存在 `questId` 和 `hintLineId`，且任务在玩家可见范围内。
+- `commentOnScene`：可以评论任务地点氛围，但不能新增任务目标。
+- `inspectObject`：可以显示残留记忆、痕迹、声音、气味、历史感。
+- `showGossipOptions`：可以出现询问任务、询问地点、询问传闻。
+- `dynamicText`：实验 realm 可以用于语气和现场感，但不得承诺规则结果。
+
+禁止的任务相关输出：
+
+- 宣称玩家已经完成、失败、放弃或跳过某任务。
+- 承诺金币、装备、经验、声望、称号、宠物、坐骑或永久权限。
+- 发明新任务目标，例如“再去杀 10 个怪”。
+- 发明隐藏条件，例如“午夜带着某物回来才能继续”。
+- 给出未解锁结局、隐藏身份、后续 boss 动机。
+- 把动态文本伪装成系统任务日志。
+- 对关键 NPC 输出 `moveNear`、`flee`、`seekShelter`，导致玩家无法接交任务。
+- 对关键任务怪输出永久逃跑或离开任务区域的行为。
+- 对关键任务物输出 `avoidObject` 或隐藏行为，导致玩家找不到或无法拾取。
+
+### 关键实体行为限制
+
+`criticalQuestEntity` 需要更严格的 intent 白名单。
+
+| 实体 | 默认允许 | 需要额外条件 | 默认禁止 |
+|---|---|---|---|
+| 关键 NPC | `lookAt`、`faceEntity`、`emote`、`pause`、`commentOnScene`、`showGossipOptions`、`questHint` | `moveNear` 只能在不离开交互半径时使用。 | `flee`、长期 `seekShelter`、拒绝 quest dialog、改变 quest state。 |
+| 关键怪 | `lookAt`、`emote`、短喊话、短 `backAway` | `flee` 必须保持在任务区域和 leash 内，并保证可击杀。 | 永久脱战、隐藏、改变击杀计数、改变掉落。 |
+| 关键物件 | `inspectObject`、`commentOnScene` | `leaveWorldTrace` 只能生成旁路 trace。 | 改拾取、改使用、隐藏物件、生成任务物。 |
+| 副本门 | `inspectObject`、`commentOnScene` | 记忆队伍上次失败只能作为文本。 | 改权限、改传送、改锁定、改副本状态。 |
+
+### DynamicText 任务护栏
+
+实验模式允许 dynamicText，但任务相关 dynamicText 需要额外过滤。
+
+禁止表达模式：
+
+- “你完成了”、“任务完成”、“奖励你”、“我给你”、“你获得”。
+- 明确数值奖励，例如金币、XP、声望、装备等级。
+- 伪系统语气，例如“系统提示”、“任务日志更新”。
+- 未知结局确认，例如“真正的叛徒是某某”。
+- 命令式新目标，例如“必须去某处杀某怪才算完成”。
+
+允许表达模式：
+
+- 氛围表达：“这地方的土还留着脚印。”
+- 已知目标的自然提示：“你要找的人常在桥边出现。”
+- 不确定传闻：“有人说湖边夜里能听见钟声。”
+- 角色态度：“我不喜欢你把那东西带进来。”
+- 失败保护：“我不确定，但你现在的日志应该比我更可靠。”
+
+### Canon Guard 校验流程
+
+建议在 `intent_validator` 之后再走 `canon_guard`，顺序如下：
+
+1. `intent_validator` 确认字段、距离、profile、TTL、白名单和实体存在。
+2. `canon_guard` 读取 entity、quest、object、scene 的 canon 分类。
+3. 如果输出涉及任务，则检查 `questId`、`stageId`、`visibility` 和玩家当前任务状态。
+4. 如果输出是 dynamicText，则跑任务敏感表达过滤。
+5. 如果输出是高风险 intent，则检查是否会让关键实体离开服务范围、任务区域或拾取路径。
+6. 如果失败，降级为 lineId fallback 或纯表现 intent，例如 `lookAt`、`pause`、`commentOnScene`。
+7. 所有拒绝都写 audit：`canon_guard_rejected`，包含原因和替代动作。
+
+### 任务回归要求
+
+每个打开 AI 生命层的版本，都要验证主线仍完整可玩。
+
+- AI 开关关闭：任务流程必须和原版一致。
+- AI 开关开启：任务接取、目标计数、任务物拾取、交付、奖励、副本进入都必须一致。
+- dynamicText 开启：不能出现任务完成、奖励承诺、未解锁剧透。
+- 奇点怪开启：任务关键怪仍可被找到、击杀和计数。
+- 场景 trace 开启：任务关键物仍能拾取，trace 不能遮挡或替代任务物。
+- 世界导演开启：不能改变主线关键 NPC、关键门、关键怪的存在性和权限。
 
 ## 本地化策略
 
@@ -1108,6 +1231,7 @@ server/ai/scene_frame.ts
 server/ai/item_interest.ts
 server/ai/time_weather_model.ts
 server/ai/intent_validator.ts
+server/ai/canon_guard.ts
 server/ai/prompt_builder.ts
 server/ai/snapshot_builder.ts
 server/ai/world_director.ts
@@ -1116,6 +1240,7 @@ tests/ai_life_layer.test.ts
 tests/ai_family_semantics.test.ts
 tests/ai_scene_semantics.test.ts
 tests/ai_item_interest.test.ts
+tests/ai_canon_guard.test.ts
 ```
 
 设计要点：
@@ -1126,6 +1251,7 @@ tests/ai_item_interest.test.ts
 - 快反应层不调用模型，先能根据附近玩家和事件给对象 mood。
 - 族群语义层不调用模型，先能按 11 个 `MobFamily` 给基础本能、场景放大、场景压制和可见表现偏置。
 - 场景语义层不调用模型，先能根据区域、建筑、天气、昼夜、掉落物和随行对象生成 `SceneFrameV1`。
+- Canon Guard 不调用模型，先能用本地规则保护关键 NPC、任务怪、任务物、副本门和奖励边界。
 - 奇点候选评分先做 deterministic 或准 deterministic 规则，达到阈值后提交 Codex。
 - 所有结果先走 intent adapter。
 
@@ -1135,6 +1261,7 @@ tests/ai_item_interest.test.ts
 - 单测覆盖普通怪 mood、奇点候选、AI spotlight 名额。
 - 单测覆盖 11 个 `MobFamily` 的基础语义不会漏配，且模板覆盖不会抹掉必要本能。
 - 单测覆盖房屋语义、亡灵压力、掉落物兴趣、昼夜天气 mood。
+- 单测覆盖任务事实可见性、关键实体 intent 限制、dynamicText 任务敏感表达过滤。
 - `npm run build:server` 通过。
 
 ### 阶段 2：一个活 NPC
@@ -1259,6 +1386,7 @@ tests/ai_item_interest.test.ts
 - `tests/ai_scene_semantics.test.ts`：场景标签、房屋语义、掉落物兴趣、随行对象、昼夜天气。
 - `tests/ai_item_interest.test.ts`：食物、武器、任务物、诅咒物、奇点遗物的吸引和回避规则。
 - `tests/ai_memory_rumor.test.ts`：记忆摘要、传闻衰减、关系回读。
+- `tests/ai_canon_guard.test.ts`：任务事实可见性、关键实体白名单、dynamicText 任务过滤、主线回归。
 - `tests/ai_i18n_policy.test.ts`：保守模式拒绝 dynamicText，实验模式允许 `aiSpeech`。
 - `tests/server_ai_interact.test.ts`：服务器命令校验，不崩主循环。
 - 现有 `tests/localization_fixes.test.ts` 必须继续通过。
@@ -1279,6 +1407,7 @@ tests/ai_item_interest.test.ts
 | i18n 冲突 | 动态文本无法满足当前本地化规则。 | 实验模式显式例外，正式服再沉淀 lineId。 |
 | prompt injection | 玩家诱导模型越权。 | 玩家输入单独标记为不可信，输出只走 schema 和白名单。 |
 | 剧情漂移 | NPC 说出与主线矛盾内容。 | 事实快照、禁忌主题、短期记忆和高价值内容回收。 |
+| 主线流程被影响 | 关键 NPC、任务怪、任务物或副本门被 AI 行为挡住。 | Canon Guard、关键实体白名单、AI 开关双模式任务回归。 |
 | 作弊和经济破坏 | 模型发放奖励或绕过规则。 | 模型永不直接改经济、掉落、任务状态。 |
 | 隐私和安全 | 玩家文本或秘密被送入模型。 | 最小化上下文、短期原文、密钥隔离、审计和删除策略。 |
 | 测试不稳定 | AI 输出不可复现。 | fake provider、fixture replay、AI result 持久化为外部输入。 |
@@ -1296,6 +1425,7 @@ tests/ai_item_interest.test.ts
 - 普通怪有低频奇点点燃机制，少数个体能拥有外号、记忆、恐惧、复仇、逃跑和传闻。
 - 地面物件、尸体、痕迹、副本门和特殊场景能被检视，并能显示残留记忆或现场反应。
 - 世界导演层能让区域状态、城镇传闻、怪物营地、首领重开记忆和玩家声誉发生短期变化。
+- 主线、任务、奖励、副本权限和关键实体由 Canon Guard 保护，AI 只能增强表现和提示。
 - Codex CLI 只承担深推理、反思、计划和文本实验，本地快反应层承担即时动作、mood 和可复现行为。
 - `src/sim` 保持确定性和权威结算，AI 生命层通过 server overlay、外部事件 fixture 或显式 sim action 接入。
 
@@ -1314,6 +1444,7 @@ tests/ai_item_interest.test.ts
 - 新增 `server/ai/fake_ai_provider.ts`，为单测和无 key 环境提供固定输出。
 - 新增 `server/ai/life_layer.ts`，接收交互事件、生成 job、接收 decision、提交 intent。
 - 新增 `server/ai/intent_validator.ts`，校验 TTL、距离、entityRef、profile、lineId、dynamicText、intent 白名单。
+- 新增 `server/ai/canon_guard.ts`，保护任务事实、关键实体、任务物、副本门、奖励承诺和剧透边界。
 - 新增 `server/ai/schemas/ai_decision.schema.json`，约束模型输出。
 - 增加 `AI_LIVING_WORLD_EXPERIMENT=1` 开关，默认关闭。
 - 服务端新增 `ai_interact` 或复用现有交互入口，把 NPC gossip 和物件 inspect 分流到 AI 生命层。
@@ -1329,6 +1460,7 @@ tests/ai_item_interest.test.ts
 
 - `tests/ai_decision_schema.test.ts` 覆盖合法输出、损坏 JSON、额外字段、缺失字段。
 - `tests/ai_intent_validator.test.ts` 覆盖距离、过期、profile 不匹配、非法 intent。
+- `tests/ai_canon_guard.test.ts` 覆盖关键 NPC 不可逃离、关键物件不可隐藏、dynamicText 不可承诺奖励或剧透。
 - `tests/ai_orchestrator.test.ts` 覆盖 fake provider、Codex 超时、fallback。
 - `tests/server_ai_interact.test.ts` 覆盖交互命令不会崩主循环。
 - 手动进入实验 realm，连续点同一 NPC 两次，第二次能引用上一轮摘要或现场事实。
@@ -1339,6 +1471,7 @@ tests/ai_item_interest.test.ts
 - 玩家至少看到一条来自现场上下文的 NPC 反馈。
 - 玩家至少看到一次普通怪产生非模板表现。
 - 所有 AI 结果都经过 validator，不能直接改掉落、XP、任务完成或经济。
+- AI 开关开启和关闭时，同一条基础任务链都能正常接取、推进、交付和领奖。
 
 ### 螺旋 2：族群本能和场景感知铺底
 
