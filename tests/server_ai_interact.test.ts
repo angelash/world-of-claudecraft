@@ -1181,6 +1181,15 @@ describe('server AI interact command', () => {
       reaction: expect.objectContaining({ kind: 'inspect', targetItemId: 'redbrook_blade' }),
       pid: session.pid,
     }));
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+        values: expect.objectContaining({ itemId: 'redbrook_blade', directorMood: 'covetous' }),
+      }),
+      reaction: expect.objectContaining({ kind: 'inspect', targetItemId: 'redbrook_blade' }),
+      pid: session.pid,
+    }));
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });

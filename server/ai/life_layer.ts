@@ -1514,6 +1514,9 @@ function shouldShareWorldDirector(
   rumor: AiRumorMemory | null,
 ): boolean {
   if (!state) return false;
+  if (!topic || topic === 'greeting') {
+    return state.proposal.intent === 'nudgeNpcRumor' || state.proposal.intent === 'raiseCampCaution';
+  }
   if (topic === 'place' || topic === 'recent') return true;
   if (topic === 'rumor') return rumor === null;
   return false;
