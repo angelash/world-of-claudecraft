@@ -66,6 +66,7 @@ export class AiWorldDirectorStore {
       sourceRef: input.trace.traceId,
       itemId: input.trace.itemId,
       subjectKind: 'item',
+      subjectName: input.trace.itemDisplayName,
       heatGain: 0.35 + input.trace.strength * 0.65,
       evidence: [`trace:${input.trace.kind}`, ...input.trace.reasonLineIds.slice(0, 3)],
       nowSeconds: input.nowSeconds,
@@ -266,6 +267,7 @@ export function worldDirectorEvent(scene: SceneFrameV1 | null, speaker: Entity, 
       lineId: state.lineId,
       values: {
         ...(quest ? { questId: state.itemId } : sceneSubject ? { sceneId: state.sceneId } : { itemId: state.itemId }),
+        ...(state.subjectName ? { itemName: state.subjectName } : {}),
         ...(encounter ? {
           bossTemplateId: state.subjectTemplateId ?? state.itemId,
           bossName: state.subjectName ?? state.itemId,

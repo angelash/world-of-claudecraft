@@ -42,6 +42,7 @@ export function sceneInspectionEvent(scene: SceneFrameV1, player: Entity, trace:
         sceneId: scene.subsceneId ?? scene.zoneId,
         ...(trace ? {
           itemId: trace.itemId,
+          itemName: trace.itemDisplayName,
           traceKind: trace.kind,
           traceStrength: Math.round(trace.strength * 100),
         } : {}),

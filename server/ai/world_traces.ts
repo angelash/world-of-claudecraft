@@ -1,3 +1,4 @@
+import type { Entity } from '../../src/sim/types';
 import type { DroppedItemSemantic } from './scene_frame';
 import { isSingularityLineId } from './singularity';
 
@@ -61,6 +62,34 @@ export class AiWorldTraceStore {
       itemDisplayName: input.item.displayName,
       sourcePlayerEntityId: input.sourcePlayerEntityId,
       lineId: worldTraceLineId(kind),
+      reasonLineIds: [...input.reasonLineIds],
+      strength: 1,
+      createdAt: input.nowSeconds,
+      expiresAt: input.nowSeconds + this.traceTtlSeconds,
+    };
+    this.traces.unshift(trace);
+    this.traces.splice(this.maxTraces);
+    return copyTrace(trace);
+  }
+
+  noteCreatureTrace(input: {
+    sceneId: string;
+    zoneId?: string;
+    entity: Entity;
+    sourcePlayerEntityId: number;
+    reasonLineIds: string[];
+    nowSeconds: number;
+  }): AiWorldTrace {
+    this.prune(input.nowSeconds);
+    const trace: AiWorldTrace = {
+      traceId: `trace-${++this.traceSequence}`,
+      sceneId: input.sceneId,
+      zoneId: input.zoneId ?? input.sceneId,
+      kind: 'singularity',
+      itemId: `creature:${input.entity.templateId}`,
+      itemDisplayName: input.entity.name,
+      sourcePlayerEntityId: input.sourcePlayerEntityId,
+      lineId: 'hudChrome.aiSpeech.sceneTraceSingularity',
       reasonLineIds: [...input.reasonLineIds],
       strength: 1,
       createdAt: input.nowSeconds,

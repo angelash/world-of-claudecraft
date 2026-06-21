@@ -44,7 +44,7 @@ import { droppedItemSemantic, sceneFrameFor } from './scene_frame';
 import type { DroppedItemSemantic, SceneFrameV1 } from './scene_frame';
 import { sceneInspectionEvent } from './scene_inspection';
 import { sceneAwarenessEvent } from './scene_reactions';
-import { individualSpeechValues } from './singularity';
+import { individualProfileFor, individualSpeechValues } from './singularity';
 import { AiSocialMemoryStore } from './social_memory';
 import type { AiNpcMemory, AiRumorMemory } from './social_memory';
 import { AiWorldDirectorStore, worldDirectorEvent } from './world_director';
@@ -391,9 +391,10 @@ export class AiLifeLayer {
       if (!dead) continue;
 
       if (dead.kind === 'mob') {
+        const sourcePlayer = this.playerForEncounterSource(request.sim, killer) ?? this.playerForPid(request.sim, dead.tappedById);
+        if (sourcePlayer) this.recordSingularityDeathTrace(request.sim, dead, sourcePlayer);
         const scale = bossEncounterScale(dead);
         if (!scale) continue;
-        const sourcePlayer = this.playerForEncounterSource(request.sim, killer) ?? this.playerForPid(request.sim, dead.tappedById);
         if (!sourcePlayer) continue;
         const scene = sceneFrameFor(request.sim, dead.pos);
         const sceneId = scene.subsceneId ?? scene.zoneId;
@@ -464,6 +465,41 @@ export class AiLifeLayer {
     }
     this.metrics.generatedEvents += out.length;
     return out;
+  }
+
+  private recordSingularityDeathTrace(sim: Sim, dead: Entity, sourcePlayer: Entity): void {
+    const individual = individualProfileFor(dead, sim.cfg.seed);
+    if (individual.tier !== 'singularity') return;
+    const scene = sceneFrameFor(sim, dead.pos);
+    const sceneId = scene.subsceneId ?? scene.zoneId;
+    const reasonLineId = 'hudChrome.aiSpeech.singularityInspect';
+    const trace = this.worldTraces.noteCreatureTrace({
+      sceneId,
+      zoneId: scene.zoneId,
+      entity: dead,
+      sourcePlayerEntityId: sourcePlayer.id,
+      reasonLineIds: [reasonLineId, ...individual.traits.map((trait) => `trait:${trait}`)],
+      nowSeconds: sim.time,
+    });
+    const directorState = this.worldDirector.noteTrace({ trace, nowSeconds: sim.time });
+    const memoryWrites = [
+      worldTraceMemoryAudit(trace, `singularityDeath:${dead.templateId}`),
+      worldDirectorMemoryAudit(directorState, `singularityDeath:${dead.templateId}`),
+    ];
+    this.journal.recordLocalReaction({
+      jobId: `singularity-death-${sourcePlayer.id}-${++this.sequence}`,
+      trigger: 'encounter_memory',
+      entityId: dead.id,
+      templateId: dead.templateId,
+      playerEntityId: sourcePlayer.id,
+      reason: `singularityDeath:${dead.templateId}`,
+      lineIds: [trace.lineId, reasonLineId],
+      intents: ['leaveWorldTrace', 'writeWorldDirectorState', 'rememberSingularityDeath'],
+      sceneId,
+      memoryWrites,
+    });
+    this.metrics.localReactions++;
+    this.enqueueMemoryWrites(memoryWrites);
   }
 
   async handleNpcInteraction(request: NpcAiInteractionRequest): Promise<void> {
