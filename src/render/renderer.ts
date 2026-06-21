@@ -46,6 +46,7 @@ import { comboPipsFor, COMBO_PIP_MAX } from './nameplate_combo';
 import { stepCameraOcclusion, type CameraOcclusionState } from './camera_collision';
 import { castBarState } from './cast_bar';
 import { isMobThreateningViewer } from './nameplate_threat';
+import { aiAttentionFacing } from './ai_attention';
 
 const NAMEPLATE_RANGE = 55;
 const NAMEPLATE_RANGE_SQ = NAMEPLATE_RANGE * NAMEPLATE_RANGE;
@@ -2863,7 +2864,7 @@ export class Renderer {
       v.group.position.set(x, y, z);
       let facing = e.prevFacing + shortestAngle(e.prevFacing, e.facing) * ea;
       if (id === p.id && renderFacingOverride !== null) facing = renderFacingOverride;
-      v.group.rotation.y = facing;
+      v.group.rotation.y = this.aiAttentionVisualFacing(id, e, x, z, now) ?? facing;
 
       if (e.kind === 'object') {
         const isPortalObject = isPersistentPortalObject(e);
@@ -3628,6 +3629,14 @@ export class Renderer {
     link.targetId = targetEntityId;
     link.el.classList.add(kind);
     link.until = performance.now() + 1400;
+  }
+
+  private aiAttentionVisualFacing(sourceEntityId: number, source: Entity, x: number, z: number, now: number): number | null {
+    const link = this.aiAttentionLinks.get(sourceEntityId);
+    if (!link || now >= link.until) return null;
+    const target = this.sim.entities.get(link.targetId);
+    if (!target) return null;
+    return aiAttentionFacing(source, target.pos, { x, z });
   }
 
   private updateChatBubbles(): void {
