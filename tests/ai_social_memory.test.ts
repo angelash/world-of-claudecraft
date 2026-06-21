@@ -170,4 +170,54 @@ describe('AI social memory', () => {
     expect(store.rumorForScene('eastbrook_forge', 2, 13)).toBeNull();
     expect(store.rumorForScene('eastbrook_forge', 1, 15)).toBeNull();
   });
+
+  it('lets item rumors propagate inside the same region without becoming global', () => {
+    const store = new AiSocialMemoryStore({ rumorTtlSeconds: 5 });
+    store.noteItemRumor({
+      sceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
+      itemId: 'roasted_boar',
+      sourcePlayerEntityId: 1,
+      lineIds: ['hudChrome.aiSpeech.itemInterestApproach'],
+      nowSeconds: 10,
+    });
+
+    const regionRumor = store.rumorForRegion({
+      zoneId: 'eastbrook_vale',
+      sceneId: 'mirror_lake_dock',
+      playerEntityId: 1,
+      nowSeconds: 13,
+    });
+    expect(regionRumor).toMatchObject({
+      itemId: 'roasted_boar',
+      originSceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
+      scope: 'region',
+    });
+    expect(regionRumor?.strength).toBeCloseTo(0.26, 5);
+    expect(store.rumorForRegion({
+      zoneId: 'eastbrook_vale',
+      sceneId: 'eastbrook_forge',
+      playerEntityId: 1,
+      nowSeconds: 13,
+    })).toBeNull();
+    expect(store.rumorForRegion({
+      zoneId: 'mirefen_marsh',
+      sceneId: 'fenbridge_bridge',
+      playerEntityId: 1,
+      nowSeconds: 13,
+    })).toBeNull();
+    expect(store.rumorForRegion({
+      zoneId: 'eastbrook_vale',
+      sceneId: 'mirror_lake_dock',
+      playerEntityId: 2,
+      nowSeconds: 13,
+    })).toBeNull();
+    expect(store.rumorForRegion({
+      zoneId: 'eastbrook_vale',
+      sceneId: 'mirror_lake_dock',
+      playerEntityId: 1,
+      nowSeconds: 15,
+    })).toBeNull();
+  });
 });

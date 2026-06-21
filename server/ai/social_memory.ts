@@ -13,10 +13,13 @@ export interface AiNpcMemory {
 export interface AiRumorMemory {
   rumorId: string;
   sceneId: string;
+  originSceneId: string;
+  zoneId: string;
   itemId: string;
   sourcePlayerEntityId: number;
   lineIds: string[];
   strength: number;
+  scope: 'scene' | 'region';
   createdAt: number;
   expiresAt: number;
 }
@@ -54,6 +57,7 @@ export class AiSocialMemoryStore {
 
   noteItemRumor(input: {
     sceneId: string;
+    zoneId?: string;
     itemId: string;
     sourcePlayerEntityId: number;
     lineIds: string[];
@@ -63,10 +67,13 @@ export class AiSocialMemoryStore {
     const rumor: AiRumorMemory = {
       rumorId: `rumor-${++this.rumorSequence}`,
       sceneId: input.sceneId,
+      originSceneId: input.sceneId,
+      zoneId: input.zoneId ?? input.sceneId,
       itemId: input.itemId,
       sourcePlayerEntityId: input.sourcePlayerEntityId,
       lineIds: [...input.lineIds],
       strength: 1,
+      scope: 'scene',
       createdAt: input.nowSeconds,
       expiresAt: input.nowSeconds + this.rumorTtlSeconds,
     };
@@ -80,12 +87,24 @@ export class AiSocialMemoryStore {
     this.pruneRumors(nowSeconds);
     const rumor = this.rumors.find((candidate) => candidate.sceneId === sceneId && candidate.sourcePlayerEntityId === playerEntityId);
     if (!rumor) return null;
-    const age = Math.max(0, nowSeconds - rumor.createdAt);
-    return {
-      ...rumor,
-      lineIds: [...rumor.lineIds],
-      strength: Math.max(0.15, 1 - age / this.rumorTtlSeconds),
-    };
+    return this.activeRumorSnapshot(rumor, nowSeconds, 'scene', 1);
+  }
+
+  rumorForRegion(input: {
+    zoneId: string | null | undefined;
+    sceneId?: string | null;
+    playerEntityId: number;
+    nowSeconds: number;
+  }): AiRumorMemory | null {
+    if (!input.zoneId) return null;
+    this.pruneRumors(input.nowSeconds);
+    const rumor = this.rumors.find((candidate) =>
+      candidate.zoneId === input.zoneId
+      && candidate.sourcePlayerEntityId === input.playerEntityId
+      && candidate.sceneId !== input.sceneId
+    );
+    if (!rumor) return null;
+    return this.activeRumorSnapshot(rumor, input.nowSeconds, 'region', 0.65);
   }
 
   snapshot(): { npcMemories: AiNpcMemory[]; rumors: AiRumorMemory[] } {
@@ -99,6 +118,22 @@ export class AiSocialMemoryStore {
     for (let i = this.rumors.length - 1; i >= 0; i--) {
       if (this.rumors[i].expiresAt <= nowSeconds) this.rumors.splice(i, 1);
     }
+  }
+
+  private activeRumorSnapshot(
+    rumor: AiRumorMemory,
+    nowSeconds: number,
+    scope: AiRumorMemory['scope'],
+    propagationScale: number,
+  ): AiRumorMemory {
+    const age = Math.max(0, nowSeconds - rumor.createdAt);
+    const localStrength = Math.max(0.15, 1 - age / this.rumorTtlSeconds);
+    return {
+      ...rumor,
+      lineIds: [...rumor.lineIds],
+      scope,
+      strength: Math.max(0.1, localStrength * propagationScale),
+    };
   }
 }
 

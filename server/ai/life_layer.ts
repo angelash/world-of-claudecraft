@@ -245,8 +245,18 @@ export class AiLifeLayer {
     if (directorState) context.recentObservations.push(`worldDirector:${directorState.mood}:${directorState.itemId}:${directorState.heat.toFixed(2)}`);
     const encounterMemory = this.bossMemory.memoryForScene(context.scene?.subsceneId ?? context.scene?.zoneId, request.pid, request.sim.time);
     if (encounterMemory) context.recentObservations.push(`bossMemory:${encounterMemory.outcome}:${encounterMemory.templateId}:${encounterMemory.heat.toFixed(2)}`);
-    const rumor = this.socialMemory.rumorForScene(context.scene?.subsceneId ?? context.scene?.zoneId, request.pid, request.sim.time);
-    if (rumor) context.recentObservations.push(`sceneRumor:${rumor.itemId}:${rumor.strength.toFixed(2)}`);
+    const sceneId = context.scene?.subsceneId ?? context.scene?.zoneId;
+    const zoneId = context.scene?.zoneId ?? sceneId;
+    const sceneRumor = this.socialMemory.rumorForScene(sceneId, request.pid, request.sim.time);
+    const regionRumor = sceneRumor ? null : this.socialMemory.rumorForRegion({
+      zoneId,
+      sceneId,
+      playerEntityId: request.pid,
+      nowSeconds: request.sim.time,
+    });
+    const rumor = sceneRumor ?? regionRumor;
+    if (sceneRumor) context.recentObservations.push(`sceneRumor:${sceneRumor.itemId}:${sceneRumor.strength.toFixed(2)}`);
+    if (regionRumor) context.recentObservations.push(`regionRumor:${regionRumor.originSceneId}:${regionRumor.itemId}:${regionRumor.strength.toFixed(2)}`);
     let decision: AiDecisionV1;
     try {
       decision = await this.provider.decide(context);
@@ -300,6 +310,7 @@ export class AiLifeLayer {
     if (reactions.length > 0) {
       this.socialMemory.noteItemRumor({
         sceneId,
+        zoneId: scene.zoneId,
         itemId: dropped.itemId,
         sourcePlayerEntityId: request.pid,
         lineIds: reactionLineIds,
@@ -387,6 +398,7 @@ export class AiLifeLayer {
       lineIds.push(...reactions.map((reaction) => reaction.lineId));
       this.socialMemory.noteItemRumor({
         sceneId: context.scene.subsceneId ?? context.scene.zoneId,
+        zoneId: context.scene.zoneId,
         itemId: inspectedItem.itemId,
         sourcePlayerEntityId: request.pid,
         lineIds,

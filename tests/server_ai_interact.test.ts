@@ -618,6 +618,40 @@ describe('server AI interact command', () => {
     expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.memorySmithRumorEcho')).toBe(true);
   });
 
+  it('lets discarded item rumors travel to another NPC in the same zone without changing quests', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const smith = [...server.sim.entities.values()].find((entity) => entity.templateId === 'smith_haldren')!;
+    const priest = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
+    teleportNear(server, session.pid, smith.id);
+    server.sim.addItem('redbrook_blade', 1, session.pid);
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+    const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'redbrook_blade', count: 1 }));
+    const [rumor] = (server as any).aiLifeLayer.memoryDiagnostics().rumors;
+    expect(rumor).toMatchObject({
+      sceneId: 'eastbrook_forge',
+      originSceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
+      itemId: 'redbrook_blade',
+      scope: 'scene',
+    });
+
+    teleportNear(server, session.pid, priest.id);
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: priest.id, locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: priest.id,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.memoryPriestRumorEcho' }),
+      pid: session.pid,
+    }));
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
+  });
+
   it('lets discarded item rumors expire before later NPC interactions', async () => {
     const server = new GameServer();
     const fc = fakeWs();
