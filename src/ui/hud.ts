@@ -3979,6 +3979,8 @@ export class Hud {
       case 'hudChrome.aiSpeech.worldDirectorCovetous':
       case 'hudChrome.aiSpeech.worldDirectorStirred':
         return t(ev.speech.lineId as TranslationKey, { itemName });
+      case 'hudChrome.aiSpeech.worldDirectorQuestComplete':
+        return t('hudChrome.aiSpeech.worldDirectorQuestComplete', { questName });
       case 'hudChrome.aiSpeech.bossMemoryDefeated':
       case 'hudChrome.aiSpeech.bossMemoryWipe':
       case 'hudChrome.aiSpeech.worldDirectorBossDefeated':

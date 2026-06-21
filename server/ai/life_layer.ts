@@ -156,6 +156,13 @@ export class AiLifeLayer {
           intents: ['rememberQuestFact', 'spreadRumor'],
           sceneId,
         });
+        this.worldDirector.noteQuestCompletion({
+          sceneId,
+          zoneId: scene.zoneId,
+          questId: event.questId,
+          sourcePlayerEntityId: player.id,
+          nowSeconds: request.sim.time,
+        });
         continue;
       }
       if (event.type === 'damage') {
@@ -267,14 +274,15 @@ export class AiLifeLayer {
     const subject = classifyCanonSubject(npc);
     const memory = this.socialMemory.noteNpcInteraction(context, request.sim.time);
     context.recentObservations.push(`npcMemory:${memory.interactionCount}`);
-    const trace = this.worldTraces.traceForScene(context.scene?.subsceneId ?? context.scene?.zoneId, request.pid, request.sim.time);
-    if (trace) context.recentObservations.push(`worldTrace:${trace.kind}:${trace.itemId}:${trace.strength.toFixed(2)}`);
-    const directorState = this.worldDirector.stateForScene(context.scene?.subsceneId ?? context.scene?.zoneId, request.pid, request.sim.time);
-    if (directorState) context.recentObservations.push(`worldDirector:${directorState.mood}:${directorState.itemId}:${directorState.heat.toFixed(2)}`);
-    const encounterMemory = this.bossMemory.memoryForScene(context.scene?.subsceneId ?? context.scene?.zoneId, request.pid, request.sim.time);
-    if (encounterMemory) context.recentObservations.push(`bossMemory:${encounterMemory.outcome}:${encounterMemory.templateId}:${encounterMemory.heat.toFixed(2)}`);
     const sceneId = context.scene?.subsceneId ?? context.scene?.zoneId;
     const zoneId = context.scene?.zoneId ?? sceneId;
+    const trace = this.worldTraces.traceForScene(sceneId, request.pid, request.sim.time);
+    if (trace) context.recentObservations.push(`worldTrace:${trace.kind}:${trace.itemId}:${trace.strength.toFixed(2)}`);
+    const directorState = this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time)
+      ?? this.worldDirector.stateForRegion({ zoneId, sceneId, playerEntityId: request.pid, nowSeconds: request.sim.time });
+    if (directorState) context.recentObservations.push(`worldDirector:${directorState.mood}:${directorState.itemId}:${directorState.heat.toFixed(2)}`);
+    const encounterMemory = this.bossMemory.memoryForScene(sceneId, request.pid, request.sim.time);
+    if (encounterMemory) context.recentObservations.push(`bossMemory:${encounterMemory.outcome}:${encounterMemory.templateId}:${encounterMemory.heat.toFixed(2)}`);
     const sceneRumor = this.socialMemory.rumorForScene(sceneId, request.pid, request.sim.time);
     const regionRumor = sceneRumor ? null : this.socialMemory.rumorForRegion({
       zoneId,
@@ -480,7 +488,8 @@ export class AiLifeLayer {
     const scene = sceneFrameFor(request.sim, player.pos);
     const sceneId = scene.subsceneId ?? scene.zoneId;
     const trace = this.worldTraces.traceForScene(sceneId, request.pid, request.sim.time);
-    const directorState = this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time);
+    const directorState = this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time)
+      ?? this.worldDirector.stateForRegion({ zoneId: scene.zoneId, sceneId, playerEntityId: request.pid, nowSeconds: request.sim.time });
     const encounterMemory = this.bossMemory.memoryForScene(sceneId, request.pid, request.sim.time);
     const event = sceneInspectionEvent(scene, player, trace);
     const events: SimEvent[] = [event];

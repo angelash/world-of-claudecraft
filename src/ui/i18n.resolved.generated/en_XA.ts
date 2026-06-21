@@ -331,6 +331,7 @@ export const en_XA: EnTranslations = {
       "worldDirectorHungry": "[Šɱáļļ ţŕáçķš áñð šɱéļļš ĝáţĥéŕ íñţó á ĥúñĝŕý þáţţéŕñ áŕóúñð {itemName}.]",
       "worldDirectorCovetous": "[Ƒŕéšĥ šçúƒƒš áŕóúñð {itemName} ɱáķé ţĥé þļáçé ƒééļ ŵáţçĥƒúļ áñð çáļçúļáţíñĝ.]",
       "worldDirectorStirred": "[Ţĥé þļáçé ĥáš ñóţ šéţţļéð šíñçé {itemName} ðíšţúŕƀéð íţ.]",
+      "worldDirectorQuestComplete": "[Ţĥé áŕéá ƒééļš ļíĝĥţéŕ áƒţéŕ {questName}; ñóţ šáƒé, éẋáçţļý, ƀúţ ļéšš áļóñé.]",
       "bossMemoryDefeated": "[Ţĥé áíŕ šţíļļ ķñóŵš ŵĥéŕé {bossName} ƒéļļ; ţĥé ŕóóɱ šééɱš ţó ļóóķ áţ ýóú ðíƒƒéŕéñţļý.]",
       "bossMemoryWipe": "[{bossName}'š ʋíçţóŕý šţíļļ þŕéššéš óñ ţĥíš þļáçé; éʋéñ ýóúŕ šĥáðóŵ šééɱš ţó ŕéɱéɱƀéŕ ƒáļļíñĝ.]",
       "worldDirectorBossDefeated": "[Ţĥé áŕéá çáŕŕíéš ţĥé šĥóçķ óƒ {bossName} ƀéíñĝ ƀŕóúĝĥţ ðóŵñ.]",

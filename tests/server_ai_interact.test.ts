@@ -700,6 +700,21 @@ describe('server AI interact command', () => {
     }));
     expect(JSON.stringify([...meta.questLog])).toBe(afterQuestLog);
     expect(JSON.stringify([...meta.questsDone])).toBe(afterDone);
+    fc.sent.length = 0;
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: session.pid,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
+        values: expect.objectContaining({ questId: 'q_wolves', directorMood: 'relieved' }),
+      }),
+      pid: session.pid,
+    }));
+    expect(JSON.stringify([...meta.questLog])).toBe(afterQuestLog);
+    expect(JSON.stringify([...meta.questsDone])).toBe(afterDone);
   });
 
   it('lets discarded item rumors expire before later NPC interactions', async () => {

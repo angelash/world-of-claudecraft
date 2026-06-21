@@ -4,8 +4,8 @@ import type { AiCreatureMemory } from './creature_memory';
 import type { SceneFrameV1 } from './scene_frame';
 import type { AiWorldTrace, AiWorldTraceKind } from './world_traces';
 
-export type AiWorldDirectorMood = 'uncanny' | 'haunted' | 'hungry' | 'covetous' | 'stirred' | 'triumphant' | 'dread';
-export type AiWorldDirectorProposalType = 'npcTopicShift' | 'campAlert' | 'traceEcho' | 'encounterEcho';
+export type AiWorldDirectorMood = 'uncanny' | 'haunted' | 'hungry' | 'covetous' | 'stirred' | 'triumphant' | 'dread' | 'relieved';
+export type AiWorldDirectorProposalType = 'npcTopicShift' | 'campAlert' | 'traceEcho' | 'encounterEcho' | 'questEcho';
 
 export type AiWorldDirectorLineId =
   | 'hudChrome.aiSpeech.worldDirectorUncanny'
@@ -14,17 +14,19 @@ export type AiWorldDirectorLineId =
   | 'hudChrome.aiSpeech.worldDirectorCovetous'
   | 'hudChrome.aiSpeech.worldDirectorStirred'
   | 'hudChrome.aiSpeech.worldDirectorBossDefeated'
-  | 'hudChrome.aiSpeech.worldDirectorBossWipe';
+  | 'hudChrome.aiSpeech.worldDirectorBossWipe'
+  | 'hudChrome.aiSpeech.worldDirectorQuestComplete';
 
 export interface AiWorldDirectorState {
   stateId: string;
   sceneId: string;
+  zoneId: string;
   mood: AiWorldDirectorMood;
   proposalType: AiWorldDirectorProposalType;
   sourcePlayerEntityId: number;
   sourceRef: string;
   itemId: string;
-  subjectKind: 'item' | 'encounter';
+  subjectKind: 'item' | 'encounter' | 'quest';
   subjectTemplateId?: string;
   subjectName?: string;
   lineId: AiWorldDirectorLineId;
@@ -56,6 +58,7 @@ export class AiWorldDirectorStore {
     const mood = moodForTraceKind(input.trace.kind);
     return this.upsert({
       sceneId: input.trace.sceneId,
+      zoneId: input.trace.sceneId,
       mood,
       proposalType: proposalTypeForMood(mood),
       sourcePlayerEntityId: input.trace.sourcePlayerEntityId,
@@ -79,6 +82,7 @@ export class AiWorldDirectorStore {
     this.prune(input.nowSeconds);
     return this.upsert({
       sceneId: input.sceneId,
+      zoneId: input.sceneId,
       mood: 'uncanny',
       proposalType: 'campAlert',
       sourcePlayerEntityId: input.sourcePlayerEntityId,
@@ -96,6 +100,7 @@ export class AiWorldDirectorStore {
     const mood: AiWorldDirectorMood = input.memory.outcome === 'defeated' ? 'triumphant' : 'dread';
     return this.upsert({
       sceneId: input.memory.sceneId,
+      zoneId: input.memory.sceneId,
       mood,
       proposalType: 'encounterEcho',
       sourcePlayerEntityId: input.memory.sourcePlayerEntityId,
@@ -110,11 +115,50 @@ export class AiWorldDirectorStore {
     });
   }
 
+  noteQuestCompletion(input: {
+    sceneId: string;
+    zoneId: string;
+    questId: string;
+    sourcePlayerEntityId: number;
+    nowSeconds: number;
+  }): AiWorldDirectorState {
+    this.prune(input.nowSeconds);
+    return this.upsert({
+      sceneId: input.sceneId,
+      zoneId: input.zoneId,
+      mood: 'relieved',
+      proposalType: 'questEcho',
+      sourcePlayerEntityId: input.sourcePlayerEntityId,
+      sourceRef: `questDone:${input.questId}`,
+      itemId: input.questId,
+      subjectKind: 'quest',
+      heatGain: 0.55,
+      evidence: [`questDone:${input.questId}`],
+      nowSeconds: input.nowSeconds,
+    });
+  }
+
   stateForScene(sceneId: string | null | undefined, playerEntityId: number, nowSeconds: number): AiWorldDirectorState | null {
     if (!sceneId) return null;
     this.prune(nowSeconds);
     const state = this.states.find((candidate) => candidate.sceneId === sceneId && candidate.sourcePlayerEntityId === playerEntityId);
     return state ? copyState(decayedState(state, nowSeconds, this.stateTtlSeconds)) : null;
+  }
+
+  stateForRegion(input: {
+    zoneId: string | null | undefined;
+    sceneId?: string | null;
+    playerEntityId: number;
+    nowSeconds: number;
+  }): AiWorldDirectorState | null {
+    if (!input.zoneId) return null;
+    this.prune(input.nowSeconds);
+    const state = this.states.find((candidate) =>
+      candidate.zoneId === input.zoneId
+      && candidate.sourcePlayerEntityId === input.playerEntityId
+      && candidate.sceneId !== input.sceneId
+    );
+    return state ? copyState(decayedState(state, input.nowSeconds, this.stateTtlSeconds)) : null;
   }
 
   snapshot(): AiWorldDirectorState[] {
@@ -123,12 +167,13 @@ export class AiWorldDirectorStore {
 
   private upsert(input: {
     sceneId: string;
+    zoneId?: string;
     mood: AiWorldDirectorMood;
     proposalType: AiWorldDirectorProposalType;
     sourcePlayerEntityId: number;
     sourceRef: string;
     itemId: string;
-    subjectKind: 'item' | 'encounter';
+    subjectKind: 'item' | 'encounter' | 'quest';
     subjectTemplateId?: string;
     subjectName?: string;
     heatGain: number;
@@ -152,6 +197,7 @@ export class AiWorldDirectorStore {
     const state: AiWorldDirectorState = {
       stateId: `director-${++this.sequence}`,
       sceneId: input.sceneId,
+      zoneId: input.zoneId ?? input.sceneId,
       mood: input.mood,
       proposalType: input.proposalType,
       sourcePlayerEntityId: input.sourcePlayerEntityId,
@@ -182,6 +228,7 @@ export class AiWorldDirectorStore {
 export function worldDirectorEvent(scene: SceneFrameV1 | null, speaker: Entity, state: AiWorldDirectorState | null, pid: number): SimEvent | null {
   if (!state) return null;
   const encounter = state.subjectKind === 'encounter';
+  const quest = state.subjectKind === 'quest';
   return {
     type: 'aiSpeech',
     speakerId: speaker.id,
@@ -190,7 +237,7 @@ export function worldDirectorEvent(scene: SceneFrameV1 | null, speaker: Entity, 
       mode: 'lineId',
       lineId: state.lineId,
       values: {
-        itemId: state.itemId,
+        ...(quest ? { questId: state.itemId } : { itemId: state.itemId }),
         ...(encounter ? {
           bossTemplateId: state.subjectTemplateId ?? state.itemId,
           bossName: state.subjectName ?? state.itemId,
@@ -202,7 +249,7 @@ export function worldDirectorEvent(scene: SceneFrameV1 | null, speaker: Entity, 
     source: 'fallback',
     reaction: {
       kind: state.mood === 'haunted' || state.mood === 'dread' ? 'avoid' : 'inspect',
-      ...(encounter ? {} : { targetItemId: state.itemId }),
+      ...(encounter || quest ? {} : { targetItemId: state.itemId }),
       score: Math.round(state.heat * 100) / 100,
       sceneTags: scene ? [...new Set([
         ...scene.locationTags,
@@ -234,6 +281,7 @@ function proposalTypeForMood(mood: AiWorldDirectorMood): AiWorldDirectorProposal
     case 'stirred': return 'traceEcho';
     case 'triumphant': return 'encounterEcho';
     case 'dread': return 'encounterEcho';
+    case 'relieved': return 'questEcho';
   }
 }
 
@@ -246,6 +294,7 @@ function lineIdForMood(mood: AiWorldDirectorMood): AiWorldDirectorLineId {
     case 'stirred': return 'hudChrome.aiSpeech.worldDirectorStirred';
     case 'triumphant': return 'hudChrome.aiSpeech.worldDirectorBossDefeated';
     case 'dread': return 'hudChrome.aiSpeech.worldDirectorBossWipe';
+    case 'relieved': return 'hudChrome.aiSpeech.worldDirectorQuestComplete';
   }
 }
 

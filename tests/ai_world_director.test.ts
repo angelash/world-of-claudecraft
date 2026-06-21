@@ -93,4 +93,58 @@ describe('AI world director', () => {
       pid: 1,
     });
   });
+
+  it('lets completed quests become same-zone director echoes', () => {
+    const store = new AiWorldDirectorStore({ stateTtlSeconds: 12 });
+    const state = store.noteQuestCompletion({
+      sceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
+      questId: 'q_wolves',
+      sourcePlayerEntityId: 1,
+      nowSeconds: 10,
+    });
+
+    expect(state).toMatchObject({
+      sceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
+      mood: 'relieved',
+      proposalType: 'questEcho',
+      subjectKind: 'quest',
+      itemId: 'q_wolves',
+      lineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
+    });
+    expect(store.stateForRegion({
+      zoneId: 'eastbrook_vale',
+      sceneId: 'fallen_chapel',
+      playerEntityId: 1,
+      nowSeconds: 14,
+    })).toMatchObject({ mood: 'relieved', heat: expect.any(Number) });
+    expect(store.stateForRegion({
+      zoneId: 'mirefen_marsh',
+      sceneId: 'fenbridge_bridge',
+      playerEntityId: 1,
+      nowSeconds: 14,
+    })).toBeNull();
+    expect(store.stateForRegion({
+      zoneId: 'eastbrook_vale',
+      sceneId: 'fallen_chapel',
+      playerEntityId: 2,
+      nowSeconds: 14,
+    })).toBeNull();
+    expect(store.stateForRegion({
+      zoneId: 'eastbrook_vale',
+      sceneId: 'fallen_chapel',
+      playerEntityId: 1,
+      nowSeconds: 22,
+    })).toBeNull();
+    expect(worldDirectorEvent(null, speaker, state, 1)).toMatchObject({
+      type: 'aiSpeech',
+      speech: {
+        lineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
+        values: expect.objectContaining({ questId: 'q_wolves', directorMood: 'relieved' }),
+      },
+      reaction: { kind: 'inspect' },
+      pid: 1,
+    });
+  });
 });

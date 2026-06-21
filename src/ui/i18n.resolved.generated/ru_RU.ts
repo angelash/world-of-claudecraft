@@ -331,6 +331,7 @@ export const ru_RU: EnTranslations = {
       "worldDirectorHungry": "Small tracks and smells gather into a hungry pattern around {itemName}.",
       "worldDirectorCovetous": "Fresh scuffs around {itemName} make the place feel watchful and calculating.",
       "worldDirectorStirred": "The place has not settled since {itemName} disturbed it.",
+      "worldDirectorQuestComplete": "The area feels lighter after {questName}; not safe, exactly, but less alone.",
       "bossMemoryDefeated": "The air still knows where {bossName} fell; the room seems to look at you differently.",
       "bossMemoryWipe": "{bossName}'s victory still presses on this place; even your shadow seems to remember falling.",
       "worldDirectorBossDefeated": "The area carries the shock of {bossName} being brought down.",
