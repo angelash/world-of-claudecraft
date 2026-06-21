@@ -32,7 +32,7 @@ export interface InputCallbacks {
   onTargetFriendly(): void;
   onCycleFriendly(): void;
   onAbility(slot: number): void;
-  onUiKey(key: 'interact' | 'bags' | 'char' | 'spellbook' | 'talents' | 'questlog' | 'map' | 'nameplates' | 'escape' | 'chat' | 'meters' | 'social' | 'arena' | 'leaderboard'): void;
+  onUiKey(key: 'interact' | 'inspect' | 'bags' | 'char' | 'spellbook' | 'talents' | 'questlog' | 'map' | 'nameplates' | 'escape' | 'chat' | 'meters' | 'social' | 'arena' | 'leaderboard'): void;
   onEmoteWheel(open: boolean): void;
   onClickPick(x: number, y: number, button: number): void;
   /** Attack-move key pressed (only fires while Attack Move mode is on); x/y is the cursor. */
@@ -529,6 +529,7 @@ export class Input {
       case 'targetFriendly': this.cb.onTargetFriendly(); return;
       case 'targetFriendlyNext': this.cb.onCycleFriendly(); return;
       case 'interact': this.cb.onUiKey('interact'); return;
+      case 'inspect': this.cb.onUiKey('inspect'); return;
       case 'bags': this.cb.onUiKey('bags'); return;
       case 'char': this.cb.onUiKey('char'); return;
       case 'spellbook': this.cb.onUiKey('spellbook'); return;

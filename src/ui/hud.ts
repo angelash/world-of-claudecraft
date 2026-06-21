@@ -254,6 +254,7 @@ const BIND_ACTION_LABEL_KEYS: Partial<Record<string, TranslationKey>> = {
   target: 'hud.keybinds.actions.target',
   attackMove: 'hud.keybinds.actions.attackMove',
   interact: 'hud.keybinds.actions.interact',
+  inspect: 'hudChrome.keybinds.inspect',
   char: 'hud.keybinds.actions.char',
   spellbook: 'hud.keybinds.actions.spellbook',
   questlog: 'hud.keybinds.actions.questlog',
@@ -3864,6 +3865,7 @@ export class Hud {
     const speakerName = String(values.speakerName ?? ev.speakerName);
     const itemName = this.aiSpeechItemName(values);
     const companionName = this.aiSpeechCompanionName(values);
+    const objectName = this.aiSpeechObjectName(values);
     switch (ev.speech.lineId) {
       case 'hudChrome.aiSpeech.brotherAldricAwake':
         return t('hudChrome.aiSpeech.brotherAldricAwake', { playerName: String(values.playerName ?? this.sim.player.name) });
@@ -3922,6 +3924,14 @@ export class Hud {
       case 'hudChrome.aiSpeech.topicQuestHint':
       case 'hudChrome.aiSpeech.topicQuestNoHint':
         return t(ev.speech.lineId as TranslationKey, { speakerName, playerName: String(values.playerName ?? this.sim.player.name) });
+      case 'hudChrome.aiSpeech.objectInspectForge':
+      case 'hudChrome.aiSpeech.objectInspectGrave':
+      case 'hudChrome.aiSpeech.objectInspectLake':
+      case 'hudChrome.aiSpeech.objectInspectSingularity':
+      case 'hudChrome.aiSpeech.objectInspectGeneric':
+        return t(ev.speech.lineId as TranslationKey, { itemName, objectName });
+      case 'hudChrome.aiSpeech.objectInspectDoor':
+        return t('hudChrome.aiSpeech.objectInspectDoor');
       default:
         return t('hudChrome.aiSpeech.genericNpcAwake', { speakerName: ev.speakerName });
     }
@@ -3938,6 +3948,13 @@ export class Hud {
     const templateId = typeof values.companionTemplateId === 'string' ? values.companionTemplateId : '';
     if (templateId && MOBS[templateId]) return mobDisplayName(templateId);
     return typeof values.companionName === 'string' ? values.companionName : t('hudChrome.aiSpeech.unknownCompanion');
+  }
+
+  private aiSpeechObjectName(values: Record<string, string | number>): string {
+    const itemId = typeof values.itemId === 'string' ? values.itemId : '';
+    const item = itemId ? ITEMS[itemId] : undefined;
+    if (item) return itemDisplayName(item);
+    return typeof values.objectName === 'string' ? values.objectName : t('hudChrome.aiSpeech.unknownObject');
   }
 
   /** Replace the server-supplied soft word list (online play only). */

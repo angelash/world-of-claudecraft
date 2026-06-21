@@ -88,6 +88,7 @@ const TICK_EMA_ALPHA = 0.05;
 const HOLDER_TIER_REFRESH_MS = 120_000;
 const AI_NPC_INTERACTION_COOLDOWN_SECONDS = 4;
 const AI_NPC_QUESTION_COOLDOWN_SECONDS = 2;
+const AI_OBJECT_INSPECT_COOLDOWN_SECONDS = 2;
 
 export interface ClientSession {
   ws: WebSocket;
@@ -110,6 +111,7 @@ export interface ClientSession {
   chatMuteReason: string;
   aiInteractReadyAt: number;
   aiQuestionReadyAt: number;
+  aiObjectInspectReadyAt: number;
   // Hard-word enforcement strike count driving the mute ladder. Account-scoped:
   // seeded from the DB at join, kept live by enforcement/admin actions.
   chatStrikes: number;
@@ -741,6 +743,7 @@ export class GameServer {
       chatMuteReason: meta.reason ?? '',
       aiInteractReadyAt: 0,
       aiQuestionReadyAt: 0,
+      aiObjectInspectReadyAt: 0,
       chatStrikes: meta.chatStrikes ?? 0,
       blockedIds: new Set(),
       blockListLoaded: false,
@@ -1150,6 +1153,15 @@ export class GameServer {
           );
         }
         break;
+      case 'ai_inspect_object':
+        if (typeof msg.object === 'number') {
+          this.handleAiInspectObject(
+            session,
+            msg.object,
+            typeof msg.locale === 'string' ? msg.locale : 'en',
+          );
+        }
+        break;
       case 'loot': if (typeof msg.id === 'number') sim.lootCorpse(msg.id, pid); break;
       case 'pickup': if (typeof msg.id === 'number') sim.pickUpObject(msg.id, pid); break;
       case 'accept': if (typeof msg.quest === 'string') { sim.acceptQuest(msg.quest, pid); this.resyncQuests(session); } break;
@@ -1439,6 +1451,22 @@ export class GameServer {
       },
     }).catch((err) => {
       console.error('ai npc interaction failed:', err);
+    });
+  }
+
+  private handleAiInspectObject(session: ClientSession, objectId: number, locale: string): void {
+    if (session.left || this.clients.get(session.pid) !== session) return;
+    if (this.sim.time < session.aiObjectInspectReadyAt) return;
+    session.aiObjectInspectReadyAt = this.sim.time + AI_OBJECT_INSPECT_COOLDOWN_SECONDS;
+    this.aiLifeLayer.handleObjectInspection({
+      sim: this.sim,
+      pid: session.pid,
+      objectId,
+      locale,
+      deliver: (events) => {
+        if (session.left || this.clients.get(session.pid) !== session) return;
+        if (events.length > 0) this.send(session, { t: 'events', list: events });
+      },
     });
   }
 

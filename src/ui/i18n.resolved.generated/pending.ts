@@ -36,6 +36,12 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.memoryTidewatcherRecognizesPlayer",
     "hudChrome.aiSpeech.memoryTidewatcherRumorEcho",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.objectInspectDoor",
+    "hudChrome.aiSpeech.objectInspectForge",
+    "hudChrome.aiSpeech.objectInspectGeneric",
+    "hudChrome.aiSpeech.objectInspectGrave",
+    "hudChrome.aiSpeech.objectInspectLake",
+    "hudChrome.aiSpeech.objectInspectSingularity",
     "hudChrome.aiSpeech.sceneClearNightAwe",
     "hudChrome.aiSpeech.sceneDayEnergy",
     "hudChrome.aiSpeech.sceneFogUnease",
@@ -52,7 +58,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.topicRecentKnown",
     "hudChrome.aiSpeech.topicRumorQuiet",
     "hudChrome.aiSpeech.unknownCompanion",
-    "hudChrome.aiSpeech.unknownItem"
+    "hudChrome.aiSpeech.unknownItem",
+    "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.keybinds.inspect"
   ],
   "es_ES": [
     "hudChrome.aiQuestion.heading",
@@ -81,6 +89,12 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.memoryTidewatcherRecognizesPlayer",
     "hudChrome.aiSpeech.memoryTidewatcherRumorEcho",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.objectInspectDoor",
+    "hudChrome.aiSpeech.objectInspectForge",
+    "hudChrome.aiSpeech.objectInspectGeneric",
+    "hudChrome.aiSpeech.objectInspectGrave",
+    "hudChrome.aiSpeech.objectInspectLake",
+    "hudChrome.aiSpeech.objectInspectSingularity",
     "hudChrome.aiSpeech.sceneClearNightAwe",
     "hudChrome.aiSpeech.sceneDayEnergy",
     "hudChrome.aiSpeech.sceneFogUnease",
@@ -97,7 +111,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.topicRecentKnown",
     "hudChrome.aiSpeech.topicRumorQuiet",
     "hudChrome.aiSpeech.unknownCompanion",
-    "hudChrome.aiSpeech.unknownItem"
+    "hudChrome.aiSpeech.unknownItem",
+    "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.keybinds.inspect"
   ],
   "fr_FR": [
     "hudChrome.aiQuestion.heading",
@@ -126,6 +142,12 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.memoryTidewatcherRecognizesPlayer",
     "hudChrome.aiSpeech.memoryTidewatcherRumorEcho",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.objectInspectDoor",
+    "hudChrome.aiSpeech.objectInspectForge",
+    "hudChrome.aiSpeech.objectInspectGeneric",
+    "hudChrome.aiSpeech.objectInspectGrave",
+    "hudChrome.aiSpeech.objectInspectLake",
+    "hudChrome.aiSpeech.objectInspectSingularity",
     "hudChrome.aiSpeech.sceneClearNightAwe",
     "hudChrome.aiSpeech.sceneDayEnergy",
     "hudChrome.aiSpeech.sceneFogUnease",
@@ -142,7 +164,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.topicRecentKnown",
     "hudChrome.aiSpeech.topicRumorQuiet",
     "hudChrome.aiSpeech.unknownCompanion",
-    "hudChrome.aiSpeech.unknownItem"
+    "hudChrome.aiSpeech.unknownItem",
+    "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.keybinds.inspect"
   ],
   "fr_CA": [
     "hudChrome.aiQuestion.heading",
@@ -171,6 +195,12 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.memoryTidewatcherRecognizesPlayer",
     "hudChrome.aiSpeech.memoryTidewatcherRumorEcho",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.objectInspectDoor",
+    "hudChrome.aiSpeech.objectInspectForge",
+    "hudChrome.aiSpeech.objectInspectGeneric",
+    "hudChrome.aiSpeech.objectInspectGrave",
+    "hudChrome.aiSpeech.objectInspectLake",
+    "hudChrome.aiSpeech.objectInspectSingularity",
     "hudChrome.aiSpeech.sceneClearNightAwe",
     "hudChrome.aiSpeech.sceneDayEnergy",
     "hudChrome.aiSpeech.sceneFogUnease",
@@ -187,7 +217,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.topicRecentKnown",
     "hudChrome.aiSpeech.topicRumorQuiet",
     "hudChrome.aiSpeech.unknownCompanion",
-    "hudChrome.aiSpeech.unknownItem"
+    "hudChrome.aiSpeech.unknownItem",
+    "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.keybinds.inspect"
   ],
   "en_CA": [],
   "it_IT": [
@@ -217,6 +249,12 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.memoryTidewatcherRecognizesPlayer",
     "hudChrome.aiSpeech.memoryTidewatcherRumorEcho",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.objectInspectDoor",
+    "hudChrome.aiSpeech.objectInspectForge",
+    "hudChrome.aiSpeech.objectInspectGeneric",
+    "hudChrome.aiSpeech.objectInspectGrave",
+    "hudChrome.aiSpeech.objectInspectLake",
+    "hudChrome.aiSpeech.objectInspectSingularity",
     "hudChrome.aiSpeech.sceneClearNightAwe",
     "hudChrome.aiSpeech.sceneDayEnergy",
     "hudChrome.aiSpeech.sceneFogUnease",
@@ -233,7 +271,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.topicRecentKnown",
     "hudChrome.aiSpeech.topicRumorQuiet",
     "hudChrome.aiSpeech.unknownCompanion",
-    "hudChrome.aiSpeech.unknownItem"
+    "hudChrome.aiSpeech.unknownItem",
+    "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.keybinds.inspect"
   ],
   "de_DE": [
     "hudChrome.aiQuestion.heading",
@@ -262,6 +302,12 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.memoryTidewatcherRecognizesPlayer",
     "hudChrome.aiSpeech.memoryTidewatcherRumorEcho",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.objectInspectDoor",
+    "hudChrome.aiSpeech.objectInspectForge",
+    "hudChrome.aiSpeech.objectInspectGeneric",
+    "hudChrome.aiSpeech.objectInspectGrave",
+    "hudChrome.aiSpeech.objectInspectLake",
+    "hudChrome.aiSpeech.objectInspectSingularity",
     "hudChrome.aiSpeech.sceneClearNightAwe",
     "hudChrome.aiSpeech.sceneDayEnergy",
     "hudChrome.aiSpeech.sceneFogUnease",
@@ -278,7 +324,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.topicRecentKnown",
     "hudChrome.aiSpeech.topicRumorQuiet",
     "hudChrome.aiSpeech.unknownCompanion",
-    "hudChrome.aiSpeech.unknownItem"
+    "hudChrome.aiSpeech.unknownItem",
+    "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.keybinds.inspect"
   ],
   "zh_CN": [
     "hudChrome.aiQuestion.heading",
@@ -307,6 +355,12 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.memoryTidewatcherRecognizesPlayer",
     "hudChrome.aiSpeech.memoryTidewatcherRumorEcho",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.objectInspectDoor",
+    "hudChrome.aiSpeech.objectInspectForge",
+    "hudChrome.aiSpeech.objectInspectGeneric",
+    "hudChrome.aiSpeech.objectInspectGrave",
+    "hudChrome.aiSpeech.objectInspectLake",
+    "hudChrome.aiSpeech.objectInspectSingularity",
     "hudChrome.aiSpeech.sceneClearNightAwe",
     "hudChrome.aiSpeech.sceneDayEnergy",
     "hudChrome.aiSpeech.sceneFogUnease",
@@ -323,7 +377,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.topicRecentKnown",
     "hudChrome.aiSpeech.topicRumorQuiet",
     "hudChrome.aiSpeech.unknownCompanion",
-    "hudChrome.aiSpeech.unknownItem"
+    "hudChrome.aiSpeech.unknownItem",
+    "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.keybinds.inspect"
   ],
   "zh_TW": [
     "hudChrome.aiQuestion.heading",
@@ -352,6 +408,12 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.memoryTidewatcherRecognizesPlayer",
     "hudChrome.aiSpeech.memoryTidewatcherRumorEcho",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.objectInspectDoor",
+    "hudChrome.aiSpeech.objectInspectForge",
+    "hudChrome.aiSpeech.objectInspectGeneric",
+    "hudChrome.aiSpeech.objectInspectGrave",
+    "hudChrome.aiSpeech.objectInspectLake",
+    "hudChrome.aiSpeech.objectInspectSingularity",
     "hudChrome.aiSpeech.sceneClearNightAwe",
     "hudChrome.aiSpeech.sceneDayEnergy",
     "hudChrome.aiSpeech.sceneFogUnease",
@@ -368,7 +430,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.topicRecentKnown",
     "hudChrome.aiSpeech.topicRumorQuiet",
     "hudChrome.aiSpeech.unknownCompanion",
-    "hudChrome.aiSpeech.unknownItem"
+    "hudChrome.aiSpeech.unknownItem",
+    "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.keybinds.inspect"
   ],
   "ko_KR": [
     "hudChrome.aiQuestion.heading",
@@ -397,6 +461,12 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.memoryTidewatcherRecognizesPlayer",
     "hudChrome.aiSpeech.memoryTidewatcherRumorEcho",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.objectInspectDoor",
+    "hudChrome.aiSpeech.objectInspectForge",
+    "hudChrome.aiSpeech.objectInspectGeneric",
+    "hudChrome.aiSpeech.objectInspectGrave",
+    "hudChrome.aiSpeech.objectInspectLake",
+    "hudChrome.aiSpeech.objectInspectSingularity",
     "hudChrome.aiSpeech.sceneClearNightAwe",
     "hudChrome.aiSpeech.sceneDayEnergy",
     "hudChrome.aiSpeech.sceneFogUnease",
@@ -413,7 +483,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.topicRecentKnown",
     "hudChrome.aiSpeech.topicRumorQuiet",
     "hudChrome.aiSpeech.unknownCompanion",
-    "hudChrome.aiSpeech.unknownItem"
+    "hudChrome.aiSpeech.unknownItem",
+    "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.keybinds.inspect"
   ],
   "ja_JP": [
     "hudChrome.aiQuestion.heading",
@@ -442,6 +514,12 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.memoryTidewatcherRecognizesPlayer",
     "hudChrome.aiSpeech.memoryTidewatcherRumorEcho",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.objectInspectDoor",
+    "hudChrome.aiSpeech.objectInspectForge",
+    "hudChrome.aiSpeech.objectInspectGeneric",
+    "hudChrome.aiSpeech.objectInspectGrave",
+    "hudChrome.aiSpeech.objectInspectLake",
+    "hudChrome.aiSpeech.objectInspectSingularity",
     "hudChrome.aiSpeech.sceneClearNightAwe",
     "hudChrome.aiSpeech.sceneDayEnergy",
     "hudChrome.aiSpeech.sceneFogUnease",
@@ -458,7 +536,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.topicRecentKnown",
     "hudChrome.aiSpeech.topicRumorQuiet",
     "hudChrome.aiSpeech.unknownCompanion",
-    "hudChrome.aiSpeech.unknownItem"
+    "hudChrome.aiSpeech.unknownItem",
+    "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.keybinds.inspect"
   ],
   "pt_BR": [
     "hudChrome.aiQuestion.heading",
@@ -487,6 +567,12 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.memoryTidewatcherRecognizesPlayer",
     "hudChrome.aiSpeech.memoryTidewatcherRumorEcho",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.objectInspectDoor",
+    "hudChrome.aiSpeech.objectInspectForge",
+    "hudChrome.aiSpeech.objectInspectGeneric",
+    "hudChrome.aiSpeech.objectInspectGrave",
+    "hudChrome.aiSpeech.objectInspectLake",
+    "hudChrome.aiSpeech.objectInspectSingularity",
     "hudChrome.aiSpeech.sceneClearNightAwe",
     "hudChrome.aiSpeech.sceneDayEnergy",
     "hudChrome.aiSpeech.sceneFogUnease",
@@ -503,7 +589,9 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.topicRecentKnown",
     "hudChrome.aiSpeech.topicRumorQuiet",
     "hudChrome.aiSpeech.unknownCompanion",
-    "hudChrome.aiSpeech.unknownItem"
+    "hudChrome.aiSpeech.unknownItem",
+    "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.keybinds.inspect"
   ],
   "ru_RU": [
     "hudChrome.aiQuestion.heading",
@@ -532,6 +620,12 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.memoryTidewatcherRecognizesPlayer",
     "hudChrome.aiSpeech.memoryTidewatcherRumorEcho",
     "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.objectInspectDoor",
+    "hudChrome.aiSpeech.objectInspectForge",
+    "hudChrome.aiSpeech.objectInspectGeneric",
+    "hudChrome.aiSpeech.objectInspectGrave",
+    "hudChrome.aiSpeech.objectInspectLake",
+    "hudChrome.aiSpeech.objectInspectSingularity",
     "hudChrome.aiSpeech.sceneClearNightAwe",
     "hudChrome.aiSpeech.sceneDayEnergy",
     "hudChrome.aiSpeech.sceneFogUnease",
@@ -548,6 +642,8 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.topicRecentKnown",
     "hudChrome.aiSpeech.topicRumorQuiet",
     "hudChrome.aiSpeech.unknownCompanion",
-    "hudChrome.aiSpeech.unknownItem"
+    "hudChrome.aiSpeech.unknownItem",
+    "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.keybinds.inspect"
   ]
 };

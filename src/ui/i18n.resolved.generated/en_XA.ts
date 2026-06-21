@@ -223,7 +223,8 @@ export const en_XA: EnTranslations = {
     "keybinds": {
       "emoteWheel": "[Éɱóţé Ŵĥééļ]",
       "targetFriendly": "[Ţáŕĝéţ Ñéáŕéšţ Ƒŕíéñðļý]",
-      "targetFriendlyNext": "[Çýçļé Ƒŕíéñðļý Ţáŕĝéţ]"
+      "targetFriendlyNext": "[Çýçļé Ƒŕíéñðļý Ţáŕĝéţ]",
+      "inspect": "[Íñšþéçţ Ñéáŕƀý]"
     },
     "options": {
       "clickMoveLeft": "[Ļéƒţ Çļíçķ]",
@@ -285,7 +286,14 @@ export const en_XA: EnTranslations = {
       "topicPlace": "[{speakerName} ļóóķš óʋéŕ ţĥé ñéáŕƀý ŕóáð, ŵéáţĥéŕ, áñð ŵáļļš ƀéƒóŕé áñšŵéŕíñĝ.]",
       "topicQuestHint": "[{speakerName} ķééþš ţĥé áðʋíçé ţíéð ţó ŵĥáţ ýóúŕ ĵóúŕñáļ áļŕéáðý ķñóŵš.]",
       "topicQuestNoHint": "[{speakerName} ĥáš ñó ĥóñéšţ ļéáð ƒóŕ ýóúŕ çúŕŕéñţ ŵóŕķ ýéţ.]",
+      "objectInspectForge": "[{itemName} çáţçĥéš ţĥé ƒóŕĝé ļíĝĥţ; ɱéţáļ, šŵéáţ, áñð ŕóáð ðúšţ ţéļļ á šɱáļļ šţóŕý.]",
+      "objectInspectGrave": "[{itemName} çáŕŕíéš ţĥé çóļð óƒ ƀúŕíéð þļáçéš, áñð ţĥé áíŕ áŕóúñð íţ šééɱš ţó ļíšţéñ.]",
+      "objectInspectLake": "[Ɱóíšţ áíŕ ĝáţĥéŕš áŕóúñð {itemName}, áš íƒ ţĥé ŵáţéŕ ñéáŕƀý ĥáš áñ óþíñíóñ.]",
+      "objectInspectDoor": "[Ţĥé ţĥŕéšĥóļð ƒééļš ŵáţçĥéð; ŵĥáţéʋéŕ ŵáíţš ƀéýóñð šţíļļ ƒóļļóŵš ţĥé óļð ŕúļéš.]",
+      "objectInspectSingularity": "[{itemName} ŕéƒúšéš ţó ƒééļ óŕðíñáŕý; ţĥé šçéñé ƀéñðš áŕóúñð íţ ƒóŕ á ƀŕéáţĥ.]",
+      "objectInspectGeneric": "[Ýóú šţúðý {itemName}. Ţĥé ñéáŕƀý šçéñé áñšŵéŕš íñ šɱáļļ ðéţáíļš.]",
       "unknownItem": "[šóɱéţĥíñĝ ļéƒţ ƀéĥíñð]",
+      "unknownObject": "[ţĥé ţĥíñĝ ƀéƒóŕé ýóú]",
       "unknownCompanion": "[ýóúŕ çóɱþáñíóñ]"
     },
     "plurals": {

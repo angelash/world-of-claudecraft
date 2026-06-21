@@ -37,6 +37,7 @@ describe('registry', () => {
     expect(actionKind('emoteWheel')).toBe('held');
     expect(actionKind('autorun')).toBe('edge');
     expect(actionKind('target')).toBe('edge');
+    expect(actionKind('inspect')).toBe('edge');
     expect(actionKind('slot0')).toBe('edge');
     expect(actionKind('nope')).toBe(null);
   });
@@ -71,6 +72,7 @@ describe('Keybinds defaults', () => {
     expect(kb.actionForCode('Equal')).toBe('slot11');
     expect(kb.actionForCode('KeyH')).toBe('targetFriendly');
     expect(kb.actionForCode('KeyJ')).toBe('targetFriendlyNext');
+    expect(kb.actionForCode('KeyI')).toBe('inspect');
     expect(kb.actionForCode('KeyZ')).toBe(null);
   });
 
@@ -205,6 +207,7 @@ describe('persistence', () => {
     expect(kb.actionForCode('Tab')).toBe('target');
     expect(kb.actionForCode('KeyN')).toBe('talents');
     expect(kb.actionForCode('KeyH')).toBe('targetFriendly');
+    expect(kb.actionForCode('KeyI')).toBe('inspect');
     expect(kb.actionForCode('Enter')).toBe('chat');
     expect(kb.actionForCode('Equal')).toBe('slot11');
     expect(kb.actionForCode('KeyY')).toBe(null);

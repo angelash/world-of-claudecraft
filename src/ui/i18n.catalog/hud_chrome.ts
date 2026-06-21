@@ -94,6 +94,7 @@ export const hudChromeStrings = {
     emoteWheel: "Emote Wheel",
     targetFriendly: "Target Nearest Friendly",
     targetFriendlyNext: "Cycle Friendly Target",
+    inspect: "Inspect Nearby",
   },
   // Click-to-move mouse-button toggle labels (Key Bindings panel). The button id
   // 0/2 maps to these at the HUD render boundary.
@@ -161,7 +162,14 @@ export const hudChromeStrings = {
     topicPlace: "{speakerName} looks over the nearby road, weather, and walls before answering.",
     topicQuestHint: "{speakerName} keeps the advice tied to what your journal already knows.",
     topicQuestNoHint: "{speakerName} has no honest lead for your current work yet.",
+    objectInspectForge: "{itemName} catches the forge light; metal, sweat, and road dust tell a small story.",
+    objectInspectGrave: "{itemName} carries the cold of buried places, and the air around it seems to listen.",
+    objectInspectLake: "Moist air gathers around {itemName}, as if the water nearby has an opinion.",
+    objectInspectDoor: "The threshold feels watched; whatever waits beyond still follows the old rules.",
+    objectInspectSingularity: "{itemName} refuses to feel ordinary; the scene bends around it for a breath.",
+    objectInspectGeneric: "You study {itemName}. The nearby scene answers in small details.",
     unknownItem: "something left behind",
+    unknownObject: "the thing before you",
     unknownCompanion: "your companion",
   },
   // CLDR-categorized count strings resolved through tPlural(base, count) in

@@ -223,7 +223,8 @@ export const zh_CN: EnTranslations = {
     "keybinds": {
       "emoteWheel": "表情轮盘",
       "targetFriendly": "选中最近友方",
-      "targetFriendlyNext": "切换友方目标"
+      "targetFriendlyNext": "切换友方目标",
+      "inspect": "Inspect Nearby"
     },
     "options": {
       "clickMoveLeft": "左键",
@@ -285,7 +286,14 @@ export const zh_CN: EnTranslations = {
       "topicPlace": "{speakerName} looks over the nearby road, weather, and walls before answering.",
       "topicQuestHint": "{speakerName} keeps the advice tied to what your journal already knows.",
       "topicQuestNoHint": "{speakerName} has no honest lead for your current work yet.",
+      "objectInspectForge": "{itemName} catches the forge light; metal, sweat, and road dust tell a small story.",
+      "objectInspectGrave": "{itemName} carries the cold of buried places, and the air around it seems to listen.",
+      "objectInspectLake": "Moist air gathers around {itemName}, as if the water nearby has an opinion.",
+      "objectInspectDoor": "The threshold feels watched; whatever waits beyond still follows the old rules.",
+      "objectInspectSingularity": "{itemName} refuses to feel ordinary; the scene bends around it for a breath.",
+      "objectInspectGeneric": "You study {itemName}. The nearby scene answers in small details.",
       "unknownItem": "something left behind",
+      "unknownObject": "the thing before you",
       "unknownCompanion": "your companion"
     },
     "plurals": {

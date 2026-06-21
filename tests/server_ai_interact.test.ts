@@ -158,6 +158,76 @@ describe('server AI interact command', () => {
     expect(eventsOf(fc, 'aiSpeech')).toHaveLength(0);
   });
 
+  it('inspects a nearby ground object without picking it up or changing quest state', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const object = [...server.sim.entities.values()].find((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil');
+    expect(object).toBeTruthy();
+    teleportNear(server, session.pid, object!.id);
+    const beforeObjects = [...server.sim.entities.values()].filter((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil').length;
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+    const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_object', object: object!.id, locale: 'en' }));
+    await flushAi();
+
+    const aiEvents = eventsOf(fc, 'aiSpeech');
+    expect(aiEvents).toContainEqual(expect.objectContaining({
+      speakerId: object!.id,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.objectInspectGrave' }),
+      reaction: expect.objectContaining({
+        kind: 'inspect',
+        targetItemId: 'gravecaller_sigil',
+        targetObjectId: object!.id,
+      }),
+      pid: session.pid,
+    }));
+    const afterObjects = [...server.sim.entities.values()].filter((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil').length;
+    expect(afterObjects).toBe(beforeObjects);
+    expect(server.sim.countItem('gravecaller_sigil', session.pid)).toBe(0);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
+  });
+
+  it('inspects a dungeon door without entering the instance', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const door = [...server.sim.entities.values()].find((entity) => entity.kind === 'object' && entity.templateId === 'dungeon_door' && entity.dungeonId === 'hollow_crypt');
+    expect(door).toBeTruthy();
+    teleportNear(server, session.pid, door!.id);
+    const player = server.sim.entities.get(session.pid)!;
+    const beforePos = { ...player.pos };
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_object', object: door!.id, locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: door!.id,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.objectInspectDoor' }),
+      reaction: expect.objectContaining({ kind: 'inspect', targetObjectId: door!.id }),
+      pid: session.pid,
+    }));
+    expect(server.sim.entities.get(session.pid)!.pos.x).toBe(beforePos.x);
+    expect(server.sim.entities.get(session.pid)!.pos.z).toBe(beforePos.z);
+    expect(server.sim.instanceSlotAt(server.sim.entities.get(session.pid)!.pos)).toBe(null);
+  });
+
+  it('rate-limits repeated object inspection', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const object = [...server.sim.entities.values()].find((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil')!;
+    teleportNear(server, session.pid, object.id);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_object', object: object.id, locale: 'en' }));
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_object', object: object.id, locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech').filter((event) => event.speech.lineId === 'hudChrome.aiSpeech.objectInspectGrave')).toHaveLength(1);
+  });
+
   it('turns a discarded item into a local scene-interest reaction without leaving loot behind', async () => {
     const server = new GameServer();
     const fc = fakeWs();

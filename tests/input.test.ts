@@ -402,6 +402,16 @@ describe('Input Escape handling', () => {
   });
 });
 
+describe('Input inspect handling', () => {
+  it('dispatches the Inspect Nearby key through UI callbacks', () => {
+    const { cb, windowListeners } = makeInput();
+
+    windowListeners.get('keydown')!({ code: 'KeyI', repeat: false, preventDefault: vi.fn() });
+
+    expect(cb.onUiKey).toHaveBeenCalledWith('inspect');
+  });
+});
+
 describe('Input Space handling', () => {
   it('prevents native Space button activation while preserving jump input', () => {
     const { input, windowListeners } = makeInput();

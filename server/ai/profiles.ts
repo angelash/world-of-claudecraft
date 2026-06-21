@@ -245,10 +245,34 @@ export const GENERIC_NPC_AI_PROFILE: AiAgentProfile = {
   timeWeatherSensitivity: { dayEnergy: 0.5, nightFatigue: 0.55, clearNightAwe: 0.35, rainIrritation: 0.4, fogFear: 0.35 },
 };
 
+export const GENERIC_OBJECT_AI_PROFILE: AiAgentProfile = {
+  id: 'object.generic.living_world',
+  appliesTo: [],
+  persona: 'A scene object described through nearby weather, structure tags, and visible item semantics.',
+  allowedIntentTypes: ['commentOnScene', 'inspectObject'],
+  allowedLineIds: [
+    'hudChrome.aiSpeech.objectInspectForge',
+    'hudChrome.aiSpeech.objectInspectGrave',
+    'hudChrome.aiSpeech.objectInspectLake',
+    'hudChrome.aiSpeech.objectInspectDoor',
+    'hudChrome.aiSpeech.objectInspectSingularity',
+    'hudChrome.aiSpeech.objectInspectGeneric',
+  ],
+  fallbackLineId: 'hudChrome.aiSpeech.objectInspectGeneric',
+  canonSensitive: true,
+  knowledgeScope: ['visible object state', 'nearby scene tags', 'weather', 'time of day'],
+  tabooTopics: ['hidden quest answers', 'reward promises', 'changing pickup rules'],
+  socialMemory: {
+    style: 'Stores only short-lived scene impressions, never quest state or rewards.',
+    recognitionLineId: 'hudChrome.aiSpeech.objectInspectGeneric',
+    rumorLineId: 'hudChrome.aiSpeech.objectInspectGeneric',
+  },
+};
+
 export function profileFor(kind: 'npc' | 'mob' | 'object', templateId: string): AiAgentProfile {
   return AI_AGENT_PROFILES.find((profile) =>
     profile.appliesTo.some((target) => target.kind === kind && target.templateId === templateId),
-  ) ?? GENERIC_NPC_AI_PROFILE;
+  ) ?? (kind === 'object' ? GENERIC_OBJECT_AI_PROFILE : GENERIC_NPC_AI_PROFILE);
 }
 
 export function compactProfileSnapshot(profile: AiAgentProfile): AiProfileSnapshot {

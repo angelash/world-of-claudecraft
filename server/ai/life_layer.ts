@@ -14,6 +14,7 @@ import { FakeAiProvider } from './fake_ai_provider';
 import { nearbyReactionCandidates, rankItemReactions } from './item_interest';
 import { validateAiDecision } from './intent_validator';
 import { memoryReactionEvent } from './memory_reactions';
+import { objectInspectionEvent, objectInspectionLineIds } from './object_reactions';
 import { compactProfileSnapshot, profileFor } from './profiles';
 import { topicReactionEvent } from './question_reactions';
 import { droppedItemSemantic, sceneFrameFor } from './scene_frame';
@@ -42,6 +43,14 @@ export interface ItemDiscardedAiRequest {
   pid: number;
   itemId: string;
   count: number;
+  deliver(events: SimEvent[]): void;
+}
+
+export interface ObjectAiInspectionRequest {
+  sim: Sim;
+  pid: number;
+  objectId: number;
+  locale: string;
   deliver(events: SimEvent[]): void;
 }
 
@@ -161,6 +170,28 @@ export class AiLifeLayer {
     if (events.length > 0) request.deliver(events);
   }
 
+  handleObjectInspection(request: ObjectAiInspectionRequest): void {
+    if (!this.enabled) return;
+    const context = this.buildObjectContext(request);
+    if (!context) return;
+    const object = request.sim.entities.get(request.objectId);
+    if (!object || object.kind !== 'object') return;
+    const event = objectInspectionEvent(context, object);
+    if (!event) return;
+    this.journal.recordLocalReaction({
+      jobId: context.jobId,
+      trigger: 'object_inspected',
+      entityId: object.id,
+      templateId: object.templateId,
+      playerEntityId: request.pid,
+      reason: `inspect:${object.objectItemId ?? object.templateId}`,
+      lineIds: event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [],
+      intents: ['inspectObject', 'commentOnScene'],
+      sceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? null,
+    });
+    request.deliver([event]);
+  }
+
   private buildNpcContext(request: NpcAiInteractionRequest): AiJobContextV1 | null {
     const player = request.sim.entities.get(request.pid);
     const npc = request.sim.entities.get(request.npcId);
@@ -220,6 +251,72 @@ export class AiLifeLayer {
       ],
       allowedIntents: profile.allowedIntentTypes,
       allowedLineIds: profile.allowedLineIds,
+      outputMode: 'line_id_only',
+    };
+  }
+
+  private buildObjectContext(request: ObjectAiInspectionRequest): AiJobContextV1 | null {
+    const player = request.sim.entities.get(request.pid);
+    const object = request.sim.entities.get(request.objectId);
+    const meta = request.sim.meta(request.pid);
+    if (!player || !object || !meta || object.kind !== 'object' || !object.lootable) return null;
+    if (dist2d(player.pos, object.pos) > INTERACT_RANGE + 2) return null;
+    const kind = aiEntityKind(object);
+    if (!kind) return null;
+    const profile = profileFor(kind, object.templateId);
+    const scene = sceneFrameFor(request.sim, object.pos);
+    const questFacts = object.objectItemId
+      ? Object.values(QUESTS)
+        .map((quest) => {
+          const relevant = quest.objectives.some((objective) =>
+            (objective.type === 'collect' && objective.itemId === object.objectItemId)
+            || (objective.type === 'interact' && objective.targetObjectItemId === object.objectItemId),
+          );
+          if (!relevant) return null;
+          const state = request.sim.questState(quest.id, request.pid);
+          if (state !== 'active' && state !== 'ready') return null;
+          return {
+            questId: quest.id,
+            visibility: state === 'active' ? 'currentObjective' as const : 'knownToPlayer' as const,
+            summary: quest.name,
+            source: 'quest-log',
+          };
+        })
+        .filter((fact): fact is NonNullable<typeof fact> => fact !== null)
+      : [];
+    return {
+      schemaVersion: 1,
+      jobId: `ai-${request.pid}-${request.objectId}-${++this.sequence}`,
+      trigger: 'object_inspected',
+      entity: {
+        kind,
+        entityId: object.id,
+        templateId: object.templateId,
+        name: object.name,
+        level: object.level,
+        questIds: [...object.questIds],
+        dead: object.dead,
+      },
+      player: {
+        entityId: player.id,
+        name: player.name,
+        level: player.level,
+        classId: player.templateId,
+        activeQuestIds: [...meta.questLog.keys()],
+        completedQuestIds: [...meta.questsDone],
+      },
+      locale: normalizeLocale(request.locale),
+      profile: compactProfileSnapshot(profile),
+      scene,
+      familySemantics: null,
+      questFacts,
+      recentObservations: [
+        `object:${object.objectItemId ?? object.templateId}`,
+        `scene:${scene.subsceneId ?? scene.zoneId}`,
+        ...scene.environmentalTags.slice(0, 4).map((tag) => `tag:${tag}`),
+      ],
+      allowedIntents: profile.allowedIntentTypes,
+      allowedLineIds: objectInspectionLineIds(),
       outputMode: 'line_id_only',
     };
   }

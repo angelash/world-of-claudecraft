@@ -276,6 +276,7 @@ export interface IWorld {
   stopAutoAttack(): void;
   interact(): void;
   aiInteractNpc(npcId: number, locale: string, topic?: AiNpcInteractionTopic): void;
+  aiInspectObject(objectId: number, locale: string): void;
   lootCorpse(id: number): void;
   pickUpObject(id: number): void;
   acceptQuest(questId: string): void;

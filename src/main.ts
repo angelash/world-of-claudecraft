@@ -644,6 +644,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     onUiKey: (key) => {
       switch (key) {
         case 'interact': interactKey(); break;
+        case 'inspect': inspectKey(); break;
         case 'bags': hud.toggleBags(); break;
         case 'char': hud.toggleChar(); break;
         case 'spellbook': hud.toggleSpellbook(); break;
@@ -863,6 +864,22 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       return;
     }
     if (bestNpc !== null) { hud.openQuestDialog(bestNpc); return; }
+    hud.showError(t('errors.nothingInteract'));
+  }
+
+  function inspectKey(): void {
+    const p = world.player;
+    let bestObj: number | null = null;
+    let bestObjD = INTERACT_RANGE + 1;
+    for (const e of world.entities.values()) {
+      if (e.kind !== 'object' || !e.lootable) continue;
+      const d = dist2d(p.pos, e.pos);
+      if (d < bestObjD) { bestObj = e.id; bestObjD = d; }
+    }
+    if (bestObj !== null) {
+      world.aiInspectObject(bestObj, getLanguage());
+      return;
+    }
     hud.showError(t('errors.nothingInteract'));
   }
 

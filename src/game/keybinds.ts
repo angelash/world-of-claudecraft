@@ -46,6 +46,7 @@ export const BIND_ACTIONS: BindAction[] = [
   { id: 'targetFriendly', label: 'Target Nearest Friendly', category: 'Targeting', kind: 'edge', defaults: ['KeyH'] },
   { id: 'targetFriendlyNext', label: 'Cycle Friendly Target', category: 'Targeting', kind: 'edge', defaults: ['KeyJ'] },
   { id: 'interact', label: 'Interact / Loot', category: 'Targeting', kind: 'edge', defaults: ['KeyF'] },
+  { id: 'inspect', label: 'Inspect Nearby', category: 'Targeting', kind: 'edge', defaults: ['KeyI'] },
   // Only acts while the Attack Move setting is on; shares its default key with
   // Turn Left intentionally, and only that key is reserved while active.
   { id: 'attackMove', label: 'Attack Move', category: 'Targeting', kind: 'edge', defaults: ['KeyA'], allowShared: true },

@@ -943,6 +943,7 @@ export type SimEvent = { pid?: number } & (
       reaction?: {
         kind: 'approach' | 'avoid' | 'inspect' | 'ignore';
         targetItemId?: string;
+        targetObjectId?: number;
         score?: number;
         sceneTags?: string[];
         individualTier?: 'none' | 'quirk' | 'singularity';

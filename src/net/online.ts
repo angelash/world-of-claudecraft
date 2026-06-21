@@ -881,6 +881,9 @@ export class ClientWorld implements IWorld {
   aiInteractNpc(npcId: number, locale: string, topic: AiNpcInteractionTopic = 'greeting'): void {
     this.cmd({ cmd: 'ai_interact_npc', npc: npcId, locale, topic });
   }
+  aiInspectObject(objectId: number, locale: string): void {
+    this.cmd({ cmd: 'ai_inspect_object', object: objectId, locale });
+  }
   lootCorpse(id: number): void {
     this.cmd({ cmd: 'loot', id });
   }
