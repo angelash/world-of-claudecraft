@@ -3,6 +3,8 @@ import type { DroppedItemSemantic, SceneFrameV1 } from './scene_frame';
 import { individualSpeechValuesFromTraits } from './singularity';
 import type { IndividualAiProfile } from './singularity';
 
+type AiSpeechReaction = NonNullable<Extract<SimEvent, { type: 'aiSpeech' }>['reaction']>;
+
 export interface AiCreatureMemory {
   memoryId: string;
   entityId: number;
@@ -195,7 +197,7 @@ export function singularityCreatureMemoryEvent(
       score: Math.min(1, 0.55 + memory.interactionCount * 0.12),
       individualTier: 'singularity',
       individualTraits: memory.traits,
-      ...planReaction(plan),
+      ...creaturePlanReactionMetadata(plan),
     },
     pid: player.id,
   };
@@ -232,9 +234,21 @@ export function singularityCreatureSceneMemoryEvent(
       sceneTags: sceneMemoryTags(scene),
       individualTier: 'singularity',
       individualTraits: memory.traits,
-      ...planReaction(plan),
+      ...creaturePlanReactionMetadata(plan),
     },
     pid: player.id,
+  };
+}
+
+export function creaturePlanReactionMetadata(plan: AiCreaturePlan | null): Partial<AiSpeechReaction> {
+  if (!plan) return {};
+  const targetEntityId = creaturePlanAttentionTargetEntityId(plan);
+  return {
+    ...(targetEntityId !== undefined ? { targetEntityId } : {}),
+    planId: plan.planId,
+    planKind: plan.kind,
+    planIntensity: Math.round(plan.intensity * 100) / 100,
+    planExpiresAt: plan.expiresAt,
   };
 }
 
@@ -297,14 +311,17 @@ function planEvidence(
   ];
 }
 
-function planReaction(plan: AiCreaturePlan | null): Record<string, string | number> {
-  if (!plan) return {};
-  return {
-    planId: plan.planId,
-    planKind: plan.kind,
-    planIntensity: Math.round(plan.intensity * 100) / 100,
-    planExpiresAt: plan.expiresAt,
-  };
+function creaturePlanAttentionTargetEntityId(plan: AiCreaturePlan): number | undefined {
+  switch (plan.kind) {
+    case 'followScent':
+    case 'collectObject':
+    case 'guardPlace':
+    case 'avoidPlayer':
+    case 'omenWatch':
+      return plan.playerEntityId;
+    case 'watchSky':
+      return undefined;
+  }
 }
 
 function clamp01(value: number): number {

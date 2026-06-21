@@ -126,6 +126,7 @@ describe('AI creature memory', () => {
         planKind: 'followScent',
         planIntensity: expect.any(Number),
         planExpiresAt: 20,
+        targetEntityId: player.id,
       }),
     });
 
@@ -174,5 +175,45 @@ describe('AI creature memory', () => {
       },
       pid: player.id,
     });
+  });
+
+  it('leaves sky-watching creature plans without a false entity attention target', () => {
+    const store = new AiCreatureMemoryStore({ memoryTtlSeconds: 30, planTtlSeconds: 8 });
+    const skyScene: SceneFrameV1 = {
+      ...scene,
+      time: { hour: 23, phase: 'night', isNight: true, tags: ['night', 'quiet'] },
+      weather: { kind: 'clear', intensity: 0.1, tags: ['clearSky'] },
+      light: { level: 'dim', tags: ['moonlit', 'starrySky'] },
+    };
+    const first = store.noteSingularityReaction({ entity: creature, player, individual, nowSeconds: 10 });
+    const second = store.noteSingularityReaction({ entity: creature, player, individual, nowSeconds: 12 });
+    expect(store.notePlan({
+      memory: first,
+      entity: creature,
+      player,
+      individual,
+      scene: skyScene,
+      trigger: 'scene_inspected',
+      nowSeconds: 10,
+    })).toBeNull();
+    const plan = store.notePlan({
+      memory: second,
+      entity: creature,
+      player,
+      individual,
+      scene: skyScene,
+      trigger: 'scene_inspected',
+      nowSeconds: 12,
+    });
+
+    expect(plan).toMatchObject({ kind: 'watchSky' });
+    const event = singularityCreatureSceneMemoryEvent(player, creature, skyScene, second, plan);
+    expect(event?.type).toBe('aiSpeech');
+    if (event?.type !== 'aiSpeech') throw new Error('expected aiSpeech event');
+    expect(event.reaction).toMatchObject({
+      planKind: 'watchSky',
+      planIntensity: expect.any(Number),
+    });
+    expect(event.reaction).not.toHaveProperty('targetEntityId');
   });
 });

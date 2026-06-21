@@ -17,7 +17,7 @@ import type { AiBossEncounterMemory, AiBossEncounterPhaseCue } from './boss_memo
 import { classifyCanonSubject } from './canon_guard';
 import { CodexCliProvider } from './codex_worker';
 import { companionReactionEvents, companionReactionEventsForScene } from './companion_reactions';
-import { AiCreatureMemoryStore, singularityCreatureMemoryEvent, singularityCreatureSceneMemoryEvent } from './creature_memory';
+import { AiCreatureMemoryStore, creaturePlanReactionMetadata, singularityCreatureMemoryEvent, singularityCreatureSceneMemoryEvent } from './creature_memory';
 import type { AiCreatureMemory, AiCreaturePlan } from './creature_memory';
 import { AiDecisionJournal } from './decision_journal';
 import type { AiDecisionJournalEntry } from './decision_journal';
@@ -682,7 +682,7 @@ export class AiLifeLayer {
     }
     const events: SimEvent[] = [];
     for (const reaction of reactions) {
-      const localEvent = itemInterestReactionEvent(reaction, dropped, scene, request.pid);
+      let localEvent = itemInterestReactionEvent(reaction, dropped, scene, request.pid);
       let reactionEvents: SimEvent[] = [localEvent];
       if (reaction.individual?.tier === 'singularity') {
         const memory = this.creatureMemory.noteSingularityReaction({
@@ -701,6 +701,10 @@ export class AiLifeLayer {
           trigger: 'item_discarded',
           nowSeconds: request.sim.time,
         });
+        if (plan) {
+          localEvent = withReactionMetadata(localEvent, creaturePlanReactionMetadata(plan));
+          reactionEvents = [localEvent];
+        }
         const memoryEvent = singularityCreatureMemoryEvent(player, reaction.entity, dropped, memory, plan);
         const creatureWrite = creatureMemoryAudit({
           memory,
@@ -1133,7 +1137,7 @@ export class AiLifeLayer {
         { worldSeed: request.sim.cfg.seed },
       ).slice(0, 2);
       for (const reaction of familyReactions) {
-        const localEvent = familySceneReactionEvent(reaction, scene, request.pid) as Extract<SimEvent, { type: 'aiSpeech' }>;
+        let localEvent = familySceneReactionEvent(reaction, scene, request.pid) as Extract<SimEvent, { type: 'aiSpeech' }>;
         lineIds.push(reaction.lineId);
         let reactionEvents: SimEvent[] = [localEvent];
         if (reaction.individual.tier === 'singularity') {
@@ -1152,6 +1156,10 @@ export class AiLifeLayer {
             trigger: 'scene_inspected',
             nowSeconds: request.sim.time,
           });
+          if (plan) {
+            localEvent = withReactionMetadata(localEvent, creaturePlanReactionMetadata(plan));
+            reactionEvents = [localEvent];
+          }
           const memoryEvent = singularityCreatureSceneMemoryEvent(player, reaction.entity, scene, memory, plan);
           const creatureWrite = creatureMemoryAudit({
             memory,
@@ -1654,9 +1662,46 @@ function mergeObjectInspectionShell(
     return {
       ...event,
       speech,
-      reaction: event.reaction ?? localEvent.reaction,
+      reaction: mergeAiSpeechReaction(event.reaction, localEvent.reaction),
     };
   });
+}
+
+type AiSpeechReaction = NonNullable<Extract<SimEvent, { type: 'aiSpeech' }>['reaction']>;
+
+function withReactionMetadata(
+  event: Extract<SimEvent, { type: 'aiSpeech' }>,
+  metadata: Partial<AiSpeechReaction>,
+): Extract<SimEvent, { type: 'aiSpeech' }> {
+  return {
+    ...event,
+    reaction: mergeAiSpeechReaction(event.reaction, metadata),
+  };
+}
+
+function mergeAiSpeechReaction(
+  eventReaction: AiSpeechReaction | undefined,
+  shellReaction: Partial<AiSpeechReaction> | undefined,
+): AiSpeechReaction | undefined {
+  if (!shellReaction) return eventReaction;
+  if (!eventReaction) {
+    return shellReaction.kind ? { ...shellReaction, kind: shellReaction.kind } : undefined;
+  }
+  return {
+    ...shellReaction,
+    ...eventReaction,
+    targetEntityId: eventReaction.targetEntityId ?? shellReaction.targetEntityId,
+    targetItemId: eventReaction.targetItemId ?? shellReaction.targetItemId,
+    targetObjectId: eventReaction.targetObjectId ?? shellReaction.targetObjectId,
+    score: eventReaction.score ?? shellReaction.score,
+    sceneTags: eventReaction.sceneTags ?? shellReaction.sceneTags,
+    individualTier: eventReaction.individualTier ?? shellReaction.individualTier,
+    individualTraits: eventReaction.individualTraits ?? shellReaction.individualTraits,
+    planId: eventReaction.planId ?? shellReaction.planId,
+    planKind: eventReaction.planKind ?? shellReaction.planKind,
+    planIntensity: eventReaction.planIntensity ?? shellReaction.planIntensity,
+    planExpiresAt: eventReaction.planExpiresAt ?? shellReaction.planExpiresAt,
+  };
 }
 
 function mergeSingularityReactionShell(
@@ -1672,7 +1717,7 @@ function mergeSingularityReactionShell(
     return {
       ...event,
       speech,
-      reaction: event.reaction ?? localEvent.reaction,
+      reaction: mergeAiSpeechReaction(event.reaction, localEvent.reaction),
     };
   });
 }

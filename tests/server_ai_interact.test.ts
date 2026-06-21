@@ -1402,6 +1402,16 @@ describe('server AI interact command', () => {
       itemId: 'roasted_boar',
       playerEntityId: session.pid,
     }));
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: wolf.id,
+      source: 'codex',
+      reaction: expect.objectContaining({
+        targetEntityId: session.pid,
+        targetItemId: 'roasted_boar',
+        planKind: expect.any(String),
+        planIntensity: expect.any(Number),
+      }),
+    }));
     expect(wolf.pos.x).toBe(beforeWolfPos.x);
     expect(wolf.pos.z).toBe(beforeWolfPos.z);
     expect(server.sim.countItem('roasted_boar', session.pid)).toBe(0);
@@ -1617,6 +1627,7 @@ describe('server AI interact command', () => {
         planId: expect.any(String),
         planKind: expect.any(String),
         planIntensity: expect.any(Number),
+        targetEntityId: session.pid,
       }),
       pid: session.pid,
     }));
