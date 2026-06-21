@@ -42,4 +42,16 @@ describe('AI reaction badge view', () => {
       targetEntityId: 13,
     });
   });
+
+  it('marks planned reactions so the HUD can hold their badge longer', () => {
+    expect(aiReactionBadgeView(reaction('inspect', {
+      planKind: 'followScent',
+      planIntensity: 0.8,
+    }))).toMatchObject({
+      kind: 'inspect',
+      planned: true,
+      planKind: 'followScent',
+      durationMs: 2980,
+    });
+  });
 });

@@ -228,6 +228,11 @@ interface ViewCandidate {
   priority: number;
 }
 
+interface AiReactionBadgeOptions {
+  durationMs?: number;
+  planned?: boolean;
+}
+
 export interface RenderDiagnosticsCategoryStats {
   objects: number;
   draws: number;
@@ -605,7 +610,7 @@ export class Renderer {
   private cameraLookAt = new THREE.Vector3();
   // floating /say-/yell bubbles, keyed by speaker entity id
   private chatBubbles = new Map<number, { el: HTMLDivElement; until: number }>();
-  private aiReactionBadges = new Map<number, { el: HTMLDivElement; until: number; kind: string }>();
+  private aiReactionBadges = new Map<number, { el: HTMLDivElement; until: number; kind: string; planned: boolean }>();
   private aiAttentionLinks = new Map<number, { el: HTMLDivElement; until: number; startedAt: number; kind: AiAttentionReactionKind; targetId: number }>();
   private sun: THREE.DirectionalLight;
   private hemi!: THREE.HemisphereLight;
@@ -3601,20 +3606,24 @@ export class Renderer {
     b.until = performance.now() + 1000 * Math.min(10, 3.5 + text.length * 0.045);
   }
 
-  showAiReactionBadge(entityId: number, label: string, kind: AiAttentionReactionKind): void {
+  showAiReactionBadge(entityId: number, label: string, kind: AiAttentionReactionKind, options: AiReactionBadgeOptions = {}): void {
     let b = this.aiReactionBadges.get(entityId);
     if (!b) {
       const el = document.createElement('div');
       el.className = 'ai-reaction-badge';
       this.nameplateLayer.appendChild(el);
-      b = { el, until: 0, kind: '' };
+      b = { el, until: 0, kind: '', planned: false };
       this.aiReactionBadges.set(entityId, b);
     }
+    const planned = options.planned === true;
     b.el.textContent = label;
     if (b.kind) b.el.classList.remove(b.kind);
+    if (b.planned !== planned) b.el.classList.toggle('planned', planned);
     b.kind = kind;
+    b.planned = planned;
     b.el.classList.add(kind);
-    b.until = performance.now() + 1800;
+    const durationMs = Math.max(900, Math.min(4200, options.durationMs ?? 1800));
+    b.until = performance.now() + durationMs;
   }
 
   showAiAttentionLink(sourceEntityId: number, targetEntityId: number, kind: AiAttentionReactionKind): void {

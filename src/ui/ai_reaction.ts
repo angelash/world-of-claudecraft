@@ -9,6 +9,9 @@ export interface AiReactionBadgeView {
   kind: VisibleAiReactionKind;
   labelKey: TranslationKey;
   targetEntityId?: number;
+  planned?: true;
+  planKind?: string;
+  durationMs?: number;
 }
 
 const BADGE_KEYS: Record<VisibleAiReactionKind, TranslationKey> = {
@@ -24,7 +27,22 @@ export function aiReactionBadgeView(reaction: AiSpeechEvent['reaction']): AiReac
     : typeof reaction.targetObjectId === 'number'
       ? reaction.targetObjectId
       : undefined;
-  return targetEntityId === undefined
-    ? { kind: reaction.kind, labelKey: BADGE_KEYS[reaction.kind] }
-    : { kind: reaction.kind, labelKey: BADGE_KEYS[reaction.kind], targetEntityId };
+  const planIntensity = typeof reaction.planIntensity === 'number'
+    ? Math.max(0, Math.min(1, reaction.planIntensity))
+    : 0;
+  const planKind = typeof reaction.planKind === 'string' && reaction.planKind.length > 0 ? reaction.planKind : undefined;
+  const planned = planKind !== undefined || planIntensity > 0;
+  const base: AiReactionBadgeView = {
+    kind: reaction.kind,
+    labelKey: BADGE_KEYS[reaction.kind],
+    ...(targetEntityId === undefined ? {} : { targetEntityId }),
+  };
+  return planned
+    ? {
+        ...base,
+        planned: true,
+        ...(planKind ? { planKind } : {}),
+        durationMs: Math.round(2_100 + planIntensity * 1_100),
+      }
+    : base;
 }

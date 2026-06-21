@@ -3574,7 +3574,10 @@ export class Hud {
           if (speaker) {
             const reactionBadge = aiReactionBadgeView(ev.reaction);
             if (reactionBadge) {
-              this.renderer.showAiReactionBadge(ev.speakerId, t(reactionBadge.labelKey), reactionBadge.kind);
+              this.renderer.showAiReactionBadge(ev.speakerId, t(reactionBadge.labelKey), reactionBadge.kind, {
+                planned: reactionBadge.planned === true,
+                durationMs: reactionBadge.durationMs,
+              });
               if (reactionBadge.targetEntityId !== undefined) {
                 this.renderer.showAiAttentionLink(ev.speakerId, reactionBadge.targetEntityId, reactionBadge.kind);
               }
