@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AiJobContextV1 } from '../server/ai/ai_types';
 import { memoryReactionEvent } from '../server/ai/memory_reactions';
 import { compactProfileSnapshot, profileFor } from '../server/ai/profiles';
+import { profileDirectorProjectionTags } from '../server/ai/profile_projection';
 import { topicReactionEvent } from '../server/ai/question_reactions';
 import { AiSocialMemoryStore } from '../server/ai/social_memory';
 import { NPCS } from '../src/sim/data';
@@ -231,6 +232,7 @@ describe('AI social memory', () => {
     expect(topicReactionEvent({
       ...context,
       topic: 'place',
+      profile: compactProfileSnapshot(profileFor('npc', 'brother_aldric')),
       directorProposals: [{
         proposalId: 'director-question:proposal',
         intent: 'nudgeNpcRumor',
@@ -250,9 +252,15 @@ describe('AI social memory', () => {
       reaction: expect.objectContaining({
         kind: 'avoid',
         targetItemId: 'gravecaller_sigil',
-        sceneTags: expect.arrayContaining(['directorProjection:mortalFear', 'family:humanoid']),
+        sceneTags: expect.arrayContaining(['profileProjection:riteOmen', 'directorProjection:mortalFear', 'family:humanoid']),
       }),
     });
+  });
+
+  it('derives named NPC projection tags from their profile voice', () => {
+    expect(profileDirectorProjectionTags(compactProfileSnapshot(profileFor('npc', 'brother_aldric')))).toContain('profileProjection:riteOmen');
+    expect(profileDirectorProjectionTags(compactProfileSnapshot(profileFor('npc', 'marshal_redbrook')))).toContain('profileProjection:patrolRisk');
+    expect(profileDirectorProjectionTags(compactProfileSnapshot(profileFor('npc', 'the_merchant')))).toContain('profileProjection:tradeWeather');
   });
 
   it('keeps item rumors short-lived, scene-scoped, and source-player scoped', () => {

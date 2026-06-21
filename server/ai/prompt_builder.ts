@@ -1,5 +1,6 @@
 import type { AiJobContextV1 } from './ai_types';
 import { familyDirectorProjectionFor, mobFamilyFromValue } from './director_family_projection';
+import { profileDirectorProjectionTags } from './profile_projection';
 
 export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
   const scene = context.scene;
@@ -119,11 +120,13 @@ function directorFamilyProjectionSummary(context: AiJobContextV1): string | null
     .map((proposal) => {
       const projection = familyDirectorProjectionFor(proposal, { family });
       if (!projection) return null;
+      const profileTags = profileDirectorProjectionTags(context.profile);
       return [
         `${proposal.intent}:${projection.reaction}`,
         `curiosity=${projection.curiosity.toFixed(2)}`,
         `fear=${projection.fear.toFixed(2)}`,
         `reasons=${projection.reasonTags.slice(0, 6).join('/') || 'none'}`,
+        ...(profileTags.length > 0 ? [`profile=${profileTags.join('/')}`] : []),
       ].join(':');
     })
     .filter((summary): summary is string => summary !== null);

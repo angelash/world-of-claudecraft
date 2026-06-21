@@ -130,6 +130,7 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('safety=presentationOnly/noQuestMutation/noCombatMutation/noLootOrEconomyMutation');
     expect(prompt).toContain('Director family projection (humanoid): nudgeNpcRumor:avoid:curiosity=0.02:fear=0.42');
     expect(prompt).toContain('directorProjection:mortalFear/director:nudgeNpcRumor/family:humanoid');
+    expect(prompt).toContain('profile=profileProjection:riteOmen');
     expect(prompt).toContain('Memory signals: rumor:rumor-7:region:salience=0.65:readRegionRumor');
     expect(prompt).toContain('Return only JSON');
   });

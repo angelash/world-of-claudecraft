@@ -1,6 +1,7 @@
 import type { Entity, SimEvent } from '../../src/sim/types';
 import type { AiJobContextV1 } from './ai_types';
 import { familyDirectorProjectionFor, mobFamilyFromValue } from './director_family_projection';
+import { profileDirectorProjectionTags } from './profile_projection';
 import type { AiNpcMemory, AiRumorMemory } from './social_memory';
 
 export function topicReactionEvent(
@@ -68,7 +69,10 @@ function topicDirectorProjection(context: AiJobContextV1): { reaction: 'approach
     return {
       reaction: projection.reaction,
       targetRef: proposal.targetRef,
-      reasonTags: projection.reasonTags,
+      reasonTags: [
+        ...profileDirectorProjectionTags(context.profile),
+        ...projection.reasonTags,
+      ],
     };
   }
   return null;
