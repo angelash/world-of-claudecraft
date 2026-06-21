@@ -5,6 +5,34 @@ import type { SceneFrameV1 } from './scene_frame';
 
 export type AiEntityKind = 'npc' | 'mob' | 'object';
 export type AiOutputMode = 'line_id_only' | 'dynamic_text_experiment' | 'mixed_living_world';
+export type AiMemoryAuditKind =
+  | 'npcInteraction'
+  | 'rumor'
+  | 'worldTrace'
+  | 'creatureMemory'
+  | 'bossMemory'
+  | 'worldDirectorState';
+
+export type AiMemoryAuditScope = 'entity' | 'scene' | 'region' | 'encounter';
+
+export interface AiMemoryAuditRecord {
+  kind: AiMemoryAuditKind;
+  refId: string;
+  scope: AiMemoryAuditScope;
+  sceneId?: string;
+  zoneId?: string;
+  sourcePlayerEntityId: number;
+  entityId?: number;
+  templateId?: string;
+  itemId?: string;
+  questId?: string;
+  subjectKind?: 'item' | 'quest' | 'encounter';
+  lineIds: string[];
+  salience: number;
+  createdAt?: number;
+  expiresAt?: number;
+  reason: string;
+}
 
 export interface AiEntitySnapshot {
   kind: AiEntityKind;
@@ -59,6 +87,7 @@ export interface AiJobContextV1 {
   familySemantics?: CompactFamilySemantics | null;
   questFacts: AiQuestFact[];
   recentObservations: string[];
+  memorySignals?: AiMemoryAuditRecord[];
   allowedIntents: AiIntentType[];
   allowedLineIds?: string[];
   outputMode: AiOutputMode;

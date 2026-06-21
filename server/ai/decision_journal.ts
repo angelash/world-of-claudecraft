@@ -1,4 +1,5 @@
-import type { AiDecisionV1, AiJobContextV1, AiValidationResult } from './ai_types';
+import type { AiDecisionV1, AiJobContextV1, AiMemoryAuditRecord, AiValidationResult } from './ai_types';
+import { cloneMemoryAudit } from './memory_audit';
 
 export type AiDecisionJournalStatus = 'accepted' | 'rejected' | 'provider_error' | 'local_reaction';
 
@@ -14,7 +15,12 @@ export interface AiDecisionJournalEntry {
   lineIds: string[];
   intents: string[];
   sceneId?: string | null;
+  memoryWrites: AiMemoryAuditRecord[];
 }
+
+type AiDecisionJournalLocalInput =
+  Omit<AiDecisionJournalEntry, 'sequence' | 'status' | 'memoryWrites'>
+  & { memoryWrites?: readonly AiMemoryAuditRecord[] };
 
 export class AiDecisionJournal {
   private readonly limit: number;
@@ -25,7 +31,12 @@ export class AiDecisionJournal {
     this.limit = Math.max(1, Math.floor(limit));
   }
 
-  recordDecision(context: AiJobContextV1, decision: AiDecisionV1, result: AiValidationResult): void {
+  recordDecision(
+    context: AiJobContextV1,
+    decision: AiDecisionV1,
+    result: AiValidationResult,
+    memoryWrites: readonly AiMemoryAuditRecord[] = [],
+  ): void {
     this.push({
       sequence: ++this.sequence,
       jobId: context.jobId,
@@ -38,10 +49,11 @@ export class AiDecisionJournal {
       lineIds: decision.speech.filter((speech) => speech.mode === 'lineId').map((speech) => speech.lineId),
       intents: decision.intents.map((intent) => intent.type),
       sceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? null,
+      memoryWrites: memoryWrites.map(cloneMemoryAudit),
     });
   }
 
-  recordProviderError(context: AiJobContextV1, reason: string): void {
+  recordProviderError(context: AiJobContextV1, reason: string, memoryWrites: readonly AiMemoryAuditRecord[] = []): void {
     this.push({
       sequence: ++this.sequence,
       jobId: context.jobId,
@@ -54,19 +66,26 @@ export class AiDecisionJournal {
       lineIds: [],
       intents: [],
       sceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? null,
+      memoryWrites: memoryWrites.map(cloneMemoryAudit),
     });
   }
 
-  recordLocalReaction(entry: Omit<AiDecisionJournalEntry, 'sequence' | 'status'>): void {
+  recordLocalReaction(entry: AiDecisionJournalLocalInput): void {
     this.push({
       ...entry,
       sequence: ++this.sequence,
       status: 'local_reaction',
+      memoryWrites: (entry.memoryWrites ?? []).map(cloneMemoryAudit),
     });
   }
 
   snapshot(): AiDecisionJournalEntry[] {
-    return this.entries.map((entry) => ({ ...entry, lineIds: [...entry.lineIds], intents: [...entry.intents] }));
+    return this.entries.map((entry) => ({
+      ...entry,
+      lineIds: [...entry.lineIds],
+      intents: [...entry.intents],
+      memoryWrites: entry.memoryWrites.map(cloneMemoryAudit),
+    }));
   }
 
   private push(entry: AiDecisionJournalEntry): void {

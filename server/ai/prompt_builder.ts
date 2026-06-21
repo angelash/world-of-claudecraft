@@ -64,6 +64,12 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
   if (context.recentObservations.length > 0) {
     lines.push(`Recent observations: ${context.recentObservations.join(', ')}`);
   }
+  if (context.memorySignals && context.memorySignals.length > 0) {
+    lines.push(`Memory signals: ${context.memorySignals
+      .slice(0, 8)
+      .map((signal) => `${signal.kind}:${signal.refId}:${signal.scope}:salience=${signal.salience.toFixed(2)}:${signal.reason}`)
+      .join(', ')}`);
+  }
   lines.push('', 'Return only JSON. No Markdown. No commentary.');
   return lines.join('\n');
 }

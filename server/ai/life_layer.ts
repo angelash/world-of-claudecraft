@@ -3,7 +3,7 @@ import type { Sim } from '../../src/sim/sim';
 import type { AiNpcInteractionTopic } from '../../src/world_api';
 import { INTERACT_RANGE, dist2d } from '../../src/sim/types';
 import type { Entity, SimEvent } from '../../src/sim/types';
-import type { AiDecisionV1, AiJobContextV1, AiProvider } from './ai_types';
+import type { AiDecisionV1, AiJobContextV1, AiMemoryAuditRecord, AiProvider } from './ai_types';
 import { aiEntityKind } from './ai_types';
 import {
   AiBossEncounterMemoryStore,
@@ -26,6 +26,14 @@ import { FakeAiProvider } from './fake_ai_provider';
 import { nearbyReactionCandidates, rankItemReactions } from './item_interest';
 import { validateAiDecision } from './intent_validator';
 import { memoryReactionEvent } from './memory_reactions';
+import {
+  bossMemoryAudit,
+  creatureMemoryAudit,
+  npcInteractionMemoryAudit,
+  rumorMemoryAudit,
+  worldDirectorMemoryAudit,
+  worldTraceMemoryAudit,
+} from './memory_audit';
 import { objectInspectionEvent, objectInspectionLineIds } from './object_reactions';
 import { compactProfileSnapshot, profileFor } from './profiles';
 import { topicReactionEvent } from './question_reactions';
@@ -139,12 +147,19 @@ export class AiLifeLayer {
         const scene = sceneFrameFor(request.sim, player.pos);
         const sceneId = scene.subsceneId ?? scene.zoneId;
         const lineId = 'hudChrome.aiSpeech.memoryQuestRumorEcho';
-        this.socialMemory.noteQuestRumor({
+        const rumor = this.socialMemory.noteQuestRumor({
           sceneId,
           zoneId: scene.zoneId,
           questId: event.questId,
           sourcePlayerEntityId: player.id,
           lineIds: [lineId],
+          nowSeconds: request.sim.time,
+        });
+        const directorState = this.worldDirector.noteQuestCompletion({
+          sceneId,
+          zoneId: scene.zoneId,
+          questId: event.questId,
+          sourcePlayerEntityId: player.id,
           nowSeconds: request.sim.time,
         });
         this.journal.recordLocalReaction({
@@ -157,13 +172,10 @@ export class AiLifeLayer {
           lineIds: [lineId],
           intents: ['rememberQuestFact', 'spreadRumor'],
           sceneId,
-        });
-        this.worldDirector.noteQuestCompletion({
-          sceneId,
-          zoneId: scene.zoneId,
-          questId: event.questId,
-          sourcePlayerEntityId: player.id,
-          nowSeconds: request.sim.time,
+          memoryWrites: [
+            rumorMemoryAudit(rumor, `questDone:${event.questId}`),
+            worldDirectorMemoryAudit(directorState, `questDone:${event.questId}`),
+          ],
         });
         continue;
       }
@@ -222,7 +234,7 @@ export class AiLifeLayer {
           nowSeconds: request.sim.time,
           evidence: [`simEvent:death`, `killer:${killer?.templateId ?? 'unknown'}`],
         });
-        this.worldDirector.noteBossMemory({ memory, nowSeconds: request.sim.time });
+        const directorState = this.worldDirector.noteBossMemory({ memory, nowSeconds: request.sim.time });
         this.journal.recordLocalReaction({
           jobId: `encounter-${sourcePlayer.id}-${++this.sequence}`,
           trigger: 'encounter_memory',
@@ -233,6 +245,10 @@ export class AiLifeLayer {
           lineIds: [memory.lineId],
           intents: ['rememberEncounter', 'readWorldDirectorState'],
           sceneId,
+          memoryWrites: [
+            bossMemoryAudit(memory, `boss:${memory.outcome}:${dead.templateId}`),
+            worldDirectorMemoryAudit(directorState, `boss:${memory.outcome}:${dead.templateId}`),
+          ],
         });
         out.push(bossEncounterMemoryEvent(memory, dead, sourcePlayer.id));
       } else if (dead.kind === 'player' && killer?.kind === 'mob') {
@@ -249,7 +265,7 @@ export class AiLifeLayer {
           nowSeconds: request.sim.time,
           evidence: [`simEvent:playerDeath`, `killer:${killer.templateId}`],
         });
-        this.worldDirector.noteBossMemory({ memory, nowSeconds: request.sim.time });
+        const directorState = this.worldDirector.noteBossMemory({ memory, nowSeconds: request.sim.time });
         this.journal.recordLocalReaction({
           jobId: `encounter-${dead.id}-${++this.sequence}`,
           trigger: 'encounter_memory',
@@ -260,6 +276,10 @@ export class AiLifeLayer {
           lineIds: [memory.lineId],
           intents: ['rememberEncounter', 'readWorldDirectorState'],
           sceneId,
+          memoryWrites: [
+            bossMemoryAudit(memory, `boss:${memory.outcome}:${killer.templateId}`),
+            worldDirectorMemoryAudit(directorState, `boss:${memory.outcome}:${killer.templateId}`),
+          ],
         });
         out.push(bossEncounterMemoryEvent(memory, killer, dead.id));
       }
@@ -278,6 +298,15 @@ export class AiLifeLayer {
     context.recentObservations.push(`npcMemory:${memory.interactionCount}`);
     const sceneId = context.scene?.subsceneId ?? context.scene?.zoneId;
     const zoneId = context.scene?.zoneId ?? sceneId;
+    const npcMemoryWrite = npcInteractionMemoryAudit({
+      playerEntityId: context.player.entityId,
+      templateId: context.entity.templateId,
+      interactionCount: memory.interactionCount,
+      sceneId,
+      lineIds: context.profile?.socialMemory?.recognitionLineId ? [context.profile.socialMemory.recognitionLineId] : [],
+      reason: context.trigger,
+      nowSeconds: request.sim.time,
+    });
     const trace = this.worldTraces.traceForScene(sceneId, request.pid, request.sim.time);
     if (trace) context.recentObservations.push(`worldTrace:${trace.kind}:${trace.itemId}:${trace.strength.toFixed(2)}`);
     const directorState = this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time)
@@ -295,15 +324,22 @@ export class AiLifeLayer {
     const rumor = sceneRumor ?? regionRumor;
     if (sceneRumor) context.recentObservations.push(`${sceneRumor.subjectKind}SceneRumor:${sceneRumor.itemId}:${sceneRumor.strength.toFixed(2)}`);
     if (regionRumor) context.recentObservations.push(`${regionRumor.subjectKind}RegionRumor:${regionRumor.originSceneId}:${regionRumor.itemId}:${regionRumor.strength.toFixed(2)}`);
+    context.memorySignals = [
+      npcMemoryWrite,
+      ...(trace ? [worldTraceMemoryAudit(trace, 'readActiveWorldTrace')] : []),
+      ...(directorState ? [worldDirectorMemoryAudit(directorState, 'readActiveWorldDirectorState')] : []),
+      ...(encounterMemory ? [bossMemoryAudit(encounterMemory, 'readActiveBossMemory')] : []),
+      ...(rumor ? [rumorMemoryAudit(rumor, rumor.scope === 'region' ? 'readRegionRumor' : 'readSceneRumor')] : []),
+    ];
     let decision: AiDecisionV1;
     try {
       decision = await this.provider.decide(context);
     } catch (err) {
-      this.journal.recordProviderError(context, err instanceof Error ? err.message : String(err));
+      this.journal.recordProviderError(context, err instanceof Error ? err.message : String(err), [npcMemoryWrite]);
       throw err;
     }
     const result = validateAiDecision({ decision, context, entity: npc, subject });
-    this.journal.recordDecision(context, decision, result);
+    this.journal.recordDecision(context, decision, result, [npcMemoryWrite]);
     if (result.ok) {
       const events = [...result.events];
       const sceneEvent = sceneAwarenessEvent(context, npc);
@@ -337,6 +373,7 @@ export class AiLifeLayer {
     const reactions = rankItemReactions(scene, dropped, candidates, { worldSeed: request.sim.cfg.seed }).slice(0, 2);
     const sceneId = scene.subsceneId ?? scene.zoneId;
     const reactionLineIds = reactions.map((reaction) => reaction.lineId);
+    const memoryWrites: AiMemoryAuditRecord[] = [];
     const trace = this.worldTraces.noteItemTrace({
       sceneId,
       zoneId: scene.zoneId,
@@ -345,9 +382,15 @@ export class AiLifeLayer {
       reasonLineIds: reactionLineIds,
       nowSeconds: request.sim.time,
     });
-    if (trace) this.worldDirector.noteTrace({ trace, nowSeconds: request.sim.time });
+    if (trace) {
+      const directorState = this.worldDirector.noteTrace({ trace, nowSeconds: request.sim.time });
+      memoryWrites.push(
+        worldTraceMemoryAudit(trace, `discarded:${request.itemId}`),
+        worldDirectorMemoryAudit(directorState, `discarded:${request.itemId}`),
+      );
+    }
     if (reactions.length > 0) {
-      this.socialMemory.noteItemRumor({
+      const rumor = this.socialMemory.noteItemRumor({
         sceneId,
         zoneId: scene.zoneId,
         itemId: dropped.itemId,
@@ -355,19 +398,7 @@ export class AiLifeLayer {
         lineIds: reactionLineIds,
         nowSeconds: request.sim.time,
       });
-    }
-    if (reactions.length > 0 || trace) {
-      this.journal.recordLocalReaction({
-        jobId: `local-${request.pid}-${++this.sequence}`,
-        trigger: 'item_discarded',
-        entityId: player.id,
-        templateId: player.templateId,
-        playerEntityId: request.pid,
-        reason: `discarded:${request.itemId}`,
-        lineIds: trace ? [...reactionLineIds, trace.lineId] : reactionLineIds,
-        intents: trace ? [...reactions.map((reaction) => reaction.reaction), 'leaveWorldTrace'] : reactions.map((reaction) => reaction.reaction),
-        sceneId,
-      });
+      memoryWrites.push(rumorMemoryAudit(rumor, `discarded:${request.itemId}`));
     }
     const events: SimEvent[] = reactions.map((reaction) => ({
       type: 'aiSpeech',
@@ -406,12 +437,33 @@ export class AiLifeLayer {
       });
       const memoryEvent = singularityCreatureMemoryEvent(player, reaction.entity, dropped, memory);
       if (memoryEvent) events.push(memoryEvent);
-      this.worldDirector.noteCreatureMemory({
+      memoryWrites.push(creatureMemoryAudit({
+        memory,
+        sceneId,
+        itemId: dropped.itemId,
+        reason: `singularityReaction:${dropped.itemId}`,
+      }));
+      const directorState = this.worldDirector.noteCreatureMemory({
         sceneId,
         itemId: dropped.itemId,
         memory,
         sourcePlayerEntityId: request.pid,
         nowSeconds: request.sim.time,
+      });
+      if (directorState) memoryWrites.push(worldDirectorMemoryAudit(directorState, `creatureMemory:${dropped.itemId}`));
+    }
+    if (reactions.length > 0 || trace) {
+      this.journal.recordLocalReaction({
+        jobId: `local-${request.pid}-${++this.sequence}`,
+        trigger: 'item_discarded',
+        entityId: player.id,
+        templateId: player.templateId,
+        playerEntityId: request.pid,
+        reason: `discarded:${request.itemId}`,
+        lineIds: trace ? [...reactionLineIds, trace.lineId] : reactionLineIds,
+        intents: trace ? [...reactions.map((reaction) => reaction.reaction), 'leaveWorldTrace'] : reactions.map((reaction) => reaction.reaction),
+        sceneId,
+        memoryWrites,
       });
     }
     if (events.length > 0) request.deliver(events);
@@ -428,6 +480,7 @@ export class AiLifeLayer {
     const events: SimEvent[] = [event];
     events.push(...companionReactionEvents(context));
     const lineIds = event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [];
+    const memoryWrites: AiMemoryAuditRecord[] = [];
     const inspectedItem = object.objectItemId ? droppedItemSemantic(object.objectItemId, 0, request.pid) : null;
     if (inspectedItem && context.scene) {
       const reactions = rankItemReactions(
@@ -437,7 +490,7 @@ export class AiLifeLayer {
         { worldSeed: request.sim.cfg.seed },
       ).slice(0, 2);
       lineIds.push(...reactions.map((reaction) => reaction.lineId));
-      this.socialMemory.noteItemRumor({
+      const rumor = this.socialMemory.noteItemRumor({
         sceneId: context.scene.subsceneId ?? context.scene.zoneId,
         zoneId: context.scene.zoneId,
         itemId: inspectedItem.itemId,
@@ -445,6 +498,7 @@ export class AiLifeLayer {
         lineIds,
         nowSeconds: request.sim.time,
       });
+      memoryWrites.push(rumorMemoryAudit(rumor, `inspect:${object.objectItemId ?? object.templateId}`));
       events.push(...reactions.map((reaction) => ({
         type: 'aiSpeech' as const,
         speakerId: reaction.entity.id,
@@ -484,6 +538,7 @@ export class AiLifeLayer {
       lineIds,
       intents: ['inspectObject', 'commentOnScene'],
       sceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? null,
+      memoryWrites,
     });
     request.deliver(events);
   }

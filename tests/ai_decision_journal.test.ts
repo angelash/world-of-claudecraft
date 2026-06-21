@@ -27,6 +27,11 @@ describe('AI decision journal', () => {
   it('records rejected provider output without delivering events', async () => {
     const provider: AiProvider = {
       async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
+        expect(context.memorySignals).toContainEqual(expect.objectContaining({
+          kind: 'npcInteraction',
+          refId: expect.stringMatching(/^npc:\d+:brother_aldric$/),
+          sourcePlayerEntityId: expect.any(Number),
+        }));
         return {
           schemaVersion: 1,
           jobId: context.jobId,
@@ -50,6 +55,7 @@ describe('AI decision journal', () => {
       status: 'rejected',
       templateId: 'brother_aldric',
       lineIds: ['hudChrome.aiSpeech.merchantMarketPulse'],
+      memoryWrites: [expect.objectContaining({ kind: 'npcInteraction', refId: expect.stringMatching(/^npc:\d+:brother_aldric$/) })],
     })]);
   });
 
@@ -65,6 +71,11 @@ describe('AI decision journal', () => {
       status: 'local_reaction',
       trigger: 'item_discarded',
       reason: 'discarded:roasted_boar',
+      memoryWrites: expect.arrayContaining([
+        expect.objectContaining({ kind: 'worldTrace', itemId: 'roasted_boar' }),
+        expect.objectContaining({ kind: 'worldDirectorState', itemId: 'roasted_boar' }),
+        expect.objectContaining({ kind: 'rumor', itemId: 'roasted_boar' }),
+      ]),
     });
   });
 });

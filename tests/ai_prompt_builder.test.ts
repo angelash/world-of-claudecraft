@@ -49,6 +49,21 @@ const context: AiJobContextV1 = {
   familySemantics: null,
   questFacts: [{ questId: 'q_bones', visibility: 'currentObjective', summary: 'Gather bones.', source: 'quest-log' }],
   recentObservations: ['scene:fallen_chapel', 'tag:deathPressure'],
+  memorySignals: [{
+    kind: 'rumor',
+    refId: 'rumor-7',
+    scope: 'region',
+    sceneId: 'eastbrook_forge',
+    zoneId: 'eastbrook_vale',
+    sourcePlayerEntityId: 1,
+    itemId: 'roasted_boar',
+    subjectKind: 'item',
+    lineIds: ['hudChrome.aiSpeech.itemInterestApproach'],
+    salience: 0.65,
+    createdAt: 12,
+    expiresAt: 102,
+    reason: 'readRegionRumor',
+  }],
   allowedIntents: ['commentOnScene', 'inspectObject'],
   allowedLineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
   outputMode: 'line_id_only',
@@ -71,6 +86,7 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('Taboo topics: hidden quest conclusions');
     expect(prompt).toContain('Social memory style: Recognizes repeated visitors');
     expect(prompt).toContain('Nearby semantic objects: fallen_crypt_gate(cryptGate/sealedAir/deathPressure/dungeonEntrance, 6.5yd)');
+    expect(prompt).toContain('Memory signals: rumor:rumor-7:region:salience=0.65:readRegionRumor');
     expect(prompt).toContain('Return only JSON');
   });
 });
