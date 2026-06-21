@@ -24,6 +24,7 @@ import { isOverheadEmoteId, type AiNpcInteractionTopic } from '../src/world_api'
 import * as antibot from './antibot';
 import type { BotTracker } from './antibot';
 import { AiLifeLayer } from './ai/life_layer';
+import { PgAiMemoryDb } from './ai_memory_db';
 
 const WORLD_SEED = 20061;
 const ALDRIC_METEOR_QUEST_ID = 'q_aldrics_fallen_star';
@@ -383,7 +384,7 @@ export class GameServer {
       devCommands: process.env.ALLOW_DEV_COMMANDS === '1',
     });
     this.social = new SocialService(this.socialDb, this.socialTransport());
-    this.aiLifeLayer = new AiLifeLayer();
+    this.aiLifeLayer = new AiLifeLayer({ memoryDb: new PgAiMemoryDb(pool) });
   }
 
   // Returns the number of currently active WS sessions from the given IP.
@@ -905,6 +906,7 @@ export class GameServer {
       }
     };
     await Promise.all(Array.from({ length: Math.min(SAVE_CONCURRENCY, sessions.length) }, worker));
+    await this.aiLifeLayer.flushMemoryWrites();
   }
 
   // The World Market is shared global state, persisted as a single JSONB blob.

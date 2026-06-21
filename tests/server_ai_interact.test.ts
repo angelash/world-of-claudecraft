@@ -15,6 +15,7 @@ vi.mock('../server/db', () => ({
 }));
 
 import { GameServer, type ClientSession } from '../server/game';
+import { pool } from '../server/db';
 import { individualProfileFor } from '../server/ai/singularity';
 import type { Entity } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
@@ -22,6 +23,13 @@ import { groundHeight } from '../src/sim/world';
 interface FakeClient {
   sent: unknown[];
   ws: { readyState: number; send: (payload: string) => void };
+}
+
+interface PoolQueryMock {
+  mock: { calls: Array<[unknown, ...unknown[]]> };
+  mockClear(): void;
+  mockImplementation(fn: (sql: unknown, values?: readonly unknown[]) => Promise<{ rows: Array<Record<string, unknown>>; rowCount?: number | null }>): void;
+  mockResolvedValue(value: { rows: Array<Record<string, unknown>>; rowCount?: number | null }): void;
 }
 
 function fakeWs(): FakeClient {
@@ -59,6 +67,10 @@ function eventsOf(fc: FakeClient, type: string): any[] {
     .filter((ev: any) => ev.type === type);
 }
 
+function dbQueryMock(): PoolQueryMock {
+  return pool.query as unknown as PoolQueryMock;
+}
+
 function routeSimEventsThroughAi(server: GameServer, events: any[]): any[] {
   const aiEvents = (server as any).aiLifeLayer.handleSimEvents({ sim: server.sim, events });
   (server as any).routeEvents(aiEvents.length > 0 ? [...events, ...aiEvents] : events);
@@ -75,6 +87,7 @@ function seedThatMakesSingularity(entity: Entity): number {
 async function flushAi(): Promise<void> {
   await Promise.resolve();
   await Promise.resolve();
+  await new Promise<void>((resolve) => setImmediate(resolve));
 }
 
 describe('server AI interact command', () => {
@@ -976,5 +989,56 @@ describe('server AI interact command', () => {
     }));
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
+  });
+
+  it('waits for pending AI memory writes during shutdown saves', async () => {
+    const query = dbQueryMock();
+    query.mockClear();
+    let resolveInsertStarted!: () => void;
+    let releaseInsert!: () => void;
+    const insertStarted = new Promise<void>((resolve) => {
+      resolveInsertStarted = resolve;
+    });
+    const insertRelease = new Promise<void>((resolve) => {
+      releaseInsert = resolve;
+    });
+    let holdFirstMemoryInsert = true;
+    query.mockImplementation(async (sql: unknown) => {
+      if (typeof sql === 'string' && sql.includes('INSERT INTO ai_memory_records') && holdFirstMemoryInsert) {
+        holdFirstMemoryInsert = false;
+        resolveInsertStarted();
+        await insertRelease;
+      }
+      return { rows: [] };
+    });
+
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    teleportNear(server, session.pid, wolf.id);
+
+    (server as any).aiLifeLayer.handleItemDiscarded({
+      sim: server.sim,
+      pid: session.pid,
+      itemId: 'roasted_boar',
+      count: 1,
+      deliver: () => {},
+    });
+    await insertStarted;
+
+    let saveDone = false;
+    const save = server.saveAll('shutdown').then(() => {
+      saveDone = true;
+    });
+    await flushAi();
+
+    expect(saveDone).toBe(false);
+    releaseInsert();
+    await save;
+
+    expect(saveDone).toBe(true);
+    expect(query.mock.calls.some(([sql]) => typeof sql === 'string' && sql.includes('INSERT INTO ai_memory_records'))).toBe(true);
+    query.mockResolvedValue({ rows: [] });
   });
 });

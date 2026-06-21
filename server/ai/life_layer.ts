@@ -28,6 +28,7 @@ import { validateAiDecision } from './intent_validator';
 import { memoryReactionEvent } from './memory_reactions';
 import {
   bossMemoryAudit,
+  cloneMemoryAudit,
   creatureMemoryAudit,
   npcInteractionMemoryAudit,
   rumorMemoryAudit,
@@ -54,6 +55,22 @@ export interface AiLifeLayerOptions {
   provider?: AiProvider;
   useCodex?: boolean;
   journalSize?: number;
+  memoryDb?: AiMemoryPersistence;
+  memoryPersistBatchSize?: number;
+}
+
+export interface AiMemoryPersistenceQuery {
+  sourcePlayerEntityId: number;
+  nowSeconds: number;
+  sceneId?: string | null;
+  zoneId?: string | null;
+  kinds?: readonly AiMemoryAuditRecord['kind'][];
+  limit?: number;
+}
+
+export interface AiMemoryPersistence {
+  saveRecords(records: readonly AiMemoryAuditRecord[]): Promise<void>;
+  loadRecords?(query: AiMemoryPersistenceQuery): Promise<AiMemoryAuditRecord[]>;
 }
 
 export interface NpcAiInteractionRequest {
@@ -98,6 +115,11 @@ export class AiLifeLayer {
   private readonly bossMemory = new AiBossEncounterMemoryStore();
   private readonly bossPhaseCues = new AiBossEncounterPhaseCueStore();
   private readonly worldDirector = new AiWorldDirectorStore();
+  private readonly memoryDb: AiMemoryPersistence | null;
+  private readonly memoryPersistBatchSize: number;
+  private readonly pendingMemoryWrites: AiMemoryAuditRecord[] = [];
+  private readonly memoryPersistenceErrors: string[] = [];
+  private memoryFlushPromise: Promise<void> | null = null;
   private sequence = 0;
 
   constructor(options: AiLifeLayerOptions = {}) {
@@ -106,6 +128,8 @@ export class AiLifeLayer {
       ? new CodexCliProvider()
       : new FakeAiProvider());
     this.journal = new AiDecisionJournal(options.journalSize);
+    this.memoryDb = options.memoryDb ?? null;
+    this.memoryPersistBatchSize = Math.max(1, Math.min(200, Math.floor(options.memoryPersistBatchSize ?? 32)));
   }
 
   diagnostics(): AiDecisionJournalEntry[] {
@@ -136,6 +160,25 @@ export class AiLifeLayer {
     return this.worldDirector.snapshot();
   }
 
+  memoryPersistenceDiagnostics(): { pending: number; flushing: boolean; errors: string[] } {
+    return {
+      pending: this.pendingMemoryWrites.length,
+      flushing: this.memoryFlushPromise !== null,
+      errors: [...this.memoryPersistenceErrors],
+    };
+  }
+
+  async flushMemoryWrites(): Promise<void> {
+    if (!this.memoryDb) return;
+    if (this.memoryFlushPromise) return this.memoryFlushPromise;
+    if (this.pendingMemoryWrites.length === 0) return;
+    this.memoryFlushPromise = this.flushMemoryWritesNow()
+      .finally(() => {
+        this.memoryFlushPromise = null;
+      });
+    return this.memoryFlushPromise;
+  }
+
   handleSimEvents(request: { sim: Sim; events: SimEvent[] }): SimEvent[] {
     if (!this.enabled || request.events.length === 0) return [];
     const out: SimEvent[] = [];
@@ -162,6 +205,10 @@ export class AiLifeLayer {
           sourcePlayerEntityId: player.id,
           nowSeconds: request.sim.time,
         });
+        const memoryWrites = [
+          rumorMemoryAudit(rumor, `questDone:${event.questId}`),
+          worldDirectorMemoryAudit(directorState, `questDone:${event.questId}`),
+        ];
         this.journal.recordLocalReaction({
           jobId: `quest-rumor-${player.id}-${++this.sequence}`,
           trigger: 'quest_completed',
@@ -172,11 +219,9 @@ export class AiLifeLayer {
           lineIds: [lineId],
           intents: ['rememberQuestFact', 'spreadRumor'],
           sceneId,
-          memoryWrites: [
-            rumorMemoryAudit(rumor, `questDone:${event.questId}`),
-            worldDirectorMemoryAudit(directorState, `questDone:${event.questId}`),
-          ],
+          memoryWrites,
         });
+        this.enqueueMemoryWrites(memoryWrites);
         continue;
       }
       if (event.type === 'damage') {
@@ -235,6 +280,10 @@ export class AiLifeLayer {
           evidence: [`simEvent:death`, `killer:${killer?.templateId ?? 'unknown'}`],
         });
         const directorState = this.worldDirector.noteBossMemory({ memory, nowSeconds: request.sim.time });
+        const memoryWrites = [
+          bossMemoryAudit(memory, `boss:${memory.outcome}:${dead.templateId}`),
+          worldDirectorMemoryAudit(directorState, `boss:${memory.outcome}:${dead.templateId}`),
+        ];
         this.journal.recordLocalReaction({
           jobId: `encounter-${sourcePlayer.id}-${++this.sequence}`,
           trigger: 'encounter_memory',
@@ -245,11 +294,9 @@ export class AiLifeLayer {
           lineIds: [memory.lineId],
           intents: ['rememberEncounter', 'readWorldDirectorState'],
           sceneId,
-          memoryWrites: [
-            bossMemoryAudit(memory, `boss:${memory.outcome}:${dead.templateId}`),
-            worldDirectorMemoryAudit(directorState, `boss:${memory.outcome}:${dead.templateId}`),
-          ],
+          memoryWrites,
         });
+        this.enqueueMemoryWrites(memoryWrites);
         out.push(bossEncounterMemoryEvent(memory, dead, sourcePlayer.id));
       } else if (dead.kind === 'player' && killer?.kind === 'mob') {
         const scale = bossEncounterScale(killer);
@@ -266,6 +313,10 @@ export class AiLifeLayer {
           evidence: [`simEvent:playerDeath`, `killer:${killer.templateId}`],
         });
         const directorState = this.worldDirector.noteBossMemory({ memory, nowSeconds: request.sim.time });
+        const memoryWrites = [
+          bossMemoryAudit(memory, `boss:${memory.outcome}:${killer.templateId}`),
+          worldDirectorMemoryAudit(directorState, `boss:${memory.outcome}:${killer.templateId}`),
+        ];
         this.journal.recordLocalReaction({
           jobId: `encounter-${dead.id}-${++this.sequence}`,
           trigger: 'encounter_memory',
@@ -276,11 +327,9 @@ export class AiLifeLayer {
           lineIds: [memory.lineId],
           intents: ['rememberEncounter', 'readWorldDirectorState'],
           sceneId,
-          memoryWrites: [
-            bossMemoryAudit(memory, `boss:${memory.outcome}:${killer.templateId}`),
-            worldDirectorMemoryAudit(directorState, `boss:${memory.outcome}:${killer.templateId}`),
-          ],
+          memoryWrites,
         });
+        this.enqueueMemoryWrites(memoryWrites);
         out.push(bossEncounterMemoryEvent(memory, killer, dead.id));
       }
     }
@@ -324,22 +373,33 @@ export class AiLifeLayer {
     const rumor = sceneRumor ?? regionRumor;
     if (sceneRumor) context.recentObservations.push(`${sceneRumor.subjectKind}SceneRumor:${sceneRumor.itemId}:${sceneRumor.strength.toFixed(2)}`);
     if (regionRumor) context.recentObservations.push(`${regionRumor.subjectKind}RegionRumor:${regionRumor.originSceneId}:${regionRumor.itemId}:${regionRumor.strength.toFixed(2)}`);
+    const persistedSignals = await this.loadPersistedMemorySignals({
+      sourcePlayerEntityId: request.pid,
+      nowSeconds: request.sim.time,
+      sceneId,
+      zoneId,
+      limit: 8,
+    });
+    const memoryWrites = [npcMemoryWrite];
     context.memorySignals = [
       npcMemoryWrite,
       ...(trace ? [worldTraceMemoryAudit(trace, 'readActiveWorldTrace')] : []),
       ...(directorState ? [worldDirectorMemoryAudit(directorState, 'readActiveWorldDirectorState')] : []),
       ...(encounterMemory ? [bossMemoryAudit(encounterMemory, 'readActiveBossMemory')] : []),
       ...(rumor ? [rumorMemoryAudit(rumor, rumor.scope === 'region' ? 'readRegionRumor' : 'readSceneRumor')] : []),
+      ...persistedSignals,
     ];
     let decision: AiDecisionV1;
     try {
       decision = await this.provider.decide(context);
     } catch (err) {
-      this.journal.recordProviderError(context, err instanceof Error ? err.message : String(err), [npcMemoryWrite]);
+      this.journal.recordProviderError(context, err instanceof Error ? err.message : String(err), memoryWrites);
+      this.enqueueMemoryWrites(memoryWrites);
       throw err;
     }
     const result = validateAiDecision({ decision, context, entity: npc, subject });
-    this.journal.recordDecision(context, decision, result, [npcMemoryWrite]);
+    this.journal.recordDecision(context, decision, result, memoryWrites);
+    this.enqueueMemoryWrites(memoryWrites);
     if (result.ok) {
       const events = [...result.events];
       const sceneEvent = sceneAwarenessEvent(context, npc);
@@ -465,6 +525,7 @@ export class AiLifeLayer {
         sceneId,
         memoryWrites,
       });
+      this.enqueueMemoryWrites(memoryWrites);
     }
     if (events.length > 0) request.deliver(events);
   }
@@ -540,6 +601,7 @@ export class AiLifeLayer {
       sceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? null,
       memoryWrites,
     });
+    this.enqueueMemoryWrites(memoryWrites);
     request.deliver(events);
   }
 
@@ -634,6 +696,42 @@ export class AiLifeLayer {
       sceneId,
     });
     request.deliver(events);
+  }
+
+  private enqueueMemoryWrites(records: readonly AiMemoryAuditRecord[]): void {
+    if (!this.memoryDb || records.length === 0) return;
+    this.pendingMemoryWrites.push(...records.map(cloneMemoryAudit));
+    void this.flushMemoryWrites();
+  }
+
+  private async flushMemoryWritesNow(): Promise<void> {
+    if (!this.memoryDb) return;
+    while (this.pendingMemoryWrites.length > 0) {
+      const batch = this.pendingMemoryWrites.splice(0, this.memoryPersistBatchSize);
+      try {
+        await this.memoryDb.saveRecords(batch);
+      } catch (err) {
+        this.pendingMemoryWrites.unshift(...batch);
+        this.recordMemoryPersistenceError(err);
+        return;
+      }
+    }
+  }
+
+  private async loadPersistedMemorySignals(input: AiMemoryPersistenceQuery): Promise<AiMemoryAuditRecord[]> {
+    if (!this.memoryDb?.loadRecords) return [];
+    try {
+      return (await this.memoryDb.loadRecords(input)).map(cloneMemoryAudit);
+    } catch (err) {
+      this.recordMemoryPersistenceError(err);
+      return [];
+    }
+  }
+
+  private recordMemoryPersistenceError(err: unknown): void {
+    const message = err instanceof Error ? err.message : String(err);
+    this.memoryPersistenceErrors.unshift(message);
+    this.memoryPersistenceErrors.splice(5);
   }
 
   private playerForEncounterSource(sim: Sim, source: Entity | undefined): Entity | null {
