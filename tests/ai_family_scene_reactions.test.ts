@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Entity } from '../src/sim/types';
+import { familyDirectorProjectionFor } from '../server/ai/director_family_projection';
 import { familySceneReactionEvent, rankFamilySceneReactions, scoreFamilySceneReaction } from '../server/ai/family_scene_reactions';
 import type { SceneFrameV1, SceneObjectSemantic } from '../server/ai/scene_frame';
 import { sceneSemanticsAt } from '../server/ai/scene_semantics';
@@ -226,6 +227,114 @@ describe('AI family scene reactions', () => {
         sceneTags: expect.arrayContaining(['director:echoTrace']),
       }),
     });
+  });
+
+  it('projects the same haunted director echo as resonance or fear by family', () => {
+    const haunted = directorProposal({
+      intent: 'raiseCampCaution',
+      targetRef: 'fallen_chapel',
+      suggestedLineId: 'hudChrome.aiSpeech.worldDirectorHaunted',
+      reasonTags: ['mood:haunted', 'subject:scene', 'proposal:campAlert', 'trace:cursed'],
+    });
+
+    expect(familyDirectorProjectionFor(haunted, { family: 'undead' })).toMatchObject({
+      reaction: 'approach',
+      reasonTags: expect.arrayContaining(['directorProjection:deathResonance', 'family:undead']),
+    });
+    expect(familyDirectorProjectionFor(haunted, { family: 'beast' })).toMatchObject({
+      reaction: 'avoid',
+      reasonTags: expect.arrayContaining(['directorProjection:mortalFear', 'family:beast']),
+    });
+    expect(familyDirectorProjectionFor(haunted, { family: 'elemental' })).toMatchObject({
+      reaction: 'approach',
+      reasonTags: expect.arrayContaining(['directorProjection:elementalDisturbance', 'family:elemental']),
+    });
+  });
+
+  it('splits lingering haunted director mood between undead pull and living recoil', () => {
+    const scene = frame(-10, 120, 10 * 60, {
+      biomeTags: ['vale'],
+      locationTags: ['forest'],
+      structureTags: [],
+      environmentalTags: [],
+      nearbySemanticObjects: [],
+    });
+    const haunted = directorProposal({
+      intent: 'raiseCampCaution',
+      targetRef: 'fallen_chapel',
+      suggestedLineId: 'hudChrome.aiSpeech.worldDirectorHaunted',
+      reasonTags: ['mood:haunted', 'subject:scene', 'proposal:campAlert', 'trace:cursed'],
+    });
+
+    const undead = scoreFamilySceneReaction(scene, mob(19, 'restless_bones'), {
+      directorProposals: [haunted],
+      worldSeed: 1,
+      quirkThreshold: 1,
+      singularityThreshold: 1,
+    });
+    const beast = scoreFamilySceneReaction(scene, mob(20, 'forest_wolf'), {
+      directorProposals: [haunted],
+      worldSeed: 1,
+      quirkThreshold: 1,
+      singularityThreshold: 1,
+    });
+
+    expect(undead).toMatchObject({
+      family: 'undead',
+      reaction: 'approach',
+      reasonTags: expect.arrayContaining(['directorProjection:deathResonance']),
+      focusedObject: expect.objectContaining({
+        objectId: 'fallen_chapel',
+        templateId: 'world_director:raiseCampCaution',
+      }),
+    });
+    expect(beast).toMatchObject({
+      family: 'beast',
+      reaction: 'avoid',
+      reasonTags: expect.arrayContaining(['directorProjection:mortalFear']),
+    });
+    expect(undead?.score).toBeGreaterThan(0.45);
+    expect(beast?.score).toBeGreaterThan(0.4);
+  });
+
+  it('lets civil rumor projections attract social families without making beasts care about money gossip', () => {
+    const scene = frame(-10, 120, 10 * 60, {
+      biomeTags: ['vale'],
+      locationTags: ['road'],
+      structureTags: [],
+      environmentalTags: [],
+      nearbySemanticObjects: [],
+    });
+    const covetous = directorProposal({
+      intent: 'nudgeNpcRumor',
+      targetRef: 'redbrook_blade',
+      suggestedLineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+      reasonTags: ['mood:covetous', 'subject:item', 'proposal:npcTopicShift', 'trace:valuable'],
+    });
+
+    const humanoid = scoreFamilySceneReaction(scene, mob(21, 'gravecaller_cultist'), {
+      directorProposals: [covetous],
+      worldSeed: 1,
+      quirkThreshold: 1,
+      singularityThreshold: 1,
+    });
+    const beast = scoreFamilySceneReaction(scene, mob(22, 'forest_wolf'), {
+      directorProposals: [covetous],
+      worldSeed: 1,
+      quirkThreshold: 1,
+      singularityThreshold: 1,
+    });
+
+    expect(humanoid).toMatchObject({
+      family: 'humanoid',
+      reaction: 'approach',
+      reasonTags: expect.arrayContaining(['directorProjection:civilRumor']),
+      focusedObject: expect.objectContaining({
+        objectId: 'redbrook_blade',
+        templateId: 'world_director:nudgeNpcRumor',
+      }),
+    });
+    expect(beast).toBeNull();
   });
 
   it('ranks star-aware singularity creatures above ordinary scene readers', () => {

@@ -1,4 +1,5 @@
 import type { Entity, MobFamily, SimEvent } from '../../src/sim/types';
+import { familyDirectorProjectionFor } from './director_family_projection';
 import type { SceneFrameV1, SceneObjectSemantic } from './scene_frame';
 import { familySemanticsFor, mobFamilyForEntity } from './family_semantics';
 import type { FamilySemantics } from './family_semantics';
@@ -379,75 +380,29 @@ function directorProposalReactionCue(
     reasonTags: string[];
   } | null = null;
   for (const proposal of proposals.slice(0, 3)) {
-    const tags = new Set(proposal.reasonTags);
-    const intensity = clamp01(proposal.intensity);
-    let curiosity = 0;
-    let fear = 0;
-    let reaction: Exclude<FamilySceneReactionKind, 'ignore'> = 'inspect';
-
-    if (proposal.intent === 'raiseCampCaution') {
-      if (family === 'undead' || family === 'demon') {
-        curiosity += 0.22 + intensity * 0.12;
-        reaction = 'approach';
-      } else {
-        fear += 0.24 + intensity * 0.14;
-        reaction = 'avoid';
-      }
-    } else if (proposal.intent === 'echoTrace') {
-      const foodTrace = tags.has('mood:hungry') || tags.has('trace:food');
-      const valuableTrace = tags.has('mood:covetous') || tags.has('trace:valuable');
-      const cursedTrace = tags.has('mood:haunted') || tags.has('trace:cursed') || tags.has('trace:singularity');
-      if (foodTrace && (family === 'beast' || family === 'murloc' || family === 'troll' || family === 'ogre')) {
-        curiosity += 0.3 + intensity * 0.16;
-        reaction = 'approach';
-      } else if (valuableTrace && (family === 'humanoid' || family === 'kobold' || family === 'dragonkin')) {
-        curiosity += 0.24 + intensity * 0.12;
-        reaction = 'approach';
-      } else if (cursedTrace && family !== 'undead' && family !== 'demon') {
-        fear += 0.22 + intensity * 0.12;
-        reaction = 'avoid';
-      } else {
-        curiosity += 0.12 + intensity * 0.08;
-      }
-    } else if (proposal.intent === 'nudgeNpcRumor') {
-      if (family === 'humanoid' || family === 'kobold' || family === 'troll' || family === 'ogre') {
-        curiosity += 0.2 + intensity * 0.1;
-        reaction = 'approach';
-      } else {
-        curiosity += 0.1 + intensity * 0.05;
-      }
-    } else if (proposal.intent === 'echoEncounterMemory') {
-      if (tags.has('mood:dread') && family !== 'undead' && family !== 'demon') {
-        fear += 0.26 + intensity * 0.12;
-        reaction = 'avoid';
-      } else {
-        curiosity += (family === 'dragonkin' || family === 'elemental' || family === 'demon') ? 0.2 : 0.12;
-      }
-    } else if (proposal.intent === 'echoQuestRelief') {
-      curiosity += (family === 'humanoid' || family === 'dragonkin') ? 0.18 : 0.08;
-    }
-
-    if (individual.tier !== 'none') {
-      const boost = individual.tier === 'singularity' ? 0.08 : 0.04;
-      if (individual.traits.includes('omenSensitive') || individual.traits.includes('territorial')) curiosity += boost;
-      if (individual.traits.includes('cowardly')) fear += boost;
-    }
-
-    const score = Math.max(curiosity, fear);
+    const projection = familyDirectorProjectionFor(proposal, {
+      family,
+      individualTier: individual.tier,
+      individualTraits: individual.traits,
+    });
+    if (!projection) continue;
+    const score = Math.max(projection.curiosity, projection.fear);
     if (score < 0.12) continue;
     const focus: FamilySceneFocusedObject = {
       objectId: proposal.targetRef,
       entityId: null,
       templateId: `world_director:${proposal.intent}`,
-      reaction,
-      reasonTags: [
-        `director:${proposal.intent}`,
-        `directorRisk:${proposal.risk}`,
-        ...proposal.reasonTags,
-      ].slice(0, 6),
+      reaction: projection.reaction,
+      reasonTags: projection.reasonTags,
       distance: 0,
     };
-    if (!best || score > best.score) best = { curiosity, fear, score, focus, reasonTags: focus.reasonTags };
+    if (!best || score > best.score) best = {
+      curiosity: projection.curiosity,
+      fear: projection.fear,
+      score,
+      focus,
+      reasonTags: focus.reasonTags,
+    };
   }
   if (!best) return { curiosity: 0, fear: 0, reasonTags: [] };
   return {

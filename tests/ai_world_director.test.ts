@@ -186,6 +186,41 @@ describe('AI world director', () => {
     expect(states.map((state) => state.itemId)).toEqual(['item_39', 'item_38', 'item_37', 'item_36', 'item_35']);
   });
 
+  it('decays long-running rumor heat and expires it on sim time instead of wall time', () => {
+    const store = new AiWorldDirectorStore({ stateTtlSeconds: 120 });
+    const state = store.noteTrace({ trace: trace('valuable', 'redbrook_blade'), nowSeconds: 1_000 });
+    const early = store.stateForRegion({
+      zoneId: 'eastbrook_vale',
+      sceneId: 'fallen_chapel',
+      playerEntityId: 1,
+      nowSeconds: 1_030,
+    });
+    const late = store.stateForRegion({
+      zoneId: 'eastbrook_vale',
+      sceneId: 'fallen_chapel',
+      playerEntityId: 1,
+      nowSeconds: 1_090,
+    });
+
+    expect(early).toMatchObject({
+      stateId: state.stateId,
+      mood: 'covetous',
+      proposal: expect.objectContaining({ intent: 'nudgeNpcRumor' }),
+    });
+    expect(late).toMatchObject({
+      stateId: state.stateId,
+      mood: 'covetous',
+    });
+    expect(late!.heat).toBeLessThan(early!.heat);
+    expect(late!.proposal.intensity).toBeLessThan(early!.proposal.intensity);
+    expect(store.stateForRegion({
+      zoneId: 'eastbrook_vale',
+      sceneId: 'fallen_chapel',
+      playerEntityId: 1,
+      nowSeconds: 1_121,
+    })).toBeNull();
+  });
+
   it('turns active director states into personal aiSpeech events', () => {
     const store = new AiWorldDirectorStore();
     const state = store.noteTrace({ trace: trace('cursed', 'gravecaller_sigil'), nowSeconds: 10 });
