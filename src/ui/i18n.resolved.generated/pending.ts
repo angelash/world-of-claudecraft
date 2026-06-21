@@ -87,6 +87,11 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.unknownCompanion",
     "hudChrome.aiSpeech.unknownItem",
     "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.aiSpeech.worldTraceNpcCursed",
+    "hudChrome.aiSpeech.worldTraceNpcFood",
+    "hudChrome.aiSpeech.worldTraceNpcGeneric",
+    "hudChrome.aiSpeech.worldTraceNpcSingularity",
+    "hudChrome.aiSpeech.worldTraceNpcValuable",
     "hudChrome.keybinds.inspect"
   ],
   "es_ES": [
@@ -167,6 +172,11 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.unknownCompanion",
     "hudChrome.aiSpeech.unknownItem",
     "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.aiSpeech.worldTraceNpcCursed",
+    "hudChrome.aiSpeech.worldTraceNpcFood",
+    "hudChrome.aiSpeech.worldTraceNpcGeneric",
+    "hudChrome.aiSpeech.worldTraceNpcSingularity",
+    "hudChrome.aiSpeech.worldTraceNpcValuable",
     "hudChrome.keybinds.inspect"
   ],
   "fr_FR": [
@@ -247,6 +257,11 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.unknownCompanion",
     "hudChrome.aiSpeech.unknownItem",
     "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.aiSpeech.worldTraceNpcCursed",
+    "hudChrome.aiSpeech.worldTraceNpcFood",
+    "hudChrome.aiSpeech.worldTraceNpcGeneric",
+    "hudChrome.aiSpeech.worldTraceNpcSingularity",
+    "hudChrome.aiSpeech.worldTraceNpcValuable",
     "hudChrome.keybinds.inspect"
   ],
   "fr_CA": [
@@ -327,6 +342,11 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.unknownCompanion",
     "hudChrome.aiSpeech.unknownItem",
     "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.aiSpeech.worldTraceNpcCursed",
+    "hudChrome.aiSpeech.worldTraceNpcFood",
+    "hudChrome.aiSpeech.worldTraceNpcGeneric",
+    "hudChrome.aiSpeech.worldTraceNpcSingularity",
+    "hudChrome.aiSpeech.worldTraceNpcValuable",
     "hudChrome.keybinds.inspect"
   ],
   "en_CA": [],
@@ -408,6 +428,11 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.unknownCompanion",
     "hudChrome.aiSpeech.unknownItem",
     "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.aiSpeech.worldTraceNpcCursed",
+    "hudChrome.aiSpeech.worldTraceNpcFood",
+    "hudChrome.aiSpeech.worldTraceNpcGeneric",
+    "hudChrome.aiSpeech.worldTraceNpcSingularity",
+    "hudChrome.aiSpeech.worldTraceNpcValuable",
     "hudChrome.keybinds.inspect"
   ],
   "de_DE": [
@@ -488,6 +513,11 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.unknownCompanion",
     "hudChrome.aiSpeech.unknownItem",
     "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.aiSpeech.worldTraceNpcCursed",
+    "hudChrome.aiSpeech.worldTraceNpcFood",
+    "hudChrome.aiSpeech.worldTraceNpcGeneric",
+    "hudChrome.aiSpeech.worldTraceNpcSingularity",
+    "hudChrome.aiSpeech.worldTraceNpcValuable",
     "hudChrome.keybinds.inspect"
   ],
   "zh_CN": [
@@ -568,6 +598,11 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.unknownCompanion",
     "hudChrome.aiSpeech.unknownItem",
     "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.aiSpeech.worldTraceNpcCursed",
+    "hudChrome.aiSpeech.worldTraceNpcFood",
+    "hudChrome.aiSpeech.worldTraceNpcGeneric",
+    "hudChrome.aiSpeech.worldTraceNpcSingularity",
+    "hudChrome.aiSpeech.worldTraceNpcValuable",
     "hudChrome.keybinds.inspect"
   ],
   "zh_TW": [
@@ -648,6 +683,11 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.unknownCompanion",
     "hudChrome.aiSpeech.unknownItem",
     "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.aiSpeech.worldTraceNpcCursed",
+    "hudChrome.aiSpeech.worldTraceNpcFood",
+    "hudChrome.aiSpeech.worldTraceNpcGeneric",
+    "hudChrome.aiSpeech.worldTraceNpcSingularity",
+    "hudChrome.aiSpeech.worldTraceNpcValuable",
     "hudChrome.keybinds.inspect"
   ],
   "ko_KR": [
@@ -728,6 +768,11 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.unknownCompanion",
     "hudChrome.aiSpeech.unknownItem",
     "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.aiSpeech.worldTraceNpcCursed",
+    "hudChrome.aiSpeech.worldTraceNpcFood",
+    "hudChrome.aiSpeech.worldTraceNpcGeneric",
+    "hudChrome.aiSpeech.worldTraceNpcSingularity",
+    "hudChrome.aiSpeech.worldTraceNpcValuable",
     "hudChrome.keybinds.inspect"
   ],
   "ja_JP": [
@@ -808,6 +853,11 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.unknownCompanion",
     "hudChrome.aiSpeech.unknownItem",
     "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.aiSpeech.worldTraceNpcCursed",
+    "hudChrome.aiSpeech.worldTraceNpcFood",
+    "hudChrome.aiSpeech.worldTraceNpcGeneric",
+    "hudChrome.aiSpeech.worldTraceNpcSingularity",
+    "hudChrome.aiSpeech.worldTraceNpcValuable",
     "hudChrome.keybinds.inspect"
   ],
   "pt_BR": [
@@ -888,6 +938,11 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.unknownCompanion",
     "hudChrome.aiSpeech.unknownItem",
     "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.aiSpeech.worldTraceNpcCursed",
+    "hudChrome.aiSpeech.worldTraceNpcFood",
+    "hudChrome.aiSpeech.worldTraceNpcGeneric",
+    "hudChrome.aiSpeech.worldTraceNpcSingularity",
+    "hudChrome.aiSpeech.worldTraceNpcValuable",
     "hudChrome.keybinds.inspect"
   ],
   "ru_RU": [
@@ -968,6 +1023,11 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiSpeech.unknownCompanion",
     "hudChrome.aiSpeech.unknownItem",
     "hudChrome.aiSpeech.unknownObject",
+    "hudChrome.aiSpeech.worldTraceNpcCursed",
+    "hudChrome.aiSpeech.worldTraceNpcFood",
+    "hudChrome.aiSpeech.worldTraceNpcGeneric",
+    "hudChrome.aiSpeech.worldTraceNpcSingularity",
+    "hudChrome.aiSpeech.worldTraceNpcValuable",
     "hudChrome.keybinds.inspect"
   ]
 };

@@ -3955,6 +3955,12 @@ export class Hud {
       case 'hudChrome.aiSpeech.sceneTraceValuable':
       case 'hudChrome.aiSpeech.sceneTraceGeneric':
         return t(ev.speech.lineId as TranslationKey, { itemName });
+      case 'hudChrome.aiSpeech.worldTraceNpcSingularity':
+      case 'hudChrome.aiSpeech.worldTraceNpcCursed':
+      case 'hudChrome.aiSpeech.worldTraceNpcFood':
+      case 'hudChrome.aiSpeech.worldTraceNpcValuable':
+      case 'hudChrome.aiSpeech.worldTraceNpcGeneric':
+        return t(ev.speech.lineId as TranslationKey, { speakerName, itemName });
       case 'hudChrome.aiSpeech.sceneInspectForge':
       case 'hudChrome.aiSpeech.sceneInspectChapel':
       case 'hudChrome.aiSpeech.sceneInspectLake':

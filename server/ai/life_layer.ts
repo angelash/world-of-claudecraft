@@ -25,6 +25,7 @@ import { AiSocialMemoryStore } from './social_memory';
 import type { AiNpcMemory, AiRumorMemory } from './social_memory';
 import { AiWorldTraceStore } from './world_traces';
 import type { AiWorldTrace } from './world_traces';
+import { worldTraceReactionEvent } from './world_trace_reactions';
 
 export interface AiLifeLayerOptions {
   enabled?: boolean;
@@ -102,6 +103,8 @@ export class AiLifeLayer {
     const subject = classifyCanonSubject(npc);
     const memory = this.socialMemory.noteNpcInteraction(context, request.sim.time);
     context.recentObservations.push(`npcMemory:${memory.interactionCount}`);
+    const trace = this.worldTraces.traceForScene(context.scene?.subsceneId ?? context.scene?.zoneId, request.pid, request.sim.time);
+    if (trace) context.recentObservations.push(`worldTrace:${trace.kind}:${trace.itemId}:${trace.strength.toFixed(2)}`);
     const rumor = this.socialMemory.rumorForScene(context.scene?.subsceneId ?? context.scene?.zoneId, request.pid, request.sim.time);
     if (rumor) context.recentObservations.push(`sceneRumor:${rumor.itemId}:${rumor.strength.toFixed(2)}`);
     let decision: AiDecisionV1;
@@ -117,6 +120,8 @@ export class AiLifeLayer {
       const events = [...result.events];
       const sceneEvent = sceneAwarenessEvent(context, npc);
       if (sceneEvent) events.push(sceneEvent);
+      const traceEvent = worldTraceReactionEvent(context, npc, trace);
+      if (traceEvent) events.push(traceEvent);
       events.push(...companionReactionEvents(context));
       const memoryEvent = memoryReactionEvent(context, npc, memory, rumor);
       if (memoryEvent) events.push(memoryEvent);
