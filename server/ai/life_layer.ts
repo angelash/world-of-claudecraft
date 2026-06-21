@@ -20,6 +20,7 @@ import { AiCreatureMemoryStore, singularityCreatureMemoryEvent } from './creatur
 import type { AiCreatureMemory } from './creature_memory';
 import { AiDecisionJournal } from './decision_journal';
 import type { AiDecisionJournalEntry } from './decision_journal';
+import { familySceneReactionEvent, nearbyFamilySceneCandidates, rankFamilySceneReactions } from './family_scene_reactions';
 import { compactFamilySemanticsForEntity } from './family_semantics';
 import { FakeAiProvider } from './fake_ai_provider';
 import { nearbyReactionCandidates, rankItemReactions } from './item_interest';
@@ -543,6 +544,13 @@ export class AiLifeLayer {
         events.push(directorEvent);
         if (directorEvent.type === 'aiSpeech' && directorEvent.speech.mode === 'lineId') lineIds.push(directorEvent.speech.lineId);
       }
+      const familyReactions = rankFamilySceneReactions(
+        scene,
+        nearbyFamilySceneCandidates(scene, request.sim.entities.values(), player),
+        { worldSeed: request.sim.cfg.seed },
+      ).slice(0, 2);
+      events.push(...familyReactions.map((reaction) => familySceneReactionEvent(reaction, scene, request.pid)));
+      lineIds.push(...familyReactions.map((reaction) => reaction.lineId));
     }
     this.journal.recordLocalReaction({
       jobId: `scene-${request.pid}-${++this.sequence}`,
@@ -558,6 +566,7 @@ export class AiLifeLayer {
         ...(trace ? ['reactToWorldTrace'] : []),
         ...(encounterMemory ? ['readEncounterMemory'] : []),
         ...(!trace && directorState ? ['readWorldDirectorState'] : []),
+        ...(!trace && lineIds.some((lineId) => lineId.startsWith('hudChrome.aiSpeech.familyScene')) ? ['reactToFamilyScene'] : []),
       ],
       sceneId,
     });

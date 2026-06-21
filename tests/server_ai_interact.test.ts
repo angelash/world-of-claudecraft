@@ -270,6 +270,45 @@ describe('server AI interact command', () => {
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
   });
 
+  it('lets nearby creature families react to the inspected scene without changing quests', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const player = server.sim.entities.get(session.pid)!;
+    player.pos.x = 8;
+    player.pos.z = 17;
+    player.pos.y = groundHeight(player.pos.x, player.pos.z, server.sim.cfg.seed);
+    player.prevPos = { ...player.pos };
+    server.sim.grid.update(player);
+    server.sim.playerGrid.update(player);
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    wolf.pos.x = player.pos.x + 2;
+    wolf.pos.z = player.pos.z;
+    wolf.pos.y = groundHeight(wolf.pos.x, wolf.pos.z, server.sim.cfg.seed);
+    wolf.prevPos = { ...wolf.pos };
+    server.sim.grid.update(wolf);
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+    const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: wolf.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.familySceneBeastUneasy',
+        values: expect.objectContaining({ family: 'beast', reaction: 'avoid' }),
+      }),
+      reaction: expect.objectContaining({
+        kind: 'avoid',
+        sceneTags: expect.arrayContaining(['forge', 'workNoise']),
+      }),
+      pid: session.pid,
+    }));
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
+  });
+
   it('turns inspected objects into nearby reactions and short-term NPC rumors', async () => {
     const server = new GameServer();
     const fc = fakeWs();
