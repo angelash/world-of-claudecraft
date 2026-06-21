@@ -3,7 +3,8 @@ import { classLabel, zoneLabel, t } from './i18n';
 import type {
   AccountDetail, AccountRow, CharacterRow, ChatFilterData, ChatModeratedAccount,
   ChatModerationDetail, FilterWord, LivePlayer, ModerationAccountDetail, ModerationQueueRow,
-  AiContentCoverageReport, AiLifeLayerMetricsSnapshot,
+  AiContentCoverageReport, AiDecisionJournalEntry, AiLifeLayerDiagnosticsSnapshot,
+  AiLifeLayerMetricsSnapshot, AiWorldDirectorState,
   ProviderUsageCache, ProviderUsageSnapshot,
 } from './types';
 
@@ -111,6 +112,203 @@ function coverageRow(labelKey: string, items: readonly string[]): string {
   </tr>`;
 }
 
+function renderAiDelimitedItems(items: readonly string[], limit = 4): string {
+  if (items.length === 0) return `<span class="hint">${escapeHtml(t('usage.aiDiagnosticsNone'))}</span>`;
+  const visible = items.slice(0, limit).map((item) => escapeHtml(item)).join(', ');
+  const remaining = items.length - limit;
+  return remaining > 0
+    ? `${visible} <span class="hint">${escapeHtml(t('usage.aiDiagnosticsMore', { count: fmtNumber(remaining) }))}</span>`
+    : visible;
+}
+
+function aiDecisionStatusClass(status: string): string {
+  if (status === 'provider_error') return ' bad';
+  if (status === 'rejected') return ' warn';
+  return '';
+}
+
+function aiDecisionStatusLabel(status: string): string {
+  switch (status) {
+    case 'accepted': return t('usage.aiDecisionStatusAccepted');
+    case 'rejected': return t('usage.aiDecisionStatusRejected');
+    case 'provider_error': return t('usage.aiDecisionStatusProviderError');
+    case 'local_reaction': return t('usage.aiDecisionStatusLocalReaction');
+    default: return t('usage.aiDiagnosticsUnknownValue', { value: status });
+  }
+}
+
+function aiTriggerLabel(trigger: string): string {
+  switch (trigger) {
+    case 'npc_gossip_opened': return t('usage.aiTriggerNpcGossip');
+    case 'npc_question': return t('usage.aiTriggerNpcQuestion');
+    case 'object_inspected': return t('usage.aiTriggerObjectInspected');
+    case 'singularity_candidate': return t('usage.aiTriggerSingularityCandidate');
+    case 'item_discarded': return t('usage.aiTriggerItemDiscarded');
+    case 'scene_inspected': return t('usage.aiTriggerSceneInspected');
+    case 'encounter_memory': return t('usage.aiTriggerEncounterMemory');
+    case 'quest_completed': return t('usage.aiTriggerQuestCompleted');
+    default: return t('usage.aiDiagnosticsUnknownValue', { value: trigger });
+  }
+}
+
+function aiMoodLabel(mood: string): string {
+  switch (mood) {
+    case 'uncanny': return t('usage.aiMoodUncanny');
+    case 'haunted': return t('usage.aiMoodHaunted');
+    case 'hungry': return t('usage.aiMoodHungry');
+    case 'covetous': return t('usage.aiMoodCovetous');
+    case 'stirred': return t('usage.aiMoodStirred');
+    case 'triumphant': return t('usage.aiMoodTriumphant');
+    case 'dread': return t('usage.aiMoodDread');
+    case 'relieved': return t('usage.aiMoodRelieved');
+    default: return t('usage.aiDiagnosticsUnknownValue', { value: mood });
+  }
+}
+
+function aiProposalLabel(proposal: string): string {
+  switch (proposal) {
+    case 'npcTopicShift': return t('usage.aiProposalNpcTopicShift');
+    case 'campAlert': return t('usage.aiProposalCampAlert');
+    case 'traceEcho': return t('usage.aiProposalTraceEcho');
+    case 'encounterEcho': return t('usage.aiProposalEncounterEcho');
+    case 'questEcho': return t('usage.aiProposalQuestEcho');
+    default: return t('usage.aiDiagnosticsUnknownValue', { value: proposal });
+  }
+}
+
+function aiSubjectKindLabel(kind: string): string {
+  switch (kind) {
+    case 'item': return t('usage.aiSubjectItem');
+    case 'encounter': return t('usage.aiSubjectEncounter');
+    case 'quest': return t('usage.aiSubjectQuest');
+    case 'scene': return t('usage.aiSubjectScene');
+    default: return t('usage.aiDiagnosticsUnknownValue', { value: kind });
+  }
+}
+
+function renderAiMemoryWrites(entry: AiDecisionJournalEntry): string {
+  return renderAiDelimitedItems(entry.memoryWrites.map((record) => `${record.kind}:${record.refId}`), 3);
+}
+
+function renderAiDecisionRow(entry: AiDecisionJournalEntry): string {
+  return `<tr>
+    <td class="num">${renderAiNumber(entry.sequence)}</td>
+    <td><span class="badge${aiDecisionStatusClass(entry.status)}">${escapeHtml(aiDecisionStatusLabel(entry.status))}</span></td>
+    <td>${escapeHtml(aiTriggerLabel(entry.trigger))}</td>
+    <td>${escapeHtml(t('usage.aiEntitySummary', { templateId: entry.templateId, entityId: fmtNumber(entry.entityId) }))}</td>
+    <td>${entry.sceneId ? escapeHtml(entry.sceneId) : `<span class="hint">${escapeHtml(t('usage.aiDiagnosticsNone'))}</span>`}</td>
+    <td>${renderAiDelimitedItems(entry.lineIds)}</td>
+    <td>${renderAiDelimitedItems(entry.intents)}</td>
+    <td>${renderAiMemoryWrites(entry)}</td>
+    <td>${entry.reason ? escapeHtml(entry.reason) : `<span class="hint">${escapeHtml(t('usage.aiNoReason'))}</span>`}</td>
+  </tr>`;
+}
+
+function renderAiDirectorSubject(state: AiWorldDirectorState): string {
+  const subject = state.subjectName ?? state.subjectTemplateId ?? state.itemId;
+  return escapeHtml(t('usage.aiSubjectSummary', {
+    kind: aiSubjectKindLabel(state.subjectKind),
+    value: subject,
+  }));
+}
+
+function renderAiDirectorScene(state: AiWorldDirectorState): string {
+  return escapeHtml(t('usage.aiSceneZoneSummary', {
+    sceneId: state.sceneId,
+    zoneId: state.zoneId,
+  }));
+}
+
+function renderAiDirectorRow(state: AiWorldDirectorState): string {
+  return `<tr>
+    <td><span class="badge">${escapeHtml(aiMoodLabel(state.mood))}</span></td>
+    <td>${escapeHtml(aiProposalLabel(state.proposalType))}</td>
+    <td>${renderAiDirectorSubject(state)}</td>
+    <td>${renderAiDirectorScene(state)}</td>
+    <td class="num">${escapeHtml(fmtPercent(state.heat))}</td>
+    <td>${escapeHtml(state.lineId)}</td>
+    <td>${renderAiDelimitedItems(state.evidence, 5)}</td>
+  </tr>`;
+}
+
+function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): string {
+  const recentDecisions = diagnostics.recentDecisions.slice(-8).reverse();
+  const directorStates = diagnostics.worldDirectorStates.slice(0, 8);
+  const persistenceErrors = diagnostics.memoryPersistence.errors.slice(-4).reverse();
+  const flushingLabel = diagnostics.memoryPersistence.flushing
+    ? t('usage.aiMemoryFlushingYes')
+    : t('usage.aiMemoryFlushingNo');
+  const flushingClass = diagnostics.memoryPersistence.flushing ? ' warn' : '';
+  const errorClass = persistenceErrors.length > 0 ? ' warn' : '';
+
+  const decisionRows = recentDecisions.length === 0
+    ? `<tr><td colspan="9" class="empty">${t('usage.aiDiagnosticsNoDecisions')}</td></tr>`
+    : recentDecisions.map(renderAiDecisionRow).join('');
+  const directorRows = directorStates.length === 0
+    ? `<tr><td colspan="7" class="empty">${t('usage.aiDiagnosticsNoDirectorStates')}</td></tr>`
+    : directorStates.map(renderAiDirectorRow).join('');
+
+  return `
+    <div class="usage-section">
+      <h4>${t('usage.aiDiagnosticsTitle')}</h4>
+      <div class="ai-health-grid">
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(diagnostics.recentDecisions.length)}</div>
+          <div class="ai-health-label">${t('usage.aiDiagnosticsDecisions')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(diagnostics.worldDirectorStates.length)}</div>
+          <div class="ai-health-label">${t('usage.aiDiagnosticsDirectorStates')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(diagnostics.memoryPersistence.pending)}</div>
+          <div class="ai-health-label">${t('usage.aiDiagnosticsPendingWrites')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value"><span class="badge${flushingClass}">${escapeHtml(flushingLabel)}</span></div>
+          <div class="ai-health-label">${t('usage.aiDiagnosticsMemoryFlush')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value"><span class="badge${errorClass}">${renderAiNumber(persistenceErrors.length)}</span></div>
+          <div class="ai-health-label">${t('usage.aiDiagnosticsMemoryErrors')}</div>
+        </div>
+      </div>
+      <div class="hint">${persistenceErrors.length > 0
+        ? renderAiDelimitedItems(persistenceErrors, 2)
+        : escapeHtml(t('usage.aiDiagnosticsNoMemoryErrors'))}</div>
+      <div class="table-scroll">
+        <table class="usage-table">
+          <thead><tr>
+            <th class="num">${t('usage.aiDecisionColSeq')}</th>
+            <th>${t('usage.aiDecisionColStatus')}</th>
+            <th>${t('usage.aiDecisionColTrigger')}</th>
+            <th>${t('usage.aiDecisionColEntity')}</th>
+            <th>${t('usage.aiDecisionColScene')}</th>
+            <th>${t('usage.aiDecisionColLineIds')}</th>
+            <th>${t('usage.aiDecisionColIntents')}</th>
+            <th>${t('usage.aiDecisionColMemoryWrites')}</th>
+            <th>${t('usage.aiDecisionColReason')}</th>
+          </tr></thead>
+          <tbody>${decisionRows}</tbody>
+        </table>
+      </div>
+      <div class="table-scroll">
+        <table class="usage-table">
+          <thead><tr>
+            <th>${t('usage.aiDirectorColMood')}</th>
+            <th>${t('usage.aiDirectorColProposal')}</th>
+            <th>${t('usage.aiDirectorColSubject')}</th>
+            <th>${t('usage.aiDirectorColScene')}</th>
+            <th class="num">${t('usage.aiDirectorColHeat')}</th>
+            <th>${t('usage.aiDirectorColLineId')}</th>
+            <th>${t('usage.aiDirectorColEvidence')}</th>
+          </tr></thead>
+          <tbody>${directorRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
 function renderAiContentCoverage(coverage: AiContentCoverageReport): string {
   const issueCount = coverageIssueCount(coverage);
   const statusKey = issueCount > 0 ? 'usage.aiCoverageStatusGaps' : 'usage.aiCoverageStatusReady';
@@ -179,7 +377,11 @@ function renderAiContentCoverage(coverage: AiContentCoverageReport): string {
     </div>`;
 }
 
-export function renderAiLifeLayerMetrics(ai: AiLifeLayerMetricsSnapshot, coverage?: AiContentCoverageReport): string {
+export function renderAiLifeLayerMetrics(
+  ai: AiLifeLayerMetricsSnapshot,
+  coverage?: AiContentCoverageReport,
+  diagnostics?: AiLifeLayerDiagnosticsSnapshot,
+): string {
   const needsAttention = ai.providerErrors > 0 || ai.memoryFlushFailures > 0;
   const statusKey = needsAttention ? 'usage.aiStatusAttention' : 'usage.aiStatusHealthy';
   const statusClass = needsAttention ? ' warn' : '';
@@ -219,6 +421,7 @@ export function renderAiLifeLayerMetrics(ai: AiLifeLayerMetricsSnapshot, coverag
       </div>
     </div>
     ${coverage ? renderAiContentCoverage(coverage) : ''}
+    ${diagnostics ? renderAiDiagnostics(diagnostics) : ''}
     <div class="usage-section">
       <h4>${t('usage.aiDetailsTitle')}</h4>
       <div class="table-scroll">

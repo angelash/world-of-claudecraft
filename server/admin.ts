@@ -223,6 +223,7 @@ export async function handleAdminApi(
         server: game.adminStats(),
         usage: providerUsageSnapshot(),
         ai: game.aiLifeLayerMetrics(),
+        aiDiagnostics: game.aiLifeLayerDiagnostics(),
         aiCoverage: aiContentCoverageReport(),
       });
     }

@@ -93,6 +93,16 @@ export interface AiLifeLayerMetricsSnapshot {
   lastMemoryPersistenceError?: string;
 }
 
+export interface AiLifeLayerDiagnosticsSnapshot {
+  recentDecisions: AiDecisionJournalEntry[];
+  worldDirectorStates: AiWorldDirectorState[];
+  memoryPersistence: {
+    pending: number;
+    flushing: boolean;
+    errors: string[];
+  };
+}
+
 interface AiLifeLayerMetricsState {
   providerCalls: number;
   providerSuccesses: number;
@@ -211,6 +221,14 @@ export class AiLifeLayer {
 
   worldDirectorDiagnostics(): AiWorldDirectorState[] {
     return this.worldDirector.snapshot();
+  }
+
+  diagnosticsSnapshot(): AiLifeLayerDiagnosticsSnapshot {
+    return {
+      recentDecisions: this.diagnostics(),
+      worldDirectorStates: this.worldDirectorDiagnostics(),
+      memoryPersistence: this.memoryPersistenceDiagnostics(),
+    };
   }
 
   runtimeMetrics(): AiLifeLayerMetricsSnapshot {

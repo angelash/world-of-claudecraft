@@ -65,6 +65,70 @@ export interface AiLifeLayerMetricsSnapshot {
   lastMemoryPersistenceError?: string;
 }
 
+export interface AiMemoryAuditRecord {
+  kind: string;
+  refId: string;
+  scope: string;
+  sceneId?: string;
+  zoneId?: string;
+  sourcePlayerEntityId: number;
+  entityId?: number;
+  templateId?: string;
+  itemId?: string;
+  questId?: string;
+  subjectKind?: string;
+  lineIds: string[];
+  salience: number;
+  createdAt?: number;
+  expiresAt?: number;
+  reason: string;
+}
+
+export interface AiDecisionJournalEntry {
+  sequence: number;
+  jobId: string;
+  trigger: string;
+  entityId: number;
+  templateId: string;
+  playerEntityId: number;
+  status: string;
+  reason?: string;
+  lineIds: string[];
+  intents: string[];
+  sceneId?: string | null;
+  memoryWrites: AiMemoryAuditRecord[];
+}
+
+export interface AiWorldDirectorState {
+  stateId: string;
+  sceneId: string;
+  zoneId: string;
+  mood: string;
+  proposalType: string;
+  sourcePlayerEntityId: number;
+  sourceRef: string;
+  itemId: string;
+  subjectKind: string;
+  subjectTemplateId?: string;
+  subjectName?: string;
+  lineId: string;
+  heat: number;
+  createdAt: number;
+  updatedAt: number;
+  expiresAt: number;
+  evidence: string[];
+}
+
+export interface AiLifeLayerDiagnosticsSnapshot {
+  recentDecisions: AiDecisionJournalEntry[];
+  worldDirectorStates: AiWorldDirectorState[];
+  memoryPersistence: {
+    pending: number;
+    flushing: boolean;
+    errors: string[];
+  };
+}
+
 export interface AiContentCoverageReport {
   families: {
     expected: string[];
@@ -117,6 +181,7 @@ export interface Overview {
   server: ServerStats;
   usage: ProviderUsageSnapshot;
   ai: AiLifeLayerMetricsSnapshot;
+  aiDiagnostics: AiLifeLayerDiagnosticsSnapshot;
   aiCoverage: AiContentCoverageReport;
 }
 
