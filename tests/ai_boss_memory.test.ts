@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   AiBossEncounterMemoryStore,
+  AiBossEncounterPhaseCueStore,
   bossEncounterMemoryEvent,
+  bossEncounterPhaseEvent,
   bossEncounterScale,
 } from '../server/ai/boss_memory';
 import type { Entity } from '../src/sim/types';
@@ -76,6 +78,71 @@ describe('AI boss encounter memory', () => {
         values: expect.objectContaining({ bossTemplateId: 'gorrak', encounterOutcome: 'defeated' }),
       },
       reaction: { kind: 'inspect' },
+      pid: 1,
+    });
+  });
+
+  it('emits each encounter phase cue once per player and phase', () => {
+    const store = new AiBossEncounterPhaseCueStore();
+    const bloodied = store.noteDamagePhase({
+      sceneId: 'bandit_camp',
+      entity: { ...gorrak, hp: 45, maxHp: 100, dead: false } as Entity,
+      scale: 'boss',
+      sourcePlayerEntityId: 1,
+      nowSeconds: 20,
+      evidence: ['simEvent:damage'],
+    });
+    expect(bloodied).toMatchObject({
+      sceneId: 'bandit_camp',
+      templateId: 'gorrak',
+      phase: 'bloodied',
+      lineId: 'hudChrome.aiSpeech.bossPhaseBloodied',
+      healthPct: 45,
+    });
+    expect(store.noteDamagePhase({
+      sceneId: 'bandit_camp',
+      entity: { ...gorrak, hp: 40, maxHp: 100, dead: false } as Entity,
+      scale: 'boss',
+      sourcePlayerEntityId: 1,
+      nowSeconds: 21,
+      evidence: ['simEvent:damage'],
+    })).toBeNull();
+
+    const desperate = store.noteDamagePhase({
+      sceneId: 'bandit_camp',
+      entity: { ...gorrak, hp: 18, maxHp: 100, dead: false } as Entity,
+      scale: 'boss',
+      sourcePlayerEntityId: 1,
+      nowSeconds: 22,
+      evidence: ['simEvent:damage'],
+    });
+    expect(desperate).toMatchObject({
+      phase: 'desperate',
+      lineId: 'hudChrome.aiSpeech.bossPhaseDesperate',
+      healthPct: 18,
+    });
+  });
+
+  it('turns phase cues into personal aiSpeech events without gameplay fields', () => {
+    const store = new AiBossEncounterPhaseCueStore();
+    const cue = store.noteDamagePhase({
+      sceneId: 'bandit_camp',
+      entity: { ...gorrak, hp: 19, maxHp: 100, dead: false } as Entity,
+      scale: 'boss',
+      sourcePlayerEntityId: 1,
+      nowSeconds: 20,
+      evidence: ['simEvent:damage'],
+    })!;
+
+    expect(bossEncounterPhaseEvent(cue, gorrak, 1)).toMatchObject({
+      type: 'aiSpeech',
+      speakerId: gorrak.id,
+      speech: {
+        mode: 'lineId',
+        lineId: 'hudChrome.aiSpeech.bossPhaseDesperate',
+        values: expect.objectContaining({ bossTemplateId: 'gorrak', encounterPhase: 'desperate', bossHealthPct: 19 }),
+      },
+      reaction: { kind: 'avoid' },
       pid: 1,
     });
   });

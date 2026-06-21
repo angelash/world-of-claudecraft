@@ -3,10 +3,15 @@ import type { Entity, SimEvent } from '../../src/sim/types';
 
 export type AiBossEncounterOutcome = 'defeated' | 'wipe';
 export type AiBossEncounterScale = 'boss' | 'elite' | 'rare';
+export type AiBossEncounterPhase = 'bloodied' | 'desperate';
 
 export type AiBossEncounterLineId =
   | 'hudChrome.aiSpeech.bossMemoryDefeated'
   | 'hudChrome.aiSpeech.bossMemoryWipe';
+
+export type AiBossEncounterPhaseLineId =
+  | 'hudChrome.aiSpeech.bossPhaseBloodied'
+  | 'hudChrome.aiSpeech.bossPhaseDesperate';
 
 export interface AiBossEncounterMemory {
   memoryId: string;
@@ -25,9 +30,31 @@ export interface AiBossEncounterMemory {
   evidence: string[];
 }
 
+export interface AiBossEncounterPhaseCue {
+  cueId: string;
+  sceneId: string;
+  templateId: string;
+  entityId: number;
+  entityName: string;
+  scale: AiBossEncounterScale;
+  phase: AiBossEncounterPhase;
+  sourcePlayerEntityId: number;
+  lineId: AiBossEncounterPhaseLineId;
+  healthPct: number;
+  heat: number;
+  createdAt: number;
+  expiresAt: number;
+  evidence: string[];
+}
+
 export interface AiBossEncounterMemoryStoreOptions {
   memoryTtlSeconds?: number;
   maxMemories?: number;
+}
+
+export interface AiBossEncounterPhaseCueStoreOptions {
+  cueTtlSeconds?: number;
+  maxCues?: number;
 }
 
 export class AiBossEncounterMemoryStore {
@@ -112,6 +139,70 @@ export class AiBossEncounterMemoryStore {
   }
 }
 
+export class AiBossEncounterPhaseCueStore {
+  private readonly cues: AiBossEncounterPhaseCue[] = [];
+  private readonly cueTtlSeconds: number;
+  private readonly maxCues: number;
+  private sequence = 0;
+
+  constructor(options: AiBossEncounterPhaseCueStoreOptions = {}) {
+    this.cueTtlSeconds = Math.max(1, Math.floor(options.cueTtlSeconds ?? 180));
+    this.maxCues = Math.max(1, Math.floor(options.maxCues ?? 48));
+  }
+
+  noteDamagePhase(input: {
+    sceneId: string;
+    entity: Entity;
+    scale: AiBossEncounterScale;
+    sourcePlayerEntityId: number;
+    nowSeconds: number;
+    evidence: string[];
+  }): AiBossEncounterPhaseCue | null {
+    this.prune(input.nowSeconds);
+    if (input.entity.dead || input.entity.maxHp <= 0 || input.entity.hp <= 0) return null;
+    const phase = phaseForHealth(input.entity.hp / input.entity.maxHp);
+    if (!phase) return null;
+    const existing = this.cues.find((cue) =>
+      cue.entityId === input.entity.id
+      && cue.templateId === input.entity.templateId
+      && cue.sourcePlayerEntityId === input.sourcePlayerEntityId
+      && cue.phase === phase,
+    );
+    if (existing) return null;
+
+    const healthPct = Math.max(1, Math.min(99, Math.round((input.entity.hp / input.entity.maxHp) * 100)));
+    const cue: AiBossEncounterPhaseCue = {
+      cueId: `boss-phase-${++this.sequence}`,
+      sceneId: input.sceneId,
+      templateId: input.entity.templateId,
+      entityId: input.entity.id,
+      entityName: input.entity.name,
+      scale: input.scale,
+      phase,
+      sourcePlayerEntityId: input.sourcePlayerEntityId,
+      lineId: lineIdForPhase(phase),
+      healthPct,
+      heat: heatForPhase(input.scale, phase),
+      createdAt: input.nowSeconds,
+      expiresAt: input.nowSeconds + this.cueTtlSeconds,
+      evidence: mergeRecent([], input.evidence, 8),
+    };
+    this.cues.unshift(cue);
+    this.cues.splice(this.maxCues);
+    return copyPhaseCue(cue);
+  }
+
+  snapshot(): AiBossEncounterPhaseCue[] {
+    return this.cues.map(copyPhaseCue);
+  }
+
+  private prune(nowSeconds: number): void {
+    for (let i = this.cues.length - 1; i >= 0; i--) {
+      if (this.cues[i].expiresAt <= nowSeconds) this.cues.splice(i, 1);
+    }
+  }
+}
+
 export function bossEncounterScale(entity: Entity): AiBossEncounterScale | null {
   if (entity.kind !== 'mob') return null;
   const template = MOBS[entity.templateId];
@@ -120,6 +211,32 @@ export function bossEncounterScale(entity: Entity): AiBossEncounterScale | null 
   if (template.elite) return 'elite';
   if (template.rare) return 'rare';
   return null;
+}
+
+export function bossEncounterPhaseEvent(cue: AiBossEncounterPhaseCue, speaker: Entity, pid: number): SimEvent {
+  return {
+    type: 'aiSpeech',
+    speakerId: speaker.id,
+    speakerName: speaker.name,
+    speech: {
+      mode: 'lineId',
+      lineId: cue.lineId,
+      values: {
+        bossTemplateId: cue.templateId,
+        bossName: cue.entityName,
+        encounterPhase: cue.phase,
+        bossHealthPct: cue.healthPct,
+        encounterHeat: Math.round(cue.heat * 100),
+      },
+    },
+    source: 'fallback',
+    reaction: {
+      kind: cue.phase === 'desperate' ? 'avoid' : 'inspect',
+      score: Math.round(cue.heat * 100) / 100,
+      sceneTags: [`encounterPhase:${cue.phase}`, `scale:${cue.scale}`],
+    },
+    pid,
+  };
 }
 
 export function bossEncounterMemoryEvent(memory: AiBossEncounterMemory, speaker: Entity, pid: number): SimEvent {
@@ -147,11 +264,29 @@ export function bossEncounterMemoryEvent(memory: AiBossEncounterMemory, speaker:
   };
 }
 
+function phaseForHealth(hpFraction: number): AiBossEncounterPhase | null {
+  if (hpFraction <= 0.2) return 'desperate';
+  if (hpFraction <= 0.5) return 'bloodied';
+  return null;
+}
+
+function lineIdForPhase(phase: AiBossEncounterPhase): AiBossEncounterPhaseLineId {
+  switch (phase) {
+    case 'bloodied': return 'hudChrome.aiSpeech.bossPhaseBloodied';
+    case 'desperate': return 'hudChrome.aiSpeech.bossPhaseDesperate';
+  }
+}
+
 function lineIdForOutcome(outcome: AiBossEncounterOutcome): AiBossEncounterLineId {
   switch (outcome) {
     case 'defeated': return 'hudChrome.aiSpeech.bossMemoryDefeated';
     case 'wipe': return 'hudChrome.aiSpeech.bossMemoryWipe';
   }
+}
+
+function heatForPhase(scale: AiBossEncounterScale, phase: AiBossEncounterPhase): number {
+  const base = scale === 'boss' ? 0.82 : scale === 'elite' ? 0.66 : 0.52;
+  return phase === 'desperate' ? Math.min(1, base + 0.12) : base;
 }
 
 function heatFor(scale: AiBossEncounterScale, outcome: AiBossEncounterOutcome): number {
@@ -165,6 +300,10 @@ function mergeRecent(previous: readonly string[], next: readonly string[], limit
 
 function copyMemory(memory: AiBossEncounterMemory): AiBossEncounterMemory {
   return { ...memory, evidence: [...memory.evidence] };
+}
+
+function copyPhaseCue(cue: AiBossEncounterPhaseCue): AiBossEncounterPhaseCue {
+  return { ...cue, evidence: [...cue.evidence] };
 }
 
 function clamp01(value: number): number {

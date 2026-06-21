@@ -5,8 +5,14 @@ import { INTERACT_RANGE, dist2d } from '../../src/sim/types';
 import type { Entity, SimEvent } from '../../src/sim/types';
 import type { AiDecisionV1, AiJobContextV1, AiProvider } from './ai_types';
 import { aiEntityKind } from './ai_types';
-import { AiBossEncounterMemoryStore, bossEncounterMemoryEvent, bossEncounterScale } from './boss_memory';
-import type { AiBossEncounterMemory } from './boss_memory';
+import {
+  AiBossEncounterMemoryStore,
+  AiBossEncounterPhaseCueStore,
+  bossEncounterMemoryEvent,
+  bossEncounterPhaseEvent,
+  bossEncounterScale,
+} from './boss_memory';
+import type { AiBossEncounterMemory, AiBossEncounterPhaseCue } from './boss_memory';
 import { classifyCanonSubject } from './canon_guard';
 import { CodexCliProvider } from './codex_worker';
 import { companionReactionEvents } from './companion_reactions';
@@ -80,6 +86,7 @@ export class AiLifeLayer {
   private readonly worldTraces = new AiWorldTraceStore();
   private readonly creatureMemory = new AiCreatureMemoryStore();
   private readonly bossMemory = new AiBossEncounterMemoryStore();
+  private readonly bossPhaseCues = new AiBossEncounterPhaseCueStore();
   private readonly worldDirector = new AiWorldDirectorStore();
   private sequence = 0;
 
@@ -111,6 +118,10 @@ export class AiLifeLayer {
     return this.bossMemory.snapshot();
   }
 
+  bossPhaseCueDiagnostics(): AiBossEncounterPhaseCue[] {
+    return this.bossPhaseCues.snapshot();
+  }
+
   worldDirectorDiagnostics(): AiWorldDirectorState[] {
     return this.worldDirector.snapshot();
   }
@@ -119,6 +130,40 @@ export class AiLifeLayer {
     if (!this.enabled || request.events.length === 0) return [];
     const out: SimEvent[] = [];
     for (const event of request.events) {
+      if (event.type === 'damage') {
+        if (event.kind !== 'hit' || event.amount <= 0) continue;
+        const target = request.sim.entities.get(event.targetId);
+        if (!target || target.kind !== 'mob') continue;
+        const scale = bossEncounterScale(target);
+        if (!scale) continue;
+        const source = request.sim.entities.get(event.sourceId);
+        const sourcePlayer = this.playerForEncounterSource(request.sim, source) ?? this.playerForPid(request.sim, target.tappedById);
+        if (!sourcePlayer) continue;
+        const scene = sceneFrameFor(request.sim, target.pos);
+        const sceneId = scene.subsceneId ?? scene.zoneId;
+        const cue = this.bossPhaseCues.noteDamagePhase({
+          sceneId,
+          entity: target,
+          scale,
+          sourcePlayerEntityId: sourcePlayer.id,
+          nowSeconds: request.sim.time,
+          evidence: [`simEvent:damage`, `source:${source?.templateId ?? 'unknown'}`, `amount:${event.amount}`],
+        });
+        if (!cue) continue;
+        this.journal.recordLocalReaction({
+          jobId: `encounter-phase-${sourcePlayer.id}-${++this.sequence}`,
+          trigger: 'encounter_memory',
+          entityId: target.id,
+          templateId: target.templateId,
+          playerEntityId: sourcePlayer.id,
+          reason: `bossPhase:${cue.phase}:${target.templateId}`,
+          lineIds: [cue.lineId],
+          intents: ['readEncounterPhase', 'commentOnScene'],
+          sceneId,
+        });
+        out.push(bossEncounterPhaseEvent(cue, target, sourcePlayer.id));
+        continue;
+      }
       if (event.type !== 'death') continue;
       const dead = request.sim.entities.get(event.entityId);
       const killer = request.sim.entities.get(event.killerId);

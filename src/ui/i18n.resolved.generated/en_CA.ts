@@ -328,6 +328,8 @@ export const en_CA: EnTranslations = {
       "bossMemoryWipe": "{bossName}'s victory still presses on this place; even your shadow seems to remember falling.",
       "worldDirectorBossDefeated": "The area carries the shock of {bossName} being brought down.",
       "worldDirectorBossWipe": "The area feels bent around {bossName}'s last victory.",
+      "bossPhaseBloodied": "{bossName} changes its rhythm, wounded enough to start watching every move.",
+      "bossPhaseDesperate": "{bossName} is close to breaking, and the fight suddenly feels sharper.",
       "sceneInspectForge": "You take in the forge: hot iron, work noise, and a house-warm edge of town.",
       "sceneInspectChapel": "You take in the ruined chapel: old stone, grave soil, and a bell that feels remembered.",
       "sceneInspectLake": "You take in the lake dock: fish smell, open water, and quiet ripples under the sky.",

@@ -3974,6 +3974,8 @@ export class Hud {
       case 'hudChrome.aiSpeech.bossMemoryWipe':
       case 'hudChrome.aiSpeech.worldDirectorBossDefeated':
       case 'hudChrome.aiSpeech.worldDirectorBossWipe':
+      case 'hudChrome.aiSpeech.bossPhaseBloodied':
+      case 'hudChrome.aiSpeech.bossPhaseDesperate':
         return t(ev.speech.lineId as TranslationKey, { bossName });
       case 'hudChrome.aiSpeech.sceneInspectForge':
       case 'hudChrome.aiSpeech.sceneInspectChapel':
