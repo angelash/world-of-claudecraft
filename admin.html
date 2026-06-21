@@ -103,6 +103,10 @@
   .usage-table { min-width: 720px; }
   .usage-section + .usage-section { margin-top: 14px; }
   .usage-section h4 { font-family: var(--title-font); color: var(--gold-dim); margin-bottom: 6px; font-size: 13px; }
+  .ai-health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .ai-health-cell { padding: 10px; background: #0d0d14; border: 1px solid #2a2414; border-radius: 4px; min-width: 0; }
+  .ai-health-value { font-family: var(--title-font); color: var(--gold); font-size: 20px; overflow-wrap: anywhere; }
+  .ai-health-label { margin-top: 3px; color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; }
   .empty { color: var(--text-dim); padding: 14px 8px; font-style: italic; }
   .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 11px; border: 1px solid var(--gold-dim); color: var(--gold); }
   .badge.warn { border-color: #c98c36; color: #ffbf66; }
@@ -269,6 +273,11 @@
     </main>
 
     <main id="page-usage" class="admin-page">
+      <section class="panel">
+        <div class="panel-title"><span data-i18n="usage.aiTitle">AI life layer</span> <span class="hint" data-i18n="usage.aiRefreshHint">refreshes every 5s</span></div>
+        <div id="ai-usage"></div>
+      </section>
+
       <section class="panel">
         <div class="panel-title"><span data-i18n="usage.title">Provider usage</span> <span class="hint" data-i18n="usage.refreshHint">refreshes every 5s</span></div>
         <div id="usage"></div>

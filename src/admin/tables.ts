@@ -3,6 +3,7 @@ import { classLabel, zoneLabel, t } from './i18n';
 import type {
   AccountDetail, AccountRow, CharacterRow, ChatFilterData, ChatModeratedAccount,
   ChatModerationDetail, FilterWord, LivePlayer, ModerationAccountDetail, ModerationQueueRow,
+  AiLifeLayerMetricsSnapshot,
   ProviderUsageCache, ProviderUsageSnapshot,
 } from './types';
 
@@ -49,6 +50,76 @@ function renderCacheHitRate(cache: ProviderUsageCache): string {
   const totalReads = cache.hits + cache.misses;
   if (totalReads <= 0) return escapeHtml(t('usage.notAvailable'));
   return escapeHtml(fmtPercent(cache.hits / totalReads));
+}
+
+function renderAiNumber(value: number): string {
+  return escapeHtml(fmtNumber(value));
+}
+
+function renderAiLatency(value: number): string {
+  return escapeHtml(t('usage.aiMilliseconds', { value: fmtNumber(value) }));
+}
+
+function renderAiOptionalText(value: string | undefined): string {
+  if (!value) return `<span class="hint">${escapeHtml(t('usage.aiNoRecentError'))}</span>`;
+  return escapeHtml(value);
+}
+
+function aiMetricRow(labelKey: string, value: string): string {
+  return `<tr><td>${t(labelKey)}</td><td class="num">${value}</td></tr>`;
+}
+
+export function renderAiLifeLayerMetrics(ai: AiLifeLayerMetricsSnapshot): string {
+  const needsAttention = ai.providerErrors > 0 || ai.memoryFlushFailures > 0;
+  const statusKey = needsAttention ? 'usage.aiStatusAttention' : 'usage.aiStatusHealthy';
+  const statusClass = needsAttention ? ' warn' : '';
+  const rows = [
+    aiMetricRow('usage.aiProviderSuccesses', renderAiNumber(ai.providerSuccesses)),
+    aiMetricRow('usage.aiProviderErrors', renderAiNumber(ai.providerErrors)),
+    aiMetricRow('usage.aiProviderFallbacks', renderAiNumber(ai.providerFallbacks)),
+    aiMetricRow('usage.aiAcceptedDecisions', renderAiNumber(ai.acceptedDecisions)),
+    aiMetricRow('usage.aiRejectedDecisions', renderAiNumber(ai.rejectedDecisions)),
+    aiMetricRow('usage.aiLocalReactions', renderAiNumber(ai.localReactions)),
+    aiMetricRow('usage.aiGeneratedEvents', renderAiNumber(ai.generatedEvents)),
+    aiMetricRow('usage.aiMemoryWritesQueued', renderAiNumber(ai.memoryWritesQueued)),
+    aiMetricRow('usage.aiMemoryFlushFailures', renderAiNumber(ai.memoryFlushFailures)),
+    aiMetricRow('usage.aiMaxLatency', renderAiLatency(ai.maxProviderLatencyMs)),
+    aiMetricRow('usage.aiLastLatency', renderAiLatency(ai.lastProviderLatencyMs)),
+    aiMetricRow('usage.aiLastProviderError', renderAiOptionalText(ai.lastProviderError)),
+    aiMetricRow('usage.aiLastMemoryError', renderAiOptionalText(ai.lastMemoryPersistenceError)),
+  ].join('');
+
+  return `
+    <div class="ai-health-grid">
+      <div class="ai-health-cell">
+        <div class="ai-health-value"><span class="badge${statusClass}">${escapeHtml(t(statusKey))}</span></div>
+        <div class="ai-health-label">${t('usage.aiStatusTitle')}</div>
+      </div>
+      <div class="ai-health-cell">
+        <div class="ai-health-value">${renderAiNumber(ai.providerCalls)}</div>
+        <div class="ai-health-label">${t('usage.aiProviderCalls')}</div>
+      </div>
+      <div class="ai-health-cell">
+        <div class="ai-health-value">${renderAiLatency(ai.averageProviderLatencyMs)}</div>
+        <div class="ai-health-label">${t('usage.aiAverageLatency')}</div>
+      </div>
+      <div class="ai-health-cell">
+        <div class="ai-health-value">${renderAiNumber(ai.memoryWritesQueued)}</div>
+        <div class="ai-health-label">${t('usage.aiMemoryWritesQueued')}</div>
+      </div>
+    </div>
+    <div class="usage-section">
+      <h4>${t('usage.aiDetailsTitle')}</h4>
+      <div class="table-scroll">
+        <table class="usage-table">
+          <thead><tr>
+            <th>${t('usage.colMetric')}</th>
+            <th class="num">${t('usage.aiColValue')}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 export function renderProviderUsage(usage: ProviderUsageSnapshot): string {

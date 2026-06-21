@@ -4,7 +4,8 @@ import { escapeHtml, fmtBytes, fmtDate, fmtDuration } from './format';
 import { classLabel, t, localizeAdminError, ensureAdminLocaleLoaded, adminLanguage } from './i18n';
 import {
   renderAccountDetail, renderAccountsTable, renderCharactersTable, renderChatFilter,
-  renderModerationDetail, renderModerationQueue, renderOnlineTable, renderPager, renderProviderUsage,
+  renderAiLifeLayerMetrics, renderModerationDetail, renderModerationQueue,
+  renderOnlineTable, renderPager, renderProviderUsage,
 } from './tables';
 import type {
   AccountDetail, AccountRow, Activity, CharacterRow, ChatFilterData, LivePlayer,
@@ -124,6 +125,7 @@ async function refreshLive(): Promise<void> {
       statCard(`${s.tickMsAvg} ms`, t('stats.avgTick')),
       statCard(fmtBytes(s.rssBytes), t('stats.serverRss')),
     ].join('');
+    $('ai-usage').innerHTML = renderAiLifeLayerMetrics(overview.ai);
     $('usage').innerHTML = renderProviderUsage(overview.usage);
     $('online').innerHTML = renderOnlineTable(online.players);
   } catch (err) {
