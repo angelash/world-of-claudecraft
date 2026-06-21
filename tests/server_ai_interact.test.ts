@@ -123,6 +123,13 @@ describe('server AI interact command', () => {
       speech: expect.objectContaining({ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
       pid: session.pid,
     }));
+    expect((server as any).aiLifeLayer.runtimeMetrics()).toMatchObject({
+      providerCalls: 1,
+      providerSuccesses: 1,
+      providerErrors: 0,
+      acceptedDecisions: 1,
+      generatedEvents: expect.any(Number),
+    });
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
@@ -156,6 +163,14 @@ describe('server AI interact command', () => {
       expect.objectContaining({ status: 'provider_error', reason: 'codex worker timed out' }),
       expect.objectContaining({ status: 'accepted', lineIds: ['hudChrome.aiSpeech.brotherAldricAwake'] }),
     ]);
+    expect((server as any).aiLifeLayer.runtimeMetrics()).toMatchObject({
+      providerCalls: 1,
+      providerSuccesses: 0,
+      providerErrors: 1,
+      providerFallbacks: 1,
+      acceptedDecisions: 1,
+      lastProviderError: 'codex worker timed out',
+    });
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });

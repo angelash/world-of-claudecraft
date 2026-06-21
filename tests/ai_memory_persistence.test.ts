@@ -80,6 +80,11 @@ describe('AI memory persistence integration', () => {
       expect.objectContaining({ kind: 'rumor', itemId: 'roasted_boar' }),
     ]));
     expect(layer.memoryPersistenceDiagnostics()).toMatchObject({ pending: 0, errors: [] });
+    expect(layer.runtimeMetrics()).toMatchObject({
+      localReactions: 1,
+      memoryWritesQueued: 3,
+      memoryFlushFailures: 0,
+    });
   });
 
   it('feeds persisted memory signals into Codex job context for NPC interactions', async () => {
@@ -130,5 +135,11 @@ describe('AI memory persistence integration', () => {
       errors: ['memory db offline'],
     });
     expect(layer.memoryPersistenceDiagnostics().pending).toBeGreaterThan(0);
+    expect(layer.runtimeMetrics()).toMatchObject({
+      localReactions: 1,
+      memoryWritesQueued: 3,
+      memoryFlushFailures: 1,
+      lastMemoryPersistenceError: 'memory db offline',
+    });
   });
 });

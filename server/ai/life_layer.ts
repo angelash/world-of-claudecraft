@@ -1,3 +1,4 @@
+import { performance } from 'node:perf_hooks';
 import { NPCS, QUESTS } from '../../src/sim/data';
 import type { Sim } from '../../src/sim/sim';
 import type { AiNpcInteractionTopic } from '../../src/world_api';
@@ -73,6 +74,43 @@ export interface AiMemoryPersistence {
   loadRecords?(query: AiMemoryPersistenceQuery): Promise<AiMemoryAuditRecord[]>;
 }
 
+export interface AiLifeLayerMetricsSnapshot {
+  providerCalls: number;
+  providerSuccesses: number;
+  providerErrors: number;
+  providerFallbacks: number;
+  acceptedDecisions: number;
+  rejectedDecisions: number;
+  localReactions: number;
+  generatedEvents: number;
+  memoryWritesQueued: number;
+  memoryFlushFailures: number;
+  totalProviderLatencyMs: number;
+  averageProviderLatencyMs: number;
+  maxProviderLatencyMs: number;
+  lastProviderLatencyMs: number;
+  lastProviderError?: string;
+  lastMemoryPersistenceError?: string;
+}
+
+interface AiLifeLayerMetricsState {
+  providerCalls: number;
+  providerSuccesses: number;
+  providerErrors: number;
+  providerFallbacks: number;
+  acceptedDecisions: number;
+  rejectedDecisions: number;
+  localReactions: number;
+  generatedEvents: number;
+  memoryWritesQueued: number;
+  memoryFlushFailures: number;
+  totalProviderLatencyMs: number;
+  maxProviderLatencyMs: number;
+  lastProviderLatencyMs: number;
+  lastProviderError?: string;
+  lastMemoryPersistenceError?: string;
+}
+
 export interface NpcAiInteractionRequest {
   sim: Sim;
   pid: number;
@@ -119,6 +157,21 @@ export class AiLifeLayer {
   private readonly memoryPersistBatchSize: number;
   private readonly pendingMemoryWrites: AiMemoryAuditRecord[] = [];
   private readonly memoryPersistenceErrors: string[] = [];
+  private readonly metrics: AiLifeLayerMetricsState = {
+    providerCalls: 0,
+    providerSuccesses: 0,
+    providerErrors: 0,
+    providerFallbacks: 0,
+    acceptedDecisions: 0,
+    rejectedDecisions: 0,
+    localReactions: 0,
+    generatedEvents: 0,
+    memoryWritesQueued: 0,
+    memoryFlushFailures: 0,
+    totalProviderLatencyMs: 0,
+    maxProviderLatencyMs: 0,
+    lastProviderLatencyMs: 0,
+  };
   private memoryFlushPromise: Promise<void> | null = null;
   private sequence = 0;
 
@@ -158,6 +211,15 @@ export class AiLifeLayer {
 
   worldDirectorDiagnostics(): AiWorldDirectorState[] {
     return this.worldDirector.snapshot();
+  }
+
+  runtimeMetrics(): AiLifeLayerMetricsSnapshot {
+    return {
+      ...this.metrics,
+      averageProviderLatencyMs: this.metrics.providerCalls > 0
+        ? this.metrics.totalProviderLatencyMs / this.metrics.providerCalls
+        : 0,
+    };
   }
 
   memoryPersistenceDiagnostics(): { pending: number; flushing: boolean; errors: string[] } {
@@ -221,6 +283,7 @@ export class AiLifeLayer {
           sceneId,
           memoryWrites,
         });
+        this.metrics.localReactions++;
         this.enqueueMemoryWrites(memoryWrites);
         continue;
       }
@@ -255,6 +318,7 @@ export class AiLifeLayer {
           intents: ['readEncounterPhase', 'commentOnScene'],
           sceneId,
         });
+        this.metrics.localReactions++;
         out.push(bossEncounterPhaseEvent(cue, target, sourcePlayer.id));
         continue;
       }
@@ -296,6 +360,7 @@ export class AiLifeLayer {
           sceneId,
           memoryWrites,
         });
+        this.metrics.localReactions++;
         this.enqueueMemoryWrites(memoryWrites);
         out.push(bossEncounterMemoryEvent(memory, dead, sourcePlayer.id));
       } else if (dead.kind === 'player' && killer?.kind === 'mob') {
@@ -329,10 +394,12 @@ export class AiLifeLayer {
           sceneId,
           memoryWrites,
         });
+        this.metrics.localReactions++;
         this.enqueueMemoryWrites(memoryWrites);
         out.push(bossEncounterMemoryEvent(memory, killer, dead.id));
       }
     }
+    this.metrics.generatedEvents += out.length;
     return out;
   }
 
@@ -390,14 +457,24 @@ export class AiLifeLayer {
       ...persistedSignals,
     ];
     let decision: AiDecisionV1;
+    const providerStartedAt = performance.now();
+    this.metrics.providerCalls++;
     try {
       decision = await this.provider.decide(context);
+      this.recordProviderLatency(performance.now() - providerStartedAt);
+      this.metrics.providerSuccesses++;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
+      this.recordProviderLatency(performance.now() - providerStartedAt);
+      this.metrics.providerErrors++;
+      this.metrics.providerFallbacks++;
+      this.metrics.lastProviderError = reason;
       this.journal.recordProviderError(context, reason, memoryWrites);
       decision = fallbackDecisionForProviderError(context, reason);
     }
     const result = validateAiDecision({ decision, context, entity: npc, subject });
+    if (result.ok) this.metrics.acceptedDecisions++;
+    else this.metrics.rejectedDecisions++;
     this.journal.recordDecision(context, decision, result, memoryWrites);
     this.enqueueMemoryWrites(memoryWrites);
     if (result.ok) {
@@ -415,7 +492,10 @@ export class AiLifeLayer {
       if (memoryEvent) events.push(memoryEvent);
       const topicEvent = topicReactionEvent(context, npc, memory, rumor);
       if (topicEvent && !(directorEvent && request.topic === 'rumor')) events.push(topicEvent);
-      if (events.length > 0) request.deliver(events);
+      if (events.length > 0) {
+        this.metrics.generatedEvents += events.length;
+        request.deliver(events);
+      }
     }
   }
 
@@ -525,9 +605,13 @@ export class AiLifeLayer {
         sceneId,
         memoryWrites,
       });
+      this.metrics.localReactions++;
       this.enqueueMemoryWrites(memoryWrites);
     }
-    if (events.length > 0) request.deliver(events);
+    if (events.length > 0) {
+      this.metrics.generatedEvents += events.length;
+      request.deliver(events);
+    }
   }
 
   handleObjectInspection(request: ObjectAiInspectionRequest): void {
@@ -601,7 +685,9 @@ export class AiLifeLayer {
       sceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? null,
       memoryWrites,
     });
+    this.metrics.localReactions++;
     this.enqueueMemoryWrites(memoryWrites);
+    this.metrics.generatedEvents += events.length;
     request.deliver(events);
   }
 
@@ -726,13 +812,16 @@ export class AiLifeLayer {
       sceneId,
       memoryWrites,
     });
+    this.metrics.localReactions++;
     this.enqueueMemoryWrites(memoryWrites);
+    this.metrics.generatedEvents += events.length;
     request.deliver(events);
   }
 
   private enqueueMemoryWrites(records: readonly AiMemoryAuditRecord[]): void {
     if (!this.memoryDb || records.length === 0) return;
     this.pendingMemoryWrites.push(...records.map(cloneMemoryAudit));
+    this.metrics.memoryWritesQueued += records.length;
     void this.flushMemoryWrites();
   }
 
@@ -764,6 +853,15 @@ export class AiLifeLayer {
     const message = err instanceof Error ? err.message : String(err);
     this.memoryPersistenceErrors.unshift(message);
     this.memoryPersistenceErrors.splice(5);
+    this.metrics.memoryFlushFailures++;
+    this.metrics.lastMemoryPersistenceError = message;
+  }
+
+  private recordProviderLatency(durationMs: number): void {
+    const safeDuration = Number.isFinite(durationMs) && durationMs >= 0 ? durationMs : 0;
+    this.metrics.lastProviderLatencyMs = safeDuration;
+    this.metrics.totalProviderLatencyMs += safeDuration;
+    this.metrics.maxProviderLatencyMs = Math.max(this.metrics.maxProviderLatencyMs, safeDuration);
   }
 
   private playerForEncounterSource(sim: Sim, source: Entity | undefined): Entity | null {
