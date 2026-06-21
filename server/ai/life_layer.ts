@@ -19,6 +19,7 @@ import { objectInspectionEvent, objectInspectionLineIds } from './object_reactio
 import { compactProfileSnapshot, profileFor } from './profiles';
 import { topicReactionEvent } from './question_reactions';
 import { droppedItemSemantic, sceneFrameFor } from './scene_frame';
+import { sceneInspectionEvent } from './scene_inspection';
 import { sceneAwarenessEvent } from './scene_reactions';
 import { AiSocialMemoryStore } from './social_memory';
 import type { AiNpcMemory, AiRumorMemory } from './social_memory';
@@ -51,6 +52,13 @@ export interface ObjectAiInspectionRequest {
   sim: Sim;
   pid: number;
   objectId: number;
+  locale: string;
+  deliver(events: SimEvent[]): void;
+}
+
+export interface SceneAiInspectionRequest {
+  sim: Sim;
+  pid: number;
   locale: string;
   deliver(events: SimEvent[]): void;
 }
@@ -238,6 +246,27 @@ export class AiLifeLayer {
       sceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? null,
     });
     request.deliver(events);
+  }
+
+  handleSceneInspection(request: SceneAiInspectionRequest): void {
+    if (!this.enabled) return;
+    const player = request.sim.entities.get(request.pid);
+    if (!player) return;
+    const scene = sceneFrameFor(request.sim, player.pos);
+    const event = sceneInspectionEvent(scene, player);
+    const lineIds = event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [];
+    this.journal.recordLocalReaction({
+      jobId: `scene-${request.pid}-${++this.sequence}`,
+      trigger: 'scene_inspected',
+      entityId: player.id,
+      templateId: player.templateId,
+      playerEntityId: request.pid,
+      reason: `inspectScene:${scene.subsceneId ?? scene.zoneId}`,
+      lineIds,
+      intents: ['inspectObject', 'commentOnScene'],
+      sceneId: scene.subsceneId ?? scene.zoneId,
+    });
+    request.deliver([event]);
   }
 
   private buildNpcContext(request: NpcAiInteractionRequest): AiJobContextV1 | null {

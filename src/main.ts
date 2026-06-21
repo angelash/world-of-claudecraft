@@ -880,7 +880,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       world.aiInspectObject(bestObj, getLanguage());
       return;
     }
-    hud.showError(t('errors.nothingInteract'));
+    world.aiInspectScene(getLanguage());
   }
 
   function attackNearest(): void {

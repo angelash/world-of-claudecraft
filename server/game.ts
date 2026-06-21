@@ -1162,6 +1162,12 @@ export class GameServer {
           );
         }
         break;
+      case 'ai_inspect_scene':
+        this.handleAiInspectScene(
+          session,
+          typeof msg.locale === 'string' ? msg.locale : 'en',
+        );
+        break;
       case 'loot': if (typeof msg.id === 'number') sim.lootCorpse(msg.id, pid); break;
       case 'pickup': if (typeof msg.id === 'number') sim.pickUpObject(msg.id, pid); break;
       case 'accept': if (typeof msg.quest === 'string') { sim.acceptQuest(msg.quest, pid); this.resyncQuests(session); } break;
@@ -1462,6 +1468,21 @@ export class GameServer {
       sim: this.sim,
       pid: session.pid,
       objectId,
+      locale,
+      deliver: (events) => {
+        if (session.left || this.clients.get(session.pid) !== session) return;
+        if (events.length > 0) this.send(session, { t: 'events', list: events });
+      },
+    });
+  }
+
+  private handleAiInspectScene(session: ClientSession, locale: string): void {
+    if (session.left || this.clients.get(session.pid) !== session) return;
+    if (this.sim.time < session.aiObjectInspectReadyAt) return;
+    session.aiObjectInspectReadyAt = this.sim.time + AI_OBJECT_INSPECT_COOLDOWN_SECONDS;
+    this.aiLifeLayer.handleSceneInspection({
+      sim: this.sim,
+      pid: session.pid,
       locale,
       deliver: (events) => {
         if (session.left || this.clients.get(session.pid) !== session) return;

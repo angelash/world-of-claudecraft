@@ -884,6 +884,9 @@ export class ClientWorld implements IWorld {
   aiInspectObject(objectId: number, locale: string): void {
     this.cmd({ cmd: 'ai_inspect_object', object: objectId, locale });
   }
+  aiInspectScene(locale: string): void {
+    this.cmd({ cmd: 'ai_inspect_scene', locale });
+  }
   lootCorpse(id: number): void {
     this.cmd({ cmd: 'loot', id });
   }

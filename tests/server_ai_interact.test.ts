@@ -237,6 +237,34 @@ describe('server AI interact command', () => {
     expect(eventsOf(fc, 'aiSpeech').filter((event) => event.speech.lineId === 'hudChrome.aiSpeech.objectInspectGrave')).toHaveLength(1);
   });
 
+  it('inspects the current scene without requiring a nearby object', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const player = server.sim.entities.get(session.pid)!;
+    player.pos.x = 8;
+    player.pos.z = 17;
+    player.pos.y = groundHeight(player.pos.x, player.pos.z, server.sim.cfg.seed);
+    player.prevPos = { ...player.pos };
+    server.sim.grid.update(player);
+    server.sim.playerGrid.update(player);
+    const beforeObjects = [...server.sim.entities.values()].filter((entity) => entity.kind === 'object').length;
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: session.pid,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneInspectForge' }),
+      reaction: expect.objectContaining({ kind: 'inspect' }),
+      pid: session.pid,
+    }));
+    const afterObjects = [...server.sim.entities.values()].filter((entity) => entity.kind === 'object').length;
+    expect(afterObjects).toBe(beforeObjects);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+  });
+
   it('turns inspected objects into nearby reactions and short-term NPC rumors', async () => {
     const server = new GameServer();
     const fc = fakeWs();

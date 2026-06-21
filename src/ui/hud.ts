@@ -3949,6 +3949,13 @@ export class Hud {
         return t(ev.speech.lineId as TranslationKey, { itemName, objectName });
       case 'hudChrome.aiSpeech.objectInspectDoor':
         return t('hudChrome.aiSpeech.objectInspectDoor');
+      case 'hudChrome.aiSpeech.sceneInspectForge':
+      case 'hudChrome.aiSpeech.sceneInspectChapel':
+      case 'hudChrome.aiSpeech.sceneInspectLake':
+      case 'hudChrome.aiSpeech.sceneInspectWatchpost':
+      case 'hudChrome.aiSpeech.sceneInspectCrypt':
+      case 'hudChrome.aiSpeech.sceneInspectGeneric':
+        return t(ev.speech.lineId as TranslationKey);
       default:
         return t('hudChrome.aiSpeech.genericNpcAwake', { speakerName: ev.speakerName });
     }

@@ -308,6 +308,12 @@ export const en: EnTranslations = {
       "objectInspectDoor": "The threshold feels watched; whatever waits beyond still follows the old rules.",
       "objectInspectSingularity": "{itemName} refuses to feel ordinary; the scene bends around it for a breath.",
       "objectInspectGeneric": "You study {itemName}. The nearby scene answers in small details.",
+      "sceneInspectForge": "You take in the forge: hot iron, work noise, and a house-warm edge of town.",
+      "sceneInspectChapel": "You take in the ruined chapel: old stone, grave soil, and a bell that feels remembered.",
+      "sceneInspectLake": "You take in the lake dock: fish smell, open water, and quiet ripples under the sky.",
+      "sceneInspectWatchpost": "You take in the watchpost: ordered walls, sight lines, and weather moving over high ground.",
+      "sceneInspectCrypt": "You take in the crypt entrance: sealed air, old blood, and a path that seems to swallow sound.",
+      "sceneInspectGeneric": "You take in the place: weather, tracks, and small details begin to arrange themselves.",
       "unknownItem": "something left behind",
       "unknownObject": "the thing before you",
       "unknownCompanion": "your companion"
