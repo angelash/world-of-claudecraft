@@ -57,12 +57,17 @@ export interface AiLifeLayerMetricsSnapshot {
   generatedEvents: number;
   memoryWritesQueued: number;
   memoryFlushFailures: number;
+  memoryPruneRuns: number;
+  memoryPruneDeleted: number;
+  memoryPruneFailures: number;
+  lastMemoryPruneDeleted: number;
   totalProviderLatencyMs: number;
   averageProviderLatencyMs: number;
   maxProviderLatencyMs: number;
   lastProviderLatencyMs: number;
   lastProviderError?: string;
   lastMemoryPersistenceError?: string;
+  lastMemoryPruneError?: string;
 }
 
 export interface AiMemoryAuditRecord {
@@ -125,6 +130,8 @@ export interface AiLifeLayerDiagnosticsSnapshot {
   memoryPersistence: {
     pending: number;
     flushing: boolean;
+    pruning: boolean;
+    lastPruneDeleted: number;
     errors: string[];
   };
 }

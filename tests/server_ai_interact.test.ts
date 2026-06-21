@@ -14,7 +14,7 @@ vi.mock('../server/db', () => ({
   walletForAccount: vi.fn(async () => null),
 }));
 
-import { GameServer, type ClientSession } from '../server/game';
+import { AI_MEMORY_PRUNE_INTERVAL_MS, GameServer, type ClientSession } from '../server/game';
 import { pool } from '../server/db';
 import { AiLifeLayer } from '../server/ai/life_layer';
 import type { AiDecisionV1, AiProvider } from '../server/ai/ai_types';
@@ -252,6 +252,36 @@ describe('server AI interact command', () => {
     await flushAi();
 
     expect(eventsOf(fc, 'aiSpeech')).toHaveLength(0);
+  });
+
+  it('periodically prunes expired persisted AI memory using sim time', async () => {
+    vi.useFakeTimers();
+    const server = new GameServer();
+    const query = dbQueryMock();
+    query.mockClear();
+    query.mockResolvedValue({ rows: [], rowCount: 2 });
+    server.sim.time = 321;
+
+    try {
+      server.start();
+      await vi.advanceTimersByTimeAsync(AI_MEMORY_PRUNE_INTERVAL_MS);
+
+      const pruneCall = query.mock.calls.find(([sql]) =>
+        typeof sql === 'string' && sql.includes('DELETE FROM ai_memory_records'));
+      expect(pruneCall).toBeTruthy();
+      const values = pruneCall?.[1] as readonly unknown[] | undefined;
+      expect(values?.[1]).toBeCloseTo(server.sim.time, 6);
+      expect(values?.[2]).toBe(500);
+      expect((server as any).aiLifeLayer.runtimeMetrics()).toMatchObject({
+        memoryPruneRuns: 1,
+        memoryPruneDeleted: 2,
+        memoryPruneFailures: 0,
+        lastMemoryPruneDeleted: 2,
+      });
+    } finally {
+      server.stop();
+      vi.useRealTimers();
+    }
   });
 
   it('keeps mainline quest, inventory, currency, and XP state identical with AI enabled or disabled', async () => {

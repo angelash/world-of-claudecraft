@@ -72,6 +72,7 @@ export interface AiMemoryPersistenceQuery {
 export interface AiMemoryPersistence {
   saveRecords(records: readonly AiMemoryAuditRecord[]): Promise<void>;
   loadRecords?(query: AiMemoryPersistenceQuery): Promise<AiMemoryAuditRecord[]>;
+  pruneExpired?(nowSeconds: number, batchSize?: number): Promise<number>;
 }
 
 export interface AiLifeLayerMetricsSnapshot {
@@ -85,12 +86,17 @@ export interface AiLifeLayerMetricsSnapshot {
   generatedEvents: number;
   memoryWritesQueued: number;
   memoryFlushFailures: number;
+  memoryPruneRuns: number;
+  memoryPruneDeleted: number;
+  memoryPruneFailures: number;
+  lastMemoryPruneDeleted: number;
   totalProviderLatencyMs: number;
   averageProviderLatencyMs: number;
   maxProviderLatencyMs: number;
   lastProviderLatencyMs: number;
   lastProviderError?: string;
   lastMemoryPersistenceError?: string;
+  lastMemoryPruneError?: string;
 }
 
 export interface AiLifeLayerDiagnosticsSnapshot {
@@ -99,6 +105,8 @@ export interface AiLifeLayerDiagnosticsSnapshot {
   memoryPersistence: {
     pending: number;
     flushing: boolean;
+    pruning: boolean;
+    lastPruneDeleted: number;
     errors: string[];
   };
 }
@@ -114,11 +122,16 @@ interface AiLifeLayerMetricsState {
   generatedEvents: number;
   memoryWritesQueued: number;
   memoryFlushFailures: number;
+  memoryPruneRuns: number;
+  memoryPruneDeleted: number;
+  memoryPruneFailures: number;
+  lastMemoryPruneDeleted: number;
   totalProviderLatencyMs: number;
   maxProviderLatencyMs: number;
   lastProviderLatencyMs: number;
   lastProviderError?: string;
   lastMemoryPersistenceError?: string;
+  lastMemoryPruneError?: string;
 }
 
 export interface NpcAiInteractionRequest {
@@ -178,11 +191,16 @@ export class AiLifeLayer {
     generatedEvents: 0,
     memoryWritesQueued: 0,
     memoryFlushFailures: 0,
+    memoryPruneRuns: 0,
+    memoryPruneDeleted: 0,
+    memoryPruneFailures: 0,
+    lastMemoryPruneDeleted: 0,
     totalProviderLatencyMs: 0,
     maxProviderLatencyMs: 0,
     lastProviderLatencyMs: 0,
   };
   private memoryFlushPromise: Promise<void> | null = null;
+  private memoryPrunePromise: Promise<number> | null = null;
   private sequence = 0;
 
   constructor(options: AiLifeLayerOptions = {}) {
@@ -240,10 +258,12 @@ export class AiLifeLayer {
     };
   }
 
-  memoryPersistenceDiagnostics(): { pending: number; flushing: boolean; errors: string[] } {
+  memoryPersistenceDiagnostics(): AiLifeLayerDiagnosticsSnapshot['memoryPersistence'] {
     return {
       pending: this.pendingMemoryWrites.length,
       flushing: this.memoryFlushPromise !== null,
+      pruning: this.memoryPrunePromise !== null,
+      lastPruneDeleted: this.metrics.lastMemoryPruneDeleted,
       errors: [...this.memoryPersistenceErrors],
     };
   }
@@ -257,6 +277,29 @@ export class AiLifeLayer {
         this.memoryFlushPromise = null;
       });
     return this.memoryFlushPromise;
+  }
+
+  async pruneExpiredMemory(nowSeconds: number, batchSize = 500): Promise<number> {
+    if (!this.memoryDb?.pruneExpired) return 0;
+    if (this.memoryPrunePromise) return this.memoryPrunePromise;
+    const safeNowSeconds = Number.isFinite(nowSeconds) && nowSeconds >= 0 ? nowSeconds : 0;
+    const safeBatchSize = Math.max(1, Math.min(5000, Math.floor(batchSize)));
+    this.memoryPrunePromise = this.memoryDb.pruneExpired(safeNowSeconds, safeBatchSize)
+      .then((deleted) => {
+        const deletedCount = Number.isFinite(deleted) && deleted > 0 ? Math.floor(deleted) : 0;
+        this.metrics.memoryPruneRuns++;
+        this.metrics.memoryPruneDeleted += deletedCount;
+        this.metrics.lastMemoryPruneDeleted = deletedCount;
+        return deletedCount;
+      })
+      .catch((err) => {
+        this.recordMemoryPersistenceError(err, 'prune');
+        return 0;
+      })
+      .finally(() => {
+        this.memoryPrunePromise = null;
+      });
+    return this.memoryPrunePromise;
   }
 
   handleSimEvents(request: { sim: Sim; events: SimEvent[] }): SimEvent[] {
@@ -853,7 +896,7 @@ export class AiLifeLayer {
         await this.memoryDb.saveRecords(batch);
       } catch (err) {
         this.pendingMemoryWrites.unshift(...batch);
-        this.recordMemoryPersistenceError(err);
+        this.recordMemoryPersistenceError(err, 'flush');
         return;
       }
     }
@@ -864,16 +907,21 @@ export class AiLifeLayer {
     try {
       return (await this.memoryDb.loadRecords(input)).map(cloneMemoryAudit);
     } catch (err) {
-      this.recordMemoryPersistenceError(err);
+      this.recordMemoryPersistenceError(err, 'flush');
       return [];
     }
   }
 
-  private recordMemoryPersistenceError(err: unknown): void {
+  private recordMemoryPersistenceError(err: unknown, source: 'flush' | 'prune'): void {
     const message = err instanceof Error ? err.message : String(err);
     this.memoryPersistenceErrors.unshift(message);
     this.memoryPersistenceErrors.splice(5);
-    this.metrics.memoryFlushFailures++;
+    if (source === 'flush') {
+      this.metrics.memoryFlushFailures++;
+    } else {
+      this.metrics.memoryPruneFailures++;
+      this.metrics.lastMemoryPruneError = message;
+    }
     this.metrics.lastMemoryPersistenceError = message;
   }
 

@@ -18,6 +18,10 @@ function metrics(overrides: Partial<AiLifeLayerMetricsSnapshot> = {}): AiLifeLay
     generatedEvents: 0,
     memoryWritesQueued: 0,
     memoryFlushFailures: 0,
+    memoryPruneRuns: 0,
+    memoryPruneDeleted: 0,
+    memoryPruneFailures: 0,
+    lastMemoryPruneDeleted: 0,
     totalProviderLatencyMs: 0,
     averageProviderLatencyMs: 0,
     maxProviderLatencyMs: 0,
@@ -128,7 +132,7 @@ function diagnostics(overrides: Partial<AiLifeLayerDiagnosticsSnapshot> = {}): A
       expiresAt: 120,
       evidence: ['trace:cursed<script>'],
     }],
-    memoryPersistence: { pending: 2, flushing: true, errors: ['db <offline>'] },
+    memoryPersistence: { pending: 2, flushing: true, pruning: false, lastPruneDeleted: 0, errors: ['db <offline>'] },
     ...overrides,
   };
 }
@@ -192,14 +196,18 @@ describe('admin AI life layer metrics renderer', () => {
       providerErrors: 1,
       providerFallbacks: 1,
       memoryFlushFailures: 1,
+      memoryPruneFailures: 1,
       lastProviderError: '<script>alert(1)</script>',
       lastMemoryPersistenceError: 'db <offline>',
+      lastMemoryPruneError: 'prune <offline>',
     }));
 
     expect(html).toContain('needs attention');
     expect(html).toContain('Provider fallbacks');
+    expect(html).toContain('Memory prune failures');
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
     expect(html).toContain('db &lt;offline&gt;');
+    expect(html).toContain('prune &lt;offline&gt;');
     expect(html).not.toContain('<script>alert(1)</script>');
   });
 
@@ -232,6 +240,8 @@ describe('admin AI life layer metrics renderer', () => {
     }));
 
     expect(html).toContain('AI decision diagnostics');
+    expect(html).toContain('Memory prune');
+    expect(html).toContain('Last pruned');
     expect(html).toContain('provider error');
     expect(html).toContain('NPC question');
     expect(html).toContain('camp alert');

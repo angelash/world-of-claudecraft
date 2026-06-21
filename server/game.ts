@@ -87,6 +87,8 @@ const TICK_EMA_ALPHA = 0.05;
 // wallet read is additionally cached for minutes in woc_balance.ts, so this is
 // the upper bound on how stale an in-world badge can be.
 const HOLDER_TIER_REFRESH_MS = 120_000;
+export const AI_MEMORY_PRUNE_INTERVAL_MS = 120_000;
+const AI_MEMORY_PRUNE_BATCH_SIZE = 500;
 const AI_NPC_INTERACTION_COOLDOWN_SECONDS = 4;
 const AI_NPC_QUESTION_COOLDOWN_SECONDS = 2;
 const AI_OBJECT_INSPECT_COOLDOWN_SECONDS = 2;
@@ -360,6 +362,7 @@ export class GameServer {
   private lastWireSweepTick = 0;
   private interval: NodeJS.Timeout | null = null;
   private holderTierInterval: NodeJS.Timeout | null = null;
+  private aiMemoryPruneInterval: NodeJS.Timeout | null = null;
   private holderTierRefreshing = false; // overlap guard for the refresh cycle
   // pids whose holder tier was forced via the dev /woctier command — the chain
   // refresh leaves them alone so the override sticks during testing (dev only).
@@ -543,11 +546,17 @@ export class GameServer {
     // an RPC call per wallet (cached for minutes inside holderInfoForPubkey) has
     // no place in the tick. Catches mid-session balance changes.
     this.holderTierInterval = setInterval(() => { void this.refreshAllHolderTiers(); }, HOLDER_TIER_REFRESH_MS);
+    this.aiMemoryPruneInterval = setInterval(() => { void this.pruneExpiredAiMemory(); }, AI_MEMORY_PRUNE_INTERVAL_MS);
   }
 
   stop(): void {
     if (this.interval) clearInterval(this.interval);
     if (this.holderTierInterval) clearInterval(this.holderTierInterval);
+    if (this.aiMemoryPruneInterval) clearInterval(this.aiMemoryPruneInterval);
+  }
+
+  private async pruneExpiredAiMemory(): Promise<void> {
+    await this.aiLifeLayer.pruneExpiredMemory(this.sim.time, AI_MEMORY_PRUNE_BATCH_SIZE);
   }
 
   // Update one player's holder-tier flair from their linked wallet's $WOC

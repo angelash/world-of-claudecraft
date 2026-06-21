@@ -10,6 +10,11 @@ class FakeMemoryDb implements AiMemoryPersistence {
   saved: AiMemoryAuditRecord[][] = [];
   loaded: AiMemoryAuditRecord[] = [];
   failSave = false;
+  failPrune = false;
+  pruneCount = 0;
+  pruneCalls: { nowSeconds: number; batchSize?: number }[] = [];
+  private blockPrune = false;
+  private pruneResolvers: (() => void)[] = [];
 
   async saveRecords(records: readonly AiMemoryAuditRecord[]): Promise<void> {
     if (this.failSave) throw new Error('memory db offline');
@@ -18,6 +23,24 @@ class FakeMemoryDb implements AiMemoryPersistence {
 
   async loadRecords(): Promise<AiMemoryAuditRecord[]> {
     return this.loaded.map(cloneMemoryAudit);
+  }
+
+  async pruneExpired(nowSeconds: number, batchSize?: number): Promise<number> {
+    this.pruneCalls.push({ nowSeconds, batchSize });
+    if (this.blockPrune) {
+      await new Promise<void>((resolve) => this.pruneResolvers.push(resolve));
+    }
+    if (this.failPrune) throw new Error('memory prune offline');
+    return this.pruneCount;
+  }
+
+  holdPrune(): void {
+    this.blockPrune = true;
+  }
+
+  releasePrune(): void {
+    this.blockPrune = false;
+    this.pruneResolvers.splice(0).forEach((resolve) => resolve());
   }
 }
 
@@ -141,5 +164,80 @@ describe('AI memory persistence integration', () => {
       memoryFlushFailures: 1,
       lastMemoryPersistenceError: 'memory db offline',
     });
+  });
+
+  it('prunes expired persisted records with bounded overlap diagnostics', async () => {
+    const db = new FakeMemoryDb();
+    db.pruneCount = 7;
+    const layer = new AiLifeLayer({ enabled: true, memoryDb: db });
+
+    await expect(layer.pruneExpiredMemory(123, 25)).resolves.toBe(7);
+
+    expect(db.pruneCalls).toEqual([{ nowSeconds: 123, batchSize: 25 }]);
+    expect(layer.memoryPersistenceDiagnostics()).toMatchObject({
+      pruning: false,
+      lastPruneDeleted: 7,
+      errors: [],
+    });
+    expect(layer.runtimeMetrics()).toMatchObject({
+      memoryPruneRuns: 1,
+      memoryPruneDeleted: 7,
+      memoryPruneFailures: 0,
+      lastMemoryPruneDeleted: 7,
+    });
+  });
+
+  it('coalesces overlapping prune attempts into one database call', async () => {
+    const db = new FakeMemoryDb();
+    db.pruneCount = 3;
+    db.holdPrune();
+    const layer = new AiLifeLayer({ enabled: true, memoryDb: db });
+
+    const first = layer.pruneExpiredMemory(200, 50);
+    const second = layer.pruneExpiredMemory(250, 50);
+    await Promise.resolve();
+
+    expect(db.pruneCalls).toEqual([{ nowSeconds: 200, batchSize: 50 }]);
+    expect(layer.memoryPersistenceDiagnostics()).toMatchObject({ pruning: true });
+
+    db.releasePrune();
+    await expect(first).resolves.toBe(3);
+    await expect(second).resolves.toBe(3);
+
+    expect(db.pruneCalls).toHaveLength(1);
+    expect(layer.memoryPersistenceDiagnostics()).toMatchObject({ pruning: false });
+    expect(layer.runtimeMetrics()).toMatchObject({
+      memoryPruneRuns: 1,
+      memoryPruneDeleted: 3,
+      memoryPruneFailures: 0,
+    });
+  });
+
+  it('records prune failures without throwing or dropping queued writes', async () => {
+    const { sim, pid, wolfId } = makeSim();
+    teleportNear(sim, pid, wolfId);
+    const db = new FakeMemoryDb();
+    db.failSave = true;
+    db.failPrune = true;
+    const layer = new AiLifeLayer({ enabled: true, memoryDb: db });
+    layer.handleItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, deliver: () => {} });
+
+    await expect(layer.pruneExpiredMemory(500, 100)).resolves.toBe(0);
+    await layer.flushMemoryWrites();
+
+    const diagnostics = layer.memoryPersistenceDiagnostics();
+    expect(diagnostics).toMatchObject({
+      pending: expect.any(Number),
+      pruning: false,
+    });
+    expect(diagnostics.errors.slice(0, 2)).toEqual(['memory db offline', 'memory prune offline']);
+    expect(layer.memoryPersistenceDiagnostics().pending).toBeGreaterThan(0);
+    const metrics = layer.runtimeMetrics();
+    expect(metrics).toMatchObject({
+      memoryPruneFailures: 1,
+      lastMemoryPruneError: 'memory prune offline',
+      lastMemoryPersistenceError: 'memory db offline',
+    });
+    expect(metrics.memoryFlushFailures).toBeGreaterThanOrEqual(1);
   });
 });

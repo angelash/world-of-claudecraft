@@ -379,7 +379,11 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
   const flushingLabel = diagnostics.memoryPersistence.flushing
     ? t('usage.aiMemoryFlushingYes')
     : t('usage.aiMemoryFlushingNo');
+  const pruningLabel = diagnostics.memoryPersistence.pruning
+    ? t('usage.aiMemoryPruningYes')
+    : t('usage.aiMemoryPruningNo');
   const flushingClass = diagnostics.memoryPersistence.flushing ? ' warn' : '';
+  const pruningClass = diagnostics.memoryPersistence.pruning ? ' warn' : '';
   const errorClass = persistenceErrors.length > 0 ? ' warn' : '';
 
   const decisionRows = recentDecisions.length === 0
@@ -408,6 +412,14 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
         <div class="ai-health-cell">
           <div class="ai-health-value"><span class="badge${flushingClass}">${escapeHtml(flushingLabel)}</span></div>
           <div class="ai-health-label">${t('usage.aiDiagnosticsMemoryFlush')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value"><span class="badge${pruningClass}">${escapeHtml(pruningLabel)}</span></div>
+          <div class="ai-health-label">${t('usage.aiDiagnosticsMemoryPrune')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(diagnostics.memoryPersistence.lastPruneDeleted)}</div>
+          <div class="ai-health-label">${t('usage.aiDiagnosticsLastPruneDeleted')}</div>
         </div>
         <div class="ai-health-cell">
           <div class="ai-health-value"><span class="badge${errorClass}">${renderAiNumber(persistenceErrors.length)}</span></div>
@@ -593,7 +605,7 @@ export function renderAiLifeLayerMetrics(
   diagnostics?: AiLifeLayerDiagnosticsSnapshot,
   profiles?: AiProfilePreviewReport,
 ): string {
-  const needsAttention = ai.providerErrors > 0 || ai.memoryFlushFailures > 0;
+  const needsAttention = ai.providerErrors > 0 || ai.memoryFlushFailures > 0 || ai.memoryPruneFailures > 0;
   const statusKey = needsAttention ? 'usage.aiStatusAttention' : 'usage.aiStatusHealthy';
   const statusClass = needsAttention ? ' warn' : '';
   const rows = [
@@ -606,10 +618,14 @@ export function renderAiLifeLayerMetrics(
     aiMetricRow('usage.aiGeneratedEvents', renderAiNumber(ai.generatedEvents)),
     aiMetricRow('usage.aiMemoryWritesQueued', renderAiNumber(ai.memoryWritesQueued)),
     aiMetricRow('usage.aiMemoryFlushFailures', renderAiNumber(ai.memoryFlushFailures)),
+    aiMetricRow('usage.aiMemoryPruneRuns', renderAiNumber(ai.memoryPruneRuns)),
+    aiMetricRow('usage.aiMemoryPruneDeleted', renderAiNumber(ai.memoryPruneDeleted)),
+    aiMetricRow('usage.aiMemoryPruneFailures', renderAiNumber(ai.memoryPruneFailures)),
     aiMetricRow('usage.aiMaxLatency', renderAiLatency(ai.maxProviderLatencyMs)),
     aiMetricRow('usage.aiLastLatency', renderAiLatency(ai.lastProviderLatencyMs)),
     aiMetricRow('usage.aiLastProviderError', renderAiOptionalText(ai.lastProviderError)),
     aiMetricRow('usage.aiLastMemoryError', renderAiOptionalText(ai.lastMemoryPersistenceError)),
+    aiMetricRow('usage.aiLastMemoryPruneError', renderAiOptionalText(ai.lastMemoryPruneError)),
   ].join('');
 
   return `
