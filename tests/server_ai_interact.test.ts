@@ -463,6 +463,40 @@ describe('server AI interact command', () => {
     }));
   });
 
+  it('lets singularity creatures remember repeated player item patterns', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    server.sim.cfg.seed = seedThatMakesSingularity(wolf);
+    teleportNear(server, session.pid, wolf.id);
+    server.sim.addItem('roasted_boar', 2, session.pid);
+    const beforeObjects = [...server.sim.entities.values()].filter((entity) => entity.kind === 'object' && entity.objectItemId === 'roasted_boar').length;
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    await flushAi();
+    fc.sent.length = 0;
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: wolf.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.singularityRemembersPlayer',
+        values: expect.objectContaining({ itemId: 'roasted_boar', playerName: 'Ari', interactionCount: 2 }),
+      }),
+      reaction: expect.objectContaining({
+        kind: 'inspect',
+        targetItemId: 'roasted_boar',
+        individualTier: 'singularity',
+      }),
+      pid: session.pid,
+    }));
+    const afterObjects = [...server.sim.entities.values()].filter((entity) => entity.kind === 'object' && entity.objectItemId === 'roasted_boar').length;
+    expect(afterObjects).toBe(beforeObjects);
+    expect(server.sim.countItem('roasted_boar', session.pid)).toBe(0);
+  });
+
   it('adds a scene-awareness line when an NPC is interacted with in a death-pressure area', async () => {
     const server = new GameServer();
     const fc = fakeWs();

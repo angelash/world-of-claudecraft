@@ -266,6 +266,7 @@ export const en_XA: EnTranslations = {
       "singularityTerritorial": "[{speakerName} þļáçéš íţšéļƒ ƀéţŵééñ ţĥé ĝŕóúñð áñð {itemName}, çļáíɱíñĝ ţĥé ɱóɱéñţ.]",
       "singularityVengeful": "[{speakerName} ƒíẋéš óñ {itemName} áš íƒ íţ ĥáš ƒóúñð áñ óļð íñšúļţ.]",
       "singularityStargazer": "[{speakerName} ĝļáñçéš ƒŕóɱ {itemName} ţó ţĥé šķý, ðíšţŕáçţéð ƀý šóɱéţĥíñĝ ʋášţ.]",
+      "singularityRemembersPlayer": "[{speakerName} ŕéáçţš ţó {itemName} ļíķé íţ ŕéçóĝñížéš ýóúŕ þáţţéŕñ ñóŵ, {playerName}.]",
       "companionUndeadFear": "[{companionName} šţáýš çļóšé; éʋéñ {speakerName} ñóţíçéš ţĥé ƒéáŕ íñ ţĥíš þļáçé.]",
       "companionSelfUndeadFear": "[{companionName} þŕéššéš çļóšé, úñéášý ŵíţĥ ţĥé ðéáð íñ ţĥé áíŕ.]",
       "companionSelfRainTired": "[{companionName} šĥáķéš óƒƒ ţĥé ŕáíñ áñð ļóóķš ŕéáðý ƒóŕ šĥéļţéŕ.]",

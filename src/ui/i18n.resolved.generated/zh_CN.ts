@@ -266,6 +266,7 @@ export const zh_CN: EnTranslations = {
       "singularityTerritorial": "{speakerName} places itself between the ground and {itemName}, claiming the moment.",
       "singularityVengeful": "{speakerName} fixes on {itemName} as if it has found an old insult.",
       "singularityStargazer": "{speakerName} glances from {itemName} to the sky, distracted by something vast.",
+      "singularityRemembersPlayer": "{speakerName} reacts to {itemName} like it recognizes your pattern now, {playerName}.",
       "companionUndeadFear": "{companionName} stays close; even {speakerName} notices the fear in this place.",
       "companionSelfUndeadFear": "{companionName} presses close, uneasy with the dead in the air.",
       "companionSelfRainTired": "{companionName} shakes off the rain and looks ready for shelter.",

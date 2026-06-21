@@ -3890,6 +3890,8 @@ export class Hud {
       case 'hudChrome.aiSpeech.singularityVengeful':
       case 'hudChrome.aiSpeech.singularityStargazer':
         return t(ev.speech.lineId as TranslationKey, { speakerName, itemName });
+      case 'hudChrome.aiSpeech.singularityRemembersPlayer':
+        return t('hudChrome.aiSpeech.singularityRemembersPlayer', { speakerName, itemName, playerName: String(values.playerName ?? this.sim.player.name) });
       case 'hudChrome.aiSpeech.companionUndeadFear':
         return t('hudChrome.aiSpeech.companionUndeadFear', { speakerName, companionName });
       case 'hudChrome.aiSpeech.companionSelfUndeadFear':

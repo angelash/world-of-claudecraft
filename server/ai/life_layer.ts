@@ -8,6 +8,8 @@ import { aiEntityKind } from './ai_types';
 import { classifyCanonSubject } from './canon_guard';
 import { CodexCliProvider } from './codex_worker';
 import { companionReactionEvents } from './companion_reactions';
+import { AiCreatureMemoryStore, singularityCreatureMemoryEvent } from './creature_memory';
+import type { AiCreatureMemory } from './creature_memory';
 import { AiDecisionJournal } from './decision_journal';
 import type { AiDecisionJournalEntry } from './decision_journal';
 import { compactFamilySemanticsForEntity } from './family_semantics';
@@ -72,6 +74,7 @@ export class AiLifeLayer {
   private readonly journal: AiDecisionJournal;
   private readonly socialMemory = new AiSocialMemoryStore();
   private readonly worldTraces = new AiWorldTraceStore();
+  private readonly creatureMemory = new AiCreatureMemoryStore();
   private sequence = 0;
 
   constructor(options: AiLifeLayerOptions = {}) {
@@ -92,6 +95,10 @@ export class AiLifeLayer {
 
   worldTraceDiagnostics(): AiWorldTrace[] {
     return this.worldTraces.snapshot();
+  }
+
+  creatureMemoryDiagnostics(): AiCreatureMemory[] {
+    return this.creatureMemory.snapshot();
   }
 
   async handleNpcInteraction(request: NpcAiInteractionRequest): Promise<void> {
@@ -199,6 +206,17 @@ export class AiLifeLayer {
       },
       pid: request.pid,
     }));
+    for (const reaction of reactions) {
+      if (reaction.individual?.tier !== 'singularity') continue;
+      const memory = this.creatureMemory.noteSingularityReaction({
+        entity: reaction.entity,
+        player,
+        individual: reaction.individual,
+        nowSeconds: request.sim.time,
+      });
+      const memoryEvent = singularityCreatureMemoryEvent(player, reaction.entity, dropped, memory);
+      if (memoryEvent) events.push(memoryEvent);
+    }
     if (events.length > 0) request.deliver(events);
   }
 
