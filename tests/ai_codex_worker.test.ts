@@ -138,6 +138,48 @@ process.exit(3);
     await expect(provider.decide(context)).rejects.toThrow(/xxxxxxxxxxxx\ncodex worker stderr truncated/);
   });
 
+  it('accepts bounded pet command intents from the Codex CLI worker', async () => {
+    const petContext: AiJobContextV1 = {
+      ...context,
+      jobId: 'job-pet-command',
+      trigger: 'pet_command',
+      entity: {
+        kind: 'mob',
+        entityId: 22,
+        templateId: 'forest_wolf',
+        name: 'Forest Wolf',
+        level: 5,
+        questIds: [],
+        dead: false,
+      },
+      questFacts: [],
+      recentObservations: ['playerPetCommand:stay close'],
+      allowedIntents: ['commandPetPassive'],
+      allowedLineIds: [],
+    };
+    const provider = await providerWithFakeCodex(`{
+      schemaVersion: 1,
+      jobId: context.jobId,
+      entityRef: {
+        kind: context.entity.kind,
+        entityId: context.entity.entityId,
+        templateId: context.entity.templateId
+      },
+      ttlMs: 5000,
+      confidence: 0.9,
+      speech: [],
+      intents: [{ type: 'commandPetPassive' }],
+      audit: { shortReason: 'bounded pet command', usedPlayerInput: true, safetyNotes: [] }
+    }`);
+
+    await expect(provider.decide(petContext)).resolves.toMatchObject({
+      schemaVersion: 1,
+      jobId: 'job-pet-command',
+      intents: [{ type: 'commandPetPassive' }],
+      speech: [],
+    });
+  });
+
   it('drives a real AI life layer interaction through the Codex CLI provider without changing quests', async () => {
     const provider = await providerWithFakeCodex(`{
       schemaVersion: 1,

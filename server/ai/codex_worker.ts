@@ -79,6 +79,12 @@ const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
               'seekShelter',
               'showGossipOptions',
               'questHint',
+              'commandPetPassive',
+              'commandPetDefensive',
+              'commandPetAggressive',
+              'commandPetAttack',
+              'commandPetTaunt',
+              'commandPetIgnore',
             ],
           },
           lineId: { type: 'string' },
@@ -113,6 +119,12 @@ const INTENT_TYPES = new Set<AiIntentType>([
   'seekShelter',
   'showGossipOptions',
   'questHint',
+  'commandPetPassive',
+  'commandPetDefensive',
+  'commandPetAggressive',
+  'commandPetAttack',
+  'commandPetTaunt',
+  'commandPetIgnore',
 ]);
 const DEFAULT_MAX_STDERR_BYTES = 8_192;
 

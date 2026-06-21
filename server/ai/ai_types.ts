@@ -77,7 +77,7 @@ export interface AiProfileSnapshot {
 export interface AiJobContextV1 {
   schemaVersion: 1;
   jobId: string;
-  trigger: 'npc_gossip_opened' | 'npc_question' | 'object_inspected' | 'singularity_candidate';
+  trigger: 'npc_gossip_opened' | 'npc_question' | 'object_inspected' | 'singularity_candidate' | 'pet_command';
   entity: AiEntitySnapshot;
   player: AiPlayerSnapshot;
   locale: string;
@@ -104,7 +104,13 @@ export type AiIntentType =
   | 'inspectObject'
   | 'seekShelter'
   | 'showGossipOptions'
-  | 'questHint';
+  | 'questHint'
+  | 'commandPetPassive'
+  | 'commandPetDefensive'
+  | 'commandPetAggressive'
+  | 'commandPetAttack'
+  | 'commandPetTaunt'
+  | 'commandPetIgnore';
 
 export type AiSpeech =
   | { mode: 'lineId'; lineId: string; values?: Record<string, string | number> }

@@ -23,7 +23,7 @@ import { REALM } from './realm';
 import { isOverheadEmoteId, type AiNpcInteractionTopic } from '../src/world_api';
 import * as antibot from './antibot';
 import type { BotTracker } from './antibot';
-import { AiLifeLayer, type AiLifeLayerDiagnosticsSnapshot, type AiLifeLayerMetricsSnapshot } from './ai/life_layer';
+import { AiLifeLayer, type AiLifeLayerDiagnosticsSnapshot, type AiLifeLayerMetricsSnapshot, type AiPetCommandAction } from './ai/life_layer';
 import { PgAiMemoryDb } from './ai_memory_db';
 
 const WORLD_SEED = 20061;
@@ -1188,6 +1188,15 @@ export class GameServer {
           typeof msg.locale === 'string' ? msg.locale : 'en',
         );
         break;
+      case 'ai_command_pet':
+        if (typeof msg.text === 'string') {
+          this.handleAiCommandPet(
+            session,
+            msg.text,
+            typeof msg.locale === 'string' ? msg.locale : 'en',
+          );
+        }
+        break;
       case 'loot': if (typeof msg.id === 'number') sim.lootCorpse(msg.id, pid); break;
       case 'pickup': if (typeof msg.id === 'number') sim.pickUpObject(msg.id, pid); break;
       case 'accept': if (typeof msg.quest === 'string') { sim.acceptQuest(msg.quest, pid); this.resyncQuests(session); } break;
@@ -1265,6 +1274,11 @@ export class GameServer {
         // message is routed anywhere. Soft (cosmetic) words are NOT touched here
         // — clients mask those locally when their profanity filter is on.
         if (this.enforceChatPolicy(session, text)) break;
+        const petAi = /^\/(?:petai|askpet)\s+([\s\S]+)$/i.exec(text);
+        if (petAi) {
+          this.handleAiCommandPet(session, petAi[1], 'en');
+          break;
+        }
         // guild and officer chat are persistent + cross-zone, so they live in
         // the server's SocialService rather than the sim (no guild concept).
         // MMO convention: /g is guild; /general remains world chat.
@@ -1513,6 +1527,39 @@ export class GameServer {
     }).catch((err) => {
       console.error('ai scene inspection failed:', err);
     });
+  }
+
+  private handleAiCommandPet(session: ClientSession, text: string, locale: string): void {
+    if (session.left || this.clients.get(session.pid) !== session) return;
+    if (this.sim.time < session.aiQuestionReadyAt) return;
+    session.aiQuestionReadyAt = this.sim.time + AI_NPC_QUESTION_COOLDOWN_SECONDS;
+    void this.aiLifeLayer.handlePetCommand({
+      sim: this.sim,
+      pid: session.pid,
+      text,
+      locale,
+    }).then((action) => {
+      if (!action || session.left || this.clients.get(session.pid) !== session) return;
+      this.applyAiPetCommand(session, action);
+    }).catch((err) => {
+      console.error('ai pet command failed:', err);
+    });
+  }
+
+  private applyAiPetCommand(session: ClientSession, action: AiPetCommandAction): void {
+    switch (action.type) {
+      case 'setMode':
+        this.sim.setPetMode(action.mode, session.pid);
+        break;
+      case 'attack':
+        this.sim.petAttack(session.pid);
+        break;
+      case 'taunt':
+        this.sim.petTaunt(session.pid);
+        break;
+      case 'none':
+        break;
+    }
   }
 
   private handleAiItemDiscarded(session: ClientSession, itemId: string, count: number): void {

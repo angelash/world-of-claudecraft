@@ -45,8 +45,8 @@ function fakeWs(): FakeClient {
   };
 }
 
-function joinServer(server: GameServer, fc: FakeClient): ClientSession {
-  const session = server.join(fc.ws as any, 1, 1, 'Ari', 'warrior', null);
+function joinServer(server: GameServer, fc: FakeClient, cls: 'warrior' | 'hunter' = 'warrior'): ClientSession {
+  const session = server.join(fc.ws as any, 1, 1, 'Ari', cls, null);
   if ('error' in session) throw new Error(session.error);
   session.blockListLoaded = true;
   return session;
@@ -600,6 +600,86 @@ describe('server AI interact command', () => {
       intents: expect.arrayContaining(['reactToCompanion']),
       sceneId: 'fallen_chapel',
     }));
+    expect(mainlineSnapshot(server, session.pid)).toEqual(beforeSnapshot);
+  });
+
+  it('routes natural-language pet commands through the AI provider into existing pet mode commands', async () => {
+    const provider: AiProvider = {
+      async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
+        expect(context.trigger).toBe('pet_command');
+        expect(context.allowedIntents).toEqual([
+          'commandPetPassive',
+          'commandPetDefensive',
+          'commandPetAggressive',
+          'commandPetAttack',
+          'commandPetTaunt',
+          'commandPetIgnore',
+        ]);
+        expect(context.recentObservations).toContain('playerPetCommand:stay close and stop fighting');
+        return {
+          schemaVersion: 1,
+          jobId: context.jobId,
+          entityRef: { kind: context.entity.kind, entityId: context.entity.entityId, templateId: context.entity.templateId },
+          ttlMs: 5000,
+          confidence: 0.95,
+          speech: [],
+          intents: [{ type: 'commandPetPassive' }],
+          audit: { shortReason: 'map player language to passive pet mode', usedPlayerInput: true, safetyNotes: ['bounded pet command'] },
+        };
+      },
+    };
+    const server = new GameServer();
+    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    const fc = fakeWs();
+    const session = joinServer(server, fc, 'hunter');
+    const pet = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    pet.ownerId = session.pid;
+    pet.hostile = false;
+    pet.petMode = 'aggressive';
+    const beforeSnapshot = mainlineSnapshot(server, session.pid);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_command_pet', text: 'stay close and stop fighting', locale: 'en' }));
+    await flushAi();
+
+    expect(pet.petMode).toBe('passive');
+    expect((server as any).aiLifeLayer.diagnostics()).toContainEqual(expect.objectContaining({
+      status: 'accepted',
+      trigger: 'pet_command',
+      templateId: 'forest_wolf',
+      intents: ['commandPetPassive'],
+    }));
+    expect(server.sim.tick()).toContainEqual(expect.objectContaining({
+      type: 'log',
+      text: `${pet.name} is now passive.`,
+      pid: session.pid,
+    }));
+    expect(mainlineSnapshot(server, session.pid)).toEqual(beforeSnapshot);
+  });
+
+  it('falls back to local pet command routing from /petai chat when the provider fails', async () => {
+    const provider: AiProvider = {
+      async decide(): Promise<AiDecisionV1> {
+        throw new Error('codex pet worker timed out');
+      },
+    };
+    const server = new GameServer();
+    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    const fc = fakeWs();
+    const session = joinServer(server, fc, 'hunter');
+    const pet = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    pet.ownerId = session.pid;
+    pet.hostile = false;
+    pet.petMode = 'passive';
+    const beforeSnapshot = mainlineSnapshot(server, session.pid);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'chat', text: '/petai protect me' }));
+    await flushAi();
+
+    expect(pet.petMode).toBe('defensive');
+    expect((server as any).aiLifeLayer.diagnostics()).toEqual([
+      expect.objectContaining({ status: 'provider_error', trigger: 'pet_command', reason: 'codex pet worker timed out' }),
+      expect.objectContaining({ status: 'accepted', trigger: 'pet_command', intents: ['commandPetDefensive'] }),
+    ]);
     expect(mainlineSnapshot(server, session.pid)).toEqual(beforeSnapshot);
   });
 

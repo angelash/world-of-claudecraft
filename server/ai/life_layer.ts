@@ -3,7 +3,7 @@ import { NPCS, QUESTS } from '../../src/sim/data';
 import type { Sim } from '../../src/sim/sim';
 import type { AiNpcInteractionTopic } from '../../src/world_api';
 import { INTERACT_RANGE, dist2d } from '../../src/sim/types';
-import type { Entity, SimEvent } from '../../src/sim/types';
+import type { Entity, PetMode, SimEvent } from '../../src/sim/types';
 import type { AiDecisionV1, AiIntentType, AiJobContextV1, AiMemoryAuditRecord, AiProvider } from './ai_types';
 import { aiEntityKind } from './ai_types';
 import {
@@ -167,6 +167,36 @@ export interface SceneAiInspectionRequest {
   locale: string;
   deliver(events: SimEvent[]): void;
 }
+
+export interface PetCommandAiRequest {
+  sim: Sim;
+  pid: number;
+  text: string;
+  locale: string;
+}
+
+export type AiPetCommandAction =
+  | { type: 'none'; intent: AiPetCommandIntent; source: Extract<SimEvent, { type: 'aiSpeech' }>['source']; reason: string }
+  | { type: 'setMode'; mode: PetMode; intent: AiPetCommandIntent; source: Extract<SimEvent, { type: 'aiSpeech' }>['source']; reason: string }
+  | { type: 'attack'; intent: AiPetCommandIntent; source: Extract<SimEvent, { type: 'aiSpeech' }>['source']; reason: string }
+  | { type: 'taunt'; intent: AiPetCommandIntent; source: Extract<SimEvent, { type: 'aiSpeech' }>['source']; reason: string };
+
+export type AiPetCommandIntent =
+  | 'commandPetPassive'
+  | 'commandPetDefensive'
+  | 'commandPetAggressive'
+  | 'commandPetAttack'
+  | 'commandPetTaunt'
+  | 'commandPetIgnore';
+
+const PET_COMMAND_INTENTS: readonly AiPetCommandIntent[] = [
+  'commandPetPassive',
+  'commandPetDefensive',
+  'commandPetAggressive',
+  'commandPetAttack',
+  'commandPetTaunt',
+  'commandPetIgnore',
+];
 
 export class AiLifeLayer {
   private readonly enabled: boolean;
@@ -787,6 +817,56 @@ export class AiLifeLayer {
     request.deliver(events);
   }
 
+  async handlePetCommand(request: PetCommandAiRequest): Promise<AiPetCommandAction | null> {
+    if (!this.enabled) return null;
+    const context = this.buildPetCommandContext(request);
+    if (!context) return null;
+    const pet = request.sim.entities.get(context.entity.entityId);
+    if (!pet || pet.kind !== 'mob' || pet.ownerId !== request.pid) return null;
+    let decision: AiDecisionV1;
+    let decisionSource: Extract<SimEvent, { type: 'aiSpeech' }>['source'] = 'codex';
+    const localIntent = localPetCommandIntent(request.text);
+    const providerStartedAt = performance.now();
+    this.metrics.providerCalls++;
+    try {
+      decision = await this.provider.decide(context);
+      this.recordProviderLatency(performance.now() - providerStartedAt);
+      this.metrics.providerSuccesses++;
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      this.recordProviderLatency(performance.now() - providerStartedAt);
+      this.metrics.providerErrors++;
+      this.metrics.providerFallbacks++;
+      this.metrics.lastProviderError = reason;
+      this.journal.recordProviderError(context, reason);
+      decision = fallbackDecisionForPetCommand(context, localIntent, reason);
+      decisionSource = 'fallback';
+    }
+    const result = validateAiDecision({ decision, context, entity: pet, subject: 'ordinary', source: decisionSource });
+    if (result.ok) this.metrics.acceptedDecisions++;
+    else this.metrics.rejectedDecisions++;
+    this.journal.recordDecision(context, decision, result);
+    if (!result.ok) {
+      const fallback = fallbackDecisionForPetCommand(context, localIntent, `petCommandRejected:${result.reason ?? 'unknown'}`);
+      this.journal.recordLocalReaction({
+        jobId: `${context.jobId}-local-fallback`,
+        trigger: 'pet_command',
+        entityId: pet.id,
+        templateId: pet.templateId,
+        playerEntityId: request.pid,
+        reason: fallback.audit.shortReason,
+        lineIds: [],
+        intents: fallback.intents.map((intent) => intent.type),
+        sceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? null,
+      });
+      this.metrics.localReactions++;
+      return petCommandActionFromIntent(localIntent, 'fallback', fallback.audit.shortReason);
+    }
+    const intent = firstPetCommandIntent(decision);
+    if (!intent) return petCommandActionFromIntent('commandPetIgnore', decisionSource, `${decision.audit.shortReason}: no bounded pet intent`);
+    return petCommandActionFromIntent(intent, decisionSource, decision.audit.shortReason);
+  }
+
   private async decideObjectInspectionEvents(
     context: AiJobContextV1,
     object: Entity,
@@ -1174,6 +1254,54 @@ export class AiLifeLayer {
     return entity?.kind === 'player' ? entity : null;
   }
 
+  private buildPetCommandContext(request: PetCommandAiRequest): AiJobContextV1 | null {
+    const player = request.sim.entities.get(request.pid);
+    const meta = request.sim.meta(request.pid);
+    const pet = request.sim.petOf(request.pid, true);
+    if (!player || !meta || !pet || pet.kind !== 'mob') return null;
+    const profile = profileFor('mob', pet.templateId);
+    const scene = sceneFrameFor(request.sim, player.pos);
+    const text = normalizePetCommandText(request.text);
+    return {
+      schemaVersion: 1,
+      jobId: `ai-pet-${request.pid}-${pet.id}-${++this.sequence}`,
+      trigger: 'pet_command',
+      entity: {
+        kind: 'mob',
+        entityId: pet.id,
+        templateId: pet.templateId,
+        name: pet.name,
+        level: pet.level,
+        questIds: [...pet.questIds],
+        dead: pet.dead,
+      },
+      player: {
+        entityId: player.id,
+        name: player.name,
+        level: player.level,
+        classId: player.templateId,
+        activeQuestIds: [...meta.questLog.keys()],
+        completedQuestIds: [...meta.questsDone],
+      },
+      locale: normalizeLocale(request.locale),
+      profile: compactProfileSnapshot(profile),
+      scene,
+      familySemantics: compactFamilySemanticsForEntity(pet),
+      questFacts: [],
+      recentObservations: [
+        `playerPetCommand:${text}`,
+        `petMode:${pet.petMode}`,
+        `petDead:${pet.dead ? 'yes' : 'no'}`,
+        `playerTarget:${player.targetId ?? 'none'}`,
+        `scene:${scene.subsceneId ?? scene.zoneId}`,
+        ...scene.environmentalTags.slice(0, 4).map((tag) => `tag:${tag}`),
+      ],
+      allowedIntents: [...PET_COMMAND_INTENTS],
+      allowedLineIds: [],
+      outputMode: 'line_id_only',
+    };
+  }
+
   private buildNpcContext(request: NpcAiInteractionRequest): AiJobContextV1 | null {
     const player = request.sim.entities.get(request.pid);
     const npc = request.sim.entities.get(request.npcId);
@@ -1406,6 +1534,78 @@ function fallbackDecisionForSingularityReaction(
       safetyNotes: ['Singularity reaction used local creature semantics after provider failure; quest, combat, reward, and economy state were unchanged.'],
     },
   };
+}
+
+function fallbackDecisionForPetCommand(
+  context: AiJobContextV1,
+  intent: AiPetCommandIntent,
+  reason: string,
+): AiDecisionV1 {
+  return {
+    schemaVersion: 1,
+    jobId: context.jobId,
+    entityRef: {
+      kind: context.entity.kind,
+      entityId: context.entity.entityId,
+      templateId: context.entity.templateId,
+    },
+    ttlMs: 5_000,
+    confidence: intent === 'commandPetIgnore' ? 0.1 : 0.45,
+    speech: [],
+    intents: [{ type: intent }],
+    audit: {
+      shortReason: `pet command fallback: ${reason.slice(0, 120)}`,
+      usedPlayerInput: true,
+      safetyNotes: ['Natural-language pet command was mapped only to an existing bounded pet command.'],
+    },
+  };
+}
+
+export function normalizePetCommandText(text: string): string {
+  return text.trim().replace(/\s+/g, ' ').slice(0, 160);
+}
+
+export function localPetCommandIntent(text: string): AiPetCommandIntent {
+  const normalized = normalizePetCommandText(text).toLowerCase();
+  if (normalized.length === 0) return 'commandPetIgnore';
+  if (/(taunt|growl|hold threat|pull threat|keep it on you|嘲讽|嘲諷|拉住|拉仇恨|吸引仇恨)/i.test(normalized)) {
+    return 'commandPetTaunt';
+  }
+  if (/(aggressive|hunt freely|attack anything|主动|主動|自由攻击|自由攻擊|见敌就打|見敵就打)/i.test(normalized)) {
+    return 'commandPetAggressive';
+  }
+  if (/(attack|sic|bite|kill|go get|tear into|进攻|攻擊|攻击|咬|上去打|打它|打他|打她)/i.test(normalized)) {
+    return 'commandPetAttack';
+  }
+  if (/(defensive|defend|guard|protect|watch me|保护|保護|防御|防禦|守着|守著)/i.test(normalized)) {
+    return 'commandPetDefensive';
+  }
+  if (/(passive|stay|heel|back|hold back|stop|calm|leave it|回来|回來|跟紧|跟緊|停下|别打|別打|别追|別追|冷静|冷靜)/i.test(normalized)) {
+    return 'commandPetPassive';
+  }
+  return 'commandPetIgnore';
+}
+
+function firstPetCommandIntent(decision: AiDecisionV1): AiPetCommandIntent | null {
+  const intent = decision.intents.find((entry): entry is { type: AiPetCommandIntent; lineId?: string } =>
+    PET_COMMAND_INTENTS.includes(entry.type as AiPetCommandIntent),
+  );
+  return intent?.type ?? null;
+}
+
+function petCommandActionFromIntent(
+  intent: AiPetCommandIntent,
+  source: Extract<SimEvent, { type: 'aiSpeech' }>['source'],
+  reason: string,
+): AiPetCommandAction {
+  switch (intent) {
+    case 'commandPetPassive': return { type: 'setMode', mode: 'passive', intent, source, reason };
+    case 'commandPetDefensive': return { type: 'setMode', mode: 'defensive', intent, source, reason };
+    case 'commandPetAggressive': return { type: 'setMode', mode: 'aggressive', intent, source, reason };
+    case 'commandPetAttack': return { type: 'attack', intent, source, reason };
+    case 'commandPetTaunt': return { type: 'taunt', intent, source, reason };
+    case 'commandPetIgnore': return { type: 'none', intent, source, reason };
+  }
 }
 
 function mergeObjectInspectionShell(

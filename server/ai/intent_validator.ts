@@ -32,6 +32,7 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
 
   const profile = profileFor(context.entity.kind, context.entity.templateId);
   for (const intent of decision.intents) {
+    if (!context.allowedIntents.includes(intent.type)) return rejected(`intent ${intent.type} not allowed by context`);
     if (!profile.allowedIntentTypes.includes(intent.type)) return rejected(`intent ${intent.type} not allowed by profile`);
     if (intent.lineId && !profile.allowedLineIds.includes(intent.lineId)) return rejected(`line id ${intent.lineId} not allowed by profile`);
   }

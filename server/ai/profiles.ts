@@ -52,6 +52,15 @@ const BASIC_NPC_INTENTS: AiIntentType[] = [
   'questHint',
 ];
 
+const PET_COMMAND_INTENTS: AiIntentType[] = [
+  'commandPetPassive',
+  'commandPetDefensive',
+  'commandPetAggressive',
+  'commandPetAttack',
+  'commandPetTaunt',
+  'commandPetIgnore',
+];
+
 export const AI_AGENT_PROFILES: readonly AiAgentProfile[] = [
   {
     id: 'npc.brother_aldric.living_world',
@@ -583,7 +592,7 @@ export const GENERIC_MOB_AI_PROFILE: AiAgentProfile = {
   id: 'mob.generic.living_world',
   appliesTo: [],
   persona: 'A creature ruled by family instinct, immediate scene pressure, and rare individual quirks.',
-  allowedIntentTypes: ['lookAt', 'faceEntity', 'pause', 'commentOnScene', 'inspectObject', 'approachObject', 'avoidObject', 'seekShelter'],
+  allowedIntentTypes: ['lookAt', 'faceEntity', 'pause', 'commentOnScene', 'inspectObject', 'approachObject', 'avoidObject', 'seekShelter', ...PET_COMMAND_INTENTS],
   allowedLineIds: [
     'hudChrome.aiSpeech.itemInterestApproach',
     'hudChrome.aiSpeech.itemInterestAvoid',

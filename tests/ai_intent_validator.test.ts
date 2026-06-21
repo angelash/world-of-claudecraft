@@ -84,6 +84,20 @@ describe('AI intent validator', () => {
     expect(result.ok).toBe(false);
   });
 
+  it('rejects intents that are not allowed by the current job context', () => {
+    const result = validateAiDecision({
+      decision: {
+        ...decision,
+        intents: [{ type: 'inspectObject', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
+      },
+      context,
+      entity,
+      subject: 'ordinary',
+      source: 'codex',
+    });
+    expect(result).toMatchObject({ ok: false, reason: 'intent inspectObject not allowed by context' });
+  });
+
   it('rejects dynamicText when the context is line_id_only', () => {
     const result = validateAiDecision({
       decision: {
