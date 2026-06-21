@@ -41,6 +41,7 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
   for (const speech of decision.speech) {
     if (speech.mode === 'lineId') {
       if (!profile.allowedLineIds.includes(speech.lineId)) return rejected(`line id ${speech.lineId} not allowed by profile`);
+      if (context.allowedLineIds && !context.allowedLineIds.includes(speech.lineId)) return rejected(`line id ${speech.lineId} not allowed by context`);
       events.push({
         type: 'aiSpeech',
         speakerId: entity.id,

@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AiDecisionV1, AiJobContextV1, AiProvider } from './ai_types';
+import { buildCodexDecisionPrompt } from './prompt_builder';
 
 export interface CodexCliProviderOptions {
   codexBin?: string;
@@ -117,20 +118,15 @@ export class CodexCliProvider implements AiProvider {
     await writeFile(inputPath, JSON.stringify(context, null, 2), 'utf8');
     await writeFile(schemaPath, JSON.stringify(AI_DECISION_OUTPUT_SCHEMA, null, 2), 'utf8');
     try {
-      await this.execCodex(dir);
+      await this.execCodex(context, dir);
       return JSON.parse(await readFile(outputPath, 'utf8')) as AiDecisionV1;
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
   }
 
-  private execCodex(cwd: string): Promise<void> {
-    const prompt = [
-      'Read the AI job JSON file and return exactly one AiDecisionV1 JSON object.',
-      'Use only facts present in job.json. Prefer lineId speech unless outputMode explicitly allows dynamic text.',
-      'Do not change quest state, rewards, combat, economy, or hidden canon.',
-      'Input: job.json',
-    ].join('\n');
+  private execCodex(context: AiJobContextV1, cwd: string): Promise<void> {
+    const prompt = buildCodexDecisionPrompt(context);
     const args = [
       ...this.codexArgsPrefix,
       'exec',

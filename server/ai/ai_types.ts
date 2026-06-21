@@ -44,6 +44,7 @@ export interface AiJobContextV1 {
   questFacts: AiQuestFact[];
   recentObservations: string[];
   allowedIntents: AiIntentType[];
+  allowedLineIds?: string[];
   outputMode: AiOutputMode;
 }
 

@@ -2,10 +2,12 @@ import { NPCS, QUESTS } from '../../src/sim/data';
 import type { Sim } from '../../src/sim/sim';
 import { INTERACT_RANGE, dist2d } from '../../src/sim/types';
 import type { SimEvent } from '../../src/sim/types';
-import type { AiJobContextV1, AiProvider } from './ai_types';
+import type { AiDecisionV1, AiJobContextV1, AiProvider } from './ai_types';
 import { aiEntityKind } from './ai_types';
 import { classifyCanonSubject } from './canon_guard';
 import { CodexCliProvider } from './codex_worker';
+import { AiDecisionJournal } from './decision_journal';
+import type { AiDecisionJournalEntry } from './decision_journal';
 import { compactFamilySemanticsForEntity } from './family_semantics';
 import { FakeAiProvider } from './fake_ai_provider';
 import { nearbyReactionCandidates, rankItemReactions } from './item_interest';
@@ -18,6 +20,7 @@ export interface AiLifeLayerOptions {
   enabled?: boolean;
   provider?: AiProvider;
   useCodex?: boolean;
+  journalSize?: number;
 }
 
 export interface NpcAiInteractionRequest {
@@ -39,6 +42,7 @@ export interface ItemDiscardedAiRequest {
 export class AiLifeLayer {
   private readonly enabled: boolean;
   private readonly provider: AiProvider;
+  private readonly journal: AiDecisionJournal;
   private sequence = 0;
 
   constructor(options: AiLifeLayerOptions = {}) {
@@ -46,6 +50,11 @@ export class AiLifeLayer {
     this.provider = options.provider ?? (options.useCodex || process.env.AI_CODEX_CLI === '1'
       ? new CodexCliProvider()
       : new FakeAiProvider());
+    this.journal = new AiDecisionJournal(options.journalSize);
+  }
+
+  diagnostics(): AiDecisionJournalEntry[] {
+    return this.journal.snapshot();
   }
 
   async handleNpcInteraction(request: NpcAiInteractionRequest): Promise<void> {
@@ -55,8 +64,15 @@ export class AiLifeLayer {
     const npc = request.sim.entities.get(request.npcId);
     if (!npc) return;
     const subject = classifyCanonSubject(npc);
-    const decision = await this.provider.decide(context);
+    let decision: AiDecisionV1;
+    try {
+      decision = await this.provider.decide(context);
+    } catch (err) {
+      this.journal.recordProviderError(context, err instanceof Error ? err.message : String(err));
+      throw err;
+    }
     const result = validateAiDecision({ decision, context, entity: npc, subject });
+    this.journal.recordDecision(context, decision, result);
     if (result.ok) {
       const events = [...result.events];
       const sceneEvent = sceneAwarenessEvent(context, npc);
@@ -77,6 +93,19 @@ export class AiLifeLayer {
     });
     const candidates = nearbyReactionCandidates(scene, request.sim.entities.values(), player);
     const reactions = rankItemReactions(scene, dropped, candidates, { worldSeed: request.sim.cfg.seed }).slice(0, 2);
+    if (reactions.length > 0) {
+      this.journal.recordLocalReaction({
+        jobId: `local-${request.pid}-${++this.sequence}`,
+        trigger: 'item_discarded',
+        entityId: player.id,
+        templateId: player.templateId,
+        playerEntityId: request.pid,
+        reason: `discarded:${request.itemId}`,
+        lineIds: reactions.map((reaction) => reaction.lineId),
+        intents: reactions.map((reaction) => reaction.reaction),
+        sceneId: scene.subsceneId ?? scene.zoneId,
+      });
+    }
     const events: SimEvent[] = reactions.map((reaction) => ({
       type: 'aiSpeech',
       speakerId: reaction.entity.id,
@@ -160,6 +189,7 @@ export class AiLifeLayer {
         ...scene.environmentalTags.slice(0, 4).map((tag) => `tag:${tag}`),
       ],
       allowedIntents: profile.allowedIntentTypes,
+      allowedLineIds: profile.allowedLineIds,
       outputMode: 'line_id_only',
     };
   }
