@@ -514,6 +514,15 @@
     border-radius: 10px; padding: 4px 9px; font-size: 12px; line-height: 1.3;
     text-align: center; overflow-wrap: break-word; will-change: transform; z-index: 21; }
   .chat-bubble.yell { font-weight: bold; color: #7a1408; border-color: #c43a2a; }
+  .ai-reaction-badge { position: absolute; left: 0; top: 0; max-width: 150px; pointer-events: none;
+    border: 1px solid #6f8a55; border-radius: 999px; padding: 3px 9px; color: #f3ffe6;
+    background: rgba(17, 28, 16, 0.92); font: 800 10px/1.2 var(--title-font); text-align: center;
+    letter-spacing: 0; overflow-wrap: anywhere; text-shadow: 0 1px 1px #000; will-change: transform, opacity;
+    box-shadow: 0 2px 0 #050301, 0 0 10px #0008; z-index: 22; animation: ai-reaction-pop 220ms ease-out; }
+  .ai-reaction-badge.approach { border-color: #6fcd78; color: #dbffdc; background: rgba(14, 48, 22, 0.92); }
+  .ai-reaction-badge.avoid { border-color: #d68a5a; color: #ffe0ca; background: rgba(56, 24, 13, 0.92); }
+  .ai-reaction-badge.inspect { border-color: #79b7d9; color: #d6efff; background: rgba(14, 34, 50, 0.92); }
+  @keyframes ai-reaction-pop { from { transform: translateY(6px) scale(0.94); opacity: 0; } to { transform: none; opacity: 1; } }
 
   /* ---------- unit frames ---------- */
   .unitframe { position: absolute; top: 12px; display: flex; gap: 0; align-items: center; }
@@ -1510,7 +1519,7 @@
   .emote-editor-count { color: #ffd100; font-family: var(--title-font); font-size: 12px; }
   @keyframes emote-wheel-in { from { transform: translate(-50%, -50%) scale(0.94); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
   @media (prefers-reduced-motion: reduce) {
-    .np-emote, #emote-wheel { animation: none; }
+    .np-emote, .ai-reaction-badge, #emote-wheel { animation: none; }
     .emote-wheel-item, .emote-wheel-edit, .emote-editor-item { transition: none; }
   }
 

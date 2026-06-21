@@ -249,6 +249,11 @@ export const es_ES: EnTranslations = {
       "place": "What do you notice here?",
       "questHint": "Any advice for my current work?"
     },
+    "aiReaction": {
+      "approach": "interested",
+      "avoid": "uneasy",
+      "inspect": "watching"
+    },
     "aiSpeech": {
       "brotherAldricAwake": "The dead are restless tonight. Keep your journal close, {playerName}.",
       "merchantMarketPulse": "Coin moves faster than rumor, {playerName}, but rumor leaves better footprints.",

@@ -249,6 +249,11 @@ export const en_XA: EnTranslations = {
       "place": "[Ŵĥáţ ðó ýóú ñóţíçé ĥéŕé?]",
       "questHint": "[Áñý áðʋíçé ƒóŕ ɱý çúŕŕéñţ ŵóŕķ?]"
     },
+    "aiReaction": {
+      "approach": "[íñţéŕéšţéð]",
+      "avoid": "[úñéášý]",
+      "inspect": "[ŵáţçĥíñĝ]"
+    },
     "aiSpeech": {
       "brotherAldricAwake": "[Ţĥé ðéáð áŕé ŕéšţļéšš ţóñíĝĥţ. Ķééþ ýóúŕ ĵóúŕñáļ çļóšé, {playerName}.]",
       "merchantMarketPulse": "[Çóíñ ɱóʋéš ƒášţéŕ ţĥáñ ŕúɱóŕ, {playerName}, ƀúţ ŕúɱóŕ ļéáʋéš ƀéţţéŕ ƒóóţþŕíñţš.]",

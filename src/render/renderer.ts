@@ -603,6 +603,7 @@ export class Renderer {
   private cameraLookAt = new THREE.Vector3();
   // floating /say-/yell bubbles, keyed by speaker entity id
   private chatBubbles = new Map<number, { el: HTMLDivElement; until: number }>();
+  private aiReactionBadges = new Map<number, { el: HTMLDivElement; until: number; kind: string }>();
   private sun: THREE.DirectionalLight;
   private hemi!: THREE.HemisphereLight;
   private sky!: THREE.Mesh;
@@ -1532,6 +1533,7 @@ export class Renderer {
     this.updateGodRays();
     this.updateNameplates(true);
     this.updateChatBubbles();
+    this.updateAiReactionBadges();
   }
 
   private prewarmEntity(kind: 'player' | 'mob', templateId: string, color: number, scale: number, skin = 0, id = -10_000): Entity {
@@ -2702,6 +2704,11 @@ export class Renderer {
     if (!v) return;
     this.scene.remove(v.group);
     v.nameplate.remove();
+    const badge = this.aiReactionBadges.get(id);
+    if (badge) {
+      badge.el.remove();
+      this.aiReactionBadges.delete(id);
+    }
     const idx = this.clickTargets.indexOf(v.clickTarget);
     if (idx >= 0) this.clickTargets.splice(idx, 1);
     if (v.visual) {
@@ -3141,6 +3148,7 @@ export class Renderer {
     if (fullNameplatePass) this.nameplateTimer = 0;
     this.updateNameplates(fullNameplatePass);
     this.updateChatBubbles();
+    this.updateAiReactionBadges();
     markPhase('nameplates');
     // Fiesta screen shake: trauma^2 jitter offsets the camera for the draw only.
     let shakeX = 0, shakeY = 0;
@@ -3575,6 +3583,22 @@ export class Renderer {
     b.until = performance.now() + 1000 * Math.min(10, 3.5 + text.length * 0.045);
   }
 
+  showAiReactionBadge(entityId: number, label: string, kind: 'approach' | 'avoid' | 'inspect'): void {
+    let b = this.aiReactionBadges.get(entityId);
+    if (!b) {
+      const el = document.createElement('div');
+      el.className = 'ai-reaction-badge';
+      this.nameplateLayer.appendChild(el);
+      b = { el, until: 0, kind: '' };
+      this.aiReactionBadges.set(entityId, b);
+    }
+    b.el.textContent = label;
+    if (b.kind) b.el.classList.remove(b.kind);
+    b.kind = kind;
+    b.el.classList.add(kind);
+    b.until = performance.now() + 1800;
+  }
+
   private updateChatBubbles(): void {
     if (this.chatBubbles.size === 0) return;
     const { width: w, height: h } = this.viewport;
@@ -3593,6 +3617,34 @@ export class Renderer {
       if (v.group.visible) this.tmpV.copy(v.group.position);
       else this.tmpV.set(e.pos.x, e.pos.y, e.pos.z);
       this.tmpV.y += v.height * e.scale + 1.0;
+      if (!isProjectedNameplateAnchorVisible(this.camera, this.tmpV, this.tmpV2)) {
+        b.el.style.display = 'none';
+        continue;
+      }
+      this.tmpV.project(this.camera);
+      if (this.tmpV.z < -1 || this.tmpV.z > 1) { b.el.style.display = 'none'; continue; }
+      b.el.style.display = '';
+      const sx = (this.tmpV.x * 0.5 + 0.5) * w;
+      const sy = (-this.tmpV.y * 0.5 + 0.5) * h;
+      b.el.style.transform = nameplateScreenTransform(sx, sy);
+    }
+  }
+
+  private updateAiReactionBadges(): void {
+    if (this.aiReactionBadges.size === 0) return;
+    const { width: w, height: h } = this.viewport;
+    const now = performance.now();
+    for (const [id, b] of this.aiReactionBadges) {
+      const e = this.sim.entities.get(id);
+      const v = e ? this.views.get(id) : undefined;
+      if (!e || !v || now >= b.until) {
+        b.el.remove();
+        this.aiReactionBadges.delete(id);
+        continue;
+      }
+      if (v.group.visible) this.tmpV.copy(v.group.position);
+      else this.tmpV.set(e.pos.x, e.pos.y, e.pos.z);
+      this.tmpV.y += v.height * e.scale + 1.55;
       if (!isProjectedNameplateAnchorVisible(this.camera, this.tmpV, this.tmpV2)) {
         b.el.style.display = 'none';
         continue;
