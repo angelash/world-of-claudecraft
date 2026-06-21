@@ -9,7 +9,7 @@ import {
 } from './tables';
 import type {
   AccountDetail, AccountRow, Activity, CharacterRow, ChatFilterData, LivePlayer,
-  ModerationAccountDetail, ModerationQueueRow, Overview, Paginated,
+  AiVolatileMemoryClearResult, ModerationAccountDetail, ModerationQueueRow, Overview, Paginated,
 } from './types';
 
 const LIVE_REFRESH_MS = 5_000;
@@ -135,6 +135,17 @@ async function refreshLive(): Promise<void> {
     $('online').innerHTML = renderOnlineTable(online.players);
   } catch (err) {
     if (!handleAuthFailure(err)) console.error('live refresh failed:', err);
+  }
+}
+
+async function clearAiMemory(): Promise<void> {
+  if (!window.confirm(t('usage.aiClearConfirm'))) return;
+  try {
+    const result = await apiPost<AiVolatileMemoryClearResult>('/admin/api/ai/memory/clear', {});
+    await refreshLive();
+    window.alert(t('usage.aiClearSuccess', { count: result.totalCleared }));
+  } catch (err) {
+    if (!handleAuthFailure(err)) window.alert(err instanceof Error ? localizeAdminError(err.message) : t('usage.aiClearFailed'));
   }
 }
 
@@ -501,6 +512,11 @@ function wireEvents(): void {
   });
 
   wireChatFilterEvents();
+
+  $('ai-usage').addEventListener('click', (e) => {
+    const clearButton = (e.target as HTMLElement).closest('button[data-clear-ai-memory]');
+    if (clearButton) void clearAiMemory();
+  });
 
   let searchTimer: number | null = null;
   $('account-search').addEventListener('input', (e) => {

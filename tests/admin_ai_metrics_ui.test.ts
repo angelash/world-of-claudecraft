@@ -132,6 +132,31 @@ function diagnostics(overrides: Partial<AiLifeLayerDiagnosticsSnapshot> = {}): A
       expiresAt: 120,
       evidence: ['trace:cursed<script>'],
     }],
+    socialMemory: {
+      npcMemories: [{
+        playerEntityId: 1,
+        playerName: 'Alice<script>',
+        templateId: 'brother_aldric<script>',
+        interactionCount: 3,
+        affinity: 0.24,
+        lastInteractionAt: 12,
+        sceneIds: ['fallen_chapel<script>'],
+      }],
+      rumors: [{
+        rumorId: 'rumor-1',
+        sceneId: 'fallen_chapel<script>',
+        originSceneId: 'fallen_chapel<script>',
+        zoneId: 'eastbrook_vale<script>',
+        itemId: 'gravecaller_sigil<script>',
+        subjectKind: 'item',
+        sourcePlayerEntityId: 1,
+        lineIds: ['hudChrome.aiSpeech.itemInterestAvoid<script>'],
+        strength: 0.8,
+        scope: 'scene<script>',
+        createdAt: 10,
+        expiresAt: 100,
+      }],
+    },
     memoryPersistence: { pending: 2, flushing: true, pruning: false, lastPruneDeleted: 0, errors: ['db <offline>'] },
     ...overrides,
   };
@@ -245,6 +270,12 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('provider error');
     expect(html).toContain('NPC question');
     expect(html).toContain('camp alert');
+    expect(html).toContain('Clear AI memory');
+    expect(html).toContain('NPC memories');
+    expect(html).toContain('Rumors');
+    expect(html).toContain('Alice&lt;script&gt;');
+    expect(html).toContain('fallen_chapel&lt;script&gt;');
+    expect(html).toContain('hudChrome.aiSpeech.itemInterestAvoid&lt;script&gt;');
     expect(html).toContain('db &lt;offline&gt;');
     expect(html).toContain('npc&lt;script&gt;');
     expect(html).toContain('hudChrome.aiSpeech.line&lt;script&gt;');
@@ -252,6 +283,7 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('trace:cursed&lt;script&gt;');
     expect(html).not.toContain('npc<script>');
     expect(html).not.toContain('db <offline>');
+    expect(html).not.toContain('Alice<script>');
   });
 
   it('shows AI profile previews and escapes authored profile values', () => {

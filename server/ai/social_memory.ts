@@ -153,6 +153,13 @@ export class AiSocialMemoryStore {
     };
   }
 
+  clear(): { npcMemories: number; rumors: number } {
+    const counts = { npcMemories: this.npcMemories.size, rumors: this.rumors.length };
+    this.npcMemories.clear();
+    this.rumors.splice(0);
+    return counts;
+  }
+
   private pruneRumors(nowSeconds: number): void {
     for (let i = this.rumors.length - 1; i >= 0; i--) {
       if (this.rumors[i].expiresAt <= nowSeconds) this.rumors.splice(i, 1);

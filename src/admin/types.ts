@@ -104,6 +104,32 @@ export interface AiDecisionJournalEntry {
   memoryWrites: AiMemoryAuditRecord[];
 }
 
+export interface AiNpcMemory {
+  playerEntityId: number;
+  playerName: string;
+  templateId: string;
+  interactionCount: number;
+  affinity: number;
+  lastInteractionAt: number;
+  sceneIds: string[];
+}
+
+export interface AiRumorMemory {
+  rumorId: string;
+  sceneId: string;
+  originSceneId: string;
+  zoneId: string;
+  itemId: string;
+  subjectKind: string;
+  questId?: string;
+  sourcePlayerEntityId: number;
+  lineIds: string[];
+  strength: number;
+  scope: string;
+  createdAt: number;
+  expiresAt: number;
+}
+
 export interface AiWorldDirectorState {
   stateId: string;
   sceneId: string;
@@ -152,6 +178,10 @@ export interface AiLifeLayerDiagnosticsSnapshot {
   recentDecisions: AiDecisionJournalEntry[];
   worldDirectorStates: AiWorldDirectorState[];
   worldDirectorProposalJournal?: AiWorldDirectorProposalAuditEntry[];
+  socialMemory?: {
+    npcMemories: AiNpcMemory[];
+    rumors: AiRumorMemory[];
+  };
   memoryPersistence: {
     pending: number;
     flushing: boolean;
@@ -159,6 +189,20 @@ export interface AiLifeLayerDiagnosticsSnapshot {
     lastPruneDeleted: number;
     errors: string[];
   };
+}
+
+export interface AiVolatileMemoryClearResult {
+  npcMemories: number;
+  rumors: number;
+  worldTraces: number;
+  creatureMemories: number;
+  creaturePlans: number;
+  bossMemories: number;
+  bossPhaseCues: number;
+  worldDirectorStates: number;
+  decisionJournalEntries: number;
+  pendingMemoryWrites: number;
+  totalCleared: number;
 }
 
 export interface AiContentCoverageReport {

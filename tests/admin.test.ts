@@ -162,8 +162,46 @@ const fakeGame: any = {
       reasonTags: ['mood:haunted', 'proposal:campAlert'],
       safetyNotes: ['presentationOnly', 'noQuestMutation'],
     }],
+    socialMemory: {
+      npcMemories: [{
+        playerEntityId: 1,
+        playerName: 'Alice',
+        templateId: 'brother_aldric',
+        interactionCount: 2,
+        affinity: 0.16,
+        lastInteractionAt: 12,
+        sceneIds: ['fallen_chapel'],
+      }],
+      rumors: [{
+        rumorId: 'rumor-1',
+        sceneId: 'fallen_chapel',
+        originSceneId: 'fallen_chapel',
+        zoneId: 'eastbrook_vale',
+        itemId: 'gravecaller_sigil',
+        subjectKind: 'item',
+        sourcePlayerEntityId: 1,
+        lineIds: ['hudChrome.aiSpeech.itemInterestAvoid'],
+        strength: 0.8,
+        scope: 'scene',
+        createdAt: 10,
+        expiresAt: 100,
+      }],
+    },
     memoryPersistence: { pending: 1, flushing: false, pruning: false, lastPruneDeleted: 2, errors: [] },
   }),
+  clearAiLifeLayerMemory: vi.fn(() => ({
+    npcMemories: 1,
+    rumors: 1,
+    worldTraces: 1,
+    creatureMemories: 0,
+    creaturePlans: 0,
+    bossMemories: 0,
+    bossPhaseCues: 0,
+    worldDirectorStates: 1,
+    decisionJournalEntries: 2,
+    pendingMemoryWrites: 1,
+    totalCleared: 7,
+  })),
   liveSessions: () => [],
   liveAccountIds: () => new Set([9]),
   disconnectAccount: vi.fn(),
@@ -237,6 +275,16 @@ describe('admin api auth', () => {
             proposalId: 'director-1:proposal',
             intent: 'raiseCampCaution',
           })]),
+          socialMemory: expect.objectContaining({
+            npcMemories: expect.arrayContaining([expect.objectContaining({
+              templateId: 'brother_aldric',
+              interactionCount: 2,
+            })]),
+            rumors: expect.arrayContaining([expect.objectContaining({
+              itemId: 'gravecaller_sigil',
+              scope: 'scene',
+            })]),
+          }),
           memoryPersistence: expect.objectContaining({ pending: 1 }),
         }),
         aiCoverage: expect.objectContaining({
@@ -263,6 +311,27 @@ describe('admin api auth', () => {
           metrics: expect.arrayContaining([expect.objectContaining({ key: 'woc.balance.rpc' })]),
           caches: expect.arrayContaining([expect.objectContaining({ key: 'woc.balance' })]),
         }),
+      }),
+    });
+  });
+
+  it('clears volatile AI memory through an authenticated admin endpoint', async () => {
+    vi.mocked(accountForToken).mockResolvedValue(7);
+    vi.mocked(isAdminAccount).mockResolvedValue(true);
+    const res = fakeRes();
+
+    await handleAdminApi(fakeReq({ method: 'POST', token: VALID_TOKEN, url: '/admin/api/ai/memory/clear', body: {} }), res, fakeGame);
+
+    expect(res.statusCode).toBe(200);
+    expect(fakeGame.clearAiLifeLayerMemory).toHaveBeenCalledTimes(1);
+    expect(res.body).toEqual({
+      success: true,
+      error: null,
+      data: expect.objectContaining({
+        rumors: 1,
+        worldDirectorStates: 1,
+        pendingMemoryWrites: 1,
+        totalCleared: 7,
       }),
     });
   });

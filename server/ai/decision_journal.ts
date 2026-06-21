@@ -88,6 +88,12 @@ export class AiDecisionJournal {
     }));
   }
 
+  clear(): number {
+    const count = this.entries.length;
+    this.entries.splice(0);
+    return count;
+  }
+
   private push(entry: AiDecisionJournalEntry): void {
     this.entries.push(entry);
     while (this.entries.length > this.limit) this.entries.shift();

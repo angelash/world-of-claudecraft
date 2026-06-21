@@ -3,7 +3,7 @@ import { classLabel, zoneLabel, t } from './i18n';
 import type {
   AccountDetail, AccountRow, CharacterRow, ChatFilterData, ChatModeratedAccount,
   ChatModerationDetail, FilterWord, LivePlayer, ModerationAccountDetail, ModerationQueueRow,
-  AiContentCoverageReport, AiDecisionJournalEntry, AiLifeLayerDiagnosticsSnapshot,
+  AiContentCoverageReport, AiDecisionJournalEntry, AiLifeLayerDiagnosticsSnapshot, AiNpcMemory, AiRumorMemory,
   AiLifeLayerMetricsSnapshot, AiProfileAuthoringIssue, AiProfileAuthoringValidationReport,
   AiProfilePreviewReport, AiProfilePreviewRow,
   AiProfilePreviewTarget, AiWorldDirectorState,
@@ -372,9 +372,46 @@ function renderAiDirectorRow(state: AiWorldDirectorState): string {
   </tr>`;
 }
 
+function renderAiNpcMemoryRow(memory: AiNpcMemory): string {
+  return `<tr>
+    <td><span class="badge">${escapeHtml(t('usage.aiSocialTypeNpcMemory'))}</span></td>
+    <td>${escapeHtml(memory.templateId)}</td>
+    <td>${renderAiDelimitedItems(memory.sceneIds, 3)}</td>
+    <td>${escapeHtml(t('usage.aiSocialPlayerSummary', {
+      playerName: memory.playerName,
+      playerEntityId: fmtNumber(memory.playerEntityId),
+    }))}</td>
+    <td class="num">${renderAiNumber(memory.interactionCount)}</td>
+    <td class="num">${escapeHtml(fmtPercent(memory.affinity))}</td>
+    <td>${escapeHtml(t('usage.aiSocialLastSeen', { value: fmtNumber(memory.lastInteractionAt) }))}</td>
+    <td>${renderAiDelimitedItems([], 3)}</td>
+  </tr>`;
+}
+
+function renderAiRumorRow(rumor: AiRumorMemory): string {
+  const subject = rumor.subjectKind === 'quest'
+    ? escapeHtml(t('usage.aiSubjectSummary', { kind: aiSubjectKindLabel('quest'), value: rumor.questId ?? rumor.itemId }))
+    : escapeHtml(t('usage.aiSubjectSummary', { kind: aiSubjectKindLabel(rumor.subjectKind), value: rumor.itemId }));
+  return `<tr>
+    <td><span class="badge">${escapeHtml(t('usage.aiSocialTypeRumor'))}</span></td>
+    <td>${subject}</td>
+    <td>${escapeHtml(t('usage.aiSceneZoneSummary', { sceneId: rumor.sceneId, zoneId: rumor.zoneId }))}</td>
+    <td>${escapeHtml(t('usage.aiSocialPlayerId', { playerEntityId: fmtNumber(rumor.sourcePlayerEntityId) }))}</td>
+    <td class="num">${escapeHtml(rumor.scope)}</td>
+    <td class="num">${escapeHtml(fmtPercent(rumor.strength))}</td>
+    <td>${escapeHtml(t('usage.aiSocialExpiresAt', { value: fmtNumber(rumor.expiresAt) }))}</td>
+    <td>${renderAiDelimitedItems(rumor.lineIds, 3)}</td>
+  </tr>`;
+}
+
 function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): string {
   const recentDecisions = diagnostics.recentDecisions.slice(-8).reverse();
   const directorStates = diagnostics.worldDirectorStates.slice(0, 8);
+  const socialMemory = diagnostics.socialMemory ?? { npcMemories: [], rumors: [] };
+  const socialRows = [
+    ...socialMemory.rumors.slice(0, 6).map(renderAiRumorRow),
+    ...socialMemory.npcMemories.slice(0, 6).map(renderAiNpcMemoryRow),
+  ];
   const persistenceErrors = diagnostics.memoryPersistence.errors.slice(-4).reverse();
   const flushingLabel = diagnostics.memoryPersistence.flushing
     ? t('usage.aiMemoryFlushingYes')
@@ -392,10 +429,16 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
   const directorRows = directorStates.length === 0
     ? `<tr><td colspan="7" class="empty">${t('usage.aiDiagnosticsNoDirectorStates')}</td></tr>`
     : directorStates.map(renderAiDirectorRow).join('');
+  const socialTableRows = socialRows.length === 0
+    ? `<tr><td colspan="8" class="empty">${t('usage.aiDiagnosticsNoSocialMemory')}</td></tr>`
+    : socialRows.join('');
 
   return `
     <div class="usage-section">
       <h4>${t('usage.aiDiagnosticsTitle')}</h4>
+      <div class="admin-actions">
+        <button class="danger" data-clear-ai-memory>${t('usage.aiClearMemory')}</button>
+      </div>
       <div class="ai-health-grid">
         <div class="ai-health-cell">
           <div class="ai-health-value">${renderAiNumber(diagnostics.recentDecisions.length)}</div>
@@ -404,6 +447,14 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
         <div class="ai-health-cell">
           <div class="ai-health-value">${renderAiNumber(diagnostics.worldDirectorStates.length)}</div>
           <div class="ai-health-label">${t('usage.aiDiagnosticsDirectorStates')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(socialMemory.npcMemories.length)}</div>
+          <div class="ai-health-label">${t('usage.aiDiagnosticsNpcMemories')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(socialMemory.rumors.length)}</div>
+          <div class="ai-health-label">${t('usage.aiDiagnosticsRumors')}</div>
         </div>
         <div class="ai-health-cell">
           <div class="ai-health-value">${renderAiNumber(diagnostics.memoryPersistence.pending)}</div>
@@ -457,6 +508,21 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
             <th>${t('usage.aiDirectorColEvidence')}</th>
           </tr></thead>
           <tbody>${directorRows}</tbody>
+        </table>
+      </div>
+      <div class="table-scroll">
+        <table class="usage-table">
+          <thead><tr>
+            <th>${t('usage.aiSocialColType')}</th>
+            <th>${t('usage.aiSocialColSubject')}</th>
+            <th>${t('usage.aiSocialColScene')}</th>
+            <th>${t('usage.aiSocialColPlayer')}</th>
+            <th class="num">${t('usage.aiSocialColCountScope')}</th>
+            <th class="num">${t('usage.aiSocialColStrength')}</th>
+            <th>${t('usage.aiSocialColTiming')}</th>
+            <th>${t('usage.aiSocialColLineIds')}</th>
+          </tr></thead>
+          <tbody>${socialTableRows}</tbody>
         </table>
       </div>
     </div>`;

@@ -105,6 +105,10 @@ export interface AiLifeLayerDiagnosticsSnapshot {
   recentDecisions: AiDecisionJournalEntry[];
   worldDirectorStates: AiWorldDirectorState[];
   worldDirectorProposalJournal: AiWorldDirectorProposalAuditEntry[];
+  socialMemory: {
+    npcMemories: AiNpcMemory[];
+    rumors: AiRumorMemory[];
+  };
   memoryPersistence: {
     pending: number;
     flushing: boolean;
@@ -135,6 +139,20 @@ interface AiLifeLayerMetricsState {
   lastProviderError?: string;
   lastMemoryPersistenceError?: string;
   lastMemoryPruneError?: string;
+}
+
+export interface AiVolatileMemoryClearResult {
+  npcMemories: number;
+  rumors: number;
+  worldTraces: number;
+  creatureMemories: number;
+  creaturePlans: number;
+  bossMemories: number;
+  bossPhaseCues: number;
+  worldDirectorStates: number;
+  decisionJournalEntries: number;
+  pendingMemoryWrites: number;
+  totalCleared: number;
 }
 
 export interface NpcAiInteractionRequest {
@@ -287,7 +305,30 @@ export class AiLifeLayer {
       recentDecisions: this.diagnostics(),
       worldDirectorStates: this.worldDirectorDiagnostics(),
       worldDirectorProposalJournal: this.worldDirectorProposalDiagnostics(),
+      socialMemory: this.memoryDiagnostics(),
       memoryPersistence: this.memoryPersistenceDiagnostics(),
+    };
+  }
+
+  clearVolatileMemory(nowSeconds = 0): AiVolatileMemoryClearResult {
+    const social = this.socialMemory.clear();
+    const creature = this.creatureMemory.clear();
+    const result: Omit<AiVolatileMemoryClearResult, 'totalCleared'> = {
+      npcMemories: social.npcMemories,
+      rumors: social.rumors,
+      worldTraces: this.worldTraces.clear(),
+      creatureMemories: creature.memories,
+      creaturePlans: creature.plans,
+      bossMemories: this.bossMemory.clear(),
+      bossPhaseCues: this.bossPhaseCues.clear(),
+      worldDirectorStates: this.worldDirector.clearStates(nowSeconds),
+      decisionJournalEntries: this.journal.clear(),
+      pendingMemoryWrites: this.pendingMemoryWrites.length,
+    };
+    this.pendingMemoryWrites.splice(0);
+    return {
+      ...result,
+      totalCleared: Object.values(result).reduce((sum, count) => sum + count, 0),
     };
   }
 

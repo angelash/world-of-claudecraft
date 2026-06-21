@@ -116,6 +116,12 @@ export class AiWorldTraceStore {
     return this.traces.map(copyTrace);
   }
 
+  clear(): number {
+    const count = this.traces.length;
+    this.traces.splice(0);
+    return count;
+  }
+
   private prune(nowSeconds: number): void {
     for (let i = this.traces.length - 1; i >= 0; i--) {
       if (this.traces[i].expiresAt <= nowSeconds) this.traces.splice(i, 1);

@@ -204,6 +204,10 @@ export async function handleAdminApi(
       return ok(res, config);
     }
 
+    if (req.method === 'POST' && path === '/admin/api/ai/memory/clear') {
+      return ok(res, game.clearAiLifeLayerMemory());
+    }
+
     if (req.method !== 'GET') return fail(res, 405, 'method not allowed');
 
     if (path === '/admin/api/chat-filter') {

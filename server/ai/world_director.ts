@@ -252,6 +252,13 @@ export class AiWorldDirectorStore {
     return this.proposalAuditEntries.map(copyProposalAuditEntry);
   }
 
+  clearStates(nowSeconds: number): number {
+    const count = this.states.length;
+    for (const state of this.states) this.recordProposalAudit(state, 'evicted', nowSeconds);
+    this.states.splice(0);
+    return count;
+  }
+
   private upsert(input: {
     sceneId: string;
     zoneId?: string;

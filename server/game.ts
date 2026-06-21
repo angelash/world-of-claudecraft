@@ -23,7 +23,13 @@ import { REALM } from './realm';
 import { isOverheadEmoteId, type AiNpcInteractionTopic } from '../src/world_api';
 import * as antibot from './antibot';
 import type { BotTracker } from './antibot';
-import { AiLifeLayer, type AiLifeLayerDiagnosticsSnapshot, type AiLifeLayerMetricsSnapshot, type AiPetCommandAction } from './ai/life_layer';
+import {
+  AiLifeLayer,
+  type AiLifeLayerDiagnosticsSnapshot,
+  type AiLifeLayerMetricsSnapshot,
+  type AiPetCommandAction,
+  type AiVolatileMemoryClearResult,
+} from './ai/life_layer';
 import { PgAiMemoryDb } from './ai_memory_db';
 
 const WORLD_SEED = 20061;
@@ -967,6 +973,10 @@ export class GameServer {
 
   aiLifeLayerDiagnostics(): AiLifeLayerDiagnosticsSnapshot {
     return this.aiLifeLayer.diagnosticsSnapshot();
+  }
+
+  clearAiLifeLayerMemory(): AiVolatileMemoryClearResult {
+    return this.aiLifeLayer.clearVolatileMemory(this.sim.time);
   }
 
   liveSessions(): AdminLivePlayer[] {

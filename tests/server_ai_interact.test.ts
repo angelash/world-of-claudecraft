@@ -1191,6 +1191,44 @@ describe('server AI interact command', () => {
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
 
+  it('lets admins clear volatile AI memory without changing mainline character state', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf');
+    expect(wolf).toBeTruthy();
+    teleportNear(server, session.pid, wolf!.id);
+    server.sim.addItem('roasted_boar', 1, session.pid);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    await flushAi();
+
+    const beforeClear = mainlineSnapshot(server, session.pid);
+    expect(server.aiLifeLayerDiagnostics().socialMemory.rumors.length).toBeGreaterThan(0);
+    expect(server.aiLifeLayerDiagnostics().worldDirectorStates.length).toBeGreaterThan(0);
+    expect((server as any).aiLifeLayer.worldTraceDiagnostics().length).toBeGreaterThan(0);
+
+    const result = server.clearAiLifeLayerMemory();
+
+    expect(result.rumors).toBeGreaterThan(0);
+    expect(result.worldTraces).toBeGreaterThan(0);
+    expect(result.worldDirectorStates).toBeGreaterThan(0);
+    expect(result.totalCleared).toBeGreaterThanOrEqual(result.rumors + result.worldTraces + result.worldDirectorStates);
+    expect(mainlineSnapshot(server, session.pid)).toEqual(beforeClear);
+    expect(server.aiLifeLayerDiagnostics().socialMemory.rumors).toEqual([]);
+    expect(server.aiLifeLayerDiagnostics().worldDirectorStates).toEqual([]);
+    expect(server.aiLifeLayerDiagnostics().recentDecisions).toEqual([]);
+    expect((server as any).aiLifeLayer.worldTraceDiagnostics()).toEqual([]);
+
+    fc.sent.length = 0;
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.sceneTraceFood')).toBe(false);
+    expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.worldDirectorHungry')).toBe(false);
+    expect(mainlineSnapshot(server, session.pid)).toEqual(beforeClear);
+  });
+
   it('lets world director mood remain briefly after a source trace expires', async () => {
     const server = new GameServer();
     const fc = fakeWs();

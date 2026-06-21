@@ -132,6 +132,12 @@ export class AiBossEncounterMemoryStore {
     return this.memories.map(copyMemory);
   }
 
+  clear(): number {
+    const count = this.memories.length;
+    this.memories.splice(0);
+    return count;
+  }
+
   private prune(nowSeconds: number): void {
     for (let i = this.memories.length - 1; i >= 0; i--) {
       if (this.memories[i].expiresAt <= nowSeconds) this.memories.splice(i, 1);
@@ -194,6 +200,12 @@ export class AiBossEncounterPhaseCueStore {
 
   snapshot(): AiBossEncounterPhaseCue[] {
     return this.cues.map(copyPhaseCue);
+  }
+
+  clear(): number {
+    const count = this.cues.length;
+    this.cues.splice(0);
+    return count;
   }
 
   private prune(nowSeconds: number): void {

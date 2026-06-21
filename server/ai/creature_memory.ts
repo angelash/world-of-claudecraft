@@ -135,6 +135,13 @@ export class AiCreatureMemoryStore {
     return [...this.plans.values()].map(copyPlan);
   }
 
+  clear(): { memories: number; plans: number } {
+    const counts = { memories: this.memories.size, plans: this.plans.size };
+    this.memories.clear();
+    this.plans.clear();
+    return counts;
+  }
+
   private prune(nowSeconds: number): void {
     for (const [key, memory] of this.memories) {
       if (memory.expiresAt <= nowSeconds) this.memories.delete(key);
