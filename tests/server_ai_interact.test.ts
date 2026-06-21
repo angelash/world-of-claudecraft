@@ -716,6 +716,52 @@ describe('server AI interact command', () => {
     expect(mainlineSnapshot(server, session.pid)).toEqual(beforeSnapshot);
   });
 
+  it('leaves a short scene trace when a singularity creature defeats the player', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const player = server.sim.entities.get(session.pid)!;
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    server.sim.cfg.seed = seedThatMakesSingularity(wolf);
+    moveEntity(server, player, 8, 17);
+    moveEntity(server, wolf, 10, 17);
+    const beforeSnapshot = mainlineSnapshot(server, session.pid);
+
+    const aiEvents = (server as any).aiLifeLayer.handleSimEvents({
+      sim: server.sim,
+      events: [{ type: 'death', entityId: session.pid, killerId: wolf.id }],
+    });
+
+    expect(aiEvents).toEqual([]);
+    expect((server as any).aiLifeLayer.diagnostics()).toContainEqual(expect.objectContaining({
+      status: 'local_reaction',
+      trigger: 'encounter_memory',
+      reason: 'singularityPlayerDefeat:forest_wolf',
+      memoryWrites: expect.arrayContaining([
+        expect.objectContaining({ kind: 'worldTrace', itemId: 'creature:forest_wolf' }),
+        expect.objectContaining({ kind: 'worldDirectorState', itemId: 'creature:forest_wolf' }),
+      ]),
+    }));
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: session.pid,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.sceneTraceSingularity',
+        values: expect.objectContaining({
+          itemId: 'creature:forest_wolf',
+          itemName: wolf.name,
+          traceKind: 'singularity',
+        }),
+      }),
+      reaction: expect.objectContaining({ targetItemId: 'creature:forest_wolf' }),
+      pid: session.pid,
+    }));
+    expect(mainlineSnapshot(server, session.pid)).toEqual(beforeSnapshot);
+  });
+
   it('turns inspected objects into nearby reactions and short-term NPC rumors', async () => {
     const server = new GameServer();
     const fc = fakeWs();

@@ -392,7 +392,7 @@ export class AiLifeLayer {
 
       if (dead.kind === 'mob') {
         const sourcePlayer = this.playerForEncounterSource(request.sim, killer) ?? this.playerForPid(request.sim, dead.tappedById);
-        if (sourcePlayer) this.recordSingularityDeathTrace(request.sim, dead, sourcePlayer);
+        if (sourcePlayer) this.recordSingularityCreatureTrace(request.sim, dead, sourcePlayer, 'singularityDeath');
         const scale = bossEncounterScale(dead);
         if (!scale) continue;
         if (!sourcePlayer) continue;
@@ -428,6 +428,7 @@ export class AiLifeLayer {
         this.enqueueMemoryWrites(memoryWrites);
         out.push(bossEncounterMemoryEvent(memory, dead, sourcePlayer.id));
       } else if (dead.kind === 'player' && killer?.kind === 'mob') {
+        this.recordSingularityCreatureTrace(request.sim, killer, dead, 'singularityPlayerDefeat');
         const scale = bossEncounterScale(killer);
         if (!scale) continue;
         const scene = sceneFrameFor(request.sim, killer.pos);
@@ -467,34 +468,38 @@ export class AiLifeLayer {
     return out;
   }
 
-  private recordSingularityDeathTrace(sim: Sim, dead: Entity, sourcePlayer: Entity): void {
-    const individual = individualProfileFor(dead, sim.cfg.seed);
+  private recordSingularityCreatureTrace(sim: Sim, creature: Entity, sourcePlayer: Entity, reason: 'singularityDeath' | 'singularityPlayerDefeat'): void {
+    const individual = individualProfileFor(creature, sim.cfg.seed);
     if (individual.tier !== 'singularity') return;
-    const scene = sceneFrameFor(sim, dead.pos);
+    const scene = sceneFrameFor(sim, creature.pos);
     const sceneId = scene.subsceneId ?? scene.zoneId;
     const reasonLineId = 'hudChrome.aiSpeech.singularityInspect';
     const trace = this.worldTraces.noteCreatureTrace({
       sceneId,
       zoneId: scene.zoneId,
-      entity: dead,
+      entity: creature,
       sourcePlayerEntityId: sourcePlayer.id,
       reasonLineIds: [reasonLineId, ...individual.traits.map((trait) => `trait:${trait}`)],
       nowSeconds: sim.time,
     });
     const directorState = this.worldDirector.noteTrace({ trace, nowSeconds: sim.time });
     const memoryWrites = [
-      worldTraceMemoryAudit(trace, `singularityDeath:${dead.templateId}`),
-      worldDirectorMemoryAudit(directorState, `singularityDeath:${dead.templateId}`),
+      worldTraceMemoryAudit(trace, `${reason}:${creature.templateId}`),
+      worldDirectorMemoryAudit(directorState, `${reason}:${creature.templateId}`),
     ];
     this.journal.recordLocalReaction({
-      jobId: `singularity-death-${sourcePlayer.id}-${++this.sequence}`,
+      jobId: `${reason}-${sourcePlayer.id}-${++this.sequence}`,
       trigger: 'encounter_memory',
-      entityId: dead.id,
-      templateId: dead.templateId,
+      entityId: creature.id,
+      templateId: creature.templateId,
       playerEntityId: sourcePlayer.id,
-      reason: `singularityDeath:${dead.templateId}`,
+      reason: `${reason}:${creature.templateId}`,
       lineIds: [trace.lineId, reasonLineId],
-      intents: ['leaveWorldTrace', 'writeWorldDirectorState', 'rememberSingularityDeath'],
+      intents: [
+        'leaveWorldTrace',
+        'writeWorldDirectorState',
+        reason === 'singularityDeath' ? 'rememberSingularityDeath' : 'rememberSingularityPlayerDefeat',
+      ],
       sceneId,
       memoryWrites,
     });
