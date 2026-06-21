@@ -767,8 +767,18 @@ describe('server AI interact command', () => {
         kind: 'inspect',
         sceneTags: expect.arrayContaining(['forge', 'workNoise']),
         individualTier: 'singularity',
+        planId: expect.any(String),
+        planKind: expect.stringMatching(/^(guardPlace|omenWatch|watchSky|avoidPlayer)$/),
+        planIntensity: expect.any(Number),
       }),
       pid: session.pid,
+    }));
+    expect((server as any).aiLifeLayer.creaturePlanDiagnostics()).toContainEqual(expect.objectContaining({
+      entityId: wolf.id,
+      playerEntityId: session.pid,
+      sceneId: 'eastbrook_forge',
+      kind: expect.stringMatching(/^(guardPlace|omenWatch|watchSky|avoidPlayer)$/),
+      intensity: expect.any(Number),
     }));
     expect((server as any).aiLifeLayer.creatureMemoryDiagnostics()).toContainEqual(expect.objectContaining({
       entityId: wolf.id,
@@ -782,7 +792,7 @@ describe('server AI interact command', () => {
         expect.objectContaining({
           kind: 'creatureMemory',
           sceneId: 'eastbrook_forge',
-          reason: expect.stringContaining('singularityScene:eastbrook_forge'),
+          reason: expect.stringContaining('singularityScene:eastbrook_forge:plan:'),
         }),
         expect.objectContaining({
           kind: 'worldDirectorState',
@@ -1521,6 +1531,7 @@ describe('server AI interact command', () => {
     teleportNear(server, session.pid, wolf.id);
     server.sim.addItem('roasted_boar', 2, session.pid);
     const beforeObjects = [...server.sim.entities.values()].filter((entity) => entity.kind === 'object' && entity.objectItemId === 'roasted_boar').length;
+    const beforeWolfPos = { ...wolf.pos };
 
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
     await flushAi();
@@ -1544,12 +1555,25 @@ describe('server AI interact command', () => {
         kind: 'inspect',
         targetItemId: 'roasted_boar',
         individualTier: 'singularity',
+        planId: expect.any(String),
+        planKind: expect.any(String),
+        planIntensity: expect.any(Number),
       }),
       pid: session.pid,
+    }));
+    expect((server as any).aiLifeLayer.creaturePlanDiagnostics()).toContainEqual(expect.objectContaining({
+      entityId: wolf.id,
+      playerEntityId: session.pid,
+      sceneId: expect.any(String),
+      itemId: 'roasted_boar',
+      kind: expect.any(String),
+      evidence: expect.arrayContaining(['trigger:item_discarded', 'item:roasted_boar']),
     }));
     const afterObjects = [...server.sim.entities.values()].filter((entity) => entity.kind === 'object' && entity.objectItemId === 'roasted_boar').length;
     expect(afterObjects).toBe(beforeObjects);
     expect(server.sim.countItem('roasted_boar', session.pid)).toBe(0);
+    expect(wolf.pos.x).toBe(beforeWolfPos.x);
+    expect(wolf.pos.z).toBe(beforeWolfPos.z);
   });
 
   it('adds a scene-awareness line when an NPC is interacted with in a death-pressure area', async () => {

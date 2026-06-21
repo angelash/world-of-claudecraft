@@ -1,6 +1,6 @@
 import type { Entity, SimEvent } from '../../src/sim/types';
 import type { AiBossEncounterMemory } from './boss_memory';
-import type { AiCreatureMemory } from './creature_memory';
+import type { AiCreatureMemory, AiCreaturePlan } from './creature_memory';
 import type { SceneFrameV1 } from './scene_frame';
 import type { AiWorldTrace, AiWorldTraceKind } from './world_traces';
 
@@ -77,6 +77,7 @@ export class AiWorldDirectorStore {
     sceneId: string;
     itemId: string;
     memory: AiCreatureMemory;
+    plan?: AiCreaturePlan | null;
     sourcePlayerEntityId: number;
     nowSeconds: number;
   }): AiWorldDirectorState | null {
@@ -92,7 +93,7 @@ export class AiWorldDirectorStore {
       itemId: input.itemId,
       subjectKind: 'item',
       heatGain: Math.min(1, 0.4 + input.memory.interactionCount * 0.18),
-      evidence: [`creatureMemory:${input.memory.templateId}`, ...input.memory.traits.slice(0, 3)],
+      evidence: creatureMemoryEvidence(input.memory, input.plan),
       nowSeconds: input.nowSeconds,
     });
   }
@@ -101,6 +102,7 @@ export class AiWorldDirectorStore {
     sceneId: string;
     zoneId: string;
     memory: AiCreatureMemory;
+    plan?: AiCreaturePlan | null;
     sourcePlayerEntityId: number;
     nowSeconds: number;
   }): AiWorldDirectorState | null {
@@ -117,7 +119,7 @@ export class AiWorldDirectorStore {
       subjectKind: 'scene',
       lineId: 'hudChrome.aiSpeech.worldDirectorSceneUncanny',
       heatGain: Math.min(1, 0.35 + input.memory.interactionCount * 0.16),
-      evidence: [`creatureSceneMemory:${input.memory.templateId}`, ...input.memory.traits.slice(0, 3)],
+      evidence: creatureMemoryEvidence(input.memory, input.plan, 'creatureSceneMemory'),
       nowSeconds: input.nowSeconds,
     });
   }
@@ -326,6 +328,18 @@ function lineIdForMood(mood: AiWorldDirectorMood): AiWorldDirectorLineId {
     case 'dread': return 'hudChrome.aiSpeech.worldDirectorBossWipe';
     case 'relieved': return 'hudChrome.aiSpeech.worldDirectorQuestComplete';
   }
+}
+
+function creatureMemoryEvidence(
+  memory: AiCreatureMemory,
+  plan: AiCreaturePlan | null | undefined,
+  prefix = 'creatureMemory',
+): string[] {
+  return [
+    `${prefix}:${memory.templateId}`,
+    ...memory.traits.slice(0, 3),
+    ...(plan ? [`creaturePlan:${plan.kind}`, ...plan.evidence.slice(0, 3)] : []),
+  ];
 }
 
 function decayedState(state: AiWorldDirectorState, nowSeconds: number, ttlSeconds: number): AiWorldDirectorState {

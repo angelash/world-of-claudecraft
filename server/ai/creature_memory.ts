@@ -16,19 +16,50 @@ export interface AiCreatureMemory {
   expiresAt: number;
 }
 
+export type AiCreaturePlanKind =
+  | 'followScent'
+  | 'collectObject'
+  | 'guardPlace'
+  | 'avoidPlayer'
+  | 'watchSky'
+  | 'omenWatch';
+
+export interface AiCreaturePlan {
+  planId: string;
+  entityId: number;
+  templateId: string;
+  playerEntityId: number;
+  kind: AiCreaturePlanKind;
+  sceneId: string;
+  itemId?: string;
+  intensity: number;
+  traits: string[];
+  evidence: string[];
+  createdAt: number;
+  updatedAt: number;
+  expiresAt: number;
+}
+
 export interface AiCreatureMemoryStoreOptions {
   memoryTtlSeconds?: number;
   maxMemories?: number;
+  planTtlSeconds?: number;
+  maxPlans?: number;
 }
 
 export class AiCreatureMemoryStore {
   private readonly memories = new Map<string, AiCreatureMemory>();
+  private readonly plans = new Map<string, AiCreaturePlan>();
   private readonly memoryTtlSeconds: number;
   private readonly maxMemories: number;
+  private readonly planTtlSeconds: number;
+  private readonly maxPlans: number;
 
   constructor(options: AiCreatureMemoryStoreOptions = {}) {
     this.memoryTtlSeconds = Math.max(1, Math.floor(options.memoryTtlSeconds ?? 300));
     this.maxMemories = Math.max(1, Math.floor(options.maxMemories ?? 80));
+    this.planTtlSeconds = Math.max(1, Math.floor(options.planTtlSeconds ?? 90));
+    this.maxPlans = Math.max(1, Math.floor(options.maxPlans ?? 48));
   }
 
   noteSingularityReaction(input: {
@@ -57,13 +88,60 @@ export class AiCreatureMemoryStore {
     return copyMemory(next);
   }
 
+  notePlan(input: {
+    memory: AiCreatureMemory;
+    entity: Entity;
+    player: Entity;
+    individual: IndividualAiProfile;
+    scene: SceneFrameV1;
+    item?: DroppedItemSemantic;
+    trigger: 'item_discarded' | 'scene_inspected';
+    nowSeconds: number;
+  }): AiCreaturePlan | null {
+    if (input.individual.tier !== 'singularity' || input.memory.interactionCount < 2) return null;
+    this.prunePlans(input.nowSeconds);
+    const sceneId = input.scene.subsceneId ?? input.scene.zoneId;
+    const planId = creaturePlanKey(input.memory.memoryId, sceneId, input.item?.itemId ?? input.trigger);
+    const previous = this.plans.get(planId);
+    const kind = planKindFor(input.individual, input.scene, input.item);
+    const evidence = mergeRecent(previous?.evidence ?? [], planEvidence(input.individual, input.scene, input.item, input.trigger), 8);
+    const plan: AiCreaturePlan = {
+      planId,
+      entityId: input.entity.id,
+      templateId: input.entity.templateId,
+      playerEntityId: input.player.id,
+      kind,
+      sceneId,
+      ...(input.item ? { itemId: input.item.itemId } : {}),
+      intensity: clamp01(Math.max(previous?.intensity ?? 0, 0.35 + input.memory.interactionCount * 0.14 + input.individual.intensity * 0.25)),
+      traits: mergeRecent(previous?.traits ?? [], input.individual.traits, 4),
+      evidence,
+      createdAt: previous?.createdAt ?? input.nowSeconds,
+      updatedAt: input.nowSeconds,
+      expiresAt: input.nowSeconds + this.planTtlSeconds,
+    };
+    this.plans.set(planId, plan);
+    this.trimPlans();
+    return copyPlan(plan);
+  }
+
   snapshot(): AiCreatureMemory[] {
     return [...this.memories.values()].map(copyMemory);
+  }
+
+  planSnapshot(): AiCreaturePlan[] {
+    return [...this.plans.values()].map(copyPlan);
   }
 
   private prune(nowSeconds: number): void {
     for (const [key, memory] of this.memories) {
       if (memory.expiresAt <= nowSeconds) this.memories.delete(key);
+    }
+  }
+
+  private prunePlans(nowSeconds: number): void {
+    for (const [key, plan] of this.plans) {
+      if (plan.expiresAt <= nowSeconds) this.plans.delete(key);
     }
   }
 
@@ -75,6 +153,15 @@ export class AiCreatureMemoryStore {
       .slice(0, overflow);
     for (const [key] of oldest) this.memories.delete(key);
   }
+
+  private trimPlans(): void {
+    if (this.plans.size <= this.maxPlans) return;
+    const overflow = this.plans.size - this.maxPlans;
+    const oldest = [...this.plans.entries()]
+      .sort((a, b) => a[1].updatedAt - b[1].updatedAt)
+      .slice(0, overflow);
+    for (const [key] of oldest) this.plans.delete(key);
+  }
 }
 
 export function singularityCreatureMemoryEvent(
@@ -82,6 +169,7 @@ export function singularityCreatureMemoryEvent(
   creature: Entity,
   item: DroppedItemSemantic,
   memory: AiCreatureMemory,
+  plan: AiCreaturePlan | null = null,
 ): SimEvent | null {
   if (memory.interactionCount < 2) return null;
   return {
@@ -107,6 +195,7 @@ export function singularityCreatureMemoryEvent(
       score: Math.min(1, 0.55 + memory.interactionCount * 0.12),
       individualTier: 'singularity',
       individualTraits: memory.traits,
+      ...planReaction(plan),
     },
     pid: player.id,
   };
@@ -117,6 +206,7 @@ export function singularityCreatureSceneMemoryEvent(
   creature: Entity,
   scene: SceneFrameV1,
   memory: AiCreatureMemory,
+  plan: AiCreaturePlan | null = null,
 ): SimEvent | null {
   if (memory.interactionCount < 2) return null;
   return {
@@ -142,6 +232,7 @@ export function singularityCreatureSceneMemoryEvent(
       sceneTags: sceneMemoryTags(scene),
       individualTier: 'singularity',
       individualTraits: memory.traits,
+      ...planReaction(plan),
     },
     pid: player.id,
   };
@@ -151,12 +242,20 @@ export function creatureMemoryKey(entityId: number, playerEntityId: number): str
   return `${entityId}:${playerEntityId}`;
 }
 
+export function creaturePlanKey(memoryId: string, sceneId: string, subjectId: string): string {
+  return `${memoryId}:${sceneId}:${subjectId}`;
+}
+
 function mergeRecent(previous: readonly string[], next: readonly string[], limit: number): string[] {
   return [...next, ...previous.filter((value) => !next.includes(value))].slice(0, limit);
 }
 
 function copyMemory(memory: AiCreatureMemory): AiCreatureMemory {
   return { ...memory, traits: [...memory.traits] };
+}
+
+function copyPlan(plan: AiCreaturePlan): AiCreaturePlan {
+  return { ...plan, traits: [...plan.traits], evidence: [...plan.evidence] };
 }
 
 function sceneMemoryTags(scene: SceneFrameV1): string[] {
@@ -168,4 +267,46 @@ function sceneMemoryTags(scene: SceneFrameV1): string[] {
     ...scene.weather.tags,
     ...scene.light.tags,
   ])].slice(0, 8);
+}
+
+function planKindFor(
+  individual: IndividualAiProfile,
+  scene: SceneFrameV1,
+  item: DroppedItemSemantic | undefined,
+): AiCreaturePlanKind {
+  const itemTags = new Set(item ? [...item.itemTags, ...item.smellTags, ...item.dangerTags, ...item.valueSignals] : []);
+  if (individual.traits.includes('foodFixated') && (itemTags.has('food') || itemTags.has('meat') || itemTags.has('fish'))) return 'followScent';
+  if (individual.traits.includes('collector') && item && (itemTags.has('valuable') || itemTags.has('coin') || itemTags.has('gear') || itemTags.has('shiny'))) return 'collectObject';
+  if (individual.traits.includes('cowardly') && (scene.danger.hostileDensity >= 0.25 || scene.danger.undeadPressure >= 0.25)) return 'avoidPlayer';
+  if (individual.traits.includes('stargazer') && scene.light.tags.includes('starrySky')) return 'watchSky';
+  if (individual.traits.includes('omenSensitive')) return 'omenWatch';
+  return 'guardPlace';
+}
+
+function planEvidence(
+  individual: IndividualAiProfile,
+  scene: SceneFrameV1,
+  item: DroppedItemSemantic | undefined,
+  trigger: 'item_discarded' | 'scene_inspected',
+): string[] {
+  return [
+    `trigger:${trigger}`,
+    ...individual.traits.map((trait) => `trait:${trait}`),
+    ...(item ? [`item:${item.itemId}`, ...item.itemTags.slice(0, 3).map((tag) => `itemTag:${tag}`)] : []),
+    ...sceneMemoryTags(scene).slice(0, 4).map((tag) => `scene:${tag}`),
+  ];
+}
+
+function planReaction(plan: AiCreaturePlan | null): Record<string, string | number> {
+  if (!plan) return {};
+  return {
+    planId: plan.planId,
+    planKind: plan.kind,
+    planIntensity: Math.round(plan.intensity * 100) / 100,
+    planExpiresAt: plan.expiresAt,
+  };
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
 }

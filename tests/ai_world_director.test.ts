@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AiBossEncounterMemoryStore } from '../server/ai/boss_memory';
-import type { AiCreatureMemory } from '../server/ai/creature_memory';
+import type { AiCreatureMemory, AiCreaturePlan } from '../server/ai/creature_memory';
 import { AiWorldDirectorStore, moodForTraceKind, worldDirectorEvent } from '../server/ai/world_director';
 import type { AiWorldTrace } from '../server/ai/world_traces';
 import type { Entity } from '../src/sim/types';
@@ -19,6 +19,22 @@ const creatureMemory = (interactionCount: number): AiCreatureMemory => ({
   lastSeenAt: 12,
   expiresAt: 120,
 });
+
+const creaturePlan: AiCreaturePlan = {
+  planId: '22:1:eastbrook_forge:roasted_boar',
+  entityId: 22,
+  templateId: 'forest_wolf',
+  playerEntityId: 1,
+  kind: 'followScent',
+  sceneId: 'eastbrook_forge',
+  itemId: 'roasted_boar',
+  intensity: 0.92,
+  traits: ['foodFixated', 'stargazer'],
+  evidence: ['trigger:item_discarded', 'trait:foodFixated', 'item:roasted_boar'],
+  createdAt: 12,
+  updatedAt: 12,
+  expiresAt: 100,
+};
 
 function trace(kind: AiWorldTrace['kind'], itemId = 'roasted_boar'): AiWorldTrace {
   return {
@@ -117,6 +133,7 @@ describe('AI world director', () => {
       sceneId: 'eastbrook_forge',
       zoneId: 'eastbrook_vale',
       memory: creatureMemory(2),
+      plan: creaturePlan,
       sourcePlayerEntityId: 1,
       nowSeconds: 12,
     });
@@ -128,7 +145,7 @@ describe('AI world director', () => {
       itemId: 'eastbrook_forge',
       subjectKind: 'scene',
       lineId: 'hudChrome.aiSpeech.worldDirectorSceneUncanny',
-      evidence: expect.arrayContaining(['creatureSceneMemory:forest_wolf', 'territorial']),
+      evidence: expect.arrayContaining(['creatureSceneMemory:forest_wolf', 'territorial', 'creaturePlan:followScent']),
     });
     const event = worldDirectorEvent(null, speaker, state, 1);
     expect(event?.type).toBe('aiSpeech');

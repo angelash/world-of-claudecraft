@@ -18,7 +18,7 @@ import { classifyCanonSubject } from './canon_guard';
 import { CodexCliProvider } from './codex_worker';
 import { companionReactionEvents, companionReactionEventsForScene } from './companion_reactions';
 import { AiCreatureMemoryStore, singularityCreatureMemoryEvent, singularityCreatureSceneMemoryEvent } from './creature_memory';
-import type { AiCreatureMemory } from './creature_memory';
+import type { AiCreatureMemory, AiCreaturePlan } from './creature_memory';
 import { AiDecisionJournal } from './decision_journal';
 import type { AiDecisionJournalEntry } from './decision_journal';
 import { familySceneReactionEvent, nearbyFamilySceneCandidates, rankFamilySceneReactions } from './family_scene_reactions';
@@ -259,6 +259,10 @@ export class AiLifeLayer {
 
   creatureMemoryDiagnostics(): AiCreatureMemory[] {
     return this.creatureMemory.snapshot();
+  }
+
+  creaturePlanDiagnostics(): AiCreaturePlan[] {
+    return this.creatureMemory.planSnapshot();
   }
 
   bossMemoryDiagnostics(): AiBossEncounterMemory[] {
@@ -687,18 +691,29 @@ export class AiLifeLayer {
           individual: reaction.individual,
           nowSeconds: request.sim.time,
         });
-        const memoryEvent = singularityCreatureMemoryEvent(player, reaction.entity, dropped, memory);
+        const plan = this.creatureMemory.notePlan({
+          memory,
+          entity: reaction.entity,
+          player,
+          individual: reaction.individual,
+          scene,
+          item: dropped,
+          trigger: 'item_discarded',
+          nowSeconds: request.sim.time,
+        });
+        const memoryEvent = singularityCreatureMemoryEvent(player, reaction.entity, dropped, memory, plan);
         const creatureWrite = creatureMemoryAudit({
           memory,
           sceneId,
           itemId: dropped.itemId,
-          reason: `singularityReaction:${dropped.itemId}`,
+          reason: plan ? `singularityReaction:${dropped.itemId}:plan:${plan.kind}` : `singularityReaction:${dropped.itemId}`,
         });
         memoryWrites.push(creatureWrite);
         const directorState = this.worldDirector.noteCreatureMemory({
           sceneId,
           itemId: dropped.itemId,
           memory,
+          plan,
           sourcePlayerEntityId: request.pid,
           nowSeconds: request.sim.time,
         });
@@ -1121,17 +1136,27 @@ export class AiLifeLayer {
             individual: reaction.individual,
             nowSeconds: request.sim.time,
           });
-          const memoryEvent = singularityCreatureSceneMemoryEvent(player, reaction.entity, scene, memory);
+          const plan = this.creatureMemory.notePlan({
+            memory,
+            entity: reaction.entity,
+            player,
+            individual: reaction.individual,
+            scene,
+            trigger: 'scene_inspected',
+            nowSeconds: request.sim.time,
+          });
+          const memoryEvent = singularityCreatureSceneMemoryEvent(player, reaction.entity, scene, memory, plan);
           const creatureWrite = creatureMemoryAudit({
             memory,
             sceneId,
-            reason: `singularityScene:${sceneId}`,
+            reason: plan ? `singularityScene:${sceneId}:plan:${plan.kind}` : `singularityScene:${sceneId}`,
           });
           memoryWrites.push(creatureWrite);
           const directorMemory = this.worldDirector.noteCreatureSceneMemory({
             sceneId,
             zoneId: scene.zoneId,
             memory,
+            plan,
             sourcePlayerEntityId: request.pid,
             nowSeconds: request.sim.time,
           });

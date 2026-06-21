@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AiCreatureMemoryStore, singularityCreatureMemoryEvent, singularityCreatureSceneMemoryEvent } from '../server/ai/creature_memory';
+import { AiCreatureMemoryStore, creaturePlanKey, singularityCreatureMemoryEvent, singularityCreatureSceneMemoryEvent } from '../server/ai/creature_memory';
 import { droppedItemSemantic } from '../server/ai/scene_frame';
 import type { SceneFrameV1 } from '../server/ai/scene_frame';
 import type { IndividualAiProfile } from '../server/ai/singularity';
@@ -84,6 +84,69 @@ describe('AI creature memory', () => {
     const memories = store.snapshot();
     expect(memories).toHaveLength(2);
     expect(memories.map((memory) => memory.entityId).sort((a, b) => a - b)).toEqual([23, 24]);
+  });
+
+  it('forms bounded short-term creature plans after repeated singularity patterns', () => {
+    const store = new AiCreatureMemoryStore({ memoryTtlSeconds: 30, planTtlSeconds: 8, maxPlans: 2 });
+    const item = droppedItemSemantic('roasted_boar', 0, player.id)!;
+    const first = store.noteSingularityReaction({ entity: creature, player, individual, nowSeconds: 10 });
+    expect(store.notePlan({
+      memory: first,
+      entity: creature,
+      player,
+      individual,
+      scene,
+      item,
+      trigger: 'item_discarded',
+      nowSeconds: 10,
+    })).toBeNull();
+
+    const second = store.noteSingularityReaction({ entity: creature, player, individual, nowSeconds: 12 });
+    const plan = store.notePlan({
+      memory: second,
+      entity: creature,
+      player,
+      individual,
+      scene,
+      item,
+      trigger: 'item_discarded',
+      nowSeconds: 12,
+    });
+    expect(plan).toMatchObject({
+      planId: creaturePlanKey('10:1', 'eastbrook_forge', 'roasted_boar'),
+      kind: 'followScent',
+      itemId: 'roasted_boar',
+      traits: expect.arrayContaining(['foodFixated', 'stargazer']),
+      evidence: expect.arrayContaining(['trigger:item_discarded', 'trait:foodFixated', 'item:roasted_boar']),
+    });
+    expect(plan?.intensity).toBeGreaterThan(0.7);
+    expect(singularityCreatureMemoryEvent(player, creature, item, second, plan)).toMatchObject({
+      reaction: expect.objectContaining({
+        planId: creaturePlanKey('10:1', 'eastbrook_forge', 'roasted_boar'),
+        planKind: 'followScent',
+        planIntensity: expect.any(Number),
+        planExpiresAt: 20,
+      }),
+    });
+
+    for (let i = 0; i < 4; i++) {
+      const memory = store.noteSingularityReaction({
+        entity: { ...creature, id: 30 + i, templateId: `forest_wolf_${i}` } as Entity,
+        player,
+        individual: { ...individual, entityId: 30 + i, templateId: `forest_wolf_${i}` },
+        nowSeconds: 13 + i,
+      });
+      store.notePlan({
+        memory: { ...memory, interactionCount: 2 },
+        entity: { ...creature, id: 30 + i, templateId: `forest_wolf_${i}` } as Entity,
+        player,
+        individual: { ...individual, entityId: 30 + i, templateId: `forest_wolf_${i}` },
+        scene,
+        trigger: 'scene_inspected',
+        nowSeconds: 13 + i,
+      });
+    }
+    expect(store.planSnapshot()).toHaveLength(2);
   });
 
   it('emits a singularity scene memory line after repeated scene sightings', () => {
