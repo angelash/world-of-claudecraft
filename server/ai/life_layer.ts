@@ -338,6 +338,7 @@ export class AiLifeLayer {
     const reactionLineIds = reactions.map((reaction) => reaction.lineId);
     const trace = this.worldTraces.noteItemTrace({
       sceneId,
+      zoneId: scene.zoneId,
       item: dropped,
       sourcePlayerEntityId: request.pid,
       reasonLineIds: reactionLineIds,

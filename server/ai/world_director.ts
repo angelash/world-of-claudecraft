@@ -58,7 +58,7 @@ export class AiWorldDirectorStore {
     const mood = moodForTraceKind(input.trace.kind);
     return this.upsert({
       sceneId: input.trace.sceneId,
-      zoneId: input.trace.sceneId,
+      zoneId: input.trace.zoneId,
       mood,
       proposalType: proposalTypeForMood(mood),
       sourcePlayerEntityId: input.trace.sourcePlayerEntityId,

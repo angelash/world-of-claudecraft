@@ -26,6 +26,7 @@ describe('AI world traces', () => {
     const item = droppedItemSemantic('roasted_boar', 0, 1)!;
     const trace = store.noteItemTrace({
       sceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
       item,
       sourcePlayerEntityId: 1,
       reasonLineIds: ['hudChrome.aiSpeech.itemInterestApproach'],
@@ -34,6 +35,7 @@ describe('AI world traces', () => {
 
     expect(trace).toMatchObject({
       kind: 'food',
+      zoneId: 'eastbrook_vale',
       itemId: 'roasted_boar',
       lineId: 'hudChrome.aiSpeech.sceneTraceFood',
     });

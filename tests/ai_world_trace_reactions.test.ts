@@ -40,6 +40,7 @@ function trace(kind: AiWorldTrace['kind'], lineId = 'hudChrome.aiSpeech.sceneTra
   return {
     traceId: `trace-${kind}`,
     sceneId: 'eastbrook_forge',
+    zoneId: 'eastbrook_vale',
     kind,
     itemId: 'redbrook_blade',
     itemDisplayName: 'Redbrook Militia Blade',

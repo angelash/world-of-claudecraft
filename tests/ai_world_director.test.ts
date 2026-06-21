@@ -10,6 +10,7 @@ function trace(kind: AiWorldTrace['kind'], itemId = 'roasted_boar'): AiWorldTrac
   return {
     traceId: `trace-${kind}`,
     sceneId: 'eastbrook_forge',
+    zoneId: 'eastbrook_vale',
     kind,
     itemId,
     itemDisplayName: itemId,
@@ -36,12 +37,19 @@ describe('AI world director', () => {
     const state = store.noteTrace({ trace: trace('food'), nowSeconds: 10 });
     expect(state).toMatchObject({
       sceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
       mood: 'hungry',
       proposalType: 'traceEcho',
       itemId: 'roasted_boar',
       lineId: 'hudChrome.aiSpeech.worldDirectorHungry',
     });
     expect(store.stateForScene('eastbrook_forge', 1, 15)).toMatchObject({ mood: 'hungry', heat: expect.any(Number) });
+    expect(store.stateForRegion({
+      zoneId: 'eastbrook_vale',
+      sceneId: 'mirror_lake_dock',
+      playerEntityId: 1,
+      nowSeconds: 15,
+    })).toMatchObject({ mood: 'hungry', heat: expect.any(Number) });
     expect(store.stateForScene('eastbrook_forge', 2, 15)).toBeNull();
     expect(store.stateForScene('mirror_lake_dock', 1, 15)).toBeNull();
     expect(store.stateForScene('eastbrook_forge', 1, 20)).toBeNull();

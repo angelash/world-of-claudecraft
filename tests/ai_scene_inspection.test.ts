@@ -47,6 +47,7 @@ describe('AI scene inspection', () => {
     const trace: AiWorldTrace = {
       traceId: 'trace-1',
       sceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
       kind: 'food',
       itemId: 'roasted_boar',
       itemDisplayName: 'Roasted Boar Meat',

@@ -13,6 +13,7 @@ export type AiWorldTraceLineId =
 export interface AiWorldTrace {
   traceId: string;
   sceneId: string;
+  zoneId: string;
   kind: AiWorldTraceKind;
   itemId: string;
   itemDisplayName: string;
@@ -42,6 +43,7 @@ export class AiWorldTraceStore {
 
   noteItemTrace(input: {
     sceneId: string;
+    zoneId?: string;
     item: DroppedItemSemantic;
     sourcePlayerEntityId: number;
     reasonLineIds: string[];
@@ -53,6 +55,7 @@ export class AiWorldTraceStore {
     const trace: AiWorldTrace = {
       traceId: `trace-${++this.traceSequence}`,
       sceneId: input.sceneId,
+      zoneId: input.zoneId ?? input.sceneId,
       kind,
       itemId: input.item.itemId,
       itemDisplayName: input.item.displayName,

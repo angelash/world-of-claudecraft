@@ -538,6 +538,51 @@ describe('server AI interact command', () => {
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
 
+  it('lets trace-driven world director state echo across nearby scenes in the same zone', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const forgeNpc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'smith_haldren')!;
+    const lakeNpc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
+    teleportNear(server, session.pid, forgeNpc.id);
+    server.sim.addItem('redbrook_blade', 1, session.pid);
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+    const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'redbrook_blade', count: 1 }));
+    await flushAi();
+    const [directorState] = (server as any).aiLifeLayer.worldDirectorDiagnostics();
+    expect(directorState).toMatchObject({
+      sceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
+      itemId: 'redbrook_blade',
+      mood: 'covetous',
+    });
+    fc.sent.length = 0;
+
+    lakeNpc.pos.x = -64;
+    lakeNpc.pos.z = 60;
+    lakeNpc.pos.y = groundHeight(lakeNpc.pos.x, lakeNpc.pos.z, server.sim.cfg.seed);
+    lakeNpc.prevPos = { ...lakeNpc.pos };
+    server.sim.grid.update(lakeNpc);
+    teleportNear(server, session.pid, lakeNpc.id);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: lakeNpc.id, locale: 'en', topic: 'place' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: lakeNpc.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+        values: expect.objectContaining({ itemId: 'redbrook_blade', directorMood: 'covetous' }),
+      }),
+      reaction: expect.objectContaining({ kind: 'inspect', targetItemId: 'redbrook_blade' }),
+      pid: session.pid,
+    }));
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
+  });
+
   it('lets singularity item reactions become NPC rumors through real server commands', async () => {
     const server = new GameServer();
     const fc = fakeWs();
