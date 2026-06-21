@@ -565,6 +565,44 @@ describe('server AI interact command', () => {
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
 
+  it('lets a companion self-react while inspecting an undead pressure scene without changing mainline state', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const player = server.sim.entities.get(session.pid)!;
+    const companion = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    companion.ownerId = session.pid;
+    moveEntity(server, player, 80, 86);
+    moveEntity(server, companion, 82, 86);
+    const beforeSnapshot = mainlineSnapshot(server, session.pid);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: companion.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.companionSelfBeastScentUneasy',
+        values: expect.objectContaining({
+          companionTemplateId: 'forest_wolf',
+          sceneId: 'fallen_chapel',
+        }),
+      }),
+      reaction: expect.objectContaining({
+        kind: 'avoid',
+        sceneTags: expect.arrayContaining(['ruinedChapel', 'undeadMemory']),
+      }),
+      pid: session.pid,
+    }));
+    expect((server as any).aiLifeLayer.diagnostics()).toContainEqual(expect.objectContaining({
+      trigger: 'scene_inspected',
+      lineIds: expect.arrayContaining(['hudChrome.aiSpeech.companionSelfBeastScentUneasy']),
+      intents: expect.arrayContaining(['reactToCompanion']),
+      sceneId: 'fallen_chapel',
+    }));
+    expect(mainlineSnapshot(server, session.pid)).toEqual(beforeSnapshot);
+  });
+
   it('lets singularity creatures remember repeated scene sightings without changing quests', async () => {
     const server = new GameServer();
     const fc = fakeWs();

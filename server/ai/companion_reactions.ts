@@ -1,5 +1,6 @@
 import type { SimEvent } from '../../src/sim/types';
 import type { AiJobContextV1 } from './ai_types';
+import type { SceneFrameV1 } from './scene_frame';
 
 interface CompanionReactionSpec {
   lineId: string;
@@ -7,8 +8,12 @@ interface CompanionReactionSpec {
 }
 
 export function companionReactionEvents(context: AiJobContextV1): SimEvent[] {
-  const scene = context.scene;
-  if (!scene || scene.companions.length === 0) return [];
+  if (!context.scene) return [];
+  return companionReactionEventsForScene(context.scene, context.player.entityId);
+}
+
+export function companionReactionEventsForScene(scene: SceneFrameV1, playerEntityId: number): SimEvent[] {
+  if (scene.companions.length === 0) return [];
   const sceneTags = [...new Set([
     ...scene.locationTags,
     ...scene.structureTags,
@@ -16,7 +21,7 @@ export function companionReactionEvents(context: AiJobContextV1): SimEvent[] {
   ])].slice(0, 8);
   const out: SimEvent[] = [];
   for (const companion of scene.companions.slice(0, 2)) {
-    const spec = reactionForCompanion(context, companion.family);
+    const spec = reactionForCompanion(scene, companion.family);
     if (!spec) continue;
     out.push({
       type: 'aiSpeech',
@@ -36,15 +41,13 @@ export function companionReactionEvents(context: AiJobContextV1): SimEvent[] {
         kind: spec.kind,
         sceneTags,
       },
-      pid: context.player.entityId,
+      pid: playerEntityId,
     });
   }
   return out;
 }
 
-function reactionForCompanion(context: AiJobContextV1, family: string | null): CompanionReactionSpec | null {
-  const scene = context.scene;
-  if (!scene) return null;
+function reactionForCompanion(scene: SceneFrameV1, family: string | null): CompanionReactionSpec | null {
   if (family === 'demon' && (scene.locationTags.includes('safeTown') || scene.structureTags.includes('ruinedChapel') || scene.environmentalTags.includes('militaryOrder'))) {
     return { lineId: 'hudChrome.aiSpeech.companionSelfDemonDefiance', kind: 'avoid' };
   }

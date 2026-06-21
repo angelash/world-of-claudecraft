@@ -16,7 +16,7 @@ import {
 import type { AiBossEncounterMemory, AiBossEncounterPhaseCue } from './boss_memory';
 import { classifyCanonSubject } from './canon_guard';
 import { CodexCliProvider } from './codex_worker';
-import { companionReactionEvents } from './companion_reactions';
+import { companionReactionEvents, companionReactionEventsForScene } from './companion_reactions';
 import { AiCreatureMemoryStore, singularityCreatureMemoryEvent, singularityCreatureSceneMemoryEvent } from './creature_memory';
 import type { AiCreatureMemory } from './creature_memory';
 import { AiDecisionJournal } from './decision_journal';
@@ -970,6 +970,9 @@ export class AiLifeLayer {
     const event = sceneInspectionEvent(scene, player, trace);
     const events: SimEvent[] = [event];
     const lineIds = event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [];
+    const companionEvents = companionReactionEventsForScene(scene, request.pid);
+    events.push(...companionEvents);
+    lineIds.push(...aiSpeechLineIds(companionEvents));
     const memoryWrites: AiMemoryAuditRecord[] = [];
     if (trace) {
       const tracedItem = droppedItemSemantic(trace.itemId, Math.max(0, request.sim.time - trace.createdAt), trace.sourcePlayerEntityId);
@@ -1090,6 +1093,7 @@ export class AiLifeLayer {
       intents: [
         'inspectObject',
         'commentOnScene',
+        ...(companionEvents.length > 0 ? ['reactToCompanion'] : []),
         ...(trace ? ['reactToWorldTrace'] : []),
         ...(encounterMemory ? ['readEncounterMemory'] : []),
         ...(!trace && directorState ? ['readWorldDirectorState'] : []),
