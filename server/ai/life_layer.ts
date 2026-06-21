@@ -475,6 +475,7 @@ export class AiLifeLayer {
       ...persistedSignals,
     ];
     let decision: AiDecisionV1;
+    let decisionSource: Extract<SimEvent, { type: 'aiSpeech' }>['source'] = 'codex';
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
     try {
@@ -489,8 +490,9 @@ export class AiLifeLayer {
       this.metrics.lastProviderError = reason;
       this.journal.recordProviderError(context, reason, memoryWrites);
       decision = fallbackDecisionForProviderError(context, reason);
+      decisionSource = 'fallback';
     }
-    const result = validateAiDecision({ decision, context, entity: npc, subject });
+    const result = validateAiDecision({ decision, context, entity: npc, subject, source: decisionSource });
     if (result.ok) this.metrics.acceptedDecisions++;
     else this.metrics.rejectedDecisions++;
     this.journal.recordDecision(context, decision, result, memoryWrites);

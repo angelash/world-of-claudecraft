@@ -167,6 +167,7 @@ process.exit(3);
       type: 'aiSpeech',
       speakerId: npcId,
       speech: expect.objectContaining({ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
+      source: 'codex',
       pid,
     }));
     expect(layer.diagnostics()).toEqual([expect.objectContaining({

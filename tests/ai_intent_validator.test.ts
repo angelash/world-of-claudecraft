@@ -36,8 +36,21 @@ const decision: AiDecisionV1 = {
 };
 
 describe('AI intent validator', () => {
-  it('turns a valid profile-approved decision into a personal aiSpeech event', () => {
-    const result = validateAiDecision({ decision, context, entity, subject: 'criticalQuestNpc' });
+  it('marks provider-selected lineId speech as codex sourced', () => {
+    const result = validateAiDecision({ decision, context, entity, subject: 'criticalQuestNpc', source: 'codex' });
+    expect(result.ok).toBe(true);
+    expect(result.events).toEqual([{
+      type: 'aiSpeech',
+      speakerId: 7,
+      speakerName: 'Brother Aldric',
+      speech: { mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake', values: { playerName: 'Ari' } },
+      source: 'codex',
+      pid: 1,
+    }]);
+  });
+
+  it('keeps local provider-error fallback lineId speech fallback sourced', () => {
+    const result = validateAiDecision({ decision, context, entity, subject: 'criticalQuestNpc', source: 'fallback' });
     expect(result.ok).toBe(true);
     expect(result.events).toEqual([{
       type: 'aiSpeech',
@@ -55,6 +68,7 @@ describe('AI intent validator', () => {
       context,
       entity,
       subject: 'criticalQuestNpc',
+      source: 'codex',
     });
     expect(result).toMatchObject({ ok: false, reason: 'entity ref mismatch' });
   });
@@ -65,6 +79,7 @@ describe('AI intent validator', () => {
       context,
       entity,
       subject: 'criticalQuestNpc',
+      source: 'codex',
     });
     expect(result.ok).toBe(false);
   });
@@ -78,6 +93,7 @@ describe('AI intent validator', () => {
       context,
       entity,
       subject: 'criticalQuestNpc',
+      source: 'codex',
     });
     expect(result).toMatchObject({ ok: false, reason: 'dynamic speech is blocked in line_id_only mode' });
   });
@@ -91,6 +107,7 @@ describe('AI intent validator', () => {
       context: { ...context, outputMode: 'dynamic_text_experiment' },
       entity,
       subject: 'criticalQuestNpc',
+      source: 'codex',
     });
     expect(result.ok).toBe(true);
     expect(result.events).toEqual([{

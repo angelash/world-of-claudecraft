@@ -139,6 +139,7 @@ describe('server AI interact command', () => {
       speakerId: npc!.id,
       speakerName: 'Brother Aldric',
       speech: expect.objectContaining({ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
+      source: 'codex',
       pid: session.pid,
     }));
     expect((server as any).aiLifeLayer.runtimeMetrics()).toMatchObject({

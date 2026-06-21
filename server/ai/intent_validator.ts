@@ -8,16 +8,18 @@ const MAX_TTL_MS = 60_000;
 const MIN_CONFIDENCE = 0;
 const MAX_CONFIDENCE = 1;
 const MAX_DYNAMIC_TEXT_CHARS = 280;
+type AiSpeechSource = Extract<SimEvent, { type: 'aiSpeech' }>['source'];
 
 export interface AiIntentValidationInput {
   decision: AiDecisionV1;
   context: AiJobContextV1;
   entity: Entity;
   subject: CanonGuardSubject;
+  source: AiSpeechSource;
 }
 
 export function validateAiDecision(input: AiIntentValidationInput): AiValidationResult {
-  const { decision, context, entity, subject } = input;
+  const { decision, context, entity, subject, source } = input;
   if (decision.schemaVersion !== 1) return rejected('schema version mismatch');
   if (decision.jobId !== context.jobId) return rejected('job id mismatch');
   if (decision.ttlMs <= 0 || decision.ttlMs > MAX_TTL_MS) return rejected('ttl out of range');
@@ -47,7 +49,7 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
         speakerId: entity.id,
         speakerName: entity.name,
         speech,
-        source: 'fallback',
+        source,
         pid: context.player.entityId,
       });
       continue;
@@ -60,7 +62,7 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
       speakerId: entity.id,
       speakerName: entity.name,
       speech,
-      source: 'codex',
+      source,
       pid: context.player.entityId,
     });
   }
