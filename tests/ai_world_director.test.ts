@@ -1,10 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import { AiBossEncounterMemoryStore } from '../server/ai/boss_memory';
+import type { AiCreatureMemory } from '../server/ai/creature_memory';
 import { AiWorldDirectorStore, moodForTraceKind, worldDirectorEvent } from '../server/ai/world_director';
 import type { AiWorldTrace } from '../server/ai/world_traces';
 import type { Entity } from '../src/sim/types';
 
 const speaker = { id: 1, name: 'Ari', templateId: 'warrior', kind: 'player' } as Entity;
+
+const creatureMemory = (interactionCount: number): AiCreatureMemory => ({
+  memoryId: '22:1',
+  entityId: 22,
+  templateId: 'forest_wolf',
+  playerEntityId: 1,
+  playerName: 'Ari',
+  interactionCount,
+  traits: ['territorial'],
+  firstSeenAt: 10,
+  lastSeenAt: 12,
+  expiresAt: 120,
+});
 
 function trace(kind: AiWorldTrace['kind'], itemId = 'roasted_boar'): AiWorldTrace {
   return {
@@ -68,6 +82,46 @@ describe('AI world director', () => {
       pid: 1,
     });
     expect(worldDirectorEvent(null, speaker, null, 1)).toBeNull();
+  });
+
+  it('lets repeated singularity scene memories wake a scene director state without item targeting', () => {
+    const store = new AiWorldDirectorStore();
+    expect(store.noteCreatureSceneMemory({
+      sceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
+      memory: creatureMemory(1),
+      sourcePlayerEntityId: 1,
+      nowSeconds: 10,
+    })).toBeNull();
+
+    const state = store.noteCreatureSceneMemory({
+      sceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
+      memory: creatureMemory(2),
+      sourcePlayerEntityId: 1,
+      nowSeconds: 12,
+    });
+    expect(state).toMatchObject({
+      sceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
+      mood: 'uncanny',
+      proposalType: 'campAlert',
+      itemId: 'eastbrook_forge',
+      subjectKind: 'scene',
+      lineId: 'hudChrome.aiSpeech.worldDirectorSceneUncanny',
+      evidence: expect.arrayContaining(['creatureSceneMemory:forest_wolf', 'territorial']),
+    });
+    const event = worldDirectorEvent(null, speaker, state, 1);
+    expect(event?.type).toBe('aiSpeech');
+    expect(event).toMatchObject({
+      type: 'aiSpeech',
+      speech: {
+        lineId: 'hudChrome.aiSpeech.worldDirectorSceneUncanny',
+        values: expect.objectContaining({ sceneId: 'eastbrook_forge', directorMood: 'uncanny' }),
+      },
+      pid: 1,
+    });
+    if (event?.type === 'aiSpeech') expect(event.reaction).not.toHaveProperty('targetItemId');
   });
 
   it('lets boss encounter memories become encounter director states', () => {

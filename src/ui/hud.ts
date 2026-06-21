@@ -3983,6 +3983,8 @@ export class Hud {
       case 'hudChrome.aiSpeech.worldTraceNpcValuable':
       case 'hudChrome.aiSpeech.worldTraceNpcGeneric':
         return t(ev.speech.lineId as TranslationKey, { speakerName, itemName });
+      case 'hudChrome.aiSpeech.worldDirectorSceneUncanny':
+        return t('hudChrome.aiSpeech.worldDirectorSceneUncanny');
       case 'hudChrome.aiSpeech.worldDirectorUncanny':
       case 'hudChrome.aiSpeech.worldDirectorHaunted':
       case 'hudChrome.aiSpeech.worldDirectorHungry':

@@ -115,7 +115,11 @@ export function worldDirectorMemoryAudit(state: AiWorldDirectorState, reason: st
     sceneId: state.sceneId,
     zoneId: state.zoneId,
     sourcePlayerEntityId: state.sourcePlayerEntityId,
-    itemId: state.itemId,
+    ...(state.subjectKind === 'quest'
+      ? { questId: state.itemId }
+      : state.subjectKind === 'scene'
+        ? {}
+        : { itemId: state.itemId }),
     ...(state.subjectTemplateId ? { templateId: state.subjectTemplateId } : {}),
     subjectKind: state.subjectKind,
     lineIds: [state.lineId],

@@ -367,6 +367,7 @@ export const en_XA: EnTranslations = {
       "worldTraceNpcValuable": "[{speakerName} éýéš ţĥé šçúƒƒš áŕóúñð {itemName}. Ʋáļúé áļŵáýš ţéáçĥéš ţĥé ĝŕóúñð á ñéŵ þáţţéŕñ.]",
       "worldTraceNpcGeneric": "[{speakerName} ŕéáðš ţĥé ðíšţúŕƀéð ðéţáíļš áŕóúñð {itemName} ƀéƒóŕé áñšŵéŕíñĝ.]",
       "worldDirectorUncanny": "[Ţĥé ŵĥóļé áŕéá ƒééļš ñéŵļý áŵáķé áŕóúñð {itemName}.]",
+      "worldDirectorSceneUncanny": "[Ţĥé þļáçé ƒééļš ñéŵļý áŵáķé, áš íƒ šóɱéţĥíñĝ ĥéŕé ĥáš šţáŕţéð ŕéçóĝñížíñĝ ýóú.]",
       "worldDirectorHaunted": "[Ţĥé áŕéá ķééþš á çóļðéŕ ɱóóð áŕóúñð {itemName}.]",
       "worldDirectorHungry": "[Šɱáļļ ţŕáçķš áñð šɱéļļš ĝáţĥéŕ íñţó á ĥúñĝŕý þáţţéŕñ áŕóúñð {itemName}.]",
       "worldDirectorCovetous": "[Ƒŕéšĥ šçúƒƒš áŕóúñð {itemName} ɱáķé ţĥé þļáçé ƒééļ ŵáţçĥƒúļ áñð çáļçúļáţíñĝ.]",

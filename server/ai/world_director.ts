@@ -9,6 +9,7 @@ export type AiWorldDirectorProposalType = 'npcTopicShift' | 'campAlert' | 'trace
 
 export type AiWorldDirectorLineId =
   | 'hudChrome.aiSpeech.worldDirectorUncanny'
+  | 'hudChrome.aiSpeech.worldDirectorSceneUncanny'
   | 'hudChrome.aiSpeech.worldDirectorHaunted'
   | 'hudChrome.aiSpeech.worldDirectorHungry'
   | 'hudChrome.aiSpeech.worldDirectorCovetous'
@@ -26,7 +27,7 @@ export interface AiWorldDirectorState {
   sourcePlayerEntityId: number;
   sourceRef: string;
   itemId: string;
-  subjectKind: 'item' | 'encounter' | 'quest';
+  subjectKind: 'item' | 'encounter' | 'quest' | 'scene';
   subjectTemplateId?: string;
   subjectName?: string;
   lineId: AiWorldDirectorLineId;
@@ -91,6 +92,31 @@ export class AiWorldDirectorStore {
       subjectKind: 'item',
       heatGain: Math.min(1, 0.4 + input.memory.interactionCount * 0.18),
       evidence: [`creatureMemory:${input.memory.templateId}`, ...input.memory.traits.slice(0, 3)],
+      nowSeconds: input.nowSeconds,
+    });
+  }
+
+  noteCreatureSceneMemory(input: {
+    sceneId: string;
+    zoneId: string;
+    memory: AiCreatureMemory;
+    sourcePlayerEntityId: number;
+    nowSeconds: number;
+  }): AiWorldDirectorState | null {
+    if (input.memory.interactionCount < 2) return null;
+    this.prune(input.nowSeconds);
+    return this.upsert({
+      sceneId: input.sceneId,
+      zoneId: input.zoneId,
+      mood: 'uncanny',
+      proposalType: 'campAlert',
+      sourcePlayerEntityId: input.sourcePlayerEntityId,
+      sourceRef: `scene:${input.memory.memoryId}`,
+      itemId: input.sceneId,
+      subjectKind: 'scene',
+      lineId: 'hudChrome.aiSpeech.worldDirectorSceneUncanny',
+      heatGain: Math.min(1, 0.35 + input.memory.interactionCount * 0.16),
+      evidence: [`creatureSceneMemory:${input.memory.templateId}`, ...input.memory.traits.slice(0, 3)],
       nowSeconds: input.nowSeconds,
     });
   }
@@ -173,7 +199,8 @@ export class AiWorldDirectorStore {
     sourcePlayerEntityId: number;
     sourceRef: string;
     itemId: string;
-    subjectKind: 'item' | 'encounter' | 'quest';
+    subjectKind: 'item' | 'encounter' | 'quest' | 'scene';
+    lineId?: AiWorldDirectorLineId;
     subjectTemplateId?: string;
     subjectName?: string;
     heatGain: number;
@@ -206,7 +233,7 @@ export class AiWorldDirectorStore {
       subjectKind: input.subjectKind,
       ...(input.subjectTemplateId ? { subjectTemplateId: input.subjectTemplateId } : {}),
       ...(input.subjectName ? { subjectName: input.subjectName } : {}),
-      lineId: lineIdForMood(input.mood),
+      lineId: input.lineId ?? lineIdForMood(input.mood),
       heat: clamp01(input.heatGain),
       createdAt: input.nowSeconds,
       updatedAt: input.nowSeconds,
@@ -229,6 +256,7 @@ export function worldDirectorEvent(scene: SceneFrameV1 | null, speaker: Entity, 
   if (!state) return null;
   const encounter = state.subjectKind === 'encounter';
   const quest = state.subjectKind === 'quest';
+  const sceneSubject = state.subjectKind === 'scene';
   return {
     type: 'aiSpeech',
     speakerId: speaker.id,
@@ -237,7 +265,7 @@ export function worldDirectorEvent(scene: SceneFrameV1 | null, speaker: Entity, 
       mode: 'lineId',
       lineId: state.lineId,
       values: {
-        ...(quest ? { questId: state.itemId } : { itemId: state.itemId }),
+        ...(quest ? { questId: state.itemId } : sceneSubject ? { sceneId: state.sceneId } : { itemId: state.itemId }),
         ...(encounter ? {
           bossTemplateId: state.subjectTemplateId ?? state.itemId,
           bossName: state.subjectName ?? state.itemId,
@@ -249,7 +277,7 @@ export function worldDirectorEvent(scene: SceneFrameV1 | null, speaker: Entity, 
     source: 'fallback',
     reaction: {
       kind: state.mood === 'haunted' || state.mood === 'dread' ? 'avoid' : 'inspect',
-      ...(encounter || quest ? {} : { targetItemId: state.itemId }),
+      ...(encounter || quest || sceneSubject ? {} : { targetItemId: state.itemId }),
       score: Math.round(state.heat * 100) / 100,
       sceneTags: scene ? [...new Set([
         ...scene.locationTags,

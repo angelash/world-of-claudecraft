@@ -376,15 +376,42 @@ describe('server AI interact command', () => {
     }));
     expect((server as any).aiLifeLayer.diagnostics()).toContainEqual(expect.objectContaining({
       trigger: 'scene_inspected',
-      intents: expect.arrayContaining(['reactToFamilyScene', 'rememberSingularityScene']),
+      intents: expect.arrayContaining(['reactToFamilyScene', 'rememberSingularityScene', 'writeWorldDirectorState']),
       memoryWrites: expect.arrayContaining([
         expect.objectContaining({
           kind: 'creatureMemory',
           sceneId: 'eastbrook_forge',
           reason: expect.stringContaining('singularityScene:eastbrook_forge'),
         }),
+        expect.objectContaining({
+          kind: 'worldDirectorState',
+          sceneId: 'eastbrook_forge',
+          subjectKind: 'scene',
+          reason: expect.stringContaining('creatureSceneMemory:eastbrook_forge'),
+        }),
       ]),
     }));
+    expect((server as any).aiLifeLayer.worldDirectorDiagnostics()).toContainEqual(expect.objectContaining({
+      sceneId: 'eastbrook_forge',
+      subjectKind: 'scene',
+      lineId: 'hudChrome.aiSpeech.worldDirectorSceneUncanny',
+    }));
+
+    fc.sent.length = 0;
+    session.aiObjectInspectReadyAt = 0;
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+
+    const sceneDirectorEvent = eventsOf(fc, 'aiSpeech').find((event) => event.speech.lineId === 'hudChrome.aiSpeech.worldDirectorSceneUncanny');
+    expect(sceneDirectorEvent).toMatchObject({
+      speakerId: session.pid,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.worldDirectorSceneUncanny',
+        values: expect.objectContaining({ sceneId: 'eastbrook_forge', directorMood: 'uncanny' }),
+      }),
+      pid: session.pid,
+    });
+    expect(sceneDirectorEvent?.reaction).not.toHaveProperty('targetItemId');
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });

@@ -26,7 +26,7 @@ export interface AiMemoryAuditRecord {
   templateId?: string;
   itemId?: string;
   questId?: string;
-  subjectKind?: 'item' | 'quest' | 'encounter';
+  subjectKind?: 'item' | 'quest' | 'encounter' | 'scene';
   lineIds: string[];
   salience: number;
   createdAt?: number;

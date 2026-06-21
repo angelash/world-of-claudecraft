@@ -367,6 +367,7 @@ export const ja_JP: EnTranslations = {
       "worldTraceNpcValuable": "{speakerName} eyes the scuffs around {itemName}. Value always teaches the ground a new pattern.",
       "worldTraceNpcGeneric": "{speakerName} reads the disturbed details around {itemName} before answering.",
       "worldDirectorUncanny": "The whole area feels newly awake around {itemName}.",
+      "worldDirectorSceneUncanny": "The place feels newly awake, as if something here has started recognizing you.",
       "worldDirectorHaunted": "The area keeps a colder mood around {itemName}.",
       "worldDirectorHungry": "Small tracks and smells gather into a hungry pattern around {itemName}.",
       "worldDirectorCovetous": "Fresh scuffs around {itemName} make the place feel watchful and calculating.",

@@ -695,6 +695,14 @@ export class AiLifeLayer {
           sceneId,
           reason: `singularityScene:${sceneId}`,
         }));
+        const directorMemory = this.worldDirector.noteCreatureSceneMemory({
+          sceneId,
+          zoneId: scene.zoneId,
+          memory,
+          sourcePlayerEntityId: request.pid,
+          nowSeconds: request.sim.time,
+        });
+        if (directorMemory) memoryWrites.push(worldDirectorMemoryAudit(directorMemory, `creatureSceneMemory:${sceneId}`));
       }
     }
     this.journal.recordLocalReaction({
@@ -713,6 +721,7 @@ export class AiLifeLayer {
         ...(!trace && directorState ? ['readWorldDirectorState'] : []),
         ...(!trace && lineIds.some((lineId) => lineId.startsWith('hudChrome.aiSpeech.familyScene')) ? ['reactToFamilyScene'] : []),
         ...(memoryWrites.some((record) => record.kind === 'creatureMemory') ? ['rememberSingularityScene'] : []),
+        ...(memoryWrites.some((record) => record.kind === 'worldDirectorState') ? ['writeWorldDirectorState'] : []),
       ],
       sceneId,
       memoryWrites,
