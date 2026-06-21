@@ -161,6 +161,49 @@ describe('AI world director', () => {
     expect(store.snapshot()[0].proposal.safetyNotes).toContain('presentationOnly');
   });
 
+  it('keeps a bounded read-only proposal lifecycle journal', () => {
+    const store = new AiWorldDirectorStore({ maxStates: 2, stateTtlSeconds: 5, maxProposalAuditEntries: 8 });
+    const first = store.noteTrace({ trace: trace('valuable', 'redbrook_blade'), nowSeconds: 10 });
+    store.noteTrace({
+      trace: { ...trace('valuable', 'redbrook_blade'), traceId: 'trace-valuable-2' },
+      nowSeconds: 11,
+    });
+    store.noteTrace({ trace: trace('food', 'roasted_boar'), nowSeconds: 12 });
+    store.noteTrace({ trace: trace('cursed', 'gravecaller_sigil'), nowSeconds: 13 });
+    store.stateForScene('eastbrook_forge', 1, 20);
+
+    const journal = store.proposalAuditSnapshot();
+    expect(journal).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        lifecycle: 'created',
+        stateId: first.stateId,
+        proposalId: `${first.stateId}:proposal`,
+        targetRef: 'redbrook_blade',
+        intent: 'nudgeNpcRumor',
+        safetyNotes: expect.arrayContaining(['presentationOnly', 'noQuestMutation']),
+      }),
+      expect.objectContaining({
+        lifecycle: 'refreshed',
+        stateId: first.stateId,
+        targetRef: 'redbrook_blade',
+      }),
+      expect.objectContaining({
+        lifecycle: 'evicted',
+        targetRef: 'redbrook_blade',
+      }),
+      expect.objectContaining({
+        lifecycle: 'expired',
+        targetRef: 'gravecaller_sigil',
+      }),
+    ]));
+
+    journal[0].reasonTags.push('mutated-outside');
+    journal[0].safetyNotes.length = 0;
+    const fresh = store.proposalAuditSnapshot();
+    expect(fresh[0].reasonTags).not.toContain('mutated-outside');
+    expect(fresh[0].safetyNotes).toContain('presentationOnly');
+  });
+
   it('lets repeated singularity scene memories wake a scene director state without item targeting', () => {
     const store = new AiWorldDirectorStore();
     expect(store.noteCreatureSceneMemory({

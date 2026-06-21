@@ -124,9 +124,34 @@ export interface AiWorldDirectorState {
   evidence: string[];
 }
 
+export interface AiWorldDirectorProposalAuditEntry {
+  auditId: string;
+  lifecycle: string;
+  observedAt: number;
+  stateId: string;
+  proposalId: string;
+  sourcePlayerEntityId: number;
+  sourceRef: string;
+  mood: string;
+  proposalType: string;
+  subjectKind: string;
+  targetRef: string;
+  sceneId: string;
+  zoneId: string;
+  intent: string;
+  status: string;
+  risk: string;
+  intensity: number;
+  suggestedLineId: string;
+  expiresAt: number;
+  reasonTags: string[];
+  safetyNotes: string[];
+}
+
 export interface AiLifeLayerDiagnosticsSnapshot {
   recentDecisions: AiDecisionJournalEntry[];
   worldDirectorStates: AiWorldDirectorState[];
+  worldDirectorProposalJournal?: AiWorldDirectorProposalAuditEntry[];
   memoryPersistence: {
     pending: number;
     flushing: boolean;

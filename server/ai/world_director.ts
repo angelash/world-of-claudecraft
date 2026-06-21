@@ -61,20 +61,51 @@ export interface AiWorldDirectorProposal {
   safetyNotes: string[];
 }
 
+export type AiWorldDirectorProposalAuditLifecycle = 'created' | 'refreshed' | 'expired' | 'evicted';
+
+export interface AiWorldDirectorProposalAuditEntry {
+  auditId: string;
+  lifecycle: AiWorldDirectorProposalAuditLifecycle;
+  observedAt: number;
+  stateId: string;
+  proposalId: string;
+  sourcePlayerEntityId: number;
+  sourceRef: string;
+  mood: AiWorldDirectorMood;
+  proposalType: AiWorldDirectorProposalType;
+  subjectKind: AiWorldDirectorState['subjectKind'];
+  targetRef: string;
+  sceneId: string;
+  zoneId: string;
+  intent: AiWorldDirectorProposalIntent;
+  status: AiWorldDirectorProposal['status'];
+  risk: AiWorldDirectorProposal['risk'];
+  intensity: number;
+  suggestedLineId: AiWorldDirectorLineId;
+  expiresAt: number;
+  reasonTags: string[];
+  safetyNotes: string[];
+}
+
 export interface AiWorldDirectorStoreOptions {
   stateTtlSeconds?: number;
   maxStates?: number;
+  maxProposalAuditEntries?: number;
 }
 
 export class AiWorldDirectorStore {
   private readonly states: AiWorldDirectorState[] = [];
+  private readonly proposalAuditEntries: AiWorldDirectorProposalAuditEntry[] = [];
   private readonly stateTtlSeconds: number;
   private readonly maxStates: number;
+  private readonly maxProposalAuditEntries: number;
   private sequence = 0;
+  private proposalAuditSequence = 0;
 
   constructor(options: AiWorldDirectorStoreOptions = {}) {
     this.stateTtlSeconds = Math.max(1, Math.floor(options.stateTtlSeconds ?? 180));
     this.maxStates = Math.max(1, Math.floor(options.maxStates ?? 24));
+    this.maxProposalAuditEntries = Math.max(1, Math.floor(options.maxProposalAuditEntries ?? 64));
   }
 
   noteTrace(input: { trace: AiWorldTrace; nowSeconds: number }): AiWorldDirectorState {
@@ -217,6 +248,10 @@ export class AiWorldDirectorStore {
     return this.states.map(copyState);
   }
 
+  proposalAuditSnapshot(): AiWorldDirectorProposalAuditEntry[] {
+    return this.proposalAuditEntries.map(copyProposalAuditEntry);
+  }
+
   private upsert(input: {
     sceneId: string;
     zoneId?: string;
@@ -245,6 +280,7 @@ export class AiWorldDirectorStore {
       existing.expiresAt = input.nowSeconds + this.stateTtlSeconds;
       existing.evidence = mergeRecent(existing.evidence, input.evidence, 8);
       existing.proposal = proposalForState(existing);
+      this.recordProposalAudit(existing, 'refreshed', input.nowSeconds);
       return copyState(existing);
     }
 
@@ -269,14 +305,51 @@ export class AiWorldDirectorStore {
     };
     const state: AiWorldDirectorState = { ...stateCore, proposal: proposalForState(stateCore) };
     this.states.unshift(state);
-    this.states.splice(this.maxStates);
+    this.recordProposalAudit(state, 'created', input.nowSeconds);
+    for (const evicted of this.states.splice(this.maxStates)) {
+      this.recordProposalAudit(evicted, 'evicted', input.nowSeconds);
+    }
     return copyState(state);
   }
 
   private prune(nowSeconds: number): void {
     for (let i = this.states.length - 1; i >= 0; i--) {
-      if (this.states[i].expiresAt <= nowSeconds) this.states.splice(i, 1);
+      if (this.states[i].expiresAt <= nowSeconds) {
+        this.recordProposalAudit(this.states[i], 'expired', nowSeconds);
+        this.states.splice(i, 1);
+      }
     }
+  }
+
+  private recordProposalAudit(
+    state: AiWorldDirectorState,
+    lifecycle: AiWorldDirectorProposalAuditLifecycle,
+    observedAt: number,
+  ): void {
+    this.proposalAuditEntries.unshift({
+      auditId: `director-audit-${++this.proposalAuditSequence}`,
+      lifecycle,
+      observedAt,
+      stateId: state.stateId,
+      proposalId: state.proposal.proposalId,
+      sourcePlayerEntityId: state.sourcePlayerEntityId,
+      sourceRef: state.sourceRef,
+      mood: state.mood,
+      proposalType: state.proposalType,
+      subjectKind: state.subjectKind,
+      targetRef: state.proposal.targetRef,
+      sceneId: state.proposal.sceneId,
+      zoneId: state.proposal.zoneId,
+      intent: state.proposal.intent,
+      status: state.proposal.status,
+      risk: state.proposal.risk,
+      intensity: state.proposal.intensity,
+      suggestedLineId: state.proposal.suggestedLineId,
+      expiresAt: state.proposal.expiresAt,
+      reasonTags: [...state.proposal.reasonTags],
+      safetyNotes: [...state.proposal.safetyNotes],
+    });
+    this.proposalAuditEntries.splice(this.maxProposalAuditEntries);
   }
 }
 
@@ -550,5 +623,13 @@ function copyProposal(proposal: AiWorldDirectorProposal): AiWorldDirectorProposa
     ...proposal,
     reasonTags: [...proposal.reasonTags],
     safetyNotes: [...proposal.safetyNotes],
+  };
+}
+
+function copyProposalAuditEntry(entry: AiWorldDirectorProposalAuditEntry): AiWorldDirectorProposalAuditEntry {
+  return {
+    ...entry,
+    reasonTags: [...entry.reasonTags],
+    safetyNotes: [...entry.safetyNotes],
   };
 }

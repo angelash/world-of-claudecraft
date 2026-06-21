@@ -48,7 +48,7 @@ import { individualProfileFor, individualSpeechValues } from './singularity';
 import { AiSocialMemoryStore } from './social_memory';
 import type { AiNpcMemory, AiRumorMemory } from './social_memory';
 import { AiWorldDirectorStore, worldDirectorEvent, worldDirectorEventFromMemoryAudit } from './world_director';
-import type { AiWorldDirectorProposal, AiWorldDirectorState } from './world_director';
+import type { AiWorldDirectorProposal, AiWorldDirectorProposalAuditEntry, AiWorldDirectorState } from './world_director';
 import { AiWorldTraceStore } from './world_traces';
 import type { AiWorldTrace } from './world_traces';
 import { worldTraceReactionEvent } from './world_trace_reactions';
@@ -104,6 +104,7 @@ export interface AiLifeLayerMetricsSnapshot {
 export interface AiLifeLayerDiagnosticsSnapshot {
   recentDecisions: AiDecisionJournalEntry[];
   worldDirectorStates: AiWorldDirectorState[];
+  worldDirectorProposalJournal: AiWorldDirectorProposalAuditEntry[];
   memoryPersistence: {
     pending: number;
     flushing: boolean;
@@ -277,10 +278,15 @@ export class AiLifeLayer {
     return this.worldDirector.snapshot();
   }
 
+  worldDirectorProposalDiagnostics(): AiWorldDirectorProposalAuditEntry[] {
+    return this.worldDirector.proposalAuditSnapshot();
+  }
+
   diagnosticsSnapshot(): AiLifeLayerDiagnosticsSnapshot {
     return {
       recentDecisions: this.diagnostics(),
       worldDirectorStates: this.worldDirectorDiagnostics(),
+      worldDirectorProposalJournal: this.worldDirectorProposalDiagnostics(),
       memoryPersistence: this.memoryPersistenceDiagnostics(),
     };
   }
