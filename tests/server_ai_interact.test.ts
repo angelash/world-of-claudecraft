@@ -69,6 +69,24 @@ function eventsOf(fc: FakeClient, type: string): any[] {
     .filter((ev: any) => ev.type === type);
 }
 
+function mainlineSnapshot(server: GameServer, pid: number): unknown {
+  const meta = server.sim.meta(pid)!;
+  const player = server.sim.entities.get(pid)!;
+  return {
+    level: player.level,
+    xp: meta.xp,
+    lifetimeXp: meta.lifetimeXp,
+    copper: meta.copper,
+    inventory: meta.inventory
+      .map((slot) => ({ itemId: slot.itemId, count: slot.count }))
+      .sort((a, b) => a.itemId.localeCompare(b.itemId)),
+    questLog: [...meta.questLog.entries()]
+      .map(([questId, progress]) => ({ questId, state: progress.state, counts: [...progress.counts] }))
+      .sort((a, b) => a.questId.localeCompare(b.questId)),
+    questsDone: [...meta.questsDone].sort(),
+  };
+}
+
 function dbQueryMock(): PoolQueryMock {
   return pool.query as unknown as PoolQueryMock;
 }
@@ -233,6 +251,45 @@ describe('server AI interact command', () => {
     await flushAi();
 
     expect(eventsOf(fc, 'aiSpeech')).toHaveLength(0);
+  });
+
+  it('keeps mainline quest, inventory, currency, and XP state identical with AI enabled or disabled', async () => {
+    async function runScenario(enabled: boolean): Promise<{ snapshot: unknown; aiSpeechCount: number }> {
+      const server = new GameServer();
+      (server as any).aiLifeLayer = new AiLifeLayer({ enabled });
+      const fc = fakeWs();
+      const session = joinServer(server, fc);
+      const meta = server.sim.meta(session.pid)!;
+      meta.questLog.set('q_wolves', { questId: 'q_wolves', counts: [3], state: 'active' });
+      server.sim.addItem('roasted_boar', 1, session.pid);
+
+      const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
+      const object = [...server.sim.entities.values()].find((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil')!;
+      teleportNear(server, session.pid, npc.id);
+      server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en' }));
+      await flushAi();
+      server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en', topic: 'quest_hint' }));
+      await flushAi();
+
+      teleportNear(server, session.pid, object.id);
+      server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_object', object: object.id, locale: 'en' }));
+      session.aiObjectInspectReadyAt = 0;
+      server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+      server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+      await flushAi();
+
+      return {
+        snapshot: mainlineSnapshot(server, session.pid),
+        aiSpeechCount: eventsOf(fc, 'aiSpeech').length,
+      };
+    }
+
+    const disabled = await runScenario(false);
+    const enabled = await runScenario(true);
+
+    expect(enabled.snapshot).toEqual(disabled.snapshot);
+    expect(disabled.aiSpeechCount).toBe(0);
+    expect(enabled.aiSpeechCount).toBeGreaterThan(0);
   });
 
   it('inspects a nearby ground object without picking it up or changing quest state', async () => {
