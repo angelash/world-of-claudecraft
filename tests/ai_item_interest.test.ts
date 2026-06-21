@@ -56,6 +56,20 @@ describe('AI item interest', () => {
     expect(scoreItemReaction(frame(), cursed, villager).reaction).toBe('avoid');
   });
 
+  it('uses authored NPC profile item interests for local reactions', () => {
+    const potion = droppedItemSemantic('minor_healing_potion', 0, 99)!;
+    const sword = droppedItemSemantic('worn_sword', 0, 99)!;
+
+    expect(scoreItemReaction(frame(), potion, entity(4, 'apothecary_lin', 'npc'))).toMatchObject({
+      reaction: 'approach',
+      lineId: 'hudChrome.aiSpeech.itemInterestApproach',
+    });
+    expect(scoreItemReaction(frame(), sword, entity(5, 'marshal_redbrook', 'npc'))).toMatchObject({
+      reaction: 'approach',
+      lineId: 'hudChrome.aiSpeech.itemInterestApproach',
+    });
+  });
+
   it('ranks the strongest local reaction first for the same discarded item', () => {
     const reactions = rankItemReactions(frame(), droppedItemSemantic('roasted_boar', 0, 99)!, [
       entity(1, 'forest_wolf'),

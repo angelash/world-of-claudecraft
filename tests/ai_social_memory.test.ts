@@ -155,6 +155,39 @@ describe('AI social memory', () => {
     }
   });
 
+  it('keeps every important quest hub NPC on an authored living-world profile', () => {
+    const expected = [
+      ['marshal_redbrook', 'npc.marshal_redbrook.living_world', 'hudChrome.aiSpeech.marshalRedbrookAwake', 'hudChrome.aiSpeech.memoryCommanderRumorEcho'],
+      ['trader_wilkes', 'npc.trader_wilkes.living_world', 'hudChrome.aiSpeech.traderWilkesAwake', 'hudChrome.aiSpeech.memoryMerchantRumorEcho'],
+      ['apothecary_lin', 'npc.apothecary_lin.living_world', 'hudChrome.aiSpeech.apothecaryLinAwake', 'hudChrome.aiSpeech.memoryHerbalistRumorEcho'],
+      ['fisherman_brandt', 'npc.fisherman_brandt.living_world', 'hudChrome.aiSpeech.fishermanBrandtAwake', 'hudChrome.aiSpeech.memoryTidewatcherRumorEcho'],
+      ['foreman_odell', 'npc.foreman_odell.living_world', 'hudChrome.aiSpeech.foremanOdellAwake', 'hudChrome.aiSpeech.memorySmithRumorEcho'],
+      ['ranger_elwyn', 'npc.ranger_elwyn.living_world', 'hudChrome.aiSpeech.rangerElwynAwake', 'hudChrome.aiSpeech.memoryScoutRumorEcho'],
+      ['warden_fenwick', 'npc.warden_fenwick.living_world', 'hudChrome.aiSpeech.wardenFenwickAwake', 'hudChrome.aiSpeech.memoryCommanderRumorEcho'],
+      ['provisioner_hale', 'npc.provisioner_hale.living_world', 'hudChrome.aiSpeech.provisionerHaleAwake', 'hudChrome.aiSpeech.memoryMerchantRumorEcho'],
+      ['herbalist_yara', 'npc.herbalist_yara.living_world', 'hudChrome.aiSpeech.herbalistYaraAwake', 'hudChrome.aiSpeech.memoryHerbalistRumorEcho'],
+      ['captain_thessaly', 'npc.captain_thessaly.living_world', 'hudChrome.aiSpeech.captainThessalyAwake', 'hudChrome.aiSpeech.memoryCommanderRumorEcho'],
+      ['quartermaster_bree', 'npc.quartermaster_bree.living_world', 'hudChrome.aiSpeech.quartermasterBreeAwake', 'hudChrome.aiSpeech.memoryMerchantRumorEcho'],
+      ['armorer_hode', 'npc.armorer_hode.living_world', 'hudChrome.aiSpeech.armorerHodeAwake', 'hudChrome.aiSpeech.memorySmithRumorEcho'],
+    ] as const;
+
+    for (const [templateId, profileId, fallbackLineId, rumorLineId] of expected) {
+      const profile = profileFor('npc', templateId);
+      expect(profile.id).toBe(profileId);
+      expect(profile.id).not.toBe('npc.generic.living_world');
+      expect(profile.fallbackLineId).toBe(fallbackLineId);
+      expect(profile.fallbackLineId).not.toBe('hudChrome.aiSpeech.genericNpcAwake');
+      expect(profile.allowedLineIds).toContain(fallbackLineId);
+      expect(profile.knowledgeScope.length).toBeGreaterThanOrEqual(5);
+      expect(profile.tabooTopics.length).toBeGreaterThanOrEqual(3);
+      expect(profile.socialMemory.rumorLineId).toBe(rumorLineId);
+      expect(profile.socialMemory.questRumorLineId).toMatch(/^hudChrome\.aiSpeech\.memory[A-Z].*QuestRumorEcho$/);
+      expect(profile.sceneAffinities?.commentsOnTags.length ?? 0).toBeGreaterThanOrEqual(3);
+      expect(profile.itemInterest?.attractedToTags.length ?? 0).toBeGreaterThanOrEqual(5);
+      expect(profile.timeWeatherSensitivity?.nightFatigue ?? 0).toBeGreaterThan(0);
+    }
+  });
+
   it('turns explicit NPC question topics into local lineId answers', () => {
     const store = new AiSocialMemoryStore();
     const memory = store.noteNpcInteraction({ ...context, topic: 'place' }, 0);

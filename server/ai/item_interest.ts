@@ -4,6 +4,7 @@ import type { DroppedItemSemantic, SceneFrameV1 } from './scene_frame';
 import { familySemanticsFor, mobFamilyForEntity } from './family_semantics';
 import { individualProfileFor, applyIndividualBiasToItemReaction } from './singularity';
 import type { IndividualAiProfile } from './singularity';
+import { profileFor } from './profiles';
 
 export type ItemReactionKind = 'approach' | 'avoid' | 'inspect' | 'ignore';
 
@@ -115,8 +116,11 @@ export function scoreItemReaction(
   if (entity.dead) return ignored(entity, family);
   const familyRules = family ? familySemanticsFor(family) : null;
   const tags = new Set([...item.itemTags, ...item.smellTags, ...item.dangerTags, ...item.valueSignals]);
-  const attracted = familyRules ? overlapCount(tags, familyRules.attractedItemTags) : npcAttraction(entity, tags);
-  const avoided = familyRules ? overlapCount(tags, familyRules.avoidedItemTags) : npcAvoidance(entity, tags);
+  const profileRules = entity.kind === 'npc' ? profileFor('npc', entity.templateId).itemInterest : null;
+  const profileAttraction = profileRules ? overlapCount(tags, profileRules.attractedToTags) : 0;
+  const profileAvoidance = profileRules ? overlapCount(tags, profileRules.avoidsTags) : 0;
+  const attracted = (familyRules ? overlapCount(tags, familyRules.attractedItemTags) : npcAttraction(entity, tags)) + profileAttraction;
+  const avoided = (familyRules ? overlapCount(tags, familyRules.avoidedItemTags) : npcAvoidance(entity, tags)) + profileAvoidance;
   const cursed = tags.has('cursed') || tags.has('undead') || tags.has('unknownPower');
   const valuable = tags.has('valuable') || tags.has('coin') || tags.has('gear');
   const food = tags.has('food') || tags.has('meat') || tags.has('fish');
