@@ -163,6 +163,14 @@ describe('admin api auth', () => {
           providerFallbacks: 1,
           averageProviderLatencyMs: 40,
         }),
+        aiCoverage: expect.objectContaining({
+          families: expect.objectContaining({
+            expected: expect.arrayContaining(['beast']),
+          }),
+          npcs: expect.objectContaining({
+            interactiveTotal: expect.any(Number),
+          }),
+        }),
         usage: expect.objectContaining({
           metrics: expect.arrayContaining([expect.objectContaining({ key: 'woc.balance.rpc' })]),
           caches: expect.arrayContaining([expect.objectContaining({ key: 'woc.balance' })]),

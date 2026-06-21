@@ -3,7 +3,7 @@ import { classLabel, zoneLabel, t } from './i18n';
 import type {
   AccountDetail, AccountRow, CharacterRow, ChatFilterData, ChatModeratedAccount,
   ChatModerationDetail, FilterWord, LivePlayer, ModerationAccountDetail, ModerationQueueRow,
-  AiLifeLayerMetricsSnapshot,
+  AiContentCoverageReport, AiLifeLayerMetricsSnapshot,
   ProviderUsageCache, ProviderUsageSnapshot,
 } from './types';
 
@@ -69,7 +69,117 @@ function aiMetricRow(labelKey: string, value: string): string {
   return `<tr><td>${t(labelKey)}</td><td class="num">${value}</td></tr>`;
 }
 
-export function renderAiLifeLayerMetrics(ai: AiLifeLayerMetricsSnapshot): string {
+function coverageIssueCount(coverage: AiContentCoverageReport): number {
+  return [
+    coverage.families.missingSemantics,
+    coverage.families.semanticsWithoutContent,
+    coverage.families.familiesMissingDepth,
+    coverage.families.familiesWithInvalidMoodBias,
+    coverage.npcs.missingInteractiveProfiles,
+    coverage.npcs.authoredNpcProfilesMissingSceneAffinities,
+    coverage.npcs.authoredNpcProfilesMissingItemInterest,
+    coverage.npcs.authoredNpcProfilesMissingTimeWeatherSensitivity,
+    coverage.npcs.authoredNpcProfilesWithThinMemory,
+    coverage.scenes.anchorsMissingSemanticObjects,
+    coverage.scenes.anchorsMissingTags,
+    coverage.scenes.anchorsMissingTagDepth,
+    coverage.scenes.semanticObjectsMissingTags,
+    coverage.scenes.semanticObjectsMissingTagDepth,
+    coverage.scenes.semanticObjectsMissingAnchorOverlap,
+    coverage.items.missingRequiredItems,
+    coverage.items.requiredItemsMissingSignals,
+    coverage.items.discardableItemsMissingSignals,
+    coverage.items.importantItemsMissingSignals,
+  ].reduce((sum, items) => sum + items.length, 0);
+}
+
+function renderCoverageItems(items: readonly string[]): string {
+  if (items.length === 0) return `<span class="hint">${escapeHtml(t('usage.aiCoverageAllClear'))}</span>`;
+  const visible = items.slice(0, 8).map((item) => escapeHtml(item)).join(', ');
+  const remaining = items.length - 8;
+  return remaining > 0
+    ? `${visible} <span class="hint">${escapeHtml(t('usage.aiCoverageMore', { count: fmtNumber(remaining) }))}</span>`
+    : visible;
+}
+
+function coverageRow(labelKey: string, items: readonly string[]): string {
+  const statusClass = items.length > 0 ? ' warn' : '';
+  return `<tr>
+    <td>${t(labelKey)}</td>
+    <td class="num"><span class="badge${statusClass}">${escapeHtml(fmtNumber(items.length))}</span></td>
+    <td>${renderCoverageItems(items)}</td>
+  </tr>`;
+}
+
+function renderAiContentCoverage(coverage: AiContentCoverageReport): string {
+  const issueCount = coverageIssueCount(coverage);
+  const statusKey = issueCount > 0 ? 'usage.aiCoverageStatusGaps' : 'usage.aiCoverageStatusReady';
+  const statusClass = issueCount > 0 ? ' warn' : '';
+  const rows = [
+    coverageRow('usage.aiCoverageFamiliesMissingSemantics', coverage.families.missingSemantics),
+    coverageRow('usage.aiCoverageFamiliesNoTemplates', coverage.families.semanticsWithoutContent),
+    coverageRow('usage.aiCoverageFamiliesMissingDepth', coverage.families.familiesMissingDepth),
+    coverageRow('usage.aiCoverageFamiliesInvalidMood', coverage.families.familiesWithInvalidMoodBias),
+    coverageRow('usage.aiCoverageNpcMissingProfiles', coverage.npcs.missingInteractiveProfiles),
+    coverageRow('usage.aiCoverageNpcMissingScene', coverage.npcs.authoredNpcProfilesMissingSceneAffinities),
+    coverageRow('usage.aiCoverageNpcMissingItems', coverage.npcs.authoredNpcProfilesMissingItemInterest),
+    coverageRow('usage.aiCoverageNpcMissingTimeWeather', coverage.npcs.authoredNpcProfilesMissingTimeWeatherSensitivity),
+    coverageRow('usage.aiCoverageNpcThinMemory', coverage.npcs.authoredNpcProfilesWithThinMemory),
+    coverageRow('usage.aiCoverageSceneMissingObjects', coverage.scenes.anchorsMissingSemanticObjects),
+    coverageRow('usage.aiCoverageSceneMissingTags', coverage.scenes.anchorsMissingTags),
+    coverageRow('usage.aiCoverageSceneMissingDepth', coverage.scenes.anchorsMissingTagDepth),
+    coverageRow('usage.aiCoverageObjectMissingTags', coverage.scenes.semanticObjectsMissingTags),
+    coverageRow('usage.aiCoverageObjectMissingDepth', coverage.scenes.semanticObjectsMissingTagDepth),
+    coverageRow('usage.aiCoverageObjectMissingOverlap', coverage.scenes.semanticObjectsMissingAnchorOverlap),
+    coverageRow('usage.aiCoverageItemMissingRequired', coverage.items.missingRequiredItems),
+    coverageRow('usage.aiCoverageItemMissingRequiredSignals', coverage.items.requiredItemsMissingSignals),
+    coverageRow('usage.aiCoverageItemMissingDiscardSignals', coverage.items.discardableItemsMissingSignals),
+    coverageRow('usage.aiCoverageItemMissingImportantSignals', coverage.items.importantItemsMissingSignals),
+  ].join('');
+
+  return `
+    <div class="usage-section">
+      <h4>${t('usage.aiCoverageTitle')}</h4>
+      <div class="ai-health-grid">
+        <div class="ai-health-cell">
+          <div class="ai-health-value"><span class="badge${statusClass}">${escapeHtml(t(statusKey))}</span></div>
+          <div class="ai-health-label">${t('usage.aiCoverageStatusTitle')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(coverage.families.expected.length)}</div>
+          <div class="ai-health-label">${t('usage.aiCoverageFamilies')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(coverage.npcs.authoredProfileTotal)} / ${renderAiNumber(coverage.npcs.interactiveTotal)}</div>
+          <div class="ai-health-label">${t('usage.aiCoverageProfiles')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(coverage.scenes.anchorTotal)} / ${renderAiNumber(coverage.scenes.semanticObjectTotal)}</div>
+          <div class="ai-health-label">${t('usage.aiCoverageScenes')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(coverage.items.discardableTotal)}</div>
+          <div class="ai-health-label">${t('usage.aiCoverageItems')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(coverage.lineIds.referenced.length)}</div>
+          <div class="ai-health-label">${t('usage.aiCoverageLineIds')}</div>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="usage-table">
+          <thead><tr>
+            <th>${t('usage.colMetric')}</th>
+            <th class="num">${t('usage.aiCoverageColGaps')}</th>
+            <th>${t('usage.aiCoverageColExamples')}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+export function renderAiLifeLayerMetrics(ai: AiLifeLayerMetricsSnapshot, coverage?: AiContentCoverageReport): string {
   const needsAttention = ai.providerErrors > 0 || ai.memoryFlushFailures > 0;
   const statusKey = needsAttention ? 'usage.aiStatusAttention' : 'usage.aiStatusHealthy';
   const statusClass = needsAttention ? ' warn' : '';
@@ -108,6 +218,7 @@ export function renderAiLifeLayerMetrics(ai: AiLifeLayerMetricsSnapshot): string
         <div class="ai-health-label">${t('usage.aiMemoryWritesQueued')}</div>
       </div>
     </div>
+    ${coverage ? renderAiContentCoverage(coverage) : ''}
     <div class="usage-section">
       <h4>${t('usage.aiDetailsTitle')}</h4>
       <div class="table-scroll">

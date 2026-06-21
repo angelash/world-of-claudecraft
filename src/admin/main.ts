@@ -125,7 +125,7 @@ async function refreshLive(): Promise<void> {
       statCard(`${s.tickMsAvg} ms`, t('stats.avgTick')),
       statCard(fmtBytes(s.rssBytes), t('stats.serverRss')),
     ].join('');
-    $('ai-usage').innerHTML = renderAiLifeLayerMetrics(overview.ai);
+    $('ai-usage').innerHTML = renderAiLifeLayerMetrics(overview.ai, overview.aiCoverage);
     $('usage').innerHTML = renderProviderUsage(overview.usage);
     $('online').innerHTML = renderOnlineTable(online.players);
   } catch (err) {

@@ -65,6 +65,48 @@ export interface AiLifeLayerMetricsSnapshot {
   lastMemoryPersistenceError?: string;
 }
 
+export interface AiContentCoverageReport {
+  families: {
+    expected: string[];
+    inContent: string[];
+    missingSemantics: string[];
+    semanticsWithoutContent: string[];
+    familiesMissingDepth: string[];
+    familiesWithInvalidMoodBias: string[];
+    templateCountByFamily: Record<string, number>;
+  };
+  npcs: {
+    interactiveTotal: number;
+    authoredProfileTotal: number;
+    missingInteractiveProfiles: string[];
+    authoredNpcProfilesMissingSceneAffinities: string[];
+    authoredNpcProfilesMissingItemInterest: string[];
+    authoredNpcProfilesMissingTimeWeatherSensitivity: string[];
+    authoredNpcProfilesWithThinMemory: string[];
+  };
+  scenes: {
+    anchorTotal: number;
+    semanticObjectTotal: number;
+    anchorsMissingSemanticObjects: string[];
+    anchorsMissingTags: string[];
+    anchorsMissingTagDepth: string[];
+    semanticObjectsMissingTags: string[];
+    semanticObjectsMissingTagDepth: string[];
+    semanticObjectsMissingAnchorOverlap: string[];
+  };
+  items: {
+    requiredTotal: number;
+    discardableTotal: number;
+    missingRequiredItems: string[];
+    requiredItemsMissingSignals: string[];
+    discardableItemsMissingSignals: string[];
+    importantItemsMissingSignals: string[];
+  };
+  lineIds: {
+    referenced: string[];
+  };
+}
+
 export interface Overview {
   accounts: number;
   characters: number;
@@ -75,6 +117,7 @@ export interface Overview {
   server: ServerStats;
   usage: ProviderUsageSnapshot;
   ai: AiLifeLayerMetricsSnapshot;
+  aiCoverage: AiContentCoverageReport;
 }
 
 export interface LivePlayer {
