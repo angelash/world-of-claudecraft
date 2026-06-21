@@ -64,7 +64,7 @@ const context: AiJobContextV1 = {
   },
   familySemantics: null,
   questFacts: [{ questId: 'q_bones', visibility: 'currentObjective', summary: 'Gather bones.', source: 'quest-log' }],
-  recentObservations: ['scene:fallen_chapel', 'tag:deathPressure'],
+  recentObservations: ['scene:fallen_chapel', 'tag:deathPressure', 'creaturePlan:followScent', 'planEvidence:trait:foodFixated'],
   memorySignals: [{
     kind: 'rumor',
     refId: 'rumor-7',
@@ -106,6 +106,7 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('Dropped items: gravecaller_sigil:Gravecaller Sigil(quest/grave/undead/cursed/story, fresh=4s)');
     expect(prompt).toContain('Companions: Fang:forest_wolf:beast(pet/beast)');
     expect(prompt).toContain('Recent scene events: playerDiscarded:gravecaller_sigil');
+    expect(prompt).toContain('Recent observations: scene:fallen_chapel, tag:deathPressure, creaturePlan:followScent, planEvidence:trait:foodFixated');
     expect(prompt).toContain('Memory signals: rumor:rumor-7:region:salience=0.65:readRegionRumor');
     expect(prompt).toContain('Return only JSON');
   });

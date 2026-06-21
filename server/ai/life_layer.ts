@@ -734,6 +734,7 @@ export class AiLifeLayer {
           curiosity: reaction.curiosity,
           reasonTags: reaction.reasonTags,
           individualTraits: reaction.individual.traits,
+          plan,
           memorySignals: memoryWrites,
         });
         if (context) reactionEvents = await this.decideSingularityReactionEvents(context, reaction.entity, localEvent, memoryWrites);
@@ -945,6 +946,7 @@ export class AiLifeLayer {
     curiosity: number;
     reasonTags: readonly string[];
     individualTraits: readonly string[];
+    plan?: AiCreaturePlan | null;
     memorySignals: readonly AiMemoryAuditRecord[];
   }): AiJobContextV1 | null {
     const meta = input.sim.meta(input.pid);
@@ -986,6 +988,11 @@ export class AiLifeLayer {
         `curiosity:${input.curiosity.toFixed(2)}`,
         `individualTier:singularity`,
         `individualTraits:${input.individualTraits.join('|') || 'none'}`,
+        ...(input.plan ? [
+          `creaturePlan:${input.plan.kind}`,
+          `planIntensity:${input.plan.intensity.toFixed(2)}`,
+          ...input.plan.evidence.slice(0, 5).map((evidence) => `planEvidence:${evidence}`),
+        ] : []),
         `suggestedLineId:${input.suggestedLineId}`,
         ...input.reasonTags.slice(0, 5).map((tag) => `reasonTag:${tag}`),
         ...(item ? [
@@ -1176,6 +1183,7 @@ export class AiLifeLayer {
             curiosity: reaction.curiosity,
             reasonTags: reaction.reasonTags,
             individualTraits: reaction.individual.traits,
+            plan,
             memorySignals: memoryWrites,
           });
           if (context) reactionEvents = await this.decideSingularityReactionEvents(context, reaction.entity, localEvent, memoryWrites);

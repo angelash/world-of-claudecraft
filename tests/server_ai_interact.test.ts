@@ -1348,6 +1348,65 @@ describe('server AI interact command', () => {
     expect(server.sim.meta(session.pid)!.xp).toBe(beforeXp);
   });
 
+  it('includes active creature plans in repeated singularity provider context', async () => {
+    const calls: AiJobContextV1[] = [];
+    const provider: AiProvider = {
+      async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
+        calls.push(context);
+        const suggestedLineId = context.recentObservations
+          .find((observation) => observation.startsWith('suggestedLineId:'))
+          ?.slice('suggestedLineId:'.length) ?? 'hudChrome.aiSpeech.itemInterestInspect';
+        if (calls.length === 2) {
+          expect(context.recentObservations).toEqual(expect.arrayContaining([
+            expect.stringMatching(/^creaturePlan:/),
+            expect.stringMatching(/^planIntensity:/),
+            'planEvidence:trigger:item_discarded',
+            'planEvidence:item:roasted_boar',
+          ]));
+          expect(context.memorySignals?.some((record) =>
+            record.kind === 'creatureMemory' && record.reason.includes(':plan:'))).toBe(true);
+        }
+        return {
+          schemaVersion: 1,
+          jobId: context.jobId,
+          entityRef: { kind: context.entity.kind, entityId: context.entity.entityId, templateId: context.entity.templateId },
+          ttlMs: 5000,
+          confidence: 0.92,
+          speech: [{ mode: 'lineId', lineId: suggestedLineId, values: { playerName: context.player.name } }],
+          intents: [{ type: 'inspectObject', lineId: suggestedLineId }],
+          audit: { shortReason: 'codex used the repeated creature plan context', usedPlayerInput: false, safetyNotes: [] },
+        };
+      },
+    };
+    const server = new GameServer();
+    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const player = server.sim.entities.get(session.pid)!;
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    server.sim.cfg.seed = seedThatMakesSingularity(wolf);
+    moveEntity(server, player, 900, 900);
+    moveEntity(server, wolf, 902, 900);
+    server.sim.addItem('roasted_boar', 2, session.pid);
+    const beforeWolfPos = { ...wolf.pos };
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    await flushAi();
+    fc.sent.length = 0;
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    await flushAi();
+
+    expect(calls).toHaveLength(2);
+    expect((server as any).aiLifeLayer.creaturePlanDiagnostics()).toContainEqual(expect.objectContaining({
+      entityId: wolf.id,
+      itemId: 'roasted_boar',
+      playerEntityId: session.pid,
+    }));
+    expect(wolf.pos.x).toBe(beforeWolfPos.x);
+    expect(wolf.pos.z).toBe(beforeWolfPos.z);
+    expect(server.sim.countItem('roasted_boar', session.pid)).toBe(0);
+  });
+
   it('falls back to local singularity item behavior when the creature AI provider fails', async () => {
     const provider: AiProvider = {
       async decide(): Promise<AiDecisionV1> {
