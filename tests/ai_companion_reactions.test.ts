@@ -171,7 +171,7 @@ describe('companionReactionEvents', () => {
     expect(reaction).toMatchObject({
       lineId: 'hudChrome.aiSpeech.companionSelfBeastScentUneasy',
       kind: 'inspect',
-      sceneTags: expect.arrayContaining(['director:echoTrace', 'mood:hungry']),
+      sceneTags: expect.arrayContaining(['director:echoTrace', 'mood:hungry', 'directorProjection:scavengerScent']),
     });
   });
 
@@ -192,7 +192,28 @@ describe('companionReactionEvents', () => {
     expect(reaction).toMatchObject({
       lineId: 'hudChrome.aiSpeech.companionSelfUndeadFear',
       kind: 'avoid',
-      sceneTags: expect.arrayContaining(['director:raiseCampCaution', 'mood:haunted']),
+      sceneTags: expect.arrayContaining(['director:raiseCampCaution', 'mood:haunted', 'directorProjection:mortalFear']),
+    });
+  });
+
+  it('lets social companions read covetous director rumors through the same family projection', () => {
+    const reaction = firstReaction(context({
+      family: 'humanoid',
+      location: ['forest'],
+      structure: [],
+      environmental: [],
+      directorProposals: [directorProposal({
+        intent: 'nudgeNpcRumor',
+        targetRef: 'redbrook_blade',
+        suggestedLineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+        reasonTags: ['mood:covetous', 'subject:item', 'proposal:npcTopicShift', 'trace:valuable'],
+      })],
+    }));
+
+    expect(reaction).toMatchObject({
+      lineId: 'hudChrome.aiSpeech.companionSelfMortalSafeHaven',
+      kind: 'inspect',
+      sceneTags: expect.arrayContaining(['directorProjection:civilRumor', 'family:humanoid']),
     });
   });
 });

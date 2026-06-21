@@ -16,6 +16,25 @@ export interface DirectorFamilyProjection {
   reasonTags: string[];
 }
 
+export function mobFamilyFromValue(value: string | null | undefined): MobFamily | null {
+  switch (value) {
+    case 'beast':
+    case 'humanoid':
+    case 'murloc':
+    case 'spider':
+    case 'kobold':
+    case 'undead':
+    case 'troll':
+    case 'ogre':
+    case 'elemental':
+    case 'dragonkin':
+    case 'demon':
+      return value;
+    default:
+      return null;
+  }
+}
+
 export function familyDirectorProjectionFor(
   proposal: AiWorldDirectorProposal,
   input: DirectorFamilyProjectionInput,

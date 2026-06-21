@@ -1,11 +1,13 @@
 import type { SimEvent } from '../../src/sim/types';
 import type { AiJobContextV1 } from './ai_types';
+import { familyDirectorProjectionFor, mobFamilyFromValue } from './director_family_projection';
 import type { SceneFrameV1 } from './scene_frame';
 import type { AiWorldDirectorProposal } from './world_director';
 
 interface CompanionReactionSpec {
   lineId: string;
   kind: 'avoid' | 'inspect';
+  reasonTags?: string[];
 }
 
 interface CompanionReactionOptions {
@@ -31,6 +33,10 @@ export function companionReactionEventsForScene(scene: SceneFrameV1, playerEntit
   for (const companion of scene.companions.slice(0, 2)) {
     const spec = reactionForCompanion(scene, companion.family, options.directorProposals ?? []);
     if (!spec) continue;
+    const companionSceneTags = [...new Set([
+      ...sceneTags,
+      ...(spec.reasonTags ?? []),
+    ])].slice(0, 8);
     out.push({
       type: 'aiSpeech',
       speakerId: companion.entityId,
@@ -47,7 +53,7 @@ export function companionReactionEventsForScene(scene: SceneFrameV1, playerEntit
       source: 'fallback',
       reaction: {
         kind: spec.kind,
-        sceneTags,
+        sceneTags: companionSceneTags,
       },
       pid: playerEntityId,
     });
@@ -93,6 +99,19 @@ function reactionForCompanion(scene: SceneFrameV1, family: string | null, direct
 }
 
 function reactionForDirectorProposal(family: string | null, proposals: readonly AiWorldDirectorProposal[]): CompanionReactionSpec | null {
+  const mobFamily = mobFamilyFromValue(family);
+  if (mobFamily) {
+    for (const proposal of proposals.slice(0, 3)) {
+      const projection = familyDirectorProjectionFor(proposal, { family: mobFamily });
+      if (!projection) continue;
+      return {
+        lineId: companionLineIdForProjection(mobFamily, projection.reaction),
+        kind: projection.reaction === 'avoid' ? 'avoid' : 'inspect',
+        reasonTags: projection.reasonTags,
+      };
+    }
+  }
+
   for (const proposal of proposals.slice(0, 3)) {
     const tags = new Set(proposal.reasonTags);
     if (proposal.intent === 'raiseCampCaution' || tags.has('mood:haunted') || tags.has('mood:dread')) {
@@ -112,6 +131,24 @@ function reactionForDirectorProposal(family: string | null, proposals: readonly 
     }
   }
   return null;
+}
+
+function companionLineIdForProjection(family: NonNullable<ReturnType<typeof mobFamilyFromValue>>, reaction: 'approach' | 'avoid' | 'inspect'): string {
+  if (reaction === 'avoid' && family !== 'undead' && family !== 'demon') return 'hudChrome.aiSpeech.companionSelfUndeadFear';
+  switch (family) {
+    case 'beast': return 'hudChrome.aiSpeech.companionSelfBeastScentUneasy';
+    case 'murloc': return 'hudChrome.aiSpeech.companionSelfMurlocWaterCall';
+    case 'spider': return 'hudChrome.aiSpeech.companionSelfSpiderStillness';
+    case 'undead': return 'hudChrome.aiSpeech.companionSelfUndeadDayHollow';
+    case 'elemental': return 'hudChrome.aiSpeech.companionSelfElementalResonance';
+    case 'dragonkin': return 'hudChrome.aiSpeech.companionSelfDragonkinWatch';
+    case 'demon': return 'hudChrome.aiSpeech.companionSelfDemonDefiance';
+    case 'humanoid':
+    case 'kobold':
+    case 'troll':
+    case 'ogre':
+      return 'hudChrome.aiSpeech.companionSelfMortalSafeHaven';
+  }
 }
 
 function directorSceneTags(proposals: readonly AiWorldDirectorProposal[]): string[] {

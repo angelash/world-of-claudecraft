@@ -1,4 +1,5 @@
 import type { AiJobContextV1 } from './ai_types';
+import { familyDirectorProjectionFor, mobFamilyFromValue } from './director_family_projection';
 
 export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
   const scene = context.scene;
@@ -97,6 +98,8 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
         `safety=${proposal.safetyNotes.join('/') || 'none'}`,
       ].join(':'))
       .join(', ')}`);
+    const familyProjectionSummary = directorFamilyProjectionSummary(context);
+    if (familyProjectionSummary) lines.push(familyProjectionSummary);
   }
   if (context.memorySignals && context.memorySignals.length > 0) {
     lines.push(`Memory signals: ${context.memorySignals
@@ -106,4 +109,30 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
   }
   lines.push('', 'Return only JSON. No Markdown. No commentary.');
   return lines.join('\n');
+}
+
+function directorFamilyProjectionSummary(context: AiJobContextV1): string | null {
+  const family = promptProjectionFamily(context);
+  if (!family || !context.directorProposals || context.directorProposals.length === 0) return null;
+  const summaries = context.directorProposals
+    .slice(0, 4)
+    .map((proposal) => {
+      const projection = familyDirectorProjectionFor(proposal, { family });
+      if (!projection) return null;
+      return [
+        `${proposal.intent}:${projection.reaction}`,
+        `curiosity=${projection.curiosity.toFixed(2)}`,
+        `fear=${projection.fear.toFixed(2)}`,
+        `reasons=${projection.reasonTags.slice(0, 6).join('/') || 'none'}`,
+      ].join(':');
+    })
+    .filter((summary): summary is string => summary !== null);
+  if (summaries.length === 0) return null;
+  return `Director family projection (${family}): ${summaries.join(', ')}`;
+}
+
+function promptProjectionFamily(context: AiJobContextV1) {
+  const semanticFamily = mobFamilyFromValue(context.familySemantics?.family);
+  if (semanticFamily) return semanticFamily;
+  return context.entity.kind === 'npc' ? 'humanoid' : null;
 }
