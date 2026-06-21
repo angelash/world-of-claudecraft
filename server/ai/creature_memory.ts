@@ -18,14 +18,17 @@ export interface AiCreatureMemory {
 
 export interface AiCreatureMemoryStoreOptions {
   memoryTtlSeconds?: number;
+  maxMemories?: number;
 }
 
 export class AiCreatureMemoryStore {
   private readonly memories = new Map<string, AiCreatureMemory>();
   private readonly memoryTtlSeconds: number;
+  private readonly maxMemories: number;
 
   constructor(options: AiCreatureMemoryStoreOptions = {}) {
     this.memoryTtlSeconds = Math.max(1, Math.floor(options.memoryTtlSeconds ?? 300));
+    this.maxMemories = Math.max(1, Math.floor(options.maxMemories ?? 80));
   }
 
   noteSingularityReaction(input: {
@@ -50,6 +53,7 @@ export class AiCreatureMemoryStore {
       expiresAt: input.nowSeconds + this.memoryTtlSeconds,
     };
     this.memories.set(key, next);
+    this.trimMemories();
     return copyMemory(next);
   }
 
@@ -61,6 +65,15 @@ export class AiCreatureMemoryStore {
     for (const [key, memory] of this.memories) {
       if (memory.expiresAt <= nowSeconds) this.memories.delete(key);
     }
+  }
+
+  private trimMemories(): void {
+    if (this.memories.size <= this.maxMemories) return;
+    const overflow = this.memories.size - this.maxMemories;
+    const oldest = [...this.memories.entries()]
+      .sort((a, b) => a[1].lastSeenAt - b[1].lastSeenAt)
+      .slice(0, overflow);
+    for (const [key] of oldest) this.memories.delete(key);
   }
 }
 

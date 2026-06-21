@@ -28,16 +28,22 @@ export interface AiRumorMemory {
 
 export interface AiSocialMemoryStoreOptions {
   rumorTtlSeconds?: number;
+  maxNpcMemories?: number;
+  maxRumors?: number;
 }
 
 export class AiSocialMemoryStore {
   private readonly npcMemories = new Map<string, AiNpcMemory>();
   private readonly rumors: AiRumorMemory[] = [];
   private readonly rumorTtlSeconds: number;
+  private readonly maxNpcMemories: number;
+  private readonly maxRumors: number;
   private rumorSequence = 0;
 
   constructor(options: AiSocialMemoryStoreOptions = {}) {
     this.rumorTtlSeconds = Math.max(1, Math.floor(options.rumorTtlSeconds ?? 90));
+    this.maxNpcMemories = Math.max(1, Math.floor(options.maxNpcMemories ?? 120));
+    this.maxRumors = Math.max(1, Math.floor(options.maxRumors ?? 12));
   }
 
   noteNpcInteraction(context: AiJobContextV1, nowSeconds = 0): AiNpcMemory {
@@ -54,6 +60,7 @@ export class AiSocialMemoryStore {
       sceneIds: mergeRecent(prev?.sceneIds ?? [], sceneId, 5),
     };
     this.npcMemories.set(key, next);
+    this.trimNpcMemories();
     return next;
   }
 
@@ -81,7 +88,7 @@ export class AiSocialMemoryStore {
       expiresAt: input.nowSeconds + this.rumorTtlSeconds,
     };
     this.rumors.unshift(rumor);
-    this.rumors.splice(12);
+    this.rumors.splice(this.maxRumors);
     return rumor;
   }
 
@@ -110,7 +117,7 @@ export class AiSocialMemoryStore {
       expiresAt: input.nowSeconds + this.rumorTtlSeconds,
     };
     this.rumors.unshift(rumor);
-    this.rumors.splice(12);
+    this.rumors.splice(this.maxRumors);
     return rumor;
   }
 
@@ -150,6 +157,15 @@ export class AiSocialMemoryStore {
     for (let i = this.rumors.length - 1; i >= 0; i--) {
       if (this.rumors[i].expiresAt <= nowSeconds) this.rumors.splice(i, 1);
     }
+  }
+
+  private trimNpcMemories(): void {
+    if (this.npcMemories.size <= this.maxNpcMemories) return;
+    const overflow = this.npcMemories.size - this.maxNpcMemories;
+    const oldest = [...this.npcMemories.entries()]
+      .sort((a, b) => a[1].lastInteractionAt - b[1].lastInteractionAt)
+      .slice(0, overflow);
+    for (const [key] of oldest) this.npcMemories.delete(key);
   }
 
   private activeRumorSnapshot(

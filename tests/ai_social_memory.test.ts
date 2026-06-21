@@ -49,6 +49,20 @@ describe('AI social memory', () => {
     expect(second.sceneIds).toContain('eastbrook_forge');
   });
 
+  it('keeps long-running NPC interaction memory bounded by recency', () => {
+    const store = new AiSocialMemoryStore({ maxNpcMemories: 3 });
+    for (let i = 1; i <= 6; i++) {
+      store.noteNpcInteraction({
+        ...context,
+        player: { ...context.player, entityId: i, name: `Player ${i}` },
+      }, i);
+    }
+
+    const memories = store.snapshot().npcMemories;
+    expect(memories).toHaveLength(3);
+    expect(memories.map((memory) => memory.playerEntityId).sort((a, b) => a - b)).toEqual([4, 5, 6]);
+  });
+
   it('turns repeated interaction and same-scene rumors into lineId events', () => {
     const store = new AiSocialMemoryStore();
     const first = store.noteNpcInteraction(context, 0);
@@ -231,6 +245,24 @@ describe('AI social memory', () => {
     expect(store.rumorForScene('mirror_lake_dock', 1, 13)).toBeNull();
     expect(store.rumorForScene('eastbrook_forge', 2, 13)).toBeNull();
     expect(store.rumorForScene('eastbrook_forge', 1, 15)).toBeNull();
+  });
+
+  it('keeps long-running rumor streams bounded by the configured budget', () => {
+    const store = new AiSocialMemoryStore({ maxRumors: 4, rumorTtlSeconds: 300 });
+    for (let i = 1; i <= 9; i++) {
+      store.noteItemRumor({
+        sceneId: `scene_${i}`,
+        zoneId: 'eastbrook_vale',
+        itemId: `item_${i}`,
+        sourcePlayerEntityId: 1,
+        lineIds: ['hudChrome.aiSpeech.itemInterestInspect'],
+        nowSeconds: i,
+      });
+    }
+
+    const rumors = store.snapshot().rumors;
+    expect(rumors).toHaveLength(4);
+    expect(rumors.map((rumor) => rumor.itemId)).toEqual(['item_9', 'item_8', 'item_7', 'item_6']);
   });
 
   it('lets item rumors propagate inside the same region without becoming global', () => {

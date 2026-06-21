@@ -69,6 +69,23 @@ describe('AI creature memory', () => {
     expect(afterExpiry.interactionCount).toBe(1);
   });
 
+  it('keeps long-running singularity creature memories bounded by recency', () => {
+    const store = new AiCreatureMemoryStore({ memoryTtlSeconds: 1_000, maxMemories: 2 });
+    for (let i = 0; i < 5; i++) {
+      const entity = { ...creature, id: 20 + i, templateId: `forest_wolf_${i}` } as Entity;
+      store.noteSingularityReaction({
+        entity,
+        player,
+        individual: { ...individual, entityId: entity.id, templateId: entity.templateId },
+        nowSeconds: 10 + i,
+      });
+    }
+
+    const memories = store.snapshot();
+    expect(memories).toHaveLength(2);
+    expect(memories.map((memory) => memory.entityId).sort((a, b) => a - b)).toEqual([23, 24]);
+  });
+
   it('emits a singularity scene memory line after repeated scene sightings', () => {
     const store = new AiCreatureMemoryStore({ memoryTtlSeconds: 30 });
     const first = store.noteSingularityReaction({ entity: creature, player, individual, nowSeconds: 10 });

@@ -69,6 +69,25 @@ describe('AI world director', () => {
     expect(store.stateForScene('eastbrook_forge', 1, 20)).toBeNull();
   });
 
+  it('keeps long-running area state streams bounded by the configured budget', () => {
+    const store = new AiWorldDirectorStore({ maxStates: 5, stateTtlSeconds: 7_200 });
+    for (let i = 0; i < 40; i++) {
+      store.noteTrace({
+        trace: {
+          ...trace(i % 2 === 0 ? 'food' : 'valuable', `item_${i}`),
+          traceId: `trace-${i}`,
+          sceneId: `scene_${i}`,
+          zoneId: i % 3 === 0 ? 'eastbrook_vale' : 'mirefen_marsh',
+        },
+        nowSeconds: i * 90,
+      });
+    }
+
+    const states = store.snapshot();
+    expect(states).toHaveLength(5);
+    expect(states.map((state) => state.itemId)).toEqual(['item_39', 'item_38', 'item_37', 'item_36', 'item_35']);
+  });
+
   it('turns active director states into personal aiSpeech events', () => {
     const store = new AiWorldDirectorStore();
     const state = store.noteTrace({ trace: trace('cursed', 'gravecaller_sigil'), nowSeconds: 10 });
