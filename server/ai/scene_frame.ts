@@ -1,4 +1,4 @@
-import { ITEMS, MOBS } from '../../src/sim/data';
+import { ITEMS, MOBS, NPCS } from '../../src/sim/data';
 import type { Sim } from '../../src/sim/sim';
 import type { Entity, Vec3 } from '../../src/sim/types';
 import { dist2d } from '../../src/sim/types';
@@ -66,6 +66,7 @@ export interface SceneFrameV1 {
 export interface SceneFrameOptions {
   droppedItems?: DroppedItemSemantic[];
   recentSceneEvents?: string[];
+  excludeEntityIds?: readonly number[];
 }
 
 const OBJECT_RADIUS = 28;
@@ -78,7 +79,7 @@ export function sceneFrameFor(sim: Sim, pos: Vec3, options: SceneFrameOptions = 
     ...scene,
     nearbySemanticObjects: nearbyObjects(sim, pos),
     droppedItems: options.droppedItems ?? [],
-    companions: nearbyCompanions(sim, pos),
+    companions: nearbyCompanions(sim, pos, new Set(options.excludeEntityIds ?? [])),
     mood: timeWeatherMood(scene.time, scene.weather, scene.light),
     recentSceneEvents: options.recentSceneEvents ?? [],
     danger: sceneDanger(sim, pos, scene.locationTags, scene.environmentalTags),
@@ -141,22 +142,79 @@ function nearbyAnchorObjects(pos: Vec3): SceneObjectSemantic[] {
     .filter((object) => object.distance <= (anchor.semanticObjects.find((candidate) => candidate.id === object.objectId)?.radius ?? anchor.radius));
 }
 
-function nearbyCompanions(sim: Sim, pos: Vec3): CompanionSemantic[] {
-  const out: CompanionSemantic[] = [];
+function nearbyCompanions(sim: Sim, pos: Vec3, excludeEntityIds: ReadonlySet<number>): CompanionSemantic[] {
+  const out: Array<{ companion: CompanionSemantic; distance: number; priority: number }> = [];
   for (const entity of sim.entities.values()) {
-    if (entity.kind !== 'mob' || entity.ownerId === null) continue;
+    if (excludeEntityIds.has(entity.id) || entity.dead) continue;
     const distance = dist2d(pos, entity.pos);
     if (distance > COMPANION_RADIUS) continue;
-    const family = MOBS[entity.templateId]?.family ?? null;
+    if (entity.kind === 'mob' && entity.ownerId !== null) {
+      const family = MOBS[entity.templateId]?.family ?? null;
+      out.push({
+        companion: {
+          entityId: entity.id,
+          templateId: entity.templateId,
+          displayName: entity.name,
+          family,
+          tags: family ? ['pet', family] : ['pet'],
+        },
+        distance,
+        priority: 0,
+      });
+      continue;
+    }
+    if (entity.kind !== 'npc' || !isNpcCompanionLike(entity)) continue;
     out.push({
-      entityId: entity.id,
-      templateId: entity.templateId,
-      displayName: entity.name,
-      family,
-      tags: family ? ['pet', family] : ['pet'],
+      companion: {
+        entityId: entity.id,
+        templateId: entity.templateId,
+        displayName: NPCS[entity.templateId]?.name ?? entity.name,
+        family: 'humanoid',
+        tags: npcCompanionTags(entity),
+      },
+      distance,
+      priority: npcCompanionPriority(entity),
     });
   }
-  return out;
+  return out
+    .sort((a, b) => a.priority - b.priority || a.distance - b.distance || a.companion.entityId - b.companion.entityId)
+    .slice(0, 6)
+    .map((entry) => entry.companion);
+}
+
+function isNpcCompanionLike(entity: Entity): boolean {
+  if (entity.kind !== 'npc') return false;
+  return entity.questIds.length > 0
+    || entity.vendorItems.length > 0
+    || isHighStatusNpc(entity)
+    || isInjured(entity);
+}
+
+function npcCompanionTags(entity: Entity): string[] {
+  const tags = ['npc', 'humanoid'];
+  if (entity.questIds.length > 0) tags.push('questNpc');
+  if (entity.vendorItems.length > 0) tags.push('vendor');
+  if (isHighStatusNpc(entity)) tags.push('highStatus');
+  if (isInjured(entity)) tags.push('injured');
+  if (dist2d(entity.pos, entity.spawnPos) > 10) tags.push('escortLike');
+  return tags;
+}
+
+function npcCompanionPriority(entity: Entity): number {
+  if (isInjured(entity)) return 1;
+  if (isHighStatusNpc(entity)) return 2;
+  if (entity.questIds.length > 0) return 3;
+  return 4;
+}
+
+function isInjured(entity: Entity): boolean {
+  return entity.maxHp > 0 && entity.hp > 0 && entity.hp / entity.maxHp <= 0.55;
+}
+
+function isHighStatusNpc(entity: Entity): boolean {
+  const npc = NPCS[entity.templateId];
+  if (!npc) return false;
+  return /(marshal|captain|warden|tidewatcher|loremaster|quartermaster|master|keeper)/i.test(`${npc.name} ${npc.title}`);
 }
 
 function sceneDanger(sim: Sim, pos: Vec3, locationTags: string[], environmentalTags: string[]): SceneDangerSemantic {

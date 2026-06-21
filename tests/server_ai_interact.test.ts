@@ -603,6 +603,46 @@ describe('server AI interact command', () => {
     expect(mainlineSnapshot(server, session.pid)).toEqual(beforeSnapshot);
   });
 
+  it('lets a nearby key NPC self-react as a scene companion without changing mainline state', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const player = server.sim.entities.get(session.pid)!;
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
+    moveEntity(server, player, 80, 86);
+    moveEntity(server, npc, 81, 86);
+    const beforeSnapshot = mainlineSnapshot(server, session.pid);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      speakerName: 'Brother Aldric',
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.companionSelfUndeadFear',
+        values: expect.objectContaining({
+          companionName: 'Brother Aldric',
+          companionTemplateId: 'brother_aldric',
+          sceneId: 'fallen_chapel',
+        }),
+      }),
+      source: 'fallback',
+      reaction: expect.objectContaining({
+        kind: 'avoid',
+        sceneTags: expect.arrayContaining(['ruinedChapel', 'undeadMemory']),
+      }),
+      pid: session.pid,
+    }));
+    expect((server as any).aiLifeLayer.diagnostics()).toContainEqual(expect.objectContaining({
+      trigger: 'scene_inspected',
+      lineIds: expect.arrayContaining(['hudChrome.aiSpeech.companionSelfUndeadFear']),
+      intents: expect.arrayContaining(['reactToCompanion']),
+      sceneId: 'fallen_chapel',
+    }));
+    expect(mainlineSnapshot(server, session.pid)).toEqual(beforeSnapshot);
+  });
+
   it('routes natural-language pet commands through the AI provider into existing pet mode commands', async () => {
     const provider: AiProvider = {
       async decide(context: AiJobContextV1): Promise<AiDecisionV1> {

@@ -46,6 +46,37 @@ describe('AI scene semantics', () => {
     expect(frame.danger.safeHavenScore).toBeLessThan(0.5);
   });
 
+  it('adds nearby key NPCs to scene companions with authored semantic tags', () => {
+    const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+    const frame = sceneFrameFor(sim, pos(4, 6, sim.cfg.seed));
+
+    expect(frame.companions).toContainEqual(expect.objectContaining({
+      templateId: 'marshal_redbrook',
+      displayName: 'Marshal Redbrook',
+      family: 'humanoid',
+      tags: expect.arrayContaining(['npc', 'humanoid', 'questNpc', 'highStatus']),
+    }));
+  });
+
+  it('marks nearby injured NPCs as companions without including excluded speakers', () => {
+    const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+    const apothecary = [...sim.entities.values()].find((entity) => entity.templateId === 'apothecary_lin');
+    expect(apothecary).toBeTruthy();
+    apothecary!.questIds = [];
+    apothecary!.vendorItems = [];
+    apothecary!.hp = Math.floor(apothecary!.maxHp * 0.4);
+
+    const included = sceneFrameFor(sim, pos(11, -3, sim.cfg.seed));
+    expect(included.companions).toContainEqual(expect.objectContaining({
+      templateId: 'apothecary_lin',
+      family: 'humanoid',
+      tags: expect.arrayContaining(['npc', 'humanoid', 'injured']),
+    }));
+
+    const excluded = sceneFrameFor(sim, pos(11, -3, sim.cfg.seed), { excludeEntityIds: [apothecary!.id] });
+    expect(excluded.companions.some((companion) => companion.entityId === apothecary!.id)).toBe(false);
+  });
+
   it('distinguishes clear starry nights from rain and fog mood pressure', () => {
     const night = timeSemanticAt(23 * 60);
     const clear = { kind: 'clear' as const, intensity: 0.2, tags: ['clearSky'] };

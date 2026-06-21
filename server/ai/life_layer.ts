@@ -1311,7 +1311,7 @@ export class AiLifeLayer {
     const kind = aiEntityKind(npc);
     if (!kind) return null;
     const profile = profileFor(kind, npc.templateId);
-    const scene = sceneFrameFor(request.sim, npc.pos);
+    const scene = sceneFrameFor(request.sim, npc.pos, { excludeEntityIds: [npc.id] });
     const questFacts = npc.questIds
       .map((questId) => {
         const quest = QUESTS[questId];
