@@ -4,6 +4,7 @@ import { memoryReactionEvent } from '../server/ai/memory_reactions';
 import { compactProfileSnapshot, profileFor } from '../server/ai/profiles';
 import { topicReactionEvent } from '../server/ai/question_reactions';
 import { AiSocialMemoryStore } from '../server/ai/social_memory';
+import { NPCS } from '../src/sim/data';
 import type { Entity } from '../src/sim/types';
 
 const context: AiJobContextV1 = {
@@ -186,6 +187,17 @@ describe('AI social memory', () => {
       expect(profile.itemInterest?.attractedToTags.length ?? 0).toBeGreaterThanOrEqual(5);
       expect(profile.timeWeatherSensitivity?.nightFatigue ?? 0).toBeGreaterThan(0);
     }
+  });
+
+  it('keeps all interactive content NPCs covered by living-world profiles', () => {
+    const interactiveNpcIds = Object.values(NPCS)
+      .filter((npc) => npc.questIds.length > 0 || (npc.vendorItems?.length ?? 0) > 0 || npc.market === true)
+      .map((npc) => npc.id)
+      .sort();
+    expect(interactiveNpcIds.length).toBeGreaterThan(0);
+
+    const missing = interactiveNpcIds.filter((npcId) => profileFor('npc', npcId).id === 'npc.generic.living_world');
+    expect(missing).toEqual([]);
   });
 
   it('turns explicit NPC question topics into local lineId answers', () => {
