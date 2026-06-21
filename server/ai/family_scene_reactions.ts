@@ -1,6 +1,7 @@
 import type { Entity, MobFamily, SimEvent } from '../../src/sim/types';
-import type { SceneFrameV1 } from './scene_frame';
+import type { SceneFrameV1, SceneObjectSemantic } from './scene_frame';
 import { familySemanticsFor, mobFamilyForEntity } from './family_semantics';
+import type { FamilySemantics } from './family_semantics';
 import { individualProfileFor, individualSpeechValues } from './singularity';
 import type { IndividualAiProfile } from './singularity';
 
@@ -16,6 +17,7 @@ export interface FamilySceneReaction {
   reasonTags: string[];
   lineId: string;
   individual: IndividualAiProfile;
+  focusedObject?: FamilySceneFocusedObject;
 }
 
 export interface FamilySceneReactionOptions {
@@ -24,7 +26,93 @@ export interface FamilySceneReactionOptions {
   quirkThreshold?: number;
 }
 
+export interface FamilySceneFocusedObject {
+  objectId: string;
+  entityId: number | null;
+  templateId: string;
+  reaction: Exclude<FamilySceneReactionKind, 'ignore'>;
+  reasonTags: string[];
+  distance: number;
+}
+
+interface FamilyObjectCueRules {
+  approachTags: readonly string[];
+  avoidTags: readonly string[];
+  inspectTags: readonly string[];
+}
+
 const REACTION_RADIUS = 28;
+const GENERIC_OBJECT_INSPECT_TAGS = [
+  'inspectObject',
+  'readObject',
+  'readNotice',
+  'listenForEcho',
+  'listenForDead',
+  'watchCrowd',
+  'watchSmoke',
+  'watchReflection',
+  'peerBelow',
+  'readOldMarks',
+  'feelWatched',
+] as const;
+
+const FAMILY_OBJECT_CUES: Record<MobFamily, FamilyObjectCueRules> = {
+  beast: {
+    approachTags: ['sniffObject', 'sniffFish', 'drinkWater', 'strongScent', 'fishScales', 'softRipples', 'muddyBank'],
+    avoidTags: ['avoidHeat', 'avoidObject', 'fleeFromDark', 'avoidDesecration', 'uneasyAura', 'hotIron', 'sparks', 'boneDust'],
+    inspectTags: ['trackRipples', 'listenForSteps', 'paceCarefully'],
+  },
+  humanoid: {
+    approachTags: ['seekShelter', 'askForHelp', 'standGuard', 'signalTown', 'readNotice', 'haggle', 'repairGear', 'watchSoldiers'],
+    avoidTags: ['fleeFromDark', 'avoidObject', 'avoidDesecration', 'feelWatched', 'avoidAmbush', 'boneDust', 'uneasyAura'],
+    inspectTags: ['inspectOfferings', 'listenForEcho', 'readOldMarks', 'watchCrowd', 'watchSmoke'],
+  },
+  murloc: {
+    approachTags: ['sniffFish', 'drinkWater', 'peerBelow', 'borrowBait', 'watchReflection', 'wetWood', 'fishScales', 'softRipples'],
+    avoidTags: ['avoidHeat', 'avoidDeepWater', 'hotIron', 'sparks', 'dryHighland'],
+    inspectTags: ['paceCarefully', 'trackRipples', 'listenAtDoor'],
+  },
+  spider: {
+    approachTags: ['hideInReeds', 'avoidAmbush', 'listenForSteps', 'trackMovement', 'tallReeds', 'hiddenTracks', 'lowVisibility'],
+    avoidTags: ['avoidHeat', 'strongWind', 'warmHands', 'signalDanger', 'sparks'],
+    inspectTags: ['feelWatched', 'trackRipples', 'listenForDead'],
+  },
+  kobold: {
+    approachTags: ['collectObject', 'glintingSurface', 'readNotice', 'hideBehindStone', 'takeCover', 'repairGear', 'workedMetal'],
+    avoidTags: ['avoidDeepWater', 'avoidAmbush', 'fleeFromDark', 'avoidObject', 'uneasyAura', 'coldDraft'],
+    inspectTags: ['listenForEcho', 'listenForSteps', 'readOldMarks'],
+  },
+  undead: {
+    approachTags: ['guardEntrance', 'listenForDead', 'feelWatched', 'readOldMarks', 'hesitateAtThreshold', 'graveSoil', 'boneDust'],
+    avoidTags: ['warmHands', 'signalDanger', 'askForHelp', 'safeTown', 'sunBlessed'],
+    inspectTags: ['inspectOfferings', 'prayUneasily', 'readOldMarks'],
+  },
+  troll: {
+    approachTags: ['sniffObject', 'warmHands', 'blockPath', 'collectObject', 'strongScent', 'workedMetal', 'repairGear'],
+    avoidTags: ['avoidDesecration', 'avoidObject', 'poisonedMeat', 'uneasyAura'],
+    inspectTags: ['watchCrowd', 'watchSoldiers', 'listenForSteps'],
+  },
+  ogre: {
+    approachTags: ['blockPath', 'collectObject', 'warmHands', 'workedMetal', 'repairGear', 'standGuard', 'strongScent'],
+    avoidTags: ['narrowPath', 'avoidObject', 'fleeFromDark', 'uneasyAura', 'binding'],
+    inspectTags: ['watchSoldiers', 'watchSmoke', 'listenForSteps'],
+  },
+  elemental: {
+    approachTags: ['warmHands', 'drinkWater', 'watchReflection', 'leanIntoWind', 'signalDanger', 'watchSmoke', 'moonlitWater'],
+    avoidTags: ['avoidObject', 'bindingRune', 'drainingRelic', 'uneasyAura'],
+    inspectTags: ['readOldMarks', 'feelWatched', 'peerBelow', 'listenForDead'],
+  },
+  dragonkin: {
+    approachTags: ['scanRoad', 'watchReflection', 'readOldMarks', 'guardEntrance', 'standGuard', 'takeCover', 'highView'],
+    avoidTags: ['avoidDesecration', 'defiledRuin', 'bindingCircle', 'falseOffering', 'uneasyAura'],
+    inspectTags: ['inspectOfferings', 'readNotice', 'watchSmoke', 'listenForDead'],
+  },
+  demon: {
+    approachTags: ['avoidDesecration', 'fleeFromDark', 'feelWatched', 'guardEntrance', 'hotIron', 'sparks', 'uneasyAura'],
+    avoidTags: ['prayUneasily', 'askForHelp', 'signalTown', 'safeTown', 'holy', 'ward'],
+    inspectTags: ['inspectOfferings', 'listenForDead', 'watchCrowd'],
+  },
+};
 
 export function nearbyFamilySceneCandidates(scene: SceneFrameV1, entities: Iterable<Entity>, origin: Entity): Entity[] {
   const radius = scene.locationTags.includes('safeTown') ? 18 : REACTION_RADIUS;
@@ -70,6 +158,11 @@ export function scoreFamilySceneReaction(
   const moodBias = timeWeatherReactionBias(scene, family, rules.moodBias.fatigue);
   curiosity += moodBias.curiosity;
   fear += moodBias.fear;
+  const objectCue = sceneObjectReactionCue(scene, family, rules, individual);
+  curiosity += objectCue.curiosity;
+  fear += objectCue.fear;
+  if (objectCue.focus?.reaction === 'avoid') fear += 0.08;
+  else if (objectCue.focus?.reaction === 'approach') curiosity += 0.05;
 
   const deathScene = sceneTags.has('deathPressure') || sceneTags.has('undeadMemory') || sceneTags.has('graveSoil') || sceneTags.has('oldBlood');
   if (scene.danger.undeadPressure >= 0.25 || deathScene) {
@@ -99,7 +192,7 @@ export function scoreFamilySceneReaction(
   fear = clamp01(fear);
   const score = clamp01(Math.max(curiosity, fear));
   if (score < 0.3) return null;
-  const reaction: FamilySceneReactionKind = fear > curiosity + 0.12 ? 'avoid' : curiosity > 0.55 ? 'approach' : 'inspect';
+  const reaction: FamilySceneReactionKind = fear > curiosity + 0.08 ? 'avoid' : curiosity > 0.55 ? 'approach' : 'inspect';
   return {
     entity,
     family,
@@ -107,13 +200,18 @@ export function scoreFamilySceneReaction(
     score,
     fear,
     curiosity,
-    reasonTags: explainSceneTags(scene, rules.sceneAmplifiers, rules.sceneSuppressors, reaction, moodBias.reasonTags),
+    reasonTags: explainSceneTags(scene, rules.sceneAmplifiers, rules.sceneSuppressors, reaction, [
+      ...moodBias.reasonTags,
+      ...objectCue.reasonTags,
+    ]),
     lineId: lineIdForFamilyScene(family, reaction),
     individual,
+    ...(objectCue.focus ? { focusedObject: objectCue.focus } : {}),
   };
 }
 
 export function familySceneReactionEvent(reaction: FamilySceneReaction, scene: SceneFrameV1, pid: number): SimEvent {
+  const focusedObject = reaction.focusedObject;
   return {
     type: 'aiSpeech',
     speakerId: reaction.entity.id,
@@ -127,6 +225,10 @@ export function familySceneReactionEvent(reaction: FamilySceneReaction, scene: S
         family: reaction.family,
         reaction: reaction.reaction,
         score: Math.round(reaction.score * 100),
+        ...(focusedObject ? {
+          sceneObjectId: focusedObject.objectId,
+          sceneObjectTemplateId: focusedObject.templateId,
+        } : {}),
         ...individualSpeechValues(reaction.individual),
       },
     },
@@ -134,7 +236,15 @@ export function familySceneReactionEvent(reaction: FamilySceneReaction, scene: S
     reaction: {
       kind: reaction.reaction,
       score: Math.round(reaction.score * 100) / 100,
-      sceneTags: [...new Set([...reaction.reasonTags, ...scene.locationTags, ...scene.structureTags, ...scene.environmentalTags])].slice(0, 8),
+      ...(focusedObject && focusedObject.entityId !== null ? { targetObjectId: focusedObject.entityId } : {}),
+      ...(focusedObject ? { targetItemId: focusedObject.objectId } : {}),
+      sceneTags: [...new Set([
+        ...reaction.reasonTags,
+        ...(focusedObject?.reasonTags ?? []),
+        ...scene.locationTags,
+        ...scene.structureTags,
+        ...scene.environmentalTags,
+      ])].slice(0, 8),
       individualTier: reaction.individual.tier,
       individualTraits: reaction.individual.traits,
     },
@@ -174,6 +284,108 @@ function sceneTagSet(scene: SceneFrameV1): Set<string> {
     ...scene.weather.tags,
     ...scene.light.tags,
   ]);
+}
+
+function sceneObjectReactionCue(
+  scene: SceneFrameV1,
+  family: MobFamily,
+  rules: FamilySemantics,
+  individual: IndividualAiProfile,
+): { curiosity: number; fear: number; reasonTags: string[]; focus?: FamilySceneFocusedObject } {
+  const objectRules = FAMILY_OBJECT_CUES[family];
+  let best: {
+    curiosity: number;
+    fear: number;
+    score: number;
+    focus: FamilySceneFocusedObject;
+  } | null = null;
+  for (const object of scene.nearbySemanticObjects) {
+    const tags = objectTagSet(object);
+    const approachMatches = matchingTags(tags, [
+      ...rules.attractedItemTags,
+      ...rules.sceneAmplifiers,
+      ...objectRules.approachTags,
+    ]);
+    const avoidMatches = matchingTags(tags, [
+      ...rules.avoidedItemTags,
+      ...rules.sceneSuppressors,
+      ...objectRules.avoidTags,
+    ]);
+    const inspectMatches = matchingTags(tags, [
+      ...GENERIC_OBJECT_INSPECT_TAGS,
+      ...objectRules.inspectTags,
+    ]);
+    const proximity = object.distance <= 8 ? 0.08 : object.distance <= 16 ? 0.04 : 0;
+    let curiosity = approachMatches.length * 0.13 + inspectMatches.length * 0.06 + proximity;
+    let fear = avoidMatches.length * 0.14 + (object.distance <= 10 && avoidMatches.length > 0 ? 0.06 : 0);
+    if (individual.tier !== 'none') {
+      const boost = individual.tier === 'singularity' ? 0.08 : 0.04;
+      if (individual.traits.includes('collector') || individual.traits.includes('territorial')) curiosity += boost;
+      if (individual.traits.includes('cowardly') || individual.traits.includes('omenSensitive')) fear += boost * (avoidMatches.length > 0 ? 1 : 0.45);
+    }
+    const score = Math.max(curiosity, fear);
+    if (score < 0.14) continue;
+    const objectReaction: Exclude<FamilySceneReactionKind, 'ignore'> = fear > curiosity + 0.06
+      ? 'avoid'
+      : curiosity > 0.22
+        ? 'approach'
+        : 'inspect';
+    const focus: FamilySceneFocusedObject = {
+      objectId: object.objectId,
+      entityId: object.entityId,
+      templateId: object.templateId,
+      reaction: objectReaction,
+      reasonTags: objectReasonTags(object, objectReaction, approachMatches, avoidMatches, inspectMatches),
+      distance: object.distance,
+    };
+    if (!best || score > best.score || (score === best.score && object.distance < best.focus.distance)) {
+      best = { curiosity, fear, score, focus };
+    }
+  }
+  if (!best) return { curiosity: 0, fear: 0, reasonTags: [] };
+  return {
+    curiosity: best.curiosity,
+    fear: best.fear,
+    reasonTags: best.focus.reasonTags,
+    focus: best.focus,
+  };
+}
+
+function objectTagSet(object: SceneObjectSemantic): Set<string> {
+  return new Set([
+    ...object.tags,
+    ...object.featureTags,
+    ...object.affordanceTags,
+  ]);
+}
+
+function matchingTags(tags: ReadonlySet<string>, needles: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const tag of needles) {
+    if (tags.has(tag) && !out.includes(tag)) out.push(tag);
+  }
+  return out;
+}
+
+function objectReasonTags(
+  object: SceneObjectSemantic,
+  reaction: Exclude<FamilySceneReactionKind, 'ignore'>,
+  approachMatches: readonly string[],
+  avoidMatches: readonly string[],
+  inspectMatches: readonly string[],
+): string[] {
+  const primary = reaction === 'avoid'
+    ? avoidMatches
+    : reaction === 'approach'
+      ? approachMatches
+      : inspectMatches;
+  return [...new Set([
+    ...primary,
+    ...inspectMatches,
+    ...object.affordanceTags,
+    ...object.featureTags,
+    ...object.tags,
+  ])].slice(0, 5);
 }
 
 function explainSceneTags(
