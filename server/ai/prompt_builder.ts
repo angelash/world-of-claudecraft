@@ -43,13 +43,29 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
         ...scene.environmentalTags,
       ].slice(0, 18).join(', ')}`,
       `Time/weather: ${scene.time.phase}, ${scene.weather.kind}, light ${scene.light.level}`,
+      `Time/weather mood: dayEnergy=${scene.mood.dayEnergy.toFixed(2)}, nightFatigue=${scene.mood.nightFatigue.toFixed(2)}, clearNightAwe=${scene.mood.clearNightAwe.toFixed(2)}, rainIrritation=${scene.mood.rainIrritation.toFixed(2)}, fogFear=${scene.mood.fogFear.toFixed(2)}`,
       `Danger: undead=${scene.danger.undeadPressure.toFixed(2)}, hostile=${scene.danger.hostileDensity.toFixed(2)}, safe=${scene.danger.safeHavenScore.toFixed(2)}`,
     );
     if (scene.nearbySemanticObjects.length > 0) {
       lines.push(`Nearby semantic objects: ${scene.nearbySemanticObjects
         .slice(0, 6)
-        .map((object) => `${object.objectId}(${object.tags.slice(0, 4).join('/')}, ${object.distance}yd)`)
+        .map((object) => `${object.objectId}:${object.displayName}[${object.source}](${object.tags.slice(0, 4).join('/')}, ${object.distance}yd)`)
         .join(', ')}`);
+    }
+    if (scene.droppedItems.length > 0) {
+      lines.push(`Dropped items: ${scene.droppedItems
+        .slice(0, 6)
+        .map((item) => `${item.itemId}:${item.displayName}(${[...item.itemTags, ...item.dangerTags, ...item.valueSignals].slice(0, 6).join('/')}, fresh=${item.freshnessSeconds}s)`)
+        .join(', ')}`);
+    }
+    if (scene.companions.length > 0) {
+      lines.push(`Companions: ${scene.companions
+        .slice(0, 4)
+        .map((companion) => `${companion.displayName}:${companion.templateId}:${companion.family ?? 'unknown'}(${companion.tags.slice(0, 4).join('/')})`)
+        .join(', ')}`);
+    }
+    if (scene.recentSceneEvents.length > 0) {
+      lines.push(`Recent scene events: ${scene.recentSceneEvents.slice(0, 8).join(', ')}`);
     }
   }
   if (family) {

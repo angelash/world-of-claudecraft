@@ -37,13 +37,29 @@ const context: AiJobContextV1 = {
       tags: ['cryptGate', 'sealedAir', 'deathPressure', 'dungeonEntrance'],
       distance: 6.5,
     }],
-    droppedItems: [],
-    companions: [],
+    droppedItems: [{
+      itemId: 'gravecaller_sigil',
+      displayName: 'Gravecaller Sigil',
+      itemTags: ['quest', 'grave'],
+      rarity: 'quest',
+      freshnessSeconds: 4,
+      ownerEntityId: 1,
+      smellTags: [],
+      dangerTags: ['undead', 'cursed'],
+      valueSignals: ['story'],
+    }],
+    companions: [{
+      entityId: 22,
+      templateId: 'forest_wolf',
+      displayName: 'Fang',
+      family: 'beast',
+      tags: ['pet', 'beast'],
+    }],
     time: { hour: 23, phase: 'night', isNight: true, tags: ['night'] },
     weather: { kind: 'fog', intensity: 0.8, tags: ['fog'] },
     light: { level: 'dark', tags: ['lowLight'] },
     mood: { dayEnergy: 0, nightFatigue: 0.7, clearNightAwe: 0, rainIrritation: 0, fogFear: 0.8 },
-    recentSceneEvents: [],
+    recentSceneEvents: ['playerDiscarded:gravecaller_sigil'],
     danger: { undeadPressure: 0.7, hostileDensity: 0.2, corpseDensity: 0, recentDeaths: 0, safeHavenScore: 0.1 },
   },
   familySemantics: null,
@@ -85,7 +101,11 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('Knowledge scope: chapel rites, restless dead');
     expect(prompt).toContain('Taboo topics: hidden quest conclusions');
     expect(prompt).toContain('Social memory style: Recognizes repeated visitors');
-    expect(prompt).toContain('Nearby semantic objects: fallen_crypt_gate(cryptGate/sealedAir/deathPressure/dungeonEntrance, 6.5yd)');
+    expect(prompt).toContain('Time/weather mood: dayEnergy=0.00, nightFatigue=0.70');
+    expect(prompt).toContain('Nearby semantic objects: fallen_crypt_gate:Crypt Gate[sceneAnchor](cryptGate/sealedAir/deathPressure/dungeonEntrance, 6.5yd)');
+    expect(prompt).toContain('Dropped items: gravecaller_sigil:Gravecaller Sigil(quest/grave/undead/cursed/story, fresh=4s)');
+    expect(prompt).toContain('Companions: Fang:forest_wolf:beast(pet/beast)');
+    expect(prompt).toContain('Recent scene events: playerDiscarded:gravecaller_sigil');
     expect(prompt).toContain('Memory signals: rumor:rumor-7:region:salience=0.65:readRegionRumor');
     expect(prompt).toContain('Return only JSON');
   });
