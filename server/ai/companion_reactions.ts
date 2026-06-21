@@ -1,27 +1,35 @@
 import type { SimEvent } from '../../src/sim/types';
 import type { AiJobContextV1 } from './ai_types';
 import type { SceneFrameV1 } from './scene_frame';
+import type { AiWorldDirectorProposal } from './world_director';
 
 interface CompanionReactionSpec {
   lineId: string;
   kind: 'avoid' | 'inspect';
 }
 
-export function companionReactionEvents(context: AiJobContextV1): SimEvent[] {
-  if (!context.scene) return [];
-  return companionReactionEventsForScene(context.scene, context.player.entityId);
+interface CompanionReactionOptions {
+  directorProposals?: readonly AiWorldDirectorProposal[];
 }
 
-export function companionReactionEventsForScene(scene: SceneFrameV1, playerEntityId: number): SimEvent[] {
+export function companionReactionEvents(context: AiJobContextV1): SimEvent[] {
+  if (!context.scene) return [];
+  return companionReactionEventsForScene(context.scene, context.player.entityId, {
+    directorProposals: context.directorProposals,
+  });
+}
+
+export function companionReactionEventsForScene(scene: SceneFrameV1, playerEntityId: number, options: CompanionReactionOptions = {}): SimEvent[] {
   if (scene.companions.length === 0) return [];
   const sceneTags = [...new Set([
     ...scene.locationTags,
     ...scene.structureTags,
     ...scene.environmentalTags,
+    ...directorSceneTags(options.directorProposals ?? []),
   ])].slice(0, 8);
   const out: SimEvent[] = [];
   for (const companion of scene.companions.slice(0, 2)) {
-    const spec = reactionForCompanion(scene, companion.family);
+    const spec = reactionForCompanion(scene, companion.family, options.directorProposals ?? []);
     if (!spec) continue;
     out.push({
       type: 'aiSpeech',
@@ -47,7 +55,7 @@ export function companionReactionEventsForScene(scene: SceneFrameV1, playerEntit
   return out;
 }
 
-function reactionForCompanion(scene: SceneFrameV1, family: string | null): CompanionReactionSpec | null {
+function reactionForCompanion(scene: SceneFrameV1, family: string | null, directorProposals: readonly AiWorldDirectorProposal[]): CompanionReactionSpec | null {
   if (family === 'demon' && (scene.locationTags.includes('safeTown') || scene.structureTags.includes('ruinedChapel') || scene.environmentalTags.includes('militaryOrder'))) {
     return { lineId: 'hudChrome.aiSpeech.companionSelfDemonDefiance', kind: 'avoid' };
   }
@@ -69,6 +77,8 @@ function reactionForCompanion(scene: SceneFrameV1, family: string | null): Compa
   if (family === 'dragonkin' && (scene.light.tags.includes('starrySky') || sceneHasAny(scene, ['highView', 'oldStone', 'cryptGate', 'moonlitWater']))) {
     return { lineId: 'hudChrome.aiSpeech.companionSelfDragonkinWatch', kind: 'inspect' };
   }
+  const directorSpec = reactionForDirectorProposal(family, directorProposals);
+  if (directorSpec) return directorSpec;
   if ((family === 'humanoid' || family === 'kobold' || family === 'troll' || family === 'ogre') && scene.locationTags.includes('safeTown') && scene.time.phase === 'day') {
     return { lineId: 'hudChrome.aiSpeech.companionSelfMortalSafeHaven', kind: 'inspect' };
   }
@@ -80,6 +90,36 @@ function reactionForCompanion(scene: SceneFrameV1, family: string | null): Compa
   if (scene.light.tags.includes('starrySky')) return { lineId: 'hudChrome.aiSpeech.companionSelfStarrySky', kind: 'inspect' };
   if (scene.time.phase === 'night' && scene.danger.hostileDensity >= 0.25) return { lineId: 'hudChrome.aiSpeech.companionSelfNightNervous', kind: 'avoid' };
   return null;
+}
+
+function reactionForDirectorProposal(family: string | null, proposals: readonly AiWorldDirectorProposal[]): CompanionReactionSpec | null {
+  for (const proposal of proposals.slice(0, 3)) {
+    const tags = new Set(proposal.reasonTags);
+    if (proposal.intent === 'raiseCampCaution' || tags.has('mood:haunted') || tags.has('mood:dread')) {
+      if (family === 'undead') return { lineId: 'hudChrome.aiSpeech.companionSelfUndeadDayHollow', kind: 'inspect' };
+      if (family === 'demon') return { lineId: 'hudChrome.aiSpeech.companionSelfDemonDefiance', kind: 'inspect' };
+      if (family === 'elemental') return { lineId: 'hudChrome.aiSpeech.companionSelfElementalResonance', kind: 'inspect' };
+      return { lineId: 'hudChrome.aiSpeech.companionSelfUndeadFear', kind: 'avoid' };
+    }
+    if (proposal.intent === 'echoTrace' && (tags.has('mood:hungry') || tags.has('trace:food'))) {
+      if (family === 'beast') return { lineId: 'hudChrome.aiSpeech.companionSelfBeastScentUneasy', kind: 'inspect' };
+      if (family === 'murloc') return { lineId: 'hudChrome.aiSpeech.companionSelfMurlocWaterCall', kind: 'inspect' };
+      if (family === 'elemental') return { lineId: 'hudChrome.aiSpeech.companionSelfElementalResonance', kind: 'inspect' };
+    }
+    if ((proposal.intent === 'nudgeNpcRumor' || proposal.intent === 'echoQuestRelief')
+      && (family === 'humanoid' || family === 'kobold' || family === 'troll' || family === 'ogre')) {
+      return { lineId: 'hudChrome.aiSpeech.companionSelfMortalSafeHaven', kind: 'inspect' };
+    }
+  }
+  return null;
+}
+
+function directorSceneTags(proposals: readonly AiWorldDirectorProposal[]): string[] {
+  const tags: string[] = [];
+  for (const proposal of proposals.slice(0, 3)) {
+    tags.push(`director:${proposal.intent}`, ...proposal.reasonTags.slice(0, 3));
+  }
+  return tags;
 }
 
 function sceneHasAny(scene: NonNullable<AiJobContextV1['scene']>, tags: readonly string[]): boolean {

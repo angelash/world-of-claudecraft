@@ -1083,7 +1083,9 @@ export class AiLifeLayer {
     const event = sceneInspectionEvent(scene, player, trace);
     const events: SimEvent[] = [event];
     const lineIds = event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [];
-    const companionEvents = companionReactionEventsForScene(scene, request.pid);
+    const companionEvents = companionReactionEventsForScene(scene, request.pid, {
+      directorProposals: directorState ? [directorState.proposal] : [],
+    });
     events.push(...companionEvents);
     lineIds.push(...aiSpeechLineIds(companionEvents));
     const memoryWrites: AiMemoryAuditRecord[] = [];

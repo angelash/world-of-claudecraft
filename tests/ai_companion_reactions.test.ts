@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AiJobContextV1 } from '../server/ai/ai_types';
 import { companionReactionEvents } from '../server/ai/companion_reactions';
 import { lightSemanticFor, timeSemanticAt, timeWeatherMood, weatherSemanticAt } from '../server/ai/time_weather_model';
+import type { AiWorldDirectorProposal } from '../server/ai/world_director';
 
 function context(overrides: {
   family?: string | null;
@@ -12,6 +13,7 @@ function context(overrides: {
   location?: string[];
   structure?: string[];
   lightTags?: string[];
+  directorProposals?: AiWorldDirectorProposal[];
 } = {}): AiJobContextV1 {
   const time = overrides.starry ? timeSemanticAt(22 * 60) : timeSemanticAt(10 * 60);
   const baseWeather = weatherSemanticAt('eastbrook_vale', 0);
@@ -53,8 +55,27 @@ function context(overrides: {
     familySemantics: null,
     questFacts: [],
     recentObservations: [],
+    directorProposals: overrides.directorProposals,
     allowedIntents: ['commentOnScene'],
     outputMode: 'line_id_only',
+  };
+}
+
+function directorProposal(overrides: Partial<AiWorldDirectorProposal> = {}): AiWorldDirectorProposal {
+  return {
+    proposalId: 'director-companion:proposal',
+    intent: 'echoTrace',
+    status: 'preview',
+    risk: 'low',
+    intensity: 0.8,
+    targetRef: 'roasted_boar',
+    sceneId: 'fallen_chapel',
+    zoneId: 'eastbrook_vale',
+    suggestedLineId: 'hudChrome.aiSpeech.worldDirectorHungry',
+    expiresAt: 180,
+    reasonTags: ['mood:hungry', 'subject:item', 'proposal:traceEcho', 'trace:food'],
+    safetyNotes: ['presentationOnly', 'noQuestMutation', 'noCombatMutation', 'noLootOrEconomyMutation'],
+    ...overrides,
   };
 }
 
@@ -135,6 +156,43 @@ describe('companionReactionEvents', () => {
     expect(firstReaction(context({ family: 'humanoid', location: ['town', 'safeTown'], structure: ['house'], environmental: ['warmLight'] }))).toMatchObject({
       lineId: 'hudChrome.aiSpeech.companionSelfMortalSafeHaven',
       kind: 'inspect',
+    });
+  });
+
+  it('lets companions read lingering world director mood after the concrete trace is gone', () => {
+    const reaction = firstReaction(context({
+      family: 'beast',
+      location: ['forest'],
+      structure: [],
+      environmental: [],
+      directorProposals: [directorProposal()],
+    }));
+
+    expect(reaction).toMatchObject({
+      lineId: 'hudChrome.aiSpeech.companionSelfBeastScentUneasy',
+      kind: 'inspect',
+      sceneTags: expect.arrayContaining(['director:echoTrace', 'mood:hungry']),
+    });
+  });
+
+  it('lets living companions fear a director caution proposal without changing pet commands', () => {
+    const reaction = firstReaction(context({
+      family: 'humanoid',
+      location: ['forest'],
+      structure: [],
+      environmental: [],
+      directorProposals: [directorProposal({
+        intent: 'raiseCampCaution',
+        targetRef: 'fallen_chapel',
+        suggestedLineId: 'hudChrome.aiSpeech.worldDirectorHaunted',
+        reasonTags: ['mood:haunted', 'subject:scene', 'proposal:campAlert'],
+      })],
+    }));
+
+    expect(reaction).toMatchObject({
+      lineId: 'hudChrome.aiSpeech.companionSelfUndeadFear',
+      kind: 'avoid',
+      sceneTags: expect.arrayContaining(['director:raiseCampCaution', 'mood:haunted']),
     });
   });
 });

@@ -1112,6 +1112,49 @@ describe('server AI interact command', () => {
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
   });
 
+  it('lets companions read lingering world director mood after a source trace expires', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const player = server.sim.entities.get(session.pid)!;
+    const companion = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    companion.ownerId = session.pid;
+    companion.hostile = false;
+    moveEntity(server, player, -10, 120);
+    moveEntity(server, companion, -8, 120);
+    server.sim.addItem('roasted_boar', 1, session.pid);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    for (let i = 0; i < 91 * 20; i++) server.sim.tick();
+    companion.ownerId = session.pid;
+    companion.hostile = false;
+    companion.dead = false;
+    companion.hp = Math.max(1, companion.hp);
+    moveEntity(server, player, -10, 120);
+    moveEntity(server, companion, -8, 120);
+    await flushAi();
+    fc.sent.length = 0;
+    const beforeInspectSnapshot = mainlineSnapshot(server, session.pid);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: companion.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.companionSelfBeastScentUneasy',
+        values: expect.objectContaining({ companionTemplateId: 'forest_wolf' }),
+      }),
+      reaction: expect.objectContaining({
+        kind: 'inspect',
+        sceneTags: expect.arrayContaining(['director:echoTrace', 'mood:hungry']),
+      }),
+      pid: session.pid,
+    }));
+    expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.sceneTraceFood')).toBe(false);
+    expect(mainlineSnapshot(server, session.pid)).toEqual(beforeInspectSnapshot);
+  });
+
   it('lets NPC gossip respond to active world traces in the same scene', async () => {
     const server = new GameServer();
     const fc = fakeWs();
