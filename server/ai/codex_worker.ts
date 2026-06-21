@@ -9,6 +9,7 @@ export interface CodexCliProviderOptions {
   codexBin?: string;
   codexArgsPrefix?: string[];
   timeoutMs?: number;
+  maxStderrBytes?: number;
 }
 
 const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
@@ -113,16 +114,19 @@ const INTENT_TYPES = new Set<AiIntentType>([
   'showGossipOptions',
   'questHint',
 ]);
+const DEFAULT_MAX_STDERR_BYTES = 8_192;
 
 export class CodexCliProvider implements AiProvider {
   private readonly codexBin: string;
   private readonly codexArgsPrefix: string[];
   private readonly timeoutMs: number;
+  private readonly maxStderrBytes: number;
 
   constructor(options: CodexCliProviderOptions = {}) {
     this.codexBin = options.codexBin ?? process.env.CODEX_BIN ?? 'codex';
     this.codexArgsPrefix = options.codexArgsPrefix ?? [];
     this.timeoutMs = options.timeoutMs ?? 15_000;
+    this.maxStderrBytes = Math.max(0, Math.floor(options.maxStderrBytes ?? DEFAULT_MAX_STDERR_BYTES));
   }
 
   async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
@@ -163,24 +167,40 @@ export class CodexCliProvider implements AiProvider {
         windowsHide: true,
       });
       let stderr = '';
+      let stderrTruncated = false;
+      let settled = false;
+      const finish = (err?: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (err) reject(err);
+        else resolve();
+      };
       const timer = setTimeout(() => {
         child.kill();
-        reject(new Error('codex worker timed out'));
+        finish(new Error('codex worker timed out'));
       }, this.timeoutMs);
       child.stderr?.on('data', (chunk: Buffer) => {
-        stderr += chunk.toString('utf8');
+        const text = chunk.toString('utf8');
+        const remaining = this.maxStderrBytes - stderr.length;
+        if (remaining > 0) stderr += text.slice(0, remaining);
+        if (text.length > remaining) stderrTruncated = true;
       });
       child.on('error', (err) => {
-        clearTimeout(timer);
-        reject(err);
+        finish(err);
       });
       child.on('exit', (code) => {
-        clearTimeout(timer);
-        if (code === 0) resolve();
-        else reject(new Error(stderr.trim() || `codex worker exited with code ${code ?? 'null'}`));
+        if (code === 0) finish();
+        else finish(new Error(codexWorkerExitMessage(stderr, stderrTruncated, code)));
       });
     });
   }
+}
+
+function codexWorkerExitMessage(stderr: string, stderrTruncated: boolean, code: number | null): string {
+  const trimmed = stderr.trim();
+  const base = trimmed || `codex worker exited with code ${code ?? 'null'}`;
+  return stderrTruncated ? `${base}\ncodex worker stderr truncated` : base;
 }
 
 export function parseCodexDecisionOutput(raw: string): AiDecisionV1 {

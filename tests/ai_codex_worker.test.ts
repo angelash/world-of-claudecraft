@@ -2,8 +2,11 @@ import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CodexCliProvider } from '../server/ai/codex_worker';
+import { CodexCliProvider, type CodexCliProviderOptions } from '../server/ai/codex_worker';
+import { AiLifeLayer } from '../server/ai/life_layer';
 import type { AiJobContextV1 } from '../server/ai/ai_types';
+import { Sim } from '../src/sim/sim';
+import { groundHeight } from '../src/sim/world';
 
 const context: AiJobContextV1 = {
   schemaVersion: 1,
@@ -123,12 +126,90 @@ describe('Codex CLI AI provider', () => {
 
     await expect(provider.decide(context)).rejects.toThrow('codex worker output intent.type is invalid');
   });
+
+  it('bounds stderr captured from a failing codex process', async () => {
+    const provider = await providerWithFakeCodexScript(`
+process.stderr.write('x'.repeat(40));
+process.exit(3);
+`, { maxStderrBytes: 12 });
+
+    await expect(provider.decide(context)).rejects.toThrow(/xxxxxxxxxxxx\ncodex worker stderr truncated/);
+  });
+
+  it('drives a real AI life layer interaction through the Codex CLI provider without changing quests', async () => {
+    const provider = await providerWithFakeCodex(`{
+      schemaVersion: 1,
+      jobId: context.jobId,
+      entityRef: {
+        kind: context.entity.kind,
+        entityId: context.entity.entityId,
+        templateId: context.entity.templateId
+      },
+      ttlMs: 5000,
+      confidence: 0.9,
+      speech: [{
+        mode: 'lineId',
+        lineId: 'hudChrome.aiSpeech.brotherAldricAwake',
+        values: { playerName: context.player.name, speakerName: context.entity.name }
+      }],
+      intents: [{ type: 'commentOnScene', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
+      audit: { shortReason: 'fake codex life layer path', usedPlayerInput: false, safetyNotes: [] }
+    }`);
+    const { sim, pid, npcId } = makeSim();
+    const layer = new AiLifeLayer({ enabled: true, provider });
+    const delivered: unknown[] = [];
+    const beforeQuestLog = JSON.stringify([...sim.meta(pid)!.questLog]);
+    const beforeDone = JSON.stringify([...sim.meta(pid)!.questsDone]);
+
+    await layer.handleNpcInteraction({ sim, pid, npcId, locale: 'en', deliver: (events) => delivered.push(...events) });
+
+    expect(delivered).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speakerId: npcId,
+      speech: expect.objectContaining({ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
+      pid,
+    }));
+    expect(layer.diagnostics()).toEqual([expect.objectContaining({
+      status: 'accepted',
+      trigger: 'npc_gossip_opened',
+      templateId: 'brother_aldric',
+      lineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
+    })]);
+    expect(layer.runtimeMetrics()).toMatchObject({
+      providerCalls: 1,
+      providerSuccesses: 1,
+      providerErrors: 0,
+      acceptedDecisions: 1,
+    });
+    expect(JSON.stringify([...sim.meta(pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...sim.meta(pid)!.questsDone])).toBe(beforeDone);
+  });
 });
 
-async function providerWithFakeCodex(outputExpression: string): Promise<CodexCliProvider> {
-  const dir = await mkdtemp(join(tmpdir(), 'woc-ai-provider-test-'));
-  const fakeCodexPath = join(dir, 'fake-codex.mjs');
-  await writeFile(fakeCodexPath, `
+function teleportNear(sim: Sim, pid: number, targetId: number): void {
+  const player = sim.entities.get(pid)!;
+  const target = sim.entities.get(targetId)!;
+  player.pos.x = target.pos.x + 1;
+  player.pos.z = target.pos.z;
+  player.pos.y = groundHeight(player.pos.x, player.pos.z, sim.cfg.seed);
+  player.prevPos = { ...player.pos };
+  sim.grid.update(player);
+  sim.playerGrid.update(player);
+}
+
+function makeSim(): { sim: Sim; pid: number; npcId: number } {
+  const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+  const pid = sim.addPlayer('warrior', 'Ari');
+  const npc = [...sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
+  teleportNear(sim, pid, npc.id);
+  return { sim, pid, npcId: npc.id };
+}
+
+async function providerWithFakeCodex(
+  outputExpression: string,
+  options: Partial<CodexCliProviderOptions> = {},
+): Promise<CodexCliProvider> {
+  return providerWithFakeCodexScript(`
 import { readFile, writeFile } from 'node:fs/promises';
 const args = process.argv.slice(2);
 const outputPath = args[args.indexOf('-o') + 1];
@@ -137,11 +218,21 @@ const context = JSON.parse(await readFile('job.json', 'utf8'));
 await readFile(schemaPath, 'utf8');
 const output = ${outputExpression};
 await writeFile(outputPath, typeof output === 'string' ? output : JSON.stringify(output));
-`, 'utf8');
+`, options);
+}
+
+async function providerWithFakeCodexScript(
+  script: string,
+  options: Partial<CodexCliProviderOptions> = {},
+): Promise<CodexCliProvider> {
+  const dir = await mkdtemp(join(tmpdir(), 'woc-ai-provider-test-'));
+  const fakeCodexPath = join(dir, 'fake-codex.mjs');
+  await writeFile(fakeCodexPath, script, 'utf8');
 
   return new CodexCliProvider({
     codexBin: process.execPath,
     codexArgsPrefix: [fakeCodexPath],
     timeoutMs: 5_000,
+    ...options,
   });
 }
