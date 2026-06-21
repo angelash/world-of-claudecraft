@@ -40,6 +40,12 @@ export function companionReactionEvents(context: AiJobContextV1): SimEvent[] {
 function lineIdForCompanion(context: AiJobContextV1, family: string | null): string | null {
   const scene = context.scene;
   if (!scene) return null;
+  if (family === 'demon' && (scene.locationTags.includes('safeTown') || scene.structureTags.includes('ruinedChapel') || scene.environmentalTags.includes('militaryOrder'))) {
+    return 'hudChrome.aiSpeech.companionSelfDemonDefiance';
+  }
+  if (family === 'undead' && (scene.light.level === 'bright' || scene.environmentalTags.includes('sunlit') || scene.locationTags.includes('safeTown'))) {
+    return 'hudChrome.aiSpeech.companionSelfUndeadDayHollow';
+  }
   const livingOrUnsure = family !== 'undead' && family !== 'demon';
   if (livingOrUnsure && (scene.danger.undeadPressure >= 0.3 || scene.environmentalTags.includes('deathPressure') || scene.environmentalTags.includes('undeadMemory'))) {
     return 'hudChrome.aiSpeech.companionSelfUndeadFear';

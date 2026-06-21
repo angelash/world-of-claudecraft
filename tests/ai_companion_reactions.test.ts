@@ -9,13 +9,17 @@ function context(overrides: {
   undeadPressure?: number;
   weatherKind?: 'clear' | 'rain' | 'fog';
   starry?: boolean;
+  location?: string[];
+  structure?: string[];
+  lightTags?: string[];
 } = {}): AiJobContextV1 {
   const time = overrides.starry ? timeSemanticAt(22 * 60) : timeSemanticAt(10 * 60);
   const baseWeather = weatherSemanticAt('eastbrook_vale', 0);
   const weather = overrides.weatherKind
     ? { ...baseWeather, kind: overrides.weatherKind, tags: overrides.weatherKind === 'rain' ? ['rain'] : overrides.weatherKind === 'fog' ? ['fog'] : ['clearSky'] }
     : baseWeather;
-  const light = overrides.starry ? { ...lightSemanticFor(time, weather), tags: ['moonlight', 'starrySky'] } : lightSemanticFor(time, weather);
+  const baseLight = overrides.starry ? { ...lightSemanticFor(time, weather), tags: ['moonlight', 'starrySky'] } : lightSemanticFor(time, weather);
+  const light = overrides.lightTags ? { ...baseLight, tags: overrides.lightTags, level: overrides.lightTags.includes('sunlit') ? 'bright' as const : baseLight.level } : baseLight;
   return {
     schemaVersion: 1,
     jobId: 'companion-job',
@@ -27,8 +31,8 @@ function context(overrides: {
       zoneId: 'eastbrook_vale',
       subsceneId: 'fallen_chapel',
       biomeTags: ['vale'],
-      locationTags: ['questSite'],
-      structureTags: ['ruinedChapel'],
+      locationTags: overrides.location ?? ['questSite'],
+      structureTags: overrides.structure ?? ['ruinedChapel'],
       environmentalTags: overrides.environmental ?? [],
       nearbySemanticObjects: [],
       droppedItems: [],
@@ -66,11 +70,16 @@ describe('companionReactionEvents', () => {
   });
 
   it('does not make undead companions fear undead pressure', () => {
-    expect(lineId(context({ family: 'undead', environmental: ['deathPressure'], undeadPressure: 0.5 }))).toBe(null);
+    expect(lineId(context({ family: 'undead', environmental: ['deathPressure'], undeadPressure: 0.5 }))).not.toBe('hudChrome.aiSpeech.companionSelfUndeadFear');
   });
 
   it('uses weather and starry-sky moods when the scene is otherwise safe', () => {
     expect(lineId(context({ weatherKind: 'rain' }))).toBe('hudChrome.aiSpeech.companionSelfRainTired');
     expect(lineId(context({ starry: true }))).toBe('hudChrome.aiSpeech.companionSelfStarrySky');
+  });
+
+  it('gives demon and undead companions distinct pressure in living scenes', () => {
+    expect(lineId(context({ family: 'demon', location: ['town', 'safeTown'], structure: ['forge'] }))).toBe('hudChrome.aiSpeech.companionSelfDemonDefiance');
+    expect(lineId(context({ family: 'undead', location: ['town', 'safeTown'], structure: ['forge'], lightTags: ['sunlit'] }))).toBe('hudChrome.aiSpeech.companionSelfUndeadDayHollow');
   });
 });

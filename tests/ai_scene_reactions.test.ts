@@ -40,6 +40,22 @@ function context(scene: SceneFrameV1): AiJobContextV1 {
 }
 
 describe('AI scene reactions', () => {
+  it('lets NPCs react to demon and undead companions in living or ordered places', () => {
+    expect(sceneAwarenessEvent(context(frame({
+      locationTags: ['town', 'safeTown'],
+      structureTags: ['forge'],
+      environmentalTags: ['warmLight'],
+      companions: [{ entityId: 2, templateId: 'void_demon', displayName: 'Void Demon', family: 'demon', tags: ['pet', 'demon'] }],
+    })), speaker)).toMatchObject({ speech: { lineId: 'hudChrome.aiSpeech.sceneDemonCompanionUnease' } });
+
+    expect(sceneAwarenessEvent(context(frame({
+      locationTags: ['town', 'safeTown'],
+      structureTags: ['forge'],
+      environmentalTags: ['sunlit'],
+      companions: [{ entityId: 3, templateId: 'restless_bones', displayName: 'Restless Bones', family: 'undead', tags: ['pet', 'undead'] }],
+    })), speaker)).toMatchObject({ speech: { lineId: 'hudChrome.aiSpeech.sceneUndeadCompanionUnease' } });
+  });
+
   it('prioritizes companion fear in undead pressure scenes', () => {
     const event = sceneAwarenessEvent(context(frame({
       companions: [{ entityId: 2, templateId: 'forest_wolf', displayName: 'Fang', family: 'beast', tags: ['pet', 'beast'] }],

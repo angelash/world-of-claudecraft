@@ -3896,7 +3896,12 @@ export class Hud {
       case 'hudChrome.aiSpeech.companionSelfRainTired':
       case 'hudChrome.aiSpeech.companionSelfStarrySky':
       case 'hudChrome.aiSpeech.companionSelfNightNervous':
+      case 'hudChrome.aiSpeech.companionSelfDemonDefiance':
+      case 'hudChrome.aiSpeech.companionSelfUndeadDayHollow':
         return t(ev.speech.lineId as TranslationKey, { companionName });
+      case 'hudChrome.aiSpeech.sceneDemonCompanionUnease':
+      case 'hudChrome.aiSpeech.sceneUndeadCompanionUnease':
+        return t(ev.speech.lineId as TranslationKey, { speakerName, companionName });
       case 'hudChrome.aiSpeech.sceneUndeadPressure':
         return t('hudChrome.aiSpeech.sceneUndeadPressure', { speakerName });
       case 'hudChrome.aiSpeech.sceneRainWeariness':

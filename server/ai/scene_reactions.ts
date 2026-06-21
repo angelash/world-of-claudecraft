@@ -5,11 +5,27 @@ export function sceneAwarenessEvent(context: AiJobContextV1, speaker: Entity): S
   const scene = context.scene;
   if (!scene) return null;
   const companion = scene.companions.find((c) => c.family !== 'undead' && c.family !== 'demon');
+  const demonCompanion = scene.companions.find((c) => c.family === 'demon');
+  const undeadCompanion = scene.companions.find((c) => c.family === 'undead');
   const commonValues = {
     speakerName: speaker.name,
     subsceneId: scene.subsceneId ?? scene.zoneId,
   };
 
+  if (demonCompanion && isOrderedOrSacredScene(scene)) {
+    return line(context, speaker, 'hudChrome.aiSpeech.sceneDemonCompanionUnease', {
+      ...commonValues,
+      companionName: demonCompanion.displayName,
+      companionTemplateId: demonCompanion.templateId,
+    }, 'avoid');
+  }
+  if (undeadCompanion && isLivingTownScene(scene)) {
+    return line(context, speaker, 'hudChrome.aiSpeech.sceneUndeadCompanionUnease', {
+      ...commonValues,
+      companionName: undeadCompanion.displayName,
+      companionTemplateId: undeadCompanion.templateId,
+    }, 'avoid');
+  }
   if (companion && scene.danger.undeadPressure >= 0.3) {
     return line(context, speaker, 'hudChrome.aiSpeech.companionUndeadFear', {
       ...commonValues,
@@ -36,6 +52,21 @@ export function sceneAwarenessEvent(context: AiJobContextV1, speaker: Entity): S
     return line(context, speaker, 'hudChrome.aiSpeech.sceneNightFatigue', commonValues, 'avoid');
   }
   return null;
+}
+
+function isOrderedOrSacredScene(scene: NonNullable<AiJobContextV1['scene']>): boolean {
+  return scene.locationTags.includes('safeTown')
+    || scene.locationTags.includes('watchPost')
+    || scene.structureTags.includes('ruinedChapel')
+    || scene.structureTags.includes('brokenBell')
+    || scene.environmentalTags.includes('militaryOrder');
+}
+
+function isLivingTownScene(scene: NonNullable<AiJobContextV1['scene']>): boolean {
+  return scene.locationTags.includes('safeTown')
+    || scene.locationTags.includes('town')
+    || scene.light.level === 'bright'
+    || scene.environmentalTags.includes('sunlit');
 }
 
 function line(
