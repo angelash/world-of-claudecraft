@@ -424,7 +424,7 @@ describe('server AI interact command', () => {
     }));
   });
 
-  it('lets a non-undead companion react fearfully while inspecting an undead scene object', async () => {
+  it('lets a beast companion react by scent while inspecting an undead scene object', async () => {
     const server = new GameServer();
     const fc = fakeWs();
     const session = joinServer(server, fc);
@@ -443,7 +443,7 @@ describe('server AI interact command', () => {
 
     expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
       speakerId: companion.id,
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.companionSelfUndeadFear' }),
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.companionSelfBeastScentUneasy' }),
       reaction: expect.objectContaining({ kind: 'avoid' }),
       pid: session.pid,
     }));

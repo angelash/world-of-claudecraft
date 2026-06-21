@@ -64,9 +64,19 @@ function lineId(ctx: AiJobContextV1): string | null {
   return event.speech.lineId;
 }
 
+function firstReaction(ctx: AiJobContextV1): { lineId: string; kind: string; sceneTags: string[] } | null {
+  const event = companionReactionEvents(ctx)[0];
+  if (!event || event.type !== 'aiSpeech' || event.speech.mode !== 'lineId') return null;
+  return {
+    lineId: event.speech.lineId,
+    kind: event.reaction?.kind ?? 'ignore',
+    sceneTags: event.reaction?.sceneTags ?? [],
+  };
+}
+
 describe('companionReactionEvents', () => {
   it('makes living companions fearful in undead pressure scenes', () => {
-    expect(lineId(context({ environmental: ['deathPressure'], undeadPressure: 0.5 }))).toBe('hudChrome.aiSpeech.companionSelfUndeadFear');
+    expect(lineId(context({ family: 'humanoid', environmental: ['deathPressure'], undeadPressure: 0.5 }))).toBe('hudChrome.aiSpeech.companionSelfUndeadFear');
   });
 
   it('does not make undead companions fear undead pressure', () => {
@@ -81,5 +91,50 @@ describe('companionReactionEvents', () => {
   it('gives demon and undead companions distinct pressure in living scenes', () => {
     expect(lineId(context({ family: 'demon', location: ['town', 'safeTown'], structure: ['forge'] }))).toBe('hudChrome.aiSpeech.companionSelfDemonDefiance');
     expect(lineId(context({ family: 'undead', location: ['town', 'safeTown'], structure: ['forge'], lightTags: ['sunlit'] }))).toBe('hudChrome.aiSpeech.companionSelfUndeadDayHollow');
+  });
+
+  it('gives beast companions a sharper scent reaction to death, fire, and old blood', () => {
+    const reaction = firstReaction(context({ family: 'beast', environmental: ['deathPressure', 'oldBlood'], undeadPressure: 0.5 }));
+    expect(reaction).toMatchObject({
+      lineId: 'hudChrome.aiSpeech.companionSelfBeastScentUneasy',
+      kind: 'avoid',
+      sceneTags: expect.arrayContaining(['deathPressure', 'oldBlood']),
+    });
+  });
+
+  it('lets murloc companions become curious around rain and water instead of just tired', () => {
+    const reaction = firstReaction(context({ family: 'murloc', weatherKind: 'rain', location: ['shore'], environmental: ['openWater', 'fishSmell'] }));
+    expect(reaction).toMatchObject({
+      lineId: 'hudChrome.aiSpeech.companionSelfMurlocWaterCall',
+      kind: 'inspect',
+      sceneTags: expect.arrayContaining(['shore', 'openWater']),
+    });
+  });
+
+  it('lets spider companions read fog and low visibility as a stillness cue', () => {
+    const reaction = firstReaction(context({ family: 'spider', weatherKind: 'fog', environmental: ['lowVisibility', 'insectNoise'] }));
+    expect(reaction).toMatchObject({
+      lineId: 'hudChrome.aiSpeech.companionSelfSpiderStillness',
+      kind: 'inspect',
+      sceneTags: expect.arrayContaining(['lowVisibility', 'insectNoise']),
+    });
+  });
+
+  it('lets elemental and dragonkin companions respond to sky, height, and old stone', () => {
+    expect(firstReaction(context({ family: 'elemental', starry: true }))).toMatchObject({
+      lineId: 'hudChrome.aiSpeech.companionSelfElementalResonance',
+      kind: 'inspect',
+    });
+    expect(firstReaction(context({ family: 'dragonkin', environmental: ['highView', 'oldStone'] }))).toMatchObject({
+      lineId: 'hudChrome.aiSpeech.companionSelfDragonkinWatch',
+      kind: 'inspect',
+    });
+  });
+
+  it('lets mortal-like companions notice daytime safe havens without changing gameplay', () => {
+    expect(firstReaction(context({ family: 'humanoid', location: ['town', 'safeTown'], structure: ['house'], environmental: ['warmLight'] }))).toMatchObject({
+      lineId: 'hudChrome.aiSpeech.companionSelfMortalSafeHaven',
+      kind: 'inspect',
+    });
   });
 });
