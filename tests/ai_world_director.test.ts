@@ -119,6 +119,54 @@ describe('AI world director', () => {
     expect(store.stateForScene('eastbrook_forge', 1, 20)).toBeNull();
   });
 
+  it('lets adjacent zones read weak director echoes only when explicitly enabled', () => {
+    const store = new AiWorldDirectorStore({ stateTtlSeconds: 30 });
+    const state = store.noteTrace({ trace: trace('valuable', 'redbrook_blade'), nowSeconds: 10 });
+
+    expect(store.stateForRegion({
+      zoneId: 'mirefen_marsh',
+      sceneId: 'fenbridge_bridge',
+      playerEntityId: 1,
+      nowSeconds: 14,
+    })).toBeNull();
+
+    const adjacent = store.stateForRegion({
+      zoneId: 'mirefen_marsh',
+      sceneId: 'fenbridge_bridge',
+      playerEntityId: 1,
+      nowSeconds: 14,
+      includeAdjacentZones: true,
+    });
+    expect(adjacent).toMatchObject({
+      stateId: state.stateId,
+      mood: 'covetous',
+      itemId: 'redbrook_blade',
+      proposal: expect.objectContaining({
+        proposalId: `${state.stateId}:adjacent:mirefen_marsh:proposal`,
+        intent: 'nudgeNpcRumor',
+        risk: 'low',
+        reasonTags: expect.arrayContaining(['adjacentZone:eastbrook_vale->mirefen_marsh']),
+        safetyNotes: expect.arrayContaining(['presentationOnly', 'noQuestMutation']),
+      }),
+    });
+    expect(adjacent!.heat).toBeLessThan(state.heat);
+    expect(adjacent!.proposal.intensity).toBeLessThan(state.proposal.intensity);
+    expect(store.stateForRegion({
+      zoneId: 'thornpeak_heights',
+      sceneId: 'highwatch_tower',
+      playerEntityId: 1,
+      nowSeconds: 14,
+      includeAdjacentZones: true,
+    })).toBeNull();
+    expect(store.stateForRegion({
+      zoneId: 'mirefen_marsh',
+      sceneId: 'fenbridge_bridge',
+      playerEntityId: 2,
+      nowSeconds: 14,
+      includeAdjacentZones: true,
+    })).toBeNull();
+  });
+
   it('keeps long-running area state streams bounded by the configured budget', () => {
     const store = new AiWorldDirectorStore({ maxStates: 5, stateTtlSeconds: 7_200 });
     for (let i = 0; i < 40; i++) {

@@ -1512,6 +1512,55 @@ describe('server AI interact command', () => {
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
 
+  it('lets trace-driven world director state echo weakly into adjacent zones', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const forgeNpc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'smith_haldren')!;
+    const marshNpc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
+    teleportNear(server, session.pid, forgeNpc.id);
+    server.sim.addItem('redbrook_blade', 1, session.pid);
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+    const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'redbrook_blade', count: 1 }));
+    await flushAi();
+    const [directorState] = (server as any).aiLifeLayer.worldDirectorDiagnostics();
+    expect(directorState).toMatchObject({
+      sceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
+      itemId: 'redbrook_blade',
+      mood: 'covetous',
+    });
+    fc.sent.length = 0;
+
+    moveEntity(server, marshNpc, 0, 300);
+    teleportNear(server, session.pid, marshNpc.id);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: marshNpc.id, locale: 'en', topic: 'place' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: marshNpc.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+        values: expect.objectContaining({ itemId: 'redbrook_blade', directorMood: 'covetous' }),
+      }),
+      reaction: expect.objectContaining({
+        kind: 'inspect',
+        targetItemId: 'redbrook_blade',
+        score: expect.any(Number),
+      }),
+      pid: session.pid,
+    }));
+    const directorEvent = eventsOf(fc, 'aiSpeech').find((event) =>
+      event.speakerId === marshNpc.id
+      && event.speech?.lineId === 'hudChrome.aiSpeech.worldDirectorCovetous');
+    expect(directorEvent?.reaction?.score).toBeLessThan(directorState.heat);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
+  });
+
   it('lets singularity item reactions become NPC rumors through real server commands', async () => {
     const server = new GameServer();
     const fc = fakeWs();

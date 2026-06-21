@@ -93,6 +93,14 @@ export interface AiWorldDirectorStoreOptions {
   maxProposalAuditEntries?: number;
 }
 
+const ADJACENT_ZONE_IDS: Record<string, readonly string[]> = {
+  eastbrook_vale: ['mirefen_marsh'],
+  mirefen_marsh: ['eastbrook_vale', 'thornpeak_heights'],
+  thornpeak_heights: ['mirefen_marsh'],
+};
+
+const ADJACENT_ZONE_INTENSITY_SCALE = 0.35;
+
 export class AiWorldDirectorStore {
   private readonly states: AiWorldDirectorState[] = [];
   private readonly proposalAuditEntries: AiWorldDirectorProposalAuditEntry[] = [];
@@ -233,6 +241,7 @@ export class AiWorldDirectorStore {
     sceneId?: string | null;
     playerEntityId: number;
     nowSeconds: number;
+    includeAdjacentZones?: boolean;
   }): AiWorldDirectorState | null {
     if (!input.zoneId) return null;
     this.prune(input.nowSeconds);
@@ -241,7 +250,15 @@ export class AiWorldDirectorStore {
       && candidate.sourcePlayerEntityId === input.playerEntityId
       && candidate.sceneId !== input.sceneId
     );
-    return state ? copyState(decayedState(state, input.nowSeconds, this.stateTtlSeconds)) : null;
+    if (state) return copyState(decayedState(state, input.nowSeconds, this.stateTtlSeconds));
+    if (!input.includeAdjacentZones) return null;
+    const adjacentState = this.states.find((candidate) =>
+      candidate.sourcePlayerEntityId === input.playerEntityId
+      && candidate.sceneId !== input.sceneId
+      && zonesAreAdjacent(candidate.zoneId, input.zoneId!));
+    return adjacentState
+      ? copyState(adjacentZoneState(decayedState(adjacentState, input.nowSeconds, this.stateTtlSeconds), input.zoneId))
+      : null;
   }
 
   snapshot(): AiWorldDirectorState[] {
@@ -619,6 +636,26 @@ function decayedState(state: AiWorldDirectorState, nowSeconds: number, ttlSecond
     intensity: Math.round(heat * 100) / 100,
   };
   return decayed;
+}
+
+function adjacentZoneState(state: AiWorldDirectorState, targetZoneId: string): AiWorldDirectorState {
+  const heat = Math.max(0.05, Math.round(state.heat * ADJACENT_ZONE_INTENSITY_SCALE * 100) / 100);
+  const evidence = mergeRecent(state.evidence, [`adjacentZone:${state.zoneId}->${targetZoneId}`], 8);
+  const adjacent: AiWorldDirectorState = {
+    ...state,
+    heat,
+    evidence,
+    proposal: copyProposal(state.proposal),
+  };
+  adjacent.proposal = {
+    ...proposalForState(adjacent),
+    proposalId: `${state.stateId}:adjacent:${targetZoneId}:proposal`,
+  };
+  return adjacent;
+}
+
+function zonesAreAdjacent(sourceZoneId: string, targetZoneId: string): boolean {
+  return ADJACENT_ZONE_IDS[sourceZoneId]?.includes(targetZoneId) ?? false;
 }
 
 function mergeRecent(previous: readonly string[], next: readonly string[], limit: number): string[] {

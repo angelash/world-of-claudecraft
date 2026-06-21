@@ -631,7 +631,7 @@ export class AiLifeLayer {
     const trace = this.worldTraces.traceForScene(sceneId, request.pid, request.sim.time);
     if (trace) context.recentObservations.push(`worldTrace:${trace.kind}:${trace.itemId}:${trace.strength.toFixed(2)}`);
     const directorState = this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time)
-      ?? this.worldDirector.stateForRegion({ zoneId, sceneId, playerEntityId: request.pid, nowSeconds: request.sim.time });
+      ?? this.worldDirector.stateForRegion({ zoneId, sceneId, playerEntityId: request.pid, nowSeconds: request.sim.time, includeAdjacentZones: true });
     if (directorState) context.recentObservations.push(`worldDirector:${directorState.mood}:${directorState.itemId}:${directorState.heat.toFixed(2)}`);
     const directorProposals = cloneDirectorProposals([directorState?.proposal]);
     if (directorProposals.length > 0) context.directorProposals = directorProposals;
@@ -851,7 +851,7 @@ export class AiLifeLayer {
     const sceneId = context.scene?.subsceneId ?? context.scene?.zoneId;
     const zoneId = context.scene?.zoneId ?? sceneId;
     const directorState = this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time)
-      ?? this.worldDirector.stateForRegion({ zoneId, sceneId, playerEntityId: request.pid, nowSeconds: request.sim.time });
+      ?? this.worldDirector.stateForRegion({ zoneId, sceneId, playerEntityId: request.pid, nowSeconds: request.sim.time, includeAdjacentZones: true });
     if (directorState) {
       context.recentObservations.push(`worldDirector:${directorState.mood}:${directorState.itemId}:${directorState.heat.toFixed(2)}`);
       context.directorProposals = cloneDirectorProposals([directorState.proposal]);
@@ -1169,7 +1169,7 @@ export class AiLifeLayer {
     const sceneId = scene.subsceneId ?? scene.zoneId;
     const trace = this.worldTraces.traceForScene(sceneId, request.pid, request.sim.time);
     const directorState = this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time)
-      ?? this.worldDirector.stateForRegion({ zoneId: scene.zoneId, sceneId, playerEntityId: request.pid, nowSeconds: request.sim.time });
+      ?? this.worldDirector.stateForRegion({ zoneId: scene.zoneId, sceneId, playerEntityId: request.pid, nowSeconds: request.sim.time, includeAdjacentZones: true });
     const encounterMemory = this.bossMemory.memoryForScene(sceneId, request.pid, request.sim.time);
     const persistedSignals = await this.loadPersistedMemorySignals({
       sourcePlayerEntityId: request.pid,
