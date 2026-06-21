@@ -1547,6 +1547,23 @@ tests/ai_canon_guard.test.ts
 - 至少一条玩家行为能跨 NPC 传播。
 - 传闻有过期，不会永久污染世界。
 
+当前已落地的第一版基线：
+
+- `server/ai/social_memory.ts` 提供服务器内存态 NPC 互动记忆和短期物件传闻，不写入角色 JSONB，不影响任务、战斗、掉落和经济。
+- 玩家重复打开同一 NPC gossip 时，AI 生命层会把 interaction count 写入 `recentObservations`，并可追加本地化的“NPC 认得你”反馈。
+- 玩家成功丢弃会引发周边对象兴趣的物件时，AI 生命层会把该事件写成同场景、同来源玩家、短 TTL 的 rumor。
+- NPC 后续在同一场景与同一玩家交互时，可以提起刚刚被留下的物件；rumor 使用 sim time 衰减和过期，不会永久污染世界。
+- HUD 已支持 `hudChrome.aiSpeech.memoryRecognizesPlayer` 和 `hudChrome.aiSpeech.memoryRumorEcho` 两条 lineId，本地化产物已登记 pending。
+- `tests/ai_social_memory.test.ts` 覆盖互动记忆、rumor 衰减、过期、同场景和同来源边界；`tests/server_ai_interact.test.ts` 覆盖真实 `discard` 到 NPC gossip 的可玩链路。
+
+后续仍需完成：
+
+- 持久化 relationship、rumor、scene、creature、world memory，并增加迁移和保存回读测试。
+- 扩展 named NPC profile、rumor 风格和 knowledgeScope。
+- 在 gossip UI 增加“询问近况”、“询问传闻”、“询问地点”、“询问任务线索”的实验入口。
+- 将 rumor write、memory write 和 world trace write 统一进审计日志和 Codex job schema。
+- 补齐跨 NPC、跨区域和任务完成后的传闻传播验证。
+
 ### 螺旋 4：普通怪奇点生态
 
 玩法版本：

@@ -3897,6 +3897,10 @@ export class Hud {
         return t('hudChrome.aiSpeech.sceneDayEnergy', { speakerName });
       case 'hudChrome.aiSpeech.sceneNightFatigue':
         return t('hudChrome.aiSpeech.sceneNightFatigue', { speakerName });
+      case 'hudChrome.aiSpeech.memoryRecognizesPlayer':
+        return t('hudChrome.aiSpeech.memoryRecognizesPlayer', { speakerName, playerName: String(values.playerName ?? this.sim.player.name) });
+      case 'hudChrome.aiSpeech.memoryRumorEcho':
+        return t('hudChrome.aiSpeech.memoryRumorEcho', { speakerName, playerName: String(values.playerName ?? this.sim.player.name), itemName });
       default:
         return t('hudChrome.aiSpeech.genericNpcAwake', { speakerName: ev.speakerName });
     }

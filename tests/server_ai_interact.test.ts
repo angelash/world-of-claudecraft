@@ -168,4 +168,51 @@ describe('server AI interact command', () => {
 
     expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.sceneUndeadPressure')).toBe(true);
   });
+
+  it('remembers repeated NPC interactions after the AI cooldown passes', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
+    teleportNear(server, session.pid, npc.id);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en' }));
+    await flushAi();
+    for (let i = 0; i < 4 * 20 + 1; i++) server.sim.tick();
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.memoryRecognizesPlayer')).toBe(true);
+  });
+
+  it('turns discarded item traces into short-term same-scene rumors', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'smith_haldren')!;
+    teleportNear(server, session.pid, npc.id);
+    server.sim.addItem('redbrook_blade', 1, session.pid);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'redbrook_blade', count: 1 }));
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.memoryRumorEcho')).toBe(true);
+  });
+
+  it('lets discarded item rumors expire before later NPC interactions', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'smith_haldren')!;
+    teleportNear(server, session.pid, npc.id);
+    server.sim.addItem('redbrook_blade', 1, session.pid);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'redbrook_blade', count: 1 }));
+    for (let i = 0; i < 91 * 20; i++) server.sim.tick();
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.memoryRumorEcho')).toBe(false);
+  });
 });

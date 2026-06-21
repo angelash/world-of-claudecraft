@@ -12,9 +12,12 @@ import { compactFamilySemanticsForEntity } from './family_semantics';
 import { FakeAiProvider } from './fake_ai_provider';
 import { nearbyReactionCandidates, rankItemReactions } from './item_interest';
 import { validateAiDecision } from './intent_validator';
+import { memoryReactionEvent } from './memory_reactions';
 import { profileFor } from './profiles';
 import { droppedItemSemantic, sceneFrameFor } from './scene_frame';
 import { sceneAwarenessEvent } from './scene_reactions';
+import { AiSocialMemoryStore } from './social_memory';
+import type { AiNpcMemory, AiRumorMemory } from './social_memory';
 
 export interface AiLifeLayerOptions {
   enabled?: boolean;
@@ -43,6 +46,7 @@ export class AiLifeLayer {
   private readonly enabled: boolean;
   private readonly provider: AiProvider;
   private readonly journal: AiDecisionJournal;
+  private readonly socialMemory = new AiSocialMemoryStore();
   private sequence = 0;
 
   constructor(options: AiLifeLayerOptions = {}) {
@@ -57,6 +61,10 @@ export class AiLifeLayer {
     return this.journal.snapshot();
   }
 
+  memoryDiagnostics(): { npcMemories: AiNpcMemory[]; rumors: AiRumorMemory[] } {
+    return this.socialMemory.snapshot();
+  }
+
   async handleNpcInteraction(request: NpcAiInteractionRequest): Promise<void> {
     if (!this.enabled) return;
     const context = this.buildNpcContext(request);
@@ -64,6 +72,10 @@ export class AiLifeLayer {
     const npc = request.sim.entities.get(request.npcId);
     if (!npc) return;
     const subject = classifyCanonSubject(npc);
+    const memory = this.socialMemory.noteNpcInteraction(context, request.sim.time);
+    context.recentObservations.push(`npcMemory:${memory.interactionCount}`);
+    const rumor = this.socialMemory.rumorForScene(context.scene?.subsceneId ?? context.scene?.zoneId, request.pid, request.sim.time);
+    if (rumor) context.recentObservations.push(`sceneRumor:${rumor.itemId}:${rumor.strength.toFixed(2)}`);
     let decision: AiDecisionV1;
     try {
       decision = await this.provider.decide(context);
@@ -77,6 +89,8 @@ export class AiLifeLayer {
       const events = [...result.events];
       const sceneEvent = sceneAwarenessEvent(context, npc);
       if (sceneEvent) events.push(sceneEvent);
+      const memoryEvent = memoryReactionEvent(context, npc, memory, rumor);
+      if (memoryEvent) events.push(memoryEvent);
       if (events.length > 0) request.deliver(events);
     }
   }
@@ -94,6 +108,14 @@ export class AiLifeLayer {
     const candidates = nearbyReactionCandidates(scene, request.sim.entities.values(), player);
     const reactions = rankItemReactions(scene, dropped, candidates, { worldSeed: request.sim.cfg.seed }).slice(0, 2);
     if (reactions.length > 0) {
+      const sceneId = scene.subsceneId ?? scene.zoneId;
+      this.socialMemory.noteItemRumor({
+        sceneId,
+        itemId: dropped.itemId,
+        sourcePlayerEntityId: request.pid,
+        lineIds: reactions.map((reaction) => reaction.lineId),
+        nowSeconds: request.sim.time,
+      });
       this.journal.recordLocalReaction({
         jobId: `local-${request.pid}-${++this.sequence}`,
         trigger: 'item_discarded',
@@ -103,7 +125,7 @@ export class AiLifeLayer {
         reason: `discarded:${request.itemId}`,
         lineIds: reactions.map((reaction) => reaction.lineId),
         intents: reactions.map((reaction) => reaction.reaction),
-        sceneId: scene.subsceneId ?? scene.zoneId,
+        sceneId,
       });
     }
     const events: SimEvent[] = reactions.map((reaction) => ({

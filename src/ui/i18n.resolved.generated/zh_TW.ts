@@ -258,6 +258,8 @@ export const zh_TW: EnTranslations = {
       "sceneClearNightAwe": "{speakerName} steals a glance at the stars before speaking.",
       "sceneDayEnergy": "{speakerName} looks sharper in the daylight.",
       "sceneNightFatigue": "{speakerName}'s voice softens with late-night weariness.",
+      "memoryRecognizesPlayer": "{speakerName} recognizes you now, {playerName}. The road has started carrying your name.",
+      "memoryRumorEcho": "{speakerName} glances toward {itemName}. Word of what you left behind has already started moving, {playerName}.",
       "unknownItem": "something left behind",
       "unknownCompanion": "your companion"
     },

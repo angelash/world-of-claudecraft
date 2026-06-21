@@ -258,6 +258,8 @@ export const en_XA: EnTranslations = {
       "sceneClearNightAwe": "[{speakerName} šţéáļš á ĝļáñçé áţ ţĥé šţáŕš ƀéƒóŕé šþéáķíñĝ.]",
       "sceneDayEnergy": "[{speakerName} ļóóķš šĥáŕþéŕ íñ ţĥé ðáýļíĝĥţ.]",
       "sceneNightFatigue": "[{speakerName}'š ʋóíçé šóƒţéñš ŵíţĥ ļáţé-ñíĝĥţ ŵéáŕíñéšš.]",
+      "memoryRecognizesPlayer": "[{speakerName} ŕéçóĝñížéš ýóú ñóŵ, {playerName}. Ţĥé ŕóáð ĥáš šţáŕţéð çáŕŕýíñĝ ýóúŕ ñáɱé.]",
+      "memoryRumorEcho": "[{speakerName} ĝļáñçéš ţóŵáŕð {itemName}. Ŵóŕð óƒ ŵĥáţ ýóú ļéƒţ ƀéĥíñð ĥáš áļŕéáðý šţáŕţéð ɱóʋíñĝ, {playerName}.]",
       "unknownItem": "[šóɱéţĥíñĝ ļéƒţ ƀéĥíñð]",
       "unknownCompanion": "[ýóúŕ çóɱþáñíóñ]"
     },
