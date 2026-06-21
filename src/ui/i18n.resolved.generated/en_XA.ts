@@ -244,7 +244,11 @@ export const en_XA: EnTranslations = {
     "aiSpeech": {
       "brotherAldricAwake": "[Ţĥé ðéáð áŕé ŕéšţļéšš ţóñíĝĥţ. Ķééþ ýóúŕ ĵóúŕñáļ çļóšé, {playerName}.]",
       "merchantMarketPulse": "[Çóíñ ɱóʋéš ƒášţéŕ ţĥáñ ŕúɱóŕ, {playerName}, ƀúţ ŕúɱóŕ ļéáʋéš ƀéţţéŕ ƒóóţþŕíñţš.]",
-      "genericNpcAwake": "[{speakerName} šţúðíéš ţĥé ŕóáð, ţĥéñ ţúŕñš ƀáçķ ţó ýóú ŵíţĥ ƒŕéšĥ áţţéñţíóñ.]"
+      "genericNpcAwake": "[{speakerName} šţúðíéš ţĥé ŕóáð, ţĥéñ ţúŕñš ƀáçķ ţó ýóú ŵíţĥ ƒŕéšĥ áţţéñţíóñ.]",
+      "itemInterestApproach": "[{speakerName} ñóţíçéš {itemName} áñð éðĝéš çļóšéŕ.]",
+      "itemInterestAvoid": "[{speakerName} þúļļš ƀáçķ ƒŕóɱ {itemName}.]",
+      "itemInterestInspect": "[{speakerName} šţúðíéš {itemName} ŵíţĥ ŵáŕý íñţéŕéšţ.]",
+      "unknownItem": "[šóɱéţĥíñĝ ļéƒţ ƀéĥíñð]"
     },
     "plurals": {
       "guildMembers": {

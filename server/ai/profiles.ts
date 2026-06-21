@@ -8,9 +8,41 @@ export interface AiAgentProfile {
   allowedLineIds: string[];
   fallbackLineId: string;
   canonSensitive: boolean;
+  sceneAffinities?: {
+    likesTags: string[];
+    avoidsTags: string[];
+    commentsOnTags: string[];
+  };
+  itemInterest?: {
+    attractedToTags: string[];
+    avoidsTags: string[];
+  };
+  timeWeatherSensitivity?: {
+    dayEnergy: number;
+    nightFatigue: number;
+    clearNightAwe: number;
+    rainIrritation: number;
+    fogFear: number;
+  };
+  companionReactions?: Array<{
+    companionTag: string;
+    sceneTag: string;
+    reaction: 'curious' | 'uneasy' | 'protective' | 'awed';
+  }>;
 }
 
-const BASIC_NPC_INTENTS: AiIntentType[] = ['lookAt', 'faceEntity', 'pause', 'commentOnScene', 'showGossipOptions', 'questHint'];
+const BASIC_NPC_INTENTS: AiIntentType[] = [
+  'lookAt',
+  'faceEntity',
+  'pause',
+  'commentOnScene',
+  'inspectObject',
+  'approachObject',
+  'avoidObject',
+  'seekShelter',
+  'showGossipOptions',
+  'questHint',
+];
 
 export const AI_AGENT_PROFILES: readonly AiAgentProfile[] = [
   {
@@ -25,6 +57,17 @@ export const AI_AGENT_PROFILES: readonly AiAgentProfile[] = [
     allowedLineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
     fallbackLineId: 'hudChrome.aiSpeech.brotherAldricAwake',
     canonSensitive: true,
+    sceneAffinities: {
+      likesTags: ['chapel', 'graveyard', 'graveSoil', 'undeadMemory'],
+      avoidsTags: ['demon', 'oldBlood'],
+      commentsOnTags: ['ruinedChapel', 'cryptGate', 'deathPressure', 'starrySky'],
+    },
+    itemInterest: {
+      attractedToTags: ['grave', 'undead', 'cursed', 'quest', 'relic'],
+      avoidsTags: ['demon', 'unknownPower'],
+    },
+    timeWeatherSensitivity: { dayEnergy: 0.35, nightFatigue: 0.15, clearNightAwe: 0.55, rainIrritation: 0.2, fogFear: 0.35 },
+    companionReactions: [{ companionTag: 'beast', sceneTag: 'graveyard', reaction: 'protective' }],
   },
   {
     id: 'npc.the_merchant.living_world',
@@ -34,6 +77,16 @@ export const AI_AGENT_PROFILES: readonly AiAgentProfile[] = [
     allowedLineIds: ['hudChrome.aiSpeech.merchantMarketPulse'],
     fallbackLineId: 'hudChrome.aiSpeech.merchantMarketPulse',
     canonSensitive: false,
+    sceneAffinities: {
+      likesTags: ['market', 'safeTown', 'coin', 'road'],
+      avoidsTags: ['deathPressure', 'oldBlood', 'cursed'],
+      commentsOnTags: ['market', 'valuable', 'rain', 'crowd'],
+    },
+    itemInterest: {
+      attractedToTags: ['coin', 'valuable', 'gear', 'rumor'],
+      avoidsTags: ['cursed', 'undead'],
+    },
+    timeWeatherSensitivity: { dayEnergy: 0.55, nightFatigue: 0.4, clearNightAwe: 0.15, rainIrritation: 0.45, fogFear: 0.25 },
   },
 ];
 
@@ -45,6 +98,16 @@ export const GENERIC_NPC_AI_PROFILE: AiAgentProfile = {
   allowedLineIds: ['hudChrome.aiSpeech.genericNpcAwake'],
   fallbackLineId: 'hudChrome.aiSpeech.genericNpcAwake',
   canonSensitive: false,
+  sceneAffinities: {
+    likesTags: ['safeTown', 'warmLight', 'road'],
+    avoidsTags: ['deathPressure', 'oldBlood', 'cursed'],
+    commentsOnTags: ['weather', 'road', 'nearbyObject'],
+  },
+  itemInterest: {
+    attractedToTags: ['food', 'valuable', 'tool'],
+    avoidsTags: ['cursed', 'undead', 'demon'],
+  },
+  timeWeatherSensitivity: { dayEnergy: 0.5, nightFatigue: 0.55, clearNightAwe: 0.35, rainIrritation: 0.4, fogFear: 0.35 },
 };
 
 export function profileFor(kind: 'npc' | 'mob' | 'object', templateId: string): AiAgentProfile {

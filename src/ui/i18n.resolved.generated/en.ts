@@ -244,7 +244,11 @@ export const en: EnTranslations = {
     "aiSpeech": {
       "brotherAldricAwake": "The dead are restless tonight. Keep your journal close, {playerName}.",
       "merchantMarketPulse": "Coin moves faster than rumor, {playerName}, but rumor leaves better footprints.",
-      "genericNpcAwake": "{speakerName} studies the road, then turns back to you with fresh attention."
+      "genericNpcAwake": "{speakerName} studies the road, then turns back to you with fresh attention.",
+      "itemInterestApproach": "{speakerName} notices {itemName} and edges closer.",
+      "itemInterestAvoid": "{speakerName} pulls back from {itemName}.",
+      "itemInterestInspect": "{speakerName} studies {itemName} with wary interest.",
+      "unknownItem": "something left behind"
     },
     "plurals": {
       "guildMembers": {

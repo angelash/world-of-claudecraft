@@ -1,4 +1,6 @@
 import type { Entity, SimEvent } from '../../src/sim/types';
+import type { CompactFamilySemantics } from './family_semantics';
+import type { SceneFrameV1 } from './scene_frame';
 
 export type AiEntityKind = 'npc' | 'mob' | 'object';
 export type AiOutputMode = 'line_id_only' | 'dynamic_text_experiment' | 'mixed_living_world';
@@ -37,6 +39,8 @@ export interface AiJobContextV1 {
   entity: AiEntitySnapshot;
   player: AiPlayerSnapshot;
   locale: string;
+  scene?: SceneFrameV1;
+  familySemantics?: CompactFamilySemantics | null;
   questFacts: AiQuestFact[];
   recentObservations: string[];
   allowedIntents: AiIntentType[];
@@ -49,6 +53,10 @@ export type AiIntentType =
   | 'emote'
   | 'pause'
   | 'commentOnScene'
+  | 'approachObject'
+  | 'avoidObject'
+  | 'inspectObject'
+  | 'seekShelter'
   | 'showGossipOptions'
   | 'questHint';
 

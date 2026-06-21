@@ -940,6 +940,12 @@ export type SimEvent = { pid?: number } & (
         | { mode: 'lineId'; lineId: string; values?: Record<string, string | number> }
         | { mode: 'dynamicText'; language: string; text: string };
       source: 'fallback' | 'codex';
+      reaction?: {
+        kind: 'approach' | 'avoid' | 'inspect' | 'ignore';
+        targetItemId?: string;
+        score?: number;
+        sceneTags?: string[];
+      };
     }
   | { type: 'questAccepted'; questId: string }
   | { type: 'questProgress'; questId: string; text: string }

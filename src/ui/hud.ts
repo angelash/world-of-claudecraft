@@ -3861,16 +3861,31 @@ export class Hud {
   private aiSpeechText(ev: Extract<SimEvent, { type: 'aiSpeech' }>): string {
     if (ev.speech.mode === 'dynamicText') return ev.speech.text;
     const values = ev.speech.values ?? {};
+    const speakerName = String(values.speakerName ?? ev.speakerName);
+    const itemName = this.aiSpeechItemName(values);
     switch (ev.speech.lineId) {
       case 'hudChrome.aiSpeech.brotherAldricAwake':
         return t('hudChrome.aiSpeech.brotherAldricAwake', { playerName: String(values.playerName ?? this.sim.player.name) });
       case 'hudChrome.aiSpeech.merchantMarketPulse':
         return t('hudChrome.aiSpeech.merchantMarketPulse', { playerName: String(values.playerName ?? this.sim.player.name) });
       case 'hudChrome.aiSpeech.genericNpcAwake':
-        return t('hudChrome.aiSpeech.genericNpcAwake', { speakerName: String(values.speakerName ?? ev.speakerName) });
+        return t('hudChrome.aiSpeech.genericNpcAwake', { speakerName });
+      case 'hudChrome.aiSpeech.itemInterestApproach':
+        return t('hudChrome.aiSpeech.itemInterestApproach', { speakerName, itemName });
+      case 'hudChrome.aiSpeech.itemInterestAvoid':
+        return t('hudChrome.aiSpeech.itemInterestAvoid', { speakerName, itemName });
+      case 'hudChrome.aiSpeech.itemInterestInspect':
+        return t('hudChrome.aiSpeech.itemInterestInspect', { speakerName, itemName });
       default:
         return t('hudChrome.aiSpeech.genericNpcAwake', { speakerName: ev.speakerName });
     }
+  }
+
+  private aiSpeechItemName(values: Record<string, string | number>): string {
+    const itemId = typeof values.itemId === 'string' ? values.itemId : '';
+    const item = itemId ? ITEMS[itemId] : undefined;
+    if (item) return itemDisplayName(item);
+    return typeof values.itemName === 'string' ? values.itemName : t('hudChrome.aiSpeech.unknownItem');
   }
 
   /** Replace the server-supplied soft word list (online play only). */

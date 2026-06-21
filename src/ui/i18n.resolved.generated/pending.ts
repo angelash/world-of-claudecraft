@@ -12,62 +12,110 @@ export const pending: Record<string, readonly string[]> = {
   "es": [
     "hudChrome.aiSpeech.brotherAldricAwake",
     "hudChrome.aiSpeech.genericNpcAwake",
-    "hudChrome.aiSpeech.merchantMarketPulse"
+    "hudChrome.aiSpeech.itemInterestApproach",
+    "hudChrome.aiSpeech.itemInterestAvoid",
+    "hudChrome.aiSpeech.itemInterestInspect",
+    "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.unknownItem"
   ],
   "es_ES": [
     "hudChrome.aiSpeech.brotherAldricAwake",
     "hudChrome.aiSpeech.genericNpcAwake",
-    "hudChrome.aiSpeech.merchantMarketPulse"
+    "hudChrome.aiSpeech.itemInterestApproach",
+    "hudChrome.aiSpeech.itemInterestAvoid",
+    "hudChrome.aiSpeech.itemInterestInspect",
+    "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.unknownItem"
   ],
   "fr_FR": [
     "hudChrome.aiSpeech.brotherAldricAwake",
     "hudChrome.aiSpeech.genericNpcAwake",
-    "hudChrome.aiSpeech.merchantMarketPulse"
+    "hudChrome.aiSpeech.itemInterestApproach",
+    "hudChrome.aiSpeech.itemInterestAvoid",
+    "hudChrome.aiSpeech.itemInterestInspect",
+    "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.unknownItem"
   ],
   "fr_CA": [
     "hudChrome.aiSpeech.brotherAldricAwake",
     "hudChrome.aiSpeech.genericNpcAwake",
-    "hudChrome.aiSpeech.merchantMarketPulse"
+    "hudChrome.aiSpeech.itemInterestApproach",
+    "hudChrome.aiSpeech.itemInterestAvoid",
+    "hudChrome.aiSpeech.itemInterestInspect",
+    "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.unknownItem"
   ],
   "en_CA": [],
   "it_IT": [
     "hudChrome.aiSpeech.brotherAldricAwake",
     "hudChrome.aiSpeech.genericNpcAwake",
-    "hudChrome.aiSpeech.merchantMarketPulse"
+    "hudChrome.aiSpeech.itemInterestApproach",
+    "hudChrome.aiSpeech.itemInterestAvoid",
+    "hudChrome.aiSpeech.itemInterestInspect",
+    "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.unknownItem"
   ],
   "de_DE": [
     "hudChrome.aiSpeech.brotherAldricAwake",
     "hudChrome.aiSpeech.genericNpcAwake",
-    "hudChrome.aiSpeech.merchantMarketPulse"
+    "hudChrome.aiSpeech.itemInterestApproach",
+    "hudChrome.aiSpeech.itemInterestAvoid",
+    "hudChrome.aiSpeech.itemInterestInspect",
+    "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.unknownItem"
   ],
   "zh_CN": [
     "hudChrome.aiSpeech.brotherAldricAwake",
     "hudChrome.aiSpeech.genericNpcAwake",
-    "hudChrome.aiSpeech.merchantMarketPulse"
+    "hudChrome.aiSpeech.itemInterestApproach",
+    "hudChrome.aiSpeech.itemInterestAvoid",
+    "hudChrome.aiSpeech.itemInterestInspect",
+    "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.unknownItem"
   ],
   "zh_TW": [
     "hudChrome.aiSpeech.brotherAldricAwake",
     "hudChrome.aiSpeech.genericNpcAwake",
-    "hudChrome.aiSpeech.merchantMarketPulse"
+    "hudChrome.aiSpeech.itemInterestApproach",
+    "hudChrome.aiSpeech.itemInterestAvoid",
+    "hudChrome.aiSpeech.itemInterestInspect",
+    "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.unknownItem"
   ],
   "ko_KR": [
     "hudChrome.aiSpeech.brotherAldricAwake",
     "hudChrome.aiSpeech.genericNpcAwake",
-    "hudChrome.aiSpeech.merchantMarketPulse"
+    "hudChrome.aiSpeech.itemInterestApproach",
+    "hudChrome.aiSpeech.itemInterestAvoid",
+    "hudChrome.aiSpeech.itemInterestInspect",
+    "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.unknownItem"
   ],
   "ja_JP": [
     "hudChrome.aiSpeech.brotherAldricAwake",
     "hudChrome.aiSpeech.genericNpcAwake",
-    "hudChrome.aiSpeech.merchantMarketPulse"
+    "hudChrome.aiSpeech.itemInterestApproach",
+    "hudChrome.aiSpeech.itemInterestAvoid",
+    "hudChrome.aiSpeech.itemInterestInspect",
+    "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.unknownItem"
   ],
   "pt_BR": [
     "hudChrome.aiSpeech.brotherAldricAwake",
     "hudChrome.aiSpeech.genericNpcAwake",
-    "hudChrome.aiSpeech.merchantMarketPulse"
+    "hudChrome.aiSpeech.itemInterestApproach",
+    "hudChrome.aiSpeech.itemInterestAvoid",
+    "hudChrome.aiSpeech.itemInterestInspect",
+    "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.unknownItem"
   ],
   "ru_RU": [
     "hudChrome.aiSpeech.brotherAldricAwake",
     "hudChrome.aiSpeech.genericNpcAwake",
-    "hudChrome.aiSpeech.merchantMarketPulse"
+    "hudChrome.aiSpeech.itemInterestApproach",
+    "hudChrome.aiSpeech.itemInterestAvoid",
+    "hudChrome.aiSpeech.itemInterestInspect",
+    "hudChrome.aiSpeech.merchantMarketPulse",
+    "hudChrome.aiSpeech.unknownItem"
   ]
 };

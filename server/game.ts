@@ -1164,7 +1164,10 @@ export class GameServer {
         break;
       case 'discard':
         if (typeof msg.item === 'string') {
+          const before = sim.countItem(msg.item, pid);
           sim.discardItem(msg.item, typeof msg.count === 'number' ? msg.count : undefined, pid);
+          const discarded = Math.max(0, before - sim.countItem(msg.item, pid));
+          if (discarded > 0) this.handleAiItemDiscarded(session, msg.item, discarded);
         }
         break;
       case 'buy': if (typeof msg.npc === 'number' && typeof msg.item === 'string') sim.buyItem(msg.npc, msg.item, pid); break;
@@ -1420,6 +1423,20 @@ export class GameServer {
       },
     }).catch((err) => {
       console.error('ai npc interaction failed:', err);
+    });
+  }
+
+  private handleAiItemDiscarded(session: ClientSession, itemId: string, count: number): void {
+    if (session.left || this.clients.get(session.pid) !== session) return;
+    this.aiLifeLayer.handleItemDiscarded({
+      sim: this.sim,
+      pid: session.pid,
+      itemId,
+      count,
+      deliver: (events) => {
+        if (session.left || this.clients.get(session.pid) !== session) return;
+        if (events.length > 0) this.send(session, { t: 'events', list: events });
+      },
     });
   }
 

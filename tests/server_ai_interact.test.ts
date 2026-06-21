@@ -126,4 +126,28 @@ describe('server AI interact command', () => {
 
     expect(eventsOf(fc, 'aiSpeech')).toHaveLength(0);
   });
+
+  it('turns a discarded item into a local scene-interest reaction without leaving loot behind', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf');
+    expect(wolf).toBeTruthy();
+    teleportNear(server, session.pid, wolf!.id);
+    server.sim.addItem('roasted_boar', 1, session.pid);
+    const beforeObjects = [...server.sim.entities.values()].filter((entity) => entity.kind === 'object' && entity.objectItemId === 'roasted_boar').length;
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    await flushAi();
+
+    const aiEvents = eventsOf(fc, 'aiSpeech');
+    expect(aiEvents.some((event) => event.speakerId === wolf!.id && event.speech.lineId === 'hudChrome.aiSpeech.itemInterestApproach')).toBe(true);
+    expect(aiEvents.find((event) => event.speakerId === wolf!.id)?.reaction).toMatchObject({
+      kind: 'approach',
+      targetItemId: 'roasted_boar',
+    });
+    const afterObjects = [...server.sim.entities.values()].filter((entity) => entity.kind === 'object' && entity.objectItemId === 'roasted_boar').length;
+    expect(afterObjects).toBe(beforeObjects);
+    expect(server.sim.countItem('roasted_boar', session.pid)).toBe(0);
+  });
 });

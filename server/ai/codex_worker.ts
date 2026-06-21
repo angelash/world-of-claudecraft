@@ -64,7 +64,21 @@ const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
         type: 'object',
         additionalProperties: false,
         properties: {
-          type: { enum: ['lookAt', 'faceEntity', 'emote', 'pause', 'commentOnScene', 'showGossipOptions', 'questHint'] },
+          type: {
+            enum: [
+              'lookAt',
+              'faceEntity',
+              'emote',
+              'pause',
+              'commentOnScene',
+              'approachObject',
+              'avoidObject',
+              'inspectObject',
+              'seekShelter',
+              'showGossipOptions',
+              'questHint',
+            ],
+          },
           lineId: { type: 'string' },
         },
         required: ['type'],

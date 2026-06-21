@@ -6,9 +6,12 @@ import type { AiJobContextV1, AiProvider } from './ai_types';
 import { aiEntityKind } from './ai_types';
 import { classifyCanonSubject } from './canon_guard';
 import { CodexCliProvider } from './codex_worker';
+import { compactFamilySemanticsForEntity } from './family_semantics';
 import { FakeAiProvider } from './fake_ai_provider';
+import { nearbyReactionCandidates, rankItemReactions } from './item_interest';
 import { validateAiDecision } from './intent_validator';
 import { profileFor } from './profiles';
+import { droppedItemSemantic, sceneFrameFor } from './scene_frame';
 
 export interface AiLifeLayerOptions {
   enabled?: boolean;
@@ -21,6 +24,14 @@ export interface NpcAiInteractionRequest {
   pid: number;
   npcId: number;
   locale: string;
+  deliver(events: SimEvent[]): void;
+}
+
+export interface ItemDiscardedAiRequest {
+  sim: Sim;
+  pid: number;
+  itemId: string;
+  count: number;
   deliver(events: SimEvent[]): void;
 }
 
@@ -50,6 +61,44 @@ export class AiLifeLayer {
     }
   }
 
+  handleItemDiscarded(request: ItemDiscardedAiRequest): void {
+    if (!this.enabled) return;
+    const player = request.sim.entities.get(request.pid);
+    if (!player || request.count <= 0) return;
+    const dropped = droppedItemSemantic(request.itemId, 0, request.pid);
+    if (!dropped) return;
+    const scene = sceneFrameFor(request.sim, player.pos, {
+      droppedItems: [dropped],
+      recentSceneEvents: [`playerDiscarded:${request.itemId}`],
+    });
+    const candidates = nearbyReactionCandidates(scene, request.sim.entities.values(), player);
+    const reactions = rankItemReactions(scene, dropped, candidates).slice(0, 2);
+    const events: SimEvent[] = reactions.map((reaction) => ({
+      type: 'aiSpeech',
+      speakerId: reaction.entity.id,
+      speakerName: reaction.entity.name,
+      speech: {
+        mode: 'lineId',
+        lineId: reaction.lineId,
+        values: {
+          speakerName: reaction.entity.name,
+          itemId: dropped.itemId,
+          reaction: reaction.reaction,
+          score: Math.round(reaction.score * 100),
+        },
+      },
+      source: 'fallback',
+      reaction: {
+        kind: reaction.reaction,
+        targetItemId: dropped.itemId,
+        score: Math.round(reaction.score * 100) / 100,
+        sceneTags: [...new Set([...scene.locationTags, ...scene.structureTags, ...scene.environmentalTags])].slice(0, 8),
+      },
+      pid: request.pid,
+    }));
+    if (events.length > 0) request.deliver(events);
+  }
+
   private buildNpcContext(request: NpcAiInteractionRequest): AiJobContextV1 | null {
     const player = request.sim.entities.get(request.pid);
     const npc = request.sim.entities.get(request.npcId);
@@ -59,6 +108,7 @@ export class AiLifeLayer {
     const kind = aiEntityKind(npc);
     if (!kind) return null;
     const profile = profileFor(kind, npc.templateId);
+    const scene = sceneFrameFor(request.sim, npc.pos);
     const questFacts = npc.questIds
       .map((questId) => {
         const quest = QUESTS[questId];
@@ -96,8 +146,13 @@ export class AiLifeLayer {
         completedQuestIds: [...meta.questsDone],
       },
       locale: normalizeLocale(request.locale),
+      scene,
+      familySemantics: compactFamilySemanticsForEntity(npc),
       questFacts,
-      recentObservations: [],
+      recentObservations: [
+        `scene:${scene.subsceneId ?? scene.zoneId}`,
+        ...scene.environmentalTags.slice(0, 4).map((tag) => `tag:${tag}`),
+      ],
       allowedIntents: profile.allowedIntentTypes,
       outputMode: 'line_id_only',
     };
