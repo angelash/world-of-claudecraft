@@ -67,6 +67,9 @@ export function scoreFamilySceneReaction(
 
   let curiosity = rules.moodBias.curiosity * 0.22 + amplifierCount * 0.17;
   let fear = rules.moodBias.fear * 0.18 + suppressorCount * 0.2;
+  const moodBias = timeWeatherReactionBias(scene, family, rules.moodBias.fatigue);
+  curiosity += moodBias.curiosity;
+  fear += moodBias.fear;
 
   const deathScene = sceneTags.has('deathPressure') || sceneTags.has('undeadMemory') || sceneTags.has('graveSoil') || sceneTags.has('oldBlood');
   if (scene.danger.undeadPressure >= 0.25 || deathScene) {
@@ -104,7 +107,7 @@ export function scoreFamilySceneReaction(
     score,
     fear,
     curiosity,
-    reasonTags: explainSceneTags(scene, rules.sceneAmplifiers, rules.sceneSuppressors, reaction),
+    reasonTags: explainSceneTags(scene, rules.sceneAmplifiers, rules.sceneSuppressors, reaction, moodBias.reasonTags),
     lineId: lineIdForFamilyScene(family, reaction),
     individual,
   };
@@ -178,11 +181,49 @@ function explainSceneTags(
   amplifiers: readonly string[],
   suppressors: readonly string[],
   reaction: FamilySceneReactionKind,
+  moodReasonTags: readonly string[] = [],
 ): string[] {
   const tags = sceneTagSet(scene);
   const preferred = reaction === 'avoid' ? suppressors : amplifiers;
   const matches = preferred.filter((tag) => tags.has(tag));
-  return [...new Set([...matches, ...scene.environmentalTags, ...scene.locationTags])].slice(0, 5);
+  return [...new Set([...matches, ...moodReasonTags, ...scene.environmentalTags, ...scene.locationTags])].slice(0, 5);
+}
+
+function timeWeatherReactionBias(
+  scene: SceneFrameV1,
+  family: MobFamily,
+  familyFatigue: number,
+): { curiosity: number; fear: number; reasonTags: string[] } {
+  let curiosity = 0;
+  let fear = 0;
+  const reasonTags: string[] = [];
+  if (scene.mood.dayEnergy >= 0.6 && family !== 'undead' && family !== 'demon' && family !== 'spider') {
+    curiosity += 0.04;
+    reasonTags.push('dayEnergy');
+  }
+  if (scene.mood.nightFatigue >= 0.5) {
+    reasonTags.push('nightFatigue');
+    if (family === 'undead' || family === 'demon') curiosity += 0.05;
+    else fear += 0.04 + familyFatigue * 0.08;
+  }
+  if (scene.mood.clearNightAwe >= 0.5) {
+    curiosity += family === 'elemental' || family === 'dragonkin' ? 0.08 : 0.04;
+    reasonTags.push('clearNightAwe');
+  }
+  if (scene.mood.rainIrritation >= 0.5) {
+    if (family === 'murloc' || family === 'elemental') {
+      curiosity += 0.08;
+      reasonTags.push('waterComfort');
+    } else {
+      fear += 0.03 + familyFatigue * 0.08;
+      reasonTags.push('rainIrritation');
+    }
+  }
+  if (scene.mood.fogFear >= 0.5) {
+    fear += family === 'spider' || family === 'undead' ? 0 : 0.05;
+    reasonTags.push('fogFear');
+  }
+  return { curiosity, fear, reasonTags };
 }
 
 function overlapCount(tags: Set<string>, needles: readonly string[]): number {
