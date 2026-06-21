@@ -198,6 +198,13 @@ describe('AI memory persistence integration', () => {
         expect(context.memorySignals?.some((signal) => signal.refId === 'other-player-director')).toBe(false);
         expect(context.memorySignals?.some((signal) => signal.refId === 'expired-director')).toBe(false);
         expect(context.recentObservations).toContain('persistedMemory:worldDirectorState:region:redbrook_blade');
+        expect(context.directorProposals).toContainEqual(expect.objectContaining({
+          proposalId: 'persisted-director-covetous:persisted-proposal',
+          intent: 'nudgeNpcRumor',
+          targetRef: 'redbrook_blade',
+          suggestedLineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+          safetyNotes: expect.arrayContaining(['presentationOnly', 'noQuestMutation']),
+        }));
         return {
           schemaVersion: 1,
           jobId: context.jobId,

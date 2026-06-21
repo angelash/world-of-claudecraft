@@ -445,6 +445,40 @@ export function worldDirectorEventFromMemoryAudit(
   };
 }
 
+export function worldDirectorProposalFromMemoryAudit(record: AiMemoryAuditRecord | null): AiWorldDirectorProposal | null {
+  if (!record || record.kind !== 'worldDirectorState') return null;
+  const lineId = record.lineIds.find(isWorldDirectorLineId);
+  if (!lineId) return null;
+  const mood = moodFromAuditReason(record.reason) ?? moodForLineId(lineId);
+  const proposalType = proposalTypeFromAuditReason(record.reason) ?? proposalTypeForMood(mood);
+  const targetRef = record.questId || record.itemId || record.templateId || record.sceneId;
+  const sceneId = record.sceneId ?? record.zoneId ?? '';
+  const zoneId = record.zoneId ?? sceneId;
+  if (!targetRef || !sceneId || !zoneId) return null;
+  const stateLike: Omit<AiWorldDirectorState, 'proposal'> = {
+    stateId: record.refId,
+    sceneId,
+    zoneId,
+    mood,
+    proposalType,
+    sourcePlayerEntityId: record.sourcePlayerEntityId,
+    sourceRef: record.refId,
+    itemId: targetRef,
+    subjectKind: record.subjectKind ?? 'item',
+    ...(record.templateId ? { subjectTemplateId: record.templateId } : {}),
+    lineId,
+    heat: clamp01(record.salience),
+    createdAt: record.createdAt ?? 0,
+    updatedAt: record.createdAt ?? 0,
+    expiresAt: record.expiresAt ?? Number.MAX_SAFE_INTEGER,
+    evidence: ['persistedMemory', record.reason],
+  };
+  return {
+    ...proposalForState(stateLike),
+    proposalId: `${record.refId}:persisted-proposal`,
+  };
+}
+
 export function moodForTraceKind(kind: AiWorldTraceKind): AiWorldDirectorMood {
   switch (kind) {
     case 'singularity': return 'uncanny';
@@ -533,6 +567,21 @@ function moodFromAuditReason(reason: string): AiWorldDirectorMood | null {
     case 'dread':
     case 'relieved':
       return mood;
+    default:
+      return null;
+  }
+}
+
+function proposalTypeFromAuditReason(reason: string): AiWorldDirectorProposalType | null {
+  const match = /:(npcTopicShift|campAlert|traceEcho|encounterEcho|questEcho)$/.exec(reason);
+  const proposalType = match?.[1] ?? '';
+  switch (proposalType) {
+    case 'npcTopicShift':
+    case 'campAlert':
+    case 'traceEcho':
+    case 'encounterEcho':
+    case 'questEcho':
+      return proposalType;
     default:
       return null;
   }

@@ -113,7 +113,7 @@ function seedThatMakesSingularity(entity: Entity): number {
   throw new Error(`No singularity seed found for ${entity.templateId}`);
 }
 
-function persistedDirectorSignal(playerEntityId: number): AiMemoryAuditRecord {
+function persistedDirectorSignal(playerEntityId: number, overrides: Partial<AiMemoryAuditRecord> = {}): AiMemoryAuditRecord {
   return {
     kind: 'worldDirectorState',
     refId: 'persisted-director-covetous',
@@ -128,6 +128,7 @@ function persistedDirectorSignal(playerEntityId: number): AiMemoryAuditRecord {
     createdAt: 12,
     expiresAt: 160,
     reason: 'persistedRestart:covetous:npcTopicShift',
+    ...overrides,
   };
 }
 
@@ -350,6 +351,57 @@ describe('server AI interact command', () => {
       pid: session.pid,
     }));
     expect(mainlineSnapshot(server, session.pid)).toEqual(before);
+    query.mockResolvedValue({ rows: [], rowCount: 0 });
+  });
+
+  it('lets restored director proposals shape ordinary creature scene reactions after restart', async () => {
+    const query = dbQueryMock();
+    query.mockClear();
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    teleportNear(server, session.pid, wolf.id);
+    const beforeWolfPos = { ...wolf.pos };
+    query.mockImplementation(async (sql: unknown) => {
+      if (typeof sql === 'string' && sql.includes('SELECT payload') && sql.includes('ai_memory_records')) {
+        return {
+          rows: [{
+            payload: persistedDirectorSignal(session.pid, {
+              refId: 'persisted-director-hungry',
+              itemId: 'roasted_boar',
+              lineIds: ['hudChrome.aiSpeech.worldDirectorHungry'],
+              reason: 'persistedRestart:hungry:traceEcho',
+            }),
+          }],
+          rowCount: 1,
+        };
+      }
+      return { rows: [], rowCount: 0 };
+    });
+    const before = mainlineSnapshot(server, session.pid);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_scene', locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: wolf.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.familySceneBeastUneasy',
+        values: expect.objectContaining({
+          sceneObjectId: 'roasted_boar',
+          sceneObjectTemplateId: 'world_director:echoTrace',
+        }),
+      }),
+      reaction: expect.objectContaining({
+        targetItemId: 'roasted_boar',
+        sceneTags: expect.arrayContaining(['director:echoTrace', 'mood:hungry']),
+      }),
+      pid: session.pid,
+    }));
+    expect(mainlineSnapshot(server, session.pid)).toEqual(before);
+    expect(wolf.pos.x).toBeCloseTo(beforeWolfPos.x, 6);
+    expect(wolf.pos.z).toBeCloseTo(beforeWolfPos.z, 6);
     query.mockResolvedValue({ rows: [], rowCount: 0 });
   });
 

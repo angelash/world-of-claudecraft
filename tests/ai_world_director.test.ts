@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { AiBossEncounterMemoryStore } from '../server/ai/boss_memory';
 import type { AiCreatureMemory, AiCreaturePlan } from '../server/ai/creature_memory';
-import { AiWorldDirectorStore, moodForTraceKind, worldDirectorEvent } from '../server/ai/world_director';
+import { AiWorldDirectorStore, moodForTraceKind, worldDirectorEvent, worldDirectorProposalFromMemoryAudit } from '../server/ai/world_director';
+import type { AiMemoryAuditRecord } from '../server/ai/ai_types';
 import type { AiWorldTrace } from '../server/ai/world_traces';
 import type { Entity } from '../src/sim/types';
 
@@ -35,6 +36,23 @@ const creaturePlan: AiCreaturePlan = {
   updatedAt: 12,
   expiresAt: 100,
 };
+
+const persistedDirectorAudit = (overrides: Partial<AiMemoryAuditRecord> = {}): AiMemoryAuditRecord => ({
+  kind: 'worldDirectorState',
+  refId: 'persisted-director-covetous',
+  scope: 'region',
+  sceneId: 'eastbrook_forge',
+  zoneId: 'eastbrook_vale',
+  sourcePlayerEntityId: 1,
+  itemId: 'redbrook_blade',
+  subjectKind: 'item',
+  lineIds: ['hudChrome.aiSpeech.worldDirectorCovetous'],
+  salience: 0.72,
+  createdAt: 12,
+  expiresAt: 160,
+  reason: 'persistedRestart:covetous:npcTopicShift',
+  ...overrides,
+});
 
 function trace(kind: AiWorldTrace['kind'], itemId = 'roasted_boar'): AiWorldTrace {
   return {
@@ -133,6 +151,39 @@ describe('AI world director', () => {
       pid: 1,
     });
     expect(worldDirectorEvent(null, speaker, null, 1)).toBeNull();
+  });
+
+  it('restores read-only director proposals from persisted memory audits', () => {
+    expect(worldDirectorProposalFromMemoryAudit(persistedDirectorAudit())).toMatchObject({
+      proposalId: 'persisted-director-covetous:persisted-proposal',
+      intent: 'nudgeNpcRumor',
+      status: 'preview',
+      risk: 'low',
+      intensity: 0.72,
+      targetRef: 'redbrook_blade',
+      sceneId: 'eastbrook_forge',
+      zoneId: 'eastbrook_vale',
+      suggestedLineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+      expiresAt: 160,
+      reasonTags: expect.arrayContaining([
+        'mood:covetous',
+        'subject:item',
+        'proposal:npcTopicShift',
+        'persistedMemory',
+      ]),
+      safetyNotes: expect.arrayContaining(['presentationOnly', 'noQuestMutation', 'noCombatMutation', 'noLootOrEconomyMutation']),
+    });
+    expect(worldDirectorProposalFromMemoryAudit(persistedDirectorAudit({
+      lineIds: ['hudChrome.aiSpeech.worldDirectorHungry'],
+      itemId: 'roasted_boar',
+      reason: 'persistedRestart:hungry:traceEcho',
+    }))).toMatchObject({
+      intent: 'echoTrace',
+      targetRef: 'roasted_boar',
+      reasonTags: expect.arrayContaining(['mood:hungry', 'proposal:traceEcho']),
+    });
+    expect(worldDirectorProposalFromMemoryAudit(persistedDirectorAudit({ kind: 'rumor' }))).toBeNull();
+    expect(worldDirectorProposalFromMemoryAudit(persistedDirectorAudit({ lineIds: [] }))).toBeNull();
   });
 
   it('keeps director proposals refreshed and cloned with their state', () => {

@@ -47,7 +47,7 @@ import { sceneAwarenessEvent } from './scene_reactions';
 import { individualProfileFor, individualSpeechValues } from './singularity';
 import { AiSocialMemoryStore } from './social_memory';
 import type { AiNpcMemory, AiRumorMemory } from './social_memory';
-import { AiWorldDirectorStore, worldDirectorEvent, worldDirectorEventFromMemoryAudit } from './world_director';
+import { AiWorldDirectorStore, worldDirectorEvent, worldDirectorEventFromMemoryAudit, worldDirectorProposalFromMemoryAudit } from './world_director';
 import type { AiWorldDirectorProposal, AiWorldDirectorProposalAuditEntry, AiWorldDirectorState } from './world_director';
 import { AiWorldTraceStore } from './world_traces';
 import type { AiWorldTrace } from './world_traces';
@@ -807,6 +807,10 @@ export class AiLifeLayer {
       limit: 8,
     });
     appendMemorySignals(context, persistedSignals);
+    if (!directorState) {
+      const persistedProposal = worldDirectorProposalFromMemoryAudit(firstPersistedWorldDirectorSignal(persistedSignals));
+      if (persistedProposal) context.directorProposals = cloneDirectorProposals([persistedProposal]);
+    }
     const memoryWrites: AiMemoryAuditRecord[] = [];
     const sideEvents: SimEvent[] = [];
     sideEvents.push(...companionReactionEvents(context));
@@ -1113,11 +1117,18 @@ export class AiLifeLayer {
       zoneId: scene.zoneId,
       limit: 8,
     });
+    const persistedDirectorProposal = !directorState
+      ? worldDirectorProposalFromMemoryAudit(firstPersistedWorldDirectorSignal(persistedSignals))
+      : null;
+    const sceneDirectorProposals = cloneDirectorProposals([
+      directorState?.proposal,
+      persistedDirectorProposal,
+    ]);
     const event = sceneInspectionEvent(scene, player, trace);
     const events: SimEvent[] = [event];
     const lineIds = event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [];
     const companionEvents = companionReactionEventsForScene(scene, request.pid, {
-      directorProposals: directorState ? [directorState.proposal] : [],
+      directorProposals: sceneDirectorProposals,
     });
     events.push(...companionEvents);
     lineIds.push(...aiSpeechLineIds(companionEvents));
@@ -1190,7 +1201,7 @@ export class AiLifeLayer {
       const familyReactions = rankFamilySceneReactions(
         scene,
         nearbyFamilySceneCandidates(scene, request.sim.entities.values(), player),
-        { worldSeed: request.sim.cfg.seed, directorProposals: directorState ? [directorState.proposal] : [] },
+        { worldSeed: request.sim.cfg.seed, directorProposals: sceneDirectorProposals },
       ).slice(0, 2);
       for (const reaction of familyReactions) {
         let localEvent = familySceneReactionEvent(reaction, scene, request.pid) as Extract<SimEvent, { type: 'aiSpeech' }>;
@@ -1251,6 +1262,7 @@ export class AiLifeLayer {
             memorySignals: memoryWrites,
             directorProposals: [
               directorState?.proposal,
+              persistedDirectorProposal,
               directorMemory?.proposal,
             ],
           });
