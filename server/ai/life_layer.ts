@@ -406,7 +406,7 @@ export class AiLifeLayer {
       if (sceneEvent) events.push(sceneEvent);
       const traceEvent = worldTraceReactionEvent(context, npc, trace);
       if (traceEvent) events.push(traceEvent);
-      const directorEvent = request.topic === 'place'
+      const directorEvent = shouldShareWorldDirector(request.topic, directorState, rumor)
         ? worldDirectorEvent(context.scene ?? null, npc, directorState, request.pid)
         : null;
       if (directorEvent) events.push(directorEvent);
@@ -414,7 +414,7 @@ export class AiLifeLayer {
       const memoryEvent = memoryReactionEvent(context, npc, memory, rumor);
       if (memoryEvent) events.push(memoryEvent);
       const topicEvent = topicReactionEvent(context, npc, memory, rumor);
-      if (topicEvent) events.push(topicEvent);
+      if (topicEvent && !(directorEvent && request.topic === 'rumor')) events.push(topicEvent);
       if (events.length > 0) request.deliver(events);
     }
   }
@@ -912,4 +912,15 @@ export class AiLifeLayer {
 export function normalizeLocale(locale: string): string {
   const trimmed = locale.trim();
   return /^[a-z]{2}([_-][A-Z]{2})?$/.test(trimmed) ? trimmed : 'en';
+}
+
+function shouldShareWorldDirector(
+  topic: AiNpcInteractionTopic | undefined,
+  state: AiWorldDirectorState | null,
+  rumor: AiRumorMemory | null,
+): boolean {
+  if (!state) return false;
+  if (topic === 'place' || topic === 'recent') return true;
+  if (topic === 'rumor') return rumor === null;
+  return false;
 }

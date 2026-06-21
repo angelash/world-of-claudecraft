@@ -643,6 +643,23 @@ describe('server AI interact command', () => {
     }));
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
+    fc.sent.length = 0;
+    session.aiQuestionReadyAt = 0;
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en', topic: 'recent' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+        values: expect.objectContaining({ itemId: 'redbrook_blade', directorMood: 'covetous' }),
+      }),
+      reaction: expect.objectContaining({ kind: 'inspect', targetItemId: 'redbrook_blade' }),
+      pid: session.pid,
+    }));
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
 
   it('lets trace-driven world director state echo across nearby scenes in the same zone', async () => {
@@ -926,13 +943,29 @@ describe('server AI interact command', () => {
     const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'smith_haldren')!;
     teleportNear(server, session.pid, npc.id);
     server.sim.addItem('redbrook_blade', 1, session.pid);
+    const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
+    const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
 
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'redbrook_blade', count: 1 }));
     for (let i = 0; i < 91 * 20; i++) server.sim.tick();
-    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en' }));
+    fc.sent.length = 0;
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en', topic: 'rumor' }));
     await flushAi();
 
     expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.memorySmithRumorEcho')).toBe(false);
+    expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.topicRumorQuiet')).toBe(false);
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+        values: expect.objectContaining({ itemId: 'redbrook_blade', directorMood: 'covetous' }),
+      }),
+      reaction: expect.objectContaining({ kind: 'inspect', targetItemId: 'redbrook_blade' }),
+      pid: session.pid,
+    }));
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
+    expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
 
   it('records a real boss defeat as encounter memory without changing quest state', async () => {
