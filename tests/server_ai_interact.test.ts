@@ -268,8 +268,24 @@ describe('server AI interact command', () => {
     expect(eventsOf(fc, 'aiSpeech').some((event) => event.speech.lineId === 'hudChrome.aiSpeech.topicPlace')).toBe(true);
   });
 
-  it('does nothing when the experiment flag is disabled', async () => {
+  it('emits lineId AI speech by default when the experiment flag is unset', async () => {
     delete process.env.AI_LIVING_WORLD_EXPERIMENT;
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
+    teleportNear(server, session.pid, npc.id);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en' }));
+    await flushAi();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speech: expect.objectContaining({ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
+    }));
+  });
+
+  it('does nothing when AI living world is explicitly disabled', async () => {
+    process.env.AI_LIVING_WORLD_EXPERIMENT = '0';
     const server = new GameServer();
     const fc = fakeWs();
     const session = joinServer(server, fc);

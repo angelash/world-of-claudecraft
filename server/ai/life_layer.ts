@@ -285,7 +285,7 @@ export class AiLifeLayer {
   private auditSequence = 0;
 
   constructor(options: AiLifeLayerOptions = {}) {
-    this.enabled = options.enabled ?? process.env.AI_LIVING_WORLD_EXPERIMENT === '1';
+    this.enabled = options.enabled ?? process.env.AI_LIVING_WORLD_EXPERIMENT !== '0';
     this.provider = options.provider ?? (options.useCodex || process.env.AI_CODEX_CLI === '1'
       ? new CodexCliProvider()
       : new FakeAiProvider());

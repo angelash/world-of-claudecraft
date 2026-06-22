@@ -6821,8 +6821,27 @@ export class Sim {
     if (npc) this.talkToNpc(npc.id, p.id);
   }
 
-  aiInteractNpc(_npcId: number, _locale: string, _topic?: string): void {
-    // Offline simulation keeps AI life-layer side effects out of the deterministic core.
+  aiInteractNpc(npcId: number, _locale: string, topic: string = 'greeting'): void {
+    const r = this.resolve();
+    const npc = this.entities.get(npcId);
+    if (!r || !npc || npc.kind !== 'npc') return;
+    if (dist2d(r.e.pos, npc.pos) > INTERACT_RANGE + 2) return;
+    this.emit({
+      type: 'aiSpeech',
+      speakerId: npc.id,
+      speakerName: NPCS[npc.templateId]?.name ?? npc.name,
+      speech: {
+        mode: 'lineId',
+        lineId: offlineAiNpcLineId(topic, r.meta),
+        values: {
+          speakerName: NPCS[npc.templateId]?.name ?? npc.name,
+          playerName: r.meta.name,
+        },
+      },
+      source: 'fallback',
+      reaction: { kind: 'inspect' },
+      pid: r.e.id,
+    });
   }
 
   aiInspectObject(_objectId: number, _locale: string): void {
@@ -10481,6 +10500,24 @@ export class Sim {
     const unspent = total - spent;
     const tail = unspent > 0 ? ` ${unspent} unspent.` : '';
     return `Talents: ${head} — ${spent}/${total} points spent (${breakdown}).${tail}`;
+  }
+}
+
+function offlineAiNpcLineId(topic: string, meta: PlayerMeta): string {
+  switch (topic) {
+    case 'recent':
+      return 'hudChrome.aiSpeech.topicRecentFirstMeet';
+    case 'rumor':
+      return 'hudChrome.aiSpeech.topicRumorQuiet';
+    case 'place':
+      return 'hudChrome.aiSpeech.topicPlace';
+    case 'quest_hint':
+      return meta.questLog.size > 0
+        ? 'hudChrome.aiSpeech.topicQuestHint'
+        : 'hudChrome.aiSpeech.topicQuestNoHint';
+    case 'greeting':
+    default:
+      return 'hudChrome.aiSpeech.genericNpcAwake';
   }
 }
 
