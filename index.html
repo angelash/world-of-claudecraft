@@ -1402,6 +1402,9 @@
   /* report dialog: dropdown drops downward (dialog sits high), full width */
   #report-window .ui-dd { display: block; }
   #report-window .ui-dd-menu { bottom: auto; top: calc(100% + 4px); }
+  /* options language picker: it is the first row of the Interface panel, so the
+     default upward menu clips off the panel top; drop it downward instead. */
+  .set-lang-select .ui-dd-menu { bottom: auto; top: calc(100% + 4px); }
   /* Choice-node option flyout */
   .tal-choice-pop { position: fixed; z-index: 90; width: 252px; background: #1a140a; border: 1px solid var(--gold); border-radius: 6px; box-shadow: 0 10px 24px #000c, inset 0 0 0 1px #ffd10022; padding: 5px; }
   .tal-choice-pop::before { content: ""; position: absolute; left: var(--tal-choice-caret-left, 50%); top: -6px; width: 10px; height: 10px; background: #1a140a; border-left: 1px solid var(--gold); border-top: 1px solid var(--gold); transform: translateX(-50%) rotate(45deg); }
