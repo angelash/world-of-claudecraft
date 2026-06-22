@@ -178,4 +178,40 @@ describe('server AI active triggers', () => {
       activeLastSkipReason: 'polls_disabled',
     });
   });
+
+  it('queues player item-discard events for the active scheduler without restoring the item', () => {
+    const server = new GameServer();
+    installActiveTriggers(server);
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
+    if (!npc) throw new Error('missing Brother Aldric');
+    teleportNear(server, session.pid, npc.id);
+    server.sim.addItem('roasted_boar', 1, session.pid);
+    fc.sent.length = 0;
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    const [queued] = server.aiActiveTriggerDiagnostics().eventQueue;
+    expect(queued).toEqual(expect.objectContaining({
+      kind: 'item_discarded',
+      itemId: 'roasted_boar',
+      playerEntityId: session.pid,
+    }));
+
+    (server as any).runAiActiveTriggers(queued.nextAttemptAtMs);
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.worldTraceNpcFood',
+        values: expect.objectContaining({ itemId: 'roasted_boar' }),
+      }),
+      source: 'local',
+      pid: session.pid,
+    }));
+    expect(server.sim.countItem('roasted_boar', session.pid)).toBe(0);
+    expect(server.aiActiveTriggerMetrics()).toMatchObject({
+      activeEventQueued: 1,
+      activeEventFired: 1,
+    });
+  });
 });

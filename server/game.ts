@@ -552,7 +552,7 @@ export class GameServer {
       while (acc >= DT) {
         this.clearStaleInputs();
         const events = this.sim.tick();
-        this.aiActiveTriggers.noteSimEvents({ sim: this.sim, events });
+        this.aiActiveTriggers.noteSimEvents({ sim: this.sim, events, nowMs: Date.now() });
         const aiEvents = this.aiLifeLayer.handleSimEvents({ sim: this.sim, events });
         this.routeEvents(aiEvents.length > 0 ? [...events, ...aiEvents] : events);
         this.runAntibotTick();
@@ -1717,6 +1717,7 @@ export class GameServer {
 
   private handleAiItemDiscarded(session: ClientSession, itemId: string, count: number): void {
     if (session.left || this.clients.get(session.pid) !== session) return;
+    this.aiActiveTriggers.noteItemDiscarded({ sim: this.sim, pid: session.pid, itemId, count, nowMs: Date.now() });
     void this.aiLifeLayer.handleItemDiscarded({
       sim: this.sim,
       pid: session.pid,

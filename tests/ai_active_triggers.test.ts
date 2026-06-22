@@ -132,4 +132,83 @@ describe('AI active trigger service', () => {
       activeLastSkipReason: 'polls_disabled',
     });
   });
+
+  it('prioritizes queued quest events over ambient polling', () => {
+    const { sim, pid } = makeWorld();
+    const service = new AiActiveTriggerService({ rules: [testRule()] });
+
+    service.noteSimEvents({
+      sim,
+      events: [{ type: 'questDone', questId: 'q_wolves', pid }],
+      nowMs: 1_000,
+    });
+    expect(service.diagnosticsSnapshot().eventQueue).toContainEqual(expect.objectContaining({
+      kind: 'quest_done',
+      questId: 'q_wolves',
+      playerEntityId: pid,
+    }));
+
+    const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
+
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speech: expect.objectContaining({
+        mode: 'lineId',
+        lineId: expect.stringMatching(/QuestRumorEcho$/),
+        values: expect.objectContaining({ questId: 'q_wolves' }),
+      }),
+      source: 'local',
+      pid,
+    }));
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeEventQueued: 1,
+      activeEventFired: 1,
+      activePollDue: 0,
+    });
+    expect(service.diagnosticsSnapshot().eventQueue).toHaveLength(0);
+  });
+
+  it('turns discarded food into a later localized nearby NPC reaction', () => {
+    const { sim, pid } = makeWorld();
+    const service = new AiActiveTriggerService({ rules: [testRule()] });
+
+    service.noteItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, nowMs: 1_000 });
+    const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
+
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speech: expect.objectContaining({
+        mode: 'lineId',
+        lineId: 'hudChrome.aiSpeech.worldTraceNpcFood',
+        values: expect.objectContaining({ itemId: 'roasted_boar' }),
+      }),
+      reaction: expect.objectContaining({ kind: 'inspect', targetItemId: 'roasted_boar' }),
+      source: 'local',
+      pid,
+    }));
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeEventQueued: 1,
+      activeEventFired: 1,
+    });
+  });
+
+  it('expires queued events without falling through into ambient polling when polls are disabled', () => {
+    const { sim, pid } = makeWorld();
+    const service = new AiActiveTriggerService({
+      pollsEnabled: false,
+      eventTtlMs: 1_000,
+      rules: [testRule()],
+    });
+
+    service.noteItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, nowMs: 1_000 });
+
+    expect(service.tick({ sim, sessions: [{ pid }], nowMs: 2_100 })).toEqual([]);
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeEventQueued: 1,
+      activeEventExpired: 1,
+      activeEventFired: 0,
+      activeLastSkipReason: 'polls_disabled',
+    });
+    expect(service.diagnosticsSnapshot().eventQueue).toHaveLength(0);
+  });
 });
