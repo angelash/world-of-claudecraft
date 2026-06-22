@@ -31,6 +31,7 @@ import { clampMinimapZoom, nextMinimapZoom, isMinMinimapZoom, isMaxMinimapZoom, 
 import { restView } from './rest_indicator';
 import { nearestSubzone } from './subzone';
 import { lowResourceView } from './low_resource';
+import { formatAuraDuration } from './aura_duration';
 import { activeCharacterAppearancePreview, characterAppearanceOptions } from './character_appearance';
 import { terrainHeight, WATER_LEVEL, roadDistance, generateDecorations } from '../sim/world';
 import type { Decoration } from '../sim/world';
@@ -2570,7 +2571,7 @@ export class Hud {
       d.style.backgroundImage = `url(${iconDataUrl('aura', ABILITIES[a.id] ? a.id : `aura_${a.kind}`)})`;
       const dur = document.createElement('div');
       dur.className = 'dur';
-      dur.textContent = a.remaining < 99 ? `${Math.ceil(a.remaining)}s` : '';
+      dur.textContent = formatAuraDuration(a.remaining);
       d.appendChild(dur);
       const auraName = ABILITIES[a.id] ? abilityDisplayName(ABILITIES[a.id]) : auraDisplayNameFromSource(a.name);
       this.attachTooltip(d, () => `<div class="tt-title">${esc(auraName)}</div><div class="tt-sub">${esc(tPlural('hudChrome.plurals.secondsRemaining', Math.ceil(a.remaining)))}</div>`);

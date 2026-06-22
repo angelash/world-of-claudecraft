@@ -644,12 +644,12 @@
   .combo-pip.on { background: radial-gradient(circle at 35% 30%, #ff7a5e, #c0392b); box-shadow: 0 0 5px #ff5533aa; border-color: #ffad99; }
 
   /* ---------- buff bar ---------- */
-  #buff-bar { position: absolute; right: 196px; top: 14px; display: flex; flex-direction: row-reverse; flex-wrap: wrap; gap: 4px; max-width: 320px; pointer-events: auto; }
+  #buff-bar { position: absolute; right: 196px; top: 14px; display: flex; flex-direction: row-reverse; flex-wrap: wrap; column-gap: 4px; row-gap: 15px; max-width: 320px; pointer-events: auto; align-items: flex-start; padding-bottom: 13px; }
   .buff { width: 28px; height: 28px; border: 1px solid var(--color-buff); border-radius: 4px;
     position: relative; cursor: default; background-color: #10141c;
     background-size: cover; background-position: center; background-repeat: no-repeat; }
   .buff.debuff { border-color: var(--color-debuff); }
-  .buff .dur { position: absolute; bottom: -13px; left: 0; right: 0; text-align: center; font-size: 9px; color: #eee; text-shadow: 1px 1px 1px #000; }
+  .buff .dur { position: absolute; top: calc(100% + 2px); left: 50%; width: 44px; transform: translateX(-50%); text-align: center; font-size: 9px; line-height: 10px; color: #f4f7ff; text-shadow: 0 1px 2px #000, 1px 1px 1px #000; font-variant-numeric: tabular-nums; pointer-events: none; }
 
   /* ---------- cast bar ---------- */
   #castbar { position: absolute; left: 50%; transform: translateX(-50%); bottom: 200px; width: 300px;
