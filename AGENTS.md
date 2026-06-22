@@ -103,6 +103,13 @@ node scripts/smoke_rogue.mjs
 
 Browser or visual UI changes should be verified with a running dev server and browser automation when feasible.
 
+## Runtime Service Rules
+
+- Treat the local game as a persistent service environment: `npm run server` on port `8787` and `npm run dev` on port `5173` may already be running.
+- If a change affects server runtime code, bundled output, WebSocket command handling, environment-controlled behavior, or anything a process only reads at startup, check the running port/process and restart the affected service yourself before reporting success.
+- For online gameplay fixes, verify the live online path after restart. Do not rely only on unit tests or a direct `GameServer.handleMessage` test when the user is seeing the issue in the running client.
+- When committing after a restart-related fix, mention both the code validation and the service restart/live-path verification in the final response.
+
 ## Git And Commit Rules
 
 - Do not commit unless the user explicitly asks.

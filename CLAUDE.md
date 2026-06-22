@@ -139,6 +139,13 @@ See `README.md` for the full host/develop/play guide and the classic-fidelity ch
 - E2E/visual: `scripts/*.mjs` drive real browsers via `puppeteer-core` and need
   `npm run dev` (often `npm run server` too) running. Bot raids / E2E that teleport
   or level need `ALLOW_DEV_COMMANDS=1` (dev only).
+- Persistent local services are assumed to be running during agent work. When a
+  change affects server runtime code, bundled output, environment-controlled
+  behavior, WebSocket protocol handling, or any path that a running process only
+  reads at startup, restart the affected local service yourself before reporting
+  success. Check the listening ports/processes, restart `npm run server` for
+  authoritative-server changes, keep or reload `npm run dev` as needed for client
+  changes, then verify against the live online path rather than only unit tests.
 
 ## Working style by model
 This whole file is the baseline for **any** model — obey all of it. Your active
