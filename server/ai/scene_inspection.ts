@@ -48,7 +48,7 @@ export function sceneInspectionEvent(scene: SceneFrameV1, player: Entity, trace:
         } : {}),
       },
     },
-    source: 'fallback',
+    source: 'local',
     reaction,
     pid: player.id,
   };

@@ -240,7 +240,7 @@ export function familySceneReactionEvent(reaction: FamilySceneReaction, scene: S
         ...individualSpeechValues(reaction.individual),
       },
     },
-    source: 'fallback',
+    source: 'local',
     reaction: {
       kind: reaction.reaction,
       score: Math.round(reaction.score * 100) / 100,

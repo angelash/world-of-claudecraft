@@ -6826,20 +6826,19 @@ export class Sim {
     const npc = this.entities.get(npcId);
     if (!r || !npc || npc.kind !== 'npc') return;
     if (dist2d(r.e.pos, npc.pos) > INTERACT_RANGE + 2) return;
+    const speakerName = NPCS[npc.templateId]?.name ?? npc.name;
+    const interactionId = `offline-${r.e.id}-${npc.id}-${this.tickCount}`;
     this.emit({
-      type: 'aiSpeech',
+      type: 'aiThinking',
       speakerId: npc.id,
-      speakerName: NPCS[npc.templateId]?.name ?? npc.name,
-      speech: {
-        mode: 'lineId',
-        lineId: offlineAiNpcLineId(topic, r.meta),
-        values: {
-          speakerName: NPCS[npc.templateId]?.name ?? npc.name,
-          playerName: r.meta.name,
-        },
-      },
-      source: 'fallback',
-      reaction: { kind: 'inspect' },
+      speakerName,
+      durationMs: 1600,
+      interactionId,
+      pid: r.e.id,
+    });
+    this.emit({
+      type: 'error',
+      text: 'AI response failed: Offline simulation has no Codex CLI provider. Use the online server for living AI interactions.',
       pid: r.e.id,
     });
   }
@@ -10500,24 +10499,6 @@ export class Sim {
     const unspent = total - spent;
     const tail = unspent > 0 ? ` ${unspent} unspent.` : '';
     return `Talents: ${head} — ${spent}/${total} points spent (${breakdown}).${tail}`;
-  }
-}
-
-function offlineAiNpcLineId(topic: string, meta: PlayerMeta): string {
-  switch (topic) {
-    case 'recent':
-      return 'hudChrome.aiSpeech.topicRecentFirstMeet';
-    case 'rumor':
-      return 'hudChrome.aiSpeech.topicRumorQuiet';
-    case 'place':
-      return 'hudChrome.aiSpeech.topicPlace';
-    case 'quest_hint':
-      return meta.questLog.size > 0
-        ? 'hudChrome.aiSpeech.topicQuestHint'
-        : 'hudChrome.aiSpeech.topicQuestNoHint';
-    case 'greeting':
-    default:
-      return 'hudChrome.aiSpeech.genericNpcAwake';
   }
 }
 

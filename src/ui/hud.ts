@@ -118,6 +118,7 @@ const esc = (value: unknown): string => String(value ?? '')
   .replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
+const AI_THINKING_BADGE_DURATION_MS = 47_000;
 const castDisplayName = (id: string): string => {
   if (id === FISHING_CAST_ID) return t('abilityUi.cast.fishing');
   if (id === 'demon_heal') return t('abilityUi.cast.demonHeal');
@@ -376,6 +377,10 @@ export class Hud {
   // Classic "Show Timestamps" interface option — off by default, persisted to
   // localStorage. New chat lines get a bracketed wall-clock prefix when on.
   private chatTimestamps = localStorage.getItem('chatTimestamps') === '1';
+  private aiThinkingUntil = new Map<number, number>();
+  private aiThinkingInteraction = new Map<number, string>();
+  private aiSpeechDelayTimers = new Map<number, number[]>();
+  private activeAiThought: { speakerId: number; interactionId: string; until: number } | null = null;
   private chatClock: ChatClock = clampChatClock(localStorage.getItem('chatClock'));
   private combatLogEl = $('#combatlog');
   // WoW-style chat tabs. `chatTabs` are the player-added channel tabs (the
@@ -3432,6 +3437,137 @@ export class Hud {
     }
   }
 
+  private showAiThinking(ev: Extract<SimEvent, { type: 'aiThinking' }>): void {
+    const durationMs = Math.max(700, Math.min(5000, ev.durationMs));
+    const until = performance.now() + durationMs;
+    this.cancelPendingAiSpeech(ev.speakerId);
+    if (ev.interactionId) {
+      this.aiThinkingInteraction.set(ev.speakerId, ev.interactionId);
+      this.activeAiThought = { speakerId: ev.speakerId, interactionId: ev.interactionId, until };
+      window.setTimeout(() => {
+        if (this.aiThinkingInteraction.get(ev.speakerId) === ev.interactionId) this.aiThinkingInteraction.delete(ev.speakerId);
+        if (this.activeAiThought?.speakerId === ev.speakerId && this.activeAiThought.interactionId === ev.interactionId) {
+          this.activeAiThought = null;
+        }
+      }, durationMs + 10_000);
+    }
+    this.aiThinkingUntil.set(ev.speakerId, Math.max(this.aiThinkingUntil.get(ev.speakerId) ?? 0, until));
+    window.setTimeout(() => {
+      if ((this.aiThinkingUntil.get(ev.speakerId) ?? 0) <= until) this.aiThinkingUntil.delete(ev.speakerId);
+    }, durationMs + 100);
+    if (this.sim.entities.has(ev.speakerId)) {
+      this.renderer.showAiReactionBadge(ev.speakerId, t('hudChrome.aiReaction.thinking'), 'inspect', {
+        durationMs: Math.max(durationMs, AI_THINKING_BADGE_DURATION_MS),
+      });
+    }
+  }
+
+  private handleAiSpeech(ev: Extract<SimEvent, { type: 'aiSpeech' }>): void {
+    if (this.isStaleAiSpeech(ev)) return;
+    if (this.isAmbientAiSpeechDuringDirectThought(ev)) return;
+    const until = this.aiThinkingUntil.get(ev.speakerId) ?? 0;
+    const remainingMs = until - performance.now();
+    if (remainingMs > 0) {
+      const timer = window.setTimeout(() => {
+        this.removeAiSpeechDelayTimer(ev.speakerId, timer);
+        if (this.isStaleAiSpeech(ev)) return;
+        if ((this.aiThinkingUntil.get(ev.speakerId) ?? 0) <= performance.now()) this.aiThinkingUntil.delete(ev.speakerId);
+        this.renderAiSpeech(ev);
+      }, remainingMs);
+      this.addAiSpeechDelayTimer(ev.speakerId, timer);
+      return;
+    }
+    this.aiThinkingUntil.delete(ev.speakerId);
+    this.renderAiSpeech(ev);
+  }
+
+  private isStaleAiSpeech(ev: Extract<SimEvent, { type: 'aiSpeech' }>): boolean {
+    return this.isStaleAiInteraction(ev.speakerId, ev.interactionId);
+  }
+
+  private isStaleAiInteraction(speakerId: number, interactionId: string | undefined): boolean {
+    const currentInteractionId = this.aiThinkingInteraction.get(speakerId);
+    return Boolean(interactionId && currentInteractionId && interactionId !== currentInteractionId);
+  }
+
+  private isAmbientAiSpeechDuringDirectThought(ev: Extract<SimEvent, { type: 'aiSpeech' }>): boolean {
+    const active = this.activeAiThought;
+    if (!active || performance.now() >= active.until) return false;
+    if (ev.interactionId === active.interactionId) return false;
+    return ev.interactionId === undefined || ev.speakerId !== active.speakerId;
+  }
+
+  private handleErrorEvent(ev: Extract<SimEvent, { type: 'error' }>): void {
+    const ai = ev.aiInteraction;
+    if (ai) {
+      if (this.isStaleAiInteraction(ai.speakerId, ai.interactionId)) return;
+      const until = this.aiThinkingUntil.get(ai.speakerId) ?? 0;
+      const remainingMs = until - performance.now();
+      if (remainingMs > 0) {
+        window.setTimeout(() => {
+          if (this.isStaleAiInteraction(ai.speakerId, ai.interactionId)) return;
+          this.finishAiInteraction(ai.speakerId, ai.interactionId);
+          this.showError(ev.text);
+        }, remainingMs);
+        return;
+      }
+      this.finishAiInteraction(ai.speakerId, ai.interactionId);
+    }
+    this.showError(ev.text);
+  }
+
+  private finishAiInteraction(speakerId: number, interactionId: string | undefined): void {
+    this.aiThinkingUntil.delete(speakerId);
+    if (!interactionId || this.aiThinkingInteraction.get(speakerId) === interactionId) {
+      this.aiThinkingInteraction.delete(speakerId);
+    }
+    if (!this.activeAiThought || (this.activeAiThought.speakerId === speakerId && (!interactionId || this.activeAiThought.interactionId === interactionId))) {
+      this.activeAiThought = null;
+    }
+    this.renderer.hideAiReactionBadge(speakerId);
+  }
+
+  private addAiSpeechDelayTimer(speakerId: number, timer: number): void {
+    const timers = this.aiSpeechDelayTimers.get(speakerId);
+    if (timers) timers.push(timer);
+    else this.aiSpeechDelayTimers.set(speakerId, [timer]);
+  }
+
+  private removeAiSpeechDelayTimer(speakerId: number, timer: number): void {
+    const timers = this.aiSpeechDelayTimers.get(speakerId);
+    if (!timers) return;
+    const next = timers.filter((entry) => entry !== timer);
+    if (next.length > 0) this.aiSpeechDelayTimers.set(speakerId, next);
+    else this.aiSpeechDelayTimers.delete(speakerId);
+  }
+
+  private cancelPendingAiSpeech(speakerId: number): void {
+    const timers = this.aiSpeechDelayTimers.get(speakerId);
+    if (!timers) return;
+    for (const timer of timers) window.clearTimeout(timer);
+    this.aiSpeechDelayTimers.delete(speakerId);
+  }
+
+  private renderAiSpeech(ev: Extract<SimEvent, { type: 'aiSpeech' }>): void {
+    if (ev.interactionId) this.finishAiInteraction(ev.speakerId, ev.interactionId);
+    const speakerName = this.aiSpeechSpeakerName(ev);
+    const text = this.aiSpeechText(ev, speakerName);
+    this.chatLogFrom(speakerName, text, '#b9e4ff', CHAT_TEMPLATE_KEYS.say, 'say');
+    const speaker = this.sim.entities.get(ev.speakerId);
+    if (!speaker) return;
+    const reactionBadge = aiReactionBadgeView(ev.reaction);
+    if (reactionBadge) {
+      this.renderer.showAiReactionBadge(ev.speakerId, t(reactionBadge.labelKey), reactionBadge.kind, {
+        planned: reactionBadge.planned === true,
+        durationMs: reactionBadge.durationMs,
+      });
+      if (reactionBadge.targetEntityId !== undefined) {
+        this.renderer.showAiAttentionLink(ev.speakerId, reactionBadge.targetEntityId, reactionBadge.kind);
+      }
+    }
+    this.renderer.showChatBubble(ev.speakerId, this.maskChat(text), false);
+  }
+
   handleEvents(events: SimEvent[]): void {
     const sim = this.sim;
     for (const ev of events) {
@@ -3548,7 +3684,7 @@ export class Hud {
           break;
         }
         case 'skinEvent': this.openSkinEvent(ev.rank, ev.catalog === 'mech' ? { mech: true } : undefined); break;
-        case 'error': this.showError(this.localizeErrorText(ev.text)); break;
+        case 'error': this.handleErrorEvent(ev); break;
         case 'questAccepted':
           audio.questAccept();
           this.refreshGossip();
@@ -3567,24 +3703,11 @@ export class Hud {
           audio.questDone();
           this.refreshGossip();
           break;
+        case 'aiThinking':
+          this.showAiThinking(ev);
+          break;
         case 'aiSpeech': {
-          const speakerName = this.aiSpeechSpeakerName(ev);
-          const text = this.aiSpeechText(ev, speakerName);
-          this.chatLogFrom(speakerName, text, '#b9e4ff', CHAT_TEMPLATE_KEYS.say, 'say');
-          const speaker = sim.entities.get(ev.speakerId);
-          if (speaker) {
-            const reactionBadge = aiReactionBadgeView(ev.reaction);
-            if (reactionBadge) {
-              this.renderer.showAiReactionBadge(ev.speakerId, t(reactionBadge.labelKey), reactionBadge.kind, {
-                planned: reactionBadge.planned === true,
-                durationMs: reactionBadge.durationMs,
-              });
-              if (reactionBadge.targetEntityId !== undefined) {
-                this.renderer.showAiAttentionLink(ev.speakerId, reactionBadge.targetEntityId, reactionBadge.kind);
-              }
-            }
-            this.renderer.showChatBubble(ev.speakerId, this.maskChat(text), false);
-          }
+          this.handleAiSpeech(ev);
           break;
         }
         case 'chat': {
@@ -4175,6 +4298,10 @@ export class Hud {
     if (match) return t('hud.errors.chatCooldown', { seconds: match[1] });
     match = /^Chat locked for (\d+)s because you are sending messages too quickly\.$/.exec(text);
     if (match) return t('hud.errors.chatLocked', { seconds: match[1] });
+    match = /^AI response failed: (.+)$/.exec(text);
+    if (match) return t('hudChrome.aiError.responseFailed', { reason: match[1] });
+    match = /^AI response rejected: (.+)$/.exec(text);
+    if (match) return t('hudChrome.aiError.responseRejected', { reason: match[1] });
     match = /^(.+) is already in a party\.$/.exec(text);
     if (match) return t('hud.errors.alreadyInParty', { name: match[1] });
     match = /^(.+) already has a pending invitation\.$/.exec(text);
@@ -4636,7 +4763,6 @@ export class Hud {
     // re-greeting would be noise.
     voice.play(`greeting__${npc.templateId}`);
     this.renderGossip(npc);
-    this.sim.aiInteractNpc(npc.id, getLanguage());
   }
 
   private renderGossip(npc: Entity): void {
@@ -4721,7 +4847,7 @@ export class Hud {
         button.disabled = true;
         window.setTimeout(() => {
           if (button.isConnected) button.disabled = false;
-        }, 1500);
+        }, 2100);
       });
     });
     el.querySelector('[data-vendor]')?.addEventListener('click', () => {

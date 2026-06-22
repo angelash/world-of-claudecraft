@@ -931,7 +931,14 @@ export type SimEvent = { pid?: number } & (
   | { type: 'milestoneUnlocked'; milestoneId: string }
   | { type: 'learnAbility'; abilityId: string; rank: number }
   | { type: 'loot'; text: string }
-  | { type: 'error'; text: string }
+  | { type: 'error'; text: string; aiInteraction?: { speakerId: number; interactionId?: string } }
+  | {
+      type: 'aiThinking';
+      speakerId: number;
+      speakerName: string;
+      durationMs: number;
+      interactionId?: string;
+    }
   | {
       type: 'aiSpeech';
       speakerId: number;
@@ -939,7 +946,8 @@ export type SimEvent = { pid?: number } & (
       speech:
         | { mode: 'lineId'; lineId: string; values?: Record<string, string | number> }
         | { mode: 'dynamicText'; language: string; text: string };
-      source: 'fallback' | 'codex';
+      source: 'local' | 'codex';
+      interactionId?: string;
       reaction?: {
         kind: 'approach' | 'avoid' | 'inspect' | 'ignore';
         targetEntityId?: number;

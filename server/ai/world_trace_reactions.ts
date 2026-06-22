@@ -20,7 +20,7 @@ export function worldTraceReactionEvent(context: AiJobContextV1, speaker: Entity
         traceStrength: Math.round(trace.strength * 100),
       },
     },
-    source: 'fallback',
+    source: 'local',
     reaction: {
       kind: reactionKindForTrace(trace.kind),
       targetItemId: trace.itemId,

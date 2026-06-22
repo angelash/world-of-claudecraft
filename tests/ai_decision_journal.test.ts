@@ -24,7 +24,7 @@ function makeSim(): { sim: Sim; pid: number; npcId: number } {
 }
 
 describe('AI decision journal', () => {
-  it('records rejected provider output without delivering events', async () => {
+  it('records rejected provider output and delivers a clear rejection event', async () => {
     const provider: AiProvider = {
       async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
         expect(context.memorySignals).toContainEqual(expect.objectContaining({
@@ -50,7 +50,11 @@ describe('AI decision journal', () => {
 
     await layer.handleNpcInteraction({ sim, pid, npcId, locale: 'en', deliver: (events) => delivered.push(...events) });
 
-    expect(delivered).toHaveLength(0);
+    expect(delivered).toContainEqual(expect.objectContaining({
+      type: 'error',
+      text: expect.stringContaining('AI response rejected: line id hudChrome.aiSpeech.merchantMarketPulse not allowed'),
+      pid,
+    }));
     expect(layer.diagnostics()).toEqual([expect.objectContaining({
       status: 'rejected',
       templateId: 'brother_aldric',
@@ -64,12 +68,12 @@ describe('AI decision journal', () => {
       providerFallbacks: 0,
       acceptedDecisions: 0,
       rejectedDecisions: 1,
-      generatedEvents: 0,
+      generatedEvents: 1,
     });
     expect(layer.runtimeMetrics().averageProviderLatencyMs).toBeGreaterThanOrEqual(0);
   });
 
-  it('records provider errors and still delivers a validated local fallback', async () => {
+  it('records provider errors and delivers a clear AI failure event', async () => {
     const provider: AiProvider = {
       async decide(): Promise<AiDecisionV1> {
         throw new Error('codex worker timed out');
@@ -82,10 +86,8 @@ describe('AI decision journal', () => {
     await expect(layer.handleNpcInteraction({ sim, pid, npcId, locale: 'en', deliver: (events) => delivered.push(...events) })).resolves.toBeUndefined();
 
     expect(delivered).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: npcId,
-      speech: expect.objectContaining({ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
-      source: 'fallback',
+      type: 'error',
+      text: 'AI response failed: codex worker timed out',
       pid,
     }));
     expect(layer.diagnostics()).toEqual([
@@ -95,24 +97,18 @@ describe('AI decision journal', () => {
         templateId: 'brother_aldric',
         memoryWrites: [expect.objectContaining({ kind: 'npcInteraction' })],
       }),
-      expect.objectContaining({
-        status: 'accepted',
-        templateId: 'brother_aldric',
-        lineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
-        memoryWrites: [expect.objectContaining({ kind: 'npcInteraction' })],
-      }),
     ]);
     expect(layer.runtimeMetrics()).toMatchObject({
       providerCalls: 1,
       providerSuccesses: 0,
       providerErrors: 1,
-      providerFallbacks: 1,
-      acceptedDecisions: 1,
+      providerFallbacks: 0,
+      acceptedDecisions: 0,
       rejectedDecisions: 0,
       generatedEvents: expect.any(Number),
       lastProviderError: 'codex worker timed out',
     });
-    expect(layer.runtimeMetrics().generatedEvents).toBeGreaterThan(0);
+    expect(layer.runtimeMetrics().generatedEvents).toBe(1);
   });
 
   it('records local item-discard reactions for replay diagnostics', () => {

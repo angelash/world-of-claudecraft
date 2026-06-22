@@ -252,7 +252,12 @@ export const en_XA: EnTranslations = {
     "aiReaction": {
       "approach": "[íñţéŕéšţéð]",
       "avoid": "[úñéášý]",
-      "inspect": "[ŵáţçĥíñĝ]"
+      "inspect": "[ŵáţçĥíñĝ]",
+      "thinking": "[ţĥíñķíñĝ]"
+    },
+    "aiError": {
+      "responseFailed": "[ÁÍ ŕéšþóñšé ƒáíļéð: {reason}]",
+      "responseRejected": "[ÁÍ ŕéšþóñšé ŕéĵéçţéð: {reason}]"
     },
     "aiSpeech": {
       "brotherAldricAwake": "[Ţĥé ðéáð áŕé ŕéšţļéšš ţóñíĝĥţ. Ķééþ ýóúŕ ĵóúŕñáļ çļóšé, {playerName}.]",

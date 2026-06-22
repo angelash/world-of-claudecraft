@@ -38,7 +38,7 @@ function line(context: AiJobContextV1, speaker: Entity, lineId: string, values: 
     speakerId: speaker.id,
     speakerName: speaker.name,
     speech: { mode: 'lineId', lineId, values },
-    source: 'fallback',
+    source: 'local',
     reaction: {
       kind: 'inspect',
       sceneTags: context.scene ? [...new Set([...context.scene.locationTags, ...context.scene.structureTags, ...context.scene.environmentalTags])].slice(0, 8) : [],

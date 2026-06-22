@@ -207,7 +207,7 @@ describe('AI memory persistence integration', () => {
     db.loaded = [
       persistedDirectorSignal(pid),
       { ...persistedDirectorSignal(pid + 1), refId: 'other-player-director', sourcePlayerEntityId: pid + 1 },
-      { ...persistedDirectorSignal(pid), refId: 'expired-director', expiresAt: 1, salience: 1 },
+      { ...persistedDirectorSignal(pid), refId: 'expired-director', expiresAt: 0, salience: 1 },
     ];
     const calls: AiJobContextV1[] = [];
     const provider: AiProvider = {

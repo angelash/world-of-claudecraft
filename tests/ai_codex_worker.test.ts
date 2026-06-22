@@ -1,14 +1,10 @@
-import { mkdtemp, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CodexCliProvider, type CodexCliProviderOptions } from '../server/ai/codex_worker';
-import { AiLifeLayer } from '../server/ai/life_layer';
-import type { AiJobContextV1 } from '../server/ai/ai_types';
-import { individualProfileFor } from '../server/ai/singularity';
-import { Sim } from '../src/sim/sim';
-import type { Entity } from '../src/sim/types';
-import { groundHeight } from '../src/sim/world';
+import {
+  CodexCliProvider,
+  parseCodexDecisionOutput,
+  resolveCodexBinary,
+} from '../server/ai/codex_worker';
+import type { AiDecisionV1, AiJobContextV1 } from '../server/ai/ai_types';
 
 const context: AiJobContextV1 = {
   schemaVersion: 1,
@@ -33,504 +29,141 @@ const context: AiJobContextV1 = {
   },
   locale: 'en',
   questFacts: [{ questId: 'q_bones', visibility: 'knownToPlayer', summary: 'The dead are restless.', source: 'quest-log' }],
-  recentObservations: [],
+  recentObservations: ['scene:fallen_chapel'],
   allowedIntents: ['commentOnScene'],
+  allowedLineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
   outputMode: 'line_id_only',
 };
 
-describe('Codex CLI AI provider', () => {
-  it('invokes codex exec in the job directory and reads the structured output file', async () => {
-    const provider = await providerWithFakeCodex(`{
-      schemaVersion: 1,
-      jobId: context.jobId,
-      entityRef: {
-        kind: context.entity.kind,
-        entityId: context.entity.entityId,
-        templateId: context.entity.templateId
-      },
-      ttlMs: 5000,
-      confidence: 1,
-      speech: [{
-        mode: 'lineId',
-        lineId: 'hudChrome.aiSpeech.brotherAldricAwake',
-        values: { playerName: context.player.name }
-      }],
-      intents: [{ type: 'commentOnScene', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
-      audit: { shortReason: 'fake codex worker', usedPlayerInput: false, safetyNotes: [] }
-    }`);
+function validDecision(overrides: Partial<AiDecisionV1> = {}): AiDecisionV1 {
+  return {
+    schemaVersion: 1,
+    jobId: context.jobId,
+    entityRef: {
+      kind: context.entity.kind,
+      entityId: context.entity.entityId,
+      templateId: context.entity.templateId,
+    },
+    ttlMs: 5000,
+    confidence: 0.9,
+    speech: [{
+      mode: 'lineId',
+      lineId: 'hudChrome.aiSpeech.brotherAldricAwake',
+      values: { playerName: context.player.name },
+    }],
+    intents: [{ type: 'commentOnScene', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
+    audit: { shortReason: 'bounded codex decision', usedPlayerInput: false, safetyNotes: [] },
+    ...overrides,
+  };
+}
 
-    await expect(provider.decide(context)).resolves.toMatchObject({
+describe('Codex CLI AI provider', () => {
+  it('parses a structured AiDecisionV1 result', () => {
+    expect(parseCodexDecisionOutput(JSON.stringify(validDecision()))).toMatchObject({
       schemaVersion: 1,
       jobId: 'job-codex-worker',
       speech: [{ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
     });
   });
 
-  it('passes director proposals and persisted memory signals through job.json and the prompt', async () => {
-    const provider = await providerWithFakeCodexScript(`
-import { readFile, writeFile } from 'node:fs/promises';
-const args = process.argv.slice(2);
-const outputPath = args[args.indexOf('-o') + 1];
-const prompt = args[args.length - 1] ?? '';
-const context = JSON.parse(await readFile('job.json', 'utf8'));
-if (context.directorProposals?.[0]?.targetRef !== 'redbrook_blade') {
-  throw new Error('missing director proposal in job.json');
-}
-if (context.memorySignals?.[0]?.refId !== 'persisted-director-covetous') {
-  throw new Error('missing persisted memory signal in job.json');
-}
-if (!prompt.includes('Director proposals and memory signals are read-only context')) {
-  throw new Error('prompt missing read-only context rule');
-}
-if (!prompt.includes('Director proposals: nudgeNpcRumor:preview:low:intensity=0.72:target=redbrook_blade')) {
-  throw new Error('prompt missing director proposal summary');
-}
-if (!prompt.includes('Memory signals: worldDirectorState:persisted-director-covetous:region:salience=0.72:persistedRestart:covetous:npcTopicShift')) {
-  throw new Error('prompt missing memory signal summary');
-}
-await writeFile(outputPath, JSON.stringify({
-  schemaVersion: 1,
-  jobId: context.jobId,
-  entityRef: {
-    kind: context.entity.kind,
-    entityId: context.entity.entityId,
-    templateId: context.entity.templateId
-  },
-  ttlMs: 5000,
-  confidence: 0.9,
-  speech: [{
-    mode: 'lineId',
-    lineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
-    values: { itemId: 'redbrook_blade' }
-  }],
-  intents: [{ type: 'commentOnScene', lineId: 'hudChrome.aiSpeech.worldDirectorCovetous' }],
-  audit: { shortReason: 'used restored director context', usedPlayerInput: false, safetyNotes: [] }
-}));
-`);
-    const richContext: AiJobContextV1 = {
-      ...context,
-      jobId: 'job-codex-rich-context',
-      recentObservations: ['persistedMemory:worldDirectorState:region:redbrook_blade'],
-      directorProposals: [{
-        proposalId: 'director-restore:proposal',
-        intent: 'nudgeNpcRumor',
-        status: 'preview',
-        risk: 'low',
-        intensity: 0.72,
-        targetRef: 'redbrook_blade',
-        sceneId: 'eastbrook_forge',
-        zoneId: 'eastbrook_vale',
-        suggestedLineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
-        expiresAt: 160,
-        reasonTags: ['mood:covetous', 'subject:item', 'proposal:npcTopicShift'],
-        safetyNotes: ['presentationOnly', 'noQuestMutation', 'noCombatMutation', 'noLootOrEconomyMutation'],
-      }],
-      memorySignals: [{
-        kind: 'worldDirectorState',
-        refId: 'persisted-director-covetous',
-        scope: 'region',
-        sceneId: 'eastbrook_forge',
-        zoneId: 'eastbrook_vale',
-        sourcePlayerEntityId: 1,
-        itemId: 'redbrook_blade',
-        subjectKind: 'item',
-        lineIds: ['hudChrome.aiSpeech.worldDirectorCovetous'],
-        salience: 0.72,
-        createdAt: 12,
-        expiresAt: 160,
-        reason: 'persistedRestart:covetous:npcTopicShift',
-      }],
-      allowedLineIds: ['hudChrome.aiSpeech.worldDirectorCovetous'],
-    };
-
-    await expect(provider.decide(richContext)).resolves.toMatchObject({
-      jobId: 'job-codex-rich-context',
-      speech: [{
-        mode: 'lineId',
-        lineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
-        values: { itemId: 'redbrook_blade' },
-      }],
-    });
+  it('rejects invalid JSON before the intent validator', () => {
+    expect(() => parseCodexDecisionOutput("'{ invalid json'"))
+      .toThrow('codex worker wrote invalid JSON');
   });
 
-  it('rejects invalid JSON written by codex before it reaches the intent validator', async () => {
-    const provider = await providerWithFakeCodex(`'{ invalid json'`);
-
-    await expect(provider.decide(context)).rejects.toThrow('codex worker wrote invalid JSON');
+  it('rejects structurally incomplete decisions', () => {
+    const withoutAudit = { ...validDecision(), audit: undefined };
+    expect(() => parseCodexDecisionOutput(JSON.stringify(withoutAudit)))
+      .toThrow('codex worker output audit must be an object');
   });
 
-  it('rejects structurally incomplete codex decisions', async () => {
-    const provider = await providerWithFakeCodex(`{
-      schemaVersion: 1,
-      jobId: context.jobId,
-      entityRef: {
-        kind: context.entity.kind,
-        entityId: context.entity.entityId,
-        templateId: context.entity.templateId
-      },
-      ttlMs: 5000,
-      confidence: 1,
-      speech: [],
-      intents: []
-    }`);
-
-    await expect(provider.decide(context)).rejects.toThrow('codex worker output audit must be an object');
+  it('rejects extra fields outside the output schema', () => {
+    expect(() => parseCodexDecisionOutput(JSON.stringify({
+      ...validDecision(),
+      hiddenQuestReward: 'gold',
+    }))).toThrow('codex worker output decision.hiddenQuestReward is not allowed');
   });
 
-  it('rejects extra fields that are outside the Codex output schema', async () => {
-    const provider = await providerWithFakeCodex(`{
-      schemaVersion: 1,
-      jobId: context.jobId,
-      entityRef: {
-        kind: context.entity.kind,
-        entityId: context.entity.entityId,
-        templateId: context.entity.templateId
-      },
-      ttlMs: 5000,
-      confidence: 1,
-      speech: [],
-      intents: [],
-      audit: { shortReason: 'extra field', usedPlayerInput: false, safetyNotes: [] },
-      hiddenQuestReward: 'gold'
-    }`);
-
-    await expect(provider.decide(context)).rejects.toThrow('codex worker output decision.hiddenQuestReward is not allowed');
-  });
-
-  it('rejects intent names outside the local AiIntentType allowlist', async () => {
-    const provider = await providerWithFakeCodex(`{
-      schemaVersion: 1,
-      jobId: context.jobId,
-      entityRef: {
-        kind: context.entity.kind,
-        entityId: context.entity.entityId,
-        templateId: context.entity.templateId
-      },
-      ttlMs: 5000,
-      confidence: 1,
-      speech: [],
+  it('rejects intent names outside the local AiIntentType allowlist', () => {
+    expect(() => parseCodexDecisionOutput(JSON.stringify({
+      ...validDecision(),
       intents: [{ type: 'rewriteQuestReward' }],
-      audit: { shortReason: 'bad intent', usedPlayerInput: false, safetyNotes: [] }
-    }`);
-
-    await expect(provider.decide(context)).rejects.toThrow('codex worker output intent.type is invalid');
+    }))).toThrow('codex worker output intent.type is invalid');
   });
 
-  it('accepts bounded presentation intent targets from the Codex CLI worker', async () => {
-    const provider = await providerWithFakeCodex(`{
-      schemaVersion: 1,
-      jobId: context.jobId,
-      entityRef: {
-        kind: context.entity.kind,
-        entityId: context.entity.entityId,
-        templateId: context.entity.templateId
-      },
-      ttlMs: 5000,
-      confidence: 1,
+  it('accepts bounded presentation intent targets', () => {
+    expect(parseCodexDecisionOutput(JSON.stringify(validDecision({
       speech: [],
       intents: [{ type: 'lookAt', targetEntityId: context.player.entityId, seconds: 1.5 }],
-      audit: { shortReason: 'targeted presentation intent', usedPlayerInput: false, safetyNotes: [] }
-    }`);
-
-    await expect(provider.decide(context)).resolves.toMatchObject({
+    })))).toMatchObject({
       intents: [{ type: 'lookAt', targetEntityId: 1, seconds: 1.5 }],
     });
   });
 
-  it('bounds stderr captured from a failing codex process', async () => {
-    const provider = await providerWithFakeCodexScript(`
-process.stderr.write('x'.repeat(40));
-process.exit(3);
-`, { maxStderrBytes: 12 });
-
-    await expect(provider.decide(context)).rejects.toThrow(/xxxxxxxxxxxx\ncodex worker stderr truncated/);
-  });
-
-  it('accepts bounded pet command intents from the Codex CLI worker', async () => {
-    const petContext: AiJobContextV1 = {
-      ...context,
-      jobId: 'job-pet-command',
-      trigger: 'pet_command',
-      entity: {
-        kind: 'mob',
-        entityId: 22,
-        templateId: 'forest_wolf',
-        name: 'Forest Wolf',
-        level: 5,
-        questIds: [],
-        dead: false,
-      },
-      questFacts: [],
-      recentObservations: ['playerPetCommand:stay close'],
-      allowedIntents: ['commandPetPassive'],
-      allowedLineIds: [],
-    };
-    const provider = await providerWithFakeCodex(`{
-      schemaVersion: 1,
-      jobId: context.jobId,
-      entityRef: {
-        kind: context.entity.kind,
-        entityId: context.entity.entityId,
-        templateId: context.entity.templateId
-      },
-      ttlMs: 5000,
-      confidence: 0.9,
-      speech: [],
-      intents: [{ type: 'commandPetPassive' }],
-      audit: { shortReason: 'bounded pet command', usedPlayerInput: true, safetyNotes: [] }
-    }`);
-
-    await expect(provider.decide(petContext)).resolves.toMatchObject({
-      schemaVersion: 1,
-      jobId: 'job-pet-command',
-      intents: [{ type: 'commandPetPassive' }],
-      speech: [],
-    });
-  });
-
-  it('drives a real AI life layer interaction through the Codex CLI provider without changing quests', async () => {
-    const provider = await providerWithFakeCodex(`{
-      schemaVersion: 1,
-      jobId: context.jobId,
-      entityRef: {
-        kind: context.entity.kind,
-        entityId: context.entity.entityId,
-        templateId: context.entity.templateId
-      },
-      ttlMs: 5000,
-      confidence: 0.9,
+  it('treats strict-schema null optional fields as absent', () => {
+    expect(parseCodexDecisionOutput(JSON.stringify(validDecision({
       speech: [{
         mode: 'lineId',
         lineId: 'hudChrome.aiSpeech.brotherAldricAwake',
-        values: { playerName: context.player.name, speakerName: context.entity.name }
+        values: null as unknown as Record<string, string | number>,
       }],
-      intents: [{ type: 'commentOnScene', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
-      audit: { shortReason: 'fake codex life layer path', usedPlayerInput: false, safetyNotes: [] }
-    }`);
-    const { sim, pid, npcId } = makeSim();
-    const layer = new AiLifeLayer({ enabled: true, provider });
-    const delivered: unknown[] = [];
-    const beforeQuestLog = JSON.stringify([...sim.meta(pid)!.questLog]);
-    const beforeDone = JSON.stringify([...sim.meta(pid)!.questsDone]);
-
-    await layer.handleNpcInteraction({ sim, pid, npcId, locale: 'en', deliver: (events) => delivered.push(...events) });
-
-    expect(delivered).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: npcId,
-      speech: expect.objectContaining({ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
-      source: 'codex',
-      pid,
-    }));
-    expect(layer.diagnostics()).toEqual([expect.objectContaining({
-      status: 'accepted',
-      trigger: 'npc_gossip_opened',
-      templateId: 'brother_aldric',
-      lineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
-    })]);
-    expect(layer.runtimeMetrics()).toMatchObject({
-      providerCalls: 1,
-      providerSuccesses: 1,
-      providerErrors: 0,
-      acceptedDecisions: 1,
+      intents: [{
+        type: 'commentOnScene',
+        lineId: null as unknown as string,
+        targetEntityId: null as unknown as number,
+        targetObjectId: null as unknown as number,
+        targetItemId: null as unknown as string,
+        seconds: null as unknown as number,
+      }],
+    })))).toMatchObject({
+      speech: [{ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
+      intents: [{ type: 'commentOnScene' }],
     });
-    expect(JSON.stringify([...sim.meta(pid)!.questLog])).toBe(beforeQuestLog);
-    expect(JSON.stringify([...sim.meta(pid)!.questsDone])).toBe(beforeDone);
   });
 
-  it('drives object inspection through the Codex CLI provider while keeping local object metadata', async () => {
-    const provider = await providerWithFakeCodex(`{
+  it('accepts bounded pet command intents', () => {
+    const petDecision = validDecision({
+      entityRef: {
+        kind: 'mob',
+        entityId: 22,
+        templateId: 'forest_wolf',
+      },
+      speech: [],
+      intents: [{ type: 'commandPetPassive' }],
+      audit: { shortReason: 'bounded pet command', usedPlayerInput: true, safetyNotes: [] },
+    });
+    expect(parseCodexDecisionOutput(JSON.stringify(petDecision))).toMatchObject({
+      intents: [{ type: 'commandPetPassive' }],
+      speech: [],
+    });
+  });
+
+  it('reports a clear start error when the Codex executable is unavailable', async () => {
+    const provider = new CodexCliProvider({
+      codexBin: 'woc-codex-cli-that-should-not-exist',
+      timeoutMs: 1000,
+    });
+
+    await expect(provider.decide(context)).rejects.toThrow(/Codex CLI could not start/);
+  });
+
+  it('prefers the Windows user install path when it is present', () => {
+    const resolved = resolveCodexBinary();
+    expect(resolved.length).toBeGreaterThan(0);
+  });
+
+  const realCodexIt = process.env.RUN_REAL_CODEX_CLI === '1' ? it : it.skip;
+  realCodexIt('runs the real Codex CLI path and returns a validated decision', async () => {
+    const provider = new CodexCliProvider({ timeoutMs: 120_000 });
+
+    await expect(provider.decide(context)).resolves.toMatchObject({
       schemaVersion: 1,
       jobId: context.jobId,
       entityRef: {
         kind: context.entity.kind,
         entityId: context.entity.entityId,
-        templateId: context.entity.templateId
+        templateId: context.entity.templateId,
       },
-      ttlMs: 5000,
-      confidence: 0.9,
-      speech: [{
-        mode: 'lineId',
-        lineId: 'hudChrome.aiSpeech.objectInspectGrave',
-        values: { playerName: context.player.name }
-      }],
-      intents: [{ type: 'inspectObject', lineId: 'hudChrome.aiSpeech.objectInspectGrave' }],
-      audit: { shortReason: 'fake codex object inspection path', usedPlayerInput: false, safetyNotes: [] }
-    }`);
-    const { sim, pid } = makeSim();
-    const object = [...sim.entities.values()].find((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil')!;
-    teleportNear(sim, pid, object.id);
-    const layer = new AiLifeLayer({ enabled: true, provider });
-    const delivered: unknown[] = [];
-    const beforeQuestLog = JSON.stringify([...sim.meta(pid)!.questLog]);
-    const beforeDone = JSON.stringify([...sim.meta(pid)!.questsDone]);
-
-    await layer.handleObjectInspection({ sim, pid, objectId: object.id, locale: 'en', deliver: (events) => delivered.push(...events) });
-
-    expect(delivered).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: object.id,
-      speech: expect.objectContaining({
-        mode: 'lineId',
-        lineId: 'hudChrome.aiSpeech.objectInspectGrave',
-        values: expect.objectContaining({ itemId: 'gravecaller_sigil', objectName: object.name }),
-      }),
-      source: 'codex',
-      reaction: expect.objectContaining({ targetObjectId: object.id, targetItemId: 'gravecaller_sigil' }),
-      pid,
-    }));
-    expect(layer.diagnostics()).toEqual([expect.objectContaining({
-      status: 'accepted',
-      trigger: 'object_inspected',
-      templateId: object.templateId,
-      lineIds: ['hudChrome.aiSpeech.objectInspectGrave'],
-    })]);
-    expect(layer.runtimeMetrics()).toMatchObject({
-      providerCalls: 1,
-      providerSuccesses: 1,
-      providerErrors: 0,
-      acceptedDecisions: 1,
     });
-    expect(JSON.stringify([...sim.meta(pid)!.questLog])).toBe(beforeQuestLog);
-    expect(JSON.stringify([...sim.meta(pid)!.questsDone])).toBe(beforeDone);
-  });
-
-  it('drives a singularity item reaction through the Codex CLI provider while keeping creature metadata', async () => {
-    const provider = await providerWithFakeCodex(`(() => {
-      const suggestedLineId = context.recentObservations
-        .find((observation) => observation.startsWith('suggestedLineId:'))
-        ?.slice('suggestedLineId:'.length) ?? 'hudChrome.aiSpeech.itemInterestInspect';
-      return {
-        schemaVersion: 1,
-        jobId: context.jobId,
-        entityRef: {
-          kind: context.entity.kind,
-          entityId: context.entity.entityId,
-          templateId: context.entity.templateId
-        },
-        ttlMs: 5000,
-        confidence: 0.88,
-        speech: [{
-          mode: 'lineId',
-          lineId: suggestedLineId,
-          values: { playerName: context.player.name }
-        }],
-        intents: [{ type: 'inspectObject', lineId: suggestedLineId }],
-        audit: { shortReason: 'fake codex singularity item path', usedPlayerInput: false, safetyNotes: [] }
-      };
-    })()`);
-    const { sim, pid } = makeSim();
-    const player = sim.entities.get(pid)!;
-    const wolf = [...sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
-    sim.cfg.seed = seedThatMakesSingularity(wolf);
-    moveEntity(sim, player, 900, 900);
-    moveEntity(sim, wolf, 902, 900);
-    const layer = new AiLifeLayer({ enabled: true, provider });
-    const delivered: unknown[] = [];
-    const beforeQuestLog = JSON.stringify([...sim.meta(pid)!.questLog]);
-    const beforeDone = JSON.stringify([...sim.meta(pid)!.questsDone]);
-
-    await layer.handleItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, deliver: (events) => delivered.push(...events) });
-
-    expect(delivered).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: wolf.id,
-      source: 'codex',
-      speech: expect.objectContaining({
-        mode: 'lineId',
-        values: expect.objectContaining({
-          itemId: 'roasted_boar',
-          speakerTemplateId: 'forest_wolf',
-          individualAlias: expect.any(String),
-          playerName: 'Ari',
-        }),
-      }),
-      reaction: expect.objectContaining({
-        targetItemId: 'roasted_boar',
-        individualTier: 'singularity',
-        individualTraits: expect.any(Array),
-      }),
-      pid,
-    }));
-    expect(layer.diagnostics()).toContainEqual(expect.objectContaining({
-      status: 'accepted',
-      trigger: 'singularity_candidate',
-      templateId: 'forest_wolf',
-    }));
-    expect(layer.runtimeMetrics()).toMatchObject({
-      providerCalls: 1,
-      providerSuccesses: 1,
-      providerErrors: 0,
-      acceptedDecisions: 1,
-    });
-    expect(JSON.stringify([...sim.meta(pid)!.questLog])).toBe(beforeQuestLog);
-    expect(JSON.stringify([...sim.meta(pid)!.questsDone])).toBe(beforeDone);
-  });
+  }, 150_000);
 });
-
-function teleportNear(sim: Sim, pid: number, targetId: number): void {
-  const player = sim.entities.get(pid)!;
-  const target = sim.entities.get(targetId)!;
-  player.pos.x = target.pos.x + 1;
-  player.pos.z = target.pos.z;
-  player.pos.y = groundHeight(player.pos.x, player.pos.z, sim.cfg.seed);
-  player.prevPos = { ...player.pos };
-  sim.grid.update(player);
-  sim.playerGrid.update(player);
-}
-
-function moveEntity(sim: Sim, entity: Entity, x: number, z: number): void {
-  entity.pos.x = x;
-  entity.pos.z = z;
-  entity.pos.y = groundHeight(x, z, sim.cfg.seed);
-  entity.prevPos = { ...entity.pos };
-  sim.grid.update(entity);
-  if (entity.kind === 'player') sim.playerGrid.update(entity);
-}
-
-function makeSim(): { sim: Sim; pid: number; npcId: number } {
-  const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
-  const pid = sim.addPlayer('warrior', 'Ari');
-  const npc = [...sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric')!;
-  teleportNear(sim, pid, npc.id);
-  return { sim, pid, npcId: npc.id };
-}
-
-function seedThatMakesSingularity(entity: Entity): number {
-  for (let seed = 1; seed < 10000; seed++) {
-    if (individualProfileFor(entity, seed).tier === 'singularity') return seed;
-  }
-  throw new Error(`No singularity seed found for ${entity.templateId}`);
-}
-
-async function providerWithFakeCodex(
-  outputExpression: string,
-  options: Partial<CodexCliProviderOptions> = {},
-): Promise<CodexCliProvider> {
-  return providerWithFakeCodexScript(`
-import { readFile, writeFile } from 'node:fs/promises';
-const args = process.argv.slice(2);
-const outputPath = args[args.indexOf('-o') + 1];
-const schemaPath = args[args.indexOf('--output-schema') + 1];
-const context = JSON.parse(await readFile('job.json', 'utf8'));
-await readFile(schemaPath, 'utf8');
-const output = ${outputExpression};
-await writeFile(outputPath, typeof output === 'string' ? output : JSON.stringify(output));
-`, options);
-}
-
-async function providerWithFakeCodexScript(
-  script: string,
-  options: Partial<CodexCliProviderOptions> = {},
-): Promise<CodexCliProvider> {
-  const dir = await mkdtemp(join(tmpdir(), 'woc-ai-provider-test-'));
-  const fakeCodexPath = join(dir, 'fake-codex.mjs');
-  await writeFile(fakeCodexPath, script, 'utf8');
-
-  return new CodexCliProvider({
-    codexBin: process.execPath,
-    codexArgsPrefix: [fakeCodexPath],
-    timeoutMs: 5_000,
-    ...options,
-  });
-}

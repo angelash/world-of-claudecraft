@@ -9,7 +9,7 @@ export const AI_AUDIT_WINDOWS = [
 
 export type AiAuditWindowKey = typeof AI_AUDIT_WINDOWS[number]['key'];
 export type AiAuditStatus = 'accepted' | 'rejected' | 'provider_error' | 'local_reaction';
-export type AiAuditProviderSource = 'codex' | 'fake' | 'fallback' | 'local' | 'provider';
+export type AiAuditProviderSource = 'codex' | 'fallback' | 'local' | 'provider';
 export type AiAuditEntityKind = 'npc' | 'mob' | 'object' | 'system';
 
 export interface AiAuditRecord {
@@ -53,6 +53,7 @@ export interface AiAuditWindowSnapshot {
   accepted: number;
   rejected: number;
   providerErrors: number;
+  /** Historical fallback records only. Real provider failures no longer synthesize fallback decisions. */
   fallbacks: number;
   localReactions: number;
   memoryWrites: number;
@@ -172,7 +173,7 @@ function bucketForRecord(record: AiAuditRecord): AiAuditCounterBucket {
   if (record.status === 'accepted') bucket.accepted = 1;
   if (record.status === 'rejected') bucket.rejected = 1;
   if (record.status === 'provider_error') bucket.providerErrors = 1;
-  if (record.status === 'provider_error' || record.providerSource === 'fallback') bucket.fallbacks = 1;
+  if (record.providerSource === 'fallback') bucket.fallbacks = 1;
   bucket.memoryWrites = record.memoryWriteRefs.length;
   bucket.inputTokens = record.inputTokens;
   bucket.outputTokens = record.outputTokens;
@@ -349,7 +350,7 @@ export function createProviderAuditRecord(input: {
     playerEntityId: input.context.player.entityId,
     sceneId: input.context.scene?.subsceneId ?? input.context.scene?.zoneId ?? '',
     zoneId: input.context.scene?.zoneId ?? '',
-    providerSource: providerError ? 'fallback' : input.providerSource,
+    providerSource: input.providerSource,
     status,
     latencyMs: safeNumber(input.latencyMs),
     inputTokens,
@@ -361,7 +362,7 @@ export function createProviderAuditRecord(input: {
     intents: aiIntentsFromDecision(input.decision),
     memoryWriteRefs: aiMemoryWriteRefs(input.memoryWrites),
     reason: providerError
-      ? `providerErrorFallback:${input.decision?.audit.shortReason ?? 'no fallback decision'}`
+      ? `providerError:${providerError}`
       : input.result?.reason ?? input.decision?.audit.shortReason ?? '',
     error: providerError,
     createdAt: input.createdAt ?? new Date().toISOString(),

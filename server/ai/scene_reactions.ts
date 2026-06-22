@@ -103,7 +103,7 @@ function line(
     speakerId: speaker.id,
     speakerName: speaker.name,
     speech: { mode: 'lineId', lineId, values },
-    source: 'fallback',
+    source: 'local',
     reaction: {
       kind: kind === 'seekShelter' ? 'inspect' : kind,
       ...(targetEntityId !== undefined ? { targetEntityId } : {}),

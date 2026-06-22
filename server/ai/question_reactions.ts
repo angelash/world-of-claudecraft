@@ -50,7 +50,7 @@ function line(context: AiJobContextV1, speaker: Entity, lineId: string, values: 
     speakerId: speaker.id,
     speakerName: speaker.name,
     speech: { mode: 'lineId', lineId, values },
-    source: 'fallback',
+    source: 'local',
     reaction: {
       kind: projection?.reaction ?? 'inspect',
       ...(projection ? { targetItemId: projection.targetRef } : {}),

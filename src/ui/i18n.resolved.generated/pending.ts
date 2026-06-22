@@ -10,6 +10,8 @@
 
 export const pending: Record<string, readonly string[]> = {
   "es": [
+    "hudChrome.aiError.responseFailed",
+    "hudChrome.aiError.responseRejected",
     "hudChrome.aiQuestion.heading",
     "hudChrome.aiQuestion.place",
     "hudChrome.aiQuestion.questHint",
@@ -18,6 +20,7 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiReaction.approach",
     "hudChrome.aiReaction.avoid",
     "hudChrome.aiReaction.inspect",
+    "hudChrome.aiReaction.thinking",
     "hudChrome.aiSpeech.apothecaryLinAwake",
     "hudChrome.aiSpeech.armorerHodeAwake",
     "hudChrome.aiSpeech.bossMemoryDefeated",
@@ -161,6 +164,8 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.keybinds.inspect"
   ],
   "es_ES": [
+    "hudChrome.aiError.responseFailed",
+    "hudChrome.aiError.responseRejected",
     "hudChrome.aiQuestion.heading",
     "hudChrome.aiQuestion.place",
     "hudChrome.aiQuestion.questHint",
@@ -169,6 +174,7 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiReaction.approach",
     "hudChrome.aiReaction.avoid",
     "hudChrome.aiReaction.inspect",
+    "hudChrome.aiReaction.thinking",
     "hudChrome.aiSpeech.apothecaryLinAwake",
     "hudChrome.aiSpeech.armorerHodeAwake",
     "hudChrome.aiSpeech.bossMemoryDefeated",
@@ -312,6 +318,8 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.keybinds.inspect"
   ],
   "fr_FR": [
+    "hudChrome.aiError.responseFailed",
+    "hudChrome.aiError.responseRejected",
     "hudChrome.aiQuestion.heading",
     "hudChrome.aiQuestion.place",
     "hudChrome.aiQuestion.questHint",
@@ -320,6 +328,7 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiReaction.approach",
     "hudChrome.aiReaction.avoid",
     "hudChrome.aiReaction.inspect",
+    "hudChrome.aiReaction.thinking",
     "hudChrome.aiSpeech.apothecaryLinAwake",
     "hudChrome.aiSpeech.armorerHodeAwake",
     "hudChrome.aiSpeech.bossMemoryDefeated",
@@ -463,6 +472,8 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.keybinds.inspect"
   ],
   "fr_CA": [
+    "hudChrome.aiError.responseFailed",
+    "hudChrome.aiError.responseRejected",
     "hudChrome.aiQuestion.heading",
     "hudChrome.aiQuestion.place",
     "hudChrome.aiQuestion.questHint",
@@ -471,6 +482,7 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiReaction.approach",
     "hudChrome.aiReaction.avoid",
     "hudChrome.aiReaction.inspect",
+    "hudChrome.aiReaction.thinking",
     "hudChrome.aiSpeech.apothecaryLinAwake",
     "hudChrome.aiSpeech.armorerHodeAwake",
     "hudChrome.aiSpeech.bossMemoryDefeated",
@@ -615,6 +627,8 @@ export const pending: Record<string, readonly string[]> = {
   ],
   "en_CA": [],
   "it_IT": [
+    "hudChrome.aiError.responseFailed",
+    "hudChrome.aiError.responseRejected",
     "hudChrome.aiQuestion.heading",
     "hudChrome.aiQuestion.place",
     "hudChrome.aiQuestion.questHint",
@@ -623,6 +637,7 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiReaction.approach",
     "hudChrome.aiReaction.avoid",
     "hudChrome.aiReaction.inspect",
+    "hudChrome.aiReaction.thinking",
     "hudChrome.aiSpeech.apothecaryLinAwake",
     "hudChrome.aiSpeech.armorerHodeAwake",
     "hudChrome.aiSpeech.bossMemoryDefeated",
@@ -766,6 +781,8 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.keybinds.inspect"
   ],
   "de_DE": [
+    "hudChrome.aiError.responseFailed",
+    "hudChrome.aiError.responseRejected",
     "hudChrome.aiQuestion.heading",
     "hudChrome.aiQuestion.place",
     "hudChrome.aiQuestion.questHint",
@@ -774,6 +791,7 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiReaction.approach",
     "hudChrome.aiReaction.avoid",
     "hudChrome.aiReaction.inspect",
+    "hudChrome.aiReaction.thinking",
     "hudChrome.aiSpeech.apothecaryLinAwake",
     "hudChrome.aiSpeech.armorerHodeAwake",
     "hudChrome.aiSpeech.bossMemoryDefeated",
@@ -918,6 +936,8 @@ export const pending: Record<string, readonly string[]> = {
   ],
   "zh_CN": [],
   "zh_TW": [
+    "hudChrome.aiError.responseFailed",
+    "hudChrome.aiError.responseRejected",
     "hudChrome.aiQuestion.heading",
     "hudChrome.aiQuestion.place",
     "hudChrome.aiQuestion.questHint",
@@ -926,6 +946,7 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiReaction.approach",
     "hudChrome.aiReaction.avoid",
     "hudChrome.aiReaction.inspect",
+    "hudChrome.aiReaction.thinking",
     "hudChrome.aiSpeech.apothecaryLinAwake",
     "hudChrome.aiSpeech.armorerHodeAwake",
     "hudChrome.aiSpeech.bossMemoryDefeated",
@@ -1069,6 +1090,8 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.keybinds.inspect"
   ],
   "ko_KR": [
+    "hudChrome.aiError.responseFailed",
+    "hudChrome.aiError.responseRejected",
     "hudChrome.aiQuestion.heading",
     "hudChrome.aiQuestion.place",
     "hudChrome.aiQuestion.questHint",
@@ -1077,6 +1100,7 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiReaction.approach",
     "hudChrome.aiReaction.avoid",
     "hudChrome.aiReaction.inspect",
+    "hudChrome.aiReaction.thinking",
     "hudChrome.aiSpeech.apothecaryLinAwake",
     "hudChrome.aiSpeech.armorerHodeAwake",
     "hudChrome.aiSpeech.bossMemoryDefeated",
@@ -1220,6 +1244,8 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.keybinds.inspect"
   ],
   "ja_JP": [
+    "hudChrome.aiError.responseFailed",
+    "hudChrome.aiError.responseRejected",
     "hudChrome.aiQuestion.heading",
     "hudChrome.aiQuestion.place",
     "hudChrome.aiQuestion.questHint",
@@ -1228,6 +1254,7 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiReaction.approach",
     "hudChrome.aiReaction.avoid",
     "hudChrome.aiReaction.inspect",
+    "hudChrome.aiReaction.thinking",
     "hudChrome.aiSpeech.apothecaryLinAwake",
     "hudChrome.aiSpeech.armorerHodeAwake",
     "hudChrome.aiSpeech.bossMemoryDefeated",
@@ -1371,6 +1398,8 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.keybinds.inspect"
   ],
   "pt_BR": [
+    "hudChrome.aiError.responseFailed",
+    "hudChrome.aiError.responseRejected",
     "hudChrome.aiQuestion.heading",
     "hudChrome.aiQuestion.place",
     "hudChrome.aiQuestion.questHint",
@@ -1379,6 +1408,7 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiReaction.approach",
     "hudChrome.aiReaction.avoid",
     "hudChrome.aiReaction.inspect",
+    "hudChrome.aiReaction.thinking",
     "hudChrome.aiSpeech.apothecaryLinAwake",
     "hudChrome.aiSpeech.armorerHodeAwake",
     "hudChrome.aiSpeech.bossMemoryDefeated",
@@ -1522,6 +1552,8 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.keybinds.inspect"
   ],
   "ru_RU": [
+    "hudChrome.aiError.responseFailed",
+    "hudChrome.aiError.responseRejected",
     "hudChrome.aiQuestion.heading",
     "hudChrome.aiQuestion.place",
     "hudChrome.aiQuestion.questHint",
@@ -1530,6 +1562,7 @@ export const pending: Record<string, readonly string[]> = {
     "hudChrome.aiReaction.approach",
     "hudChrome.aiReaction.avoid",
     "hudChrome.aiReaction.inspect",
+    "hudChrome.aiReaction.thinking",
     "hudChrome.aiSpeech.apothecaryLinAwake",
     "hudChrome.aiSpeech.armorerHodeAwake",
     "hudChrome.aiSpeech.bossMemoryDefeated",

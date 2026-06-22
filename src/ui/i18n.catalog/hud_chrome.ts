@@ -129,6 +129,11 @@ export const hudChromeStrings = {
     approach: "interested",
     avoid: "uneasy",
     inspect: "watching",
+    thinking: "thinking",
+  },
+  aiError: {
+    responseFailed: "AI response failed: {reason}",
+    responseRejected: "AI response rejected: {reason}",
   },
   aiSpeech: {
     brotherAldricAwake: "The dead are restless tonight. Keep your journal close, {playerName}.",

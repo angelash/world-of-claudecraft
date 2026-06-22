@@ -49,15 +49,15 @@ describe('AI intent validator', () => {
     }]);
   });
 
-  it('keeps local provider-error fallback lineId speech fallback sourced', () => {
-    const result = validateAiDecision({ decision, context, entity, subject: 'criticalQuestNpc', source: 'fallback' });
+  it('keeps local lineId speech locally sourced', () => {
+    const result = validateAiDecision({ decision, context, entity, subject: 'criticalQuestNpc', source: 'local' });
     expect(result.ok).toBe(true);
     expect(result.events).toEqual([{
       type: 'aiSpeech',
       speakerId: 7,
       speakerName: 'Brother Aldric',
       speech: { mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake', values: { playerName: 'Ari' } },
-      source: 'fallback',
+      source: 'local',
       pid: 1,
     }]);
   });

@@ -400,7 +400,7 @@ export function worldDirectorEvent(scene: SceneFrameV1 | null, speaker: Entity, 
         directorHeat: Math.round(state.heat * 100),
       },
     },
-    source: 'fallback',
+    source: 'local',
     reaction: {
       kind: state.mood === 'haunted' || state.mood === 'dread' ? 'avoid' : 'inspect',
       ...(encounter || quest || sceneSubject ? {} : { targetItemId: state.itemId }),
@@ -452,7 +452,7 @@ export function worldDirectorEventFromMemoryAudit(
         directorHeat: Math.round(record.salience * 100),
       },
     },
-    source: 'fallback',
+    source: 'local',
     reaction: {
       kind: mood === 'haunted' || mood === 'dread' ? 'avoid' : 'inspect',
       ...(encounter || quest || sceneSubject ? {} : { targetItemId: subjectId }),

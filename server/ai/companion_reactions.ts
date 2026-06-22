@@ -50,7 +50,7 @@ export function companionReactionEventsForScene(scene: SceneFrameV1, playerEntit
           sceneId: scene.subsceneId ?? scene.zoneId,
         },
       },
-      source: 'fallback',
+      source: 'local',
       reaction: {
         kind: spec.kind,
         sceneTags: companionSceneTags,

@@ -197,7 +197,7 @@ export function singularityCreatureMemoryEvent(
         ...individualSpeechValuesFromTraits(memory.traits),
       },
     },
-    source: 'fallback',
+    source: 'local',
     reaction: {
       kind: 'inspect',
       targetItemId: item.itemId,
@@ -234,7 +234,7 @@ export function singularityCreatureSceneMemoryEvent(
         ...individualSpeechValuesFromTraits(memory.traits),
       },
     },
-    source: 'fallback',
+    source: 'local',
     reaction: {
       kind: 'inspect',
       score: Math.min(1, 0.5 + memory.interactionCount * 0.12),

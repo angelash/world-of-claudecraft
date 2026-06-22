@@ -12,7 +12,7 @@ import {
   type AiAuditSink,
 } from '../ai_audit';
 import { REALM } from '../realm';
-import type { AiDecisionV1, AiIntentType, AiJobContextV1, AiMemoryAuditRecord, AiProvider } from './ai_types';
+import type { AiDecisionV1, AiJobContextV1, AiMemoryAuditRecord, AiProvider } from './ai_types';
 import { aiEntityKind } from './ai_types';
 import {
   AiBossEncounterMemoryStore,
@@ -31,7 +31,6 @@ import { AiDecisionJournal } from './decision_journal';
 import type { AiDecisionJournalEntry } from './decision_journal';
 import { familySceneReactionEvent, nearbyFamilySceneCandidates, rankFamilySceneReactions } from './family_scene_reactions';
 import { compactFamilySemanticsForEntity } from './family_semantics';
-import { FakeAiProvider } from './fake_ai_provider';
 import { nearbyReactionCandidates, rankItemReactions } from './item_interest';
 import type { ItemInterestReaction } from './item_interest';
 import { validateAiDecision } from './intent_validator';
@@ -64,7 +63,6 @@ import { worldTraceReactionEvent } from './world_trace_reactions';
 export interface AiLifeLayerOptions {
   enabled?: boolean;
   provider?: AiProvider;
-  useCodex?: boolean;
   journalSize?: number;
   memoryDb?: AiMemoryPersistence;
   memoryPersistBatchSize?: number;
@@ -92,6 +90,7 @@ export interface AiLifeLayerMetricsSnapshot {
   providerCalls: number;
   providerSuccesses: number;
   providerErrors: number;
+  /** @deprecated Provider failures no longer generate local fallback decisions. */
   providerFallbacks: number;
   acceptedDecisions: number;
   rejectedDecisions: number;
@@ -133,6 +132,7 @@ interface AiLifeLayerMetricsState {
   providerCalls: number;
   providerSuccesses: number;
   providerErrors: number;
+  /** @deprecated Provider failures no longer generate local fallback decisions. */
   providerFallbacks: number;
   acceptedDecisions: number;
   rejectedDecisions: number;
@@ -219,6 +219,7 @@ export interface PetCommandAiRequest {
   pid: number;
   text: string;
   locale: string;
+  deliver?: (events: SimEvent[]) => void;
 }
 
 export type AiPetCommandAction =
@@ -286,23 +287,21 @@ export class AiLifeLayer {
 
   constructor(options: AiLifeLayerOptions = {}) {
     this.enabled = options.enabled ?? process.env.AI_LIVING_WORLD_EXPERIMENT !== '0';
-    this.provider = options.provider ?? (options.useCodex || process.env.AI_CODEX_CLI === '1'
-      ? new CodexCliProvider()
-      : new FakeAiProvider());
+    this.provider = options.provider ?? new CodexCliProvider();
     this.journal = new AiDecisionJournal(options.journalSize);
     this.memoryDb = options.memoryDb ?? null;
     this.memoryPersistBatchSize = Math.max(1, Math.min(200, Math.floor(options.memoryPersistBatchSize ?? 32)));
     this.auditSink = options.auditSink ?? null;
     this.auditProviderSource = options.auditProviderSource
-      ?? (options.useCodex || process.env.AI_CODEX_CLI === '1'
-        ? 'codex'
-        : options.provider
-          ? 'provider'
-          : 'fake');
+      ?? (options.provider ? 'provider' : 'codex');
   }
 
   diagnostics(): AiDecisionJournalEntry[] {
     return this.journal.snapshot();
+  }
+
+  isEnabled(): boolean {
+    return this.enabled;
   }
 
   memoryDiagnostics(): { npcMemories: AiNpcMemory[]; rumors: AiRumorMemory[] } {
@@ -699,9 +698,7 @@ export class AiLifeLayer {
       ...persistedSignals,
     ];
     let decision: AiDecisionV1;
-    let decisionSource: Extract<SimEvent, { type: 'aiSpeech' }>['source'] = 'codex';
     let providerLatencyMs = 0;
-    let providerErrorReason = '';
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
     try {
@@ -712,16 +709,25 @@ export class AiLifeLayer {
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       providerLatencyMs = performance.now() - providerStartedAt;
-      providerErrorReason = reason;
       this.recordProviderLatency(providerLatencyMs);
       this.metrics.providerErrors++;
-      this.metrics.providerFallbacks++;
       this.metrics.lastProviderError = reason;
       this.journal.recordProviderError(context, reason, memoryWrites);
-      decision = fallbackDecisionForProviderError(context, reason);
-      decisionSource = 'fallback';
+      this.recordProviderAudit({
+        context,
+        latencyMs: providerLatencyMs,
+        decision: null,
+        result: null,
+        memoryWrites,
+        providerError: reason,
+      });
+      this.enqueueMemoryWrites(memoryWrites);
+      const event = providerFailureErrorEvent(context, reason);
+      this.metrics.generatedEvents++;
+      request.deliver([event]);
+      return;
     }
-    const result = validateAiDecision({ decision, context, entity: npc, subject, source: decisionSource });
+    const result = validateAiDecision({ decision, context, entity: npc, subject, source: 'codex' });
     if (result.ok) this.metrics.acceptedDecisions++;
     else this.metrics.rejectedDecisions++;
     this.recordProviderAudit({
@@ -730,25 +736,30 @@ export class AiLifeLayer {
       decision,
       result,
       memoryWrites,
-      providerError: providerErrorReason || undefined,
     });
     this.journal.recordDecision(context, decision, result, memoryWrites);
     this.enqueueMemoryWrites(memoryWrites);
+    if (!result.ok) {
+      const event = providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator');
+      this.metrics.generatedEvents++;
+      request.deliver([event]);
+      return;
+    }
     if (result.ok) {
-      const events = [...result.events];
       const sceneEvent = sceneAwarenessEvent(context, npc);
-      if (sceneEvent) events.push(sceneEvent);
       const traceEvent = worldTraceReactionEvent(context, npc, trace);
-      if (traceEvent) events.push(traceEvent);
       const directorEvent = shouldShareWorldDirector(request.topic, directorState, rumor)
         ? worldDirectorEvent(context.scene ?? null, npc, directorState, request.pid)
         : null;
-      if (directorEvent) events.push(directorEvent);
-      events.push(...companionReactionEvents(context));
       const memoryEvent = memoryReactionEvent(context, npc, memory, rumor);
-      if (memoryEvent) events.push(memoryEvent);
       const topicEvent = topicReactionEvent(context, npc, memory, rumor);
-      if (topicEvent && !(directorEvent && request.topic === 'rumor')) events.push(topicEvent);
+      const events = directNpcReplyEvents(context, npc, result.events, {
+        sceneEvent,
+        traceEvent,
+        directorEvent,
+        memoryEvent,
+        topicEvent,
+      });
       if (events.length > 0) {
         this.metrics.generatedEvents += events.length;
         request.deliver(events);
@@ -860,7 +871,7 @@ export class AiLifeLayer {
           directorProposals: [directorState?.proposal],
         });
         if (context) reactionEvents = await this.decideSingularityReactionEvents(context, reaction.entity, localEvent, memoryWrites);
-        if (memoryEvent) reactionEvents.push(memoryEvent);
+        if (memoryEvent && !hasAiProviderErrorEvent(reactionEvents)) reactionEvents.push(memoryEvent);
       }
       events.push(...reactionEvents);
     }
@@ -958,7 +969,7 @@ export class AiLifeLayer {
             ...individualSpeechValues(reaction.individual),
           },
         },
-        source: 'fallback' as const,
+        source: 'local' as const,
         reaction: {
           kind: reaction.reaction,
           targetItemId: inspectedItem.itemId,
@@ -986,10 +997,7 @@ export class AiLifeLayer {
     const pet = request.sim.entities.get(context.entity.entityId);
     if (!pet || pet.kind !== 'mob' || pet.ownerId !== request.pid) return null;
     let decision: AiDecisionV1;
-    let decisionSource: Extract<SimEvent, { type: 'aiSpeech' }>['source'] = 'codex';
-    const localIntent = localPetCommandIntent(request.text);
     let providerLatencyMs = 0;
-    let providerErrorReason = '';
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
     try {
@@ -1000,16 +1008,23 @@ export class AiLifeLayer {
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       providerLatencyMs = performance.now() - providerStartedAt;
-      providerErrorReason = reason;
       this.recordProviderLatency(providerLatencyMs);
       this.metrics.providerErrors++;
-      this.metrics.providerFallbacks++;
       this.metrics.lastProviderError = reason;
       this.journal.recordProviderError(context, reason);
-      decision = fallbackDecisionForPetCommand(context, localIntent, reason);
-      decisionSource = 'fallback';
+      this.recordProviderAudit({
+        context,
+        latencyMs: providerLatencyMs,
+        decision: null,
+        result: null,
+        providerError: reason,
+      });
+      const event = providerFailureErrorEvent(context, reason);
+      this.metrics.generatedEvents++;
+      request.deliver?.([event]);
+      return null;
     }
-    const result = validateAiDecision({ decision, context, entity: pet, subject: 'ordinary', source: decisionSource });
+    const result = validateAiDecision({ decision, context, entity: pet, subject: 'ordinary', source: 'codex' });
     if (result.ok) this.metrics.acceptedDecisions++;
     else this.metrics.rejectedDecisions++;
     this.recordProviderAudit({
@@ -1017,28 +1032,17 @@ export class AiLifeLayer {
       latencyMs: providerLatencyMs,
       decision,
       result,
-      providerError: providerErrorReason || undefined,
     });
     this.journal.recordDecision(context, decision, result);
     if (!result.ok) {
-      const fallback = fallbackDecisionForPetCommand(context, localIntent, `petCommandRejected:${result.reason ?? 'unknown'}`);
-      this.recordLocalReaction({
-        jobId: `${context.jobId}-local-fallback`,
-        trigger: 'pet_command',
-        entityId: pet.id,
-        templateId: pet.templateId,
-        playerEntityId: request.pid,
-        reason: fallback.audit.shortReason,
-        lineIds: [],
-        intents: fallback.intents.map((intent) => intent.type),
-        sceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? null,
-      });
-      this.metrics.localReactions++;
-      return petCommandActionFromIntent(localIntent, 'fallback', fallback.audit.shortReason);
+      const event = providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator');
+      this.metrics.generatedEvents++;
+      request.deliver?.([event]);
+      return null;
     }
     const intent = firstPetCommandIntent(decision);
-    if (!intent) return petCommandActionFromIntent('commandPetIgnore', decisionSource, `${decision.audit.shortReason}: no bounded pet intent`);
-    return petCommandActionFromIntent(intent, decisionSource, decision.audit.shortReason);
+    if (!intent) return petCommandActionFromIntent('commandPetIgnore', 'codex', `${decision.audit.shortReason}: no bounded pet intent`);
+    return petCommandActionFromIntent(intent, 'codex', decision.audit.shortReason);
   }
 
   private async decideObjectInspectionEvents(
@@ -1049,9 +1053,7 @@ export class AiLifeLayer {
   ): Promise<SimEvent[]> {
     const subject = classifyCanonSubject(object);
     let decision: AiDecisionV1;
-    let decisionSource: Extract<SimEvent, { type: 'aiSpeech' }>['source'] = 'codex';
     let providerLatencyMs = 0;
-    let providerErrorReason = '';
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
     try {
@@ -1062,16 +1064,21 @@ export class AiLifeLayer {
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       providerLatencyMs = performance.now() - providerStartedAt;
-      providerErrorReason = reason;
       this.recordProviderLatency(providerLatencyMs);
       this.metrics.providerErrors++;
-      this.metrics.providerFallbacks++;
       this.metrics.lastProviderError = reason;
       this.journal.recordProviderError(context, reason, memoryWrites);
-      decision = fallbackDecisionForObjectInspection(context, localEvent, reason);
-      decisionSource = 'fallback';
+      this.recordProviderAudit({
+        context,
+        latencyMs: providerLatencyMs,
+        decision: null,
+        result: null,
+        memoryWrites,
+        providerError: reason,
+      });
+      return [providerFailureErrorEvent(context, reason)];
     }
-    const result = validateAiDecision({ decision, context, entity: object, subject, source: decisionSource });
+    const result = validateAiDecision({ decision, context, entity: object, subject, source: 'codex' });
     if (result.ok) this.metrics.acceptedDecisions++;
     else this.metrics.rejectedDecisions++;
     this.recordProviderAudit({
@@ -1080,23 +1087,10 @@ export class AiLifeLayer {
       decision,
       result,
       memoryWrites,
-      providerError: providerErrorReason || undefined,
     });
     this.journal.recordDecision(context, decision, result, memoryWrites);
     if (!result.ok) {
-      this.recordLocalReaction({
-        jobId: `${context.jobId}-local-fallback`,
-        trigger: 'object_inspected',
-        entityId: object.id,
-        templateId: object.templateId,
-        playerEntityId: context.player.entityId,
-        reason: `objectProviderRejected:${result.reason ?? 'unknown'}`,
-        lineIds: aiSpeechLineIds([localEvent]),
-        intents: ['inspectObject', 'commentOnScene'],
-        sceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? null,
-        memoryWrites,
-      });
-      return [localEvent];
+      return [providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator')];
     }
     return mergeObjectInspectionShell(result.events, localEvent);
   }
@@ -1195,9 +1189,7 @@ export class AiLifeLayer {
   ): Promise<SimEvent[]> {
     const subject = classifyCanonSubject(entity);
     let decision: AiDecisionV1;
-    let decisionSource: Extract<SimEvent, { type: 'aiSpeech' }>['source'] = 'codex';
     let providerLatencyMs = 0;
-    let providerErrorReason = '';
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
     try {
@@ -1208,16 +1200,21 @@ export class AiLifeLayer {
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       providerLatencyMs = performance.now() - providerStartedAt;
-      providerErrorReason = reason;
       this.recordProviderLatency(providerLatencyMs);
       this.metrics.providerErrors++;
-      this.metrics.providerFallbacks++;
       this.metrics.lastProviderError = reason;
       this.journal.recordProviderError(context, reason, memoryWrites);
-      decision = fallbackDecisionForSingularityReaction(context, localEvent, reason);
-      decisionSource = 'fallback';
+      this.recordProviderAudit({
+        context,
+        latencyMs: providerLatencyMs,
+        decision: null,
+        result: null,
+        memoryWrites,
+        providerError: reason,
+      });
+      return [providerFailureErrorEvent(context, reason)];
     }
-    const result = validateAiDecision({ decision, context, entity, subject, source: decisionSource });
+    const result = validateAiDecision({ decision, context, entity, subject, source: 'codex' });
     if (result.ok) this.metrics.acceptedDecisions++;
     else this.metrics.rejectedDecisions++;
     this.recordProviderAudit({
@@ -1226,23 +1223,10 @@ export class AiLifeLayer {
       decision,
       result,
       memoryWrites,
-      providerError: providerErrorReason || undefined,
     });
     this.journal.recordDecision(context, decision, result, memoryWrites);
     if (!result.ok) {
-      this.recordLocalReaction({
-        jobId: `${context.jobId}-local-fallback`,
-        trigger: context.trigger,
-        entityId: entity.id,
-        templateId: entity.templateId,
-        playerEntityId: context.player.entityId,
-        reason: `singularityProviderRejected:${result.reason ?? 'unknown'}`,
-        lineIds: aiSpeechLineIds([localEvent]),
-        intents: [reactionIntentType(localEvent.reaction?.kind ?? 'inspect'), 'commentOnScene'],
-        sceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? null,
-        memoryWrites,
-      });
-      return [localEvent];
+      return [providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator')];
     }
     return mergeSingularityReactionShell(result.events, localEvent);
   }
@@ -1307,7 +1291,7 @@ export class AiLifeLayer {
               ...individualSpeechValues(reaction.individual),
             },
           },
-          source: 'fallback' as const,
+          source: 'local' as const,
           reaction: {
             kind: reaction.reaction,
             targetItemId: tracedItem.itemId,
@@ -1414,7 +1398,7 @@ export class AiLifeLayer {
             ],
           });
           if (context) reactionEvents = await this.decideSingularityReactionEvents(context, reaction.entity, localEvent, memoryWrites);
-          if (memoryEvent) {
+          if (memoryEvent && !hasAiProviderErrorEvent(reactionEvents)) {
             reactionEvents.push(memoryEvent);
             if (memoryEvent.type === 'aiSpeech' && memoryEvent.speech.mode === 'lineId') lineIds.push(memoryEvent.speech.lineId);
           }
@@ -1814,142 +1798,86 @@ function shouldShareWorldDirector(
   return false;
 }
 
-function fallbackDecisionForProviderError(context: AiJobContextV1, reason: string): AiDecisionV1 {
-  const profile = profileFor(context.entity.kind, context.entity.templateId);
-  const lineId = profile.fallbackLineId;
+function directNpcReplyEvents(
+  context: AiJobContextV1,
+  npc: Entity,
+  providerEvents: readonly SimEvent[],
+  candidates: {
+    sceneEvent: SimEvent | null;
+    traceEvent: SimEvent | null;
+    directorEvent: SimEvent | null;
+    memoryEvent: SimEvent | null;
+    topicEvent: SimEvent | null;
+  },
+): SimEvent[] {
+  const topic = context.topic ?? 'greeting';
+  const { sceneEvent, traceEvent, directorEvent, memoryEvent, topicEvent } = candidates;
+  if (topic === 'rumor') {
+    const event = memoryEvent ?? directorEvent ?? traceEvent ?? topicEvent;
+    return event ? [event] : [];
+  }
+  if (topic === 'place' || topic === 'recent') {
+    const event = directorEvent ?? traceEvent ?? topicEvent ?? highPrioritySceneEvent(sceneEvent);
+    return event ? [event] : [];
+  }
+  if (topic === 'quest_hint') {
+    const event = topicEvent ?? memoryEvent ?? directorEvent ?? traceEvent ?? sceneEvent;
+    return event ? [event] : [];
+  }
+  const contextualEvent = memoryEvent ?? traceEvent ?? directorEvent ?? highPrioritySceneEvent(sceneEvent);
+  if (contextualEvent) return [contextualEvent];
+  const directSpeech = providerEvents.find((event): event is Extract<SimEvent, { type: 'aiSpeech' }> =>
+    event.type === 'aiSpeech'
+    && event.speakerId === npc.id
+    && event.pid === context.player.entityId);
+  return directSpeech ? [directSpeech] : [];
+}
+
+function highPrioritySceneEvent(event: SimEvent | null): SimEvent | null {
+  if (!event || event.type !== 'aiSpeech' || event.speech.mode !== 'lineId') return event;
+  switch (event.speech.lineId) {
+    case 'hudChrome.aiSpeech.sceneDemonCompanionUnease':
+    case 'hudChrome.aiSpeech.sceneUndeadCompanionUnease':
+    case 'hudChrome.aiSpeech.companionUndeadFear':
+    case 'hudChrome.aiSpeech.sceneUndeadPressure':
+      return event;
+    default:
+      return null;
+  }
+}
+
+function providerFailureErrorEvent(context: AiJobContextV1, reason: string): Extract<SimEvent, { type: 'error' }> {
   return {
-    schemaVersion: 1,
-    jobId: context.jobId,
-    entityRef: {
-      kind: context.entity.kind,
-      entityId: context.entity.entityId,
-      templateId: context.entity.templateId,
-    },
-    ttlMs: 5_000,
-    confidence: 0.15,
-    speech: [{
-      mode: 'lineId',
-      lineId,
-      values: {
-        playerName: context.player.name,
-        speakerName: context.entity.name,
-      },
-    }],
-    intents: [{ type: 'commentOnScene', lineId }],
-    audit: {
-      shortReason: `provider error fallback: ${reason.slice(0, 120)}`,
-      usedPlayerInput: false,
-      safetyNotes: ['Codex provider failed; local profile fallback preserved quest, combat, reward, and economy state.'],
-    },
+    type: 'error',
+    text: `AI response failed: ${publicAiReason(reason)}`,
+    pid: context.player.entityId,
   };
 }
 
-function fallbackDecisionForObjectInspection(
-  context: AiJobContextV1,
-  localEvent: Extract<SimEvent, { type: 'aiSpeech' }>,
-  reason: string,
-): AiDecisionV1 {
-  const lineId = localEvent.speech.mode === 'lineId'
-    ? localEvent.speech.lineId
-    : profileFor(context.entity.kind, context.entity.templateId).fallbackLineId;
-  const values = localEvent.speech.mode === 'lineId' ? localEvent.speech.values : undefined;
+function providerRejectedErrorEvent(context: AiJobContextV1, reason: string): Extract<SimEvent, { type: 'error' }> {
   return {
-    schemaVersion: 1,
-    jobId: context.jobId,
-    entityRef: {
-      kind: context.entity.kind,
-      entityId: context.entity.entityId,
-      templateId: context.entity.templateId,
-    },
-    ttlMs: 5_000,
-    confidence: 0.15,
-    speech: [{ mode: 'lineId', lineId, ...(values ? { values } : {}) }],
-    intents: [{ type: 'inspectObject', lineId }],
-    audit: {
-      shortReason: `object provider fallback: ${reason.slice(0, 120)}`,
-      usedPlayerInput: false,
-      safetyNotes: ['Object inspection used local scene semantics after provider failure; quest, combat, reward, and economy state were unchanged.'],
-    },
+    type: 'error',
+    text: `AI response rejected: ${publicAiReason(reason)}`,
+    pid: context.player.entityId,
   };
 }
 
-function fallbackDecisionForSingularityReaction(
-  context: AiJobContextV1,
-  localEvent: Extract<SimEvent, { type: 'aiSpeech' }>,
-  reason: string,
-): AiDecisionV1 {
-  const lineId = localEvent.speech.mode === 'lineId'
-    ? localEvent.speech.lineId
-    : profileFor(context.entity.kind, context.entity.templateId).fallbackLineId;
-  const values = localEvent.speech.mode === 'lineId' ? localEvent.speech.values : undefined;
-  return {
-    schemaVersion: 1,
-    jobId: context.jobId,
-    entityRef: {
-      kind: context.entity.kind,
-      entityId: context.entity.entityId,
-      templateId: context.entity.templateId,
-    },
-    ttlMs: 5_000,
-    confidence: 0.15,
-    speech: [{ mode: 'lineId', lineId, ...(values ? { values } : {}) }],
-    intents: [{ type: reactionIntentType(localEvent.reaction?.kind ?? 'inspect'), lineId }],
-    audit: {
-      shortReason: `singularity provider fallback: ${reason.slice(0, 120)}`,
-      usedPlayerInput: false,
-      safetyNotes: ['Singularity reaction used local creature semantics after provider failure; quest, combat, reward, and economy state were unchanged.'],
-    },
-  };
+function hasAiProviderErrorEvent(events: readonly SimEvent[]): boolean {
+  return events.some((event) =>
+    event.type === 'error'
+    && (/^AI response failed: /.test(event.text) || /^AI response rejected: /.test(event.text)));
 }
 
-function fallbackDecisionForPetCommand(
-  context: AiJobContextV1,
-  intent: AiPetCommandIntent,
-  reason: string,
-): AiDecisionV1 {
-  return {
-    schemaVersion: 1,
-    jobId: context.jobId,
-    entityRef: {
-      kind: context.entity.kind,
-      entityId: context.entity.entityId,
-      templateId: context.entity.templateId,
-    },
-    ttlMs: 5_000,
-    confidence: intent === 'commandPetIgnore' ? 0.1 : 0.45,
-    speech: [],
-    intents: [{ type: intent }],
-    audit: {
-      shortReason: `pet command fallback: ${reason.slice(0, 120)}`,
-      usedPlayerInput: true,
-      safetyNotes: ['Natural-language pet command was mapped only to an existing bounded pet command.'],
-    },
-  };
+function publicAiReason(reason: string): string {
+  const cleaned = reason
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/[^\x20-\x7E]/g, '?')
+    .trim();
+  return (cleaned || 'unknown Codex CLI error').slice(0, 240);
 }
 
 export function normalizePetCommandText(text: string): string {
   return text.trim().replace(/\s+/g, ' ').slice(0, 160);
-}
-
-export function localPetCommandIntent(text: string): AiPetCommandIntent {
-  const normalized = normalizePetCommandText(text).toLowerCase();
-  if (normalized.length === 0) return 'commandPetIgnore';
-  if (/(taunt|growl|hold threat|pull threat|keep it on you|嘲讽|嘲諷|拉住|拉仇恨|吸引仇恨)/i.test(normalized)) {
-    return 'commandPetTaunt';
-  }
-  if (/(aggressive|hunt freely|attack anything|主动|主動|自由攻击|自由攻擊|见敌就打|見敵就打)/i.test(normalized)) {
-    return 'commandPetAggressive';
-  }
-  if (/(attack|sic|bite|kill|go get|tear into|进攻|攻擊|攻击|咬|上去打|打它|打他|打她)/i.test(normalized)) {
-    return 'commandPetAttack';
-  }
-  if (/(defensive|defend|guard|protect|watch me|保护|保護|防御|防禦|守着|守著)/i.test(normalized)) {
-    return 'commandPetDefensive';
-  }
-  if (/(passive|stay|heel|back|hold back|stop|calm|leave it|回来|回來|跟紧|跟緊|停下|别打|別打|别追|別追|冷静|冷靜)/i.test(normalized)) {
-    return 'commandPetPassive';
-  }
-  return 'commandPetIgnore';
 }
 
 function firstPetCommandIntent(decision: AiDecisionV1): AiPetCommandIntent | null {
@@ -2069,7 +1997,7 @@ function itemInterestReactionEvent(
         ...individualSpeechValues(reaction.individual),
       },
     },
-    source: 'fallback',
+    source: 'local',
     reaction: {
       kind: reaction.reaction,
       targetItemId: dropped.itemId,
@@ -2080,15 +2008,6 @@ function itemInterestReactionEvent(
     },
     pid,
   };
-}
-
-function reactionIntentType(reaction: 'approach' | 'avoid' | 'inspect' | 'ignore'): AiIntentType {
-  switch (reaction) {
-    case 'approach': return 'approachObject';
-    case 'avoid': return 'avoidObject';
-    case 'inspect': return 'inspectObject';
-    case 'ignore': return 'commentOnScene';
-  }
 }
 
 function aiSpeechLineIds(events: readonly SimEvent[]): string[] {

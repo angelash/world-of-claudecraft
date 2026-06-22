@@ -345,7 +345,7 @@ describe('admin AI life layer metrics renderer', () => {
     }));
 
     expect(html).toContain('needs attention');
-    expect(html).toContain('Provider fallbacks');
+    expect(html).toContain('Legacy fallback decisions');
     expect(html).toContain('Memory prune failures');
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
     expect(html).toContain('db &lt;offline&gt;');

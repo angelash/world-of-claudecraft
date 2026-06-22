@@ -252,7 +252,12 @@ export const zh_CN: EnTranslations = {
     "aiReaction": {
       "approach": "感兴趣",
       "avoid": "不安",
-      "inspect": "观察中"
+      "inspect": "观察中",
+      "thinking": "思考中"
+    },
+    "aiError": {
+      "responseFailed": "AI 响应失败：{reason}",
+      "responseRejected": "AI 响应被拒绝：{reason}"
     },
     "aiSpeech": {
       "brotherAldricAwake": "今晚亡者不得安宁。把你的日志收好，{playerName}。",

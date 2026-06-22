@@ -1,28 +1,30 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { createInterface } from 'node:readline';
 import type { AiDecisionV1, AiEntityKind, AiIntentType, AiJobContextV1, AiProvider, AiSpeech } from './ai_types';
 import { buildCodexDecisionPrompt } from './prompt_builder';
 
 export interface CodexCliProviderOptions {
   codexBin?: string;
-  codexArgsPrefix?: string[];
   timeoutMs?: number;
   maxStderrBytes?: number;
+  repoRoot?: string;
 }
 
 const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
   type: 'object',
   additionalProperties: false,
   properties: {
-    schemaVersion: { const: 1 },
+    schemaVersion: { type: 'number', enum: [1] },
     jobId: { type: 'string' },
     entityRef: {
       type: 'object',
       additionalProperties: false,
       properties: {
-        kind: { enum: ['npc', 'mob', 'object'] },
+        kind: { type: 'string', enum: ['npc', 'mob', 'object'] },
         entityId: { type: 'number' },
         templateId: { type: 'string' },
       },
@@ -33,25 +35,25 @@ const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
     speech: {
       type: 'array',
       items: {
-        oneOf: [
+        anyOf: [
           {
             type: 'object',
             additionalProperties: false,
             properties: {
-              mode: { const: 'lineId' },
+              mode: { type: 'string', enum: ['lineId'] },
               lineId: { type: 'string' },
               values: {
-                type: 'object',
+                type: ['object', 'null'],
                 additionalProperties: { type: ['string', 'number'] },
               },
             },
-            required: ['mode', 'lineId'],
+            required: ['mode', 'lineId', 'values'],
           },
           {
             type: 'object',
             additionalProperties: false,
             properties: {
-              mode: { const: 'dynamicText' },
+              mode: { type: 'string', enum: ['dynamicText'] },
               language: { type: 'string' },
               text: { type: 'string', minLength: 1, maxLength: 280 },
             },
@@ -67,6 +69,7 @@ const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
         additionalProperties: false,
         properties: {
           type: {
+            type: 'string',
             enum: [
               'lookAt',
               'faceEntity',
@@ -87,13 +90,13 @@ const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
               'commandPetIgnore',
             ],
           },
-          lineId: { type: 'string' },
-          targetEntityId: { type: 'number' },
-          targetObjectId: { type: 'number' },
-          targetItemId: { type: 'string' },
-          seconds: { type: 'number', minimum: 0.1, maximum: 10 },
+          lineId: { type: ['string', 'null'] },
+          targetEntityId: { type: ['number', 'null'] },
+          targetObjectId: { type: ['number', 'null'] },
+          targetItemId: { type: ['string', 'null'] },
+          seconds: { type: ['number', 'null'], minimum: 0.1, maximum: 10 },
         },
-        required: ['type'],
+        required: ['type', 'lineId', 'targetEntityId', 'targetObjectId', 'targetItemId', 'seconds'],
       },
     },
     audit: {
@@ -131,18 +134,19 @@ const INTENT_TYPES = new Set<AiIntentType>([
   'commandPetIgnore',
 ]);
 const DEFAULT_MAX_STDERR_BYTES = 8_192;
+const DEFAULT_TIMEOUT_MS = 45_000;
 
 export class CodexCliProvider implements AiProvider {
   private readonly codexBin: string;
-  private readonly codexArgsPrefix: string[];
   private readonly timeoutMs: number;
   private readonly maxStderrBytes: number;
+  private readonly repoRoot: string;
 
   constructor(options: CodexCliProviderOptions = {}) {
-    this.codexBin = options.codexBin ?? process.env.CODEX_BIN ?? 'codex';
-    this.codexArgsPrefix = options.codexArgsPrefix ?? [];
-    this.timeoutMs = options.timeoutMs ?? 15_000;
+    this.codexBin = options.codexBin ?? process.env.CODEX_BIN ?? resolveCodexBinary();
+    this.timeoutMs = options.timeoutMs ?? envPositiveInt('AI_CODEX_TIMEOUT_MS', DEFAULT_TIMEOUT_MS);
     this.maxStderrBytes = Math.max(0, Math.floor(options.maxStderrBytes ?? DEFAULT_MAX_STDERR_BYTES));
+    this.repoRoot = options.repoRoot ?? process.cwd();
   }
 
   async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
@@ -153,49 +157,78 @@ export class CodexCliProvider implements AiProvider {
     await writeFile(inputPath, JSON.stringify(context, null, 2), 'utf8');
     await writeFile(schemaPath, JSON.stringify(AI_DECISION_OUTPUT_SCHEMA, null, 2), 'utf8');
     try {
-      await this.execCodex(context, dir);
-      return parseCodexDecisionOutput(await readFile(outputPath, 'utf8'));
+      const result = await this.execCodex(context, schemaPath, outputPath);
+      let raw: string;
+      try {
+        raw = await readFile(outputPath, 'utf8');
+      } catch (err) {
+        if (result.lastAgentMessage) raw = result.lastAgentMessage;
+        else throw new Error(`Codex CLI completed but did not write a structured decision: ${errorMessage(err)}`);
+      }
+      return parseCodexDecisionOutput(raw);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
   }
 
-  private execCodex(context: AiJobContextV1, cwd: string): Promise<void> {
+  private execCodex(
+    context: AiJobContextV1,
+    schemaPath: string,
+    outputPath: string,
+  ): Promise<{ lastAgentMessage: string | null }> {
     const prompt = buildCodexDecisionPrompt(context);
     const args = [
-      ...this.codexArgsPrefix,
-      'exec',
-      '--ephemeral',
-      '--sandbox',
-      'read-only',
       '--ask-for-approval',
       'never',
+      'exec',
+      '--disable',
+      'plugins',
+      '--ephemeral',
+      '--json',
+      '--color',
+      'never',
+      '--sandbox',
+      'read-only',
+      '-C',
+      this.repoRoot,
       '--output-schema',
-      'decision.schema.json',
+      schemaPath,
       '-o',
-      'decision.json',
-      prompt,
+      outputPath,
+      '-',
     ];
     return new Promise((resolve, reject) => {
       const child = spawn(this.codexBin, args, {
-        cwd,
-        stdio: ['ignore', 'ignore', 'pipe'],
+        cwd: this.repoRoot,
+        stdio: ['pipe', 'pipe', 'pipe'],
         windowsHide: true,
       });
       let stderr = '';
       let stderrTruncated = false;
       let settled = false;
+      const state: CodexJsonEventState = {
+        lastAgentMessage: null,
+        structuredErrorSummary: null,
+      };
       const finish = (err?: Error) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
         if (err) reject(err);
-        else resolve();
+        else resolve({ lastAgentMessage: state.lastAgentMessage });
       };
       const timer = setTimeout(() => {
         child.kill();
-        finish(new Error('codex worker timed out'));
+        finish(new Error(`Codex CLI timed out after ${this.timeoutMs}ms`));
       }, this.timeoutMs);
+      child.stdin?.write(prompt, 'utf8');
+      child.stdin?.end();
+      if (child.stdout) {
+        const stdout = createInterface({ input: child.stdout });
+        stdout.on('line', (line) => {
+          parseCodexJsonEvent(line, state);
+        });
+      }
       child.stderr?.on('data', (chunk: Buffer) => {
         const text = chunk.toString('utf8');
         const remaining = this.maxStderrBytes - stderr.length;
@@ -203,20 +236,139 @@ export class CodexCliProvider implements AiProvider {
         if (text.length > remaining) stderrTruncated = true;
       });
       child.on('error', (err) => {
-        finish(err);
+        finish(new Error(`Codex CLI could not start (${this.codexBin}): ${errorMessage(err)}. Set CODEX_BIN to a working Codex executable.`));
       });
-      child.on('exit', (code) => {
+      child.on('close', (code, signal) => {
         if (code === 0) finish();
-        else finish(new Error(codexWorkerExitMessage(stderr, stderrTruncated, code)));
+        else finish(new Error(codexWorkerExitMessage({
+          stderr,
+          stderrTruncated,
+          code,
+          signal,
+          structuredErrorSummary: state.structuredErrorSummary,
+        })));
       });
     });
   }
 }
 
-function codexWorkerExitMessage(stderr: string, stderrTruncated: boolean, code: number | null): string {
-  const trimmed = stderr.trim();
-  const base = trimmed || `codex worker exited with code ${code ?? 'null'}`;
-  return stderrTruncated ? `${base}\ncodex worker stderr truncated` : base;
+interface CodexJsonEventState {
+  lastAgentMessage: string | null;
+  structuredErrorSummary: string | null;
+}
+
+function parseCodexJsonEvent(line: string, state: CodexJsonEventState): void {
+  const trimmed = line.trim();
+  if (!trimmed) return;
+  let payload: unknown;
+  try {
+    payload = JSON.parse(trimmed);
+  } catch {
+    return;
+  }
+  if (!payload || typeof payload !== 'object') return;
+  const record = payload as Record<string, unknown>;
+  const type = typeof record.type === 'string' ? record.type : '';
+  if (type === 'item.completed') {
+    const item = record.item && typeof record.item === 'object' ? record.item as Record<string, unknown> : null;
+    if (item?.type === 'agent_message' && typeof item.text === 'string' && item.text.trim()) {
+      state.lastAgentMessage = item.text.trim();
+    }
+    return;
+  }
+  if (type === 'error' || type === 'turn.failed') {
+    state.structuredErrorSummary = summarizeCodexStructuredError(record) ?? state.structuredErrorSummary;
+  }
+}
+
+function summarizeCodexStructuredError(record: Record<string, unknown>): string | null {
+  const direct = firstString(record.message, record.detail, record.reason);
+  if (direct) return summarizeStructuredErrorText(direct) ?? direct;
+  const error = record.error;
+  if (typeof error === 'string' && error.trim()) {
+    const trimmed = error.trim();
+    return summarizeStructuredErrorText(trimmed) ?? trimmed;
+  }
+  if (error && typeof error === 'object') {
+    const errRecord = error as Record<string, unknown>;
+    const message = firstString(errRecord.message, errRecord.detail, errRecord.reason);
+    const code = firstString(errRecord.code, errRecord.type);
+    const summary = message ? summarizeStructuredErrorText(message) : null;
+    if (summary) return code && !summary.startsWith(`${code}:`) ? `${code}: ${summary}` : summary;
+    if (message && code) return `${code}: ${message}`;
+    return message ?? code;
+  }
+  return null;
+}
+
+function summarizeStructuredErrorText(text: string): string | null {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith('{')) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== 'object') return null;
+  const record = parsed as Record<string, unknown>;
+  const nestedError = record.error;
+  if (nestedError && typeof nestedError === 'object') {
+    const errRecord = nestedError as Record<string, unknown>;
+    const message = firstString(errRecord.message, errRecord.detail, errRecord.reason);
+    const code = firstString(errRecord.code, errRecord.type);
+    if (message && code) return `${code}: ${message}`;
+    return message ?? code;
+  }
+  const message = firstString(record.message, record.detail, record.reason);
+  const code = firstString(record.code, record.type);
+  if (message && code) return `${code}: ${message}`;
+  return message ?? code;
+}
+
+function firstString(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function codexWorkerExitMessage(input: {
+  stderr: string;
+  stderrTruncated: boolean;
+  code: number | null;
+  signal: NodeJS.Signals | null;
+  structuredErrorSummary: string | null;
+}): string {
+  const status = input.code === null
+    ? `signal ${input.signal ?? 'unknown'}`
+    : `code ${input.code}`;
+  const details = [
+    input.structuredErrorSummary,
+    input.stderr.trim(),
+    input.stderrTruncated ? 'Codex CLI stderr truncated' : null,
+  ].filter((entry): entry is string => Boolean(entry && entry.trim()));
+  return details.length > 0
+    ? `Codex CLI exited with ${status}: ${details.join('\n')}`
+    : `Codex CLI exited with ${status}`;
+}
+
+export function resolveCodexBinary(env: NodeJS.ProcessEnv = process.env): string {
+  const localAppData = env.LOCALAPPDATA;
+  if (localAppData) {
+    const windowsUserInstall = join(localAppData, 'OpenAI', 'Codex', 'bin', 'codex.exe');
+    if (existsSync(windowsUserInstall)) return windowsUserInstall;
+  }
+  return process.platform === 'win32' ? 'codex.exe' : 'codex';
+}
+
+function envPositiveInt(name: string, fallback: number): number {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
 
 export function parseCodexDecisionOutput(raw: string): AiDecisionV1 {
@@ -257,7 +409,7 @@ function parseSpeech(value: unknown): AiSpeech {
   if (record.mode === 'lineId') {
     rejectUnexpectedKeys(record, ['mode', 'lineId', 'values'], 'speech');
     const lineId = requireString(record.lineId, 'speech.lineId');
-    const values = record.values === undefined ? undefined : parseSpeechValues(record.values);
+    const values = record.values === undefined || record.values === null ? undefined : parseSpeechValues(record.values);
     return values ? { mode: 'lineId', lineId, values } : { mode: 'lineId', lineId };
   }
   if (record.mode === 'dynamicText') {
@@ -286,11 +438,11 @@ function parseIntent(value: unknown): AiDecisionV1['intents'][number] {
   const record = requireRecord(value, 'intent');
   rejectUnexpectedKeys(record, ['type', 'lineId', 'targetEntityId', 'targetObjectId', 'targetItemId', 'seconds'], 'intent');
   const type = requireIntentType(record.type, 'intent.type');
-  const lineId = record.lineId === undefined ? undefined : requireString(record.lineId, 'intent.lineId');
-  const targetEntityId = record.targetEntityId === undefined ? undefined : requireNumber(record.targetEntityId, 'intent.targetEntityId');
-  const targetObjectId = record.targetObjectId === undefined ? undefined : requireNumber(record.targetObjectId, 'intent.targetObjectId');
-  const targetItemId = record.targetItemId === undefined ? undefined : requireString(record.targetItemId, 'intent.targetItemId');
-  const seconds = record.seconds === undefined ? undefined : requireNumberInRange(record.seconds, 'intent.seconds', 0.1, 10);
+  const lineId = record.lineId === undefined || record.lineId === null ? undefined : requireString(record.lineId, 'intent.lineId');
+  const targetEntityId = record.targetEntityId === undefined || record.targetEntityId === null ? undefined : requireNumber(record.targetEntityId, 'intent.targetEntityId');
+  const targetObjectId = record.targetObjectId === undefined || record.targetObjectId === null ? undefined : requireNumber(record.targetObjectId, 'intent.targetObjectId');
+  const targetItemId = record.targetItemId === undefined || record.targetItemId === null ? undefined : requireString(record.targetItemId, 'intent.targetItemId');
+  const seconds = record.seconds === undefined || record.seconds === null ? undefined : requireNumberInRange(record.seconds, 'intent.seconds', 0.1, 10);
   return {
     type,
     ...(lineId ? { lineId } : {}),

@@ -46,10 +46,72 @@ function fakeWs(): FakeClient {
 }
 
 function joinServer(server: GameServer, fc: FakeClient, cls: 'warrior' | 'hunter' = 'warrior'): ClientSession {
+  installDefaultAiProvider(server);
   const session = server.join(fc.ws as any, 1, 1, 'Ari', cls, null);
   if ('error' in session) throw new Error(session.error);
   session.blockListLoaded = true;
   return session;
+}
+
+function installDefaultAiProvider(server: GameServer): void {
+  if ((server as any).__manualAiLifeLayer) return;
+  if ((server as any).__testAiLifeLayerInstalled) return;
+  (server as any).aiLifeLayer.provider = scriptedAiProvider();
+  (server as any).aiLifeLayer.auditProviderSource = 'provider';
+  (server as any).__testAiLifeLayerInstalled = true;
+}
+
+function setAiLifeLayer(server: GameServer, layer: AiLifeLayer): void {
+  (server as any).__manualAiLifeLayer = true;
+  (server as any).__testAiLifeLayerInstalled = false;
+  (server as any).aiLifeLayer = layer;
+}
+
+function scriptedAiProvider(): AiProvider {
+  return {
+    async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
+      const suggestedLineId = context.recentObservations
+        .find((observation) => observation.startsWith('suggestedLineId:'))
+        ?.slice('suggestedLineId:'.length);
+      const allowedLineIds = context.allowedLineIds ?? [];
+      const lineId = suggestedLineId && allowedLineIds.includes(suggestedLineId)
+        ? suggestedLineId
+        : allowedLineIds[0];
+      const petIntent = context.allowedIntents.find((intent) =>
+        intent === 'commandPetPassive'
+        || intent === 'commandPetDefensive'
+        || intent === 'commandPetAggressive'
+        || intent === 'commandPetAttack'
+        || intent === 'commandPetTaunt'
+        || intent === 'commandPetIgnore');
+      const intentType = context.trigger === 'pet_command'
+        ? petIntent ?? 'commandPetIgnore'
+        : context.allowedIntents.includes('commentOnScene')
+          ? 'commentOnScene'
+          : context.allowedIntents[0];
+      return {
+        schemaVersion: 1,
+        jobId: context.jobId,
+        entityRef: {
+          kind: context.entity.kind,
+          entityId: context.entity.entityId,
+          templateId: context.entity.templateId,
+        },
+        ttlMs: 5000,
+        confidence: 0.9,
+        speech: lineId ? [{
+          mode: 'lineId',
+          lineId,
+          values: {
+            playerName: context.player.name,
+            speakerName: context.entity.name,
+          },
+        }] : [],
+        intents: intentType ? [{ type: intentType, ...(lineId ? { lineId } : {}) }] : [],
+        audit: { shortReason: 'scripted provider decision', usedPlayerInput: false, safetyNotes: [] },
+      };
+    },
+  };
 }
 
 function teleportNear(server: GameServer, pid: number, targetId: number): void {
@@ -163,6 +225,12 @@ describe('server AI interact command', () => {
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc!.id, locale: 'en' }));
     await flushAi();
 
+    expect(eventsOf(fc, 'aiThinking')).toContainEqual(expect.objectContaining({
+      speakerId: npc!.id,
+      speakerName: 'Brother Aldric',
+      durationMs: expect.any(Number),
+      pid: session.pid,
+    }));
     expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
       speakerId: npc!.id,
       speakerName: 'Brother Aldric',
@@ -181,7 +249,7 @@ describe('server AI interact command', () => {
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
 
-  it('delivers a safe NPC fallback when the AI provider fails', async () => {
+  it('delivers a clear NPC AI error when the provider fails', async () => {
     const server = new GameServer();
     const fc = fakeWs();
     const session = joinServer(server, fc);
@@ -191,7 +259,7 @@ describe('server AI interact command', () => {
         throw new Error('codex worker timed out');
       },
     };
-    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    setAiLifeLayer(server, new AiLifeLayer({ enabled: true, provider }));
     teleportNear(server, session.pid, npc.id);
     const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
     const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
@@ -199,23 +267,19 @@ describe('server AI interact command', () => {
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en' }));
     await flushAi();
 
-    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
-      speakerId: npc.id,
-      speakerName: 'Brother Aldric',
-      speech: expect.objectContaining({ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
-      source: 'fallback',
+    expect(eventsOf(fc, 'error')).toContainEqual(expect.objectContaining({
+      text: 'AI response failed: codex worker timed out',
       pid: session.pid,
     }));
     expect((server as any).aiLifeLayer.diagnostics()).toEqual([
       expect.objectContaining({ status: 'provider_error', reason: 'codex worker timed out' }),
-      expect.objectContaining({ status: 'accepted', lineIds: ['hudChrome.aiSpeech.brotherAldricAwake'] }),
     ]);
     expect((server as any).aiLifeLayer.runtimeMetrics()).toMatchObject({
       providerCalls: 1,
       providerSuccesses: 0,
       providerErrors: 1,
-      providerFallbacks: 1,
-      acceptedDecisions: 1,
+      providerFallbacks: 0,
+      acceptedDecisions: 0,
       lastProviderError: 'codex worker timed out',
     });
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
@@ -252,6 +316,8 @@ describe('server AI interact command', () => {
 
     const placeReplies = eventsOf(fc, 'aiSpeech').filter((event) => event.speech.lineId === 'hudChrome.aiSpeech.topicPlace');
     expect(placeReplies).toHaveLength(1);
+    expect(new Set(eventsOf(fc, 'aiSpeech').map((event) => event.speakerId))).toEqual(new Set([npc.id]));
+    expect(eventsOf(fc, 'aiThinking').filter((event) => event.speakerId === npc.id)).toHaveLength(2);
   });
 
   it('falls back to greeting behavior for invalid AI question topics', async () => {
@@ -296,6 +362,7 @@ describe('server AI interact command', () => {
     await flushAi();
 
     expect(eventsOf(fc, 'aiSpeech')).toHaveLength(0);
+    expect(eventsOf(fc, 'aiThinking')).toHaveLength(0);
   });
 
   it('periodically prunes expired persisted AI memory using sim time', async () => {
@@ -424,7 +491,7 @@ describe('server AI interact command', () => {
   it('keeps mainline quest, inventory, currency, and XP state identical with AI enabled or disabled', async () => {
     async function runScenario(enabled: boolean): Promise<{ snapshot: unknown; aiSpeechCount: number }> {
       const server = new GameServer();
-      (server as any).aiLifeLayer = new AiLifeLayer({ enabled });
+      setAiLifeLayer(server, new AiLifeLayer({ enabled }));
       const fc = fakeWs();
       const session = joinServer(server, fc);
       const meta = server.sim.meta(session.pid)!;
@@ -567,14 +634,14 @@ describe('server AI interact command', () => {
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
 
-  it('falls back to local object semantics when the object AI provider fails', async () => {
+  it('reports an object AI error when the provider fails', async () => {
     const provider: AiProvider = {
       async decide(): Promise<AiDecisionV1> {
         throw new Error('codex object worker timed out');
       },
     };
     const server = new GameServer();
-    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    setAiLifeLayer(server, new AiLifeLayer({ enabled: true, provider }));
     const fc = fakeWs();
     const session = joinServer(server, fc);
     const object = [...server.sim.entities.values()].find((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil')!;
@@ -583,23 +650,19 @@ describe('server AI interact command', () => {
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_object', object: object.id, locale: 'en' }));
     await flushAi();
 
-    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
-      speakerId: object.id,
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.objectInspectGrave' }),
-      source: 'fallback',
-      reaction: expect.objectContaining({ targetObjectId: object.id, targetItemId: 'gravecaller_sigil' }),
+    expect(eventsOf(fc, 'error')).toContainEqual(expect.objectContaining({
+      text: 'AI response failed: codex object worker timed out',
       pid: session.pid,
     }));
     expect((server as any).aiLifeLayer.diagnostics()).toEqual([
       expect.objectContaining({ status: 'provider_error', trigger: 'object_inspected', reason: 'codex object worker timed out' }),
-      expect.objectContaining({ status: 'accepted', trigger: 'object_inspected', lineIds: ['hudChrome.aiSpeech.objectInspectGrave'] }),
     ]);
     expect((server as any).aiLifeLayer.runtimeMetrics()).toMatchObject({
       providerCalls: 1,
       providerSuccesses: 0,
       providerErrors: 1,
-      providerFallbacks: 1,
-      acceptedDecisions: 1,
+      providerFallbacks: 0,
+      acceptedDecisions: 0,
       lastProviderError: 'codex object worker timed out',
     });
   });
@@ -771,7 +834,7 @@ describe('server AI interact command', () => {
           sceneId: 'fallen_chapel',
         }),
       }),
-      source: 'fallback',
+      source: 'local',
       reaction: expect.objectContaining({
         kind: 'avoid',
         sceneTags: expect.arrayContaining(['ruinedChapel', 'undeadMemory']),
@@ -813,7 +876,7 @@ describe('server AI interact command', () => {
       },
     };
     const server = new GameServer();
-    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    setAiLifeLayer(server, new AiLifeLayer({ enabled: true, provider }));
     const fc = fakeWs();
     const session = joinServer(server, fc, 'hunter');
     const pet = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
@@ -840,14 +903,14 @@ describe('server AI interact command', () => {
     expect(mainlineSnapshot(server, session.pid)).toEqual(beforeSnapshot);
   });
 
-  it('falls back to local pet command routing from /petai chat when the provider fails', async () => {
+  it('reports a pet command AI error when the provider fails', async () => {
     const provider: AiProvider = {
       async decide(): Promise<AiDecisionV1> {
         throw new Error('codex pet worker timed out');
       },
     };
     const server = new GameServer();
-    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    setAiLifeLayer(server, new AiLifeLayer({ enabled: true, provider }));
     const fc = fakeWs();
     const session = joinServer(server, fc, 'hunter');
     const pet = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
@@ -859,10 +922,13 @@ describe('server AI interact command', () => {
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'chat', text: '/petai protect me' }));
     await flushAi();
 
-    expect(pet.petMode).toBe('defensive');
+    expect(pet.petMode).toBe('passive');
+    expect(eventsOf(fc, 'error')).toContainEqual(expect.objectContaining({
+      text: 'AI response failed: codex pet worker timed out',
+      pid: session.pid,
+    }));
     expect((server as any).aiLifeLayer.diagnostics()).toEqual([
       expect.objectContaining({ status: 'provider_error', trigger: 'pet_command', reason: 'codex pet worker timed out' }),
-      expect.objectContaining({ status: 'accepted', trigger: 'pet_command', intents: ['commandPetDefensive'] }),
     ]);
     expect(mainlineSnapshot(server, session.pid)).toEqual(beforeSnapshot);
   });
@@ -1355,7 +1421,7 @@ describe('server AI interact command', () => {
     expect(mainlineSnapshot(server, session.pid)).toEqual(beforeInspectSnapshot);
   });
 
-  it('lets NPC gossip respond to active world traces in the same scene', async () => {
+  it('lets NPC gossip answer active world traces through same-scene memory', async () => {
     const server = new GameServer();
     const fc = fakeWs();
     const session = joinServer(server, fc);
@@ -1372,22 +1438,15 @@ describe('server AI interact command', () => {
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en' }));
     await flushAi();
 
-    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+    const replies = eventsOf(fc, 'aiSpeech').filter((event) => event.speakerId === npc.id);
+    expect(replies).toHaveLength(1);
+    expect(replies).toContainEqual(expect.objectContaining({
       speakerId: npc.id,
       speech: expect.objectContaining({
-        lineId: 'hudChrome.aiSpeech.worldTraceNpcValuable',
-        values: expect.objectContaining({ itemId: 'redbrook_blade', traceKind: 'valuable' }),
+        lineId: 'hudChrome.aiSpeech.memorySmithRumorEcho',
+        values: expect.objectContaining({ itemId: 'redbrook_blade' }),
       }),
-      reaction: expect.objectContaining({ kind: 'inspect', targetItemId: 'redbrook_blade' }),
-      pid: session.pid,
-    }));
-    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
-      speakerId: npc.id,
-      speech: expect.objectContaining({
-        lineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
-        values: expect.objectContaining({ itemId: 'redbrook_blade', directorMood: 'covetous' }),
-      }),
-      reaction: expect.objectContaining({ kind: 'inspect', targetItemId: 'redbrook_blade' }),
+      reaction: expect.objectContaining({ kind: 'inspect' }),
       pid: session.pid,
     }));
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
@@ -1414,7 +1473,7 @@ describe('server AI interact command', () => {
       },
     };
     const server = new GameServer();
-    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    setAiLifeLayer(server, new AiLifeLayer({ enabled: true, provider }));
     const fc = fakeWs();
     const session = joinServer(server, fc);
     const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'smith_haldren')!;
@@ -1651,7 +1710,7 @@ describe('server AI interact command', () => {
       },
     };
     const server = new GameServer();
-    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    setAiLifeLayer(server, new AiLifeLayer({ enabled: true, provider }));
     const fc = fakeWs();
     const session = joinServer(server, fc);
     const player = server.sim.entities.get(session.pid)!;
@@ -1748,7 +1807,7 @@ describe('server AI interact command', () => {
       },
     };
     const server = new GameServer();
-    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    setAiLifeLayer(server, new AiLifeLayer({ enabled: true, provider }));
     const fc = fakeWs();
     const session = joinServer(server, fc);
     const player = server.sim.entities.get(session.pid)!;
@@ -1786,14 +1845,14 @@ describe('server AI interact command', () => {
     expect(server.sim.countItem('roasted_boar', session.pid)).toBe(0);
   });
 
-  it('falls back to local singularity item behavior when the creature AI provider fails', async () => {
+  it('reports a singularity AI error when the creature provider fails', async () => {
     const provider: AiProvider = {
       async decide(): Promise<AiDecisionV1> {
         throw new Error('codex singularity worker timed out');
       },
     };
     const server = new GameServer();
-    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    setAiLifeLayer(server, new AiLifeLayer({ enabled: true, provider }));
     const fc = fakeWs();
     const session = joinServer(server, fc);
     const player = server.sim.entities.get(session.pid)!;
@@ -1806,32 +1865,25 @@ describe('server AI interact command', () => {
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
     await flushAi();
 
-    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
-      speakerId: wolf.id,
-      source: 'fallback',
-      speech: expect.objectContaining({
-        lineId: expect.stringMatching(/^hudChrome\.aiSpeech\.singularity[A-Z].*/),
-        values: expect.objectContaining({ itemId: 'roasted_boar', speakerTemplateId: 'forest_wolf' }),
-      }),
-      reaction: expect.objectContaining({ targetItemId: 'roasted_boar', individualTier: 'singularity' }),
+    expect(eventsOf(fc, 'error')).toContainEqual(expect.objectContaining({
+      text: 'AI response failed: codex singularity worker timed out',
       pid: session.pid,
     }));
     expect((server as any).aiLifeLayer.diagnostics()).toEqual(expect.arrayContaining([
       expect.objectContaining({ status: 'provider_error', trigger: 'singularity_candidate', reason: 'codex singularity worker timed out' }),
-      expect.objectContaining({ status: 'accepted', trigger: 'singularity_candidate' }),
       expect.objectContaining({ status: 'local_reaction', trigger: 'item_discarded' }),
     ]));
     expect((server as any).aiLifeLayer.runtimeMetrics()).toMatchObject({
       providerCalls: 1,
       providerSuccesses: 0,
       providerErrors: 1,
-      providerFallbacks: 1,
-      acceptedDecisions: 1,
+      providerFallbacks: 0,
+      acceptedDecisions: 0,
       lastProviderError: 'codex singularity worker timed out',
     });
   });
 
-  it('rejects unsafe singularity provider output and keeps the local creature reaction', async () => {
+  it('rejects unsafe singularity provider output and reports the rejection', async () => {
     const provider: AiProvider = {
       async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
         return {
@@ -1847,7 +1899,7 @@ describe('server AI interact command', () => {
       },
     };
     const server = new GameServer();
-    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    setAiLifeLayer(server, new AiLifeLayer({ enabled: true, provider }));
     const fc = fakeWs();
     const session = joinServer(server, fc);
     const player = server.sim.entities.get(session.pid)!;
@@ -1860,14 +1912,8 @@ describe('server AI interact command', () => {
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
     await flushAi();
 
-    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
-      speakerId: wolf.id,
-      source: 'fallback',
-      speech: expect.objectContaining({
-        lineId: expect.stringMatching(/^hudChrome\.aiSpeech\.singularity[A-Z].*/),
-        values: expect.objectContaining({ itemId: 'roasted_boar', speakerTemplateId: 'forest_wolf' }),
-      }),
-      reaction: expect.objectContaining({ targetItemId: 'roasted_boar', individualTier: 'singularity' }),
+    expect(eventsOf(fc, 'error')).toContainEqual(expect.objectContaining({
+      text: expect.stringContaining('AI response rejected:'),
       pid: session.pid,
     }));
     expect((server as any).aiLifeLayer.diagnostics()).toEqual(expect.arrayContaining([
@@ -1875,11 +1921,6 @@ describe('server AI interact command', () => {
         status: 'rejected',
         trigger: 'singularity_candidate',
         reason: expect.stringContaining('questHint'),
-      }),
-      expect.objectContaining({
-        status: 'local_reaction',
-        trigger: 'singularity_candidate',
-        reason: expect.stringContaining('singularityProviderRejected'),
       }),
     ]));
     expect((server as any).aiLifeLayer.runtimeMetrics()).toMatchObject({
@@ -1922,7 +1963,7 @@ describe('server AI interact command', () => {
       },
     };
     const server = new GameServer();
-    (server as any).aiLifeLayer = new AiLifeLayer({ enabled: true, provider });
+    setAiLifeLayer(server, new AiLifeLayer({ enabled: true, provider }));
     const fc = fakeWs();
     const session = joinServer(server, fc);
     const player = server.sim.entities.get(session.pid)!;

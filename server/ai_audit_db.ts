@@ -262,7 +262,6 @@ function normalizeStatus(value: string): AiAuditStatus | null {
 function normalizeProviderSource(value: string): AiAuditProviderSource {
   switch (value) {
     case 'codex':
-    case 'fake':
     case 'fallback':
     case 'local':
     case 'provider':

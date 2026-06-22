@@ -42,7 +42,7 @@ export function objectInspectionEvent(context: AiJobContextV1, object: Entity): 
     speakerId: object.id,
     speakerName: object.name,
     speech: { mode: 'lineId', lineId, values },
-    source: 'fallback',
+    source: 'local',
     reaction,
     pid: context.player.entityId,
   };

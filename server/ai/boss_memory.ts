@@ -241,7 +241,7 @@ export function bossEncounterPhaseEvent(cue: AiBossEncounterPhaseCue, speaker: E
         encounterHeat: Math.round(cue.heat * 100),
       },
     },
-    source: 'fallback',
+    source: 'local',
     reaction: {
       kind: cue.phase === 'desperate' ? 'avoid' : 'inspect',
       score: Math.round(cue.heat * 100) / 100,
@@ -266,7 +266,7 @@ export function bossEncounterMemoryEvent(memory: AiBossEncounterMemory, speaker:
         encounterHeat: Math.round(memory.heat * 100),
       },
     },
-    source: 'fallback',
+    source: 'local',
     reaction: {
       kind: memory.outcome === 'wipe' ? 'avoid' : 'inspect',
       score: Math.round(memory.heat * 100) / 100,

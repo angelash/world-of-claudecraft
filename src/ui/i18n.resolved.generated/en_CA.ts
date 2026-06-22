@@ -252,7 +252,12 @@ export const en_CA: EnTranslations = {
     "aiReaction": {
       "approach": "interested",
       "avoid": "uneasy",
-      "inspect": "watching"
+      "inspect": "watching",
+      "thinking": "thinking"
+    },
+    "aiError": {
+      "responseFailed": "AI response failed: {reason}",
+      "responseRejected": "AI response rejected: {reason}"
     },
     "aiSpeech": {
       "brotherAldricAwake": "The dead are restless tonight. Keep your journal close, {playerName}.",

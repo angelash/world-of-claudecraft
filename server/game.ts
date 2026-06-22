@@ -1,7 +1,7 @@
 import type { WebSocket } from 'ws';
 import { Sim } from '../src/sim/sim';
 import type { PlayerMeta } from '../src/sim/sim';
-import { DT, Entity, SimEvent, dist2d, emptyMoveInput } from '../src/sim/types';
+import { DT, Entity, INTERACT_RANGE, SimEvent, dist2d, emptyMoveInput } from '../src/sim/types';
 import { parseMoveInputFrame } from '../src/sim/move_input';
 import { stealthDetectionRadius, threatEntries } from '../src/sim/threat';
 import { zoneAt, DUNGEONS } from '../src/sim/data';
@@ -100,6 +100,7 @@ const AI_MEMORY_PRUNE_BATCH_SIZE = 500;
 const AI_NPC_INTERACTION_COOLDOWN_SECONDS = 4;
 const AI_NPC_QUESTION_COOLDOWN_SECONDS = 2;
 const AI_OBJECT_INSPECT_COOLDOWN_SECONDS = 2;
+const AI_NPC_THINKING_DURATION_MS = 1600;
 
 export interface ClientSession {
   ws: WebSocket;
@@ -123,6 +124,7 @@ export interface ClientSession {
   aiInteractReadyAt: number;
   aiQuestionReadyAt: number;
   aiObjectInspectReadyAt: number;
+  aiNpcInteractionIds: Map<number, string>;
   // Hard-word enforcement strike count driving the mute ladder. Account-scoped:
   // seeded from the DB at join, kept live by enforcement/admin actions.
   chatStrikes: number;
@@ -388,6 +390,7 @@ export class GameServer {
   private readonly aiAuditRuntime = new AiAuditRuntime();
   private readonly aiAuditDb = new PgAiAuditDb(pool);
   private readonly aiLifeLayer: AiLifeLayer;
+  private aiInteractionSequence = 0;
 
   constructor() {
     this.sim = new Sim({
@@ -773,6 +776,7 @@ export class GameServer {
       aiInteractReadyAt: 0,
       aiQuestionReadyAt: 0,
       aiObjectInspectReadyAt: 0,
+      aiNpcInteractionIds: new Map(),
       chatStrikes: meta.chatStrikes ?? 0,
       blockedIds: new Set(),
       blockListLoaded: false,
@@ -1507,6 +1511,10 @@ export class GameServer {
 
   private handleAiInteractNpc(session: ClientSession, npcId: number, locale: string, topic: AiNpcInteractionTopic): void {
     if (session.left || this.clients.get(session.pid) !== session) return;
+    if (!this.aiLifeLayer.isEnabled()) return;
+    const interactionId = this.nextAiInteractionId(session, npcId);
+    const thinkingEvent = this.aiThinkingEvent(session, npcId, interactionId);
+    if (!thinkingEvent) return;
     if (topic === 'greeting') {
       if (this.sim.time < session.aiInteractReadyAt) return;
       session.aiInteractReadyAt = this.sim.time + AI_NPC_INTERACTION_COOLDOWN_SECONDS;
@@ -1514,6 +1522,8 @@ export class GameServer {
       if (this.sim.time < session.aiQuestionReadyAt) return;
       session.aiQuestionReadyAt = this.sim.time + AI_NPC_QUESTION_COOLDOWN_SECONDS;
     }
+    session.aiNpcInteractionIds.set(npcId, interactionId);
+    this.send(session, { t: 'events', list: [thinkingEvent] });
     void this.aiLifeLayer.handleNpcInteraction({
       sim: this.sim,
       pid: session.pid,
@@ -1522,10 +1532,42 @@ export class GameServer {
       topic,
       deliver: (events) => {
         if (session.left || this.clients.get(session.pid) !== session) return;
-        if (events.length > 0) this.send(session, { t: 'events', list: events });
+        if (session.aiNpcInteractionIds.get(npcId) !== interactionId) return;
+        if (events.length > 0) {
+          this.send(session, { t: 'events', list: this.tagAiInteractionEvents(events, interactionId, npcId) });
+          if (session.aiNpcInteractionIds.get(npcId) === interactionId) session.aiNpcInteractionIds.delete(npcId);
+        }
       },
     }).catch((err) => {
       console.error('ai npc interaction failed:', err);
+      this.sendAiRuntimeFailure(session);
+    });
+  }
+
+  private nextAiInteractionId(session: ClientSession, npcId: number): string {
+    return `npc-${session.pid}-${npcId}-${++this.aiInteractionSequence}`;
+  }
+
+  private aiThinkingEvent(session: ClientSession, npcId: number, interactionId: string): Extract<SimEvent, { type: 'aiThinking' }> | null {
+    const player = this.sim.entities.get(session.pid);
+    const npc = this.sim.entities.get(npcId);
+    if (!player || !npc || npc.kind !== 'npc') return null;
+    if (dist2d(player.pos, npc.pos) > INTERACT_RANGE + 2) return null;
+    return {
+      type: 'aiThinking',
+      speakerId: npc.id,
+      speakerName: npc.name,
+      durationMs: AI_NPC_THINKING_DURATION_MS,
+      interactionId,
+      pid: session.pid,
+    };
+  }
+
+  private tagAiInteractionEvents(events: readonly SimEvent[], interactionId: string, speakerId: number): SimEvent[] {
+    return events.map((event) => {
+      if (event.type === 'aiSpeech') return { ...event, interactionId };
+      if (event.type === 'error') return { ...event, aiInteraction: { speakerId, interactionId } };
+      return event;
     });
   }
 
@@ -1544,6 +1586,7 @@ export class GameServer {
       },
     }).catch((err) => {
       console.error('ai object inspection failed:', err);
+      this.sendAiRuntimeFailure(session);
     });
   }
 
@@ -1561,6 +1604,7 @@ export class GameServer {
       },
     }).catch((err) => {
       console.error('ai scene inspection failed:', err);
+      this.sendAiRuntimeFailure(session);
     });
   }
 
@@ -1573,11 +1617,16 @@ export class GameServer {
       pid: session.pid,
       text,
       locale,
+      deliver: (events) => {
+        if (session.left || this.clients.get(session.pid) !== session) return;
+        if (events.length > 0) this.send(session, { t: 'events', list: events });
+      },
     }).then((action) => {
       if (!action || session.left || this.clients.get(session.pid) !== session) return;
       this.applyAiPetCommand(session, action);
     }).catch((err) => {
       console.error('ai pet command failed:', err);
+      this.sendAiRuntimeFailure(session);
     });
   }
 
@@ -1610,6 +1659,15 @@ export class GameServer {
       },
     }).catch((err) => {
       console.error('ai item discard failed:', err);
+      this.sendAiRuntimeFailure(session);
+    });
+  }
+
+  private sendAiRuntimeFailure(session: ClientSession): void {
+    if (session.left || this.clients.get(session.pid) !== session) return;
+    this.send(session, {
+      t: 'events',
+      list: [{ type: 'error', text: 'AI response failed: Server AI handler crashed. Check server logs.' }],
     });
   }
 

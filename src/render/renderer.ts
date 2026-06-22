@@ -3622,8 +3622,15 @@ export class Renderer {
     b.kind = kind;
     b.planned = planned;
     b.el.classList.add(kind);
-    const durationMs = Math.max(900, Math.min(4200, options.durationMs ?? 1800));
+    const durationMs = Math.max(900, Math.min(60_000, options.durationMs ?? 1800));
     b.until = performance.now() + durationMs;
+  }
+
+  hideAiReactionBadge(entityId: number): void {
+    const badge = this.aiReactionBadges.get(entityId);
+    if (!badge) return;
+    badge.el.remove();
+    this.aiReactionBadges.delete(entityId);
   }
 
   showAiAttentionLink(sourceEntityId: number, targetEntityId: number, kind: AiAttentionReactionKind): void {

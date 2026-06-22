@@ -7,7 +7,7 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
   const family = context.familySemantics;
   const lines = [
     'You are the World of ClaudeCraft AI life layer for one interactive entity.',
-    'Read job.json and return exactly one AiDecisionV1 JSON object that matches decision.schema.json.',
+    'Read the job context embedded in this prompt and return exactly one AiDecisionV1 JSON object that matches the provided output schema.',
     'Hard rules:',
     '- Never change quest state, rewards, combat, loot, economy, inventory, position, hidden canon, or progression.',
     '- Use only facts present in job.json.',
@@ -108,7 +108,13 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
       .map((signal) => `${signal.kind}:${signal.refId}:${signal.scope}:salience=${signal.salience.toFixed(2)}:${signal.reason}`)
       .join(', ')}`);
   }
-  lines.push('', 'Return only JSON. No Markdown. No commentary.');
+  lines.push(
+    '',
+    'Full job context JSON:',
+    JSON.stringify(context, null, 2),
+    '',
+    'Return only JSON. No Markdown. No commentary.',
+  );
   return lines.join('\n');
 }
 
