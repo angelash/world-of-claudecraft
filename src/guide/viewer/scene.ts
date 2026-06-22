@@ -27,6 +27,8 @@ export class ModelViewer {
   private dragging = false;
   private lastX = 0;
   private onscreen = true;
+  private contextLost = false;
+  private onLostCb: (() => void) | null = null;
 
   constructor(container: HTMLElement, canvasLabel: string) {
     this.container = container;
@@ -55,10 +57,38 @@ export class ModelViewer {
     this.scene.add(rim);
 
     this.bindControls();
+    this.bindContextLoss();
     const ro = new ResizeObserver(() => this.resize());
     ro.observe(container);
     this.teardown.push(() => ro.disconnect());
     this.resize();
+  }
+
+  /** Register a callback fired once if this canvas loses its WebGL context (the browser
+   *  dropped it, e.g. too many live contexts). The mount wiring reverts the figure to its
+   *  2D poster + re-enables "View in 3D", the same path as a load error. */
+  onContextLost(cb: () => void): void {
+    this.onLostCb = cb;
+  }
+
+  private bindContextLoss(): void {
+    // preventDefault keeps the context restorable; we stop the loop, mark not-ready, and
+    // surface a failure so the figure falls back to its poster exactly like a load error.
+    const onLost = (e: Event): void => {
+      e.preventDefault();
+      this.contextLost = true;
+      if (this.raf !== null) { cancelAnimationFrame(this.raf); this.raf = null; }
+      const cb = this.onLostCb;
+      this.onLostCb = null;
+      if (cb) cb();
+    };
+    const onRestored = (): void => { this.contextLost = false; };
+    this.canvas.addEventListener('webglcontextlost', onLost as EventListener, false);
+    this.canvas.addEventListener('webglcontextrestored', onRestored as EventListener, false);
+    this.teardown.push(
+      () => this.canvas.removeEventListener('webglcontextlost', onLost as EventListener, false),
+      () => this.canvas.removeEventListener('webglcontextrestored', onRestored as EventListener, false),
+    );
   }
 
   /** Load (or replace) the displayed model. Awaits the GLB fetch + assembly. */
@@ -148,6 +178,7 @@ export class ModelViewer {
   }
 
   private animate = (): void => {
+    if (this.contextLost) { this.raf = null; return; }
     this.raf = requestAnimationFrame(this.animate);
     const dt = Math.min(this.clock.getDelta(), 0.1);
     if (!this.reduceMotion.matches && !this.dragging) this.rotateBy(AUTO_SPIN * dt);
@@ -156,6 +187,7 @@ export class ModelViewer {
   };
 
   destroy(): void {
+    this.onLostCb = null;
     if (this.raf !== null) { cancelAnimationFrame(this.raf); this.raf = null; }
     for (const off of this.teardown) off();
     this.teardown.length = 0;

@@ -1,12 +1,19 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 
 import {
   matchRoute, toSub, topbarRoutes, groupedRoutes, hrefFor, GUIDE_ROUTES, GUIDE_BASE,
 } from '../src/guide/routes';
-import { GUIDE_CLASSES, GUIDE_WARLOCK_PETS } from '../src/guide/content.generated';
+import {
+  GUIDE_CLASSES, GUIDE_WARLOCK_PETS, GUIDE_FAMILIES, GUIDE_MODELS,
+} from '../src/guide/content.generated';
 import { t, setLanguage } from '../src/ui/i18n';
+
+const repoRoot = fileURLToPath(new URL('..', import.meta.url));
+const publicPath = (url: string): string => resolve(repoRoot, 'public', url.replace(/^\//, ''));
 
 const guideHtml = readFileSync(new URL('../guide.html', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const viteConfig = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
@@ -161,5 +168,33 @@ describe('Guide generated class content', () => {
         encoding: 'utf8',
       }),
     ).not.toThrow();
+  });
+});
+
+// The 3D viewer resolves every figure's model key into GUIDE_MODELS, then fetches that
+// spec's GLB (plus any attachment GLB). A content change that left a figure pointing at a
+// missing key, or a spec pointing at a deleted GLB, would silently blank that viewer at
+// runtime. This guard fails the build instead, so model->asset integrity stays intact.
+describe('Guide model viewer asset integrity', () => {
+  it('resolves every class, warlock pet, and creature model key in GUIDE_MODELS', () => {
+    const keys = new Set<string>();
+    for (const c of GUIDE_CLASSES) if (c.model) keys.add(c.model);
+    for (const p of GUIDE_WARLOCK_PETS) if (p.model) keys.add(p.model);
+    for (const f of GUIDE_FAMILIES) for (const c of f.creatures) if (c.model) keys.add(c.model);
+    expect(keys.size).toBeGreaterThan(0);
+    for (const key of keys) {
+      expect(GUIDE_MODELS[key], `GUIDE_MODELS has no spec for model key "${key}"`).toBeDefined();
+    }
+  });
+
+  it('ships a real GLB on disk for every model spec url and attachment', () => {
+    const specs = Object.entries(GUIDE_MODELS);
+    expect(specs.length).toBeGreaterThan(0);
+    for (const [key, spec] of specs) {
+      const urls = [spec.url, ...(spec.attach ?? []).map((a) => a.url)];
+      for (const url of urls) {
+        expect(existsSync(publicPath(url)), `missing GLB for "${key}": public asset "${url}"`).toBe(true);
+      }
+    }
   });
 });

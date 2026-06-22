@@ -42,7 +42,7 @@ interface LiveEntry { release(): void; }
  * Returns a cleanup that destroys all live viewers and removes listeners.
  */
 export function wireModelViewers(root: HTMLElement, opts: WireOptions = {}): () => void {
-  const cap = Math.max(1, opts.maxConcurrent ?? 8);
+  const cap = Math.max(1, opts.maxConcurrent ?? 4);
   const figures = Array.from(root.querySelectorAll<HTMLElement>('.guide-viewer[data-model]'));
   const noWebGL = !hasWebGL();
   const live: LiveEntry[] = [];
@@ -83,11 +83,20 @@ export function wireModelViewers(root: HTMLElement, opts: WireOptions = {}): () 
         return;
       }
       if (!stage || !btn) { started = false; return; }
+      // Evict the oldest live viewers BEFORE building this one, so the count of live WebGL
+      // contexts never momentarily exceeds the cap (each viewer is its own GL context, and
+      // browsers cap live contexts at ~16). release() also clears the oldest's started flag.
+      while (live.length >= cap) live[0].release();
+      // Claim a slot up front (most-recently-activated stays last), then build; the catch
+      // releases the slot if the load throws, so a failed figure never wedges the cap.
+      live.push(entry);
       fig.dataset.state = 'loading';
       btn.disabled = true;
       try {
         const label = t('guide.viewer.canvasLabel', { name: fig.dataset.name ?? '' });
         viewer = await createViewer(stage, label);
+        const onContextLost = (): void => { release(); fig.dataset.state = 'error'; };
+        viewer.onContextLost(onContextLost);
         const tintAttr = fig.dataset.tint;
         const tint = tintAttr ? parseInt(tintAttr.replace('#', ''), 16) : null;
         await viewer.load(spec, tint);
@@ -98,15 +107,11 @@ export function wireModelViewers(root: HTMLElement, opts: WireOptions = {}): () 
           { threshold: 0 },
         );
         io.observe(stage);
-        live.push(entry);
-        while (live.length > cap && live[0] !== entry) live[0].release();
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error('Guide model viewer failed to load', err);
+        release();
         fig.dataset.state = 'error';
-        btn.disabled = false;
-        started = false;
-        viewer = null;
       }
     }
 

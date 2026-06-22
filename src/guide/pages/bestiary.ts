@@ -67,6 +67,6 @@ export const bestiary: GuidePage = {
   // Many creatures share the page, so cap concurrent viewers (LRU) to stay well under the
   // browser's WebGL context limit; offscreen viewers also pause themselves.
   mount(root: HTMLElement) {
-    return wireModelViewers(root, { maxConcurrent: 6 });
+    return wireModelViewers(root, { maxConcurrent: 4 });
   },
 };
