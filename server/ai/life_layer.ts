@@ -21,6 +21,7 @@ import type {
   AiProvider,
   AiProviderOutput,
   AiProviderTimingSnapshot,
+  AiSpeechFingerprint,
 } from './ai_types';
 import { aiEntityKind } from './ai_types';
 import {
@@ -2148,9 +2149,11 @@ function providerDecisionCachePayload(context: AiJobContextV1): Record<string, u
     },
     profile: context.profile ? {
       profileId: context.profile.profileId,
+      persona: context.profile.persona,
       knowledgeScope: sortedStrings(context.profile.knowledgeScope),
       tabooTopics: sortedStrings(context.profile.tabooTopics),
       socialMemoryStyle: context.profile.socialMemory?.style,
+      speechFingerprint: cacheSpeechFingerprint(context.profile.speechFingerprint),
     } : undefined,
     scene: context.scene ? providerCacheScenePayload(context.scene) : undefined,
     familySemantics: context.familySemantics ? {
@@ -2161,6 +2164,7 @@ function providerDecisionCachePayload(context: AiJobContextV1): Record<string, u
       avoidedItemTags: sortedStrings(context.familySemantics.avoidedItemTags),
       likelyIntents: sortedStrings(context.familySemantics.likelyIntents),
       speechStyle: context.familySemantics.speechStyle,
+      speechFingerprint: cacheSpeechFingerprint(context.familySemantics.speechFingerprint),
     } : undefined,
     questFacts: context.questFacts.map((fact) => ({
       questId: fact.questId,
@@ -2325,6 +2329,17 @@ function omitCacheUndefined(record: Record<string, unknown>): Record<string, unk
 
 function sortedStrings(values: readonly string[]): string[] {
   return [...values].sort((a, b) => a.localeCompare(b));
+}
+
+function cacheSpeechFingerprint(fingerprint: AiSpeechFingerprint | undefined): Record<string, unknown> | undefined {
+  if (!fingerprint) return undefined;
+  return {
+    sentenceRhythm: fingerprint.sentenceRhythm,
+    addressStyle: fingerprint.addressStyle,
+    favoriteStarts: sortedStrings(fingerprint.favoriteStarts),
+    sensoryBias: sortedStrings(fingerprint.sensoryBias),
+    avoidedPhrases: sortedStrings(fingerprint.avoidedPhrases),
+  };
 }
 
 function cacheRelevantMemorySignals(signals: readonly AiMemoryAuditRecord[] | undefined): AiMemoryAuditRecord[] {

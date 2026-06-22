@@ -16,6 +16,13 @@ const context: AiJobContextV1 = {
     persona: 'A worried priest who reads weather, graves, and player choices as omens.',
     knowledgeScope: ['chapel rites', 'restless dead'],
     tabooTopics: ['hidden quest conclusions'],
+    speechFingerprint: {
+      sentenceRhythm: 'soft, elliptical, usually one short warning plus one omen image',
+      addressStyle: 'uses the player name sparingly, otherwise says friend or keeps address unspoken',
+      favoriteStarts: ['Keep your voice low', 'The graves do not like'],
+      sensoryBias: ['cold air', 'grave soil'],
+      avoidedPhrases: ['overall', 'this means'],
+    },
     socialMemory: {
       style: 'Recognizes repeated visitors as names carried by the dead and by chapel road whispers.',
       recognitionLineId: 'hudChrome.aiSpeech.memoryPriestRecognizesPlayer',
@@ -108,6 +115,7 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('Never change quest state');
     expect(prompt).toContain('Use only lineId speech when outputMode is line_id_only');
     expect(prompt).toContain('Use dynamicText only when outputMode is dynamic_text_experiment or mixed_living_world');
+    expect(prompt).toContain('When dynamicText is allowed, follow speechFingerprint over generic assistant phrasing');
     expect(prompt).toContain('Intent targetEntityId/targetObjectId values must be visible in job.json');
     expect(prompt).toContain('Director proposals and memory signals are read-only context');
     expect(prompt).toContain('Allowed lineIds: hudChrome.aiSpeech.brotherAldricAwake');
@@ -120,6 +128,10 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('Knowledge scope: chapel rites, restless dead');
     expect(prompt).toContain('Taboo topics: hidden quest conclusions');
     expect(prompt).toContain('Social memory style: Recognizes repeated visitors');
+    expect(prompt).toContain('Speech fingerprint: rhythm=soft, elliptical, usually one short warning plus one omen image');
+    expect(prompt).toContain('address=uses the player name sparingly');
+    expect(prompt).toContain('"speechFingerprint"');
+    expect(prompt).toContain('"starts":["Keep your voice low","The graves do not like"]');
     expect(prompt).toContain('Time/weather mood: dayEnergy=0.00, nightFatigue=0.70');
     expect(prompt).toContain('Nearby semantic objects: fallen_crypt_gate:Crypt Gate[sceneAnchor](tags=cryptGate/sealedAir/deathPressure/dungeonEntrance; features=rustedBars/coldDraft/boneDust; affordances=hesitateAtThreshold/guardEntrance/fleeFromDark; 6.5yd)');
     expect(prompt).toContain('Dropped items: gravecaller_sigil:Gravecaller Sigil(quest/grave/undead/cursed/story, fresh=4s)');
@@ -155,6 +167,8 @@ describe('AI Codex prompt builder', () => {
     expect(petPrompt).toContain('Treat job.topic as the command text or command category');
     expect(petPrompt).toContain('Allowed intents: commandPetDefensive, commandPetAttack, commandPetIgnore');
     expect(petPrompt).toContain('Family: Beast');
+    expect(petPrompt).toContain('Family speech fingerprint: rhythm=sniff, hesitate, react');
+    expect(petPrompt).toContain('"speechFingerprint"');
     expect(petPrompt).toContain('Scene: fallen_chapel');
     expect(petPrompt).not.toContain('Quest facts visible to player');
     expect(petPrompt).not.toContain('Director proposals:');
@@ -181,6 +195,7 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('Trigger focus: Singularity creature reaction');
     expect(prompt).toContain('Prioritize family instinct, dropped item tags, scene danger, time/weather, and memory signals');
     expect(prompt).toContain('Family: Beast');
+    expect(prompt).toContain('Family speech fingerprint: rhythm=sniff, hesitate, react');
     expect(prompt).toContain('Dropped items: gravecaller_sigil:Gravecaller Sigil');
     expect(prompt).toContain('Director proposals: nudgeNpcRumor:preview:low');
     expect(prompt).toContain('Memory signals: rumor:rumor-7:region');

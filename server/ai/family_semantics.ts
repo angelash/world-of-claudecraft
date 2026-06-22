@@ -1,6 +1,6 @@
 import { MOBS } from '../../src/sim/data';
 import type { Entity, MobFamily } from '../../src/sim/types';
-import type { AiIntentType } from './ai_types';
+import type { AiIntentType, AiSpeechFingerprint } from './ai_types';
 
 export interface FamilyMoodBias {
   fear: number;
@@ -36,6 +36,7 @@ export interface CompactFamilySemantics {
   avoidedItemTags: string[];
   likelyIntents: AiIntentType[];
   speechStyle: string;
+  speechFingerprint: AiSpeechFingerprint;
 }
 
 export const MOB_FAMILIES: readonly MobFamily[] = [
@@ -200,6 +201,86 @@ export const FAMILY_SEMANTICS: Record<MobFamily, FamilySemantics> = {
   },
 };
 
+const FAMILY_SPEECH_FINGERPRINTS = {
+  beast: {
+    sentenceRhythm: 'sniff, hesitate, react; if words appear, keep them broken and territorial',
+    addressStyle: 'does not address the player politely; tracks scent, posture, hunger, or pack threat',
+    favoriteStarts: ['Sniffs hard', 'Hackles rise', 'Circles once'],
+    sensoryBias: ['scent', 'blood warmth', 'fur bristle', 'ground vibration'],
+    avoidedPhrases: ['I would suggest', 'overall', 'this indicates'],
+  },
+  humanoid: {
+    sentenceRhythm: 'quick social judgment, a risk read, then a selfish or faction-colored angle',
+    addressStyle: 'uses friend, stranger, boss, or the player name when it changes leverage',
+    favoriteStarts: ['Hold up', 'That is worth something', 'Someone will notice'],
+    sensoryBias: ['coin sound', 'camp smoke', 'boot mud', 'watchful eyes'],
+    avoidedPhrases: ['to summarize', 'in conclusion', 'my recommendation'],
+  },
+  murloc: {
+    sentenceRhythm: 'wet alarm burst, repeated sound, sudden body movement',
+    addressStyle: 'rarely addresses directly; reacts as a small tribe around water',
+    favoriteStarts: ['Grrlgl', 'Splashes closer', 'Tilts its head'],
+    sensoryBias: ['fish smell', 'wet mud', 'moon water', 'reed rustle'],
+    avoidedPhrases: ['therefore', 'overall', 'I think you should'],
+  },
+  spider: {
+    sentenceRhythm: 'stillness first, tiny movement second, threat left mostly implied',
+    addressStyle: 'no polite address; treats the player as vibration or trapped heat',
+    favoriteStarts: ['Holds still', 'One leg taps', 'The web trembles'],
+    sensoryBias: ['thread tension', 'warm blood', 'footfall tremor', 'shadow'],
+    avoidedPhrases: ['I would recommend', 'this means', 'from this we can see'],
+  },
+  kobold: {
+    sentenceRhythm: 'nervous grabby speech, candle panic, short blame or bargaining phrase',
+    addressStyle: 'uses you, mine, or no address; fear and possession dominate',
+    favoriteStarts: ['No take candle', 'Mine first', 'Too bright'],
+    sensoryBias: ['candle smoke', 'stone dust', 'shiny metal', 'dark corners'],
+    avoidedPhrases: ['overall', 'clearly indicates', 'my recommendation'],
+  },
+  undead: {
+    sentenceRhythm: 'cold fragments, unfinished memory, one pull toward life or grave',
+    addressStyle: 'may address the living as warm one, oath-breaker, or not at all',
+    favoriteStarts: ['Warm breath', 'Forgotten oath', 'The bell stops'],
+    sensoryBias: ['grave cold', 'bone dust', 'old vows', 'stale air'],
+    avoidedPhrases: ['I would suggest', 'from my perspective', 'to summarize'],
+  },
+  troll: {
+    sentenceRhythm: 'rough joke, appetite, threat, with little patience for explanation',
+    addressStyle: 'calls the player meat, little one, or mocks visible weakness',
+    favoriteStarts: ['Smells good', 'Little thing talks', 'That bone is mine'],
+    sensoryBias: ['meat smell', 'old blood', 'campfire fat', 'wet hide'],
+    avoidedPhrases: ['therefore', 'overall', 'I would recommend'],
+  },
+  ogre: {
+    sentenceRhythm: 'slow confident claim, one concrete want, one oversized misunderstanding',
+    addressStyle: 'uses little one, food, or no address, rarely names the player',
+    favoriteStarts: ['Mine now', 'Small thing loud', 'Big road says stop'],
+    sensoryBias: ['ground thump', 'meat', 'heavy wood', 'smoke'],
+    avoidedPhrases: ['it can be inferred', 'to summarize', 'my recommendation'],
+  },
+  elemental: {
+    sentenceRhythm: 'pressure change, resonance, then a short alien conclusion',
+    addressStyle: 'does not use social address; senses element, imbalance, and binding',
+    favoriteStarts: ['Stone answers', 'Pressure turns', 'The spark leans'],
+    sensoryBias: ['pressure', 'pulse', 'heat', 'stone echo'],
+    avoidedPhrases: ['I feel like', 'overall', 'you should'],
+  },
+  dragonkin: {
+    sentenceRhythm: 'old judgment, measured pause, then a memory-laden warning',
+    addressStyle: 'addresses by worth, trespass, or bloodline more often than name',
+    favoriteStarts: ['Small oath', 'Old stone remembers', 'Do not cheapen that'],
+    sensoryBias: ['ancient dust', 'hot breath', 'gold weight', 'high wind'],
+    avoidedPhrases: ['my recommendation', 'overall', 'I would suggest'],
+  },
+  demon: {
+    sentenceRhythm: 'sweet needle, cruel amusement, temptation hidden inside a dare',
+    addressStyle: 'uses dear thing, little fear, or the player name when it can sting',
+    favoriteStarts: ['Oh, keep that close', 'That fear suits you', 'A lovely little crack'],
+    sensoryBias: ['fear taste', 'sulfur heat', 'soul-prickle', 'holy sting'],
+    avoidedPhrases: ['to summarize', 'therefore', 'I would recommend'],
+  },
+} satisfies Record<MobFamily, AiSpeechFingerprint>;
+
 const TEMPLATE_INSTINCT_OVERRIDES: Record<string, { addInstincts?: string[]; addAttractedTags?: string[]; addAvoidedTags?: string[] }> = {
   forest_wolf: { addInstincts: ['packHunt', 'scentTrail'], addAttractedTags: ['meat', 'blood'] },
   wild_boar: { addInstincts: ['rooting', 'startleCharge'], addAttractedTags: ['food'] },
@@ -233,6 +314,7 @@ export function compactFamilySemanticsForMob(templateId: string): CompactFamilyS
     avoidedItemTags: mergeUnique(base.avoidedItemTags, override?.addAvoidedTags),
     likelyIntents: [...base.likelyIntents],
     speechStyle: base.speechStyle,
+    speechFingerprint: cloneSpeechFingerprint(FAMILY_SPEECH_FINGERPRINTS[mob.family]),
   };
 }
 
@@ -243,4 +325,14 @@ export function compactFamilySemanticsForEntity(entity: Entity): CompactFamilySe
 
 function mergeUnique(base: readonly string[], extra?: readonly string[]): string[] {
   return [...new Set([...(base as string[]), ...(extra ?? [])])];
+}
+
+function cloneSpeechFingerprint(fingerprint: AiSpeechFingerprint): AiSpeechFingerprint {
+  return {
+    sentenceRhythm: fingerprint.sentenceRhythm,
+    addressStyle: fingerprint.addressStyle,
+    favoriteStarts: [...fingerprint.favoriteStarts],
+    sensoryBias: [...fingerprint.sensoryBias],
+    avoidedPhrases: [...fingerprint.avoidedPhrases],
+  };
 }

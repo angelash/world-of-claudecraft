@@ -62,11 +62,20 @@ export interface AiQuestFact {
   source: string;
 }
 
+export interface AiSpeechFingerprint {
+  sentenceRhythm: string;
+  addressStyle: string;
+  favoriteStarts: string[];
+  sensoryBias: string[];
+  avoidedPhrases: string[];
+}
+
 export interface AiProfileSnapshot {
   profileId: string;
   persona: string;
   knowledgeScope: string[];
   tabooTopics: string[];
+  speechFingerprint?: AiSpeechFingerprint;
   socialMemory?: {
     style: string;
     recognitionLineId: string;

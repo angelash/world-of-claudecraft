@@ -1,4 +1,4 @@
-import type { AiJobContextV1 } from './ai_types';
+import type { AiJobContextV1, AiSpeechFingerprint } from './ai_types';
 import { familyDirectorProjectionFor, mobFamilyFromValue } from './director_family_projection';
 import { profileDirectorProjectionTags } from './profile_projection';
 import { dynamicSpeechPromptRules } from './speech_style';
@@ -197,6 +197,7 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
     '- Use only lineId speech when outputMode is line_id_only.',
     '- Use dynamicText only when outputMode is dynamic_text_experiment or mixed_living_world.',
     '- For dynamicText, speech.language must exactly equal job.locale.',
+    '- When dynamicText is allowed, follow speechFingerprint over generic assistant phrasing.',
     '- Return at most one speech entry and at most two intents.',
     '- For ordinary NPC questions, answer like the entity is alive in the scene: brief, specific, and grounded in visible memory, weather, objects, or local tension.',
     '- Do not describe system state such as missing relationship history. If the entity barely knows the player, show that through cautious wording or a small local observation.',
@@ -231,6 +232,9 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
       `Taboo topics: ${context.profile.tabooTopics.slice(0, policy.compactTagLimit).join(', ') || 'none'}`,
       `Social memory style: ${context.profile.socialMemory?.style ?? 'grounded local recollection'}`,
     );
+    if (context.profile.speechFingerprint) {
+      lines.push(`Speech fingerprint: ${formatSpeechFingerprint(context.profile.speechFingerprint, policy.compactTagLimit)}`);
+    }
   }
   if (scene && policy.sceneDetail !== 'none') {
     lines.push(
@@ -277,6 +281,9 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
       `Avoided item tags: ${family.avoidedItemTags.slice(0, policy.compactTagLimit).join(', ')}`,
       `Speech style: ${family.speechStyle}`,
     );
+    if (family.speechFingerprint) {
+      lines.push(`Family speech fingerprint: ${formatSpeechFingerprint(family.speechFingerprint, policy.compactTagLimit)}`);
+    }
   }
   if (policy.includeRecentObservations && context.recentObservations.length > 0) {
     lines.push(`Recent observations: ${context.recentObservations.slice(0, policy.observationLimit).join(', ')}`);
@@ -346,6 +353,9 @@ function compactPromptContext(context: AiJobContextV1, policy: PromptPolicy): Re
       knowledgeScope: context.profile.knowledgeScope.slice(0, policy.compactTagLimit),
       tabooTopics: context.profile.tabooTopics.slice(0, policy.compactTagLimit),
       socialMemoryStyle: context.profile.socialMemory?.style,
+      speechFingerprint: context.profile.speechFingerprint
+        ? compactSpeechFingerprint(context.profile.speechFingerprint, policy.compactTagLimit)
+        : undefined,
     } : undefined,
     scene: context.scene && policy.sceneDetail !== 'none' ? compactScene(context.scene, policy) : undefined,
     familySemantics: policy.includeFamilySemantics && context.familySemantics ? {
@@ -355,6 +365,7 @@ function compactPromptContext(context: AiJobContextV1, policy: PromptPolicy): Re
       attractedItemTags: context.familySemantics.attractedItemTags.slice(0, policy.compactTagLimit),
       avoidedItemTags: context.familySemantics.avoidedItemTags.slice(0, policy.compactTagLimit),
       speechStyle: context.familySemantics.speechStyle,
+      speechFingerprint: compactSpeechFingerprint(context.familySemantics.speechFingerprint, policy.compactTagLimit),
     } : undefined,
     questFacts: policy.includeQuestFacts ? context.questFacts.slice(0, policy.questLimit).map((fact) => ({
       questId: fact.questId,
@@ -462,6 +473,26 @@ function omitUndefined(record: Record<string, unknown>): Record<string, unknown>
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function formatSpeechFingerprint(fingerprint: AiSpeechFingerprint, limit: number): string {
+  return [
+    `rhythm=${fingerprint.sentenceRhythm}`,
+    `address=${fingerprint.addressStyle}`,
+    `starts=${fingerprint.favoriteStarts.slice(0, limit).join('/') || 'none'}`,
+    `sensory=${fingerprint.sensoryBias.slice(0, limit).join('/') || 'none'}`,
+    `avoid=${fingerprint.avoidedPhrases.slice(0, limit).join('/') || 'none'}`,
+  ].join('; ');
+}
+
+function compactSpeechFingerprint(fingerprint: AiSpeechFingerprint, limit: number): Record<string, unknown> {
+  return {
+    rhythm: fingerprint.sentenceRhythm,
+    address: fingerprint.addressStyle,
+    starts: fingerprint.favoriteStarts.slice(0, limit),
+    sensory: fingerprint.sensoryBias.slice(0, limit),
+    avoid: fingerprint.avoidedPhrases.slice(0, limit),
+  };
 }
 
 function promptPolicyFor(trigger: AiPromptTrigger): PromptPolicy {
