@@ -61,13 +61,27 @@ describe('isPhoneTouchDevice', () => {
       },
     } as unknown as Window;
     expect(isPhoneTouchDevice(win)).toBe(true);
-    // Keyed off the PRIMARY pointer plus hover, not "any pointer is coarse" or a
-    // raw touch-point count, so a desktop with a touch-capable peripheral stays desktop.
+    // Keyed off the PRIMARY pointer (coarse + can't hover, or coarse on a phone-
+    // sized viewport), not "any pointer is coarse" or a raw touch-point count, so
+    // a desktop with a touch-capable peripheral stays desktop.
     expect(queries[0]).toContain('pointer: coarse');
     expect(queries[0]).toContain('hover: none');
+    expect(queries[0]).toContain('max-width');
     expect(queries[0]).not.toContain('any-pointer');
-    expect(queries[0]).not.toContain('max-width');
-    expect(queries[0]).not.toContain('max-height');
+  });
+
+  it('keeps touch-only phones that misreport hover (Chromium/Samsung quirk) via the viewport net', () => {
+    // Samsung (and some OnePlus) phones self-report a hovering virtual mouse, so
+    // (hover: none) is false even on a genuine touch-only phone. The coarse-pointer
+    // + small-viewport clauses recover them; assert the query carries that net so a
+    // coarse primary pointer on a phone-sized screen still resolves to the touch UI.
+    const queries: string[] = [];
+    const win = {
+      matchMedia: (q: string) => { queries.push(q); return { matches: true }; },
+    } as unknown as Window;
+    isPhoneTouchDevice(win);
+    expect(queries[0]).toContain('(pointer: coarse) and (max-width: 940px)');
+    expect(queries[0]).toContain('(pointer: coarse) and (max-height: 760px)');
   });
 
   it('treats a mouse/trackpad desktop as non-phone (fine primary pointer that hovers)', () => {
@@ -79,11 +93,11 @@ describe('isPhoneTouchDevice', () => {
 
   it('ignores touch/pen capability on a non-touchscreen laptop (regression)', () => {
     // A Windows laptop with a precision touchpad or pen digitizer reports
-    // navigator.maxTouchPoints > 0 and matches (any-pointer: coarse), yet its
-    // PRIMARY pointer is a mouse that hovers. The phone query is false there, so
-    // it must NOT flip to the mobile UI regardless of touch-point count.
+    // navigator.maxTouchPoints > 0 and (any-pointer: coarse), yet its PRIMARY
+    // pointer is a fine, hovering mouse on a large viewport, so none of the
+    // coarse-primary-pointer clauses match and it stays on the desktop UI.
     const win = {
-      matchMedia: (q: string) => ({ matches: q.includes('any-pointer') && !q.includes('hover') }),
+      matchMedia: () => ({ matches: false }),
     } as unknown as Window;
     expect(isPhoneTouchDevice(win)).toBe(false);
   });

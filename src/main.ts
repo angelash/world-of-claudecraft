@@ -326,6 +326,9 @@ window.visualViewport?.addEventListener('resize', syncAppViewport);
 document.addEventListener('fullscreenchange', syncAppViewport);
 
 function requestMobileFullscreenLandscape(): void {
+  // Deliberately the device FACT (isPhoneTouchDevice), not the Interface Mode
+  // override: orientation-lock + fullscreen only make sense on real phone
+  // hardware, so a desktop forced to Touch correctly skips them.
   if (NATIVE_APP || !isPhoneTouchDevice()) return;
   const root = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> | void };
   try {
@@ -396,6 +399,9 @@ function mobilePreflightCopy(): { detail: string; steps: string[] } {
 let mobilePreflightPromptPromise: Promise<void> | null = null;
 
 function showMobilePreflightPrompt(): Promise<void> {
+  // Deliberately the device FACT (isPhoneTouchDevice), not the Interface Mode
+  // override: the "install to home screen" preflight is phone-hardware-only, so a
+  // desktop forced to Touch correctly skips it.
   if (!isPhoneTouchDevice()) return Promise.resolve();
   if (mobilePreflightPromptPromise) return mobilePreflightPromptPromise;
   const prompt = document.getElementById('mobile-preflight') as HTMLElement | null;

@@ -1,13 +1,20 @@
 import type { Input, TouchMoveInput } from './input';
 import { t } from '../ui/i18n';
 
-// Detects a genuinely touch-primary device (a phone or a tablet held in the
-// hand): the PRIMARY pointer is coarse AND cannot hover. Deliberately narrower
-// than "(any-pointer: coarse)" or navigator.maxTouchPoints, which both fire on
-// ordinary desktops/laptops that merely have a touch-capable peripheral (a
-// precision touchpad, a pen digitizer, or a touchscreen used alongside a mouse)
-// and would otherwise boot those machines straight into the mobile UI.
-export const PHONE_TOUCH_QUERY = '(pointer: coarse) and (hover: none)';
+// Detects a genuinely touch-primary device (a phone or a hand-held tablet). The
+// primary test is a coarse primary pointer that cannot hover -- deliberately
+// narrower than "(any-pointer: coarse)" or navigator.maxTouchPoints, which both
+// fire on ordinary desktops/laptops that merely expose a touch-capable peripheral
+// (a precision touchpad, a pen/Wacom digitizer, or a touchscreen used alongside a
+// mouse) and would otherwise boot those machines straight into the mobile UI.
+//
+// The two phone-form-factor clauses are a safety net for a Chromium quirk:
+// Samsung (and some OnePlus) phones self-report a virtual hovering mouse, so
+// "(hover: none)" is false on a genuine touch-only Samsung phone. A coarse
+// PRIMARY pointer on a phone-sized viewport recovers those without re-matching
+// any desktop -- a desktop's primary pointer is fine, so none of these
+// "(pointer: coarse) and ..." clauses fire there regardless of viewport size.
+export const PHONE_TOUCH_QUERY = '(pointer: coarse) and (hover: none), (pointer: coarse) and (max-width: 940px), (pointer: coarse) and (max-height: 760px)';
 const DEADZONE = 0.22;
 const CAMERA_SENSITIVITY = 0.8;
 const SWIPE_LOOK_DEADZONE_PX = 6;
