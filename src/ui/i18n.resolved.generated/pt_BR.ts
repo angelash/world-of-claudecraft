@@ -234,6 +234,7 @@ export const pt_BR: EnTranslations = {
       "clickMoveLeft": "Clique esquerdo",
       "clickMoveRight": "Clique direito",
       "footstepSounds": "Sons de passos",
+      "clickFeedback": "Click Marker",
       "showWalletOnCharacterScreen": "Mostrar carteira na tela de personagens",
       "showWalletOnPlayerCard": "Mostrar carteira no cartão de jogador",
       "uiScale": "Escala da interface",
@@ -1805,6 +1806,10 @@ export const pt_BR: EnTranslations = {
       "completedStatus": "Concluída",
       "returnTo": "Volte até {name}",
       "abandon": "Abandonar missão",
+      "abandonConfirmTitle": "Abandonar missão",
+      "abandonConfirmBody": "Tem certeza de que deseja abandonar {name}?",
+      "abandonConfirm": "Sim",
+      "abandonCancel": "Cancelar",
       "suggestedPlayers": "Jogadores sugeridos: {count}"
     },
     "dialog": {

@@ -234,6 +234,7 @@ export const zh_TW: EnTranslations = {
       "clickMoveLeft": "左鍵",
       "clickMoveRight": "右鍵",
       "footstepSounds": "腳步聲",
+      "clickFeedback": "點擊標記",
       "showWalletOnCharacterScreen": "在角色畫面顯示錢包",
       "showWalletOnPlayerCard": "在玩家卡片顯示錢包",
       "uiScale": "介面縮放",
@@ -1805,6 +1806,10 @@ export const zh_TW: EnTranslations = {
       "completedStatus": "已完成",
       "returnTo": "返回 {name} 處",
       "abandon": "放棄任務",
+      "abandonConfirmTitle": "放棄任務",
+      "abandonConfirmBody": "確定要放棄{name}嗎？",
+      "abandonConfirm": "是",
+      "abandonCancel": "取消",
       "suggestedPlayers": "建議玩家數：{count}"
     },
     "dialog": {

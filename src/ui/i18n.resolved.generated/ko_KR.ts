@@ -234,6 +234,7 @@ export const ko_KR: EnTranslations = {
       "clickMoveLeft": "왼쪽 클릭",
       "clickMoveRight": "오른쪽 클릭",
       "footstepSounds": "발소리",
+      "clickFeedback": "클릭 표시",
       "showWalletOnCharacterScreen": "캐릭터 화면에 지갑 표시",
       "showWalletOnPlayerCard": "플레이어 카드에 지갑 표시",
       "uiScale": "UI 배율",
@@ -1805,6 +1806,10 @@ export const ko_KR: EnTranslations = {
       "completedStatus": "완료됨",
       "returnTo": "{name}에게 돌아가기",
       "abandon": "퀘스트 포기",
+      "abandonConfirmTitle": "퀘스트 포기",
+      "abandonConfirmBody": "{name} 퀘스트를 정말 포기할까요?",
+      "abandonConfirm": "예",
+      "abandonCancel": "취소",
       "suggestedPlayers": "권장 플레이어: {count}"
     },
     "dialog": {

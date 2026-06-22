@@ -234,6 +234,7 @@ export const ja_JP: EnTranslations = {
       "clickMoveLeft": "左クリック",
       "clickMoveRight": "右クリック",
       "footstepSounds": "足音",
+      "clickFeedback": "クリックマーカー",
       "showWalletOnCharacterScreen": "キャラクター画面にウォレットを表示",
       "showWalletOnPlayerCard": "プレイヤーカードにウォレットを表示",
       "uiScale": "UIスケール",
@@ -1805,6 +1806,10 @@ export const ja_JP: EnTranslations = {
       "completedStatus": "完了済み",
       "returnTo": "{name}に戻る",
       "abandon": "クエストを破棄",
+      "abandonConfirmTitle": "クエストを破棄",
+      "abandonConfirmBody": "{name}を本当に破棄しますか？",
+      "abandonConfirm": "はい",
+      "abandonCancel": "キャンセル",
       "suggestedPlayers": "推奨プレイヤー数: {count}"
     },
     "dialog": {

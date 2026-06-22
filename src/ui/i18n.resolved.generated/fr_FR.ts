@@ -234,6 +234,7 @@ export const fr_FR: EnTranslations = {
       "clickMoveLeft": "Clic gauche",
       "clickMoveRight": "Clic droit",
       "footstepSounds": "Sons de pas",
+      "clickFeedback": "Click Marker",
       "showWalletOnCharacterScreen": "Afficher le portefeuille sur l’écran des personnages",
       "showWalletOnPlayerCard": "Afficher le portefeuille sur la carte de joueur",
       "uiScale": "Échelle de l’interface",
@@ -1805,6 +1806,10 @@ export const fr_FR: EnTranslations = {
       "completedStatus": "Terminée",
       "returnTo": "Retournez voir {name}",
       "abandon": "Abandonner la quête",
+      "abandonConfirmTitle": "Abandonner la quête",
+      "abandonConfirmBody": "Voulez-vous vraiment abandonner {name} ?",
+      "abandonConfirm": "Oui",
+      "abandonCancel": "Annuler",
       "suggestedPlayers": "Joueurs conseillés : {count}"
     },
     "dialog": {

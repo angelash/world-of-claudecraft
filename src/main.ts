@@ -18,7 +18,7 @@ import { music } from './game/music';
 import { voice } from './game/voice';
 import { sfx } from './game/sfx';
 import { activePvpOpponentIds, handlePickedEntity, hoverCursorKind, isAttackableEntity } from './game/interactions';
-import { clickMoveShouldCancel, clickMoveShouldWalk, clickMoveStep, distance2d, latencyAdjustedStopDistance, stepAngleToward } from './game/click_move';
+import { clickMoveShouldWalk, clickMoveStep, distance2d, latencyAdjustedStopDistance, resolveClickMoveAction, stepAngleToward } from './game/click_move';
 import { Api, isAuthError, ClientWorld, CharacterSummary, NATIVE_APP, type ReleaseEntry } from './net/online';
 import { setWalletDisplayAvailable, setWocBalance, setWalletUiEnabled, resolveWocBalanceUpdate } from './ui/wallet_balance';
 import {
@@ -1067,6 +1067,12 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
 
   function handlePick(x: number, y: number, button: number): void {
     const id = renderer.pick(x, y);
+    // OSRS-style click feedback (its own toggle): a brief ground marker, gold for a
+    // neutral click and red on a hostile. Both reference games only mark a real action,
+    // so the marker stamps where a click actually does something: the click-to-move
+    // destination (OSRS's yellow "walking here" X) and an entity you target or walk to
+    // (OSRS's red interaction X). A plain ground click that only deselects gets nothing.
+    const wantClickFeedback = settings.get('clickFeedback') && !world.player.dead;
     const clickToMove = settings.get('clickToMove') > 0 && !world.player.dead;
     const clickToMoveButton = normalizeClickMoveButton(settings.get('clickToMoveButton'));
     const isClickMoveButton = clickToMove && button === clickToMoveButton;
@@ -1074,20 +1080,30 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       if (button === 0) {
         world.targetEntity(null);
       }
+      // One ground raycast feeds both the move target and its marker, so the gold
+      // marker appears only where the click actually sends you.
       if (isClickMoveButton) {
         const g = renderer.groundPoint(x, y, world.player.pos.y);
         if (g) {
+          if (wantClickFeedback) renderer.spawnClickMarker(g.x, g.z, false);
           const target = resolvedClickMoveTarget(g);
           input.setClickMoveTarget(target, 0.5, null, clickMovePathTo(target));
         }
       }
       return;
     }
-    // The configured click-to-move mouse button approaches entities while the
-    // regular click handler still performs target/interact behavior.
-    if (isClickMoveButton) {
-      const e = world.entities.get(id);
-      if (e && e.id !== world.player.id) {
+    const e = world.entities.get(id);
+    if (e && e.id !== world.player.id) {
+      // Mark the entity when you engage it: a left-click target, or the click-to-move
+      // button that walks you to it, so both routes read the same (red on a hostile,
+      // gold otherwise).
+      if (wantClickFeedback && (button === 0 || isClickMoveButton)) {
+        const hostile = isAttackableEntity(e, world.playerId, activePvpOpponentIds(world));
+        renderer.spawnClickMarker(e.pos.x, e.pos.z, hostile);
+      }
+      // The configured click-to-move mouse button approaches the entity while the
+      // regular click handler still performs target/interact behavior.
+      if (isClickMoveButton) {
         const target = resolvedClickMoveTarget({ x: e.pos.x, z: e.pos.z });
         input.setClickMoveTarget(target, 3.5, e.id, clickMovePathTo(target));
       }
@@ -1292,13 +1308,18 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     const mi = input.readMoveInput();
     let facing: number | null = mouselook ? input.camYaw : null;
     if (input.clickMoveTarget) {
-      if (clickMoveShouldCancel(mi, {
+      const action = resolveClickMoveAction(mi, {
         mouselook,
         movementSuspended: input.suspendMovement,
         playerDead: world.player.dead,
         enabled: settings.get('clickToMove') > 0 || settings.get('attackMove'),
-      })) {
+      });
+      if (action === 'cancel') {
         input.clearClickMove();
+      } else if (action === 'pause') {
+        // Game menu is up: hold the destination and stand still; the run resumes
+        // when the menu closes. mi is already all-false here (movement suspended).
+        return { mi, facing };
       } else {
         if (input.clickMoveEntityId !== null) {
           const e = world.entities.get(input.clickMoveEntityId);

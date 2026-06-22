@@ -234,6 +234,7 @@ export const en_CA: EnTranslations = {
       "clickMoveLeft": "Left Click",
       "clickMoveRight": "Right Click",
       "footstepSounds": "Footstep Sounds",
+      "clickFeedback": "Click Marker",
       "showWalletOnCharacterScreen": "Show Wallet on Character Screen",
       "showWalletOnPlayerCard": "Show Wallet on Player Card",
       "uiScale": "UI Scale",
@@ -1805,6 +1806,10 @@ export const en_CA: EnTranslations = {
       "completedStatus": "Completed",
       "returnTo": "Return to {name}",
       "abandon": "Abandon Quest",
+      "abandonConfirmTitle": "Abandon Quest",
+      "abandonConfirmBody": "Are you sure you want to abandon {name}?",
+      "abandonConfirm": "Yes",
+      "abandonCancel": "Cancel",
       "suggestedPlayers": "Suggested players: {count}"
     },
     "dialog": {

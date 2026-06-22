@@ -234,6 +234,7 @@ export const ru_RU: EnTranslations = {
       "clickMoveLeft": "Левая кнопка",
       "clickMoveRight": "Правая кнопка",
       "footstepSounds": "Звуки шагов",
+      "clickFeedback": "Метка клика",
       "showWalletOnCharacterScreen": "Показывать кошелек на экране персонажей",
       "showWalletOnPlayerCard": "Показывать кошелек на карточке игрока",
       "uiScale": "Масштаб интерфейса",
@@ -1805,6 +1806,10 @@ export const ru_RU: EnTranslations = {
       "completedStatus": "Завершено",
       "returnTo": "Вернитесь к {name}",
       "abandon": "Отказаться от задания",
+      "abandonConfirmTitle": "Отказаться от задания",
+      "abandonConfirmBody": "Вы уверены, что хотите отказаться от {name}?",
+      "abandonConfirm": "Да",
+      "abandonCancel": "Отмена",
       "suggestedPlayers": "Рекомендуется игроков: {count}"
     },
     "dialog": {
