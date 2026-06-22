@@ -868,7 +868,16 @@ export const fr_CA: EnTranslations = {
       "intro": "Les créatures du monde, regroupées par famille. Voici les adversaires que vous rencontrez à ciel ouvert. Les plus redoutables attendent, sans figurer ici, derrière les portes des donjons.",
       "rare": "Rare",
       "levels": "Niveaux {min} à {max}",
-      "levelsSame": "Niveau {min}"
+      "levelsSame": "Niveau {min}",
+      "notedLabel": "Of note",
+      "flavor": {
+        "old_greyjaw": "A scarred old wolf no trap has held, blamed for three hounds and a stable boy's arm. He hunts the deep woods alone, and turns savage the longer a fight wears on.",
+        "brightwood_stag": "A proud grove deer that lowers its crown of antlers and bulls forward, growing harder to face the longer it is pressed.",
+        "grubjaw": "A fen troll so greedy the other trolls will not dig beside him, said to have eaten a trader's last two pack-mules, harness and all.",
+        "shardlord_kazzix": "A storm elemental given shoulders, walking the far crags above Stormcrag with a heartshard worth braving the lightning for.",
+        "mirejaw_frenzy": "A marsh murloc that whips itself into a thrashing frenzy mid-fight, the loudest thing in a loud, territorial pack.",
+        "gravecaller_cultist": "Robed servants of the death-cult whose work fouls the graves from the Vale to the peaks. Where they gather, the dead do not rest."
+      }
     },
     "family": {
       "beast": {
@@ -918,7 +927,19 @@ export const fr_CA: EnTranslations = {
       "residents": "Qui vous croiserez",
       "valeBlurb": "La verdoyante vallée de départ, où les nouveaux héros se font les dents sur les loups et les bandits autour de la ville d'Eastbrook.",
       "marshBlurb": "Une contrée noyée de brume et de ruines. Les murlocs pullulent dans les hauts-fonds et quelque chose de plus ancien s'agite sous l'eau, surveillé depuis la ville-pont de Fenbridge.",
-      "peaksBlurb": "Crêtes balayées par le vent et vieilles exploitations minières grimpant vers les dangers les plus glacials et les plus élevés du royaume, tenus par l'avant-poste de Highwatch."
+      "peaksBlurb": "Crêtes balayées par le vent et vieilles exploitations minières grimpant vers les dangers les plus glacials et les plus élevés du royaume, tenus par l'avant-poste de Highwatch.",
+      "valeGreeting": "Keep your blade close. The Vale is not what it was.",
+      "valeGreeter": "Marshal Redbrook, Eastbrook",
+      "marshGreeting": "Hold at the gate. Past those reeds, the fen does the killing for us.",
+      "marshGreeter": "Warden Fenwick, Fenbridge",
+      "peaksGreeting": "Two hundred years this wall has held. It will not break on my watch, but it groans.",
+      "peaksGreeter": "Captain Thessaly, Highwatch",
+      "valePlaceNotes": "Eastbrook is your first home base. Wolf Run and Boar Meadow are gentle hunting ground; Mirror Lake is quiet water to fish; the Webwood and the Copper Dig hide spiders and ore-greedy diggers; a Bandit Camp and the Fallen Chapel hold rougher work; Brightwood Glade is a calm wildlife grove in the north.",
+      "marshPlaceNotes": "Fenbridge guards the only dry road. The Prowler Reeds and Deepfen Shallows teem with marsh beasts and murlocs; the Widow Thicket is spun thick with web; the Drowned Chapel and the Troll Mounds keep older dangers; the Gravecaller Encampment is the cult dug in, and the Sunken Bastion is the marsh's instanced heart.",
+      "peaksPlaceNotes": "Highwatch holds the wall. Stalker Ridge and the Deeprock Burrows belong to ridge cats and kobolds; the Ogre Foothills and Drogmar's War-Camp to brutes for hire; Stormcrag crackles with elementals and the Glimmermere glows below it; the Wyrmcult Tents and Revenant Fields ring the cult's high ground, with Gravewyrm Sanctum at its peak.",
+      "gladeTitle": "A quiet corner: Brightwood Glade",
+      "gladeBody": "Not every story in the Vale is about the dead. In the north, a sunlit grove called Brightwood Glade keeps its own gentler rhythm, watched over by a lone ranger who would rather steward it than fight. Her work is balance: thinning what overbreeds, and, when its hollow grows too dangerous to leave be, giving the grove's old crowned stag a respectful end. It is a soft counterpoint to the trail you are following, and worth the detour.",
+      "figuresIntro": "The road north is not a lonely one. A few people travel it with you."
     },
     "questsPage": {
       "heading": "Quêtes",
@@ -933,7 +954,42 @@ export const fr_CA: EnTranslations = {
       "partyBody": "Les membres du groupe à proximité partagent le crédit des éliminations et des objectifs, donc partir en quête ensemble est plus rapide, jamais plus lent.",
       "storyTitle": "Un fil court à travers tout cela",
       "storyBody": "Dès vos premières missions à Eastbrook, quelque chose cloche du côté des morts. Un culte est à l'œuvre, et la piste mène vers le nord à travers chaque zone. Suivez-la pour découvrir qui se cache derrière.",
-      "soloNote": "L'histoire principale se joue entièrement en solo ; seuls ses derniers chapitres exigent un groupe."
+      "soloNote": "L'histoire principale se joue entièrement en solo ; seuls ses derniers chapitres exigent un groupe.",
+      "typesTitle": "The kinds of quest you will see",
+      "typesBody": "Most quests are one of a few familiar shapes. The on-screen tracker spells out exactly what each one wants, so you are never left guessing.",
+      "typeSlayTitle": "Slay",
+      "typeSlayBody": "Thin out a pack of beasts or break a cult's hold by defeating a set number of a marked enemy. The first quest in the game, clearing wolves off the Eastbrook road, is one of these.",
+      "typeGatherTitle": "Gather",
+      "typeGatherBody": "Collect items from the world or from what enemies drop: herbs, ore, lost letters, a cult's grim reagents. Some pieces only fall from a particular foe, so the hunt and the haul go together.",
+      "typeInteractTitle": "Interact",
+      "typeInteractBody": "Use, cleanse, or read something fixed in the world: a defiled grave, a warning carved on a shore-rock, a sealed crypt door. Walk up to the marker and act on it.",
+      "typeMusterTitle": "Escort and muster",
+      "typeMusterBody": "See a friendly face safely from one place to another, or rally a town's defenders before a push north. These keep you moving with the people whose story you are in.",
+      "typeGroupTitle": "Group finales",
+      "typeGroupBody": "Each chapter of the main story ends at a dungeon door. The lead-in is soloable, but the final blow against a chapter's villain is meant for a party of five (and the very last, for ten).",
+      "sagaTitle": "Follow the trail north",
+      "sagaBody": "The main story is one long chase. A death-cult is at work on the realm's graves, and every chapter you close points one zone further up the road. You never fight the whole conspiracy at once; you pull one thread, and it leads to the next hand holding it.",
+      "sagaValeTitle": "The Vale: a name on a sigil",
+      "sagaValeBody": "In Eastbrook the dead will not rest, and the mark behind it belongs to a sect long thought gone. Trace it to a Gravecaller working the chapel crypt, and his own papers point you toward the fen in the north.",
+      "sagaMarshTitle": "The marsh: a tithe of souls",
+      "sagaMarshBody": "In Mirefen the drownings are no accident. Someone is filling the fen like a tithing box, raising obedient dead from every traveler the water takes. Chase the orders up the chain to a Mistcaller in the drowned bastion, whose last words name something older still, stirring beneath the peaks.",
+      "sagaPeaksTitle": "The peaks: what the tithe was for",
+      "sagaPeaksBody": "On Thornpeak the whole scheme comes clear. Every soul stolen since the Vale was a tithe poured toward waking an ancient thing sealed beneath the mountain. The trail that began in a chapel yard ends here, at a door it takes ten to open. We will let you find out who waits behind it.",
+      "sideTitle": "Threads off the main road",
+      "sideWardenTitle": "Earning your name",
+      "sideWardenBody": "Alongside the story, the wardens of the Vale and the fen hand out a standing bounty ladder. Work your way up it, foe by foe, the way every warden before you earned their place. It is honest leveling and a tour of each zone's worst troublemakers.",
+      "sideCryptTitle": "The forgotten king",
+      "sideCryptBody": "High on the peaks runs a quieter mystery: old graves marked with a crown no record remembers. Read the dead, gather what they guarded, and unseal a tomb that was meant to stay shut. It is a detective's trail that opens the way to a second endgame trial for a full raid."
+    },
+    "lore": {
+      "figuresTitle": "Faces you will come to know",
+      "figuresBody": "A handful of people walk the whole road with you. Watch for these names from the valley to the peaks.",
+      "aldricRole": "Priest of the Vale",
+      "aldricBody": "A humble village priest who first names the cult over a defiled grave in Eastbrook, then follows its trail in person through the marsh and up to the wall at Highwatch. He is the steady heart of the whole campaign.",
+      "marenRole": "The Marshal's Scout",
+      "marenBody": "A low-talking tracker you meet in the reeds of Mirefen, all quiet feet and a short blade. She follows the trail north too, and it is her ear that catches the words that send you to the peaks.",
+      "elwynRole": "Glade Warden of Brightwood",
+      "elwynBody": "The lone keeper of a sunlit grove in the north of the Vale. Her work is stewardship, not slaughter: thinning what overbreeds and granting the grove's oldest beast a kinder end than the wolves would."
     },
     "dungeonsPage": {
       "heading": "Donjons et raids",
@@ -954,7 +1010,11 @@ export const fr_CA: EnTranslations = {
       "sanctumName": "Sanctuaire du Gravewyrm",
       "sanctumBody": "Le cœur ténébreux de Thornpeak, où la longue œuvre du culte atteint son terrible apogée.",
       "raidName": "Le raid de fin de jeu",
-      "raidBody": "Au-delà d'une porte royale scellée attend une épreuve à dix joueurs : un combat en plusieurs phases et un pouvoir immortel que tout le raid doit neutraliser de concert. Méritez votre entrée, puis amenez neuf compagnons."
+      "raidBody": "Au-delà d'une porte royale scellée attend une épreuve à dix joueurs : un combat en plusieurs phases et un pouvoir immortel que tout le raid doit neutraliser de concert. Méritez votre entrée, puis amenez neuf compagnons.",
+      "templeLoreTitle": "The Drowned Temple, a little deeper",
+      "templeLoreBody": "The temple has its own legend, older than the cult you chase elsewhere. On the shore of the Glimmermere, a tarn that drinks the moonlight and gives back the drowned, a lone watcher keeps a gate of pale light. Beneath the surface, a stair of cold stone runs down to it. The folk who sank there did not drown by misadventure: they were the Pale Choir, who went under in worship and never stopped singing. The old wardens scratched a single warning into the rocks before the water took them, a prayer to something they called the Drowned Moon, with a steadier hand adding two words beneath it: it only sleeps.",
+      "cryptLeadTitle": "A door the dead were meant to keep shut",
+      "cryptLeadBody": "High on the peaks, away from the main fight, lies a colder mystery. Old graves bear a crown no record remembers, and the dead who guard them once served a forgotten king. Read their stones, gather the keystones they kept, and you can unseal a tomb that three loyal souls died to hold closed, opening a second ten-player trial for those who follow the clues to the end."
     },
     "talentsPage": {
       "heading": "Talents et spécialisations",
@@ -978,6 +1038,16 @@ export const fr_CA: EnTranslations = {
       "fiestaHeading": "Fiesta deux contre deux",
       "fiestaBody": "Fiesta est un mode rapide à deux contre deux qui se joue en manches courtes. Entre les manches, vous draftez des augmentations, des bonus instantanés qui remodèlent votre panoplie à la volée, si bien qu'aucune partie ne se ressemble vraiment.",
       "augmentsNote": "Les augmentations et bonus ne durent que le temps de la partie. Ils servent à des compositions ludiques et improvisées, pas à une puissance durable, pour que personne n'achète sa victoire.",
+      "wavesTitle": "Augments arrive in waves",
+      "wavesBody": "Each round of a Fiesta hands you a fresh pick, and the picks grow bolder as the match goes on. You build from one wave to the next, choosing one of a few options each time and keeping it for the rest of the bout.",
+      "waveSilverTitle": "Silver",
+      "waveSilverBody": "The opening wave: clean, single-stat boosts that sharpen the basics of your class.",
+      "waveGoldTitle": "Gold",
+      "waveGoldBody": "The middle wave: two-edged combos where your build starts to take shape and sing.",
+      "wavePrismaticTitle": "Prismatic",
+      "wavePrismaticBody": "The final wave: build-defining, screen-melting spikes meant to feel ridiculous in the best way.",
+      "powerupsTitle": "Power-ups in the ring",
+      "powerupsBody": "Glowing orbs also drop into the arena mid-fight, free for whoever reaches them first. They are deliberately over the top and last only a short while: Speed Demon for a blink of blinding pace, Colossus to swell up huge and hit like a wall, Moon Boots for a bouncing, low-gravity leap, and Berserker for a sudden surge of fury.",
       "ladderHeading": "Gravir l'échelle",
       "ladderBody": "Le jeu classé suit votre classement dans le temps. Consultez le classement pour voir où vous en êtes et qui tient le haut du royaume."
     },
@@ -1052,9 +1122,13 @@ export const fr_CA: EnTranslations = {
       "consumablesElixirs": "Elixirs grant a temporary buff while you adventure, a small edge that helps when you want to push a little further.",
       "fishingTitle": "Fishing",
       "fishingBody": "Fishing is a calm change of pace. Equip a fishing pole, cast into open water, and reel in what bites. You mostly catch fish you can cook into food, the odd bit of junk to sell for a few coins, and now and then a prized rare catch. What you find depends on the water you fish in.",
+      "fishingFood": "The fish you reel in are raw, and raw fish are food. Cook your catch and it heals more when you sit to eat, with the better fish coming from the colder, deeper waters in the north. A line in the lake is a quiet way to keep your pack stocked between fights.",
+      "fishingRare": "Now and then your line catches something far better than supper: a shimmering prized fish that any angler might luck into in any water. Hook one and the whole realm hears the celebratory shout. It is the kind of lucky pull that makes an idle afternoon at the lake worth telling people about.",
       "cosmeticsTitle": "Looks and cosmetics",
       "cosmeticsBody": "Some rewards change only how your character looks, never how strong you are. These cosmetic skins let you stand out without affecting the game, so wear whichever you like.",
-      "cosmeticsRanks": "Cosmetics come in rarity tiers of their own, and the rarer ones are a fun thing to chase. Earning a higher tier also unlocks the looks below it."
+      "cosmeticsRanks": "Cosmetics come in rarity tiers of their own, and the rarer ones are a fun thing to chase. Earning a higher tier also unlocks the looks below it.",
+      "cosmeticsSkins": "There are two cosmetic lines to collect. Every class has a handful of alternate appearances, a fresh take on its look that is yours alone to wear. Alongside them sit chromas: named two-tone color schemes that repaint a look entirely, from sober metals to bright imperial colors.",
+      "cosmeticsCache": "A few of these come from a mysterious cosmetic cache, a sealed prize that rolls one of three quality grades when you open it and grants the appearance to match. It is purely for looks: nothing inside it makes you stronger, only finer to look at."
     },
     "economy": {
       "intro": "Coin oils the whole world: it buys gear and supplies, pays your repairs and quest costs, and changes hands between players. You pick all of this up just by playing, so think of this page as a map of where your money comes from and goes.",

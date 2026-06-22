@@ -1514,6 +1514,63 @@ a.guide-poi:hover { color: var(--g-gold); border-color: var(--g-border); text-de
 .guide-list li { color: var(--g-text-dim); }
 .guide-list strong { color: var(--g-text); }
 
+/* ====================================================== lore blocks (ui.ts helpers)
+   Pull quotes (hub greetings, in-world voices), "who you will meet" character rows, and
+   the titled story-beat cards used by the World, Quests, Dungeons, and Arena pages. */
+
+/* Pull quote with a speaker line. */
+.guide-quote {
+  margin: var(--g-md) 0 0;
+  padding: var(--g-sm) var(--g-md);
+  border-inline-start: var(--g-bw-rail) solid var(--g-gold-dim);
+  background: var(--g-wash-gold);
+  border-radius: 0 var(--g-radius) var(--g-radius) 0;
+}
+.guide-quote blockquote {
+  margin: 0;
+  font-family: var(--g-font-serif);
+  font-style: italic;
+  font-size: var(--g-text-md);
+  color: var(--g-text);
+}
+.guide-quote figcaption {
+  margin-block-start: var(--g-xs);
+  font-size: var(--g-text-sm);
+  font-weight: 600;
+  color: var(--g-text-muted);
+}
+
+/* "Who you will meet" character rows. */
+.guide-figures { display: grid; gap: var(--g-md); margin-block-start: var(--g-md); }
+.guide-figure {
+  padding: var(--g-md);
+  background: var(--g-bg-2);
+  border: 1px solid var(--g-border-soft);
+  border-radius: var(--g-radius);
+}
+.guide-figure-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--g-xs2) var(--g-sm); margin-block-end: var(--g-xs); }
+.guide-figure-name { font-family: var(--g-font-display); font-weight: 700; font-size: var(--g-text-md); color: var(--g-text); min-width: 0; overflow-wrap: anywhere; }
+.guide-figure-role { font-size: var(--g-text-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--g-gold-dim); }
+.guide-figure-line { margin: 0; color: var(--g-text-dim); }
+
+/* Titled story-beat cards (saga rungs, quest types, augment waves). */
+.guide-beat-grid { display: grid; gap: var(--g-md); margin-block-start: var(--g-md); grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.guide-beat {
+  padding: var(--g-md);
+  background: var(--g-bg-2);
+  border: 1px solid var(--g-border-soft);
+  border-radius: var(--g-radius);
+}
+.guide-beat-h { margin: 0 0 var(--g-xs); font-family: var(--g-font-display); font-size: var(--g-text-lg); color: var(--g-gold-dim); }
+.guide-beat p { margin: 0; color: var(--g-text-dim); }
+
+/* Spoiler-safe creature flavor line on a bestiary card. */
+.guide-creature-flavor { margin-block-start: var(--g-2xs); color: var(--g-text-muted); font-size: var(--g-text-xs); line-height: var(--g-leading-snug); }
+.guide-creature-flavor-label { font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--g-gold-dim); margin-inline-end: var(--g-2xs); }
+
+/* Per-zone "notable places" prose under the POI chips. */
+.guide-zone-places-note { margin: var(--g-sm) 0 0; color: var(--g-text-dim); font-size: var(--g-text-sm); }
+
 /* Gear: equip-slot chips and the quality-tier swatch list. */
 .guide-gear-slots { display: flex; flex-wrap: wrap; gap: var(--g-xs2); margin: var(--g-sm) 0 0; padding: 0; list-style: none; }
 .guide-gear-slots li {

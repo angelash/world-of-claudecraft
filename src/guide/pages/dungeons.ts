@@ -7,7 +7,7 @@ import { t, formatNumber, type TranslationKey } from '../../ui/i18n';
 import { esc } from '../../ui/esc';
 import { GUIDE_DUNGEONS, type GuideDungeon } from '../content.generated';
 import { hrefFor } from '../routes';
-import { pageHeader, callout, related } from './ui';
+import { pageHeader, callout, related, section, p } from './ui';
 import type { GuidePage } from './types';
 
 // Curated flavor body, keyed by the generated dungeon id (raid is the withheld-name one).
@@ -52,6 +52,8 @@ export const dungeons: GuidePage = {
         <p>${esc(t('guide.dungeonsPage.party'))}</p>
         ${callout(esc(t('guide.dungeonsPage.soloLead')))}
         <div class="guide-dungeon-grid">${cards}</div>
+        ${section('guide.dungeonsPage.templeLoreTitle', p('guide.dungeonsPage.templeLoreBody'))}
+        ${section('guide.dungeonsPage.cryptLeadTitle', p('guide.dungeonsPage.cryptLeadBody'))}
         ${related([
           { href: hrefFor('world'), key: 'guide.nav.world' },
           { href: hrefFor('arena'), key: 'guide.nav.arena' },

@@ -8,11 +8,15 @@ import { t, formatNumber, type TranslationKey } from '../../ui/i18n';
 import { esc } from '../../ui/esc';
 import { GUIDE_ZONES, GUIDE_FAMILIES, type GuideZoneInfo } from '../content.generated';
 import { hrefFor } from '../routes';
-import { pageHeader, related } from './ui';
+import { pageHeader, related, loreQuote, loreFigure } from './ui';
 import type { GuidePage } from './types';
 
 // Blurbs are keyed by biome (vale / marsh / peaks), so they never depend on zone order.
 const blurbKey = (biome: string): TranslationKey => `guide.worldPage.${biome}Blurb` as TranslationKey;
+// Per-biome hub greeting (the spoken line + its speaker proper noun) and place notes.
+const greetingKey = (biome: string): TranslationKey => `guide.worldPage.${biome}Greeting` as TranslationKey;
+const greeterText = (biome: string): string => t(`guide.worldPage.${biome}Greeter` as TranslationKey);
+const placeNotesKey = (biome: string): TranslationKey => `guide.worldPage.${biome}PlaceNotes` as TranslationKey;
 const familyName = (family: string): string => t(`guide.family.${family}.name` as TranslationKey);
 const bandLabel = (z: GuideZoneInfo): string => t('guide.home.world.levels', { min: formatNumber(z.min), max: formatNumber(z.max) });
 
@@ -48,6 +52,7 @@ function poisHtml(z: GuideZoneInfo): string {
     <div class="guide-zone-detail">
       <h3 class="guide-zone-subh">${esc(t('guide.worldPage.places'))}</h3>
       <ul class="guide-poi-list">${items}</ul>
+      <p class="guide-zone-places-note">${esc(t(placeNotesKey(z.biome)))}</p>
     </div>`;
 }
 
@@ -72,6 +77,7 @@ function zoneCard(z: GuideZoneInfo): string {
         <h2 class="guide-zone-name">${esc(z.name)}</h2>
         <p class="guide-zone-blurb">${esc(t(blurbKey(z.biome)))}</p>
         ${z.hub ? `<p class="guide-zone-hub"><span>${esc(t('guide.worldPage.hub'))}:</span> ${esc(z.hub)}</p>` : ''}
+        ${loreQuote(greetingKey(z.biome), greeterText(z.biome))}
         ${poisHtml(z)}
         ${residentsHtml(z)}
       </div>
@@ -86,6 +92,23 @@ export const world: GuidePage = {
         ${pageHeader('guide.worldPage.heading', 'guide.worldPage.intro')}
         ${mapHtml()}
         <div class="guide-zone-grid guide-zone-grid-detail">${GUIDE_ZONES.map(zoneCard).join('')}</div>
+
+        <section class="guide-block">
+          <h2>${esc(t('guide.lore.figuresTitle'))}</h2>
+          <p>${esc(t('guide.worldPage.figuresIntro'))}</p>
+          <p>${esc(t('guide.lore.figuresBody'))}</p>
+          <div class="guide-figures">
+            ${loreFigure('Brother Aldric', 'guide.lore.aldricRole', 'guide.lore.aldricBody')}
+            ${loreFigure('Scout Maren', 'guide.lore.marenRole', 'guide.lore.marenBody')}
+            ${loreFigure('Ranger Elwyn', 'guide.lore.elwynRole', 'guide.lore.elwynBody')}
+          </div>
+        </section>
+
+        <section class="guide-block">
+          <h2>${esc(t('guide.worldPage.gladeTitle'))}</h2>
+          <p>${esc(t('guide.worldPage.gladeBody'))}</p>
+        </section>
+
         ${related([
           { href: hrefFor('bestiary'), key: 'guide.nav.bestiary' },
           { href: hrefFor('quests'), key: 'guide.nav.quests' },

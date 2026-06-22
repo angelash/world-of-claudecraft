@@ -72,9 +72,16 @@ export const gear: GuidePage = {
           + p('guide.gear.consumablesFood')
           + p('guide.gear.consumablesElixirs'))}
 
-        ${section('guide.gear.fishingTitle', p('guide.gear.fishingBody'))}
+        ${section('guide.gear.fishingTitle',
+          p('guide.gear.fishingBody')
+          + p('guide.gear.fishingFood')
+          + p('guide.gear.fishingRare'))}
 
-        ${section('guide.gear.cosmeticsTitle', p('guide.gear.cosmeticsBody') + p('guide.gear.cosmeticsRanks'))}
+        ${section('guide.gear.cosmeticsTitle',
+          p('guide.gear.cosmeticsBody')
+          + p('guide.gear.cosmeticsSkins')
+          + p('guide.gear.cosmeticsRanks')
+          + p('guide.gear.cosmeticsCache'))}
 
         ${related([
           { href: hrefFor('classes'), key: 'guide.nav.classes' },

@@ -2,7 +2,7 @@
 // Data is generated from the per-zone mob lists (content.generated.ts), which excludes
 // elite/boss and summoned creatures, so dungeon and raid encounters never appear here.
 
-import { t, formatNumber, type TranslationKey } from '../../ui/i18n';
+import { t, tOptional, formatNumber, type TranslationKey } from '../../ui/i18n';
 import { esc } from '../../ui/esc';
 import { iconDataUrl } from '../../ui/icons';
 import { GUIDE_FAMILIES, type GuideCreature } from '../content.generated';
@@ -19,6 +19,14 @@ function band(c: GuideCreature): string {
     : t('guide.bestiary.levels', { min: formatNumber(c.min), max: formatNumber(c.max) });
 }
 
+// A spoiler-safe, mechanics-free flavor line for the standout creatures, looked up by sim
+// template id. Most creatures carry no key (tOptional returns null), so nothing renders.
+function creatureFlavor(c: GuideCreature): string {
+  const line = tOptional(`guide.bestiary.flavor.${c.templateId}`);
+  if (!line) return '';
+  return `<span class="guide-creature-flavor"><span class="guide-creature-flavor-label">${esc(t('guide.bestiary.notedLabel'))}</span> ${esc(line)}</span>`;
+}
+
 // Each creature card pairs a compact rotatable 3D thumbnail (loaded on demand) with its
 // name and level band. The family crest is the 2D poster until the reader loads the model.
 function creatureCard(c: GuideCreature, family: string): string {
@@ -28,6 +36,7 @@ function creatureCard(c: GuideCreature, family: string): string {
     <div class="guide-creature-info">
       <span class="guide-creature-name">${esc(c.name)}${rare}</span>
       <span class="guide-creature-band">${esc(band(c))}</span>
+      ${creatureFlavor(c)}
     </div>
   </li>`;
 }

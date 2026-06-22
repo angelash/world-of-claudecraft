@@ -83,6 +83,34 @@ export function callout(bodyHtml: string, opts: CalloutOptions = {}): string {
   return `<div class="guide-callout${variantClass}">${title}${bodyHtml}</div>`;
 }
 
+// --------------------------------------------------------------- lore blocks
+/** A pull quote with a speaker line, for hub greetings and in-world voices. The quote
+ * body is a catalog key; the speaker (a proper noun) is passed as raw text. */
+export function loreQuote(bodyKey: TranslationKey, speaker: string): string {
+  return `<figure class="guide-quote">
+    <blockquote>${esc(t(bodyKey))}</blockquote>
+    <figcaption>${esc(speaker)}</figcaption>
+  </figure>`;
+}
+
+/** A "who you will meet" character row: a proper-noun name, a role/where line (catalog
+ * key), and a one-line description (catalog key). */
+export function loreFigure(name: string, roleKey: TranslationKey, bodyKey: TranslationKey): string {
+  return `<div class="guide-figure">
+    <div class="guide-figure-head">
+      <span class="guide-figure-name">${esc(name)}</span>
+      <span class="guide-figure-role">${esc(t(roleKey))}</span>
+    </div>
+    <p class="guide-figure-line">${esc(t(bodyKey))}</p>
+  </div>`;
+}
+
+/** A single titled "story beat" card, both strings from catalog keys. Used to lay out
+ * the villain-ladder saga and quest-type breakdowns as an even row of cards. */
+export function loreBeat(titleKey: TranslationKey, bodyKey: TranslationKey): string {
+  return `<div class="guide-beat"><h3 class="guide-beat-h">${esc(t(titleKey))}</h3><p>${esc(t(bodyKey))}</p></div>`;
+}
+
 // ------------------------------------------------------------- related links
 export interface RelatedLink { href: string; key: TranslationKey; }
 /** A "Related" block of cross-links at the foot of a page. */
