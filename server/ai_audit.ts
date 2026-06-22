@@ -1,5 +1,11 @@
 import type { SimEvent } from '../src/sim/types';
-import type { AiDecisionV1, AiJobContextV1, AiMemoryAuditRecord, AiValidationResult } from './ai/ai_types';
+import type {
+  AiDecisionV1,
+  AiJobContextV1,
+  AiMemoryAuditRecord,
+  AiProviderTimingSnapshot,
+  AiValidationResult,
+} from './ai/ai_types';
 
 export const AI_AUDIT_WINDOWS = [
   { key: 'm1', labelKey: 'usage.window.1m', milliseconds: 60_000 },
@@ -59,6 +65,7 @@ export interface AiAuditChain {
     rawOutput: string;
     rawOutputTruncated: boolean;
     parsedDecision: AiDecisionV1 | null;
+    timings?: AiProviderTimingSnapshot;
     error: string;
   };
   validation: {
@@ -102,6 +109,7 @@ export interface AiAuditRecord {
   memoryWriteRefs: string[];
   reason: string;
   error: string;
+  providerTimings?: AiProviderTimingSnapshot;
   playerAction?: AiAuditPlayerAction;
   deliveredSummary?: string[];
   hasChain?: boolean;
@@ -409,6 +417,7 @@ export function createProviderAuditRecord(input: {
   providerError?: string;
   promptText?: string;
   rawOutput?: string;
+  providerTimings?: AiProviderTimingSnapshot;
   deliveredEvents?: readonly SimEvent[];
   createdAt?: string;
 }): AiAuditRecord {
@@ -432,6 +441,7 @@ export function createProviderAuditRecord(input: {
     providerError,
     promptText: input.promptText ?? '',
     rawOutput: input.rawOutput ?? '',
+    providerTimings: input.providerTimings,
     deliveredEvents,
   });
   return {
@@ -460,6 +470,7 @@ export function createProviderAuditRecord(input: {
       ? `providerError:${providerError}`
       : input.result?.reason ?? input.decision?.audit.shortReason ?? '',
     error: providerError,
+    ...(input.providerTimings ? { providerTimings: input.providerTimings } : {}),
     playerAction,
     deliveredSummary,
     hasChain: true,
@@ -528,6 +539,7 @@ function aiAuditChain(input: {
   providerError: string;
   promptText: string;
   rawOutput: string;
+  providerTimings?: AiProviderTimingSnapshot;
   deliveredEvents: readonly SimEvent[];
 }): AiAuditChain {
   const prompt = truncateText(input.promptText, AI_AUDIT_PROMPT_MAX_CHARS);
@@ -545,6 +557,7 @@ function aiAuditChain(input: {
       rawOutput: rawOutput.text,
       rawOutputTruncated: rawOutput.truncated,
       parsedDecision: input.decision,
+      ...(input.providerTimings ? { timings: input.providerTimings } : {}),
       error: input.providerError,
     },
     validation: {

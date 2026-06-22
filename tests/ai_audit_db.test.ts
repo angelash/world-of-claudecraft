@@ -159,6 +159,14 @@ describe('AI audit DB', () => {
         },
       },
       deliveredSummary: ['hudChrome.aiSpeech.brotherAldricAwake'],
+      providerTimings: {
+        provider: 'codex-app-server',
+        totalMs: 1234,
+        steps: [
+          { key: 'startupWaitMs', label: 'wait for app-server warmup', ms: 12 },
+          { key: 'turnCompleteMs', label: 'model turn completed', ms: 1100 },
+        ],
+      },
       chain: {
         playerAction: {
           kind: 'npc_question',
@@ -211,6 +219,14 @@ describe('AI audit DB', () => {
           source: 'codex',
           rawOutput: '{"ok":true}',
           rawOutputTruncated: false,
+          timings: {
+            provider: 'codex-app-server',
+            totalMs: 1234,
+            steps: [
+              { key: 'startupWaitMs', label: 'wait for app-server warmup', ms: 12 },
+              { key: 'turnCompleteMs', label: 'model turn completed', ms: 1100 },
+            ],
+          },
           parsedDecision: {
             schemaVersion: 1,
             jobId: record.jobId,
@@ -243,12 +259,16 @@ describe('AI audit DB', () => {
       auditId: 'audit-chain',
       hasChain: true,
       deliveredSummary: ['hudChrome.aiSpeech.brotherAldricAwake'],
+      providerTimings: expect.objectContaining({ provider: 'codex-app-server', totalMs: 1234 }),
     })]);
     await expect(db.recordByAuditId('audit-chain')).resolves.toEqual(expect.objectContaining({
       auditId: 'audit-chain',
       chain: expect.objectContaining({
         requestContext: expect.objectContaining({ promptText: 'prompt sent to model' }),
-        provider: expect.objectContaining({ rawOutput: '{"ok":true}' }),
+        provider: expect.objectContaining({
+          rawOutput: '{"ok":true}',
+          timings: expect.objectContaining({ provider: 'codex-app-server', totalMs: 1234 }),
+        }),
       }),
     }));
   });

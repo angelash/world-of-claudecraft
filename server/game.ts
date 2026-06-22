@@ -574,6 +574,7 @@ export class GameServer {
     if (this.interval) clearInterval(this.interval);
     if (this.holderTierInterval) clearInterval(this.holderTierInterval);
     if (this.aiMemoryPruneInterval) clearInterval(this.aiMemoryPruneInterval);
+    this.aiLifeLayer.stop();
   }
 
   private async pruneExpiredAiMemory(): Promise<void> {

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AiLifeLayer } from '../server/ai/life_layer';
 import type { AiAuditRecord, AiAuditSink } from '../server/ai_audit';
-import type { AiDecisionV1, AiJobContextV1, AiProvider, AiProviderOutput } from '../server/ai/ai_types';
+import type { AiDecisionV1, AiJobContextV1, AiProvider, AiProviderOutput, AiProviderTimingSnapshot } from '../server/ai/ai_types';
 import { Sim } from '../src/sim/sim';
 import { groundHeight } from '../src/sim/world';
 
@@ -49,11 +49,20 @@ function acceptedDecision(context: AiJobContextV1, lineId = 'hudChrome.aiSpeech.
 }
 
 function acceptedProvider(lineId = 'hudChrome.aiSpeech.brotherAldricAwake', wrap = false): AiProvider {
+  const providerTimings: AiProviderTimingSnapshot = {
+    provider: 'codex-app-server',
+    totalMs: 1234,
+    steps: [
+      { key: 'startupWaitMs', label: 'wait for app-server warmup', ms: 12 },
+      { key: 'turnCompleteMs', label: 'model turn completed', ms: 1100 },
+      { key: 'parseOutputMs', label: 'parse structured output', ms: 3 },
+    ],
+  };
   return {
     async decide(context: AiJobContextV1): Promise<AiProviderOutput> {
       const decision = acceptedDecision(context, lineId);
       return wrap
-        ? { decision, promptText: 'prompt for audit', rawOutput: '{"speech":[]}' }
+        ? { decision, promptText: 'prompt for audit', rawOutput: '{"speech":[]}', providerTimings }
         : decision;
     },
   };
@@ -122,6 +131,18 @@ describe('AI life layer audit recording', () => {
 
     expect(sink.records[0].chain?.requestContext.promptText).toBe('prompt for audit');
     expect(sink.records[0].chain?.provider.rawOutput).toBe('{"speech":[]}');
+    expect(layer.runtimeMetrics().lastProviderTimings).toEqual(expect.objectContaining({
+      provider: 'codex-app-server',
+      totalMs: 1234,
+    }));
+    expect(sink.records[0].providerTimings).toEqual(expect.objectContaining({
+      provider: 'codex-app-server',
+      totalMs: 1234,
+    }));
+    expect(sink.records[0].chain?.provider.timings).toEqual(expect.objectContaining({
+      provider: 'codex-app-server',
+      totalMs: 1234,
+    }));
   });
 
   it('records provider errors without synthesizing fallback output', async () => {

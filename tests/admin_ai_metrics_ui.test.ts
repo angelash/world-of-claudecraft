@@ -323,12 +323,25 @@ describe('admin AI life layer metrics renderer', () => {
       acceptedDecisions: 3,
       generatedEvents: 6,
       averageProviderLatencyMs: 12.4,
+      lastProviderTimings: {
+        provider: 'codex-app-server',
+        totalMs: 1456,
+        steps: [
+          { key: 'startupWaitMs', label: 'wait <unsafe>', ms: 8 },
+          { key: 'turnCompleteMs', label: 'model turn', ms: 1410 },
+        ],
+      },
     }));
 
     expect(html).toContain('healthy');
     expect(html).toContain('Provider calls');
     expect(html).toContain('Average provider latency');
     expect(html).toContain('12 ms');
+    expect(html).toContain('Last provider timing');
+    expect(html).toContain('Codex app-server');
+    expect(html).toContain('1,456 ms');
+    expect(html).toContain('Slowest: Model turn completion / 1,410 ms');
+    expect(html).not.toContain('wait <unsafe>');
   });
 
   it('surfaces provider and memory failures without exposing raw HTML', () => {
@@ -435,6 +448,88 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).not.toContain('Persona with <danger>');
   });
 
+  it('localizes known AI profile preview names, targets, and personas in Simplified Chinese', () => {
+    setAdminLanguage('zh_CN');
+    const html = renderAiLifeLayerMetrics(metrics(), coverage(), diagnostics(), profiles());
+
+    expect(html).toContain('奥德里克修士活世界画像');
+    expect(html).toContain('ID: npc.brother_aldric.living_world');
+    expect(html).toContain('NPC: 奥德里克修士 (brother_aldric)');
+    expect(html).toContain('忧心的牧师，会把天气、坟墓和玩家的选择都读作征兆。');
+    expect(html).not.toContain('A worried priest who reads weather');
+  });
+
+  it('localizes known AI audit card ids, topics, triggers, and summaries in Simplified Chinese', () => {
+    setAdminLanguage('zh_CN');
+    const cleanAudit = audit({
+      recent: [
+        {
+          ...audit().recent[0],
+          auditId: 'audit-clean-1',
+          jobId: 'job-clean-1',
+          trigger: 'npc_question',
+          entityId: 8,
+          templateId: 'foreman_odell',
+          sceneId: 'eastbrook_vale',
+          zoneId: 'eastbrook_vale',
+          providerSource: 'codex',
+          status: 'accepted',
+          latencyMs: 27_765,
+          deliveredSummary: ['Line-id-only response using the single allowed Foreman Odell line; acknowledges the mine rumor.'],
+          playerAction: {
+            kind: 'npc_question',
+            topic: 'rumor',
+            labelKey: 'usage.aiActionNpcRumor',
+            locale: 'zh_CN',
+            protocol: {
+              jobId: 'job-clean-1',
+              trigger: 'npc_question',
+              playerEntityId: 1,
+              entityKind: 'npc',
+              entityId: 8,
+              templateId: 'foreman_odell',
+            },
+          },
+        },
+        {
+          ...audit().recent[0],
+          auditId: 'audit-clean-2',
+          jobId: 'job-clean-2',
+          trigger: 'npc_question',
+          entityId: 4,
+          templateId: 'apothecary_lin',
+          sceneId: 'eastbrook_vale',
+          zoneId: 'eastbrook_vale',
+          providerSource: 'codex',
+          status: 'accepted',
+          latencyMs: 21_782,
+          deliveredSummary: ['thinking:Apothecary Lin:1475'],
+          playerAction: undefined,
+        },
+      ],
+    });
+    const html = renderAiLifeLayerMetrics(metrics(), undefined, undefined, undefined, cleanAudit);
+
+    expect(html).toContain('询问传闻');
+    expect(html).toContain('话题：传闻');
+    expect(html).toContain('NPC: 奥德尔工头 #8');
+    expect(html).toContain('东溪谷 / 东溪谷');
+    expect(html).toContain('Codex CLI 推理');
+    expect(html).toContain('使用允许的台词模板返回，并记录了最终发送摘要。');
+    expect(html).toContain('NPC 提问');
+    expect(html).toContain('触发：NPC 提问');
+    expect(html).toContain('NPC: 林药剂师 #4');
+    expect(html).toContain('林药剂师 思考了 1,475 毫秒后回复。');
+    expect(html).not.toContain('foreman_odell');
+    expect(html).not.toContain('apothecary_lin');
+    expect(html).not.toContain('Apothecary Lin');
+    expect(html).not.toContain('eastbrook_vale');
+    expect(html).not.toContain('topic: rumor');
+    expect(html).not.toContain('触发：npc_question');
+    expect(html).not.toContain('Line-id-only response');
+    expect(html).not.toContain('thinking:Apothecary Lin:1475');
+  });
+
   it('shows AI profile validation issues and escapes issue values', () => {
     setAdminLanguage('en');
     const html = renderAiLifeLayerMetrics(metrics(), coverage(), diagnostics(), profiles({
@@ -475,9 +570,10 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('estimated');
     expect(html).toContain('Recent AI audit records');
     expect(html).toContain('provider error');
-    expect(html).toContain('Player action');
-    expect(html).toContain('Final output');
-    expect(html).toContain('View chain');
+    expect(html).toContain('role="tab" data-ai-tab="audit" aria-selected="true"');
+    expect(html).toContain('role="tab" data-ai-tab="usage" aria-selected="false"');
+    expect(html).toContain('class="ai-audit-card" data-ai-audit-id="audit-1"');
+    expect(html).toContain('class="ai-audit-detail-slot"');
     expect(html).toContain('Clean failed and non-real records');
     expect(html).toContain('codex&lt;script&gt;');
     expect(html).toContain('brother_aldric&lt;script&gt;');
@@ -533,6 +629,15 @@ describe('admin AI life layer metrics renderer', () => {
           rawOutput: '{"speech":"raw <script>"}',
           rawOutputTruncated: false,
           parsedDecision: { speech: [{ mode: 'dynamicText', text: 'parsed <script>' }] },
+          timings: {
+            provider: 'codex-app-server',
+            totalMs: 2345,
+            steps: [
+              { key: 'startupWaitMs', label: 'wait <script>', ms: 7 },
+              { key: 'turnCompleteMs', label: 'model <script>', ms: 2200 },
+              { key: 'parseOutputMs', label: 'parse <script>', ms: 4 },
+            ],
+          },
           error: '',
         },
         validation: {
@@ -585,6 +690,10 @@ describe('admin AI life layer metrics renderer', () => {
 
     expect(html).toContain('AI interaction chain');
     expect(html).toContain('Ask about recent events');
+    expect(html).toContain('Provider timing breakdown');
+    expect(html).toContain('Codex app-server');
+    expect(html).toContain('Model turn completion');
+    expect(html).toContain('2,200 ms');
     expect(html).toContain('Prompt &lt;script&gt; sent to model');
     expect(html).toContain('raw &lt;script&gt;');
     expect(html).toContain('parsed &lt;script&gt;');
@@ -593,5 +702,6 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('Delivered &lt;script&gt;');
     expect(html).not.toContain('Prompt <script>');
     expect(html).not.toContain('Delivered <script>');
+    expect(html).not.toContain('model <script>');
   });
 });

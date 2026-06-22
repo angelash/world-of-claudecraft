@@ -142,16 +142,31 @@ export interface AiDecisionV1 {
   };
 }
 
+export interface AiProviderTimingStep {
+  key: string;
+  label: string;
+  ms: number;
+}
+
+export interface AiProviderTimingSnapshot {
+  provider: string;
+  totalMs: number;
+  steps: AiProviderTimingStep[];
+}
+
 export interface AiProviderDecisionResult {
   decision: AiDecisionV1;
   promptText?: string;
   rawOutput?: string;
+  providerTimings?: AiProviderTimingSnapshot;
 }
 
 export type AiProviderOutput = AiDecisionV1 | AiProviderDecisionResult;
 
 export interface AiProvider {
   decide(context: AiJobContextV1): Promise<AiProviderOutput>;
+  warmup?(): void;
+  close?(): void;
 }
 
 export interface AiValidationResult {

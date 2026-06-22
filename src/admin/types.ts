@@ -117,6 +117,18 @@ export interface AiAuditEventSummary {
   rawTruncated: boolean;
 }
 
+export interface AiProviderTimingStep {
+  key: string;
+  label: string;
+  ms: number;
+}
+
+export interface AiProviderTimingSnapshot {
+  provider: string;
+  totalMs: number;
+  steps: AiProviderTimingStep[];
+}
+
 export interface AiAuditChain {
   playerAction: AiAuditPlayerAction;
   requestContext: {
@@ -129,6 +141,7 @@ export interface AiAuditChain {
     rawOutput: string;
     rawOutputTruncated: boolean;
     parsedDecision: unknown;
+    timings?: AiProviderTimingSnapshot;
     error: string;
   };
   validation: {
@@ -172,6 +185,7 @@ export interface AiAuditRecord {
   memoryWriteRefs: string[];
   reason: string;
   error: string;
+  providerTimings?: AiProviderTimingSnapshot;
   playerAction?: AiAuditPlayerAction;
   deliveredSummary?: string[];
   hasChain?: boolean;
@@ -208,6 +222,7 @@ export interface AiLifeLayerMetricsSnapshot {
   averageProviderLatencyMs: number;
   maxProviderLatencyMs: number;
   lastProviderLatencyMs: number;
+  lastProviderTimings?: AiProviderTimingSnapshot;
   lastProviderError?: string;
   lastMemoryPersistenceError?: string;
   lastMemoryPruneError?: string;

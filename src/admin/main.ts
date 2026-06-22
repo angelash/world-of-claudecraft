@@ -10,6 +10,7 @@ import {
   renderAiAuditRecordDetail, renderAiLifeLayerMetrics, renderModerationDetail, renderModerationQueue,
   renderOnlineTable, renderPager, renderProviderUsage,
 } from './tables';
+import type { AiLifeLayerTab } from './tables';
 import type {
   AccountDetail, AccountRow, Activity, CharacterRow, ChatFilterData, LivePlayer,
   AiAuditCleanupResult, AiAuditRecord, AiVolatileMemoryClearResult, ModerationAccountDetail, ModerationQueueRow, Overview, Paginated,
@@ -41,6 +42,15 @@ function setElementHtmlIfChanged(el: HTMLElement, html: string): void {
   el.innerHTML = html;
 }
 
+function isAiLifeLayerTab(value: string | undefined): value is AiLifeLayerTab {
+  return value === 'audit'
+    || value === 'usage'
+    || value === 'coverage'
+    || value === 'profiles'
+    || value === 'diagnostics'
+    || value === 'details';
+}
+
 interface TableState {
   page: number;
   search: string;
@@ -56,6 +66,10 @@ type AdminPage = 'overview' | 'usage' | 'moderation' | 'chat-filter';
 let activePage: AdminPage = 'overview';
 let pendingModerationAction: { endpoint: string; body: unknown; accountId: number; source: 'account' | 'moderation' } | null = null;
 let selectedAiAuditId: string | null = null;
+let activeAiTab: AiLifeLayerTab = 'audit';
+let loadedAiAuditDetailId: string | null = null;
+let loadedAiAuditDetailHtml = '';
+let loadingAiAuditDetailId: string | null = null;
 
 // ---------------------------------------------------------------------------
 // Auth flow
@@ -65,6 +79,9 @@ function showLogin(message = ''): void {
   if (liveTimer !== null) { clearInterval(liveTimer); liveTimer = null; }
   if (activityTimer !== null) { clearInterval(activityTimer); activityTimer = null; }
   clearSession();
+  selectedAiAuditId = null;
+  activeAiTab = 'audit';
+  clearAiAuditDetailCache();
   $('app').classList.remove('authed');
   $('login').style.display = 'flex';
   $('login-error').textContent = message;
@@ -76,6 +93,49 @@ function handleAuthFailure(err: unknown): boolean {
     return true;
   }
   return false;
+}
+
+function clearAiAuditDetailCache(): void {
+  loadedAiAuditDetailId = null;
+  loadedAiAuditDetailHtml = '';
+  loadingAiAuditDetailId = null;
+}
+
+function syncAiAuditSelection(): void {
+  document.querySelectorAll<HTMLButtonElement>('.ai-audit-card[data-ai-audit-id]').forEach((card) => {
+    const selected = !!selectedAiAuditId && card.dataset.aiAuditId === selectedAiAuditId;
+    card.classList.toggle('active', selected);
+    card.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+}
+
+function restoreAiAuditDetailIfCached(): boolean {
+  const target = document.getElementById('ai-audit-detail');
+  if (!target || !selectedAiAuditId) return false;
+  if (loadedAiAuditDetailId !== selectedAiAuditId || !loadedAiAuditDetailHtml) return false;
+  setElementHtmlIfChanged(target, loadedAiAuditDetailHtml);
+  return true;
+}
+
+function setActiveAiTab(tab: AiLifeLayerTab): void {
+  activeAiTab = tab;
+  document.querySelectorAll<HTMLButtonElement>('#ai-usage [data-ai-tab]').forEach((button) => {
+    const selected = button.dataset.aiTab === tab;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-selected', selected ? 'true' : 'false');
+    button.tabIndex = selected ? 0 : -1;
+  });
+  document.querySelectorAll<HTMLElement>('#ai-usage [data-ai-tab-panel]').forEach((panel) => {
+    const selected = panel.dataset.aiTabPanel === tab;
+    panel.classList.toggle('active', selected);
+    panel.hidden = !selected;
+  });
+  if (tab === 'audit') {
+    syncAiAuditSelection();
+    if (!restoreAiAuditDetailIfCached() && selectedAiAuditId && loadingAiAuditDetailId !== selectedAiAuditId) {
+      void loadAiAuditDetail(selectedAiAuditId);
+    }
+  }
 }
 
 async function showApp(): Promise<void> {
@@ -147,6 +207,7 @@ async function applyAdminLanguage(lang: string): Promise<void> {
     return;
   }
   persistAdminLanguage(lang);
+  clearAiAuditDetailCache();
   localizeStatic();
   await refreshLocalizedAdminPanels();
 }
@@ -193,9 +254,14 @@ async function refreshLive(): Promise<void> {
       overview.aiDiagnostics,
       overview.aiProfiles,
       overview.aiAudit,
+      activeAiTab,
+      selectedAiAuditId,
     ));
-    if (selectedAiAuditId && document.getElementById('ai-audit-detail')) {
-      void loadAiAuditDetail(selectedAiAuditId);
+    if (activeAiTab === 'audit' && selectedAiAuditId && document.getElementById('ai-audit-detail')) {
+      syncAiAuditSelection();
+      if (!restoreAiAuditDetailIfCached() && loadingAiAuditDetailId !== selectedAiAuditId) {
+        void loadAiAuditDetail(selectedAiAuditId);
+      }
     }
     setHtmlIfChanged('usage', renderProviderUsage(overview.usage));
     setHtmlIfChanged('online', renderOnlineTable(online.players));
@@ -222,14 +288,27 @@ async function loadAiAuditDetail(auditId: string): Promise<void> {
   const target = document.getElementById('ai-audit-detail');
   if (!target) return;
   selectedAiAuditId = auditId;
+  syncAiAuditSelection();
+  if (loadedAiAuditDetailId === auditId && loadedAiAuditDetailHtml) {
+    setElementHtmlIfChanged(target, loadedAiAuditDetailHtml);
+    return;
+  }
+  loadingAiAuditDetailId = auditId;
   setElementHtmlIfChanged(target, `<div class="empty">${t('usage.aiAuditDetailLoading')}</div>`);
   try {
     const record = await apiGet<AiAuditRecord>(`/admin/api/ai/audit/${encodeURIComponent(auditId)}`);
-    setElementHtmlIfChanged(target, renderAiAuditRecordDetail(record));
+    if (selectedAiAuditId !== auditId) return;
+    loadedAiAuditDetailId = auditId;
+    loadedAiAuditDetailHtml = renderAiAuditRecordDetail(record);
+    const currentTarget = document.getElementById('ai-audit-detail') ?? target;
+    setElementHtmlIfChanged(currentTarget, loadedAiAuditDetailHtml);
   } catch (err) {
     if (!handleAuthFailure(err)) {
-      setElementHtmlIfChanged(target, `<div class="empty">${t('usage.aiAuditDetailLoadFailed')}</div>`);
+      const currentTarget = document.getElementById('ai-audit-detail') ?? target;
+      setElementHtmlIfChanged(currentTarget, `<div class="empty">${t('usage.aiAuditDetailLoadFailed')}</div>`);
     }
+  } finally {
+    if (loadingAiAuditDetailId === auditId) loadingAiAuditDetailId = null;
   }
 }
 
@@ -238,6 +317,7 @@ async function cleanAiAuditRecords(): Promise<void> {
   try {
     const result = await apiPost<AiAuditCleanupResult>('/admin/api/ai/audit/clean', {});
     selectedAiAuditId = null;
+    clearAiAuditDetailCache();
     await refreshLive();
     window.alert(t('usage.aiAuditCleanSuccess', {
       deleted: result.deletedRecords,
@@ -620,17 +700,46 @@ function wireEvents(): void {
 
   $('ai-usage').addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
+    const aiTabButton = target.closest<HTMLButtonElement>('button[data-ai-tab]');
+    if (aiTabButton && isAiLifeLayerTab(aiTabButton.dataset.aiTab)) {
+      setActiveAiTab(aiTabButton.dataset.aiTab);
+      return;
+    }
     const clearButton = target.closest('button[data-clear-ai-memory]');
-    if (clearButton) void clearAiMemory();
+    if (clearButton) {
+      void clearAiMemory();
+      return;
+    }
     const cleanButton = target.closest('button[data-clean-ai-audit]');
     if (cleanButton) {
       void cleanAiAuditRecords();
       return;
     }
-    const detailButton = target.closest('button[data-ai-audit-id]') as HTMLButtonElement | null;
-    const row = target.closest('tr[data-ai-audit-id]') as HTMLTableRowElement | null;
-    const auditId = detailButton?.dataset.aiAuditId ?? row?.dataset.aiAuditId ?? '';
-    if (auditId && !detailButton?.disabled) void loadAiAuditDetail(auditId);
+    const auditCard = target.closest<HTMLButtonElement>('.ai-audit-card[data-ai-audit-id]');
+    const auditId = auditCard?.dataset.aiAuditId ?? '';
+    if (auditId) void loadAiAuditDetail(auditId);
+  });
+
+  $('ai-usage').addEventListener('keydown', (e) => {
+    const target = e.target as HTMLElement;
+    const current = target.closest<HTMLButtonElement>('button[data-ai-tab]');
+    if (!current) return;
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Home' && e.key !== 'End') return;
+    const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('#ai-usage button[data-ai-tab]'))
+      .filter((button) => isAiLifeLayerTab(button.dataset.aiTab));
+    const currentIndex = tabs.indexOf(current);
+    if (currentIndex < 0 || tabs.length === 0) return;
+    e.preventDefault();
+    const nextIndex = e.key === 'Home'
+      ? 0
+      : e.key === 'End'
+        ? tabs.length - 1
+        : (currentIndex + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    const next = tabs[nextIndex];
+    if (next && isAiLifeLayerTab(next.dataset.aiTab)) {
+      next.focus();
+      setActiveAiTab(next.dataset.aiTab);
+    }
   });
 
   let searchTimer: number | null = null;

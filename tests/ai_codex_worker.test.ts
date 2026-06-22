@@ -1,4 +1,8 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { CodexAppServerProvider } from '../server/ai/codex_app_server_provider';
 import {
   CodexCliProvider,
   parseCodexDecisionOutput,
@@ -55,6 +59,74 @@ function validDecision(overrides: Partial<AiDecisionV1> = {}): AiDecisionV1 {
     audit: { shortReason: 'bounded codex decision', usedPlayerInput: false, safetyNotes: [] },
     ...overrides,
   };
+}
+
+async function makeFakeCodexAppServer(): Promise<{ dir: string; entry: string }> {
+  const dir = await mkdtemp(join(tmpdir(), 'woc-fake-codex-app-server-'));
+  const entry = join(dir, 'app-server');
+  await writeFile(entry, `
+const readline = require('node:readline');
+let nextThreadId = 1;
+const send = (payload) => process.stdout.write(JSON.stringify(payload) + '\\n');
+const decisionForPrompt = (prompt) => {
+  const jobId = /"jobId"\\s*:\\s*"([^"]+)"/.exec(prompt)?.[1] || 'job-codex-worker';
+  return JSON.stringify({
+    schemaVersion: 1,
+    jobId,
+    entityRef: { kind: 'npc', entityId: 7, templateId: 'brother_aldric' },
+    ttlMs: 5000,
+    confidence: 0.9,
+    speech: [{ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
+    intents: [{ type: 'commentOnScene', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
+    audit: { shortReason: 'fake app-server decision', usedPlayerInput: false, safetyNotes: [] },
+  });
+};
+readline.createInterface({ input: process.stdin }).on('line', (line) => {
+  const message = JSON.parse(line);
+  const params = message.params || {};
+  if (message.method === 'initialize') {
+    send({ id: message.id, result: {} });
+    return;
+  }
+  if (message.method === 'initialized') return;
+  if (message.method === 'thread/start') {
+    send({ id: message.id, result: { thread: { id: 'thread-' + nextThreadId++ } } });
+    return;
+  }
+  if (message.method === 'turn/start') {
+    const threadId = params.threadId;
+    const prompt = Array.isArray(params.input) && params.input[0] ? String(params.input[0].text || '') : '';
+    const output = decisionForPrompt(prompt);
+    send({ id: message.id, result: {} });
+    send({ method: 'turn/started', params: { threadId } });
+    send({ method: 'item/agentMessage/delta', params: { threadId, delta: output.slice(0, 12) } });
+    send({ method: 'item/agentMessage/delta', params: { threadId, delta: output.slice(12) } });
+    send({ method: 'item/completed', params: { threadId, item: { type: 'agentMessage', text: output } } });
+    send({ method: 'turn/completed', params: { threadId, turn: { status: { type: 'completed' } } } });
+    return;
+  }
+  if (message.method === 'thread/rollback') {
+    send({ id: message.id, result: {} });
+    return;
+  }
+  send({ id: message.id, error: { message: 'unexpected method ' + message.method } });
+});
+`, 'utf8');
+  return { dir, entry };
+}
+
+async function removeFakeCodexAppServerDir(dir: string): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    try {
+      await rm(dir, { recursive: true, force: true });
+      return;
+    } catch (err) {
+      lastError = err;
+      await new Promise((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 describe('Codex CLI AI provider', () => {
@@ -152,18 +224,98 @@ describe('Codex CLI AI provider', () => {
     expect(resolved.length).toBeGreaterThan(0);
   });
 
+  it('uses a warm app-server worker and reports provider timing steps', async () => {
+    const fake = await makeFakeCodexAppServer();
+    const provider = new CodexAppServerProvider({
+      codexBin: process.execPath,
+      repoRoot: fake.dir,
+      poolSize: 1,
+      startImmediately: false,
+      startupTimeoutMs: 1000,
+      requestTimeoutMs: 1000,
+      timeoutMs: 3000,
+      model: null,
+      effort: null,
+    });
+    try {
+      const result = await provider.decide(context);
+
+      expect(result.decision).toMatchObject({
+        schemaVersion: 1,
+        jobId: context.jobId,
+        entityRef: {
+          kind: context.entity.kind,
+          entityId: context.entity.entityId,
+          templateId: context.entity.templateId,
+        },
+      });
+      expect(result.providerTimings).toEqual(expect.objectContaining({
+        provider: 'codex-app-server',
+        totalMs: expect.any(Number),
+      }));
+      expect(result.providerTimings?.steps.map((step) => step.key)).toEqual(expect.arrayContaining([
+        'buildPromptMs',
+        'startupWaitMs',
+        'queueWaitMs',
+        'turnStartAckMs',
+        'turnCompleteMs',
+        'firstDeltaMs',
+        'firstAgentMessageMs',
+        'threadResetMs',
+        'parseOutputMs',
+      ]));
+    } finally {
+      provider.close();
+      await removeFakeCodexAppServerDir(fake.dir);
+    }
+  });
+
   const realCodexIt = process.env.RUN_REAL_CODEX_CLI === '1' ? it : it.skip;
   realCodexIt('runs the real Codex CLI path and returns a validated decision', async () => {
     const provider = new CodexCliProvider({ timeoutMs: 120_000 });
 
-    await expect(provider.decide(context)).resolves.toMatchObject({
-      schemaVersion: 1,
-      jobId: context.jobId,
-      entityRef: {
-        kind: context.entity.kind,
-        entityId: context.entity.entityId,
-        templateId: context.entity.templateId,
+    const result = await provider.decide(context);
+    if (process.env.PRINT_REAL_CODEX_TIMINGS === '1') {
+      console.info('REAL_CODEX_EXEC_TIMINGS', JSON.stringify(result.providerTimings));
+    }
+    expect(result).toMatchObject({
+      decision: {
+        schemaVersion: 1,
+        jobId: context.jobId,
+        entityRef: {
+          kind: context.entity.kind,
+          entityId: context.entity.entityId,
+          templateId: context.entity.templateId,
+        },
       },
+      providerTimings: expect.objectContaining({ provider: 'codex-exec' }),
     });
+  }, 150_000);
+
+  const realCodexAppServerIt = process.env.RUN_REAL_CODEX_APP_SERVER === '1' ? it : it.skip;
+  realCodexAppServerIt('runs the real Codex app-server path and returns timing metadata', async () => {
+    const provider = new CodexAppServerProvider({
+      timeoutMs: 120_000,
+      startupTimeoutMs: 30_000,
+      requestTimeoutMs: 30_000,
+      poolSize: 1,
+      startImmediately: false,
+    });
+    try {
+      const result = await provider.decide(context);
+      if (process.env.PRINT_REAL_CODEX_TIMINGS === '1') {
+        console.info('REAL_CODEX_APP_SERVER_TIMINGS', JSON.stringify(result.providerTimings));
+        const warmResult = await provider.decide(context);
+        console.info('REAL_CODEX_APP_SERVER_WARM_TIMINGS', JSON.stringify(warmResult.providerTimings));
+      }
+      expect(result.decision).toMatchObject({
+        schemaVersion: 1,
+        jobId: context.jobId,
+      });
+      expect(result.providerTimings?.provider).toBe('codex-app-server');
+      expect(result.providerTimings?.steps.map((step) => step.key)).toContain('turnCompleteMs');
+    } finally {
+      provider.close();
+    }
   }, 150_000);
 });

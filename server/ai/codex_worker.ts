@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { performance } from 'node:perf_hooks';
 import { createInterface } from 'node:readline';
 import type {
   AiDecisionV1,
@@ -11,6 +12,7 @@ import type {
   AiJobContextV1,
   AiProvider,
   AiProviderDecisionResult,
+  AiProviderTimingStep,
   AiSpeech,
 } from './ai_types';
 import { buildCodexDecisionPrompt } from './prompt_builder';
@@ -22,7 +24,7 @@ export interface CodexCliProviderOptions {
   repoRoot?: string;
 }
 
-const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
+export const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
   type: 'object',
   additionalProperties: false,
   properties: {
@@ -158,26 +160,49 @@ export class CodexCliProvider implements AiProvider {
   }
 
   async decide(context: AiJobContextV1): Promise<AiProviderDecisionResult> {
+    const totalStartedAt = performance.now();
+    const steps: AiProviderTimingStep[] = [];
+    const recordStep = (key: string, label: string, startedAt: number): void => {
+      steps.push({ key, label, ms: performance.now() - startedAt });
+    };
+    let stepStartedAt = performance.now();
     const dir = await mkdtemp(join(tmpdir(), 'woc-ai-'));
+    recordStep('tempDirMs', 'create temp dir', stepStartedAt);
     const inputPath = join(dir, 'job.json');
     const outputPath = join(dir, 'decision.json');
     const schemaPath = join(dir, 'decision.schema.json');
+    stepStartedAt = performance.now();
     const promptText = buildCodexDecisionPrompt(context);
+    recordStep('buildPromptMs', 'build prompt', stepStartedAt);
+    stepStartedAt = performance.now();
     await writeFile(inputPath, JSON.stringify(context, null, 2), 'utf8');
     await writeFile(schemaPath, JSON.stringify(AI_DECISION_OUTPUT_SCHEMA, null, 2), 'utf8');
+    recordStep('writeFilesMs', 'write job and schema files', stepStartedAt);
     try {
+      stepStartedAt = performance.now();
       const result = await this.execCodex(promptText, schemaPath, outputPath);
+      recordStep('codexExecMs', 'codex exec subprocess', stepStartedAt);
       let raw: string;
       try {
+        stepStartedAt = performance.now();
         raw = await readFile(outputPath, 'utf8');
+        recordStep('readOutputMs', 'read structured output', stepStartedAt);
       } catch (err) {
         if (result.lastAgentMessage) raw = result.lastAgentMessage;
         else throw new Error(`Codex CLI completed but did not write a structured decision: ${errorMessage(err)}`);
       }
+      stepStartedAt = performance.now();
+      const decision = parseCodexDecisionOutput(raw);
+      recordStep('parseOutputMs', 'parse structured output', stepStartedAt);
       return {
-        decision: parseCodexDecisionOutput(raw),
+        decision,
         promptText,
         rawOutput: raw,
+        providerTimings: {
+          provider: 'codex-exec',
+          totalMs: performance.now() - totalStartedAt,
+          steps,
+        },
       };
     } finally {
       await rm(dir, { recursive: true, force: true });
@@ -374,7 +399,7 @@ export function resolveCodexBinary(env: NodeJS.ProcessEnv = process.env): string
   return process.platform === 'win32' ? 'codex.exe' : 'codex';
 }
 
-function envPositiveInt(name: string, fallback: number): number {
+export function envPositiveInt(name: string, fallback: number): number {
   const value = Number(process.env[name]);
   return Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
 }

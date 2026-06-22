@@ -19,6 +19,7 @@ import type {
   AiOutputMode,
   AiProvider,
   AiProviderOutput,
+  AiProviderTimingSnapshot,
 } from './ai_types';
 import { aiEntityKind } from './ai_types';
 import {
@@ -30,6 +31,7 @@ import {
 } from './boss_memory';
 import type { AiBossEncounterMemory, AiBossEncounterPhaseCue } from './boss_memory';
 import { classifyCanonSubject } from './canon_guard';
+import { CodexAppServerProvider } from './codex_app_server_provider';
 import { CodexCliProvider } from './codex_worker';
 import { companionReactionEvents, companionReactionEventsForScene } from './companion_reactions';
 import { AiCreatureMemoryStore, creaturePlanReactionMetadata, singularityCreatureMemoryEvent, singularityCreatureSceneMemoryEvent } from './creature_memory';
@@ -114,6 +116,7 @@ export interface AiLifeLayerMetricsSnapshot {
   averageProviderLatencyMs: number;
   maxProviderLatencyMs: number;
   lastProviderLatencyMs: number;
+  lastProviderTimings?: AiProviderTimingSnapshot;
   lastProviderError?: string;
   lastMemoryPersistenceError?: string;
   lastMemoryPruneError?: string;
@@ -155,6 +158,7 @@ interface AiLifeLayerMetricsState {
   totalProviderLatencyMs: number;
   maxProviderLatencyMs: number;
   lastProviderLatencyMs: number;
+  lastProviderTimings?: AiProviderTimingSnapshot;
   lastProviderError?: string;
   lastMemoryPersistenceError?: string;
   lastMemoryPruneError?: string;
@@ -295,13 +299,14 @@ export class AiLifeLayer {
 
   constructor(options: AiLifeLayerOptions = {}) {
     this.enabled = options.enabled ?? process.env.AI_LIVING_WORLD_EXPERIMENT !== '0';
-    this.provider = options.provider ?? new CodexCliProvider();
+    this.provider = options.provider ?? defaultAiProvider();
     this.journal = new AiDecisionJournal(options.journalSize);
     this.memoryDb = options.memoryDb ?? null;
     this.memoryPersistBatchSize = Math.max(1, Math.min(200, Math.floor(options.memoryPersistBatchSize ?? 32)));
     this.auditSink = options.auditSink ?? null;
     this.auditProviderSource = options.auditProviderSource
       ?? (options.provider ? 'provider' : 'codex');
+    if (this.enabled && !options.provider) this.provider.warmup?.();
   }
 
   diagnostics(): AiDecisionJournalEntry[] {
@@ -708,6 +713,7 @@ export class AiLifeLayer {
     let decision: AiDecisionV1;
     let promptText: string | undefined;
     let rawOutput: string | undefined;
+    let providerTimings: AiProviderTimingSnapshot | undefined;
     let providerLatencyMs = 0;
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
@@ -716,8 +722,9 @@ export class AiLifeLayer {
       decision = providerOutput.decision;
       promptText = providerOutput.promptText;
       rawOutput = providerOutput.rawOutput;
+      providerTimings = providerOutput.providerTimings;
       providerLatencyMs = performance.now() - providerStartedAt;
-      this.recordProviderLatency(providerLatencyMs);
+      this.recordProviderLatency(providerLatencyMs, providerTimings);
       this.metrics.providerSuccesses++;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
@@ -756,6 +763,7 @@ export class AiLifeLayer {
         memoryWrites,
         promptText,
         rawOutput,
+        providerTimings,
         deliveredEvents: [event],
       });
       this.metrics.generatedEvents++;
@@ -785,6 +793,7 @@ export class AiLifeLayer {
         memoryWrites,
         promptText,
         rawOutput,
+        providerTimings,
         deliveredEvents: events,
       });
       if (events.length > 0) {
@@ -1026,6 +1035,7 @@ export class AiLifeLayer {
     let decision: AiDecisionV1;
     let promptText: string | undefined;
     let rawOutput: string | undefined;
+    let providerTimings: AiProviderTimingSnapshot | undefined;
     let providerLatencyMs = 0;
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
@@ -1034,8 +1044,9 @@ export class AiLifeLayer {
       decision = providerOutput.decision;
       promptText = providerOutput.promptText;
       rawOutput = providerOutput.rawOutput;
+      providerTimings = providerOutput.providerTimings;
       providerLatencyMs = performance.now() - providerStartedAt;
-      this.recordProviderLatency(providerLatencyMs);
+      this.recordProviderLatency(providerLatencyMs, providerTimings);
       this.metrics.providerSuccesses++;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
@@ -1070,6 +1081,7 @@ export class AiLifeLayer {
         result,
         promptText,
         rawOutput,
+        providerTimings,
         deliveredEvents: [event],
       });
       this.metrics.generatedEvents++;
@@ -1084,6 +1096,7 @@ export class AiLifeLayer {
       result,
       promptText,
       rawOutput,
+      providerTimings,
       deliveredEvents: [],
     });
     if (!intent) return petCommandActionFromIntent('commandPetIgnore', 'codex', `${decision.audit.shortReason}: no bounded pet intent`);
@@ -1100,6 +1113,7 @@ export class AiLifeLayer {
     let decision: AiDecisionV1;
     let promptText: string | undefined;
     let rawOutput: string | undefined;
+    let providerTimings: AiProviderTimingSnapshot | undefined;
     let providerLatencyMs = 0;
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
@@ -1108,8 +1122,9 @@ export class AiLifeLayer {
       decision = providerOutput.decision;
       promptText = providerOutput.promptText;
       rawOutput = providerOutput.rawOutput;
+      providerTimings = providerOutput.providerTimings;
       providerLatencyMs = performance.now() - providerStartedAt;
-      this.recordProviderLatency(providerLatencyMs);
+      this.recordProviderLatency(providerLatencyMs, providerTimings);
       this.metrics.providerSuccesses++;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
@@ -1144,6 +1159,7 @@ export class AiLifeLayer {
         memoryWrites,
         promptText,
         rawOutput,
+        providerTimings,
         deliveredEvents: [event],
       });
       return [event];
@@ -1157,9 +1173,14 @@ export class AiLifeLayer {
       memoryWrites,
       promptText,
       rawOutput,
+      providerTimings,
       deliveredEvents: events,
     });
     return events;
+  }
+
+  stop(): void {
+    this.provider.close?.();
   }
 
   private buildSingularityContext(input: {
@@ -1258,6 +1279,7 @@ export class AiLifeLayer {
     let decision: AiDecisionV1;
     let promptText: string | undefined;
     let rawOutput: string | undefined;
+    let providerTimings: AiProviderTimingSnapshot | undefined;
     let providerLatencyMs = 0;
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
@@ -1266,8 +1288,9 @@ export class AiLifeLayer {
       decision = providerOutput.decision;
       promptText = providerOutput.promptText;
       rawOutput = providerOutput.rawOutput;
+      providerTimings = providerOutput.providerTimings;
       providerLatencyMs = performance.now() - providerStartedAt;
-      this.recordProviderLatency(providerLatencyMs);
+      this.recordProviderLatency(providerLatencyMs, providerTimings);
       this.metrics.providerSuccesses++;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
@@ -1302,6 +1325,7 @@ export class AiLifeLayer {
         memoryWrites,
         promptText,
         rawOutput,
+        providerTimings,
         deliveredEvents: [event],
       });
       return [event];
@@ -1315,6 +1339,7 @@ export class AiLifeLayer {
       memoryWrites,
       promptText,
       rawOutput,
+      providerTimings,
       deliveredEvents: events,
     });
     return events;
@@ -1540,6 +1565,7 @@ export class AiLifeLayer {
     providerError?: string;
     promptText?: string;
     rawOutput?: string;
+    providerTimings?: AiProviderTimingSnapshot;
     deliveredEvents?: readonly SimEvent[];
   }): void {
     const promptText = input.promptText
@@ -1556,6 +1582,7 @@ export class AiLifeLayer {
       providerError: input.providerError,
       promptText,
       rawOutput: input.rawOutput,
+      providerTimings: input.providerTimings,
       deliveredEvents: input.deliveredEvents,
     }));
   }
@@ -1632,11 +1659,12 @@ export class AiLifeLayer {
     this.metrics.lastMemoryPersistenceError = message;
   }
 
-  private recordProviderLatency(durationMs: number): void {
+  private recordProviderLatency(durationMs: number, providerTimings?: AiProviderTimingSnapshot): void {
     const safeDuration = Number.isFinite(durationMs) && durationMs >= 0 ? durationMs : 0;
     this.metrics.lastProviderLatencyMs = safeDuration;
     this.metrics.totalProviderLatencyMs += safeDuration;
     this.metrics.maxProviderLatencyMs = Math.max(this.metrics.maxProviderLatencyMs, safeDuration);
+    if (providerTimings) this.metrics.lastProviderTimings = providerTimings;
   }
 
   private playerForEncounterSource(sim: Sim, source: Entity | undefined): Entity | null {
@@ -1948,15 +1976,25 @@ function normalizeProviderOutput(output: AiProviderOutput): {
   decision: AiDecisionV1;
   promptText?: string;
   rawOutput?: string;
+  providerTimings?: AiProviderTimingSnapshot;
 } {
   if ('decision' in output) {
     return {
       decision: output.decision,
       promptText: output.promptText,
       rawOutput: output.rawOutput,
+      providerTimings: output.providerTimings,
     };
   }
   return { decision: output };
+}
+
+function defaultAiProvider(): AiProvider {
+  const mode = (process.env.AI_CODEX_PROVIDER ?? 'exec').trim().toLowerCase();
+  if (mode === 'app-server' || mode === 'app_server' || mode === 'appserver') {
+    return new CodexAppServerProvider();
+  }
+  return new CodexCliProvider();
 }
 
 function highPrioritySceneEvent(event: SimEvent | null): SimEvent | null {

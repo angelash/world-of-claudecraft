@@ -8,6 +8,7 @@ import type {
   AiAuditRecord,
   AiAuditStatus,
 } from './ai_audit';
+import type { AiProviderTimingSnapshot } from './ai/ai_types';
 import { REALM } from './realm';
 
 const REALM_SQL_DEFAULT = REALM.replace(/'/g, "''");
@@ -215,6 +216,8 @@ export function normalizeAiAuditRecord(value: unknown): AiAuditRecord | null {
   const deliveredSummary = textArray(src.deliveredSummary, 12, 600);
   const chain = normalizeAiAuditChain(src.chain);
   const hasChain = typeof src.hasChain === 'boolean' ? src.hasChain || chain !== null : chain !== null;
+  const providerTimings = normalizeAiProviderTimings(src.providerTimings)
+    ?? normalizeAiProviderTimings(chain?.provider.timings);
   return {
     auditId,
     realm: textValue(src.realm, 96) || REALM,
@@ -245,6 +248,7 @@ export function normalizeAiAuditRecord(value: unknown): AiAuditRecord | null {
     memoryWriteRefs: textArray(src.memoryWriteRefs, 24, 180),
     reason: textValue(src.reason, 600),
     error: textValue(src.error, 600),
+    ...(providerTimings ? { providerTimings } : {}),
     ...(playerAction ? { playerAction } : {}),
     ...(deliveredSummary.length > 0 ? { deliveredSummary } : {}),
     ...(hasChain ? { hasChain: true } : {}),
@@ -294,6 +298,7 @@ function normalizeAiAuditChain(value: unknown): AiAuditChain | null {
   const provider = objectValue(src.provider);
   const validation = objectValue(src.validation);
   const delivered = objectValue(src.delivered);
+  const providerTimings = normalizeAiProviderTimings(provider.timings);
   return {
     playerAction,
     requestContext: {
@@ -306,6 +311,7 @@ function normalizeAiAuditChain(value: unknown): AiAuditChain | null {
       rawOutput: textValue(provider.rawOutput, 64_000),
       rawOutputTruncated: booleanValue(provider.rawOutputTruncated),
       parsedDecision: objectOrNull(provider.parsedDecision) as AiAuditChain['provider']['parsedDecision'],
+      ...(providerTimings ? { timings: providerTimings } : {}),
       error: textValue(provider.error, 1_200),
     },
     validation: {
@@ -317,6 +323,33 @@ function normalizeAiAuditChain(value: unknown): AiAuditChain | null {
       events: normalizeAiAuditEventSummaries(delivered.events),
       textSummary: textArray(delivered.textSummary, 12, 600),
     },
+  };
+}
+
+function normalizeAiProviderTimings(value: unknown): AiProviderTimingSnapshot | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const src = value as Record<string, unknown>;
+  const provider = textValue(src.provider, 80);
+  const steps = Array.isArray(src.steps)
+    ? src.steps
+      .slice(0, 32)
+      .map((entry) => {
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+        const step = entry as Record<string, unknown>;
+        const key = textValue(step.key, 80);
+        const label = textValue(step.label, 160);
+        const ms = numberValue(step.ms);
+        if (!key) return null;
+        return { key, label, ms };
+      })
+      .filter((entry): entry is AiProviderTimingSnapshot['steps'][number] => entry !== null)
+    : [];
+  const totalMs = numberValue(src.totalMs);
+  if (!provider && steps.length === 0 && totalMs <= 0) return null;
+  return {
+    provider,
+    totalMs,
+    steps,
   };
 }
 
