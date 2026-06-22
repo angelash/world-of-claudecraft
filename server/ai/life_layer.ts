@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
 import { NPCS, QUESTS } from '../../src/sim/data';
 import type { Sim } from '../../src/sim/sim';
@@ -78,6 +79,9 @@ export interface AiLifeLayerOptions {
   memoryPersistBatchSize?: number;
   auditSink?: AiAuditSink;
   auditProviderSource?: Exclude<AiAuditProviderSource, 'fallback' | 'local'>;
+  providerCacheEnabled?: boolean;
+  providerCacheMaxEntries?: number;
+  providerCacheMaxTtlMs?: number;
 }
 
 export interface AiMemoryPersistenceQuery {
@@ -116,7 +120,12 @@ export interface AiLifeLayerMetricsSnapshot {
   averageProviderLatencyMs: number;
   maxProviderLatencyMs: number;
   lastProviderLatencyMs: number;
+  providerCacheHits: number;
+  providerCacheMisses: number;
+  providerCacheStores: number;
+  providerCacheEntries: number;
   lastProviderTimings?: AiProviderTimingSnapshot;
+  lastProviderCacheKey?: string;
   lastProviderError?: string;
   lastMemoryPersistenceError?: string;
   lastMemoryPruneError?: string;
@@ -158,11 +167,40 @@ interface AiLifeLayerMetricsState {
   totalProviderLatencyMs: number;
   maxProviderLatencyMs: number;
   lastProviderLatencyMs: number;
+  providerCacheHits: number;
+  providerCacheMisses: number;
+  providerCacheStores: number;
+  providerCacheEntries: number;
   lastProviderTimings?: AiProviderTimingSnapshot;
+  lastProviderCacheKey?: string;
   lastProviderError?: string;
   lastMemoryPersistenceError?: string;
   lastMemoryPruneError?: string;
 }
+
+interface AiProviderDecisionCacheEntry {
+  decision: AiDecisionV1;
+  expiresAtMs: number;
+}
+
+type AiProviderDecisionAttempt =
+  | {
+    ok: true;
+    fromCache: boolean;
+    cacheKey: string | null;
+    decision: AiDecisionV1;
+    latencyMs: number;
+    promptText?: string;
+    rawOutput?: string;
+    providerTimings?: AiProviderTimingSnapshot;
+  }
+  | {
+    ok: false;
+    fromCache: false;
+    cacheKey: string | null;
+    reason: string;
+    latencyMs: number;
+  };
 
 interface AiLocalReactionAuditInput {
   jobId: string;
@@ -256,6 +294,9 @@ const PET_COMMAND_INTENTS: readonly AiPetCommandIntent[] = [
   'commandPetTaunt',
   'commandPetIgnore',
 ];
+const DEFAULT_PROVIDER_CACHE_MAX_ENTRIES = 128;
+const DEFAULT_PROVIDER_CACHE_MAX_TTL_MS = 12_000;
+const PROVIDER_CACHE_VERSION = 'ai-decision-cache-v1';
 
 export class AiLifeLayer {
   private readonly enabled: boolean;
@@ -271,6 +312,10 @@ export class AiLifeLayer {
   private readonly memoryPersistBatchSize: number;
   private readonly auditSink: AiAuditSink | null;
   private readonly auditProviderSource: Exclude<AiAuditProviderSource, 'fallback' | 'local'>;
+  private readonly providerCacheEnabled: boolean;
+  private readonly providerCacheMaxEntries: number;
+  private readonly providerCacheMaxTtlMs: number;
+  private readonly providerDecisionCache = new Map<string, AiProviderDecisionCacheEntry>();
   private readonly pendingMemoryWrites: AiMemoryAuditRecord[] = [];
   private readonly memoryPersistenceErrors: string[] = [];
   private readonly metrics: AiLifeLayerMetricsState = {
@@ -291,6 +336,10 @@ export class AiLifeLayer {
     totalProviderLatencyMs: 0,
     maxProviderLatencyMs: 0,
     lastProviderLatencyMs: 0,
+    providerCacheHits: 0,
+    providerCacheMisses: 0,
+    providerCacheStores: 0,
+    providerCacheEntries: 0,
   };
   private memoryFlushPromise: Promise<void> | null = null;
   private memoryPrunePromise: Promise<number> | null = null;
@@ -306,6 +355,9 @@ export class AiLifeLayer {
     this.auditSink = options.auditSink ?? null;
     this.auditProviderSource = options.auditProviderSource
       ?? (options.provider ? 'provider' : 'codex');
+    this.providerCacheEnabled = options.providerCacheEnabled ?? process.env.AI_PROVIDER_DECISION_CACHE !== '0';
+    this.providerCacheMaxEntries = Math.max(1, Math.floor(options.providerCacheMaxEntries ?? envPositiveIntLocal('AI_PROVIDER_CACHE_MAX_ENTRIES', DEFAULT_PROVIDER_CACHE_MAX_ENTRIES)));
+    this.providerCacheMaxTtlMs = Math.max(250, Math.floor(options.providerCacheMaxTtlMs ?? envPositiveIntLocal('AI_PROVIDER_CACHE_MAX_TTL_MS', DEFAULT_PROVIDER_CACHE_MAX_TTL_MS)));
     if (this.enabled && !options.provider) this.provider.warmup?.();
   }
 
@@ -376,6 +428,8 @@ export class AiLifeLayer {
       persistedMemoryRecords: 0,
     };
     this.pendingMemoryWrites.splice(0);
+    this.providerDecisionCache.clear();
+    this.metrics.providerCacheEntries = 0;
     return {
       ...result,
       totalCleared: Object.values(result).reduce((sum, count) => sum + count, 0),
@@ -402,6 +456,7 @@ export class AiLifeLayer {
   runtimeMetrics(): AiLifeLayerMetricsSnapshot {
     return {
       ...this.metrics,
+      providerCacheEntries: this.providerDecisionCache.size,
       averageProviderLatencyMs: this.metrics.providerCalls > 0
         ? this.metrics.totalProviderLatencyMs / this.metrics.providerCalls
         : 0,
@@ -715,23 +770,10 @@ export class AiLifeLayer {
     let rawOutput: string | undefined;
     let providerTimings: AiProviderTimingSnapshot | undefined;
     let providerLatencyMs = 0;
-    const providerStartedAt = performance.now();
-    this.metrics.providerCalls++;
-    try {
-      const providerOutput = normalizeProviderOutput(await this.provider.decide(context));
-      decision = providerOutput.decision;
-      promptText = providerOutput.promptText;
-      rawOutput = providerOutput.rawOutput;
-      providerTimings = providerOutput.providerTimings;
-      providerLatencyMs = performance.now() - providerStartedAt;
-      this.recordProviderLatency(providerLatencyMs, providerTimings);
-      this.metrics.providerSuccesses++;
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : String(err);
-      providerLatencyMs = performance.now() - providerStartedAt;
-      this.recordProviderLatency(providerLatencyMs);
-      this.metrics.providerErrors++;
-      this.metrics.lastProviderError = reason;
+    const providerAttempt = await this.decideWithProviderCache(context);
+    if (!providerAttempt.ok) {
+      const reason = providerAttempt.reason;
+      providerLatencyMs = providerAttempt.latencyMs;
       this.journal.recordProviderError(context, reason, memoryWrites);
       const event = providerFailureErrorEvent(context, reason);
       this.recordProviderAudit({
@@ -748,9 +790,14 @@ export class AiLifeLayer {
       request.deliver([event]);
       return;
     }
+    ({ decision, promptText, rawOutput, providerTimings, latencyMs: providerLatencyMs } = providerAttempt);
     const result = validateAiDecision({ decision, context, entity: npc, subject, source: 'codex' });
-    if (result.ok) this.metrics.acceptedDecisions++;
-    else this.metrics.rejectedDecisions++;
+    if (result.ok) {
+      this.metrics.acceptedDecisions++;
+      this.storeProviderDecisionInCache(context, providerAttempt, result);
+    } else {
+      this.metrics.rejectedDecisions++;
+    }
     this.journal.recordDecision(context, decision, result, memoryWrites);
     this.enqueueMemoryWrites(memoryWrites);
     if (!result.ok) {
@@ -1037,23 +1084,10 @@ export class AiLifeLayer {
     let rawOutput: string | undefined;
     let providerTimings: AiProviderTimingSnapshot | undefined;
     let providerLatencyMs = 0;
-    const providerStartedAt = performance.now();
-    this.metrics.providerCalls++;
-    try {
-      const providerOutput = normalizeProviderOutput(await this.provider.decide(context));
-      decision = providerOutput.decision;
-      promptText = providerOutput.promptText;
-      rawOutput = providerOutput.rawOutput;
-      providerTimings = providerOutput.providerTimings;
-      providerLatencyMs = performance.now() - providerStartedAt;
-      this.recordProviderLatency(providerLatencyMs, providerTimings);
-      this.metrics.providerSuccesses++;
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : String(err);
-      providerLatencyMs = performance.now() - providerStartedAt;
-      this.recordProviderLatency(providerLatencyMs);
-      this.metrics.providerErrors++;
-      this.metrics.lastProviderError = reason;
+    const providerAttempt = await this.decideWithProviderCache(context);
+    if (!providerAttempt.ok) {
+      const reason = providerAttempt.reason;
+      providerLatencyMs = providerAttempt.latencyMs;
       this.journal.recordProviderError(context, reason);
       const event = providerFailureErrorEvent(context, reason);
       this.recordProviderAudit({
@@ -1068,9 +1102,14 @@ export class AiLifeLayer {
       request.deliver?.([event]);
       return null;
     }
+    ({ decision, promptText, rawOutput, providerTimings, latencyMs: providerLatencyMs } = providerAttempt);
     const result = validateAiDecision({ decision, context, entity: pet, subject: 'ordinary', source: 'codex' });
-    if (result.ok) this.metrics.acceptedDecisions++;
-    else this.metrics.rejectedDecisions++;
+    if (result.ok) {
+      this.metrics.acceptedDecisions++;
+      this.storeProviderDecisionInCache(context, providerAttempt, result);
+    } else {
+      this.metrics.rejectedDecisions++;
+    }
     this.journal.recordDecision(context, decision, result);
     if (!result.ok) {
       const event = providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator');
@@ -1115,23 +1154,10 @@ export class AiLifeLayer {
     let rawOutput: string | undefined;
     let providerTimings: AiProviderTimingSnapshot | undefined;
     let providerLatencyMs = 0;
-    const providerStartedAt = performance.now();
-    this.metrics.providerCalls++;
-    try {
-      const providerOutput = normalizeProviderOutput(await this.provider.decide(context));
-      decision = providerOutput.decision;
-      promptText = providerOutput.promptText;
-      rawOutput = providerOutput.rawOutput;
-      providerTimings = providerOutput.providerTimings;
-      providerLatencyMs = performance.now() - providerStartedAt;
-      this.recordProviderLatency(providerLatencyMs, providerTimings);
-      this.metrics.providerSuccesses++;
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : String(err);
-      providerLatencyMs = performance.now() - providerStartedAt;
-      this.recordProviderLatency(providerLatencyMs);
-      this.metrics.providerErrors++;
-      this.metrics.lastProviderError = reason;
+    const providerAttempt = await this.decideWithProviderCache(context);
+    if (!providerAttempt.ok) {
+      const reason = providerAttempt.reason;
+      providerLatencyMs = providerAttempt.latencyMs;
       this.journal.recordProviderError(context, reason, memoryWrites);
       const event = providerFailureErrorEvent(context, reason);
       this.recordProviderAudit({
@@ -1145,9 +1171,14 @@ export class AiLifeLayer {
       });
       return [event];
     }
+    ({ decision, promptText, rawOutput, providerTimings, latencyMs: providerLatencyMs } = providerAttempt);
     const result = validateAiDecision({ decision, context, entity: object, subject, source: 'codex' });
-    if (result.ok) this.metrics.acceptedDecisions++;
-    else this.metrics.rejectedDecisions++;
+    if (result.ok) {
+      this.metrics.acceptedDecisions++;
+      this.storeProviderDecisionInCache(context, providerAttempt, result);
+    } else {
+      this.metrics.rejectedDecisions++;
+    }
     this.journal.recordDecision(context, decision, result, memoryWrites);
     if (!result.ok) {
       const event = providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator');
@@ -1281,23 +1312,10 @@ export class AiLifeLayer {
     let rawOutput: string | undefined;
     let providerTimings: AiProviderTimingSnapshot | undefined;
     let providerLatencyMs = 0;
-    const providerStartedAt = performance.now();
-    this.metrics.providerCalls++;
-    try {
-      const providerOutput = normalizeProviderOutput(await this.provider.decide(context));
-      decision = providerOutput.decision;
-      promptText = providerOutput.promptText;
-      rawOutput = providerOutput.rawOutput;
-      providerTimings = providerOutput.providerTimings;
-      providerLatencyMs = performance.now() - providerStartedAt;
-      this.recordProviderLatency(providerLatencyMs, providerTimings);
-      this.metrics.providerSuccesses++;
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : String(err);
-      providerLatencyMs = performance.now() - providerStartedAt;
-      this.recordProviderLatency(providerLatencyMs);
-      this.metrics.providerErrors++;
-      this.metrics.lastProviderError = reason;
+    const providerAttempt = await this.decideWithProviderCache(context);
+    if (!providerAttempt.ok) {
+      const reason = providerAttempt.reason;
+      providerLatencyMs = providerAttempt.latencyMs;
       this.journal.recordProviderError(context, reason, memoryWrites);
       const event = providerFailureErrorEvent(context, reason);
       this.recordProviderAudit({
@@ -1311,9 +1329,14 @@ export class AiLifeLayer {
       });
       return [event];
     }
+    ({ decision, promptText, rawOutput, providerTimings, latencyMs: providerLatencyMs } = providerAttempt);
     const result = validateAiDecision({ decision, context, entity, subject, source: 'codex' });
-    if (result.ok) this.metrics.acceptedDecisions++;
-    else this.metrics.rejectedDecisions++;
+    if (result.ok) {
+      this.metrics.acceptedDecisions++;
+      this.storeProviderDecisionInCache(context, providerAttempt, result);
+    } else {
+      this.metrics.rejectedDecisions++;
+    }
     this.journal.recordDecision(context, decision, result, memoryWrites);
     if (!result.ok) {
       const event = providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator');
@@ -1556,6 +1579,102 @@ export class AiLifeLayer {
     void this.flushMemoryWrites();
   }
 
+  private async decideWithProviderCache(context: AiJobContextV1): Promise<AiProviderDecisionAttempt> {
+    const cacheKey = this.providerCacheEnabled ? providerDecisionCacheKey(context) : null;
+    if (cacheKey) {
+      const lookupStartedAt = performance.now();
+      const nowMs = performance.now();
+      const cached = this.providerDecisionCache.get(cacheKey);
+      if (cached && cached.expiresAtMs > nowMs) {
+        const latencyMs = performance.now() - lookupStartedAt;
+        const providerTimings = cacheHitProviderTimings(latencyMs);
+        this.metrics.providerCacheHits++;
+        this.metrics.lastProviderCacheKey = cacheKey;
+        this.recordProviderCacheHitLatency(latencyMs, providerTimings);
+        return {
+          ok: true,
+          fromCache: true,
+          cacheKey,
+          decision: cloneDecisionForContext(cached.decision, context),
+          latencyMs,
+          providerTimings,
+        };
+      }
+      if (cached) {
+        this.providerDecisionCache.delete(cacheKey);
+        this.metrics.providerCacheEntries = this.providerDecisionCache.size;
+      }
+      this.metrics.providerCacheMisses++;
+      this.metrics.lastProviderCacheKey = cacheKey;
+    }
+
+    const providerStartedAt = performance.now();
+    this.metrics.providerCalls++;
+    try {
+      const providerOutput = normalizeProviderOutput(await this.provider.decide(context));
+      const providerLatencyMs = performance.now() - providerStartedAt;
+      this.recordProviderLatency(providerLatencyMs, providerOutput.providerTimings);
+      this.metrics.providerSuccesses++;
+      return {
+        ok: true,
+        fromCache: false,
+        cacheKey,
+        decision: providerOutput.decision,
+        latencyMs: providerLatencyMs,
+        promptText: providerOutput.promptText,
+        rawOutput: providerOutput.rawOutput,
+        providerTimings: providerOutput.providerTimings,
+      };
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      const providerLatencyMs = performance.now() - providerStartedAt;
+      this.recordProviderLatency(providerLatencyMs);
+      this.metrics.providerErrors++;
+      this.metrics.lastProviderError = reason;
+      return {
+        ok: false,
+        fromCache: false,
+        cacheKey,
+        reason,
+        latencyMs: providerLatencyMs,
+      };
+    }
+  }
+
+  private storeProviderDecisionInCache(
+    context: AiJobContextV1,
+    attempt: Extract<AiProviderDecisionAttempt, { ok: true }>,
+    result: ReturnType<typeof validateAiDecision>,
+  ): void {
+    if (!this.providerCacheEnabled || attempt.fromCache || !attempt.cacheKey || !result.ok) return;
+    const ttlMs = Math.min(this.providerCacheMaxTtlMs, Math.max(0, Math.floor(attempt.decision.ttlMs)));
+    if (ttlMs < 250) return;
+    const nowMs = performance.now();
+    this.pruneProviderDecisionCache(nowMs);
+    this.providerDecisionCache.set(attempt.cacheKey, {
+      decision: cloneDecisionForContext(attempt.decision, context),
+      expiresAtMs: nowMs + ttlMs,
+    });
+    this.metrics.providerCacheStores++;
+    this.trimProviderDecisionCache();
+    this.metrics.providerCacheEntries = this.providerDecisionCache.size;
+  }
+
+  private pruneProviderDecisionCache(nowMs = performance.now()): void {
+    for (const [key, entry] of this.providerDecisionCache) {
+      if (entry.expiresAtMs <= nowMs) this.providerDecisionCache.delete(key);
+    }
+    this.metrics.providerCacheEntries = this.providerDecisionCache.size;
+  }
+
+  private trimProviderDecisionCache(): void {
+    while (this.providerDecisionCache.size > this.providerCacheMaxEntries) {
+      const oldestKey = this.providerDecisionCache.keys().next().value;
+      if (typeof oldestKey !== 'string') break;
+      this.providerDecisionCache.delete(oldestKey);
+    }
+  }
+
   private recordProviderAudit(input: {
     context: AiJobContextV1;
     latencyMs: number;
@@ -1665,6 +1784,12 @@ export class AiLifeLayer {
     this.metrics.totalProviderLatencyMs += safeDuration;
     this.metrics.maxProviderLatencyMs = Math.max(this.metrics.maxProviderLatencyMs, safeDuration);
     if (providerTimings) this.metrics.lastProviderTimings = providerTimings;
+  }
+
+  private recordProviderCacheHitLatency(durationMs: number, providerTimings: AiProviderTimingSnapshot): void {
+    const safeDuration = Number.isFinite(durationMs) && durationMs >= 0 ? durationMs : 0;
+    this.metrics.lastProviderLatencyMs = safeDuration;
+    this.metrics.lastProviderTimings = providerTimings;
   }
 
   private playerForEncounterSource(sim: Sim, source: Entity | undefined): Entity | null {
@@ -1987,6 +2112,233 @@ function normalizeProviderOutput(output: AiProviderOutput): {
     };
   }
   return { decision: output };
+}
+
+function providerDecisionCacheKey(context: AiJobContextV1): string {
+  const hash = createHash('sha256')
+    .update(stableStringify(providerDecisionCachePayload(context)))
+    .digest('hex')
+    .slice(0, 24);
+  return `${PROVIDER_CACHE_VERSION}:${hash}`;
+}
+
+function providerDecisionCachePayload(context: AiJobContextV1): Record<string, unknown> {
+  return omitCacheUndefined({
+    schemaVersion: context.schemaVersion,
+    trigger: context.trigger,
+    locale: context.locale,
+    topic: context.topic,
+    outputMode: context.outputMode,
+    entity: {
+      kind: context.entity.kind,
+      entityId: context.entity.entityId,
+      templateId: context.entity.templateId,
+      name: context.entity.name,
+      level: context.entity.level,
+      questIds: sortedStrings(context.entity.questIds),
+      dead: context.entity.dead,
+    },
+    player: {
+      entityId: context.player.entityId,
+      name: context.player.name,
+      level: context.player.level,
+      classId: context.player.classId,
+      activeQuestIds: sortedStrings(context.player.activeQuestIds),
+      completedQuestIds: sortedStrings(context.player.completedQuestIds),
+    },
+    profile: context.profile ? {
+      profileId: context.profile.profileId,
+      knowledgeScope: sortedStrings(context.profile.knowledgeScope),
+      tabooTopics: sortedStrings(context.profile.tabooTopics),
+      socialMemoryStyle: context.profile.socialMemory?.style,
+    } : undefined,
+    scene: context.scene ? providerCacheScenePayload(context.scene) : undefined,
+    familySemantics: context.familySemantics ? {
+      family: context.familySemantics.family,
+      familyName: context.familySemantics.familyName,
+      instincts: sortedStrings(context.familySemantics.baseInstincts),
+      attractedItemTags: sortedStrings(context.familySemantics.attractedItemTags),
+      avoidedItemTags: sortedStrings(context.familySemantics.avoidedItemTags),
+      likelyIntents: sortedStrings(context.familySemantics.likelyIntents),
+      speechStyle: context.familySemantics.speechStyle,
+    } : undefined,
+    questFacts: context.questFacts.map((fact) => ({
+      questId: fact.questId,
+      visibility: fact.visibility,
+      stageId: fact.stageId,
+      source: fact.source,
+      summary: fact.summary,
+    })),
+    recentObservations: [...context.recentObservations],
+    memorySignals: cacheRelevantMemorySignals(context.memorySignals).map((signal) => ({
+      kind: signal.kind,
+      refId: signal.refId,
+      scope: signal.scope,
+      sceneId: signal.sceneId,
+      zoneId: signal.zoneId,
+      templateId: signal.templateId,
+      itemId: signal.itemId,
+      questId: signal.questId,
+      subjectKind: signal.subjectKind,
+      lineIds: sortedStrings(signal.lineIds),
+      salience: roundCacheNumber(signal.salience, 0.05),
+      reason: signal.reason,
+    })),
+    directorProposals: context.directorProposals?.map((proposal) => ({
+      intent: proposal.intent,
+      status: proposal.status,
+      risk: proposal.risk,
+      intensity: roundCacheNumber(proposal.intensity, 0.05),
+      targetRef: proposal.targetRef,
+      sceneId: proposal.sceneId,
+      zoneId: proposal.zoneId,
+      suggestedLineId: proposal.suggestedLineId,
+      reasonTags: sortedStrings(proposal.reasonTags),
+      safetyNotes: sortedStrings(proposal.safetyNotes),
+    })),
+    allowedIntents: sortedStrings(context.allowedIntents),
+    allowedLineIds: sortedStrings(context.allowedLineIds ?? []),
+  });
+}
+
+function providerCacheScenePayload(scene: SceneFrameV1): Record<string, unknown> {
+  return {
+    zoneId: scene.zoneId,
+    subsceneId: scene.subsceneId,
+    biomeTags: sortedStrings(scene.biomeTags),
+    locationTags: sortedStrings(scene.locationTags),
+    structureTags: sortedStrings(scene.structureTags),
+    environmentalTags: sortedStrings(scene.environmentalTags),
+    nearbySemanticObjects: scene.nearbySemanticObjects.map((object) => ({
+      source: object.source,
+      objectId: object.objectId,
+      entityId: object.entityId,
+      templateId: object.templateId,
+      displayName: object.displayName,
+      tags: sortedStrings(object.tags),
+      featureTags: sortedStrings(object.featureTags),
+      affordanceTags: sortedStrings(object.affordanceTags),
+      distanceBucket: roundCacheNumber(object.distance, 5),
+    })),
+    droppedItems: scene.droppedItems.map((item) => ({
+      itemId: item.itemId,
+      displayName: item.displayName,
+      rarity: item.rarity,
+      ownerEntityId: item.ownerEntityId,
+      itemTags: sortedStrings(item.itemTags),
+      smellTags: sortedStrings(item.smellTags),
+      dangerTags: sortedStrings(item.dangerTags),
+      valueSignals: sortedStrings(item.valueSignals),
+    })),
+    companions: scene.companions.map((companion) => ({
+      entityId: companion.entityId,
+      templateId: companion.templateId,
+      family: companion.family,
+      tags: sortedStrings(companion.tags),
+    })),
+    time: {
+      phase: scene.time.phase,
+      isNight: scene.time.isNight,
+      tags: sortedStrings(scene.time.tags),
+    },
+    weather: {
+      kind: scene.weather.kind,
+      intensityBucket: roundCacheNumber(scene.weather.intensity, 0.25),
+      tags: sortedStrings(scene.weather.tags),
+    },
+    light: {
+      level: scene.light.level,
+      tags: sortedStrings(scene.light.tags),
+    },
+    mood: {
+      dayEnergy: roundCacheNumber(scene.mood.dayEnergy, 0.25),
+      nightFatigue: roundCacheNumber(scene.mood.nightFatigue, 0.25),
+      clearNightAwe: roundCacheNumber(scene.mood.clearNightAwe, 0.25),
+      rainIrritation: roundCacheNumber(scene.mood.rainIrritation, 0.25),
+      fogFear: roundCacheNumber(scene.mood.fogFear, 0.25),
+    },
+    recentSceneEvents: [...scene.recentSceneEvents],
+    danger: {
+      undeadPressure: roundCacheNumber(scene.danger.undeadPressure, 0.25),
+      hostileDensity: roundCacheNumber(scene.danger.hostileDensity, 0.25),
+      corpseDensity: roundCacheNumber(scene.danger.corpseDensity, 0.25),
+      safeHavenScore: roundCacheNumber(scene.danger.safeHavenScore, 0.25),
+    },
+  };
+}
+
+function cacheHitProviderTimings(totalMs: number): AiProviderTimingSnapshot {
+  const safeTotalMs = Number.isFinite(totalMs) && totalMs >= 0 ? totalMs : 0;
+  return {
+    provider: 'decision-cache',
+    totalMs: safeTotalMs,
+    steps: [{ key: 'cacheHitMs', label: 'decision cache hit', ms: safeTotalMs }],
+  };
+}
+
+function cloneDecisionForContext(decision: AiDecisionV1, context: AiJobContextV1): AiDecisionV1 {
+  return {
+    schemaVersion: decision.schemaVersion,
+    jobId: context.jobId,
+    entityRef: {
+      kind: context.entity.kind,
+      entityId: context.entity.entityId,
+      templateId: context.entity.templateId,
+    },
+    ttlMs: decision.ttlMs,
+    confidence: decision.confidence,
+    speech: decision.speech.map((speech) => {
+      if (speech.mode === 'lineId') {
+        return {
+          mode: 'lineId',
+          lineId: speech.lineId,
+          ...(speech.values ? { values: { ...speech.values } } : {}),
+        };
+      }
+      return {
+        mode: 'dynamicText',
+        language: speech.language,
+        text: speech.text,
+      };
+    }),
+    intents: decision.intents.map((intent) => ({ ...intent })),
+    audit: {
+      shortReason: decision.audit.shortReason,
+      usedPlayerInput: decision.audit.usedPlayerInput,
+      safetyNotes: [...decision.audit.safetyNotes],
+    },
+  };
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, entry]) => entry !== undefined)
+    .sort(([a], [b]) => a.localeCompare(b));
+  return `{${entries.map(([key, entry]) => `${JSON.stringify(key)}:${stableStringify(entry)}`).join(',')}}`;
+}
+
+function omitCacheUndefined(record: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(record).filter(([, value]) => value !== undefined));
+}
+
+function sortedStrings(values: readonly string[]): string[] {
+  return [...values].sort((a, b) => a.localeCompare(b));
+}
+
+function cacheRelevantMemorySignals(signals: readonly AiMemoryAuditRecord[] | undefined): AiMemoryAuditRecord[] {
+  return (signals ?? []).filter((signal) => signal.kind !== 'npcInteraction');
+}
+
+function roundCacheNumber(value: number, step: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.round(value / step) * step;
+}
+
+function envPositiveIntLocal(name: string, fallback: number): number {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
 }
 
 function defaultAiProvider(): AiProvider {

@@ -967,6 +967,55 @@ describe('server AI interact command', () => {
     expect(mainlineSnapshot(server, session.pid)).toEqual(beforeSnapshot);
   });
 
+  it('reuses cached AI provider decisions for repeated identical pet commands', async () => {
+    let providerCalls = 0;
+    const provider: AiProvider = {
+      async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
+        providerCalls++;
+        expect(context.trigger).toBe('pet_command');
+        expect(context.recentObservations).toContain('playerPetCommand:protect me');
+        expect(context.recentObservations).toContain('petMode:defensive');
+        return {
+          schemaVersion: 1,
+          jobId: context.jobId,
+          entityRef: { kind: context.entity.kind, entityId: context.entity.entityId, templateId: context.entity.templateId },
+          ttlMs: 5000,
+          confidence: 0.95,
+          speech: [],
+          intents: [{ type: 'commandPetDefensive' }],
+          audit: { shortReason: 'cached defensive pet command', usedPlayerInput: true, safetyNotes: ['bounded pet command'] },
+        };
+      },
+    };
+    const server = new GameServer();
+    const layer = new AiLifeLayer({ enabled: true, provider, providerCacheMaxTtlMs: 5000 });
+    setAiLifeLayer(server, layer);
+    const fc = fakeWs();
+    const session = joinServer(server, fc, 'hunter');
+    const pet = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
+    pet.ownerId = session.pid;
+    pet.hostile = false;
+    pet.petMode = 'defensive';
+
+    await layer.handlePetCommand({ sim: server.sim, pid: session.pid, text: 'protect me', locale: 'en' });
+    await layer.handlePetCommand({ sim: server.sim, pid: session.pid, text: 'protect me', locale: 'en' });
+
+    expect(providerCalls).toBe(1);
+    expect(pet.petMode).toBe('defensive');
+    expect(layer.runtimeMetrics()).toMatchObject({
+      providerCalls: 1,
+      providerSuccesses: 1,
+      providerCacheMisses: 1,
+      providerCacheHits: 1,
+      providerCacheStores: 1,
+      providerCacheEntries: 1,
+      acceptedDecisions: 2,
+    });
+    expect(layer.runtimeMetrics().lastProviderTimings).toEqual(expect.objectContaining({
+      provider: 'decision-cache',
+    }));
+  });
+
   it('reports a pet command AI error when the provider fails', async () => {
     const provider: AiProvider = {
       async decide(): Promise<AiDecisionV1> {
