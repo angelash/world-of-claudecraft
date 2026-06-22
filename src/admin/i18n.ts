@@ -15,7 +15,7 @@ import { LOCALE_LOADERS } from './i18n.resolved.generated/loaders';
 export const DICT = translations as Record<string, Record<string, string>>;
 
 const SUPPORTED = Object.keys(DICT);
-let current = "en";
+let current = "zh_CN";
 
 // --- en_XA dev-only pseudo-locale (mirrors src/ui/i18n.ts) -------------
 //
@@ -42,7 +42,7 @@ function detect(): string {
       if (s && SUPPORTED.includes(s)) return s;
     }
   } catch { /* ignore */ }
-  return "en";
+  return "zh_CN";
 }
 current = detect();
 

@@ -8,7 +8,7 @@ import { skinCount } from '../render/characters/manifest';
 import { preloadMechAssets } from '../render/characters/assets';
 import { emoteIconUrl } from './emote_icons';
 import {
-  ABILITIES, CLASSES, DUNGEON_LIST, DUNGEON_X_THRESHOLD, ITEMS, MOBS, NPCS, PROPS, QUESTS,
+  ABILITIES, CAMPS, CLASSES, DUNGEON_LIST, DUNGEON_X_THRESHOLD, GROUND_OBJECTS, ITEMS, MOBS, NPCS, PROPS, QUESTS,
   WORLD_MAX_X, WORLD_MAX_Z, WORLD_MIN_X, WORLD_MIN_Z, ZONES, dungeonAt, questRewardItem, zoneAt,
   zoneWelcomeText,
 } from '../sim/data';
@@ -32,6 +32,7 @@ import { restView } from './rest_indicator';
 import { nearestSubzone } from './subzone';
 import { lowResourceView } from './low_resource';
 import { formatAuraDuration } from './aura_duration';
+import { questGuideMarkers, type QuestGuideMarker } from './quest_guide';
 import { activeCharacterAppearancePreview, characterAppearanceOptions } from './character_appearance';
 import { terrainHeight, WATER_LEVEL, roadDistance, generateDecorations } from '../sim/world';
 import type { Decoration } from '../sim/world';
@@ -2820,6 +2821,7 @@ export class Hud {
         ctx.fillRect(mx - 1.5, my - 1.5, 3, 3);
       }
     }
+    this.drawQuestGuideMarkers(ctx, S, pxPerYard);
     // Party members: class-colored markers. On-map allies are discs that
     // scale up the closer they are (proximity scaling); allies past the rim
     // are pinned to the edge as arrows pointing the way to regroup.
@@ -2877,6 +2879,89 @@ export class Hud {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+    ctx.restore();
+  }
+
+  private drawQuestGuideMarkers(ctx: CanvasRenderingContext2D, size: number, pxPerYard: number): void {
+    const player = this.sim.player;
+    const markers = questGuideMarkers({
+      player: player.pos,
+      questLog: this.sim.questLog.values(),
+      quests: QUESTS,
+      entities: this.sim.entities.values(),
+      npcs: NPCS,
+      camps: CAMPS,
+      groundObjects: GROUND_OBJECTS,
+      mobs: MOBS,
+      maxMarkers: 8,
+    });
+    for (const marker of markers) this.drawQuestGuideMarker(ctx, marker, size, pxPerYard);
+  }
+
+  private drawQuestGuideMarker(ctx: CanvasRenderingContext2D, marker: QuestGuideMarker, size: number, pxPerYard: number): void {
+    const player = this.sim.player;
+    const center = size / 2;
+    const dx = -(marker.x - player.pos.x) * pxPerYard; // +X is map-left
+    const dz = -(marker.z - player.pos.z) * pxPerYard;
+    const rim = center - 11;
+    const dist = Math.hypot(dx, dz);
+    const offMap = dist > rim;
+    const color = marker.kind === 'turnIn' ? '#fff16a' : '#ffd100';
+    const stroke = '#1a1200';
+
+    ctx.save();
+    if (offMap) {
+      const angle = Math.atan2(dz, dx);
+      ctx.translate(center + Math.cos(angle) * rim, center + Math.sin(angle) * rim);
+      ctx.rotate(angle);
+      ctx.fillStyle = color;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(8, 0);
+      ctx.lineTo(-5, 6);
+      ctx.lineTo(-3, 0);
+      ctx.lineTo(-5, -6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      if (marker.kind === 'turnIn') {
+        ctx.rotate(-angle);
+        ctx.font = 'bold 10px Georgia';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineWidth = 3;
+        ctx.strokeText('?', 0, -10);
+        ctx.fillText('?', 0, -10);
+      }
+      ctx.restore();
+      return;
+    }
+
+    ctx.translate(center + dx, center + dz);
+    ctx.fillStyle = color;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 2;
+    if (marker.kind === 'turnIn') {
+      ctx.font = 'bold 15px Georgia';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.strokeText('?', 0, 0);
+      ctx.fillText('?', 0, 0);
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(0, -6);
+      ctx.lineTo(5, 0);
+      ctx.lineTo(0, 6);
+      ctx.lineTo(-5, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#fff7a8';
+      ctx.beginPath();
+      ctx.arc(0, 0, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.restore();
   }
 

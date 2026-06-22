@@ -1,6 +1,9 @@
 import type { Pool } from 'pg';
 import type {
   AiAuditEntityKind,
+  AiAuditChain,
+  AiAuditEventSummary,
+  AiAuditPlayerAction,
   AiAuditProviderSource,
   AiAuditRecord,
   AiAuditStatus,
@@ -60,6 +63,10 @@ CREATE INDEX IF NOT EXISTS ai_audit_records_player_created
 
 interface QueryablePool {
   query(sql: string, values?: readonly unknown[]): Promise<{ rows: Array<Record<string, unknown>>; rowCount?: number | null }>;
+}
+
+export interface AiAuditRecentRecordOptions {
+  includeChain?: boolean;
 }
 
 export class PgAiAuditDb {
@@ -150,7 +157,7 @@ export class PgAiAuditDb {
     );
   }
 
-  async recentRecords(limit = 20): Promise<AiAuditRecord[]> {
+  async recentRecords(limit = 20, options: AiAuditRecentRecordOptions = {}): Promise<AiAuditRecord[]> {
     const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
     const res = await this.db.query(
       `SELECT payload
@@ -162,7 +169,32 @@ export class PgAiAuditDb {
     );
     return res.rows
       .map((row) => normalizeAiAuditRecord(row.payload))
-      .filter((record): record is AiAuditRecord => record !== null);
+      .filter((record): record is AiAuditRecord => record !== null)
+      .map((record) => options.includeChain ? record : withoutAiAuditChain(record));
+  }
+
+  async recordByAuditId(auditId: string): Promise<AiAuditRecord | null> {
+    const safeAuditId = auditId.slice(0, 160);
+    if (!safeAuditId) return null;
+    const res = await this.db.query(
+      `SELECT payload
+         FROM ai_audit_records
+        WHERE realm = $1 AND audit_id = $2
+        LIMIT 1`,
+      [REALM, safeAuditId],
+    );
+    const record = normalizeAiAuditRecord(res.rows[0]?.payload);
+    return record;
+  }
+
+  async deleteNonRealRecords(): Promise<number> {
+    const res = await this.db.query(
+      `DELETE FROM ai_audit_records
+        WHERE realm = $1
+          AND NOT (provider_source = 'codex' AND status = 'accepted')`,
+      [REALM],
+    );
+    return Math.max(0, Math.floor(res.rowCount ?? 0));
   }
 }
 
@@ -179,6 +211,10 @@ export function normalizeAiAuditRecord(value: unknown): AiAuditRecord | null {
   const inputTokens = intValue(src.inputTokens);
   const outputTokens = intValue(src.outputTokens);
   const totalTokens = intValue(src.totalTokens);
+  const playerAction = normalizeAiAuditPlayerAction(src.playerAction);
+  const deliveredSummary = textArray(src.deliveredSummary, 12, 600);
+  const chain = normalizeAiAuditChain(src.chain);
+  const hasChain = typeof src.hasChain === 'boolean' ? src.hasChain || chain !== null : chain !== null;
   return {
     auditId,
     realm: textValue(src.realm, 96) || REALM,
@@ -209,7 +245,141 @@ export function normalizeAiAuditRecord(value: unknown): AiAuditRecord | null {
     memoryWriteRefs: textArray(src.memoryWriteRefs, 24, 180),
     reason: textValue(src.reason, 600),
     error: textValue(src.error, 600),
+    ...(playerAction ? { playerAction } : {}),
+    ...(deliveredSummary.length > 0 ? { deliveredSummary } : {}),
+    ...(hasChain ? { hasChain: true } : {}),
+    ...(chain ? { chain } : {}),
     createdAt: dateText(src.createdAt),
+  };
+}
+
+function withoutAiAuditChain(record: AiAuditRecord): AiAuditRecord {
+  const { chain, ...rest } = record;
+  return {
+    ...rest,
+    ...(record.hasChain || chain ? { hasChain: true } : {}),
+  };
+}
+
+function normalizeAiAuditPlayerAction(value: unknown): AiAuditPlayerAction | null {
+  if (!value || typeof value !== 'object') return null;
+  const src = value as Record<string, unknown>;
+  const protocolSrc = src.protocol && typeof src.protocol === 'object'
+    ? src.protocol as Record<string, unknown>
+    : {};
+  const kind = textValue(src.kind, 96);
+  if (!kind) return null;
+  return {
+    kind,
+    topic: textValue(src.topic, 80),
+    labelKey: textValue(src.labelKey, 160),
+    locale: textValue(src.locale, 32),
+    protocol: {
+      jobId: textValue(protocolSrc.jobId, 160),
+      trigger: textValue(protocolSrc.trigger, 96),
+      playerEntityId: nullableIntValue(protocolSrc.playerEntityId),
+      entityKind: normalizeEntityKind(textValue(protocolSrc.entityKind, 32)),
+      entityId: nullableIntValue(protocolSrc.entityId),
+      templateId: textValue(protocolSrc.templateId, 160),
+    },
+  };
+}
+
+function normalizeAiAuditChain(value: unknown): AiAuditChain | null {
+  if (!value || typeof value !== 'object') return null;
+  const src = value as Record<string, unknown>;
+  const playerAction = normalizeAiAuditPlayerAction(src.playerAction);
+  if (!playerAction) return null;
+  const requestContext = objectValue(src.requestContext);
+  const provider = objectValue(src.provider);
+  const validation = objectValue(src.validation);
+  const delivered = objectValue(src.delivered);
+  return {
+    playerAction,
+    requestContext: {
+      context: boundedJsonValue(requestContext.context, 200_000) as AiAuditChain['requestContext']['context'],
+      promptText: textValue(requestContext.promptText, 64_000),
+      promptTruncated: booleanValue(requestContext.promptTruncated),
+    },
+    provider: {
+      source: normalizeProviderSource(textValue(provider.source, 32)),
+      rawOutput: textValue(provider.rawOutput, 64_000),
+      rawOutputTruncated: booleanValue(provider.rawOutputTruncated),
+      parsedDecision: objectOrNull(provider.parsedDecision) as AiAuditChain['provider']['parsedDecision'],
+      error: textValue(provider.error, 1_200),
+    },
+    validation: {
+      ok: booleanValue(validation.ok),
+      reason: textValue(validation.reason, 1_200),
+      events: normalizeAiAuditEventSummaries(validation.events),
+    },
+    delivered: {
+      events: normalizeAiAuditEventSummaries(delivered.events),
+      textSummary: textArray(delivered.textSummary, 12, 600),
+    },
+  };
+}
+
+function normalizeAiAuditEventSummaries(value: unknown): AiAuditEventSummary[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, 24)
+    .map(normalizeAiAuditEventSummary)
+    .filter((event): event is AiAuditEventSummary => event !== null);
+}
+
+function normalizeAiAuditEventSummary(value: unknown): AiAuditEventSummary | null {
+  if (!value || typeof value !== 'object') return null;
+  const src = value as Record<string, unknown>;
+  const type = textValue(src.type, 80);
+  if (!type) return null;
+  return {
+    type,
+    pid: nullableIntValue(src.pid),
+    speakerId: nullableIntValue(src.speakerId),
+    speakerName: textValue(src.speakerName, 160),
+    source: textValue(src.source, 80),
+    text: textValue(src.text, 1_200),
+    speechMode: textValue(src.speechMode, 32),
+    lineId: textValue(src.lineId, 240),
+    language: textValue(src.language, 32),
+    speechText: textValue(src.speechText, 1_200),
+    targetEntityId: nullableIntValue(src.targetEntityId),
+    targetObjectId: nullableIntValue(src.targetObjectId),
+    targetItemId: textValue(src.targetItemId, 160),
+    reactionKind: textValue(src.reactionKind, 80),
+    raw: boundedJsonValue(src.raw, 24_000),
+    rawTruncated: booleanValue(src.rawTruncated),
+  };
+}
+
+function objectValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function objectOrNull(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function booleanValue(value: unknown): boolean {
+  return value === true;
+}
+
+function boundedJsonValue(value: unknown, maxLength: number): unknown {
+  let serialized: string;
+  try {
+    serialized = JSON.stringify(value) ?? '';
+  } catch {
+    serialized = String(value);
+  }
+  if (serialized.length <= maxLength) return value;
+  return {
+    truncatedJson: serialized.slice(0, maxLength),
+    originalLength: serialized.length,
   };
 }
 

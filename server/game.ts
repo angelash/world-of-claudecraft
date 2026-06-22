@@ -30,7 +30,7 @@ import {
   type AiPetCommandAction,
   type AiVolatileMemoryClearResult,
 } from './ai/life_layer';
-import { AiAuditRuntime, type AiAuditSnapshot } from './ai_audit';
+import { AiAuditRuntime, type AiAuditCleanupResult, type AiAuditRecord, type AiAuditSnapshot } from './ai_audit';
 import { PgAiAuditDb } from './ai_audit_db';
 import { PgAiMemoryDb } from './ai_memory_db';
 
@@ -1002,6 +1002,23 @@ export class GameServer {
       summary: this.aiAuditRuntime.snapshot(),
       recent,
     };
+  }
+
+  async aiAuditRecord(auditId: string): Promise<AiAuditRecord | null> {
+    try {
+      return await this.aiAuditDb.recordByAuditId(auditId);
+    } catch (err) {
+      console.error('failed to load AI audit record:', err);
+      return null;
+    }
+  }
+
+  async cleanAiAuditNonRealRecords(): Promise<AiAuditCleanupResult> {
+    const deletedRecords = await this.aiAuditDb.deleteNonRealRecords();
+    this.aiAuditRuntime.reset();
+    const retained = await this.aiAuditDb.recentRecords(100);
+    for (const record of [...retained].reverse()) this.aiAuditRuntime.record(record);
+    return { deletedRecords, retainedRecords: retained.length };
   }
 
   async clearAiLifeLayerMemory(): Promise<AiVolatileMemoryClearResult> {

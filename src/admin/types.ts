@@ -83,6 +83,65 @@ export interface AiAuditSummary {
   totals: AiAuditTokenTotals;
 }
 
+export interface AiAuditPlayerAction {
+  kind: string;
+  topic: string;
+  labelKey: string;
+  locale: string;
+  protocol: {
+    jobId: string;
+    trigger: string;
+    playerEntityId: number | null;
+    entityKind: string;
+    entityId: number | null;
+    templateId: string;
+  };
+}
+
+export interface AiAuditEventSummary {
+  type: string;
+  pid: number | null;
+  speakerId: number | null;
+  speakerName: string;
+  source: string;
+  text: string;
+  speechMode: string;
+  lineId: string;
+  language: string;
+  speechText: string;
+  targetEntityId: number | null;
+  targetObjectId: number | null;
+  targetItemId: string;
+  reactionKind: string;
+  raw: unknown;
+  rawTruncated: boolean;
+}
+
+export interface AiAuditChain {
+  playerAction: AiAuditPlayerAction;
+  requestContext: {
+    context: unknown;
+    promptText: string;
+    promptTruncated: boolean;
+  };
+  provider: {
+    source: string;
+    rawOutput: string;
+    rawOutputTruncated: boolean;
+    parsedDecision: unknown;
+    error: string;
+  };
+  validation: {
+    ok: boolean;
+    reason: string;
+    events: AiAuditEventSummary[];
+  };
+  delivered: {
+    events: AiAuditEventSummary[];
+    textSummary: string[];
+  };
+}
+
 export interface AiAuditRecord {
   auditId: string;
   realm: string;
@@ -113,12 +172,21 @@ export interface AiAuditRecord {
   memoryWriteRefs: string[];
   reason: string;
   error: string;
+  playerAction?: AiAuditPlayerAction;
+  deliveredSummary?: string[];
+  hasChain?: boolean;
+  chain?: AiAuditChain;
   createdAt: string;
 }
 
 export interface AiAuditSnapshot {
   summary: AiAuditSummary;
   recent: AiAuditRecord[];
+}
+
+export interface AiAuditCleanupResult {
+  deletedRecords: number;
+  retainedRecords: number;
 }
 
 export interface AiLifeLayerMetricsSnapshot {

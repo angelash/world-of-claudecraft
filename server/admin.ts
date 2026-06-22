@@ -207,6 +207,9 @@ export async function handleAdminApi(
     if (req.method === 'POST' && path === '/admin/api/ai/memory/clear') {
       return ok(res, await game.clearAiLifeLayerMemory());
     }
+    if (req.method === 'POST' && path === '/admin/api/ai/audit/clean') {
+      return ok(res, await game.cleanAiAuditNonRealRecords());
+    }
 
     if (req.method !== 'GET') return fail(res, 405, 'method not allowed');
 
@@ -235,6 +238,12 @@ export async function handleAdminApi(
         aiCoverage: aiContentCoverageReport(),
         aiProfiles: aiProfilePreviewReport(),
       });
+    }
+    const aiAuditMatch = /^\/admin\/api\/ai\/audit\/([^/]+)$/.exec(path);
+    if (aiAuditMatch) {
+      const auditId = decodeURIComponent(aiAuditMatch[1]);
+      const record = await game.aiAuditRecord(auditId);
+      return record ? ok(res, record) : fail(res, 404, 'AI audit record not found');
     }
     if (path === '/admin/api/online') {
       return ok(res, { players: game.liveSessions() });

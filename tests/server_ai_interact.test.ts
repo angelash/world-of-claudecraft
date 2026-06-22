@@ -286,6 +286,70 @@ describe('server AI interact command', () => {
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
 
+  it('prefers a validated provider answer over the mechanical recent-topic fallback', async () => {
+    const server = new GameServer();
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'fisherman_brandt')!;
+    const calls: AiJobContextV1[] = [];
+    const provider: AiProvider = {
+      async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
+        calls.push(context);
+        return {
+          schemaVersion: 1,
+          jobId: context.jobId,
+          entityRef: {
+            kind: context.entity.kind,
+            entityId: context.entity.entityId,
+            templateId: context.entity.templateId,
+          },
+          ttlMs: 5000,
+          confidence: 0.92,
+          speech: [{
+            mode: 'dynamicText',
+            language: 'zh_CN',
+            text: '码头那边刚转了风，水面碎得不太自然。你要问最近的动静，我会先看网绳和鱼群。',
+          }],
+          intents: [{ type: 'commentOnScene' }],
+          audit: { shortReason: 'natural recent-topic answer', usedPlayerInput: false, safetyNotes: [] },
+        };
+      },
+    };
+    setAiLifeLayer(server, new AiLifeLayer({ enabled: true, provider }));
+    teleportNear(server, session.pid, npc.id);
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'zh_CN', topic: 'recent' }));
+    await flushAi();
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({ outputMode: 'mixed_living_world', topic: 'recent', locale: 'zh_CN' });
+    const thinkingEvents = eventsOf(fc, 'aiThinking');
+    expect(thinkingEvents).toHaveLength(1);
+    expect(thinkingEvents[0]).toMatchObject({
+      speakerId: npc.id,
+      speakerName: npc.name,
+      durationMs: expect.any(Number),
+      pid: session.pid,
+      interactionId: expect.stringMatching(/^npc-/),
+    });
+    const speechEvents = eventsOf(fc, 'aiSpeech');
+    expect(speechEvents).toHaveLength(1);
+    expect(speechEvents).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      interactionId: thinkingEvents[0].interactionId,
+      speech: {
+        mode: 'dynamicText',
+        language: 'zh_CN',
+        text: '码头那边刚转了风，水面碎得不太自然。你要问最近的动静，我会先看网绳和鱼群。',
+      },
+      source: 'codex',
+      pid: session.pid,
+    }));
+    expect(speechEvents.some((event) =>
+      event.speech?.mode === 'lineId'
+      && event.speech.lineId === 'hudChrome.aiSpeech.topicRecentFirstMeet')).toBe(false);
+  });
+
   it('rate-limits repeated AI interactions so gossip spam does not call the life layer repeatedly', async () => {
     const server = new GameServer();
     const fc = fakeWs();

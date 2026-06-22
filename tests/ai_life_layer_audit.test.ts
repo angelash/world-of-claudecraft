@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AiLifeLayer } from '../server/ai/life_layer';
 import type { AiAuditRecord, AiAuditSink } from '../server/ai_audit';
-import type { AiDecisionV1, AiJobContextV1, AiProvider } from '../server/ai/ai_types';
+import type { AiDecisionV1, AiJobContextV1, AiProvider, AiProviderOutput } from '../server/ai/ai_types';
 import { Sim } from '../src/sim/sim';
 import { groundHeight } from '../src/sim/world';
 
@@ -35,19 +35,26 @@ function makeSim(): { sim: Sim; pid: number; npcId: number; wolfId: number } {
   return { sim, pid, npcId: npc.id, wolfId: wolf.id };
 }
 
-function acceptedProvider(lineId = 'hudChrome.aiSpeech.brotherAldricAwake'): AiProvider {
+function acceptedDecision(context: AiJobContextV1, lineId = 'hudChrome.aiSpeech.brotherAldricAwake'): AiDecisionV1 {
   return {
-    async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
-      return {
-        schemaVersion: 1,
-        jobId: context.jobId,
-        entityRef: { kind: context.entity.kind, entityId: context.entity.entityId, templateId: context.entity.templateId },
-        ttlMs: 5000,
-        confidence: 1,
-        speech: [{ mode: 'lineId', lineId }],
-        intents: [{ type: 'commentOnScene', lineId }],
-        audit: { shortReason: 'audit test decision', usedPlayerInput: false, safetyNotes: [] },
-      };
+    schemaVersion: 1,
+    jobId: context.jobId,
+    entityRef: { kind: context.entity.kind, entityId: context.entity.entityId, templateId: context.entity.templateId },
+    ttlMs: 5000,
+    confidence: 1,
+    speech: [{ mode: 'lineId', lineId }],
+    intents: [{ type: 'commentOnScene', lineId }],
+    audit: { shortReason: 'audit test decision', usedPlayerInput: false, safetyNotes: [] },
+  };
+}
+
+function acceptedProvider(lineId = 'hudChrome.aiSpeech.brotherAldricAwake', wrap = false): AiProvider {
+  return {
+    async decide(context: AiJobContextV1): Promise<AiProviderOutput> {
+      const decision = acceptedDecision(context, lineId);
+      return wrap
+        ? { decision, promptText: 'prompt for audit', rawOutput: '{"speech":[]}' }
+        : decision;
     },
   };
 }
@@ -70,7 +77,7 @@ describe('AI life layer audit recording', () => {
       providerSource: 'codex',
       status: 'accepted',
       tokenEstimate: true,
-      outputMode: 'line_id_only',
+      outputMode: 'mixed_living_world',
       lineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
       intents: ['commentOnScene'],
       memoryWriteRefs: [expect.stringMatching(/^npcInteraction:npc:\d+:brother_aldric$/)],
@@ -82,6 +89,39 @@ describe('AI life layer audit recording', () => {
     expect(sink.records[0].allowedIntentCount).toBeGreaterThan(0);
     expect(sink.records[0].allowedLineIdCount).toBeGreaterThan(0);
     expect(sink.records[0].sceneObjectCount).toBeGreaterThanOrEqual(0);
+    expect(sink.records[0].hasChain).toBe(true);
+    expect(sink.records[0].playerAction).toEqual(expect.objectContaining({
+      labelKey: 'usage.aiActionNpcGreeting',
+      locale: 'en',
+    }));
+    expect(sink.records[0].chain).toEqual(expect.objectContaining({
+      requestContext: expect.objectContaining({
+        promptText: expect.stringContaining('Full job context JSON'),
+      }),
+      provider: expect.objectContaining({
+        source: 'codex',
+        parsedDecision: expect.objectContaining({ jobId: sink.records[0].jobId }),
+      }),
+      validation: expect.objectContaining({
+        ok: true,
+        events: expect.arrayContaining([expect.objectContaining({ type: 'aiSpeech' })]),
+      }),
+      delivered: expect.objectContaining({
+        textSummary: expect.arrayContaining(['hudChrome.aiSpeech.brotherAldricAwake']),
+        events: expect.arrayContaining([expect.objectContaining({ type: 'aiSpeech', source: 'codex' })]),
+      }),
+    }));
+  });
+
+  it('records Codex CLI prompt and raw output metadata from wrapped provider results', async () => {
+    const { sim, pid, npcId } = makeSim();
+    const sink = new CaptureAuditSink();
+    const layer = new AiLifeLayer({ enabled: true, provider: acceptedProvider('hudChrome.aiSpeech.brotherAldricAwake', true), auditSink: sink, auditProviderSource: 'codex' });
+
+    await layer.handleNpcInteraction({ sim, pid, npcId, locale: 'en', deliver: () => {} });
+
+    expect(sink.records[0].chain?.requestContext.promptText).toBe('prompt for audit');
+    expect(sink.records[0].chain?.provider.rawOutput).toBe('{"speech":[]}');
   });
 
   it('records provider errors without synthesizing fallback output', async () => {
@@ -111,6 +151,8 @@ describe('AI life layer audit recording', () => {
     })]);
     expect(sink.records[0].inputTokens).toBeGreaterThan(0);
     expect(sink.records[0].totalTokens).toBe(sink.records[0].inputTokens);
+    expect(sink.records[0].chain?.provider.error).toBe('codex worker timed out');
+    expect(sink.records[0].chain?.delivered.textSummary).toEqual(['AI response failed: codex worker timed out']);
   });
 
   it('records rejected provider decisions and delivers a clear rejection event', async () => {

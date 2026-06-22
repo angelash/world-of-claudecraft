@@ -3,7 +3,7 @@ import { classLabel, zoneLabel, t } from './i18n';
 import type {
   AccountDetail, AccountRow, CharacterRow, ChatFilterData, ChatModeratedAccount,
   ChatModerationDetail, FilterWord, LivePlayer, ModerationAccountDetail, ModerationQueueRow,
-  AiAuditRecord, AiAuditSnapshot,
+  AiAuditEventSummary, AiAuditPlayerAction, AiAuditRecord, AiAuditSnapshot,
   AiContentCoverageReport, AiDecisionJournalEntry, AiLifeLayerDiagnosticsSnapshot, AiNpcMemory, AiRumorMemory,
   AiLifeLayerMetricsSnapshot, AiProfileAuthoringIssue, AiProfileAuthoringValidationReport,
   AiProfilePreviewReport, AiProfilePreviewRow,
@@ -78,6 +78,14 @@ function aiMetricRow(labelKey: string, value: string): string {
   return `<tr><td>${t(labelKey)}</td><td class="num">${value}</td></tr>`;
 }
 
+function renderAiDetailsSection(titleKey: string, body: string): string {
+  return `
+    <details class="usage-section ai-details">
+      <summary><span class="ai-details-title">${escapeHtml(t(titleKey))}</span></summary>
+      <div class="ai-details-body">${body}</div>
+    </details>`;
+}
+
 function coverageIssueCount(coverage: AiContentCoverageReport): number {
   return [
     coverage.families.missingSemantics,
@@ -134,6 +142,16 @@ function aiProfileTargetKindLabel(kind: string): string {
     case 'npc': return t('usage.aiProfileKindNpc');
     case 'mob': return t('usage.aiProfileKindMob');
     case 'object': return t('usage.aiProfileKindObject');
+    default: return t('usage.aiDiagnosticsUnknownValue', { value: kind });
+  }
+}
+
+function aiEntityKindLabel(kind: string): string {
+  switch (kind) {
+    case 'npc': return t('usage.aiProfileKindNpc');
+    case 'mob': return t('usage.aiProfileKindMob');
+    case 'object': return t('usage.aiProfileKindObject');
+    case 'system': return t('usage.aiEntityKindSystem');
     default: return t('usage.aiDiagnosticsUnknownValue', { value: kind });
   }
 }
@@ -323,6 +341,17 @@ function aiProposalLabel(proposal: string): string {
   }
 }
 
+function aiProposalIntentLabel(intent: string): string {
+  switch (intent) {
+    case 'nudgeNpcRumor': return t('usage.aiProposalIntentNudgeNpcRumor');
+    case 'raiseCampCaution': return t('usage.aiProposalIntentRaiseCampCaution');
+    case 'echoTrace': return t('usage.aiProposalIntentEchoTrace');
+    case 'echoEncounterMemory': return t('usage.aiProposalIntentEchoEncounterMemory');
+    case 'echoQuestRelief': return t('usage.aiProposalIntentEchoQuestRelief');
+    default: return t('usage.aiDiagnosticsUnknownValue', { value: intent });
+  }
+}
+
 function aiSubjectKindLabel(kind: string): string {
   switch (kind) {
     case 'item': return t('usage.aiSubjectItem');
@@ -330,6 +359,16 @@ function aiSubjectKindLabel(kind: string): string {
     case 'quest': return t('usage.aiSubjectQuest');
     case 'scene': return t('usage.aiSubjectScene');
     default: return t('usage.aiDiagnosticsUnknownValue', { value: kind });
+  }
+}
+
+function aiProviderSourceLabel(source: string): string {
+  switch (source) {
+    case 'codex': return t('usage.aiProviderSourceCodex');
+    case 'provider': return t('usage.aiProviderSourceProvider');
+    case 'fallback': return t('usage.aiProviderSourceFallback');
+    case 'local': return t('usage.aiProviderSourceLocal');
+    default: return t('usage.aiDiagnosticsUnknownValue', { value: source });
   }
 }
 
@@ -363,7 +402,7 @@ function renderAiDecisionRow(entry: AiDecisionJournalEntry): string {
 
 function renderAiAuditEntity(record: AiAuditRecord): string {
   return escapeHtml(t('usage.aiAuditEntitySummary', {
-    kind: record.entityKind,
+    kind: aiEntityKindLabel(record.entityKind),
     templateId: record.templateId || t('usage.aiDiagnosticsNone'),
     entityId: record.entityId === null ? t('usage.aiDiagnosticsNone') : fmtNumber(record.entityId),
   }));
@@ -377,6 +416,31 @@ function renderAiAuditScene(record: AiAuditRecord): string {
   }));
 }
 
+function aiAuditActionLabel(action: AiAuditPlayerAction | undefined, trigger: string): string {
+  if (!action) return aiTriggerLabel(trigger);
+  switch (action.labelKey) {
+    case 'usage.aiActionNpcGreeting': return t('usage.aiActionNpcGreeting');
+    case 'usage.aiActionNpcQuestion': return t('usage.aiActionNpcQuestion');
+    case 'usage.aiActionNpcRecent': return t('usage.aiActionNpcRecent');
+    case 'usage.aiActionNpcRumor': return t('usage.aiActionNpcRumor');
+    case 'usage.aiActionNpcPlace': return t('usage.aiActionNpcPlace');
+    case 'usage.aiActionNpcQuestHint': return t('usage.aiActionNpcQuestHint');
+    case 'usage.aiActionObjectInspected': return t('usage.aiActionObjectInspected');
+    case 'usage.aiActionSingularityCandidate': return t('usage.aiActionSingularityCandidate');
+    case 'usage.aiActionPetCommand': return t('usage.aiActionPetCommand');
+    default: return t('usage.aiActionUnknown');
+  }
+}
+
+function renderAiAuditAction(record: AiAuditRecord): string {
+  const action = record.playerAction;
+  const label = aiAuditActionLabel(action, record.trigger);
+  const details = action?.topic
+    ? t('usage.aiAuditActionTopic', { topic: action.topic })
+    : t('usage.aiAuditActionTrigger', { trigger: record.trigger });
+  return `${escapeHtml(label)}<div class="hint">${escapeHtml(details)}</div>`;
+}
+
 function renderAiAuditTokens(inputTokens: number, outputTokens: number, totalTokens: number, estimated: boolean): string {
   const estimate = estimated
     ? `<div class="hint">${escapeHtml(t('usage.aiAuditEstimated'))}</div>`
@@ -385,6 +449,15 @@ function renderAiAuditTokens(inputTokens: number, outputTokens: number, totalTok
     input: fmtNumber(inputTokens),
     output: fmtNumber(outputTokens),
   }))}</div>${estimate}`;
+}
+
+function renderAiAuditFinalSummary(record: AiAuditRecord): string {
+  const summary = record.deliveredSummary ?? record.chain?.delivered.textSummary ?? [];
+  if (summary.length === 0 && (record.error || record.reason)) {
+    return renderAiAuditOptionalText(record.error || record.reason);
+  }
+  if (summary.length === 0) return `<span class="hint">${escapeHtml(t('usage.aiAuditNoDelivered'))}</span>`;
+  return renderAiDelimitedItems(summary, 2);
 }
 
 function renderAiAuditSummary(audit: AiAuditSnapshot): string {
@@ -402,9 +475,7 @@ function renderAiAuditSummary(audit: AiAuditSnapshot): string {
       <td class="num">${renderAiAuditTokens(window.inputTokens, window.outputTokens, window.totalTokens, window.estimatedTokens)}</td>
     </tr>`).join('');
   const estimateClass = totals.estimatedTokens ? ' warn' : '';
-  return `
-    <div class="usage-section">
-      <h4>${t('usage.aiAuditTitle')}</h4>
+  return renderAiDetailsSection('usage.aiAuditTitle', `
       <div class="hint">${escapeHtml(t('usage.aiAuditTokenNote'))}</div>
       <div class="ai-health-grid">
         <div class="ai-health-cell">
@@ -448,55 +519,199 @@ function renderAiAuditSummary(audit: AiAuditSnapshot): string {
           <tbody>${rows}</tbody>
         </table>
       </div>
-    </div>`;
+      <div id="ai-audit-detail" class="ai-audit-detail-panel">
+        <div class="empty">${t('usage.aiAuditDetailEmpty')}</div>
+      </div>`);
 }
 
 function renderAiAuditRecordRow(record: AiAuditRecord): string {
   const statusClass = aiDecisionStatusClass(record.status);
-  const reasonOrError = record.error || record.reason;
-  return `<tr>
+  const detailDisabled = record.hasChain ? '' : ' disabled';
+  return `<tr class="clickable" data-ai-audit-id="${escapeHtml(record.auditId)}">
     <td>${escapeHtml(fmtDate(record.createdAt))}</td>
+    <td>${renderAiAuditAction(record)}</td>
     <td><span class="badge${statusClass}">${escapeHtml(aiDecisionStatusLabel(record.status))}</span></td>
-    <td>${escapeHtml(aiTriggerLabel(record.trigger))}</td>
     <td>${renderAiAuditEntity(record)}</td>
     <td>${renderAiAuditScene(record)}</td>
-    <td>${escapeHtml(record.providerSource)}</td>
+    <td>${escapeHtml(aiProviderSourceLabel(record.providerSource))}</td>
     <td class="num">${renderAiLatency(record.latencyMs)}</td>
     <td class="num">${renderAiAuditTokens(record.inputTokens, record.outputTokens, record.totalTokens, record.tokenEstimate)}</td>
-    <td>${renderAiDelimitedItems(record.lineIds, 3)}</td>
-    <td>${renderAiDelimitedItems(record.intents, 3)}</td>
-    <td>${renderAiDelimitedItems(record.memoryWriteRefs, 3)}</td>
-    <td>${renderAiAuditOptionalText(reasonOrError)}</td>
+    <td>${renderAiAuditFinalSummary(record)}</td>
+    <td><button data-ai-audit-id="${escapeHtml(record.auditId)}"${detailDisabled}>${t('usage.aiAuditViewDetail')}</button></td>
   </tr>`;
 }
 
 function renderAiAuditRecords(audit: AiAuditSnapshot): string {
   const rows = audit.recent.length === 0
-    ? `<tr><td colspan="12" class="empty">${t('usage.aiAuditNoRecords')}</td></tr>`
+    ? `<tr><td colspan="10" class="empty">${t('usage.aiAuditNoRecords')}</td></tr>`
     : audit.recent.slice(0, 20).map(renderAiAuditRecordRow).join('');
-  return `
-    <div class="usage-section">
-      <h4>${t('usage.aiAuditRecentTitle')}</h4>
+  return renderAiDetailsSection('usage.aiAuditRecentTitle', `
+      <div class="admin-actions">
+        <button class="danger" data-clean-ai-audit>${t('usage.aiAuditCleanNonReal')}</button>
+      </div>
+      <div class="hint">${escapeHtml(t('usage.aiAuditCleanHint'))}</div>
       <div class="table-scroll">
         <table class="usage-table">
           <thead><tr>
             <th>${t('usage.aiAuditColTime')}</th>
+            <th>${t('usage.aiAuditColAction')}</th>
             <th>${t('usage.aiDecisionColStatus')}</th>
-            <th>${t('usage.aiDecisionColTrigger')}</th>
             <th>${t('usage.aiDecisionColEntity')}</th>
             <th>${t('usage.aiDecisionColScene')}</th>
             <th>${t('usage.aiAuditColSource')}</th>
             <th class="num">${t('usage.aiAuditColLatency')}</th>
             <th class="num">${t('usage.aiAuditColTokens')}</th>
-            <th>${t('usage.aiDecisionColLineIds')}</th>
-            <th>${t('usage.aiDecisionColIntents')}</th>
-            <th>${t('usage.aiDecisionColMemoryWrites')}</th>
-            <th>${t('usage.aiDecisionColReason')}</th>
+            <th>${t('usage.aiAuditColDelivered')}</th>
+            <th>${t('usage.aiAuditColDetail')}</th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
+      </div>`);
+}
+
+function renderJsonBlock(value: unknown): string {
+  let json: string;
+  try {
+    json = JSON.stringify(value, null, 2) ?? '';
+  } catch {
+    json = String(value);
+  }
+  return `<pre class="ai-audit-pre">${escapeHtml(json || t('usage.aiDiagnosticsNone'))}</pre>`;
+}
+
+function renderTextBlock(value: string, truncated = false): string {
+  const body = value || t('usage.aiDiagnosticsNone');
+  const truncation = truncated
+    ? `<div class="hint">${escapeHtml(t('usage.aiAuditTruncated'))}</div>`
+    : '';
+  return `${truncation}<pre class="ai-audit-pre">${escapeHtml(body)}</pre>`;
+}
+
+function renderAiAuditDetailPair(labelKey: string, value: string): string {
+  return `<dt>${t(labelKey)}</dt><dd>${escapeHtml(value || t('usage.aiDiagnosticsNone'))}</dd>`;
+}
+
+function aiAuditEventText(event: AiAuditEventSummary): string {
+  return event.text || event.speechText || event.lineId || event.type;
+}
+
+function aiAuditEventTarget(event: AiAuditEventSummary): string {
+  const parts = [
+    event.targetEntityId !== null ? t('usage.aiAuditTargetEntity', { value: fmtNumber(event.targetEntityId) }) : '',
+    event.targetObjectId !== null ? t('usage.aiAuditTargetObject', { value: fmtNumber(event.targetObjectId) }) : '',
+    event.targetItemId ? t('usage.aiAuditTargetItem', { value: event.targetItemId }) : '',
+    event.reactionKind ? t('usage.aiAuditReaction', { value: event.reactionKind }) : '',
+  ].filter(Boolean);
+  return parts.join(' / ');
+}
+
+function renderAiAuditEvents(events: readonly AiAuditEventSummary[]): string {
+  if (events.length === 0) return `<div class="empty">${t('usage.aiAuditNoEvents')}</div>`;
+  const rows = events.map((event) => `
+    <tr>
+      <td>${escapeHtml(event.type)}</td>
+      <td>${event.speakerName
+        ? escapeHtml(t('usage.aiAuditSpeakerSummary', { name: event.speakerName, id: event.speakerId === null ? t('usage.aiDiagnosticsNone') : fmtNumber(event.speakerId) }))
+        : `<span class="hint">${escapeHtml(t('usage.aiDiagnosticsNone'))}</span>`}</td>
+      <td>${escapeHtml(event.source || event.speechMode || t('usage.aiDiagnosticsNone'))}</td>
+      <td>${escapeHtml(aiAuditEventText(event))}</td>
+      <td>${escapeHtml(aiAuditEventTarget(event) || t('usage.aiDiagnosticsNone'))}</td>
+      <td>
+        <details class="ai-audit-raw">
+          <summary>${t('usage.aiAuditRawEvent')}</summary>
+          ${renderJsonBlock(event.raw)}
+          ${event.rawTruncated ? `<div class="hint">${escapeHtml(t('usage.aiAuditTruncated'))}</div>` : ''}
+        </details>
+      </td>
+    </tr>`).join('');
+  return `<div class="table-scroll">
+    <table class="usage-table ai-audit-event-table">
+      <thead><tr>
+        <th>${t('usage.aiAuditEventType')}</th>
+        <th>${t('usage.aiAuditEventSpeaker')}</th>
+        <th>${t('usage.aiAuditEventSource')}</th>
+        <th>${t('usage.aiAuditEventText')}</th>
+        <th>${t('usage.aiAuditEventTarget')}</th>
+        <th>${t('usage.aiAuditEventRaw')}</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+export function renderAiAuditRecordDetail(record: AiAuditRecord): string {
+  const chain = record.chain;
+  if (!chain) {
+    return `<div class="ai-audit-detail-panel"><div class="empty">${t('usage.aiAuditDetailMissing')}</div></div>`;
+  }
+  const action = chain.playerAction;
+  const validationClass = chain.validation.ok ? '' : ' warn';
+  return `<div class="ai-audit-detail-panel">
+    <div class="ai-audit-detail-title">
+      <h4>${escapeHtml(t('usage.aiAuditDetailTitle'))}</h4>
+      <div class="hint">${escapeHtml(record.auditId)}</div>
+    </div>
+    <div class="detail-grid ai-audit-detail-grid">
+      <section>
+        <h4>${t('usage.aiAuditDetailPlayerAction')}</h4>
+        <dl>
+          ${renderAiAuditDetailPair('usage.aiAuditDetailAction', aiAuditActionLabel(action, record.trigger))}
+          ${renderAiAuditDetailPair('usage.aiAuditDetailTopic', action.topic)}
+          ${renderAiAuditDetailPair('usage.aiAuditDetailLocale', action.locale)}
+          ${renderAiAuditDetailPair('usage.aiAuditDetailPlayer', action.protocol.playerEntityId === null ? '' : fmtNumber(action.protocol.playerEntityId))}
+          ${renderAiAuditDetailPair('usage.aiAuditDetailEntity', `${action.protocol.templateId} #${action.protocol.entityId ?? t('usage.aiDiagnosticsNone')}`)}
+        </dl>
+      </section>
+      <section>
+        <h4>${t('usage.aiAuditDetailServerSummary')}</h4>
+        <dl>
+          ${renderAiAuditDetailPair('usage.aiAuditDetailJobId', record.jobId)}
+          ${renderAiAuditDetailPair('usage.aiAuditDetailTrigger', record.trigger)}
+          ${renderAiAuditDetailPair('usage.aiAuditDetailScene', `${record.sceneId || t('usage.aiDiagnosticsNone')} / ${record.zoneId || t('usage.aiDiagnosticsNone')}`)}
+          ${renderAiAuditDetailPair('usage.aiAuditDetailOutputMode', record.outputMode)}
+          ${renderAiAuditDetailPair('usage.aiAuditDetailAllowed', t('usage.aiAuditAllowedSummary', {
+            intents: fmtNumber(record.allowedIntentCount),
+            lines: fmtNumber(record.allowedLineIdCount),
+          }))}
+          ${renderAiAuditDetailPair('usage.aiAuditDetailContextCounts', t('usage.aiAuditContextCountSummary', {
+            memory: fmtNumber(record.memorySignalCount),
+            director: fmtNumber(record.directorProposalCount),
+            objects: fmtNumber(record.sceneObjectCount),
+            companions: fmtNumber(record.companionCount),
+          }))}
+        </dl>
+      </section>
+    </div>
+    <section class="ai-audit-detail-section">
+      <h4>${t('usage.aiAuditDetailPrompt')}</h4>
+      ${renderTextBlock(chain.requestContext.promptText, chain.requestContext.promptTruncated)}
+    </section>
+    <section class="ai-audit-detail-section">
+      <h4>${t('usage.aiAuditDetailRawOutput')}</h4>
+      ${renderTextBlock(chain.provider.rawOutput || chain.provider.error, chain.provider.rawOutputTruncated)}
+    </section>
+    <section class="ai-audit-detail-section">
+      <h4>${t('usage.aiAuditDetailParsedDecision')}</h4>
+      ${renderJsonBlock(chain.provider.parsedDecision)}
+    </section>
+    <section class="ai-audit-detail-section">
+      <h4>${t('usage.aiAuditDetailContextJson')}</h4>
+      ${renderJsonBlock(chain.requestContext.context)}
+    </section>
+    <section class="ai-audit-detail-section">
+      <h4>${t('usage.aiAuditDetailValidation')}</h4>
+      <div class="ai-audit-status-line">
+        <span class="badge${validationClass}">${escapeHtml(chain.validation.ok ? t('usage.aiAuditValidationPassed') : t('usage.aiAuditValidationFailed'))}</span>
+        <span>${escapeHtml(chain.validation.reason || t('usage.aiNoReason'))}</span>
       </div>
-    </div>`;
+      ${renderAiAuditEvents(chain.validation.events)}
+    </section>
+    <section class="ai-audit-detail-section">
+      <h4>${t('usage.aiAuditDetailDelivered')}</h4>
+      <div class="hint">${renderAiDelimitedItems(chain.delivered.textSummary, 4)}</div>
+      ${renderAiAuditEvents(chain.delivered.events)}
+    </section>
+  </div>`;
 }
 
 function renderAiDirectorSubject(state: AiWorldDirectorState): string {
@@ -531,7 +746,7 @@ function renderAiProposalJournalRow(entry: AiWorldDirectorProposalAuditEntry): s
     <td><span class="badge">${escapeHtml(aiProposalLifecycleLabel(entry.lifecycle))}</span></td>
     <td>${escapeHtml(aiMoodLabel(entry.mood))}</td>
     <td>${escapeHtml(aiProposalLabel(entry.proposalType))}</td>
-    <td>${escapeHtml(entry.intent)}</td>
+    <td>${escapeHtml(aiProposalIntentLabel(entry.intent))}</td>
     <td>${escapeHtml(t('usage.aiSubjectSummary', { kind: aiSubjectKindLabel(entry.subjectKind), value: entry.targetRef }))}</td>
     <td>${escapeHtml(t('usage.aiSceneZoneSummary', { sceneId: entry.sceneId, zoneId: entry.zoneId }))}</td>
     <td class="num">${escapeHtml(fmtPercent(entry.intensity))}</td>
@@ -604,9 +819,7 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
     ? `<tr><td colspan="8" class="empty">${t('usage.aiDiagnosticsNoSocialMemory')}</td></tr>`
     : socialRows.join('');
 
-  return `
-    <div class="usage-section">
-      <h4>${t('usage.aiDiagnosticsTitle')}</h4>
+  return renderAiDetailsSection('usage.aiDiagnosticsTitle', `
       <div class="admin-actions">
         <button class="danger" data-clear-ai-memory>${t('usage.aiClearMemory')}</button>
       </div>
@@ -715,8 +928,7 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
           </tr></thead>
           <tbody>${socialTableRows}</tbody>
         </table>
-      </div>
-    </div>`;
+      </div>`);
 }
 
 function renderAiContentCoverage(coverage: AiContentCoverageReport): string {
@@ -745,9 +957,7 @@ function renderAiContentCoverage(coverage: AiContentCoverageReport): string {
     coverageRow('usage.aiCoverageItemMissingImportantSignals', coverage.items.importantItemsMissingSignals),
   ].join('');
 
-  return `
-    <div class="usage-section">
-      <h4>${t('usage.aiCoverageTitle')}</h4>
+  return renderAiDetailsSection('usage.aiCoverageTitle', `
       <div class="ai-health-grid">
         <div class="ai-health-cell">
           <div class="ai-health-value"><span class="badge${statusClass}">${escapeHtml(t(statusKey))}</span></div>
@@ -783,8 +993,7 @@ function renderAiContentCoverage(coverage: AiContentCoverageReport): string {
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
-      </div>
-    </div>`;
+      </div>`);
 }
 
 function renderAiProfilePreview(profiles: AiProfilePreviewReport): string {
@@ -806,9 +1015,7 @@ function renderAiProfilePreview(profiles: AiProfilePreviewReport): string {
     ? `<div class="hint">${escapeHtml(t('usage.aiProfilesTruncated', { count: fmtNumber(hiddenCount) }))}</div>`
     : '';
 
-  return `
-    <div class="usage-section">
-      <h4>${t('usage.aiProfilesTitle')}</h4>
+  return renderAiDetailsSection('usage.aiProfilesTitle', `
       <div class="ai-health-grid">
         <div class="ai-health-cell">
           <div class="ai-health-value">${renderAiNumber(profiles.authoredTotal)}</div>
@@ -852,8 +1059,7 @@ function renderAiProfilePreview(profiles: AiProfilePreviewReport): string {
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
-      </div>
-    </div>`;
+      </div>`);
 }
 
 export function renderAiLifeLayerMetrics(
@@ -909,8 +1115,7 @@ export function renderAiLifeLayerMetrics(
     ${coverage ? renderAiContentCoverage(coverage) : ''}
     ${profiles ? renderAiProfilePreview(profiles) : ''}
     ${diagnostics ? renderAiDiagnostics(diagnostics) : ''}
-    <div class="usage-section">
-      <h4>${t('usage.aiDetailsTitle')}</h4>
+    ${renderAiDetailsSection('usage.aiDetailsTitle', `
       <div class="table-scroll">
         <table class="usage-table">
           <thead><tr>
@@ -919,8 +1124,7 @@ export function renderAiLifeLayerMetrics(
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
-      </div>
-    </div>`;
+      </div>`)}`;
 }
 
 export function renderProviderUsage(usage: ProviderUsageSnapshot): string {
@@ -943,6 +1147,7 @@ export function renderProviderUsage(usage: ProviderUsageSnapshot): string {
     </tr>`).join('');
 
   return `
+    <div class="hint">${escapeHtml(t('usage.externalServiceNote'))}</div>
     <div class="usage-section">
       <h4>${t('usage.requestsTitle')}</h4>
       <div class="table-scroll">

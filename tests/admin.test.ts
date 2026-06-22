@@ -255,6 +255,73 @@ const fakeGame: any = {
       createdAt: '2026-06-22T00:00:00.000Z',
     }],
   })),
+  aiAuditRecord: vi.fn(async (auditId: string) => auditId === 'audit-1' ? ({
+    auditId: 'audit-1',
+    realm: 'default',
+    jobId: 'job-7',
+    trigger: 'npc_question',
+    entityKind: 'npc',
+    entityId: 22,
+    templateId: 'brother_aldric',
+    playerEntityId: 1,
+    sceneId: 'fallen_chapel',
+    zoneId: 'eastbrook_vale',
+    providerSource: 'codex',
+    status: 'accepted',
+    latencyMs: 20,
+    inputTokens: 40,
+    outputTokens: 10,
+    totalTokens: 50,
+    tokenEstimate: true,
+    outputMode: 'line_id_only',
+    allowedIntentCount: 3,
+    allowedLineIdCount: 8,
+    memorySignalCount: 2,
+    directorProposalCount: 1,
+    sceneObjectCount: 4,
+    companionCount: 1,
+    lineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
+    intents: ['commentOnScene'],
+    memoryWriteRefs: ['npcInteraction:npc:1:brother_aldric'],
+    reason: 'uses profile line',
+    error: '',
+    hasChain: true,
+    chain: {
+      playerAction: {
+        kind: 'npc_question',
+        topic: 'recent',
+        labelKey: 'usage.aiActionNpcRecent',
+        locale: 'en',
+        protocol: {
+          jobId: 'job-7',
+          trigger: 'npc_question',
+          playerEntityId: 1,
+          entityKind: 'npc',
+          entityId: 22,
+          templateId: 'brother_aldric',
+        },
+      },
+      requestContext: {
+        context: { jobId: 'job-7' },
+        promptText: 'prompt sent to model',
+        promptTruncated: false,
+      },
+      provider: {
+        source: 'codex',
+        rawOutput: '{"ok":true}',
+        rawOutputTruncated: false,
+        parsedDecision: { jobId: 'job-7' },
+        error: '',
+      },
+      validation: { ok: true, reason: 'accepted', events: [] },
+      delivered: { events: [], textSummary: ['hudChrome.aiSpeech.brotherAldricAwake'] },
+    },
+    createdAt: '2026-06-22T00:00:00.000Z',
+  }) : null),
+  cleanAiAuditNonRealRecords: vi.fn(async () => ({
+    deletedRecords: 3,
+    retainedRecords: 2,
+  })),
   clearAiLifeLayerMemory: vi.fn(async () => ({
     npcMemories: 1,
     rumors: 1,
@@ -415,6 +482,47 @@ describe('admin api auth', () => {
         persistedMemoryRecords: 4,
         totalCleared: 11,
       }),
+    });
+  });
+
+  it('serves a full AI audit record through an authenticated detail endpoint', async () => {
+    vi.mocked(accountForToken).mockResolvedValue(7);
+    vi.mocked(isAdminAccount).mockResolvedValue(true);
+    const res = fakeRes();
+
+    await handleAdminApi(fakeReq({ token: VALID_TOKEN, url: '/admin/api/ai/audit/audit-1' }), res, fakeGame);
+
+    expect(res.statusCode).toBe(200);
+    expect(fakeGame.aiAuditRecord).toHaveBeenCalledWith('audit-1');
+    expect(res.body).toEqual({
+      success: true,
+      error: null,
+      data: expect.objectContaining({
+        auditId: 'audit-1',
+        chain: expect.objectContaining({
+          requestContext: expect.objectContaining({ promptText: 'prompt sent to model' }),
+          provider: expect.objectContaining({ rawOutput: '{"ok":true}' }),
+          delivered: expect.objectContaining({
+            textSummary: ['hudChrome.aiSpeech.brotherAldricAwake'],
+          }),
+        }),
+      }),
+    });
+  });
+
+  it('cleans non-real AI audit records through an authenticated admin endpoint', async () => {
+    vi.mocked(accountForToken).mockResolvedValue(7);
+    vi.mocked(isAdminAccount).mockResolvedValue(true);
+    const res = fakeRes();
+
+    await handleAdminApi(fakeReq({ method: 'POST', token: VALID_TOKEN, url: '/admin/api/ai/audit/clean', body: {} }), res, fakeGame);
+
+    expect(res.statusCode).toBe(200);
+    expect(fakeGame.cleanAiAuditNonRealRecords).toHaveBeenCalledTimes(1);
+    expect(res.body).toEqual({
+      success: true,
+      error: null,
+      data: { deletedRecords: 3, retainedRecords: 2 },
     });
   });
 

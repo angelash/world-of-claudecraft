@@ -12,7 +12,14 @@ import {
   type AiAuditSink,
 } from '../ai_audit';
 import { REALM } from '../realm';
-import type { AiDecisionV1, AiJobContextV1, AiMemoryAuditRecord, AiProvider } from './ai_types';
+import type {
+  AiDecisionV1,
+  AiJobContextV1,
+  AiMemoryAuditRecord,
+  AiOutputMode,
+  AiProvider,
+  AiProviderOutput,
+} from './ai_types';
 import { aiEntityKind } from './ai_types';
 import {
   AiBossEncounterMemoryStore,
@@ -46,6 +53,7 @@ import {
 } from './memory_audit';
 import { objectInspectionEvent, objectInspectionLineIds } from './object_reactions';
 import { compactProfileSnapshot, profileFor } from './profiles';
+import { buildCodexDecisionPrompt } from './prompt_builder';
 import { topicReactionEvent } from './question_reactions';
 import { droppedItemSemantic, sceneFrameFor } from './scene_frame';
 import type { DroppedItemSemantic, SceneFrameV1 } from './scene_frame';
@@ -698,11 +706,16 @@ export class AiLifeLayer {
       ...persistedSignals,
     ];
     let decision: AiDecisionV1;
+    let promptText: string | undefined;
+    let rawOutput: string | undefined;
     let providerLatencyMs = 0;
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
     try {
-      decision = await this.provider.decide(context);
+      const providerOutput = normalizeProviderOutput(await this.provider.decide(context));
+      decision = providerOutput.decision;
+      promptText = providerOutput.promptText;
+      rawOutput = providerOutput.rawOutput;
       providerLatencyMs = performance.now() - providerStartedAt;
       this.recordProviderLatency(providerLatencyMs);
       this.metrics.providerSuccesses++;
@@ -713,6 +726,7 @@ export class AiLifeLayer {
       this.metrics.providerErrors++;
       this.metrics.lastProviderError = reason;
       this.journal.recordProviderError(context, reason, memoryWrites);
+      const event = providerFailureErrorEvent(context, reason);
       this.recordProviderAudit({
         context,
         latencyMs: providerLatencyMs,
@@ -720,9 +734,9 @@ export class AiLifeLayer {
         result: null,
         memoryWrites,
         providerError: reason,
+        deliveredEvents: [event],
       });
       this.enqueueMemoryWrites(memoryWrites);
-      const event = providerFailureErrorEvent(context, reason);
       this.metrics.generatedEvents++;
       request.deliver([event]);
       return;
@@ -730,17 +744,20 @@ export class AiLifeLayer {
     const result = validateAiDecision({ decision, context, entity: npc, subject, source: 'codex' });
     if (result.ok) this.metrics.acceptedDecisions++;
     else this.metrics.rejectedDecisions++;
-    this.recordProviderAudit({
-      context,
-      latencyMs: providerLatencyMs,
-      decision,
-      result,
-      memoryWrites,
-    });
     this.journal.recordDecision(context, decision, result, memoryWrites);
     this.enqueueMemoryWrites(memoryWrites);
     if (!result.ok) {
       const event = providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator');
+      this.recordProviderAudit({
+        context,
+        latencyMs: providerLatencyMs,
+        decision,
+        result,
+        memoryWrites,
+        promptText,
+        rawOutput,
+        deliveredEvents: [event],
+      });
       this.metrics.generatedEvents++;
       request.deliver([event]);
       return;
@@ -759,6 +776,16 @@ export class AiLifeLayer {
         directorEvent,
         memoryEvent,
         topicEvent,
+      });
+      this.recordProviderAudit({
+        context,
+        latencyMs: providerLatencyMs,
+        decision,
+        result,
+        memoryWrites,
+        promptText,
+        rawOutput,
+        deliveredEvents: events,
       });
       if (events.length > 0) {
         this.metrics.generatedEvents += events.length;
@@ -997,11 +1024,16 @@ export class AiLifeLayer {
     const pet = request.sim.entities.get(context.entity.entityId);
     if (!pet || pet.kind !== 'mob' || pet.ownerId !== request.pid) return null;
     let decision: AiDecisionV1;
+    let promptText: string | undefined;
+    let rawOutput: string | undefined;
     let providerLatencyMs = 0;
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
     try {
-      decision = await this.provider.decide(context);
+      const providerOutput = normalizeProviderOutput(await this.provider.decide(context));
+      decision = providerOutput.decision;
+      promptText = providerOutput.promptText;
+      rawOutput = providerOutput.rawOutput;
       providerLatencyMs = performance.now() - providerStartedAt;
       this.recordProviderLatency(providerLatencyMs);
       this.metrics.providerSuccesses++;
@@ -1012,14 +1044,15 @@ export class AiLifeLayer {
       this.metrics.providerErrors++;
       this.metrics.lastProviderError = reason;
       this.journal.recordProviderError(context, reason);
+      const event = providerFailureErrorEvent(context, reason);
       this.recordProviderAudit({
         context,
         latencyMs: providerLatencyMs,
         decision: null,
         result: null,
         providerError: reason,
+        deliveredEvents: [event],
       });
-      const event = providerFailureErrorEvent(context, reason);
       this.metrics.generatedEvents++;
       request.deliver?.([event]);
       return null;
@@ -1027,20 +1060,32 @@ export class AiLifeLayer {
     const result = validateAiDecision({ decision, context, entity: pet, subject: 'ordinary', source: 'codex' });
     if (result.ok) this.metrics.acceptedDecisions++;
     else this.metrics.rejectedDecisions++;
-    this.recordProviderAudit({
-      context,
-      latencyMs: providerLatencyMs,
-      decision,
-      result,
-    });
     this.journal.recordDecision(context, decision, result);
     if (!result.ok) {
       const event = providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator');
+      this.recordProviderAudit({
+        context,
+        latencyMs: providerLatencyMs,
+        decision,
+        result,
+        promptText,
+        rawOutput,
+        deliveredEvents: [event],
+      });
       this.metrics.generatedEvents++;
       request.deliver?.([event]);
       return null;
     }
     const intent = firstPetCommandIntent(decision);
+    this.recordProviderAudit({
+      context,
+      latencyMs: providerLatencyMs,
+      decision,
+      result,
+      promptText,
+      rawOutput,
+      deliveredEvents: [],
+    });
     if (!intent) return petCommandActionFromIntent('commandPetIgnore', 'codex', `${decision.audit.shortReason}: no bounded pet intent`);
     return petCommandActionFromIntent(intent, 'codex', decision.audit.shortReason);
   }
@@ -1053,11 +1098,16 @@ export class AiLifeLayer {
   ): Promise<SimEvent[]> {
     const subject = classifyCanonSubject(object);
     let decision: AiDecisionV1;
+    let promptText: string | undefined;
+    let rawOutput: string | undefined;
     let providerLatencyMs = 0;
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
     try {
-      decision = await this.provider.decide(context);
+      const providerOutput = normalizeProviderOutput(await this.provider.decide(context));
+      decision = providerOutput.decision;
+      promptText = providerOutput.promptText;
+      rawOutput = providerOutput.rawOutput;
       providerLatencyMs = performance.now() - providerStartedAt;
       this.recordProviderLatency(providerLatencyMs);
       this.metrics.providerSuccesses++;
@@ -1068,6 +1118,7 @@ export class AiLifeLayer {
       this.metrics.providerErrors++;
       this.metrics.lastProviderError = reason;
       this.journal.recordProviderError(context, reason, memoryWrites);
+      const event = providerFailureErrorEvent(context, reason);
       this.recordProviderAudit({
         context,
         latencyMs: providerLatencyMs,
@@ -1075,24 +1126,40 @@ export class AiLifeLayer {
         result: null,
         memoryWrites,
         providerError: reason,
+        deliveredEvents: [event],
       });
-      return [providerFailureErrorEvent(context, reason)];
+      return [event];
     }
     const result = validateAiDecision({ decision, context, entity: object, subject, source: 'codex' });
     if (result.ok) this.metrics.acceptedDecisions++;
     else this.metrics.rejectedDecisions++;
+    this.journal.recordDecision(context, decision, result, memoryWrites);
+    if (!result.ok) {
+      const event = providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator');
+      this.recordProviderAudit({
+        context,
+        latencyMs: providerLatencyMs,
+        decision,
+        result,
+        memoryWrites,
+        promptText,
+        rawOutput,
+        deliveredEvents: [event],
+      });
+      return [event];
+    }
+    const events = mergeObjectInspectionShell(result.events, localEvent);
     this.recordProviderAudit({
       context,
       latencyMs: providerLatencyMs,
       decision,
       result,
       memoryWrites,
+      promptText,
+      rawOutput,
+      deliveredEvents: events,
     });
-    this.journal.recordDecision(context, decision, result, memoryWrites);
-    if (!result.ok) {
-      return [providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator')];
-    }
-    return mergeObjectInspectionShell(result.events, localEvent);
+    return events;
   }
 
   private buildSingularityContext(input: {
@@ -1189,11 +1256,16 @@ export class AiLifeLayer {
   ): Promise<SimEvent[]> {
     const subject = classifyCanonSubject(entity);
     let decision: AiDecisionV1;
+    let promptText: string | undefined;
+    let rawOutput: string | undefined;
     let providerLatencyMs = 0;
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
     try {
-      decision = await this.provider.decide(context);
+      const providerOutput = normalizeProviderOutput(await this.provider.decide(context));
+      decision = providerOutput.decision;
+      promptText = providerOutput.promptText;
+      rawOutput = providerOutput.rawOutput;
       providerLatencyMs = performance.now() - providerStartedAt;
       this.recordProviderLatency(providerLatencyMs);
       this.metrics.providerSuccesses++;
@@ -1204,6 +1276,7 @@ export class AiLifeLayer {
       this.metrics.providerErrors++;
       this.metrics.lastProviderError = reason;
       this.journal.recordProviderError(context, reason, memoryWrites);
+      const event = providerFailureErrorEvent(context, reason);
       this.recordProviderAudit({
         context,
         latencyMs: providerLatencyMs,
@@ -1211,24 +1284,40 @@ export class AiLifeLayer {
         result: null,
         memoryWrites,
         providerError: reason,
+        deliveredEvents: [event],
       });
-      return [providerFailureErrorEvent(context, reason)];
+      return [event];
     }
     const result = validateAiDecision({ decision, context, entity, subject, source: 'codex' });
     if (result.ok) this.metrics.acceptedDecisions++;
     else this.metrics.rejectedDecisions++;
+    this.journal.recordDecision(context, decision, result, memoryWrites);
+    if (!result.ok) {
+      const event = providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator');
+      this.recordProviderAudit({
+        context,
+        latencyMs: providerLatencyMs,
+        decision,
+        result,
+        memoryWrites,
+        promptText,
+        rawOutput,
+        deliveredEvents: [event],
+      });
+      return [event];
+    }
+    const events = mergeSingularityReactionShell(result.events, localEvent);
     this.recordProviderAudit({
       context,
       latencyMs: providerLatencyMs,
       decision,
       result,
       memoryWrites,
+      promptText,
+      rawOutput,
+      deliveredEvents: events,
     });
-    this.journal.recordDecision(context, decision, result, memoryWrites);
-    if (!result.ok) {
-      return [providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator')];
-    }
-    return mergeSingularityReactionShell(result.events, localEvent);
+    return events;
   }
 
   async handleSceneInspection(request: SceneAiInspectionRequest): Promise<void> {
@@ -1449,7 +1538,12 @@ export class AiLifeLayer {
     result: ReturnType<typeof validateAiDecision> | null;
     memoryWrites?: readonly AiMemoryAuditRecord[];
     providerError?: string;
+    promptText?: string;
+    rawOutput?: string;
+    deliveredEvents?: readonly SimEvent[];
   }): void {
+    const promptText = input.promptText
+      ?? (this.auditProviderSource === 'codex' ? buildCodexDecisionPrompt(input.context) : undefined);
     this.recordAudit(createProviderAuditRecord({
       auditId: `${input.context.jobId}-${input.providerError ? 'provider-error' : input.result?.ok ? 'accepted' : 'rejected'}-${++this.auditSequence}`,
       realm: REALM,
@@ -1460,6 +1554,9 @@ export class AiLifeLayer {
       result: input.result,
       memoryWrites: input.memoryWrites,
       providerError: input.providerError,
+      promptText,
+      rawOutput: input.rawOutput,
+      deliveredEvents: input.deliveredEvents,
     }));
   }
 
@@ -1662,7 +1759,7 @@ export class AiLifeLayer {
       ],
       allowedIntents: profile.allowedIntentTypes,
       allowedLineIds: profile.allowedLineIds,
-      outputMode: 'line_id_only',
+      outputMode: npcConversationOutputMode(request.topic ?? 'greeting'),
     };
   }
 
@@ -1812,25 +1909,54 @@ function directNpcReplyEvents(
 ): SimEvent[] {
   const topic = context.topic ?? 'greeting';
   const { sceneEvent, traceEvent, directorEvent, memoryEvent, topicEvent } = candidates;
+  const directSpeech = directProviderSpeech(context, npc, providerEvents);
+  const directDynamicSpeech = directSpeech?.speech.mode === 'dynamicText' ? directSpeech : null;
   if (topic === 'rumor') {
-    const event = memoryEvent ?? directorEvent ?? traceEvent ?? topicEvent;
+    const event = directDynamicSpeech ?? memoryEvent ?? directorEvent ?? traceEvent ?? topicEvent ?? directSpeech;
     return event ? [event] : [];
   }
   if (topic === 'place' || topic === 'recent') {
-    const event = directorEvent ?? traceEvent ?? topicEvent ?? highPrioritySceneEvent(sceneEvent);
+    const event = directDynamicSpeech ?? directorEvent ?? traceEvent ?? topicEvent ?? highPrioritySceneEvent(sceneEvent) ?? directSpeech;
     return event ? [event] : [];
   }
   if (topic === 'quest_hint') {
     const event = topicEvent ?? memoryEvent ?? directorEvent ?? traceEvent ?? sceneEvent;
     return event ? [event] : [];
   }
-  const contextualEvent = memoryEvent ?? traceEvent ?? directorEvent ?? highPrioritySceneEvent(sceneEvent);
+  const contextualEvent = directDynamicSpeech ?? memoryEvent ?? traceEvent ?? directorEvent ?? highPrioritySceneEvent(sceneEvent) ?? directSpeech;
   if (contextualEvent) return [contextualEvent];
+  return [];
+}
+
+function directProviderSpeech(
+  context: AiJobContextV1,
+  npc: Entity,
+  providerEvents: readonly SimEvent[],
+): Extract<SimEvent, { type: 'aiSpeech' }> | null {
   const directSpeech = providerEvents.find((event): event is Extract<SimEvent, { type: 'aiSpeech' }> =>
     event.type === 'aiSpeech'
     && event.speakerId === npc.id
     && event.pid === context.player.entityId);
-  return directSpeech ? [directSpeech] : [];
+  return directSpeech ?? null;
+}
+
+function npcConversationOutputMode(topic: AiNpcInteractionTopic): AiOutputMode {
+  return topic === 'quest_hint' ? 'line_id_only' : 'mixed_living_world';
+}
+
+function normalizeProviderOutput(output: AiProviderOutput): {
+  decision: AiDecisionV1;
+  promptText?: string;
+  rawOutput?: string;
+} {
+  if ('decision' in output) {
+    return {
+      decision: output.decision,
+      promptText: output.promptText,
+      rawOutput: output.rawOutput,
+    };
+  }
+  return { decision: output };
 }
 
 function highPrioritySceneEvent(event: SimEvent | null): SimEvent | null {

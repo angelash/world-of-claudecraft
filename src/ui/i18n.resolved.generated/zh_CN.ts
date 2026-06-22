@@ -354,7 +354,7 @@ export const zh_CN: EnTranslations = {
       "memoryTidewatcherRecognizesPlayer": "{speakerName}现在认识你了，{playerName}。你的名字已经不止一次越过水面。",
       "memoryTidewatcherRumorEcho": "{speakerName}看着{itemName}，像看一圈尚未扩散完的涟漪。",
       "memoryTidewatcherQuestRumorEcho": "{speakerName}说{questName}已经传到水线，而水线会重复一切。",
-      "topicRecentFirstMeet": "{speakerName}仔细打量你。你们之间还没有足够的历史，{playerName}。",
+      "topicRecentFirstMeet": "{speakerName}答得很谨慎，{playerName}。你们还谈不上熟，但这地方已经有些细小动静值得留意。",
       "topicRecentKnown": "{speakerName}用一种已经开始记录你的语气回答，{playerName}。",
       "topicRumorQuiet": "{speakerName}倾听传闻，但还没有确切消息传到这个角落。",
       "topicPlace": "{speakerName}先看了看附近的道路、天气和墙面才回答。",

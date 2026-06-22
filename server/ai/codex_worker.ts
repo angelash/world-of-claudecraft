@@ -4,7 +4,15 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
-import type { AiDecisionV1, AiEntityKind, AiIntentType, AiJobContextV1, AiProvider, AiSpeech } from './ai_types';
+import type {
+  AiDecisionV1,
+  AiEntityKind,
+  AiIntentType,
+  AiJobContextV1,
+  AiProvider,
+  AiProviderDecisionResult,
+  AiSpeech,
+} from './ai_types';
 import { buildCodexDecisionPrompt } from './prompt_builder';
 
 export interface CodexCliProviderOptions {
@@ -149,15 +157,16 @@ export class CodexCliProvider implements AiProvider {
     this.repoRoot = options.repoRoot ?? process.cwd();
   }
 
-  async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
+  async decide(context: AiJobContextV1): Promise<AiProviderDecisionResult> {
     const dir = await mkdtemp(join(tmpdir(), 'woc-ai-'));
     const inputPath = join(dir, 'job.json');
     const outputPath = join(dir, 'decision.json');
     const schemaPath = join(dir, 'decision.schema.json');
+    const promptText = buildCodexDecisionPrompt(context);
     await writeFile(inputPath, JSON.stringify(context, null, 2), 'utf8');
     await writeFile(schemaPath, JSON.stringify(AI_DECISION_OUTPUT_SCHEMA, null, 2), 'utf8');
     try {
-      const result = await this.execCodex(context, schemaPath, outputPath);
+      const result = await this.execCodex(promptText, schemaPath, outputPath);
       let raw: string;
       try {
         raw = await readFile(outputPath, 'utf8');
@@ -165,18 +174,21 @@ export class CodexCliProvider implements AiProvider {
         if (result.lastAgentMessage) raw = result.lastAgentMessage;
         else throw new Error(`Codex CLI completed but did not write a structured decision: ${errorMessage(err)}`);
       }
-      return parseCodexDecisionOutput(raw);
+      return {
+        decision: parseCodexDecisionOutput(raw),
+        promptText,
+        rawOutput: raw,
+      };
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
   }
 
   private execCodex(
-    context: AiJobContextV1,
+    prompt: string,
     schemaPath: string,
     outputPath: string,
   ): Promise<{ lastAgentMessage: string | null }> {
-    const prompt = buildCodexDecisionPrompt(context);
     const args = [
       '--ask-for-approval',
       'never',

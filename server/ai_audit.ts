@@ -1,3 +1,4 @@
+import type { SimEvent } from '../src/sim/types';
 import type { AiDecisionV1, AiJobContextV1, AiMemoryAuditRecord, AiValidationResult } from './ai/ai_types';
 
 export const AI_AUDIT_WINDOWS = [
@@ -11,6 +12,65 @@ export type AiAuditWindowKey = typeof AI_AUDIT_WINDOWS[number]['key'];
 export type AiAuditStatus = 'accepted' | 'rejected' | 'provider_error' | 'local_reaction';
 export type AiAuditProviderSource = 'codex' | 'fallback' | 'local' | 'provider';
 export type AiAuditEntityKind = 'npc' | 'mob' | 'object' | 'system';
+
+export interface AiAuditPlayerAction {
+  kind: string;
+  topic: string;
+  labelKey: string;
+  locale: string;
+  protocol: {
+    jobId: string;
+    trigger: string;
+    playerEntityId: number | null;
+    entityKind: AiAuditEntityKind;
+    entityId: number | null;
+    templateId: string;
+  };
+}
+
+export interface AiAuditEventSummary {
+  type: string;
+  pid: number | null;
+  speakerId: number | null;
+  speakerName: string;
+  source: string;
+  text: string;
+  speechMode: string;
+  lineId: string;
+  language: string;
+  speechText: string;
+  targetEntityId: number | null;
+  targetObjectId: number | null;
+  targetItemId: string;
+  reactionKind: string;
+  raw: unknown;
+  rawTruncated: boolean;
+}
+
+export interface AiAuditChain {
+  playerAction: AiAuditPlayerAction;
+  requestContext: {
+    context: AiJobContextV1;
+    promptText: string;
+    promptTruncated: boolean;
+  };
+  provider: {
+    source: AiAuditProviderSource;
+    rawOutput: string;
+    rawOutputTruncated: boolean;
+    parsedDecision: AiDecisionV1 | null;
+    error: string;
+  };
+  validation: {
+    ok: boolean;
+    reason: string;
+    events: AiAuditEventSummary[];
+  };
+  delivered: {
+    events: AiAuditEventSummary[];
+    textSummary: string[];
+  };
+}
 
 export interface AiAuditRecord {
   auditId: string;
@@ -42,6 +102,10 @@ export interface AiAuditRecord {
   memoryWriteRefs: string[];
   reason: string;
   error: string;
+  playerAction?: AiAuditPlayerAction;
+  deliveredSummary?: string[];
+  hasChain?: boolean;
+  chain?: AiAuditChain;
   createdAt: string;
 }
 
@@ -88,6 +152,11 @@ export interface AiAuditSnapshot {
   recent: AiAuditRecord[];
 }
 
+export interface AiAuditCleanupResult {
+  deletedRecords: number;
+  retainedRecords: number;
+}
+
 export interface AiAuditSink {
   record(record: AiAuditRecord): void | Promise<void>;
 }
@@ -111,6 +180,11 @@ interface AiAuditCounterBucket {
   totalTokens: number;
   estimatedTokenRecords: number;
 }
+
+const AI_AUDIT_PROMPT_MAX_CHARS = 64_000;
+const AI_AUDIT_RAW_OUTPUT_MAX_CHARS = 64_000;
+const AI_AUDIT_RAW_EVENT_MAX_CHARS = 12_000;
+const AI_AUDIT_TEXT_SUMMARY_MAX = 8;
 
 const WINDOW_BUCKETS: Record<AiAuditWindowKey, { bucketMs: number; slots: number }> = {
   m1: { bucketMs: 1_000, slots: 60 },
@@ -265,12 +339,16 @@ export class AiAuditRuntime implements AiAuditSink {
     };
   }
 
-  resetForTests(): void {
+  reset(): void {
     for (const window of AI_AUDIT_WINDOWS) this.windows[window.key] = newWindowCounters(window.key);
     this.totals = emptyBucket();
     this.lastInputTokens = 0;
     this.lastOutputTokens = 0;
     this.lastTotalTokens = 0;
+  }
+
+  resetForTests(): void {
+    this.reset();
   }
 }
 
@@ -329,6 +407,9 @@ export function createProviderAuditRecord(input: {
   result: AiValidationResult | null;
   memoryWrites?: readonly AiMemoryAuditRecord[];
   providerError?: string;
+  promptText?: string;
+  rawOutput?: string;
+  deliveredEvents?: readonly SimEvent[];
   createdAt?: string;
 }): AiAuditRecord {
   const providerError = input.providerError ?? '';
@@ -339,6 +420,20 @@ export function createProviderAuditRecord(input: {
       : 'rejected';
   const inputTokens = estimateAiTokens(input.context);
   const outputTokens = providerError ? 0 : estimateAiTokens(input.decision);
+  const playerAction = aiAuditPlayerActionFromContext(input.context);
+  const deliveredEvents = [...(input.deliveredEvents ?? [])];
+  const deliveredSummary = aiAuditDeliveredSummary(deliveredEvents);
+  const chain = aiAuditChain({
+    context: input.context,
+    playerAction,
+    providerSource: input.providerSource,
+    decision: input.decision,
+    result: input.result,
+    providerError,
+    promptText: input.promptText ?? '',
+    rawOutput: input.rawOutput ?? '',
+    deliveredEvents,
+  });
   return {
     auditId: input.auditId,
     realm: input.realm,
@@ -365,6 +460,10 @@ export function createProviderAuditRecord(input: {
       ? `providerError:${providerError}`
       : input.result?.reason ?? input.decision?.audit.shortReason ?? '',
     error: providerError,
+    playerAction,
+    deliveredSummary,
+    hasChain: true,
+    chain,
     createdAt: input.createdAt ?? new Date().toISOString(),
   };
 }
@@ -418,6 +517,165 @@ export function createLocalAuditRecord(input: {
     error: '',
     createdAt: input.createdAt ?? new Date().toISOString(),
   };
+}
+
+function aiAuditChain(input: {
+  context: AiJobContextV1;
+  playerAction: AiAuditPlayerAction;
+  providerSource: AiAuditProviderSource;
+  decision: AiDecisionV1 | null;
+  result: AiValidationResult | null;
+  providerError: string;
+  promptText: string;
+  rawOutput: string;
+  deliveredEvents: readonly SimEvent[];
+}): AiAuditChain {
+  const prompt = truncateText(input.promptText, AI_AUDIT_PROMPT_MAX_CHARS);
+  const rawOutput = truncateText(input.rawOutput, AI_AUDIT_RAW_OUTPUT_MAX_CHARS);
+  const validationEvents = input.result?.events ?? [];
+  return {
+    playerAction: input.playerAction,
+    requestContext: {
+      context: input.context,
+      promptText: prompt.text,
+      promptTruncated: prompt.truncated,
+    },
+    provider: {
+      source: input.providerSource,
+      rawOutput: rawOutput.text,
+      rawOutputTruncated: rawOutput.truncated,
+      parsedDecision: input.decision,
+      error: input.providerError,
+    },
+    validation: {
+      ok: input.providerError ? false : Boolean(input.result?.ok),
+      reason: input.providerError || input.result?.reason || input.decision?.audit.shortReason || '',
+      events: validationEvents.map(aiAuditEventSummary),
+    },
+    delivered: {
+      events: input.deliveredEvents.map(aiAuditEventSummary),
+      textSummary: aiAuditDeliveredSummary(input.deliveredEvents),
+    },
+  };
+}
+
+function aiAuditPlayerActionFromContext(context: AiJobContextV1): AiAuditPlayerAction {
+  const topic = context.topic ?? '';
+  return {
+    kind: context.trigger,
+    topic,
+    labelKey: aiAuditPlayerActionLabelKey(context.trigger, topic),
+    locale: context.locale,
+    protocol: {
+      jobId: context.jobId,
+      trigger: context.trigger,
+      playerEntityId: context.player.entityId,
+      entityKind: context.entity.kind,
+      entityId: context.entity.entityId,
+      templateId: context.entity.templateId,
+    },
+  };
+}
+
+function aiAuditPlayerActionLabelKey(trigger: string, topic: string): string {
+  if (trigger === 'npc_gossip_opened') return 'usage.aiActionNpcGreeting';
+  if (trigger === 'npc_question') {
+    switch (topic) {
+      case 'recent': return 'usage.aiActionNpcRecent';
+      case 'rumor': return 'usage.aiActionNpcRumor';
+      case 'place': return 'usage.aiActionNpcPlace';
+      case 'quest_hint': return 'usage.aiActionNpcQuestHint';
+      case 'greeting': return 'usage.aiActionNpcGreeting';
+      default: return 'usage.aiActionNpcQuestion';
+    }
+  }
+  if (trigger === 'object_inspected') return 'usage.aiActionObjectInspected';
+  if (trigger === 'singularity_candidate') return 'usage.aiActionSingularityCandidate';
+  if (trigger === 'pet_command') return 'usage.aiActionPetCommand';
+  return 'usage.aiActionUnknown';
+}
+
+function aiAuditEventSummary(event: SimEvent): AiAuditEventSummary {
+  const record = event as Record<string, unknown>;
+  const speech = record.speech && typeof record.speech === 'object'
+    ? record.speech as Record<string, unknown>
+    : null;
+  const reaction = record.reaction && typeof record.reaction === 'object'
+    ? record.reaction as Record<string, unknown>
+    : null;
+  const raw = boundedJsonValue(event, AI_AUDIT_RAW_EVENT_MAX_CHARS);
+  return {
+    type: stringField(record.type),
+    pid: nullableNumberField(record.pid),
+    speakerId: nullableNumberField(record.speakerId),
+    speakerName: stringField(record.speakerName),
+    source: stringField(record.source),
+    text: stringField(record.text),
+    speechMode: stringField(speech?.mode),
+    lineId: stringField(speech?.lineId),
+    language: stringField(speech?.language),
+    speechText: stringField(speech?.text),
+    targetEntityId: nullableNumberField(reaction?.targetEntityId ?? record.targetId ?? record.entityId),
+    targetObjectId: nullableNumberField(reaction?.targetObjectId),
+    targetItemId: stringField(reaction?.targetItemId),
+    reactionKind: stringField(reaction?.kind),
+    raw: raw.value,
+    rawTruncated: raw.truncated,
+  };
+}
+
+function aiAuditDeliveredSummary(events: readonly SimEvent[]): string[] {
+  return events
+    .map(aiAuditEventText)
+    .filter((text): text is string => Boolean(text))
+    .slice(0, AI_AUDIT_TEXT_SUMMARY_MAX);
+}
+
+function aiAuditEventText(event: SimEvent): string | null {
+  if (event.type === 'error') return event.text;
+  if (event.type === 'loot') return event.text;
+  if (event.type === 'aiSpeech') {
+    if (event.speech.mode === 'dynamicText') return event.speech.text;
+    return event.speech.lineId;
+  }
+  if (event.type === 'aiThinking') return `thinking:${event.speakerName}:${event.durationMs}`;
+  return event.type;
+}
+
+function truncateText(value: string, maxLength: number): { text: string; truncated: boolean } {
+  if (value.length <= maxLength) return { text: value, truncated: false };
+  return { text: value.slice(0, maxLength), truncated: true };
+}
+
+function boundedJsonValue(value: unknown, maxLength: number): { value: unknown; truncated: boolean } {
+  let serialized: string;
+  try {
+    serialized = JSON.stringify(value) ?? '';
+  } catch {
+    serialized = String(value);
+  }
+  if (serialized.length <= maxLength) {
+    try {
+      return { value: JSON.parse(serialized), truncated: false };
+    } catch {
+      return { value: serialized, truncated: false };
+    }
+  }
+  return {
+    value: {
+      truncatedJson: serialized.slice(0, maxLength),
+      originalLength: serialized.length,
+    },
+    truncated: true,
+  };
+}
+
+function stringField(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function nullableNumberField(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
 function safeNumber(value: number): number {

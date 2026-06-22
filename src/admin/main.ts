@@ -1,15 +1,18 @@
 import { apiGet, apiLogin, apiPost, clearSession, getAdminName, getToken, ApiError } from './api';
 import { barChart, chartPanel } from './charts';
 import { escapeHtml, fmtBytes, fmtDate, fmtDuration } from './format';
-import { classLabel, t, localizeAdminError, ensureAdminLocaleLoaded, adminLanguage } from './i18n';
+import {
+  classLabel, t, localizeAdminError, ensureAdminLocaleLoaded,
+  adminLanguage, adminLanguageTag, setAdminLanguage,
+} from './i18n';
 import {
   renderAccountDetail, renderAccountsTable, renderCharactersTable, renderChatFilter,
-  renderAiLifeLayerMetrics, renderModerationDetail, renderModerationQueue,
+  renderAiAuditRecordDetail, renderAiLifeLayerMetrics, renderModerationDetail, renderModerationQueue,
   renderOnlineTable, renderPager, renderProviderUsage,
 } from './tables';
 import type {
   AccountDetail, AccountRow, Activity, CharacterRow, ChatFilterData, LivePlayer,
-  AiVolatileMemoryClearResult, ModerationAccountDetail, ModerationQueueRow, Overview, Paginated,
+  AiAuditCleanupResult, AiAuditRecord, AiVolatileMemoryClearResult, ModerationAccountDetail, ModerationQueueRow, Overview, Paginated,
 } from './types';
 
 const LIVE_REFRESH_MS = 5_000;
@@ -21,6 +24,22 @@ const $ = (id: string): HTMLElement => {
   if (!el) throw new Error(`missing element #${id}`);
   return el;
 };
+
+const renderedHtmlById = new Map<string, string>();
+const renderedHtmlByElement = new WeakMap<HTMLElement, string>();
+
+function setHtmlIfChanged(id: string, html: string): void {
+  const el = $(id);
+  if (renderedHtmlById.get(id) === html) return;
+  renderedHtmlById.set(id, html);
+  el.innerHTML = html;
+}
+
+function setElementHtmlIfChanged(el: HTMLElement, html: string): void {
+  if (renderedHtmlByElement.get(el) === html) return;
+  renderedHtmlByElement.set(el, html);
+  el.innerHTML = html;
+}
 
 interface TableState {
   page: number;
@@ -36,6 +55,7 @@ let activityTimer: number | null = null;
 type AdminPage = 'overview' | 'usage' | 'moderation' | 'chat-filter';
 let activePage: AdminPage = 'overview';
 let pendingModerationAction: { endpoint: string; body: unknown; accountId: number; source: 'account' | 'moderation' } | null = null;
+let selectedAiAuditId: string | null = null;
 
 // ---------------------------------------------------------------------------
 // Auth flow
@@ -71,9 +91,9 @@ async function showApp(): Promise<void> {
 async function refreshModeration(): Promise<void> {
   try {
     const data = await apiGet<{ rows: ModerationQueueRow[] }>('/admin/api/moderation/queue');
-    $('moderation').innerHTML = renderModerationQueue(data.rows);
+    setHtmlIfChanged('moderation', renderModerationQueue(data.rows));
   } catch (err) {
-    if (!handleAuthFailure(err)) $('moderation').innerHTML = `<div class="empty">${t('moderation.loadFailed')}</div>`;
+    if (!handleAuthFailure(err)) setHtmlIfChanged('moderation', `<div class="empty">${t('moderation.loadFailed')}</div>`);
   }
 }
 
@@ -89,12 +109,54 @@ function showPage(page: AdminPage): void {
   if (page === 'chat-filter') void refreshChatFilter();
 }
 
+function syncLanguageControls(): void {
+  document.querySelectorAll<HTMLSelectElement>('[data-admin-lang-select]').forEach((select) => {
+    select.value = adminLanguage();
+  });
+}
+
+function persistAdminLanguage(lang: string): void {
+  try {
+    localStorage.setItem('locale', lang);
+  } catch {
+    // Storage may be disabled in private browsing or test environments.
+  }
+}
+
+async function refreshLocalizedAdminPanels(): Promise<void> {
+  if (!$('app').classList.contains('authed')) return;
+  await refreshLive();
+  if (activePage === 'overview') {
+    await Promise.all([refreshActivity(), refreshAccounts(), refreshCharacters()]);
+  } else if (activePage === 'moderation') {
+    await refreshModeration();
+  } else if (activePage === 'chat-filter') {
+    await refreshChatFilter();
+  }
+}
+
+async function applyAdminLanguage(lang: string): Promise<void> {
+  if (lang === adminLanguage()) {
+    syncLanguageControls();
+    return;
+  }
+  await ensureAdminLocaleLoaded(lang);
+  setAdminLanguage(lang);
+  if (adminLanguage() !== lang) {
+    syncLanguageControls();
+    return;
+  }
+  persistAdminLanguage(lang);
+  localizeStatic();
+  await refreshLocalizedAdminPanels();
+}
+
 async function refreshChatFilter(): Promise<void> {
   try {
     const data = await apiGet<ChatFilterData>('/admin/api/chat-filter');
-    $('chat-filter').innerHTML = renderChatFilter(data);
+    setHtmlIfChanged('chat-filter', renderChatFilter(data));
   } catch (err) {
-    if (!handleAuthFailure(err)) $('chat-filter').innerHTML = `<div class="empty">${t('chatFilter.loadFailed')}</div>`;
+    if (!handleAuthFailure(err)) setHtmlIfChanged('chat-filter', `<div class="empty">${t('chatFilter.loadFailed')}</div>`);
   }
 }
 
@@ -113,7 +175,7 @@ async function refreshLive(): Promise<void> {
       apiGet<{ players: LivePlayer[] }>('/admin/api/online'),
     ]);
     const s = overview.server;
-    $('stats').innerHTML = [
+    setHtmlIfChanged('stats', [
       statCard(String(s.online), t('stats.onlineNow')),
       statCard(String(s.peakOnline), t('stats.peakOnline')),
       statCard(String(overview.accounts), t('stats.accounts')),
@@ -124,16 +186,19 @@ async function refreshLive(): Promise<void> {
       statCard(fmtDuration(s.uptimeSeconds), t('stats.uptime')),
       statCard(`${s.tickMsAvg} ms`, t('stats.avgTick')),
       statCard(fmtBytes(s.rssBytes), t('stats.serverRss')),
-    ].join('');
-    $('ai-usage').innerHTML = renderAiLifeLayerMetrics(
+    ].join(''));
+    setHtmlIfChanged('ai-usage', renderAiLifeLayerMetrics(
       overview.ai,
       overview.aiCoverage,
       overview.aiDiagnostics,
       overview.aiProfiles,
       overview.aiAudit,
-    );
-    $('usage').innerHTML = renderProviderUsage(overview.usage);
-    $('online').innerHTML = renderOnlineTable(online.players);
+    ));
+    if (selectedAiAuditId && document.getElementById('ai-audit-detail')) {
+      void loadAiAuditDetail(selectedAiAuditId);
+    }
+    setHtmlIfChanged('usage', renderProviderUsage(overview.usage));
+    setHtmlIfChanged('online', renderOnlineTable(online.players));
   } catch (err) {
     if (!handleAuthFailure(err)) console.error('live refresh failed:', err);
   }
@@ -153,11 +218,41 @@ async function clearAiMemory(): Promise<void> {
   }
 }
 
+async function loadAiAuditDetail(auditId: string): Promise<void> {
+  const target = document.getElementById('ai-audit-detail');
+  if (!target) return;
+  selectedAiAuditId = auditId;
+  setElementHtmlIfChanged(target, `<div class="empty">${t('usage.aiAuditDetailLoading')}</div>`);
+  try {
+    const record = await apiGet<AiAuditRecord>(`/admin/api/ai/audit/${encodeURIComponent(auditId)}`);
+    setElementHtmlIfChanged(target, renderAiAuditRecordDetail(record));
+  } catch (err) {
+    if (!handleAuthFailure(err)) {
+      setElementHtmlIfChanged(target, `<div class="empty">${t('usage.aiAuditDetailLoadFailed')}</div>`);
+    }
+  }
+}
+
+async function cleanAiAuditRecords(): Promise<void> {
+  if (!window.confirm(t('usage.aiAuditCleanConfirm'))) return;
+  try {
+    const result = await apiPost<AiAuditCleanupResult>('/admin/api/ai/audit/clean', {});
+    selectedAiAuditId = null;
+    await refreshLive();
+    window.alert(t('usage.aiAuditCleanSuccess', {
+      deleted: result.deletedRecords,
+      retained: result.retainedRecords,
+    }));
+  } catch (err) {
+    if (!handleAuthFailure(err)) window.alert(err instanceof Error ? localizeAdminError(err.message) : t('usage.aiAuditCleanFailed'));
+  }
+}
+
 async function refreshActivity(): Promise<void> {
   try {
     const a = await apiGet<Activity>('/admin/api/activity');
     const dayLabel = (day: string) => day.slice(5); // YYYY-MM-DD -> MM-DD
-    $('charts').innerHTML = [
+    setHtmlIfChanged('charts', [
       chartPanel(t('charts.registrations', { days: a.days }), barChart(
         a.registrations.map((p) => ({ label: dayLabel(p.day), value: p.count })),
       )),
@@ -174,7 +269,7 @@ async function refreshActivity(): Promise<void> {
       chartPanel(t('charts.levelDistribution'), barChart(
         a.levels.map((p) => ({ label: p.key, value: p.count })),
       )),
-    ].join('');
+    ].join(''));
   } catch (err) {
     if (!handleAuthFailure(err)) console.error('activity refresh failed:', err);
   }
@@ -184,10 +279,10 @@ async function refreshAccounts(): Promise<void> {
   try {
     const params = new URLSearchParams({ page: String(accountsState.page), search: accountsState.search });
     const data = await apiGet<Paginated<AccountRow>>(`/admin/api/accounts?${params}`);
-    $('accounts').innerHTML = renderAccountsTable(data.rows);
-    $('accounts-pager').innerHTML = renderPager(data.total, data.page, data.limit);
+    setHtmlIfChanged('accounts', renderAccountsTable(data.rows));
+    setHtmlIfChanged('accounts-pager', renderPager(data.total, data.page, data.limit));
   } catch (err) {
-    if (!handleAuthFailure(err)) $('accounts').innerHTML = `<div class="empty">${t('accounts.loadFailed')}</div>`;
+    if (!handleAuthFailure(err)) setHtmlIfChanged('accounts', `<div class="empty">${t('accounts.loadFailed')}</div>`);
   }
 }
 
@@ -197,10 +292,10 @@ async function refreshCharacters(): Promise<void> {
       page: String(charactersState.page), sort: charactersState.sort, dir: charactersState.dir,
     });
     const data = await apiGet<Paginated<CharacterRow>>(`/admin/api/characters?${params}`);
-    $('characters').innerHTML = renderCharactersTable(data.rows, charactersState.sort, charactersState.dir);
-    $('characters-pager').innerHTML = renderPager(data.total, data.page, data.limit);
+    setHtmlIfChanged('characters', renderCharactersTable(data.rows, charactersState.sort, charactersState.dir));
+    setHtmlIfChanged('characters-pager', renderPager(data.total, data.page, data.limit));
   } catch (err) {
-    if (!handleAuthFailure(err)) $('characters').innerHTML = `<div class="empty">${t('characters.loadFailed')}</div>`;
+    if (!handleAuthFailure(err)) setHtmlIfChanged('characters', `<div class="empty">${t('characters.loadFailed')}</div>`);
   }
 }
 
@@ -228,7 +323,7 @@ async function refreshOpenAccountDetail(accountId: number): Promise<void> {
   if (!row || !detailRow?.classList.contains('detail-row')) return;
   try {
     const detail = await apiGet<AccountDetail>(`/admin/api/accounts/${accountId}`);
-    detailRow.innerHTML = `<td colspan="7">${renderAccountDetail(detail, true)}</td>`;
+    setElementHtmlIfChanged(detailRow as HTMLElement, `<td colspan="7">${renderAccountDetail(detail, true)}</td>`);
   } catch (err) {
     if (!handleAuthFailure(err)) console.error('account detail refresh failed:', err);
   }
@@ -509,6 +604,12 @@ function wireEvents(): void {
 
   $('logout').addEventListener('click', () => showLogin());
 
+  document.querySelectorAll<HTMLSelectElement>('[data-admin-lang-select]').forEach((select) => {
+    select.addEventListener('change', () => {
+      void applyAdminLanguage(select.value);
+    });
+  });
+
   $('admin-tabs').addEventListener('click', (e) => {
     const tab = (e.target as HTMLElement).closest<HTMLButtonElement>('.admin-tab');
     const page = tab?.dataset.adminPage;
@@ -518,8 +619,18 @@ function wireEvents(): void {
   wireChatFilterEvents();
 
   $('ai-usage').addEventListener('click', (e) => {
-    const clearButton = (e.target as HTMLElement).closest('button[data-clear-ai-memory]');
+    const target = e.target as HTMLElement;
+    const clearButton = target.closest('button[data-clear-ai-memory]');
     if (clearButton) void clearAiMemory();
+    const cleanButton = target.closest('button[data-clean-ai-audit]');
+    if (cleanButton) {
+      void cleanAiAuditRecords();
+      return;
+    }
+    const detailButton = target.closest('button[data-ai-audit-id]') as HTMLButtonElement | null;
+    const row = target.closest('tr[data-ai-audit-id]') as HTMLTableRowElement | null;
+    const auditId = detailButton?.dataset.aiAuditId ?? row?.dataset.aiAuditId ?? '';
+    if (auditId && !detailButton?.disabled) void loadAiAuditDetail(auditId);
   });
 
   let searchTimer: number | null = null;
@@ -656,6 +767,7 @@ function pagerTarget(e: Event): number | null {
 }
 
 function localizeStatic(): void {
+  document.documentElement.lang = adminLanguageTag();
   document.title = t('app.title');
   document.querySelectorAll('[data-i18n]').forEach((el) => {
     const key = el.getAttribute('data-i18n');
@@ -665,6 +777,7 @@ function localizeStatic(): void {
     const key = el.getAttribute('data-i18n-ph');
     if (key) (el as HTMLInputElement).placeholder = t(key);
   });
+  syncLanguageControls();
 }
 
 // Async locale loader (parity seam): await the active locale before painting the static

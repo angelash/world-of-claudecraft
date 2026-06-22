@@ -354,7 +354,7 @@ export const en_XA: EnTranslations = {
       "memoryTidewatcherRecognizesPlayer": "[{speakerName} ķñóŵš ýóú ñóŵ, {playerName}. Ýóúŕ ñáɱé ĥáš çŕóššéð ţĥé ŵáţéŕ ɱóŕé ţĥáñ óñçé.]",
       "memoryTidewatcherRumorEcho": "[{speakerName} ŵáţçĥéš {itemName} ļíķé á ŕíþþļé ţĥáţ ĥáš ñóţ ƒíñíšĥéð ŵíðéñíñĝ.]",
       "memoryTidewatcherQuestRumorEcho": "[{speakerName} šáýš {questName} ĥáš ŕéáçĥéð ţĥé ŵáţéŕļíñé, áñð ţĥé ŵáţéŕļíñé ŕéþéáţš éʋéŕýţĥíñĝ.]",
-      "topicRecentFirstMeet": "[{speakerName} šţúðíéš ýóú çáŕéƒúļļý. Ţĥéŕé íš ñóţ éñóúĝĥ ĥíšţóŕý ƀéţŵééñ ýóú ýéţ, {playerName}.]",
+      "topicRecentFirstMeet": "[{speakerName} ķééþš ţĥé áñšŵéŕ çáúţíóúš, {playerName}. Ýóú áŕé ñéŵ ţó éáçĥ óţĥéŕ, ƀúţ ţĥé þļáçé áļŕéáðý ĥáš šɱáļļ šíĝñš ŵóŕţĥ ñóţíçíñĝ.]",
       "topicRecentKnown": "[{speakerName} áñšŵéŕš ŵíţĥ ţĥé ţóñé óƒ šóɱéóñé ŵĥó ĥáš šţáŕţéð ķééþíñĝ ţŕáçķ óƒ ýóú, {playerName}.]",
       "topicRumorQuiet": "[{speakerName} ļíšţéñš ƒóŕ ĝóššíþ, ƀúţ ñóţĥíñĝ çéŕţáíñ ĥáš ŕéáçĥéð ţĥíš çóŕñéŕ ýéţ.]",
       "topicPlace": "[{speakerName} ļóóķš óʋéŕ ţĥé ñéáŕƀý ŕóáð, ŵéáţĥéŕ, áñð ŵáļļš ƀéƒóŕé áñšŵéŕíñĝ.]",

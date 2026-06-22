@@ -19,6 +19,11 @@ class FakePool {
       const limit = typeof values?.[1] === 'number' ? values[1] : 20;
       return { rows: this.payloadRows.slice(0, limit), rowCount: this.payloadRows.length };
     }
+    if (sql.includes('DELETE FROM ai_audit_records')) {
+      const deleted = this.payloadRows.length;
+      this.payloadRows = [];
+      return { rows: [], rowCount: deleted };
+    }
     return { rows: [], rowCount: 0 };
   }
 }
@@ -130,6 +135,134 @@ describe('AI audit DB', () => {
 
     expect(pool.calls[0].values).toEqual([REALM, 100]);
     expect(pool.calls[1].values).toEqual([REALM, 1]);
+  });
+
+  it('keeps chain payloads out of overview rows but returns them for detail lookup', async () => {
+    const pool = new FakePool();
+    const db = new PgAiAuditDb(pool);
+    const recordWithChain: AiAuditRecord = {
+      ...record,
+      auditId: 'audit-chain',
+      hasChain: true,
+      playerAction: {
+        kind: 'npc_question',
+        topic: 'recent',
+        labelKey: 'usage.aiActionNpcRecent',
+        locale: 'en',
+        protocol: {
+          jobId: record.jobId,
+          trigger: record.trigger,
+          playerEntityId: record.playerEntityId,
+          entityKind: record.entityKind,
+          entityId: record.entityId,
+          templateId: record.templateId,
+        },
+      },
+      deliveredSummary: ['hudChrome.aiSpeech.brotherAldricAwake'],
+      chain: {
+        playerAction: {
+          kind: 'npc_question',
+          topic: 'recent',
+          labelKey: 'usage.aiActionNpcRecent',
+          locale: 'en',
+          protocol: {
+            jobId: record.jobId,
+            trigger: record.trigger,
+            playerEntityId: record.playerEntityId,
+            entityKind: record.entityKind,
+            entityId: record.entityId,
+            templateId: record.templateId,
+          },
+        },
+        requestContext: {
+          context: {
+            schemaVersion: 1,
+            jobId: record.jobId,
+            trigger: 'npc_question',
+            entity: {
+              kind: 'npc',
+              entityId: 22,
+              templateId: 'brother_aldric',
+              name: 'Brother Aldric',
+              level: 8,
+              questIds: [],
+              dead: false,
+            },
+            player: {
+              entityId: 1,
+              name: 'Ari',
+              level: 8,
+              classId: 'warrior',
+              activeQuestIds: [],
+              completedQuestIds: [],
+            },
+            locale: 'en',
+            topic: 'recent',
+            questFacts: [],
+            recentObservations: [],
+            allowedIntents: ['commentOnScene'],
+            allowedLineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
+            outputMode: 'line_id_only',
+          },
+          promptText: 'prompt sent to model',
+          promptTruncated: false,
+        },
+        provider: {
+          source: 'codex',
+          rawOutput: '{"ok":true}',
+          rawOutputTruncated: false,
+          parsedDecision: {
+            schemaVersion: 1,
+            jobId: record.jobId,
+            entityRef: { kind: 'npc', entityId: 22, templateId: 'brother_aldric' },
+            ttlMs: 5000,
+            confidence: 1,
+            speech: [{ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
+            intents: [{ type: 'commentOnScene', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
+            audit: { shortReason: 'accepted', usedPlayerInput: true, safetyNotes: [] },
+          },
+          error: '',
+        },
+        validation: {
+          ok: true,
+          reason: 'accepted',
+          events: [],
+        },
+        delivered: {
+          events: [],
+          textSummary: ['hudChrome.aiSpeech.brotherAldricAwake'],
+        },
+      },
+    };
+
+    await db.saveRecord(recordWithChain);
+
+    const compactRows = await db.recentRecords(20);
+    expect(compactRows[0]?.chain).toBeUndefined();
+    expect(compactRows).toEqual([expect.objectContaining({
+      auditId: 'audit-chain',
+      hasChain: true,
+      deliveredSummary: ['hudChrome.aiSpeech.brotherAldricAwake'],
+    })]);
+    await expect(db.recordByAuditId('audit-chain')).resolves.toEqual(expect.objectContaining({
+      auditId: 'audit-chain',
+      chain: expect.objectContaining({
+        requestContext: expect.objectContaining({ promptText: 'prompt sent to model' }),
+        provider: expect.objectContaining({ rawOutput: '{"ok":true}' }),
+      }),
+    }));
+  });
+
+  it('deletes non-real audit rows by realm for admin cleanup', async () => {
+    const pool = new FakePool();
+    const db = new PgAiAuditDb(pool);
+    pool.payloadRows.push({ payload: record }, { payload: { ...record, auditId: 'audit-2', status: 'provider_error' } });
+
+    await expect(db.deleteNonRealRecords()).resolves.toBe(2);
+
+    expect(pool.calls[0].sql).toContain('DELETE FROM ai_audit_records');
+    expect(pool.calls[0].sql).toContain("provider_source = 'codex' AND status = 'accepted'");
+    expect(pool.calls[0].values).toEqual([REALM]);
   });
 
   it('normalizes persisted payloads and rejects invalid statuses', () => {

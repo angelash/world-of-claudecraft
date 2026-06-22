@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderAiLifeLayerMetrics } from '../src/admin/tables';
+import { renderAiAuditRecordDetail, renderAiLifeLayerMetrics } from '../src/admin/tables';
 import { setAdminLanguage } from '../src/admin/i18n';
 import type {
   AiAuditSnapshot,
@@ -475,15 +475,123 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('estimated');
     expect(html).toContain('Recent AI audit records');
     expect(html).toContain('provider error');
+    expect(html).toContain('Player action');
+    expect(html).toContain('Final output');
+    expect(html).toContain('View chain');
+    expect(html).toContain('Clean failed and non-real records');
     expect(html).toContain('codex&lt;script&gt;');
     expect(html).toContain('brother_aldric&lt;script&gt;');
     expect(html).toContain('fallen_chapel&lt;script&gt;');
     expect(html).toContain('provider &lt;offline&gt;');
-    expect(html).toContain('hudChrome.aiSpeech.brotherAldricAwake&lt;script&gt;');
-    expect(html).toContain('commentOnScene&lt;script&gt;');
-    expect(html).toContain('npcInteraction:npc:1:brother_aldric&lt;script&gt;');
     expect(html).not.toContain('codex<script>');
     expect(html).not.toContain('provider <offline>');
     expect(html).not.toContain('commentOnScene<script>');
+  });
+
+  it('renders the full AI audit interaction chain and escapes raw content', () => {
+    setAdminLanguage('en');
+    const record = {
+      ...audit().recent[0],
+      status: 'accepted',
+      hasChain: true,
+      playerAction: {
+        kind: 'npc_question',
+        topic: 'recent',
+        labelKey: 'usage.aiActionNpcRecent',
+        locale: 'en',
+        protocol: {
+          jobId: 'job-1',
+          trigger: 'npc_question',
+          playerEntityId: 1,
+          entityKind: 'npc',
+          entityId: 22,
+          templateId: 'brother_aldric<script>',
+        },
+      },
+      chain: {
+        playerAction: {
+          kind: 'npc_question',
+          topic: 'recent',
+          labelKey: 'usage.aiActionNpcRecent',
+          locale: 'en',
+          protocol: {
+            jobId: 'job-1',
+            trigger: 'npc_question',
+            playerEntityId: 1,
+            entityKind: 'npc',
+            entityId: 22,
+            templateId: 'brother_aldric<script>',
+          },
+        },
+        requestContext: {
+          context: { jobId: 'job-1', recentObservations: ['scene<script>'] },
+          promptText: 'Prompt <script> sent to model',
+          promptTruncated: false,
+        },
+        provider: {
+          source: 'codex',
+          rawOutput: '{"speech":"raw <script>"}',
+          rawOutputTruncated: false,
+          parsedDecision: { speech: [{ mode: 'dynamicText', text: 'parsed <script>' }] },
+          error: '',
+        },
+        validation: {
+          ok: true,
+          reason: 'validator <ok>',
+          events: [{
+            type: 'aiSpeech',
+            pid: 1,
+            speakerId: 22,
+            speakerName: 'Aldric<script>',
+            source: 'codex',
+            text: '',
+            speechMode: 'dynamicText',
+            lineId: '',
+            language: 'en',
+            speechText: 'Validated <script>',
+            targetEntityId: null,
+            targetObjectId: null,
+            targetItemId: '',
+            reactionKind: '',
+            raw: { type: 'aiSpeech', speech: { text: 'Validated <script>' } },
+            rawTruncated: false,
+          }],
+        },
+        delivered: {
+          textSummary: ['Delivered <script>'],
+          events: [{
+            type: 'aiSpeech',
+            pid: 1,
+            speakerId: 22,
+            speakerName: 'Aldric<script>',
+            source: 'codex',
+            text: '',
+            speechMode: 'dynamicText',
+            lineId: '',
+            language: 'en',
+            speechText: 'Delivered <script>',
+            targetEntityId: null,
+            targetObjectId: null,
+            targetItemId: '',
+            reactionKind: '',
+            raw: { type: 'aiSpeech', speech: { text: 'Delivered <script>' } },
+            rawTruncated: false,
+          }],
+        },
+      },
+    };
+
+    const html = renderAiAuditRecordDetail(record);
+
+    expect(html).toContain('AI interaction chain');
+    expect(html).toContain('Ask about recent events');
+    expect(html).toContain('Prompt &lt;script&gt; sent to model');
+    expect(html).toContain('raw &lt;script&gt;');
+    expect(html).toContain('parsed &lt;script&gt;');
+    expect(html).toContain('validator &lt;ok&gt;');
+    expect(html).toContain('Validated &lt;script&gt;');
+    expect(html).toContain('Delivered &lt;script&gt;');
+    expect(html).not.toContain('Prompt <script>');
+    expect(html).not.toContain('Delivered <script>');
   });
 });

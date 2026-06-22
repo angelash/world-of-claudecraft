@@ -142,8 +142,16 @@ export interface AiDecisionV1 {
   };
 }
 
+export interface AiProviderDecisionResult {
+  decision: AiDecisionV1;
+  promptText?: string;
+  rawOutput?: string;
+}
+
+export type AiProviderOutput = AiDecisionV1 | AiProviderDecisionResult;
+
 export interface AiProvider {
-  decide(context: AiJobContextV1): Promise<AiDecisionV1>;
+  decide(context: AiJobContextV1): Promise<AiProviderOutput>;
 }
 
 export interface AiValidationResult {

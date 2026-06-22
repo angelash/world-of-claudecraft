@@ -354,7 +354,7 @@ export const fr_CA: EnTranslations = {
       "memoryTidewatcherRecognizesPlayer": "{speakerName} knows you now, {playerName}. Your name has crossed the water more than once.",
       "memoryTidewatcherRumorEcho": "{speakerName} watches {itemName} like a ripple that has not finished widening.",
       "memoryTidewatcherQuestRumorEcho": "{speakerName} says {questName} has reached the waterline, and the waterline repeats everything.",
-      "topicRecentFirstMeet": "{speakerName} studies you carefully. There is not enough history between you yet, {playerName}.",
+      "topicRecentFirstMeet": "{speakerName} keeps the answer cautious, {playerName}. You are new to each other, but the place already has small signs worth noticing.",
       "topicRecentKnown": "{speakerName} answers with the tone of someone who has started keeping track of you, {playerName}.",
       "topicRumorQuiet": "{speakerName} listens for gossip, but nothing certain has reached this corner yet.",
       "topicPlace": "{speakerName} looks over the nearby road, weather, and walls before answering.",
