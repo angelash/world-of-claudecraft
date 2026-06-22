@@ -32,6 +32,13 @@ export type AiActiveQueuedEventKind =
   | 'entity_death'
   | 'combat_damage';
 
+export type AiActivePopulationBand =
+  | 'solo'
+  | 'small'
+  | 'busy'
+  | 'crowded'
+  | 'protected';
+
 export interface AiActivePollRuleV1 {
   ruleId: string;
   title: string;
@@ -68,6 +75,13 @@ export interface AiActiveTriggerMetricsSnapshot {
   activeProviderCalls: number;
   activeLocalReactions: number;
   activeNoiseSuppressions: number;
+  activeSchedulerOnlineCount: number;
+  activeSchedulerSessionsConsidered: number;
+  activeSchedulerSessionsSuppressed: number;
+  activeSchedulerLastBand: AiActivePopulationBand | '';
+  activeCodexBudgetDenied: number;
+  activeCodexBudgetRemaining5h: number;
+  activeCodexBudgetRemainingWeek: number;
   activeLastSkipReason: AiActiveSkipReason | '';
   activeLastRuleId: string;
 }
@@ -109,10 +123,30 @@ export interface AiActiveQueuedEventSnapshot {
   observations: string[];
 }
 
+export interface AiActivePopulationPolicySnapshot {
+  band: AiActivePopulationBand;
+  onlineCount: number;
+  maxPollSessionsPerTick: number;
+  minRulePriority: number;
+  codexAdmission: 'aggressive' | 'balanced' | 'scarce' | 'localOnly';
+}
+
+export interface AiActiveCodexBudgetSnapshot {
+  maxCalls5h: number;
+  usedCalls5h: number;
+  remainingCalls5h: number;
+  maxCallsWeek: number;
+  usedCallsWeek: number;
+  remainingCallsWeek: number;
+  reserveRatio: number;
+}
+
 export interface AiActiveTriggerDiagnosticsSnapshot {
   enabled: boolean;
   eventsEnabled: boolean;
   pollsEnabled: boolean;
+  populationPolicy: AiActivePopulationPolicySnapshot | null;
+  codexBudget: AiActiveCodexBudgetSnapshot;
   rules: AiActivePollRuleV1[];
   eventQueue: AiActiveQueuedEventSnapshot[];
   cursors: AiActivePollCursorSnapshot[];
@@ -128,6 +162,9 @@ export interface AiActiveTriggerServiceOptions {
   maxRecentDecisions?: number;
   eventTtlMs?: number;
   maxQueuedEvents?: number;
+  codexMaxCalls5h?: number;
+  codexMaxCallsWeek?: number;
+  codexReserveRatio?: number;
 }
 
 interface AiActivePollCursorState {
@@ -170,6 +207,8 @@ const CANDIDATE_RADIUS = 28;
 const DEFAULT_EVENT_TTL_MS = 90_000;
 const DEFAULT_MAX_QUEUED_EVENTS = 64;
 const EVENT_RETRY_DELAY_MS = 15_000;
+const CODEX_WINDOW_5H_MS = 5 * 60 * 60 * 1000;
+const CODEX_WINDOW_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const DEFAULT_ACTIVE_POLL_RULES: readonly AiActivePollRuleV1[] = [
   {
@@ -200,11 +239,17 @@ export class AiActiveTriggerService {
   private readonly maxRecentDecisions: number;
   private readonly eventTtlMs: number;
   private readonly maxQueuedEvents: number;
+  private readonly codexMaxCalls5h: number;
+  private readonly codexMaxCallsWeek: number;
+  private readonly codexReserveRatio: number;
   private readonly cursors = new Map<string, AiActivePollCursorState>();
   private readonly entityCooldownUntilMs = new Map<number, number>();
   private readonly playerCooldownUntilMs = new Map<number, number>();
   private readonly eventQueue: AiActiveQueuedEventState[] = [];
   private readonly recentDecisions: AiActiveTriggerDecisionSnapshot[] = [];
+  private readonly codexProviderCallTimesMs: number[] = [];
+  private populationPolicy: AiActivePopulationPolicySnapshot | null = null;
+  private schedulerCursor = 0;
   private eventSequence = 0;
   private readonly metrics: AiActiveTriggerMetricsSnapshot = {
     activePollDue: 0,
@@ -219,6 +264,13 @@ export class AiActiveTriggerService {
     activeProviderCalls: 0,
     activeLocalReactions: 0,
     activeNoiseSuppressions: 0,
+    activeSchedulerOnlineCount: 0,
+    activeSchedulerSessionsConsidered: 0,
+    activeSchedulerSessionsSuppressed: 0,
+    activeSchedulerLastBand: '',
+    activeCodexBudgetDenied: 0,
+    activeCodexBudgetRemaining5h: 0,
+    activeCodexBudgetRemainingWeek: 0,
     activeLastSkipReason: '',
     activeLastRuleId: '',
   };
@@ -234,6 +286,10 @@ export class AiActiveTriggerService {
     this.maxRecentDecisions = Math.max(1, Math.floor(options.maxRecentDecisions ?? 40));
     this.eventTtlMs = Math.max(1_000, Math.floor(options.eventTtlMs ?? DEFAULT_EVENT_TTL_MS));
     this.maxQueuedEvents = Math.max(1, Math.floor(options.maxQueuedEvents ?? DEFAULT_MAX_QUEUED_EVENTS));
+    this.codexMaxCalls5h = Math.max(0, Math.floor(options.codexMaxCalls5h ?? envNonNegativeInt('AI_CODEX_ACTIVE_MAX_CALLS_5H', 600)));
+    this.codexMaxCallsWeek = Math.max(0, Math.floor(options.codexMaxCallsWeek ?? envNonNegativeInt('AI_CODEX_ACTIVE_MAX_CALLS_WEEK', 5_000)));
+    this.codexReserveRatio = clamp01(options.codexReserveRatio ?? envRatio('AI_CODEX_ACTIVE_RESERVE_RATIO', 0.2));
+    this.refreshCodexBudgetMetrics(Date.now());
   }
 
   noteSimEvents(input: { sim: Sim; events: readonly SimEvent[]; nowMs?: number }): void {
@@ -278,6 +334,7 @@ export class AiActiveTriggerService {
   }
 
   tick(input: { sim: Sim; sessions: Iterable<AiActiveTriggerSessionLike>; nowMs: number }): SimEvent[] {
+    this.refreshCodexBudgetMetrics(input.nowMs);
     if (!this.enabled) {
       this.recordSkip('', 'disabled');
       return [];
@@ -289,6 +346,10 @@ export class AiActiveTriggerService {
       return [];
     }
 
+    this.populationPolicy = populationPolicyForOnline(sessions.length);
+    this.metrics.activeSchedulerOnlineCount = sessions.length;
+    this.metrics.activeSchedulerLastBand = this.populationPolicy.band;
+
     const eventEvents = this.tryProcessQueuedEvents({ sim: input.sim, sessions, nowMs: input.nowMs });
     if (eventEvents.length > 0) return eventEvents;
 
@@ -298,8 +359,13 @@ export class AiActiveTriggerService {
     }
 
     const events: SimEvent[] = [];
+    const pollSessions = this.selectPollSessions(sessions, this.populationPolicy);
+    this.metrics.activeSchedulerSessionsConsidered += pollSessions.length;
+    this.metrics.activeSchedulerSessionsSuppressed += Math.max(0, sessions.length - pollSessions.length);
     for (const rule of this.rules) {
-      for (const session of sessions) {
+      if (rule.priority < this.populationPolicy.minRulePriority) continue;
+      if (!this.codexAllowedForRule(rule, input.nowMs)) continue;
+      for (const session of pollSessions) {
         const cursor = this.cursorFor(rule, session.pid, input.nowMs);
         if (input.nowMs < cursor.nextDueAtMs) continue;
         cursor.lastCheckedAtMs = input.nowMs;
@@ -328,6 +394,8 @@ export class AiActiveTriggerService {
       enabled: this.enabled,
       eventsEnabled: this.eventsEnabled,
       pollsEnabled: this.pollsEnabled,
+      populationPolicy: this.populationPolicy ? { ...this.populationPolicy } : null,
+      codexBudget: this.codexBudgetSnapshot(Date.now()),
       rules: this.rules.map((rule) => ({ ...rule, cooldown: { ...rule.cooldown } })),
       eventQueue: this.eventQueue.map((event) => eventSnapshot(event)),
       cursors: [...this.cursors.values()].map((cursor) => ({ ...cursor })),
@@ -341,6 +409,8 @@ export class AiActiveTriggerService {
     this.playerCooldownUntilMs.clear();
     this.eventQueue.splice(0);
     this.recentDecisions.splice(0);
+    this.codexProviderCallTimesMs.splice(0);
+    this.populationPolicy = null;
   }
 
   private tryProcessQueuedEvents(input: {
@@ -591,6 +661,70 @@ export class AiActiveTriggerService {
     if (this.recentDecisions.length > this.maxRecentDecisions) this.recentDecisions.length = this.maxRecentDecisions;
     this.metrics.activeLastRuleId = decision.ruleId;
     this.metrics.activeLastSkipReason = '';
+  }
+
+  private selectPollSessions(
+    sessions: readonly AiActiveTriggerSessionLike[],
+    policy: AiActivePopulationPolicySnapshot,
+  ): AiActiveTriggerSessionLike[] {
+    if (sessions.length <= policy.maxPollSessionsPerTick) return [...sessions];
+    const ordered = [...sessions].sort((a, b) => a.pid - b.pid);
+    const start = this.schedulerCursor % ordered.length;
+    const selected: AiActiveTriggerSessionLike[] = [];
+    for (let offset = 0; offset < ordered.length && selected.length < policy.maxPollSessionsPerTick; offset++) {
+      selected.push(ordered[(start + offset) % ordered.length]);
+    }
+    this.schedulerCursor = (start + policy.maxPollSessionsPerTick) % ordered.length;
+    return selected;
+  }
+
+  private codexAllowedForRule(rule: AiActivePollRuleV1, nowMs: number): boolean {
+    if (rule.providerPolicy === 'localOnly') return true;
+    const budget = this.codexBudgetSnapshot(nowMs);
+    const allowed = budget.remainingCalls5h > 0
+      && budget.remainingCallsWeek > 0
+      && this.populationPolicy?.codexAdmission !== 'localOnly';
+    if (!allowed) {
+      this.metrics.activeCodexBudgetDenied++;
+      return rule.providerPolicy === 'codexAllowed';
+    }
+    return true;
+  }
+
+  noteCodexProviderCall(nowMs: number): void {
+    this.codexProviderCallTimesMs.push(nowMs);
+    this.metrics.activeProviderCalls++;
+    this.refreshCodexBudgetMetrics(nowMs);
+  }
+
+  private codexBudgetSnapshot(nowMs: number): AiActiveCodexBudgetSnapshot {
+    this.pruneCodexProviderCalls(nowMs);
+    const usedCalls5h = this.codexProviderCallTimesMs.filter((atMs) => nowMs - atMs <= CODEX_WINDOW_5H_MS).length;
+    const usedCallsWeek = this.codexProviderCallTimesMs.length;
+    const maxCalls5h = Math.floor(this.codexMaxCalls5h * (1 - this.codexReserveRatio));
+    const maxCallsWeek = Math.floor(this.codexMaxCallsWeek * (1 - this.codexReserveRatio));
+    return {
+      maxCalls5h,
+      usedCalls5h,
+      remainingCalls5h: Math.max(0, maxCalls5h - usedCalls5h),
+      maxCallsWeek,
+      usedCallsWeek,
+      remainingCallsWeek: Math.max(0, maxCallsWeek - usedCallsWeek),
+      reserveRatio: this.codexReserveRatio,
+    };
+  }
+
+  private refreshCodexBudgetMetrics(nowMs: number): void {
+    const budget = this.codexBudgetSnapshot(nowMs);
+    this.metrics.activeCodexBudgetRemaining5h = budget.remainingCalls5h;
+    this.metrics.activeCodexBudgetRemainingWeek = budget.remainingCallsWeek;
+  }
+
+  private pruneCodexProviderCalls(nowMs: number): void {
+    for (let i = this.codexProviderCallTimesMs.length - 1; i >= 0; i--) {
+      if (nowMs - this.codexProviderCallTimesMs[i] <= CODEX_WINDOW_WEEK_MS) continue;
+      this.codexProviderCallTimesMs.splice(i, 1);
+    }
   }
 
   private queuedEventFromSimEvent(sim: Sim, event: SimEvent, nowMs: number): AiActiveQueuedEventState | null {
@@ -873,6 +1007,52 @@ function eventRuleId(event: AiActiveQueuedEventState): string {
   return `event:${event.kind}`;
 }
 
+function populationPolicyForOnline(onlineCount: number): AiActivePopulationPolicySnapshot {
+  if (onlineCount <= 1) {
+    return {
+      band: 'solo',
+      onlineCount,
+      maxPollSessionsPerTick: Math.max(1, onlineCount),
+      minRulePriority: 0,
+      codexAdmission: 'aggressive',
+    };
+  }
+  if (onlineCount <= 5) {
+    return {
+      band: 'small',
+      onlineCount,
+      maxPollSessionsPerTick: onlineCount,
+      minRulePriority: 0,
+      codexAdmission: 'aggressive',
+    };
+  }
+  if (onlineCount <= 20) {
+    return {
+      band: 'busy',
+      onlineCount,
+      maxPollSessionsPerTick: Math.min(onlineCount, 6),
+      minRulePriority: 25,
+      codexAdmission: 'balanced',
+    };
+  }
+  if (onlineCount <= 50) {
+    return {
+      band: 'crowded',
+      onlineCount,
+      maxPollSessionsPerTick: Math.min(onlineCount, 8),
+      minRulePriority: 50,
+      codexAdmission: 'scarce',
+    };
+  }
+  return {
+    band: 'protected',
+    onlineCount,
+    maxPollSessionsPerTick: Math.min(onlineCount, 4),
+    minRulePriority: 80,
+    codexAdmission: 'localOnly',
+  };
+}
+
 function fallbackNpcAmbientEvent(
   context: AiJobContextV1,
   speaker: Entity,
@@ -922,4 +1102,22 @@ function envPositiveInt(name: string, fallback: number): number {
   if (!raw) return fallback;
   const value = Number(raw);
   return Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
+}
+
+function envNonNegativeInt(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 ? Math.floor(value) : fallback;
+}
+
+function envRatio(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const value = Number(raw);
+  return Number.isFinite(value) ? clamp01(value) : fallback;
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
 }

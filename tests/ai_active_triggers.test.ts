@@ -43,6 +43,25 @@ function makeWorld(): { sim: Sim; pid: number; npcId: number } {
   return { sim, pid, npcId: npc.id };
 }
 
+function addPlayersNear(sim: Sim, npcId: number, count: number): number[] {
+  const npc = sim.entities.get(npcId);
+  if (!npc) throw new Error('missing target npc');
+  const pids: number[] = [];
+  for (let i = 0; i < count; i++) {
+    const pid = sim.addPlayer('warrior', `Ari${i}`);
+    const player = sim.entities.get(pid);
+    if (!player) throw new Error('missing added player');
+    player.pos.x = npc.pos.x + 1 + i * 0.05;
+    player.pos.z = npc.pos.z;
+    player.pos.y = groundHeight(player.pos.x, player.pos.z, sim.cfg.seed);
+    player.prevPos = { ...player.pos };
+    sim.grid.update(player);
+    sim.playerGrid.update(player);
+    pids.push(pid);
+  }
+  return pids;
+}
+
 function mainlineSnapshot(sim: Sim, pid: number): unknown {
   const meta = sim.meta(pid);
   const player = sim.entities.get(pid);
@@ -210,5 +229,74 @@ describe('AI active trigger service', () => {
       activeLastSkipReason: 'polls_disabled',
     });
     expect(service.diagnosticsSnapshot().eventQueue).toHaveLength(0);
+  });
+
+  it('scales polling density by online population', () => {
+    const { sim, pid, npcId } = makeWorld();
+    const extraPids = addPlayersNear(sim, npcId, 7);
+    const pids = [pid, ...extraPids];
+    const service = new AiActiveTriggerService({ rules: [testRule()] });
+
+    service.tick({ sim, sessions: pids.map((id) => ({ pid: id })), nowMs: 1_000 });
+
+    expect(service.diagnosticsSnapshot().populationPolicy).toMatchObject({
+      band: 'busy',
+      onlineCount: 8,
+      maxPollSessionsPerTick: 6,
+    });
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeSchedulerOnlineCount: 8,
+      activeSchedulerSessionsConsidered: 6,
+      activeSchedulerSessionsSuppressed: 2,
+      activePollDue: 6,
+    });
+  });
+
+  it('protects crowded realms by skipping low priority poll rules', () => {
+    const { sim, pid, npcId } = makeWorld();
+    const extraPids = addPlayersNear(sim, npcId, 54);
+    const pids = [pid, ...extraPids];
+    const service = new AiActiveTriggerService({ rules: [testRule({ priority: 50 })] });
+
+    expect(service.tick({ sim, sessions: pids.map((id) => ({ pid: id })), nowMs: 1_000 })).toEqual([]);
+
+    expect(service.diagnosticsSnapshot().populationPolicy).toMatchObject({
+      band: 'protected',
+      onlineCount: 55,
+      maxPollSessionsPerTick: 4,
+      minRulePriority: 80,
+      codexAdmission: 'localOnly',
+    });
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeSchedulerSessionsConsidered: 4,
+      activeSchedulerSessionsSuppressed: 51,
+      activePollDue: 0,
+    });
+  });
+
+  it('denies codex-preferred active rules when the active budget window is exhausted', () => {
+    const { sim, pid } = makeWorld();
+    const service = new AiActiveTriggerService({
+      codexMaxCalls5h: 1,
+      codexMaxCallsWeek: 1,
+      codexReserveRatio: 0,
+      rules: [testRule({ providerPolicy: 'codexPreferred' })],
+    });
+    const nowMs = Date.now();
+    service.noteCodexProviderCall(nowMs - 100);
+
+    expect(service.tick({ sim, sessions: [{ pid }], nowMs })).toEqual([]);
+
+    expect(service.diagnosticsSnapshot().codexBudget).toMatchObject({
+      usedCalls5h: 1,
+      remainingCalls5h: 0,
+      usedCallsWeek: 1,
+      remainingCallsWeek: 0,
+    });
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeCodexBudgetDenied: 1,
+      activeProviderCalls: 1,
+      activePollDue: 0,
+    });
   });
 });
