@@ -100,7 +100,7 @@ const AI_MEMORY_PRUNE_BATCH_SIZE = 500;
 const AI_NPC_INTERACTION_COOLDOWN_SECONDS = 4;
 const AI_NPC_QUESTION_COOLDOWN_SECONDS = 2;
 const AI_OBJECT_INSPECT_COOLDOWN_SECONDS = 2;
-const AI_NPC_THINKING_DURATION_MS = 1600;
+const AI_DIRECT_THINKING_DURATION_MS = 2200;
 
 export interface ClientSession {
   ws: WebSocket;
@@ -124,7 +124,7 @@ export interface ClientSession {
   aiInteractReadyAt: number;
   aiQuestionReadyAt: number;
   aiObjectInspectReadyAt: number;
-  aiNpcInteractionIds: Map<number, string>;
+  aiInteractionIds: Map<number, string>;
   // Hard-word enforcement strike count driving the mute ladder. Account-scoped:
   // seeded from the DB at join, kept live by enforcement/admin actions.
   chatStrikes: number;
@@ -777,7 +777,7 @@ export class GameServer {
       aiInteractReadyAt: 0,
       aiQuestionReadyAt: 0,
       aiObjectInspectReadyAt: 0,
-      aiNpcInteractionIds: new Map(),
+      aiInteractionIds: new Map(),
       chatStrikes: meta.chatStrikes ?? 0,
       blockedIds: new Set(),
       blockListLoaded: false,
@@ -1530,8 +1530,11 @@ export class GameServer {
   private handleAiInteractNpc(session: ClientSession, npcId: number, locale: string, topic: AiNpcInteractionTopic): void {
     if (session.left || this.clients.get(session.pid) !== session) return;
     if (!this.aiLifeLayer.isEnabled()) return;
-    const interactionId = this.nextAiInteractionId(session, npcId);
-    const thinkingEvent = this.aiThinkingEvent(session, npcId, interactionId);
+    const interactionId = this.nextAiInteractionId(session, npcId, 'npc');
+    const thinkingEvent = this.aiThinkingEventForEntity(session, npcId, interactionId, {
+      kind: 'npc',
+      maxDistance: INTERACT_RANGE + 2,
+    });
     if (!thinkingEvent) return;
     if (topic === 'greeting') {
       if (this.sim.time < session.aiInteractReadyAt) return;
@@ -1540,7 +1543,7 @@ export class GameServer {
       if (this.sim.time < session.aiQuestionReadyAt) return;
       session.aiQuestionReadyAt = this.sim.time + AI_NPC_QUESTION_COOLDOWN_SECONDS;
     }
-    session.aiNpcInteractionIds.set(npcId, interactionId);
+    session.aiInteractionIds.set(npcId, interactionId);
     this.send(session, { t: 'events', list: [thinkingEvent] });
     void this.aiLifeLayer.handleNpcInteraction({
       sim: this.sim,
@@ -1550,10 +1553,10 @@ export class GameServer {
       topic,
       deliver: (events) => {
         if (session.left || this.clients.get(session.pid) !== session) return;
-        if (session.aiNpcInteractionIds.get(npcId) !== interactionId) return;
+        if (session.aiInteractionIds.get(npcId) !== interactionId) return;
         if (events.length > 0) {
           this.send(session, { t: 'events', list: this.tagAiInteractionEvents(events, interactionId, npcId) });
-          if (session.aiNpcInteractionIds.get(npcId) === interactionId) session.aiNpcInteractionIds.delete(npcId);
+          if (session.aiInteractionIds.get(npcId) === interactionId) session.aiInteractionIds.delete(npcId);
         }
       },
     }).catch((err) => {
@@ -1562,20 +1565,25 @@ export class GameServer {
     });
   }
 
-  private nextAiInteractionId(session: ClientSession, npcId: number): string {
-    return `npc-${session.pid}-${npcId}-${++this.aiInteractionSequence}`;
+  private nextAiInteractionId(session: ClientSession, entityId: number, kind: 'npc' | 'object'): string {
+    return `${kind}-${session.pid}-${entityId}-${++this.aiInteractionSequence}`;
   }
 
-  private aiThinkingEvent(session: ClientSession, npcId: number, interactionId: string): Extract<SimEvent, { type: 'aiThinking' }> | null {
+  private aiThinkingEventForEntity(
+    session: ClientSession,
+    entityId: number,
+    interactionId: string,
+    options: { kind: 'npc' | 'object' | 'mob'; maxDistance?: number },
+  ): Extract<SimEvent, { type: 'aiThinking' }> | null {
     const player = this.sim.entities.get(session.pid);
-    const npc = this.sim.entities.get(npcId);
-    if (!player || !npc || npc.kind !== 'npc') return null;
-    if (dist2d(player.pos, npc.pos) > INTERACT_RANGE + 2) return null;
+    const speaker = this.sim.entities.get(entityId);
+    if (!player || !speaker || speaker.kind !== options.kind) return null;
+    if (options.maxDistance !== undefined && dist2d(player.pos, speaker.pos) > options.maxDistance) return null;
     return {
       type: 'aiThinking',
-      speakerId: npc.id,
-      speakerName: npc.name,
-      durationMs: AI_NPC_THINKING_DURATION_MS,
+      speakerId: speaker.id,
+      speakerName: speaker.name,
+      durationMs: AI_DIRECT_THINKING_DURATION_MS,
       interactionId,
       pid: session.pid,
     };
@@ -1592,7 +1600,15 @@ export class GameServer {
   private handleAiInspectObject(session: ClientSession, objectId: number, locale: string): void {
     if (session.left || this.clients.get(session.pid) !== session) return;
     if (this.sim.time < session.aiObjectInspectReadyAt) return;
+    const interactionId = this.nextAiInteractionId(session, objectId, 'object');
+    const thinkingEvent = this.aiThinkingEventForEntity(session, objectId, interactionId, {
+      kind: 'object',
+      maxDistance: INTERACT_RANGE + 4,
+    });
+    if (!thinkingEvent) return;
     session.aiObjectInspectReadyAt = this.sim.time + AI_OBJECT_INSPECT_COOLDOWN_SECONDS;
+    session.aiInteractionIds.set(objectId, interactionId);
+    this.send(session, { t: 'events', list: [thinkingEvent] });
     void this.aiLifeLayer.handleObjectInspection({
       sim: this.sim,
       pid: session.pid,
@@ -1600,10 +1616,15 @@ export class GameServer {
       locale,
       deliver: (events) => {
         if (session.left || this.clients.get(session.pid) !== session) return;
-        if (events.length > 0) this.send(session, { t: 'events', list: events });
+        if (session.aiInteractionIds.get(objectId) !== interactionId) return;
+        if (events.length > 0) {
+          this.send(session, { t: 'events', list: this.tagAiInteractionEvents(events, interactionId, objectId) });
+          if (session.aiInteractionIds.get(objectId) === interactionId) session.aiInteractionIds.delete(objectId);
+        }
       },
     }).catch((err) => {
       console.error('ai object inspection failed:', err);
+      if (session.aiInteractionIds.get(objectId) === interactionId) session.aiInteractionIds.delete(objectId);
       this.sendAiRuntimeFailure(session);
     });
   }

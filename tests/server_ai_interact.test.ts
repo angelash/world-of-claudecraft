@@ -674,8 +674,18 @@ describe('server AI interact command', () => {
     await flushAi();
 
     expect(calls).toHaveLength(1);
+    const thinkingEvents = eventsOf(fc, 'aiThinking');
+    expect(thinkingEvents).toHaveLength(1);
+    expect(thinkingEvents[0]).toMatchObject({
+      speakerId: object.id,
+      speakerName: object.name,
+      durationMs: expect.any(Number),
+      interactionId: expect.stringMatching(/^object-/),
+      pid: session.pid,
+    });
     expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
       speakerId: object.id,
+      interactionId: thinkingEvents[0].interactionId,
       speech: expect.objectContaining({
         lineId: 'hudChrome.aiSpeech.objectInspectGrave',
         values: expect.objectContaining({ itemId: 'gravecaller_sigil', objectName: object.name }),
