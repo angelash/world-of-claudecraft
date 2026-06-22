@@ -27,6 +27,12 @@ function metrics(overrides: Partial<AiLifeLayerMetricsSnapshot> = {}): AiLifeLay
     averageProviderLatencyMs: 0,
     maxProviderLatencyMs: 0,
     lastProviderLatencyMs: 0,
+    providerLatencySampleCount: 0,
+    providerLatencyP50Ms: 0,
+    providerLatencyP90Ms: 0,
+    providerLatencyP95Ms: 0,
+    lastPromptChars: 0,
+    lastRawOutputChars: 0,
     ...overrides,
   };
 }
@@ -291,6 +297,8 @@ function audit(overrides: Partial<AiAuditSnapshot> = {}): AiAuditSnapshot {
       outputTokens: 20,
       totalTokens: 100,
       tokenEstimate: true,
+      promptChars: 0,
+      rawOutputChars: 0,
       outputMode: 'line_id_only',
       allowedIntentCount: 3,
       allowedLineIdCount: 8,
@@ -323,6 +331,12 @@ describe('admin AI life layer metrics renderer', () => {
       acceptedDecisions: 3,
       generatedEvents: 6,
       averageProviderLatencyMs: 12.4,
+      providerLatencySampleCount: 7,
+      providerLatencyP50Ms: 10,
+      providerLatencyP90Ms: 25,
+      providerLatencyP95Ms: 31,
+      lastPromptChars: 4321,
+      lastRawOutputChars: 678,
       lastProviderTimings: {
         provider: 'codex-app-server',
         totalMs: 1456,
@@ -337,6 +351,14 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('Provider calls');
     expect(html).toContain('Average provider latency');
     expect(html).toContain('12 ms');
+    expect(html).toContain('Provider latency P50');
+    expect(html).toContain('Provider latency P90');
+    expect(html).toContain('Provider latency P95');
+    expect(html).toContain('31 ms');
+    expect(html).toContain('Last prompt length');
+    expect(html).toContain('4,321 chars');
+    expect(html).toContain('Last raw output length');
+    expect(html).toContain('678 chars');
     expect(html).toContain('Last provider timing');
     expect(html).toContain('Codex app-server');
     expect(html).toContain('1,456 ms');
@@ -622,11 +644,13 @@ describe('admin AI life layer metrics renderer', () => {
         requestContext: {
           context: { jobId: 'job-1', recentObservations: ['scene<script>'] },
           promptText: 'Prompt <script> sent to model',
+          promptChars: 29,
           promptTruncated: false,
         },
         provider: {
           source: 'codex',
           rawOutput: '{"speech":"raw <script>"}',
+          rawOutputChars: 25,
           rawOutputTruncated: false,
           parsedDecision: { speech: [{ mode: 'dynamicText', text: 'parsed <script>' }] },
           timings: {
@@ -691,6 +715,10 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('AI interaction chain');
     expect(html).toContain('Ask about recent events');
     expect(html).toContain('Provider timing breakdown');
+    expect(html).toContain('Prompt length');
+    expect(html).toContain('29 chars');
+    expect(html).toContain('Raw output length');
+    expect(html).toContain('25 chars');
     expect(html).toContain('Codex app-server');
     expect(html).toContain('Model turn completion');
     expect(html).toContain('2,200 ms');

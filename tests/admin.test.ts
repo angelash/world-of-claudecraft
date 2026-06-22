@@ -106,6 +106,12 @@ const fakeGame: any = {
     averageProviderLatencyMs: 40,
     maxProviderLatencyMs: 80,
     lastProviderLatencyMs: 20,
+    providerLatencySampleCount: 3,
+    providerLatencyP50Ms: 40,
+    providerLatencyP90Ms: 80,
+    providerLatencyP95Ms: 80,
+    lastPromptChars: 1234,
+    lastRawOutputChars: 256,
     lastProviderError: 'provider unavailable',
   }),
   aiLifeLayerDiagnostics: () => ({

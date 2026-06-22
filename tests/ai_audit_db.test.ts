@@ -46,6 +46,8 @@ const record: AiAuditRecord = {
   outputTokens: 25,
   totalTokens: 125,
   tokenEstimate: true,
+  promptChars: 0,
+  rawOutputChars: 0,
   outputMode: 'line_id_only',
   allowedIntentCount: 3,
   allowedLineIdCount: 8,
@@ -159,6 +161,8 @@ describe('AI audit DB', () => {
         },
       },
       deliveredSummary: ['hudChrome.aiSpeech.brotherAldricAwake'],
+      promptChars: 20,
+      rawOutputChars: 11,
       providerTimings: {
         provider: 'codex-app-server',
         totalMs: 1234,
@@ -213,11 +217,13 @@ describe('AI audit DB', () => {
             outputMode: 'line_id_only',
           },
           promptText: 'prompt sent to model',
+          promptChars: 20,
           promptTruncated: false,
         },
         provider: {
           source: 'codex',
           rawOutput: '{"ok":true}',
+          rawOutputChars: 11,
           rawOutputTruncated: false,
           timings: {
             provider: 'codex-app-server',
@@ -259,14 +265,17 @@ describe('AI audit DB', () => {
       auditId: 'audit-chain',
       hasChain: true,
       deliveredSummary: ['hudChrome.aiSpeech.brotherAldricAwake'],
+      promptChars: 20,
+      rawOutputChars: 11,
       providerTimings: expect.objectContaining({ provider: 'codex-app-server', totalMs: 1234 }),
     })]);
     await expect(db.recordByAuditId('audit-chain')).resolves.toEqual(expect.objectContaining({
       auditId: 'audit-chain',
       chain: expect.objectContaining({
-        requestContext: expect.objectContaining({ promptText: 'prompt sent to model' }),
+        requestContext: expect.objectContaining({ promptText: 'prompt sent to model', promptChars: 20 }),
         provider: expect.objectContaining({
           rawOutput: '{"ok":true}',
+          rawOutputChars: 11,
           timings: expect.objectContaining({ provider: 'codex-app-server', totalMs: 1234 }),
         }),
       }),

@@ -121,6 +121,12 @@ export interface AiLifeLayerMetricsSnapshot {
   averageProviderLatencyMs: number;
   maxProviderLatencyMs: number;
   lastProviderLatencyMs: number;
+  providerLatencySampleCount: number;
+  providerLatencyP50Ms: number;
+  providerLatencyP90Ms: number;
+  providerLatencyP95Ms: number;
+  lastPromptChars: number;
+  lastRawOutputChars: number;
   providerCacheHits: number;
   providerCacheMisses: number;
   providerCacheStores: number;
@@ -168,6 +174,8 @@ interface AiLifeLayerMetricsState {
   totalProviderLatencyMs: number;
   maxProviderLatencyMs: number;
   lastProviderLatencyMs: number;
+  lastPromptChars: number;
+  lastRawOutputChars: number;
   providerCacheHits: number;
   providerCacheMisses: number;
   providerCacheStores: number;
@@ -297,6 +305,7 @@ const PET_COMMAND_INTENTS: readonly AiPetCommandIntent[] = [
 ];
 const DEFAULT_PROVIDER_CACHE_MAX_ENTRIES = 128;
 const DEFAULT_PROVIDER_CACHE_MAX_TTL_MS = 12_000;
+const PROVIDER_LATENCY_SAMPLE_LIMIT = 128;
 const PROVIDER_CACHE_VERSION = 'ai-decision-cache-v1';
 
 export class AiLifeLayer {
@@ -319,6 +328,7 @@ export class AiLifeLayer {
   private readonly providerDecisionCache = new Map<string, AiProviderDecisionCacheEntry>();
   private readonly pendingMemoryWrites: AiMemoryAuditRecord[] = [];
   private readonly memoryPersistenceErrors: string[] = [];
+  private readonly providerLatencySamplesMs: number[] = [];
   private readonly metrics: AiLifeLayerMetricsState = {
     providerCalls: 0,
     providerSuccesses: 0,
@@ -337,6 +347,8 @@ export class AiLifeLayer {
     totalProviderLatencyMs: 0,
     maxProviderLatencyMs: 0,
     lastProviderLatencyMs: 0,
+    lastPromptChars: 0,
+    lastRawOutputChars: 0,
     providerCacheHits: 0,
     providerCacheMisses: 0,
     providerCacheStores: 0,
@@ -455,12 +467,17 @@ export class AiLifeLayer {
   }
 
   runtimeMetrics(): AiLifeLayerMetricsSnapshot {
+    const percentiles = providerLatencyPercentiles(this.providerLatencySamplesMs);
     return {
       ...this.metrics,
       providerCacheEntries: this.providerDecisionCache.size,
       averageProviderLatencyMs: this.metrics.providerCalls > 0
         ? this.metrics.totalProviderLatencyMs / this.metrics.providerCalls
         : 0,
+      providerLatencySampleCount: this.providerLatencySamplesMs.length,
+      providerLatencyP50Ms: percentiles.p50,
+      providerLatencyP90Ms: percentiles.p90,
+      providerLatencyP95Ms: percentiles.p95,
     };
   }
 
@@ -1614,7 +1631,7 @@ export class AiLifeLayer {
     try {
       const providerOutput = normalizeProviderOutput(await this.provider.decide(context));
       const providerLatencyMs = performance.now() - providerStartedAt;
-      this.recordProviderLatency(providerLatencyMs, providerOutput.providerTimings);
+      this.recordProviderLatency(providerLatencyMs, providerOutput.providerTimings, providerOutput.promptText, providerOutput.rawOutput);
       this.metrics.providerSuccesses++;
       return {
         ok: true,
@@ -1779,11 +1796,22 @@ export class AiLifeLayer {
     this.metrics.lastMemoryPersistenceError = message;
   }
 
-  private recordProviderLatency(durationMs: number, providerTimings?: AiProviderTimingSnapshot): void {
+  private recordProviderLatency(
+    durationMs: number,
+    providerTimings?: AiProviderTimingSnapshot,
+    promptText?: string,
+    rawOutput?: string,
+  ): void {
     const safeDuration = Number.isFinite(durationMs) && durationMs >= 0 ? durationMs : 0;
     this.metrics.lastProviderLatencyMs = safeDuration;
     this.metrics.totalProviderLatencyMs += safeDuration;
     this.metrics.maxProviderLatencyMs = Math.max(this.metrics.maxProviderLatencyMs, safeDuration);
+    this.providerLatencySamplesMs.push(safeDuration);
+    if (this.providerLatencySamplesMs.length > PROVIDER_LATENCY_SAMPLE_LIMIT) {
+      this.providerLatencySamplesMs.splice(0, this.providerLatencySamplesMs.length - PROVIDER_LATENCY_SAMPLE_LIMIT);
+    }
+    if (promptText !== undefined) this.metrics.lastPromptChars = promptText.length;
+    if (rawOutput !== undefined) this.metrics.lastRawOutputChars = rawOutput.length;
     if (providerTimings) this.metrics.lastProviderTimings = providerTimings;
   }
 
@@ -2349,6 +2377,22 @@ function cacheRelevantMemorySignals(signals: readonly AiMemoryAuditRecord[] | un
 function roundCacheNumber(value: number, step: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.round(value / step) * step;
+}
+
+function providerLatencyPercentiles(samples: readonly number[]): { p50: number; p90: number; p95: number } {
+  if (samples.length === 0) return { p50: 0, p90: 0, p95: 0 };
+  const sorted = [...samples].sort((a, b) => a - b);
+  return {
+    p50: percentileFromSorted(sorted, 0.5),
+    p90: percentileFromSorted(sorted, 0.9),
+    p95: percentileFromSorted(sorted, 0.95),
+  };
+}
+
+function percentileFromSorted(sorted: readonly number[], percentile: number): number {
+  if (sorted.length === 0) return 0;
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * percentile) - 1));
+  return sorted[index];
 }
 
 function envPositiveIntLocal(name: string, fallback: number): number {

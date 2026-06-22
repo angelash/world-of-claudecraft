@@ -66,6 +66,10 @@ function renderAiLatency(value: number): string {
   return escapeHtml(t('usage.aiMilliseconds', { value: fmtNumber(value) }));
 }
 
+function renderAiChars(value: number): string {
+  return escapeHtml(t('usage.aiCharacters', { value: fmtNumber(value) }));
+}
+
 function aiProviderTimingProviderLabel(provider: string): string {
   switch (provider) {
     case 'codex-exec': return t('usage.aiProviderTimingProviderExec');
@@ -898,6 +902,8 @@ export function renderAiAuditRecordDetail(record: AiAuditRecord): string {
   const action = chain.playerAction;
   const validationClass = chain.validation.ok ? '' : ' warn';
   const providerTimings = record.providerTimings ?? chain.provider.timings;
+  const promptChars = record.promptChars || chain.requestContext.promptChars;
+  const rawOutputChars = record.rawOutputChars || chain.provider.rawOutputChars;
   return `<div class="ai-audit-detail-panel">
     <div class="ai-audit-detail-title">
       <h4>${escapeHtml(t('usage.aiAuditDetailTitle'))}</h4>
@@ -931,6 +937,8 @@ export function renderAiAuditRecordDetail(record: AiAuditRecord): string {
             objects: fmtNumber(record.sceneObjectCount),
             companions: fmtNumber(record.companionCount),
           }))}
+          ${renderAiAuditDetailPair('usage.aiAuditDetailPromptSize', t('usage.aiCharacters', { value: fmtNumber(promptChars) }))}
+          ${renderAiAuditDetailPair('usage.aiAuditDetailRawOutputSize', t('usage.aiCharacters', { value: fmtNumber(rawOutputChars) }))}
         </dl>
       </section>
     </div>
@@ -1332,6 +1340,7 @@ export function renderAiLifeLayerMetrics(
   const statusKey = needsAttention ? 'usage.aiStatusAttention' : 'usage.aiStatusHealthy';
   const statusClass = needsAttention ? ' warn' : '';
   const rows = [
+    aiMetricRow('usage.aiProviderCalls', renderAiNumber(ai.providerCalls)),
     aiMetricRow('usage.aiProviderSuccesses', renderAiNumber(ai.providerSuccesses)),
     aiMetricRow('usage.aiProviderErrors', renderAiNumber(ai.providerErrors)),
     aiMetricRow('usage.aiProviderFallbacks', renderAiNumber(ai.providerFallbacks)),
@@ -1344,8 +1353,15 @@ export function renderAiLifeLayerMetrics(
     aiMetricRow('usage.aiMemoryPruneRuns', renderAiNumber(ai.memoryPruneRuns)),
     aiMetricRow('usage.aiMemoryPruneDeleted', renderAiNumber(ai.memoryPruneDeleted)),
     aiMetricRow('usage.aiMemoryPruneFailures', renderAiNumber(ai.memoryPruneFailures)),
+    aiMetricRow('usage.aiAverageLatency', renderAiLatency(ai.averageProviderLatencyMs)),
     aiMetricRow('usage.aiMaxLatency', renderAiLatency(ai.maxProviderLatencyMs)),
     aiMetricRow('usage.aiLastLatency', renderAiLatency(ai.lastProviderLatencyMs)),
+    aiMetricRow('usage.aiLatencySamples', renderAiNumber(ai.providerLatencySampleCount)),
+    aiMetricRow('usage.aiLatencyP50', renderAiLatency(ai.providerLatencyP50Ms)),
+    aiMetricRow('usage.aiLatencyP90', renderAiLatency(ai.providerLatencyP90Ms)),
+    aiMetricRow('usage.aiLatencyP95', renderAiLatency(ai.providerLatencyP95Ms)),
+    aiMetricRow('usage.aiLastPromptChars', renderAiChars(ai.lastPromptChars)),
+    aiMetricRow('usage.aiLastRawOutputChars', renderAiChars(ai.lastRawOutputChars)),
     aiMetricRow('usage.aiLastProviderTiming', renderAiProviderTimingSummary(ai.lastProviderTimings)),
     aiMetricRow('usage.aiLastProviderError', renderAiOptionalText(ai.lastProviderError)),
     aiMetricRow('usage.aiLastMemoryError', renderAiOptionalText(ai.lastMemoryPersistenceError)),
@@ -1384,6 +1400,10 @@ export function renderAiLifeLayerMetrics(
       <div class="ai-health-cell">
         <div class="ai-health-value">${renderAiLatency(ai.averageProviderLatencyMs)}</div>
         <div class="ai-health-label">${t('usage.aiAverageLatency')}</div>
+      </div>
+      <div class="ai-health-cell">
+        <div class="ai-health-value">${renderAiLatency(ai.providerLatencyP95Ms)}</div>
+        <div class="ai-health-label">${t('usage.aiLatencyP95')}</div>
       </div>
       <div class="ai-health-cell">
         <div class="ai-health-value">${renderAiNumber(ai.memoryWritesQueued)}</div>

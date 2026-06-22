@@ -134,11 +134,13 @@ export interface AiAuditChain {
   requestContext: {
     context: unknown;
     promptText: string;
+    promptChars: number;
     promptTruncated: boolean;
   };
   provider: {
     source: string;
     rawOutput: string;
+    rawOutputChars: number;
     rawOutputTruncated: boolean;
     parsedDecision: unknown;
     timings?: AiProviderTimingSnapshot;
@@ -173,6 +175,8 @@ export interface AiAuditRecord {
   outputTokens: number;
   totalTokens: number;
   tokenEstimate: boolean;
+  promptChars: number;
+  rawOutputChars: number;
   outputMode: string;
   allowedIntentCount: number;
   allowedLineIdCount: number;
@@ -222,6 +226,12 @@ export interface AiLifeLayerMetricsSnapshot {
   averageProviderLatencyMs: number;
   maxProviderLatencyMs: number;
   lastProviderLatencyMs: number;
+  providerLatencySampleCount: number;
+  providerLatencyP50Ms: number;
+  providerLatencyP90Ms: number;
+  providerLatencyP95Ms: number;
+  lastPromptChars: number;
+  lastRawOutputChars: number;
   lastProviderTimings?: AiProviderTimingSnapshot;
   lastProviderError?: string;
   lastMemoryPersistenceError?: string;

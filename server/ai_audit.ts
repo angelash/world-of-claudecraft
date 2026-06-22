@@ -58,11 +58,13 @@ export interface AiAuditChain {
   requestContext: {
     context: AiJobContextV1;
     promptText: string;
+    promptChars: number;
     promptTruncated: boolean;
   };
   provider: {
     source: AiAuditProviderSource;
     rawOutput: string;
+    rawOutputChars: number;
     rawOutputTruncated: boolean;
     parsedDecision: AiDecisionV1 | null;
     timings?: AiProviderTimingSnapshot;
@@ -97,6 +99,8 @@ export interface AiAuditRecord {
   outputTokens: number;
   totalTokens: number;
   tokenEstimate: boolean;
+  promptChars: number;
+  rawOutputChars: number;
   outputMode: string;
   allowedIntentCount: number;
   allowedLineIdCount: number;
@@ -429,6 +433,8 @@ export function createProviderAuditRecord(input: {
       : 'rejected';
   const inputTokens = estimateAiTokens(input.context);
   const outputTokens = providerError ? 0 : estimateAiTokens(input.decision);
+  const promptText = input.promptText ?? '';
+  const rawOutput = input.rawOutput ?? '';
   const playerAction = aiAuditPlayerActionFromContext(input.context);
   const deliveredEvents = [...(input.deliveredEvents ?? [])];
   const deliveredSummary = aiAuditDeliveredSummary(deliveredEvents);
@@ -439,8 +445,8 @@ export function createProviderAuditRecord(input: {
     decision: input.decision,
     result: input.result,
     providerError,
-    promptText: input.promptText ?? '',
-    rawOutput: input.rawOutput ?? '',
+    promptText,
+    rawOutput,
     providerTimings: input.providerTimings,
     deliveredEvents,
   });
@@ -462,6 +468,8 @@ export function createProviderAuditRecord(input: {
     outputTokens,
     totalTokens: inputTokens + outputTokens,
     tokenEstimate: true,
+    promptChars: promptText.length,
+    rawOutputChars: rawOutput.length,
     ...aiAuditCountsFromContext(input.context),
     lineIds: aiLineIdsFromDecision(input.decision),
     intents: aiIntentsFromDecision(input.decision),
@@ -514,6 +522,8 @@ export function createLocalAuditRecord(input: {
     outputTokens: 0,
     totalTokens: 0,
     tokenEstimate: true,
+    promptChars: 0,
+    rawOutputChars: 0,
     outputMode: 'local_rule',
     allowedIntentCount: 0,
     allowedLineIdCount: 0,
@@ -550,11 +560,13 @@ function aiAuditChain(input: {
     requestContext: {
       context: input.context,
       promptText: prompt.text,
+      promptChars: input.promptText.length,
       promptTruncated: prompt.truncated,
     },
     provider: {
       source: input.providerSource,
       rawOutput: rawOutput.text,
+      rawOutputChars: input.rawOutput.length,
       rawOutputTruncated: rawOutput.truncated,
       parsedDecision: input.decision,
       ...(input.providerTimings ? { timings: input.providerTimings } : {}),

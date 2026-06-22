@@ -218,6 +218,8 @@ export function normalizeAiAuditRecord(value: unknown): AiAuditRecord | null {
   const hasChain = typeof src.hasChain === 'boolean' ? src.hasChain || chain !== null : chain !== null;
   const providerTimings = normalizeAiProviderTimings(src.providerTimings)
     ?? normalizeAiProviderTimings(chain?.provider.timings);
+  const promptChars = intValue(src.promptChars) || chain?.requestContext.promptChars || 0;
+  const rawOutputChars = intValue(src.rawOutputChars) || chain?.provider.rawOutputChars || 0;
   return {
     auditId,
     realm: textValue(src.realm, 96) || REALM,
@@ -236,6 +238,8 @@ export function normalizeAiAuditRecord(value: unknown): AiAuditRecord | null {
     outputTokens,
     totalTokens: totalTokens > 0 ? totalTokens : inputTokens + outputTokens,
     tokenEstimate: typeof src.tokenEstimate === 'boolean' ? src.tokenEstimate : true,
+    promptChars,
+    rawOutputChars,
     outputMode: textValue(src.outputMode, 80),
     allowedIntentCount: intValue(src.allowedIntentCount),
     allowedLineIdCount: intValue(src.allowedLineIdCount),
@@ -299,16 +303,20 @@ function normalizeAiAuditChain(value: unknown): AiAuditChain | null {
   const validation = objectValue(src.validation);
   const delivered = objectValue(src.delivered);
   const providerTimings = normalizeAiProviderTimings(provider.timings);
+  const promptText = textValue(requestContext.promptText, 64_000);
+  const rawOutput = textValue(provider.rawOutput, 64_000);
   return {
     playerAction,
     requestContext: {
       context: boundedJsonValue(requestContext.context, 200_000) as AiAuditChain['requestContext']['context'],
-      promptText: textValue(requestContext.promptText, 64_000),
+      promptText,
+      promptChars: intValue(requestContext.promptChars) || promptText.length,
       promptTruncated: booleanValue(requestContext.promptTruncated),
     },
     provider: {
       source: normalizeProviderSource(textValue(provider.source, 32)),
-      rawOutput: textValue(provider.rawOutput, 64_000),
+      rawOutput,
+      rawOutputChars: intValue(provider.rawOutputChars) || rawOutput.length,
       rawOutputTruncated: booleanValue(provider.rawOutputTruncated),
       parsedDecision: objectOrNull(provider.parsedDecision) as AiAuditChain['provider']['parsedDecision'],
       ...(providerTimings ? { timings: providerTimings } : {}),
