@@ -270,6 +270,59 @@
 - 写 NPC 文本时应保持角色一致性。
 - Brother Aldric 和 Scout Maren 是跨区域叙事锚点，语气要稳定。
 
+## AI 生命层专项设计
+
+### `docs/design/ai-interactable-agents.zh_CN.md`
+
+定位：NPC、怪物、物件和宠物接入 Codex worker 的主设计归档。
+
+核心设计点：
+
+- AI 生命层不是普通 NPC 聊天，而是给 NPC、怪物、物件、首领、宠物和场景加观察、记忆、语义和有限行动意图。
+- 普通怪可以出现少量“奇点个体”，拥有临时个性、记忆、偏好和异常行为。
+- 场景感知覆盖建筑、物件、天气、昼夜、掉落物、随行对象和区域危险压力。
+- Codex 输出只作为表现和生命意图，任务、战斗、掉落、经济和副本权限仍由权威模拟和服务器命令决定。
+- 文档已经记录已落地基线，包括 provider、场景语义、世界导演、审计、奇点记忆和主线风险规避。
+
+策划注意事项：
+
+- 新增 AI 能力时优先检查这份主方案，确认是否已有 profile、family、scene、item、world director 或 memory 路径。
+- 任何新增玩家可见文案都必须走本地化路径，简中不能漏。
+- 如果新增主动触发或轮询机制，请同时看下面的主动触发专题。
+
+### `docs/design/ai-proactive-triggers.zh_CN.md`
+
+定位：AI 生命层主动触发、事件队列和定时轮询机制的专题归档。
+
+核心设计点：
+
+- 补齐“玩家不点击也会发生”的世界呼吸：游戏事件触发和 5 分钟默认轮询并行。
+- 设计一张轮询项目表，每个 rule 可配置周期、条件、候选对象、预算、provider 策略、冷却和审计标签。
+- 覆盖饭点饥饿、附近物件想法、下雨躲避、晴夜星空、亡灵压力、守卫巡查、奇点个体主动生活、世界导演余波等场景。
+- 强调只挑少数最相关对象主动反应，避免所有 NPC 或怪物同时冒泡。
+- 给出 `AiActiveTriggerService`、主动事件队列、候选打分、预算、后台观测、测试和螺旋式实现计划。
+
+策划注意事项：
+
+- 这份文档是后续实现主动 AI 的入口，不替代 AI 主方案。
+- 主动机制更容易影响主线体感，因此必须同步验证任务、战斗、拾取、商人、副本、宠物和经济状态不变。
+- 默认周期 5 分钟只是初始值，实际每个 rule 都应能单独调参。
+
+### `docs/design/ai-audit-center.zh_CN.md`
+
+定位：AI 审计、token、后台可观测和运营清理能力的设计归档。
+
+核心设计点：
+
+- 记录 AI provider 调用、prompt 和 raw output 长度、延迟、P50/P90/P95、决策链路、memory writes、world director state 和 profile coverage。
+- Admin Usage 页是当前 AI 生命层的主要观测入口。
+- AI 主动触发机制上线后，也应把 rule、cursor、候选、跳过原因和安全拦截纳入该后台体系。
+
+策划注意事项：
+
+- 新增 AI 行为时不要只看游戏内是否有反馈，也要确认后台能解释“为什么发生”和“为什么没发生”。
+- 清理 AI memory 时要理解它只清理 AI overlay 和审计记忆，不删除角色事实状态。
+
 ## Web3 与外观 PRD
 
 ### `docs/prd/woc/wallet-link.md`
@@ -341,6 +394,9 @@
 | `ue5-overhaul-plan.md` | 本文提供中文整合摘要。 |
 | `sound_effects.md` | 本文提供中文整合摘要。 |
 | `npc_voices.md` | 本文提供中文整合摘要。 |
+| `ai-interactable-agents.zh_CN.md` | 本文提供中文定位说明，完整 AI 生命层主方案以该文档为准。 |
+| `ai-proactive-triggers.zh_CN.md` | 本文提供中文定位说明，主动触发和轮询机制以该文档为准。 |
+| `ai-audit-center.zh_CN.md` | 本文提供中文定位说明，AI 后台审计和可观测以该文档为准。 |
 | `wallet-link.md` | 本文提供中文整合摘要和状态说明。 |
 | `holder-cosmetic-flair.md` | 本文提供中文整合摘要和状态说明。 |
 | `build-prompts.md` | 本文提供中文定位说明。 |
