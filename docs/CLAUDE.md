@@ -29,6 +29,7 @@ PRDs say so explicitly) and note the deviation.
 | `current-game-design.zh_CN.md` | Chinese companion to `current-game-design.md`, kept as a manually maintained planning reference. |
 | `planning-docs.zh_CN.md` | Chinese guide to the existing design and PRD documents, including current-use notes and implementation caveats. |
 | `ai-interactable-agents.zh_CN.md` | Chinese design and refactor plan for giving NPCs, mobs, and interactable objects AI-driven reasoning through a Codex CLI worker. |
+| `ai-audit-center.zh_CN.md` | Chinese design and implementation archive for AI Audit Center telemetry, token estimates, persistent audit records, and admin visibility. |
 | `master-spec.md` | The big design doc: levels 6–20 expansion (story arc, zones, dungeons, XP math, ids). |
 | `spell-ranks.md` | Vanilla-style ability rank progressions L1–20 for all 9 classes; the reference for sim ability content. |
 | `icon-system.md` | Procedural icon system spec. Note: it proposes a multi-file `src/ui/icons/` module (`index.ts`, `compose.ts`, `palettes.ts`, …); the shipped code is the flat `src/ui/icons.ts` — re-verify against code. |
@@ -52,6 +53,7 @@ PRDs say so explicitly) and note the deviation.
 |---|---|
 | `talents-and-specializations.md` | Talents/specs flagship milestone (one-class slice first, then 9 classes). |
 | `max-level-xp-overflow.md` | Post-cap XP overflow / prestige progression. |
+| `ai-audit-center.zh_CN.md` | Chinese PRD for AI Audit Center requirements, gaps, acceptance criteria, usage frequency, and token telemetry. |
 | `build-prompts.md` | Two self-contained prompts that drive end-to-end PRD implementation (used with `/gsd:*`). |
 
 ## screenshots/
