@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AiJobContextV1 } from '../server/ai/ai_types';
+import { compactFamilySemanticsForMob } from '../server/ai/family_semantics';
 import { buildCodexDecisionPrompt } from '../server/ai/prompt_builder';
 
 const context: AiJobContextV1 = {
@@ -133,5 +134,58 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('profile=profileProjection:riteOmen');
     expect(prompt).toContain('Memory signals: rumor:rumor-7:region:salience=0.65:readRegionRumor');
     expect(prompt).toContain('Return only JSON');
+  });
+
+  it('builds a pet-command prompt without quest, director, or object clutter', () => {
+    const petContext: AiJobContextV1 = {
+      ...context,
+      trigger: 'pet_command',
+      topic: 'recent',
+      entity: { kind: 'mob', entityId: 22, templateId: 'forest_wolf', name: 'Fang', level: 4, questIds: [], dead: false },
+      familySemantics: compactFamilySemanticsForMob('forest_wolf'),
+      allowedIntents: ['commandPetDefensive', 'commandPetAttack', 'commandPetIgnore'],
+      allowedLineIds: [],
+      outputMode: 'mixed_living_world',
+    };
+
+    const npcPrompt = buildCodexDecisionPrompt(context);
+    const petPrompt = buildCodexDecisionPrompt(petContext);
+
+    expect(petPrompt).toContain('Trigger focus: Pet command');
+    expect(petPrompt).toContain('Treat job.topic as the command text or command category');
+    expect(petPrompt).toContain('Allowed intents: commandPetDefensive, commandPetAttack, commandPetIgnore');
+    expect(petPrompt).toContain('Family: Beast');
+    expect(petPrompt).toContain('Scene: fallen_chapel');
+    expect(petPrompt).not.toContain('Quest facts visible to player');
+    expect(petPrompt).not.toContain('Director proposals:');
+    expect(petPrompt).not.toContain('Memory signals:');
+    expect(petPrompt).not.toContain('Nearby semantic objects:');
+    expect(petPrompt).not.toContain('"questFacts"');
+    expect(petPrompt).not.toContain('"directorProposals"');
+    expect(petPrompt.length).toBeLessThan(npcPrompt.length);
+  });
+
+  it('keeps singularity creature prompts focused on family instincts and scene stimulus', () => {
+    const singularityContext: AiJobContextV1 = {
+      ...context,
+      trigger: 'singularity_candidate',
+      entity: { kind: 'mob', entityId: 33, templateId: 'forest_wolf', name: 'Old Fang', level: 5, questIds: [], dead: false },
+      familySemantics: compactFamilySemanticsForMob('forest_wolf'),
+      allowedIntents: ['approachObject', 'avoidObject', 'inspectObject', 'commentOnScene'],
+      allowedLineIds: ['hudChrome.aiSpeech.singularityFoodFixated'],
+      outputMode: 'mixed_living_world',
+    };
+
+    const prompt = buildCodexDecisionPrompt(singularityContext);
+
+    expect(prompt).toContain('Trigger focus: Singularity creature reaction');
+    expect(prompt).toContain('Prioritize family instinct, dropped item tags, scene danger, time/weather, and memory signals');
+    expect(prompt).toContain('Family: Beast');
+    expect(prompt).toContain('Dropped items: gravecaller_sigil:Gravecaller Sigil');
+    expect(prompt).toContain('Director proposals: nudgeNpcRumor:preview:low');
+    expect(prompt).toContain('Memory signals: rumor:rumor-7:region');
+    expect(prompt).not.toContain('Quest facts visible to player');
+    expect(prompt).not.toContain('q_bones:currentObjective');
+    expect(prompt).not.toContain('"questFacts"');
   });
 });
