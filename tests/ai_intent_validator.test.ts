@@ -167,4 +167,48 @@ describe('AI intent validator', () => {
       pid: 1,
     }]);
   });
+
+  it('polishes English dynamicText before creating player speech events', () => {
+    const result = validateAiDecision({
+      decision: {
+        ...decision,
+        speech: [{
+          mode: 'dynamicText',
+          language: 'en',
+          text: 'However, I would suggest you keep your voice low. Overall, this means the graves are dangerous.',
+        }],
+      },
+      context: { ...context, outputMode: 'dynamic_text_experiment' },
+      entity,
+      subject: 'criticalQuestNpc',
+      source: 'codex',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.events).toContainEqual(expect.objectContaining({
+      speech: { mode: 'dynamicText', language: 'en', text: 'Keep your voice low.' },
+    }));
+  });
+
+  it('polishes Chinese dynamicText before creating player speech events', () => {
+    const result = validateAiDecision({
+      decision: {
+        ...decision,
+        speech: [{
+          mode: 'dynamicText',
+          language: 'zh_CN',
+          text: '不过，从墓地的雾来看，这说明附近不太干净。总的来说，你应该小心。',
+        }],
+      },
+      context: { ...context, locale: 'zh_CN', outputMode: 'dynamic_text_experiment' },
+      entity,
+      subject: 'criticalQuestNpc',
+      source: 'codex',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.events).toContainEqual(expect.objectContaining({
+      speech: { mode: 'dynamicText', language: 'zh_CN', text: '附近不太干净。' },
+    }));
+  });
 });

@@ -9,8 +9,12 @@ const ZH_LEADING_TRANSITIONS = [
   '因此',
   '所以',
   '总之',
+  '总的来说',
   '需要注意的是',
   '值得一提的是',
+  '简单来说',
+  '换句话说',
+  '从这个角度看',
 ] as const;
 
 const EN_LEADING_TRANSITIONS = [
@@ -21,6 +25,9 @@ const EN_LEADING_TRANSITIONS = [
   'therefore',
   'overall',
   'in short',
+  'that said',
+  'in conclusion',
+  'to summarize',
 ] as const;
 
 export function dynamicSpeechPromptRules(locale: string): string[] {
@@ -35,6 +42,7 @@ export function dynamicSpeechPromptRules(locale: string): string[] {
       ...common,
       '- For Chinese dynamicText, use natural spoken Chinese. Prefer 8-28 Chinese characters when possible.',
       '- Do not start with 不过, 但是, 然而, 而且, 另外, 此外, 同时, 因此, 所以, 总之, 需要注意的是, or 值得一提的是.',
+      '- Do not use 你问的是, 我建议, 从...来看, 这说明, 总的来说, or other Q&A assistant wording.',
     ];
   }
   return [
@@ -44,11 +52,12 @@ export function dynamicSpeechPromptRules(locale: string): string[] {
 }
 
 export function polishDynamicSpeechText(text: string, locale: string): string {
-  const normalized = text.replace(/[ \t\r\n]+/g, ' ').trim();
+  const normalized = stripOuterQuotes(text.replace(/[ \t\r\n]+/g, ' ').trim());
   if (!normalized) return normalized;
-  if (isChineseLocale(locale)) return stripChineseTransitions(normalized);
-  if (isEnglishLocale(locale)) return stripEnglishTransitions(normalized);
-  return normalized;
+  const withoutSpeaker = stripSpeakerPrefix(normalized);
+  if (isChineseLocale(locale)) return polishChineseSpeech(withoutSpeaker, normalized);
+  if (isEnglishLocale(locale)) return polishEnglishSpeech(withoutSpeaker, normalized);
+  return shortenSpokenLine(withoutSpeaker, normalized);
 }
 
 function isChineseLocale(locale: string): boolean {
@@ -73,6 +82,33 @@ function stripChineseTransitions(text: string): string {
   return out.trim() || text.trim();
 }
 
+function polishChineseSpeech(text: string, fallback: string): string {
+  let out = stripChineseTransitions(text);
+  out = stripChineseAssistantPhrases(out);
+  out = stripChineseTransitions(out);
+  out = shortenChineseLine(out);
+  return cleanupChinesePunctuation(out) || fallback.trim();
+}
+
+function stripChineseAssistantPhrases(text: string): string {
+  let out = text.trim();
+  const patterns = [
+    /^你(?:刚才|现在)?(?:问|想问|要问)的(?:是|这个)?[，,：:\s]*/,
+    /^我(?:会)?建议(?:你)?[，,：:\s]*/,
+    /^我的建议是[，,：:\s]*/,
+    /^我(?:认为|觉得)你(?:可以|应该)[，,：:\s]*/,
+    /^从[^。！？!?，,]{1,28}(?:来看|看起来|判断)[，,：:\s]*/,
+    /^这(?:说明|意味着|表示)(?:着|了)?[，,：:\s]*/,
+    /^作为[^，,。！？!?]{0,16}[，,：:\s]*/,
+  ];
+  for (let pass = 0; pass < 3; pass++) {
+    const before = out;
+    for (const pattern of patterns) out = out.replace(pattern, '');
+    if (out === before) break;
+  }
+  return out.trim() || text.trim();
+}
+
 function stripEnglishTransitions(text: string): string {
   let out = text.trim();
   for (let pass = 0; pass < 2; pass++) {
@@ -85,6 +121,118 @@ function stripEnglishTransitions(text: string): string {
     if (out === before) break;
   }
   return out.trim() || text.trim();
+}
+
+function polishEnglishSpeech(text: string, fallback: string): string {
+  let out = stripEnglishTransitions(text);
+  out = stripEnglishAssistantPhrases(out);
+  out = stripEnglishTransitions(out);
+  out = shortenEnglishLine(out);
+  out = cleanupEnglishPunctuation(out);
+  out = capitalizeEnglishSentence(out);
+  return out || fallback.trim();
+}
+
+function stripEnglishAssistantPhrases(text: string): string {
+  let out = text.trim();
+  const patterns: Array<[RegExp, string]> = [
+    [/^(?:you asked about|you are asking about|you're asking about)\b[^.!?,;:]{0,72}[:,\s-]*/i, ''],
+    [/^i would (?:suggest|recommend|advise)(?: that)? (?:you )?/i, ''],
+    [/^i (?:suggest|recommend|advise)(?: that)? (?:you )?/i, ''],
+    [/^my recommendation is[:,\s]*/i, ''],
+    [/^from (?:the|this|what)[^.!?]{1,72}[,:]\s*/i, ''],
+    [/^this (?:means|suggests|indicates)(?: that)?\s*/i, ''],
+    [/^as an ai[:,\s]*/i, ''],
+  ];
+  for (let pass = 0; pass < 3; pass++) {
+    const before = out;
+    for (const [pattern, replacement] of patterns) out = out.replace(pattern, replacement);
+    if (out === before) break;
+  }
+  return out.trim() || text.trim();
+}
+
+function stripSpeakerPrefix(text: string): string {
+  const out = text
+    .replace(/^[A-Z][A-Za-z0-9' -]{1,32}:\s+/, '')
+    .replace(/^[\u4e00-\u9fffA-Za-z0-9' -]{1,16}[：:]\s*/, '');
+  return out.trim() || text.trim();
+}
+
+function stripOuterQuotes(text: string): string {
+  let out = text.trim();
+  for (let pass = 0; pass < 2; pass++) {
+    const before = out;
+    out = out
+      .replace(/^["'“”‘’「」『』]+/, '')
+      .replace(/["'“”‘’「」『』]+$/, '')
+      .trim();
+    if (out === before) break;
+  }
+  return out;
+}
+
+function shortenSpokenLine(text: string, fallback: string): string {
+  const out = shortenEnglishLine(text);
+  return out || fallback.trim();
+}
+
+function shortenChineseLine(text: string): string {
+  const out = text.trim();
+  if (!out) return out;
+  const sentenceCount = (out.match(/[。！？!?]/g) ?? []).length;
+  if (out.length <= 42 && sentenceCount <= 1) return out;
+  return firstChineseSentence(out) || firstChineseClause(out) || out;
+}
+
+function firstChineseSentence(text: string): string {
+  const match = text.match(/^.*?[。！？!?]/);
+  return match?.[0].trim() ?? '';
+}
+
+function firstChineseClause(text: string): string {
+  const match = text.match(/^.*?[，,、]/);
+  return match?.[0].replace(/[，,、]\s*$/, '。').trim() ?? '';
+}
+
+function shortenEnglishLine(text: string): string {
+  const out = text.trim();
+  if (!out) return out;
+  const words = out.split(/\s+/).filter(Boolean);
+  const sentenceCount = (out.match(/[.!?]/g) ?? []).length;
+  if (words.length <= 18 && out.length <= 120 && sentenceCount <= 1) return out;
+  return firstEnglishSentence(out) || firstEnglishClause(out) || out;
+}
+
+function firstEnglishSentence(text: string): string {
+  const match = text.match(/^.*?[.!?](?=\s|$)/);
+  return match?.[0].trim() ?? '';
+}
+
+function firstEnglishClause(text: string): string {
+  const match = text.match(/^.*?[,;:]/);
+  return match?.[0].replace(/[,;:]\s*$/, '.').trim() ?? '';
+}
+
+function cleanupChinesePunctuation(text: string): string {
+  return text
+    .replace(/^[，,、。！？!?\s]+/, '')
+    .replace(/[，,、]\s*([。！？!?])/g, '$1')
+    .replace(/([。！？!?]){2,}/g, '$1')
+    .trim();
+}
+
+function cleanupEnglishPunctuation(text: string): string {
+  return text
+    .replace(/^[,;:\s]+/, '')
+    .replace(/\s+([,.!?;:])/g, '$1')
+    .replace(/([.!?]){2,}/g, '$1')
+    .trim();
+}
+
+function capitalizeEnglishSentence(text: string): string {
+  if (!text) return text;
+  return text[0].toUpperCase() + text.slice(1);
 }
 
 function escapeRegExp(value: string): string {
