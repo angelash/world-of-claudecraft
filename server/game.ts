@@ -30,6 +30,11 @@ import {
   type AiPetCommandAction,
   type AiVolatileMemoryClearResult,
 } from './ai/life_layer';
+import {
+  AiActiveTriggerService,
+  type AiActiveTriggerDiagnosticsSnapshot,
+  type AiActiveTriggerMetricsSnapshot,
+} from './ai/active_triggers';
 import { AiAuditRuntime, type AiAuditCleanupResult, type AiAuditRecord, type AiAuditSnapshot } from './ai_audit';
 import { PgAiAuditDb } from './ai_audit_db';
 import { PgAiMemoryDb } from './ai_memory_db';
@@ -97,6 +102,7 @@ const TICK_EMA_ALPHA = 0.05;
 const HOLDER_TIER_REFRESH_MS = 120_000;
 export const AI_MEMORY_PRUNE_INTERVAL_MS = 120_000;
 const AI_MEMORY_PRUNE_BATCH_SIZE = 500;
+export const AI_ACTIVE_TRIGGER_INTERVAL_MS = 30_000;
 const AI_NPC_INTERACTION_COOLDOWN_SECONDS = 4;
 const AI_NPC_QUESTION_COOLDOWN_SECONDS = 2;
 const AI_OBJECT_INSPECT_COOLDOWN_SECONDS = 2;
@@ -373,6 +379,7 @@ export class GameServer {
   private interval: NodeJS.Timeout | null = null;
   private holderTierInterval: NodeJS.Timeout | null = null;
   private aiMemoryPruneInterval: NodeJS.Timeout | null = null;
+  private aiActiveTriggerInterval: NodeJS.Timeout | null = null;
   private holderTierRefreshing = false; // overlap guard for the refresh cycle
   // pids whose holder tier was forced via the dev /woctier command — the chain
   // refresh leaves them alone so the override sticks during testing (dev only).
@@ -390,6 +397,7 @@ export class GameServer {
   private readonly aiAuditRuntime = new AiAuditRuntime();
   private readonly aiAuditDb = new PgAiAuditDb(pool);
   private readonly aiLifeLayer: AiLifeLayer;
+  private readonly aiActiveTriggers: AiActiveTriggerService;
   private aiInteractionSequence = 0;
 
   constructor() {
@@ -409,6 +417,7 @@ export class GameServer {
         },
       },
     });
+    this.aiActiveTriggers = new AiActiveTriggerService();
   }
 
   // Returns the number of currently active WS sessions from the given IP.
@@ -543,6 +552,7 @@ export class GameServer {
       while (acc >= DT) {
         this.clearStaleInputs();
         const events = this.sim.tick();
+        this.aiActiveTriggers.noteSimEvents({ sim: this.sim, events });
         const aiEvents = this.aiLifeLayer.handleSimEvents({ sim: this.sim, events });
         this.routeEvents(aiEvents.length > 0 ? [...events, ...aiEvents] : events);
         this.runAntibotTick();
@@ -568,17 +578,29 @@ export class GameServer {
     // no place in the tick. Catches mid-session balance changes.
     this.holderTierInterval = setInterval(() => { void this.refreshAllHolderTiers(); }, HOLDER_TIER_REFRESH_MS);
     this.aiMemoryPruneInterval = setInterval(() => { void this.pruneExpiredAiMemory(); }, AI_MEMORY_PRUNE_INTERVAL_MS);
+    this.aiActiveTriggerInterval = setInterval(() => { this.runAiActiveTriggers(); }, AI_ACTIVE_TRIGGER_INTERVAL_MS);
   }
 
   stop(): void {
     if (this.interval) clearInterval(this.interval);
     if (this.holderTierInterval) clearInterval(this.holderTierInterval);
     if (this.aiMemoryPruneInterval) clearInterval(this.aiMemoryPruneInterval);
+    if (this.aiActiveTriggerInterval) clearInterval(this.aiActiveTriggerInterval);
     this.aiLifeLayer.stop();
+    this.aiActiveTriggers.stop();
   }
 
   private async pruneExpiredAiMemory(): Promise<void> {
     await this.aiLifeLayer.pruneExpiredMemory(this.sim.time, AI_MEMORY_PRUNE_BATCH_SIZE);
+  }
+
+  private runAiActiveTriggers(nowMs = Date.now()): void {
+    const events = this.aiActiveTriggers.tick({
+      sim: this.sim,
+      sessions: this.clients.values(),
+      nowMs,
+    });
+    this.routeEvents(events);
   }
 
   // Update one player's holder-tier flair from their linked wallet's $WOC
@@ -990,6 +1012,14 @@ export class GameServer {
 
   aiLifeLayerDiagnostics(): AiLifeLayerDiagnosticsSnapshot {
     return this.aiLifeLayer.diagnosticsSnapshot();
+  }
+
+  aiActiveTriggerMetrics(): AiActiveTriggerMetricsSnapshot {
+    return this.aiActiveTriggers.runtimeMetrics();
+  }
+
+  aiActiveTriggerDiagnostics(): AiActiveTriggerDiagnosticsSnapshot {
+    return this.aiActiveTriggers.diagnosticsSnapshot();
   }
 
   async aiAuditSnapshot(): Promise<AiAuditSnapshot> {

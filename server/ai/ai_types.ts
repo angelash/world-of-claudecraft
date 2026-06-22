@@ -87,7 +87,14 @@ export interface AiProfileSnapshot {
 export interface AiJobContextV1 {
   schemaVersion: 1;
   jobId: string;
-  trigger: 'npc_gossip_opened' | 'npc_question' | 'object_inspected' | 'singularity_candidate' | 'pet_command';
+  trigger:
+    | 'npc_gossip_opened'
+    | 'npc_question'
+    | 'object_inspected'
+    | 'singularity_candidate'
+    | 'pet_command'
+    | 'active_poll'
+    | 'active_event';
   entity: AiEntitySnapshot;
   player: AiPlayerSnapshot;
   locale: string;
