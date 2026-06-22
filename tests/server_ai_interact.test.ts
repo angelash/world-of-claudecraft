@@ -308,7 +308,7 @@ describe('server AI interact command', () => {
           speech: [{
             mode: 'dynamicText',
             language: 'zh_CN',
-            text: '码头那边刚转了风，水面碎得不太自然。你要问最近的动静，我会先看网绳和鱼群。',
+            text: '不过，码头那边刚转了风，而且水面碎得不太自然。你要问最近的动静，我会先看网绳和鱼群。',
           }],
           intents: [{ type: 'commentOnScene' }],
           audit: { shortReason: 'natural recent-topic answer', usedPlayerInput: false, safetyNotes: [] },

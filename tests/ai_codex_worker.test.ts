@@ -8,6 +8,7 @@ import {
   parseCodexDecisionOutput,
   resolveCodexBinary,
 } from '../server/ai/codex_worker';
+import { buildCodexDecisionPrompt } from '../server/ai/prompt_builder';
 import type { AiDecisionV1, AiJobContextV1 } from '../server/ai/ai_types';
 
 const context: AiJobContextV1 = {
@@ -222,6 +223,16 @@ describe('Codex CLI AI provider', () => {
   it('prefers the Windows user install path when it is present', () => {
     const resolved = resolveCodexBinary();
     expect(resolved.length).toBeGreaterThan(0);
+  });
+
+  it('builds a compact prompt with spoken-style guidance', () => {
+    const prompt = buildCodexDecisionPrompt({ ...context, locale: 'zh_CN', outputMode: 'mixed_living_world' });
+
+    expect(prompt).toContain('Compact job JSON (source of truth):');
+    expect(prompt).not.toContain('Full job context JSON');
+    expect(prompt).toContain('Avoid assistant-style transitions');
+    expect(prompt).toContain('Do not start with 不过');
+    expect(prompt).toContain('"jobId":"job-codex-worker"');
   });
 
   it('uses a warm app-server worker and reports provider timing steps', async () => {

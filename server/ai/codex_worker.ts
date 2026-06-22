@@ -44,6 +44,7 @@ export const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
     confidence: { type: 'number', minimum: 0, maximum: 1 },
     speech: {
       type: 'array',
+      maxItems: 1,
       items: {
         anyOf: [
           {
@@ -65,7 +66,7 @@ export const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
             properties: {
               mode: { type: 'string', enum: ['dynamicText'] },
               language: { type: 'string' },
-              text: { type: 'string', minLength: 1, maxLength: 280 },
+              text: { type: 'string', minLength: 1, maxLength: 180 },
             },
             required: ['mode', 'language', 'text'],
           },
@@ -74,6 +75,7 @@ export const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
     },
     intents: {
       type: 'array',
+      maxItems: 2,
       items: {
         type: 'object',
         additionalProperties: false,
@@ -113,9 +115,9 @@ export const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
       type: 'object',
       additionalProperties: false,
       properties: {
-        shortReason: { type: 'string' },
+        shortReason: { type: 'string', maxLength: 80 },
         usedPlayerInput: { type: 'boolean' },
-        safetyNotes: { type: 'array', items: { type: 'string' } },
+        safetyNotes: { type: 'array', maxItems: 2, items: { type: 'string', maxLength: 120 } },
       },
       required: ['shortReason', 'usedPlayerInput', 'safetyNotes'],
     },
@@ -453,7 +455,7 @@ function parseSpeech(value: unknown): AiSpeech {
     rejectUnexpectedKeys(record, ['mode', 'language', 'text'], 'speech');
     const language = requireString(record.language, 'speech.language');
     const text = requireString(record.text, 'speech.text');
-    if (text.length === 0 || text.length > 280) throw new Error('codex worker output speech.text is out of range');
+    if (text.length === 0 || text.length > 180) throw new Error('codex worker output speech.text is out of range');
     return { mode: 'dynamicText', language, text };
   }
   throw new Error('codex worker output speech.mode is invalid');

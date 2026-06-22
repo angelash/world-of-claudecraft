@@ -1,6 +1,17 @@
 import type { AiJobContextV1 } from './ai_types';
 import { familyDirectorProjectionFor, mobFamilyFromValue } from './director_family_projection';
 import { profileDirectorProjectionTags } from './profile_projection';
+import { dynamicSpeechPromptRules } from './speech_style';
+
+const COMPACT_TAG_LIMIT = 8;
+const COMPACT_QUEST_LIMIT = 4;
+const COMPACT_OBSERVATION_LIMIT = 8;
+const COMPACT_MEMORY_LIMIT = 6;
+const COMPACT_DIRECTOR_LIMIT = 3;
+const COMPACT_OBJECT_LIMIT = 5;
+const COMPACT_ITEM_LIMIT = 4;
+const COMPACT_COMPANION_LIMIT = 3;
+const COMPACT_EVENT_LIMIT = 5;
 
 export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
   const scene = context.scene;
@@ -14,8 +25,11 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
     '- Use only lineId speech when outputMode is line_id_only.',
     '- Use dynamicText only when outputMode is dynamic_text_experiment or mixed_living_world.',
     '- For dynamicText, speech.language must exactly equal job.locale.',
+    '- Return at most one speech entry and at most two intents.',
     '- For ordinary NPC questions, answer like the entity is alive in the scene: brief, specific, and grounded in visible memory, weather, objects, or local tension.',
     '- Do not describe system state such as missing relationship history. If the entity barely knows the player, show that through cautious wording or a small local observation.',
+    ...dynamicSpeechPromptRules(context.locale),
+    '- audit.shortReason is for operators only: keep it short and plain, never player-facing prose.',
     '- Speech must fit the allowedLineIds list when it is present.',
     '- Intents must fit the allowedIntents list.',
     '- Intent targetEntityId/targetObjectId values must be visible in job.json: the player, the acting entity, scene companions, or nearby semantic object entity ids.',
@@ -113,12 +127,157 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
   }
   lines.push(
     '',
-    'Full job context JSON:',
-    JSON.stringify(context, null, 2),
+    'Compact job JSON (source of truth):',
+    JSON.stringify(compactPromptContext(context)),
     '',
     'Return only JSON. No Markdown. No commentary.',
   );
   return lines.join('\n');
+}
+
+function compactPromptContext(context: AiJobContextV1): Record<string, unknown> {
+  return omitUndefined({
+    schemaVersion: context.schemaVersion,
+    jobId: context.jobId,
+    trigger: context.trigger,
+    locale: context.locale,
+    topic: context.topic,
+    outputMode: context.outputMode,
+    entity: {
+      kind: context.entity.kind,
+      entityId: context.entity.entityId,
+      templateId: context.entity.templateId,
+      name: context.entity.name,
+      level: context.entity.level,
+      questIds: context.entity.questIds.slice(0, COMPACT_QUEST_LIMIT),
+      dead: context.entity.dead,
+    },
+    player: {
+      entityId: context.player.entityId,
+      name: context.player.name,
+      level: context.player.level,
+      classId: context.player.classId,
+      activeQuestIds: context.player.activeQuestIds.slice(0, COMPACT_QUEST_LIMIT),
+      completedQuestIds: context.player.completedQuestIds.slice(0, COMPACT_QUEST_LIMIT),
+    },
+    profile: context.profile ? {
+      profileId: context.profile.profileId,
+      persona: context.profile.persona,
+      knowledgeScope: context.profile.knowledgeScope.slice(0, COMPACT_TAG_LIMIT),
+      tabooTopics: context.profile.tabooTopics.slice(0, COMPACT_TAG_LIMIT),
+      socialMemoryStyle: context.profile.socialMemory?.style,
+    } : undefined,
+    scene: context.scene ? compactScene(context.scene) : undefined,
+    familySemantics: context.familySemantics ? {
+      family: context.familySemantics.family,
+      familyName: context.familySemantics.familyName,
+      instincts: context.familySemantics.baseInstincts.slice(0, COMPACT_TAG_LIMIT),
+      attractedItemTags: context.familySemantics.attractedItemTags.slice(0, COMPACT_TAG_LIMIT),
+      avoidedItemTags: context.familySemantics.avoidedItemTags.slice(0, COMPACT_TAG_LIMIT),
+      speechStyle: context.familySemantics.speechStyle,
+    } : undefined,
+    questFacts: context.questFacts.slice(0, COMPACT_QUEST_LIMIT).map((fact) => ({
+      questId: fact.questId,
+      visibility: fact.visibility,
+      summary: fact.summary,
+      stageId: fact.stageId,
+      source: fact.source,
+    })),
+    recentObservations: context.recentObservations.slice(0, COMPACT_OBSERVATION_LIMIT),
+    memorySignals: context.memorySignals?.slice(0, COMPACT_MEMORY_LIMIT).map((signal) => ({
+      kind: signal.kind,
+      refId: signal.refId,
+      scope: signal.scope,
+      sceneId: signal.sceneId,
+      zoneId: signal.zoneId,
+      templateId: signal.templateId,
+      itemId: signal.itemId,
+      questId: signal.questId,
+      subjectKind: signal.subjectKind,
+      lineIds: signal.lineIds.slice(0, 3),
+      salience: round2(signal.salience),
+      reason: signal.reason,
+    })),
+    directorProposals: context.directorProposals?.slice(0, COMPACT_DIRECTOR_LIMIT).map((proposal) => ({
+      intent: proposal.intent,
+      status: proposal.status,
+      risk: proposal.risk,
+      intensity: round2(proposal.intensity),
+      targetRef: proposal.targetRef,
+      sceneId: proposal.sceneId,
+      zoneId: proposal.zoneId,
+      suggestedLineId: proposal.suggestedLineId,
+      reasonTags: proposal.reasonTags.slice(0, COMPACT_TAG_LIMIT),
+      safetyNotes: proposal.safetyNotes.slice(0, 3),
+    })),
+    allowedIntents: context.allowedIntents,
+    allowedLineIds: context.allowedLineIds,
+  });
+}
+
+function compactScene(scene: NonNullable<AiJobContextV1['scene']>): Record<string, unknown> {
+  return {
+    zoneId: scene.zoneId,
+    subsceneId: scene.subsceneId,
+    tags: [
+      ...scene.biomeTags,
+      ...scene.locationTags,
+      ...scene.structureTags,
+      ...scene.environmentalTags,
+    ].slice(0, 18),
+    time: {
+      phase: scene.time.phase,
+      weather: scene.weather.kind,
+      lightLevel: scene.light.level,
+      lightTags: scene.light.tags.slice(0, COMPACT_TAG_LIMIT),
+    },
+    mood: {
+      dayEnergy: round2(scene.mood.dayEnergy),
+      nightFatigue: round2(scene.mood.nightFatigue),
+      clearNightAwe: round2(scene.mood.clearNightAwe),
+      rainIrritation: round2(scene.mood.rainIrritation),
+      fogFear: round2(scene.mood.fogFear),
+    },
+    danger: {
+      undead: round2(scene.danger.undeadPressure),
+      hostile: round2(scene.danger.hostileDensity),
+      safe: round2(scene.danger.safeHavenScore),
+    },
+    nearbySemanticObjects: scene.nearbySemanticObjects.slice(0, COMPACT_OBJECT_LIMIT).map((object) => ({
+      objectId: object.objectId,
+      entityId: object.entityId,
+      templateId: object.templateId,
+      displayName: object.displayName,
+      source: object.source,
+      distance: object.distance,
+      tags: object.tags.slice(0, 4),
+      features: object.featureTags.slice(0, 4),
+      affordances: object.affordanceTags.slice(0, 4),
+    })),
+    droppedItems: scene.droppedItems.slice(0, COMPACT_ITEM_LIMIT).map((item) => ({
+      itemId: item.itemId,
+      displayName: item.displayName,
+      rarity: item.rarity,
+      freshnessSeconds: item.freshnessSeconds,
+      tags: [...item.itemTags, ...item.smellTags, ...item.dangerTags, ...item.valueSignals].slice(0, COMPACT_TAG_LIMIT),
+    })),
+    companions: scene.companions.slice(0, COMPACT_COMPANION_LIMIT).map((companion) => ({
+      entityId: companion.entityId,
+      templateId: companion.templateId,
+      displayName: companion.displayName,
+      family: companion.family,
+      tags: companion.tags.slice(0, 4),
+    })),
+    recentSceneEvents: scene.recentSceneEvents.slice(0, COMPACT_EVENT_LIMIT),
+  };
+}
+
+function omitUndefined(record: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(record).filter(([, value]) => value !== undefined));
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 function directorFamilyProjectionSummary(context: AiJobContextV1): string | null {

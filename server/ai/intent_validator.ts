@@ -3,11 +3,12 @@ import type { AiDecisionV1, AiIntent, AiJobContextV1, AiValidationResult } from 
 import { validateCanonDecision } from './canon_guard';
 import type { CanonGuardSubject } from './canon_guard';
 import { profileFor } from './profiles';
+import { polishDynamicSpeechText } from './speech_style';
 
 const MAX_TTL_MS = 60_000;
 const MIN_CONFIDENCE = 0;
 const MAX_CONFIDENCE = 1;
-const MAX_DYNAMIC_TEXT_CHARS = 280;
+const MAX_DYNAMIC_TEXT_CHARS = 180;
 type AiSpeechSource = Extract<SimEvent, { type: 'aiSpeech' }>['source'];
 type AiSpeechReaction = NonNullable<Extract<SimEvent, { type: 'aiSpeech' }>['reaction']>;
 
@@ -61,12 +62,13 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
     }
     if (context.outputMode === 'line_id_only') return rejected('dynamic speech is blocked in line_id_only mode');
     if (speech.language !== context.locale) return rejected('dynamic speech language does not match player locale');
-    if (speech.text.length === 0 || speech.text.length > MAX_DYNAMIC_TEXT_CHARS) return rejected('dynamic speech length out of range');
+    const polishedText = polishDynamicSpeechText(speech.text, context.locale);
+    if (polishedText.length === 0 || polishedText.length > MAX_DYNAMIC_TEXT_CHARS) return rejected('dynamic speech length out of range');
     events.push({
       type: 'aiSpeech',
       speakerId: entity.id,
       speakerName: entity.name,
-      speech,
+      speech: { ...speech, text: polishedText },
       source,
       ...(intentReaction.reaction ? { reaction: intentReaction.reaction } : {}),
       pid: context.player.entityId,

@@ -105,7 +105,7 @@ describe('AI life layer audit recording', () => {
     }));
     expect(sink.records[0].chain).toEqual(expect.objectContaining({
       requestContext: expect.objectContaining({
-        promptText: expect.stringContaining('Full job context JSON'),
+        promptText: expect.stringContaining('Compact job JSON'),
       }),
       provider: expect.objectContaining({
         source: 'codex',
