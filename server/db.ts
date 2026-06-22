@@ -5,6 +5,7 @@ import type { ArenaFormat, PlayerClass } from '../src/sim/types';
 import type { ChatLogRow } from './chat_log';
 import { SOCIAL_SCHEMA } from './social_db';
 import { AI_MEMORY_SCHEMA } from './ai_memory_db';
+import { AI_AUDIT_SCHEMA } from './ai_audit_db';
 import { seedChatFilterDefaults } from './chat_filter_db';
 import { REALM } from './realm';
 
@@ -285,6 +286,7 @@ export async function ensureSchema(): Promise<void> {
     await client.query(SCHEMA);
     await client.query(SOCIAL_SCHEMA);
     await client.query(AI_MEMORY_SCHEMA);
+    await client.query(AI_AUDIT_SCHEMA);
     // Seed the chat-filter word lists + config on first boot only (idempotent).
     // Runs under the same advisory lock so concurrent realm boots don't race.
     await seedChatFilterDefaults(client);

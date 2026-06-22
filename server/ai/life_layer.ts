@@ -4,6 +4,14 @@ import type { Sim } from '../../src/sim/sim';
 import type { AiNpcInteractionTopic } from '../../src/world_api';
 import { INTERACT_RANGE, dist2d } from '../../src/sim/types';
 import type { Entity, PetMode, SimEvent } from '../../src/sim/types';
+import {
+  createLocalAuditRecord,
+  createProviderAuditRecord,
+  type AiAuditEntityKind,
+  type AiAuditProviderSource,
+  type AiAuditSink,
+} from '../ai_audit';
+import { REALM } from '../realm';
 import type { AiDecisionV1, AiIntentType, AiJobContextV1, AiMemoryAuditRecord, AiProvider } from './ai_types';
 import { aiEntityKind } from './ai_types';
 import {
@@ -60,6 +68,8 @@ export interface AiLifeLayerOptions {
   journalSize?: number;
   memoryDb?: AiMemoryPersistence;
   memoryPersistBatchSize?: number;
+  auditSink?: AiAuditSink;
+  auditProviderSource?: Exclude<AiAuditProviderSource, 'fallback' | 'local'>;
 }
 
 export interface AiMemoryPersistenceQuery {
@@ -140,6 +150,21 @@ interface AiLifeLayerMetricsState {
   lastProviderError?: string;
   lastMemoryPersistenceError?: string;
   lastMemoryPruneError?: string;
+}
+
+interface AiLocalReactionAuditInput {
+  jobId: string;
+  trigger: AiDecisionJournalEntry['trigger'];
+  entityKind?: AiAuditEntityKind;
+  entityId: number;
+  templateId: string;
+  playerEntityId: number;
+  reason?: string;
+  lineIds: string[];
+  intents: string[];
+  sceneId?: string | null;
+  zoneId?: string | null;
+  memoryWrites?: readonly AiMemoryAuditRecord[];
 }
 
 export interface AiVolatileMemoryClearResult {
@@ -231,6 +256,8 @@ export class AiLifeLayer {
   private readonly worldDirector = new AiWorldDirectorStore();
   private readonly memoryDb: AiMemoryPersistence | null;
   private readonly memoryPersistBatchSize: number;
+  private readonly auditSink: AiAuditSink | null;
+  private readonly auditProviderSource: Exclude<AiAuditProviderSource, 'fallback' | 'local'>;
   private readonly pendingMemoryWrites: AiMemoryAuditRecord[] = [];
   private readonly memoryPersistenceErrors: string[] = [];
   private readonly metrics: AiLifeLayerMetricsState = {
@@ -255,6 +282,7 @@ export class AiLifeLayer {
   private memoryFlushPromise: Promise<void> | null = null;
   private memoryPrunePromise: Promise<number> | null = null;
   private sequence = 0;
+  private auditSequence = 0;
 
   constructor(options: AiLifeLayerOptions = {}) {
     this.enabled = options.enabled ?? process.env.AI_LIVING_WORLD_EXPERIMENT === '1';
@@ -264,6 +292,13 @@ export class AiLifeLayer {
     this.journal = new AiDecisionJournal(options.journalSize);
     this.memoryDb = options.memoryDb ?? null;
     this.memoryPersistBatchSize = Math.max(1, Math.min(200, Math.floor(options.memoryPersistBatchSize ?? 32)));
+    this.auditSink = options.auditSink ?? null;
+    this.auditProviderSource = options.auditProviderSource
+      ?? (options.useCodex || process.env.AI_CODEX_CLI === '1'
+        ? 'codex'
+        : options.provider
+          ? 'provider'
+          : 'fake');
   }
 
   diagnostics(): AiDecisionJournalEntry[] {
@@ -435,7 +470,7 @@ export class AiLifeLayer {
           rumorMemoryAudit(rumor, `questDone:${event.questId}`),
           worldDirectorMemoryAudit(directorState, `questDone:${event.questId}`),
         ];
-        this.journal.recordLocalReaction({
+        this.recordLocalReaction({
           jobId: `quest-rumor-${player.id}-${++this.sequence}`,
           trigger: 'quest_completed',
           entityId: player.id,
@@ -471,7 +506,7 @@ export class AiLifeLayer {
           evidence: [`simEvent:damage`, `source:${source?.templateId ?? 'unknown'}`, `amount:${event.amount}`],
         });
         if (!cue) continue;
-        this.journal.recordLocalReaction({
+        this.recordLocalReaction({
           jobId: `encounter-phase-${sourcePlayer.id}-${++this.sequence}`,
           trigger: 'encounter_memory',
           entityId: target.id,
@@ -513,7 +548,7 @@ export class AiLifeLayer {
           bossMemoryAudit(memory, `boss:${memory.outcome}:${dead.templateId}`),
           worldDirectorMemoryAudit(directorState, `boss:${memory.outcome}:${dead.templateId}`),
         ];
-        this.journal.recordLocalReaction({
+        this.recordLocalReaction({
           jobId: `encounter-${sourcePlayer.id}-${++this.sequence}`,
           trigger: 'encounter_memory',
           entityId: dead.id,
@@ -548,7 +583,7 @@ export class AiLifeLayer {
           bossMemoryAudit(memory, `boss:${memory.outcome}:${killer.templateId}`),
           worldDirectorMemoryAudit(directorState, `boss:${memory.outcome}:${killer.templateId}`),
         ];
-        this.journal.recordLocalReaction({
+        this.recordLocalReaction({
           jobId: `encounter-${dead.id}-${++this.sequence}`,
           trigger: 'encounter_memory',
           entityId: killer.id,
@@ -588,7 +623,7 @@ export class AiLifeLayer {
       worldTraceMemoryAudit(trace, `${reason}:${creature.templateId}`),
       worldDirectorMemoryAudit(directorState, `${reason}:${creature.templateId}`),
     ];
-    this.journal.recordLocalReaction({
+    this.recordLocalReaction({
       jobId: `${reason}-${sourcePlayer.id}-${++this.sequence}`,
       trigger: 'encounter_memory',
       entityId: creature.id,
@@ -665,15 +700,20 @@ export class AiLifeLayer {
     ];
     let decision: AiDecisionV1;
     let decisionSource: Extract<SimEvent, { type: 'aiSpeech' }>['source'] = 'codex';
+    let providerLatencyMs = 0;
+    let providerErrorReason = '';
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
     try {
       decision = await this.provider.decide(context);
-      this.recordProviderLatency(performance.now() - providerStartedAt);
+      providerLatencyMs = performance.now() - providerStartedAt;
+      this.recordProviderLatency(providerLatencyMs);
       this.metrics.providerSuccesses++;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      this.recordProviderLatency(performance.now() - providerStartedAt);
+      providerLatencyMs = performance.now() - providerStartedAt;
+      providerErrorReason = reason;
+      this.recordProviderLatency(providerLatencyMs);
       this.metrics.providerErrors++;
       this.metrics.providerFallbacks++;
       this.metrics.lastProviderError = reason;
@@ -684,6 +724,14 @@ export class AiLifeLayer {
     const result = validateAiDecision({ decision, context, entity: npc, subject, source: decisionSource });
     if (result.ok) this.metrics.acceptedDecisions++;
     else this.metrics.rejectedDecisions++;
+    this.recordProviderAudit({
+      context,
+      latencyMs: providerLatencyMs,
+      decision,
+      result,
+      memoryWrites,
+      providerError: providerErrorReason || undefined,
+    });
     this.journal.recordDecision(context, decision, result, memoryWrites);
     this.enqueueMemoryWrites(memoryWrites);
     if (result.ok) {
@@ -817,7 +865,7 @@ export class AiLifeLayer {
       events.push(...reactionEvents);
     }
     if (reactions.length > 0 || trace) {
-      this.journal.recordLocalReaction({
+      this.recordLocalReaction({
         jobId: `local-${request.pid}-${++this.sequence}`,
         trigger: 'item_discarded',
         entityId: player.id,
@@ -940,15 +988,20 @@ export class AiLifeLayer {
     let decision: AiDecisionV1;
     let decisionSource: Extract<SimEvent, { type: 'aiSpeech' }>['source'] = 'codex';
     const localIntent = localPetCommandIntent(request.text);
+    let providerLatencyMs = 0;
+    let providerErrorReason = '';
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
     try {
       decision = await this.provider.decide(context);
-      this.recordProviderLatency(performance.now() - providerStartedAt);
+      providerLatencyMs = performance.now() - providerStartedAt;
+      this.recordProviderLatency(providerLatencyMs);
       this.metrics.providerSuccesses++;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      this.recordProviderLatency(performance.now() - providerStartedAt);
+      providerLatencyMs = performance.now() - providerStartedAt;
+      providerErrorReason = reason;
+      this.recordProviderLatency(providerLatencyMs);
       this.metrics.providerErrors++;
       this.metrics.providerFallbacks++;
       this.metrics.lastProviderError = reason;
@@ -959,10 +1012,17 @@ export class AiLifeLayer {
     const result = validateAiDecision({ decision, context, entity: pet, subject: 'ordinary', source: decisionSource });
     if (result.ok) this.metrics.acceptedDecisions++;
     else this.metrics.rejectedDecisions++;
+    this.recordProviderAudit({
+      context,
+      latencyMs: providerLatencyMs,
+      decision,
+      result,
+      providerError: providerErrorReason || undefined,
+    });
     this.journal.recordDecision(context, decision, result);
     if (!result.ok) {
       const fallback = fallbackDecisionForPetCommand(context, localIntent, `petCommandRejected:${result.reason ?? 'unknown'}`);
-      this.journal.recordLocalReaction({
+      this.recordLocalReaction({
         jobId: `${context.jobId}-local-fallback`,
         trigger: 'pet_command',
         entityId: pet.id,
@@ -990,15 +1050,20 @@ export class AiLifeLayer {
     const subject = classifyCanonSubject(object);
     let decision: AiDecisionV1;
     let decisionSource: Extract<SimEvent, { type: 'aiSpeech' }>['source'] = 'codex';
+    let providerLatencyMs = 0;
+    let providerErrorReason = '';
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
     try {
       decision = await this.provider.decide(context);
-      this.recordProviderLatency(performance.now() - providerStartedAt);
+      providerLatencyMs = performance.now() - providerStartedAt;
+      this.recordProviderLatency(providerLatencyMs);
       this.metrics.providerSuccesses++;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      this.recordProviderLatency(performance.now() - providerStartedAt);
+      providerLatencyMs = performance.now() - providerStartedAt;
+      providerErrorReason = reason;
+      this.recordProviderLatency(providerLatencyMs);
       this.metrics.providerErrors++;
       this.metrics.providerFallbacks++;
       this.metrics.lastProviderError = reason;
@@ -1009,9 +1074,17 @@ export class AiLifeLayer {
     const result = validateAiDecision({ decision, context, entity: object, subject, source: decisionSource });
     if (result.ok) this.metrics.acceptedDecisions++;
     else this.metrics.rejectedDecisions++;
+    this.recordProviderAudit({
+      context,
+      latencyMs: providerLatencyMs,
+      decision,
+      result,
+      memoryWrites,
+      providerError: providerErrorReason || undefined,
+    });
     this.journal.recordDecision(context, decision, result, memoryWrites);
     if (!result.ok) {
-      this.journal.recordLocalReaction({
+      this.recordLocalReaction({
         jobId: `${context.jobId}-local-fallback`,
         trigger: 'object_inspected',
         entityId: object.id,
@@ -1123,15 +1196,20 @@ export class AiLifeLayer {
     const subject = classifyCanonSubject(entity);
     let decision: AiDecisionV1;
     let decisionSource: Extract<SimEvent, { type: 'aiSpeech' }>['source'] = 'codex';
+    let providerLatencyMs = 0;
+    let providerErrorReason = '';
     const providerStartedAt = performance.now();
     this.metrics.providerCalls++;
     try {
       decision = await this.provider.decide(context);
-      this.recordProviderLatency(performance.now() - providerStartedAt);
+      providerLatencyMs = performance.now() - providerStartedAt;
+      this.recordProviderLatency(providerLatencyMs);
       this.metrics.providerSuccesses++;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      this.recordProviderLatency(performance.now() - providerStartedAt);
+      providerLatencyMs = performance.now() - providerStartedAt;
+      providerErrorReason = reason;
+      this.recordProviderLatency(providerLatencyMs);
       this.metrics.providerErrors++;
       this.metrics.providerFallbacks++;
       this.metrics.lastProviderError = reason;
@@ -1142,9 +1220,17 @@ export class AiLifeLayer {
     const result = validateAiDecision({ decision, context, entity, subject, source: decisionSource });
     if (result.ok) this.metrics.acceptedDecisions++;
     else this.metrics.rejectedDecisions++;
+    this.recordProviderAudit({
+      context,
+      latencyMs: providerLatencyMs,
+      decision,
+      result,
+      memoryWrites,
+      providerError: providerErrorReason || undefined,
+    });
     this.journal.recordDecision(context, decision, result, memoryWrites);
     if (!result.ok) {
-      this.journal.recordLocalReaction({
+      this.recordLocalReaction({
         jobId: `${context.jobId}-local-fallback`,
         trigger: context.trigger,
         entityId: entity.id,
@@ -1336,7 +1422,7 @@ export class AiLifeLayer {
         events.push(...reactionEvents);
       }
     }
-    this.journal.recordLocalReaction({
+    this.recordLocalReaction({
       jobId: `scene-${request.pid}-${++this.sequence}`,
       trigger: 'scene_inspected',
       entityId: player.id,
@@ -1370,6 +1456,62 @@ export class AiLifeLayer {
     this.pendingMemoryWrites.push(...records.map(cloneMemoryAudit));
     this.metrics.memoryWritesQueued += records.length;
     void this.flushMemoryWrites();
+  }
+
+  private recordProviderAudit(input: {
+    context: AiJobContextV1;
+    latencyMs: number;
+    decision: AiDecisionV1 | null;
+    result: ReturnType<typeof validateAiDecision> | null;
+    memoryWrites?: readonly AiMemoryAuditRecord[];
+    providerError?: string;
+  }): void {
+    this.recordAudit(createProviderAuditRecord({
+      auditId: `${input.context.jobId}-${input.providerError ? 'provider-error' : input.result?.ok ? 'accepted' : 'rejected'}-${++this.auditSequence}`,
+      realm: REALM,
+      context: input.context,
+      providerSource: this.auditProviderSource,
+      latencyMs: input.latencyMs,
+      decision: input.decision,
+      result: input.result,
+      memoryWrites: input.memoryWrites,
+      providerError: input.providerError,
+    }));
+  }
+
+  private recordLocalReaction(entry: AiLocalReactionAuditInput): void {
+    const { entityKind, zoneId, ...journalEntry } = entry;
+    this.journal.recordLocalReaction(journalEntry);
+    this.recordAudit(createLocalAuditRecord({
+      auditId: `${entry.jobId}-local-${++this.auditSequence}`,
+      realm: REALM,
+      jobId: entry.jobId,
+      trigger: entry.trigger,
+      entityKind,
+      entityId: entry.entityId,
+      templateId: entry.templateId,
+      playerEntityId: entry.playerEntityId,
+      sceneId: entry.sceneId,
+      zoneId,
+      lineIds: entry.lineIds,
+      intents: entry.intents,
+      memoryWrites: entry.memoryWrites,
+      reason: entry.reason,
+    }));
+  }
+
+  private recordAudit(record: Parameters<AiAuditSink['record']>[0]): void {
+    if (!this.auditSink) return;
+    try {
+      const result = this.auditSink.record(record);
+      if (result && typeof (result as PromiseLike<void>).then === 'function') {
+        void Promise.resolve(result).catch((err) => {
+          console.error('failed to persist AI audit record:', err);
+        });
+      }
+    } catch (err) {
+      console.error('failed to record AI audit:', err);
+    }
   }
 
   private async flushMemoryWritesNow(): Promise<void> {

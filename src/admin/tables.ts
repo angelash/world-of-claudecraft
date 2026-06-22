@@ -3,6 +3,7 @@ import { classLabel, zoneLabel, t } from './i18n';
 import type {
   AccountDetail, AccountRow, CharacterRow, ChatFilterData, ChatModeratedAccount,
   ChatModerationDetail, FilterWord, LivePlayer, ModerationAccountDetail, ModerationQueueRow,
+  AiAuditRecord, AiAuditSnapshot,
   AiContentCoverageReport, AiDecisionJournalEntry, AiLifeLayerDiagnosticsSnapshot, AiNpcMemory, AiRumorMemory,
   AiLifeLayerMetricsSnapshot, AiProfileAuthoringIssue, AiProfileAuthoringValidationReport,
   AiProfilePreviewReport, AiProfilePreviewRow,
@@ -65,6 +66,11 @@ function renderAiLatency(value: number): string {
 
 function renderAiOptionalText(value: string | undefined): string {
   if (!value) return `<span class="hint">${escapeHtml(t('usage.aiNoRecentError'))}</span>`;
+  return escapeHtml(value);
+}
+
+function renderAiAuditOptionalText(value: string): string {
+  if (!value) return `<span class="hint">${escapeHtml(t('usage.aiNoReason'))}</span>`;
   return escapeHtml(value);
 }
 
@@ -353,6 +359,144 @@ function renderAiDecisionRow(entry: AiDecisionJournalEntry): string {
     <td>${renderAiMemoryWrites(entry)}</td>
     <td>${entry.reason ? escapeHtml(entry.reason) : `<span class="hint">${escapeHtml(t('usage.aiNoReason'))}</span>`}</td>
   </tr>`;
+}
+
+function renderAiAuditEntity(record: AiAuditRecord): string {
+  return escapeHtml(t('usage.aiAuditEntitySummary', {
+    kind: record.entityKind,
+    templateId: record.templateId || t('usage.aiDiagnosticsNone'),
+    entityId: record.entityId === null ? t('usage.aiDiagnosticsNone') : fmtNumber(record.entityId),
+  }));
+}
+
+function renderAiAuditScene(record: AiAuditRecord): string {
+  if (!record.sceneId && !record.zoneId) return `<span class="hint">${escapeHtml(t('usage.aiDiagnosticsNone'))}</span>`;
+  return escapeHtml(t('usage.aiSceneZoneSummary', {
+    sceneId: record.sceneId || t('usage.aiDiagnosticsNone'),
+    zoneId: record.zoneId || t('usage.aiDiagnosticsNone'),
+  }));
+}
+
+function renderAiAuditTokens(inputTokens: number, outputTokens: number, totalTokens: number, estimated: boolean): string {
+  const estimate = estimated
+    ? `<div class="hint">${escapeHtml(t('usage.aiAuditEstimated'))}</div>`
+    : '';
+  return `${renderAiNumber(totalTokens)}<div class="hint">${escapeHtml(t('usage.aiAuditTokenInOut', {
+    input: fmtNumber(inputTokens),
+    output: fmtNumber(outputTokens),
+  }))}</div>${estimate}`;
+}
+
+function renderAiAuditSummary(audit: AiAuditSnapshot): string {
+  const totals = audit.summary.totals;
+  const rows = audit.summary.windows.map((window) => `
+    <tr>
+      <td>${escapeHtml(t(window.labelKey))}</td>
+      <td class="num">${renderAiNumber(window.providerJobs)}</td>
+      <td class="num">${renderAiNumber(window.accepted)}</td>
+      <td class="num">${renderAiNumber(window.rejected)}</td>
+      <td class="num">${renderAiNumber(window.providerErrors)}</td>
+      <td class="num">${renderAiNumber(window.fallbacks)}</td>
+      <td class="num">${renderAiNumber(window.localReactions)}</td>
+      <td class="num">${renderAiNumber(window.memoryWrites)}</td>
+      <td class="num">${renderAiAuditTokens(window.inputTokens, window.outputTokens, window.totalTokens, window.estimatedTokens)}</td>
+    </tr>`).join('');
+  const estimateClass = totals.estimatedTokens ? ' warn' : '';
+  return `
+    <div class="usage-section">
+      <h4>${t('usage.aiAuditTitle')}</h4>
+      <div class="hint">${escapeHtml(t('usage.aiAuditTokenNote'))}</div>
+      <div class="ai-health-grid">
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(totals.providerJobs)}</div>
+          <div class="ai-health-label">${t('usage.aiAuditProviderJobs')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(totals.localReactions)}</div>
+          <div class="ai-health-label">${t('usage.aiAuditLocalReactions')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(totals.totalTokens)}</div>
+          <div class="ai-health-label">${t('usage.aiAuditTotalTokens')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(totals.averageProviderJobTokens)}</div>
+          <div class="ai-health-label">${t('usage.aiAuditAverageTokens')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(totals.lastTotalTokens)}</div>
+          <div class="ai-health-label">${t('usage.aiAuditLastTokens')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value"><span class="badge${estimateClass}">${escapeHtml(t(totals.estimatedTokens ? 'usage.aiAuditEstimated' : 'usage.aiAuditExact'))}</span></div>
+          <div class="ai-health-label">${t('usage.aiAuditTokenMode')}</div>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="usage-table">
+          <thead><tr>
+            <th>${t('usage.aiAuditColWindow')}</th>
+            <th class="num">${t('usage.aiAuditColProviderJobs')}</th>
+            <th class="num">${t('usage.aiAuditColAccepted')}</th>
+            <th class="num">${t('usage.aiAuditColRejected')}</th>
+            <th class="num">${t('usage.aiAuditColErrors')}</th>
+            <th class="num">${t('usage.aiAuditColFallbacks')}</th>
+            <th class="num">${t('usage.aiAuditColLocal')}</th>
+            <th class="num">${t('usage.aiAuditColMemoryWrites')}</th>
+            <th class="num">${t('usage.aiAuditColTokens')}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderAiAuditRecordRow(record: AiAuditRecord): string {
+  const statusClass = aiDecisionStatusClass(record.status);
+  const reasonOrError = record.error || record.reason;
+  return `<tr>
+    <td>${escapeHtml(fmtDate(record.createdAt))}</td>
+    <td><span class="badge${statusClass}">${escapeHtml(aiDecisionStatusLabel(record.status))}</span></td>
+    <td>${escapeHtml(aiTriggerLabel(record.trigger))}</td>
+    <td>${renderAiAuditEntity(record)}</td>
+    <td>${renderAiAuditScene(record)}</td>
+    <td>${escapeHtml(record.providerSource)}</td>
+    <td class="num">${renderAiLatency(record.latencyMs)}</td>
+    <td class="num">${renderAiAuditTokens(record.inputTokens, record.outputTokens, record.totalTokens, record.tokenEstimate)}</td>
+    <td>${renderAiDelimitedItems(record.lineIds, 3)}</td>
+    <td>${renderAiDelimitedItems(record.intents, 3)}</td>
+    <td>${renderAiDelimitedItems(record.memoryWriteRefs, 3)}</td>
+    <td>${renderAiAuditOptionalText(reasonOrError)}</td>
+  </tr>`;
+}
+
+function renderAiAuditRecords(audit: AiAuditSnapshot): string {
+  const rows = audit.recent.length === 0
+    ? `<tr><td colspan="12" class="empty">${t('usage.aiAuditNoRecords')}</td></tr>`
+    : audit.recent.slice(0, 20).map(renderAiAuditRecordRow).join('');
+  return `
+    <div class="usage-section">
+      <h4>${t('usage.aiAuditRecentTitle')}</h4>
+      <div class="table-scroll">
+        <table class="usage-table">
+          <thead><tr>
+            <th>${t('usage.aiAuditColTime')}</th>
+            <th>${t('usage.aiDecisionColStatus')}</th>
+            <th>${t('usage.aiDecisionColTrigger')}</th>
+            <th>${t('usage.aiDecisionColEntity')}</th>
+            <th>${t('usage.aiDecisionColScene')}</th>
+            <th>${t('usage.aiAuditColSource')}</th>
+            <th class="num">${t('usage.aiAuditColLatency')}</th>
+            <th class="num">${t('usage.aiAuditColTokens')}</th>
+            <th>${t('usage.aiDecisionColLineIds')}</th>
+            <th>${t('usage.aiDecisionColIntents')}</th>
+            <th>${t('usage.aiDecisionColMemoryWrites')}</th>
+            <th>${t('usage.aiDecisionColReason')}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 function renderAiDirectorSubject(state: AiWorldDirectorState): string {
@@ -717,6 +861,7 @@ export function renderAiLifeLayerMetrics(
   coverage?: AiContentCoverageReport,
   diagnostics?: AiLifeLayerDiagnosticsSnapshot,
   profiles?: AiProfilePreviewReport,
+  audit?: AiAuditSnapshot,
 ): string {
   const needsAttention = ai.providerErrors > 0 || ai.memoryFlushFailures > 0 || ai.memoryPruneFailures > 0;
   const statusKey = needsAttention ? 'usage.aiStatusAttention' : 'usage.aiStatusHealthy';
@@ -760,6 +905,7 @@ export function renderAiLifeLayerMetrics(
         <div class="ai-health-label">${t('usage.aiMemoryWritesQueued')}</div>
       </div>
     </div>
+    ${audit ? `${renderAiAuditSummary(audit)}${renderAiAuditRecords(audit)}` : ''}
     ${coverage ? renderAiContentCoverage(coverage) : ''}
     ${profiles ? renderAiProfilePreview(profiles) : ''}
     ${diagnostics ? renderAiDiagnostics(diagnostics) : ''}

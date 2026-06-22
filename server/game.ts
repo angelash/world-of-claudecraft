@@ -30,6 +30,8 @@ import {
   type AiPetCommandAction,
   type AiVolatileMemoryClearResult,
 } from './ai/life_layer';
+import { AiAuditRuntime, type AiAuditSnapshot } from './ai_audit';
+import { PgAiAuditDb } from './ai_audit_db';
 import { PgAiMemoryDb } from './ai_memory_db';
 
 const WORLD_SEED = 20061;
@@ -383,6 +385,8 @@ export class GameServer {
   private peakOnline = 0;
   private tickMsAvg = 0;
   private readonly ipSessionCounts = new Map<string, number>();
+  private readonly aiAuditRuntime = new AiAuditRuntime();
+  private readonly aiAuditDb = new PgAiAuditDb(pool);
   private readonly aiLifeLayer: AiLifeLayer;
 
   constructor() {
@@ -393,7 +397,15 @@ export class GameServer {
       devCommands: process.env.ALLOW_DEV_COMMANDS === '1',
     });
     this.social = new SocialService(this.socialDb, this.socialTransport());
-    this.aiLifeLayer = new AiLifeLayer({ memoryDb: new PgAiMemoryDb(pool) });
+    this.aiLifeLayer = new AiLifeLayer({
+      memoryDb: new PgAiMemoryDb(pool),
+      auditSink: {
+        record: (record) => {
+          this.aiAuditRuntime.record(record);
+          return this.aiAuditDb.saveRecord(record);
+        },
+      },
+    });
   }
 
   // Returns the number of currently active WS sessions from the given IP.
@@ -973,6 +985,19 @@ export class GameServer {
 
   aiLifeLayerDiagnostics(): AiLifeLayerDiagnosticsSnapshot {
     return this.aiLifeLayer.diagnosticsSnapshot();
+  }
+
+  async aiAuditSnapshot(): Promise<AiAuditSnapshot> {
+    let recent: AiAuditSnapshot['recent'] = [];
+    try {
+      recent = await this.aiAuditDb.recentRecords(20);
+    } catch (err) {
+      console.error('failed to load AI audit records:', err);
+    }
+    return {
+      summary: this.aiAuditRuntime.snapshot(),
+      recent,
+    };
   }
 
   async clearAiLifeLayerMemory(): Promise<AiVolatileMemoryClearResult> {

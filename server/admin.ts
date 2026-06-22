@@ -221,13 +221,17 @@ export async function handleAdminApi(
     }
 
     if (path === '/admin/api/overview') {
-      const counts = await overviewCounts();
+      const [counts, aiAudit] = await Promise.all([
+        overviewCounts(),
+        game.aiAuditSnapshot(),
+      ]);
       return ok(res, {
         ...counts,
         server: game.adminStats(),
         usage: providerUsageSnapshot(),
         ai: game.aiLifeLayerMetrics(),
         aiDiagnostics: game.aiLifeLayerDiagnostics(),
+        aiAudit,
         aiCoverage: aiContentCoverageReport(),
         aiProfiles: aiProfilePreviewReport(),
       });

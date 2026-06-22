@@ -46,6 +46,81 @@ export interface ProviderUsageSnapshot {
   caches: ProviderUsageCache[];
 }
 
+export interface AiAuditWindowSnapshot {
+  key: UsageWindowKey;
+  labelKey: string;
+  milliseconds: number;
+  providerJobs: number;
+  accepted: number;
+  rejected: number;
+  providerErrors: number;
+  fallbacks: number;
+  localReactions: number;
+  memoryWrites: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  estimatedTokens: boolean;
+}
+
+export interface AiAuditTokenTotals {
+  providerJobs: number;
+  localReactions: number;
+  memoryWrites: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  averageProviderJobTokens: number;
+  lastInputTokens: number;
+  lastOutputTokens: number;
+  lastTotalTokens: number;
+  estimatedTokens: boolean;
+}
+
+export interface AiAuditSummary {
+  generatedAt: string;
+  windows: AiAuditWindowSnapshot[];
+  totals: AiAuditTokenTotals;
+}
+
+export interface AiAuditRecord {
+  auditId: string;
+  realm: string;
+  jobId: string;
+  trigger: string;
+  entityKind: string;
+  entityId: number | null;
+  templateId: string;
+  playerEntityId: number | null;
+  sceneId: string;
+  zoneId: string;
+  providerSource: string;
+  status: string;
+  latencyMs: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  tokenEstimate: boolean;
+  outputMode: string;
+  allowedIntentCount: number;
+  allowedLineIdCount: number;
+  memorySignalCount: number;
+  directorProposalCount: number;
+  sceneObjectCount: number;
+  companionCount: number;
+  lineIds: string[];
+  intents: string[];
+  memoryWriteRefs: string[];
+  reason: string;
+  error: string;
+  createdAt: string;
+}
+
+export interface AiAuditSnapshot {
+  summary: AiAuditSummary;
+  recent: AiAuditRecord[];
+}
+
 export interface AiLifeLayerMetricsSnapshot {
   providerCalls: number;
   providerSuccesses: number;
@@ -316,6 +391,7 @@ export interface Overview {
   usage: ProviderUsageSnapshot;
   ai: AiLifeLayerMetricsSnapshot;
   aiDiagnostics: AiLifeLayerDiagnosticsSnapshot;
+  aiAudit: AiAuditSnapshot;
   aiCoverage: AiContentCoverageReport;
   aiProfiles: AiProfilePreviewReport;
 }

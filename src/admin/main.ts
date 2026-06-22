@@ -130,6 +130,7 @@ async function refreshLive(): Promise<void> {
       overview.aiCoverage,
       overview.aiDiagnostics,
       overview.aiProfiles,
+      overview.aiAudit,
     );
     $('usage').innerHTML = renderProviderUsage(overview.usage);
     $('online').innerHTML = renderOnlineTable(online.players);

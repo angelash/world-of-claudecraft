@@ -142,6 +142,7 @@ AI audit runtime windows 独立于现有 `provider_usage.ts`：
 
 新增 `server/ai_audit_db.ts`：
 
+- `server/ai_audit.ts`：定义 `AiAuditRecord`、运行时窗口统计、token 估算、provider/local 审计记录构造。
 - `AI_AUDIT_SCHEMA`：创建 `ai_audit_records`。
 - `PgAiAuditDb.saveRecord(record)`：插入审计记录。
 - `PgAiAuditDb.recentRecords(limit)`：按 realm 读取最近记录。

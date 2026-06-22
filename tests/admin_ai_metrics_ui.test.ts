@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { renderAiLifeLayerMetrics } from '../src/admin/tables';
 import { setAdminLanguage } from '../src/admin/i18n';
 import type {
+  AiAuditSnapshot,
   AiContentCoverageReport, AiLifeLayerDiagnosticsSnapshot, AiLifeLayerMetricsSnapshot,
   AiProfilePreviewReport,
 } from '../src/admin/types';
@@ -220,6 +221,99 @@ function profiles(overrides: Partial<AiProfilePreviewReport> = {}): AiProfilePre
   return { ...base, ...overrides };
 }
 
+function audit(overrides: Partial<AiAuditSnapshot> = {}): AiAuditSnapshot {
+  const base: AiAuditSnapshot = {
+    summary: {
+      generatedAt: '2026-06-22T00:00:00.000Z',
+      windows: [
+        {
+          key: 'm1',
+          labelKey: 'usage.window.1m',
+          milliseconds: 60_000,
+          providerJobs: 2,
+          accepted: 1,
+          rejected: 0,
+          providerErrors: 1,
+          fallbacks: 1,
+          localReactions: 3,
+          memoryWrites: 4,
+          inputTokens: 120,
+          outputTokens: 30,
+          totalTokens: 150,
+          estimatedTokens: true,
+        },
+        {
+          key: 'm5',
+          labelKey: 'usage.window.5m',
+          milliseconds: 300_000,
+          providerJobs: 3,
+          accepted: 2,
+          rejected: 1,
+          providerErrors: 1,
+          fallbacks: 1,
+          localReactions: 5,
+          memoryWrites: 7,
+          inputTokens: 240,
+          outputTokens: 60,
+          totalTokens: 300,
+          estimatedTokens: true,
+        },
+      ],
+      totals: {
+        providerJobs: 3,
+        localReactions: 5,
+        memoryWrites: 7,
+        inputTokens: 240,
+        outputTokens: 60,
+        totalTokens: 300,
+        averageProviderJobTokens: 100,
+        lastInputTokens: 80,
+        lastOutputTokens: 20,
+        lastTotalTokens: 100,
+        estimatedTokens: true,
+      },
+    },
+    recent: [{
+      auditId: 'audit-1',
+      realm: 'default',
+      jobId: 'job-1',
+      trigger: 'npc_question',
+      entityKind: 'npc',
+      entityId: 22,
+      templateId: 'brother_aldric<script>',
+      playerEntityId: 1,
+      sceneId: 'fallen_chapel<script>',
+      zoneId: 'eastbrook_vale<script>',
+      providerSource: 'codex<script>',
+      status: 'provider_error',
+      latencyMs: 42,
+      inputTokens: 80,
+      outputTokens: 20,
+      totalTokens: 100,
+      tokenEstimate: true,
+      outputMode: 'line_id_only',
+      allowedIntentCount: 3,
+      allowedLineIdCount: 8,
+      memorySignalCount: 2,
+      directorProposalCount: 1,
+      sceneObjectCount: 4,
+      companionCount: 1,
+      lineIds: ['hudChrome.aiSpeech.brotherAldricAwake<script>'],
+      intents: ['commentOnScene<script>'],
+      memoryWriteRefs: ['npcInteraction:npc:1:brother_aldric<script>'],
+      reason: 'fallback reason <script>',
+      error: 'provider <offline>',
+      createdAt: '2026-06-22T00:00:00.000Z',
+    }],
+  };
+  return {
+    ...base,
+    ...overrides,
+    summary: { ...base.summary, ...overrides.summary },
+    recent: overrides.recent ?? base.recent,
+  };
+}
+
 describe('admin AI life layer metrics renderer', () => {
   it('shows a healthy status when provider and memory errors are clear', () => {
     setAdminLanguage('en');
@@ -368,5 +462,28 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('unknown (fallback&lt;script&gt;)');
     expect(html).not.toContain('target<script>');
     expect(html).not.toContain('bad detail <script>');
+  });
+
+  it('shows AI audit token windows and escapes recent audit records', () => {
+    setAdminLanguage('en');
+    const html = renderAiLifeLayerMetrics(metrics(), coverage(), diagnostics(), profiles(), audit());
+
+    expect(html).toContain('AI usage and tokens');
+    expect(html).toContain('Token values are estimated');
+    expect(html).toContain('Last 1m');
+    expect(html).toContain('Avg job tokens');
+    expect(html).toContain('estimated');
+    expect(html).toContain('Recent AI audit records');
+    expect(html).toContain('provider error');
+    expect(html).toContain('codex&lt;script&gt;');
+    expect(html).toContain('brother_aldric&lt;script&gt;');
+    expect(html).toContain('fallen_chapel&lt;script&gt;');
+    expect(html).toContain('provider &lt;offline&gt;');
+    expect(html).toContain('hudChrome.aiSpeech.brotherAldricAwake&lt;script&gt;');
+    expect(html).toContain('commentOnScene&lt;script&gt;');
+    expect(html).toContain('npcInteraction:npc:1:brother_aldric&lt;script&gt;');
+    expect(html).not.toContain('codex<script>');
+    expect(html).not.toContain('provider <offline>');
+    expect(html).not.toContain('commentOnScene<script>');
   });
 });
