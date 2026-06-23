@@ -2026,13 +2026,120 @@ describe('AI active trigger service', () => {
       }),
     ]]);
     expect(service.runtimeMetrics()).toMatchObject({
-      activeProviderCalls: 1,
-      activeProviderJobs: 1,
+      activeProviderCalls: 2,
+      activeProviderJobs: 2,
       activeProviderSuccesses: 0,
-      activeProviderRejected: 1,
+      activeProviderRejected: 2,
       activeProviderFallbacks: 1,
       activeLastProviderResult: 'rejected',
       activeLastProviderReason: 'dynamic speech too thin',
+      activeProviderPending: 0,
+    });
+  });
+
+  it('retries rejected active provider speech with repair context before falling back', async () => {
+    const { sim, pid, npcId } = makeWorld();
+    const seenContexts: AiJobContextV1[] = [];
+    const provider: AiProvider = {
+      async decide(context) {
+        seenContexts.push(context);
+        if (seenContexts.length === 1) {
+          return {
+            decision: {
+              schemaVersion: 1,
+              jobId: context.jobId,
+              entityRef: {
+                kind: context.entity.kind,
+                entityId: context.entity.entityId,
+                templateId: context.entity.templateId,
+              },
+              ttlMs: 1_000,
+              confidence: 0.9,
+              speech: [{ mode: 'dynamicText', language: 'en', text: 'Smell that, patient?' }],
+              intents: [{ type: 'commentOnScene' }],
+              audit: {
+                shortReason: 'thin sensory question',
+                usedPlayerInput: false,
+                safetyNotes: ['presentationOnly'],
+              },
+            },
+          };
+        }
+        return {
+          decision: {
+            schemaVersion: 1,
+            jobId: context.jobId,
+            entityRef: {
+              kind: context.entity.kind,
+              entityId: context.entity.entityId,
+              templateId: context.entity.templateId,
+            },
+            ttlMs: 1_000,
+            confidence: 0.9,
+            speech: [{ mode: 'dynamicText', language: 'en', text: 'The chapel bell shakes dust from the rafters.' }],
+            intents: [{ type: 'commentOnScene' }],
+            audit: {
+              shortReason: 'repair with concrete scene hook',
+              usedPlayerInput: false,
+              safetyNotes: ['presentationOnly'],
+            },
+          },
+        };
+      },
+    };
+    const delivered: ReturnType<AiActiveTriggerService['tick']>[] = [];
+    const service = new AiActiveTriggerService({
+      provider,
+      rules: [testRule({
+        ruleId: 'test_provider_repair_success',
+        providerPolicy: 'codexPreferred',
+        outputMode: 'mixedLivingWorld',
+      })],
+    });
+
+    const immediate = service.tick({
+      sim,
+      sessions: [{ pid, locale: 'en' }],
+      nowMs: 1_000,
+      deliver: (_pid, events) => delivered.push(events),
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(immediate).toEqual([
+      expect.objectContaining({ type: 'aiThinking', speakerId: npcId, pid }),
+    ]);
+    expect(seenContexts).toHaveLength(2);
+    const firstContext = seenContexts[0];
+    if (!firstContext) throw new Error('missing first provider context');
+    const repairContext = seenContexts[1];
+    if (!repairContext) throw new Error('missing repair provider context');
+    expect(repairContext.jobId).toBe(`${firstContext.jobId}-repair`);
+    expect(repairContext.recentObservations.slice(0, 3)).toEqual([
+      'providerRejected:dynamic speech too thin',
+      'providerRepair:writeOneConcreteGroundedLine',
+      'providerRepair:avoidVagueSensoryQuestions',
+    ]);
+    expect(delivered).toEqual([[
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: npcId,
+        speech: expect.objectContaining({
+          mode: 'dynamicText',
+          language: 'en',
+          text: 'Shakes dust from the rafters.',
+        }),
+        source: 'codex',
+        pid,
+      }),
+    ]]);
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeProviderCalls: 2,
+      activeProviderJobs: 2,
+      activeProviderSuccesses: 1,
+      activeProviderRejected: 1,
+      activeProviderFallbacks: 0,
+      activeLastProviderResult: 'success',
+      activeLastProviderReason: '',
       activeProviderPending: 0,
     });
   });

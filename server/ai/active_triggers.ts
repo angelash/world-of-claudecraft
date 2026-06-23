@@ -1116,7 +1116,8 @@ export class AiActiveTriggerService {
     deliver?: (pid: number, events: SimEvent[]) => void;
     deferProvider?: boolean;
   }): boolean {
-    if (!this.provider || !input.deliver) return false;
+    const provider = this.provider;
+    if (!provider || !input.deliver) return false;
     if (input.deferProvider) {
       this.metrics.activeProviderDeferredForActivity++;
       return false;
@@ -1130,14 +1131,36 @@ export class AiActiveTriggerService {
     this.metrics.activeProviderJobs++;
     this.noteCodexProviderCall(input.nowMs);
     const startedAt = Date.now();
-    void this.provider.decide(input.context)
-      .then((providerOutput) => {
+    void this.runProviderNpcBeat(provider, input, startedAt)
+      .finally(() => {
+        this.pendingProviderJobs.delete(jobKey);
+        this.metrics.activeProviderPending = this.pendingProviderJobs.size;
+      });
+    return true;
+  }
+
+  private async runProviderNpcBeat(
+    provider: AiProvider,
+    input: {
+      context: AiJobContextV1;
+      entity: Entity;
+      fallbackEvent: AiSpeechEvent;
+      rule: AiActivePollRuleV1;
+      nowMs: number;
+      deliver?: (pid: number, events: SimEvent[]) => void;
+    },
+    startedAt: number,
+  ): Promise<void> {
+    let context = input.context;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const providerOutput = await provider.decide(context);
         const normalized = normalizeActiveProviderOutput(providerOutput);
         this.metrics.activeLastProviderLatencyMs = Math.max(0, Date.now() - startedAt);
         if (normalized.providerTimings) this.metrics.activeLastProviderTimings = normalized.providerTimings;
         const result = validateAiDecision({
           decision: normalized.decision,
-          context: input.context,
+          context,
           entity: input.entity,
           subject: classifyCanonSubject(input.entity),
           source: 'codex',
@@ -1145,26 +1168,31 @@ export class AiActiveTriggerService {
         if (result.ok && result.events.length > 0) {
           this.metrics.activeProviderSuccesses++;
           this.recordProviderResult('success');
-          input.deliver?.(input.context.player.entityId, result.events);
+          input.deliver?.(context.player.entityId, result.events);
           return;
         }
+
+        const reason = result.reason ?? 'provider produced no deliverable events';
         this.metrics.activeProviderRejected++;
+        if (attempt === 0 && this.tryReserveProviderRepair(input.rule, input.nowMs)) {
+          context = activeProviderRepairContext(context, reason);
+          this.recordProviderResult('rejected', `retrying: ${reason}`);
+          continue;
+        }
+
         this.metrics.activeProviderFallbacks++;
-        this.recordProviderResult('rejected', result.reason ?? 'provider produced no deliverable events');
+        this.recordProviderResult('rejected', reason);
         input.deliver?.(input.context.player.entityId, [input.fallbackEvent]);
-      })
-      .catch((error: unknown) => {
+        return;
+      } catch (error: unknown) {
         this.metrics.activeProviderErrors++;
         this.metrics.activeProviderFallbacks++;
         this.metrics.activeLastProviderLatencyMs = Math.max(0, Date.now() - startedAt);
         this.recordProviderResult('error', providerErrorReason(error));
         input.deliver?.(input.context.player.entityId, [input.fallbackEvent]);
-      })
-      .finally(() => {
-        this.pendingProviderJobs.delete(jobKey);
-        this.metrics.activeProviderPending = this.pendingProviderJobs.size;
-      });
-    return true;
+        return;
+      }
+    }
   }
 
   private tryFireSocialSequence(input: {
@@ -1968,6 +1996,16 @@ export class AiActiveTriggerService {
     return budget.remainingCalls5h > 0
       && budget.remainingCallsWeek > 0
       && this.populationPolicy?.codexAdmission !== 'localOnly';
+  }
+
+  private tryReserveProviderRepair(rule: AiActivePollRuleV1, nowMs: number): boolean {
+    if (!this.providerBudgetAvailable(rule, nowMs)) {
+      this.metrics.activeCodexBudgetDenied++;
+      return false;
+    }
+    this.metrics.activeProviderJobs++;
+    this.noteCodexProviderCall(nowMs);
+    return true;
   }
 
   noteCodexProviderCall(nowMs: number): void {
@@ -3144,6 +3182,20 @@ function providerErrorReason(error: unknown): string {
 
 function compactProviderReason(reason: string): string {
   return reason.trim().replace(/\s+/g, ' ').slice(0, 240);
+}
+
+function activeProviderRepairContext(context: AiJobContextV1, reason: string): AiJobContextV1 {
+  const compactReason = compactProviderReason(reason);
+  return {
+    ...context,
+    jobId: `${context.jobId}-repair`,
+    recentObservations: [
+      `providerRejected:${compactReason}`,
+      'providerRepair:writeOneConcreteGroundedLine',
+      'providerRepair:avoidVagueSensoryQuestions',
+      ...context.recentObservations,
+    ],
+  };
 }
 
 function normalizeActiveRules(rules: readonly AiActivePollRuleV1[]): AiActivePollRuleV1[] {
