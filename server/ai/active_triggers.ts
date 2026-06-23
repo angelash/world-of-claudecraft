@@ -415,8 +415,8 @@ export const DEFAULT_ACTIVE_POLL_RULES: readonly AiActivePollRuleV1[] = [
     jitterSeconds: 75,
     priority: 45,
     scope: 'playerVicinity',
-    providerPolicy: 'localOnly',
-    outputMode: 'lineIdOnly',
+    providerPolicy: 'codexAllowed',
+    outputMode: 'dynamicTextFirst',
     cooldown: {
       perPlayerSeconds: 120,
       perEntitySeconds: 240,
@@ -1077,6 +1077,7 @@ export class AiActiveTriggerService {
   }): boolean {
     if (!this.provider || !input.deliver) return false;
     if (input.rule.providerPolicy === 'localOnly' || input.rule.outputMode === 'lineIdOnly') return false;
+    if (!this.providerBudgetAvailable(input.rule, input.nowMs)) return false;
     const jobKey = `${input.rule.ruleId}:${input.context.player.entityId}:${input.entity.id}`;
     if (this.pendingProviderJobs.has(jobKey)) return false;
     this.pendingProviderJobs.add(jobKey);
@@ -1673,15 +1674,19 @@ export class AiActiveTriggerService {
 
   private codexAllowedForRule(rule: AiActivePollRuleV1, nowMs: number): boolean {
     if (rule.providerPolicy === 'localOnly') return true;
-    const budget = this.codexBudgetSnapshot(nowMs);
-    const allowed = budget.remainingCalls5h > 0
-      && budget.remainingCallsWeek > 0
-      && this.populationPolicy?.codexAdmission !== 'localOnly';
-    if (!allowed) {
+    if (!this.providerBudgetAvailable(rule, nowMs)) {
       this.metrics.activeCodexBudgetDenied++;
       return rule.providerPolicy === 'codexAllowed';
     }
     return true;
+  }
+
+  private providerBudgetAvailable(rule: AiActivePollRuleV1, nowMs: number): boolean {
+    if (rule.providerPolicy === 'localOnly') return false;
+    const budget = this.codexBudgetSnapshot(nowMs);
+    return budget.remainingCalls5h > 0
+      && budget.remainingCallsWeek > 0
+      && this.populationPolicy?.codexAdmission !== 'localOnly';
   }
 
   noteCodexProviderCall(nowMs: number): void {

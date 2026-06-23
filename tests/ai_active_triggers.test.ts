@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   AiActiveTriggerService,
+  DEFAULT_ACTIVE_POLL_RULES,
   type AiActivePollRuleV1,
 } from '../server/ai/active_triggers';
 import { AiWorldDirectorStore } from '../server/ai/world_director';
@@ -513,6 +514,135 @@ describe('AI active trigger service', () => {
       activeCodexBudgetDenied: 1,
       activeProviderCalls: 1,
       activePollDue: 0,
+    });
+  });
+
+  it('defaults NPC living routines to dynamic provider text with local fallback metadata', async () => {
+    const rule = DEFAULT_ACTIVE_POLL_RULES.find((candidate) => candidate.ruleId === 'npc_living_routine');
+    if (!rule) throw new Error('missing NPC living routine rule');
+    expect(rule).toMatchObject({
+      providerPolicy: 'codexAllowed',
+      outputMode: 'dynamicTextFirst',
+    });
+
+    const { sim, pid, npcId } = makeWorld();
+    sim.time = 12 * 60;
+    let seenContext: AiJobContextV1 | null = null;
+    const provider: AiProvider = {
+      async decide(context) {
+        seenContext = context;
+        return {
+          decision: {
+            schemaVersion: 1,
+            jobId: context.jobId,
+            entityRef: {
+              kind: context.entity.kind,
+              entityId: context.entity.entityId,
+              templateId: context.entity.templateId,
+            },
+            ttlMs: 1_000,
+            confidence: 0.9,
+            speech: [{ mode: 'dynamicText', language: 'zh_CN', text: '不过，午饭点到了。' }],
+            intents: [{ type: 'commentOnScene' }],
+            audit: {
+              shortReason: 'living routine',
+              usedPlayerInput: false,
+              safetyNotes: ['presentationOnly'],
+            },
+          },
+        };
+      },
+    };
+    const delivered: SimEvent[][] = [];
+    const service = new AiActiveTriggerService({
+      provider,
+      rules: [rule],
+      thinkingDurationMs: 700,
+    });
+
+    const immediate = service.tick({
+      sim,
+      sessions: [{ pid, locale: 'zh_CN' }],
+      nowMs: 1_000,
+      deliver: (_pid, events) => delivered.push(events),
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(immediate).toEqual([
+      expect.objectContaining({ type: 'aiThinking', speakerId: npcId, durationMs: 700, pid }),
+    ]);
+    expect(seenContext).toMatchObject({
+      outputMode: 'dynamic_text_experiment',
+      locale: 'zh_CN',
+      recentObservations: expect.arrayContaining(['rule:npc_living_routine', 'category:livingRoutine']),
+    });
+    expect(delivered).toEqual([[
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: npcId,
+        speech: expect.objectContaining({
+          mode: 'dynamicText',
+          language: 'zh_CN',
+          text: '午饭点到了。',
+        }),
+        source: 'codex',
+        pid,
+      }),
+    ]]);
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeProviderCalls: 1,
+      activeProviderJobs: 1,
+      activeProviderSuccesses: 1,
+      activeRoutineFired: 1,
+      activeRoutineLastKind: 'eating',
+    });
+  });
+
+  it('falls back to local NPC living routines when codex-allowed budget is exhausted', () => {
+    const { sim, pid } = makeWorld();
+    sim.time = 8 * 60;
+    const provider = {
+      decide: vi.fn(async () => {
+        throw new Error('provider should not be called after budget denial');
+      }),
+    } satisfies AiProvider;
+    const service = new AiActiveTriggerService({
+      provider,
+      codexMaxCalls5h: 1,
+      codexMaxCallsWeek: 1,
+      codexReserveRatio: 0,
+      rules: [testRule({
+        ruleId: 'test_living_budget_fallback',
+        category: 'livingRoutine',
+        providerPolicy: 'codexAllowed',
+        outputMode: 'dynamicTextFirst',
+      })],
+    });
+    const nowMs = Date.now();
+    service.noteCodexProviderCall(nowMs - 100);
+
+    const events = service.tick({
+      sim,
+      sessions: [{ pid, locale: 'zh_CN' }],
+      nowMs,
+      deliver: () => {
+        throw new Error('local fallback should be returned synchronously');
+      },
+    });
+
+    expect(provider.decide).not.toHaveBeenCalled();
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speech: expect.objectContaining({ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
+      source: 'local',
+      pid,
+    }));
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeCodexBudgetDenied: 1,
+      activeProviderCalls: 1,
+      activeProviderJobs: 0,
+      activePollDue: 1,
+      activePollFired: 1,
     });
   });
 
