@@ -882,6 +882,7 @@ export class AiLifeLayer {
       droppedItems: [dropped],
       recentSceneEvents: [`playerDiscarded:${request.itemId}`],
     });
+    const itemTargetPos = { x: player.pos.x, z: player.pos.z };
     const candidates = nearbyReactionCandidates(scene, request.sim.entities.values(), player);
     const reactions = rankItemReactions(scene, dropped, candidates, { worldSeed: request.sim.cfg.seed }).slice(0, 2);
     const sceneId = scene.subsceneId ?? scene.zoneId;
@@ -915,7 +916,7 @@ export class AiLifeLayer {
     }
     const events: SimEvent[] = [];
     for (const reaction of reactions) {
-      let localEvent = itemInterestReactionEvent(reaction, dropped, scene, request.pid);
+      let localEvent = itemInterestReactionEvent(reaction, dropped, scene, request.pid, itemTargetPos);
       let reactionEvents: SimEvent[] = [localEvent];
       if (reaction.individual?.tier === 'singularity') {
         const memory = this.creatureMemory.noteSingularityReaction({
@@ -2525,6 +2526,7 @@ function mergeAiSpeechReaction(
     targetEntityId: eventReaction.targetEntityId ?? shellReaction.targetEntityId,
     targetItemId: eventReaction.targetItemId ?? shellReaction.targetItemId,
     targetObjectId: eventReaction.targetObjectId ?? shellReaction.targetObjectId,
+    targetPos: eventReaction.targetPos ?? shellReaction.targetPos,
     score: eventReaction.score ?? shellReaction.score,
     sceneTags: eventReaction.sceneTags ?? shellReaction.sceneTags,
     individualTier: eventReaction.individualTier ?? shellReaction.individualTier,
@@ -2532,6 +2534,8 @@ function mergeAiSpeechReaction(
     planId: eventReaction.planId ?? shellReaction.planId,
     planKind: eventReaction.planKind ?? shellReaction.planKind,
     planIntensity: eventReaction.planIntensity ?? shellReaction.planIntensity,
+    actionDurationMs: eventReaction.actionDurationMs ?? shellReaction.actionDurationMs,
+    actionOffset: eventReaction.actionOffset ?? shellReaction.actionOffset,
     planExpiresAt: eventReaction.planExpiresAt ?? shellReaction.planExpiresAt,
   };
 }
@@ -2559,6 +2563,7 @@ function itemInterestReactionEvent(
   dropped: DroppedItemSemantic,
   scene: SceneFrameV1,
   pid: number,
+  targetPos?: { x: number; z: number },
 ): Extract<SimEvent, { type: 'aiSpeech' }> {
   return {
     type: 'aiSpeech',
@@ -2580,6 +2585,9 @@ function itemInterestReactionEvent(
     reaction: {
       kind: reaction.reaction,
       targetItemId: dropped.itemId,
+      ...(targetPos ? { targetPos } : {}),
+      actionDurationMs: reaction.reaction === 'inspect' ? 1800 : 2600,
+      actionOffset: reaction.reaction === 'inspect' ? 0.18 : reaction.reaction === 'avoid' ? 0.62 : 0.58,
       score: Math.round(reaction.score * 100) / 100,
       sceneTags: [...new Set([...scene.locationTags, ...scene.structureTags, ...scene.environmentalTags])].slice(0, 8),
       individualTier: reaction.individual?.tier,

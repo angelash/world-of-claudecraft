@@ -1772,6 +1772,8 @@ describe('server AI interact command', () => {
     npc.prevPos = { ...npc.pos };
     server.sim.grid.update(npc);
     teleportNear(server, session.pid, wolf.id);
+    const player = server.sim.entities.get(session.pid)!;
+    const droppedAt = { x: player.pos.x, z: player.pos.z };
     server.sim.addItem('roasted_boar', 1, session.pid);
 
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
@@ -1786,7 +1788,13 @@ describe('server AI interact command', () => {
           individualAlias: expect.any(String),
         }),
       }),
-      reaction: expect.objectContaining({ individualTier: 'singularity', targetItemId: 'roasted_boar' }),
+      reaction: expect.objectContaining({
+        individualTier: 'singularity',
+        targetItemId: 'roasted_boar',
+        targetPos: droppedAt,
+        actionDurationMs: expect.any(Number),
+        actionOffset: expect.any(Number),
+      }),
       pid: session.pid,
     }));
 
@@ -1841,6 +1849,7 @@ describe('server AI interact command', () => {
     server.sim.cfg.seed = seedThatMakesSingularity(wolf);
     moveEntity(server, player, 900, 900);
     moveEntity(server, wolf, 902, 900);
+    const droppedAt = { x: player.pos.x, z: player.pos.z };
     server.sim.addItem('roasted_boar', 1, session.pid);
     const beforeQuestLog = JSON.stringify([...server.sim.meta(session.pid)!.questLog]);
     const beforeDone = JSON.stringify([...server.sim.meta(session.pid)!.questsDone]);
@@ -1864,6 +1873,9 @@ describe('server AI interact command', () => {
       }),
       reaction: expect.objectContaining({
         targetItemId: 'roasted_boar',
+        targetPos: droppedAt,
+        actionDurationMs: expect.any(Number),
+        actionOffset: expect.any(Number),
         individualTier: 'singularity',
         individualTraits: expect.any(Array),
       }),
@@ -1938,6 +1950,7 @@ describe('server AI interact command', () => {
     server.sim.cfg.seed = seedThatMakesSingularity(wolf);
     moveEntity(server, player, 900, 900);
     moveEntity(server, wolf, 902, 900);
+    const secondDroppedAt = { x: player.pos.x, z: player.pos.z };
     server.sim.addItem('roasted_boar', 2, session.pid);
     const beforeWolfPos = { ...wolf.pos };
 
@@ -1958,6 +1971,7 @@ describe('server AI interact command', () => {
       source: 'codex',
       reaction: expect.objectContaining({
         targetEntityId: session.pid,
+        targetPos: secondDroppedAt,
         targetItemId: 'roasted_boar',
         planKind: expect.any(String),
         planIntensity: expect.any(Number),

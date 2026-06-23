@@ -3647,7 +3647,15 @@ export class Hud {
         durationMs: reactionBadge.durationMs,
       });
       if (reactionBadge.targetEntityId !== undefined) {
-        this.renderer.showAiAttentionLink(ev.speakerId, reactionBadge.targetEntityId, reactionBadge.kind);
+        this.renderer.showAiAttentionLink(ev.speakerId, reactionBadge.targetEntityId, reactionBadge.kind, {
+          durationMs: reactionBadge.durationMs,
+          actionOffset: reactionBadge.actionOffset,
+        });
+      } else if (reactionBadge.targetPos !== undefined) {
+        this.renderer.showAiAttentionPoint(ev.speakerId, reactionBadge.targetPos, reactionBadge.kind, {
+          durationMs: reactionBadge.durationMs,
+          actionOffset: reactionBadge.actionOffset,
+        });
       }
     }
     this.renderer.showChatBubble(ev.speakerId, this.maskChat(text), false);

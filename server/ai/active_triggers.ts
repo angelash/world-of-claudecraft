@@ -131,6 +131,7 @@ export interface AiActiveQueuedEventSnapshot {
   kind: AiActiveQueuedEventKind;
   playerEntityId: number;
   anchorEntityId?: number;
+  anchorPos?: { x: number; z: number };
   itemId?: string;
   questId?: string;
   subjectTemplateId?: string;
@@ -246,6 +247,7 @@ interface AiActiveQueuedEventState {
   kind: AiActiveQueuedEventKind;
   playerEntityId: number;
   anchorEntityId?: number;
+  anchorPos?: { x: number; z: number };
   itemId?: string;
   questId?: string;
   subjectTemplateId?: string;
@@ -432,13 +434,15 @@ export class AiActiveTriggerService {
       return;
     }
     const nowMs = input.nowMs ?? Date.now();
-    if (!input.sim.entities.has(input.pid)) return;
+    const player = input.sim.entities.get(input.pid);
+    if (!player) return;
     this.enqueueEvent({
       eventId: this.nextEventId('item'),
       dedupeKey: `item:${input.pid}:${input.itemId}`,
       kind: 'item_discarded',
       playerEntityId: input.pid,
       anchorEntityId: input.pid,
+      anchorPos: { x: player.pos.x, z: player.pos.z },
       itemId: input.itemId,
       priority: itemEventPriority(input.itemId),
       attempts: 0,
@@ -609,9 +613,11 @@ export class AiActiveTriggerService {
     if (!player) return { events: [], skipReason: 'player_missing' };
     if (player.dead || player.inCombat) return { events: [], skipReason: 'player_busy_combat' };
 
-    const anchor = input.queued.anchorEntityId !== undefined
-      ? input.sim.entities.get(input.queued.anchorEntityId)?.pos ?? player.pos
-      : player.pos;
+    const anchorEntity = input.queued.anchorEntityId !== undefined
+      ? input.sim.entities.get(input.queued.anchorEntityId)
+      : undefined;
+    const anchor = anchorEntity?.pos
+      ?? (input.queued.anchorPos ? { x: input.queued.anchorPos.x, y: player.pos.y, z: input.queued.anchorPos.z } : player.pos);
     const candidate = this.bestNpcCandidate(input.sim, anchor, input.nowMs);
     if (!candidate) return { events: [], skipReason: 'no_candidate' };
     if ((this.entityCooldownUntilMs.get(candidate.entity.id) ?? 0) > input.nowMs) {
@@ -1250,6 +1256,7 @@ function eventSnapshot(event: AiActiveQueuedEventState): AiActiveQueuedEventSnap
     kind: event.kind,
     playerEntityId: event.playerEntityId,
     ...(event.anchorEntityId === undefined ? {} : { anchorEntityId: event.anchorEntityId }),
+    ...(event.anchorPos === undefined ? {} : { anchorPos: { ...event.anchorPos } }),
     ...(event.itemId === undefined ? {} : { itemId: event.itemId }),
     ...(event.questId === undefined ? {} : { questId: event.questId }),
     ...(event.subjectTemplateId === undefined ? {} : { subjectTemplateId: event.subjectTemplateId }),
@@ -1302,6 +1309,9 @@ function eventAwarenessEvent(
       reaction: {
         kind: traceKind === 'cursed' ? 'avoid' : 'inspect',
         targetItemId: event.itemId,
+        ...(event.anchorPos ? { targetPos: { ...event.anchorPos } } : {}),
+        actionDurationMs: traceKind === 'cursed' ? 2800 : 1900,
+        actionOffset: traceKind === 'cursed' ? 0.6 : 0.18,
         score: event.priority / 100,
         sceneTags: eventSceneTags(context, `trace:${traceKind}`),
       },

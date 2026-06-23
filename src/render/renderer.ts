@@ -233,6 +233,21 @@ interface AiReactionBadgeOptions {
   planned?: boolean;
 }
 
+interface AiAttentionActionOptions {
+  durationMs?: number;
+  actionOffset?: number;
+}
+
+interface AiAttentionLink {
+  el: HTMLDivElement;
+  until: number;
+  startedAt: number;
+  kind: AiAttentionReactionKind;
+  targetId?: number;
+  targetPos?: { x: number; z: number };
+  actionOffset?: number;
+}
+
 export interface RenderDiagnosticsCategoryStats {
   objects: number;
   draws: number;
@@ -611,7 +626,7 @@ export class Renderer {
   // floating /say-/yell bubbles, keyed by speaker entity id
   private chatBubbles = new Map<number, { el: HTMLDivElement; until: number }>();
   private aiReactionBadges = new Map<number, { el: HTMLDivElement; until: number; kind: string; planned: boolean }>();
-  private aiAttentionLinks = new Map<number, { el: HTMLDivElement; until: number; startedAt: number; kind: AiAttentionReactionKind; targetId: number }>();
+  private aiAttentionLinks = new Map<number, AiAttentionLink>();
   private sun: THREE.DirectionalLight;
   private hemi!: THREE.HemisphereLight;
   private sky!: THREE.Mesh;
@@ -3633,45 +3648,69 @@ export class Renderer {
     this.aiReactionBadges.delete(entityId);
   }
 
-  showAiAttentionLink(sourceEntityId: number, targetEntityId: number, kind: AiAttentionReactionKind): void {
+  showAiAttentionLink(sourceEntityId: number, targetEntityId: number, kind: AiAttentionReactionKind, options: AiAttentionActionOptions = {}): void {
     if (sourceEntityId === targetEntityId) return;
+    this.showAiAttentionTarget(sourceEntityId, { targetId: targetEntityId }, kind, options);
+  }
+
+  showAiAttentionPoint(sourceEntityId: number, targetPos: { x: number; z: number }, kind: AiAttentionReactionKind, options: AiAttentionActionOptions = {}): void {
+    if (!Number.isFinite(targetPos.x) || !Number.isFinite(targetPos.z)) return;
+    this.showAiAttentionTarget(sourceEntityId, { targetPos }, kind, options);
+  }
+
+  private showAiAttentionTarget(
+    sourceEntityId: number,
+    target: { targetId: number } | { targetPos: { x: number; z: number } },
+    kind: AiAttentionReactionKind,
+    options: AiAttentionActionOptions,
+  ): void {
     let link = this.aiAttentionLinks.get(sourceEntityId);
     const now = performance.now();
     if (!link) {
       const el = document.createElement('div');
       el.className = 'ai-attention-link';
       this.nameplateLayer.appendChild(el);
-      link = { el, until: 0, startedAt: now, kind, targetId: targetEntityId };
+      link = { el, until: 0, startedAt: now, kind };
       this.aiAttentionLinks.set(sourceEntityId, link);
     }
     link.el.classList.remove(link.kind);
     link.kind = kind;
-    link.targetId = targetEntityId;
+    link.targetId = 'targetId' in target ? target.targetId : undefined;
+    link.targetPos = 'targetPos' in target ? target.targetPos : undefined;
+    link.actionOffset = options.actionOffset;
     link.startedAt = now;
     link.el.classList.add(kind);
-    link.until = now + 1400;
+    link.until = now + Math.max(700, Math.min(6000, Math.round(options.durationMs ?? 1400)));
   }
 
   private aiAttentionVisualBodyOffset(sourceEntityId: number, source: Entity, x: number, z: number, now: number): { x: number; z: number } | null {
     const link = this.aiAttentionLinks.get(sourceEntityId);
     if (!link || now >= link.until) return null;
-    const target = this.sim.entities.get(link.targetId);
+    const target = this.aiAttentionTargetPosition(link);
     if (!target) return null;
     return aiAttentionBodyOffset(
       source,
-      target.pos,
+      target,
       { x, z },
       link.kind,
       { elapsedMs: now - link.startedAt, durationMs: link.until - link.startedAt },
+      link.actionOffset === undefined ? {} : { stepOffset: link.actionOffset, inspectOffset: Math.min(0.35, link.actionOffset) },
     );
   }
 
   private aiAttentionVisualFacing(sourceEntityId: number, source: Entity, x: number, z: number, now: number): number | null {
     const link = this.aiAttentionLinks.get(sourceEntityId);
     if (!link || now >= link.until) return null;
-    const target = this.sim.entities.get(link.targetId);
+    const target = this.aiAttentionTargetPosition(link);
     if (!target) return null;
-    return aiAttentionFacing(source, target.pos, { x, z });
+    return aiAttentionFacing(source, target, { x, z });
+  }
+
+  private aiAttentionTargetPosition(link: AiAttentionLink): { x: number; z: number } | null {
+    if (link.targetId !== undefined) {
+      return this.sim.entities.get(link.targetId)?.pos ?? null;
+    }
+    return link.targetPos ?? null;
   }
 
   private updateChatBubbles(): void {
@@ -3739,10 +3778,15 @@ export class Renderer {
     const now = performance.now();
     for (const [sourceId, link] of this.aiAttentionLinks) {
       const source = this.sim.entities.get(sourceId);
-      const target = this.sim.entities.get(link.targetId);
       const sourceView = source ? this.views.get(sourceId) : undefined;
-      const targetView = target ? this.views.get(link.targetId) : undefined;
-      if (!source || !target || !sourceView || !targetView || now >= link.until) {
+      if (!source || !sourceView || now >= link.until) {
+        link.el.remove();
+        this.aiAttentionLinks.delete(sourceId);
+        continue;
+      }
+      const targetEntity = link.targetId === undefined ? null : this.sim.entities.get(link.targetId);
+      const targetView = targetEntity ? this.views.get(link.targetId!) : undefined;
+      if (link.targetId !== undefined && (!targetEntity || !targetView)) {
         link.el.remove();
         this.aiAttentionLinks.delete(sourceId);
         continue;
@@ -3762,9 +3806,17 @@ export class Renderer {
       const sx = (this.tmpV.x * 0.5 + 0.5) * w;
       const sy = (-this.tmpV.y * 0.5 + 0.5) * h;
 
-      if (targetView.group.visible) this.tmpV3.copy(targetView.group.position);
-      else this.tmpV3.set(target.pos.x, target.pos.y, target.pos.z);
-      this.tmpV3.y += targetView.height * target.scale + 0.65;
+      if (targetEntity && targetView) {
+        if (targetView.group.visible) this.tmpV3.copy(targetView.group.position);
+        else this.tmpV3.set(targetEntity.pos.x, targetEntity.pos.y, targetEntity.pos.z);
+        this.tmpV3.y += targetView.height * targetEntity.scale + 0.65;
+      } else if (link.targetPos) {
+        this.tmpV3.set(link.targetPos.x, groundHeight(link.targetPos.x, link.targetPos.z, this.sim.cfg.seed) + 0.45, link.targetPos.z);
+      } else {
+        link.el.remove();
+        this.aiAttentionLinks.delete(sourceId);
+        continue;
+      }
       if (!isProjectedNameplateAnchorVisible(this.camera, this.tmpV3, this.tmpV2)) {
         link.el.style.display = 'none';
         continue;

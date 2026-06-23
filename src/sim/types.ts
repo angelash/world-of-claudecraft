@@ -953,6 +953,7 @@ export type SimEvent = { pid?: number } & (
         targetEntityId?: number;
         targetItemId?: string;
         targetObjectId?: number;
+        targetPos?: { x: number; z: number };
         score?: number;
         sceneTags?: string[];
         individualTier?: 'none' | 'quirk' | 'singularity';
@@ -960,6 +961,8 @@ export type SimEvent = { pid?: number } & (
         planId?: string;
         planKind?: string;
         planIntensity?: number;
+        actionDurationMs?: number;
+        actionOffset?: number;
         planExpiresAt?: number;
       };
     }

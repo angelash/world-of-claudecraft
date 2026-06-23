@@ -254,8 +254,15 @@ describe('AI active trigger service', () => {
   it('turns discarded food into a later localized nearby NPC reaction', () => {
     const { sim, pid } = makeWorld();
     const service = new AiActiveTriggerService({ rules: [testRule()] });
+    const player = sim.entities.get(pid);
+    if (!player) throw new Error('missing player');
+    const droppedAt = { x: player.pos.x, z: player.pos.z };
 
     service.noteItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, nowMs: 1_000 });
+    expect(service.diagnosticsSnapshot().eventQueue).toContainEqual(expect.objectContaining({
+      kind: 'item_discarded',
+      anchorPos: droppedAt,
+    }));
     const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
 
     expect(events).toContainEqual(expect.objectContaining({
@@ -265,7 +272,13 @@ describe('AI active trigger service', () => {
         lineId: 'hudChrome.aiSpeech.worldTraceNpcFood',
         values: expect.objectContaining({ itemId: 'roasted_boar' }),
       }),
-      reaction: expect.objectContaining({ kind: 'inspect', targetItemId: 'roasted_boar' }),
+      reaction: expect.objectContaining({
+        kind: 'inspect',
+        targetItemId: 'roasted_boar',
+        targetPos: droppedAt,
+        actionDurationMs: 1900,
+        actionOffset: 0.18,
+      }),
       source: 'local',
       pid,
     }));

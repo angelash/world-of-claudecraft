@@ -91,6 +91,26 @@ describe('AI attention body offset', () => {
     )).toBeNull();
   });
 
+  it('uses supplied action offsets for stronger or subtler presentation motion', () => {
+    expectOffsetClose(aiAttentionBodyOffset(
+      entity(),
+      { x: 10, z: 0 },
+      { x: 0, z: 0 },
+      'approach',
+      { elapsedMs: 700, durationMs: 1400 },
+      { stepOffset: 0.9 },
+    ), { x: 0.9, z: 0 });
+
+    expectOffsetClose(aiAttentionBodyOffset(
+      entity(),
+      { x: 0, z: 10 },
+      { x: 0, z: 0 },
+      'inspect',
+      { elapsedMs: 700, durationMs: 1400 },
+      { inspectOffset: 0.24 },
+    ), { x: 0, z: 0.24 });
+  });
+
   it('does not visually displace moving or gameplay-sensitive entities', () => {
     expect(aiAttentionBodyOffset(
       entity({ pos: { x: 0.1, z: 0 } }),
