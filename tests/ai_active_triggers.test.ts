@@ -646,6 +646,51 @@ describe('AI active trigger service', () => {
     });
   });
 
+  it('defers active provider calls shortly after player activity while keeping local life visible', () => {
+    const { sim, pid } = makeWorld();
+    sim.time = 8 * 60;
+    const provider = {
+      decide: vi.fn(async () => {
+        throw new Error('active provider should yield to recent player activity');
+      }),
+    } satisfies AiProvider;
+    const service = new AiActiveTriggerService({
+      provider,
+      rules: [testRule({
+        ruleId: 'test_recent_activity_provider_defer',
+        category: 'livingRoutine',
+        providerPolicy: 'codexAllowed',
+        outputMode: 'dynamicTextFirst',
+      })],
+    });
+
+    const events = service.tick({
+      sim,
+      sessions: [{ pid, locale: 'zh_CN', lastActivityAt: 900 }],
+      nowMs: 1_000,
+      deliver: () => {
+        throw new Error('recent activity should use synchronous local fallback');
+      },
+    });
+
+    expect(provider.decide).not.toHaveBeenCalled();
+    expect(events).toEqual([
+      expect.objectContaining({ type: 'aiThinking', pid }),
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speech: expect.objectContaining({ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
+        source: 'local',
+        pid,
+      }),
+    ]);
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeProviderCalls: 0,
+      activeProviderJobs: 0,
+      activePollFired: 1,
+      activeRoutineFired: 1,
+    });
+  });
+
   it('marks daytime priest routine beats as praying with profile speech', () => {
     const { sim, pid } = makeWorld();
     sim.time = 8 * 60;

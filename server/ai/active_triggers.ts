@@ -89,6 +89,7 @@ export interface AiActiveTriggerSessionLike {
   pid: number;
   left?: boolean;
   locale?: string;
+  lastActivityAt?: number;
 }
 
 export interface AiActiveTriggerMetricsSnapshot {
@@ -388,6 +389,7 @@ const DEFAULT_MAX_QUEUED_EVENTS = 64;
 const EVENT_RETRY_DELAY_MS = 15_000;
 const CODEX_WINDOW_5H_MS = 5 * 60 * 60 * 1000;
 const CODEX_WINDOW_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const ACTIVE_PROVIDER_IDLE_GRACE_MS = envPositiveInt('AI_ACTIVE_PROVIDER_IDLE_GRACE_MS', 45_000);
 
 export const DEFAULT_ACTIVE_POLL_RULES: readonly AiActivePollRuleV1[] = [
   {
@@ -974,6 +976,7 @@ export class AiActiveTriggerService {
         nowMs: input.nowMs,
         locale: input.session.locale,
         deliver: input.deliver,
+        deferProvider: this.shouldDeferProviderForRecentActivity(input.session, input.nowMs),
         applyAction: input.applyAction,
       });
     }
@@ -1041,6 +1044,7 @@ export class AiActiveTriggerService {
       rule: input.rule,
       nowMs: input.nowMs,
       deliver: input.deliver,
+      deferProvider: this.shouldDeferProviderForRecentActivity(input.session, input.nowMs),
     })) {
       return { events: [thinkingEvent], skipReason: 'not_due' };
     }
@@ -1077,8 +1081,10 @@ export class AiActiveTriggerService {
     rule: AiActivePollRuleV1;
     nowMs: number;
     deliver?: (pid: number, events: SimEvent[]) => void;
+    deferProvider?: boolean;
   }): boolean {
     if (!this.provider || !input.deliver) return false;
+    if (input.deferProvider) return false;
     if (input.rule.providerPolicy === 'localOnly' || input.rule.outputMode === 'lineIdOnly') return false;
     if (!this.providerBudgetAvailable(input.rule, input.nowMs)) return false;
     const jobKey = `${input.rule.ruleId}:${input.context.player.entityId}:${input.entity.id}`;
@@ -1332,6 +1338,7 @@ export class AiActiveTriggerService {
     nowMs: number;
     locale?: string;
     deliver?: (pid: number, events: SimEvent[]) => void;
+    deferProvider?: boolean;
     applyAction?: AiActiveWorldActionBridge;
   }): { events: SimEvent[]; skipReason: AiActiveSkipReason } {
     const scene = sceneFrameFor(input.sim, input.player.pos, { excludeEntityIds: [input.player.id] });
@@ -1375,6 +1382,7 @@ export class AiActiveTriggerService {
       rule: input.rule,
       nowMs: input.nowMs,
       deliver: input.deliver,
+      deferProvider: input.deferProvider,
     })) {
       return { events: [thinkingEvent], skipReason: 'not_due' };
     }
@@ -1738,6 +1746,11 @@ export class AiActiveTriggerService {
     }
     this.schedulerCursor = (start + policy.maxPollSessionsPerTick) % ordered.length;
     return selected;
+  }
+
+  private shouldDeferProviderForRecentActivity(session: AiActiveTriggerSessionLike, nowMs: number): boolean {
+    return session.lastActivityAt !== undefined
+      && nowMs - session.lastActivityAt < ACTIVE_PROVIDER_IDLE_GRACE_MS;
   }
 
   private codexAllowedForRule(rule: AiActivePollRuleV1, nowMs: number): boolean {
