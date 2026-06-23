@@ -9,6 +9,7 @@ describe('AI speech style', () => {
     expect(rules).toContain('Do not start with 不过');
     expect(rules).toContain('Do not use 你问的是, 我建议');
     expect(rules).toContain('不要只写“闻到了吗？”');
+    expect(rules).toContain('某某开口前');
   });
 
   it('adds natural spoken guidance for English dynamic speech prompts', () => {
@@ -18,6 +19,7 @@ describe('AI speech style', () => {
     expect(rules).toContain('avoid colon-led setup');
     expect(rules).toContain('honestly');
     expect(rules).toContain('Do not say vague prompts like "Smell that?"');
+    expect(rules).toContain('Brother Aldric glances at the sky');
   });
 
   it('polishes assistant-like English phrasing into a shorter spoken line', () => {
@@ -70,5 +72,14 @@ describe('AI speech style', () => {
     );
 
     expect(text).toBe('风里有铁锈味，像有人刚动过锁。');
+  });
+
+  it('strips third-person Chinese action narration down to the bare emote fragment', () => {
+    const text = polishDynamicSpeechText(
+      'Brother Aldric开口前偷偷瞥了一眼星空。',
+      'zh_CN',
+    );
+
+    expect(text).toBe('偷偷瞥了一眼星空。');
   });
 });
