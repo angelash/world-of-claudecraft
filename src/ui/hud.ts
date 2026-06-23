@@ -26,7 +26,7 @@ import { itemStatDeltas } from './item_compare';
 import { formatClockTime } from './clock';
 import { formatMinimapCoords } from './coords';
 import { compassView, type CardinalId } from './compass';
-import { aiReactionBadgeView } from './ai_reaction';
+import { aiReactionBadgeView, aiSpeechPresentationView } from './ai_reaction';
 import { clampMinimapZoom, nextMinimapZoom, isMinMinimapZoom, isMaxMinimapZoom, minimapZoomValue, MINIMAP_ZOOM_DEFAULT } from './minimap_zoom';
 import { restView } from './rest_indicator';
 import { nearestSubzone } from './subzone';
@@ -3637,7 +3637,8 @@ export class Hud {
     if (ev.interactionId) this.finishAiInteraction(ev.speakerId, ev.interactionId);
     const speakerName = this.aiSpeechSpeakerName(ev);
     const text = this.aiSpeechText(ev, speakerName);
-    this.chatLogFrom(speakerName, text, '#b9e4ff', CHAT_TEMPLATE_KEYS.say, 'say');
+    const presentation = aiSpeechPresentationView(ev, text, speakerName);
+    this.chatLogFrom(speakerName, presentation.text, '#b9e4ff', presentation.templateKey, presentation.channel);
     const speaker = this.sim.entities.get(ev.speakerId);
     if (!speaker) return;
     const reactionBadge = aiReactionBadgeView(ev.reaction);
@@ -3658,7 +3659,7 @@ export class Hud {
         });
       }
     }
-    this.renderer.showChatBubble(ev.speakerId, this.maskChat(text), false);
+    this.renderer.showChatBubble(ev.speakerId, this.maskChat(presentation.bubbleText), false);
   }
 
   handleEvents(events: SimEvent[]): void {
