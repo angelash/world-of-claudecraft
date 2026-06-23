@@ -1395,6 +1395,15 @@ Usage 页建议新增一个 tab 或 section：
 - director state 过期后不再主动冒出。
 - 误会只影响台词和传闻，不影响任务、声望、奖励和交易价格。
 
+当前实现补充：
+
+- `AiWorldDirectorState` 已通过主动触发桥进入 `AiActiveTriggerService` 的事件队列。`GameServer` 在 30 秒主动调度器运行前桥接新建或刷新的 director state，使用 `stateId:updatedAt` 去重，不把重复 enqueue 放进 20Hz 模拟 tick 热路径。
+- 主动队列新增 `world_director` 事件，携带 `directorStateId`、`directorMood`、`directorIntent`、`directorLineId`、scene、zone 和 proposal 观察标签。后台队列能看到它来自世界导演，而不是普通 quest/damage/discard 事件。
+- 主动播放复用 `worldDirectorEvent()`，因此 `nudgeNpcRumor`、`raiseCampCaution`、`echoTrace`、`echoEncounterMemory` 和 `echoQuestRelief` 继续走既有 `hudChrome.aiSpeech.worldDirector*` 本地化 lineId，不新增硬编码玩家可见文案。
+- 播放出的 `aiSpeech.reaction` 会补上 `planId`、`planKind`、`planIntensity`、`planExpiresAt` 和 `directorState:*` 标签，后续连续序列、审计详情和动态文本上下文可以识别这是区域导演余波。
+- 低风险动作桥已接入：恐惧或灾厄 mood 的 NPC 会短距离后退，传闻、物件回声和任务释然类会短距离靠近或侧移观察。动作仍通过 `sim.aiActiveNpcAction`，并保留关键 NPC、商人、任务 NPC 的 3 码安全半径和自动回位。
+- `tests/ai_active_triggers.test.ts` 覆盖 director proposal 入队、lineId 播放、plan 标签和 NPC 微动作；`tests/server_ai_active_triggers.test.ts` 覆盖 live server 中 `AiLifeLayer` 生成 director state 后由主动调度器桥接并推送给客户端，且不改变主线快照。
+
 ### 螺旋 10：奇点个体主动生活
 
 交付：

@@ -6,6 +6,7 @@ import type {
   AiActiveMobActionResult,
   AiActiveNpcActionRequest,
   AiActiveNpcActionResult,
+  AiActiveNpcMoveRelation,
   Entity,
   MobFamily,
   SimEvent,
@@ -20,6 +21,8 @@ import { validateAiDecision } from './intent_validator';
 import { compactProfileSnapshot, profileFor } from './profiles';
 import { sceneFrameFor } from './scene_frame';
 import { sceneAwarenessEvent } from './scene_reactions';
+import { worldDirectorEvent } from './world_director';
+import type { AiWorldDirectorLineId, AiWorldDirectorMood, AiWorldDirectorProposalIntent, AiWorldDirectorState } from './world_director';
 
 export type AiActivePollCategory =
   | 'sceneAmbient'
@@ -46,7 +49,8 @@ export type AiActiveQueuedEventKind =
   | 'quest_done'
   | 'item_discarded'
   | 'entity_death'
-  | 'combat_damage';
+  | 'combat_damage'
+  | 'world_director';
 
 export type AiActivePopulationBand =
   | 'solo'
@@ -168,6 +172,12 @@ export interface AiActiveQueuedEventSnapshot {
   itemId?: string;
   questId?: string;
   subjectTemplateId?: string;
+  directorStateId?: string;
+  directorMood?: AiWorldDirectorMood;
+  directorIntent?: AiWorldDirectorProposalIntent;
+  directorLineId?: AiWorldDirectorLineId;
+  sceneId?: string;
+  zoneId?: string;
   priority: number;
   attempts: number;
   createdAtMs: number;
@@ -318,6 +328,7 @@ interface AiActiveQueuedEventState {
   subjectTemplateId?: string;
   outcome?: 'defeated' | 'wipe';
   phase?: 'bloodied' | 'desperate';
+  directorState?: AiWorldDirectorState;
   priority: number;
   attempts: number;
   createdAtMs: number;
@@ -533,6 +544,42 @@ export class AiActiveTriggerService {
         `count:${input.count}`,
       ],
     });
+  }
+
+  noteWorldDirectorStates(input: { sim: Sim; states: readonly AiWorldDirectorState[]; nowMs?: number }): void {
+    if (!this.enabled) return;
+    if (!this.eventsEnabled) {
+      if (input.states.length > 0) this.recordSkip('', 'events_disabled', 'event');
+      return;
+    }
+    const nowMs = input.nowMs ?? Date.now();
+    for (const state of input.states) {
+      if (state.proposal.risk !== 'low') continue;
+      if (state.expiresAt <= input.sim.time) continue;
+      const ttlMs = Math.max(1_000, Math.min(this.eventTtlMs, Math.round((state.expiresAt - input.sim.time) * 1000)));
+      this.enqueueEvent({
+        eventId: this.nextEventId('director'),
+        dedupeKey: `director:${state.sourcePlayerEntityId}:${state.stateId}`,
+        kind: 'world_director',
+        playerEntityId: state.sourcePlayerEntityId,
+        ...(state.subjectKind === 'item' ? { itemId: state.itemId } : {}),
+        ...(state.subjectKind === 'quest' ? { questId: state.itemId } : {}),
+        ...(state.subjectKind === 'encounter' ? { subjectTemplateId: state.subjectTemplateId ?? state.itemId } : {}),
+        directorState: cloneDirectorState(state),
+        priority: directorEventPriority(state),
+        attempts: 0,
+        createdAtMs: nowMs,
+        expiresAtMs: nowMs + ttlMs,
+        nextAttemptAtMs: nowMs,
+        observations: [
+          'event:world_director',
+          `director:${state.mood}`,
+          `proposal:${state.proposal.intent}`,
+          `subject:${state.subjectKind}`,
+          ...state.evidence.slice(0, 3),
+        ],
+      });
+    }
   }
 
   tick(input: {
@@ -781,6 +828,20 @@ export class AiActiveTriggerService {
     applyNpcAction?: AiActiveNpcActionBridge,
   ): void {
     if (!this.realActionsEnabled || !applyNpcAction) return;
+    if (queued.kind === 'world_director' && queued.directorState) {
+      const result = applyNpcAction({
+        kind: 'shortMove',
+        npcId: npc.id,
+        playerId: player.id,
+        relation: directorNpcMoveRelation(queued.directorState),
+        distance: queued.directorState.mood === 'haunted' || queued.directorState.mood === 'dread' ? 1.6 : 1.1,
+        durationSeconds: queued.directorState.proposal.intent === 'raiseCampCaution' ? 9 : 7,
+        maxDistanceFromHome: npc.questIds.length > 0 || npc.vendorItems.length > 0 ? 3 : 6,
+        maxPlayerDistance: CANDIDATE_RADIUS,
+      });
+      this.recordActionResult(`npc:${result.kind}`, result);
+      return;
+    }
     if (queued.kind !== 'item_discarded' || !queued.itemId) return;
     const traceKind = worldTraceKindForItemId(queued.itemId);
     const result = applyNpcAction({
@@ -1637,6 +1698,8 @@ export class AiActiveTriggerService {
     if (existing) {
       existing.priority = Math.max(existing.priority, event.priority);
       existing.expiresAtMs = Math.max(existing.expiresAtMs, event.expiresAtMs);
+      existing.nextAttemptAtMs = Math.min(existing.nextAttemptAtMs, event.nextAttemptAtMs);
+      if (event.directorState) existing.directorState = cloneDirectorState(event.directorState);
       existing.observations = [...new Set([...existing.observations, ...event.observations])].slice(0, 10);
       this.metrics.activeNoiseSuppressions++;
       return;
@@ -1684,6 +1747,14 @@ function eventSnapshot(event: AiActiveQueuedEventState): AiActiveQueuedEventSnap
     ...(event.itemId === undefined ? {} : { itemId: event.itemId }),
     ...(event.questId === undefined ? {} : { questId: event.questId }),
     ...(event.subjectTemplateId === undefined ? {} : { subjectTemplateId: event.subjectTemplateId }),
+    ...(event.directorState ? {
+      directorStateId: event.directorState.stateId,
+      directorMood: event.directorState.mood,
+      directorIntent: event.directorState.proposal.intent,
+      directorLineId: event.directorState.lineId,
+      sceneId: event.directorState.sceneId,
+      zoneId: event.directorState.zoneId,
+    } : {}),
     priority: event.priority,
     attempts: event.attempts,
     createdAtMs: event.createdAtMs,
@@ -1802,6 +1873,27 @@ function eventAwarenessEvent(
       pid: context.player.entityId,
     };
   }
+  if (event.kind === 'world_director' && event.directorState) {
+    const directorEvent = worldDirectorEvent(context.scene ?? null, speaker, event.directorState, context.player.entityId);
+    if (!directorEvent || directorEvent.type !== 'aiSpeech') return null;
+    const baseReaction = directorEvent.reaction;
+    return {
+      ...directorEvent,
+      reaction: {
+        kind: baseReaction?.kind ?? 'inspect',
+        ...(baseReaction ?? {}),
+        planId: event.directorState.proposal.proposalId,
+        planKind: event.directorState.proposal.intent,
+        planIntensity: event.directorState.proposal.intensity,
+        planExpiresAt: event.directorState.proposal.expiresAt,
+        sceneTags: [...new Set([
+          `proposal:${event.directorState.proposal.intent}`,
+          `directorState:${event.directorState.stateId}`,
+          ...(directorEvent.reaction?.sceneTags ?? []),
+        ])].slice(0, 8),
+      },
+    };
+  }
   return null;
 }
 
@@ -1809,6 +1901,47 @@ function eventSceneTags(context: AiJobContextV1, extra: string): string[] {
   return context.scene
     ? [...new Set([...context.scene.locationTags, ...context.scene.structureTags, ...context.scene.environmentalTags, extra])].slice(0, 8)
     : [extra];
+}
+
+function cloneDirectorState(state: AiWorldDirectorState): AiWorldDirectorState {
+  return {
+    ...state,
+    evidence: [...state.evidence],
+    proposal: {
+      ...state.proposal,
+      reasonTags: [...state.proposal.reasonTags],
+      safetyNotes: [...state.proposal.safetyNotes],
+    },
+  };
+}
+
+function directorNpcMoveRelation(state: AiWorldDirectorState): AiActiveNpcMoveRelation {
+  if (state.mood === 'haunted' || state.mood === 'dread') return 'awayFromPlayer';
+  switch (state.proposal.intent) {
+    case 'raiseCampCaution':
+    case 'echoEncounterMemory':
+      return 'sideStep';
+    case 'nudgeNpcRumor':
+    case 'echoTrace':
+    case 'echoQuestRelief':
+      return 'towardPlayer';
+  }
+}
+
+function directorEventPriority(state: AiWorldDirectorState): number {
+  const heatBonus = Math.max(0, Math.min(5, Math.round(state.heat * 5)));
+  switch (state.proposal.intent) {
+    case 'echoQuestRelief':
+      return 86 + heatBonus;
+    case 'echoEncounterMemory':
+      return 84 + heatBonus;
+    case 'raiseCampCaution':
+      return 82 + heatBonus;
+    case 'nudgeNpcRumor':
+      return 74 + heatBonus;
+    case 'echoTrace':
+      return 62 + heatBonus;
+  }
 }
 
 type ActiveWorldTraceKind = 'singularity' | 'cursed' | 'food' | 'valuable' | 'generic';

@@ -3,6 +3,7 @@ import {
   AiActiveTriggerService,
   type AiActivePollRuleV1,
 } from '../server/ai/active_triggers';
+import { AiWorldDirectorStore } from '../server/ai/world_director';
 import type { AiJobContextV1, AiProvider } from '../server/ai/ai_types';
 import { Sim } from '../src/sim/sim';
 import { dist2d, type SimEvent } from '../src/sim/types';
@@ -305,6 +306,72 @@ describe('AI active trigger service', () => {
         targetPos: droppedAt,
         actionDurationMs: 1900,
         actionOffset: 0.18,
+      }),
+      source: 'local',
+      pid,
+    }));
+    const speech = events.find((event): event is Extract<typeof event, { type: 'aiSpeech' }> => event.type === 'aiSpeech');
+    expect(requests).toEqual([
+      expect.objectContaining({ kind: 'shortMove', npcId: speech?.speakerId, playerId: pid, relation: 'towardPlayer' }),
+    ]);
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeEventQueued: 1,
+      activeEventFired: 1,
+      activeActionsAttempted: 1,
+      activeActionsApplied: 1,
+      activeNpcActionsApplied: 1,
+    });
+  });
+
+  it('turns world director proposals into proactive localized NPC echoes', () => {
+    const { sim, pid } = makeWorld();
+    const service = new AiActiveTriggerService({ rules: [testRule()] });
+    const store = new AiWorldDirectorStore({ stateTtlSeconds: 60 });
+    const state = store.noteQuestCompletion({
+      sceneId: 'eastbrook_chapel',
+      zoneId: 'eastbrook_vale',
+      questId: 'q_wolves',
+      sourcePlayerEntityId: pid,
+      nowSeconds: sim.time,
+    });
+    const requests: unknown[] = [];
+
+    service.noteWorldDirectorStates({ sim, states: [state], nowMs: 1_000 });
+    expect(service.diagnosticsSnapshot().eventQueue).toContainEqual(expect.objectContaining({
+      kind: 'world_director',
+      questId: 'q_wolves',
+      directorStateId: state.stateId,
+      directorMood: 'relieved',
+      directorIntent: 'echoQuestRelief',
+      directorLineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
+      sceneId: 'eastbrook_chapel',
+      zoneId: 'eastbrook_vale',
+      observations: expect.arrayContaining(['event:world_director', 'proposal:echoQuestRelief']),
+    }));
+
+    const events = service.tick({
+      sim,
+      sessions: [{ pid }],
+      nowMs: 1_000,
+      applyNpcAction: (request) => {
+        requests.push(request);
+        return sim.aiActiveNpcAction(request);
+      },
+    });
+
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speech: expect.objectContaining({
+        mode: 'lineId',
+        lineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
+        values: expect.objectContaining({ questId: 'q_wolves', directorMood: 'relieved' }),
+      }),
+      reaction: expect.objectContaining({
+        kind: 'inspect',
+        planId: state.proposal.proposalId,
+        planKind: 'echoQuestRelief',
+        planIntensity: state.proposal.intensity,
+        sceneTags: expect.arrayContaining(['proposal:echoQuestRelief', `directorState:${state.stateId}`]),
       }),
       source: 'local',
       pid,

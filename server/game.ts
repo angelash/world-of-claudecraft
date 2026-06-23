@@ -422,6 +422,7 @@ export class GameServer {
   private readonly aiAuditDb = new PgAiAuditDb(pool);
   private readonly aiLifeLayer: AiLifeLayer;
   private readonly aiActiveTriggers: AiActiveTriggerService;
+  private readonly aiActiveDirectorBridgeVersions = new Map<string, number>();
   private aiInteractionSequence = 0;
 
   constructor() {
@@ -616,6 +617,7 @@ export class GameServer {
     if (this.idleSweepInterval) clearInterval(this.idleSweepInterval);
     this.aiLifeLayer.stop();
     this.aiActiveTriggers.stop();
+    this.aiActiveDirectorBridgeVersions.clear();
   }
 
   async sweepIdleSessions(nowMs = Date.now()): Promise<number> {
@@ -636,6 +638,7 @@ export class GameServer {
   }
 
   private runAiActiveTriggers(nowMs = Date.now()): void {
+    this.bridgeWorldDirectorStatesToActiveQueue(nowMs);
     const events = this.aiActiveTriggers.tick({
       sim: this.sim,
       sessions: this.clients.values(),
@@ -650,6 +653,23 @@ export class GameServer {
       applyNpcAction: (request) => this.sim.aiActiveNpcAction(request),
     });
     this.routeEvents(events);
+  }
+
+  private bridgeWorldDirectorStatesToActiveQueue(nowMs: number): void {
+    const states = this.aiLifeLayer.worldDirectorDiagnostics();
+    const changed = [];
+    const liveStateIds = new Set<string>();
+    for (const state of states) {
+      liveStateIds.add(state.stateId);
+      const previousUpdatedAt = this.aiActiveDirectorBridgeVersions.get(state.stateId);
+      if (previousUpdatedAt !== undefined && previousUpdatedAt >= state.updatedAt) continue;
+      this.aiActiveDirectorBridgeVersions.set(state.stateId, state.updatedAt);
+      changed.push(state);
+    }
+    for (const stateId of [...this.aiActiveDirectorBridgeVersions.keys()]) {
+      if (!liveStateIds.has(stateId)) this.aiActiveDirectorBridgeVersions.delete(stateId);
+    }
+    if (changed.length > 0) this.aiActiveTriggers.noteWorldDirectorStates({ sim: this.sim, states: changed, nowMs });
   }
 
   // Update one player's holder-tier flair from their linked wallet's $WOC

@@ -245,13 +245,71 @@ describe('server AI active triggers', () => {
     }));
     expect(npc.aiActiveMoveTarget).not.toBeNull();
     expect(server.sim.countItem('roasted_boar', session.pid)).toBe(0);
+    expect(server.aiActiveTriggerDiagnostics().eventQueue).toContainEqual(expect.objectContaining({
+      kind: 'world_director',
+      itemId: 'roasted_boar',
+      directorIntent: 'echoTrace',
+    }));
     expect(server.aiActiveTriggerMetrics()).toMatchObject({
-      activeEventQueued: 1,
+      activeEventQueued: 2,
       activeEventFired: 1,
       activeActionsAttempted: 1,
       activeActionsApplied: 1,
       activeNpcActionsApplied: 1,
     });
+  });
+
+  it('bridges world director states into active speech on the live scheduler path', () => {
+    const server = new GameServer();
+    const service = new AiActiveTriggerService({
+      pollsEnabled: false,
+      rules: [activeRule()],
+      thinkingDurationMs: 800,
+    });
+    (server as any).aiActiveTriggers = service;
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
+    if (!npc) throw new Error('missing Brother Aldric');
+    teleportNear(server, session.pid, npc.id);
+    const before = mainlineSnapshot(server, session.pid);
+    fc.sent.length = 0;
+
+    (server as any).aiLifeLayer.handleSimEvents({
+      sim: server.sim,
+      events: [{ type: 'questDone', questId: 'q_wolves', pid: session.pid }],
+    });
+    expect(server.aiLifeLayerDiagnostics().worldDirectorStates).toContainEqual(expect.objectContaining({
+      lineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
+      proposal: expect.objectContaining({ intent: 'echoQuestRelief' }),
+    }));
+
+    (server as any).runAiActiveTriggers(1_000);
+
+    expect(eventsOf(fc, 'aiThinking')).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      durationMs: 800,
+      pid: session.pid,
+    }));
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
+        values: expect.objectContaining({ questId: 'q_wolves', directorMood: 'relieved' }),
+      }),
+      reaction: expect.objectContaining({
+        planKind: 'echoQuestRelief',
+      }),
+      source: 'local',
+      pid: session.pid,
+    }));
+    expect(server.aiActiveTriggerDiagnostics().eventQueue).toHaveLength(0);
+    expect(server.aiActiveTriggerMetrics()).toMatchObject({
+      activeEventQueued: 1,
+      activeEventFired: 1,
+      activePollDue: 0,
+    });
+    expect(mainlineSnapshot(server, session.pid)).toEqual(before);
   });
 
   it('applies active creature actions through the live server scheduler path', () => {
