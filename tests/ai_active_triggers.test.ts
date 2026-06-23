@@ -943,6 +943,91 @@ describe('AI active trigger service', () => {
     expect(mainlineSnapshot(sim, pid)).toEqual(before);
   });
 
+  it('defaults creature routines to dynamic provider text with family semantics', async () => {
+    const rule = DEFAULT_ACTIVE_POLL_RULES.find((candidate) => candidate.ruleId === 'creature_living_routine');
+    if (!rule) throw new Error('missing creature living routine rule');
+    expect(rule).toMatchObject({
+      providerPolicy: 'codexAllowed',
+      outputMode: 'dynamicTextFirst',
+    });
+
+    const { sim, pid } = makeWorld();
+    const wolf = entityByTemplate(sim, 'forest_wolf');
+    moveEntity(sim, wolf.id, 8, 17);
+    moveEntity(sim, pid, 9, 17);
+    let seenContext: AiJobContextV1 | null = null;
+    const provider: AiProvider = {
+      async decide(context) {
+        seenContext = context;
+        return {
+          decision: {
+            schemaVersion: 1,
+            jobId: context.jobId,
+            entityRef: {
+              kind: context.entity.kind,
+              entityId: context.entity.entityId,
+              templateId: context.entity.templateId,
+            },
+            ttlMs: 1_000,
+            confidence: 0.9,
+            speech: [{ mode: 'dynamicText', language: 'en', text: 'Sniffs once. Fire. Not safe.' }],
+            intents: [{ type: 'commentOnScene' }],
+            audit: {
+              shortReason: 'creature routine',
+              usedPlayerInput: false,
+              safetyNotes: ['presentationOnly'],
+            },
+          },
+        };
+      },
+    };
+    const delivered: SimEvent[][] = [];
+    const service = new AiActiveTriggerService({
+      provider,
+      rules: [rule],
+      thinkingDurationMs: 650,
+    });
+
+    const immediate = service.tick({
+      sim,
+      sessions: [{ pid, locale: 'en' }],
+      nowMs: 1_000,
+      deliver: (_pid, events) => delivered.push(events),
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(immediate).toEqual([
+      expect.objectContaining({ type: 'aiThinking', speakerId: wolf.id, durationMs: 650, pid }),
+    ]);
+    expect(seenContext).toMatchObject({
+      entity: expect.objectContaining({ kind: 'mob', templateId: 'forest_wolf' }),
+      profile: expect.objectContaining({ profileId: 'mob.generic.living_world' }),
+      familySemantics: expect.objectContaining({ family: 'beast', familyName: 'Beast' }),
+      outputMode: 'dynamic_text_experiment',
+      recentObservations: expect.arrayContaining(['rule:creature_living_routine', 'category:creatureRoutine', 'family:beast']),
+    });
+    expect(delivered).toEqual([[
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: wolf.id,
+        speech: expect.objectContaining({
+          mode: 'dynamicText',
+          language: 'en',
+          text: 'Sniffs once.',
+        }),
+        source: 'codex',
+        pid,
+      }),
+    ]]);
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeProviderCalls: 1,
+      activeProviderJobs: 1,
+      activeProviderSuccesses: 1,
+      activeRoutineFired: 1,
+      activeRoutineLastKind: 'creature:beast:keepDistanceFromFire:avoid',
+    });
+  });
+
   it('lets singularity creatures surface active personal goals ahead of ordinary routines', () => {
     const { sim, pid } = makeWorld();
     sim.time = 23 * 60;

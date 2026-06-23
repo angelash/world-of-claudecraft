@@ -15,6 +15,7 @@ import { dist2d } from '../../src/sim/types';
 import type { AiJobContextV1, AiProvider, AiProviderDecisionResult, AiProviderOutput, AiProviderTimingSnapshot } from './ai_types';
 import { classifyCanonSubject } from './canon_guard';
 import { companionReactionEventsForScene } from './companion_reactions';
+import { compactFamilySemanticsForEntity } from './family_semantics';
 import { familySceneReactionEvent, nearbyFamilySceneCandidates, rankFamilySceneReactions } from './family_scene_reactions';
 import type { FamilySceneReaction } from './family_scene_reactions';
 import { validateAiDecision } from './intent_validator';
@@ -432,8 +433,8 @@ export const DEFAULT_ACTIVE_POLL_RULES: readonly AiActivePollRuleV1[] = [
     jitterSeconds: 90,
     priority: 44,
     scope: 'playerVicinity',
-    providerPolicy: 'localOnly',
-    outputMode: 'lineIdOnly',
+    providerPolicy: 'codexAllowed',
+    outputMode: 'dynamicTextFirst',
     cooldown: {
       perPlayerSeconds: 105,
       perEntitySeconds: 210,
@@ -971,6 +972,8 @@ export class AiActiveTriggerService {
         player,
         rule: input.rule,
         nowMs: input.nowMs,
+        locale: input.session.locale,
+        deliver: input.deliver,
         applyAction: input.applyAction,
       });
     }
@@ -1327,6 +1330,8 @@ export class AiActiveTriggerService {
     player: Entity;
     rule: AiActivePollRuleV1;
     nowMs: number;
+    locale?: string;
+    deliver?: (pid: number, events: SimEvent[]) => void;
     applyAction?: AiActiveWorldActionBridge;
   }): { events: SimEvent[]; skipReason: AiActiveSkipReason } {
     const scene = sceneFrameFor(input.sim, input.player.pos, { excludeEntityIds: [input.player.id] });
@@ -1362,6 +1367,17 @@ export class AiActiveTriggerService {
       createdAtMs: input.nowMs,
     });
     this.tryApplyCreatureRoutineAction(result, input.player, input.applyAction);
+    const context = this.contextForCreature(input.sim, input.player, result.entity, scene, input.rule, input.locale);
+    if (this.tryStartProviderNpcBeat({
+      context,
+      entity: result.entity,
+      fallbackEvent: result.event,
+      rule: input.rule,
+      nowMs: input.nowMs,
+      deliver: input.deliver,
+    })) {
+      return { events: [thinkingEvent], skipReason: 'not_due' };
+    }
     return { events: [thinkingEvent, result.event], skipReason: 'not_due' };
   }
 
@@ -1612,6 +1628,58 @@ export class AiActiveTriggerService {
         `weather:${scene.weather.kind}`,
         `scene:${scene.subsceneId ?? scene.zoneId}`,
         ...(queuedEvent?.observations ?? []),
+      ],
+      allowedIntents: profile.allowedIntentTypes,
+      allowedLineIds: profile.allowedLineIds,
+      outputMode: activeOutputModeForRule(rule),
+    };
+  }
+
+  private contextForCreature(
+    sim: Sim,
+    player: Entity,
+    creature: Entity,
+    scene: ReturnType<typeof sceneFrameFor>,
+    rule: AiActivePollRuleV1,
+    locale = 'en',
+  ): AiJobContextV1 {
+    const meta = sim.meta(player.id);
+    const profile = profileFor('mob', creature.templateId);
+    const familySemantics = compactFamilySemanticsForEntity(creature);
+    return {
+      schemaVersion: 1,
+      jobId: `ai-active-${rule.ruleId}-${player.id}-${creature.id}`,
+      trigger: 'active_poll',
+      entity: {
+        kind: 'mob',
+        entityId: creature.id,
+        templateId: creature.templateId,
+        name: creature.name,
+        level: creature.level,
+        questIds: [...creature.questIds],
+        dead: creature.dead,
+      },
+      player: {
+        entityId: player.id,
+        name: player.name,
+        level: player.level,
+        classId: player.templateId,
+        activeQuestIds: meta ? [...meta.questLog.keys()] : [],
+        completedQuestIds: meta ? [...meta.questsDone] : [],
+      },
+      locale: normalizeActiveLocale(locale),
+      profile: compactProfileSnapshot(profile),
+      scene,
+      familySemantics,
+      questFacts: [],
+      recentObservations: [
+        `rule:${rule.ruleId}`,
+        `category:${rule.category}`,
+        `creature:${creature.templateId}`,
+        ...(familySemantics ? [`family:${familySemantics.family}`] : []),
+        `time:${scene.time.phase}`,
+        `weather:${scene.weather.kind}`,
+        `scene:${scene.subsceneId ?? scene.zoneId}`,
       ],
       allowedIntents: profile.allowedIntentTypes,
       allowedLineIds: profile.allowedLineIds,
