@@ -438,8 +438,8 @@ describe('the Hollow Crypt doors', () => {
     sim.tick();
     teleportTo(sim, CRYPT_DOOR_POS.x, CRYPT_DOOR_POS.z - 1, b);
     sim.tick();
-    const slotA = sim.instanceSlotAt(sim.entities.get(a)?.pos);
-    const slotB = sim.instanceSlotAt(sim.entities.get(b)?.pos);
+    const slotA = sim.instanceSlotAt(sim.entities.get(a)!.pos);
+    const slotB = sim.instanceSlotAt(sim.entities.get(b)!.pos);
     expect(slotA).not.toBeNull();
     expect(slotB).not.toBeNull();
     expect(slotA).not.toBe(slotB);
@@ -614,7 +614,7 @@ describe('boss loot and encounter resets', () => {
 
     sim.lootCorpse(mob.id, b);
 
-    const gains = [a, b, c, d].map((pid) => sim.meta(pid)?.copper);
+    const gains = [a, b, c, d].map((pid) => sim.meta(pid)?.copper ?? 0);
     expect(gains[0] + gains[1] + gains[2]).toBe(12); // a, b, and the fallen c share it
     expect(gains[0]).toBeGreaterThan(0);
     expect(gains[1]).toBeGreaterThan(0);
@@ -731,6 +731,7 @@ describe('boss loot and encounter resets', () => {
     sim.events.length = 0;
     sim.lootCorpse(mob.id, a);
     const rollId = sim.events.find((e) => e.type === 'lootRoll')?.rollId;
+    if (rollId === undefined) throw new Error('expected loot roll');
     sim.submitLootRoll(rollId, 'need', a);
     sim.submitLootRoll(rollId, 'greed', b);
 
@@ -759,6 +760,7 @@ describe('boss loot and encounter resets', () => {
     sim.events.length = 0;
     sim.lootCorpse(mob.id, a);
     const rollId = sim.events.find((e) => e.type === 'lootRoll')?.rollId;
+    if (rollId === undefined) throw new Error('expected loot roll');
     sim.submitLootRoll(rollId, 'pass', a);
     sim.submitLootRoll(rollId, 'greed', b);
 
@@ -811,6 +813,7 @@ describe('boss loot and encounter resets', () => {
     sim.events.length = 0;
     sim.lootCorpse(mob.id, a);
     const rollId = sim.events.find((e) => e.type === 'lootRoll')?.rollId;
+    if (rollId === undefined) throw new Error('expected loot roll');
     sim.submitLootRoll(rollId, 'pass', a);
     sim.submitLootRoll(rollId, 'pass', b);
 
@@ -847,6 +850,7 @@ describe('boss loot and encounter resets', () => {
     sim.events.length = 0;
     sim.lootCorpse(mob.id, a);
     const rollId = sim.events.find((e) => e.type === 'lootRoll')?.rollId;
+    if (rollId === undefined) throw new Error('expected loot roll');
     sim.submitLootRoll(rollId, 'pass', a);
     sim.submitLootRoll(rollId, 'pass', b);
 
@@ -1158,7 +1162,8 @@ describe('quest npc roles', () => {
     expect(delayedEvents).toContainEqual(
       expect.objectContaining({ text: 'I swore my blade to him.', entityId: vision?.id }),
     );
-    sim.targetEntity(vision?.id);
+    if (!vision) throw new Error('expected vision');
+    sim.targetEntity(vision.id);
     sim.startAutoAttack();
     expect(sim.player.autoAttack).toBe(false);
     for (let i = 0; i < 440; i++) sim.tick();
@@ -1226,7 +1231,7 @@ describe('quest npc roles', () => {
 
     sim.player.maxHp = 100000;
     sim.player.hp = sim.player.maxHp;
-    guardian!.hp = Math.floor(guardian?.maxHp * 0.49);
+    guardian!.hp = Math.floor(guardian!.maxHp * 0.49);
     sim.tick();
 
     const boneguards = [...sim.entities.values()].filter(

@@ -43,7 +43,7 @@ describe('innate mob thorns (Bristled Hide)', () => {
 
     expect(landed).toBe(10);
     // wild_boar reflects 2 per connecting swing
-    expect(before - player.hp).toBe(landed * MOBS.wild_boar.thorns?.value);
+    expect(before - player.hp).toBe(landed * MOBS.wild_boar.thorns!.value!);
   });
 
   it('a mob without the trait reflects nothing', () => {

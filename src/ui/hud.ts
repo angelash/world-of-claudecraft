@@ -3634,7 +3634,8 @@ export class Hud {
         ab.btn.classList.remove('oor', 'queued');
         continue;
       }
-      const a = known?.def;
+      if (!known) continue;
+      const a = known.def;
       ab.btn.setAttribute(
         'aria-label',
         t('abilityUi.actionBar.slotAria', {
@@ -3657,7 +3658,7 @@ export class Hud {
         shown > 0 ? `${Math.min(100, (shown / Math.max(0.01, denom)) * 100)}%` : '0%';
       if (ab.cdOverlay.style.height !== cdHeight) ab.cdOverlay.style.height = cdHeight;
       this.setText(ab.cdText, cd > 1 ? Math.ceil(cd).toString() : '');
-      ab.btn.classList.toggle('unusable', p.resource < known?.cost);
+      ab.btn.classList.toggle('unusable', p.resource < known.cost);
       const oor =
         a.requiresTarget && tgtDist !== null && tgtDist > (a.range > 0 ? a.range : MELEE_RANGE);
       ab.btn.classList.toggle('oor', !!oor);
@@ -4500,7 +4501,7 @@ export class Hud {
 
     let action: string;
     if (inMatch) {
-      action = `<div class="arena-queue-status">${svgIcon('arena')} ${esc(t('hud.arena.matchInProgress', { name: a.match?.oppName }))}</div>`;
+      action = `<div class="arena-queue-status">${svgIcon('arena')} ${esc(t('hud.arena.matchInProgress', { name: a.match?.oppName ?? '' }))}</div>`;
     } else if (a.queued) {
       action =
         `<button class="btn leave" data-act="leave">${esc(t('hud.arena.leaveQueue'))}</button>` +
@@ -7174,9 +7175,10 @@ export class Hud {
       search.setAttribute('aria-label', t('itemUi.market.searchAria'));
       search.value = this.marketSearchQuery;
       search.addEventListener('input', () => {
-        this.marketSearchQuery = search?.value;
+        if (!search) return;
+        this.marketSearchQuery = search.value;
         this.marketBrowsePage = 0;
-        this.sim.marketSearch(search?.value);
+        this.sim.marketSearch(search.value);
       });
       body.appendChild(search);
       list = document.createElement('div');
@@ -9172,7 +9174,8 @@ export class Hud {
     const labelEl = root.querySelector('.ui-dd-label') as HTMLElement;
     const items = [...root.querySelectorAll<HTMLElement>('.ui-dd-item')];
     const isOpen = () => !menu.hasAttribute('hidden');
-    const focusedIndex = () => items.indexOf(document.activeElement);
+    const focusedIndex = () =>
+      document.activeElement instanceof HTMLElement ? items.indexOf(document.activeElement) : -1;
 
     const open = (focusIndex: number) => {
       menu.removeAttribute('hidden');
@@ -9375,7 +9378,7 @@ export class Hud {
     }
     // The server clamps the requested page; mirror its answer so the pager state
     // never drifts past the real last page.
-    this.leaderboardPage = result?.page;
+    this.leaderboardPage = result?.page ?? 0;
     const header = `<div class="lb-row lb-head"><span class="lb-rank">${t('game.leaderboard.rank')}</span><span class="lb-name">${t('game.leaderboard.name')}</span><span class="lb-lvl">${t('game.leaderboard.level')}</span><span class="lb-vlvl">${t('game.leaderboard.vlevel')}</span><span class="lb-xp">${t('game.leaderboard.lifetimeXp')}</span></div>`;
     const rowHtml = (r: LeaderboardEntry, mine: boolean): string => {
       const cls = CLASSES[r.cls];
@@ -9765,7 +9768,9 @@ export class Hud {
       const isDormant = dormant.has(n.id);
       const cand = cloneAllocation(stage);
       cand.ranks[n.id] = ranks + 1;
-      if (n.kind === 'choice' && !cand.choices[n.id]) cand.choices[n.id] = n.choices?.[0].id;
+      if (n.kind === 'choice' && !cand.choices[n.id] && n.choices?.[0]) {
+        cand.choices[n.id] = n.choices[0].id;
+      }
       const canAdd = ranks < n.maxRank && validateAllocation(cls, cand, total).ok;
       const shape = n.kind === 'active' ? 'square' : n.kind === 'choice' ? 'octagon' : 'circle';
       const state = isDormant

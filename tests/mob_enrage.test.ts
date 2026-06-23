@@ -82,12 +82,15 @@ describe('enrage frenzy (swing-speed haste)', () => {
     mob.enraged = true;
     // attackspeed aura: value > 1 slows (multiplies the interval)
     const slowAura: Entity['auras'][number] = {
+      id: 'test_attackspeed',
       kind: 'attackspeed',
       value: 2,
       name: 'Thunder Clap',
       remaining: 10,
+      duration: 10,
       stacks: 1,
-      sourceId: null,
+      sourceId: mob.id,
+      school: 'physical',
     };
     mob.auras.push(slowAura);
     expect(swingMult(sim, mob)).toBeCloseTo(2 / haste, 6);

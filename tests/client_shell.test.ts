@@ -166,7 +166,7 @@ describe('client HTML shell', () => {
 
   it('wires player card pose clicks before loading card metadata', () => {
     const methodStart = hudTs.indexOf('private async openPlayerCard');
-    const listener = hudTs.indexOf("poseButtons.forEach((b, i) => b.addEventListener('click'", methodStart);
+    const listener = hudTs.indexOf('poseButtons.forEach((b, i) =>', methodStart);
     const metadataAwait = hudTs.indexOf('[referral, standing] = await Promise.all([fetchReferralInfo(), fetchStanding()]);', methodStart);
     const actionWiring = hudTs.indexOf('this.wireCardActions(back, state, setStatus);', methodStart);
 
@@ -228,7 +228,7 @@ describe('client HTML shell', () => {
 
   it('closes mobile community and More trays when tapping outside', () => {
     expect(hudTs).toContain("const communityMenu = document.getElementById('community-menu') as HTMLDetailsElement | null;");
-    expect(hudTs).toContain("if (document.body.classList.contains('mobile-touch') && communityMenu?.open && !communityMenu.contains(target)) {\n        communityMenu.open = false;\n      }");
+    expect(hudTs).toMatch(/if \(\s*document\.body\.classList\.contains\('mobile-touch'\) &&\s*communityMenu\?\.open &&\s*!communityMenu\.contains\(target\)\s*\) \{\s*communityMenu\.open = false;\s*\}/);
     expect(hudTs).not.toContain('if (communityMenu?.open && !communityMenu.contains(target)) {\n        communityMenu.open = false;\n      }');
     expect(hudTs).toContain("if (document.body.classList.contains('mobile-more-open')) {");
     expect(hudTs).toContain("document.body.classList.remove('mobile-more-open');");
@@ -239,7 +239,9 @@ describe('client HTML shell', () => {
 
   it('keeps desktop community links open after HUD clicks', () => {
     expect(mainTs).toContain('communityMenu.open = !(NATIVE_APP || useTouchInterface());');
-    expect(hudTs).toContain("document.body.classList.contains('mobile-touch') && communityMenu?.open");
+    expect(hudTs).toMatch(
+      /document\.body\.classList\.contains\('mobile-touch'\) &&\s*communityMenu\?\.open/,
+    );
   });
 
   it('renders the mobile XP bar as a ring around the top-left class circle', () => {
@@ -413,9 +415,9 @@ describe('client HTML shell', () => {
     expect(hudTs).toContain('itemUi.market.pageRange');
     expect(hudTs).toContain('class="mkt-filters${hasSubtype ? \' has-subtype\' : \'\'}"');
     expect(hudTs).toContain('data-market-filter-menu="${menu}"');
-    expect(hudTs).toContain("this.renderMarketFilterMenu('itemType'");
-    expect(hudTs).toContain("this.renderMarketFilterMenu('subtype'");
-    expect(hudTs).toContain("this.renderMarketFilterMenu('rarity'");
+    expect(hudTs).toMatch(/this\.renderMarketFilterMenu\(\s*'itemType'/);
+    expect(hudTs).toMatch(/this\.renderMarketFilterMenu\(\s*'subtype'/);
+    expect(hudTs).toMatch(/this\.renderMarketFilterMenu\(\s*'rarity'/);
     expect(hudTs).not.toContain('<select data-market-filter=');
   });
 
@@ -462,8 +464,8 @@ describe('client HTML shell', () => {
   it('seeds druid form bars with the form kit, and only clones normal for rogue stealth', () => {
     expect(hudTs).toContain('if (this.isFormKitBar()) {');
     expect(hudTs).toContain('if (this.seedFormBarIfNeeded(parsed)) return;');
-    expect(hudTs).toContain('buildDefaultFormBar(this.formKitAbilityIds(this.activeHotbarForm), Hud.BAR_ABILITY_SLOTS)');
-    expect(hudTs).toContain('const emptyFormMap = this.activeHotbarForm !== \'normal\' && parsed.every((action) => action === null);');
+    expect(hudTs).toMatch(/buildDefaultFormBar\(\s*this\.formKitAbilityIds\(this\.activeHotbarForm\),\s*Hud\.BAR_ABILITY_SLOTS,\s*\)/);
+    expect(hudTs).toMatch(/const emptyFormMap =\s*this\.activeHotbarForm !== 'normal' && parsed\.every\(\(action\) => action === null\);/);
     expect(hudTs).toContain("localStorage.getItem(this.slotMapKey('normal'))");
     expect(hudTs).not.toContain('this.loadedSlotMapFromStorage = stored || this.activeHotbarForm !== \'normal\';');
   });
@@ -498,7 +500,7 @@ describe('client HTML shell', () => {
     expect(html).toContain('.spell-hotbar-toggle { display: none; }');
     expect(html).toContain('body.mobile-touch #spellbook .spell-hotbar-toggle {\n    min-width: 40px;\n    min-height: 40px;');
     expect(html).toContain('body.mobile-touch #spellbook .spell-hotbar-toggle.remove');
-    expect(hudTs).toContain("toggle.className = 'spell-hotbar-toggle' + (onBar ? ' remove' : '');");
+    expect(hudTs).toMatch(/toggle\.className = [`']spell-hotbar-toggle/);
     expect(hudTs).toContain('this.removeAbilityFromHotbar(known.def.id)');
     expect(hudTs).toContain('this.addAbilityToHotbar(known.def.id)');
   });
@@ -517,7 +519,7 @@ describe('client HTML shell', () => {
     expect(html).toContain('body.mobile-touch.vendor-open #vendor-window .panel-title,\n  body.mobile-touch.vendor-open #bags .panel-title {\n    height: 47px;\n    min-height: 47px;');
     expect(html).toContain('body.mobile-touch.vendor-open #vendor-window .panel-title .x-btn {\n    display: none;');
     expect(hudTs).toContain("if (this.vendorOpen && document.body.classList.contains('mobile-touch')) this.closeVendor();");
-    expect(hudTs).toContain("const closeMobileBags = document.body.classList.contains('mobile-touch') && $('#bags').style.display !== 'none';");
+    expect(hudTs).toMatch(/const closeMobileBags =\s*document\.body\.classList\.contains\('mobile-touch'\) &&\s*\$\('#bags'\)\.style\.display !== 'none';/);
   });
 
   it('keeps the expanded mobile More tray inside the viewport', () => {

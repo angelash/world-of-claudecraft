@@ -1133,7 +1133,7 @@ export class Sim {
   // spatial indexes always match the entities map
   // -------------------------------------------------------------------------
 
-  private addEntity(e: Entity): void {
+  addEntity(e: Entity): void {
     this.entities.set(e.id, e);
     this.grid.insert(e);
     if (e.kind === 'player') this.playerGrid.insert(e);
@@ -1149,7 +1149,7 @@ export class Sim {
     this.entities.delete(id);
   }
 
-  private rebucket(e: Entity): void {
+  rebucket(e: Entity): void {
     this.grid.update(e);
     if (e.kind === 'player') this.playerGrid.update(e);
   }
@@ -2272,7 +2272,7 @@ export class Sim {
     if (!strategies) return 'looter-takes-all';
     return q === 'poor' || q === 'common' ? strategies.commonItems : strategies.premiumItems;
   }
-  private moveSpeedMult(e: Entity): number {
+  moveSpeedMult(e: Entity): number {
     let slow = 1,
       speed = 1;
     for (const a of e.auras) {
@@ -2374,7 +2374,7 @@ export class Sim {
   }
 
   // swing interval multiplier: >1 = slower (thunder clap), haste divides
-  private swingIntervalMult(e: Entity): number {
+  swingIntervalMult(e: Entity): number {
     let m = 1;
     for (const a of e.auras) {
       if (a.kind === 'attackspeed') m *= a.value;
@@ -4079,7 +4079,7 @@ export class Sim {
           break;
         }
         case 'summonDemon': {
-          this.summonPet(p, eff.mobId);
+          this.summonDemon(p, eff.mobId);
           break;
         }
       }
@@ -4479,6 +4479,63 @@ export class Sim {
       pid: owner.id,
     });
     this.emit({ type: 'aura', targetId: pet.id, name: 'Summoned', gained: true });
+  }
+
+  private summonDemon(owner: Entity, mobId: string): void {
+    const template = MOBS[mobId];
+    if (!template) {
+      this.error(owner.id, 'That summon is unavailable.');
+      return;
+    }
+    const existing = this.petOf(owner.id, true);
+    if (existing) {
+      this.despawnPersistentPet(existing);
+      if (existing.templateId === mobId && !existing.dead) {
+        this.emit({
+          type: 'log',
+          text: `${existing.name} fades back into the void.`,
+          color: '#b894ff',
+          pid: owner.id,
+        });
+        return;
+      }
+    }
+    this.createDemonPet(owner, mobId, true);
+  }
+
+  private createDemonPet(owner: Entity, mobId: string, emit = false): Entity | null {
+    const template = MOBS[mobId];
+    if (!template) return null;
+    const ang = owner.facing + Math.PI;
+    const pos = this.groundPos(owner.pos.x + Math.sin(ang) * 2, owner.pos.z + Math.cos(ang) * 2);
+    const pet = createMob(this.nextId++, template, owner.level, pos);
+    pet.spawnPos = { ...pos };
+    pet.name = template.name;
+    pet.ownerId = owner.id;
+    pet.petMode = 'defensive';
+    pet.petTauntTimer = 0;
+    pet.hostile = false;
+    pet.aiState = 'idle';
+    pet.aggroTargetId = null;
+    pet.inCombat = false;
+    pet.tappedById = null;
+    pet.auras = [];
+    pet.hp = pet.maxHp;
+    pet.loot = null;
+    pet.lootable = false;
+    pet.wanderTarget = null;
+    clearThreat(pet);
+    this.addEntity(pet);
+    if (emit) {
+      this.emit({
+        type: 'log',
+        text: `You summon ${template.name}.`,
+        color: '#a78bfa',
+        pid: owner.id,
+      });
+      this.emit({ type: 'aura', targetId: pet.id, name: 'Summoned', gained: true });
+    }
+    return pet;
   }
 
   private despawnPersistentPet(pet: Entity): void {
@@ -5037,7 +5094,7 @@ export class Sim {
   // Damage / death
   // -------------------------------------------------------------------------
 
-  private dealDamage(
+  dealDamage(
     source: Entity | null,
     target: Entity,
     amount: number,
@@ -6157,7 +6214,7 @@ export class Sim {
     mob.aiState = dist2d(mob.pos, target.pos) <= profile.meleeRange ? 'attack' : 'chase';
   }
 
-  private aggroMob(mob: Entity, target: Entity, social: boolean): void {
+  aggroMob(mob: Entity, target: Entity, social: boolean): void {
     if (
       mob.dead ||
       mob.aiState === 'evade' ||
@@ -6742,7 +6799,7 @@ export class Sim {
     });
   }
 
-  private mobSwing(mob: Entity, target: Entity): void {
+  mobSwing(mob: Entity, target: Entity): void {
     const missChance = meleeMissChance(mob.level, target.level);
     const dodgeChance = target.kind === 'player' ? target.dodgeChance : 0.05;
     const roll = this.rng.next();
@@ -9365,6 +9422,7 @@ export class Sim {
     else meta.inventory.push({ itemId, count });
     this.emit({
       type: 'loot',
+      // biome-ignore lint/style/useTemplate: keep this scanner-friendly shape for i18n extraction.
       text: `You receive: ${def?.name ?? itemId}${count > 1 ? ' x' + count : ''}.`,
       pid: meta.entityId,
     });
@@ -9405,6 +9463,7 @@ export class Sim {
     this.removeItem(itemId, discardCount, meta.entityId);
     this.emit({
       type: 'log',
+      // biome-ignore lint/style/useTemplate: keep this scanner-friendly shape for i18n extraction.
       text: `Discarded ${def.name}${discardCount > 1 ? ' x' + discardCount : ''}.`,
       color: '#999',
       pid: meta.entityId,
@@ -9736,6 +9795,7 @@ export class Sim {
     this.emit({ type: 'vendor', action: 'sell', itemId, pid: meta.entityId });
     this.emit({
       type: 'loot',
+      // biome-ignore lint/style/useTemplate: keep this scanner-friendly shape for i18n extraction.
       text: `Sold ${def.name}${sellCount > 1 ? ' x' + sellCount : ''} for ${formatMoney(payout)}.`,
       pid: meta.entityId,
     });
@@ -13834,6 +13894,7 @@ export class Sim {
     });
     this.emit({
       type: 'loot',
+      // biome-ignore lint/style/useTemplate: keep this scanner-friendly shape for i18n extraction.
       text: `Listed ${def.name}${want > 1 ? ' x' + want : ''} on the World Market for ${formatMoney(ask)}.`,
       pid: meta.entityId,
     });
@@ -13886,6 +13947,7 @@ export class Sim {
     }
     this.emit({
       type: 'loot',
+      // biome-ignore lint/style/useTemplate: keep this scanner-friendly shape for i18n extraction.
       text: `Bought ${def.name}${listing.count > 1 ? ' x' + listing.count : ''} for ${formatMoney(listing.price)}.`,
       pid: meta.entityId,
     });
@@ -13912,6 +13974,7 @@ export class Sim {
     const def = ITEMS[listing.itemId];
     this.emit({
       type: 'loot',
+      // biome-ignore lint/style/useTemplate: keep this scanner-friendly shape for i18n extraction.
       text: `Reclaimed ${def?.name ?? listing.itemId}${listing.count > 1 ? ' x' + listing.count : ''} from the market.`,
       pid: meta.entityId,
     });
