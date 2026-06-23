@@ -4,6 +4,8 @@ import type {
   AiActiveMobActionIntent,
   AiActiveMobActionRequest,
   AiActiveMobActionResult,
+  AiActiveNpcActionRequest,
+  AiActiveNpcActionResult,
   Entity,
   SimEvent,
 } from '../../src/sim/types';
@@ -220,6 +222,7 @@ export interface AiActiveTriggerServiceOptions {
 }
 
 export type AiActiveWorldActionBridge = (request: AiActiveMobActionRequest) => AiActiveMobActionResult;
+export type AiActiveNpcActionBridge = (request: AiActiveNpcActionRequest) => AiActiveNpcActionResult;
 
 interface AiActivePollCursorState {
   ruleId: string;
@@ -476,6 +479,7 @@ export class AiActiveTriggerService {
     nowMs: number;
     deliver?: (pid: number, events: SimEvent[]) => void;
     applyAction?: AiActiveWorldActionBridge;
+    applyNpcAction?: AiActiveNpcActionBridge;
   }): SimEvent[] {
     this.refreshCodexBudgetMetrics(input.nowMs);
     if (!this.enabled) {
@@ -521,6 +525,7 @@ export class AiActiveTriggerService {
           nowMs: input.nowMs,
           deliver: input.deliver,
           applyAction: input.applyAction,
+          applyNpcAction: input.applyNpcAction,
         });
         this.scheduleNext(rule, cursor, input.nowMs);
         if (result.events.length > 0) {
@@ -691,6 +696,7 @@ export class AiActiveTriggerService {
     nowMs: number;
     deliver?: (pid: number, events: SimEvent[]) => void;
     applyAction?: AiActiveWorldActionBridge;
+    applyNpcAction?: AiActiveNpcActionBridge;
   }): { events: SimEvent[]; skipReason: AiActiveSkipReason } {
     const player = input.sim.entities.get(input.session.pid);
     if (!player) return { events: [], skipReason: 'player_missing' };
@@ -756,6 +762,7 @@ export class AiActiveTriggerService {
       lineId,
       createdAtMs: input.nowMs,
     });
+    if (routine) this.tryApplyNpcRoutineAction(candidate.entity, player, routine.kind, input.applyNpcAction);
     if (this.tryStartProviderNpcBeat({
       context,
       entity: candidate.entity,
@@ -767,6 +774,28 @@ export class AiActiveTriggerService {
       return { events: [thinkingEvent], skipReason: 'not_due' };
     }
     return { events: [thinkingEvent, localEvent], skipReason: 'not_due' };
+  }
+
+  private tryApplyNpcRoutineAction(
+    npc: Entity,
+    player: Entity,
+    routineKind: 'working' | 'sleeping' | 'shelter' | 'watching',
+    applyNpcAction?: AiActiveNpcActionBridge,
+  ): AiActiveNpcActionResult | null {
+    if (!this.realActionsEnabled || !applyNpcAction) return null;
+    const relation = routineKind === 'sleeping' ? 'awayFromPlayer' : 'sideStep';
+    const distance = routineKind === 'shelter' ? 2.4 : routineKind === 'sleeping' ? 1.2 : 1.6;
+    const durationSeconds = routineKind === 'sleeping' ? 14 : routineKind === 'shelter' ? 12 : 8;
+    return applyNpcAction({
+      kind: 'shortMove',
+      npcId: npc.id,
+      playerId: player.id,
+      relation,
+      distance,
+      durationSeconds,
+      maxDistanceFromHome: npc.questIds.length > 0 || npc.vendorItems.length > 0 ? 3 : 6,
+      maxPlayerDistance: CANDIDATE_RADIUS,
+    });
   }
 
   private tryStartProviderNpcBeat(input: {

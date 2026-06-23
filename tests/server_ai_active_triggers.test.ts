@@ -19,6 +19,7 @@ import {
   AiActiveTriggerService,
   type AiActivePollRuleV1,
 } from '../server/ai/active_triggers';
+import { dist2d } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
 
 interface FakeClient {
@@ -68,6 +69,15 @@ function activeCreatureRule(): AiActivePollRuleV1 {
       perEntitySeconds: 180,
       perRuleSeconds: 10,
     },
+  };
+}
+
+function activeLivingRule(): AiActivePollRuleV1 {
+  return {
+    ...activeRule(),
+    ruleId: 'server_active_npc_living',
+    title: 'Server active NPC living',
+    category: 'livingRoutine',
   };
 }
 
@@ -271,6 +281,41 @@ describe('server AI active triggers', () => {
     expect(wolf.aiState).toBe('flee');
     expect(wolf.aggroTargetId).toBe(session.pid);
     expect(wolf.inCombat).toBe(true);
+    expect(mainlineSnapshot(server, session.pid)).toEqual(before);
+  });
+
+  it('applies active NPC micro movement through the live server scheduler path', () => {
+    const server = new GameServer();
+    const service = new AiActiveTriggerService({
+      rules: [activeLivingRule()],
+      thinkingDurationMs: 700,
+    });
+    (server as any).aiActiveTriggers = service;
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
+    if (!npc) throw new Error('missing Brother Aldric');
+    server.sim.time = 8 * 60;
+    teleportNear(server, session.pid, npc.id);
+    const home = { ...npc.pos };
+    const before = mainlineSnapshot(server, session.pid);
+    fc.sent.length = 0;
+
+    (server as any).runAiActiveTriggers(1_000);
+
+    expect(eventsOf(fc, 'aiThinking')).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      durationMs: 700,
+      pid: session.pid,
+    }));
+    expect(npc.aiActiveMoveTarget).not.toBeNull();
+
+    for (let i = 0; i < 40; i++) server.sim.tick();
+    expect(dist2d(npc.pos, home)).toBeGreaterThan(0.3);
+    expect(dist2d(npc.pos, home)).toBeLessThanOrEqual(3.05);
+    for (let i = 0; i < 220; i++) server.sim.tick();
+    expect(dist2d(npc.pos, home)).toBeLessThan(0.35);
+    expect(npc.aiActiveMoveTarget).toBeNull();
     expect(mainlineSnapshot(server, session.pid)).toEqual(before);
   });
 });

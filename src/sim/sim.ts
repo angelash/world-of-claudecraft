@@ -37,6 +37,7 @@ import {
   MILESTONES, virtualLevel, xpToReachLevel, canPrestige,
   ArenaFormat, ArenaStanding, ArenaCombatant, SkinCatalog, SkinRank,
   type AiActiveMobActionRequest, type AiActiveMobActionResult,
+  type AiActiveNpcActionRequest, type AiActiveNpcActionResult,
 } from './types';
 import {
   EVENT_SKIN_TOKEN_ID, MECH_CHROMAS, classHasSkin, mechChromaItemId, mechChromaSkinIndex,
@@ -76,6 +77,10 @@ const FLEE_HELP_RADIUS = 8;
 const FLEEING_FAMILIES: ReadonlySet<MobFamily> = new Set(['humanoid', 'kobold', 'murloc', 'troll']);
 const AI_ACTIVE_MOB_ACTION_MAX_DISTANCE = 28;
 const AI_ACTIVE_FLEE_FAMILIES: ReadonlySet<MobFamily> = new Set(['beast', 'humanoid', 'murloc', 'spider', 'kobold', 'troll', 'ogre']);
+const AI_ACTIVE_NPC_PLAYER_DISTANCE = 28;
+const AI_ACTIVE_KEY_NPC_HOME_RADIUS = 3;
+const AI_ACTIVE_NPC_HOME_RADIUS = 6;
+const AI_ACTIVE_NPC_MOVE_SPEED_MULT = 0.35;
 const GRAVITY = 16;
 const JUMP_VELOCITY = 6; // apex = v^2/2g ≈ 1.125 yd
 const MELEE_ARC = 2.2; // radians half-arc within which melee swings connect
@@ -913,6 +918,92 @@ export class Sim {
     return ids;
   }
 
+  aiActiveNpcAction(input: AiActiveNpcActionRequest): AiActiveNpcActionResult {
+    const npc = this.entities.get(input.npcId);
+    if (!npc) return { ok: false, kind: input.kind, reason: 'npc_missing', affectedEntityIds: [] };
+    const player = this.entities.get(input.playerId);
+    if (!player) return { ok: false, kind: input.kind, reason: 'player_missing', affectedEntityIds: [] };
+    if (npc.kind !== 'npc' || player.kind !== 'player') {
+      return { ok: false, kind: input.kind, reason: 'unsupported_entity', affectedEntityIds: [] };
+    }
+    if (npc.dead || player.dead) {
+      return { ok: false, kind: input.kind, reason: 'dead_entity', affectedEntityIds: [] };
+    }
+    const maxPlayerDistance = Math.max(1, input.maxPlayerDistance ?? AI_ACTIVE_NPC_PLAYER_DISTANCE);
+    if (dist2d(npc.pos, player.pos) > maxPlayerDistance) {
+      return { ok: false, kind: input.kind, reason: 'distance_too_far', affectedEntityIds: [] };
+    }
+    if (input.kind === 'returnHome') {
+      return this.startAiActiveNpcReturn(npc, input.kind);
+    }
+    if (input.kind !== 'shortMove') {
+      return { ok: false, kind: input.kind, reason: 'state_blocked', affectedEntityIds: [] };
+    }
+    if (npc.aiActiveReturningHome) {
+      return { ok: false, kind: input.kind, reason: 'state_blocked', affectedEntityIds: [] };
+    }
+
+    const homeRadius = this.aiActiveNpcHomeRadius(npc, input.maxDistanceFromHome);
+    const distance = Math.min(homeRadius, Math.max(0.3, input.distance ?? 2.2));
+    const relation = input.relation ?? 'sideStep';
+    const angleToPlayer = angleTo(npc.pos, player.pos);
+    const angle = relation === 'towardPlayer'
+      ? angleToPlayer
+      : relation === 'awayFromPlayer'
+        ? angleTo(player.pos, npc.pos)
+        : angleToPlayer + (npc.id % 2 === 0 ? Math.PI / 2 : -Math.PI / 2);
+    const rawTarget = this.groundPos(npc.pos.x + Math.sin(angle) * distance, npc.pos.z + Math.cos(angle) * distance);
+    const target = this.clampAiActiveNpcTarget(npc, rawTarget, homeRadius);
+    if (dist2d(npc.pos, target) < 0.3) {
+      return { ok: false, kind: input.kind, reason: 'state_blocked', affectedEntityIds: [] };
+    }
+
+    npc.aiActiveMoveTarget = target;
+    npc.aiActiveReturningHome = false;
+    npc.aiActiveReturnAt = this.time + Math.min(30, Math.max(1, input.durationSeconds ?? 8));
+    return {
+      ok: true,
+      kind: input.kind,
+      affectedEntityIds: [npc.id],
+      targetPos: { x: target.x, z: target.z },
+    };
+  }
+
+  private startAiActiveNpcReturn(npc: Entity, kind: AiActiveNpcActionRequest['kind']): AiActiveNpcActionResult {
+    if (dist2d(npc.pos, npc.spawnPos) < 0.3) {
+      npc.aiActiveMoveTarget = null;
+      npc.aiActiveReturnAt = 0;
+      npc.aiActiveReturningHome = false;
+      return { ok: false, kind, reason: 'state_blocked', affectedEntityIds: [] };
+    }
+    npc.aiActiveMoveTarget = { ...npc.spawnPos };
+    npc.aiActiveReturnAt = 0;
+    npc.aiActiveReturningHome = true;
+    return {
+      ok: true,
+      kind,
+      affectedEntityIds: [npc.id],
+      targetPos: { x: npc.spawnPos.x, z: npc.spawnPos.z },
+    };
+  }
+
+  private aiActiveNpcHomeRadius(npc: Entity, requested: number | undefined): number {
+    const cap = npc.questIds.length > 0 || npc.vendorItems.length > 0
+      ? AI_ACTIVE_KEY_NPC_HOME_RADIUS
+      : AI_ACTIVE_NPC_HOME_RADIUS;
+    return Math.min(cap, Math.max(0.5, requested ?? cap));
+  }
+
+  private clampAiActiveNpcTarget(npc: Entity, target: Vec3, maxHomeDistance: number): Vec3 {
+    const homeDistance = dist2d(npc.spawnPos, target);
+    if (homeDistance <= maxHomeDistance) return target;
+    const a = angleTo(npc.spawnPos, target);
+    return this.groundPos(
+      npc.spawnPos.x + Math.sin(a) * maxHomeDistance,
+      npc.spawnPos.z + Math.cos(a) * maxHomeDistance,
+    );
+  }
+
   // -------------------------------------------------------------------------
   // Players: join / leave / persistence
   // -------------------------------------------------------------------------
@@ -1673,6 +1764,7 @@ export class Sim {
         this.updateMob(e);
         this.updateAuras(e);
       } else if (e.kind === 'npc') {
+        this.updateAiActiveNpc(e);
         this.cleanseFriendlyNpcAuras(e);
       } else if (e.kind === 'object') {
         if (!e.lootable) {
@@ -1719,6 +1811,30 @@ export class Sim {
     const out = this.events;
     this.events = [];
     return out;
+  }
+
+  private updateAiActiveNpc(npc: Entity): void {
+    if (npc.dead) {
+      npc.aiActiveMoveTarget = null;
+      npc.aiActiveReturnAt = 0;
+      npc.aiActiveReturningHome = false;
+      return;
+    }
+    if (!npc.aiActiveMoveTarget && !npc.aiActiveReturningHome && npc.aiActiveReturnAt > 0 && this.time >= npc.aiActiveReturnAt) {
+      npc.aiActiveMoveTarget = { ...npc.spawnPos };
+      npc.aiActiveReturnAt = 0;
+      npc.aiActiveReturningHome = true;
+    }
+    if (!npc.aiActiveMoveTarget) return;
+    const arrived = this.moveToward(npc, npc.aiActiveMoveTarget, npc.moveSpeed * AI_ACTIVE_NPC_MOVE_SPEED_MULT);
+    if (!arrived) return;
+    if (npc.aiActiveReturningHome) {
+      npc.aiActiveMoveTarget = null;
+      npc.aiActiveReturnAt = 0;
+      npc.aiActiveReturningHome = false;
+      return;
+    }
+    npc.aiActiveMoveTarget = null;
   }
 
   private emitDueDelayedEvents(): void {

@@ -5,6 +5,7 @@ import {
 } from '../server/ai/active_triggers';
 import type { AiJobContextV1, AiProvider } from '../server/ai/ai_types';
 import { Sim } from '../src/sim/sim';
+import { dist2d } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
 
 function testRule(overrides: Partial<AiActivePollRuleV1> = {}): AiActivePollRuleV1 {
@@ -398,6 +399,56 @@ describe('AI active trigger service', () => {
       activeRoutineFired: 1,
       activeRoutineLastKind: 'working',
     });
+  });
+
+  it('moves a key NPC briefly for a living routine and returns them home', () => {
+    const { sim, pid, npcId } = makeWorld();
+    sim.time = 8 * 60;
+    const npc = sim.entities.get(npcId);
+    if (!npc) throw new Error('missing npc');
+    const home = { ...npc.pos };
+    const before = mainlineSnapshot(sim, pid);
+    const requests: unknown[] = [];
+    const results: unknown[] = [];
+    const service = new AiActiveTriggerService({
+      rules: [testRule({ ruleId: 'test_npc_micro_move', category: 'livingRoutine' })],
+    });
+
+    const events = service.tick({
+      sim,
+      sessions: [{ pid }],
+      nowMs: 1_000,
+      applyNpcAction: (request) => {
+        requests.push(request);
+        const result = sim.aiActiveNpcAction(request);
+        results.push(result);
+        return result;
+      },
+    });
+
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speakerId: npcId,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneDayEnergy' }),
+      pid,
+    }));
+    expect(requests).toEqual([
+      expect.objectContaining({ kind: 'shortMove', npcId, playerId: pid, maxDistanceFromHome: 3 }),
+    ]);
+    expect(results).toEqual([
+      expect.objectContaining({ ok: true, kind: 'shortMove', affectedEntityIds: [npcId] }),
+    ]);
+    expect(npc.aiActiveMoveTarget).not.toBeNull();
+
+    for (let i = 0; i < 40; i++) sim.tick();
+    expect(dist2d(npc.pos, home)).toBeGreaterThan(0.3);
+    expect(dist2d(npc.pos, home)).toBeLessThanOrEqual(3.05);
+
+    for (let i = 0; i < 220; i++) sim.tick();
+    expect(dist2d(npc.pos, home)).toBeLessThan(0.35);
+    expect(npc.aiActiveMoveTarget).toBeNull();
+    expect(npc.aiActiveReturningHome).toBe(false);
+    expect(mainlineSnapshot(sim, pid)).toEqual(before);
   });
 
   it('marks clear nighttime NPC routine beats as watching the stars using localized speech', () => {

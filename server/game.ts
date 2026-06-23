@@ -647,6 +647,7 @@ export class GameServer {
         }
       },
       applyAction: (request) => this.sim.aiActiveMobAction(request),
+      applyNpcAction: (request) => this.sim.aiActiveNpcAction(request),
     });
     this.routeEvents(events);
   }

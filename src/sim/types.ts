@@ -233,6 +233,36 @@ export interface AiActiveMobActionResult {
   affectedEntityIds: number[];
 }
 
+export type AiActiveNpcActionKind = 'shortMove' | 'returnHome';
+export type AiActiveNpcMoveRelation = 'towardPlayer' | 'awayFromPlayer' | 'sideStep';
+
+export type AiActiveNpcActionFailureReason =
+  | 'npc_missing'
+  | 'player_missing'
+  | 'unsupported_entity'
+  | 'dead_entity'
+  | 'distance_too_far'
+  | 'state_blocked';
+
+export interface AiActiveNpcActionRequest {
+  kind: AiActiveNpcActionKind;
+  npcId: number;
+  playerId: number;
+  relation?: AiActiveNpcMoveRelation;
+  distance?: number;
+  durationSeconds?: number;
+  maxDistanceFromHome?: number;
+  maxPlayerDistance?: number;
+}
+
+export interface AiActiveNpcActionResult {
+  ok: boolean;
+  kind: AiActiveNpcActionKind;
+  reason?: AiActiveNpcActionFailureReason;
+  affectedEntityIds: number[];
+  targetPos?: { x: number; z: number };
+}
+
 export interface MobTemplate {
   id: string;
   name: string;
@@ -909,6 +939,9 @@ export interface Entity {
   enraged: boolean; // enrage mechanic active
   healedThisPull: boolean; // desperation self-heal already used this pull
   spawnPos: Vec3;
+  aiActiveMoveTarget: Vec3 | null;
+  aiActiveReturnAt: number;
+  aiActiveReturningHome: boolean;
   leashAnchor: Vec3 | null; // refreshed by hostile player/pet actions; spawnPos remains the true home
   evadeStall: number; // seconds an evading mob has failed to get closer to home; snaps it home if it can't path back (e.g. across water)
   fleeTimer: number; // seconds left in a low-HP panic flee; counts down in the 'flee' state
