@@ -273,6 +273,7 @@ function activeTriggers(overrides: Partial<AiActiveTriggerAdminSnapshot> = {}): 
       activeProviderRejected: 0,
       activeProviderFallbacks: 1,
       activeProviderPending: 1,
+      activeProviderDeferredForActivity: 3,
       activeLastProviderLatencyMs: 923,
       activeLastProviderTimings: {
         provider: 'codex-app-server',
@@ -725,6 +726,7 @@ describe('admin AI life layer metrics renderer', () => {
     const html = renderAiLifeLayerMetrics(metrics(), coverage(), diagnostics(), profiles(), audit(), active, 'active');
 
     expect(html).toContain('Active AI');
+    expect(html).toContain('Provider yielded to player activity');
     expect(html).toContain('Runtime switches');
     expect(html).toContain('Real actions');
     expect(html).toContain('Actions applied / rejected');
@@ -775,6 +777,7 @@ describe('admin AI life layer metrics renderer', () => {
     const html = renderAiLifeLayerMetrics(metrics(), coverage(), diagnostics(), profiles(), audit(), activeTriggers(), 'active');
 
     expect(html).toContain('主动 AI');
+    expect(html).toContain('大模型已给玩家操作让路');
     expect(html).toContain('运行时开关');
     expect(html).toContain('真实动作');
     expect(html).toContain('真实动作应用 / 拒绝');

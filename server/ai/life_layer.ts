@@ -895,6 +895,15 @@ export class AiLifeLayer {
       ...(rumor ? [rumorMemoryAudit(rumor, rumor.scope === 'region' ? 'readRegionRumor' : 'readSceneRumor')] : []),
       ...persistedSignals,
     ];
+    const replyCandidates = {
+      sceneEvent: sceneAwarenessEvent(context, npc),
+      traceEvent: worldTraceReactionEvent(context, npc, trace),
+      directorEvent: shouldShareWorldDirector(request.topic, directorState, rumor)
+        ? worldDirectorEvent(context.scene ?? null, npc, directorState, request.pid)
+        : null,
+      memoryEvent: memoryReactionEvent(context, npc, memory, rumor),
+      topicEvent: topicReactionEvent(context, npc, memory, rumor),
+    };
     let decision: AiDecisionV1;
     let promptText: string | undefined;
     let rawOutput: string | undefined;
@@ -905,7 +914,14 @@ export class AiLifeLayer {
       const reason = providerAttempt.reason;
       providerLatencyMs = providerAttempt.latencyMs;
       this.journal.recordProviderError(context, reason, memoryWrites);
-      const event = providerFailureErrorEvent(context, reason);
+      const fallbackEvents = directNpcReplyEvents(context, npc, [], replyCandidates);
+      const fallbackEvent = fallbackEvents[0] ?? npcLocalFallbackEvent(context, npc);
+      const deliveredEvents = fallbackEvents.length > 0
+        ? fallbackEvents
+        : fallbackEvent
+          ? [fallbackEvent]
+          : [providerFailureErrorEvent(context, reason)];
+      if (fallbackEvents.length > 0 || fallbackEvent) this.metrics.providerFallbacks++;
       this.recordProviderAudit({
         context,
         latencyMs: providerLatencyMs,
@@ -913,11 +929,11 @@ export class AiLifeLayer {
         result: null,
         memoryWrites,
         providerError: reason,
-        deliveredEvents: [event],
+        deliveredEvents,
       });
       this.enqueueMemoryWrites(memoryWrites);
-      this.metrics.generatedEvents++;
-      request.deliver([event]);
+      this.metrics.generatedEvents += deliveredEvents.length;
+      request.deliver(deliveredEvents);
       return;
     }
     ({ decision, promptText, rawOutput, providerTimings, latencyMs: providerLatencyMs } = providerAttempt);
@@ -932,7 +948,14 @@ export class AiLifeLayer {
     this.journal.recordDecision(context, decision, result, memoryWrites);
     this.enqueueMemoryWrites(memoryWrites);
     if (!result.ok) {
-      const event = providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator');
+      const fallbackEvents = directNpcReplyEvents(context, npc, [], replyCandidates);
+      const fallbackEvent = fallbackEvents[0] ?? npcLocalFallbackEvent(context, npc);
+      const deliveredEvents = fallbackEvents.length > 0
+        ? fallbackEvents
+        : fallbackEvent
+          ? [fallbackEvent]
+          : [providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator')];
+      if (fallbackEvents.length > 0 || fallbackEvent) this.metrics.providerFallbacks++;
       this.recordProviderAudit({
         context,
         latencyMs: providerLatencyMs,
@@ -942,26 +965,19 @@ export class AiLifeLayer {
         promptText,
         rawOutput,
         providerTimings,
-        deliveredEvents: [event],
+        deliveredEvents,
       });
-      this.metrics.generatedEvents++;
-      request.deliver([event]);
+      this.metrics.generatedEvents += deliveredEvents.length;
+      request.deliver(deliveredEvents);
       return;
     }
     if (result.ok) {
-      const sceneEvent = sceneAwarenessEvent(context, npc);
-      const traceEvent = worldTraceReactionEvent(context, npc, trace);
-      const directorEvent = shouldShareWorldDirector(request.topic, directorState, rumor)
-        ? worldDirectorEvent(context.scene ?? null, npc, directorState, request.pid)
-        : null;
-      const memoryEvent = memoryReactionEvent(context, npc, memory, rumor);
-      const topicEvent = topicReactionEvent(context, npc, memory, rumor);
       const events = directNpcReplyEvents(context, npc, result.events, {
-        sceneEvent,
-        traceEvent,
-        directorEvent,
-        memoryEvent,
-        topicEvent,
+        sceneEvent: replyCandidates.sceneEvent,
+        traceEvent: replyCandidates.traceEvent,
+        directorEvent: replyCandidates.directorEvent,
+        memoryEvent: replyCandidates.memoryEvent,
+        topicEvent: replyCandidates.topicEvent,
       });
       this.recordProviderAudit({
         context,
@@ -2307,6 +2323,41 @@ function directProviderSpeech(
     && event.speakerId === npc.id
     && event.pid === context.player.entityId);
   return directSpeech ?? null;
+}
+
+function npcLocalFallbackEvent(
+  context: AiJobContextV1,
+  npc: Entity,
+): Extract<SimEvent, { type: 'aiSpeech' }> | null {
+  const profile = profileFor('npc', npc.templateId);
+  if (!profile.fallbackLineId) return null;
+  return {
+    type: 'aiSpeech',
+    speakerId: npc.id,
+    speakerName: npc.name,
+    speech: {
+      mode: 'lineId',
+      lineId: profile.fallbackLineId,
+      values: {
+        speakerName: npc.name,
+        playerName: context.player.name,
+        subsceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? 'unknown',
+      },
+    },
+    source: 'local',
+    reaction: {
+      kind: 'inspect',
+      score: 0.25,
+      sceneTags: context.scene
+        ? [...new Set([
+          ...context.scene.locationTags,
+          ...context.scene.structureTags,
+          ...context.scene.environmentalTags,
+        ])].slice(0, 8)
+        : [],
+    },
+    pid: context.player.entityId,
+  };
 }
 
 function npcConversationOutputMode(topic: AiNpcInteractionTopic): AiOutputMode {

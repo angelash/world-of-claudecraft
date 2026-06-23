@@ -233,6 +233,7 @@ const fakeGame: any = {
     activeProviderRejected: 0,
     activeProviderFallbacks: 1,
     activeProviderPending: 1,
+    activeProviderDeferredForActivity: 2,
     activeLastProviderLatencyMs: 923,
     activeActionsAttempted: 3,
     activeActionsApplied: 2,
@@ -578,6 +579,7 @@ describe('admin api auth', () => {
           metrics: expect.objectContaining({
             activePollFired: 4,
             activeProviderPending: 1,
+            activeProviderDeferredForActivity: 2,
             activeCodexBudgetRemaining5h: 477,
           }),
           diagnostics: expect.objectContaining({

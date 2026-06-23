@@ -209,6 +209,7 @@ export const en_XA: AdminTranslations = {
   "usage.aiActiveDisabled": "[ðíšáƀļéð]",
   "usage.aiActiveProviderPending": "[Þéñðíñĝ þŕóʋíðéŕ ĵóƀš]",
   "usage.aiActiveProviderSuccessError": "[Þŕóʋíðéŕ šúççéšš / éŕŕóŕš]",
+  "usage.aiActiveProviderDeferredForActivity": "[Þŕóʋíðéŕ ýíéļðéð ţó þļáýéŕ áçţíʋíţý]",
   "usage.aiActiveBudgetRemaining": "[5ĥ / ŵééķ ƀúðĝéţ ļéƒţ]",
   "usage.aiActivePopulationBand": "[Þóþúļáţíóñ ƀáñð]",
   "usage.aiActiveLastLatency": "[Ļášţ áçţíʋé ļáţéñçý]",

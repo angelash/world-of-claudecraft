@@ -208,6 +208,7 @@ export const zh_CN: Record<string, string> = {
   "usage.aiActiveDisabled": "已停用",
   "usage.aiActiveProviderPending": "等待中的大模型任务",
   "usage.aiActiveProviderSuccessError": "大模型成功 / 失败",
+  "usage.aiActiveProviderDeferredForActivity": "大模型已给玩家操作让路",
   "usage.aiActiveBudgetRemaining": "5小时 / 每周剩余额度",
   "usage.aiActivePopulationBand": "在线人数档位",
   "usage.aiActiveLastLatency": "最近主动延迟",

@@ -252,7 +252,7 @@ describe('server AI interact command', () => {
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);
   });
 
-  it('delivers a clear NPC AI error when the provider fails', async () => {
+  it('falls back to local NPC speech when the provider fails', async () => {
     const server = new GameServer();
     const fc = fakeWs();
     const session = joinServer(server, fc);
@@ -270,8 +270,10 @@ describe('server AI interact command', () => {
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_interact_npc', npc: npc.id, locale: 'en' }));
     await flushAi();
 
-    expect(eventsOf(fc, 'error')).toContainEqual(expect.objectContaining({
-      text: 'AI response failed: codex worker timed out',
+    expect(eventsOf(fc, 'error')).toHaveLength(0);
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      source: 'local',
       pid: session.pid,
     }));
     expect((server as any).aiLifeLayer.diagnostics()).toEqual([
@@ -281,7 +283,7 @@ describe('server AI interact command', () => {
       providerCalls: 1,
       providerSuccesses: 0,
       providerErrors: 1,
-      providerFallbacks: 0,
+      providerFallbacks: 1,
       acceptedDecisions: 0,
       lastProviderError: 'codex worker timed out',
     });

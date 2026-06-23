@@ -118,6 +118,7 @@ export interface AiActiveTriggerMetricsSnapshot {
   activeProviderRejected: number;
   activeProviderFallbacks: number;
   activeProviderPending: number;
+  activeProviderDeferredForActivity: number;
   activeLastProviderLatencyMs: number;
   activeLastProviderTimings?: AiProviderTimingSnapshot;
   activeActionsAttempted: number;
@@ -516,6 +517,7 @@ export class AiActiveTriggerService {
     activeProviderRejected: 0,
     activeProviderFallbacks: 0,
     activeProviderPending: 0,
+    activeProviderDeferredForActivity: 0,
     activeLastProviderLatencyMs: 0,
     activeActionsAttempted: 0,
     activeActionsApplied: 0,
@@ -1084,7 +1086,10 @@ export class AiActiveTriggerService {
     deferProvider?: boolean;
   }): boolean {
     if (!this.provider || !input.deliver) return false;
-    if (input.deferProvider) return false;
+    if (input.deferProvider) {
+      this.metrics.activeProviderDeferredForActivity++;
+      return false;
+    }
     if (input.rule.providerPolicy === 'localOnly' || input.rule.outputMode === 'lineIdOnly') return false;
     if (!this.providerBudgetAvailable(input.rule, input.nowMs)) return false;
     const jobKey = `${input.rule.ruleId}:${input.context.player.entityId}:${input.entity.id}`;

@@ -209,6 +209,7 @@ export const it_IT: AdminTranslations = {
   "usage.aiActiveDisabled": "disabled",
   "usage.aiActiveProviderPending": "Pending provider jobs",
   "usage.aiActiveProviderSuccessError": "Provider success / errors",
+  "usage.aiActiveProviderDeferredForActivity": "Provider yielded to player activity",
   "usage.aiActiveBudgetRemaining": "5h / week budget left",
   "usage.aiActivePopulationBand": "Population band",
   "usage.aiActiveLastLatency": "Last active latency",

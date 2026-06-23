@@ -446,6 +446,7 @@ export interface AiActiveTriggerMetricsSnapshot {
   activeProviderRejected: number;
   activeProviderFallbacks: number;
   activeProviderPending: number;
+  activeProviderDeferredForActivity: number;
   activeLastProviderLatencyMs: number;
   activeLastProviderTimings?: AiProviderTimingSnapshot;
   activeActionsAttempted: number;

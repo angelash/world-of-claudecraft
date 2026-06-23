@@ -1680,6 +1680,10 @@ function renderAiActiveTriggerControls(active?: AiActiveTriggerAdminSnapshot): s
         <div class="ai-health-label">${t('usage.aiActiveProviderSuccessError')}</div>
       </div>
       <div class="ai-health-cell">
+        <div class="ai-health-value">${renderAiNumber(metrics.activeProviderDeferredForActivity)}</div>
+        <div class="ai-health-label">${t('usage.aiActiveProviderDeferredForActivity')}</div>
+      </div>
+      <div class="ai-health-cell">
         <div class="ai-health-value">${renderAiNumber(diagnostics.codexBudget.remainingCalls5h)} / ${renderAiNumber(diagnostics.codexBudget.remainingCallsWeek)}</div>
         <div class="ai-health-label">${t('usage.aiActiveBudgetRemaining')}</div>
       </div>
