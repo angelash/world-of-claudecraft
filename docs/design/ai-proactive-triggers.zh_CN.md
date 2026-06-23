@@ -1451,6 +1451,15 @@ Usage 页建议新增一个 tab 或 section：
 - `AI_LIVING_WORLD_EXPERIMENT=0` 时基础主线仍完整可玩。
 - release tier 前所有新增玩家可见文本都有本地化路径和简中覆盖。
 
+当前实现补充：
+
+- 主动 AI 现在会把实际发出的 `aiSpeech` 摘要写入长期记忆持久化队列。`GameServer.runAiActiveTriggers` 会记录调度器同步返回的主动事件，也会记录 provider、fallback 或连续序列通过 `deliver` 异步送达的后续事件。
+- `AiLifeLayer.recordActiveTriggerEvents` 只保存摘要，不保存动态原文：speaker、templateId、scene、zone、lineId、reaction planKind、salience、createdAt、expiresAt 和 source。动态文本只以 `dynamic` 标记参与 refId 去重，避免无界保存 raw output。
+- 主动记忆按分钟 bucket 去重，refId 形如 `active:{source}:{pid}:{speakerId}:{planKind}:{lineId|dynamic}:{minute}`。同一分钟同一对象同一计划会覆盖更新，不会因为轮询刷屏无限增长。
+- TTL 按价值分层：奇点主动记忆保留 21 天，世界导演主动余波保留 14 天，普通怪物主动生活保留 10 天，普通 NPC 主动生活保留 7 天。最终仍受现有 `AI_MEMORY_MAX_RECORDS`、单玩家上限、kind 比例和 batch trim 保护。
+- salience 会综合 reaction score、planIntensity、singularity、worldDirector、sequence 和 creature 权重，便于预算清理时优先保留奇点、世界导演、连续行为和高强度生态反应。
+- `tests/ai_memory_persistence.test.ts` 覆盖主动奇点发声会落成 `creatureMemory`，带本地化 lineId、`active:*` reason、高 salience 和 21 天 TTL。
+
 ## 验收标准
 
 第一批完整目标达成时，应该满足：

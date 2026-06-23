@@ -547,6 +547,35 @@ export class AiLifeLayer {
     };
   }
 
+  recordActiveTriggerEvents(input: {
+    sim: Sim;
+    pid: number;
+    events: readonly SimEvent[];
+    source: 'scheduler' | 'deliver';
+  }): void {
+    if (!this.enabled || !this.memoryDb || input.events.length === 0) return;
+    const player = input.sim.entities.get(input.pid);
+    if (!player) return;
+    const scene = sceneFrameFor(input.sim, player.pos, { excludeEntityIds: [player.id] });
+    const sceneId = scene.subsceneId ?? scene.zoneId;
+    const records: AiMemoryAuditRecord[] = [];
+    for (const event of input.events) {
+      if (event.type !== 'aiSpeech') continue;
+      const speaker = input.sim.entities.get(event.speakerId);
+      if (!speaker || (speaker.kind !== 'npc' && speaker.kind !== 'mob')) continue;
+      records.push(activeSpeechMemoryAudit({
+        event,
+        speaker,
+        pid: input.pid,
+        sceneId,
+        zoneId: scene.zoneId,
+        nowSeconds: input.sim.time,
+        source: input.source,
+      }));
+    }
+    this.enqueueMemoryWrites(records);
+  }
+
   async flushMemoryWrites(): Promise<void> {
     if (!this.memoryDb) return;
     if (this.memoryFlushPromise) return this.memoryFlushPromise;
@@ -2103,6 +2132,10 @@ function normalizeDeletedCount(value: number): number {
   return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
 }
 
+function clamp01Local(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
 function cloneDirectorProposals(
   proposals: readonly (AiWorldDirectorProposal | null | undefined)[],
 ): AiWorldDirectorProposal[] {
@@ -2139,6 +2172,55 @@ function appendMemorySignals(context: AiJobContextV1, signals: readonly AiMemory
 
 function firstPersistedWorldDirectorSignal(signals: readonly AiMemoryAuditRecord[]): AiMemoryAuditRecord | null {
   return signals.find((signal) => signal.kind === 'worldDirectorState') ?? null;
+}
+
+function activeSpeechMemoryAudit(input: {
+  event: Extract<SimEvent, { type: 'aiSpeech' }>;
+  speaker: Entity;
+  pid: number;
+  sceneId: string;
+  zoneId: string;
+  nowSeconds: number;
+  source: 'scheduler' | 'deliver';
+}): AiMemoryAuditRecord {
+  const lineId = input.event.speech.mode === 'lineId' ? input.event.speech.lineId : null;
+  const planKind = input.event.reaction?.planKind ?? input.event.reaction?.kind ?? 'speech';
+  const minuteBucket = Math.floor(input.nowSeconds / 60);
+  const targetItemId = input.event.reaction?.targetItemId;
+  return {
+    kind: input.speaker.kind === 'mob' ? 'creatureMemory' : 'npcInteraction',
+    refId: `active:${input.source}:${input.pid}:${input.speaker.id}:${planKind}:${lineId ?? 'dynamic'}:${minuteBucket}`,
+    scope: 'entity',
+    sceneId: input.sceneId,
+    zoneId: input.zoneId,
+    sourcePlayerEntityId: input.pid,
+    entityId: input.speaker.id,
+    templateId: input.speaker.templateId,
+    ...(targetItemId ? { itemId: targetItemId, subjectKind: 'item' as const } : {}),
+    lineIds: lineId ? [lineId] : [],
+    salience: activeSpeechMemorySalience(input.event, input.speaker),
+    createdAt: input.nowSeconds,
+    expiresAt: input.nowSeconds + activeSpeechMemoryTtlSeconds(input.event, input.speaker),
+    reason: `active:${input.source}:${input.speaker.kind}:${planKind}`,
+  };
+}
+
+function activeSpeechMemorySalience(event: Extract<SimEvent, { type: 'aiSpeech' }>, speaker: Entity): number {
+  const reactionScore = event.reaction?.score ?? 0;
+  const planIntensity = event.reaction?.planIntensity ?? 0;
+  const singularityBoost = event.reaction?.individualTier === 'singularity' ? 0.24 : 0;
+  const directorBoost = event.speech.mode === 'lineId' && event.speech.lineId.includes('worldDirector') ? 0.16 : 0;
+  const sequenceBoost = event.reaction?.planKind?.includes('Sequence') || event.reaction?.planKind?.includes('conversation') ? 0.08 : 0;
+  const creatureBoost = speaker.kind === 'mob' ? 0.04 : 0;
+  return clamp01Local(0.24 + reactionScore * 0.24 + planIntensity * 0.22 + singularityBoost + directorBoost + sequenceBoost + creatureBoost);
+}
+
+function activeSpeechMemoryTtlSeconds(event: Extract<SimEvent, { type: 'aiSpeech' }>, speaker: Entity): number {
+  const day = 24 * 60 * 60;
+  if (event.reaction?.individualTier === 'singularity') return 21 * day;
+  if (event.speech.mode === 'lineId' && event.speech.lineId.includes('worldDirector')) return 14 * day;
+  if (speaker.kind === 'mob') return 10 * day;
+  return 7 * day;
 }
 
 function memorySignalKey(signal: AiMemoryAuditRecord): string {

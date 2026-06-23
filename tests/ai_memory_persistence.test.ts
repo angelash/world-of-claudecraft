@@ -232,6 +232,63 @@ describe('AI memory persistence integration', () => {
     expect(db.saved.flat()).toContainEqual(expect.objectContaining({ kind: 'npcInteraction' }));
   });
 
+  it('persists active trigger speech summaries as bounded long-memory records', async () => {
+    const { sim, pid, wolfId } = makeSim();
+    teleportNear(sim, pid, wolfId);
+    const wolf = sim.entities.get(wolfId);
+    if (!wolf) throw new Error('missing wolf');
+    const db = new FakeMemoryDb();
+    const layer = new AiLifeLayer({ enabled: true, memoryDb: db });
+
+    layer.recordActiveTriggerEvents({
+      sim,
+      pid,
+      source: 'scheduler',
+      events: [
+        { type: 'aiThinking', speakerId: wolf.id, speakerName: wolf.name, durationMs: 1200, pid },
+        {
+          type: 'aiSpeech',
+          speakerId: wolf.id,
+          speakerName: wolf.name,
+          speech: {
+            mode: 'lineId',
+            lineId: 'hudChrome.aiSpeech.singularityRemembersScene',
+            values: { playerName: 'Ari', speakerTemplateId: wolf.templateId },
+          },
+          source: 'local',
+          reaction: {
+            kind: 'inspect',
+            planKind: 'watchSky',
+            planIntensity: 1,
+            individualTier: 'singularity',
+            individualTraits: ['stargazer'],
+            score: 0.92,
+          },
+          pid,
+        },
+      ],
+    });
+    await layer.flushMemoryWrites();
+
+    expect(db.saved.flat()).toContainEqual(expect.objectContaining({
+      kind: 'creatureMemory',
+      refId: expect.stringContaining(`active:scheduler:${pid}:${wolf.id}:watchSky`),
+      entityId: wolf.id,
+      templateId: wolf.templateId,
+      lineIds: ['hudChrome.aiSpeech.singularityRemembersScene'],
+      reason: 'active:scheduler:mob:watchSky',
+      salience: expect.any(Number),
+      expiresAt: expect.any(Number),
+    }));
+    const [saved] = db.saved.flat();
+    expect(saved.salience).toBeGreaterThan(0.85);
+    expect((saved.expiresAt ?? 0) - sim.time).toBe(21 * 24 * 60 * 60);
+    expect(layer.runtimeMetrics()).toMatchObject({
+      memoryWritesQueued: 1,
+      memoryFlushFailures: 0,
+    });
+  });
+
   it('feeds persisted director signals into object inspection context after a fresh life layer starts', async () => {
     const { sim, pid } = makeSim();
     const object = [...sim.entities.values()].find((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil')!;

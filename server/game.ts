@@ -647,12 +647,27 @@ export class GameServer {
         const session = this.clients.get(pid);
         if (session && !session.left && deliveredEvents.length > 0) {
           this.send(session, { t: 'events', list: deliveredEvents });
+          this.aiLifeLayer.recordActiveTriggerEvents({ sim: this.sim, pid, events: deliveredEvents, source: 'deliver' });
         }
       },
       applyAction: (request) => this.sim.aiActiveMobAction(request),
       applyNpcAction: (request) => this.sim.aiActiveNpcAction(request),
     });
+    this.recordActiveTriggerEvents(events, 'scheduler');
     this.routeEvents(events);
+  }
+
+  private recordActiveTriggerEvents(events: readonly SimEvent[], source: 'scheduler' | 'deliver'): void {
+    const byPid = new Map<number, SimEvent[]>();
+    for (const event of events) {
+      if (event.pid === undefined) continue;
+      const bucket = byPid.get(event.pid);
+      if (bucket) bucket.push(event);
+      else byPid.set(event.pid, [event]);
+    }
+    for (const [pid, pidEvents] of byPid) {
+      this.aiLifeLayer.recordActiveTriggerEvents({ sim: this.sim, pid, events: pidEvents, source });
+    }
   }
 
   private bridgeWorldDirectorStatesToActiveQueue(nowMs: number): void {
