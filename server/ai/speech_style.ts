@@ -59,6 +59,7 @@ export function dynamicSpeechPromptRules(locale: string): string[] {
       '- Prefer one breath, one image, one reaction. Avoid textbook wording or tidy explanation structure.',
       '- Do not start with 不过, 但是, 然而, 而且, 另外, 此外, 同时, 因此, 所以, 总之, 需要注意的是, or 值得一提的是.',
       '- Do not use 你问的是, 我建议, 从...来看, 这说明, 总的来说, 其实, 重点是, or other Q&A assistant wording.',
+      '- 如果写闻到、听到、看到、觉得，要说具体东西，例如烟味、湿石头、铜钱声、脚步声、灯油味。不要只写“闻到了吗？”、“你听见了吗？”这种空泛问句。',
     ];
   }
   return [

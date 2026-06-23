@@ -8,6 +8,7 @@ describe('AI speech style', () => {
     expect(rules).toContain('one breath, one image, one reaction');
     expect(rules).toContain('Do not start with 不过');
     expect(rules).toContain('Do not use 你问的是, 我建议');
+    expect(rules).toContain('不要只写“闻到了吗？”');
   });
 
   it('adds natural spoken guidance for English dynamic speech prompts', () => {
