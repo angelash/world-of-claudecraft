@@ -2476,8 +2476,11 @@ function renderClassDetails(panelId: string, className: PlayerClass): void {
   }
 }
 
-const STATS_CACHE_KEY = 'woc_cached_stats';
+const STATS_CACHE_KEY = 'woc_cached_stats_online_v2';
 const STATS_CACHE_TTL_MS = 30000; // 30 seconds
+const STATS_REFRESH_INTERVAL_MS = 30000;
+let projectStatsPollTimer: number | null = null;
+let projectStatsInflight: Promise<void> | null = null;
 
 function readTranslationKey(value: string | null): TranslationKey | null {
   return value ? value as TranslationKey : null;
@@ -2629,51 +2632,70 @@ async function changeLanguage(selected: SupportedLanguage, onStatus?: (msg: stri
 async function loadProjectStats(): Promise<void> {
   // Realm status now lives in the realm dropdown — both in the trigger sub-line
   // and inside the Online option — so update every instance by class.
-  const accountEls = document.querySelectorAll<HTMLElement>('.js-stat-accounts');
-  if (!accountEls.length) return;
+  const onlineEls = document.querySelectorAll<HTMLElement>('.js-stat-online');
+  if (!onlineEls.length) return;
   const setAll = (els: NodeListOf<HTMLElement>, text: string): void => {
     els.forEach((el) => { el.textContent = text; });
   };
 
-  // 1. Try to read from localStorage first
-  let cached: { realm: string; accounts_created: number; players_online: number; timestamp: number } | null = null;
-  if (typeof localStorage !== 'undefined') {
-    const raw = localStorage.getItem(STATS_CACHE_KEY);
-    if (raw) {
-      try {
-        cached = JSON.parse(raw);
-      } catch {}
-    }
-  }
-
-  // If cache exists and is fresh (within TTL), use it and skip API request
-  if (cached && (Date.now() - cached.timestamp < STATS_CACHE_TTL_MS)) {
-    setAll(accountEls, String(cached.accounts_created));
-    return;
-  }
-
-  // 2. Fetch fresh stats
-  try {
-    const data = await api.projectStats();
-
-    setAll(accountEls, String(data.accounts_created));
-
-    // Save to cache with timestamp
+  if (projectStatsInflight) return projectStatsInflight;
+  projectStatsInflight = (async () => {
+    // 1. Try to read from localStorage first
+    let cached: { realm: string; accounts_created: number; players_online: number; timestamp: number } | null = null;
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(STATS_CACHE_KEY, JSON.stringify({
-        ...data,
-        timestamp: Date.now(),
-      }));
+      const raw = localStorage.getItem(STATS_CACHE_KEY);
+      if (raw) {
+        try {
+          cached = JSON.parse(raw);
+        } catch {}
+      }
     }
-  } catch (err) {
-    console.error('Failed to fetch project stats:', err);
-    // If API fails, fall back to cached data (even if expired)
-    if (cached) {
-      setAll(accountEls, String(cached.accounts_created));
+
+    if (cached && Number.isFinite(cached.players_online)) {
+      setAll(onlineEls, String(cached.players_online));
     } else {
-      setAll(accountEls, '–');
+      setAll(onlineEls, '–');
     }
-  }
+
+    // 2. Fetch fresh stats even when a cache exists so an already-open page
+    // doesn't keep showing a stale population number forever.
+    try {
+      const data = await api.projectStats();
+
+      setAll(onlineEls, String(data.players_online));
+
+      // Save to cache with timestamp
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STATS_CACHE_KEY, JSON.stringify({
+          ...data,
+          timestamp: Date.now(),
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch project stats:', err);
+      // If API fails, keep the cached value (even if stale); otherwise show a dash.
+      if (!cached || !Number.isFinite(cached.players_online)) {
+        setAll(onlineEls, '–');
+      }
+    }
+  })().finally(() => {
+    projectStatsInflight = null;
+  });
+
+  return projectStatsInflight;
+}
+
+function wireProjectStatsRefresh(): void {
+  if (projectStatsPollTimer !== null) window.clearInterval(projectStatsPollTimer);
+  projectStatsPollTimer = window.setInterval(() => {
+    void loadProjectStats();
+  }, STATS_REFRESH_INTERVAL_MS);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') void loadProjectStats();
+  });
+  window.addEventListener('focus', () => {
+    void loadProjectStats();
+  });
 }
 
 // Home-page global (cross-realm) lifetime-XP leaderboard. Server computes the
@@ -3511,6 +3533,7 @@ function wireStartScreens(): void {
   void ensureLocaleLoaded(bootLang).then(revealLocalized, revealLocalized);
   hydrateIcons();
   void loadProjectStats();
+  wireProjectStatsRefresh();
   wireContractAddressCopy();
   wireHomepageMusicToggle();
   wireWallet();

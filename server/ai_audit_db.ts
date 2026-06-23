@@ -76,6 +76,7 @@ export class PgAiAuditDb {
   async saveRecord(record: AiAuditRecord): Promise<void> {
     const normalized = normalizeAiAuditRecord(record);
     if (!normalized) return;
+    if (normalized.status === 'local_reaction' || normalized.providerSource === 'local') return;
     await this.db.query(
       `INSERT INTO ai_audit_records (
          realm, audit_id, job_id, trigger, entity_kind, entity_id, template_id,

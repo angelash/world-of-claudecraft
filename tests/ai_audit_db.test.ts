@@ -128,6 +128,26 @@ describe('AI audit DB', () => {
     expect(select.values).toEqual([REALM, 20]);
   });
 
+  it('skips persisting local-rule audit rows so recent records stay model-focused', async () => {
+    const pool = new FakePool();
+    const db = new PgAiAuditDb(pool);
+
+    await db.saveRecord({
+      ...record,
+      auditId: 'audit-local',
+      providerSource: 'local',
+      status: 'local_reaction',
+      latencyMs: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      reason: 'singularityDeath:vale_bandit',
+    });
+
+    expect(pool.calls).toEqual([]);
+    await expect(db.recentRecords(20)).resolves.toEqual([]);
+  });
+
   it('clamps recent-record limits to a bounded admin query range', async () => {
     const pool = new FakePool();
     const db = new PgAiAuditDb(pool);
