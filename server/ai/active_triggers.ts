@@ -1322,7 +1322,7 @@ export class AiActiveTriggerService {
             speakerTemplateIds: input.sequence.speakers.map((speaker) => speaker.templateId),
             sceneId: input.sequence.sceneId,
             ...(input.sequence.focusObject ? { focusObject: input.sequence.focusObject } : {}),
-            lineIds: input.sequence.lineIds.slice(0, providerSequence.speechCount),
+            lineIds: providerSequence.lineIds,
             events: providerSequence.events,
             startedAtMs: input.nowMs + this.thinkingDurationMs,
             deliver,
@@ -1365,7 +1365,7 @@ export class AiActiveTriggerService {
     sequence: SocialSequenceResult,
     providerEvents: readonly SimEvent[],
     pid: number,
-  ): { events: SimEvent[]; speechCount: number } | null {
+  ): { events: SimEvent[]; lineIds: string[] } | null {
     const providerSpeeches = providerEvents
       .filter((event): event is AiSpeechEvent =>
         event.type === 'aiSpeech'
@@ -1376,6 +1376,7 @@ export class AiActiveTriggerService {
     if (providerSpeeches.length < 2) return null;
     const localSpeeches = sequence.events.filter((event): event is AiSpeechEvent => event.type === 'aiSpeech');
     const events: SimEvent[] = [];
+    const lineIds: string[] = [];
     for (let i = 0; i < providerSpeeches.length; i++) {
       const speaker = sequence.speakers[i];
       if (!speaker) break;
@@ -1399,9 +1400,16 @@ export class AiActiveTriggerService {
         ...(localReaction ? { reaction: localReaction } : {}),
         pid,
       });
+      const localLine = localSpeeches[i];
+      if (localLine?.speech.mode === 'lineId') lineIds.push(localLine.speech.lineId);
+    }
+    const fallbackTailEvents = sequence.events.slice(providerSpeeches.length * 2);
+    for (const event of fallbackTailEvents) {
+      events.push(event);
+      if (event.type === 'aiSpeech' && event.speech.mode === 'lineId') lineIds.push(event.speech.lineId);
     }
     const speechCount = events.filter((event) => event.type === 'aiSpeech').length;
-    return speechCount >= 2 ? { events, speechCount } : null;
+    return speechCount >= 2 ? { events, lineIds } : null;
   }
 
   private tryApplySocialSequenceActions(

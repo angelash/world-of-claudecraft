@@ -1722,6 +1722,105 @@ describe('AI active trigger service', () => {
     }
   });
 
+  it('keeps local tail beats when provider social sequence returns fewer lines than the scene can support', async () => {
+    vi.useFakeTimers();
+    const rule = DEFAULT_ACTIVE_POLL_RULES.find((candidate) => candidate.ruleId === 'npc_social_sequence');
+    if (!rule) throw new Error('missing NPC social sequence rule');
+    const { sim, pid } = makeWorld();
+    sim.time = 8 * 60;
+    const merchant = entityByTemplate(sim, 'the_merchant');
+    const marshal = entityByTemplate(sim, 'marshal_redbrook');
+    moveEntity(sim, merchant.id, 9, 17);
+    moveEntity(sim, marshal.id, 12, 17);
+    moveEntity(sim, pid, 9, 18);
+    const delivered: SimEvent[][] = [];
+    const service = new AiActiveTriggerService({
+      provider: {
+        async decide(context) {
+          return {
+            decision: {
+              schemaVersion: 1,
+              jobId: context.jobId,
+              entityRef: {
+                kind: context.entity.kind,
+                entityId: context.entity.entityId,
+                templateId: context.entity.templateId,
+              },
+              ttlMs: 1_000,
+              confidence: 0.9,
+              speech: [
+                { mode: 'dynamicText', language: 'en', text: 'The market awning smells of wet rope.' },
+                { mode: 'dynamicText', language: 'en', text: 'Keep the coins under the dry plank.' },
+              ],
+              intents: [{ type: 'commentOnScene' }],
+              audit: {
+                shortReason: 'short social exchange',
+                usedPlayerInput: false,
+                safetyNotes: ['presentationOnly'],
+              },
+            },
+          };
+        },
+      },
+      thinkingDurationMs: 800,
+      rules: [rule],
+    });
+
+    try {
+      const immediate = service.tick({
+        sim,
+        sessions: [{ pid, locale: 'en' }],
+        nowMs: 1_000,
+        deliver: (_pid, events) => delivered.push(events),
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(immediate).toEqual([
+        expect.objectContaining({ type: 'aiThinking', durationMs: 800, pid }),
+      ]);
+      expect(delivered[0]).toEqual([
+        expect.objectContaining({
+          type: 'aiSpeech',
+          speech: { mode: 'dynamicText', language: 'en', text: 'The market awning smells of wet rope.' },
+          source: 'codex',
+          pid,
+        }),
+      ]);
+
+      await vi.advanceTimersByTimeAsync(800);
+      expect(delivered[1]).toEqual([
+        expect.objectContaining({ type: 'aiThinking', durationMs: 2_000, pid }),
+      ]);
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(delivered[2]).toEqual([
+        expect.objectContaining({
+          type: 'aiSpeech',
+          speech: { mode: 'dynamicText', language: 'en', text: 'Keep the coins under the dry plank.' },
+          source: 'codex',
+          pid,
+        }),
+      ]);
+      await vi.advanceTimersByTimeAsync(900);
+      expect(delivered[3]).toEqual([
+        expect.objectContaining({ type: 'aiThinking', durationMs: 3_200, pid }),
+      ]);
+      await vi.advanceTimersByTimeAsync(3_200);
+      expect(delivered[4]).toEqual([
+        expect.objectContaining({
+          type: 'aiSpeech',
+          source: 'local',
+          speech: expect.objectContaining({ mode: 'lineId' }),
+          reaction: expect.objectContaining({ planKind: 'conversationAside' }),
+          pid,
+        }),
+      ]);
+    } finally {
+      service.stop();
+      vi.useRealTimers();
+    }
+  });
+
   it('uses the dynamic provider for wild creature social sequence openers', async () => {
     vi.useFakeTimers();
     const rule = DEFAULT_ACTIVE_POLL_RULES.find((candidate) => candidate.ruleId === 'npc_social_sequence');
