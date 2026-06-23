@@ -233,6 +233,7 @@ const fakeGame: any = {
     enabled: true,
     eventsEnabled: true,
     pollsEnabled: true,
+    realActionsEnabled: true,
     populationPolicy: {
       band: 'small',
       onlineCount: 2,

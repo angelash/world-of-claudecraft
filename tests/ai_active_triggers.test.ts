@@ -117,6 +117,7 @@ describe('AI active trigger service', () => {
 
     const disabled = service.updateConfig({
       pollsEnabled: false,
+      realActionsEnabled: false,
       rules: [{
         ruleId: 'test_scene_ambient',
         enabled: false,
@@ -130,6 +131,7 @@ describe('AI active trigger service', () => {
     });
 
     expect(disabled.pollsEnabled).toBe(false);
+    expect(disabled.realActionsEnabled).toBe(false);
     expect(disabled.rules).toEqual([
       expect.objectContaining({
         ruleId: 'test_scene_ambient',
@@ -474,6 +476,49 @@ describe('AI active trigger service', () => {
       activeRoutineFired: 1,
       activeRoutineLastKind: 'creature:beast:avoid',
     });
+    expect(mainlineSnapshot(sim, pid)).toEqual(before);
+  });
+
+  it('can apply a real server-authoritative creature flee action through the action bridge', () => {
+    const { sim, pid } = makeWorld();
+    const wolf = entityByTemplate(sim, 'forest_wolf');
+    moveEntity(sim, wolf.id, 80, 86);
+    moveEntity(sim, pid, 81, 86);
+    const before = mainlineSnapshot(sim, pid);
+    const requests: unknown[] = [];
+    const results: unknown[] = [];
+    const service = new AiActiveTriggerService({
+      rules: [testRule({ ruleId: 'test_creature_action', category: 'creatureRoutine' })],
+    });
+
+    const events = service.tick({
+      sim,
+      sessions: [{ pid }],
+      nowMs: 1_000,
+      applyAction: (request) => {
+        requests.push(request);
+        const result = sim.aiActiveMobAction(request);
+        results.push(result);
+        return result;
+      },
+    });
+
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speakerId: wolf.id,
+      reaction: expect.objectContaining({ kind: 'avoid' }),
+      pid,
+    }));
+    expect(requests).toEqual([
+      expect.objectContaining({ intent: 'flee', mobId: wolf.id, playerId: pid }),
+    ]);
+    expect(results).toEqual([
+      expect.objectContaining({ ok: true, intent: 'flee', affectedEntityIds: expect.arrayContaining([wolf.id]) }),
+    ]);
+    expect(wolf.aiState).toBe('flee');
+    expect(wolf.aggroTargetId).toBe(pid);
+    expect(wolf.inCombat).toBe(true);
+    expect(wolf.fleeTimer).toBeGreaterThan(0);
     expect(mainlineSnapshot(sim, pid)).toEqual(before);
   });
 

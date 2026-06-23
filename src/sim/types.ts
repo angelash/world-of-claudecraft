@@ -203,6 +203,36 @@ export type MobFamily =
 export type PetMode = 'passive' | 'defensive' | 'aggressive';
 export type PetRole = 'melee_tank' | 'ranged_dps';
 
+export type AiActiveMobActionIntent = 'startCombat' | 'flee' | 'callForHelp';
+
+export type AiActiveMobActionFailureReason =
+  | 'mob_missing'
+  | 'player_missing'
+  | 'unsupported_entity'
+  | 'dead_entity'
+  | 'not_wild_hostile'
+  | 'protected_creature'
+  | 'distance_too_far'
+  | 'player_busy_combat'
+  | 'target_trivial'
+  | 'state_blocked'
+  | 'unsupported_intent';
+
+export interface AiActiveMobActionRequest {
+  intent: AiActiveMobActionIntent;
+  mobId: number;
+  playerId: number;
+  maxDistance?: number;
+  social?: boolean;
+}
+
+export interface AiActiveMobActionResult {
+  ok: boolean;
+  intent: AiActiveMobActionIntent;
+  reason?: AiActiveMobActionFailureReason;
+  affectedEntityIds: number[];
+}
+
 export interface MobTemplate {
   id: string;
   name: string;

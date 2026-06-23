@@ -501,6 +501,7 @@ export interface AiActiveTriggerDiagnosticsSnapshot {
   enabled: boolean;
   eventsEnabled: boolean;
   pollsEnabled: boolean;
+  realActionsEnabled: boolean;
   populationPolicy: AiActivePopulationPolicySnapshot | null;
   codexBudget: AiActiveCodexBudgetSnapshot;
   rules: AiActivePollRule[];

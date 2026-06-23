@@ -609,6 +609,7 @@ export class GameServer {
           this.send(session, { t: 'events', list: deliveredEvents });
         }
       },
+      applyAction: (request) => this.sim.aiActiveMobAction(request),
     });
     this.routeEvents(events);
   }

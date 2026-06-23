@@ -1,6 +1,12 @@
 import { ITEMS, MOBS, NPCS } from '../../src/sim/data';
 import type { Sim } from '../../src/sim/sim';
-import type { Entity, SimEvent } from '../../src/sim/types';
+import type {
+  AiActiveMobActionIntent,
+  AiActiveMobActionRequest,
+  AiActiveMobActionResult,
+  Entity,
+  SimEvent,
+} from '../../src/sim/types';
 import { dist2d } from '../../src/sim/types';
 import type { AiJobContextV1, AiProvider, AiProviderDecisionResult, AiProviderOutput, AiProviderTimingSnapshot } from './ai_types';
 import { classifyCanonSubject } from './canon_guard';
@@ -165,6 +171,7 @@ export interface AiActiveTriggerDiagnosticsSnapshot {
   enabled: boolean;
   eventsEnabled: boolean;
   pollsEnabled: boolean;
+  realActionsEnabled: boolean;
   populationPolicy: AiActivePopulationPolicySnapshot | null;
   codexBudget: AiActiveCodexBudgetSnapshot;
   rules: AiActivePollRuleV1[];
@@ -192,6 +199,7 @@ export interface AiActiveTriggerConfigUpdate {
   enabled?: boolean;
   eventsEnabled?: boolean;
   pollsEnabled?: boolean;
+  realActionsEnabled?: boolean;
   rules?: AiActivePollRuleConfigUpdate[];
 }
 
@@ -199,6 +207,7 @@ export interface AiActiveTriggerServiceOptions {
   enabled?: boolean;
   eventsEnabled?: boolean;
   pollsEnabled?: boolean;
+  realActionsEnabled?: boolean;
   rules?: readonly AiActivePollRuleV1[];
   thinkingDurationMs?: number;
   maxRecentDecisions?: number;
@@ -209,6 +218,8 @@ export interface AiActiveTriggerServiceOptions {
   codexReserveRatio?: number;
   provider?: AiProvider;
 }
+
+export type AiActiveWorldActionBridge = (request: AiActiveMobActionRequest) => AiActiveMobActionResult;
 
 interface AiActivePollCursorState {
   ruleId: string;
@@ -344,6 +355,7 @@ export class AiActiveTriggerService {
   private enabled: boolean;
   private eventsEnabled: boolean;
   private pollsEnabled: boolean;
+  private realActionsEnabled: boolean;
   private rules: AiActivePollRuleV1[];
   private readonly thinkingDurationMs: number;
   private readonly maxRecentDecisions: number;
@@ -402,6 +414,7 @@ export class AiActiveTriggerService {
     this.enabled = options.enabled ?? process.env.AI_LIVING_WORLD_EXPERIMENT !== '0';
     this.eventsEnabled = options.eventsEnabled ?? process.env.AI_ACTIVE_EVENTS_ENABLED !== '0';
     this.pollsEnabled = options.pollsEnabled ?? process.env.AI_ACTIVE_POLLS_ENABLED !== '0';
+    this.realActionsEnabled = options.realActionsEnabled ?? process.env.AI_ACTIVE_REAL_ACTIONS_ENABLED !== '0';
     this.rules = normalizeActiveRules(options.rules ?? DEFAULT_ACTIVE_POLL_RULES);
     this.thinkingDurationMs = Math.max(0, Math.floor(options.thinkingDurationMs ?? DEFAULT_THINKING_DURATION_MS));
     this.maxRecentDecisions = Math.max(1, Math.floor(options.maxRecentDecisions ?? 40));
@@ -462,6 +475,7 @@ export class AiActiveTriggerService {
     sessions: Iterable<AiActiveTriggerSessionLike>;
     nowMs: number;
     deliver?: (pid: number, events: SimEvent[]) => void;
+    applyAction?: AiActiveWorldActionBridge;
   }): SimEvent[] {
     this.refreshCodexBudgetMetrics(input.nowMs);
     if (!this.enabled) {
@@ -500,7 +514,14 @@ export class AiActiveTriggerService {
         if (input.nowMs < cursor.nextDueAtMs) continue;
         cursor.lastCheckedAtMs = input.nowMs;
         this.metrics.activePollDue++;
-        const result = this.tryFireRule({ sim: input.sim, session, rule, nowMs: input.nowMs, deliver: input.deliver });
+        const result = this.tryFireRule({
+          sim: input.sim,
+          session,
+          rule,
+          nowMs: input.nowMs,
+          deliver: input.deliver,
+          applyAction: input.applyAction,
+        });
         this.scheduleNext(rule, cursor, input.nowMs);
         if (result.events.length > 0) {
           events.push(...result.events);
@@ -524,6 +545,7 @@ export class AiActiveTriggerService {
       enabled: this.enabled,
       eventsEnabled: this.eventsEnabled,
       pollsEnabled: this.pollsEnabled,
+      realActionsEnabled: this.realActionsEnabled,
       populationPolicy: this.populationPolicy ? { ...this.populationPolicy } : null,
       codexBudget: this.codexBudgetSnapshot(Date.now()),
       rules: this.rules.map((rule) => ({ ...rule, cooldown: { ...rule.cooldown } })),
@@ -538,6 +560,7 @@ export class AiActiveTriggerService {
     if (patch.enabled !== undefined) this.enabled = patch.enabled;
     if (patch.eventsEnabled !== undefined) this.eventsEnabled = patch.eventsEnabled;
     if (patch.pollsEnabled !== undefined) this.pollsEnabled = patch.pollsEnabled;
+    if (patch.realActionsEnabled !== undefined) this.realActionsEnabled = patch.realActionsEnabled;
     if (patch.rules) {
       const byId = new Map(this.rules.map((rule) => [rule.ruleId, rule]));
       for (const update of patch.rules) {
@@ -667,6 +690,7 @@ export class AiActiveTriggerService {
     rule: AiActivePollRuleV1;
     nowMs: number;
     deliver?: (pid: number, events: SimEvent[]) => void;
+    applyAction?: AiActiveWorldActionBridge;
   }): { events: SimEvent[]; skipReason: AiActiveSkipReason } {
     const player = input.sim.entities.get(input.session.pid);
     if (!player) return { events: [], skipReason: 'player_missing' };
@@ -676,7 +700,13 @@ export class AiActiveTriggerService {
       return { events: [], skipReason: 'player_recent_ai_speech' };
     }
     if (input.rule.category === 'creatureRoutine') {
-      return this.tryFireCreatureRoutine({ sim: input.sim, player, rule: input.rule, nowMs: input.nowMs });
+      return this.tryFireCreatureRoutine({
+        sim: input.sim,
+        player,
+        rule: input.rule,
+        nowMs: input.nowMs,
+        applyAction: input.applyAction,
+      });
     }
     if (input.rule.category === 'socialSequence') {
       return this.tryFireSocialSequence({ sim: input.sim, player, rule: input.rule, nowMs: input.nowMs });
@@ -826,6 +856,7 @@ export class AiActiveTriggerService {
     player: Entity;
     rule: AiActivePollRuleV1;
     nowMs: number;
+    applyAction?: AiActiveWorldActionBridge;
   }): { events: SimEvent[]; skipReason: AiActiveSkipReason } {
     const scene = sceneFrameFor(input.sim, input.player.pos, { excludeEntityIds: [input.player.id] });
     const result = this.bestCreatureRoutineEvent(input.sim, input.player, scene, input.nowMs);
@@ -859,7 +890,25 @@ export class AiActiveTriggerService {
       lineId,
       createdAtMs: input.nowMs,
     });
+    this.tryApplyCreatureRoutineAction(result, input.player, input.applyAction);
     return { events: [thinkingEvent, result.event], skipReason: 'not_due' };
+  }
+
+  private tryApplyCreatureRoutineAction(
+    result: CreatureRoutineResult,
+    player: Entity,
+    applyAction?: AiActiveWorldActionBridge,
+  ): AiActiveMobActionResult | null {
+    if (!this.realActionsEnabled || !applyAction) return null;
+    const intent = activeMobActionIntentForRoutine(result);
+    if (!intent) return null;
+    return applyAction({
+      intent,
+      mobId: result.entity.id,
+      playerId: player.id,
+      maxDistance: CANDIDATE_RADIUS,
+      social: intent !== 'flee',
+    });
   }
 
   private bestCreatureRoutineEvent(
@@ -1539,6 +1588,29 @@ function sceneTagsWith(scene: ReturnType<typeof sceneFrameFor>, extra: string): 
   return [...new Set([...scene.locationTags, ...scene.structureTags, ...scene.environmentalTags, extra])].slice(0, 8);
 }
 
+function activeMobActionIntentForRoutine(result: CreatureRoutineResult): AiActiveMobActionIntent | null {
+  if (!result.routineKind.startsWith('creature:')) return null;
+  if (result.entity.kind !== 'mob' || result.entity.ownerId !== null || !result.entity.hostile) return null;
+  const family = MOBS[result.entity.templateId]?.family;
+  if (!family) return null;
+  const reaction = result.event.reaction;
+  if (!reaction || reaction.kind === 'ignore') return null;
+  const tags = new Set(reaction.sceneTags ?? []);
+  if (tags.has('safeTown') || tags.has('town')) return null;
+  if (reaction.kind === 'avoid') return 'flee';
+  if (reaction.kind === 'approach') {
+    return family === 'humanoid' || family === 'kobold' || family === 'murloc' || family === 'troll' || family === 'ogre' || family === 'demon'
+      ? 'startCombat'
+      : null;
+  }
+  if (reaction.kind === 'inspect') {
+    return family === 'humanoid' || family === 'kobold' || family === 'murloc' || family === 'troll' || family === 'ogre'
+      ? 'callForHelp'
+      : null;
+  }
+  return null;
+}
+
 function activeOutputModeForRule(rule: AiActivePollRuleV1): AiJobContextV1['outputMode'] {
   switch (rule.outputMode) {
     case 'dynamicTextFirst': return 'dynamic_text_experiment';
@@ -1609,6 +1681,7 @@ function parseActiveTriggerConfigUpdate(input: unknown): AiActiveTriggerConfigUp
   if (hasOwn(src, 'enabled')) patch.enabled = boolField(src.enabled, 'enabled');
   if (hasOwn(src, 'eventsEnabled')) patch.eventsEnabled = boolField(src.eventsEnabled, 'eventsEnabled');
   if (hasOwn(src, 'pollsEnabled')) patch.pollsEnabled = boolField(src.pollsEnabled, 'pollsEnabled');
+  if (hasOwn(src, 'realActionsEnabled')) patch.realActionsEnabled = boolField(src.realActionsEnabled, 'realActionsEnabled');
   if (hasOwn(src, 'rules')) {
     if (!Array.isArray(src.rules)) throw new Error('rules must be an array');
     patch.rules = src.rules.map((rule) => parseActiveRuleUpdate(rule));

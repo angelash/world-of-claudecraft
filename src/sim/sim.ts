@@ -36,6 +36,7 @@ import {
   rageFromDealing, rageFromTaking, spellHitChance, xpForLevel,
   MILESTONES, virtualLevel, xpToReachLevel, canPrestige,
   ArenaFormat, ArenaStanding, ArenaCombatant, SkinCatalog, SkinRank,
+  type AiActiveMobActionRequest, type AiActiveMobActionResult,
 } from './types';
 import {
   EVENT_SKIN_TOKEN_ID, MECH_CHROMAS, classHasSkin, mechChromaItemId, mechChromaSkinIndex,
@@ -73,6 +74,8 @@ const FLEE_HELP_RADIUS = 8;
 // Only sentient, cowardly families flee; beasts/undead/elementals/dragonkin fight
 // to the death. Elites, rares, and bosses never flee regardless of family.
 const FLEEING_FAMILIES: ReadonlySet<MobFamily> = new Set(['humanoid', 'kobold', 'murloc', 'troll']);
+const AI_ACTIVE_MOB_ACTION_MAX_DISTANCE = 28;
+const AI_ACTIVE_FLEE_FAMILIES: ReadonlySet<MobFamily> = new Set(['beast', 'humanoid', 'murloc', 'spider', 'kobold', 'troll', 'ogre']);
 const GRAVITY = 16;
 const JUMP_VELOCITY = 6; // apex = v^2/2g ≈ 1.125 yd
 const MELEE_ARC = 2.2; // radians half-arc within which melee swings connect
@@ -827,6 +830,87 @@ export class Sim {
       }
       this.pendingMobRespawns.splice(i, 1);
     }
+  }
+
+  aiActiveMobAction(input: AiActiveMobActionRequest): AiActiveMobActionResult {
+    const mob = this.entities.get(input.mobId);
+    if (!mob) return { ok: false, intent: input.intent, reason: 'mob_missing', affectedEntityIds: [] };
+    const player = this.entities.get(input.playerId);
+    if (!player) return { ok: false, intent: input.intent, reason: 'player_missing', affectedEntityIds: [] };
+    if (mob.kind !== 'mob' || player.kind !== 'player') {
+      return { ok: false, intent: input.intent, reason: 'unsupported_entity', affectedEntityIds: [] };
+    }
+    if (mob.dead || player.dead || mob.aiState === 'dead') {
+      return { ok: false, intent: input.intent, reason: 'dead_entity', affectedEntityIds: [] };
+    }
+    if (mob.ownerId !== null || !mob.hostile || mob.templateId.startsWith('vision_')) {
+      return { ok: false, intent: input.intent, reason: 'not_wild_hostile', affectedEntityIds: [] };
+    }
+    const template = MOBS[mob.templateId];
+    if (!template || template.boss || template.elite || template.rare) {
+      return { ok: false, intent: input.intent, reason: 'protected_creature', affectedEntityIds: [] };
+    }
+    const maxDistance = Math.max(1, input.maxDistance ?? AI_ACTIVE_MOB_ACTION_MAX_DISTANCE);
+    if (dist2d(mob.pos, player.pos) > maxDistance) {
+      return { ok: false, intent: input.intent, reason: 'distance_too_far', affectedEntityIds: [] };
+    }
+    if (player.inCombat) {
+      return { ok: false, intent: input.intent, reason: 'player_busy_combat', affectedEntityIds: [] };
+    }
+    if (this.isTrivialTo(mob, player)) {
+      return { ok: false, intent: input.intent, reason: 'target_trivial', affectedEntityIds: [] };
+    }
+    if (mob.aiState !== 'idle') {
+      return { ok: false, intent: input.intent, reason: 'state_blocked', affectedEntityIds: [] };
+    }
+
+    const before = this.aiActiveMobActionTargets(player.id);
+    switch (input.intent) {
+      case 'startCombat':
+        this.aggroMob(mob, player, input.social ?? true);
+        break;
+      case 'callForHelp':
+        this.seedAiActiveMobCombat(mob, player);
+        this.callForHelp(mob, player);
+        break;
+      case 'flee':
+        if (!AI_ACTIVE_FLEE_FAMILIES.has(template.family)) {
+          return { ok: false, intent: input.intent, reason: 'protected_creature', affectedEntityIds: [] };
+        }
+        this.seedAiActiveMobCombat(mob, player);
+        mob.aiState = 'flee';
+        mob.hasFled = true;
+        mob.fleeTimer = FLEE_DURATION;
+        this.callForHelp(mob, player);
+        break;
+      default:
+        return { ok: false, intent: input.intent, reason: 'unsupported_intent', affectedEntityIds: [] };
+    }
+
+    const affectedEntityIds = [...this.aiActiveMobActionTargets(player.id)]
+      .filter((id) => !before.has(id) || id === mob.id);
+    if (affectedEntityIds.length === 0) {
+      return { ok: false, intent: input.intent, reason: 'state_blocked', affectedEntityIds: [] };
+    }
+    return { ok: true, intent: input.intent, affectedEntityIds };
+  }
+
+  private seedAiActiveMobCombat(mob: Entity, target: Entity): void {
+    mob.aiState = 'chase';
+    mob.aggroTargetId = target.id;
+    mob.inCombat = true;
+    mob.leashAnchor = { ...mob.pos };
+    addThreat(mob, target.id, 1);
+  }
+
+  private aiActiveMobActionTargets(playerId: number): Set<number> {
+    const ids = new Set<number>();
+    for (const entity of this.entities.values()) {
+      if (entity.kind !== 'mob' || entity.dead || entity.ownerId !== null) continue;
+      if (!entity.inCombat || entity.aggroTargetId !== playerId) continue;
+      ids.add(entity.id);
+    }
+    return ids;
   }
 
   // -------------------------------------------------------------------------

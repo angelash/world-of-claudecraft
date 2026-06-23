@@ -57,6 +57,20 @@ function activeRule(): AiActivePollRuleV1 {
   };
 }
 
+function activeCreatureRule(): AiActivePollRuleV1 {
+  return {
+    ...activeRule(),
+    ruleId: 'server_active_creature_routine',
+    title: 'Server active creature routine',
+    category: 'creatureRoutine',
+    cooldown: {
+      perPlayerSeconds: 90,
+      perEntitySeconds: 180,
+      perRuleSeconds: 10,
+    },
+  };
+}
+
 function joinServer(server: GameServer, fc: FakeClient): ClientSession {
   const session = server.join(fc.ws as any, 1, 1, 'Ari', 'warrior', null);
   if ('error' in session) throw new Error(session.error);
@@ -83,6 +97,17 @@ function teleportNear(server: GameServer, pid: number, targetId: number): void {
   player.prevPos = { ...player.pos };
   server.sim.grid.update(player);
   server.sim.playerGrid.update(player);
+}
+
+function moveServerEntity(server: GameServer, entityId: number, x: number, z: number): void {
+  const entity = server.sim.entities.get(entityId);
+  if (!entity) throw new Error('missing move entity');
+  entity.pos.x = x;
+  entity.pos.z = z;
+  entity.pos.y = groundHeight(entity.pos.x, entity.pos.z, server.sim.cfg.seed);
+  entity.prevPos = { ...entity.pos };
+  server.sim.grid.update(entity);
+  if (entity.kind === 'player') server.sim.playerGrid.update(entity);
 }
 
 function eventsOf(fc: FakeClient, type: string): any[] {
@@ -213,5 +238,39 @@ describe('server AI active triggers', () => {
       activeEventQueued: 1,
       activeEventFired: 1,
     });
+  });
+
+  it('applies active creature actions through the live server scheduler path', () => {
+    const server = new GameServer();
+    const service = new AiActiveTriggerService({
+      rules: [activeCreatureRule()],
+      thinkingDurationMs: 900,
+    });
+    (server as any).aiActiveTriggers = service;
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf');
+    if (!wolf) throw new Error('missing forest wolf');
+    moveServerEntity(server, wolf.id, 80, 86);
+    teleportNear(server, session.pid, wolf.id);
+    const before = mainlineSnapshot(server, session.pid);
+    fc.sent.length = 0;
+
+    (server as any).runAiActiveTriggers(1_000);
+
+    expect(eventsOf(fc, 'aiThinking')).toContainEqual(expect.objectContaining({
+      speakerId: wolf.id,
+      durationMs: 900,
+      pid: session.pid,
+    }));
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: wolf.id,
+      reaction: expect.objectContaining({ kind: 'avoid' }),
+      pid: session.pid,
+    }));
+    expect(wolf.aiState).toBe('flee');
+    expect(wolf.aggroTargetId).toBe(session.pid);
+    expect(wolf.inCombat).toBe(true);
+    expect(mainlineSnapshot(server, session.pid)).toEqual(before);
   });
 });
