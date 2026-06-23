@@ -2979,6 +2979,13 @@ export class Sim {
           break;
         }
         case 'imbue': {
+          for (let i = p.auras.length - 1; i >= 0; i--) {
+            const a = p.auras[i];
+            if (a.kind === 'imbue' && a.id !== ability.id) {
+              p.auras.splice(i, 1);
+              this.emit({ type: 'aura', targetId: p.id, name: a.name, gained: false });
+            }
+          }
           this.applyAura(p, {
             id: ability.id, name: ability.name, kind: 'imbue',
             remaining: eff.duration, duration: eff.duration, value: eff.bonus,
@@ -8097,6 +8104,9 @@ export class Sim {
     this.emit({ type: 'questDone', questId, pid: meta.entityId });
     this.emit({ type: 'log', text: `Quest completed: ${quest.name}`, color: '#ff0', pid: meta.entityId });
   }
+
+  // No-op in offline mode
+  reportTelemetry(): void {}
 
   private onMobKilledForQuests(mob: Entity, meta: PlayerMeta): void {
     for (const qp of meta.questLog.values()) {
