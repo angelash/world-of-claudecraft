@@ -898,16 +898,14 @@ export class AiActiveTriggerService {
     applyNpcAction?: AiActiveNpcActionBridge,
   ): AiActiveNpcActionResult | null {
     if (!this.realActionsEnabled || !applyNpcAction) return null;
-    const relation = routineKind === 'sleeping' ? 'awayFromPlayer' : 'sideStep';
-    const distance = routineKind === 'shelter' ? 2.4 : routineKind === 'sleeping' ? 1.2 : routineKind === 'eating' ? 0.8 : 1.6;
-    const durationSeconds = routineKind === 'sleeping' ? 14 : routineKind === 'shelter' ? 12 : routineKind === 'eating' ? 10 : 8;
+    const action = NPC_ROUTINE_ACTIONS[routineKind];
     const result = applyNpcAction({
       kind: 'shortMove',
       npcId: npc.id,
       playerId: player.id,
-      relation,
-      distance,
-      durationSeconds,
+      relation: action.relation,
+      distance: action.distance,
+      durationSeconds: action.durationSeconds,
       maxDistanceFromHome: npc.questIds.length > 0 || npc.vendorItems.length > 0 ? 3 : 6,
       maxPlayerDistance: CANDIDATE_RADIUS,
     });
@@ -1848,7 +1846,57 @@ function eventRuleId(event: AiActiveQueuedEventState): string {
   return `event:${event.kind}`;
 }
 
-type NpcRoutineKind = 'working' | 'sleeping' | 'shelter' | 'watching' | 'eating';
+type NpcRoutineKind =
+  | 'working'
+  | 'sleeping'
+  | 'shelter'
+  | 'watching'
+  | 'eating'
+  | 'praying'
+  | 'trading'
+  | 'patrolling'
+  | 'forging'
+  | 'scouting'
+  | 'studying'
+  | 'watchingWater'
+  | 'herbalism';
+
+type NpcRoutineRole =
+  | 'priest'
+  | 'merchant'
+  | 'commander'
+  | 'herbalist'
+  | 'tidewatcher'
+  | 'smith'
+  | 'scout'
+  | 'scholar'
+  | 'generic';
+
+interface NpcRoutinePlan {
+  kind: NpcRoutineKind;
+  lineId: string;
+  reactionKind: 'avoid' | 'inspect';
+}
+
+const NPC_ROUTINE_ACTIONS = {
+  working: { relation: 'sideStep', distance: 1.6, durationSeconds: 8 },
+  sleeping: { relation: 'awayFromPlayer', distance: 1.2, durationSeconds: 14 },
+  shelter: { relation: 'sideStep', distance: 2.4, durationSeconds: 12 },
+  watching: { relation: 'sideStep', distance: 1.6, durationSeconds: 8 },
+  eating: { relation: 'sideStep', distance: 0.8, durationSeconds: 10 },
+  praying: { relation: 'sideStep', distance: 1.0, durationSeconds: 12 },
+  trading: { relation: 'sideStep', distance: 0.9, durationSeconds: 8 },
+  patrolling: { relation: 'sideStep', distance: 2.6, durationSeconds: 12 },
+  forging: { relation: 'sideStep', distance: 1.1, durationSeconds: 10 },
+  scouting: { relation: 'sideStep', distance: 2.2, durationSeconds: 12 },
+  studying: { relation: 'sideStep', distance: 1.2, durationSeconds: 10 },
+  watchingWater: { relation: 'sideStep', distance: 2.0, durationSeconds: 12 },
+  herbalism: { relation: 'sideStep', distance: 1.5, durationSeconds: 10 },
+} satisfies Record<NpcRoutineKind, {
+  relation: NonNullable<AiActiveNpcActionRequest['relation']>;
+  distance: number;
+  durationSeconds: number;
+}>;
 
 function routineAwarenessEvent(
   context: AiJobContextV1,
@@ -1856,41 +1904,104 @@ function routineAwarenessEvent(
 ): { kind: NpcRoutineKind; event: Extract<SimEvent, { type: 'aiSpeech' }> } | null {
   const scene = context.scene;
   if (!scene) return null;
+  const profile = profileFor('npc', speaker.templateId);
+  const plan = npcRoutinePlanFor(context, speaker, profile);
+  if (!plan) return null;
   const commonValues = {
     speakerName: speaker.name,
+    playerName: context.player.name,
     subsceneId: scene.subsceneId ?? scene.zoneId,
   };
+  return {
+    kind: plan.kind,
+    event: routineLine(context, speaker, plan.lineId, commonValues, plan.reactionKind, plan.kind),
+  };
+}
+
+function npcRoutinePlanFor(
+  context: AiJobContextV1,
+  speaker: Entity,
+  profile: ReturnType<typeof profileFor>,
+): NpcRoutinePlan | null {
+  const scene = context.scene;
+  if (!scene) return null;
+  const role = npcRoutineRoleFor(speaker, profile.id);
+  const sensitivity = profile.timeWeatherSensitivity;
   if (scene.weather.kind === 'rain') {
-    return {
-      kind: 'shelter',
-      event: routineLine(context, speaker, 'hudChrome.aiSpeech.sceneRainWeariness', commonValues, 'inspect', 'shelter'),
-    };
+    if (role === 'herbalist' || role === 'tidewatcher' || (sensitivity?.rainIrritation ?? 0.4) <= 0.15) {
+      return profileRoutinePlan(profile.fallbackLineId, routineKindForRole(role, 'rain'));
+    }
+    return routinePlan('shelter', 'hudChrome.aiSpeech.sceneRainWeariness', 'avoid');
   }
   if (scene.light.tags.includes('starrySky')) {
-    return {
-      kind: 'watching',
-      event: routineLine(context, speaker, 'hudChrome.aiSpeech.sceneClearNightAwe', commonValues, 'inspect', 'watching'),
-    };
+    if ((sensitivity?.clearNightAwe ?? 0.35) >= 0.45) {
+      return profileRoutinePlan('hudChrome.aiSpeech.sceneClearNightAwe', routineKindForRole(role, 'stars'));
+    }
+    if ((sensitivity?.nightFatigue ?? 0.4) >= 0.35) {
+      return routinePlan('sleeping', 'hudChrome.aiSpeech.sceneNightFatigue', 'avoid');
+    }
+    return routinePlan('watching', 'hudChrome.aiSpeech.sceneClearNightAwe', 'inspect');
   }
   if (scene.time.phase === 'night') {
-    return {
-      kind: 'sleeping',
-      event: routineLine(context, speaker, 'hudChrome.aiSpeech.sceneNightFatigue', commonValues, 'avoid', 'sleeping'),
-    };
+    if (role === 'priest' || role === 'commander' || role === 'scout' || role === 'tidewatcher' || role === 'scholar') {
+      return profileRoutinePlan(profile.fallbackLineId, routineKindForRole(role, 'night'));
+    }
+    return routinePlan('sleeping', 'hudChrome.aiSpeech.sceneNightFatigue', 'avoid');
   }
   if (isMealHour(scene.time.hour) && scene.danger.safeHavenScore >= 0.45) {
-    return {
-      kind: 'eating',
-      event: routineLine(context, speaker, 'hudChrome.aiSpeech.sceneDayEnergy', commonValues, 'inspect', 'eating'),
-    };
+    return routinePlan('eating', 'hudChrome.aiSpeech.sceneDayEnergy', 'inspect');
   }
   if (scene.time.phase === 'day' && scene.danger.safeHavenScore >= 0.55) {
-    return {
-      kind: 'working',
-      event: routineLine(context, speaker, 'hudChrome.aiSpeech.sceneDayEnergy', commonValues, 'inspect', 'working'),
-    };
+    return profileRoutinePlan(profile.fallbackLineId, routineKindForRole(role, 'day'));
   }
   return null;
+}
+
+function routinePlan(kind: NpcRoutineKind, lineId: string, reactionKind: 'avoid' | 'inspect'): NpcRoutinePlan {
+  return { kind, lineId, reactionKind };
+}
+
+function profileRoutinePlan(lineId: string, kind: NpcRoutineKind): NpcRoutinePlan {
+  return routinePlan(kind, lineId, kind === 'sleeping' || kind === 'shelter' ? 'avoid' : 'inspect');
+}
+
+function npcRoutineRoleFor(speaker: Entity, profileId: string): NpcRoutineRole {
+  const templateId = speaker.templateId;
+  if (profileId.includes('brother_aldric')) return 'priest';
+  if (profileId.includes('merchant') || profileId.includes('trader') || profileId.includes('provisioner') || profileId.includes('quartermaster')) {
+    return 'merchant';
+  }
+  if (profileId.includes('marshal') || profileId.includes('warden') || profileId.includes('captain')) return 'commander';
+  if (profileId.includes('apothecary') || profileId.includes('herbalist')) return 'herbalist';
+  if (profileId.includes('fisherman') || profileId.includes('tidewatcher')) return 'tidewatcher';
+  if (profileId.includes('foreman') || profileId.includes('smith') || profileId.includes('armorer')) return 'smith';
+  if (profileId.includes('ranger') || profileId.includes('scout')) return 'scout';
+  if (profileId.includes('loremaster')) return 'scholar';
+  if (templateId.includes('merchant') || templateId.includes('trader') || templateId.includes('provisioner') || templateId.includes('quartermaster')) return 'merchant';
+  return 'generic';
+}
+
+function routineKindForRole(role: NpcRoutineRole, moment: 'day' | 'night' | 'rain' | 'stars'): NpcRoutineKind {
+  switch (role) {
+    case 'priest':
+      return 'praying';
+    case 'merchant':
+      return moment === 'night' || moment === 'stars' ? 'sleeping' : 'trading';
+    case 'commander':
+      return 'patrolling';
+    case 'herbalist':
+      return moment === 'stars' ? 'studying' : 'herbalism';
+    case 'tidewatcher':
+      return 'watchingWater';
+    case 'smith':
+      return moment === 'night' || moment === 'stars' ? 'sleeping' : 'forging';
+    case 'scout':
+      return 'scouting';
+    case 'scholar':
+      return 'studying';
+    case 'generic':
+      return moment === 'night' ? 'sleeping' : moment === 'stars' ? 'watching' : 'working';
+  }
 }
 
 function isMealHour(hour: number): boolean {

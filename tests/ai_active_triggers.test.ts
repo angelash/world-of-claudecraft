@@ -87,6 +87,15 @@ function addPlayersNear(sim: Sim, npcId: number, count: number): number[] {
   return pids;
 }
 
+function isolateNpcCandidate(sim: Sim, npcId: number): void {
+  const target = sim.entities.get(npcId);
+  if (!target) throw new Error('missing target npc');
+  for (const entity of [...sim.entities.values()]) {
+    if (entity.kind !== 'npc' || entity.id === npcId) continue;
+    moveEntity(sim, entity.id, target.pos.x + 80 + entity.id, target.pos.z + 80 + entity.id);
+  }
+}
+
 function mainlineSnapshot(sim: Sim, pid: number): unknown {
   const meta = sim.meta(pid);
   const player = sim.entities.get(pid);
@@ -402,7 +411,7 @@ describe('AI active trigger service', () => {
     });
   });
 
-  it('marks daytime NPC routine beats as working using localized speech', () => {
+  it('marks daytime priest routine beats as praying with profile speech', () => {
     const { sim, pid } = makeWorld();
     sim.time = 8 * 60;
     const service = new AiActiveTriggerService({
@@ -413,14 +422,52 @@ describe('AI active trigger service', () => {
 
     expect(events).toContainEqual(expect.objectContaining({
       type: 'aiSpeech',
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneDayEnergy' }),
-      reaction: expect.objectContaining({ kind: 'inspect', planKind: 'working' }),
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.brotherAldricAwake',
+        values: expect.objectContaining({ playerName: 'Ari', speakerName: 'Brother Aldric' }),
+      }),
+      reaction: expect.objectContaining({ kind: 'inspect', planKind: 'praying' }),
       pid,
     }));
     expect(service.runtimeMetrics()).toMatchObject({
       activeRoutineFired: 1,
-      activeRoutineLastKind: 'working',
+      activeRoutineLastKind: 'praying',
     });
+  });
+
+  it('varies named NPC daytime routines by living-world profile', () => {
+    const cases: Array<[string, string, string]> = [
+      ['the_merchant', 'trading', 'hudChrome.aiSpeech.merchantMarketPulse'],
+      ['marshal_redbrook', 'patrolling', 'hudChrome.aiSpeech.marshalRedbrookAwake'],
+      ['smith_haldren', 'forging', 'hudChrome.aiSpeech.genericNpcAwake'],
+      ['fisherman_brandt', 'watchingWater', 'hudChrome.aiSpeech.fishermanBrandtAwake'],
+      ['apothecary_lin', 'herbalism', 'hudChrome.aiSpeech.apothecaryLinAwake'],
+      ['scout_maren', 'scouting', 'hudChrome.aiSpeech.genericNpcAwake'],
+      ['loremaster_caddis', 'studying', 'hudChrome.aiSpeech.genericNpcAwake'],
+    ];
+
+    for (const [templateId, planKind, lineId] of cases) {
+      const { sim, pid, npcId } = makeWorld(templateId);
+      isolateNpcCandidate(sim, npcId);
+      sim.time = 8 * 60;
+      const service = new AiActiveTriggerService({
+        rules: [testRule({ ruleId: `test_living_${templateId}`, category: 'livingRoutine' })],
+      });
+
+      const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
+
+      expect(events, templateId).toContainEqual(expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: npcId,
+        speech: expect.objectContaining({
+          lineId,
+          values: expect.objectContaining({ playerName: 'Ari' }),
+        }),
+        reaction: expect.objectContaining({ kind: 'inspect', planKind }),
+        pid,
+      }));
+      expect(service.runtimeMetrics().activeRoutineLastKind, templateId).toBe(planKind);
+    }
   });
 
   it('marks meal-time NPC routine beats as eating without changing mainline state', () => {
@@ -474,7 +521,8 @@ describe('AI active trigger service', () => {
     expect(events).toContainEqual(expect.objectContaining({
       type: 'aiSpeech',
       speakerId: npcId,
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneDayEnergy' }),
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
+      reaction: expect.objectContaining({ planKind: 'praying' }),
       pid,
     }));
     expect(requests).toEqual([
@@ -517,17 +565,18 @@ describe('AI active trigger service', () => {
     expect(events).toContainEqual(expect.objectContaining({
       type: 'aiSpeech',
       speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneClearNightAwe' }),
-      reaction: expect.objectContaining({ kind: 'inspect', planKind: 'watching' }),
+      reaction: expect.objectContaining({ kind: 'inspect', planKind: 'praying' }),
       pid,
     }));
     expect(service.runtimeMetrics()).toMatchObject({
       activeRoutineFired: 1,
-      activeRoutineLastKind: 'watching',
+      activeRoutineLastKind: 'praying',
     });
   });
 
   it('marks hidden-sky nighttime NPC routine beats as sleeping or tired using localized speech', () => {
-    const { sim, pid } = makeWorld('brother_aldric_fen');
+    const { sim, pid, npcId } = makeWorld('the_merchant');
+    isolateNpcCandidate(sim, npcId);
     sim.time = 1 * 60;
     const service = new AiActiveTriggerService({
       rules: [testRule({ ruleId: 'test_living_night', category: 'livingRoutine' })],

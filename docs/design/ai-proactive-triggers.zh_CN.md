@@ -1308,6 +1308,13 @@ Usage 页建议新增一个 tab 或 section：
 - 晚上和饭点能明显改变状态分布。
 - 简中环境下所有状态气泡都有简中本地化。
 
+当前实现补充：
+
+- `npc_living_routine` 已从通用白天/夜晚模板扩展为 profile 驱动的 named NPC 作息。牧师会祈祷，商人和军需官会整理交易，守卫和指挥官会巡查，铁匠和工头会围绕工具与炉火行动，渔夫和潮汐看守会看水，草药师会采样，斥候会侦察，学者会研究。
+- 作息表达优先复用每个 NPC 已有的 living-world profile lineId，因此英文和简中都继续走本地化表，不新增未翻译的玩家可见文案。routine values 也补齐 `playerName` 和 `speakerName`，避免 profile 文案占位缺失。
+- 真实动作桥已经按 `planKind` 区分短移动：巡查和侦察移动稍远，祈祷、交易、锻造、研究、草药采样、水边观察等动作更短，任务 NPC、商人和训练相关 NPC 仍被限制在 3 码安全半径内并自动回位。
+- `tests/ai_active_triggers.test.ts` 覆盖了白天 profile 差异、饭点 eating、晴夜祈祷、夜间疲劳睡意和关键 NPC 短移动回位，防止退回“所有人都是 working”的机械状态。
+
 ### 螺旋 6：怪物家族生态生活
 
 交付：
