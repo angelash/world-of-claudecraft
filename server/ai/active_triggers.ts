@@ -941,7 +941,15 @@ export class AiActiveTriggerService {
     this.tryApplySocialSequenceActions(input.player, sequence.speakers, input.applyNpcAction);
     if (input.deliver) {
       return {
-        events: this.schedulePacedSequence(input.player.id, sequence.events, input.deliver),
+        events: this.schedulePacedSequence({
+          pid: input.player.id,
+          events: sequence.events,
+          deliver: input.deliver,
+          canContinue: () => {
+            const player = input.sim.entities.get(input.player.id);
+            return Boolean(player && !player.dead && !player.inCombat);
+          },
+        }),
         skipReason: 'not_due',
       };
     }
@@ -970,18 +978,19 @@ export class AiActiveTriggerService {
     }
   }
 
-  private schedulePacedSequence(
-    pid: number,
-    events: SimEvent[],
-    deliver: (pid: number, events: SimEvent[]) => void,
-  ): SimEvent[] {
-    const [first, ...rest] = events;
+  private schedulePacedSequence(input: {
+    pid: number;
+    events: SimEvent[];
+    deliver: (pid: number, events: SimEvent[]) => void;
+    canContinue: () => boolean;
+  }): SimEvent[] {
+    const [first, ...rest] = input.events;
     if (!first) return [];
     let delayMs = first.type === 'aiThinking' ? first.durationMs : this.thinkingDurationMs;
     for (const event of rest) {
       const timer = setTimeout(() => {
         this.sequenceTimers.delete(timer);
-        deliver(pid, [event]);
+        if (input.canContinue()) input.deliver(input.pid, [event]);
       }, delayMs);
       this.sequenceTimers.add(timer);
       if (event.type === 'aiThinking') delayMs += event.durationMs;

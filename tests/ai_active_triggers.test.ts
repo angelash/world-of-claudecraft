@@ -837,6 +837,44 @@ describe('AI active trigger service', () => {
     }
   });
 
+  it('cancels paced social sequence beats when the player enters combat', async () => {
+    vi.useFakeTimers();
+    const { sim, pid } = makeWorld();
+    sim.time = 8 * 60;
+    const merchant = entityByTemplate(sim, 'the_merchant');
+    const marshal = entityByTemplate(sim, 'marshal_redbrook');
+    const player = sim.entities.get(pid);
+    if (!player) throw new Error('missing player');
+    moveEntity(sim, merchant.id, 9, 17);
+    moveEntity(sim, marshal.id, 12, 17);
+    moveEntity(sim, pid, 9, 18);
+    const delivered: SimEvent[][] = [];
+    const service = new AiActiveTriggerService({
+      thinkingDurationMs: 800,
+      rules: [testRule({ ruleId: 'test_social_sequence_cancel', category: 'socialSequence' })],
+    });
+
+    try {
+      const immediate = service.tick({
+        sim,
+        sessions: [{ pid }],
+        nowMs: 1_000,
+        deliver: (_pid, events) => delivered.push(events),
+      });
+      expect(immediate).toEqual([
+        expect.objectContaining({ type: 'aiThinking', durationMs: 800, pid }),
+      ]);
+
+      player.inCombat = true;
+      await vi.advanceTimersByTimeAsync(6_000);
+
+      expect(delivered).toEqual([]);
+    } finally {
+      service.stop();
+      vi.useRealTimers();
+    }
+  });
+
   it('delivers validated provider dynamic text after the active thinking beat', async () => {
     const { sim, pid, npcId } = makeWorld();
     let seenContext: AiJobContextV1 | null = null;
