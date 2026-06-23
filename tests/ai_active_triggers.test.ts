@@ -260,13 +260,22 @@ describe('AI active trigger service', () => {
     const player = sim.entities.get(pid);
     if (!player) throw new Error('missing player');
     const droppedAt = { x: player.pos.x, z: player.pos.z };
+    const requests: unknown[] = [];
 
     service.noteItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, nowMs: 1_000 });
     expect(service.diagnosticsSnapshot().eventQueue).toContainEqual(expect.objectContaining({
       kind: 'item_discarded',
       anchorPos: droppedAt,
     }));
-    const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
+    const events = service.tick({
+      sim,
+      sessions: [{ pid }],
+      nowMs: 1_000,
+      applyNpcAction: (request) => {
+        requests.push(request);
+        return sim.aiActiveNpcAction(request);
+      },
+    });
 
     expect(events).toContainEqual(expect.objectContaining({
       type: 'aiSpeech',
@@ -285,9 +294,16 @@ describe('AI active trigger service', () => {
       source: 'local',
       pid,
     }));
+    const speech = events.find((event): event is Extract<typeof event, { type: 'aiSpeech' }> => event.type === 'aiSpeech');
+    expect(requests).toEqual([
+      expect.objectContaining({ kind: 'shortMove', npcId: speech?.speakerId, playerId: pid, relation: 'towardPlayer' }),
+    ]);
     expect(service.runtimeMetrics()).toMatchObject({
       activeEventQueued: 1,
       activeEventFired: 1,
+      activeActionsAttempted: 1,
+      activeActionsApplied: 1,
+      activeNpcActionsApplied: 1,
     });
   });
 

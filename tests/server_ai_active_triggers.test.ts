@@ -243,10 +243,14 @@ describe('server AI active triggers', () => {
       source: 'local',
       pid: session.pid,
     }));
+    expect(npc.aiActiveMoveTarget).not.toBeNull();
     expect(server.sim.countItem('roasted_boar', session.pid)).toBe(0);
     expect(server.aiActiveTriggerMetrics()).toMatchObject({
       activeEventQueued: 1,
       activeEventFired: 1,
+      activeActionsAttempted: 1,
+      activeActionsApplied: 1,
+      activeNpcActionsApplied: 1,
     });
   });
 

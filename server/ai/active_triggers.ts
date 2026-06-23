@@ -514,7 +514,12 @@ export class AiActiveTriggerService {
     this.metrics.activeSchedulerOnlineCount = sessions.length;
     this.metrics.activeSchedulerLastBand = this.populationPolicy.band;
 
-    const eventEvents = this.tryProcessQueuedEvents({ sim: input.sim, sessions, nowMs: input.nowMs });
+    const eventEvents = this.tryProcessQueuedEvents({
+      sim: input.sim,
+      sessions,
+      nowMs: input.nowMs,
+      applyNpcAction: input.applyNpcAction,
+    });
     if (eventEvents.length > 0) return eventEvents;
 
     if (!this.pollsEnabled) {
@@ -613,6 +618,7 @@ export class AiActiveTriggerService {
     sim: Sim;
     sessions: readonly AiActiveTriggerSessionLike[];
     nowMs: number;
+    applyNpcAction?: AiActiveNpcActionBridge;
   }): SimEvent[] {
     if (!this.eventsEnabled) {
       if (this.eventQueue.length > 0) this.recordSkip('active_event', 'events_disabled', 'event');
@@ -637,6 +643,7 @@ export class AiActiveTriggerService {
         session,
         queued,
         nowMs: input.nowMs,
+        applyNpcAction: input.applyNpcAction,
       });
       if (result.events.length > 0) {
         this.eventQueue.splice(i, 1);
@@ -655,6 +662,7 @@ export class AiActiveTriggerService {
     session: AiActiveTriggerSessionLike;
     queued: AiActiveQueuedEventState;
     nowMs: number;
+    applyNpcAction?: AiActiveNpcActionBridge;
   }): { events: SimEvent[]; skipReason: AiActiveSkipReason } {
     const player = input.sim.entities.get(input.session.pid);
     if (!player) return { events: [], skipReason: 'player_missing' };
@@ -705,7 +713,30 @@ export class AiActiveTriggerService {
       lineId,
       createdAtMs: input.nowMs,
     });
+    this.tryApplyQueuedEventAction(input.queued, candidate.entity, player, input.applyNpcAction);
     return { events: [thinkingEvent, localEvent], skipReason: 'not_due' };
+  }
+
+  private tryApplyQueuedEventAction(
+    queued: AiActiveQueuedEventState,
+    npc: Entity,
+    player: Entity,
+    applyNpcAction?: AiActiveNpcActionBridge,
+  ): void {
+    if (!this.realActionsEnabled || !applyNpcAction) return;
+    if (queued.kind !== 'item_discarded' || !queued.itemId) return;
+    const traceKind = worldTraceKindForItemId(queued.itemId);
+    const result = applyNpcAction({
+      kind: 'shortMove',
+      npcId: npc.id,
+      playerId: player.id,
+      relation: traceKind === 'cursed' ? 'awayFromPlayer' : 'towardPlayer',
+      distance: traceKind === 'cursed' ? 1.8 : 1.2,
+      durationSeconds: traceKind === 'cursed' ? 8 : 7,
+      maxDistanceFromHome: npc.questIds.length > 0 || npc.vendorItems.length > 0 ? 3 : 6,
+      maxPlayerDistance: CANDIDATE_RADIUS,
+    });
+    this.recordActionResult(`npc:${result.kind}`, result);
   }
 
   private tryFireRule(input: {
