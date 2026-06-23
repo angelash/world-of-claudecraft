@@ -1002,20 +1002,27 @@ describe('AI active trigger service', () => {
     expect(speech).toHaveLength(3);
     expect(thinking.map((event) => event.durationMs)).toEqual([800, 2_000, 3_200]);
     expect(speakerIds).toEqual(expect.arrayContaining([merchant.id, marshal.id]));
-    expect(speech[0]).toEqual(expect.objectContaining({
-      speakerId: speakerIds[0],
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneDayEnergy' }),
-      reaction: expect.objectContaining({ targetEntityId: speakerIds[1], planKind: 'conversationStart' }),
+    expect(speech).toContainEqual(expect.objectContaining({
+      speakerId: merchant.id,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.merchantMarketPulse' }),
+      reaction: expect.objectContaining({
+        targetItemId: 'eastbrook_market_stall',
+        planKind: expect.stringMatching(/^conversation(Start|Reply)$/),
+        sceneTags: expect.arrayContaining(['focus:eastbrook_market_stall', 'coin', 'watchCrowd']),
+      }),
       pid,
     }));
-    expect(speech[1]).toEqual(expect.objectContaining({
-      speakerId: speakerIds[1],
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.topicPlace' }),
-      reaction: expect.objectContaining({ targetEntityId: speakerIds[2], planKind: 'conversationReply' }),
+    expect(speech).toContainEqual(expect.objectContaining({
+      speakerId: marshal.id,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.marshalRedbrookAwake' }),
+      reaction: expect.objectContaining({
+        targetItemId: 'eastbrook_market_stall',
+        planKind: expect.stringMatching(/^conversation(Start|Reply)$/),
+        sceneTags: expect.arrayContaining(['focus:eastbrook_market_stall', 'coin', 'watchCrowd']),
+      }),
       pid,
     }));
-    expect(speech[2]).toEqual(expect.objectContaining({
-      speakerId: speakerIds[2],
+    expect(speech).toContainEqual(expect.objectContaining({
       speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.topicRecentKnown' }),
       reaction: expect.objectContaining({ targetEntityId: speakerIds[0], planKind: 'conversationAside' }),
       pid,
@@ -1057,8 +1064,20 @@ describe('AI active trigger service', () => {
       .filter((event): event is Extract<typeof event, { type: 'aiThinking' }> => event.type === 'aiThinking')
       .map((event) => event.speakerId);
     expect(requests).toEqual([
-      expect.objectContaining({ kind: 'shortMove', npcId: speakerIds[0], playerId: pid, relation: 'sideStep' }),
-      expect.objectContaining({ kind: 'shortMove', npcId: speakerIds[1], playerId: pid, relation: 'towardPlayer' }),
+      expect.objectContaining({
+        kind: 'shortMove',
+        npcId: speakerIds[0],
+        playerId: pid,
+        relation: 'sideStep',
+        targetPos: expect.objectContaining({ x: 15, z: 14 }),
+      }),
+      expect.objectContaining({
+        kind: 'shortMove',
+        npcId: speakerIds[1],
+        playerId: pid,
+        relation: 'towardPlayer',
+        targetPos: expect.objectContaining({ x: 15, z: 14 }),
+      }),
     ]);
     expect(service.runtimeMetrics()).toMatchObject({
       activeSequenceFired: 1,

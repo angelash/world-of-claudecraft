@@ -81,6 +81,15 @@ function activeLivingRule(): AiActivePollRuleV1 {
   };
 }
 
+function activeSocialSequenceRule(): AiActivePollRuleV1 {
+  return {
+    ...activeRule(),
+    ruleId: 'server_active_social_sequence',
+    title: 'Server active social sequence',
+    category: 'socialSequence',
+  };
+}
+
 function joinServer(server: GameServer, fc: FakeClient): ClientSession {
   const session = server.join(fc.ws as any, 1, 1, 'Ari', 'warrior', null);
   if ('error' in session) throw new Error(session.error);
@@ -458,5 +467,63 @@ describe('server AI active triggers', () => {
     expect(npc.aiActiveMoveTarget).not.toBeNull();
     expect(dist2d(npc.aiActiveMoveTarget!, { x: 11, y: npc.pos.y, z: -3 })).toBeLessThanOrEqual(2.1);
     expect(mainlineSnapshot(server, session.pid)).toEqual(before);
+  });
+
+  it('routes object-focused NPC social sequences through the live server scheduler path', async () => {
+    vi.useFakeTimers();
+    const server = new GameServer();
+    const service = new AiActiveTriggerService({
+      rules: [activeSocialSequenceRule()],
+      thinkingDurationMs: 800,
+    });
+    (server as any).aiActiveTriggers = service;
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    server.sim.time = 8 * 60;
+    const merchant = [...server.sim.entities.values()].find((entity) => entity.templateId === 'the_merchant');
+    const marshal = [...server.sim.entities.values()].find((entity) => entity.templateId === 'marshal_redbrook');
+    if (!merchant || !marshal) throw new Error('missing social sequence NPCs');
+    moveServerEntity(server, merchant.id, 9, 17);
+    moveServerEntity(server, marshal.id, 12, 17);
+    moveServerEntity(server, session.pid, 9, 18);
+    const before = mainlineSnapshot(server, session.pid);
+    fc.sent.length = 0;
+
+    try {
+      (server as any).runAiActiveTriggers(1_000);
+
+      expect(eventsOf(fc, 'aiThinking')).toHaveLength(1);
+      await vi.advanceTimersByTimeAsync(3_700);
+
+      expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+        speakerId: merchant.id,
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.merchantMarketPulse' }),
+        reaction: expect.objectContaining({
+          targetItemId: 'eastbrook_market_stall',
+          sceneTags: expect.arrayContaining(['focus:eastbrook_market_stall', 'coin', 'watchCrowd']),
+        }),
+        pid: session.pid,
+      }));
+      expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+        speakerId: marshal.id,
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.marshalRedbrookAwake' }),
+        reaction: expect.objectContaining({
+          targetItemId: 'eastbrook_market_stall',
+          sceneTags: expect.arrayContaining(['focus:eastbrook_market_stall', 'coin', 'watchCrowd']),
+        }),
+        pid: session.pid,
+      }));
+      expect(merchant.aiActiveMoveTarget).not.toBeNull();
+      expect(marshal.aiActiveMoveTarget).not.toBeNull();
+      expect(server.aiActiveTriggerMetrics()).toMatchObject({
+        activeSequenceFired: 1,
+        activeActionsAttempted: 2,
+        activeActionsApplied: 2,
+        activeNpcActionsApplied: 2,
+      });
+      expect(mainlineSnapshot(server, session.pid)).toEqual(before);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

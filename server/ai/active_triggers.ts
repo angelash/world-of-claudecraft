@@ -323,6 +323,7 @@ interface SocialSequenceResult {
   kind: 'npc' | 'creature';
   family?: MobFamily;
   sceneId?: string;
+  focusObject?: SceneObjectSemantic;
   events: SimEvent[];
   speakers: Entity[];
   lineIds: string[];
@@ -1209,6 +1210,7 @@ export class AiActiveTriggerService {
         npcId: speaker.id,
         playerId: player.id,
         relation: i === 0 ? 'sideStep' : 'towardPlayer',
+        ...(sequence.focusObject?.worldPos ? { targetPos: sequence.focusObject.worldPos } : {}),
         distance: i === 0 ? 1.2 : 0.8,
         durationSeconds: 6 + i * 2,
         maxDistanceFromHome: speaker.questIds.length > 0 || speaker.vendorItems.length > 0 ? 3 : 6,
@@ -1465,7 +1467,8 @@ export class AiActiveTriggerService {
       .map((candidate) => candidate.entity);
     if (speakers.length < 2) return null;
 
-    const lineIds = socialSequenceLineIds(scene, speakers.length);
+    const focusObject = socialSequenceFocusObject(scene, speakers);
+    const lineIds = socialSequenceLineIds(scene, speakers, focusObject);
     const usedLineIds = lineIds.slice(0, Math.min(speakers.length, lineIds.length));
     const events: SimEvent[] = [];
     for (let i = 0; i < usedLineIds.length; i++) {
@@ -1484,6 +1487,7 @@ export class AiActiveTriggerService {
         speaker,
         partner,
         player,
+        ...(focusObject ? { focusObject } : {}),
         lineId: usedLineIds[i],
         step: i,
       }));
@@ -1491,6 +1495,7 @@ export class AiActiveTriggerService {
     return {
       kind: 'npc',
       sceneId: scene.subsceneId ?? scene.zoneId,
+      ...(focusObject ? { focusObject } : {}),
       events,
       speakers: speakers.slice(0, usedLineIds.length),
       lineIds: usedLineIds,
@@ -2468,20 +2473,25 @@ function routineFocusScore(
   return affordanceHits * 4 + tagHits * 3 - object.distance * 0.1;
 }
 
-function socialSequenceLineIds(scene: ReturnType<typeof sceneFrameFor>, speakerCount: number): string[] {
-  const first = socialSequenceFirstLineId(scene);
-  const second = scene.danger.undeadPressure >= 0.25 || scene.environmentalTags.includes('deathPressure')
-    ? 'hudChrome.aiSpeech.sceneUndeadPressure'
-    : scene.time.phase === 'night'
-      ? 'hudChrome.aiSpeech.sceneNightFatigue'
-      : 'hudChrome.aiSpeech.topicPlace';
-  const third = scene.locationTags.includes('safeTown')
-    ? 'hudChrome.aiSpeech.topicRecentKnown'
-    : 'hudChrome.aiSpeech.genericNpcAwake';
-  return [first, second, third].slice(0, Math.max(0, speakerCount));
+function socialSequenceLineIds(
+  scene: ReturnType<typeof sceneFrameFor>,
+  speakers: readonly Entity[],
+  focusObject?: SceneObjectSemantic,
+): string[] {
+  const first = socialSequenceFirstLineId(scene, speakers[0], focusObject);
+  const second = socialSequenceSecondLineId(scene, speakers[1], focusObject, first);
+  const third = socialSequenceThirdLineId(scene, speakers[2], focusObject, second);
+  return [first, second, third].slice(0, Math.max(0, speakers.length));
 }
 
-function socialSequenceFirstLineId(scene: ReturnType<typeof sceneFrameFor>): string {
+function socialSequenceFirstLineId(
+  scene: ReturnType<typeof sceneFrameFor>,
+  speaker: Entity | undefined,
+  focusObject?: SceneObjectSemantic,
+): string {
+  if (focusObject && speaker && socialSequenceCanUseProfileLine(scene)) {
+    return profileFor('npc', speaker.templateId).fallbackLineId;
+  }
   if (scene.weather.kind === 'rain') return 'hudChrome.aiSpeech.sceneRainWeariness';
   if (scene.weather.kind === 'fog') return 'hudChrome.aiSpeech.sceneFogUnease';
   if (scene.light.tags.includes('starrySky')) return 'hudChrome.aiSpeech.sceneClearNightAwe';
@@ -2494,11 +2504,48 @@ function socialSequenceFirstLineId(scene: ReturnType<typeof sceneFrameFor>): str
   return 'hudChrome.aiSpeech.topicPlace';
 }
 
+function socialSequenceSecondLineId(
+  scene: ReturnType<typeof sceneFrameFor>,
+  speaker: Entity | undefined,
+  focusObject: SceneObjectSemantic | undefined,
+  firstLineId: string,
+): string {
+  if (focusObject && speaker && socialSequenceCanUseProfileLine(scene)) {
+    const lineId = profileFor('npc', speaker.templateId).fallbackLineId;
+    if (lineId !== firstLineId) return lineId;
+  }
+  if (scene.danger.undeadPressure >= 0.25 || scene.environmentalTags.includes('deathPressure')) {
+    return 'hudChrome.aiSpeech.sceneUndeadPressure';
+  }
+  if (scene.time.phase === 'night') return 'hudChrome.aiSpeech.sceneNightFatigue';
+  return 'hudChrome.aiSpeech.topicPlace';
+}
+
+function socialSequenceThirdLineId(
+  scene: ReturnType<typeof sceneFrameFor>,
+  _speaker: Entity | undefined,
+  _focusObject: SceneObjectSemantic | undefined,
+  _previousLineId: string,
+): string {
+  return scene.locationTags.includes('safeTown')
+    ? 'hudChrome.aiSpeech.topicRecentKnown'
+    : 'hudChrome.aiSpeech.genericNpcAwake';
+}
+
+function socialSequenceCanUseProfileLine(scene: ReturnType<typeof sceneFrameFor>): boolean {
+  if (scene.weather.kind !== 'clear') return false;
+  if (scene.light.tags.includes('starrySky')) return false;
+  if (scene.time.phase !== 'day') return false;
+  if (scene.danger.undeadPressure >= 0.25 || scene.environmentalTags.includes('deathPressure')) return false;
+  return true;
+}
+
 function socialSequenceLine(input: {
   scene: ReturnType<typeof sceneFrameFor>;
   speaker: Entity;
   partner: Entity;
   player: Entity;
+  focusObject?: SceneObjectSemantic;
   lineId: string;
   step: number;
 }): AiSpeechEvent {
@@ -2519,19 +2566,112 @@ function socialSequenceLine(input: {
         playerName: input.partner.name,
         partnerName: input.partner.name,
         subsceneId: input.scene.subsceneId ?? input.scene.zoneId,
+        ...(input.focusObject ? {
+          sceneObjectId: input.focusObject.objectId,
+          sceneObjectTemplateId: input.focusObject.templateId,
+        } : {}),
       },
     },
     source: 'local',
     reaction: {
       kind: 'inspect',
       targetEntityId: input.partner.id,
+      ...(input.focusObject ? { targetItemId: input.focusObject.objectId } : {}),
+      ...(input.focusObject?.entityId !== null && input.focusObject !== undefined ? { targetObjectId: input.focusObject.entityId } : {}),
       score: 0.68,
       planKind,
       planIntensity: 0.45,
-      sceneTags: sceneTagsWith(input.scene, `sequence:${planKind}`),
+      sceneTags: socialSequenceSceneTags(input.scene, planKind, input.focusObject),
     },
     pid: input.player.id,
   };
+}
+
+function socialSequenceFocusObject(
+  scene: ReturnType<typeof sceneFrameFor>,
+  speakers: readonly Entity[],
+): SceneObjectSemantic | undefined {
+  return scene.nearbySemanticObjects
+    .map((object) => ({
+      object,
+      score: speakers.reduce((sum, speaker) => sum + socialSequenceObjectScoreForSpeaker(object, speaker), 0),
+    }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score || a.object.distance - b.object.distance || a.object.objectId.localeCompare(b.object.objectId))[0]
+    ?.object;
+}
+
+function socialSequenceObjectScoreForSpeaker(object: SceneObjectSemantic, speaker: Entity): number {
+  const profile = profileFor('npc', speaker.templateId);
+  const role = npcRoutineRoleFor(speaker, profile.id);
+  const intent = socialSequenceIntentTagsForRole(role);
+  const tagHits = object.tags.filter((tag) => intent.tags.includes(tag)).length;
+  const affordanceHits = object.affordanceTags.filter((tag) => intent.affordances.includes(tag)).length;
+  const sceneAffinityHits = object.tags.filter((tag) =>
+    profile.sceneAffinities?.likesTags.includes(tag) || profile.sceneAffinities?.commentsOnTags.includes(tag),
+  ).length;
+  const interestHits = object.tags.filter((tag) => profile.itemInterest?.attractedToTags.includes(tag)).length;
+  return tagHits * 3.5 + affordanceHits * 4 + sceneAffinityHits * 2 + interestHits * 1.5 - object.distance * 0.08;
+}
+
+function socialSequenceIntentTagsForRole(
+  role: NpcRoutineRole,
+): { tags: readonly string[]; affordances: readonly string[] } {
+  switch (role) {
+    case 'priest':
+      return { tags: ['shrine', 'prayerMemory', 'quiet', 'oldStone'], affordances: ['offerPrayer', 'lowerVoice', 'readInscription', 'listenForEcho'] };
+    case 'merchant':
+      return { tags: ['stall', 'marketEdge', 'coin', 'footTraffic'], affordances: ['haggle', 'watchCrowd', 'sniffGoods'] };
+    case 'commander':
+      return { tags: ['road', 'watchPost', 'militaryOrder', 'footTraffic'], affordances: ['standGuard', 'readNotice', 'signalTown', 'watchCrowd'] };
+    case 'herbalist':
+      return { tags: ['herb', 'alchemy', 'quiet', 'safeTown'], affordances: ['sniffHerbs', 'askRemedy', 'handleCarefully'] };
+    case 'tidewatcher':
+      return { tags: ['openWater', 'dock', 'fishSmell', 'reflection'], affordances: ['watchReflection', 'peerBelow', 'paceCarefully'] };
+    case 'smith':
+      return { tags: ['forge', 'hotIron', 'workNoise', 'safeTown'], affordances: ['repairGear', 'warmHands', 'avoidHeat'] };
+    case 'scout':
+      return { tags: ['bridge', 'lowVisibility', 'shore', 'watchPost'], affordances: ['trackRipples', 'listenForSteps', 'crossCarefully'] };
+    case 'scholar':
+      return { tags: ['oldStone', 'weatheredIcon', 'quiet', 'prayerMemory'], affordances: ['readInscription', 'readOldMarks', 'inspectOfferings'] };
+    case 'generic':
+      return { tags: ['safeTown', 'house', 'marketEdge', 'quiet'], affordances: ['watchCrowd', 'restNearDoor', 'askForHelp'] };
+  }
+}
+
+function socialSequenceSceneTags(
+  scene: ReturnType<typeof sceneFrameFor>,
+  planKind: string,
+  focusObject?: SceneObjectSemantic,
+): string[] {
+  const focusTags = focusObject
+    ? [
+      `focus:${focusObject.objectId}`,
+      ...focusObject.tags.slice(0, 3),
+      ...socialSequenceFocusAffordanceTags(focusObject),
+    ]
+    : [];
+  return [...new Set([
+    ...focusTags,
+    ...sceneTagsWith(scene, `sequence:${planKind}`),
+  ])].slice(0, 8);
+}
+
+function socialSequenceFocusAffordanceTags(focusObject: SceneObjectSemantic): string[] {
+  const preferred = [
+    'watchCrowd',
+    'lowerVoice',
+    'offerPrayer',
+    'sniffHerbs',
+    'readInscription',
+    'watchReflection',
+    'repairGear',
+  ];
+  const ordered = [
+    ...preferred.filter((tag) => focusObject.affordanceTags.includes(tag)),
+    ...focusObject.affordanceTags.filter((tag) => !preferred.includes(tag)),
+  ];
+  return ordered.slice(0, 2);
 }
 
 interface CreatureSequenceGroup {
