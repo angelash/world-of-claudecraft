@@ -49,6 +49,7 @@ export function dynamicSpeechPromptRules(locale: string): string[] {
     '- Restating the player question, your reasoning, or the whole situation usually makes the line worse.',
     '- Avoid assistant-style transitions, summaries, and lesson-like phrasing.',
     '- Do not start with however, also, therefore, overall, or similar connector words.',
+    '- If the line reacts to a smell, sound, sight, or feeling, name the concrete thing: smoke, wet stone, coins, footsteps, torch oil. Do not say vague prompts like "Smell that?" or "Hear that?"',
     '- One mutter, fragment, or half-finished warning is fine if it sounds alive.',
   ];
   if (isChineseLocale(locale)) {

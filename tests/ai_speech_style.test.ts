@@ -16,6 +16,7 @@ describe('AI speech style', () => {
     expect(rules).toContain('spoken contractions');
     expect(rules).toContain('avoid colon-led setup');
     expect(rules).toContain('honestly');
+    expect(rules).toContain('Do not say vague prompts like "Smell that?"');
   });
 
   it('polishes assistant-like English phrasing into a shorter spoken line', () => {
