@@ -168,6 +168,28 @@ describe('AI intent validator', () => {
     }]);
   });
 
+  it('rejects low-information dynamicText that only echoes the topic', () => {
+    const result = validateAiDecision({
+      decision: {
+        ...decision,
+        speech: [{ mode: 'dynamicText', language: 'en', text: 'Recent?' }],
+      },
+      context: { ...context, outputMode: 'dynamic_text_experiment' },
+      entity,
+      subject: 'criticalQuestNpc',
+      source: 'codex',
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      reason: 'dynamic speech too thin',
+      speechPolish: expect.objectContaining({
+        processed: 1,
+        lastAfter: 'Recent?',
+      }),
+    });
+  });
+
   it('polishes English dynamicText before creating player speech events', () => {
     const result = validateAiDecision({
       decision: {

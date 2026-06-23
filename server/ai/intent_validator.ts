@@ -88,6 +88,9 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
     if (polishedText.length === 0 || polishedText.length > MAX_DYNAMIC_TEXT_CHARS) {
       return rejected('dynamic speech length out of range', speechPolish);
     }
+    if (isLowInformationDynamicSpeech(polishedText, context.locale)) {
+      return rejected('dynamic speech too thin', speechPolish);
+    }
     events.push({
       type: 'aiSpeech',
       speakerId: entity.id,
@@ -223,4 +226,19 @@ function emptySpeechPolishSnapshot(source: AiSpeechFingerprintSource): AiSpeechP
     lastBeforeChars: 0,
     lastAfterChars: 0,
   };
+}
+
+function isLowInformationDynamicSpeech(text: string, locale: string): boolean {
+  const normalized = text.trim().replace(/\s+/g, ' ');
+  if (!normalized) return true;
+  if (locale === 'zh_CN' || locale === 'zh_TW' || locale.toLowerCase().startsWith('zh')) {
+    const compact = normalized.replace(/[，,。.!！?？、\s]/g, '');
+    return compact.length <= 4 && /[?？]$/.test(normalized);
+  }
+  if (locale === 'en' || locale === 'en_CA' || locale.toLowerCase().startsWith('en')) {
+    const lower = normalized.toLowerCase();
+    const words = lower.replace(/[^a-z0-9'?\s]/g, '').split(/\s+/).filter(Boolean);
+    return words.length <= 2 && /[?]$/.test(lower);
+  }
+  return false;
 }
