@@ -132,6 +132,8 @@ const impactAshC = new THREE.Color(0x18110d);
 const impactScorchC = new THREE.Color(0x2a160c);
 const hazyPeakC = new THREE.Color(0xa8bdd4); // world-rim mountains, atmospheric
 const snowCapC = new THREE.Color(0xedf3fa);
+const lowSunC = new THREE.Color(0xe7d9a5);
+const lowShadeC = new THREE.Color(0x60745b);
 const zonePalettes = ZONES.map((zn) => {
   const p = BIOME_PALETTE[zn.biome];
   return {
@@ -268,6 +270,14 @@ function sampleVertex(x: number, z: number, seed: number): VertexSample {
   }
   // mud rides the dirt layer wherever the marsh palette is active
   const mud = marshWeightAt(z);
+  if (GFX.lowPlus && !GFX.terrainSplat) {
+    const ridge = clamp01((slope - 0.22) * 1.6);
+    const lowland = clamp01((WATER_LEVEL + 7 - h) / 12);
+    const upland = clamp01((h - 8) / 22);
+    cTmp.lerp(lowShadeC, 0.07 * ridge + 0.05 * lowland * mud);
+    cTmp.lerp(lowSunC, 0.035 * (1 - shore) + 0.045 * upland);
+    cTmp.multiplyScalar(0.98 + upland * 0.04 - ridge * 0.025);
+  }
   return {
     height: h, slope, normal, color: [cTmp.r, cTmp.g, cTmp.b], splat: w,
     extra: [mud, snow, impact.scorch, impact.ash],
@@ -539,7 +549,12 @@ function buildLambertMaterial(): THREE.MeshLambertMaterial {
   const detail = groundDetailTexture();
   // strip-planar uv: keep the legacy ~2.25u texture period in both axes
   detail.repeat.set(160, 480);
-  return new THREE.MeshLambertMaterial({ vertexColors: true, map: detail });
+  return new THREE.MeshLambertMaterial({
+    vertexColors: true,
+    map: detail,
+    emissive: GFX.lowPlus ? 0x182014 : 0x000000,
+    emissiveIntensity: GFX.lowPlus ? 0.08 : 1,
+  });
 }
 
 // ---------------------------------------------------------------------------

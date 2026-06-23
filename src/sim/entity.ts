@@ -1,5 +1,6 @@
 import { CLASSES, ITEMS, MOBS, NpcDef } from './data';
 import type { Entity, EquipSlot, MobTemplate, PlayerClass, Stats, Vec3 } from './types';
+import { EQUIP_SLOTS } from './types';
 import type { TalentModifiers } from './content/talents';
 
 function baseEntity(id: number, pos: Vec3): Entity {
@@ -21,11 +22,11 @@ function baseEntity(id: number, pos: Vec3): Entity {
     chargeTargetId: null, chargeTimeLeft: 0, chargePath: [], followTargetId: null,
     sitting: false, eating: null, drinking: null,
     aiState: 'idle', tappedById: null, pulseTimer: 0, stompTimer: 0, stoneskinTimer: 0, terrifyTimer: 0, detonateTimer: Infinity, mendTimer: 0, wardTimer: 0, rallyTimer: 0, warcryTimer: 0, firedSummons: 0, summonedIds: [], enraged: false, healedThisPull: false,
-    threat: new Map(), forcedTargetId: null, forcedTargetTimer: 0, ownerId: null, petMode: 'defensive', petTauntTimer: 0,
-    spawnPos: { ...pos }, leashAnchor: null, evadeStall: 0, fleeTimer: 0, hasFled: false, wanderTarget: null, wanderTimer: 0,
+    threat: new Map(), forcedTargetId: null, forcedTargetTimer: 0, ownerId: null, petMode: 'defensive', petTauntTimer: 0, petPath: [], petPathCooldown: 0,
+    spawnPos: { ...pos }, leashAnchor: null, evadeStall: 0, fleeTimer: 0, fleeReturnTimer: 0, hasFled: false, wanderTarget: null, wanderTimer: 0,
     aggroTargetId: null, respawnTimer: 0, corpseTimer: 0, lootable: false, loot: null,
     xpValue: 0, questIds: [], vendorItems: [], objectItemId: null, dungeonId: null,
-    dead: false, scale: 1, color: 0xffffff, skinCatalog: 'class', skin: 0,
+    dead: false, scale: 1, color: 0xffffff, skinCatalog: 'class', skin: 0, guild: '',
   };
 }
 
@@ -72,7 +73,7 @@ export function recalcPlayerStats(e: Entity, cls: PlayerClass, equipment: Player
     spi: def.baseStats.spi + def.statsPerLevel.spi * (lvl - 1),
     armor: def.baseStats.armor + def.statsPerLevel.armor * (lvl - 1),
   };
-  for (const slot of ['mainhand', 'helmet', 'shoulder', 'chest', 'waist', 'legs', 'gloves', 'feet'] as EquipSlot[]) {
+  for (const slot of EQUIP_SLOTS) {
     const itemId = equipment[slot];
     if (!itemId) continue;
     const item = ITEMS[itemId];
@@ -119,8 +120,8 @@ export function recalcPlayerStats(e: Entity, cls: PlayerClass, equipment: Player
   s.agi = Math.max(0, s.agi);
   s.armor += s.agi * 2;
   if (bearForm) {
-    s.armor = Math.round(s.armor * 1.65);
-    bonusAp += 15;
+    s.armor = Math.round(s.armor * 1.9);
+    bonusAp += 15 + Math.round(s.agi * 1.5);
   }
   if (catForm) {
     bonusAp += 8 + lvl * 2;
@@ -150,6 +151,7 @@ export function recalcPlayerStats(e: Entity, cls: PlayerClass, equipment: Player
 
   const hpFrac = e.maxHp > 0 ? e.hp / e.maxHp : 1;
   e.maxHp = def.baseHp + def.hpPerLevel * (lvl - 1) + hpFromStamina(s.sta);
+  if (bearForm) e.maxHp = Math.round(e.maxHp * 1.15);
   if (mods?.stats.maxHpPct) e.maxHp = Math.round(e.maxHp * (1 + mods.stats.maxHpPct));
   // Fiesta "Colossus"-style buffs: growing bigger also makes you tankier.
   if (scaleMul > 1) e.maxHp = Math.round(e.maxHp * scaleMul);

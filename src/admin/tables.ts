@@ -1,8 +1,9 @@
-import { escapeHtml, fmtCopper, fmtDate, fmtDuration, fmtRelative } from './format';
+import { escapeHtml, fmtCopper, fmtDate, fmtDuration, fmtNumber, fmtPercent, fmtRelative } from './format';
 import { classLabel, zoneLabel, t } from './i18n';
 import type {
-  AccountDetail, AccountRow, CharacterRow, ChatFilterData, ChatModeratedAccount,
+  AccountDetail, AccountRow, BlockedIpsData, BlockedIpRow, BugReportRow, CharacterRow, ChatFilterData, ChatModeratedAccount,
   ChatModerationDetail, FilterWord, LivePlayer, ModerationAccountDetail, ModerationQueueRow,
+  ProviderUsageCache, ProviderUsageSnapshot,
 } from './types';
 
 // Pure HTML-string renderers for the dashboard tables. All dynamic values go
@@ -30,6 +31,77 @@ export function renderOnlineTable(players: LivePlayer[]): string {
     </tr></thead>
     <tbody>${rows.join('')}</tbody>
   </table>`;
+}
+
+function renderMetricCount(value: number): string {
+  return escapeHtml(fmtNumber(value));
+}
+
+function renderCacheEntries(cache: ProviderUsageCache): string {
+  if (cache.maxEntries === null) return escapeHtml(fmtNumber(cache.entries));
+  return escapeHtml(t('usage.cacheEntriesOfMax', {
+    entries: fmtNumber(cache.entries),
+    max: fmtNumber(cache.maxEntries),
+  }));
+}
+
+function renderCacheHitRate(cache: ProviderUsageCache): string {
+  const totalReads = cache.hits + cache.misses;
+  if (totalReads <= 0) return escapeHtml(t('usage.notAvailable'));
+  return escapeHtml(fmtPercent(cache.hits / totalReads));
+}
+
+export function renderProviderUsage(usage: ProviderUsageSnapshot): string {
+  const metricRows = usage.metrics.map((metric) => `
+    <tr>
+      <td>${escapeHtml(t(metric.labelKey))}</td>
+      ${usage.windows.map((window) => `<td class="num">${renderMetricCount(metric.counts[window.key] ?? 0)}</td>`).join('')}
+    </tr>`).join('');
+  const cacheRows = usage.caches.map((cache) => `
+    <tr>
+      <td>${escapeHtml(t(cache.labelKey))}</td>
+      <td class="num">${renderCacheEntries(cache)}</td>
+      <td class="num">${renderCacheHitRate(cache)}</td>
+      <td class="num">${renderMetricCount(cache.hits)}</td>
+      <td class="num">${renderMetricCount(cache.misses)}</td>
+      <td class="num">${renderMetricCount(cache.staleRefreshes)}</td>
+      <td class="num">${renderMetricCount(cache.stores)}</td>
+      <td class="num">${renderMetricCount(cache.failures)}</td>
+      <td class="num">${renderMetricCount(cache.evictions)}</td>
+    </tr>`).join('');
+
+  return `
+    <div class="usage-section">
+      <h4>${t('usage.requestsTitle')}</h4>
+      <div class="table-scroll">
+        <table class="usage-table">
+          <thead><tr>
+            <th>${t('usage.colMetric')}</th>
+            ${usage.windows.map((window) => `<th class="num">${escapeHtml(t(window.labelKey))}</th>`).join('')}
+          </tr></thead>
+          <tbody>${metricRows}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="usage-section">
+      <h4>${t('usage.cacheTitle')}</h4>
+      <div class="table-scroll">
+        <table class="usage-table">
+          <thead><tr>
+            <th>${t('usage.cacheColCache')}</th>
+            <th class="num">${t('usage.cacheColEntries')}</th>
+            <th class="num">${t('usage.cacheColHitRate')}</th>
+            <th class="num">${t('usage.cacheColHits')}</th>
+            <th class="num">${t('usage.cacheColMisses')}</th>
+            <th class="num">${t('usage.cacheColStale')}</th>
+            <th class="num">${t('usage.cacheColStores')}</th>
+            <th class="num">${t('usage.cacheColFailures')}</th>
+            <th class="num">${t('usage.cacheColEvictions')}</th>
+          </tr></thead>
+          <tbody>${cacheRows}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 export function renderAccountsTable(rows: AccountRow[]): string {
@@ -124,9 +196,9 @@ export function renderAccountDetail(d: AccountDetail, includeAdminControls = fal
   const activeChatMute = d.chatMutedUntil !== null && new Date(d.chatMutedUntil).getTime() > Date.now();
   const chatModControls = includeAdminControls ? `
     <div class="account-admin-controls chat-mod-controls" data-action-account-id="${d.id}">
-      <div class="account-status"><b>Chat:</b> ${activeChatMute ? `<span class="badge warn">muted until ${fmtDate(d.chatMutedUntil)}</span>` : '<span class="badge">not muted</span>'} &middot; strikes: <b>${d.chatStrikes}</b></div>
-      ${activeChatMute ? '<button data-lift-mute="1">Lift chat mute</button>' : ''}
-      ${d.chatStrikes > 0 ? '<button data-reset-strikes="1">Reset chat strikes</button>' : ''}
+      <div class="account-status"><b>${t('chatMod.chatLabel')}</b> ${activeChatMute ? `<span class="badge warn">${t('chatMod.mutedUntil', { value: fmtDate(d.chatMutedUntil) })}</span>` : `<span class="badge">${t('chatMod.notMuted')}</span>`} &middot; ${t('chatMod.strikesInline')} <b>${d.chatStrikes}</b></div>
+      ${activeChatMute ? `<button data-lift-mute="1">${t('chatMod.liftChatMute')}</button>` : ''}
+      ${d.chatStrikes > 0 ? `<button data-reset-strikes="1">${t('chatMod.resetChatStrikes')}</button>` : ''}
     </div>` : '';
   return `<div class="account-detail" data-action-account-id="${d.id}">${adminControls}${chatModControls}<div class="detail-grid">
     <div><h4>${t('detail.charactersHeader')}</h4>${chars}</div>
@@ -244,8 +316,53 @@ export function renderModerationDetail(d: ModerationAccountDetail): string {
       ${moderationAccountButtons}
     </div>
     <div id="mod-confirm" class="mod-confirm"></div>
+    ${renderIpBlockSection(d)}
     <h4>${t('report.openReports')}</h4>
     ${reports || `<div class="empty">${t('report.noOpenReports')}</div>`}
+  </div>`;
+}
+
+// Surfaces an account's recent IPs and their block status so a moderator can see
+// at a glance why a player can't connect.
+const MAX_KNOWN_IPS = 5;
+
+function renderIpBlockSection(d: ModerationAccountDetail): string {
+  const blocked = new Set(d.blockedIps);
+  const ips: string[] = [];
+  const seen = new Set<string>();
+  // Newest-first (last login, then recent sessions DESC), capped.
+  const add = (ip: string | null) => {
+    if (ip && !seen.has(ip) && ips.length < MAX_KNOWN_IPS) { seen.add(ip); ips.push(ip); }
+  };
+  add(d.account.lastLoginIp);
+  for (const s of d.account.recentSessions) add(s.ip);
+  // Surface this account's blocked IPs even past the cap, so Unblock stays reachable.
+  for (const ip of d.blockedIps) {
+    if (!seen.has(ip)) { seen.add(ip); ips.push(ip); }
+  }
+  const rows = ips.length === 0
+    ? `<div class="empty">${t('blockedIps.noKnownIps')}</div>`
+    : ips.map((ip, i) => {
+        const isBlocked = blocked.has(ip);
+        const label = i === 0 ? ` <span class="hint">${t('blockedIps.lastIp')}</span>` : '';
+        const badge = isBlocked ? ` <span class="badge bad">${t('blockedIps.blockedBadge')}</span>` : '';
+        // Admins can't be locked out, so don't offer to ban their IP; Unblock
+        // stays in case it was blocked from elsewhere.
+        const banButtons = [
+          { duration: '1d', label: t('blockedIps.ban24h') },
+          { duration: '30d', label: t('blockedIps.ban30d') },
+          { duration: '', label: t('blockedIps.banForever') },
+        ].map((b) => `<button data-ban-ip="${escapeHtml(ip)}" data-ban-duration="${b.duration}" class="danger">${b.label}</button>`).join('');
+        const action = isBlocked
+          ? `<button data-unblock-ip="${escapeHtml(ip)}">${t('blockedIps.unblock')}</button>`
+          : d.account.isAdmin
+            ? `<span class="hint">${t('blockedIps.adminProtected')}</span>`
+            : banButtons;
+        return `<div class="ip-row"><code>${escapeHtml(ip)}</code>${label}${badge} ${action}</div>`;
+      }).join('');
+  return `<div class="panel ip-block">
+    <div class="panel-title">${t('blockedIps.accountSectionTitle')}</div>
+    ${rows}
   </div>`;
 }
 
@@ -314,27 +431,77 @@ export function renderChatFilter(data: ChatFilterData): string {
       ${renderWordChips(data.hard)}
     </div>
     <div class="panel">
-      <div class="panel-title">Chat-moderated accounts <span class="hint">currently muted or carrying strikes — lift or reset here</span></div>
+      <div class="panel-title">${t('chatFilter.accountsTitle')} <span class="hint">${t('chatFilter.accountsHint')}</span></div>
       ${renderChatModeratedAccounts(data.accounts)}
     </div>`;
 }
 
+export function renderBlockedIps(data: BlockedIpsData): string {
+  const addForm = `<div class="panel">
+    <div class="panel-title">${t('blockedIps.addTitle')}</div>
+    <form class="ip-add">
+      <input class="ip-add-ip" placeholder="${t('blockedIps.ipPlaceholder')}" maxlength="128" />
+      <input class="ip-add-reason" placeholder="${t('blockedIps.reasonPlaceholder')}" maxlength="500" />
+      <label class="ip-add-expiry">${t('blockedIps.expiresLabel')}
+        <select class="ip-add-expiry-select">
+          <option value="">${t('blockedIps.expiresForever')}</option>
+          <option value="1d">${t('blockedIps.expires1d')}</option>
+          <option value="7d">${t('blockedIps.expires1w')}</option>
+          <option value="30d">${t('blockedIps.expires1m')}</option>
+        </select>
+      </label>
+      <button>${t('blockedIps.add')}</button>
+    </form>
+  </div>`;
+  return `${addForm}<div class="panel">
+    <div class="panel-title">${t('blockedIps.listTitle')}</div>
+    ${renderBlockedIpsTable(data.rows)}
+  </div>`;
+}
+
+function renderBlockedIpsTable(rows: BlockedIpRow[]): string {
+  if (rows.length === 0) return `<div class="empty">${t('blockedIps.empty')}</div>`;
+  const now = Date.now();
+  const body = rows.map((r) => {
+    const expired = r.expiresAt !== null && new Date(r.expiresAt).getTime() <= now;
+    const expiry = r.expiresAt === null
+      ? `<span class="badge">${t('blockedIps.permanent')}</span>`
+      : `<span class="badge ${expired ? 'bad' : 'warn'}">${fmtDate(r.expiresAt)}</span>`;
+    return `<tr>
+      <td><code>${escapeHtml(r.ip)}</code></td>
+      <td>${escapeHtml(r.reason || '—')}</td>
+      <td>${expiry}</td>
+      <td>${escapeHtml(r.createdByUsername ?? t('common.unknown'))}</td>
+      <td>${fmtDate(r.createdAt)}</td>
+      <td><button data-unblock-ip="${escapeHtml(r.ip)}">${t('blockedIps.remove')}</button></td>
+    </tr>`;
+  }).join('');
+  return `<table><thead><tr>
+    <th>${t('blockedIps.colIp')}</th>
+    <th>${t('blockedIps.colReason')}</th>
+    <th>${t('blockedIps.colExpires')}</th>
+    <th>${t('blockedIps.colCreatedBy')}</th>
+    <th>${t('blockedIps.colCreatedAt')}</th>
+    <th>${t('detail.colActions')}</th>
+  </tr></thead><tbody>${body}</tbody></table>`;
+}
+
 function renderChatModeratedAccounts(accounts: ChatModeratedAccount[]): string {
-  if (accounts.length === 0) return '<div class="empty">no muted or striked accounts</div>';
+  if (accounts.length === 0) return `<div class="empty">${t('chatFilter.noModeratedAccounts')}</div>`;
   const rows = accounts.map((a) => {
     const muted = a.chatMutedUntil !== null && new Date(a.chatMutedUntil).getTime() > Date.now();
     const muteCell = muted
-      ? `<span class="badge warn">muted until ${fmtDate(a.chatMutedUntil)}</span>`
-      : '<span class="badge">not muted</span>';
-    const actions = `${muted ? '<button data-lift-mute="1">Lift mute</button>' : ''}${a.chatStrikes > 0 ? ' <button data-reset-strikes="1">Reset strikes</button>' : ''}`;
+      ? `<span class="badge warn">${t('chatMod.mutedUntil', { value: fmtDate(a.chatMutedUntil) })}</span>`
+      : `<span class="badge">${t('chatMod.notMuted')}</span>`;
+    const actions = `${muted ? `<button data-lift-mute="1">${t('chatMod.liftMute')}</button>` : ''}${a.chatStrikes > 0 ? ` <button data-reset-strikes="1">${t('chatMod.resetStrikes')}</button>` : ''}`;
     return `<tr data-action-account-id="${a.id}">
-      <td>${escapeHtml(a.username)}${a.isAdmin ? ' <span class="badge">admin</span>' : ''}</td>
+      <td>${escapeHtml(a.username)}${a.isAdmin ? ` <span class="badge">${t('accounts.badgeAdmin')}</span>` : ''}</td>
       <td class="num">${a.chatStrikes}</td>
       <td>${muteCell}</td>
       <td>${actions}</td>
     </tr>`;
   }).join('');
-  return `<table><thead><tr><th>Account</th><th class="num">Strikes</th><th>Mute</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<table><thead><tr><th>${t('moderation.colAccount')}</th><th class="num">${t('chatMod.colStrikes')}</th><th>${t('chatMod.colMute')}</th><th>${t('detail.colActions')}</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 function reasonLabel(reason: string): string {
@@ -351,4 +518,33 @@ function statusBadge(status: string, suspendedUntil: string | null): string {
   if (status === 'banned') return `<span class="badge bad">${t('accounts.badgeBanned')}</span>`;
   if (status === 'suspended') return `<span class="badge warn">${t('detail.suspendedUntil', { value: fmtDate(suspendedUntil) })}</span>`;
   return `<span class="badge">${t('detail.statusActive')}</span>`;
+}
+
+export function renderBugReportsTable(rows: BugReportRow[]): string {
+  if (rows.length === 0) return `<div class="empty">${t('bugReports.empty')}</div>`;
+  const body = rows.map((r) => {
+    const coords = `${fmtNumber(r.pos_x)}, ${fmtNumber(r.pos_y)}, ${fmtNumber(r.pos_z)}`;
+    // The list omits the screenshot bytes; offer a button that fetches the one
+    // report's screenshot on demand (see showBugScreenshot in main.ts).
+    const shot = r.has_screenshot
+      ? `<button class="btn-link" data-bug-shot="${r.id}">${t('bugReports.viewScreenshot')}</button>`
+      : `<span class="text-dim">${t('bugReports.noScreenshot')}</span>`;
+    const meta = `<details><summary>${t('bugReports.colMeta')}</summary><pre class="bug-meta">${escapeHtml(JSON.stringify(r.meta ?? {}, null, 2))}</pre></details>`;
+    return `<tr>
+      <td>${fmtRelative(r.created_at)}</td>
+      <td>${escapeHtml(r.realm) || '-'}</td>
+      <td>${escapeHtml(r.character_name) || '-'}</td>
+      <td>${escapeHtml(coords)}</td>
+      <td class="bug-desc-cell">${escapeHtml(r.description)}</td>
+      <td><span class="badge">${escapeHtml(r.status)}</span></td>
+      <td>${meta}</td>
+      <td>${shot}</td>
+    </tr>`;
+  });
+  return `<div class="table-scroll"><table>
+    <thead><tr>
+      <th>${t('bugReports.colWhen')}</th><th>${t('bugReports.colRealm')}</th><th>${t('bugReports.colCharacter')}</th><th>${t('bugReports.colPosition')}</th><th>${t('bugReports.colDescription')}</th><th>${t('bugReports.colStatus')}</th><th>${t('bugReports.colMeta')}</th><th>${t('bugReports.colScreenshot')}</th>
+    </tr></thead>
+    <tbody>${body.join('')}</tbody>
+  </table></div>`;
 }

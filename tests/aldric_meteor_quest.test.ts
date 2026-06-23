@@ -27,9 +27,10 @@ function standAtMerchant(sim: Sim): void {
 }
 
 describe('Brother Aldric fallen star quest', () => {
-  it('is offered by Mirefen Aldric and rewards a mech cosmetic roll through the meteor pickup', () => {
+  it('keeps existing accepted players able to finish and claim the mech cosmetic roll', () => {
     const quest = QUESTS[QUEST_ID];
     expect(quest).toBeTruthy();
+    expect(quest).toMatchObject({ retired: true });
     expect(quest.giverNpcId).toBe('brother_aldric_fen');
     expect(quest.turnInNpcId).toBe('brother_aldric_fen');
     expect(quest.objectives).toEqual([
@@ -60,7 +61,7 @@ describe('Brother Aldric fallen star quest', () => {
     expect(aldric).toBeTruthy();
     teleportTo(sim, aldric!.pos.x + 1, aldric!.pos.z);
 
-    sim.acceptQuest(QUEST_ID);
+    sim.questLog.set(QUEST_ID, { questId: QUEST_ID, counts: [0], state: 'active' });
     expect(sim.questState(QUEST_ID)).toBe('active');
 
     const meteorObject = [...sim.entities.values()]
@@ -94,26 +95,32 @@ describe('Brother Aldric fallen star quest', () => {
     expect(sim.equipment.chest).not.toBe(REWARD_ITEM_ID);
   });
 
-  it('opens to level-5 players (minLevel 5) and stays gated below', () => {
+  it('is retired for fresh players while preserving existing ready turn-ins', () => {
     expect(QUESTS[QUEST_ID].minLevel).toBe(5);
+    expect(QUESTS[QUEST_ID]).toMatchObject({ retired: true });
 
     const sim = new Sim({ seed: 20061, playerClass: 'warrior', playerName: 'Reuben', autoEquip: false });
     const aldric = [...sim.entities.values()].find((e) => e.kind === 'npc' && e.templateId === 'brother_aldric_fen');
     expect(aldric).toBeTruthy();
     teleportTo(sim, aldric!.pos.x + 1, aldric!.pos.z);
 
-    // Below the requirement: the quest is unavailable and accepting is a no-op.
-    sim.setPlayerLevel(4);
+    sim.setPlayerLevel(5);
     expect(sim.questState(QUEST_ID)).toBe('unavailable');
     sim.acceptQuest(QUEST_ID);
     expect(sim.questLog.has(QUEST_ID)).toBe(false);
     expect(sim.questState(QUEST_ID)).toBe('unavailable');
 
-    // Exactly at the requirement: the gate is inclusive, so a level-5 player can start.
-    sim.setPlayerLevel(5);
-    expect(sim.questState(QUEST_ID)).toBe('available');
-    sim.acceptQuest(QUEST_ID);
-    expect(sim.questState(QUEST_ID)).toBe('active');
+    sim.talkToNpc(aldric!.id);
+    expect(sim.questLog.has(QUEST_ID)).toBe(false);
+
+    sim.questLog.set(QUEST_ID, { questId: QUEST_ID, counts: [1], state: 'ready' });
+    sim.addItem(METEOR_ITEM_ID, 1);
+    expect(sim.questState(QUEST_ID)).toBe('ready');
+
+    sim.turnInQuest(QUEST_ID);
+    expect(sim.questState(QUEST_ID)).toBe('done');
+    expect(sim.countItem(METEOR_ITEM_ID)).toBe(0);
+    expect(sim.countItem(REWARD_ITEM_ID)).toBe(1);
   });
 
   it('keeps the cosmetic item out of vendor sell, destroy, and market flows while allowing trade', () => {

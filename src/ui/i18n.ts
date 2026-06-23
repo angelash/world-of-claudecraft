@@ -333,6 +333,36 @@ export function tOptional(key: string, values?: InterpolationValues, lang: Suppo
   return value === null ? null : interpolate(value, values);
 }
 
+// --- CLDR cardinal pluralization -------------------------------------------
+//
+// Plural-aware lookup for count-bearing strings. Keys follow the convention
+// `<base>.one | .few | .many | .other`; tPlural selects the active locale's
+// cardinal category for `count` via Intl.PluralRules and resolves the matching
+// leaf, falling back to `<base>.other` when the locale never produces that
+// category (English/German/Romance only select one/other; CJK only other) or the
+// specific leaf is absent. `count` is auto-supplied as {count}. This is what lets
+// a 3-form Slavic locale like Russian render the correct 1 / 2-4 / 5+ wording
+// instead of a wrong binary one/other split. One Intl.PluralRules is cached per
+// language tag; selection happens off the hot path (only at count-string renders).
+const pluralRulesCache = new Map<string, Intl.PluralRules>();
+function pluralRulesFor(lang: SupportedLanguage): Intl.PluralRules {
+  const tag = languageTag(lang);
+  let rules = pluralRulesCache.get(tag);
+  if (!rules) {
+    rules = new Intl.PluralRules(tag);
+    pluralRulesCache.set(tag, rules);
+  }
+  return rules;
+}
+
+export function tPlural(base: string, count: number, values?: InterpolationValues): string {
+  const category = pluralRulesFor(currentLanguage).select(count); // zero|one|two|few|many|other
+  const merged: InterpolationValues = { count, ...(values ?? {}) };
+  const candidate = `${base}.${category}`;
+  const key = (hasTranslation(candidate) ? candidate : `${base}.other`) as TranslationKey;
+  return t(key, merged);
+}
+
 export function formatNumber(value: number, options?: Intl.NumberFormatOptions, lang: SupportedLanguage = currentLanguage): string {
   return new Intl.NumberFormat(languageTag(lang), options).format(value);
 }

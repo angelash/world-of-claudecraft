@@ -47,6 +47,11 @@ function detect(): string {
 current = detect();
 
 export function adminLanguage(): string { return current; }
+// BCP-47 tag for the Intl APIs. The locale codes carry an underscore region
+// (de_DE, zh_CN, ...), which Intl rejects with a RangeError, so normalize the
+// separator to a hyphen (mirrors the game's languageTag in src/ui/i18n.ts).
+// adminLanguage() still returns the raw code for DICT/t() lookups.
+export function adminLanguageTag(): string { return current.replace("_", "-"); }
 export function setAdminLanguage(lang: string): void { if (SUPPORTED.includes(lang)) { pseudoActive = false; current = lang; } }
 
 // --- async locale-load seam (parity with the game's ensureLocaleLoaded) ----------
@@ -167,9 +172,19 @@ const ADMIN_ERROR_KEYS: Record<string, string> = {
   "account not found": "error.accountNotFound",
   "moderation action failed": "error.moderationFailed",
   "force rename failed": "error.forceRenameFailed",
+  "chat mute failed": "error.chatMuteFailed",
   "moderation reason is required": "error.moderationReasonRequired",
   "suspension expiry must be in the future": "error.moderationExpiryFuture",
   "character not found": "error.characterNotFound",
+  "admin accounts cannot be chat muted": "error.cannotChatMuteAdmin",
+  "tier must be \"soft\" or \"hard\"": "error.invalidWordTier",
+  "word is empty after normalization": "error.wordEmptyAfterNormalization",
+  "word not found": "error.wordNotFound",
+  "chat mute expiry must be in the future": "error.chatMuteExpiryFuture",
+  "a valid ip address is required": "error.invalidIp",
+  "block expiry must be in the future": "error.blockExpiryFuture",
+  "failed to block ip": "error.blockFailed",
+  "ip not found": "error.blockNotFound",
 };
 export function localizeAdminError(message: string): string {
   const key = ADMIN_ERROR_KEYS[message.trim().toLowerCase()];

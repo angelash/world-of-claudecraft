@@ -745,7 +745,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'consecration', name: 'Consecration', class: 'paladin', learnLevel: 18,
     cost: 60, castTime: 0, cooldown: 8, range: 0, school: 'holy',
     requiresTarget: false,
-    effects: [{ type: 'aoeDamage', min: 28, max: 34, radius: 8 }],
+    effects: [{ type: 'groundAoE', min: 28, max: 34, radius: 8, duration: 10, interval: 2 }],
     description: 'Consecrates the ground beneath you, searing nearby enemies for $d Holy damage.',
   },
   righteous_fury: {
@@ -1446,9 +1446,9 @@ export const ABILITIES: Record<string, AbilityDef> = {
   travel_form: {
     id: 'travel_form', name: 'Travel Form', class: 'druid', learnLevel: 16,
     cost: 30, castTime: 0, cooldown: 0, range: 0, school: 'nature',
-    requiresTarget: false, requiresOutOfCombat: true,
-    effects: [{ type: 'selfBuff', kind: 'buff_speed', value: 0.4, duration: 3600 }],
-    description: 'Take on a swift travel form, increasing movement speed by 40%. Cannot be used in combat.',
+    requiresTarget: false,
+    effects: [{ type: 'selfBuff', kind: 'form_travel', value: 1.4, duration: 3600 }],
+    description: 'Instantly shift into a swift travel form, increasing movement speed by 40%. You cannot use other abilities while shifted, but can shift in or out of combat — ideal for escaping.',
   },
   enrage: {
     id: 'enrage', name: 'Enrage', class: 'druid', learnLevel: 16,
@@ -1482,7 +1482,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'dash', name: 'Dash', class: 'druid', learnLevel: 18,
     cost: 0, castTime: 0, cooldown: 60, range: 0, school: 'physical',
     requiresTarget: false, offGcd: true, requiresForm: 'cat',
-    effects: [{ type: 'selfBuff', kind: 'buff_speed', value: 0.5, duration: 15 }],
+    effects: [{ type: 'selfBuff', kind: 'buff_speed', value: 1.5, duration: 15 }],
     description: 'Sprint forward, increasing movement speed by 50% for 15 sec. Wolf Form only.',
   },
   pounce: {

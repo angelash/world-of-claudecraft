@@ -2,7 +2,13 @@ import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { MeshoptDecoder } from 'meshoptimizer';
 import { describe, expect, it } from 'vitest';
-import { VISUALS, type ClipMap } from '../src/render/characters/manifest';
+import {
+  manifestUrls,
+  manifestUrlsForGraphics,
+  visibleAttachmentsForGraphics,
+  VISUALS,
+  type ClipMap,
+} from '../src/render/characters/manifest';
 
 function expectedClipNames(clips: ClipMap): string[] {
   return [
@@ -35,5 +41,15 @@ describe('character visual manifest', () => {
 
     expect(animationNames.size).toBeGreaterThan(0);
     expect([...new Set(expectedClipNames(visual.clips))].filter((name) => !animationNames.has(name))).toEqual([]);
+  });
+
+  it('keeps held weapons and props available on low graphics', () => {
+    const allWeaponUrls = manifestUrls().filter((url) => url.startsWith('models/weapons/'));
+    expect(allWeaponUrls.length).toBeGreaterThan(0);
+    expect(manifestUrlsForGraphics(false)).toEqual(expect.arrayContaining(allWeaponUrls));
+    expect(visibleAttachmentsForGraphics(VISUALS.player_warrior).map((a) => a.url))
+      .toContain('models/weapons/sword_1handed.glb');
+    expect(visibleAttachmentsForGraphics(VISUALS.player_rogue).map((a) => a.url))
+      .toEqual(['models/weapons/dagger.glb', 'models/weapons/dagger.glb']);
   });
 });

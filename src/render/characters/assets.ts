@@ -13,13 +13,18 @@ import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { loadGltf, loadTexture } from '../assets/loader';
 import { registerPreload } from '../assets/preload';
 import { GFX, addRimGlow } from '../gfx';
-import { manifestUrls, SKINS, SKIN_EMISSIVE, VISUALS, VisualDef, type AttachDef } from './manifest';
+import {
+  manifestUrlsForGraphics,
+  SKINS,
+  SKIN_EMISSIVE,
+  visibleAttachmentsForGraphics,
+  VISUALS,
+  VisualDef,
+  visualAssetUrlForGraphics,
+  type AttachDef,
+} from './manifest';
 
 const DEFAULT_TINT_STRENGTH = 0.4;
-
-const LOW_URL_ALIAS: Record<string, string> = {
-  'models/chars/players/rogue_hooded.glb': 'models/chars/players/rogue.glb',
-};
 
 type HandGrip = {
   position: [number, number, number];
@@ -139,6 +144,7 @@ function flattenWeaponScene(src: THREE.Object3D): THREE.Object3D {
 
 function attachProp(root: THREE.Object3D, bone: THREE.Object3D, att: AttachDef): void {
   const payload = flattenWeaponScene(cloneSkinned(resolvedGltf(att.url).scene));
+  payload.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.userData.weaponMesh = true; });
   if (att.position || att.rotationY !== undefined) {
     if (att.position) payload.position.set(...att.position);
     if (att.rotationY !== undefined) payload.rotation.y = att.rotationY;
@@ -158,14 +164,10 @@ function attachProp(root: THREE.Object3D, bone: THREE.Object3D, att: AttachDef):
 const gltfByUrl = new Map<string, GLTF>();
 
 function assetUrl(url: string): string {
-  return GFX.standardMaterials ? url : (LOW_URL_ALIAS[url] ?? url);
+  return visualAssetUrlForGraphics(url, GFX.standardMaterials);
 }
 
-const preloadUrls = GFX.standardMaterials
-  ? manifestUrls()
-  : [...new Set(manifestUrls()
-    .filter((url) => !url.startsWith('models/weapons/'))
-    .map(assetUrl))];
+const preloadUrls = manifestUrlsForGraphics(GFX.standardMaterials);
 
 for (const url of preloadUrls) {
   registerPreload(loadGltf(url).then((g) => { gltfByUrl.set(url, g); }));
@@ -173,8 +175,7 @@ for (const url of preloadUrls) {
 
 // Skin textures: player alternate body atlases, loaded sRGB + flipY=false so
 // they line up with the glTF-embedded UVs. These load on every tier so skin
-// selection previews and cosmetics keep distinct colours even on low graphics;
-// only emissive glow maps stay standard-tier only.
+// selection previews and cosmetics keep distinct colours even on low graphics.
 const skinTexByUrl = new Map<string, THREE.Texture>();
 const skinEmisTexByUrl = new Map<string, THREE.Texture>();
 
@@ -187,7 +188,7 @@ function loadSkinTexInto(url: string, into: Map<string, THREE.Texture>): Promise
   });
 }
 
-// Boot sweep skips lazyPreload keys (e.g. the cosmetic mech) — those load on
+// Boot sweep skips lazyPreload keys (e.g. the cosmetic mech) - those load on
 // demand via preloadMechAssets().
 const bootSkinUrls = new Set<string>();
 for (const [key, list] of Object.entries(SKINS)) {
@@ -201,6 +202,24 @@ for (const url of bootSkinUrls) registerPreload(loadSkinTexInto(url, skinTexByUr
 export function skinTexture(key: string, skinIndex: number): THREE.Texture | null {
   const url = SKINS[key]?.[skinIndex] ?? null;
   return url ? skinTexByUrl.get(url) ?? null : null;
+}
+
+/** Ensure the alternate atlas for (key, skinIndex) is loaded. Returns a promise
+ *  that resolves once it is cached (so the caller can re-read `skinTexture` and
+ *  re-apply), or null when there is nothing to wait for — the skin has no atlas
+ *  (embedded default) or it is already loaded. Hardens live skin swaps against a
+ *  not-yet-loaded atlas (otherwise the body shows the default until a relog). */
+export function ensureSkinTexture(key: string, skinIndex: number): Promise<void> | null {
+  // applySkinMaterials consumes BOTH the base atlas and (when the skin has one)
+  // the emissive atlas — warm whichever of the two is missing so a glow skin
+  // doesn't re-apply with a not-yet-loaded emissive map.
+  const baseUrl = SKINS[key]?.[skinIndex] ?? null;
+  const emisUrl = SKIN_EMISSIVE[key]?.[skinIndex] ?? null;
+  const pending: Promise<void>[] = [];
+  if (baseUrl && !skinTexByUrl.has(baseUrl)) pending.push(loadSkinTexInto(baseUrl, skinTexByUrl));
+  if (emisUrl && !skinEmisTexByUrl.has(emisUrl)) pending.push(loadSkinTexInto(emisUrl, skinEmisTexByUrl));
+  if (pending.length === 0) return null;
+  return Promise.all(pending).then(() => undefined);
 }
 
 /** Resolved emissive (glow) map for a visual key + skin index, or null when the
@@ -336,7 +355,9 @@ export function assembleModel(def: VisualDef): THREE.Object3D {
       }
     });
   }
-  const attachments = GFX.standardMaterials ? (def.attach ?? []) : [];
+  // Weapons and held props are gameplay-readable silhouettes, not decoration.
+  // Low tier still downgrades body/material cost, but keeps attachments visible.
+  const attachments = visibleAttachmentsForGraphics(def);
   for (const att of attachments) {
     // GLTFLoader sanitizes node names (PropertyBinding strips [].:/ chars),
     // so the authored "handslot.r" arrives as "handslotr" — try both
@@ -344,6 +365,15 @@ export function assembleModel(def: VisualDef): THREE.Object3D {
       ?? root.getObjectByName(att.bone.replace(/[[\].:/]/g, ''));
     if (!bone) continue; // manifest/bone mismatch — ship without the prop
     attachProp(root, bone, att);
+  }
+  // Re-orient mis-baked built-in weapon nodes (e.g. the golem axe) in place.
+  for (const fix of def.weaponFix ?? []) {
+    const node = root.getObjectByName(fix.node)
+      ?? root.getObjectByName(fix.node.replace(/[[\].:/]/g, ''));
+    if (!node) continue;
+    if (fix.rotX) node.rotateX(fix.rotX);
+    if (fix.rotY) node.rotateY(fix.rotY);
+    if (fix.rotZ) node.rotateZ(fix.rotZ);
   }
   return root;
 }
@@ -354,9 +384,39 @@ export function assembleModel(def: VisualDef): THREE.Object3D {
 
 const matCache = new Map<string, THREE.Material>();
 const tintScratch = new THREE.Color();
+const lowReadabilityWhite = new THREE.Color(0xffffff);
+const weaponHighlight = new THREE.Color(0xfff0c2);
+type MaterialRole = 'body' | 'weapon';
 
-export function tintedMaterial(src: THREE.Material, tint: number | null, strength: number, skinTex: THREE.Texture | null = null, emisTex: THREE.Texture | null = null): THREE.Material {
-  const key = `${src.uuid}|${tint ?? 'n'}|${tint === null ? 0 : strength}|${GFX.standardMaterials ? 's' : 'l'}|${skinTex ? skinTex.uuid : 'n'}|${emisTex ? emisTex.uuid : 'n'}`;
+function applyLowReadabilityLift(mat: THREE.MeshStandardMaterial | THREE.MeshLambertMaterial | THREE.MeshBasicMaterial, role: MaterialRole): void {
+  const lift = role === 'weapon' ? 0.14 : 0.075;
+  const emissive = role === 'weapon' ? 0.075 : 0.045;
+  mat.color.lerp(role === 'weapon' ? weaponHighlight : lowReadabilityWhite, lift);
+  if ((mat as THREE.MeshLambertMaterial).isMeshLambertMaterial) {
+    const lambert = mat as THREE.MeshLambertMaterial;
+    lambert.emissive = mat.color.clone().multiplyScalar(emissive);
+  }
+}
+
+function applyWeaponMaterialPolish(mat: THREE.MeshStandardMaterial | THREE.MeshLambertMaterial | THREE.MeshBasicMaterial): void {
+  mat.color.lerp(weaponHighlight, 0.08);
+  const std = mat as THREE.MeshStandardMaterial;
+  if (std.isMeshStandardMaterial) {
+    std.roughness = Math.min(std.roughness, 0.55);
+    std.metalness = Math.max(std.metalness, 0.12);
+    std.emissive.copy(mat.color).multiplyScalar(0.025);
+  }
+}
+
+export function tintedMaterial(
+  src: THREE.Material,
+  tint: number | null,
+  strength: number,
+  skinTex: THREE.Texture | null = null,
+  emisTex: THREE.Texture | null = null,
+  role: MaterialRole = 'body',
+): THREE.Material {
+  const key = `${src.uuid}|${tint ?? 'n'}|${tint === null ? 0 : strength}|${GFX.standardMaterials ? 's' : 'l'}|${skinTex ? skinTex.uuid : 'n'}|${emisTex ? emisTex.uuid : 'n'}|${role}`;
   const cached = matCache.get(key);
   if (cached) return cached;
 
@@ -385,7 +445,7 @@ export function tintedMaterial(src: THREE.Material, tint: number | null, strengt
     mat.color.lerp(tintScratch.set(tint), strength);
   }
   if (skinTex) mat.map = skinTex; // alternate body atlas, same UVs as the default
-  // Emissive glow map (mech epics): standard tier only — Lambert/Basic don't
+  // Emissive glow map (mech epics): standard tier only - Lambert/Basic don't
   // glow, and adding a map where none existed needs a shader recompile.
   if (emisTex && GFX.standardMaterials) {
     const sm = mat as THREE.MeshStandardMaterial;
@@ -394,6 +454,8 @@ export function tintedMaterial(src: THREE.Material, tint: number | null, strengt
     sm.emissiveIntensity = 1.0;
     sm.needsUpdate = true;
   }
+  if (role === 'weapon') applyWeaponMaterialPolish(mat);
+  if (!GFX.standardMaterials) applyLowReadabilityLift(mat, role);
   matCache.set(key, mat);
   return mat;
 }
@@ -411,13 +473,15 @@ export function applyMaterials(root: THREE.Object3D, def: VisualDef, entityColor
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
+    const role: MaterialRole = mesh.userData.weaponMesh ? 'weapon' : 'body';
+    const materialTint = role === 'weapon' ? null : tint;
     // skin/emissive override only touches the character's own atlas meshes, not weapons
     const sk = skinTex && mesh.userData.bodyMesh ? skinTex : null;
     const em = emisTex && mesh.userData.bodyMesh ? emisTex : null;
     if (Array.isArray(mesh.material)) {
-      mesh.material = mesh.material.map((m) => tintedMaterial(m, tint, strength, sk, em));
+      mesh.material = mesh.material.map((m) => tintedMaterial(m, materialTint, strength, sk, em, role));
     } else {
-      mesh.material = tintedMaterial(mesh.material, tint, strength, sk, em);
+      mesh.material = tintedMaterial(mesh.material, materialTint, strength, sk, em, role);
     }
   });
 }
@@ -497,6 +561,25 @@ export function prepareVisual(key: string): PreparedVisual {
       bounds.expandByPoint(v);
     }
   });
+  // Non-skinned models (procedural form GLBs animated by node transforms, with no
+  // skeleton — e.g. the chicken-cow Travel Form) contribute no skinned meshes, so
+  // the pass above leaves bounds empty; rawHeight then collapses to 1e-3 and
+  // normScale explodes (~1500x), rendering the form off-screen/invisible. Fall back
+  // to the plain posed mesh geometry. Only triggers when there are zero skinned
+  // meshes, so skinned creatures/players are unaffected.
+  if (bounds.isEmpty()) {
+    temp.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh || (mesh as unknown as THREE.SkinnedMesh).isSkinnedMesh || !meshChainVisible(mesh, temp)) return;
+      const pos = mesh.geometry.getAttribute('position') as THREE.BufferAttribute | undefined;
+      if (!pos) return;
+      for (let i = 0; i < pos.count; i++) {
+        v.fromBufferAttribute(pos, i);
+        v.applyMatrix4(mesh.matrixWorld);
+        bounds.expandByPoint(v);
+      }
+    });
+  }
   const rawHeight = Math.max(1e-3, bounds.max.y - bounds.min.y);
   const normScale = def.height / rawHeight;
   const yOffset = (def.hover ?? 0) - bounds.min.y * normScale;

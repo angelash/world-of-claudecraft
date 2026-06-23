@@ -22,6 +22,12 @@ export interface PlayOpts {
   rate?: number;       // playback-rate multiplier (default 1); ±6% jitter added
   cooldown?: number;   // min seconds between plays of this key (default 0.03)
   jitter?: boolean;    // randomize rate/gain slightly (default true)
+  // Percussive amplitude envelope. `release` truncates the clip to a crisp
+  // transient that fully decays within `attack + release` seconds — used by fast
+  // retriggered sounds (footsteps) so successive plays of the same sample don't
+  // pile up and comb-filter into a metallic ring. 0 (default) plays the clip flat.
+  attack?: number;     // fade-in seconds (default 0 = instant)
+  release?: number;    // fade-out seconds; the clip is stopped once it ends
 }
 
 interface LoopSlot {
@@ -41,12 +47,20 @@ class Sfx {
   private lastPlay = new Map<string, number>();
   private loops = new Map<string, LoopSlot>();
   private ready = false;
+  private footstepsOn = false; // off by default; driven by the footstepSfx setting
   private lx = 0; private ly = 0; private lz = 0; // cached listener position
 
   /** Set SFX volume (0..1). Shares the `sfxVolume` slider with `audio`. */
   setVolume(v: number): void {
     this.vol = Math.min(1, Math.max(0, v));
     if (this.master) this.master.gain.value = SAMPLE_GAIN * this.vol;
+  }
+
+  /** Enable/disable per-footfall step clips. Off by default (the `footstepSfx`
+   *  setting): while off, `footstep()` is a silent no-op for self and other
+   *  entities alike. Jump/land/splash/swim and combat SFX are unaffected. */
+  setFootstepsEnabled(on: boolean): void {
+    this.footstepsOn = on;
   }
 
   /** Create the context + listener and decode every clip. Gated on a user gesture
@@ -137,12 +151,37 @@ class Sfx {
     src.buffer = buf;
     src.playbackRate.value = (opts?.rate ?? 1) * (jitter ? 1 + (Math.random() * 2 - 1) * 0.06 : 1);
     const g = ctx.createGain();
-    g.gain.value = (opts?.gain ?? 1) * (jitter ? 1 + (Math.random() * 2 - 1) * 0.1 : 1);
+    const peak = (opts?.gain ?? 1) * (jitter ? 1 + (Math.random() * 2 - 1) * 0.1 : 1);
     const panner = this.makePanner(x, y, z);
     src.connect(g).connect(panner).connect(master);
     this.active++;
     src.onended = () => { this.active--; src.disconnect(); g.disconnect(); panner.disconnect(); };
+    this.applyEnvelope(src, g, peak, now, opts);
+  }
+
+  /** Set the gain envelope on a one-shot source and start it. With no
+   *  attack/release this is a flat play at `peak`; with a `release` the source is
+   *  shaped into a short transient and stopped early so rapid retriggers of the
+   *  same clip can't overlap and comb-filter. */
+  private applyEnvelope(src: AudioBufferSourceNode, g: GainNode, peak: number, now: number, opts?: PlayOpts): void {
+    const attack = Math.max(0, opts?.attack ?? 0);
+    const release = Math.max(0, opts?.release ?? 0);
+    if (attack === 0 && release === 0) {
+      g.gain.value = peak;
+      src.start();
+      return;
+    }
+    const a = Math.max(0.001, attack);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(peak, now + a);
     src.start();
+    if (release > 0) {
+      // Effective clip length at this playback rate; never schedule past it.
+      const clip = src.buffer ? src.buffer.duration / (src.playbackRate.value || 1) : a + release;
+      const end = Math.min(now + clip, now + a + release);
+      g.gain.setTargetAtTime(0.0001, Math.max(now + a, end - release), release / 3);
+      try { src.stop(end + 0.03); } catch { /* stop unsupported in stub */ }
+    }
   }
 
   /** Non-positional one-shot (personal/UI sounds that shouldn't pan). */
@@ -217,10 +256,24 @@ class Sfx {
   // Implemented here so the surface→clip and ambience→loop mappings live in one
   // place; the renderer depends only on the SpatialAudioSink interface.
 
-  /** One footfall. `surface` ∈ grass|dirt|stone|wood|snow|water → foot_<surface>. */
+  /** One footfall. `surface` ∈ grass|dirt|stone|wood|snow|water → foot_<surface>.
+   *  Footsteps fire every ~0.22s at a run but the clips are ~0.48s, so a flat
+   *  retrigger would overlap two pitch-jittered copies of one sample and
+   *  comb-filter into a metallic "jingle". Two fixes: a short `release` shapes
+   *  each footfall into a transient that decays before the next, and alternating
+   *  the pitch per step reads as two distinct feet rather than one looping sample. */
   footstep(x: number, y: number, z: number, surface: string, running: boolean, _self: boolean): void {
-    this.playAt(`foot_${surface}`, x, y, z, { gain: running ? 0.8 : 0.55, rate: running ? 1.06 : 1, cooldown: 0.05 });
+    if (!this.footstepsOn) return; // silenced by default (footstepSfx setting)
+    this.footTick = (this.footTick + 1) & 1;
+    const foot = this.footTick === 0 ? 0.97 : 1.04; // left/right
+    this.playAt(`foot_${surface}`, x, y, z, {
+      gain: running ? 0.8 : 0.55,
+      rate: (running ? 1.06 : 1) * foot,
+      cooldown: 0.05,
+      release: running ? 0.17 : 0.22, // < the tightest stride gap (~0.22s at run)
+    });
   }
+  private footTick = 0;
 
   /** Jump / land / water-entry / swim-stroke. */
   movement(kind: 'jump' | 'land' | 'splash' | 'swim', x: number, y: number, z: number, _self: boolean): void {

@@ -434,6 +434,7 @@ export const ZONE2_QUESTS: Record<string, QuestDef> = {
     xpReward: 900, copperReward: 300,
     itemRewards: { warrior: 'alien_armor_plate', mage: 'alien_armor_plate', rogue: 'alien_armor_plate' },
     minLevel: 5,
+    retired: true,
   },
   q_deepfen_purge: {
     id: 'q_deepfen_purge', name: 'Back to the Shallows',

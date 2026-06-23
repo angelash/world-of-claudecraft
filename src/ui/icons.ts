@@ -911,6 +911,101 @@ const PRIMITIVES = {
       ctx.beginPath(); ctx.ellipse(x + 4, 2, 3.4, 1.7, 0.7, 0, TAU); ctx.fill();
     }
   },
+  imp_head(ctx, pal) {
+    ctx.fillStyle = lin(ctx, 0, -30, 0, -8, [[0, pal.light], [1, pal.dark]]);
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * 8, -10);
+      ctx.quadraticCurveTo(s * 21, -19, s * 15, -31);
+      ctx.quadraticCurveTo(s * 12, -22, s * 3, -13);
+      ctx.closePath(); ctx.fill(); edge(ctx, pal.dark, 1);
+    }
+    ctx.fillStyle = pal.base;
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s * 11, -2); ctx.lineTo(s * 25, -5); ctx.lineTo(s * 12, 8); ctx.closePath();
+      ctx.fill(); edge(ctx, pal.dark, 1);
+    }
+    ctx.beginPath(); ctx.arc(0, 2, 14, 0, TAU);
+    ctx.fillStyle = rad(ctx, -4, -2, 18, [[0, pal.light], [0.6, pal.base], [1, pal.dark]]);
+    ctx.fill(); edge(ctx, pal.accent, 1.4);
+    noShadow(ctx);
+    ctx.fillStyle = '#ffe14a';
+    ctx.beginPath(); ctx.ellipse(-5, 0, 2.4, 3.4, 0.4, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(5, 0, 2.4, 3.4, -0.4, 0, TAU); ctx.fill();
+    ctx.strokeStyle = withAlpha(pal.dark, 0.9); ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-6, 8); ctx.quadraticCurveTo(0, 13, 6, 8); ctx.stroke();
+  },
+  void_brute(ctx, pal) {
+    ctx.fillStyle = lin(ctx, 0, -22, 0, 24, [[0, pal.light], [0.5, pal.base], [1, pal.dark]]);
+    ctx.beginPath();
+    ctx.moveTo(-20, -4);
+    ctx.quadraticCurveTo(-23, -20, -10, -20);
+    ctx.quadraticCurveTo(0, -27, 10, -20);
+    ctx.quadraticCurveTo(23, -20, 20, -4);
+    ctx.lineTo(15, 24); ctx.lineTo(-15, 24);
+    ctx.closePath(); ctx.fill(); edge(ctx, pal.accent, 1.6);
+    noShadow(ctx);
+    ctx.beginPath(); ctx.arc(0, -15, 7, 0, TAU);
+    ctx.fillStyle = pal.dark; ctx.fill();
+    ctx.shadowColor = pal.glow; ctx.shadowBlur = 8;
+    ctx.fillStyle = '#c87bff';
+    for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(s * 3, -16, 1.9, 0, TAU); ctx.fill(); }
+    noShadow(ctx);
+  },
+  meteor(ctx, pal) {
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = withAlpha(pal.glow, 0.6); ctx.lineCap = 'round';
+    for (const [w, o] of [[8, 0], [3.5, -5]] as const) {
+      ctx.lineWidth = w;
+      ctx.beginPath(); ctx.moveTo(22 + o, -26 - o); ctx.lineTo(2, -2); ctx.stroke();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.beginPath();
+    ctx.moveTo(-2, -3); ctx.lineTo(8, -7); ctx.lineTo(15, 4); ctx.lineTo(8, 15); ctx.lineTo(-5, 12); ctx.lineTo(-9, 2);
+    ctx.closePath();
+    ctx.fillStyle = rad(ctx, 2, 0, 20, [[0, pal.light], [0.5, pal.base], [1, '#2a1206']]);
+    ctx.fill(); edge(ctx, pal.dark, 1.4);
+    noShadow(ctx);
+    ctx.strokeStyle = withAlpha(pal.glow, 0.9); ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(4, 4); ctx.lineTo(1, 9); ctx.stroke();
+  },
+  roar(ctx, pal) {
+    ctx.beginPath();
+    ctx.moveTo(-20, -6);
+    ctx.quadraticCurveTo(0, -16, 20, -6);
+    ctx.quadraticCurveTo(14, 20, 0, 22);
+    ctx.quadraticCurveTo(-14, 20, -20, -6);
+    ctx.closePath();
+    ctx.fillStyle = rad(ctx, 0, 4, 22, [[0, '#400d0d'], [1, pal.dark]]);
+    ctx.fill(); edge(ctx, pal.accent, 1.6);
+    noShadow(ctx);
+    ctx.fillStyle = '#f6efdc';
+    for (const x of [-13, -5, 5, 13]) {
+      ctx.beginPath(); ctx.moveTo(x - 3, -8); ctx.lineTo(x + 3, -8); ctx.lineTo(x, 3); ctx.closePath();
+      ctx.fill(); edge(ctx, '#9a8c66', 0.6);
+    }
+    for (const x of [-9, 0, 9]) {
+      ctx.beginPath(); ctx.moveTo(x - 3, 16); ctx.lineTo(x + 3, 16); ctx.lineTo(x, 6); ctx.closePath();
+      ctx.fill(); edge(ctx, '#9a8c66', 0.6);
+    }
+  },
+  crosshair(ctx, pal) {
+    ctx.strokeStyle = pal.base; ctx.lineWidth = 2.4;
+    ctx.shadowColor = pal.glow; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(0, 0, 18, 0, TAU); ctx.stroke();
+    ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.arc(0, 0, 10, 0, TAU); ctx.stroke();
+    noShadow(ctx);
+    ctx.strokeStyle = pal.light; ctx.lineWidth = 2; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (const a of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) {
+      ctx.moveTo(Math.cos(a) * 6, Math.sin(a) * 6); ctx.lineTo(Math.cos(a) * 24, Math.sin(a) * 24);
+    }
+    ctx.stroke();
+    ctx.fillStyle = pal.accent;
+    ctx.beginPath(); ctx.arc(0, 0, 2.2, 0, TAU); ctx.fill();
+  },
 } satisfies Record<string, Painter>;
 type PrimitiveName = keyof typeof PRIMITIVES;
 
@@ -997,7 +1092,7 @@ const ABILITY_RECIPES: Record<string, IconRecipe> = {
   commanding_shout: r('fury', 'earthBrown', ['shield'], ['arcs']),
   demoralizing_shout: r('shadow', 'steel', ['fist'], ['arcs']),
   charge: r('fury', 'steel', ['boot', { p: 'sword', ...BR }], ['motion']),
-  rend: r('blood', 'blood', ['claw_slash'], ['drips']),
+  rend: r('blood', 'blood', ['sword'], ['drips']),
   thunder_clap: r('storm', 'sky', ['lightning'], ['arcs']),
   hamstring: r('blood', 'blood', ['boot', { p: 'claw_slash', ...TR }]),
   bloodrage: r('blood', 'blood', ['heart'], ['drips', 'glow']),
@@ -1017,7 +1112,7 @@ const ABILITY_RECIPES: Record<string, IconRecipe> = {
   frost_nova: r('frost', 'ice', ['snowflake'], ['arcs', 'glow']),
   // rogue
   sinister_strike: r('steel', 'steel', ['dagger'], ['glow']),
-  eviscerate: r('blood', 'blood', ['claw_slash'], ['drips']),
+  eviscerate: r('blood', 'blood', ['dagger'], ['drips']),
   backstab: r('shadow', 'steel', [{ p: 'dagger', rot: Math.PI * 0.85 }], ['motion']),
   gouge: r('fury', 'blood', ['eye', { p: 'claw_slash', ...BR }]),
   evasion: r('storm', 'sky', ['shield'], ['motion']),
@@ -1030,7 +1125,7 @@ const ABILITY_RECIPES: Record<string, IconRecipe> = {
   sap: r('shadow', 'steel', ['fist'], ['motion']),
   crippling_poison: r('nature', 'venom', ['droplet', { p: 'claw_slash', ...BR }], ['drips']),
   expose_armor: r('fury', 'steel', ['chestplate', { p: 'claw_slash', ...BR }]),
-  rupture: r('blood', 'blood', ['claw_slash'], ['drips']),
+  rupture: r('blood', 'blood', ['dagger', { p: 'claw_slash', ...BR }], ['drips']),
   vanish: r('shadow', 'shadowPurple', ['shield'], ['motion', 'glow']),
   instant_poison: r('nature', 'venom', ['droplet'], ['glow']),
   deadly_poison: r('nature', 'venom', ['fang'], ['drips']),
@@ -1048,7 +1143,7 @@ const ABILITY_RECIPES: Record<string, IconRecipe> = {
   raptor_strike: r('earth', 'blood', ['claw_slash']),
   aspect_of_the_hawk: r('storm', 'sky', ['wing'], ['glow']),
   aspect_of_the_monkey: r('nature', 'leafGreen', ['paw'], ['motion']),
-  serpent_sting: r('nature', 'venom', ['fang'], ['drips']),
+  serpent_sting: r('nature', 'venom', ['fang', { p: 'arrow', ...BR }], ['drips']),
   arcane_shot: r('arcane', 'arcanePink', ['arrow'], ['glow', 'sparkle']),
   concussive_shot: r('storm', 'sky', ['arrow'], ['arcs']),
   mongoose_bite: r('earth', 'steel', ['fang', { p: 'claw_slash', ...BR }], ['motion']),
@@ -1097,6 +1192,75 @@ const ABILITY_RECIPES: Record<string, IconRecipe> = {
   insect_swarm: r('nature', 'leafGreen', ['tendrils'], ['sparkle']),
   tigers_fury: r('fire', 'ember', ['fang'], ['glow']),
   rip: r('blood', 'blood', ['claw_slash'], ['drips']),
+  // --- formerly procedural-fallback abilities: unique hand-authored icons ---
+  // warrior
+  execute: r('blood', 'blood', ['axe'], ['glow']),
+  slam: r('fury', 'steel', ['mace'], ['motion']),
+  cleave: r('fury', 'steel', ['axe'], ['arcs']),
+  defensive_stance: r('steel', 'steel', ['shield'], ['arcs']),
+  sunder_armor: r('steel', 'steel', ['chestplate', { p: 'mace', ...BR }]),
+  taunt: r('fury', 'blood', ['fist'], ['arcs']),
+  mortal_strike: r('blood', 'blood', ['sword', { p: 'claw_slash', ...BR }]),
+  bloodthirst: r('blood', 'blood', ['heart', { p: 'dagger', ...BR }], ['drips']),
+  shield_slam: r('steel', 'steel', ['shield', { p: 'mace', ...BR }]),
+  whirlwind: r('fury', 'steel', ['sword'], ['arcs']),
+  berserker_rage: r('fury', 'blood', ['fist'], ['glow']),
+  // mage
+  conjure_food: r('arcane', 'arcanePink', ['bread'], ['sparkle']),
+  arcane_explosion: r('arcane', 'arcanePink', ['sunburst'], ['arcs']),
+  scorch: r('fire', 'ember', ['flame'], ['motion']),
+  ice_barrier: r('frost', 'ice', ['shield'], ['glow']),
+  // rogue
+  kidney_shot: r('shadow', 'steel', ['dagger', { p: 'boot', ...BR }]),
+  ambush: r('shadow', 'steel', ['dagger'], ['motion']),
+  stealth: r('shadow', 'steel', ['eye'], ['glow']),
+  adrenaline_rush: r('fury', 'blood', ['lightning'], ['glow']),
+  // paladin
+  flash_of_light: r('holy', 'holyGold', ['hand'], ['sparkle', 'glow']),
+  exorcism: r('holy', 'holyGold', ['sunburst'], ['glow']),
+  consecration: r('holy', 'holyGold', ['sigil_rune'], ['glow']),
+  righteous_fury: r('holy', 'gold', ['shield'], ['glow']),
+  retribution_aura: r('holy', 'gold', ['sunburst'], ['arcs']),
+  // hunter
+  tame_beast: r('nature', 'gold', ['paw'], ['sparkle']),
+  dismiss_pet: r('shadow', 'steel', ['paw'], ['arcs']),
+  revive_pet: r('nature', 'leafGreen', ['heart', { p: 'paw', ...BR }], ['sparkle', 'glow']),
+  aspect_of_the_cheetah: r('nature', 'leafGreen', ['boot', { p: 'paw', ...BR }], ['motion']),
+  aimed_shot: r('steel', 'steel', ['crosshair', { p: 'arrow', ...BR }]),
+  rapid_fire: r('fury', 'steel', ['arrow'], ['motion']),
+  // priest
+  heal: r('holy', 'holyGold', ['cross'], ['sparkle']),
+  flash_heal: r('holy', 'holyGold', ['cross'], ['motion']),
+  mind_flay: r('shadow', 'shadowPurple', ['eye'], ['motion']),
+  // shaman
+  frost_shock: r('frost', 'ice', ['snowflake'], ['motion']),
+  ghost_wolf: r('nature', 'leafGreen', ['paw'], ['glow']),
+  stormstrike: r('storm', 'sky', ['sword', { p: 'lightning', ...BR }]),
+  // warlock
+  fear: r('shadow', 'shadowPurple', ['roar'], ['glow']),
+  searing_pain: r('fire', 'ember', ['bolt'], ['glow']),
+  shadowburn: r('shadow', 'shadowPurple', ['flame'], ['glow']),
+  summon_imp: r('fire', 'ember', ['imp_head'], ['glow']),
+  summon_voidwalker: r('shadow', 'shadowPurple', ['void_brute'], ['glow']),
+  summon_succubus: r('shadow', 'pink', ['heart', { p: 'wing', ...BR }], ['glow']),
+  summon_felhunter: r('shadow', 'venom', ['eye', { p: 'tendrils', ...BR }], ['glow']),
+  summon_felguard: r('shadow', 'steel', ['axe', { p: 'helm', ...TL }], ['glow']),
+  summon_infernal: r('fire', 'ember', ['meteor'], ['glow']),
+  summon_doomguard: r('shadow', 'shadowPurple', ['wing', { p: 'skull', ...BR }], ['glow']),
+  // druid
+  bear_charge: r('earth', 'earthBrown', ['paw', { p: 'boot', ...BR }], ['motion']),
+  maul: r('earth', 'earthBrown', ['paw', { p: 'claw_slash', ...TR }], ['glow']),
+  growl: r('earth', 'earthBrown', ['roar'], ['arcs']),
+  demoralizing_roar: r('shadow', 'earthBrown', ['roar'], ['arcs']),
+  cat_form: r('nature', 'leafGreen', ['paw', { p: 'fang', ...BR }]),
+  prowl: r('nature', 'leafGreen', ['paw'], ['arcs']),
+  rake: r('nature', 'leafGreen', ['claw_slash'], ['drips']),
+  claw: r('nature', 'leafGreen', ['claw_slash'], ['motion']),
+  ferocious_bite: r('blood', 'blood', ['fang'], ['drips']),
+  swipe: r('earth', 'earthBrown', ['claw_slash'], ['arcs']),
+  regrowth: r('nature', 'leafGreen', ['heart', { p: 'leaf', ...BR }], ['sparkle']),
+  barkskin: r('earth', 'earthBrown', ['shield', { p: 'leaf', ...BR }]),
+  starfire: r('arcane', 'silverWhite', ['moon', { p: 'sunburst', ...BR }], ['sparkle', 'glow']),
 };
 
 const ITEM_RECIPES: Record<string, IconRecipe> = {
@@ -1477,6 +1641,7 @@ export const QUALITY_COLOR: Record<string, string> = {
   uncommon: '#1eff00',
   rare: '#0070dd',
   epic: '#a335ee',
+  legendary: '#ff8000',
 };
 
 // ---------------------------------------------------------------------------
@@ -1557,6 +1722,82 @@ function weaponIconUrl(id: string): string | null {
   return model ? `${WEAPON_ICON_DIR}/${model}.jpg` : null;
 }
 
+// Hand-picked image icons for class abilities, served from
+// /ui/skills/<class>/<abilityId>.png (128px PNGs; see public/ui/skills/ and the
+// per-class mapping.json). Class folder is derived from the ability's own
+// `class`, so adding a class is just listing its ability ids here. Abilities not
+// listed fall through to the procedural ABILITY_RECIPES below.
+const SKILL_ICON_DIR = '/ui/skills';
+const ABILITY_IMAGE_IDS = new Set<string>([
+  // paladin (CraftPix premium "RPG Paladin skill icons" pack)
+  'seal_of_righteousness', 'holy_light', 'devotion_aura', 'judgement', 'blessing_of_might',
+  'divine_protection', 'hammer_of_justice', 'lay_on_hands', 'flash_of_light', 'exorcism',
+  'consecration', 'righteous_fury', 'retribution_aura',
+  // hunter (CraftPix premium "RPG Archer skill icons" pack). The archer pack is
+  // arrows/bows/traps only — the beast/aspect-animal abilities (aspect_of_the_hawk,
+  // aspect_of_the_monkey, tame_beast, dismiss_pet, revive_pet) have no fitting art
+  // here and intentionally stay on their procedural recipes until a beast pack lands.
+  'raptor_strike', 'mongoose_bite', 'arcane_shot', 'serpent_sting', 'concussive_shot',
+  'aimed_shot', 'rapid_fire', 'wing_clip', 'aspect_of_the_cheetah',
+  // priest (CraftPix premium "RPG Priest skill icons" pack). The pack is all-holy —
+  // the shadow spells (shadow_word_pain, mind_flay) have no dark art and stay procedural.
+  'smite', 'lesser_heal', 'power_word_fortitude', 'power_word_shield', 'renew',
+  'mind_blast', 'heal', 'flash_heal',
+  // warlock (CraftPix premium "RPG Warlock skill icons" pack + "RPG Demon skill icons"
+  // pack for the summons/life_tap/searing_pain that the warlock pack couldn't cover).
+  'shadow_bolt', 'demon_skin', 'immolate', 'corruption', 'curse_of_agony', 'drain_life',
+  'fear', 'shadowburn', 'summon_imp', 'summon_voidwalker', 'summon_succubus',
+  'summon_felhunter', 'summon_felguard', 'summon_infernal', 'summon_doomguard',
+  'life_tap', 'searing_pain',
+  // rogue (CraftPix premium "RPG Thief skill icons" pack). garrote/sap/expose_armor/blind
+  // have no fitting art (no garrote-wire, blackjack, armor-shred, or eye-powder) — procedural.
+  'sinister_strike', 'eviscerate', 'backstab', 'gouge', 'cheap_shot', 'evasion',
+  'slice_and_dice', 'sprint', 'crippling_poison', 'kidney_shot', 'ambush', 'rupture',
+  'vanish', 'instant_poison', 'adrenaline_rush', 'deadly_poison', 'stealth',
+  // warrior (CraftPix premium "RPG Warrior" + "RPG Berserker" packs; rage/fury abilities
+  // drew from berserker). taunt has no provoke art and stays procedural.
+  'heroic_strike', 'battle_shout', 'commanding_shout', 'charge', 'rend', 'thunder_clap',
+  'hamstring', 'bloodrage', 'overpower', 'execute', 'slam', 'cleave', 'defensive_stance',
+  'demoralizing_shout', 'sunder_armor', 'mortal_strike', 'bloodthirst', 'shield_slam',
+  'whirlwind', 'berserker_rage',
+  // mage (CraftPix premium pyromancer/cryomancer/lightning-mage packs — fire/frost/arcane;
+  // aeromancer unused, mage has no wind). conjure_food and polymorph have no fit (no
+  // bread/food or sheep art) and stay procedural.
+  'fireball', 'frost_armor', 'arcane_intellect', 'frostbolt', 'conjure_water', 'fire_blast',
+  'arcane_missiles', 'frost_nova', 'arcane_explosion', 'scorch', 'ice_barrier', 'pyroblast',
+  // druid (CraftPix premium "RPG Druid" pack). moonfire (no moon), bear_charge, pounce,
+  // demoralizing_roar, hibernate (no sleep), insect_swarm have no fitting art — procedural.
+  'wrath', 'healing_touch', 'mark_of_the_wild', 'rejuvenation', 'thorns', 'entangling_roots',
+  'bear_form', 'maul', 'growl', 'cat_form', 'prowl', 'rake', 'claw', 'regrowth',
+  'ferocious_bite', 'barkskin', 'swipe', 'starfire', 'travel_form', 'enrage', 'bash',
+  'faerie_fire', 'dash', 'tigers_fury', 'rip',
+  // shaman (no dedicated pack — matched against the two generic CraftPix "100 RPG/skill
+  // icon" packs + earth-magician for the earth abilities; aeromancer went unused). 11/11.
+  'lightning_bolt', 'rockbiter_weapon', 'healing_wave', 'earth_shock', 'lightning_shield',
+  'flame_shock', 'flametongue_weapon', 'frost_shock', 'frostbrand_weapon', 'ghost_wolf',
+  'stormstrike',
+  // cross-class fills from the two generic CraftPix "100 RPG/skill icon" packs — abilities
+  // their own class pack couldn't cover but a generic icon fit. (warrior taunt completes warrior.)
+  'aspect_of_the_hawk', 'tame_beast', 'dismiss_pet',   // hunter
+  'shadow_word_pain',                                   // priest
+  'sap', 'expose_armor',                                // rogue
+  'taunt',                                              // warrior
+  'moonfire', 'demoralizing_roar', 'insect_swarm',      // druid
+  // final bespoke fills from per-ability "_Missing_*" packs — completes every class.
+  'aspect_of_the_monkey', 'revive_pet',                 // hunter
+  'mind_flay',                                          // priest
+  'garrote', 'blind',                                   // rogue
+  'conjure_food', 'polymorph',                          // mage
+  'bear_charge', 'hibernate', 'pounce',                 // druid
+]);
+
+/** Static URL of an ability's image icon, or null if it uses a recipe. */
+function abilityImageUrl(id: string): string | null {
+  if (!ABILITY_IMAGE_IDS.has(id)) return null;
+  const cls = ABILITIES[id]?.class;
+  return cls ? `${SKILL_ICON_DIR}/${cls}/${id}.png` : null;
+}
+
 const urlCache = new Map<string, string>();
 const warnedIds = new Set<string>();
 
@@ -1582,6 +1823,15 @@ function resolveRecipe(kind: IconKind, id: string): IconRecipe {
   return recipe;
 }
 
+// Introspection helpers (no canvas needed), used by tests/ability_icons.test.ts
+// to assert every ability has a deliberate, distinct icon recipe.
+export function abilityIconRecipe(id: string): IconRecipe {
+  return resolveRecipe('ability', id);
+}
+export function hasExplicitAbilityIcon(id: string): boolean {
+  return id in ABILITY_RECIPES;
+}
+
 const DEFAULT_ICON_SIZE = 96; // crisp at 46px buttons on 2x displays
 const canvasCache = new Map<string, HTMLCanvasElement>();
 
@@ -1603,6 +1853,13 @@ export function iconCanvas(kind: IconKind, id: string, size: number = DEFAULT_IC
 export function iconDataUrl(kind: IconKind, id: string, size: number = DEFAULT_ICON_SIZE): string {
   if (kind === 'item') {
     const img = weaponIconUrl(id);
+    if (img) return img;
+  }
+  // Abilities, and auras that carry a real ability id (a DoT/buff applied by that
+  // ability), share the same image-based skill art. abilityImageUrl returns null
+  // for generic aura_<kind> ids, so those still fall through to the procedural recipe.
+  if (kind === 'ability' || kind === 'aura') {
+    const img = abilityImageUrl(id);
     if (img) return img;
   }
   const key = `${kind}|${id}|${size}`;

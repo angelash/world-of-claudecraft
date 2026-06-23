@@ -1,6 +1,9 @@
-import { OVERHEAD_EMOTE_IDS, type ArenaCombatant, type ArenaFormat, type ArenaStanding, type Entity, type EquipSlot, type InvSlot, type MoveInput, type OverheadEmoteId, type PetMode, type PlayerClass, type QuestProgress, type QuestState, type ResourceType } from './sim/types';
+import { OVERHEAD_EMOTE_IDS, type ArenaCombatant, type ArenaFormat, type ArenaStanding, type Entity, type EquipSlot, type InvSlot, type LootRollChoice, type LootRollPrompt, type MoveInput, type OverheadEmoteId, type PetMode, type PlayerClass, type QuestProgress, type QuestState, type ResourceType } from './sim/types';
 import type { ResolvedAbility } from './sim/sim';
 import type { TalentAllocation, SavedLoadout, Role } from './sim/content/talents';
+import type { LeaderboardPage } from './sim/leaderboard_page';
+
+export type { LeaderboardPage } from './sim/leaderboard_page';
 
 export interface PartyMemberInfo {
   pid: number;
@@ -16,10 +19,12 @@ export interface PartyMemberInfo {
   z: number;
   dead: number;
   inCombat: number;
+  group: 1 | 2;
 }
 
 export interface PartyInfo {
   leader: number;
+  raid: boolean;
   members: PartyMemberInfo[];
 }
 
@@ -226,6 +231,8 @@ export interface MarketListingView {
 
 export interface MarketInfo {
   listings: MarketListingView[];
+  totalCount: number; // listings matching the active filter, before the wire cap
+  filter: string; // the active browse filter (echoed back from the server)
   collectionCopper: number; // proceeds waiting to be collected
   collectionItems: InvSlot[]; // returned/expired items waiting to be collected
   cutPct: number; // the Merchant's cut on a sale, as a percentage
@@ -274,11 +281,17 @@ export interface IWorld {
   stopAutoAttack(): void;
   interact(): void;
   lootCorpse(id: number): void;
+  submitLootRoll(rollId: number, choice: LootRollChoice): void;
+  // Open need-greed rolls the local player may still answer; lets the HUD
+  // reconcile prompts from authoritative state so a missed event is recoverable.
+  activeLootRolls(): LootRollPrompt[];
   pickUpObject(id: number): void;
   acceptQuest(questId: string): void;
   turnInQuest(questId: string): void;
+  reportTelemetry(kind: string, data: Record<string, number>): void;
   abandonQuest(questId: string): void;
   equipItem(itemId: string): void;
+  unequipItem(slot: EquipSlot): void;
   useItem(itemId: string): void;
   discardItem(itemId: string, count?: number): void;
   buyItem(npcId: number, itemId: string): void;
@@ -312,6 +325,8 @@ export interface IWorld {
   partyDecline(): void;
   partyLeave(): void;
   partyKick(targetPid: number): void;
+  convertPartyToRaid(): void;
+  moveRaidMember(targetPid: number, group: 1 | 2): void;
   // raid/target markers (party-scoped): markerId 0..7, null = no mark
   markerFor(entityId: number): number | null;
   setMarker(entityId: number, markerId: number): void;
@@ -349,6 +364,7 @@ export interface IWorld {
   // 2v2 Fiesta: lock in one of the augments currently on offer
   arenaAugmentPick(augmentId: string): void;
   // World Market
+  marketSearch(query: string): void;
   marketList(itemId: string, count: number, price: number): void;
   marketBuy(listingId: number): void;
   marketCancel(listingId: number): void;
@@ -356,8 +372,9 @@ export interface IWorld {
   enterDungeon(dungeonId: string): void;
   leaveDungeon(): void;
   // Post-cap progression: the realm-scoped lifetime-XP leaderboard, and the
-  // opt-in cosmetic prestige action.
-  leaderboard(): Promise<LeaderboardEntry[]>;
+  // opt-in cosmetic prestige action. Paged server-side (a realm can hold far
+  // more than one page of max-level players); page is 0-based.
+  leaderboard(page?: number, pageSize?: number): Promise<LeaderboardPage>;
   prestige(): void;
   // Talents & Specializations. State is server-authoritative; the client stages
   // edits locally and commits via applyTalents (the server re-validates).

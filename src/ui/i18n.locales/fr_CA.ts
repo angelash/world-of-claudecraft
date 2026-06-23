@@ -11,7 +11,9 @@
 import type { TranslationKey } from '../i18n.catalog';
 
 export const fr_CA: Partial<Record<TranslationKey, string>> = {
-  "nav.loginRegister": "Se connecter/S'enregistrer",
+  // Stat tooltips inherit the fr_FR base: none of these strings has a genuine
+  // Quebec-specific form, so per the divergence-only policy fr_CA carries no
+  // hudChrome.statInfo.* overrides.
   "seo.title": "World of ClaudeCraft: MMO Web de style classique",
   "seo.description": "Partez à l'aventure dans World of ClaudeCraft, un micro-MMO de style classique jouable directement dans votre navigateur. Rejoignez un royaume partagé, faites progresser vos classes et terrassez des ennemis.",
   "seo.operatingSystem": "Navigateur Web",

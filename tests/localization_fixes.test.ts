@@ -476,6 +476,42 @@ describe("R1: report-target errors map to the server's exact emitted bytes", () 
   });
 });
 
+// --- R2: bug-report error matcher keys MUST byte-match the server's actual
+// emissions. Same drift class as R1, for the /api/bug-reports lane: the server
+// emits lowercase / no trailing period and the hud localizeBugReportError
+// keyByMessage must contain those exact bytes or every failure falls to the
+// generic hudChrome.bugReport.failed. ---
+describe("R2: bug-report errors map to the server's exact emitted bytes", () => {
+  it("server bug-report error strings appear verbatim as localizeBugReportError keys", () => {
+    const serverErrors = [
+      "describe the bug",                       // 400, empty description (server/main.ts)
+      "bug report too large",                   // 413, body cap (server/main.ts)
+      "too many bug reports, try again later",  // 429, BugReportRateLimitError (bug_report_db.ts)
+    ];
+
+    // Pin the server side: each error string must still be emitted verbatim by its
+    // source (scanned, not imported, so this test needs no DB). A drift on either
+    // side then fails here instead of silently falling to the generic message.
+    const mainSrc = fs.readFileSync(path.resolve(process.cwd(), "server/main.ts"), "utf8");
+    const dbSrc = fs.readFileSync(path.resolve(process.cwd(), "server/bug_report_db.ts"), "utf8");
+    const serverSrc = mainSrc + dbSrc;
+    for (const e of serverErrors) {
+      expect(serverSrc.includes(`'${e}'`), `server no longer emits "${e}"`).toBe(true);
+    }
+
+    const hudSrc = fs.readFileSync(path.resolve(process.cwd(), "src/ui/hud.ts"), "utf8");
+    const fnStart = hudSrc.indexOf("localizeBugReportError(err: unknown)");
+    expect(fnStart, "localizeBugReportError not found in hud.ts").toBeGreaterThan(-1);
+    const start = hudSrc.indexOf("keyByMessage: Record<string, TranslationKey> = {", fnStart);
+    const body = hudSrc.slice(start, hudSrc.indexOf("};", start));
+    const keys = new Set([...body.matchAll(/(^|\n)\s*('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")\s*:/g)].map((m) => m[2].slice(1, -1)));
+
+    for (const err of serverErrors) {
+      expect(keys.has(err), `bug error "${err}" is not a localizeBugReportError key (would fall to hudChrome.bugReport.failed)`).toBe(true);
+    }
+  });
+});
+
 // --- A1: admin class column is localized (MED-5) ---
 describe("A1: admin classLabel localizes the raw class id", () => {
   const classIds = ["warrior", "paladin", "hunter", "rogue", "priest", "shaman", "mage", "warlock", "druid"];
@@ -496,6 +532,52 @@ describe("A1: admin classLabel localizes the raw class id", () => {
   });
 });
 
+type Cand = { type: "log" | "error" | "loot"; tmpl: string };
+// The S3 drift-guard scanner, lifted to module scope so the hardened emit-form
+// regexes can be exercised against SYNTHETIC source (see "S3 scanner regression"
+// below) and cannot silently regress. Pure function of its two source-string
+// inputs; the describe body calls it with the live sim.ts / game.ts sources.
+function scanEmitCandidates(simSrc: string, serverSrc: string): Cand[] {
+  const cands: Cand[] = [];
+  const lit = "(`[^`]*`|'(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\")";
+  // A ternary condition up to the `?` (no quotes/braces/commas of its own beyond
+  // the matched literals): catches `text: cond ? 'A' : 'B'` emits the literal-only
+  // patterns below miss.
+  const cond = "[^?,{}\\n]*?";
+  const unq = (s: string) => s.slice(1, -1);
+  let m: RegExpExecArray | null;
+  // --- src/sim/sim.ts emits ---
+  const e1 = new RegExp(`emit\\(\\{[^}]*?type:\\s*'(log|loot)'[^}]*?text:\\s*${lit}`, "gs");
+  while ((m = e1.exec(simSrc))) cands.push({ type: m[1] as Cand["type"], tmpl: unq(m[2]) });
+  const e2 = new RegExp(`emit\\(\\{[^}]*?text:\\s*${lit}[^}]*?type:\\s*'(log|loot)'`, "gs");
+  while ((m = e2.exec(simSrc))) cands.push({ type: m[2] as Cand["type"], tmpl: unq(m[1]) });
+  // Ternary `text:` emits (both branches) — previously a blind spot.
+  const e3 = new RegExp(`emit\\(\\{[^}]*?type:\\s*'(log|loot)'[^}]*?text:\\s*${cond}\\?\\s*${lit}\\s*:\\s*${lit}`, "gs");
+  while ((m = e3.exec(simSrc))) { cands.push({ type: m[1] as Cand["type"], tmpl: unq(m[2]) }); cands.push({ type: m[1] as Cand["type"], tmpl: unq(m[3]) }); }
+  const er = new RegExp(`this\\.error\\([^,]+,\\s*${lit}\\s*\\)`, "g");
+  while ((m = er.exec(simSrc))) cands.push({ type: "error", tmpl: unq(m[1]) });
+  // Variable-routed sim emits: this.notice(pid, '<lit>') (emits 'log') and
+  // this.stopFollow(p, '<lit>') (arg2 routes through this.error) — blind spots.
+  // The first-arg class excludes ),(,newline so a single-arg call (e.g.
+  // `this.stopFollow(p);`) cannot span into the NEXT call's literal.
+  const nr = new RegExp(`this\\.(?:notice|stopFollow)\\([^,()\\n]+,\\s*${lit}`, "g");
+  while ((m = nr.exec(simSrc))) cands.push({ type: "log", tmpl: unq(m[1]) });
+  // Ternary args to error/notice/stopFollow (both branches).
+  const ert = new RegExp(`this\\.(?:error|notice|stopFollow)\\([^,()\\n]+,\\s*${cond}\\?\\s*${lit}\\s*:\\s*${lit}`, "g");
+  while ((m = ert.exec(simSrc))) { cands.push({ type: "error", tmpl: unq(m[1]) }); cands.push({ type: "error", tmpl: unq(m[2]) }); }
+  const rr = new RegExp(`return\\s+${lit};`, "g");
+  while ((m = rr.exec(simSrc))) { const t = unq(m[1]); if (/^[A-Z].* .*[.!?]$/.test(t) || /^[A-Z].*\$\{/.test(t)) cands.push({ type: "error", tmpl: t }); }
+  // --- server/game.ts player-facing emits (recognized via localizeServerText) ---
+  const s1 = new RegExp(`type:\\s*'(log|error|loot)',\\s*text:\\s*${lit}`, "g");
+  while ((m = s1.exec(serverSrc))) cands.push({ type: m[1] as Cand["type"], tmpl: unq(m[2]) });
+  const s1t = new RegExp(`type:\\s*'(log|error|loot)',\\s*text:\\s*${cond}\\?\\s*${lit}\\s*:\\s*${lit}`, "g");
+  while ((m = s1t.exec(serverSrc))) { cands.push({ type: m[1] as Cand["type"], tmpl: unq(m[2]) }); cands.push({ type: m[1] as Cand["type"], tmpl: unq(m[3]) }); }
+  const s2 = new RegExp(`sendChatNotice\\([^,]+,\\s*${lit}`, "g");
+  while ((m = s2.exec(serverSrc))) cands.push({ type: "error", tmpl: unq(m[1]) });
+  const seen = new Set<string>();
+  return cands.filter((c) => { const k = c.type + " " + c.tmpl; if (seen.has(k)) return false; seen.add(k); return true; });
+}
+
 // --- S3: DRIFT GUARD — enumerate EVERY player-facing emit in src/sim/sim.ts and prove
 // each is recognized by the real client matcher for its event type. Unlike S1 (a curated
 // sample), this parses sim.ts at test time, so a NEW unhandled `text:`/this.error string
@@ -504,6 +586,13 @@ describe("A1: admin classLabel localizes the raw class id", () => {
 describe("S3: every sim.ts emit is recognized (drift guard)", () => {
   const hudSrc = fs.readFileSync(path.resolve(process.cwd(), "src/ui/hud.ts"), "utf8");
   const simSrc = fs.readFileSync(path.resolve(process.cwd(), "src/sim/sim.ts"), "utf8");
+  // Hardened S3: also scan the authoritative server's player-facing emits. The
+  // server (server/game.ts) is language-agnostic like the sim and re-localized
+  // client-side by localizeServerText; previously the guard read only sim.ts, so
+  // a new server emit (chat-filter notices, pet-name, etc.) could ship English to
+  // every locale while the gate stayed green. Recognized via the localizeServerText
+  // fallback in recognized() below.
+  const serverSrc = fs.readFileSync(path.resolve(process.cwd(), "server/game.ts"), "utf8");
 
   const armBody = (name: string): string => {
     const start = hudSrc.indexOf(`private ${name}(text: string): string {`);
@@ -537,7 +626,11 @@ describe("S3: every sim.ts emit is recognized (drift guard)", () => {
 
   // `${verb}` holds a whole clause (leaves/has left/has been removed from the party),
   // each concrete form covered by a sim_i18n RULE — not representable by one substitution.
-  const TMPL_SKIP = [/\$\{verb\}/];
+  // The /who header + "...and N more" server templates count off `${total}` (a var the
+  // probe substituter leaves as "Aki" because forcing it to a digit would desync the
+  // fishing/overpower V07 backstop forms that share `total`/`remaining`); they are
+  // exhaustively covered by the B1 and M1b describe blocks above, so skip them here.
+  const TMPL_SKIP = [/\$\{verb\}/, /^Who: \$\{/, /^\.\.\.and \$\{.*\} more\.$/];
   // Intentional-English backstops: deterministic-sim talent-build VALIDATION diagnostics
   // (reasons originate in content/talents.ts and behave like code diagnostics). The
   // normal talent-panel flow uses the localized buildInvalid message instead.
@@ -555,23 +648,7 @@ describe("S3: every sim.ts emit is recognized (drift guard)", () => {
   // near the top of this file): the blockedSource sim entries. The big comment
   // above documents why these v0.7 slash-command strings ship English for now.
 
-  type Cand = { type: "log" | "error" | "loot"; tmpl: string };
-  const extract = (): Cand[] => {
-    const cands: Cand[] = [];
-    const lit = "(`[^`]*`|'(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\")";
-    const unq = (s: string) => s.slice(1, -1);
-    let m: RegExpExecArray | null;
-    const e1 = new RegExp(`emit\\(\\{[^}]*?type:\\s*'(log|loot)'[^}]*?text:\\s*${lit}`, "gs");
-    while ((m = e1.exec(simSrc))) cands.push({ type: m[1] as Cand["type"], tmpl: unq(m[2]) });
-    const e2 = new RegExp(`emit\\(\\{[^}]*?text:\\s*${lit}[^}]*?type:\\s*'(log|loot)'`, "gs");
-    while ((m = e2.exec(simSrc))) cands.push({ type: m[2] as Cand["type"], tmpl: unq(m[1]) });
-    const er = new RegExp(`this\\.error\\([^,]+,\\s*${lit}\\s*\\)`, "g");
-    while ((m = er.exec(simSrc))) cands.push({ type: "error", tmpl: unq(m[1]) });
-    const rr = new RegExp(`return\\s+${lit};`, "g");
-    while ((m = rr.exec(simSrc))) { const t = unq(m[1]); if (/^[A-Z].* .*[.!?]$/.test(t) || /^[A-Z].*\$\{/.test(t)) cands.push({ type: "error", tmpl: t }); }
-    const seen = new Set<string>();
-    return cands.filter((c) => { const k = c.type + " " + c.tmpl; if (seen.has(k)) return false; seen.add(k); return true; });
-  };
+  const extract = (): Cand[] => scanEmitCandidates(simSrc, serverSrc);
   const recognized = (type: Cand["type"], s: string): boolean => {
     const arm = arms[type === "error" ? "localizeErrorText" : type === "loot" ? "localizeLootText" : "localizeSystemText"];
     if (arm.exact.has(s)) return true;
@@ -636,5 +713,92 @@ describe("S3: every sim.ts emit is recognized (drift guard)", () => {
     }
     setLanguage("en");
     expect(leaks, "sim emit strings unlocalized in some locale").toEqual([]);
+  });
+});
+
+// Regression for the S3 hardening: prove the scanner ENUMERATES each emit form it was
+// hardened to cover, by feeding it synthetic source. If a future refactor drops one of
+// the regexes (s1/s1t/s2/nr/ert/e3), the matching assertion bites - so the drift guard
+// cannot silently lose coverage of a whole emit shape.
+describe("S3 scanner enumerates each hardened emit form (regression)", () => {
+  const synthSim = [
+    "this.emit({ type: 'log', text: 'SYNTH_SIM_LOG' });",            // e1
+    "this.emit({ text: 'SYNTH_SIM_LOOT', type: 'loot' });",          // e2 (text-before-type)
+    "this.emit({ type: 'log', text: c ? 'SYNTH_SIM_TERN_A' : 'SYNTH_SIM_TERN_B' });", // e3
+    "this.error(p.id, 'SYNTH_SIM_ERR');",                            // er
+    "this.notice(p.id, 'SYNTH_NOTICE');",                            // nr (notice)
+    "this.stopFollow(p, 'SYNTH_STOPFOLLOW');",                       // nr (stopFollow)
+    "this.error(p.id, flag ? 'SYNTH_ERR_TERN_A' : 'SYNTH_ERR_TERN_B');", // ert
+    "return 'Synth returns a sentence here.';",                      // rr
+    // nr anti-bleed: a single-arg stopFollow() must stop its first-arg scan at ')'
+    // (the [^,()\\n]+ class) and NOT span into a following call's literal.
+    "this.stopFollow(p); track(metric, 'BLEED_SENTINEL_should_not_capture');",
+  ].join("\n");
+  const synthServer = [
+    "this.send({ type: 'error', text: 'SYNTH_SERVER_INLINE' });",                     // s1
+    "this.send({ type: 'log', text: flag ? 'SYNTH_SRV_TERN_A' : 'SYNTH_SRV_TERN_B' });", // s1t
+    "sendChatNotice(session, 'SYNTH_CHATNOTICE');",                                   // s2
+  ].join("\n");
+
+  // [label, expected type, expected tmpl] - every entry must be enumerated.
+  const expected: [string, "log" | "error" | "loot", string][] = [
+    ["sim emit log (e1)", "log", "SYNTH_SIM_LOG"],
+    ["sim emit loot, text-before-type (e2)", "loot", "SYNTH_SIM_LOOT"],
+    ["sim emit ternary text, branch A (e3)", "log", "SYNTH_SIM_TERN_A"],
+    ["sim emit ternary text, branch B (e3)", "log", "SYNTH_SIM_TERN_B"],
+    ["sim this.error literal (er)", "error", "SYNTH_SIM_ERR"],
+    ["sim this.notice literal (nr)", "log", "SYNTH_NOTICE"],
+    ["sim this.stopFollow literal (nr)", "log", "SYNTH_STOPFOLLOW"],
+    ["sim this.error ternary, branch A (ert)", "error", "SYNTH_ERR_TERN_A"],
+    ["sim this.error ternary, branch B (ert)", "error", "SYNTH_ERR_TERN_B"],
+    ["sim return-sentence (rr)", "error", "Synth returns a sentence here."],
+    ["server inline text (s1)", "error", "SYNTH_SERVER_INLINE"],
+    ["server ternary text, branch A (s1t)", "log", "SYNTH_SRV_TERN_A"],
+    ["server ternary text, branch B (s1t)", "log", "SYNTH_SRV_TERN_B"],
+    ["server sendChatNotice (s2)", "error", "SYNTH_CHATNOTICE"],
+  ];
+
+  it("every hardened emit form is enumerated by scanEmitCandidates()", () => {
+    const cands = scanEmitCandidates(synthSim, synthServer);
+    const set = new Set(cands.map((c) => `${c.type}|${c.tmpl}`));
+    const missing = expected.filter(([, type, tmpl]) => !set.has(`${type}|${tmpl}`));
+    expect(missing.map(([label]) => label), "emit forms the scanner failed to enumerate").toEqual([]);
+    // Negative: the single-arg stopFollow's scan must NOT bleed past ')' into the
+    // following track(...) call's literal (would regress if the nr first-arg class
+    // ever stopped excluding ')').
+    const bled = cands.some((c) => c.tmpl === "BLEED_SENTINEL_should_not_capture");
+    expect(bled, "nr first-arg class must stop at ')' (no cross-call bleed)").toBe(false);
+  });
+});
+
+// The restart-countdown announcements are emitted via broadcastSystem(step.text) - a
+// VARIABLE-routed emit the S3 source scanner cannot see (it only reads string literals
+// at the emit site). They are covered instead by RESTART_MESSAGES in server_i18n.ts;
+// this guard reads the literal steps straight from server/game.ts and asserts every one
+// is still recognized + localized, so editing a step text without updating the matcher
+// fails here.
+describe("server restart-countdown announcements are localized (broadcastSystem blind spot)", () => {
+  const serverSrc = fs.readFileSync(path.resolve(process.cwd(), "server/game.ts"), "utf8");
+  const startIdx = serverSrc.indexOf("RESTART_COUNTDOWN_STEPS");
+  // The array body holds no nested ']', so the first ']' after the declaration closes it.
+  const endIdx = serverSrc.indexOf("]", startIdx);
+  const block = startIdx >= 0 && endIdx > startIdx ? serverSrc.slice(startIdx, endIdx) : "";
+  const steps = [...block.matchAll(/text:\s*'([^']*)'/g)].map((m) => m[1]);
+
+  it("parses the restart-countdown step strings from server/game.ts", () => {
+    expect(steps.length, "should find the RESTART_COUNTDOWN_STEPS text literals").toBeGreaterThanOrEqual(5);
+    expect(steps).toContain("Server restarting now.");
+  });
+
+  it("every restart step is recognized and not left English in es/de_DE", () => {
+    for (const lang of ["es", "de_DE"] as const) {
+      setLanguage(lang);
+      for (const s of steps) {
+        const out = localizeServerText(s);
+        expect(out, `${lang}: "${s}" should be recognized by localizeServerText`).not.toBeNull();
+        expect(out, `${lang}: "${s}" should not stay English`).not.toBe(s);
+      }
+    }
+    setLanguage("en");
   });
 });
