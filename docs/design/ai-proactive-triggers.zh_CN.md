@@ -1459,6 +1459,7 @@ Usage 页建议新增一个 tab 或 section：
 - TTL 按价值分层：奇点主动记忆保留 21 天，世界导演主动余波保留 14 天，普通怪物主动生活保留 10 天，普通 NPC 主动生活保留 7 天。最终仍受现有 `AI_MEMORY_MAX_RECORDS`、单玩家上限、kind 比例和 batch trim 保护。
 - salience 会综合 reaction score、planIntensity、singularity、worldDirector、sequence 和 creature 权重，便于预算清理时优先保留奇点、世界导演、连续行为和高强度生态反应。
 - `tests/ai_memory_persistence.test.ts` 覆盖主动奇点发声会落成 `creatureMemory`，带本地化 lineId、`active:*` reason、高 salience 和 21 天 TTL。
+- `tests/server_ai_active_triggers.test.ts` 增加主线稳定性收束验证：连续主动轮询、world director 桥接和记忆沉淀可以产生 AI 气泡与审计数据，但 XP、背包、货币、任务日志和已完成任务快照必须保持不变。
 
 ## 验收标准
 

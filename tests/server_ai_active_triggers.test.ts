@@ -312,6 +312,35 @@ describe('server AI active triggers', () => {
     expect(mainlineSnapshot(server, session.pid)).toEqual(before);
   });
 
+  it('keeps mainline quest, inventory, money, and XP stable across active world passes', () => {
+    const server = new GameServer();
+    const service = new AiActiveTriggerService({
+      rules: [activeRule(), activeLivingRule(), activeCreatureRule()],
+      thinkingDurationMs: 650,
+    });
+    (server as any).aiActiveTriggers = service;
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
+    if (!npc) throw new Error('missing Brother Aldric');
+    teleportNear(server, session.pid, npc.id);
+    const before = mainlineSnapshot(server, session.pid);
+    fc.sent.length = 0;
+
+    (server as any).aiLifeLayer.handleSimEvents({
+      sim: server.sim,
+      events: [{ type: 'questDone', questId: 'q_wolves', pid: session.pid }],
+    });
+    for (let i = 0; i < 8; i++) {
+      (server as any).runAiActiveTriggers(1_000 + i * AI_ACTIVE_TRIGGER_INTERVAL_MS);
+      for (let tick = 0; tick < 20; tick++) server.sim.tick();
+    }
+
+    expect(eventsOf(fc, 'aiSpeech').length).toBeGreaterThan(0);
+    expect(server.aiActiveTriggerMetrics().activeEventFired + server.aiActiveTriggerMetrics().activePollFired).toBeGreaterThan(0);
+    expect(mainlineSnapshot(server, session.pid)).toEqual(before);
+  });
+
   it('applies active creature actions through the live server scheduler path', () => {
     const server = new GameServer();
     const service = new AiActiveTriggerService({
