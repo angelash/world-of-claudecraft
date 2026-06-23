@@ -57,7 +57,7 @@ interface JsonRpcErrorShape {
 }
 
 const DEFAULT_POOL_SIZE = 2;
-const DEFAULT_TIMEOUT_MS = 45_000;
+const DEFAULT_TIMEOUT_MS = 60_000;
 const DEFAULT_STARTUP_TIMEOUT_MS = 20_000;
 const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
 const DEFAULT_EFFORT = 'low';

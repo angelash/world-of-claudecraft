@@ -146,7 +146,7 @@ const INTENT_TYPES = new Set<AiIntentType>([
   'commandPetIgnore',
 ]);
 const DEFAULT_MAX_STDERR_BYTES = 8_192;
-const DEFAULT_TIMEOUT_MS = 45_000;
+const DEFAULT_TIMEOUT_MS = 60_000;
 const MAX_SPEECH_ENTRIES = 3;
 
 export class CodexCliProvider implements AiProvider {
