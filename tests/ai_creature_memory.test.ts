@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { AiCreatureMemoryStore, creaturePlanKey, singularityCreatureMemoryEvent, singularityCreatureSceneMemoryEvent } from '../server/ai/creature_memory';
+import type { AiCreaturePlanKind } from '../server/ai/creature_memory';
 import { droppedItemSemantic } from '../server/ai/scene_frame';
 import type { SceneFrameV1 } from '../server/ai/scene_frame';
-import type { IndividualAiProfile } from '../server/ai/singularity';
+import type { IndividualAiProfile, IndividualTrait } from '../server/ai/singularity';
 import type { Entity } from '../src/sim/types';
 
 const creature = { id: 10, templateId: 'forest_wolf', name: 'Forest Wolf', kind: 'mob' } as Entity;
@@ -148,6 +149,41 @@ describe('AI creature memory', () => {
       });
     }
     expect(store.planSnapshot()).toHaveLength(2);
+  });
+
+  it.each([
+    ['foodFixated', 'seekFood'],
+    ['territorial', 'protectNest'],
+    ['vengeful', 'misreadPlayer'],
+  ] as const)('maps %s scene-only singularity patterns to %s plans', (trait: IndividualTrait, kind: AiCreaturePlanKind) => {
+    const store = new AiCreatureMemoryStore({ memoryTtlSeconds: 30, planTtlSeconds: 8 });
+    const sceneIndividual: IndividualAiProfile = {
+      ...individual,
+      traits: [trait],
+    };
+    store.noteSingularityReaction({ entity: creature, player, individual: sceneIndividual, nowSeconds: 10 });
+    const second = store.noteSingularityReaction({ entity: creature, player, individual: sceneIndividual, nowSeconds: 12 });
+    const plan = store.notePlan({
+      memory: second,
+      entity: creature,
+      player,
+      individual: sceneIndividual,
+      scene,
+      trigger: 'scene_inspected',
+      nowSeconds: 12,
+    });
+
+    expect(plan).toMatchObject({
+      kind,
+      traits: [trait],
+      evidence: expect.arrayContaining([`trait:${trait}`, 'trigger:scene_inspected']),
+    });
+    expect(singularityCreatureSceneMemoryEvent(player, creature, scene, second, plan)).toMatchObject({
+      reaction: expect.objectContaining({
+        planKind: kind,
+        targetEntityId: player.id,
+      }),
+    });
   });
 
   it('emits a singularity scene memory line after repeated scene sightings', () => {

@@ -285,6 +285,16 @@ interface CreatureRoutineResult {
   routineKind: string;
 }
 
+type SingularityActivePlanKind =
+  | 'seekFood'
+  | 'collectObject'
+  | 'protectNest'
+  | 'avoidPlayer'
+  | 'watchSky'
+  | 'omenWatch'
+  | 'misreadPlayer'
+  | 'guardPlace';
+
 interface SocialSequenceResult {
   kind: 'npc' | 'creature';
   family?: MobFamily;
@@ -1308,14 +1318,19 @@ export class AiActiveTriggerService {
     const candidates = nearbyFamilySceneCandidates(scene, sim.entities.values(), player)
       .filter((entity) => (this.entityCooldownUntilMs.get(entity.id) ?? 0) <= nowMs);
     this.metrics.activeCandidatesScanned += candidates.length;
-    const [reaction] = rankFamilySceneReactions(scene, candidates, { worldSeed: sim.cfg.seed });
+    const reaction = chooseActiveCreatureRoutineReaction(rankFamilySceneReactions(scene, candidates, { worldSeed: sim.cfg.seed }));
     if (!reaction) return null;
-    const event = familySceneReactionEvent(reaction, scene, player.id) as AiSpeechEvent;
+    const event = singularityActiveRoutineEvent({
+      baseEvent: familySceneReactionEvent(reaction, scene, player.id) as AiSpeechEvent,
+      reaction,
+      scene,
+      player,
+    });
     const planKind = event.reaction?.planKind ?? reaction.reaction;
     return {
       entity: reaction.entity,
       event,
-      routineKind: `creature:${reaction.family}:${planKind}:${reaction.reaction}`,
+      routineKind: `creature:${reaction.family}:${reaction.individual.tier === 'singularity' ? 'singularity:' : ''}${planKind}:${reaction.reaction}`,
     };
   }
 
@@ -1779,6 +1794,73 @@ function sequenceSnapshot(sequence: AiActiveSequenceState): AiActiveSequenceSnap
     nextBeatAtMs: sequence.nextBeatAtMs,
     remainingBeats: sequence.remainingBeats,
   };
+}
+
+function chooseActiveCreatureRoutineReaction(reactions: readonly FamilySceneReaction[]): FamilySceneReaction | null {
+  const [top] = reactions;
+  if (!top) return null;
+  const singularity = reactions.find((reaction) =>
+    reaction.individual.tier === 'singularity' && reaction.score >= top.score - 0.18,
+  );
+  return singularity ?? top;
+}
+
+function singularityActiveRoutineEvent(input: {
+  baseEvent: AiSpeechEvent;
+  reaction: FamilySceneReaction;
+  scene: ReturnType<typeof sceneFrameFor>;
+  player: Entity;
+}): AiSpeechEvent {
+  if (input.reaction.individual.tier !== 'singularity') return input.baseEvent;
+  const planKind = singularityActivePlanKind(input.reaction, input.scene);
+  const sceneId = input.scene.subsceneId ?? input.scene.zoneId;
+  const baseValues = input.baseEvent.speech.mode === 'lineId' ? input.baseEvent.speech.values ?? {} : {};
+  return {
+    ...input.baseEvent,
+    speech: input.baseEvent.speech.mode === 'lineId'
+      ? {
+        ...input.baseEvent.speech,
+        lineId: 'hudChrome.aiSpeech.singularityRemembersScene',
+        values: {
+          ...baseValues,
+          speakerName: input.reaction.entity.name,
+          speakerTemplateId: input.reaction.entity.templateId,
+          playerName: input.player.name,
+          sceneId,
+        },
+      }
+      : input.baseEvent.speech,
+    reaction: {
+      kind: input.baseEvent.reaction?.kind ?? input.reaction.reaction,
+      ...(input.baseEvent.reaction ?? {}),
+      planKind,
+      planIntensity: Math.max(0.65, Math.round(Math.max(input.reaction.score, input.reaction.individual.intensity) * 100) / 100),
+      sceneTags: [...new Set([
+        `singularity:${planKind}`,
+        ...input.reaction.individual.traits.map((trait) => `trait:${trait}`),
+        ...(input.baseEvent.reaction?.sceneTags ?? []),
+      ])].slice(0, 8),
+      individualTier: 'singularity',
+      individualTraits: input.reaction.individual.traits,
+    },
+  };
+}
+
+function singularityActivePlanKind(
+  reaction: FamilySceneReaction,
+  scene: ReturnType<typeof sceneFrameFor>,
+): SingularityActivePlanKind {
+  const traits = reaction.individual.traits;
+  if (traits.includes('cowardly') && (reaction.reaction === 'avoid' || scene.danger.undeadPressure >= 0.2 || scene.danger.hostileDensity >= 0.35)) {
+    return 'avoidPlayer';
+  }
+  if (traits.includes('stargazer') && scene.light.tags.includes('starrySky')) return 'watchSky';
+  if (traits.includes('foodFixated')) return 'seekFood';
+  if (traits.includes('collector')) return 'collectObject';
+  if (traits.includes('territorial')) return 'protectNest';
+  if (traits.includes('omenSensitive')) return 'omenWatch';
+  if (traits.includes('vengeful')) return 'misreadPlayer';
+  return 'guardPlace';
 }
 
 function eventAwarenessEvent(
@@ -2349,7 +2431,11 @@ function activeMobActionIntentForRoutine(result: CreatureRoutineResult): AiActiv
       || planKind === 'webVigil'
       || planKind === 'graveListen'
       || planKind === 'campGrumble'
-      || planKind === 'territoryLoom') {
+      || planKind === 'territoryLoom'
+      || planKind === 'protectNest'
+      || planKind === 'misreadPlayer'
+      || planKind === 'omenWatch'
+      || planKind === 'guardPlace') {
       return 'callForHelp';
     }
     return family === 'humanoid' || family === 'kobold' || family === 'murloc' || family === 'troll' || family === 'ogre'

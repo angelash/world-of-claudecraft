@@ -1420,6 +1420,15 @@ Usage 页建议新增一个 tab 或 section：
 - 观星奇点在晴夜会主动停顿或看天。
 - 所有表现不改变掉落、XP 和任务。
 
+当前实现补充：
+
+- `creature_living_routine` 已对 singularity 个体增加主动生活 overlay。候选选择时，如果奇点个体分数接近当前最高候选，会优先让奇点发声，避免普通生态 routine 总是盖过少数特殊个体。
+- 奇点主动 routine 会输出 `singularity:*` 和 `trait:*` sceneTags，并把 reaction planKind 改成更像短期目标的 `seekFood`、`collectObject`、`protectNest`、`avoidPlayer`、`watchSky`、`omenWatch`、`misreadPlayer` 或 `guardPlace`。
+- 奇点主动发声复用已有 `hudChrome.aiSpeech.singularityRemembersScene` 本地化 lineId，补齐 `playerName`、`sceneId`、`speakerTemplateId` 和 `individualAlias`，因此简中和英文路径继续走现有本地化，不新增硬编码玩家文案。
+- 动作桥已经识别 `protectNest`、`misreadPlayer`、`omenWatch` 和 `guardPlace` 等奇点 planKind。接近型仍可通过 family routine 触发开怪，回避型触发 flee，警戒/误会/读兆型可通过服务器权威路径呼叫同伴。
+- `AiCreaturePlanKind` 类型边界补齐 `seekFood`、`protectNest` 和 `misreadPlayer`。长期记忆计划在无物件的 scene-only 重复模式中也能记录这些目标，并继续受 memory/plan TTL 和数量上限约束。
+- `tests/ai_active_triggers.test.ts` 覆盖晴夜观星奇点会主动以 `watchSky` 计划浮现，且不改变主线快照；`tests/ai_creature_memory.test.ts` 覆盖 scene-only 的找食、护巢和误认玩家计划映射。
+
 ### 螺旋 11：长记忆和全量运营收束
 
 交付：

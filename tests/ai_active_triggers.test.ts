@@ -5,6 +5,7 @@ import {
 } from '../server/ai/active_triggers';
 import { AiWorldDirectorStore } from '../server/ai/world_director';
 import type { AiJobContextV1, AiProvider } from '../server/ai/ai_types';
+import { individualProfileFor, type IndividualTrait } from '../server/ai/singularity';
 import { Sim } from '../src/sim/sim';
 import { dist2d, type SimEvent } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
@@ -95,6 +96,25 @@ function isolateNpcCandidate(sim: Sim, npcId: number): void {
     if (entity.kind !== 'npc' || entity.id === npcId) continue;
     moveEntity(sim, entity.id, target.pos.x + 80 + entity.id, target.pos.z + 80 + entity.id);
   }
+}
+
+function isolateMobCandidate(sim: Sim, mobId: number): void {
+  const target = sim.entities.get(mobId);
+  if (!target) throw new Error('missing target mob');
+  for (const entity of [...sim.entities.values()]) {
+    if (entity.kind !== 'mob' || entity.id === mobId) continue;
+    moveEntity(sim, entity.id, target.pos.x + 90 + entity.id, target.pos.z + 90 + entity.id);
+  }
+}
+
+function singularityMobByTrait(sim: Sim, trait: IndividualTrait) {
+  const entity = [...sim.entities.values()].find((candidate) => {
+    if (candidate.kind !== 'mob') return false;
+    const profile = individualProfileFor(candidate, sim.cfg.seed);
+    return profile.tier === 'singularity' && profile.traits.includes(trait);
+  });
+  if (!entity) throw new Error(`missing singularity mob with ${trait}`);
+  return entity;
 }
 
 function mainlineSnapshot(sim: Sim, pid: number): unknown {
@@ -701,10 +721,57 @@ describe('AI active trigger service', () => {
     expect(mainlineSnapshot(sim, pid)).toEqual(before);
   });
 
+  it('lets singularity creatures surface active personal goals ahead of ordinary routines', () => {
+    const { sim, pid } = makeWorld();
+    sim.time = 23 * 60;
+    const singularity = singularityMobByTrait(sim, 'stargazer');
+    isolateMobCandidate(sim, singularity.id);
+    moveEntity(sim, pid, singularity.pos.x + 1, singularity.pos.z);
+    const before = mainlineSnapshot(sim, pid);
+    const service = new AiActiveTriggerService({
+      rules: [testRule({ ruleId: 'test_singularity_living', category: 'creatureRoutine' })],
+    });
+
+    const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
+
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiThinking',
+      speakerId: singularity.id,
+      pid,
+    }));
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speakerId: singularity.id,
+      speech: expect.objectContaining({
+        mode: 'lineId',
+        lineId: 'hudChrome.aiSpeech.singularityRemembersScene',
+        values: expect.objectContaining({
+          playerName: 'Ari',
+          speakerTemplateId: singularity.templateId,
+          individualAlias: 'stargazer',
+        }),
+      }),
+      reaction: expect.objectContaining({
+        planKind: 'watchSky',
+        individualTier: 'singularity',
+        individualTraits: expect.arrayContaining(['stargazer']),
+        sceneTags: expect.arrayContaining(['singularity:watchSky', 'trait:stargazer']),
+      }),
+      source: 'local',
+      pid,
+    }));
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeRoutineFired: 1,
+      activeRoutineLastKind: expect.stringContaining('singularity:watchSky'),
+    });
+    expect(mainlineSnapshot(sim, pid)).toEqual(before);
+  });
+
   it('can apply a real server-authoritative creature flee action through the action bridge', () => {
     const { sim, pid } = makeWorld();
     const wolf = entityByTemplate(sim, 'forest_wolf');
     moveEntity(sim, wolf.id, 80, 86);
+    isolateMobCandidate(sim, wolf.id);
     moveEntity(sim, pid, 81, 86);
     const before = mainlineSnapshot(sim, pid);
     const requests: unknown[] = [];
@@ -757,6 +824,7 @@ describe('AI active trigger service', () => {
     const { sim, pid } = makeWorld();
     const wolf = entityByTemplate(sim, 'forest_wolf');
     moveEntity(sim, wolf.id, 80, 86);
+    isolateMobCandidate(sim, wolf.id);
     moveEntity(sim, pid, 81, 86);
     const service = new AiActiveTriggerService({
       rules: [testRule({ ruleId: 'test_creature_action_rejected', category: 'creatureRoutine' })],

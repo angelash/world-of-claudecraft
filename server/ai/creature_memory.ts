@@ -24,7 +24,10 @@ export type AiCreaturePlanKind =
   | 'guardPlace'
   | 'avoidPlayer'
   | 'watchSky'
-  | 'omenWatch';
+  | 'omenWatch'
+  | 'seekFood'
+  | 'protectNest'
+  | 'misreadPlayer';
 
 export interface AiCreaturePlan {
   planId: string;
@@ -301,6 +304,9 @@ function planKindFor(
   if (individual.traits.includes('cowardly') && (scene.danger.hostileDensity >= 0.25 || scene.danger.undeadPressure >= 0.25)) return 'avoidPlayer';
   if (individual.traits.includes('stargazer') && scene.light.tags.includes('starrySky')) return 'watchSky';
   if (individual.traits.includes('omenSensitive')) return 'omenWatch';
+  if (individual.traits.includes('foodFixated') && !item) return 'seekFood';
+  if (individual.traits.includes('territorial') && !item) return 'protectNest';
+  if (individual.traits.includes('vengeful') && !item) return 'misreadPlayer';
   return 'guardPlace';
 }
 
@@ -325,6 +331,9 @@ function creaturePlanAttentionTargetEntityId(plan: AiCreaturePlan): number | und
     case 'guardPlace':
     case 'avoidPlayer':
     case 'omenWatch':
+    case 'seekFood':
+    case 'protectNest':
+    case 'misreadPlayer':
       return plan.playerEntityId;
     case 'watchSky':
       return undefined;
