@@ -240,6 +240,14 @@ function activeTriggers(overrides: Partial<AiActiveTriggerAdminSnapshot> = {}): 
       activeProviderFallbacks: 1,
       activeProviderPending: 1,
       activeLastProviderLatencyMs: 923,
+      activeActionsAttempted: 3,
+      activeActionsApplied: 2,
+      activeActionsRejected: 1,
+      activeMobActionsApplied: 1,
+      activeNpcActionsApplied: 1,
+      activeLastActionKind: 'mob:flee',
+      activeLastActionResult: 'applied',
+      activeLastActionReason: '',
       activeRoutineFired: 1,
       activeRoutineLastKind: 'working',
       activeSequenceFired: 1,
@@ -588,12 +596,17 @@ describe('admin AI life layer metrics renderer', () => {
 
     expect(html).toContain('Active AI');
     expect(html).toContain('Runtime switches');
+    expect(html).toContain('Real actions');
+    expect(html).toContain('Actions applied / rejected');
+    expect(html).toContain('Last real action');
+    expect(html).toContain('mob:flee / applied');
     expect(html).toContain('Polling rules');
     expect(html).toContain('Codex preferred');
     expect(html).toContain('Mixed living world');
     expect(html).toContain('Recent active decisions');
     expect(html).toContain('Queued active events');
     expect(html).toContain('data-save-ai-active-global');
+    expect(html).toContain('data-ai-active-global-field="realActionsEnabled"');
     expect(html).toContain('data-save-ai-active-rule');
     expect(html).toContain('Scene &lt;ambient&gt;');
     expect(html).toContain('scene_ambient_awareness&lt;script&gt;');
@@ -607,6 +620,10 @@ describe('admin AI life layer metrics renderer', () => {
 
     expect(html).toContain('主动 AI');
     expect(html).toContain('运行时开关');
+    expect(html).toContain('真实动作');
+    expect(html).toContain('真实动作应用 / 拒绝');
+    expect(html).toContain('最近真实动作');
+    expect(html).toContain('mob:flee / 已应用');
     expect(html).toContain('轮询规则');
     expect(html).toContain('优先 Codex');
     expect(html).toContain('混合生活世界');

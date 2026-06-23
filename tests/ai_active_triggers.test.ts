@@ -438,6 +438,15 @@ describe('AI active trigger service', () => {
     expect(results).toEqual([
       expect.objectContaining({ ok: true, kind: 'shortMove', affectedEntityIds: [npcId] }),
     ]);
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeActionsAttempted: 1,
+      activeActionsApplied: 1,
+      activeActionsRejected: 0,
+      activeNpcActionsApplied: 1,
+      activeLastActionKind: 'npc:shortMove',
+      activeLastActionResult: 'applied',
+      activeLastActionReason: '',
+    });
     expect(npc.aiActiveMoveTarget).not.toBeNull();
 
     for (let i = 0; i < 40; i++) sim.tick();
@@ -570,7 +579,49 @@ describe('AI active trigger service', () => {
     expect(wolf.aggroTargetId).toBe(pid);
     expect(wolf.inCombat).toBe(true);
     expect(wolf.fleeTimer).toBeGreaterThan(0);
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeActionsAttempted: 1,
+      activeActionsApplied: 1,
+      activeActionsRejected: 0,
+      activeMobActionsApplied: 1,
+      activeLastActionKind: 'mob:flee',
+      activeLastActionResult: 'applied',
+      activeLastActionReason: '',
+    });
     expect(mainlineSnapshot(sim, pid)).toEqual(before);
+  });
+
+  it('records rejected real creature actions for admin diagnostics', () => {
+    const { sim, pid } = makeWorld();
+    const wolf = entityByTemplate(sim, 'forest_wolf');
+    moveEntity(sim, wolf.id, 80, 86);
+    moveEntity(sim, pid, 81, 86);
+    const service = new AiActiveTriggerService({
+      rules: [testRule({ ruleId: 'test_creature_action_rejected', category: 'creatureRoutine' })],
+    });
+
+    const events = service.tick({
+      sim,
+      sessions: [{ pid }],
+      nowMs: 1_000,
+      applyAction: (request) => ({
+        ok: false,
+        intent: request.intent,
+        reason: 'state_blocked',
+        affectedEntityIds: [],
+      }),
+    });
+
+    expect(events).toContainEqual(expect.objectContaining({ type: 'aiSpeech', speakerId: wolf.id }));
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeActionsAttempted: 1,
+      activeActionsApplied: 0,
+      activeActionsRejected: 1,
+      activeMobActionsApplied: 0,
+      activeLastActionKind: 'mob:flee',
+      activeLastActionResult: 'rejected',
+      activeLastActionReason: 'state_blocked',
+    });
   });
 
   it('lets owned companions react to death-pressure scenes before wild creatures', () => {

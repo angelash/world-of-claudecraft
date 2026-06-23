@@ -105,6 +105,14 @@ export interface AiActiveTriggerMetricsSnapshot {
   activeProviderPending: number;
   activeLastProviderLatencyMs: number;
   activeLastProviderTimings?: AiProviderTimingSnapshot;
+  activeActionsAttempted: number;
+  activeActionsApplied: number;
+  activeActionsRejected: number;
+  activeMobActionsApplied: number;
+  activeNpcActionsApplied: number;
+  activeLastActionKind: string;
+  activeLastActionResult: '' | 'applied' | 'rejected';
+  activeLastActionReason: string;
   activeRoutineFired: number;
   activeRoutineLastKind: string;
   activeSequenceFired: number;
@@ -406,6 +414,14 @@ export class AiActiveTriggerService {
     activeProviderFallbacks: 0,
     activeProviderPending: 0,
     activeLastProviderLatencyMs: 0,
+    activeActionsAttempted: 0,
+    activeActionsApplied: 0,
+    activeActionsRejected: 0,
+    activeMobActionsApplied: 0,
+    activeNpcActionsApplied: 0,
+    activeLastActionKind: '',
+    activeLastActionResult: '',
+    activeLastActionReason: '',
     activeRoutineFired: 0,
     activeRoutineLastKind: '',
     activeSequenceFired: 0,
@@ -795,7 +811,7 @@ export class AiActiveTriggerService {
     const relation = routineKind === 'sleeping' ? 'awayFromPlayer' : 'sideStep';
     const distance = routineKind === 'shelter' ? 2.4 : routineKind === 'sleeping' ? 1.2 : 1.6;
     const durationSeconds = routineKind === 'sleeping' ? 14 : routineKind === 'shelter' ? 12 : 8;
-    return applyNpcAction({
+    const result = applyNpcAction({
       kind: 'shortMove',
       npcId: npc.id,
       playerId: player.id,
@@ -805,6 +821,8 @@ export class AiActiveTriggerService {
       maxDistanceFromHome: npc.questIds.length > 0 || npc.vendorItems.length > 0 ? 3 : 6,
       maxPlayerDistance: CANDIDATE_RADIUS,
     });
+    this.recordActionResult(`npc:${result.kind}`, result);
+    return result;
   }
 
   private tryStartProviderNpcBeat(input: {
@@ -967,13 +985,32 @@ export class AiActiveTriggerService {
     if (!this.realActionsEnabled || !applyAction) return null;
     const intent = activeMobActionIntentForRoutine(result);
     if (!intent) return null;
-    return applyAction({
+    const actionResult = applyAction({
       intent,
       mobId: result.entity.id,
       playerId: player.id,
       maxDistance: CANDIDATE_RADIUS,
       social: intent !== 'flee',
     });
+    this.recordActionResult(`mob:${actionResult.intent}`, actionResult);
+    return actionResult;
+  }
+
+  private recordActionResult(
+    kind: string,
+    result: AiActiveMobActionResult | AiActiveNpcActionResult,
+  ): void {
+    this.metrics.activeActionsAttempted++;
+    this.metrics.activeLastActionKind = kind;
+    this.metrics.activeLastActionResult = result.ok ? 'applied' : 'rejected';
+    this.metrics.activeLastActionReason = result.ok ? '' : result.reason ?? 'unknown';
+    if (result.ok) {
+      this.metrics.activeActionsApplied++;
+      if (kind.startsWith('mob:')) this.metrics.activeMobActionsApplied++;
+      if (kind.startsWith('npc:')) this.metrics.activeNpcActionsApplied++;
+    } else {
+      this.metrics.activeActionsRejected++;
+    }
   }
 
   private bestCreatureRoutineEvent(

@@ -4,6 +4,7 @@ import type {
   AccountDetail, AccountRow, CharacterRow, ChatFilterData, ChatModeratedAccount,
   ChatModerationDetail, FilterWord, LivePlayer, ModerationAccountDetail, ModerationQueueRow,
   AiActivePollRule, AiActiveTriggerAdminSnapshot, AiActiveTriggerDecisionSnapshot,
+  AiActiveTriggerMetricsSnapshot,
   AiActiveQueuedEventSnapshot, AiAuditEventSummary, AiAuditPlayerAction, AiAuditRecord, AiAuditSnapshot,
   AiContentCoverageReport, AiDecisionJournalEntry, AiLifeLayerDiagnosticsSnapshot, AiNpcMemory, AiRumorMemory,
   AiLifeLayerMetricsSnapshot, AiProfileAuthoringIssue, AiProfileAuthoringValidationReport,
@@ -1432,6 +1433,21 @@ function renderAiActiveQueuedEvent(event: AiActiveQueuedEventSnapshot): string {
   </tr>`;
 }
 
+function renderAiActiveLastAction(metrics: AiActiveTriggerMetricsSnapshot): string {
+  if (!metrics.activeLastActionKind || !metrics.activeLastActionResult) {
+    return escapeHtml(t('usage.aiActiveActionNone'));
+  }
+  const resultKey = metrics.activeLastActionResult === 'applied'
+    ? 'usage.aiActiveActionApplied'
+    : 'usage.aiActiveActionRejected';
+  const parts = [
+    metrics.activeLastActionKind,
+    t(resultKey),
+    metrics.activeLastActionReason,
+  ].filter(Boolean);
+  return escapeHtml(parts.join(' / '));
+}
+
 function renderAiActiveTriggerControls(active?: AiActiveTriggerAdminSnapshot): string {
   if (!active) return `<div class="empty">${t('usage.aiActiveNoData')}</div>`;
   const { diagnostics, metrics } = active;
@@ -1469,6 +1485,14 @@ function renderAiActiveTriggerControls(active?: AiActiveTriggerAdminSnapshot): s
         <div class="ai-health-value">${renderAiLatency(metrics.activeLastProviderLatencyMs)}</div>
         <div class="ai-health-label">${t('usage.aiActiveLastLatency')}</div>
       </div>
+      <div class="ai-health-cell">
+        <div class="ai-health-value">${renderAiNumber(metrics.activeActionsApplied)} / ${renderAiNumber(metrics.activeActionsRejected)}</div>
+        <div class="ai-health-label">${t('usage.aiActiveActionsAppliedRejected')}</div>
+      </div>
+      <div class="ai-health-cell">
+        <div class="ai-health-value">${renderAiActiveLastAction(metrics)}</div>
+        <div class="ai-health-label">${t('usage.aiActiveLastAction')}</div>
+      </div>
     </div>
     <div class="usage-section">
       <h4>${t('usage.aiActiveGlobalTitle')}</h4>
@@ -1476,6 +1500,7 @@ function renderAiActiveTriggerControls(active?: AiActiveTriggerAdminSnapshot): s
         <label><input type="checkbox" data-ai-active-global-field="enabled"${diagnostics.enabled ? ' checked' : ''}> ${t('usage.aiActiveGlobalEnabled')}</label>
         <label><input type="checkbox" data-ai-active-global-field="eventsEnabled"${diagnostics.eventsEnabled ? ' checked' : ''}> ${t('usage.aiActiveGlobalEvents')}</label>
         <label><input type="checkbox" data-ai-active-global-field="pollsEnabled"${diagnostics.pollsEnabled ? ' checked' : ''}> ${t('usage.aiActiveGlobalPolls')}</label>
+        <label><input type="checkbox" data-ai-active-global-field="realActionsEnabled"${diagnostics.realActionsEnabled ? ' checked' : ''}> ${t('usage.aiActiveGlobalRealActions')}</label>
         <button type="button" data-save-ai-active-global>${t('usage.aiActiveSaveGlobal')}</button>
       </div>
       <div class="hint">${escapeHtml(t('usage.aiActiveGlobalHint'))}</div>

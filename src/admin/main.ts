@@ -354,6 +354,7 @@ async function saveAiActiveGlobal(): Promise<void> {
       enabled: activeCheckbox(root, 'enabled'),
       eventsEnabled: activeCheckbox(root, 'eventsEnabled'),
       pollsEnabled: activeCheckbox(root, 'pollsEnabled'),
+      realActionsEnabled: activeCheckbox(root, 'realActionsEnabled'),
     });
     await refreshLive();
     window.alert(t('usage.aiActiveSaveSuccess'));

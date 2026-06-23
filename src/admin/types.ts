@@ -434,6 +434,14 @@ export interface AiActiveTriggerMetricsSnapshot {
   activeProviderPending: number;
   activeLastProviderLatencyMs: number;
   activeLastProviderTimings?: AiProviderTimingSnapshot;
+  activeActionsAttempted: number;
+  activeActionsApplied: number;
+  activeActionsRejected: number;
+  activeMobActionsApplied: number;
+  activeNpcActionsApplied: number;
+  activeLastActionKind: string;
+  activeLastActionResult: '' | 'applied' | 'rejected';
+  activeLastActionReason: string;
   activeRoutineFired: number;
   activeRoutineLastKind: string;
   activeSequenceFired: number;
