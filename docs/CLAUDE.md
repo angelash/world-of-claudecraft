@@ -55,6 +55,7 @@ PRDs say so explicitly) and note the deviation.
 | `talents-and-specializations.md` | Talents/specs flagship milestone (one-class slice first, then 9 classes). |
 | `max-level-xp-overflow.md` | Post-cap XP overflow / prestige progression. |
 | `ai-audit-center.zh_CN.md` | Chinese PRD for AI Audit Center requirements, gaps, acceptance criteria, usage frequency, and token telemetry. |
+| `ai-social-sequences.zh_CN.md` | Chinese PRD card for paced AI social-sequence dialogue, participant context, and mixed dynamic/local tail behavior. |
 | `build-prompts.md` | Two self-contained prompts that drive end-to-end PRD implementation (used with `/gsd:*`). |
 
 ## screenshots/

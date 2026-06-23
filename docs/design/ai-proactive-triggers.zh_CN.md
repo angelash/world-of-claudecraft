@@ -1362,6 +1362,10 @@ Usage 页建议新增一个 tab 或 section：
 - 怪物生态序列复用服务器权威动作桥。鱼人、狗头人、人形、巨魔、食人魔等类群可以从序列中触发开怪或呼救，野兽等胆怯反应可以触发逃跑。动作仍受距离、战斗、等级、精英/稀有/首领保护和任务安全边界限制。
 - 序列 beat 会携带 `sequence:*`、`family:*`、`planKind` 和 `targetEntityId`，HUD 和审计能看出它不是孤立气泡，而是一段正在发生的群体行为。
 - 进行中的延迟序列已经进入 admin 主动 AI 页签。后台能看到 sequenceId、rule、玩家、说话对象、场景、剩余 beat、下一拍时间和首条 lineId，并可一键取消尚未发给玩家的延迟 beat。
+- 主动社交序列的 provider 路径已从“只替换开场一句”扩展为“可替换整段前半段节拍”。当 Codex 返回 2 到 3 条 `dynamicText` 时，调度器会按原本的 paced beat 把这些句子重新分发给不同参与者，而不是把所有句子挂在同一个说话者身上。
+- `AiJobContextV1` 现已为社交序列补充结构化 `sequenceParticipants`，prompt 里同时带有人类可读 roster 和 compact JSON roster。Codex 在生成连续对话时不再只靠 `partnerName` 猜测对象，而能直接知道第 0、1、2 位参与者各是谁。
+- validator 和 worker 现已把“多句动态文本”严格收口在 `sequence:social` 上下文：普通主动事件仍最多一条 speech，只有社交序列上下文才允许 2 到 3 条 speech，避免世界里其他主动反应突然刷屏。
+- 当 provider 只返回前 2 句而现场原本有第 3 个 beat 时，调度器会保留剩余本地 `lineId` thinking/speech 尾拍，而不是截断整段行为。这样动态开场和作者写死的 follow-up 可以混合播放，世界感不断拍。
 
 ### 螺旋 8：动态文本大规模口语体验
 
@@ -1377,6 +1381,12 @@ Usage 页建议新增一个 tab 或 section：
 - 饭点、星空、墓地、沼泽雾、铁匠铺、市场、营地、蛛网、鱼人浅滩和元素风暴都能出现不僵硬的动态短句。
 - 简中环境不回退英文，英文环境不混入中文。
 - 动态文本不泄露隐藏任务事实，不承诺奖励。
+
+当前实现补充：
+
+- `server/ai/prompt_builder.ts` 已针对 `sequence:social` 上下文改为显式提示“这是 paced social sequence”，允许返回 2 到 3 条 speech，并规定 `speech[0]`、`speech[1]`、`speech[2]` 的参与者顺序，减少模型把整段对话说成一个人自言自语的概率。
+- `server/ai/codex_worker.ts` 的结构化输出 schema 已把 speech 上限放宽到 3，但本地解析器仍做硬上限校验；`server/ai/intent_validator.ts` 再按上下文二次守门，只允许社交序列上下文真正消费多句 speech。
+- `tests/ai_codex_worker.test.ts`、`tests/ai_intent_validator.test.ts`、`tests/ai_active_triggers.test.ts` 已覆盖多句 speech 解析、上下文守门、参与者 roster、paced delivery，以及 provider 只回半段时保留本地尾拍的混合播放路径。
 
 ### 螺旋 9：世界导演主动执行
 
