@@ -1,5 +1,6 @@
 import type { Pool } from 'pg';
-import type { AiMemoryAuditRecord, AiMemoryAuditScope } from './ai/ai_types';
+import type { AiMemoryBudgetEnforcementResult, AiMemoryBudgetPolicy } from './ai/life_layer';
+import type { AiMemoryAuditKind, AiMemoryAuditRecord, AiMemoryAuditScope } from './ai/ai_types';
 import { REALM } from './realm';
 
 const REALM_SQL_DEFAULT = REALM.replace(/'/g, "''");
@@ -37,6 +38,8 @@ CREATE INDEX IF NOT EXISTS ai_memory_records_player_zone
   ON ai_memory_records (realm, source_player_entity_id, zone_id, scope, sim_expires_at DESC);
 CREATE INDEX IF NOT EXISTS ai_memory_records_template
   ON ai_memory_records (realm, kind, template_id, sim_expires_at DESC);
+CREATE INDEX IF NOT EXISTS ai_memory_records_budget_rank
+  ON ai_memory_records (realm, kind, source_player_entity_id, salience DESC, sim_created_at DESC, updated_at DESC);
 `;
 
 export interface AiMemoryDbQuery {
@@ -160,6 +163,93 @@ export class PgAiMemoryDb {
     return res.rowCount ?? 0;
   }
 
+  async enforceBudget(policy: AiMemoryBudgetPolicy): Promise<AiMemoryBudgetEnforcementResult> {
+    const budget = normalizeMemoryBudgetPolicy(policy);
+    const deletedByTotal = await this.deleteOverTotalBudget(budget.maxTotalRecords, budget.batchSize);
+    const deletedByPlayer = await this.deleteOverPlayerBudget(budget.maxRecordsPerPlayer, budget.batchSize);
+    const deletedByKind: Partial<Record<AiMemoryAuditKind, number>> = {};
+    let deletedKinds = 0;
+    for (const [kind, maxRecords] of Object.entries(budget.maxRecordsPerKind) as Array<[AiMemoryAuditKind, number]>) {
+      const deleted = await this.deleteOverKindBudget(kind, maxRecords, Math.max(1, budget.batchSize - deletedKinds));
+      if (deleted > 0) deletedByKind[kind] = deleted;
+      deletedKinds += deleted;
+      if (deletedKinds >= budget.batchSize) break;
+    }
+    const totalDeleted = deletedByTotal + deletedByPlayer + deletedKinds;
+    return { totalDeleted, deletedByTotal, deletedByPlayer, deletedByKind, budget };
+  }
+
+  private async deleteOverTotalBudget(maxRecords: number, batchSize: number): Promise<number> {
+    const res = await this.db.query(
+      `WITH ranked AS (
+         SELECT id,
+                row_number() OVER (
+                  ORDER BY salience DESC, COALESCE(sim_created_at, 0) DESC, updated_at DESC, id DESC
+                ) AS memory_rank
+           FROM ai_memory_records
+          WHERE realm = $1
+       ), doomed AS (
+         SELECT id
+           FROM ranked
+          WHERE memory_rank > $2
+          ORDER BY memory_rank DESC
+          LIMIT $3
+       )
+       DELETE FROM ai_memory_records
+        WHERE id IN (SELECT id FROM doomed)`,
+      [REALM, maxRecords, batchSize],
+    );
+    return res.rowCount ?? 0;
+  }
+
+  private async deleteOverPlayerBudget(maxRecordsPerPlayer: number, batchSize: number): Promise<number> {
+    const res = await this.db.query(
+      `WITH ranked AS (
+         SELECT id,
+                row_number() OVER (
+                  PARTITION BY source_player_entity_id
+                  ORDER BY salience DESC, COALESCE(sim_created_at, 0) DESC, updated_at DESC, id DESC
+                ) AS memory_rank
+           FROM ai_memory_records
+          WHERE realm = $1
+       ), doomed AS (
+         SELECT id
+           FROM ranked
+          WHERE memory_rank > $2
+          ORDER BY memory_rank DESC
+          LIMIT $3
+       )
+       DELETE FROM ai_memory_records
+        WHERE id IN (SELECT id FROM doomed)`,
+      [REALM, maxRecordsPerPlayer, batchSize],
+    );
+    return res.rowCount ?? 0;
+  }
+
+  private async deleteOverKindBudget(kind: AiMemoryAuditKind, maxRecords: number, batchSize: number): Promise<number> {
+    const res = await this.db.query(
+      `WITH ranked AS (
+         SELECT id,
+                row_number() OVER (
+                  ORDER BY salience DESC, COALESCE(sim_created_at, 0) DESC, updated_at DESC, id DESC
+                ) AS memory_rank
+           FROM ai_memory_records
+          WHERE realm = $1
+            AND kind = $2
+       ), doomed AS (
+         SELECT id
+           FROM ranked
+          WHERE memory_rank > $3
+          ORDER BY memory_rank DESC
+          LIMIT $4
+       )
+       DELETE FROM ai_memory_records
+        WHERE id IN (SELECT id FROM doomed)`,
+      [REALM, kind, maxRecords, batchSize],
+    );
+    return res.rowCount ?? 0;
+  }
+
   async clearRecords(): Promise<number> {
     const res = await this.db.query(
       `DELETE FROM ai_memory_records
@@ -228,4 +318,19 @@ function isMemoryScope(value: string): value is AiMemoryAuditScope {
 
 function isSubjectKind(value: string): value is NonNullable<AiMemoryAuditRecord['subjectKind']> {
   return value === 'item' || value === 'quest' || value === 'encounter';
+}
+
+function normalizeMemoryBudgetPolicy(policy: AiMemoryBudgetPolicy): AiMemoryBudgetPolicy {
+  const maxTotalRecords = positiveInt(policy.maxTotalRecords, 1);
+  const maxRecordsPerPlayer = Math.min(maxTotalRecords, positiveInt(policy.maxRecordsPerPlayer, maxTotalRecords));
+  const batchSize = positiveInt(policy.batchSize, 1);
+  const maxRecordsPerKind: Partial<Record<AiMemoryAuditKind, number>> = {};
+  for (const [kind, value] of Object.entries(policy.maxRecordsPerKind) as Array<[AiMemoryAuditKind, number]>) {
+    if (isMemoryKind(kind)) maxRecordsPerKind[kind] = Math.min(maxTotalRecords, positiveInt(value, maxTotalRecords));
+  }
+  return { maxTotalRecords, maxRecordsPerPlayer, maxRecordsPerKind, batchSize };
+}
+
+function positiveInt(value: number, fallback: number): number {
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
 }

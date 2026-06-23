@@ -3,8 +3,9 @@ import { Sim } from '../src/sim/sim';
 import { groundHeight } from '../src/sim/world';
 import type { AiDecisionV1, AiJobContextV1, AiMemoryAuditRecord } from '../server/ai/ai_types';
 import { cloneMemoryAudit } from '../server/ai/memory_audit';
-import { AiLifeLayer, type AiMemoryPersistence, type AiMemoryPersistenceQuery } from '../server/ai/life_layer';
+import { AiLifeLayer, type AiMemoryBudgetEnforcementResult, type AiMemoryBudgetPolicy, type AiMemoryPersistence, type AiMemoryPersistenceQuery } from '../server/ai/life_layer';
 import type { AiProvider } from '../server/ai/ai_types';
+import { PgAiMemoryDb } from '../server/ai_memory_db';
 
 class FakeMemoryDb implements AiMemoryPersistence {
   saved: AiMemoryAuditRecord[][] = [];
@@ -12,13 +13,18 @@ class FakeMemoryDb implements AiMemoryPersistence {
   loadCalls: AiMemoryPersistenceQuery[] = [];
   failSave = false;
   failPrune = false;
+  failBudget = false;
   failClear = false;
   pruneCount = 0;
   pruneCalls: { nowSeconds: number; batchSize?: number }[] = [];
+  budgetCount = 0;
+  budgetCalls: AiMemoryBudgetPolicy[] = [];
   clearCount = 0;
   clearCalls = 0;
   private blockPrune = false;
+  private blockBudget = false;
   private pruneResolvers: (() => void)[] = [];
+  private budgetResolvers: (() => void)[] = [];
 
   async saveRecords(records: readonly AiMemoryAuditRecord[]): Promise<void> {
     if (this.failSave) throw new Error('memory db offline');
@@ -54,6 +60,24 @@ class FakeMemoryDb implements AiMemoryPersistence {
     return this.pruneCount;
   }
 
+  async enforceBudget(policy: AiMemoryBudgetPolicy): Promise<AiMemoryBudgetEnforcementResult> {
+    this.budgetCalls.push({
+      ...policy,
+      maxRecordsPerKind: { ...policy.maxRecordsPerKind },
+    });
+    if (this.blockBudget) {
+      await new Promise<void>((resolve) => this.budgetResolvers.push(resolve));
+    }
+    if (this.failBudget) throw new Error('memory budget offline');
+    return {
+      totalDeleted: this.budgetCount,
+      deletedByTotal: Math.floor(this.budgetCount / 2),
+      deletedByPlayer: this.budgetCount - Math.floor(this.budgetCount / 2),
+      deletedByKind: this.budgetCount > 0 ? { rumor: 1 } : {},
+      budget: policy,
+    };
+  }
+
   async clearRecords(): Promise<number> {
     this.clearCalls++;
     if (this.failClear) throw new Error('memory clear offline');
@@ -69,6 +93,15 @@ class FakeMemoryDb implements AiMemoryPersistence {
   releasePrune(): void {
     this.blockPrune = false;
     this.pruneResolvers.splice(0).forEach((resolve) => resolve());
+  }
+
+  holdBudget(): void {
+    this.blockBudget = true;
+  }
+
+  releaseBudget(): void {
+    this.blockBudget = false;
+    this.budgetResolvers.splice(0).forEach((resolve) => resolve());
   }
 }
 
@@ -372,6 +405,74 @@ describe('AI memory persistence integration', () => {
     });
   });
 
+  it('enforces persisted memory budgets with diagnostics and large default caps', async () => {
+    const db = new FakeMemoryDb();
+    db.budgetCount = 11;
+    const layer = new AiLifeLayer({ enabled: true, memoryDb: db });
+
+    await expect(layer.enforceMemoryBudget()).resolves.toMatchObject({
+      totalDeleted: 11,
+      deletedByKind: { rumor: 1 },
+      budget: {
+        maxTotalRecords: 250_000,
+        maxRecordsPerPlayer: 20_000,
+        batchSize: 2_000,
+      },
+    });
+
+    expect(db.budgetCalls).toHaveLength(1);
+    expect(db.budgetCalls[0].maxRecordsPerKind).toMatchObject({
+      rumor: 55_000,
+      worldTrace: 45_000,
+      creatureMemory: 45_000,
+    });
+    expect(layer.memoryPersistenceDiagnostics()).toMatchObject({
+      budgeting: false,
+      lastBudgetDeleted: 11,
+      budget: {
+        maxTotalRecords: 250_000,
+        maxRecordsPerPlayer: 20_000,
+      },
+      errors: [],
+    });
+    expect(layer.runtimeMetrics()).toMatchObject({
+      memoryBudgetRuns: 1,
+      memoryBudgetDeleted: 11,
+      memoryBudgetFailures: 0,
+      lastMemoryBudgetDeleted: 11,
+    });
+  });
+
+  it('coalesces overlapping memory budget enforcement attempts', async () => {
+    const db = new FakeMemoryDb();
+    db.budgetCount = 5;
+    db.holdBudget();
+    const layer = new AiLifeLayer({
+      enabled: true,
+      memoryDb: db,
+      memoryBudget: { maxTotalRecords: 1_500, maxRecordsPerPlayer: 600, batchSize: 100 },
+    });
+
+    const first = layer.enforceMemoryBudget();
+    const second = layer.enforceMemoryBudget();
+    await Promise.resolve();
+
+    expect(db.budgetCalls).toHaveLength(1);
+    expect(layer.memoryPersistenceDiagnostics()).toMatchObject({ budgeting: true });
+
+    db.releaseBudget();
+    await expect(first).resolves.toMatchObject({ totalDeleted: 5 });
+    await expect(second).resolves.toMatchObject({ totalDeleted: 5 });
+
+    expect(db.budgetCalls).toHaveLength(1);
+    expect(layer.memoryPersistenceDiagnostics()).toMatchObject({ budgeting: false });
+    expect(layer.runtimeMetrics()).toMatchObject({
+      memoryBudgetRuns: 1,
+      memoryBudgetDeleted: 5,
+      memoryBudgetFailures: 0,
+    });
+  });
+
   it('clears volatile overlays and persisted audit records as one admin memory operation', async () => {
     const { sim, pid, wolfId } = makeSim();
     teleportNear(sim, pid, wolfId);
@@ -447,6 +548,25 @@ describe('AI memory persistence integration', () => {
     expect(layer.runtimeMetrics()).toMatchObject({
       lastMemoryPersistenceError: 'memory clear offline',
     });
+    expect(layer.runtimeMetrics().memoryPruneFailures).toBe(0);
+  });
+
+  it('records memory budget failures separately from expired-record pruning', async () => {
+    const db = new FakeMemoryDb();
+    db.failBudget = true;
+    const layer = new AiLifeLayer({ enabled: true, memoryDb: db });
+
+    await expect(layer.enforceMemoryBudget()).resolves.toMatchObject({ totalDeleted: 0 });
+
+    expect(layer.memoryPersistenceDiagnostics().errors[0]).toBe('memory budget offline');
+    expect(layer.runtimeMetrics()).toMatchObject({
+      memoryBudgetRuns: 0,
+      memoryBudgetDeleted: 0,
+      memoryBudgetFailures: 1,
+      lastMemoryBudgetError: 'memory budget offline',
+      lastMemoryPersistenceError: 'memory budget offline',
+      memoryPruneFailures: 0,
+    });
   });
 
   it('records prune failures without throwing or dropping queued writes', async () => {
@@ -475,5 +595,35 @@ describe('AI memory persistence integration', () => {
       lastMemoryPersistenceError: 'memory db offline',
     });
     expect(metrics.memoryFlushFailures).toBeGreaterThanOrEqual(1);
+  });
+
+  it('enforces persisted memory budget limits through bounded PG deletes', async () => {
+    const calls: Array<{ sql: string; values: readonly unknown[] | undefined }> = [];
+    const db = new PgAiMemoryDb({
+      async query(sql: string, values?: readonly unknown[]) {
+        calls.push({ sql, values });
+        return { rows: [], rowCount: 1 };
+      },
+    });
+
+    await expect(db.enforceBudget({
+      maxTotalRecords: 3,
+      maxRecordsPerPlayer: 2,
+      maxRecordsPerKind: { rumor: 1, worldTrace: 1 },
+      batchSize: 5,
+    })).resolves.toMatchObject({
+      totalDeleted: 4,
+      deletedByTotal: 1,
+      deletedByPlayer: 1,
+      deletedByKind: { rumor: 1, worldTrace: 1 },
+    });
+
+    expect(calls).toHaveLength(4);
+    expect(calls[0].sql).toContain('row_number() OVER');
+    expect(calls[0].values?.slice(1)).toEqual([3, 5]);
+    expect(calls[1].sql).toContain('PARTITION BY source_player_entity_id');
+    expect(calls[1].values?.slice(1)).toEqual([2, 5]);
+    expect(calls[2].values?.slice(1)).toEqual(['rumor', 1, 5]);
+    expect(calls[3].values?.slice(1)).toEqual(['worldTrace', 1, 4]);
   });
 });

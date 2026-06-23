@@ -1068,9 +1068,19 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
   const pruningLabel = diagnostics.memoryPersistence.pruning
     ? t('usage.aiMemoryPruningYes')
     : t('usage.aiMemoryPruningNo');
+  const budgetingLabel = diagnostics.memoryPersistence.budgeting
+    ? t('usage.aiMemoryBudgetingYes')
+    : t('usage.aiMemoryBudgetingNo');
   const flushingClass = diagnostics.memoryPersistence.flushing ? ' warn' : '';
   const pruningClass = diagnostics.memoryPersistence.pruning ? ' warn' : '';
+  const budgetingClass = diagnostics.memoryPersistence.budgeting ? ' warn' : '';
   const errorClass = persistenceErrors.length > 0 ? ' warn' : '';
+  const memoryBudget = diagnostics.memoryPersistence.budget ?? {
+    maxTotalRecords: 0,
+    maxRecordsPerPlayer: 0,
+    maxRecordsPerKind: {},
+    batchSize: 0,
+  };
 
   const decisionRows = recentDecisions.length === 0
     ? `<tr><td colspan="9" class="empty">${t('usage.aiDiagnosticsNoDecisions')}</td></tr>`
@@ -1124,8 +1134,24 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
           <div class="ai-health-label">${t('usage.aiDiagnosticsMemoryPrune')}</div>
         </div>
         <div class="ai-health-cell">
+          <div class="ai-health-value"><span class="badge${budgetingClass}">${escapeHtml(budgetingLabel)}</span></div>
+          <div class="ai-health-label">${t('usage.aiDiagnosticsMemoryBudget')}</div>
+        </div>
+        <div class="ai-health-cell">
           <div class="ai-health-value">${renderAiNumber(diagnostics.memoryPersistence.lastPruneDeleted)}</div>
           <div class="ai-health-label">${t('usage.aiDiagnosticsLastPruneDeleted')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(diagnostics.memoryPersistence.lastBudgetDeleted)}</div>
+          <div class="ai-health-label">${t('usage.aiDiagnosticsLastBudgetDeleted')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(memoryBudget.maxTotalRecords)}</div>
+          <div class="ai-health-label">${t('usage.aiDiagnosticsBudgetTotal')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(memoryBudget.maxRecordsPerPlayer)}</div>
+          <div class="ai-health-label">${t('usage.aiDiagnosticsBudgetPerPlayer')}</div>
         </div>
         <div class="ai-health-cell">
           <div class="ai-health-value"><span class="badge${errorClass}">${renderAiNumber(persistenceErrors.length)}</span></div>
@@ -1518,7 +1544,7 @@ export function renderAiLifeLayerMetrics(
   selectedAuditId: string | null = null,
 ): string {
   const selectedTab = normalizeAiTab(activeTab);
-  const needsAttention = ai.providerErrors > 0 || ai.memoryFlushFailures > 0 || ai.memoryPruneFailures > 0;
+  const needsAttention = ai.providerErrors > 0 || ai.memoryFlushFailures > 0 || ai.memoryPruneFailures > 0 || ai.memoryBudgetFailures > 0;
   const statusKey = needsAttention ? 'usage.aiStatusAttention' : 'usage.aiStatusHealthy';
   const statusClass = needsAttention ? ' warn' : '';
   const rows = [
@@ -1535,6 +1561,9 @@ export function renderAiLifeLayerMetrics(
     aiMetricRow('usage.aiMemoryPruneRuns', renderAiNumber(ai.memoryPruneRuns)),
     aiMetricRow('usage.aiMemoryPruneDeleted', renderAiNumber(ai.memoryPruneDeleted)),
     aiMetricRow('usage.aiMemoryPruneFailures', renderAiNumber(ai.memoryPruneFailures)),
+    aiMetricRow('usage.aiMemoryBudgetRuns', renderAiNumber(ai.memoryBudgetRuns)),
+    aiMetricRow('usage.aiMemoryBudgetDeleted', renderAiNumber(ai.memoryBudgetDeleted)),
+    aiMetricRow('usage.aiMemoryBudgetFailures', renderAiNumber(ai.memoryBudgetFailures)),
     aiMetricRow('usage.aiAverageLatency', renderAiLatency(ai.averageProviderLatencyMs)),
     aiMetricRow('usage.aiMaxLatency', renderAiLatency(ai.maxProviderLatencyMs)),
     aiMetricRow('usage.aiLastLatency', renderAiLatency(ai.lastProviderLatencyMs)),
@@ -1548,6 +1577,7 @@ export function renderAiLifeLayerMetrics(
     aiMetricRow('usage.aiLastProviderError', renderAiOptionalText(ai.lastProviderError)),
     aiMetricRow('usage.aiLastMemoryError', renderAiOptionalText(ai.lastMemoryPersistenceError)),
     aiMetricRow('usage.aiLastMemoryPruneError', renderAiOptionalText(ai.lastMemoryPruneError)),
+    aiMetricRow('usage.aiLastMemoryBudgetError', renderAiOptionalText(ai.lastMemoryBudgetError)),
   ].join('');
 
   const panels: Record<AiLifeLayerTab, string> = {

@@ -595,6 +595,7 @@ export class GameServer {
 
   private async pruneExpiredAiMemory(): Promise<void> {
     await this.aiLifeLayer.pruneExpiredMemory(this.sim.time, AI_MEMORY_PRUNE_BATCH_SIZE);
+    await this.aiLifeLayer.enforceMemoryBudget();
   }
 
   private runAiActiveTriggers(nowMs = Date.now()): void {

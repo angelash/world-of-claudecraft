@@ -16,6 +16,7 @@ import { REALM } from '../realm';
 import type {
   AiDecisionV1,
   AiJobContextV1,
+  AiMemoryAuditKind,
   AiMemoryAuditRecord,
   AiOutputMode,
   AiProvider,
@@ -78,6 +79,7 @@ export interface AiLifeLayerOptions {
   journalSize?: number;
   memoryDb?: AiMemoryPersistence;
   memoryPersistBatchSize?: number;
+  memoryBudget?: Partial<AiMemoryBudgetPolicy>;
   auditSink?: AiAuditSink;
   auditProviderSource?: Exclude<AiAuditProviderSource, 'fallback' | 'local'>;
   providerCacheEnabled?: boolean;
@@ -98,7 +100,23 @@ export interface AiMemoryPersistence {
   saveRecords(records: readonly AiMemoryAuditRecord[]): Promise<void>;
   loadRecords?(query: AiMemoryPersistenceQuery): Promise<AiMemoryAuditRecord[]>;
   pruneExpired?(nowSeconds: number, batchSize?: number): Promise<number>;
+  enforceBudget?(policy: AiMemoryBudgetPolicy): Promise<AiMemoryBudgetEnforcementResult>;
   clearRecords?(): Promise<number>;
+}
+
+export interface AiMemoryBudgetPolicy {
+  maxTotalRecords: number;
+  maxRecordsPerPlayer: number;
+  maxRecordsPerKind: Partial<Record<AiMemoryAuditKind, number>>;
+  batchSize: number;
+}
+
+export interface AiMemoryBudgetEnforcementResult {
+  totalDeleted: number;
+  deletedByTotal: number;
+  deletedByPlayer: number;
+  deletedByKind: Partial<Record<AiMemoryAuditKind, number>>;
+  budget: AiMemoryBudgetPolicy;
 }
 
 export interface AiLifeLayerMetricsSnapshot {
@@ -117,6 +135,10 @@ export interface AiLifeLayerMetricsSnapshot {
   memoryPruneDeleted: number;
   memoryPruneFailures: number;
   lastMemoryPruneDeleted: number;
+  memoryBudgetRuns: number;
+  memoryBudgetDeleted: number;
+  memoryBudgetFailures: number;
+  lastMemoryBudgetDeleted: number;
   totalProviderLatencyMs: number;
   averageProviderLatencyMs: number;
   maxProviderLatencyMs: number;
@@ -136,6 +158,7 @@ export interface AiLifeLayerMetricsSnapshot {
   lastProviderError?: string;
   lastMemoryPersistenceError?: string;
   lastMemoryPruneError?: string;
+  lastMemoryBudgetError?: string;
 }
 
 export interface AiLifeLayerDiagnosticsSnapshot {
@@ -150,7 +173,10 @@ export interface AiLifeLayerDiagnosticsSnapshot {
     pending: number;
     flushing: boolean;
     pruning: boolean;
+    budgeting: boolean;
     lastPruneDeleted: number;
+    lastBudgetDeleted: number;
+    budget: AiMemoryBudgetPolicy;
     errors: string[];
   };
 }
@@ -171,6 +197,10 @@ interface AiLifeLayerMetricsState {
   memoryPruneDeleted: number;
   memoryPruneFailures: number;
   lastMemoryPruneDeleted: number;
+  memoryBudgetRuns: number;
+  memoryBudgetDeleted: number;
+  memoryBudgetFailures: number;
+  lastMemoryBudgetDeleted: number;
   totalProviderLatencyMs: number;
   maxProviderLatencyMs: number;
   lastProviderLatencyMs: number;
@@ -185,6 +215,7 @@ interface AiLifeLayerMetricsState {
   lastProviderError?: string;
   lastMemoryPersistenceError?: string;
   lastMemoryPruneError?: string;
+  lastMemoryBudgetError?: string;
 }
 
 interface AiProviderDecisionCacheEntry {
@@ -307,6 +338,17 @@ const DEFAULT_PROVIDER_CACHE_MAX_ENTRIES = 128;
 const DEFAULT_PROVIDER_CACHE_MAX_TTL_MS = 12_000;
 const PROVIDER_LATENCY_SAMPLE_LIMIT = 128;
 const PROVIDER_CACHE_VERSION = 'ai-decision-cache-v1';
+const DEFAULT_MEMORY_BUDGET_TOTAL_RECORDS = 250_000;
+const DEFAULT_MEMORY_BUDGET_PER_PLAYER_RECORDS = 20_000;
+const DEFAULT_MEMORY_BUDGET_BATCH_SIZE = 2_000;
+const MEMORY_BUDGET_KIND_RATIOS: Record<AiMemoryAuditKind, number> = {
+  npcInteraction: 0.14,
+  rumor: 0.22,
+  worldTrace: 0.18,
+  creatureMemory: 0.18,
+  bossMemory: 0.10,
+  worldDirectorState: 0.18,
+};
 
 export class AiLifeLayer {
   private readonly enabled: boolean;
@@ -320,6 +362,7 @@ export class AiLifeLayer {
   private readonly worldDirector = new AiWorldDirectorStore();
   private readonly memoryDb: AiMemoryPersistence | null;
   private readonly memoryPersistBatchSize: number;
+  private readonly memoryBudget: AiMemoryBudgetPolicy;
   private readonly auditSink: AiAuditSink | null;
   private readonly auditProviderSource: Exclude<AiAuditProviderSource, 'fallback' | 'local'>;
   private readonly providerCacheEnabled: boolean;
@@ -344,6 +387,10 @@ export class AiLifeLayer {
     memoryPruneDeleted: 0,
     memoryPruneFailures: 0,
     lastMemoryPruneDeleted: 0,
+    memoryBudgetRuns: 0,
+    memoryBudgetDeleted: 0,
+    memoryBudgetFailures: 0,
+    lastMemoryBudgetDeleted: 0,
     totalProviderLatencyMs: 0,
     maxProviderLatencyMs: 0,
     lastProviderLatencyMs: 0,
@@ -356,6 +403,7 @@ export class AiLifeLayer {
   };
   private memoryFlushPromise: Promise<void> | null = null;
   private memoryPrunePromise: Promise<number> | null = null;
+  private memoryBudgetPromise: Promise<AiMemoryBudgetEnforcementResult> | null = null;
   private sequence = 0;
   private auditSequence = 0;
 
@@ -365,6 +413,7 @@ export class AiLifeLayer {
     this.journal = new AiDecisionJournal(options.journalSize);
     this.memoryDb = options.memoryDb ?? null;
     this.memoryPersistBatchSize = Math.max(1, Math.min(200, Math.floor(options.memoryPersistBatchSize ?? 32)));
+    this.memoryBudget = normalizeMemoryBudgetPolicy(options.memoryBudget);
     this.auditSink = options.auditSink ?? null;
     this.auditProviderSource = options.auditProviderSource
       ?? (options.provider ? 'provider' : 'codex');
@@ -490,7 +539,10 @@ export class AiLifeLayer {
       pending: this.pendingMemoryWrites.length,
       flushing: this.memoryFlushPromise !== null,
       pruning: this.memoryPrunePromise !== null,
+      budgeting: this.memoryBudgetPromise !== null,
       lastPruneDeleted: this.metrics.lastMemoryPruneDeleted,
+      lastBudgetDeleted: this.metrics.lastMemoryBudgetDeleted,
+      budget: cloneMemoryBudgetPolicy(this.memoryBudget),
       errors: [...this.memoryPersistenceErrors],
     };
   }
@@ -527,6 +579,28 @@ export class AiLifeLayer {
         this.memoryPrunePromise = null;
       });
     return this.memoryPrunePromise;
+  }
+
+  async enforceMemoryBudget(): Promise<AiMemoryBudgetEnforcementResult> {
+    if (!this.memoryDb?.enforceBudget) return zeroMemoryBudgetResult(this.memoryBudget);
+    if (this.memoryBudgetPromise) return this.memoryBudgetPromise;
+    const policy = cloneMemoryBudgetPolicy(this.memoryBudget);
+    this.memoryBudgetPromise = this.memoryDb.enforceBudget(policy)
+      .then((result) => {
+        const normalized = normalizeMemoryBudgetResult(result, policy);
+        this.metrics.memoryBudgetRuns++;
+        this.metrics.memoryBudgetDeleted += normalized.totalDeleted;
+        this.metrics.lastMemoryBudgetDeleted = normalized.totalDeleted;
+        return normalized;
+      })
+      .catch((err) => {
+        this.recordMemoryPersistenceError(err, 'budget');
+        return zeroMemoryBudgetResult(policy);
+      })
+      .finally(() => {
+        this.memoryBudgetPromise = null;
+      });
+    return this.memoryBudgetPromise;
   }
 
   handleSimEvents(request: { sim: Sim; events: SimEvent[] }): SimEvent[] {
@@ -1788,15 +1862,18 @@ export class AiLifeLayer {
     }
   }
 
-  private recordMemoryPersistenceError(err: unknown, source: 'flush' | 'prune' | 'clear'): void {
+  private recordMemoryPersistenceError(err: unknown, source: 'flush' | 'prune' | 'budget' | 'clear'): void {
     const message = err instanceof Error ? err.message : String(err);
     this.memoryPersistenceErrors.unshift(message);
     this.memoryPersistenceErrors.splice(5);
     if (source === 'flush') {
       this.metrics.memoryFlushFailures++;
-    } else {
+    } else if (source === 'prune') {
       this.metrics.memoryPruneFailures++;
       this.metrics.lastMemoryPruneError = message;
+    } else if (source === 'budget') {
+      this.metrics.memoryBudgetFailures++;
+      this.metrics.lastMemoryBudgetError = message;
     }
     this.metrics.lastMemoryPersistenceError = message;
   }
@@ -2403,6 +2480,80 @@ function percentileFromSorted(sorted: readonly number[], percentile: number): nu
 function envPositiveIntLocal(name: string, fallback: number): number {
   const value = Number(process.env[name]);
   return Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
+}
+
+function normalizeMemoryBudgetPolicy(overrides: Partial<AiMemoryBudgetPolicy> | undefined): AiMemoryBudgetPolicy {
+  const maxTotalRecords = Math.max(
+    1_000,
+    Math.min(5_000_000, Math.floor(overrides?.maxTotalRecords
+      ?? envPositiveIntLocal('AI_MEMORY_MAX_RECORDS', DEFAULT_MEMORY_BUDGET_TOTAL_RECORDS))),
+  );
+  const maxRecordsPerPlayer = Math.max(
+    500,
+    Math.min(maxTotalRecords, Math.floor(overrides?.maxRecordsPerPlayer
+      ?? envPositiveIntLocal('AI_MEMORY_MAX_RECORDS_PER_PLAYER', DEFAULT_MEMORY_BUDGET_PER_PLAYER_RECORDS))),
+  );
+  const batchSize = Math.max(
+    100,
+    Math.min(20_000, Math.floor(overrides?.batchSize
+      ?? envPositiveIntLocal('AI_MEMORY_BUDGET_BATCH_SIZE', DEFAULT_MEMORY_BUDGET_BATCH_SIZE))),
+  );
+  const maxRecordsPerKind: Partial<Record<AiMemoryAuditKind, number>> = {};
+  for (const kind of memoryAuditKinds()) {
+    const override = overrides?.maxRecordsPerKind?.[kind];
+    const derived = Math.floor(maxTotalRecords * MEMORY_BUDGET_KIND_RATIOS[kind]);
+    maxRecordsPerKind[kind] = Math.max(100, Math.min(maxTotalRecords, Math.floor(override ?? derived)));
+  }
+  return { maxTotalRecords, maxRecordsPerPlayer, maxRecordsPerKind, batchSize };
+}
+
+function cloneMemoryBudgetPolicy(policy: AiMemoryBudgetPolicy): AiMemoryBudgetPolicy {
+  return {
+    maxTotalRecords: policy.maxTotalRecords,
+    maxRecordsPerPlayer: policy.maxRecordsPerPlayer,
+    maxRecordsPerKind: { ...policy.maxRecordsPerKind },
+    batchSize: policy.batchSize,
+  };
+}
+
+function normalizeMemoryBudgetResult(
+  result: AiMemoryBudgetEnforcementResult,
+  fallbackPolicy: AiMemoryBudgetPolicy,
+): AiMemoryBudgetEnforcementResult {
+  const deletedByKind: Partial<Record<AiMemoryAuditKind, number>> = {};
+  for (const kind of memoryAuditKinds()) {
+    const deleted = result.deletedByKind[kind] ?? 0;
+    if (Number.isFinite(deleted) && deleted > 0) deletedByKind[kind] = Math.floor(deleted);
+  }
+  const deletedByTotal = safeDeletedCount(result.deletedByTotal);
+  const deletedByPlayer = safeDeletedCount(result.deletedByPlayer);
+  const totalDeleted = safeDeletedCount(result.totalDeleted)
+    || deletedByTotal + deletedByPlayer + Object.values(deletedByKind).reduce((sum, count) => sum + (count ?? 0), 0);
+  return {
+    totalDeleted,
+    deletedByTotal,
+    deletedByPlayer,
+    deletedByKind,
+    budget: cloneMemoryBudgetPolicy(result.budget ?? fallbackPolicy),
+  };
+}
+
+function zeroMemoryBudgetResult(policy: AiMemoryBudgetPolicy): AiMemoryBudgetEnforcementResult {
+  return {
+    totalDeleted: 0,
+    deletedByTotal: 0,
+    deletedByPlayer: 0,
+    deletedByKind: {},
+    budget: cloneMemoryBudgetPolicy(policy),
+  };
+}
+
+function safeDeletedCount(value: number): number {
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+}
+
+function memoryAuditKinds(): readonly AiMemoryAuditKind[] {
+  return ['npcInteraction', 'rumor', 'worldTrace', 'creatureMemory', 'bossMemory', 'worldDirectorState'];
 }
 
 function defaultAiProvider(): AiProvider {

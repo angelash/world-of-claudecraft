@@ -24,6 +24,10 @@ function metrics(overrides: Partial<AiLifeLayerMetricsSnapshot> = {}): AiLifeLay
     memoryPruneDeleted: 0,
     memoryPruneFailures: 0,
     lastMemoryPruneDeleted: 0,
+    memoryBudgetRuns: 0,
+    memoryBudgetDeleted: 0,
+    memoryBudgetFailures: 0,
+    lastMemoryBudgetDeleted: 0,
     totalProviderLatencyMs: 0,
     averageProviderLatencyMs: 0,
     maxProviderLatencyMs: 0,
@@ -188,7 +192,21 @@ function diagnostics(overrides: Partial<AiLifeLayerDiagnosticsSnapshot> = {}): A
         expiresAt: 100,
       }],
     },
-    memoryPersistence: { pending: 2, flushing: true, pruning: false, lastPruneDeleted: 0, errors: ['db <offline>'] },
+    memoryPersistence: {
+      pending: 2,
+      flushing: true,
+      pruning: false,
+      budgeting: false,
+      lastPruneDeleted: 0,
+      lastBudgetDeleted: 0,
+      budget: {
+        maxTotalRecords: 250_000,
+        maxRecordsPerPlayer: 20_000,
+        maxRecordsPerKind: { rumor: 55_000 },
+        batchSize: 2_000,
+      },
+      errors: ['db <offline>'],
+    },
     ...overrides,
   };
 }
@@ -476,17 +494,21 @@ describe('admin AI life layer metrics renderer', () => {
       providerFallbacks: 1,
       memoryFlushFailures: 1,
       memoryPruneFailures: 1,
+      memoryBudgetFailures: 1,
       lastProviderError: '<script>alert(1)</script>',
       lastMemoryPersistenceError: 'db <offline>',
       lastMemoryPruneError: 'prune <offline>',
+      lastMemoryBudgetError: 'budget <offline>',
     }));
 
     expect(html).toContain('needs attention');
     expect(html).toContain('Legacy fallback decisions');
     expect(html).toContain('Memory prune failures');
+    expect(html).toContain('Memory budget failures');
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
     expect(html).toContain('db &lt;offline&gt;');
     expect(html).toContain('prune &lt;offline&gt;');
+    expect(html).toContain('budget &lt;offline&gt;');
     expect(html).not.toContain('<script>alert(1)</script>');
   });
 
@@ -520,7 +542,13 @@ describe('admin AI life layer metrics renderer', () => {
 
     expect(html).toContain('AI decision diagnostics');
     expect(html).toContain('Memory prune');
+    expect(html).toContain('Memory budget');
     expect(html).toContain('Last pruned');
+    expect(html).toContain('Last budget trim');
+    expect(html).toContain('Total memory cap');
+    expect(html).toContain('250,000');
+    expect(html).toContain('Per-player cap');
+    expect(html).toContain('20,000');
     expect(html).toContain('provider error');
     expect(html).toContain('NPC question');
     expect(html).toContain('camp alert');
@@ -620,6 +648,8 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('ID: npc.brother_aldric.living_world');
     expect(html).toContain('NPC: 奥德里克修士 (brother_aldric)');
     expect(html).toContain('忧心的牧师，会把天气、坟墓和玩家的选择都读作征兆。');
+    expect(html).toContain('记忆预算');
+    expect(html).toContain('总记忆上限');
     expect(html).not.toContain('A worried priest who reads weather');
   });
 

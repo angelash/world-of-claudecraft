@@ -222,6 +222,10 @@ export interface AiLifeLayerMetricsSnapshot {
   memoryPruneDeleted: number;
   memoryPruneFailures: number;
   lastMemoryPruneDeleted: number;
+  memoryBudgetRuns: number;
+  memoryBudgetDeleted: number;
+  memoryBudgetFailures: number;
+  lastMemoryBudgetDeleted: number;
   totalProviderLatencyMs: number;
   averageProviderLatencyMs: number;
   maxProviderLatencyMs: number;
@@ -236,6 +240,7 @@ export interface AiLifeLayerMetricsSnapshot {
   lastProviderError?: string;
   lastMemoryPersistenceError?: string;
   lastMemoryPruneError?: string;
+  lastMemoryBudgetError?: string;
 }
 
 export interface AiMemoryAuditRecord {
@@ -354,7 +359,15 @@ export interface AiLifeLayerDiagnosticsSnapshot {
     pending: number;
     flushing: boolean;
     pruning: boolean;
+    budgeting: boolean;
     lastPruneDeleted: number;
+    lastBudgetDeleted: number;
+    budget: {
+      maxTotalRecords: number;
+      maxRecordsPerPlayer: number;
+      maxRecordsPerKind: Record<string, number>;
+      batchSize: number;
+    };
     errors: string[];
   };
 }
