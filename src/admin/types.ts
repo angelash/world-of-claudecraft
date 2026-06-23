@@ -487,6 +487,21 @@ export interface AiActiveQueuedEventSnapshot {
   observations: string[];
 }
 
+export interface AiActiveSequenceSnapshot {
+  sequenceId: string;
+  kind: 'npc' | 'creature';
+  family?: string;
+  ruleId: string;
+  playerEntityId: number;
+  speakerEntityIds: number[];
+  speakerTemplateIds: string[];
+  sceneId?: string;
+  lineIds: string[];
+  startedAtMs: number;
+  nextBeatAtMs: number;
+  remainingBeats: number;
+}
+
 export interface AiActivePopulationPolicySnapshot {
   band: AiActivePopulationBand;
   onlineCount: number;
@@ -514,6 +529,7 @@ export interface AiActiveTriggerDiagnosticsSnapshot {
   codexBudget: AiActiveCodexBudgetSnapshot;
   rules: AiActivePollRule[];
   eventQueue: AiActiveQueuedEventSnapshot[];
+  activeSequences: AiActiveSequenceSnapshot[];
   cursors: AiActivePollCursorSnapshot[];
   recentDecisions: AiActiveTriggerDecisionSnapshot[];
 }
@@ -521,6 +537,11 @@ export interface AiActiveTriggerDiagnosticsSnapshot {
 export interface AiActiveTriggerAdminSnapshot {
   metrics: AiActiveTriggerMetricsSnapshot;
   diagnostics: AiActiveTriggerDiagnosticsSnapshot;
+}
+
+export interface AiActiveSequenceCancelResult {
+  canceledSequences: number;
+  canceledBeats: number;
 }
 
 export interface AiVolatileMemoryClearResult {

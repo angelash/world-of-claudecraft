@@ -283,6 +283,19 @@ const fakeGame: any = {
       nextAttemptAtMs: 1_000,
       observations: ['event:item_discarded', 'item:apple'],
     }],
+    activeSequences: [{
+      sequenceId: 'seq-1',
+      kind: 'npc',
+      ruleId: 'npc_social_sequence',
+      playerEntityId: 1,
+      speakerEntityIds: [12, 13],
+      speakerTemplateIds: ['brother_aldric', 'the_merchant'],
+      sceneId: 'eastbrook_square',
+      lineIds: ['hudChrome.aiSpeech.sceneDayEnergy'],
+      startedAtMs: 1_000,
+      nextBeatAtMs: 1_800,
+      remainingBeats: 3,
+    }],
     cursors: [],
     recentDecisions: [{
       ruleId: 'scene_ambient_awareness',
@@ -298,6 +311,7 @@ const fakeGame: any = {
     ...fakeGame.aiActiveTriggerDiagnostics(),
     updateEcho: input,
   })),
+  cancelAiActiveSequences: vi.fn(() => ({ canceledSequences: 1, canceledBeats: 3 })),
   aiAuditSnapshot: vi.fn(async () => ({
     summary: {
       generatedAt: '2026-06-22T00:00:00.000Z',
@@ -620,6 +634,22 @@ describe('admin api auth', () => {
         enabled: true,
         updateEcho: body,
       }),
+    });
+  });
+
+  it('cancels running active AI sequences through an authenticated admin endpoint', async () => {
+    vi.mocked(accountForToken).mockResolvedValue(7);
+    vi.mocked(isAdminAccount).mockResolvedValue(true);
+    const res = fakeRes();
+
+    await handleAdminApi(fakeReq({ method: 'POST', token: VALID_TOKEN, url: '/admin/api/ai/active-triggers/sequences/cancel', body: {} }), res, fakeGame);
+
+    expect(res.statusCode).toBe(200);
+    expect(fakeGame.cancelAiActiveSequences).toHaveBeenCalled();
+    expect(res.body).toEqual({
+      success: true,
+      error: null,
+      data: { canceledSequences: 1, canceledBeats: 3 },
     });
   });
 

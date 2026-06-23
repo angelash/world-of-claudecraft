@@ -301,6 +301,20 @@ function activeTriggers(overrides: Partial<AiActiveTriggerAdminSnapshot> = {}): 
         nextAttemptAtMs: 1_000,
         observations: ['event:item_discarded', 'item:apple'],
       }],
+      activeSequences: [{
+        sequenceId: 'seq-1<script>',
+        kind: 'creature',
+        family: 'murloc',
+        ruleId: 'npc_social_sequence',
+        playerEntityId: 1,
+        speakerEntityIds: [22, 23],
+        speakerTemplateIds: ['mudfin_murloc<script>', 'mudfin_murloc'],
+        sceneId: 'mirror_lake',
+        lineIds: ['hudChrome.aiSpeech.familySceneBeastUneasy<script>'],
+        startedAtMs: 1_000,
+        nextBeatAtMs: 1_800,
+        remainingBeats: 3,
+      }],
       cursors: [],
       recentDecisions: [{
         ruleId: 'scene_ambient_awareness',
@@ -605,13 +619,21 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('Mixed living world');
     expect(html).toContain('Recent active decisions');
     expect(html).toContain('Queued active events');
+    expect(html).toContain('Running active sequences');
+    expect(html).toContain('Cancel running sequences');
+    expect(html).toContain('data-cancel-ai-active-sequences');
     expect(html).toContain('data-save-ai-active-global');
     expect(html).toContain('data-ai-active-global-field="realActionsEnabled"');
     expect(html).toContain('data-save-ai-active-rule');
     expect(html).toContain('Scene &lt;ambient&gt;');
     expect(html).toContain('scene_ambient_awareness&lt;script&gt;');
+    expect(html).toContain('seq-1&lt;script&gt;');
+    expect(html).toContain('mudfin_murloc&lt;script&gt;');
+    expect(html).toContain('hudChrome.aiSpeech.familySceneBeastUneasy&lt;script&gt;');
     expect(html).not.toContain('Scene <ambient>');
     expect(html).not.toContain('scene_ambient_awareness<script>');
+    expect(html).not.toContain('seq-1<script>');
+    expect(html).not.toContain('mudfin_murloc<script>');
   });
 
   it('localizes active AI trigger controls in Simplified Chinese', () => {
@@ -629,6 +651,9 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('混合生活世界');
     expect(html).toContain('近期主动决策');
     expect(html).toContain('排队中的主动事件');
+    expect(html).toContain('进行中的主动序列');
+    expect(html).toContain('取消进行中序列');
+    expect(html).toContain('剩余节拍');
     expect(html).toContain('少量在线');
     expect(html).not.toContain('Active AI');
   });

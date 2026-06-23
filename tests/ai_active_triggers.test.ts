@@ -945,6 +945,53 @@ describe('AI active trigger service', () => {
     }
   });
 
+  it('exposes and cancels running paced sequences before delayed beats deliver', async () => {
+    vi.useFakeTimers();
+    const { sim, pid } = makeWorld();
+    sim.time = 8 * 60;
+    const merchant = entityByTemplate(sim, 'the_merchant');
+    const marshal = entityByTemplate(sim, 'marshal_redbrook');
+    moveEntity(sim, merchant.id, 9, 17);
+    moveEntity(sim, marshal.id, 12, 17);
+    moveEntity(sim, pid, 9, 18);
+    const delivered: SimEvent[][] = [];
+    const service = new AiActiveTriggerService({
+      thinkingDurationMs: 800,
+      rules: [testRule({ ruleId: 'test_social_sequence_cancel_admin', category: 'socialSequence' })],
+    });
+
+    try {
+      const immediate = service.tick({
+        sim,
+        sessions: [{ pid }],
+        nowMs: 1_000,
+        deliver: (_pid, events) => delivered.push(events),
+      });
+
+      expect(immediate).toEqual([
+        expect.objectContaining({ type: 'aiThinking', durationMs: 800, pid }),
+      ]);
+      expect(service.diagnosticsSnapshot().activeSequences).toEqual([
+        expect.objectContaining({
+          kind: 'npc',
+          ruleId: 'test_social_sequence_cancel_admin',
+          playerEntityId: pid,
+          speakerEntityIds: expect.arrayContaining([merchant.id, marshal.id]),
+          remainingBeats: 5,
+          nextBeatAtMs: 1_800,
+        }),
+      ]);
+
+      expect(service.cancelActiveSequences()).toEqual({ canceledSequences: 1, canceledBeats: 5 });
+      expect(service.diagnosticsSnapshot().activeSequences).toEqual([]);
+      await vi.advanceTimersByTimeAsync(6_000);
+      expect(delivered).toEqual([]);
+    } finally {
+      service.stop();
+      vi.useRealTimers();
+    }
+  });
+
   it('cancels paced social sequence beats when the player enters combat', async () => {
     vi.useFakeTimers();
     const { sim, pid } = makeWorld();

@@ -218,6 +218,9 @@ export async function handleAdminApi(
         return fail(res, 400, err instanceof Error ? err.message : 'invalid active trigger configuration');
       }
     }
+    if (req.method === 'POST' && path === '/admin/api/ai/active-triggers/sequences/cancel') {
+      return ok(res, game.cancelAiActiveSequences());
+    }
 
     if (req.method !== 'GET') return fail(res, 405, 'method not allowed');
 

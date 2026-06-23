@@ -13,7 +13,7 @@ import {
 import type { AiLifeLayerTab } from './tables';
 import type {
   AccountDetail, AccountRow, Activity, CharacterRow, ChatFilterData, LivePlayer,
-  AiAuditCleanupResult, AiAuditRecord, AiVolatileMemoryClearResult, ModerationAccountDetail, ModerationQueueRow, Overview, Paginated,
+  AiActiveSequenceCancelResult, AiAuditCleanupResult, AiAuditRecord, AiVolatileMemoryClearResult, ModerationAccountDetail, ModerationQueueRow, Overview, Paginated,
 } from './types';
 
 const LIVE_REFRESH_MS = 5_000;
@@ -395,6 +395,19 @@ async function saveAiActiveRule(row: HTMLElement): Promise<void> {
     window.alert(t('usage.aiActiveSaveSuccess'));
   } catch (err) {
     if (!handleAuthFailure(err)) window.alert(err instanceof Error ? localizeAdminError(err.message) : t('usage.aiActiveSaveFailed'));
+  }
+}
+
+async function cancelAiActiveSequences(): Promise<void> {
+  try {
+    const result = await apiPost<AiActiveSequenceCancelResult>('/admin/api/ai/active-triggers/sequences/cancel', {});
+    await refreshLive();
+    window.alert(t('usage.aiActiveCancelSequencesSuccess', {
+      canceledSequences: result.canceledSequences,
+      canceledBeats: result.canceledBeats,
+    }));
+  } catch (err) {
+    if (!handleAuthFailure(err)) window.alert(err instanceof Error ? localizeAdminError(err.message) : t('usage.aiActiveCancelSequencesFailed'));
   }
 }
 
@@ -794,6 +807,11 @@ function wireEvents(): void {
     if (saveActiveRule) {
       const row = saveActiveRule.closest<HTMLElement>('[data-ai-active-rule-id]');
       if (row) void saveAiActiveRule(row);
+      return;
+    }
+    const cancelActiveSequencesButton = target.closest('button[data-cancel-ai-active-sequences]');
+    if (cancelActiveSequencesButton) {
+      void cancelAiActiveSequences();
       return;
     }
     const auditCard = target.closest<HTMLButtonElement>('.ai-audit-card[data-ai-audit-id]');

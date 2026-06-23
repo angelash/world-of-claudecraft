@@ -5,7 +5,7 @@ import type {
   ChatModerationDetail, FilterWord, LivePlayer, ModerationAccountDetail, ModerationQueueRow,
   AiActivePollRule, AiActiveTriggerAdminSnapshot, AiActiveTriggerDecisionSnapshot,
   AiActiveTriggerMetricsSnapshot,
-  AiActiveQueuedEventSnapshot, AiAuditEventSummary, AiAuditPlayerAction, AiAuditRecord, AiAuditSnapshot,
+  AiActiveQueuedEventSnapshot, AiActiveSequenceSnapshot, AiAuditEventSummary, AiAuditPlayerAction, AiAuditRecord, AiAuditSnapshot,
   AiContentCoverageReport, AiDecisionJournalEntry, AiLifeLayerDiagnosticsSnapshot, AiNpcMemory, AiRumorMemory,
   AiLifeLayerMetricsSnapshot, AiProfileAuthoringIssue, AiProfileAuthoringValidationReport,
   AiProfilePreviewReport, AiProfilePreviewRow, AiProviderTimingSnapshot,
@@ -1433,6 +1433,24 @@ function renderAiActiveQueuedEvent(event: AiActiveQueuedEventSnapshot): string {
   </tr>`;
 }
 
+function renderAiActiveSequence(sequence: AiActiveSequenceSnapshot): string {
+  const kind = sequence.kind === 'creature' && sequence.family
+    ? `${sequence.kind}:${sequence.family}`
+    : sequence.kind;
+  return `<tr>
+    <td>
+      <b>${escapeHtml(kind)}</b>
+      <div class="hint">${escapeHtml(sequence.sequenceId)} / ${escapeHtml(sequence.ruleId)}</div>
+    </td>
+    <td class="num">${renderAiNumber(sequence.playerEntityId)}</td>
+    <td>${escapeHtml(sequence.speakerTemplateIds.slice(0, 3).join(', ') || t('usage.aiDiagnosticsNone'))}</td>
+    <td>${escapeHtml(sequence.sceneId ?? t('usage.aiDiagnosticsNone'))}</td>
+    <td class="num">${renderAiNumber(sequence.remainingBeats)}</td>
+    <td>${escapeHtml(fmtDate(new Date(sequence.nextBeatAtMs).toISOString()))}</td>
+    <td>${escapeHtml(sequence.lineIds[0] ?? t('usage.aiDiagnosticsNone'))}</td>
+  </tr>`;
+}
+
 function renderAiActiveLastAction(metrics: AiActiveTriggerMetricsSnapshot): string {
   if (!metrics.activeLastActionKind || !metrics.activeLastActionResult) {
     return escapeHtml(t('usage.aiActiveActionNone'));
@@ -1459,6 +1477,9 @@ function renderAiActiveTriggerControls(active?: AiActiveTriggerAdminSnapshot): s
   const queueRows = diagnostics.eventQueue.length === 0
     ? `<tr><td colspan="5" class="empty">${t('usage.aiActiveNoQueuedEvents')}</td></tr>`
     : diagnostics.eventQueue.slice(0, 12).map(renderAiActiveQueuedEvent).join('');
+  const sequenceRows = diagnostics.activeSequences.length === 0
+    ? `<tr><td colspan="7" class="empty">${t('usage.aiActiveNoActiveSequences')}</td></tr>`
+    : diagnostics.activeSequences.slice(0, 12).map(renderAiActiveSequence).join('');
   return `
     <div class="ai-health-grid">
       <div class="ai-health-cell">
@@ -1553,6 +1574,27 @@ function renderAiActiveTriggerControls(active?: AiActiveTriggerAdminSnapshot): s
             <th>${t('usage.aiActiveColObservations')}</th>
           </tr></thead>
           <tbody>${queueRows}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="usage-section">
+      <h4>${t('usage.aiActiveSequencesTitle')}</h4>
+      <div class="ai-audit-status-line">
+        <button type="button" data-cancel-ai-active-sequences${diagnostics.activeSequences.length === 0 ? ' disabled' : ''}>${t('usage.aiActiveCancelSequences')}</button>
+        <span class="hint">${escapeHtml(t('usage.aiActiveSequencesHint'))}</span>
+      </div>
+      <div class="table-scroll">
+        <table class="usage-table">
+          <thead><tr>
+            <th>${t('usage.aiActiveColSequence')}</th>
+            <th class="num">${t('usage.aiActiveColPlayer')}</th>
+            <th>${t('usage.aiActiveColSpeaker')}</th>
+            <th>${t('usage.aiAuditDetailScene')}</th>
+            <th class="num">${t('usage.aiActiveColRemainingBeats')}</th>
+            <th>${t('usage.aiActiveColNextBeat')}</th>
+            <th>${t('usage.aiActiveColLine')}</th>
+          </tr></thead>
+          <tbody>${sequenceRows}</tbody>
         </table>
       </div>
     </div>`;

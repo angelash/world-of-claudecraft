@@ -144,6 +144,21 @@ export interface AiActiveTriggerDecisionSnapshot {
   createdAtMs: number;
 }
 
+export interface AiActiveSequenceSnapshot {
+  sequenceId: string;
+  kind: 'npc' | 'creature';
+  family?: MobFamily;
+  ruleId: string;
+  playerEntityId: number;
+  speakerEntityIds: number[];
+  speakerTemplateIds: string[];
+  sceneId?: string;
+  lineIds: string[];
+  startedAtMs: number;
+  nextBeatAtMs: number;
+  remainingBeats: number;
+}
+
 export interface AiActiveQueuedEventSnapshot {
   eventId: string;
   kind: AiActiveQueuedEventKind;
@@ -188,6 +203,7 @@ export interface AiActiveTriggerDiagnosticsSnapshot {
   codexBudget: AiActiveCodexBudgetSnapshot;
   rules: AiActivePollRuleV1[];
   eventQueue: AiActiveQueuedEventSnapshot[];
+  activeSequences: AiActiveSequenceSnapshot[];
   cursors: AiActivePollCursorSnapshot[];
   recentDecisions: AiActiveTriggerDecisionSnapshot[];
 }
@@ -262,9 +278,32 @@ interface CreatureRoutineResult {
 interface SocialSequenceResult {
   kind: 'npc' | 'creature';
   family?: MobFamily;
+  sceneId?: string;
   events: SimEvent[];
   speakers: Entity[];
   lineIds: string[];
+}
+
+interface AiActiveSequenceState {
+  sequenceId: string;
+  kind: 'npc' | 'creature';
+  family?: MobFamily;
+  ruleId: string;
+  playerEntityId: number;
+  speakerEntityIds: number[];
+  speakerTemplateIds: string[];
+  sceneId?: string;
+  lineIds: string[];
+  startedAtMs: number;
+  nextBeatAtMs: number;
+  remainingBeats: number;
+  timers: Set<ReturnType<typeof setTimeout>>;
+  timerDueAtMs: Map<ReturnType<typeof setTimeout>, number>;
+}
+
+export interface AiActiveSequenceCancelResult {
+  canceledSequences: number;
+  canceledBeats: number;
 }
 
 interface AiActiveQueuedEventState {
@@ -387,10 +426,12 @@ export class AiActiveTriggerService {
   private readonly recentDecisions: AiActiveTriggerDecisionSnapshot[] = [];
   private readonly codexProviderCallTimesMs: number[] = [];
   private readonly pendingProviderJobs = new Set<string>();
-  private readonly sequenceTimers = new Set<ReturnType<typeof setTimeout>>();
+  private readonly sequenceTimers = new Map<ReturnType<typeof setTimeout>, string>();
+  private readonly activeSequences = new Map<string, AiActiveSequenceState>();
   private populationPolicy: AiActivePopulationPolicySnapshot | null = null;
   private schedulerCursor = 0;
   private eventSequence = 0;
+  private activeSequenceCounter = 0;
   private readonly metrics: AiActiveTriggerMetricsSnapshot = {
     activePollDue: 0,
     activePollSkipped: 0,
@@ -581,6 +622,7 @@ export class AiActiveTriggerService {
       codexBudget: this.codexBudgetSnapshot(Date.now()),
       rules: this.rules.map((rule) => ({ ...rule, cooldown: { ...rule.cooldown } })),
       eventQueue: this.eventQueue.map((event) => eventSnapshot(event)),
+      activeSequences: [...this.activeSequences.values()].map((sequence) => sequenceSnapshot(sequence)),
       cursors: [...this.cursors.values()].map((cursor) => ({ ...cursor })),
       recentDecisions: [...this.recentDecisions],
     };
@@ -612,10 +654,21 @@ export class AiActiveTriggerService {
     this.recentDecisions.splice(0);
     this.codexProviderCallTimesMs.splice(0);
     this.pendingProviderJobs.clear();
-    for (const timer of this.sequenceTimers) clearTimeout(timer);
-    this.sequenceTimers.clear();
+    this.cancelActiveSequences();
     this.metrics.activeProviderPending = 0;
     this.populationPolicy = null;
+  }
+
+  cancelActiveSequences(): AiActiveSequenceCancelResult {
+    let canceledSequences = 0;
+    let canceledBeats = 0;
+    for (const sequenceId of [...this.activeSequences.keys()]) {
+      const result = this.cancelSequence(sequenceId);
+      if (!result.canceled) continue;
+      canceledSequences++;
+      canceledBeats += result.beats;
+    }
+    return { canceledSequences, canceledBeats };
   }
 
   private tryProcessQueuedEvents(input: {
@@ -947,10 +1000,20 @@ export class AiActiveTriggerService {
     });
     this.tryApplySocialSequenceActions(input.player, sequence, input.applyNpcAction, input.applyAction);
     if (input.deliver) {
+      const sequenceId = `active-sequence-${++this.activeSequenceCounter}`;
       return {
         events: this.schedulePacedSequence({
+          sequenceId,
+          kind: sequence.kind,
+          family: sequence.family,
+          ruleId: input.rule.ruleId,
           pid: input.player.id,
+          speakerEntityIds: sequence.speakers.map((speaker) => speaker.id),
+          speakerTemplateIds: sequence.speakers.map((speaker) => speaker.templateId),
+          sceneId: sequence.sceneId,
+          lineIds: sequence.lineIds,
           events: sequence.events,
+          startedAtMs: input.nowMs,
           deliver: input.deliver,
           canContinue: () => {
             const player = input.sim.entities.get(input.player.id);
@@ -1013,24 +1076,86 @@ export class AiActiveTriggerService {
   }
 
   private schedulePacedSequence(input: {
+    sequenceId: string;
+    kind: 'npc' | 'creature';
+    family?: MobFamily;
+    ruleId: string;
     pid: number;
+    speakerEntityIds: number[];
+    speakerTemplateIds: string[];
+    sceneId?: string;
+    lineIds: string[];
     events: SimEvent[];
+    startedAtMs: number;
     deliver: (pid: number, events: SimEvent[]) => void;
     canContinue: () => boolean;
   }): SimEvent[] {
     const [first, ...rest] = input.events;
     if (!first) return [];
     let delayMs = first.type === 'aiThinking' ? first.durationMs : this.thinkingDurationMs;
+    const sequence: AiActiveSequenceState = {
+      sequenceId: input.sequenceId,
+      kind: input.kind,
+      ...(input.family ? { family: input.family } : {}),
+      ruleId: input.ruleId,
+      playerEntityId: input.pid,
+      speakerEntityIds: [...input.speakerEntityIds],
+      speakerTemplateIds: [...input.speakerTemplateIds],
+      ...(input.sceneId ? { sceneId: input.sceneId } : {}),
+      lineIds: [...input.lineIds],
+      startedAtMs: input.startedAtMs,
+      nextBeatAtMs: input.startedAtMs + delayMs,
+      remainingBeats: rest.length,
+      timers: new Set(),
+      timerDueAtMs: new Map(),
+    };
     for (const event of rest) {
+      const fireAtMs = input.startedAtMs + delayMs;
       const timer = setTimeout(() => {
-        this.sequenceTimers.delete(timer);
-        if (input.canContinue()) input.deliver(input.pid, [event]);
+        if (!input.canContinue()) {
+          this.cancelSequence(input.sequenceId);
+          return;
+        }
+        this.finishSequenceBeat(input.sequenceId, timer);
+        input.deliver(input.pid, [event]);
       }, delayMs);
-      this.sequenceTimers.add(timer);
+      sequence.timers.add(timer);
+      sequence.timerDueAtMs.set(timer, fireAtMs);
+      this.sequenceTimers.set(timer, input.sequenceId);
+      sequence.nextBeatAtMs = Math.min(sequence.nextBeatAtMs, fireAtMs);
       if (event.type === 'aiThinking') delayMs += event.durationMs;
       else delayMs += 900;
     }
+    if (sequence.timers.size > 0) this.activeSequences.set(input.sequenceId, sequence);
     return [first];
+  }
+
+  private finishSequenceBeat(sequenceId: string, timer: ReturnType<typeof setTimeout>): void {
+    const sequence = this.activeSequences.get(sequenceId);
+    this.sequenceTimers.delete(timer);
+    if (!sequence) return;
+    sequence.timers.delete(timer);
+    sequence.timerDueAtMs.delete(timer);
+    sequence.remainingBeats = sequence.timers.size;
+    if (sequence.timers.size === 0) {
+      this.activeSequences.delete(sequenceId);
+      return;
+    }
+    sequence.nextBeatAtMs = Math.min(...sequence.timerDueAtMs.values());
+  }
+
+  private cancelSequence(sequenceId: string): { canceled: boolean; beats: number } {
+    const sequence = this.activeSequences.get(sequenceId);
+    if (!sequence) return { canceled: false, beats: 0 };
+    const beats = sequence.remainingBeats;
+    for (const timer of sequence.timers) {
+      clearTimeout(timer);
+      this.sequenceTimers.delete(timer);
+    }
+    sequence.timers.clear();
+    sequence.timerDueAtMs.clear();
+    this.activeSequences.delete(sequenceId);
+    return { canceled: true, beats };
   }
 
   private tryFireCreatureRoutine(input: {
@@ -1215,6 +1340,7 @@ export class AiActiveTriggerService {
     }
     return {
       kind: 'npc',
+      sceneId: scene.subsceneId ?? scene.zoneId,
       events,
       speakers: speakers.slice(0, usedLineIds.length),
       lineIds: usedLineIds,
@@ -1261,6 +1387,7 @@ export class AiActiveTriggerService {
     return {
       kind: 'creature',
       family: group.family,
+      sceneId: scene.subsceneId ?? scene.zoneId,
       events,
       speakers: group.reactions.map((reaction) => reaction.entity),
       lineIds,
@@ -1563,6 +1690,23 @@ function eventSnapshot(event: AiActiveQueuedEventState): AiActiveQueuedEventSnap
     expiresAtMs: event.expiresAtMs,
     nextAttemptAtMs: event.nextAttemptAtMs,
     observations: [...event.observations],
+  };
+}
+
+function sequenceSnapshot(sequence: AiActiveSequenceState): AiActiveSequenceSnapshot {
+  return {
+    sequenceId: sequence.sequenceId,
+    kind: sequence.kind,
+    ...(sequence.family ? { family: sequence.family } : {}),
+    ruleId: sequence.ruleId,
+    playerEntityId: sequence.playerEntityId,
+    speakerEntityIds: [...sequence.speakerEntityIds],
+    speakerTemplateIds: [...sequence.speakerTemplateIds],
+    ...(sequence.sceneId ? { sceneId: sequence.sceneId } : {}),
+    lineIds: [...sequence.lineIds],
+    startedAtMs: sequence.startedAtMs,
+    nextBeatAtMs: sequence.nextBeatAtMs,
+    remainingBeats: sequence.remainingBeats,
   };
 }
 
