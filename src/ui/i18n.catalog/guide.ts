@@ -518,9 +518,9 @@ export const guideStrings = {
     marshPlaceNotes: "Fenbridge guards the only dry road. The Prowler Reeds and Deepfen Shallows teem with marsh beasts and murlocs; the Widow Thicket is spun thick with web; the Drowned Chapel and the Troll Mounds keep older dangers; the Gravecaller Encampment is the cult dug in, and the Sunken Bastion is the marsh's instanced heart.",
     peaksPlaceNotes: "Highwatch holds the wall. Stalker Ridge and the Deeprock Burrows belong to ridge cats and kobolds; the Ogre Foothills and Drogmar's War-Camp to brutes for hire; Stormcrag crackles with elementals and the Glimmermere glows below it; the Wyrmcult Tents and Revenant Fields ring the cult's high ground, with Gravewyrm Sanctum at its peak.",
 
-    // Brightwood Glade vignette (Ranger Elwyn + the great stag), distilled spoiler-safe.
+    // Brightwood Glade vignette, distilled spoiler-safe.
     gladeTitle: "A quiet corner: Brightwood Glade",
-    gladeBody: "Not every story in the Vale is about the dead. In the north, a sunlit grove called Brightwood Glade keeps its own gentler rhythm, watched over by a lone ranger who would rather steward it than fight. Her work is balance: thinning what overbreeds, and, when its hollow grows too dangerous to leave be, giving the grove's old crowned stag a respectful end. It is a soft counterpoint to the trail you are following, and worth the detour.",
+    gladeBody: "Not every story in the Vale is about the dead. In the north, a sunlit grove called Brightwood Glade keeps its own gentler rhythm, with quiet paths, grazing deer, and wary beasts under the boughs. It is a soft counterpoint to the trail you are following, and worth seeing when the road gives you room to wander.",
   },
 
   // Quests.
@@ -579,8 +579,6 @@ export const guideStrings = {
     aldricBody: "A humble village priest who first names the cult over a defiled grave in Eastbrook, then follows its trail in person through the marsh and up to the wall at Highwatch. He is the steady heart of the whole campaign.",
     marenRole: "The Marshal's Scout",
     marenBody: "A low-talking tracker you meet in the reeds of Mirefen, all quiet feet and a short blade. She follows the trail north too, and it is her ear that catches the words that send you to the peaks.",
-    elwynRole: "Glade Warden of Brightwood",
-    elwynBody: "The lone keeper of a sunlit grove in the north of the Vale. Her work is stewardship, not slaughter: thinning what overbreeds and granting the grove's oldest beast a kinder end than the wolves would.",
   },
 
   // Dungeons and Raids.

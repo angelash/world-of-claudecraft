@@ -45,6 +45,7 @@ import {
   EVENT_SKIN_TOKEN_ID, MECH_CHROMAS, classHasSkin, mechChromaItemId, mechChromaSkinIndex,
   rankAllowsMechChroma, rankAllowsSkin, rollSkinRank,
 } from './content/skins';
+import { sanitizeRemovedZone1Content } from './removed_zone1_content';
 
 const LEASH_DISTANCE = 45;
 const DUNGEON_LEASH_DISTANCE = 70;
@@ -945,9 +946,10 @@ export class Sim {
   // -------------------------------------------------------------------------
 
   addPlayer(cls: PlayerClass, name: string, opts?: { autoEquip?: boolean; state?: CharacterState }): number {
+    const savedState = opts?.state ? sanitizeRemovedZone1Content(opts.state).state : undefined;
     // Characters saved inside a dungeon instance rejoin at its entrance —
     // their old instance is gone (or belongs to someone else) by now.
-    let savedPos = opts?.state?.pos ?? null;
+    let savedPos = savedState?.pos ?? null;
     if (savedPos && savedPos.x > DUNGEON_X_THRESHOLD) {
       const dungeon = dungeonAt(savedPos.x) ?? DUNGEON_LIST[0];
       savedPos = { x: dungeon.doorPos.x, z: dungeon.doorPos.z - 4 };
@@ -956,14 +958,14 @@ export class Sim {
       ? this.groundPos(savedPos.x, savedPos.z)
       : this.groundPos(PLAYER_START.x, PLAYER_START.z);
     const savedArena1v1: ArenaStanding = {
-      rating: opts?.state?.arena1v1Rating ?? opts?.state?.arenaRating ?? ARENA_BASE_RATING,
-      wins: opts?.state?.arena1v1Wins ?? opts?.state?.arenaWins ?? 0,
-      losses: opts?.state?.arena1v1Losses ?? opts?.state?.arenaLosses ?? 0,
+      rating: savedState?.arena1v1Rating ?? savedState?.arenaRating ?? ARENA_BASE_RATING,
+      wins: savedState?.arena1v1Wins ?? savedState?.arenaWins ?? 0,
+      losses: savedState?.arena1v1Losses ?? savedState?.arenaLosses ?? 0,
     };
     const savedArena2v2: ArenaStanding = {
-      rating: opts?.state?.arena2v2Rating ?? ARENA_BASE_RATING,
-      wins: opts?.state?.arena2v2Wins ?? 0,
-      losses: opts?.state?.arena2v2Losses ?? 0,
+      rating: savedState?.arena2v2Rating ?? ARENA_BASE_RATING,
+      wins: savedState?.arena2v2Wins ?? 0,
+      losses: savedState?.arena2v2Losses ?? 0,
     };
     const player = createPlayer(this.nextId++, cls, startPos, name);
     this.addEntity(player);
@@ -972,11 +974,11 @@ export class Sim {
       entityId: player.id,
       cls,
       name,
-      skin: opts?.state?.skin ?? 0,
-      skinCatalog: opts?.state?.skinCatalog === 'mech' ? 'mech' : 'class',
-      pendingSkinRank: opts?.state?.pendingSkinRank ?? null,
-      pendingSkinCatalog: opts?.state?.pendingSkinCatalog ?? null,
-      pendingSkinItemId: opts?.state?.pendingSkinItemId ?? null,
+      skin: savedState?.skin ?? 0,
+      skinCatalog: savedState?.skinCatalog === 'mech' ? 'mech' : 'class',
+      pendingSkinRank: savedState?.pendingSkinRank ?? null,
+      pendingSkinCatalog: savedState?.pendingSkinCatalog ?? null,
+      pendingSkinItemId: savedState?.pendingSkinItemId ?? null,
       moveInput: emptyMoveInput(),
       inventory: [],
       vendorBuyback: [],
@@ -1017,8 +1019,8 @@ export class Sim {
     player.skin = meta.skin; // mirror onto the entity so the renderer + wire can read it
     if (this.primaryId === -1) this.primaryId = player.id;
 
-    if (opts?.state) {
-      const s = opts.state;
+    if (savedState) {
+      const s = savedState;
       player.level = Math.max(1, Math.min(MAX_LEVEL, s.level));
       player.facing = s.facing;
       player.prevFacing = s.facing;
@@ -1054,10 +1056,10 @@ export class Sim {
     meta.talentMods = computeTalentModifiers(cls, meta.talents);
     this.refreshKnownAbilities(meta, false);
     recalcPlayerStats(player, cls, meta.equipment, meta.talentMods);
-    if (opts?.state) {
-      player.hp = Math.max(1, Math.min(player.maxHp, opts.state.hp));
+    if (savedState) {
+      player.hp = Math.max(1, Math.min(player.maxHp, savedState.hp));
       player.resource = classDef.resourceType === 'mana'
-        ? Math.min(player.maxResource, Math.max(0, opts.state.resource))
+        ? Math.min(player.maxResource, Math.max(0, savedState.resource))
         : classDef.resourceType === 'energy' ? 100 : 0;
     } else {
       player.hp = player.maxHp;
@@ -1065,7 +1067,7 @@ export class Sim {
         : classDef.resourceType === 'energy' ? 100 : 0;
     }
     player.swingTimer = 0;
-    if (opts?.state?.pet) this.restorePet(player, opts.state.pet);
+    if (savedState?.pet) this.restorePet(player, savedState.pet);
     return player.id;
   }
 
@@ -1124,7 +1126,7 @@ export class Sim {
     // throwaway build, persist the PRE-fiesta snapshot so an autosave or
     // mid-match disconnect never writes the temporary state to the database.
     const restore = meta.fiestaRestore;
-    return {
+    const state: CharacterState = {
       level: restore ? restore.level : e.level,
       xp: restore ? restore.xp : meta.xp,
       lifetimeXp: meta.lifetimeXp,
@@ -1161,6 +1163,7 @@ export class Sim {
       pendingSkinCatalog: meta.pendingSkinCatalog,
       pendingSkinItemId: meta.pendingSkinItemId,
     };
+    return sanitizeRemovedZone1Content(state).state;
   }
 
   /** Set a player's appearance skin (meta + entity). Bounded; the renderer

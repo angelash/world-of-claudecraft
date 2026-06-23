@@ -175,18 +175,6 @@ export const VOICE_PROMPTS = [
       'The mere drinks the moonlight... and gives back the drowned. Thirty nights I\'ve watched that gate — and tonight, it is open.',
   },
 
-  // -- Eastbrook Vale (Brightwood Glade) -----------------------------------
-  {
-    npcId: 'ranger_elwyn',
-    name: 'Ranger Elwyn',
-    voiceDescription:
-      'Calm, low, watchful woodsman — a forest warden\'s steady hush, unhurried and grounded, '
-      + 'with the quiet authority of someone used to long silences and the treeline. Protective, '
-      + 'even-keeled, a faint earthy warmth. Age 30s–40s. Male.',
-    sampleText:
-      'Quiet now — the glade is calm today, and I mean to keep it that way. Tread soft past the treeline, keep your bow strung, and we\'ll see the wood stays peaceful a while longer.',
-  },
-
   // -- Abandoned Crypt raid (PR #665) --------------------------------------
   {
     npcId: 'nythraxis',

@@ -323,7 +323,6 @@ export const ZONE1_MOBS: Record<string, MobTemplate> = {
     armorPerLevel: 8, moveSpeed: 9, aggroRadius: 8,
     loot: [
       { copper: 8, chance: 1 },
-      { itemId: 'glade_pelt', chance: 0.5 },
     ],
     scale: 0.6, color: 0xd2691e,
   },
@@ -333,7 +332,6 @@ export const ZONE1_MOBS: Record<string, MobTemplate> = {
     armorPerLevel: 7, moveSpeed: 8.5, aggroRadius: 0,
     loot: [
       { copper: 6, chance: 1 },
-      { itemId: 'glade_pelt', chance: 0.4 },
       { itemId: 'brightwood_venison', chance: 0.3 },
     ],
     scale: 0.65, color: 0xb5895f,
@@ -356,7 +354,6 @@ export const ZONE1_MOBS: Record<string, MobTemplate> = {
     thorns: { value: 3, name: 'Coarse Pelt' },
     loot: [
       { copper: 12, chance: 1 },
-      { itemId: 'glade_pelt', chance: 0.5 },
     ],
     scale: 0.7, color: 0x5d5d5d,
   },
@@ -366,7 +363,6 @@ export const ZONE1_MOBS: Record<string, MobTemplate> = {
     armorPerLevel: 10, moveSpeed: 8.5, aggroRadius: 8,
     loot: [
       { copper: 12, chance: 1 },
-      { itemId: 'glade_pelt', chance: 0.5 },
       { itemId: 'brightwood_venison', chance: 0.4 },
     ],
     scale: 0.85, color: 0xa9763f,
@@ -379,7 +375,6 @@ export const ZONE1_MOBS: Record<string, MobTemplate> = {
     packFrenzy: { radius: 12, hasteMult: 1.3, duration: 8 },
     loot: [
       { copper: 16, chance: 1 },
-      { itemId: 'glade_pelt', chance: 0.55 },
     ],
     scale: 0.8, color: 0x8a6d3b,
   },
@@ -433,9 +428,7 @@ export const ZONE1_MOBS: Record<string, MobTemplate> = {
     loot: [
       { copper: 140, chance: 1 },
       { itemId: 'brightwood_venison', chance: 1 },
-      { itemId: 'monarch_heart', chance: 1, questId: 'q_brightwood_monarch' },
       { itemId: 'stag_antler', chance: 1 },
-      { itemId: 'monarch_crown_helm', chance: 0.3 },
     ],
     scale: 1.3, color: 0xe0b84a,
   },
@@ -472,22 +465,21 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     id: 'marshal_redbrook', name: 'Marshal Redbrook', title: 'Town Marshal',
     pos: { x: 4, z: 6 }, facing: Math.PI, color: 0xb7950b,
     questIds: [
-      'q_wolves', 'q_greyjaw', 'q_bandits', 'q_ringleader', 'q_mogger_tracks', 'q_mogger',
-      'q_ledger_first_duty', 'q_ledger_teeth', 'q_ledger_toll', 'q_ledger_outlaw_captain',
+      'q_wolves', 'q_greyjaw', 'q_bandits', 'q_ringleader', 'q_mogger',
     ],
     greeting: 'Keep your blade close, $C. The Vale is not what it was.',
   },
   trader_wilkes: {
     id: 'trader_wilkes', name: 'Trader Wilkes', title: 'Provisioner',
     pos: { x: -7, z: 3 }, facing: Math.PI / 2, color: 0x1e8449,
-    questIds: ['q_boars', 'q_supplies', 'q_ledger_great_boar'],
+    questIds: ['q_boars', 'q_supplies'],
     vendorItems: ['baked_bread', 'spring_water', 'roasted_boar', 'tough_jerky', 'minor_healing_potion', 'minor_mana_potion'],
     greeting: 'Fresh bread, clean water, fair prices. What can I get you?',
   },
   apothecary_lin: {
     id: 'apothecary_lin', name: 'Apothecary Lin', title: 'Herbalist',
     pos: { x: 11, z: -3 }, facing: -Math.PI / 2, color: 0x7d3c98,
-    questIds: ['q_spiders', 'q_ledger_silk', 'q_ledger_brood'],
+    questIds: ['q_spiders'],
     greeting: 'Careful where you step in the eastern woods, friend.',
   },
   brother_aldric: {
@@ -496,7 +488,6 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     questIds: [
       'q_bones', 'q_whispers', 'q_names_of_the_dead', 'q_silence_the_call',
       'q_rite', 'q_sexton', 'q_hollow', 'q_gravecallers_trail', 'q_fenbridge_muster',
-      'q_ledger_vigil',
     ],
     greeting: 'The Light keep you. Even the dead find no rest here of late.',
   },
@@ -517,7 +508,7 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     // dock sat inside the Mudfin spawn radius and new players got ambushed
     // walking up to a quest giver
     pos: { x: -16, z: 6 }, facing: -0.75, color: 0x2471a3,
-    questIds: ['q_murlocs', 'q_ledger_reedwater'],
+    questIds: ['q_murlocs'],
     vendorItems: ['simple_fishing_pole'],
     greeting: 'Grlmurlgrl— sorry, been listening to those fish-men too long.',
   },
@@ -526,16 +517,8 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     // in town (south edge, scowling toward his overrun dig) — his old spot
     // sat inside the Tunnel Rat spawn radius
     pos: { x: -4, z: -14 }, facing: -2.14, color: 0xa04000,
-    questIds: ['q_mine', 'q_ledger_deepvermin'],
+    questIds: ['q_mine'],
     greeting: "Whole dig's crawling with those candle-headed vermin!",
-  },
-  ranger_elwyn: {
-    id: 'ranger_elwyn', name: 'Ranger Elwyn', title: 'Glade Warden',
-    // posted in the open treeline south of Brightwood Glade, a clear buffer
-    // ahead of the nearest wildlife camp so adventurers can parley in peace
-    pos: { x: 35, z: 105 }, facing: 0, color: 0x3a7d44,
-    questIds: ['q_brightwood_thinning', 'q_brightwood_monarch'],
-    greeting: 'Quiet, $C — the glade is calm today, and I mean to keep it that way.',
   },
 };
 
@@ -708,16 +691,6 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     itemRewards: { warrior: 'militia_vest', mage: 'woven_robe', rogue: 'shadow_jerkin' },
     requiresQuest: 'q_bandits',
   },
-  q_mogger_tracks: {
-    id: 'q_mogger_tracks', name: "Mogger's Trail",
-    giverNpcId: 'marshal_redbrook', turnInNpcId: 'marshal_redbrook',
-    text: "Before you take the road north, Eastbrook has one last thorn in its side: Mogger. The brute has been trampling the lower meadow and driving the boars mad. Clear the meadow around his trail so we can see where he lairs.",
-    completionText: "Those tracks are fresh and deep enough to hold rain. Mogger is no camp tale, $N — and he is close.",
-    objectives: [{ type: 'kill', targetMobId: 'wild_boar', count: 8, label: 'Wild Boar driven from the trail' }],
-    xpReward: 650, copperReward: 350, itemRewards: {},
-    requiresQuest: 'q_gravecallers_trail',
-    minLevel: 6,
-  },
   q_mogger: {
     id: 'q_mogger', name: 'Mogger Must Fall',
     giverNpcId: 'marshal_redbrook', turnInNpcId: 'marshal_redbrook',
@@ -726,147 +699,9 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     objectives: [{ type: 'kill', targetMobId: 'mogger', count: 1, label: 'Mogger slain' }],
     xpReward: 1200, copperReward: 900,
     itemRewards: { warrior: 'bristleback_maul', mage: 'sableweb_slippers', rogue: 'moggers_stomper_boots' },
-    requiresQuest: 'q_mogger_tracks',
+    requiresQuest: 'q_gravecallers_trail',
     minLevel: 6,
     suggestedPlayers: 3,
-  },
-  q_brightwood_thinning: {
-    id: 'q_brightwood_thinning', name: 'Thinning the Glade',
-    giverNpcId: 'ranger_elwyn', turnInNpcId: 'ranger_elwyn',
-    text: 'Brightwood Glade is overrun, $N. The bramble lynx breed faster than I can cull them, and the herds trample what little grazing is left. Slay 8 Bramble Lynx and bring me 6 Glade Pelts so I can judge the health of the rest.',
-    completionText: 'Good. The pride is thinned and these pelts are sound — the glade will hold another season.',
-    objectives: [
-      { type: 'kill', targetMobId: 'bramble_lynx', count: 8, label: 'Bramble Lynx slain' },
-      { type: 'collect', itemId: 'glade_pelt', count: 6, label: 'Glade Pelt' },
-    ],
-    xpReward: 480, copperReward: 160,
-    itemRewards: { warrior: 'bramblehide_jerkin', mage: 'bramblehide_jerkin', rogue: 'bramblehide_jerkin' },
-    minLevel: 4,
-  },
-  q_brightwood_monarch: {
-    id: 'q_brightwood_monarch', name: 'The Brightwood Monarch',
-    giverNpcId: 'ranger_elwyn', turnInNpcId: 'ranger_elwyn',
-    text: 'There is one beast I will not loose an arrow at alone: the Brightwood Monarch, the great stag that rules the deep glade. He has grown old and savage, goring any who near his hollow. He is more than a match for one hunter — bring a friend or two. Lay him to rest and bring me his heart, $N.',
-    completionText: 'So the old king has fallen. A heavy thing, this — but a kinder end than the wolves would have given him. Wear this crown of his antlers with respect, $N.',
-    objectives: [{ type: 'collect', itemId: 'monarch_heart', count: 1, label: "The Monarch's Heart" }],
-    xpReward: 900, copperReward: 450,
-    itemRewards: { warrior: 'monarch_crown_helm', mage: 'monarch_crown_helm', rogue: 'monarch_crown_helm' },
-    requiresQuest: 'q_brightwood_thinning',
-    minLevel: 5,
-    suggestedPlayers: 2,
-  },
-
-  // -------------------------------------------------------------------------
-  // The Warden's Ledger — a 10-step bounty chain Marshal Redbrook and the
-  // Vale's standing folk hand out alongside the main story. Every objective
-  // targets mobs that already roam Eastbrook, so the chain adds pacing and
-  // reward without touching spawns or determinism.
-  // -------------------------------------------------------------------------
-  q_ledger_first_duty: {
-    id: 'q_ledger_first_duty', name: "A Warden's First Duty",
-    giverNpcId: 'marshal_redbrook', turnInNpcId: 'marshal_redbrook',
-    text: 'You want to earn your keep in Eastbrook, $N? Then start where every warden starts. The thornpelt badgers have dug their setts clean through the Brightwood Glade, in the far north past Wolf Run, and the grove floor is caving into their burrows. Cull 8 Thornpelt Badgers and the ledger will remember your name.',
-    completionText: 'Eight setts emptied and the grove floor settled. Good. Every name in this ledger started just where you are standing.',
-    objectives: [{ type: 'kill', targetMobId: 'thornpelt_badger', count: 8, label: 'Thornpelt Badger culled' }],
-    xpReward: 240, copperReward: 70, itemRewards: {},
-    minLevel: 1,
-  },
-  q_ledger_teeth: {
-    id: 'q_ledger_teeth', name: 'Teeth in the Dark',
-    giverNpcId: 'marshal_redbrook', turnInNpcId: 'marshal_redbrook',
-    text: 'The glade foxes have grown bold as wolves — they slip the henhouses at dusk and are gone before a lantern is lit, and a hungry vixen will take a lamb as soon as a hen. Thin them, $N. Slay 10 Glade Foxes and let the rest learn to fear the light again.',
-    completionText: 'Ten foxes, and the henhouses are quiet at dusk again. The ledger grows kinder to you.',
-    objectives: [{ type: 'kill', targetMobId: 'glade_fox', count: 10, label: 'Glade Fox slain' }],
-    xpReward: 320, copperReward: 110, itemRewards: {},
-    requiresQuest: 'q_ledger_first_duty',
-    minLevel: 2,
-  },
-  q_ledger_reedwater: {
-    id: 'q_ledger_reedwater', name: 'Reedwater Patrol',
-    giverNpcId: 'fisherman_brandt', turnInNpcId: 'fisherman_brandt',
-    text: 'Redbrook sent you? Good — these old bones cannot wade the shallows anymore. The meadow cranes have found my nets, and they spear more of my catch than the Mudfin ever did. Thin them: 8 Meadow Cranes, and mind the deep water.',
-    completionText: 'That will keep the long-legged thieves off my nets for a season. Tell the Marshal the shallows are mine again.',
-    objectives: [{ type: 'kill', targetMobId: 'meadow_crane', count: 8, label: 'Meadow Crane driven off' }],
-    xpReward: 430, copperReward: 150, itemRewards: {},
-    requiresQuest: 'q_ledger_teeth',
-    minLevel: 3,
-  },
-  q_ledger_silk: {
-    id: 'q_ledger_silk', name: 'Browse and Bramble',
-    giverNpcId: 'apothecary_lin', turnInNpcId: 'apothecary_lin',
-    text: 'The ledger marks the eastern woods as warden ground too — and my physic-beds are part of it. The spotted fawns have stripped my silverleaf and bloodthistle to the root, and without those simples half of Eastbrook goes without medicine. I take no joy in it, but cull 8 Spotted Fawns before the autumn herbs are lost entirely.',
-    completionText: 'The beds may yet recover, thanks to you. A hard mercy — but a child burning with fever needs the simples more than the wood needs the deer. The ledger is square.',
-    objectives: [{ type: 'kill', targetMobId: 'spotted_fawn', count: 8, label: 'Spotted Fawn culled' }],
-    xpReward: 450, copperReward: 160, itemRewards: {},
-    requiresQuest: 'q_ledger_teeth',
-    minLevel: 3,
-  },
-  q_ledger_brood: {
-    id: 'q_ledger_brood', name: 'The Spawning Dark',
-    giverNpcId: 'apothecary_lin', turnInNpcId: 'apothecary_lin',
-    text: 'Killing the lurkers only made room for the brood. The Sableweb hatchlings are pouring out of the deep nest, and a hundred small fangs kill a traveler as surely as one great one. Crush 8 Sableweb Hatchlings before they grow.',
-    completionText: 'A grim work, drowning a nest. But mercy now is a hundred funerals spared later. The ledger is square.',
-    objectives: [{ type: 'kill', targetMobId: 'sableweb_hatchling', count: 8, label: 'Sableweb Hatchling crushed' }],
-    xpReward: 500, copperReward: 175, itemRewards: {},
-    requiresQuest: 'q_ledger_silk',
-    minLevel: 4,
-  },
-  q_ledger_deepvermin: {
-    id: 'q_ledger_deepvermin', name: 'Vermin in the Deep',
-    giverNpcId: 'foreman_odell', turnInNpcId: 'foreman_odell',
-    text: "The Marshal's ledger says you clear pests. Well, my dig has the worst of them. The tunnel rats breed faster than my crew can swing a pick — put down 12 Tunnel Rat Diggers and maybe we strike copper before winter.",
-    completionText: 'Twelve of the candle-headed vermin, gone! Right, lads — back down the shaft. You have earned the Marshal a good word, $N.',
-    objectives: [{ type: 'kill', targetMobId: 'tunnel_rat', count: 12, label: 'Tunnel Rat Digger slain' }],
-    xpReward: 540, copperReward: 200, itemRewards: {},
-    requiresQuest: 'q_ledger_reedwater',
-    minLevel: 4,
-  },
-  q_ledger_toll: {
-    id: 'q_ledger_toll', name: 'The Tusked Road',
-    giverNpcId: 'marshal_redbrook', turnInNpcId: 'marshal_redbrook',
-    text: 'The grovetusk boars have come down out of the Brightwood and onto the southeast trade road — great tusked brutes that gore the draft oxen and overturn carts for the spilled grain. The ledger has a price on every one. Reopen the road: put down 8 Grovetusk Boars.',
-    completionText: 'Eight brutes off the road, and the carts are rolling again. Word is already spreading that the trade road has a new keeper. The ledger climbs in your favor.',
-    objectives: [{ type: 'kill', targetMobId: 'grovetusk_boar', count: 8, label: 'Grovetusk Boar slain' }],
-    xpReward: 560, copperReward: 220, itemRewards: {},
-    requiresQuest: 'q_ledger_deepvermin',
-    minLevel: 4,
-  },
-  q_ledger_vigil: {
-    id: 'q_ledger_vigil', name: 'Vigil at the Chapel',
-    giverNpcId: 'brother_aldric', turnInNpcId: 'brother_aldric',
-    text: 'The Marshal sends his wardens to me when the trouble is past the reach of swords alone. The chapel dead will not lie still, and I am too old to stand the night vigil. Keep it for me, $N — lay 10 Restless Bones back to their rest.',
-    completionText: 'Ten souls returned to the earth, and a night of peace bought for the chapel. The Light remembers such vigils, even when the ledger forgets.',
-    objectives: [{ type: 'kill', targetMobId: 'restless_bones', count: 10, label: 'Restless Bones laid to rest' }],
-    xpReward: 640, copperReward: 240, itemRewards: {},
-    requiresQuest: 'q_ledger_toll',
-    minLevel: 5,
-  },
-  q_ledger_great_boar: {
-    id: 'q_ledger_great_boar', name: 'The Great Bristleback',
-    giverNpcId: 'trader_wilkes', turnInNpcId: 'trader_wilkes',
-    text: 'There is an old bull boar in the western thickets — the Elder Bristleback, hide like bark and a temper to match. He has gored two of my hide-runners. Bring him down and clear 6 of the lesser Wild Boar that shelter behind him, and I will see your name set high in the ledger.',
-    completionText: 'The Elder Bristleback, dead by your hand! That hide alone is worth a season of trade. You have made the ledger proud, $N.',
-    objectives: [
-      { type: 'kill', targetMobId: 'elder_bristleback', count: 1, label: 'Elder Bristleback slain' },
-      { type: 'kill', targetMobId: 'wild_boar', count: 6, label: 'Wild Boar of the herd slain' },
-    ],
-    xpReward: 760, copperReward: 280, itemRewards: {},
-    requiresQuest: 'q_ledger_vigil',
-    minLevel: 5,
-  },
-  q_ledger_outlaw_captain: {
-    id: 'q_ledger_outlaw_captain', name: 'The Outlaw Captain',
-    giverNpcId: 'marshal_redbrook', turnInNpcId: 'marshal_redbrook',
-    text: 'The last name in the ledger is the one I have wanted crossed out for a year: Captain Verlan, who turned half the Vale to banditry. He shelters behind his lieutenants in the southeast camp. Cut down 6 Vale Bandits to reach him, then end Verlan himself. Do not go alone.',
-    completionText: 'Captain Verlan, dead, and his coat brought to my door. The ledger is closed, $N — and the Vale will tell wardens-to-come the name of the one who closed it.',
-    objectives: [
-      { type: 'kill', targetMobId: 'vale_bandit', count: 6, label: 'Vale Bandit cut down' },
-      { type: 'kill', targetMobId: 'captain_verlan', count: 1, label: 'Captain Verlan slain' },
-    ],
-    xpReward: 1000, copperReward: 400, itemRewards: {},
-    requiresQuest: 'q_ledger_great_boar',
-    minLevel: 6,
-    suggestedPlayers: 2,
   },
 };
 
@@ -875,12 +710,7 @@ export const ZONE1_QUEST_ORDER = [
   'q_supplies', 'q_bandits', 'q_mine', 'q_bones', 'q_ringleader',
   'q_whispers', 'q_names_of_the_dead', 'q_silence_the_call',
   'q_rite', 'q_sexton', 'q_hollow', 'q_gravecallers_trail',
-  'q_mogger_tracks', 'q_mogger',
-  'q_brightwood_thinning', 'q_brightwood_monarch',
-  // The Warden's Ledger bounty chain
-  'q_ledger_first_duty', 'q_ledger_teeth', 'q_ledger_reedwater', 'q_ledger_silk',
-  'q_ledger_brood', 'q_ledger_deepvermin', 'q_ledger_toll', 'q_ledger_vigil',
-  'q_ledger_great_boar', 'q_ledger_outlaw_captain',
+  'q_mogger',
 ];
 
 // ---------------------------------------------------------------------------

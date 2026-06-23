@@ -944,8 +944,8 @@ export const it_IT: EnTranslations = {
       "valePlaceNotes": "Eastbrook è la tua prima base. Il Sentiero dei Lupi e il Prato dei Cinghiali sono terreni di caccia tranquilli; il Lago a Specchio è acqua quieta dove pescare; il Boscoragnatela e lo Scavo di Rame nascondono ragni e scavatori avidi di minerale; un Campo di Banditi e la Cappella Caduta custodiscono lavori più duri; la Radura di Brightwood è una serena radura di natura selvaggia a nord.",
       "marshPlaceNotes": "Fenbridge custodisce l'unica strada asciutta. Le Canne del Predatore e le Secche di Deepfen brulicano di bestie di palude e murloc; il Roveto della Vedova è fittamente intessuto di ragnatele; la Cappella Annegata e i Tumuli dei Troll custodiscono pericoli più antichi; l'Accampamento dei Richiamatombe è il culto trincerato, e il Bastione Sommerso è il cuore istanziato della palude.",
       "peaksPlaceNotes": "Highwatch tiene il muro. La Cresta del Cacciatore e le Tane di Deeprock appartengono ai felini di cresta e ai kobold; le Pendici degli Ogre e l'Accampamento di Guerra di Drogmar ai bruti a pagamento; Stormcrag crepita di elementali e il Glimmermere risplende sotto di esso; le Tende del Culto del Wyrm e i Campi dei Revenant cingono l'altura del culto, con il Santuario del Gravewyrm alla sua sommità.",
-      "gladeTitle": "Un angolo tranquillo: la Radura di Brightwood",
-      "gladeBody": "Non tutte le storie della Valle parlano dei morti. A nord, una radura assolata chiamata Radura di Brightwood mantiene il proprio ritmo più gentile, vegliata da una ranger solitaria che preferisce curarla piuttosto che combattere. Il suo compito è l'equilibrio: diradare ciò che prolifica troppo e, quando la sua tana diventa troppo pericolosa da lasciar stare, dare al vecchio cervo coronato della radura una fine rispettosa. È un dolce contrappunto alla pista che stai seguendo, e vale la deviazione."
+      "gladeTitle": "Un angolo quieto: la Radura di Brightwood",
+      "gladeBody": "Non ogni storia della Valle parla dei morti. A nord, una radura assolata chiamata Brightwood mantiene un ritmo più gentile tutto suo, con sentieri silenziosi, cervi al pascolo e bestie guardinghe sotto i rami. È un contrappunto lieve alla pista che stai seguendo e vale la pena vederla quando la strada ti lascia spazio per vagare."
     },
     "questsPage": {
       "heading": "Missioni",
@@ -993,9 +993,7 @@ export const it_IT: EnTranslations = {
       "aldricRole": "Sacerdote della Valle",
       "aldricBody": "Un umile sacerdote di villaggio che per primo dà un nome al culto su una tomba profanata a Eastbrook, poi ne segue la pista di persona attraverso la palude e fino al muro di Highwatch. È il cuore saldo dell'intera campagna.",
       "marenRole": "L'Esploratrice del Maresciallo",
-      "marenBody": "Una battitrice di pista dalla voce sommessa che incontri tra le canne di Mirefen, tutta passi silenziosi e una lama corta. Anche lei segue la pista verso nord, ed è il suo orecchio a cogliere le parole che ti mandano alle vette.",
-      "elwynRole": "Guardiana della Radura di Brightwood",
-      "elwynBody": "La solitaria custode di una radura assolata nel nord della Valle. Il suo compito è la cura, non la mattanza: dirada ciò che prolifica troppo e concede alla più antica bestia della radura una fine più dolce di quella che le darebbero i lupi."
+      "marenBody": "Una battitrice di pista dalla voce sommessa che incontri tra le canne di Mirefen, tutta passi silenziosi e una lama corta. Anche lei segue la pista verso nord, ed è il suo orecchio a cogliere le parole che ti mandano alle vette."
     },
     "dungeonsPage": {
       "heading": "Dungeon e Incursioni",
@@ -3987,9 +3985,6 @@ export const it_IT: EnTranslations = {
       "milepost_boots": {
         "name": "Stivali della pietra miliare"
       },
-      "glade_pelt": {
-        "name": "Pelliccia della radura"
-      },
       "soft_down": {
         "name": "Ciuffo di piumino morbido"
       },
@@ -4007,9 +4002,6 @@ export const it_IT: EnTranslations = {
       },
       "monarch_crown_helm": {
         "name": "Corona del Monarca"
-      },
-      "monarch_heart": {
-        "name": "Il Cuore del Monarca"
       },
       "bristleback_maul": {
         "name": "Maglio Bristleback"
@@ -4881,11 +4873,6 @@ export const it_IT: EnTranslations = {
         "title": "Maestro del sapere",
         "greeting": "Fai attenzione allo scisto instabile, {className}. La montagna è inquieta da qualche tempo, e voglio sapere perché."
       },
-      "ranger_elwyn": {
-        "name": "Ranger Elwyn",
-        "title": "Guardiano della radura",
-        "greeting": "Silenzio, {className}: la radura oggi è tranquilla, e intendo che resti così."
-      },
       "brother_aldric_raid": {
         "name": "Fratello Aldric",
         "title": "Sacerdote della Valle",
@@ -5637,145 +5624,6 @@ export const it_IT: EnTranslations = {
         "objectives": {
           "0": {
             "label": "Nythraxis sconfitto"
-          }
-        }
-      },
-      "q_brightwood_thinning": {
-        "title": "Diradare la radura",
-        "text": "La radura di Brightwood è invasa, {playerName}. Le linci dei rovi si riproducono più in fretta di quanto io riesca ad abbatterle, e le mandrie calpestano il poco pascolo rimasto. Uccidi 8 Linci dei rovi e portami 6 Pellicce della radura, così potrò valutare la salute delle altre.",
-        "completion": "Bene. Il branco è ridotto e queste pellicce sono integre: la radura reggerà un'altra stagione.",
-        "objectives": {
-          "0": {
-            "label": "Lince dei rovi uccisa"
-          },
-          "1": {
-            "label": "Pelliccia della radura"
-          }
-        }
-      },
-      "q_brightwood_monarch": {
-        "title": "Il Monarca di Brightwood",
-        "text": "C'è una bestia contro cui non scoccherò una freccia da solo: il Monarca di Brightwood, il grande cervo che regna sulla radura profonda. È diventato vecchio e feroce, incornando chiunque si avvicini alla sua tana. È più di quanto un solo cacciatore possa affrontare: porta con te un amico o due. Mettilo a riposo e portami il suo cuore, {playerName}.",
-        "completion": "Così il vecchio re è caduto. È una cosa pesante, questa, ma una fine più gentile di quella che gli avrebbero dato i lupi. Porta con rispetto questa corona fatta delle sue corna, {playerName}.",
-        "objectives": {
-          "0": {
-            "label": "Il Cuore del Monarca"
-          }
-        }
-      },
-      "q_ledger_first_duty": {
-        "title": "Il primo dovere di un guardiano",
-        "text": "Vuoi guadagnarti il pane a Eastbrook, {playerName}? Allora comincia da dove comincia ogni guardiano. I tassi pellespinosa hanno scavato le loro tane attraverso la Radura di Brightwood, all'estremo nord oltre il Sentiero dei lupi, e il suolo del bosco sta sprofondando nelle loro gallerie. Abbatti 8 Tassi pellespinosa e il registro ricorderà il tuo nome.",
-        "completion": "Otto tane svuotate e il suolo del bosco si è riassestato. Bene. Ogni nome in questo registro è cominciato proprio dove stai tu adesso.",
-        "objectives": {
-          "0": {
-            "label": "Tasso pellespinosa abbattuto"
-          }
-        }
-      },
-      "q_ledger_teeth": {
-        "title": "Zanne nel buio",
-        "text": "Le volpi della radura sono diventate audaci come lupi: si intrufolano nei pollai al crepuscolo e spariscono prima che si accenda una lanterna, e una volpe affamata prenderà un agnello tanto quanto una gallina. Diradale, {playerName}. Uccidi 10 Volpi della radura e fa' che le altre tornino a temere la luce.",
-        "completion": "Dieci volpi, e al crepuscolo i pollai sono di nuovo tranquilli. Il registro diventa più gentile con te.",
-        "objectives": {
-          "0": {
-            "label": "Volpe della radura uccisa"
-          }
-        }
-      },
-      "q_ledger_reedwater": {
-        "title": "Pattuglia tra le canne",
-        "text": "Ti manda Redbrook? Bene: queste vecchie ossa non riescono più a guadare le secche. Le gru della prateria hanno scoperto le mie reti e mi infilzano più pesci di quanti ne abbiano mai presi i Pinnalimo. Diradale: 8 Gru della prateria, e attento all'acqua profonda.",
-        "completion": "Questo terrà quelle ladre dalle lunghe zampe lontane dalle mie reti per una stagione. Di' al Maresciallo che le secche sono di nuovo mie.",
-        "objectives": {
-          "0": {
-            "label": "Gru della prateria scacciata"
-          }
-        }
-      },
-      "q_ledger_silk": {
-        "title": "Pascolo e rovi",
-        "text": "Il registro segna anche i boschi orientali come terra di guardiani, e i miei orti officinali ne fanno parte. I cerbiatti maculati hanno spogliato fino alla radice la mia foglia d'argento e il cardo sanguigno, e senza quei semplici metà di Eastbrook resta senza medicine. Non ci trovo alcun piacere, ma abbatti 8 Cerbiatti maculati prima che le erbe d'autunno vadano perdute del tutto.",
-        "completion": "Gli orti potrebbero ancora riprendersi, grazie a te. Una dura misericordia, ma un bambino divorato dalla febbre ha più bisogno dei semplici di quanto il bosco abbia bisogno dei cervi. Il registro è in pari.",
-        "objectives": {
-          "0": {
-            "label": "Cerbiatto maculato abbattuto"
-          }
-        }
-      },
-      "q_ledger_brood": {
-        "title": "Il buio che genera",
-        "text": "Uccidere gli acquattati ha solo fatto spazio alla covata. I piccoli Sableweb sciamano fuori dal nido profondo, e cento piccole zanne uccidono un viandante con la stessa certezza di una grande. Schiaccia 8 Piccoli Sableweb prima che crescano.",
-        "completion": "Un lavoro tetro, annegare un nido. Ma la pietà ora è un centinaio di funerali risparmiati più tardi. Il conto è pareggiato.",
-        "objectives": {
-          "0": {
-            "label": "Piccolo Sableweb schiacciato"
-          }
-        }
-      },
-      "q_ledger_deepvermin": {
-        "title": "Parassiti nel profondo",
-        "text": "Il registro del Maresciallo dice che tu ti occupi dei parassiti. Be', il mio scavo ha i peggiori. I ratti di galleria si riproducono più in fretta di quanto la mia squadra sappia menare il piccone: abbatti 12 Ratti di galleria scavatori e magari troveremo il rame prima dell'inverno.",
-        "completion": "Dodici di quei parassiti dalla testa di candela, spariti! Bene, ragazzi: di nuovo giù nel pozzo. Ti sei guadagnato una buona parola dal Maresciallo, {playerName}.",
-        "objectives": {
-          "0": {
-            "label": "Ratto di galleria scavatore ucciso"
-          }
-        }
-      },
-      "q_ledger_toll": {
-        "title": "La strada delle zanne",
-        "text": "I cinghiali zannaboschiva sono scesi dal Boscochiaro fino alla strada commerciale di sud-est: bestioni dalle grandi zanne che incornano i buoi da tiro e rovesciano i carri per il grano sparso. Il registro ha una taglia su ognuno di loro. Riapri la strada: abbatti 8 Cinghiali zannaboschiva.",
-        "completion": "Otto bestioni in meno sulla strada, e i carri tornano a viaggiare. Si sparge già la voce che la strada commerciale ha un nuovo guardiano. Il registro sale a tuo favore.",
-        "objectives": {
-          "0": {
-            "label": "Cinghiale zannaboschiva ucciso"
-          }
-        }
-      },
-      "q_ledger_vigil": {
-        "title": "Veglia alla cappella",
-        "text": "Il Maresciallo manda da me i suoi guardiani quando il guaio è oltre la portata delle sole spade. I morti della cappella non vogliono star fermi, e io sono troppo vecchio per reggere la veglia notturna. Tienila per me, {playerName}: rimetti a riposo 10 Ossa irrequiete.",
-        "completion": "Dieci anime restituite alla terra, e una notte di pace comprata per la cappella. La Luce ricorda queste veglie, anche quando il registro le dimentica.",
-        "objectives": {
-          "0": {
-            "label": "Ossa irrequiete messe a riposo"
-          }
-        }
-      },
-      "q_ledger_great_boar": {
-        "title": "Il grande Bristleback",
-        "text": "C'è un vecchio cinghiale maschio nei boschetti occidentali: il Bristleback anziano, con la pelle dura come corteccia e un carattere altrettanto. Ha incornato due dei miei conciatori. Abbattilo e ripulisci 6 dei Cinghiali selvatici minori che si riparano dietro di lui, e farò scrivere il tuo nome ben in alto nel registro.",
-        "completion": "Il Bristleback anziano, morto per mano tua! Quella sola pelle vale una stagione di commerci. Hai reso fiero il registro, {playerName}.",
-        "objectives": {
-          "0": {
-            "label": "Bristleback anziano ucciso"
-          },
-          "1": {
-            "label": "Cinghiale selvatico del branco ucciso"
-          }
-        }
-      },
-      "q_ledger_outlaw_captain": {
-        "title": "Il capitano fuorilegge",
-        "text": "L'ultimo nome nel registro è quello che voglio cancellato da un anno: il Capitano Verlan, che ha spinto metà della Valle al banditismo. Si ripara dietro i suoi luogotenenti nel campo a sud-est. Abbatti 6 Banditi della Valle per raggiungerlo, poi metti fine a Verlan stesso. Non andarci da solo.",
-        "completion": "Il Capitano Verlan, morto, e il suo cappotto portato alla mia porta. Il registro è chiuso, {playerName}, e la Valle racconterà ai guardiani che verranno il nome di chi l'ha chiuso.",
-        "objectives": {
-          "0": {
-            "label": "Bandito della Valle abbattuto"
-          },
-          "1": {
-            "label": "Capitano Verlan ucciso"
-          }
-        }
-      },
-      "q_mogger_tracks": {
-        "title": "La traccia di Mogger",
-        "text": "Prima di prendere la strada a nord, Eastbrook ha un'ultima spina nel fianco: Mogger. Il bruto calpesta il prato basso e fa impazzire i cinghiali. Ripulisci il prato attorno alla sua traccia per scoprire dove si tana.",
-        "completion": "Quelle impronte sono fresche e abbastanza profonde da trattenere la pioggia. Mogger non è una storia da campo, {playerName}, ed è vicino.",
-        "objectives": {
-          "0": {
-            "label": "Cinghiale selvatico scacciato dalla traccia"
           }
         }
       },

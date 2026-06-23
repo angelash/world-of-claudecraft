@@ -33,6 +33,7 @@
     "bench": "npm run build:env && node dist-env/env_server.cjs --bench",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
+    "db:cleanup-zone1-removed": "tsx scripts/cleanup_removed_zone1_content.ts",
     "build:server": "node scripts/build_server.mjs",
     "server": "npm run build:server && node dist-server/server.cjs",
     "realms": "npm run build:server && node scripts/dev-realms.mjs",

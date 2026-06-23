@@ -1,18 +1,18 @@
 // Regression for the "completed quests are offered again" report.
-// Player-named example: "A Warden's First Duty" (q_ledger_first_duty).
+// Uses a current Eastbrook quest; the original player-named ledger example was retired.
 //
 // Two independent guards:
 //  1. The completion engine latches a turned-in quest to 'done' and keeps it
 //     done across a serialize/deserialize round-trip (proves the engine is sound).
 //  2. No two quests share an identical giver + objective signature. The actual
-//     bug was content, not logic: the Warden's Ledger chain re-issued the same
-//     kill task from the same NPC as a main-story quest, so a finished quest was
+//     bug was content, not logic: a retired side chain re-issued the same kill
+//     task from the same NPC as a main-story quest, so a finished quest was
 //     indistinguishable from a brand-new one to the player.
 import { describe, expect, it } from 'vitest';
 import { QUESTS } from '../src/sim/data';
 import { Sim } from '../src/sim/sim';
 
-const QID = 'q_ledger_first_duty';
+const QID = 'q_wolves';
 
 function driveToTurnIn(sim: Sim): void {
   const quest = QUESTS[QID];
@@ -25,7 +25,7 @@ function driveToTurnIn(sim: Sim): void {
   sim.turnInQuest(QID);
 }
 
-describe('completed quest does not repeat (q_ledger_first_duty)', () => {
+describe('completed quest does not repeat', () => {
   it('is "done" immediately after turn-in', () => {
     const sim = new Sim({ seed: 1, playerClass: 'warrior', playerName: 'W' });
     sim.setPlayerLevel(5);

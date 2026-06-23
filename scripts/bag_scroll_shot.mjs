@@ -42,12 +42,12 @@ await page.evaluate(() => {
   const distinct = [
     'acolytes_circlet', 'amber_hide', 'apprentice_robe', 'apprentice_staff', 'baked_bread',
     'bandit_bandana', 'blessed_wax', 'boar_hide', 'bone_fragments', 'boundstone_girdle',
-    'boundstone_helm', 'bramblehide_jerkin', 'brightwood_venison', 'bristleback_maul',
+    'boundstone_helm', 'brightwood_venison', 'bristleback_maul',
     'bristlehide_spaulders', 'bronzework_mace', 'caravan_quilted_vest', 'caravan_warden_dirk',
     'crossroads_saber', 'cryptbone_greaves', 'cryptbone_helm', 'cryptbone_pauldrons',
     'cryptstalker_jerkin', 'drovers_staff', 'eastbrook_arming_sword', 'eastbrook_chain_vest',
     'eastbrook_wool_trousers', 'elixir_of_the_bear', 'embroidered_mantle', 'footpad_jerkin',
-    'glade_pelt', 'gnarled_staff', 'gorraks_cleaver',
+    'gnarled_staff', 'gorraks_cleaver',
   ];
   for (const id of distinct) sim.addItem(id, 1);
   sim.addItem('minor_mana_potion', 5);

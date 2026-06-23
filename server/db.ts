@@ -2,6 +2,7 @@ import { Pool } from 'pg';
 import { isUniqueViolation } from './http_util';
 import type { CharacterState, MarketSave } from '../src/sim/sim';
 import type { ArenaFormat, PlayerClass } from '../src/sim/types';
+import { sanitizeRemovedZone1Content } from '../src/sim/removed_zone1_content';
 import type { ChatLogRow } from './chat_log';
 import { SOCIAL_SCHEMA } from './social_db';
 import { seedChatFilterDefaults } from './chat_filter_db';
@@ -951,9 +952,10 @@ export async function renameCharacter(accountId: number, characterId: number, na
 }
 
 export async function saveCharacterState(characterId: number, level: number, state: CharacterState): Promise<void> {
+  const cleanState = sanitizeRemovedZone1Content(state).state;
   await pool.query(
     'UPDATE characters SET level = $2, state = $3, updated_at = now() WHERE id = $1',
-    [characterId, level, JSON.stringify(state)],
+    [characterId, level, JSON.stringify(cleanState)],
   );
 }
 

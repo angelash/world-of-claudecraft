@@ -1,10 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { questTrackerView, type TrackedQuest } from '../src/ui/quest_tracker';
 
-// The five quests from the reference image (titles/labels already resolved, as
-// the consumer passes them).
+// Titles/labels are already resolved before the tracker receives them.
 const QUESTS: TrackedQuest[] = [
-  { id: 'warden', title: "A Warden's First Duty", complete: false, objectives: [{ label: 'Thornpelt Badger culled', current: 0, total: 8 }] },
+  { id: 'wolves', title: 'Wolves at the Door', complete: false, objectives: [{ label: 'Forest Wolf slain', current: 0, total: 8 }] },
   { id: 'webwood', title: 'Webwood Menace', complete: true, objectives: [
     { label: 'Webwood Lurker slain', current: 6, total: 6 },
     { label: 'Webwood Silk Gland', current: 4, total: 4 },

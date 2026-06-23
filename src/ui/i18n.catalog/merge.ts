@@ -1914,12 +1914,6 @@ const mergeEntitiesEn = {
     "Felhunter", "Felguard", "Infernal", "Doomguard",
   ], 'mob'),
   quests: {
-    q_mogger_tracks: {
-      title: "Mogger's Trail",
-      text: "Before you take the road north, Eastbrook has one last thorn in its side: Mogger. The brute has been trampling the lower meadow and driving the boars mad. Clear the meadow around his trail so we can see where he lairs.",
-      completion: "Those tracks are fresh and deep enough to hold rain. Mogger is no camp tale, {playerName} - and he is close.",
-      objectives: { 0: { label: "Wild Boar driven from the trail" } },
-    },
     q_mogger: {
       title: "Mogger Must Fall",
       text: "Mogger has split carts, flattened fences, and killed enough livestock to empty half the Vale. Do not face him alone. Take two strong companions into the eastern meadow and put the brute down for good.",
@@ -1956,12 +1950,6 @@ export const mergeEntities = {
       "Cazador vil", "Guardia vil", "Infernal", "Guardián del Terror",
     ], 'mob'),
     quests: {
-      q_mogger_tracks: {
-        title: "El rastro de Mogger",
-        text: "Antes de tomar el camino al norte, Eastbrook tiene una última espina clavada: Mogger. La bestia pisotea el prado bajo y enloquece a los jabalíes. Limpia la zona de su rastro para que veamos dónde se esconde.",
-        completion: "Esas huellas son recientes y bastante hondas para juntar lluvia. Mogger no es un cuento de campamento, {playerName}, y está cerca.",
-        objectives: { 0: { label: "Jabalí salvaje expulsado del rastro" } },
-      },
       q_mogger: {
         title: "Mogger debe caer",
         text: "Mogger ha partido carretas, aplastado cercas y matado tanto ganado como para vaciar medio Valle. No lo enfrentes a solas. Lleva dos compañeros fuertes al prado oriental y acaba con la bestia para siempre.",
@@ -1995,12 +1983,6 @@ export const mergeEntities = {
       "Limier corrompu", "Gangregarde", "Infernal", "Seigneur de l'effroi",
     ], 'mob'),
     quests: {
-      q_mogger_tracks: {
-        title: "La piste de Mogger",
-        text: "Avant de prendre la route du nord, Eastbrook a une dernière épine dans le pied : Mogger. La brute piétine le pré bas et rend les sangliers fous. Nettoyez le pré autour de sa piste pour que nous voyions où il se terre.",
-        completion: "Ces traces sont fraîches et assez profondes pour retenir la pluie. Mogger n'est pas une histoire de camp, {playerName}, et il est proche.",
-        objectives: { 0: { label: "Sanglier sauvage chassé de la piste" } },
-      },
       q_mogger: {
         title: "Mogger doit tomber",
         text: "Mogger a brisé des chariots, aplati des clôtures et tué assez de bétail pour vider la moitié du Val. Ne l'affrontez pas seul. Emmenez deux compagnons solides au pré de l'est et abattez la brute pour de bon.",
@@ -2035,12 +2017,6 @@ export const mergeEntities = {
       "Segugio vile", "Guardia vile", "Infernale", "Guardia del Terrore",
     ], 'mob'),
     quests: {
-      q_mogger_tracks: {
-        title: "La traccia di Mogger",
-        text: "Prima di prendere la strada a nord, Eastbrook ha un'ultima spina nel fianco: Mogger. Il bruto calpesta il prato basso e fa impazzire i cinghiali. Ripulisci il prato attorno alla sua traccia per scoprire dove si tana.",
-        completion: "Quelle impronte sono fresche e abbastanza profonde da trattenere la pioggia. Mogger non è una storia da campo, {playerName}, ed è vicino.",
-        objectives: { 0: { label: "Cinghiale selvatico scacciato dalla traccia" } },
-      },
       q_mogger: {
         title: "Mogger deve cadere",
         text: "Mogger ha spaccato carri, schiacciato recinti e ucciso bestiame quanto basta per svuotare mezzo Valle. Non affrontarlo da solo. Porta due compagni forti nel prato orientale e abbatti il bruto per sempre.",
@@ -2073,12 +2049,6 @@ export const mergeEntities = {
       "Teufelsjäger", "Teufelswache", "Inferno", "Schreckenswache",
     ], 'mob'),
     quests: {
-      q_mogger_tracks: {
-        title: "Moggers Spur",
-        text: "Bevor du die Straße nach Norden nimmst, hat Eastbrook noch einen letzten Dorn im Fleisch: Mogger. Der Grobian zertrampelt die untere Wiese und treibt die Eber in den Wahnsinn. Säubere die Wiese um seine Spur, damit wir sehen, wo er haust.",
-        completion: "Diese Spuren sind frisch und tief genug, um Regen zu halten. Mogger ist kein Lagerfeuermärchen, {playerName}, und er ist nah.",
-        objectives: { 0: { label: "Wilder Eber von der Spur vertrieben" } },
-      },
       q_mogger: {
         title: "Mogger muss fallen",
         text: "Mogger hat Karren gespalten, Zäune plattgewalzt und genug Vieh getötet, um das halbe Tal zu leeren. Stell dich ihm nicht allein. Nimm zwei starke Gefährten zur östlichen Wiese und leg den Grobian endgültig um.",
@@ -2111,12 +2081,6 @@ export const mergeEntities = {
       "地狱猎犬", "恶魔卫士", "地狱火", "末日守卫",
     ], 'mob'),
     quests: {
-      q_mogger_tracks: {
-        title: "莫格的踪迹",
-        text: "在你踏上北路前，东溪还有最后一根刺：莫格。那蛮兽践踏下方草地，把野猪都逼疯了。清理它踪迹周围的草地，我们才能看出它藏在哪里。",
-        completion: "这些足迹很新，也深得能积住雨水。莫格不是营火故事，{playerName}，而且它就在附近。",
-        objectives: { 0: { label: "野猪被赶离踪迹" } },
-      },
       q_mogger: {
         title: "莫格必须倒下",
         text: "莫格劈裂货车，踏平栅栏，杀死的牲口足以让半个谷地空掉。不要独自面对它。带两名强壮同伴去东边草地，把那蛮兽彻底放倒。",
@@ -2149,12 +2113,6 @@ export const mergeEntities = {
       "地獄獵犬", "惡魔守衛", "地獄火", "末日守衛",
     ], 'mob'),
     quests: {
-      q_mogger_tracks: {
-        title: "莫格的蹤跡",
-        text: "在你踏上北路前，東溪還有最後一根刺：莫格。那蠻獸踐踏下方草地，把野豬都逼瘋了。清理牠蹤跡周圍的草地，我們才能看出牠藏在哪裡。",
-        completion: "這些足跡很新，也深得能積住雨水。莫格不是營火故事，{playerName}，而且牠就在附近。",
-        objectives: { 0: { label: "野豬被趕離蹤跡" } },
-      },
       q_mogger: {
         title: "莫格必須倒下",
         text: "莫格劈裂貨車，踏平柵欄，殺死的牲口足以讓半個谷地空掉。不要獨自面對牠。帶兩名強壯同伴去東邊草地，把那蠻獸徹底放倒。",
@@ -2187,12 +2145,6 @@ export const mergeEntities = {
       "지옥사냥개", "지옥수호병", "지옥불정령", "파멸의 수호병",
     ], 'mob'),
     quests: {
-      q_mogger_tracks: {
-        title: "모거의 흔적",
-        text: "북쪽 길을 떠나기 전에 이스트브룩에는 마지막 골칫거리, 모거가 남았습니다. 그 짐승은 아래 초원을 짓밟고 멧돼지를 미치게 합니다. 흔적 주변의 초원을 정리해 은신처를 찾아내십시오.",
-        completion: "그 발자국은 새롭고 비를 담을 만큼 깊습니다. 모거는 야영지 이야기가 아닙니다, {playerName}. 아주 가까이 있습니다.",
-        objectives: { 0: { label: "야생 멧돼지를 흔적에서 몰아냄" } },
-      },
       q_mogger: {
         title: "모거를 쓰러뜨려라",
         text: "모거는 수레를 쪼개고 울타리를 납작하게 만들며 계곡 절반을 비울 만큼 가축을 죽였습니다. 혼자 맞서지 마십시오. 강한 동료 둘과 동쪽 초원으로 가서 그 짐승을 끝내십시오.",
@@ -2225,12 +2177,6 @@ export const mergeEntities = {
       "フェルハンター", "フェルガード", "インファーナル", "ドゥームガード",
     ], 'mob'),
     quests: {
-      q_mogger_tracks: {
-        title: "モガーの足跡",
-        text: "北への道を進む前に、イーストブルックには最後の厄介者がいます。モガーです。あの巨獣は低い草地を踏み荒らし、猪を狂わせています。足跡の周囲を片付け、巣を見つけられるようにしてください。",
-        completion: "その足跡は新しく、雨を溜めるほど深い。モガーは焚き火話ではありません、{playerName}。近くにいます。",
-        objectives: { 0: { label: "野猪を足跡から追い払う" } },
-      },
       q_mogger: {
         title: "モガーを倒せ",
         text: "モガーは荷車を裂き、柵を潰し、谷の半分を空にするほど家畜を殺しました。ひとりで挑んではいけません。強い仲間を二人連れ、東の草地であの巨獣を完全に倒してください。",
@@ -2263,12 +2209,6 @@ export const mergeEntities = {
       "Caçador Vil", "Guarda Vil", "Infernal", "Guarda Sinistro",
     ], 'mob'),
     quests: {
-      q_mogger_tracks: {
-        title: "A trilha de Mogger",
-        text: "Antes de pegar a estrada ao norte, Eastbrook tem um último espinho: Mogger. A fera pisoteia o prado baixo e enlouquece os javalis. Limpe o prado ao redor da trilha para descobrirmos onde ele se esconde.",
-        completion: "Essas pegadas são recentes e fundas o bastante para segurar chuva. Mogger não é história de acampamento, {playerName}, e está perto.",
-        objectives: { 0: { label: "Javali selvagem expulso da trilha" } },
-      },
       q_mogger: {
         title: "Mogger deve cair",
         text: "Mogger partiu carroças, achatou cercas e matou gado suficiente para esvaziar metade do Vale. Não o enfrente só. Leve dois companheiros fortes ao prado leste e derrube a fera de vez.",
@@ -2301,12 +2241,6 @@ export const mergeEntities = {
       "Охотник Скверны", "Страж Скверны", "Инфернал", "Страж Рока",
     ], 'mob'),
     quests: {
-      q_mogger_tracks: {
-        title: "След Моггера",
-        text: "Прежде чем идти на северную дорогу, у Истврука осталась последняя заноза: Моггер. Зверь топчет нижний луг и сводит кабанов с ума. Очистите луг вокруг его следа, чтобы мы поняли, где он прячется.",
-        completion: "Эти следы свежие и такие глубокие, что удержат дождь. Моггер не байка у костра, {playerName}, и он близко.",
-        objectives: { 0: { label: "Дикий кабан отогнан от следа" } },
-      },
       q_mogger: {
         title: "Моггер должен пасть",
         text: "Моггер расколол повозки, расплющил изгороди и перебил столько скота, что хватило бы опустошить половину долины. Не выходите против него в одиночку. Возьмите двух сильных спутников на восточный луг и добейте зверя навсегда.",

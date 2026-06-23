@@ -99,7 +99,6 @@ export const world: GuidePage = {
           <div class="guide-figures">
             ${loreFigure('Brother Aldric', 'guide.lore.aldricRole', 'guide.lore.aldricBody')}
             ${loreFigure('Scout Maren', 'guide.lore.marenRole', 'guide.lore.marenBody')}
-            ${loreFigure('Ranger Elwyn', 'guide.lore.elwynRole', 'guide.lore.elwynBody')}
           </div>
         </section>
 
