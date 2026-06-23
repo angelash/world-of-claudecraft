@@ -740,6 +740,7 @@ export class AiActiveTriggerService {
         rule: input.rule,
         nowMs: input.nowMs,
         deliver: input.deliver,
+        applyNpcAction: input.applyNpcAction,
       });
     }
 
@@ -882,6 +883,7 @@ export class AiActiveTriggerService {
     rule: AiActivePollRuleV1;
     nowMs: number;
     deliver?: (pid: number, events: SimEvent[]) => void;
+    applyNpcAction?: AiActiveNpcActionBridge;
   }): { events: SimEvent[]; skipReason: AiActiveSkipReason } {
     const scene = sceneFrameFor(input.sim, input.player.pos, { excludeEntityIds: [input.player.id] });
     const sequence = this.buildNpcSocialSequence(input.sim, input.player, scene, input.nowMs);
@@ -905,6 +907,7 @@ export class AiActiveTriggerService {
       lineId: sequence.lineIds[0],
       createdAtMs: input.nowMs,
     });
+    this.tryApplySocialSequenceActions(input.player, sequence.speakers, input.applyNpcAction);
     if (input.deliver) {
       return {
         events: this.schedulePacedSequence(input.player.id, sequence.events, input.deliver),
@@ -912,6 +915,28 @@ export class AiActiveTriggerService {
       };
     }
     return { events: sequence.events, skipReason: 'not_due' };
+  }
+
+  private tryApplySocialSequenceActions(
+    player: Entity,
+    speakers: readonly Entity[],
+    applyNpcAction?: AiActiveNpcActionBridge,
+  ): void {
+    if (!this.realActionsEnabled || !applyNpcAction) return;
+    for (let i = 0; i < Math.min(2, speakers.length); i++) {
+      const speaker = speakers[i];
+      const result = applyNpcAction({
+        kind: 'shortMove',
+        npcId: speaker.id,
+        playerId: player.id,
+        relation: i === 0 ? 'sideStep' : 'towardPlayer',
+        distance: i === 0 ? 1.2 : 0.8,
+        durationSeconds: 6 + i * 2,
+        maxDistanceFromHome: speaker.questIds.length > 0 || speaker.vendorItems.length > 0 ? 3 : 6,
+        maxPlayerDistance: CANDIDATE_RADIUS,
+      });
+      this.recordActionResult(`npc:${result.kind}`, result);
+    }
   }
 
   private schedulePacedSequence(

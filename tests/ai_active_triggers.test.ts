@@ -730,6 +730,47 @@ describe('AI active trigger service', () => {
     expect(mainlineSnapshot(sim, pid)).toEqual(before);
   });
 
+  it('applies short NPC actions when social sequences become live behavior', () => {
+    const { sim, pid } = makeWorld();
+    sim.time = 8 * 60;
+    const merchant = entityByTemplate(sim, 'the_merchant');
+    const marshal = entityByTemplate(sim, 'marshal_redbrook');
+    moveEntity(sim, merchant.id, 9, 17);
+    moveEntity(sim, marshal.id, 12, 17);
+    moveEntity(sim, pid, 9, 18);
+    const requests: unknown[] = [];
+    const service = new AiActiveTriggerService({
+      thinkingDurationMs: 800,
+      rules: [testRule({ ruleId: 'test_social_sequence_actions', category: 'socialSequence' })],
+    });
+
+    const events = service.tick({
+      sim,
+      sessions: [{ pid }],
+      nowMs: 1_000,
+      applyNpcAction: (request) => {
+        requests.push(request);
+        return sim.aiActiveNpcAction(request);
+      },
+    });
+
+    const speakerIds = events
+      .filter((event): event is Extract<typeof event, { type: 'aiThinking' }> => event.type === 'aiThinking')
+      .map((event) => event.speakerId);
+    expect(requests).toEqual([
+      expect.objectContaining({ kind: 'shortMove', npcId: speakerIds[0], playerId: pid, relation: 'sideStep' }),
+      expect.objectContaining({ kind: 'shortMove', npcId: speakerIds[1], playerId: pid, relation: 'towardPlayer' }),
+    ]);
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeSequenceFired: 1,
+      activeActionsAttempted: 2,
+      activeActionsApplied: 2,
+      activeNpcActionsApplied: 2,
+      activeLastActionKind: 'npc:shortMove',
+      activeLastActionResult: 'applied',
+    });
+  });
+
   it('delivers social sequence beats over time when a live deliver callback is available', async () => {
     vi.useFakeTimers();
     const { sim, pid } = makeWorld();
