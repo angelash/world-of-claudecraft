@@ -82,6 +82,8 @@ export interface AiActiveTriggerMetricsSnapshot {
   activeCodexBudgetDenied: number;
   activeCodexBudgetRemaining5h: number;
   activeCodexBudgetRemainingWeek: number;
+  activeRoutineFired: number;
+  activeRoutineLastKind: string;
   activeLastSkipReason: AiActiveSkipReason | '';
   activeLastRuleId: string;
 }
@@ -228,6 +230,23 @@ export const DEFAULT_ACTIVE_POLL_RULES: readonly AiActivePollRuleV1[] = [
       perRuleSeconds: 30,
     },
   },
+  {
+    ruleId: 'npc_living_routine',
+    title: 'NPC living routine',
+    enabled: true,
+    category: 'livingRoutine',
+    periodSeconds: envPositiveInt('AI_ACTIVE_ROUTINE_SECONDS', 300),
+    jitterSeconds: 75,
+    priority: 45,
+    scope: 'playerVicinity',
+    providerPolicy: 'localOnly',
+    outputMode: 'lineIdOnly',
+    cooldown: {
+      perPlayerSeconds: 120,
+      perEntitySeconds: 240,
+      perRuleSeconds: 45,
+    },
+  },
 ];
 
 export class AiActiveTriggerService {
@@ -271,6 +290,8 @@ export class AiActiveTriggerService {
     activeCodexBudgetDenied: 0,
     activeCodexBudgetRemaining5h: 0,
     activeCodexBudgetRemainingWeek: 0,
+    activeRoutineFired: 0,
+    activeRoutineLastKind: '',
     activeLastSkipReason: '',
     activeLastRuleId: '',
   };
@@ -531,7 +552,12 @@ export class AiActiveTriggerService {
 
     const scene = sceneFrameFor(input.sim, player.pos, { excludeEntityIds: [player.id] });
     const context = this.contextFor(input.sim, player, candidate.entity, scene, input.rule);
-    const localEvent = sceneAwarenessEvent(context, candidate.entity) ?? fallbackNpcAmbientEvent(context, candidate.entity, candidate.score);
+    const routine = input.rule.category === 'livingRoutine'
+      ? routineAwarenessEvent(context, candidate.entity)
+      : null;
+    const localEvent = routine?.event
+      ?? sceneAwarenessEvent(context, candidate.entity)
+      ?? fallbackNpcAmbientEvent(context, candidate.entity, candidate.score);
     const lineId = localEvent.type === 'aiSpeech' && localEvent.speech.mode === 'lineId'
       ? localEvent.speech.lineId
       : undefined;
@@ -546,6 +572,10 @@ export class AiActiveTriggerService {
     this.metrics.activePollFired++;
     this.metrics.activeCandidatesSelected++;
     this.metrics.activeLocalReactions++;
+    if (routine) {
+      this.metrics.activeRoutineFired++;
+      this.metrics.activeRoutineLastKind = routine.kind;
+    }
     this.playerCooldownUntilMs.set(player.id, input.nowMs + input.rule.cooldown.perPlayerSeconds * 1000);
     this.entityCooldownUntilMs.set(candidate.entity.id, input.nowMs + input.rule.cooldown.perEntitySeconds * 1000);
     this.pushDecision({
@@ -1005,6 +1035,68 @@ function itemEventPriority(itemId: string): number {
 
 function eventRuleId(event: AiActiveQueuedEventState): string {
   return `event:${event.kind}`;
+}
+
+function routineAwarenessEvent(
+  context: AiJobContextV1,
+  speaker: Entity,
+): { kind: 'working' | 'sleeping' | 'shelter' | 'watching'; event: Extract<SimEvent, { type: 'aiSpeech' }> } | null {
+  const scene = context.scene;
+  if (!scene) return null;
+  const commonValues = {
+    speakerName: speaker.name,
+    subsceneId: scene.subsceneId ?? scene.zoneId,
+  };
+  if (scene.weather.kind === 'rain') {
+    return {
+      kind: 'shelter',
+      event: routineLine(context, speaker, 'hudChrome.aiSpeech.sceneRainWeariness', commonValues, 'inspect', 'shelter'),
+    };
+  }
+  if (scene.light.tags.includes('starrySky')) {
+    return {
+      kind: 'watching',
+      event: routineLine(context, speaker, 'hudChrome.aiSpeech.sceneClearNightAwe', commonValues, 'inspect', 'watching'),
+    };
+  }
+  if (scene.time.phase === 'night') {
+    return {
+      kind: 'sleeping',
+      event: routineLine(context, speaker, 'hudChrome.aiSpeech.sceneNightFatigue', commonValues, 'avoid', 'sleeping'),
+    };
+  }
+  if (scene.time.phase === 'day' && scene.danger.safeHavenScore >= 0.55) {
+    return {
+      kind: 'working',
+      event: routineLine(context, speaker, 'hudChrome.aiSpeech.sceneDayEnergy', commonValues, 'inspect', 'working'),
+    };
+  }
+  return null;
+}
+
+function routineLine(
+  context: AiJobContextV1,
+  speaker: Entity,
+  lineId: string,
+  values: Record<string, string | number>,
+  reactionKind: 'avoid' | 'inspect',
+  planKind: string,
+): Extract<SimEvent, { type: 'aiSpeech' }> {
+  return {
+    type: 'aiSpeech',
+    speakerId: speaker.id,
+    speakerName: speaker.name,
+    speech: { mode: 'lineId', lineId, values },
+    source: 'local',
+    reaction: {
+      kind: reactionKind,
+      score: 0.72,
+      planKind,
+      planIntensity: 0.35,
+      sceneTags: eventSceneTags(context, `routine:${planKind}`),
+    },
+    pid: context.player.entityId,
+  };
 }
 
 function populationPolicyForOnline(onlineCount: number): AiActivePopulationPolicySnapshot {

@@ -27,11 +27,11 @@ function testRule(overrides: Partial<AiActivePollRuleV1> = {}): AiActivePollRule
   };
 }
 
-function makeWorld(): { sim: Sim; pid: number; npcId: number } {
+function makeWorld(templateId = 'brother_aldric'): { sim: Sim; pid: number; npcId: number } {
   const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
   const pid = sim.addPlayer('warrior', 'Ari');
-  const npc = [...sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
-  if (!npc) throw new Error('missing Brother Aldric');
+  const npc = [...sim.entities.values()].find((entity) => entity.templateId === templateId);
+  if (!npc) throw new Error(`missing ${templateId}`);
   const player = sim.entities.get(pid);
   if (!player) throw new Error('missing player');
   player.pos.x = npc.pos.x + 1;
@@ -297,6 +297,69 @@ describe('AI active trigger service', () => {
       activeCodexBudgetDenied: 1,
       activeProviderCalls: 1,
       activePollDue: 0,
+    });
+  });
+
+  it('marks daytime NPC routine beats as working using localized speech', () => {
+    const { sim, pid } = makeWorld();
+    sim.time = 8 * 60;
+    const service = new AiActiveTriggerService({
+      rules: [testRule({ ruleId: 'test_living_day', category: 'livingRoutine' })],
+    });
+
+    const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
+
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneDayEnergy' }),
+      reaction: expect.objectContaining({ kind: 'inspect', planKind: 'working' }),
+      pid,
+    }));
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeRoutineFired: 1,
+      activeRoutineLastKind: 'working',
+    });
+  });
+
+  it('marks clear nighttime NPC routine beats as watching the stars using localized speech', () => {
+    const { sim, pid } = makeWorld();
+    sim.time = 23 * 60;
+    const service = new AiActiveTriggerService({
+      rules: [testRule({ ruleId: 'test_living_stars', category: 'livingRoutine' })],
+    });
+
+    const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
+
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneClearNightAwe' }),
+      reaction: expect.objectContaining({ kind: 'inspect', planKind: 'watching' }),
+      pid,
+    }));
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeRoutineFired: 1,
+      activeRoutineLastKind: 'watching',
+    });
+  });
+
+  it('marks hidden-sky nighttime NPC routine beats as sleeping or tired using localized speech', () => {
+    const { sim, pid } = makeWorld('brother_aldric_fen');
+    sim.time = 1 * 60;
+    const service = new AiActiveTriggerService({
+      rules: [testRule({ ruleId: 'test_living_night', category: 'livingRoutine' })],
+    });
+
+    const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
+
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneNightFatigue' }),
+      reaction: expect.objectContaining({ kind: 'avoid', planKind: 'sleeping' }),
+      pid,
+    }));
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeRoutineFired: 1,
+      activeRoutineLastKind: 'sleeping',
     });
   });
 });
