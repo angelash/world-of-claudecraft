@@ -187,6 +187,28 @@ describe('AI Codex prompt builder', () => {
     expect(petPrompt.length).toBeLessThan(npcPrompt.length);
   });
 
+  it('adds explicit repair guidance for active provider retry prompts', () => {
+    const repairContext: AiJobContextV1 = {
+      ...context,
+      trigger: 'active_poll',
+      outputMode: 'mixed_living_world',
+      questFacts: [],
+      recentObservations: [
+        'providerRejected:dynamic speech too thin',
+        'providerRepair:writeOneConcreteGroundedLine',
+        'providerRepair:avoidVagueSensoryQuestions',
+        'scene:fallen_chapel',
+      ],
+    };
+
+    const prompt = buildCodexDecisionPrompt(repairContext);
+
+    expect(prompt).toContain('Repair pass: the previous dynamicText candidate was rejected because "dynamic speech too thin". Rewrite once with a concrete visible hook.');
+    expect(prompt).toContain('Do not repeat the rejected shape. Avoid vague sensory questions, generic recent-event openers, and meta explanations.');
+    expect(prompt).toContain('Recent observations: providerRejected:dynamic speech too thin, providerRepair:writeOneConcreteGroundedLine');
+    expect(prompt.indexOf('Repair pass:')).toBeLessThan(prompt.indexOf('Speech rhythm target:'));
+  });
+
   it('keeps singularity creature prompts focused on family instincts and scene stimulus', () => {
     const singularityContext: AiJobContextV1 = {
       ...context,

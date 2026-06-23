@@ -264,6 +264,7 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
     '- Do not describe system state such as missing relationship history. If the entity barely knows the player, show that through cautious wording or a small local observation.',
     ...policy.guidance,
     ...dynamicSpeechPromptRules(context.locale),
+    ...providerRepairPromptRules(context.recentObservations),
     ...speechFingerprintPromptRules(speechFingerprint),
     '- audit.shortReason is for operators only: keep it short and plain, never player-facing prose.',
     '- Speech must fit the allowedLineIds list when it is present.',
@@ -592,6 +593,16 @@ function promptProjectionFamily(context: AiJobContextV1) {
 function speechFingerprintForContext(context: AiJobContextV1): AiSpeechFingerprint | null {
   if (context.entity.kind === 'mob') return context.familySemantics?.speechFingerprint ?? context.profile?.speechFingerprint ?? null;
   return context.profile?.speechFingerprint ?? context.familySemantics?.speechFingerprint ?? null;
+}
+
+function providerRepairPromptRules(recentObservations: readonly string[]): string[] {
+  const rejected = recentObservations.find((observation) => observation.startsWith('providerRejected:'));
+  if (!rejected) return [];
+  const reason = rejected.slice('providerRejected:'.length).trim() || 'validator rejected the previous line';
+  return [
+    `- Repair pass: the previous dynamicText candidate was rejected because "${reason}". Rewrite once with a concrete visible hook.`,
+    '- Do not repeat the rejected shape. Avoid vague sensory questions, generic recent-event openers, and meta explanations.',
+  ];
 }
 
 function speechFingerprintPromptRules(fingerprint: AiSpeechFingerprint | null): string[] {
