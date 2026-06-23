@@ -136,6 +136,10 @@ that turns it green. Detailed heuristics and the bug-fix workflow live in the
 ## Fork merge hygiene
 This repo is a long-lived fork that regularly merges `upstream/main`. For fork-local
 behavior, optimize for re-mergeability:
+- Keep `main` as the only long-lived local working branch. Use a temporary local branch
+  only for risky operations such as an upstream merge, then fast-forward `main` to the
+  result and delete the temporary branch. Leave `upstream/*` as fetched remote-tracking
+  refs rather than mirroring them into long-lived local branches.
 - Prefer a registry, handler map, or small hook over editing a giant mixed-concern
   branch when the behavior is fork-only or optional.
 - Keep fork-local shell HTML/CSS changes in one contiguous block with stable ids/classes

@@ -33,6 +33,7 @@ Any non-Claude coding agent (Codex and similar) can treat this file as root proj
 
 ## Fork Merge Hygiene
 
+- Keep `main` as the only long-lived local working branch. Use a temporary local branch only for risky operations such as an upstream merge, then fast-forward `main` to the result and delete the temporary branch. Keep `upstream/*` as fetched remote-tracking refs instead of mirroring them into long-lived local branches.
 - This repo is a long-lived fork. For fork-local behavior, prefer registries, handler maps, or small hooks over editing giant mixed-concern branches.
 - Keep fork-local shell HTML/CSS in one contiguous block with stable ids/classes instead of scattering conditionals across `index.html`, `src/ui/hud.ts`, and `src/main.ts`.
 - Put AI and NPC fork extensions in data registries and thin bridges, such as profile tables, line catalogs and matchers, provider adapters, and named helpers, rather than deep special cases inside `server/game.ts` or `src/sim/sim.ts`.
