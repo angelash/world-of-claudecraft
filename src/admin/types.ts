@@ -129,6 +129,19 @@ export interface AiProviderTimingSnapshot {
   steps: AiProviderTimingStep[];
 }
 
+export interface AiSpeechPolishSnapshot {
+  processed: number;
+  changed: number;
+  charsTrimmed: number;
+  lastChanged: boolean;
+  lastLocale?: string;
+  lastFingerprintSource: 'profile' | 'family' | 'none';
+  lastBefore?: string;
+  lastAfter?: string;
+  lastBeforeChars: number;
+  lastAfterChars: number;
+}
+
 export interface AiAuditChain {
   playerAction: AiAuditPlayerAction;
   requestContext: {
@@ -236,6 +249,7 @@ export interface AiLifeLayerMetricsSnapshot {
   providerLatencyP95Ms: number;
   lastPromptChars: number;
   lastRawOutputChars: number;
+  speechPolish: AiSpeechPolishSnapshot;
   lastProviderTimings?: AiProviderTimingSnapshot;
   lastProviderError?: string;
   lastMemoryPersistenceError?: string;

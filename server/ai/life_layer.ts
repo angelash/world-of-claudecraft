@@ -23,6 +23,7 @@ import type {
   AiProviderOutput,
   AiProviderTimingSnapshot,
   AiSpeechFingerprint,
+  AiSpeechPolishSnapshot,
 } from './ai_types';
 import { aiEntityKind } from './ai_types';
 import {
@@ -153,6 +154,7 @@ export interface AiLifeLayerMetricsSnapshot {
   providerCacheMisses: number;
   providerCacheStores: number;
   providerCacheEntries: number;
+  speechPolish: AiSpeechPolishSnapshot;
   lastProviderTimings?: AiProviderTimingSnapshot;
   lastProviderCacheKey?: string;
   lastProviderError?: string;
@@ -210,6 +212,7 @@ interface AiLifeLayerMetricsState {
   providerCacheMisses: number;
   providerCacheStores: number;
   providerCacheEntries: number;
+  speechPolish: AiSpeechPolishSnapshot;
   lastProviderTimings?: AiProviderTimingSnapshot;
   lastProviderCacheKey?: string;
   lastProviderError?: string;
@@ -400,6 +403,7 @@ export class AiLifeLayer {
     providerCacheMisses: 0,
     providerCacheStores: 0,
     providerCacheEntries: 0,
+    speechPolish: emptySpeechPolishMetrics(),
   };
   private memoryFlushPromise: Promise<void> | null = null;
   private memoryPrunePromise: Promise<number> | null = null;
@@ -524,6 +528,7 @@ export class AiLifeLayer {
     return {
       ...this.metrics,
       providerCacheEntries: this.providerDecisionCache.size,
+      speechPolish: cloneSpeechPolishSnapshot(this.metrics.speechPolish),
       averageProviderLatencyMs: this.metrics.providerCalls > 0
         ? this.metrics.totalProviderLatencyMs / this.metrics.providerCalls
         : 0,
@@ -917,6 +922,7 @@ export class AiLifeLayer {
     }
     ({ decision, promptText, rawOutput, providerTimings, latencyMs: providerLatencyMs } = providerAttempt);
     const result = validateAiDecision({ decision, context, entity: npc, subject, source: 'codex' });
+    this.recordSpeechPolish(result.speechPolish);
     if (result.ok) {
       this.metrics.acceptedDecisions++;
       this.storeProviderDecisionInCache(context, providerAttempt, result);
@@ -1230,6 +1236,7 @@ export class AiLifeLayer {
     }
     ({ decision, promptText, rawOutput, providerTimings, latencyMs: providerLatencyMs } = providerAttempt);
     const result = validateAiDecision({ decision, context, entity: pet, subject: 'ordinary', source: 'codex' });
+    this.recordSpeechPolish(result.speechPolish);
     if (result.ok) {
       this.metrics.acceptedDecisions++;
       this.storeProviderDecisionInCache(context, providerAttempt, result);
@@ -1299,6 +1306,7 @@ export class AiLifeLayer {
     }
     ({ decision, promptText, rawOutput, providerTimings, latencyMs: providerLatencyMs } = providerAttempt);
     const result = validateAiDecision({ decision, context, entity: object, subject, source: 'codex' });
+    this.recordSpeechPolish(result.speechPolish);
     if (result.ok) {
       this.metrics.acceptedDecisions++;
       this.storeProviderDecisionInCache(context, providerAttempt, result);
@@ -1457,6 +1465,7 @@ export class AiLifeLayer {
     }
     ({ decision, promptText, rawOutput, providerTimings, latencyMs: providerLatencyMs } = providerAttempt);
     const result = validateAiDecision({ decision, context, entity, subject, source: 'codex' });
+    this.recordSpeechPolish(result.speechPolish);
     if (result.ok) {
       this.metrics.acceptedDecisions++;
       this.storeProviderDecisionInCache(context, providerAttempt, result);
@@ -1930,6 +1939,20 @@ export class AiLifeLayer {
     const safeDuration = Number.isFinite(durationMs) && durationMs >= 0 ? durationMs : 0;
     this.metrics.lastProviderLatencyMs = safeDuration;
     this.metrics.lastProviderTimings = providerTimings;
+  }
+
+  private recordSpeechPolish(snapshot?: AiSpeechPolishSnapshot): void {
+    if (!snapshot || snapshot.processed <= 0) return;
+    this.metrics.speechPolish.processed += snapshot.processed;
+    this.metrics.speechPolish.changed += snapshot.changed;
+    this.metrics.speechPolish.charsTrimmed += snapshot.charsTrimmed;
+    this.metrics.speechPolish.lastChanged = snapshot.lastChanged;
+    this.metrics.speechPolish.lastLocale = snapshot.lastLocale;
+    this.metrics.speechPolish.lastFingerprintSource = snapshot.lastFingerprintSource;
+    this.metrics.speechPolish.lastBefore = snapshot.lastBefore;
+    this.metrics.speechPolish.lastAfter = snapshot.lastAfter;
+    this.metrics.speechPolish.lastBeforeChars = snapshot.lastBeforeChars;
+    this.metrics.speechPolish.lastAfterChars = snapshot.lastAfterChars;
   }
 
   private playerForEncounterSource(sim: Sim, source: Entity | undefined): Entity | null {
@@ -2531,6 +2554,33 @@ function cacheSpeechFingerprint(fingerprint: AiSpeechFingerprint | undefined): R
     favoriteStarts: sortedStrings(fingerprint.favoriteStarts),
     sensoryBias: sortedStrings(fingerprint.sensoryBias),
     avoidedPhrases: sortedStrings(fingerprint.avoidedPhrases),
+  };
+}
+
+function emptySpeechPolishMetrics(): AiSpeechPolishSnapshot {
+  return {
+    processed: 0,
+    changed: 0,
+    charsTrimmed: 0,
+    lastChanged: false,
+    lastFingerprintSource: 'none',
+    lastBeforeChars: 0,
+    lastAfterChars: 0,
+  };
+}
+
+function cloneSpeechPolishSnapshot(snapshot: AiSpeechPolishSnapshot): AiSpeechPolishSnapshot {
+  return {
+    processed: snapshot.processed,
+    changed: snapshot.changed,
+    charsTrimmed: snapshot.charsTrimmed,
+    lastChanged: snapshot.lastChanged,
+    lastFingerprintSource: snapshot.lastFingerprintSource,
+    lastBeforeChars: snapshot.lastBeforeChars,
+    lastAfterChars: snapshot.lastAfterChars,
+    ...(snapshot.lastLocale ? { lastLocale: snapshot.lastLocale } : {}),
+    ...(snapshot.lastBefore ? { lastBefore: snapshot.lastBefore } : {}),
+    ...(snapshot.lastAfter ? { lastAfter: snapshot.lastAfter } : {}),
   };
 }
 

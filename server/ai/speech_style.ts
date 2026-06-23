@@ -1,5 +1,14 @@
 import type { AiSpeechFingerprint } from './ai_types';
 
+interface DynamicSpeechPolishResult {
+  text: string;
+  before: string;
+  beforeChars: number;
+  afterChars: number;
+  changed: boolean;
+  charsTrimmed: number;
+}
+
 const ZH_LEADING_TRANSITIONS = [
   '不过',
   '但是',
@@ -60,12 +69,30 @@ export function dynamicSpeechPromptRules(locale: string): string[] {
 }
 
 export function polishDynamicSpeechText(text: string, locale: string, fingerprint?: AiSpeechFingerprint | null): string {
+  return polishDynamicSpeech(text, locale, fingerprint).text;
+}
+
+export function polishDynamicSpeech(text: string, locale: string, fingerprint?: AiSpeechFingerprint | null): DynamicSpeechPolishResult {
   const normalized = stripOuterQuotes(text.replace(/[ \t\r\n]+/g, ' ').trim());
-  if (!normalized) return normalized;
+  if (!normalized) {
+    return { text: normalized, before: normalized, beforeChars: 0, afterChars: 0, changed: false, charsTrimmed: 0 };
+  }
   const withoutSpeaker = stripSpeakerPrefix(normalized);
-  if (isChineseLocale(locale)) return polishChineseSpeech(withoutSpeaker, normalized, fingerprint);
-  if (isEnglishLocale(locale)) return polishEnglishSpeech(withoutSpeaker, normalized, fingerprint);
-  return shortenSpokenLine(withoutSpeaker, normalized);
+  const before = withoutSpeaker.trim() || normalized;
+  const polished = isChineseLocale(locale)
+    ? polishChineseSpeech(withoutSpeaker, normalized, fingerprint)
+    : isEnglishLocale(locale)
+      ? polishEnglishSpeech(withoutSpeaker, normalized, fingerprint)
+      : shortenSpokenLine(withoutSpeaker, normalized);
+  const after = polished.trim() || normalized;
+  return {
+    text: after,
+    before,
+    beforeChars: before.length,
+    afterChars: after.length,
+    changed: after !== before,
+    charsTrimmed: Math.max(0, before.length - after.length),
+  };
 }
 
 function isChineseLocale(locale: string): boolean {

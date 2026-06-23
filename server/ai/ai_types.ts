@@ -70,6 +70,21 @@ export interface AiSpeechFingerprint {
   avoidedPhrases: string[];
 }
 
+export type AiSpeechFingerprintSource = 'profile' | 'family' | 'none';
+
+export interface AiSpeechPolishSnapshot {
+  processed: number;
+  changed: number;
+  charsTrimmed: number;
+  lastChanged: boolean;
+  lastLocale?: string;
+  lastFingerprintSource: AiSpeechFingerprintSource;
+  lastBefore?: string;
+  lastAfter?: string;
+  lastBeforeChars: number;
+  lastAfterChars: number;
+}
+
 export interface AiProfileSnapshot {
   profileId: string;
   persona: string;
@@ -189,6 +204,7 @@ export interface AiValidationResult {
   ok: boolean;
   events: SimEvent[];
   reason?: string;
+  speechPolish?: AiSpeechPolishSnapshot;
 }
 
 export function aiEntityKind(entity: Entity): AiEntityKind | null {

@@ -112,6 +112,18 @@ const fakeGame: any = {
     providerLatencyP95Ms: 80,
     lastPromptChars: 1234,
     lastRawOutputChars: 256,
+    speechPolish: {
+      processed: 4,
+      changed: 3,
+      charsTrimmed: 17,
+      lastChanged: true,
+      lastLocale: 'en',
+      lastFingerprintSource: 'profile',
+      lastBefore: 'However, keep your voice low tonight.',
+      lastAfter: 'Keep your voice low tonight.',
+      lastBeforeChars: 34,
+      lastAfterChars: 28,
+    },
     lastProviderError: 'provider unavailable',
   }),
   aiLifeLayerDiagnostics: () => ({

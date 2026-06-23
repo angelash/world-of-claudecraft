@@ -38,6 +38,15 @@ function metrics(overrides: Partial<AiLifeLayerMetricsSnapshot> = {}): AiLifeLay
     providerLatencyP95Ms: 0,
     lastPromptChars: 0,
     lastRawOutputChars: 0,
+    speechPolish: {
+      processed: 0,
+      changed: 0,
+      charsTrimmed: 0,
+      lastChanged: false,
+      lastFingerprintSource: 'none',
+      lastBeforeChars: 0,
+      lastAfterChars: 0,
+    },
     ...overrides,
   };
 }
@@ -532,6 +541,18 @@ describe('admin AI life layer metrics renderer', () => {
       providerLatencyP95Ms: 31,
       lastPromptChars: 4321,
       lastRawOutputChars: 678,
+      speechPolish: {
+        processed: 5,
+        changed: 3,
+        charsTrimmed: 29,
+        lastChanged: true,
+        lastLocale: 'zh_CN',
+        lastFingerprintSource: 'profile',
+        lastBefore: '不过，码头那边刚转了风，而且水面碎得不太自然。',
+        lastAfter: '码头那边刚转了风，水面碎得不太自然。',
+        lastBeforeChars: 24,
+        lastAfterChars: 20,
+      },
       lastProviderTimings: {
         provider: 'codex-app-server',
         totalMs: 1456,
@@ -554,6 +575,15 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('4,321 chars');
     expect(html).toContain('Last raw output length');
     expect(html).toContain('678 chars');
+    expect(html).toContain('Speech polish changed / checked');
+    expect(html).toContain('3 / 5');
+    expect(html).toContain('Dynamic speech polish');
+    expect(html).toContain('Fingerprint source');
+    expect(html).toContain('NPC profile');
+    expect(html).toContain('Before polish');
+    expect(html).toContain('Delivered text');
+    expect(html).toContain('不过，码头那边刚转了风，而且水面碎得不太自然。');
+    expect(html).toContain('码头那边刚转了风，水面碎得不太自然。');
     expect(html).toContain('Last provider timing');
     expect(html).toContain('Codex app-server');
     expect(html).toContain('1,456 ms');
@@ -769,6 +799,8 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('关注点');
     expect(html).toContain('剩余节拍');
     expect(html).toContain('少量在线');
+    expect(html).toContain('文本润色改动 / 检查次数');
+    expect(html).toContain('动态文本润色');
     expect(html).not.toContain('Active AI');
   });
 

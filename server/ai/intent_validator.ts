@@ -1,9 +1,16 @@
 import type { Entity, SimEvent } from '../../src/sim/types';
-import type { AiDecisionV1, AiIntent, AiJobContextV1, AiValidationResult } from './ai_types';
+import type {
+  AiDecisionV1,
+  AiIntent,
+  AiJobContextV1,
+  AiSpeechFingerprintSource,
+  AiSpeechPolishSnapshot,
+  AiValidationResult,
+} from './ai_types';
 import { validateCanonDecision } from './canon_guard';
 import type { CanonGuardSubject } from './canon_guard';
 import { profileFor } from './profiles';
-import { polishDynamicSpeechText } from './speech_style';
+import { polishDynamicSpeech } from './speech_style';
 
 const MAX_TTL_MS = 60_000;
 const MIN_CONFIDENCE = 0;
@@ -45,9 +52,11 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
   if (!intentReaction.ok) return rejected(intentReaction.reason);
 
   const events: SimEvent[] = [];
+  const speechFingerprintSource = speechFingerprintSourceForContext(context);
   const speechFingerprint = context.entity.kind === 'mob'
     ? context.familySemantics?.speechFingerprint ?? context.profile?.speechFingerprint
     : context.profile?.speechFingerprint ?? context.familySemantics?.speechFingerprint;
+  const speechPolish = emptySpeechPolishSnapshot(speechFingerprintSource);
   for (const speech of decision.speech) {
     if (speech.mode === 'lineId') {
       if (!profile.allowedLineIds.includes(speech.lineId)) return rejected(`line id ${speech.lineId} not allowed by profile`);
@@ -65,8 +74,20 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
     }
     if (context.outputMode === 'line_id_only') return rejected('dynamic speech is blocked in line_id_only mode');
     if (speech.language !== context.locale) return rejected('dynamic speech language does not match player locale');
-    const polishedText = polishDynamicSpeechText(speech.text, context.locale, speechFingerprint);
-    if (polishedText.length === 0 || polishedText.length > MAX_DYNAMIC_TEXT_CHARS) return rejected('dynamic speech length out of range');
+    const polish = polishDynamicSpeech(speech.text, context.locale, speechFingerprint);
+    speechPolish.processed++;
+    speechPolish.lastChanged = polish.changed;
+    speechPolish.lastLocale = context.locale;
+    speechPolish.lastBefore = polish.before;
+    speechPolish.lastAfter = polish.text;
+    speechPolish.lastBeforeChars = polish.beforeChars;
+    speechPolish.lastAfterChars = polish.afterChars;
+    speechPolish.charsTrimmed += polish.charsTrimmed;
+    if (polish.changed) speechPolish.changed++;
+    const polishedText = polish.text;
+    if (polishedText.length === 0 || polishedText.length > MAX_DYNAMIC_TEXT_CHARS) {
+      return rejected('dynamic speech length out of range', speechPolish);
+    }
     events.push({
       type: 'aiSpeech',
       speakerId: entity.id,
@@ -77,7 +98,11 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
       pid: context.player.entityId,
     });
   }
-  return { ok: true, events };
+  return {
+    ok: true,
+    events,
+    ...(speechPolish.processed > 0 ? { speechPolish } : {}),
+  };
 }
 
 function reactionFromProviderIntents(
@@ -168,6 +193,34 @@ function visibleIntentItemIds(context: AiJobContextV1): Set<string> {
   ]);
 }
 
-function rejected(reason: string): AiValidationResult {
-  return { ok: false, events: [], reason };
+function rejected(reason: string, speechPolish?: AiSpeechPolishSnapshot): AiValidationResult {
+  return {
+    ok: false,
+    events: [],
+    reason,
+    ...(speechPolish && speechPolish.processed > 0 ? { speechPolish } : {}),
+  };
+}
+
+function speechFingerprintSourceForContext(context: AiJobContextV1): AiSpeechFingerprintSource {
+  if (context.entity.kind === 'mob') {
+    if (context.familySemantics?.speechFingerprint) return 'family';
+    if (context.profile?.speechFingerprint) return 'profile';
+    return 'none';
+  }
+  if (context.profile?.speechFingerprint) return 'profile';
+  if (context.familySemantics?.speechFingerprint) return 'family';
+  return 'none';
+}
+
+function emptySpeechPolishSnapshot(source: AiSpeechFingerprintSource): AiSpeechPolishSnapshot {
+  return {
+    processed: 0,
+    changed: 0,
+    charsTrimmed: 0,
+    lastChanged: false,
+    lastFingerprintSource: source,
+    lastBeforeChars: 0,
+    lastAfterChars: 0,
+  };
 }

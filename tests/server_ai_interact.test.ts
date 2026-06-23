@@ -348,6 +348,18 @@ describe('server AI interact command', () => {
       source: 'codex',
       pid: session.pid,
     }));
+    expect((server as any).aiLifeLayer.runtimeMetrics()).toMatchObject({
+      speechPolish: expect.objectContaining({
+        processed: 1,
+        changed: 1,
+        charsTrimmed: expect.any(Number),
+        lastChanged: true,
+        lastLocale: 'zh_CN',
+        lastFingerprintSource: 'profile',
+        lastBefore: '不过，码头那边刚转了风，而且水面碎得不太自然。你要问最近的动静，我会先看网绳和鱼群。',
+        lastAfter: '码头那边刚转了风，水面碎得不太自然。',
+      }),
+    });
     expect(speechEvents.some((event) =>
       event.speech?.mode === 'lineId'
       && event.speech.lineId === 'hudChrome.aiSpeech.topicRecentFirstMeet')).toBe(false);

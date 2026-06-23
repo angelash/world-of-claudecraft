@@ -72,6 +72,10 @@ function renderAiChars(value: number): string {
   return escapeHtml(t('usage.aiCharacters', { value: fmtNumber(value) }));
 }
 
+function renderAiPolishCountPair(changed: number, processed: number): string {
+  return `${renderAiNumber(changed)} / ${renderAiNumber(processed)}`;
+}
+
 function renderAiTimingShare(value: number, total: number): string {
   if (total <= 0) return escapeHtml(t('usage.notAvailable'));
   return escapeHtml(fmtPercent(value / total));
@@ -103,6 +107,18 @@ function aiProviderTimingStepLabel(key: string): string {
     case 'threadResetMs': return t('usage.aiProviderTimingStepThreadReset');
     default: return t('usage.aiProviderTimingStepUnknown', { key });
   }
+}
+
+function aiSpeechPolishSourceLabel(source: AiLifeLayerMetricsSnapshot['speechPolish']['lastFingerprintSource']): string {
+  switch (source) {
+    case 'profile': return t('usage.aiSpeechPolishSource.profile');
+    case 'family': return t('usage.aiSpeechPolishSource.family');
+    default: return t('usage.aiSpeechPolishSource.none');
+  }
+}
+
+function aiSpeechPolishStateLabel(changed: boolean): string {
+  return t(changed ? 'usage.aiSpeechPolishStateChanged' : 'usage.aiSpeechPolishStateUnchanged');
 }
 
 function renderAiProviderTimingSummary(timings: AiProviderTimingSnapshot | undefined): string {
@@ -147,6 +163,10 @@ function renderAiProviderTimingTable(timings: AiProviderTimingSnapshot | undefin
 function renderAiOptionalText(value: string | undefined): string {
   if (!value) return `<span class="hint">${escapeHtml(t('usage.aiNoRecentError'))}</span>`;
   return escapeHtml(value);
+}
+
+function renderAiOptionalValue(value: string | undefined): string {
+  return escapeHtml(value || t('usage.aiDiagnosticsNone'));
 }
 
 function renderAiAuditOptionalText(value: string): string {
@@ -1812,6 +1832,28 @@ function renderAiActiveTriggerControls(active?: AiActiveTriggerAdminSnapshot): s
     </div>`;
 }
 
+function renderAiSpeechPolishSection(ai: AiLifeLayerMetricsSnapshot): string {
+  const polish = ai.speechPolish;
+  const hasData = polish.processed > 0 || Boolean(polish.lastBefore) || Boolean(polish.lastAfter);
+  if (!hasData) {
+    return `<div class="usage-section"><h4>${t('usage.aiSpeechPolishTitle')}</h4><div class="empty">${t('usage.aiSpeechPolishNoData')}</div></div>`;
+  }
+  return `
+    <div class="usage-section">
+      <h4>${t('usage.aiSpeechPolishTitle')}</h4>
+      <div class="ai-audit-status-line">
+        <span>${t('usage.aiSpeechPolishChangedChecked')}: ${renderAiPolishCountPair(polish.changed, polish.processed)}</span>
+        <span>${t('usage.aiSpeechPolishCharsTrimmed')}: ${renderAiChars(polish.charsTrimmed)}</span>
+        <span>${t('usage.aiSpeechPolishLastState')}: ${escapeHtml(aiSpeechPolishStateLabel(polish.lastChanged))}</span>
+        <span>${t('usage.aiSpeechPolishSource')}: ${escapeHtml(aiSpeechPolishSourceLabel(polish.lastFingerprintSource))}</span>
+        <span>${t('usage.aiSpeechPolishLocale')}: ${renderAiOptionalValue(polish.lastLocale)}</span>
+        <span>${t('usage.aiSpeechPolishLastLengths')}: ${renderAiChars(polish.lastBeforeChars)} -> ${renderAiChars(polish.lastAfterChars)}</span>
+      </div>
+      <div><b>${t('usage.aiSpeechPolishBefore')}</b>${renderTextBlock(polish.lastBefore ?? '')}</div>
+      <div><b>${t('usage.aiSpeechPolishAfter')}</b>${renderTextBlock(polish.lastAfter ?? '')}</div>
+    </div>`;
+}
+
 export function renderAiLifeLayerMetrics(
   ai: AiLifeLayerMetricsSnapshot,
   coverage?: AiContentCoverageReport,
@@ -1853,6 +1895,10 @@ export function renderAiLifeLayerMetrics(
     aiMetricRow('usage.aiLatencyP95', renderAiLatency(ai.providerLatencyP95Ms)),
     aiMetricRow('usage.aiLastPromptChars', renderAiChars(ai.lastPromptChars)),
     aiMetricRow('usage.aiLastRawOutputChars', renderAiChars(ai.lastRawOutputChars)),
+    aiMetricRow('usage.aiSpeechPolishChangedChecked', renderAiPolishCountPair(ai.speechPolish.changed, ai.speechPolish.processed)),
+    aiMetricRow('usage.aiSpeechPolishCharsTrimmed', renderAiChars(ai.speechPolish.charsTrimmed)),
+    aiMetricRow('usage.aiSpeechPolishSource', escapeHtml(aiSpeechPolishSourceLabel(ai.speechPolish.lastFingerprintSource))),
+    aiMetricRow('usage.aiSpeechPolishLocale', renderAiOptionalValue(ai.speechPolish.lastLocale)),
     aiMetricRow('usage.aiLastProviderTiming', renderAiProviderTimingSummary(ai.lastProviderTimings)),
     aiMetricRow('usage.aiLastProviderError', renderAiOptionalText(ai.lastProviderError)),
     aiMetricRow('usage.aiLastMemoryError', renderAiOptionalText(ai.lastMemoryPersistenceError)),
@@ -1876,7 +1922,8 @@ export function renderAiLifeLayerMetrics(
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
-      </div>`,
+      </div>
+      ${renderAiSpeechPolishSection(ai)}`,
   };
 
   return `
@@ -1901,6 +1948,10 @@ export function renderAiLifeLayerMetrics(
       <div class="ai-health-cell">
         <div class="ai-health-value">${renderAiNumber(ai.memoryWritesQueued)}</div>
         <div class="ai-health-label">${t('usage.aiMemoryWritesQueued')}</div>
+      </div>
+      <div class="ai-health-cell">
+        <div class="ai-health-value">${renderAiPolishCountPair(ai.speechPolish.changed, ai.speechPolish.processed)}</div>
+        <div class="ai-health-label">${t('usage.aiSpeechPolishChangedChecked')}</div>
       </div>
     </div>
     <div class="ai-tabbar" role="tablist" aria-label="${escapeHtml(t('usage.aiTitle'))}">
