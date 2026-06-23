@@ -448,4 +448,55 @@ describe('AI active trigger service', () => {
     });
     expect(mainlineSnapshot(sim, pid)).toEqual(before);
   });
+
+  it('builds a paced NPC social sequence with reciprocal attention targets', () => {
+    const { sim, pid } = makeWorld();
+    sim.time = 8 * 60;
+    const merchant = entityByTemplate(sim, 'the_merchant');
+    const marshal = entityByTemplate(sim, 'marshal_redbrook');
+    moveEntity(sim, merchant.id, 9, 17);
+    moveEntity(sim, marshal.id, 12, 17);
+    moveEntity(sim, pid, 9, 18);
+    const before = mainlineSnapshot(sim, pid);
+    const service = new AiActiveTriggerService({
+      thinkingDurationMs: 800,
+      rules: [testRule({ ruleId: 'test_social_sequence', category: 'socialSequence' })],
+    });
+
+    const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
+    const thinking = events.filter((event): event is Extract<typeof event, { type: 'aiThinking' }> => event.type === 'aiThinking');
+    const speech = events.filter((event): event is Extract<typeof event, { type: 'aiSpeech' }> => event.type === 'aiSpeech');
+    const speakerIds = thinking.map((event) => event.speakerId);
+
+    expect(events).toHaveLength(6);
+    expect(thinking).toHaveLength(3);
+    expect(speech).toHaveLength(3);
+    expect(thinking.map((event) => event.durationMs)).toEqual([800, 2_000, 3_200]);
+    expect(speakerIds).toEqual(expect.arrayContaining([merchant.id, marshal.id]));
+    expect(speech[0]).toEqual(expect.objectContaining({
+      speakerId: speakerIds[0],
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneDayEnergy' }),
+      reaction: expect.objectContaining({ targetEntityId: speakerIds[1], planKind: 'conversationStart' }),
+      pid,
+    }));
+    expect(speech[1]).toEqual(expect.objectContaining({
+      speakerId: speakerIds[1],
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.topicPlace' }),
+      reaction: expect.objectContaining({ targetEntityId: speakerIds[2], planKind: 'conversationReply' }),
+      pid,
+    }));
+    expect(speech[2]).toEqual(expect.objectContaining({
+      speakerId: speakerIds[2],
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.topicRecentKnown' }),
+      reaction: expect.objectContaining({ targetEntityId: speakerIds[0], planKind: 'conversationAside' }),
+      pid,
+    }));
+    expect(service.runtimeMetrics()).toMatchObject({
+      activePollFired: 1,
+      activeSequenceFired: 1,
+      activeSequenceLastLength: 3,
+      activeCandidatesSelected: 3,
+    });
+    expect(mainlineSnapshot(sim, pid)).toEqual(before);
+  });
 });

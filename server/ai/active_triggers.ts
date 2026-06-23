@@ -15,7 +15,8 @@ export type AiActivePollCategory =
   | 'weather'
   | 'townLife'
   | 'livingRoutine'
-  | 'creatureRoutine';
+  | 'creatureRoutine'
+  | 'socialSequence';
 
 export type AiActiveSkipReason =
   | 'disabled'
@@ -87,6 +88,8 @@ export interface AiActiveTriggerMetricsSnapshot {
   activeCodexBudgetRemainingWeek: number;
   activeRoutineFired: number;
   activeRoutineLastKind: string;
+  activeSequenceFired: number;
+  activeSequenceLastLength: number;
   activeLastSkipReason: AiActiveSkipReason | '';
   activeLastRuleId: string;
 }
@@ -197,6 +200,12 @@ interface CreatureRoutineResult {
   routineKind: string;
 }
 
+interface SocialSequenceResult {
+  events: SimEvent[];
+  speakers: Entity[];
+  lineIds: string[];
+}
+
 interface AiActiveQueuedEventState {
   eventId: string;
   dedupeKey: string;
@@ -276,6 +285,23 @@ export const DEFAULT_ACTIVE_POLL_RULES: readonly AiActivePollRuleV1[] = [
       perRuleSeconds: 45,
     },
   },
+  {
+    ruleId: 'npc_social_sequence',
+    title: 'NPC social sequence',
+    enabled: true,
+    category: 'socialSequence',
+    periodSeconds: envPositiveInt('AI_ACTIVE_SOCIAL_SEQUENCE_SECONDS', 360),
+    jitterSeconds: 90,
+    priority: 43,
+    scope: 'playerVicinity',
+    providerPolicy: 'localOnly',
+    outputMode: 'lineIdOnly',
+    cooldown: {
+      perPlayerSeconds: 150,
+      perEntitySeconds: 240,
+      perRuleSeconds: 60,
+    },
+  },
 ];
 
 export class AiActiveTriggerService {
@@ -321,6 +347,8 @@ export class AiActiveTriggerService {
     activeCodexBudgetRemainingWeek: 0,
     activeRoutineFired: 0,
     activeRoutineLastKind: '',
+    activeSequenceFired: 0,
+    activeSequenceLastLength: 0,
     activeLastSkipReason: '',
     activeLastRuleId: '',
   };
@@ -575,6 +603,9 @@ export class AiActiveTriggerService {
     if (input.rule.category === 'creatureRoutine') {
       return this.tryFireCreatureRoutine({ sim: input.sim, player, rule: input.rule, nowMs: input.nowMs });
     }
+    if (input.rule.category === 'socialSequence') {
+      return this.tryFireSocialSequence({ sim: input.sim, player, rule: input.rule, nowMs: input.nowMs });
+    }
 
     const candidate = this.bestNpcCandidate(input.sim, player.pos, input.nowMs);
     if (!candidate) return { events: [], skipReason: 'no_candidate' };
@@ -620,6 +651,37 @@ export class AiActiveTriggerService {
       createdAtMs: input.nowMs,
     });
     return { events: [thinkingEvent, localEvent], skipReason: 'not_due' };
+  }
+
+  private tryFireSocialSequence(input: {
+    sim: Sim;
+    player: Entity;
+    rule: AiActivePollRuleV1;
+    nowMs: number;
+  }): { events: SimEvent[]; skipReason: AiActiveSkipReason } {
+    const scene = sceneFrameFor(input.sim, input.player.pos, { excludeEntityIds: [input.player.id] });
+    const sequence = this.buildNpcSocialSequence(input.sim, input.player, scene, input.nowMs);
+    if (!sequence) return { events: [], skipReason: 'no_candidate' };
+
+    this.metrics.activePollFired++;
+    this.metrics.activeCandidatesSelected += sequence.speakers.length;
+    this.metrics.activeLocalReactions += sequence.lineIds.length;
+    this.metrics.activeSequenceFired++;
+    this.metrics.activeSequenceLastLength = sequence.lineIds.length;
+    this.playerCooldownUntilMs.set(input.player.id, input.nowMs + input.rule.cooldown.perPlayerSeconds * 1000);
+    for (const speaker of sequence.speakers) {
+      this.entityCooldownUntilMs.set(speaker.id, input.nowMs + input.rule.cooldown.perEntitySeconds * 1000);
+    }
+    this.pushDecision({
+      ruleId: input.rule.ruleId,
+      playerEntityId: input.player.id,
+      speakerEntityId: sequence.speakers[0]?.id,
+      speakerTemplateId: sequence.speakers[0]?.templateId,
+      sceneId: scene.subsceneId ?? scene.zoneId,
+      lineId: sequence.lineIds[0],
+      createdAtMs: input.nowMs,
+    });
+    return { events: sequence.events, skipReason: 'not_due' };
   }
 
   private tryFireCreatureRoutine(input: {
@@ -710,6 +772,12 @@ export class AiActiveTriggerService {
   }
 
   private bestNpcCandidate(sim: Sim, origin: Entity['pos'], nowMs: number): Candidate | null {
+    const candidates = this.npcCandidates(sim, origin, nowMs);
+    candidates.sort((a, b) => b.score - a.score || a.distance - b.distance || a.entity.id - b.entity.id);
+    return candidates[0] ?? null;
+  }
+
+  private npcCandidates(sim: Sim, origin: Entity['pos'], nowMs: number): Candidate[] {
     const candidates: Candidate[] = [];
     for (const entity of sim.entities.values()) {
       if (entity.kind !== 'npc' || entity.dead) continue;
@@ -720,8 +788,49 @@ export class AiActiveTriggerService {
       const score = candidateScore(entity, distance);
       candidates.push({ entity, score, distance });
     }
-    candidates.sort((a, b) => b.score - a.score || a.distance - b.distance || a.entity.id - b.entity.id);
-    return candidates[0] ?? null;
+    return candidates;
+  }
+
+  private buildNpcSocialSequence(
+    sim: Sim,
+    player: Entity,
+    scene: ReturnType<typeof sceneFrameFor>,
+    nowMs: number,
+  ): SocialSequenceResult | null {
+    const speakers = this.npcCandidates(sim, player.pos, nowMs)
+      .sort((a, b) => b.score - a.score || a.distance - b.distance || a.entity.id - b.entity.id)
+      .slice(0, 3)
+      .map((candidate) => candidate.entity);
+    if (speakers.length < 2) return null;
+
+    const lineIds = socialSequenceLineIds(scene, speakers.length);
+    const usedLineIds = lineIds.slice(0, Math.min(speakers.length, lineIds.length));
+    const events: SimEvent[] = [];
+    for (let i = 0; i < usedLineIds.length; i++) {
+      const speaker = speakers[i];
+      const partner = speakers[(i + 1) % speakers.length];
+      const durationMs = this.thinkingDurationMs + i * 1200;
+      events.push({
+        type: 'aiThinking',
+        speakerId: speaker.id,
+        speakerName: speaker.name,
+        durationMs,
+        pid: player.id,
+      });
+      events.push(socialSequenceLine({
+        scene,
+        speaker,
+        partner,
+        player,
+        lineId: usedLineIds[i],
+        step: i,
+      }));
+    }
+    return {
+      events,
+      speakers: speakers.slice(0, usedLineIds.length),
+      lineIds: usedLineIds,
+    };
   }
 
   private contextFor(
@@ -1216,6 +1325,76 @@ function routineLine(
     },
     pid: context.player.entityId,
   };
+}
+
+function socialSequenceLineIds(scene: ReturnType<typeof sceneFrameFor>, speakerCount: number): string[] {
+  const first = socialSequenceFirstLineId(scene);
+  const second = scene.danger.undeadPressure >= 0.25 || scene.environmentalTags.includes('deathPressure')
+    ? 'hudChrome.aiSpeech.sceneUndeadPressure'
+    : scene.time.phase === 'night'
+      ? 'hudChrome.aiSpeech.sceneNightFatigue'
+      : 'hudChrome.aiSpeech.topicPlace';
+  const third = scene.locationTags.includes('safeTown')
+    ? 'hudChrome.aiSpeech.topicRecentKnown'
+    : 'hudChrome.aiSpeech.genericNpcAwake';
+  return [first, second, third].slice(0, Math.max(0, speakerCount));
+}
+
+function socialSequenceFirstLineId(scene: ReturnType<typeof sceneFrameFor>): string {
+  if (scene.weather.kind === 'rain') return 'hudChrome.aiSpeech.sceneRainWeariness';
+  if (scene.weather.kind === 'fog') return 'hudChrome.aiSpeech.sceneFogUnease';
+  if (scene.light.tags.includes('starrySky')) return 'hudChrome.aiSpeech.sceneClearNightAwe';
+  if (scene.danger.undeadPressure >= 0.25 || scene.environmentalTags.includes('deathPressure')) {
+    return 'hudChrome.aiSpeech.sceneUndeadPressure';
+  }
+  if (scene.time.phase === 'day' && scene.danger.safeHavenScore >= 0.55) {
+    return 'hudChrome.aiSpeech.sceneDayEnergy';
+  }
+  return 'hudChrome.aiSpeech.topicPlace';
+}
+
+function socialSequenceLine(input: {
+  scene: ReturnType<typeof sceneFrameFor>;
+  speaker: Entity;
+  partner: Entity;
+  player: Entity;
+  lineId: string;
+  step: number;
+}): AiSpeechEvent {
+  const planKind = input.step === 0
+    ? 'conversationStart'
+    : input.step === 1
+      ? 'conversationReply'
+      : 'conversationAside';
+  return {
+    type: 'aiSpeech',
+    speakerId: input.speaker.id,
+    speakerName: input.speaker.name,
+    speech: {
+      mode: 'lineId',
+      lineId: input.lineId,
+      values: {
+        speakerName: input.speaker.name,
+        playerName: input.partner.name,
+        partnerName: input.partner.name,
+        subsceneId: input.scene.subsceneId ?? input.scene.zoneId,
+      },
+    },
+    source: 'local',
+    reaction: {
+      kind: 'inspect',
+      targetEntityId: input.partner.id,
+      score: 0.68,
+      planKind,
+      planIntensity: 0.45,
+      sceneTags: sceneTagsWith(input.scene, `sequence:${planKind}`),
+    },
+    pid: input.player.id,
+  };
+}
+
+function sceneTagsWith(scene: ReturnType<typeof sceneFrameFor>, extra: string): string[] {
+  return [...new Set([...scene.locationTags, ...scene.structureTags, ...scene.environmentalTags, extra])].slice(0, 8);
 }
 
 function populationPolicyForOnline(onlineCount: number): AiActivePopulationPolicySnapshot {
