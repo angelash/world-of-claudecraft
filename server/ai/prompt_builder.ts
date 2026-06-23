@@ -246,6 +246,7 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
   const policy = promptPolicyFor(context.trigger);
   const scene = context.scene;
   const family = context.familySemantics;
+  const speechFingerprint = speechFingerprintForContext(context);
   const lines = [
     'You are the World of ClaudeCraft AI life layer for one interactive entity.',
     'Read the job context embedded in this prompt and return exactly one AiDecisionV1 JSON object that matches the provided output schema.',
@@ -263,6 +264,7 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
     '- Do not describe system state such as missing relationship history. If the entity barely knows the player, show that through cautious wording or a small local observation.',
     ...policy.guidance,
     ...dynamicSpeechPromptRules(context.locale),
+    ...speechFingerprintPromptRules(speechFingerprint),
     '- audit.shortReason is for operators only: keep it short and plain, never player-facing prose.',
     '- Speech must fit the allowedLineIds list when it is present.',
     '- Intents must fit the allowedIntents list.',
@@ -585,4 +587,23 @@ function promptProjectionFamily(context: AiJobContextV1) {
   const semanticFamily = mobFamilyFromValue(context.familySemantics?.family);
   if (semanticFamily) return semanticFamily;
   return context.entity.kind === 'npc' ? 'humanoid' : null;
+}
+
+function speechFingerprintForContext(context: AiJobContextV1): AiSpeechFingerprint | null {
+  if (context.entity.kind === 'mob') return context.familySemantics?.speechFingerprint ?? context.profile?.speechFingerprint ?? null;
+  return context.profile?.speechFingerprint ?? context.familySemantics?.speechFingerprint ?? null;
+}
+
+function speechFingerprintPromptRules(fingerprint: AiSpeechFingerprint | null): string[] {
+  if (!fingerprint) return [];
+  const openings = fingerprint.favoriteStarts.slice(0, 3).join(' / ');
+  const sensory = fingerprint.sensoryBias.slice(0, 4).join(', ');
+  const avoided = fingerprint.avoidedPhrases.slice(0, 4).join(', ');
+  return [
+    `- Speech rhythm target: ${fingerprint.sentenceRhythm}.`,
+    `- Address style target: ${fingerprint.addressStyle}.`,
+    ...(openings ? [`- If you need an opening, lean toward this voice: ${openings}. Do not stack multiple openings.`] : []),
+    ...(sensory ? [`- Favor concrete sensory anchors such as ${sensory}.`] : []),
+    ...(avoided ? [`- Never use or echo these phrases unless the scene literally demands them: ${avoided}.`] : []),
+  ];
 }

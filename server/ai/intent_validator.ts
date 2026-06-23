@@ -45,6 +45,9 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
   if (!intentReaction.ok) return rejected(intentReaction.reason);
 
   const events: SimEvent[] = [];
+  const speechFingerprint = context.entity.kind === 'mob'
+    ? context.familySemantics?.speechFingerprint ?? context.profile?.speechFingerprint
+    : context.profile?.speechFingerprint ?? context.familySemantics?.speechFingerprint;
   for (const speech of decision.speech) {
     if (speech.mode === 'lineId') {
       if (!profile.allowedLineIds.includes(speech.lineId)) return rejected(`line id ${speech.lineId} not allowed by profile`);
@@ -62,7 +65,7 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
     }
     if (context.outputMode === 'line_id_only') return rejected('dynamic speech is blocked in line_id_only mode');
     if (speech.language !== context.locale) return rejected('dynamic speech language does not match player locale');
-    const polishedText = polishDynamicSpeechText(speech.text, context.locale);
+    const polishedText = polishDynamicSpeechText(speech.text, context.locale, speechFingerprint);
     if (polishedText.length === 0 || polishedText.length > MAX_DYNAMIC_TEXT_CHARS) return rejected('dynamic speech length out of range');
     events.push({
       type: 'aiSpeech',

@@ -1,3 +1,5 @@
+import type { AiSpeechFingerprint } from './ai_types';
+
 const ZH_LEADING_TRANSITIONS = [
   '不过',
   '但是',
@@ -35,8 +37,10 @@ export function dynamicSpeechPromptRules(locale: string): string[] {
     '- DynamicText is one short spoken line, not an explanation. Aim for one sentence.',
     '- Sound like the entity is talking in the moment: concrete, sensory, a little incomplete.',
     '- Prefer something a person could blurt while working, watching, walking, or hiding, not narration written for the player.',
+    '- Restating the player question, your reasoning, or the whole situation usually makes the line worse.',
     '- Avoid assistant-style transitions, summaries, and lesson-like phrasing.',
     '- Do not start with however, also, therefore, overall, or similar connector words.',
+    '- One mutter, fragment, or half-finished warning is fine if it sounds alive.',
   ];
   if (isChineseLocale(locale)) {
     return [
@@ -44,22 +48,23 @@ export function dynamicSpeechPromptRules(locale: string): string[] {
       '- For Chinese dynamicText, use natural spoken Chinese. Prefer 8-28 Chinese characters when possible.',
       '- Prefer one breath, one image, one reaction. Avoid textbook wording or tidy explanation structure.',
       '- Do not start with 不过, 但是, 然而, 而且, 另外, 此外, 同时, 因此, 所以, 总之, 需要注意的是, or 值得一提的是.',
-      '- Do not use 你问的是, 我建议, 从...来看, 这说明, 总的来说, or other Q&A assistant wording.',
+      '- Do not use 你问的是, 我建议, 从...来看, 这说明, 总的来说, 其实, 重点是, or other Q&A assistant wording.',
     ];
   }
   return [
     ...common,
     '- For English dynamicText, prefer 6-18 words when possible.',
     '- Prefer spoken contractions when natural, and avoid colon-led setup or list-like explanation.',
+    '- Avoid openers like honestly, the point is, to answer your question, or I think when they only add scaffolding.',
   ];
 }
 
-export function polishDynamicSpeechText(text: string, locale: string): string {
+export function polishDynamicSpeechText(text: string, locale: string, fingerprint?: AiSpeechFingerprint | null): string {
   const normalized = stripOuterQuotes(text.replace(/[ \t\r\n]+/g, ' ').trim());
   if (!normalized) return normalized;
   const withoutSpeaker = stripSpeakerPrefix(normalized);
-  if (isChineseLocale(locale)) return polishChineseSpeech(withoutSpeaker, normalized);
-  if (isEnglishLocale(locale)) return polishEnglishSpeech(withoutSpeaker, normalized);
+  if (isChineseLocale(locale)) return polishChineseSpeech(withoutSpeaker, normalized, fingerprint);
+  if (isEnglishLocale(locale)) return polishEnglishSpeech(withoutSpeaker, normalized, fingerprint);
   return shortenSpokenLine(withoutSpeaker, normalized);
 }
 
@@ -85,9 +90,10 @@ function stripChineseTransitions(text: string): string {
   return out.trim() || text.trim();
 }
 
-function polishChineseSpeech(text: string, fallback: string): string {
+function polishChineseSpeech(text: string, fallback: string, fingerprint?: AiSpeechFingerprint | null): string {
   let out = stripChineseTransitions(text);
   out = stripChineseAssistantPhrases(out);
+  out = stripFingerprintAvoidedPhrases(out, fingerprint);
   out = stripChineseTransitions(out);
   out = relaxChineseCadence(out);
   out = shortenChineseLine(out);
@@ -107,6 +113,7 @@ function stripChineseAssistantPhrases(text: string): string {
     /^从[^。！？!?，,]{1,28}(?:来看|看起来|判断)[，,：:\s]*/,
     /^这(?:说明|意味着|表示)(?:着|了)?[，,：:\s]*/,
     /^作为[^，,。！？!?]{0,16}[，,：:\s]*/,
+    /^(?:其实|说实话|老实说|真要说|要我说|你要说|重点是|问题是|我想说的是|你得知道)[，,：:\s]*/,
   ];
   for (let pass = 0; pass < 3; pass++) {
     const before = out;
@@ -130,9 +137,10 @@ function stripEnglishTransitions(text: string): string {
   return out.trim() || text.trim();
 }
 
-function polishEnglishSpeech(text: string, fallback: string): string {
+function polishEnglishSpeech(text: string, fallback: string, fingerprint?: AiSpeechFingerprint | null): string {
   let out = stripEnglishTransitions(text);
   out = stripEnglishAssistantPhrases(out);
+  out = stripFingerprintAvoidedPhrases(out, fingerprint);
   out = stripEnglishTransitions(out);
   out = relaxEnglishCadence(out);
   out = contractEnglishSpeech(out);
@@ -156,6 +164,10 @@ function stripEnglishAssistantPhrases(text: string): string {
     [/^from (?:the|this|what)[^.!?]{1,72}[,:]\s*/i, ''],
     [/^this (?:means|suggests|indicates)(?: that)?\s*/i, ''],
     [/^as an ai[:,\s]*/i, ''],
+    [/^(?:honestly|to be honest|truth be told)[,\s-]*/i, ''],
+    [/^(?:the point is|the thing is|what matters is)[:,\s-]*/i, ''],
+    [/^i (?:think|guess|would say|d say)\s+/i, ''],
+    [/^(?:you should know|let me put it this way|let me say it this way)[:,\s-]*/i, ''],
   ];
   for (let pass = 0; pass < 3; pass++) {
     const before = out;
@@ -272,6 +284,33 @@ function cleanupEnglishPunctuation(text: string): string {
 function capitalizeEnglishSentence(text: string): string {
   if (!text) return text;
   return text[0].toUpperCase() + text.slice(1);
+}
+
+function stripFingerprintAvoidedPhrases(text: string, fingerprint?: AiSpeechFingerprint | null): string {
+  if (!fingerprint || fingerprint.avoidedPhrases.length === 0) return text.trim();
+  let out = text.trim();
+  for (const phrase of [...new Set(fingerprint.avoidedPhrases.map((value) => value.trim()).filter(Boolean))]) {
+    out = stripAvoidedPhrase(out, phrase);
+  }
+  return out.trim() || text.trim();
+}
+
+function stripAvoidedPhrase(text: string, phrase: string): string {
+  const escaped = escapeRegExp(phrase);
+  const hasLatin = /[A-Za-z]/.test(phrase);
+  const prefix = hasLatin
+    ? new RegExp(`^${escaped}\\b[,，:：;；\\s-]*`, 'i')
+    : new RegExp(`^${escaped}[,，:：;；\\s-]*`);
+  const afterStop = hasLatin
+    ? new RegExp(`([.!?。！？])\\s*${escaped}\\b[,，:：;；\\s-]*`, 'gi')
+    : new RegExp(`([.!?。！？])\\s*${escaped}[,，:：;；\\s-]*`, 'g');
+  const afterComma = hasLatin
+    ? new RegExp(`([,，;；])\\s*${escaped}\\b[,，:：;；\\s-]*`, 'gi')
+    : new RegExp(`([,，;；])\\s*${escaped}[,，:：;；\\s-]*`, 'g');
+  return text
+    .replace(prefix, '')
+    .replace(afterStop, '$1 ')
+    .replace(afterComma, '$1 ');
 }
 
 function escapeRegExp(value: string): string {

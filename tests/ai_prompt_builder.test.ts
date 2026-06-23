@@ -116,6 +116,11 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('Use only lineId speech when outputMode is line_id_only');
     expect(prompt).toContain('Use dynamicText only when outputMode is dynamic_text_experiment or mixed_living_world');
     expect(prompt).toContain('When dynamicText is allowed, follow speechFingerprint over generic assistant phrasing');
+    expect(prompt).toContain('Speech rhythm target: soft, elliptical, usually one short warning plus one omen image.');
+    expect(prompt).toContain('Address style target: uses the player name sparingly');
+    expect(prompt).toContain('If you need an opening, lean toward this voice: Keep your voice low / The graves do not like.');
+    expect(prompt).toContain('Favor concrete sensory anchors such as cold air, grave soil.');
+    expect(prompt).toContain('Never use or echo these phrases unless the scene literally demands them: overall, this means.');
     expect(prompt).toContain('Intent targetEntityId/targetObjectId values must be visible in job.json');
     expect(prompt).toContain('Director proposals and memory signals are read-only context');
     expect(prompt).toContain('Allowed lineIds: hudChrome.aiSpeech.brotherAldricAwake');
@@ -168,6 +173,9 @@ describe('AI Codex prompt builder', () => {
     expect(petPrompt).toContain('Allowed intents: commandPetDefensive, commandPetAttack, commandPetIgnore');
     expect(petPrompt).toContain('Family: Beast');
     expect(petPrompt).toContain('Family speech fingerprint: rhythm=sniff, hesitate, react');
+    expect(petPrompt).toContain('Speech rhythm target: sniff, hesitate, react; if words appear, keep them broken and territorial.');
+    expect(petPrompt).toContain('If you need an opening, lean toward this voice: Sniffs hard / Hackles rise / Circles once.');
+    expect(petPrompt).toContain('Favor concrete sensory anchors such as scent, blood warmth, fur bristle, ground vibration.');
     expect(petPrompt).toContain('"speechFingerprint"');
     expect(petPrompt).toContain('Scene: fallen_chapel');
     expect(petPrompt).not.toContain('Quest facts visible to player');

@@ -190,6 +190,44 @@ describe('AI intent validator', () => {
     }));
   });
 
+  it('uses the profile speech fingerprint to strip avoided phrasing from dynamicText', () => {
+    const result = validateAiDecision({
+      decision: {
+        ...decision,
+        speech: [{
+          mode: 'dynamicText',
+          language: 'en',
+          text: 'This means the chapel air is wrong tonight.',
+        }],
+      },
+      context: {
+        ...context,
+        outputMode: 'dynamic_text_experiment',
+        profile: {
+          profileId: 'npc.test.priest',
+          persona: 'Test priest',
+          knowledgeScope: [],
+          tabooTopics: [],
+          speechFingerprint: {
+            sentenceRhythm: 'soft',
+            addressStyle: 'sparing',
+            favoriteStarts: ['Keep your voice low'],
+            sensoryBias: ['cold air'],
+            avoidedPhrases: ['this means'],
+          },
+        },
+      },
+      entity,
+      subject: 'criticalQuestNpc',
+      source: 'codex',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.events).toContainEqual(expect.objectContaining({
+      speech: { mode: 'dynamicText', language: 'en', text: 'The chapel air is wrong tonight.' },
+    }));
+  });
+
   it('polishes Chinese dynamicText before creating player speech events', () => {
     const result = validateAiDecision({
       decision: {

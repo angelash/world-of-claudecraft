@@ -15,6 +15,7 @@ describe('AI speech style', () => {
 
     expect(rules).toContain('spoken contractions');
     expect(rules).toContain('avoid colon-led setup');
+    expect(rules).toContain('honestly');
   });
 
   it('polishes assistant-like English phrasing into a shorter spoken line', () => {
@@ -42,5 +43,30 @@ describe('AI speech style', () => {
     );
 
     expect(text).toBe("Stay close to the torchlight.");
+  });
+
+  it('drops fingerprint-specific avoided phrases from English speech', () => {
+    const text = polishDynamicSpeechText(
+      'This means the graves are listening tonight.',
+      'en',
+      {
+        sentenceRhythm: 'soft',
+        addressStyle: 'sparing',
+        favoriteStarts: ['Keep your voice low'],
+        sensoryBias: ['cold air'],
+        avoidedPhrases: ['this means'],
+      },
+    );
+
+    expect(text).toBe('The graves are listening tonight.');
+  });
+
+  it('strips extra Chinese scaffolding before keeping the spoken image', () => {
+    const text = polishDynamicSpeechText(
+      '其实，重点是，风里有铁锈味，像有人刚动过锁。',
+      'zh_CN',
+    );
+
+    expect(text).toBe('风里有铁锈味，像有人刚动过锁。');
   });
 });
