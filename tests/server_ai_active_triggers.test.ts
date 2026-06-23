@@ -497,7 +497,10 @@ describe('server AI active triggers', () => {
 
       expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
         speakerId: merchant.id,
-        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.merchantMarketPulse' }),
+        speech: expect.objectContaining({
+          lineId: 'hudChrome.aiSpeech.merchantMarketPulse',
+          values: expect.objectContaining({ playerName: 'Ari', partnerName: expect.any(String) }),
+        }),
         reaction: expect.objectContaining({
           targetItemId: 'eastbrook_market_stall',
           sceneTags: expect.arrayContaining(['focus:eastbrook_market_stall', 'coin', 'watchCrowd']),
@@ -506,7 +509,10 @@ describe('server AI active triggers', () => {
       }));
       expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
         speakerId: marshal.id,
-        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.marshalRedbrookAwake' }),
+        speech: expect.objectContaining({
+          lineId: 'hudChrome.aiSpeech.marshalRedbrookAwake',
+          values: expect.objectContaining({ playerName: 'Ari', partnerName: expect.any(String) }),
+        }),
         reaction: expect.objectContaining({
           targetItemId: 'eastbrook_market_stall',
           sceneTags: expect.arrayContaining(['focus:eastbrook_market_stall', 'coin', 'watchCrowd']),

@@ -2563,7 +2563,7 @@ function socialSequenceLine(input: {
       lineId: input.lineId,
       values: {
         speakerName: input.speaker.name,
-        playerName: input.partner.name,
+        playerName: input.player.name,
         partnerName: input.partner.name,
         subsceneId: input.scene.subsceneId ?? input.scene.zoneId,
         ...(input.focusObject ? {

@@ -1004,7 +1004,10 @@ describe('AI active trigger service', () => {
     expect(speakerIds).toEqual(expect.arrayContaining([merchant.id, marshal.id]));
     expect(speech).toContainEqual(expect.objectContaining({
       speakerId: merchant.id,
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.merchantMarketPulse' }),
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.merchantMarketPulse',
+        values: expect.objectContaining({ playerName: 'Ari', partnerName: expect.any(String) }),
+      }),
       reaction: expect.objectContaining({
         targetItemId: 'eastbrook_market_stall',
         planKind: expect.stringMatching(/^conversation(Start|Reply)$/),
@@ -1014,7 +1017,10 @@ describe('AI active trigger service', () => {
     }));
     expect(speech).toContainEqual(expect.objectContaining({
       speakerId: marshal.id,
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.marshalRedbrookAwake' }),
+      speech: expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.marshalRedbrookAwake',
+        values: expect.objectContaining({ playerName: 'Ari', partnerName: expect.any(String) }),
+      }),
       reaction: expect.objectContaining({
         targetItemId: 'eastbrook_market_stall',
         planKind: expect.stringMatching(/^conversation(Start|Reply)$/),
