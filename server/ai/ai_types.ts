@@ -99,6 +99,14 @@ export interface AiProfileSnapshot {
   };
 }
 
+export interface AiSequenceParticipantSnapshot {
+  slot: number;
+  kind: AiEntityKind;
+  entityId: number;
+  templateId: string;
+  name: string;
+}
+
 export interface AiJobContextV1 {
   schemaVersion: 1;
   jobId: string;
@@ -119,6 +127,7 @@ export interface AiJobContextV1 {
   familySemantics?: CompactFamilySemantics | null;
   questFacts: AiQuestFact[];
   recentObservations: string[];
+  sequenceParticipants?: AiSequenceParticipantSnapshot[];
   memorySignals?: AiMemoryAuditRecord[];
   directorProposals?: AiWorldDirectorProposal[];
   allowedIntents: AiIntentType[];

@@ -1984,6 +1984,13 @@ export class AiActiveTriggerService {
       ? this.contextForCreature(sim, player, speaker, scene, rule, locale)
       : this.contextFor(sim, player, speaker, scene, rule, undefined, locale);
     const partner = sequence.speakers.find((candidate) => candidate.id !== speaker.id);
+    context.sequenceParticipants = sequence.speakers.map((participant, index) => ({
+      slot: index,
+      kind: participant.kind === 'mob' ? 'mob' : 'npc',
+      entityId: participant.id,
+      templateId: participant.templateId,
+      name: participant.name,
+    }));
     context.recentObservations.push(
       'sequence:social',
       `sequenceKind:${sequence.kind}`,

@@ -351,6 +351,11 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
   if (policy.includeRecentObservations && context.recentObservations.length > 0) {
     lines.push(`Recent observations: ${context.recentObservations.slice(0, policy.observationLimit).join(', ')}`);
   }
+  if (context.sequenceParticipants && context.sequenceParticipants.length > 0) {
+    lines.push(`Sequence participants: ${context.sequenceParticipants
+      .map((participant) => `${participant.slot}:${participant.kind}:${participant.templateId}:${participant.name}`)
+      .join(', ')}`);
+  }
   if (policy.includeDirectorProposals && context.directorProposals && context.directorProposals.length > 0) {
     lines.push(`Director proposals: ${context.directorProposals
       .slice(0, policy.directorLimit)
@@ -440,6 +445,13 @@ function compactPromptContext(context: AiJobContextV1, policy: PromptPolicy): Re
     recentObservations: policy.includeRecentObservations
       ? context.recentObservations.slice(0, policy.observationLimit)
       : undefined,
+    sequenceParticipants: context.sequenceParticipants?.map((participant) => ({
+      slot: participant.slot,
+      kind: participant.kind,
+      entityId: participant.entityId,
+      templateId: participant.templateId,
+      name: participant.name,
+    })),
     memorySignals: policy.includeMemorySignals ? context.memorySignals?.slice(0, policy.memoryLimit).map((signal) => ({
       kind: signal.kind,
       refId: signal.refId,

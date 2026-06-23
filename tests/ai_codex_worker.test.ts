@@ -268,10 +268,16 @@ describe('Codex CLI AI provider', () => {
       trigger: 'active_poll',
       outputMode: 'dynamic_text_experiment',
       recentObservations: ['sequence:social', 'partner:marshal_redbrook', 'partnerName:Marshal Redbrook'],
+      sequenceParticipants: [
+        { slot: 0, kind: 'npc', entityId: 7, templateId: 'brother_aldric', name: 'Brother Aldric' },
+        { slot: 1, kind: 'npc', entityId: 8, templateId: 'marshal_redbrook', name: 'Marshal Redbrook' },
+      ],
     });
 
     expect(prompt).toContain('This is a paced social sequence');
     expect(prompt).toContain('speech[0] is the acting entity');
+    expect(prompt).toContain('Sequence participants: 0:npc:brother_aldric:Brother Aldric, 1:npc:marshal_redbrook:Marshal Redbrook');
+    expect(prompt).toContain('"sequenceParticipants":[{"slot":0,"kind":"npc","entityId":7,"templateId":"brother_aldric","name":"Brother Aldric"},{"slot":1,"kind":"npc","entityId":8,"templateId":"marshal_redbrook","name":"Marshal Redbrook"}]');
     expect(prompt).not.toContain('Return at most one speech entry and at most two intents.');
   });
 

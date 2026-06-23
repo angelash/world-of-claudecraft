@@ -1553,12 +1553,24 @@ describe('AI active trigger service', () => {
       expect(seenContext).toMatchObject({
         trigger: 'active_poll',
         outputMode: 'dynamic_text_experiment',
+        sequenceParticipants: expect.arrayContaining([
+          expect.objectContaining({ entityId: merchant.id, templateId: merchant.templateId, name: merchant.name }),
+          expect.objectContaining({ entityId: marshal.id, templateId: marshal.templateId, name: marshal.name }),
+        ]),
         recentObservations: expect.arrayContaining([
           'rule:npc_social_sequence',
           'category:socialSequence',
           'sequence:social',
           'focusObject:eastbrook_market_stall',
         ]),
+      });
+      const openerContext = seenContext as AiJobContextV1 | null;
+      if (!openerContext) throw new Error('provider did not receive opener context');
+      expect(openerContext.sequenceParticipants?.[0]).toMatchObject({
+        slot: 0,
+        entityId: openerContext.entity.entityId,
+        templateId: openerContext.entity.templateId,
+        name: openerContext.entity.name,
       });
       expect(delivered.flat()).toContainEqual(expect.objectContaining({
         type: 'aiSpeech',
@@ -1651,7 +1663,17 @@ describe('AI active trigger service', () => {
       const capturedContext = seenContext as AiJobContextV1 | null;
       if (!capturedContext) throw new Error('provider did not receive social sequence context');
       expect(capturedContext).toMatchObject({
+        sequenceParticipants: expect.arrayContaining([
+          expect.objectContaining({ entityId: merchant.id, templateId: merchant.templateId, name: merchant.name }),
+          expect.objectContaining({ entityId: marshal.id, templateId: marshal.templateId, name: marshal.name }),
+        ]),
         recentObservations: expect.arrayContaining(['sequence:social', expect.stringMatching(/^partnerName:/)]),
+      });
+      expect(capturedContext.sequenceParticipants?.[0]).toMatchObject({
+        slot: 0,
+        entityId: capturedContext.entity.entityId,
+        templateId: capturedContext.entity.templateId,
+        name: capturedContext.entity.name,
       });
       expect(delivered).toEqual([
         [
