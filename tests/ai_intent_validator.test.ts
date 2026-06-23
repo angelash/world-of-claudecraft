@@ -212,6 +212,28 @@ describe('AI intent validator', () => {
     });
   });
 
+  it('rejects vague sensory questions even with uncommon address words', () => {
+    const result = validateAiDecision({
+      decision: {
+        ...decision,
+        speech: [{ mode: 'dynamicText', language: 'en', text: 'Smell that, patient?' }],
+      },
+      context: { ...context, outputMode: 'dynamic_text_experiment' },
+      entity,
+      subject: 'criticalQuestNpc',
+      source: 'codex',
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      reason: 'dynamic speech too thin',
+      speechPolish: expect.objectContaining({
+        processed: 1,
+        lastAfter: 'Smell that, patient?',
+      }),
+    });
+  });
+
   it('allows short dynamicText questions when they carry concrete scene information', () => {
     const result = validateAiDecision({
       decision: {

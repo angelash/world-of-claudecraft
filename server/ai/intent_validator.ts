@@ -282,8 +282,20 @@ const LOW_INFORMATION_ENGLISH_QUESTION_WORDS = new Set([
 
 function isThinEnglishQuestion(words: readonly string[]): boolean {
   if (words.length > 4) return false;
-  const meaningfulWords = words
+  const cleanedWords = words
     .map((word) => word.replace(/^\W+|\W+$/g, ''))
-    .filter((word) => word && !LOW_INFORMATION_ENGLISH_QUESTION_WORDS.has(word));
+    .filter(Boolean);
+  if (isVagueSensoryQuestion(cleanedWords)) return true;
+  const meaningfulWords = cleanedWords
+    .filter((word) => !LOW_INFORMATION_ENGLISH_QUESTION_WORDS.has(word));
   return meaningfulWords.length === 0;
+}
+
+const LOW_INFORMATION_SENSORY_QUESTION_VERBS = new Set(['feel', 'hear', 'notice', 'see', 'smell']);
+const LOW_INFORMATION_SENSORY_QUESTION_TARGETS = new Set(['it', 'that', 'this']);
+
+function isVagueSensoryQuestion(words: readonly string[]): boolean {
+  return words.length >= 2
+    && LOW_INFORMATION_SENSORY_QUESTION_VERBS.has(words[0] ?? '')
+    && LOW_INFORMATION_SENSORY_QUESTION_TARGETS.has(words[1] ?? '');
 }
