@@ -3,6 +3,8 @@ import type { Sim } from '../../src/sim/sim';
 import type { Entity, SimEvent } from '../../src/sim/types';
 import { dist2d } from '../../src/sim/types';
 import type { AiJobContextV1 } from './ai_types';
+import { companionReactionEventsForScene } from './companion_reactions';
+import { familySceneReactionEvent, nearbyFamilySceneCandidates, rankFamilySceneReactions } from './family_scene_reactions';
 import { compactProfileSnapshot, profileFor } from './profiles';
 import { sceneFrameFor } from './scene_frame';
 import { sceneAwarenessEvent } from './scene_reactions';
@@ -12,7 +14,8 @@ export type AiActivePollCategory =
   | 'time'
   | 'weather'
   | 'townLife'
-  | 'livingRoutine';
+  | 'livingRoutine'
+  | 'creatureRoutine';
 
 export type AiActiveSkipReason =
   | 'disabled'
@@ -185,6 +188,15 @@ interface Candidate {
   distance: number;
 }
 
+type AiSpeechEvent = Extract<SimEvent, { type: 'aiSpeech' }>;
+type AiThinkingEvent = Extract<SimEvent, { type: 'aiThinking' }>;
+
+interface CreatureRoutineResult {
+  entity: Entity;
+  event: AiSpeechEvent;
+  routineKind: string;
+}
+
 interface AiActiveQueuedEventState {
   eventId: string;
   dedupeKey: string;
@@ -244,6 +256,23 @@ export const DEFAULT_ACTIVE_POLL_RULES: readonly AiActivePollRuleV1[] = [
     cooldown: {
       perPlayerSeconds: 120,
       perEntitySeconds: 240,
+      perRuleSeconds: 45,
+    },
+  },
+  {
+    ruleId: 'creature_living_routine',
+    title: 'Creature living routine',
+    enabled: true,
+    category: 'creatureRoutine',
+    periodSeconds: envPositiveInt('AI_ACTIVE_CREATURE_ROUTINE_SECONDS', 300),
+    jitterSeconds: 90,
+    priority: 44,
+    scope: 'playerVicinity',
+    providerPolicy: 'localOnly',
+    outputMode: 'lineIdOnly',
+    cooldown: {
+      perPlayerSeconds: 105,
+      perEntitySeconds: 210,
       perRuleSeconds: 45,
     },
   },
@@ -543,6 +572,9 @@ export class AiActiveTriggerService {
       this.metrics.activeNoiseSuppressions++;
       return { events: [], skipReason: 'player_recent_ai_speech' };
     }
+    if (input.rule.category === 'creatureRoutine') {
+      return this.tryFireCreatureRoutine({ sim: input.sim, player, rule: input.rule, nowMs: input.nowMs });
+    }
 
     const candidate = this.bestNpcCandidate(input.sim, player.pos, input.nowMs);
     if (!candidate) return { events: [], skipReason: 'no_candidate' };
@@ -561,7 +593,7 @@ export class AiActiveTriggerService {
     const lineId = localEvent.type === 'aiSpeech' && localEvent.speech.mode === 'lineId'
       ? localEvent.speech.lineId
       : undefined;
-    const thinkingEvent: Extract<SimEvent, { type: 'aiThinking' }> = {
+    const thinkingEvent: AiThinkingEvent = {
       type: 'aiThinking',
       speakerId: candidate.entity.id,
       speakerName: candidate.entity.name,
@@ -588,6 +620,93 @@ export class AiActiveTriggerService {
       createdAtMs: input.nowMs,
     });
     return { events: [thinkingEvent, localEvent], skipReason: 'not_due' };
+  }
+
+  private tryFireCreatureRoutine(input: {
+    sim: Sim;
+    player: Entity;
+    rule: AiActivePollRuleV1;
+    nowMs: number;
+  }): { events: SimEvent[]; skipReason: AiActiveSkipReason } {
+    const scene = sceneFrameFor(input.sim, input.player.pos, { excludeEntityIds: [input.player.id] });
+    const result = this.bestCreatureRoutineEvent(input.sim, input.player, scene, input.nowMs);
+    if (!result) return { events: [], skipReason: 'no_candidate' };
+    if ((this.entityCooldownUntilMs.get(result.entity.id) ?? 0) > input.nowMs) {
+      return { events: [], skipReason: 'entity_cooldown' };
+    }
+
+    const lineId = result.event.speech.mode === 'lineId' ? result.event.speech.lineId : undefined;
+    const thinkingEvent: AiThinkingEvent = {
+      type: 'aiThinking',
+      speakerId: result.entity.id,
+      speakerName: result.entity.name,
+      durationMs: this.thinkingDurationMs,
+      pid: input.player.id,
+    };
+
+    this.metrics.activePollFired++;
+    this.metrics.activeCandidatesSelected++;
+    this.metrics.activeLocalReactions++;
+    this.metrics.activeRoutineFired++;
+    this.metrics.activeRoutineLastKind = result.routineKind;
+    this.playerCooldownUntilMs.set(input.player.id, input.nowMs + input.rule.cooldown.perPlayerSeconds * 1000);
+    this.entityCooldownUntilMs.set(result.entity.id, input.nowMs + input.rule.cooldown.perEntitySeconds * 1000);
+    this.pushDecision({
+      ruleId: input.rule.ruleId,
+      playerEntityId: input.player.id,
+      speakerEntityId: result.entity.id,
+      speakerTemplateId: result.entity.templateId,
+      sceneId: scene.subsceneId ?? scene.zoneId,
+      lineId,
+      createdAtMs: input.nowMs,
+    });
+    return { events: [thinkingEvent, result.event], skipReason: 'not_due' };
+  }
+
+  private bestCreatureRoutineEvent(
+    sim: Sim,
+    player: Entity,
+    scene: ReturnType<typeof sceneFrameFor>,
+    nowMs: number,
+  ): CreatureRoutineResult | null {
+    const companion = this.bestCompanionRoutineEvent(sim, player, scene, nowMs);
+    if (companion) return companion;
+
+    const candidates = nearbyFamilySceneCandidates(scene, sim.entities.values(), player)
+      .filter((entity) => (this.entityCooldownUntilMs.get(entity.id) ?? 0) <= nowMs);
+    this.metrics.activeCandidatesScanned += candidates.length;
+    const [reaction] = rankFamilySceneReactions(scene, candidates, { worldSeed: sim.cfg.seed });
+    if (!reaction) return null;
+    return {
+      entity: reaction.entity,
+      event: familySceneReactionEvent(reaction, scene, player.id) as AiSpeechEvent,
+      routineKind: `creature:${reaction.family}:${reaction.reaction}`,
+    };
+  }
+
+  private bestCompanionRoutineEvent(
+    sim: Sim,
+    player: Entity,
+    scene: ReturnType<typeof sceneFrameFor>,
+    nowMs: number,
+  ): CreatureRoutineResult | null {
+    const ownCompanion = scene.companions.find((companion) => {
+      const entity = sim.entities.get(companion.entityId);
+      return entity?.kind === 'mob'
+        && entity.ownerId === player.id
+        && (this.entityCooldownUntilMs.get(entity.id) ?? 0) <= nowMs;
+    });
+    if (!ownCompanion) return null;
+    this.metrics.activeCandidatesScanned++;
+    const entity = sim.entities.get(ownCompanion.entityId);
+    if (!entity) return null;
+    const [event] = companionReactionEventsForScene({ ...scene, companions: [ownCompanion] }, player.id);
+    if (!event || event.type !== 'aiSpeech') return null;
+    return {
+      entity,
+      event,
+      routineKind: `companion:${ownCompanion.family ?? 'unknown'}:${event.reaction?.kind ?? 'inspect'}`,
+    };
   }
 
   private bestNpcCandidate(sim: Sim, origin: Entity['pos'], nowMs: number): Candidate | null {

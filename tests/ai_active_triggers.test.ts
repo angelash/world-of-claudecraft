@@ -43,6 +43,23 @@ function makeWorld(templateId = 'brother_aldric'): { sim: Sim; pid: number; npcI
   return { sim, pid, npcId: npc.id };
 }
 
+function entityByTemplate(sim: Sim, templateId: string) {
+  const entity = [...sim.entities.values()].find((candidate) => candidate.templateId === templateId);
+  if (!entity) throw new Error(`missing ${templateId}`);
+  return entity;
+}
+
+function moveEntity(sim: Sim, entityId: number, x: number, z: number): void {
+  const entity = sim.entities.get(entityId);
+  if (!entity) throw new Error(`missing entity ${entityId}`);
+  entity.pos.x = x;
+  entity.pos.z = z;
+  entity.pos.y = groundHeight(entity.pos.x, entity.pos.z, sim.cfg.seed);
+  entity.prevPos = { ...entity.pos };
+  sim.grid.update(entity);
+  if (entity.kind === 'player') sim.playerGrid.update(entity);
+}
+
 function addPlayersNear(sim: Sim, npcId: number, count: number): number[] {
   const npc = sim.entities.get(npcId);
   if (!npc) throw new Error('missing target npc');
@@ -361,5 +378,74 @@ describe('AI active trigger service', () => {
       activeRoutineFired: 1,
       activeRoutineLastKind: 'sleeping',
     });
+  });
+
+  it('lets nearby wild creatures show family life without touching mainline state', () => {
+    const { sim, pid } = makeWorld();
+    const wolf = entityByTemplate(sim, 'forest_wolf');
+    moveEntity(sim, wolf.id, 8, 17);
+    moveEntity(sim, pid, 9, 17);
+    const before = mainlineSnapshot(sim, pid);
+    const service = new AiActiveTriggerService({
+      rules: [testRule({ ruleId: 'test_creature_forge', category: 'creatureRoutine' })],
+    });
+
+    const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
+
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiThinking',
+      speakerId: wolf.id,
+      pid,
+    }));
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speakerId: wolf.id,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.familySceneBeastUneasy' }),
+      reaction: expect.objectContaining({
+        kind: 'avoid',
+        individualTier: expect.any(String),
+        sceneTags: expect.arrayContaining(['forge', 'workNoise']),
+      }),
+      source: 'local',
+      pid,
+    }));
+    expect(service.runtimeMetrics()).toMatchObject({
+      activePollFired: 1,
+      activeRoutineFired: 1,
+      activeRoutineLastKind: 'creature:beast:avoid',
+    });
+    expect(mainlineSnapshot(sim, pid)).toEqual(before);
+  });
+
+  it('lets owned companions react to death-pressure scenes before wild creatures', () => {
+    const { sim, pid } = makeWorld();
+    const wolf = entityByTemplate(sim, 'forest_wolf');
+    wolf.ownerId = pid;
+    wolf.hostile = false;
+    moveEntity(sim, wolf.id, 80, 86);
+    moveEntity(sim, pid, 81, 86);
+    const before = mainlineSnapshot(sim, pid);
+    const service = new AiActiveTriggerService({
+      rules: [testRule({ ruleId: 'test_companion_fear', category: 'creatureRoutine' })],
+    });
+
+    const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
+
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speakerId: wolf.id,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.companionSelfBeastScentUneasy' }),
+      reaction: expect.objectContaining({
+        kind: 'avoid',
+        sceneTags: expect.arrayContaining(['ruinedChapel', 'undeadMemory']),
+      }),
+      source: 'local',
+      pid,
+    }));
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeRoutineFired: 1,
+      activeRoutineLastKind: 'companion:beast:avoid',
+    });
+    expect(mainlineSnapshot(sim, pid)).toEqual(before);
   });
 });
