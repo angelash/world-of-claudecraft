@@ -101,6 +101,24 @@ describe('Input autorun', () => {
     expect(input.autorun).toBe(true);
     expect(input.readMoveInput().forward).toBe(true);
   });
+
+  it('opening the Escape menu pauses but does not cancel autorun, and it resumes on close', () => {
+    // The classic complaint: autorun, then hit Escape to change a keybind or a
+    // setting. Suspending movement (the open menu) must only pause forward motion
+    // for that frame, never clear the autorun latch, so closing the menu resumes
+    // the run instead of stranding the player.
+    const { input } = makeInput();
+    input.toggleAutorun();
+    expect(input.readMoveInput().forward).toBe(true);
+
+    input.suspendMovement = true; // mirrors main.ts setting it while the game menu is open
+    expect(input.autorun).toBe(true); // latch survives the menu
+    expect(input.readMoveInput().forward).toBe(false); // held still while suspended
+
+    input.suspendMovement = false; // menu closed
+    expect(input.autorun).toBe(true);
+    expect(input.readMoveInput().forward).toBe(true); // run resumes
+  });
 });
 
 describe('Input click-to-move marker pulses', () => {
@@ -479,6 +497,40 @@ describe('Input movement is not cancelled by a camera drag', () => {
     expect(input.readMoveInput().forward).toBe(false);
   });
 });
+describe('keyboard jump latch', () => {
+  // A spacebar tap can be physically pressed and released entirely inside one
+  // 50ms server-input window (or sim-tick gap), so the instantaneous key-held
+  // read used to silently drop it: "every now and then jump stops working".
+  // A keydown must latch the jump briefly, exactly like triggerTouchJump.
+  it('latches a quick Space tap so a read after keyup still sees the jump', () => {
+    const { input, windowListeners } = makeInput();
+    const now = vi.spyOn(performance, 'now');
+    now.mockReturnValue(1000);
+    windowListeners.get('keydown')!({ code: 'Space', repeat: false, preventDefault: () => {} });
+    windowListeners.get('keyup')!({ code: 'Space' }); // released almost immediately
+    now.mockReturnValue(1010);
+    expect(input.readMoveInput().jump).toBe(true);   // still inside the latch window
+    now.mockReturnValue(1140);
+    expect(input.readMoveInput().jump).toBe(true);
+    now.mockReturnValue(1200);
+    expect(input.readMoveInput().jump).toBe(false);  // latch expired
+    now.mockRestore();
+  });
+
+  it('a held Space keeps jumping past the latch window', () => {
+    const { input, windowListeners } = makeInput();
+    const now = vi.spyOn(performance, 'now');
+    now.mockReturnValue(1000);
+    windowListeners.get('keydown')!({ code: 'Space', repeat: false, preventDefault: () => {} });
+    now.mockReturnValue(5000); // long past any latch, key still physically held
+    expect(input.readMoveInput().jump).toBe(true);
+    windowListeners.get('keyup')!({ code: 'Space' });
+    now.mockReturnValue(5200); // released and latch expired
+    expect(input.readMoveInput().jump).toBe(false);
+    now.mockRestore();
+  });
+});
+
 describe('touch jump', () => {
   it('jump is off until the touch button arms it', () => {
     const { input } = makeInput();

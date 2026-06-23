@@ -14,6 +14,12 @@ const BASE_LOOK_SENS = 0.0045;
 const TOUCH_LOOK_YAW_RATE = 3.2;
 const TOUCH_LOOK_PITCH_RATE = 2.2;
 const TOUCH_JUMP_LATCH_MS = 220;
+// A keyboard jump press is latched the same way a touch tap is: a fast spacebar
+// tap can be pressed and released entirely between two 20Hz input samples (or
+// sim-tick gaps), so reading the raw key-held state silently drops it. Holding
+// the value above one full input/tick window (50ms) guarantees a grounded tick
+// observes the jump. Held jumps are unaffected (the key stays physically down).
+const KEY_JUMP_LATCH_MS = 150;
 const CAMERA_DRAG_START_DISTANCE = 18;
 const CAMERA_DRAG_START_MS = 140;
 
@@ -128,7 +134,11 @@ export class Input {
   // was BASE_LOOK_SENS — setCameraSpeed scales it from the settings menu
   private lookSensitivity = BASE_LOOK_SENS;
   private touchMove: TouchMoveInput = { forward: false, back: false, strafeLeft: false, strafeRight: false };
+  // Movement flags from the gamepad's left stick, OR'd into readMoveInput()
+  // alongside the touch joystick. The gamepad polls each frame (gamepad.ts).
+  private gamepadMove: TouchMoveInput = { forward: false, back: false, strafeLeft: false, strafeRight: false };
   private touchJumpUntil = 0;
+  private keyJumpUntil = 0;
   private touchLookActive = false;
   private touchLookVector = { x: 0, y: 0 };
   // multiplier on the touch look (camera joystick) rate; setTouchLookSpeed
@@ -348,6 +358,38 @@ export class Input {
     if (dx !== 0 || dy !== 0) this.noteIntent('look');
   }
 
+  // --- Gamepad (poll-based) -------------------------------------------------
+  // The gamepad shares the touch joystick's movement path: its left-stick flags
+  // are OR'd into readMoveInput(). Set/cleared each poll by GamepadManager.
+  setGamepadMove(move: TouchMoveInput): void {
+    const changed = move.forward !== this.gamepadMove.forward || move.back !== this.gamepadMove.back
+      || move.strafeLeft !== this.gamepadMove.strafeLeft || move.strafeRight !== this.gamepadMove.strafeRight;
+    this.gamepadMove = move;
+    if (move.forward || move.back) this.autorun = false;
+    if (changed) this.noteIntent('move');
+  }
+
+  clearGamepadMove(): void {
+    const changed = this.gamepadMove.forward || this.gamepadMove.back || this.gamepadMove.strafeLeft || this.gamepadMove.strafeRight;
+    this.gamepadMove = { forward: false, back: false, strafeLeft: false, strafeRight: false };
+    if (changed) this.noteIntent('move');
+  }
+
+  // Latch a gamepad jump-button tap the same way touch jumps latch, so reads
+  // between sim ticks don't swallow it before the grounded tick sees it.
+  triggerGamepadJump(): void {
+    this.touchJumpUntil = Math.max(this.touchJumpUntil, performance.now() + TOUCH_JUMP_LATCH_MS);
+  }
+
+  // Apply the right-stick camera deltas (already in radians, computed by the
+  // pure stickToLook core). Clamps pitch to the same range as touch/mouse look.
+  applyGamepadLook(yawDelta: number, pitchDelta: number): void {
+    if (yawDelta === 0 && pitchDelta === 0) return;
+    this.camYaw += yawDelta;
+    this.camPitch = Math.min(1.35, Math.max(-0.4, this.camPitch + pitchDelta));
+    this.noteIntent('look');
+  }
+
   updateTouchLook(dt: number): void {
     if (!this.touchLookActive) return;
     this.camYaw -= this.touchLookVector.x * TOUCH_LOOK_YAW_RATE * this.touchLookSpeed * dt;
@@ -507,6 +549,9 @@ export class Input {
       }
       this.keys.add(e.code);
       if (action === 'forward' || action === 'back') this.autorun = false;
+      // Latch a jump press (e.repeat is filtered above, so this is the real
+      // edge) so a fast tap survives until a grounded movement tick samples it.
+      if (action === 'jump') this.keyJumpUntil = Math.max(this.keyJumpUntil, performance.now() + KEY_JUMP_LATCH_MS);
       this.noteIntent('move');
       return;
     }
@@ -640,18 +685,19 @@ export class Input {
     if (this.controllerMoveInput) return { ...this.controllerMoveInput };
     const held = (id: string) => this.heldAction(id);
     const bothButtons = this.leftDown && this.rightDown;
-    const forward = held('forward') || bothButtons || this.autorun || this.touchMove.forward;
-    const back = held('back') || this.touchMove.back;
+    const forward = held('forward') || bothButtons || this.autorun || this.touchMove.forward || this.gamepadMove.forward;
+    const back = held('back') || this.touchMove.back || this.gamepadMove.back;
     // Jump is not a WASD key, so it keeps working in Attack Move mode.
-    const jump = this.keybinds.codesForAction('jump').some((c) => this.keys.has(c)) || performance.now() <= this.touchJumpUntil;
+    const jump = this.keybinds.codesForAction('jump').some((c) => this.keys.has(c))
+      || performance.now() <= this.touchJumpUntil || performance.now() <= this.keyJumpUntil;
 
     if (this.mouseCameraEnabled) {
       return {
         forward, back, jump,
         turnLeft: false,
         turnRight: false,
-        strafeLeft: held('strafeLeft') || held('turnLeft') || this.touchMove.strafeLeft,
-        strafeRight: held('strafeRight') || held('turnRight') || this.touchMove.strafeRight,
+        strafeLeft: held('strafeLeft') || held('turnLeft') || this.touchMove.strafeLeft || this.gamepadMove.strafeLeft,
+        strafeRight: held('strafeRight') || held('turnRight') || this.touchMove.strafeRight || this.gamepadMove.strafeRight,
       };
     }
 
@@ -660,8 +706,8 @@ export class Input {
     const dHeld = held('turnRight');
     return {
       forward, back, jump,
-      strafeLeft: held('strafeLeft') || (mouselook && aHeld) || this.touchMove.strafeLeft,
-      strafeRight: held('strafeRight') || (mouselook && dHeld) || this.touchMove.strafeRight,
+      strafeLeft: held('strafeLeft') || (mouselook && aHeld) || this.touchMove.strafeLeft || this.gamepadMove.strafeLeft,
+      strafeRight: held('strafeRight') || (mouselook && dHeld) || this.touchMove.strafeRight || this.gamepadMove.strafeRight,
       turnLeft: !mouselook && aHeld,
       turnRight: !mouselook && dHeld,
     };

@@ -1,7 +1,7 @@
 import * as http from 'node:http';
 import { json, readBody } from './http_util';
 import { rateLimited } from './ratelimit';
-import { findAccount, touchLogin, saveToken, accountForToken, isAdminAccount } from './db';
+import { findAccount, touchLogin, saveToken, accountForToken, isAdminAccount, setAccountDeactivated } from './db';
 import { verifyPassword, newToken } from './auth';
 import {
   overviewCounts, registrationsByDay, sessionsByDay, classDistribution, levelDistribution,
@@ -14,6 +14,8 @@ import {
   addFilterWord, chatModeratedAccounts, chatModerationForAccount, getFilterConfig, liftChatMute,
   listFilterWords, removeFilterWord, resetChatStrikes, updateFilterConfig, type WordTier,
 } from './chat_filter_db';
+import { addBlockedIp, cleanIp, listBlockedIps, removeBlockedIp } from './ip_block_db';
+import { listBugReports, getBugReportScreenshot } from './bug_report_db';
 import type { GameServer } from './game';
 import { providerUsageSnapshot } from './provider_usage';
 import { aiContentCoverageReport, aiContentReviewChecklist, aiProfilePreviewReport } from './ai/content_coverage';
@@ -25,6 +27,8 @@ const ADMIN_LOGIN_MAX_PER_MINUTE = 10;
 const MAX_PAGE_LIMIT = 200;
 const DEFAULT_PAGE_LIMIT = 25;
 const ACTIVITY_WINDOW_DAYS = 30;
+
+const IP_BLOCK_KICK_MESSAGE = 'Connection to the server was lost.';
 
 function ok(res: http.ServerResponse, data: unknown): void {
   json(res, 200, { success: true, data, error: null });
@@ -51,6 +55,16 @@ export function parsePageParams(params: URLSearchParams): PageParams {
 
 function cleanTier(value: unknown): WordTier | null {
   return value === 'soft' || value === 'hard' ? value : null;
+}
+
+function getBlockedIpsForAccount(
+  game: GameServer,
+  detail: { lastLoginIp: string | null; recentSessions: { ip: string | null }[] },
+): string[] {
+  const ips = new Set<string>();
+  if (detail.lastLoginIp) ips.add(detail.lastLoginIp);
+  for (const s of detail.recentSessions) if (s.ip) ips.add(s.ip);
+  return [...ips].filter((ip) => game.isIpBlocked(ip));
 }
 
 async function adminAccountId(req: http.IncomingMessage): Promise<number | null> {
@@ -117,6 +131,17 @@ export async function handleAdminApi(
         return ok(res, { ok: true });
       } catch (err) {
         return fail(res, 400, err instanceof Error ? err.message : 'moderation action failed');
+      }
+    }
+    // Reverse a player's self-service deactivation (admin-only).
+    const reactivateMatch = /^\/admin\/api\/moderation\/accounts\/(\d+)\/reactivate$/.exec(path);
+    if (req.method === 'POST' && reactivateMatch) {
+      const targetAccountId = Number(reactivateMatch[1]);
+      try {
+        await setAccountDeactivated(targetAccountId, false);
+        return ok(res, { ok: true });
+      } catch (err) {
+        return fail(res, 400, err instanceof Error ? err.message : 'reactivation failed');
       }
     }
     const chatMuteMatch = /^\/admin\/api\/moderation\/accounts\/(\d+)\/chat-mute$/.exec(path);
@@ -221,8 +246,36 @@ export async function handleAdminApi(
     if (req.method === 'POST' && path === '/admin/api/ai/active-triggers/sequences/cancel') {
       return ok(res, game.cancelAiActiveSequences());
     }
+    if (req.method === 'POST' && path === '/admin/api/blocked-ips') {
+      const body = await readBody(req);
+      try {
+        const ip = await addBlockedIp({
+          ip: body.ip,
+          reason: body.reason,
+          createdByAccountId: accountId,
+          expiresAt: body.expiresAt,
+        });
+        if (!ip) return fail(res, 400, 'a valid IP address is required');
+        await game.reloadBlockedIps();
+        game.disconnectByIp(ip, IP_BLOCK_KICK_MESSAGE);
+        return ok(res, { ok: true });
+      } catch (err) {
+        return fail(res, 400, err instanceof Error ? err.message : 'failed to block IP');
+      }
+    }
+    if (req.method === 'POST' && path === '/admin/api/blocked-ips/delete') {
+      const body = await readBody(req);
+      if (!cleanIp(body.ip)) return fail(res, 400, 'a valid IP address is required');
+      const removed = await removeBlockedIp(body.ip, accountId);
+      if (removed) await game.reloadBlockedIps();
+      return removed ? ok(res, { ok: true }) : fail(res, 404, 'IP not found');
+    }
 
     if (req.method !== 'GET') return fail(res, 405, 'method not allowed');
+
+    if (path === '/admin/api/blocked-ips') {
+      return ok(res, { rows: await listBlockedIps() });
+    }
 
     if (path === '/admin/api/chat-filter') {
       const [soft, hard, config, accounts] = await Promise.all([
@@ -303,6 +356,16 @@ export async function handleAdminApi(
     if (path === '/admin/api/moderation/queue') {
       return ok(res, { rows: await moderationQueue(game.liveAccountIds()) });
     }
+    if (path === '/admin/api/bug-reports') {
+      const { page, limit } = parsePageParams(url.searchParams);
+      const { rows, total } = await listBugReports(limit, (page - 1) * limit);
+      return ok(res, { rows, total, page, limit });
+    }
+    const bugScreenshotMatch = /^\/admin\/api\/bug-reports\/(\d+)\/screenshot$/.exec(path);
+    if (bugScreenshotMatch) {
+      // The list query omits the (potentially large) screenshot; fetch it per report.
+      return ok(res, { screenshot: await getBugReportScreenshot(Number(bugScreenshotMatch[1])) });
+    }
     const moderationAccountMatch = /^\/admin\/api\/moderation\/accounts\/(\d+)$/.exec(path);
     if (moderationAccountMatch) {
       const id = Number(moderationAccountMatch[1]);
@@ -312,7 +375,7 @@ export async function handleAdminApi(
         chatModerationForAccount(id),
       ]);
       if (!detail) return fail(res, 404, 'account not found');
-      return ok(res, { account: detail, reports, chat });
+      return ok(res, { account: detail, reports, chat, blockedIps: getBlockedIpsForAccount(game, detail) });
     }
     const detailMatch = /^\/admin\/api\/accounts\/(\d+)$/.exec(path);
     if (detailMatch) {

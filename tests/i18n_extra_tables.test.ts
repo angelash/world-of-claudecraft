@@ -126,7 +126,9 @@ describe("sim/server EXTRA localization tables (untracked by the registry)", () 
 // host-locale toLocale*() or an ad-hoc Intl constructed outside the helper modules.
 // ---------------------------------------------------------------------------
 function walk(dir: string, out: string[] = []): string[] {
+  const skipDirs = new Set(["i18n.resolved.generated"]);
   for (const name of readdirSync(dir)) {
+    if (skipDirs.has(name)) continue;
     const p = path.join(dir, name);
     const st = statSync(p);
     if (st.isDirectory()) walk(p, out);
@@ -144,7 +146,7 @@ describe("locale-aware formatting is centralized", () => {
   it("constructs no ad-hoc Intl.NumberFormat/DateTimeFormat outside the helper modules", () => {
     const offenders: string[] = [];
     for (const f of files) {
-      const rel = path.relative(ROOT, f);
+      const rel = path.relative(ROOT, f).split(path.sep).join("/");
       if (INTL_ALLOW.includes(rel)) continue;
       const src = readFileSync(f, "utf8");
       const m = src.match(/new Intl\.(NumberFormat|DateTimeFormat)\(/);

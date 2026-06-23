@@ -80,6 +80,8 @@ ALTER TABLE accounts ADD COLUMN IF NOT EXISTS created_user_agent TEXT;
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS last_login_ip TEXT;
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS last_login_user_agent TEXT;
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS cosmetics JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS deactivated_at TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS accounts_created_at ON accounts(created_at DESC);
 CREATE INDEX IF NOT EXISTS accounts_created_ip_created ON accounts(created_ip, created_at DESC);
 CREATE INDEX IF NOT EXISTS accounts_created_user_agent_created ON accounts(created_user_agent, created_at DESC);
@@ -126,6 +128,26 @@ CREATE TABLE IF NOT EXISTS player_reports (
 );
 CREATE INDEX IF NOT EXISTS player_reports_reported_status ON player_reports(reported_account_id, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS player_reports_reporter_created ON player_reports(reporter_account_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS bug_reports (
+  id BIGSERIAL PRIMARY KEY,
+  account_id INT REFERENCES accounts(id) ON DELETE SET NULL,
+  character_id INT REFERENCES characters(id) ON DELETE SET NULL,
+  character_name TEXT NOT NULL DEFAULT '',
+  realm TEXT NOT NULL DEFAULT '',
+  pos_x REAL NOT NULL DEFAULT 0,
+  pos_y REAL NOT NULL DEFAULT 0,
+  pos_z REAL NOT NULL DEFAULT 0,
+  description TEXT NOT NULL,
+  screenshot TEXT,
+  meta JSONB NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'open',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS bug_reports_account_created ON bug_reports(account_id, created_at DESC);
+-- Serves the admin list (ORDER BY created_at DESC, no status filter), mirroring
+-- accounts_created_at. A (status, created_at) composite would not satisfy this
+-- ordering without a leading-column filter.
+CREATE INDEX IF NOT EXISTS bug_reports_created ON bug_reports(created_at DESC);
 CREATE TABLE IF NOT EXISTS account_moderation_actions (
   id BIGSERIAL PRIMARY KEY,
   account_id INT REFERENCES accounts(id) ON DELETE CASCADE,
@@ -136,6 +158,23 @@ CREATE TABLE IF NOT EXISTS account_moderation_actions (
   expires_at TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS account_moderation_actions_account ON account_moderation_actions(account_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS blocked_ips (
+  id SERIAL PRIMARY KEY,
+  ip TEXT NOT NULL UNIQUE,
+  reason TEXT NOT NULL DEFAULT '',
+  created_by_account_id INT REFERENCES accounts(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at TIMESTAMPTZ
+);
+CREATE TABLE IF NOT EXISTS blocked_ip_actions (
+  id BIGSERIAL PRIMARY KEY,
+  ip TEXT NOT NULL,
+  action TEXT NOT NULL,
+  admin_account_id INT REFERENCES accounts(id) ON DELETE SET NULL,
+  reason TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS blocked_ip_actions_ip ON blocked_ip_actions(ip, created_at DESC);
 CREATE TABLE IF NOT EXISTS world_state (
   key TEXT PRIMARY KEY,
   data JSONB NOT NULL,
@@ -438,6 +477,67 @@ export async function accountForToken(token: string): Promise<number | null> {
   return res.rows[0]?.account_id ?? null;
 }
 
+export interface AccountInfoRow {
+  id: number;
+  username: string;
+  password_hash: string;
+  email: string | null;
+  created_at: string;
+  deactivated_at: string | null;
+}
+
+// Full account record by id — used by the self-service account portal
+// (whoami, password change, email, deactivate). Distinct from findAccount,
+// which keys on username for the login path.
+export async function accountById(accountId: number): Promise<AccountInfoRow | null> {
+  const res = await pool.query(
+    'SELECT id, username, password_hash, email, created_at, deactivated_at FROM accounts WHERE id = $1',
+    [accountId],
+  );
+  return res.rows[0] ?? null;
+}
+
+// Account-wide character count across every realm. The account portal is an
+// account-wide self-service surface, so it counts all of the account's
+// characters (unlike realm-scoped listCharacters).
+export async function characterCountForAccount(accountId: number): Promise<number> {
+  const res = await pool.query(
+    `SELECT COUNT(*)::int AS count FROM characters WHERE account_id = $1`,
+    [accountId],
+  );
+  return res.rows[0]?.count ?? 0;
+}
+
+export async function updatePasswordHash(accountId: number, passwordHash: string): Promise<void> {
+  await pool.query('UPDATE accounts SET password_hash = $2 WHERE id = $1', [accountId, passwordHash]);
+}
+
+// Revoke every token for an account except (optionally) the one in hand.
+// A password change keeps the current device signed in (pass its token);
+// a deactivate revokes everything (pass null).
+export async function revokeTokensExcept(accountId: number, keepToken: string | null): Promise<void> {
+  if (keepToken) {
+    await pool.query('DELETE FROM auth_tokens WHERE account_id = $1 AND token <> $2', [accountId, keepToken]);
+  } else {
+    await pool.query('DELETE FROM auth_tokens WHERE account_id = $1', [accountId]);
+  }
+}
+
+export async function revokeToken(token: string): Promise<void> {
+  await pool.query('DELETE FROM auth_tokens WHERE token = $1', [token]);
+}
+
+export async function setAccountEmail(accountId: number, email: string | null): Promise<void> {
+  await pool.query('UPDATE accounts SET email = $2 WHERE id = $1', [accountId, email]);
+}
+
+export async function setAccountDeactivated(accountId: number, deactivated: boolean): Promise<void> {
+  await pool.query(
+    `UPDATE accounts SET deactivated_at = CASE WHEN $2 THEN now() ELSE NULL END WHERE id = $1`,
+    [accountId, deactivated],
+  );
+}
+
 // ── Non-custodial Solana wallet links ──────────────────────────────────────
 
 export interface WalletLinkRow {
@@ -647,7 +747,7 @@ export async function lifetimeXpStanding(
 
 export async function moderationStatusForAccount(accountId: number): Promise<AccountModerationStatus> {
   const res = await pool.query(
-    `SELECT banned_at, suspended_until, moderation_reason, chat_muted_until, chat_strikes
+    `SELECT banned_at, suspended_until, moderation_reason, chat_muted_until, chat_strikes, deactivated_at
      FROM accounts WHERE id = $1`,
     [accountId],
   );
@@ -660,6 +760,9 @@ export async function moderationStatusForAccount(accountId: number): Promise<Acc
     ? mutedUntilDate.toISOString()
     : null;
   const chatStrikes = Number(row.chat_strikes ?? 0);
+  // Admin-imposed states (ban, then active suspension) outrank a self-imposed
+  // deactivation: a banned+deactivated account must still surface the ban reason
+  // and label, not be relabelled "deactivated". All branches resolve to locked.
   if (row.banned_at) {
     return {
       locked: true,
@@ -679,6 +782,19 @@ export async function moderationStatusForAccount(accountId: number): Promise<Acc
       suspendedUntil: suspendedUntil.toISOString(),
       reason: row.moderation_reason ?? '',
       message: `This account is suspended until ${suspendedUntil.toUTCString()}.`,
+      chatMutedUntil,
+      chatStrikes,
+    };
+  }
+  // A self-deactivated account is locked out of login + WS auth (same gate as
+  // banned/suspended) until an admin reactivates it.
+  if (row.deactivated_at) {
+    return {
+      locked: true,
+      banned: false,
+      suspendedUntil: null,
+      reason: '',
+      message: 'This account has been deactivated.',
       chatMutedUntil,
       chatStrikes,
     };
@@ -823,10 +939,15 @@ export async function searchCharacters(prefix: string, limit = 8): Promise<Chara
 }
 
 export async function renameCharacter(accountId: number, characterId: number, name: string): Promise<CharacterRow | null> {
+  // A rename is only ever sanctioned by a moderator's "Force name change", which
+  // sets force_rename. Gating the UPDATE on `force_rename = TRUE` makes the server
+  // authoritative (the UI hides the control, but the API must not trust that) and
+  // is race-free: a successful rename clears the flag, so it self-limits to exactly
+  // one rename per moderator action.
   const res = await pool.query(
     `UPDATE characters
      SET name = $3, force_rename = FALSE, updated_at = now()
-     WHERE id = $1 AND account_id = $2 AND realm = $4
+     WHERE id = $1 AND account_id = $2 AND realm = $4 AND force_rename = TRUE
      RETURNING id, account_id, name, class, level, state, is_gm, force_rename`,
     [characterId, accountId, name, REALM],
   );

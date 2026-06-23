@@ -12,6 +12,7 @@ import { itemStrings, itemNames } from './items';
 import { mergeStrings, mergeEntities, mergeExtra } from './merge';
 import { gameStrings } from './game';
 import { hudChromeStrings } from './hud_chrome';
+import { guideStrings } from './guide';
 
 // Re-export the catalog public surface (every name the old i18n.en.ts exported).
 export { shellStrings } from './shell';
@@ -21,6 +22,7 @@ export { questStrings } from './quests';
 export { itemStrings, itemNames } from './items';
 export { mergeStrings, mergeEntities, mergeExtra } from './merge';
 export { hudChromeStrings } from './hud_chrome';
+export { guideStrings } from './guide';
 export {
   gameStrings, gameStringsEnCA, gameStringsEs, gameStringsEsES, gameStringsFrFR,
   gameStringsFrCA, gameStringsItIT, gameStringsDeDE, gameStringsZhCN, gameStringsZhTW,
@@ -45,6 +47,7 @@ export const en = {
   realmTypes: { normal: "Normal", pvp: "PvP", rp: "RP", rpPvp: "RP-PvP" },
   game: gameStrings,
   hudChrome: hudChromeStrings,
+  guide: guideStrings,
   // Cosmetic skin-select event overlay. Rarity names reuse itemUi.quality.*.
   skinEvent: {
     title: "Cosmetic Cache",
@@ -89,6 +92,8 @@ export const en = {
     news: "News",
     download: "Download",
     loginRegister: "Login/Register",
+    account: "Account",
+    logout: "Logout",
     donate: "Donate",
   },
   stats: {
@@ -260,6 +265,14 @@ export const en = {
       vaultwarden: { name: "Vaultwarden", flavor: "Guarding a real vault now: 0.01% of all $WOC." },
       whale: { name: "Whale", flavor: "The deep parts when you swim: 0.1% of supply." },
       leviathan: { name: "Leviathan", flavor: "Markets feel you move: 1% of supply." },
+      tidelord: { name: "Tidelord", flavor: "The tide answers your call: 2% of supply." },
+      stormcaller: { name: "Stormcaller", flavor: "Storms gather at your name: 3% of supply." },
+      krakencrown: { name: "Krakencrown", flavor: "Crowned by the deep: 4% of supply." },
+      titanforged: { name: "Titanforged", flavor: "Forged among titans: 5% of supply." },
+      starhoard: { name: "Starhoard", flavor: "A hoard that bends starlight: 6% of supply." },
+      voidwarden: { name: "Voidwarden", flavor: "Keeper at the void's edge: 7% of supply." },
+      realmshaper: { name: "Realmshaper", flavor: "You reshape the realm: 8% of supply." },
+      worldforger: { name: "Worldforger", flavor: "Forging a world of your own: 9% of supply." },
       worldbearer: { name: "Worldbearer", flavor: "You carry a piece of the world: 10% of supply." },
       sovereign: { name: "Sovereign", flavor: "The realm bends the knee: the entire supply." },
     },
@@ -483,6 +496,16 @@ export const en = {
       crypt_ritual_circle: { name: "Ritual Circle" },
       kings_signet: { name: "King's Signet" },
       event_skin_token: { name: "Mysterious Cosmetic Cache" },
+      deathless_heartwood: { name: "Heartwood of the Deathless Crown" },
+      kingsbane_last_oath: { name: "Kingsbane, Last Oath of Thornpeak" },
+      crownforged_dreadhelm: { name: "Crownforged Dreadhelm" },
+      crownforged_warspaulders: { name: "Crownforged Warspaulders" },
+      nighttalon_crown: { name: "Nighttalon Crown" },
+      nighttalon_shoulderguards: { name: "Nighttalon Shoulderguards" },
+      soulflame_cowl: { name: "Soulflame Cowl" },
+      soulflame_mantle: { name: "Soulflame Mantle" },
+      stormcallers_crown: { name: "Stormcaller's Crown" },
+      stormcallers_spaulders: { name: "Stormcaller's Spaulders" },
       unknown_alien_weaponry: { name: "Unknown Alien Weaponry" },
       alien_armor_plate: { name: "Alien Armor Plate" },
       amber_crimson_armor_plate: { name: "Amber Crimson" },

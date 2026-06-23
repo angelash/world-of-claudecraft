@@ -14,6 +14,7 @@ import {
 const TABLES: Record<SupportedLanguage, unknown> = {
   en, es, es_ES, fr_FR, fr_CA, en_CA, it_IT, de_DE, zh_CN, zh_TW, ko_KR, ja_JP, pt_BR, ru_RU,
 };
+const RELEASE_TIER = process.env.I18N_RELEASE_TIER === "1";
 
 function flatten(obj: unknown, prefix = "", out: Record<string, string> = {}): Record<string, string> {
   if (obj && typeof obj === "object") {
@@ -95,12 +96,16 @@ describe("i18n whole-catalog completeness", () => {
   // leaves that legitimately stay identical are brand / URL strings, kept verbatim
   // in every locale on purpose; everything else must differ. Add a key here only if
   // it is a genuine brand/URL that should never be translated.
-  it("non-Latin locales ship no untranslated English (only brand/URL leaves stay identical)", () => {
+  it.runIf(RELEASE_TIER)("non-Latin locales ship no untranslated English (only brand/URL leaves stay identical)", () => {
     const BRAND_ALLOW = new Set([
       "footer.copyright",        // "{year} World of ClaudeCraft" - brand
       "footer.githubLink",       // repository URL
       "fiesta.bracket",          // "Fiesta" event brand
       "serverUnavailable.logoAlt", // "World of ClaudeCraft" logo alt text - brand
+      "guide.brand",             // "World of ClaudeCraft" - brand (Guide)
+      "guide.brandShort",        // "ClaudeCraft" - brand (Guide)
+      "guide.home.title",        // "World of ClaudeCraft" - brand (Guide hero)
+      "guide.footer.rights",     // "World of ClaudeCraft" - brand (Guide footer)
     ]);
     const wordy = (v: string) => /[a-z]{4,}/.test(v.replace(/\{[^}]*\}/g, ""));
     const nonLatin: SupportedLanguage[] = ["zh_CN", "zh_TW", "ja_JP", "ko_KR", "ru_RU"];

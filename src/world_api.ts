@@ -1,4 +1,4 @@
-import { OVERHEAD_EMOTE_IDS, type ArenaCombatant, type ArenaFormat, type ArenaStanding, type Entity, type EquipSlot, type InvSlot, type MoveInput, type OverheadEmoteId, type PetMode, type PlayerClass, type QuestProgress, type QuestState, type ResourceType } from './sim/types';
+import { OVERHEAD_EMOTE_IDS, type ArenaCombatant, type ArenaFormat, type ArenaStanding, type Entity, type EquipSlot, type InvSlot, type LootRollChoice, type MoveInput, type OverheadEmoteId, type PetMode, type PlayerClass, type QuestProgress, type QuestState, type ResourceType } from './sim/types';
 import type { ResolvedAbility } from './sim/sim';
 import type { TalentAllocation, SavedLoadout, Role } from './sim/content/talents';
 
@@ -16,10 +16,12 @@ export interface PartyMemberInfo {
   z: number;
   dead: number;
   inCombat: number;
+  group: 1 | 2;
 }
 
 export interface PartyInfo {
   leader: number;
+  raid: boolean;
   members: PartyMemberInfo[];
 }
 
@@ -279,11 +281,14 @@ export interface IWorld {
   aiInspectObject(objectId: number, locale: string): void;
   aiInspectScene(locale: string): void;
   lootCorpse(id: number): void;
+  submitLootRoll(rollId: number, choice: LootRollChoice): void;
   pickUpObject(id: number): void;
   acceptQuest(questId: string): void;
   turnInQuest(questId: string): void;
+  reportTelemetry(kind: string, data: Record<string, number>): void;
   abandonQuest(questId: string): void;
   equipItem(itemId: string): void;
+  unequipItem(slot: EquipSlot): void;
   useItem(itemId: string): void;
   discardItem(itemId: string, count?: number): void;
   buyItem(npcId: number, itemId: string): void;
@@ -317,6 +322,8 @@ export interface IWorld {
   partyDecline(): void;
   partyLeave(): void;
   partyKick(targetPid: number): void;
+  convertPartyToRaid(): void;
+  moveRaidMember(targetPid: number, group: 1 | 2): void;
   // raid/target markers (party-scoped): markerId 0..7, null = no mark
   markerFor(entityId: number): number | null;
   setMarker(entityId: number, markerId: number): void;

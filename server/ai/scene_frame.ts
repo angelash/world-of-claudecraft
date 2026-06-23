@@ -24,7 +24,7 @@ export interface DroppedItemSemantic {
   itemId: string;
   displayName: string;
   itemTags: string[];
-  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'quest' | 'unknown';
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'quest' | 'unknown';
   freshnessSeconds: number;
   ownerEntityId: number | null;
   smellTags: string[];

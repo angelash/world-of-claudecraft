@@ -145,7 +145,7 @@ describe('AI life layer audit recording', () => {
     }));
   });
 
-  it('records provider errors without synthesizing fallback output', async () => {
+  it('records provider errors while delivering the local NPC fallback', async () => {
     const provider: AiProvider = {
       async decide(): Promise<AiDecisionV1> {
         throw new Error('codex worker timed out');
@@ -159,8 +159,10 @@ describe('AI life layer audit recording', () => {
     await expect(layer.handleNpcInteraction({ sim, pid, npcId, locale: 'en', deliver: (events) => delivered.push(...events) })).resolves.toBeUndefined();
 
     expect(delivered).toContainEqual(expect.objectContaining({
-      type: 'error',
-      text: 'AI response failed: codex worker timed out',
+      type: 'aiSpeech',
+      source: 'local',
+      pid,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
     }));
     expect(sink.records).toEqual([expect.objectContaining({
       status: 'provider_error',
@@ -173,10 +175,10 @@ describe('AI life layer audit recording', () => {
     expect(sink.records[0].inputTokens).toBeGreaterThan(0);
     expect(sink.records[0].totalTokens).toBe(sink.records[0].inputTokens);
     expect(sink.records[0].chain?.provider.error).toBe('codex worker timed out');
-    expect(sink.records[0].chain?.delivered.textSummary).toEqual(['AI response failed: codex worker timed out']);
+    expect(sink.records[0].chain?.delivered.textSummary).toEqual(['hudChrome.aiSpeech.brotherAldricAwake']);
   });
 
-  it('records rejected provider decisions and delivers a clear rejection event', async () => {
+  it('records rejected provider decisions while preserving the local NPC fallback', async () => {
     const provider = acceptedProvider('hudChrome.aiSpeech.merchantMarketPulse');
     const { sim, pid, npcId } = makeSim();
     const sink = new CaptureAuditSink();
@@ -186,9 +188,10 @@ describe('AI life layer audit recording', () => {
     await layer.handleNpcInteraction({ sim, pid, npcId, locale: 'en', deliver: (events) => delivered.push(...events) });
 
     expect(delivered).toContainEqual(expect.objectContaining({
-      type: 'error',
-      text: expect.stringContaining('AI response rejected: line id hudChrome.aiSpeech.merchantMarketPulse not allowed'),
+      type: 'aiSpeech',
+      source: 'local',
       pid,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
     }));
     expect(sink.records).toEqual([expect.objectContaining({
       status: 'rejected',

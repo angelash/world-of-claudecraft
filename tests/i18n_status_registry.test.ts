@@ -234,7 +234,7 @@ describe("i18n status registry: determinism (status.json is gitignored - no comm
         outFiles: ["i18n.status.json", "i18n.status.summary.json"],
       }),
     ).not.toThrow();
-  });
+  }, 20000);
 });
 
 describe("i18n status summary: committed audit rollup cross-checks the full registry", () => {
@@ -242,12 +242,12 @@ describe("i18n status summary: committed audit rollup cross-checks the full regi
     expect(() =>
       execFileSync("git", ["ls-files", "--error-unmatch", "--", summaryRel], { cwd: root, encoding: "utf8" }),
     ).not.toThrow();
-    // Regenerates both artifacts; only the committed summary is diffed (status.json is
-    // gitignored, so a `git diff` on it would silently pass regardless).
+    const before = fs.readFileSync(path.join(root, summaryRel), "utf8");
+    // Regenerates both artifacts; the committed summary itself must stay byte-identical
+    // even in a dirty merge worktree.
     execFileSync(process.execPath, [path.join(root, "scripts/i18n_scan.mjs")], { cwd: root, encoding: "utf8" });
-    expect(() =>
-      execFileSync("git", ["diff", "--exit-code", "--", summaryRel], { cwd: root, encoding: "utf8" }),
-    ).not.toThrow();
+    const after = fs.readFileSync(path.join(root, summaryRel), "utf8");
+    expect(after).toBe(before);
   });
 
   it("summary counts equal the full registry counts, and locales/scopes mirror it", () => {

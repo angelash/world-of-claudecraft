@@ -151,6 +151,7 @@ export const AI_AGENT_PROFILES: readonly AiAgentProfile[] = [
       { kind: 'npc', templateId: 'brother_aldric' },
       { kind: 'npc', templateId: 'brother_aldric_fen' },
       { kind: 'npc', templateId: 'brother_aldric_highwatch' },
+      { kind: 'npc', templateId: 'brother_aldric_raid' },
     ],
     persona: 'A worried priest who reads weather, graves, and player choices as omens.',
     allowedIntentTypes: BASIC_NPC_INTENTS,

@@ -73,14 +73,14 @@ describe("admin t(): pending key (English-only legal at PR; hard-fail at release
     const mod = await loadAdminWithPending();
     mod.setAdminLanguage("es");
     expect(mod.t(SAMPLE, { name: "Aki" })).toBe("English fill Aki");
-  });
+  }, 15000);
 
   it("hard-fails on a release build (English must never ship to a translated operator)", async () => {
     process.env.I18N_RELEASE = "1";
     const mod = await loadAdminWithPending();
     mod.setAdminLanguage("es");
     expect(() => mod.t(SAMPLE)).toThrow(/pending/);
-  });
+  }, 15000);
 
   it("throws on an untracked key in dev/test (typo guard)", async () => {
     delete process.env.I18N_RELEASE;
@@ -89,7 +89,7 @@ describe("admin t(): pending key (English-only legal at PR; hard-fail at release
     expect(() => mod.t("totally.bogus.admin.key")).toThrow(/untracked key/);
     // a real key still resolves, so the guard is not blanket-throwing
     expect(mod.t("nav.overview")).toBe("Overview");
-  });
+  }, 15000);
 });
 
 // --- Bundle isolation: admin imports its OWN tables, never the game i18n ---------

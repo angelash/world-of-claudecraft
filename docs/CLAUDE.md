@@ -18,7 +18,6 @@ PRDs say so explicitly) and note the deviation.
 | `hud-ux-and-accessibility/` | Phased UX/accessibility program (brainstorm → phases → QA). |
 | `ui-architecture-hud-modularization/` | Phased HUD modularization refactor program. |
 | `release-notes/` | Per-version release notes. |
-| `security/` | Security design notes (e.g. behavioral bot detection). |
 | `screenshots/` | JPG/PNG assets embedded by docs and the repo-root `README.md` (table below). |
 | `*.md` (top level) | One-off reports — `hud-program-roadmap.md`, `hud-program-validation-report.md`, `performance-feel-audit.md`. |
 
@@ -57,6 +56,7 @@ PRDs say so explicitly) and note the deviation.
 | `ai-audit-center.zh_CN.md` | Chinese PRD for AI Audit Center requirements, gaps, acceptance criteria, usage frequency, and token telemetry. |
 | `ai-social-sequences.zh_CN.md` | Chinese PRD card for paced AI social-sequence dialogue, participant context, and mixed dynamic/local tail behavior. |
 | `build-prompts.md` | Two self-contained prompts that drive end-to-end PRD implementation (used with `/gsd:*`). |
+| `woc/` | $WOC / Web3 feature specs: `wallet-link.md` (non-custodial Solana wallet verification) and `holder-cosmetic-flair.md` (verified-holder cosmetic tier). |
 
 ## screenshots/
 JPG/PNG assets embedded by the repo-root `README.md` (title screen, zones, dungeons, UI).

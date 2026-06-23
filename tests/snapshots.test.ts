@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the db layer so no Postgres is needed; snapshot logic is under test.
 vi.mock('../server/db', () => ({
@@ -7,13 +7,15 @@ vi.mock('../server/db', () => ({
   openPlaySession: vi.fn(async () => 1),
   closePlaySession: vi.fn(async () => {}),
   insertChatLogs: vi.fn(async () => {}),
+  walletForAccount: vi.fn(async () => null),
   markAccountQuestComplete: vi.fn(async () => ({ completedQuestIds: [], mechChromaIds: [] })),
   grantAccountMechChroma: vi.fn(async () => ({ completedQuestIds: [], mechChromaIds: [] })),
 }));
 
-import { GameServer, ClientSession } from '../server/game';
+import { GameServer, ClientSession, wireEntity } from '../server/game';
 import { saveCharacterState } from '../server/db';
 import { ClientWorld } from '../src/net/online';
+import { Sim } from '../src/sim/sim';
 import { DT, type PlayerClass } from '../src/sim/types';
 
 const DELTA_KEYS = ['inv', 'buyback', 'equip', 'qlog', 'qdone', 'cds', 'stats', 'weapon', 'party', 'trade', 'duel'];
@@ -75,6 +77,7 @@ function bareClient(pid: number): ClientWorld {
   c.duelInfo = null;
   c.lastSnapAt = 0;
   c.snapInterval = 50;
+  c.missingSince = new Map();
   c.pendingFacingDelta = 0;
   c.connected = true;
   c.eventQueue = [];
@@ -178,6 +181,29 @@ describe('delta snapshots', () => {
     const client = bareClient(session.pid);
     (client as any).applySnapshot(snap);
     expect(client.player.swingTimer).toBeCloseTo(1.7, 1);
+  });
+
+  it('includes live aura and movement diagnostics in admin online rows', () => {
+    const druidServer = new GameServer();
+    const fc = fakeWs();
+    const druid = joinServer(druidServer, fc, 10, 'Newkali', 'druid');
+    const player = druidServer.sim.entities.get(druid.pid)!;
+    druidServer.sim.setPlayerLevel(20, druid.pid);
+    player.resource = player.maxResource;
+
+    druidServer.sim.castAbility('travel_form', druid.pid);
+    druidServer.sim.tick();
+
+    const row = druidServer.liveSessions().find((p) => p.characterId === 10)!;
+    expect(row.moveSpeedMultiplier).toBeCloseTo(1.4);
+    expect(row.runSpeed).toBeCloseTo(9.8);
+    expect(row.swimming).toBe(false);
+    expect(row.auras).toContainEqual(expect.objectContaining({
+      id: 'travel_form',
+      name: 'Travel Form',
+      kind: 'form_travel',
+      value: 1.4,
+    }));
   });
 
   it('sell command forwards bounded stack quantities', () => {
@@ -786,5 +812,149 @@ describe('client-side delta merge', () => {
     (client as any).applySnapshot(lastSnap(fc.sent));
     expect(client.inventory).not.toBe(invRef);
     expect(client.inventory.some((s) => s.itemId === 'baked_bread')).toBe(true);
+  });
+});
+
+describe('despawn grace (anti-flicker)', () => {
+  // A full ("first sight") wire record carrying identity, so applyWire creates
+  // the entity rather than skipping it as a half-initialized lite ghost.
+  function fullWire(id: number, x: number, z: number, extra: Record<string, unknown> = {}) {
+    return { id, k: 'player', tid: 'warrior', nm: `E${id}`, lv: 1, x, y: 0, z, f: 0, hp: 100, mhp: 100, ...extra };
+  }
+  function snap(self: any, ents: any[], keep: number[] = []) {
+    return { t: 'snap', tick: 1, time: 0, self, ents, keep };
+  }
+
+  let clock = 0;
+
+  beforeEach(() => {
+    clock = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => clock);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('retains a far entity briefly missing from a snapshot, then drops it after the grace window', () => {
+    const c = bareClient(1);
+    const self = () => fullWire(1, 0, 0);
+
+    // Establish: self plus a far entity riding the interest boundary (~95yd).
+    (c as any).applySnapshot(snap(self(), [fullWire(2, 95, 0)]));
+    expect(c.entities.has(2)).toBe(true);
+
+    // Boundary churn: it drops out of the next snapshot. Held, not deleted.
+    clock += 50;
+    (c as any).applySnapshot(snap(self(), []));
+    expect(c.entities.has(2)).toBe(true);
+
+    // Still gone, but within the grace window: still retained.
+    clock += 200;
+    (c as any).applySnapshot(snap(self(), []));
+    expect(c.entities.has(2)).toBe(true);
+
+    // Gone past the grace window: now really removed.
+    clock += 600;
+    (c as any).applySnapshot(snap(self(), []));
+    expect(c.entities.has(2)).toBe(false);
+  });
+
+  it('clears the grace timer when the entity reappears (no flicker on re-entry)', () => {
+    const c = bareClient(1);
+    const self = () => fullWire(1, 0, 0);
+    const ent2 = c.entities; // ref to the live map
+
+    (c as any).applySnapshot(snap(self(), [fullWire(2, 95, 0)]));
+    const created = ent2.get(2);
+
+    clock += 50;
+    (c as any).applySnapshot(snap(self(), [])); // briefly missing
+    clock += 50;
+    (c as any).applySnapshot(snap(self(), [fullWire(2, 96, 0)])); // back
+    // Same entity object retained the whole time — the renderer never tore down
+    // and rebuilt its view, so no visible flash.
+    expect(ent2.get(2)).toBe(created);
+
+    // Marker cleared, so a later miss starts a fresh grace window rather than
+    // counting from the earlier one.
+    clock += 5000;
+    (c as any).applySnapshot(snap(self(), []));
+    expect(c.entities.has(2)).toBe(true);
+  });
+
+  it('treats a `keep`-listed entity as present (tier-throttle is never "missing")', () => {
+    const c = bareClient(1);
+    const self = () => fullWire(1, 0, 0);
+
+    (c as any).applySnapshot(snap(self(), [fullWire(2, 95, 0)]));
+    expect(c.entities.has(2)).toBe(true);
+
+    // First a genuine omission so the grace timer is actually armed — without
+    // this the `missingSince.has(2)` assertion below would be trivially false
+    // and never exercise the keep-clears-timer path.
+    clock += 50;
+    (c as any).applySnapshot(snap(self(), []));
+    expect(c.entities.has(2)).toBe(true);
+    expect((c as any).missingSince.has(2)).toBe(true);
+
+    // Now a distance-tier-throttled snapshot omits it from `ents` but lists it
+    // in `keep`, so it counts as seen — retained, and the armed grace timer is
+    // cleared.
+    clock += 50;
+    (c as any).applySnapshot(snap(self(), [], [2]));
+    expect(c.entities.has(2)).toBe(true);
+    expect((c as any).missingSince.has(2)).toBe(false);
+
+    // Because the timer was cleared, a genuine later miss starts a fresh grace
+    // window (held now, not deleted as if it had been missing since the throttle).
+    clock += 5000;
+    (c as any).applySnapshot(snap(self(), []));
+    expect(c.entities.has(2)).toBe(true);
+  });
+
+  it('drops a close-range disappearance immediately (preserves instant stealth-vanish)', () => {
+    const c = bareClient(1);
+    const self = () => fullWire(1, 0, 0);
+
+    (c as any).applySnapshot(snap(self(), [fullWire(2, 10, 0)]));
+    expect(c.entities.has(2)).toBe(true);
+
+    // A nearby enemy going stealth stops being observable and is omitted. It
+    // must vanish at once — no grace for close-range disappearances.
+    clock += 50;
+    (c as any).applySnapshot(snap(self(), []));
+    expect(c.entities.has(2)).toBe(false);
+  });
+});
+
+// Guild name rides the identity wire (terse key `gd`) so nearby players' plates
+// can show "<Guild>" under the name. setPlayerGuild is the server's only writer;
+// offline/headless never call it, so the field stays ''.
+describe('guild nameplate wire', () => {
+  it('carries the guild name through wireEntity only when set', () => {
+    const sim = new Sim({ seed: 1, playerClass: 'warrior', noPlayer: true });
+    const pid = sim.addPlayer('warrior', 'Thaldrin');
+
+    expect(wireEntity(sim.entities.get(pid)!).gd).toBeUndefined();
+
+    sim.setPlayerGuild(pid, 'Silver Hand');
+    expect(wireEntity(sim.entities.get(pid)!).gd).toBe('Silver Hand');
+
+    // leaving the guild clears the field, so the line disappears for viewers
+    sim.setPlayerGuild(pid, '');
+    expect(wireEntity(sim.entities.get(pid)!).gd).toBeUndefined();
+  });
+
+  it('restores entity.guild on the client from a full record', () => {
+    const client = bareClient(99);
+    const base = { id: 7, k: 'player', tid: 'warrior', nm: 'Brae', lv: 5, x: 0, y: 0, z: 0, f: 0, hp: 100, mhp: 100 };
+
+    (client as any).applySnapshot({ t: 'snap', ents: [{ ...base, gd: 'Silver Hand' }] });
+    expect(client.entities.get(7)!.guild).toBe('Silver Hand');
+
+    // a later full record without `gd` means "no guild" → reset to ''
+    (client as any).applySnapshot({ t: 'snap', ents: [base] });
+    expect(client.entities.get(7)!.guild).toBe('');
   });
 });

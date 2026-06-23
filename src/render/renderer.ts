@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import { ALL_CLASSES, type Entity, type SimEvent } from '../sim/types';
+import { ALL_CLASSES, isQuestTurnInNpc, type Entity, type SimEvent } from '../sim/types';
 import { OVERHEAD_EMOTES, type IWorld } from '../world_api';
 import { groundHeight, WATER_LEVEL, zoneBiomeAt } from '../sim/world';
+import { drapeRingLocalY } from './selection_ring';
 import {
   CLASSES, MOBS, ABILITIES, DUNGEON_X_THRESHOLD, DUNGEON_LIST, QUESTS,
   instanceOrigin, INSTANCE_SLOT_COUNT, ARENA_SLOT_COUNT, arenaOrigin, isArenaPos, dungeonAt,
@@ -13,6 +14,7 @@ import { AnimState, CharacterVisual, createCharacterVisual } from './characters'
 import { skinCount, visualKeyFor } from './characters/manifest';
 import { mechAssetsReady, preloadMechAssets } from './characters/assets';
 import { isVisuallyDead } from './anim_state';
+import { clickMarkerAnim, clickMarkerColor, CLICK_MARKER_LIFETIME } from './click_marker';
 import { LocoTrack, newLocoTrack, updateLocomotion } from './locomotion';
 import type { SpatialAudioSink, Surface } from './audio_sink';
 import { buildPropMaterialPrewarmGroup, buildProps } from './props';
@@ -36,6 +38,7 @@ import { buildMotes, MotesView } from './motes';
 import { buildBirds, BirdsView } from './birds';
 import { buildImpactSite, type ImpactSiteView } from './impact_site';
 import { shouldRenderStealthGhost } from './stealth';
+import { downscaleDims } from './screenshot';
 import { RenderBudgetGovernor, type RenderBudgetState } from './render_budget';
 import { t } from '../ui/i18n';
 import { tEntity } from '../ui/entity_i18n';
@@ -47,6 +50,8 @@ import { stepCameraOcclusion, type CameraOcclusionState } from './camera_collisi
 import { castBarState } from './cast_bar';
 import { isMobThreateningViewer } from './nameplate_threat';
 import { aiAttentionBodyOffset, aiAttentionFacing, type AiAttentionReactionKind } from './ai_attention';
+import { characterSoulRendActive } from './character_effects';
+import { FRIENDLY, isFriendlyPet, isOwnedPetHostile, mobNameColor } from './reaction';
 
 const NAMEPLATE_RANGE = 55;
 const NAMEPLATE_RANGE_SQ = NAMEPLATE_RANGE * NAMEPLATE_RANGE;
@@ -98,6 +103,7 @@ const LIGHT_BUDGET_RANGE_SQ = 55 * 55;
 // HDR boosts so the bloom pass picks these out (composer tiers only)
 const SELECTION_RING_BOOST = 1.5;
 const SELECTION_RING_SPIN = 0.6; // rad/s — slow classic target-reticle rotation
+const CLICK_MARKER_POOL = 4; // concurrent click-feedback markers before reuse
 const SPARKLE_BOOST = 1.5;
 const PORTAL_BOOST = 2;
 // Third-person camera collision (see updateCamera). Prop colliders marked
@@ -360,6 +366,15 @@ interface PooledObjectView {
   height: number;
 }
 
+interface ClickMarkerSlot {
+  group: THREE.Group;
+  ring: THREE.Mesh;
+  cross: THREE.Group;
+  ringMat: THREE.MeshBasicMaterial;
+  crossMat: THREE.MeshBasicMaterial;
+  elapsed: number; // seconds since spawn; >= CLICK_MARKER_LIFETIME means free
+}
+
 function selfSnapshotAlpha(alpha: number, lead: number): number {
   return Math.min(1.25, alpha + Math.max(0, lead));
 }
@@ -383,6 +398,7 @@ interface EntityView {
   clickTarget: THREE.Object3D;
   nameplate: HTMLDivElement;
   nameEl: HTMLDivElement;
+  guildEl: HTMLDivElement; // <Guild> tag under the name (players only)
   hpBar: HTMLDivElement;
   hpFill: HTMLDivElement;
   emoteEl: HTMLDivElement;
@@ -597,7 +613,19 @@ export class Renderer {
   webgl: THREE.WebGLRenderer;
   views = new Map<number, EntityView>();
   nameplateLayer: HTMLDivElement;
-  selectionRing: THREE.Mesh;
+  selectionRing: THREE.Group;
+  selectionRingMesh: THREE.Mesh;
+  selectionRingTicks: THREE.Group;
+  selectionRingMat: THREE.MeshBasicMaterial;
+  // center-relative XZ of every base-ring vertex (cached) + scratch draped Y,
+  // so sync() can re-drape the ring over the terrain without allocating.
+  selectionRingLocalXZ: Float32Array;
+  selectionRingDrapeY: Float32Array;
+  // Pool of transient click-feedback markers (ring plus crossed "X"). Each slot is
+  // a group reused round-robin, so rapid clicking never allocates. A slot with
+  // `elapsed >= lifetime` is free. See click_marker.ts for the animation curves.
+  private clickMarkers: ClickMarkerSlot[] = [];
+  private clickMarkerNext = 0;
   raycaster = new THREE.Raycaster();
   clickTargets: THREE.Object3D[] = [];
   camYaw = Math.PI;
@@ -620,6 +648,17 @@ export class Renderer {
   private viewCandidates: ViewCandidate[] = [];
   private tmpV2 = new THREE.Vector3();
   private tmpV3 = new THREE.Vector3();
+  // Manual frustum cull for characters. Their skinned meshes keep
+  // frustumCulled=false (a skinned mesh's bind-pose bounds don't follow the
+  // animated pose, so Three's own cull pops visible rigs out), which means an
+  // off-screen rig otherwise issues its draws every frame. We instead cull at
+  // the group level from the rig's real world position + a generous radius.
+  // Gated to shadowless tiers so a culled off-screen caster can never drop a
+  // shadow that was actually visible in-frame.
+  private cullFrustum = new THREE.Frustum();
+  private cullViewProj = new THREE.Matrix4();
+  private cullSphere = new THREE.Sphere();
+  private cullCharacters = false;
   private selfRenderPosition = new THREE.Vector3();
   private selfRenderPositionReady = false;
   private cameraLookAt = new THREE.Vector3();
@@ -811,6 +850,8 @@ export class Renderer {
     this.scene.add(sun);
     this.scene.add(sun.target);
     this.sun = sun;
+    // characters can self-cull only where they cast no sun shadow (low/lean tier)
+    this.cullCharacters = !sun.castShadow;
     this.sunDir.copy(SUN_DIR);
 
     // visible sun disc + bloom halo
@@ -921,14 +962,31 @@ export class Renderer {
     this.propsView = props;
 
     // selection ring — a classic target reticle: a base ring plus four
-    // inward-pointing ticks. The ring is radially symmetric (so spin reads
-    // only off the ticks); it rotates slowly and pulses in sync() below.
+    // inward-pointing ticks. The base ring is draped over the terrain each
+    // frame (see drapeRingLocalY / sync) so it stays legible on slopes instead
+    // of sinking into the uphill ground; the ticks keep the classic spin on a
+    // separate pivot. The ring is radially symmetric, so only the ticks read spin.
     const ringGeo = new THREE.RingGeometry(0.9, 1.15, 48);
     ringGeo.rotateX(-Math.PI / 2);
     const ringMat = new THREE.MeshBasicMaterial({ color: 0xd4af37, transparent: true, opacity: 0.9, depthWrite: false });
-    this.selectionRing = new THREE.Mesh(ringGeo, ringMat);
-    // four cardinal ticks, flat in the XZ plane, sharing the ring material so
-    // the per-frame hostile/friendly recolour carries over for free.
+    this.selectionRingMat = ringMat;
+    this.selectionRing = new THREE.Group();
+    this.selectionRingMesh = new THREE.Mesh(ringGeo, ringMat);
+    // the draped ring deforms every frame; skip frustum culling so the (now
+    // out-of-date) bounding sphere can't cull it on steep slopes.
+    this.selectionRingMesh.frustumCulled = false;
+    this.selectionRing.add(this.selectionRingMesh);
+    // cache the ring's center-relative XZ so sync() can re-drape it cheaply.
+    const ringPos = ringGeo.getAttribute('position') as THREE.BufferAttribute;
+    this.selectionRingLocalXZ = new Float32Array(ringPos.count * 2);
+    for (let i = 0; i < ringPos.count; i++) {
+      this.selectionRingLocalXZ[i * 2] = ringPos.getX(i);
+      this.selectionRingLocalXZ[i * 2 + 1] = ringPos.getZ(i);
+    }
+    this.selectionRingDrapeY = new Float32Array(ringPos.count);
+    // four cardinal ticks on a spinning pivot, sharing the ring material so the
+    // per-frame hostile/friendly recolour carries over for free.
+    this.selectionRingTicks = new THREE.Group();
     const tickGeo = new THREE.BufferGeometry();
     tickGeo.setAttribute('position', new THREE.Float32BufferAttribute([
       0.72, 0, 0,     // inner tip (points toward the unit)
@@ -938,11 +996,41 @@ export class Renderer {
     for (let i = 0; i < 4; i++) {
       const t = new THREE.Mesh(tickGeo, ringMat);
       t.rotation.y = (i * Math.PI) / 2;
-      this.selectionRing.add(t);
+      this.selectionRingTicks.add(t);
     }
+    this.selectionRing.add(this.selectionRingTicks);
     setRenderCategory(this.selectionRing, 'ui3d');
     this.selectionRing.visible = false;
     this.scene.add(this.selectionRing);
+
+    // click-feedback marker pool: a small fixed set of ring+X groups reused
+    // round-robin, so rapid clicking never allocates. Geometry is shared; each
+    // slot owns its own materials so the ring and X fade independently and
+    // recolour per click (gold neutral, red on a hostile). Laid flat as decals at
+    // the ground point in sync(); built once here.
+    const cmRingGeo = new THREE.RingGeometry(0.42, 0.6, 40);
+    cmRingGeo.rotateX(-Math.PI / 2);
+    // The "X": two thin flat bars crossed at right angles, lying in the XZ plane.
+    const cmBarGeo = new THREE.PlaneGeometry(0.16, 1.0);
+    cmBarGeo.rotateX(-Math.PI / 2);
+    for (let i = 0; i < CLICK_MARKER_POOL; i++) {
+      const group = new THREE.Group();
+      const ringMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, depthTest: false });
+      const ring = new THREE.Mesh(cmRingGeo, ringMat);
+      const crossMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, depthTest: false });
+      const cross = new THREE.Group();
+      for (const rot of [Math.PI / 4, -Math.PI / 4]) {
+        const bar = new THREE.Mesh(cmBarGeo, crossMat);
+        bar.rotation.y = rot;
+        cross.add(bar);
+      }
+      group.add(ring, cross);
+      group.visible = false;
+      group.renderOrder = 3; // draw over terrain decals (depthTest off above)
+      setRenderCategory(group, 'ui3d');
+      this.scene.add(group);
+      this.clickMarkers.push({ group, ring, cross, ringMat, crossMat, elapsed: CLICK_MARKER_LIFETIME });
+    }
 
     // particle system: projectiles, impacts, heal glows, ambience
     this.vfx = new Vfx(this.scene, (id, frac) => {
@@ -1151,6 +1239,7 @@ export class Renderer {
     height: number;
     calls: number;
     triangles: number;
+    geometries: number;
     textures: number;
     programs: number;
     views: number;
@@ -1197,6 +1286,7 @@ export class Renderer {
       height: this.viewport.height,
       calls: info.render.calls,
       triangles: info.render.triangles,
+      geometries: info.memory.geometries,
       textures: info.memory.textures,
       programs: info.programs?.length ?? 0,
       views: this.views.size,
@@ -2137,6 +2227,7 @@ export class Renderer {
     switch (ev.type) {
       case 'spellfx':
         if (ev.fx === 'projectile') this.vfx.projectile(ev.sourceId, ev.targetId, ev.school);
+        else if (ev.fx === 'beam') this.vfx.beam(ev.sourceId, ev.targetId, ev.school);
         else if (ev.fx === 'tick') this.vfx.tick(ev.targetId, ev.school);
         else this.vfx.nova(ev.targetId, ev.school);
         break;
@@ -2510,12 +2601,16 @@ export class Renderer {
     const nameEl = document.createElement('div');
     nameEl.className = 'np-name';
     nameEl.textContent = e.kind === 'object' ? objectDisplayName(e) : e.name;
+    // guild tag under the name (players in a guild); hidden until set
+    const guildEl = document.createElement('div');
+    guildEl.className = 'np-guild';
+    guildEl.style.display = 'none';
     const hpBar = document.createElement('div');
     hpBar.className = 'np-hpbar';
     const hpFill = document.createElement('div');
     hpFill.className = 'np-hpfill';
     hpBar.appendChild(hpFill);
-    // overhead cast bar — hidden until the entity starts casting/channeling
+    // overhead cast bar: hidden until the entity starts casting/channeling
     const castBar = document.createElement('div');
     castBar.className = 'np-castbar';
     castBar.style.display = 'none';
@@ -2524,7 +2619,7 @@ export class Renderer {
     const castLabel = document.createElement('div');
     castLabel.className = 'np-castlabel';
     castBar.append(castFill, castLabel);
-    np.append(emoteEl, raidMark, comboRow, marker, tierEl, nameEl, hpBar, castBar);
+    np.append(emoteEl, raidMark, comboRow, marker, tierEl, nameEl, guildEl, hpBar, castBar);
     this.nameplateLayer.appendChild(np);
 
     // object views gate their own casters; character shadows live in visual
@@ -2532,7 +2627,7 @@ export class Renderer {
     if (!visual) collectCasters(group, objectCasters);
     this.views.set(e.id, {
       group, visual, visualKey: visual ? visualKeyFor(e) : null, visualPoolKey, sheepVisual: null, bearVisual: null, catVisual: null, travelVisual: null, height, clickTarget,
-      nameplate: np, nameEl, hpBar, hpFill, emoteEl, emoteIconEl, emoteLabelEl, markerEl: marker, raidMarkEl: raidMark, comboRow, comboPips, castBar, castFill, castLabel, tierEl, sparkle, objectMesh, objectPoolKey, portal,
+      nameplate: np, nameEl, guildEl, hpBar, hpFill, emoteEl, emoteIconEl, emoteLabelEl, markerEl: marker, raidMarkEl: raidMark, comboRow, comboPips, castBar, castFill, castLabel, tierEl, sparkle, objectMesh, objectPoolKey, portal,
       nameplateDisplay: 'none', nameplateTransform: '', nameplateSig: '', nameplateHpWidth: '', comboSig: '', tierValue: 0,
       objectCasters, shadowOn: true, isFar: false, lastOverheadEmoteKey: null,
       lastX: e.pos.x, lastZ: e.pos.z, skin: e.skin, liveScale: e.scale,
@@ -2587,7 +2682,18 @@ export class Renderer {
   }
 
   private isHostileSelectionTarget(target: Entity): boolean {
-    if (target.kind === 'mob') return target.hostile;
+    // A controlled pet inherits its owner's reaction (a player's pet is hostile
+    // only in PvP), so route mobs through the owner-aware helper; everything
+    // else falls back to the player-vs-player verdict.
+    if (target.kind === 'mob') {
+      return target.ownerId !== null
+        ? isOwnedPetHostile(target, this.sim.entities, (p) => this.isHostilePlayer(p))
+        : target.hostile;
+    }
+    return this.isHostilePlayer(target);
+  }
+
+  private isHostilePlayer(target: Entity): boolean {
     if (target.kind !== 'player' || target.dead || target.id === this.sim.playerId) return false;
     if (this.sim.duelInfo?.state === 'active' && this.sim.duelInfo.otherPid === target.id) return true;
     const match = this.sim.arenaInfo?.match;
@@ -2603,7 +2709,7 @@ export class Renderer {
   // ---------------------------------------------------------------------
 
   private builtInteriors = new Set<string>();
-  private fogState: 'outdoor' | 'dungeon' | 'temple' | 'underwater' = 'outdoor';
+  private fogState: 'outdoor' | 'dungeon' | 'temple' | 'nythraxis' | 'underwater' = 'outdoor';
 
   private buildInterior(interior: string, ox: number, oz: number): void {
     this.dungeons ??= new DungeonInteriors(this.scene, this.lowGfx, this.flames, this.fireLights);
@@ -2658,9 +2764,12 @@ export class Renderer {
     }
     // the Drowned Temple reads as submerged: a teal murk instead of the
     // crypt's near-black, so its flooded halls feel underwater, not just dark
-    const inTemple = inside && !isArenaPos(px) && dungeonAt(px)?.interior === 'temple';
+    const interior = inside && !isArenaPos(px) ? dungeonAt(px)?.interior : null;
+    const inTemple = interior === 'temple';
+    const inNythraxis = interior === 'nythraxis';
     const desired = inTemple ? 'temple'
-      : inside ? 'dungeon'
+      : inNythraxis ? 'nythraxis'
+        : inside ? 'dungeon'
         : camY < WATER_LEVEL - 0.05 ? 'underwater' : 'outdoor';
     const fog = this.scene.fog as THREE.Fog;
     if (desired !== this.fogState) {
@@ -2673,6 +2782,12 @@ export class Renderer {
         fog.color.setHex(0x0a3a44);
         fog.near = 12;
         fog.far = 78;
+      } else if (desired === 'nythraxis') {
+        // the raid arena is huge (±230) — push the murk back so ~50yd reads
+        // clear (linear-fog midpoint (near+far)/2 = 50), not the old ~30
+        fog.color.setHex(0x020106);
+        fog.near = 20;
+        fog.far = 80;
       } else if (desired === 'underwater') {
         fog.color.setHex(0x17506e);
         fog.near = 2;
@@ -2687,7 +2802,7 @@ export class Renderer {
       // underground so the torch point lights own the scene; restore outside.
       // The rim glow cranks up instead — silhouettes must split from the murk.
       if (!this.lowGfx) {
-        const underground = desired === 'dungeon' || desired === 'temple';
+        const underground = desired === 'dungeon' || desired === 'temple' || desired === 'nythraxis';
         this.sun.intensity = underground ? DUNGEON_SUN_INTENSITY : SUN_INTENSITY;
         this.hemi.intensity = underground ? DUNGEON_HEMI_INTENSITY : HEMI_INTENSITY;
         this.scene.environmentIntensity = underground ? DUNGEON_ENV_INTENSITY : this.envOutdoorIntensity;
@@ -2829,6 +2944,14 @@ export class Renderer {
     // frame parity for distance-tiered mixer throttling
     this.frameIdx = (this.frameIdx + 1) & 0xffff;
 
+    // world-space view frustum for the per-character cull below. Built from last
+    // frame's camera (it's repositioned after this loop); the one-frame lag is
+    // absorbed by the generous per-rig cull radius.
+    if (this.cullCharacters) {
+      this.cullViewProj.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
+      this.cullFrustum.setFromProjectionMatrix(this.cullViewProj);
+    }
+
     for (const [id, v] of this.views) {
       const e = sim.entities.get(id);
       if (!e) continue;
@@ -2844,7 +2967,14 @@ export class Renderer {
       const cdx = e.pos.x - p.pos.x, cdz = e.pos.z - p.pos.z;
       const d2 = cdx * cdx + cdz * cdz;
       if (id !== p.id) {
-        if (d2 > ENTITY_DRAW_RANGE * ENTITY_DRAW_RANGE) {
+        // Per-frame visibility uses the SAME 80/96 hysteresis as view
+        // create/destroy (above) so a rig hovering right at the 80yd draw edge
+        // doesn't toggle visible/invisible every frame — that hard cutoff is the
+        // actual on-screen boundary flicker. group.visible carries last frame's
+        // state: once shown, keep it until past the 96yd destroy radius (where
+        // the view is torn down anyway); while hidden, show only within 80yd.
+        const showCutoff = v.group.visible ? ENTITY_VIEW_DESTROY_RANGE_SQ : ENTITY_VIEW_CREATE_RANGE_SQ;
+        if (d2 > showCutoff) {
           v.group.visible = false;
           continue;
         }
@@ -2901,6 +3031,11 @@ export class Renderer {
           v.sparkle.scale.set(pulse, pulse, 1);
           v.sparkle.material.rotation = this.time * 0.8;
         }
+        if (vis
+          && (e.objectItemId === 'bastion_ward_stone' || e.objectItemId === 'soulshard_pillar')
+          && e.auras.some((a) => a.id === 'nythraxis_wardstone_lit')) {
+          this.vfx.castSparkle(e.id, 'arcane', dt * 2.6);
+        }
         if (v.portal && vis) {
           v.portal.rotation.z = this.time * 1.4;
           (v.portal.material as THREE.MeshBasicMaterial).opacity = 0.45 + Math.sin(this.time * 2.2 + e.id) * 0.15;
@@ -2912,6 +3047,16 @@ export class Renderer {
       this.updateBaseVisual(e, v);
       if (!v.visual) continue;
 
+      // off-screen rigs still need their pose/audio updated, but not their draws.
+      // Decide visibility now from the real world position; applied at the end so
+      // the rest of the per-entity work (animation, footstep audio) is unaffected.
+      let charOnScreen = true;
+      if (this.cullCharacters && id !== p.id) {
+        this.cullSphere.center.set(x, y + v.height * 0.5 * e.scale, z);
+        this.cullSphere.radius = (v.height * 0.7 + 1.5) * e.scale;
+        charOnScreen = this.cullFrustum.intersectsSphere(this.cullSphere);
+      }
+
       // live skin swap — appearance changed (in-game changer or a multiplayer peer)
       if (e.skin !== v.skin) { v.skin = e.skin; v.visual.setSkin(e.skin); }
 
@@ -2919,10 +3064,13 @@ export class Renderer {
       // rig, click proxy, and any form visual grow/shrink together.
       if (e.scale !== v.liveScale) { v.liveScale = e.scale; v.group.scale.setScalar(e.scale); }
 
-      // swimming pose: prone at the surface (derived here — the sim is unaware)
+      // swimming pose: prone at the surface (derived here — the sim is unaware).
+      // The cheap feet-depth test gates the expensive terrain-noise sample: an
+      // entity whose feet are above the swim line can't be swimming, so the vast
+      // majority (everyone on land) skip groundHeight() entirely each frame.
       const swimming = !e.dead
-        && groundHeight(e.pos.x, e.pos.z, this.sim.cfg.seed) < WATER_LEVEL - 0.8
-        && e.pos.y <= WATER_LEVEL - 0.5;
+        && e.pos.y <= WATER_LEVEL - 0.5
+        && groundHeight(e.pos.x, e.pos.z, this.sim.cfg.seed) < WATER_LEVEL - 0.8;
 
       // lazy form visuals, swapped by visibility like the old sheep/bear rigs
       if (polyed && !v.sheepVisual) {
@@ -2951,6 +3099,7 @@ export class Renderer {
             : travel && v.travelVisual ? v.travelVisual : v.visual;
       const ghost = ghostWolf || shouldRenderStealthGhost(this.sim.playerId, e) || e.templateId.startsWith('vision_');
       active.setGhost(ghost);
+      active.setSoulRend(characterSoulRendActive(e));
       v.visual.root.visible = active === v.visual;
       // distant rigs swap to the single-draw baked idle-pose mesh
       v.visual.setFar(v.isFar && active === v.visual);
@@ -3045,7 +3194,13 @@ export class Renderer {
       if (st.casting) {
         this.vfx.castSparkle(e.id, e.castingAbility === 'demon_heal' ? 'shadow' : ABILITIES[e.castingAbility!]?.school ?? 'arcane', dt);
       }
+      if (e.auras.some((a) => a.id === 'nythraxis_soul_rend')) {
+        this.vfx.castSparkle(e.id, 'shadow', dt * 3.2);
+      }
       if (swimming) this.vfx.swimRipple(v.group.position, moving ? dt * 3 : dt);
+
+      // skip the draw for off-screen rigs (pose/audio above already ran)
+      if (!charOnScreen) v.group.visible = false;
     }
 
     // selection ring
@@ -3053,11 +3208,25 @@ export class Renderer {
     if (target) {
       const tv = this.views.get(target.id);
       if (tv) {
-        this.selectionRing.position.copy(tv.group.position);
-        this.selectionRing.position.y += 0.08;
+        const cx = tv.group.position.x;
+        const cz = tv.group.position.z;
+        const seed = this.sim.cfg.seed;
+        // anchor the reticle to the ground under the unit (a classic decal: it
+        // stays grounded even if the target jumps) and drape it over the slope.
+        const gy = groundHeight(cx, cz, seed);
+        this.selectionRing.position.set(cx, gy, cz);
         this.selectionRing.scale.setScalar(target.scale);
-        this.selectionRing.rotation.y += dt * SELECTION_RING_SPIN; // slow reticle spin
-        const ringMat = this.selectionRing.material as THREE.MeshBasicMaterial;
+        const drape = drapeRingLocalY(
+          this.selectionRingLocalXZ, cx, cz, gy, target.scale, 0.08,
+          (sx, sz) => groundHeight(sx, sz, seed),
+          this.selectionRingDrapeY,
+        );
+        const ringPos = this.selectionRingMesh.geometry.getAttribute('position') as THREE.BufferAttribute;
+        for (let i = 0; i < drape.length; i++) ringPos.setY(i, drape[i]);
+        ringPos.needsUpdate = true;
+        this.selectionRingTicks.position.y = 0.08; // ticks float just above the footing
+        this.selectionRingTicks.rotation.y += dt * SELECTION_RING_SPIN; // slow reticle spin
+        const ringMat = this.selectionRingMat;
         ringMat.color.setHex(this.isHostileSelectionTarget(target) ? 0xcc2222 : 0xd4af37);
         if (!this.lowGfx) ringMat.color.multiplyScalar(SELECTION_RING_BOOST); // subtle bloom edge
         ringMat.opacity = 0.78 + 0.2 * Math.sin(this.time * 4.5); // gentle pulse
@@ -3068,6 +3237,7 @@ export class Renderer {
     } else {
       this.selectionRing.visible = false;
     }
+    this.updateClickMarkers(dt);
     markPhase('entities');
 
     let worldStart = performance.now();
@@ -3248,6 +3418,31 @@ export class Renderer {
     };
   }
 
+  // Grab a JPEG screenshot of the live scene for a bug report. The main
+  // WebGLRenderer is created WITHOUT preserveDrawingBuffer (that costs memory on
+  // the hot path), so the colour buffer is valid only until control returns to
+  // the browser and it composites. We therefore render one fresh frame and read
+  // it back synchronously in the SAME call, before yielding, then downscale onto
+  // a 2D canvas and export JPEG to keep the payload small. Returns null on any
+  // failure (lost context, tainted canvas) so the caller can degrade gracefully.
+  captureScreenshot(maxEdge = 1280, quality = 0.7): string | null {
+    try {
+      if (this.post) this.post.render();
+      else this.webgl.render(this.scene, this.camera);
+      const gl = this.webgl.domElement;
+      const dims = downscaleDims(gl.width, gl.height, maxEdge);
+      const out = document.createElement('canvas');
+      out.width = dims.w;
+      out.height = dims.h;
+      const ctx = out.getContext('2d');
+      if (!ctx) return null;
+      ctx.drawImage(gl, 0, 0, dims.w, dims.h);
+      return out.toDataURL('image/jpeg', quality);
+    } catch {
+      return null;
+    }
+  }
+
   // Forward-renderer point-light budget: every campfire/torch light exists,
   // but only the nearest GFX.maxPointLights within range shine each frame.
   // Rank entries are pooled (extended only when interiors add lights) and
@@ -3409,6 +3604,9 @@ export class Renderer {
       const hidden = (isSelf && !hasOverheadEmote) || d2 > NAMEPLATE_RANGE_SQ
         || (e.dead && !e.lootable && e.kind === 'mob')
         || (e.kind === 'object' && !isDoor)
+        // the sealed royal door inside the crypt carries no floating label —
+        // it reads as part of the back wall, not a portal billboard
+        || (isDoor && e.dungeonId === 'nythraxis_boss_arena')
         || (!this.showNameplates && e.kind === 'mob' && !e.dead);
       if (hidden) {
         if (v.nameplateDisplay !== 'none') {
@@ -3478,17 +3676,21 @@ export class Renderer {
         const objName = objectDisplayName(e);
         this.setNameplateStatic(v, `object|${objName}`, objName, '#c084ff', 'none', '', 'np-marker', '1');
       } else if (e.kind === 'player') {
-        // other players: friendly blue with an hp bar
+        // other players: friendly blue with an hp bar; <Guild> tag under the name.
+        // Self has no overhead nameplate, so its guild line stays hidden too.
         const opacity = e.auras.some((a) => a.kind === 'stealth') ? '0.55' : '1';
         const nameDisplay = isSelf ? 'none' : '';
         const hpDisplay = e.dead || isSelf ? 'none' : '';
-        this.setNameplateStatic(v, `player|${e.name}|${nameDisplay}|${hpDisplay}|${opacity}`, e.name, '#7fb8ff', hpDisplay, '', 'np-marker', opacity);
+        const guild = isSelf ? '' : e.guild;
+        this.setNameplateStatic(v, `player|${e.name}|${guild}|${nameDisplay}|${hpDisplay}|${opacity}`, e.name, '#7fb8ff', hpDisplay, '', 'np-marker', opacity, '', guild);
         v.nameEl.style.display = nameDisplay;
         // $WOC holder-tier flair, shown on OTHER players (own nameplate is hidden).
         this.setNameplateTier(v, isSelf ? 0 : (e.holderTier ?? 0));
         this.setNameplateHp(v, e);
-      } else if (e.kind === 'npc') {
-        const npcName = npcDisplayName(e.templateId);
+      } else if (e.kind === 'npc' || (!e.hostile && e.questIds.length > 0)) {
+        const npcName = e.kind === 'npc'
+          ? npcDisplayName(e.templateId)
+          : tEntity({ kind: 'mob', id: e.templateId, field: 'name' });
         let marker = '';
         let cls = '';
         // role-aware: '!' only at the quest's giver, '?' only at its turn-in
@@ -3497,18 +3699,21 @@ export class Renderer {
           const quest = QUESTS[qid];
           if (!quest) continue;
           const st = sim.questState(qid);
-          if (st === 'ready' && quest.turnInNpcId === e.templateId) { marker = '?'; cls = 'ready'; break; }
+          if (st === 'ready' && isQuestTurnInNpc(quest, e.templateId)) { marker = '?'; cls = 'ready'; break; }
           if (st === 'available' && quest.giverNpcId === e.templateId) { marker = '!'; cls = 'avail'; }
-          else if (st === 'active' && quest.turnInNpcId === e.templateId && !marker) { marker = '?'; cls = 'active'; }
+          else if (st === 'active' && isQuestTurnInNpc(quest, e.templateId) && !marker) { marker = '?'; cls = 'active'; }
         }
         const markerClass = cls ? `np-marker ${cls}` : 'np-marker';
-        this.setNameplateStatic(v, `npc|${npcName}|${marker}|${markerClass}`, npcName, '#9fdc7f', 'none', marker, markerClass, '1');
+        this.setNameplateStatic(v, `npc|${npcName}|${marker}|${markerClass}`, npcName, FRIENDLY, 'none', marker, markerClass, '1');
       } else {
         const diff = e.level - p.level;
         const template = MOBS[e.templateId];
         const elite = !!template?.elite;
         const boss = !!template?.boss;
-        const color = e.dead ? '#999' : diff >= 3 ? '#ff4444' : diff >= 1 ? '#ffaa33' : diff >= -2 ? '#ffe97a' : diff >= -5 ? '#7fdc4f' : '#9d9d9d';
+        // A friendly controlled pet reads as friendly green; wild mobs keep the
+        // classic level-difference ("con") color.
+        const friendlyPet = isFriendlyPet(e, this.sim.entities, (pl) => this.isHostilePlayer(pl));
+        const color = mobNameColor(diff, e.dead, friendlyPet);
         const mobName = e.ownerId !== null ? e.name : mobDisplayName(e.templateId);
         const name = e.dead ? t('worldContent.corpseName', { name: mobName }) : `[${e.level}${elite ? '+' : ''}] ${mobName}`;
         const hpDisplay = e.dead ? 'none' : '';
@@ -3535,6 +3740,7 @@ export class Renderer {
     markerClass: string,
     opacity: string,
     frame = '',
+    guild = '',
   ): void {
     if (sig === v.nameplateSig) return;
     v.nameplateSig = sig;
@@ -3546,6 +3752,13 @@ export class Renderer {
     v.markerEl.textContent = marker;
     v.markerEl.className = markerClass;
     v.nameplate.style.opacity = opacity;
+    // guild tag rides in the sig (players only); empty for every other kind
+    if (guild) {
+      v.guildEl.textContent = `<${guild}>`;
+      v.guildEl.style.display = '';
+    } else {
+      v.guildEl.style.display = 'none';
+    }
   }
 
   // Show/hide the $WOC holder-tier badge on a player's nameplate. Cheap-diffed
@@ -3898,6 +4111,40 @@ export class Renderer {
       }
     }
     return bestId;
+  }
+
+  // Drop a transient OSRS-style click marker at a world ground point. Called from
+  // main.ts on a qualifying left-click; `hostile` tints it red. Pure presentation,
+  // it never reads or writes sim state. No-op if the pool is empty.
+  spawnClickMarker(x: number, z: number, hostile: boolean): void {
+    if (this.clickMarkers.length === 0) return;
+    const slot = this.clickMarkers[this.clickMarkerNext];
+    this.clickMarkerNext = (this.clickMarkerNext + 1) % this.clickMarkers.length;
+    const y = groundHeight(x, z, this.sim.cfg.seed) + 0.06; // tiny lift to avoid z-fighting
+    slot.group.position.set(x, y, z);
+    slot.elapsed = 0;
+    const color = clickMarkerColor(hostile);
+    slot.ringMat.color.setHex(color);
+    slot.crossMat.color.setHex(color);
+    if (!this.lowGfx) {
+      slot.ringMat.color.multiplyScalar(SELECTION_RING_BOOST); // subtle bloom edge, matches reticle
+      slot.crossMat.color.multiplyScalar(SELECTION_RING_BOOST);
+    }
+    slot.group.visible = true;
+  }
+
+  // Advance every live click marker by dt and apply the ring/X fade+scale curves.
+  private updateClickMarkers(dt: number): void {
+    for (const slot of this.clickMarkers) {
+      if (slot.elapsed >= CLICK_MARKER_LIFETIME) continue;
+      slot.elapsed += dt;
+      const a = clickMarkerAnim(slot.elapsed);
+      if (!a.active) { slot.group.visible = false; continue; }
+      slot.ring.scale.setScalar(a.ringScale);
+      slot.ringMat.opacity = a.ringAlpha;
+      slot.cross.scale.setScalar(a.crossScale);
+      slot.crossMat.opacity = a.crossAlpha;
+    }
   }
 
   worldToScreen(x: number, y: number, z: number): { x: number; y: number; behind: boolean } {

@@ -1,18 +1,33 @@
 import { Sim } from './sim/sim';
 import { Renderer } from './render/renderer';
 import { Input } from './game/input';
+import { InputActivityMeter, installInputActivityTracking } from './game/input_activity';
 import { Keybinds } from './game/keybinds';
 import { Settings, GameSettings, SETTING_RANGES, normalizeClickMoveButton } from './game/settings';
-import { MobileControls, PHONE_TOUCH_QUERY, isPhoneTouchDevice } from './game/mobile_controls';
+import { MobileControls, PHONE_TOUCH_QUERY, isPhoneTouchDevice, useTouchInterface, setInterfaceMode, interfaceModeFromSetting } from './game/mobile_controls';
+import { readBrowserEnv, cssEffectsTier, browserBodyClasses, BROWSER_BODY_CLASSES } from './game/browser_env';
+import { GFX } from './render/gfx';
+import { GamepadManager } from './game/gamepad';
+import { GamepadBindings } from './game/gamepad_bindings';
+import { shouldUseStaticBackdrop } from './game/landing_backdrop';
+import { navigatorSaveData } from './render/sky';
 import { Hud } from './ui/hud';
+import { PerfOverlay } from './ui/perf_overlay';
+import { PerfOverlayConfigStore, type PerfOverlayConfig } from './ui/perf_overlay_config';
+import { FrameMeter, buildPerfOverlayView } from './ui/perf_overlay_model';
+import { createMetricsSampler } from './ui/perf_metrics_sampler';
 import { audio } from './game/audio';
 import { music } from './game/music';
 import { voice } from './game/voice';
 import { sfx } from './game/sfx';
 import { activePvpOpponentIds, handlePickedEntity, hoverCursorKind, isAttackableEntity } from './game/interactions';
-import { clickMoveShouldCancel, clickMoveShouldWalk, clickMoveStep, distance2d, latencyAdjustedStopDistance, stepAngleToward } from './game/click_move';
-import { Api, ClientWorld, CharacterSummary, type ReleaseEntry } from './net/online';
-import { setWalletDisplayAvailable, setWocBalance, setWalletUiEnabled } from './ui/wallet_balance';
+import { clickMoveShouldWalk, clickMoveStep, distance2d, latencyAdjustedStopDistance, resolveClickMoveAction, stepAngleToward } from './game/click_move';
+import { Api, isAuthError, ClientWorld, CharacterSummary, NATIVE_APP, type ReleaseEntry } from './net/online';
+import { createNativeAttestationProof } from './net/native_attestation';
+import { setWalletDisplayAvailable, setWocBalance, setWalletUiEnabled, resolveWocBalanceUpdate } from './ui/wallet_balance';
+import {
+  accountPortalModel, validatePasswordChange, validateEmailShape, deactivateConfirmReady,
+} from './ui/account_portal';
 import { absolutePublishedCardUrl, setCardUploader, setReferralProvider, setStandingProvider } from './ui/player_card_share';
 // The wallet module is loaded lazily via dynamic import() in the wallet
 // controller below, so it stays out of the main entry chunk and only loads when
@@ -22,6 +37,8 @@ import type { IWorld, LeaderboardEntry } from './world_api';
 import { findPlayerPath, resolvePlayerDestination } from './sim/pathfind';
 import { pathCrossesFence } from './sim/colliders';
 import { formatXp } from './ui/xp_bar';
+import { assembleBugReportMeta } from './ui/bug_report';
+import { zoneBiomeAt } from './sim/world';
 import { assetsReady } from './render/assets/preload';
 import { CharacterPreview } from './render/characters';
 import { skinCount } from './render/characters/manifest';
@@ -31,6 +48,7 @@ import {
   readAuthMemory, writeAuthMemory,
 } from './ui/auth_utils';
 import { CLASSES, ABILITIES } from './sim/content/classes';
+import { CLASS_DETAILS, SIGNATURE_ABILITIES } from './ui/class_details_data';
 import { iconDataUrl } from './ui/icons';
 import { ensureLocaleLoaded, formatDateTime, formatNumber, getLanguage, isLocaleResident, isSupportedLanguage, languageTag, setLanguage, t, tPlural, type SupportedLanguage, type TranslationKey } from './ui/i18n';
 import { tServer } from './ui/server_i18n';
@@ -39,8 +57,9 @@ import { hydrateIcons } from './ui/ui_icons';
 import { portraitChipHtml, hydratePortraits } from './ui/portrait_chip';
 import { playerPortraitDataUrl } from './render/characters/portrait';
 import { createPerfMonitor } from './game/perf';
+import { getClientSeed } from './game/client_seed';
 import { startPerfReporter } from './game/perf_reporter';
-import { updateFollowCameraYaw, wrapAngle } from './game/camera_follow';
+import { cameraFollowShouldSettle, updateFollowCameraYaw, wrapAngle } from './game/camera_follow';
 
 
 const WORLD_SEED = 20061; // fixed: World of ClaudeCraft is a persistent place
@@ -65,6 +84,8 @@ const HOMEPAGE_MUSIC_MUTED_KEY = 'woc_homepage_music_muted';
 const HOMEPAGE_MUSIC_VOLUME = 0.225;
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string): T => document.querySelector(sel) as T;
+document.body.classList.toggle('native-app', NATIVE_APP);
+if (NATIVE_APP) document.body.classList.add('mobile-touch');
 let pendingDeleteCharacter: CharacterSummary | null = null;
 let homepageMusic: HTMLAudioElement | null = null;
 let homepageMusicStarted = false;
@@ -153,12 +174,26 @@ function userFacingApiError(err: unknown): string {
   if (normalized === 'that name is taken') return t('errors.api.nameTaken');
   if (normalized === 'character not found' || normalized === 'no such character' || normalized === 'not found') return t('errors.api.characterNotFound');
   if (normalized === 'character is currently online') return t('errors.api.characterOnline');
+  if (normalized === 'character rename is not permitted') return t('errors.api.renameNotPermitted');
   if (normalized === 'type the character name to confirm deletion') return t('errors.api.deleteConfirm');
   if (normalized === 'not authenticated' || normalized === 'authentication required') return t('errors.api.notAuthenticated');
   if (normalized === 'this account has been banned.') return t('errors.api.accountBanned');
   if (normalized === 'character already in world') return t('errors.api.alreadyInWorld');
+  if (normalized === 'character taken over') return t('errors.api.takenOver');
   if (normalized === 'this character must be renamed before entering the world.') return t('errors.api.renameBeforeEntering');
   if (normalized === 'logins are only allowed from the game client') return t('errors.api.webLoginOnly');
+  // Account portal REST errors (server/main.ts /api/account/*). English-source,
+  // re-localized here onto the English-only hudChrome.account.* keys.
+  if (normalized === 'current password is incorrect') return t('hudChrome.account.errCurrentPassword');
+  if (normalized === 'enter a valid email address') return t('hudChrome.account.errEmailInvalid');
+  if (normalized === 'username does not match') return t('hudChrome.account.errUsernameMatch');
+  if (normalized === 'password is incorrect') return t('hudChrome.account.errPasswordIncorrect');
+  if (normalized === 'log out all characters before deactivating') return t('hudChrome.account.errCharactersOnline');
+  if (normalized === 'this account has been deactivated.') return t('hudChrome.account.deactivatedLocked');
+  if (normalized === 'password must be at most 128 chars') return t('hudChrome.account.errPasswordLong');
+  // The account row vanished mid-session (404 from /api/account/*); treat as a
+  // dropped session rather than rendering raw English in the form.
+  if (normalized === 'account not found') return t('errors.api.notAuthenticated');
   // Cloudflare Turnstile rejection on login/register (server/main.ts passesTurnstile).
   if (normalized === 'verification failed, please try again') return t('errors.api.verificationFailed');
   // WebSocket disconnect reasons surfaced through the fatal overlay (net/online.ts).
@@ -243,7 +278,7 @@ function syncBuildInfo(): void {
 }
 
 function syncAppViewport(): void {
-  const useStableGameViewport = document.body.classList.contains('game-active') && isPhoneTouchDevice();
+  const useStableGameViewport = document.body.classList.contains('game-active') && useTouchInterface();
   const width = Math.max(1, Math.round(useStableGameViewport ? window.innerWidth : (window.visualViewport?.width ?? window.innerWidth)));
   const height = Math.max(1, Math.round(useStableGameViewport ? window.innerHeight : (window.visualViewport?.height ?? window.innerHeight)));
   document.documentElement.style.setProperty('--app-vw', `${width}px`);
@@ -257,6 +292,11 @@ function preventMobileZoom(): void {
   document.addEventListener('gesturechange', prevent, { passive: false });
   document.addEventListener('gestureend', prevent, { passive: false });
   document.addEventListener('touchend', (e) => {
+    const target = e.target instanceof Element ? e.target : null;
+    if (target?.closest('button, a, input, textarea, select, [role="button"], [role="option"], [tabindex]')) {
+      lastTouchEnd = Date.now();
+      return;
+    }
     const now = Date.now();
     if (now - lastTouchEnd <= 320) e.preventDefault();
     lastTouchEnd = now;
@@ -264,16 +304,19 @@ function preventMobileZoom(): void {
 }
 
 function syncPhoneTouchClass(): void {
-  document.body.classList.toggle('mobile-touch', isPhoneTouchDevice());
+  document.body.classList.toggle('mobile-touch', NATIVE_APP || useTouchInterface());
   syncCommunityMenuMode();
 }
 
 function syncCommunityMenuMode(): void {
   const communityMenu = document.getElementById('community-menu') as HTMLDetailsElement | null;
   if (!communityMenu) return;
-  communityMenu.open = !isPhoneTouchDevice();
+  communityMenu.open = !(NATIVE_APP || useTouchInterface());
 }
 
+// Honor a persisted Interface Mode override before the first layout paint, so a
+// tablet+keyboard player who chose Desktop never flashes the touch UI on load.
+setInterfaceMode(interfaceModeFromSetting(new Settings().get('interfaceMode')));
 syncAppViewport();
 syncBuildInfo();
 preventMobileZoom();
@@ -289,13 +332,20 @@ window.visualViewport?.addEventListener('resize', syncAppViewport);
 document.addEventListener('fullscreenchange', syncAppViewport);
 
 function requestMobileFullscreen(): void {
-  if (!isPhoneTouchDevice()) return;
+  // Deliberately the device FACT (isPhoneTouchDevice), not the Interface Mode
+  // override: orientation-lock + fullscreen only make sense on real phone
+  // hardware, so a desktop forced to Touch correctly skips them.
+  if (NATIVE_APP || !isPhoneTouchDevice()) return;
   const root = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> | void };
   try {
     const request = root.requestFullscreen?.bind(root) ?? root.webkitRequestFullscreen?.bind(root);
     const result = request?.();
     if (result && typeof (result as Promise<void>).catch === 'function') void (result as Promise<void>).catch(() => {});
   } catch { /* browser declined fullscreen */ }
+}
+
+function requestMobileFullscreenLandscape(): void {
+  requestMobileFullscreen();
 }
 
 function mobilePlatform(): 'ios' | 'android' | 'other' {
@@ -355,6 +405,9 @@ function mobilePreflightCopy(): { detail: string; steps: string[] } {
 let mobilePreflightPromptPromise: Promise<void> | null = null;
 
 function showMobilePreflightPrompt(): Promise<void> {
+  // Deliberately the device FACT (isPhoneTouchDevice), not the Interface Mode
+  // override: the "install to home screen" preflight is phone-hardware-only, so a
+  // desktop forced to Touch correctly skips it.
   if (!isPhoneTouchDevice()) return Promise.resolve();
   if (mobilePreflightPromptPromise) return mobilePreflightPromptPromise;
   const prompt = document.getElementById('mobile-preflight') as HTMLElement | null;
@@ -376,7 +429,7 @@ function showMobilePreflightPrompt(): Promise<void> {
   prompt.classList.add('visible');
   mobilePreflightPromptPromise = new Promise((resolve) => {
     continueBtn.onclick = () => {
-      requestMobileFullscreen();
+      requestMobileFullscreenLandscape();
       syncAppViewport();
       window.setTimeout(syncAppViewport, 250);
       window.setTimeout(syncAppViewport, 800);
@@ -393,6 +446,24 @@ function hideMobilePreflightPrompt(): void {
   prompt?.classList.remove('visible');
   if (prompt) prompt.style.display = '';
   document.body.classList.remove('mobile-preflight-open');
+}
+
+function resetMobileGameplayOverlays(): void {
+  document.body.classList.remove('mobile-preflight-open', 'mobile-more-open', 'mobile-chat-open', 'mobile-chatlog-peek');
+  document.getElementById('mobile-controls')?.classList.remove('expanded');
+  document.getElementById('mobile-more')?.classList.remove('active');
+  const preflight = document.getElementById('mobile-preflight') as HTMLElement | null;
+  preflight?.classList.remove('visible');
+  if (preflight) preflight.style.display = '';
+  const more = document.getElementById('mobile-extra-controls') as HTMLElement | null;
+  if (more) {
+    more.style.left = '';
+    more.style.top = '';
+    more.style.right = '';
+    more.style.bottom = '';
+    more.style.transform = '';
+    delete more.dataset.windowMoved;
+  }
 }
 
 type FullscreenDocument = Document & {
@@ -434,8 +505,9 @@ function exitBrowserFullscreen(): void {
 }
 
 function requestPreferredFullscreen(): void {
-  if (isPhoneTouchDevice()) {
-    requestMobileFullscreen();
+  if (NATIVE_APP) return;
+  if (useTouchInterface()) {
+    requestMobileFullscreenLandscape();
     return;
   }
   if (new Settings().get('fullscreen') >= 0.5) requestBrowserFullscreen();
@@ -510,7 +582,7 @@ function enterLoadingState(statusText: string): void {
 
 async function prepareWorldEntry(): Promise<boolean> {
   if (hasBegunWorldEntry) return false;
-  if (isPhoneTouchDevice()) {
+  if (useTouchInterface()) {
     await showMobilePreflightPrompt();
   } else {
     requestPreferredFullscreen();
@@ -535,12 +607,21 @@ function mountGameUi(): void {
 // Shared game wiring (used by both offline sim and online world)
 // ---------------------------------------------------------------------------
 
-async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWorld | null): Promise<void> {
+async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWorld | null, keybindScope: string): Promise<void> {
   // Model/texture/HDRI fetches were kicked off at module import; the renderer
   // builds its scene synchronously, so everything must be resolved first.
   // The loading screen covers the gap - not a silent black screen.
   enterLoadingState(t('loading.world'));
   document.body.classList.add('game-active');
+  // We've left the start screen for the world, so pause + release the landing
+  // trailer: it's hidden now, and a decoding background video just wastes CPU/GPU
+  // and battery during play.
+  stopLandingTrailer();
+  resetMobileGameplayOverlays();
+  syncPhoneTouchClass();
+  syncAppViewport();
+  window.setTimeout(syncAppViewport, 250);
+  window.setTimeout(syncAppViewport, 800);
   if (document.activeElement instanceof HTMLElement) {
     document.activeElement.blur();
   }
@@ -573,7 +654,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
   const canvas = $('#game-canvas') as unknown as HTMLCanvasElement;
   const nameplates = $('#nameplates') as HTMLDivElement;
 
-  const keybinds = new Keybinds();
+  const keybinds = new Keybinds(keybindScope);
   const settings = new Settings();
   let renderer!: Renderer;
   let hud!: Hud;
@@ -710,14 +791,69 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
   // from a prior session, persisted in localStorage)
   document.getElementById('mobile-music')?.classList.toggle('mm-muted', !music.enabled);
 
-  // Optional FPS readout (settings: showFps). Exponentially-smoothed so the
-  // number is readable rather than flickering every frame; throttled to ~4 Hz.
-  // Declared here (before applySetting + the startup apply loop) so toggling the
-  // setting on boot doesn't hit the const's temporal dead zone.
-  const fpsOverlay = $('#fps-overlay') as HTMLDivElement;
-  let fpsEnabled = false;
-  let fpsSmoothed = 60;
-  let fpsLastPaintMs = 0;
+  // Gamepad: a separate remappable button profile drives the same dispatch the
+  // keyboard/touch paths use. Edge-button actions route through this dispatcher;
+  // movement/camera/jump are applied to Input directly by the manager.
+  const gamepadBindings = new GamepadBindings();
+  const canUseGameKeysNow = () => !hud.isModalOpen() && chatInput.style.display !== 'block';
+  function dispatchGamepadAction(id: string): void {
+    if (id === 'escape') { if (!hud.closeAll()) hud.toggleOptionsMenu(); return; }
+    if (!canUseGameKeysNow()) return; // suppress play actions while a modal/chat is up
+    if (id.startsWith('slot')) { hud.castSlot(Number(id.slice(4))); return; }
+    switch (id) {
+      case 'target': world.tabTarget(); break;
+      case 'targetFriendly': world.targetNearestFriendly(); break;
+      case 'targetFriendlyNext': world.friendlyTabTarget(); break;
+      case 'interact': interactKey(); break;
+      case 'bags': hud.toggleBags(); break;
+      case 'char': hud.toggleChar(); break;
+      case 'spellbook': hud.toggleSpellbook(); break;
+      case 'questlog': hud.toggleQuestLog(); break;
+      case 'map': hud.toggleMap(); break;
+      case 'nameplates': renderer.showNameplates = !renderer.showNameplates; break;
+      case 'talents': hud.toggleTalents(); break;
+      case 'meters': hud.toggleMeters(); break;
+      case 'social': hud.toggleSocial(); break;
+      case 'arena': hud.toggleArena(); break;
+      case 'leaderboard': hud.toggleLeaderboard(); break;
+      case 'chat': openChat(); break;
+    }
+  }
+  const gamepad = new GamepadManager(input, gamepadBindings, {
+    onAction: (id) => dispatchGamepadAction(id),
+    isPointerMode: () => hud.isWindowOpen(),
+    getPlayerHealth: () => (world.player.dead ? 0 : world.player.hp),
+  });
+  // The startup apply-all loop (below) calls applySetting('gamepadEnabled', ...)
+  // which starts/stops the manager and pushes the saved deadzone/speed/vibration.
+
+  // Customizable performance overlay (master toggle: showFps, kept for back-compat
+  // with the old FPS switch). The pure metrics + view core lives in
+  // ui/perf_overlay_model; this owns the frame meter, the persisted appearance/
+  // layout config (ui/perf_overlay_config, its own localStorage key), and the thin
+  // DOM painter (ui/perf_overlay). Declared here (before applySetting + the startup
+  // apply loop) so toggling showFps on boot doesn't hit a const's temporal dead zone.
+  const perfOverlay = new PerfOverlay($('#perf-overlay') as HTMLDivElement);
+  const perfConfig = new PerfOverlayConfigStore();
+  const perfMeter = new FrameMeter();
+  function toPerfViewCfg(c: PerfOverlayConfig): { metrics: typeof c.metrics; thresholds: boolean; graph: boolean } {
+    return { metrics: c.metrics, thresholds: c.thresholds, graph: c.graph };
+  }
+  let perfViewCfg = toPerfViewCfg(perfConfig.get());
+  function applyPerfOverlayConfig(): void {
+    const c = perfConfig.get();
+    perfOverlay.applyConfig(c);
+    perfViewCfg = toPerfViewCfg(c);
+  }
+  // Settle a drag-to-move from the overlay: persist the dropped position, refresh
+  // the overlay's live cfg (so reposition() does not snap it back on the next
+  // render), and push the new X/Y into the open Performance panel's sliders.
+  perfOverlay.onPositionChange = (x, y) => {
+    perfConfig.patch({ posX: x, posY: y });
+    applyPerfOverlayConfig();
+    hud.onPerfOverlayMoved(x, y);
+  };
+  applyPerfOverlayConfig();
 
   // apply a setting to its live subsystem (also used to apply all on startup)
   function syncClickMoveInput(): void {
@@ -728,6 +864,23 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
 
   function syncAttackMoveInput(): void {
     input.setAttackMoveEnabled(settings.get('attackMove'));
+  }
+
+  // Engine/version/device are fixed for the session; the renderer's GPU tier is
+  // resolved by now (initGfxTier ran during renderer construction). Re-stamp all
+  // classes on every call so a manual Esc-menu override repaints cleanly.
+  const browserEnv = readBrowserEnv();
+  function applyBrowserEffects(override: number): void {
+    const tier = cssEffectsTier({
+      engine: browserEnv.engine,
+      version: browserEnv.engineVersion,
+      mobile: browserEnv.mobile,
+      renderTier: GFX.tier,
+      override,
+    });
+    const body = document.body.classList;
+    body.remove(...BROWSER_BODY_CLASSES);
+    body.add(...browserBodyClasses(browserEnv, tier));
   }
 
   function applySetting(key: keyof GameSettings, value: number | boolean): void {
@@ -773,9 +926,12 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       document.body.classList.toggle('compact-chat', settings.set('compactChat', !!value));
       return;
     }
+    if (key === 'browserEffects') {
+      applyBrowserEffects(settings.set('browserEffects', value as number));
+      return;
+    }
     if (key === 'showFps') {
-      fpsEnabled = settings.set('showFps', !!value);
-      fpsOverlay.style.display = fpsEnabled ? 'block' : 'none';
+      perfOverlay.setEnabled(settings.set('showFps', !!value));
       return;
     }
     if (key === 'showWalletOnCharacterScreen') {
@@ -791,12 +947,29 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       input.setInvertLookY(settings.set('invertLookY', !!value));
       return;
     }
+    if (key === 'gamepadEnabled') {
+      const v = settings.set('gamepadEnabled', !!value);
+      if (v) gamepad.start();
+      else gamepad.stop();
+      return;
+    }
+    if (key === 'gamepadInvertY') {
+      gamepad.setInvertY(settings.set('gamepadInvertY', !!value));
+      return;
+    }
     if (key === 'voiceEnabled') {
       voice.setEnabled(settings.set('voiceEnabled', !!value));
       return;
     }
     if (key === 'footstepSfx') {
       sfx.setFootstepsEnabled(settings.set('footstepSfx', !!value));
+      return;
+    }
+    if (key === 'landingHighContrast') {
+      // Mirror of the start-screen toggle; keeps the persisted preference in sync
+      // and re-applies the backdrop (the landing page is hidden in-game, but the
+      // setting still takes effect next time the start screen is shown / reloaded).
+      applyLandingBackdrop(settings.set('landingHighContrast', !!value));
       return;
     }
     const v = settings.set(key as keyof typeof SETTING_RANGES, value as number);
@@ -819,6 +992,18 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
         break;
       case 'actionButtonScale': document.getElementById('mobile-controls')?.style.setProperty('--btn-scale', String(v)); break;
       case 'joystickDeadzone': mobileControls.setMoveDeadzone(v); break;
+      case 'interfaceMode':
+        // Desktop/touch override: update the resolver, then re-apply the layout
+        // (body class, stable viewport) and the on-screen controls live so the
+        // switch takes effect without a reload.
+        setInterfaceMode(interfaceModeFromSetting(v));
+        syncPhoneTouchClass();
+        syncAppViewport();
+        mobileControls.refreshInterfaceMode();
+        break;
+      case 'gamepadStickDeadzone': gamepad.setDeadzone(v); break;
+      case 'gamepadCameraSpeed': gamepad.setCameraSpeed(v); break;
+      case 'gamepadVibration': gamepad.setVibration(v); break;
       // Interface & Comfort sliders: each drives one CSS custom property that
       // index.html consumes. Setting them on :root keeps the HUD authoritative.
       case 'tooltipScale': document.documentElement.style.setProperty('--tooltip-scale', String(v)); break;
@@ -826,6 +1011,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       case 'chatOpacity': document.documentElement.style.setProperty('--chat-opacity', String(v)); break;
       case 'fctScale': document.documentElement.style.setProperty('--fct-scale', String(v)); break;
       case 'hudOpacity': document.documentElement.style.setProperty('--hud-opacity', String(v)); break;
+      case 'uiScale': document.documentElement.style.setProperty('--ui-scale', String(v)); break;
     }
   }
   // apply persisted settings to the freshly-built subsystems
@@ -840,11 +1026,42 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     settings,
     onSettingChange: (key, value) => applySetting(key, value),
     changeLanguage: (lang, onStatus) => changeLanguage(lang, onStatus),
+    refreshWocBalance: () => refreshWocBalanceOnDemand(),
+    perfOverlay: {
+      get: () => perfConfig.get(),
+      patch: (p) => { perfConfig.patch(p); applyPerfOverlayConfig(); },
+      setMetric: (k, on) => { perfConfig.setMetric(k, on); applyPerfOverlayConfig(); },
+      reset: () => { perfConfig.reset(); applyPerfOverlayConfig(); },
+      resetPosition: () => { perfConfig.resetPosition(); applyPerfOverlayConfig(); },
+      setPlacement: (on) => perfOverlay.setPlacementMode(on),
+    },
+    gamepad: gamepadBindings,
   });
   if (online) {
     hud.attachReporting({
       submit: (targetPid, reason, details) => api.reportPlayer(online.characterId, targetPid, reason, details),
       submitByName: (targetName, reason, details) => api.reportPlayerByName(online.characterId, targetName, reason, details),
+    });
+    hud.attachBugReporting({
+      capture: () => renderer?.captureScreenshot() ?? null,
+      collectMeta: () => assembleBugReportMeta({
+        build: `${__APP_VERSION__} (${__APP_BUILD_ID__})`,
+        userAgent: navigator.userAgent,
+        viewport: { w: window.innerWidth, h: window.innerHeight, dpr: window.devicePixelRatio },
+        zone: zoneBiomeAt(world.player.pos.z),
+        level: world.player.level,
+        // Entity has no `cls`; the player's class is its templateId (see Entity).
+        className: world.player.templateId,
+        cameraYaw: renderer?.camYaw ?? 0,
+      }),
+      submit: (payload) => api.submitBugReport({
+        characterId: online.characterId,
+        characterName: world.player.name,
+        pos: { x: world.player.pos.x, y: world.player.pos.y, z: world.player.pos.z },
+        description: payload.description,
+        screenshot: payload.screenshot,
+        meta: payload.meta,
+      }),
     });
   }
   function interactKey(): void {
@@ -915,6 +1132,12 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
 
   function handlePick(x: number, y: number, button: number): void {
     const id = renderer.pick(x, y);
+    // OSRS-style click feedback (its own toggle): a brief ground marker, gold for a
+    // neutral click and red on a hostile. Both reference games only mark a real action,
+    // so the marker stamps where a click actually does something: the click-to-move
+    // destination (OSRS's yellow "walking here" X) and an entity you target or walk to
+    // (OSRS's red interaction X). A plain ground click that only deselects gets nothing.
+    const wantClickFeedback = settings.get('clickFeedback') && !world.player.dead;
     const clickToMove = settings.get('clickToMove') > 0 && !world.player.dead;
     const clickToMoveButton = normalizeClickMoveButton(settings.get('clickToMoveButton'));
     const isClickMoveButton = clickToMove && button === clickToMoveButton;
@@ -922,20 +1145,30 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       if (button === 0) {
         world.targetEntity(null);
       }
+      // One ground raycast feeds both the move target and its marker, so the gold
+      // marker appears only where the click actually sends you.
       if (isClickMoveButton) {
         const g = renderer.groundPoint(x, y, world.player.pos.y);
         if (g) {
+          if (wantClickFeedback) renderer.spawnClickMarker(g.x, g.z, false);
           const target = resolvedClickMoveTarget(g);
           input.setClickMoveTarget(target, 0.5, null, clickMovePathTo(target));
         }
       }
       return;
     }
-    // The configured click-to-move mouse button approaches entities while the
-    // regular click handler still performs target/interact behavior.
-    if (isClickMoveButton) {
-      const e = world.entities.get(id);
-      if (e && e.id !== world.player.id) {
+    const e = world.entities.get(id);
+    if (e && e.id !== world.player.id) {
+      // Mark the entity when you engage it: a left-click target, or the click-to-move
+      // button that walks you to it, so both routes read the same (red on a hostile,
+      // gold otherwise).
+      if (wantClickFeedback && (button === 0 || isClickMoveButton)) {
+        const hostile = isAttackableEntity(e, world.playerId, activePvpOpponentIds(world));
+        renderer.spawnClickMarker(e.pos.x, e.pos.z, hostile);
+      }
+      // The configured click-to-move mouse button approaches the entity while the
+      // regular click handler still performs target/interact behavior.
+      if (isClickMoveButton) {
         const target = resolvedClickMoveTarget({ x: e.pos.x, z: e.pos.z });
         input.setClickMoveTarget(target, 3.5, e.id, clickMovePathTo(target));
       }
@@ -1083,6 +1316,9 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
   let last = performance.now();
   let acc = 0;
   let onlineInputEchoMs = 0;
+  // Smoothed input-echo jitter (mean absolute deviation of RTT samples) for the
+  // perf overlay's Jitter row.
+  let onlineJitterMs = 0;
   let gameInputReady = false;
 
   // Camera follow state: keyboard turning advances facing in 20Hz sim steps,
@@ -1108,7 +1344,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       frameDt,
       lastInterpFacing,
       mouselook: input.isMouselookActive(),
-      moving: mi.forward || mi.strafeLeft || mi.strafeRight || clickMoving,
+      moving: cameraFollowShouldSettle(mi, clickMoving),
       clickMoving,
       cameraDriven: input.isMouseCameraMode() && cameraMoveActive(),
       orbiting: input.leftDown && input.isCameraDragActive(),
@@ -1137,13 +1373,18 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     const mi = input.readMoveInput();
     let facing: number | null = mouselook ? input.camYaw : null;
     if (input.clickMoveTarget) {
-      if (clickMoveShouldCancel(mi, {
+      const action = resolveClickMoveAction(mi, {
         mouselook,
         movementSuspended: input.suspendMovement,
         playerDead: world.player.dead,
         enabled: settings.get('clickToMove') > 0 || settings.get('attackMove'),
-      })) {
+      });
+      if (action === 'cancel') {
         input.clearClickMove();
+      } else if (action === 'pause') {
+        // Game menu is up: hold the destination and stand still; the run resumes
+        // when the menu closes. mi is already all-false here (movement suspended).
+        return { mi, facing };
       } else {
         if (input.clickMoveEntityId !== null) {
           const e = world.entities.get(input.clickMoveEntityId);
@@ -1256,13 +1497,37 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     return !!(mi.forward || mi.back || mi.strafeLeft || mi.strafeRight) && !world.player.dead;
   }
 
-  function updateFpsOverlay(frameDt: number, nowMs: number): void {
-    if (!fpsEnabled) return;
-    if (frameDt > 0) fpsSmoothed += (1 / frameDt - fpsSmoothed) * 0.1;
-    if (nowMs - fpsLastPaintMs < 250) return;
-    fpsLastPaintMs = nowMs;
-    fpsOverlay.textContent = t('hud.options.fpsReadout', { fps: formatNumber(Math.round(fpsSmoothed)) });
+  // Feed the frame meter every frame (so stats stay warm even when hidden) and,
+  // when the overlay is on, repaint at the meter's throttle (~4 Hz). Sample
+  // assembly + the DOM paint only happen on a repaint tick, never per frame.
+  function syncPerfOverlay(frameDt: number, nowMs: number): void {
+    const repaint = perfMeter.step(frameDt, nowMs);
+    if (!perfOverlay.isEnabled() || !repaint) return;
+    perfOverlay.render(buildPerfOverlayView(sampleMetrics(), perfViewCfg));
   }
+
+  // Gather the raw, nullable signals the overlay can surface. Renderer/browser
+  // fields reflect the last rendered frame (fine at 4 Hz); network fields are
+  // online-only and null offline; Chromium-only sources (heap, connection) report
+  // null elsewhere so their rows simply hide. The pure assembly lives in
+  // perf_metrics_sampler.ts; here we inject the live sources.
+  // Input-activity meter for the overlay APM readout
+  const inputMeter = new InputActivityMeter();
+  installInputActivityTracking(inputMeter, window, () => performance.now());
+  const APM_BEAT_MS = 10_000;
+  window.setInterval(() => {
+    world.reportTelemetry('apm', { count: inputMeter.drainCount(), periodMs: APM_BEAT_MS });
+  }, APM_BEAT_MS);
+
+  const sampleMetrics = createMetricsSampler({
+    renderer,
+    meter: perfMeter,
+    getOnline: () => online,
+    getEntityCount: () => world.entities.size,
+    getEchoMs: () => onlineInputEchoMs,
+    getJitterMs: () => onlineJitterMs,
+    getApm: () => inputMeter.apm(performance.now()),
+  });
 
   function frame(now: number): void {
     requestAnimationFrame(frame);
@@ -1270,12 +1535,13 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     last = now;
     if (frameDt > 0.25) frameDt = 0.25;
     perf.frame(frameDt);
-    updateFpsOverlay(frameDt, now);
+    syncPerfOverlay(frameDt, now);
 
     // freeze movement while the game menu is up so WASD doesn't walk the
     // character behind it (other windows stay non-modal, as before)
     input.suspendMovement = !gameInputReady || hud.isModalOpen();
     perf.trace('input.updateTouchLook', () => input.updateTouchLook(frameDt), { frameDtMs: frameDt * 1000 });
+    perf.trace('input.gamepad', () => gamepad.poll(frameDt), { frameDtMs: frameDt * 1000 });
     perf.trace('input.hoverCursor', () => updateHoverCursor(), { active: input.hoverActive });
     perf.markInputFrame(performance.now());
 
@@ -1331,7 +1597,12 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     const echoSamples = net.consumeInputEchoSamples();
     for (const sample of echoSamples) {
       if (Number.isFinite(sample) && sample >= 0) {
-        onlineInputEchoMs = onlineInputEchoMs === 0 ? sample : onlineInputEchoMs + 0.2 * (sample - onlineInputEchoMs);
+        // Jitter is the mean absolute deviation against the PRIOR mean (measuring
+        // it after the EMA update would bias it low).
+        const prevMean = onlineInputEchoMs;
+        onlineInputEchoMs = prevMean === 0 ? sample : prevMean + 0.2 * (sample - prevMean);
+        const dev = prevMean === 0 ? 0 : Math.abs(sample - prevMean);
+        onlineJitterMs = onlineJitterMs === 0 ? dev : onlineJitterMs + 0.2 * (dev - onlineJitterMs);
       }
       perf.markInputEcho(sample);
     }
@@ -1412,7 +1683,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
         tokenProvider: () => api.token,
         characterIdProvider: () => online?.characterId ?? null,
       });
-      (window as any).__game = { sim: world, world, renderer, input, hud, online, controller, perf };
+      (window as any).__game = { sim: world, world, renderer, input, hud, online, controller, perf, gamepad };
     }, LOADING_FADE_MS);
   }));
   // Now in-game: fade the home-page theme out (it kept playing through loading).
@@ -1436,7 +1707,9 @@ async function startOffline(playerClass: PlayerClass, name: string, skin = 0): P
   enterLoadingState(t('loading.world'));
   const sim = new Sim({ seed: WORLD_SEED, playerClass, playerName: name });
   sim.setPlayerSkin(sim.playerId, skin);
-  void startGame(sim, sim, null);
+  // Offline characters are not persisted (a fresh name is typed each session),
+  // so the only stable handle is class + name. Keybinds scope to that pair.
+  void startGame(sim, sim, null, `offline:${playerClass}:${name}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -1574,6 +1847,7 @@ function updatePreviewContainer(panelId: string): void {
     const cls = (row?.dataset.class as PlayerClass) ?? 'warrior';
     characterPreview.setClass(cls);
     characterPreview.setSkin(Number(row?.dataset.skin ?? 0) || 0);
+    syncPreviewAfterPanelLayout();
     return;
   }
 
@@ -1587,6 +1861,16 @@ function updatePreviewContainer(panelId: string): void {
     if (panelId === '#charcreate-panel') refreshOnlineSkins(cls);
     else refreshOfflineSkins(cls);
   }
+
+  syncPreviewAfterPanelLayout();
+}
+
+function syncPreviewAfterPanelLayout(): void {
+  characterPreview?.syncSize();
+  requestAnimationFrame(() => {
+    characterPreview?.syncSize();
+    requestAnimationFrame(() => characterPreview?.syncSize());
+  });
 }
 
 const currentlyRenderedClass: Record<string, PlayerClass | null> = {
@@ -1606,7 +1890,7 @@ const hoverTimeouts: Record<string, number | null> = {
 };
 
 function switchMainView(targetId: string): void {
-  const views = ['#hero-view', '#highscores-view', '#wiki-view', '#news-view', '#download-view'];
+  const views = ['#hero-view', '#highscores-view', '#news-view', '#download-view', '#account-view'];
   const currentViewId = views.find(id => {
     const el = $(id);
     return el && !el.hasAttribute('hidden');
@@ -1617,9 +1901,9 @@ function switchMainView(targetId: string): void {
   const navMap: Record<string, string> = {
     '#hero-view': 'nav-btn-play',
     '#highscores-view': 'nav-btn-highscores',
-    '#wiki-view': 'nav-btn-wiki',
     '#news-view': 'nav-btn-news',
-    '#download-view': 'nav-btn-download'
+    '#download-view': 'nav-btn-download',
+    '#account-view': 'nav-btn-account'
   };
 
   const activeNavId = navMap[targetId];
@@ -1831,6 +2115,192 @@ async function enterRealmFlow(): Promise<void> {
   showRealmList(dir);
 }
 
+// ── Home-page account portal ("Account" nav tab) ────────────────────────────
+// The nav swaps Login/Register → Account once a session exists; the portal page
+// is a thin consumer of the pure account_portal.ts model + the REST Api.
+function loginNavItem(): HTMLElement | null {
+  return ($('#nav-btn-login') as HTMLElement).closest('.nav-item') as HTMLElement | null;
+}
+
+const loggedInNavItems = ['#nav-item-account', '#nav-item-logout'];
+
+function enterLoggedInChrome(): void {
+  loggedInNavItems.forEach((sel) => { ($(sel) as HTMLElement).hidden = false; });
+  const li = loginNavItem();
+  if (li) li.hidden = true;
+}
+
+function enterLoggedOutChrome(): void {
+  loggedInNavItems.forEach((sel) => { ($(sel) as HTMLElement).hidden = true; });
+  const li = loginNavItem();
+  if (li) li.hidden = false;
+}
+
+function logoutAccount(): void {
+  const finish = () => {
+    api.clearSession();
+    location.reload();
+  };
+  if (!api.token) { finish(); return; }
+  void api.logout().finally(finish);
+}
+
+function setAccountFieldMsg(sel: string, text: string, ok: boolean): void {
+  const el = $(sel);
+  el.textContent = text;
+  el.classList.toggle('is-error', !ok && text !== '');
+  el.classList.toggle('is-ok', ok && text !== '');
+}
+
+function paintAccountPortal(
+  model: ReturnType<typeof accountPortalModel>,
+  // When the account fetch failed transiently we re-render the shell but must
+  // NOT clobber an already-populated email field: a blank value would otherwise
+  // be submitted as a null email update on the next save.
+  preserveEmailInput = false,
+): void {
+  ($('#account-logged-out') as HTMLElement).hidden = model.loggedIn;
+  ($('#account-sections') as HTMLElement).hidden = !model.loggedIn;
+  $('#account-username').textContent = model.header.username;
+  const since = $('#account-member-since');
+  since.textContent = model.header.memberSinceIso
+    ? t('hudChrome.account.memberSince', { date: formatDateTime(new Date(model.header.memberSinceIso), { dateStyle: 'medium' }) })
+    : '';
+  $('#account-char-count').textContent = t('hudChrome.account.charactersCount', {
+    count: formatNumber(model.header.characterCount),
+  });
+  if (!preserveEmailInput) ($('#account-email') as HTMLInputElement).value = model.email;
+}
+
+const loggedOutModel = () => accountPortalModel({ loggedIn: false, username: '', email: '', createdAt: '', characterCount: 0 });
+
+function handleAccountSessionExpired(): void {
+  api.clearSession();
+  enterLoggedOutChrome();
+  paintAccountPortal(loggedOutModel());
+}
+
+// Load the account portal from a (possibly restored) token. A 401/403 means the
+// token is genuinely stale → clear the session. Any other failure (5xx from a
+// restarting server, a captive-portal blip, being briefly offline) is transient:
+// keep the token and stay optimistically logged in, since only the local copy
+// would be lost. `setChrome` flips the nav into the logged-in state (boot path).
+async function loadAccountPortal(setChrome: boolean): Promise<void> {
+  if (!api.token) { paintAccountPortal(loggedOutModel()); return; }
+  try {
+    const acct = await api.getAccount();
+    if (setChrome) enterLoggedInChrome();
+    paintAccountPortal(accountPortalModel({
+      loggedIn: true, username: acct.username, email: acct.email,
+      createdAt: acct.createdAt, characterCount: acct.characterCount,
+    }));
+  } catch (err) {
+    if (isAuthError(err)) { handleAccountSessionExpired(); return; }
+    console.warn('account session check deferred (transient):', err);
+    if (setChrome) enterLoggedInChrome();
+    paintAccountPortal(accountPortalModel({
+      loggedIn: true, username: api.username ?? '', email: '', createdAt: '', characterCount: 0,
+    }), true);
+  }
+}
+
+// Boot path: a restored token re-validates and sets the logged-in nav chrome.
+const revalidateAccountSession = (): Promise<void> => loadAccountPortal(true);
+// Navigating to the Account view: refresh the portal without touching the chrome.
+const renderAccountPortal = (): Promise<void> => loadAccountPortal(false);
+
+// `focusWallet` differentiates the Wallet card's CTA from "View Characters":
+// both land on the realm/character picker, but Manage Wallet then scrolls to and
+// focuses the wallet control once it renders.
+let pendingWalletFocus = false;
+function accountGoToCharacters(focusWallet = false): void {
+  pendingWalletFocus = focusWallet;
+  switchMainView('#hero-view');
+  void enterRealmFlow().then(() => { if (pendingWalletFocus) tryFocusWalletButton(); });
+}
+
+function tryFocusWalletButton(attempt = 0): void {
+  const btn = document.getElementById('btn-wallet');
+  if (btn && btn.offsetParent !== null) {
+    pendingWalletFocus = false;
+    btn.scrollIntoView({ block: 'center' });
+    btn.focus();
+    return;
+  }
+  if (attempt < 20) window.setTimeout(() => tryFocusWalletButton(attempt + 1), 100);
+  else pendingWalletFocus = false;
+}
+
+let accountPortalWired = false;
+function setupAccountPortal(): void {
+  if (accountPortalWired) return;
+  accountPortalWired = true;
+
+  ($('#account-password-form') as HTMLFormElement).addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const current = ($('#account-current-pass') as HTMLInputElement).value;
+    const next = ($('#account-new-pass') as HTMLInputElement).value;
+    const confirm = ($('#account-confirm-pass') as HTMLInputElement).value;
+    const err = validatePasswordChange(current, next, confirm);
+    if (err) {
+      const key = err === 'empty-current' ? 'errCurrentRequired'
+        : err === 'too-short' ? 'errPasswordShort'
+        : err === 'too-long' ? 'errPasswordLong'
+        : err === 'confirm-mismatch' ? 'errPasswordConfirm'
+        : 'errPasswordUnchanged';
+      setAccountFieldMsg('#account-password-msg', t(`hudChrome.account.${key}` as TranslationKey), false);
+      return;
+    }
+    try {
+      await api.changePassword(current, next);
+      setAccountFieldMsg('#account-password-msg', t('hudChrome.account.passwordChanged'), true);
+      ($('#account-current-pass') as HTMLInputElement).value = '';
+      ($('#account-new-pass') as HTMLInputElement).value = '';
+      ($('#account-confirm-pass') as HTMLInputElement).value = '';
+    } catch (e2) {
+      setAccountFieldMsg('#account-password-msg', userFacingApiError(e2), false);
+    }
+  });
+
+  ($('#account-email-form') as HTMLFormElement).addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = ($('#account-email') as HTMLInputElement).value;
+    if (!validateEmailShape(email)) {
+      setAccountFieldMsg('#account-email-msg', t('hudChrome.account.errEmailInvalid'), false);
+      return;
+    }
+    try {
+      const saved = await api.setEmail(email);
+      ($('#account-email') as HTMLInputElement).value = saved;
+      setAccountFieldMsg('#account-email-msg', t('hudChrome.account.emailSaved'), true);
+    } catch (e2) {
+      setAccountFieldMsg('#account-email-msg', userFacingApiError(e2), false);
+    }
+  });
+
+  const deUser = $('#account-deactivate-user') as HTMLInputElement;
+  const dePass = $('#account-deactivate-pass') as HTMLInputElement;
+  const deBtn = $('#account-deactivate-btn') as HTMLButtonElement;
+  const syncDeactivate = () => { deBtn.disabled = !deactivateConfirmReady(api.username ?? '', deUser.value, dePass.value); };
+  deUser.addEventListener('input', syncDeactivate);
+  dePass.addEventListener('input', syncDeactivate);
+  ($('#account-deactivate-form') as HTMLFormElement).addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      await api.deactivateAccount(deUser.value, dePass.value);
+      api.clearSession();
+      setAccountFieldMsg('#account-deactivate-msg', t('hudChrome.account.deactivated'), true);
+      window.setTimeout(() => location.reload(), 1200);
+    } catch (e2) {
+      setAccountFieldMsg('#account-deactivate-msg', userFacingApiError(e2), false);
+    }
+  });
+
+  document.getElementById('account-manage-wallet')?.addEventListener('click', () => accountGoToCharacters(true));
+  ($('#account-go-characters') as HTMLElement).addEventListener('click', () => accountGoToCharacters(false));
+  ($('#account-logout') as HTMLElement).addEventListener('click', logoutAccount);
+}
+
 function showRealmList(dir?: import('./net/online').RealmDirectory): void {
   show('#realm-panel');
   const listEl = $('#realm-list');
@@ -2021,15 +2491,22 @@ async function refreshCharacters(): Promise<void> {
       row.dataset.class = c.class;
       row.dataset.skin = String(c.skin ?? 0);
       const className = classDisplayName(c.class);
-      const statusText = c.online ? ` (${t('character.inWorld')})` : c.forceRename ? ` (${t('character.renameRequired')})` : '';
+      // Online characters explain themselves on their own hint line (below the
+      // class) instead of the terse "(in world)" suffix, so the reason for the
+      // Take Over button is unmissable.
+      const statusText = c.online ? '' : c.forceRename ? ` (${t('character.renameRequired')})` : '';
+      const inWorldHint = c.online ? `<span class="char-inworld-hint">${escapeHtml(t('character.inWorldHint'))}</span>` : '';
       row.innerHTML = `${portraitChipHtml({ cls: c.class, skin: c.skin ?? 0, name: c.name, variant: 'sm' })}
         <div class="char-id">
           <span class="char-name">${escapeHtml(c.name)}</span>
           <span class="char-sub">${escapeHtml(t('character.levelClass', { level: c.level, className }))}${escapeHtml(statusText)}</span>
+          ${inWorldHint}
         </div>
         ${c.forceRename
           ? `<input class="rename-input" placeholder="${escapeHtml(t('character.newNamePlaceholder'))}" maxlength="16" /><span class="char-actions"><button class="btn btn-danger delete-char-btn" ${c.online ? 'disabled' : ''}>${escapeHtml(t('character.delete'))}</button><button class="btn rename-btn">${escapeHtml(t('character.rename'))}</button></span>`
-          : `<span class="char-actions"><button class="btn btn-danger delete-char-btn" ${c.online ? 'disabled' : ''}>${escapeHtml(t('character.delete'))}</button><button class="btn enter-world-btn" ${c.online ? 'disabled' : ''}>${escapeHtml(t('auth.enterWorld'))}</button></span>`}`;
+          : c.online
+            ? `<span class="char-actions"><button class="btn btn-danger delete-char-btn" disabled title="${escapeHtml(t('character.inWorldHint'))}">${escapeHtml(t('character.delete'))}</button><button class="btn take-over-btn" title="${escapeHtml(t('character.takeOverConfirm'))}" aria-label="${escapeHtml(t('character.takeOverConfirm'))}">${escapeHtml(t('character.takeOver'))}</button></span>`
+            : `<span class="char-actions"><button class="btn btn-danger delete-char-btn">${escapeHtml(t('character.delete'))}</button><button class="btn enter-world-btn">${escapeHtml(t('auth.enterWorld'))}</button></span>`}`;
 
       row.querySelector('.delete-char-btn')!.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -2046,6 +2523,31 @@ async function refreshCharacters(): Promise<void> {
             await refreshCharacters();
           } catch (err) {
             $('#charselect-error').textContent = userFacingApiError(err);
+          }
+        });
+      } else if (c.online) {
+        row.querySelector('.take-over-btn')!.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const btn = e.currentTarget as HTMLButtonElement;
+          // Taking over disconnects the other live session with no undo, so guard a
+          // stray click (e.g. you are genuinely playing on another device) behind a
+          // confirm. The prompt text is the existing t() key, keeping it localized.
+          if (!window.confirm(t('character.takeOverConfirm'))) return;
+          $('#charselect-error').textContent = '';
+          btn.disabled = true;
+          try {
+            // Free the stale/other session, then enter on this character.
+            // takeOverCharacter awaits the old session's leave() server-side, so
+            // the slot is free by the time enterWorld connects. Pass btn so
+            // enterWorld owns its loading/disabled state and restores it if entry
+            // is aborted before it begins; surface any failure via the catch.
+            await api.takeoverCharacter(c.id);
+            await enterWorld({ ...c, online: false }, btn);
+          } catch (err) {
+            btn.disabled = false;
+            $('#charselect-error').textContent = userFacingApiError(err);
+            // Reflect any state change (e.g. a lost race) back into the list.
+            void refreshCharacters();
           }
         });
       } else {
@@ -2127,7 +2629,7 @@ async function enterWorld(c: CharacterSummary, button?: HTMLButtonElement): Prom
       button.textContent = t('auth.enterWorld');
     }
   }
-  const world = new ClientWorld(api.token!, c.id, c.class, api.base);
+  const world = new ClientWorld(api.token!, c.id, c.class, api.base, getClientSeed());
   // Wire shareable player cards for this online session: publishing uploads the
   // composited PNG to this realm and returns an absolute public page URL, and
   // the referral provider feeds the card footer. Both are cleared on disconnect.
@@ -2146,7 +2648,7 @@ async function enterWorld(c: CharacterSummary, button?: HTMLButtonElement): Prom
   const poll = setInterval(() => {
     if (world.connected && world.entities.has(world.playerId)) {
       clearInterval(poll);
-      void startGame(world, null, world);
+      void startGame(world, null, world, `char:${c.id}`);
     } else if (Date.now() - waitStart > 10000) {
       clearInterval(poll);
       world.close();
@@ -2163,91 +2665,8 @@ async function enterWorld(c: CharacterSummary, button?: HTMLButtonElement): Prom
   };
 }
 
-interface ClassDetails {
-  roleKey: TranslationKey;
-  roleType: 'tank' | 'dps' | 'ranged' | 'healer' | 'hybrid';
-  armorKey: TranslationKey;
-  weaponsKey: TranslationKey;
-  loreKey: TranslationKey;
-}
-
-const CLASS_DETAILS: Record<PlayerClass, ClassDetails> = {
-  warrior: {
-    roleKey: 'classDetails.roles.warrior',
-    roleType: 'hybrid',
-    armorKey: 'classDetails.armor.chainLeatherCloth',
-    weaponsKey: 'classDetails.weapons.swordsMacesAxes',
-    loreKey: 'classDetails.lore.warrior',
-  },
-  paladin: {
-    roleKey: 'classDetails.roles.paladin',
-    roleType: 'hybrid',
-    armorKey: 'classDetails.armor.chainLeatherCloth',
-    weaponsKey: 'classDetails.weapons.swordsMaces',
-    loreKey: 'classDetails.lore.paladin',
-  },
-  hunter: {
-    roleKey: 'classDetails.roles.hunter',
-    roleType: 'ranged',
-    armorKey: 'classDetails.armor.leatherCloth',
-    weaponsKey: 'classDetails.weapons.axesSwords',
-    loreKey: 'classDetails.lore.hunter',
-  },
-  rogue: {
-    roleKey: 'classDetails.roles.rogue',
-    roleType: 'dps',
-    armorKey: 'classDetails.armor.leatherCloth',
-    weaponsKey: 'classDetails.weapons.daggersSwords',
-    loreKey: 'classDetails.lore.rogue',
-  },
-  priest: {
-    roleKey: 'classDetails.roles.priest',
-    roleType: 'healer',
-    armorKey: 'classDetails.armor.cloth',
-    weaponsKey: 'classDetails.weapons.staves',
-    loreKey: 'classDetails.lore.priest',
-  },
-  shaman: {
-    roleKey: 'classDetails.roles.shaman',
-    roleType: 'hybrid',
-    armorKey: 'classDetails.armor.chainLeatherCloth',
-    weaponsKey: 'classDetails.weapons.macesAxes',
-    loreKey: 'classDetails.lore.shaman',
-  },
-  mage: {
-    roleKey: 'classDetails.roles.mage',
-    roleType: 'ranged',
-    armorKey: 'classDetails.armor.cloth',
-    weaponsKey: 'classDetails.weapons.staves',
-    loreKey: 'classDetails.lore.mage',
-  },
-  warlock: {
-    roleKey: 'classDetails.roles.warlock',
-    roleType: 'ranged',
-    armorKey: 'classDetails.armor.cloth',
-    weaponsKey: 'classDetails.weapons.staves',
-    loreKey: 'classDetails.lore.warlock',
-  },
-  druid: {
-    roleKey: 'classDetails.roles.druid',
-    roleType: 'hybrid',
-    armorKey: 'classDetails.armor.leatherCloth',
-    weaponsKey: 'classDetails.weapons.staves',
-    loreKey: 'classDetails.lore.druid',
-  }
-};
-
-const SIGNATURE_ABILITIES: Record<PlayerClass, string[]> = {
-  warrior: ['charge', 'heroic_strike', 'rend'],
-  paladin: ['holy_light', 'judgement', 'seal_of_righteousness'],
-  hunter: ['serpent_sting', 'aimed_shot', 'aspect_of_the_hawk'],
-  rogue: ['sinister_strike', 'eviscerate', 'evasion'],
-  priest: ['smite', 'power_word_shield', 'shadow_word_pain'],
-  shaman: ['lightning_bolt', 'rockbiter_weapon', 'ghost_wolf'],
-  mage: ['fireball', 'frostbolt', 'polymorph'],
-  warlock: ['shadow_bolt', 'corruption', 'life_tap'],
-  druid: ['wrath', 'bear_form', 'rejuvenation']
-};
+// CLASS_DETAILS / SIGNATURE_ABILITIES live in a pure module so a Vitest guard
+// can verify they never drift from the sim's class/ability definitions.
 
 const activeClassDetailsTimeouts: Record<string, number | null> = {};
 
@@ -2934,8 +3353,9 @@ let walletFlowStatus: 'connect' | 'sign' | 'verify' | null = null;
 let walletHiddenNoticeTimeout: number | null = null;
 
 // Feature flag: Wallet Standard support needs no project id. Keep an escape
-// hatch for deploys that want to hide the wallet UI entirely.
-const WALLET_ENABLED = String(import.meta.env.VITE_WALLET_DISABLED ?? '').trim() !== '1';
+// hatch for deploys that want to hide the wallet UI entirely. Native app builds
+// intentionally exclude wallet verification for now.
+const WALLET_ENABLED = !NATIVE_APP && String(import.meta.env.VITE_WALLET_DISABLED ?? '').trim() !== '1';
 
 function walletCharacterScreenVisible(): boolean {
   try {
@@ -3197,6 +3617,11 @@ function setWalletFlowStatus(status: typeof walletFlowStatus): void {
 }
 
 function updateWalletButton(): void {
+  if (!WALLET_ENABLED) {
+    setWocBalance(null, false);
+    setWalletDisplayAvailable(false);
+    return;
+  }
   syncWalletCharacterScreenVisibility();
   // currentWallet is sync; before the module loads, treat as disconnected.
   const { address, isConnected } = walletMod ? walletMod.currentWallet() : { address: null, isConnected: false };
@@ -3315,16 +3740,47 @@ async function disconnectUnverifiedWalletIfIdle(): Promise<void> {
 
 // Read the connected wallet's $WOC balance and re-render. Ignores a stale
 // response if the connected wallet changed while the RPC call was in flight.
-async function refreshWocBalance(address: string): Promise<void> {
-  connectedWocBalance = null;
-  updateWalletButton();
-  const wallet = await loadWallet();
-  const balance = await wallet.fetchWocBalance(address);
-  if (wallet.currentWallet().address === address) {
-    connectedWocBalance = balance;
-    if (linkedWalletPubkey === address) linkedWocBalance = balance;
+// `fresh` bypasses the server's per-wallet cache (used when the player opens a
+// surface that shows the balance, so an on-chain token change shows up); an
+// initial (non-fresh) read clears the prior value first to show a loading state.
+async function refreshWocBalance(address: string, fresh = false): Promise<void> {
+  if (!fresh) {
+    connectedWocBalance = null;
     updateWalletButton();
   }
+  const wallet = await loadWallet();
+  const balance = await wallet.fetchWocBalance(address, fresh);
+  // Skip stale results (wallet switched mid-flight) and fresh-read transport blips
+  // that would wipe a shown balance — see resolveWocBalanceUpdate.
+  const { apply, setLinked } = resolveWocBalanceUpdate({
+    address, fresh, balance,
+    currentAddress: wallet.currentWallet().address,
+    linkedAddress: linkedWalletPubkey,
+  });
+  if (!apply) return;
+  connectedWocBalance = balance;
+  if (setLinked) linkedWocBalance = balance;
+  updateWalletButton();
+}
+
+// Re-fetch the connected/linked wallet's balance on demand (server cache
+// bypassed) so surfaces that display it — the bag footer and the player card —
+// reflect on-chain changes. No-op when the wallet feature is off or nothing is
+// connected/linked. Prefers the account-LINKED wallet (whose balance the badge
+// shows) over a merely-connected one, and a short throttle coalesces rapid
+// bag/card toggles so they don't burn the per-IP fresh-read budget.
+let lastOnDemandRefreshAddress: string | null = null;
+let lastOnDemandRefreshAt = 0;
+const ON_DEMAND_REFRESH_THROTTLE_MS = 5000;
+function refreshWocBalanceOnDemand(): void {
+  if (!WALLET_ENABLED) return;
+  const address = linkedWalletPubkey ?? walletMod?.currentWallet().address ?? null;
+  if (!address) return;
+  const now = Date.now();
+  if (address === lastOnDemandRefreshAddress && now - lastOnDemandRefreshAt < ON_DEMAND_REFRESH_THROTTLE_MS) return;
+  lastOnDemandRefreshAddress = address;
+  lastOnDemandRefreshAt = now;
+  void refreshWocBalance(address, true);
 }
 
 function flashWalletError(message: string): void {
@@ -3344,6 +3800,13 @@ function flashWalletError(message: string): void {
 // Refreshed after login: ask the server which wallet (if any) this account has
 // linked, so the button can show the verified ✓ state.
 async function refreshWalletLinkStatus(): Promise<void> {
+  if (!WALLET_ENABLED) {
+    linkedWalletPubkey = null;
+    linkedWocBalance = null;
+    connectedWocBalance = null;
+    updateWalletButton();
+    return;
+  }
   if (!api.token) {
     linkedWalletPubkey = null;
     linkedWocBalance = null;
@@ -3477,15 +3940,18 @@ async function switchWallet(): Promise<void> {
 
 function wireWallet(): void {
   setWalletUiEnabled(WALLET_ENABLED);
-  syncWalletCharacterScreenVisibility();
-  const btn = document.getElementById('btn-wallet');
-  if (!btn) return;
   // Feature-gate: when explicitly disabled, remove the wallet row entirely and
   // never download the wallet chunk.
   if (!WALLET_ENABLED) {
     document.querySelector('.cs-wallet')?.remove();
+    document.querySelector('.cs-wallet-hidden-note')?.remove();
+    document.querySelector('.account-wallet-card')?.remove();
+    updateWalletButton();
     return;
   }
+  syncWalletCharacterScreenVisibility();
+  const btn = document.getElementById('btn-wallet');
+  if (!btn) return;
   // These async actions are fire-and-forget from the click, so attach a .catch:
   // a wallet connect/disconnect rejection must surface, not vanish silently.
   const onErr = (what: string) => (e: unknown) => console.error(`[wallet] ${what} failed`, e);
@@ -3508,6 +3974,76 @@ function wireWallet(): void {
     updateWalletButton();
   }).catch((e) => console.error('[wallet] load failed', e));
   updateWalletButton();
+}
+
+// ---- Landing-page cinematic backdrop ------------------------------------
+// Decides per-visit whether the start screen shows the looping trailer video or
+// a static, dimmed, high-contrast poster — and crucially NEVER fetches the
+// 5.7 MB mp4 in the static case (the <video> ships with no source/autoplay; we
+// attach the source only when we choose the video path). Called at boot, when the
+// footer toggle flips, and when the in-game mirror setting changes.
+// Pause + tear down the start-screen trailer video (on enter-world). Releasing
+// the source frees the decoded buffer so it isn't still churning behind the HUD.
+function stopLandingTrailer(): void {
+  const backdrop = document.getElementById('start-screen-backdrop');
+  const video = document.getElementById('bg-home') as HTMLVideoElement | null;
+  backdrop?.classList.remove('trailer-ready', 'trailer-playing');
+  if (!video) return;
+  video.pause();
+  if (video.src) {
+    video.removeAttribute('src');
+    video.load();
+  }
+}
+
+let landingTrailerWired = false;
+function applyLandingBackdrop(highContrast: boolean): void {
+  const backdrop = document.getElementById('start-screen-backdrop');
+  const video = document.getElementById('bg-home') as HTMLVideoElement | null;
+  if (!backdrop) return;
+
+  const saveData = navigatorSaveData();
+  // Reduced motion: honour BOTH the OS-level prefers-reduced-motion query and
+  // the player's persisted in-app Reduce Motion toggle, so the drifting trailer
+  // stays off for anyone who asked for less motion in either place.
+  const reducedMotion = (typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    || new Settings().get('reduceMotion');
+  const useStatic = shouldUseStaticBackdrop({
+    phone: isPhoneTouchDevice(),
+    saveData,
+    reducedMotion,
+    highContrast,
+  });
+
+  backdrop.classList.toggle('backdrop-static', useStatic);
+
+  if (!video) return;
+  if (useStatic) {
+    // Keep the poster only; tear down any playing trailer and release the buffer.
+    backdrop.classList.remove('trailer-ready', 'trailer-playing');
+    if (video.src) {
+      video.pause();
+      video.removeAttribute('src');
+      video.load(); // drop the decoded video so the poster shows + memory frees
+    }
+    return;
+  }
+
+  // Video path: attach the source lazily and play. Reveal classes flip on the
+  // first painted frame so the poster cross-fades into live motion.
+  const src = video.dataset.trailerSrc;
+  if (src && !video.src) {
+    video.src = src;
+    if (!landingTrailerWired) {
+      landingTrailerWired = true;
+      video.addEventListener('playing', () => {
+        backdrop.classList.add('trailer-ready', 'trailer-playing');
+      });
+    }
+    video.load();
+  }
+  video.play().catch(() => { /* autoplay blocked: poster stays, no error surfaced */ });
 }
 
 function wireStartScreens(): void {
@@ -3548,7 +4084,34 @@ function wireStartScreens(): void {
   const offlineNameInput = $('#char-name') as HTMLInputElement;
   const offlineError = $('#offline-error');
   
-  const handleOnlineSelect = () => show('#login-panel');
+  const goToLoggedInPlay = () => {
+    void enterRealmFlow().catch((err) => {
+      if (isAuthError(err)) {
+        api.clearSession();
+        enterLoggedOutChrome();
+      } else {
+        loginError(userFacingApiError(err));
+      }
+      show('#login-panel');
+    });
+  };
+
+  const enterOnlinePlayFlow = () => {
+    switchMainView('#hero-view');
+    if (api.token) {
+      goToLoggedInPlay();
+      return;
+    }
+    show('#mode-select');
+  };
+
+  const handleOnlineSelect = () => {
+    if (api.token) {
+      goToLoggedInPlay();
+      return;
+    }
+    show('#login-panel');
+  };
 
   const handleOfflineStart = (cls: PlayerClass) => {
     const rawName = offlineNameInput.value.trim();
@@ -3844,13 +4407,14 @@ function wireStartScreens(): void {
     const password = ($('#login-pass') as unknown as HTMLInputElement).value;
     loginError('');
     const token = turnstileToken();
-    if (TURNSTILE_SITEKEY && !token) {
+    if (!NATIVE_APP && TURNSTILE_SITEKEY && !token) {
       loginError(t('errors.api.verificationFailed'));
       return;
     }
     try {
-      if (mode === 'login') await api.login(username, password, token);
-      else await api.register(username, password, token, REFERRAL_SLUG);
+      const nativeAttestation = NATIVE_APP ? await createNativeAttestationProof(api.base, mode) : undefined;
+      if (mode === 'login') await api.login(username, password, token, nativeAttestation);
+      else await api.register(username, password, token, REFERRAL_SLUG, nativeAttestation);
     } catch (err) {
       // Auth itself failed (bad credentials, taken username, Turnstile reject…).
       // The token is single-use, so refresh the widget for the next attempt.
@@ -3868,6 +4432,10 @@ function wireStartScreens(): void {
     });
     try {
       $('#charselect-user').textContent = api.username ?? '';
+      // Persist the session so a reload restores the logged-in "Account" tab,
+      // and reveal that tab now.
+      api.saveSession();
+      enterLoggedInChrome();
       // bind-on-login: surface the account's linked wallet (and flip a
       // connected-but-unlinked button into a "Link" call-to-action).
       void refreshWalletLinkStatus();
@@ -4248,6 +4816,8 @@ function wireStartScreens(): void {
       if (header && toggleBtn) {
         header.classList.remove('menu-open');
         toggleBtn.setAttribute('aria-expanded', 'false');
+        const menu = document.getElementById('header-menu-container') as HTMLElement | null;
+        if (menu) menu.style.display = '';
       }
 
       if (customAction) {
@@ -4265,16 +4835,15 @@ function wireStartScreens(): void {
     });
   };
 
-  setupNavBtn(navBtnPlay, '#hero-view', () => {
-    switchMainView('#hero-view');
-    show('#mode-select');
-  });
+  setupNavBtn(navBtnPlay, '#hero-view', enterOnlinePlayFlow);
 
   setupNavBtn(navBtnHighscores, '#highscores-view', () => {
     switchMainView('#highscores-view');
     void loadHighscores();
   });
-  setupNavBtn(navBtnWiki, '#wiki-view');
+  // The wiki is the curated guide SPA at /wiki (its own page), so this nav item
+  // navigates there rather than switching an in-page view.
+  setupNavBtn(navBtnWiki, '', () => { window.location.href = '/wiki'; });
   setupNavBtn(navBtnNews, '#news-view', () => {
     switchMainView('#news-view');
     void loadNews();
@@ -4283,6 +4852,20 @@ function wireStartScreens(): void {
   setupNavBtn(navBtnLogin, '#hero-view', () => {
     show('#login-panel');
   });
+  setupNavBtn($('#nav-btn-account'), '#account-view', () => {
+    switchMainView('#account-view');
+    void renderAccountPortal();
+  });
+  setupNavBtn($('#nav-btn-logout'), '#hero-view', logoutAccount);
+  setupAccountPortal();
+  // Restore a persisted session: show the Account tab immediately, then confirm
+  // the stored token is still valid against the server (clearing it if not).
+  if (api.restoreSession()) {
+    enterLoggedInChrome();
+    void revalidateAccountSession();
+  } else {
+    enterLoggedOutChrome();
+  }
 
   // Header Logo click listener to return to homepage
   const headerLogoBtn = $('#header-logo-btn');
@@ -4318,9 +4901,33 @@ function wireStartScreens(): void {
   const mobileMenuToggle = $('#mobile-menu-toggle');
   const homepageHeader = $('.homepage-header');
   if (mobileMenuToggle && homepageHeader) {
+    const headerMenu = document.getElementById('header-menu-container') as HTMLElement | null;
+    let lastNativeMenuToggleAt = 0;
+    const setMobileMenuOpen = (open: boolean) => {
+      homepageHeader.classList.toggle('menu-open', open);
+      mobileMenuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (headerMenu) headerMenu.style.display = open ? 'flex' : '';
+    };
+    const toggleMobileMenu = () => setMobileMenuOpen(!homepageHeader.classList.contains('menu-open'));
+    const handleNativeMenuToggle = (e: Event) => {
+      const target = e.target instanceof Element ? e.target : null;
+      if (!target?.closest('#mobile-menu-toggle')) return;
+      const now = Date.now();
+      if (now - lastNativeMenuToggleAt <= 250) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      lastNativeMenuToggleAt = now;
+      e.preventDefault();
+      e.stopPropagation();
+      toggleMobileMenu();
+    };
+    document.addEventListener('pointerup', handleNativeMenuToggle, true);
+    document.addEventListener('touchend', handleNativeMenuToggle, { capture: true, passive: false });
     mobileMenuToggle.addEventListener('click', () => {
-      const isOpen = homepageHeader.classList.toggle('menu-open');
-      mobileMenuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if (Date.now() - lastNativeMenuToggleAt <= 250) return;
+      toggleMobileMenu();
     });
   }
 
@@ -4356,6 +4963,45 @@ function wireStartScreens(): void {
   };
 
   initBackgroundEmbers();
+
+  // Landing backdrop: read the persisted high-contrast preference and decide
+  // trailer-vs-static (also forced static on phones / Save-Data / reduced-motion).
+  // Uses a throwaway Settings read so it works before the game's settings object
+  // exists; the footer toggle persists changes through the same store.
+  const landingSettings = new Settings();
+  const contrastToggle = document.getElementById('landing-contrast-toggle') as HTMLButtonElement | null;
+  const syncContrastToggle = (on: boolean): void => {
+    if (contrastToggle) contrastToggle.setAttribute('aria-pressed', String(on));
+  };
+  syncContrastToggle(landingSettings.get('landingHighContrast'));
+  applyLandingBackdrop(landingSettings.get('landingHighContrast'));
+
+  // Stamp the engine/device + CSS-effects classes on the landing screen too, so
+  // the decorative #start-screen-backdrop work (portal rings' heavy blur, nebula,
+  // embers, trailer) is toned down from the first paint on costly engines (mobile
+  // WebKit above all). The renderer (and its GPU tier) does not exist yet, so we
+  // pass the conservative 'high' render tier here: only known-bad engine/device
+  // quirks tone the first paint down. startGame() re-stamps with the real GFX.tier
+  // once in-world. Honors a persisted manual browserEffects override.
+  {
+    const landingEnv = readBrowserEnv();
+    const landingTier = cssEffectsTier({
+      engine: landingEnv.engine,
+      version: landingEnv.engineVersion,
+      mobile: landingEnv.mobile,
+      renderTier: 'high',
+      override: landingSettings.get('browserEffects') as number,
+    });
+    const body = document.body.classList;
+    body.remove(...BROWSER_BODY_CLASSES);
+    body.add(...browserBodyClasses(landingEnv, landingTier));
+  }
+  contrastToggle?.addEventListener('click', () => {
+    const next = !landingSettings.get('landingHighContrast');
+    landingSettings.set('landingHighContrast', next);
+    syncContrastToggle(next);
+    applyLandingBackdrop(next);
+  });
 
   // Initialize 3D character preview once assets are ready
   assetsReady().then(() => {

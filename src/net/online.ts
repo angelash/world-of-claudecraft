@@ -7,8 +7,9 @@ import {
   type TalentAllocation, type SavedLoadout, type Role,
 } from '../sim/content/talents';
 import { mechChromaItemId, mechChromaSkinIndex } from '../sim/content/skins';
+import { signChallenge } from '../sim/client_challenge';
 import {
-  Entity, EquipSlot, InvSlot, MoveInput, PlayerClass, QuestProgress, QuestState, SimEvent,
+  Entity, EquipSlot, InvSlot, LootRollChoice, MoveInput, PlayerClass, QuestProgress, QuestState, SimEvent,
   emptyMoveInput,
 } from '../sim/types';
 import { normalizeMoveFacing, sanitizeMoveInput } from '../sim/move_input';
@@ -50,8 +51,21 @@ export function buildWebSocketUrl(protocol: string, host: string): string {
   return `${proto}://${host}/ws`;
 }
 
-export function buildWebSocketAuthMessage(token: string, characterId: number): { t: 'auth'; token: string; character: number } {
-  return { t: 'auth', token, character: characterId };
+function normalizeOrigin(raw: string): string {
+  return raw.trim().replace(/\/+$/, '');
+}
+
+export const NATIVE_APP = String(import.meta.env.VITE_NATIVE_APP ?? '') === '1';
+export const NATIVE_API_ORIGIN = normalizeOrigin(String(import.meta.env.VITE_API_ORIGIN ?? ''));
+
+export function apiUrl(path: string, base = ''): string {
+  if (/^https?:\/\//.test(path)) return path;
+  const origin = normalizeOrigin(base) || NATIVE_API_ORIGIN;
+  return origin ? `${origin}${path}` : path;
+}
+
+export function buildWebSocketAuthMessage(token: string, characterId: number, clientSeed = ''): { t: 'auth'; token: string; character: number; clientSeed: string } {
+  return { t: 'auth', token, character: characterId, clientSeed };
 }
 
 export type RealmType = 'Normal' | 'PvP' | 'RP' | 'RP-PvP';
@@ -80,23 +94,46 @@ export interface ReleaseEntry {
   publishedAt: string; // ISO 8601
 }
 
+export interface AccountInfo {
+  username: string;
+  email: string;
+  createdAt: string;
+  characterCount: number;
+}
+
+// Carries the HTTP status alongside the server's error text so callers can
+// distinguish an auth failure (401/403 → clear the stored session) from a
+// transient 5xx/network blip (keep the token; the session may still be valid).
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+/** True for an auth-class failure where a stored token should be discarded. */
+export function isAuthError(err: unknown): boolean {
+  return err instanceof ApiError && (err.status === 401 || err.status === 403);
+}
+
 export class Api {
+  private static readonly SESSION_KEY = 'woc_session';
   token: string | null = null;
   username: string | null = null;
   realm: string | null = null;
   // base origin for realm-scoped calls (characters, search, ws). '' = the page
   // origin; set to another realm's origin when the player picks a realm
-  base = '';
+  base = NATIVE_API_ORIGIN;
 
   setRealm(url: string): void {
-    this.base = url || '';
+    this.base = normalizeOrigin(url) || NATIVE_API_ORIGIN;
   }
 
   // The realm directory is always read from the page's own server. Sending the
   // token (when logged in) also returns per-realm character counts.
   async realms(): Promise<RealmDirectory> {
     try {
-      const res = await fetch('/api/realms', { headers: this.token ? { Authorization: `Bearer ${this.token}` } : {} });
+      const res = await fetch(apiUrl('/api/realms'), { headers: this.token ? { Authorization: `Bearer ${this.token}` } : {} });
       if (!res.ok) return { current: '', realms: [], characters: {} };
       const d = await res.json();
       return { current: d.current ?? '', realms: d.realms ?? [], characters: d.characters ?? {} };
@@ -108,7 +145,7 @@ export class Api {
   // Live status for a realm (population + reachability), for the realm picker.
   async realmStatus(url: string): Promise<{ online: boolean; players: number }> {
     try {
-      const res = await fetch(`${url}/api/status`, { signal: AbortSignal.timeout(3000) });
+      const res = await fetch(apiUrl('/api/status', url), { signal: AbortSignal.timeout(3000) });
       if (!res.ok) return { online: false, players: 0 };
       const d = await res.json();
       return { online: true, players: d.players_online ?? 0 };
@@ -118,7 +155,7 @@ export class Api {
   }
 
   private async post(path: string, body: unknown): Promise<any> {
-    const res = await fetch(this.base + path, {
+    const res = await fetch(apiUrl(path, this.base), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -127,21 +164,21 @@ export class Api {
       body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error ?? `request failed (${res.status})`);
+    if (!res.ok) throw new ApiError(data.error ?? `request failed (${res.status})`, res.status);
     return data;
   }
 
   private async get(path: string): Promise<any> {
-    const res = await fetch(this.base + path, {
+    const res = await fetch(apiUrl(path, this.base), {
       headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error ?? `request failed (${res.status})`);
+    if (!res.ok) throw new ApiError(data.error ?? `request failed (${res.status})`, res.status);
     return data;
   }
 
   private async delete(path: string, body: unknown): Promise<any> {
-    const res = await fetch(this.base + path, {
+    const res = await fetch(apiUrl(path, this.base), {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -150,20 +187,83 @@ export class Api {
       body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error ?? `request failed (${res.status})`);
+    if (!res.ok) throw new ApiError(data.error ?? `request failed (${res.status})`, res.status);
     return data;
   }
 
-  async register(username: string, password: string, turnstileToken = '', ref = ''): Promise<void> {
-    const data = await this.post('/api/register', { username, password, turnstileToken, ref });
+  async register(username: string, password: string, turnstileToken = '', ref = '', nativeAttestation: unknown = undefined): Promise<void> {
+    const data = await this.post('/api/register', { username, password, turnstileToken, ref, nativeAttestation });
     this.token = data.token;
     this.username = data.username;
   }
 
-  async login(username: string, password: string, turnstileToken = ''): Promise<void> {
-    const data = await this.post('/api/login', { username, password, turnstileToken });
+  async login(username: string, password: string, turnstileToken = '', nativeAttestation: unknown = undefined): Promise<void> {
+    const data = await this.post('/api/login', { username, password, turnstileToken, nativeAttestation });
     this.token = data.token;
     this.username = data.username;
+  }
+
+  // ── Persistent session (home-page account portal) ──────────────────────────
+  // The bearer token + username are cached in localStorage so a reload restores
+  // the logged-in nav state. The token is always re-validated server-side via
+  // getAccount() before it is trusted; a 401 there means the caller should clear.
+  saveSession(): void {
+    if (!this.token || !this.username) return;
+    try {
+      localStorage.setItem(Api.SESSION_KEY, JSON.stringify({ token: this.token, username: this.username }));
+    } catch { /* storage may be unavailable (private mode); session stays in-memory */ }
+  }
+
+  restoreSession(): boolean {
+    try {
+      const raw = localStorage.getItem(Api.SESSION_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw) as { token?: unknown; username?: unknown };
+      if (typeof data.token !== 'string' || typeof data.username !== 'string') return false;
+      this.token = data.token;
+      this.username = data.username;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  clearSession(): void {
+    this.token = null;
+    this.username = null;
+    try { localStorage.removeItem(Api.SESSION_KEY); } catch { /* ignore */ }
+  }
+
+  // Account-wide self-service (whoami / password / email / deactivate) routes
+  // through this.base, i.e. the currently-selected realm origin. This is correct
+  // for the single-origin deploy (every realm shares one accounts DB, so the
+  // account locks DB-wide regardless of which realm process serves the request).
+  // MULTI-REALM ASSUMPTION: in a cross-origin multi-realm deploy the deactivate
+  // online-check + forced-disconnect would only see THIS realm's live sessions;
+  // characters live on other realm processes would not be torn down immediately
+  // (they still lose auth at the DB on the next token check). Routing these
+  // account-wide calls to a canonical account origin needs a new client/server
+  // seam (the client has no realm directory today) — deferred to multi-realm
+  // rollout. See server/realm.ts REALM_DIRECTORY / REALM_ORIGINS.
+  async getAccount(): Promise<AccountInfo> {
+    return this.get('/api/account');
+  }
+
+  async changePassword(current: string, next: string): Promise<void> {
+    await this.post('/api/account/password', { current, next });
+  }
+
+  async logout(): Promise<void> {
+    await this.post('/api/account/logout', {});
+  }
+
+  async setEmail(email: string): Promise<string> {
+    const data = await this.post('/api/account/email', { email });
+    return typeof data.email === 'string' ? data.email : '';
+  }
+
+  async deactivateAccount(username: string, password: string): Promise<void> {
+    await this.post('/api/account/deactivate', { username, password });
   }
 
   async characters(): Promise<CharacterSummary[]> {
@@ -184,12 +284,34 @@ export class Api {
     await this.delete(`/api/characters/${characterId}`, { name });
   }
 
+  // Force-disconnect this character's live session (a stale tab, a crash, or
+  // another device) so we can enter the world on it. Returns whether a session
+  // was actually displaced (false = it was already offline).
+  async takeoverCharacter(characterId: number): Promise<boolean> {
+    const data = await this.post(`/api/characters/${characterId}/takeover`, {});
+    return data.takenOver === true;
+  }
+
   async reportPlayer(reporterCharacterId: number, targetPid: number, reason: string, details: string): Promise<void> {
     await this.post('/api/reports', { reporterCharacterId, targetPid, reason, details });
   }
 
   async reportPlayerByName(reporterCharacterId: number, targetCharacterName: string, reason: string, details: string): Promise<void> {
     await this.post('/api/reports', { reporterCharacterId, targetCharacterName, reason, details });
+  }
+
+  async submitBugReport(payload: {
+    characterId: number;
+    characterName: string;
+    pos: { x: number; y: number; z: number };
+    description: string;
+    screenshot: string | null;
+    meta: unknown;
+  }): Promise<{ screenshotStored: boolean }> {
+    const res = await this.post('/api/bug-reports', payload);
+    // The server drops a screenshot that fails its allowlist/size gate; surface
+    // that so the player is not told the screenshot was attached when it was not.
+    return { screenshotStored: res?.screenshotStored !== false };
   }
 
   async projectStats(): Promise<{ accounts_created: number; players_online: number; realm: string }> {
@@ -210,7 +332,7 @@ export class Api {
   // server. Not realm-scoped — always read from the page's own origin.
   async releases(limit = 20): Promise<ReleaseEntry[]> {
     try {
-      const res = await fetch(`/api/releases?limit=${limit}`);
+      const res = await fetch(apiUrl(`/api/releases?limit=${limit}`));
       if (!res.ok) return [];
       const data = await res.json();
       return data.releases ?? [];
@@ -305,9 +427,28 @@ function copyPos(dst: { x: number; y: number; z: number }, src: { x: number; y: 
 // graveyard release). Those are snapped, not interpolated — see applyWire.
 const TELEPORT_SNAP_DIST_SQ = 40 * 40;
 
+// Despawn grace (anti-flicker, entity-map churn). The server keeps known
+// entities in interest out to a drop radius (100yd players / 130yd npcs) that is
+// wider than the add radius, but a wandering entity riding that boundary — or a
+// single late/dropped frame — can still fall out of one snapshot without truly
+// leaving. (Distance-tier-throttled entities are NOT a source here: the server
+// lists them in `keep`, so they count as seen and are never missing.) Deleting a
+// briefly-absent entity that frame, then re-creating it the next, churns the
+// entity map; hold it at its last pose for this window instead. Kept short so a
+// genuine leaver (logout, corpse cleanup) lingers only momentarily.
+const DESPAWN_GRACE_MS = 600;
+// ...but only for entities last seen near/beyond the interest boundary, where
+// that churn happens. A close-range disappearance is intentional (an enemy going
+// stealth) and must hide at once, so anything nearer than this drops immediately.
+// Note the converse: an out-leveled stealther seen at >=70yd now lingers up to
+// DESPAWN_GRACE_MS before vanishing — acceptable, since you can only see a
+// stealthed unit at that range when far out-leveling it.
+const DESPAWN_GRACE_MIN_DIST_SQ = 70 * 70;
+
 function blankEntity(id: number): Entity {
   return {
     id, kind: 'mob', templateId: '', name: '', level: 1, mendTimer: 0, wardTimer: 0, rallyTimer: 0, warcryTimer: 0,
+    petPath: [], petPathCooldown: 0,
     pos: { x: 0, y: 0, z: 0 }, prevPos: { x: 0, y: 0, z: 0 }, facing: 0, prevFacing: 0,
     vx: 0, vz: 0, vy: 0, onGround: true, jumping: false, fallStartY: 0,
     hp: 1, maxHp: 1, resource: 0, maxResource: 0, resourceType: null,
@@ -329,7 +470,7 @@ function blankEntity(id: number): Entity {
     leashAnchor: null, evadeStall: 0, fleeTimer: 0, fleeReturnTimer: 0, hasFled: false, wanderTarget: null, wanderTimer: 0,
     aggroTargetId: null, respawnTimer: 0, corpseTimer: 0, lootable: false, loot: null,
     xpValue: 0, questIds: [], vendorItems: [], objectItemId: null, dungeonId: null,
-    dead: false, scale: 1, color: 0xffffff, skinCatalog: 'class', skin: 0,
+    dead: false, scale: 1, color: 0xffffff, skinCatalog: 'class', skin: 0, guild: '',
   };
 }
 
@@ -372,6 +513,9 @@ export class ClientWorld implements IWorld {
   // snapshot interpolation
   lastSnapAt = 0;
   snapInterval = 50; // ms, adapts to measured cadence
+  // entity id -> performance.now() when it first went missing from a snapshot;
+  // used for the despawn grace window (anti-flicker), cleared once it returns
+  private missingSince = new Map<number, number>();
   // camera follow for keyboard turns applied by the main loop
   pendingFacingDelta = 0;
   connected = false;
@@ -381,6 +525,7 @@ export class ClientWorld implements IWorld {
   private ws: WebSocket;
   private readonly token: string;
   private readonly base: string;
+  private readonly clientSeed: string;
   private eventQueue: SimEvent[] = [];
   // inventory deltas arrive in snapshots, separate from the event frames the
   // HUD redraws on — the frame loop polls this so open panels re-render
@@ -401,19 +546,20 @@ export class ClientWorld implements IWorld {
   private ackedInputSeq = 0;
   private inputEchoSamples: number[] = [];
 
-  constructor(token: string, characterId: number, cls: PlayerClass, base = '') {
+  constructor(token: string, characterId: number, cls: PlayerClass, base = '', clientSeed = '') {
     this.characterId = characterId;
     this.token = token;
-    this.base = base;
+    this.base = normalizeOrigin(base) || NATIVE_API_ORIGIN;
+    this.clientSeed = clientSeed;
     this.cfg = { seed: 20061, playerClass: cls };
     // when a realm was picked, connect to that realm's origin; otherwise the
     // page's own host
-    const wsUrl = base
-      ? base.replace(/^http/, 'ws') + '/ws'
+    const wsUrl = this.base
+      ? this.base.replace(/^http/, 'ws') + '/ws'
       : buildWebSocketUrl(location.protocol, location.host);
     this.ws = new WebSocket(wsUrl);
     this.ws.onopen = () => {
-      this.ws.send(JSON.stringify(buildWebSocketAuthMessage(token, characterId)));
+      this.ws.send(JSON.stringify(buildWebSocketAuthMessage(token, characterId, this.clientSeed)));
     };
     this.ws.onmessage = (ev) => this.onMessage(String(ev.data));
     this.ws.onclose = () => {
@@ -578,6 +724,16 @@ export class ClientWorld implements IWorld {
       }
       return;
     }
+    if (msg.t === 'challenge') {
+      // Server-presented challenge: solve it and return the answer signed with
+      // this client's seed so the answer is bound to us. WIP not yet interactive.
+      if (typeof msg.nonce === 'string' && typeof msg.challenge === 'string') {
+        const challengeResponse = '42';
+        const signature = signChallenge(msg.nonce, challengeResponse, this.clientSeed);
+        this.cmd({ cmd: 'challengeResponse', n: msg.nonce, r: challengeResponse, sig: signature });
+      }
+      return;
+    }
     if (msg.t === 'snap') {
       this.applySnapshot(msg);
     }
@@ -641,6 +797,7 @@ export class ClientWorld implements IWorld {
         e.color = w.c ?? 0xffffff;
         e.dungeonId = w.dgn ?? null;
         e.objectItemId = w.obj ?? null;
+        e.guild = w.gd ?? '';
         if (e.kind === 'npc') {
           const def = NPCS[e.templateId];
           e.questIds = def ? [...def.questIds] : [];
@@ -812,9 +969,35 @@ export class ClientWorld implements IWorld {
       }
     }
 
-    // prune entities that left our interest area
+    // prune entities that left our interest area. An entity briefly absent from
+    // a single snapshot (interest-boundary churn, a late/dropped frame) is held
+    // at its last pose for a short grace window rather than deleted outright, so
+    // the entity map doesn't churn delete/re-create across the boundary. The
+    // grace applies only near/beyond the interest boundary; a close-range
+    // disappearance (an enemy going stealth) still hides immediately.
+    // (A `keep`-listed entity counts as seen above, so its timer is cleared.)
+    const self = this.entities.get(this.playerId);
+    const missingSince = this.missingSince;
     for (const [id, e] of this.entities) {
-      if (!seen.has(id)) this.entities.delete(id);
+      if (id === this.playerId) continue;
+      if (seen.has(id)) {
+        missingSince.delete(id);
+        continue;
+      }
+      const dx = self ? e.pos.x - self.pos.x : 0;
+      const dz = self ? e.pos.z - self.pos.z : 0;
+      if (dx * dx + dz * dz < DESPAWN_GRACE_MIN_DIST_SQ) {
+        this.entities.delete(id);
+        missingSince.delete(id);
+        continue;
+      }
+      const since = missingSince.get(id);
+      if (since === undefined) {
+        missingSince.set(id, now);
+      } else if (now - since >= DESPAWN_GRACE_MS) {
+        this.entities.delete(id);
+        missingSince.delete(id);
+      }
     }
   }
 
@@ -843,12 +1026,36 @@ export class ClientWorld implements IWorld {
     return v;
   }
 
+  // Refuse a hostile-target cast at an already-dead target: near-monotonic +
+  // locally authoritative state, so it only drops casts the server would reject
+  // anyway. The exception is a same-id revive (graveyard release, Fiesta respawn)
+  // that flips a known-dead target back to alive without clearing attackers'
+  // targetId — there the client can drop one hostile cast for a snapshot+RTT and
+  // self-heals on the next GCD. (Mob respawn clears attackers' targetId, so it
+  // has no such window.)
+  private deadTargetCast(def: ResolvedAbility['def'] | undefined): boolean {
+    if (!def || !def.requiresTarget || def.targetType === 'friendly') return false;
+    const tid = this.player.targetId;
+    const target = tid !== null ? this.entities.get(tid) : undefined;
+    return !!target && target.dead;
+  }
+
   castAbility(abilityId: string): void {
+    if (this.deadTargetCast(this.known.find((k) => k.def.id === abilityId)?.def)) {
+      this.eventQueue.push({ type: 'error', text: 'You have no target.', reason: 'target_dead' });
+      return;
+    }
     this.cmd({ cmd: 'cast', ability: abilityId });
   }
+
   castAbilityBySlot(slot: number): void {
+    if (this.deadTargetCast(this.known[slot]?.def)) {
+      this.eventQueue.push({ type: 'error', text: 'You have no target.', reason: 'target_dead' });
+      return;
+    }
     this.cmd({ cmd: 'castSlot', slot });
   }
+
   targetEntity(id: number | null): void {
     // optimistic local update for snappy UI
     const p = this.entities.get(this.playerId);
@@ -891,6 +1098,9 @@ export class ClientWorld implements IWorld {
   lootCorpse(id: number): void {
     this.cmd({ cmd: 'loot', id });
   }
+  submitLootRoll(rollId: number, choice: LootRollChoice): void {
+    this.cmd({ cmd: 'lootRoll', rollId, choice });
+  }
   pickUpObject(id: number): void {
     this.cmd({ cmd: 'pickup', id });
   }
@@ -904,11 +1114,21 @@ export class ClientWorld implements IWorld {
     this.pendingQuestCommands.set(questId, 'turnin');
     this.cmd({ cmd: 'turnin', quest: questId });
   }
+  reportTelemetry(kind: string, data: Record<string, number>): void {
+    if (!this.canSendCommand()) return;
+    this.cmd({ cmd: 'telemetry', kind, ...data });
+  }
   abandonQuest(questId: string): void {
+    if (!this.canSendCommand()) return;
+    this.questLog.delete(questId);
+    this.pendingQuestCommands.delete(questId);
     this.cmd({ cmd: 'abandon', quest: questId });
   }
   equipItem(itemId: string): void {
     this.cmd({ cmd: 'equip', item: itemId });
+  }
+  unequipItem(slot: EquipSlot): void {
+    this.cmd({ cmd: 'unequip_item', slot });
   }
   useItem(itemId: string): void {
     this.cmd({ cmd: 'use', item: itemId });
@@ -1018,6 +1238,12 @@ export class ClientWorld implements IWorld {
   partyKick(targetPid: number): void {
     this.cmd({ cmd: 'pkick', id: targetPid });
   }
+  convertPartyToRaid(): void {
+    this.cmd({ cmd: 'praid' });
+  }
+  moveRaidMember(targetPid: number, group: 1 | 2): void {
+    this.cmd({ cmd: 'pmoveRaid', id: targetPid, group });
+  }
   // raid/target markers
   markerFor(entityId: number): number | null {
     return this.markers[entityId] ?? null;
@@ -1071,7 +1297,7 @@ export class ClientWorld implements IWorld {
     const q = query.trim();
     if (!q) return [];
     try {
-      const res = await fetch(`${this.base}/api/search?q=${encodeURIComponent(q)}`, { headers: { Authorization: `Bearer ${this.token}` } });
+      const res = await fetch(apiUrl(`/api/search?q=${encodeURIComponent(q)}`, this.base), { headers: { Authorization: `Bearer ${this.token}` } });
       if (!res.ok) return [];
       return (await res.json()).results ?? [];
     } catch {
@@ -1110,7 +1336,7 @@ export class ClientWorld implements IWorld {
   }
   async leaderboard(): Promise<LeaderboardEntry[]> {
     try {
-      const res = await fetch(`${this.base}/api/leaderboard?metric=lifetimeXp&limit=100`);
+      const res = await fetch(apiUrl('/api/leaderboard?metric=lifetimeXp&limit=100', this.base));
       if (!res.ok) return [];
       return (await res.json()).leaders ?? [];
     } catch {
