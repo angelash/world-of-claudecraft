@@ -1,12 +1,13 @@
 // THE LAZY LOCALE FLIP. The runtime statically imports ONLY English eagerly:
-//   - `en`     the eager default + universal synchronous fallback (always resident),
+//   - `en`     the eager universal synchronous fallback (always resident),
 //   - `en_XA`  the dev-only pseudo-locale (referenced solely inside the
 //              !import.meta.env.PROD branch in tableFor, so a prod build tree-shakes it),
 //   - `pending` feeds the release-gate hard-fail in t(),
 //   - `LOCALE_LOADERS` + `SUPPORTED_LANGUAGES` drive lazy per-locale loading.
 // The 13 non-en dense slices are NO LONGER static-imported for use - each loads lazily via
 // LOCALE_LOADERS[lang]()'s dynamic import() as its own content-hashed chunk, so a
-// default-English visitor downloads zero non-en locale bytes. These are imported from the
+// default Simplified Chinese visitor loads only zh_CN as the active non-English chunk.
+// These are imported from the
 // SPECIFIC generated modules (en / en_XA / pending / loaders), never the index.ts barrel,
 // so the only reference to the barrel below is the dead re-export line - which Rollup
 // tree-shakes out of the app chunk.
@@ -44,7 +45,7 @@ export const supportedLanguages = [...SUPPORTED_LANGUAGES] as SupportedLanguage[
 // map (whose keys were the old membership test) is no longer imported.
 const SUPPORTED_SET: ReadonlySet<string> = new Set(SUPPORTED_LANGUAGES);
 
-let currentLanguage: SupportedLanguage = "en";
+let currentLanguage: SupportedLanguage = "zh_CN";
 
 // --- en_XA dev-only pseudo-locale --------------------------------------
 //
@@ -108,6 +109,7 @@ if (typeof window !== "undefined" && window.location) {
     // the pseudo flag. en_XA is not a SupportedLanguage and is never persisted, so it
     // cannot leak into supportedLanguages, the picker, or a stored preference. On a
     // release build this branch is skipped, so ?lang=en_XA degrades to the default.
+    currentLanguage = "en";
     pseudoActive = true;
   } else if (langParam && isSupportedLanguage(langParam)) {
     currentLanguage = langParam;
@@ -211,8 +213,8 @@ export function prefetchLocale(lang: SupportedLanguage = currentLanguage): void 
 
 // Auto-fire on module evaluation in a browser so a stored / ?lang non-en visitor's chunk
 // is in flight immediately (i18n.ts is among the earliest modules the main chunk pulls in).
-// No-op for English (the default - preserves the zero-non-en-bytes guarantee for an English
-// visitor), for an unresolved locale, and outside a browser (vitest/node has no window); it
+// No-op for English, for an already-resident active locale, for an unresolved locale,
+// and outside a browser (vitest/node has no window); it
 // never throws.
 if (typeof window !== "undefined") {
   prefetchLocale();

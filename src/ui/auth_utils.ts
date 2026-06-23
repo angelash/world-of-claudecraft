@@ -1,5 +1,81 @@
 import { t } from './i18n';
 
+const AUTH_MEMORY_KEY = 'woc_auth_memory_v1';
+
+type AuthMemoryStorage = Pick<Storage, 'getItem' | 'setItem'>;
+
+export interface AuthMemoryState {
+  rememberUsername: boolean;
+  rememberPassword: boolean;
+  username: string;
+  password: string;
+}
+
+export interface AuthMemoryInput {
+  rememberUsername: boolean;
+  rememberPassword: boolean;
+  username: string;
+  password: string;
+}
+
+function browserStorage(): AuthMemoryStorage | null {
+  try {
+    const storage = globalThis.localStorage;
+    return storage && typeof storage.getItem === 'function' && typeof storage.setItem === 'function'
+      ? storage
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function defaultAuthMemory(): AuthMemoryState {
+  return { rememberUsername: true, rememberPassword: true, username: '', password: '' };
+}
+
+export function buildAuthMemoryState(input: AuthMemoryInput): AuthMemoryState {
+  const rememberUsername = input.rememberUsername;
+  const rememberPassword = rememberUsername && input.rememberPassword;
+  return {
+    rememberUsername,
+    rememberPassword,
+    username: rememberUsername ? input.username.trim().slice(0, 24) : '',
+    password: rememberPassword ? input.password.slice(0, 128) : '',
+  };
+}
+
+function normalizeAuthMemory(value: unknown): AuthMemoryState {
+  if (!value || typeof value !== 'object') return defaultAuthMemory();
+  const src = value as Partial<AuthMemoryState>;
+  return buildAuthMemoryState({
+    rememberUsername: typeof src.rememberUsername === 'boolean' ? src.rememberUsername : true,
+    rememberPassword: typeof src.rememberPassword === 'boolean' ? src.rememberPassword : true,
+    username: typeof src.username === 'string' ? src.username : '',
+    password: typeof src.password === 'string' ? src.password : '',
+  });
+}
+
+export function readAuthMemory(storage: AuthMemoryStorage | null = browserStorage()): AuthMemoryState {
+  if (!storage) return defaultAuthMemory();
+  try {
+    const raw = storage.getItem(AUTH_MEMORY_KEY);
+    return raw ? normalizeAuthMemory(JSON.parse(raw)) : defaultAuthMemory();
+  } catch {
+    return defaultAuthMemory();
+  }
+}
+
+export function writeAuthMemory(input: AuthMemoryInput, storage: AuthMemoryStorage | null = browserStorage()): AuthMemoryState {
+  const state = buildAuthMemoryState(input);
+  if (!storage) return state;
+  try {
+    storage.setItem(AUTH_MEMORY_KEY, JSON.stringify(state));
+  } catch {
+    // Storage may be blocked by browser privacy settings.
+  }
+  return state;
+}
+
 /**
  * Toggles the visibility of a password input and updates the toggle button accessibility attributes.
  * @param input The password HTML input element

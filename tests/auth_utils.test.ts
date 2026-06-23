@@ -1,7 +1,89 @@
 import { describe, expect, it, vi } from 'vitest';
-import { togglePasswordVisibility, syncInputAriaState, validateForm, handleKeyboardActivation, validateCharacterName } from '../src/ui/auth_utils';
+import {
+  buildAuthMemoryState,
+  readAuthMemory,
+  writeAuthMemory,
+  togglePasswordVisibility,
+  syncInputAriaState,
+  validateForm,
+  handleKeyboardActivation,
+  validateCharacterName,
+} from '../src/ui/auth_utils';
+
+function fakeStorage(initial = new Map<string, string>()): Pick<Storage, 'getItem' | 'setItem'> {
+  return {
+    getItem: (key: string) => initial.get(key) ?? null,
+    setItem: (key: string, value: string) => { initial.set(key, value); },
+  };
+}
 
 describe('Auth Utilities', () => {
+  describe('auth memory', () => {
+    it('defaults both remember options on with empty credentials', () => {
+      expect(readAuthMemory(fakeStorage())).toEqual({
+        rememberUsername: true,
+        rememberPassword: true,
+        username: '',
+        password: '',
+      });
+    });
+
+    it('stores the latest successful username and password when both options are on', () => {
+      const storage = fakeStorage();
+      const state = writeAuthMemory({
+        rememberUsername: true,
+        rememberPassword: true,
+        username: '  alice  ',
+        password: 'swordfish',
+      }, storage);
+      expect(state).toEqual({
+        rememberUsername: true,
+        rememberPassword: true,
+        username: 'alice',
+        password: 'swordfish',
+      });
+      expect(readAuthMemory(storage)).toEqual(state);
+    });
+
+    it('does not keep a password when account memory is off', () => {
+      expect(buildAuthMemoryState({
+        rememberUsername: false,
+        rememberPassword: true,
+        username: 'alice',
+        password: 'swordfish',
+      })).toEqual({
+        rememberUsername: false,
+        rememberPassword: false,
+        username: '',
+        password: '',
+      });
+    });
+
+    it('keeps only the username when password memory is off', () => {
+      expect(buildAuthMemoryState({
+        rememberUsername: true,
+        rememberPassword: false,
+        username: 'alice',
+        password: 'swordfish',
+      })).toEqual({
+        rememberUsername: true,
+        rememberPassword: false,
+        username: 'alice',
+        password: '',
+      });
+    });
+
+    it('falls back to default options for invalid stored data', () => {
+      const storage = fakeStorage(new Map([['woc_auth_memory_v1', '{']]));
+      expect(readAuthMemory(storage)).toEqual({
+        rememberUsername: true,
+        rememberPassword: true,
+        username: '',
+        password: '',
+      });
+    });
+  });
+
   it('toggles password visibility and updates button ARIA labels', () => {
     const input = { type: 'password' } as unknown as HTMLInputElement;
     const buttonAttrs = new Map<string, string>();

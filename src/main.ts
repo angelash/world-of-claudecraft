@@ -26,7 +26,10 @@ import { assetsReady } from './render/assets/preload';
 import { CharacterPreview } from './render/characters';
 import { skinCount } from './render/characters/manifest';
 import { DT, INTERACT_RANGE, MELEE_RANGE, PlayerClass, RUN_SPEED, dist2d } from './sim/types';
-import { togglePasswordVisibility, syncInputAriaState, validateForm, handleKeyboardActivation, validateCharacterName } from './ui/auth_utils';
+import {
+  togglePasswordVisibility, syncInputAriaState, validateForm, handleKeyboardActivation, validateCharacterName,
+  readAuthMemory, writeAuthMemory,
+} from './ui/auth_utils';
 import { CLASSES, ABILITIES } from './sim/content/classes';
 import { iconDataUrl } from './ui/icons';
 import { ensureLocaleLoaded, formatDateTime, formatNumber, getLanguage, isLocaleResident, isSupportedLanguage, languageTag, setLanguage, t, tPlural, type SupportedLanguage, type TranslationKey } from './ui/i18n';
@@ -3857,6 +3860,12 @@ function wireStartScreens(): void {
     }
     // Auth succeeded — a later realm-entry error is NOT a verification failure,
     // so don't reset the widget or let the user re-submit the (now duplicate) auth.
+    writeAuthMemory({
+      rememberUsername: rememberAccountInput.checked,
+      rememberPassword: rememberPasswordInput.checked,
+      username,
+      password,
+    });
     try {
       $('#charselect-user').textContent = api.username ?? '';
       // bind-on-login: surface the account's linked wallet (and flip a
@@ -3872,6 +3881,36 @@ function wireStartScreens(): void {
   const userInput = $('#login-user') as HTMLInputElement;
   const passInput = $('#login-pass') as HTMLInputElement;
   const togglePassBtn = $('#btn-toggle-password') as HTMLButtonElement;
+  const rememberAccountInput = $('#remember-account') as HTMLInputElement;
+  const rememberPasswordInput = $('#remember-password') as HTMLInputElement;
+  const rememberPasswordOption = rememberPasswordInput.closest('.auth-memory-option') as HTMLElement | null;
+
+  const syncAuthMemoryControls = () => {
+    if (!rememberAccountInput.checked) rememberPasswordInput.checked = false;
+    rememberPasswordInput.disabled = !rememberAccountInput.checked;
+    rememberPasswordOption?.classList.toggle('is-disabled', rememberPasswordInput.disabled);
+  };
+  const persistAuthMemoryPreferences = () => {
+    const current = readAuthMemory();
+    writeAuthMemory({
+      rememberUsername: rememberAccountInput.checked,
+      rememberPassword: rememberPasswordInput.checked,
+      username: current.username,
+      password: current.password,
+    });
+  };
+  const rememberedAuth = readAuthMemory();
+  rememberAccountInput.checked = rememberedAuth.rememberUsername;
+  rememberPasswordInput.checked = rememberedAuth.rememberPassword;
+  userInput.value = rememberedAuth.username;
+  passInput.value = rememberedAuth.password;
+  syncAuthMemoryControls();
+
+  rememberAccountInput.addEventListener('change', () => {
+    syncAuthMemoryControls();
+    persistAuthMemoryPreferences();
+  });
+  rememberPasswordInput.addEventListener('change', persistAuthMemoryPreferences);
 
   // Wire password visibility toggle
   togglePassBtn.addEventListener('click', () => {

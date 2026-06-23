@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const indexPath = path.resolve(__dirname, '../index.html');
 const expectedAlternates = [
-  { hreflang: 'en', href: 'https://worldofclaudecraft.com/' },
+  { hreflang: 'en', href: 'https://worldofclaudecraft.com/?lang=en' },
   { hreflang: 'es', href: 'https://worldofclaudecraft.com/?lang=es' },
   { hreflang: 'es-ES', href: 'https://worldofclaudecraft.com/?lang=es_ES' },
   { hreflang: 'fr-FR', href: 'https://worldofclaudecraft.com/?lang=fr_FR' },
@@ -15,7 +15,7 @@ const expectedAlternates = [
   { hreflang: 'en-CA', href: 'https://worldofclaudecraft.com/?lang=en_CA' },
   { hreflang: 'it-IT', href: 'https://worldofclaudecraft.com/?lang=it_IT' },
   { hreflang: 'de-DE', href: 'https://worldofclaudecraft.com/?lang=de_DE' },
-  { hreflang: 'zh-CN', href: 'https://worldofclaudecraft.com/?lang=zh_CN' },
+  { hreflang: 'zh-CN', href: 'https://worldofclaudecraft.com/' },
   { hreflang: 'zh-TW', href: 'https://worldofclaudecraft.com/?lang=zh_TW' },
   { hreflang: 'ko-KR', href: 'https://worldofclaudecraft.com/?lang=ko_KR' },
   { hreflang: 'ja-JP', href: 'https://worldofclaudecraft.com/?lang=ja_JP' },
