@@ -22,6 +22,14 @@ const BADGE_KEYS: Record<VisibleAiReactionKind, TranslationKey> = {
   inspect: 'hudChrome.aiReaction.inspect',
 };
 
+const PLAN_BADGE_KEYS: Record<string, TranslationKey> = {
+  eating: 'hud.core.eating',
+  shelter: 'hudChrome.aiReaction.avoid',
+  sleeping: 'hudChrome.rest.resting',
+  watching: 'hudChrome.aiReaction.inspect',
+  working: 'hudChrome.aiReaction.inspect',
+};
+
 export function aiReactionBadgeView(reaction: AiSpeechEvent['reaction']): AiReactionBadgeView | null {
   if (!reaction || reaction.kind === 'ignore') return null;
   const targetEntityId = typeof reaction.targetEntityId === 'number'
@@ -47,7 +55,7 @@ export function aiReactionBadgeView(reaction: AiSpeechEvent['reaction']): AiReac
   const planned = planKind !== undefined || planIntensity > 0;
   const base: AiReactionBadgeView = {
     kind: reaction.kind,
-    labelKey: BADGE_KEYS[reaction.kind],
+    labelKey: planKind ? PLAN_BADGE_KEYS[planKind] ?? BADGE_KEYS[reaction.kind] : BADGE_KEYS[reaction.kind],
     ...(targetEntityId === undefined ? {} : { targetEntityId }),
     ...(targetPos === undefined ? {} : { targetPos }),
   };

@@ -401,6 +401,29 @@ describe('AI active trigger service', () => {
     });
   });
 
+  it('marks meal-time NPC routine beats as eating without changing mainline state', () => {
+    const { sim, pid } = makeWorld();
+    sim.time = 12 * 60;
+    const before = mainlineSnapshot(sim, pid);
+    const service = new AiActiveTriggerService({
+      rules: [testRule({ ruleId: 'test_living_meal', category: 'livingRoutine' })],
+    });
+
+    const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
+
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneDayEnergy' }),
+      reaction: expect.objectContaining({ kind: 'inspect', planKind: 'eating' }),
+      pid,
+    }));
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeRoutineFired: 1,
+      activeRoutineLastKind: 'eating',
+    });
+    expect(mainlineSnapshot(sim, pid)).toEqual(before);
+  });
+
   it('moves a key NPC briefly for a living routine and returns them home', () => {
     const { sim, pid, npcId } = makeWorld();
     sim.time = 8 * 60;

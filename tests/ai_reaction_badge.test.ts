@@ -80,4 +80,19 @@ describe('AI reaction badge view', () => {
       durationMs: 2980,
     });
   });
+
+  it('uses localized life-state labels for routine plans', () => {
+    expect(aiReactionBadgeView(reaction('inspect', { planKind: 'eating' }))).toMatchObject({
+      kind: 'inspect',
+      labelKey: 'hud.core.eating',
+      planned: true,
+      planKind: 'eating',
+    });
+    expect(aiReactionBadgeView(reaction('avoid', { planKind: 'sleeping' }))).toMatchObject({
+      kind: 'avoid',
+      labelKey: 'hudChrome.rest.resting',
+      planned: true,
+      planKind: 'sleeping',
+    });
+  });
 });

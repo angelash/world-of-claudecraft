@@ -804,13 +804,13 @@ export class AiActiveTriggerService {
   private tryApplyNpcRoutineAction(
     npc: Entity,
     player: Entity,
-    routineKind: 'working' | 'sleeping' | 'shelter' | 'watching',
+    routineKind: NpcRoutineKind,
     applyNpcAction?: AiActiveNpcActionBridge,
   ): AiActiveNpcActionResult | null {
     if (!this.realActionsEnabled || !applyNpcAction) return null;
     const relation = routineKind === 'sleeping' ? 'awayFromPlayer' : 'sideStep';
-    const distance = routineKind === 'shelter' ? 2.4 : routineKind === 'sleeping' ? 1.2 : 1.6;
-    const durationSeconds = routineKind === 'sleeping' ? 14 : routineKind === 'shelter' ? 12 : 8;
+    const distance = routineKind === 'shelter' ? 2.4 : routineKind === 'sleeping' ? 1.2 : routineKind === 'eating' ? 0.8 : 1.6;
+    const durationSeconds = routineKind === 'sleeping' ? 14 : routineKind === 'shelter' ? 12 : routineKind === 'eating' ? 10 : 8;
     const result = applyNpcAction({
       kind: 'shortMove',
       npcId: npc.id,
@@ -1558,10 +1558,12 @@ function eventRuleId(event: AiActiveQueuedEventState): string {
   return `event:${event.kind}`;
 }
 
+type NpcRoutineKind = 'working' | 'sleeping' | 'shelter' | 'watching' | 'eating';
+
 function routineAwarenessEvent(
   context: AiJobContextV1,
   speaker: Entity,
-): { kind: 'working' | 'sleeping' | 'shelter' | 'watching'; event: Extract<SimEvent, { type: 'aiSpeech' }> } | null {
+): { kind: NpcRoutineKind; event: Extract<SimEvent, { type: 'aiSpeech' }> } | null {
   const scene = context.scene;
   if (!scene) return null;
   const commonValues = {
@@ -1586,6 +1588,12 @@ function routineAwarenessEvent(
       event: routineLine(context, speaker, 'hudChrome.aiSpeech.sceneNightFatigue', commonValues, 'avoid', 'sleeping'),
     };
   }
+  if (isMealHour(scene.time.hour) && scene.danger.safeHavenScore >= 0.45) {
+    return {
+      kind: 'eating',
+      event: routineLine(context, speaker, 'hudChrome.aiSpeech.sceneDayEnergy', commonValues, 'inspect', 'eating'),
+    };
+  }
   if (scene.time.phase === 'day' && scene.danger.safeHavenScore >= 0.55) {
     return {
       kind: 'working',
@@ -1593,6 +1601,10 @@ function routineAwarenessEvent(
     };
   }
   return null;
+}
+
+function isMealHour(hour: number): boolean {
+  return (hour >= 11.5 && hour < 13.5) || (hour >= 17.5 && hour < 19);
 }
 
 function routineLine(
