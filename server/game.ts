@@ -108,6 +108,14 @@ const AI_NPC_QUESTION_COOLDOWN_SECONDS = 2;
 const AI_OBJECT_INSPECT_COOLDOWN_SECONDS = 2;
 const AI_DIRECT_THINKING_DURATION_MS = 2200;
 
+function envMs(name: string, fallback: number, min: number): number {
+  const raw = Number(process.env[name] ?? fallback);
+  return Number.isFinite(raw) ? Math.max(min, Math.floor(raw)) : fallback;
+}
+
+export const PLAYER_IDLE_TIMEOUT_MS = envMs('PLAYER_IDLE_TIMEOUT_MS', 30 * 60_000, 60_000);
+const PLAYER_IDLE_SWEEP_MS = envMs('PLAYER_IDLE_SWEEP_MS', 60_000, 10_000);
+
 export interface ClientSession {
   ws: WebSocket;
   accountId: number;
@@ -118,6 +126,7 @@ export interface ClientSession {
   lastSave: number;
   alive: boolean;
   joinedAt: number;
+  lastActivityAt: number;
   dbSessionId: number | null; // play_sessions row, set once the insert lands
   left: boolean; // set in leave(); guards against the open-session insert landing after disconnect
   chatTokens: number;
@@ -360,6 +369,19 @@ function chatChannelHint(session: ClientSession, text: string): string {
   return session.rememberedChat.channel;
 }
 
+function isActiveMoveInput(input: {
+  forward: boolean;
+  back: boolean;
+  turnLeft: boolean;
+  turnRight: boolean;
+  strafeLeft: boolean;
+  strafeRight: boolean;
+  jump: boolean;
+}): boolean {
+  return input.forward || input.back || input.turnLeft || input.turnRight
+    || input.strafeLeft || input.strafeRight || input.jump;
+}
+
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -381,6 +403,7 @@ export class GameServer {
   private holderTierInterval: NodeJS.Timeout | null = null;
   private aiMemoryPruneInterval: NodeJS.Timeout | null = null;
   private aiActiveTriggerInterval: NodeJS.Timeout | null = null;
+  private idleSweepInterval: NodeJS.Timeout | null = null;
   private holderTierRefreshing = false; // overlap guard for the refresh cycle
   // pids whose holder tier was forced via the dev /woctier command — the chain
   // refresh leaves them alone so the override sticks during testing (dev only).
@@ -582,6 +605,7 @@ export class GameServer {
     this.holderTierInterval = setInterval(() => { void this.refreshAllHolderTiers(); }, HOLDER_TIER_REFRESH_MS);
     this.aiMemoryPruneInterval = setInterval(() => { void this.pruneExpiredAiMemory(); }, AI_MEMORY_PRUNE_INTERVAL_MS);
     this.aiActiveTriggerInterval = setInterval(() => { this.runAiActiveTriggers(); }, AI_ACTIVE_TRIGGER_INTERVAL_MS);
+    this.idleSweepInterval = setInterval(() => { void this.sweepIdleSessions(); }, PLAYER_IDLE_SWEEP_MS);
   }
 
   stop(): void {
@@ -589,8 +613,21 @@ export class GameServer {
     if (this.holderTierInterval) clearInterval(this.holderTierInterval);
     if (this.aiMemoryPruneInterval) clearInterval(this.aiMemoryPruneInterval);
     if (this.aiActiveTriggerInterval) clearInterval(this.aiActiveTriggerInterval);
+    if (this.idleSweepInterval) clearInterval(this.idleSweepInterval);
     this.aiLifeLayer.stop();
     this.aiActiveTriggers.stop();
+  }
+
+  async sweepIdleSessions(nowMs = Date.now()): Promise<number> {
+    let swept = 0;
+    for (const session of [...this.clients.values()]) {
+      if (session.left) continue;
+      if (nowMs - session.lastActivityAt <= PLAYER_IDLE_TIMEOUT_MS) continue;
+      try { session.ws.close(1001, 'idle timeout'); } catch { /* ignore close failures */ }
+      await this.leave(session, 'idle timeout');
+      swept++;
+    }
+    return swept;
   }
 
   private async pruneExpiredAiMemory(): Promise<void> {
@@ -802,7 +839,7 @@ export class GameServer {
     const sessionIp = meta.ip ?? '';
     const session: ClientSession = {
       ws, accountId, accountCosmetics, characterId, pid, name,
-      lastSave: Date.now(), alive: true, joinedAt: Date.now(), dbSessionId: null, left: false,
+      lastSave: Date.now(), alive: true, joinedAt: Date.now(), lastActivityAt: Date.now(), dbSessionId: null, left: false,
       chatTokens: CHAT_RATE_BURST, chatLastRefill: Date.now() / 1000, chatLastRateError: 0,
       chatRateViolations: 0, chatCooldownUntil: 0,
       chatMutedUntil: meta.mutedUntil ? new Date(meta.mutedUntil).getTime() : null,
@@ -1243,6 +1280,9 @@ export class GameServer {
       const e = sim.entities.get(pid);
       if (!meta || !e) return;
       const { moveInput, facing } = parseMoveInputFrame(msg);
+      const movedOrActed = isActiveMoveInput(moveInput);
+      const turned = facing !== null && Math.abs(facing - e.facing) > 0.001;
+      if (movedOrActed || turned) session.lastActivityAt = Date.now();
       Object.assign(meta.moveInput, moveInput);
       session.lastInputAt = sim.time;
       if (typeof msg.seq === 'number' && Number.isFinite(msg.seq) && msg.seq > 0) {
@@ -1254,6 +1294,7 @@ export class GameServer {
       return;
     }
     if (msg.t !== 'cmd') return;
+    session.lastActivityAt = Date.now();
     antibot.observeAction(session.bot, String(msg.cmd ?? ''), Date.now());
     switch (msg.cmd) {
       case 'castSlot': sim.castAbilityBySlot(msg.slot | 0, pid); break;

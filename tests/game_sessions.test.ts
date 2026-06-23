@@ -18,7 +18,7 @@ vi.mock('../server/db', () => ({
   revokeAccountMechChroma: (...args: unknown[]) => revokeAccountMechChroma(...(args as [number, string])),
 }));
 
-import { GameServer, type ClientSession } from '../server/game';
+import { GameServer, PLAYER_IDLE_TIMEOUT_MS, type ClientSession } from '../server/game';
 import { saveCharacterState } from '../server/db';
 
 function fakeWs() {
@@ -298,6 +298,46 @@ describe('GameServer sessions', () => {
     // a third character on the same account joins because it is flagged GM
     expectJoined(server.join(fakeWs(), 30, 303, 'Gmcc', 'warrior', null, true));
     expect((server as any).sessionByCharacterId(303)).not.toBeNull();
+  });
+
+  it('sweeps idle sessions without letting empty input frames keep them online', async () => {
+    vi.mocked(saveCharacterState).mockResolvedValue(undefined);
+    const server = new GameServer();
+    const ws = fakeWs();
+    const session = expectJoined(server.join(ws, 40, 401, 'Idleone', 'warrior', null));
+    const originalActivity = session.lastActivityAt;
+
+    server.handleMessage(session, JSON.stringify({ t: 'input', seq: 1, mi: {} }));
+
+    expect(session.lastActivityAt).toBe(originalActivity);
+    await expect(server.sweepIdleSessions(originalActivity + PLAYER_IDLE_TIMEOUT_MS + 1)).resolves.toBe(1);
+    expect(ws.close).toHaveBeenCalledWith(1001, 'idle timeout');
+    expect(server.clients.size).toBe(0);
+    expect((server as any).sessionByCharacterId(401)).toBeNull();
+  });
+
+  it('keeps active sessions online when movement or commands refresh activity', async () => {
+    const now = vi.spyOn(Date, 'now');
+    now.mockReturnValue(1000);
+    try {
+      const server = new GameServer();
+      const ws = fakeWs();
+      const session = expectJoined(server.join(ws, 41, 411, 'Activeone', 'warrior', null));
+
+      now.mockReturnValue(5000);
+      server.handleMessage(session, JSON.stringify({ t: 'input', seq: 1, mi: { f: 1 } }));
+      expect(session.lastActivityAt).toBe(5000);
+
+      now.mockReturnValue(8000);
+      server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'targetNearest' }));
+      expect(session.lastActivityAt).toBe(8000);
+
+      await expect(server.sweepIdleSessions(8000 + PLAYER_IDLE_TIMEOUT_MS - 1)).resolves.toBe(0);
+      expect(ws.close).not.toHaveBeenCalledWith(1001, 'idle timeout');
+      expect(server.clients.get(session.pid)).toBe(session);
+    } finally {
+      now.mockRestore();
+    }
   });
 });
 

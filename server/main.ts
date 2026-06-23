@@ -28,7 +28,7 @@ import { handleCardUpload, handleCardRoutes, captureReferral, cardUploadContentL
 import { handleAdminApi } from './admin';
 import { handleInternalApi } from './internal';
 import { handlePerfReport } from './perf_report';
-import { GameServer } from './game';
+import { GameServer, type ClientSession } from './game';
 import { REALM, REALM_DIRECTORY, REALM_ORIGINS } from './realm';
 import { webLoginEnforced, isWebClientRequest } from './web_login_guard';
 import { cacheControlFor, etagFor, isNotModified } from './static_cache';
@@ -51,8 +51,14 @@ const PERF_REPORT_RETENTION_DAYS = Number(process.env.PERF_REPORT_RETENTION_DAYS
 const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET ?? '';
 // Hard WS connection limit per IP. Soft threshold (adds bot evidence) is in game.ts.
 const MAX_WS_PER_IP_HARD = Number(process.env.MAX_WS_PER_IP_HARD ?? '20');
+const WS_HEARTBEAT_INTERVAL_MS = 30_000;
 
 const game = new GameServer();
+
+interface WsHealth {
+  alive: boolean;
+  session: ClientSession | null;
+}
 
 function initialCharacterState(cls: PlayerClass, name: string, skin: number): import('../src/sim/sim').CharacterState {
   const sim = new Sim({ seed: 20061, playerClass: cls, playerName: name });
@@ -682,6 +688,28 @@ async function main(): Promise<void> {
   // command; without this the ws default (~100 MiB) lets one socket force a
   // huge allocation + parse before any field-level validation runs
   const wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 });
+  const wsHealth = new WeakMap<WebSocket, WsHealth>();
+  const wsHeartbeat = setInterval(() => {
+    for (const ws of wss.clients) {
+      const health = wsHealth.get(ws);
+      if (!health) continue;
+      if (ws.readyState !== WebSocket.OPEN) continue;
+      if (!health.alive) {
+        if (health.session) void game.leave(health.session, 'heartbeat timeout');
+        ws.terminate();
+        continue;
+      }
+      health.alive = false;
+      if (health.session) health.session.alive = false;
+      try {
+        ws.ping();
+      } catch {
+        if (health.session) void game.leave(health.session, 'heartbeat ping failed');
+        ws.terminate();
+      }
+    }
+  }, WS_HEARTBEAT_INTERVAL_MS);
+
   server.on('upgrade', (req, socket, head) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
     if (url.pathname !== '/ws') {
@@ -765,6 +793,11 @@ async function main(): Promise<void> {
       return;
     }
     const session = result;
+    const health = wsHealth.get(ws);
+    if (health) {
+      health.session = session;
+      session.alive = health.alive;
+    }
     console.log(`+ ${character.name} (${character.class}) joined — ${game.clients.size} online`);
     ws.on('message', (data) => {
       game.handleMessage(session, String(data));
@@ -779,6 +812,14 @@ async function main(): Promise<void> {
   }
 
   async function onConnection(ws: WebSocket, req: http.IncomingMessage): Promise<void> {
+    wsHealth.set(ws, { alive: true, session: null });
+    ws.on('pong', () => {
+      const health = wsHealth.get(ws);
+      if (!health) return;
+      health.alive = true;
+      if (health.session) health.session.alive = true;
+    });
+
     const authTimer = setTimeout(() => {
       ws.send(JSON.stringify({ t: 'error', error: 'authentication timed out' }));
       ws.close();
@@ -813,6 +854,7 @@ async function main(): Promise<void> {
 
   const shutdown = async () => {
     console.log('shutting down: saving characters...');
+    clearInterval(wsHeartbeat);
     game.stop();
     await game.saveAll('shutdown');
     await game.saveMarket();
