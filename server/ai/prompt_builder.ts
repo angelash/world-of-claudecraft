@@ -259,7 +259,7 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
     '- Use dynamicText only when outputMode is dynamic_text_experiment or mixed_living_world.',
     '- For dynamicText, speech.language must exactly equal job.locale.',
     '- When dynamicText is allowed, follow speechFingerprint over generic assistant phrasing.',
-    '- Return at most one speech entry and at most two intents.',
+    ...speechCardinalityPromptRules(context),
     '- For ordinary NPC questions, answer like the entity is alive in the scene: brief, specific, and grounded in visible memory, weather, objects, or local tension.',
     '- Do not describe system state such as missing relationship history. If the entity barely knows the player, show that through cautious wording or a small local observation.',
     ...policy.guidance,
@@ -556,6 +556,22 @@ function compactSpeechFingerprint(fingerprint: AiSpeechFingerprint, limit: numbe
     sensory: fingerprint.sensoryBias.slice(0, limit),
     avoid: fingerprint.avoidedPhrases.slice(0, limit),
   };
+}
+
+function speechCardinalityPromptRules(context: AiJobContextV1): string[] {
+  if (isSocialSequenceContext(context) && context.outputMode !== 'line_id_only') {
+    return [
+      '- This is a paced social sequence. Return 2 or 3 speech entries when it feels natural.',
+      '- For sequence speech order: speech[0] is the acting entity, speech[1] is partnerName, speech[2] is the next nearby participant if one is visible in job.json.',
+      '- Do not prefix sequence lines with speaker names. Each speech entry should be a direct overheard line or a compact action fragment.',
+      '- Return at most two intents for the acting entity only.',
+    ];
+  }
+  return ['- Return at most one speech entry and at most two intents.'];
+}
+
+function isSocialSequenceContext(context: AiJobContextV1): boolean {
+  return context.recentObservations.includes('sequence:social');
 }
 
 function promptPolicyFor(trigger: AiPromptTrigger): PromptPolicy {

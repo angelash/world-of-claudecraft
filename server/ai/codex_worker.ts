@@ -44,7 +44,7 @@ export const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
     confidence: { type: 'number', minimum: 0, maximum: 1 },
     speech: {
       type: 'array',
-      maxItems: 1,
+      maxItems: 3,
       items: {
         anyOf: [
           {
@@ -147,6 +147,7 @@ const INTENT_TYPES = new Set<AiIntentType>([
 ]);
 const DEFAULT_MAX_STDERR_BYTES = 8_192;
 const DEFAULT_TIMEOUT_MS = 45_000;
+const MAX_SPEECH_ENTRIES = 3;
 
 export class CodexCliProvider implements AiProvider {
   private readonly codexBin: string;
@@ -428,7 +429,9 @@ function parseDecision(value: unknown): AiDecisionV1 {
   const entityRef = parseEntityRef(record.entityRef);
   const ttlMs = requireNumberInRange(record.ttlMs, 'ttlMs', 1, 60_000);
   const confidence = requireNumberInRange(record.confidence, 'confidence', 0, 1);
-  const speech = requireArray(record.speech, 'speech').map(parseSpeech);
+  const speechItems = requireArray(record.speech, 'speech');
+  if (speechItems.length > MAX_SPEECH_ENTRIES) throw new Error('codex worker output speech has too many entries');
+  const speech = speechItems.map(parseSpeech);
   const intents = requireArray(record.intents, 'intents').map(parseIntent);
   const audit = parseAudit(record.audit);
   return { schemaVersion, jobId, entityRef, ttlMs, confidence, speech, intents, audit };

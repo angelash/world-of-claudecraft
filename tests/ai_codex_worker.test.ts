@@ -139,6 +139,33 @@ describe('Codex CLI AI provider', () => {
     });
   });
 
+  it('accepts up to three speech entries for sequence-capable provider output', () => {
+    expect(parseCodexDecisionOutput(JSON.stringify(validDecision({
+      speech: [
+        { mode: 'dynamicText', language: 'en', text: 'The stall rope smells of rain.' },
+        { mode: 'dynamicText', language: 'en', text: 'Keep the coins under the dry plank.' },
+        { mode: 'dynamicText', language: 'en', text: 'The west road sounds busy already.' },
+      ],
+    })))).toMatchObject({
+      speech: [
+        { mode: 'dynamicText', language: 'en', text: 'The stall rope smells of rain.' },
+        { mode: 'dynamicText', language: 'en', text: 'Keep the coins under the dry plank.' },
+        { mode: 'dynamicText', language: 'en', text: 'The west road sounds busy already.' },
+      ],
+    });
+  });
+
+  it('rejects provider output with more than three speech entries', () => {
+    expect(() => parseCodexDecisionOutput(JSON.stringify(validDecision({
+      speech: [
+        { mode: 'dynamicText', language: 'en', text: 'The stall rope smells of rain.' },
+        { mode: 'dynamicText', language: 'en', text: 'Keep the coins under the dry plank.' },
+        { mode: 'dynamicText', language: 'en', text: 'The west road sounds busy already.' },
+        { mode: 'dynamicText', language: 'en', text: 'Someone should mend that awning.' },
+      ],
+    })))).toThrow('codex worker output speech has too many entries');
+  });
+
   it('rejects invalid JSON before the intent validator', () => {
     expect(() => parseCodexDecisionOutput("'{ invalid json'"))
       .toThrow('codex worker wrote invalid JSON');
@@ -233,6 +260,19 @@ describe('Codex CLI AI provider', () => {
     expect(prompt).toContain('Avoid assistant-style transitions');
     expect(prompt).toContain('Do not start with 不过');
     expect(prompt).toContain('"jobId":"job-codex-worker"');
+  });
+
+  it('prompts social sequence jobs for paced multi-line speech', () => {
+    const prompt = buildCodexDecisionPrompt({
+      ...context,
+      trigger: 'active_poll',
+      outputMode: 'dynamic_text_experiment',
+      recentObservations: ['sequence:social', 'partner:marshal_redbrook', 'partnerName:Marshal Redbrook'],
+    });
+
+    expect(prompt).toContain('This is a paced social sequence');
+    expect(prompt).toContain('speech[0] is the acting entity');
+    expect(prompt).not.toContain('Return at most one speech entry and at most two intents.');
   });
 
   it('uses a warm app-server worker and reports provider timing steps', async () => {

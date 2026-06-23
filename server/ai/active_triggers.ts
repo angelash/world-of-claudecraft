@@ -1309,6 +1309,31 @@ export class AiActiveTriggerService {
       nowMs: input.nowMs,
       deferProvider: input.deferProvider,
       deliver: (pid, firstBeatEvents) => {
+        const providerSequence = this.providerSocialSequenceEvents(input.sequence, firstBeatEvents, pid);
+        if (providerSequence) {
+          const immediate = this.schedulePacedSequence({
+            sequenceId,
+            kind: input.sequence.kind,
+            family: input.sequence.family,
+            ruleId: input.rule.ruleId,
+            pid,
+            speakerEntityIds: input.sequence.speakers.map((speaker) => speaker.id),
+            speakerNames: input.sequence.speakers.map((speaker) => speaker.name),
+            speakerTemplateIds: input.sequence.speakers.map((speaker) => speaker.templateId),
+            sceneId: input.sequence.sceneId,
+            ...(input.sequence.focusObject ? { focusObject: input.sequence.focusObject } : {}),
+            lineIds: input.sequence.lineIds.slice(0, providerSequence.speechCount),
+            events: providerSequence.events,
+            startedAtMs: input.nowMs + this.thinkingDurationMs,
+            deliver,
+            canContinue: () => {
+              const livePlayer = input.sim.entities.get(input.player.id);
+              return Boolean(livePlayer && !livePlayer.dead && !livePlayer.inCombat);
+            },
+          });
+          if (immediate.length > 0) deliver(pid, immediate);
+          return;
+        }
         deliver(pid, firstBeatEvents);
         if (continuation.length === 0) return;
         const immediate = this.schedulePacedSequence({
@@ -1334,6 +1359,49 @@ export class AiActiveTriggerService {
         if (immediate.length > 0) deliver(pid, immediate);
       },
     });
+  }
+
+  private providerSocialSequenceEvents(
+    sequence: SocialSequenceResult,
+    providerEvents: readonly SimEvent[],
+    pid: number,
+  ): { events: SimEvent[]; speechCount: number } | null {
+    const providerSpeeches = providerEvents
+      .filter((event): event is AiSpeechEvent =>
+        event.type === 'aiSpeech'
+        && event.source === 'codex'
+        && event.speech.mode === 'dynamicText',
+      )
+      .slice(0, sequence.speakers.length);
+    if (providerSpeeches.length < 2) return null;
+    const localSpeeches = sequence.events.filter((event): event is AiSpeechEvent => event.type === 'aiSpeech');
+    const events: SimEvent[] = [];
+    for (let i = 0; i < providerSpeeches.length; i++) {
+      const speaker = sequence.speakers[i];
+      if (!speaker) break;
+      if (i > 0) {
+        events.push({
+          type: 'aiThinking',
+          speakerId: speaker.id,
+          speakerName: speaker.name,
+          durationMs: this.thinkingDurationMs + i * 1200,
+          pid,
+        });
+      }
+      const providerSpeech = providerSpeeches[i];
+      const localReaction = localSpeeches[i]?.reaction;
+      events.push({
+        type: 'aiSpeech',
+        speakerId: speaker.id,
+        speakerName: speaker.name,
+        speech: providerSpeech.speech,
+        source: 'codex',
+        ...(localReaction ? { reaction: localReaction } : {}),
+        pid,
+      });
+    }
+    const speechCount = events.filter((event) => event.type === 'aiSpeech').length;
+    return speechCount >= 2 ? { events, speechCount } : null;
   }
 
   private tryApplySocialSequenceActions(

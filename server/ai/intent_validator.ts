@@ -16,6 +16,7 @@ const MAX_TTL_MS = 60_000;
 const MIN_CONFIDENCE = 0;
 const MAX_CONFIDENCE = 1;
 const MAX_DYNAMIC_TEXT_CHARS = 180;
+const MAX_SOCIAL_SEQUENCE_SPEECH_ENTRIES = 3;
 type AiSpeechSource = Extract<SimEvent, { type: 'aiSpeech' }>['source'];
 type AiSpeechReaction = NonNullable<Extract<SimEvent, { type: 'aiSpeech' }>['reaction']>;
 
@@ -38,6 +39,8 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
     || decision.entityRef.kind !== context.entity.kind) {
     return rejected('entity ref mismatch');
   }
+  const maxSpeechEntries = maxSpeechEntriesForContext(context);
+  if (decision.speech.length > maxSpeechEntries) return rejected('too many speech entries for context');
 
   const profile = profileFor(context.entity.kind, context.entity.templateId);
   for (const intent of decision.intents) {
@@ -106,6 +109,12 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
     events,
     ...(speechPolish.processed > 0 ? { speechPolish } : {}),
   };
+}
+
+function maxSpeechEntriesForContext(context: AiJobContextV1): number {
+  return context.recentObservations.includes('sequence:social')
+    ? MAX_SOCIAL_SEQUENCE_SPEECH_ENTRIES
+    : 1;
 }
 
 function reactionFromProviderIntents(

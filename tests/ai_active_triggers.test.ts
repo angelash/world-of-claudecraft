@@ -1587,6 +1587,119 @@ describe('AI active trigger service', () => {
     }
   });
 
+  it('paces multiple provider social sequence lines across nearby participants', async () => {
+    vi.useFakeTimers();
+    const rule = DEFAULT_ACTIVE_POLL_RULES.find((candidate) => candidate.ruleId === 'npc_social_sequence');
+    if (!rule) throw new Error('missing NPC social sequence rule');
+    const { sim, pid } = makeWorld();
+    sim.time = 8 * 60;
+    const merchant = entityByTemplate(sim, 'the_merchant');
+    const marshal = entityByTemplate(sim, 'marshal_redbrook');
+    moveEntity(sim, merchant.id, 9, 17);
+    moveEntity(sim, marshal.id, 12, 17);
+    moveEntity(sim, pid, 9, 18);
+    let seenContext: AiJobContextV1 | null = null;
+    const provider: AiProvider = {
+      async decide(context) {
+        seenContext = context;
+        return {
+          decision: {
+            schemaVersion: 1,
+            jobId: context.jobId,
+            entityRef: {
+              kind: context.entity.kind,
+              entityId: context.entity.entityId,
+              templateId: context.entity.templateId,
+            },
+            ttlMs: 1_000,
+            confidence: 0.9,
+            speech: [
+              { mode: 'dynamicText', language: 'en', text: 'The market awning smells of wet rope.' },
+              { mode: 'dynamicText', language: 'en', text: 'Keep the coins under the dry plank.' },
+              { mode: 'dynamicText', language: 'en', text: 'The west road sounds busy already.' },
+            ],
+            intents: [{ type: 'commentOnScene' }],
+            audit: {
+              shortReason: 'social exchange',
+              usedPlayerInput: false,
+              safetyNotes: ['presentationOnly'],
+            },
+          },
+        };
+      },
+    };
+    const delivered: SimEvent[][] = [];
+    const service = new AiActiveTriggerService({
+      provider,
+      thinkingDurationMs: 800,
+      rules: [rule],
+    });
+
+    try {
+      const immediate = service.tick({
+        sim,
+        sessions: [{ pid, locale: 'en' }],
+        nowMs: 1_000,
+        deliver: (_pid, events) => delivered.push(events),
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(immediate).toEqual([
+        expect.objectContaining({ type: 'aiThinking', durationMs: 800, pid }),
+      ]);
+      const capturedContext = seenContext as AiJobContextV1 | null;
+      if (!capturedContext) throw new Error('provider did not receive social sequence context');
+      expect(capturedContext).toMatchObject({
+        recentObservations: expect.arrayContaining(['sequence:social', expect.stringMatching(/^partnerName:/)]),
+      });
+      expect(delivered).toEqual([
+        [
+          expect.objectContaining({
+            type: 'aiSpeech',
+            speakerId: capturedContext.entity.entityId,
+            speech: { mode: 'dynamicText', language: 'en', text: 'The market awning smells of wet rope.' },
+            source: 'codex',
+            reaction: expect.objectContaining({
+              targetItemId: 'eastbrook_market_stall',
+              planKind: 'conversationStart',
+            }),
+            pid,
+          }),
+        ],
+      ]);
+      expect(service.diagnosticsSnapshot().activeSequences).toEqual([
+        expect.objectContaining({
+          kind: 'npc',
+          remainingBeats: 4,
+          focusObjectId: 'eastbrook_market_stall',
+        }),
+      ]);
+
+      await vi.advanceTimersByTimeAsync(800);
+      expect(delivered[1]).toEqual([
+        expect.objectContaining({ type: 'aiThinking', durationMs: 2_000, pid }),
+      ]);
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(delivered[2]).toEqual([
+        expect.objectContaining({
+          type: 'aiSpeech',
+          speakerId: expect.any(Number),
+          speech: { mode: 'dynamicText', language: 'en', text: 'Keep the coins under the dry plank.' },
+          source: 'codex',
+          reaction: expect.objectContaining({ planKind: 'conversationReply' }),
+          pid,
+        }),
+      ]);
+      const secondSpeech = delivered[2][0];
+      if (secondSpeech.type !== 'aiSpeech') throw new Error('expected second provider speech');
+      expect(secondSpeech.speakerId).not.toBe(capturedContext.entity.entityId);
+    } finally {
+      service.stop();
+      vi.useRealTimers();
+    }
+  });
+
   it('uses the dynamic provider for wild creature social sequence openers', async () => {
     vi.useFakeTimers();
     const rule = DEFAULT_ACTIVE_POLL_RULES.find((candidate) => candidate.ruleId === 'npc_social_sequence');

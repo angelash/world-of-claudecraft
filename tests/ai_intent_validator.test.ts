@@ -168,6 +168,53 @@ describe('AI intent validator', () => {
     }]);
   });
 
+  it('rejects multiple speech entries outside paced social sequences', () => {
+    const result = validateAiDecision({
+      decision: {
+        ...decision,
+        speech: [
+          { mode: 'dynamicText', language: 'en', text: 'The chapel air tastes of old rain.' },
+          { mode: 'dynamicText', language: 'en', text: 'The bell rope still smells of storm.' },
+        ],
+      },
+      context: { ...context, outputMode: 'dynamic_text_experiment' },
+      entity,
+      subject: 'criticalQuestNpc',
+      source: 'codex',
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: 'too many speech entries for context' });
+  });
+
+  it('allows multiple speech entries for paced social sequence context', () => {
+    const result = validateAiDecision({
+      decision: {
+        ...decision,
+        speech: [
+          { mode: 'dynamicText', language: 'en', text: 'The chapel air tastes of old rain.' },
+          { mode: 'dynamicText', language: 'en', text: 'The bell rope still smells of storm.' },
+          { mode: 'dynamicText', language: 'en', text: 'Keep the south door quiet tonight.' },
+        ],
+      },
+      context: {
+        ...context,
+        outputMode: 'dynamic_text_experiment',
+        recentObservations: ['sequence:social', 'partner:marshal_redbrook', 'partnerName:Marshal Redbrook'],
+      },
+      entity,
+      subject: 'criticalQuestNpc',
+      source: 'codex',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.events).toHaveLength(3);
+    expect(result.events).toEqual([
+      expect.objectContaining({ speech: { mode: 'dynamicText', language: 'en', text: 'The chapel air tastes of old rain.' } }),
+      expect.objectContaining({ speech: { mode: 'dynamicText', language: 'en', text: 'The bell rope still smells of storm.' } }),
+      expect.objectContaining({ speech: { mode: 'dynamicText', language: 'en', text: 'Keep the south door quiet tonight.' } }),
+    ]);
+  });
+
   it('rejects low-information dynamicText that only echoes the topic', () => {
     const result = validateAiDecision({
       decision: {
