@@ -1893,6 +1893,13 @@ export class AiActiveTriggerService {
         `directorSubject:${event.directorState.subjectKind}`,
       ] : []),
     );
+    if (event.directorState) {
+      context.directorProposals = [{
+        ...event.directorState.proposal,
+        reasonTags: [...event.directorState.proposal.reasonTags],
+        safetyNotes: [...event.directorState.proposal.safetyNotes],
+      }];
+    }
   }
 
   private contextForSocialSequence(

@@ -508,6 +508,92 @@ describe('AI active trigger service', () => {
     });
   });
 
+  it('passes world director proposals into dynamic active event provider context', async () => {
+    const { sim, pid } = makeWorld();
+    const store = new AiWorldDirectorStore({ stateTtlSeconds: 60 });
+    const state = store.noteQuestCompletion({
+      sceneId: 'eastbrook_chapel',
+      zoneId: 'eastbrook_vale',
+      questId: 'q_wolves',
+      sourcePlayerEntityId: pid,
+      nowSeconds: sim.time,
+    });
+    let seenContext: AiJobContextV1 | null = null;
+    const provider: AiProvider = {
+      async decide(context) {
+        seenContext = context;
+        return {
+          decision: {
+            schemaVersion: 1,
+            jobId: context.jobId,
+            entityRef: {
+              kind: context.entity.kind,
+              entityId: context.entity.entityId,
+              templateId: context.entity.templateId,
+            },
+            ttlMs: 1_000,
+            confidence: 0.9,
+            speech: [{ mode: 'dynamicText', language: 'en', text: 'The chapel road exhales after the wolf trouble.' }],
+            intents: [{ type: 'commentOnScene' }],
+            audit: {
+              shortReason: 'director quest relief',
+              usedPlayerInput: false,
+              safetyNotes: ['presentationOnly'],
+            },
+          },
+        };
+      },
+    };
+    const delivered: SimEvent[][] = [];
+    const service = new AiActiveTriggerService({
+      provider,
+      rules: [testRule()],
+      thinkingDurationMs: 700,
+    });
+
+    service.noteWorldDirectorStates({ sim, states: [state], nowMs: 1_000 });
+    const immediate = service.tick({
+      sim,
+      sessions: [{ pid, locale: 'en' }],
+      nowMs: 1_000,
+      deliver: (_pid, events) => delivered.push(events),
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(immediate).toEqual([
+      expect.objectContaining({ type: 'aiThinking', durationMs: 700, pid }),
+    ]);
+    expect(seenContext).toMatchObject({
+      trigger: 'active_event',
+      outputMode: 'mixed_living_world',
+      directorProposals: [expect.objectContaining({
+        proposalId: state.proposal.proposalId,
+        intent: 'echoQuestRelief',
+        suggestedLineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
+        reasonTags: expect.arrayContaining(['proposal:questEcho']),
+      })],
+      recentObservations: expect.arrayContaining([
+        'event:world_director',
+        'directorMood:relieved',
+        'directorIntent:echoQuestRelief',
+      ]),
+    });
+    expect(delivered.flat()).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speech: expect.objectContaining({
+        mode: 'dynamicText',
+        language: 'en',
+      }),
+      source: 'codex',
+      pid,
+    }));
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeProviderCalls: 1,
+      activeProviderJobs: 1,
+      activeProviderSuccesses: 1,
+    });
+  });
+
   it('expires queued events without falling through into ambient polling when polls are disabled', () => {
     const { sim, pid } = makeWorld();
     const service = new AiActiveTriggerService({
