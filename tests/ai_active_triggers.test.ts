@@ -3,6 +3,7 @@ import {
   AiActiveTriggerService,
   type AiActivePollRuleV1,
 } from '../server/ai/active_triggers';
+import type { AiJobContextV1, AiProvider } from '../server/ai/ai_types';
 import { Sim } from '../src/sim/sim';
 import { groundHeight } from '../src/sim/world';
 
@@ -498,5 +499,82 @@ describe('AI active trigger service', () => {
       activeCandidatesSelected: 3,
     });
     expect(mainlineSnapshot(sim, pid)).toEqual(before);
+  });
+
+  it('delivers validated provider dynamic text after the active thinking beat', async () => {
+    const { sim, pid, npcId } = makeWorld();
+    let seenContext: AiJobContextV1 | null = null;
+    const provider: AiProvider = {
+      async decide(context) {
+        seenContext = context;
+        return {
+          decision: {
+            schemaVersion: 1,
+            jobId: context.jobId,
+            entityRef: {
+              kind: context.entity.kind,
+              entityId: context.entity.entityId,
+              templateId: context.entity.templateId,
+            },
+            ttlMs: 1_000,
+            confidence: 0.9,
+            speech: [{ mode: 'dynamicText', language: 'zh_CN', text: '不过，雨声贴着屋檐。' }],
+            intents: [{ type: 'commentOnScene' }],
+            audit: {
+              shortReason: 'scene mood',
+              usedPlayerInput: false,
+              safetyNotes: ['presentationOnly'],
+            },
+          },
+          providerTimings: { provider: 'test-provider', totalMs: 12, steps: [] },
+        };
+      },
+    };
+    const delivered: ReturnType<AiActiveTriggerService['tick']>[] = [];
+    const service = new AiActiveTriggerService({
+      provider,
+      rules: [testRule({
+        ruleId: 'test_provider_dynamic',
+        providerPolicy: 'codexPreferred',
+        outputMode: 'mixedLivingWorld',
+      })],
+    });
+
+    const immediate = service.tick({
+      sim,
+      sessions: [{ pid, locale: 'zh_CN' }],
+      nowMs: 1_000,
+      deliver: (_pid, events) => delivered.push(events),
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(immediate).toEqual([
+      expect.objectContaining({ type: 'aiThinking', speakerId: npcId, pid }),
+    ]);
+    expect(seenContext).toMatchObject({
+      locale: 'zh_CN',
+      outputMode: 'mixed_living_world',
+    });
+    expect(delivered).toEqual([
+      [
+        expect.objectContaining({
+          type: 'aiSpeech',
+          speakerId: npcId,
+          speech: expect.objectContaining({
+            mode: 'dynamicText',
+            language: 'zh_CN',
+            text: '雨声贴着屋檐。',
+          }),
+          source: 'codex',
+          pid,
+        }),
+      ],
+    ]);
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeProviderCalls: 1,
+      activeProviderJobs: 1,
+      activeProviderSuccesses: 1,
+      activeProviderPending: 0,
+    });
   });
 });

@@ -2,9 +2,11 @@ import { ITEMS, MOBS, NPCS } from '../../src/sim/data';
 import type { Sim } from '../../src/sim/sim';
 import type { Entity, SimEvent } from '../../src/sim/types';
 import { dist2d } from '../../src/sim/types';
-import type { AiJobContextV1 } from './ai_types';
+import type { AiJobContextV1, AiProvider, AiProviderDecisionResult, AiProviderOutput, AiProviderTimingSnapshot } from './ai_types';
+import { classifyCanonSubject } from './canon_guard';
 import { companionReactionEventsForScene } from './companion_reactions';
 import { familySceneReactionEvent, nearbyFamilySceneCandidates, rankFamilySceneReactions } from './family_scene_reactions';
+import { validateAiDecision } from './intent_validator';
 import { compactProfileSnapshot, profileFor } from './profiles';
 import { sceneFrameFor } from './scene_frame';
 import { sceneAwarenessEvent } from './scene_reactions';
@@ -64,6 +66,7 @@ export interface AiActivePollRuleV1 {
 export interface AiActiveTriggerSessionLike {
   pid: number;
   left?: boolean;
+  locale?: string;
 }
 
 export interface AiActiveTriggerMetricsSnapshot {
@@ -86,6 +89,14 @@ export interface AiActiveTriggerMetricsSnapshot {
   activeCodexBudgetDenied: number;
   activeCodexBudgetRemaining5h: number;
   activeCodexBudgetRemainingWeek: number;
+  activeProviderJobs: number;
+  activeProviderSuccesses: number;
+  activeProviderErrors: number;
+  activeProviderRejected: number;
+  activeProviderFallbacks: number;
+  activeProviderPending: number;
+  activeLastProviderLatencyMs: number;
+  activeLastProviderTimings?: AiProviderTimingSnapshot;
   activeRoutineFired: number;
   activeRoutineLastKind: string;
   activeSequenceFired: number;
@@ -173,6 +184,7 @@ export interface AiActiveTriggerServiceOptions {
   codexMaxCalls5h?: number;
   codexMaxCallsWeek?: number;
   codexReserveRatio?: number;
+  provider?: AiProvider;
 }
 
 interface AiActivePollCursorState {
@@ -243,8 +255,8 @@ export const DEFAULT_ACTIVE_POLL_RULES: readonly AiActivePollRuleV1[] = [
     jitterSeconds: 60,
     priority: 50,
     scope: 'playerVicinity',
-    providerPolicy: 'localOnly',
-    outputMode: 'lineIdOnly',
+    providerPolicy: 'codexPreferred',
+    outputMode: 'mixedLivingWorld',
     cooldown: {
       perPlayerSeconds: 90,
       perEntitySeconds: 180,
@@ -316,12 +328,14 @@ export class AiActiveTriggerService {
   private readonly codexMaxCalls5h: number;
   private readonly codexMaxCallsWeek: number;
   private readonly codexReserveRatio: number;
+  private readonly provider: AiProvider | null;
   private readonly cursors = new Map<string, AiActivePollCursorState>();
   private readonly entityCooldownUntilMs = new Map<number, number>();
   private readonly playerCooldownUntilMs = new Map<number, number>();
   private readonly eventQueue: AiActiveQueuedEventState[] = [];
   private readonly recentDecisions: AiActiveTriggerDecisionSnapshot[] = [];
   private readonly codexProviderCallTimesMs: number[] = [];
+  private readonly pendingProviderJobs = new Set<string>();
   private populationPolicy: AiActivePopulationPolicySnapshot | null = null;
   private schedulerCursor = 0;
   private eventSequence = 0;
@@ -345,6 +359,13 @@ export class AiActiveTriggerService {
     activeCodexBudgetDenied: 0,
     activeCodexBudgetRemaining5h: 0,
     activeCodexBudgetRemainingWeek: 0,
+    activeProviderJobs: 0,
+    activeProviderSuccesses: 0,
+    activeProviderErrors: 0,
+    activeProviderRejected: 0,
+    activeProviderFallbacks: 0,
+    activeProviderPending: 0,
+    activeLastProviderLatencyMs: 0,
     activeRoutineFired: 0,
     activeRoutineLastKind: '',
     activeSequenceFired: 0,
@@ -367,6 +388,7 @@ export class AiActiveTriggerService {
     this.codexMaxCalls5h = Math.max(0, Math.floor(options.codexMaxCalls5h ?? envNonNegativeInt('AI_CODEX_ACTIVE_MAX_CALLS_5H', 600)));
     this.codexMaxCallsWeek = Math.max(0, Math.floor(options.codexMaxCallsWeek ?? envNonNegativeInt('AI_CODEX_ACTIVE_MAX_CALLS_WEEK', 5_000)));
     this.codexReserveRatio = clamp01(options.codexReserveRatio ?? envRatio('AI_CODEX_ACTIVE_RESERVE_RATIO', 0.2));
+    this.provider = options.provider ?? null;
     this.refreshCodexBudgetMetrics(Date.now());
   }
 
@@ -411,7 +433,12 @@ export class AiActiveTriggerService {
     });
   }
 
-  tick(input: { sim: Sim; sessions: Iterable<AiActiveTriggerSessionLike>; nowMs: number }): SimEvent[] {
+  tick(input: {
+    sim: Sim;
+    sessions: Iterable<AiActiveTriggerSessionLike>;
+    nowMs: number;
+    deliver?: (pid: number, events: SimEvent[]) => void;
+  }): SimEvent[] {
     this.refreshCodexBudgetMetrics(input.nowMs);
     if (!this.enabled) {
       this.recordSkip('', 'disabled');
@@ -448,7 +475,7 @@ export class AiActiveTriggerService {
         if (input.nowMs < cursor.nextDueAtMs) continue;
         cursor.lastCheckedAtMs = input.nowMs;
         this.metrics.activePollDue++;
-        const result = this.tryFireRule({ sim: input.sim, session, rule, nowMs: input.nowMs });
+        const result = this.tryFireRule({ sim: input.sim, session, rule, nowMs: input.nowMs, deliver: input.deliver });
         this.scheduleNext(rule, cursor, input.nowMs);
         if (result.events.length > 0) {
           events.push(...result.events);
@@ -488,6 +515,8 @@ export class AiActiveTriggerService {
     this.eventQueue.splice(0);
     this.recentDecisions.splice(0);
     this.codexProviderCallTimesMs.splice(0);
+    this.pendingProviderJobs.clear();
+    this.metrics.activeProviderPending = 0;
     this.populationPolicy = null;
   }
 
@@ -556,9 +585,10 @@ export class AiActiveTriggerService {
       ...DEFAULT_ACTIVE_POLL_RULES[0],
       ruleId: eventRuleId(input.queued),
       category: 'sceneAmbient',
-    }, input.queued);
-    const localEvent = eventAwarenessEvent(context, candidate.entity, input.queued)
-      ?? sceneAwarenessEvent(context, candidate.entity)
+    }, input.queued, input.session.locale);
+    const sceneEvent = sceneAwarenessEvent(context, candidate.entity);
+    const localEvent: AiSpeechEvent = eventAwarenessEvent(context, candidate.entity, input.queued)
+      ?? (sceneEvent?.type === 'aiSpeech' ? sceneEvent : null)
       ?? fallbackNpcAmbientEvent(context, candidate.entity, candidate.score);
     const lineId = localEvent.type === 'aiSpeech' && localEvent.speech.mode === 'lineId'
       ? localEvent.speech.lineId
@@ -592,6 +622,7 @@ export class AiActiveTriggerService {
     session: AiActiveTriggerSessionLike;
     rule: AiActivePollRuleV1;
     nowMs: number;
+    deliver?: (pid: number, events: SimEvent[]) => void;
   }): { events: SimEvent[]; skipReason: AiActiveSkipReason } {
     const player = input.sim.entities.get(input.session.pid);
     if (!player) return { events: [], skipReason: 'player_missing' };
@@ -614,12 +645,13 @@ export class AiActiveTriggerService {
     }
 
     const scene = sceneFrameFor(input.sim, player.pos, { excludeEntityIds: [player.id] });
-    const context = this.contextFor(input.sim, player, candidate.entity, scene, input.rule);
+    const context = this.contextFor(input.sim, player, candidate.entity, scene, input.rule, undefined, input.session.locale);
     const routine = input.rule.category === 'livingRoutine'
       ? routineAwarenessEvent(context, candidate.entity)
       : null;
-    const localEvent = routine?.event
-      ?? sceneAwarenessEvent(context, candidate.entity)
+    const sceneEvent = sceneAwarenessEvent(context, candidate.entity);
+    const localEvent: AiSpeechEvent = routine?.event
+      ?? (sceneEvent?.type === 'aiSpeech' ? sceneEvent : null)
       ?? fallbackNpcAmbientEvent(context, candidate.entity, candidate.score);
     const lineId = localEvent.type === 'aiSpeech' && localEvent.speech.mode === 'lineId'
       ? localEvent.speech.lineId
@@ -650,7 +682,68 @@ export class AiActiveTriggerService {
       lineId,
       createdAtMs: input.nowMs,
     });
+    if (this.tryStartProviderNpcBeat({
+      context,
+      entity: candidate.entity,
+      fallbackEvent: localEvent,
+      rule: input.rule,
+      nowMs: input.nowMs,
+      deliver: input.deliver,
+    })) {
+      return { events: [thinkingEvent], skipReason: 'not_due' };
+    }
     return { events: [thinkingEvent, localEvent], skipReason: 'not_due' };
+  }
+
+  private tryStartProviderNpcBeat(input: {
+    context: AiJobContextV1;
+    entity: Entity;
+    fallbackEvent: AiSpeechEvent;
+    rule: AiActivePollRuleV1;
+    nowMs: number;
+    deliver?: (pid: number, events: SimEvent[]) => void;
+  }): boolean {
+    if (!this.provider || !input.deliver) return false;
+    if (input.rule.providerPolicy === 'localOnly' || input.rule.outputMode === 'lineIdOnly') return false;
+    const jobKey = `${input.rule.ruleId}:${input.context.player.entityId}:${input.entity.id}`;
+    if (this.pendingProviderJobs.has(jobKey)) return false;
+    this.pendingProviderJobs.add(jobKey);
+    this.metrics.activeProviderPending = this.pendingProviderJobs.size;
+    this.metrics.activeProviderJobs++;
+    this.noteCodexProviderCall(input.nowMs);
+    const startedAt = Date.now();
+    void this.provider.decide(input.context)
+      .then((providerOutput) => {
+        const normalized = normalizeActiveProviderOutput(providerOutput);
+        this.metrics.activeLastProviderLatencyMs = Math.max(0, Date.now() - startedAt);
+        if (normalized.providerTimings) this.metrics.activeLastProviderTimings = normalized.providerTimings;
+        const result = validateAiDecision({
+          decision: normalized.decision,
+          context: input.context,
+          entity: input.entity,
+          subject: classifyCanonSubject(input.entity),
+          source: 'codex',
+        });
+        if (result.ok && result.events.length > 0) {
+          this.metrics.activeProviderSuccesses++;
+          input.deliver?.(input.context.player.entityId, result.events);
+          return;
+        }
+        this.metrics.activeProviderRejected++;
+        this.metrics.activeProviderFallbacks++;
+        input.deliver?.(input.context.player.entityId, [input.fallbackEvent]);
+      })
+      .catch(() => {
+        this.metrics.activeProviderErrors++;
+        this.metrics.activeProviderFallbacks++;
+        this.metrics.activeLastProviderLatencyMs = Math.max(0, Date.now() - startedAt);
+        input.deliver?.(input.context.player.entityId, [input.fallbackEvent]);
+      })
+      .finally(() => {
+        this.pendingProviderJobs.delete(jobKey);
+        this.metrics.activeProviderPending = this.pendingProviderJobs.size;
+      });
+    return true;
   }
 
   private tryFireSocialSequence(input: {
@@ -840,6 +933,7 @@ export class AiActiveTriggerService {
     scene: ReturnType<typeof sceneFrameFor>,
     rule: AiActivePollRuleV1,
     queuedEvent?: AiActiveQueuedEventState,
+    locale = 'en',
   ): AiJobContextV1 {
     const meta = sim.meta(player.id);
     const profile = profileFor('npc', speaker.templateId);
@@ -864,7 +958,7 @@ export class AiActiveTriggerService {
         activeQuestIds: meta ? [...meta.questLog.keys()] : [],
         completedQuestIds: meta ? [...meta.questsDone] : [],
       },
-      locale: 'en',
+      locale: normalizeActiveLocale(locale),
       profile: compactProfileSnapshot(profile),
       scene,
       familySemantics: null,
@@ -879,7 +973,7 @@ export class AiActiveTriggerService {
       ],
       allowedIntents: profile.allowedIntentTypes,
       allowedLineIds: profile.allowedLineIds,
-      outputMode: 'line_id_only',
+      outputMode: activeOutputModeForRule(rule),
     };
   }
 
@@ -1395,6 +1489,31 @@ function socialSequenceLine(input: {
 
 function sceneTagsWith(scene: ReturnType<typeof sceneFrameFor>, extra: string): string[] {
   return [...new Set([...scene.locationTags, ...scene.structureTags, ...scene.environmentalTags, extra])].slice(0, 8);
+}
+
+function activeOutputModeForRule(rule: AiActivePollRuleV1): AiJobContextV1['outputMode'] {
+  switch (rule.outputMode) {
+    case 'dynamicTextFirst': return 'dynamic_text_experiment';
+    case 'mixedLivingWorld': return 'mixed_living_world';
+    case 'lineIdOnly': return 'line_id_only';
+  }
+}
+
+function normalizeActiveLocale(locale: string): string {
+  const trimmed = locale.trim().replace(/-/g, '_');
+  return /^[a-z]{2}(?:_[A-Z]{2})?$/.test(trimmed) ? trimmed : 'en';
+}
+
+function normalizeActiveProviderOutput(output: AiProviderOutput): AiProviderDecisionResult {
+  if (isProviderDecisionResult(output)) return output;
+  return { decision: output };
+}
+
+function isProviderDecisionResult(output: AiProviderOutput): output is AiProviderDecisionResult {
+  return typeof output === 'object'
+    && output !== null
+    && 'decision' in output
+    && typeof (output as { decision?: unknown }).decision === 'object';
 }
 
 function populationPolicyForOnline(onlineCount: number): AiActivePopulationPolicySnapshot {

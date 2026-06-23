@@ -382,6 +382,10 @@ export class AiLifeLayer {
     return this.enabled;
   }
 
+  providerForActiveTriggers(): AiProvider {
+    return this.provider;
+  }
+
   memoryDiagnostics(): { npcMemories: AiNpcMemory[]; rumors: AiRumorMemory[] } {
     return this.socialMemory.snapshot();
   }

@@ -131,6 +131,7 @@ export interface ClientSession {
   aiQuestionReadyAt: number;
   aiObjectInspectReadyAt: number;
   aiInteractionIds: Map<number, string>;
+  locale: string;
   // Hard-word enforcement strike count driving the mute ladder. Account-scoped:
   // seeded from the DB at join, kept live by enforcement/admin actions.
   chatStrikes: number;
@@ -417,7 +418,9 @@ export class GameServer {
         },
       },
     });
-    this.aiActiveTriggers = new AiActiveTriggerService();
+    this.aiActiveTriggers = new AiActiveTriggerService({
+      provider: this.aiLifeLayer.providerForActiveTriggers(),
+    });
   }
 
   // Returns the number of currently active WS sessions from the given IP.
@@ -599,6 +602,12 @@ export class GameServer {
       sim: this.sim,
       sessions: this.clients.values(),
       nowMs,
+      deliver: (pid, deliveredEvents) => {
+        const session = this.clients.get(pid);
+        if (session && !session.left && deliveredEvents.length > 0) {
+          this.send(session, { t: 'events', list: deliveredEvents });
+        }
+      },
     });
     this.routeEvents(events);
   }
@@ -800,6 +809,7 @@ export class GameServer {
       aiQuestionReadyAt: 0,
       aiObjectInspectReadyAt: 0,
       aiInteractionIds: new Map(),
+      locale: 'en',
       chatStrikes: meta.chatStrikes ?? 0,
       blockedIds: new Set(),
       blockListLoaded: false,
@@ -1252,35 +1262,42 @@ export class GameServer {
       case 'interact': sim.interact(pid); break;
       case 'ai_interact_npc':
         if (typeof msg.npc === 'number') {
+          const locale = typeof msg.locale === 'string' ? msg.locale : session.locale;
+          session.locale = locale;
           this.handleAiInteractNpc(
             session,
             msg.npc,
-            typeof msg.locale === 'string' ? msg.locale : 'en',
+            locale,
             parseAiNpcInteractionTopic(msg.topic),
           );
         }
         break;
       case 'ai_inspect_object':
         if (typeof msg.object === 'number') {
+          const locale = typeof msg.locale === 'string' ? msg.locale : session.locale;
+          session.locale = locale;
           this.handleAiInspectObject(
             session,
             msg.object,
-            typeof msg.locale === 'string' ? msg.locale : 'en',
+            locale,
           );
         }
         break;
       case 'ai_inspect_scene':
+        session.locale = typeof msg.locale === 'string' ? msg.locale : session.locale;
         this.handleAiInspectScene(
           session,
-          typeof msg.locale === 'string' ? msg.locale : 'en',
+          session.locale,
         );
         break;
       case 'ai_command_pet':
         if (typeof msg.text === 'string') {
+          const locale = typeof msg.locale === 'string' ? msg.locale : session.locale;
+          session.locale = locale;
           this.handleAiCommandPet(
             session,
             msg.text,
-            typeof msg.locale === 'string' ? msg.locale : 'en',
+            locale,
           );
         }
         break;
