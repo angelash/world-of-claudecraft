@@ -1,5 +1,6 @@
 import * as http from 'node:http';
 import * as fs from 'node:fs';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import { WebSocketServer, WebSocket } from 'ws';
 import {
@@ -35,6 +36,7 @@ import { cacheControlFor, etagFor, isNotModified } from './static_cache';
 import { recordUsageCacheEvent, recordUsageMetric, setUsageCacheSize } from './provider_usage';
 
 const PORT = Number(process.env.PORT ?? 8787);
+const HOST = (process.env.HOST ?? process.env.BIND_HOST ?? '0.0.0.0').trim() || '0.0.0.0';
 const STATIC_DIR = path.join(__dirname, '..', 'dist');
 const WIKI_URL = process.env.WIKI_URL ?? 'http://localhost:8080/wiki/index.php/Main_Page';
 // Pretty URLs that all serve the standalone "official channels" / link-tree page.
@@ -238,6 +240,25 @@ const MIME: Record<string, string> = {
   '.hdr': 'application/octet-stream', '.ktx2': 'image/ktx2', '.wasm': 'application/wasm',
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp',
 };
+
+function urlHost(host: string): string {
+  if (host === '0.0.0.0' || host === '::') return 'localhost';
+  return host.includes(':') && !host.startsWith('[') ? `[${host}]` : host;
+}
+
+function localNetworkUrls(port: number): string[] {
+  return Object.values(os.networkInterfaces())
+    .flat()
+    .filter((addr): addr is os.NetworkInterfaceInfo => !!addr && addr.family === 'IPv4' && !addr.internal)
+    .map((addr) => `http://${addr.address}:${port}`);
+}
+
+function logListening(host: string, port: number): void {
+  console.log(`World of ClaudeCraft server listening on http://${urlHost(host)}:${port}`);
+  if (host === '0.0.0.0' || host === '::') {
+    for (const url of localNetworkUrls(port)) console.log(`  LAN:  ${url}`);
+  }
+}
 
 // The admin dashboard is reached via the admin.* subdomain (Caddy proxies it
 // to this same port) or /admin for local dev. The hostname only picks which
@@ -846,8 +867,8 @@ async function main(): Promise<void> {
   }
 
   game.start();
-  server.listen(PORT, () => {
-    console.log(`World of ClaudeCraft server listening on http://localhost:${PORT}`);
+  server.listen(PORT, HOST, () => {
+    logListening(HOST, PORT);
     console.log(`  REST: /api/register /api/login /api/characters /api/status`);
     console.log(`  WS:   /ws, then first message {t:"auth",token,character}`);
   });

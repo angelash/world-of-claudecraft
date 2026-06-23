@@ -42,6 +42,7 @@ const appBuildId = env([
   'VERCEL_GIT_COMMIT_SHA',
   'CF_PAGES_COMMIT_SHA',
 ]) ?? gitSha() ?? appBuildDate.replace(/[-:TZ.]/g, '').slice(0, 12);
+const devHost = env(['VITE_DEV_HOST', 'DEV_HOST', 'HOST']) ?? '0.0.0.0';
 
 // Pretty-URL aliases for the standalone official-channels page (public/links.html).
 // Mirrors the production server's rewrite in server/main.ts (LINKS_ALIASES) so the
@@ -102,6 +103,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: devHost,
     port: 5173,
     proxy: {
       '/api': { target: 'http://127.0.0.1:8787', changeOrigin: true },
@@ -113,6 +115,9 @@ export default defineConfig({
       // up: `docker compose up -d mediawiki mediawiki-db`.
       '/wiki': { target: 'http://127.0.0.1:8080', changeOrigin: true },
     },
+  },
+  preview: {
+    host: devHost,
   },
   build: {
     target: 'es2022',

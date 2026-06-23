@@ -37,9 +37,10 @@ you can set the domain later (step 4).
 Allocate an **Elastic IP** and associate it with the instance so the
 address survives restarts.
 
-The game server and Postgres bind to loopback only (`127.0.0.1:8787` /
-`127.0.0.1:5433`); Caddy is the sole public entrance, so the security
-group above is the whole exposure story.
+Postgres binds to loopback only (`127.0.0.1:5433`). The game container publishes
+port 8787 for direct IP testing, but the security group above keeps public
+traffic on 80/443. If you want Caddy to be the only host-local entrance too,
+set `GAME_PORT_BIND=127.0.0.1:8787` before starting Docker Compose.
 
 First boot takes a few minutes (Docker image build). Watch it with:
 

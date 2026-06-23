@@ -53,7 +53,7 @@ runs for everyone online.
 cp .env.example .env
 # edit .env and set a long random POSTGRES_PASSWORD
 docker compose up -d --build     # postgres + game server, fully built
-# open http://localhost:8787 — accounts, characters, the whole world
+# open http://localhost:8787 or http://<host-ip>:8787 on your LAN
 ```
 
 For **remote hosting**: put the compose stack on any VPS, set a real
@@ -76,8 +76,9 @@ npm run server       # authoritative game server on :8787 (REST + WebSocket)
 npm run dev          # client dev server on :5173 (proxies /api and /ws)
 ```
 
-Open http://localhost:5173 → **Play Online** → create an account → create a
-character → Enter World. Open a second browser/tab and log in again — you'll
+Open http://localhost:5173 or http://<host-ip>:5173 from another LAN device,
+then choose **Play Online**, create an account, create a
+character, and enter the world. Open a second browser/tab and log in again - you'll
 see each other in town. `Enter` opens chat.
 
 The player wiki is a real MediaWiki service when running Docker Compose:

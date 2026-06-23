@@ -18,8 +18,8 @@ services:
       retries: 10
 
   # The full game server (client + API + world). `docker compose up -d`
-  # then open http://localhost:8787 — or put a TLS reverse proxy in front
-  # for remote hosting (see README).
+  # then open http://localhost:8787 or http://<host-ip>:8787 on your LAN.
+  # Put a TLS reverse proxy in front for remote hosting (see README).
   game:
     build:
       context: .
@@ -48,9 +48,10 @@ services:
       TURNSTILE_SECRET: ${TURNSTILE_SECRET:-}
       # Runtime: protects the loopback-only deploy countdown endpoint.
       RESTART_COUNTDOWN_SECRET: ${RESTART_COUNTDOWN_SECRET:-}
-    # loopback-only: the TLS reverse proxy (Caddy) is the public entrance
+    # Default publishes on all host interfaces for LAN IP access.
+    # Set GAME_PORT_BIND=127.0.0.1:8787 to keep Caddy/reverse proxy as the only entrance.
     ports:
-      - "127.0.0.1:8787:8787"
+      - "${GAME_PORT_BIND:-8787}:8787"
     volumes:
       - ${EASTBROOK_MEDIA_DIR:-./media-cache}:/app/dist/media
 
