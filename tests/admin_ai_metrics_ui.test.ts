@@ -4,7 +4,7 @@ import { setAdminLanguage } from '../src/admin/i18n';
 import type {
   AiActiveTriggerAdminSnapshot,
   AiAuditSnapshot,
-  AiContentCoverageReport, AiLifeLayerDiagnosticsSnapshot, AiLifeLayerMetricsSnapshot,
+  AiContentCoverageReport, AiContentReviewChecklist, AiLifeLayerDiagnosticsSnapshot, AiLifeLayerMetricsSnapshot,
   AiProfilePreviewReport,
 } from '../src/admin/types';
 
@@ -78,6 +78,8 @@ function coverage(overrides: CoverageOverrides = {}): AiContentCoverageReport {
       anchorsMissingTagDepth: [],
       semanticObjectsMissingTags: [],
       semanticObjectsMissingTagDepth: [],
+      semanticObjectsMissingFeatureTags: [],
+      semanticObjectsMissingAffordanceTags: [],
       semanticObjectsMissingAnchorOverlap: [],
     },
     items: {
@@ -208,6 +210,29 @@ function diagnostics(overrides: Partial<AiLifeLayerDiagnosticsSnapshot> = {}): A
       errors: ['db <offline>'],
     },
     ...overrides,
+  };
+}
+
+function coverageChecklist(overrides: Partial<AiContentReviewChecklist> = {}): AiContentReviewChecklist {
+  const base: AiContentReviewChecklist = {
+    status: 'needs_attention',
+    generatedFrom: 'aiContentCoverageReport',
+    items: [{
+      id: 'scene-semantic-anchors',
+      label: 'Scene semantic anchors',
+      status: 'needs_attention',
+      issueCount: 2,
+      examples: ['thinFeatureTags:fallen_chapel:grave_brazier', 'thinAffordanceTags:fallen_chapel:grave_brazier'],
+      reviewPrompt: 'Verify tags, featureTags, affordanceTags, anchor overlap, danger cues, and time or weather readability.',
+      validationCommand: 'npx vitest run tests/ai_content_coverage.test.ts',
+    }],
+    validationCommands: ['npx vitest run tests/ai_content_coverage.test.ts'],
+  };
+  return {
+    ...base,
+    ...overrides,
+    items: overrides.items ?? base.items,
+    validationCommands: overrides.validationCommands ?? base.validationCommands,
   };
 }
 
@@ -563,17 +588,51 @@ describe('admin AI life layer metrics renderer', () => {
     const html = renderAiLifeLayerMetrics(metrics(), coverage({
       families: { missingSemantics: ['void<script>'], semanticsWithoutContent: ['astral<orphan>'] },
       npcs: { missingInteractiveProfiles: ['aldric<bad>'] },
+      scenes: {
+        semanticObjectsMissingFeatureTags: ['fallen_chapel:grave_brazier<script>'],
+        semanticObjectsMissingAffordanceTags: ['fallen_chapel:grave_brazier<move>'],
+      },
       items: { importantItemsMissingSignals: ['gravecaller_sigil'] },
-    }));
+    }), undefined, undefined, undefined, undefined, 'coverage', null, coverageChecklist());
 
     expect(html).toContain('AI content coverage');
     expect(html).toContain('gaps');
     expect(html).toContain('Interactive NPCs missing profiles');
+    expect(html).toContain('Semantic objects missing feature tags');
+    expect(html).toContain('Semantic objects missing affordance tags');
+    expect(html).toContain('Content review checklist');
+    expect(html).toContain('Scene semantic anchors');
+    expect(html).toContain('needs attention');
+    expect(html).toContain('Review prompt');
+    expect(html).toContain('thinFeatureTags:fallen_chapel:grave_brazier');
+    expect(html).toContain('npx vitest run tests/ai_content_coverage.test.ts');
     expect(html).toContain('void&lt;script&gt;');
     expect(html).toContain('Family semantics without mob templates');
     expect(html).toContain('astral&lt;orphan&gt;');
     expect(html).toContain('aldric&lt;bad&gt;');
+    expect(html).toContain('fallen_chapel:grave_brazier&lt;script&gt;');
+    expect(html).toContain('fallen_chapel:grave_brazier&lt;move&gt;');
     expect(html).not.toContain('aldric<bad>');
+  });
+
+  it('localizes the coverage checklist in Simplified Chinese', () => {
+    setAdminLanguage('zh_CN');
+    const html = renderAiLifeLayerMetrics(metrics(), coverage({
+      scenes: {
+        semanticObjectsMissingFeatureTags: ['fallen_chapel:grave_brazier'],
+        semanticObjectsMissingAffordanceTags: ['fallen_chapel:grave_brazier'],
+      },
+    }), undefined, undefined, undefined, undefined, 'coverage', null, coverageChecklist());
+
+    expect(html).toContain('AI 内容覆盖');
+    expect(html).toContain('缺少特征标签的语义物件');
+    expect(html).toContain('缺少可交互倾向标签的语义物件');
+    expect(html).toContain('内容审查清单');
+    expect(html).toContain('场景语义锚点');
+    expect(html).toContain('需关注');
+    expect(html).toContain('审查提示');
+    expect(html).toContain('核对 tags、featureTags、affordanceTags');
+    expect(html).not.toContain('Content review checklist');
   });
 
   it('shows AI decision diagnostics and escapes audit values', () => {

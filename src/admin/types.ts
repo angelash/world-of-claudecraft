@@ -602,6 +602,8 @@ export interface AiContentCoverageReport {
     anchorsMissingTagDepth: string[];
     semanticObjectsMissingTags: string[];
     semanticObjectsMissingTagDepth: string[];
+    semanticObjectsMissingFeatureTags: string[];
+    semanticObjectsMissingAffordanceTags: string[];
     semanticObjectsMissingAnchorOverlap: string[];
   };
   items: {
@@ -615,6 +617,25 @@ export interface AiContentCoverageReport {
   lineIds: {
     referenced: string[];
   };
+}
+
+export type AiContentReviewChecklistStatus = 'pass' | 'needs_attention';
+
+export interface AiContentReviewChecklistItem {
+  id: string;
+  label: string;
+  status: AiContentReviewChecklistStatus;
+  issueCount: number;
+  examples: string[];
+  reviewPrompt: string;
+  validationCommand: string;
+}
+
+export interface AiContentReviewChecklist {
+  status: AiContentReviewChecklistStatus;
+  generatedFrom: 'aiContentCoverageReport';
+  items: AiContentReviewChecklistItem[];
+  validationCommands: string[];
 }
 
 export interface AiProfilePreviewTarget {
@@ -688,6 +709,7 @@ export interface Overview {
   aiActive: AiActiveTriggerAdminSnapshot;
   aiAudit: AiAuditSnapshot;
   aiCoverage: AiContentCoverageReport;
+  aiCoverageChecklist: AiContentReviewChecklist;
   aiProfiles: AiProfilePreviewReport;
 }
 

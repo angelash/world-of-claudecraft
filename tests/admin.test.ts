@@ -596,6 +596,13 @@ describe('admin api auth', () => {
             interactiveTotal: expect.any(Number),
           }),
         }),
+        aiCoverageChecklist: expect.objectContaining({
+          generatedFrom: 'aiContentCoverageReport',
+          items: expect.arrayContaining([expect.objectContaining({
+            id: 'scene-semantic-anchors',
+            validationCommand: 'npx vitest run tests/ai_content_coverage.test.ts',
+          })]),
+        }),
         aiProfiles: expect.objectContaining({
           authoredTotal: expect.any(Number),
           genericTotal: 2,

@@ -6,7 +6,7 @@ import type {
   AiActivePollRule, AiActiveTriggerAdminSnapshot, AiActiveTriggerDecisionSnapshot,
   AiActiveRuntimeSnapshot, AiActiveTriggerMetricsSnapshot,
   AiActiveQueuedEventSnapshot, AiActiveSequenceSnapshot, AiAuditEventSummary, AiAuditPlayerAction, AiAuditRecord, AiAuditSnapshot,
-  AiContentCoverageReport, AiDecisionJournalEntry, AiLifeLayerDiagnosticsSnapshot, AiNpcMemory, AiRumorMemory,
+  AiContentCoverageReport, AiContentReviewChecklist, AiContentReviewChecklistItem, AiDecisionJournalEntry, AiLifeLayerDiagnosticsSnapshot, AiNpcMemory, AiRumorMemory,
   AiLifeLayerMetricsSnapshot, AiProfileAuthoringIssue, AiProfileAuthoringValidationReport,
   AiProfilePreviewReport, AiProfilePreviewRow, AiProviderTimingSnapshot,
   AiProfilePreviewTarget, AiWorldDirectorProposalAuditEntry, AiWorldDirectorState,
@@ -199,6 +199,8 @@ function coverageIssueCount(coverage: AiContentCoverageReport): number {
     coverage.scenes.anchorsMissingTagDepth,
     coverage.scenes.semanticObjectsMissingTags,
     coverage.scenes.semanticObjectsMissingTagDepth,
+    coverage.scenes.semanticObjectsMissingFeatureTags,
+    coverage.scenes.semanticObjectsMissingAffordanceTags,
     coverage.scenes.semanticObjectsMissingAnchorOverlap,
     coverage.items.missingRequiredItems,
     coverage.items.requiredItemsMissingSignals,
@@ -223,6 +225,65 @@ function coverageRow(labelKey: string, items: readonly string[]): string {
     <td class="num"><span class="badge${statusClass}">${escapeHtml(fmtNumber(items.length))}</span></td>
     <td>${renderCoverageItems(items)}</td>
   </tr>`;
+}
+
+function aiCoverageChecklistStatusLabel(status: AiContentReviewChecklistItem['status']): string {
+  switch (status) {
+    case 'pass': return t('usage.aiCoverageChecklistStatusPass');
+    case 'needs_attention': return t('usage.aiCoverageChecklistStatusNeedsAttention');
+  }
+}
+
+function aiCoverageChecklistLabel(id: AiContentReviewChecklistItem['id']): string {
+  switch (id) {
+    case 'mob-family-semantics': return t('usage.aiCoverageChecklistLabel.mobFamilySemantics');
+    case 'interactive-npc-profiles': return t('usage.aiCoverageChecklistLabel.interactiveNpcProfiles');
+    case 'scene-semantic-anchors': return t('usage.aiCoverageChecklistLabel.sceneSemanticAnchors');
+    case 'discardable-item-semantics': return t('usage.aiCoverageChecklistLabel.discardableItemSemantics');
+    case 'ai-lineid-registration': return t('usage.aiCoverageChecklistLabel.aiLineIdRegistration');
+    default: return escapeHtml(id);
+  }
+}
+
+function aiCoverageChecklistReviewPrompt(id: AiContentReviewChecklistItem['id']): string {
+  switch (id) {
+    case 'mob-family-semantics': return t('usage.aiCoverageChecklistReview.mobFamilySemantics');
+    case 'interactive-npc-profiles': return t('usage.aiCoverageChecklistReview.interactiveNpcProfiles');
+    case 'scene-semantic-anchors': return t('usage.aiCoverageChecklistReview.sceneSemanticAnchors');
+    case 'discardable-item-semantics': return t('usage.aiCoverageChecklistReview.discardableItemSemantics');
+    case 'ai-lineid-registration': return t('usage.aiCoverageChecklistReview.aiLineIdRegistration');
+    default: return escapeHtml(id);
+  }
+}
+
+function renderAiCoverageChecklist(checklist?: AiContentReviewChecklist): string {
+  if (!checklist || checklist.items.length === 0) return '';
+  const rows = checklist.items.map((item) => `
+    <tr>
+      <td>${escapeHtml(aiCoverageChecklistLabel(item.id))}</td>
+      <td class="num"><span class="badge${item.status === 'needs_attention' ? ' warn' : ''}">${escapeHtml(aiCoverageChecklistStatusLabel(item.status))}</span></td>
+      <td class="num">${renderAiNumber(item.issueCount)}</td>
+      <td>${renderCoverageItems(item.examples)}</td>
+      <td>${escapeHtml(aiCoverageChecklistReviewPrompt(item.id))}</td>
+      <td><code>${escapeHtml(item.validationCommand)}</code></td>
+    </tr>`).join('');
+  return `
+    <div class="usage-section">
+      <h4>${t('usage.aiCoverageChecklistTitle')}</h4>
+      <div class="table-scroll">
+        <table class="usage-table">
+          <thead><tr>
+            <th>${t('usage.aiCoverageChecklistColArea')}</th>
+            <th class="num">${t('usage.aiCoverageChecklistColStatus')}</th>
+            <th class="num">${t('usage.aiCoverageColGaps')}</th>
+            <th>${t('usage.aiCoverageColExamples')}</th>
+            <th>${t('usage.aiCoverageChecklistColReview')}</th>
+            <th>${t('usage.aiCoverageChecklistColValidation')}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 function renderAiDelimitedItems(items: readonly string[], limit = 4): string {
@@ -1231,7 +1292,7 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
       </div>`;
 }
 
-function renderAiContentCoverage(coverage: AiContentCoverageReport): string {
+function renderAiContentCoverage(coverage: AiContentCoverageReport, checklist?: AiContentReviewChecklist): string {
   const issueCount = coverageIssueCount(coverage);
   const statusKey = issueCount > 0 ? 'usage.aiCoverageStatusGaps' : 'usage.aiCoverageStatusReady';
   const statusClass = issueCount > 0 ? ' warn' : '';
@@ -1250,6 +1311,8 @@ function renderAiContentCoverage(coverage: AiContentCoverageReport): string {
     coverageRow('usage.aiCoverageSceneMissingDepth', coverage.scenes.anchorsMissingTagDepth),
     coverageRow('usage.aiCoverageObjectMissingTags', coverage.scenes.semanticObjectsMissingTags),
     coverageRow('usage.aiCoverageObjectMissingDepth', coverage.scenes.semanticObjectsMissingTagDepth),
+    coverageRow('usage.aiCoverageObjectMissingFeatures', coverage.scenes.semanticObjectsMissingFeatureTags),
+    coverageRow('usage.aiCoverageObjectMissingAffordances', coverage.scenes.semanticObjectsMissingAffordanceTags),
     coverageRow('usage.aiCoverageObjectMissingOverlap', coverage.scenes.semanticObjectsMissingAnchorOverlap),
     coverageRow('usage.aiCoverageItemMissingRequired', coverage.items.missingRequiredItems),
     coverageRow('usage.aiCoverageItemMissingRequiredSignals', coverage.items.requiredItemsMissingSignals),
@@ -1293,7 +1356,8 @@ function renderAiContentCoverage(coverage: AiContentCoverageReport): string {
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
-      </div>`;
+      </div>
+      ${renderAiCoverageChecklist(checklist)}`;
 }
 
 function renderAiProfilePreview(profiles: AiProfilePreviewReport): string {
@@ -1727,6 +1791,7 @@ export function renderAiLifeLayerMetrics(
   active?: AiActiveTriggerAdminSnapshot,
   activeTab: AiLifeLayerTab = 'audit',
   selectedAuditId: string | null = null,
+  coverageChecklist?: AiContentReviewChecklist,
 ): string {
   const selectedTab = normalizeAiTab(activeTab);
   const needsAttention = ai.providerErrors > 0 || ai.memoryFlushFailures > 0 || ai.memoryPruneFailures > 0 || ai.memoryBudgetFailures > 0;
@@ -1769,7 +1834,7 @@ export function renderAiLifeLayerMetrics(
     audit: audit ? renderAiAuditRecords(audit, selectedAuditId) : `<div class="empty">${t('usage.aiAuditNoRecords')}</div>`,
     active: renderAiActiveTriggerControls(active),
     usage: audit ? renderAiAuditSummary(audit) : `<div class="empty">${t('usage.aiAuditNoRecords')}</div>`,
-    coverage: coverage ? renderAiContentCoverage(coverage) : `<div class="empty">${t('usage.aiCoverageAllClear')}</div>`,
+    coverage: coverage ? renderAiContentCoverage(coverage, coverageChecklist) : `<div class="empty">${t('usage.aiCoverageAllClear')}</div>`,
     profiles: profiles ? renderAiProfilePreview(profiles) : `<div class="empty">${t('usage.aiProfilesNoRows')}</div>`,
     diagnostics: diagnostics ? renderAiDiagnostics(diagnostics) : `<div class="empty">${t('usage.aiDiagnosticsNoDecisions')}</div>`,
     details: `

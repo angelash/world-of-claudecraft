@@ -258,6 +258,7 @@ async function refreshLive(): Promise<void> {
       overview.aiActive,
       activeAiTab,
       selectedAiAuditId,
+      overview.aiCoverageChecklist,
     ));
     if (activeAiTab === 'audit' && selectedAiAuditId && document.getElementById('ai-audit-detail')) {
       syncAiAuditSelection();
