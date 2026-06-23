@@ -449,6 +449,8 @@ export interface AiActiveTriggerMetricsSnapshot {
   activeProviderDeferredForActivity: number;
   activeLastProviderLatencyMs: number;
   activeLastProviderTimings?: AiProviderTimingSnapshot;
+  activeLastProviderResult: '' | 'success' | 'rejected' | 'error';
+  activeLastProviderReason: string;
   activeActionsAttempted: number;
   activeActionsApplied: number;
   activeActionsRejected: number;

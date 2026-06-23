@@ -1968,4 +1968,72 @@ describe('AI active trigger service', () => {
       activeProviderPending: 0,
     });
   });
+
+  it('records provider rejection reasons when active dynamic speech falls back locally', async () => {
+    const { sim, pid, npcId } = makeWorld();
+    const provider: AiProvider = {
+      async decide(context) {
+        return {
+          decision: {
+            schemaVersion: 1,
+            jobId: context.jobId,
+            entityRef: {
+              kind: context.entity.kind,
+              entityId: context.entity.entityId,
+              templateId: context.entity.templateId,
+            },
+            ttlMs: 1_000,
+            confidence: 0.9,
+            speech: [{ mode: 'dynamicText', language: 'en', text: 'Smell that, patient?' }],
+            intents: [{ type: 'commentOnScene' }],
+            audit: {
+              shortReason: 'thin sensory question',
+              usedPlayerInput: false,
+              safetyNotes: ['presentationOnly'],
+            },
+          },
+        };
+      },
+    };
+    const delivered: ReturnType<AiActiveTriggerService['tick']>[] = [];
+    const service = new AiActiveTriggerService({
+      provider,
+      rules: [testRule({
+        ruleId: 'test_provider_rejection_reason',
+        providerPolicy: 'codexPreferred',
+        outputMode: 'mixedLivingWorld',
+      })],
+    });
+
+    const immediate = service.tick({
+      sim,
+      sessions: [{ pid, locale: 'en' }],
+      nowMs: 1_000,
+      deliver: (_pid, events) => delivered.push(events),
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(immediate).toEqual([
+      expect.objectContaining({ type: 'aiThinking', speakerId: npcId, pid }),
+    ]);
+    expect(delivered).toEqual([[
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: npcId,
+        speech: expect.objectContaining({ mode: 'lineId' }),
+        source: 'local',
+        pid,
+      }),
+    ]]);
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeProviderCalls: 1,
+      activeProviderJobs: 1,
+      activeProviderSuccesses: 0,
+      activeProviderRejected: 1,
+      activeProviderFallbacks: 1,
+      activeLastProviderResult: 'rejected',
+      activeLastProviderReason: 'dynamic speech too thin',
+      activeProviderPending: 0,
+    });
+  });
 });

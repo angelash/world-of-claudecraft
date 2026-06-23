@@ -235,6 +235,8 @@ const fakeGame: any = {
     activeProviderPending: 1,
     activeProviderDeferredForActivity: 2,
     activeLastProviderLatencyMs: 923,
+    activeLastProviderResult: 'rejected',
+    activeLastProviderReason: 'dynamic speech too thin',
     activeActionsAttempted: 3,
     activeActionsApplied: 2,
     activeActionsRejected: 1,
@@ -581,6 +583,8 @@ describe('admin api auth', () => {
             activeProviderPending: 1,
             activeProviderDeferredForActivity: 2,
             activeCodexBudgetRemaining5h: 477,
+            activeLastProviderResult: 'rejected',
+            activeLastProviderReason: 'dynamic speech too thin',
           }),
           diagnostics: expect.objectContaining({
             enabled: true,

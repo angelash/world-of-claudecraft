@@ -1586,6 +1586,15 @@ function renderAiActiveLastAction(metrics: AiActiveTriggerMetricsSnapshot): stri
   return escapeHtml(parts.join(' / '));
 }
 
+function aiActiveProviderResultLabel(result: AiActiveTriggerMetricsSnapshot['activeLastProviderResult']): string {
+  switch (result) {
+    case 'success': return t('usage.aiActiveProviderResult.success');
+    case 'rejected': return t('usage.aiActiveProviderResult.rejected');
+    case 'error': return t('usage.aiActiveProviderResult.error');
+    default: return t('usage.aiActiveProviderResult.none');
+  }
+}
+
 function renderAiActiveRuntimeMoment(timestampMs: number): string {
   if (timestampMs <= 0) return escapeHtml(t('usage.aiDiagnosticsNone'));
   return escapeHtml(fmtRelative(new Date(timestampMs).toISOString()));
@@ -1747,6 +1756,8 @@ function renderAiActiveTriggerControls(active?: AiActiveTriggerAdminSnapshot): s
       <div class="ai-audit-status-line">
         <span>${t('usage.aiActiveColRule')}: ${escapeHtml(metrics.activeLastRuleId || t('usage.aiDiagnosticsNone'))}</span>
         <span>${t('usage.aiActiveLastLatency')}: ${renderAiLatency(metrics.activeLastProviderLatencyMs)}</span>
+        <span>${t('usage.aiActiveLastProviderResult')}: ${escapeHtml(aiActiveProviderResultLabel(metrics.activeLastProviderResult))}</span>
+        <span>${t('usage.aiActiveLastProviderReason')}: ${escapeHtml(metrics.activeLastProviderReason || t('usage.aiDiagnosticsNone'))}</span>
       </div>
       ${renderAiProviderTimingTable(metrics.activeLastProviderTimings)}
     </div>

@@ -68,6 +68,12 @@ export type AiActiveRuntimeState =
   | 'event'
   | 'poll';
 
+export type AiActiveProviderResult =
+  | ''
+  | 'success'
+  | 'rejected'
+  | 'error';
+
 export interface AiActivePollRuleV1 {
   ruleId: string;
   title: string;
@@ -122,6 +128,8 @@ export interface AiActiveTriggerMetricsSnapshot {
   activeProviderDeferredForActivity: number;
   activeLastProviderLatencyMs: number;
   activeLastProviderTimings?: AiProviderTimingSnapshot;
+  activeLastProviderResult: AiActiveProviderResult;
+  activeLastProviderReason: string;
   activeActionsAttempted: number;
   activeActionsApplied: number;
   activeActionsRejected: number;
@@ -520,6 +528,8 @@ export class AiActiveTriggerService {
     activeProviderPending: 0,
     activeProviderDeferredForActivity: 0,
     activeLastProviderLatencyMs: 0,
+    activeLastProviderResult: '',
+    activeLastProviderReason: '',
     activeActionsAttempted: 0,
     activeActionsApplied: 0,
     activeActionsRejected: 0,
@@ -1134,17 +1144,20 @@ export class AiActiveTriggerService {
         });
         if (result.ok && result.events.length > 0) {
           this.metrics.activeProviderSuccesses++;
+          this.recordProviderResult('success');
           input.deliver?.(input.context.player.entityId, result.events);
           return;
         }
         this.metrics.activeProviderRejected++;
         this.metrics.activeProviderFallbacks++;
+        this.recordProviderResult('rejected', result.reason ?? 'provider produced no deliverable events');
         input.deliver?.(input.context.player.entityId, [input.fallbackEvent]);
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         this.metrics.activeProviderErrors++;
         this.metrics.activeProviderFallbacks++;
         this.metrics.activeLastProviderLatencyMs = Math.max(0, Date.now() - startedAt);
+        this.recordProviderResult('error', providerErrorReason(error));
         input.deliver?.(input.context.player.entityId, [input.fallbackEvent]);
       })
       .finally(() => {
@@ -1528,6 +1541,11 @@ export class AiActiveTriggerService {
     } else {
       this.metrics.activeActionsRejected++;
     }
+  }
+
+  private recordProviderResult(result: AiActiveProviderResult, reason = ''): void {
+    this.metrics.activeLastProviderResult = result;
+    this.metrics.activeLastProviderReason = compactProviderReason(reason);
   }
 
   private bestCreatureRoutineEvent(
@@ -3116,6 +3134,16 @@ function isProviderDecisionResult(output: AiProviderOutput): output is AiProvide
     && output !== null
     && 'decision' in output
     && typeof (output as { decision?: unknown }).decision === 'object';
+}
+
+function providerErrorReason(error: unknown): string {
+  if (error instanceof Error) return error.message || 'provider error';
+  if (typeof error === 'string') return error;
+  return 'provider error';
+}
+
+function compactProviderReason(reason: string): string {
+  return reason.trim().replace(/\s+/g, ' ').slice(0, 240);
 }
 
 function normalizeActiveRules(rules: readonly AiActivePollRuleV1[]): AiActivePollRuleV1[] {
