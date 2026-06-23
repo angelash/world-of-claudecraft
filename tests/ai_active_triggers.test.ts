@@ -146,6 +146,16 @@ describe('AI active trigger service', () => {
       activePollSkipped: 1,
       activeLastSkipReason: 'no_online_players',
     });
+    expect(service.diagnosticsSnapshot().runtime).toMatchObject({
+      schedulerIntervalMs: 30_000,
+      lastTickStartedAtMs: 1_000,
+      lastTickSessionCount: 0,
+      lastTickProducedEvents: 0,
+      lastTickState: 'idle',
+      lastTickSkipReason: 'no_online_players',
+      queuedEventCount: 0,
+      nextDueAtMs: 0,
+    });
   });
 
   it('applies runtime config updates and keeps rules editable after disabling them', () => {
@@ -221,6 +231,14 @@ describe('AI active trigger service', () => {
       activePollFired: 1,
       activeCandidatesSelected: 1,
       activeLocalReactions: 1,
+    });
+    expect(service.diagnosticsSnapshot().runtime).toMatchObject({
+      lastTickStartedAtMs: 1_000,
+      lastTickSessionCount: 1,
+      lastTickProducedEvents: 2,
+      lastTickState: 'poll',
+      lastTickSkipReason: '',
+      queuedEventCount: 0,
     });
     expect(mainlineSnapshot(sim, pid)).toEqual(before);
   });

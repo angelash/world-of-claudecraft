@@ -520,6 +520,21 @@ export interface AiActiveCodexBudgetSnapshot {
   reserveRatio: number;
 }
 
+export interface AiActiveRuntimeSnapshot {
+  schedulerIntervalMs: number;
+  lastTickStartedAtMs: number;
+  lastTickCompletedAtMs: number;
+  lastTickDurationMs: number;
+  lastTickSessionCount: number;
+  lastTickProducedEvents: number;
+  lastTickState: 'disabled' | 'idle' | 'event' | 'poll';
+  lastTickSkipReason: string;
+  nextDueAtMs: number;
+  queuedEventCount: number;
+  nextQueuedEventAtMs: number;
+  oldestQueuedEventAgeMs: number;
+}
+
 export interface AiActiveTriggerDiagnosticsSnapshot {
   enabled: boolean;
   eventsEnabled: boolean;
@@ -527,6 +542,7 @@ export interface AiActiveTriggerDiagnosticsSnapshot {
   realActionsEnabled: boolean;
   populationPolicy: AiActivePopulationPolicySnapshot | null;
   codexBudget: AiActiveCodexBudgetSnapshot;
+  runtime: AiActiveRuntimeSnapshot;
   rules: AiActivePollRule[];
   eventQueue: AiActiveQueuedEventSnapshot[];
   activeSequences: AiActiveSequenceSnapshot[];

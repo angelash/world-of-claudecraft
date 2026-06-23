@@ -4,7 +4,7 @@ import type {
   AccountDetail, AccountRow, CharacterRow, ChatFilterData, ChatModeratedAccount,
   ChatModerationDetail, FilterWord, LivePlayer, ModerationAccountDetail, ModerationQueueRow,
   AiActivePollRule, AiActiveTriggerAdminSnapshot, AiActiveTriggerDecisionSnapshot,
-  AiActiveTriggerMetricsSnapshot,
+  AiActiveRuntimeSnapshot, AiActiveTriggerMetricsSnapshot,
   AiActiveQueuedEventSnapshot, AiActiveSequenceSnapshot, AiAuditEventSummary, AiAuditPlayerAction, AiAuditRecord, AiAuditSnapshot,
   AiContentCoverageReport, AiDecisionJournalEntry, AiLifeLayerDiagnosticsSnapshot, AiNpcMemory, AiRumorMemory,
   AiLifeLayerMetricsSnapshot, AiProfileAuthoringIssue, AiProfileAuthoringValidationReport,
@@ -1466,10 +1466,75 @@ function renderAiActiveLastAction(metrics: AiActiveTriggerMetricsSnapshot): stri
   return escapeHtml(parts.join(' / '));
 }
 
+function renderAiActiveRuntimeMoment(timestampMs: number): string {
+  if (timestampMs <= 0) return escapeHtml(t('usage.aiDiagnosticsNone'));
+  return escapeHtml(fmtRelative(new Date(timestampMs).toISOString()));
+}
+
+function renderAiActiveRuntimeCountdown(targetAtMs: number): string {
+  if (targetAtMs <= 0) return escapeHtml(t('usage.aiDiagnosticsNone'));
+  return escapeHtml(fmtDuration(Math.max(0, (targetAtMs - Date.now()) / 1000)));
+}
+
+function renderAiActiveRuntimeAge(ageMs: number): string {
+  if (ageMs <= 0) return escapeHtml(t('usage.aiDiagnosticsNone'));
+  return escapeHtml(fmtDuration(ageMs / 1000));
+}
+
+function aiActiveRuntimeStateLabel(runtime: AiActiveRuntimeSnapshot): string {
+  switch (runtime.lastTickState) {
+    case 'disabled': return t('usage.aiActiveRuntimeState.disabled');
+    case 'event': return t('usage.aiActiveRuntimeState.event');
+    case 'poll': return t('usage.aiActiveRuntimeState.poll');
+    case 'idle': return t('usage.aiActiveRuntimeState.idle');
+  }
+}
+
+function aiActiveSkipReasonLabel(reason: AiActiveRuntimeSnapshot['lastTickSkipReason']): string {
+  switch (reason) {
+    case 'disabled': return t('usage.aiActiveSkip.disabled');
+    case 'events_disabled': return t('usage.aiActiveSkip.events_disabled');
+    case 'polls_disabled': return t('usage.aiActiveSkip.polls_disabled');
+    case 'no_online_players': return t('usage.aiActiveSkip.no_online_players');
+    case 'not_due': return t('usage.aiActiveSkip.not_due');
+    case 'player_missing': return t('usage.aiActiveSkip.player_missing');
+    case 'player_busy_combat': return t('usage.aiActiveSkip.player_busy_combat');
+    case 'player_recent_ai_speech': return t('usage.aiActiveSkip.player_recent_ai_speech');
+    case 'no_candidate': return t('usage.aiActiveSkip.no_candidate');
+    case 'entity_cooldown': return t('usage.aiActiveSkip.entity_cooldown');
+    default: return t('usage.aiDiagnosticsNone');
+  }
+}
+
+function renderAiActiveRuntimeHint(diagnostics: AiActiveTriggerAdminSnapshot['diagnostics']): string {
+  const { runtime } = diagnostics;
+  if (!diagnostics.enabled) return escapeHtml(t('usage.aiActiveRuntimeHintDisabled'));
+  if (runtime.lastTickState === 'event' || runtime.lastTickState === 'poll') {
+    return escapeHtml(t('usage.aiActiveRuntimeHintProduced', { count: fmtNumber(runtime.lastTickProducedEvents) }));
+  }
+  if (runtime.lastTickSkipReason === 'no_online_players') {
+    return escapeHtml(t('usage.aiActiveRuntimeHintNoOnline'));
+  }
+  if (runtime.lastTickSkipReason === 'not_due') {
+    return escapeHtml(t('usage.aiActiveRuntimeHintNotDue'));
+  }
+  if (runtime.lastTickSkipReason) {
+    return escapeHtml(t('usage.aiActiveRuntimeHintIdleReason', {
+      reason: aiActiveSkipReasonLabel(runtime.lastTickSkipReason),
+    }));
+  }
+  return escapeHtml(t('usage.aiActiveRuntimeHintHealthy'));
+}
+
 function renderAiActiveTriggerControls(active?: AiActiveTriggerAdminSnapshot): string {
   if (!active) return `<div class="empty">${t('usage.aiActiveNoData')}</div>`;
   const { diagnostics, metrics } = active;
   const policy = diagnostics.populationPolicy;
+  const runtime = diagnostics.runtime;
+  const runtimeStateClass = !diagnostics.enabled
+    || (runtime.lastTickState === 'idle' && runtime.lastTickSkipReason !== '' && runtime.lastTickSkipReason !== 'no_online_players' && runtime.lastTickSkipReason !== 'not_due')
+    ? ' warn'
+    : '';
   const rules = diagnostics.rules.map(renderAiActiveRuleRow).join('');
   const recentRows = diagnostics.recentDecisions.length === 0
     ? `<tr><td colspan="6" class="empty">${t('usage.aiActiveNoRecentDecisions')}</td></tr>`
@@ -1514,6 +1579,44 @@ function renderAiActiveTriggerControls(active?: AiActiveTriggerAdminSnapshot): s
         <div class="ai-health-value">${renderAiActiveLastAction(metrics)}</div>
         <div class="ai-health-label">${t('usage.aiActiveLastAction')}</div>
       </div>
+    </div>
+    <div class="usage-section">
+      <h4>${t('usage.aiActiveRuntimeTitle')}</h4>
+      <div class="ai-health-grid">
+        <div class="ai-health-cell">
+          <div class="ai-health-value"><span class="badge${runtimeStateClass}">${escapeHtml(aiActiveRuntimeStateLabel(runtime))}</span></div>
+          <div class="ai-health-label">${t('usage.aiActiveRuntimeStateLabel')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiActiveRuntimeMoment(runtime.lastTickCompletedAtMs)}</div>
+          <div class="ai-health-label">${t('usage.aiActiveRuntimeLastTick')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${escapeHtml(fmtDuration(runtime.schedulerIntervalMs / 1000))}</div>
+          <div class="ai-health-label">${t('usage.aiActiveRuntimeInterval')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(runtime.lastTickSessionCount)}</div>
+          <div class="ai-health-label">${t('usage.aiActiveRuntimeSessions')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${escapeHtml(aiActiveSkipReasonLabel(runtime.lastTickSkipReason))}</div>
+          <div class="ai-health-label">${t('usage.aiActiveRuntimeLastReason')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiActiveRuntimeCountdown(runtime.nextDueAtMs)}</div>
+          <div class="ai-health-label">${t('usage.aiActiveRuntimeNextDue')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiNumber(runtime.queuedEventCount)}</div>
+          <div class="ai-health-label">${t('usage.aiActiveRuntimeQueueSize')}</div>
+        </div>
+        <div class="ai-health-cell">
+          <div class="ai-health-value">${renderAiActiveRuntimeAge(runtime.oldestQueuedEventAgeMs)}</div>
+          <div class="ai-health-label">${t('usage.aiActiveRuntimeQueueAge')}</div>
+        </div>
+      </div>
+      <div class="hint">${renderAiActiveRuntimeHint(diagnostics)}</div>
     </div>
     <div class="usage-section">
       <h4>${t('usage.aiActiveGlobalTitle')}</h4>

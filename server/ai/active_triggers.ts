@@ -59,6 +59,12 @@ export type AiActivePopulationBand =
   | 'crowded'
   | 'protected';
 
+export type AiActiveRuntimeState =
+  | 'disabled'
+  | 'idle'
+  | 'event'
+  | 'poll';
+
 export interface AiActivePollRuleV1 {
   ruleId: string;
   title: string;
@@ -204,6 +210,21 @@ export interface AiActiveCodexBudgetSnapshot {
   reserveRatio: number;
 }
 
+export interface AiActiveRuntimeSnapshot {
+  schedulerIntervalMs: number;
+  lastTickStartedAtMs: number;
+  lastTickCompletedAtMs: number;
+  lastTickDurationMs: number;
+  lastTickSessionCount: number;
+  lastTickProducedEvents: number;
+  lastTickState: AiActiveRuntimeState;
+  lastTickSkipReason: AiActiveSkipReason | '';
+  nextDueAtMs: number;
+  queuedEventCount: number;
+  nextQueuedEventAtMs: number;
+  oldestQueuedEventAgeMs: number;
+}
+
 export interface AiActiveTriggerDiagnosticsSnapshot {
   enabled: boolean;
   eventsEnabled: boolean;
@@ -211,6 +232,7 @@ export interface AiActiveTriggerDiagnosticsSnapshot {
   realActionsEnabled: boolean;
   populationPolicy: AiActivePopulationPolicySnapshot | null;
   codexBudget: AiActiveCodexBudgetSnapshot;
+  runtime: AiActiveRuntimeSnapshot;
   rules: AiActivePollRuleV1[];
   eventQueue: AiActiveQueuedEventSnapshot[];
   activeSequences: AiActiveSequenceSnapshot[];
@@ -254,6 +276,7 @@ export interface AiActiveTriggerServiceOptions {
   codexMaxCalls5h?: number;
   codexMaxCallsWeek?: number;
   codexReserveRatio?: number;
+  schedulerIntervalMs?: number;
   provider?: AiProvider;
 }
 
@@ -439,6 +462,7 @@ export class AiActiveTriggerService {
   private readonly codexMaxCalls5h: number;
   private readonly codexMaxCallsWeek: number;
   private readonly codexReserveRatio: number;
+  private readonly schedulerIntervalMs: number;
   private readonly provider: AiProvider | null;
   private readonly cursors = new Map<string, AiActivePollCursorState>();
   private readonly entityCooldownUntilMs = new Map<number, number>();
@@ -495,6 +519,7 @@ export class AiActiveTriggerService {
     activeLastSkipReason: '',
     activeLastRuleId: '',
   };
+  private readonly runtime: AiActiveRuntimeSnapshot;
 
   constructor(options: AiActiveTriggerServiceOptions = {}) {
     this.enabled = options.enabled ?? process.env.AI_LIVING_WORLD_EXPERIMENT !== '0';
@@ -509,7 +534,22 @@ export class AiActiveTriggerService {
     this.codexMaxCalls5h = Math.max(0, Math.floor(options.codexMaxCalls5h ?? envNonNegativeInt('AI_CODEX_ACTIVE_MAX_CALLS_5H', 600)));
     this.codexMaxCallsWeek = Math.max(0, Math.floor(options.codexMaxCallsWeek ?? envNonNegativeInt('AI_CODEX_ACTIVE_MAX_CALLS_WEEK', 5_000)));
     this.codexReserveRatio = clamp01(options.codexReserveRatio ?? envRatio('AI_CODEX_ACTIVE_RESERVE_RATIO', 0.2));
+    this.schedulerIntervalMs = Math.max(1_000, Math.floor(options.schedulerIntervalMs ?? 30_000));
     this.provider = options.provider ?? null;
+    this.runtime = {
+      schedulerIntervalMs: this.schedulerIntervalMs,
+      lastTickStartedAtMs: 0,
+      lastTickCompletedAtMs: 0,
+      lastTickDurationMs: 0,
+      lastTickSessionCount: 0,
+      lastTickProducedEvents: 0,
+      lastTickState: 'idle',
+      lastTickSkipReason: '',
+      nextDueAtMs: 0,
+      queuedEventCount: 0,
+      nextQueuedEventAtMs: 0,
+      oldestQueuedEventAgeMs: 0,
+    };
     this.refreshCodexBudgetMetrics(Date.now());
   }
 
@@ -600,15 +640,24 @@ export class AiActiveTriggerService {
     applyAction?: AiActiveWorldActionBridge;
     applyNpcAction?: AiActiveNpcActionBridge;
   }): SimEvent[] {
+    const wallStartedAtMs = Date.now();
     this.refreshCodexBudgetMetrics(input.nowMs);
     if (!this.enabled) {
+      this.populationPolicy = null;
+      this.metrics.activeSchedulerOnlineCount = 0;
+      this.metrics.activeSchedulerLastBand = '';
       this.recordSkip('', 'disabled');
+      this.finishTick(input.nowMs, wallStartedAtMs, 0, 'disabled', 'disabled');
       return [];
     }
 
     const sessions = [...input.sessions].filter((session) => !session.left);
     if (sessions.length === 0) {
+      this.populationPolicy = null;
+      this.metrics.activeSchedulerOnlineCount = 0;
+      this.metrics.activeSchedulerLastBand = '';
       this.recordSkip('', 'no_online_players');
+      this.finishTick(input.nowMs, wallStartedAtMs, 0, 'idle', 'no_online_players');
       return [];
     }
 
@@ -622,14 +671,19 @@ export class AiActiveTriggerService {
       nowMs: input.nowMs,
       applyNpcAction: input.applyNpcAction,
     });
-    if (eventEvents.length > 0) return eventEvents;
+    if (eventEvents.length > 0) {
+      this.finishTick(input.nowMs, wallStartedAtMs, sessions.length, 'event', '', eventEvents.length);
+      return eventEvents;
+    }
 
     if (!this.pollsEnabled) {
       this.recordSkip('', 'polls_disabled');
+      this.finishTick(input.nowMs, wallStartedAtMs, sessions.length, 'idle', 'polls_disabled');
       return [];
     }
 
     const events: SimEvent[] = [];
+    let tickSkipReason: AiActiveSkipReason | '' = 'not_due';
     const pollSessions = this.selectPollSessions(sessions, this.populationPolicy);
     this.metrics.activeSchedulerSessionsConsidered += pollSessions.length;
     this.metrics.activeSchedulerSessionsSuppressed += Math.max(0, sessions.length - pollSessions.length);
@@ -658,10 +712,19 @@ export class AiActiveTriggerService {
           cursor.lastSkipReason = '';
         } else {
           cursor.lastSkipReason = result.skipReason;
+          tickSkipReason = result.skipReason;
           this.recordSkip(rule.ruleId, result.skipReason);
         }
       }
     }
+    this.finishTick(
+      input.nowMs,
+      wallStartedAtMs,
+      sessions.length,
+      events.length > 0 ? 'poll' : 'idle',
+      events.length > 0 ? '' : tickSkipReason,
+      events.length,
+    );
     return events;
   }
 
@@ -677,6 +740,7 @@ export class AiActiveTriggerService {
       realActionsEnabled: this.realActionsEnabled,
       populationPolicy: this.populationPolicy ? { ...this.populationPolicy } : null,
       codexBudget: this.codexBudgetSnapshot(Date.now()),
+      runtime: { ...this.runtime },
       rules: this.rules.map((rule) => ({ ...rule, cooldown: { ...rule.cooldown } })),
       eventQueue: this.eventQueue.map((event) => eventSnapshot(event)),
       activeSequences: [...this.activeSequences.values()].map((sequence) => sequenceSnapshot(sequence)),
@@ -714,6 +778,14 @@ export class AiActiveTriggerService {
     this.cancelActiveSequences();
     this.metrics.activeProviderPending = 0;
     this.populationPolicy = null;
+    this.runtime.lastTickSessionCount = 0;
+    this.runtime.lastTickProducedEvents = 0;
+    this.runtime.lastTickState = 'idle';
+    this.runtime.lastTickSkipReason = '';
+    this.runtime.nextDueAtMs = 0;
+    this.runtime.queuedEventCount = 0;
+    this.runtime.nextQueuedEventAtMs = 0;
+    this.runtime.oldestQueuedEventAgeMs = 0;
   }
 
   cancelActiveSequences(): AiActiveSequenceCancelResult {
@@ -1621,6 +1693,55 @@ export class AiActiveTriggerService {
       if (nowMs - this.codexProviderCallTimesMs[i] <= CODEX_WINDOW_WEEK_MS) continue;
       this.codexProviderCallTimesMs.splice(i, 1);
     }
+  }
+
+  private finishTick(
+    nowMs: number,
+    wallStartedAtMs: number,
+    sessionCount: number,
+    state: AiActiveRuntimeState,
+    skipReason: AiActiveSkipReason | '',
+    producedEvents = 0,
+  ): void {
+    const durationMs = Math.max(0, Date.now() - wallStartedAtMs);
+    const nextDueAtMs = this.nextDueAtMs();
+    const nextQueuedEventAtMs = this.nextQueuedEventAtMs();
+    const oldestQueuedEventAgeMs = this.oldestQueuedEventAgeMs(nowMs);
+    this.runtime.lastTickStartedAtMs = nowMs;
+    this.runtime.lastTickCompletedAtMs = nowMs + durationMs;
+    this.runtime.lastTickDurationMs = durationMs;
+    this.runtime.lastTickSessionCount = sessionCount;
+    this.runtime.lastTickProducedEvents = producedEvents;
+    this.runtime.lastTickState = state;
+    this.runtime.lastTickSkipReason = skipReason;
+    this.runtime.nextDueAtMs = nextDueAtMs;
+    this.runtime.queuedEventCount = this.eventQueue.length;
+    this.runtime.nextQueuedEventAtMs = nextQueuedEventAtMs;
+    this.runtime.oldestQueuedEventAgeMs = oldestQueuedEventAgeMs;
+  }
+
+  private nextDueAtMs(): number {
+    let nextDueAtMs = 0;
+    for (const cursor of this.cursors.values()) {
+      if (nextDueAtMs === 0 || cursor.nextDueAtMs < nextDueAtMs) nextDueAtMs = cursor.nextDueAtMs;
+    }
+    return nextDueAtMs;
+  }
+
+  private nextQueuedEventAtMs(): number {
+    let nextAttemptAtMs = 0;
+    for (const event of this.eventQueue) {
+      if (nextAttemptAtMs === 0 || event.nextAttemptAtMs < nextAttemptAtMs) nextAttemptAtMs = event.nextAttemptAtMs;
+    }
+    return nextAttemptAtMs;
+  }
+
+  private oldestQueuedEventAgeMs(nowMs: number): number {
+    let oldestCreatedAtMs = 0;
+    for (const event of this.eventQueue) {
+      if (oldestCreatedAtMs === 0 || event.createdAtMs < oldestCreatedAtMs) oldestCreatedAtMs = event.createdAtMs;
+    }
+    return oldestCreatedAtMs > 0 ? Math.max(0, nowMs - oldestCreatedAtMs) : 0;
   }
 
   private queuedEventFromSimEvent(sim: Sim, event: SimEvent, nowMs: number): AiActiveQueuedEventState | null {

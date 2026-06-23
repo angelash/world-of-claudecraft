@@ -443,6 +443,7 @@ export class GameServer {
       },
     });
     this.aiActiveTriggers = new AiActiveTriggerService({
+      schedulerIntervalMs: AI_ACTIVE_TRIGGER_INTERVAL_MS,
       provider: this.aiLifeLayer.providerForActiveTriggers(),
     });
   }

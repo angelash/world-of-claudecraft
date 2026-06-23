@@ -276,6 +276,20 @@ function activeTriggers(overrides: Partial<AiActiveTriggerAdminSnapshot> = {}): 
         remainingCallsWeek: 3994,
         reserveRatio: 0.2,
       },
+      runtime: {
+        schedulerIntervalMs: 30_000,
+        lastTickStartedAtMs: Date.now() - 2_500,
+        lastTickCompletedAtMs: Date.now() - 2_000,
+        lastTickDurationMs: 28,
+        lastTickSessionCount: 2,
+        lastTickProducedEvents: 2,
+        lastTickState: 'poll',
+        lastTickSkipReason: '',
+        nextDueAtMs: Date.now() + 15_000,
+        queuedEventCount: 1,
+        nextQueuedEventAtMs: Date.now() + 5_000,
+        oldestQueuedEventAgeMs: 9_000,
+      },
       rules: [{
         ruleId: 'scene_ambient_awareness',
         title: 'Scene ambient awareness',
@@ -614,6 +628,11 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('Actions applied / rejected');
     expect(html).toContain('Last real action');
     expect(html).toContain('mob:flee / applied');
+    expect(html).toContain('Runtime health');
+    expect(html).toContain('Scheduler state');
+    expect(html).toContain('Scheduler interval');
+    expect(html).toContain('Last idle reason');
+    expect(html).toContain('The last scheduler pass produced 2 player-visible AI events.');
     expect(html).toContain('Polling rules');
     expect(html).toContain('Codex preferred');
     expect(html).toContain('Mixed living world');
@@ -646,6 +665,11 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('真实动作应用 / 拒绝');
     expect(html).toContain('最近真实动作');
     expect(html).toContain('mob:flee / 已应用');
+    expect(html).toContain('运行态健康');
+    expect(html).toContain('调度器状态');
+    expect(html).toContain('调度周期');
+    expect(html).toContain('最近空转原因');
+    expect(html).toContain('最近一次调度产生了 2 个对玩家可见的 AI 事件。');
     expect(html).toContain('轮询规则');
     expect(html).toContain('优先 Codex');
     expect(html).toContain('混合生活世界');

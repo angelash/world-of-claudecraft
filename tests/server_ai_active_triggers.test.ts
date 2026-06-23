@@ -161,10 +161,12 @@ describe('server AI active triggers', () => {
     teleportNear(server, session.pid, npc.id);
     const before = mainlineSnapshot(server, session.pid);
     fc.sent.length = 0;
+    let runtimeBeforeStop: ReturnType<GameServer['aiActiveTriggerDiagnostics']>['runtime'] | null = null;
 
     try {
       server.start();
       await vi.advanceTimersByTimeAsync(AI_ACTIVE_TRIGGER_INTERVAL_MS);
+      runtimeBeforeStop = server.aiActiveTriggerDiagnostics().runtime;
     } finally {
       server.stop();
     }
@@ -186,6 +188,14 @@ describe('server AI active triggers', () => {
       activePollDue: 1,
       activePollFired: 1,
       activeProviderCalls: 0,
+    });
+    expect(runtimeBeforeStop).toMatchObject({
+      schedulerIntervalMs: AI_ACTIVE_TRIGGER_INTERVAL_MS,
+      lastTickSessionCount: 1,
+      lastTickProducedEvents: 2,
+      lastTickState: 'poll',
+      lastTickSkipReason: '',
+      queuedEventCount: 0,
     });
     expect(mainlineSnapshot(server, session.pid)).toEqual(before);
   });
@@ -211,6 +221,13 @@ describe('server AI active triggers', () => {
     expect(server.aiActiveTriggerMetrics()).toMatchObject({
       activePollSkipped: 1,
       activeLastSkipReason: 'polls_disabled',
+    });
+    expect(server.aiActiveTriggerDiagnostics().runtime).toMatchObject({
+      schedulerIntervalMs: AI_ACTIVE_TRIGGER_INTERVAL_MS,
+      lastTickSessionCount: 1,
+      lastTickProducedEvents: 0,
+      lastTickState: 'idle',
+      lastTickSkipReason: 'polls_disabled',
     });
   });
 
