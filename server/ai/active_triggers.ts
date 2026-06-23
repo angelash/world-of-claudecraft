@@ -1224,7 +1224,6 @@ export class AiActiveTriggerService {
     deliver?: (pid: number, events: SimEvent[]) => void;
     deferProvider?: boolean;
   }): boolean {
-    if (input.sequence.kind !== 'npc') return false;
     const firstSpeaker = input.sequence.speakers[0];
     const firstSpeech = input.sequence.events[1];
     if (!firstSpeaker || firstSpeech?.type !== 'aiSpeech') return false;
@@ -1790,11 +1789,14 @@ export class AiActiveTriggerService {
     rule: AiActivePollRuleV1,
     locale = 'en',
   ): AiJobContextV1 {
-    const context = this.contextFor(sim, player, speaker, scene, rule, undefined, locale);
+    const context = sequence.kind === 'creature'
+      ? this.contextForCreature(sim, player, speaker, scene, rule, locale)
+      : this.contextFor(sim, player, speaker, scene, rule, undefined, locale);
     const partner = sequence.speakers.find((candidate) => candidate.id !== speaker.id);
     context.recentObservations.push(
       'sequence:social',
       `sequenceKind:${sequence.kind}`,
+      ...(sequence.family ? [`sequenceFamily:${sequence.family}`] : []),
       ...(partner ? [`partner:${partner.templateId}`, `partnerName:${partner.name}`] : []),
       ...(sequence.focusObject ? [
         `focusObject:${sequence.focusObject.objectId}`,

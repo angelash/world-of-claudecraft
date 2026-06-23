@@ -1401,6 +1401,108 @@ describe('AI active trigger service', () => {
     }
   });
 
+  it('uses the dynamic provider for wild creature social sequence openers', async () => {
+    vi.useFakeTimers();
+    const rule = DEFAULT_ACTIVE_POLL_RULES.find((candidate) => candidate.ruleId === 'npc_social_sequence');
+    if (!rule) throw new Error('missing NPC social sequence rule');
+    const { sim, pid } = makeWorld();
+    for (const npc of [...sim.entities.values()].filter((entity) => entity.kind === 'npc')) {
+      moveEntity(sim, npc.id, 320, 320);
+    }
+    const wolves = entitiesByTemplate(sim, 'forest_wolf').slice(0, 2);
+    if (wolves.length < 2) throw new Error('missing wolf pair');
+    moveEntity(sim, wolves[0].id, 8, 17);
+    moveEntity(sim, wolves[1].id, 10, 17);
+    moveEntity(sim, pid, 9, 18);
+    let seenContext: AiJobContextV1 | null = null;
+    const provider: AiProvider = {
+      async decide(context) {
+        seenContext = context;
+        return {
+          decision: {
+            schemaVersion: 1,
+            jobId: context.jobId,
+            entityRef: {
+              kind: context.entity.kind,
+              entityId: context.entity.entityId,
+              templateId: context.entity.templateId,
+            },
+            ttlMs: 1_000,
+            confidence: 0.9,
+            speech: [{ mode: 'dynamicText', language: 'en', text: 'The pack hates this forge smoke.' }],
+            intents: [{ type: 'commentOnScene' }],
+            audit: {
+              shortReason: 'creature social opener',
+              usedPlayerInput: false,
+              safetyNotes: ['presentationOnly'],
+            },
+          },
+        };
+      },
+    };
+    const delivered: SimEvent[][] = [];
+    const service = new AiActiveTriggerService({
+      provider,
+      thinkingDurationMs: 800,
+      rules: [rule],
+    });
+
+    try {
+      const immediate = service.tick({
+        sim,
+        sessions: [{ pid, locale: 'en' }],
+        nowMs: 1_000,
+        deliver: (_pid, events) => delivered.push(events),
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(immediate).toEqual([
+        expect.objectContaining({ type: 'aiThinking', speakerId: wolves[0].id, pid }),
+      ]);
+      expect(seenContext).toMatchObject({
+        entity: expect.objectContaining({ kind: 'mob', templateId: 'forest_wolf' }),
+        familySemantics: expect.objectContaining({ family: 'beast' }),
+        recentObservations: expect.arrayContaining([
+          'rule:npc_social_sequence',
+          'category:socialSequence',
+          'creature:forest_wolf',
+          'family:beast',
+          'sequence:social',
+          'sequenceKind:creature',
+          'sequenceFamily:beast',
+          'partner:forest_wolf',
+        ]),
+      });
+      expect(delivered.flat()).toContainEqual(expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: wolves[0].id,
+        speech: expect.objectContaining({
+          mode: 'dynamicText',
+          language: 'en',
+          text: 'The pack hates this forge smoke.',
+        }),
+        source: 'codex',
+        pid,
+      }));
+      expect(delivered.flat()).toContainEqual(expect.objectContaining({
+        type: 'aiThinking',
+        speakerId: wolves[1].id,
+        pid,
+      }));
+      expect(service.runtimeMetrics()).toMatchObject({
+        activeProviderCalls: 1,
+        activeProviderJobs: 1,
+        activeProviderSuccesses: 1,
+        activeSequenceFired: 1,
+        activeSequenceLastLength: 2,
+      });
+    } finally {
+      service.stop();
+      vi.useRealTimers();
+    }
+  });
+
   it('applies short NPC actions when social sequences become live behavior', () => {
     const { sim, pid } = makeWorld();
     sim.time = 8 * 60;
