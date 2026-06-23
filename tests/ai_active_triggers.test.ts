@@ -51,6 +51,12 @@ function entityByTemplate(sim: Sim, templateId: string) {
   return entity;
 }
 
+function entitiesByTemplate(sim: Sim, templateId: string) {
+  const entities = [...sim.entities.values()].filter((candidate) => candidate.templateId === templateId);
+  if (entities.length === 0) throw new Error(`missing ${templateId}`);
+  return entities;
+}
+
 function moveEntity(sim: Sim, entityId: number, x: number, z: number): void {
   const entity = sim.entities.get(entityId);
   if (!entity) throw new Error(`missing entity ${entityId}`);
@@ -785,6 +791,108 @@ describe('AI active trigger service', () => {
       activeLastActionKind: 'npc:shortMove',
       activeLastActionResult: 'applied',
     });
+  });
+
+  it('builds paced wild creature sequences when no NPC pair is nearby', () => {
+    const { sim, pid } = makeWorld();
+    for (const npc of [...sim.entities.values()].filter((entity) => entity.kind === 'npc')) {
+      moveEntity(sim, npc.id, 320, 320);
+    }
+    const wolves = entitiesByTemplate(sim, 'forest_wolf').slice(0, 2);
+    if (wolves.length < 2) throw new Error('missing wolf pair');
+    moveEntity(sim, wolves[0].id, 8, 17);
+    moveEntity(sim, wolves[1].id, 10, 17);
+    moveEntity(sim, pid, 9, 18);
+    const before = mainlineSnapshot(sim, pid);
+    const service = new AiActiveTriggerService({
+      thinkingDurationMs: 800,
+      rules: [testRule({ ruleId: 'test_creature_sequence', category: 'socialSequence' })],
+    });
+
+    const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
+    const thinking = events.filter((event): event is Extract<typeof event, { type: 'aiThinking' }> => event.type === 'aiThinking');
+    const speech = events.filter((event): event is Extract<typeof event, { type: 'aiSpeech' }> => event.type === 'aiSpeech');
+
+    expect(events).toHaveLength(4);
+    expect(thinking).toHaveLength(2);
+    expect(speech).toHaveLength(2);
+    expect(thinking.map((event) => event.speakerId)).toEqual(wolves.map((wolf) => wolf.id));
+    expect(speech[0]).toEqual(expect.objectContaining({
+      speakerId: wolves[0].id,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.familySceneBeastUneasy' }),
+      reaction: expect.objectContaining({
+        kind: 'avoid',
+        targetEntityId: wolves[1].id,
+        planKind: 'packScentStart',
+        sceneTags: expect.arrayContaining(['sequence:packScentStart', 'family:beast']),
+      }),
+      pid,
+    }));
+    expect(speech[1]).toEqual(expect.objectContaining({
+      speakerId: wolves[1].id,
+      reaction: expect.objectContaining({
+        targetEntityId: wolves[0].id,
+        planKind: 'creatureSequenceReply',
+      }),
+      pid,
+    }));
+    expect(service.runtimeMetrics()).toMatchObject({
+      activePollFired: 1,
+      activeSequenceFired: 1,
+      activeSequenceLastLength: 2,
+      activeCandidatesSelected: 2,
+    });
+    expect(mainlineSnapshot(sim, pid)).toEqual(before);
+  });
+
+  it('applies real mob actions from wild creature sequences through the action bridge', () => {
+    const { sim, pid } = makeWorld();
+    for (const npc of [...sim.entities.values()].filter((entity) => entity.kind === 'npc')) {
+      moveEntity(sim, npc.id, 320, 320);
+    }
+    const murlocs = entitiesByTemplate(sim, 'mudfin_murloc').slice(0, 2);
+    if (murlocs.length < 2) throw new Error('missing murloc pair');
+    moveEntity(sim, murlocs[0].id, -75, 57);
+    moveEntity(sim, murlocs[1].id, -73, 57);
+    moveEntity(sim, pid, -74, 58);
+    const before = mainlineSnapshot(sim, pid);
+    const requests: unknown[] = [];
+    const results: unknown[] = [];
+    const service = new AiActiveTriggerService({
+      thinkingDurationMs: 800,
+      rules: [testRule({ ruleId: 'test_creature_sequence_actions', category: 'socialSequence' })],
+    });
+
+    const events = service.tick({
+      sim,
+      sessions: [{ pid }],
+      nowMs: 1_000,
+      applyAction: (request) => {
+        requests.push(request);
+        const result = sim.aiActiveMobAction(request);
+        results.push(result);
+        return result;
+      },
+    });
+
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speakerId: murlocs[0].id,
+      reaction: expect.objectContaining({ planKind: 'murlocAlarmStart' }),
+      pid,
+    }));
+    expect(requests).toContainEqual(expect.objectContaining({ mobId: murlocs[0].id, playerId: pid, social: true }));
+    expect(results).toContainEqual(expect.objectContaining({
+      ok: true,
+      affectedEntityIds: expect.arrayContaining([murlocs[0].id]),
+    }));
+    expect(murlocs.some((murloc) => murloc.inCombat && murloc.aggroTargetId === pid)).toBe(true);
+    const metrics = service.runtimeMetrics();
+    expect(metrics.activeActionsAttempted).toBeGreaterThanOrEqual(1);
+    expect(metrics.activeActionsApplied).toBeGreaterThanOrEqual(1);
+    expect(metrics.activeMobActionsApplied).toBeGreaterThanOrEqual(1);
+    expect(metrics.activeLastActionKind.startsWith('mob:')).toBe(true);
+    expect(mainlineSnapshot(sim, pid)).toEqual(before);
   });
 
   it('delivers social sequence beats over time when a live deliver callback is available', async () => {

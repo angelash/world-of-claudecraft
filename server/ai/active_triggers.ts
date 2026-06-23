@@ -7,6 +7,7 @@ import type {
   AiActiveNpcActionRequest,
   AiActiveNpcActionResult,
   Entity,
+  MobFamily,
   SimEvent,
 } from '../../src/sim/types';
 import { dist2d } from '../../src/sim/types';
@@ -14,6 +15,7 @@ import type { AiJobContextV1, AiProvider, AiProviderDecisionResult, AiProviderOu
 import { classifyCanonSubject } from './canon_guard';
 import { companionReactionEventsForScene } from './companion_reactions';
 import { familySceneReactionEvent, nearbyFamilySceneCandidates, rankFamilySceneReactions } from './family_scene_reactions';
+import type { FamilySceneReaction } from './family_scene_reactions';
 import { validateAiDecision } from './intent_validator';
 import { compactProfileSnapshot, profileFor } from './profiles';
 import { sceneFrameFor } from './scene_frame';
@@ -258,6 +260,8 @@ interface CreatureRoutineResult {
 }
 
 interface SocialSequenceResult {
+  kind: 'npc' | 'creature';
+  family?: MobFamily;
   events: SimEvent[];
   speakers: Entity[];
   lineIds: string[];
@@ -771,6 +775,7 @@ export class AiActiveTriggerService {
         rule: input.rule,
         nowMs: input.nowMs,
         deliver: input.deliver,
+        applyAction: input.applyAction,
         applyNpcAction: input.applyNpcAction,
       });
     }
@@ -914,10 +919,12 @@ export class AiActiveTriggerService {
     rule: AiActivePollRuleV1;
     nowMs: number;
     deliver?: (pid: number, events: SimEvent[]) => void;
+    applyAction?: AiActiveWorldActionBridge;
     applyNpcAction?: AiActiveNpcActionBridge;
   }): { events: SimEvent[]; skipReason: AiActiveSkipReason } {
     const scene = sceneFrameFor(input.sim, input.player.pos, { excludeEntityIds: [input.player.id] });
-    const sequence = this.buildNpcSocialSequence(input.sim, input.player, scene, input.nowMs);
+    const sequence = this.buildNpcSocialSequence(input.sim, input.player, scene, input.nowMs)
+      ?? this.buildCreatureSocialSequence(input.sim, input.player, scene, input.nowMs);
     if (!sequence) return { events: [], skipReason: 'no_candidate' };
 
     this.metrics.activePollFired++;
@@ -938,7 +945,7 @@ export class AiActiveTriggerService {
       lineId: sequence.lineIds[0],
       createdAtMs: input.nowMs,
     });
-    this.tryApplySocialSequenceActions(input.player, sequence.speakers, input.applyNpcAction);
+    this.tryApplySocialSequenceActions(input.player, sequence, input.applyNpcAction, input.applyAction);
     if (input.deliver) {
       return {
         events: this.schedulePacedSequence({
@@ -958,12 +965,39 @@ export class AiActiveTriggerService {
 
   private tryApplySocialSequenceActions(
     player: Entity,
-    speakers: readonly Entity[],
+    sequence: SocialSequenceResult,
     applyNpcAction?: AiActiveNpcActionBridge,
+    applyAction?: AiActiveWorldActionBridge,
   ): void {
-    if (!this.realActionsEnabled || !applyNpcAction) return;
-    for (let i = 0; i < Math.min(2, speakers.length); i++) {
-      const speaker = speakers[i];
+    if (!this.realActionsEnabled) return;
+    if (sequence.kind === 'creature') {
+      if (!applyAction) return;
+      for (let i = 0; i < Math.min(2, sequence.speakers.length); i++) {
+        const speaker = sequence.speakers[i];
+        const event = sequence.events.find((candidate): candidate is AiSpeechEvent =>
+          candidate.type === 'aiSpeech' && candidate.speakerId === speaker.id,
+        );
+        if (!event) continue;
+        const intent = activeMobActionIntentForRoutine({
+          entity: speaker,
+          event,
+          routineKind: `creature:${sequence.family ?? 'humanoid'}:sequence`,
+        });
+        if (!intent) continue;
+        const result = applyAction({
+          intent,
+          mobId: speaker.id,
+          playerId: player.id,
+          maxDistance: CANDIDATE_RADIUS,
+          social: true,
+        });
+        this.recordActionResult(`mob:${result.intent}`, result);
+      }
+      return;
+    }
+    if (!applyNpcAction) return;
+    for (let i = 0; i < Math.min(2, sequence.speakers.length); i++) {
+      const speaker = sequence.speakers[i];
       const result = applyNpcAction({
         kind: 'shortMove',
         npcId: speaker.id,
@@ -1180,9 +1214,56 @@ export class AiActiveTriggerService {
       }));
     }
     return {
+      kind: 'npc',
       events,
       speakers: speakers.slice(0, usedLineIds.length),
       lineIds: usedLineIds,
+    };
+  }
+
+  private buildCreatureSocialSequence(
+    sim: Sim,
+    player: Entity,
+    scene: ReturnType<typeof sceneFrameFor>,
+    nowMs: number,
+  ): SocialSequenceResult | null {
+    const candidates = nearbyFamilySceneCandidates(scene, sim.entities.values(), player)
+      .filter((entity) => (this.entityCooldownUntilMs.get(entity.id) ?? 0) <= nowMs);
+    this.metrics.activeCandidatesScanned += candidates.length;
+    const reactions = rankFamilySceneReactions(scene, candidates, { worldSeed: sim.cfg.seed });
+    const group = bestCreatureSequenceGroup(reactions);
+    if (!group) return null;
+
+    const events: SimEvent[] = [];
+    const lineIds: string[] = [];
+    for (let i = 0; i < group.reactions.length; i++) {
+      const reaction = group.reactions[i];
+      const partner = group.reactions[(i + 1) % group.reactions.length].entity;
+      const durationMs = this.thinkingDurationMs + i * 1100;
+      const speech = creatureSequenceLine({
+        reaction,
+        scene,
+        player,
+        partner,
+        step: i,
+      });
+      events.push({
+        type: 'aiThinking',
+        speakerId: reaction.entity.id,
+        speakerName: reaction.entity.name,
+        durationMs,
+        pid: player.id,
+      });
+      events.push(speech);
+      if (speech.speech.mode === 'lineId') lineIds.push(speech.speech.lineId);
+    }
+
+    return {
+      kind: 'creature',
+      family: group.family,
+      events,
+      speakers: group.reactions.map((reaction) => reaction.entity),
+      lineIds,
     };
   }
 
@@ -1763,8 +1844,88 @@ function socialSequenceLine(input: {
   };
 }
 
-function sceneTagsWith(scene: ReturnType<typeof sceneFrameFor>, extra: string): string[] {
-  return [...new Set([...scene.locationTags, ...scene.structureTags, ...scene.environmentalTags, extra])].slice(0, 8);
+interface CreatureSequenceGroup {
+  family: MobFamily;
+  reactions: FamilySceneReaction[];
+}
+
+function bestCreatureSequenceGroup(reactions: readonly FamilySceneReaction[]): CreatureSequenceGroup | null {
+  const byFamily = new Map<MobFamily, FamilySceneReaction[]>();
+  for (const reaction of reactions) {
+    const bucket = byFamily.get(reaction.family);
+    if (bucket) bucket.push(reaction);
+    else byFamily.set(reaction.family, [reaction]);
+  }
+  return [...byFamily.entries()]
+    .map(([family, familyReactions]) => ({
+      family,
+      reactions: familyReactions.slice(0, 3),
+      score: familyReactions.slice(0, 3).reduce((sum, reaction) => sum + reaction.score, 0) / Math.min(3, familyReactions.length),
+    }))
+    .filter((group) => group.reactions.length >= 2)
+    .sort((a, b) =>
+      b.reactions.length - a.reactions.length
+      || b.score - a.score
+      || a.family.localeCompare(b.family),
+    )[0] ?? null;
+}
+
+function creatureSequenceLine(input: {
+  reaction: FamilySceneReaction;
+  scene: ReturnType<typeof sceneFrameFor>;
+  player: Entity;
+  partner: Entity;
+  step: number;
+}): AiSpeechEvent {
+  const event = familySceneReactionEvent(input.reaction, input.scene, input.player.id) as AiSpeechEvent;
+  const planKind = creatureSequencePlanKind(input.reaction.family, input.step);
+  if (event.speech.mode === 'lineId') {
+    event.speech = {
+      ...event.speech,
+      values: {
+        ...(event.speech.values ?? {}),
+        partnerName: input.partner.name,
+      },
+    };
+  }
+  event.reaction = {
+    kind: input.reaction.reaction,
+    ...(event.reaction ?? {}),
+    targetEntityId: input.partner.id,
+    planKind,
+    planIntensity: Math.max(0.35, Math.round(input.reaction.score * 100) / 100),
+    sceneTags: [...new Set([
+      `sequence:${planKind}`,
+      `family:${input.reaction.family}`,
+      ...(event.reaction?.sceneTags ?? []),
+      ...sceneTagsWith(input.scene),
+    ])].slice(0, 8),
+  };
+  return event;
+}
+
+function creatureSequencePlanKind(family: MobFamily, step: number): string {
+  if (step === 0) {
+    switch (family) {
+      case 'beast': return 'packScentStart';
+      case 'murloc': return 'murlocAlarmStart';
+      case 'spider': return 'webStillnessStart';
+      case 'kobold': return 'candleSquabbleStart';
+      case 'humanoid': return 'campMutterStart';
+      case 'undead': return 'deathEchoStart';
+      case 'elemental': return 'resonanceStart';
+      case 'dragonkin': return 'bloodlineWatchStart';
+      case 'demon': return 'fearGameStart';
+      case 'troll':
+      case 'ogre':
+        return 'bruteAppetiteStart';
+    }
+  }
+  return step === 1 ? 'creatureSequenceReply' : 'creatureSequenceAside';
+}
+
+function sceneTagsWith(scene: ReturnType<typeof sceneFrameFor>, ...extra: string[]): string[] {
+  return [...new Set([...scene.locationTags, ...scene.structureTags, ...scene.environmentalTags, ...extra])].slice(0, 8);
 }
 
 function activeMobActionIntentForRoutine(result: CreatureRoutineResult): AiActiveMobActionIntent | null {
