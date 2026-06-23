@@ -261,6 +261,7 @@ export const en_CA: AdminTranslations = {
   "usage.aiActiveColAction": "Action",
   "usage.aiActiveColPlayer": "Player",
   "usage.aiActiveColSpeaker": "Speaker",
+  "usage.aiActiveColFocus": "Focus",
   "usage.aiActiveColLine": "Line",
   "usage.aiActiveColEvent": "Event",
   "usage.aiActiveColSubject": "Subject",

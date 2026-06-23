@@ -356,8 +356,12 @@ function activeTriggers(overrides: Partial<AiActiveTriggerAdminSnapshot> = {}): 
         ruleId: 'npc_social_sequence',
         playerEntityId: 1,
         speakerEntityIds: [22, 23],
+        speakerNames: ['Mudfin Oracle<script>', 'Mudfin Scout'],
         speakerTemplateIds: ['mudfin_murloc<script>', 'mudfin_murloc'],
         sceneId: 'mirror_lake',
+        focusObjectId: 'eastbrook_market_stall<script>',
+        focusObjectTemplateId: 'scene_anchor:eastbrook_market_stall',
+        focusDisplayName: 'Market stall <danger>',
         lineIds: ['hudChrome.aiSpeech.familySceneBeastUneasy<script>'],
         startedAtMs: 1_000,
         nextBeatAtMs: 1_800,
@@ -720,12 +724,20 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('Scene &lt;ambient&gt;');
     expect(html).toContain('scene_ambient_awareness&lt;script&gt;');
     expect(html).toContain('seq-1&lt;script&gt;');
+    expect(html).toContain('Mudfin Oracle&lt;script&gt;');
     expect(html).toContain('mudfin_murloc&lt;script&gt;');
+    expect(html).toContain('Market stall &lt;danger&gt;');
+    expect(html).toContain('scene_anchor:eastbrook_market_stall');
+    expect(html).toContain('eastbrook_market_stall&lt;script&gt;');
     expect(html).toContain('hudChrome.aiSpeech.familySceneBeastUneasy&lt;script&gt;');
     expect(html).not.toContain('Scene <ambient>');
     expect(html).not.toContain('scene_ambient_awareness<script>');
     expect(html).not.toContain('seq-1<script>');
+    expect(html).not.toContain('Mudfin Oracle<script>');
     expect(html).not.toContain('mudfin_murloc<script>');
+    expect(html).not.toContain('Market stall <danger>');
+    expect(html).not.toContain('scene_anchor:eastbrook_market_stall<script>');
+    expect(html).not.toContain('eastbrook_market_stall<script>');
   });
 
   it('localizes active AI trigger controls in Simplified Chinese', () => {
@@ -754,6 +766,7 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('排队中的主动事件');
     expect(html).toContain('进行中的主动序列');
     expect(html).toContain('取消进行中序列');
+    expect(html).toContain('关注点');
     expect(html).toContain('剩余节拍');
     expect(html).toContain('少量在线');
     expect(html).not.toContain('Active AI');

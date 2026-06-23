@@ -261,6 +261,7 @@ export const en_XA: AdminTranslations = {
   "usage.aiActiveColAction": "[Áçţíóñ]",
   "usage.aiActiveColPlayer": "[Þļáýéŕ]",
   "usage.aiActiveColSpeaker": "[Šþéáķéŕ]",
+  "usage.aiActiveColFocus": "[Ƒóçúš]",
   "usage.aiActiveColLine": "[Ļíñé]",
   "usage.aiActiveColEvent": "[Éʋéñţ]",
   "usage.aiActiveColSubject": "[Šúƀĵéçţ]",

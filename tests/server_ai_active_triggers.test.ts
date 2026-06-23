@@ -491,6 +491,17 @@ describe('server AI active triggers', () => {
 
     try {
       (server as any).runAiActiveTriggers(1_000);
+      expect(server.aiActiveTriggerDiagnostics().activeSequences).toEqual([
+        expect.objectContaining({
+          ruleId: 'server_active_social_sequence',
+          playerEntityId: session.pid,
+          speakerEntityIds: expect.arrayContaining([merchant.id, marshal.id]),
+          speakerNames: expect.arrayContaining([merchant.name, marshal.name]),
+          focusObjectId: 'eastbrook_market_stall',
+          focusObjectTemplateId: 'scene_anchor:eastbrook_market_stall',
+          focusDisplayName: 'Market Stall',
+        }),
+      ]);
 
       expect(eventsOf(fc, 'aiThinking')).toHaveLength(1);
       await vi.advanceTimersByTimeAsync(3_700);

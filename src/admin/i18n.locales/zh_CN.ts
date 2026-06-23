@@ -260,6 +260,7 @@ export const zh_CN: Record<string, string> = {
   "usage.aiActiveColAction": "操作",
   "usage.aiActiveColPlayer": "玩家",
   "usage.aiActiveColSpeaker": "说话者",
+  "usage.aiActiveColFocus": "关注点",
   "usage.aiActiveColLine": "台词",
   "usage.aiActiveColEvent": "事件",
   "usage.aiActiveColSubject": "对象",

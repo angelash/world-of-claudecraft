@@ -494,8 +494,12 @@ export interface AiActiveSequenceSnapshot {
   ruleId: string;
   playerEntityId: number;
   speakerEntityIds: number[];
+  speakerNames: string[];
   speakerTemplateIds: string[];
   sceneId?: string;
+  focusObjectId?: string;
+  focusObjectTemplateId?: string;
+  focusDisplayName?: string;
   lineIds: string[];
   startedAtMs: number;
   nextBeatAtMs: number;

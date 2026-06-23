@@ -1504,6 +1504,34 @@ function renderAiActiveQueuedEvent(event: AiActiveQueuedEventSnapshot): string {
   </tr>`;
 }
 
+function renderAiActiveSpeakerCell(sequence: AiActiveSequenceSnapshot): string {
+  const names = sequence.speakerNames
+    .map((speakerName) => aiSpeakerLabel(speakerName))
+    .filter((speakerName, index, list) => speakerName && list.indexOf(speakerName) === index);
+  const primary = names.length > 0
+    ? names.slice(0, 3).join(', ')
+    : sequence.speakerTemplateIds.slice(0, 3).map(aiTemplateLabel).join(', ');
+  const technicalIds = sequence.speakerTemplateIds.slice(0, 3).join(', ');
+  const details = technicalIds && technicalIds !== primary
+    ? `<div class="hint">${escapeHtml(technicalIds)}</div>`
+    : '';
+  return `${escapeHtml(primary || t('usage.aiDiagnosticsNone'))}${details}`;
+}
+
+function renderAiActiveFocusCell(sequence: AiActiveSequenceSnapshot): string {
+  const primary = sequence.focusDisplayName?.trim()
+    || (sequence.focusObjectTemplateId ? aiTemplateLabel(sequence.focusObjectTemplateId) : '')
+    || sequence.focusObjectId
+    || t('usage.aiDiagnosticsNone');
+  const details = [sequence.focusObjectTemplateId, sequence.focusObjectId]
+    .filter((value): value is string => Boolean(value))
+    .join(' / ');
+  const hint = details && details !== primary
+    ? `<div class="hint">${escapeHtml(details)}</div>`
+    : '';
+  return `${escapeHtml(primary)}${hint}`;
+}
+
 function renderAiActiveSequence(sequence: AiActiveSequenceSnapshot): string {
   const kind = sequence.kind === 'creature' && sequence.family
     ? `${sequence.kind}:${sequence.family}`
@@ -1514,8 +1542,9 @@ function renderAiActiveSequence(sequence: AiActiveSequenceSnapshot): string {
       <div class="hint">${escapeHtml(sequence.sequenceId)} / ${escapeHtml(sequence.ruleId)}</div>
     </td>
     <td class="num">${renderAiNumber(sequence.playerEntityId)}</td>
-    <td>${escapeHtml(sequence.speakerTemplateIds.slice(0, 3).join(', ') || t('usage.aiDiagnosticsNone'))}</td>
-    <td>${escapeHtml(sequence.sceneId ?? t('usage.aiDiagnosticsNone'))}</td>
+    <td>${renderAiActiveSpeakerCell(sequence)}</td>
+    <td>${escapeHtml(sequence.sceneId ? aiSceneLabel(sequence.sceneId) : t('usage.aiDiagnosticsNone'))}</td>
+    <td>${renderAiActiveFocusCell(sequence)}</td>
     <td class="num">${renderAiNumber(sequence.remainingBeats)}</td>
     <td>${escapeHtml(fmtDate(new Date(sequence.nextBeatAtMs).toISOString()))}</td>
     <td>${escapeHtml(sequence.lineIds[0] ?? t('usage.aiDiagnosticsNone'))}</td>
@@ -1614,7 +1643,7 @@ function renderAiActiveTriggerControls(active?: AiActiveTriggerAdminSnapshot): s
     ? `<tr><td colspan="5" class="empty">${t('usage.aiActiveNoQueuedEvents')}</td></tr>`
     : diagnostics.eventQueue.slice(0, 12).map(renderAiActiveQueuedEvent).join('');
   const sequenceRows = diagnostics.activeSequences.length === 0
-    ? `<tr><td colspan="7" class="empty">${t('usage.aiActiveNoActiveSequences')}</td></tr>`
+    ? `<tr><td colspan="8" class="empty">${t('usage.aiActiveNoActiveSequences')}</td></tr>`
     : diagnostics.activeSequences.slice(0, 12).map(renderAiActiveSequence).join('');
   return `
     <div class="ai-health-grid">
@@ -1772,6 +1801,7 @@ function renderAiActiveTriggerControls(active?: AiActiveTriggerAdminSnapshot): s
             <th class="num">${t('usage.aiActiveColPlayer')}</th>
             <th>${t('usage.aiActiveColSpeaker')}</th>
             <th>${t('usage.aiAuditDetailScene')}</th>
+            <th>${t('usage.aiActiveColFocus')}</th>
             <th class="num">${t('usage.aiActiveColRemainingBeats')}</th>
             <th>${t('usage.aiActiveColNextBeat')}</th>
             <th>${t('usage.aiActiveColLine')}</th>

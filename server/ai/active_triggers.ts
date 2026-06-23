@@ -162,8 +162,12 @@ export interface AiActiveSequenceSnapshot {
   ruleId: string;
   playerEntityId: number;
   speakerEntityIds: number[];
+  speakerNames: string[];
   speakerTemplateIds: string[];
   sceneId?: string;
+  focusObjectId?: string;
+  focusObjectTemplateId?: string;
+  focusDisplayName?: string;
   lineIds: string[];
   startedAtMs: number;
   nextBeatAtMs: number;
@@ -336,8 +340,12 @@ interface AiActiveSequenceState {
   ruleId: string;
   playerEntityId: number;
   speakerEntityIds: number[];
+  speakerNames: string[];
   speakerTemplateIds: string[];
   sceneId?: string;
+  focusObjectId?: string;
+  focusObjectTemplateId?: string;
+  focusDisplayName?: string;
   lineIds: string[];
   startedAtMs: number;
   nextBeatAtMs: number;
@@ -1153,8 +1161,10 @@ export class AiActiveTriggerService {
           ruleId: input.rule.ruleId,
           pid: input.player.id,
           speakerEntityIds: sequence.speakers.map((speaker) => speaker.id),
+          speakerNames: sequence.speakers.map((speaker) => speaker.name),
           speakerTemplateIds: sequence.speakers.map((speaker) => speaker.templateId),
           sceneId: sequence.sceneId,
+          ...(sequence.focusObject ? { focusObject: sequence.focusObject } : {}),
           lineIds: sequence.lineIds,
           events: sequence.events,
           startedAtMs: input.nowMs,
@@ -1227,8 +1237,10 @@ export class AiActiveTriggerService {
     ruleId: string;
     pid: number;
     speakerEntityIds: number[];
+    speakerNames: string[];
     speakerTemplateIds: string[];
     sceneId?: string;
+    focusObject?: SceneObjectSemantic;
     lineIds: string[];
     events: SimEvent[];
     startedAtMs: number;
@@ -1245,8 +1257,14 @@ export class AiActiveTriggerService {
       ruleId: input.ruleId,
       playerEntityId: input.pid,
       speakerEntityIds: [...input.speakerEntityIds],
+      speakerNames: [...input.speakerNames],
       speakerTemplateIds: [...input.speakerTemplateIds],
       ...(input.sceneId ? { sceneId: input.sceneId } : {}),
+      ...(input.focusObject ? {
+        focusObjectId: input.focusObject.objectId,
+        focusObjectTemplateId: input.focusObject.templateId,
+        focusDisplayName: input.focusObject.displayName,
+      } : {}),
       lineIds: [...input.lineIds],
       startedAtMs: input.startedAtMs,
       nextBeatAtMs: input.startedAtMs + delayMs,
@@ -1915,8 +1933,12 @@ function sequenceSnapshot(sequence: AiActiveSequenceState): AiActiveSequenceSnap
     ruleId: sequence.ruleId,
     playerEntityId: sequence.playerEntityId,
     speakerEntityIds: [...sequence.speakerEntityIds],
+    speakerNames: [...sequence.speakerNames],
     speakerTemplateIds: [...sequence.speakerTemplateIds],
     ...(sequence.sceneId ? { sceneId: sequence.sceneId } : {}),
+    ...(sequence.focusObjectId ? { focusObjectId: sequence.focusObjectId } : {}),
+    ...(sequence.focusObjectTemplateId ? { focusObjectTemplateId: sequence.focusObjectTemplateId } : {}),
+    ...(sequence.focusDisplayName ? { focusDisplayName: sequence.focusDisplayName } : {}),
     lineIds: [...sequence.lineIds],
     startedAtMs: sequence.startedAtMs,
     nextBeatAtMs: sequence.nextBeatAtMs,
