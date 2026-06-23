@@ -1007,6 +1007,7 @@ export class AiActiveTriggerService {
     const routine = input.rule.category === 'livingRoutine'
       ? routineAwarenessEvent(context, candidate.entity)
       : null;
+    if (routine) this.addNpcRoutineContext(context, routine.plan);
     const sceneEvent = sceneAwarenessEvent(context, candidate.entity);
     const localEvent: AiSpeechEvent = routine?.event
       ?? (sceneEvent?.type === 'aiSpeech' ? sceneEvent : null)
@@ -1460,6 +1461,7 @@ export class AiActiveTriggerService {
     });
     this.tryApplyCreatureRoutineAction(result, input.player, input.applyAction);
     const context = this.contextForCreature(input.sim, input.player, result.entity, scene, input.rule, input.locale);
+    this.addCreatureRoutineContext(context, result);
     if (this.tryStartProviderNpcBeat({
       context,
       entity: result.entity,
@@ -1778,6 +1780,31 @@ export class AiActiveTriggerService {
       allowedLineIds: profile.allowedLineIds,
       outputMode: activeOutputModeForRule(rule),
     };
+  }
+
+  private addNpcRoutineContext(context: AiJobContextV1, plan: NpcRoutinePlan): void {
+    context.recentObservations.push(
+      `routine:${plan.kind}`,
+      `routineLineId:${plan.lineId}`,
+      ...(plan.focusObject ? [
+        `focusObject:${plan.focusObject.objectId}`,
+        `focusTemplate:${plan.focusObject.templateId}`,
+        ...plan.focusObject.tags.slice(0, 3).map((tag) => `focusTag:${tag}`),
+        ...plan.focusObject.affordanceTags.slice(0, 2).map((tag) => `focusAffordance:${tag}`),
+      ] : []),
+    );
+  }
+
+  private addCreatureRoutineContext(context: AiJobContextV1, result: CreatureRoutineResult): void {
+    const reaction = result.event.reaction;
+    context.recentObservations.push(
+      `creatureRoutine:${result.routineKind}`,
+      ...(reaction ? [
+        `reaction:${reaction.kind}`,
+        ...(reaction.planKind ? [`planKind:${reaction.planKind}`] : []),
+        ...(reaction.sceneTags ?? []).slice(0, 4).map((tag) => `sceneTag:${tag}`),
+      ] : []),
+    );
   }
 
   private contextForSocialSequence(

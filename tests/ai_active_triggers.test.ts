@@ -574,7 +574,12 @@ describe('AI active trigger service', () => {
     expect(seenContext).toMatchObject({
       outputMode: 'dynamic_text_experiment',
       locale: 'zh_CN',
-      recentObservations: expect.arrayContaining(['rule:npc_living_routine', 'category:livingRoutine']),
+      recentObservations: expect.arrayContaining([
+        'rule:npc_living_routine',
+        'category:livingRoutine',
+        'routine:eating',
+        'routineLineId:hudChrome.aiSpeech.sceneDayEnergy',
+      ]),
     });
     expect(delivered).toEqual([[
       expect.objectContaining({
@@ -1049,7 +1054,14 @@ describe('AI active trigger service', () => {
       profile: expect.objectContaining({ profileId: 'mob.generic.living_world' }),
       familySemantics: expect.objectContaining({ family: 'beast', familyName: 'Beast' }),
       outputMode: 'dynamic_text_experiment',
-      recentObservations: expect.arrayContaining(['rule:creature_living_routine', 'category:creatureRoutine', 'family:beast']),
+      recentObservations: expect.arrayContaining([
+        'rule:creature_living_routine',
+        'category:creatureRoutine',
+        'family:beast',
+        'creatureRoutine:creature:beast:keepDistanceFromFire:avoid',
+        'reaction:avoid',
+        'planKind:keepDistanceFromFire',
+      ]),
     });
     expect(delivered).toEqual([[
       expect.objectContaining({
