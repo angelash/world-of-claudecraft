@@ -135,6 +135,7 @@ export const zh_CN: AdminTranslations = {
   "usage.aiProviderTimingTotal": "总耗时",
   "usage.aiProviderTimingStep": "步骤",
   "usage.aiProviderTimingDuration": "耗时",
+  "usage.aiProviderTimingShare": "占比",
   "usage.aiProviderTimingSlowest": "最慢：{step} / {duration}",
   "usage.aiProviderTimingStepTempDir": "创建临时目录",
   "usage.aiProviderTimingStepBuildPrompt": "构造 Prompt",

@@ -133,6 +133,7 @@ export const en = {
   "usage.aiProviderTimingTotal": "Total",
   "usage.aiProviderTimingStep": "Step",
   "usage.aiProviderTimingDuration": "Duration",
+  "usage.aiProviderTimingShare": "Share",
   "usage.aiProviderTimingSlowest": "Slowest: {step} / {duration}",
   "usage.aiProviderTimingStepTempDir": "Create temp directory",
   "usage.aiProviderTimingStepBuildPrompt": "Build prompt",

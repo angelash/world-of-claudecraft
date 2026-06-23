@@ -72,6 +72,11 @@ function renderAiChars(value: number): string {
   return escapeHtml(t('usage.aiCharacters', { value: fmtNumber(value) }));
 }
 
+function renderAiTimingShare(value: number, total: number): string {
+  if (total <= 0) return escapeHtml(t('usage.notAvailable'));
+  return escapeHtml(fmtPercent(value / total));
+}
+
 function aiProviderTimingProviderLabel(provider: string): string {
   switch (provider) {
     case 'codex-exec': return t('usage.aiProviderTimingProviderExec');
@@ -115,11 +120,12 @@ function renderAiProviderTimingSummary(timings: AiProviderTimingSnapshot | undef
 function renderAiProviderTimingTable(timings: AiProviderTimingSnapshot | undefined): string {
   if (!timings) return `<div class="empty">${t('usage.aiProviderTimingNone')}</div>`;
   const rows = timings.steps.length === 0
-    ? `<tr><td colspan="2" class="empty">${t('usage.aiProviderTimingNone')}</td></tr>`
+    ? `<tr><td colspan="3" class="empty">${t('usage.aiProviderTimingNone')}</td></tr>`
     : timings.steps.map((step) => `
       <tr>
         <td>${escapeHtml(aiProviderTimingStepLabel(step.key))}<div class="hint">${escapeHtml(step.key)}</div></td>
         <td class="num">${renderAiLatency(step.ms)}</td>
+        <td class="num">${renderAiTimingShare(step.ms, timings.totalMs)}</td>
       </tr>`).join('');
   return `
     <div class="ai-audit-status-line">
@@ -131,6 +137,7 @@ function renderAiProviderTimingTable(timings: AiProviderTimingSnapshot | undefin
         <thead><tr>
           <th>${t('usage.aiProviderTimingStep')}</th>
           <th class="num">${t('usage.aiProviderTimingDuration')}</th>
+          <th class="num">${t('usage.aiProviderTimingShare')}</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
@@ -1617,6 +1624,14 @@ function renderAiActiveTriggerControls(active?: AiActiveTriggerAdminSnapshot): s
         </div>
       </div>
       <div class="hint">${renderAiActiveRuntimeHint(diagnostics)}</div>
+    </div>
+    <div class="usage-section">
+      <h4>${t('usage.aiProviderTimingTitle')}</h4>
+      <div class="ai-audit-status-line">
+        <span>${t('usage.aiActiveColRule')}: ${escapeHtml(metrics.activeLastRuleId || t('usage.aiDiagnosticsNone'))}</span>
+        <span>${t('usage.aiActiveLastLatency')}: ${renderAiLatency(metrics.activeLastProviderLatencyMs)}</span>
+      </div>
+      ${renderAiProviderTimingTable(metrics.activeLastProviderTimings)}
     </div>
     <div class="usage-section">
       <h4>${t('usage.aiActiveGlobalTitle')}</h4>

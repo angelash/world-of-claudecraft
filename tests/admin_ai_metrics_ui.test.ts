@@ -240,6 +240,15 @@ function activeTriggers(overrides: Partial<AiActiveTriggerAdminSnapshot> = {}): 
       activeProviderFallbacks: 1,
       activeProviderPending: 1,
       activeLastProviderLatencyMs: 923,
+      activeLastProviderTimings: {
+        provider: 'codex-app-server',
+        totalMs: 923,
+        steps: [
+          { key: 'queueWaitMs', label: 'queue', ms: 123 },
+          { key: 'turnCompleteMs', label: 'turn', ms: 700 },
+          { key: 'parseOutputMs', label: 'parse', ms: 100 },
+        ],
+      },
       activeActionsAttempted: 3,
       activeActionsApplied: 2,
       activeActionsRejected: 1,
@@ -633,6 +642,11 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('Scheduler interval');
     expect(html).toContain('Last idle reason');
     expect(html).toContain('The last scheduler pass produced 2 player-visible AI events.');
+    expect(html).toContain('Provider timing breakdown');
+    expect(html).toContain('Last active latency: 923 ms');
+    expect(html).toContain('scene_ambient_awareness');
+    expect(html).toContain('Share');
+    expect(html).toContain('75.8%');
     expect(html).toContain('Polling rules');
     expect(html).toContain('Codex preferred');
     expect(html).toContain('Mixed living world');
@@ -670,6 +684,10 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('调度周期');
     expect(html).toContain('最近空转原因');
     expect(html).toContain('最近一次调度产生了 2 个对玩家可见的 AI 事件。');
+    expect(html).toContain('提供商耗时拆解');
+    expect(html).toContain('最近主动延迟: 923 毫秒');
+    expect(html).toContain('占比');
+    expect(html).toContain('75.8%');
     expect(html).toContain('轮询规则');
     expect(html).toContain('优先 Codex');
     expect(html).toContain('混合生活世界');
@@ -958,6 +976,8 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('29 chars');
     expect(html).toContain('Raw output length');
     expect(html).toContain('25 chars');
+    expect(html).toContain('Share');
+    expect(html).toContain('93.8%');
     expect(html).toContain('Codex app-server');
     expect(html).toContain('Model turn completion');
     expect(html).toContain('2,200 ms');

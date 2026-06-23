@@ -34,6 +34,7 @@ export function dynamicSpeechPromptRules(locale: string): string[] {
   const common = [
     '- DynamicText is one short spoken line, not an explanation. Aim for one sentence.',
     '- Sound like the entity is talking in the moment: concrete, sensory, a little incomplete.',
+    '- Prefer something a person could blurt while working, watching, walking, or hiding, not narration written for the player.',
     '- Avoid assistant-style transitions, summaries, and lesson-like phrasing.',
     '- Do not start with however, also, therefore, overall, or similar connector words.',
   ];
@@ -41,6 +42,7 @@ export function dynamicSpeechPromptRules(locale: string): string[] {
     return [
       ...common,
       '- For Chinese dynamicText, use natural spoken Chinese. Prefer 8-28 Chinese characters when possible.',
+      '- Prefer one breath, one image, one reaction. Avoid textbook wording or tidy explanation structure.',
       '- Do not start with 不过, 但是, 然而, 而且, 另外, 此外, 同时, 因此, 所以, 总之, 需要注意的是, or 值得一提的是.',
       '- Do not use 你问的是, 我建议, 从...来看, 这说明, 总的来说, or other Q&A assistant wording.',
     ];
@@ -48,6 +50,7 @@ export function dynamicSpeechPromptRules(locale: string): string[] {
   return [
     ...common,
     '- For English dynamicText, prefer 6-18 words when possible.',
+    '- Prefer spoken contractions when natural, and avoid colon-led setup or list-like explanation.',
   ];
 }
 
@@ -86,6 +89,7 @@ function polishChineseSpeech(text: string, fallback: string): string {
   let out = stripChineseTransitions(text);
   out = stripChineseAssistantPhrases(out);
   out = stripChineseTransitions(out);
+  out = relaxChineseCadence(out);
   out = shortenChineseLine(out);
   return cleanupChinesePunctuation(out) || fallback.trim();
 }
@@ -94,8 +98,11 @@ function stripChineseAssistantPhrases(text: string): string {
   let out = text.trim();
   const patterns = [
     /^你(?:刚才|现在)?(?:问|想问|要问)的(?:是|这个)?[，,：:\s]*/,
-    /^我(?:会)?建议(?:你)?[，,：:\s]*/,
+    /^你(?:要是|如果)问(?:的是|起)?[^。！？!?，,]{0,24}[，,：:\s]*/,
+    /^我(?:会)?建议(?:你)?(?:看(?:这边|这里|那边|那儿|这儿)|听我说|先听我说|先看|留神|小心点)?[，,：:\s]*/,
     /^我的建议是[，,：:\s]*/,
+    /^我(?:能说|能看出来|看得出|只知道)[，,：:\s]*/,
+    /^照我看[，,：:\s]*/,
     /^我(?:认为|觉得)你(?:可以|应该)[，,：:\s]*/,
     /^从[^。！？!?，,]{1,28}(?:来看|看起来|判断)[，,：:\s]*/,
     /^这(?:说明|意味着|表示)(?:着|了)?[，,：:\s]*/,
@@ -127,6 +134,8 @@ function polishEnglishSpeech(text: string, fallback: string): string {
   let out = stripEnglishTransitions(text);
   out = stripEnglishAssistantPhrases(out);
   out = stripEnglishTransitions(out);
+  out = relaxEnglishCadence(out);
+  out = contractEnglishSpeech(out);
   out = shortenEnglishLine(out);
   out = cleanupEnglishPunctuation(out);
   out = capitalizeEnglishSentence(out);
@@ -137,9 +146,13 @@ function stripEnglishAssistantPhrases(text: string): string {
   let out = text.trim();
   const patterns: Array<[RegExp, string]> = [
     [/^(?:you asked about|you are asking about|you're asking about)\b[^.!?,;:]{0,72}[:,\s-]*/i, ''],
+    [/^(?:if (?:you are|you're) asking about)\b[^.!?,;:]{0,72}[:,\s-]*/i, ''],
     [/^i would (?:suggest|recommend|advise)(?: that)? (?:you )?/i, ''],
     [/^i (?:suggest|recommend|advise)(?: that)? (?:you )?/i, ''],
     [/^my recommendation is[:,\s]*/i, ''],
+    [/^(?:to answer(?: your question)?|to your question)[:,\s-]*/i, ''],
+    [/^what (?:i can say|i know|i see) is[:,\s]*/i, ''],
+    [/^from what i can (?:see|tell)[:,\s-]*/i, ''],
     [/^from (?:the|this|what)[^.!?]{1,72}[,:]\s*/i, ''],
     [/^this (?:means|suggests|indicates)(?: that)?\s*/i, ''],
     [/^as an ai[:,\s]*/i, ''],
@@ -185,6 +198,13 @@ function shortenChineseLine(text: string): string {
   return firstChineseSentence(out) || firstChineseClause(out) || out;
 }
 
+function relaxChineseCadence(text: string): string {
+  return text
+    .replace(/[；;]\s*/g, '，')
+    .replace(/([^\s])[:：]\s*/g, '$1，')
+    .trim();
+}
+
 function firstChineseSentence(text: string): string {
   const match = text.match(/^.*?[。！？!?]/);
   return match?.[0].trim() ?? '';
@@ -202,6 +222,25 @@ function shortenEnglishLine(text: string): string {
   const sentenceCount = (out.match(/[.!?]/g) ?? []).length;
   if (words.length <= 18 && out.length <= 120 && sentenceCount <= 1) return out;
   return firstEnglishSentence(out) || firstEnglishClause(out) || out;
+}
+
+function relaxEnglishCadence(text: string): string {
+  return text
+    .replace(/\s*;\s*/g, ', ')
+    .replace(/([A-Za-z])\s*:\s*(?=[a-z])/g, '$1, ')
+    .replace(/([A-Za-z])\s*:\s*(?=[A-Z])/g, '$1. ')
+    .trim();
+}
+
+function contractEnglishSpeech(text: string): string {
+  return text
+    .replace(/\b[Dd]o not\b/g, "don't")
+    .replace(/\b[Cc]annot\b/g, "can't")
+    .replace(/\b[Ii] am\b/g, "I'm")
+    .replace(/\b[Ii]t is\b/g, "it's")
+    .replace(/\b[Tt]here is\b/g, "there's")
+    .replace(/\b[Tt]here are\b/g, "there are")
+    .trim();
 }
 
 function firstEnglishSentence(text: string): string {

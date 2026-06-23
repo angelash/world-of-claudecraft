@@ -135,6 +135,7 @@ export const en_XA: AdminTranslations = {
   "usage.aiProviderTimingTotal": "[Ţóţáļ]",
   "usage.aiProviderTimingStep": "[Šţéþ]",
   "usage.aiProviderTimingDuration": "[Ðúŕáţíóñ]",
+  "usage.aiProviderTimingShare": "[Šĥáŕé]",
   "usage.aiProviderTimingSlowest": "[Šļóŵéšţ: {step} / {duration}]",
   "usage.aiProviderTimingStepTempDir": "[Çŕéáţé ţéɱþ ðíŕéçţóŕý]",
   "usage.aiProviderTimingStepBuildPrompt": "[Ɓúíļð þŕóɱþţ]",
