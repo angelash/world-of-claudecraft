@@ -453,8 +453,8 @@ export const DEFAULT_ACTIVE_POLL_RULES: readonly AiActivePollRuleV1[] = [
     jitterSeconds: 90,
     priority: 43,
     scope: 'playerVicinity',
-    providerPolicy: 'localOnly',
-    outputMode: 'lineIdOnly',
+    providerPolicy: 'codexAllowed',
+    outputMode: 'dynamicTextFirst',
     cooldown: {
       perPlayerSeconds: 150,
       perEntitySeconds: 240,
@@ -988,7 +988,9 @@ export class AiActiveTriggerService {
         player,
         rule: input.rule,
         nowMs: input.nowMs,
+        locale: input.session.locale,
         deliver: input.deliver,
+        deferProvider: this.shouldDeferProviderForRecentActivity(input.session, input.nowMs),
         applyAction: input.applyAction,
         applyNpcAction: input.applyNpcAction,
       });
@@ -1138,7 +1140,9 @@ export class AiActiveTriggerService {
     player: Entity;
     rule: AiActivePollRuleV1;
     nowMs: number;
+    locale?: string;
     deliver?: (pid: number, events: SimEvent[]) => void;
+    deferProvider?: boolean;
     applyAction?: AiActiveWorldActionBridge;
     applyNpcAction?: AiActiveNpcActionBridge;
   }): { events: SimEvent[]; skipReason: AiActiveSkipReason } {
@@ -1166,6 +1170,20 @@ export class AiActiveTriggerService {
       createdAtMs: input.nowMs,
     });
     this.tryApplySocialSequenceActions(input.player, sequence, input.applyNpcAction, input.applyAction);
+    if (this.tryStartProviderSocialSequence({
+      sim: input.sim,
+      player: input.player,
+      scene,
+      sequence,
+      rule: input.rule,
+      nowMs: input.nowMs,
+      locale: input.locale,
+      deliver: input.deliver,
+      deferProvider: input.deferProvider,
+    })) {
+      const firstThinking = sequence.events[0];
+      return { events: firstThinking ? [firstThinking] : [], skipReason: 'not_due' };
+    }
     if (input.deliver) {
       const sequenceId = `active-sequence-${++this.activeSequenceCounter}`;
       return {
@@ -1193,6 +1211,69 @@ export class AiActiveTriggerService {
       };
     }
     return { events: sequence.events, skipReason: 'not_due' };
+  }
+
+  private tryStartProviderSocialSequence(input: {
+    sim: Sim;
+    player: Entity;
+    scene: ReturnType<typeof sceneFrameFor>;
+    sequence: SocialSequenceResult;
+    rule: AiActivePollRuleV1;
+    nowMs: number;
+    locale?: string;
+    deliver?: (pid: number, events: SimEvent[]) => void;
+    deferProvider?: boolean;
+  }): boolean {
+    if (input.sequence.kind !== 'npc') return false;
+    const firstSpeaker = input.sequence.speakers[0];
+    const firstSpeech = input.sequence.events[1];
+    if (!firstSpeaker || firstSpeech?.type !== 'aiSpeech') return false;
+    const deliver = input.deliver;
+    if (!deliver) return false;
+    const context = this.contextForSocialSequence(
+      input.sim,
+      input.player,
+      firstSpeaker,
+      input.scene,
+      input.sequence,
+      input.rule,
+      input.locale,
+    );
+    const sequenceId = `active-sequence-${++this.activeSequenceCounter}`;
+    const continuation = input.sequence.events.slice(2);
+    return this.tryStartProviderNpcBeat({
+      context,
+      entity: firstSpeaker,
+      fallbackEvent: firstSpeech,
+      rule: input.rule,
+      nowMs: input.nowMs,
+      deferProvider: input.deferProvider,
+      deliver: (pid, firstBeatEvents) => {
+        deliver(pid, firstBeatEvents);
+        if (continuation.length === 0) return;
+        const immediate = this.schedulePacedSequence({
+          sequenceId,
+          kind: input.sequence.kind,
+          family: input.sequence.family,
+          ruleId: input.rule.ruleId,
+          pid,
+          speakerEntityIds: input.sequence.speakers.map((speaker) => speaker.id),
+          speakerNames: input.sequence.speakers.map((speaker) => speaker.name),
+          speakerTemplateIds: input.sequence.speakers.map((speaker) => speaker.templateId),
+          sceneId: input.sequence.sceneId,
+          ...(input.sequence.focusObject ? { focusObject: input.sequence.focusObject } : {}),
+          lineIds: input.sequence.lineIds.slice(1),
+          events: continuation,
+          startedAtMs: input.nowMs + this.thinkingDurationMs,
+          deliver,
+          canContinue: () => {
+            const livePlayer = input.sim.entities.get(input.player.id);
+            return Boolean(livePlayer && !livePlayer.dead && !livePlayer.inCombat);
+          },
+        });
+        if (immediate.length > 0) deliver(pid, immediate);
+      },
+    });
   }
 
   private tryApplySocialSequenceActions(
@@ -1698,6 +1779,31 @@ export class AiActiveTriggerService {
       allowedLineIds: profile.allowedLineIds,
       outputMode: activeOutputModeForRule(rule),
     };
+  }
+
+  private contextForSocialSequence(
+    sim: Sim,
+    player: Entity,
+    speaker: Entity,
+    scene: ReturnType<typeof sceneFrameFor>,
+    sequence: SocialSequenceResult,
+    rule: AiActivePollRuleV1,
+    locale = 'en',
+  ): AiJobContextV1 {
+    const context = this.contextFor(sim, player, speaker, scene, rule, undefined, locale);
+    const partner = sequence.speakers.find((candidate) => candidate.id !== speaker.id);
+    context.recentObservations.push(
+      'sequence:social',
+      `sequenceKind:${sequence.kind}`,
+      ...(partner ? [`partner:${partner.templateId}`, `partnerName:${partner.name}`] : []),
+      ...(sequence.focusObject ? [
+        `focusObject:${sequence.focusObject.objectId}`,
+        `focusTemplate:${sequence.focusObject.templateId}`,
+        ...sequence.focusObject.tags.slice(0, 3).map((tag) => `focusTag:${tag}`),
+        ...sequence.focusObject.affordanceTags.slice(0, 2).map((tag) => `focusAffordance:${tag}`),
+      ] : []),
+    );
+    return context;
   }
 
   private cursorFor(rule: AiActivePollRuleV1, pid: number, nowMs: number): AiActivePollCursorState {

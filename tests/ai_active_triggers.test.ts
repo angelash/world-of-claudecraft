@@ -1302,6 +1302,105 @@ describe('AI active trigger service', () => {
     expect(mainlineSnapshot(sim, pid)).toEqual(before);
   });
 
+  it('defaults NPC social sequences to a dynamic provider opening beat', async () => {
+    vi.useFakeTimers();
+    const rule = DEFAULT_ACTIVE_POLL_RULES.find((candidate) => candidate.ruleId === 'npc_social_sequence');
+    if (!rule) throw new Error('missing NPC social sequence rule');
+    expect(rule).toMatchObject({
+      providerPolicy: 'codexAllowed',
+      outputMode: 'dynamicTextFirst',
+    });
+
+    const { sim, pid } = makeWorld();
+    sim.time = 8 * 60;
+    const merchant = entityByTemplate(sim, 'the_merchant');
+    const marshal = entityByTemplate(sim, 'marshal_redbrook');
+    moveEntity(sim, merchant.id, 9, 17);
+    moveEntity(sim, marshal.id, 12, 17);
+    moveEntity(sim, pid, 9, 18);
+    let seenContext: AiJobContextV1 | null = null;
+    const provider: AiProvider = {
+      async decide(context) {
+        seenContext = context;
+        return {
+          decision: {
+            schemaVersion: 1,
+            jobId: context.jobId,
+            entityRef: {
+              kind: context.entity.kind,
+              entityId: context.entity.entityId,
+              templateId: context.entity.templateId,
+            },
+            ttlMs: 1_000,
+            confidence: 0.9,
+            speech: [{ mode: 'dynamicText', language: 'en', text: 'Coin sounds sharp tonight.' }],
+            intents: [{ type: 'commentOnScene' }],
+            audit: {
+              shortReason: 'social opener',
+              usedPlayerInput: false,
+              safetyNotes: ['presentationOnly'],
+            },
+          },
+        };
+      },
+    };
+    const delivered: SimEvent[][] = [];
+    const service = new AiActiveTriggerService({
+      provider,
+      thinkingDurationMs: 800,
+      rules: [rule],
+    });
+
+    try {
+      const immediate = service.tick({
+        sim,
+        sessions: [{ pid, locale: 'en' }],
+        nowMs: 1_000,
+        deliver: (_pid, events) => delivered.push(events),
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(immediate).toEqual([
+        expect.objectContaining({ type: 'aiThinking', pid }),
+      ]);
+      expect(seenContext).toMatchObject({
+        trigger: 'active_poll',
+        outputMode: 'dynamic_text_experiment',
+        recentObservations: expect.arrayContaining([
+          'rule:npc_social_sequence',
+          'category:socialSequence',
+          'sequence:social',
+          'focusObject:eastbrook_market_stall',
+        ]),
+      });
+      expect(delivered.flat()).toContainEqual(expect.objectContaining({
+        type: 'aiSpeech',
+        speech: expect.objectContaining({
+          mode: 'dynamicText',
+          language: 'en',
+          text: 'Coin sounds sharp tonight.',
+        }),
+        source: 'codex',
+        pid,
+      }));
+      expect(delivered.flat()).toContainEqual(expect.objectContaining({
+        type: 'aiThinking',
+        pid,
+      }));
+      expect(service.runtimeMetrics()).toMatchObject({
+        activeProviderCalls: 1,
+        activeProviderJobs: 1,
+        activeProviderSuccesses: 1,
+        activeSequenceFired: 1,
+        activeSequenceLastLength: 3,
+      });
+    } finally {
+      service.stop();
+      vi.useRealTimers();
+    }
+  });
+
   it('applies short NPC actions when social sequences become live behavior', () => {
     const { sim, pid } = makeWorld();
     sim.time = 8 * 60;
