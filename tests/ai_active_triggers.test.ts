@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   AiActiveTriggerService,
   type AiActivePollRuleV1,
 } from '../server/ai/active_triggers';
 import type { AiJobContextV1, AiProvider } from '../server/ai/ai_types';
 import { Sim } from '../src/sim/sim';
-import { dist2d } from '../src/sim/types';
+import { dist2d, type SimEvent } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
 
 function testRule(overrides: Partial<AiActivePollRuleV1> = {}): AiActivePollRuleV1 {
@@ -654,6 +654,56 @@ describe('AI active trigger service', () => {
       activeCandidatesSelected: 3,
     });
     expect(mainlineSnapshot(sim, pid)).toEqual(before);
+  });
+
+  it('delivers social sequence beats over time when a live deliver callback is available', async () => {
+    vi.useFakeTimers();
+    const { sim, pid } = makeWorld();
+    sim.time = 8 * 60;
+    const merchant = entityByTemplate(sim, 'the_merchant');
+    const marshal = entityByTemplate(sim, 'marshal_redbrook');
+    moveEntity(sim, merchant.id, 9, 17);
+    moveEntity(sim, marshal.id, 12, 17);
+    moveEntity(sim, pid, 9, 18);
+    const delivered: SimEvent[][] = [];
+    const service = new AiActiveTriggerService({
+      thinkingDurationMs: 800,
+      rules: [testRule({ ruleId: 'test_social_sequence_live', category: 'socialSequence' })],
+    });
+
+    try {
+      const immediate = service.tick({
+        sim,
+        sessions: [{ pid }],
+        nowMs: 1_000,
+        deliver: (_pid, events) => delivered.push(events),
+      });
+
+      expect(immediate).toEqual([
+        expect.objectContaining({ type: 'aiThinking', durationMs: 800, pid }),
+      ]);
+      expect(delivered).toEqual([]);
+
+      await vi.advanceTimersByTimeAsync(799);
+      expect(delivered).toEqual([]);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(delivered).toEqual([
+        [expect.objectContaining({ type: 'aiSpeech', pid })],
+      ]);
+      await vi.advanceTimersByTimeAsync(900);
+      expect(delivered).toHaveLength(2);
+      expect(delivered[1]).toEqual([
+        expect.objectContaining({ type: 'aiThinking', durationMs: 2_000, pid }),
+      ]);
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(delivered).toHaveLength(3);
+      expect(delivered[2]).toEqual([
+        expect.objectContaining({ type: 'aiSpeech', pid }),
+      ]);
+    } finally {
+      service.stop();
+      vi.useRealTimers();
+    }
   });
 
   it('delivers validated provider dynamic text after the active thinking beat', async () => {

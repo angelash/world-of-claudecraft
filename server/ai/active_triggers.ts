@@ -375,6 +375,7 @@ export class AiActiveTriggerService {
   private readonly recentDecisions: AiActiveTriggerDecisionSnapshot[] = [];
   private readonly codexProviderCallTimesMs: number[] = [];
   private readonly pendingProviderJobs = new Set<string>();
+  private readonly sequenceTimers = new Set<ReturnType<typeof setTimeout>>();
   private populationPolicy: AiActivePopulationPolicySnapshot | null = null;
   private schedulerCursor = 0;
   private eventSequence = 0;
@@ -586,6 +587,8 @@ export class AiActiveTriggerService {
     this.recentDecisions.splice(0);
     this.codexProviderCallTimesMs.splice(0);
     this.pendingProviderJobs.clear();
+    for (const timer of this.sequenceTimers) clearTimeout(timer);
+    this.sequenceTimers.clear();
     this.metrics.activeProviderPending = 0;
     this.populationPolicy = null;
   }
@@ -715,7 +718,13 @@ export class AiActiveTriggerService {
       });
     }
     if (input.rule.category === 'socialSequence') {
-      return this.tryFireSocialSequence({ sim: input.sim, player, rule: input.rule, nowMs: input.nowMs });
+      return this.tryFireSocialSequence({
+        sim: input.sim,
+        player,
+        rule: input.rule,
+        nowMs: input.nowMs,
+        deliver: input.deliver,
+      });
     }
 
     const candidate = this.bestNpcCandidate(input.sim, player.pos, input.nowMs);
@@ -854,6 +863,7 @@ export class AiActiveTriggerService {
     player: Entity;
     rule: AiActivePollRuleV1;
     nowMs: number;
+    deliver?: (pid: number, events: SimEvent[]) => void;
   }): { events: SimEvent[]; skipReason: AiActiveSkipReason } {
     const scene = sceneFrameFor(input.sim, input.player.pos, { excludeEntityIds: [input.player.id] });
     const sequence = this.buildNpcSocialSequence(input.sim, input.player, scene, input.nowMs);
@@ -877,7 +887,33 @@ export class AiActiveTriggerService {
       lineId: sequence.lineIds[0],
       createdAtMs: input.nowMs,
     });
+    if (input.deliver) {
+      return {
+        events: this.schedulePacedSequence(input.player.id, sequence.events, input.deliver),
+        skipReason: 'not_due',
+      };
+    }
     return { events: sequence.events, skipReason: 'not_due' };
+  }
+
+  private schedulePacedSequence(
+    pid: number,
+    events: SimEvent[],
+    deliver: (pid: number, events: SimEvent[]) => void,
+  ): SimEvent[] {
+    const [first, ...rest] = events;
+    if (!first) return [];
+    let delayMs = first.type === 'aiThinking' ? first.durationMs : this.thinkingDurationMs;
+    for (const event of rest) {
+      const timer = setTimeout(() => {
+        this.sequenceTimers.delete(timer);
+        deliver(pid, [event]);
+      }, delayMs);
+      this.sequenceTimers.add(timer);
+      if (event.type === 'aiThinking') delayMs += event.durationMs;
+      else delayMs += 900;
+    }
+    return [first];
   }
 
   private tryFireCreatureRoutine(input: {
