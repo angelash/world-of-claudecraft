@@ -111,6 +111,52 @@ describe('AI active trigger service', () => {
     });
   });
 
+  it('applies runtime config updates and keeps rules editable after disabling them', () => {
+    const { sim, pid } = makeWorld();
+    const service = new AiActiveTriggerService({ rules: [testRule()] });
+
+    const disabled = service.updateConfig({
+      pollsEnabled: false,
+      rules: [{
+        ruleId: 'test_scene_ambient',
+        enabled: false,
+        periodSeconds: 12,
+        jitterSeconds: 3,
+        priority: 12,
+        providerPolicy: 'codexPreferred',
+        outputMode: 'mixedLivingWorld',
+        cooldown: { perPlayerSeconds: 4, perEntitySeconds: 5, perRuleSeconds: 6 },
+      }],
+    });
+
+    expect(disabled.pollsEnabled).toBe(false);
+    expect(disabled.rules).toEqual([
+      expect.objectContaining({
+        ruleId: 'test_scene_ambient',
+        enabled: false,
+        periodSeconds: 12,
+        jitterSeconds: 3,
+        priority: 12,
+        providerPolicy: 'codexPreferred',
+        outputMode: 'mixedLivingWorld',
+        cooldown: { perPlayerSeconds: 4, perEntitySeconds: 5, perRuleSeconds: 6 },
+      }),
+    ]);
+    expect(service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 })).toEqual([]);
+
+    const enabled = service.updateConfig({
+      pollsEnabled: true,
+      rules: [{ ruleId: 'test_scene_ambient', enabled: true, periodSeconds: 1, priority: 100 }],
+    });
+
+    expect(enabled.rules[0]).toMatchObject({ ruleId: 'test_scene_ambient', enabled: true, periodSeconds: 1, priority: 100 });
+    expect(service.tick({ sim, sessions: [{ pid }], nowMs: 2_000 })).toEqual([
+      expect.objectContaining({ type: 'aiThinking' }),
+      expect.objectContaining({ type: 'aiSpeech' }),
+    ]);
+    expect(() => service.updateConfig({ rules: [{ ruleId: 'missing_rule' }] })).toThrow('unknown active trigger rule');
+  });
+
   it('fires a personal thinking cue and localized speech for a nearby NPC', () => {
     const { sim, pid, npcId } = makeWorld();
     const service = new AiActiveTriggerService({ rules: [testRule()], thinkingDurationMs: 1_500 });

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { renderAiAuditRecordDetail, renderAiLifeLayerMetrics } from '../src/admin/tables';
 import { setAdminLanguage } from '../src/admin/i18n';
 import type {
+  AiActiveTriggerAdminSnapshot,
   AiAuditSnapshot,
   AiContentCoverageReport, AiLifeLayerDiagnosticsSnapshot, AiLifeLayerMetricsSnapshot,
   AiProfilePreviewReport,
@@ -189,6 +190,107 @@ function diagnostics(overrides: Partial<AiLifeLayerDiagnosticsSnapshot> = {}): A
     },
     memoryPersistence: { pending: 2, flushing: true, pruning: false, lastPruneDeleted: 0, errors: ['db <offline>'] },
     ...overrides,
+  };
+}
+
+function activeTriggers(overrides: Partial<AiActiveTriggerAdminSnapshot> = {}): AiActiveTriggerAdminSnapshot {
+  const base: AiActiveTriggerAdminSnapshot = {
+    metrics: {
+      activePollDue: 4,
+      activePollSkipped: 1,
+      activePollFired: 2,
+      activeEventQueued: 3,
+      activeEventSkipped: 0,
+      activeEventFired: 1,
+      activeEventExpired: 0,
+      activeCandidatesScanned: 9,
+      activeCandidatesSelected: 3,
+      activeProviderCalls: 2,
+      activeLocalReactions: 5,
+      activeNoiseSuppressions: 1,
+      activeSchedulerOnlineCount: 2,
+      activeSchedulerSessionsConsidered: 2,
+      activeSchedulerSessionsSuppressed: 0,
+      activeSchedulerLastBand: 'small',
+      activeCodexBudgetDenied: 0,
+      activeCodexBudgetRemaining5h: 477,
+      activeCodexBudgetRemainingWeek: 3994,
+      activeProviderJobs: 2,
+      activeProviderSuccesses: 1,
+      activeProviderErrors: 1,
+      activeProviderRejected: 0,
+      activeProviderFallbacks: 1,
+      activeProviderPending: 1,
+      activeLastProviderLatencyMs: 923,
+      activeRoutineFired: 1,
+      activeRoutineLastKind: 'working',
+      activeSequenceFired: 1,
+      activeSequenceLastLength: 3,
+      activeLastSkipReason: '',
+      activeLastRuleId: 'scene_ambient_awareness',
+    },
+    diagnostics: {
+      enabled: true,
+      eventsEnabled: true,
+      pollsEnabled: true,
+      populationPolicy: {
+        band: 'small',
+        onlineCount: 2,
+        maxPollSessionsPerTick: 2,
+        minRulePriority: 0,
+        codexAdmission: 'aggressive',
+      },
+      codexBudget: {
+        maxCalls5h: 480,
+        usedCalls5h: 3,
+        remainingCalls5h: 477,
+        maxCallsWeek: 4000,
+        usedCallsWeek: 6,
+        remainingCallsWeek: 3994,
+        reserveRatio: 0.2,
+      },
+      rules: [{
+        ruleId: 'scene_ambient_awareness',
+        title: 'Scene ambient awareness',
+        enabled: true,
+        category: 'sceneAmbient',
+        periodSeconds: 300,
+        jitterSeconds: 60,
+        priority: 50,
+        scope: 'playerVicinity',
+        providerPolicy: 'codexPreferred',
+        outputMode: 'mixedLivingWorld',
+        cooldown: { perPlayerSeconds: 90, perEntitySeconds: 180, perRuleSeconds: 30 },
+      }],
+      eventQueue: [{
+        eventId: 'evt-1',
+        kind: 'item_discarded',
+        playerEntityId: 1,
+        itemId: 'apple',
+        priority: 84,
+        attempts: 0,
+        createdAtMs: 1_000,
+        expiresAtMs: 91_000,
+        nextAttemptAtMs: 1_000,
+        observations: ['event:item_discarded', 'item:apple'],
+      }],
+      cursors: [],
+      recentDecisions: [{
+        ruleId: 'scene_ambient_awareness',
+        playerEntityId: 1,
+        speakerEntityId: 12,
+        speakerTemplateId: 'brother_aldric',
+        sceneId: 'fallen_chapel',
+        lineId: 'hudChrome.aiSpeech.sceneRainWeariness',
+        createdAtMs: 1_000,
+      }],
+    },
+  };
+  return {
+    ...base,
+    ...overrides,
+    metrics: { ...base.metrics, ...overrides.metrics },
+    diagnostics: { ...base.diagnostics, ...overrides.diagnostics },
   };
 }
 
@@ -443,6 +545,46 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).not.toContain('db <offline>');
     expect(html).not.toContain('Alice<script>');
     expect(html).not.toContain('raiseCampCaution<script>');
+  });
+
+  it('shows editable active AI trigger controls and escapes rule values', () => {
+    setAdminLanguage('en');
+    const active = activeTriggers();
+    active.diagnostics.rules = [{
+      ...active.diagnostics.rules[0],
+      title: 'Scene <ambient>',
+      ruleId: 'scene_ambient_awareness<script>',
+    }];
+    const html = renderAiLifeLayerMetrics(metrics(), coverage(), diagnostics(), profiles(), audit(), active, 'active');
+
+    expect(html).toContain('Active AI');
+    expect(html).toContain('Runtime switches');
+    expect(html).toContain('Polling rules');
+    expect(html).toContain('Codex preferred');
+    expect(html).toContain('Mixed living world');
+    expect(html).toContain('Recent active decisions');
+    expect(html).toContain('Queued active events');
+    expect(html).toContain('data-save-ai-active-global');
+    expect(html).toContain('data-save-ai-active-rule');
+    expect(html).toContain('Scene &lt;ambient&gt;');
+    expect(html).toContain('scene_ambient_awareness&lt;script&gt;');
+    expect(html).not.toContain('Scene <ambient>');
+    expect(html).not.toContain('scene_ambient_awareness<script>');
+  });
+
+  it('localizes active AI trigger controls in Simplified Chinese', () => {
+    setAdminLanguage('zh_CN');
+    const html = renderAiLifeLayerMetrics(metrics(), coverage(), diagnostics(), profiles(), audit(), activeTriggers(), 'active');
+
+    expect(html).toContain('主动 AI');
+    expect(html).toContain('运行时开关');
+    expect(html).toContain('轮询规则');
+    expect(html).toContain('优先 Codex');
+    expect(html).toContain('混合生活世界');
+    expect(html).toContain('近期主动决策');
+    expect(html).toContain('排队中的主动事件');
+    expect(html).toContain('少量在线');
+    expect(html).not.toContain('Active AI');
   });
 
   it('shows AI profile previews and escapes authored profile values', () => {

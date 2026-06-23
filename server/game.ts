@@ -1032,6 +1032,10 @@ export class GameServer {
     return this.aiActiveTriggers.diagnosticsSnapshot();
   }
 
+  updateAiActiveTriggerConfig(input: unknown): AiActiveTriggerDiagnosticsSnapshot {
+    return this.aiActiveTriggers.updateConfig(input);
+  }
+
   async aiAuditSnapshot(): Promise<AiAuditSnapshot> {
     let recent: AiAuditSnapshot['recent'] = [];
     try {

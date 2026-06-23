@@ -3,7 +3,8 @@ import { classLabel, zoneLabel, t } from './i18n';
 import type {
   AccountDetail, AccountRow, CharacterRow, ChatFilterData, ChatModeratedAccount,
   ChatModerationDetail, FilterWord, LivePlayer, ModerationAccountDetail, ModerationQueueRow,
-  AiAuditEventSummary, AiAuditPlayerAction, AiAuditRecord, AiAuditSnapshot,
+  AiActivePollRule, AiActiveTriggerAdminSnapshot, AiActiveTriggerDecisionSnapshot,
+  AiActiveQueuedEventSnapshot, AiAuditEventSummary, AiAuditPlayerAction, AiAuditRecord, AiAuditSnapshot,
   AiContentCoverageReport, AiDecisionJournalEntry, AiLifeLayerDiagnosticsSnapshot, AiNpcMemory, AiRumorMemory,
   AiLifeLayerMetricsSnapshot, AiProfileAuthoringIssue, AiProfileAuthoringValidationReport,
   AiProfilePreviewReport, AiProfilePreviewRow, AiProviderTimingSnapshot,
@@ -11,7 +12,7 @@ import type {
   ProviderUsageCache, ProviderUsageSnapshot,
 } from './types';
 
-export type AiLifeLayerTab = 'audit' | 'usage' | 'coverage' | 'profiles' | 'diagnostics' | 'details';
+export type AiLifeLayerTab = 'audit' | 'active' | 'usage' | 'coverage' | 'profiles' | 'diagnostics' | 'details';
 
 // Pure HTML-string renderers for the dashboard tables. All dynamic values go
 // through escapeHtml — usernames and character names are player-controlled.
@@ -152,6 +153,7 @@ function aiMetricRow(labelKey: string, value: string): string {
 function normalizeAiTab(tab: string | undefined): AiLifeLayerTab {
   switch (tab) {
     case 'audit':
+    case 'active':
     case 'usage':
     case 'coverage':
     case 'profiles':
@@ -1326,12 +1328,192 @@ function renderAiProfilePreview(profiles: AiProfilePreviewReport): string {
       </div>`;
 }
 
+function aiActiveCategoryLabel(category: AiActivePollRule['category']): string {
+  switch (category) {
+    case 'sceneAmbient': return t('usage.aiActiveCategorySceneAmbient');
+    case 'time': return t('usage.aiActiveCategoryTime');
+    case 'weather': return t('usage.aiActiveCategoryWeather');
+    case 'townLife': return t('usage.aiActiveCategoryTownLife');
+    case 'livingRoutine': return t('usage.aiActiveCategoryLivingRoutine');
+    case 'creatureRoutine': return t('usage.aiActiveCategoryCreatureRoutine');
+    case 'socialSequence': return t('usage.aiActiveCategorySocialSequence');
+  }
+}
+
+function aiActiveProviderPolicyLabel(policy: AiActivePollRule['providerPolicy']): string {
+  switch (policy) {
+    case 'localOnly': return t('usage.aiActiveProviderLocalOnly');
+    case 'codexAllowed': return t('usage.aiActiveProviderCodexAllowed');
+    case 'codexPreferred': return t('usage.aiActiveProviderCodexPreferred');
+  }
+}
+
+function aiActiveOutputModeLabel(mode: AiActivePollRule['outputMode']): string {
+  switch (mode) {
+    case 'lineIdOnly': return t('usage.aiActiveOutputLineIdOnly');
+    case 'dynamicTextFirst': return t('usage.aiActiveOutputDynamicTextFirst');
+    case 'mixedLivingWorld': return t('usage.aiActiveOutputMixedLivingWorld');
+  }
+}
+
+function aiActiveRuleSelect<T extends string>(field: string, value: T, values: readonly T[], label: (value: T) => string, ariaKey: string, ruleTitle: string): string {
+  const options = values.map((option) => `<option value="${escapeHtml(option)}"${option === value ? ' selected' : ''}>${escapeHtml(label(option))}</option>`).join('');
+  return `<select data-ai-active-rule-field="${field}" aria-label="${escapeHtml(t(ariaKey, { rule: ruleTitle }))}">${options}</select>`;
+}
+
+function aiActiveRuleNumberInput(rule: AiActivePollRule, field: string, value: number, min: number, max: number, ariaKey: string): string {
+  return `<input type="number" min="${min}" max="${max}" step="1" value="${value}" data-ai-active-rule-field="${field}" aria-label="${escapeHtml(t(ariaKey, { rule: rule.title }))}">`;
+}
+
+function renderAiActiveRuleRow(rule: AiActivePollRule): string {
+  return `<tr data-ai-active-rule-id="${escapeHtml(rule.ruleId)}">
+    <td>
+      <b>${escapeHtml(rule.title)}</b>
+      <div class="hint">${escapeHtml(rule.ruleId)} / ${escapeHtml(aiActiveCategoryLabel(rule.category))}</div>
+    </td>
+    <td class="num">
+      <input type="checkbox" data-ai-active-rule-field="enabled" aria-label="${escapeHtml(t('usage.aiActiveRuleEnabledAria', { rule: rule.title }))}"${rule.enabled ? ' checked' : ''}>
+    </td>
+    <td class="num">${aiActiveRuleNumberInput(rule, 'periodSeconds', rule.periodSeconds, 1, 86400, 'usage.aiActiveRulePeriodAria')}</td>
+    <td class="num">${aiActiveRuleNumberInput(rule, 'jitterSeconds', rule.jitterSeconds, 0, 3600, 'usage.aiActiveRuleJitterAria')}</td>
+    <td class="num">${aiActiveRuleNumberInput(rule, 'priority', rule.priority, 0, 100, 'usage.aiActiveRulePriorityAria')}</td>
+    <td>${aiActiveRuleSelect('providerPolicy', rule.providerPolicy, ['localOnly', 'codexAllowed', 'codexPreferred'], aiActiveProviderPolicyLabel, 'usage.aiActiveRuleProviderAria', rule.title)}</td>
+    <td>${aiActiveRuleSelect('outputMode', rule.outputMode, ['lineIdOnly', 'dynamicTextFirst', 'mixedLivingWorld'], aiActiveOutputModeLabel, 'usage.aiActiveRuleOutputAria', rule.title)}</td>
+    <td class="num">${aiActiveRuleNumberInput(rule, 'cooldown.perPlayerSeconds', rule.cooldown.perPlayerSeconds, 0, 86400, 'usage.aiActiveRulePlayerCooldownAria')}</td>
+    <td class="num">${aiActiveRuleNumberInput(rule, 'cooldown.perEntitySeconds', rule.cooldown.perEntitySeconds, 0, 86400, 'usage.aiActiveRuleEntityCooldownAria')}</td>
+    <td class="num"><button type="button" data-save-ai-active-rule>${t('usage.aiActiveSaveRule')}</button></td>
+  </tr>`;
+}
+
+function renderAiActiveRecentDecision(decision: AiActiveTriggerDecisionSnapshot): string {
+  return `<tr>
+    <td>${escapeHtml(fmtDate(new Date(decision.createdAtMs).toISOString()))}</td>
+    <td>${escapeHtml(decision.ruleId)}</td>
+    <td class="num">${renderAiNumber(decision.playerEntityId)}</td>
+    <td>${escapeHtml(decision.speakerTemplateId ?? decision.skipReason ?? t('usage.aiDiagnosticsNone'))}</td>
+    <td>${escapeHtml(decision.sceneId ?? t('usage.aiDiagnosticsNone'))}</td>
+    <td>${escapeHtml(decision.lineId ?? t('usage.aiDiagnosticsNone'))}</td>
+  </tr>`;
+}
+
+function renderAiActiveQueuedEvent(event: AiActiveQueuedEventSnapshot): string {
+  return `<tr>
+    <td>${escapeHtml(event.kind)}</td>
+    <td>${escapeHtml(event.itemId ?? event.questId ?? event.subjectTemplateId ?? t('usage.aiDiagnosticsNone'))}</td>
+    <td class="num">${renderAiNumber(event.priority)}</td>
+    <td class="num">${renderAiNumber(event.attempts)}</td>
+    <td>${escapeHtml(event.observations.slice(0, 3).join(', '))}</td>
+  </tr>`;
+}
+
+function renderAiActiveTriggerControls(active?: AiActiveTriggerAdminSnapshot): string {
+  if (!active) return `<div class="empty">${t('usage.aiActiveNoData')}</div>`;
+  const { diagnostics, metrics } = active;
+  const policy = diagnostics.populationPolicy;
+  const rules = diagnostics.rules.map(renderAiActiveRuleRow).join('');
+  const recentRows = diagnostics.recentDecisions.length === 0
+    ? `<tr><td colspan="6" class="empty">${t('usage.aiActiveNoRecentDecisions')}</td></tr>`
+    : diagnostics.recentDecisions.slice(0, 12).map(renderAiActiveRecentDecision).join('');
+  const queueRows = diagnostics.eventQueue.length === 0
+    ? `<tr><td colspan="5" class="empty">${t('usage.aiActiveNoQueuedEvents')}</td></tr>`
+    : diagnostics.eventQueue.slice(0, 12).map(renderAiActiveQueuedEvent).join('');
+  return `
+    <div class="ai-health-grid">
+      <div class="ai-health-cell">
+        <div class="ai-health-value"><span class="badge${diagnostics.enabled ? '' : ' warn'}">${escapeHtml(t(diagnostics.enabled ? 'usage.aiActiveEnabled' : 'usage.aiActiveDisabled'))}</span></div>
+        <div class="ai-health-label">${t('usage.aiActiveStatus')}</div>
+      </div>
+      <div class="ai-health-cell">
+        <div class="ai-health-value">${renderAiNumber(metrics.activeProviderPending)}</div>
+        <div class="ai-health-label">${t('usage.aiActiveProviderPending')}</div>
+      </div>
+      <div class="ai-health-cell">
+        <div class="ai-health-value">${renderAiNumber(metrics.activeProviderSuccesses)} / ${renderAiNumber(metrics.activeProviderErrors)}</div>
+        <div class="ai-health-label">${t('usage.aiActiveProviderSuccessError')}</div>
+      </div>
+      <div class="ai-health-cell">
+        <div class="ai-health-value">${renderAiNumber(diagnostics.codexBudget.remainingCalls5h)} / ${renderAiNumber(diagnostics.codexBudget.remainingCallsWeek)}</div>
+        <div class="ai-health-label">${t('usage.aiActiveBudgetRemaining')}</div>
+      </div>
+      <div class="ai-health-cell">
+        <div class="ai-health-value">${policy ? escapeHtml(t(`usage.aiActiveBand.${policy.band}`)) : escapeHtml(t('usage.aiDiagnosticsNone'))}</div>
+        <div class="ai-health-label">${t('usage.aiActivePopulationBand')}</div>
+      </div>
+      <div class="ai-health-cell">
+        <div class="ai-health-value">${renderAiLatency(metrics.activeLastProviderLatencyMs)}</div>
+        <div class="ai-health-label">${t('usage.aiActiveLastLatency')}</div>
+      </div>
+    </div>
+    <div class="usage-section">
+      <h4>${t('usage.aiActiveGlobalTitle')}</h4>
+      <div class="ai-audit-status-line" data-ai-active-global>
+        <label><input type="checkbox" data-ai-active-global-field="enabled"${diagnostics.enabled ? ' checked' : ''}> ${t('usage.aiActiveGlobalEnabled')}</label>
+        <label><input type="checkbox" data-ai-active-global-field="eventsEnabled"${diagnostics.eventsEnabled ? ' checked' : ''}> ${t('usage.aiActiveGlobalEvents')}</label>
+        <label><input type="checkbox" data-ai-active-global-field="pollsEnabled"${diagnostics.pollsEnabled ? ' checked' : ''}> ${t('usage.aiActiveGlobalPolls')}</label>
+        <button type="button" data-save-ai-active-global>${t('usage.aiActiveSaveGlobal')}</button>
+      </div>
+      <div class="hint">${escapeHtml(t('usage.aiActiveGlobalHint'))}</div>
+    </div>
+    <div class="usage-section">
+      <h4>${t('usage.aiActiveRulesTitle')}</h4>
+      <div class="table-scroll">
+        <table class="usage-table">
+          <thead><tr>
+            <th>${t('usage.aiActiveColRule')}</th>
+            <th class="num">${t('usage.aiActiveColEnabled')}</th>
+            <th class="num">${t('usage.aiActiveColPeriod')}</th>
+            <th class="num">${t('usage.aiActiveColJitter')}</th>
+            <th class="num">${t('usage.aiActiveColPriority')}</th>
+            <th>${t('usage.aiActiveColProvider')}</th>
+            <th>${t('usage.aiActiveColOutput')}</th>
+            <th class="num">${t('usage.aiActiveColPlayerCooldown')}</th>
+            <th class="num">${t('usage.aiActiveColEntityCooldown')}</th>
+            <th class="num">${t('usage.aiActiveColAction')}</th>
+          </tr></thead>
+          <tbody>${rules}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="usage-section">
+      <h4>${t('usage.aiActiveRecentTitle')}</h4>
+      <div class="table-scroll">
+        <table class="usage-table">
+          <thead><tr>
+            <th>${t('usage.aiAuditColTime')}</th>
+            <th>${t('usage.aiActiveColRule')}</th>
+            <th class="num">${t('usage.aiActiveColPlayer')}</th>
+            <th>${t('usage.aiActiveColSpeaker')}</th>
+            <th>${t('usage.aiAuditDetailScene')}</th>
+            <th>${t('usage.aiActiveColLine')}</th>
+          </tr></thead>
+          <tbody>${recentRows}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="usage-section">
+      <h4>${t('usage.aiActiveQueueTitle')}</h4>
+      <div class="table-scroll">
+        <table class="usage-table">
+          <thead><tr>
+            <th>${t('usage.aiActiveColEvent')}</th>
+            <th>${t('usage.aiActiveColSubject')}</th>
+            <th class="num">${t('usage.aiActiveColPriority')}</th>
+            <th class="num">${t('usage.aiActiveColAttempts')}</th>
+            <th>${t('usage.aiActiveColObservations')}</th>
+          </tr></thead>
+          <tbody>${queueRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
 export function renderAiLifeLayerMetrics(
   ai: AiLifeLayerMetricsSnapshot,
   coverage?: AiContentCoverageReport,
   diagnostics?: AiLifeLayerDiagnosticsSnapshot,
   profiles?: AiProfilePreviewReport,
   audit?: AiAuditSnapshot,
+  active?: AiActiveTriggerAdminSnapshot,
   activeTab: AiLifeLayerTab = 'audit',
   selectedAuditId: string | null = null,
 ): string {
@@ -1370,6 +1552,7 @@ export function renderAiLifeLayerMetrics(
 
   const panels: Record<AiLifeLayerTab, string> = {
     audit: audit ? renderAiAuditRecords(audit, selectedAuditId) : `<div class="empty">${t('usage.aiAuditNoRecords')}</div>`,
+    active: renderAiActiveTriggerControls(active),
     usage: audit ? renderAiAuditSummary(audit) : `<div class="empty">${t('usage.aiAuditNoRecords')}</div>`,
     coverage: coverage ? renderAiContentCoverage(coverage) : `<div class="empty">${t('usage.aiCoverageAllClear')}</div>`,
     profiles: profiles ? renderAiProfilePreview(profiles) : `<div class="empty">${t('usage.aiProfilesNoRows')}</div>`,
@@ -1412,6 +1595,7 @@ export function renderAiLifeLayerMetrics(
     </div>
     <div class="ai-tabbar" role="tablist" aria-label="${escapeHtml(t('usage.aiTitle'))}">
       ${renderAiTabButton('audit', 'usage.aiAuditRecentTitle', selectedTab)}
+      ${renderAiTabButton('active', 'usage.aiActiveTitle', selectedTab)}
       ${renderAiTabButton('usage', 'usage.aiAuditTitle', selectedTab)}
       ${renderAiTabButton('coverage', 'usage.aiCoverageTitle', selectedTab)}
       ${renderAiTabButton('profiles', 'usage.aiProfilesTitle', selectedTab)}
@@ -1420,6 +1604,7 @@ export function renderAiLifeLayerMetrics(
     </div>
     <div class="ai-tab-panels">
       ${renderAiTabPanel('audit', selectedTab, panels.audit)}
+      ${renderAiTabPanel('active', selectedTab, panels.active)}
       ${renderAiTabPanel('usage', selectedTab, panels.usage)}
       ${renderAiTabPanel('coverage', selectedTab, panels.coverage)}
       ${renderAiTabPanel('profiles', selectedTab, panels.profiles)}

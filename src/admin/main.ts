@@ -44,6 +44,7 @@ function setElementHtmlIfChanged(el: HTMLElement, html: string): void {
 
 function isAiLifeLayerTab(value: string | undefined): value is AiLifeLayerTab {
   return value === 'audit'
+    || value === 'active'
     || value === 'usage'
     || value === 'coverage'
     || value === 'profiles'
@@ -254,6 +255,7 @@ async function refreshLive(): Promise<void> {
       overview.aiDiagnostics,
       overview.aiProfiles,
       overview.aiAudit,
+      overview.aiActive,
       activeAiTab,
       selectedAiAuditId,
     ));
@@ -325,6 +327,73 @@ async function cleanAiAuditRecords(): Promise<void> {
     }));
   } catch (err) {
     if (!handleAuthFailure(err)) window.alert(err instanceof Error ? localizeAdminError(err.message) : t('usage.aiAuditCleanFailed'));
+  }
+}
+
+function activeCheckbox(root: ParentNode, field: string): boolean {
+  const input = root.querySelector<HTMLInputElement>(`[data-ai-active-global-field="${field}"], [data-ai-active-rule-field="${field}"]`);
+  return Boolean(input?.checked);
+}
+
+function activeNumber(root: ParentNode, field: string): number | null {
+  const input = root.querySelector<HTMLInputElement>(`[data-ai-active-rule-field="${field}"]`);
+  if (!input) return null;
+  const value = Number(input.value);
+  return Number.isFinite(value) ? value : null;
+}
+
+function activeSelect(root: ParentNode, field: string): string {
+  return root.querySelector<HTMLSelectElement>(`[data-ai-active-rule-field="${field}"]`)?.value ?? '';
+}
+
+async function saveAiActiveGlobal(): Promise<void> {
+  const root = document.querySelector('[data-ai-active-global]');
+  if (!root) return;
+  try {
+    await apiPost('/admin/api/ai/active-triggers/config', {
+      enabled: activeCheckbox(root, 'enabled'),
+      eventsEnabled: activeCheckbox(root, 'eventsEnabled'),
+      pollsEnabled: activeCheckbox(root, 'pollsEnabled'),
+    });
+    await refreshLive();
+    window.alert(t('usage.aiActiveSaveSuccess'));
+  } catch (err) {
+    if (!handleAuthFailure(err)) window.alert(err instanceof Error ? localizeAdminError(err.message) : t('usage.aiActiveSaveFailed'));
+  }
+}
+
+async function saveAiActiveRule(row: HTMLElement): Promise<void> {
+  const ruleId = row.dataset.aiActiveRuleId;
+  if (!ruleId) return;
+  const periodSeconds = activeNumber(row, 'periodSeconds');
+  const jitterSeconds = activeNumber(row, 'jitterSeconds');
+  const priority = activeNumber(row, 'priority');
+  const perPlayerSeconds = activeNumber(row, 'cooldown.perPlayerSeconds');
+  const perEntitySeconds = activeNumber(row, 'cooldown.perEntitySeconds');
+  if ([periodSeconds, jitterSeconds, priority, perPlayerSeconds, perEntitySeconds].some((value) => value === null)) {
+    window.alert(t('usage.aiActiveInvalidNumber'));
+    return;
+  }
+  try {
+    await apiPost('/admin/api/ai/active-triggers/config', {
+      rules: [{
+        ruleId,
+        enabled: activeCheckbox(row, 'enabled'),
+        periodSeconds,
+        jitterSeconds,
+        priority,
+        providerPolicy: activeSelect(row, 'providerPolicy'),
+        outputMode: activeSelect(row, 'outputMode'),
+        cooldown: {
+          perPlayerSeconds,
+          perEntitySeconds,
+        },
+      }],
+    });
+    await refreshLive();
+    window.alert(t('usage.aiActiveSaveSuccess'));
+  } catch (err) {
+    if (!handleAuthFailure(err)) window.alert(err instanceof Error ? localizeAdminError(err.message) : t('usage.aiActiveSaveFailed'));
   }
 }
 
@@ -713,6 +782,17 @@ function wireEvents(): void {
     const cleanButton = target.closest('button[data-clean-ai-audit]');
     if (cleanButton) {
       void cleanAiAuditRecords();
+      return;
+    }
+    const saveActiveGlobal = target.closest('button[data-save-ai-active-global]');
+    if (saveActiveGlobal) {
+      void saveAiActiveGlobal();
+      return;
+    }
+    const saveActiveRule = target.closest('button[data-save-ai-active-rule]');
+    if (saveActiveRule) {
+      const row = saveActiveRule.closest<HTMLElement>('[data-ai-active-rule-id]');
+      if (row) void saveAiActiveRule(row);
       return;
     }
     const auditCard = target.closest<HTMLButtonElement>('.ai-audit-card[data-ai-audit-id]');

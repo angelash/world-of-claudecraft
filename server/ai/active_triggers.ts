@@ -172,6 +172,28 @@ export interface AiActiveTriggerDiagnosticsSnapshot {
   recentDecisions: AiActiveTriggerDecisionSnapshot[];
 }
 
+export interface AiActivePollRuleConfigUpdate {
+  ruleId: string;
+  enabled?: boolean;
+  periodSeconds?: number;
+  jitterSeconds?: number;
+  priority?: number;
+  providerPolicy?: AiActivePollRuleV1['providerPolicy'];
+  outputMode?: AiActivePollRuleV1['outputMode'];
+  cooldown?: {
+    perPlayerSeconds?: number;
+    perEntitySeconds?: number;
+    perRuleSeconds?: number;
+  };
+}
+
+export interface AiActiveTriggerConfigUpdate {
+  enabled?: boolean;
+  eventsEnabled?: boolean;
+  pollsEnabled?: boolean;
+  rules?: AiActivePollRuleConfigUpdate[];
+}
+
 export interface AiActiveTriggerServiceOptions {
   enabled?: boolean;
   eventsEnabled?: boolean;
@@ -317,10 +339,10 @@ export const DEFAULT_ACTIVE_POLL_RULES: readonly AiActivePollRuleV1[] = [
 ];
 
 export class AiActiveTriggerService {
-  private readonly enabled: boolean;
-  private readonly eventsEnabled: boolean;
-  private readonly pollsEnabled: boolean;
-  private readonly rules: AiActivePollRuleV1[];
+  private enabled: boolean;
+  private eventsEnabled: boolean;
+  private pollsEnabled: boolean;
+  private rules: AiActivePollRuleV1[];
   private readonly thinkingDurationMs: number;
   private readonly maxRecentDecisions: number;
   private readonly eventTtlMs: number;
@@ -378,9 +400,7 @@ export class AiActiveTriggerService {
     this.enabled = options.enabled ?? process.env.AI_LIVING_WORLD_EXPERIMENT !== '0';
     this.eventsEnabled = options.eventsEnabled ?? process.env.AI_ACTIVE_EVENTS_ENABLED !== '0';
     this.pollsEnabled = options.pollsEnabled ?? process.env.AI_ACTIVE_POLLS_ENABLED !== '0';
-    this.rules = [...(options.rules ?? DEFAULT_ACTIVE_POLL_RULES)]
-      .filter((rule) => rule.enabled)
-      .sort((a, b) => b.priority - a.priority || a.ruleId.localeCompare(b.ruleId));
+    this.rules = normalizeActiveRules(options.rules ?? DEFAULT_ACTIVE_POLL_RULES);
     this.thinkingDurationMs = Math.max(0, Math.floor(options.thinkingDurationMs ?? DEFAULT_THINKING_DURATION_MS));
     this.maxRecentDecisions = Math.max(1, Math.floor(options.maxRecentDecisions ?? 40));
     this.eventTtlMs = Math.max(1_000, Math.floor(options.eventTtlMs ?? DEFAULT_EVENT_TTL_MS));
@@ -468,6 +488,7 @@ export class AiActiveTriggerService {
     this.metrics.activeSchedulerSessionsConsidered += pollSessions.length;
     this.metrics.activeSchedulerSessionsSuppressed += Math.max(0, sessions.length - pollSessions.length);
     for (const rule of this.rules) {
+      if (!rule.enabled) continue;
       if (rule.priority < this.populationPolicy.minRulePriority) continue;
       if (!this.codexAllowedForRule(rule, input.nowMs)) continue;
       for (const session of pollSessions) {
@@ -506,6 +527,23 @@ export class AiActiveTriggerService {
       cursors: [...this.cursors.values()].map((cursor) => ({ ...cursor })),
       recentDecisions: [...this.recentDecisions],
     };
+  }
+
+  updateConfig(input: unknown): AiActiveTriggerDiagnosticsSnapshot {
+    const patch = parseActiveTriggerConfigUpdate(input);
+    if (patch.enabled !== undefined) this.enabled = patch.enabled;
+    if (patch.eventsEnabled !== undefined) this.eventsEnabled = patch.eventsEnabled;
+    if (patch.pollsEnabled !== undefined) this.pollsEnabled = patch.pollsEnabled;
+    if (patch.rules) {
+      const byId = new Map(this.rules.map((rule) => [rule.ruleId, rule]));
+      for (const update of patch.rules) {
+        const existing = byId.get(update.ruleId);
+        if (!existing) throw new Error(`unknown active trigger rule: ${update.ruleId}`);
+        byId.set(update.ruleId, mergeActiveRuleConfig(existing, update));
+      }
+      this.rules = normalizeActiveRules([...byId.values()]);
+    }
+    return this.diagnosticsSnapshot();
   }
 
   stop(): void {
@@ -1514,6 +1552,118 @@ function isProviderDecisionResult(output: AiProviderOutput): output is AiProvide
     && output !== null
     && 'decision' in output
     && typeof (output as { decision?: unknown }).decision === 'object';
+}
+
+function normalizeActiveRules(rules: readonly AiActivePollRuleV1[]): AiActivePollRuleV1[] {
+  return rules
+    .map((rule) => normalizeActiveRule(rule))
+    .sort((a, b) => b.priority - a.priority || a.ruleId.localeCompare(b.ruleId));
+}
+
+function normalizeActiveRule(rule: AiActivePollRuleV1): AiActivePollRuleV1 {
+  return {
+    ...rule,
+    enabled: Boolean(rule.enabled),
+    periodSeconds: boundedInt(rule.periodSeconds, 1, 86_400),
+    jitterSeconds: boundedInt(rule.jitterSeconds, 0, 3_600),
+    priority: boundedInt(rule.priority, 0, 100),
+    cooldown: {
+      perPlayerSeconds: boundedInt(rule.cooldown.perPlayerSeconds, 0, 86_400),
+      perEntitySeconds: boundedInt(rule.cooldown.perEntitySeconds, 0, 86_400),
+      perRuleSeconds: boundedInt(rule.cooldown.perRuleSeconds, 0, 86_400),
+    },
+  };
+}
+
+function mergeActiveRuleConfig(rule: AiActivePollRuleV1, update: AiActivePollRuleConfigUpdate): AiActivePollRuleV1 {
+  return normalizeActiveRule({
+    ...rule,
+    ...(update.enabled !== undefined ? { enabled: update.enabled } : {}),
+    ...(update.periodSeconds !== undefined ? { periodSeconds: update.periodSeconds } : {}),
+    ...(update.jitterSeconds !== undefined ? { jitterSeconds: update.jitterSeconds } : {}),
+    ...(update.priority !== undefined ? { priority: update.priority } : {}),
+    ...(update.providerPolicy !== undefined ? { providerPolicy: update.providerPolicy } : {}),
+    ...(update.outputMode !== undefined ? { outputMode: update.outputMode } : {}),
+    cooldown: {
+      ...rule.cooldown,
+      ...(update.cooldown?.perPlayerSeconds !== undefined ? { perPlayerSeconds: update.cooldown.perPlayerSeconds } : {}),
+      ...(update.cooldown?.perEntitySeconds !== undefined ? { perEntitySeconds: update.cooldown.perEntitySeconds } : {}),
+      ...(update.cooldown?.perRuleSeconds !== undefined ? { perRuleSeconds: update.cooldown.perRuleSeconds } : {}),
+    },
+  });
+}
+
+function parseActiveTriggerConfigUpdate(input: unknown): AiActiveTriggerConfigUpdate {
+  const src = asRecord(input, 'active trigger config');
+  const patch: AiActiveTriggerConfigUpdate = {};
+  if (hasOwn(src, 'enabled')) patch.enabled = boolField(src.enabled, 'enabled');
+  if (hasOwn(src, 'eventsEnabled')) patch.eventsEnabled = boolField(src.eventsEnabled, 'eventsEnabled');
+  if (hasOwn(src, 'pollsEnabled')) patch.pollsEnabled = boolField(src.pollsEnabled, 'pollsEnabled');
+  if (hasOwn(src, 'rules')) {
+    if (!Array.isArray(src.rules)) throw new Error('rules must be an array');
+    patch.rules = src.rules.map((rule) => parseActiveRuleUpdate(rule));
+  }
+  return patch;
+}
+
+function parseActiveRuleUpdate(input: unknown): AiActivePollRuleConfigUpdate {
+  const src = asRecord(input, 'active trigger rule');
+  const ruleId = stringField(src.ruleId, 'ruleId').slice(0, 96);
+  const update: AiActivePollRuleConfigUpdate = { ruleId };
+  if (hasOwn(src, 'enabled')) update.enabled = boolField(src.enabled, `${ruleId}.enabled`);
+  if (hasOwn(src, 'periodSeconds')) update.periodSeconds = boundedInt(numberField(src.periodSeconds, `${ruleId}.periodSeconds`), 1, 86_400);
+  if (hasOwn(src, 'jitterSeconds')) update.jitterSeconds = boundedInt(numberField(src.jitterSeconds, `${ruleId}.jitterSeconds`), 0, 3_600);
+  if (hasOwn(src, 'priority')) update.priority = boundedInt(numberField(src.priority, `${ruleId}.priority`), 0, 100);
+  if (hasOwn(src, 'providerPolicy')) update.providerPolicy = providerPolicyField(src.providerPolicy, `${ruleId}.providerPolicy`);
+  if (hasOwn(src, 'outputMode')) update.outputMode = outputModeField(src.outputMode, `${ruleId}.outputMode`);
+  if (hasOwn(src, 'cooldown')) {
+    const cooldown = asRecord(src.cooldown, `${ruleId}.cooldown`);
+    update.cooldown = {};
+    if (hasOwn(cooldown, 'perPlayerSeconds')) update.cooldown.perPlayerSeconds = boundedInt(numberField(cooldown.perPlayerSeconds, `${ruleId}.cooldown.perPlayerSeconds`), 0, 86_400);
+    if (hasOwn(cooldown, 'perEntitySeconds')) update.cooldown.perEntitySeconds = boundedInt(numberField(cooldown.perEntitySeconds, `${ruleId}.cooldown.perEntitySeconds`), 0, 86_400);
+    if (hasOwn(cooldown, 'perRuleSeconds')) update.cooldown.perRuleSeconds = boundedInt(numberField(cooldown.perRuleSeconds, `${ruleId}.cooldown.perRuleSeconds`), 0, 86_400);
+  }
+  return update;
+}
+
+function hasOwn(src: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(src, key);
+}
+
+function asRecord(value: unknown, label: string): Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error(`${label} must be an object`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function stringField(value: unknown, label: string): string {
+  if (typeof value !== 'string' || value.trim() === '') throw new Error(`${label} must be a non-empty string`);
+  return value.trim();
+}
+
+function boolField(value: unknown, label: string): boolean {
+  if (typeof value !== 'boolean') throw new Error(`${label} must be boolean`);
+  return value;
+}
+
+function numberField(value: unknown, label: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error(`${label} must be finite`);
+  return value;
+}
+
+function boundedInt(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, Math.floor(value)));
+}
+
+function providerPolicyField(value: unknown, label: string): AiActivePollRuleV1['providerPolicy'] {
+  if (value === 'localOnly' || value === 'codexAllowed' || value === 'codexPreferred') return value;
+  throw new Error(`${label} is not supported`);
+}
+
+function outputModeField(value: unknown, label: string): AiActivePollRuleV1['outputMode'] {
+  if (value === 'lineIdOnly' || value === 'dynamicTextFirst' || value === 'mixedLivingWorld') return value;
+  throw new Error(`${label} is not supported`);
 }
 
 function populationPolicyForOnline(onlineCount: number): AiActivePopulationPolicySnapshot {

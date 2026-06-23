@@ -210,6 +210,14 @@ export async function handleAdminApi(
     if (req.method === 'POST' && path === '/admin/api/ai/audit/clean') {
       return ok(res, await game.cleanAiAuditNonRealRecords());
     }
+    if (req.method === 'POST' && path === '/admin/api/ai/active-triggers/config') {
+      const body = await readBody(req);
+      try {
+        return ok(res, game.updateAiActiveTriggerConfig(body));
+      } catch (err) {
+        return fail(res, 400, err instanceof Error ? err.message : 'invalid active trigger configuration');
+      }
+    }
 
     if (req.method !== 'GET') return fail(res, 405, 'method not allowed');
 
@@ -234,9 +242,19 @@ export async function handleAdminApi(
         usage: providerUsageSnapshot(),
         ai: game.aiLifeLayerMetrics(),
         aiDiagnostics: game.aiLifeLayerDiagnostics(),
+        aiActive: {
+          metrics: game.aiActiveTriggerMetrics(),
+          diagnostics: game.aiActiveTriggerDiagnostics(),
+        },
         aiAudit,
         aiCoverage: aiContentCoverageReport(),
         aiProfiles: aiProfilePreviewReport(),
+      });
+    }
+    if (path === '/admin/api/ai/active-triggers') {
+      return ok(res, {
+        metrics: game.aiActiveTriggerMetrics(),
+        diagnostics: game.aiActiveTriggerDiagnostics(),
       });
     }
     const aiAuditMatch = /^\/admin\/api\/ai\/audit\/([^/]+)$/.exec(path);

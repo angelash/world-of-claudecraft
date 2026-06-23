@@ -359,6 +359,148 @@ export interface AiLifeLayerDiagnosticsSnapshot {
   };
 }
 
+export type AiActivePollCategory =
+  | 'sceneAmbient'
+  | 'time'
+  | 'weather'
+  | 'townLife'
+  | 'livingRoutine'
+  | 'creatureRoutine'
+  | 'socialSequence';
+
+export type AiActivePopulationBand =
+  | 'solo'
+  | 'small'
+  | 'busy'
+  | 'crowded'
+  | 'protected';
+
+export interface AiActivePollRule {
+  ruleId: string;
+  title: string;
+  enabled: boolean;
+  category: AiActivePollCategory;
+  periodSeconds: number;
+  jitterSeconds: number;
+  priority: number;
+  scope: 'playerVicinity';
+  providerPolicy: 'localOnly' | 'codexAllowed' | 'codexPreferred';
+  outputMode: 'lineIdOnly' | 'dynamicTextFirst' | 'mixedLivingWorld';
+  cooldown: {
+    perPlayerSeconds: number;
+    perEntitySeconds: number;
+    perRuleSeconds: number;
+  };
+}
+
+export interface AiActiveTriggerMetricsSnapshot {
+  activePollDue: number;
+  activePollSkipped: number;
+  activePollFired: number;
+  activeEventQueued: number;
+  activeEventSkipped: number;
+  activeEventFired: number;
+  activeEventExpired: number;
+  activeCandidatesScanned: number;
+  activeCandidatesSelected: number;
+  activeProviderCalls: number;
+  activeLocalReactions: number;
+  activeNoiseSuppressions: number;
+  activeSchedulerOnlineCount: number;
+  activeSchedulerSessionsConsidered: number;
+  activeSchedulerSessionsSuppressed: number;
+  activeSchedulerLastBand: AiActivePopulationBand | '';
+  activeCodexBudgetDenied: number;
+  activeCodexBudgetRemaining5h: number;
+  activeCodexBudgetRemainingWeek: number;
+  activeProviderJobs: number;
+  activeProviderSuccesses: number;
+  activeProviderErrors: number;
+  activeProviderRejected: number;
+  activeProviderFallbacks: number;
+  activeProviderPending: number;
+  activeLastProviderLatencyMs: number;
+  activeLastProviderTimings?: AiProviderTimingSnapshot;
+  activeRoutineFired: number;
+  activeRoutineLastKind: string;
+  activeSequenceFired: number;
+  activeSequenceLastLength: number;
+  activeLastSkipReason: string;
+  activeLastRuleId: string;
+}
+
+export interface AiActivePollCursorSnapshot {
+  ruleId: string;
+  scopeKey: string;
+  nextDueAtMs: number;
+  lastCheckedAtMs: number;
+  lastFiredAtMs: number;
+  lastSkipReason: string;
+  fireCount: number;
+}
+
+export interface AiActiveTriggerDecisionSnapshot {
+  ruleId: string;
+  playerEntityId: number;
+  speakerEntityId?: number;
+  speakerTemplateId?: string;
+  sceneId?: string;
+  lineId?: string;
+  skipReason?: string;
+  createdAtMs: number;
+}
+
+export interface AiActiveQueuedEventSnapshot {
+  eventId: string;
+  kind: string;
+  playerEntityId: number;
+  anchorEntityId?: number;
+  itemId?: string;
+  questId?: string;
+  subjectTemplateId?: string;
+  priority: number;
+  attempts: number;
+  createdAtMs: number;
+  expiresAtMs: number;
+  nextAttemptAtMs: number;
+  observations: string[];
+}
+
+export interface AiActivePopulationPolicySnapshot {
+  band: AiActivePopulationBand;
+  onlineCount: number;
+  maxPollSessionsPerTick: number;
+  minRulePriority: number;
+  codexAdmission: 'aggressive' | 'balanced' | 'scarce' | 'localOnly';
+}
+
+export interface AiActiveCodexBudgetSnapshot {
+  maxCalls5h: number;
+  usedCalls5h: number;
+  remainingCalls5h: number;
+  maxCallsWeek: number;
+  usedCallsWeek: number;
+  remainingCallsWeek: number;
+  reserveRatio: number;
+}
+
+export interface AiActiveTriggerDiagnosticsSnapshot {
+  enabled: boolean;
+  eventsEnabled: boolean;
+  pollsEnabled: boolean;
+  populationPolicy: AiActivePopulationPolicySnapshot | null;
+  codexBudget: AiActiveCodexBudgetSnapshot;
+  rules: AiActivePollRule[];
+  eventQueue: AiActiveQueuedEventSnapshot[];
+  cursors: AiActivePollCursorSnapshot[];
+  recentDecisions: AiActiveTriggerDecisionSnapshot[];
+}
+
+export interface AiActiveTriggerAdminSnapshot {
+  metrics: AiActiveTriggerMetricsSnapshot;
+  diagnostics: AiActiveTriggerDiagnosticsSnapshot;
+}
+
 export interface AiVolatileMemoryClearResult {
   npcMemories: number;
   rumors: number;
@@ -484,6 +626,7 @@ export interface Overview {
   usage: ProviderUsageSnapshot;
   ai: AiLifeLayerMetricsSnapshot;
   aiDiagnostics: AiLifeLayerDiagnosticsSnapshot;
+  aiActive: AiActiveTriggerAdminSnapshot;
   aiAudit: AiAuditSnapshot;
   aiCoverage: AiContentCoverageReport;
   aiProfiles: AiProfilePreviewReport;

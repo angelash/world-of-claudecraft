@@ -195,6 +195,100 @@ const fakeGame: any = {
     },
     memoryPersistence: { pending: 1, flushing: false, pruning: false, lastPruneDeleted: 2, errors: [] },
   }),
+  aiActiveTriggerMetrics: () => ({
+    activePollDue: 11,
+    activePollSkipped: 2,
+    activePollFired: 4,
+    activeEventQueued: 3,
+    activeEventSkipped: 1,
+    activeEventFired: 2,
+    activeEventExpired: 0,
+    activeCandidatesScanned: 12,
+    activeCandidatesSelected: 5,
+    activeProviderCalls: 6,
+    activeLocalReactions: 7,
+    activeNoiseSuppressions: 1,
+    activeSchedulerOnlineCount: 2,
+    activeSchedulerSessionsConsidered: 2,
+    activeSchedulerSessionsSuppressed: 0,
+    activeSchedulerLastBand: 'small',
+    activeCodexBudgetDenied: 0,
+    activeCodexBudgetRemaining5h: 477,
+    activeCodexBudgetRemainingWeek: 3994,
+    activeProviderJobs: 6,
+    activeProviderSuccesses: 5,
+    activeProviderErrors: 1,
+    activeProviderRejected: 0,
+    activeProviderFallbacks: 1,
+    activeProviderPending: 1,
+    activeLastProviderLatencyMs: 923,
+    activeRoutineFired: 3,
+    activeRoutineLastKind: 'working',
+    activeSequenceFired: 1,
+    activeSequenceLastLength: 3,
+    activeLastSkipReason: '',
+    activeLastRuleId: 'scene_ambient_awareness',
+  }),
+  aiActiveTriggerDiagnostics: () => ({
+    enabled: true,
+    eventsEnabled: true,
+    pollsEnabled: true,
+    populationPolicy: {
+      band: 'small',
+      onlineCount: 2,
+      maxPollSessionsPerTick: 2,
+      minRulePriority: 0,
+      codexAdmission: 'aggressive',
+    },
+    codexBudget: {
+      maxCalls5h: 480,
+      usedCalls5h: 3,
+      remainingCalls5h: 477,
+      maxCallsWeek: 4000,
+      usedCallsWeek: 6,
+      remainingCallsWeek: 3994,
+      reserveRatio: 0.2,
+    },
+    rules: [{
+      ruleId: 'scene_ambient_awareness',
+      title: 'Scene ambient awareness',
+      enabled: true,
+      category: 'sceneAmbient',
+      periodSeconds: 300,
+      jitterSeconds: 60,
+      priority: 50,
+      scope: 'playerVicinity',
+      providerPolicy: 'codexPreferred',
+      outputMode: 'mixedLivingWorld',
+      cooldown: { perPlayerSeconds: 90, perEntitySeconds: 180, perRuleSeconds: 30 },
+    }],
+    eventQueue: [{
+      eventId: 'evt-1',
+      kind: 'item_discarded',
+      playerEntityId: 1,
+      itemId: 'apple',
+      priority: 84,
+      attempts: 0,
+      createdAtMs: 1_000,
+      expiresAtMs: 91_000,
+      nextAttemptAtMs: 1_000,
+      observations: ['event:item_discarded', 'item:apple'],
+    }],
+    cursors: [],
+    recentDecisions: [{
+      ruleId: 'scene_ambient_awareness',
+      playerEntityId: 1,
+      speakerEntityId: 22,
+      speakerTemplateId: 'brother_aldric',
+      sceneId: 'fallen_chapel',
+      lineId: 'hudChrome.aiSpeech.sceneRainWeariness',
+      createdAtMs: 1_000,
+    }],
+  }),
+  updateAiActiveTriggerConfig: vi.fn((input: unknown) => ({
+    ...fakeGame.aiActiveTriggerDiagnostics(),
+    updateEcho: input,
+  })),
   aiAuditSnapshot: vi.fn(async () => ({
     summary: {
       generatedAt: '2026-06-22T00:00:00.000Z',
@@ -427,6 +521,22 @@ describe('admin api auth', () => {
           }),
           memoryPersistence: expect.objectContaining({ pending: 1 }),
         }),
+        aiActive: expect.objectContaining({
+          metrics: expect.objectContaining({
+            activePollFired: 4,
+            activeProviderPending: 1,
+            activeCodexBudgetRemaining5h: 477,
+          }),
+          diagnostics: expect.objectContaining({
+            enabled: true,
+            populationPolicy: expect.objectContaining({ band: 'small' }),
+            rules: expect.arrayContaining([expect.objectContaining({
+              ruleId: 'scene_ambient_awareness',
+              providerPolicy: 'codexPreferred',
+              outputMode: 'mixedLivingWorld',
+            })]),
+          }),
+        }),
         aiAudit: expect.objectContaining({
           summary: expect.objectContaining({
             totals: expect.objectContaining({
@@ -465,6 +575,40 @@ describe('admin api auth', () => {
           metrics: expect.arrayContaining([expect.objectContaining({ key: 'woc.balance.rpc' })]),
           caches: expect.arrayContaining([expect.objectContaining({ key: 'woc.balance' })]),
         }),
+      }),
+    });
+  });
+
+  it('updates active AI trigger runtime config through an authenticated admin endpoint', async () => {
+    vi.mocked(accountForToken).mockResolvedValue(7);
+    vi.mocked(isAdminAccount).mockResolvedValue(true);
+    const res = fakeRes();
+    const body = {
+      enabled: true,
+      eventsEnabled: true,
+      pollsEnabled: false,
+      rules: [{
+        ruleId: 'scene_ambient_awareness',
+        enabled: true,
+        periodSeconds: 120,
+        jitterSeconds: 15,
+        priority: 88,
+        providerPolicy: 'codexPreferred',
+        outputMode: 'mixedLivingWorld',
+        cooldown: { perPlayerSeconds: 45, perEntitySeconds: 90 },
+      }],
+    };
+
+    await handleAdminApi(fakeReq({ method: 'POST', token: VALID_TOKEN, url: '/admin/api/ai/active-triggers/config', body }), res, fakeGame);
+
+    expect(res.statusCode).toBe(200);
+    expect(fakeGame.updateAiActiveTriggerConfig).toHaveBeenCalledWith(body);
+    expect(res.body).toEqual({
+      success: true,
+      error: null,
+      data: expect.objectContaining({
+        enabled: true,
+        updateEcho: body,
       }),
     });
   });
