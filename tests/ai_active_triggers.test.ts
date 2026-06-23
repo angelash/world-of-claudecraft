@@ -420,6 +420,9 @@ describe('AI active trigger service', () => {
         'item:roasted_boar',
         'eventKind:item_discarded',
         'eventItem:roasted_boar',
+        'fallbackLineId:hudChrome.aiSpeech.worldTraceNpcFood',
+        'fallbackReaction:inspect',
+        'fallbackTargetItem:roasted_boar',
       ]),
     });
     expect(delivered.flat()).toContainEqual(expect.objectContaining({
@@ -576,6 +579,8 @@ describe('AI active trigger service', () => {
         'event:world_director',
         'directorMood:relieved',
         'directorIntent:echoQuestRelief',
+        'fallbackLineId:hudChrome.aiSpeech.worldDirectorQuestComplete',
+        'fallbackPlanKind:echoQuestRelief',
       ]),
     });
     expect(delivered.flat()).toContainEqual(expect.objectContaining({

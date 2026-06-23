@@ -907,6 +907,7 @@ export class AiActiveTriggerService {
     const localEvent: AiSpeechEvent = eventAwarenessEvent(context, candidate.entity, input.queued)
       ?? (sceneEvent?.type === 'aiSpeech' ? sceneEvent : null)
       ?? fallbackNpcAmbientEvent(context, candidate.entity, candidate.score);
+    addFallbackSpeechContext(context, localEvent);
     const lineId = localEvent.type === 'aiSpeech' && localEvent.speech.mode === 'lineId'
       ? localEvent.speech.lineId
       : undefined;
@@ -2464,6 +2465,20 @@ function eventSceneTags(context: AiJobContextV1, extra: string): string[] {
   return context.scene
     ? [...new Set([...context.scene.locationTags, ...context.scene.structureTags, ...context.scene.environmentalTags, extra])].slice(0, 8)
     : [extra];
+}
+
+function addFallbackSpeechContext(context: AiJobContextV1, event: AiSpeechEvent): void {
+  const tags = [
+    ...(event.speech.mode === 'lineId' ? [`fallbackLineId:${event.speech.lineId}`] : []),
+    `fallbackSource:${event.source}`,
+    ...(event.reaction ? [
+      `fallbackReaction:${event.reaction.kind}`,
+      ...(event.reaction.planKind ? [`fallbackPlanKind:${event.reaction.planKind}`] : []),
+      ...(event.reaction.targetItemId ? [`fallbackTargetItem:${event.reaction.targetItemId}`] : []),
+      ...(event.reaction.sceneTags ?? []).slice(0, 3).map((tag) => `fallbackSceneTag:${tag}`),
+    ] : []),
+  ];
+  context.recentObservations.unshift(...tags);
 }
 
 function cloneDirectorState(state: AiWorldDirectorState): AiWorldDirectorState {
