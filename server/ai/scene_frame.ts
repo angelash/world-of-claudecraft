@@ -16,6 +16,7 @@ export interface SceneObjectSemantic {
   tags: string[];
   featureTags: string[];
   affordanceTags: string[];
+  worldPos?: { x: number; z: number };
   distance: number;
 }
 
@@ -121,6 +122,7 @@ function nearbyObjects(sim: Sim, pos: Vec3): SceneObjectSemantic[] {
       tags: semantic.itemTags,
       featureTags: itemObjectFeatureTags(semantic),
       affordanceTags: itemObjectAffordanceTags(semantic),
+      worldPos: { x: entity.pos.x, z: entity.pos.z },
       distance: Math.round(distance * 10) / 10,
     });
   }
@@ -142,6 +144,7 @@ function nearbyAnchorObjects(pos: Vec3): SceneObjectSemantic[] {
         tags: object.tags,
         featureTags: object.featureTags,
         affordanceTags: object.affordanceTags,
+        worldPos: { x: objectPos.x, z: objectPos.z },
         distance: Math.round(dist2d(pos, objectPos) * 10) / 10,
       };
     })

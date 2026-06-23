@@ -405,7 +405,7 @@ describe('server AI active triggers', () => {
     if (!npc) throw new Error('missing Brother Aldric');
     server.sim.time = 8 * 60;
     teleportNear(server, session.pid, npc.id);
-    const home = { ...npc.pos };
+    const home = { ...npc.spawnPos };
     const before = mainlineSnapshot(server, session.pid);
     fc.sent.length = 0;
 
@@ -421,9 +421,42 @@ describe('server AI active triggers', () => {
     for (let i = 0; i < 40; i++) server.sim.tick();
     expect(dist2d(npc.pos, home)).toBeGreaterThan(0.3);
     expect(dist2d(npc.pos, home)).toBeLessThanOrEqual(3.05);
-    for (let i = 0; i < 220; i++) server.sim.tick();
+    for (let i = 0; i < 420; i++) server.sim.tick();
     expect(dist2d(npc.pos, home)).toBeLessThan(0.35);
     expect(npc.aiActiveMoveTarget).toBeNull();
+    expect(mainlineSnapshot(server, session.pid)).toEqual(before);
+  });
+
+  it('routes semantic-object-focused NPC routines through the live scheduler path', () => {
+    const server = new GameServer();
+    const service = new AiActiveTriggerService({
+      rules: [activeLivingRule()],
+      thinkingDurationMs: 700,
+    });
+    (server as any).aiActiveTriggers = service;
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'apothecary_lin');
+    if (!npc) throw new Error('missing Apothecary Lin');
+    server.sim.time = 8 * 60;
+    teleportNear(server, session.pid, npc.id);
+    const before = mainlineSnapshot(server, session.pid);
+    fc.sent.length = 0;
+
+    (server as any).runAiActiveTriggers(1_000);
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.apothecaryLinAwake' }),
+      reaction: expect.objectContaining({
+        planKind: 'herbalism',
+        targetItemId: 'eastbrook_apothecary_bench',
+        sceneTags: expect.arrayContaining(['focus:eastbrook_apothecary_bench', 'herb', 'sniffHerbs']),
+      }),
+      pid: session.pid,
+    }));
+    expect(npc.aiActiveMoveTarget).not.toBeNull();
+    expect(dist2d(npc.aiActiveMoveTarget!, { x: 11, y: npc.pos.y, z: -3 })).toBeLessThanOrEqual(2.1);
     expect(mainlineSnapshot(server, session.pid)).toEqual(before);
   });
 });

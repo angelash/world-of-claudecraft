@@ -603,7 +603,7 @@ describe('AI active trigger service', () => {
     sim.time = 8 * 60;
     const npc = sim.entities.get(npcId);
     if (!npc) throw new Error('missing npc');
-    const home = { ...npc.pos };
+    const home = { ...npc.spawnPos };
     const before = mainlineSnapshot(sim, pid);
     const requests: unknown[] = [];
     const results: unknown[] = [];
@@ -651,11 +651,85 @@ describe('AI active trigger service', () => {
     expect(dist2d(npc.pos, home)).toBeGreaterThan(0.3);
     expect(dist2d(npc.pos, home)).toBeLessThanOrEqual(3.05);
 
-    for (let i = 0; i < 220; i++) sim.tick();
+    for (let i = 0; i < 420; i++) sim.tick();
     expect(dist2d(npc.pos, home)).toBeLessThan(0.35);
     expect(npc.aiActiveMoveTarget).toBeNull();
     expect(npc.aiActiveReturningHome).toBe(false);
     expect(mainlineSnapshot(sim, pid)).toEqual(before);
+  });
+
+  it('focuses herbalist routines on nearby semantic objects and steers motion toward them', () => {
+    const { sim, pid, npcId } = makeWorld('apothecary_lin');
+    isolateNpcCandidate(sim, npcId);
+    sim.time = 8 * 60;
+    const requests: unknown[] = [];
+    const service = new AiActiveTriggerService({
+      rules: [testRule({ ruleId: 'test_living_apothecary_focus', category: 'livingRoutine' })],
+    });
+
+    const events = service.tick({
+      sim,
+      sessions: [{ pid }],
+      nowMs: 1_000,
+      applyNpcAction: (request) => {
+        requests.push(request);
+        return sim.aiActiveNpcAction(request);
+      },
+    });
+
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speakerId: npcId,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.apothecaryLinAwake' }),
+      reaction: expect.objectContaining({
+        kind: 'inspect',
+        planKind: 'herbalism',
+        targetItemId: 'eastbrook_apothecary_bench',
+        sceneTags: expect.arrayContaining(['focus:eastbrook_apothecary_bench', 'herb', 'sniffHerbs']),
+      }),
+      pid,
+    }));
+    expect(requests).toEqual([
+      expect.objectContaining({
+        kind: 'shortMove',
+        npcId,
+        playerId: pid,
+        targetPos: expect.objectContaining({ x: 11, z: -3 }),
+      }),
+    ]);
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeRoutineFired: 1,
+      activeRoutineLastKind: 'herbalism',
+      activeNpcActionsApplied: 1,
+    });
+  });
+
+  it('focuses priest routines on shrine semantics when the shrine is nearby', () => {
+    const { sim, pid, npcId } = makeWorld();
+    isolateNpcCandidate(sim, npcId);
+    sim.time = 8 * 60;
+    const service = new AiActiveTriggerService({
+      rules: [testRule({ ruleId: 'test_living_priest_focus', category: 'livingRoutine' })],
+    });
+
+    const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
+
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speakerId: npcId,
+      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
+      reaction: expect.objectContaining({
+        kind: 'inspect',
+        planKind: 'praying',
+        targetItemId: 'eastbrook_wayside_shrine',
+        sceneTags: expect.arrayContaining(['focus:eastbrook_wayside_shrine', 'prayerMemory', 'offerPrayer']),
+      }),
+      pid,
+    }));
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeRoutineFired: 1,
+      activeRoutineLastKind: 'praying',
+    });
   });
 
   it('marks clear nighttime NPC routine beats as watching the stars using localized speech', () => {

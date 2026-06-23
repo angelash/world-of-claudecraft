@@ -947,12 +947,34 @@ export class Sim {
     const distance = Math.min(homeRadius, Math.max(0.3, input.distance ?? 2.2));
     const relation = input.relation ?? 'sideStep';
     const angleToPlayer = angleTo(npc.pos, player.pos);
-    const angle = relation === 'towardPlayer'
-      ? angleToPlayer
-      : relation === 'awayFromPlayer'
-        ? angleTo(player.pos, npc.pos)
-        : angleToPlayer + (npc.id % 2 === 0 ? Math.PI / 2 : -Math.PI / 2);
-    const rawTarget = this.groundPos(npc.pos.x + Math.sin(angle) * distance, npc.pos.z + Math.cos(angle) * distance);
+    let rawTarget;
+    if (input.targetPos) {
+      const focus = this.groundPos(input.targetPos.x, input.targetPos.z);
+      const focusAngleBase = angleTo(focus, player.pos);
+      const focusAngle = relation === 'towardPlayer'
+        ? focusAngleBase
+        : relation === 'awayFromPlayer'
+          ? focusAngleBase + Math.PI
+          : focusAngleBase + (npc.id % 2 === 0 ? Math.PI / 2 : -Math.PI / 2);
+      const focusDistance = Math.min(homeRadius, Math.max(0.45, Math.min(distance, 1.6)));
+      const desired = this.groundPos(
+        focus.x + Math.sin(focusAngle) * focusDistance,
+        focus.z + Math.cos(focusAngle) * focusDistance,
+      );
+      const stepAngle = angleTo(npc.pos, desired);
+      const stepDistance = Math.min(distance, Math.max(0.35, dist2d(npc.pos, desired)));
+      rawTarget = this.groundPos(
+        npc.pos.x + Math.sin(stepAngle) * stepDistance,
+        npc.pos.z + Math.cos(stepAngle) * stepDistance,
+      );
+    } else {
+      const angle = relation === 'towardPlayer'
+        ? angleToPlayer
+        : relation === 'awayFromPlayer'
+          ? angleTo(player.pos, npc.pos)
+          : angleToPlayer + (npc.id % 2 === 0 ? Math.PI / 2 : -Math.PI / 2);
+      rawTarget = this.groundPos(npc.pos.x + Math.sin(angle) * distance, npc.pos.z + Math.cos(angle) * distance);
+    }
     const target = this.clampAiActiveNpcTarget(npc, rawTarget, homeRadius);
     if (dist2d(npc.pos, target) < 0.3) {
       return { ok: false, kind: input.kind, reason: 'state_blocked', affectedEntityIds: [] };

@@ -249,6 +249,7 @@ export interface AiActiveNpcActionRequest {
   npcId: number;
   playerId: number;
   relation?: AiActiveNpcMoveRelation;
+  targetPos?: { x: number; z: number };
   distance?: number;
   durationSeconds?: number;
   maxDistanceFromHome?: number;

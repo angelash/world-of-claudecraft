@@ -20,6 +20,7 @@ import type { FamilySceneReaction } from './family_scene_reactions';
 import { validateAiDecision } from './intent_validator';
 import { compactProfileSnapshot, profileFor } from './profiles';
 import { sceneFrameFor } from './scene_frame';
+import type { SceneObjectSemantic } from './scene_frame';
 import { sceneAwarenessEvent } from './scene_reactions';
 import { worldDirectorEvent } from './world_director';
 import type { AiWorldDirectorLineId, AiWorldDirectorMood, AiWorldDirectorProposalIntent, AiWorldDirectorState } from './world_director';
@@ -1020,7 +1021,7 @@ export class AiActiveTriggerService {
       lineId,
       createdAtMs: input.nowMs,
     });
-    if (routine) this.tryApplyNpcRoutineAction(candidate.entity, player, routine.kind, input.applyNpcAction);
+    if (routine) this.tryApplyNpcRoutineAction(candidate.entity, player, routine.plan, input.applyNpcAction);
     if (this.tryStartProviderNpcBeat({
       context,
       entity: candidate.entity,
@@ -1037,16 +1038,17 @@ export class AiActiveTriggerService {
   private tryApplyNpcRoutineAction(
     npc: Entity,
     player: Entity,
-    routineKind: NpcRoutineKind,
+    routine: NpcRoutinePlan,
     applyNpcAction?: AiActiveNpcActionBridge,
   ): AiActiveNpcActionResult | null {
     if (!this.realActionsEnabled || !applyNpcAction) return null;
-    const action = NPC_ROUTINE_ACTIONS[routineKind];
+    const action = NPC_ROUTINE_ACTIONS[routine.kind];
     const result = applyNpcAction({
       kind: 'shortMove',
       npcId: npc.id,
       playerId: player.id,
       relation: action.relation,
+      ...(routine.focusObject?.worldPos ? { targetPos: routine.focusObject.worldPos } : {}),
       distance: action.distance,
       durationSeconds: action.durationSeconds,
       maxDistanceFromHome: npc.questIds.length > 0 || npc.vendorItems.length > 0 ? 3 : 6,
@@ -2214,6 +2216,7 @@ interface NpcRoutinePlan {
   kind: NpcRoutineKind;
   lineId: string;
   reactionKind: 'avoid' | 'inspect';
+  focusObject?: SceneObjectSemantic;
 }
 
 const NPC_ROUTINE_ACTIONS = {
@@ -2239,7 +2242,7 @@ const NPC_ROUTINE_ACTIONS = {
 function routineAwarenessEvent(
   context: AiJobContextV1,
   speaker: Entity,
-): { kind: NpcRoutineKind; event: Extract<SimEvent, { type: 'aiSpeech' }> } | null {
+): { kind: NpcRoutineKind; plan: NpcRoutinePlan; event: Extract<SimEvent, { type: 'aiSpeech' }> } | null {
   const scene = context.scene;
   if (!scene) return null;
   const profile = profileFor('npc', speaker.templateId);
@@ -2252,7 +2255,8 @@ function routineAwarenessEvent(
   };
   return {
     kind: plan.kind,
-    event: routineLine(context, speaker, plan.lineId, commonValues, plan.reactionKind, plan.kind),
+    plan,
+    event: routineLine(context, speaker, plan, commonValues),
   };
 }
 
@@ -2267,30 +2271,30 @@ function npcRoutinePlanFor(
   const sensitivity = profile.timeWeatherSensitivity;
   if (scene.weather.kind === 'rain') {
     if (role === 'herbalist' || role === 'tidewatcher' || (sensitivity?.rainIrritation ?? 0.4) <= 0.15) {
-      return profileRoutinePlan(profile.fallbackLineId, routineKindForRole(role, 'rain'));
+      return withRoutineFocus(scene, role, profileRoutinePlan(profile.fallbackLineId, routineKindForRole(role, 'rain')));
     }
-    return routinePlan('shelter', 'hudChrome.aiSpeech.sceneRainWeariness', 'avoid');
+    return withRoutineFocus(scene, role, routinePlan('shelter', 'hudChrome.aiSpeech.sceneRainWeariness', 'avoid'));
   }
   if (scene.light.tags.includes('starrySky')) {
     if ((sensitivity?.clearNightAwe ?? 0.35) >= 0.45) {
-      return profileRoutinePlan('hudChrome.aiSpeech.sceneClearNightAwe', routineKindForRole(role, 'stars'));
+      return withRoutineFocus(scene, role, profileRoutinePlan('hudChrome.aiSpeech.sceneClearNightAwe', routineKindForRole(role, 'stars')));
     }
     if ((sensitivity?.nightFatigue ?? 0.4) >= 0.35) {
-      return routinePlan('sleeping', 'hudChrome.aiSpeech.sceneNightFatigue', 'avoid');
+      return withRoutineFocus(scene, role, routinePlan('sleeping', 'hudChrome.aiSpeech.sceneNightFatigue', 'avoid'));
     }
-    return routinePlan('watching', 'hudChrome.aiSpeech.sceneClearNightAwe', 'inspect');
+    return withRoutineFocus(scene, role, routinePlan('watching', 'hudChrome.aiSpeech.sceneClearNightAwe', 'inspect'));
   }
   if (scene.time.phase === 'night') {
     if (role === 'priest' || role === 'commander' || role === 'scout' || role === 'tidewatcher' || role === 'scholar') {
-      return profileRoutinePlan(profile.fallbackLineId, routineKindForRole(role, 'night'));
+      return withRoutineFocus(scene, role, profileRoutinePlan(profile.fallbackLineId, routineKindForRole(role, 'night')));
     }
-    return routinePlan('sleeping', 'hudChrome.aiSpeech.sceneNightFatigue', 'avoid');
+    return withRoutineFocus(scene, role, routinePlan('sleeping', 'hudChrome.aiSpeech.sceneNightFatigue', 'avoid'));
   }
   if (isMealHour(scene.time.hour) && scene.danger.safeHavenScore >= 0.45) {
-    return routinePlan('eating', 'hudChrome.aiSpeech.sceneDayEnergy', 'inspect');
+    return withRoutineFocus(scene, role, routinePlan('eating', 'hudChrome.aiSpeech.sceneDayEnergy', 'inspect'));
   }
   if (scene.time.phase === 'day' && scene.danger.safeHavenScore >= 0.55) {
-    return profileRoutinePlan(profile.fallbackLineId, routineKindForRole(role, 'day'));
+    return withRoutineFocus(scene, role, profileRoutinePlan(profile.fallbackLineId, routineKindForRole(role, 'day')));
   }
   return null;
 }
@@ -2301,6 +2305,11 @@ function routinePlan(kind: NpcRoutineKind, lineId: string, reactionKind: 'avoid'
 
 function profileRoutinePlan(lineId: string, kind: NpcRoutineKind): NpcRoutinePlan {
   return routinePlan(kind, lineId, kind === 'sleeping' || kind === 'shelter' ? 'avoid' : 'inspect');
+}
+
+function withRoutineFocus(scene: NonNullable<AiJobContextV1['scene']>, role: NpcRoutineRole, plan: NpcRoutinePlan): NpcRoutinePlan {
+  const focusObject = routineFocusObject(scene, role, plan.kind);
+  return focusObject ? { ...plan, focusObject } : plan;
 }
 
 function npcRoutineRoleFor(speaker: Entity, profileId: string): NpcRoutineRole {
@@ -2349,26 +2358,114 @@ function isMealHour(hour: number): boolean {
 function routineLine(
   context: AiJobContextV1,
   speaker: Entity,
-  lineId: string,
+  plan: NpcRoutinePlan,
   values: Record<string, string | number>,
-  reactionKind: 'avoid' | 'inspect',
-  planKind: string,
 ): Extract<SimEvent, { type: 'aiSpeech' }> {
   return {
     type: 'aiSpeech',
     speakerId: speaker.id,
     speakerName: speaker.name,
-    speech: { mode: 'lineId', lineId, values },
+    speech: {
+      mode: 'lineId',
+      lineId: plan.lineId,
+      values: {
+        ...values,
+        ...(plan.focusObject ? {
+          sceneObjectId: plan.focusObject.objectId,
+          sceneObjectTemplateId: plan.focusObject.templateId,
+        } : {}),
+      },
+    },
     source: 'local',
     reaction: {
-      kind: reactionKind,
+      kind: plan.reactionKind,
       score: 0.72,
-      planKind,
+      planKind: plan.kind,
       planIntensity: 0.35,
-      sceneTags: eventSceneTags(context, `routine:${planKind}`),
+      sceneTags: routineSceneTags(context, plan),
+      ...(plan.focusObject ? { targetItemId: plan.focusObject.objectId } : {}),
+      ...(plan.focusObject?.entityId !== null && plan.focusObject !== undefined ? { targetObjectId: plan.focusObject.entityId } : {}),
     },
     pid: context.player.entityId,
   };
+}
+
+function routineSceneTags(context: AiJobContextV1, plan: NpcRoutinePlan): string[] {
+  const focusTags = plan.focusObject
+    ? [
+      `focus:${plan.focusObject.objectId}`,
+      ...plan.focusObject.tags.slice(0, 2),
+      ...plan.focusObject.affordanceTags.slice(0, 2),
+    ]
+    : [];
+  return context.scene
+    ? [...new Set([
+      ...focusTags,
+      ...context.scene.locationTags,
+      ...context.scene.structureTags,
+      ...context.scene.environmentalTags,
+      `routine:${plan.kind}`,
+    ])].slice(0, 8)
+    : [...new Set([...focusTags, `routine:${plan.kind}`])].slice(0, 8);
+}
+
+function routineFocusObject(
+  scene: NonNullable<AiJobContextV1['scene']>,
+  role: NpcRoutineRole,
+  planKind: NpcRoutineKind,
+): SceneObjectSemantic | undefined {
+  const intentTags = routineFocusIntentTags(role, planKind);
+  if (intentTags === null) return undefined;
+  return scene.nearbySemanticObjects
+    .map((object) => ({ object, score: routineFocusScore(object, intentTags) }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score || a.object.distance - b.object.distance || a.object.objectId.localeCompare(b.object.objectId))[0]
+    ?.object;
+}
+
+function routineFocusIntentTags(
+  role: NpcRoutineRole,
+  planKind: NpcRoutineKind,
+): { tags: readonly string[]; affordances: readonly string[] } | null {
+  switch (planKind) {
+    case 'praying':
+      return { tags: ['prayerMemory', 'shrine', 'ruinedChapel', 'quiet'], affordances: ['offerPrayer', 'prayUneasily', 'lowerVoice', 'readInscription'] };
+    case 'trading':
+      return { tags: ['stall', 'marketEdge', 'coin', 'footTraffic'], affordances: ['haggle', 'watchCrowd', 'sniffGoods'] };
+    case 'forging':
+      return { tags: ['forge', 'hotIron', 'workNoise', 'safeTown'], affordances: ['repairGear', 'warmHands', 'avoidHeat', 'watchSoldiers'] };
+    case 'watchingWater':
+      return { tags: ['openWater', 'dock', 'reflection', 'fishSmell'], affordances: ['watchReflection', 'drinkWater', 'peerBelow', 'paceCarefully'] };
+    case 'herbalism':
+      return { tags: ['herb', 'alchemy', 'quiet', 'safeTown'], affordances: ['sniffHerbs', 'askRemedy', 'handleCarefully'] };
+    case 'studying':
+      return { tags: ['oldStone', 'prayerMemory', 'quiet', 'weatheredIcon'], affordances: ['readInscription', 'readOldMarks', 'listenForEcho', 'inspectOfferings'] };
+    case 'patrolling':
+      return { tags: ['gate', 'watchPost', 'militaryOrder', 'road'], affordances: ['standGuard', 'signalTown', 'scanRoad', 'readNotice'] };
+    case 'scouting':
+      return { tags: ['lowVisibility', 'shore', 'bridge', 'watchPost'], affordances: ['trackRipples', 'listenForSteps', 'crossCarefully', 'hideInReeds'] };
+    case 'working':
+      return { tags: ['workNoise', 'house', 'stall', 'safeTown'], affordances: ['askForHelp', 'repairGear', 'watchCrowd', 'restNearDoor'] };
+    case 'eating':
+      return { tags: ['safeTown', 'warmLight', 'marketEdge'], affordances: ['seekShelter', 'restNearDoor', 'watchCrowd'] };
+    case 'watching':
+      if (role === 'tidewatcher') {
+        return { tags: ['openWater', 'reflection', 'moonlitWater'], affordances: ['watchReflection', 'peerBelow', 'trackRipples'] };
+      }
+      return null;
+    default:
+      return null;
+  }
+}
+
+function routineFocusScore(
+  object: SceneObjectSemantic,
+  intentTags: { tags: readonly string[]; affordances: readonly string[] },
+): number {
+  const tagHits = object.tags.filter((tag) => intentTags.tags.includes(tag)).length;
+  const affordanceHits = object.affordanceTags.filter((tag) => intentTags.affordances.includes(tag)).length;
+  if (tagHits === 0 && affordanceHits === 0) return 0;
+  return affordanceHits * 4 + tagHits * 3 - object.distance * 0.1;
 }
 
 function socialSequenceLineIds(scene: ReturnType<typeof sceneFrameFor>, speakerCount: number): string[] {
