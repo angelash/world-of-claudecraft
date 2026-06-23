@@ -362,6 +362,86 @@ describe('AI active trigger service', () => {
     });
   });
 
+  it('routes queued item events through dynamic provider speech on the live deliver path', async () => {
+    const { sim, pid } = makeWorld();
+    const player = sim.entities.get(pid);
+    if (!player) throw new Error('missing player');
+    let seenContext: AiJobContextV1 | null = null;
+    const provider: AiProvider = {
+      async decide(context) {
+        seenContext = context;
+        return {
+          decision: {
+            schemaVersion: 1,
+            jobId: context.jobId,
+            entityRef: {
+              kind: context.entity.kind,
+              entityId: context.entity.entityId,
+              templateId: context.entity.templateId,
+            },
+            ttlMs: 1_000,
+            confidence: 0.9,
+            speech: [{ mode: 'dynamicText', language: 'en', text: 'You dropped supper where ants can find it.' }],
+            intents: [{ type: 'commentOnScene' }],
+            audit: {
+              shortReason: 'discarded food event',
+              usedPlayerInput: false,
+              safetyNotes: ['presentationOnly'],
+            },
+          },
+        };
+      },
+    };
+    const delivered: SimEvent[][] = [];
+    const service = new AiActiveTriggerService({
+      provider,
+      rules: [testRule()],
+      thinkingDurationMs: 700,
+    });
+
+    service.noteItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, nowMs: 1_000 });
+    const immediate = service.tick({
+      sim,
+      sessions: [{ pid, locale: 'en' }],
+      nowMs: 1_000,
+      deliver: (_pid, events) => delivered.push(events),
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(immediate).toEqual([
+      expect.objectContaining({ type: 'aiThinking', durationMs: 700, pid }),
+    ]);
+    expect(seenContext).toMatchObject({
+      trigger: 'active_event',
+      outputMode: 'mixed_living_world',
+      recentObservations: expect.arrayContaining([
+        'event:item_discarded',
+        'item:roasted_boar',
+        'eventKind:item_discarded',
+        'eventItem:roasted_boar',
+      ]),
+    });
+    expect(delivered.flat()).toContainEqual(expect.objectContaining({
+      type: 'aiSpeech',
+      speech: expect.objectContaining({
+        mode: 'dynamicText',
+        language: 'en',
+        text: 'You dropped supper where ants can find it.',
+      }),
+      source: 'codex',
+      pid,
+    }));
+    expect(service.diagnosticsSnapshot().eventQueue).toHaveLength(0);
+    expect(service.runtimeMetrics()).toMatchObject({
+      activeEventQueued: 1,
+      activeEventFired: 1,
+      activeProviderCalls: 1,
+      activeProviderJobs: 1,
+      activeProviderSuccesses: 1,
+    });
+  });
+
   it('turns world director proposals into proactive localized NPC echoes', () => {
     const { sim, pid } = makeWorld();
     const service = new AiActiveTriggerService({ rules: [testRule()] });

@@ -684,6 +684,7 @@ export class AiActiveTriggerService {
       sim: input.sim,
       sessions,
       nowMs: input.nowMs,
+      deliver: input.deliver,
       applyNpcAction: input.applyNpcAction,
     });
     if (eventEvents.length > 0) {
@@ -819,6 +820,7 @@ export class AiActiveTriggerService {
     sim: Sim;
     sessions: readonly AiActiveTriggerSessionLike[];
     nowMs: number;
+    deliver?: (pid: number, events: SimEvent[]) => void;
     applyNpcAction?: AiActiveNpcActionBridge;
   }): SimEvent[] {
     if (!this.eventsEnabled) {
@@ -844,6 +846,7 @@ export class AiActiveTriggerService {
         session,
         queued,
         nowMs: input.nowMs,
+        deliver: input.deliver,
         applyNpcAction: input.applyNpcAction,
       });
       if (result.events.length > 0) {
@@ -863,6 +866,7 @@ export class AiActiveTriggerService {
     session: AiActiveTriggerSessionLike;
     queued: AiActiveQueuedEventState;
     nowMs: number;
+    deliver?: (pid: number, events: SimEvent[]) => void;
     applyNpcAction?: AiActiveNpcActionBridge;
   }): { events: SimEvent[]; skipReason: AiActiveSkipReason } {
     const player = input.sim.entities.get(input.session.pid);
@@ -881,11 +885,13 @@ export class AiActiveTriggerService {
     }
 
     const scene = sceneFrameFor(input.sim, player.pos, { excludeEntityIds: [player.id] });
-    const context = this.contextFor(input.sim, player, candidate.entity, scene, {
+    const eventRule: AiActivePollRuleV1 = {
       ...DEFAULT_ACTIVE_POLL_RULES[0],
       ruleId: eventRuleId(input.queued),
       category: 'sceneAmbient',
-    }, input.queued, input.session.locale);
+    };
+    const context = this.contextFor(input.sim, player, candidate.entity, scene, eventRule, input.queued, input.session.locale);
+    this.addQueuedEventContext(context, input.queued);
     const sceneEvent = sceneAwarenessEvent(context, candidate.entity);
     const localEvent: AiSpeechEvent = eventAwarenessEvent(context, candidate.entity, input.queued)
       ?? (sceneEvent?.type === 'aiSpeech' ? sceneEvent : null)
@@ -915,6 +921,17 @@ export class AiActiveTriggerService {
       createdAtMs: input.nowMs,
     });
     this.tryApplyQueuedEventAction(input.queued, candidate.entity, player, input.applyNpcAction);
+    if (this.tryStartProviderNpcBeat({
+      context,
+      entity: candidate.entity,
+      fallbackEvent: localEvent,
+      rule: eventRule,
+      nowMs: input.nowMs,
+      deliver: input.deliver,
+      deferProvider: this.shouldDeferProviderForRecentActivity(input.session, input.nowMs),
+    })) {
+      return { events: [thinkingEvent], skipReason: 'not_due' };
+    }
     return { events: [thinkingEvent, localEvent], skipReason: 'not_due' };
   }
 
@@ -1803,6 +1820,22 @@ export class AiActiveTriggerService {
         `reaction:${reaction.kind}`,
         ...(reaction.planKind ? [`planKind:${reaction.planKind}`] : []),
         ...(reaction.sceneTags ?? []).slice(0, 4).map((tag) => `sceneTag:${tag}`),
+      ] : []),
+    );
+  }
+
+  private addQueuedEventContext(context: AiJobContextV1, event: AiActiveQueuedEventState): void {
+    context.recentObservations.push(
+      `eventKind:${event.kind}`,
+      ...(event.itemId ? [`eventItem:${event.itemId}`] : []),
+      ...(event.questId ? [`eventQuest:${event.questId}`] : []),
+      ...(event.subjectTemplateId ? [`eventSubject:${event.subjectTemplateId}`] : []),
+      ...(event.outcome ? [`eventOutcome:${event.outcome}`] : []),
+      ...(event.phase ? [`eventPhase:${event.phase}`] : []),
+      ...(event.directorState ? [
+        `directorMood:${event.directorState.mood}`,
+        `directorIntent:${event.directorState.proposal.intent}`,
+        `directorSubject:${event.directorState.subjectKind}`,
       ] : []),
     );
   }
