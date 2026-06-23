@@ -60,6 +60,7 @@ import { createPerfMonitor } from './game/perf';
 import { getClientSeed } from './game/client_seed';
 import { startPerfReporter } from './game/perf_reporter';
 import { cameraFollowShouldSettle, updateFollowCameraYaw, wrapAngle } from './game/camera_follow';
+import { bootstrapForkShell, collapseForkHeaderMenu, mountForkShell, syncForkShellMode } from './fork/bootstrap';
 
 
 const WORLD_SEED = 20061; // fixed: World of ClaudeCraft is a persistent place
@@ -86,6 +87,7 @@ const HOMEPAGE_MUSIC_VOLUME = 0.225;
 const $ = <T extends HTMLElement = HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 document.body.classList.toggle('native-app', NATIVE_APP);
 if (NATIVE_APP) document.body.classList.add('mobile-touch');
+mountForkShell();
 let pendingDeleteCharacter: CharacterSummary | null = null;
 let homepageMusic: HTMLAudioElement | null = null;
 let homepageMusicStarted = false;
@@ -305,13 +307,7 @@ function preventMobileZoom(): void {
 
 function syncPhoneTouchClass(): void {
   document.body.classList.toggle('mobile-touch', NATIVE_APP || useTouchInterface());
-  syncCommunityMenuMode();
-}
-
-function syncCommunityMenuMode(): void {
-  const communityMenu = document.getElementById('community-menu') as HTMLDetailsElement | null;
-  if (!communityMenu) return;
-  communityMenu.open = !(NATIVE_APP || useTouchInterface());
+  syncForkShellMode(NATIVE_APP, useTouchInterface);
 }
 
 // Honor a persisted Interface Mode override before the first layout paint, so a
@@ -600,7 +596,8 @@ function mountGameUi(): void {
   if (!template || !startScreen) throw new Error('Game UI shell is missing.');
   document.body.insertBefore(template.content.cloneNode(true), startScreen);
   translatePage();
-  syncCommunityMenuMode();
+  mountForkShell();
+  syncForkShellMode(NATIVE_APP, useTouchInterface);
 }
 
 // ---------------------------------------------------------------------------
@@ -4810,15 +4807,7 @@ function wireStartScreens(): void {
   const setupNavBtn = (btn: HTMLElement | null, targetViewId: string, customAction?: () => void) => {
     if (!btn) return;
     const action = () => {
-      // Close mobile menu if open
-      const header = $('.homepage-header');
-      const toggleBtn = $('#mobile-menu-toggle');
-      if (header && toggleBtn) {
-        header.classList.remove('menu-open');
-        toggleBtn.setAttribute('aria-expanded', 'false');
-        const menu = document.getElementById('header-menu-container') as HTMLElement | null;
-        if (menu) menu.style.display = '';
-      }
+      collapseForkHeaderMenu();
 
       if (customAction) {
         customAction();
@@ -4896,112 +4885,7 @@ function wireStartScreens(): void {
         .then((ok) => { if (!ok) langSelect.value = getLanguage(); });
     });
   }
-
-  // Mobile menu toggle setup
-  const mobileMenuToggle = $('#mobile-menu-toggle');
-  const homepageHeader = $('.homepage-header');
-  if (mobileMenuToggle && homepageHeader) {
-    const headerMenu = document.getElementById('header-menu-container') as HTMLElement | null;
-    let lastNativeMenuToggleAt = 0;
-    const setMobileMenuOpen = (open: boolean) => {
-      homepageHeader.classList.toggle('menu-open', open);
-      mobileMenuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-      if (headerMenu) headerMenu.style.display = open ? 'flex' : '';
-    };
-    const toggleMobileMenu = () => setMobileMenuOpen(!homepageHeader.classList.contains('menu-open'));
-    const handleNativeMenuToggle = (e: Event) => {
-      const target = e.target instanceof Element ? e.target : null;
-      if (!target?.closest('#mobile-menu-toggle')) return;
-      const now = Date.now();
-      if (now - lastNativeMenuToggleAt <= 250) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-      lastNativeMenuToggleAt = now;
-      e.preventDefault();
-      e.stopPropagation();
-      toggleMobileMenu();
-    };
-    document.addEventListener('pointerup', handleNativeMenuToggle, true);
-    document.addEventListener('touchend', handleNativeMenuToggle, { capture: true, passive: false });
-    mobileMenuToggle.addEventListener('click', () => {
-      if (Date.now() - lastNativeMenuToggleAt <= 250) return;
-      toggleMobileMenu();
-    });
-  }
-
-  // Dynamically initialize background embers
-  const initBackgroundEmbers = () => {
-    if (isPhoneTouchDevice()) return;
-    const backdrop = $('#start-screen-backdrop');
-    if (!backdrop) return;
-    
-    const container = document.createElement('div');
-    container.className = 'embers-container';
-    backdrop.appendChild(container);
-    
-    for (let i = 0; i < 24; i++) {
-      const ember = document.createElement('div');
-      ember.className = 'ember';
-      ember.style.left = `${Math.random() * 100}%`;
-      ember.style.bottom = `${Math.random() * 20 - 10}%`;
-      
-      const size = Math.random() * 4 + 2;
-      ember.style.width = `${size}px`;
-      ember.style.height = `${size}px`;
-      
-      ember.style.setProperty('--drift', `${Math.random() * 120 - 60}px`);
-      ember.style.setProperty('--ember-scale', `${Math.random() * 0.8 + 0.6}`);
-      ember.style.setProperty('--ember-opacity', `${Math.random() * 0.4 + 0.5}`);
-      
-      ember.style.animationDelay = `${Math.random() * 10}s`;
-      ember.style.animationDuration = `${Math.random() * 8 + 6}s`;
-      
-      container.appendChild(ember);
-    }
-  };
-
-  initBackgroundEmbers();
-
-  // Landing backdrop: read the persisted high-contrast preference and decide
-  // trailer-vs-static (also forced static on phones / Save-Data / reduced-motion).
-  // Uses a throwaway Settings read so it works before the game's settings object
-  // exists; the footer toggle persists changes through the same store.
-  const landingSettings = new Settings();
-  const contrastToggle = document.getElementById('landing-contrast-toggle') as HTMLButtonElement | null;
-  const syncContrastToggle = (on: boolean): void => {
-    if (contrastToggle) contrastToggle.setAttribute('aria-pressed', String(on));
-  };
-  syncContrastToggle(landingSettings.get('landingHighContrast'));
-  applyLandingBackdrop(landingSettings.get('landingHighContrast'));
-
-  // Stamp the engine/device + CSS-effects classes on the landing screen too, so
-  // the decorative #start-screen-backdrop work (portal rings' heavy blur, nebula,
-  // embers, trailer) is toned down from the first paint on costly engines (mobile
-  // WebKit above all). The renderer (and its GPU tier) does not exist yet, so we
-  // pass the conservative 'high' render tier here: only known-bad engine/device
-  // quirks tone the first paint down. startGame() re-stamps with the real GFX.tier
-  // once in-world. Honors a persisted manual browserEffects override.
-  {
-    const landingEnv = readBrowserEnv();
-    const landingTier = cssEffectsTier({
-      engine: landingEnv.engine,
-      version: landingEnv.engineVersion,
-      mobile: landingEnv.mobile,
-      renderTier: 'high',
-      override: landingSettings.get('browserEffects') as number,
-    });
-    const body = document.body.classList;
-    body.remove(...BROWSER_BODY_CLASSES);
-    body.add(...browserBodyClasses(landingEnv, landingTier));
-  }
-  contrastToggle?.addEventListener('click', () => {
-    const next = !landingSettings.get('landingHighContrast');
-    landingSettings.set('landingHighContrast', next);
-    syncContrastToggle(next);
-    applyLandingBackdrop(next);
-  });
+  bootstrapForkShell(applyLandingBackdrop);
 
   // Initialize 3D character preview once assets are ready
   assetsReady().then(() => {

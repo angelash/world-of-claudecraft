@@ -10,6 +10,7 @@ const supportHtml = readFileSync(new URL('../public/support.html', import.meta.u
 const viteConfig = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const serverMain = readFileSync(new URL('../server/main.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const mainTs = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+const forkBootstrapTs = readFileSync(new URL('../src/fork/bootstrap.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const hudTs = readFileSync(new URL('../src/ui/hud.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const mobileControlsTs = readFileSync(new URL('../src/game/mobile_controls.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const robotsTxt = readFileSync(new URL('../public/robots.txt', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
@@ -205,13 +206,11 @@ describe('client HTML shell', () => {
   });
 
   it('collapses in-game mobile community links behind one Community control', () => {
-    expect(html).toContain('<a class="donate-cta"');
     expect(html).toContain('<details id="community-menu">');
     expect(html).toContain('<summary class="community-toggle"');
     expect(html).toContain('<div class="community-tray">');
     expect(html).toContain('<a class="community-link discord"');
     expect(html).toContain('<a class="community-link github"');
-    expect(html).toContain('<a class="community-link donate"');
     expect(html).toContain('body.mobile-touch.game-active #ui { z-index: 80; }');
     expect(html).toContain('body.mobile-touch #community-hud {\n    right: max(8px, env(safe-area-inset-right));\n    top: calc(max(8px, env(safe-area-inset-top)) + 158px);');
     expect(html).toContain('body.mobile-touch .community-toggle {\n    width: 44px;\n    height: 44px;');
@@ -221,9 +220,31 @@ describe('client HTML shell', () => {
     expect(html).toContain('body.mobile-touch .community-tray {\n    position: absolute;');
     expect(html).toContain('z-index: 90;');
     expect(html).toContain('body.mobile-touch #community-menu[open] .community-tray { display: flex; }');
-    expect(html).toContain('body.mobile-touch .community-link.donate { display: inline-flex;');
-    expect(html).not.toContain('body.mobile-touch .community-link.donate {\n    display: none;');
-    expect(html).not.toContain('body.mobile-touch .donate-cta {\n    display: none;');
+  });
+
+  it('keeps fork-local donate links suppressed across shell surfaces', () => {
+    expect(html).toContain('data-fork-hide-donate="1"');
+    expect(html).toContain('<a class="donate-cta"');
+    expect(html).toContain('<a class="community-link donate"');
+    expect(html).toContain('body[data-fork-hide-donate="1"] .donate-cta,\n  body[data-fork-hide-donate="1"] .community-link.donate,\n  body[data-fork-hide-donate="1"] .social-link.donate,\n  body[data-fork-hide-donate="1"] a[href^="https://github.com/sponsors/levy-street"] {');
+    expect(html).toContain('display: none !important;');
+  });
+
+  it('collects fork shell surfaces behind explicit mounts and one config pack', () => {
+    expect(html).toContain('id="fork-shell-community-mount"');
+    expect(html).toContain('id="fork-shell-header-actions-mount"');
+    expect(html).toContain('id="fork-shell-footer-controls-mount"');
+    expect(html).toContain('<script id="fork-shell-config" type="application/json">');
+    expect(html).toContain('"communityHud": "#fork-shell-community-mount"');
+    expect(html).toContain('"headerActions": "#fork-shell-header-actions-mount"');
+    expect(html).toContain('"footerControls": "#fork-shell-footer-controls-mount"');
+    expect(html).toContain('<template id="fork-shell-template">');
+    expect(html).toContain('data-fork-shell-slot="communityHud"');
+    expect(html).toContain('data-fork-shell-slot="headerActions"');
+    expect(html).toContain('data-fork-shell-slot="footerControls"');
+    expect(mainTs).toContain('mountForkShell();');
+    expect(mainTs).toContain('bootstrapForkShell(applyLandingBackdrop);');
+    expect(forkBootstrapTs).toContain('export function mountForkShell(): void {');
   });
 
   it('closes mobile community and More trays when tapping outside', () => {
@@ -238,7 +259,7 @@ describe('client HTML shell', () => {
   });
 
   it('keeps desktop community links open after HUD clicks', () => {
-    expect(mainTs).toContain('communityMenu.open = !(NATIVE_APP || useTouchInterface());');
+    expect(forkBootstrapTs).toContain('communityMenu.open = !(nativeApp || useTouchInterface());');
     expect(hudTs).toContain("document.body.classList.contains('mobile-touch') && communityMenu?.open");
   });
 
@@ -285,9 +306,9 @@ describe('client HTML shell', () => {
     expect(html).toContain('body.native-app.mobile-touch[data-start-panel="login-panel"] .portal-ring,');
     expect(html).toContain('touch-action: manipulation;\n    -webkit-tap-highlight-color: transparent;');
     expect(mainTs).toContain("target?.closest('button, a, input, textarea, select, [role=\"button\"], [role=\"option\"], [tabindex]')");
-    expect(mainTs).toContain("document.addEventListener('pointerup', handleNativeMenuToggle, true);");
-    expect(mainTs).toContain("document.addEventListener('touchend', handleNativeMenuToggle, { capture: true, passive: false });");
-    expect(mainTs).toContain("if (headerMenu) headerMenu.style.display = open ? 'flex' : '';");
+    expect(forkBootstrapTs).toContain("document.addEventListener('pointerup', handleNativeMenuToggle, true);");
+    expect(forkBootstrapTs).toContain("document.addEventListener('touchend', handleNativeMenuToggle, { capture: true, passive: false });");
+    expect(forkBootstrapTs).toContain("if (headerMenu) headerMenu.style.display = open ? 'flex' : '';");
     expect(html).not.toContain('body.mobile-touch .homepage-header {\n    display: flex;\n    position: relative;');
     expect(mainTs).not.toContain("visualViewport?.addEventListener('scroll', syncAppViewport)");
   });
