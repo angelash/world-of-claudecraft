@@ -205,6 +205,9 @@ describe('server AI interact command', () => {
 
   beforeEach(() => {
     process.env.AI_LIVING_WORLD_EXPERIMENT = '1';
+    const query = dbQueryMock();
+    query.mockClear();
+    query.mockResolvedValue({ rows: [], rowCount: 0 });
   });
 
   afterEach(() => {
@@ -541,8 +544,9 @@ describe('server AI interact command', () => {
         }),
       }),
       reaction: expect.objectContaining({
+        kind: 'approach',
         targetItemId: 'roasted_boar',
-        sceneTags: expect.arrayContaining(['director:echoTrace', 'mood:hungry']),
+        sceneTags: expect.arrayContaining(['director:echoTrace', expect.stringMatching(/^directorProjection:/)]),
       }),
       pid: session.pid,
     }));
@@ -1101,7 +1105,7 @@ describe('server AI interact command', () => {
         sceneTags: expect.arrayContaining(['forge', 'workNoise']),
         individualTier: 'singularity',
         planId: expect.any(String),
-        planKind: expect.stringMatching(/^(guardPlace|omenWatch|watchSky|avoidPlayer)$/),
+        planKind: expect.stringMatching(/^(followScent|collectObject|guardPlace|avoidPlayer|watchSky|omenWatch|seekFood|protectNest|misreadPlayer)$/),
         planIntensity: expect.any(Number),
       }),
       pid: session.pid,
@@ -1110,7 +1114,7 @@ describe('server AI interact command', () => {
       entityId: wolf.id,
       playerEntityId: session.pid,
       sceneId: 'eastbrook_forge',
-      kind: expect.stringMatching(/^(guardPlace|omenWatch|watchSky|avoidPlayer)$/),
+      kind: expect.stringMatching(/^(followScent|collectObject|guardPlace|avoidPlayer|watchSky|omenWatch|seekFood|protectNest|misreadPlayer)$/),
       intensity: expect.any(Number),
     }));
     expect((server as any).aiLifeLayer.creatureMemoryDiagnostics()).toContainEqual(expect.objectContaining({

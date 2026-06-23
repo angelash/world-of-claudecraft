@@ -40,6 +40,35 @@ describe('AI scene semantics', () => {
     ]));
   });
 
+  it('extends Eastbrook town semantics down to the apothecary corner', () => {
+    const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+    const frame = sceneFrameFor(sim, pos(11, -3, sim.cfg.seed));
+
+    expect(frame.subsceneId).toBe('eastbrook_forge');
+    expect(frame.locationTags).toContain('safeTown');
+    expect(frame.nearbySemanticObjects).toContainEqual(expect.objectContaining({
+      source: 'sceneAnchor',
+      objectId: 'eastbrook_apothecary_bench',
+      tags: expect.arrayContaining(['alchemy', 'herb', 'quiet']),
+      featureTags: expect.arrayContaining(['dryingBundles', 'glassVials']),
+      affordanceTags: expect.arrayContaining(['sniffHerbs', 'askRemedy']),
+    }));
+  });
+
+  it('extends Eastbrook town semantics to the priest shrine corner', () => {
+    const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+    const frame = sceneFrameFor(sim, pos(-14, -10, sim.cfg.seed));
+
+    expect(frame.subsceneId).toBe('eastbrook_forge');
+    expect(frame.nearbySemanticObjects).toContainEqual(expect.objectContaining({
+      source: 'sceneAnchor',
+      objectId: 'eastbrook_wayside_shrine',
+      tags: expect.arrayContaining(['shrine', 'prayerMemory', 'quiet']),
+      featureTags: expect.arrayContaining(['waxDrips', 'prayerRibbons']),
+      affordanceTags: expect.arrayContaining(['offerPrayer', 'lowerVoice']),
+    }));
+  });
+
   it('adds feature and affordance semantics for real object entities', () => {
     const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
     const object = [...sim.entities.values()].find((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil');

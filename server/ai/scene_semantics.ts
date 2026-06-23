@@ -46,7 +46,7 @@ export const SCENE_ANCHORS: readonly SceneAnchor[] = [
     label: 'Eastbrook Forge',
     x: 8,
     z: 17,
-    radius: 14,
+    radius: 36,
     biomeTags: ['vale', 'town'],
     locationTags: ['town', 'marketEdge', 'safeTown'],
     structureTags: ['forge', 'stall', 'house'],
@@ -55,6 +55,8 @@ export const SCENE_ANCHORS: readonly SceneAnchor[] = [
       { id: 'eastbrook_forge_hearth', label: 'Forge Hearth', tags: ['forge', 'hotIron', 'sparks', 'workNoise'], featureTags: ['orangeCoals', 'hammerMarks', 'sootBlackenedStone'], affordanceTags: ['warmHands', 'repairGear', 'avoidHeat'], dx: 0, dz: 0, radius: 10 },
       { id: 'eastbrook_smithy_house', label: 'Smithy House', tags: ['house', 'warmLight', 'safeTown', 'livedIn'], featureTags: ['litWindows', 'smokeCurl', 'stackedFirewood'], affordanceTags: ['seekShelter', 'askForHelp', 'restNearDoor'], dx: -5, dz: 4, radius: 12 },
       { id: 'eastbrook_market_stall', label: 'Market Stall', tags: ['stall', 'marketEdge', 'coin', 'footTraffic'], featureTags: ['hangingCloth', 'countingTray', 'scuffedCounter'], affordanceTags: ['haggle', 'sniffGoods', 'watchCrowd'], dx: 7, dz: -3, radius: 11 },
+      { id: 'eastbrook_apothecary_bench', label: 'Apothecary Bench', tags: ['alchemy', 'herb', 'safeTown', 'quiet'], featureTags: ['dryingBundles', 'glassVials', 'mortarDust'], affordanceTags: ['sniffHerbs', 'askRemedy', 'handleCarefully'], dx: 3, dz: -20, radius: 12 },
+      { id: 'eastbrook_wayside_shrine', label: 'Wayside Shrine', tags: ['shrine', 'prayerMemory', 'quiet', 'safeTown'], featureTags: ['waxDrips', 'prayerRibbons', 'weatheredIcon'], affordanceTags: ['offerPrayer', 'lowerVoice', 'readInscription'], dx: -22, dz: -27, radius: 12 },
     ],
   },
   {
