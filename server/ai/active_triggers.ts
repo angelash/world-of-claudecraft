@@ -1249,10 +1249,12 @@ export class AiActiveTriggerService {
     this.metrics.activeCandidatesScanned += candidates.length;
     const [reaction] = rankFamilySceneReactions(scene, candidates, { worldSeed: sim.cfg.seed });
     if (!reaction) return null;
+    const event = familySceneReactionEvent(reaction, scene, player.id) as AiSpeechEvent;
+    const planKind = event.reaction?.planKind ?? reaction.reaction;
     return {
       entity: reaction.entity,
-      event: familySceneReactionEvent(reaction, scene, player.id) as AiSpeechEvent,
-      routineKind: `creature:${reaction.family}:${reaction.reaction}`,
+      event,
+      routineKind: `creature:${reaction.family}:${planKind}:${reaction.reaction}`,
     };
   }
 
@@ -2191,14 +2193,32 @@ function activeMobActionIntentForRoutine(result: CreatureRoutineResult): AiActiv
   const reaction = result.event.reaction;
   if (!reaction || reaction.kind === 'ignore') return null;
   const tags = new Set(reaction.sceneTags ?? []);
+  const planKind = reaction.planKind ?? '';
   if (tags.has('safeTown') || tags.has('town')) return null;
   if (reaction.kind === 'avoid') return 'flee';
   if (reaction.kind === 'approach') {
-    return family === 'humanoid' || family === 'kobold' || family === 'murloc' || family === 'troll' || family === 'ogre' || family === 'demon'
+    return family === 'beast'
+      || family === 'humanoid'
+      || family === 'kobold'
+      || family === 'murloc'
+      || family === 'undead'
+      || family === 'troll'
+      || family === 'ogre'
+      || family === 'dragonkin'
+      || family === 'demon'
       ? 'startCombat'
       : null;
   }
   if (reaction.kind === 'inspect') {
+    if (planKind === 'campMutter'
+      || planKind === 'candleGuard'
+      || planKind === 'shoalAlarm'
+      || planKind === 'webVigil'
+      || planKind === 'graveListen'
+      || planKind === 'campGrumble'
+      || planKind === 'territoryLoom') {
+      return 'callForHelp';
+    }
     return family === 'humanoid' || family === 'kobold' || family === 'murloc' || family === 'troll' || family === 'ogre'
       ? 'callForHelp'
       : null;

@@ -38,6 +38,41 @@ export interface FamilySceneFocusedObject {
   distance: number;
 }
 
+export type FamilyRoutinePlanKind =
+  | 'forageScent'
+  | 'keepDistanceFromFire'
+  | 'guardScent'
+  | 'campClaim'
+  | 'fallBackFromThreat'
+  | 'campMutter'
+  | 'shoalForage'
+  | 'splashBack'
+  | 'shoalAlarm'
+  | 'webStalk'
+  | 'retreatToWeb'
+  | 'webVigil'
+  | 'snatchShiny'
+  | 'hideWithCandle'
+  | 'candleGuard'
+  | 'graveDrift'
+  | 'shunLivingWarmth'
+  | 'graveListen'
+  | 'meatClaim'
+  | 'sniffWariness'
+  | 'campGrumble'
+  | 'blockPath'
+  | 'backOffMagic'
+  | 'territoryLoom'
+  | 'resonanceDraw'
+  | 'resistBinding'
+  | 'resonancePulse'
+  | 'treasureJudgment'
+  | 'rejectDefilement'
+  | 'ancientWatch'
+  | 'fearNeedle'
+  | 'wardMockery'
+  | 'temptingWatch';
+
 interface FamilyObjectCueRules {
   approachTags: readonly string[];
   avoidTags: readonly string[];
@@ -220,6 +255,7 @@ export function scoreFamilySceneReaction(
 
 export function familySceneReactionEvent(reaction: FamilySceneReaction, scene: SceneFrameV1, pid: number): SimEvent {
   const focusedObject = reaction.focusedObject;
+  const planKind = familyRoutinePlanKind(reaction.family, reaction.reaction);
   return {
     type: 'aiSpeech',
     speakerId: reaction.entity.id,
@@ -244,9 +280,13 @@ export function familySceneReactionEvent(reaction: FamilySceneReaction, scene: S
     reaction: {
       kind: reaction.reaction,
       score: Math.round(reaction.score * 100) / 100,
+      planKind,
+      planIntensity: Math.max(0.3, Math.round(reaction.score * 100) / 100),
       ...(focusedObject && focusedObject.entityId !== null ? { targetObjectId: focusedObject.entityId } : {}),
       ...(focusedObject ? { targetItemId: focusedObject.objectId } : {}),
       sceneTags: [...new Set([
+        `family:${reaction.family}`,
+        `routine:${planKind}`,
         ...reaction.reasonTags,
         ...(focusedObject?.reasonTags ?? []),
         ...scene.locationTags,
@@ -258,6 +298,36 @@ export function familySceneReactionEvent(reaction: FamilySceneReaction, scene: S
     },
     pid,
   };
+}
+
+export function familyRoutinePlanKind(
+  family: MobFamily,
+  reaction: FamilySceneReactionKind,
+): FamilyRoutinePlanKind {
+  switch (family) {
+    case 'beast':
+      return reaction === 'approach' ? 'forageScent' : reaction === 'avoid' ? 'keepDistanceFromFire' : 'guardScent';
+    case 'humanoid':
+      return reaction === 'approach' ? 'campClaim' : reaction === 'avoid' ? 'fallBackFromThreat' : 'campMutter';
+    case 'murloc':
+      return reaction === 'approach' ? 'shoalForage' : reaction === 'avoid' ? 'splashBack' : 'shoalAlarm';
+    case 'spider':
+      return reaction === 'approach' ? 'webStalk' : reaction === 'avoid' ? 'retreatToWeb' : 'webVigil';
+    case 'kobold':
+      return reaction === 'approach' ? 'snatchShiny' : reaction === 'avoid' ? 'hideWithCandle' : 'candleGuard';
+    case 'undead':
+      return reaction === 'approach' ? 'graveDrift' : reaction === 'avoid' ? 'shunLivingWarmth' : 'graveListen';
+    case 'troll':
+      return reaction === 'approach' ? 'meatClaim' : reaction === 'avoid' ? 'sniffWariness' : 'campGrumble';
+    case 'ogre':
+      return reaction === 'approach' ? 'blockPath' : reaction === 'avoid' ? 'backOffMagic' : 'territoryLoom';
+    case 'elemental':
+      return reaction === 'approach' ? 'resonanceDraw' : reaction === 'avoid' ? 'resistBinding' : 'resonancePulse';
+    case 'dragonkin':
+      return reaction === 'approach' ? 'treasureJudgment' : reaction === 'avoid' ? 'rejectDefilement' : 'ancientWatch';
+    case 'demon':
+      return reaction === 'approach' ? 'fearNeedle' : reaction === 'avoid' ? 'wardMockery' : 'temptingWatch';
+  }
 }
 
 function lineIdForFamilyScene(family: MobFamily, reaction: FamilySceneReactionKind): string {

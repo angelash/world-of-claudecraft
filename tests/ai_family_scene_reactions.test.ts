@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Entity } from '../src/sim/types';
+import type { Entity, MobFamily } from '../src/sim/types';
 import { familyDirectorProjectionFor } from '../server/ai/director_family_projection';
-import { familySceneReactionEvent, rankFamilySceneReactions, scoreFamilySceneReaction } from '../server/ai/family_scene_reactions';
+import { familyRoutinePlanKind, familySceneReactionEvent, rankFamilySceneReactions, scoreFamilySceneReaction } from '../server/ai/family_scene_reactions';
 import type { SceneFrameV1, SceneObjectSemantic } from '../server/ai/scene_frame';
 import { sceneSemanticsAt } from '../server/ai/scene_semantics';
 import { timeWeatherMood } from '../server/ai/time_weather_model';
@@ -67,6 +67,28 @@ function directorProposal(overrides: Partial<AiWorldDirectorProposal> = {}): AiW
 }
 
 describe('AI family scene reactions', () => {
+  it('defines a concrete living routine plan for every mob family', () => {
+    const cases: Array<[MobFamily, ReturnType<typeof familyRoutinePlanKind>, ReturnType<typeof familyRoutinePlanKind>, ReturnType<typeof familyRoutinePlanKind>]> = [
+      ['beast', 'forageScent', 'keepDistanceFromFire', 'guardScent'],
+      ['humanoid', 'campClaim', 'fallBackFromThreat', 'campMutter'],
+      ['murloc', 'shoalForage', 'splashBack', 'shoalAlarm'],
+      ['spider', 'webStalk', 'retreatToWeb', 'webVigil'],
+      ['kobold', 'snatchShiny', 'hideWithCandle', 'candleGuard'],
+      ['undead', 'graveDrift', 'shunLivingWarmth', 'graveListen'],
+      ['troll', 'meatClaim', 'sniffWariness', 'campGrumble'],
+      ['ogre', 'blockPath', 'backOffMagic', 'territoryLoom'],
+      ['elemental', 'resonanceDraw', 'resistBinding', 'resonancePulse'],
+      ['dragonkin', 'treasureJudgment', 'rejectDefilement', 'ancientWatch'],
+      ['demon', 'fearNeedle', 'wardMockery', 'temptingWatch'],
+    ];
+
+    for (const [family, approach, avoid, inspect] of cases) {
+      expect(familyRoutinePlanKind(family, 'approach'), family).toBe(approach);
+      expect(familyRoutinePlanKind(family, 'avoid'), family).toBe(avoid);
+      expect(familyRoutinePlanKind(family, 'inspect'), family).toBe(inspect);
+    }
+  });
+
   it('lets beasts treat forge scenes as something to avoid by scent and sound', () => {
     const reaction = scoreFamilySceneReaction(frame(8, 17), mob(10, 'forest_wolf'));
     expect(reaction).toMatchObject({
@@ -153,9 +175,10 @@ describe('AI family scene reactions', () => {
     expect(familySceneReactionEvent(reaction!, scene, 1)).toMatchObject({
       reaction: expect.objectContaining({
         kind: 'approach',
+        planKind: 'forageScent',
         targetObjectId: 99,
         targetItemId: 'roasted_boar',
-        sceneTags: expect.arrayContaining(['sniffObject']),
+        sceneTags: expect.arrayContaining(['family:beast', 'routine:forageScent', 'sniffObject']),
       }),
     });
   });
@@ -191,8 +214,9 @@ describe('AI family scene reactions', () => {
     expect(event).toMatchObject({
       reaction: expect.objectContaining({
         kind: 'avoid',
+        planKind: 'keepDistanceFromFire',
         targetItemId: 'threshold_with_cold_draft',
-        sceneTags: expect.arrayContaining(['fleeFromDark']),
+        sceneTags: expect.arrayContaining(['family:beast', 'routine:keepDistanceFromFire', 'fleeFromDark']),
       }),
     });
     expect(event.type === 'aiSpeech' ? event.reaction : null).not.toHaveProperty('targetObjectId');

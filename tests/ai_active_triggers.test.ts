@@ -619,8 +619,9 @@ describe('AI active trigger service', () => {
       speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.familySceneBeastUneasy' }),
       reaction: expect.objectContaining({
         kind: 'avoid',
+        planKind: 'keepDistanceFromFire',
         individualTier: expect.any(String),
-        sceneTags: expect.arrayContaining(['forge', 'workNoise']),
+        sceneTags: expect.arrayContaining(['family:beast', 'routine:keepDistanceFromFire', 'forge', 'workNoise']),
       }),
       source: 'local',
       pid,
@@ -628,7 +629,7 @@ describe('AI active trigger service', () => {
     expect(service.runtimeMetrics()).toMatchObject({
       activePollFired: 1,
       activeRoutineFired: 1,
-      activeRoutineLastKind: 'creature:beast:avoid',
+      activeRoutineLastKind: 'creature:beast:keepDistanceFromFire:avoid',
     });
     expect(mainlineSnapshot(sim, pid)).toEqual(before);
   });
