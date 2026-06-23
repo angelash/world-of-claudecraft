@@ -1886,7 +1886,12 @@ export class Sim {
     for (const pid of party.members) {
       const candidate = this.players.get(pid);
       const e = this.entities.get(pid);
-      if (candidate && e && !e.dead && dist2d(e.pos, mob.pos) <= PARTY_XP_RANGE) candidates.push(candidate);
+      // A member downed during the fight (corpse still in range) keeps loot
+      // rights, exactly like the kill-credit gate in handleDeath. Do not filter
+      // on `e.dead` here: that locked fallen members out of currency splits and
+      // need/greed rolls. Releasing to the graveyard moves the corpse out of
+      // range, which is what actually forfeits the rights.
+      if (candidate && e && dist2d(e.pos, mob.pos) <= PARTY_XP_RANGE) candidates.push(candidate);
     }
     return candidates;
   }
@@ -4389,14 +4394,17 @@ export class Sim {
       if (meta && creditEntity) {
         const eliteMult = MOBS[e.templateId]?.elite ? 2 : 1;
         // party play: kill credit, xp split and quest progress shared with
-        // members alive and nearby (classic group rules + group bonus)
+        // members nearby (classic group rules + group bonus). A member downed
+        // during the fight still counts while their corpse is in range: classic
+        // groups credit fallen members (and their loot rights), they are not
+        // erased for dying. Releasing to the graveyard moves them out of range.
         const party = this.partyOf(creditEntity.id);
         const eligible: PlayerMeta[] = [];
         if (party) {
           for (const mPid of party.members) {
             const mMeta = this.players.get(mPid);
             const mE = this.entities.get(mPid);
-            if (mMeta && mE && !mE.dead && dist2d(mE.pos, e.pos) <= PARTY_XP_RANGE) eligible.push(mMeta);
+            if (mMeta && mE && dist2d(mE.pos, e.pos) <= PARTY_XP_RANGE) eligible.push(mMeta);
           }
         }
         if (eligible.length === 0) eligible.push(meta);

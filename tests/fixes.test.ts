@@ -538,7 +538,7 @@ describe('boss loot and encounter resets', () => {
     }
   });
 
-  it('fair-splits corpse copper among nearby living party members', () => {
+  it('fair-splits corpse copper among nearby party members, including the in-range fallen', () => {
     const sim = makeSim();
     const a = sim.playerId;
     const b = sim.addPlayer('mage', 'Bert');
@@ -554,21 +554,25 @@ describe('boss loot and encounter resets', () => {
     teleportTo(sim, 21, 20, b);
     teleportTo(sim, 20, 21, c);
     teleportTo(sim, 160, 160, d);
+    // Cyra was downed during the fight; her corpse is still on the mob. Classic
+    // group rules keep a fallen-but-in-range member in the split (the old bug
+    // erased her share for dying). Only Dara, who is far away, is excluded.
     sim.entities.get(c)!.dead = true;
     const mob = createMob(990099, MOBS.forest_wolf, 2, { x: 20, y: 0, z: 22 });
     mob.dead = true;
     mob.lootable = true;
     mob.tappedById = a;
-    mob.loot = { copper: 11, items: [] };
+    mob.loot = { copper: 12, items: [] };
     sim.entities.set(mob.id, mob);
 
     sim.lootCorpse(mob.id, b);
 
     const gains = [a, b, c, d].map((pid) => sim.meta(pid)!.copper);
-    expect(gains[0] + gains[1]).toBe(11);
-    expect(Math.abs(gains[0] - gains[1])).toBeLessThanOrEqual(1);
-    expect(gains[2]).toBe(0);
-    expect(gains[3]).toBe(0);
+    expect(gains[0] + gains[1] + gains[2]).toBe(12); // a, b, and the fallen c share it
+    expect(gains[0]).toBeGreaterThan(0);
+    expect(gains[1]).toBeGreaterThan(0);
+    expect(gains[2]).toBeGreaterThan(0);
+    expect(gains[3]).toBe(0); // Dara is out of range
     expect(mob.loot).toBeNull();
   });
 
