@@ -1083,6 +1083,7 @@ describe('AI active trigger service', () => {
 
     const { sim, pid } = makeWorld();
     const wolf = entityByTemplate(sim, 'forest_wolf');
+    const individual = individualProfileFor(wolf, sim.cfg.seed);
     moveEntity(sim, wolf.id, 8, 17);
     moveEntity(sim, pid, 9, 17);
     let seenContext: AiJobContextV1 | null = null;
@@ -1138,6 +1139,8 @@ describe('AI active trigger service', () => {
         'rule:creature_living_routine',
         'category:creatureRoutine',
         'family:beast',
+        `individualTier:${individual.tier}`,
+        ...individual.traits.map((trait) => `individualTrait:${trait}`),
         'creatureRoutine:creature:beast:keepDistanceFromFire:avoid',
         'reaction:avoid',
         'planKind:keepDistanceFromFire',

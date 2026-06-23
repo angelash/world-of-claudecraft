@@ -23,6 +23,7 @@ import { compactProfileSnapshot, profileFor } from './profiles';
 import { sceneFrameFor } from './scene_frame';
 import type { SceneObjectSemantic } from './scene_frame';
 import { sceneAwarenessEvent } from './scene_reactions';
+import { individualProfileFor } from './singularity';
 import { worldDirectorEvent } from './world_director';
 import type { AiWorldDirectorLineId, AiWorldDirectorMood, AiWorldDirectorProposalIntent, AiWorldDirectorState } from './world_director';
 
@@ -1758,6 +1759,7 @@ export class AiActiveTriggerService {
     const meta = sim.meta(player.id);
     const profile = profileFor('mob', creature.templateId);
     const familySemantics = compactFamilySemanticsForEntity(creature);
+    const individual = individualProfileFor(creature, sim.cfg.seed);
     return {
       schemaVersion: 1,
       jobId: `ai-active-${rule.ruleId}-${player.id}-${creature.id}`,
@@ -1789,6 +1791,13 @@ export class AiActiveTriggerService {
         `category:${rule.category}`,
         `creature:${creature.templateId}`,
         ...(familySemantics ? [`family:${familySemantics.family}`] : []),
+        `individualTier:${individual.tier}`,
+        ...(individual.tier === 'none' ? [] : [
+          `individualScore:${individual.score}`,
+          `individualIntensity:${Math.round(individual.intensity * 100) / 100}`,
+          `individualMemorySeed:${individual.memorySeed}`,
+          ...individual.traits.map((trait) => `individualTrait:${trait}`),
+        ]),
         `time:${scene.time.phase}`,
         `weather:${scene.weather.kind}`,
         `scene:${scene.subsceneId ?? scene.zoneId}`,
