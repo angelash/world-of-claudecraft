@@ -238,7 +238,52 @@ function isLowInformationDynamicSpeech(text: string, locale: string): boolean {
   if (locale === 'en' || locale === 'en_CA' || locale.toLowerCase().startsWith('en')) {
     const lower = normalized.toLowerCase();
     const words = lower.replace(/[^a-z0-9'?\s]/g, '').split(/\s+/).filter(Boolean);
-    return words.length <= 2 && /[?]$/.test(lower);
+    if (!/[?]$/.test(lower)) return false;
+    if (words.length <= 2) return true;
+    return isThinEnglishQuestion(words);
   }
   return false;
+}
+
+const LOW_INFORMATION_ENGLISH_QUESTION_WORDS = new Set([
+  'a',
+  'an',
+  'and',
+  'are',
+  'do',
+  'does',
+  'feel',
+  'friend',
+  'hear',
+  'here',
+  'huh',
+  'it',
+  "it's",
+  'listen',
+  'look',
+  'me',
+  'now',
+  'notice',
+  'see',
+  'smell',
+  'stranger',
+  'that',
+  'there',
+  "there's",
+  'this',
+  'those',
+  'traveler',
+  'us',
+  'watch',
+  'we',
+  'what',
+  'you',
+]);
+
+function isThinEnglishQuestion(words: readonly string[]): boolean {
+  if (words.length > 4) return false;
+  const meaningfulWords = words
+    .map((word) => word.replace(/^\W+|\W+$/g, ''))
+    .filter((word) => word && !LOW_INFORMATION_ENGLISH_QUESTION_WORDS.has(word));
+  return meaningfulWords.length === 0;
 }

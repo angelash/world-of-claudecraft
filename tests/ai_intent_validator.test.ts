@@ -190,6 +190,46 @@ describe('AI intent validator', () => {
     });
   });
 
+  it('rejects short dynamicText questions that only gesture at a sensation', () => {
+    const result = validateAiDecision({
+      decision: {
+        ...decision,
+        speech: [{ mode: 'dynamicText', language: 'en', text: 'Smell that, traveler?' }],
+      },
+      context: { ...context, outputMode: 'dynamic_text_experiment' },
+      entity,
+      subject: 'criticalQuestNpc',
+      source: 'codex',
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      reason: 'dynamic speech too thin',
+      speechPolish: expect.objectContaining({
+        processed: 1,
+        lastAfter: 'Smell that, traveler?',
+      }),
+    });
+  });
+
+  it('allows short dynamicText questions when they carry concrete scene information', () => {
+    const result = validateAiDecision({
+      decision: {
+        ...decision,
+        speech: [{ mode: 'dynamicText', language: 'en', text: 'Smoke under the blue door?' }],
+      },
+      context: { ...context, outputMode: 'dynamic_text_experiment' },
+      entity,
+      subject: 'criticalQuestNpc',
+      source: 'codex',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.events).toContainEqual(expect.objectContaining({
+      speech: { mode: 'dynamicText', language: 'en', text: 'Smoke under the blue door?' },
+    }));
+  });
+
   it('polishes English dynamicText before creating player speech events', () => {
     const result = validateAiDecision({
       decision: {
