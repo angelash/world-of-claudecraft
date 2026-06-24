@@ -258,7 +258,7 @@ describe('Codex CLI AI provider', () => {
     expect(prompt).toContain('Compact job JSON (source of truth):');
     expect(prompt).not.toContain('Full job context JSON');
     expect(prompt).toContain('Avoid assistant-style transitions');
-    expect(prompt).toContain('Do not start with 不过');
+    expect(prompt).toContain('Do not start with 首先, 其次, 最后, 不过');
     expect(prompt).toContain('"jobId":"job-codex-worker"');
   });
 

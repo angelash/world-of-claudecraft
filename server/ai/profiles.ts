@@ -88,7 +88,7 @@ const SPEECH_FINGERPRINTS = {
   herbalist: {
     sentenceRhythm: 'precise and quiet, like a field note spoken under breath',
     addressStyle: 'uses patient, traveler, or the player name when concern is personal',
-    favoriteStarts: ['Smell that', 'Do not touch it yet', 'The leaves are telling on it'],
+    favoriteStarts: ['Bitter sap on the air', 'Do not touch that yet', 'The leaves are telling on it'],
     sensoryBias: ['bitter sap', 'venom', 'breath tone', 'wet leaves'],
     avoidedPhrases: ['clearly indicates', 'it is important to note', 'I would recommend'],
   },
@@ -123,7 +123,7 @@ const SPEECH_FINGERPRINTS = {
   scout: {
     sentenceRhythm: 'quiet field speech, one sign noticed, then one restrained warning',
     addressStyle: 'uses the player name only if urgency makes it useful',
-    favoriteStarts: ['Track is fresh', 'Do you hear that', 'Step light'],
+    favoriteStarts: ['Track is fresh', 'Wind shifted west', 'Step light'],
     sensoryBias: ['bent grass', 'old tracks', 'wind shift', 'animal silence'],
     avoidedPhrases: ['from my perspective', 'overall', 'I would recommend'],
   },

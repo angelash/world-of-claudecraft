@@ -117,6 +117,8 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('Use dynamicText only when outputMode is dynamic_text_experiment or mixed_living_world');
     expect(prompt).toContain('When dynamicText is allowed, follow speechFingerprint over generic assistant phrasing');
     expect(prompt).toContain('Assistant-like habits to avoid: connector-first openings, question restatement scaffolding, advice framing, abstract takeaway lines');
+    expect(prompt).toContain('Open like someone noticing the player or the immediate moment, not like a prewritten greeting card.');
+    expect(prompt).toContain('Let the opener carry stance: wary, welcoming, busy, hushed, annoyed, tired, amused, or quietly protective.');
     expect(prompt).toContain('Do not echo the topic with frames like "you asked about..." or "你问的是..."');
     expect(prompt).toContain('Do not use advice scaffolding like "I would recommend..." or "我建议你..."');
     expect(prompt).toContain('Do not tidy the line into a neat takeaway such as "this means..." or "这说明..."');
@@ -133,7 +135,8 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('deathPressure');
     expect(prompt).toContain('undead=0.70');
     expect(prompt).toContain('q_bones:currentObjective');
-    expect(prompt).toContain('Topic: rumor');
+    expect(prompt).toContain('Player ask: the player wants local rumor, hearsay, or uneasy talk worth repeating');
+    expect(prompt).toContain('Emotional pressure right now: hushed or uneasy around death; wary, listening harder than usual; tired, lower-energy, shorter-breathed.');
     expect(prompt).toContain('Profile: npc.brother_aldric.living_world');
     expect(prompt).toContain('Knowledge scope: chapel rites, restless dead');
     expect(prompt).toContain('Taboo topics: hidden quest conclusions');
@@ -156,6 +159,15 @@ describe('AI Codex prompt builder', () => {
     expect(prompt).toContain('profile=profileProjection:riteOmen');
     expect(prompt).toContain('Memory signals: rumor:rumor-7:region:salience=0.65:readRegionRumor');
     expect(prompt).toContain('Return only JSON');
+  });
+
+  it('adds live-reply dialogue guidance for npc question prompts', () => {
+    const prompt = buildCodexDecisionPrompt({ ...context, trigger: 'npc_question', topic: 'recent', outputMode: 'mixed_living_world' });
+
+    expect(prompt).toContain('This is a live reply to the player, not a caption, report, tooltip, or scene note.');
+    expect(prompt).toContain('Answer the meaning of the player ask, never repeat the topic label itself. Do not open with "Recent?" or "最近？".');
+    expect(prompt).toContain('A strong reply often lands in two beats: answer first, then add one small human edge');
+    expect(prompt).toContain('Player ask: the player wants to know what has been happening here lately');
   });
 
   it('builds a pet-command prompt without quest, director, or object clutter', () => {
@@ -209,7 +221,7 @@ describe('AI Codex prompt builder', () => {
     const prompt = buildCodexDecisionPrompt(repairContext);
 
     expect(prompt).toContain('Repair pass: the previous dynamicText candidate was rejected because "dynamic speech too thin". Rewrite once with a concrete visible hook.');
-    expect(prompt).toContain('Do not repeat the rejected shape. Avoid vague sensory questions, generic recent-event openers, and meta explanations.');
+    expect(prompt).toContain('Do not repeat the rejected shape. Avoid topic-label question openers, vague sensory questions, generic recent-event openers, and meta explanations.');
     expect(prompt).toContain('Recent observations: providerRejected:dynamic speech too thin, providerRepair:writeOneConcreteGroundedLine');
     expect(prompt.indexOf('Repair pass:')).toBeLessThan(prompt.indexOf('Speech rhythm target:'));
   });

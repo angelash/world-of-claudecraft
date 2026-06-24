@@ -30,7 +30,7 @@ describe('AI speech style', () => {
       'en',
     );
 
-    expect(text).toBe("I'm keeping an eye on the road, it's too quiet tonight.");
+    expect(text).toBe("I'm keeping an eye on the road. It's too quiet tonight.");
   });
 
   it('drops Chinese Q-and-A framing and colon-heavy cadence', () => {
@@ -101,5 +101,27 @@ describe('AI speech style', () => {
     );
 
     expect(text).toBe("The rain's back on the shutters.");
+  });
+
+  it('strips topic-label echo from English question replies and keeps the real answer', () => {
+    const text = polishDynamicSpeechText(
+      'Recent? Hot iron, sparks, and mortar dust in the drying bundles, traveler.',
+      'en',
+      undefined,
+      'recent',
+    );
+
+    expect(text).toBe('Hot iron, sparks, and mortar dust in the drying bundles, traveler.');
+  });
+
+  it('strips topic-label echo from Chinese question replies and keeps the real answer', () => {
+    const text = polishDynamicSpeechText(
+      '最近？天刚亮，冷气还贴着石缝。',
+      'zh_CN',
+      undefined,
+      'recent',
+    );
+
+    expect(text).toBe('天刚亮，冷气还贴着石缝。');
   });
 });

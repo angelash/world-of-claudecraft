@@ -101,7 +101,7 @@ const EN_ACTION_START = /^(?:before speaking|before he speaks|before she speaks|
 
 export function dynamicSpeechPromptRules(locale: string): string[] {
   const common = [
-    '- DynamicText is one short spoken line, not an explanation. Aim for one sentence.',
+    '- DynamicText is one short spoken turn, not an explanation. Usually one sentence or two short beats.',
     '- Sound like the entity is talking in the moment: concrete, sensory, a little incomplete.',
     '- Prefer something a person could blurt while working, watching, walking, or hiding, not narration written for the player.',
     '- Do not write third-person narration of the speaker such as "Brother Aldric glances at the sky" or "Brother Aldric开口前...".',
@@ -115,6 +115,7 @@ export function dynamicSpeechPromptRules(locale: string): string[] {
     '- Do not tidy the line into a neat takeaway such as "this means..." or "这说明...".',
     '- Do not start with however, also, therefore, overall, or similar connector words.',
     '- If the line reacts to a smell, sound, sight, or feeling, name the concrete thing: smoke, wet stone, coins, footsteps, torch oil. Do not say vague prompts like "Smell that?" or "Hear that?"',
+    '- Let a little feeling leak through when it fits: warmth, suspicion, impatience, awe, fatigue, dread, embarrassment, or dry humor.',
     '- One mutter, fragment, or half-finished warning is fine if it sounds alive.',
   ];
   if (isChineseLocale(locale)) {
@@ -139,11 +140,21 @@ export function dynamicSpeechPromptRules(locale: string): string[] {
   ];
 }
 
-export function polishDynamicSpeechText(text: string, locale: string, fingerprint?: AiSpeechFingerprint | null): string {
-  return polishDynamicSpeech(text, locale, fingerprint).text;
+export function polishDynamicSpeechText(
+  text: string,
+  locale: string,
+  fingerprint?: AiSpeechFingerprint | null,
+  topic?: string | null,
+): string {
+  return polishDynamicSpeech(text, locale, fingerprint, topic).text;
 }
 
-export function polishDynamicSpeech(text: string, locale: string, fingerprint?: AiSpeechFingerprint | null): DynamicSpeechPolishResult {
+export function polishDynamicSpeech(
+  text: string,
+  locale: string,
+  fingerprint?: AiSpeechFingerprint | null,
+  topic?: string | null,
+): DynamicSpeechPolishResult {
   const normalized = stripOuterQuotes(text.replace(/[ \t\r\n]+/g, ' ').trim());
   if (!normalized) {
     return { text: normalized, before: normalized, beforeChars: 0, afterChars: 0, changed: false, charsTrimmed: 0 };
@@ -151,9 +162,9 @@ export function polishDynamicSpeech(text: string, locale: string, fingerprint?: 
   const withoutSpeaker = stripSpeakerPrefix(normalized);
   const before = withoutSpeaker.trim() || normalized;
   const polished = isChineseLocale(locale)
-    ? polishChineseSpeech(withoutSpeaker, normalized, fingerprint)
+    ? polishChineseSpeech(withoutSpeaker, normalized, fingerprint, topic)
     : isEnglishLocale(locale)
-      ? polishEnglishSpeech(withoutSpeaker, normalized, fingerprint)
+      ? polishEnglishSpeech(withoutSpeaker, normalized, fingerprint, topic)
       : shortenSpokenLine(withoutSpeaker, normalized);
   const after = polished.trim() || normalized;
   return {
@@ -188,11 +199,13 @@ function stripChineseTransitions(text: string): string {
   return out.trim() || text.trim();
 }
 
-function polishChineseSpeech(text: string, fallback: string, fingerprint?: AiSpeechFingerprint | null): string {
-  let out = stripChineseTransitions(text);
+function polishChineseSpeech(text: string, fallback: string, fingerprint?: AiSpeechFingerprint | null, topic?: string | null): string {
+  let out = stripChineseTopicEcho(text, topic);
+  out = stripChineseTransitions(out);
   out = stripChineseAssistantPhrases(out);
   out = stripChineseActionNarration(out);
   out = stripFingerprintAvoidedPhrases(out, fingerprint);
+  out = stripChineseTopicEcho(out, topic);
   out = stripChineseTransitions(out);
   out = relaxChineseCadence(out);
   out = shortenChineseLine(out);
@@ -221,6 +234,9 @@ function stripChineseAssistantPhrases(text: string): string {
     for (const pattern of patterns) out = out.replace(pattern, '');
     if (out === before) break;
   }
+  out = out
+    .replace(/([。！？!?])\s*(?:这说明|这意味着|这表示|这告诉我|总的来说|重点是|问题是)[，,：:\s]*/g, '$1')
+    .trim();
   return out.trim() || text.trim();
 }
 
@@ -248,11 +264,13 @@ function stripEnglishTransitions(text: string): string {
   return out.trim() || text.trim();
 }
 
-function polishEnglishSpeech(text: string, fallback: string, fingerprint?: AiSpeechFingerprint | null): string {
-  let out = stripEnglishTransitions(text);
+function polishEnglishSpeech(text: string, fallback: string, fingerprint?: AiSpeechFingerprint | null, topic?: string | null): string {
+  let out = stripEnglishTopicEcho(text, topic);
+  out = stripEnglishTransitions(out);
   out = stripEnglishAssistantPhrases(out);
   out = stripEnglishActionNarration(out);
   out = stripFingerprintAvoidedPhrases(out, fingerprint);
+  out = stripEnglishTopicEcho(out, topic);
   out = stripEnglishTransitions(out);
   out = relaxEnglishCadence(out);
   out = contractEnglishSpeech(out);
@@ -260,6 +278,26 @@ function polishEnglishSpeech(text: string, fallback: string, fingerprint?: AiSpe
   out = cleanupEnglishPunctuation(out);
   out = capitalizeEnglishSentence(out);
   return out || fallback.trim();
+}
+
+function stripChineseTopicEcho(text: string, topic?: string | null): string {
+  const labels = chineseTopicEchoLabels(topic);
+  if (labels.length === 0) return text.trim();
+  let out = text.trim();
+  for (const label of labels) {
+    out = out.replace(new RegExp(`^${escapeRegExp(label)}[？?]\\s*`), '');
+  }
+  return out.trim() || text.trim();
+}
+
+function stripEnglishTopicEcho(text: string, topic?: string | null): string {
+  const labels = englishTopicEchoLabels(topic);
+  if (labels.length === 0) return text.trim();
+  let out = text.trim();
+  for (const label of labels) {
+    out = out.replace(new RegExp(`^${escapeRegExp(label)}[?]\\s*`, 'i'), '');
+  }
+  return out.trim() || text.trim();
 }
 
 function stripEnglishAssistantPhrases(text: string): string {
@@ -289,6 +327,9 @@ function stripEnglishAssistantPhrases(text: string): string {
     for (const [pattern, replacement] of patterns) out = out.replace(pattern, replacement);
     if (out === before) break;
   }
+  out = out
+    .replace(/([.!?])\s*(?:this means|that means|overall|the point is|the thing is|what matters is)\s*/gi, '$1 ')
+    .trim();
   return out.trim() || text.trim();
 }
 
@@ -329,8 +370,12 @@ function shortenSpokenLine(text: string, fallback: string): string {
 function shortenChineseLine(text: string): string {
   const out = text.trim();
   if (!out) return out;
+  const withoutShortLead = dropShortChineseLeadSentence(out);
+  if (withoutShortLead !== out) return shortenChineseLine(withoutShortLead);
   const sentenceCount = (out.match(/[。！？!?]/g) ?? []).length;
-  if (out.length <= 42 && sentenceCount <= 1) return out;
+  if (out.length <= 60 && sentenceCount <= 2) return out;
+  const twoSentences = firstTwoChineseSentences(out);
+  if (twoSentences && twoSentences.length <= 60) return twoSentences;
   return firstChineseSentence(out) || firstChineseClause(out) || out;
 }
 
@@ -354,15 +399,22 @@ function firstChineseClause(text: string): string {
 function shortenEnglishLine(text: string): string {
   const out = text.trim();
   if (!out) return out;
+  const withoutShortLead = dropShortEnglishLeadSentence(out);
+  if (withoutShortLead !== out) return shortenEnglishLine(withoutShortLead);
   const words = out.split(/\s+/).filter(Boolean);
   const sentenceCount = (out.match(/[.!?]/g) ?? []).length;
-  if (words.length <= 18 && out.length <= 120 && sentenceCount <= 1) return out;
+  if (words.length <= 24 && out.length <= 160 && sentenceCount <= 2) return out;
+  const twoSentences = firstTwoEnglishSentences(out);
+  if (twoSentences) {
+    const twoWords = twoSentences.split(/\s+/).filter(Boolean).length;
+    if (twoWords <= 24 && twoSentences.length <= 160) return twoSentences;
+  }
   return firstEnglishSentence(out) || firstEnglishClause(out) || out;
 }
 
 function relaxEnglishCadence(text: string): string {
   return text
-    .replace(/\s*;\s*/g, ', ')
+    .replace(/\s*;\s*/g, '. ')
     .replace(/([A-Za-z])\s*:\s*(?=[a-z])/g, '$1, ')
     .replace(/([A-Za-z])\s*:\s*(?=[A-Z])/g, '$1. ')
     .trim();
@@ -389,6 +441,50 @@ function firstEnglishClause(text: string): string {
   return match?.[0].replace(/[,;:]\s*$/, '.').trim() ?? '';
 }
 
+function firstTwoChineseSentences(text: string): string {
+  const parts = splitChineseSentences(text);
+  if (parts.length < 2) return parts[0] ?? '';
+  return `${parts[0] ?? ''}${parts[1] ?? ''}`.trim();
+}
+
+function firstTwoEnglishSentences(text: string): string {
+  const parts = splitEnglishSentences(text);
+  if (parts.length < 2) return parts[0] ?? '';
+  return `${parts[0] ?? ''} ${parts[1] ?? ''}`.replace(/[ \t]+/g, ' ').trim();
+}
+
+function dropShortChineseLeadSentence(text: string): string {
+  const parts = splitChineseSentences(text);
+  const first = parts[0];
+  if (!first || parts.length < 2) return text;
+  if (!/[？?]$/.test(first)) return text;
+  const compact = first.replace(/[。！？!?，,、\s]/g, '');
+  if (compact.length > 4) return text;
+  return parts.slice(1).join('').trim() || text;
+}
+
+function dropShortEnglishLeadSentence(text: string): string {
+  const parts = splitEnglishSentences(text);
+  const first = parts[0];
+  if (!first || parts.length < 2) return text;
+  if (!/[?]$/.test(first)) return text;
+  const words = first.toLowerCase().replace(/[^a-z0-9'\s]/g, '').split(/\s+/).filter(Boolean);
+  if (words.length > 3) return text;
+  return parts.slice(1).join(' ').replace(/[ \t]+/g, ' ').trim() || text;
+}
+
+function splitChineseSentences(text: string): string[] {
+  return (text.match(/[^。！？!?]+[。！？!?]?/g) ?? [])
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function splitEnglishSentences(text: string): string[] {
+  return (text.match(/[^.!?]+[.!?]?/g) ?? [])
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
 function cleanupChinesePunctuation(text: string): string {
   return text
     .replace(/^[，,、。！？!?\s]+/, '')
@@ -407,7 +503,7 @@ function cleanupEnglishPunctuation(text: string): string {
 
 function capitalizeEnglishSentence(text: string): string {
   if (!text) return text;
-  return text[0].toUpperCase() + text.slice(1);
+  return text.replace(/(^|[.!?]\s+)([a-z])/g, (_match, prefix: string, letter: string) => `${prefix}${letter.toUpperCase()}`);
 }
 
 function stripFingerprintAvoidedPhrases(text: string, fingerprint?: AiSpeechFingerprint | null): string {
@@ -439,4 +535,34 @@ function stripAvoidedPhrase(text: string, phrase: string): string {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function englishTopicEchoLabels(topic?: string | null): string[] {
+  switch (topic) {
+    case 'recent':
+      return ['recent', 'lately'];
+    case 'rumor':
+      return ['rumor', 'rumour', 'gossip'];
+    case 'place':
+      return ['place', 'here'];
+    case 'quest_hint':
+      return ['quest hint', 'hint', 'lead'];
+    default:
+      return [];
+  }
+}
+
+function chineseTopicEchoLabels(topic?: string | null): string[] {
+  switch (topic) {
+    case 'recent':
+      return ['最近'];
+    case 'rumor':
+      return ['传闻', '消息'];
+    case 'place':
+      return ['这里', '这地方', '这儿'];
+    case 'quest_hint':
+      return ['线索', '提示'];
+    default:
+      return [];
+  }
 }

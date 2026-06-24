@@ -263,6 +263,8 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
     '- For ordinary NPC questions, answer like the entity is alive in the scene: brief, specific, and grounded in visible memory, weather, objects, or local tension.',
     '- Do not describe system state such as missing relationship history. If the entity barely knows the player, show that through cautious wording or a small local observation.',
     ...policy.guidance,
+    ...dialoguePresencePromptRules(context),
+    ...sceneEmotionPromptRules(scene),
     ...dynamicSpeechPromptRules(context.locale),
     ...providerRepairPromptRules(context.recentObservations),
     ...speechFingerprintPromptRules(speechFingerprint),
@@ -275,12 +277,12 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
     '',
     `Trigger: ${context.trigger}`,
     `Entity: ${context.entity.kind} ${context.entity.templateId} (${context.entity.name})`,
-    `Player: level ${context.player.level} ${context.player.classId}`,
+    `Player: ${context.player.name}, level ${context.player.level} ${context.player.classId}`,
     `Output mode: ${context.outputMode}`,
     `Allowed intents: ${context.allowedIntents.join(', ') || 'none'}`,
     `Allowed lineIds: ${(context.allowedLineIds ?? []).join(', ') || 'none provided'}`,
   ];
-  if (context.topic) lines.push(`Topic: ${context.topic}`);
+  if (context.topic) lines.push(`Player ask: ${describePlayerAsk(context.topic)}`);
   if (policy.includeQuestFacts) {
     lines.push(`Quest facts visible to player: ${context.questFacts
       .slice(0, policy.questLimit)
@@ -629,7 +631,7 @@ function providerRepairPromptRules(recentObservations: readonly string[]): strin
   const reason = rejected.slice('providerRejected:'.length).trim() || 'validator rejected the previous line';
   return [
     `- Repair pass: the previous dynamicText candidate was rejected because "${reason}". Rewrite once with a concrete visible hook.`,
-    '- Do not repeat the rejected shape. Avoid vague sensory questions, generic recent-event openers, and meta explanations.',
+    '- Do not repeat the rejected shape. Avoid topic-label question openers, vague sensory questions, generic recent-event openers, and meta explanations.',
   ];
 }
 
@@ -645,4 +647,59 @@ function speechFingerprintPromptRules(fingerprint: AiSpeechFingerprint | null): 
     ...(sensory ? [`- Favor concrete sensory anchors such as ${sensory}.`] : []),
     ...(avoided ? [`- Never use or echo these phrases unless the scene literally demands them: ${avoided}.`] : []),
   ];
+}
+
+function dialoguePresencePromptRules(context: AiJobContextV1): string[] {
+  switch (context.trigger) {
+    case 'npc_question':
+      return [
+        '- This is a live reply to the player, not a caption, report, tooltip, or scene note.',
+        '- Answer the meaning of the player ask, never repeat the topic label itself. Do not open with "Recent?" or "最近？".',
+        '- A strong reply often lands in two beats: answer first, then add one small human edge such as warmth, suspicion, impatience, dry humor, embarrassment, awe, fatigue, or fear.',
+        '- Do not dump scene nouns in a row. Tie the detail to what the speaker cares about, notices, wants, fears, or thinks of the player.',
+        '- It is good to sound partial, biased, evasive, amused, or uncertain when that fits the speaker. It is bad to sound like a neutral scene summary.',
+      ];
+    case 'npc_gossip_opened':
+      return [
+        '- Open like someone noticing the player or the immediate moment, not like a prewritten greeting card.',
+        '- Let the opener carry stance: wary, welcoming, busy, hushed, annoyed, tired, amused, or quietly protective.',
+      ];
+    case 'active_poll':
+    case 'active_event':
+      return [
+        '- Even when the player did not ask, the line should still feel spoken by a living being, not like a floating environment caption.',
+        '- A mutter can contain attitude. Let one feeling leak through instead of only naming facts.',
+      ];
+    default:
+      return [];
+  }
+}
+
+function sceneEmotionPromptRules(scene: NonNullable<AiJobContextV1['scene']> | undefined): string[] {
+  if (!scene) return [];
+  const cues: string[] = [];
+  if (scene.danger.undeadPressure >= 0.55) cues.push('hushed or uneasy around death');
+  if (scene.mood.fogFear >= 0.45) cues.push('wary, listening harder than usual');
+  if (scene.mood.rainIrritation >= 0.45) cues.push('irritable, damp, eager to shorten the exchange');
+  if (scene.mood.nightFatigue >= 0.55) cues.push('tired, lower-energy, shorter-breathed');
+  if (scene.mood.clearNightAwe >= 0.4) cues.push('softened or briefly awed by the light or sky');
+  if (scene.mood.dayEnergy >= 0.55) cues.push('awake, brisk, and more ready to speak');
+  if (cues.length === 0) return [];
+  return [`- Emotional pressure right now: ${cues.slice(0, 3).join('; ')}. Let at least one cue color the tone if it fits.`];
+}
+
+function describePlayerAsk(topic: NonNullable<AiJobContextV1['topic']>): string {
+  switch (topic) {
+    case 'recent':
+      return 'the player wants to know what has been happening here lately';
+    case 'rumor':
+      return 'the player wants local rumor, hearsay, or uneasy talk worth repeating';
+    case 'place':
+      return 'the player wants to know what stands out about this place right now';
+    case 'quest_hint':
+      return 'the player wants a hint tied only to visible quest facts';
+    case 'greeting':
+    default:
+      return 'the player is opening conversation';
+  }
 }

@@ -77,7 +77,7 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
     }
     if (context.outputMode === 'line_id_only') return rejected('dynamic speech is blocked in line_id_only mode');
     if (speech.language !== context.locale) return rejected('dynamic speech language does not match player locale');
-    const polish = polishDynamicSpeech(speech.text, context.locale, speechFingerprint);
+    const polish = polishDynamicSpeech(speech.text, context.locale, speechFingerprint, context.topic);
     speechPolish.processed++;
     speechPolish.lastChanged = polish.changed;
     speechPolish.lastLocale = context.locale;

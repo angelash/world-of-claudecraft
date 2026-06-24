@@ -317,8 +317,40 @@ describe('AI intent validator', () => {
 
     expect(result.ok).toBe(true);
     expect(result.events).toContainEqual(expect.objectContaining({
-      speech: { mode: 'dynamicText', language: 'en', text: 'Keep your voice low.' },
+      speech: { mode: 'dynamicText', language: 'en', text: 'Keep your voice low. The graves are dangerous.' },
     }));
+  });
+
+  it('strips question-topic echo without collapsing the rest of the answer', () => {
+    const result = validateAiDecision({
+      decision: {
+        ...decision,
+        speech: [{
+          mode: 'dynamicText',
+          language: 'en',
+          text: 'Recent? Hot iron, sparks, and mortar dust in the drying bundles, traveler.',
+        }],
+      },
+      context: { ...context, trigger: 'npc_question', topic: 'recent', outputMode: 'dynamic_text_experiment' },
+      entity,
+      subject: 'criticalQuestNpc',
+      source: 'codex',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.events).toContainEqual(expect.objectContaining({
+      speech: {
+        mode: 'dynamicText',
+        language: 'en',
+        text: 'Hot iron, sparks, and mortar dust in the drying bundles, traveler.',
+      },
+    }));
+    expect(result.speechPolish).toMatchObject({
+      processed: 1,
+      changed: 1,
+      lastBefore: 'Recent? Hot iron, sparks, and mortar dust in the drying bundles, traveler.',
+      lastAfter: 'Hot iron, sparks, and mortar dust in the drying bundles, traveler.',
+    });
   });
 
   it('uses the profile speech fingerprint to strip avoided phrasing from dynamicText', () => {
@@ -377,7 +409,7 @@ describe('AI intent validator', () => {
 
     expect(result.ok).toBe(true);
     expect(result.events).toContainEqual(expect.objectContaining({
-      speech: { mode: 'dynamicText', language: 'zh_CN', text: '附近不太干净。' },
+      speech: { mode: 'dynamicText', language: 'zh_CN', text: '附近不太干净。你应该小心。' },
     }));
   });
 });
