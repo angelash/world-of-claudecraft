@@ -21,6 +21,7 @@ import { music } from './game/music';
 import { voice } from './game/voice';
 import { sfx } from './game/sfx';
 import { activePvpOpponentIds, handlePickedEntity, hoverCursorKind, isAttackableEntity } from './game/interactions';
+import { corpseHasVisibleLoot, createAutoLootState, nearestAutoLootCorpse } from './game/auto_loot';
 import { clickMoveShouldWalk, clickMoveStep, distance2d, latencyAdjustedStopDistance, resolveClickMoveAction, stepAngleToward } from './game/click_move';
 import { Api, isAuthError, ClientWorld, CharacterSummary, NATIVE_APP, type ReleaseEntry } from './net/online';
 import { createNativeAttestationProof } from './net/native_attestation';
@@ -672,6 +673,8 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
 
   // Offline only: expose the dev "2v2 Fiesta vs Bots" practice toggle to the HUD.
   if (offlineSim) hud.setFiestaPracticeHook(() => offlineSim.startFiestaPractice());
+  const autoLootState = createAutoLootState();
+  hud.attachLootManualClose((mobId) => { autoLootState.suppressedCorpseId = mobId; });
 
   const chatInput = $('#chat-input') as unknown as HTMLInputElement;
   const clickMoveMarker = $('#click-move-marker') as HTMLDivElement;
@@ -1061,6 +1064,25 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       }),
     });
   }
+  function lootPopupPoint(e: { pos: { x: number; y: number; z: number }; scale: number }): { x: number; y: number } {
+    const screen = renderer.worldToScreen(e.pos.x, e.pos.y + 1.2 * e.scale, e.pos.z);
+    if (screen.behind) return { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
+    return { x: screen.x, y: screen.y };
+  }
+
+  function openLootAtCorpse(mobId: number): void {
+    const mob = world.entities.get(mobId);
+    if (!mob) return;
+    const p = lootPopupPoint(mob);
+    hud.openLoot(mobId, p.x, p.y);
+  }
+
+  function autoLootTick(): void {
+    if (world.player.dead || hud.isModalOpen() || hud.currentLootMobId() !== null) return;
+    const mobId = nearestAutoLootCorpse(world, autoLootState);
+    if (mobId !== null) openLootAtCorpse(mobId);
+  }
+
   function interactKey(): void {
     const p = world.player;
     let bestCorpse: number | null = null, bestCorpseD = INTERACT_RANGE;
@@ -1068,11 +1090,11 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     let bestNpc: number | null = null, bestNpcD = INTERACT_RANGE + 1;
     for (const e of world.entities.values()) {
       const d = dist2d(p.pos, e.pos);
-      if (e.kind === 'mob' && e.lootable && d < bestCorpseD) { bestCorpse = e.id; bestCorpseD = d; }
+      if (e.kind === 'mob' && corpseHasVisibleLoot(e, world.playerId, world.partyInfo) && d < bestCorpseD) { bestCorpse = e.id; bestCorpseD = d; }
       if (e.kind === 'object' && e.lootable && d < bestObjD) { bestObj = e.id; bestObjD = d; }
       if (e.kind === 'npc' && d < bestNpcD) { bestNpc = e.id; bestNpcD = d; }
     }
-    if (bestCorpse !== null) { world.lootCorpse(bestCorpse); return; }
+    if (bestCorpse !== null) { openLootAtCorpse(bestCorpse); return; }
     if (bestObj !== null) {
       const obj = world.entities.get(bestObj)!;
       if (obj.templateId === 'dungeon_door' && obj.dungeonId) { world.enterDungeon(obj.dungeonId); return; }
@@ -1578,6 +1600,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
         alpha: acc / DT,
       }));
       perf.trace('ui.clickMoveMarker', () => updateClickMoveMarker());
+      perf.trace('ui.autoLoot', () => autoLootTick());
       perf.markInputVisible(performance.now());
       perf.time('hud', () => perf.trace('hud.update', () => hud.update(), { mode: 'offline' }));
       perf.tick(now);
@@ -1645,6 +1668,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       frameDtMs: frameDt * 1000,
     }));
     perf.trace('ui.clickMoveMarker', () => updateClickMoveMarker());
+    perf.trace('ui.autoLoot', () => autoLootTick());
     maybeShowImmobileNote(now);
     perf.markInputVisible(performance.now());
     perf.time('hud', () => perf.trace('hud.update', () => hud.update(), { mode: 'online' }));

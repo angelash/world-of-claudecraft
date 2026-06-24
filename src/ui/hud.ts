@@ -18,7 +18,7 @@ import type { AbilityDef, EquipSlot, InvSlot, LootRollChoice, PetMode, PlayerCla
 import { EVENT_SKIN_TIERS, MECH_CHROMAS, SKIN_RANKS, skinRankOrder, type SkinTier } from '../sim/content/skins';
 import {
   AbilityEffect, CONSUME_DURATION, Entity, FISHING_CAST_ID, GCD, ItemDef, SimEvent,
-  dist2d, xpForLevel, MAX_LEVEL, MELEE_RANGE, MILESTONES, virtualLevel, canPrestige, xpUntilNextPrestige,
+  dist2d, xpForLevel, MAX_LEVEL, MELEE_RANGE, INTERACT_RANGE, MILESTONES, virtualLevel, canPrestige, xpUntilNextPrestige,
   isQuestTurnInNpc,
 } from '../sim/types';
 import { xpBarView, formatXp } from './xp_bar';
@@ -288,6 +288,7 @@ const classCss = (cls: string): string =>
 // Party frames dim and the minimap pins members to the rim once they pass
 // this range (yards) — just inside the server's ~120 yd interest scope.
 const PARTY_RANGE_YD = 100;
+const LOOT_WINDOW_CLOSE_RANGE = INTERACT_RANGE + 2;
 const EMOTE_WHEEL_LIMIT = 8;
 const DEFAULT_EMOTE_WHEEL: OverheadEmoteId[] = ['wave', 'laugh', 'question', 'cheer', 'dance', 'point', 'flex', 'cry'];
 
@@ -551,6 +552,7 @@ export class Hud {
   // an unrelated timer that happens to share the number.
   private mapPrewarmVia: 'idle' | 'timeout' | null = null;
   private openLootMobId: number | null = null;
+  private onLootManualClose: ((mobId: number) => void) | null = null;
   private activeLootRolls = new Map<number, { event: Extract<SimEvent, { type: 'lootRoll' }>; receivedAt: number; durationMs: number }>();
   private openVendorNpcId: number | null = null;
   private openGossipNpcId: number | null = null;
@@ -3001,7 +3003,7 @@ export class Hud {
       if ($('#arena-window').style.display === 'block') this.renderArenaWindow();
       if (this.openLootMobId !== null) {
         const mob = sim.entities.get(this.openLootMobId);
-        if (!mob || !mob.lootable || dist2d(p.pos, mob.pos) > 7) this.closeLoot();
+        if (!mob || !mob.lootable || dist2d(p.pos, mob.pos) > LOOT_WINDOW_CLOSE_RANGE) this.closeLoot(false);
       }
       if (this.openVendorNpcId !== null) {
         const npc = sim.entities.get(this.openVendorNpcId);
@@ -5842,6 +5844,10 @@ export class Hud {
     }
   }
 
+  currentLootMobId(): number | null {
+    return this.openLootMobId;
+  }
+
   openLoot(mobId: number, screenX: number, screenY: number): void {
     const mob = this.sim.entities.get(mobId);
     if (!mob?.loot) return;
@@ -5866,7 +5872,7 @@ export class Hud {
     const btn = document.createElement('button');
     btn.className = 'btn';
     btn.textContent = t('itemUi.loot.takeAll');
-    btn.addEventListener('click', () => { this.sim.lootCorpse(mobId); this.closeLoot(); });
+    btn.addEventListener('click', () => { this.sim.lootCorpse(mobId); this.closeLoot(false); });
     el.appendChild(btn);
     el.querySelector('[data-close]')?.addEventListener('click', () => this.closeLoot());
     this.placePopupAt(el, screenX - 115, screenY - 30, 260, 280, 10, 10);
@@ -5874,10 +5880,12 @@ export class Hud {
     el.style.display = 'block';
   }
 
-  closeLoot(): void {
+  closeLoot(manual = true): void {
+    const mobId = this.openLootMobId;
     $('#loot-window').style.display = 'none';
     this.openLootMobId = null;
     this.hideTooltip();
+    if (manual && mobId !== null) this.onLootManualClose?.(mobId);
   }
 
   // -------------------------------------------------------------------------
@@ -9514,6 +9522,10 @@ export class Hud {
 
   attachReporting(hooks: ReportHooks): void {
     this.reportHooks = hooks;
+  }
+
+  attachLootManualClose(handler: (mobId: number) => void): void {
+    this.onLootManualClose = handler;
   }
 
   // Only wired online (main.ts), so its presence is what gates the "Report a Bug"

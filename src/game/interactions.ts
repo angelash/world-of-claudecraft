@@ -2,10 +2,12 @@ import { INTERACT_RANGE, dist2d, Entity } from '../sim/types';
 import type { HoverCursorKind } from './cursors';
 import type { IWorld } from '../world_api';
 import { t } from '../ui/i18n';
+import { corpseHasVisibleLoot } from './auto_loot';
 
 export interface PickInteractionWorld {
   player: IWorld['player'];
   playerId?: IWorld['playerId'];
+  partyInfo?: IWorld['partyInfo'];
   entities: IWorld['entities'];
   duelInfo?: IWorld['duelInfo'];
   arenaInfo?: IWorld['arenaInfo'];
@@ -92,7 +94,7 @@ export function handlePickedEntity(
       if (e.templateId === 'dungeon_door' && e.dungeonId) world.enterDungeon(e.dungeonId);
       else if (e.templateId === 'dungeon_exit') world.leaveDungeon();
       else world.pickUpObject(id);
-    } else if (e.kind === 'mob' && e.dead && e.lootable) {
+    } else if (e.kind === 'mob' && corpseHasVisibleLoot(e, world.playerId ?? world.player.id, world.partyInfo)) {
       if (d <= INTERACT_RANGE + 1) hud.openLoot(id, screenX, screenY);
       else hud.showError(t('questUi.errors.tooFar'));
     } else if (e.kind === 'npc') {
@@ -115,7 +117,7 @@ export function handlePickedEntity(
       if (e.templateId === 'dungeon_door' && e.dungeonId) world.enterDungeon(e.dungeonId);
       else if (e.templateId === 'dungeon_exit') world.leaveDungeon();
       else world.pickUpObject(id);
-    } else if (e.kind === 'mob' && e.dead && e.lootable) {
+    } else if (e.kind === 'mob' && corpseHasVisibleLoot(e, world.playerId ?? world.player.id, world.partyInfo)) {
       const d = dist2d(world.player.pos, e.pos);
       if (d <= INTERACT_RANGE + 1) hud.openLoot(id, screenX, screenY);
     } else if (e.kind === 'npc') {
