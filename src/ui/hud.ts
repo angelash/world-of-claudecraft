@@ -1750,14 +1750,12 @@ export class Hud {
       // inspected, so the release click should peek, not fire its action.
       this.peekGuard.tooltipShown(trigger);
       this.tooltipEl.innerHTML = html();
+      this.tooltipEl.classList.toggle('tt-has-compare', this.tooltipEl.querySelector('.tt-compare-layout') !== null);
       this.tooltipEl.style.display = 'block';
       // offsetWidth/Height are author-space (zoom-immune) layout sizes, but x/y
       // arrive in visual (zoomed) space, so map x/y into author space (÷ scale)
       // before clamping against the author-space tooltip box + viewport.
-      const z = getUiScale();
-      const tw = this.tooltipEl.offsetWidth, th = this.tooltipEl.offsetHeight;
-      this.tooltipEl.style.left = `${Math.max(8, Math.min(window.innerWidth / z - tw - 8, x / z + 14))}px`;
-      this.tooltipEl.style.top = `${Math.max(8, y / z - th - 10)}px`;
+      this.positionTooltip(x, y);
     };
     const showNearElement = () => {
       const rect = el.getBoundingClientRect();
@@ -1770,10 +1768,7 @@ export class Hud {
     });
     el.addEventListener('mousemove', (e) => {
       if (mobile()) return;
-      const z = getUiScale();
-      const tw = this.tooltipEl.offsetWidth, th = this.tooltipEl.offsetHeight;
-      this.tooltipEl.style.left = `${Math.min(window.innerWidth / z - tw - 8, e.clientX / z + 14)}px`;
-      this.tooltipEl.style.top = `${Math.max(8, e.clientY / z - th - 10)}px`;
+      this.positionTooltip(e.clientX, e.clientY);
     });
     el.addEventListener('mouseleave', () => { clearTouchTimer(); this.tooltipEl.style.display = 'none'; });
     el.addEventListener('focusin', showNearElement);
@@ -1795,7 +1790,26 @@ export class Hud {
     this.tooltipEl.style.display = 'none';
   }
 
-  private itemTooltip(item: ItemDef, compare = true): string {
+  private positionTooltip(x: number, y: number): void {
+    const z = getUiScale();
+    const tw = this.tooltipEl.offsetWidth;
+    const th = this.tooltipEl.offsetHeight;
+    const anchor = this.tooltipEl.querySelector<HTMLElement>('.tt-compare-candidate');
+    const anchorOffset = anchor?.offsetLeft ?? 0;
+    const maxLeft = window.innerWidth / z - tw - 8;
+    this.tooltipEl.style.left = `${Math.max(8, Math.min(maxLeft, x / z + 14 - anchorOffset))}px`;
+    this.tooltipEl.style.top = `${Math.max(8, y / z - th - 10)}px`;
+  }
+
+  private itemTooltip(item: ItemDef, compare = true, extraHtml = ''): string {
+    const details = this.itemTooltipDetails(item);
+    if (!compare) return details + extraHtml;
+    const compareParts = this.itemCompareBlock(item);
+    if (!compareParts) return details + extraHtml;
+    return `<div class="tt-compare-layout">${compareParts.currentHtml}<div class="tt-compare-panel tt-compare-candidate">${details}${compareParts.deltaHtml}${extraHtml}</div></div>`;
+  }
+
+  private itemTooltipDetails(item: ItemDef): string {
     const qColor = QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff';
     let html = `<div class="tt-title" style="color:${qColor}">${esc(itemDisplayName(item))}</div>`;
     html += `<div class="tt-sub">${esc(t('itemUi.tooltip.qualityKind', {
@@ -1838,33 +1852,32 @@ export class Hud {
       html += `<div class="tt-sub">${esc(t('itemUi.tooltip.classes', { classes: item.requiredClass.map(classDisplayName).join(', ') }))}</div>`;
     }
     if (item.sellValue > 0) html += `<div class="tt-sub">${esc(t('itemUi.tooltip.sellPrice', { money: formatLocalizedMoney(item.sellValue) }))}</div>`;
-    if (compare) html += this.itemCompareBlock(item);
     return html;
   }
 
-  // Classic-WoW item comparison: when hovering an equippable item, append the
-  // item currently worn in that slot plus the stat change you'd see if you
-  // swapped to it (green = gain, red = loss). Reads IWorld.equipment, so it
-  // works identically offline and online.
-  private itemCompareBlock(item: ItemDef): string {
-    if (!item.slot) return '';
+  // Classic-WoW item comparison: when hovering an equippable item, show the
+  // item currently worn in that slot on the left plus the stat change you'd see
+  // if you swapped to it (green = gain, red = loss). Reads IWorld.equipment, so
+  // it works identically offline and online.
+  private itemCompareBlock(item: ItemDef): { currentHtml: string; deltaHtml: string } | null {
+    if (!item.slot) return null;
     const equippedId = this.sim.equipment[item.slot];
-    if (!equippedId || equippedId === item.id) return '';
+    if (!equippedId || equippedId === item.id) return null;
     const equipped = ITEMS[equippedId];
-    if (!equipped) return '';
+    if (!equipped) return null;
     const deltas = itemStatDeltas(item, equipped)
       .map((d) => {
         const cls = d.delta > 0 ? 'tt-green' : 'tt-red';
-        const sign = d.delta > 0 ? '+' : '−'; // proper minus sign
+        const sign = d.delta > 0 ? '+' : '-';
         const magnitude = formatNumber(Math.abs(d.delta), { minimumFractionDigits: d.decimals, maximumFractionDigits: d.decimals });
         return `<div class="${cls}">${sign}${magnitude} ${esc(t(`itemUi.stats.${d.stat}` as TranslationKey))}</div>`;
       })
       .join('');
-    let html = `<div class="tt-cmp"><div class="tt-cmp-head">${esc(t('itemUi.tooltip.currentlyEquipped'))}</div>`;
-    html += `<div class="tt-cmp-body">${this.itemTooltip(equipped, false)}</div>`;
-    if (deltas) html += `<div class="tt-cmp-head">${esc(t('itemUi.tooltip.ifYouEquip'))}</div>${deltas}`;
-    html += `</div>`;
-    return html;
+    let currentHtml = `<div class="tt-compare-panel tt-compare-current"><div class="tt-cmp-head tt-cmp-head-first">${esc(t('itemUi.tooltip.currentlyEquipped'))}</div>`;
+    currentHtml += this.itemTooltipDetails(equipped);
+    currentHtml += `</div>`;
+    const deltaHtml = deltas ? `<div class="tt-cmp"><div class="tt-cmp-head">${esc(t('itemUi.tooltip.ifYouEquip'))}</div>${deltas}</div>` : '';
+    return { currentHtml, deltaHtml };
   }
 
   // Build the pure stat-breakdown model for the currently-shown player, the bridge
@@ -2339,11 +2352,9 @@ export class Hud {
         const item = this.itemForSlot(slot);
         if (item) {
           const count = this.inventoryCount(item.id);
-          return this.itemTooltip(item)
-            + `<div class="tt-sub">${esc(count > 0
+          return this.itemTooltip(item, true, `<div class="tt-sub">${esc(count > 0
               ? t('abilityUi.actionBar.itemInBags', { count: formatNumber(count, { maximumFractionDigits: 0 }) })
-              : t('abilityUi.actionBar.itemNoneInBags'))}</div>`
-            + clearHint;
+              : t('abilityUi.actionBar.itemNoneInBags'))}</div>${clearHint}`);
         }
         return `<div class="tt-sub">${esc(t('abilityUi.actionBar.emptySlot'))}<br>${esc(t('abilityUi.actionBar.clearHint'))}</div>`;
       });
@@ -5927,7 +5938,7 @@ export class Hud {
         if ($('#bags').style.display !== 'none') this.renderBags();
         this.renderVendor();
       });
-      this.attachTooltip(row, () => this.itemTooltip(item) + `<div class="tt-sub">${esc(t('itemUi.tooltip.clickBuy'))}</div>`);
+      this.attachTooltip(row, () => this.itemTooltip(item, true, `<div class="tt-sub">${esc(t('itemUi.tooltip.clickBuy'))}</div>`));
       el.appendChild(row);
     }
     const buybackTitle = document.createElement('div');
@@ -5955,7 +5966,7 @@ export class Hud {
         if ($('#bags').style.display !== 'none') this.renderBags();
         this.renderVendor();
       });
-      this.attachTooltip(row, () => this.itemTooltip(item) + `<div class="tt-sub">${esc(t('itemUi.tooltip.clickBuyback'))}</div>`);
+      this.attachTooltip(row, () => this.itemTooltip(item, true, `<div class="tt-sub">${esc(t('itemUi.tooltip.clickBuyback'))}</div>`));
       el.appendChild(row);
     }
     const hint = document.createElement('div');
@@ -6558,7 +6569,7 @@ export class Hud {
         else if (item.kind === 'food' || item.kind === 'drink') extra = `<div class="tt-sub">${esc(t('itemUi.tooltip.clickConsume'))}</div>`;
         else if (item.kind === 'potion') extra = `<div class="tt-sub">${esc(t('itemUi.tooltip.clickUseInstant'))}</div>`;
         else if (item.use) extra = `<div class="tt-sub">${esc(t('itemUi.tooltip.clickUse'))}</div>`;
-        return this.itemTooltip(item) + extra;
+        return this.itemTooltip(item, true, extra);
       });
       grid.appendChild(row);
     }
@@ -6773,7 +6784,7 @@ export class Hud {
             this.restoreFocus(rebuilt instanceof HTMLElement ? rebuilt : null);
           }
         };
-        this.attachTooltip(row, () => `${this.itemTooltip(item)}<div class="tt-sub">${esc(t('hudChrome.paperdoll.unequipHint'))}</div>`);
+        this.attachTooltip(row, () => this.itemTooltip(item, true, `<div class="tt-sub">${esc(t('hudChrome.paperdoll.unequipHint'))}</div>`));
         // Corner ×: a styled glyph control (not an in-game icon), revealed on
         // hover/focus and always shown on touch where right-click is unavailable.
         const unequip = document.createElement('button');

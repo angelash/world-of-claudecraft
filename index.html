@@ -1933,7 +1933,29 @@
   /* item comparison block (hover an equippable item to see the worn one + deltas) */
   #tooltip .tt-cmp { margin-top: 6px; padding-top: 5px; border-top: 1px solid #3a3526; }
   #tooltip .tt-cmp-head { color: #8a7f5e; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; margin-top: 3px; }
+  #tooltip .tt-cmp-head-first { margin-top: 0; }
   #tooltip .tt-cmp-body { opacity: .7; }
+  #tooltip.tt-has-compare {
+    width: max-content; max-width: min(590px, calc(100vw - 16px)); padding: 0;
+    background: transparent; border: 0; outline: 0; box-shadow: none;
+  }
+  #tooltip .tt-compare-layout {
+    display: flex; align-items: flex-start; gap: 6px;
+    width: max-content; max-width: min(590px, calc(100vw - 16px));
+  }
+  #tooltip .tt-compare-panel {
+    box-sizing: border-box; width: max-content; min-width: 178px; max-width: 280px;
+    padding: 8px 10px; overflow-wrap: break-word; color: #e8d8a8;
+    background: var(--panel-bg); border: 2px solid var(--border); outline: 1px solid #000;
+    border-radius: 6px; box-shadow: 0 2px 16px #000c, inset 0 0 24px #0006, inset 0 1px 0 #ffffff14;
+  }
+  #tooltip .tt-compare-current { max-width: 260px; }
+  #tooltip .tt-compare-candidate { max-width: 280px; }
+  @media (max-width: 620px), (pointer: coarse) {
+    #tooltip.tt-has-compare { width: min(280px, calc(100vw - 16px)); max-width: min(280px, calc(100vw - 16px)); }
+    #tooltip.tt-has-compare .tt-compare-layout { flex-direction: column; width: 100%; max-width: 100%; gap: 4px; }
+    #tooltip.tt-has-compare .tt-compare-panel { width: 100%; min-width: 0; max-width: 100%; }
+  }
 
   /* ---------- floating combat text ---------- */
   .fct { position: absolute; font-weight: bold; pointer-events: none; text-shadow: 1px 1px 3px #000;
@@ -1955,8 +1977,8 @@
   #tooltip { font-size: calc(12px * var(--tooltip-scale, 1)); }
   #tooltip .tt-title { font-size: calc(13.5px * var(--tooltip-scale, 1)); }
   #tooltip .tt-sub { font-size: calc(11px * var(--tooltip-scale, 1)); }
-  #tooltip .tt-desc, #tooltip .tt-stat, #tooltip .tt-green, #tooltip .tt-body { font-size: calc(11.5px * var(--tooltip-scale, 1)); }
-  #tooltip .tt-bd-head { font-size: calc(10px * var(--tooltip-scale, 1)); }
+  #tooltip .tt-desc, #tooltip .tt-stat, #tooltip .tt-green, #tooltip .tt-red, #tooltip .tt-body { font-size: calc(11.5px * var(--tooltip-scale, 1)); }
+  #tooltip .tt-bd-head, #tooltip .tt-cmp-head { font-size: calc(10px * var(--tooltip-scale, 1)); }
   /* Chat Text Size (--chat-font-scale) + Chat Background Opacity (--chat-opacity). */
   .chat-pane { font-size: calc(11px * var(--chat-font-scale, 1)); }
   #chatlog-frame { background: linear-gradient(170deg,
