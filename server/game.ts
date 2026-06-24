@@ -454,18 +454,21 @@ export class GameServer {
       lockoutNowMs: () => Date.now(),
     });
     this.social = new SocialService(this.socialDb, this.socialTransport());
+    const aiAuditSink = {
+      record: (record: AiAuditRecord) => {
+        this.aiAuditRuntime.record(record);
+        return this.aiAuditDb.saveRecord(record);
+      },
+    };
     this.aiLifeLayer = new AiLifeLayer({
       memoryDb: new PgAiMemoryDb(pool),
-      auditSink: {
-        record: (record) => {
-          this.aiAuditRuntime.record(record);
-          return this.aiAuditDb.saveRecord(record);
-        },
-      },
+      auditSink: aiAuditSink,
     });
     this.aiActiveTriggers = new AiActiveTriggerService({
       schedulerIntervalMs: AI_ACTIVE_TRIGGER_INTERVAL_MS,
       provider: this.aiLifeLayer.providerForActiveTriggers(),
+      auditSink: aiAuditSink,
+      auditProviderSource: this.aiLifeLayer.auditProviderSourceForActiveTriggers(),
     });
   }
 

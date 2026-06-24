@@ -640,6 +640,8 @@ function aiTriggerLabel(trigger: string): string {
     case 'npc_question': return t('usage.aiTriggerNpcQuestion');
     case 'object_inspected': return t('usage.aiTriggerObjectInspected');
     case 'singularity_candidate': return t('usage.aiTriggerSingularityCandidate');
+    case 'active_event': return t('usage.aiActiveGlobalEvents');
+    case 'active_poll': return t('usage.aiActiveGlobalPolls');
     case 'item_discarded': return t('usage.aiTriggerItemDiscarded');
     case 'scene_inspected': return t('usage.aiTriggerSceneInspected');
     case 'encounter_memory': return t('usage.aiTriggerEncounterMemory');
@@ -760,7 +762,9 @@ function aiAuditActionLabel(action: AiAuditPlayerAction | undefined, trigger: st
     case 'usage.aiActionObjectInspected': return t('usage.aiActionObjectInspected');
     case 'usage.aiActionSingularityCandidate': return t('usage.aiActionSingularityCandidate');
     case 'usage.aiActionPetCommand': return t('usage.aiActionPetCommand');
-    default: return t('usage.aiActionUnknown');
+    case 'usage.aiActiveGlobalEvents': return t('usage.aiActiveGlobalEvents');
+    case 'usage.aiActiveGlobalPolls': return t('usage.aiActiveGlobalPolls');
+    default: return aiTriggerLabel(trigger);
   }
 }
 

@@ -18,6 +18,7 @@ export interface AiReactionBadgeView {
 
 export interface AiSpeechPresentationView {
   channel: 'say' | 'emote';
+  logMode: 'template' | 'inlineNarration';
   templateKey: TranslationKey;
   text: string;
   bubbleText: string;
@@ -41,6 +42,10 @@ const ZH_EMOTE_START = /^(?:开口前|说话前|出声前|答话前|回话前|�
 const ZH_EMOTE_VERB = /(?:瞥|抬头|低头|偏头|侧耳|缩|耸肩|点头|摇头|看了看|打量|闻|嗅|盯|后退|靠近|沉默|顿)/;
 const EN_EMOTE_START = /^(?:before speaking|before he speaks|before she speaks|without a word|instead of answering)\b/i;
 const EN_EMOTE_VERB = /^(?:glances|nods|shakes\s+his\s+head|shakes\s+her\s+head|stiffens|pauses|leans\s+(?:closer|in|forward)|sniffs|tilts\s+(?:his|her|its)\s+head|squints|steps\s+(?:back|closer|forward)|backs\s+away|flinches|hesitates|looks\s+(?:up|down|over|aside|away|at|toward|towards))\b/i;
+const FIXED_SAY_LINE_IDS = new Set<string>([
+  'hudChrome.aiSpeech.brotherAldricAwake',
+  'hudChrome.aiSpeech.merchantMarketPulse',
+]);
 
 export function aiReactionBadgeView(reaction: AiSpeechEvent['reaction']): AiReactionBadgeView | null {
   if (!reaction || reaction.kind === 'ignore') return null;
@@ -93,40 +98,23 @@ export function aiSpeechPresentationView(
 ): AiSpeechPresentationView {
   const trimmed = resolvedText.trim();
   if (ev.speech.mode !== 'dynamicText') {
-    return {
-      channel: 'say',
-      templateKey: 'hud.chat.templates.say',
-      text: trimmed,
-      bubbleText: trimmed,
-    };
+    return FIXED_SAY_LINE_IDS.has(ev.speech.lineId)
+      ? sayPresentation(trimmed)
+      : narrationPresentation(trimmed, speakerName);
   }
-  if (!looksLikeDynamicEmote(trimmed, ev.speech.language, speakerName)) {
-    return {
-      channel: 'say',
-      templateKey: 'hud.chat.templates.say',
-      text: trimmed,
-      bubbleText: trimmed,
-    };
+  const dynamicEmoteText = looksLikeDynamicEmote(trimmed, ev.speech.language, speakerName)
+    ? normalizeDynamicEmoteText(trimmed, ev.speech.language, speakerName)
+    : '';
+  if (containsSpeakerReference(trimmed, speakerName)) {
+    return narrationPresentation(trimmed, speakerName, dynamicEmoteText || undefined);
   }
-  const emoteText = normalizeDynamicEmoteText(trimmed, ev.speech.language, speakerName);
-  if (!emoteText) {
-    return {
-      channel: 'say',
-      templateKey: 'hud.chat.templates.say',
-      text: trimmed,
-      bubbleText: trimmed,
-    };
-  }
-  return {
-    channel: 'emote',
-    templateKey: 'hud.chat.templates.emote',
-    text: emoteText,
-    bubbleText: emoteText,
-  };
+  if (!dynamicEmoteText) return sayPresentation(trimmed);
+  const emoteText = dynamicEmoteText;
+  return emoteText ? emotePresentation(emoteText) : sayPresentation(trimmed);
 }
 
 function looksLikeDynamicEmote(text: string, locale: string, speakerName: string): boolean {
-  const normalized = stripLeadingSpeakerName(text, speakerName);
+  const normalized = stripLeadingSpeakerReference(text, speakerName, locale);
   if (!normalized) return false;
   if (isChineseLocale(locale)) {
     if (ZH_EMOTE_START.test(normalized)) return true;
@@ -141,11 +129,27 @@ function looksLikeDynamicEmote(text: string, locale: string, speakerName: string
 }
 
 function normalizeDynamicEmoteText(text: string, locale: string, speakerName: string): string {
-  const stripped = stripLeadingSpeakerName(text, speakerName);
+  const stripped = stripLeadingSpeakerReference(text, speakerName, locale);
   if (!stripped) return stripped;
   if (isChineseLocale(locale)) return normalizeChineseEmoteText(stripped);
   if (isEnglishLocale(locale)) return normalizeEnglishEmoteText(stripped);
   return stripped;
+}
+
+export function splitAiNarrationText(text: string, speakerName: string): {
+  before: string;
+  speaker: string | null;
+  after: string;
+} {
+  const name = speakerName.trim();
+  if (!name) return { before: '', speaker: null, after: text };
+  const idx = text.indexOf(name);
+  if (idx < 0) return { before: '', speaker: null, after: text };
+  return {
+    before: text.slice(0, idx),
+    speaker: text.slice(idx, idx + name.length),
+    after: text.slice(idx + name.length),
+  };
 }
 
 function normalizeChineseEmoteText(text: string): string {
@@ -168,11 +172,70 @@ function normalizeEnglishEmoteText(text: string): string {
   return out;
 }
 
-function stripLeadingSpeakerName(text: string, speakerName: string): string {
+function stripLeadingSpeakerReference(text: string, speakerName: string, locale: string): string {
   const trimmed = text.trim();
   const name = speakerName.trim();
   if (!name) return trimmed;
-  return trimmed.replace(new RegExp(`^${escapeRegExp(name)}[：:,，\\s-]*`, 'i'), '').trim();
+  const escaped = escapeRegExp(name);
+  if (isChineseLocale(locale)) {
+    return trimmed.replace(new RegExp(`^${escaped}(?:的)?[：:,，\\s-]*`, 'i'), '').trim();
+  }
+  if (isEnglishLocale(locale)) {
+    return trimmed.replace(new RegExp(`^${escaped}(?:'s)?[,;:，\\s-]*`, 'i'), '').trim();
+  }
+  return trimmed.replace(new RegExp(`^${escaped}[：:,，\\s-]*`, 'i'), '').trim();
+}
+
+function containsSpeakerReference(text: string, speakerName: string): boolean {
+  const name = speakerName.trim();
+  return !!name && text.includes(name);
+}
+
+function normalizeNarrationBubbleText(text: string, speakerName: string): string {
+  const trimmed = text.trim();
+  const name = speakerName.trim();
+  if (!name) return trimmed;
+  const escaped = escapeRegExp(name);
+  let out = trimmed
+    .replace(new RegExp(`${escaped}的`, 'g'), '')
+    .replace(new RegExp(`${escaped}'s`, 'gi'), '')
+    .replace(new RegExp(escaped, 'g'), '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^[，,、。！？!?：:;'"\s-]+/, '')
+    .trim();
+  if (!out) return trimmed;
+  if (/^[a-z]/.test(out)) out = out[0].toUpperCase() + out.slice(1);
+  return out;
+}
+
+function sayPresentation(text: string): AiSpeechPresentationView {
+  return {
+    channel: 'say',
+    logMode: 'template',
+    templateKey: 'hud.chat.templates.say',
+    text,
+    bubbleText: text,
+  };
+}
+
+function emotePresentation(text: string): AiSpeechPresentationView {
+  return {
+    channel: 'emote',
+    logMode: 'template',
+    templateKey: 'hud.chat.templates.emote',
+    text,
+    bubbleText: text,
+  };
+}
+
+function narrationPresentation(text: string, speakerName: string, bubbleText?: string): AiSpeechPresentationView {
+  return {
+    channel: 'emote',
+    logMode: 'inlineNarration',
+    templateKey: 'hud.chat.templates.emote',
+    text,
+    bubbleText: bubbleText ?? normalizeNarrationBubbleText(text, speakerName),
+  };
 }
 
 function isChineseLocale(locale: string): boolean {

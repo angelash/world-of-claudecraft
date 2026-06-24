@@ -617,6 +617,8 @@ function aiAuditPlayerActionLabelKey(trigger: string, topic: string): string {
   if (trigger === 'object_inspected') return 'usage.aiActionObjectInspected';
   if (trigger === 'singularity_candidate') return 'usage.aiActionSingularityCandidate';
   if (trigger === 'pet_command') return 'usage.aiActionPetCommand';
+  if (trigger === 'active_poll') return 'usage.aiActiveGlobalPolls';
+  if (trigger === 'active_event') return 'usage.aiActiveGlobalEvents';
   return 'usage.aiActionUnknown';
 }
 

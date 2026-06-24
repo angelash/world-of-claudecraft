@@ -32,7 +32,7 @@ import { esc } from './esc';
 import { formatClockTime } from './clock';
 import { formatMinimapCoords } from './coords';
 import { compassView, type CardinalId } from './compass';
-import { aiReactionBadgeView, aiSpeechPresentationView } from './ai_reaction';
+import { aiReactionBadgeView, aiSpeechPresentationView, splitAiNarrationText } from './ai_reaction';
 import { clampMinimapZoom, nextMinimapZoom, isMinMinimapZoom, isMaxMinimapZoom, minimapZoomValue, MINIMAP_ZOOM_DEFAULT } from './minimap_zoom';
 import { getUiScale } from './ui_scale';
 import { restView } from './rest_indicator';
@@ -4278,7 +4278,7 @@ export class Hud {
     const speakerName = this.aiSpeechSpeakerName(ev);
     const text = this.aiSpeechText(ev, speakerName);
     const presentation = aiSpeechPresentationView(ev, text, speakerName);
-    this.chatLogFrom(speakerName, presentation.text, '#b9e4ff', presentation.templateKey, presentation.channel);
+    this.chatLogFrom(speakerName, presentation.text, '#b9e4ff', presentation.templateKey, presentation.channel, presentation.logMode);
     const speaker = this.sim.entities.get(ev.speakerId);
     if (!speaker) return;
     const reactionBadge = aiReactionBadgeView(ev.reaction);
@@ -4710,13 +4710,36 @@ export class Hud {
     this.log(zoneWelcome(zone.id), '#ffd100');
   }
 
-  private chatLogFrom(name: string, text: string, color: string, templateKey: TranslationKey, chan: string): void {
+  private chatLogFrom(
+    name: string,
+    text: string,
+    color: string,
+    templateKey: TranslationKey,
+    chan: string,
+    layout: 'template' | 'inlineNarration' = 'template',
+  ): void {
     const wasNearBottom = this.chatLogEl.scrollHeight - this.chatLogEl.scrollTop - this.chatLogEl.clientHeight < 24;
     const div = document.createElement('div');
     div.style.color = color;
     div.dataset.chan = chan;
     this.hideIfFiltered(div, chan);
     this.prependTimestamp(div);
+    const sender = this.createChatSender(name);
+    const masked = this.maskChat(text);
+    if (layout === 'inlineNarration') {
+      this.appendInlineNarrationChat(div, sender, masked, name);
+      this.chatLogEl.appendChild(div);
+      while (this.chatLogEl.children.length > 200) this.chatLogEl.removeChild(this.chatLogEl.firstChild!);
+      if (wasNearBottom) this.chatLogEl.scrollTop = this.chatLogEl.scrollHeight;
+      return;
+    }
+    this.appendTemplatedChat(div, sender, masked, templateKey);
+    this.chatLogEl.appendChild(div);
+    while (this.chatLogEl.children.length > 200) this.chatLogEl.removeChild(this.chatLogEl.firstChild!);
+    if (wasNearBottom) this.chatLogEl.scrollTop = this.chatLogEl.scrollHeight;
+  }
+
+  private createChatSender(name: string): HTMLSpanElement {
     const sender = document.createElement('span');
     sender.className = 'chat-player-name';
     sender.textContent = name;
@@ -4734,7 +4757,10 @@ export class Hud {
       const rect = sender.getBoundingClientRect();
       this.openChatPlayerContextMenu(name, rect.left, rect.bottom);
     });
-    const masked = this.maskChat(text);
+    return sender;
+  }
+
+  private appendTemplatedChat(div: HTMLElement, sender: HTMLElement, masked: string, templateKey: TranslationKey): void {
     const nameToken = '__WOC_CHAT_NAME__';
     const messageToken = '__WOC_CHAT_MESSAGE__';
     const rendered = t(templateKey, { name: nameToken, message: messageToken });
@@ -4755,9 +4781,17 @@ export class Hud {
       div.textContent = '';
       div.append(sender, document.createTextNode(`: ${masked}`));
     }
-    this.chatLogEl.appendChild(div);
-    while (this.chatLogEl.children.length > 200) this.chatLogEl.removeChild(this.chatLogEl.firstChild!);
-    if (wasNearBottom) this.chatLogEl.scrollTop = this.chatLogEl.scrollHeight;
+  }
+
+  private appendInlineNarrationChat(div: HTMLElement, sender: HTMLElement, masked: string, speakerName: string): void {
+    const parts = splitAiNarrationText(masked, speakerName);
+    if (!parts.speaker) {
+      div.append(sender, document.createTextNode(` ${masked}`));
+      return;
+    }
+    if (parts.before) div.append(document.createTextNode(parts.before));
+    div.append(sender);
+    if (parts.after) div.append(document.createTextNode(parts.after));
   }
 
   private aiSpeechText(ev: Extract<SimEvent, { type: 'aiSpeech' }>, resolvedSpeakerName?: string): string {

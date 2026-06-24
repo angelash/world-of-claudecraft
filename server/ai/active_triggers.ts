@@ -12,6 +12,12 @@ import type {
   SimEvent,
 } from '../../src/sim/types';
 import { dist2d } from '../../src/sim/types';
+import {
+  createProviderAuditRecord,
+  type AiAuditProviderSource,
+  type AiAuditSink,
+} from '../ai_audit';
+import { REALM } from '../realm';
 import type { AiJobContextV1, AiProvider, AiProviderDecisionResult, AiProviderOutput, AiProviderTimingSnapshot } from './ai_types';
 import { classifyCanonSubject } from './canon_guard';
 import { companionReactionEventsForScene } from './companion_reactions';
@@ -20,6 +26,7 @@ import { familySceneReactionEvent, nearbyFamilySceneCandidates, rankFamilySceneR
 import type { FamilySceneReaction } from './family_scene_reactions';
 import { validateAiDecision } from './intent_validator';
 import { compactProfileSnapshot, profileFor } from './profiles';
+import { buildCodexDecisionPrompt } from './prompt_builder';
 import { sceneFrameFor } from './scene_frame';
 import type { SceneObjectSemantic } from './scene_frame';
 import { sceneAwarenessEvent } from './scene_reactions';
@@ -295,6 +302,8 @@ export interface AiActiveTriggerServiceOptions {
   codexReserveRatio?: number;
   schedulerIntervalMs?: number;
   provider?: AiProvider;
+  auditSink?: AiAuditSink;
+  auditProviderSource?: Exclude<AiAuditProviderSource, 'fallback' | 'local'>;
 }
 
 export type AiActiveWorldActionBridge = (request: AiActiveMobActionRequest) => AiActiveMobActionResult;
@@ -399,7 +408,7 @@ const DEFAULT_MAX_QUEUED_EVENTS = 64;
 const EVENT_RETRY_DELAY_MS = 15_000;
 const CODEX_WINDOW_5H_MS = 5 * 60 * 60 * 1000;
 const CODEX_WINDOW_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-const ACTIVE_PROVIDER_IDLE_GRACE_MS = envPositiveInt('AI_ACTIVE_PROVIDER_IDLE_GRACE_MS', 45_000);
+const ACTIVE_PROVIDER_IDLE_GRACE_MS = envPositiveInt('AI_ACTIVE_PROVIDER_IDLE_GRACE_MS', 5_000);
 
 export const DEFAULT_ACTIVE_POLL_RULES: readonly AiActivePollRuleV1[] = [
   {
@@ -487,6 +496,8 @@ export class AiActiveTriggerService {
   private readonly codexReserveRatio: number;
   private readonly schedulerIntervalMs: number;
   private readonly provider: AiProvider | null;
+  private readonly auditSink: AiAuditSink | null;
+  private readonly auditProviderSource: Exclude<AiAuditProviderSource, 'fallback' | 'local'>;
   private readonly cursors = new Map<string, AiActivePollCursorState>();
   private readonly entityCooldownUntilMs = new Map<number, number>();
   private readonly playerCooldownUntilMs = new Map<number, number>();
@@ -500,6 +511,7 @@ export class AiActiveTriggerService {
   private schedulerCursor = 0;
   private eventSequence = 0;
   private activeSequenceCounter = 0;
+  private auditSequence = 0;
   private readonly metrics: AiActiveTriggerMetricsSnapshot = {
     activePollDue: 0,
     activePollSkipped: 0,
@@ -562,6 +574,8 @@ export class AiActiveTriggerService {
     this.codexReserveRatio = clamp01(options.codexReserveRatio ?? envRatio('AI_CODEX_ACTIVE_RESERVE_RATIO', 0.2));
     this.schedulerIntervalMs = Math.max(1_000, Math.floor(options.schedulerIntervalMs ?? 30_000));
     this.provider = options.provider ?? null;
+    this.auditSink = options.auditSink ?? null;
+    this.auditProviderSource = options.auditProviderSource ?? 'codex';
     this.runtime = {
       schedulerIntervalMs: this.schedulerIntervalMs,
       lastTickStartedAtMs: 0,
@@ -941,6 +955,7 @@ export class AiActiveTriggerService {
       nowMs: input.nowMs,
       deliver: input.deliver,
       deferProvider: this.shouldDeferProviderForRecentActivity(input.session, input.nowMs),
+      auditDeliveryEvents: (events) => [this.activeThinkingAuditEvent(candidate.entity, player.id), ...events],
     })) {
       return { events: [thinkingEvent], skipReason: 'not_due' };
     }
@@ -1079,6 +1094,7 @@ export class AiActiveTriggerService {
       nowMs: input.nowMs,
       deliver: input.deliver,
       deferProvider: this.shouldDeferProviderForRecentActivity(input.session, input.nowMs),
+      auditDeliveryEvents: (events) => [this.activeThinkingAuditEvent(candidate.entity, player.id), ...events],
     })) {
       return { events: [thinkingEvent], skipReason: 'not_due' };
     }
@@ -1149,6 +1165,7 @@ export class AiActiveTriggerService {
       rule: AiActivePollRuleV1;
       nowMs: number;
       deliver?: (pid: number, events: SimEvent[]) => void;
+      auditDeliveryEvents?: (events: readonly SimEvent[]) => readonly SimEvent[];
     },
     startedAt: number,
   ): Promise<void> {
@@ -1157,7 +1174,8 @@ export class AiActiveTriggerService {
       try {
         const providerOutput = await provider.decide(context);
         const normalized = normalizeActiveProviderOutput(providerOutput);
-        this.metrics.activeLastProviderLatencyMs = Math.max(0, Date.now() - startedAt);
+        const latencyMs = Math.max(0, Date.now() - startedAt);
+        this.metrics.activeLastProviderLatencyMs = latencyMs;
         if (normalized.providerTimings) this.metrics.activeLastProviderTimings = normalized.providerTimings;
         const result = validateAiDecision({
           decision: normalized.decision,
@@ -1169,6 +1187,17 @@ export class AiActiveTriggerService {
         if (result.ok && result.events.length > 0) {
           this.metrics.activeProviderSuccesses++;
           this.recordProviderResult('success');
+          const deliveredEvents = input.auditDeliveryEvents?.(result.events) ?? result.events;
+          this.recordProviderAudit({
+            context,
+            latencyMs,
+            decision: normalized.decision,
+            result,
+            promptText: normalized.promptText,
+            rawOutput: normalized.rawOutput,
+            providerTimings: normalized.providerTimings,
+            deliveredEvents,
+          });
           input.deliver?.(context.player.entityId, result.events);
           return;
         }
@@ -1183,13 +1212,35 @@ export class AiActiveTriggerService {
 
         this.metrics.activeProviderFallbacks++;
         this.recordProviderResult('rejected', reason);
+        const deliveredEvents = input.auditDeliveryEvents?.([input.fallbackEvent]) ?? [input.fallbackEvent];
+        this.recordProviderAudit({
+          context,
+          latencyMs,
+          decision: normalized.decision,
+          result,
+          promptText: normalized.promptText,
+          rawOutput: normalized.rawOutput,
+          providerTimings: normalized.providerTimings,
+          deliveredEvents,
+        });
         input.deliver?.(input.context.player.entityId, [input.fallbackEvent]);
         return;
       } catch (error: unknown) {
         this.metrics.activeProviderErrors++;
         this.metrics.activeProviderFallbacks++;
-        this.metrics.activeLastProviderLatencyMs = Math.max(0, Date.now() - startedAt);
-        this.recordProviderResult('error', providerErrorReason(error));
+        const latencyMs = Math.max(0, Date.now() - startedAt);
+        const providerError = providerErrorReason(error);
+        this.metrics.activeLastProviderLatencyMs = latencyMs;
+        this.recordProviderResult('error', providerError);
+        const deliveredEvents = input.auditDeliveryEvents?.([input.fallbackEvent]) ?? [input.fallbackEvent];
+        this.recordProviderAudit({
+          context,
+          latencyMs,
+          decision: null,
+          result: null,
+          providerError,
+          deliveredEvents,
+        });
         input.deliver?.(input.context.player.entityId, [input.fallbackEvent]);
         return;
       }
@@ -1308,6 +1359,11 @@ export class AiActiveTriggerService {
       rule: input.rule,
       nowMs: input.nowMs,
       deferProvider: input.deferProvider,
+      auditDeliveryEvents: (firstBeatEvents) => {
+        const providerSequence = this.providerSocialSequenceEvents(input.sequence, firstBeatEvents, input.player.id);
+        const plannedEvents = providerSequence?.events ?? [...firstBeatEvents, ...continuation];
+        return [this.activeThinkingAuditEvent(firstSpeaker, input.player.id), ...plannedEvents];
+      },
       deliver: (pid, firstBeatEvents) => {
         const providerSequence = this.providerSocialSequenceEvents(input.sequence, firstBeatEvents, pid);
         if (providerSequence) {
@@ -1525,6 +1581,60 @@ export class AiActiveTriggerService {
     return [first];
   }
 
+  private recordProviderAudit(input: {
+    context: AiJobContextV1;
+    latencyMs: number;
+    decision: AiProviderDecisionResult['decision'] | null;
+    result: ReturnType<typeof validateAiDecision> | null;
+    providerError?: string;
+    promptText?: string;
+    rawOutput?: string;
+    providerTimings?: AiProviderTimingSnapshot;
+    deliveredEvents: readonly SimEvent[];
+  }): void {
+    if (!this.auditSink) return;
+    const promptText = input.promptText
+      ?? (this.auditProviderSource === 'codex' ? buildCodexDecisionPrompt(input.context) : undefined);
+    this.recordAudit(createProviderAuditRecord({
+      auditId: `${input.context.jobId}-${input.providerError ? 'provider-error' : input.result?.ok ? 'accepted' : 'rejected'}-${++this.auditSequence}`,
+      realm: REALM,
+      context: input.context,
+      providerSource: this.auditProviderSource,
+      latencyMs: input.latencyMs,
+      decision: input.decision,
+      result: input.result,
+      providerError: input.providerError,
+      promptText,
+      rawOutput: input.rawOutput,
+      providerTimings: input.providerTimings,
+      deliveredEvents: input.deliveredEvents,
+    }));
+  }
+
+  private recordAudit(record: Parameters<AiAuditSink['record']>[0]): void {
+    if (!this.auditSink) return;
+    try {
+      const result = this.auditSink.record(record);
+      if (result && typeof (result as PromiseLike<void>).then === 'function') {
+        void Promise.resolve(result).catch((err) => {
+          console.error('failed to persist active AI audit record:', err);
+        });
+      }
+    } catch (err) {
+      console.error('failed to record active AI audit:', err);
+    }
+  }
+
+  private activeThinkingAuditEvent(speaker: Entity, pid: number): AiThinkingEvent {
+    return {
+      type: 'aiThinking',
+      speakerId: speaker.id,
+      speakerName: speaker.name,
+      durationMs: this.thinkingDurationMs,
+      pid,
+    };
+  }
+
   private finishSequenceBeat(sequenceId: string, timer: ReturnType<typeof setTimeout>): void {
     const sequence = this.activeSequences.get(sequenceId);
     this.sequenceTimers.delete(timer);
@@ -1606,6 +1716,7 @@ export class AiActiveTriggerService {
       nowMs: input.nowMs,
       deliver: input.deliver,
       deferProvider: input.deferProvider,
+      auditDeliveryEvents: (events) => [this.activeThinkingAuditEvent(result.entity, input.player.id), ...events],
     })) {
       return { events: [thinkingEvent], skipReason: 'not_due' };
     }

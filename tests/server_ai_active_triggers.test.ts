@@ -19,6 +19,8 @@ import {
   AiActiveTriggerService,
   type AiActivePollRuleV1,
 } from '../server/ai/active_triggers';
+import type { AiAuditRecord, AiAuditSink } from '../server/ai_audit';
+import type { AiDecisionV1, AiJobContextV1, AiProvider, AiProviderOutput, AiProviderTimingSnapshot } from '../server/ai/ai_types';
 import { dist2d } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
 
@@ -81,6 +83,14 @@ function activeLivingRule(): AiActivePollRuleV1 {
   };
 }
 
+function activeProviderRule(): AiActivePollRuleV1 {
+  return {
+    ...activeLivingRule(),
+    providerPolicy: 'codexAllowed',
+    outputMode: 'dynamicTextFirst',
+  };
+}
+
 function activeSocialSequenceRule(): AiActivePollRuleV1 {
   return {
     ...activeRule(),
@@ -95,6 +105,51 @@ function joinServer(server: GameServer, fc: FakeClient): ClientSession {
   if ('error' in session) throw new Error(session.error);
   session.blockListLoaded = true;
   return session;
+}
+
+class CaptureAuditSink implements AiAuditSink {
+  records: AiAuditRecord[] = [];
+
+  record(record: AiAuditRecord): void {
+    this.records.push(record);
+  }
+}
+
+function activeDecision(context: AiJobContextV1, text: string): AiDecisionV1 {
+  return {
+    schemaVersion: 1,
+    jobId: context.jobId,
+    entityRef: {
+      kind: context.entity.kind,
+      entityId: context.entity.entityId,
+      templateId: context.entity.templateId,
+    },
+    ttlMs: 5_000,
+    confidence: 1,
+    speech: [{ mode: 'dynamicText', language: 'en', text }],
+    intents: [{ type: 'commentOnScene' }],
+    audit: { shortReason: 'active trigger provider decision', usedPlayerInput: false, safetyNotes: [] },
+  };
+}
+
+function activeAcceptedProvider(text: string, wrap = false): AiProvider {
+  const providerTimings: AiProviderTimingSnapshot = {
+    provider: 'codex-app-server',
+    totalMs: 987,
+    steps: [
+      { key: 'startupWaitMs', label: 'wait for app server', ms: 11 },
+      { key: 'turnCompleteMs', label: 'model turn completed', ms: 910 },
+      { key: 'parseOutputMs', label: 'parse structured output', ms: 4 },
+    ],
+  };
+  return {
+    async decide(context: AiJobContextV1): Promise<AiProviderOutput> {
+      const decision = activeDecision(context, text);
+      return wrap
+        ? { decision, promptText: 'active prompt', rawOutput: '{"speech":[]}', providerTimings }
+        : decision;
+    },
+  };
 }
 
 function installActiveTriggers(server: GameServer): AiActiveTriggerService {
@@ -221,6 +276,7 @@ describe('server AI active triggers', () => {
     const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
     if (!npc) throw new Error('missing Brother Aldric');
     teleportNear(server, session.pid, npc.id);
+    session.lastActivityAt = -60_000;
     fc.sent.length = 0;
 
     (server as any).runAiActiveTriggers(1_000);
@@ -248,10 +304,12 @@ describe('server AI active triggers', () => {
     const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
     if (!npc) throw new Error('missing Brother Aldric');
     teleportNear(server, session.pid, npc.id);
+    session.lastActivityAt = -60_000;
     server.sim.addItem('roasted_boar', 1, session.pid);
     fc.sent.length = 0;
 
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    fc.sent.length = 0;
     const [queued] = server.aiActiveTriggerDiagnostics().eventQueue;
     expect(queued).toEqual(expect.objectContaining({
       kind: 'item_discarded',
@@ -542,5 +600,121 @@ describe('server AI active triggers', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('records proactive polling provider replies into the AI audit sink', async () => {
+    const server = new GameServer();
+    const sink = new CaptureAuditSink();
+    const service = new AiActiveTriggerService({
+      rules: [activeProviderRule()],
+      thinkingDurationMs: 650,
+      provider: activeAcceptedProvider('Keep the lantern low tonight.', true),
+      auditSink: sink,
+      auditProviderSource: 'codex',
+    });
+    (server as any).aiActiveTriggers = service;
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
+    if (!npc) throw new Error('missing Brother Aldric');
+    teleportNear(server, session.pid, npc.id);
+    session.lastActivityAt = -60_000;
+    fc.sent.length = 0;
+
+    (server as any).runAiActiveTriggers(1_000);
+    await Promise.resolve();
+
+    expect(eventsOf(fc, 'aiThinking')).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      durationMs: 650,
+      pid: session.pid,
+    }));
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      source: 'codex',
+      speech: expect.objectContaining({
+        mode: 'dynamicText',
+        text: 'Keep the lantern low tonight.',
+      }),
+      pid: session.pid,
+    }));
+    expect(sink.records).toEqual([expect.objectContaining({
+      trigger: 'active_poll',
+      templateId: 'brother_aldric',
+      entityKind: 'npc',
+      providerSource: 'codex',
+      status: 'accepted',
+      outputMode: 'dynamic_text_experiment',
+      error: '',
+      deliveredSummary: expect.arrayContaining([
+        expect.stringContaining('thinking:Brother Aldric:650'),
+        'Keep the lantern low tonight.',
+      ]),
+      providerTimings: expect.objectContaining({
+        provider: 'codex-app-server',
+        totalMs: 987,
+      }),
+      chain: expect.objectContaining({
+        requestContext: expect.objectContaining({ promptText: 'active prompt' }),
+        provider: expect.objectContaining({
+          rawOutput: '{"speech":[]}',
+          source: 'codex',
+        }),
+        delivered: expect.objectContaining({
+          textSummary: expect.arrayContaining([
+            expect.stringContaining('thinking:Brother Aldric:650'),
+            'Keep the lantern low tonight.',
+          ]),
+        }),
+      }),
+    })]);
+  });
+
+  it('records proactive event-driven provider replies into the AI audit sink', async () => {
+    const server = new GameServer();
+    const sink = new CaptureAuditSink();
+    const service = new AiActiveTriggerService({
+      rules: [activeProviderRule()],
+      thinkingDurationMs: 700,
+      provider: activeAcceptedProvider('Someone dropped meat in the mud.', true),
+      auditSink: sink,
+      auditProviderSource: 'codex',
+    });
+    (server as any).aiActiveTriggers = service;
+    const fc = fakeWs();
+    const session = joinServer(server, fc);
+    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
+    if (!npc) throw new Error('missing Brother Aldric');
+    teleportNear(server, session.pid, npc.id);
+    session.lastActivityAt = -60_000;
+    server.sim.addItem('roasted_boar', 1, session.pid);
+    fc.sent.length = 0;
+
+    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    session.lastActivityAt = -60_000;
+    fc.sent.length = 0;
+    const [queued] = server.aiActiveTriggerDiagnostics().eventQueue;
+    (server as any).runAiActiveTriggers(queued.nextAttemptAtMs);
+    await Promise.resolve();
+
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
+      speakerId: npc.id,
+      source: 'codex',
+      speech: expect.objectContaining({
+        mode: 'dynamicText',
+        text: 'Someone dropped meat in the mud.',
+      }),
+      pid: session.pid,
+    }));
+    expect(sink.records).toEqual([expect.objectContaining({
+      trigger: 'active_event',
+      templateId: 'brother_aldric',
+      providerSource: 'codex',
+      status: 'accepted',
+      deliveredSummary: expect.arrayContaining([
+        expect.stringContaining('thinking:Brother Aldric:700'),
+        'Someone dropped meat in the mud.',
+      ]),
+    })]);
   });
 });

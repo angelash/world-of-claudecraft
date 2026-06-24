@@ -439,6 +439,10 @@ export class AiLifeLayer {
     return this.provider;
   }
 
+  auditProviderSourceForActiveTriggers(): Exclude<AiAuditProviderSource, 'fallback' | 'local'> {
+    return this.auditProviderSource;
+  }
+
   memoryDiagnostics(): { npcMemories: AiNpcMemory[]; rumors: AiRumorMemory[] } {
     return this.socialMemory.snapshot();
   }
