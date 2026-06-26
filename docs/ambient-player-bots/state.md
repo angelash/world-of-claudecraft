@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: continuation 07
-- phase status: Continuation 07 implementation complete, Continuation 07 QA next, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 08
+- phase status: Continuation 08 implementation complete, Continuation 08 QA next, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -260,6 +260,14 @@
 - `docs/ambient-player-bots/continuation-07-mirefen-troll-and-cultist-outdoors.md`
 - `docs/ambient-player-bots/continuation-07-qa-mirefen-troll-and-cultist-outdoors.md`
 
+### Continuation 08
+
+- `server/ambient_bots/brain.ts`
+- `server/ambient_bots/progression_routes.ts`
+- `tests/ambient_player_bot_brain.test.ts`
+- `docs/ambient-player-bots/continuation-08-cult-summoners-deacon-and-bastion-approach.md`
+- `docs/ambient-player-bots/continuation-08-qa-cult-summoners-deacon-and-bastion-approach.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -347,10 +355,16 @@
   Grubjaw, and first cult-camp outdoor chain
 - the current progression brain now covers Mirefen outdoor routes through
   `q_cult_camp`
-- deeper Mirefen routing such as cult summoners, Deacon Voss, and Bastion
-  approach content still remain open
-- `q_summoners` is the next notable modeling gap because its collect objective
-  can advance from more than one mob family in the same outdoor camp
+- Continuation 07 QA confirmed the Broodmother handoff and the troll or cult
+  route order add no new progression regressions
+- Continuation 08 extends the route registry into `q_summoners`, `q_deacon`,
+  and `q_bastion_door`
+- the `q_summoners` cipher stage now supports bounded multi-source kill routing
+  with summoners preferred and menders as the valid fallback source
+- the current progression brain now covers Mirefen outdoor routes through
+  `q_bastion_door`
+- the next notable progression gap is Bastion group content such as `q_olen`
+  and `q_mistcaller`
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

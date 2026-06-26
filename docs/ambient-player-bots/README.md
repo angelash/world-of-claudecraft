@@ -88,6 +88,11 @@ Post-packet continuation prompts:
   first cult-camp outdoor chain.
 - `continuation-07-qa-mirefen-troll-and-cultist-outdoors.md` - QA prompt for
   continuation 07.
+- `continuation-08-cult-summoners-deacon-and-bastion-approach.md` - extend the
+  real progression ladder through the summoner cleanup, Deacon Voss, and the
+  Bastion ward-stone approach.
+- `continuation-08-qa-cult-summoners-deacon-and-bastion-approach.md` - QA
+  prompt for continuation 08.
 
 ## How to use this packet
 

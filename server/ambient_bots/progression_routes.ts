@@ -23,6 +23,7 @@ interface AmbientBotQuestRouteBase {
 export interface AmbientBotKillQuestRoute extends AmbientBotQuestRouteBase {
   kind: 'kill';
   mobId: string;
+  alternateMobIds?: readonly string[];
   allowAnyHostileFallback?: boolean;
 }
 
@@ -37,11 +38,12 @@ interface AmbientBotQuestRouteConfig {
   activeObjectiveId?: string;
   questObjectiveIndex?: number;
   turnInNpcTemplateId?: string;
+  alternateMobIds?: readonly string[];
 }
 
-function campsFor(mobId: string): AmbientBotPoint2d[] {
+function campsForMobIds(mobIds: readonly string[]): AmbientBotPoint2d[] {
   return CAMPS
-    .filter((camp) => camp.mobId === mobId)
+    .filter((camp) => mobIds.includes(camp.mobId))
     .map((camp) => ({ x: camp.center.x, z: camp.center.z }));
 }
 
@@ -84,7 +86,8 @@ function killRoute(
     giverNpcTemplateId,
     turnInNpcTemplateId: config.turnInNpcTemplateId ?? giverNpcTemplateId,
     mobId,
-    camps: campsFor(mobId),
+    ...(config.alternateMobIds ? { alternateMobIds: config.alternateMobIds } : {}),
+    camps: campsForMobIds([mobId, ...(config.alternateMobIds ?? [])]),
     pursueAtLevel,
     questObjectiveIndex: config.questObjectiveIndex,
   };
@@ -270,5 +273,39 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'gravecaller_cultist',
     11,
     'Breaking the cult camp in the reeds',
+  ),
+  killRoute(
+    'q_summoners',
+    'brother_aldric_fen',
+    'gravecaller_summoner',
+    11,
+    'Silencing Gravecaller Summoners',
+    { questObjectiveIndex: 0 },
+  ),
+  killRoute(
+    'q_summoners',
+    'brother_aldric_fen',
+    'gravecaller_summoner',
+    11,
+    'Recovering Gravecaller Ciphers',
+    {
+      activeObjectiveId: 'hunt_summoner_ciphers',
+      questObjectiveIndex: 1,
+      alternateMobIds: ['gravecaller_mender'],
+    },
+  ),
+  killRoute(
+    'q_deacon',
+    'warden_fenwick',
+    'deacon_voss',
+    12,
+    'Hunting Deacon Voss',
+  ),
+  collectRoute(
+    'q_bastion_door',
+    'brother_aldric_fen',
+    'bastion_ward_stone',
+    12,
+    'Recovering a Bastion Ward Stone',
   ),
 ];

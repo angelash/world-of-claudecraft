@@ -33,7 +33,9 @@
 | Continuation 06 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 06 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 07 | completed | 2026-06-26 | 2026-06-26 |
-| Continuation 07 QA | pending | 2026-06-26 |  |
+| Continuation 07 QA | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 08 | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 08 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
 
@@ -683,7 +685,59 @@ Notes:
     `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
     under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
     `tests/auto_loot.test.ts`)
-- Continuation 07 QA is now the next target. The next implementation gap after
-  that is the cult summoner, Deacon Voss, and Bastion-door approach chain,
-  which likely needs better handling for multi-source same-objective drops such
-  as `q_summoners`.
+- Continuation 07 QA is now complete. Continuation 08 extended the route ladder
+  through `q_summoners`, `q_deacon`, and `q_bastion_door`, so its QA pass is
+  the next target.
+
+## Continuation 07 QA checklist
+
+- [x] audit Continuation 07 against
+  `continuation-07-qa-mirefen-troll-and-cultist-outdoors.md`
+- [x] confirm the Broodmother phase boundary still switches on live quest
+  counts only
+- [x] confirm Mirefen route order still keeps Grubjaw before the cult-camp
+  pickup and preserves earlier follow-ups
+- [x] verify focused ambient-bot validation, `build:server`, and local pg-mem
+  smoke stay green
+
+Notes:
+- QA did not uncover a new logic bug in the Continuation 07 slice. The
+  Broodmother handoff, troll chain, Grubjaw pickup, and cult-camp assault all
+  held under the targeted validation matrix.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline listed
+    above)
+- Continuation 08 is now the next implementation target: cult summoners,
+  Deacon Voss, and the Bastion ward-stone approach.
+
+## Continuation 08 checklist
+
+- [x] extend the progression registry through `q_summoners`, `q_deacon`, and
+  `q_bastion_door`
+- [x] add bounded multi-source cipher routing so the `q_summoners` collect
+  stage can use summoners first and menders as a valid fallback
+- [x] add focused brain regressions for summoner pickup, cipher-stage handoff,
+  Deacon Voss, and Bastion ward-stone collection
+- [x] validate the continuation slice
+
+Notes:
+- This slice keeps the progression brain in the existing route-driven model.
+  The only new routing capability is a bounded primary-plus-fallback mob list
+  for a kill route, still reconstructed entirely from live quest counts and
+  nearby entities.
+- The progression brain now covers these additional Mirefen outdoor routes:
+  `q_summoners`, `q_deacon`, and `q_bastion_door`.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- Continuation 08 QA is now the next target. The next implementation gap after
+  that is Bastion group content such as `q_olen` and `q_mistcaller`.

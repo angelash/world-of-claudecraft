@@ -106,6 +106,7 @@ interface AmbientBotObjective {
   id: string;
   label: string;
   mobId?: string;
+  alternateMobIds?: readonly string[];
   objectItemId?: string;
   camps?: readonly BotPoint2d[];
   npcTemplateId?: string;
@@ -314,6 +315,7 @@ function chooseQuestObjective(view: BotWorldView): AmbientBotObjective | null {
       ...(activeRoute.kind === 'kill'
         ? {
             mobId: activeRoute.mobId,
+            ...(activeRoute.alternateMobIds ? { alternateMobIds: activeRoute.alternateMobIds } : {}),
             allowAnyHostileFallback: activeRoute.allowAnyHostileFallback ?? false,
           }
         : {
@@ -523,11 +525,13 @@ function huntMob(
   state: AmbientPlayerBotBrainState,
   objective: AmbientBotObjective,
 ): AmbientPlayerBotBrainTickResult {
-  const preferredId = objective.mobId;
-  const currentTarget = currentHostileTarget(view);
+  const preferredMobIds = objective.mobId
+    ? [objective.mobId, ...(objective.alternateMobIds ?? [])]
+    : [...(objective.alternateMobIds ?? [])];
+  const currentTarget = currentRouteHostileTarget(view, preferredMobIds);
   const target =
     currentTarget
-    ?? (preferredId ? nearestHostileMob(view, preferredId) : null)
+    ?? nearestHostileMobByPriority(view, preferredMobIds)
     ?? (objective.allowAnyHostileFallback ? nearestAnyHostileMob(view) : null);
   if (target) {
     state.noTargetSinceMs = null;
@@ -878,10 +882,18 @@ function findThreateningMob(view: BotWorldView): BotEntityView | null {
   return best;
 }
 
-function currentHostileTarget(view: BotWorldView): BotEntityView | null {
+function currentRouteHostileTarget(
+  view: BotWorldView,
+  templateIds: readonly string[],
+): BotEntityView | null {
   if (view.self.targetId === null) return null;
   return view.entities.find(
-    (entity) => entity.id === view.self.targetId && entity.kind === 'mob' && entity.hostile && !entity.dead,
+    (entity) =>
+      entity.id === view.self.targetId
+      && entity.kind === 'mob'
+      && entity.hostile
+      && !entity.dead
+      && templateIds.includes(entity.templateId),
   ) ?? null;
 }
 
@@ -908,6 +920,17 @@ function nearestHostileMob(view: BotWorldView, templateId: string): BotEntityVie
     bestDistance = distance;
   }
   return best;
+}
+
+function nearestHostileMobByPriority(
+  view: BotWorldView,
+  templateIds: readonly string[],
+): BotEntityView | null {
+  for (const templateId of templateIds) {
+    const mob = nearestHostileMob(view, templateId);
+    if (mob) return mob;
+  }
+  return null;
 }
 
 function nearestObject(view: BotWorldView, objectItemId: string): BotEntityView | null {

@@ -76,6 +76,42 @@ function liveState(input: {
   };
 }
 
+const mirefenThroughCultCamp = [
+  'q_wolves',
+  'q_boars',
+  'q_spiders',
+  'q_murlocs',
+  'q_supplies',
+  'q_mine',
+  'q_greyjaw',
+  'q_bandits',
+  'q_ringleader',
+  'q_bones',
+  'q_whispers',
+  'q_names_of_the_dead',
+  'q_silence_the_call',
+  'q_rite',
+  'q_fenbridge_muster',
+  'q_prowlers',
+  'q_prowler_pelts',
+  'q_fen_supplies',
+  'q_deepfen',
+  'q_idols',
+  'q_deepfen_purge',
+  'q_widows',
+  'q_broodmother',
+  'q_drowned',
+  'q_drowned_censers',
+  'q_no_rest',
+  'q_trolls',
+  'q_troll_fetishes',
+  'q_grubjaw',
+  'q_cult_camp',
+] as const;
+
+const mirefenThroughSummoners = [...mirefenThroughCultCamp, 'q_summoners'] as const;
+const mirefenThroughDeacon = [...mirefenThroughSummoners, 'q_deacon'] as const;
+
 describe('ambient player bot brain', () => {
   it('targets the starter marshal and interacts to pick up the wolves quest', () => {
     const state = createAmbientPlayerBotBrainState();
@@ -1351,6 +1387,194 @@ describe('ambient player bot brain', () => {
     expect(result.objectiveId).toBe('hunt_cult_camp');
     expect(result.commands).toEqual([]);
     expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('picks up the summoner quest from Brother Aldric in Fenbridge after the cult-camp assault is done', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 11,
+          x: -8,
+          z: 296,
+          qdone: [...mirefenThroughCultCamp],
+        },
+        entities: [
+          { id: 9810, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_summoners');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9810 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('keeps fighting Gravecaller summoners while the kill objective of q_summoners is still incomplete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 11,
+          qdone: [...mirefenThroughCultCamp],
+          qlog: [{ questId: 'q_summoners', counts: [3, 1], state: 'active' }],
+        },
+        entities: [
+          { id: 9811, k: 'mob', tid: 'gravecaller_summoner', x: 2, z: 2, h: 1, lv: 11 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('combat');
+    expect(result.objectiveLabel).toBe('Silencing Gravecaller Summoners');
+    expect(result.commands[0]).toEqual({ cmd: 'target', id: 9811 });
+  });
+
+  it('keeps using nearby summoners for q_summoners ciphers after the kill count is done', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 11,
+          qdone: [...mirefenThroughCultCamp],
+          qlog: [{ questId: 'q_summoners', counts: [8, 0], state: 'active' }],
+        },
+        entities: [
+          { id: 9812, k: 'mob', tid: 'gravecaller_summoner', x: 2, z: 2, h: 1, lv: 11 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('combat');
+    expect(result.objectiveLabel).toBe('Recovering Gravecaller Ciphers');
+    expect(result.commands[0]).toEqual({ cmd: 'target', id: 9812 });
+  });
+
+  it('falls back to Gravecaller menders for q_summoners ciphers when no summoner is in reach', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 11,
+          qdone: [...mirefenThroughCultCamp],
+          qlog: [{ questId: 'q_summoners', counts: [8, 0], state: 'active' }],
+        },
+        entities: [
+          { id: 9813, k: 'mob', tid: 'gravecaller_mender', x: 2, z: 2, h: 1, lv: 11 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('combat');
+    expect(result.objectiveLabel).toBe('Recovering Gravecaller Ciphers');
+    expect(result.commands[0]).toEqual({ cmd: 'target', id: 9813 });
+  });
+
+  it('picks up Deacon Voss from Warden Fenwick after q_summoners is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 12,
+          x: 3,
+          z: 304,
+          qdone: [...mirefenThroughSummoners],
+        },
+        entities: [
+          { id: 9814, k: 'npc', tid: 'warden_fenwick', x: 3, z: 304 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_deacon');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9814 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('heads for Deacon Voss once the deacon quest is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 12,
+          qdone: [...mirefenThroughSummoners],
+          qlog: [{ questId: 'q_deacon', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_deacon');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('picks up the Bastion ward-stone quest from Brother Aldric after Deacon Voss is dead', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 12,
+          x: -8,
+          z: 296,
+          qdone: [...mirefenThroughDeacon],
+        },
+        entities: [
+          { id: 9815, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_bastion_door');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9815 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('targets and interacts with a Bastion ward stone once q_bastion_door is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 12,
+          qdone: [...mirefenThroughDeacon],
+          qlog: [{ questId: 'q_bastion_door', counts: [0], state: 'active' }],
+        },
+        entities: [
+          { id: 9816, k: 'object', obj: 'bastion_ward_stone', x: 2, z: 2, loot: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('collect_bastion_door');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9816 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
   });
 
   it('routes toward tunnel rats while the blessed tallow objective for q_rite is still incomplete', () => {
