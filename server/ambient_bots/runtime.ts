@@ -6,6 +6,11 @@ import {
   tickAmbientPlayerBotBrain,
   type AmbientPlayerBotBrainState,
 } from './brain';
+import {
+  createAmbientPlayerBotGroupRuntimeState,
+  tickAmbientPlayerBotGroupCoordinator,
+  type AmbientPlayerBotGroupRuntimeState,
+} from './group';
 import { ambientBotProfileById } from './profiles';
 import {
   createAmbientPlayerBotSocialRuntimeState,
@@ -64,6 +69,7 @@ export interface AmbientPlayerBotRuntimeOptions {
 interface RunnerEntry {
   client: AmbientPlayerBotWsClient;
   brainState: AmbientPlayerBotBrainState;
+  groupState: AmbientPlayerBotGroupRuntimeState;
   socialState: AmbientPlayerBotSocialRuntimeState;
   llmPlan: AmbientBotPlanDecisionV1 | null;
   llmPlanPending: boolean;
@@ -328,7 +334,7 @@ export class AmbientPlayerBotRuntime {
           }
           this.metrics.loginAttempts++;
           try {
-            await this.handleLoginAction(action.botId);
+            await this.handleLoginAction(action);
             this.metrics.loginSuccesses++;
           } catch (error) {
             this.metrics.loginFailures++;
@@ -388,9 +394,17 @@ export class AmbientPlayerBotRuntime {
     await this.connectBot(botId, false);
   }
 
-  private async handleLoginAction(botId: string): Promise<void> {
-    if (this.runners.has(botId)) return;
-    await this.connectBot(botId, true);
+  private async handleLoginAction(action: Extract<AmbientBotPlanAction, { type: 'loginBot' }>): Promise<void> {
+    const record = this.game.ambientPlayerBotRecord(action.botId);
+    if (record) {
+      record.assignedClusterId = action.clusterId;
+      record.assignedPlayerCharacterId = action.targetCharacterId;
+      record.lastKnownZoneId = action.zoneId;
+      this.game.upsertAmbientPlayerBotRecord(record);
+      await this.db.saveBot(record);
+    }
+    if (this.runners.has(action.botId)) return;
+    await this.connectBot(action.botId, true);
   }
 
   private async handleLogoutAction(botId: string): Promise<void> {
@@ -440,6 +454,7 @@ export class AmbientPlayerBotRuntime {
     const entry: RunnerEntry = {
       client,
       brainState: createAmbientPlayerBotBrainState(),
+      groupState: createAmbientPlayerBotGroupRuntimeState(),
       socialState: createAmbientPlayerBotSocialRuntimeState(),
       llmPlan: null,
       llmPlanPending: false,
@@ -561,10 +576,30 @@ export class AmbientPlayerBotRuntime {
           liveState,
           nowMs: this.nowMs(),
         }, entry.brainState);
-        for (const command of result.commands) entry.client.command(command);
-        entry.client.input(result.moveInput, result.facing);
         const latest = this.game.ambientPlayerBotRecord(botId);
         if (!latest) continue;
+        const groupResult = result.objectiveDungeonId && (result.objectiveSuggestedPartySize ?? 0) > 1
+          ? tickAmbientPlayerBotGroupCoordinator({
+              bot: latest,
+              liveState,
+              recentEvents,
+              objectiveDungeonId: result.objectiveDungeonId,
+              objectiveSuggestedPartySize: result.objectiveSuggestedPartySize ?? 1,
+              directory: this.game.ambientPlayerBotDirectory(),
+              nowMs: this.nowMs(),
+            }, entry.groupState)
+          : {
+              commands: [],
+              runnerStatePatch: {
+                groupDungeonId: '',
+                groupLeaderName: '',
+                groupTargetSize: 0,
+                groupPartySize: 0,
+              },
+            };
+        for (const command of groupResult.commands) entry.client.command(command);
+        for (const command of result.commands) entry.client.command(command);
+        entry.client.input(result.moveInput, result.facing);
         const socialResult = tickAmbientPlayerBotSocialShell({
           bot: latest,
           liveState,
@@ -591,6 +626,9 @@ export class AmbientPlayerBotRuntime {
           connected: true,
           objective: result.objectiveId,
           objectiveLabel: result.objectiveLabel,
+          objectiveQuestId: result.objectiveQuestId ?? '',
+          objectiveDungeonId: result.objectiveDungeonId ?? '',
+          objectiveSuggestedPartySize: result.objectiveSuggestedPartySize ?? 0,
           campIndex: entry.brainState.campIndex,
           stuckResets: entry.brainState.stuckResets,
           ...(entry.llmPlan
@@ -599,6 +637,7 @@ export class AmbientPlayerBotRuntime {
               llmPlanFocus: entry.llmPlan.focusLabel,
             }
             : {}),
+          ...groupResult.runnerStatePatch,
           ...socialResult.runnerStatePatch,
         };
         let shouldPersist = false;

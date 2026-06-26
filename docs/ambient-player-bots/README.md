@@ -93,6 +93,11 @@ Post-packet continuation prompts:
   Bastion ward-stone approach.
 - `continuation-08-qa-cult-summoners-deacon-and-bastion-approach.md` - QA
   prompt for continuation 08.
+- `continuation-09-bastion-party-and-dungeon-bridge.md` - add the first real
+  Bastion party, dungeon-entry, Olen, and Mistcaller bridge on the live
+  server path.
+- `continuation-09-qa-bastion-party-and-dungeon-bridge.md` - QA prompt for
+  continuation 09.
 
 ## How to use this packet
 

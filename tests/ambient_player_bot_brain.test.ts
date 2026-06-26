@@ -111,6 +111,8 @@ const mirefenThroughCultCamp = [
 
 const mirefenThroughSummoners = [...mirefenThroughCultCamp, 'q_summoners'] as const;
 const mirefenThroughDeacon = [...mirefenThroughSummoners, 'q_deacon'] as const;
+const mirefenThroughBastionDoor = [...mirefenThroughDeacon, 'q_bastion_door'] as const;
+const bastionSlot0Origin = { x: 1500, z: -1250 } as const;
 
 describe('ambient player bot brain', () => {
   it('targets the starter marshal and interacts to pick up the wolves quest', () => {
@@ -1597,6 +1599,161 @@ describe('ambient player bot brain', () => {
       { cmd: 'target', id: 9816 },
       { cmd: 'interact' },
     ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('picks up Knight-Commander Olen from Scout Maren after q_bastion_door is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 12,
+          x: 6,
+          z: 312,
+          qdone: [...mirefenThroughBastionDoor],
+        },
+        entities: [
+          { id: 9818, k: 'npc', tid: 'scout_maren', x: 6, z: 312 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_olen');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9818 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('picks up q_mistcaller before entering Bastion once q_olen is already active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 12,
+          x: -8,
+          z: 296,
+          qdone: [...mirefenThroughBastionDoor],
+          qlog: [{ questId: 'q_olen', counts: [0], state: 'active' }],
+        },
+        entities: [
+          { id: 9819, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_mistcaller');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9819 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('heads for the Sunken Bastion door once the Bastion group quests are active outdoors', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 12,
+          qdone: [...mirefenThroughBastionDoor],
+          qlog: [
+            { questId: 'q_olen', counts: [0], state: 'active' },
+            { questId: 'q_mistcaller', counts: [0], state: 'active' },
+          ],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.objectiveSuggestedPartySize).toBe(5);
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('routes toward Knight-Commander Olen once the party is inside Sunken Bastion', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 12,
+          x: bastionSlot0Origin.x,
+          z: bastionSlot0Origin.z + 4,
+          dgn: 'sunken_bastion',
+          qdone: [...mirefenThroughBastionDoor],
+          qlog: [
+            { questId: 'q_olen', counts: [0], state: 'active' },
+            { questId: 'q_mistcaller', counts: [0], state: 'active' },
+          ],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('keeps pushing to Vael once q_olen is ready but q_mistcaller is still active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 12,
+          x: bastionSlot0Origin.x - 4,
+          z: bastionSlot0Origin.z + 82,
+          dgn: 'sunken_bastion',
+          qdone: [...mirefenThroughBastionDoor],
+          qlog: [
+            { questId: 'q_olen', counts: [1], state: 'ready' },
+            { questId: 'q_mistcaller', counts: [0], state: 'active' },
+          ],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_mistcaller');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('walks back to the dungeon exit and leaves once the Bastion boss quests are ready', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 12,
+          x: bastionSlot0Origin.x,
+          z: bastionSlot0Origin.z - 6,
+          dgn: 'sunken_bastion',
+          qdone: [...mirefenThroughBastionDoor],
+          qlog: [
+            { questId: 'q_olen', counts: [1], state: 'ready' },
+            { questId: 'q_mistcaller', counts: [1], state: 'ready' },
+          ],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('leave_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([{ cmd: 'leave_dungeon' }]);
     expect(result.moveInput).toEqual({});
   });
 

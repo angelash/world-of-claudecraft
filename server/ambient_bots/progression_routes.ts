@@ -1,4 +1,4 @@
-import { CAMPS, GROUND_OBJECTS, ITEMS, MOBS, QUESTS } from '../../src/sim/data';
+import { CAMPS, DUNGEONS, GROUND_OBJECTS, ITEMS, MOBS, QUESTS } from '../../src/sim/data';
 
 export interface AmbientBotPoint2d {
   x: number;
@@ -18,6 +18,10 @@ interface AmbientBotQuestRouteBase {
   camps: readonly AmbientBotPoint2d[];
   pursueAtLevel: number;
   questObjectiveIndex?: number;
+  acceptBeforeActiveQuestIds?: readonly string[];
+  deferReadyWhileQuestIdsActive?: readonly string[];
+  dungeonId?: string;
+  suggestedPartySize?: number;
 }
 
 export interface AmbientBotKillQuestRoute extends AmbientBotQuestRouteBase {
@@ -39,6 +43,10 @@ interface AmbientBotQuestRouteConfig {
   questObjectiveIndex?: number;
   turnInNpcTemplateId?: string;
   alternateMobIds?: readonly string[];
+  acceptBeforeActiveQuestIds?: readonly string[];
+  deferReadyWhileQuestIdsActive?: readonly string[];
+  dungeonId?: string;
+  suggestedPartySize?: number;
 }
 
 function campsForMobIds(mobIds: readonly string[]): AmbientBotPoint2d[] {
@@ -51,6 +59,15 @@ function objectPointsFor(itemId: string): AmbientBotPoint2d[] {
   return GROUND_OBJECTS
     .filter((object) => object.itemId === itemId)
     .flatMap((object) => object.positions.map((point) => ({ x: point.x, z: point.z })));
+}
+
+function dungeonPointsFor(
+  dungeonId: string,
+  mobIds: readonly string[],
+): AmbientBotPoint2d[] {
+  return (DUNGEONS[dungeonId]?.spawns ?? [])
+    .filter((spawn) => mobIds.includes(spawn.mobId))
+    .map((spawn) => ({ x: spawn.x, z: spawn.z }));
 }
 
 function questLabel(questId: string): string {
@@ -74,6 +91,10 @@ function killRoute(
   config: AmbientBotQuestRouteConfig = {},
 ): AmbientBotKillQuestRoute {
   const quest = questLabel(questId);
+  const dungeonId = config.dungeonId;
+  const camps = dungeonId
+    ? dungeonPointsFor(dungeonId, [mobId, ...(config.alternateMobIds ?? [])])
+    : campsForMobIds([mobId, ...(config.alternateMobIds ?? [])]);
   return {
     kind: 'kill',
     questId,
@@ -87,9 +108,22 @@ function killRoute(
     turnInNpcTemplateId: config.turnInNpcTemplateId ?? giverNpcTemplateId,
     mobId,
     ...(config.alternateMobIds ? { alternateMobIds: config.alternateMobIds } : {}),
-    camps: campsForMobIds([mobId, ...(config.alternateMobIds ?? [])]),
+    camps,
     pursueAtLevel,
     questObjectiveIndex: config.questObjectiveIndex,
+    ...(config.acceptBeforeActiveQuestIds
+      ? { acceptBeforeActiveQuestIds: config.acceptBeforeActiveQuestIds }
+      : {}),
+    ...(config.deferReadyWhileQuestIdsActive
+      ? { deferReadyWhileQuestIdsActive: config.deferReadyWhileQuestIdsActive }
+      : {}),
+    ...(dungeonId
+      ? {
+          dungeonId,
+          suggestedPartySize:
+            config.suggestedPartySize ?? DUNGEONS[dungeonId]?.suggestedPlayers ?? 1,
+        }
+      : {}),
   };
 }
 
@@ -117,6 +151,19 @@ function collectRoute(
     camps: objectPointsFor(objectItemId),
     pursueAtLevel,
     questObjectiveIndex: config.questObjectiveIndex,
+    ...(config.acceptBeforeActiveQuestIds
+      ? { acceptBeforeActiveQuestIds: config.acceptBeforeActiveQuestIds }
+      : {}),
+    ...(config.deferReadyWhileQuestIdsActive
+      ? { deferReadyWhileQuestIdsActive: config.deferReadyWhileQuestIdsActive }
+      : {}),
+    ...(config.dungeonId
+      ? {
+          dungeonId: config.dungeonId,
+          suggestedPartySize:
+            config.suggestedPartySize ?? DUNGEONS[config.dungeonId]?.suggestedPlayers ?? 1,
+        }
+      : {}),
   };
 }
 
@@ -307,5 +354,29 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'bastion_ward_stone',
     12,
     'Recovering a Bastion Ward Stone',
+  ),
+  killRoute(
+    'q_olen',
+    'scout_maren',
+    'knight_commander_olen',
+    12,
+    'Laying Knight-Commander Olen to rest',
+    {
+      dungeonId: 'sunken_bastion',
+      suggestedPartySize: 5,
+      acceptBeforeActiveQuestIds: ['q_mistcaller'],
+      deferReadyWhileQuestIdsActive: ['q_mistcaller'],
+    },
+  ),
+  killRoute(
+    'q_mistcaller',
+    'brother_aldric_fen',
+    'vael_the_mistcaller',
+    12,
+    'Hunting Vael the Mistcaller',
+    {
+      dungeonId: 'sunken_bastion',
+      suggestedPartySize: 5,
+    },
   ),
 ];

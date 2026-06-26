@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: continuation 08 QA
-- phase status: Continuation 08 QA complete, next implementation gap is Bastion group content such as q_olen and q_mistcaller, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 09
+- phase status: Continuation 09 complete, next target is the QA sweep for Bastion party and dungeon bridging, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -268,6 +268,17 @@
 - `docs/ambient-player-bots/continuation-08-cult-summoners-deacon-and-bastion-approach.md`
 - `docs/ambient-player-bots/continuation-08-qa-cult-summoners-deacon-and-bastion-approach.md`
 
+### Continuation 09
+
+- `server/ambient_bots/brain.ts`
+- `server/ambient_bots/group.ts`
+- `server/ambient_bots/progression_routes.ts`
+- `server/ambient_bots/runtime.ts`
+- `tests/ambient_player_bot_brain.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `docs/ambient-player-bots/continuation-09-bastion-party-and-dungeon-bridge.md`
+- `docs/ambient-player-bots/continuation-09-qa-bastion-party-and-dungeon-bridge.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -365,8 +376,19 @@
   `q_bastion_door`
 - Continuation 08 QA confirmed the cipher stage ignores nearby non-dropping
   cultists and stays reconstructible from live quest counts only
-- the next notable progression gap is Bastion group content such as `q_olen`
-  and `q_mistcaller`
+- Continuation 09 extends the route registry into `q_olen` and `q_mistcaller`
+- the progression brain now supports Bastion dungeon entry, in-instance Olen
+  and Vael routing, and dungeon exit for the Bastion turn-in handoff
+- the runtime now has a bounded ambient-party bridge that uses real `pinvite`,
+  `paccept`, and `enter_dungeon` commands for nearby same-cluster bots
+- `loginBot` runtime actions now persist the planner-provided cluster
+  assignment and target character id before the socket connect path, so
+  downstream orchestration layers can trust those fields during the first live
+  brain loop
+- the current progression brain now covers the Zone 2 ladder through
+  `q_mistcaller`
+- the next notable gap is the QA pass for the Bastion party and dungeon bridge,
+  followed by either Bastion combat polish or the Zone 3 handoff
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

@@ -38,6 +38,42 @@ function bot(overrides: Partial<AmbientPlayerBotRecord> = {}): AmbientPlayerBotR
   };
 }
 
+const mirefenThroughBastionDoor = [
+  'q_wolves',
+  'q_boars',
+  'q_spiders',
+  'q_murlocs',
+  'q_supplies',
+  'q_mine',
+  'q_greyjaw',
+  'q_bandits',
+  'q_ringleader',
+  'q_bones',
+  'q_whispers',
+  'q_names_of_the_dead',
+  'q_silence_the_call',
+  'q_rite',
+  'q_fenbridge_muster',
+  'q_prowlers',
+  'q_prowler_pelts',
+  'q_fen_supplies',
+  'q_deepfen',
+  'q_idols',
+  'q_deepfen_purge',
+  'q_widows',
+  'q_broodmother',
+  'q_drowned',
+  'q_drowned_censers',
+  'q_no_rest',
+  'q_trolls',
+  'q_troll_fetishes',
+  'q_grubjaw',
+  'q_cult_camp',
+  'q_summoners',
+  'q_deacon',
+  'q_bastion_door',
+] as const;
+
 class FakeGame {
   private readonly directory = new Map<string, AmbientPlayerBotRecord>();
   actionHandler: ((actions: readonly AmbientBotPlanAction[]) => void) | null = null;
@@ -879,6 +915,262 @@ describe('AmbientPlayerBotRuntime', () => {
       }),
     ]);
     expect(saved.some((record) => Object.keys(record.socialState).length > 0)).toBe(true);
+
+    await runtime.stop();
+  });
+
+  it('forms an ambient Bastion party by inviting nearby cluster bots and accepting ambient party invites', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    let socketIndex = 0;
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'mirefen_marsh:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 12,
+          lastKnownZoneId: 'mirefen_marsh',
+        }),
+        bot({
+          botId: 'bot-2',
+          accountId: 12,
+          accountUsername: 'bot_user_2',
+          accountPassword: 'BotPassword123',
+          characterId: 102,
+          characterName: 'Branorabb',
+          profileId: 'eastbrook_vale_mage_newcomer',
+          class: 'mage',
+          authToken: 'token-2',
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'mirefen_marsh:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 12,
+          lastKnownZoneId: 'mirefen_marsh',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const isLeader = socketIndex++ === 0;
+        const socket = new FakeSocket(isLeader ? 101 : 102, {
+          self: {
+            id: isLeader ? 101 : 102,
+            x: 45 + (isLeader ? 0 : 1),
+            z: 511,
+            lv: 12,
+            hp: 120,
+            mhp: 120,
+            res: isLeader ? 0 : 120,
+            mres: isLeader ? 0 : 120,
+            rtype: isLeader ? 'rage' : 'mana',
+            gcd: 0,
+            inv: [],
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+            cds: {},
+          },
+          ents: [
+            {
+              id: isLeader ? 102 : 101,
+              k: 'player',
+              nm: isLeader ? 'Branorabb' : 'Branoraaa',
+              x: 46,
+              z: 511,
+              lv: 12,
+            },
+          ],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'mirefen_marsh:1',
+        zoneId: 'mirefen_marsh',
+        targetCharacterId: 1,
+        reason: 'ambient Bastion party leader',
+      },
+      {
+        type: 'loginBot',
+        botId: 'bot-2',
+        clusterId: 'mirefen_marsh:1',
+        zoneId: 'mirefen_marsh',
+        targetCharacterId: 1,
+        reason: 'ambient Bastion party follower',
+      },
+    ]);
+
+    await vi.waitFor(() => {
+      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; id?: number });
+      expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'pinvite' && message.id === 102)).toBe(true);
+    });
+
+    sockets[1]?.emitJson({
+      t: 'events',
+      list: [{
+        type: 'partyInvite',
+        fromPid: 101,
+        fromName: 'Branoraaa',
+        pid: 102,
+      }],
+    });
+
+    await vi.waitFor(() => {
+      const sent = sockets[1]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string });
+      expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'paccept')).toBe(true);
+    });
+
+    await runtime.stop();
+  });
+
+  it('enters the Sunken Bastion once the ambient Bastion party is assembled at the door', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    let socketIndex = 0;
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'mirefen_marsh:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 12,
+          lastKnownZoneId: 'mirefen_marsh',
+        }),
+        bot({
+          botId: 'bot-2',
+          accountId: 12,
+          accountUsername: 'bot_user_2',
+          accountPassword: 'BotPassword123',
+          characterId: 102,
+          characterName: 'Branorabb',
+          profileId: 'eastbrook_vale_mage_newcomer',
+          class: 'mage',
+          authToken: 'token-2',
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'mirefen_marsh:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 12,
+          lastKnownZoneId: 'mirefen_marsh',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const partyWire = {
+      leader: 101,
+      raid: false,
+      members: [
+        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 45, z: 511, dead: 0, inCombat: 0, group: 1 },
+        { pid: 102, name: 'Branorabb', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 46, z: 511, dead: 0, inCombat: 0, group: 1 },
+      ],
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const isLeader = socketIndex++ === 0;
+        const socket = new FakeSocket(isLeader ? 101 : 102, {
+          self: {
+            id: isLeader ? 101 : 102,
+            x: 45 + (isLeader ? 0 : 1),
+            z: 511,
+            lv: 12,
+            hp: 120,
+            mhp: 120,
+            res: isLeader ? 0 : 120,
+            mres: isLeader ? 0 : 120,
+            rtype: isLeader ? 'rage' : 'mana',
+            gcd: 0,
+            inv: [],
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+            party: partyWire,
+            cds: {},
+          },
+          ents: [
+            {
+              id: isLeader ? 102 : 101,
+              k: 'player',
+              nm: isLeader ? 'Branorabb' : 'Branoraaa',
+              x: 46,
+              z: 511,
+              lv: 12,
+            },
+          ],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'mirefen_marsh:1',
+        zoneId: 'mirefen_marsh',
+        targetCharacterId: 1,
+        reason: 'ambient Bastion party leader',
+      },
+      {
+        type: 'loginBot',
+        botId: 'bot-2',
+        clusterId: 'mirefen_marsh:1',
+        zoneId: 'mirefen_marsh',
+        targetCharacterId: 1,
+        reason: 'ambient Bastion party follower',
+      },
+    ]);
+
+    await vi.waitFor(() => {
+      const leaderSent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string });
+      const followerSent = sockets[1]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string });
+      expect(leaderSent?.some((message) =>
+        message.t === 'cmd' && message.cmd === 'enter_dungeon' && message.dungeon === 'sunken_bastion',
+      )).toBe(true);
+      expect(followerSent?.some((message) =>
+        message.t === 'cmd' && message.cmd === 'enter_dungeon' && message.dungeon === 'sunken_bastion',
+      )).toBe(true);
+    });
 
     await runtime.stop();
   });

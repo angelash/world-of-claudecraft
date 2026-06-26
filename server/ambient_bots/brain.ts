@@ -1,7 +1,20 @@
 import type { KnownAbility } from '../../src/sim/content/classes';
 import type { TalentAllocation } from '../../src/sim/content/talents';
 import { computeTalentModifiers } from '../../src/sim/content/talents';
-import { CAMPS, CLASSES, ITEMS, MOBS, NPCS, QUESTS, abilitiesKnownAt, zoneAt } from '../../src/sim/data';
+import {
+  CAMPS,
+  CLASSES,
+  DUNGEONS,
+  INSTANCE_SLOT_COUNT,
+  ITEMS,
+  MOBS,
+  NPCS,
+  QUESTS,
+  abilitiesKnownAt,
+  dungeonAt,
+  instanceOrigin,
+  zoneAt,
+} from '../../src/sim/data';
 import { findPlayerPath, resolvePlayerDestination } from '../../src/sim/pathfind';
 import {
   INTERACT_RANGE,
@@ -78,6 +91,7 @@ interface BotSelfView {
   id: number;
   pos: BotVec3;
   level: number;
+  dungeonId: string | null;
   copper: number;
   hp: number;
   maxHp: number;
@@ -105,6 +119,7 @@ interface BotWorldView {
 interface AmbientBotObjective {
   id: string;
   label: string;
+  questId?: string;
   mobId?: string;
   alternateMobIds?: readonly string[];
   objectItemId?: string;
@@ -112,6 +127,9 @@ interface AmbientBotObjective {
   npcTemplateId?: string;
   allowAnyHostileFallback?: boolean;
   vendorPurchases?: readonly AmbientBotVendorPurchase[];
+  dungeonId?: string;
+  suggestedPartySize?: number;
+  leaveDungeon?: boolean;
 }
 
 interface AmbientBotVendorPurchase {
@@ -145,6 +163,9 @@ export interface AmbientPlayerBotBrainTickResult {
   moveInput: MoveInputPayload;
   facing?: number;
   commands: readonly BrainCommand[];
+  objectiveQuestId?: string;
+  objectiveDungeonId?: string;
+  objectiveSuggestedPartySize?: number;
 }
 
 interface CombatAbility {
@@ -211,6 +232,15 @@ export function tickAmbientPlayerBotBrain(
 
   if (objective.id === 'recover') {
     return finalizeStep(state, input, view, objective, idleStep(objective.id, objective.label));
+  }
+  if (objective.dungeonId && !objective.mobId && !objective.objectItemId && !objective.npcTemplateId) {
+    return finalizeStep(
+      state,
+      input,
+      view,
+      objective,
+      handleDungeonObjective(view, state, input, objective),
+    );
   }
   if (objective.id === 'sell_junk') {
     return finalizeStep(
@@ -299,19 +329,34 @@ function chooseResupplyObjective(
 function chooseQuestObjective(view: BotWorldView): AmbientBotObjective | null {
   const readyRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find((route) => isQuestRouteReady(route, view));
   if (readyRoute) {
+    if (readyRoute.dungeonId && view.self.dungeonId === readyRoute.dungeonId) {
+      return dungeonExitObjective(readyRoute);
+    }
     return {
       id: readyRoute.turnInObjectiveId,
       label: readyRoute.turnInLabel,
+      questId: readyRoute.questId,
       npcTemplateId: readyRoute.turnInNpcTemplateId,
     };
   }
 
   const activeRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find((route) => isQuestRouteActive(route, view));
   if (activeRoute) {
+    if (activeRoute.dungeonId && view.self.dungeonId !== activeRoute.dungeonId) {
+      return dungeonEntryObjective(activeRoute);
+    }
+    const activeCamps = activeRoute.dungeonId
+      ? resolveDungeonRouteCamps(view.self, activeRoute)
+      : activeRoute.camps;
     return {
       id: activeRoute.activeObjectiveId,
       label: activeRoute.activeLabel,
-      camps: activeRoute.camps,
+      questId: activeRoute.questId,
+      camps: activeCamps,
+      ...(activeRoute.dungeonId ? { dungeonId: activeRoute.dungeonId } : {}),
+      ...(activeRoute.suggestedPartySize
+        ? { suggestedPartySize: activeRoute.suggestedPartySize }
+        : {}),
       ...(activeRoute.kind === 'kill'
         ? {
             mobId: activeRoute.mobId,
@@ -329,6 +374,7 @@ function chooseQuestObjective(view: BotWorldView): AmbientBotObjective | null {
   return {
     id: availableRoute.acceptObjectiveId,
     label: availableRoute.acceptLabel,
+    questId: availableRoute.questId,
     npcTemplateId: availableRoute.giverNpcTemplateId,
   };
 }
@@ -339,7 +385,11 @@ function isQuestRouteReady(
 ): boolean {
   const progress = view.self.questLog.get(route.questId);
   if (view.self.questsDone.has(route.questId) || progress?.state === 'done') return false;
-  return progress?.state === 'ready';
+  if (progress?.state !== 'ready') return false;
+  return !route.deferReadyWhileQuestIdsActive?.some((questId) => {
+    const otherProgress = view.self.questLog.get(questId);
+    return otherProgress?.state === 'active';
+  });
 }
 
 function isQuestRouteActive(
@@ -348,6 +398,9 @@ function isQuestRouteActive(
 ): boolean {
   const progress = view.self.questLog.get(route.questId);
   if (!progress || progress.state !== 'active') return false;
+  if (route.acceptBeforeActiveQuestIds?.some((questId) => isStandaloneQuestAvailable(questId, view))) {
+    return false;
+  }
   return routeObjectiveNeedsWork(route, progress);
 }
 
@@ -373,6 +426,63 @@ function routeObjectiveNeedsWork(
   const objective = QUESTS[route.questId]?.objectives[route.questObjectiveIndex];
   if (!objective) return true;
   return (progress.counts[route.questObjectiveIndex] ?? 0) < objective.count;
+}
+
+function isStandaloneQuestAvailable(
+  questId: string,
+  view: BotWorldView,
+): boolean {
+  const progress = view.self.questLog.get(questId);
+  if (view.self.questsDone.has(questId) || progress) return false;
+  const quest = QUESTS[questId];
+  if (!quest) return false;
+  if (view.self.level < (quest.minLevel ?? 1)) return false;
+  if (quest.requiresQuest && !view.self.questsDone.has(quest.requiresQuest)) return false;
+  return true;
+}
+
+function dungeonEntryObjective(route: AmbientBotQuestRoute): AmbientBotObjective {
+  const dungeon = route.dungeonId ? DUNGEONS[route.dungeonId] : null;
+  return {
+    id: `enter_${route.questId.slice(2)}`,
+    label: `Gathering a party for ${questLabel(route.questId)}`,
+    questId: route.questId,
+    camps: dungeon ? [dungeon.doorPos] : [],
+    ...(route.dungeonId ? { dungeonId: route.dungeonId } : {}),
+    ...(route.suggestedPartySize ? { suggestedPartySize: route.suggestedPartySize } : {}),
+  };
+}
+
+function dungeonExitObjective(route: AmbientBotQuestRoute): AmbientBotObjective {
+  const dungeon = route.dungeonId ? DUNGEONS[route.dungeonId] : null;
+  return {
+    id: `leave_${route.questId.slice(2)}`,
+    label: dungeon
+      ? `Leaving ${dungeon.name} for turn-in`
+      : `Leaving the dungeon for ${questLabel(route.questId)}`,
+    questId: route.questId,
+    ...(route.dungeonId ? { dungeonId: route.dungeonId } : {}),
+    ...(route.suggestedPartySize ? { suggestedPartySize: route.suggestedPartySize } : {}),
+    leaveDungeon: true,
+  };
+}
+
+function resolveDungeonRouteCamps(
+  self: BotSelfView,
+  route: AmbientBotQuestRoute,
+): AmbientBotPoint2d[] {
+  if (!route.dungeonId || self.dungeonId !== route.dungeonId) return [...route.camps];
+  const dungeon = DUNGEONS[route.dungeonId];
+  if (!dungeon) return [...route.camps];
+  const origin = instanceOrigin(dungeon.index, currentInstanceSlot(self.pos.z));
+  return route.camps.map((point) => ({
+    x: origin.x + point.x,
+    z: origin.z + point.z,
+  }));
+}
+
+function currentInstanceSlot(z: number): number {
+  return Math.max(0, Math.min(INSTANCE_SLOT_COUNT - 1, Math.round((z + 1250) / 500)));
 }
 
 function buildVendorPurchases(
@@ -507,6 +617,53 @@ function handleVendorObjective(
     }
   }
   return idleStep(objective.id, objective.label, commands, facingFor(view.self.pos, pointToVec(target)));
+}
+
+function handleDungeonObjective(
+  view: BotWorldView,
+  state: AmbientPlayerBotBrainState,
+  input: AmbientPlayerBotBrainTickInput,
+  objective: AmbientBotObjective,
+): AmbientPlayerBotBrainTickResult {
+  const dungeonId = objective.dungeonId;
+  if (!dungeonId) return idleStep(objective.id, objective.label);
+  if (objective.leaveDungeon) {
+    if (view.self.dungeonId !== dungeonId) return idleStep(objective.id, objective.label);
+    const exitPoint = dungeonExitPoint(view.self, dungeonId);
+    if (!exitPoint) return idleStep(objective.id, objective.label);
+    if (dist2d(view.self.pos, pointToVec(exitPoint)) > INTERACT_RANGE + 1.5) {
+      return travelToPoint(
+        view,
+        state,
+        input,
+        objective,
+        exitPoint,
+        INTERACT_RANGE + 1.5,
+        `leave:${dungeonId}`,
+      );
+    }
+    const commands: BrainCommand[] = [];
+    if (canIssue(state, `leave_dungeon:${dungeonId}`, input.nowMs, 2_000)) {
+      commands.push({ cmd: 'leave_dungeon' });
+    }
+    return idleStep(objective.id, objective.label, commands, facingFor(view.self.pos, pointToVec(exitPoint)));
+  }
+
+  const dungeon = DUNGEONS[dungeonId];
+  if (!dungeon) return idleStep(objective.id, objective.label);
+  if (view.self.dungeonId === dungeonId) return idleStep(objective.id, objective.label);
+  if (dist2d(view.self.pos, pointToVec(dungeon.doorPos)) > INTERACT_RANGE + 2) {
+    return travelToPoint(
+      view,
+      state,
+      input,
+      objective,
+      dungeon.doorPos,
+      INTERACT_RANGE + 2,
+      `enter:${dungeonId}`,
+    );
+  }
+  return idleStep(objective.id, objective.label, [], facingFor(view.self.pos, pointToVec(dungeon.doorPos)));
 }
 
 function nextVendorPurchase(
@@ -732,10 +889,11 @@ function finalizeStep(
   objective: AmbientBotObjective,
   step: AmbientPlayerBotBrainTickResult,
 ): AmbientPlayerBotBrainTickResult {
+  const withObjective = attachObjectiveMeta(step, objective);
   const moving = !!step.moveInput.f || !!step.moveInput.b;
-  if (hasProgressed(state, view.self.pos, input.nowMs, moving)) return step;
+  if (hasProgressed(state, view.self.pos, input.nowMs, moving)) return withObjective;
   if (!moving || (state.lastProgressAtMs !== null && input.nowMs - state.lastProgressAtMs < STUCK_TIMEOUT_MS)) {
-    return step;
+    return withObjective;
   }
 
   state.stuckResets++;
@@ -747,7 +905,24 @@ function finalizeStep(
   const commands = [...step.commands];
   if (canIssue(state, 'stopattack', input.nowMs, 1_500)) commands.push({ cmd: 'stopattack' });
   if (canIssue(state, 'clear_target', input.nowMs, 1_500)) commands.push({ cmd: 'target', id: null });
-  return idleStep(step.objectiveId, step.objectiveLabel, commands, step.facing);
+  return attachObjectiveMeta(
+    idleStep(step.objectiveId, step.objectiveLabel, commands, step.facing),
+    objective,
+  );
+}
+
+function attachObjectiveMeta(
+  step: AmbientPlayerBotBrainTickResult,
+  objective: AmbientBotObjective,
+): AmbientPlayerBotBrainTickResult {
+  return {
+    ...step,
+    ...(objective.questId ? { objectiveQuestId: objective.questId } : {}),
+    ...(objective.dungeonId ? { objectiveDungeonId: objective.dungeonId } : {}),
+    ...(objective.suggestedPartySize
+      ? { objectiveSuggestedPartySize: objective.suggestedPartySize }
+      : {}),
+  };
 }
 
 function buildWorldView(liveState: AmbientPlayerBotLiveState): BotWorldView | null {
@@ -771,6 +946,7 @@ function parseSelf(raw: Record<string, unknown> | null): BotSelfView | null {
     id,
     pos: { x, y: readNumber(raw.y) ?? 0, z },
     level: readNumber(raw.lv) ?? 1,
+    dungeonId: readString(raw.dgn) ?? dungeonAt(x)?.id ?? null,
     copper: readNumber(raw.copper) ?? 0,
     hp: readNumber(raw.hp) ?? 1,
     maxHp: readNumber(raw.mhp) ?? 1,
@@ -1087,6 +1263,10 @@ function grindRouteForLevel(level: number): { mobId: string; camps: readonly Bot
   return { mobId: 'webwood_spider', camps: campsFor('webwood_spider') };
 }
 
+function questLabel(questId: string): string {
+  return QUESTS[questId]?.name ?? questId;
+}
+
 function displayMobName(mobId: string): string {
   return MOBS[mobId]?.name ?? mobId;
 }
@@ -1095,6 +1275,17 @@ function campsFor(mobId: string): BotPoint2d[] {
   return CAMPS
     .filter((camp) => camp.mobId === mobId)
     .map((camp) => ({ x: camp.center.x, z: camp.center.z }));
+}
+
+function dungeonExitPoint(self: BotSelfView, dungeonId: string): BotPoint2d | null {
+  if (self.dungeonId !== dungeonId) return null;
+  const dungeon = DUNGEONS[dungeonId];
+  if (!dungeon) return null;
+  const origin = instanceOrigin(dungeon.index, currentInstanceSlot(self.pos.z));
+  return {
+    x: origin.x + dungeon.exitOffset.x,
+    z: origin.z + dungeon.exitOffset.z,
+  };
 }
 
 function beginObjective(
