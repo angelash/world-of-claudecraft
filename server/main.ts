@@ -90,12 +90,12 @@ import {
 } from './db';
 import { emailAccountCreated } from './email';
 import { AmbientPlayerBotApiClient } from './ambient_bots/api_client';
+import { isAmbientBotConnectionRefused } from './ambient_bots/connection_gate';
 import { AmbientPlayerBotRuntime } from './ambient_bots/runtime';
 import { GameServer, type ClientSession } from './game';
 import { PgAmbientPlayerBotDb } from './ambient_player_bot_db';
 import { isUniqueViolation, json, readBody } from './http_util';
 import { handleInternalApi } from './internal';
-import { isConnectionRefused } from './ip_block';
 import { pruneExpiredBlockedIps } from './ip_block_db';
 import {
   cleanReportReason,
@@ -1546,9 +1546,10 @@ async function main(): Promise<void> {
     const ip = requestMetadata(req).ip;
     const isAdmin = await isAdminAccount(accountId);
     if (
-      isConnectionRefused({
+      isAmbientBotConnectionRefused({
         blocked: game.isIpBlocked(ip),
-        isAdmin: isAdmin || ambientBotSession !== null,
+        isAdmin,
+        isAmbientBot: ambientBotSession !== null,
         ipSessions: game.countIpSessions(ip),
         hardLimit: MAX_WS_PER_IP_HARD,
       })

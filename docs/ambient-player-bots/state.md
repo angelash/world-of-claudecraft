@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: 4
-- phase status: pending QA
+- current phase: 5
+- phase status: pending implementation
 
 ## Locked decisions
 
@@ -23,6 +23,8 @@
 8. The initial real runner lives in the same server process family and loops
    back through the real HTTP and WebSocket surfaces. If scale later demands a
    split worker, it should keep the same runtime contract.
+9. Ambient bot sessions may bypass the hard per-IP socket cap, but they must
+   still respect the blocked-IP gate.
 
 ## Non-negotiable constraints
 
@@ -128,6 +130,8 @@
 - later extraction of the real runner into a sibling service or dedicated worker
   host is still open if scale demands it, but the Phase 3 shipping slice now
   runs in the same process family
+- full live boot verification of the real runner on this workstation still
+  needs a reachable local Postgres service
 - repo-wide `npx tsc --noEmit` is currently red for unrelated pre-existing
   issues outside this feature slice. The current baseline includes existing
   errors in `server/ai/active_triggers.ts`, `server/game.ts`, `src/ui/hud.ts`,

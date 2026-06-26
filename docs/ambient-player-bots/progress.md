@@ -7,7 +7,7 @@
 | 1 | completed | 2026-06-26 | 2026-06-26 |
 | 2 | completed | 2026-06-26 | 2026-06-26 |
 | 3 | completed | 2026-06-26 | 2026-06-26 |
-| 4 | pending | | |
+| 4 | completed | 2026-06-26 | 2026-06-26 |
 | 5 | pending | | |
 | 6 | pending | | |
 | 7 | pending | | |
@@ -58,7 +58,7 @@ Notes:
 
 ## Later phases
 
-- Phase 4 and later remain pending. Their detailed scope is locked in
+- Phase 5 and later remain pending. Their detailed scope is locked in
   `implementation-plan.md` and `state.md`.
 
 ## Phase 3 checklist
@@ -82,3 +82,22 @@ Notes:
   `server/ai/active_triggers.ts`, `server/game.ts`, `src/ui/hud.ts`, generated
   i18n files under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`,
   and `tests/auto_loot.test.ts`.
+
+## Phase 4 checklist
+
+- [x] audit Phase 3 implementation against `phase-04-qa-real-runner.md`
+- [x] add the missing IP-block versus hard-limit gate coverage
+- [x] verify runtime, ws helper, and session regressions stay green
+- [x] mark Phase 3 ready for the progression brain
+
+Notes:
+- QA caught one should-fix edge case: ambient bot sessions were bypassing both
+  the hard per-IP cap and the blocked-IP gate. The fix now narrows the bypass
+  to the hard cap only.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts`
+  - `npm run build:server`
+  - `npx tsc --noEmit` (still red at the unrelated repo baseline only)
+- Live boot verification against a real local server process is still blocked on
+  this workstation because no local Postgres service was listening on `:5433`
+  and Docker was not available in PATH during this session.
