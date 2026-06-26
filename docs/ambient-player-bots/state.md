@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: 7
-- phase status: pending Phase 7 implementation after Phase 6 QA
+- current phase: 8
+- phase status: pending Phase 7 QA after Phase 7 implementation
 
 ## Locked decisions
 
@@ -30,6 +30,8 @@
     progression memory.
 11. Progression pathing should use the live `/ws` hello seed plus shared sim
     pathfinding helpers so reconnects and future realm seed changes stay safe.
+12. When a live cluster changes shape, the planner should prefer stable cluster
+    identity and online-bot handoff before forcing logout and fresh-login churn.
 
 ## Non-negotiable constraints
 
@@ -108,6 +110,13 @@
 - `tests/ambient_player_bot_runtime.test.ts`
 - `tests/ambient_player_bot_ws_client.test.ts`
 
+### Phase 7
+
+- `server/ambient_bots/service.ts`
+- `docs/ambient-player-bots/phase-07-human-cluster-orchestration.md`
+- `docs/ambient-player-bots/phase-08-qa-human-cluster-orchestration.md`
+- `tests/ambient_player_bot_service.test.ts`
+
 ## Planned database shape
 
 ### Phase 1
@@ -153,10 +162,13 @@
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit
+- Phase 7 added stable cluster continuity, online handoff, and overflow
+  load-shedding in the planner. Phase 8 should now audit for missed hysteresis
+  or population-thrash edge cases
 - full live boot verification of the real runner on this workstation still
   needs a reachable local Postgres service
 - repo-wide `npx tsc --noEmit` is currently red for unrelated pre-existing
   issues outside this feature slice. The current baseline includes existing
   errors in `server/ai/active_triggers.ts`, `server/game.ts`, `src/ui/hud.ts`,
-  generated i18n files under `src/ui/i18n.locales/` and
+  generated i18n locale and resolved files under `src/ui/i18n.locales/` and
   `src/ui/i18n.resolved.generated/`, and `tests/auto_loot.test.ts`.

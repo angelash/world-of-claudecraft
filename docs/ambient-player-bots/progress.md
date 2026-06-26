@@ -10,7 +10,7 @@
 | 4 | completed | 2026-06-26 | 2026-06-26 |
 | 5 | completed | 2026-06-26 | 2026-06-26 |
 | 6 | completed | 2026-06-26 | 2026-06-26 |
-| 7 | pending | | |
+| 7 | completed | 2026-06-26 | 2026-06-26 |
 | 8 | pending | | |
 | 9 | pending | | |
 | 10 | pending | | |
@@ -140,3 +140,27 @@ Notes:
   - `npx tsc --noEmit` (still red only at the unrelated repo baseline listed
     in Phase 1 and Phase 4 notes)
 - Phase 7 is now the next implementation target.
+
+## Phase 7 checklist
+
+- [x] keep human-cluster identity stable across nearby membership churn
+- [x] reuse already-online bots through cluster handoff before forced logout
+- [x] shed overflow bots when a cluster target shrinks
+- [x] add focused orchestration docs and planner regressions
+- [x] validate the Phase 7 slice
+
+Notes:
+- This slice stayed inside `server/ambient_bots/service.ts`. No new runtime,
+  schema, or `server/game.ts` integration seam was needed.
+- The planner now carries cluster identity forward, trims pending overfill, and
+  prevents a released bot from immediately reattaching to the same cluster in
+  the same planning cycle.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts`
+  - `npm run build:server`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- Phase 8 QA is now the next target.

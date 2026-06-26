@@ -28,6 +28,11 @@ interface PendingProvisionSlot {
   expiresAtMs: number;
 }
 
+interface RetainedAssignment {
+  bot: AmbientPlayerBotRecord;
+  score: number;
+}
+
 const DEFAULT_METRICS: AmbientPlayerBotMetricsSnapshot = {
   cycles: 0,
   humansObserved: 0,
@@ -126,45 +131,59 @@ export class AmbientPlayerBotService {
     const actions: AmbientBotPlanAction[] = [];
     const clusters = this.buildClusters(humans);
     const clusterMap = new Map(clusters.map((cluster) => [cluster.clusterId, cluster]));
+    const retainedAssignmentsByCluster = new Map<string, RetainedAssignment[]>();
     const assignedBotIdsByCluster = new Map<string, string[]>();
     const seenClassesByCluster = new Map<string, Set<AmbientPlayerBotRecord['class']>>();
+    const deferredReleaseReasons = new Map<string, string>();
+    const blockedClusterByBotId = new Map<string, string>();
 
     for (const bot of this.sortedDirectory()) {
       if (!bot.assignedClusterId) continue;
-      const cluster = clusterMap.get(bot.assignedClusterId);
+      const priorClusterId = bot.assignedClusterId;
+      const cluster = clusterMap.get(priorClusterId);
       if (!cluster) {
-        this.releaseBot(bot, nowMs);
-        actions.push({
-          type: 'logoutBot',
-          botId: bot.botId,
-          reason: 'assigned cluster no longer exists',
-        });
+        deferredReleaseReasons.set(bot.botId, 'assigned cluster no longer exists');
+        blockedClusterByBotId.set(bot.botId, priorClusterId);
+        this.prepareBotForReassignment(bot);
         continue;
       }
       if (this.shouldReleaseBot(bot, cluster)) {
-        this.releaseBot(bot, nowMs);
-        actions.push({
-          type: 'logoutBot',
-          botId: bot.botId,
-          reason: 'assigned bot drifted beyond release radius',
-        });
+        deferredReleaseReasons.set(bot.botId, 'assigned bot drifted beyond release radius');
+        blockedClusterByBotId.set(bot.botId, priorClusterId);
+        this.prepareBotForReassignment(bot);
         continue;
       }
-      pushMapValue(assignedBotIdsByCluster, cluster.clusterId, bot.botId);
-      pushClass(seenClassesByCluster, cluster.clusterId, bot.class);
+      bot.assignedPlayerCharacterId = pickClusterAnchorCharacterId(cluster);
+      pushMapValue(retainedAssignmentsByCluster, cluster.clusterId, {
+        bot,
+        score: scoreBotForCluster(bot, cluster, this.config),
+      });
     }
 
     for (const cluster of clusters) {
-      const pending = this.pendingProvisionSlots
-        .filter((slot) => slot.clusterId === cluster.clusterId)
-        .map((slot) => slot.requestId);
-      let filled = (assignedBotIdsByCluster.get(cluster.clusterId) ?? []).length + pending.length;
+      const retained = this.trimRetainedAssignments(cluster, retainedAssignmentsByCluster.get(cluster.clusterId) ?? []);
+      for (const entry of retained.kept) {
+        pushMapValue(assignedBotIdsByCluster, cluster.clusterId, entry.bot.botId);
+        pushClass(seenClassesByCluster, cluster.clusterId, entry.bot.class);
+      }
+      for (const entry of retained.released) {
+        deferredReleaseReasons.set(entry.bot.botId, 'cluster is above target population');
+        blockedClusterByBotId.set(entry.bot.botId, cluster.clusterId);
+        this.prepareBotForReassignment(entry.bot);
+      }
+
+      this.trimPendingProvisionSlots(
+        cluster.clusterId,
+        Math.max(0, cluster.desiredBots - retained.kept.length),
+      );
+      const pending = this.pendingProvisionRequestIds(cluster.clusterId);
+      let filled = retained.kept.length + pending.length;
       if (filled < cluster.desiredBots) {
-        const candidates = this.matchExistingBots(cluster, nowMs);
+        const candidates = this.matchExistingBots(cluster, nowMs, blockedClusterByBotId);
         for (const bot of candidates) {
           if (filled >= cluster.desiredBots) break;
           bot.assignedClusterId = cluster.clusterId;
-          bot.assignedPlayerCharacterId = cluster.members[0]?.characterId ?? null;
+          bot.assignedPlayerCharacterId = pickClusterAnchorCharacterId(cluster);
           if (bot.lifecycleStatus !== 'online') {
             bot.lifecycleStatus = 'reserved';
             bot.reservationUntilMs = nowMs + this.config.reservationMs;
@@ -212,6 +231,17 @@ export class AmbientPlayerBotService {
       }
     }
 
+    for (const [botId, reason] of deferredReleaseReasons) {
+      const bot = this.directory.get(botId);
+      if (!bot || bot.assignedClusterId !== null) continue;
+      this.releaseBot(bot, nowMs);
+      actions.push({
+        type: 'logoutBot',
+        botId,
+        reason,
+      });
+    }
+
     this.lastClusters = clusters.map((cluster) => ({
       clusterId: cluster.clusterId,
       zoneId: cluster.zoneId,
@@ -254,7 +284,7 @@ export class AmbientPlayerBotService {
       }
       if (!found) {
         clusters.push({
-          clusterId: `${human.zoneId}:${human.characterId}`,
+          clusterId: '',
           zoneId: human.zoneId,
           centerX: human.x,
           centerZ: human.z,
@@ -276,6 +306,7 @@ export class AmbientPlayerBotService {
           + this.config.extraBotsPerAdditionalPlayer * Math.max(0, cluster.members.length - 1),
       );
     }
+    this.stabilizeClusterIds(clusters);
     return clusters.sort((a, b) => a.clusterId.localeCompare(b.clusterId));
   }
 
@@ -286,10 +317,12 @@ export class AmbientPlayerBotService {
   private matchExistingBots(
     cluster: WorkingCluster,
     nowMs: number,
+    blockedClusterByBotId: ReadonlyMap<string, string>,
   ): AmbientPlayerBotRecord[] {
     return this.sortedDirectory()
       .filter((bot) => this.isEligibleForAssignment(bot, nowMs))
-      .map((bot) => ({ bot, score: scoreBotForCluster(bot, cluster) }))
+      .filter((bot) => blockedClusterByBotId.get(bot.botId) !== cluster.clusterId)
+      .map((bot) => ({ bot, score: scoreBotForCluster(bot, cluster, this.config) }))
       .filter((entry) => entry.score > Number.NEGATIVE_INFINITY)
       .sort((a, b) => b.score - a.score || a.bot.botId.localeCompare(b.bot.botId))
       .map((entry) => entry.bot);
@@ -335,6 +368,15 @@ export class AmbientPlayerBotService {
     return distSq(bot.lastKnownX, bot.lastKnownZ, cluster.centerX, cluster.centerZ) > this.config.releaseRadius ** 2;
   }
 
+  private prepareBotForReassignment(bot: AmbientPlayerBotRecord): void {
+    bot.assignedClusterId = null;
+    bot.assignedPlayerCharacterId = null;
+    bot.reservationUntilMs = null;
+    if (bot.lifecycleStatus !== 'online' && bot.lifecycleStatus !== 'retired') {
+      bot.lifecycleStatus = 'ready';
+    }
+  }
+
   private releaseBot(bot: AmbientPlayerBotRecord, nowMs: number): void {
     bot.assignedClusterId = null;
     bot.assignedPlayerCharacterId = null;
@@ -360,6 +402,91 @@ export class AmbientPlayerBotService {
     }
     for (let i = this.pendingProvisionSlots.length - 1; i >= 0; i--) {
       if (this.pendingProvisionSlots[i].expiresAtMs <= nowMs) this.pendingProvisionSlots.splice(i, 1);
+    }
+  }
+
+  private trimRetainedAssignments(
+    cluster: WorkingCluster,
+    retained: readonly RetainedAssignment[],
+  ): {
+    kept: RetainedAssignment[];
+    released: RetainedAssignment[];
+  } {
+    if (retained.length <= cluster.desiredBots) {
+      return { kept: [...retained], released: [] };
+    }
+    const sorted = [...retained].sort((a, b) => b.score - a.score || a.bot.botId.localeCompare(b.bot.botId));
+    return {
+      kept: sorted.slice(0, cluster.desiredBots),
+      released: sorted.slice(cluster.desiredBots),
+    };
+  }
+
+  private pendingProvisionRequestIds(clusterId: string): string[] {
+    return this.pendingProvisionSlots
+      .filter((slot) => slot.clusterId === clusterId)
+      .map((slot) => slot.requestId);
+  }
+
+  private trimPendingProvisionSlots(clusterId: string, keepCount: number): void {
+    let keptForCluster = 0;
+    for (let i = this.pendingProvisionSlots.length - 1; i >= 0; i--) {
+      const slot = this.pendingProvisionSlots[i];
+      if (slot.clusterId !== clusterId) continue;
+      if (keptForCluster < keepCount) {
+        keptForCluster++;
+        continue;
+      }
+      this.pendingProvisionSlots.splice(i, 1);
+    }
+  }
+
+  private stabilizeClusterIds(clusters: WorkingCluster[]): void {
+    if (clusters.length === 0) return;
+    const previous = this.lastClusters;
+    const carryDistanceSq = this.config.clusterRadius ** 2;
+    const matches: Array<{
+      clusterIndex: number;
+      previousIndex: number;
+      overlap: number;
+      distanceSq: number;
+      score: number;
+    }> = [];
+    for (let clusterIndex = 0; clusterIndex < clusters.length; clusterIndex++) {
+      const cluster = clusters[clusterIndex];
+      for (let previousIndex = 0; previousIndex < previous.length; previousIndex++) {
+        const prior = previous[previousIndex];
+        if (prior.zoneId !== cluster.zoneId) continue;
+        const overlap = countSharedMembers(prior.memberCharacterIds, cluster.members);
+        const distanceSq = distSq(prior.centerX, prior.centerZ, cluster.centerX, cluster.centerZ);
+        if (overlap === 0 && distanceSq > carryDistanceSq) continue;
+        matches.push({
+          clusterIndex,
+          previousIndex,
+          overlap,
+          distanceSq,
+          score: overlap * 1_000_000 + Math.max(0, carryDistanceSq - distanceSq),
+        });
+      }
+    }
+    matches.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (b.overlap !== a.overlap) return b.overlap - a.overlap;
+      if (a.distanceSq !== b.distanceSq) return a.distanceSq - b.distanceSq;
+      return previous[a.previousIndex].clusterId.localeCompare(previous[b.previousIndex].clusterId);
+    });
+
+    const claimedClusters = new Set<number>();
+    const claimedPrevious = new Set<number>();
+    for (const match of matches) {
+      if (claimedClusters.has(match.clusterIndex) || claimedPrevious.has(match.previousIndex)) continue;
+      clusters[match.clusterIndex].clusterId = previous[match.previousIndex].clusterId;
+      claimedClusters.add(match.clusterIndex);
+      claimedPrevious.add(match.previousIndex);
+    }
+    for (const cluster of clusters) {
+      if (cluster.clusterId) continue;
+      cluster.clusterId = `${cluster.zoneId}:${pickClusterAnchorCharacterId(cluster) ?? 0}`;
     }
   }
 
@@ -437,6 +564,7 @@ function compareHumans(a: AmbientHumanPresence, b: AmbientHumanPresence): number
 function scoreBotForCluster(
   bot: AmbientPlayerBotRecord,
   cluster: WorkingCluster,
+  config: AmbientPlayerBotConfig,
 ): number {
   if (bot.provisionState !== 'ready') return Number.NEGATIVE_INFINITY;
   if (bot.lifecycleStatus === 'retired') return Number.NEGATIVE_INFINITY;
@@ -449,8 +577,16 @@ function scoreBotForCluster(
   const levelDelta = distanceFromRange(avgLevel, bot.levelBand.min, bot.levelBand.max);
   score += 40 - levelDelta * 5;
   if (bot.accountId !== null && bot.characterId !== null) score += 10;
-  if (bot.lifecycleStatus === 'ready') score += 10;
-  if (bot.lifecycleStatus === 'online') score += 5;
+  if (bot.lastKnownX !== null && bot.lastKnownZ !== null) {
+    const distanceRatio = Math.min(
+      1,
+      Math.sqrt(distSq(bot.lastKnownX, bot.lastKnownZ, cluster.centerX, cluster.centerZ))
+      / Math.max(1, config.releaseRadius),
+    );
+    score += 18 - distanceRatio * 18;
+  }
+  if (bot.lifecycleStatus === 'online') score += 18;
+  else if (bot.lifecycleStatus === 'ready') score += 8;
   return score;
 }
 
@@ -477,7 +613,7 @@ function distanceFromRange(value: number, min: number, max: number): number {
   return 0;
 }
 
-function pushMapValue(map: Map<string, string[]>, key: string, value: string): void {
+function pushMapValue<T>(map: Map<string, T[]>, key: string, value: T): void {
   const current = map.get(key);
   if (current) current.push(value);
   else map.set(key, [value]);
@@ -491,6 +627,22 @@ function pushClass(
   const current = map.get(key);
   if (current) current.add(value);
   else map.set(key, new Set([value]));
+}
+
+function pickClusterAnchorCharacterId(cluster: WorkingCluster): number | null {
+  return cluster.members[0]?.characterId ?? null;
+}
+
+function countSharedMembers(
+  previousMemberCharacterIds: readonly number[],
+  members: readonly AmbientHumanPresence[],
+): number {
+  const previousIds = new Set(previousMemberCharacterIds);
+  let count = 0;
+  for (const member of members) {
+    if (previousIds.has(member.characterId)) count++;
+  }
+  return count;
 }
 
 function distSq(ax: number, az: number, bx: number, bz: number): number {

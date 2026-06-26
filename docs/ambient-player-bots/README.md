@@ -31,6 +31,9 @@ Starter prompts:
 - `phase-05-progression-brain.md` - Phase 5 implementation prompt for the first
   real early-game play loop after login.
 - `phase-06-qa-progression-brain.md` - Phase 5 QA prompt.
+- `phase-07-human-cluster-orchestration.md` - Phase 7 implementation prompt for
+  stable human-cluster continuity, bot handoff, and population load-shedding.
+- `phase-08-qa-human-cluster-orchestration.md` - Phase 7 QA prompt.
 
 ## How to use this packet
 

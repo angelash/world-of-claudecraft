@@ -132,3 +132,5 @@ Deliverables:
 - `phase-04-qa-real-runner.md`
 - `phase-05-progression-brain.md`
 - `phase-06-qa-progression-brain.md`
+- `phase-07-human-cluster-orchestration.md`
+- `phase-08-qa-human-cluster-orchestration.md`

@@ -153,4 +153,117 @@ describe('AmbientPlayerBotService', () => {
     expect(second).toHaveLength(0);
     expect(service.diagnosticsSnapshot().directory.provisionPending).toBe(5);
   });
+
+  it('keeps cluster identity stable when nearby membership shrinks', () => {
+    const service = new AmbientPlayerBotService({ config: cfg({ maxProvisionPerTick: 10 }) });
+    const first = service.plan({
+      humans: [
+        human(1, 'eastbrook_vale', 2, 0, 0),
+        human(2, 'eastbrook_vale', 3, 10, 8),
+      ],
+      nowMs: 1_000,
+    });
+    const second = service.plan({
+      humans: [human(2, 'eastbrook_vale', 3, 12, 10)],
+      nowMs: 2_000,
+    });
+
+    expect(first).toHaveLength(6);
+    expect(second).toHaveLength(0);
+    expect(service.diagnosticsSnapshot().clusters).toEqual([
+      expect.objectContaining({
+        clusterId: 'eastbrook_vale:1',
+        desiredBots: 5,
+        memberCharacterIds: [2],
+      }),
+    ]);
+    expect(service.diagnosticsSnapshot().directory.provisionPending).toBe(5);
+  });
+
+  it('hands an online bot to a better nearby cluster before logging it out', () => {
+    const service = new AmbientPlayerBotService({ config: cfg({ maxProvisionPerTick: 10 }) });
+    service.replaceDirectory([
+      bot({
+        lifecycleStatus: 'online',
+        assignedClusterId: 'eastbrook_vale:1',
+        assignedPlayerCharacterId: 1,
+        lastKnownX: 500,
+        lastKnownZ: 500,
+      }),
+    ]);
+
+    const actions = service.plan({
+      humans: [
+        human(1, 'eastbrook_vale', 2, 0, 0),
+        human(2, 'eastbrook_vale', 2, 500, 500),
+      ],
+      nowMs: 1_000,
+    });
+
+    expect(actions).not.toContainEqual(expect.objectContaining({
+      type: 'logoutBot',
+      botId: 'bot-1',
+    }));
+    expect(actions).not.toContainEqual(expect.objectContaining({
+      type: 'loginBot',
+      botId: 'bot-1',
+    }));
+    expect(service.recordById('bot-1')).toEqual(expect.objectContaining({
+      lifecycleStatus: 'online',
+      assignedClusterId: 'eastbrook_vale:2',
+      assignedPlayerCharacterId: 2,
+    }));
+    expect(actions.filter((action) => action.type === 'provisionBot')).toHaveLength(9);
+  });
+
+  it('sheds overflow bots when a cluster is above its target population', () => {
+    const service = new AmbientPlayerBotService({
+      config: cfg({
+        soloTargetBots: 1,
+        maxBotsPerCluster: 1,
+      }),
+    });
+    service.replaceDirectory([
+      bot({
+        botId: 'bot-1',
+        lifecycleStatus: 'online',
+        assignedClusterId: 'eastbrook_vale:1',
+        assignedPlayerCharacterId: 1,
+        lastKnownX: 0,
+        lastKnownZ: 0,
+      }),
+      bot({
+        botId: 'bot-2',
+        accountId: 12,
+        characterId: 102,
+        characterName: 'Branorabb',
+        profileId: 'eastbrook_vale_mage_newcomer',
+        class: 'mage',
+        lifecycleStatus: 'online',
+        assignedClusterId: 'eastbrook_vale:1',
+        assignedPlayerCharacterId: 1,
+        lastKnownX: 80,
+        lastKnownZ: 80,
+      }),
+    ]);
+
+    const actions = service.plan({
+      humans: [human(1, 'eastbrook_vale', 2, 0, 0)],
+      nowMs: 1_000,
+    });
+
+    expect(actions).toContainEqual(expect.objectContaining({
+      type: 'logoutBot',
+      botId: 'bot-2',
+      reason: 'cluster is above target population',
+    }));
+    expect(service.recordById('bot-1')).toEqual(expect.objectContaining({
+      assignedClusterId: 'eastbrook_vale:1',
+      lifecycleStatus: 'online',
+    }));
+    expect(service.recordById('bot-2')).toEqual(expect.objectContaining({
+      assignedClusterId: null,
+      lifecycleStatus: 'cooldown',
+    }));
+  });
 });
