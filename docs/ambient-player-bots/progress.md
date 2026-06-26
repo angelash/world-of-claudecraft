@@ -17,7 +17,7 @@
 | 11 | completed | 2026-06-26 | 2026-06-26 |
 | 12 | completed | 2026-06-26 | 2026-06-26 |
 | 13 | completed | 2026-06-26 | 2026-06-26 |
-| 14 | pending | | |
+| 14 | completed | 2026-06-26 | 2026-06-26 |
 | 15 | pending | | |
 | 16 | pending | | |
 
@@ -302,3 +302,27 @@ Notes:
     under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
     `tests/auto_loot.test.ts`)
 - Phase 14 QA is now the next target.
+
+## Phase 14 checklist
+
+- [x] audit Phase 13 against `phase-14-qa-admin-telemetry-incident-controls.md`
+- [x] tighten logout-all so it only resets active or assigned ambient bots
+- [x] add the missing admin planner-config route regression
+- [x] verify focused ambient-bot and admin validation still passes
+- [x] confirm `npx tsc --noEmit` adds no new Phase 13 or Phase 14 errors
+
+Notes:
+- QA found one should-fix incident-control edge case: the first logout-all pass
+  reset every bot record in the directory, even idle unassigned bots. The
+  runtime now limits that reset path to active or assigned records only.
+- QA also found one missing route regression: the dedicated planner-config admin
+  endpoint did not yet have direct coverage. That regression now exists.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_llm.test.ts tests/ambient_player_bot_social.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- Phase 15 is now the next implementation target.

@@ -236,6 +236,7 @@ export class AmbientPlayerBotRuntime {
     }
     let resetRecords = 0;
     for (const record of this.game.ambientPlayerBotDirectory()) {
+      if (!shouldResetForAdminLogout(record)) continue;
       const next = resetRecordForAdminLogout(record, nowMs, reason);
       if (!sameRunnerState(record.runnerState, next.runnerState)
         || record.lifecycleStatus !== next.lifecycleStatus
@@ -870,4 +871,12 @@ function resetRecordForAdminLogout(
     lastRunnerAtMs: nowMs,
     runnerState: {},
   };
+}
+
+function shouldResetForAdminLogout(record: AmbientPlayerBotRecord): boolean {
+  return record.lifecycleStatus === 'online'
+    || record.lifecycleStatus === 'reserved'
+    || record.assignedClusterId !== null
+    || record.assignedPlayerCharacterId !== null
+    || Object.keys(record.runnerState).length > 0;
 }

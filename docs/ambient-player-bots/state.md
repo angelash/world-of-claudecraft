@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: 14
-- phase status: pending Phase 14 QA after Phase 13 implementation
+- current phase: 15
+- phase status: pending Phase 15 implementation after Phase 14 QA
 
 ## Locked decisions
 
@@ -251,6 +251,9 @@
   updates, runtime pause levers, and logout-all incident control. Phase 14
   should now audit operator workflows, skipped-action behavior, and fail-safe
   reset semantics before Phase 15 live readiness work begins
+- Phase 14 QA tightened logout-all so it only resets active or assigned bots
+  and added direct planner-config route coverage. No new known Phase 13 or
+  Phase 14 blocker remains after that audit
 - full live boot verification of the real runner on this workstation still
   needs a reachable local Postgres service
 - repo-wide `npx tsc --noEmit` is currently red for unrelated pre-existing

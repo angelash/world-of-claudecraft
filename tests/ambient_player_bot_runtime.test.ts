@@ -572,6 +572,17 @@ describe('AmbientPlayerBotRuntime', () => {
           assignedClusterId: 'eastbrook_vale:1',
           assignedPlayerCharacterId: 1,
         }),
+        bot({
+          botId: 'bot-2',
+          accountId: 12,
+          characterId: 102,
+          characterName: 'Branorabb',
+          profileId: 'eastbrook_vale_mage_newcomer',
+          class: 'mage',
+          lifecycleStatus: 'ready',
+          assignedClusterId: null,
+          assignedPlayerCharacterId: null,
+        }),
       ]),
       saveBot: vi.fn(async (record: AmbientPlayerBotRecord) => {
         saved.push(cloneRecord(record));
@@ -606,11 +617,12 @@ describe('AmbientPlayerBotRuntime', () => {
 
     await vi.waitFor(() => {
       expect(runtime.diagnosticsSnapshot().activeRunners).toBe(1);
-      expect(game.ambientPlayerBotDirectory()).toEqual([
+      expect(game.ambientPlayerBotDirectory()).toEqual(expect.arrayContaining([
         expect.objectContaining({
+          botId: 'bot-1',
           lifecycleStatus: 'online',
         }),
-      ]);
+      ]));
     });
 
     const result = await runtime.logoutAll('operator drill');
@@ -633,8 +645,15 @@ describe('AmbientPlayerBotRuntime', () => {
         assignedPlayerCharacterId: null,
         lastRunnerError: 'operator drill',
       }),
+      expect.objectContaining({
+        botId: 'bot-2',
+        lifecycleStatus: 'ready',
+        assignedClusterId: null,
+        assignedPlayerCharacterId: null,
+        lastRunnerError: '',
+      }),
     ]);
-    expect(saved.some((record) => record.lastRunnerError === 'operator drill')).toBe(true);
+    expect(saved.filter((record) => record.lastRunnerError === 'operator drill')).toHaveLength(1);
     expect(sockets).toHaveLength(1);
 
     await runtime.stop();

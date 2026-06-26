@@ -1670,6 +1670,36 @@ describe('ambient bots admin routes', () => {
     }));
   });
 
+  it('updates planner rollout config through the ambient bot admin surface', async () => {
+    const ambientBots = fakeAmbientBotAdmin();
+    const res = fakeRes();
+
+    await handleAdminApi(
+      fakeReq({
+        method: 'POST',
+        token: VALID_TOKEN,
+        url: '/admin/api/ambient-bots/config',
+        body: {
+          soloTargetBots: 3,
+          maxBotsPerCluster: 6,
+        },
+      }),
+      res,
+      fakeGame,
+      ambientBots,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(ambientBots.updatePlannerConfig).toHaveBeenCalledWith({
+      soloTargetBots: 3,
+      maxBotsPerCluster: 6,
+    });
+    expect(res.body.data.planner.configUpdateEcho).toEqual({
+      soloTargetBots: 3,
+      maxBotsPerCluster: 6,
+    });
+  });
+
   it('logs out all active ambient bots and returns fresh diagnostics', async () => {
     const ambientBots = fakeAmbientBotAdmin();
     const res = fakeRes();
