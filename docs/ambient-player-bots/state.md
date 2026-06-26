@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: 2
-- phase status: pending QA
+- current phase: 3
+- phase status: pending implementation
 
 ## Locked decisions
 
