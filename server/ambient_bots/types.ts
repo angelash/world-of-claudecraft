@@ -37,9 +37,14 @@ export interface AmbientBotProfile {
 export interface AmbientPlayerBotRecord {
   botId: string;
   accountId: number | null;
+  accountUsername: string;
+  accountPassword: string;
   characterId: number | null;
+  characterName: string;
   profileId: string;
   class: PlayerClass;
+  authToken: string;
+  authTokenExpiresAtMs: number | null;
   lifecycleStatus: AmbientBotLifecycleStatus;
   provisionState: AmbientBotProvisionState;
   levelBand: AmbientBotLevelBand;
@@ -52,7 +57,10 @@ export interface AmbientPlayerBotRecord {
   assignedPlayerCharacterId: number | null;
   cooldownUntilMs: number | null;
   reservationUntilMs: number | null;
+  lastRunnerError: string;
+  lastRunnerAtMs: number | null;
   plannerState: Record<string, unknown>;
+  runnerState: Record<string, unknown>;
   socialState: Record<string, unknown>;
 }
 

@@ -63,6 +63,24 @@ export class AmbientPlayerBotService {
     return this.config.plannerIntervalMs;
   }
 
+  upsertRecord(record: AmbientPlayerBotRecord): void {
+    this.directory.set(record.botId, cloneRecord(record));
+  }
+
+  recordById(botId: string): AmbientPlayerBotRecord | null {
+    const record = this.directory.get(botId);
+    return record ? cloneRecord(record) : null;
+  }
+
+  fulfillProvisionRequest(requestId: string, record: AmbientPlayerBotRecord): void {
+    for (let i = this.pendingProvisionSlots.length - 1; i >= 0; i--) {
+      if (this.pendingProvisionSlots[i].requestId === requestId) {
+        this.pendingProvisionSlots.splice(i, 1);
+      }
+    }
+    this.upsertRecord(record);
+  }
+
   replaceDirectory(records: readonly AmbientPlayerBotRecord[]): void {
     this.directory.clear();
     for (const record of records) this.directory.set(record.botId, cloneRecord(record));
@@ -392,7 +410,15 @@ function cloneRecord(record: AmbientPlayerBotRecord): AmbientPlayerBotRecord {
     ...record,
     levelBand: { ...record.levelBand },
     preferredZoneIds: [...record.preferredZoneIds],
+    accountUsername: record.accountUsername,
+    accountPassword: record.accountPassword,
+    characterName: record.characterName,
+    authToken: record.authToken,
+    authTokenExpiresAtMs: record.authTokenExpiresAtMs,
+    lastRunnerError: record.lastRunnerError,
+    lastRunnerAtMs: record.lastRunnerAtMs,
     plannerState: { ...record.plannerState },
+    runnerState: { ...record.runnerState },
     socialState: { ...record.socialState },
   };
 }

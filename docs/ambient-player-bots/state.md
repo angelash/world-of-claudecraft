@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: 3
-- phase status: pending implementation
+- current phase: 4
+- phase status: pending QA
 
 ## Locked decisions
 
@@ -20,6 +20,9 @@
    cooldowns, and reservation TTLs.
 7. The first shipping slices prioritize foundations over spectacle. Registry,
    planner, runner, and progression should land before free-form social AI.
+8. The initial real runner lives in the same server process family and loops
+   back through the real HTTP and WebSocket surfaces. If scale later demands a
+   split worker, it should keep the same runtime contract.
 
 ## Non-negotiable constraints
 
@@ -75,6 +78,17 @@
 - social memory persistence
 - operator endpoints and UI
 
+### Phase 3
+
+- `server/ambient_bots/api_client.ts`
+- `server/ambient_bots/naming.ts`
+- `server/ambient_bots/runtime.ts`
+- `server/ambient_bots/ws_client.ts`
+- `server/main.ts` ambient bot runtime and auth wiring
+- `server/game.ts` planner action handler and record upsert seam
+- `tests/ambient_player_bot_runtime.test.ts`
+- `tests/ambient_player_bot_ws_client.test.ts`
+
 ## Planned database shape
 
 ### Phase 1
@@ -111,10 +125,11 @@
 
 - public disclosure policy is still a product decision, not a code blocker
 - future anti-bot integration path must be decided before production rollout
-- the exact real-runner host location is still open: same repo process family,
-  sibling service, or dedicated worker host
+- later extraction of the real runner into a sibling service or dedicated worker
+  host is still open if scale demands it, but the Phase 3 shipping slice now
+  runs in the same process family
 - repo-wide `npx tsc --noEmit` is currently red for unrelated pre-existing
   issues outside this feature slice. The current baseline includes existing
-  errors in `server/ai/active_triggers.ts`, `server/game.ts`, `server/main.ts`,
-  generated i18n files under `src/ui/i18n.resolved.generated/`, and
-  `tests/auto_loot.test.ts`.
+  errors in `server/ai/active_triggers.ts`, `server/game.ts`, `src/ui/hud.ts`,
+  generated i18n files under `src/ui/i18n.locales/` and
+  `src/ui/i18n.resolved.generated/`, and `tests/auto_loot.test.ts`.

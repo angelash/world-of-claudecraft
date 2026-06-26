@@ -25,6 +25,9 @@ Starter prompts:
 - `phase-01-foundation.md` - Phase 1 implementation prompt for the server-side
   registry, planner, config, diagnostics, and schema foundation.
 - `phase-02-qa-foundation.md` - Phase 1 QA prompt.
+- `phase-03-real-runner.md` - Phase 3 implementation prompt for real account
+  provisioning, loopback HTTP and WS bot login, and runtime lifecycle wiring.
+- `phase-04-qa-real-runner.md` - Phase 3 QA prompt.
 
 ## How to use this packet
 

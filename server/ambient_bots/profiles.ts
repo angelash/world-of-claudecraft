@@ -43,3 +43,9 @@ export const DEFAULT_AMBIENT_BOT_PROFILES: readonly AmbientBotProfile[] = Object
     }));
   }),
 );
+
+const PROFILE_BY_ID = new Map(DEFAULT_AMBIENT_BOT_PROFILES.map((profile) => [profile.profileId, profile]));
+
+export function ambientBotProfileById(profileId: string): AmbientBotProfile | null {
+  return PROFILE_BY_ID.get(profileId) ?? null;
+}

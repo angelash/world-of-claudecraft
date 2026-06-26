@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as http from 'node:http';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { type WebSocket, WebSocketServer } from 'ws';
+import WebSocket, { WebSocketServer } from 'ws';
 import {
   LEADERBOARD_MAX,
   LEADERBOARD_PAGE_SIZE,
@@ -89,7 +89,10 @@ import {
   updatePasswordHash,
 } from './db';
 import { emailAccountCreated } from './email';
+import { AmbientPlayerBotApiClient } from './ambient_bots/api_client';
+import { AmbientPlayerBotRuntime } from './ambient_bots/runtime';
 import { GameServer, type ClientSession } from './game';
+import { PgAmbientPlayerBotDb } from './ambient_player_bot_db';
 import { isUniqueViolation, json, readBody } from './http_util';
 import { handleInternalApi } from './internal';
 import { isConnectionRefused } from './ip_block';
@@ -194,6 +197,17 @@ const WS_HEARTBEAT_INTERVAL_MS = 30_000;
 const BLOCKED_IP_REFRESH_MS = 60_000;
 
 const game = new GameServer();
+const ambientPlayerBotDb = new PgAmbientPlayerBotDb(pool);
+const ambientPlayerBotExperimentEnabled = process.env.AMBIENT_PLAYER_BOTS_EXPERIMENT === '1';
+const ambientPlayerBotRuntimeBaseUrl = `http://${ambientPlayerBotRuntimeHost(HOST)}:${PORT}`;
+const ambientPlayerBotRuntime = ambientPlayerBotExperimentEnabled
+  ? new AmbientPlayerBotRuntime({
+    game,
+    db: ambientPlayerBotDb,
+    apiClient: new AmbientPlayerBotApiClient({ baseUrl: ambientPlayerBotRuntimeBaseUrl }),
+    wsBaseUrl: ambientPlayerBotRuntimeBaseUrl.replace(/^http/i, 'ws'),
+  })
+  : null;
 
 interface WsHealth {
   alive: boolean;
@@ -210,6 +224,12 @@ function initialCharacterState(
   const character = sim.serializeCharacter(sim.playerId);
   if (!character) throw new Error('failed to serialize initial character');
   return character;
+}
+
+function ambientPlayerBotRuntimeHost(bindHost: string): string {
+  if (bindHost === '0.0.0.0') return '127.0.0.1';
+  if (bindHost === '::') return '[::1]';
+  return bindHost.includes(':') ? `[${bindHost}]` : bindHost;
 }
 
 // ---------------------------------------------------------------------------
@@ -1354,6 +1374,7 @@ async function main(): Promise<void> {
     console.log(
       `pruned ${prunedPerfReports} client perf report row(s) older than ${PERF_REPORT_RETENTION_DAYS} days`,
     );
+  if (ambientPlayerBotRuntime) await ambientPlayerBotRuntime.start();
   await game.loadMarket();
   await game.loadChatFilter();
   await game.loadBlockedIps();
@@ -1506,6 +1527,8 @@ async function main(): Promise<void> {
       ws.close();
       return;
     }
+    const ambientBot = await ambientPlayerBotDb.botByCharacterId(character.id);
+    const ambientBotSession = ambientBot?.accountId === accountId ? ambientBot : null;
     if (character.force_rename) {
       ws.send(
         JSON.stringify({
@@ -1525,7 +1548,7 @@ async function main(): Promise<void> {
     if (
       isConnectionRefused({
         blocked: game.isIpBlocked(ip),
-        isAdmin,
+        isAdmin: isAdmin || ambientBotSession !== null,
         ipSessions: game.countIpSessions(ip),
         hardLimit: MAX_WS_PER_IP_HARD,
       })
@@ -1550,6 +1573,7 @@ async function main(): Promise<void> {
         accountCosmetics,
         isAdmin,
         clientSeed,
+        ambientBotId: ambientBotSession?.botId ?? null,
       },
     );
     if ('error' in result) {
@@ -1624,6 +1648,7 @@ async function main(): Promise<void> {
   const shutdown = async () => {
     console.log('shutting down: saving characters...');
     clearInterval(wsHeartbeat);
+    if (ambientPlayerBotRuntime) await ambientPlayerBotRuntime.stop();
     game.stop();
     await game.saveAll('shutdown');
     await game.saveMarket();

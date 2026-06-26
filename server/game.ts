@@ -499,6 +499,7 @@ export class GameServer {
   private readonly aiLifeLayer: AiLifeLayer;
   private readonly aiActiveTriggers: AiActiveTriggerService;
   private readonly ambientPlayerBots: AmbientPlayerBotService;
+  private ambientPlayerBotActionHandler: ((actions: readonly AmbientBotPlanAction[]) => void) | null = null;
   private readonly aiActiveDirectorBridgeVersions = new Map<string, number>();
   private aiInteractionSequence = 0;
 
@@ -1328,11 +1329,35 @@ export class GameServer {
     return this.ambientPlayerBots.directoryRecords();
   }
 
+  ambientPlayerBotRecord(botId: string): AmbientPlayerBotRecord | null {
+    return this.ambientPlayerBots.recordById(botId);
+  }
+
+  upsertAmbientPlayerBotRecord(record: AmbientPlayerBotRecord): void {
+    this.ambientPlayerBots.upsertRecord(record);
+  }
+
+  fulfillAmbientPlayerBotProvision(requestId: string, record: AmbientPlayerBotRecord): void {
+    this.ambientPlayerBots.fulfillProvisionRequest(requestId, record);
+  }
+
+  setAmbientPlayerBotActionHandler(handler: ((actions: readonly AmbientBotPlanAction[]) => void) | null): void {
+    this.ambientPlayerBotActionHandler = handler;
+  }
+
   runAmbientPlayerBotPlanner(nowMs = Date.now()): readonly AmbientBotPlanAction[] {
-    return this.ambientPlayerBots.plan({
+    const actions = this.ambientPlayerBots.plan({
       humans: this.ambientHumanPresenceSnapshot(),
       nowMs,
     });
+    if (actions.length > 0 && this.ambientPlayerBotActionHandler) {
+      try {
+        this.ambientPlayerBotActionHandler(actions);
+      } catch (err) {
+        console.error('ambient player bot action handler failed:', err);
+      }
+    }
+    return actions;
   }
 
   updateAiActiveTriggerConfig(input: unknown): AiActiveTriggerDiagnosticsSnapshot {

@@ -10,9 +10,14 @@ CREATE TABLE IF NOT EXISTS ambient_player_bots (
   realm TEXT NOT NULL DEFAULT '${REALM_SQL_DEFAULT}',
   bot_id TEXT NOT NULL,
   account_id INT REFERENCES accounts(id) ON DELETE SET NULL,
+  account_username TEXT NOT NULL DEFAULT '',
+  account_password TEXT NOT NULL DEFAULT '',
   character_id INT REFERENCES characters(id) ON DELETE SET NULL,
+  character_name TEXT NOT NULL DEFAULT '',
   profile_id TEXT NOT NULL,
   class TEXT NOT NULL,
+  auth_token TEXT NOT NULL DEFAULT '',
+  auth_token_expires_at TIMESTAMPTZ,
   lifecycle_status TEXT NOT NULL DEFAULT 'ready',
   provision_state TEXT NOT NULL DEFAULT 'needsAccount',
   level_band_min INT NOT NULL DEFAULT 1,
@@ -26,7 +31,10 @@ CREATE TABLE IF NOT EXISTS ambient_player_bots (
   assigned_player_character_id INT,
   cooldown_until TIMESTAMPTZ,
   reservation_until TIMESTAMPTZ,
+  last_runner_error TEXT NOT NULL DEFAULT '',
+  last_runner_at TIMESTAMPTZ,
   planner_state JSONB NOT NULL DEFAULT '{}'::jsonb,
+  runner_state JSONB NOT NULL DEFAULT '{}'::jsonb,
   social_state JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -34,9 +42,14 @@ CREATE TABLE IF NOT EXISTS ambient_player_bots (
 );
 ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS realm TEXT NOT NULL DEFAULT '${REALM_SQL_DEFAULT}';
 ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS account_id INT REFERENCES accounts(id) ON DELETE SET NULL;
+ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS account_username TEXT NOT NULL DEFAULT '';
+ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS account_password TEXT NOT NULL DEFAULT '';
 ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS character_id INT REFERENCES characters(id) ON DELETE SET NULL;
+ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS character_name TEXT NOT NULL DEFAULT '';
 ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS profile_id TEXT NOT NULL DEFAULT '';
 ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS class TEXT NOT NULL DEFAULT 'warrior';
+ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS auth_token TEXT NOT NULL DEFAULT '';
+ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS auth_token_expires_at TIMESTAMPTZ;
 ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS lifecycle_status TEXT NOT NULL DEFAULT 'ready';
 ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS provision_state TEXT NOT NULL DEFAULT 'needsAccount';
 ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS level_band_min INT NOT NULL DEFAULT 1;
@@ -50,7 +63,10 @@ ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS assigned_cluster_id TEX
 ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS assigned_player_character_id INT;
 ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS cooldown_until TIMESTAMPTZ;
 ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS reservation_until TIMESTAMPTZ;
+ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS last_runner_error TEXT NOT NULL DEFAULT '';
+ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS last_runner_at TIMESTAMPTZ;
 ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS planner_state JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS runner_state JSONB NOT NULL DEFAULT '{}'::jsonb;
 ALTER TABLE ambient_player_bots ADD COLUMN IF NOT EXISTS social_state JSONB NOT NULL DEFAULT '{}'::jsonb;
 CREATE INDEX IF NOT EXISTS ambient_player_bots_lifecycle
   ON ambient_player_bots (realm, lifecycle_status, provision_state, updated_at DESC);
@@ -71,11 +87,12 @@ export class PgAmbientPlayerBotDb {
 
   async listBots(): Promise<AmbientPlayerBotRecord[]> {
     const res = await this.db.query(
-      `SELECT bot_id, account_id, character_id, profile_id, class, lifecycle_status, provision_state,
+      `SELECT bot_id, account_id, account_username, account_password, character_id, character_name,
+              profile_id, class, auth_token, auth_token_expires_at, lifecycle_status, provision_state,
               level_band_min, level_band_max, preferred_zone_ids, last_known_zone_id,
               last_known_level, last_known_x, last_known_z, assigned_cluster_id,
               assigned_player_character_id, cooldown_until, reservation_until,
-              planner_state, social_state
+              last_runner_error, last_runner_at, planner_state, runner_state, social_state
          FROM ambient_player_bots
         WHERE realm = $1
         ORDER BY updated_at DESC, bot_id ASC`,
@@ -89,23 +106,30 @@ export class PgAmbientPlayerBotDb {
   async saveBot(record: AmbientPlayerBotRecord): Promise<void> {
     await this.db.query(
       `INSERT INTO ambient_player_bots (
-         realm, bot_id, account_id, character_id, profile_id, class,
-         lifecycle_status, provision_state, level_band_min, level_band_max,
-         preferred_zone_ids, last_known_zone_id, last_known_level, last_known_x,
-         last_known_z, assigned_cluster_id, assigned_player_character_id,
-         cooldown_until, reservation_until, planner_state, social_state, updated_at
+         realm, bot_id, account_id, account_username, account_password, character_id, character_name,
+         profile_id, class, auth_token, auth_token_expires_at, lifecycle_status, provision_state,
+         level_band_min, level_band_max, preferred_zone_ids, last_known_zone_id,
+         last_known_level, last_known_x, last_known_z, assigned_cluster_id, assigned_player_character_id,
+         cooldown_until, reservation_until, last_runner_error, last_runner_at,
+         planner_state, runner_state, social_state, updated_at
        ) VALUES (
-         $1, $2, $3, $4, $5, $6,
-         $7, $8, $9, $10,
-         $11, $12, $13, $14,
-         $15, $16, $17,
-         $18, $19, $20, $21, now()
+         $1, $2, $3, $4, $5, $6, $7,
+         $8, $9, $10, $11, $12, $13,
+         $14, $15, $16, $17,
+         $18, $19, $20, $21, $22,
+         $23, $24, $25, $26,
+         $27, $28, $29, now()
        )
        ON CONFLICT (realm, bot_id) DO UPDATE SET
          account_id = EXCLUDED.account_id,
+         account_username = EXCLUDED.account_username,
+         account_password = EXCLUDED.account_password,
          character_id = EXCLUDED.character_id,
+         character_name = EXCLUDED.character_name,
          profile_id = EXCLUDED.profile_id,
          class = EXCLUDED.class,
+         auth_token = EXCLUDED.auth_token,
+         auth_token_expires_at = EXCLUDED.auth_token_expires_at,
          lifecycle_status = EXCLUDED.lifecycle_status,
          provision_state = EXCLUDED.provision_state,
          level_band_min = EXCLUDED.level_band_min,
@@ -119,16 +143,24 @@ export class PgAmbientPlayerBotDb {
          assigned_player_character_id = EXCLUDED.assigned_player_character_id,
          cooldown_until = EXCLUDED.cooldown_until,
          reservation_until = EXCLUDED.reservation_until,
+         last_runner_error = EXCLUDED.last_runner_error,
+         last_runner_at = EXCLUDED.last_runner_at,
          planner_state = EXCLUDED.planner_state,
+         runner_state = EXCLUDED.runner_state,
          social_state = EXCLUDED.social_state,
          updated_at = now()`,
       [
         REALM,
         record.botId,
         record.accountId,
+        record.accountUsername,
+        record.accountPassword,
         record.characterId,
+        record.characterName,
         record.profileId,
         record.class,
+        record.authToken,
+        msToIso(record.authTokenExpiresAtMs),
         record.lifecycleStatus,
         record.provisionState,
         record.levelBand.min,
@@ -142,10 +174,29 @@ export class PgAmbientPlayerBotDb {
         record.assignedPlayerCharacterId,
         msToIso(record.cooldownUntilMs),
         msToIso(record.reservationUntilMs),
+        record.lastRunnerError,
+        msToIso(record.lastRunnerAtMs),
         JSON.stringify(record.plannerState),
+        JSON.stringify(record.runnerState),
         JSON.stringify(record.socialState),
       ],
     );
+  }
+
+  async botByCharacterId(characterId: number): Promise<AmbientPlayerBotRecord | null> {
+    const res = await this.db.query(
+      `SELECT bot_id, account_id, account_username, account_password, character_id, character_name,
+              profile_id, class, auth_token, auth_token_expires_at, lifecycle_status, provision_state,
+              level_band_min, level_band_max, preferred_zone_ids, last_known_zone_id,
+              last_known_level, last_known_x, last_known_z, assigned_cluster_id,
+              assigned_player_character_id, cooldown_until, reservation_until,
+              last_runner_error, last_runner_at, planner_state, runner_state, social_state
+         FROM ambient_player_bots
+        WHERE realm = $1 AND character_id = $2
+        LIMIT 1`,
+      [REALM, characterId],
+    );
+    return normalizeAmbientPlayerBotRecord(res.rows[0] ?? null);
   }
 }
 
@@ -161,9 +212,14 @@ export function normalizeAmbientPlayerBotRecord(value: unknown): AmbientPlayerBo
   return {
     botId,
     accountId: nullableInt(row.account_id ?? row.accountId),
+    accountUsername: textValue(row.account_username ?? row.accountUsername, 120),
+    accountPassword: textValue(row.account_password ?? row.accountPassword, 120),
     characterId: nullableInt(row.character_id ?? row.characterId),
+    characterName: textValue(row.character_name ?? row.characterName, 32),
     profileId,
     class: cls,
+    authToken: textValue(row.auth_token ?? row.authToken, 160),
+    authTokenExpiresAtMs: nullableDateMs(row.auth_token_expires_at ?? row.authTokenExpiresAtMs),
     lifecycleStatus,
     provisionState,
     levelBand: {
@@ -181,7 +237,10 @@ export function normalizeAmbientPlayerBotRecord(value: unknown): AmbientPlayerBo
     ),
     cooldownUntilMs: nullableDateMs(row.cooldown_until ?? row.cooldownUntilMs),
     reservationUntilMs: nullableDateMs(row.reservation_until ?? row.reservationUntilMs),
+    lastRunnerError: textValue(row.last_runner_error ?? row.lastRunnerError, 400),
+    lastRunnerAtMs: nullableDateMs(row.last_runner_at ?? row.lastRunnerAtMs),
     plannerState: objectValue(row.planner_state ?? row.plannerState),
+    runnerState: objectValue(row.runner_state ?? row.runnerState),
     socialState: objectValue(row.social_state ?? row.socialState),
   };
 }
@@ -263,11 +322,15 @@ function nullableNumber(value: unknown): number | null {
 
 function nullableDateMs(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (value instanceof Date) {
+    const ms = value.getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }
   if (typeof value !== 'string' || !value) return null;
   const ms = Date.parse(value);
   return Number.isFinite(ms) ? ms : null;
 }
 
 function msToIso(value: number | null): string | null {
-  return value === null ? null : new Date(value).toISOString();
+  return value === null || !Number.isFinite(value) ? null : new Date(value).toISOString();
 }
