@@ -999,6 +999,360 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
+  it('picks up the Broodmother follow-up from Herbalist Yara after the widow thicket is cleared', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 10,
+          x: 10,
+          z: 295,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+            'q_idols',
+            'q_deepfen_purge',
+            'q_widows',
+          ],
+        },
+        entities: [
+          { id: 9805, k: 'npc', tid: 'herbalist_yara', x: 10, z: 295 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_broodmother');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9805 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('switches from widow clearing to the Broodmother once the hatchling count is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 10,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+            'q_idols',
+            'q_deepfen_purge',
+            'q_widows',
+          ],
+          qlog: [{ questId: 'q_broodmother', counts: [8, 0], state: 'active' }],
+        },
+        entities: [
+          { id: 9806, k: 'mob', tid: 'mire_widow', x: 2, z: 2, h: 1, lv: 9 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_broodmother_matriarch');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('picks up the troll-barrow quest from Warden Fenwick after the drowned chain', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 10,
+          x: 3,
+          z: 304,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+            'q_idols',
+            'q_deepfen_purge',
+            'q_widows',
+            'q_broodmother',
+            'q_drowned',
+            'q_drowned_censers',
+            'q_no_rest',
+          ],
+        },
+        entities: [
+          { id: 9807, k: 'npc', tid: 'warden_fenwick', x: 3, z: 304 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_trolls');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9807 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('keeps hunting Mirefen trolls while the fetish quest is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 10,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+            'q_idols',
+            'q_deepfen_purge',
+            'q_widows',
+            'q_broodmother',
+            'q_drowned',
+            'q_drowned_censers',
+            'q_no_rest',
+            'q_trolls',
+          ],
+          qlog: [{ questId: 'q_troll_fetishes', counts: [3], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_troll_fetishes');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('picks up Grubjaw from Provisioner Hale once the troll fetishes are done', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 11,
+          x: -4,
+          z: 308,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+            'q_idols',
+            'q_deepfen_purge',
+            'q_widows',
+            'q_broodmother',
+            'q_drowned',
+            'q_drowned_censers',
+            'q_no_rest',
+            'q_trolls',
+            'q_troll_fetishes',
+          ],
+        },
+        entities: [
+          { id: 9808, k: 'npc', tid: 'provisioner_hale', x: -4, z: 308 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_grubjaw');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9808 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('picks up the cult-camp assault from Scout Maren after Grubjaw is finished', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 11,
+          x: 6,
+          z: 312,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+            'q_idols',
+            'q_deepfen_purge',
+            'q_widows',
+            'q_broodmother',
+            'q_drowned',
+            'q_drowned_censers',
+            'q_no_rest',
+            'q_trolls',
+            'q_troll_fetishes',
+            'q_grubjaw',
+          ],
+        },
+        entities: [
+          { id: 9809, k: 'npc', tid: 'scout_maren', x: 6, z: 312 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_cult_camp');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9809 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('heads for Gravecaller cultists once the reeds camp quest is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 11,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+            'q_idols',
+            'q_deepfen_purge',
+            'q_widows',
+            'q_broodmother',
+            'q_drowned',
+            'q_drowned_censers',
+            'q_no_rest',
+            'q_trolls',
+            'q_troll_fetishes',
+            'q_grubjaw',
+          ],
+          qlog: [{ questId: 'q_cult_camp', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_cult_camp');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('routes toward tunnel rats while the blessed tallow objective for q_rite is still incomplete', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({

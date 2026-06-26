@@ -31,7 +31,9 @@
 | Continuation 05 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 05 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 06 | completed | 2026-06-26 | 2026-06-26 |
-| Continuation 06 QA | pending | 2026-06-26 |  |
+| Continuation 06 QA | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 07 | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 07 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
 
@@ -622,10 +624,66 @@ Notes:
   - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
   - `npm run build:server`
   - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+- `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- Continuation 06 QA is now complete. The next implementation gap after that
+  was the troll, cultist, and later Bastion approach ladder.
+
+## Continuation 06 QA checklist
+
+- [x] audit Continuation 06 against
+  `continuation-06-qa-mirefen-side-chains-and-fenbridge-resupply.md`
+- [x] confirm north-zone vendor selection stays local to Mirefen without
+  breaking Eastbrook restock flow
+- [x] confirm the widow and drowned ladders stay reconstructible from live
+  quest counts and object interaction only
+- [x] verify focused ambient-bot validation, `build:server`, and local pg-mem
+  smoke stay green
+
+Notes:
+- QA did not uncover a new logic bug in the Continuation 06 slice. Fenbridge
+  vendor selection stayed local to Mirefen, and the earlier Eastbrook vendor
+  path remained intact under the targeted regression suite.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline listed
+    above)
+- Continuation 07 is now the next implementation target: Broodmother, trolls,
+  Grubjaw, and the first cult-camp outdoor ladder.
+
+## Continuation 07 checklist
+
+- [x] extend the progression registry through the Broodmother, troll, Grubjaw,
+  and first cult-camp outdoor routes
+- [x] preserve natural Mirefen route order so the Broodmother follow-up lands
+  before the drowned-chain successor routes
+- [x] add focused brain regressions for the Broodmother handoff, troll chain,
+  Grubjaw pickup, and cult-camp assault
+- [x] validate the continuation slice
+
+Notes:
+- This slice keeps the progression brain entirely in the existing route-driven
+  model. The Broodmother follow-up now uses the same multi-objective gating
+  pattern as earlier mixed quest ladders, without adding hidden progression
+  memory.
+- The progression brain now covers these additional Mirefen outdoor routes:
+  `q_broodmother`, `q_trolls`, `q_troll_fetishes`, `q_grubjaw`, and
+  `q_cult_camp`.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
   - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
     currently includes existing issues in `server/ai/active_triggers.ts`,
     `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
     under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
     `tests/auto_loot.test.ts`)
-- Continuation 06 QA is now the next target. The next implementation gap after
-  that is the troll, cultist, and later Bastion approach ladder.
+- Continuation 07 QA is now the next target. The next implementation gap after
+  that is the cult summoner, Deacon Voss, and Bastion-door approach chain,
+  which likely needs better handling for multi-source same-objective drops such
+  as `q_summoners`.

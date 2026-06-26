@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: continuation 06
-- phase status: Continuation 06 implementation complete, Continuation 06 QA next, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 07
+- phase status: Continuation 07 implementation complete, Continuation 07 QA next, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -253,6 +253,13 @@
 - `docs/ambient-player-bots/continuation-06-mirefen-side-chains-and-fenbridge-resupply.md`
 - `docs/ambient-player-bots/continuation-06-qa-mirefen-side-chains-and-fenbridge-resupply.md`
 
+### Continuation 07
+
+- `server/ambient_bots/progression_routes.ts`
+- `tests/ambient_player_bot_brain.test.ts`
+- `docs/ambient-player-bots/continuation-07-mirefen-troll-and-cultist-outdoors.md`
+- `docs/ambient-player-bots/continuation-07-qa-mirefen-troll-and-cultist-outdoors.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -334,8 +341,16 @@
   side chains and moves north-zone sustain to Provisioner Hale
 - the current progression brain now covers Mirefen side routes through
   `q_no_rest`
-- deeper Mirefen routing such as trolls, cultists, and Bastion approach content
-  still remain open
+- Continuation 06 QA confirmed Fenbridge-local sustain does not break the
+  earlier Eastbrook vendor flow
+- Continuation 07 extends the route registry into the Broodmother, troll,
+  Grubjaw, and first cult-camp outdoor chain
+- the current progression brain now covers Mirefen outdoor routes through
+  `q_cult_camp`
+- deeper Mirefen routing such as cult summoners, Deacon Voss, and Bastion
+  approach content still remain open
+- `q_summoners` is the next notable modeling gap because its collect objective
+  can advance from more than one mob family in the same outdoor camp
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

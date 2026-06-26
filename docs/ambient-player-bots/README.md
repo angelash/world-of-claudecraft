@@ -83,6 +83,11 @@ Post-packet continuation prompts:
   north-zone sustain to the Fenbridge vendor.
 - `continuation-06-qa-mirefen-side-chains-and-fenbridge-resupply.md` - QA
   prompt for continuation 06.
+- `continuation-07-mirefen-troll-and-cultist-outdoors.md` - extend the real
+  progression ladder through the Broodmother, troll barrows, Grubjaw, and the
+  first cult-camp outdoor chain.
+- `continuation-07-qa-mirefen-troll-and-cultist-outdoors.md` - QA prompt for
+  continuation 07.
 
 ## How to use this packet
 
