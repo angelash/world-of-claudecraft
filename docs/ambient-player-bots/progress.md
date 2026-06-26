@@ -46,7 +46,7 @@
 | Continuation 12 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 13 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 13 QA | completed | 2026-06-26 | 2026-06-26 |
-| Continuation 14 | pending | 2026-06-26 |  |
+| Continuation 14 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 14 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
@@ -1075,3 +1075,36 @@ Notes:
 - The next implementation gap is the Sanctum-approach outdoor prep ladder:
   sigils, blessed embers, the congregation cleanup, and the gate-key shards
   before later grouped or boss content.
+
+## Continuation 14 checklist
+
+- [x] extend the progression registry through `q_wyrm_sigils`,
+  `q_breaking_the_seal`, `q_voice_below`, and `q_sanctum_gate`
+- [x] keep the mixed `q_voice_below` kill objectives bounded to zealot and
+  necromancer hunt routes with objective-index handoff
+- [x] add focused brain and runtime regressions for sigils, embers,
+  congregation cleanup, and Sanctum key shards
+- [x] validate the continuation slice
+
+Notes:
+- This slice extends the real progression ladder through the final Thornpeak
+  outdoor prep chains without adding hidden progression memory or any new party
+  or authority shortcuts. Ambient bots still accept quests, travel, turn in,
+  fight, loot, and interact with world objects only through the normal live
+  server surfaces.
+- The progression brain now covers the Zone 3 outdoor ladder through
+  `q_sanctum_gate`.
+- The mixed `q_voice_below` quest intentionally uses two bounded kill routes so
+  the bot clears zealots first, then switches to necromancers once the first
+  objective is complete, all reconstructed from live quest counts alone.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts`
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- Continuation 14 QA is now the next target.

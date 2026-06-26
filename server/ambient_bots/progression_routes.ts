@@ -504,4 +504,47 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     18,
     'Breaking the revenant vanguard',
   ),
+  collectRoute(
+    'q_wyrm_sigils',
+    'brother_aldric_highwatch',
+    'gravewyrm_sigil',
+    18,
+    'Recovering Gravewyrm Sigils',
+  ),
+  killRoute(
+    'q_breaking_the_seal',
+    'brother_aldric_highwatch',
+    'stormcrag_elemental',
+    18,
+    'Collecting Blessed Embers',
+  ),
+  killRoute(
+    'q_voice_below',
+    'brother_aldric_highwatch',
+    'wyrmcult_zealot',
+    18,
+    'Silencing the kneeling zealots',
+    {
+      activeObjectiveId: 'hunt_voice_below_zealots',
+      questObjectiveIndex: 0,
+    },
+  ),
+  killRoute(
+    'q_voice_below',
+    'brother_aldric_highwatch',
+    'wyrmcult_necromancer',
+    18,
+    'Silencing the kneeling necromancers',
+    {
+      activeObjectiveId: 'hunt_voice_below_necromancers',
+      questObjectiveIndex: 1,
+    },
+  ),
+  collectRoute(
+    'q_sanctum_gate',
+    'brother_aldric_highwatch',
+    'sanctum_key_shard',
+    18,
+    'Recovering Sanctum Key Shards',
+  ),
 ];

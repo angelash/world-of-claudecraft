@@ -130,6 +130,14 @@ const thornpeakThroughWarfront = [
   'q_shard_cores',
   'q_kazzix',
 ] as const;
+const thornpeakThroughLateOutdoors = [
+  ...thornpeakThroughWarfront,
+  'q_zealots',
+  'q_cult_orders',
+  'q_necromancers',
+  'q_revenants',
+  'q_revenant_vanguard',
+] as const;
 const bastionSlot0Origin = { x: 1500, z: -1250 } as const;
 
 describe('ambient player bot brain', () => {
@@ -2243,6 +2251,112 @@ describe('ambient player bot brain', () => {
 
     expect(result.objectiveId).toBe('hunt_revenant_vanguard');
     expect(result.objectiveLabel).toBe('Breaking the revenant vanguard');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('picks up Gravewyrm sigils from Brother Aldric after the cult and revenant outdoor ladders are complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          x: -10,
+          z: 646,
+          qdone: [...thornpeakThroughLateOutdoors],
+        },
+        entities: [
+          { id: 9829, k: 'npc', tid: 'brother_aldric_highwatch', x: -10, z: 646 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_wyrm_sigils');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9829 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('routes toward Gravewyrm sigils while q_wyrm_sigils is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          qdone: [...thornpeakThroughLateOutdoors],
+          qlog: [{ questId: 'q_wyrm_sigils', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('collect_wyrm_sigils');
+    expect(result.objectiveLabel).toBe('Recovering Gravewyrm Sigils');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('keeps hunting stormcrag elementals while q_breaking_the_seal is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          qdone: [...thornpeakThroughLateOutdoors, 'q_wyrm_sigils'],
+          qlog: [{ questId: 'q_breaking_the_seal', counts: [2], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_breaking_the_seal');
+    expect(result.objectiveLabel).toBe('Collecting Blessed Embers');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('switches q_voice_below from zealots to necromancers after the zealot count is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          qdone: [...thornpeakThroughLateOutdoors, 'q_wyrm_sigils', 'q_breaking_the_seal'],
+          qlog: [{ questId: 'q_voice_below', counts: [10, 0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_voice_below_necromancers');
+    expect(result.objectiveLabel).toBe('Silencing the kneeling necromancers');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('routes toward Sanctum Key Shards while q_sanctum_gate is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          qdone: [...thornpeakThroughLateOutdoors, 'q_wyrm_sigils', 'q_breaking_the_seal', 'q_voice_below'],
+          qlog: [{ questId: 'q_sanctum_gate', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('collect_sanctum_gate');
+    expect(result.objectiveLabel).toBe('Recovering Sanctum Key Shards');
     expect(result.commands).toEqual([]);
     expect(result.moveInput).toEqual({ f: 1 });
   });

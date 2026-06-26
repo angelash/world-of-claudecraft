@@ -2,11 +2,11 @@
 
 ## Current phase
 
-- current phase: continuation 14 planning
-- phase status: Continuation 13 QA is complete, and continuation 14 planning
-  now targets the Sanctum-approach outdoor prep ladder around sigils, embers,
-  congregation cleanup, and gate-key shards before the later grouped or boss
-  content, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 14 QA
+- phase status: Continuation 14 implementation is complete, and QA now closes
+  the Sanctum-approach outdoor prep ladder around sigils, embers, congregation
+  cleanup, and gate-key shards before the later grouped or boss content,
+  packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -481,6 +481,13 @@
 - Continuation 13 QA is complete, and continuation 14 should next cover the
   Sanctum-approach outdoor prep ladder around `q_wyrm_sigils`,
   `q_breaking_the_seal`, `q_voice_below`, and `q_sanctum_gate`
+- Continuation 14 extends the route registry into `q_wyrm_sigils`,
+  `q_breaking_the_seal`, `q_voice_below`, and `q_sanctum_gate`
+- the current progression brain now covers the Zone 3 outdoor ladder through
+  `q_sanctum_gate`
+- the mixed `q_voice_below` congregation cleanup now stays bounded to zealot
+  and necromancer hunt routes with live quest-count handoff between the two
+  objective stages
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

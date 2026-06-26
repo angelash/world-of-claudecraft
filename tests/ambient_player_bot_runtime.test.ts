@@ -91,6 +91,14 @@ const thornpeakThroughWarfront = [
   'q_shard_cores',
   'q_kazzix',
 ] as const;
+const thornpeakThroughLateOutdoors = [
+  ...thornpeakThroughWarfront,
+  'q_zealots',
+  'q_cult_orders',
+  'q_necromancers',
+  'q_revenants',
+  'q_revenant_vanguard',
+] as const;
 
 class FakeGame {
   private readonly directory = new Map<string, AmbientPlayerBotRecord>();
@@ -1846,6 +1854,174 @@ describe('AmbientPlayerBotRuntime', () => {
           connected: true,
           objective: 'hunt_revenant_vanguard',
           objectiveLabel: 'Breaking the revenant vanguard',
+        }),
+      }),
+    ]);
+
+    await runtime.stop();
+  });
+
+  it('records the Gravewyrm sigil collection objective and emits movement input for the Sanctum approach', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'thornpeak_heights:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 18,
+          lastKnownZoneId: 'thornpeak_heights',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, {
+          self: {
+            id: 101,
+            x: 0,
+            z: 860,
+            lv: 18,
+            hp: 150,
+            mhp: 150,
+            res: 0,
+            mres: 0,
+            rtype: 'rage',
+            gcd: 0,
+            inv: [],
+            qdone: [...thornpeakThroughLateOutdoors],
+            qlog: [{ questId: 'q_wyrm_sigils', counts: [0], state: 'active' }],
+            cds: {},
+          },
+          ents: [],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'thornpeak_heights:1',
+      zoneId: 'thornpeak_heights',
+      targetCharacterId: 1,
+      reason: 'test sanctum sigil route',
+    }]);
+
+    await vi.waitFor(() => {
+      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as {
+        t?: string;
+        mi?: Record<string, number>;
+      });
+      expect(sent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(true);
+    });
+
+    expect(game.ambientPlayerBotDirectory()).toEqual([
+      expect.objectContaining({
+        runnerState: expect.objectContaining({
+          connected: true,
+          objective: 'collect_wyrm_sigils',
+          objectiveLabel: 'Recovering Gravewyrm Sigils',
+        }),
+      }),
+    ]);
+
+    await runtime.stop();
+  });
+
+  it('records the q_voice_below necromancer cleanup objective after the zealot count is complete', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'thornpeak_heights:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 18,
+          lastKnownZoneId: 'thornpeak_heights',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, {
+          self: {
+            id: 101,
+            x: 50,
+            z: 850,
+            lv: 18,
+            hp: 150,
+            mhp: 150,
+            res: 0,
+            mres: 0,
+            rtype: 'rage',
+            gcd: 0,
+            inv: [],
+            qdone: [...thornpeakThroughLateOutdoors, 'q_wyrm_sigils', 'q_breaking_the_seal'],
+            qlog: [{ questId: 'q_voice_below', counts: [10, 0], state: 'active' }],
+            cds: {},
+          },
+          ents: [],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'thornpeak_heights:1',
+      zoneId: 'thornpeak_heights',
+      targetCharacterId: 1,
+      reason: 'test voice below necromancer route',
+    }]);
+
+    await vi.waitFor(() => {
+      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as {
+        t?: string;
+        mi?: Record<string, number>;
+      });
+      expect(sent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(true);
+    });
+
+    expect(game.ambientPlayerBotDirectory()).toEqual([
+      expect.objectContaining({
+        runnerState: expect.objectContaining({
+          connected: true,
+          objective: 'hunt_voice_below_necromancers',
+          objectiveLabel: 'Silencing the kneeling necromancers',
         }),
       }),
     ]);
