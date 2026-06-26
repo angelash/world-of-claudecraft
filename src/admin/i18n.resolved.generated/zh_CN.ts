@@ -937,5 +937,18 @@ export const zh_CN: AdminTranslations = {
   "error.invalidIp": "必须填写有效的 IP 地址",
   "error.blockExpiryFuture": "封禁到期时间必须在未来",
   "error.blockFailed": "封禁 IP 失败",
-  "error.blockNotFound": "未找到 IP"
+  "error.blockNotFound": "未找到 IP",
+  "stats.onlineAccounts": "在线账号",
+  "stats.siteUsersNow": "当前站点用户",
+  "stats.peakOnlineToday": "24小时在线峰值",
+  "stats.peakOnlineAllTime": "历史在线峰值",
+  "stats.returningAccounts24h": "24小时回访账号",
+  "stats.activeAccounts7d": "7天活跃账号",
+  "stats.activeAccounts30d": "30天活跃账号",
+  "stats.avgPlaytimePerAccount": "每账号平均游玩时长",
+  "charts.onlineHistory": "在线历史（{range}）",
+  "charts.onlineTooltip": "{bucket}：峰值 {siteUsers} 个站点用户，{players} 名玩家，{accounts} 个账号",
+  "charts.range.24h": "24小时",
+  "charts.range.7d": "7天",
+  "charts.range.30d": "30天"
 };

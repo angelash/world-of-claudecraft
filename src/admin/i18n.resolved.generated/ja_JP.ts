@@ -937,5 +937,18 @@ export const ja_JP: AdminTranslations = {
   "error.invalidIp": "有効なIPアドレスを入力してください",
   "error.blockExpiryFuture": "ブロックの期限は未来の日時にする必要があります",
   "error.blockFailed": "IPのブロックに失敗しました",
-  "error.blockNotFound": "IPが見つかりません"
+  "error.blockNotFound": "IPが見つかりません",
+  "stats.onlineAccounts": "オンラインアカウント",
+  "stats.siteUsersNow": "現在のサイトユーザー",
+  "stats.peakOnlineToday": "24時間の最大同時接続",
+  "stats.peakOnlineAllTime": "過去最大同時接続",
+  "stats.returningAccounts24h": "復帰アカウント 24h",
+  "stats.activeAccounts7d": "アクティブアカウント 7日",
+  "stats.activeAccounts30d": "アクティブアカウント 30日",
+  "stats.avgPlaytimePerAccount": "アカウントあたり平均プレイ時間",
+  "charts.onlineHistory": "オンライン履歴（{range}）",
+  "charts.onlineTooltip": "{bucket}：最大 {siteUsers} サイトユーザー、{players} プレイヤー、{accounts} アカウント",
+  "charts.range.24h": "24時間",
+  "charts.range.7d": "7日",
+  "charts.range.30d": "30日"
 };

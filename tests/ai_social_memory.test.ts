@@ -178,7 +178,6 @@ describe('AI social memory', () => {
       ['apothecary_lin', 'npc.apothecary_lin.living_world', 'hudChrome.aiSpeech.apothecaryLinAwake', 'hudChrome.aiSpeech.memoryHerbalistRumorEcho'],
       ['fisherman_brandt', 'npc.fisherman_brandt.living_world', 'hudChrome.aiSpeech.fishermanBrandtAwake', 'hudChrome.aiSpeech.memoryTidewatcherRumorEcho'],
       ['foreman_odell', 'npc.foreman_odell.living_world', 'hudChrome.aiSpeech.foremanOdellAwake', 'hudChrome.aiSpeech.memorySmithRumorEcho'],
-      ['ranger_elwyn', 'npc.ranger_elwyn.living_world', 'hudChrome.aiSpeech.rangerElwynAwake', 'hudChrome.aiSpeech.memoryScoutRumorEcho'],
       ['warden_fenwick', 'npc.warden_fenwick.living_world', 'hudChrome.aiSpeech.wardenFenwickAwake', 'hudChrome.aiSpeech.memoryCommanderRumorEcho'],
       ['provisioner_hale', 'npc.provisioner_hale.living_world', 'hudChrome.aiSpeech.provisionerHaleAwake', 'hudChrome.aiSpeech.memoryMerchantRumorEcho'],
       ['herbalist_yara', 'npc.herbalist_yara.living_world', 'hudChrome.aiSpeech.herbalistYaraAwake', 'hudChrome.aiSpeech.memoryHerbalistRumorEcho'],

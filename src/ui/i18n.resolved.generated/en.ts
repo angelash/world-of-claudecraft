@@ -174,6 +174,28 @@ export const en: EnTranslations = {
       "title": "Emotes",
       "done": "Done"
     },
+    "theme": {
+      "preset": "UI Theme",
+      "customColors": "Custom Colors",
+      "reset": "Reset",
+      "presets": {
+        "classic": "Classic Gold",
+        "midnight": "Midnight",
+        "parchment": "Parchment",
+        "highContrast": "High Contrast"
+      },
+      "knob": {
+        "accent": "Accent",
+        "border": "Border",
+        "panel": "Frame",
+        "text": "Text",
+        "textMuted": "Muted Text",
+        "hp": "Health",
+        "mana": "Mana",
+        "rage": "Rage",
+        "energy": "Energy"
+      }
+    },
     "questTracker": {
       "count": "({count})",
       "collapseHint": "Collapse quest tracker",
@@ -209,12 +231,27 @@ export const en: EnTranslations = {
       "hapticsOff": "Haptics Off",
       "toggleHaptics": "Toggle haptics"
     },
+    "tutorial": {
+      "moveBodyTouch": "Use the movement stick to move and drag the screen to look around. Take a few steps to begin.",
+      "talkBodyTouch": "Stand close to Marshal Redbrook and tap the Use button to speak, then accept his task.",
+      "returnBodyTouch": "Your task is done. Return to Marshal Redbrook and tap the Use button to turn it in.",
+      "doneBodyTouch": "You have the basics, {name}. The Vale is yours to explore. Tap More, then Quests, to review your quest log anytime. Good hunting."
+    },
     "widgets": {
       "clockTitle": "Local time - click to toggle 12/24-hour",
       "worldCoordinates": "World coordinates",
       "coordinates": "Coordinates",
       "heading": "Heading",
       "minimapZoom": "Minimap zoom"
+    },
+    "raidLockout": {
+      "title": "Raid Lockouts",
+      "allReady": "All raids ready",
+      "daysHours": "{d}d {h}h",
+      "hoursMinutes": "{h}h {m}m",
+      "minutes": "{m}m",
+      "lessThanMinute": "<1m",
+      "lockedToast": "You are locked to {raid}. Unlocks in {time}."
     },
     "compass": {
       "N": "N",
@@ -254,6 +291,8 @@ export const en: EnTranslations = {
       "interfaceModeNote": "Auto picks desktop or touch controls from your device. Choose Desktop to force keyboard and mouse (useful on a tablet with a keyboard), or Touch for the on-screen controls.",
       "footstepSounds": "Footstep Sounds",
       "clickFeedback": "Click Marker",
+      "lockCursorOnRotate": "Lock Cursor While Rotating",
+      "keybindHelpLockCursorOnRotate": "Keeps the mouse cursor inside the window while you drag to rotate the camera, so it cannot reach the screen edge or move to another monitor. Turn off if you prefer a free cursor.",
       "showWalletOnCharacterScreen": "Show Wallet on Character Screen",
       "showWalletOnPlayerCard": "Show Wallet on Player Card",
       "uiScale": "UI Scale",
@@ -387,6 +426,18 @@ export const en: EnTranslations = {
     },
     "tips": {
       "joinChannels": "Tip: type /join world or /join lfg to chat with players across the realm."
+    },
+    "questShare": {
+      "notShareable": "This quest can't be shared.",
+      "notInSharerParty": "You must be in {name}'s party to accept that quest.",
+      "accepted": "{name} accepted your shared quest.",
+      "dialogTitle": "Shared Quest",
+      "viewOnlyHint": "Join the sharer's party to accept this quest.",
+      "alreadyOn": "You're already on this quest.",
+      "alreadyDone": "You've already completed this quest.",
+      "ineligible": "You don't meet the requirements for this quest.",
+      "noQuestSelected": "Select a quest in your log to share.",
+      "linkTitle": "Shift-click to link this quest in chat."
     },
     "aiQuestion": {
       "heading": "Ask",
@@ -615,7 +666,7 @@ export const en: EnTranslations = {
       "errPasswordUnchanged": "New password must be different from the current one.",
       "errPasswordConfirm": "New passwords do not match.",
       "emailLabel": "Email (optional)",
-      "emailHint": "Used only for account recovery. We never send marketing email.",
+      "emailHint": "Used only for account recovery. Use Change Email below to update it.",
       "saveEmail": "Save Email",
       "emailSaved": "Email saved.",
       "errEmailInvalid": "Enter a valid email address.",
@@ -636,7 +687,62 @@ export const en: EnTranslations = {
       "deactivateConfirm": "Deactivate My Account",
       "deactivated": "Your account has been deactivated.",
       "logOut": "Log Out",
-      "logOutSummary": "Sign out of this device."
+      "logOutSummary": "Sign out of this device.",
+      "sectionSecurity": "Security",
+      "changeEmailTitle": "Change Email",
+      "changeEmailHint": "We email a confirmation link to the new address and a notice to the old one. Your email only changes once you open the link.",
+      "changeEmailNew": "New email",
+      "changeEmailSubmit": "Send Confirmation Link",
+      "changeEmailSent": "Check your inbox: open the link we sent to confirm your new email.",
+      "errEmailUnchanged": "That is already your email address.",
+      "twoFactorTitle": "Two-Factor Authentication",
+      "twoFactorStatusOn": "Two-factor authentication is ON for your account.",
+      "twoFactorStatusOff": "Add an authenticator app for stronger account security.",
+      "twoFactorSetupBtn": "Set Up Two-Factor",
+      "twoFactorBeginHint": "Enter your password to begin setup.",
+      "twoFactorBegin": "Begin Setup",
+      "twoFactorScanHint": "Add this key to your authenticator app (Google Authenticator, Authy, 1Password, and similar), then enter the 6-digit code it shows.",
+      "twoFactorSecretLabel": "Setup key",
+      "twoFactorOpenApp": "Open in authenticator app",
+      "twoFactorCodeLabel": "6-digit code",
+      "twoFactorVerifyBtn": "Verify and Enable",
+      "twoFactorEnabledMsg": "Two-factor authentication is now on.",
+      "twoFactorRecoveryTitle": "Save your recovery codes",
+      "twoFactorRecoveryHint": "Each code works once. Store them somewhere safe: they are the only way back in if you lose your authenticator app.",
+      "twoFactorDownloadCodes": "Download Codes",
+      "twoFactorDone": "Done",
+      "twoFactorDisableHint": "Enter your password to turn two-factor off. Your recovery codes will be discarded.",
+      "twoFactorDisableBtn": "Turn Off Two-Factor",
+      "twoFactorDisabledMsg": "Two-factor authentication is off.",
+      "errTwoFactorCode": "That code is not valid, try again.",
+      "errTwoFactorState": "Two-factor setup is not in the expected state. Reload and try again.",
+      "exportTitle": "Export My Data",
+      "exportHint": "Download a copy of your account and characters as a JSON file. We also email you a confirmation.",
+      "exportBtn": "Download My Data",
+      "exportDone": "Your data was downloaded. We emailed you a confirmation.",
+      "exportFailed": "Could not export your data. Try again in a moment."
+    },
+    "bags": {
+      "filterGroupAria": "Filter bags by category",
+      "filterAll": "All",
+      "filterWeapon": "Weapons",
+      "filterArmor": "Armor",
+      "filterConsumable": "Consumables",
+      "filterMaterial": "Materials",
+      "filterQuest": "Quest",
+      "sortAria": "Sort bag items",
+      "sortRecent": "Recent",
+      "sortQuality": "Quality",
+      "sortName": "Name",
+      "searchPlaceholder": "Search items",
+      "searchAria": "Search bag items by name",
+      "noMatch": "No items match your filters."
+    },
+    "raidConvert": {
+      "toPartyDone": "Your raid has converted back to a party.",
+      "notRaid": "Your group is not a raid.",
+      "leaderOnly": "Only the raid leader may convert to a party.",
+      "tooLarge": "A raid with more than five members cannot convert back to a party."
     }
   },
   "guide": {
@@ -1039,7 +1145,6 @@ export const en: EnTranslations = {
       "notedLabel": "Of note",
       "flavor": {
         "old_greyjaw": "A scarred old wolf no trap has held, blamed for three hounds and a stable boy's arm. He hunts the deep woods alone, and turns savage the longer a fight wears on.",
-        "brightwood_stag": "A proud grove deer that lowers its crown of antlers and bulls forward, growing harder to face the longer it is pressed.",
         "grubjaw": "A fen troll so greedy the other trolls will not dig beside him, said to have eaten a trader's last two pack-mules, harness and all.",
         "shardlord_kazzix": "A storm elemental given shoulders, walking the far crags above Stormcrag with a heartshard worth braving the lightning for.",
         "mirejaw_frenzy": "A marsh murloc that whips itself into a thrashing frenzy mid-fight, the loudest thing in a loud, territorial pack.",
@@ -1105,7 +1210,7 @@ export const en: EnTranslations = {
       "marshPlaceNotes": "Fenbridge guards the only dry road. The Prowler Reeds and Deepfen Shallows teem with marsh beasts and murlocs; the Widow Thicket is spun thick with web; the Drowned Chapel and the Troll Mounds keep older dangers; the Gravecaller Encampment is the cult dug in, and the Sunken Bastion is the marsh's instanced heart.",
       "peaksPlaceNotes": "Highwatch holds the wall. Stalker Ridge and the Deeprock Burrows belong to ridge cats and kobolds; the Ogre Foothills and Drogmar's War-Camp to brutes for hire; Stormcrag crackles with elementals and the Glimmermere glows below it; the Wyrmcult Tents and Revenant Fields ring the cult's high ground, with Gravewyrm Sanctum at its peak.",
       "gladeTitle": "A quiet corner: Brightwood Glade",
-      "gladeBody": "Not every story in the Vale is about the dead. In the north, a sunlit grove called Brightwood Glade keeps its own gentler rhythm, watched over by a lone ranger who would rather steward it than fight. Her work is balance: thinning what overbreeds, and, when its hollow grows too dangerous to leave be, giving the grove's old crowned stag a respectful end. It is a soft counterpoint to the trail you are following, and worth the detour."
+      "gladeBody": "Not every story in the Vale is about the dead. In the north, a sunlit grove called Brightwood Glade keeps its own gentler rhythm, with quiet paths, grazing deer, and wary beasts under the boughs. It is a soft counterpoint to the trail you are following, and worth seeing when the road gives you room to wander."
     },
     "questsPage": {
       "heading": "Quests",
@@ -1153,9 +1258,7 @@ export const en: EnTranslations = {
       "aldricRole": "Priest of the Vale",
       "aldricBody": "A humble village priest who first names the cult over a defiled grave in Eastbrook, then follows its trail in person through the marsh and up to the wall at Highwatch. He is the steady heart of the whole campaign.",
       "marenRole": "The Marshal's Scout",
-      "marenBody": "A low-talking tracker you meet in the reeds of Mirefen, all quiet feet and a short blade. She follows the trail north too, and it is her ear that catches the words that send you to the peaks.",
-      "elwynRole": "Glade Warden of Brightwood",
-      "elwynBody": "The lone keeper of a sunlit grove in the north of the Vale. Her work is stewardship, not slaughter: thinning what overbreeds and granting the grove's oldest beast a kinder end than the wolves would."
+      "marenBody": "A low-talking tracker you meet in the reeds of Mirefen, all quiet feet and a short blade. She follows the trail north too, and it is her ear that catches the words that send you to the peaks."
     },
     "dungeonsPage": {
       "heading": "Dungeons and Raids",
@@ -1551,7 +1654,10 @@ export const en: EnTranslations = {
     "characterNamePlaceholder": "Character name",
     "enterWorld": "Enter World",
     "offlineCharacter": "Offline Character",
-    "create": "Create"
+    "create": "Create",
+    "twoFactorLabel": "Authentication code",
+    "twoFactorPlaceholder": "6-digit or recovery code",
+    "twoFactorHint": "Enter the code from your authenticator app, or one of your recovery codes."
   },
   "wallet": {
     "label": "$WOC Wallet",
@@ -1778,6 +1884,263 @@ export const en: EnTranslations = {
     "friends": "Friends & Guild",
     "chat": "Open Chat"
   },
+  "sim": {
+    "delve": {
+      "cannotEnterNow": "You cannot enter a delve right now.",
+      "leaveDungeonFirst": "Leave the dungeon first.",
+      "leaveArenaFirst": "Leave the arena first.",
+      "alreadyInDelve": "You are already in a delve.",
+      "whileTrading": "You cannot enter a delve while trading.",
+      "duringDuel": "You cannot enter a delve during a duel.",
+      "duringArena": "You cannot enter a delve during an arena match.",
+      "unknownTier": "Unknown delve tier.",
+      "levelRequired": "You must be level {level} to enter {name}.",
+      "levelRequiredTier": "You must be level {level} to enter {name} on {tier}.",
+      "instancesBusy": "All instances of {name} are busy. Try again soon.",
+      "runFailed": "{name} run failed.",
+      "complete": "{name} complete.",
+      "mechanismOpen": "A mechanism clicks open nearby. A passage opens to the north. Find the exit portal ahead.",
+      "raiseDead": "{name} begins Raise Dead.",
+      "graveFalters": "The grave rite falters.",
+      "doorAlreadyOpen": "The door is already open.",
+      "companionRankUp": "{name} reaches rank {rank}.",
+      "bossChest": "The boss falls. A warded reliquary chest rises on the dais. Pick its lock to claim your spoils.",
+      "surfaceStairs": "A stairway to the surface opens. Press F at the stairs to leave.",
+      "moduleEnter": "{name}: {objective}",
+      "objectiveClearRoom": "Clear the room.",
+      "objectiveDefeatBoss": "Defeat the boss.",
+      "tombstoneHint": "A tombstone passage opens to the north when the room is cleared.",
+      "tombstoneOpen": "A sealed tombstone passage grinds open to the north. Walk into it to continue.",
+      "tombstoneInto": "You pass through the tombstone into {name}.",
+      "chestEmpty": "The chest is empty.",
+      "notInDelve": "You are not in a delve.",
+      "cannotInteract": "You cannot interact with that.",
+      "tooFar": "You are too far away.",
+      "graveSilent": "The grave is silent for now.",
+      "doorLocked": "The door is locked.",
+      "strikeWall": "Strike the wall to break through.",
+      "nothingHappens": "Nothing happens.",
+      "unknownCompanion": "Unknown companion.",
+      "companionMaxRank": "This companion is already fully upgraded.",
+      "companionMarksRequired": "You need {marks} Delve Marks to upgrade {name}.",
+      "cannotAffordCompanionUpgrade": "You cannot afford this upgrade.",
+      "shopItemLocked": "You have not unlocked that item yet.",
+      "shopMarksRequired": "You need {marks} Delve Marks to buy {name}.",
+      "shopSealPremiumOnly": "This seal yields only to a master's hand. Only the Premium ante can open it.",
+      "passageSealed": "The passage is sealed.",
+      "moveCloserPassage": "Move closer to the passage.",
+      "moveCloserChest": "Move closer to the chest.",
+      "nothingToTake": "There is nothing left to take.",
+      "wayOutNotOpen": "The way out is not yet open.",
+      "moveCloserStairs": "Move closer to the stairs."
+    },
+    "lockpick": {
+      "lockYields": "The lock yields! {tier} spoils.",
+      "tierPremium": "Premium",
+      "tierMedium": "Medium",
+      "tierLow": "Modest",
+      "alreadyInProgress": "Someone is already working the lock.",
+      "cannotPickThat": "You cannot pick that.",
+      "chooseAnte": "Choose 1, 2, or 3 picks.",
+      "noAttempt": "No lock attempt in progress.",
+      "notYours": "That is not your lock.",
+      "toolSlips": "That tool slips off this lock.",
+      "lockJammed": "The lock is jammed beyond picking. Clear the delve again for another attempt.",
+      "lastPickSnaps": "The last pick snaps. The lock jams. The chest is lost unless you clear the delve again."
+    }
+  },
+  "lockpickUi": {
+    "pickTitle": "Pick the Lock",
+    "cofferTitle": "Bountiful Coffer",
+    "cache": "{tier} Cache",
+    "pickBlurb": "A richer cache is sealed behind more locks. Easier locks give you more tries and more time; a failed try resets the lock until your tries run out.",
+    "cofferBlurb": "This seal yields only to a master's hand: the Hard, Premium path alone can open it. Solve all three locks for the signature prize.",
+    "pagesAria": "{count} locks",
+    "tries": "{count} tries",
+    "triesOne": "1 try",
+    "perMove": "{seconds}s / move",
+    "seconds": "{seconds}s",
+    "boardTitle": "Tumbler's Path: {tier} cache",
+    "closeAria": "Close",
+    "withdrawAria": "Withdraw",
+    "timerAria": "Time remaining",
+    "lockOf": "Lock {page}/{total}",
+    "lockOfAria": "Lock {page} of {total}",
+    "triesOf": "Tries {tries}/{total}",
+    "triesOfAria": "{tries} of {total} tries left",
+    "ward": "Ward {col} / {total}",
+    "depthKeys": "Hotkeys set pick depth (Q/W/E/A/Z), not the ward number.",
+    "withdraw": "Withdraw (Esc)",
+    "action": {
+      "hardSet": "Hard Set",
+      "set": "Set",
+      "steady": "Steady",
+      "ease": "Ease",
+      "drop": "Drop"
+    },
+    "feedback": {
+      "advanced": "The pin gives...",
+      "slip": "A ward bites, the pick slips!",
+      "bind": "The tumbler binds: wrong depth!",
+      "trap": "A false ward snaps shut, the lock jams!",
+      "retry": "The lock resets. Line up a fresh attempt.",
+      "pageCleared": "A tumbler bank falls. The next lock turns up.",
+      "success": "The bolt throws, the cache is yours!",
+      "fail": "The lock seizes. It won't budge again."
+    },
+    "summary": {
+      "success": "Lock sprung, {tier} cache claimed.",
+      "successGeneric": "Lock sprung, the cache is claimed.",
+      "fail": "The lock is ruined. Clear the delve again for another attempt.",
+      "abandoned": "You ease the picks back out. The lock waits."
+    }
+  },
+  "delveUi": {
+    "board": {
+      "title": "Delve Board",
+      "enter": "Enter Delve",
+      "enterAria": "Enter {delve} on {tier} difficulty",
+      "openDelve": "Collapsed Reliquary",
+      "openDelveAria": "Open Delve Board from {name}",
+      "marks": "Delve Marks: {count}",
+      "minLevel": "Requires Level {level}",
+      "tier": {
+        "normal": "Normal",
+        "heroic": "Heroic"
+      },
+      "companion": {
+        "pick": "Choose a companion",
+        "tessa": "Acolyte Tessa",
+        "rank": "Rank {rank}",
+        "boon": "Heals the party between fights. Rank 3 revives a fallen ally once per run.",
+        "upgrade": "Upgrade to Rank {rank} ({marks} Marks)",
+        "upgradeAria": "Upgrade {name} to rank {rank} for {marks} Delve Marks",
+        "maxRank": "Fully upgraded"
+      },
+      "tabDelve": "Delve",
+      "tabShop": "Shop"
+    },
+    "shop": {
+      "price": "{marks} Marks",
+      "buy": "Buy",
+      "buyAria": "Buy {item} for {marks} Delve Marks",
+      "reqHeroic": "Requires a Heroic clear",
+      "reqClears": "Requires {count} clears",
+      "empty": "Nothing in stock."
+    },
+    "tracker": {
+      "title": "Delve",
+      "objective": "Objective",
+      "module": "Module {current} of {total}",
+      "affix": "Affixes",
+      "complete": "Complete",
+      "marks": "Delve Marks: {count}",
+      "exitHintOpen": "Walk into the tombstone passage (north)",
+      "exitHintLocked": "Clear trash mobs to open the passage north"
+    },
+    "objective": {
+      "kill_boss": "Slay {boss}",
+      "recover_artifact": "Recover the burial ledger",
+      "clear_room": "Clear the room"
+    },
+    "summary": {
+      "title": "Delve Complete",
+      "marks": "{count} Delve Marks earned",
+      "loreUnlock": "Lore unlocked: {title}"
+    },
+    "death": {
+      "warning": "One more death will end this delve run."
+    },
+    "run": {
+      "failed": "The delve run has failed. You are returned to Brother Halven."
+    },
+    "npc": {
+      "halven": {
+        "greeting": "The reliquary below has shifted again. We hear chanting through the floor after midnight, and Acolyte Tessa swears the burial ledgers are changing their own ink. If you have courage enough, {playerName}, take a candle and go below. Do not trust every voice you hear down there. Some of them knew your name before you were born."
+      }
+    },
+    "intro": {
+      "normal": "The stairwell is cold and dark. Broken saint-stones litter the descent, and a soft bell note hangs in the damp air. Acolyte Tessa whispers, \"The reliquary should not be open this far. Stay close, {playerName}.\"",
+      "heroic": "The doors groan shut behind you. Names scrape across the stone like fingernails. Tessa's candle burns blue. \"They are not calling the dead now, {playerName}. They are answering something.\""
+    },
+    "module": {
+      "reliquary_sunken_ossuary": "Water seeps through burial shelves, carrying old ash in silver-black streams.",
+      "reliquary_bell_niche": "Dozens of handbells hang in silence, each tied with funeral cloth.",
+      "reliquary_saintless_hall": "Statues with faces chiseled away with careful hatred.",
+      "reliquary_finale": "The buried bell tolls once beneath your boots."
+    },
+    "moduleName": {
+      "reliquary_sunken_ossuary": "The Sunken Ossuary",
+      "reliquary_bell_niche": "The Bell Niche",
+      "reliquary_saintless_hall": "The Saintless Hall",
+      "reliquary_finale": "The Bell-Buried Chamber"
+    },
+    "companion": {
+      "barkLine": "{name}: {line}",
+      "tessa": {
+        "combat_start": "Keep your footing, {playerName}. The dead are restless here.",
+        "low_hp": "Breathe. I still have prayers left for you.",
+        "trap_spotted": "Hold. Something in the floor remembers footsteps.",
+        "boss_pull": "That bell knows your weight, {playerName}. Do not kneel.",
+        "completion": "The ledger can rest another night. Well done.",
+        "rank": {
+          "1": "Chapel Novice",
+          "2": "Candle-Bearer",
+          "3": "Reliquary Acolyte",
+          "4": "Gravecall Witness",
+          "5": "Chapel Warden"
+        }
+      }
+    },
+    "boss": {
+      "varric": {
+        "bell": {
+          "emote": "Deacon Varric grips the buried bell with both hands!",
+          "log": "Deacon Varric begins to toll the burial bell.",
+          "warning": "Move away from Deacon Varric!",
+          "impact": "The bell's toll cracks the chamber floor!",
+          "lesson": "Bell Toll: a ground slam every twelve seconds. Move out before it lands."
+        },
+        "raise": {
+          "emote": "Deacon Varric calls names from the broken graves!",
+          "log": "Deacon Varric begins Raise Dead.",
+          "warning": "Stop the grave rite!",
+          "object": "The cracked grave shudders with stolen breath.",
+          "interrupt_ok": "The grave rite falters.",
+          "interrupt_fail": "The dead answer Deacon Varric's call!",
+          "lesson": "Interrupt the cracked grave within five seconds or the dead rise to his call."
+        },
+        "pull": "You step on hallowed dust with unclean purpose. Kneel, and be counted.",
+        "intro": "No soul is lost. Only misplaced.",
+        "mid60": "Deacon Varric reads names from the ledger with shaking triumph.",
+        "mid30": "The burial bell answers every name he speaks.",
+        "defeat": "No... I had the names... I had them all..."
+      }
+    },
+    "lore": {
+      "eastbrook_ledger": "A water-stained page from Eastbrook's burial ledger. Names crossed out and rewritten in a hand that is not human.",
+      "first_collapse": "Chapel records note the first sinkage: saint-stones cracked, shelves tilted, and a bell-note heard from below ground.",
+      "gravecaller_mark": "A sigil scraped into coffin wood, not Morthen's seal, but an older gravecaller mark predating the Hollow Crypt.",
+      "bell_below": "Tessa's margin note: \"There is a second bell under the reliquary. It tolls for the misplaced, not the dead.\"",
+      "tessa_note": "Folded scrap in Tessa's script: \"If the ledgers change while we are below, trust the candle, not the voices.\""
+    },
+    "affix": {
+      "restless_graves": "Restless Graves",
+      "bad_air": "Bad Air",
+      "candleblind": "Candleblind",
+      "old_mechanisms": "Old Mechanisms",
+      "flooded_paths": "Flooded Paths",
+      "grave_tax": "Grave Tax",
+      "unstable_roof": "Unstable Roof",
+      "cult_remnants": "Cult Remnants"
+    },
+    "blessing": {
+      "chapel_candle": "Chapel Candle: safer run, one fewer Mark on completion."
+    },
+    "chest": {
+      "flavor": "The dead have surrendered what they can spare."
+    }
+  },
   "fiesta": {
     "bracket": "Fiesta",
     "enterQueue": "Join the Fiesta!",
@@ -1951,7 +2314,9 @@ export const en: EnTranslations = {
     "genre": "MMORPG",
     "playMode": "Multiplayer",
     "applicationCategory": "Game",
-    "operatingSystem": "Web browser"
+    "operatingSystem": "Web browser",
+    "officialLabel": "Official World of ClaudeCraft website",
+    "officialBody": "worldofclaudecraft.com is the official free browser MMO for the Claudemoon realm. Play online with a persistent character, explore solo offline, read the wiki, and follow verified community links from this site."
   },
   "a11y": {
     "goHome": "Go to homepage",
@@ -2020,6 +2385,11 @@ export const en: EnTranslations = {
     "high": "High",
     "medium": "Medium",
     "low": "Low",
+    "popTipLow": "Low population: fewer than 15 players online right now. Plenty of room; great for a fresh start.",
+    "popTipMedium": "Medium population: 15 to 39 players online right now. A healthy, active realm.",
+    "popTipHigh": "High population: 40 to 79 players online right now. Busy, with lots of players around.",
+    "popTipFull": "Full population: 80 or more players online right now. Very busy; you may wait in a login queue.",
+    "popTipOffline": "Offline: this realm is unreachable right now and cannot be joined.",
     "characterCountOne": "{count} character",
     "characterCountOther": "{count} characters",
     "selectedRealm": "Realm: {name}",
@@ -2043,7 +2413,14 @@ export const en: EnTranslations = {
     "portraitAlt": "Portrait of {name}",
     "viewProfile": "View Profile",
     "profile": "Profile",
-    "closeProfile": "Close profile"
+    "closeProfile": "Close profile",
+    "sortBy": "Sort",
+    "sortByLabel": "Sort characters",
+    "sortMenuLabel": "Sort options",
+    "sortLevel": "Level",
+    "sortName": "Name",
+    "sortRecent": "Recently Played",
+    "sortPlaytime": "Playtime"
   },
   "deleteCharacter": {
     "title": "Delete Character",
@@ -2354,6 +2731,7 @@ export const en: EnTranslations = {
         "report": "Report Player",
         "removeParty": "Remove from Party",
         "convertToRaid": "Convert to raid",
+        "convertToParty": "Convert to party",
         "cancel": "Cancel"
       }
     },
@@ -2472,6 +2850,10 @@ export const en: EnTranslations = {
       "whisperAmbiguous": "Several players match '{name}'. Use exact capitalization.",
       "whisperMissing": "There is no player named '{name}' online.",
       "whisperSelf": "You mutter to yourself. Nobody hears it.",
+      "assistSelf": "You can't assist yourself.",
+      "assistNoTarget": "{name} has no target.",
+      "assistWhom": "Assist whom? Target a player or use /assist <name>.",
+      "assisting": "Assisting {name}.",
       "notInParty": "You are not in a party.",
       "unknownCommand": "Unknown command: {command}. Try /s /y /w /p /g.",
       "chatCooldown": "Chat is on cooldown for {seconds}s.",
@@ -2516,6 +2898,8 @@ export const en: EnTranslations = {
       "lootReceiveMoney": "You receive {money}.",
       "lootMoney": "You loot {money}.",
       "soldItem": "Sold {item} for {money}.",
+      "soldJunkOne": "Sold {count} junk item for {money}.",
+      "soldJunkMany": "Sold {count} junk items for {money}.",
       "friendOnline": "{name} has come online.",
       "friendOffline": "{name} has gone offline."
     },
@@ -2919,7 +3303,10 @@ export const en: EnTranslations = {
       "sellQuantityTitle": "Sell {item}",
       "sellQuantityInput": "Quantity to sell",
       "sellQuantityConfirm": "Sell",
-      "sellQuantityCancel": "Cancel"
+      "sellQuantityCancel": "Cancel",
+      "sellJunk": "Sell Junk",
+      "sellJunkAria": "Sell all junk for {price}",
+      "sellJunkHint": "Sells every gray item in your bags except quest items."
     },
     "market": {
       "title": "The World Market",
@@ -3532,7 +3919,7 @@ export const en: EnTranslations = {
       },
       "travel_form": {
         "name": "Travel Form",
-        "description": "Instantly shift into a swift travel form, increasing movement speed by 40%. You cannot use other abilities while shifted, but can shift in or out of combat — ideal for escaping."
+        "description": "Instantly shift into a swift travel form, increasing movement speed by 40%. You cannot use other abilities while shifted, but can shift in or out of combat, ideal for escaping."
       },
       "enrage": {
         "name": "Enrage",
@@ -3931,6 +4318,9 @@ export const en: EnTranslations = {
       "ridge_stalker_pelt": {
         "name": "Ridge Stalker Pelt"
       },
+      "old_cragmaws_pelt": {
+        "name": "Old Cragmaw's Pelt"
+      },
       "glowing_wax": {
         "name": "Glowing Wax"
       },
@@ -4150,9 +4540,6 @@ export const en: EnTranslations = {
       "milepost_boots": {
         "name": "Milepost Boots"
       },
-      "glade_pelt": {
-        "name": "Glade Pelt"
-      },
       "soft_down": {
         "name": "Soft Down Tuft"
       },
@@ -4170,9 +4557,6 @@ export const en: EnTranslations = {
       },
       "monarch_crown_helm": {
         "name": "Monarch's Crown"
-      },
-      "monarch_heart": {
-        "name": "The Monarch's Heart"
       },
       "bristleback_maul": {
         "name": "Bristleback Maul"
@@ -4372,6 +4756,9 @@ export const en: EnTranslations = {
       "cragmaw_prowlboots": {
         "name": "Cragmaw Prowlboots"
       },
+      "cragmaw_huntcord": {
+        "name": "Cragmaw's Huntcord"
+      },
       "drowned_tide_scepter": {
         "name": "Drowned Tide Scepter"
       },
@@ -4506,6 +4893,33 @@ export const en: EnTranslations = {
       },
       "wyrmshadow_talongrips": {
         "name": "Wyrmshadow Talongrips"
+      },
+      "reliquary_plate_chest": {
+        "name": "Reliquary Guard Hauberk"
+      },
+      "reliquary_leather_chest": {
+        "name": "Dustwarden Jerkin"
+      },
+      "reliquary_cloth_chest": {
+        "name": "Shroud of the Reliquary"
+      },
+      "reliquary_legs": {
+        "name": "Vaultbound Legwraps"
+      },
+      "reliquary_helm": {
+        "name": "Ossuary Watch Helm"
+      },
+      "reliquary_shoulder": {
+        "name": "Crumbled Spaulders"
+      },
+      "reliquary_gloves_rog": {
+        "name": "Bonewarden Grips"
+      },
+      "deacon_reliquary_helm": {
+        "name": "Deacon's Reliquary Helm"
+      },
+      "varric_shadow_cowl": {
+        "name": "Varric's Shadow Cowl"
       },
       "the_codfather": {
         "name": "The Codfather"
@@ -4797,41 +5211,26 @@ export const en: EnTranslations = {
       "nythraxis_scourge_of_thornpeak": {
         "name": "Nythraxis, Scourge of Thornpeak"
       },
-      "brightwood_hare": {
-        "name": "Brightwood Hare"
+      "reliquary_ledger_wraith": {
+        "name": "Ledger Wraith"
       },
-      "glade_fox": {
-        "name": "Glade Fox"
+      "reliquary_funeral_ringer": {
+        "name": "Funeral Ringer"
       },
-      "spotted_fawn": {
-        "name": "Spotted Fawn"
+      "reliquary_gravecall_acolyte": {
+        "name": "Gravecall Acolyte"
       },
-      "meadow_crane": {
-        "name": "Meadow Crane"
+      "reliquary_bonewalker": {
+        "name": "Raised Bonewalker"
       },
-      "thornpelt_badger": {
-        "name": "Thornpelt Badger"
+      "reliquary_saintless_effigy": {
+        "name": "Saintless Effigy"
       },
-      "dawnmane_doe": {
-        "name": "Dawnmane Doe"
+      "deacon_varric": {
+        "name": "Deacon Varric"
       },
-      "bramble_lynx": {
-        "name": "Bramble Lynx"
-      },
-      "brightwood_stag": {
-        "name": "Brightwood Stag"
-      },
-      "grovetusk_boar": {
-        "name": "Grovetusk Boar"
-      },
-      "sunhide_bear": {
-        "name": "Sunhide Bear"
-      },
-      "brightwood_monarch": {
-        "name": "The Brightwood Monarch"
-      },
-      "elder_bristleback": {
-        "name": "Elder Bristleback"
+      "acolyte_tessa": {
+        "name": "Acolyte Tessa"
       },
       "ironvein_foreman": {
         "name": "Ironvein Foreman"
@@ -4856,12 +5255,6 @@ export const en: EnTranslations = {
       },
       "nhalia_mourner": {
         "name": "Nhalia Mourner"
-      },
-      "sableweb_hatchling": {
-        "name": "Sableweb Hatchling"
-      },
-      "sableweb_matriarch": {
-        "name": "Sableweb Matriarch"
       },
       "sister_nhalia": {
         "name": "Sister Nhalia"
@@ -5044,15 +5437,15 @@ export const en: EnTranslations = {
         "title": "Loremaster",
         "greeting": "Mind the loose shale, {className}. The mountain has been... restless of late. I intend to learn why."
       },
-      "ranger_elwyn": {
-        "name": "Ranger Elwyn",
-        "title": "Glade Warden",
-        "greeting": "Quiet, {className} - the glade is calm today, and I mean to keep it that way."
-      },
       "brother_aldric_raid": {
         "name": "Brother Aldric",
         "title": "Priest of the Vale",
         "greeting": "From a chapel yard in the Vale to the roof of the world... the trail we have followed ends here. I can feel the mountain listening."
+      },
+      "brother_halven": {
+        "name": "Brother Halven",
+        "title": "Reliquary Keeper",
+        "greeting": "The reliquary below has shifted again."
       },
       "tidewatcher_ondrel": {
         "name": "Ondrel Vane",
@@ -5803,145 +6196,6 @@ export const en: EnTranslations = {
           }
         }
       },
-      "q_brightwood_thinning": {
-        "title": "Thinning the Glade",
-        "text": "Brightwood Glade is overrun, {playerName}. The bramble lynx breed faster than I can cull them, and the herds trample what little grazing is left. Slay 8 Bramble Lynx and bring me 6 Glade Pelts so I can judge the health of the rest.",
-        "completion": "Good. The pride is thinned and these pelts are sound - the glade will hold another season.",
-        "objectives": {
-          "0": {
-            "label": "Bramble Lynx slain"
-          },
-          "1": {
-            "label": "Glade Pelt"
-          }
-        }
-      },
-      "q_brightwood_monarch": {
-        "title": "The Brightwood Monarch",
-        "text": "There is one beast I will not loose an arrow at alone: the Brightwood Monarch, the great stag that rules the deep glade. He has grown old and savage, goring any who near his hollow. He is more than a match for one hunter - bring a friend or two. Lay him to rest and bring me his heart, {playerName}.",
-        "completion": "So the old king has fallen. A heavy thing, this - but a kinder end than the wolves would have given him. Wear this crown of his antlers with respect, {playerName}.",
-        "objectives": {
-          "0": {
-            "label": "The Monarch's Heart"
-          }
-        }
-      },
-      "q_ledger_first_duty": {
-        "title": "A Warden's First Duty",
-        "text": "You want to earn your keep in Eastbrook, {playerName}? Then start where every warden starts. The thornpelt badgers have dug their setts clean through the Brightwood Glade, in the far north past Wolf Run, and the grove floor is caving into their burrows. Cull 8 Thornpelt Badgers and the ledger will remember your name.",
-        "completion": "Eight setts emptied and the grove floor settled. Good. Every name in this ledger started just where you are standing.",
-        "objectives": {
-          "0": {
-            "label": "Thornpelt Badger culled"
-          }
-        }
-      },
-      "q_ledger_teeth": {
-        "title": "Teeth in the Dark",
-        "text": "The glade foxes have grown bold as wolves - they slip the henhouses at dusk and are gone before a lantern is lit, and a hungry vixen will take a lamb as soon as a hen. Thin them, {playerName}. Slay 10 Glade Foxes and let the rest learn to fear the light again.",
-        "completion": "Ten foxes, and the henhouses are quiet at dusk again. The ledger grows kinder to you.",
-        "objectives": {
-          "0": {
-            "label": "Glade Fox slain"
-          }
-        }
-      },
-      "q_ledger_reedwater": {
-        "title": "Reedwater Patrol",
-        "text": "Redbrook sent you? Good - these old bones cannot wade the shallows anymore. The meadow cranes have found my nets, and they spear more of my catch than the Mudfin ever did. Thin them: 8 Meadow Cranes, and mind the deep water.",
-        "completion": "That will keep the long-legged thieves off my nets for a season. Tell the Marshal the shallows are mine again.",
-        "objectives": {
-          "0": {
-            "label": "Meadow Crane driven off"
-          }
-        }
-      },
-      "q_ledger_silk": {
-        "title": "Browse and Bramble",
-        "text": "The ledger marks the eastern woods as warden ground too - and my physic-beds are part of it. The spotted fawns have stripped my silverleaf and bloodthistle to the root, and without those simples half of Eastbrook goes without medicine. I take no joy in it, but cull 8 Spotted Fawns before the autumn herbs are lost entirely.",
-        "completion": "The beds may yet recover, thanks to you. A hard mercy - but a child burning with fever needs the simples more than the wood needs the deer. The ledger is square.",
-        "objectives": {
-          "0": {
-            "label": "Spotted Fawn culled"
-          }
-        }
-      },
-      "q_ledger_brood": {
-        "title": "The Spawning Dark",
-        "text": "Killing the lurkers only made room for the brood. The Sableweb hatchlings are pouring out of the deep nest, and a hundred small fangs kill a traveler as surely as one great one. Crush 8 Sableweb Hatchlings before they grow.",
-        "completion": "A grim work, drowning a nest. But mercy now is a hundred funerals spared later. The ledger is square.",
-        "objectives": {
-          "0": {
-            "label": "Sableweb Hatchling crushed"
-          }
-        }
-      },
-      "q_ledger_deepvermin": {
-        "title": "Vermin in the Deep",
-        "text": "The Marshal's ledger says you clear pests. Well, my dig has the worst of them. The tunnel rats breed faster than my crew can swing a pick - put down 12 Tunnel Rat Diggers and maybe we strike copper before winter.",
-        "completion": "Twelve of the candle-headed vermin, gone! Right, lads - back down the shaft. You have earned the Marshal a good word, {playerName}.",
-        "objectives": {
-          "0": {
-            "label": "Tunnel Rat Digger slain"
-          }
-        }
-      },
-      "q_ledger_toll": {
-        "title": "The Tusked Road",
-        "text": "The grovetusk boars have come down out of the Brightwood and onto the southeast trade road - great tusked brutes that gore the draft oxen and overturn carts for the spilled grain. The ledger has a price on every one. Reopen the road: put down 8 Grovetusk Boars.",
-        "completion": "Eight brutes off the road, and the carts are rolling again. Word is already spreading that the trade road has a new keeper. The ledger climbs in your favor.",
-        "objectives": {
-          "0": {
-            "label": "Grovetusk Boar slain"
-          }
-        }
-      },
-      "q_ledger_vigil": {
-        "title": "Vigil at the Chapel",
-        "text": "The Marshal sends his wardens to me when the trouble is past the reach of swords alone. The chapel dead will not lie still, and I am too old to stand the night vigil. Keep it for me, {playerName} - lay 10 Restless Bones back to their rest.",
-        "completion": "Ten souls returned to the earth, and a night of peace bought for the chapel. The Light remembers such vigils, even when the ledger forgets.",
-        "objectives": {
-          "0": {
-            "label": "Restless Bones laid to rest"
-          }
-        }
-      },
-      "q_ledger_great_boar": {
-        "title": "The Great Bristleback",
-        "text": "There is an old bull boar in the western thickets - the Elder Bristleback, hide like bark and a temper to match. He has gored two of my hide-runners. Bring him down and clear 6 of the lesser Wild Boar that shelter behind him, and I will see your name set high in the ledger.",
-        "completion": "The Elder Bristleback, dead by your hand! That hide alone is worth a season of trade. You have made the ledger proud, {playerName}.",
-        "objectives": {
-          "0": {
-            "label": "Elder Bristleback slain"
-          },
-          "1": {
-            "label": "Wild Boar of the herd slain"
-          }
-        }
-      },
-      "q_ledger_outlaw_captain": {
-        "title": "The Outlaw Captain",
-        "text": "The last name in the ledger is the one I have wanted crossed out for a year: Captain Verlan, who turned half the Vale to banditry. He shelters behind his lieutenants in the southeast camp. Cut down 6 Vale Bandits to reach him, then end Verlan himself. Do not go alone.",
-        "completion": "Captain Verlan, dead, and his coat brought to my door. The ledger is closed, {playerName} - and the Vale will tell wardens-to-come the name of the one who closed it.",
-        "objectives": {
-          "0": {
-            "label": "Vale Bandit cut down"
-          },
-          "1": {
-            "label": "Captain Verlan slain"
-          }
-        }
-      },
-      "q_mogger_tracks": {
-        "title": "Mogger's Trail",
-        "text": "Before you take the road north, Eastbrook has one last thorn in its side: Mogger. The brute has been trampling the lower meadow and driving the boars mad. Clear the meadow around his trail so we can see where he lairs.",
-        "completion": "Those tracks are fresh and deep enough to hold rain. Mogger is no camp tale, {playerName} - and he is close.",
-        "objectives": {
-          "0": {
-            "label": "Wild Boar driven from the trail"
-          }
-        }
-      },
       "q_mogger": {
         "title": "Mogger Must Fall",
         "text": "Mogger has split carts, flattened fences, and killed enough livestock to empty half the Vale. Do not face him alone. Take two strong companions into the eastern meadow and put the brute down for good.",
@@ -6046,6 +6300,9 @@ export const en: EnTranslations = {
             "label": "Fallen Chapel"
           },
           "8": {
+            "label": "Reliquary Hill"
+          },
+          "9": {
             "label": "Brightwood Glade"
           }
         }
@@ -6148,12 +6405,22 @@ export const en: EnTranslations = {
         "enterText": "You step through the moongate — the air turns to cold water and pale light, and the singing closes over your head.",
         "leaveText": "You surface through the moongate into the mountain night."
       }
+    },
+    "delves": {
+      "collapsed_reliquary": {
+        "name": "The Collapsed Reliquary",
+        "enterText": "You descend into the collapsed reliquary.",
+        "leaveText": "You climb back to Brother Halven at the reliquary ruin."
+      }
     }
   },
   "worldContent": {
     "corpseName": "{name} (corpse)",
     "dungeonExitName": "{name} Exit",
     "dungeonPartyWarning": "{name} is meant for a full party of {count}. Tread carefully.",
-    "dungeonInstanceBusy": "All instances of {name} are busy. Try again soon."
+    "dungeonInstanceBusy": "All instances of {name} are busy. Try again soon.",
+    "delveLockedChestInteract": "Press F to pick the lock",
+    "delveRewardChestInteract": "Press F to claim spoils",
+    "delveSurfaceExitInteract": "Press F to climb"
   }
 };

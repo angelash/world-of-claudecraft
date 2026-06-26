@@ -1,24 +1,55 @@
-import * as http from 'node:http';
-import { json, readBody } from './http_util';
-import { rateLimited } from './ratelimit';
-import { findAccount, touchLogin, saveToken, accountForToken, isAdminAccount, setAccountDeactivated } from './db';
-import { verifyPassword, newToken } from './auth';
+import type * as http from 'node:http';
 import {
-  overviewCounts, registrationsByDay, sessionsByDay, classDistribution, levelDistribution,
-  listAccounts, listCharacters, accountDetail, clientPerfSummary, clientPerfRaw,
+  accountDetail,
+  classDistribution,
+  clientPerfRaw,
+  clientPerfSummary,
+  levelDistribution,
+  listAccounts,
+  listCharacters,
+  onlineHistory,
+  overviewCounts,
+  registrationsByDay,
+  sessionsByDay,
 } from './admin_db';
+import { newToken, verifyPassword } from './auth';
+import { getBugReportScreenshot, listBugReports } from './bug_report_db';
 import {
-  forceCharacterRename, ignoreReport, moderateAccount, muteAccountChat, moderationQueue, moderationReportsForAccount,
-} from './moderation_db';
-import {
-  addFilterWord, chatModeratedAccounts, chatModerationForAccount, getFilterConfig, liftChatMute,
-  listFilterWords, removeFilterWord, resetChatStrikes, updateFilterConfig, type WordTier,
+  addFilterWord,
+  chatModeratedAccounts,
+  chatModerationForAccount,
+  getFilterConfig,
+  liftChatMute,
+  listFilterWords,
+  removeFilterWord,
+  resetChatStrikes,
+  updateFilterConfig,
+  type WordTier,
 } from './chat_filter_db';
-import { addBlockedIp, cleanIp, listBlockedIps, removeBlockedIp } from './ip_block_db';
-import { listBugReports, getBugReportScreenshot } from './bug_report_db';
+import {
+  accountForToken,
+  accountMailTarget,
+  findAccount,
+  isAdminAccount,
+  saveToken,
+  setAccountDeactivated,
+  touchLogin,
+} from './db';
+import { emailSecurityIncident } from './email';
 import type { GameServer } from './game';
+import { json, readBody } from './http_util';
+import { addBlockedIp, cleanIp, listBlockedIps, removeBlockedIp } from './ip_block_db';
+import {
+  forceCharacterRename,
+  ignoreReport,
+  moderateAccount,
+  moderationQueue,
+  moderationReportsForAccount,
+  muteAccountChat,
+} from './moderation_db';
 import { providerUsageSnapshot } from './provider_usage';
 import { aiContentCoverageReport, aiContentReviewChecklist, aiProfilePreviewReport } from './ai/content_coverage';
+import { rateLimited } from './ratelimit';
 
 // Admin API: everything under /admin/api/*. Auth is a bearer token whose
 // account has is_admin = TRUE — the admin.* hostname is routing, not security.
@@ -108,11 +139,13 @@ export async function handleAdminApi(
     const accountId = await adminAccountId(req);
     if (accountId === null) return fail(res, 401, 'admin authentication required');
 
-    const actionMatch = /^\/admin\/api\/moderation\/accounts\/(\d+)\/(suspend|ban|unban)$/.exec(path);
+    const actionMatch = /^\/admin\/api\/moderation\/accounts\/(\d+)\/(suspend|ban|unban)$/.exec(
+      path,
+    );
     if (req.method === 'POST' && actionMatch) {
       const targetAccountId = Number(actionMatch[1]);
       const action = actionMatch[2] as 'suspend' | 'ban' | 'unban';
-      if (action !== 'unban' && await isAdminAccount(targetAccountId)) {
+      if (action !== 'unban' && (await isAdminAccount(targetAccountId))) {
         return fail(res, 400, 'admin accounts cannot be suspended or banned');
       }
       const body = await readBody(req);
@@ -125,8 +158,28 @@ export async function handleAdminApi(
           expiresAt: body.expiresAt,
         });
         if (action !== 'unban') {
-          const statusText = action === 'ban' ? 'This account has been banned.' : 'This account is suspended.';
+          const statusText =
+            action === 'ban' ? 'This account has been banned.' : 'This account is suspended.';
           game.disconnectAccount(targetAccountId, statusText);
+          // Notify the affected account of the moderation action. Best-effort and
+          // fully isolated: a mail-target lookup or send failure must never turn a
+          // successful moderation action into an error response.
+          void accountMailTarget(targetAccountId)
+            .then((target) => {
+              if (!target) return;
+              const reasonText =
+                typeof body.reason === 'string' && body.reason.trim()
+                  ? body.reason.trim()
+                  : 'not specified';
+              const until =
+                action === 'ban'
+                  ? 'permanent'
+                  : typeof body.expiresAt === 'string' && body.expiresAt
+                    ? body.expiresAt
+                    : 'until reviewed';
+              emailSecurityIncident(target, action, reasonText, until);
+            })
+            .catch((err) => console.error('security-incident email failed:', err));
         }
         return ok(res, { ok: true });
       } catch (err) {
@@ -158,7 +211,11 @@ export async function handleAdminApi(
           reason: body.reason,
           expiresAt: body.expiresAt,
         });
-        game.muteAccountChat(targetAccountId, String(body.expiresAt ?? ''), String(body.reason ?? ''));
+        game.muteAccountChat(
+          targetAccountId,
+          String(body.expiresAt ?? ''),
+          String(body.reason ?? ''),
+        );
         return ok(res, { ok: true });
       } catch (err) {
         return fail(res, 400, err instanceof Error ? err.message : 'chat mute failed');
@@ -170,7 +227,9 @@ export async function handleAdminApi(
       const ignored = await ignoreReport(Number(ignoreMatch[1]), accountId, body.note);
       return ignored ? ok(res, { ok: true }) : fail(res, 404, 'open report not found');
     }
-    const forceRenameMatch = /^\/admin\/api\/moderation\/characters\/(\d+)\/force-rename$/.exec(path);
+    const forceRenameMatch = /^\/admin\/api\/moderation\/characters\/(\d+)\/force-rename$/.exec(
+      path,
+    );
     if (req.method === 'POST' && forceRenameMatch) {
       const body = await readBody(req);
       try {
@@ -179,7 +238,10 @@ export async function handleAdminApi(
           adminAccountId: accountId,
           reason: body.reason,
         });
-        game.disconnectAccount(result.accountId, 'A moderator requires one of your characters to be renamed.');
+        game.disconnectAccount(
+          result.accountId,
+          'A moderator requires one of your characters to be renamed.',
+        );
         return ok(res, { ok: true });
       } catch (err) {
         return fail(res, 400, err instanceof Error ? err.message : 'force rename failed');
@@ -194,7 +256,9 @@ export async function handleAdminApi(
       if (lifted) game.liftChatMuteLive(id);
       return lifted ? ok(res, { ok: true }) : fail(res, 404, 'account not found');
     }
-    const resetStrikesMatch = /^\/admin\/api\/moderation\/accounts\/(\d+)\/reset-strikes$/.exec(path);
+    const resetStrikesMatch = /^\/admin\/api\/moderation\/accounts\/(\d+)\/reset-strikes$/.exec(
+      path,
+    );
     if (req.method === 'POST' && resetStrikesMatch) {
       const id = Number(resetStrikesMatch[1]);
       const reset = await resetChatStrikes(id);
@@ -292,9 +356,19 @@ export async function handleAdminApi(
         overviewCounts(),
         game.aiAuditSnapshot(),
       ]);
+      const serverStats = game.adminStats();
       return ok(res, {
         ...counts,
-        server: game.adminStats(),
+        peakOnlineToday: Math.max(counts.peakOnlineToday, serverStats.online),
+        peakOnlineAllTime: Math.max(counts.peakOnlineAllTime, serverStats.online),
+        server: {
+          ...serverStats,
+          peakOnline: Math.max(
+            serverStats.peakOnline,
+            counts.peakOnlineAllTime,
+            serverStats.online,
+          ),
+        },
         usage: providerUsageSnapshot(),
         ai: game.aiLifeLayerMetrics(),
         aiDiagnostics: game.aiLifeLayerDiagnostics(),
@@ -323,6 +397,9 @@ export async function handleAdminApi(
     if (path === '/admin/api/online') {
       return ok(res, { players: game.liveSessions() });
     }
+    if (path === '/admin/api/online-history') {
+      return ok(res, await onlineHistory(url.searchParams.get('range') ?? '30d'));
+    }
     if (path === '/admin/api/activity') {
       const [registrations, sessions, classes, levels] = await Promise.all([
         registrationsByDay(ACTIVITY_WINDOW_DAYS),
@@ -345,7 +422,9 @@ export async function handleAdminApi(
       return ok(res, {
         rows,
         nextBeforeId: rows.length > 0 ? rows[rows.length - 1].id : null,
-        hasMore: rows.length >= Math.min(1000, Math.max(1, Math.floor(Number.isFinite(limit) ? limit : 100))),
+        hasMore:
+          rows.length >=
+          Math.min(1000, Math.max(1, Math.floor(Number.isFinite(limit) ? limit : 100))),
       });
     }
     if (path === '/admin/api/accounts') {
@@ -375,7 +454,12 @@ export async function handleAdminApi(
         chatModerationForAccount(id),
       ]);
       if (!detail) return fail(res, 404, 'account not found');
-      return ok(res, { account: detail, reports, chat, blockedIps: getBlockedIpsForAccount(game, detail) });
+      return ok(res, {
+        account: detail,
+        reports,
+        chat,
+        blockedIps: getBlockedIpsForAccount(game, detail),
+      });
     }
     const detailMatch = /^\/admin\/api\/accounts\/(\d+)$/.exec(path);
     if (detailMatch) {

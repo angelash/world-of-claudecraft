@@ -937,5 +937,18 @@ export const it_IT: AdminTranslations = {
   "error.invalidIp": "è richiesto un indirizzo IP valido",
   "error.blockExpiryFuture": "la scadenza del blocco deve essere nel futuro",
   "error.blockFailed": "blocco dell'IP non riuscito",
-  "error.blockNotFound": "IP non trovato"
+  "error.blockNotFound": "IP non trovato",
+  "stats.onlineAccounts": "account online",
+  "stats.siteUsersNow": "utenti del sito ora",
+  "stats.peakOnlineToday": "picco online 24h",
+  "stats.peakOnlineAllTime": "picco online storico",
+  "stats.returningAccounts24h": "account di ritorno 24h",
+  "stats.activeAccounts7d": "account attivi 7g",
+  "stats.activeAccounts30d": "account attivi 30g",
+  "stats.avgPlaytimePerAccount": "tempo medio di gioco per account",
+  "charts.onlineHistory": "Storico online ({range})",
+  "charts.onlineTooltip": "{bucket}: picco {siteUsers} utenti del sito, {players} giocatori, {accounts} account",
+  "charts.range.24h": "24h",
+  "charts.range.7d": "7 giorni",
+  "charts.range.30d": "30 giorni"
 };

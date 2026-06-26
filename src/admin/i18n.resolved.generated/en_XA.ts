@@ -937,5 +937,18 @@ export const en_XA: AdminTranslations = {
   "error.invalidIp": "[á ʋáļíð ÍÞ áððŕéšš íš ŕéɋúíŕéð]",
   "error.blockExpiryFuture": "[ƀļóçķ éẋþíŕý ɱúšţ ƀé íñ ţĥé ƒúţúŕé]",
   "error.blockFailed": "[ƒáíļéð ţó ƀļóçķ ÍÞ]",
-  "error.blockNotFound": "[ÍÞ ñóţ ƒóúñð]"
+  "error.blockNotFound": "[ÍÞ ñóţ ƒóúñð]",
+  "stats.onlineAccounts": "[óñļíñé áççóúñţš]",
+  "stats.siteUsersNow": "[šíţé úšéŕš ñóŵ]",
+  "stats.peakOnlineToday": "[þéáķ óñļíñé 24ĥ]",
+  "stats.peakOnlineAllTime": "[þéáķ óñļíñé áļļ ţíɱé]",
+  "stats.returningAccounts24h": "[ŕéţúŕñíñĝ áççóúñţš 24ĥ]",
+  "stats.activeAccounts7d": "[áçţíʋé áççóúñţš 7ð]",
+  "stats.activeAccounts30d": "[áçţíʋé áççóúñţš 30ð]",
+  "stats.avgPlaytimePerAccount": "[áʋĝ þļáýţíɱé þéŕ áççóúñţ]",
+  "charts.onlineHistory": "[Óñļíñé ţŕéñð ({range})]",
+  "charts.onlineTooltip": "[{bucket}: þéáķ {siteUsers} šíţé úšéŕš, {players} þļáýéŕš, {accounts} áççóúñţš]",
+  "charts.range.24h": "[24 ĥóúŕš]",
+  "charts.range.7d": "[7 ðáýš]",
+  "charts.range.30d": "[30 ðáýš]"
 };

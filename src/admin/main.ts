@@ -1,26 +1,58 @@
-import { apiGet, apiLogin, apiPost, clearSession, getAdminName, getToken, ApiError } from './api';
-import { barChart, chartPanel } from './charts';
-import { escapeHtml, fmtBytes, fmtDate, fmtDuration } from './format';
+import { ApiError, apiGet, apiLogin, apiPost, clearSession, getAdminName, getToken } from './api';
+import { barChart, chartPanel, lineChart } from './charts';
+import { escapeHtml, fmtBytes, fmtChartBucket, fmtDate, fmtDuration, fmtNumber } from './format';
 import {
-  classLabel, t, localizeAdminError, ensureAdminLocaleLoaded,
-  adminLanguage, adminLanguageTag, setAdminLanguage,
+  adminLanguage,
+  adminLanguageTag,
+  classLabel,
+  ensureAdminLocaleLoaded,
+  localizeAdminError,
+  setAdminLanguage,
+  t,
 } from './i18n';
+import { startSitePresence } from './site_presence';
 import {
-  renderAccountDetail, renderAccountsTable, renderCharactersTable, renderChatFilter,
-  renderAiAuditRecordDetail, renderAiLifeLayerMetrics, renderModerationDetail, renderModerationQueue,
-  renderBlockedIps, renderBugReportsTable,
-  renderOnlineTable, renderPager, renderProviderUsage,
+  renderAccountDetail,
+  renderAccountsTable,
+  renderAiAuditRecordDetail,
+  renderAiLifeLayerMetrics,
+  renderBlockedIps,
+  renderBugReportsTable,
+  renderCharactersTable,
+  renderChatFilter,
+  renderModerationDetail,
+  renderModerationQueue,
+  renderOnlineTable,
+  renderPager,
+  renderProviderUsage,
 } from './tables';
 import type { AiLifeLayerTab } from './tables';
 import type {
-  AccountDetail, AccountRow, Activity, CharacterRow, ChatFilterData, LivePlayer,
-  BlockedIpsData, BugReportRow,
-  AiActiveSequenceCancelResult, AiAuditCleanupResult, AiAuditRecord, AiVolatileMemoryClearResult, ModerationAccountDetail, ModerationQueueRow, Overview, Paginated,
+  AccountDetail,
+  AccountRow,
+  Activity,
+  AiActiveSequenceCancelResult,
+  AiAuditCleanupResult,
+  AiAuditRecord,
+  AiVolatileMemoryClearResult,
+  BlockedIpsData,
+  BugReportRow,
+  CharacterRow,
+  ChatFilterData,
+  LivePlayer,
+  ModerationAccountDetail,
+  ModerationQueueRow,
+  OnlineHistory,
+  OnlineHistoryRange,
+  Overview,
+  Paginated,
 } from './types';
 
 const LIVE_REFRESH_MS = 5_000;
 const ACTIVITY_REFRESH_MS = 60_000;
 const SEARCH_DEBOUNCE_MS = 300;
+
+startSitePresence();
 
 const $ = (id: string): HTMLElement => {
   const el = document.getElementById(id);
@@ -66,12 +98,24 @@ const charactersState: TableState = { page: 1, search: '', sort: 'level', dir: '
 const bugReportsState = { page: 1 };
 let liveTimer: number | null = null;
 let activityTimer: number | null = null;
-type AdminPage = 'overview' | 'usage' | 'moderation' | 'chat-filter' | 'blocked-ips' | 'bug-reports';
+let onlineHistoryRange: OnlineHistoryRange = '24h';
+type AdminPage =
+  | 'overview'
+  | 'usage'
+  | 'moderation'
+  | 'chat-filter'
+  | 'blocked-ips'
+  | 'bug-reports';
 let activePage: AdminPage = 'overview';
 // Re-fetched when returning to the Moderation tab: its blocked-IP badges can be
 // changed from the Blocked IPs tab and would otherwise show stale.
 let openModerationAccountId: number | null = null;
-let pendingModerationAction: { endpoint: string; body: unknown; accountId: number; source: 'account' | 'moderation' } | null = null;
+let pendingModerationAction: {
+  endpoint: string;
+  body: unknown;
+  accountId: number;
+  source: 'account' | 'moderation';
+} | null = null;
 let selectedAiAuditId: string | null = null;
 let activeAiTab: AiLifeLayerTab = 'audit';
 let loadedAiAuditDetailId: string | null = null;
@@ -83,8 +127,14 @@ let loadingAiAuditDetailId: string | null = null;
 // ---------------------------------------------------------------------------
 
 function showLogin(message = ''): void {
-  if (liveTimer !== null) { clearInterval(liveTimer); liveTimer = null; }
-  if (activityTimer !== null) { clearInterval(activityTimer); activityTimer = null; }
+  if (liveTimer !== null) {
+    clearInterval(liveTimer);
+    liveTimer = null;
+  }
+  if (activityTimer !== null) {
+    clearInterval(activityTimer);
+    activityTimer = null;
+  }
   clearSession();
   selectedAiAuditId = null;
   activeAiTab = 'audit';
@@ -150,7 +200,12 @@ async function showApp(): Promise<void> {
   $('app').classList.add('authed');
   $('who-name').textContent = getAdminName();
   await refreshLive();
-  await Promise.all([refreshActivity(), refreshModeration(), refreshAccounts(), refreshCharacters()]);
+  await Promise.all([
+    refreshActivity(),
+    refreshModeration(),
+    refreshAccounts(),
+    refreshCharacters(),
+  ]);
   liveTimer = window.setInterval(() => void refreshLive(), LIVE_REFRESH_MS);
   activityTimer = window.setInterval(() => void refreshActivity(), ACTIVITY_REFRESH_MS);
 }
@@ -188,7 +243,8 @@ async function refreshBugReports(): Promise<void> {
     $('bug-reports').innerHTML = renderBugReportsTable(data.rows);
     $('bug-reports-pager').innerHTML = renderPager(data.total, data.page, data.limit);
   } catch (err) {
-    if (!handleAuthFailure(err)) $('bug-reports').innerHTML = `<div class="empty">${t('bugReports.loadFailed')}</div>`;
+    if (!handleAuthFailure(err))
+      $('bug-reports').innerHTML = `<div class="empty">${t('bugReports.loadFailed')}</div>`;
   }
 }
 
@@ -196,7 +252,9 @@ async function refreshBugReports(): Promise<void> {
 // it in a click-to-dismiss overlay.
 async function showBugScreenshot(id: number): Promise<void> {
   try {
-    const data = await apiGet<{ screenshot: string | null }>(`/admin/api/bug-reports/${id}/screenshot`);
+    const data = await apiGet<{ screenshot: string | null }>(
+      `/admin/api/bug-reports/${id}/screenshot`,
+    );
     if (!data.screenshot) return;
     const overlay = document.createElement('div');
     overlay.className = 'bug-shot-overlay';
@@ -207,7 +265,9 @@ async function showBugScreenshot(id: number): Promise<void> {
     overlay.appendChild(img);
     const close = () => overlay.remove();
     overlay.addEventListener('click', close);
-    overlay.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+    overlay.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+    });
     document.body.appendChild(overlay);
     overlay.focus(); // so Escape works without a prior click
   } catch (err) {
@@ -272,7 +332,8 @@ async function refreshBlockedIps(): Promise<void> {
     const data = await apiGet<BlockedIpsData>('/admin/api/blocked-ips');
     $('blocked-ips').innerHTML = renderBlockedIps(data);
   } catch (err) {
-    if (!handleAuthFailure(err)) $('blocked-ips').innerHTML = `<div class="empty">${t('blockedIps.loadFailed')}</div>`;
+    if (!handleAuthFailure(err))
+      $('blocked-ips').innerHTML = `<div class="empty">${t('blockedIps.loadFailed')}</div>`;
   }
 }
 
@@ -284,6 +345,17 @@ function statCard(value: string, label: string): string {
   return `<div class="panel stat"><div class="v">${escapeHtml(value)}</div><div class="k">${escapeHtml(label)}</div></div>`;
 }
 
+function onlineRangeControls(active: OnlineHistoryRange): string {
+  const ranges: OnlineHistoryRange[] = ['24h', '7d', '30d'];
+  return `<div class="range-tabs">${ranges
+    .map(
+      (range) => `
+    <button class="range-tab${range === active ? ' active' : ''}" data-online-range="${range}">${t(`charts.range.${range}`)}</button>
+  `,
+    )
+    .join('')}</div>`;
+}
+
 async function refreshLive(): Promise<void> {
   try {
     const [overview, online] = await Promise.all([
@@ -292,13 +364,21 @@ async function refreshLive(): Promise<void> {
     ]);
     const s = overview.server;
     setHtmlIfChanged('stats', [
-      statCard(String(s.online), t('stats.onlineNow')),
-      statCard(String(s.peakOnline), t('stats.peakOnline')),
-      statCard(String(overview.accounts), t('stats.accounts')),
-      statCard(String(overview.characters), t('stats.characters')),
-      statCard(String(overview.accountsToday), t('stats.newAccounts24h')),
-      statCard(String(overview.activeAccountsToday), t('stats.activeAccounts24h')),
-      statCard(String(overview.sessionsToday), t('stats.sessions24h')),
+      statCard(fmtNumber(s.online), t('stats.onlineNow')),
+      statCard(fmtNumber(s.onlineAccounts), t('stats.onlineAccounts')),
+      statCard(fmtNumber(overview.siteUsersNow), t('stats.siteUsersNow')),
+      statCard(fmtNumber(s.peakOnline), t('stats.peakOnline')),
+      statCard(fmtNumber(overview.peakOnlineToday), t('stats.peakOnlineToday')),
+      statCard(fmtNumber(overview.peakOnlineAllTime), t('stats.peakOnlineAllTime')),
+      statCard(fmtNumber(overview.activeAccountsToday), t('stats.activeAccounts24h')),
+      statCard(fmtNumber(overview.activeAccountsWeek), t('stats.activeAccounts7d')),
+      statCard(fmtNumber(overview.activeAccountsMonth), t('stats.activeAccounts30d')),
+      statCard(fmtNumber(overview.accountsToday), t('stats.newAccounts24h')),
+      statCard(fmtNumber(overview.returningAccountsToday), t('stats.returningAccounts24h')),
+      statCard(fmtDuration(overview.avgPlaytimeSeconds), t('stats.avgPlaytimePerAccount')),
+      statCard(fmtNumber(overview.accounts), t('stats.accounts')),
+      statCard(fmtNumber(overview.characters), t('stats.characters')),
+      statCard(fmtNumber(overview.sessionsToday), t('stats.sessions24h')),
       statCard(fmtDuration(s.uptimeSeconds), t('stats.uptime')),
       statCard(`${s.tickMsAvg} ms`, t('stats.avgTick')),
       statCard(fmtBytes(s.rssBytes), t('stats.serverRss')),
@@ -468,25 +548,58 @@ async function cancelAiActiveSequences(): Promise<void> {
 
 async function refreshActivity(): Promise<void> {
   try {
-    const a = await apiGet<Activity>('/admin/api/activity');
+    const [a, onlineTrend] = await Promise.all([
+      apiGet<Activity>('/admin/api/activity'),
+      apiGet<OnlineHistory>(`/admin/api/online-history?range=${onlineHistoryRange}`),
+    ]);
     const dayLabel = (day: string) => day.slice(5); // YYYY-MM-DD -> MM-DD
     setHtmlIfChanged('charts', [
-      chartPanel(t('charts.registrations', { days: a.days }), barChart(
-        a.registrations.map((p) => ({ label: dayLabel(p.day), value: p.count })),
-      )),
-      chartPanel(t('charts.sessions', { days: a.days }), barChart(
-        a.sessions.map((p) => ({
-          label: dayLabel(p.day),
-          value: p.sessions,
-          title: t('charts.sessionsTooltip', { day: p.day, sessions: p.sessions, accounts: p.uniqueAccounts, played: fmtDuration(p.playtimeSeconds) }),
-        })),
-      )),
-      chartPanel(t('charts.classDistribution'), barChart(
-        a.classes.map((p) => ({ label: classLabel(p.key), value: p.count })),
-      )),
-      chartPanel(t('charts.levelDistribution'), barChart(
-        a.levels.map((p) => ({ label: p.key, value: p.count })),
-      )),
+      chartPanel(
+        t('charts.onlineHistory', { range: t(`charts.range.${onlineTrend.range}`) }),
+        [
+          onlineRangeControls(onlineTrend.range),
+          lineChart(
+            onlineTrend.points.map((p) => ({
+              label: fmtChartBucket(p.bucketStart, onlineTrend.bucket),
+              value: p.peakSiteUsers,
+              secondaryValue: p.peakPlayers,
+              title: t('charts.onlineTooltip', {
+                bucket: fmtChartBucket(p.bucketStart, onlineTrend.bucket),
+                siteUsers: fmtNumber(p.peakSiteUsers),
+                players: fmtNumber(p.peakPlayers),
+                accounts: fmtNumber(p.peakAccounts),
+              }),
+            })),
+          ),
+        ].join(''),
+      ),
+      chartPanel(
+        t('charts.registrations', { days: a.days }),
+        barChart(a.registrations.map((p) => ({ label: dayLabel(p.day), value: p.count }))),
+      ),
+      chartPanel(
+        t('charts.sessions', { days: a.days }),
+        barChart(
+          a.sessions.map((p) => ({
+            label: dayLabel(p.day),
+            value: p.sessions,
+            title: t('charts.sessionsTooltip', {
+              day: p.day,
+              sessions: p.sessions,
+              accounts: p.uniqueAccounts,
+              played: fmtDuration(p.playtimeSeconds),
+            }),
+          })),
+        ),
+      ),
+      chartPanel(
+        t('charts.classDistribution'),
+        barChart(a.classes.map((p) => ({ label: classLabel(p.key), value: p.count }))),
+      ),
+      chartPanel(
+        t('charts.levelDistribution'),
+        barChart(a.levels.map((p) => ({ label: p.key, value: p.count }))),
+      ),
     ].join(''));
   } catch (err) {
     if (!handleAuthFailure(err)) console.error('activity refresh failed:', err);
@@ -495,7 +608,10 @@ async function refreshActivity(): Promise<void> {
 
 async function refreshAccounts(): Promise<void> {
   try {
-    const params = new URLSearchParams({ page: String(accountsState.page), search: accountsState.search });
+    const params = new URLSearchParams({
+      page: String(accountsState.page),
+      search: accountsState.search,
+    });
     const data = await apiGet<Paginated<AccountRow>>(`/admin/api/accounts?${params}`);
     setHtmlIfChanged('accounts', renderAccountsTable(data.rows));
     setHtmlIfChanged('accounts-pager', renderPager(data.total, data.page, data.limit));
@@ -507,7 +623,9 @@ async function refreshAccounts(): Promise<void> {
 async function refreshCharacters(): Promise<void> {
   try {
     const params = new URLSearchParams({
-      page: String(charactersState.page), sort: charactersState.sort, dir: charactersState.dir,
+      page: String(charactersState.page),
+      sort: charactersState.sort,
+      dir: charactersState.dir,
     });
     const data = await apiGet<Paginated<CharacterRow>>(`/admin/api/characters?${params}`);
     setHtmlIfChanged('characters', renderCharactersTable(data.rows, charactersState.sort, charactersState.dir));
@@ -523,7 +641,9 @@ async function toggleAccountDetail(row: HTMLTableRowElement, accountId: number):
     existing.remove();
     return;
   }
-  row.parentElement?.querySelectorAll('.detail-row').forEach((el) => el.remove());
+  row.parentElement?.querySelectorAll('.detail-row').forEach((el) => {
+    el.remove();
+  });
   try {
     const detail = await apiGet<AccountDetail>(`/admin/api/accounts/${accountId}`);
     const detailRow = document.createElement('tr');
@@ -536,7 +656,9 @@ async function toggleAccountDetail(row: HTMLTableRowElement, accountId: number):
 }
 
 async function refreshOpenAccountDetail(accountId: number): Promise<void> {
-  const row = document.querySelector<HTMLTableRowElement>(`#accounts tr.clickable[data-account-id="${CSS.escape(String(accountId))}"]`);
+  const row = document.querySelector<HTMLTableRowElement>(
+    `#accounts tr.clickable[data-account-id="${CSS.escape(String(accountId))}"]`,
+  );
   const detailRow = row?.nextElementSibling;
   if (!row || !detailRow?.classList.contains('detail-row')) return;
   try {
@@ -551,10 +673,13 @@ async function openModerationAccount(accountId: number): Promise<void> {
   openModerationAccountId = accountId;
   $('moderation-detail').innerHTML = `<div class="empty">${t('report.loading')}</div>`;
   try {
-    const detail = await apiGet<ModerationAccountDetail>(`/admin/api/moderation/accounts/${accountId}`);
+    const detail = await apiGet<ModerationAccountDetail>(
+      `/admin/api/moderation/accounts/${accountId}`,
+    );
     $('moderation-detail').innerHTML = renderModerationDetail(detail);
   } catch (err) {
-    if (!handleAuthFailure(err)) $('moderation-detail').innerHTML = `<div class="empty">${t('report.loadFailed')}</div>`;
+    if (!handleAuthFailure(err))
+      $('moderation-detail').innerHTML = `<div class="empty">${t('report.loadFailed')}</div>`;
   }
 }
 
@@ -568,7 +693,12 @@ function showModerationConfirm(opts: {
   confirmEl: HTMLElement;
   danger?: boolean;
 }): void {
-  pendingModerationAction = { endpoint: opts.endpoint, body: opts.body, accountId: opts.accountId, source: opts.source };
+  pendingModerationAction = {
+    endpoint: opts.endpoint,
+    body: opts.body,
+    accountId: opts.accountId,
+    source: opts.source,
+  };
   const el = opts.confirmEl;
   el.className = `mod-confirm show${el.classList.contains('account-mod-confirm') ? ' account-mod-confirm' : ''}`;
   el.innerHTML = `
@@ -583,19 +713,25 @@ function showModerationConfirm(opts: {
 
 function moderationReasonInput(target: HTMLElement): HTMLInputElement | null {
   const detailRow = target.closest('.detail-row');
-  return (detailRow?.querySelector('.account-mod-reason') as HTMLInputElement | null) ??
-    ($('mod-reason') as HTMLInputElement | null);
+  return (
+    (detailRow?.querySelector('.account-mod-reason') as HTMLInputElement | null) ??
+    ($('mod-reason') as HTMLInputElement | null)
+  );
 }
 
 function moderationCustomExpiryInput(target: HTMLElement): HTMLInputElement | null {
   const detailRow = target.closest('.detail-row');
-  return (detailRow?.querySelector('.account-custom-expiry') as HTMLInputElement | null) ??
-    ($('mod-custom-expiry') as HTMLInputElement | null);
+  return (
+    (detailRow?.querySelector('.account-custom-expiry') as HTMLInputElement | null) ??
+    ($('mod-custom-expiry') as HTMLInputElement | null)
+  );
 }
 
 function moderationConfirmEl(target: HTMLElement): HTMLElement {
   const detailRow = target.closest('.detail-row');
-  return (detailRow?.querySelector('.account-mod-confirm') as HTMLElement | null) ?? $('mod-confirm');
+  return (
+    (detailRow?.querySelector('.account-mod-confirm') as HTMLElement | null) ?? $('mod-confirm')
+  );
 }
 
 async function finishModerationAction(): Promise<void> {
@@ -622,13 +758,20 @@ function handleModerationActionClick(e: Event, source: 'account' | 'moderation')
     return true;
   }
   if (target.closest('[data-confirm-moderation]')) {
-    void finishModerationAction()
-      .catch((err: unknown) => { if (!handleAuthFailure(err)) window.alert(err instanceof Error ? localizeAdminError(err.message) : t('alert.actionFailed')); });
+    void finishModerationAction().catch((err: unknown) => {
+      if (!handleAuthFailure(err))
+        window.alert(
+          err instanceof Error ? localizeAdminError(err.message) : t('alert.actionFailed'),
+        );
+    });
     return true;
   }
   const actionWrap = target.closest('[data-action-account-id]') as HTMLElement | null;
   const detailWrap = target.closest('.mod-detail') as HTMLElement | null;
-  const accountId = Number((actionWrap ?? detailWrap?.querySelector('[data-action-account-id]') as HTMLElement | null)?.dataset.actionAccountId);
+  const accountId = Number(
+    (actionWrap ?? (detailWrap?.querySelector('[data-action-account-id]') as HTMLElement | null))
+      ?.dataset.actionAccountId,
+  );
   const note = (moderationReasonInput(target)?.value ?? '').trim();
   const requireNote = (): boolean => {
     if (note) return true;
@@ -637,15 +780,27 @@ function handleModerationActionClick(e: Event, source: 'account' | 'moderation')
   };
   // Lift mute / reset strikes: non-destructive, no note/confirm. Available for
   // any account (incl. admins) so an auto-muted operator can clear it themselves.
-  const chatModBtn = target.closest('button[data-lift-mute], button[data-reset-strikes]') as HTMLButtonElement | null;
+  const chatModBtn = target.closest(
+    'button[data-lift-mute], button[data-reset-strikes]',
+  ) as HTMLButtonElement | null;
   if (chatModBtn && Number.isFinite(accountId)) {
     const endpoint = chatModBtn.dataset.liftMute !== undefined ? 'lift-mute' : 'reset-strikes';
     void apiPost(`/admin/api/moderation/accounts/${accountId}/${endpoint}`, {})
-      .then(() => { if (source === 'account') void refreshOpenAccountDetail(accountId); else void openModerationAccount(accountId); })
-      .catch((err: unknown) => { if (!handleAuthFailure(err)) window.alert(err instanceof Error ? localizeAdminError(err.message) : t('alert.actionFailed')); });
+      .then(() => {
+        if (source === 'account') void refreshOpenAccountDetail(accountId);
+        else void openModerationAccount(accountId);
+      })
+      .catch((err: unknown) => {
+        if (!handleAuthFailure(err))
+          window.alert(
+            err instanceof Error ? localizeAdminError(err.message) : t('alert.actionFailed'),
+          );
+      });
     return true;
   }
-  const forceRenameBtn = target.closest('button[data-force-rename-character]') as HTMLButtonElement | null;
+  const forceRenameBtn = target.closest(
+    'button[data-force-rename-character]',
+  ) as HTMLButtonElement | null;
   if (forceRenameBtn) {
     if (!requireNote()) return true;
     const characterId = Number(forceRenameBtn.dataset.forceRenameCharacter);
@@ -691,8 +846,16 @@ function handleModerationActionClick(e: Event, source: 'account' | 'moderation')
   const unblockIpBtn = target.closest('button[data-unblock-ip]') as HTMLButtonElement | null;
   if (unblockIpBtn) {
     void apiPost('/admin/api/blocked-ips/delete', { ip: unblockIpBtn.dataset.unblockIp })
-      .then(() => { if (source === 'account') void refreshOpenAccountDetail(accountId); else void openModerationAccount(accountId); })
-      .catch((err: unknown) => { if (!handleAuthFailure(err)) window.alert(err instanceof Error ? localizeAdminError(err.message) : t('alert.actionFailed')); });
+      .then(() => {
+        if (source === 'account') void refreshOpenAccountDetail(accountId);
+        else void openModerationAccount(accountId);
+      })
+      .catch((err: unknown) => {
+        if (!handleAuthFailure(err))
+          window.alert(
+            err instanceof Error ? localizeAdminError(err.message) : t('alert.actionFailed'),
+          );
+      });
     return true;
   }
   if (!actionWrap) return false;
@@ -769,7 +932,9 @@ function handleModerationActionClick(e: Event, source: 'account' | 'moderation')
     });
     return true;
   }
-  const customChatMute = target.closest('button[data-chat-mute-custom]') as HTMLButtonElement | null;
+  const customChatMute = target.closest(
+    'button[data-chat-mute-custom]',
+  ) as HTMLButtonElement | null;
   if (customChatMute) {
     if (!requireNote()) return true;
     const raw = moderationCustomExpiryInput(target)?.value ?? '';
@@ -847,7 +1012,8 @@ function wireEvents(): void {
     apiLogin(username, password)
       .then(() => showApp())
       .catch((err: unknown) => {
-        $('login-error').textContent = err instanceof ApiError ? localizeAdminError(err.message) : t('auth.loginFailed');
+        $('login-error').textContent =
+          err instanceof ApiError ? localizeAdminError(err.message) : t('auth.loginFailed');
       });
   });
 
@@ -862,7 +1028,26 @@ function wireEvents(): void {
   $('admin-tabs').addEventListener('click', (e) => {
     const tab = (e.target as HTMLElement).closest<HTMLButtonElement>('.admin-tab');
     const page = tab?.dataset.adminPage;
-    if (page === 'overview' || page === 'usage' || page === 'moderation' || page === 'chat-filter' || page === 'blocked-ips' || page === 'bug-reports') showPage(page);
+    if (
+      page === 'overview' ||
+      page === 'usage' ||
+      page === 'moderation' ||
+      page === 'chat-filter' ||
+      page === 'blocked-ips' ||
+      page === 'bug-reports'
+    )
+      showPage(page);
+  });
+
+  $('charts').addEventListener('click', (e) => {
+    const button = (e.target as HTMLElement).closest<HTMLButtonElement>(
+      'button[data-online-range]',
+    );
+    const range = button?.dataset.onlineRange;
+    if (range === '24h' || range === '7d' || range === '30d') {
+      onlineHistoryRange = range;
+      void refreshActivity();
+    }
   });
 
   wireChatFilterEvents();
@@ -938,27 +1123,40 @@ function wireEvents(): void {
 
   $('accounts-pager').addEventListener('click', (e) => {
     const page = pagerTarget(e);
-    if (page !== null) { accountsState.page = page; void refreshAccounts(); }
+    if (page !== null) {
+      accountsState.page = page;
+      void refreshAccounts();
+    }
   });
 
   $('characters-pager').addEventListener('click', (e) => {
     const page = pagerTarget(e);
-    if (page !== null) { charactersState.page = page; void refreshCharacters(); }
+    if (page !== null) {
+      charactersState.page = page;
+      void refreshCharacters();
+    }
   });
 
   $('bug-reports-pager').addEventListener('click', (e) => {
     const page = pagerTarget(e);
-    if (page !== null) { bugReportsState.page = page; void refreshBugReports(); }
+    if (page !== null) {
+      bugReportsState.page = page;
+      void refreshBugReports();
+    }
   });
 
   $('bug-reports').addEventListener('click', (e) => {
-    const btn = (e.target as HTMLElement).closest('button[data-bug-shot]') as HTMLButtonElement | null;
+    const btn = (e.target as HTMLElement).closest(
+      'button[data-bug-shot]',
+    ) as HTMLButtonElement | null;
     if (btn) void showBugScreenshot(Number(btn.dataset.bugShot));
   });
 
   $('accounts').addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
-    const isAccountModClick = target.closest('.account-admin-controls, .account-mod-confirm, button[data-force-rename-character]');
+    const isAccountModClick = target.closest(
+      '.account-admin-controls, .account-mod-confirm, button[data-force-rename-character]',
+    );
     if (isAccountModClick && handleModerationActionClick(e, 'account')) {
       e.stopPropagation();
       return;
@@ -969,20 +1167,37 @@ function wireEvents(): void {
   });
 
   $('moderation').addEventListener('click', (e) => {
-    const row = (e.target as HTMLElement).closest('tr[data-moderation-account-id]') as HTMLTableRowElement | null;
+    const row = (e.target as HTMLElement).closest(
+      'tr[data-moderation-account-id]',
+    ) as HTMLTableRowElement | null;
     const accountId = Number(row?.dataset.moderationAccountId);
     if (row && Number.isFinite(accountId)) void openModerationAccount(accountId);
   });
 
   $('moderation-detail').addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
-    const chatModBtn = target.closest('button[data-lift-mute], button[data-reset-strikes]') as HTMLButtonElement | null;
+    const chatModBtn = target.closest(
+      'button[data-lift-mute], button[data-reset-strikes]',
+    ) as HTMLButtonElement | null;
     if (chatModBtn) {
-      const accountId = Number((target.closest('.mod-detail')?.querySelector('[data-action-account-id]') as HTMLElement | null)?.dataset.actionAccountId);
+      const accountId = Number(
+        (
+          target
+            .closest('.mod-detail')
+            ?.querySelector('[data-action-account-id]') as HTMLElement | null
+        )?.dataset.actionAccountId,
+      );
       const endpoint = chatModBtn.dataset.liftMute !== undefined ? 'lift-mute' : 'reset-strikes';
       void apiPost(`/admin/api/moderation/accounts/${accountId}/${endpoint}`, {})
-        .then(() => { if (Number.isFinite(accountId)) void openModerationAccount(accountId); })
-        .catch((err: unknown) => { if (!handleAuthFailure(err)) window.alert(err instanceof Error ? localizeAdminError(err.message) : t('alert.actionFailed')); });
+        .then(() => {
+          if (Number.isFinite(accountId)) void openModerationAccount(accountId);
+        })
+        .catch((err: unknown) => {
+          if (!handleAuthFailure(err))
+            window.alert(
+              err instanceof Error ? localizeAdminError(err.message) : t('alert.actionFailed'),
+            );
+        });
       return;
     }
     const ignoreBtn = target.closest('button[data-ignore-report]') as HTMLButtonElement | null;
@@ -991,11 +1206,22 @@ function wireEvents(): void {
       const note = (($('mod-reason') as HTMLInputElement | null)?.value ?? '').trim();
       void apiPost(`/admin/api/moderation/reports/${reportId}/ignore`, { note })
         .then(() => {
-          const accountId = Number((ignoreBtn.closest('.mod-detail')?.querySelector('[data-action-account-id]') as HTMLElement | null)?.dataset.actionAccountId);
+          const accountId = Number(
+            (
+              ignoreBtn
+                .closest('.mod-detail')
+                ?.querySelector('[data-action-account-id]') as HTMLElement | null
+            )?.dataset.actionAccountId,
+          );
           void refreshModeration();
           if (Number.isFinite(accountId)) void openModerationAccount(accountId);
         })
-        .catch((err: unknown) => { if (!handleAuthFailure(err)) window.alert(err instanceof Error ? localizeAdminError(err.message) : t('alert.actionFailed')); });
+        .catch((err: unknown) => {
+          if (!handleAuthFailure(err))
+            window.alert(
+              err instanceof Error ? localizeAdminError(err.message) : t('alert.actionFailed'),
+            );
+        });
       return;
     }
     handleModerationActionClick(e, 'moderation');
@@ -1005,7 +1231,8 @@ function wireEvents(): void {
     const th = (e.target as HTMLElement).closest('th.sortable') as HTMLElement | null;
     const sort = th?.dataset.sort;
     if (!sort) return;
-    charactersState.dir = charactersState.sort === sort && charactersState.dir === 'desc' ? 'asc' : 'desc';
+    charactersState.dir =
+      charactersState.sort === sort && charactersState.dir === 'desc' ? 'asc' : 'desc';
     charactersState.sort = sort;
     charactersState.page = 1;
     void refreshCharacters();
@@ -1013,7 +1240,8 @@ function wireEvents(): void {
 }
 
 function chatFilterError(err: unknown, fallbackKey: string): void {
-  if (!handleAuthFailure(err)) window.alert(err instanceof Error ? localizeAdminError(err.message) : t(fallbackKey));
+  if (!handleAuthFailure(err))
+    window.alert(err instanceof Error ? localizeAdminError(err.message) : t(fallbackKey));
 }
 
 function wireChatFilterEvents(): void {
@@ -1034,9 +1262,14 @@ function wireChatFilterEvents(): void {
   // Remove a word, save the escalation config, or lift/reset an account's chat mute.
   $('chat-filter').addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
-    const chatModBtn = target.closest('button[data-lift-mute], button[data-reset-strikes]') as HTMLButtonElement | null;
+    const chatModBtn = target.closest(
+      'button[data-lift-mute], button[data-reset-strikes]',
+    ) as HTMLButtonElement | null;
     if (chatModBtn) {
-      const accountId = Number((chatModBtn.closest('[data-action-account-id]') as HTMLElement | null)?.dataset.actionAccountId);
+      const accountId = Number(
+        (chatModBtn.closest('[data-action-account-id]') as HTMLElement | null)?.dataset
+          .actionAccountId,
+      );
       if (!Number.isFinite(accountId)) return;
       const endpoint = chatModBtn.dataset.liftMute !== undefined ? 'lift-mute' : 'reset-strikes';
       void apiPost(`/admin/api/moderation/accounts/${accountId}/${endpoint}`, {})
@@ -1073,24 +1306,34 @@ function blockExpiryIso(duration: string): string | undefined {
 
 function wireBlockedIpsEvents(): void {
   const blockedError = (err: unknown, fallbackKey: string): void => {
-    if (!handleAuthFailure(err)) window.alert(err instanceof Error ? localizeAdminError(err.message) : t(fallbackKey));
+    if (!handleAuthFailure(err))
+      window.alert(err instanceof Error ? localizeAdminError(err.message) : t(fallbackKey));
   };
   $('blocked-ips').addEventListener('submit', (e) => {
     const form = (e.target as HTMLElement).closest('form.ip-add') as HTMLFormElement | null;
     if (!form) return;
     e.preventDefault();
     const ip = (form.querySelector('.ip-add-ip') as HTMLInputElement | null)?.value.trim() ?? '';
-    const reason = (form.querySelector('.ip-add-reason') as HTMLInputElement | null)?.value.trim() ?? '';
-    const duration = (form.querySelector('.ip-add-expiry-select') as HTMLSelectElement | null)?.value ?? '';
+    const reason =
+      (form.querySelector('.ip-add-reason') as HTMLInputElement | null)?.value.trim() ?? '';
+    const duration =
+      (form.querySelector('.ip-add-expiry-select') as HTMLSelectElement | null)?.value ?? '';
     if (!ip) return;
-    if (!window.confirm(`${t('blockedIps.confirmBlock', { ip })}\n\n${t('blockedIps.sharedIpWarning')} ${t('blockedIps.expiryHint')}`)) return;
+    if (
+      !window.confirm(
+        `${t('blockedIps.confirmBlock', { ip })}\n\n${t('blockedIps.sharedIpWarning')} ${t('blockedIps.expiryHint')}`,
+      )
+    )
+      return;
     const expiresAt = blockExpiryIso(duration);
     void apiPost('/admin/api/blocked-ips', { ip, reason, expiresAt })
       .then(() => refreshBlockedIps())
       .catch((err: unknown) => blockedError(err, 'blockedIps.addFailed'));
   });
   $('blocked-ips').addEventListener('click', (e) => {
-    const btn = (e.target as HTMLElement).closest('button[data-unblock-ip]') as HTMLButtonElement | null;
+    const btn = (e.target as HTMLElement).closest(
+      'button[data-unblock-ip]',
+    ) as HTMLButtonElement | null;
     if (!btn) return;
     void apiPost('/admin/api/blocked-ips/delete', { ip: btn.dataset.unblockIp })
       .then(() => refreshBlockedIps())

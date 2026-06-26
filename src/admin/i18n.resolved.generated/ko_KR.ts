@@ -937,5 +937,18 @@ export const ko_KR: AdminTranslations = {
   "error.invalidIp": "유효한 IP 주소가 필요합니다",
   "error.blockExpiryFuture": "차단 만료 시점은 미래여야 합니다",
   "error.blockFailed": "IP 차단에 실패했습니다",
-  "error.blockNotFound": "IP를 찾을 수 없습니다"
+  "error.blockNotFound": "IP를 찾을 수 없습니다",
+  "stats.onlineAccounts": "접속 계정",
+  "stats.siteUsersNow": "현재 사이트 사용자",
+  "stats.peakOnlineToday": "24시간 최대 접속",
+  "stats.peakOnlineAllTime": "전체 최대 접속",
+  "stats.returningAccounts24h": "복귀 계정 24시간",
+  "stats.activeAccounts7d": "활성 계정 7일",
+  "stats.activeAccounts30d": "활성 계정 30일",
+  "stats.avgPlaytimePerAccount": "계정당 평균 플레이 시간",
+  "charts.onlineHistory": "접속 기록({range})",
+  "charts.onlineTooltip": "{bucket}: 최대 {siteUsers}명 사이트 사용자, {players}명 플레이어, {accounts}개 계정",
+  "charts.range.24h": "24시간",
+  "charts.range.7d": "7일",
+  "charts.range.30d": "30일"
 };

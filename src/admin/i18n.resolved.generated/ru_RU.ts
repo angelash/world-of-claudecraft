@@ -937,5 +937,18 @@ export const ru_RU: AdminTranslations = {
   "error.invalidIp": "требуется корректный IP-адрес",
   "error.blockExpiryFuture": "срок окончания блокировки должен быть в будущем",
   "error.blockFailed": "не удалось заблокировать IP",
-  "error.blockNotFound": "IP не найден"
+  "error.blockNotFound": "IP не найден",
+  "stats.onlineAccounts": "аккаунты онлайн",
+  "stats.siteUsersNow": "пользователи сайта сейчас",
+  "stats.peakOnlineToday": "пик онлайна за 24ч",
+  "stats.peakOnlineAllTime": "пик онлайна за всё время",
+  "stats.returningAccounts24h": "вернувшихся аккаунтов 24ч",
+  "stats.activeAccounts7d": "активных аккаунтов 7д",
+  "stats.activeAccounts30d": "активных аккаунтов 30д",
+  "stats.avgPlaytimePerAccount": "среднее время игры на аккаунт",
+  "charts.onlineHistory": "История онлайна ({range})",
+  "charts.onlineTooltip": "{bucket}: пик {siteUsers} пользователей сайта, {players} игроков, {accounts} аккаунтов",
+  "charts.range.24h": "24ч",
+  "charts.range.7d": "7 дн.",
+  "charts.range.30d": "30 дн."
 };

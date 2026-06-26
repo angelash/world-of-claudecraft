@@ -174,6 +174,28 @@ export const ko_KR: EnTranslations = {
       "title": "감정 표현",
       "done": "완료"
     },
+    "theme": {
+      "preset": "UI 테마",
+      "customColors": "사용자 지정 색상",
+      "reset": "초기화",
+      "presets": {
+        "classic": "클래식 골드",
+        "midnight": "미드나이트",
+        "parchment": "양피지",
+        "highContrast": "고대비"
+      },
+      "knob": {
+        "accent": "강조색",
+        "border": "테두리",
+        "panel": "프레임",
+        "text": "텍스트",
+        "textMuted": "보조 텍스트",
+        "hp": "체력",
+        "mana": "마나",
+        "rage": "분노",
+        "energy": "에너지"
+      }
+    },
     "questTracker": {
       "count": "({count})",
       "collapseHint": "퀘스트 추적기 접기",
@@ -209,12 +231,27 @@ export const ko_KR: EnTranslations = {
       "hapticsOff": "진동 꺼짐",
       "toggleHaptics": "진동 전환"
     },
+    "tutorial": {
+      "moveBodyTouch": "이동 스틱으로 이동하고 화면을 끌어 주위를 둘러보세요. 몇 걸음 움직여 시작하세요.",
+      "talkBodyTouch": "레드브룩 원수에게 다가가 사용 버튼을 눌러 대화한 뒤 임무를 수락하세요.",
+      "returnBodyTouch": "임무를 마쳤습니다. 레드브룩 원수에게 돌아가 사용 버튼을 눌러 완료하세요.",
+      "doneBodyTouch": "기본기를 익혔습니다, {name}. 이제 골짜기를 자유롭게 누비세요. 더보기를 누른 뒤 퀘스트 기록을 눌러 언제든 퀘스트를 확인할 수 있습니다. 좋은 사냥 되세요."
+    },
     "widgets": {
       "clockTitle": "현지 시각 - 클릭하면 12/24시간제 전환",
       "worldCoordinates": "세계 좌표",
       "coordinates": "좌표",
       "heading": "방향",
       "minimapZoom": "미니맵 확대/축소"
+    },
+    "raidLockout": {
+      "title": "공격대 잠금",
+      "allReady": "모든 공격대 준비됨",
+      "daysHours": "{d}일 {h}시간",
+      "hoursMinutes": "{h}시간 {m}분",
+      "minutes": "{m}분",
+      "lessThanMinute": "1분 미만",
+      "lockedToast": "{raid}에 잠겨 있습니다. {time} 후 해제됩니다."
     },
     "compass": {
       "N": "북",
@@ -254,6 +291,8 @@ export const ko_KR: EnTranslations = {
       "interfaceModeNote": "자동은 기기에 따라 데스크톱 또는 터치 조작을 선택합니다. 데스크톱을 선택하면 키보드와 마우스로 고정되며(키보드가 있는 태블릿 등에 유용), 터치를 선택하면 화면 조작이 됩니다.",
       "footstepSounds": "발소리",
       "clickFeedback": "클릭 표시",
+      "lockCursorOnRotate": "회전 중 커서 고정",
+      "keybindHelpLockCursorOnRotate": "드래그하여 카메라를 회전하는 동안 마우스 커서를 창 안에 유지하여 화면 가장자리에 닿거나 다른 모니터로 이동하지 않도록 합니다. 자유로운 커서를 원하면 끄세요.",
       "showWalletOnCharacterScreen": "캐릭터 화면에 지갑 표시",
       "showWalletOnPlayerCard": "플레이어 카드에 지갑 표시",
       "uiScale": "UI 배율",
@@ -387,6 +426,18 @@ export const ko_KR: EnTranslations = {
     },
     "tips": {
       "joinChannels": "팁: /join world 또는 /join lfg를 입력하면 서버 전역의 플레이어와 대화할 수 있습니다."
+    },
+    "questShare": {
+      "notShareable": "이 퀘스트는 공유할 수 없습니다.",
+      "notInSharerParty": "{name}님의 파티에 속해 있어야 이 퀘스트를 수락할 수 있습니다.",
+      "accepted": "{name}님이 당신의 공유 퀘스트를 수락했습니다.",
+      "dialogTitle": "공유 퀘스트",
+      "viewOnlyHint": "이 퀘스트를 수락하려면 공유한 사람의 파티에 참가하세요.",
+      "alreadyOn": "이미 진행 중인 퀘스트입니다.",
+      "alreadyDone": "이미 완료한 퀘스트입니다.",
+      "ineligible": "이 퀘스트의 요구 조건을 충족하지 못합니다.",
+      "noQuestSelected": "공유할 퀘스트를 기록에서 선택하세요.",
+      "linkTitle": "Shift + 클릭하면 이 퀘스트를 채팅에 연결합니다."
     },
     "aiQuestion": {
       "heading": "Ask",
@@ -636,7 +687,62 @@ export const ko_KR: EnTranslations = {
       "deactivateConfirm": "내 계정 비활성화",
       "deactivated": "계정이 비활성화되었습니다.",
       "logOut": "로그아웃",
-      "logOutSummary": "이 기기에서 로그아웃합니다."
+      "logOutSummary": "이 기기에서 로그아웃합니다.",
+      "sectionSecurity": "보안",
+      "changeEmailTitle": "이메일 변경",
+      "changeEmailHint": "새 주소로 확인 링크를, 기존 주소로 안내 메일을 보냅니다. 링크를 열어야만 이메일이 변경됩니다.",
+      "changeEmailNew": "새 이메일",
+      "changeEmailSubmit": "확인 링크 보내기",
+      "changeEmailSent": "받은 편지함을 확인하세요. 보내드린 링크를 열어 새 이메일을 확인하세요.",
+      "errEmailUnchanged": "이미 사용 중인 이메일 주소입니다.",
+      "twoFactorTitle": "2단계 인증",
+      "twoFactorStatusOn": "계정에 2단계 인증이 켜져 있습니다.",
+      "twoFactorStatusOff": "더 강력한 계정 보안을 위해 인증 앱을 추가하세요.",
+      "twoFactorSetupBtn": "2단계 인증 설정",
+      "twoFactorBeginHint": "설정을 시작하려면 비밀번호를 입력하세요.",
+      "twoFactorBegin": "설정 시작",
+      "twoFactorScanHint": "이 키를 인증 앱(Google Authenticator, Authy, 1Password 등)에 추가한 다음, 앱에 표시되는 6자리 코드를 입력하세요.",
+      "twoFactorSecretLabel": "설정 키",
+      "twoFactorOpenApp": "인증 앱에서 열기",
+      "twoFactorCodeLabel": "6자리 코드",
+      "twoFactorVerifyBtn": "확인 후 사용",
+      "twoFactorEnabledMsg": "이제 2단계 인증이 켜졌습니다.",
+      "twoFactorRecoveryTitle": "복구 코드를 저장하세요",
+      "twoFactorRecoveryHint": "각 코드는 한 번만 사용할 수 있습니다. 안전한 곳에 보관하세요. 인증 앱을 잃어버렸을 때 다시 로그인할 수 있는 유일한 방법입니다.",
+      "twoFactorDownloadCodes": "코드 다운로드",
+      "twoFactorDone": "완료",
+      "twoFactorDisableHint": "2단계 인증을 끄려면 비밀번호를 입력하세요. 복구 코드는 폐기됩니다.",
+      "twoFactorDisableBtn": "2단계 인증 끄기",
+      "twoFactorDisabledMsg": "2단계 인증이 꺼졌습니다.",
+      "errTwoFactorCode": "코드가 올바르지 않습니다. 다시 시도하세요.",
+      "errTwoFactorState": "2단계 인증 설정이 예상한 상태가 아닙니다. 새로고침 후 다시 시도하세요.",
+      "exportTitle": "내 데이터 내보내기",
+      "exportHint": "계정과 캐릭터 사본을 JSON 파일로 다운로드합니다. 확인 메일도 함께 보내드립니다.",
+      "exportBtn": "내 데이터 다운로드",
+      "exportDone": "데이터가 다운로드되었습니다. 확인 메일을 보내드렸습니다.",
+      "exportFailed": "데이터를 내보낼 수 없습니다. 잠시 후 다시 시도하세요."
+    },
+    "bags": {
+      "filterGroupAria": "가방을 분류별로 필터링",
+      "filterAll": "전체",
+      "filterWeapon": "무기",
+      "filterArmor": "방어구",
+      "filterConsumable": "소모품",
+      "filterMaterial": "재료",
+      "filterQuest": "퀘스트",
+      "sortAria": "가방 아이템 정렬",
+      "sortRecent": "최근",
+      "sortQuality": "품질",
+      "sortName": "이름",
+      "searchPlaceholder": "아이템 검색",
+      "searchAria": "이름으로 가방 아이템 검색",
+      "noMatch": "필터와 일치하는 아이템이 없습니다."
+    },
+    "raidConvert": {
+      "toPartyDone": "공격대가 파티로 다시 전환되었습니다.",
+      "notRaid": "현재 파티는 공격대가 아닙니다.",
+      "leaderOnly": "공격대장만 파티로 전환할 수 있습니다.",
+      "tooLarge": "인원이 5명을 초과하는 공격대는 파티로 다시 전환할 수 없습니다."
     }
   },
   "guide": {
@@ -1039,11 +1145,11 @@ export const ko_KR: EnTranslations = {
       "notedLabel": "특기 사항",
       "flavor": {
         "old_greyjaw": "어떤 덫도 가두지 못한, 상처투성이 늙은 늑대. 사냥개 셋과 마구간 소년의 팔이 이놈 탓으로 돌려졌습니다. 깊은 숲을 홀로 사냥하며, 싸움이 길어질수록 더욱 사나워집니다.",
-        "brightwood_stag": "뿔로 된 왕관을 낮추고 밀어붙이는 당당한 숲의 사슴으로, 몰아붙일수록 상대하기 더 까다로워집니다.",
         "grubjaw": "다른 트롤들조차 곁에서 땅을 파려 하지 않을 만큼 탐욕스러운 습지 트롤로, 한 상인의 마지막 짐말 두 마리를 멍에까지 통째로 삼켰다고 전해집니다.",
         "shardlord_kazzix": "어깨를 갖춘 폭풍의 정령으로, 스톰크래그 위 먼 바위산을 거닐며 번개를 무릅쓸 만한 가치가 있는 심장 파편을 지니고 있습니다.",
         "mirejaw_frenzy": "전투 도중 스스로를 광란으로 몰아넣어 마구 날뛰는 습지 멀록으로, 시끄럽고 영역 의식 강한 무리 가운데서도 가장 요란합니다.",
-        "gravecaller_cultist": "골짜기에서 봉우리까지 무덤을 더럽히는 죽음교단의 로브 두른 종복들. 이들이 모이는 곳에서는 죽은 자가 쉬지 못합니다."
+        "gravecaller_cultist": "골짜기에서 봉우리까지 무덤을 더럽히는 죽음교단의 로브 두른 종복들. 이들이 모이는 곳에서는 죽은 자가 쉬지 못합니다.",
+        "brightwood_stag": "뿔로 된 왕관을 낮추고 밀어붙이는 당당한 숲의 사슴으로, 몰아붙일수록 상대하기 더 까다로워집니다."
       }
     },
     "family": {
@@ -1105,7 +1211,7 @@ export const ko_KR: EnTranslations = {
       "marshPlaceNotes": "펜브리지는 유일하게 마른 길을 지킵니다. 배회자 갈대밭과 깊은습지 얕은 물에는 습지 짐승과 멀록이 들끓고, 과부 덤불은 거미줄로 빽빽이 얽혀 있습니다. 익사한 예배당과 트롤 봉분은 한층 오래된 위험을 품고, 무덤부름 야영지는 교단이 자리를 틀고 박힌 곳이며, 가라앉은 요새는 습지의 인스턴스 심장부입니다.",
       "peaksPlaceNotes": "하이워치가 성벽을 지킵니다. 추적자 능선과 깊은바위 굴은 능선 들고양이와 코볼트의 차지이고, 오우거 산기슭과 드로그마르의 전쟁 야영지는 고용된 흉포한 자들의 것입니다. 스톰크래그는 정령들로 들끓고 그 아래에서 글리머미어가 빛나며, 고룡교단 천막과 망령의 들판이 교단의 높은 거점을 에워싸고, 그 정점에 무덤고룡 성소가 있습니다.",
       "gladeTitle": "고요한 한구석: 브라이트우드 숲",
-      "gladeBody": "골짜기의 모든 이야기가 죽은 자에 관한 것은 아닙니다. 북쪽에는 브라이트우드 숲이라 불리는 양지바른 숲이 한결 부드러운 제 가락을 지키며, 싸우기보다 보살피기를 택한 외로운 순찰자가 그곳을 지켜봅니다. 그녀의 일은 균형입니다. 지나치게 번식한 것을 솎아내고, 둥지가 너무 위험해져 그냥 둘 수 없게 되면 숲의 늙은 왕관 쓴 수사슴에게 정중한 마지막을 베푸는 것이지요. 당신이 좇는 자취에 대비되는 잔잔한 대목이며, 잠시 들를 만한 가치가 있습니다."
+      "gladeBody": "계곡의 모든 이야기가 죽은 자들에 관한 것은 아닙니다. 북쪽에는 브라이트우드라는 햇살 드는 숲이 있어 조용한 길, 풀을 뜯는 사슴, 가지 아래의 경계심 많은 짐승들과 함께 더 부드러운 고유한 리듬을 지킵니다. 당신이 따라가는 흔적에 대한 차분한 대비이며, 길이 잠시 여유를 줄 때 둘러볼 만한 곳입니다."
     },
     "questsPage": {
       "heading": "퀘스트",
@@ -1154,8 +1260,8 @@ export const ko_KR: EnTranslations = {
       "aldricBody": "동부개울에서 더럽혀진 무덤 앞에 서서 교단의 이름을 처음 밝혀낸 다음, 직접 그 자취를 좇아 습지를 지나 하이워치의 성벽까지 오르는 소박한 마을 사제. 온 원정의 굳건한 심장입니다.",
       "marenRole": "원수의 정찰병",
       "marenBody": "마이어펜의 갈대밭에서 만나는, 말수 적은 추적자. 조용한 발걸음과 짧은 칼이 전부입니다. 그녀 역시 북쪽으로 자취를 좇으며, 당신을 봉우리로 보내는 그 말을 알아챈 것도 바로 그녀의 귀입니다.",
-      "elwynRole": "브라이트우드의 숲지기",
-      "elwynBody": "골짜기 북쪽 양지바른 숲을 홀로 지키는 이. 그녀의 일은 살육이 아니라 보살핌입니다. 지나치게 번식한 것을 솎아내고, 숲에서 가장 늙은 짐승에게 늑대들이 주는 것보다 한결 너그러운 마지막을 베풉니다."
+      "elwynBody": "골짜기 북쪽 양지바른 숲을 홀로 지키는 이. 그녀의 일은 살육이 아니라 보살핌입니다. 지나치게 번식한 것을 솎아내고, 숲에서 가장 늙은 짐승에게 늑대들이 주는 것보다 한결 너그러운 마지막을 베풉니다.",
+      "elwynRole": "브라이트우드의 숲지기"
     },
     "dungeonsPage": {
       "heading": "던전과 공격대",
@@ -1551,7 +1657,10 @@ export const ko_KR: EnTranslations = {
     "characterNamePlaceholder": "캐릭터 이름",
     "enterWorld": "세계 입장",
     "offlineCharacter": "오프라인 캐릭터",
-    "create": "생성"
+    "create": "생성",
+    "twoFactorLabel": "인증 코드",
+    "twoFactorPlaceholder": "6자리 또는 복구 코드",
+    "twoFactorHint": "인증 앱에 표시된 코드 또는 복구 코드 중 하나를 입력하세요."
   },
   "wallet": {
     "label": "$WOC 지갑",
@@ -1778,6 +1887,263 @@ export const ko_KR: EnTranslations = {
     "friends": "친구 및 길드",
     "chat": "채팅창 열기"
   },
+  "sim": {
+    "delve": {
+      "cannotEnterNow": "지금은 탐굴에 진입할 수 없습니다.",
+      "leaveDungeonFirst": "먼저 던전에서 나가세요.",
+      "leaveArenaFirst": "먼저 투기장에서 나가세요.",
+      "alreadyInDelve": "이미 탐굴 중입니다.",
+      "whileTrading": "거래 중에는 탐굴에 진입할 수 없습니다.",
+      "duringDuel": "결투 중에는 탐굴에 진입할 수 없습니다.",
+      "duringArena": "투기장 경기 중에는 탐굴에 진입할 수 없습니다.",
+      "unknownTier": "알 수 없는 탐굴 등급입니다.",
+      "levelRequired": "{name}에 진입하려면 레벨 {level} 이상이어야 합니다.",
+      "levelRequiredTier": "{tier} 난이도로 {name}에 진입하려면 레벨 {level}이(가) 필요합니다.",
+      "instancesBusy": "{name}의 모든 인스턴스가 사용 중입니다. 잠시 후 다시 시도하세요.",
+      "runFailed": "{name} 진행에 실패했습니다.",
+      "complete": "{name} 완료.",
+      "mechanismOpen": "근처에서 기계 장치가 철컥 열립니다. 북쪽으로 통로가 열립니다. 앞쪽의 출구 차원문을 찾으세요.",
+      "raiseDead": "{name}이(가) 죽음의 부활을 시전하기 시작합니다.",
+      "graveFalters": "무덤의 의식이 흔들립니다.",
+      "doorAlreadyOpen": "문이 이미 열려 있습니다.",
+      "companionRankUp": "{name}이(가) {rank}등급에 도달했습니다.",
+      "bossChest": "우두머리가 쓰러집니다. 봉인된 성물실 상자가 단상 위로 솟아오릅니다. 자물쇠를 따서 전리품을 차지하세요.",
+      "surfaceStairs": "지상으로 향하는 계단이 열립니다. 계단에서 F 키를 눌러 나가세요.",
+      "moduleEnter": "{name}: {objective}",
+      "objectiveClearRoom": "방을 정리하세요.",
+      "objectiveDefeatBoss": "우두머리를 처치하세요.",
+      "tombstoneHint": "방을 정리하면 북쪽으로 묘비 통로가 열립니다.",
+      "tombstoneOpen": "봉인된 묘비 통로가 북쪽으로 갈리며 열립니다. 그 안으로 걸어 들어가 계속 진행하세요.",
+      "tombstoneInto": "묘비를 통과해 {name}(으)로 들어갑니다.",
+      "chestEmpty": "상자가 비어 있습니다.",
+      "notInDelve": "탐굴 중이 아닙니다.",
+      "cannotInteract": "그것과는 상호작용할 수 없습니다.",
+      "tooFar": "너무 멀리 떨어져 있습니다.",
+      "graveSilent": "무덤은 당분간 조용합니다.",
+      "doorLocked": "문이 잠겨 있습니다.",
+      "strikeWall": "벽을 쳐서 뚫고 나가세요.",
+      "nothingHappens": "아무 일도 일어나지 않습니다.",
+      "unknownCompanion": "알 수 없는 동료입니다.",
+      "companionMaxRank": "이 동료는 이미 최대로 강화되었습니다.",
+      "companionMarksRequired": "{name}을(를) 강화하려면 탐굴 증표 {marks}개가 필요합니다.",
+      "cannotAffordCompanionUpgrade": "이 강화를 감당할 수 없습니다.",
+      "shopItemLocked": "아직 잠금 해제되지 않은 아이템입니다.",
+      "shopMarksRequired": "{name}을(를) 구매하려면 탐굴 증표 {marks}개가 필요합니다.",
+      "shopSealPremiumOnly": "이 봉인은 대가의 손에만 응합니다. 최상급 베팅만이 열 수 있습니다.",
+      "passageSealed": "통로가 봉인되어 있습니다.",
+      "moveCloserPassage": "통로에 더 가까이 다가가세요.",
+      "moveCloserChest": "상자에 더 가까이 다가가세요.",
+      "nothingToTake": "이제 가져갈 것이 없습니다.",
+      "wayOutNotOpen": "나가는 길이 아직 열리지 않았습니다.",
+      "moveCloserStairs": "계단에 더 가까이 다가가세요."
+    },
+    "lockpick": {
+      "lockYields": "자물쇠가 열립니다! {tier} 전리품.",
+      "tierPremium": "최상급",
+      "tierMedium": "중급",
+      "tierLow": "보통",
+      "alreadyInProgress": "누군가 이미 자물쇠를 따고 있습니다.",
+      "cannotPickThat": "그것은 딸 수 없습니다.",
+      "chooseAnte": "도구 1, 2, 3개 중에서 선택하세요.",
+      "noAttempt": "진행 중인 자물쇠 시도가 없습니다.",
+      "notYours": "당신의 자물쇠가 아닙니다.",
+      "toolSlips": "도구가 이 자물쇠에서 미끄러집니다.",
+      "lockJammed": "자물쇠가 더는 딸 수 없게 걸려 버렸습니다. 다시 시도하려면 탐굴을 다시 정리하세요.",
+      "lastPickSnaps": "마지막 도구가 부러집니다. 자물쇠가 걸려 버립니다. 탐굴을 다시 정리하지 않으면 상자를 잃습니다."
+    }
+  },
+  "lockpickUi": {
+    "pickTitle": "자물쇠 따기",
+    "cofferTitle": "풍요의 금고",
+    "cache": "{tier} 상자",
+    "pickBlurb": "더 풍성한 상자일수록 자물쇠가 더 많이 걸려 있습니다. 쉬운 자물쇠는 시도 횟수와 시간이 더 넉넉합니다. 시도에 실패하면 시도 횟수가 다 떨어질 때까지 자물쇠가 처음으로 돌아갑니다.",
+    "cofferBlurb": "이 봉인은 대가의 손에만 응합니다. 어려움, 최상급 경로만이 열 수 있습니다. 세 개의 자물쇠를 모두 풀어 최고의 보상을 차지하세요.",
+    "pagesAria": "자물쇠 {count}개",
+    "tries": "시도 {count}회",
+    "triesOne": "시도 1회",
+    "perMove": "이동당 {seconds}초",
+    "seconds": "{seconds}s",
+    "boardTitle": "열쇠공의 길: {tier} 상자",
+    "closeAria": "닫기",
+    "withdrawAria": "물러나기",
+    "timerAria": "남은 시간",
+    "lockOf": "자물쇠 {page}/{total}",
+    "lockOfAria": "자물쇠 {total}개 중 {page}번째",
+    "triesOf": "시도 {tries}/{total}",
+    "triesOfAria": "남은 시도 {total}회 중 {tries}회",
+    "ward": "방호 장치 {col} / {total}",
+    "depthKeys": "단축키는 방호 번호가 아니라 픽 깊이(Q/W/E/A/Z)를 정합니다.",
+    "withdraw": "물러나기 (Esc)",
+    "action": {
+      "hardSet": "강하게 고정",
+      "set": "고정",
+      "steady": "유지",
+      "ease": "풀기",
+      "drop": "내리기"
+    },
+    "feedback": {
+      "advanced": "핀이 살짝 풀립니다...",
+      "slip": "방호 장치가 물리며 도구가 미끄러집니다!",
+      "bind": "실린더가 걸립니다: 깊이가 틀렸습니다!",
+      "trap": "가짜 방호 장치가 닫히며 자물쇠가 걸려 버립니다!",
+      "retry": "자물쇠가 처음으로 돌아갑니다. 다시 한번 맞춰 보세요.",
+      "pageCleared": "실린더 한 벌이 풀립니다. 다음 자물쇠가 나타납니다.",
+      "success": "빗장이 풀립니다. 상자는 당신의 것입니다!",
+      "fail": "자물쇠가 걸려 버립니다. 더는 꿈쩍하지 않습니다."
+    },
+    "summary": {
+      "success": "자물쇠가 풀려 {tier} 상자를 차지했습니다.",
+      "successGeneric": "자물쇠가 풀려 상자를 차지했습니다.",
+      "fail": "자물쇠가 망가졌습니다. 다시 시도하려면 탐굴을 다시 정리하세요.",
+      "abandoned": "도구를 도로 빼냅니다. 자물쇠가 기다립니다."
+    }
+  },
+  "delveUi": {
+    "board": {
+      "title": "탐굴 게시판",
+      "enter": "탐굴 진입",
+      "enterAria": "{tier} 난이도로 {delve} 진입",
+      "openDelve": "무너진 성물실",
+      "openDelveAria": "{name}에서 탐굴 게시판 열기",
+      "marks": "탐굴 증표: {count}",
+      "minLevel": "필요 레벨 {level}",
+      "tier": {
+        "normal": "일반",
+        "heroic": "영웅"
+      },
+      "companion": {
+        "pick": "동료 선택",
+        "tessa": "수련사제 테사",
+        "rank": "{rank}등급",
+        "boon": "전투 사이에 파티를 치유합니다. 3랭크에서는 탐굴마다 한 번 쓰러진 아군을 부활시킵니다.",
+        "upgrade": "{rank}랭크로 강화 (증표 {marks}개)",
+        "upgradeAria": "탐굴 증표 {marks}개로 {name}을(를) {rank}랭크로 강화",
+        "maxRank": "최대 강화"
+      },
+      "tabDelve": "탐굴",
+      "tabShop": "상점"
+    },
+    "shop": {
+      "price": "증표 {marks}개",
+      "buy": "구매",
+      "buyAria": "탐굴 증표 {marks}개로 {item} 구매",
+      "reqHeroic": "영웅 난이도 클리어 필요",
+      "reqClears": "{count}회 클리어 필요",
+      "empty": "재고가 없습니다."
+    },
+    "tracker": {
+      "title": "탐굴",
+      "objective": "목표",
+      "module": "구역 {current}/{total}",
+      "affix": "고난 요소",
+      "complete": "완료",
+      "marks": "탐굴 증표: {count}",
+      "exitHintOpen": "묘비 통로로 걸어 들어가세요 (북쪽)",
+      "exitHintLocked": "북쪽 통로를 열려면 잡몹을 정리하세요"
+    },
+    "objective": {
+      "kill_boss": "{boss} 처치",
+      "recover_artifact": "매장 명부 회수",
+      "clear_room": "방 정리"
+    },
+    "summary": {
+      "title": "탐굴 완료",
+      "marks": "탐굴 증표 {count}개 획득",
+      "loreUnlock": "비화 해금: {title}"
+    },
+    "death": {
+      "warning": "한 번 더 죽으면 이번 탐굴이 끝납니다."
+    },
+    "run": {
+      "failed": "탐굴에 실패했습니다. 브라더 할벤에게로 돌아갑니다."
+    },
+    "npc": {
+      "halven": {
+        "greeting": "아래의 성물실이 또 움직였소. 자정이 지나면 바닥 너머로 영창 소리가 들리고, 수련사제 테사는 매장 명부가 스스로 잉크를 바꾼다고 단언하오. 용기가 있다면, {playerName}, 촛불을 들고 아래로 내려가시오. 거기서 들리는 모든 목소리를 믿지는 마시오. 그중 몇은 그대가 태어나기도 전에 그대의 이름을 알고 있었으니."
+      }
+    },
+    "intro": {
+      "normal": "계단은 차갑고 어둡습니다. 부서진 성인석이 내려가는 길에 흩어져 있고, 부드러운 종소리가 축축한 공기 속에 맴돕니다. 수련사제 테사가 속삭입니다. \"성물실이 이렇게까지 열려 있어선 안 돼요. 가까이 붙어 있어요, {playerName}.\"",
+      "heroic": "문이 당신 뒤로 신음하며 닫힙니다. 이름들이 손톱처럼 돌을 긁어 댑니다. 테사의 촛불이 푸르게 타오릅니다. \"이제 저들은 죽은 자를 부르는 게 아니에요, {playerName}. 무언가에 응답하고 있어요.\""
+    },
+    "module": {
+      "reliquary_sunken_ossuary": "물이 매장 선반 사이로 스며들며 은빛 검은 줄기로 오래된 재를 실어 나릅니다.",
+      "reliquary_bell_niche": "수십 개의 손종이 침묵 속에 매달려 있고, 저마다 장례 천으로 묶여 있습니다.",
+      "reliquary_saintless_hall": "정성스러운 증오로 얼굴이 깎여 나간 조각상들.",
+      "reliquary_finale": "묻혀 있던 종이 당신의 발밑에서 한 번 울립니다."
+    },
+    "moduleName": {
+      "reliquary_sunken_ossuary": "물에 잠긴 납골당",
+      "reliquary_bell_niche": "종의 감실",
+      "reliquary_saintless_hall": "성인 없는 회랑",
+      "reliquary_finale": "종이 묻힌 방"
+    },
+    "companion": {
+      "barkLine": "{name}: {line}",
+      "tessa": {
+        "combat_start": "발을 단단히 디뎌요, {playerName}. 이곳의 죽은 자들은 잠들지 못했어요.",
+        "low_hp": "숨을 고르세요. 당신을 위한 기도가 아직 남아 있어요.",
+        "trap_spotted": "멈춰요, 바닥에 있는 무언가가 발소리를 기억하고 있어요.",
+        "boss_pull": "저 종이 당신의 무게를 알고 있어요, {playerName}. 무릎 꿇지 마세요.",
+        "completion": "명부도 하룻밤은 쉴 수 있겠군요. 잘하셨어요.",
+        "rank": {
+          "1": "예배당 수련생",
+          "2": "촛불지기",
+          "3": "성물실 수련사제",
+          "4": "무덤부름의 목격자",
+          "5": "예배당 수호자"
+        }
+      }
+    },
+    "boss": {
+      "varric": {
+        "bell": {
+          "emote": "부제 바릭이 두 손으로 묻혀 있던 종을 움켜쥡니다!",
+          "log": "부제 바릭이 매장의 종을 울리기 시작합니다.",
+          "warning": "부제 바릭에게서 떨어지세요!",
+          "impact": "종소리가 방의 바닥을 갈라놓습니다!",
+          "lesson": "종울림: 12초마다 땅을 내리치는 공격. 떨어지기 전에 벗어나세요."
+        },
+        "raise": {
+          "emote": "부제 바릭이 부서진 무덤에서 이름을 불러냅니다!",
+          "log": "부제 바릭이 죽음의 부활을 시전하기 시작합니다.",
+          "warning": "무덤의 의식을 멈추세요!",
+          "object": "갈라진 무덤이 훔쳐 온 숨결로 떨립니다.",
+          "interrupt_ok": "무덤의 의식이 흔들립니다.",
+          "interrupt_fail": "죽은 자들이 부제 바릭의 부름에 응답합니다!",
+          "lesson": "5초 안에 갈라진 무덤을 방해하지 않으면 죽은 자들이 그의 부름에 일어납니다."
+        },
+        "pull": "그대는 부정한 의도로 신성한 흙을 밟았다. 무릎 꿇고, 명부에 오르라.",
+        "intro": "잃어버린 영혼은 없다. 단지 자리를 잘못 둔 것뿐.",
+        "mid60": "부제 바릭이 떨리는 환희로 명부에서 이름을 읽어 내립니다.",
+        "mid30": "매장의 종이 그가 부르는 모든 이름에 응답합니다.",
+        "defeat": "안 돼... 이름들을... 모두 가지고 있었는데..."
+      }
+    },
+    "lore": {
+      "eastbrook_ledger": "이스트브룩 매장 명부에서 떨어져 나온 물에 얼룩진 한 장. 이름들이 지워졌다가 인간의 것이 아닌 필체로 다시 쓰여 있습니다.",
+      "first_collapse": "예배당 기록에 첫 침하가 적혀 있습니다. 성인석이 갈라지고, 선반이 기울고, 땅 밑에서 종소리가 들려왔다.",
+      "gravecaller_mark": "관 나무에 새겨진 인장. 모르덴의 봉인이 아니라, 텅 빈 묘실보다 오래된 무덤부름꾼의 표식입니다.",
+      "bell_below": "테사의 여백 메모: \"성물실 아래에 두 번째 종이 있다. 그것은 죽은 자가 아니라 자리를 잃은 자를 위해 울린다.\"",
+      "tessa_note": "테사의 필체로 접힌 쪽지: \"아래에 있는 동안 명부가 바뀌거든, 목소리가 아니라 촛불을 믿어라.\""
+    },
+    "affix": {
+      "restless_graves": "잠들지 못한 무덤",
+      "bad_air": "탁한 공기",
+      "candleblind": "촛불 실명",
+      "old_mechanisms": "낡은 기계 장치",
+      "flooded_paths": "침수된 길",
+      "grave_tax": "무덤의 대가",
+      "unstable_roof": "불안정한 천장",
+      "cult_remnants": "교단의 잔당"
+    },
+    "blessing": {
+      "chapel_candle": "예배당 촛불: 더 안전한 진행, 완료 시 탐굴 증표 1개 감소."
+    },
+    "chest": {
+      "flavor": "죽은 자들이 내어줄 수 있는 것을 내놓았습니다."
+    }
+  },
   "fiesta": {
     "bracket": "Fiesta",
     "enterQueue": "Fiesta에 참가하세요!",
@@ -1951,7 +2317,9 @@ export const ko_KR: EnTranslations = {
     "genre": "MMORPG",
     "playMode": "멀티플레이어",
     "applicationCategory": "게임",
-    "operatingSystem": "웹 브라우저"
+    "operatingSystem": "웹 브라우저",
+    "officialLabel": "World of ClaudeCraft 공식 웹사이트",
+    "officialBody": "worldofclaudecraft.com은 Claudemoon 렐름의 공식 무료 브라우저 MMO입니다. 지속 캐릭터로 온라인 플레이를 하거나, 오프라인에서 혼자 탐험하고, wiki를 읽고, 이 사이트에서 검증된 커뮤니티 링크를 확인하세요."
   },
   "a11y": {
     "goHome": "홈으로 이동",
@@ -2020,6 +2388,11 @@ export const ko_KR: EnTranslations = {
     "high": "높음",
     "medium": "보통",
     "low": "낮음",
+    "popTipLow": "낮은 인구: 현재 접속자 15명 미만. 여유롭고 새로 시작하기에 좋습니다.",
+    "popTipMedium": "보통 인구: 현재 접속자 15~39명. 건강하고 활발한 렐름입니다.",
+    "popTipHigh": "높은 인구: 현재 접속자 40~79명. 붐비고 플레이어가 많습니다.",
+    "popTipFull": "포화 인구: 현재 접속자 80명 이상. 매우 붐비며 로그인 대기열이 있을 수 있습니다.",
+    "popTipOffline": "오프라인: 이 렐름은 현재 연결할 수 없어 입장할 수 없습니다.",
     "characterCountOne": "캐릭터 {count}개",
     "characterCountOther": "캐릭터 {count}개",
     "selectedRealm": "렐름: {name}",
@@ -2043,7 +2416,14 @@ export const ko_KR: EnTranslations = {
     "portraitAlt": "{name}의 초상화",
     "viewProfile": "프로필 보기",
     "profile": "프로필",
-    "closeProfile": "프로필 닫기"
+    "closeProfile": "프로필 닫기",
+    "sortBy": "정렬",
+    "sortByLabel": "캐릭터 정렬",
+    "sortMenuLabel": "정렬 옵션",
+    "sortLevel": "레벨",
+    "sortName": "이름",
+    "sortRecent": "최근 플레이",
+    "sortPlaytime": "플레이 시간"
   },
   "deleteCharacter": {
     "title": "캐릭터 삭제",
@@ -2354,6 +2734,7 @@ export const ko_KR: EnTranslations = {
         "report": "플레이어 신고",
         "removeParty": "파티에서 제거",
         "convertToRaid": "공격대로 전환",
+        "convertToParty": "파티로 전환",
         "cancel": "취소"
       }
     },
@@ -2472,6 +2853,10 @@ export const ko_KR: EnTranslations = {
       "whisperAmbiguous": "'{name}'와 일치하는 플레이어가 여럿입니다. 정확한 대소문자를 사용하세요.",
       "whisperMissing": "'{name}'라는 플레이어는 온라인이 아닙니다.",
       "whisperSelf": "혼잣말을 중얼거립니다. 아무도 듣지 못합니다.",
+      "assistSelf": "자신을 지원할 수 없습니다.",
+      "assistNoTarget": "{name}님은 대상이 없습니다.",
+      "assistWhom": "누구를 지원할까요? 플레이어를 대상으로 지정하거나 /assist <name>를 사용하세요.",
+      "assisting": "{name}님을 지원합니다.",
       "notInParty": "파티에 속해 있지 않습니다.",
       "unknownCommand": "알 수 없는 명령어: {command}. /s /y /w /p /g를 사용해 보세요.",
       "chatCooldown": "채팅 재사용까지 {seconds}초 남았습니다.",
@@ -2516,6 +2901,8 @@ export const ko_KR: EnTranslations = {
       "lootReceiveMoney": "{money}을(를) 받았습니다.",
       "lootMoney": "{money}을(를) 전리품으로 획득했습니다.",
       "soldItem": "{item}을(를) {money}에 팔았습니다.",
+      "soldJunkOne": "잡동사니 아이템 {count}개를 {money}에 팔았습니다.",
+      "soldJunkMany": "잡동사니 아이템 {count}개를 {money}에 팔았습니다.",
       "friendOnline": "{name}님이 접속했습니다.",
       "friendOffline": "{name}님이 접속을 종료했습니다."
     },
@@ -2919,7 +3306,10 @@ export const ko_KR: EnTranslations = {
       "sellQuantityTitle": "{item} 판매",
       "sellQuantityInput": "판매할 수량",
       "sellQuantityConfirm": "판매",
-      "sellQuantityCancel": "취소"
+      "sellQuantityCancel": "취소",
+      "sellJunk": "잡동사니 판매",
+      "sellJunkAria": "모든 잡동사니를 {price}에 판매",
+      "sellJunkHint": "퀘스트 아이템을 제외한 가방의 모든 회색 아이템을 판매합니다."
     },
     "market": {
       "title": "세계 시장",
@@ -3931,6 +4321,9 @@ export const ko_KR: EnTranslations = {
       "ridge_stalker_pelt": {
         "name": "산등성이 추적자 가죽"
       },
+      "old_cragmaws_pelt": {
+        "name": "늙은 크래그모의 가죽"
+      },
       "glowing_wax": {
         "name": "빛나는 밀랍"
       },
@@ -4150,9 +4543,6 @@ export const ko_KR: EnTranslations = {
       "milepost_boots": {
         "name": "이정표 장화"
       },
-      "glade_pelt": {
-        "name": "숲속 가죽"
-      },
       "soft_down": {
         "name": "부드러운 솜털 뭉치"
       },
@@ -4170,9 +4560,6 @@ export const ko_KR: EnTranslations = {
       },
       "monarch_crown_helm": {
         "name": "군주의 왕관"
-      },
-      "monarch_heart": {
-        "name": "군주의 심장"
       },
       "bristleback_maul": {
         "name": "뻣센등뼈 철퇴"
@@ -4372,6 +4759,9 @@ export const ko_KR: EnTranslations = {
       "cragmaw_prowlboots": {
         "name": "크래그모의 잠행 장화"
       },
+      "cragmaw_huntcord": {
+        "name": "크래그모의 사냥 허리끈"
+      },
       "drowned_tide_scepter": {
         "name": "익사한 조수의 셉터"
       },
@@ -4507,6 +4897,33 @@ export const ko_KR: EnTranslations = {
       "wyrmshadow_talongrips": {
         "name": "고룡그림자 갈퀴손아귀"
       },
+      "reliquary_plate_chest": {
+        "name": "성물실 수호 갑옷"
+      },
+      "reliquary_leather_chest": {
+        "name": "먼지수호자의 웃옷"
+      },
+      "reliquary_cloth_chest": {
+        "name": "성물실 수의"
+      },
+      "reliquary_legs": {
+        "name": "묘실 다리보호구"
+      },
+      "reliquary_helm": {
+        "name": "납골당 경비 투구"
+      },
+      "reliquary_shoulder": {
+        "name": "부서진 어깨보호구"
+      },
+      "reliquary_gloves_rog": {
+        "name": "뼈수호 손보호구"
+      },
+      "deacon_reliquary_helm": {
+        "name": "부제의 성물실 투구"
+      },
+      "varric_shadow_cowl": {
+        "name": "바릭의 그림자 두건"
+      },
       "the_codfather": {
         "name": "대구 대부"
       },
@@ -4626,6 +5043,12 @@ export const ko_KR: EnTranslations = {
       },
       "vanguard_chrome_armor_plate": {
         "name": "선봉대 크롬"
+      },
+      "glade_pelt": {
+        "name": "숲속 가죽"
+      },
+      "monarch_heart": {
+        "name": "군주의 심장"
       }
     },
     "mobs": {
@@ -4797,41 +5220,26 @@ export const ko_KR: EnTranslations = {
       "nythraxis_scourge_of_thornpeak": {
         "name": "나이트락시스, 손피크의 재앙"
       },
-      "brightwood_hare": {
-        "name": "브라이트우드 산토끼"
+      "reliquary_ledger_wraith": {
+        "name": "명부의 망령"
       },
-      "glade_fox": {
-        "name": "숲속 여우"
+      "reliquary_funeral_ringer": {
+        "name": "장례 종지기"
       },
-      "spotted_fawn": {
-        "name": "얼룩 새끼사슴"
+      "reliquary_gravecall_acolyte": {
+        "name": "무덤부름 수련사제"
       },
-      "meadow_crane": {
-        "name": "초원 두루미"
+      "reliquary_bonewalker": {
+        "name": "되살아난 해골보행자"
       },
-      "thornpelt_badger": {
-        "name": "가시털 오소리"
+      "reliquary_saintless_effigy": {
+        "name": "성인 잃은 조상"
       },
-      "dawnmane_doe": {
-        "name": "여명갈기 암사슴"
+      "deacon_varric": {
+        "name": "부제 바릭"
       },
-      "bramble_lynx": {
-        "name": "가시덤불 살쾡이"
-      },
-      "brightwood_stag": {
-        "name": "브라이트우드 수사슴"
-      },
-      "grovetusk_boar": {
-        "name": "숲엄니 멧돼지"
-      },
-      "sunhide_bear": {
-        "name": "햇살가죽 곰"
-      },
-      "brightwood_monarch": {
-        "name": "브라이트우드의 군주"
-      },
-      "elder_bristleback": {
-        "name": "늙은 뻣센등뼈"
+      "acolyte_tessa": {
+        "name": "수련사제 테사"
       },
       "ironvein_foreman": {
         "name": "철맥 감독관"
@@ -4856,12 +5264,6 @@ export const ko_KR: EnTranslations = {
       },
       "nhalia_mourner": {
         "name": "날리아 애도자"
-      },
-      "sableweb_hatchling": {
-        "name": "검은그물 새끼"
-      },
-      "sableweb_matriarch": {
-        "name": "검은그물 우두머리"
       },
       "sister_nhalia": {
         "name": "자매 날리아"
@@ -4946,6 +5348,48 @@ export const ko_KR: EnTranslations = {
       },
       "ysolei": {
         "name": "이솔레이, 익사한 달의 화신"
+      },
+      "elder_bristleback": {
+        "name": "늙은 뻣센등뼈"
+      },
+      "sableweb_hatchling": {
+        "name": "검은그물 새끼"
+      },
+      "sableweb_matriarch": {
+        "name": "검은그물 우두머리"
+      },
+      "bramble_lynx": {
+        "name": "가시덤불 살쾡이"
+      },
+      "brightwood_hare": {
+        "name": "브라이트우드 산토끼"
+      },
+      "brightwood_monarch": {
+        "name": "브라이트우드의 군주"
+      },
+      "brightwood_stag": {
+        "name": "브라이트우드 수사슴"
+      },
+      "dawnmane_doe": {
+        "name": "여명갈기 암사슴"
+      },
+      "glade_fox": {
+        "name": "숲속 여우"
+      },
+      "grovetusk_boar": {
+        "name": "숲엄니 멧돼지"
+      },
+      "meadow_crane": {
+        "name": "초원 두루미"
+      },
+      "spotted_fawn": {
+        "name": "얼룩 새끼사슴"
+      },
+      "sunhide_bear": {
+        "name": "햇살가죽 곰"
+      },
+      "thornpelt_badger": {
+        "name": "가시털 오소리"
       }
     },
     "npcs": {
@@ -5044,20 +5488,25 @@ export const ko_KR: EnTranslations = {
         "title": "현자",
         "greeting": "느슨한 혈암을 조심하십시오, {className}. 산이 요즘 불안정해졌고, 나는 그 이유를 알고 싶습니다."
       },
-      "ranger_elwyn": {
-        "name": "순찰병 엘윈",
-        "title": "숲의 수호인",
-        "greeting": "조용히 하게, {className} - 오늘 숲은 고요하고, 나는 그대로 지킬 생각이네."
-      },
       "brother_aldric_raid": {
         "name": "알드릭 수사",
         "title": "계곡의 사제",
         "greeting": "예배당 묘지에서 세상의 지붕까지... 흔적은 여기서 끝납니다. 산이 듣고 있음을 느낍니다."
       },
+      "brother_halven": {
+        "name": "브라더 할벤",
+        "title": "성물실 관리인",
+        "greeting": "아래의 성물실이 또 움직였소."
+      },
       "tidewatcher_ondrel": {
         "name": "온드렐 베인",
         "title": "조수지기",
         "greeting": "이 호수는 달빛을 마시고, {className}, 익사한 자들을 되돌려 보낸다네. 나는 서른 밤 동안 저 관문을 지켜보았지 — 그리고 오늘 밤, 마침내 그것이 열렸네."
+      },
+      "ranger_elwyn": {
+        "greeting": "조용히 하게, {className} - 오늘 숲은 고요하고, 나는 그대로 지킬 생각이네.",
+        "name": "순찰병 엘윈",
+        "title": "숲의 수호인"
       }
     },
     "quests": {
@@ -5803,145 +6252,6 @@ export const ko_KR: EnTranslations = {
           }
         }
       },
-      "q_brightwood_thinning": {
-        "title": "숲 솎아내기",
-        "text": "브라이트우드 숲이 들끓고 있네, {playerName}. 가시덤불 살쾡이는 내가 솎아내는 속도보다 빨리 번식하고, 무리는 얼마 남지 않은 풀밭마저 짓밟고 있어. 가시덤불 살쾡이 8마리를 처치하고 숲속 가죽 6장을 가져오게. 나머지 무리의 상태를 가늠해 보겠네.",
-        "completion": "좋아. 무리가 솎아졌고 이 가죽들도 멀쩡하군 - 숲은 한 철 더 버틸 걸세.",
-        "objectives": {
-          "0": {
-            "label": "처치한 가시덤불 살쾡이"
-          },
-          "1": {
-            "label": "숲속 가죽"
-          }
-        }
-      },
-      "q_brightwood_monarch": {
-        "title": "브라이트우드의 군주",
-        "text": "나 홀로 화살을 겨누지 않을 짐승이 하나 있네. 바로 브라이트우드의 군주, 깊은 숲을 다스리는 거대한 수사슴이지. 그는 늙고 사나워져, 자기 둥지에 다가오는 자는 누구든 뿔로 들이받는다네. 사냥꾼 하나로는 감당하기 벅차니 - 친구를 한둘 데려가게. 그를 잠재우고 심장을 가져오게, {playerName}.",
-        "completion": "그래, 늙은 왕이 쓰러졌군. 무거운 일이지 - 허나 늑대들의 손에 죽는 것보다는 자비로운 최후였네. 그의 뿔로 만든 이 왕관을 경의를 담아 쓰게, {playerName}.",
-        "objectives": {
-          "0": {
-            "label": "군주의 심장"
-          }
-        }
-      },
-      "q_ledger_first_duty": {
-        "title": "수호인의 첫 임무",
-        "text": "이스트브룩에서 밥값을 하고 싶은가, {playerName}? 그렇다면 모든 수호인이 시작하는 곳에서 시작하게. 가시털 오소리들이 늑대길을 지나 저 북쪽 끝, 브라이트우드 숲 한복판까지 굴을 파 놓아서, 숲 바닥이 그 굴 속으로 내려앉고 있네. 가시털 오소리 8마리를 솎아내면 장부가 자네의 이름을 기억할 걸세.",
-        "completion": "굴 여덟 개를 비우고 숲 바닥도 다시 가라앉았군. 좋아. 이 장부에 적힌 모든 이름이 바로 지금 자네가 선 자리에서 시작했다네.",
-        "objectives": {
-          "0": {
-            "label": "솎아낸 가시털 오소리"
-          }
-        }
-      },
-      "q_ledger_teeth": {
-        "title": "어둠 속의 송곳니",
-        "text": "숲속 빈터의 여우들이 늑대만큼이나 대담해졌네 - 황혼이면 닭장에 슬그머니 들어왔다가 등불을 켜기도 전에 사라지지. 굶주린 암여우는 닭은 물론이고 새끼 양까지 물어간다네. 그놈들의 수를 줄여주게, {playerName}. 숲속 빈터 여우 10마리를 처치해 나머지가 다시 빛을 두려워하도록 만들게.",
-        "completion": "여우 열 마리라, 황혼이 와도 닭장이 다시 조용하군. 장부가 자네에게 더 너그러워지네.",
-        "objectives": {
-          "0": {
-            "label": "처치한 숲속 빈터 여우"
-          }
-        }
-      },
-      "q_ledger_reedwater": {
-        "title": "갈대 물가 순찰",
-        "text": "레드브룩이 자네를 보냈나? 좋아 - 이 늙은 뼈로는 더 이상 얕은 물을 헤칠 수가 없네. 초원 두루미들이 내 그물을 발견하고는, 진흙지느러미가 그랬던 것보다도 더 많이 내 어획물을 부리로 꿰어가고 있어. 그놈들의 수를 줄여주게. 초원 두루미 8마리를, 그리고 깊은 물을 조심하게.",
-        "completion": "그 정도면 한 철은 그 긴 다리 도둑들을 내 그물에서 떼어놓겠지. 보안관께 얕은 물이 다시 내 것이 됐다고 전하게.",
-        "objectives": {
-          "0": {
-            "label": "쫓아낸 초원 두루미"
-          }
-        }
-      },
-      "q_ledger_silk": {
-        "title": "풀과 가시덤불",
-        "text": "장부는 동쪽 숲도 수호인의 땅으로 표시해 두었네 - 내 약초밭도 그 일부지. 점박이 새끼사슴들이 내 은빛잎과 핏빛엉겅퀴를 뿌리째 뜯어먹어버렸어. 그 약초들이 없으면 이스트브룩 절반이 약을 구하지 못한다네. 마음이 편치는 않지만, 가을 약초를 완전히 잃기 전에 점박이 새끼사슴 8마리를 솎아내게.",
-        "completion": "자네 덕분에 밭이 아직은 회복할 수 있겠군. 모진 자비지 - 허나 열에 시달리는 아이에게는 사슴이 숲을 필요로 하는 것보다 약초가 더 절실하다네. 장부가 정리됐네.",
-        "objectives": {
-          "0": {
-            "label": "솎아낸 점박이 새끼사슴"
-          }
-        }
-      },
-      "q_ledger_brood": {
-        "title": "들끓는 어둠",
-        "text": "잠복자들을 처치한 것이 오히려 새끼들에게 자리를 내주었군. 검은그물 새끼들이 깊은 둥지에서 쏟아져 나오고 있어, 작은 송곳니 백 개도 큰 것 하나만큼이나 여행자의 목숨을 앗아간다네. 검은그물 새끼 8마리를 다 자라기 전에 짓밟게.",
-        "completion": "둥지를 물에 잠기게 하는 건 참혹한 일이지. 허나 지금의 자비가 훗날 백 번의 장례를 면하게 하네. 장부는 청산되었네.",
-        "objectives": {
-          "0": {
-            "label": "짓밟은 검은그물 새끼"
-          }
-        }
-      },
-      "q_ledger_deepvermin": {
-        "title": "깊은 곳의 해충",
-        "text": "보안관 장부에 자네가 해충을 처리한다고 적혀 있더군. 그래, 내 갱도에 가장 지독한 놈들이 있네. 굴쥐들이 내 인부들이 곡괭이를 휘두르는 속도보다 빨리 번식하니 - 굴쥐 채굴꾼 12마리를 잡아주게. 그러면 겨울이 오기 전에 구리를 캘 수 있을지도 모르지.",
-        "completion": "촛불머리 해충 열두 마리가 사라졌군! 좋아, 친구들 - 갱도로 돌아가지. 자네가 보안관께 좋은 평을 얻게 했네, {playerName}.",
-        "objectives": {
-          "0": {
-            "label": "처치한 굴쥐 채굴꾼"
-          }
-        }
-      },
-      "q_ledger_toll": {
-        "title": "엄니의 길",
-        "text": "숲엄니 멧돼지들이 빛숲에서 내려와 남동쪽 교역로로 몰려들었네 - 엄니로 짐 끄는 황소를 들이받고, 쏟아진 곡식을 노리고 수레를 뒤엎는 거대한 짐승들이지. 장부에는 그놈들 하나하나에 현상금이 걸려 있네. 길을 다시 여게. 숲엄니 멧돼지 8마리를 쓰러뜨리게.",
-        "completion": "짐승 여덟이 길에서 사라지니 수레가 다시 굴러가는군. 교역로에 새 파수꾼이 생겼다는 소문이 벌써 퍼지고 있네. 장부가 자네에게 유리하게 올라가는군.",
-        "objectives": {
-          "0": {
-            "label": "처치한 숲엄니 멧돼지"
-          }
-        }
-      },
-      "q_ledger_vigil": {
-        "title": "예배당의 불침번",
-        "text": "보안관은 칼만으로는 닿지 못하는 곤경이 생기면 수호인들을 내게 보내네. 예배당의 죽은 자들이 가만히 누워 있지 않는데, 나는 너무 늙어 밤샘 불침번을 설 수가 없어. 나를 위해 그것을 지켜주게, {playerName} - 불안한 뼈무더기 10구를 다시 안식으로 돌려보내게.",
-        "completion": "열 영혼이 대지로 돌아가고, 예배당에 하룻밤의 평안을 사들였군. 장부가 잊더라도, 빛은 이런 불침번을 기억한다네.",
-        "objectives": {
-          "0": {
-            "label": "잠재운 불안한 뼈무더기"
-          }
-        }
-      },
-      "q_ledger_great_boar": {
-        "title": "거대한 뻣센등뼈",
-        "text": "서쪽 덤불에 늙은 황소 멧돼지가 한 마리 있네 - 늙은 뻣센등뼈라고, 가죽은 나무껍질 같고 성질도 그에 못지않지. 내 가죽 사냥꾼 둘을 뿔로 들이받았네. 그놈을 쓰러뜨리고 그 뒤에 숨은 하급 야생 멧돼지 6마리를 처리하면, 자네 이름을 장부 높은 곳에 새겨주겠네.",
-        "completion": "늙은 뻣센등뼈가 자네 손에 죽다니! 그 가죽 하나만으로도 한 철 장사 거리는 되지. 자네는 장부를 자랑스럽게 했네, {playerName}.",
-        "objectives": {
-          "0": {
-            "label": "처치한 늙은 뻣센등뼈"
-          },
-          "1": {
-            "label": "처치한 무리의 야생 멧돼지"
-          }
-        }
-      },
-      "q_ledger_outlaw_captain": {
-        "title": "무법자 대장",
-        "text": "장부의 마지막 이름은 내가 일 년 동안 지우고 싶었던 자라네. 골짜기의 절반을 산적질로 몰아넣은 베를란 대장이지. 그는 남동쪽 야영지에서 부관들 뒤에 숨어 있네. 계곡 도적 6명을 베고 그에게 다가가, 베를란을 끝장내게. 혼자 가지는 말게.",
-        "completion": "베를란 대장이 죽고, 그의 외투가 내 문 앞에 당도했군. 장부가 닫혔네, {playerName} - 그리고 골짜기는 그것을 닫은 자의 이름을 앞으로 올 수호인들에게 전할 걸세.",
-        "objectives": {
-          "0": {
-            "label": "처치한 계곡 도적"
-          },
-          "1": {
-            "label": "처치한 베를란 대장"
-          }
-        }
-      },
-      "q_mogger_tracks": {
-        "title": "모거의 흔적",
-        "text": "북쪽 길을 떠나기 전에 이스트브룩에는 마지막 골칫거리, 모거가 남았습니다. 그 짐승은 아래 초원을 짓밟고 멧돼지를 미치게 합니다. 흔적 주변의 초원을 정리해 은신처를 찾아내십시오.",
-        "completion": "그 발자국은 새롭고 비를 담을 만큼 깊습니다. 모거는 야영지 이야기가 아닙니다, {playerName}. 아주 가까이 있습니다.",
-        "objectives": {
-          "0": {
-            "label": "야생 멧돼지를 흔적에서 몰아냄"
-          }
-        }
-      },
       "q_mogger": {
         "title": "모거를 쓰러뜨려라",
         "text": "모거는 수레를 쪼개고 울타리를 납작하게 만들며 계곡 절반을 비울 만큼 가축을 죽였습니다. 혼자 맞서지 마십시오. 강한 동료 둘과 동쪽 초원으로 가서 그 짐승을 끝내십시오.",
@@ -6014,6 +6324,145 @@ export const ko_KR: EnTranslations = {
             "label": "글리머미어 물거리 처치"
           }
         }
+      },
+      "q_mogger_tracks": {
+        "title": "모거의 흔적",
+        "text": "북쪽 길을 떠나기 전에 이스트브룩에는 마지막 골칫거리, 모거가 남았습니다. 그 짐승은 아래 초원을 짓밟고 멧돼지를 미치게 합니다. 흔적 주변의 초원을 정리해 은신처를 찾아내십시오.",
+        "completion": "그 발자국은 새롭고 비를 담을 만큼 깊습니다. 모거는 야영지 이야기가 아닙니다, {playerName}. 아주 가까이 있습니다.",
+        "objectives": {
+          "0": {
+            "label": "야생 멧돼지를 흔적에서 몰아냄"
+          }
+        }
+      },
+      "q_brightwood_monarch": {
+        "completion": "그래, 늙은 왕이 쓰러졌군. 무거운 일이지 - 허나 늑대들의 손에 죽는 것보다는 자비로운 최후였네. 그의 뿔로 만든 이 왕관을 경의를 담아 쓰게, {playerName}.",
+        "objectives": {
+          "0": {
+            "label": "군주의 심장"
+          }
+        },
+        "text": "나 홀로 화살을 겨누지 않을 짐승이 하나 있네. 바로 브라이트우드의 군주, 깊은 숲을 다스리는 거대한 수사슴이지. 그는 늙고 사나워져, 자기 둥지에 다가오는 자는 누구든 뿔로 들이받는다네. 사냥꾼 하나로는 감당하기 벅차니 - 친구를 한둘 데려가게. 그를 잠재우고 심장을 가져오게, {playerName}.",
+        "title": "브라이트우드의 군주"
+      },
+      "q_brightwood_thinning": {
+        "completion": "좋아. 무리가 솎아졌고 이 가죽들도 멀쩡하군 - 숲은 한 철 더 버틸 걸세.",
+        "objectives": {
+          "0": {
+            "label": "처치한 가시덤불 살쾡이"
+          },
+          "1": {
+            "label": "숲속 가죽"
+          }
+        },
+        "text": "브라이트우드 숲이 들끓고 있네, {playerName}. 가시덤불 살쾡이는 내가 솎아내는 속도보다 빨리 번식하고, 무리는 얼마 남지 않은 풀밭마저 짓밟고 있어. 가시덤불 살쾡이 8마리를 처치하고 숲속 가죽 6장을 가져오게. 나머지 무리의 상태를 가늠해 보겠네.",
+        "title": "숲 솎아내기"
+      },
+      "q_ledger_brood": {
+        "completion": "둥지를 물에 잠기게 하는 건 참혹한 일이지. 허나 지금의 자비가 훗날 백 번의 장례를 면하게 하네. 장부는 청산되었네.",
+        "objectives": {
+          "0": {
+            "label": "짓밟은 검은그물 새끼"
+          }
+        },
+        "text": "잠복자들을 처치한 것이 오히려 새끼들에게 자리를 내주었군. 검은그물 새끼들이 깊은 둥지에서 쏟아져 나오고 있어, 작은 송곳니 백 개도 큰 것 하나만큼이나 여행자의 목숨을 앗아간다네. 검은그물 새끼 8마리를 다 자라기 전에 짓밟게.",
+        "title": "들끓는 어둠"
+      },
+      "q_ledger_deepvermin": {
+        "completion": "촛불머리 해충 열두 마리가 사라졌군! 좋아, 친구들 - 갱도로 돌아가지. 자네가 보안관께 좋은 평을 얻게 했네, {playerName}.",
+        "objectives": {
+          "0": {
+            "label": "처치한 굴쥐 채굴꾼"
+          }
+        },
+        "text": "보안관 장부에 자네가 해충을 처리한다고 적혀 있더군. 그래, 내 갱도에 가장 지독한 놈들이 있네. 굴쥐들이 내 인부들이 곡괭이를 휘두르는 속도보다 빨리 번식하니 - 굴쥐 채굴꾼 12마리를 잡아주게. 그러면 겨울이 오기 전에 구리를 캘 수 있을지도 모르지.",
+        "title": "깊은 곳의 해충"
+      },
+      "q_ledger_first_duty": {
+        "completion": "굴 여덟 개를 비우고 숲 바닥도 다시 가라앉았군. 좋아. 이 장부에 적힌 모든 이름이 바로 지금 자네가 선 자리에서 시작했다네.",
+        "objectives": {
+          "0": {
+            "label": "솎아낸 가시털 오소리"
+          }
+        },
+        "text": "이스트브룩에서 밥값을 하고 싶은가, {playerName}? 그렇다면 모든 수호인이 시작하는 곳에서 시작하게. 가시털 오소리들이 늑대길을 지나 저 북쪽 끝, 브라이트우드 숲 한복판까지 굴을 파 놓아서, 숲 바닥이 그 굴 속으로 내려앉고 있네. 가시털 오소리 8마리를 솎아내면 장부가 자네의 이름을 기억할 걸세.",
+        "title": "수호인의 첫 임무"
+      },
+      "q_ledger_great_boar": {
+        "completion": "늙은 뻣센등뼈가 자네 손에 죽다니! 그 가죽 하나만으로도 한 철 장사 거리는 되지. 자네는 장부를 자랑스럽게 했네, {playerName}.",
+        "objectives": {
+          "0": {
+            "label": "처치한 늙은 뻣센등뼈"
+          },
+          "1": {
+            "label": "처치한 무리의 야생 멧돼지"
+          }
+        },
+        "text": "서쪽 덤불에 늙은 황소 멧돼지가 한 마리 있네 - 늙은 뻣센등뼈라고, 가죽은 나무껍질 같고 성질도 그에 못지않지. 내 가죽 사냥꾼 둘을 뿔로 들이받았네. 그놈을 쓰러뜨리고 그 뒤에 숨은 하급 야생 멧돼지 6마리를 처리하면, 자네 이름을 장부 높은 곳에 새겨주겠네.",
+        "title": "거대한 뻣센등뼈"
+      },
+      "q_ledger_outlaw_captain": {
+        "completion": "베를란 대장이 죽고, 그의 외투가 내 문 앞에 당도했군. 장부가 닫혔네, {playerName} - 그리고 골짜기는 그것을 닫은 자의 이름을 앞으로 올 수호인들에게 전할 걸세.",
+        "objectives": {
+          "0": {
+            "label": "처치한 계곡 도적"
+          },
+          "1": {
+            "label": "처치한 베를란 대장"
+          }
+        },
+        "text": "장부의 마지막 이름은 내가 일 년 동안 지우고 싶었던 자라네. 골짜기의 절반을 산적질로 몰아넣은 베를란 대장이지. 그는 남동쪽 야영지에서 부관들 뒤에 숨어 있네. 계곡 도적 6명을 베고 그에게 다가가, 베를란을 끝장내게. 혼자 가지는 말게.",
+        "title": "무법자 대장"
+      },
+      "q_ledger_reedwater": {
+        "completion": "그 정도면 한 철은 그 긴 다리 도둑들을 내 그물에서 떼어놓겠지. 보안관께 얕은 물이 다시 내 것이 됐다고 전하게.",
+        "objectives": {
+          "0": {
+            "label": "쫓아낸 초원 두루미"
+          }
+        },
+        "text": "레드브룩이 자네를 보냈나? 좋아 - 이 늙은 뼈로는 더 이상 얕은 물을 헤칠 수가 없네. 초원 두루미들이 내 그물을 발견하고는, 진흙지느러미가 그랬던 것보다도 더 많이 내 어획물을 부리로 꿰어가고 있어. 그놈들의 수를 줄여주게. 초원 두루미 8마리를, 그리고 깊은 물을 조심하게.",
+        "title": "갈대 물가 순찰"
+      },
+      "q_ledger_silk": {
+        "completion": "자네 덕분에 밭이 아직은 회복할 수 있겠군. 모진 자비지 - 허나 열에 시달리는 아이에게는 사슴이 숲을 필요로 하는 것보다 약초가 더 절실하다네. 장부가 정리됐네.",
+        "objectives": {
+          "0": {
+            "label": "솎아낸 점박이 새끼사슴"
+          }
+        },
+        "text": "장부는 동쪽 숲도 수호인의 땅으로 표시해 두었네 - 내 약초밭도 그 일부지. 점박이 새끼사슴들이 내 은빛잎과 핏빛엉겅퀴를 뿌리째 뜯어먹어버렸어. 그 약초들이 없으면 이스트브룩 절반이 약을 구하지 못한다네. 마음이 편치는 않지만, 가을 약초를 완전히 잃기 전에 점박이 새끼사슴 8마리를 솎아내게.",
+        "title": "풀과 가시덤불"
+      },
+      "q_ledger_teeth": {
+        "completion": "여우 열 마리라, 황혼이 와도 닭장이 다시 조용하군. 장부가 자네에게 더 너그러워지네.",
+        "objectives": {
+          "0": {
+            "label": "처치한 숲속 빈터 여우"
+          }
+        },
+        "text": "숲속 빈터의 여우들이 늑대만큼이나 대담해졌네 - 황혼이면 닭장에 슬그머니 들어왔다가 등불을 켜기도 전에 사라지지. 굶주린 암여우는 닭은 물론이고 새끼 양까지 물어간다네. 그놈들의 수를 줄여주게, {playerName}. 숲속 빈터 여우 10마리를 처치해 나머지가 다시 빛을 두려워하도록 만들게.",
+        "title": "어둠 속의 송곳니"
+      },
+      "q_ledger_toll": {
+        "completion": "짐승 여덟이 길에서 사라지니 수레가 다시 굴러가는군. 교역로에 새 파수꾼이 생겼다는 소문이 벌써 퍼지고 있네. 장부가 자네에게 유리하게 올라가는군.",
+        "objectives": {
+          "0": {
+            "label": "처치한 숲엄니 멧돼지"
+          }
+        },
+        "text": "숲엄니 멧돼지들이 빛숲에서 내려와 남동쪽 교역로로 몰려들었네 - 엄니로 짐 끄는 황소를 들이받고, 쏟아진 곡식을 노리고 수레를 뒤엎는 거대한 짐승들이지. 장부에는 그놈들 하나하나에 현상금이 걸려 있네. 길을 다시 여게. 숲엄니 멧돼지 8마리를 쓰러뜨리게.",
+        "title": "엄니의 길"
+      },
+      "q_ledger_vigil": {
+        "completion": "열 영혼이 대지로 돌아가고, 예배당에 하룻밤의 평안을 사들였군. 장부가 잊더라도, 빛은 이런 불침번을 기억한다네.",
+        "objectives": {
+          "0": {
+            "label": "잠재운 불안한 뼈무더기"
+          }
+        },
+        "text": "보안관은 칼만으로는 닿지 못하는 곤경이 생기면 수호인들을 내게 보내네. 예배당의 죽은 자들이 가만히 누워 있지 않는데, 나는 너무 늙어 밤샘 불침번을 설 수가 없어. 나를 위해 그것을 지켜주게, {playerName} - 불안한 뼈무더기 10구를 다시 안식으로 돌려보내게.",
+        "title": "예배당의 불침번"
       }
     },
     "zones": {
@@ -6046,6 +6495,9 @@ export const ko_KR: EnTranslations = {
             "label": "무너진 예배당"
           },
           "8": {
+            "label": "브라이트우드 숲"
+          },
+          "9": {
             "label": "브라이트우드 숲"
           }
         }
@@ -6148,12 +6600,22 @@ export const ko_KR: EnTranslations = {
         "enterText": "당신은 달의 관문을 지나갑니다 — 공기가 차가운 물과 창백한 빛으로 변하고, 노랫소리가 당신의 머리 위로 닫혀 옵니다.",
         "leaveText": "당신은 달의 관문을 통해 산속의 밤으로 떠오릅니다."
       }
+    },
+    "delves": {
+      "collapsed_reliquary": {
+        "name": "무너진 성물실",
+        "enterText": "무너진 성물실로 내려갑니다.",
+        "leaveText": "성물실 폐허의 브라더 할벤에게로 다시 올라갑니다."
+      }
     }
   },
   "worldContent": {
     "corpseName": "{name} (시체)",
     "dungeonExitName": "{name} 출구",
     "dungeonPartyWarning": "{name}은 {count}명의 완전한 파티를 위해 마련된 곳입니다. 조심해서 나아가십시오.",
-    "dungeonInstanceBusy": "{name}의 모든 인스턴스가 사용 중입니다. 잠시 후 다시 시도하십시오."
+    "dungeonInstanceBusy": "{name}의 모든 인스턴스가 사용 중입니다. 잠시 후 다시 시도하십시오.",
+    "delveLockedChestInteract": "F를 눌러 자물쇠 따기",
+    "delveRewardChestInteract": "F를 눌러 전리품 받기",
+    "delveSurfaceExitInteract": "F를 눌러 지상으로 오르기"
   }
 };

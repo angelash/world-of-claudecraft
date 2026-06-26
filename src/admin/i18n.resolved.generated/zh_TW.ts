@@ -937,5 +937,18 @@ export const zh_TW: AdminTranslations = {
   "error.invalidIp": "必須提供有效的 IP 位址",
   "error.blockExpiryFuture": "封鎖到期時間必須是未來時間",
   "error.blockFailed": "封鎖 IP 失敗",
-  "error.blockNotFound": "找不到 IP"
+  "error.blockNotFound": "找不到 IP",
+  "stats.onlineAccounts": "在線帳號",
+  "stats.siteUsersNow": "目前網站使用者",
+  "stats.peakOnlineToday": "24小時在線尖峰",
+  "stats.peakOnlineAllTime": "歷史在線尖峰",
+  "stats.returningAccounts24h": "24小時回訪帳號",
+  "stats.activeAccounts7d": "7天活躍帳號",
+  "stats.activeAccounts30d": "30天活躍帳號",
+  "stats.avgPlaytimePerAccount": "每帳號平均遊玩時間",
+  "charts.onlineHistory": "在線歷史（{range}）",
+  "charts.onlineTooltip": "{bucket}：尖峰 {siteUsers} 位網站使用者，{players} 名玩家，{accounts} 個帳號",
+  "charts.range.24h": "24小時",
+  "charts.range.7d": "7天",
+  "charts.range.30d": "30天"
 };

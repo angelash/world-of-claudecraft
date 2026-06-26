@@ -202,33 +202,6 @@ export function buildForkAiProfilePack(
       timeWeatherSensitivity: { dayEnergy: 0.5, nightFatigue: 0.5, clearNightAwe: 0.05, rainIrritation: 0.4, fogFear: 0.2 },
     }),
     withBasicNpcIntents({
-      id: 'npc.ranger_elwyn.living_world',
-      appliesTo: [{ kind: 'npc', templateId: 'ranger_elwyn' }],
-      persona: 'A glade warden who speaks softly because the woods answer loud things.',
-      allowedLineIds: ['hudChrome.aiSpeech.rangerElwynAwake'],
-      fallbackLineId: 'hudChrome.aiSpeech.rangerElwynAwake',
-      canonSensitive: true,
-      knowledgeScope: ['Brightwood Glade', 'forest tracks', 'beast moods', 'quiet paths', 'wildflower signs'],
-      tabooTopics: ['certain safe paths', 'hidden quest outcomes', 'claiming the forest is harmless'],
-      socialMemory: {
-        style: 'Stores memory as trail signs, bent grass, animal warnings, and a player scent that returns.',
-        recognitionLineId: 'hudChrome.aiSpeech.memoryScoutRecognizesPlayer',
-        rumorLineId: 'hudChrome.aiSpeech.memoryScoutRumorEcho',
-        questRumorLineId: 'hudChrome.aiSpeech.memoryScoutQuestRumorEcho',
-      },
-      sceneAffinities: {
-        likesTags: ['forest', 'glade', 'trail', 'beast', 'clearSky'],
-        avoidsTags: ['oldBlood', 'demon', 'fire'],
-        commentsOnTags: ['trail', 'weather', 'hostileDensity', 'starrySky'],
-      },
-      itemInterest: {
-        attractedToTags: ['food', 'tool', 'quest', 'beast', 'herb'],
-        avoidsTags: ['cursed', 'demon', 'unknownPower'],
-      },
-      timeWeatherSensitivity: { dayEnergy: 0.55, nightFatigue: 0.35, clearNightAwe: 0.45, rainIrritation: 0.18, fogFear: 0.4 },
-      companionReactions: [{ companionTag: 'beast', sceneTag: 'forest', reaction: 'curious' }],
-    }),
-    withBasicNpcIntents({
       id: 'npc.warden_fenwick.living_world',
       appliesTo: [{ kind: 'npc', templateId: 'warden_fenwick' }],
       persona: 'A Fenbridge warden who trusts gates, dry powder, and people who know when the marsh is lying.',

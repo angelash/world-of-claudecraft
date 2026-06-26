@@ -937,5 +937,18 @@ export const de_DE: AdminTranslations = {
   "error.invalidIp": "eine gültige IP-Adresse ist erforderlich",
   "error.blockExpiryFuture": "das Ablaufdatum der Sperre muss in der Zukunft liegen",
   "error.blockFailed": "IP konnte nicht gesperrt werden",
-  "error.blockNotFound": "IP nicht gefunden"
+  "error.blockNotFound": "IP nicht gefunden",
+  "stats.onlineAccounts": "Konten online",
+  "stats.siteUsersNow": "Website-Nutzer jetzt",
+  "stats.peakOnlineToday": "Online-Spitze 24h",
+  "stats.peakOnlineAllTime": "Online-Spitze insgesamt",
+  "stats.returningAccounts24h": "wiederkehrende Konten 24h",
+  "stats.activeAccounts7d": "aktive Konten 7T",
+  "stats.activeAccounts30d": "aktive Konten 30T",
+  "stats.avgPlaytimePerAccount": "Ø Spielzeit pro Konto",
+  "charts.onlineHistory": "Online-Verlauf ({range})",
+  "charts.onlineTooltip": "{bucket}: Spitze {siteUsers} Website-Nutzer, {players} Spieler, {accounts} Konten",
+  "charts.range.24h": "24h",
+  "charts.range.7d": "7 Tage",
+  "charts.range.30d": "30 Tage"
 };

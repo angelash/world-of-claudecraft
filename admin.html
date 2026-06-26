@@ -381,7 +381,14 @@
   .chart svg { width: 100%; height: auto; display: block; }
   .chart .bar { fill: #c8a838; }
   .chart .bar:hover { fill: #ffd100; }
+  .chart .line { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  .chart .line.primary { stroke: #ffd100; }
+  .chart .line.secondary { stroke: #8cc7ff; stroke-width: 2; opacity: .9; }
+  .chart .line-hit { fill: transparent; stroke: transparent; }
   .chart .axis { fill: var(--text-dim); font-size: 9px; }
+  .range-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+  .range-tab { min-height: 32px; border: 1px solid #4a3920; background: #1a130d; color: var(--text); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+  .range-tab.active { color: var(--gold); border-color: var(--gold-dim); background: #241a0e; }
 
   /* ---------- moderation ---------- */
   #moderation-detail { margin-top: 12px; }
@@ -515,17 +522,17 @@
             <option value="en" data-i18n="language.en">English</option>
           </select>
         </label>
-        <span><span data-i18n="auth.signedInAs">已登录为</span> <span id="who-name"></span><button id="logout" data-i18n="auth.signOut">退出登录</button></span>
+        <span><span data-i18n="auth.signedInAs">已登录为</span> <span id="who-name"></span><button type="button" id="logout" data-i18n="auth.signOut">退出登录</button></span>
       </div>
     </header>
 
     <nav id="admin-tabs">
-      <button class="admin-tab active" data-admin-page="overview" data-i18n="nav.overview">Overview</button>
-      <button class="admin-tab" data-admin-page="usage" data-i18n="nav.usage">Usage</button>
-      <button class="admin-tab" data-admin-page="moderation" data-i18n="nav.moderation">Moderation</button>
-      <button class="admin-tab" data-admin-page="chat-filter" data-i18n="nav.chatFilter">Chat Filter</button>
-      <button class="admin-tab" data-admin-page="blocked-ips" data-i18n="nav.blockedIps">Blocked IPs</button>
-      <button class="admin-tab" data-admin-page="bug-reports" data-i18n="nav.bugReports">Bug Reports</button>
+      <button type="button" class="admin-tab active" data-admin-page="overview" data-i18n="nav.overview">Overview</button>
+      <button type="button" class="admin-tab" data-admin-page="usage" data-i18n="nav.usage">Usage</button>
+      <button type="button" class="admin-tab" data-admin-page="moderation" data-i18n="nav.moderation">Moderation</button>
+      <button type="button" class="admin-tab" data-admin-page="chat-filter" data-i18n="nav.chatFilter">Chat Filter</button>
+      <button type="button" class="admin-tab" data-admin-page="blocked-ips" data-i18n="nav.blockedIps">Blocked IPs</button>
+      <button type="button" class="admin-tab" data-admin-page="bug-reports" data-i18n="nav.bugReports">Bug Reports</button>
     </nav>
 
     <main id="page-overview" class="admin-page active">

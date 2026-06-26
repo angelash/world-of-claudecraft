@@ -147,8 +147,10 @@ For off-box safety, sync the directory to S3 occasionally:
   (`server/bot_detector/stub.ts`). Detection hooks are wired in, but they observe
   nothing and never act. To bundle the real behavioral detector, clone the private
   `bot_detector` repo into `private/bot_detector` **before** `npm run build` (or
-  `npm run build:server`). That directory is not part of the public checkout. At
-  build time, confirm which implementation was picked:
+  `npm run build:server`). The Docker build copies `private/` into the build stage,
+  so the same rule applies to deploys that run `docker compose build`: the private
+  checkout must exist before the image is built. That directory is not part of the
+  public checkout. At build time, confirm which implementation was picked:
   `[build:server] bot detector: stub (no-op)` vs `… bot detector: private`.
 - **Anti-bot runtime knobs**: `MAX_WS_PER_IP_HARD` (default `20`) caps simultaneous
   WebSocket connections per source IP; extra connections are refused at the
