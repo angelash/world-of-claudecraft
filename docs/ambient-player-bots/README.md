@@ -78,6 +78,11 @@ Post-packet continuation prompts:
   quest chain.
 - `continuation-05-qa-cross-zone-fenbridge-progression.md` - QA prompt for
   continuation 05.
+- `continuation-06-mirefen-side-chains-and-fenbridge-resupply.md` - extend the
+  real progression ladder into the widow and drowned side chains while moving
+  north-zone sustain to the Fenbridge vendor.
+- `continuation-06-qa-mirefen-side-chains-and-fenbridge-resupply.md` - QA
+  prompt for continuation 06.
 
 ## How to use this packet
 

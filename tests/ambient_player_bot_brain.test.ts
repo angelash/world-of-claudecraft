@@ -281,6 +281,62 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
+  it('uses Provisioner Hale for north-zone food and drink restocking once the bot is questing in Mirefen', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot({
+        class: 'mage',
+        profileId: 'eastbrook_vale_mage_newcomer',
+      }),
+      liveState: liveState({
+        self: {
+          lv: 8,
+          x: -4,
+          z: 308,
+          copper: 900,
+          res: 100,
+          mres: 100,
+          rtype: 'mana',
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+            'q_idols',
+            'q_deepfen_purge',
+          ],
+          qlog: [{ questId: 'q_widows', counts: [0, 0], state: 'active' }],
+        },
+        entities: [
+          { id: 9800, k: 'npc', tid: 'provisioner_hale', x: -4, z: 308 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('restock_food_and_drink');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9800 },
+      { cmd: 'buy', npc: 9800, item: 'fenbridge_rye' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
   it('picks up the boar-hide quest once the bot outlevels the starter wolf loop', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
@@ -700,6 +756,244 @@ describe('ambient player bot brain', () => {
     expect(result.objectiveId).toBe('accept_deepfen_purge');
     expect(result.commands).toEqual([
       { cmd: 'target', id: 9703 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('picks up the widow-thicket quest from Herbalist Yara after the Deepfen purge chain is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 8,
+          x: 10,
+          z: 295,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+            'q_idols',
+            'q_deepfen_purge',
+          ],
+        },
+        entities: [
+          { id: 9801, k: 'npc', tid: 'herbalist_yara', x: 10, z: 295 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_widows');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9801 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('keeps hunting Mirefen widows while the mixed kill-and-drop widow quest is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 8,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+            'q_idols',
+            'q_deepfen_purge',
+          ],
+          qlog: [{ questId: 'q_widows', counts: [7, 4], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_widows');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('picks up the drowned-dead quest from Brother Aldric in Fenbridge after the widow chain', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 9,
+          x: -8,
+          z: 296,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+            'q_idols',
+            'q_deepfen_purge',
+            'q_widows',
+          ],
+        },
+        entities: [
+          { id: 9802, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_drowned');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9802 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('targets and interacts with a rusted censer when the drowned chapel collect quest is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 9,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+            'q_idols',
+            'q_deepfen_purge',
+            'q_widows',
+            'q_drowned',
+          ],
+          qlog: [{ questId: 'q_drowned_censers', counts: [1], state: 'active' }],
+        },
+        entities: [
+          { id: 9803, k: 'object', obj: 'rusted_censer', x: 3, z: 1, loot: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('collect_drowned_censers');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9803 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('picks up the no-rest follow-up from Brother Aldric after the chapel censers are secured', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 9,
+          x: -8,
+          z: 296,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+            'q_idols',
+            'q_deepfen_purge',
+            'q_widows',
+            'q_drowned',
+            'q_drowned_censers',
+          ],
+        },
+        entities: [
+          { id: 9804, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_no_rest');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9804 },
       { cmd: 'interact' },
     ]);
     expect(result.moveInput).toEqual({});

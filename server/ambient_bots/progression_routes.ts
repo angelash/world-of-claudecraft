@@ -199,4 +199,32 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     7,
     'Breaking the Deepfen dredge',
   ),
+  killRoute(
+    'q_widows',
+    'herbalist_yara',
+    'mire_widow',
+    8,
+    'Clearing the Widow Thicket',
+  ),
+  killRoute(
+    'q_drowned',
+    'brother_aldric_fen',
+    'drowned_dead',
+    9,
+    'Laying the drowned dead to rest',
+  ),
+  collectRoute(
+    'q_drowned_censers',
+    'brother_aldric_fen',
+    'rusted_censer',
+    9,
+    'Recovering Rusted Censers',
+  ),
+  killRoute(
+    'q_no_rest',
+    'brother_aldric_fen',
+    'drowned_dead',
+    9,
+    'Driving the drowned from the reeds',
+  ),
 ];

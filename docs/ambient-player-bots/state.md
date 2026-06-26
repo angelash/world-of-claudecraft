@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: continuation 05
-- phase status: Continuation 05 implementation complete, Continuation 05 QA next, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 06
+- phase status: Continuation 06 implementation complete, Continuation 06 QA next, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -244,6 +244,15 @@
 - `docs/ambient-player-bots/continuation-05-cross-zone-fenbridge-progression.md`
 - `docs/ambient-player-bots/continuation-05-qa-cross-zone-fenbridge-progression.md`
 
+### Continuation 06
+
+- `server/ambient_bots/brain.ts`
+- `server/ambient_bots/progression_routes.ts`
+- `tests/ambient_player_bot_brain.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `docs/ambient-player-bots/continuation-06-mirefen-side-chains-and-fenbridge-resupply.md`
+- `docs/ambient-player-bots/continuation-06-qa-mirefen-side-chains-and-fenbridge-resupply.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -319,8 +328,14 @@
   and adds distinct turn-in NPC support for cross-zone handoff quests
 - the current progression brain now covers Fenbridge starter routes through
   `q_deepfen_purge`
-- deeper Mirefen routing such as widows, drowned, trolls, cultists, and
-  zone-aware north-town sustain still remain open
+- Continuation 05 QA confirmed the Fenbridge handoff stays data-driven and does
+  not break earlier same-NPC route flow
+- Continuation 06 extends the route registry into the widow and drowned Mirefen
+  side chains and moves north-zone sustain to Provisioner Hale
+- the current progression brain now covers Mirefen side routes through
+  `q_no_rest`
+- deeper Mirefen routing such as trolls, cultists, and Bastion approach content
+  still remain open
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

@@ -1,7 +1,7 @@
 import type { KnownAbility } from '../../src/sim/content/classes';
 import type { TalentAllocation } from '../../src/sim/content/talents';
 import { computeTalentModifiers } from '../../src/sim/content/talents';
-import { CAMPS, CLASSES, ITEMS, MOBS, NPCS, QUESTS, abilitiesKnownAt } from '../../src/sim/data';
+import { CAMPS, CLASSES, ITEMS, MOBS, NPCS, QUESTS, abilitiesKnownAt, zoneAt } from '../../src/sim/data';
 import { findPlayerPath, resolvePlayerDestination } from '../../src/sim/pathfind';
 import {
   INTERACT_RANGE,
@@ -29,14 +29,28 @@ const NO_TARGET_ROTATE_MS = 5_000;
 const COMMAND_COOLDOWN_MS = 900;
 const RECOVERY_HP_THRESHOLD = 0.55;
 const RECOVERY_MANA_THRESHOLD = 0.45;
-const JUNK_VENDOR_NPC_ID = 'trader_wilkes';
-const RESTOCK_VENDOR_NPC_ID = 'trader_wilkes';
 const FOOD_RESTOCK_TRIGGER_COUNT = 2;
 const FOOD_RESTOCK_TARGET_COUNT = 4;
 const DRINK_RESTOCK_TRIGGER_COUNT = 2;
 const DRINK_RESTOCK_TARGET_COUNT = 4;
-const RESTOCK_FOOD_ITEM_ID = 'baked_bread';
-const RESTOCK_DRINK_ITEM_ID = 'spring_water';
+
+interface AmbientBotVendorProfile {
+  vendorNpcTemplateId: string;
+  foodItemId: string;
+  drinkItemId: string;
+}
+
+const EASTBROOK_VENDOR_PROFILE: AmbientBotVendorProfile = {
+  vendorNpcTemplateId: 'trader_wilkes',
+  foodItemId: 'baked_bread',
+  drinkItemId: 'spring_water',
+};
+
+const FENBRIDGE_VENDOR_PROFILE: AmbientBotVendorProfile = {
+  vendorNpcTemplateId: 'provisioner_hale',
+  foodItemId: 'fenbridge_rye',
+  drinkItemId: 'marsh_mint_tea',
+};
 
 type BrainCommand = Record<string, unknown>;
 type MoveInputPayload = Record<string, 1>;
@@ -247,10 +261,11 @@ function chooseObjective(view: BotWorldView): AmbientBotObjective {
   if (questObjective) return questObjective;
 
   if (inventoryHasJunk(view.self.inventory)) {
+    const vendorProfile = vendorProfileFor(view.self);
     return {
       id: 'sell_junk',
       label: 'Vendoring poor-quality loot',
-      npcTemplateId: JUNK_VENDOR_NPC_ID,
+      npcTemplateId: vendorProfile.vendorNpcTemplateId,
     };
   }
 
@@ -269,12 +284,13 @@ function chooseResupplyObjective(
   questObjective: AmbientBotObjective | null,
 ): AmbientBotObjective | null {
   if (questObjective?.npcTemplateId) return null;
-  const vendorPurchases = buildVendorPurchases(view.self);
+  const vendorProfile = vendorProfileFor(view.self);
+  const vendorPurchases = buildVendorPurchases(view.self, vendorProfile);
   if (vendorPurchases.length === 0) return null;
   return {
     id: vendorPurchases.length > 1 ? 'restock_food_and_drink' : `restock_${vendorPurchases[0].itemId}`,
     label: resupplyLabel(vendorPurchases),
-    npcTemplateId: RESTOCK_VENDOR_NPC_ID,
+    npcTemplateId: vendorProfile.vendorNpcTemplateId,
     vendorPurchases,
   };
 }
@@ -357,23 +373,32 @@ function routeObjectiveNeedsWork(
   return (progress.counts[route.questObjectiveIndex] ?? 0) < objective.count;
 }
 
-function buildVendorPurchases(self: BotSelfView): AmbientBotVendorPurchase[] {
+function buildVendorPurchases(
+  self: BotSelfView,
+  vendorProfile: AmbientBotVendorProfile,
+): AmbientBotVendorPurchase[] {
   const purchases: AmbientBotVendorPurchase[] = [];
   const canSellJunk = inventoryHasJunk(self.inventory);
   if (
     countConsumables(self.inventory, 'food') < FOOD_RESTOCK_TRIGGER_COUNT
-    && canAffordVendorItem(self.copper, RESTOCK_FOOD_ITEM_ID, canSellJunk)
+    && canAffordVendorItem(self.copper, vendorProfile.foodItemId, canSellJunk)
   ) {
-    purchases.push({ itemId: RESTOCK_FOOD_ITEM_ID, targetCount: FOOD_RESTOCK_TARGET_COUNT });
+    purchases.push({ itemId: vendorProfile.foodItemId, targetCount: FOOD_RESTOCK_TARGET_COUNT });
   }
   if (
     self.resourceType === 'mana'
     && countConsumables(self.inventory, 'drink') < DRINK_RESTOCK_TRIGGER_COUNT
-    && canAffordVendorItem(self.copper, RESTOCK_DRINK_ITEM_ID, canSellJunk)
+    && canAffordVendorItem(self.copper, vendorProfile.drinkItemId, canSellJunk)
   ) {
-    purchases.push({ itemId: RESTOCK_DRINK_ITEM_ID, targetCount: DRINK_RESTOCK_TARGET_COUNT });
+    purchases.push({ itemId: vendorProfile.drinkItemId, targetCount: DRINK_RESTOCK_TARGET_COUNT });
   }
   return purchases;
+}
+
+function vendorProfileFor(self: BotSelfView): AmbientBotVendorProfile {
+  return zoneAt(self.pos.z).id === 'mirefen_marsh'
+    ? FENBRIDGE_VENDOR_PROFILE
+    : EASTBROOK_VENDOR_PROFILE;
 }
 
 function canAffordVendorItem(

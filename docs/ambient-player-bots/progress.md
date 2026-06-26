@@ -29,7 +29,9 @@
 | Continuation 04 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 04 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 05 | completed | 2026-06-26 | 2026-06-26 |
-| Continuation 05 QA | pending | 2026-06-26 |  |
+| Continuation 05 QA | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 06 | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 06 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
 
@@ -565,11 +567,65 @@ Notes:
   - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
   - `npm run build:server`
   - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+- `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- Continuation 05 QA is now complete. The next implementation gap after that
+  was the deeper Mirefen ladder such as widows, drowned, and zone-aware
+  north-town sustain.
+
+## Continuation 05 QA checklist
+
+- [x] audit Continuation 05 against
+  `continuation-05-qa-cross-zone-fenbridge-progression.md`
+- [x] confirm distinct turn-in NPC support only changes routes that opt into it
+- [x] confirm the Fenbridge handoff still works through real movement, object
+  interaction, and turn-in flow
+- [x] verify focused ambient-bot validation, `build:server`, and local pg-mem
+  smoke stay green
+
+Notes:
+- QA did not uncover a new logic bug in the Continuation 05 slice. The
+  Fenbridge handoff, cross-zone movement objective, and starter Zone 2 route
+  ladder all held under the targeted validation matrix.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline listed
+    above)
+- Continuation 06 is now the next implementation target: Mirefen side chains
+  plus Fenbridge-local sustain.
+
+## Continuation 06 checklist
+
+- [x] extend the progression registry through the widow and drowned solo chains
+- [x] switch north-zone junk vending and food or drink restocking to
+  Provisioner Hale
+- [x] add focused brain regressions for Fenbridge resupply and the new Mirefen
+  route ladder
+- [x] add a runtime regression for Fenbridge vendor buys over the real `/ws`
+- [x] validate the continuation slice
+
+Notes:
+- This slice keeps the real ambient-bot loop moving through Mirefen without
+  introducing new authority shortcuts. Widow kills, drowned chapel collection,
+  and Fenbridge resupply all still flow through the normal server and sim path.
+- The progression brain now covers these additional Zone 2 solo routes:
+  `q_widows`, `q_drowned`, `q_drowned_censers`, and `q_no_rest`.
+- Mirefen sustain is now local: bots operating in the north marsh use
+  `Provisioner Hale` for junk sales and food or drink restocking instead of
+  walking back to Trader Wilkes.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
   - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
     currently includes existing issues in `server/ai/active_triggers.ts`,
     `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
     under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
     `tests/auto_loot.test.ts`)
-- Continuation 05 QA is now the next target. The next implementation gap after
-  that is the deeper Mirefen ladder such as widows, drowned, and later cult
-  routes, plus zone-aware north-town sustain improvements.
+- Continuation 06 QA is now the next target. The next implementation gap after
+  that is the troll, cultist, and later Bastion approach ladder.
