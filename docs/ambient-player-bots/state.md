@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: continuation 08
-- phase status: Continuation 08 implementation complete, Continuation 08 QA next, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 08 QA
+- phase status: Continuation 08 QA complete, next implementation gap is Bastion group content such as q_olen and q_mistcaller, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -363,6 +363,8 @@
   with summoners preferred and menders as the valid fallback source
 - the current progression brain now covers Mirefen outdoor routes through
   `q_bastion_door`
+- Continuation 08 QA confirmed the cipher stage ignores nearby non-dropping
+  cultists and stays reconstructible from live quest counts only
 - the next notable progression gap is Bastion group content such as `q_olen`
   and `q_mistcaller`
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,

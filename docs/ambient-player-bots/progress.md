@@ -35,7 +35,7 @@
 | Continuation 07 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 07 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 08 | completed | 2026-06-26 | 2026-06-26 |
-| Continuation 08 QA | pending | 2026-06-26 |  |
+| Continuation 08 QA | completed | 2026-06-26 | 2026-06-26 |
 
 ## Phase 1 checklist
 
@@ -739,5 +739,30 @@ Notes:
     `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
     under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
     `tests/auto_loot.test.ts`)
-- Continuation 08 QA is now the next target. The next implementation gap after
-  that is Bastion group content such as `q_olen` and `q_mistcaller`.
+- Continuation 08 QA is now complete. The next implementation gap after that
+  is Bastion group content such as `q_olen` and `q_mistcaller`.
+
+## Continuation 08 QA checklist
+
+- [x] audit Continuation 08 against
+  `continuation-08-qa-cult-summoners-deacon-and-bastion-approach.md`
+- [x] confirm the `q_summoners` cipher stage stays bounded to valid drop
+  sources and does not drift onto nearby cultists
+- [x] confirm the summoner, Deacon, and Bastion approach ladder still follows
+  the live quest-count handoff only
+- [x] verify focused ambient-bot validation, `build:server`, and local pg-mem
+  smoke stay green
+
+Notes:
+- QA did not uncover a new logic bug in the Continuation 08 slice, but it did
+  close one worthwhile coverage gap: the cipher stage now has a direct
+  regression that proves nearby non-dropping cultists are ignored while the bot
+  keeps routing toward valid cipher sources.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline listed
+    above)
+- The next implementation gap is Bastion group content such as `q_olen` and
+  `q_mistcaller`.

@@ -1481,6 +1481,29 @@ describe('ambient player bot brain', () => {
     expect(result.commands[0]).toEqual({ cmd: 'target', id: 9813 });
   });
 
+  it('does not drift onto Gravecaller cultists during the q_summoners cipher stage', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 11,
+          qdone: [...mirefenThroughCultCamp],
+          qlog: [{ questId: 'q_summoners', counts: [8, 0], state: 'active' }],
+        },
+        entities: [
+          { id: 9817, k: 'mob', tid: 'gravecaller_cultist', x: 2, z: 2, h: 1, lv: 11 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_summoner_ciphers');
+    expect(result.objectiveLabel).toBe('Recovering Gravecaller Ciphers');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('picks up Deacon Voss from Warden Fenwick after q_summoners is complete', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
