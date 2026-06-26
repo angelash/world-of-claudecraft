@@ -15,7 +15,7 @@
 | 9 | completed | 2026-06-26 | 2026-06-26 |
 | 10 | completed | 2026-06-26 | 2026-06-26 |
 | 11 | completed | 2026-06-26 | 2026-06-26 |
-| 12 | pending | | |
+| 12 | completed | 2026-06-26 | 2026-06-26 |
 | 13 | pending | | |
 | 14 | pending | | |
 | 15 | pending | | |
@@ -245,9 +245,33 @@ Notes:
 - Validation run:
   - `npx vitest run tests/ambient_player_bot_llm.test.ts tests/ambient_player_bot_social.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts`
   - `npm run build:server`
-  - `npx tsc --noEmit` (still red only at the current repo baseline, which now
+- `npx tsc --noEmit` (still red only at the current repo baseline, which now
     includes existing issues in `server/ai/active_triggers.ts`,
     `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
     under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`,
     `tests/ambient_player_bot_ws_client.test.ts`, and `tests/auto_loot.test.ts`)
 - Phase 12 QA is now the next target.
+
+## Phase 12 checklist
+
+- [x] audit Phase 11 against `phase-12-qa-llm-social-plan-integration.md`
+- [x] add a runtime regression for rejected LLM whisper output fallback
+- [x] restore `tests/ambient_player_bot_ws_client.test.ts` to the unrelated repo baseline
+- [x] verify focused vitest and `build:server` stay green
+- [x] confirm `npx tsc --noEmit` adds no new Phase 11 or Phase 12 errors
+
+Notes:
+- QA did not uncover a new authoritative-runtime bug in the Phase 11 slice, but
+  it did reveal two issues worth closing before Phase 13. First, the rejected
+  social-output path needed an explicit runtime regression so fallback replies
+  stay protected. Second, the existing ws client test still carried an old
+  outer-scope type hole that polluted the repo-wide `tsc` baseline.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_llm.test.ts tests/ambient_player_bot_social.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts`
+  - `npm run build:server`
+  - `npx tsc --noEmit` (still red only at the current repo baseline, which now
+    includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- Phase 13 is now the next implementation target.

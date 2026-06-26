@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: 12
-- phase status: pending Phase 11 QA after Phase 11 implementation
+- current phase: 13
+- phase status: pending Phase 13 implementation after Phase 12 QA
 
 ## Locked decisions
 
@@ -153,6 +153,12 @@
 - `tests/ambient_player_bot_social.test.ts`
 - `tests/ambient_player_bot_runtime.test.ts`
 
+### Phase 12
+
+- `docs/ambient-player-bots/phase-12-qa-llm-social-plan-integration.md`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `tests/ambient_player_bot_ws_client.test.ts`
+
 ## Planned database shape
 
 ### Phase 1
@@ -221,13 +227,13 @@
   that audit
 - Phase 11 added bounded LLM plan and whisper overlays, structured audit
   snapshots, semantic cache keys, and downgrade paths back to the heuristic
-  social shell. Phase 12 should now audit invalid-output fallback, provider
-  safety, and any remaining ambient-bot-specific type regressions
+  social shell. Phase 12 closed the explicit fallback regression and the
+  ambient-bot ws-client test type gap, so no new known Phase 11 blocker
+  remains after that audit
 - full live boot verification of the real runner on this workstation still
   needs a reachable local Postgres service
 - repo-wide `npx tsc --noEmit` is currently red for unrelated pre-existing
   issues outside this feature slice. The current baseline includes existing
   errors in `server/ai/active_triggers.ts`, `server/game.ts`, `src/ui/hud.ts`,
   generated i18n locale and resolved files under `src/ui/i18n.locales/` and
-  `src/ui/i18n.resolved.generated/`, `tests/ambient_player_bot_ws_client.test.ts`,
-  and `tests/auto_loot.test.ts`.
+  `src/ui/i18n.resolved.generated/`, and `tests/auto_loot.test.ts`.

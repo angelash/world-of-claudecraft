@@ -40,6 +40,9 @@ Starter prompts:
 - `phase-10-qa-social-shell-memory.md` - Phase 9 QA prompt.
 - `phase-11-llm-social-plan-integration.md` - Phase 11 implementation prompt
   for bounded LLM social stance, whisper replies, audit, and fallback paths.
+- `phase-12-qa-llm-social-plan-integration.md` - Phase 11 QA prompt for
+  validator coverage, fallback safety, semantic cache behavior, and type
+  baseline checks.
 
 ## How to use this packet
 

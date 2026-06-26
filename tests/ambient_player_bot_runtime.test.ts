@@ -719,6 +719,223 @@ describe('AmbientPlayerBotRuntime', () => {
 
     await runtime.stop();
   });
+
+  it('falls back to the heuristic whisper reply when llm social output is rejected', async () => {
+    let nowMs = 5_000;
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'eastbrook_vale:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          profileId: 'eastbrook_vale_paladin_quester',
+          class: 'paladin',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const provider: AmbientBotLlmProvider = {
+      decide: vi.fn(async ({ promptText }) => {
+        const context = extractPromptContext(promptText);
+        const botRef = readRecord(context, 'botRef');
+        if (promptText.includes('AmbientBotPlanDecisionV1')) {
+          return {
+            value: {
+              schemaVersion: 1,
+              jobId: readString(context, 'jobId'),
+              botRef,
+              ttlMs: 120_000,
+              confidence: 0.9,
+              socialMode: 'friendly',
+              focusLabel: 'Wolves at the Door',
+              selfSummary: 'helping with the wolf quest route',
+              friendPolicy: 'ifAsked',
+              allowPresenceEmote: true,
+              audit: {
+                shortReason: 'starter helper plan',
+                safetyNotes: ['boundedPlan'],
+              },
+            },
+            promptText,
+            rawOutput: '{"kind":"plan"}',
+            providerTimings: { provider: 'test-provider', totalMs: 12, steps: [] },
+          };
+        }
+        return {
+          value: {
+            schemaVersion: 1,
+            jobId: readString(context, 'jobId'),
+            botRef,
+            targetName: readString(readRecord(context, 'whisper'), 'fromName'),
+            ttlMs: 30_000,
+            confidence: 0.88,
+            replyText: 'I am a bot running from a prompt right now.',
+            friendAction: 'none',
+            presenceEmote: 'none',
+            memoryTags: ['quest'],
+            audit: {
+              shortReason: 'bad meta reply',
+              usedPlayerInput: true,
+              safetyNotes: ['badReply'],
+            },
+          },
+          promptText,
+          rawOutput: '{"kind":"social"}',
+          providerTimings: { provider: 'test-provider', totalMs: 18, steps: [] },
+        };
+      }),
+    };
+    const llmCoordinator = new AmbientPlayerBotLlmCoordinator({
+      config: {
+        enabled: true,
+        planCooldownMs: 120_000,
+        socialCooldownMs: 45_000,
+        maxCalls5h: 20,
+        maxCallsWeek: 40,
+        cacheMaxEntries: 32,
+        cacheMaxTtlMs: 300_000,
+      },
+      provider,
+    });
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      llmCoordinator,
+      llmConfig: {
+        enabled: true,
+        planCooldownMs: 120_000,
+        socialCooldownMs: 45_000,
+        maxCalls5h: 20,
+        maxCallsWeek: 40,
+        cacheMaxEntries: 32,
+        cacheMaxTtlMs: 300_000,
+      },
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, {
+          self: {
+            id: 101,
+            x: 4,
+            z: 6,
+            lv: 1,
+            hp: 40,
+            mhp: 40,
+            res: 0,
+            mres: 0,
+            rtype: 'mana',
+            gcd: 0,
+            inv: [],
+            qlog: [],
+            qdone: [],
+            cds: {},
+          },
+          ents: [
+            { id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 },
+            { id: 201, k: 'player', nm: 'Aleph', x: 8, z: 6 },
+          ],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => nowMs,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'eastbrook_vale:1',
+      zoneId: 'eastbrook_vale',
+      targetCharacterId: 1,
+      reason: 'test login',
+    }]);
+
+    await vi.waitFor(() => {
+      expect(game.ambientPlayerBotDirectory()).toEqual([
+        expect.objectContaining({
+          runnerState: expect.objectContaining({
+            llmPlanMode: 'friendly',
+            llmPlanFocus: 'Wolves at the Door',
+          }),
+        }),
+      ]);
+    });
+
+    sockets[0]?.emitJson({
+      t: 'social',
+      friends: [],
+      blocks: [],
+      guild: null,
+    });
+    sockets[0]?.emitJson({
+      t: 'events',
+      list: [{
+        type: 'chat',
+        fromPid: 201,
+        from: 'Aleph',
+        text: 'hey, what are you doing?',
+        channel: 'whisper',
+        pid: 101,
+      }],
+    });
+    await vi.waitFor(() => {
+      expect(game.ambientPlayerBotDirectory()).toEqual([
+        expect.objectContaining({
+          socialState: expect.objectContaining({
+            contacts: expect.objectContaining({
+              Aleph: expect.objectContaining({
+                whispersReceived: 1,
+                whispersSent: 0,
+              }),
+            }),
+          }),
+          runnerState: expect.objectContaining({
+            socialPendingReplies: 1,
+            lastWhisperFrom: 'Aleph',
+            llmSocialStatus: 'rejected',
+          }),
+        }),
+      ]);
+    });
+
+    nowMs = 12_000;
+    await vi.waitFor(() => {
+      expect(game.ambientPlayerBotDirectory()).toEqual([
+        expect.objectContaining({
+          socialState: expect.objectContaining({
+            contacts: expect.objectContaining({
+              Aleph: expect.objectContaining({
+                whispersSent: 1,
+              }),
+            }),
+          }),
+          runnerState: expect.objectContaining({
+            socialPendingReplies: 0,
+            lastSocialAction: 'reply:Aleph',
+            llmSocialStatus: 'rejected',
+          }),
+        }),
+      ]);
+    });
+    const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; text?: string });
+    expect(sent?.some((message) =>
+      message.t === 'cmd'
+      && message.cmd === 'chat'
+      && message.text === '/w Aleph hey there',
+    )).toBe(true);
+
+    await runtime.stop();
+  });
 });
 
 function cloneRecord(record: AmbientPlayerBotRecord): AmbientPlayerBotRecord {

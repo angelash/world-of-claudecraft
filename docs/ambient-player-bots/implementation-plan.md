@@ -137,3 +137,4 @@ Deliverables:
 - `phase-09-social-shell-memory.md`
 - `phase-10-qa-social-shell-memory.md`
 - `phase-11-llm-social-plan-integration.md`
+- `phase-12-qa-llm-social-plan-integration.md`

@@ -127,24 +127,26 @@ describe('ambient player bot ws client helpers', () => {
 
     const connectPromise = client.connect({ token: 'token-1', characterId: 101, timeoutMs: 1_000 });
     await Promise.resolve();
-    socket?.emitJson({ t: 'hello', pid: 91, seed: 20_061 });
-    socket?.emitJson({
+    const liveSocket = socket as FakeSocket | null;
+    if (!liveSocket) throw new Error('expected ambient bot test socket');
+    liveSocket.emitJson({ t: 'hello', pid: 91, seed: 20_061 });
+    liveSocket.emitJson({
       t: 'snap',
       self: { id: 101, x: 4, z: 6, lv: 2 },
       ents: [{ id: 201, k: 'player', nm: 'Aleph', x: 7, z: 8 }],
       keep: [],
     });
-    socket?.emitJson({
+    liveSocket.emitJson({
       t: 'social',
       friends: [{ id: 11, name: 'Aleph', cls: 'warrior', level: 2, realm: 'eastbrook', online: false }],
       blocks: [{ id: 12, name: 'Bet' }],
       guild: null,
     });
-    socket?.emitJson({
+    liveSocket.emitJson({
       t: 'socialpos',
       list: [{ id: 11, x: 44, z: 55, zone: 'Eastbrook Vale', status: 'combat' }],
     });
-    socket?.emitJson({
+    liveSocket.emitJson({
       t: 'events',
       list: [{ type: 'chat', fromPid: 201, from: 'Aleph', text: 'hello there', channel: 'whisper', pid: 101 }],
     });
