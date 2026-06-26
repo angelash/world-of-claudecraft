@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: 9
-- phase status: pending Phase 9 implementation after Phase 8 QA
+- current phase: 11
+- phase status: pending Phase 11 implementation after Phase 10 QA
 
 ## Locked decisions
 
@@ -32,6 +32,9 @@
     pathfinding helpers so reconnects and future realm seed changes stay safe.
 12. When a live cluster changes shape, the planner should prefer stable cluster
     identity and online-bot handoff before forcing logout and fresh-login churn.
+13. The first social shell stays heuristic and bounded: real whispers, friend
+    adds, and presence emotes now, with free-form generation deferred to the
+    later LLM phases.
 
 ## Non-negotiable constraints
 
@@ -117,6 +120,17 @@
 - `docs/ambient-player-bots/phase-08-qa-human-cluster-orchestration.md`
 - `tests/ambient_player_bot_service.test.ts`
 
+### Phase 9
+
+- `server/ambient_bots/social.ts`
+- `server/ambient_bots/runtime.ts`
+- `server/ambient_bots/ws_client.ts`
+- `docs/ambient-player-bots/phase-09-social-shell-memory.md`
+- `docs/ambient-player-bots/phase-10-qa-social-shell-memory.md`
+- `tests/ambient_player_bot_social.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `tests/ambient_player_bot_ws_client.test.ts`
+
 ## Planned database shape
 
 ### Phase 1
@@ -168,6 +182,10 @@
 - Phase 8 QA added explicit regression coverage that a bot released for drift
   cannot reattach to the same cluster in the same planner cycle. No new Phase 7
   blocker remains after that audit
+- Phase 9 added bounded whisper handling, relationship memory in `social_state`,
+  presence emotes, and friend-add shell logic. Phase 10 QA closed the direct
+  ws social-frame coverage gap, so no new known Phase 9 blocker remains after
+  that audit
 - full live boot verification of the real runner on this workstation still
   needs a reachable local Postgres service
 - repo-wide `npx tsc --noEmit` is currently red for unrelated pre-existing

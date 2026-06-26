@@ -12,8 +12,8 @@
 | 6 | completed | 2026-06-26 | 2026-06-26 |
 | 7 | completed | 2026-06-26 | 2026-06-26 |
 | 8 | completed | 2026-06-26 | 2026-06-26 |
-| 9 | pending | | |
-| 10 | pending | | |
+| 9 | completed | 2026-06-26 | 2026-06-26 |
+| 10 | completed | 2026-06-26 | 2026-06-26 |
 | 11 | pending | | |
 | 12 | pending | | |
 | 13 | pending | | |
@@ -183,3 +183,44 @@ Notes:
   - `npx tsc --noEmit` (still red only at the unrelated repo baseline listed in
     Phase 7 notes)
 - Phase 9 is now the next implementation target.
+
+## Phase 9 checklist
+
+- [x] add ws handling for ambient bot `events`, `social`, and `socialpos`
+- [x] add a focused social shell module with delayed whisper replies
+- [x] persist lightweight relationship memory in existing `social_state`
+- [x] add bounded friend-add shell and presence emotes
+- [x] add focused social shell and runtime tests
+- [x] validate the Phase 9 slice
+
+Notes:
+- This slice stayed inside the ambient bot runtime family. It did not need new
+  server social tables or deeper `server/game.ts` branching.
+- The new social shell is fully heuristic and bounded: it uses real chat and
+  friend commands, stores lightweight contact memory in `social_state`, and
+  deliberately defers free-form generation to the later LLM phases.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_social.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts`
+  - `npm run build:server`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline listed in
+    Phase 7 notes)
+- Phase 10 QA is now the next target.
+
+## Phase 10 checklist
+
+- [x] audit Phase 9 against `phase-10-qa-social-shell-memory.md`
+- [x] add missing direct ws coverage for `social`, `socialpos`, and `events`
+- [x] verify delayed replies, block compliance, and social memory regressions stay green
+- [x] confirm `build:server` still passes and `tsc` adds no new feature errors
+
+Notes:
+- QA did not uncover a new runtime logic bug in the Phase 9 slice, but it did
+  reveal one coverage gap: ws social-frame handling was only covered indirectly
+  through runtime tests. The direct ws client regression now proves the bot
+  client ingests `social`, `socialpos`, and `events` frames correctly.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_social.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts`
+  - `npm run build:server`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline listed in
+    Phase 7 notes)
+- Phase 11 is now the next implementation target.
