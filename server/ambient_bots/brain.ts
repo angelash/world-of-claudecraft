@@ -1268,9 +1268,10 @@ function scoreCombatAbility(ability: CombatAbility, preferRanged: boolean): numb
 function grindRouteForSelf(self: BotSelfView): { mobId: string; camps: readonly BotPoint2d[] } {
   const zoneId = zoneAt(self.pos.z).id;
   if (zoneId === 'thornpeak_heights') {
-    return self.level <= 13
-      ? { mobId: 'ridge_stalker', camps: campsFor('ridge_stalker') }
-      : { mobId: 'deeprock_kobold', camps: campsFor('deeprock_kobold') };
+    if (self.level <= 13) return { mobId: 'ridge_stalker', camps: campsFor('ridge_stalker') };
+    if (self.level <= 14) return { mobId: 'deeprock_kobold', camps: campsFor('deeprock_kobold') };
+    if (self.level <= 15) return { mobId: 'thornpeak_ogre', camps: campsFor('thornpeak_ogre') };
+    return { mobId: 'stormcrag_elemental', camps: campsFor('stormcrag_elemental') };
   }
   const level = self.level;
   if (level <= 2) return { mobId: 'forest_wolf', camps: campsFor('forest_wolf') };

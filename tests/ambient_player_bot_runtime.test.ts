@@ -74,6 +74,14 @@ const mirefenThroughBastionDoor = [
   'q_bastion_door',
 ] as const;
 const mirefenThroughMistcaller = [...mirefenThroughBastionDoor, 'q_olen', 'q_mistcaller'] as const;
+const thornpeakThroughStarters = [
+  ...mirefenThroughMistcaller,
+  'q_highwatch_summons',
+  'q_stalkers',
+  'q_stalker_pelts',
+  'q_kobold_tunnels',
+  'q_glowing_wax',
+] as const;
 
 class FakeGame {
   private readonly directory = new Map<string, AmbientPlayerBotRecord>();
@@ -1493,6 +1501,174 @@ describe('AmbientPlayerBotRuntime', () => {
           connected: true,
           objective: 'restock_food_and_drink',
           objectiveLabel: 'Restocking Highwatch Trail Hardtack and Meltwater Flask',
+        }),
+      }),
+    ]);
+
+    await runtime.stop();
+  });
+
+  it('records the ogre totem collection objective and emits movement input for the Thornpeak war-camp approach', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'thornpeak_heights:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 15,
+          lastKnownZoneId: 'thornpeak_heights',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, {
+          self: {
+            id: 101,
+            x: -90,
+            z: 700,
+            lv: 15,
+            hp: 130,
+            mhp: 130,
+            res: 0,
+            mres: 0,
+            rtype: 'rage',
+            gcd: 0,
+            inv: [],
+            qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+            qlog: [{ questId: 'q_ogre_totems', counts: [0], state: 'active' }],
+            cds: {},
+          },
+          ents: [],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'thornpeak_heights:1',
+      zoneId: 'thornpeak_heights',
+      targetCharacterId: 1,
+      reason: 'test ogre totem route',
+    }]);
+
+    await vi.waitFor(() => {
+      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as {
+        t?: string;
+        mi?: Record<string, number>;
+      });
+      expect(sent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(true);
+    });
+
+    expect(game.ambientPlayerBotDirectory()).toEqual([
+      expect.objectContaining({
+        runnerState: expect.objectContaining({
+          connected: true,
+          objective: 'collect_ogre_totems',
+          objectiveLabel: 'Recovering Ogre War Totems',
+        }),
+      }),
+    ]);
+
+    await runtime.stop();
+  });
+
+  it('keeps connected Thornpeak bots on a local Stormcrag grind route when Kazzix is still level-gated', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'thornpeak_heights:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 16,
+          lastKnownZoneId: 'thornpeak_heights',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, {
+          self: {
+            id: 101,
+            x: 0,
+            z: 660,
+            lv: 16,
+            hp: 130,
+            mhp: 130,
+            res: 0,
+            mres: 0,
+            rtype: 'rage',
+            gcd: 0,
+            inv: [],
+            qdone: [...thornpeakThroughStarters, 'q_ogre_edges', 'q_ogre_totems', 'q_ogre_bounty', 'q_elementals', 'q_shard_cores'],
+            qlog: [],
+            cds: {},
+          },
+          ents: [],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'thornpeak_heights:1',
+      zoneId: 'thornpeak_heights',
+      targetCharacterId: 1,
+      reason: 'test Stormcrag fallback grind',
+    }]);
+
+    await vi.waitFor(() => {
+      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as {
+        t?: string;
+        mi?: Record<string, number>;
+      });
+      expect(sent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(true);
+    });
+
+    expect(game.ambientPlayerBotDirectory()).toEqual([
+      expect.objectContaining({
+        runnerState: expect.objectContaining({
+          connected: true,
+          objective: 'grind',
+          objectiveLabel: 'Grinding Stormcrag Elemental',
         }),
       }),
     ]);

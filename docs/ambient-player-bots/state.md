@@ -2,11 +2,11 @@
 
 ## Current phase
 
-- current phase: continuation 12 planning
-- phase status: Continuation 11 QA is complete, and continuation 12 planning
-  now targets the mid-Thornpeak outdoor warfront around ogre foothills and
-  Stormcrag elementals before the later grouped ogre camp and Sanctum ladders,
-  packet teardown deferred until the continuation ladder closes
+- current phase: continuation 12 QA
+- phase status: Continuation 12 implementation is complete, and QA now closes
+  the mid-Thornpeak outdoor warfront around ogre foothills and Stormcrag
+  elementals before the later grouped ogre camp and Sanctum ladders, packet
+  teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -47,6 +47,10 @@
 16. In progression routing, `requiresQuest` means the prerequisite quest must
     be turned in, not merely active, so starter overlap must stay limited to
     chains whose live quest definitions truly allow parallel actives.
+17. The Stormcrag outdoor pair should stay local to one outing: once
+    `q_shard_cores` is active at level 17, the bot should pick up `q_kazzix`
+    before leaving Highwatch and defer the ready shard-core turn-in while
+    Kazzix remains active.
 
 ## Non-negotiable constraints
 
@@ -439,6 +443,14 @@
 - Continuation 11 QA is complete, and continuation 12 should next cover the
   mid-Thornpeak outdoor warfront around `q_ogre_edges`, `q_ogre_totems`,
   `q_ogre_bounty`, `q_elementals`, `q_shard_cores`, and `q_kazzix`
+- Continuation 12 extends the route registry into `q_ogre_edges`,
+  `q_ogre_totems`, `q_ogre_bounty`, `q_elementals`, `q_shard_cores`, and
+  `q_kazzix`
+- the current progression brain now covers the Zone 3 outdoor ladders through
+  `q_kazzix`
+- Thornpeak-local fallback grinding now advances from ridge stalkers to
+  kobolds, then ogres, then Stormcrag elementals as the current quest gate
+  moves north
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

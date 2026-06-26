@@ -113,6 +113,14 @@ const mirefenThroughSummoners = [...mirefenThroughCultCamp, 'q_summoners'] as co
 const mirefenThroughDeacon = [...mirefenThroughSummoners, 'q_deacon'] as const;
 const mirefenThroughBastionDoor = [...mirefenThroughDeacon, 'q_bastion_door'] as const;
 const mirefenThroughMistcaller = [...mirefenThroughBastionDoor, 'q_olen', 'q_mistcaller'] as const;
+const thornpeakThroughStarters = [
+  ...mirefenThroughMistcaller,
+  'q_highwatch_summons',
+  'q_stalkers',
+  'q_stalker_pelts',
+  'q_kobold_tunnels',
+  'q_glowing_wax',
+] as const;
 const bastionSlot0Origin = { x: 1500, z: -1250 } as const;
 
 describe('ambient player bot brain', () => {
@@ -1976,6 +1984,144 @@ describe('ambient player bot brain', () => {
 
     expect(result.objectiveId).toBe('grind');
     expect(result.objectiveLabel).toBe('Grinding Ridge Stalker');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('picks up ogre war totems from Scout Maren after q_ogre_edges is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 15,
+          x: 7,
+          z: 670,
+          qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+        },
+        entities: [
+          { id: 9825, k: 'npc', tid: 'scout_maren_highwatch', x: 7, z: 670 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_ogre_totems');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9825 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('routes toward ogre war totems while q_ogre_totems is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 15,
+          qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+          qlog: [{ questId: 'q_ogre_totems', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('collect_ogre_totems');
+    expect(result.objectiveLabel).toBe('Recovering Ogre War Totems');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('picks up Kazzix before leaving Highwatch once q_shard_cores is already active at level 17', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 17,
+          x: 12,
+          z: 655,
+          qdone: [...thornpeakThroughStarters, 'q_ogre_edges', 'q_ogre_totems', 'q_ogre_bounty', 'q_elementals'],
+          qlog: [{ questId: 'q_shard_cores', counts: [0], state: 'active' }],
+        },
+        entities: [
+          { id: 9826, k: 'npc', tid: 'loremaster_caddis', x: 12, z: 655 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_kazzix');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9826 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('keeps hunting Kazzix while q_shard_cores is ready but q_kazzix is still active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 17,
+          qdone: [...thornpeakThroughStarters, 'q_ogre_edges', 'q_ogre_totems', 'q_ogre_bounty', 'q_elementals'],
+          qlog: [
+            { questId: 'q_shard_cores', counts: [6], state: 'ready' },
+            { questId: 'q_kazzix', counts: [0], state: 'active' },
+          ],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_kazzix');
+    expect(result.objectiveLabel).toBe('Hunting Shardlord Kazzix');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('stays on a local Thornpeak ogre grind route when q_elementals is still level-gated', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 15,
+          x: 0,
+          z: 660,
+          qdone: [...thornpeakThroughStarters, 'q_ogre_edges', 'q_ogre_totems', 'q_ogre_bounty'],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Thornpeak Ogre');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('stays on a local Stormcrag grind route when q_kazzix is still level-gated after shard cores', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 16,
+          x: 0,
+          z: 660,
+          qdone: [...thornpeakThroughStarters, 'q_ogre_edges', 'q_ogre_totems', 'q_ogre_bounty', 'q_elementals', 'q_shard_cores'],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Stormcrag Elemental');
     expect(result.commands).toEqual([]);
     expect(result.moveInput).toEqual({ f: 1 });
   });

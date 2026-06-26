@@ -42,7 +42,7 @@
 | Continuation 10 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 11 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 11 QA | completed | 2026-06-26 | 2026-06-26 |
-| Continuation 12 | pending | 2026-06-26 |  |
+| Continuation 12 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 12 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
@@ -943,3 +943,38 @@ Notes:
 - The next implementation gap is the mid-Thornpeak outdoor warfront: ogre
   foothills and Stormcrag elementals before the later grouped ogre camp and
   Sanctum ladders.
+
+## Continuation 12 checklist
+
+- [x] extend the progression registry through `q_ogre_edges`,
+  `q_ogre_totems`, `q_ogre_bounty`, `q_elementals`, `q_shard_cores`, and
+  `q_kazzix`
+- [x] add Stormcrag overlap handling so `q_shard_cores` picks up `q_kazzix`
+  before leaving Highwatch and defers turn-in while Kazzix is still active
+- [x] push Thornpeak-local fallback grinding forward into ogres and Stormcrag
+  elementals
+- [x] add focused brain and runtime regressions for ogre totems, Kazzix
+  pickup or hunt flow, and mid-zone fallback selection
+- [x] validate the continuation slice
+
+Notes:
+- This slice extends the real progression ladder through the mid-Thornpeak
+  outdoor warfront without introducing hidden progression memory or privileged
+  authority paths. Ambient bots still accept quests, travel, turn in, fight,
+  loot, and vendor only through the normal live server surfaces.
+- The progression brain now covers the Zone 3 outdoor ladders through
+  `q_kazzix`.
+- The Stormcrag pair intentionally keeps `q_shard_cores` and `q_kazzix` local
+  to one outing: at level 17 the bot picks up Kazzix before leaving Highwatch,
+  and if the shard-core turn-in becomes ready it is deferred while Kazzix is
+  still active.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- Continuation 12 QA is now the next target.
