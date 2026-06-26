@@ -423,6 +423,288 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
+  it('picks up the Fenbridge muster handoff from Brother Aldric after q_rite is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 6,
+          x: 6,
+          z: 6,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+          ],
+        },
+        entities: [
+          { id: 9700, k: 'npc', tid: 'brother_aldric', x: 6, z: 6 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_fenbridge_muster');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9700 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('heads north along the causeway when the Fenbridge muster order is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 6,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+          ],
+          qlog: [{ questId: 'q_fenbridge_muster', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('collect_fenbridge_muster');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(typeof result.facing).toBe('number');
+  });
+
+  it('turns in the Fenbridge muster quest at Warden Fenwick after the gatepost pickup', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 6,
+          x: 3,
+          z: 304,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+          ],
+          qlog: [{ questId: 'q_fenbridge_muster', counts: [1], state: 'ready' }],
+        },
+        entities: [
+          { id: 9701, k: 'npc', tid: 'warden_fenwick', x: 3, z: 304 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('turnin_fenbridge_muster');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9701 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('hunts mire prowlers after the Fenbridge handoff is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 6,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+          ],
+          qlog: [{ questId: 'q_prowlers', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_prowlers');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('targets and interacts with lost caravan goods when the Fenbridge supply quest is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 7,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+          ],
+          qlog: [{ questId: 'q_fen_supplies', counts: [1], state: 'active' }],
+        },
+        entities: [
+          { id: 9702, k: 'object', obj: 'lost_caravan_goods', x: 2, z: 2, loot: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('collect_fen_supplies');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9702 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('routes toward Deepfen snappers to recover Aldrics idols once the first cull is done', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 7,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+          ],
+          qlog: [{ questId: 'q_idols', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_idols');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('picks up the Deepfen purge follow-up from Warden Fenwick after the idols are turned in', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 7,
+          x: 3,
+          z: 304,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+            'q_idols',
+          ],
+        },
+        entities: [
+          { id: 9703, k: 'npc', tid: 'warden_fenwick', x: 3, z: 304 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_deepfen_purge');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9703 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
   it('routes toward tunnel rats while the blessed tallow objective for q_rite is still incomplete', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({

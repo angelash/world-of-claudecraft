@@ -73,6 +73,11 @@ Post-packet continuation prompts:
   food and drink restocking for longer autonomous quest runs.
 - `continuation-04-qa-town-resupply-and-consumables.md` - QA prompt for
   continuation 04.
+- `continuation-05-cross-zone-fenbridge-progression.md` - extend the real
+  progression ladder across the causeway and into the Fenbridge Zone 2 starter
+  quest chain.
+- `continuation-05-qa-cross-zone-fenbridge-progression.md` - QA prompt for
+  continuation 05.
 
 ## How to use this packet
 

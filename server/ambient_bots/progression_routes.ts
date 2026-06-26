@@ -36,6 +36,7 @@ export type AmbientBotQuestRoute = AmbientBotKillQuestRoute | AmbientBotCollectQ
 interface AmbientBotQuestRouteConfig {
   activeObjectiveId?: string;
   questObjectiveIndex?: number;
+  turnInNpcTemplateId?: string;
 }
 
 function campsFor(mobId: string): AmbientBotPoint2d[] {
@@ -81,7 +82,7 @@ function killRoute(
     activeLabel,
     turnInLabel: `Turning in ${quest}`,
     giverNpcTemplateId,
-    turnInNpcTemplateId: giverNpcTemplateId,
+    turnInNpcTemplateId: config.turnInNpcTemplateId ?? giverNpcTemplateId,
     mobId,
     camps: campsFor(mobId),
     pursueAtLevel,
@@ -108,7 +109,7 @@ function collectRoute(
     activeLabel,
     turnInLabel: `Turning in ${quest}`,
     giverNpcTemplateId,
-    turnInNpcTemplateId: giverNpcTemplateId,
+    turnInNpcTemplateId: config.turnInNpcTemplateId ?? giverNpcTemplateId,
     objectItemId,
     camps: objectPointsFor(objectItemId),
     pursueAtLevel,
@@ -145,5 +146,57 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     6,
     'Collecting Ghostly Essence',
     { activeObjectiveId: 'hunt_rite_ghostly_essence', questObjectiveIndex: 1 },
+  ),
+  collectRoute(
+    'q_fenbridge_muster',
+    'brother_aldric',
+    'fen_muster_order',
+    6,
+    'Carrying the Fenbridge muster order north',
+    { turnInNpcTemplateId: 'warden_fenwick' },
+  ),
+  killRoute(
+    'q_prowlers',
+    'warden_fenwick',
+    'mire_prowler',
+    6,
+    'Clearing Mire Prowlers from the causeway',
+  ),
+  killRoute(
+    'q_prowler_pelts',
+    'provisioner_hale',
+    'mire_prowler',
+    6,
+    'Collecting Mire Prowler Pelts',
+    { questObjectiveIndex: 0 },
+  ),
+  collectRoute(
+    'q_fen_supplies',
+    'provisioner_hale',
+    'lost_caravan_goods',
+    7,
+    'Salvaging the lost caravan',
+  ),
+  killRoute(
+    'q_deepfen',
+    'warden_fenwick',
+    'deepfen_murloc',
+    7,
+    'Driving back the Deepfen snappers',
+  ),
+  killRoute(
+    'q_idols',
+    'brother_aldric_fen',
+    'deepfen_murloc',
+    7,
+    'Recovering Waterlogged Idols',
+    { activeObjectiveId: 'hunt_idols', questObjectiveIndex: 0 },
+  ),
+  killRoute(
+    'q_deepfen_purge',
+    'warden_fenwick',
+    'deepfen_murloc',
+    7,
+    'Breaking the Deepfen dredge',
   ),
 ];

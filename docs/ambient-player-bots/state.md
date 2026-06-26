@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: continuation 04
-- phase status: Continuation 04 implementation complete, Continuation 04 QA next, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 05
+- phase status: Continuation 05 implementation complete, Continuation 05 QA next, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -236,6 +236,14 @@
 - `docs/ambient-player-bots/continuation-04-town-resupply-and-consumables.md`
 - `docs/ambient-player-bots/continuation-04-qa-town-resupply-and-consumables.md`
 
+### Continuation 05
+
+- `server/ambient_bots/progression_routes.ts`
+- `tests/ambient_player_bot_brain.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `docs/ambient-player-bots/continuation-05-cross-zone-fenbridge-progression.md`
+- `docs/ambient-player-bots/continuation-05-qa-cross-zone-fenbridge-progression.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -302,9 +310,17 @@
   objective ids for route handoff
 - Continuation 04 adds town resupply through Trader Wilkes, using live
   inventory counts, copper, and real vendor buy commands for food and drink
+- Continuation 04 QA confirmed the resupply layer still defers to nearby NPC
+  quest flow, still sells junk before buying, and adds no new smoke or build
+  regressions
 - the local pg-mem harness now strips one unsupported suspicious-registration
   regex predicate so admin smoke output stays clean on this workstation
-- longer autonomous travel and higher-zone routing remain open
+- Continuation 05 extends the route registry into the Fenbridge starter ladder
+  and adds distinct turn-in NPC support for cross-zone handoff quests
+- the current progression brain now covers Fenbridge starter routes through
+  `q_deepfen_purge`
+- deeper Mirefen routing such as widows, drowned, trolls, cultists, and
+  zone-aware north-town sustain still remain open
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

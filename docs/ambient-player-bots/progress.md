@@ -27,7 +27,9 @@
 | Continuation 03 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 03 QA | pending | 2026-06-26 |  |
 | Continuation 04 | completed | 2026-06-26 | 2026-06-26 |
-| Continuation 04 QA | pending | 2026-06-26 |  |
+| Continuation 04 QA | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 05 | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 05 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
 
@@ -509,11 +511,65 @@ Notes:
   - `npm run build:server`
   - `node --check scripts/ambient_bot_pgmem_support.mjs`
   - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+- `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- Continuation 04 QA is now complete. The next implementation gap after that
+  is longer autonomous travel and higher-zone route ladders beyond the current
+  Eastbrook town loop.
+
+## Continuation 04 QA checklist
+
+- [x] audit Continuation 04 against
+  `continuation-04-qa-town-resupply-and-consumables.md`
+- [x] confirm NPC accept or turn-in flow still takes precedence over restock
+  when the bot is already at a quest giver
+- [x] confirm junk sell before buy behavior and vendor command payloads stay
+  correct
+- [x] verify focused ambient-bot validation, `build:server`, and local pg-mem
+  smoke stay green
+
+Notes:
+- QA did not uncover a new logic bug in the Continuation 04 slice. The existing
+  brain regressions for ready turn-in, nearby quest pickup, junk-first vending,
+  and real vendor buy commands still hold after the Fenbridge extension.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline listed
+    above)
+- Continuation 05 is now the next implementation target: cross-zone Fenbridge
+  progression.
+
+## Continuation 05 checklist
+
+- [x] add distinct turn-in NPC support for cross-zone handoff routes
+- [x] extend the progression registry through the Fenbridge starter ladder
+- [x] add focused brain regressions for the Aldric to Fenwick handoff and first
+  Zone 2 route steps
+- [x] add a runtime regression for cross-zone movement input over the real `/ws`
+- [x] validate the continuation slice
+
+Notes:
+- This slice extends the data-driven ladder into Mirefen Marsh without changing
+  authoritative gameplay rules. Bots still quest, move, interact, and fight
+  only through the normal server and sim path.
+- The progression brain now covers the first Fenbridge handoff and starter Zone
+  2 route ladder through `q_deepfen_purge`: `q_fenbridge_muster`,
+  `q_prowlers`, `q_prowler_pelts`, `q_fen_supplies`, `q_deepfen`, `q_idols`,
+  and `q_deepfen_purge`.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
   - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
     currently includes existing issues in `server/ai/active_triggers.ts`,
     `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
     under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
     `tests/auto_loot.test.ts`)
-- Continuation 04 QA is now the next target. The next implementation gap after
-  that is longer autonomous travel and higher-zone route ladders beyond the
-  current Eastbrook town loop.
+- Continuation 05 QA is now the next target. The next implementation gap after
+  that is the deeper Mirefen ladder such as widows, drowned, and later cult
+  routes, plus zone-aware north-town sustain improvements.
