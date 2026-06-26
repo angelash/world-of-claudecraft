@@ -219,6 +219,32 @@ const ambientPlayerBotRuntime = ambientPlayerBotExperimentEnabled
     llmConfig: ambientPlayerBotLlmConfig,
   })
   : null;
+const ambientPlayerBotAdmin = {
+  diagnosticsSnapshot() {
+    return {
+      planner: game.ambientPlayerBotDiagnostics(),
+      runtime: ambientPlayerBotRuntime?.diagnosticsSnapshot() ?? null,
+      llm: ambientPlayerBotLlmCoordinator?.diagnosticsSnapshot() ?? null,
+    };
+  },
+  updatePlannerConfig(input: unknown) {
+    game.updateAmbientPlayerBotConfig(input);
+    return this.diagnosticsSnapshot();
+  },
+  updateRuntimeControls(input: unknown) {
+    if (!ambientPlayerBotRuntime) {
+      throw new Error('ambient bot runtime is not available on this process');
+    }
+    ambientPlayerBotRuntime.updateControls(input);
+    return this.diagnosticsSnapshot();
+  },
+  async logoutAll(reason?: string) {
+    if (!ambientPlayerBotRuntime) {
+      throw new Error('ambient bot runtime is not available on this process');
+    }
+    return ambientPlayerBotRuntime.logoutAll(reason);
+  },
+};
 
 interface WsHealth {
   alive: boolean;
@@ -1450,7 +1476,7 @@ async function main(): Promise<void> {
       return;
     }
     if (url.startsWith('/internal/')) void handleInternalApi(req, res, game);
-    else if (url.startsWith('/admin/api/')) void handleAdminApi(req, res, game);
+    else if (url.startsWith('/admin/api/')) void handleAdminApi(req, res, game, ambientPlayerBotAdmin);
     else if (url.startsWith('/api/')) void handleApi(req, res);
     else if (url.startsWith('/oauth/')) void handleOAuth(req, res);
     else if (req.method === 'GET' && url.startsWith('/p/')) void handleCardRoutes(req, res);

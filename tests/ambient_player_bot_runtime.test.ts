@@ -504,6 +504,142 @@ describe('AmbientPlayerBotRuntime', () => {
     await runtime.stop();
   });
 
+  it('respects operator controls that pause login actions', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'ready',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, { self: { id: 101, x: 4, z: 6, lv: 1 } });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    runtime.updateControls({ acceptLoginActions: false });
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'eastbrook_vale:1',
+      zoneId: 'eastbrook_vale',
+      targetCharacterId: 1,
+      reason: 'paused login test',
+    }]);
+
+    await vi.waitFor(() => {
+      expect(runtime.diagnosticsSnapshot()).toEqual(expect.objectContaining({
+        controls: expect.objectContaining({
+          acceptLoginActions: false,
+        }),
+        metrics: expect.objectContaining({
+          loginSkipped: 1,
+        }),
+        activeRunners: 0,
+      }));
+    });
+    expect(sockets).toHaveLength(0);
+
+    await runtime.stop();
+  });
+
+  it('logs out all active runners for operator incident controls', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const saved: AmbientPlayerBotRecord[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'ready',
+          assignedClusterId: 'eastbrook_vale:1',
+          assignedPlayerCharacterId: 1,
+        }),
+      ]),
+      saveBot: vi.fn(async (record: AmbientPlayerBotRecord) => {
+        saved.push(cloneRecord(record));
+      }),
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, { self: { id: 101, x: 4, z: 6, lv: 1 } });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'eastbrook_vale:1',
+      zoneId: 'eastbrook_vale',
+      targetCharacterId: 1,
+      reason: 'operator logout drill',
+    }]);
+
+    await vi.waitFor(() => {
+      expect(runtime.diagnosticsSnapshot().activeRunners).toBe(1);
+      expect(game.ambientPlayerBotDirectory()).toEqual([
+        expect.objectContaining({
+          lifecycleStatus: 'online',
+        }),
+      ]);
+    });
+
+    const result = await runtime.logoutAll('operator drill');
+
+    expect(result).toEqual({
+      disconnectedRunners: 1,
+      resetRecords: 1,
+      atMs: 5_000,
+    });
+    expect(runtime.diagnosticsSnapshot()).toEqual(expect.objectContaining({
+      activeRunners: 0,
+      metrics: expect.objectContaining({
+        logoutAllRequests: 1,
+      }),
+    }));
+    expect(game.ambientPlayerBotDirectory()).toEqual([
+      expect.objectContaining({
+        lifecycleStatus: 'ready',
+        assignedClusterId: null,
+        assignedPlayerCharacterId: null,
+        lastRunnerError: 'operator drill',
+      }),
+    ]);
+    expect(saved.some((record) => record.lastRunnerError === 'operator drill')).toBe(true);
+    expect(sockets).toHaveLength(1);
+
+    await runtime.stop();
+  });
+
   it('applies llm plan summaries and llm whisper replies without breaking the runtime fallback path', async () => {
     let nowMs = 5_000;
     const game = new FakeGame();

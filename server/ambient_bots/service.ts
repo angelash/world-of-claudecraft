@@ -1,3 +1,4 @@
+import { applyAmbientPlayerBotConfigPatch } from './config';
 import { DEFAULT_AMBIENT_BOT_PROFILES } from './profiles';
 import type {
   AmbientBotPlanAction,
@@ -66,6 +67,15 @@ export class AmbientPlayerBotService {
 
   schedulerIntervalMs(): number {
     return this.config.plannerIntervalMs;
+  }
+
+  updateConfig(input: unknown): AmbientPlayerBotConfig {
+    const next = applyAmbientPlayerBotConfigPatch(this.config, input);
+    Object.assign(this.config, next);
+    if (this.recentActions.length > this.config.recentActionLimit) {
+      this.recentActions.length = this.config.recentActionLimit;
+    }
+    return { ...this.config };
   }
 
   upsertRecord(record: AmbientPlayerBotRecord): void {

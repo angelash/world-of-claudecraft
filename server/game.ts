@@ -1321,6 +1321,21 @@ export class GameServer {
     return this.ambientPlayerBots.diagnosticsSnapshot();
   }
 
+  updateAmbientPlayerBotConfig(input: unknown): AmbientPlayerBotDiagnosticsSnapshot {
+    const priorIntervalMs = this.ambientPlayerBots.schedulerIntervalMs();
+    this.ambientPlayerBots.updateConfig(input);
+    if (
+      this.ambientPlayerBotInterval
+      && this.ambientPlayerBots.schedulerIntervalMs() !== priorIntervalMs
+    ) {
+      clearInterval(this.ambientPlayerBotInterval);
+      this.ambientPlayerBotInterval = setInterval(() => {
+        this.runAmbientPlayerBotPlanner();
+      }, this.ambientPlayerBots.schedulerIntervalMs());
+    }
+    return this.ambientPlayerBotDiagnostics();
+  }
+
   replaceAmbientPlayerBotDirectory(records: readonly AmbientPlayerBotRecord[]): void {
     this.ambientPlayerBots.replaceDirectory(records);
   }

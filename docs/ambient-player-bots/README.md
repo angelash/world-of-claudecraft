@@ -43,6 +43,10 @@ Starter prompts:
 - `phase-12-qa-llm-social-plan-integration.md` - Phase 11 QA prompt for
   validator coverage, fallback safety, semantic cache behavior, and type
   baseline checks.
+- `phase-13-admin-telemetry-incident-controls.md` - Phase 13 implementation
+  prompt for operator diagnostics, live rollout levers, and emergency controls.
+- `phase-14-qa-admin-telemetry-incident-controls.md` - Phase 13 QA prompt for
+  operator workflows, fail-safe pauses, and logout-all behavior.
 
 ## How to use this packet
 

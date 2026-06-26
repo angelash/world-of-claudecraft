@@ -298,4 +298,44 @@ describe('AmbientPlayerBotService', () => {
       lifecycleStatus: 'cooldown',
     }));
   });
+
+  it('applies live rollout config patches for planner diagnostics and behavior', () => {
+    const service = new AmbientPlayerBotService({ config: cfg() });
+
+    const updated = service.updateConfig({
+      soloTargetBots: 1,
+      maxBotsPerCluster: 1,
+      maxProvisionPerTick: 1,
+      recentActionLimit: 5,
+    });
+    const actions = service.plan({
+      humans: [human(1, 'eastbrook_vale', 2, 0, 0)],
+      nowMs: 1_000,
+    });
+
+    expect(updated).toEqual(expect.objectContaining({
+      soloTargetBots: 1,
+      maxBotsPerCluster: 1,
+      maxProvisionPerTick: 1,
+      recentActionLimit: 5,
+    }));
+    expect(actions).toHaveLength(1);
+    expect(service.diagnosticsSnapshot()).toEqual(expect.objectContaining({
+      config: expect.objectContaining({
+        soloTargetBots: 1,
+        maxBotsPerCluster: 1,
+        maxProvisionPerTick: 1,
+      }),
+      clusters: [expect.objectContaining({ desiredBots: 1 })],
+    }));
+  });
+
+  it('rejects live config patches that would invert cluster hysteresis', () => {
+    const service = new AmbientPlayerBotService({ config: cfg() });
+
+    expect(() => service.updateConfig({
+      clusterRadius: 200,
+      releaseRadius: 150,
+    })).toThrow(/releaseRadius must be greater than clusterRadius/i);
+  });
 });

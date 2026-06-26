@@ -16,7 +16,7 @@
 | 10 | completed | 2026-06-26 | 2026-06-26 |
 | 11 | completed | 2026-06-26 | 2026-06-26 |
 | 12 | completed | 2026-06-26 | 2026-06-26 |
-| 13 | pending | | |
+| 13 | completed | 2026-06-26 | 2026-06-26 |
 | 14 | pending | | |
 | 15 | pending | | |
 | 16 | pending | | |
@@ -275,3 +275,30 @@ Notes:
     under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
     `tests/auto_loot.test.ts`)
 - Phase 13 is now the next implementation target.
+
+## Phase 13 checklist
+
+- [x] add combined planner, runtime, and LLM diagnostics snapshots for admin
+  use
+- [x] add live planner config updates for rollout tuning
+- [x] add runtime controls for pausing login, provisioning, and LLM overlays
+- [x] add an emergency logout-all operator control for active runners
+- [x] add focused admin, runtime, service, and LLM regressions
+- [x] validate the Phase 13 slice
+
+Notes:
+- This slice stays outside authoritative gameplay. It adds observability and
+  operator levers around the existing planner and real-wire runtime instead of
+  adding a new privileged control path.
+- The admin surface now exposes `/admin/api/ambient-bots`,
+  `/admin/api/ambient-bots/config`, `/admin/api/ambient-bots/control`, and
+  `/admin/api/ambient-bots/logout-all`.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_llm.test.ts tests/ambient_player_bot_social.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- Phase 14 QA is now the next target.

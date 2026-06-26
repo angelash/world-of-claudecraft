@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: 13
-- phase status: pending Phase 13 implementation after Phase 12 QA
+- current phase: 14
+- phase status: pending Phase 14 QA after Phase 13 implementation
 
 ## Locked decisions
 
@@ -97,7 +97,7 @@
 - `headless/` or `scripts/` real-server runner modules
 - provisioning worker
 - social memory persistence
-- operator endpoints and UI
+- later operator UI wiring and smoke automation
 
 ### Phase 3
 
@@ -158,6 +158,23 @@
 - `docs/ambient-player-bots/phase-12-qa-llm-social-plan-integration.md`
 - `tests/ambient_player_bot_runtime.test.ts`
 - `tests/ambient_player_bot_ws_client.test.ts`
+
+### Phase 13
+
+- `server/ambient_bots/config.ts`
+- `server/ambient_bots/llm_coordinator.ts`
+- `server/ambient_bots/runtime.ts`
+- `server/ambient_bots/service.ts`
+- `server/ambient_bots/types.ts`
+- `server/admin.ts`
+- `server/game.ts`
+- `server/main.ts`
+- `docs/ambient-player-bots/phase-13-admin-telemetry-incident-controls.md`
+- `docs/ambient-player-bots/phase-14-qa-admin-telemetry-incident-controls.md`
+- `tests/ambient_player_bot_llm.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `tests/ambient_player_bot_service.test.ts`
+- `tests/admin.test.ts`
 
 ## Planned database shape
 
@@ -230,6 +247,10 @@
   social shell. Phase 12 closed the explicit fallback regression and the
   ambient-bot ws-client test type gap, so no new known Phase 11 blocker
   remains after that audit
+- Phase 13 added a combined admin diagnostics surface, live planner config
+  updates, runtime pause levers, and logout-all incident control. Phase 14
+  should now audit operator workflows, skipped-action behavior, and fail-safe
+  reset semantics before Phase 15 live readiness work begins
 - full live boot verification of the real runner on this workstation still
   needs a reachable local Postgres service
 - repo-wide `npx tsc --noEmit` is currently red for unrelated pre-existing

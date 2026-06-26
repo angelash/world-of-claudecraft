@@ -16,31 +16,20 @@ import type {
   AmbientBotSocialDecisionV1,
 } from './llm_types';
 import { validateAmbientBotPlanDecision, validateAmbientBotSocialDecision } from './llm_validate';
-import type { AmbientPlayerBotRecord } from './types';
+import type {
+  AmbientPlayerBotLlmConfig,
+  AmbientPlayerBotLlmDecisionCountSnapshot,
+  AmbientPlayerBotLlmDecisionStatus,
+  AmbientPlayerBotLlmDiagnosticsSnapshot,
+  AmbientPlayerBotLlmMetricsSnapshot,
+  AmbientPlayerBotRecord,
+} from './types';
 import type { AmbientPlayerBotPendingReply } from './social';
 import type { AmbientPlayerBotLiveState } from './ws_client';
 
 const PLAN_PROMPT_MAX_CHARS = 1_200;
 const SOCIAL_PROMPT_MAX_CHARS = 1_200;
 const RAW_OUTPUT_MAX_CHARS = 1_200;
-
-export interface AmbientPlayerBotLlmConfig {
-  enabled: boolean;
-  planCooldownMs: number;
-  socialCooldownMs: number;
-  maxCalls5h: number;
-  maxCallsWeek: number;
-  cacheMaxEntries: number;
-  cacheMaxTtlMs: number;
-}
-
-export type AmbientPlayerBotLlmDecisionStatus =
-  | 'accepted'
-  | 'cache_hit'
-  | 'rejected'
-  | 'error'
-  | 'budget_denied'
-  | 'disabled';
 
 export interface AmbientPlayerBotLlmPlanResult {
   status: AmbientPlayerBotLlmDecisionStatus;
@@ -59,6 +48,31 @@ interface CacheEntry<T> {
   expiresAtMs: number;
 }
 
+function emptyDecisionCounts(): AmbientPlayerBotLlmDecisionCountSnapshot {
+  return {
+    requests: 0,
+    accepted: 0,
+    cacheHit: 0,
+    rejected: 0,
+    error: 0,
+    budgetDenied: 0,
+    disabled: 0,
+  };
+}
+
+function emptyMetrics(): AmbientPlayerBotLlmMetricsSnapshot {
+  return {
+    plan: emptyDecisionCounts(),
+    social: emptyDecisionCounts(),
+    lastDecisionAtMs: null,
+    lastDecisionKind: '',
+    lastDecisionStatus: '',
+    lastDecisionReason: '',
+    lastDecisionProvider: '',
+    lastDecisionLatencyMs: null,
+  };
+}
+
 export class AmbientPlayerBotLlmCoordinator {
   private readonly config: AmbientPlayerBotLlmConfig;
   private readonly provider: AmbientBotLlmProvider | null;
@@ -66,6 +80,7 @@ export class AmbientPlayerBotLlmCoordinator {
   private readonly recentCallsWeekMs: number[] = [];
   private readonly planCache = new Map<string, CacheEntry<AmbientBotPlanDecisionV1>>();
   private readonly socialCache = new Map<string, CacheEntry<AmbientBotSocialDecisionV1>>();
+  private readonly metrics: AmbientPlayerBotLlmMetricsSnapshot = emptyMetrics();
 
   constructor(input: {
     config: AmbientPlayerBotLlmConfig;
@@ -81,6 +96,31 @@ export class AmbientPlayerBotLlmCoordinator {
 
   close(): void {
     this.provider?.close?.();
+  }
+
+  diagnosticsSnapshot(nowMs = Date.now()): AmbientPlayerBotLlmDiagnosticsSnapshot {
+    pruneTimes(this.recentCalls5hMs, nowMs, 5 * 60 * 60 * 1000);
+    pruneTimes(this.recentCallsWeekMs, nowMs, 7 * 24 * 60 * 60 * 1000);
+    this.pruneCache(this.planCache, nowMs);
+    this.pruneCache(this.socialCache, nowMs);
+    return {
+      enabled: this.config.enabled,
+      providerAvailable: this.provider !== null,
+      config: { ...this.config },
+      budget: {
+        maxCalls5h: this.config.maxCalls5h,
+        usedCalls5h: this.recentCalls5hMs.length,
+        remainingCalls5h: Math.max(0, this.config.maxCalls5h - this.recentCalls5hMs.length),
+        maxCallsWeek: this.config.maxCallsWeek,
+        usedCallsWeek: this.recentCallsWeekMs.length,
+        remainingCallsWeek: Math.max(0, this.config.maxCallsWeek - this.recentCallsWeekMs.length),
+      },
+      cache: {
+        planEntries: this.planCache.size,
+        socialEntries: this.socialCache.size,
+      },
+      metrics: cloneMetrics(this.metrics),
+    };
   }
 
   async decidePlan(input: {
@@ -119,55 +159,61 @@ export class AmbientPlayerBotLlmCoordinator {
     const cached = this.lookupCache(this.planCache, cacheKey, nowMs);
     if (cached) {
       const decision = clonePlanDecisionForJob(cached, context.jobId);
+      const audit = auditSnapshot({
+        kind: 'plan',
+        status: 'cache_hit',
+        jobId: context.jobId,
+        nowMs,
+        latencyMs: 0,
+        reason: 'cache hit',
+        provider: 'cache',
+        promptText,
+        rawOutput: JSON.stringify(decision),
+        cacheHit: true,
+      });
+      this.recordDecision('plan', 'cache_hit', audit);
       return {
         status: 'cache_hit',
         decision,
-        audit: auditSnapshot({
-          kind: 'plan',
-          status: 'cache_hit',
-          jobId: context.jobId,
-          nowMs,
-          latencyMs: 0,
-          reason: 'cache hit',
-          provider: 'cache',
-          promptText,
-          rawOutput: JSON.stringify(decision),
-          cacheHit: true,
-        }),
+        audit,
       };
     }
     if (!this.config.enabled || !this.provider) {
+      const audit = auditSnapshot({
+        kind: 'plan',
+        status: 'disabled',
+        jobId: context.jobId,
+        nowMs,
+        latencyMs: 0,
+        reason: 'ambient bot llm disabled',
+        provider: 'disabled',
+        promptText,
+        rawOutput: '',
+        cacheHit: false,
+      });
+      this.recordDecision('plan', 'disabled', audit);
       return {
         status: 'disabled',
-        audit: auditSnapshot({
-          kind: 'plan',
-          status: 'disabled',
-          jobId: context.jobId,
-          nowMs,
-          latencyMs: 0,
-          reason: 'ambient bot llm disabled',
-          provider: 'disabled',
-          promptText,
-          rawOutput: '',
-          cacheHit: false,
-        }),
+        audit,
       };
     }
     if (!this.consumeBudget(nowMs)) {
+      const audit = auditSnapshot({
+        kind: 'plan',
+        status: 'budget_denied',
+        jobId: context.jobId,
+        nowMs,
+        latencyMs: 0,
+        reason: 'ambient bot llm budget denied',
+        provider: 'budget',
+        promptText,
+        rawOutput: '',
+        cacheHit: false,
+      });
+      this.recordDecision('plan', 'budget_denied', audit);
       return {
         status: 'budget_denied',
-        audit: auditSnapshot({
-          kind: 'plan',
-          status: 'budget_denied',
-          jobId: context.jobId,
-          nowMs,
-          latencyMs: 0,
-          reason: 'ambient bot llm budget denied',
-          provider: 'budget',
-          promptText,
-          rawOutput: '',
-          cacheHit: false,
-        }),
+        audit,
       };
     }
 
@@ -180,42 +226,46 @@ export class AmbientPlayerBotLlmCoordinator {
       const decision = validateAmbientBotPlanDecision(providerResult.value, context);
       const latencyMs = performance.now() - startedAt;
       this.storeCache(this.planCache, cacheKey, decision, nowMs, decision.ttlMs);
+      const audit = auditSnapshot({
+        kind: 'plan',
+        status: 'accepted',
+        jobId: context.jobId,
+        nowMs,
+        latencyMs,
+        reason: decision.audit.shortReason,
+        provider: providerResult.providerTimings?.provider ?? 'ambient-bot-codex-exec',
+        promptText: providerResult.promptText,
+        rawOutput: providerResult.rawOutput,
+        cacheHit: false,
+        providerTimings: providerResult.providerTimings,
+      });
+      this.recordDecision('plan', 'accepted', audit);
       return {
         status: 'accepted',
         decision,
-        audit: auditSnapshot({
-          kind: 'plan',
-          status: 'accepted',
-          jobId: context.jobId,
-          nowMs,
-          latencyMs,
-          reason: decision.audit.shortReason,
-          provider: providerResult.providerTimings?.provider ?? 'ambient-bot-codex-exec',
-          promptText: providerResult.promptText,
-          rawOutput: providerResult.rawOutput,
-          cacheHit: false,
-          providerTimings: providerResult.providerTimings,
-        }),
+        audit,
       };
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       const status = /must be|mismatch|invalid|cannot|too long|disclosure/i.test(reason)
         ? 'rejected'
         : 'error';
+      const audit = auditSnapshot({
+        kind: 'plan',
+        status,
+        jobId: context.jobId,
+        nowMs,
+        latencyMs: performance.now() - startedAt,
+        reason,
+        provider: 'ambient-bot-codex-exec',
+        promptText,
+        rawOutput: '',
+        cacheHit: false,
+      });
+      this.recordDecision('plan', status, audit);
       return {
         status,
-        audit: auditSnapshot({
-          kind: 'plan',
-          status,
-          jobId: context.jobId,
-          nowMs,
-          latencyMs: performance.now() - startedAt,
-          reason,
-          provider: 'ambient-bot-codex-exec',
-          promptText,
-          rawOutput: '',
-          cacheHit: false,
-        }),
+        audit,
       };
     }
   }
@@ -229,55 +279,61 @@ export class AmbientPlayerBotLlmCoordinator {
     const cached = this.lookupCache(this.socialCache, cacheKey, nowMs);
     if (cached) {
       const decision = cloneSocialDecisionForJob(cached, context.jobId);
+      const audit = auditSnapshot({
+        kind: 'social',
+        status: 'cache_hit',
+        jobId: context.jobId,
+        nowMs,
+        latencyMs: 0,
+        reason: 'cache hit',
+        provider: 'cache',
+        promptText,
+        rawOutput: JSON.stringify(decision),
+        cacheHit: true,
+      });
+      this.recordDecision('social', 'cache_hit', audit);
       return {
         status: 'cache_hit',
         decision,
-        audit: auditSnapshot({
-          kind: 'social',
-          status: 'cache_hit',
-          jobId: context.jobId,
-          nowMs,
-          latencyMs: 0,
-          reason: 'cache hit',
-          provider: 'cache',
-          promptText,
-          rawOutput: JSON.stringify(decision),
-          cacheHit: true,
-        }),
+        audit,
       };
     }
     if (!this.config.enabled || !this.provider) {
+      const audit = auditSnapshot({
+        kind: 'social',
+        status: 'disabled',
+        jobId: context.jobId,
+        nowMs,
+        latencyMs: 0,
+        reason: 'ambient bot llm disabled',
+        provider: 'disabled',
+        promptText,
+        rawOutput: '',
+        cacheHit: false,
+      });
+      this.recordDecision('social', 'disabled', audit);
       return {
         status: 'disabled',
-        audit: auditSnapshot({
-          kind: 'social',
-          status: 'disabled',
-          jobId: context.jobId,
-          nowMs,
-          latencyMs: 0,
-          reason: 'ambient bot llm disabled',
-          provider: 'disabled',
-          promptText,
-          rawOutput: '',
-          cacheHit: false,
-        }),
+        audit,
       };
     }
     if (!this.consumeBudget(nowMs)) {
+      const audit = auditSnapshot({
+        kind: 'social',
+        status: 'budget_denied',
+        jobId: context.jobId,
+        nowMs,
+        latencyMs: 0,
+        reason: 'ambient bot llm budget denied',
+        provider: 'budget',
+        promptText,
+        rawOutput: '',
+        cacheHit: false,
+      });
+      this.recordDecision('social', 'budget_denied', audit);
       return {
         status: 'budget_denied',
-        audit: auditSnapshot({
-          kind: 'social',
-          status: 'budget_denied',
-          jobId: context.jobId,
-          nowMs,
-          latencyMs: 0,
-          reason: 'ambient bot llm budget denied',
-          provider: 'budget',
-          promptText,
-          rawOutput: '',
-          cacheHit: false,
-        }),
+        audit,
       };
     }
 
@@ -290,44 +346,83 @@ export class AmbientPlayerBotLlmCoordinator {
       const decision = validateAmbientBotSocialDecision(providerResult.value, context);
       const latencyMs = performance.now() - startedAt;
       this.storeCache(this.socialCache, cacheKey, decision, nowMs, decision.ttlMs);
+      const audit = auditSnapshot({
+        kind: 'social',
+        status: 'accepted',
+        jobId: context.jobId,
+        nowMs,
+        latencyMs,
+        reason: decision.audit.shortReason,
+        provider: providerResult.providerTimings?.provider ?? 'ambient-bot-codex-exec',
+        promptText: providerResult.promptText,
+        rawOutput: providerResult.rawOutput,
+        cacheHit: false,
+        providerTimings: providerResult.providerTimings,
+      });
+      this.recordDecision('social', 'accepted', audit);
       return {
         status: 'accepted',
         decision,
-        audit: auditSnapshot({
-          kind: 'social',
-          status: 'accepted',
-          jobId: context.jobId,
-          nowMs,
-          latencyMs,
-          reason: decision.audit.shortReason,
-          provider: providerResult.providerTimings?.provider ?? 'ambient-bot-codex-exec',
-          promptText: providerResult.promptText,
-          rawOutput: providerResult.rawOutput,
-          cacheHit: false,
-          providerTimings: providerResult.providerTimings,
-        }),
+        audit,
       };
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       const status = /must be|mismatch|invalid|cannot|too long|disclosure/i.test(reason)
         ? 'rejected'
         : 'error';
+      const audit = auditSnapshot({
+        kind: 'social',
+        status,
+        jobId: context.jobId,
+        nowMs,
+        latencyMs: performance.now() - startedAt,
+        reason,
+        provider: 'ambient-bot-codex-exec',
+        promptText,
+        rawOutput: '',
+        cacheHit: false,
+      });
+      this.recordDecision('social', status, audit);
       return {
         status,
-        audit: auditSnapshot({
-          kind: 'social',
-          status,
-          jobId: context.jobId,
-          nowMs,
-          latencyMs: performance.now() - startedAt,
-          reason,
-          provider: 'ambient-bot-codex-exec',
-          promptText,
-          rawOutput: '',
-          cacheHit: false,
-        }),
+        audit,
       };
     }
+  }
+
+  private recordDecision(
+    kind: 'plan' | 'social',
+    status: AmbientPlayerBotLlmDecisionStatus,
+    audit: AmbientBotLlmAuditSnapshot,
+  ): void {
+    const bucket = kind === 'plan' ? this.metrics.plan : this.metrics.social;
+    bucket.requests++;
+    switch (status) {
+      case 'accepted':
+        bucket.accepted++;
+        break;
+      case 'cache_hit':
+        bucket.cacheHit++;
+        break;
+      case 'rejected':
+        bucket.rejected++;
+        break;
+      case 'error':
+        bucket.error++;
+        break;
+      case 'budget_denied':
+        bucket.budgetDenied++;
+        break;
+      case 'disabled':
+        bucket.disabled++;
+        break;
+    }
+    this.metrics.lastDecisionAtMs = audit.atMs;
+    this.metrics.lastDecisionKind = kind;
+    this.metrics.lastDecisionStatus = status;
+    this.metrics.lastDecisionReason = audit.reason;
+    this.metrics.lastDecisionProvider = audit.provider;
+    this.metrics.lastDecisionLatencyMs = audit.latencyMs;
   }
 
   private consumeBudget(nowMs: number): boolean {
@@ -586,6 +681,19 @@ function auditSnapshot(input: {
     rawOutputChars: input.rawOutput.length,
     cacheHit: input.cacheHit,
     ...(input.providerTimings ? { providerTimings: input.providerTimings } : {}),
+  };
+}
+
+function cloneMetrics(value: AmbientPlayerBotLlmMetricsSnapshot): AmbientPlayerBotLlmMetricsSnapshot {
+  return {
+    plan: { ...value.plan },
+    social: { ...value.social },
+    lastDecisionAtMs: value.lastDecisionAtMs,
+    lastDecisionKind: value.lastDecisionKind,
+    lastDecisionStatus: value.lastDecisionStatus,
+    lastDecisionReason: value.lastDecisionReason,
+    lastDecisionProvider: value.lastDecisionProvider,
+    lastDecisionLatencyMs: value.lastDecisionLatencyMs,
   };
 }
 

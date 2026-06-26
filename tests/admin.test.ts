@@ -116,6 +116,147 @@ function fakeRes() {
   return res;
 }
 
+function fakeAmbientBotAdmin() {
+  const snapshot = () => ({
+    planner: fakeGame.ambientPlayerBotDiagnostics(),
+    runtime: {
+      started: true,
+      startedAtMs: 1_000,
+      controls: {
+        acceptProvisionActions: true,
+        acceptLoginActions: true,
+        allowLlmDecisions: true,
+      },
+      metrics: {
+        starts: 1,
+        stops: 0,
+        actionBatches: 2,
+        actionsReceived: 3,
+        provisionAttempts: 1,
+        provisionSuccesses: 1,
+        provisionFailures: 0,
+        provisionSkipped: 0,
+        loginAttempts: 1,
+        loginSuccesses: 1,
+        loginFailures: 0,
+        loginSkipped: 0,
+        logoutRequests: 0,
+        logoutAllRequests: 0,
+        unexpectedClosures: 0,
+        brainLoops: 4,
+        brainBotTicks: 4,
+        brainFailures: 0,
+        llmAuditWrites: 2,
+        lastActionAtMs: 2_000,
+        lastBrainAtMs: 2_000,
+        lastBrainDurationMs: 12,
+        lastFailureAtMs: null,
+        lastFailureStage: '',
+        lastFailureBotId: '',
+        lastFailureReason: '',
+      },
+      activeRunners: 1,
+      connectedRunners: 1,
+      sessions: [{
+        botId: 'bot-1',
+        characterId: 101,
+        characterName: 'Branoraaa',
+        clusterId: 'eastbrook_vale:1',
+        targetCharacterId: 1,
+        connected: true,
+        intentionalClose: false,
+        zoneId: 'eastbrook_vale',
+        level: 3,
+        objectiveId: 'accept_wolves',
+        objectiveLabel: 'Picking up Wolves at the Door',
+        socialPendingReplies: 0,
+        llmPlanPending: false,
+        llmPlanMode: 'friendly',
+        llmPlanFocus: 'Wolves at the Door',
+        lastRunnerAtMs: 2_000,
+        lastRunnerError: '',
+      }],
+    },
+    llm: {
+      enabled: true,
+      providerAvailable: true,
+      config: {
+        enabled: true,
+        planCooldownMs: 120_000,
+        socialCooldownMs: 45_000,
+        maxCalls5h: 10,
+        maxCallsWeek: 20,
+        cacheMaxEntries: 32,
+        cacheMaxTtlMs: 300_000,
+      },
+      budget: {
+        maxCalls5h: 10,
+        usedCalls5h: 1,
+        remainingCalls5h: 9,
+        maxCallsWeek: 20,
+        usedCallsWeek: 1,
+        remainingCallsWeek: 19,
+      },
+      cache: {
+        planEntries: 1,
+        socialEntries: 0,
+      },
+      metrics: {
+        plan: {
+          requests: 2,
+          accepted: 1,
+          cacheHit: 1,
+          rejected: 0,
+          error: 0,
+          budgetDenied: 0,
+          disabled: 0,
+        },
+        social: {
+          requests: 0,
+          accepted: 0,
+          cacheHit: 0,
+          rejected: 0,
+          error: 0,
+          budgetDenied: 0,
+          disabled: 0,
+        },
+        lastDecisionAtMs: 2_000,
+        lastDecisionKind: 'plan' as const,
+        lastDecisionStatus: 'cache_hit' as const,
+        lastDecisionReason: 'cache hit',
+        lastDecisionProvider: 'cache',
+        lastDecisionLatencyMs: 0,
+      },
+    },
+  });
+
+  return {
+    diagnosticsSnapshot: vi.fn(snapshot),
+    updatePlannerConfig: vi.fn((input: unknown) => ({
+      ...snapshot(),
+      planner: {
+        ...snapshot().planner,
+        configUpdateEcho: input,
+      },
+    })),
+    updateRuntimeControls: vi.fn((input: Record<string, boolean>) => ({
+      ...snapshot(),
+      runtime: {
+        ...snapshot().runtime,
+        controls: {
+          ...snapshot().runtime.controls,
+          ...input,
+        },
+      },
+    })),
+    logoutAll: vi.fn(async () => ({
+      disconnectedRunners: 1,
+      resetRecords: 2,
+      atMs: 3_000,
+    })),
+  };
+}
+
 const fakeGame: any = {
   adminStats: () => ({
     online: 2,
@@ -127,6 +268,50 @@ const fakeGame: any = {
     rssBytes: 1,
     heapUsedBytes: 1,
   }),
+  ambientPlayerBotDiagnostics: vi.fn(() => ({
+    enabled: true,
+    config: {
+      enabled: true,
+      plannerIntervalMs: 10_000,
+      clusterRadius: 70,
+      releaseRadius: 220,
+      soloTargetBots: 5,
+      extraBotsPerAdditionalPlayer: 1,
+      maxBotsPerCluster: 8,
+      maxProvisionPerTick: 5,
+      cooldownMs: 120_000,
+      reservationMs: 90_000,
+      recentActionLimit: 60,
+    },
+    metrics: {
+      cycles: 4,
+      humansObserved: 2,
+      clustersObserved: 1,
+      desiredBots: 5,
+      assignedBots: 4,
+      loginPlans: 1,
+      provisionPlans: 0,
+      logoutPlans: 0,
+      lastRunAtMs: 1_000,
+      lastRunReason: 'clusters_satisfied',
+    },
+    clusters: [],
+    recentActions: [],
+    directory: {
+      total: 5,
+      ready: 1,
+      reserved: 0,
+      online: 4,
+      cooldown: 0,
+      retired: 0,
+      provisionPending: 0,
+      assigned: 4,
+    },
+  })),
+  updateAmbientPlayerBotConfig: vi.fn((input: unknown) => ({
+    ...fakeGame.ambientPlayerBotDiagnostics(),
+    configUpdateEcho: input,
+  })),
   aiLifeLayerMetrics: () => ({
     providerCalls: 3,
     providerSuccesses: 2,
@@ -1419,6 +1604,98 @@ describe('admin api chat filter', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.data.chat.chatStrikes).toBe(3);
     expect(res.body.data.chat.violations).toHaveLength(1);
+  });
+});
+
+describe('ambient bots admin routes', () => {
+  beforeEach(() => {
+    vi.mocked(accountForToken).mockResolvedValue(7);
+    vi.mocked(isAdminAccount).mockResolvedValue(true);
+  });
+
+  it('serves combined planner, runtime, and llm diagnostics', async () => {
+    const ambientBots = fakeAmbientBotAdmin();
+    const res = fakeRes();
+
+    await handleAdminApi(
+      fakeReq({ token: VALID_TOKEN, url: '/admin/api/ambient-bots' }),
+      res,
+      fakeGame,
+      ambientBots,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(ambientBots.diagnosticsSnapshot).toHaveBeenCalled();
+    expect(res.body.data).toEqual(expect.objectContaining({
+      planner: expect.objectContaining({
+        metrics: expect.objectContaining({ desiredBots: 5 }),
+      }),
+      runtime: expect.objectContaining({
+        activeRunners: 1,
+        controls: expect.objectContaining({ allowLlmDecisions: true }),
+      }),
+      llm: expect.objectContaining({
+        budget: expect.objectContaining({ remainingCalls5h: 9 }),
+      }),
+    }));
+  });
+
+  it('updates runtime controls for operator incident handling', async () => {
+    const ambientBots = fakeAmbientBotAdmin();
+    const res = fakeRes();
+
+    await handleAdminApi(
+      fakeReq({
+        method: 'POST',
+        token: VALID_TOKEN,
+        url: '/admin/api/ambient-bots/control',
+        body: {
+          acceptLoginActions: false,
+          allowLlmDecisions: false,
+        },
+      }),
+      res,
+      fakeGame,
+      ambientBots,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(ambientBots.updateRuntimeControls).toHaveBeenCalledWith({
+      acceptLoginActions: false,
+      allowLlmDecisions: false,
+    });
+    expect(res.body.data.runtime.controls).toEqual(expect.objectContaining({
+      acceptLoginActions: false,
+      allowLlmDecisions: false,
+    }));
+  });
+
+  it('logs out all active ambient bots and returns fresh diagnostics', async () => {
+    const ambientBots = fakeAmbientBotAdmin();
+    const res = fakeRes();
+
+    await handleAdminApi(
+      fakeReq({
+        method: 'POST',
+        token: VALID_TOKEN,
+        url: '/admin/api/ambient-bots/logout-all',
+        body: { reason: 'incident drill' },
+      }),
+      res,
+      fakeGame,
+      ambientBots,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(ambientBots.logoutAll).toHaveBeenCalledWith('incident drill');
+    expect(res.body.data.result).toEqual({
+      disconnectedRunners: 1,
+      resetRecords: 2,
+      atMs: 3_000,
+    });
+    expect(res.body.data.diagnostics.runtime).toEqual(expect.objectContaining({
+      activeRunners: 1,
+    }));
   });
 });
 

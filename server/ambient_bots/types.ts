@@ -89,6 +89,145 @@ export interface AmbientPlayerBotConfig {
   recentActionLimit: number;
 }
 
+export interface AmbientPlayerBotRuntimeControlSnapshot {
+  acceptProvisionActions: boolean;
+  acceptLoginActions: boolean;
+  allowLlmDecisions: boolean;
+}
+
+export interface AmbientPlayerBotRuntimeMetricsSnapshot {
+  starts: number;
+  stops: number;
+  actionBatches: number;
+  actionsReceived: number;
+  provisionAttempts: number;
+  provisionSuccesses: number;
+  provisionFailures: number;
+  provisionSkipped: number;
+  loginAttempts: number;
+  loginSuccesses: number;
+  loginFailures: number;
+  loginSkipped: number;
+  logoutRequests: number;
+  logoutAllRequests: number;
+  unexpectedClosures: number;
+  brainLoops: number;
+  brainBotTicks: number;
+  brainFailures: number;
+  llmAuditWrites: number;
+  lastActionAtMs: number | null;
+  lastBrainAtMs: number | null;
+  lastBrainDurationMs: number | null;
+  lastFailureAtMs: number | null;
+  lastFailureStage: string;
+  lastFailureBotId: string;
+  lastFailureReason: string;
+}
+
+export interface AmbientPlayerBotRuntimeSessionSnapshot {
+  botId: string;
+  characterId: number | null;
+  characterName: string;
+  clusterId: string | null;
+  targetCharacterId: number | null;
+  connected: boolean;
+  intentionalClose: boolean;
+  zoneId: string;
+  level: number;
+  objectiveId: string;
+  objectiveLabel: string;
+  socialPendingReplies: number;
+  llmPlanPending: boolean;
+  llmPlanMode: string;
+  llmPlanFocus: string;
+  lastRunnerAtMs: number | null;
+  lastRunnerError: string;
+}
+
+export interface AmbientPlayerBotRuntimeDiagnosticsSnapshot {
+  started: boolean;
+  startedAtMs: number | null;
+  controls: AmbientPlayerBotRuntimeControlSnapshot;
+  metrics: AmbientPlayerBotRuntimeMetricsSnapshot;
+  activeRunners: number;
+  connectedRunners: number;
+  sessions: readonly AmbientPlayerBotRuntimeSessionSnapshot[];
+}
+
+export interface AmbientPlayerBotLlmConfig {
+  enabled: boolean;
+  planCooldownMs: number;
+  socialCooldownMs: number;
+  maxCalls5h: number;
+  maxCallsWeek: number;
+  cacheMaxEntries: number;
+  cacheMaxTtlMs: number;
+}
+
+export type AmbientPlayerBotLlmDecisionStatus =
+  | 'accepted'
+  | 'cache_hit'
+  | 'rejected'
+  | 'error'
+  | 'budget_denied'
+  | 'disabled';
+
+export interface AmbientPlayerBotLlmDecisionCountSnapshot {
+  requests: number;
+  accepted: number;
+  cacheHit: number;
+  rejected: number;
+  error: number;
+  budgetDenied: number;
+  disabled: number;
+}
+
+export interface AmbientPlayerBotLlmBudgetSnapshot {
+  maxCalls5h: number;
+  usedCalls5h: number;
+  remainingCalls5h: number;
+  maxCallsWeek: number;
+  usedCallsWeek: number;
+  remainingCallsWeek: number;
+}
+
+export interface AmbientPlayerBotLlmCacheSnapshot {
+  planEntries: number;
+  socialEntries: number;
+}
+
+export interface AmbientPlayerBotLlmMetricsSnapshot {
+  plan: AmbientPlayerBotLlmDecisionCountSnapshot;
+  social: AmbientPlayerBotLlmDecisionCountSnapshot;
+  lastDecisionAtMs: number | null;
+  lastDecisionKind: 'plan' | 'social' | '';
+  lastDecisionStatus: AmbientPlayerBotLlmDecisionStatus | '';
+  lastDecisionReason: string;
+  lastDecisionProvider: string;
+  lastDecisionLatencyMs: number | null;
+}
+
+export interface AmbientPlayerBotLlmDiagnosticsSnapshot {
+  enabled: boolean;
+  providerAvailable: boolean;
+  config: AmbientPlayerBotLlmConfig;
+  budget: AmbientPlayerBotLlmBudgetSnapshot;
+  cache: AmbientPlayerBotLlmCacheSnapshot;
+  metrics: AmbientPlayerBotLlmMetricsSnapshot;
+}
+
+export interface AmbientPlayerBotAdminDiagnosticsSnapshot {
+  planner: AmbientPlayerBotDiagnosticsSnapshot;
+  runtime: AmbientPlayerBotRuntimeDiagnosticsSnapshot | null;
+  llm: AmbientPlayerBotLlmDiagnosticsSnapshot | null;
+}
+
+export interface AmbientPlayerBotLogoutAllResult {
+  disconnectedRunners: number;
+  resetRecords: number;
+  atMs: number;
+}
+
 export type AmbientBotPlanAction =
   | {
     type: 'loginBot';

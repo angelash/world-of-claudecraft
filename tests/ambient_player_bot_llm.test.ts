@@ -278,4 +278,88 @@ describe('ambient player bot llm coordinator', () => {
     expect(second.status).toBe('budget_denied');
     expect(provider.decide).toHaveBeenCalledTimes(1);
   });
+
+  it('reports operator diagnostics for budget, cache, and recent decision metrics', async () => {
+    const provider: AmbientBotLlmProvider = {
+      decide: vi.fn(async () => ({
+        value: {
+          schemaVersion: 1,
+          jobId: 'ambient-plan:bot-1:1000',
+          botRef: {
+            botId: 'bot-1',
+            characterName: 'Branoraaa',
+            profileId: 'eastbrook_vale_paladin_quester',
+            classId: 'paladin',
+            archetype: 'quester',
+          },
+          ttlMs: 120_000,
+          confidence: 0.88,
+          socialMode: 'friendly',
+          focusLabel: 'Wolves at the Door',
+          selfSummary: 'just helping around Eastbrook',
+          friendPolicy: 'ifAsked',
+          allowPresenceEmote: true,
+          audit: {
+            shortReason: 'starter-zone helper tone',
+            safetyNotes: ['boundedSocialPlan'],
+          },
+        },
+        promptText: 'plan prompt',
+        rawOutput: '{"ok":true}',
+        providerTimings: { provider: 'test-provider', totalMs: 12, steps: [] },
+      })),
+    };
+    const coordinator = new AmbientPlayerBotLlmCoordinator({
+      config: {
+        enabled: true,
+        planCooldownMs: 120_000,
+        socialCooldownMs: 45_000,
+        maxCalls5h: 10,
+        maxCallsWeek: 20,
+        cacheMaxEntries: 32,
+        cacheMaxTtlMs: 300_000,
+      },
+      provider,
+    });
+
+    await coordinator.decidePlan({
+      bot: bot(),
+      liveState: liveState(),
+      objectiveId: 'accept_wolves',
+      objectiveLabel: 'Picking up Wolves at the Door',
+      priorPlan: null,
+      nowMs: 1_000,
+    });
+    await coordinator.decidePlan({
+      bot: bot(),
+      liveState: liveState(),
+      objectiveId: 'accept_wolves',
+      objectiveLabel: 'Picking up Wolves at the Door',
+      priorPlan: null,
+      nowMs: 2_000,
+    });
+
+    expect(coordinator.diagnosticsSnapshot(2_000)).toEqual(expect.objectContaining({
+      enabled: true,
+      providerAvailable: true,
+      budget: expect.objectContaining({
+        usedCalls5h: 1,
+        remainingCalls5h: 9,
+      }),
+      cache: expect.objectContaining({
+        planEntries: 1,
+        socialEntries: 0,
+      }),
+      metrics: expect.objectContaining({
+        plan: expect.objectContaining({
+          requests: 2,
+          accepted: 1,
+          cacheHit: 1,
+        }),
+        lastDecisionKind: 'plan',
+        lastDecisionStatus: 'cache_hit',
+        lastDecisionProvider: 'cache',
+      }),
+    }));
+  });
 });

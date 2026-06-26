@@ -50,6 +50,10 @@ import {
 import { providerUsageSnapshot } from './provider_usage';
 import { aiContentCoverageReport, aiContentReviewChecklist, aiProfilePreviewReport } from './ai/content_coverage';
 import { rateLimited } from './ratelimit';
+import type {
+  AmbientPlayerBotAdminDiagnosticsSnapshot,
+  AmbientPlayerBotLogoutAllResult,
+} from './ambient_bots/types';
 
 // Admin API: everything under /admin/api/*. Auth is a bearer token whose
 // account has is_admin = TRUE — the admin.* hostname is routing, not security.
@@ -61,12 +65,30 @@ const ACTIVITY_WINDOW_DAYS = 30;
 
 const IP_BLOCK_KICK_MESSAGE = 'Connection to the server was lost.';
 
+export interface AmbientPlayerBotAdminSurface {
+  diagnosticsSnapshot(): AmbientPlayerBotAdminDiagnosticsSnapshot;
+  updatePlannerConfig(input: unknown): AmbientPlayerBotAdminDiagnosticsSnapshot;
+  updateRuntimeControls(input: unknown): AmbientPlayerBotAdminDiagnosticsSnapshot;
+  logoutAll(reason?: string): Promise<AmbientPlayerBotLogoutAllResult>;
+}
+
 function ok(res: http.ServerResponse, data: unknown): void {
   json(res, 200, { success: true, data, error: null });
 }
 
 function fail(res: http.ServerResponse, status: number, error: string): void {
   json(res, status, { success: false, data: null, error });
+}
+
+function ambientBotDiagnostics(
+  game: GameServer,
+  ambientBots: AmbientPlayerBotAdminSurface | null | undefined,
+): AmbientPlayerBotAdminDiagnosticsSnapshot {
+  return ambientBots?.diagnosticsSnapshot() ?? {
+    planner: game.ambientPlayerBotDiagnostics(),
+    runtime: null,
+    llm: null,
+  };
 }
 
 export interface PageParams {
@@ -128,6 +150,7 @@ export async function handleAdminApi(
   req: http.IncomingMessage,
   res: http.ServerResponse,
   game: GameServer,
+  ambientBots?: AmbientPlayerBotAdminSurface | null,
 ): Promise<void> {
   const url = new URL(req.url ?? '/', 'http://localhost');
   const path = url.pathname;
@@ -310,6 +333,44 @@ export async function handleAdminApi(
     if (req.method === 'POST' && path === '/admin/api/ai/active-triggers/sequences/cancel') {
       return ok(res, game.cancelAiActiveSequences());
     }
+    if (req.method === 'POST' && path === '/admin/api/ambient-bots/config') {
+      const body = await readBody(req);
+      try {
+        if (ambientBots) return ok(res, ambientBots.updatePlannerConfig(body));
+        return ok(res, {
+          planner: game.updateAmbientPlayerBotConfig(body),
+          runtime: null,
+          llm: null,
+        });
+      } catch (err) {
+        return fail(res, 400, err instanceof Error ? err.message : 'invalid ambient bot configuration');
+      }
+    }
+    if (req.method === 'POST' && path === '/admin/api/ambient-bots/control') {
+      const body = await readBody(req);
+      if (!ambientBots) return fail(res, 400, 'ambient bot runtime is not available on this process');
+      try {
+        return ok(res, ambientBots.updateRuntimeControls(body));
+      } catch (err) {
+        return fail(res, 400, err instanceof Error ? err.message : 'invalid ambient bot control patch');
+      }
+    }
+    if (req.method === 'POST' && path === '/admin/api/ambient-bots/logout-all') {
+      if (!ambientBots) return fail(res, 400, 'ambient bot runtime is not available on this process');
+      const body = await readBody(req);
+      const reason = typeof body.reason === 'string' && body.reason.trim()
+        ? body.reason.trim().slice(0, 160)
+        : undefined;
+      try {
+        const result = await ambientBots.logoutAll(reason);
+        return ok(res, {
+          result,
+          diagnostics: ambientBots.diagnosticsSnapshot(),
+        });
+      } catch (err) {
+        return fail(res, 400, err instanceof Error ? err.message : 'ambient bot logout all failed');
+      }
+    }
     if (req.method === 'POST' && path === '/admin/api/blocked-ips') {
       const body = await readBody(req);
       try {
@@ -357,6 +418,7 @@ export async function handleAdminApi(
         game.aiAuditSnapshot(),
       ]);
       const serverStats = game.adminStats();
+      const ambientBotState = ambientBotDiagnostics(game, ambientBots);
       return ok(res, {
         ...counts,
         peakOnlineToday: Math.max(counts.peakOnlineToday, serverStats.online),
@@ -380,7 +442,11 @@ export async function handleAdminApi(
         aiCoverage: aiContentCoverageReport(),
         aiCoverageChecklist: aiContentReviewChecklist(),
         aiProfiles: aiProfilePreviewReport(),
+        ambientBots: ambientBotState,
       });
+    }
+    if (path === '/admin/api/ambient-bots') {
+      return ok(res, ambientBotDiagnostics(game, ambientBots));
     }
     if (path === '/admin/api/ai/active-triggers') {
       return ok(res, {

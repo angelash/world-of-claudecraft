@@ -28,3 +28,85 @@ export function ambientPlayerBotConfigFromEnv(
     recentActionLimit: intEnv(env, 'AMBIENT_PLAYER_BOTS_RECENT_ACTION_LIMIT', 60, 1),
   };
 }
+
+export function applyAmbientPlayerBotConfigPatch(
+  current: AmbientPlayerBotConfig,
+  input: unknown,
+): AmbientPlayerBotConfig {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new Error('ambient bot config patch must be an object');
+  }
+  const patch = input as Record<string, unknown>;
+  const next: AmbientPlayerBotConfig = { ...current };
+  const unknownKeys: string[] = [];
+  let applied = 0;
+  for (const [key, value] of Object.entries(patch)) {
+    switch (key) {
+      case 'enabled':
+        if (typeof value !== 'boolean') throw new Error('ambient bot config enabled must be a boolean');
+        next.enabled = value;
+        applied++;
+        break;
+      case 'plannerIntervalMs':
+        next.plannerIntervalMs = intPatch(key, value, 1_000);
+        applied++;
+        break;
+      case 'clusterRadius':
+        next.clusterRadius = intPatch(key, value, 10);
+        applied++;
+        break;
+      case 'releaseRadius':
+        next.releaseRadius = intPatch(key, value, 20);
+        applied++;
+        break;
+      case 'soloTargetBots':
+        next.soloTargetBots = intPatch(key, value, 0);
+        applied++;
+        break;
+      case 'extraBotsPerAdditionalPlayer':
+        next.extraBotsPerAdditionalPlayer = intPatch(key, value, 0);
+        applied++;
+        break;
+      case 'maxBotsPerCluster':
+        next.maxBotsPerCluster = intPatch(key, value, 0);
+        applied++;
+        break;
+      case 'maxProvisionPerTick':
+        next.maxProvisionPerTick = intPatch(key, value, 0);
+        applied++;
+        break;
+      case 'cooldownMs':
+        next.cooldownMs = intPatch(key, value, 1_000);
+        applied++;
+        break;
+      case 'reservationMs':
+        next.reservationMs = intPatch(key, value, 1_000);
+        applied++;
+        break;
+      case 'recentActionLimit':
+        next.recentActionLimit = intPatch(key, value, 1);
+        applied++;
+        break;
+      default:
+        unknownKeys.push(key);
+        break;
+    }
+  }
+  if (unknownKeys.length > 0) {
+    throw new Error(`unsupported ambient bot config keys: ${unknownKeys.join(', ')}`);
+  }
+  if (applied === 0) {
+    throw new Error('ambient bot config patch must include at least one supported key');
+  }
+  if (next.releaseRadius <= next.clusterRadius) {
+    throw new Error('ambient bot config releaseRadius must be greater than clusterRadius');
+  }
+  return next;
+}
+
+function intPatch(key: string, value: unknown, min: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`ambient bot config ${key} must be a finite number`);
+  }
+  return Math.max(min, Math.floor(value));
+}

@@ -1,3 +1,4 @@
+import { performance } from 'node:perf_hooks';
 import { zoneAt } from '../../src/sim/data';
 import { accountForToken } from '../db';
 import {
@@ -16,11 +17,19 @@ import type { AmbientCreateCharacterResult, AmbientPlayerBotApi } from './api_cl
 import {
   AmbientPlayerBotLlmCoordinator,
   ambientPlayerBotLlmConfigFromEnv,
-  type AmbientPlayerBotLlmConfig,
 } from './llm_coordinator';
 import type { AmbientBotPlanDecisionV1 } from './llm_types';
 import { ambientBotAccountPassword, ambientBotAccountUsername, ambientBotCharacterName, ambientBotId } from './naming';
-import type { AmbientBotPlanAction, AmbientPlayerBotRecord } from './types';
+import type {
+  AmbientBotPlanAction,
+  AmbientPlayerBotLlmConfig,
+  AmbientPlayerBotLogoutAllResult,
+  AmbientPlayerBotRecord,
+  AmbientPlayerBotRuntimeControlSnapshot,
+  AmbientPlayerBotRuntimeDiagnosticsSnapshot,
+  AmbientPlayerBotRuntimeMetricsSnapshot,
+  AmbientPlayerBotRuntimeSessionSnapshot,
+} from './types';
 import { AmbientPlayerBotWsClient, type AmbientPlayerBotLiveState, type AmbientPlayerBotSocket } from './ws_client';
 
 export interface AmbientPlayerBotRuntimeGame {
@@ -65,6 +74,45 @@ interface RunnerEntry {
   intentionalClose: boolean;
 }
 
+function defaultRuntimeControls(): AmbientPlayerBotRuntimeControlSnapshot {
+  return {
+    acceptProvisionActions: true,
+    acceptLoginActions: true,
+    allowLlmDecisions: true,
+  };
+}
+
+function defaultRuntimeMetrics(): AmbientPlayerBotRuntimeMetricsSnapshot {
+  return {
+    starts: 0,
+    stops: 0,
+    actionBatches: 0,
+    actionsReceived: 0,
+    provisionAttempts: 0,
+    provisionSuccesses: 0,
+    provisionFailures: 0,
+    provisionSkipped: 0,
+    loginAttempts: 0,
+    loginSuccesses: 0,
+    loginFailures: 0,
+    loginSkipped: 0,
+    logoutRequests: 0,
+    logoutAllRequests: 0,
+    unexpectedClosures: 0,
+    brainLoops: 0,
+    brainBotTicks: 0,
+    brainFailures: 0,
+    llmAuditWrites: 0,
+    lastActionAtMs: null,
+    lastBrainAtMs: null,
+    lastBrainDurationMs: null,
+    lastFailureAtMs: null,
+    lastFailureStage: '',
+    lastFailureBotId: '',
+    lastFailureReason: '',
+  };
+}
+
 export class AmbientPlayerBotRuntime {
   private readonly game: AmbientPlayerBotRuntimeGame;
   private readonly db: AmbientPlayerBotRuntimeDb;
@@ -82,7 +130,10 @@ export class AmbientPlayerBotRuntime {
   private actionQueue: Promise<void> = Promise.resolve();
   private brainInterval: NodeJS.Timeout | null = null;
   private started = false;
+  private startedAtMs: number | null = null;
   private nameSequence = 0;
+  private readonly controls: AmbientPlayerBotRuntimeControlSnapshot = defaultRuntimeControls();
+  private readonly metrics: AmbientPlayerBotRuntimeMetricsSnapshot = defaultRuntimeMetrics();
 
   constructor(options: AmbientPlayerBotRuntimeOptions) {
     this.game = options.game;
@@ -99,6 +150,108 @@ export class AmbientPlayerBotRuntime {
     this.authTokenTtlMs = options.authTokenTtlMs ?? 7 * 24 * 3600 * 1000;
   }
 
+  diagnosticsSnapshot(): AmbientPlayerBotRuntimeDiagnosticsSnapshot {
+    const sessions: AmbientPlayerBotRuntimeSessionSnapshot[] = [];
+    for (const [botId, entry] of this.runners) {
+      const record = this.game.ambientPlayerBotRecord(botId);
+      sessions.push({
+        botId,
+        characterId: record?.characterId ?? null,
+        characterName: record?.characterName ?? '',
+        clusterId: record?.assignedClusterId ?? null,
+        targetCharacterId: record?.assignedPlayerCharacterId ?? null,
+        connected: entry.connected,
+        intentionalClose: entry.intentionalClose,
+        zoneId: record?.lastKnownZoneId ?? '',
+        level: record?.lastKnownLevel ?? 0,
+        objectiveId: readRunnerString(record?.runnerState, 'objective'),
+        objectiveLabel: readRunnerString(record?.runnerState, 'objectiveLabel'),
+        socialPendingReplies: entry.socialState.pendingReplies.length,
+        llmPlanPending: entry.llmPlanPending,
+        llmPlanMode: entry.llmPlan?.socialMode ?? readRunnerString(record?.runnerState, 'llmPlanMode'),
+        llmPlanFocus: entry.llmPlan?.focusLabel ?? readRunnerString(record?.runnerState, 'llmPlanFocus'),
+        lastRunnerAtMs: record?.lastRunnerAtMs ?? null,
+        lastRunnerError: record?.lastRunnerError ?? '',
+      });
+    }
+    sessions.sort((a, b) => a.botId.localeCompare(b.botId));
+    return {
+      started: this.started,
+      startedAtMs: this.startedAtMs,
+      controls: { ...this.controls },
+      metrics: { ...this.metrics },
+      activeRunners: sessions.length,
+      connectedRunners: sessions.filter((session) => session.connected).length,
+      sessions,
+    };
+  }
+
+  updateControls(input: unknown): AmbientPlayerBotRuntimeControlSnapshot {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw new Error('ambient bot runtime control patch must be an object');
+    }
+    const patch = input as Record<string, unknown>;
+    const unknownKeys: string[] = [];
+    let applied = 0;
+    for (const [key, value] of Object.entries(patch)) {
+      if (typeof value !== 'boolean') {
+        throw new Error(`ambient bot runtime control ${key} must be a boolean`);
+      }
+      switch (key) {
+        case 'acceptProvisionActions':
+          this.controls.acceptProvisionActions = value;
+          applied++;
+          break;
+        case 'acceptLoginActions':
+          this.controls.acceptLoginActions = value;
+          applied++;
+          break;
+        case 'allowLlmDecisions':
+          this.controls.allowLlmDecisions = value;
+          applied++;
+          break;
+        default:
+          unknownKeys.push(key);
+          break;
+      }
+    }
+    if (unknownKeys.length > 0) {
+      throw new Error(`unsupported ambient bot runtime controls: ${unknownKeys.join(', ')}`);
+    }
+    if (applied === 0) {
+      throw new Error('ambient bot runtime control patch must include at least one supported key');
+    }
+    return { ...this.controls };
+  }
+
+  async logoutAll(reason = 'ambient bot admin logout all'): Promise<AmbientPlayerBotLogoutAllResult> {
+    this.metrics.logoutAllRequests++;
+    const nowMs = this.nowMs();
+    let disconnectedRunners = 0;
+    for (const [botId, entry] of this.runners) {
+      entry.intentionalClose = true;
+      entry.client.close();
+      this.runners.delete(botId);
+      disconnectedRunners++;
+    }
+    let resetRecords = 0;
+    for (const record of this.game.ambientPlayerBotDirectory()) {
+      const next = resetRecordForAdminLogout(record, nowMs, reason);
+      if (!sameRunnerState(record.runnerState, next.runnerState)
+        || record.lifecycleStatus !== next.lifecycleStatus
+        || record.assignedClusterId !== next.assignedClusterId
+        || record.assignedPlayerCharacterId !== next.assignedPlayerCharacterId
+        || record.reservationUntilMs !== next.reservationUntilMs
+        || record.lastRunnerError !== next.lastRunnerError
+        || record.lastRunnerAtMs !== next.lastRunnerAtMs) {
+        resetRecords++;
+      }
+      this.game.upsertAmbientPlayerBotRecord(next);
+      await this.db.saveBot(next);
+    }
+    return { disconnectedRunners, resetRecords, atMs: nowMs };
+  }
+
   async start(): Promise<void> {
     if (this.started) return;
     const loaded = await this.db.listBots();
@@ -109,12 +262,20 @@ export class AmbientPlayerBotRuntime {
       if (actions.length === 0) return;
       this.actionQueue = this.actionQueue
         .then(() => this.handleActions(actions))
-        .catch((error) => console.error('ambient bot runtime action failed:', error));
+        .catch((error) => {
+          this.recordFailure('action_queue', '', error);
+          console.error('ambient bot runtime action failed:', error);
+        });
     });
     if (this.llmConfig.enabled) this.llmCoordinator?.warmup();
     this.started = true;
+    this.startedAtMs = this.nowMs();
+    this.metrics.starts++;
     this.brainInterval = setInterval(() => {
-      void this.runBrainLoop().catch((error) => console.error('ambient bot brain loop failed:', error));
+      void this.runBrainLoop().catch((error) => {
+        this.recordFailure('brain_loop', '', error);
+        console.error('ambient bot brain loop failed:', error);
+      });
     }, this.brainIntervalMs);
     this.brainInterval.unref?.();
   }
@@ -122,6 +283,8 @@ export class AmbientPlayerBotRuntime {
   async stop(): Promise<void> {
     if (!this.started) return;
     this.started = false;
+    this.startedAtMs = null;
+    this.metrics.stops++;
     if (this.brainInterval) {
       clearInterval(this.brainInterval);
       this.brainInterval = null;
@@ -136,16 +299,44 @@ export class AmbientPlayerBotRuntime {
   }
 
   private async handleActions(actions: readonly AmbientBotPlanAction[]): Promise<void> {
+    this.metrics.actionBatches++;
+    this.metrics.actionsReceived += actions.length;
+    this.metrics.lastActionAtMs = this.nowMs();
     for (const action of actions) {
       if (!this.started) return;
       switch (action.type) {
         case 'provisionBot':
-          await this.handleProvisionAction(action);
+          if (!this.controls.acceptProvisionActions) {
+            this.metrics.provisionSkipped++;
+            break;
+          }
+          this.metrics.provisionAttempts++;
+          try {
+            await this.handleProvisionAction(action);
+            this.metrics.provisionSuccesses++;
+          } catch (error) {
+            this.metrics.provisionFailures++;
+            this.recordFailure('provision', action.requestId, error);
+            throw error;
+          }
           break;
         case 'loginBot':
-          await this.handleLoginAction(action.botId);
+          if (!this.controls.acceptLoginActions) {
+            this.metrics.loginSkipped++;
+            break;
+          }
+          this.metrics.loginAttempts++;
+          try {
+            await this.handleLoginAction(action.botId);
+            this.metrics.loginSuccesses++;
+          } catch (error) {
+            this.metrics.loginFailures++;
+            this.recordFailure('login', action.botId, error);
+            throw error;
+          }
           break;
         case 'logoutBot':
+          this.metrics.logoutRequests++;
           await this.handleLogoutAction(action.botId);
           break;
       }
@@ -336,6 +527,8 @@ export class AmbientPlayerBotRuntime {
   }
 
   private async handleUnexpectedClose(botId: string, error?: Error): Promise<void> {
+    this.metrics.unexpectedClosures++;
+    if (error) this.recordFailure('unexpected_close', botId, error);
     const record = this.game.ambientPlayerBotRecord(botId);
     if (!record) return;
     record.lifecycleStatus = 'ready';
@@ -350,8 +543,12 @@ export class AmbientPlayerBotRuntime {
   }
 
   private async runBrainLoop(): Promise<void> {
+    const startedAt = performance.now();
+    this.metrics.brainLoops++;
+    this.metrics.lastBrainAtMs = this.nowMs();
     for (const [botId, entry] of this.runners) {
       if (!this.started || !entry.connected) continue;
+      this.metrics.brainBotTicks++;
       const record = this.game.ambientPlayerBotRecord(botId);
       if (!record) continue;
       try {
@@ -417,12 +614,21 @@ export class AmbientPlayerBotRuntime {
         if (shouldPersist) {
           await this.db.saveBot(latest);
         }
-        this.maybeQueuePlanDecision(botId, entry, latest, liveState, result.objectiveId, result.objectiveLabel);
-        this.maybeQueueSocialDecisions(botId, entry, latest, liveState);
+        if (this.controls.allowLlmDecisions) {
+          this.maybeQueuePlanDecision(botId, entry, latest, liveState, result.objectiveId, result.objectiveLabel);
+          this.maybeQueueSocialDecisions(botId, entry, latest, liveState);
+        } else {
+          for (const reply of entry.socialState.pendingReplies) {
+            if (!reply.llmStatus || reply.llmStatus === 'idle') reply.llmStatus = 'disabled';
+          }
+        }
       } catch (error) {
+        this.metrics.brainFailures++;
+        this.recordFailure('brain_tick', botId, error);
         console.error(`ambient bot brain tick failed for ${botId}:`, error);
       }
     }
+    this.metrics.lastBrainDurationMs = Math.max(0, Math.round(performance.now() - startedAt));
   }
 
   private maybeQueuePlanDecision(
@@ -570,6 +776,14 @@ export class AmbientPlayerBotRuntime {
     };
     this.game.upsertAmbientPlayerBotRecord(record);
     await this.db.saveBot(record);
+    this.metrics.llmAuditWrites++;
+  }
+
+  private recordFailure(stage: string, botId: string, error: unknown): void {
+    this.metrics.lastFailureAtMs = this.nowMs();
+    this.metrics.lastFailureStage = stage;
+    this.metrics.lastFailureBotId = botId;
+    this.metrics.lastFailureReason = error instanceof Error ? error.message : String(error);
   }
 }
 
@@ -630,5 +844,30 @@ function clonePendingReply(value: AmbientPlayerBotPendingReply): AmbientPlayerBo
   return {
     ...value,
     ...(value.llmMemoryTags ? { llmMemoryTags: [...value.llmMemoryTags] } : {}),
+  };
+}
+
+function readRunnerString(
+  value: Record<string, unknown> | undefined,
+  key: string,
+): string {
+  const field = value?.[key];
+  return typeof field === 'string' ? field : '';
+}
+
+function resetRecordForAdminLogout(
+  record: AmbientPlayerBotRecord,
+  nowMs: number,
+  reason: string,
+): AmbientPlayerBotRecord {
+  return {
+    ...record,
+    lifecycleStatus: record.lifecycleStatus === 'retired' ? 'retired' : 'ready',
+    assignedClusterId: null,
+    assignedPlayerCharacterId: null,
+    reservationUntilMs: null,
+    lastRunnerError: reason,
+    lastRunnerAtMs: nowMs,
+    runnerState: {},
   };
 }

@@ -138,3 +138,5 @@ Deliverables:
 - `phase-10-qa-social-shell-memory.md`
 - `phase-11-llm-social-plan-integration.md`
 - `phase-12-qa-llm-social-plan-integration.md`
+- `phase-13-admin-telemetry-incident-controls.md`
+- `phase-14-qa-admin-telemetry-incident-controls.md`
