@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: continuation 09 QA
-- phase status: Continuation 09 QA complete, next target is the deeper Bastion combat polish or the Zone 3 handoff, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 10
+- phase status: Continuation 09 QA complete, continuation 10 planning is now in place for Bastion in-dungeon cohesion and combat polish, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -279,6 +279,15 @@
 - `docs/ambient-player-bots/continuation-09-bastion-party-and-dungeon-bridge.md`
 - `docs/ambient-player-bots/continuation-09-qa-bastion-party-and-dungeon-bridge.md`
 
+### Continuation 10
+
+- `server/ambient_bots/group.ts`
+- `server/ambient_bots/runtime.ts`
+- `tests/ambient_player_bot_group.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `docs/ambient-player-bots/continuation-10-bastion-in-dungeon-cohesion.md`
+- `docs/ambient-player-bots/continuation-10-qa-bastion-in-dungeon-cohesion.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -390,8 +399,8 @@
 - Continuation 09 QA confirmed the Bastion accept order, real party-command
   bridge, dungeon entry, Olen-first routing, and dungeon exit handoff under the
   focused validation matrix
-- the next notable gap is the deeper Bastion combat polish or the Zone 3
-  handoff beyond Mirefen
+- the next notable gap is the deeper Bastion in-dungeon cohesion and combat
+  polish inside Sunken Bastion, followed by the Zone 3 handoff beyond Mirefen
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

@@ -14,6 +14,10 @@ cross-session scaffolding, not a shipping artifact.
 ## Index
 
 Cross-cutting docs:
+- `requirements.md` - the explicit product and system requirements for the
+  real-server ambient population program.
+- `architecture.md` - the component model, authority boundary, and runtime
+  flows for planner, runner, brain, group, social, and operator layers.
 - `brainstorm.md` - product vision, reusable foundation already in the repo,
   locked architecture, LLM recommendations, risks, and open questions.
 - `implementation-plan.md` - canonical workflow, phase ordering, and the full
@@ -98,10 +102,15 @@ Post-packet continuation prompts:
   server path.
 - `continuation-09-qa-bastion-party-and-dungeon-bridge.md` - QA prompt for
   continuation 09.
+- `continuation-10-bastion-in-dungeon-cohesion.md` - harden Bastion in-dungeon
+  regrouping, follower reattachment, and leader pull discipline.
+- `continuation-10-qa-bastion-in-dungeon-cohesion.md` - QA prompt for
+  continuation 10.
 
 ## How to use this packet
 
-1. Read this README, then `state.md`, then `brainstorm.md`.
+1. Read this README, then `requirements.md`, `architecture.md`, `state.md`,
+   and `brainstorm.md`.
 2. Open the next incomplete phase in `progress.md`.
 3. Run that phase, validate it, update `progress.md` and `state.md`, then hand
    off immediately to its QA phase.

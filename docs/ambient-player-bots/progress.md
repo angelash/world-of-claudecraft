@@ -38,6 +38,8 @@
 | Continuation 08 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 09 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 09 QA | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 10 | pending | 2026-06-26 |  |
+| Continuation 10 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
 
@@ -827,3 +829,26 @@ Notes:
 - The next implementation gap is the deeper Bastion combat polish inside the
   dungeon or the Zone 3 handoff beyond Mirefen, depending on which player
   experience we want to prioritize next.
+
+## Continuation 10 checklist
+
+- [ ] add a bounded in-dungeon regroup layer for Sunken Bastion parties
+- [ ] add follower-side real `/follow <leader>` reattachment through chat
+- [ ] suppress leader drift or clean pulls while the Bastion party is split
+- [ ] add focused group and runtime regressions for regroup and follower
+  reattachment
+- [ ] validate the continuation slice
+
+Notes:
+- This slice should stay tightly scoped to Sunken Bastion cohesion. It is not a
+  general raid AI or multi-dungeon follower framework.
+
+## Continuation 10 QA checklist
+
+- [ ] audit Continuation 10 against
+  `continuation-10-qa-bastion-in-dungeon-cohesion.md`
+- [ ] confirm followers only use the normal `/follow <leader>` chat path
+- [ ] confirm leader regroup holds prevent forward drift or clean pulls while
+  the group is visibly split
+- [ ] verify focused ambient-bot validation, `build:server`, and local pg-mem
+  smoke stay green
