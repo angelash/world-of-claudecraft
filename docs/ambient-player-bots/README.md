@@ -20,6 +20,8 @@ Cross-cutting docs:
   validation matrix, planned schemas, runtime flags, and file paths.
 - `progress.md` - status table plus per-phase deliverables and notes.
 - `qa-checklist.md` - whole-feature integration matrix for the final gate.
+- `rollout-handoff.md` - operator smoke, pause, logout-all, restore, and
+  rollback notes.
 
 Starter prompts:
 - `phase-01-foundation.md` - Phase 1 implementation prompt for the server-side
@@ -47,6 +49,10 @@ Starter prompts:
   prompt for operator diagnostics, live rollout levers, and emergency controls.
 - `phase-14-qa-admin-telemetry-incident-controls.md` - Phase 13 QA prompt for
   operator workflows, fail-safe pauses, and logout-all behavior.
+- `phase-15-live-readiness-smoke-automation.md` - Phase 15 implementation
+  prompt for real-admin smoke tooling and rollout handoff docs.
+- `phase-16-final-qa-teardown.md` - final QA prompt for live smoke, final gate,
+  and teardown decision.
 
 ## How to use this packet
 

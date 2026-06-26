@@ -140,3 +140,5 @@ Deliverables:
 - `phase-12-qa-llm-social-plan-integration.md`
 - `phase-13-admin-telemetry-incident-controls.md`
 - `phase-14-qa-admin-telemetry-incident-controls.md`
+- `phase-15-live-readiness-smoke-automation.md`
+- `phase-16-final-qa-teardown.md`

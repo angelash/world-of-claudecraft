@@ -18,7 +18,7 @@
 | 12 | completed | 2026-06-26 | 2026-06-26 |
 | 13 | completed | 2026-06-26 | 2026-06-26 |
 | 14 | completed | 2026-06-26 | 2026-06-26 |
-| 15 | pending | | |
+| 15 | completed | 2026-06-26 | 2026-06-26 |
 | 16 | pending | | |
 
 ## Phase 1 checklist
@@ -326,3 +326,21 @@ Notes:
     under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
     `tests/auto_loot.test.ts`)
 - Phase 15 is now the next implementation target.
+
+## Phase 15 checklist
+
+- [x] add a real-admin ambient bot smoke script
+- [x] add rollout, rollback, pause, and restore handoff notes
+- [x] wire Phase 15 and Phase 16 packet docs into the planning index
+- [x] validate the new smoke script syntax and operator-surface regressions
+
+Notes:
+- This slice packages the operator surface into reusable tooling, but the
+  actual real-realm smoke still needs a reachable server plus admin
+  credentials. The workstation currently has no listeners on `:8787` or
+  `:5173`, so only syntax and focused regression validation ran here.
+- Validation run:
+  - `node --check scripts/ambient_bot_admin_smoke.mjs`
+  - `npx vitest run tests/admin.test.ts tests/ambient_player_bot_runtime.test.ts`
+  - `npm run build:server`
+- Phase 16 final QA is now the next target.

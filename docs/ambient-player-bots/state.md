@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: 15
-- phase status: pending Phase 15 implementation after Phase 14 QA
+- current phase: 16
+- phase status: pending Phase 16 final QA after Phase 15 implementation
 
 ## Locked decisions
 
@@ -176,6 +176,14 @@
 - `tests/ambient_player_bot_service.test.ts`
 - `tests/admin.test.ts`
 
+### Phase 15
+
+- `scripts/ambient_bot_admin_smoke.mjs`
+- `docs/ambient-player-bots/phase-15-live-readiness-smoke-automation.md`
+- `docs/ambient-player-bots/phase-16-final-qa-teardown.md`
+- `docs/ambient-player-bots/rollout-handoff.md`
+- `docs/ambient-player-bots/qa-checklist.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -254,6 +262,9 @@
 - Phase 14 QA tightened logout-all so it only resets active or assigned bots
   and added direct planner-config route coverage. No new known Phase 13 or
   Phase 14 blocker remains after that audit
+- Phase 15 added a real-admin smoke script plus rollout handoff notes, but the
+  live smoke itself still needs a reachable local or staging realm and valid
+  admin credentials before final packet close
 - full live boot verification of the real runner on this workstation still
   needs a reachable local Postgres service
 - repo-wide `npx tsc --noEmit` is currently red for unrelated pre-existing
