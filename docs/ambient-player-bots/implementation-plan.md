@@ -77,6 +77,8 @@ Step 4, update docs and commit:
 | 09 QA | QA | Verify continuation 09 | invite, accept, entry, and exit regressions |
 | 10 | impl | Bastion in-dungeon cohesion | regroup, follower reattachment, and pull discipline inside Bastion |
 | 10 QA | QA | Verify continuation 10 | in-dungeon cohesion and boss-route reliability |
+| 11 | impl | Highwatch handoff and Thornpeak starters | first Zone 3 handoff, starter quest overlap, and local sustain |
+| 11 QA | QA | Verify continuation 11 | handoff, starter-route, and Highwatch-local behavior |
 
 ## Phase details
 
@@ -181,6 +183,15 @@ Deliverables:
 - focused tests for follower reattachment and leader wait behavior
 - packet updates that hand off the next QA sweep
 
+### Continuation 11, Highwatch handoff and Thornpeak starters
+
+Deliverables:
+- `q_highwatch_summons` handoff from Mirefen into Highwatch
+- the first Thornpeak starter ladder through the ridge stalker and kobold pairs
+- Highwatch-local food and drink restocking
+- Thornpeak-local fallback grinding while the next quest gate is level-bound
+- focused tests for handoff, quest overlap, and local vendor behavior
+
 ## Remaining roadmap after Continuation 10
 
 These items are still part of the long-horizon product target, but they remain
@@ -230,3 +241,5 @@ future slices after the current Bastion cohesion work:
 - `continuation-09-qa-bastion-party-and-dungeon-bridge.md`
 - `continuation-10-bastion-in-dungeon-cohesion.md`
 - `continuation-10-qa-bastion-in-dungeon-cohesion.md`
+- `continuation-11-highwatch-handoff-and-thornpeak-starters.md`
+- `continuation-11-qa-highwatch-handoff-and-thornpeak-starters.md`

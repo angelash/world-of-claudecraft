@@ -40,6 +40,8 @@
 | Continuation 09 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 10 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 10 QA | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 11 | pending | 2026-06-26 |  |
+| Continuation 11 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
 

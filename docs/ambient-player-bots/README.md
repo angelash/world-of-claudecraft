@@ -106,6 +106,10 @@ Post-packet continuation prompts:
   regrouping, follower reattachment, and leader pull discipline.
 - `continuation-10-qa-bastion-in-dungeon-cohesion.md` - QA prompt for
   continuation 10.
+- `continuation-11-highwatch-handoff-and-thornpeak-starters.md` - extend the
+  real progression ladder into Highwatch and the first Thornpeak starter loops.
+- `continuation-11-qa-highwatch-handoff-and-thornpeak-starters.md` - QA prompt
+  for continuation 11.
 
 ## How to use this packet
 

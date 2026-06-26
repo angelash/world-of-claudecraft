@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: continuation 10 QA
-- phase status: Continuation 10 QA is complete, and the packet now points at the Zone 3 handoff beyond Mirefen as the next likely continuation target, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 11
+- phase status: Continuation 10 QA is complete, and continuation 11 planning is now in place for the Highwatch handoff and first Thornpeak starter ladder, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -288,6 +288,15 @@
 - `docs/ambient-player-bots/continuation-10-bastion-in-dungeon-cohesion.md`
 - `docs/ambient-player-bots/continuation-10-qa-bastion-in-dungeon-cohesion.md`
 
+### Continuation 11
+
+- `server/ambient_bots/brain.ts`
+- `server/ambient_bots/progression_routes.ts`
+- `tests/ambient_player_bot_brain.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `docs/ambient-player-bots/continuation-11-highwatch-handoff-and-thornpeak-starters.md`
+- `docs/ambient-player-bots/continuation-11-qa-highwatch-handoff-and-thornpeak-starters.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -403,9 +412,8 @@
 - Continuation 09 QA confirmed the Bastion accept order, real party-command
   bridge, dungeon entry, Olen-first routing, and dungeon exit handoff under the
   focused validation matrix
-- Continuation 10 QA is complete, and the next likely implementation gap is the
-  Zone 3 handoff beyond Mirefen unless a future live-realm smoke exposes a
-  deeper Bastion encounter-completion issue
+- Continuation 10 QA is complete, and continuation 11 now targets the Zone 3
+  handoff beyond Mirefen plus the first Highwatch starter ladder
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit
