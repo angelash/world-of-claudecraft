@@ -81,6 +81,8 @@ Step 4, update docs and commit:
 | 11 QA | QA | Verify continuation 11 | handoff, starter-route, and Highwatch-local behavior |
 | 12 | impl | Thornpeak warfront and elemental outdoors | mid-Zone 3 ogre and elemental outdoor ladders |
 | 12 QA | QA | Verify continuation 12 | warfront route order, rare-target flow, and local fallback behavior |
+| 13 | impl | Thornpeak cultists and revenants | late-Zone 3 solo cult and revenant outdoor ladders |
+| 13 QA | QA | Verify continuation 13 | cult-route order, mixed kill or collect flow, and revenant progression |
 
 ## Phase details
 
@@ -206,14 +208,25 @@ Deliverables:
 - focused tests for route order, collect turn-ins, rare-target handling, and
   local fallback behavior
 
-## Remaining roadmap after Continuation 11
+### Continuation 13, Thornpeak cultists and revenants
+
+Deliverables:
+- the late-Thornpeak Wyrmcult outdoor ladder through `q_zealots`,
+  `q_cult_orders`, and `q_necromancers`
+- the revenant-fields outdoor ladder through `q_revenants` and
+  `q_revenant_vanguard`
+- focused tests for cult-route order, mixed kill or collect objectives on the
+  same mob families, and revenant handoff behavior
+
+## Remaining roadmap after Continuation 12
 
 These items are still part of the long-horizon product target, but they remain
-future slices after the Highwatch starter ladder and the newly planned mid-zone
-outdoor warfront work:
+future slices after the mid-zone outdoor warfront and the newly planned late
+outdoor solo work:
 
-- deeper Zone 3 grouped progression such as the ogre war-camp and Drogmar
-- later Zone 3 Wyrmcult, revenant, and Sanctum ladders
+- the Sanctum-approach sigils, embers, and gate-prep ladders
+- deeper Zone 3 grouped progression such as the ogre war-camp, Drogmar, and
+  later Sanctum bosses
 - stronger dungeon completion reliability and multi-encounter polish
 - richer friend, whisper, and social-memory loops
 - later operator and rollout hardening for larger real populations
@@ -260,3 +273,5 @@ outdoor warfront work:
 - `continuation-11-qa-highwatch-handoff-and-thornpeak-starters.md`
 - `continuation-12-thornpeak-warfront-and-elemental-outdoors.md`
 - `continuation-12-qa-thornpeak-warfront-and-elemental-outdoors.md`
+- `continuation-13-thornpeak-cultists-and-revenants.md`
+- `continuation-13-qa-thornpeak-cultists-and-revenants.md`

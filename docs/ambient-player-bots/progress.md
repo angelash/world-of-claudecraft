@@ -43,7 +43,9 @@
 | Continuation 11 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 11 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 12 | completed | 2026-06-26 | 2026-06-26 |
-| Continuation 12 QA | pending | 2026-06-26 |  |
+| Continuation 12 QA | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 13 | pending | 2026-06-26 |  |
+| Continuation 13 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
 
@@ -972,9 +974,39 @@ Notes:
   - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
   - `npm run build:server`
   - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
-  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+- `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
     currently includes existing issues in `server/ai/active_triggers.ts`,
     `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
     under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
     `tests/auto_loot.test.ts`)
-- Continuation 12 QA is now the next target.
+- Continuation 12 QA is now complete. The next implementation gap after this
+  slice is the late-Thornpeak solo outdoor ladder around Wyrmcult camps and the
+  revenant fields, before the Sanctum-approach sigils and later grouped or
+  boss content.
+
+## Continuation 12 QA checklist
+
+- [x] audit Continuation 12 against
+  `continuation-12-qa-thornpeak-warfront-and-elemental-outdoors.md`
+- [x] confirm the ogre foothills chain keeps the intended kill to collect to
+  kill order
+- [x] confirm the Stormcrag pair picks up Kazzix before leaving Highwatch and
+  defers shard-core turn-in while Kazzix is still active
+- [x] confirm Thornpeak bots stay on local ogre or Stormcrag fallback routes
+  when the next quest gate is level-bound
+- [x] verify focused ambient-bot validation, `build:server`, local pg-mem
+  smoke, and the existing `tsc` baseline stay stable
+
+Notes:
+- QA did not uncover a new blocking or should-fix issue in the Continuation 12
+  slice. The new brain and runtime regressions directly cover ogre totems, the
+  Kazzix accept or defer flow, and the Stormcrag fallback grind path.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline listed
+    in the Continuation 12 implementation notes)
+- The next implementation gap is the late-Thornpeak solo outdoor ladder:
+  Wyrmcult camps and the revenant fields before the Sanctum-approach sigils and
+  later grouped or boss content.

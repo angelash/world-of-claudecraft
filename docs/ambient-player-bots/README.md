@@ -115,6 +115,11 @@ Post-packet continuation prompts:
   Stormcrag elemental outdoor ladders.
 - `continuation-12-qa-thornpeak-warfront-and-elemental-outdoors.md` - QA prompt
   for continuation 12.
+- `continuation-13-thornpeak-cultists-and-revenants.md` - extend the real
+  progression ladder through the late-Thornpeak Wyrmcult camps and revenant
+  field outdoor ladders.
+- `continuation-13-qa-thornpeak-cultists-and-revenants.md` - QA prompt for
+  continuation 13.
 
 ## How to use this packet
 

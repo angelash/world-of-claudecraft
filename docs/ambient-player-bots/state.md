@@ -2,11 +2,11 @@
 
 ## Current phase
 
-- current phase: continuation 12 QA
-- phase status: Continuation 12 implementation is complete, and QA now closes
-  the mid-Thornpeak outdoor warfront around ogre foothills and Stormcrag
-  elementals before the later grouped ogre camp and Sanctum ladders, packet
-  teardown deferred until the continuation ladder closes
+- current phase: continuation 13 planning
+- phase status: Continuation 12 QA is complete, and continuation 13 planning
+  now targets the late-Thornpeak solo outdoor ladder around Wyrmcult camps and
+  the revenant fields before the Sanctum-approach sigils and later grouped or
+  boss content, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -316,6 +316,14 @@
 - `docs/ambient-player-bots/continuation-12-thornpeak-warfront-and-elemental-outdoors.md`
 - `docs/ambient-player-bots/continuation-12-qa-thornpeak-warfront-and-elemental-outdoors.md`
 
+### Continuation 13
+
+- `server/ambient_bots/progression_routes.ts`
+- `tests/ambient_player_bot_brain.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `docs/ambient-player-bots/continuation-13-thornpeak-cultists-and-revenants.md`
+- `docs/ambient-player-bots/continuation-13-qa-thornpeak-cultists-and-revenants.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -451,6 +459,9 @@
 - Thornpeak-local fallback grinding now advances from ridge stalkers to
   kobolds, then ogres, then Stormcrag elementals as the current quest gate
   moves north
+- Continuation 12 QA is complete, and continuation 13 should next cover the
+  late-Thornpeak solo outdoor ladder around `q_zealots`, `q_cult_orders`,
+  `q_necromancers`, `q_revenants`, and `q_revenant_vanguard`
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit
