@@ -56,6 +56,14 @@ import {
 import { AiAuditRuntime, type AiAuditCleanupResult, type AiAuditRecord, type AiAuditSnapshot } from './ai_audit';
 import { PgAiAuditDb } from './ai_audit_db';
 import { PgAiMemoryDb } from './ai_memory_db';
+import { ambientPlayerBotConfigFromEnv } from './ambient_bots/config';
+import { AmbientPlayerBotService } from './ambient_bots/service';
+import type {
+  AmbientBotPlanAction,
+  AmbientHumanPresence,
+  AmbientPlayerBotDiagnosticsSnapshot,
+  AmbientPlayerBotRecord,
+} from './ambient_bots/types';
 import type { Presence, PresenceStatus, SocialActor, SocialTransport } from './social';
 import { SocialService } from './social';
 import { PgSocialDb } from './social_db';
@@ -194,6 +202,8 @@ export interface ClientSession {
   isAdmin: boolean;
   // Seed the client sends at auth; signs its challenge answers.
   clientSeed: string;
+  // Future runner seam: non-null means this live session belongs to an ambient bot.
+  ambientBotId: string | null;
   // Behavioral bot-detection state. Ephemeral — reset on every join.
   botTrackingContext: BotTrackingContext;
 }
@@ -468,6 +478,7 @@ export class GameServer {
   private holderTierInterval: NodeJS.Timeout | null = null;
   private aiMemoryPruneInterval: NodeJS.Timeout | null = null;
   private aiActiveTriggerInterval: NodeJS.Timeout | null = null;
+  private ambientPlayerBotInterval: NodeJS.Timeout | null = null;
   private idleSweepInterval: NodeJS.Timeout | null = null;
   private holderTierRefreshing = false; // overlap guard for the refresh cycle
   // pids whose holder tier was forced via the dev /woctier command — the chain
@@ -487,6 +498,7 @@ export class GameServer {
   private readonly aiAuditDb = new PgAiAuditDb(pool);
   private readonly aiLifeLayer: AiLifeLayer;
   private readonly aiActiveTriggers: AiActiveTriggerService;
+  private readonly ambientPlayerBots: AmbientPlayerBotService;
   private readonly aiActiveDirectorBridgeVersions = new Map<string, number>();
   private aiInteractionSequence = 0;
 
@@ -514,6 +526,9 @@ export class GameServer {
       provider: this.aiLifeLayer.providerForActiveTriggers(),
       auditSink: aiAuditSink,
       auditProviderSource: this.aiLifeLayer.auditProviderSourceForActiveTriggers(),
+    });
+    this.ambientPlayerBots = new AmbientPlayerBotService({
+      config: ambientPlayerBotConfigFromEnv(),
     });
   }
 
@@ -685,6 +700,9 @@ export class GameServer {
     this.aiActiveTriggerInterval = setInterval(() => {
       this.runAiActiveTriggers();
     }, AI_ACTIVE_TRIGGER_INTERVAL_MS);
+    this.ambientPlayerBotInterval = setInterval(() => {
+      this.runAmbientPlayerBotPlanner();
+    }, this.ambientPlayerBots.schedulerIntervalMs());
     this.idleSweepInterval = setInterval(() => {
       void this.sweepIdleSessions();
     }, PLAYER_IDLE_SWEEP_MS);
@@ -695,6 +713,7 @@ export class GameServer {
     if (this.holderTierInterval) clearInterval(this.holderTierInterval);
     if (this.aiMemoryPruneInterval) clearInterval(this.aiMemoryPruneInterval);
     if (this.aiActiveTriggerInterval) clearInterval(this.aiActiveTriggerInterval);
+    if (this.ambientPlayerBotInterval) clearInterval(this.ambientPlayerBotInterval);
     if (this.idleSweepInterval) clearInterval(this.idleSweepInterval);
     this.aiLifeLayer.stop();
     this.aiActiveTriggers.stop();
@@ -736,6 +755,27 @@ export class GameServer {
     });
     this.recordActiveTriggerEvents(events, 'scheduler');
     this.routeEvents(events);
+  }
+
+  private ambientHumanPresenceSnapshot(): AmbientHumanPresence[] {
+    const humans: AmbientHumanPresence[] = [];
+    for (const session of this.clients.values()) {
+      if (session.ambientBotId) continue;
+      const entity = this.sim.entities.get(session.pid);
+      const meta = this.sim.meta(session.pid);
+      if (!entity || !meta) continue;
+      humans.push({
+        characterId: session.characterId,
+        pid: session.pid,
+        name: session.name,
+        class: meta.cls,
+        level: entity.level,
+        zoneId: zoneAt(entity.pos.z).id,
+        x: entity.pos.x,
+        z: entity.pos.z,
+      });
+    }
+    return humans;
   }
 
   private recordActiveTriggerEvents(events: readonly SimEvent[], source: 'scheduler' | 'deliver'): void {
@@ -949,6 +989,7 @@ export class GameServer {
         chatStrikes?: number;
         isAdmin?: boolean;
         clientSeed?: string;
+        ambientBotId?: string | null;
       } = {},
   ): ClientSession | { error: string } {
     if (this.sessionsByCharacterId.has(characterId)) return { error: 'character already in world' };
@@ -1019,6 +1060,7 @@ export class GameServer {
       ip: sessionIp,
       isAdmin: meta.isAdmin ?? false,
       clientSeed: meta.clientSeed ?? '',
+      ambientBotId: meta.ambientBotId ?? null,
       botTrackingContext,
     };
     this.ipSessionCounts.set(sessionIp, (this.ipSessionCounts.get(sessionIp) ?? 0) + 1);
@@ -1272,6 +1314,25 @@ export class GameServer {
 
   aiActiveTriggerDiagnostics(): AiActiveTriggerDiagnosticsSnapshot {
     return this.aiActiveTriggers.diagnosticsSnapshot();
+  }
+
+  ambientPlayerBotDiagnostics(): AmbientPlayerBotDiagnosticsSnapshot {
+    return this.ambientPlayerBots.diagnosticsSnapshot();
+  }
+
+  replaceAmbientPlayerBotDirectory(records: readonly AmbientPlayerBotRecord[]): void {
+    this.ambientPlayerBots.replaceDirectory(records);
+  }
+
+  ambientPlayerBotDirectory(): AmbientPlayerBotRecord[] {
+    return this.ambientPlayerBots.directoryRecords();
+  }
+
+  runAmbientPlayerBotPlanner(nowMs = Date.now()): readonly AmbientBotPlanAction[] {
+    return this.ambientPlayerBots.plan({
+      humans: this.ambientHumanPresenceSnapshot(),
+      nowMs,
+    });
   }
 
   updateAiActiveTriggerConfig(input: unknown): AiActiveTriggerDiagnosticsSnapshot {

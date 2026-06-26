@@ -7,6 +7,7 @@ import { seedChatFilterDefaults } from './chat_filter_db';
 import type { ChatLogRow } from './chat_log';
 import { AI_AUDIT_SCHEMA } from './ai_audit_db';
 import { AI_MEMORY_SCHEMA } from './ai_memory_db';
+import { AMBIENT_PLAYER_BOT_SCHEMA } from './ambient_player_bot_db';
 import { isUniqueViolation } from './http_util';
 import { OAUTH_SCHEMA } from './oauth_db';
 import { REALM } from './realm';
@@ -431,6 +432,7 @@ export async function ensureSchema(): Promise<void> {
     await client.query(SOCIAL_SCHEMA);
     await client.query(AI_MEMORY_SCHEMA);
     await client.query(AI_AUDIT_SCHEMA);
+    await client.query(AMBIENT_PLAYER_BOT_SCHEMA);
     await client.query(OAUTH_SCHEMA);
     // Seed the chat-filter word lists + config on first boot only (idempotent).
     // Runs under the same advisory lock so concurrent realm boots don't race.
