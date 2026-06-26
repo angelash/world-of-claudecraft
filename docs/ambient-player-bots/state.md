@@ -3,7 +3,7 @@
 ## Current phase
 
 - current phase: continuation 10 QA
-- phase status: Continuation 10 implementation is complete and ready for its QA pass, packet teardown deferred until the continuation ladder closes
+- phase status: Continuation 10 QA is complete, and the packet now points at the Zone 3 handoff beyond Mirefen as the next likely continuation target, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -403,9 +403,9 @@
 - Continuation 09 QA confirmed the Bastion accept order, real party-command
   bridge, dungeon entry, Olen-first routing, and dungeon exit handoff under the
   focused validation matrix
-- Continuation 10 implementation is done, and its QA pass should now verify the
-  regroup hold and `/follow` path before work continues toward the Zone 3
-  handoff beyond Mirefen
+- Continuation 10 QA is complete, and the next likely implementation gap is the
+  Zone 3 handoff beyond Mirefen unless a future live-realm smoke exposes a
+  deeper Bastion encounter-completion issue
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

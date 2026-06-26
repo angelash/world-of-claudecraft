@@ -39,7 +39,7 @@
 | Continuation 09 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 09 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 10 | completed | 2026-06-26 | 2026-06-26 |
-| Continuation 10 QA | pending | 2026-06-26 |  |
+| Continuation 10 QA | completed | 2026-06-26 | 2026-06-26 |
 
 ## Phase 1 checklist
 
@@ -857,10 +857,23 @@ Notes:
 
 ## Continuation 10 QA checklist
 
-- [ ] audit Continuation 10 against
+- [x] audit Continuation 10 against
   `continuation-10-qa-bastion-in-dungeon-cohesion.md`
-- [ ] confirm followers only use the normal `/follow <leader>` chat path
-- [ ] confirm leader regroup holds prevent forward drift or clean pulls while
+- [x] confirm followers only use the normal `/follow <leader>` chat path
+- [x] confirm leader regroup holds prevent forward drift or clean pulls while
   the group is visibly split
-- [ ] verify focused ambient-bot validation, `build:server`, and local pg-mem
+- [x] verify focused ambient-bot validation, `build:server`, and local pg-mem
   smoke stay green
+
+Notes:
+- QA did not uncover a new blocking or should-fix issue in the Continuation 10
+  slice. The new pure group test and runtime regroup test cover the intended
+  follower reattachment and leader hold behavior directly.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_group.test.ts tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline listed
+    in the Continuation 10 implementation notes)
+- The next implementation target is the Zone 3 handoff beyond Mirefen, unless a
+  future live-realm smoke reveals a deeper Bastion encounter-completion issue.
