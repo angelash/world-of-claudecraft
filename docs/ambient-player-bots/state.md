@@ -2,8 +2,10 @@
 
 ## Current phase
 
-- current phase: continuation 11
-- phase status: Continuation 10 QA is complete, and continuation 11 planning is now in place for the Highwatch handoff and first Thornpeak starter ladder, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 11 QA
+- phase status: Continuation 11 implementation is complete, and QA now closes
+  the Highwatch handoff and first Thornpeak starter ladder before the next Zone
+  3 continuation, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -41,6 +43,9 @@
 15. The first LLM provider path is a local Codex CLI bridge owned by the
     ambient bot runtime. Shared provider pooling can wait for a later operator
     and rollout phase.
+16. In progression routing, `requiresQuest` means the prerequisite quest must
+    be turned in, not merely active, so starter overlap must stay limited to
+    chains whose live quest definitions truly allow parallel actives.
 
 ## Non-negotiable constraints
 
@@ -414,6 +419,13 @@
   focused validation matrix
 - Continuation 10 QA is complete, and continuation 11 now targets the Zone 3
   handoff beyond Mirefen plus the first Highwatch starter ladder
+- Continuation 11 extends the route registry into `q_highwatch_summons`,
+  `q_stalkers`, `q_stalker_pelts`, `q_kobold_tunnels`, and `q_glowing_wax`
+- the current progression brain now covers the Highwatch handoff and first
+  Thornpeak starter ladder through `q_glowing_wax`
+- Thornpeak-local sustain now uses Quartermaster Bree, and fallback grinding
+  stays in-zone on ridge stalkers or Deeprock kobolds instead of walking back
+  to Eastbrook while the next quest gate is level-bound
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

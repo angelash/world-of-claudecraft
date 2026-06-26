@@ -65,6 +65,12 @@ const FENBRIDGE_VENDOR_PROFILE: AmbientBotVendorProfile = {
   drinkItemId: 'marsh_mint_tea',
 };
 
+const HIGHWATCH_VENDOR_PROFILE: AmbientBotVendorProfile = {
+  vendorNpcTemplateId: 'quartermaster_bree',
+  foodItemId: 'trail_hardtack',
+  drinkItemId: 'meltwater_flask',
+};
+
 type BrainCommand = Record<string, unknown>;
 type MoveInputPayload = Record<string, 1>;
 
@@ -300,7 +306,7 @@ function chooseObjective(view: BotWorldView): AmbientBotObjective {
     };
   }
 
-  const grind = grindRouteForLevel(view.self.level);
+  const grind = grindRouteForSelf(view.self);
   return {
     id: 'grind',
     label: `Grinding ${displayMobName(grind.mobId)}`,
@@ -508,7 +514,9 @@ function buildVendorPurchases(
 }
 
 function vendorProfileFor(self: BotSelfView): AmbientBotVendorProfile {
-  return zoneAt(self.pos.z).id === 'mirefen_marsh'
+  const zoneId = zoneAt(self.pos.z).id;
+  if (zoneId === 'thornpeak_heights') return HIGHWATCH_VENDOR_PROFILE;
+  return zoneId === 'mirefen_marsh'
     ? FENBRIDGE_VENDOR_PROFILE
     : EASTBROOK_VENDOR_PROFILE;
 }
@@ -1257,7 +1265,14 @@ function scoreCombatAbility(ability: CombatAbility, preferRanged: boolean): numb
   return score;
 }
 
-function grindRouteForLevel(level: number): { mobId: string; camps: readonly BotPoint2d[] } {
+function grindRouteForSelf(self: BotSelfView): { mobId: string; camps: readonly BotPoint2d[] } {
+  const zoneId = zoneAt(self.pos.z).id;
+  if (zoneId === 'thornpeak_heights') {
+    return self.level <= 13
+      ? { mobId: 'ridge_stalker', camps: campsFor('ridge_stalker') }
+      : { mobId: 'deeprock_kobold', camps: campsFor('deeprock_kobold') };
+  }
+  const level = self.level;
   if (level <= 2) return { mobId: 'forest_wolf', camps: campsFor('forest_wolf') };
   if (level <= 4) return { mobId: 'wild_boar', camps: campsFor('wild_boar') };
   return { mobId: 'webwood_spider', camps: campsFor('webwood_spider') };

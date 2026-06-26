@@ -73,6 +73,7 @@ const mirefenThroughBastionDoor = [
   'q_deacon',
   'q_bastion_door',
 ] as const;
+const mirefenThroughMistcaller = [...mirefenThroughBastionDoor, 'q_olen', 'q_mistcaller'] as const;
 
 class FakeGame {
   private readonly directory = new Map<string, AmbientPlayerBotRecord>();
@@ -1320,6 +1321,181 @@ describe('AmbientPlayerBotRuntime', () => {
         }),
       }),
     ]));
+
+    await runtime.stop();
+  });
+
+  it('records the Highwatch summons travel objective and emits movement input for the Thornpeak handoff', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'mirefen_marsh:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 12,
+          lastKnownZoneId: 'mirefen_marsh',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, {
+          self: {
+            id: 101,
+            x: 0,
+            z: 300,
+            lv: 12,
+            hp: 120,
+            mhp: 120,
+            res: 0,
+            mres: 0,
+            rtype: 'rage',
+            gcd: 0,
+            inv: [],
+            qdone: [...mirefenThroughMistcaller],
+            qlog: [{ questId: 'q_highwatch_summons', counts: [0], state: 'active' }],
+            cds: {},
+          },
+          ents: [],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'mirefen_marsh:1',
+      zoneId: 'mirefen_marsh',
+      targetCharacterId: 1,
+      reason: 'test Highwatch handoff',
+    }]);
+
+    await vi.waitFor(() => {
+      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as {
+        t?: string;
+        mi?: Record<string, number>;
+      });
+      expect(sent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(true);
+    });
+
+    expect(game.ambientPlayerBotDirectory()).toEqual([
+      expect.objectContaining({
+        runnerState: expect.objectContaining({
+          connected: true,
+          objective: 'collect_highwatch_summons',
+          objectiveLabel: 'Carrying Aldric\'s summons to Highwatch',
+        }),
+      }),
+    ]);
+
+    await runtime.stop();
+  });
+
+  it('drives connected Thornpeak bots through Highwatch resupply over the real vendor buy command', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'thornpeak_heights:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 13,
+          lastKnownZoneId: 'thornpeak_heights',
+          class: 'mage',
+          profileId: 'eastbrook_vale_mage_newcomer',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, {
+          self: {
+            id: 101,
+            x: -5,
+            z: 668,
+            lv: 13,
+            hp: 90,
+            mhp: 90,
+            res: 120,
+            mres: 120,
+            rtype: 'mana',
+            gcd: 0,
+            copper: 2500,
+            inv: [],
+            qdone: [...mirefenThroughMistcaller, 'q_highwatch_summons', 'q_stalkers', 'q_stalker_pelts'],
+            qlog: [],
+            cds: {},
+          },
+          ents: [
+            { id: 9824, k: 'npc', tid: 'quartermaster_bree', x: -5, z: 668 },
+          ],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'thornpeak_heights:1',
+      zoneId: 'thornpeak_heights',
+      targetCharacterId: 1,
+      reason: 'test Highwatch resupply',
+    }]);
+
+    await vi.waitFor(() => {
+      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; item?: string; npc?: number });
+      expect(sent?.some((message) =>
+        message.t === 'cmd'
+        && message.cmd === 'buy'
+        && message.item === 'trail_hardtack'
+        && message.npc === 9824,
+      )).toBe(true);
+    });
+
+    expect(game.ambientPlayerBotDirectory()).toEqual([
+      expect.objectContaining({
+        runnerState: expect.objectContaining({
+          connected: true,
+          objective: 'restock_food_and_drink',
+          objectiveLabel: 'Restocking Highwatch Trail Hardtack and Meltwater Flask',
+        }),
+      }),
+    ]);
 
     await runtime.stop();
   });

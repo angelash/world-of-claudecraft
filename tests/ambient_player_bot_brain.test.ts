@@ -112,6 +112,7 @@ const mirefenThroughCultCamp = [
 const mirefenThroughSummoners = [...mirefenThroughCultCamp, 'q_summoners'] as const;
 const mirefenThroughDeacon = [...mirefenThroughSummoners, 'q_deacon'] as const;
 const mirefenThroughBastionDoor = [...mirefenThroughDeacon, 'q_bastion_door'] as const;
+const mirefenThroughMistcaller = [...mirefenThroughBastionDoor, 'q_olen', 'q_mistcaller'] as const;
 const bastionSlot0Origin = { x: 1500, z: -1250 } as const;
 
 describe('ambient player bot brain', () => {
@@ -1755,6 +1756,228 @@ describe('ambient player bot brain', () => {
     expect(result.objectiveDungeonId).toBe('sunken_bastion');
     expect(result.commands).toEqual([{ cmd: 'leave_dungeon' }]);
     expect(result.moveInput).toEqual({});
+  });
+
+  it('picks up the Highwatch summons from Brother Aldric after the Bastion chain is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 12,
+          x: -8,
+          z: 296,
+          qdone: [...mirefenThroughMistcaller],
+        },
+        entities: [
+          { id: 9820, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_highwatch_summons');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9820 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('heads north to the Highwatch gate when the summons handoff is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 12,
+          qdone: [...mirefenThroughMistcaller],
+          qlog: [{ questId: 'q_highwatch_summons', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('collect_highwatch_summons');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('turns in the Highwatch summons at Captain Thessaly after the posted summons is collected', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 12,
+          x: 4,
+          z: 664,
+          qdone: [...mirefenThroughMistcaller],
+          qlog: [{ questId: 'q_highwatch_summons', counts: [1], state: 'ready' }],
+        },
+        entities: [
+          { id: 9821, k: 'npc', tid: 'captain_thessaly', x: 4, z: 664 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('turnin_highwatch_summons');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9821 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('picks up stalker pelts before leaving Highwatch once the ridge-stalker kill quest is already active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 12,
+          x: -5,
+          z: 668,
+          qdone: [...mirefenThroughMistcaller, 'q_highwatch_summons'],
+          qlog: [{ questId: 'q_stalkers', counts: [0], state: 'active' }],
+        },
+        entities: [
+          { id: 9822, k: 'npc', tid: 'quartermaster_bree', x: -5, z: 668 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_stalker_pelts');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9822 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('keeps hunting ridge stalkers while q_stalkers is ready but q_stalker_pelts is still active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 13,
+          qdone: [...mirefenThroughMistcaller, 'q_highwatch_summons'],
+          qlog: [
+            { questId: 'q_stalkers', counts: [12], state: 'ready' },
+            { questId: 'q_stalker_pelts', counts: [3], state: 'active' },
+          ],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_stalker_pelts');
+    expect(result.objectiveLabel).toBe('Collecting Ridge Stalker Pelts');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('picks up glowing wax from Quartermaster Bree after q_kobold_tunnels is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 14,
+          x: -5,
+          z: 668,
+          qdone: [...mirefenThroughMistcaller, 'q_highwatch_summons', 'q_stalkers', 'q_stalker_pelts', 'q_kobold_tunnels'],
+        },
+        entities: [
+          { id: 9823, k: 'npc', tid: 'quartermaster_bree', x: -5, z: 668 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_glowing_wax');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9823 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('keeps hunting kobolds while q_glowing_wax is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 14,
+          qdone: [...mirefenThroughMistcaller, 'q_highwatch_summons', 'q_stalkers', 'q_stalker_pelts', 'q_kobold_tunnels'],
+          qlog: [{ questId: 'q_glowing_wax', counts: [2], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_glowing_wax');
+    expect(result.objectiveLabel).toBe('Collecting Glowing Wax');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('restsocks from Quartermaster Bree when the bot is operating in Thornpeak with low supplies', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot({
+        class: 'mage',
+        profileId: 'eastbrook_vale_mage_newcomer',
+      }),
+      liveState: liveState({
+        self: {
+          lv: 13,
+          x: -5,
+          z: 668,
+          copper: 2500,
+          res: 100,
+          mres: 100,
+          rtype: 'mana',
+          qdone: [...mirefenThroughMistcaller, 'q_highwatch_summons', 'q_stalkers', 'q_stalker_pelts'],
+        },
+        entities: [
+          { id: 9824, k: 'npc', tid: 'quartermaster_bree', x: -5, z: 668 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('restock_food_and_drink');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9824 },
+      { cmd: 'buy', npc: 9824, item: 'trail_hardtack' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('stays on a local Thornpeak grind route instead of walking back to low-level zones when the next quest is level-gated', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 13,
+          x: 0,
+          z: 660,
+          qdone: [...mirefenThroughMistcaller, 'q_highwatch_summons', 'q_stalkers', 'q_stalker_pelts'],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Ridge Stalker');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
   });
 
   it('routes toward tunnel rats while the blessed tallow objective for q_rite is still incomplete', () => {
