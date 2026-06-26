@@ -2,11 +2,11 @@
 
 ## Current phase
 
-- current phase: continuation 16 QA
-- phase status: Continuation 16 implementation is complete, and QA now closes
-  the first Gravewyrm Sanctum bridge around `q_korgath`, party entry, Korgath
-  pursuit, and dungeon exit, packet teardown deferred until the continuation
-  ladder closes
+- current phase: continuation 17
+- phase status: Continuation 16 QA is complete, and the next implementation
+  target is the deeper Gravewyrm Sanctum bridge around `q_velkhar`, including
+  outdoor accept, Sanctum re-entry, in-instance pursuit, and post-kill exit
+  handoff, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -354,6 +354,14 @@
 - `docs/ambient-player-bots/continuation-16-korgath-sanctum-threshold.md`
 - `docs/ambient-player-bots/continuation-16-qa-korgath-sanctum-threshold.md`
 
+### Continuation 17
+
+- `server/ambient_bots/progression_routes.ts`
+- `tests/ambient_player_bot_brain.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `docs/ambient-player-bots/continuation-17-velkhar-sanctum-bridge.md`
+- `docs/ambient-player-bots/continuation-17-qa-velkhar-sanctum-bridge.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -526,6 +534,9 @@
   existing live dungeon-entry bridge for `gravewyrm_sanctum`
 - the current progression brain now covers grouped Thornpeak progression
   through `q_korgath`
+- Continuation 16 QA is complete, and continuation 17 should next cover the
+  deeper Gravewyrm Sanctum boss bridge around `q_velkhar` before the final
+  `q_gravewyrm` push
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

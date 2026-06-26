@@ -51,7 +51,9 @@
 | Continuation 15 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 15 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 16 | completed | 2026-06-26 | 2026-06-26 |
-| Continuation 16 QA | pending | 2026-06-26 |  |
+| Continuation 16 QA | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 17 | pending | 2026-06-26 |  |
+| Continuation 17 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
 
@@ -1232,3 +1234,35 @@ Notes:
 - Continuation 16 QA should next confirm the Gravewyrm Sanctum bridge adds no
   regressions to the earlier Bastion flow and correctly hands off the next
   deeper Sanctum boss gap after Korgath.
+
+## Continuation 16 QA checklist
+
+- [x] audit Continuation 16 against
+  `continuation-16-qa-korgath-sanctum-threshold.md`
+- [x] confirm the grouped Thornpeak order keeps `q_korgath` after the Drogmar
+  bridge and does not skip straight to later Sanctum boss content
+- [x] confirm the Sanctum bridge uses the normal live party, dungeon-entry,
+  in-instance routing, and dungeon-exit paths only
+- [x] confirm the Korgath route stays bounded to the intended Gravewyrm
+  Sanctum boss spawn and does not regress earlier Bastion or outdoor grouped
+  behavior
+- [x] confirm no new `tsc` errors are added beyond the known repo baseline
+
+Notes:
+- QA did not uncover a new blocking or should-fix issue in the Continuation 16
+  slice. The existing brain and runtime regressions already cover Korgath
+  accept order, Sanctum party entry, in-instance pursuit, and dungeon exit,
+  while the broader ambient-bot and admin suite confirms the earlier Bastion
+  and outdoor grouped paths still hold.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts`
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_group.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, overlay locale files under
+    `src/ui/i18n.locales/`, generated locale files under
+    `src/ui/i18n.resolved.generated/`, and `tests/auto_loot.test.ts`)
+- The next implementation gap is the deeper Gravewyrm Sanctum boss bridge
+  around `q_velkhar`, before the final `q_gravewyrm` push.
