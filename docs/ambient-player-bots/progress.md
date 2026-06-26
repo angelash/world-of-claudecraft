@@ -37,7 +37,7 @@
 | Continuation 08 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 08 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 09 | completed | 2026-06-26 | 2026-06-26 |
-| Continuation 09 QA | pending | 2026-06-26 |  |
+| Continuation 09 QA | completed | 2026-06-26 | 2026-06-26 |
 
 ## Phase 1 checklist
 
@@ -796,6 +796,34 @@ Notes:
     `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
     under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
     `tests/auto_loot.test.ts`)
-- Continuation 09 QA is now the next target. The next implementation gap after
-  that is the deeper Bastion in-dungeon combat polish or the Zone 3 handoff,
-  depending on QA findings.
+- Continuation 09 QA closed cleanly. The next implementation gap after this
+  slice is the deeper Bastion in-dungeon combat polish or the Zone 3 handoff,
+  depending on which player experience we want to prioritize next.
+
+## Continuation 09 QA checklist
+
+- [x] audit Continuation 09 against
+  `continuation-09-qa-bastion-party-and-dungeon-bridge.md`
+- [x] confirm Bastion accept order still picks up `q_mistcaller` before the
+  party heads underground
+- [x] confirm nearby same-cluster ambient bots use real `pinvite`, `paccept`,
+  and `enter_dungeon` commands only
+- [x] confirm Olen remains first, `q_olen` turn-in is deferred while
+  `q_mistcaller` is still active, and the dungeon exit handoff stays clean
+- [x] verify focused ambient-bot validation, `build:server`, and local pg-mem
+  smoke stay green
+
+Notes:
+- QA did not uncover a new logic bug in the Continuation 09 slice. The focused
+  Bastion regressions now cover the new assignment-to-cluster handoff in the
+  runtime, the real party-command bridge, Bastion entry, Olen-first routing,
+  and the dungeon-exit return path.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline listed
+    above)
+- The next implementation gap is the deeper Bastion combat polish inside the
+  dungeon or the Zone 3 handoff beyond Mirefen, depending on which player
+  experience we want to prioritize next.

@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: continuation 09
-- phase status: Continuation 09 complete, next target is the QA sweep for Bastion party and dungeon bridging, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 09 QA
+- phase status: Continuation 09 QA complete, next target is the deeper Bastion combat polish or the Zone 3 handoff, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -387,8 +387,11 @@
   brain loop
 - the current progression brain now covers the Zone 2 ladder through
   `q_mistcaller`
-- the next notable gap is the QA pass for the Bastion party and dungeon bridge,
-  followed by either Bastion combat polish or the Zone 3 handoff
+- Continuation 09 QA confirmed the Bastion accept order, real party-command
+  bridge, dungeon entry, Olen-first routing, and dungeon exit handoff under the
+  focused validation matrix
+- the next notable gap is the deeper Bastion combat polish or the Zone 3
+  handoff beyond Mirefen
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit
