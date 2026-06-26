@@ -216,6 +216,38 @@ describe('AmbientPlayerBotService', () => {
     expect(actions.filter((action) => action.type === 'provisionBot')).toHaveLength(9);
   });
 
+  it('does not reattach a released bot to the same cluster in the same cycle', () => {
+    const service = new AmbientPlayerBotService({ config: cfg() });
+    service.replaceDirectory([
+      bot({
+        lifecycleStatus: 'online',
+        assignedClusterId: 'eastbrook_vale:1',
+        assignedPlayerCharacterId: 1,
+        lastKnownX: 500,
+        lastKnownZ: 500,
+      }),
+    ]);
+
+    const actions = service.plan({
+      humans: [human(1, 'eastbrook_vale', 2, 0, 0)],
+      nowMs: 1_000,
+    });
+
+    expect(actions).toContainEqual(expect.objectContaining({
+      type: 'logoutBot',
+      botId: 'bot-1',
+      reason: 'assigned bot drifted beyond release radius',
+    }));
+    expect(actions).not.toContainEqual(expect.objectContaining({
+      type: 'loginBot',
+      botId: 'bot-1',
+    }));
+    expect(service.recordById('bot-1')).toEqual(expect.objectContaining({
+      assignedClusterId: null,
+      lifecycleStatus: 'cooldown',
+    }));
+  });
+
   it('sheds overflow bots when a cluster is above its target population', () => {
     const service = new AmbientPlayerBotService({
       config: cfg({

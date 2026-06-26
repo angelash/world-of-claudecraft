@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: 8
-- phase status: pending Phase 7 QA after Phase 7 implementation
+- current phase: 9
+- phase status: pending Phase 9 implementation after Phase 8 QA
 
 ## Locked decisions
 
@@ -165,6 +165,9 @@
 - Phase 7 added stable cluster continuity, online handoff, and overflow
   load-shedding in the planner. Phase 8 should now audit for missed hysteresis
   or population-thrash edge cases
+- Phase 8 QA added explicit regression coverage that a bot released for drift
+  cannot reattach to the same cluster in the same planner cycle. No new Phase 7
+  blocker remains after that audit
 - full live boot verification of the real runner on this workstation still
   needs a reachable local Postgres service
 - repo-wide `npx tsc --noEmit` is currently red for unrelated pre-existing

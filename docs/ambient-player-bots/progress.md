@@ -11,7 +11,7 @@
 | 5 | completed | 2026-06-26 | 2026-06-26 |
 | 6 | completed | 2026-06-26 | 2026-06-26 |
 | 7 | completed | 2026-06-26 | 2026-06-26 |
-| 8 | pending | | |
+| 8 | completed | 2026-06-26 | 2026-06-26 |
 | 9 | pending | | |
 | 10 | pending | | |
 | 11 | pending | | |
@@ -158,9 +158,28 @@ Notes:
 - Validation run:
   - `npx vitest run tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts`
   - `npm run build:server`
-  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+- `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
     currently includes existing issues in `server/ai/active_triggers.ts`,
     `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
     under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
     `tests/auto_loot.test.ts`)
-- Phase 8 QA is now the next target.
+- Phase 8 QA completed and Phase 9 is now the next implementation target.
+
+## Phase 8 checklist
+
+- [x] audit Phase 7 against `phase-08-qa-human-cluster-orchestration.md`
+- [x] add missing regression coverage for same-cycle reattachment blocking
+- [x] verify cluster continuity, handoff, and overflow regressions stay green
+- [x] confirm `build:server` still passes and `tsc` adds no new feature errors
+
+Notes:
+- QA did not uncover a new planner logic bug in the Phase 7 slice, but it did
+  find one missing guardrail in the regression suite: we did not yet prove that
+  a bot released for drift could not immediately reattach to the same cluster in
+  the same plan cycle. That regression now exists.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts`
+  - `npm run build:server`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline listed in
+    Phase 7 notes)
+- Phase 9 is now the next implementation target.
