@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: 6
-- phase status: pending Phase 6 QA after Phase 5 implementation
+- current phase: 7
+- phase status: pending Phase 7 implementation after Phase 6 QA
 
 ## Locked decisions
 
@@ -150,6 +150,9 @@
 - the current progression brain covers the Eastbrook starter quest and then
   falls back to low-risk grinding. Follow-on quest chains, replenishment buys,
   and higher-level routing remain future work
+- Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
+  corpse loot coverage, and ws delta-self preservation. No new known Phase 5
+  blocker remains after that audit
 - full live boot verification of the real runner on this workstation still
   needs a reachable local Postgres service
 - repo-wide `npx tsc --noEmit` is currently red for unrelated pre-existing

@@ -217,8 +217,6 @@ export function tickAmbientPlayerBotBrain(
         objective,
         huntMob(view, input, state, objective),
       );
-    case 'release':
-      return finalizeStep(state, input, view, objective, idleStep(objective.id, objective.label));
   }
 }
 
@@ -324,7 +322,7 @@ function interactWithNpc(
   if (canIssue(state, `interact:${objective.npcTemplateId}`, input.nowMs, 1_500)) {
     commands.push({ cmd: 'interact' });
   }
-  return idleStep(objective.id, objective.label, commands, facingFor(view.self.pos, target));
+  return idleStep(objective.id, objective.label, commands, facingFor(view.self.pos, pointToVec(target)));
 }
 
 function sellJunkAtVendor(
@@ -347,7 +345,7 @@ function sellJunkAtVendor(
   if (inventoryHasJunk(view.self.inventory) && canIssue(state, 'sell_all_junk', input.nowMs, 5_000)) {
     commands.push({ cmd: 'sell_all_junk' });
   }
-  return idleStep(objective.id, objective.label, commands, facingFor(view.self.pos, target));
+  return idleStep(objective.id, objective.label, commands, facingFor(view.self.pos, pointToVec(target)));
 }
 
 function huntMob(
@@ -715,7 +713,7 @@ function pickCombatAbility(
 ): CombatAbility | null {
   const mods = self.talents ? computeTalentModifiers(bot.class, self.talents) : undefined;
   const abilities = abilitiesKnownAt(bot.class, self.level, mods);
-  const preferRanged = CLASSES[bot.class].ranged;
+  const preferRanged = !!CLASSES[bot.class].ranged;
   const candidates = abilities
     .filter(isDamageAbility)
     .filter((ability) => !ability.def.requiresStealth)

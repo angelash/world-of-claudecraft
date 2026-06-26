@@ -9,7 +9,7 @@
 | 3 | completed | 2026-06-26 | 2026-06-26 |
 | 4 | completed | 2026-06-26 | 2026-06-26 |
 | 5 | completed | 2026-06-26 | 2026-06-26 |
-| 6 | pending | | |
+| 6 | completed | 2026-06-26 | 2026-06-26 |
 | 7 | pending | | |
 | 8 | pending | | |
 | 9 | pending | | |
@@ -113,4 +113,30 @@ Notes:
 - Validation run:
   - `npx vitest run tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts`
   - `npm run build:server`
-- Phase 6 is now the next QA target.
+
+## Phase 6 checklist
+
+- [x] audit Phase 5 against `phase-06-qa-progression-brain.md`
+- [x] restore `npx tsc --noEmit` to the pre-existing repo baseline by fixing
+  Phase 5-introduced `brain.ts` type errors
+- [x] add missing starter-loop regression coverage for corpse loot and quest
+  turn-in
+- [x] extend ws helper coverage for delta-carried progression state such as
+  `tal`
+- [x] verify targeted vitest and `build:server` stay green
+
+Notes:
+- QA found one should-fix class of issue in Phase 5: the new progression brain
+  introduced fresh `tsc` errors even though the narrow vitest and server build
+  were green. Those type issues are now fixed, and `npx tsc --noEmit` is back
+  to the unrelated repo baseline only.
+- QA also found missing regression coverage for two required starter-loop
+  behaviors: looting a nearby corpse and turning `q_wolves` in at Marshal
+  Redbrook. Those tests now exist, alongside stronger ws delta-self coverage for
+  `tal` and quest state preservation.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts`
+  - `npm run build:server`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline listed
+    in Phase 1 and Phase 4 notes)
+- Phase 7 is now the next implementation target.

@@ -4,7 +4,15 @@ import { mergeEntities, mergeSelf } from '../server/ambient_bots/ws_client';
 describe('ambient player bot ws client helpers', () => {
   it('preserves delta self fields that the server omits from later snapshots', () => {
     const merged = mergeSelf(
-      { id: 1, x: 0, z: 0, inv: ['axe'], stats: { hp: 10 } },
+      {
+        id: 1,
+        x: 0,
+        z: 0,
+        inv: ['axe'],
+        qlog: [{ questId: 'q_wolves', counts: [2], state: 'active' }],
+        tal: { alloc: { spec: null, ranks: {}, choices: {} } },
+        stats: { hp: 10 },
+      },
       { id: 1, x: 5, z: 7 },
     );
 
@@ -13,6 +21,8 @@ describe('ambient player bot ws client helpers', () => {
       x: 5,
       z: 7,
       inv: ['axe'],
+      qlog: [{ questId: 'q_wolves', counts: [2], state: 'active' }],
+      tal: { alloc: { spec: null, ranks: {}, choices: {} } },
       stats: { hp: 10 },
     });
   });

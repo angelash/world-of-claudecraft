@@ -145,6 +145,54 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
+  it('loots a nearby corpse before resuming the quest route', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          qlog: [{ questId: 'q_wolves', counts: [3], state: 'active' }],
+        },
+        entities: [
+          { id: 9002, k: 'mob', tid: 'forest_wolf', x: 0, z: 3, h: 1, lv: 1, dead: 1, loot: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('loot');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9002 },
+      { cmd: 'loot', id: 9002 },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('returns to Marshal Redbrook and interacts when the wolves quest is ready to turn in', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          x: 4,
+          z: 6,
+          qlog: [{ questId: 'q_wolves', counts: [8], state: 'ready' }],
+        },
+        entities: [
+          { id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('turnin_wolves');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 7001 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
   it('routes to the vendor after the starter quest when carrying junk', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
