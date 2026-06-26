@@ -2,11 +2,11 @@
 
 ## Current phase
 
-- current phase: continuation 14 QA
-- phase status: Continuation 14 implementation is complete, and QA now closes
-  the Sanctum-approach outdoor prep ladder around sigils, embers, congregation
-  cleanup, and gate-key shards before the later grouped or boss content,
-  packet teardown deferred until the continuation ladder closes
+- current phase: continuation 15
+- phase status: Continuation 14 QA is complete, and continuation 15 now
+  generalizes grouped objective coordination beyond dungeon-only flow before
+  extending the Thornpeak ogre war-camp chain through `q_crushers` and
+  `q_drogmar`, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -332,6 +332,17 @@
 - `docs/ambient-player-bots/continuation-14-thornpeak-sanctum-approach.md`
 - `docs/ambient-player-bots/continuation-14-qa-thornpeak-sanctum-approach.md`
 
+### Continuation 15
+
+- `server/ambient_bots/group.ts`
+- `server/ambient_bots/progression_routes.ts`
+- `server/ambient_bots/runtime.ts`
+- `tests/ambient_player_bot_group.test.ts`
+- `tests/ambient_player_bot_brain.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `docs/ambient-player-bots/continuation-15-thornpeak-ogre-war-camp-groups.md`
+- `docs/ambient-player-bots/continuation-15-qa-thornpeak-ogre-war-camp-groups.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -488,6 +499,9 @@
 - the mixed `q_voice_below` congregation cleanup now stays bounded to zealot
   and necromancer hunt routes with live quest-count handoff between the two
   objective stages
+- Continuation 14 QA is complete, and continuation 15 should next generalize
+  grouped objective coordination beyond dungeon-only flow before covering
+  `q_crushers` and `q_drogmar`
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

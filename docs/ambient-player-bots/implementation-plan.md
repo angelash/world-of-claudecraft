@@ -85,6 +85,8 @@ Step 4, update docs and commit:
 | 13 QA | QA | Verify continuation 13 | cult-route order, mixed kill or collect flow, and revenant progression |
 | 14 | impl | Thornpeak Sanctum approach | sigils, embers, congregation cleanup, and gate-key prep |
 | 14 QA | QA | Verify continuation 14 | mixed sanctum-route order and bounded approach behavior |
+| 15 | impl | Thornpeak ogre war-camp groups | outdoor grouped crushers and Drogmar support on the live server path |
+| 15 QA | QA | Verify continuation 15 | outdoor group assembly, cohesion, and grouped route coverage |
 
 ## Phase details
 
@@ -230,14 +232,22 @@ Deliverables:
 - focused tests for object-route order, ember collection, mixed congregation
   routing, and gate-key handoff behavior
 
-## Remaining roadmap after Continuation 13
+### Continuation 15, Thornpeak ogre war-camp groups
+
+Deliverables:
+- outdoor group coordination that can assemble and hold parties for grouped
+  objectives without requiring a dungeon door
+- the Thornpeak war-camp ladder through `q_crushers` and `q_drogmar`
+- focused tests for outdoor invite, accept, regroup, and grouped-route order
+- packet updates that hand off the later grouped Thornpeak QA sweep
+
+## Remaining roadmap after Continuation 15
 
 These items are still part of the long-horizon product target, but they remain
-future slices after the late outdoor solo work and the newly planned
-Sanctum-approach prep work:
+future slices after the Sanctum prep work and the grouped ogre war-camp slice:
 
-- deeper Zone 3 grouped progression such as the ogre war-camp, Drogmar, and
-  later Sanctum bosses
+- deeper Zone 3 grouped progression such as `q_korgath` and later Sanctum
+  bosses
 - stronger dungeon completion reliability and multi-encounter polish
 - richer friend, whisper, and social-memory loops
 - later operator and rollout hardening for larger real populations
@@ -288,3 +298,5 @@ Sanctum-approach prep work:
 - `continuation-13-qa-thornpeak-cultists-and-revenants.md`
 - `continuation-14-thornpeak-sanctum-approach.md`
 - `continuation-14-qa-thornpeak-sanctum-approach.md`
+- `continuation-15-thornpeak-ogre-war-camp-groups.md`
+- `continuation-15-qa-thornpeak-ogre-war-camp-groups.md`

@@ -125,6 +125,11 @@ Post-packet continuation prompts:
   embers, congregation cleanup, and gate-key shards.
 - `continuation-14-qa-thornpeak-sanctum-approach.md` - QA prompt for
   continuation 14.
+- `continuation-15-thornpeak-ogre-war-camp-groups.md` - extend the real
+  progression ladder into the grouped Thornpeak ogre war-camp chain and
+  generalize group coordination beyond dungeon-only objectives.
+- `continuation-15-qa-thornpeak-ogre-war-camp-groups.md` - QA prompt for
+  continuation 15.
 
 ## How to use this packet
 
