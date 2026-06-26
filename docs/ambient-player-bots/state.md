@@ -3,7 +3,7 @@
 ## Current phase
 
 - current phase: 16
-- phase status: pending Phase 16 final QA after Phase 15 implementation
+- phase status: Phase 16 complete, awaiting explicit packet-teardown approval
 
 ## Locked decisions
 
@@ -70,6 +70,8 @@
   - `npx tsc --noEmit`
   - runner and server vitest files
   - real-wire script or smoke flow when available
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs` when the workstation has
+    no local Postgres service
 - pre-merge gate:
   - `npm test`
   - `npx tsc --noEmit`
@@ -184,6 +186,19 @@
 - `docs/ambient-player-bots/rollout-handoff.md`
 - `docs/ambient-player-bots/qa-checklist.md`
 
+### Phase 16
+
+- `scripts/ambient_bot_pgmem_support.mjs`
+- `scripts/ambient_bot_server_pgmem.mjs`
+- `scripts/ambient_bot_admin_smoke_pgmem.mjs`
+- `package.json`
+- `package-lock.json`
+- `docs/ambient-player-bots/progress.md`
+- `docs/ambient-player-bots/state.md`
+- `docs/ambient-player-bots/phase-16-final-qa-teardown.md`
+- `docs/ambient-player-bots/rollout-handoff.md`
+- `docs/ambient-player-bots/qa-checklist.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -262,11 +277,13 @@
 - Phase 14 QA tightened logout-all so it only resets active or assigned bots
   and added direct planner-config route coverage. No new known Phase 13 or
   Phase 14 blocker remains after that audit
-- Phase 15 added a real-admin smoke script plus rollout handoff notes, but the
-  live smoke itself still needs a reachable local or staging realm and valid
-  admin credentials before final packet close
-- full live boot verification of the real runner on this workstation still
-  needs a reachable local Postgres service
+- Phase 16 added a local `pg-mem` realm harness, and the ambient-bot admin
+  smoke now passes end to end on this workstation without Docker or Postgres.
+  A separate staging or production smoke is still an operational follow-up when
+  such an environment is available, not a packet blocker.
+- packet teardown is the only remaining ambient-bot packet decision: keep or
+  remove `docs/ambient-player-bots/` before the PR, but only on explicit user
+  confirmation
 - repo-wide `npx tsc --noEmit` is currently red for unrelated pre-existing
   issues outside this feature slice. The current baseline includes existing
   errors in `server/ai/active_triggers.ts`, `server/game.ts`, `src/ui/hud.ts`,

@@ -19,7 +19,7 @@
 | 13 | completed | 2026-06-26 | 2026-06-26 |
 | 14 | completed | 2026-06-26 | 2026-06-26 |
 | 15 | completed | 2026-06-26 | 2026-06-26 |
-| 16 | pending | | |
+| 16 | completed | 2026-06-26 | 2026-06-26 |
 
 ## Phase 1 checklist
 
@@ -344,3 +344,37 @@ Notes:
   - `npx vitest run tests/admin.test.ts tests/ambient_player_bot_runtime.test.ts`
   - `npm run build:server`
 - Phase 16 final QA is now the next target.
+
+## Phase 16 checklist
+
+- [x] add a repeatable local `pg-mem` realm harness for Phase 16 smoke on
+  workstations without Docker or Postgres
+- [x] run the ambient bot admin smoke end to end against the local harness
+- [x] rerun the focused ambient-bot and admin validation suite
+- [x] confirm `npm run build:server` stays green
+- [x] confirm `npx tsc --noEmit` adds no new ambient-bot errors beyond the
+  unrelated repo baseline
+- [x] leave packet teardown pending explicit user confirmation
+
+Notes:
+- Phase 16 closes the packet from a local runtime perspective. The new
+  `scripts/ambient_bot_server_pgmem.mjs` and
+  `scripts/ambient_bot_admin_smoke_pgmem.mjs` keep the real HTTP and admin
+  control surfaces under test even on a workstation without local Postgres.
+- The local smoke run exercised the full admin control path: status, admin
+  login, combined diagnostics, planner config echo, runtime pause, logout-all,
+  and runtime-control restore. Result: 7 passed, 0 warnings, 0 failed.
+- Validation run:
+  - `node --check scripts/ambient_bot_pgmem_support.mjs`
+  - `node --check scripts/ambient_bot_server_pgmem.mjs`
+  - `node --check scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx vitest run tests/ambient_player_bot_llm.test.ts tests/ambient_player_bot_social.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- `docs/ambient-player-bots/` remains in place until the user explicitly asks
+  to remove the planning packet.
