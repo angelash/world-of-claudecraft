@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: continuation 02
-- phase status: Continuation 02 implementation complete, Continuation 02 QA next, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 03
+- phase status: Continuation 03 implementation complete, Continuation 03 QA next, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -219,6 +219,14 @@
 - `docs/ambient-player-bots/continuation-02-object-interaction-progression.md`
 - `docs/ambient-player-bots/continuation-02-qa-object-interaction-progression.md`
 
+### Continuation 03
+
+- `server/ambient_bots/brain.ts`
+- `server/ambient_bots/progression_routes.ts`
+- `tests/ambient_player_bot_brain.test.ts`
+- `docs/ambient-player-bots/continuation-03-mixed-source-collection-progression.md`
+- `docs/ambient-player-bots/continuation-03-qa-mixed-source-collection-progression.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -280,8 +288,10 @@
 - Continuation 02 adds collect-object progression support for `q_supplies`,
   `q_whispers`, and `q_names_of_the_dead`, plus the supporting Aldric kill
   routes around them
-- mixed-source collection routes such as `q_rite`, town resupply logic, and
-  higher-zone routing remain open
+- Continuation 03 adds mixed-source collection routing for `q_rite`, with
+  route-level sub-objective gating based on live quest-log counts and distinct
+  objective ids for route handoff
+- town resupply logic, consumable buying, and higher-zone routing remain open
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

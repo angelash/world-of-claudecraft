@@ -24,6 +24,8 @@
 | Continuation 01 QA | pending | 2026-06-26 |  |
 | Continuation 02 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 02 QA | pending | 2026-06-26 |  |
+| Continuation 03 | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 03 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
 
@@ -454,3 +456,29 @@ Notes:
 - Continuation 02 QA is now the next target. The next implementation gap after
   that is mixed drop-plus-kill routing such as `q_rite`, plus supply and
   restocking behaviors for longer autonomous runs.
+
+## Continuation 03 checklist
+
+- [x] add route-level sub-objective gating for multi-source collection quests
+- [x] support `q_rite` progression across tunnel-rat and restless-bones drops
+- [x] give `q_rite` sub-routes distinct live objective ids for clean handoff
+- [x] add focused brain regressions for accept order and mixed-source routing
+- [x] validate the continuation slice
+
+Notes:
+- This slice keeps the brain reconstructible from live quest-log counts instead
+  of adding hidden progression memory. The new gating looks only at route order,
+  quest objective indexes, and the current snapshot counts.
+- `q_rite` now advances in two live stages: tunnel rats for Blessed Tallow,
+  then restless bones for Ghostly Essence, before the usual Aldric turn-in.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- Continuation 03 QA is now the next target. The next implementation gap after
+  that is town resupply, consumable buying, and longer autonomous travel beyond
+  the current Eastbrook route ladder.

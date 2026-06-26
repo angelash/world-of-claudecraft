@@ -17,6 +17,7 @@ interface AmbientBotQuestRouteBase {
   turnInNpcTemplateId: string;
   camps: readonly AmbientBotPoint2d[];
   pursueAtLevel: number;
+  questObjectiveIndex?: number;
 }
 
 export interface AmbientBotKillQuestRoute extends AmbientBotQuestRouteBase {
@@ -31,6 +32,11 @@ export interface AmbientBotCollectQuestRoute extends AmbientBotQuestRouteBase {
 }
 
 export type AmbientBotQuestRoute = AmbientBotKillQuestRoute | AmbientBotCollectQuestRoute;
+
+interface AmbientBotQuestRouteConfig {
+  activeObjectiveId?: string;
+  questObjectiveIndex?: number;
+}
 
 function campsFor(mobId: string): AmbientBotPoint2d[] {
   return CAMPS
@@ -62,13 +68,14 @@ function killRoute(
   mobId: string,
   pursueAtLevel: number,
   activeLabel = `Hunting ${mobLabel(mobId)}`,
+  config: AmbientBotQuestRouteConfig = {},
 ): AmbientBotKillQuestRoute {
   const quest = questLabel(questId);
   return {
     kind: 'kill',
     questId,
     acceptObjectiveId: `accept_${questId.slice(2)}`,
-    activeObjectiveId: `hunt_${questId.slice(2)}`,
+    activeObjectiveId: config.activeObjectiveId ?? `hunt_${questId.slice(2)}`,
     turnInObjectiveId: `turnin_${questId.slice(2)}`,
     acceptLabel: `Picking up ${quest}`,
     activeLabel,
@@ -78,6 +85,7 @@ function killRoute(
     mobId,
     camps: campsFor(mobId),
     pursueAtLevel,
+    questObjectiveIndex: config.questObjectiveIndex,
   };
 }
 
@@ -87,13 +95,14 @@ function collectRoute(
   objectItemId: string,
   pursueAtLevel: number,
   activeLabel = `Collecting ${itemLabel(objectItemId)}`,
+  config: AmbientBotQuestRouteConfig = {},
 ): AmbientBotCollectQuestRoute {
   const quest = questLabel(questId);
   return {
     kind: 'collect',
     questId,
     acceptObjectiveId: `accept_${questId.slice(2)}`,
-    activeObjectiveId: `collect_${questId.slice(2)}`,
+    activeObjectiveId: config.activeObjectiveId ?? `collect_${questId.slice(2)}`,
     turnInObjectiveId: `turnin_${questId.slice(2)}`,
     acceptLabel: `Picking up ${quest}`,
     activeLabel,
@@ -103,6 +112,7 @@ function collectRoute(
     objectItemId,
     camps: objectPointsFor(objectItemId),
     pursueAtLevel,
+    questObjectiveIndex: config.questObjectiveIndex,
   };
 }
 
@@ -120,4 +130,20 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
   collectRoute('q_whispers', 'brother_aldric', 'gravecaller_sigil', 5, "Searching for the Gravecaller's Sigil"),
   collectRoute('q_names_of_the_dead', 'brother_aldric', 'weathered_ledger_page', 5, 'Gathering Weathered Ledger Pages'),
   killRoute('q_silence_the_call', 'brother_aldric', 'restless_bones', 6, 'Silencing the Chapel Dead'),
+  killRoute(
+    'q_rite',
+    'brother_aldric',
+    'tunnel_rat',
+    6,
+    'Collecting Blessed Tallow',
+    { activeObjectiveId: 'hunt_rite_blessed_wax', questObjectiveIndex: 0 },
+  ),
+  killRoute(
+    'q_rite',
+    'brother_aldric',
+    'restless_bones',
+    6,
+    'Collecting Ghostly Essence',
+    { activeObjectiveId: 'hunt_rite_ghostly_essence', questObjectiveIndex: 1 },
+  ),
 ];

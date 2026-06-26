@@ -65,6 +65,10 @@ Post-packet continuation prompts:
   item, and non-kill quest interaction support for the next progression gap.
 - `continuation-02-qa-object-interaction-progression.md` - QA prompt for
   continuation 02.
+- `continuation-03-mixed-source-collection-progression.md` - add route-level
+  sub-objective gating for multi-source collection quests such as `q_rite`.
+- `continuation-03-qa-mixed-source-collection-progression.md` - QA prompt for
+  continuation 03.
 
 ## How to use this packet
 

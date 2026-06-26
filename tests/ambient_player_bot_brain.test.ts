@@ -319,6 +319,85 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
+  it('picks up q_rite from Brother Aldric after the earlier chapel chain is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 6,
+          x: 6,
+          z: 6,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+          ],
+        },
+        entities: [
+          { id: 9600, k: 'npc', tid: 'brother_aldric', x: 6, z: 6 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_rite');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9600 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('routes toward tunnel rats while the blessed tallow objective for q_rite is still incomplete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 6,
+          qlog: [{ questId: 'q_rite', counts: [0, 0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_rite_blessed_wax');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('leaves tunnel rats alone and switches to restless bones once blessed tallow is complete for q_rite', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 6,
+          qlog: [{ questId: 'q_rite', counts: [4, 0], state: 'active' }],
+        },
+        entities: [
+          { id: 9601, k: 'mob', tid: 'tunnel_rat', x: 2, z: 2, h: 1, lv: 4 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_rite_ghostly_essence');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('stays on the Old Greyjaw route instead of chasing unrelated wolves', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({

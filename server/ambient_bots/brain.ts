@@ -247,9 +247,7 @@ function chooseObjective(view: BotWorldView): AmbientBotObjective {
 }
 
 function chooseQuestObjective(view: BotWorldView): AmbientBotObjective | null {
-  const readyRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find(
-    (route) => questRouteState(route, view) === 'ready',
-  );
+  const readyRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find((route) => isQuestRouteReady(route, view));
   if (readyRoute) {
     return {
       id: readyRoute.turnInObjectiveId,
@@ -258,9 +256,7 @@ function chooseQuestObjective(view: BotWorldView): AmbientBotObjective | null {
     };
   }
 
-  const activeRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find(
-    (route) => questRouteState(route, view) === 'active',
-  );
+  const activeRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find((route) => isQuestRouteActive(route, view));
   if (activeRoute) {
     return {
       id: activeRoute.activeObjectiveId,
@@ -277,9 +273,7 @@ function chooseQuestObjective(view: BotWorldView): AmbientBotObjective | null {
     };
   }
 
-  const availableRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find(
-    (route) => questRouteState(route, view) === 'available',
-  );
+  const availableRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find((route) => isQuestRouteAvailable(route, view));
   if (!availableRoute) return null;
   return {
     id: availableRoute.acceptObjectiveId,
@@ -288,21 +282,46 @@ function chooseQuestObjective(view: BotWorldView): AmbientBotObjective | null {
   };
 }
 
-function questRouteState(
+function isQuestRouteReady(
   route: AmbientBotQuestRoute,
   view: BotWorldView,
-): 'done' | 'ready' | 'active' | 'available' | 'locked' {
+): boolean {
   const progress = view.self.questLog.get(route.questId);
-  if (view.self.questsDone.has(route.questId) || progress?.state === 'done') return 'done';
-  if (progress?.state === 'ready') return 'ready';
-  if (progress?.state === 'active') return 'active';
+  if (view.self.questsDone.has(route.questId) || progress?.state === 'done') return false;
+  return progress?.state === 'ready';
+}
 
+function isQuestRouteActive(
+  route: AmbientBotQuestRoute,
+  view: BotWorldView,
+): boolean {
+  const progress = view.self.questLog.get(route.questId);
+  if (!progress || progress.state !== 'active') return false;
+  return routeObjectiveNeedsWork(route, progress);
+}
+
+function isQuestRouteAvailable(
+  route: AmbientBotQuestRoute,
+  view: BotWorldView,
+): boolean {
+  const progress = view.self.questLog.get(route.questId);
+  if (view.self.questsDone.has(route.questId) || progress) return false;
   const quest = QUESTS[route.questId];
-  if (!quest) return 'locked';
+  if (!quest) return false;
   const minLevel = Math.max(quest.minLevel ?? 1, route.pursueAtLevel);
-  if (view.self.level < minLevel) return 'locked';
-  if (quest.requiresQuest && !view.self.questsDone.has(quest.requiresQuest)) return 'locked';
-  return 'available';
+  if (view.self.level < minLevel) return false;
+  if (quest.requiresQuest && !view.self.questsDone.has(quest.requiresQuest)) return false;
+  return true;
+}
+
+function routeObjectiveNeedsWork(
+  route: AmbientBotQuestRoute,
+  progress: QuestProgress,
+): boolean {
+  if (route.questObjectiveIndex === undefined) return true;
+  const objective = QUESTS[route.questId]?.objectives[route.questObjectiveIndex];
+  if (!objective) return true;
+  return (progress.counts[route.questObjectiveIndex] ?? 0) < objective.count;
 }
 
 function maybeRecover(
