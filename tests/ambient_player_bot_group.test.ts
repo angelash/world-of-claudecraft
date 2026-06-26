@@ -271,4 +271,62 @@ describe('ambient player bot group coordinator', () => {
       groupLeaderDistance: 18,
     }));
   });
+
+  it('does not treat a same-cluster bot on a different grouped outdoor quest as a q_crushers party candidate', () => {
+    const leader = bot({
+      lastKnownLevel: 18,
+      lastKnownZoneId: 'thornpeak',
+      runnerState: {
+        objective: 'hunt_crushers',
+        objectiveQuestId: 'q_crushers',
+        objectiveSuggestedPartySize: 3,
+      },
+    });
+    const otherQuestPeer = bot({
+      botId: 'bot-2',
+      accountId: 12,
+      characterId: 102,
+      characterName: 'Branorabb',
+      accountUsername: 'bot_user_2',
+      authToken: 'token-2',
+      class: 'mage',
+      lastKnownLevel: 18,
+      lastKnownZoneId: 'thornpeak',
+      runnerState: {
+        objective: 'hunt_drogmar',
+        objectiveQuestId: 'q_drogmar',
+        objectiveSuggestedPartySize: 3,
+      },
+    });
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: leader,
+      liveState: liveState({
+        self: {
+          id: 101,
+          x: -120,
+          z: 738,
+        },
+        entities: [
+          { id: 102, k: 'player', nm: 'Branorabb', x: -118, z: 739, lv: 18 },
+        ],
+      }),
+      recentEvents: [],
+      objectiveId: 'hunt_crushers',
+      objectiveQuestId: 'q_crushers',
+      objectiveSuggestedPartySize: 3,
+      directory: [leader, otherQuestPeer],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([]);
+    expect(result.pauseBrainDrive).toBe(false);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'brain',
+      groupObjectiveQuestId: 'q_crushers',
+      groupObjectiveScope: 'outdoor',
+      groupTargetSize: 1,
+      groupPartySize: 1,
+    }));
+  });
 });

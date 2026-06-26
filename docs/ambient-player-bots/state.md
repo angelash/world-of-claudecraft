@@ -2,11 +2,10 @@
 
 ## Current phase
 
-- current phase: continuation 15 QA
-- phase status: Continuation 15 implementation is complete, and QA now closes
-  the grouped Thornpeak ogre war-camp slice around outdoor grouped matching,
-  `q_crushers`, and `q_drogmar`, packet teardown deferred until the
-  continuation ladder closes
+- current phase: continuation 16
+- phase status: Continuation 15 QA is complete, and continuation 16 now targets
+  the later grouped Thornpeak threshold boss work after Drogmar, starting with
+  `q_korgath`, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -511,6 +510,9 @@
   on the live grouped quest id for outdoor party objectives
 - the current progression brain now covers the grouped Thornpeak ogre war-camp
   chain through `q_drogmar`
+- Continuation 15 QA is complete, including a direct regression that a
+  same-cluster `q_drogmar` bot is not treated as a `q_crushers` party
+  candidate
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

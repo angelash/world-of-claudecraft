@@ -49,7 +49,7 @@
 | Continuation 14 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 14 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 15 | completed | 2026-06-26 | 2026-06-26 |
-| Continuation 15 QA | pending | 2026-06-26 |  |
+| Continuation 15 QA | completed | 2026-06-26 | 2026-06-26 |
 
 ## Phase 1 checklist
 
@@ -1109,7 +1109,7 @@ Notes:
     `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
     under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
     `tests/auto_loot.test.ts`)
-- Continuation 15 QA is now the next target.
+- Continuation 16 is now the next implementation target.
 
 ## Continuation 14 QA checklist
 
@@ -1169,3 +1169,34 @@ Notes:
   bounded to the same live quest and that the new ogre war-camp slice adds no
   regressions to the Bastion dungeon flow before the later `q_korgath` and
   Sanctum boss work.
+
+## Continuation 15 QA checklist
+
+- [x] audit Continuation 15 against
+  `continuation-15-qa-thornpeak-ogre-war-camp-groups.md`
+- [x] confirm outdoor grouped coordination matches same-cluster ambient bots on
+  the same grouped quest instead of broad same-cluster outdoor objectives
+- [x] confirm the grouped Thornpeak order keeps `q_crushers` ahead of
+  `q_drogmar` and does not skip straight to later solo chains
+- [x] confirm outdoor invite, accept, regroup, and follower reattachment stay
+  on the normal live party and chat command path
+- [x] verify focused ambient-bot validation, `build:server`, local pg-mem
+  smoke, and the existing `tsc` baseline stay stable
+
+Notes:
+- QA did not uncover a new blocking logic bug in the Continuation 15 slice, but
+  it did close one worthwhile regression gap: the group test suite now proves a
+  same-cluster bot on `q_drogmar` is not treated as a `q_crushers` party
+  candidate just because it is nearby.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_group.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts`
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_group.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- The next implementation gap is the later grouped Thornpeak threshold boss
+  work, starting with `q_korgath`, before deeper Sanctum boss content.
