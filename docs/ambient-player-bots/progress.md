@@ -54,7 +54,7 @@
 | Continuation 16 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 17 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 17 QA | completed | 2026-06-26 | 2026-06-26 |
-| Continuation 18 | pending | 2026-06-26 |  |
+| Continuation 18 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 18 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
@@ -1331,3 +1331,34 @@ Notes:
     `src/ui/i18n.resolved.generated/`, and `tests/auto_loot.test.ts`)
 - The next implementation gap is the final Gravewyrm Sanctum boss bridge
   around `q_gravewyrm`.
+
+## Continuation 18 checklist
+
+- [x] extend the progression registry through `q_gravewyrm`
+- [x] reuse the live grouped and dungeon-entry bridge for Gravewyrm Sanctum
+  re-entry, in-instance Korzul pursuit, and dungeon exit
+- [x] add focused brain and runtime regressions for accept order, Sanctum
+  re-entry, Korzul routing, and exit behavior
+- [x] validate the continuation slice
+
+Notes:
+- This slice extends the real progression ladder into the final Gravewyrm
+  Sanctum boss bridge without adding a privileged dungeon shortcut. Ambient
+  bots still group, travel, re-enter the instance, fight Korzul, leave, and
+  turn in only through the normal live quest, party, and dungeon command
+  surfaces.
+- The progression brain now covers grouped Thornpeak progression through
+  `q_gravewyrm`.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts`
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_group.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, overlay locale files under
+    `src/ui/i18n.locales/`, generated locale files under
+    `src/ui/i18n.resolved.generated/`, and `tests/auto_loot.test.ts`)
+- Continuation 18 QA should next confirm that the final Sanctum bridge adds no
+  regressions and that the continuation ladder is now complete, with packet
+  teardown still deferred for user review.

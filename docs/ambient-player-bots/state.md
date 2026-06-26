@@ -2,12 +2,11 @@
 
 ## Current phase
 
-- current phase: continuation 18
-- phase status: Continuation 17 QA is complete, and the next implementation
-  target is the final Gravewyrm Sanctum boss bridge around `q_gravewyrm`,
-  including outdoor accept, Sanctum re-entry, in-instance pursuit, and
-  post-kill exit handoff, packet teardown deferred until the continuation
-  ladder closes
+- current phase: continuation 18 QA
+- phase status: Continuation 18 implementation is complete, and QA now closes
+  the final Gravewyrm Sanctum boss bridge around `q_gravewyrm`, party
+  re-entry, Korzul pursuit, and dungeon exit, packet teardown remains deferred
+  for user review even if the continuation ladder closes
 
 ## Locked decisions
 
@@ -555,6 +554,12 @@
   through `q_velkhar`
 - Continuation 17 QA is complete, and continuation 18 should next cover the
   final Gravewyrm Sanctum boss bridge around `q_gravewyrm`
+- Continuation 18 extends the progression registry into `q_gravewyrm` with the
+  existing live dungeon-entry bridge for `gravewyrm_sanctum`
+- the current progression brain now covers grouped Thornpeak progression
+  through `q_gravewyrm`
+- Continuation 18 QA should next confirm the final Sanctum bridge and whether
+  the continuation ladder is now complete
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit
