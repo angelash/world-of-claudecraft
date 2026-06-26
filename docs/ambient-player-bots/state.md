@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: 11
-- phase status: pending Phase 11 implementation after Phase 10 QA
+- current phase: 12
+- phase status: pending Phase 11 QA after Phase 11 implementation
 
 ## Locked decisions
 
@@ -35,6 +35,12 @@
 13. The first social shell stays heuristic and bounded: real whispers, friend
     adds, and presence emotes now, with free-form generation deferred to the
     later LLM phases.
+14. Phase 11 keeps LLMs as advisory overlays only: they may shape social mode,
+    cover-story text, friend policy, and whisper phrasing, but they never issue
+    direct movement, combat, quest, or economy authority.
+15. The first LLM provider path is a local Codex CLI bridge owned by the
+    ambient bot runtime. Shared provider pooling can wait for a later operator
+    and rollout phase.
 
 ## Non-negotiable constraints
 
@@ -131,6 +137,22 @@
 - `tests/ambient_player_bot_runtime.test.ts`
 - `tests/ambient_player_bot_ws_client.test.ts`
 
+### Phase 11
+
+- `server/ambient_bots/llm_types.ts`
+- `server/ambient_bots/llm_prompt.ts`
+- `server/ambient_bots/llm_validate.ts`
+- `server/ambient_bots/llm_provider.ts`
+- `server/ambient_bots/llm_coordinator.ts`
+- `server/ambient_bots/social.ts`
+- `server/ambient_bots/runtime.ts`
+- `server/main.ts`
+- `.env.example`
+- `docs/ambient-player-bots/phase-11-llm-social-plan-integration.md`
+- `tests/ambient_player_bot_llm.test.ts`
+- `tests/ambient_player_bot_social.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+
 ## Planned database shape
 
 ### Phase 1
@@ -163,6 +185,17 @@
 - `AMBIENT_PLAYER_BOTS_COOLDOWN_MS`
 - `AMBIENT_PLAYER_BOTS_RESERVATION_MS`
 
+### Phase 11
+
+- `AMBIENT_PLAYER_BOTS_LLM_ENABLED`
+- `AMBIENT_PLAYER_BOTS_LLM_TIMEOUT_MS`
+- `AMBIENT_PLAYER_BOTS_LLM_PLAN_COOLDOWN_MS`
+- `AMBIENT_PLAYER_BOTS_LLM_SOCIAL_COOLDOWN_MS`
+- `AMBIENT_PLAYER_BOTS_LLM_MAX_CALLS_5H`
+- `AMBIENT_PLAYER_BOTS_LLM_MAX_CALLS_WEEK`
+- `AMBIENT_PLAYER_BOTS_LLM_CACHE_MAX_ENTRIES`
+- `AMBIENT_PLAYER_BOTS_LLM_CACHE_MAX_TTL_MS`
+
 ## Known open items
 
 - public disclosure policy is still a product decision, not a code blocker
@@ -186,10 +219,15 @@
   presence emotes, and friend-add shell logic. Phase 10 QA closed the direct
   ws social-frame coverage gap, so no new known Phase 9 blocker remains after
   that audit
+- Phase 11 added bounded LLM plan and whisper overlays, structured audit
+  snapshots, semantic cache keys, and downgrade paths back to the heuristic
+  social shell. Phase 12 should now audit invalid-output fallback, provider
+  safety, and any remaining ambient-bot-specific type regressions
 - full live boot verification of the real runner on this workstation still
   needs a reachable local Postgres service
 - repo-wide `npx tsc --noEmit` is currently red for unrelated pre-existing
   issues outside this feature slice. The current baseline includes existing
   errors in `server/ai/active_triggers.ts`, `server/game.ts`, `src/ui/hud.ts`,
   generated i18n locale and resolved files under `src/ui/i18n.locales/` and
-  `src/ui/i18n.resolved.generated/`, and `tests/auto_loot.test.ts`.
+  `src/ui/i18n.resolved.generated/`, `tests/ambient_player_bot_ws_client.test.ts`,
+  and `tests/auto_loot.test.ts`.

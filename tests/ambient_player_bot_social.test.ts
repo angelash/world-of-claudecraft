@@ -184,4 +184,86 @@ describe('ambient player bot social shell', () => {
       }),
     }));
   });
+
+  it('lets an llm plan suppress friend adds and presence emotes while keeping fallback replies', () => {
+    const state = createAmbientPlayerBotSocialRuntimeState();
+    const first = tickAmbientPlayerBotSocialShell({
+      bot: bot(),
+      liveState: liveState({
+        entities: [{ id: 201, k: 'player', nm: 'Aleph', x: 8, z: 6 }],
+      }),
+      recentEvents: [{
+        type: 'chat',
+        fromPid: 201,
+        from: 'Aleph',
+        text: 'hey there',
+        channel: 'whisper',
+        pid: 101,
+      }],
+      ambientBotNames: new Set(['Branoraaa']),
+      llmPlan: {
+        schemaVersion: 1,
+        jobId: 'ambient-plan:bot-1:1000',
+        botRef: {
+          botId: 'bot-1',
+          characterName: 'Branoraaa',
+          profileId: 'eastbrook_vale_warrior_newcomer',
+          classId: 'warrior',
+          archetype: 'newcomer',
+        },
+        ttlMs: 120_000,
+        confidence: 0.9,
+        socialMode: 'quiet',
+        focusLabel: 'Wolves at the Door',
+        selfSummary: 'keeping to myself for now',
+        friendPolicy: 'never',
+        allowPresenceEmote: false,
+        audit: {
+          shortReason: 'keep the bot reserved',
+          safetyNotes: ['boundedPlan'],
+        },
+      },
+      nowMs: 5_000,
+    }, state);
+
+    expect(first.commands).toEqual([]);
+    expect(state.pendingReplies).toHaveLength(1);
+
+    const second = tickAmbientPlayerBotSocialShell({
+      bot: bot(),
+      liveState: liveState(),
+      recentEvents: [],
+      ambientBotNames: new Set(['Branoraaa']),
+      llmPlan: {
+        schemaVersion: 1,
+        jobId: 'ambient-plan:bot-1:1000',
+        botRef: {
+          botId: 'bot-1',
+          characterName: 'Branoraaa',
+          profileId: 'eastbrook_vale_warrior_newcomer',
+          classId: 'warrior',
+          archetype: 'newcomer',
+        },
+        ttlMs: 120_000,
+        confidence: 0.9,
+        socialMode: 'quiet',
+        focusLabel: 'Wolves at the Door',
+        selfSummary: 'keeping to myself for now',
+        friendPolicy: 'never',
+        allowPresenceEmote: false,
+        audit: {
+          shortReason: 'keep the bot reserved',
+          safetyNotes: ['boundedPlan'],
+        },
+      },
+      nowMs: 12_000,
+    }, state);
+
+    expect(second.commands).toEqual([
+      expect.objectContaining({
+        type: 'chat',
+        text: expect.stringMatching(/^\/w Aleph /),
+      }),
+    ]);
+  });
 });

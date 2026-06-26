@@ -1,4 +1,9 @@
 import { ambientBotProfileById } from './profiles';
+import type {
+  AmbientBotLlmFriendPolicy,
+  AmbientBotPlanDecisionV1,
+  AmbientBotLlmPresenceEmote,
+} from './llm_types';
 import type { AmbientPlayerBotRecord } from './types';
 import type { AmbientPlayerBotLiveState } from './ws_client';
 import type { SimEvent } from '../../src/sim/types';
@@ -33,14 +38,23 @@ interface AmbientBotSocialPersistentState {
   blockNames: string[];
 }
 
-interface PendingReply {
+export interface AmbientPlayerBotPendingReply {
   toName: string;
-  text: string;
+  incomingText: string;
+  fallbackText: string;
   dueAtMs: number;
+  askedForFriend: boolean;
+  revision: number;
+  llmStatus?: 'idle' | 'pending' | 'ready' | 'rejected' | 'error' | 'budget_denied' | 'disabled';
+  llmReplyText?: string;
+  llmFriendAction?: 'none' | 'send';
+  llmPresenceEmote?: AmbientBotLlmPresenceEmote;
+  llmMemoryTags?: string[];
+  llmRequestedAtMs?: number;
 }
 
 export interface AmbientPlayerBotSocialRuntimeState {
-  pendingReplies: PendingReply[];
+  pendingReplies: AmbientPlayerBotPendingReply[];
   lastPresenceEmoteAtByName: Record<string, number>;
 }
 
@@ -60,6 +74,7 @@ export interface TickAmbientPlayerBotSocialInput {
   liveState: AmbientPlayerBotLiveState;
   recentEvents: readonly SimEvent[];
   ambientBotNames: ReadonlySet<string>;
+  llmPlan?: AmbientBotPlanDecisionV1 | null;
   nowMs: number;
 }
 
@@ -86,6 +101,8 @@ export function tickAmbientPlayerBotSocialShell(
   const objectiveLabel = typeof input.bot.runnerState.objectiveLabel === 'string'
     ? input.bot.runnerState.objectiveLabel
     : '';
+  const llmPlan = input.llmPlan ?? null;
+  const friendPolicy = llmPlan?.friendPolicy ?? 'afterWhisper';
 
   let shouldPersist = false;
   let changed = false;
@@ -138,11 +155,13 @@ export function tickAmbientPlayerBotSocialShell(
     changed = true;
     shouldPersist = true;
     if (blockNameSet.has(whisper.from)) continue;
-    if (
+    const sentFriendAdd = (
       !friendNameSet.has(whisper.from)
       && canSendFriendAdd(contact.entry, input.nowMs)
+      && allowImmediateFriendAdd(friendPolicy, whisper.text)
       && commands.length < MAX_SOCIAL_COMMANDS_PER_TICK
-    ) {
+    );
+    if (sentFriendAdd) {
       commands.push({ type: 'friendAdd', name: whisper.from });
       contact.entry.outgoingFriendAtMs = input.nowMs;
       changed = true;
@@ -153,11 +172,14 @@ export function tickAmbientPlayerBotSocialShell(
       whisper.from,
       buildReplyText({
         objectiveLabel,
+        llmPlan,
         profileArchetype: profile?.archetype ?? 'quester',
         incomingText: whisper.text,
-        sentFriendAdd: !friendNameSet.has(whisper.from),
+        sentFriendAdd,
       }),
       input.nowMs + replyDelayMs(input.bot.botId, whisper.from, whisper.text),
+      whisper.text,
+      whisperAskedForFriend(whisper.text),
     );
   }
 
@@ -169,6 +191,7 @@ export function tickAmbientPlayerBotSocialShell(
       blockNameSet,
       input.nowMs,
       profile?.archetype ?? 'quester',
+      llmPlan,
     );
     if (emoteTarget) {
       commands.push({
@@ -189,8 +212,27 @@ export function tickAmbientPlayerBotSocialShell(
         removePendingReply(runtimeState, reply.toName);
         continue;
       }
-      commands.push({ type: 'chat', text: `/w ${reply.toName} ${reply.text}` });
       const contact = ensureContact(persistent, reply.toName, input.nowMs).entry;
+      if (
+        reply.llmFriendAction === 'send'
+        && !friendNameSet.has(reply.toName)
+        && canSendFriendAdd(contact, input.nowMs)
+        && commands.length < MAX_SOCIAL_COMMANDS_PER_TICK
+      ) {
+        commands.push({ type: 'friendAdd', name: reply.toName });
+        contact.outgoingFriendAtMs = input.nowMs;
+        changed = true;
+        shouldPersist = true;
+      }
+      if (
+        reply.llmPresenceEmote
+        && reply.llmPresenceEmote !== 'none'
+        && commands.length + 1 < MAX_SOCIAL_COMMANDS_PER_TICK
+      ) {
+        commands.push({ type: 'chat', text: `/${reply.llmPresenceEmote} ${reply.toName}` });
+      }
+      if (commands.length >= MAX_SOCIAL_COMMANDS_PER_TICK) continue;
+      commands.push({ type: 'chat', text: `/w ${reply.toName} ${replyTextForPendingReply(reply)}` });
       contact.whispersSent++;
       contact.lastReplyAtMs = input.nowMs;
       changed = true;
@@ -207,6 +249,10 @@ export function tickAmbientPlayerBotSocialShell(
       socialPendingReplies: runtimeState.pendingReplies.length,
       socialFriends: friendNames.length,
       socialBlocks: blockNames.length,
+      ...(llmPlan ? {
+        llmPlanMode: llmPlan.socialMode,
+        llmPlanFocus: llmPlan.focusLabel,
+      } : {}),
       ...(lastWhisperFrom ? { lastWhisperFrom } : {}),
       ...(commands[0]
         ? { lastSocialAction: describeCommand(commands[0]) }
@@ -339,16 +385,35 @@ function canSendFriendAdd(contact: AmbientBotContactMemory, nowMs: number): bool
 function upsertPendingReply(
   state: AmbientPlayerBotSocialRuntimeState,
   toName: string,
-  text: string,
+  fallbackText: string,
   dueAtMs: number,
+  incomingText: string,
+  askedForFriend: boolean,
 ): void {
   const existing = state.pendingReplies.find((reply) => reply.toName === toName);
   if (existing) {
-    existing.text = text;
+    existing.incomingText = incomingText;
+    existing.fallbackText = fallbackText;
     existing.dueAtMs = dueAtMs;
+    existing.askedForFriend = askedForFriend;
+    existing.revision++;
+    existing.llmStatus = 'idle';
+    existing.llmReplyText = undefined;
+    existing.llmFriendAction = undefined;
+    existing.llmPresenceEmote = undefined;
+    existing.llmMemoryTags = undefined;
+    existing.llmRequestedAtMs = undefined;
     return;
   }
-  state.pendingReplies.push({ toName, text, dueAtMs });
+  state.pendingReplies.push({
+    toName,
+    incomingText,
+    fallbackText,
+    dueAtMs,
+    askedForFriend,
+    revision: 1,
+    llmStatus: 'idle',
+  });
   state.pendingReplies.sort((a, b) => a.dueAtMs - b.dueAtMs || a.toName.localeCompare(b.toName));
   if (state.pendingReplies.length > MAX_PENDING_REPLIES) {
     state.pendingReplies.length = MAX_PENDING_REPLIES;
@@ -367,7 +432,9 @@ function nextEmoteTarget(
   blockNames: ReadonlySet<string>,
   nowMs: number,
   archetype: string,
+  llmPlan: AmbientBotPlanDecisionV1 | null,
 ): NearbyHuman | null {
+  if (llmPlan && !llmPlan.allowPresenceEmote) return null;
   if (archetype !== 'helper' && archetype !== 'newcomer') return null;
   for (const human of nearbyHumans) {
     if (human.distanceSq > EMOTE_RADIUS * EMOTE_RADIUS) continue;
@@ -394,6 +461,7 @@ function buildReplyText(input: {
   incomingText: string;
   profileArchetype: string;
   objectiveLabel: string;
+  llmPlan: AmbientBotPlanDecisionV1 | null;
   sentFriendAdd: boolean;
 }): string {
   const text = input.incomingText.toLowerCase();
@@ -402,7 +470,7 @@ function buildReplyText(input: {
   if (/\b(hello|hey|hi|yo)\b/.test(text)) return input.sentFriendAdd ? 'hey there, good to see you' : 'hey there';
   if (/\b(help|party|group|invite|dungeon)\b/.test(text)) return 'sticking to solo questing for now';
   if (/\b(where|what|quest|doing|up to)\b/.test(text) && input.objectiveLabel) {
-    return `working on ${input.objectiveLabel.toLowerCase()} right now`;
+    return `working on ${replyFocusLabel(input.objectiveLabel, input.llmPlan).toLowerCase()} right now`;
   }
   switch (input.profileArchetype) {
     case 'traveler':
@@ -413,9 +481,33 @@ function buildReplyText(input: {
       return 'happy to keep you company out here';
     default:
       return input.objectiveLabel
-        ? `following ${input.objectiveLabel.toLowerCase()} for a bit`
-        : 'just working through the local quests';
+        ? `following ${replyFocusLabel(input.objectiveLabel, input.llmPlan).toLowerCase()} for a bit`
+        : input.llmPlan?.selfSummary || 'just working through the local quests';
   }
+}
+
+function allowImmediateFriendAdd(
+  policy: AmbientBotLlmFriendPolicy,
+  incomingText: string,
+): boolean {
+  if (policy === 'never') return false;
+  if (policy === 'afterWhisper') return true;
+  return whisperAskedForFriend(incomingText);
+}
+
+function whisperAskedForFriend(text: string): boolean {
+  return /\b(friend|add)\b/i.test(text);
+}
+
+function replyFocusLabel(
+  objectiveLabel: string,
+  llmPlan: AmbientBotPlanDecisionV1 | null,
+): string {
+  return llmPlan?.focusLabel || objectiveLabel;
+}
+
+function replyTextForPendingReply(reply: AmbientPlayerBotPendingReply): string {
+  return reply.llmReplyText?.trim() || reply.fallbackText;
 }
 
 function replyDelayMs(botId: string, fromName: string, text: string): number {

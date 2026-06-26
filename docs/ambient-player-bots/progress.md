@@ -14,7 +14,7 @@
 | 8 | completed | 2026-06-26 | 2026-06-26 |
 | 9 | completed | 2026-06-26 | 2026-06-26 |
 | 10 | completed | 2026-06-26 | 2026-06-26 |
-| 11 | pending | | |
+| 11 | completed | 2026-06-26 | 2026-06-26 |
 | 12 | pending | | |
 | 13 | pending | | |
 | 14 | pending | | |
@@ -223,4 +223,31 @@ Notes:
   - `npm run build:server`
   - `npx tsc --noEmit` (still red only at the unrelated repo baseline listed in
     Phase 7 notes)
-- Phase 11 is now the next implementation target.
+- Phase 11 completed and Phase 12 QA is now the next target.
+
+## Phase 11 checklist
+
+- [x] add bounded plan and whisper-reply LLM schemas
+- [x] add prompt builder, validator, provider, coordinator, and audit plumbing
+- [x] wire low-frequency plan and social requests into the ambient bot runtime
+- [x] document Phase 11 env flags and downgrade behavior
+- [x] add focused coordinator, social-shell, and runtime regressions
+- [x] validate the Phase 11 slice
+
+Notes:
+- This slice keeps the model strictly outside authoritative gameplay. The LLM
+  can only influence social stance, optional friend policy, optional presence
+  emote allowance, and bounded whisper text.
+- The first provider path is a local ambient-bot-specific Codex CLI bridge. It
+  intentionally does not reuse the broader AI app-server path yet.
+- The semantic cache now ignores per-call job ids so repeat prompts can hit
+  cache without reusing stale request identifiers in the returned decision.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_llm.test.ts tests/ambient_player_bot_social.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts`
+  - `npm run build:server`
+  - `npx tsc --noEmit` (still red only at the current repo baseline, which now
+    includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`,
+    `tests/ambient_player_bot_ws_client.test.ts`, and `tests/auto_loot.test.ts`)
+- Phase 12 QA is now the next target.

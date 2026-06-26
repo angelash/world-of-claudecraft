@@ -91,6 +91,8 @@ import {
 import { emailAccountCreated } from './email';
 import { AmbientPlayerBotApiClient } from './ambient_bots/api_client';
 import { isAmbientBotConnectionRefused } from './ambient_bots/connection_gate';
+import { ambientPlayerBotLlmConfigFromEnv, AmbientPlayerBotLlmCoordinator } from './ambient_bots/llm_coordinator';
+import { AmbientBotCodexCliProvider } from './ambient_bots/llm_provider';
 import { AmbientPlayerBotRuntime } from './ambient_bots/runtime';
 import { GameServer, type ClientSession } from './game';
 import { PgAmbientPlayerBotDb } from './ambient_player_bot_db';
@@ -199,6 +201,13 @@ const BLOCKED_IP_REFRESH_MS = 60_000;
 const game = new GameServer();
 const ambientPlayerBotDb = new PgAmbientPlayerBotDb(pool);
 const ambientPlayerBotExperimentEnabled = process.env.AMBIENT_PLAYER_BOTS_EXPERIMENT === '1';
+const ambientPlayerBotLlmConfig = ambientPlayerBotLlmConfigFromEnv();
+const ambientPlayerBotLlmCoordinator = ambientPlayerBotExperimentEnabled && ambientPlayerBotLlmConfig.enabled
+  ? new AmbientPlayerBotLlmCoordinator({
+    config: ambientPlayerBotLlmConfig,
+    provider: new AmbientBotCodexCliProvider(),
+  })
+  : null;
 const ambientPlayerBotRuntimeBaseUrl = `http://${ambientPlayerBotRuntimeHost(HOST)}:${PORT}`;
 const ambientPlayerBotRuntime = ambientPlayerBotExperimentEnabled
   ? new AmbientPlayerBotRuntime({
@@ -206,6 +215,8 @@ const ambientPlayerBotRuntime = ambientPlayerBotExperimentEnabled
     db: ambientPlayerBotDb,
     apiClient: new AmbientPlayerBotApiClient({ baseUrl: ambientPlayerBotRuntimeBaseUrl }),
     wsBaseUrl: ambientPlayerBotRuntimeBaseUrl.replace(/^http/i, 'ws'),
+    llmCoordinator: ambientPlayerBotLlmCoordinator,
+    llmConfig: ambientPlayerBotLlmConfig,
   })
   : null;
 
@@ -1650,6 +1661,7 @@ async function main(): Promise<void> {
     console.log('shutting down: saving characters...');
     clearInterval(wsHeartbeat);
     if (ambientPlayerBotRuntime) await ambientPlayerBotRuntime.stop();
+    ambientPlayerBotLlmCoordinator?.close();
     game.stop();
     await game.saveAll('shutdown');
     await game.saveMarket();

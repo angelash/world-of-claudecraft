@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
+import { AmbientPlayerBotLlmCoordinator } from '../server/ambient_bots/llm_coordinator';
 import { AmbientPlayerBotRuntime } from '../server/ambient_bots/runtime';
+import type { AmbientBotLlmProvider } from '../server/ambient_bots/llm_types';
 import type { AmbientBotPlanAction, AmbientPlayerBotRecord } from '../server/ambient_bots/types';
 import type { AmbientPlayerBotSocket } from '../server/ambient_bots/ws_client';
 
@@ -392,7 +394,7 @@ describe('AmbientPlayerBotRuntime', () => {
           assignedClusterId: 'eastbrook_vale:1',
           assignedPlayerCharacterId: 1,
           reservationUntilMs: 6_000,
-          profileId: 'eastbrook_vale_paladin_helper',
+          profileId: 'eastbrook_vale_paladin_quester',
           class: 'paladin',
         }),
       ]),
@@ -501,6 +503,222 @@ describe('AmbientPlayerBotRuntime', () => {
 
     await runtime.stop();
   });
+
+  it('applies llm plan summaries and llm whisper replies without breaking the runtime fallback path', async () => {
+    let nowMs = 5_000;
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'eastbrook_vale:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          profileId: 'eastbrook_vale_paladin_quester',
+          class: 'paladin',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const provider: AmbientBotLlmProvider = {
+      decide: vi.fn(async ({ promptText }) => {
+        const context = extractPromptContext(promptText);
+        const botRef = readRecord(context, 'botRef');
+        if (promptText.includes('AmbientBotPlanDecisionV1')) {
+          return {
+            value: {
+              schemaVersion: 1,
+              jobId: readString(context, 'jobId'),
+              botRef,
+              ttlMs: 120_000,
+              confidence: 0.9,
+              socialMode: 'friendly',
+              focusLabel: 'Wolves at the Door',
+              selfSummary: 'helping with the wolf quest route',
+              friendPolicy: 'ifAsked',
+              allowPresenceEmote: true,
+              audit: {
+                shortReason: 'starter helper plan',
+                safetyNotes: ['boundedPlan'],
+              },
+            },
+            promptText,
+            rawOutput: '{"kind":"plan"}',
+            providerTimings: { provider: 'test-provider', totalMs: 12, steps: [] },
+          };
+        }
+        return {
+          value: {
+            schemaVersion: 1,
+            jobId: readString(context, 'jobId'),
+            botRef,
+            targetName: readString(readRecord(context, 'whisper'), 'fromName'),
+            ttlMs: 30_000,
+            confidence: 0.88,
+            replyText: 'running the wolf quest route right now',
+            friendAction: 'none',
+            presenceEmote: 'none',
+            memoryTags: ['quest'],
+            audit: {
+              shortReason: 'quest reply',
+              usedPlayerInput: true,
+              safetyNotes: ['boundedReply'],
+            },
+          },
+          promptText,
+          rawOutput: '{"kind":"social"}',
+          providerTimings: { provider: 'test-provider', totalMs: 18, steps: [] },
+        };
+      }),
+    };
+    const llmCoordinator = new AmbientPlayerBotLlmCoordinator({
+      config: {
+        enabled: true,
+        planCooldownMs: 120_000,
+        socialCooldownMs: 45_000,
+        maxCalls5h: 20,
+        maxCallsWeek: 40,
+        cacheMaxEntries: 32,
+        cacheMaxTtlMs: 300_000,
+      },
+      provider,
+    });
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      llmCoordinator,
+      llmConfig: {
+        enabled: true,
+        planCooldownMs: 120_000,
+        socialCooldownMs: 45_000,
+        maxCalls5h: 20,
+        maxCallsWeek: 40,
+        cacheMaxEntries: 32,
+        cacheMaxTtlMs: 300_000,
+      },
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, {
+          self: {
+            id: 101,
+            x: 4,
+            z: 6,
+            lv: 1,
+            hp: 40,
+            mhp: 40,
+            res: 0,
+            mres: 0,
+            rtype: 'mana',
+            gcd: 0,
+            inv: [],
+            qlog: [],
+            qdone: [],
+            cds: {},
+          },
+          ents: [
+            { id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 },
+            { id: 201, k: 'player', nm: 'Aleph', x: 8, z: 6 },
+          ],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => nowMs,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'eastbrook_vale:1',
+      zoneId: 'eastbrook_vale',
+      targetCharacterId: 1,
+      reason: 'test login',
+    }]);
+
+    await vi.waitFor(() => {
+      expect(game.ambientPlayerBotDirectory()).toEqual([
+        expect.objectContaining({
+          runnerState: expect.objectContaining({
+            llmPlanMode: 'friendly',
+            llmPlanFocus: 'Wolves at the Door',
+          }),
+        }),
+      ]);
+    });
+
+    sockets[0]?.emitJson({
+      t: 'social',
+      friends: [],
+      blocks: [],
+      guild: null,
+    });
+    sockets[0]?.emitJson({
+      t: 'events',
+      list: [{
+        type: 'chat',
+        fromPid: 201,
+        from: 'Aleph',
+        text: 'hey, what are you doing?',
+        channel: 'whisper',
+        pid: 101,
+      }],
+    });
+    await vi.waitFor(() => {
+      expect(game.ambientPlayerBotDirectory()).toEqual([
+        expect.objectContaining({
+          socialState: expect.objectContaining({
+            contacts: expect.objectContaining({
+              Aleph: expect.objectContaining({
+                whispersReceived: 1,
+                whispersSent: 0,
+              }),
+            }),
+          }),
+          runnerState: expect.objectContaining({
+            socialPendingReplies: 1,
+            lastWhisperFrom: 'Aleph',
+            llmSocialStatus: 'accepted',
+          }),
+        }),
+      ]);
+    });
+
+    nowMs = 12_000;
+    await vi.waitFor(() => {
+      expect(game.ambientPlayerBotDirectory()).toEqual([
+        expect.objectContaining({
+          socialState: expect.objectContaining({
+            contacts: expect.objectContaining({
+              Aleph: expect.objectContaining({
+                whispersSent: 1,
+              }),
+            }),
+          }),
+          runnerState: expect.objectContaining({
+            socialPendingReplies: 0,
+            lastSocialAction: 'reply:Aleph',
+          }),
+        }),
+      ]);
+    });
+    const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; text?: string });
+    expect(sent?.some((message) =>
+      message.t === 'cmd'
+      && message.cmd === 'chat'
+      && message.text === '/w Aleph running the wolf quest route right now',
+    )).toBe(true);
+
+    await runtime.stop();
+  });
 });
 
 function cloneRecord(record: AmbientPlayerBotRecord): AmbientPlayerBotRecord {
@@ -512,4 +730,28 @@ function cloneRecord(record: AmbientPlayerBotRecord): AmbientPlayerBotRecord {
     runnerState: { ...record.runnerState },
     socialState: { ...record.socialState },
   };
+}
+
+function extractPromptContext(promptText: string): Record<string, unknown> {
+  const marker = 'Compact job JSON:\n';
+  const start = promptText.indexOf(marker);
+  if (start < 0) throw new Error('missing prompt context marker');
+  const after = promptText.slice(start + marker.length);
+  const end = after.indexOf('\n\nReturn only JSON.');
+  const jsonText = end >= 0 ? after.slice(0, end) : after;
+  return JSON.parse(jsonText) as Record<string, unknown>;
+}
+
+function readRecord(source: Record<string, unknown>, key: string): Record<string, unknown> {
+  const value = source[key];
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`missing record ${key}`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function readString(source: Record<string, unknown>, key: string): string {
+  const value = source[key];
+  if (typeof value !== 'string') throw new Error(`missing string ${key}`);
+  return value;
 }

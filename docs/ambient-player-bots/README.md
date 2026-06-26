@@ -38,6 +38,8 @@ Starter prompts:
   incoming whisper handling, lightweight relationship memory, and presence
   emotes.
 - `phase-10-qa-social-shell-memory.md` - Phase 9 QA prompt.
+- `phase-11-llm-social-plan-integration.md` - Phase 11 implementation prompt
+  for bounded LLM social stance, whisper replies, audit, and fallback paths.
 
 ## How to use this packet
 

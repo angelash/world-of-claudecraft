@@ -104,8 +104,8 @@ Deliverables:
 ### Phase 11, LLM social and plan integration
 
 Deliverables:
-- bounded `BotPlanDecisionV1`
-- bounded `BotSocialDecisionV1`
+- bounded `AmbientBotPlanDecisionV1`
+- bounded `AmbientBotSocialDecisionV1`
 - provider, prompt, validator, audit, and cache plumbing
 - budget guardrails and downgrade paths
 
@@ -136,3 +136,4 @@ Deliverables:
 - `phase-08-qa-human-cluster-orchestration.md`
 - `phase-09-social-shell-memory.md`
 - `phase-10-qa-social-shell-memory.md`
+- `phase-11-llm-social-plan-integration.md`

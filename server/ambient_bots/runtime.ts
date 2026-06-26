@@ -9,12 +9,19 @@ import { ambientBotProfileById } from './profiles';
 import {
   createAmbientPlayerBotSocialRuntimeState,
   tickAmbientPlayerBotSocialShell,
+  type AmbientPlayerBotPendingReply,
   type AmbientPlayerBotSocialRuntimeState,
 } from './social';
 import type { AmbientCreateCharacterResult, AmbientPlayerBotApi } from './api_client';
+import {
+  AmbientPlayerBotLlmCoordinator,
+  ambientPlayerBotLlmConfigFromEnv,
+  type AmbientPlayerBotLlmConfig,
+} from './llm_coordinator';
+import type { AmbientBotPlanDecisionV1 } from './llm_types';
 import { ambientBotAccountPassword, ambientBotAccountUsername, ambientBotCharacterName, ambientBotId } from './naming';
 import type { AmbientBotPlanAction, AmbientPlayerBotRecord } from './types';
-import { AmbientPlayerBotWsClient, type AmbientPlayerBotSocket } from './ws_client';
+import { AmbientPlayerBotWsClient, type AmbientPlayerBotLiveState, type AmbientPlayerBotSocket } from './ws_client';
 
 export interface AmbientPlayerBotRuntimeGame {
   replaceAmbientPlayerBotDirectory(records: readonly AmbientPlayerBotRecord[]): void;
@@ -35,6 +42,8 @@ export interface AmbientPlayerBotRuntimeOptions {
   db: AmbientPlayerBotRuntimeDb;
   apiClient: AmbientPlayerBotApi;
   wsBaseUrl: string;
+  llmCoordinator?: AmbientPlayerBotLlmCoordinator | null;
+  llmConfig?: AmbientPlayerBotLlmConfig | null;
   brainIntervalMs?: number;
   webSocketFactory?: (url: string) => AmbientPlayerBotSocket;
   nowMs?: () => number;
@@ -47,6 +56,11 @@ interface RunnerEntry {
   client: AmbientPlayerBotWsClient;
   brainState: AmbientPlayerBotBrainState;
   socialState: AmbientPlayerBotSocialRuntimeState;
+  llmPlan: AmbientBotPlanDecisionV1 | null;
+  llmPlanPending: boolean;
+  llmPlanRequestedAtMs: number | null;
+  llmLastPlanObjectiveKey: string | null;
+  llmLastSocialAtByName: Record<string, number>;
   connected: boolean;
   intentionalClose: boolean;
 }
@@ -56,6 +70,8 @@ export class AmbientPlayerBotRuntime {
   private readonly db: AmbientPlayerBotRuntimeDb;
   private readonly apiClient: AmbientPlayerBotApi;
   private readonly wsBaseUrl: string;
+  private readonly llmCoordinator: AmbientPlayerBotLlmCoordinator | null;
+  private readonly llmConfig: AmbientPlayerBotLlmConfig;
   private readonly brainIntervalMs: number;
   private readonly webSocketFactory?: (url: string) => AmbientPlayerBotSocket;
   private readonly nowMs: () => number;
@@ -73,6 +89,8 @@ export class AmbientPlayerBotRuntime {
     this.db = options.db;
     this.apiClient = options.apiClient;
     this.wsBaseUrl = options.wsBaseUrl.replace(/\/+$/, '');
+    this.llmCoordinator = options.llmCoordinator ?? null;
+    this.llmConfig = options.llmConfig ?? ambientPlayerBotLlmConfigFromEnv();
     this.brainIntervalMs = options.brainIntervalMs ?? 250;
     this.webSocketFactory = options.webSocketFactory;
     this.nowMs = options.nowMs ?? (() => Date.now());
@@ -93,6 +111,7 @@ export class AmbientPlayerBotRuntime {
         .then(() => this.handleActions(actions))
         .catch((error) => console.error('ambient bot runtime action failed:', error));
     });
+    if (this.llmConfig.enabled) this.llmCoordinator?.warmup();
     this.started = true;
     this.brainInterval = setInterval(() => {
       void this.runBrainLoop().catch((error) => console.error('ambient bot brain loop failed:', error));
@@ -230,6 +249,11 @@ export class AmbientPlayerBotRuntime {
       client,
       brainState: createAmbientPlayerBotBrainState(),
       socialState: createAmbientPlayerBotSocialRuntimeState(),
+      llmPlan: null,
+      llmPlanPending: false,
+      llmPlanRequestedAtMs: null,
+      llmLastPlanObjectiveKey: null,
+      llmLastSocialAtByName: {},
       connected: false,
       intentionalClose: false,
     };
@@ -350,6 +374,7 @@ export class AmbientPlayerBotRuntime {
           ambientBotNames: new Set(
             this.game.ambientPlayerBotDirectory().map((candidate) => candidate.characterName).filter(Boolean),
           ),
+          llmPlan: entry.llmPlan,
           nowMs: this.nowMs(),
         }, entry.socialState);
         for (const command of socialResult.commands) {
@@ -370,6 +395,12 @@ export class AmbientPlayerBotRuntime {
           objectiveLabel: result.objectiveLabel,
           campIndex: entry.brainState.campIndex,
           stuckResets: entry.brainState.stuckResets,
+          ...(entry.llmPlan
+            ? {
+              llmPlanMode: entry.llmPlan.socialMode,
+              llmPlanFocus: entry.llmPlan.focusLabel,
+            }
+            : {}),
           ...socialResult.runnerStatePatch,
         };
         let shouldPersist = false;
@@ -386,10 +417,159 @@ export class AmbientPlayerBotRuntime {
         if (shouldPersist) {
           await this.db.saveBot(latest);
         }
+        this.maybeQueuePlanDecision(botId, entry, latest, liveState, result.objectiveId, result.objectiveLabel);
+        this.maybeQueueSocialDecisions(botId, entry, latest, liveState);
       } catch (error) {
         console.error(`ambient bot brain tick failed for ${botId}:`, error);
       }
     }
+  }
+
+  private maybeQueuePlanDecision(
+    botId: string,
+    entry: RunnerEntry,
+    bot: AmbientPlayerBotRecord,
+    liveState: AmbientPlayerBotLiveState,
+    objectiveId: string,
+    objectiveLabel: string,
+  ): void {
+    if (!this.llmCoordinator || !this.llmConfig.enabled) return;
+    if (entry.llmPlanPending) return;
+    const nowMs = this.nowMs();
+    const objectiveKey = `${objectiveId}|${objectiveLabel}`;
+    const planExpired = !entry.llmPlanRequestedAtMs
+      || entry.llmPlanRequestedAtMs <= nowMs - this.llmConfig.planCooldownMs;
+    const planTtlExpired = entry.llmPlanRequestedAtMs !== null
+      && entry.llmPlan !== null
+      && entry.llmPlanRequestedAtMs + entry.llmPlan.ttlMs <= nowMs;
+    if (
+      entry.llmPlan
+      && !planExpired
+      && !planTtlExpired
+      && entry.llmLastPlanObjectiveKey === objectiveKey
+    ) {
+      return;
+    }
+    entry.llmPlanPending = true;
+    entry.llmPlanRequestedAtMs = nowMs;
+    const priorPlan = entry.llmPlan ? clonePlan(entry.llmPlan) : null;
+    void this.llmCoordinator.decidePlan({
+      bot,
+      liveState,
+      objectiveId,
+      objectiveLabel,
+      priorPlan,
+      nowMs,
+    }).then(async (result) => {
+      const liveEntry = this.runners.get(botId);
+      if (!liveEntry) return;
+      liveEntry.llmPlanPending = false;
+      liveEntry.llmLastPlanObjectiveKey = objectiveKey;
+      if ((result.status === 'accepted' || result.status === 'cache_hit') && result.decision) {
+        liveEntry.llmPlan = result.decision;
+      }
+      await this.persistLlmAudit(botId, {
+        llmPlanStatus: result.status,
+        llmPlanReason: result.audit.reason,
+        llmPlanProvider: result.audit.provider,
+        llmPlanLatencyMs: result.audit.latencyMs,
+        llmPlanPrompt: result.audit.promptText,
+        llmPlanRawOutput: result.audit.rawOutput,
+        ...(liveEntry.llmPlan
+          ? {
+            llmPlanMode: liveEntry.llmPlan.socialMode,
+            llmPlanFocus: liveEntry.llmPlan.focusLabel,
+          }
+          : {}),
+      });
+    }).catch(async (error) => {
+      const liveEntry = this.runners.get(botId);
+      if (liveEntry) liveEntry.llmPlanPending = false;
+      await this.persistLlmAudit(botId, {
+        llmPlanStatus: 'error',
+        llmPlanReason: error instanceof Error ? error.message : String(error),
+      });
+    });
+  }
+
+  private maybeQueueSocialDecisions(
+    botId: string,
+    entry: RunnerEntry,
+    bot: AmbientPlayerBotRecord,
+    liveState: AmbientPlayerBotLiveState,
+  ): void {
+    if (!this.llmCoordinator || !this.llmConfig.enabled) return;
+    const nowMs = this.nowMs();
+    for (const reply of entry.socialState.pendingReplies) {
+      if (reply.llmStatus && reply.llmStatus !== 'idle') continue;
+      const lastAt = entry.llmLastSocialAtByName[reply.toName] ?? Number.NEGATIVE_INFINITY;
+      if (lastAt > nowMs - this.llmConfig.socialCooldownMs) {
+        reply.llmStatus = 'disabled';
+        continue;
+      }
+      reply.llmStatus = 'pending';
+      reply.llmRequestedAtMs = nowMs;
+      entry.llmLastSocialAtByName[reply.toName] = nowMs;
+      const snapshot = clonePendingReply(reply);
+      void this.llmCoordinator.decideSocial({
+        bot,
+        liveState,
+        pendingReply: snapshot,
+        plan: entry.llmPlan ? clonePlan(entry.llmPlan) : null,
+        nowMs,
+      }).then(async (result) => {
+        const liveEntry = this.runners.get(botId);
+        if (!liveEntry) return;
+        const pending = liveEntry.socialState.pendingReplies.find(
+          (candidate) => candidate.toName === snapshot.toName && candidate.revision === snapshot.revision,
+        );
+        if (pending) {
+          pending.llmStatus = result.status === 'accepted' || result.status === 'cache_hit'
+            ? 'ready'
+            : result.status;
+          if ((result.status === 'accepted' || result.status === 'cache_hit') && result.decision) {
+            pending.llmReplyText = result.decision.replyText;
+            pending.llmFriendAction = result.decision.friendAction;
+            pending.llmPresenceEmote = result.decision.presenceEmote;
+            pending.llmMemoryTags = [...result.decision.memoryTags];
+          }
+        }
+        await this.persistLlmAudit(botId, {
+          llmSocialStatus: result.status,
+          llmSocialReason: result.audit.reason,
+          llmSocialProvider: result.audit.provider,
+          llmSocialLatencyMs: result.audit.latencyMs,
+          llmSocialTarget: snapshot.toName,
+          llmSocialPrompt: result.audit.promptText,
+          llmSocialRawOutput: result.audit.rawOutput,
+        });
+      }).catch(async (error) => {
+        const liveEntry = this.runners.get(botId);
+        const pending = liveEntry?.socialState.pendingReplies.find(
+          (candidate) => candidate.toName === snapshot.toName && candidate.revision === snapshot.revision,
+        );
+        if (pending) pending.llmStatus = 'error';
+        await this.persistLlmAudit(botId, {
+          llmSocialStatus: 'error',
+          llmSocialReason: error instanceof Error ? error.message : String(error),
+          llmSocialTarget: snapshot.toName,
+        });
+      });
+    }
+  }
+
+  private async persistLlmAudit(
+    botId: string,
+    patch: Record<string, unknown>,
+  ): Promise<void> {
+    const record = this.game.ambientPlayerBotRecord(botId);
+    if (!record) return;
+    record.runnerState = {
+      ...record.runnerState,
+      ...patch,
+    };
+    this.game.upsertAmbientPlayerBotRecord(record);
+    await this.db.saveBot(record);
   }
 }
 
@@ -433,4 +613,22 @@ function sameJsonRecord(
   next: Record<string, unknown>,
 ): boolean {
   return JSON.stringify(current) === JSON.stringify(next);
+}
+
+function clonePlan(value: AmbientBotPlanDecisionV1): AmbientBotPlanDecisionV1 {
+  return {
+    ...value,
+    botRef: { ...value.botRef },
+    audit: {
+      shortReason: value.audit.shortReason,
+      safetyNotes: [...value.audit.safetyNotes],
+    },
+  };
+}
+
+function clonePendingReply(value: AmbientPlayerBotPendingReply): AmbientPlayerBotPendingReply {
+  return {
+    ...value,
+    ...(value.llmMemoryTags ? { llmMemoryTags: [...value.llmMemoryTags] } : {}),
+  };
 }
