@@ -141,6 +141,10 @@ class FakeSocket implements AmbientPlayerBotSocket {
     this.emitClose(1006, Buffer.alloc(0));
   }
 
+  emitJson(payload: unknown): void {
+    this.emitMessage(JSON.stringify(payload));
+  }
+
   private emitOpen(): void {
     for (const listener of this.openListeners) listener();
   }
@@ -371,6 +375,129 @@ describe('AmbientPlayerBotRuntime', () => {
         }),
       }),
     ]);
+
+    await runtime.stop();
+  });
+
+  it('processes social snapshots and whisper replies through the runtime loop', async () => {
+    let nowMs = 5_000;
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const saved: AmbientPlayerBotRecord[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'eastbrook_vale:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          profileId: 'eastbrook_vale_paladin_helper',
+          class: 'paladin',
+        }),
+      ]),
+      saveBot: vi.fn(async (record: AmbientPlayerBotRecord) => {
+        saved.push(cloneRecord(record));
+      }),
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, {
+          self: {
+            id: 101,
+            x: 4,
+            z: 6,
+            lv: 1,
+            hp: 40,
+            mhp: 40,
+            res: 0,
+            mres: 0,
+            rtype: 'rage',
+            gcd: 0,
+            inv: [],
+            qlog: [],
+            qdone: [],
+            cds: {},
+          },
+          ents: [],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => nowMs,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'eastbrook_vale:1',
+      zoneId: 'eastbrook_vale',
+      targetCharacterId: 1,
+      reason: 'test login',
+    }]);
+
+    await vi.waitFor(() => {
+      expect(sockets).toHaveLength(1);
+    });
+
+    sockets[0]?.emitJson({
+      t: 'social',
+      friends: [],
+      blocks: [],
+      guild: null,
+    });
+    sockets[0]?.emitJson({
+      t: 'events',
+      list: [{
+        type: 'chat',
+        fromPid: 201,
+        from: 'Aleph',
+        text: 'hey, what are you doing?',
+        channel: 'whisper',
+        pid: 101,
+      }],
+    });
+
+    await vi.waitFor(() => {
+      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; name?: string });
+      expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'friend_add' && message.name === 'Aleph')).toBe(true);
+    });
+
+    nowMs = 12_000;
+    await vi.waitFor(() => {
+      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; text?: string });
+      expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'chat' && message.text?.startsWith('/w Aleph '))).toBe(true);
+    });
+
+    expect(game.ambientPlayerBotDirectory()).toEqual([
+      expect.objectContaining({
+        socialState: expect.objectContaining({
+          contacts: expect.objectContaining({
+            Aleph: expect.objectContaining({
+              whispersReceived: 1,
+              whispersSent: 1,
+            }),
+          }),
+        }),
+        runnerState: expect.objectContaining({
+          socialPendingReplies: 0,
+          socialFriends: 0,
+          socialBlocks: 0,
+          lastWhisperFrom: 'Aleph',
+        }),
+      }),
+    ]);
+    expect(saved.some((record) => Object.keys(record.socialState).length > 0)).toBe(true);
 
     await runtime.stop();
   });

@@ -134,3 +134,5 @@ Deliverables:
 - `phase-06-qa-progression-brain.md`
 - `phase-07-human-cluster-orchestration.md`
 - `phase-08-qa-human-cluster-orchestration.md`
+- `phase-09-social-shell-memory.md`
+- `phase-10-qa-social-shell-memory.md`

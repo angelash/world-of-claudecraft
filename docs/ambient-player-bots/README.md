@@ -34,6 +34,10 @@ Starter prompts:
 - `phase-07-human-cluster-orchestration.md` - Phase 7 implementation prompt for
   stable human-cluster continuity, bot handoff, and population load-shedding.
 - `phase-08-qa-human-cluster-orchestration.md` - Phase 7 QA prompt.
+- `phase-09-social-shell-memory.md` - Phase 9 implementation prompt for
+  incoming whisper handling, lightweight relationship memory, and presence
+  emotes.
+- `phase-10-qa-social-shell-memory.md` - Phase 9 QA prompt.
 
 ## How to use this packet
 

@@ -1,3 +1,4 @@
+import type { SimEvent } from '../../src/sim/types';
 import WebSocket from 'ws';
 
 const DELTA_SELF_KEYS = [
@@ -37,11 +38,45 @@ export interface AmbientPlayerBotWireSelf {
   [key: string]: unknown;
 }
 
+export type AmbientPlayerBotPresenceStatus = 'online' | 'combat' | 'dungeon' | 'dead';
+
+export interface AmbientPlayerBotFriendInfo {
+  id: number;
+  name: string;
+  cls: string;
+  level: number;
+  realm: string;
+  online: boolean;
+  zone?: string;
+  status?: AmbientPlayerBotPresenceStatus;
+  x?: number;
+  z?: number;
+}
+
+export interface AmbientPlayerBotBlockInfo {
+  id: number;
+  name: string;
+}
+
+export interface AmbientPlayerBotGuildInfo {
+  id: number;
+  name: string;
+  rank: string;
+  members: AmbientPlayerBotFriendInfo[];
+}
+
+export interface AmbientPlayerBotSocialInfo {
+  friends: AmbientPlayerBotFriendInfo[];
+  blocks: AmbientPlayerBotBlockInfo[];
+  guild: AmbientPlayerBotGuildInfo | null;
+}
+
 export interface AmbientPlayerBotLiveState {
   pid: number;
   seed: number | null;
   self: AmbientPlayerBotWireSelf | null;
   entities: Map<number, Record<string, unknown>>;
+  social?: AmbientPlayerBotSocialInfo | null;
 }
 
 export interface AmbientPlayerBotWsClientOptions {
@@ -71,6 +106,8 @@ export class AmbientPlayerBotWsClient {
   private seed: number | null = null;
   private self: AmbientPlayerBotWireSelf | null = null;
   private entities = new Map<number, Record<string, unknown>>();
+  private social: AmbientPlayerBotSocialInfo | null = null;
+  private eventQueue: SimEvent[] = [];
 
   constructor(options: AmbientPlayerBotWsClientOptions) {
     this.wsBaseUrl = options.wsBaseUrl.replace(/\/+$/, '');
@@ -126,6 +163,18 @@ export class AmbientPlayerBotWsClient {
           this.onSnapshot?.(this.state());
           return;
         }
+        if (msg.t === 'events') {
+          this.eventQueue.push(...normalizeEventList(msg.list));
+          return;
+        }
+        if (msg.t === 'social') {
+          this.social = normalizeSocialInfo(msg);
+          return;
+        }
+        if (msg.t === 'socialpos') {
+          this.social = mergeSocialPositions(this.social, msg.list);
+          return;
+        }
         if (msg.t === 'error') {
           finish(() => reject(new Error(typeof msg.error === 'string' ? msg.error : 'ambient bot ws error')));
         }
@@ -147,7 +196,14 @@ export class AmbientPlayerBotWsClient {
       seed: this.seed,
       self: this.self ? { ...this.self } : null,
       entities: new Map(this.entities),
+      social: cloneSocialInfo(this.social),
     };
+  }
+
+  drainEvents(): SimEvent[] {
+    const drained = this.eventQueue;
+    this.eventQueue = [];
+    return drained.map((event) => ({ ...event }));
   }
 
   command(payload: Record<string, unknown>): void {
@@ -206,4 +262,141 @@ export function mergeEntities(
     if (prior) next.set(id, { ...prior });
   }
   return next;
+}
+
+function normalizeEventList(value: unknown): SimEvent[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is SimEvent => !!entry && typeof entry === 'object');
+}
+
+function normalizeSocialInfo(value: Record<string, unknown>): AmbientPlayerBotSocialInfo {
+  return {
+    friends: normalizeFriendList(value.friends),
+    blocks: normalizeBlockList(value.blocks),
+    guild: normalizeGuild(value.guild),
+  };
+}
+
+function normalizeFriendList(value: unknown): AmbientPlayerBotFriendInfo[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => normalizeFriend(entry))
+    .filter((entry): entry is AmbientPlayerBotFriendInfo => entry !== null);
+}
+
+function normalizeFriend(value: unknown): AmbientPlayerBotFriendInfo | null {
+  if (!value || typeof value !== 'object') return null;
+  const row = value as Record<string, unknown>;
+  const id = finiteNumber(row.id);
+  const name = typeof row.name === 'string' ? row.name : '';
+  const cls = typeof row.cls === 'string' ? row.cls : '';
+  const level = finiteNumber(row.level);
+  const realm = typeof row.realm === 'string' ? row.realm : '';
+  const online = typeof row.online === 'boolean' ? row.online : false;
+  if (id === null || !name || !cls || level === null || !realm) return null;
+  return {
+    id,
+    name,
+    cls,
+    level,
+    realm,
+    online,
+    ...(typeof row.zone === 'string' ? { zone: row.zone } : {}),
+    ...(presenceStatusValue(row.status) ? { status: row.status as AmbientPlayerBotPresenceStatus } : {}),
+    ...(finiteNumber(row.x) !== null ? { x: finiteNumber(row.x) as number } : {}),
+    ...(finiteNumber(row.z) !== null ? { z: finiteNumber(row.z) as number } : {}),
+  };
+}
+
+function normalizeBlockList(value: unknown): AmbientPlayerBotBlockInfo[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => normalizeBlock(entry))
+    .filter((entry): entry is AmbientPlayerBotBlockInfo => entry !== null);
+}
+
+function normalizeBlock(value: unknown): AmbientPlayerBotBlockInfo | null {
+  if (!value || typeof value !== 'object') return null;
+  const row = value as Record<string, unknown>;
+  const id = finiteNumber(row.id);
+  const name = typeof row.name === 'string' ? row.name : '';
+  if (id === null || !name) return null;
+  return { id, name };
+}
+
+function normalizeGuild(value: unknown): AmbientPlayerBotGuildInfo | null {
+  if (!value || typeof value !== 'object') return null;
+  const row = value as Record<string, unknown>;
+  const id = finiteNumber(row.id);
+  const name = typeof row.name === 'string' ? row.name : '';
+  const rank = typeof row.rank === 'string' ? row.rank : '';
+  const members = normalizeFriendList(row.members);
+  if (id === null || !name || !rank) return null;
+  return { id, name, rank, members };
+}
+
+function mergeSocialPositions(
+  current: AmbientPlayerBotSocialInfo | null,
+  value: unknown,
+): AmbientPlayerBotSocialInfo | null {
+  if (!current || !Array.isArray(value)) return current;
+  const byId = new Map<number, {
+    x?: number;
+    z?: number;
+    zone?: string;
+    status?: AmbientPlayerBotPresenceStatus;
+  }>();
+  for (const entry of value) {
+    if (!entry || typeof entry !== 'object') continue;
+    const row = entry as Record<string, unknown>;
+    const id = finiteNumber(row.id);
+    if (id === null) continue;
+    byId.set(id, {
+      ...(finiteNumber(row.x) !== null ? { x: finiteNumber(row.x) as number } : {}),
+      ...(finiteNumber(row.z) !== null ? { z: finiteNumber(row.z) as number } : {}),
+      ...(typeof row.zone === 'string' ? { zone: row.zone } : {}),
+      ...(presenceStatusValue(row.status) ? { status: row.status as AmbientPlayerBotPresenceStatus } : {}),
+    });
+  }
+  const apply = (friends: AmbientPlayerBotFriendInfo[]) => friends.map((friend) => {
+    const update = byId.get(friend.id);
+    if (!update) return friend;
+    return {
+      ...friend,
+      ...update,
+      online: true,
+    };
+  });
+  return {
+    friends: apply(current.friends),
+    blocks: current.blocks.map((block) => ({ ...block })),
+    guild: current.guild
+      ? {
+        ...current.guild,
+        members: apply(current.guild.members),
+      }
+      : null,
+  };
+}
+
+function cloneSocialInfo(value: AmbientPlayerBotSocialInfo | null): AmbientPlayerBotSocialInfo | null {
+  if (!value) return null;
+  return {
+    friends: value.friends.map((friend) => ({ ...friend })),
+    blocks: value.blocks.map((block) => ({ ...block })),
+    guild: value.guild
+      ? {
+        ...value.guild,
+        members: value.guild.members.map((member) => ({ ...member })),
+      }
+      : null,
+  };
+}
+
+function presenceStatusValue(value: unknown): value is AmbientPlayerBotPresenceStatus {
+  return value === 'online' || value === 'combat' || value === 'dungeon' || value === 'dead';
+}
+
+function finiteNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }

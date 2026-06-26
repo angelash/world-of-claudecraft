@@ -6,6 +6,11 @@ import {
   type AmbientPlayerBotBrainState,
 } from './brain';
 import { ambientBotProfileById } from './profiles';
+import {
+  createAmbientPlayerBotSocialRuntimeState,
+  tickAmbientPlayerBotSocialShell,
+  type AmbientPlayerBotSocialRuntimeState,
+} from './social';
 import type { AmbientCreateCharacterResult, AmbientPlayerBotApi } from './api_client';
 import { ambientBotAccountPassword, ambientBotAccountUsername, ambientBotCharacterName, ambientBotId } from './naming';
 import type { AmbientBotPlanAction, AmbientPlayerBotRecord } from './types';
@@ -41,6 +46,7 @@ export interface AmbientPlayerBotRuntimeOptions {
 interface RunnerEntry {
   client: AmbientPlayerBotWsClient;
   brainState: AmbientPlayerBotBrainState;
+  socialState: AmbientPlayerBotSocialRuntimeState;
   connected: boolean;
   intentionalClose: boolean;
 }
@@ -223,6 +229,7 @@ export class AmbientPlayerBotRuntime {
     const entry: RunnerEntry = {
       client,
       brainState: createAmbientPlayerBotBrainState(),
+      socialState: createAmbientPlayerBotSocialRuntimeState(),
       connected: false,
       intentionalClose: false,
     };
@@ -326,6 +333,7 @@ export class AmbientPlayerBotRuntime {
       try {
         const liveState = entry.client.state();
         if (!liveState.self) continue;
+        const recentEvents = entry.client.drainEvents();
         const result = tickAmbientPlayerBotBrain({
           bot: record,
           liveState,
@@ -335,6 +343,25 @@ export class AmbientPlayerBotRuntime {
         entry.client.input(result.moveInput, result.facing);
         const latest = this.game.ambientPlayerBotRecord(botId);
         if (!latest) continue;
+        const socialResult = tickAmbientPlayerBotSocialShell({
+          bot: latest,
+          liveState,
+          recentEvents,
+          ambientBotNames: new Set(
+            this.game.ambientPlayerBotDirectory().map((candidate) => candidate.characterName).filter(Boolean),
+          ),
+          nowMs: this.nowMs(),
+        }, entry.socialState);
+        for (const command of socialResult.commands) {
+          switch (command.type) {
+            case 'chat':
+              entry.client.command({ cmd: 'chat', text: command.text });
+              break;
+            case 'friendAdd':
+              entry.client.command({ cmd: 'friend_add', name: command.name });
+              break;
+          }
+        }
         const nextRunnerState = {
           ...latest.runnerState,
           pid: liveState.pid,
@@ -343,10 +370,21 @@ export class AmbientPlayerBotRuntime {
           objectiveLabel: result.objectiveLabel,
           campIndex: entry.brainState.campIndex,
           stuckResets: entry.brainState.stuckResets,
+          ...socialResult.runnerStatePatch,
         };
+        let shouldPersist = false;
+        if (!sameJsonRecord(latest.socialState, socialResult.socialState)) {
+          latest.socialState = socialResult.socialState;
+          shouldPersist = socialResult.shouldPersist;
+        }
         if (!sameRunnerState(latest.runnerState, nextRunnerState)) {
           latest.runnerState = nextRunnerState;
+        }
+        if (!sameRunnerState(record.runnerState, latest.runnerState) || !sameJsonRecord(record.socialState, latest.socialState)) {
           this.game.upsertAmbientPlayerBotRecord(latest);
+        }
+        if (shouldPersist) {
+          await this.db.saveBot(latest);
         }
       } catch (error) {
         console.error(`ambient bot brain tick failed for ${botId}:`, error);
@@ -388,4 +426,11 @@ function sameRunnerState(
     if (!Object.is(current[key], next[key])) return false;
   }
   return true;
+}
+
+function sameJsonRecord(
+  current: Record<string, unknown>,
+  next: Record<string, unknown>,
+): boolean {
+  return JSON.stringify(current) === JSON.stringify(next);
 }
