@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: 16
-- phase status: Phase 16 complete, awaiting explicit packet-teardown approval
+- current phase: continuation 01
+- phase status: Continuation 01 implementation complete, Continuation 01 QA next, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -199,6 +199,25 @@
 - `docs/ambient-player-bots/rollout-handoff.md`
 - `docs/ambient-player-bots/qa-checklist.md`
 
+### Continuation 01
+
+- `server/ambient_bots/brain.ts`
+- `server/ambient_bots/naming.ts`
+- `server/ambient_bots/progression_routes.ts`
+- `tests/ambient_player_bot_brain.test.ts`
+- `tests/ambient_player_bot_naming.test.ts`
+- `docs/ambient-player-bots/continuation-01-expanded-solo-progression.md`
+- `docs/ambient-player-bots/continuation-01-qa-expanded-solo-progression.md`
+
+### Continuation 02
+
+- `server/ambient_bots/brain.ts`
+- `server/ambient_bots/runtime.ts`
+- `tests/ambient_player_bot_brain.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `docs/ambient-player-bots/continuation-02-object-interaction-progression.md`
+- `docs/ambient-player-bots/continuation-02-qa-object-interaction-progression.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -249,9 +268,16 @@
 - later extraction of the real runner into a sibling service or dedicated worker
   host is still open if scale demands it, but the Phase 3 shipping slice now
   runs in the same process family
-- the current progression brain covers the Eastbrook starter quest and then
-  falls back to low-risk grinding. Follow-on quest chains, replenishment buys,
-  and higher-level routing remain future work
+- Continuation 01 reopens the packet because the original local runtime and
+  operator ladder did not yet satisfy the broader "play through the game"
+  progression goal
+- the current progression brain now covers the Eastbrook solo kill chain
+  through `q_ringleader`, not just `q_wolves`
+- local `pg-mem` live verification now reaches a real ambient bot session after
+  a human logs in, and the runtime exposes a real objective such as
+  `accept_wolves` through the admin diagnostics surface
+- object and collection quests such as `q_supplies`, Brother Aldric's object
+  chain, town resupply logic, and higher-zone routing remain open
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit
@@ -281,9 +307,8 @@
   smoke now passes end to end on this workstation without Docker or Postgres.
   A separate staging or production smoke is still an operational follow-up when
   such an environment is available, not a packet blocker.
-- packet teardown is the only remaining ambient-bot packet decision: keep or
-  remove `docs/ambient-player-bots/` before the PR, but only on explicit user
-  confirmation
+- packet teardown is deferred until the continuation ladder closes and still
+  requires explicit user confirmation before removal
 - repo-wide `npx tsc --noEmit` is currently red for unrelated pre-existing
   issues outside this feature slice. The current baseline includes existing
   errors in `server/ai/active_triggers.ts`, `server/game.ts`, `src/ui/hud.ts`,

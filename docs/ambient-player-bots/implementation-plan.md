@@ -1,7 +1,10 @@
 # Implementation Plan: Ambient Player Bots
 
 This packet builds the ambient player bot system in thin, reviewable slices.
-Every implementation phase is followed immediately by a QA phase.
+Every implementation phase is followed immediately by a QA phase. The original
+phase ladder reached a local release-readiness checkpoint at Phase 16.
+Post-packet continuation slices now carry the longer-horizon progression goal
+forward.
 
 ## Canonical workflow
 
@@ -48,6 +51,15 @@ Step 4, update docs and commit:
 | 14 | QA | Verify Phase 13 | operator workflows, runtime visibility, fail-safe behavior |
 | 15 | impl | Live readiness and smoke automation | end-to-end scripts, staging checklist, rollout plan |
 | 16 | QA | Final QA and teardown offer | full-stack gate, packet cleanup decision |
+
+## Post-packet continuation ladder
+
+| Continuation | Type | Title | Main outcome |
+|---|---|---|---|
+| 01 | impl | Expanded solo progression | route-driven Eastbrook kill-quest chain beyond `q_wolves` |
+| 01 QA | QA | Verify continuation 01 | route order, hunt discipline, test coverage |
+| 02 | impl | Object interaction progression | collection, pickup, and interact quest support |
+| 02 QA | QA | Verify continuation 02 | object-route correctness, no regressions in kill routes |
 
 ## Phase details
 
@@ -124,6 +136,24 @@ Deliverables:
 - chaos and recovery drills
 - rollout checklist and operator handoff
 
+## Continuation details
+
+### Continuation 01, Expanded solo progression
+
+Deliverables:
+- a quest-route registry for early solo progression
+- Eastbrook kill-route coverage through `q_ringleader`
+- quest-specific hunt discipline with explicit fallback rules
+- focused brain regressions for new accept and turn-in paths
+
+### Continuation 02, Object interaction progression
+
+Deliverables:
+- object and ground-item route support
+- `q_supplies` collection flow
+- first Brother Aldric interaction-chain support
+- regressions that cover non-kill objective handling
+
 ## Current starter prompts
 
 - `phase-01-foundation.md`
@@ -142,3 +172,7 @@ Deliverables:
 - `phase-14-qa-admin-telemetry-incident-controls.md`
 - `phase-15-live-readiness-smoke-automation.md`
 - `phase-16-final-qa-teardown.md`
+- `continuation-01-expanded-solo-progression.md`
+- `continuation-01-qa-expanded-solo-progression.md`
+- `continuation-02-object-interaction-progression.md`
+- `continuation-02-qa-object-interaction-progression.md`

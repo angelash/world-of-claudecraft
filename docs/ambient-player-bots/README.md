@@ -6,8 +6,10 @@ small population of believable nearby adventurers who log in, move, quest,
 fight, level, drift away, and get replaced naturally. Later phases add social
 behavior, friends, whispers, and bounded LLM-backed conversation.
 
-This is cross-session scaffolding, not a shipping artifact. The final QA phase
-offers to delete this directory before the PR.
+The original Phase 16 checkpoint closed the first local runtime and operator
+readiness ladder. The broader "play through the game" goal is still open, so
+this packet now continues with post-packet progression slices. This is still
+cross-session scaffolding, not a shipping artifact.
 
 ## Index
 
@@ -51,8 +53,18 @@ Starter prompts:
   operator workflows, fail-safe pauses, and logout-all behavior.
 - `phase-15-live-readiness-smoke-automation.md` - Phase 15 implementation
   prompt for real-admin smoke tooling and rollout handoff docs.
-- `phase-16-final-qa-teardown.md` - final QA prompt for live smoke, final gate,
-  and teardown decision.
+- `phase-16-final-qa-teardown.md` - historical Phase 16 QA checkpoint for live
+  smoke, local release gate, and the first teardown decision.
+
+Post-packet continuation prompts:
+- `continuation-01-expanded-solo-progression.md` - extend the real progression
+  brain from the first wolf quest into the broader Eastbrook solo kill chain.
+- `continuation-01-qa-expanded-solo-progression.md` - QA prompt for
+  continuation 01.
+- `continuation-02-object-interaction-progression.md` - add object, ground
+  item, and non-kill quest interaction support for the next progression gap.
+- `continuation-02-qa-object-interaction-progression.md` - QA prompt for
+  continuation 02.
 
 ## How to use this packet
 

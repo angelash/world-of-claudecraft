@@ -1,7 +1,7 @@
 import type { KnownAbility } from '../../src/sim/content/classes';
 import type { TalentAllocation } from '../../src/sim/content/talents';
 import { computeTalentModifiers } from '../../src/sim/content/talents';
-import { CAMPS, CLASSES, ITEMS, NPCS, abilitiesKnownAt } from '../../src/sim/data';
+import { CAMPS, CLASSES, ITEMS, MOBS, NPCS, QUESTS, abilitiesKnownAt } from '../../src/sim/data';
 import { findPlayerPath, resolvePlayerDestination } from '../../src/sim/pathfind';
 import {
   INTERACT_RANGE,
@@ -13,6 +13,11 @@ import {
 } from '../../src/sim/types';
 import type { AmbientPlayerBotRecord } from './types';
 import type { AmbientPlayerBotLiveState } from './ws_client';
+import {
+  AMBIENT_BOT_SOLO_QUEST_ROUTES,
+  type AmbientBotPoint2d,
+  type AmbientBotQuestRoute,
+} from './progression_routes';
 
 const DEFAULT_WORLD_SEED = 20_061;
 const PATH_NODE_REACHED_RANGE = 2.2;
@@ -24,17 +29,12 @@ const NO_TARGET_ROTATE_MS = 5_000;
 const COMMAND_COOLDOWN_MS = 900;
 const RECOVERY_HP_THRESHOLD = 0.55;
 const RECOVERY_MANA_THRESHOLD = 0.45;
-const STARTER_QUEST_ID = 'q_wolves';
-const STARTER_QUEST_GIVER_ID = 'marshal_redbrook';
-const STARTER_VENDOR_ID = 'trader_wilkes';
+const JUNK_VENDOR_NPC_ID = 'trader_wilkes';
 
 type BrainCommand = Record<string, unknown>;
 type MoveInputPayload = Record<string, 1>;
 
-interface BotPoint2d {
-  x: number;
-  z: number;
-}
+type BotPoint2d = AmbientBotPoint2d;
 
 interface BotVec3 extends BotPoint2d {
   y: number;
@@ -80,18 +80,12 @@ interface BotWorldView {
 }
 
 interface AmbientBotObjective {
-  id:
-    | 'release'
-    | 'recover'
-    | 'accept_wolves'
-    | 'hunt_wolves'
-    | 'turnin_wolves'
-    | 'sell_junk'
-    | 'grind';
+  id: string;
   label: string;
   mobId?: string;
   camps?: readonly BotPoint2d[];
   npcTemplateId?: string;
+  allowAnyHostileFallback?: boolean;
 }
 
 export interface AmbientPlayerBotBrainState {
@@ -129,10 +123,6 @@ interface CombatAbility {
   castTime: number;
   cost: number;
 }
-
-const WOLF_CAMPS = campsFor('forest_wolf');
-const BOAR_CAMPS = campsFor('wild_boar');
-const SPIDER_CAMPS = campsFor('webwood_spider');
 
 export function createAmbientPlayerBotBrainState(): AmbientPlayerBotBrainState {
   return {
@@ -188,79 +178,114 @@ export function tickAmbientPlayerBotBrain(
     return finalizeStep(state, input, view, objective, threatStep);
   }
 
-  switch (objective.id) {
-    case 'recover':
-      return finalizeStep(state, input, view, objective, idleStep(objective.id, objective.label));
-    case 'accept_wolves':
-    case 'turnin_wolves':
-      return finalizeStep(
-        state,
-        input,
-        view,
-        objective,
-        interactWithNpc(view, state, input, objective),
-      );
-    case 'sell_junk':
-      return finalizeStep(
-        state,
-        input,
-        view,
-        objective,
-        sellJunkAtVendor(view, state, input, objective),
-      );
-    case 'hunt_wolves':
-    case 'grind':
-      return finalizeStep(
-        state,
-        input,
-        view,
-        objective,
-        huntMob(view, input, state, objective),
-      );
+  if (objective.id === 'recover') {
+    return finalizeStep(state, input, view, objective, idleStep(objective.id, objective.label));
   }
+  if (objective.id === 'sell_junk') {
+    return finalizeStep(
+      state,
+      input,
+      view,
+      objective,
+      sellJunkAtVendor(view, state, input, objective),
+    );
+  }
+  if (objective.mobId) {
+    return finalizeStep(
+      state,
+      input,
+      view,
+      objective,
+      huntMob(view, input, state, objective),
+    );
+  }
+  if (objective.npcTemplateId) {
+    return finalizeStep(
+      state,
+      input,
+      view,
+      objective,
+      interactWithNpc(view, state, input, objective),
+    );
+  }
+  return finalizeStep(state, input, view, objective, idleStep(objective.id, objective.label));
 }
 
 function chooseObjective(view: BotWorldView): AmbientBotObjective {
   if (view.self.hp <= 0) return { id: 'release', label: 'Releasing spirit' };
 
-  const quest = view.self.questLog.get(STARTER_QUEST_ID);
-  if (view.self.questsDone.has(STARTER_QUEST_ID) || quest?.state === 'done') {
-    if (inventoryHasJunk(view.self.inventory)) {
-      return {
-        id: 'sell_junk',
-        label: 'Vendoring poor-quality loot',
-        npcTemplateId: STARTER_VENDOR_ID,
-      };
-    }
-    const grind = grindRouteForLevel(view.self.level);
+  const questObjective = chooseQuestObjective(view);
+  if (questObjective) return questObjective;
+
+  if (inventoryHasJunk(view.self.inventory)) {
     return {
-      id: 'grind',
-      label: `Grinding ${displayMobName(grind.mobId)}`,
-      mobId: grind.mobId,
-      camps: grind.camps,
+      id: 'sell_junk',
+      label: 'Vendoring poor-quality loot',
+      npcTemplateId: JUNK_VENDOR_NPC_ID,
     };
   }
 
-  if (quest?.state === 'ready') {
-    return {
-      id: 'turnin_wolves',
-      label: 'Turning in Wolves at the Door',
-      npcTemplateId: STARTER_QUEST_GIVER_ID,
-    };
-  }
-  if (quest?.state === 'active') {
-    return {
-      id: 'hunt_wolves',
-      label: 'Hunting Forest Wolves',
-      mobId: 'forest_wolf',
-      camps: WOLF_CAMPS,
-    };
-  }
+  const grind = grindRouteForLevel(view.self.level);
   return {
-    id: 'accept_wolves',
-    label: 'Picking up Wolves at the Door',
-    npcTemplateId: STARTER_QUEST_GIVER_ID,
+    id: 'grind',
+    label: `Grinding ${displayMobName(grind.mobId)}`,
+    mobId: grind.mobId,
+    camps: grind.camps,
+    allowAnyHostileFallback: true,
   };
+}
+
+function chooseQuestObjective(view: BotWorldView): AmbientBotObjective | null {
+  const readyRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find(
+    (route) => questRouteState(route, view) === 'ready',
+  );
+  if (readyRoute) {
+    return {
+      id: readyRoute.turnInObjectiveId,
+      label: readyRoute.turnInLabel,
+      npcTemplateId: readyRoute.turnInNpcTemplateId,
+    };
+  }
+
+  const activeRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find(
+    (route) => questRouteState(route, view) === 'active',
+  );
+  if (activeRoute) {
+    return {
+      id: activeRoute.activeObjectiveId,
+      label: activeRoute.activeLabel,
+      mobId: activeRoute.mobId,
+      camps: activeRoute.camps,
+      allowAnyHostileFallback: activeRoute.allowAnyHostileFallback ?? false,
+    };
+  }
+
+  const availableRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find(
+    (route) => questRouteState(route, view) === 'available',
+  );
+  if (!availableRoute) return null;
+  return {
+    id: availableRoute.acceptObjectiveId,
+    label: availableRoute.acceptLabel,
+    npcTemplateId: availableRoute.giverNpcTemplateId,
+  };
+}
+
+function questRouteState(
+  route: AmbientBotQuestRoute,
+  view: BotWorldView,
+): 'done' | 'ready' | 'active' | 'available' | 'locked' {
+  const progress = view.self.questLog.get(route.questId);
+  if (view.self.questsDone.has(route.questId) || progress?.state === 'done') return 'done';
+  if (progress?.state === 'ready') return 'ready';
+  if (progress?.state === 'active') return 'active';
+
+  const quest = QUESTS[route.questId];
+  if (!quest) return 'locked';
+  const minLevel = Math.max(quest.minLevel ?? 1, route.pursueAtLevel);
+  if (view.self.level < minLevel) return 'locked';
+  if (quest.requiresQuest && !view.self.questsDone.has(quest.requiresQuest)) return 'locked';
+  return 'available';
 }
 
 function maybeRecover(
@@ -359,13 +384,13 @@ function huntMob(
   const target =
     currentTarget
     ?? (preferredId ? nearestHostileMob(view, preferredId) : null)
-    ?? nearestAnyHostileMob(view);
+    ?? (objective.allowAnyHostileFallback ? nearestAnyHostileMob(view) : null);
   if (target) {
     state.noTargetSinceMs = null;
     return fightTarget(view, input.bot, target, state, input.nowMs, objective.label);
   }
 
-  const camps = objective.camps ?? WOLF_CAMPS;
+  const camps = objective.camps ?? [];
   if (camps.length === 0) return idleStep(objective.id, objective.label);
   const camp = camps[state.campIndex % camps.length];
   const distance = dist2d(view.self.pos, pointToVec(camp));
@@ -780,22 +805,13 @@ function scoreCombatAbility(ability: CombatAbility, preferRanged: boolean): numb
 }
 
 function grindRouteForLevel(level: number): { mobId: string; camps: readonly BotPoint2d[] } {
-  if (level <= 2) return { mobId: 'forest_wolf', camps: WOLF_CAMPS };
-  if (level <= 4) return { mobId: 'wild_boar', camps: BOAR_CAMPS };
-  return { mobId: 'webwood_spider', camps: SPIDER_CAMPS };
+  if (level <= 2) return { mobId: 'forest_wolf', camps: campsFor('forest_wolf') };
+  if (level <= 4) return { mobId: 'wild_boar', camps: campsFor('wild_boar') };
+  return { mobId: 'webwood_spider', camps: campsFor('webwood_spider') };
 }
 
 function displayMobName(mobId: string): string {
-  switch (mobId) {
-    case 'forest_wolf':
-      return 'Forest Wolves';
-    case 'wild_boar':
-      return 'Wild Boars';
-    case 'webwood_spider':
-      return 'Webwood Spiders';
-    default:
-      return mobId;
-  }
+  return MOBS[mobId]?.name ?? mobId;
 }
 
 function campsFor(mobId: string): BotPoint2d[] {

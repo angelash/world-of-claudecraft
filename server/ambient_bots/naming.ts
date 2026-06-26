@@ -22,8 +22,9 @@ export function ambientBotAccountUsername(profileId: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '')
-    .slice(0, 20);
-  return `bot_${slug}_${randomBytes(4).toString('hex')}`;
+    || 'ambient';
+  const compactSlug = slug.slice(0, 11);
+  return `bot_${compactSlug}_${randomBytes(4).toString('hex')}`;
 }
 
 export function ambientBotAccountPassword(): string {

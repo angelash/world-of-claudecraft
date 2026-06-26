@@ -218,6 +218,79 @@ describe('ambient player bot brain', () => {
     ]);
   });
 
+  it('picks up the boar-hide quest once the bot outlevels the starter wolf loop', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 2,
+          x: -7,
+          z: 3,
+          qdone: ['q_wolves'],
+        },
+        entities: [
+          { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_boars');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 7100 },
+      { cmd: 'interact' },
+    ]);
+  });
+
+  it('turns in the spider quest at Apothecary Lin once the silk run is ready', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 3,
+          x: 11,
+          z: -3,
+          qdone: ['q_wolves', 'q_boars'],
+          qlog: [{ questId: 'q_spiders', counts: [6, 4], state: 'ready' }],
+        },
+        entities: [
+          { id: 7200, k: 'npc', tid: 'apothecary_lin', x: 11, z: -3 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('turnin_spiders');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 7200 },
+      { cmd: 'interact' },
+    ]);
+  });
+
+  it('stays on the Old Greyjaw route instead of chasing unrelated wolves', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_mine'],
+          qlog: [{ questId: 'q_greyjaw', counts: [0], state: 'active' }],
+        },
+        entities: [
+          { id: 9301, k: 'mob', tid: 'forest_wolf', x: 2, z: 2, h: 1, lv: 2 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_greyjaw');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('resets movement when the bot has been stuck on the same path too long', () => {
     const state = createAmbientPlayerBotBrainState();
     tickAmbientPlayerBotBrain({

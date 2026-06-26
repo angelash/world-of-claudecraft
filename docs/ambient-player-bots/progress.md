@@ -20,6 +20,10 @@
 | 14 | completed | 2026-06-26 | 2026-06-26 |
 | 15 | completed | 2026-06-26 | 2026-06-26 |
 | 16 | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 01 | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 01 QA | pending | 2026-06-26 |  |
+| Continuation 02 | pending | 2026-06-26 |  |
+| Continuation 02 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
 
@@ -378,3 +382,46 @@ Notes:
     `tests/auto_loot.test.ts`)
 - `docs/ambient-player-bots/` remains in place until the user explicitly asks
   to remove the planning packet.
+
+## Continuation 01 checklist
+
+- [x] add a data-driven solo quest-route registry
+- [x] extend early progression beyond `q_wolves` through the Eastbrook kill
+  chain
+- [x] keep quest-specific hunting focused on the required mob unless the route
+  explicitly allows any-hostile fallback
+- [x] add focused brain regressions for accept, turn-in, and route-discipline
+  cases
+- [x] validate the continuation slice
+
+Notes:
+- This slice reopens the packet after the original Phase 16 checkpoint because
+  the broader user goal is not "local smoke is green", it is "bots can keep
+  really playing". The coordinator, real runner, social shell, LLM overlay, and
+  operator controls already exist. This continuation deepens the missing
+  long-horizon progression layer.
+- The progression brain now covers these Eastbrook solo kill quests:
+  `q_wolves`, `q_boars`, `q_spiders`, `q_murlocs`, `q_mine`, `q_greyjaw`,
+  `q_bandits`, and `q_ringleader`.
+- Real `pg-mem` verification against the full HTTP plus WebSocket path exposed a
+  separate live blocker while closing this slice: generated ambient account
+  usernames could exceed the real `/api/register` length limit. That follow-up
+  is now fixed in `server/ambient_bots/naming.ts`, covered by a dedicated
+  naming test, and the same live check now observes a real bot session with
+  objective `accept_wolves` after a human player logs in.
+- Object and collection routes such as `q_supplies`, Brother Aldric's chapel
+  and graveyard chain, restocking buys, and higher-zone travel remain the next
+  progression gaps.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - live `pg-mem` server check: register a human, authenticate over `/ws`, then
+    confirm admin diagnostics reports a real ambient bot session with objective
+    `accept_wolves`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- Continuation 01 QA is now the next target, followed by object-interaction
+  support in Continuation 02.
