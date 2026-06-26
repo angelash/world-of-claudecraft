@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: 5
-- phase status: pending implementation
+- current phase: 6
+- phase status: pending Phase 6 QA after Phase 5 implementation
 
 ## Locked decisions
 
@@ -25,6 +25,11 @@
    split worker, it should keep the same runtime contract.
 9. Ambient bot sessions may bypass the hard per-IP socket cap, but they must
    still respect the blocked-IP gate.
+10. The first progression brain is heuristic and reconstructible from live
+    snapshot state. It does not introduce per-tick persistence or sim-only
+    progression memory.
+11. Progression pathing should use the live `/ws` hello seed plus shared sim
+    pathfinding helpers so reconnects and future realm seed changes stay safe.
 
 ## Non-negotiable constraints
 
@@ -42,6 +47,9 @@
 - ambient planner or server-only slice:
   - `npx tsc --noEmit`
   - targeted vitest files for the new modules
+  - `npm run build:server`
+- progression brain slice:
+  - `npx vitest run tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts`
   - `npm run build:server`
 - schema or persistence slice:
   - schema string tests
@@ -91,6 +99,15 @@
 - `tests/ambient_player_bot_runtime.test.ts`
 - `tests/ambient_player_bot_ws_client.test.ts`
 
+### Phase 5
+
+- `server/ambient_bots/brain.ts`
+- `docs/ambient-player-bots/phase-05-progression-brain.md`
+- `docs/ambient-player-bots/phase-06-qa-progression-brain.md`
+- `tests/ambient_player_bot_brain.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `tests/ambient_player_bot_ws_client.test.ts`
+
 ## Planned database shape
 
 ### Phase 1
@@ -130,6 +147,9 @@
 - later extraction of the real runner into a sibling service or dedicated worker
   host is still open if scale demands it, but the Phase 3 shipping slice now
   runs in the same process family
+- the current progression brain covers the Eastbrook starter quest and then
+  falls back to low-risk grinding. Follow-on quest chains, replenishment buys,
+  and higher-level routing remain future work
 - full live boot verification of the real runner on this workstation still
   needs a reachable local Postgres service
 - repo-wide `npx tsc --noEmit` is currently red for unrelated pre-existing

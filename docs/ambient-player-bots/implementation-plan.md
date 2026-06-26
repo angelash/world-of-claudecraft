@@ -128,3 +128,7 @@ Deliverables:
 
 - `phase-01-foundation.md`
 - `phase-02-qa-foundation.md`
+- `phase-03-real-runner.md`
+- `phase-04-qa-real-runner.md`
+- `phase-05-progression-brain.md`
+- `phase-06-qa-progression-brain.md`

@@ -79,7 +79,12 @@ class FakeSocket implements AmbientPlayerBotSocket {
 
   constructor(
     private readonly helloPid: number,
-    private readonly selfWire: Record<string, unknown>,
+    private readonly snap: {
+      self: Record<string, unknown>;
+      ents?: Record<string, unknown>[];
+      keep?: number[];
+      seed?: number;
+    },
   ) {
     queueMicrotask(() => this.emitOpen());
   }
@@ -89,13 +94,13 @@ class FakeSocket implements AmbientPlayerBotSocket {
     const payload = JSON.parse(data) as { t?: string };
     if (payload.t !== 'auth') return;
     queueMicrotask(() => {
-      this.emitMessage(JSON.stringify({ t: 'hello', pid: this.helloPid }));
+      this.emitMessage(JSON.stringify({ t: 'hello', pid: this.helloPid, seed: this.snap.seed ?? 20_061 }));
       queueMicrotask(() => {
         this.emitMessage(JSON.stringify({
           t: 'snap',
-          self: this.selfWire,
-          ents: [],
-          keep: [],
+          self: this.snap.self,
+          ents: this.snap.ents ?? [],
+          keep: this.snap.keep ?? [],
         }));
       });
     });
@@ -227,7 +232,7 @@ describe('AmbientPlayerBotRuntime', () => {
       apiClient,
       wsBaseUrl: 'ws://ambient.test',
       webSocketFactory: () => {
-        const socket = new FakeSocket(77, { id: 202, x: 12, z: 34, lv: 2 });
+        const socket = new FakeSocket(77, { self: { id: 202, x: 12, z: 34, lv: 2 } });
         sockets.push(socket);
         return socket;
       },
@@ -285,6 +290,87 @@ describe('AmbientPlayerBotRuntime', () => {
         }),
       ]);
     });
+
+    await runtime.stop();
+  });
+
+  it('drives connected bots through the progression brain loop', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'eastbrook_vale:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, {
+          self: {
+            id: 101,
+            x: 4,
+            z: 6,
+            lv: 1,
+            hp: 40,
+            mhp: 40,
+            res: 0,
+            mres: 0,
+            rtype: 'rage',
+            gcd: 0,
+            inv: [],
+            qlog: [],
+            qdone: [],
+            cds: {},
+          },
+          ents: [
+            { id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 },
+          ],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'eastbrook_vale:1',
+      zoneId: 'eastbrook_vale',
+      targetCharacterId: 1,
+      reason: 'test login',
+    }]);
+
+    await vi.waitFor(() => {
+      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string });
+      expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'interact')).toBe(true);
+    });
+
+    expect(game.ambientPlayerBotDirectory()).toEqual([
+      expect.objectContaining({
+        runnerState: expect.objectContaining({
+          connected: true,
+          objective: 'accept_wolves',
+          objectiveLabel: 'Picking up Wolves at the Door',
+        }),
+      }),
+    ]);
 
     await runtime.stop();
   });

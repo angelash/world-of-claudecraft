@@ -8,7 +8,7 @@
 | 2 | completed | 2026-06-26 | 2026-06-26 |
 | 3 | completed | 2026-06-26 | 2026-06-26 |
 | 4 | completed | 2026-06-26 | 2026-06-26 |
-| 5 | pending | | |
+| 5 | completed | 2026-06-26 | 2026-06-26 |
 | 6 | pending | | |
 | 7 | pending | | |
 | 8 | pending | | |
@@ -56,11 +56,6 @@ Notes:
   - `npx vitest run tests/game_sessions.test.ts`
 - Phase 3 is now the next implementation target.
 
-## Later phases
-
-- Phase 5 and later remain pending. Their detailed scope is locked in
-  `implementation-plan.md` and `state.md`.
-
 ## Phase 3 checklist
 
 - [x] real `/api/register`, `/api/login`, and `/api/characters` client landed
@@ -101,3 +96,21 @@ Notes:
 - Live boot verification against a real local server process is still blocked on
   this workstation because no local Postgres service was listening on `:5433`
   and Docker was not available in PATH during this session.
+
+## Phase 5 checklist
+
+- [x] add a focused progression brain module
+- [x] wire connected ambient bots through a periodic brain loop
+- [x] complete the `q_wolves` accept, hunt, loot, and turn-in path
+- [x] add junk-vendor, low-risk grind, recovery, and stuck-reset behavior
+- [x] add brain and runtime regression coverage
+- [x] validation green
+
+Notes:
+- This slice intentionally stops after the first Eastbrook quest and switches to
+  low-risk grinding. It is the first real visible progression loop, not the full
+  future quest chain.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts`
+  - `npm run build:server`
+- Phase 6 is now the next QA target.

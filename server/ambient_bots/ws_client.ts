@@ -1,6 +1,32 @@
 import WebSocket from 'ws';
 
-const DELTA_SELF_KEYS = ['inv', 'equip', 'qlog', 'qdone', 'cds', 'stats', 'weapon', 'party', 'trade', 'duel'];
+const DELTA_SELF_KEYS = [
+  'inv',
+  'buyback',
+  'equip',
+  'cosmetics',
+  'qlog',
+  'qdone',
+  'lockouts',
+  'milestones',
+  'cds',
+  'stats',
+  'weapon',
+  'party',
+  'marks',
+  'trade',
+  'duel',
+  'arena',
+  'market',
+  'lroll',
+  'drun',
+  'dcompanion',
+  'dmarks',
+  'dcomp',
+  'dclears',
+  'delveDaily',
+  'tal',
+];
 const ENTITY_IDENTITY_KEYS = ['k', 'tid', 'nm', 'lv', 'sc', 'c', 'dgn'];
 
 export interface AmbientPlayerBotWireSelf {
@@ -13,6 +39,7 @@ export interface AmbientPlayerBotWireSelf {
 
 export interface AmbientPlayerBotLiveState {
   pid: number;
+  seed: number | null;
   self: AmbientPlayerBotWireSelf | null;
   entities: Map<number, Record<string, unknown>>;
 }
@@ -41,6 +68,7 @@ export class AmbientPlayerBotWsClient {
   private readonly onClose?: (error?: Error) => void;
   private socket: AmbientPlayerBotSocket | null = null;
   private pid = -1;
+  private seed: number | null = null;
   private self: AmbientPlayerBotWireSelf | null = null;
   private entities = new Map<number, Record<string, unknown>>();
 
@@ -87,6 +115,7 @@ export class AmbientPlayerBotWsClient {
         }
         if (msg.t === 'hello') {
           this.pid = Number(msg.pid ?? -1);
+          this.seed = typeof msg.seed === 'number' && Number.isFinite(msg.seed) ? msg.seed : null;
           finish(resolve);
           return;
         }
@@ -115,6 +144,7 @@ export class AmbientPlayerBotWsClient {
   state(): AmbientPlayerBotLiveState {
     return {
       pid: this.pid,
+      seed: this.seed,
       self: this.self ? { ...this.self } : null,
       entities: new Map(this.entities),
     };

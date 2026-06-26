@@ -28,6 +28,9 @@ Starter prompts:
 - `phase-03-real-runner.md` - Phase 3 implementation prompt for real account
   provisioning, loopback HTTP and WS bot login, and runtime lifecycle wiring.
 - `phase-04-qa-real-runner.md` - Phase 3 QA prompt.
+- `phase-05-progression-brain.md` - Phase 5 implementation prompt for the first
+  real early-game play loop after login.
+- `phase-06-qa-progression-brain.md` - Phase 5 QA prompt.
 
 ## How to use this packet
 

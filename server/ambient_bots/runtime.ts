@@ -1,5 +1,10 @@
 import { zoneAt } from '../../src/sim/data';
 import { accountForToken } from '../db';
+import {
+  createAmbientPlayerBotBrainState,
+  tickAmbientPlayerBotBrain,
+  type AmbientPlayerBotBrainState,
+} from './brain';
 import { ambientBotProfileById } from './profiles';
 import type { AmbientCreateCharacterResult, AmbientPlayerBotApi } from './api_client';
 import { ambientBotAccountPassword, ambientBotAccountUsername, ambientBotCharacterName, ambientBotId } from './naming';
@@ -25,6 +30,7 @@ export interface AmbientPlayerBotRuntimeOptions {
   db: AmbientPlayerBotRuntimeDb;
   apiClient: AmbientPlayerBotApi;
   wsBaseUrl: string;
+  brainIntervalMs?: number;
   webSocketFactory?: (url: string) => AmbientPlayerBotSocket;
   nowMs?: () => number;
   resolveAccountIdForToken?: (token: string) => Promise<number | null>;
@@ -34,6 +40,7 @@ export interface AmbientPlayerBotRuntimeOptions {
 
 interface RunnerEntry {
   client: AmbientPlayerBotWsClient;
+  brainState: AmbientPlayerBotBrainState;
   connected: boolean;
   intentionalClose: boolean;
 }
@@ -43,6 +50,7 @@ export class AmbientPlayerBotRuntime {
   private readonly db: AmbientPlayerBotRuntimeDb;
   private readonly apiClient: AmbientPlayerBotApi;
   private readonly wsBaseUrl: string;
+  private readonly brainIntervalMs: number;
   private readonly webSocketFactory?: (url: string) => AmbientPlayerBotSocket;
   private readonly nowMs: () => number;
   private readonly resolveAccountIdForToken: (token: string) => Promise<number | null>;
@@ -50,6 +58,7 @@ export class AmbientPlayerBotRuntime {
   private readonly authTokenTtlMs: number;
   private readonly runners = new Map<string, RunnerEntry>();
   private actionQueue: Promise<void> = Promise.resolve();
+  private brainInterval: NodeJS.Timeout | null = null;
   private started = false;
   private nameSequence = 0;
 
@@ -58,6 +67,7 @@ export class AmbientPlayerBotRuntime {
     this.db = options.db;
     this.apiClient = options.apiClient;
     this.wsBaseUrl = options.wsBaseUrl.replace(/\/+$/, '');
+    this.brainIntervalMs = options.brainIntervalMs ?? 250;
     this.webSocketFactory = options.webSocketFactory;
     this.nowMs = options.nowMs ?? (() => Date.now());
     this.resolveAccountIdForToken = options.resolveAccountIdForToken ?? accountForToken;
@@ -78,11 +88,19 @@ export class AmbientPlayerBotRuntime {
         .catch((error) => console.error('ambient bot runtime action failed:', error));
     });
     this.started = true;
+    this.brainInterval = setInterval(() => {
+      void this.runBrainLoop().catch((error) => console.error('ambient bot brain loop failed:', error));
+    }, this.brainIntervalMs);
+    this.brainInterval.unref?.();
   }
 
   async stop(): Promise<void> {
     if (!this.started) return;
     this.started = false;
+    if (this.brainInterval) {
+      clearInterval(this.brainInterval);
+      this.brainInterval = null;
+    }
     this.game.setAmbientPlayerBotActionHandler(null);
     await this.actionQueue.catch(() => {});
     for (const entry of this.runners.values()) {
@@ -188,7 +206,11 @@ export class AmbientPlayerBotRuntime {
         live.lastKnownLevel = typeof state.self.lv === 'number' ? state.self.lv : live.lastKnownLevel;
         if (typeof state.self.z === 'number') live.lastKnownZoneId = zoneAt(state.self.z).id;
         live.lastRunnerAtMs = this.nowMs();
-        live.runnerState = { pid: state.pid, connected: true };
+        live.runnerState = {
+          ...live.runnerState,
+          pid: state.pid,
+          connected: true,
+        };
         this.game.upsertAmbientPlayerBotRecord(live);
       },
       onClose: (error) => {
@@ -198,7 +220,12 @@ export class AmbientPlayerBotRuntime {
         void this.handleUnexpectedClose(botId, error);
       },
     });
-    const entry: RunnerEntry = { client, connected: false, intentionalClose: false };
+    const entry: RunnerEntry = {
+      client,
+      brainState: createAmbientPlayerBotBrainState(),
+      connected: false,
+      intentionalClose: false,
+    };
     this.runners.set(botId, entry);
     try {
       await client.connect({ token: authToken, characterId: record.characterId });
@@ -213,7 +240,11 @@ export class AmbientPlayerBotRuntime {
       connected.lastRunnerAtMs = this.nowMs();
       const state = client.state();
       const self = state.self;
-      connected.runnerState = { pid: state.pid, connected: true };
+      connected.runnerState = {
+        ...connected.runnerState,
+        pid: state.pid,
+        connected: true,
+      };
       if (typeof self?.x === 'number') connected.lastKnownX = self.x;
       if (typeof self?.z === 'number') {
         connected.lastKnownZ = self.z;
@@ -286,6 +317,42 @@ export class AmbientPlayerBotRuntime {
     this.game.upsertAmbientPlayerBotRecord(record);
     await this.db.saveBot(record);
   }
+
+  private async runBrainLoop(): Promise<void> {
+    for (const [botId, entry] of this.runners) {
+      if (!this.started || !entry.connected) continue;
+      const record = this.game.ambientPlayerBotRecord(botId);
+      if (!record) continue;
+      try {
+        const liveState = entry.client.state();
+        if (!liveState.self) continue;
+        const result = tickAmbientPlayerBotBrain({
+          bot: record,
+          liveState,
+          nowMs: this.nowMs(),
+        }, entry.brainState);
+        for (const command of result.commands) entry.client.command(command);
+        entry.client.input(result.moveInput, result.facing);
+        const latest = this.game.ambientPlayerBotRecord(botId);
+        if (!latest) continue;
+        const nextRunnerState = {
+          ...latest.runnerState,
+          pid: liveState.pid,
+          connected: true,
+          objective: result.objectiveId,
+          objectiveLabel: result.objectiveLabel,
+          campIndex: entry.brainState.campIndex,
+          stuckResets: entry.brainState.stuckResets,
+        };
+        if (!sameRunnerState(latest.runnerState, nextRunnerState)) {
+          latest.runnerState = nextRunnerState;
+          this.game.upsertAmbientPlayerBotRecord(latest);
+        }
+      } catch (error) {
+        console.error(`ambient bot brain tick failed for ${botId}:`, error);
+      }
+    }
+  }
 }
 
 function normalizeBootRecord(record: AmbientPlayerBotRecord): AmbientPlayerBotRecord {
@@ -308,4 +375,17 @@ function normalizeBootRecord(record: AmbientPlayerBotRecord): AmbientPlayerBotRe
 function isRetryableCharacterCreateError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   return /that name is taken|invalid character name/i.test(error.message);
+}
+
+function sameRunnerState(
+  current: Record<string, unknown>,
+  next: Record<string, unknown>,
+): boolean {
+  const currentKeys = Object.keys(current);
+  const nextKeys = Object.keys(next);
+  if (currentKeys.length !== nextKeys.length) return false;
+  for (const key of nextKeys) {
+    if (!Object.is(current[key], next[key])) return false;
+  }
+  return true;
 }
