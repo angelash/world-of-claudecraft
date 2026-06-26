@@ -2,11 +2,11 @@
 
 ## Current phase
 
-- current phase: continuation 13 planning
-- phase status: Continuation 12 QA is complete, and continuation 13 planning
-  now targets the late-Thornpeak solo outdoor ladder around Wyrmcult camps and
-  the revenant fields before the Sanctum-approach sigils and later grouped or
-  boss content, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 13 QA
+- phase status: Continuation 13 implementation is complete, and QA now closes
+  the late-Thornpeak solo outdoor ladder around Wyrmcult camps and the
+  revenant fields before the Sanctum-approach sigils and later grouped or boss
+  content, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -462,6 +462,14 @@
 - Continuation 12 QA is complete, and continuation 13 should next cover the
   late-Thornpeak solo outdoor ladder around `q_zealots`, `q_cult_orders`,
   `q_necromancers`, `q_revenants`, and `q_revenant_vanguard`
+- Continuation 13 extends the route registry into `q_zealots`,
+  `q_cult_orders`, `q_necromancers`, `q_revenants`, and
+  `q_revenant_vanguard`
+- the current progression brain now covers the late Zone 3 solo outdoor
+  ladders through `q_revenant_vanguard`
+- the Wyrmcult mixed-objective routes now stay bounded to zealot and
+  necromancer hunt routes so both kill and collect progress can be reconstructed
+  from live quest counts and the correct mob family only
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

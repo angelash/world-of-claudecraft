@@ -44,7 +44,7 @@
 | Continuation 11 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 12 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 12 QA | completed | 2026-06-26 | 2026-06-26 |
-| Continuation 13 | pending | 2026-06-26 |  |
+| Continuation 13 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 13 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
@@ -1010,3 +1010,36 @@ Notes:
 - The next implementation gap is the late-Thornpeak solo outdoor ladder:
   Wyrmcult camps and the revenant fields before the Sanctum-approach sigils and
   later grouped or boss content.
+
+## Continuation 13 checklist
+
+- [x] extend the progression registry through `q_zealots`, `q_cult_orders`,
+  `q_necromancers`, `q_revenants`, and `q_revenant_vanguard`
+- [x] keep the mixed Wyrmcult kill or collect objectives bounded to zealot and
+  necromancer hunt routes on the correct mob families
+- [x] add focused brain and runtime regressions for cult-route order, mixed
+  cult hunts, and the revenant-field handoff
+- [x] validate the continuation slice
+
+Notes:
+- This slice extends the real progression ladder through the late-Thornpeak
+  solo outdoor chains without adding hidden progression memory or any new party
+  or authority shortcuts. Ambient bots still accept quests, travel, turn in,
+  fight, and loot only through the normal live server surfaces.
+- The progression brain now covers the late Zone 3 solo outdoor ladders through
+  `q_revenant_vanguard`.
+- The Wyrmcult mixed-objective quests intentionally stay on bounded kill routes:
+  zealots serve both kill and order recovery, and necromancers serve both kill
+  and phylactery recovery, so the bot can reconstruct progress from live quest
+  state and the correct mob family without route-local memory.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts`
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- Continuation 13 QA is now the next target.

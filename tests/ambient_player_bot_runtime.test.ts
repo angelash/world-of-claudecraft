@@ -82,6 +82,15 @@ const thornpeakThroughStarters = [
   'q_kobold_tunnels',
   'q_glowing_wax',
 ] as const;
+const thornpeakThroughWarfront = [
+  ...thornpeakThroughStarters,
+  'q_ogre_edges',
+  'q_ogre_totems',
+  'q_ogre_bounty',
+  'q_elementals',
+  'q_shard_cores',
+  'q_kazzix',
+] as const;
 
 class FakeGame {
   private readonly directory = new Map<string, AmbientPlayerBotRecord>();
@@ -1669,6 +1678,174 @@ describe('AmbientPlayerBotRuntime', () => {
           connected: true,
           objective: 'grind',
           objectiveLabel: 'Grinding Stormcrag Elemental',
+        }),
+      }),
+    ]);
+
+    await runtime.stop();
+  });
+
+  it('records the Wyrmcult orders objective and emits movement input for the Sanctum camp approach', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'thornpeak_heights:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 17,
+          lastKnownZoneId: 'thornpeak_heights',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, {
+          self: {
+            id: 101,
+            x: 30,
+            z: 820,
+            lv: 17,
+            hp: 140,
+            mhp: 140,
+            res: 0,
+            mres: 0,
+            rtype: 'rage',
+            gcd: 0,
+            inv: [],
+            qdone: [...thornpeakThroughWarfront, 'q_zealots'],
+            qlog: [{ questId: 'q_cult_orders', counts: [2, 1], state: 'active' }],
+            cds: {},
+          },
+          ents: [],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'thornpeak_heights:1',
+      zoneId: 'thornpeak_heights',
+      targetCharacterId: 1,
+      reason: 'test cult orders route',
+    }]);
+
+    await vi.waitFor(() => {
+      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as {
+        t?: string;
+        mi?: Record<string, number>;
+      });
+      expect(sent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(true);
+    });
+
+    expect(game.ambientPlayerBotDirectory()).toEqual([
+      expect.objectContaining({
+        runnerState: expect.objectContaining({
+          connected: true,
+          objective: 'hunt_cult_orders',
+          objectiveLabel: 'Recovering Wyrmcult Orders',
+        }),
+      }),
+    ]);
+
+    await runtime.stop();
+  });
+
+  it('records the revenant vanguard objective and emits movement input for the eastern fields', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'thornpeak_heights:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 18,
+          lastKnownZoneId: 'thornpeak_heights',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, {
+          self: {
+            id: 101,
+            x: -20,
+            z: 830,
+            lv: 18,
+            hp: 150,
+            mhp: 150,
+            res: 0,
+            mres: 0,
+            rtype: 'rage',
+            gcd: 0,
+            inv: [],
+            qdone: [...thornpeakThroughWarfront, 'q_zealots', 'q_cult_orders', 'q_necromancers', 'q_revenants'],
+            qlog: [{ questId: 'q_revenant_vanguard', counts: [5], state: 'active' }],
+            cds: {},
+          },
+          ents: [],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'thornpeak_heights:1',
+      zoneId: 'thornpeak_heights',
+      targetCharacterId: 1,
+      reason: 'test revenant vanguard route',
+    }]);
+
+    await vi.waitFor(() => {
+      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as {
+        t?: string;
+        mi?: Record<string, number>;
+      });
+      expect(sent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(true);
+    });
+
+    expect(game.ambientPlayerBotDirectory()).toEqual([
+      expect.objectContaining({
+        runnerState: expect.objectContaining({
+          connected: true,
+          objective: 'hunt_revenant_vanguard',
+          objectiveLabel: 'Breaking the revenant vanguard',
         }),
       }),
     ]);

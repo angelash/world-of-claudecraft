@@ -121,6 +121,15 @@ const thornpeakThroughStarters = [
   'q_kobold_tunnels',
   'q_glowing_wax',
 ] as const;
+const thornpeakThroughWarfront = [
+  ...thornpeakThroughStarters,
+  'q_ogre_edges',
+  'q_ogre_totems',
+  'q_ogre_bounty',
+  'q_elementals',
+  'q_shard_cores',
+  'q_kazzix',
+] as const;
 const bastionSlot0Origin = { x: 1500, z: -1250 } as const;
 
 describe('ambient player bot brain', () => {
@@ -2122,6 +2131,118 @@ describe('ambient player bot brain', () => {
 
     expect(result.objectiveId).toBe('grind');
     expect(result.objectiveLabel).toBe('Grinding Stormcrag Elemental');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('picks up Wyrmcult orders from Brother Aldric after q_zealots is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 17,
+          x: -10,
+          z: 646,
+          qdone: [...thornpeakThroughWarfront, 'q_zealots'],
+        },
+        entities: [
+          { id: 9827, k: 'npc', tid: 'brother_aldric_highwatch', x: -10, z: 646 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_cult_orders');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9827 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('keeps hunting zealots while q_cult_orders is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 17,
+          qdone: [...thornpeakThroughWarfront, 'q_zealots'],
+          qlog: [{ questId: 'q_cult_orders', counts: [4, 1], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_cult_orders');
+    expect(result.objectiveLabel).toBe('Recovering Wyrmcult Orders');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('keeps hunting necromancers while q_necromancers is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          qdone: [...thornpeakThroughWarfront, 'q_zealots', 'q_cult_orders'],
+          qlog: [{ questId: 'q_necromancers', counts: [3, 1], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_necromancers');
+    expect(result.objectiveLabel).toBe('Recovering Ritual Phylacteries');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('picks up the revenant vanguard follow-up from Captain Thessaly after q_revenants is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          x: 4,
+          z: 664,
+          qdone: [...thornpeakThroughWarfront, 'q_zealots', 'q_cult_orders', 'q_necromancers', 'q_revenants'],
+        },
+        entities: [
+          { id: 9828, k: 'npc', tid: 'captain_thessaly', x: 4, z: 664 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_revenant_vanguard');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9828 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('keeps hunting boneclad revenants while q_revenant_vanguard is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          qdone: [...thornpeakThroughWarfront, 'q_zealots', 'q_cult_orders', 'q_necromancers', 'q_revenants'],
+          qlog: [{ questId: 'q_revenant_vanguard', counts: [6], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_revenant_vanguard');
+    expect(result.objectiveLabel).toBe('Breaking the revenant vanguard');
     expect(result.commands).toEqual([]);
     expect(result.moveInput).toEqual({ f: 1 });
   });
