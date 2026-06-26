@@ -2,10 +2,11 @@
 
 ## Current phase
 
-- current phase: continuation 11 QA
-- phase status: Continuation 11 implementation is complete, and QA now closes
-  the Highwatch handoff and first Thornpeak starter ladder before the next Zone
-  3 continuation, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 12 planning
+- phase status: Continuation 11 QA is complete, and continuation 12 planning
+  now targets the mid-Thornpeak outdoor warfront around ogre foothills and
+  Stormcrag elementals before the later grouped ogre camp and Sanctum ladders,
+  packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -302,6 +303,15 @@
 - `docs/ambient-player-bots/continuation-11-highwatch-handoff-and-thornpeak-starters.md`
 - `docs/ambient-player-bots/continuation-11-qa-highwatch-handoff-and-thornpeak-starters.md`
 
+### Continuation 12
+
+- `server/ambient_bots/brain.ts`
+- `server/ambient_bots/progression_routes.ts`
+- `tests/ambient_player_bot_brain.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `docs/ambient-player-bots/continuation-12-thornpeak-warfront-and-elemental-outdoors.md`
+- `docs/ambient-player-bots/continuation-12-qa-thornpeak-warfront-and-elemental-outdoors.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -426,6 +436,9 @@
 - Thornpeak-local sustain now uses Quartermaster Bree, and fallback grinding
   stays in-zone on ridge stalkers or Deeprock kobolds instead of walking back
   to Eastbrook while the next quest gate is level-bound
+- Continuation 11 QA is complete, and continuation 12 should next cover the
+  mid-Thornpeak outdoor warfront around `q_ogre_edges`, `q_ogre_totems`,
+  `q_ogre_bounty`, `q_elementals`, `q_shard_cores`, and `q_kazzix`
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

@@ -110,6 +110,11 @@ Post-packet continuation prompts:
   real progression ladder into Highwatch and the first Thornpeak starter loops.
 - `continuation-11-qa-highwatch-handoff-and-thornpeak-starters.md` - QA prompt
   for continuation 11.
+- `continuation-12-thornpeak-warfront-and-elemental-outdoors.md` - extend the
+  real progression ladder through the mid-Thornpeak ogre foothills and
+  Stormcrag elemental outdoor ladders.
+- `continuation-12-qa-thornpeak-warfront-and-elemental-outdoors.md` - QA prompt
+  for continuation 12.
 
 ## How to use this packet
 

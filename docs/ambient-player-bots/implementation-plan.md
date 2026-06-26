@@ -79,6 +79,8 @@ Step 4, update docs and commit:
 | 10 QA | QA | Verify continuation 10 | in-dungeon cohesion and boss-route reliability |
 | 11 | impl | Highwatch handoff and Thornpeak starters | first Zone 3 handoff, starter quest overlap, and local sustain |
 | 11 QA | QA | Verify continuation 11 | handoff, starter-route, and Highwatch-local behavior |
+| 12 | impl | Thornpeak warfront and elemental outdoors | mid-Zone 3 ogre and elemental outdoor ladders |
+| 12 QA | QA | Verify continuation 12 | warfront route order, rare-target flow, and local fallback behavior |
 
 ## Phase details
 
@@ -192,13 +194,26 @@ Deliverables:
 - Thornpeak-local fallback grinding while the next quest gate is level-bound
 - focused tests for handoff, quest overlap, and local vendor behavior
 
-## Remaining roadmap after Continuation 10
+### Continuation 12, Thornpeak warfront and elemental outdoors
+
+Deliverables:
+- the ogre foothills outdoor ladder through `q_ogre_edges`,
+  `q_ogre_totems`, and `q_ogre_bounty`
+- the Stormcrag elemental outdoor ladder through `q_elementals`,
+  `q_shard_cores`, and `q_kazzix`
+- local fallback routing that keeps mid-zone Thornpeak bots on ogres or
+  elementals instead of drifting back to starter camps
+- focused tests for route order, collect turn-ins, rare-target handling, and
+  local fallback behavior
+
+## Remaining roadmap after Continuation 11
 
 These items are still part of the long-horizon product target, but they remain
-future slices after the current Bastion cohesion work:
+future slices after the Highwatch starter ladder and the newly planned mid-zone
+outdoor warfront work:
 
-- Zone 3 handoff beyond Mirefen
-- deeper Zone 3 solo and grouped progression ladders
+- deeper Zone 3 grouped progression such as the ogre war-camp and Drogmar
+- later Zone 3 Wyrmcult, revenant, and Sanctum ladders
 - stronger dungeon completion reliability and multi-encounter polish
 - richer friend, whisper, and social-memory loops
 - later operator and rollout hardening for larger real populations
@@ -243,3 +258,5 @@ future slices after the current Bastion cohesion work:
 - `continuation-10-qa-bastion-in-dungeon-cohesion.md`
 - `continuation-11-highwatch-handoff-and-thornpeak-starters.md`
 - `continuation-11-qa-highwatch-handoff-and-thornpeak-starters.md`
+- `continuation-12-thornpeak-warfront-and-elemental-outdoors.md`
+- `continuation-12-qa-thornpeak-warfront-and-elemental-outdoors.md`
