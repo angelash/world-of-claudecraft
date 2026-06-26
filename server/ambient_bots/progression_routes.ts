@@ -568,4 +568,15 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
       suggestedPartySize: 5,
     },
   ),
+  killRoute(
+    'q_velkhar',
+    'brother_aldric_highwatch',
+    'grand_necromancer_velkhar',
+    18,
+    'Hunting Grand Necromancer Velkhar',
+    {
+      dungeonId: 'gravewyrm_sanctum',
+      suggestedPartySize: 5,
+    },
+  ),
 ];

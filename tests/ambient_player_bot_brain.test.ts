@@ -150,6 +150,7 @@ const thornpeakThroughWarCampGroups = [
   'q_crushers',
   'q_drogmar',
 ] as const;
+const thornpeakThroughKorgath = [...thornpeakThroughWarCampGroups, 'q_korgath'] as const;
 const bastionSlot0Origin = { x: 1500, z: -1250 } as const;
 const sanctumSlot0Origin = { x: 2100, z: -1250 } as const;
 
@@ -2532,6 +2533,99 @@ describe('ambient player bot brain', () => {
     }, state);
 
     expect(result.objectiveId).toBe('leave_korgath');
+    expect(result.objectiveDungeonId).toBe('gravewyrm_sanctum');
+    expect(result.commands).toEqual([{ cmd: 'leave_dungeon' }]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('picks up q_velkhar from Brother Aldric after Korgath is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          x: -10,
+          z: 646,
+          qdone: [...thornpeakThroughKorgath],
+        },
+        entities: [
+          { id: 9831, k: 'npc', tid: 'brother_aldric_highwatch', x: -10, z: 646 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_velkhar');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9831 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('heads for the Gravewyrm Sanctum door once q_velkhar is active outdoors', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          qdone: [...thornpeakThroughKorgath],
+          qlog: [{ questId: 'q_velkhar', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('enter_velkhar');
+    expect(result.objectiveDungeonId).toBe('gravewyrm_sanctum');
+    expect(result.objectiveSuggestedPartySize).toBe(5);
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('routes toward Velkhar once the party is inside Gravewyrm Sanctum', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          x: sanctumSlot0Origin.x,
+          z: sanctumSlot0Origin.z + 4,
+          dgn: 'gravewyrm_sanctum',
+          qdone: [...thornpeakThroughKorgath],
+          qlog: [{ questId: 'q_velkhar', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_velkhar');
+    expect(result.objectiveDungeonId).toBe('gravewyrm_sanctum');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('walks back to the Sanctum exit and leaves once q_velkhar is ready', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          x: sanctumSlot0Origin.x,
+          z: sanctumSlot0Origin.z - 6,
+          dgn: 'gravewyrm_sanctum',
+          qdone: [...thornpeakThroughKorgath],
+          qlog: [{ questId: 'q_velkhar', counts: [1], state: 'ready' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('leave_velkhar');
     expect(result.objectiveDungeonId).toBe('gravewyrm_sanctum');
     expect(result.commands).toEqual([{ cmd: 'leave_dungeon' }]);
     expect(result.moveInput).toEqual({});

@@ -2,11 +2,11 @@
 
 ## Current phase
 
-- current phase: continuation 17
-- phase status: Continuation 16 QA is complete, and the next implementation
-  target is the deeper Gravewyrm Sanctum bridge around `q_velkhar`, including
-  outdoor accept, Sanctum re-entry, in-instance pursuit, and post-kill exit
-  handoff, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 17 QA
+- phase status: Continuation 17 implementation is complete, and QA now closes
+  the second Gravewyrm Sanctum bridge around `q_velkhar`, party re-entry,
+  Velkhar pursuit, and dungeon exit, packet teardown deferred until the
+  continuation ladder closes
 
 ## Locked decisions
 
@@ -54,6 +54,9 @@
 18. Grouped objective coordination must match nearby same-cluster bots on the
     same live grouped quest or dungeon target. Outdoor grouped objectives
     should not collapse into one broad same-cluster outdoor pool.
+19. The Gravewyrm Sanctum boss ladder should stay sequential: `q_korgath`,
+    then `q_velkhar`, then the later final boss bridge, with no overlap or
+    skip past an unfinished earlier Sanctum boss step.
 
 ## Non-negotiable constraints
 
@@ -537,6 +540,12 @@
 - Continuation 16 QA is complete, and continuation 17 should next cover the
   deeper Gravewyrm Sanctum boss bridge around `q_velkhar` before the final
   `q_gravewyrm` push
+- Continuation 17 extends the progression registry into `q_velkhar` with the
+  existing live dungeon-entry bridge for `gravewyrm_sanctum`
+- the current progression brain now covers grouped Thornpeak progression
+  through `q_velkhar`
+- Continuation 17 QA should next confirm that the Velkhar bridge adds no
+  regressions before the final `q_gravewyrm` push
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit
