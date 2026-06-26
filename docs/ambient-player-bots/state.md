@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: continuation 01
-- phase status: Continuation 01 implementation complete, Continuation 01 QA next, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 02
+- phase status: Continuation 02 implementation complete, Continuation 02 QA next, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -212,6 +212,7 @@
 ### Continuation 02
 
 - `server/ambient_bots/brain.ts`
+- `server/ambient_bots/progression_routes.ts`
 - `server/ambient_bots/runtime.ts`
 - `tests/ambient_player_bot_brain.test.ts`
 - `tests/ambient_player_bot_runtime.test.ts`
@@ -276,8 +277,11 @@
 - local `pg-mem` live verification now reaches a real ambient bot session after
   a human logs in, and the runtime exposes a real objective such as
   `accept_wolves` through the admin diagnostics surface
-- object and collection quests such as `q_supplies`, Brother Aldric's object
-  chain, town resupply logic, and higher-zone routing remain open
+- Continuation 02 adds collect-object progression support for `q_supplies`,
+  `q_whispers`, and `q_names_of_the_dead`, plus the supporting Aldric kill
+  routes around them
+- mixed-source collection routes such as `q_rite`, town resupply logic, and
+  higher-zone routing remain open
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

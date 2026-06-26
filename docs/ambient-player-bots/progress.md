@@ -22,7 +22,7 @@
 | 16 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 01 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 01 QA | pending | 2026-06-26 |  |
-| Continuation 02 | pending | 2026-06-26 |  |
+| Continuation 02 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 02 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
@@ -425,3 +425,32 @@ Notes:
     `tests/auto_loot.test.ts`)
 - Continuation 01 QA is now the next target, followed by object-interaction
   support in Continuation 02.
+
+## Continuation 02 checklist
+
+- [x] extend progression routes to include collect-object quest objectives
+- [x] add object-targeting and interact behavior to the ambient bot brain
+- [x] support `q_supplies` plus the first Brother Aldric collect-chain steps
+- [x] add focused brain and runtime regressions for object routes
+- [x] validate the continuation slice
+
+Notes:
+- This slice reuses the real player path instead of inventing a privileged
+  object-pickup shortcut. Ambient bots still work through normal target plus
+  interact commands, with the sim handling quest-object pickup authority.
+- The progression route registry now covers collect-object goals for
+  `q_supplies`, `q_whispers`, and `q_names_of_the_dead`, and kill-route support
+  now extends through `q_bones` and `q_silence_the_call` so the first Aldric
+  chain can keep moving.
+- The brain now understands lootable ground objects from live snapshots, can
+  path between their known spawn points, and will target plus interact when one
+  comes into range.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - live `pg-mem` server regression: register a human, authenticate over `/ws`,
+    then confirm admin diagnostics still reports a real ambient bot session and
+    live objective after login
+- Continuation 02 QA is now the next target. The next implementation gap after
+  that is mixed drop-plus-kill routing such as `q_rite`, plus supply and
+  restocking behaviors for longer autonomous runs.

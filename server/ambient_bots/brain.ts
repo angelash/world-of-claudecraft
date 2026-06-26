@@ -44,6 +44,7 @@ interface BotEntityView {
   id: number;
   kind: string;
   templateId: string;
+  objectItemId: string | null;
   pos: BotVec3;
   level: number;
   dead: boolean;
@@ -83,6 +84,7 @@ interface AmbientBotObjective {
   id: string;
   label: string;
   mobId?: string;
+  objectItemId?: string;
   camps?: readonly BotPoint2d[];
   npcTemplateId?: string;
   allowAnyHostileFallback?: boolean;
@@ -190,6 +192,15 @@ export function tickAmbientPlayerBotBrain(
       sellJunkAtVendor(view, state, input, objective),
     );
   }
+  if (objective.objectItemId) {
+    return finalizeStep(
+      state,
+      input,
+      view,
+      objective,
+      collectObject(view, state, input, objective),
+    );
+  }
   if (objective.mobId) {
     return finalizeStep(
       state,
@@ -254,9 +265,15 @@ function chooseQuestObjective(view: BotWorldView): AmbientBotObjective | null {
     return {
       id: activeRoute.activeObjectiveId,
       label: activeRoute.activeLabel,
-      mobId: activeRoute.mobId,
       camps: activeRoute.camps,
-      allowAnyHostileFallback: activeRoute.allowAnyHostileFallback ?? false,
+      ...(activeRoute.kind === 'kill'
+        ? {
+            mobId: activeRoute.mobId,
+            allowAnyHostileFallback: activeRoute.allowAnyHostileFallback ?? false,
+          }
+        : {
+            objectItemId: activeRoute.objectItemId,
+          }),
     };
   }
 
@@ -413,6 +430,65 @@ function huntMob(
     activeCamp,
     CAMP_ARRIVAL_RANGE,
     `camp:${objective.mobId ?? 'mob'}:${state.campIndex % camps.length}`,
+  );
+}
+
+function collectObject(
+  view: BotWorldView,
+  state: AmbientPlayerBotBrainState,
+  input: AmbientPlayerBotBrainTickInput,
+  objective: AmbientBotObjective,
+): AmbientPlayerBotBrainTickResult {
+  const preferredItemId = objective.objectItemId;
+  const currentTarget = currentTargetObject(view, preferredItemId ?? null);
+  const target = currentTarget ?? (preferredItemId ? nearestObject(view, preferredItemId) : null);
+  if (target) {
+    state.noTargetSinceMs = null;
+    const facing = facingFor(view.self.pos, target.pos);
+    if (dist2d(view.self.pos, target.pos) > INTERACT_RANGE + 1.5) {
+      return travelToPoint(
+        view,
+        state,
+        input,
+        objective,
+        { x: target.pos.x, z: target.pos.z },
+        INTERACT_RANGE + 1.5,
+        `object:${preferredItemId ?? 'item'}:${target.id}`,
+      );
+    }
+    const commands: BrainCommand[] = [];
+    if (view.self.targetId !== target.id && canIssue(state, `target:${target.id}`, input.nowMs, COMMAND_COOLDOWN_MS)) {
+      commands.push({ cmd: 'target', id: target.id });
+    }
+    if (canIssue(state, `interact_object:${target.id}`, input.nowMs, 1_500)) {
+      commands.push({ cmd: 'interact' });
+    }
+    return idleStep(objective.id, objective.label, commands, facing);
+  }
+
+  const camps = objective.camps ?? [];
+  if (camps.length === 0) return idleStep(objective.id, objective.label);
+  const point = camps[state.campIndex % camps.length];
+  const distance = dist2d(view.self.pos, pointToVec(point));
+  if (distance <= CAMP_ARRIVAL_RANGE) {
+    if (state.noTargetSinceMs === null) state.noTargetSinceMs = input.nowMs;
+    if (input.nowMs - state.noTargetSinceMs >= NO_TARGET_ROTATE_MS) {
+      state.noTargetSinceMs = input.nowMs;
+      state.campIndex = (state.campIndex + 1) % camps.length;
+      clearPath(state);
+    }
+  } else {
+    state.noTargetSinceMs = null;
+  }
+  const activePoint = camps[state.campIndex % camps.length];
+  return travelToPoint(
+    view,
+    state,
+    input,
+    objective,
+    activePoint,
+    CAMP_ARRIVAL_RANGE,
+    `objectcamp:${preferredItemId ?? 'item'}:${state.campIndex % camps.length}`,
   );
 }
 
@@ -592,6 +668,7 @@ function parseEntity(raw: Record<string, unknown>): BotEntityView | null {
     id,
     kind: readString(raw.k) ?? '',
     templateId: readString(raw.tid) ?? '',
+    objectItemId: readString(raw.obj),
     pos: { x, y: readNumber(raw.y) ?? 0, z },
     level: readNumber(raw.lv) ?? 1,
     dead: readBoolean(raw.dead),
@@ -680,12 +757,36 @@ function currentHostileTarget(view: BotWorldView): BotEntityView | null {
   ) ?? null;
 }
 
+function currentTargetObject(view: BotWorldView, objectItemId: string | null): BotEntityView | null {
+  if (view.self.targetId === null || !objectItemId) return null;
+  return view.entities.find(
+    (entity) =>
+      entity.id === view.self.targetId
+      && entity.kind === 'object'
+      && entity.lootable
+      && entity.objectItemId === objectItemId,
+  ) ?? null;
+}
+
 function nearestHostileMob(view: BotWorldView, templateId: string): BotEntityView | null {
   let best: BotEntityView | null = null;
   let bestDistance = Infinity;
   for (const entity of view.entities) {
     if (entity.kind !== 'mob' || entity.dead || !entity.hostile || entity.templateId !== templateId) continue;
     if (entity.level > view.self.level + 2) continue;
+    const distance = dist2d(view.self.pos, entity.pos);
+    if (distance > MOB_SEARCH_RADIUS || distance >= bestDistance) continue;
+    best = entity;
+    bestDistance = distance;
+  }
+  return best;
+}
+
+function nearestObject(view: BotWorldView, objectItemId: string): BotEntityView | null {
+  let best: BotEntityView | null = null;
+  let bestDistance = Infinity;
+  for (const entity of view.entities) {
+    if (entity.kind !== 'object' || !entity.lootable || entity.objectItemId !== objectItemId) continue;
     const distance = dist2d(view.self.pos, entity.pos);
     if (distance > MOB_SEARCH_RADIUS || distance >= bestDistance) continue;
     best = entity;

@@ -269,6 +269,56 @@ describe('ambient player bot brain', () => {
     ]);
   });
 
+  it('targets and interacts with a nearby supply crate when the supplies quest is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
+          qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
+        },
+        entities: [
+          { id: 9401, k: 'object', obj: 'supply_crate', x: 2, z: 2, loot: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('collect_supplies');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9401 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('targets and interacts with the gravecaller sigil when the Aldric clue quest is active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 5,
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_mine', 'q_greyjaw', 'q_bandits', 'q_ringleader', 'q_bones'],
+          qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
+        },
+        entities: [
+          { id: 9501, k: 'object', obj: 'gravecaller_sigil', x: 3, z: 1, loot: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('collect_whispers');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9501 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
   it('stays on the Old Greyjaw route instead of chasing unrelated wolves', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
