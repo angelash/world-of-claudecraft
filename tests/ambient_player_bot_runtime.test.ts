@@ -1175,6 +1175,155 @@ describe('AmbientPlayerBotRuntime', () => {
     await runtime.stop();
   });
 
+  it('holds the Bastion leader for regroup and has the trailing follower use /follow inside the dungeon', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    let socketIndex = 0;
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'mirefen_marsh:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 12,
+          lastKnownZoneId: 'mirefen_marsh',
+        }),
+        bot({
+          botId: 'bot-2',
+          accountId: 12,
+          accountUsername: 'bot_user_2',
+          accountPassword: 'BotPassword123',
+          characterId: 102,
+          characterName: 'Branorabb',
+          profileId: 'eastbrook_vale_mage_newcomer',
+          class: 'mage',
+          authToken: 'token-2',
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'mirefen_marsh:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 12,
+          lastKnownZoneId: 'mirefen_marsh',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const partyWire = {
+      leader: 101,
+      raid: false,
+      members: [
+        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1532, z: -1200, dead: 0, inCombat: 0, group: 1 },
+        { pid: 102, name: 'Branorabb', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1506, z: -1200, dead: 0, inCombat: 0, group: 1 },
+      ],
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const isLeader = socketIndex++ === 0;
+        const socket = new FakeSocket(isLeader ? 101 : 102, {
+          self: {
+            id: isLeader ? 101 : 102,
+            x: isLeader ? 1532 : 1506,
+            z: -1200,
+            dgn: 'sunken_bastion',
+            lv: 12,
+            hp: 120,
+            mhp: 120,
+            res: isLeader ? 0 : 120,
+            mres: isLeader ? 0 : 120,
+            rtype: isLeader ? 'rage' : 'mana',
+            gcd: 0,
+            inv: [],
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+            party: partyWire,
+            cds: {},
+          },
+          ents: [
+            {
+              id: isLeader ? 102 : 101,
+              k: 'player',
+              nm: isLeader ? 'Branorabb' : 'Branoraaa',
+              x: isLeader ? 1506 : 1532,
+              z: -1200,
+              lv: 12,
+              dgn: 'sunken_bastion',
+            },
+          ],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'mirefen_marsh:1',
+        zoneId: 'mirefen_marsh',
+        targetCharacterId: 1,
+        reason: 'ambient Bastion regroup leader',
+      },
+      {
+        type: 'loginBot',
+        botId: 'bot-2',
+        clusterId: 'mirefen_marsh:1',
+        zoneId: 'mirefen_marsh',
+        targetCharacterId: 1,
+        reason: 'ambient Bastion regroup follower',
+      },
+    ]);
+
+    await vi.waitFor(() => {
+      const leaderSent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; mi?: Record<string, number> });
+      const followerSent = sockets[1]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; text?: string; mi?: Record<string, number> });
+      expect(leaderSent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(false);
+      expect(followerSent?.some((message) =>
+        message.t === 'cmd'
+        && message.cmd === 'chat'
+        && message.text === '/follow Branoraaa',
+      )).toBe(true);
+      expect(followerSent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(false);
+    });
+
+    expect(game.ambientPlayerBotDirectory()).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        botId: 'bot-1',
+        runnerState: expect.objectContaining({
+          groupMode: 'hold_regroup',
+          groupNeedsRegroup: true,
+          groupLaggingMembers: 1,
+        }),
+      }),
+      expect.objectContaining({
+        botId: 'bot-2',
+        runnerState: expect.objectContaining({
+          groupMode: 'follow_leader',
+          groupLeaderName: 'Branoraaa',
+        }),
+      }),
+    ]));
+
+    await runtime.stop();
+  });
+
   it('respects operator controls that pause login actions', async () => {
     const game = new FakeGame();
     const sockets: FakeSocket[] = [];

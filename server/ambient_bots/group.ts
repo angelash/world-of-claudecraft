@@ -1,13 +1,17 @@
 import { DUNGEONS } from '../../src/sim/data';
 import type { SimEvent } from '../../src/sim/types';
-import type { PartyInfo } from '../../src/world_api';
+import type { PartyInfo, PartyMemberInfo } from '../../src/world_api';
 import type { AmbientPlayerBotRecord } from './types';
 import type { AmbientPlayerBotLiveState } from './ws_client';
 
 const GROUP_INVITE_COOLDOWN_MS = 4_000;
 const GROUP_ACCEPT_COOLDOWN_MS = 1_500;
 const GROUP_ENTER_COOLDOWN_MS = 4_000;
+const GROUP_FOLLOW_COOLDOWN_MS = 6_000;
 const GROUP_DOOR_RANGE = 7.5;
+const GROUP_REGROUP_RANGE = 24;
+const GROUP_FOLLOW_START_RANGE = 10;
+const GROUP_FOLLOW_MAX_RANGE = 48;
 
 type GroupCommand = Record<string, unknown>;
 
@@ -27,6 +31,7 @@ export interface AmbientPlayerBotGroupTickInput {
 
 export interface AmbientPlayerBotGroupTickResult {
   commands: readonly GroupCommand[];
+  pauseBrainDrive: boolean;
   runnerStatePatch: Record<string, unknown>;
 }
 
@@ -67,6 +72,8 @@ export function tickAmbientPlayerBotGroupCoordinator(
   const visiblePeers = collectVisibleAmbientPeers(input.liveState, activeNames, input.bot.characterName);
   const party = parsePartyInfo(self.party);
   const leader = currentLeaderRecord(activeBots, party) ?? activeBots[0] ?? input.bot;
+  const leaderMember = party ? findPartyMember(party, leader) : null;
+  const selfMember = party ? findPartyMember(party, input.bot) : null;
   const targetPartySize = Math.max(
     1,
     Math.min(
@@ -75,6 +82,7 @@ export function tickAmbientPlayerBotGroupCoordinator(
     ),
   );
   const commands: GroupCommand[] = [];
+  let pauseBrainDrive = false;
 
   const inviteFromName = !party
     ? input.recentEvents
@@ -97,6 +105,41 @@ export function tickAmbientPlayerBotGroupCoordinator(
     }
   }
 
+  const inObjectiveDungeon = readSelfDungeonId(self) === input.objectiveDungeonId;
+  const laggingAmbientMembers = leaderMember && party
+    ? countLaggingAmbientMembers(party, leaderMember, activeNames)
+    : 0;
+  const leaderShouldHold = inObjectiveDungeon
+    && leader.botId === input.bot.botId
+    && !!leaderMember
+    && !memberInCombat(leaderMember)
+    && laggingAmbientMembers > 0;
+  if (leaderShouldHold) pauseBrainDrive = true;
+
+  const leaderDistance = selfMember && leaderMember
+    ? distanceBetweenMembers(selfMember, leaderMember)
+    : null;
+  const followerShouldTrackLeader = inObjectiveDungeon
+    && leader.botId !== input.bot.botId
+    && !!selfMember
+    && !!leaderMember
+    && !memberInCombat(selfMember)
+    && !memberInCombat(leaderMember)
+    && !selfMember.dead
+    && !leaderMember.dead
+    && leaderDistance !== null
+    && leaderDistance > GROUP_FOLLOW_START_RANGE
+    && leaderDistance <= GROUP_FOLLOW_MAX_RANGE;
+  if (followerShouldTrackLeader) {
+    pauseBrainDrive = true;
+    if (
+      leader.characterName
+      && canIssue(state, `follow:${leader.characterName}`, input.nowMs, GROUP_FOLLOW_COOLDOWN_MS)
+    ) {
+      commands.push({ cmd: 'chat', text: `/follow ${leader.characterName}` });
+    }
+  }
+
   const distanceToDoor = distanceToPoint(self.x, self.z, dungeon.doorPos.x, dungeon.doorPos.z);
   const partySize = party?.members.length ?? 1;
   if (
@@ -112,11 +155,20 @@ export function tickAmbientPlayerBotGroupCoordinator(
 
   return {
     commands,
+    pauseBrainDrive,
     runnerStatePatch: {
       groupDungeonId: input.objectiveDungeonId,
       groupLeaderName: leader.characterName,
       groupTargetSize: targetPartySize,
       groupPartySize: partySize,
+      groupMode: leaderShouldHold
+        ? 'hold_regroup'
+        : followerShouldTrackLeader
+          ? 'follow_leader'
+          : 'brain',
+      groupNeedsRegroup: leaderShouldHold,
+      groupLaggingMembers: laggingAmbientMembers,
+      groupLeaderDistance: leaderDistance ?? 0,
     },
   };
 }
@@ -124,11 +176,16 @@ export function tickAmbientPlayerBotGroupCoordinator(
 function emptyGroupResult(): AmbientPlayerBotGroupTickResult {
   return {
     commands: [],
+    pauseBrainDrive: false,
     runnerStatePatch: {
       groupDungeonId: '',
       groupLeaderName: '',
       groupTargetSize: 0,
       groupPartySize: 0,
+      groupMode: '',
+      groupNeedsRegroup: false,
+      groupLaggingMembers: 0,
+      groupLeaderDistance: 0,
     },
   };
 }
@@ -146,6 +203,13 @@ function currentLeaderRecord(
   if (!party) return null;
   const leaderPid = party.leader;
   return records.find((record) => record.characterId === leaderPid) ?? null;
+}
+
+function findPartyMember(
+  party: PartyInfo,
+  record: AmbientPlayerBotRecord,
+): PartyMemberInfo | null {
+  return party.members.find((member) => member.pid === record.characterId || member.name === record.characterName) ?? null;
 }
 
 function collectVisibleAmbientPeers(
@@ -183,6 +247,10 @@ function readRunnerString(
   return typeof field === 'string' ? field : '';
 }
 
+function readSelfDungeonId(value: Record<string, unknown>): string {
+  return typeof value.dgn === 'string' ? value.dgn : '';
+}
+
 function ambientInviteFromName(
   event: SimEvent,
   activeNames: ReadonlySet<string>,
@@ -202,4 +270,29 @@ function distanceToPoint(
   const dx = x1 - x2;
   const dz = z1 - z2;
   return Math.sqrt(dx * dx + dz * dz);
+}
+
+function distanceBetweenMembers(
+  a: PartyMemberInfo,
+  b: PartyMemberInfo,
+): number {
+  return distanceToPoint(a.x, a.z, b.x, b.z);
+}
+
+function memberInCombat(member: PartyMemberInfo): boolean {
+  return member.inCombat === 1;
+}
+
+function countLaggingAmbientMembers(
+  party: PartyInfo,
+  leader: PartyMemberInfo,
+  activeNames: ReadonlySet<string>,
+): number {
+  let count = 0;
+  for (const member of party.members) {
+    if (member.pid === leader.pid) continue;
+    if (!activeNames.has(member.name) || member.dead) continue;
+    if (distanceBetweenMembers(member, leader) > GROUP_REGROUP_RANGE) count++;
+  }
+  return count;
 }

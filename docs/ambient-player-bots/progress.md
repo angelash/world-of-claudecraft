@@ -38,7 +38,7 @@
 | Continuation 08 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 09 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 09 QA | completed | 2026-06-26 | 2026-06-26 |
-| Continuation 10 | pending | 2026-06-26 |  |
+| Continuation 10 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 10 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
@@ -832,16 +832,28 @@ Notes:
 
 ## Continuation 10 checklist
 
-- [ ] add a bounded in-dungeon regroup layer for Sunken Bastion parties
-- [ ] add follower-side real `/follow <leader>` reattachment through chat
-- [ ] suppress leader drift or clean pulls while the Bastion party is split
-- [ ] add focused group and runtime regressions for regroup and follower
+- [x] add a bounded in-dungeon regroup layer for Sunken Bastion parties
+- [x] add follower-side real `/follow <leader>` reattachment through chat
+- [x] suppress leader drift or clean pulls while the Bastion party is split
+- [x] add focused group and runtime regressions for regroup and follower
   reattachment
-- [ ] validate the continuation slice
+- [x] validate the continuation slice
 
 Notes:
-- This slice should stay tightly scoped to Sunken Bastion cohesion. It is not a
-  general raid AI or multi-dungeon follower framework.
+- This slice stays tightly scoped to Sunken Bastion cohesion. It does not try
+  to become a general raid AI or multi-dungeon follower framework.
+- Followers now use the normal `/follow <leader>` chat path when they trail the
+  ambient Bastion leader inside the dungeon, and the group layer pauses the
+  leader's brain drive while another ambient party member is visibly lagging.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_group.test.ts tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red at the existing repo baseline, including the
+    previously known `server/ai/active_triggers.ts`, `server/game.ts`,
+    `src/ui/hud.ts`, generated i18n locale and resolved files, and
+    `tests/auto_loot.test.ts` issues)
+- Continuation 10 QA is now the next target.
 
 ## Continuation 10 QA checklist
 

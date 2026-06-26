@@ -590,16 +590,25 @@ export class AmbientPlayerBotRuntime {
             }, entry.groupState)
           : {
               commands: [],
+              pauseBrainDrive: false,
               runnerStatePatch: {
                 groupDungeonId: '',
                 groupLeaderName: '',
                 groupTargetSize: 0,
                 groupPartySize: 0,
+                groupMode: '',
+                groupNeedsRegroup: false,
+                groupLaggingMembers: 0,
+                groupLeaderDistance: 0,
               },
             };
         for (const command of groupResult.commands) entry.client.command(command);
-        for (const command of result.commands) entry.client.command(command);
-        entry.client.input(result.moveInput, result.facing);
+        if (!groupResult.pauseBrainDrive) {
+          for (const command of result.commands) entry.client.command(command);
+          entry.client.input(result.moveInput, result.facing);
+        } else {
+          entry.client.input({});
+        }
         const socialResult = tickAmbientPlayerBotSocialShell({
           bot: latest,
           liveState,

@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: continuation 10
-- phase status: Continuation 09 QA complete, continuation 10 planning is now in place for Bastion in-dungeon cohesion and combat polish, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 10 QA
+- phase status: Continuation 10 implementation is complete and ready for its QA pass, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -390,6 +390,10 @@
   and Vael routing, and dungeon exit for the Bastion turn-in handoff
 - the runtime now has a bounded ambient-party bridge that uses real `pinvite`,
   `paccept`, and `enter_dungeon` commands for nearby same-cluster bots
+- Continuation 10 adds an in-dungeon cohesion layer for Sunken Bastion:
+  trailing followers use the normal `/follow <leader>` chat path, and the
+  leader pauses brain-driven movement or clean pulls while another ambient
+  party member is visibly lagging
 - `loginBot` runtime actions now persist the planner-provided cluster
   assignment and target character id before the socket connect path, so
   downstream orchestration layers can trust those fields during the first live
@@ -399,8 +403,9 @@
 - Continuation 09 QA confirmed the Bastion accept order, real party-command
   bridge, dungeon entry, Olen-first routing, and dungeon exit handoff under the
   focused validation matrix
-- the next notable gap is the deeper Bastion in-dungeon cohesion and combat
-  polish inside Sunken Bastion, followed by the Zone 3 handoff beyond Mirefen
+- Continuation 10 implementation is done, and its QA pass should now verify the
+  regroup hold and `/follow` path before work continues toward the Zone 3
+  handoff beyond Mirefen
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit
