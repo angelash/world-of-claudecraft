@@ -120,6 +120,11 @@ Post-packet continuation prompts:
   field outdoor ladders.
 - `continuation-13-qa-thornpeak-cultists-and-revenants.md` - QA prompt for
   continuation 13.
+- `continuation-14-thornpeak-sanctum-approach.md` - extend the real
+  progression ladder through the Sanctum-approach prep ladders for sigils,
+  embers, congregation cleanup, and gate-key shards.
+- `continuation-14-qa-thornpeak-sanctum-approach.md` - QA prompt for
+  continuation 14.
 
 ## How to use this packet
 

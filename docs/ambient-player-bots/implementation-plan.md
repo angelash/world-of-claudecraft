@@ -83,6 +83,8 @@ Step 4, update docs and commit:
 | 12 QA | QA | Verify continuation 12 | warfront route order, rare-target flow, and local fallback behavior |
 | 13 | impl | Thornpeak cultists and revenants | late-Zone 3 solo cult and revenant outdoor ladders |
 | 13 QA | QA | Verify continuation 13 | cult-route order, mixed kill or collect flow, and revenant progression |
+| 14 | impl | Thornpeak Sanctum approach | sigils, embers, congregation cleanup, and gate-key prep |
+| 14 QA | QA | Verify continuation 14 | mixed sanctum-route order and bounded approach behavior |
 
 ## Phase details
 
@@ -218,13 +220,22 @@ Deliverables:
 - focused tests for cult-route order, mixed kill or collect objectives on the
   same mob families, and revenant handoff behavior
 
-## Remaining roadmap after Continuation 12
+### Continuation 14, Thornpeak Sanctum approach
+
+Deliverables:
+- the Sanctum-approach outdoor prep ladder through `q_wyrm_sigils`,
+  `q_breaking_the_seal`, `q_voice_below`, and `q_sanctum_gate`
+- bounded handling for mixed-objective congregation cleanup on zealots and
+  necromancers
+- focused tests for object-route order, ember collection, mixed congregation
+  routing, and gate-key handoff behavior
+
+## Remaining roadmap after Continuation 13
 
 These items are still part of the long-horizon product target, but they remain
-future slices after the mid-zone outdoor warfront and the newly planned late
-outdoor solo work:
+future slices after the late outdoor solo work and the newly planned
+Sanctum-approach prep work:
 
-- the Sanctum-approach sigils, embers, and gate-prep ladders
 - deeper Zone 3 grouped progression such as the ogre war-camp, Drogmar, and
   later Sanctum bosses
 - stronger dungeon completion reliability and multi-encounter polish
@@ -275,3 +286,5 @@ outdoor solo work:
 - `continuation-12-qa-thornpeak-warfront-and-elemental-outdoors.md`
 - `continuation-13-thornpeak-cultists-and-revenants.md`
 - `continuation-13-qa-thornpeak-cultists-and-revenants.md`
+- `continuation-14-thornpeak-sanctum-approach.md`
+- `continuation-14-qa-thornpeak-sanctum-approach.md`

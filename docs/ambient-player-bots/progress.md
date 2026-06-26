@@ -45,7 +45,9 @@
 | Continuation 12 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 12 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 13 | completed | 2026-06-26 | 2026-06-26 |
-| Continuation 13 QA | pending | 2026-06-26 |  |
+| Continuation 13 QA | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 14 | pending | 2026-06-26 |  |
+| Continuation 14 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
 
@@ -1037,9 +1039,39 @@ Notes:
   - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
   - `npm run build:server`
   - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
-  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+- `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
     currently includes existing issues in `server/ai/active_triggers.ts`,
     `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
     under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
     `tests/auto_loot.test.ts`)
-- Continuation 13 QA is now the next target.
+- Continuation 13 QA is now complete. The next implementation gap after this
+  slice is the Sanctum-approach outdoor prep ladder: sigils, blessed embers,
+  the mixed `q_voice_below` congregation cleanup, and the gate-key shards
+  before later grouped or boss content.
+
+## Continuation 13 QA checklist
+
+- [x] audit Continuation 13 against
+  `continuation-13-qa-thornpeak-cultists-and-revenants.md`
+- [x] confirm the Wyrmcult chain keeps the intended order across zealots,
+  orders, and necromancers
+- [x] confirm the mixed cult kill or collect routes stay bounded to zealot and
+  necromancer hunt sources only
+- [x] confirm the revenant fields chain keeps the intended order across
+  `q_revenants` and `q_revenant_vanguard`
+- [x] verify focused ambient-bot validation, `build:server`, local pg-mem
+  smoke, and the existing `tsc` baseline stay stable
+
+Notes:
+- QA did not uncover a new blocking or should-fix issue in the Continuation 13
+  slice. The new brain and runtime regressions directly cover cult-route order,
+  bounded mixed cult hunts, and the revenant vanguard handoff.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline listed
+    in the Continuation 13 implementation notes)
+- The next implementation gap is the Sanctum-approach outdoor prep ladder:
+  sigils, blessed embers, the congregation cleanup, and the gate-key shards
+  before later grouped or boss content.

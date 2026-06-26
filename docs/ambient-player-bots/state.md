@@ -2,10 +2,10 @@
 
 ## Current phase
 
-- current phase: continuation 13 QA
-- phase status: Continuation 13 implementation is complete, and QA now closes
-  the late-Thornpeak solo outdoor ladder around Wyrmcult camps and the
-  revenant fields before the Sanctum-approach sigils and later grouped or boss
+- current phase: continuation 14 planning
+- phase status: Continuation 13 QA is complete, and continuation 14 planning
+  now targets the Sanctum-approach outdoor prep ladder around sigils, embers,
+  congregation cleanup, and gate-key shards before the later grouped or boss
   content, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
@@ -324,6 +324,14 @@
 - `docs/ambient-player-bots/continuation-13-thornpeak-cultists-and-revenants.md`
 - `docs/ambient-player-bots/continuation-13-qa-thornpeak-cultists-and-revenants.md`
 
+### Continuation 14
+
+- `server/ambient_bots/progression_routes.ts`
+- `tests/ambient_player_bot_brain.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `docs/ambient-player-bots/continuation-14-thornpeak-sanctum-approach.md`
+- `docs/ambient-player-bots/continuation-14-qa-thornpeak-sanctum-approach.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -470,6 +478,9 @@
 - the Wyrmcult mixed-objective routes now stay bounded to zealot and
   necromancer hunt routes so both kill and collect progress can be reconstructed
   from live quest counts and the correct mob family only
+- Continuation 13 QA is complete, and continuation 14 should next cover the
+  Sanctum-approach outdoor prep ladder around `q_wyrm_sigils`,
+  `q_breaking_the_seal`, `q_voice_below`, and `q_sanctum_gate`
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit
