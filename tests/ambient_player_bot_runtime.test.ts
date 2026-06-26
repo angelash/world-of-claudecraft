@@ -463,6 +463,94 @@ describe('AmbientPlayerBotRuntime', () => {
     await runtime.stop();
   });
 
+  it('drives connected bots through town resupply over the real vendor buy command', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'eastbrook_vale:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 2,
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, {
+          self: {
+            id: 101,
+            x: -7,
+            z: 3,
+            lv: 2,
+            hp: 40,
+            mhp: 40,
+            res: 0,
+            mres: 0,
+            rtype: 'rage',
+            gcd: 0,
+            copper: 150,
+            inv: [],
+            qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
+            qdone: ['q_wolves'],
+            cds: {},
+          },
+          ents: [
+            { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
+          ],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'eastbrook_vale:1',
+      zoneId: 'eastbrook_vale',
+      targetCharacterId: 1,
+      reason: 'test resupply route',
+    }]);
+
+    await vi.waitFor(() => {
+      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; item?: string; npc?: number });
+      expect(sent?.some((message) =>
+        message.t === 'cmd'
+        && message.cmd === 'buy'
+        && message.item === 'baked_bread'
+        && message.npc === 7100,
+      )).toBe(true);
+    });
+
+    expect(game.ambientPlayerBotDirectory()).toEqual([
+      expect.objectContaining({
+        runnerState: expect.objectContaining({
+          connected: true,
+          objective: 'restock_baked_bread',
+          objectiveLabel: 'Restocking Freshly Baked Bread',
+        }),
+      }),
+    ]);
+
+    await runtime.stop();
+  });
+
   it('processes social snapshots and whisper replies through the runtime loop', async () => {
     let nowMs = 5_000;
     const game = new FakeGame();

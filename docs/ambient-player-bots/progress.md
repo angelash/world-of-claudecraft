@@ -26,6 +26,8 @@
 | Continuation 02 QA | pending | 2026-06-26 |  |
 | Continuation 03 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 03 QA | pending | 2026-06-26 |  |
+| Continuation 04 | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 04 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
 
@@ -482,3 +484,36 @@ Notes:
 - Continuation 03 QA is now the next target. The next implementation gap after
   that is town resupply, consumable buying, and longer autonomous travel beyond
   the current Eastbrook route ladder.
+
+## Continuation 04 checklist
+
+- [x] add snapshot-driven town resupply objectives for food and drink
+- [x] route low-supply bots through Trader Wilkes over the real vendor buy path
+- [x] combine junk selling and restocking in one vendor stop
+- [x] add focused brain and runtime regressions for vendor restocking
+- [x] validate the continuation slice
+
+Notes:
+- This slice keeps economy authority entirely in the real server path. The bot
+  brain only decides when to walk to the vendor and which stock item to buy;
+  the normal `buy` plus `sell_all_junk` commands still do all authoritative
+  money and inventory mutation.
+- Resupply stays reconstructible from live snapshot state. The new objective
+  looks only at inventory counts, copper, resource type, quest state, and
+  nearby vendor presence.
+- The local pg-mem harness now strips one unsupported username-regex predicate
+  from the suspicious-registration helper query, so the admin smoke ends cleanly
+  without a false-error tail after the summary.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node --check scripts/ambient_bot_pgmem_support.mjs`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- Continuation 04 QA is now the next target. The next implementation gap after
+  that is longer autonomous travel and higher-zone route ladders beyond the
+  current Eastbrook town loop.

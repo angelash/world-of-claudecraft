@@ -30,6 +30,13 @@ const COMMAND_COOLDOWN_MS = 900;
 const RECOVERY_HP_THRESHOLD = 0.55;
 const RECOVERY_MANA_THRESHOLD = 0.45;
 const JUNK_VENDOR_NPC_ID = 'trader_wilkes';
+const RESTOCK_VENDOR_NPC_ID = 'trader_wilkes';
+const FOOD_RESTOCK_TRIGGER_COUNT = 2;
+const FOOD_RESTOCK_TARGET_COUNT = 4;
+const DRINK_RESTOCK_TRIGGER_COUNT = 2;
+const DRINK_RESTOCK_TARGET_COUNT = 4;
+const RESTOCK_FOOD_ITEM_ID = 'baked_bread';
+const RESTOCK_DRINK_ITEM_ID = 'spring_water';
 
 type BrainCommand = Record<string, unknown>;
 type MoveInputPayload = Record<string, 1>;
@@ -57,6 +64,7 @@ interface BotSelfView {
   id: number;
   pos: BotVec3;
   level: number;
+  copper: number;
   hp: number;
   maxHp: number;
   resource: number;
@@ -88,6 +96,12 @@ interface AmbientBotObjective {
   camps?: readonly BotPoint2d[];
   npcTemplateId?: string;
   allowAnyHostileFallback?: boolean;
+  vendorPurchases?: readonly AmbientBotVendorPurchase[];
+}
+
+interface AmbientBotVendorPurchase {
+  itemId: string;
+  targetCount: number;
 }
 
 export interface AmbientPlayerBotBrainState {
@@ -189,7 +203,7 @@ export function tickAmbientPlayerBotBrain(
       input,
       view,
       objective,
-      sellJunkAtVendor(view, state, input, objective),
+      handleVendorObjective(view, state, input, objective),
     );
   }
   if (objective.objectItemId) {
@@ -216,7 +230,9 @@ export function tickAmbientPlayerBotBrain(
       input,
       view,
       objective,
-      interactWithNpc(view, state, input, objective),
+      objective.vendorPurchases
+        ? handleVendorObjective(view, state, input, objective)
+        : interactWithNpc(view, state, input, objective),
     );
   }
   return finalizeStep(state, input, view, objective, idleStep(objective.id, objective.label));
@@ -226,6 +242,8 @@ function chooseObjective(view: BotWorldView): AmbientBotObjective {
   if (view.self.hp <= 0) return { id: 'release', label: 'Releasing spirit' };
 
   const questObjective = chooseQuestObjective(view);
+  const resupplyObjective = chooseResupplyObjective(view, questObjective);
+  if (resupplyObjective) return resupplyObjective;
   if (questObjective) return questObjective;
 
   if (inventoryHasJunk(view.self.inventory)) {
@@ -243,6 +261,21 @@ function chooseObjective(view: BotWorldView): AmbientBotObjective {
     mobId: grind.mobId,
     camps: grind.camps,
     allowAnyHostileFallback: true,
+  };
+}
+
+function chooseResupplyObjective(
+  view: BotWorldView,
+  questObjective: AmbientBotObjective | null,
+): AmbientBotObjective | null {
+  if (questObjective?.npcTemplateId) return null;
+  const vendorPurchases = buildVendorPurchases(view.self);
+  if (vendorPurchases.length === 0) return null;
+  return {
+    id: vendorPurchases.length > 1 ? 'restock_food_and_drink' : `restock_${vendorPurchases[0].itemId}`,
+    label: resupplyLabel(vendorPurchases),
+    npcTemplateId: RESTOCK_VENDOR_NPC_ID,
+    vendorPurchases,
   };
 }
 
@@ -324,6 +357,41 @@ function routeObjectiveNeedsWork(
   return (progress.counts[route.questObjectiveIndex] ?? 0) < objective.count;
 }
 
+function buildVendorPurchases(self: BotSelfView): AmbientBotVendorPurchase[] {
+  const purchases: AmbientBotVendorPurchase[] = [];
+  const canSellJunk = inventoryHasJunk(self.inventory);
+  if (
+    countConsumables(self.inventory, 'food') < FOOD_RESTOCK_TRIGGER_COUNT
+    && canAffordVendorItem(self.copper, RESTOCK_FOOD_ITEM_ID, canSellJunk)
+  ) {
+    purchases.push({ itemId: RESTOCK_FOOD_ITEM_ID, targetCount: FOOD_RESTOCK_TARGET_COUNT });
+  }
+  if (
+    self.resourceType === 'mana'
+    && countConsumables(self.inventory, 'drink') < DRINK_RESTOCK_TRIGGER_COUNT
+    && canAffordVendorItem(self.copper, RESTOCK_DRINK_ITEM_ID, canSellJunk)
+  ) {
+    purchases.push({ itemId: RESTOCK_DRINK_ITEM_ID, targetCount: DRINK_RESTOCK_TARGET_COUNT });
+  }
+  return purchases;
+}
+
+function canAffordVendorItem(
+  copper: number,
+  itemId: string,
+  canSellJunk: boolean,
+): boolean {
+  const price = ITEMS[itemId]?.buyValue ?? 0;
+  return price > 0 && (copper >= price || canSellJunk);
+}
+
+function resupplyLabel(purchases: readonly AmbientBotVendorPurchase[]): string {
+  const labels = purchases.map((purchase) => ITEMS[purchase.itemId]?.name ?? purchase.itemId);
+  return labels.length > 0
+    ? `Restocking ${labels.join(' and ')}`
+    : 'Restocking supplies';
+}
+
 function maybeRecover(
   view: BotWorldView,
   state: AmbientPlayerBotBrainState,
@@ -386,7 +454,7 @@ function interactWithNpc(
   return idleStep(objective.id, objective.label, commands, facingFor(view.self.pos, pointToVec(target)));
 }
 
-function sellJunkAtVendor(
+function handleVendorObjective(
   view: BotWorldView,
   state: AmbientPlayerBotBrainState,
   input: AmbientPlayerBotBrainTickInput,
@@ -405,8 +473,23 @@ function sellJunkAtVendor(
   }
   if (inventoryHasJunk(view.self.inventory) && canIssue(state, 'sell_all_junk', input.nowMs, 5_000)) {
     commands.push({ cmd: 'sell_all_junk' });
+  } else if (npc && objective.vendorPurchases) {
+    const purchase = nextVendorPurchase(objective.vendorPurchases, view.self.inventory);
+    if (purchase && canIssue(state, `buy:${purchase.itemId}`, input.nowMs, COMMAND_COOLDOWN_MS)) {
+      commands.push({ cmd: 'buy', npc: npc.id, item: purchase.itemId });
+    }
   }
   return idleStep(objective.id, objective.label, commands, facingFor(view.self.pos, pointToVec(target)));
+}
+
+function nextVendorPurchase(
+  purchases: readonly AmbientBotVendorPurchase[],
+  inventory: readonly InvSlot[],
+): AmbientBotVendorPurchase | null {
+  for (const purchase of purchases) {
+    if (countItemInInventory(inventory, purchase.itemId) < purchase.targetCount) return purchase;
+  }
+  return null;
 }
 
 function huntMob(
@@ -659,6 +742,7 @@ function parseSelf(raw: Record<string, unknown> | null): BotSelfView | null {
     id,
     pos: { x, y: readNumber(raw.y) ?? 0, z },
     level: readNumber(raw.lv) ?? 1,
+    copper: readNumber(raw.copper) ?? 0,
     hp: readNumber(raw.hp) ?? 1,
     maxHp: readNumber(raw.mhp) ?? 1,
     resource: readNumber(raw.res) ?? 0,
@@ -839,6 +923,31 @@ function npcFallbackPoint(templateId: string): BotPoint2d | null {
 
 function inventoryHasJunk(inventory: readonly InvSlot[]): boolean {
   return inventory.some((slot) => ITEMS[slot.itemId]?.quality === 'poor' && slot.count > 0);
+}
+
+function countConsumables(
+  inventory: readonly InvSlot[],
+  kind: 'food' | 'drink',
+): number {
+  let total = 0;
+  for (const slot of inventory) {
+    const item = ITEMS[slot.itemId];
+    if (!item || item.kind !== kind || slot.count <= 0) continue;
+    if (kind === 'food' && item.foodHp) total += slot.count;
+    if (kind === 'drink' && item.drinkMana) total += slot.count;
+  }
+  return total;
+}
+
+function countItemInInventory(
+  inventory: readonly InvSlot[],
+  itemId: string,
+): number {
+  let total = 0;
+  for (const slot of inventory) {
+    if (slot.itemId === itemId && slot.count > 0) total += slot.count;
+  }
+  return total;
 }
 
 function findConsumable(inventory: readonly InvSlot[], kind: 'food' | 'drink'): string | null {

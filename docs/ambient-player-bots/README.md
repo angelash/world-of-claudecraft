@@ -69,6 +69,10 @@ Post-packet continuation prompts:
   sub-objective gating for multi-source collection quests such as `q_rite`.
 - `continuation-03-qa-mixed-source-collection-progression.md` - QA prompt for
   continuation 03.
+- `continuation-04-town-resupply-and-consumables.md` - add real vendor-based
+  food and drink restocking for longer autonomous quest runs.
+- `continuation-04-qa-town-resupply-and-consumables.md` - QA prompt for
+  continuation 04.
 
 ## How to use this packet
 

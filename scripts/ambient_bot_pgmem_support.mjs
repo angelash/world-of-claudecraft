@@ -19,6 +19,7 @@ function sanitizeSql(sql) {
   return sql
     .replace(/DO\s+\$\$[\s\S]*?END\s+\$\$;?/gi, '')
     .replace(/\s+text_pattern_ops\b/gi, '')
+    .replace(/\s+AND\s+lower\(username\)\s+~\s+\('\^'\s+\|\|\s+\$2\s+\|\|\s+'\[0-9\]\+\$'\)/gi, '')
     .trim();
 }
 

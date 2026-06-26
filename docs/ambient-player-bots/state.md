@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: continuation 03
-- phase status: Continuation 03 implementation complete, Continuation 03 QA next, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 04
+- phase status: Continuation 04 implementation complete, Continuation 04 QA next, packet teardown deferred until the continuation ladder closes
 
 ## Locked decisions
 
@@ -227,6 +227,15 @@
 - `docs/ambient-player-bots/continuation-03-mixed-source-collection-progression.md`
 - `docs/ambient-player-bots/continuation-03-qa-mixed-source-collection-progression.md`
 
+### Continuation 04
+
+- `server/ambient_bots/brain.ts`
+- `scripts/ambient_bot_pgmem_support.mjs`
+- `tests/ambient_player_bot_brain.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `docs/ambient-player-bots/continuation-04-town-resupply-and-consumables.md`
+- `docs/ambient-player-bots/continuation-04-qa-town-resupply-and-consumables.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -291,7 +300,11 @@
 - Continuation 03 adds mixed-source collection routing for `q_rite`, with
   route-level sub-objective gating based on live quest-log counts and distinct
   objective ids for route handoff
-- town resupply logic, consumable buying, and higher-zone routing remain open
+- Continuation 04 adds town resupply through Trader Wilkes, using live
+  inventory counts, copper, and real vendor buy commands for food and drink
+- the local pg-mem harness now strips one unsupported suspicious-registration
+  regex predicate so admin smoke output stays clean on this workstation
+- longer autonomous travel and higher-zone routing remain open
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

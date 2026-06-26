@@ -193,7 +193,7 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
-  it('routes to the vendor after the starter quest when carrying junk', () => {
+  it('uses the vendor stop to sell junk before buying fresh food after the starter quest', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
       bot: bot(),
@@ -211,11 +211,74 @@ describe('ambient player bot brain', () => {
       nowMs: 1_000,
     }, state);
 
-    expect(result.objectiveId).toBe('sell_junk');
+    expect(result.objectiveId).toBe('restock_baked_bread');
     expect(result.commands).toEqual([
       { cmd: 'target', id: 7100 },
       { cmd: 'sell_all_junk' },
     ]);
+  });
+
+  it('restsocks food from Trader Wilkes before leaving town for an active combat quest', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 2,
+          x: -7,
+          z: 3,
+          copper: 150,
+          qdone: ['q_wolves'],
+          qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
+        },
+        entities: [
+          { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('restock_baked_bread');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 7100 },
+      { cmd: 'buy', npc: 7100, item: 'baked_bread' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('restocks spring water for mana classes before resuming an active quest route', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot({
+        class: 'mage',
+        profileId: 'eastbrook_vale_mage_newcomer',
+      }),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          x: -7,
+          z: 3,
+          copper: 200,
+          res: 100,
+          mres: 100,
+          rtype: 'mana',
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders'],
+          qlog: [{ questId: 'q_murlocs', counts: [0], state: 'active' }],
+        },
+        entities: [
+          { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('restock_spring_water');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 7100 },
+      { cmd: 'buy', npc: 7100, item: 'spring_water' },
+    ]);
+    expect(result.moveInput).toEqual({});
   });
 
   it('picks up the boar-hide quest once the bot outlevels the starter wolf loop', () => {
@@ -227,6 +290,7 @@ describe('ambient player bot brain', () => {
           lv: 2,
           x: -7,
           z: 3,
+          copper: 200,
           qdone: ['q_wolves'],
         },
         entities: [
