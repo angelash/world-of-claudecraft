@@ -130,6 +130,10 @@ Post-packet continuation prompts:
   generalize group coordination beyond dungeon-only objectives.
 - `continuation-15-qa-thornpeak-ogre-war-camp-groups.md` - QA prompt for
   continuation 15.
+- `continuation-16-korgath-sanctum-threshold.md` - extend the real progression
+  ladder into the first Gravewyrm Sanctum boss bridge around `q_korgath`.
+- `continuation-16-qa-korgath-sanctum-threshold.md` - QA prompt for
+  continuation 16.
 
 ## How to use this packet
 

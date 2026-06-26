@@ -87,6 +87,8 @@ Step 4, update docs and commit:
 | 14 QA | QA | Verify continuation 14 | mixed sanctum-route order and bounded approach behavior |
 | 15 | impl | Thornpeak ogre war-camp groups | outdoor grouped crushers and Drogmar support on the live server path |
 | 15 QA | QA | Verify continuation 15 | outdoor group assembly, cohesion, and grouped route coverage |
+| 16 | impl | Korgath Sanctum threshold | first Gravewyrm Sanctum party, door-entry, and Korgath bridge |
+| 16 QA | QA | Verify continuation 16 | Sanctum entry, first-boss routing, and dungeon-exit regressions |
 
 ## Phase details
 
@@ -241,13 +243,24 @@ Deliverables:
 - focused tests for outdoor invite, accept, regroup, and grouped-route order
 - packet updates that hand off the later grouped Thornpeak QA sweep
 
-## Remaining roadmap after Continuation 15
+### Continuation 16, Korgath Sanctum threshold
+
+Deliverables:
+- the first Gravewyrm Sanctum bridge through `q_korgath`
+- grouped Sanctum door-entry, in-instance Korgath routing, and dungeon-exit
+  handoff through the normal live command path
+- focused tests for accept order, dungeon entry, Korgath pursuit, and exit
+  behavior
+- packet updates that hand off the deeper Sanctum QA sweep
+
+## Remaining roadmap after Continuation 16
 
 These items are still part of the long-horizon product target, but they remain
-future slices after the Sanctum prep work and the grouped ogre war-camp slice:
+future slices after the grouped ogre war-camp slice and the Korgath threshold
+bridge:
 
-- deeper Zone 3 grouped progression such as `q_korgath` and later Sanctum
-  bosses
+- deeper Zone 3 grouped progression such as Velkhar, the later Sanctum boss
+  ladder, and the final Gravewyrm completion path
 - stronger dungeon completion reliability and multi-encounter polish
 - richer friend, whisper, and social-memory loops
 - later operator and rollout hardening for larger real populations
@@ -300,3 +313,5 @@ future slices after the Sanctum prep work and the grouped ogre war-camp slice:
 - `continuation-14-qa-thornpeak-sanctum-approach.md`
 - `continuation-15-thornpeak-ogre-war-camp-groups.md`
 - `continuation-15-qa-thornpeak-ogre-war-camp-groups.md`
+- `continuation-16-korgath-sanctum-threshold.md`
+- `continuation-16-qa-korgath-sanctum-threshold.md`

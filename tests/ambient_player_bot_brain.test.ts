@@ -145,7 +145,13 @@ const thornpeakThroughSanctumGate = [
   'q_voice_below',
   'q_sanctum_gate',
 ] as const;
+const thornpeakThroughWarCampGroups = [
+  ...thornpeakThroughSanctumGate,
+  'q_crushers',
+  'q_drogmar',
+] as const;
 const bastionSlot0Origin = { x: 1500, z: -1250 } as const;
+const sanctumSlot0Origin = { x: 2100, z: -1250 } as const;
 
 describe('ambient player bot brain', () => {
   it('targets the starter marshal and interacts to pick up the wolves quest', () => {
@@ -2436,6 +2442,99 @@ describe('ambient player bot brain', () => {
     expect(result.objectiveDungeonId).toBeUndefined();
     expect(result.commands).toEqual([]);
     expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('picks up q_korgath from Scout Maren after the grouped ogre war-camp chain is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          x: 7,
+          z: 670,
+          qdone: [...thornpeakThroughWarCampGroups],
+        },
+        entities: [
+          { id: 9828, k: 'npc', tid: 'scout_maren_highwatch', x: 7, z: 670 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_korgath');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9828 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('heads for the Gravewyrm Sanctum door once q_korgath is active outdoors', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          qdone: [...thornpeakThroughWarCampGroups],
+          qlog: [{ questId: 'q_korgath', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('enter_korgath');
+    expect(result.objectiveDungeonId).toBe('gravewyrm_sanctum');
+    expect(result.objectiveSuggestedPartySize).toBe(5);
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('routes toward Korgath once the party is inside Gravewyrm Sanctum', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          x: sanctumSlot0Origin.x,
+          z: sanctumSlot0Origin.z + 4,
+          dgn: 'gravewyrm_sanctum',
+          qdone: [...thornpeakThroughWarCampGroups],
+          qlog: [{ questId: 'q_korgath', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_korgath');
+    expect(result.objectiveDungeonId).toBe('gravewyrm_sanctum');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('walks back to the Sanctum exit and leaves once q_korgath is ready', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          x: sanctumSlot0Origin.x,
+          z: sanctumSlot0Origin.z - 6,
+          dgn: 'gravewyrm_sanctum',
+          qdone: [...thornpeakThroughWarCampGroups],
+          qlog: [{ questId: 'q_korgath', counts: [1], state: 'ready' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('leave_korgath');
+    expect(result.objectiveDungeonId).toBe('gravewyrm_sanctum');
+    expect(result.commands).toEqual([{ cmd: 'leave_dungeon' }]);
+    expect(result.moveInput).toEqual({});
   });
 
   it('routes toward tunnel rats while the blessed tallow objective for q_rite is still incomplete', () => {

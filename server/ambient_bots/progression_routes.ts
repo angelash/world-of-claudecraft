@@ -557,4 +557,15 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'Hunting Warlord Drogmar',
     { suggestedPartySize: 3 },
   ),
+  killRoute(
+    'q_korgath',
+    'scout_maren_highwatch',
+    'korgath_the_bound',
+    18,
+    'Hunting Korgath the Bound',
+    {
+      dungeonId: 'gravewyrm_sanctum',
+      suggestedPartySize: 5,
+    },
+  ),
 ];

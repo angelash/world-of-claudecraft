@@ -106,6 +106,11 @@ const thornpeakThroughSanctumGate = [
   'q_voice_below',
   'q_sanctum_gate',
 ] as const;
+const thornpeakThroughWarCampGroups = [
+  ...thornpeakThroughSanctumGate,
+  'q_crushers',
+  'q_drogmar',
+] as const;
 
 class FakeGame {
   private readonly directory = new Map<string, AmbientPlayerBotRecord>();
@@ -1214,6 +1219,131 @@ describe('AmbientPlayerBotRuntime', () => {
         }),
       }),
     ]));
+
+    await runtime.stop();
+  });
+
+  it('enters Gravewyrm Sanctum once the ambient q_korgath party is assembled at the door', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    let socketIndex = 0;
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'thornpeak:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 18,
+          lastKnownZoneId: 'thornpeak',
+        }),
+        bot({
+          botId: 'bot-2',
+          accountId: 12,
+          accountUsername: 'bot_user_2',
+          accountPassword: 'BotPassword123',
+          characterId: 102,
+          characterName: 'Branorabb',
+          profileId: 'eastbrook_vale_mage_newcomer',
+          class: 'mage',
+          authToken: 'token-2',
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'thornpeak:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 18,
+          lastKnownZoneId: 'thornpeak',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const partyWire = {
+      leader: 101,
+      raid: false,
+      members: [
+        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 18, hp: 150, mhp: 150, res: 0, mres: 0, rtype: 'rage', x: 0, z: 880, dead: 0, inCombat: 0, group: 1 },
+        { pid: 102, name: 'Branorabb', cls: 'mage', level: 18, hp: 120, mhp: 120, res: 180, mres: 180, rtype: 'mana', x: 1, z: 880, dead: 0, inCombat: 0, group: 1 },
+      ],
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const isLeader = socketIndex++ === 0;
+        const socket = new FakeSocket(isLeader ? 101 : 102, {
+          self: {
+            id: isLeader ? 101 : 102,
+            x: isLeader ? 0 : 1,
+            z: 880,
+            lv: 18,
+            hp: 150,
+            mhp: 150,
+            res: isLeader ? 0 : 180,
+            mres: isLeader ? 0 : 180,
+            rtype: isLeader ? 'rage' : 'mana',
+            gcd: 0,
+            inv: [],
+            qdone: [...thornpeakThroughWarCampGroups],
+            qlog: [{ questId: 'q_korgath', counts: [0], state: 'active' }],
+            party: partyWire,
+            cds: {},
+          },
+          ents: [
+            {
+              id: isLeader ? 102 : 101,
+              k: 'player',
+              nm: isLeader ? 'Branorabb' : 'Branoraaa',
+              x: 1,
+              z: 880,
+              lv: 18,
+            },
+          ],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'thornpeak:1',
+        zoneId: 'thornpeak',
+        targetCharacterId: 1,
+        reason: 'ambient q_korgath leader',
+      },
+      {
+        type: 'loginBot',
+        botId: 'bot-2',
+        clusterId: 'thornpeak:1',
+        zoneId: 'thornpeak',
+        targetCharacterId: 1,
+        reason: 'ambient q_korgath follower',
+      },
+    ]);
+
+    await vi.waitFor(() => {
+      const leaderSent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string });
+      const followerSent = sockets[1]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string });
+      expect(leaderSent?.some((message) =>
+        message.t === 'cmd' && message.cmd === 'enter_dungeon' && message.dungeon === 'gravewyrm_sanctum',
+      )).toBe(true);
+      expect(followerSent?.some((message) =>
+        message.t === 'cmd' && message.cmd === 'enter_dungeon' && message.dungeon === 'gravewyrm_sanctum',
+      )).toBe(true);
+    });
 
     await runtime.stop();
   });

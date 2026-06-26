@@ -50,6 +50,8 @@
 | Continuation 14 QA | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 15 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 15 QA | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 16 | completed | 2026-06-26 | 2026-06-26 |
+| Continuation 16 QA | pending | 2026-06-26 |  |
 
 ## Phase 1 checklist
 
@@ -1109,7 +1111,7 @@ Notes:
     `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
     under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
     `tests/auto_loot.test.ts`)
-- Continuation 16 is now the next implementation target.
+- Continuation 16 QA is now the next target.
 
 ## Continuation 14 QA checklist
 
@@ -1200,3 +1202,33 @@ Notes:
     `tests/auto_loot.test.ts`)
 - The next implementation gap is the later grouped Thornpeak threshold boss
   work, starting with `q_korgath`, before deeper Sanctum boss content.
+
+## Continuation 16 checklist
+
+- [x] extend the progression registry through `q_korgath`
+- [x] reuse the live grouped and dungeon-entry bridge for Gravewyrm Sanctum
+  entry, in-instance Korgath pursuit, and dungeon exit
+- [x] add focused brain and runtime regressions for accept order, Sanctum
+  entry, Korgath routing, and exit behavior
+- [x] validate the continuation slice
+
+Notes:
+- This slice extends the real progression ladder into the first Gravewyrm
+  Sanctum bridge without adding a privileged dungeon shortcut. Ambient bots
+  still group, travel, enter the instance, fight Korgath, leave, and turn in
+  only through the normal live quest, party, and dungeon command surfaces.
+- The progression brain now covers grouped Thornpeak progression through
+  `q_korgath`.
+- Validation run:
+  - `npx vitest run tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts`
+  - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_group.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
+  - `npm run build:server`
+  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+  - `npx tsc --noEmit` (still red only at the unrelated repo baseline, which
+    currently includes existing issues in `server/ai/active_triggers.ts`,
+    `server/game.ts`, `src/ui/hud.ts`, generated i18n locale and resolved files
+    under `src/ui/i18n.locales/` and `src/ui/i18n.resolved.generated/`, and
+    `tests/auto_loot.test.ts`)
+- Continuation 16 QA should next confirm the Gravewyrm Sanctum bridge adds no
+  regressions to the earlier Bastion flow and correctly hands off the next
+  deeper Sanctum boss gap after Korgath.

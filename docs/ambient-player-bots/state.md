@@ -2,10 +2,11 @@
 
 ## Current phase
 
-- current phase: continuation 16
-- phase status: Continuation 15 QA is complete, and continuation 16 now targets
-  the later grouped Thornpeak threshold boss work after Drogmar, starting with
-  `q_korgath`, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 16 QA
+- phase status: Continuation 16 implementation is complete, and QA now closes
+  the first Gravewyrm Sanctum bridge around `q_korgath`, party entry, Korgath
+  pursuit, and dungeon exit, packet teardown deferred until the continuation
+  ladder closes
 
 ## Locked decisions
 
@@ -345,6 +346,14 @@
 - `docs/ambient-player-bots/continuation-15-thornpeak-ogre-war-camp-groups.md`
 - `docs/ambient-player-bots/continuation-15-qa-thornpeak-ogre-war-camp-groups.md`
 
+### Continuation 16
+
+- `server/ambient_bots/progression_routes.ts`
+- `tests/ambient_player_bot_brain.test.ts`
+- `tests/ambient_player_bot_runtime.test.ts`
+- `docs/ambient-player-bots/continuation-16-korgath-sanctum-threshold.md`
+- `docs/ambient-player-bots/continuation-16-qa-korgath-sanctum-threshold.md`
+
 ## Planned database shape
 
 ### Phase 1
@@ -513,6 +522,10 @@
 - Continuation 15 QA is complete, including a direct regression that a
   same-cluster `q_drogmar` bot is not treated as a `q_crushers` party
   candidate
+- Continuation 16 extends the progression registry into `q_korgath` with the
+  existing live dungeon-entry bridge for `gravewyrm_sanctum`
+- the current progression brain now covers grouped Thornpeak progression
+  through `q_korgath`
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit
