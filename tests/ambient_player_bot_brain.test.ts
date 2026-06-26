@@ -138,6 +138,13 @@ const thornpeakThroughLateOutdoors = [
   'q_revenants',
   'q_revenant_vanguard',
 ] as const;
+const thornpeakThroughSanctumGate = [
+  ...thornpeakThroughLateOutdoors,
+  'q_wyrm_sigils',
+  'q_breaking_the_seal',
+  'q_voice_below',
+  'q_sanctum_gate',
+] as const;
 const bastionSlot0Origin = { x: 1500, z: -1250 } as const;
 
 describe('ambient player bot brain', () => {
@@ -2357,6 +2364,76 @@ describe('ambient player bot brain', () => {
 
     expect(result.objectiveId).toBe('collect_sanctum_gate');
     expect(result.objectiveLabel).toBe('Recovering Sanctum Key Shards');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('picks up q_crushers from Captain Thessaly after the Sanctum gate prep chain is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          x: 4,
+          z: 664,
+          qdone: [...thornpeakThroughSanctumGate],
+        },
+        entities: [
+          { id: 9827, k: 'npc', tid: 'captain_thessaly', x: 4, z: 664 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_crushers');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9827 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('routes toward ogre crushers as a 3-player outdoor group objective', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          qdone: [...thornpeakThroughSanctumGate],
+          qlog: [{ questId: 'q_crushers', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_crushers');
+    expect(result.objectiveLabel).toBe('Breaking the Thornpeak ogre war-camp crushers');
+    expect(result.objectiveSuggestedPartySize).toBe(3);
+    expect(result.objectiveDungeonId).toBeUndefined();
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('routes toward Warlord Drogmar as a 3-player outdoor boss objective', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 18,
+          qdone: [...thornpeakThroughSanctumGate, 'q_crushers'],
+          qlog: [{ questId: 'q_drogmar', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_drogmar');
+    expect(result.objectiveLabel).toBe('Hunting Warlord Drogmar');
+    expect(result.objectiveSuggestedPartySize).toBe(3);
+    expect(result.objectiveDungeonId).toBeUndefined();
     expect(result.commands).toEqual([]);
     expect(result.moveInput).toEqual({ f: 1 });
   });

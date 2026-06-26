@@ -2,11 +2,11 @@
 
 ## Current phase
 
-- current phase: continuation 15
-- phase status: Continuation 14 QA is complete, and continuation 15 now
-  generalizes grouped objective coordination beyond dungeon-only flow before
-  extending the Thornpeak ogre war-camp chain through `q_crushers` and
-  `q_drogmar`, packet teardown deferred until the continuation ladder closes
+- current phase: continuation 15 QA
+- phase status: Continuation 15 implementation is complete, and QA now closes
+  the grouped Thornpeak ogre war-camp slice around outdoor grouped matching,
+  `q_crushers`, and `q_drogmar`, packet teardown deferred until the
+  continuation ladder closes
 
 ## Locked decisions
 
@@ -51,6 +51,9 @@
     `q_shard_cores` is active at level 17, the bot should pick up `q_kazzix`
     before leaving Highwatch and defer the ready shard-core turn-in while
     Kazzix remains active.
+18. Grouped objective coordination must match nearby same-cluster bots on the
+    same live grouped quest or dungeon target. Outdoor grouped objectives
+    should not collapse into one broad same-cluster outdoor pool.
 
 ## Non-negotiable constraints
 
@@ -502,6 +505,12 @@
 - Continuation 14 QA is complete, and continuation 15 should next generalize
   grouped objective coordination beyond dungeon-only flow before covering
   `q_crushers` and `q_drogmar`
+- Continuation 15 generalizes grouped coordination beyond dungeon-only flow and
+  extends the progression registry into `q_crushers` and `q_drogmar`
+- grouped objective matching now keys on the live dungeon id when present, or
+  on the live grouped quest id for outdoor party objectives
+- the current progression brain now covers the grouped Thornpeak ogre war-camp
+  chain through `q_drogmar`
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit

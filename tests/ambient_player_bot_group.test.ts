@@ -88,6 +88,8 @@ describe('ambient player bot group coordinator', () => {
         },
       }),
       recentEvents: [],
+      objectiveId: 'hunt_olen',
+      objectiveQuestId: 'q_olen',
       objectiveDungeonId: 'sunken_bastion',
       objectiveSuggestedPartySize: 5,
       directory: [leader, follower],
@@ -136,6 +138,8 @@ describe('ambient player bot group coordinator', () => {
         },
       }),
       recentEvents: [],
+      objectiveId: 'hunt_olen',
+      objectiveQuestId: 'q_olen',
       objectiveDungeonId: 'sunken_bastion',
       objectiveSuggestedPartySize: 5,
       directory: [leader, follower],
@@ -148,6 +152,123 @@ describe('ambient player bot group coordinator', () => {
       groupMode: 'hold_regroup',
       groupNeedsRegroup: true,
       groupLaggingMembers: 1,
+    }));
+  });
+
+  it('waits for the outdoor q_crushers party to assemble before the leader moves on', () => {
+    const leader = bot({
+      lastKnownLevel: 18,
+      lastKnownZoneId: 'thornpeak',
+      runnerState: {
+        objective: 'hunt_crushers',
+        objectiveQuestId: 'q_crushers',
+        objectiveSuggestedPartySize: 3,
+      },
+    });
+    const follower = bot({
+      botId: 'bot-2',
+      accountId: 12,
+      characterId: 102,
+      characterName: 'Branorabb',
+      accountUsername: 'bot_user_2',
+      authToken: 'token-2',
+      class: 'mage',
+      lastKnownLevel: 18,
+      lastKnownZoneId: 'thornpeak',
+    });
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: leader,
+      liveState: liveState({
+        self: {
+          id: 101,
+          x: -120,
+          z: 738,
+        },
+        entities: [
+          { id: 102, k: 'player', nm: 'Branorabb', x: -118, z: 739, lv: 18 },
+        ],
+      }),
+      recentEvents: [],
+      objectiveId: 'hunt_crushers',
+      objectiveQuestId: 'q_crushers',
+      objectiveSuggestedPartySize: 3,
+      directory: [leader, follower],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([
+      { cmd: 'pinvite', id: 102 },
+    ]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'wait_party',
+      groupAwaitingParty: true,
+      groupObjectiveQuestId: 'q_crushers',
+      groupObjectiveScope: 'outdoor',
+    }));
+  });
+
+  it('has a trailing outdoor q_crushers follower use the real /follow chat path and pause the brain drive', () => {
+    const leader = bot({
+      lastKnownLevel: 18,
+      lastKnownZoneId: 'thornpeak',
+      runnerState: {
+        objective: 'hunt_crushers',
+        objectiveQuestId: 'q_crushers',
+        objectiveSuggestedPartySize: 3,
+      },
+    });
+    const follower = bot({
+      botId: 'bot-2',
+      accountId: 12,
+      characterId: 102,
+      characterName: 'Branorabb',
+      accountUsername: 'bot_user_2',
+      authToken: 'token-2',
+      class: 'mage',
+      lastKnownLevel: 18,
+      lastKnownZoneId: 'thornpeak',
+      runnerState: {
+        objective: 'hunt_crushers',
+        objectiveQuestId: 'q_crushers',
+        objectiveSuggestedPartySize: 3,
+      },
+    });
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: follower,
+      liveState: liveState({
+        self: {
+          id: 102,
+          x: -107,
+          z: 738,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 18, hp: 150, mhp: 150, res: 0, mres: 0, rtype: 'rage', x: -125, z: 738, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'mage', level: 18, hp: 120, mhp: 120, res: 180, mres: 180, rtype: 'mana', x: -107, z: 738, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+      }),
+      recentEvents: [],
+      objectiveId: 'hunt_crushers',
+      objectiveQuestId: 'q_crushers',
+      objectiveSuggestedPartySize: 3,
+      directory: [leader, follower],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([
+      { cmd: 'chat', text: '/follow Branoraaa' },
+    ]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'follow_leader',
+      groupObjectiveScope: 'outdoor',
+      groupLeaderDistance: 18,
     }));
   });
 });

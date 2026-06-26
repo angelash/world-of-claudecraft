@@ -23,7 +23,9 @@ export interface AmbientPlayerBotGroupTickInput {
   bot: AmbientPlayerBotRecord;
   liveState: AmbientPlayerBotLiveState;
   recentEvents: readonly SimEvent[];
-  objectiveDungeonId: string;
+  objectiveId: string;
+  objectiveQuestId?: string;
+  objectiveDungeonId?: string;
   objectiveSuggestedPartySize: number;
   directory: readonly AmbientPlayerBotRecord[];
   nowMs: number;
@@ -51,8 +53,14 @@ export function tickAmbientPlayerBotGroupCoordinator(
   state: AmbientPlayerBotGroupRuntimeState,
 ): AmbientPlayerBotGroupTickResult {
   const self = input.liveState.self;
-  const dungeon = DUNGEONS[input.objectiveDungeonId];
-  if (!self || !dungeon || !input.bot.assignedClusterId) {
+  const objectiveMatchKey = groupObjectiveMatchKey(
+    input.objectiveId,
+    input.objectiveQuestId,
+    input.objectiveDungeonId,
+  );
+  const dungeon = input.objectiveDungeonId ? DUNGEONS[input.objectiveDungeonId] : null;
+  const isOutdoorGroupedObjective = !input.objectiveDungeonId;
+  if (!self || !input.bot.assignedClusterId) {
     return emptyGroupResult();
   }
 
@@ -60,10 +68,7 @@ export function tickAmbientPlayerBotGroupCoordinator(
     .filter((record) =>
       record.assignedClusterId === input.bot.assignedClusterId
       && record.lifecycleStatus === 'online'
-      && (
-        readRunnerString(record.runnerState, 'objectiveDungeonId') === ''
-        || readRunnerString(record.runnerState, 'objectiveDungeonId') === input.objectiveDungeonId
-      ),
+      && matchesGroupObjective(record.runnerState, objectiveMatchKey),
     )
     .sort((a, b) => a.botId.localeCompare(b.botId));
   if (activeBots.length === 0) return emptyGroupResult();
@@ -74,11 +79,12 @@ export function tickAmbientPlayerBotGroupCoordinator(
   const leader = currentLeaderRecord(activeBots, party) ?? activeBots[0] ?? input.bot;
   const leaderMember = party ? findPartyMember(party, leader) : null;
   const selfMember = party ? findPartyMember(party, input.bot) : null;
+  const partySize = party?.members.length ?? 1;
   const targetPartySize = Math.max(
     1,
     Math.min(
       input.objectiveSuggestedPartySize,
-      Math.max(activeBots.length, visiblePeers.length + 1, party?.members.length ?? 1),
+      Math.max(activeBots.length, visiblePeers.length + 1, partySize),
     ),
   );
   const commands: GroupCommand[] = [];
@@ -93,33 +99,41 @@ export function tickAmbientPlayerBotGroupCoordinator(
     commands.push({ cmd: 'paccept' });
   }
 
+  const partyMemberNames = new Set(party?.members.map((member) => member.name) ?? [input.bot.characterName]);
+  const ungroupedVisiblePeers = visiblePeers.filter((peer) => !partyMemberNames.has(peer.name));
+
   if (leader.botId === input.bot.botId) {
-    const partyMemberNames = new Set(party?.members.map((member) => member.name) ?? [input.bot.characterName]);
-    const nextInvite = visiblePeers.find((peer) => !partyMemberNames.has(peer.name));
+    const nextInvite = ungroupedVisiblePeers[0];
     if (
       nextInvite
-      && (party?.members.length ?? 1) < targetPartySize
+      && partySize < targetPartySize
       && canIssue(state, `invite:${nextInvite.name}`, input.nowMs, GROUP_INVITE_COOLDOWN_MS)
     ) {
       commands.push({ cmd: 'pinvite', id: nextInvite.entityId });
     }
   }
 
-  const inObjectiveDungeon = readSelfDungeonId(self) === input.objectiveDungeonId;
+  const inObjectiveDungeon = !!input.objectiveDungeonId && readSelfDungeonId(self) === input.objectiveDungeonId;
+  const groupTravelActive = inObjectiveDungeon || isOutdoorGroupedObjective;
   const laggingAmbientMembers = leaderMember && party
     ? countLaggingAmbientMembers(party, leaderMember, activeNames)
     : 0;
-  const leaderShouldHold = inObjectiveDungeon
+  const leaderShouldWaitForParty = isOutdoorGroupedObjective
+    && leader.botId === input.bot.botId
+    && partySize < targetPartySize
+    && ungroupedVisiblePeers.length > 0;
+  const leaderShouldHoldForLag = groupTravelActive
     && leader.botId === input.bot.botId
     && !!leaderMember
     && !memberInCombat(leaderMember)
     && laggingAmbientMembers > 0;
+  const leaderShouldHold = leaderShouldWaitForParty || leaderShouldHoldForLag;
   if (leaderShouldHold) pauseBrainDrive = true;
 
   const leaderDistance = selfMember && leaderMember
     ? distanceBetweenMembers(selfMember, leaderMember)
     : null;
-  const followerShouldTrackLeader = inObjectiveDungeon
+  const followerShouldTrackLeader = groupTravelActive
     && leader.botId !== input.bot.botId
     && !!selfMember
     && !!leaderMember
@@ -140,10 +154,12 @@ export function tickAmbientPlayerBotGroupCoordinator(
     }
   }
 
-  const distanceToDoor = distanceToPoint(self.x, self.z, dungeon.doorPos.x, dungeon.doorPos.z);
-  const partySize = party?.members.length ?? 1;
+  const distanceToDoor = dungeon && typeof self.x === 'number' && typeof self.z === 'number'
+    ? distanceToPoint(self.x, self.z, dungeon.doorPos.x, dungeon.doorPos.z)
+    : Number.POSITIVE_INFINITY;
   if (
-    typeof self.x === 'number'
+    dungeon
+    && typeof self.x === 'number'
     && typeof self.z === 'number'
     && distanceToDoor <= GROUP_DOOR_RANGE
     && (!self.dgn || self.dgn !== input.objectiveDungeonId)
@@ -157,16 +173,21 @@ export function tickAmbientPlayerBotGroupCoordinator(
     commands,
     pauseBrainDrive,
     runnerStatePatch: {
-      groupDungeonId: input.objectiveDungeonId,
+      groupDungeonId: input.objectiveDungeonId ?? '',
+      groupObjectiveQuestId: input.objectiveQuestId ?? '',
+      groupObjectiveScope: input.objectiveDungeonId ? 'dungeon' : isOutdoorGroupedObjective ? 'outdoor' : '',
       groupLeaderName: leader.characterName,
       groupTargetSize: targetPartySize,
       groupPartySize: partySize,
-      groupMode: leaderShouldHold
+      groupMode: leaderShouldWaitForParty
+        ? 'wait_party'
+        : leaderShouldHoldForLag
         ? 'hold_regroup'
         : followerShouldTrackLeader
           ? 'follow_leader'
           : 'brain',
-      groupNeedsRegroup: leaderShouldHold,
+      groupNeedsRegroup: leaderShouldHoldForLag,
+      groupAwaitingParty: leaderShouldWaitForParty,
       groupLaggingMembers: laggingAmbientMembers,
       groupLeaderDistance: leaderDistance ?? 0,
     },
@@ -179,15 +200,36 @@ function emptyGroupResult(): AmbientPlayerBotGroupTickResult {
     pauseBrainDrive: false,
     runnerStatePatch: {
       groupDungeonId: '',
+      groupObjectiveQuestId: '',
+      groupObjectiveScope: '',
       groupLeaderName: '',
       groupTargetSize: 0,
       groupPartySize: 0,
       groupMode: '',
       groupNeedsRegroup: false,
+      groupAwaitingParty: false,
       groupLaggingMembers: 0,
       groupLeaderDistance: 0,
     },
   };
+}
+
+function groupObjectiveMatchKey(
+  objectiveId: string,
+  objectiveQuestId?: string,
+  objectiveDungeonId?: string,
+): string {
+  if (objectiveDungeonId) return `dungeon:${objectiveDungeonId}`;
+  if (objectiveQuestId) return `quest:${objectiveQuestId}`;
+  return `objective:${objectiveId}`;
+}
+
+function matchesGroupObjective(
+  runnerState: Record<string, unknown>,
+  objectiveMatchKey: string,
+): boolean {
+  const recordMatchKey = runnerStateObjectiveMatchKey(runnerState);
+  return recordMatchKey === '' || recordMatchKey === objectiveMatchKey;
 }
 
 function parsePartyInfo(value: unknown): PartyInfo | null {
@@ -245,6 +287,17 @@ function readRunnerString(
 ): string {
   const field = value[key];
   return typeof field === 'string' ? field : '';
+}
+
+function runnerStateObjectiveMatchKey(
+  runnerState: Record<string, unknown>,
+): string {
+  const dungeonId = readRunnerString(runnerState, 'objectiveDungeonId');
+  if (dungeonId) return `dungeon:${dungeonId}`;
+  const questId = readRunnerString(runnerState, 'objectiveQuestId');
+  if (questId) return `quest:${questId}`;
+  const objectiveId = readRunnerString(runnerState, 'objective');
+  return objectiveId ? `objective:${objectiveId}` : '';
 }
 
 function readSelfDungeonId(value: Record<string, unknown>): string {

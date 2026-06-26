@@ -92,6 +92,8 @@ function killRoute(
 ): AmbientBotKillQuestRoute {
   const quest = questLabel(questId);
   const dungeonId = config.dungeonId;
+  const suggestedPartySize = config.suggestedPartySize
+    ?? (dungeonId ? DUNGEONS[dungeonId]?.suggestedPlayers ?? 1 : undefined);
   const camps = dungeonId
     ? dungeonPointsFor(dungeonId, [mobId, ...(config.alternateMobIds ?? [])])
     : campsForMobIds([mobId, ...(config.alternateMobIds ?? [])]);
@@ -117,13 +119,8 @@ function killRoute(
     ...(config.deferReadyWhileQuestIdsActive
       ? { deferReadyWhileQuestIdsActive: config.deferReadyWhileQuestIdsActive }
       : {}),
-    ...(dungeonId
-      ? {
-          dungeonId,
-          suggestedPartySize:
-            config.suggestedPartySize ?? DUNGEONS[dungeonId]?.suggestedPlayers ?? 1,
-        }
-      : {}),
+    ...(dungeonId ? { dungeonId } : {}),
+    ...(suggestedPartySize ? { suggestedPartySize } : {}),
   };
 }
 
@@ -136,6 +133,8 @@ function collectRoute(
   config: AmbientBotQuestRouteConfig = {},
 ): AmbientBotCollectQuestRoute {
   const quest = questLabel(questId);
+  const suggestedPartySize = config.suggestedPartySize
+    ?? (config.dungeonId ? DUNGEONS[config.dungeonId]?.suggestedPlayers ?? 1 : undefined);
   return {
     kind: 'collect',
     questId,
@@ -157,13 +156,8 @@ function collectRoute(
     ...(config.deferReadyWhileQuestIdsActive
       ? { deferReadyWhileQuestIdsActive: config.deferReadyWhileQuestIdsActive }
       : {}),
-    ...(config.dungeonId
-      ? {
-          dungeonId: config.dungeonId,
-          suggestedPartySize:
-            config.suggestedPartySize ?? DUNGEONS[config.dungeonId]?.suggestedPlayers ?? 1,
-        }
-      : {}),
+    ...(config.dungeonId ? { dungeonId: config.dungeonId } : {}),
+    ...(suggestedPartySize ? { suggestedPartySize } : {}),
   };
 }
 
@@ -546,5 +540,21 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'sanctum_key_shard',
     18,
     'Recovering Sanctum Key Shards',
+  ),
+  killRoute(
+    'q_crushers',
+    'captain_thessaly',
+    'ogre_crusher',
+    18,
+    'Breaking the Thornpeak ogre war-camp crushers',
+    { suggestedPartySize: 3 },
+  ),
+  killRoute(
+    'q_drogmar',
+    'captain_thessaly',
+    'warlord_drogmar',
+    18,
+    'Hunting Warlord Drogmar',
+    { suggestedPartySize: 3 },
   ),
 ];

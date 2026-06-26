@@ -578,11 +578,13 @@ export class AmbientPlayerBotRuntime {
         }, entry.brainState);
         const latest = this.game.ambientPlayerBotRecord(botId);
         if (!latest) continue;
-        const groupResult = result.objectiveDungeonId && (result.objectiveSuggestedPartySize ?? 0) > 1
+        const groupResult = (result.objectiveSuggestedPartySize ?? 0) > 1
           ? tickAmbientPlayerBotGroupCoordinator({
               bot: latest,
               liveState,
               recentEvents,
+              objectiveId: result.objectiveId,
+              objectiveQuestId: result.objectiveQuestId,
               objectiveDungeonId: result.objectiveDungeonId,
               objectiveSuggestedPartySize: result.objectiveSuggestedPartySize ?? 1,
               directory: this.game.ambientPlayerBotDirectory(),
@@ -593,11 +595,14 @@ export class AmbientPlayerBotRuntime {
               pauseBrainDrive: false,
               runnerStatePatch: {
                 groupDungeonId: '',
+                groupObjectiveQuestId: '',
+                groupObjectiveScope: '',
                 groupLeaderName: '',
                 groupTargetSize: 0,
                 groupPartySize: 0,
                 groupMode: '',
                 groupNeedsRegroup: false,
+                groupAwaitingParty: false,
                 groupLaggingMembers: 0,
                 groupLeaderDistance: 0,
               },

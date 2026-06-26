@@ -99,6 +99,13 @@ const thornpeakThroughLateOutdoors = [
   'q_revenants',
   'q_revenant_vanguard',
 ] as const;
+const thornpeakThroughSanctumGate = [
+  ...thornpeakThroughLateOutdoors,
+  'q_wyrm_sigils',
+  'q_breaking_the_seal',
+  'q_voice_below',
+  'q_sanctum_gate',
+] as const;
 
 class FakeGame {
   private readonly directory = new Map<string, AmbientPlayerBotRecord>();
@@ -1069,6 +1076,144 @@ describe('AmbientPlayerBotRuntime', () => {
       const sent = sockets[1]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string });
       expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'paccept')).toBe(true);
     });
+
+    await runtime.stop();
+  });
+
+  it('forms an outdoor q_crushers party before pushing the grouped war-camp objective', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    let socketIndex = 0;
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'thornpeak:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 18,
+          lastKnownZoneId: 'thornpeak',
+        }),
+        bot({
+          botId: 'bot-2',
+          accountId: 12,
+          accountUsername: 'bot_user_2',
+          accountPassword: 'BotPassword123',
+          characterId: 102,
+          characterName: 'Branorabb',
+          profileId: 'eastbrook_vale_mage_newcomer',
+          class: 'mage',
+          authToken: 'token-2',
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'thornpeak:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          lastKnownLevel: 18,
+          lastKnownZoneId: 'thornpeak',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const isLeader = socketIndex++ === 0;
+        const socket = new FakeSocket(isLeader ? 101 : 102, {
+          self: {
+            id: isLeader ? 101 : 102,
+            x: isLeader ? -120 : -118,
+            z: 738,
+            lv: 18,
+            hp: 150,
+            mhp: 150,
+            res: isLeader ? 0 : 180,
+            mres: isLeader ? 0 : 180,
+            rtype: isLeader ? 'rage' : 'mana',
+            gcd: 0,
+            inv: [],
+            qdone: [...thornpeakThroughSanctumGate],
+            qlog: [{ questId: 'q_crushers', counts: [0], state: 'active' }],
+            cds: {},
+          },
+          ents: [
+            {
+              id: isLeader ? 102 : 101,
+              k: 'player',
+              nm: isLeader ? 'Branorabb' : 'Branoraaa',
+              x: isLeader ? -118 : -120,
+              z: 738,
+              lv: 18,
+            },
+          ],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'thornpeak:1',
+        zoneId: 'thornpeak',
+        targetCharacterId: 1,
+        reason: 'ambient q_crushers leader',
+      },
+      {
+        type: 'loginBot',
+        botId: 'bot-2',
+        clusterId: 'thornpeak:1',
+        zoneId: 'thornpeak',
+        targetCharacterId: 1,
+        reason: 'ambient q_crushers follower',
+      },
+    ]);
+
+    await vi.waitFor(() => {
+      const leaderSent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; id?: number; mi?: Record<string, number> });
+      expect(leaderSent?.some((message) => message.t === 'cmd' && message.cmd === 'pinvite' && message.id === 102)).toBe(true);
+      expect(leaderSent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(false);
+    });
+
+    sockets[1]?.emitJson({
+      t: 'events',
+      list: [{
+        type: 'partyInvite',
+        fromPid: 101,
+        fromName: 'Branoraaa',
+        pid: 102,
+      }],
+    });
+
+    await vi.waitFor(() => {
+      const followerSent = sockets[1]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string });
+      expect(followerSent?.some((message) => message.t === 'cmd' && message.cmd === 'paccept')).toBe(true);
+    });
+
+    expect(game.ambientPlayerBotDirectory()).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        botId: 'bot-1',
+        runnerState: expect.objectContaining({
+          objectiveQuestId: 'q_crushers',
+          groupMode: 'wait_party',
+          groupObjectiveScope: 'outdoor',
+          groupAwaitingParty: true,
+        }),
+      }),
+    ]));
 
     await runtime.stop();
   });
