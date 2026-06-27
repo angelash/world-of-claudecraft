@@ -98,6 +98,12 @@ node scripts/smoke_mage.mjs
 node scripts/smoke_rogue.mjs
 ```
 
+For this fork's real-device or multiplayer sessions, start the local stack through
+`node scripts/online_lan.mjs` (use `--restart` when replacing an existing pair).
+Keep the LAN/IP startup policy in that fork-local script instead of changing the
+upstream default `npm run dev` / `npm run server` flow or launching `127.0.0.1`-only
+variants ad hoc.
+
 Browser or visual UI changes should be verified with a running dev server and browser automation when feasible.
 
 ## Runtime Service Rules

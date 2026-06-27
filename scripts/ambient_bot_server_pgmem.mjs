@@ -11,20 +11,22 @@ import {
   requireBuiltBundle,
   waitForServerStatus,
 } from './ambient_bot_pgmem_support.mjs';
+import { hostForLocalProbe, lanUrls, resolveLanBindHost } from './lan_host.mjs';
 
 async function main() {
-  const host = (process.env.HOST ?? '127.0.0.1').trim() || '127.0.0.1';
+  const bindHost = resolveLanBindHost(process.env);
+  const probeHost = hostForLocalProbe(bindHost);
   const port = Number(process.env.PORT ?? '8879');
   if (!Number.isFinite(port) || port <= 0) {
     throw new Error(`invalid PORT: ${process.env.PORT ?? ''}`);
   }
   process.env.DATABASE_URL ??= 'postgres://pgmem/local';
-  process.env.HOST = host;
+  process.env.HOST = bindHost;
   process.env.PORT = String(port);
   process.env.AMBIENT_PLAYER_BOTS_EXPERIMENT ??= '1';
   process.env.AMBIENT_PLAYER_BOTS_INTERVAL_MS ??= '1000';
 
-  const baseUrl = `http://${host}:${port}`;
+  const baseUrl = `http://${probeHost}:${port}`;
   const bootstrapUser = process.env.PGMEM_BOOTSTRAP_ADMIN_USER ?? '';
   const bootstrapPass = process.env.PGMEM_BOOTSTRAP_ADMIN_PASS ?? '';
   if ((bootstrapUser && !bootstrapPass) || (!bootstrapUser && bootstrapPass)) {
@@ -49,10 +51,11 @@ async function main() {
   }
 
   console.log(
-    `PGMEM_READY url=${baseUrl} realm=${status.realm ?? 'unknown'}${
+    `PGMEM_READY bind=${bindHost} url=${baseUrl} realm=${status.realm ?? 'unknown'}${
       bootstrapUser ? ` admin=${bootstrapUser}` : ''
     }`,
   );
+  for (const url of lanUrls(port)) console.log(`PGMEM_LAN ${url}`);
 }
 
 main().catch((error) => {

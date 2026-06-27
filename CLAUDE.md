@@ -33,6 +33,10 @@ Postgres (`pg`) · Vite + esbuild · Vitest. No UI framework; tiny dependency se
 Most directories above have their own `CLAUDE.md` with local conventions; read it when you work there.
 
 ## Commands
+- `node scripts/online_lan.mjs --restart`: fork-local LAN launcher for real-device
+  and multiplayer testing. This is the default local startup path for this fork:
+  it binds Vite and the authoritative server for IP access, prints the reachable
+  LAN URLs, and replaces stale listeners on :5173 / :8787 when asked.
 - `npm run dev`: Vite client on :5173 (proxies `/api`, `/admin/api`, `/ws` to :8787).
 - `npm run server`: esbuild-bundle + run the authoritative server on :8787.
 - `npm test`: Vitest. **Prefer a single file while iterating:** `npx vitest run tests/sim.test.ts`.
@@ -140,6 +144,9 @@ behavior, optimize for re-mergeability:
   only for risky operations such as an upstream merge, then fast-forward `main` to the
   result and delete the temporary branch. Leave `upstream/*` as fetched remote-tracking
   refs rather than mirroring them into long-lived local branches.
+- Keep local IP-access startup policy in the fork-local launchers under `scripts/`
+  (`online_lan.mjs`, `lan_host.mjs`) rather than rewriting the upstream default
+  `npm run dev` / `npm run server` flow or hardcoding loopback flags into ad hoc commands.
 - Prefer a registry, handler map, or small hook over editing a giant mixed-concern
   branch when the behavior is fork-only or optional.
 - Keep fork-local shell HTML/CSS changes in one contiguous block with stable ids/classes
@@ -165,6 +172,9 @@ behavior, optimize for re-mergeability:
   success. Check the listening ports/processes, restart `npm run server` for
   authoritative-server changes, keep or reload `npm run dev` as needed for client
   changes, then verify against the live online path rather than only unit tests.
+- For this fork's real-device or multiplayer sessions, start and restart the local
+  stack through `node scripts/online_lan.mjs` (use `--restart` when replacing an
+  existing pair). Do not spin up localhost-only variants such as `--host 127.0.0.1`.
 
 ## Working style and effort by model
 This whole file is the baseline for **any** model: obey all of it. Your active model is

@@ -102,11 +102,23 @@ npm install
 cp .env.example .env
 # set POSTGRES_PASSWORD and point DATABASE_URL at the same password
 npm run db:up        # postgres 16 in docker (port 5433, volume-persisted)
+node scripts/online_lan.mjs --restart
+```
+
+`online_lan.mjs` is this fork's merge-safe LAN launcher. It keeps the IP-access
+policy in one fork-local script instead of rewriting the upstream default
+`npm run server` / `npm run dev` flow, binds both services for LAN access, prints
+the reachable `http://<host-ip>:5173` URLs, and can replace stale listeners with
+`--restart`.
+
+If you need the raw split-terminal flow, the upstream commands still work:
+
+```bash
 npm run server       # authoritative game server on :8787 (REST + WebSocket)
 npm run dev          # client dev server on :5173 (proxies /api and /ws)
 ```
 
-Open http://localhost:5173 or http://<host-ip>:5173 from another LAN device, choose **Play Online**, create an account, create a character, and Enter World. Open a second tab and log in again to see each other in town. `Enter` opens chat. A real MediaWiki player wiki comes up alongside the Docker Compose stack at http://localhost:8080/wiki/; its seed pages are generated from current game content with `npm run wiki:seed`.
+Open http://localhost:5173 or the printed `http://<host-ip>:5173` URL from another LAN device, choose **Play Online**, create an account, create a character, and Enter World. Open a second tab and log in again to see each other in town. `Enter` opens chat. A real MediaWiki player wiki comes up alongside the Docker Compose stack at http://localhost:8080/wiki/; its seed pages are generated from current game content with `npm run wiki:seed`.
 
 What persists and how the server stays in charge:
 
