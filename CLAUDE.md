@@ -104,7 +104,7 @@ See `README.md` for the full host/develop/play guide and the classic-fidelity ch
   text, or player-facing copy. Use commas, colons, parentheses, or "to" for ranges.
   (An emoji that stands in for a real label still needs its real `t()` text.)
 - **Commits:** Conventional Commits with a scope (`feat(talents): ...`, `fix(net): ...`,
-  `test(sim): ...`). Branches: `feature/<slug>`, `fix/<slug>`.
+  `test(sim): ...`).
 
 ## Modularity, module-first for new code
 The large existing files are normal: `sim.ts` and `hud.ts` are the two largest, then
@@ -140,10 +140,12 @@ that turns it green. Detailed heuristics and the bug-fix workflow live in the
 ## Fork merge hygiene
 This repo is a long-lived fork that regularly merges `upstream/main`. For fork-local
 behavior, optimize for re-mergeability:
-- Keep `main` as the only long-lived local working branch. Use a temporary local branch
-  only for risky operations such as an upstream merge, then fast-forward `main` to the
-  result and delete the temporary branch. Leave `upstream/*` as fetched remote-tracking
-  refs rather than mirroring them into long-lived local branches.
+- Keep `main` as the only local working branch for day-to-day development. Do not create
+  feature, fix, chore, or agent-specific branches for ordinary work.
+- The only allowed local-branch exception is a short-lived branch used while merging
+  `upstream/main` (or another upstream sync branch) into the fork. After the merge, fast-forward
+  `main` to the result and delete the temporary branch. Leave `upstream/*` as fetched
+  remote-tracking refs rather than mirroring them into long-lived local branches.
 - Keep local IP-access startup policy in the fork-local launchers under `scripts/`
   (`online_lan.mjs`, `lan_host.mjs`) rather than rewriting the upstream default
   `npm run dev` / `npm run server` flow or hardcoding loopback flags into ad hoc commands.
