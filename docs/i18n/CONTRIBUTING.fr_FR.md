@@ -40,8 +40,9 @@ Il y a une place pour chacun ici :
 ## Pour démarrer
 
 Vous aurez besoin de [Node.js 22+](https://nodejs.org/) et de npm. Pour le serveur
-multijoueur, il vous faudra également [Docker](https://www.docker.com/) afin de faire
-tourner Postgres.
+multijoueur, utilisez PostgreSQL natif. Sous Windows, `npm run db:up` le prépare
+dans votre profil utilisateur ; sous macOS/Linux, installez PostgreSQL nativement
+et mettez `pg_ctl`, `initdb` et `psql` sur le `PATH`, ou définissez `POSTGRES_BIN_DIR`.
 
 ```bash
 # 1. Forkez le dépôt sur GitHub, puis clonez votre fork
@@ -59,7 +60,7 @@ Cela suffit pour jouer au monde hors ligne et travailler sur la plupart des chos
 Pour lancer la stack en ligne complète :
 
 ```bash
-npm run db:up        # démarre Postgres 16 dans Docker (base de dev sur le port 5433)
+npm run db:up        # démarre Postgres 16 en natif (base de dev sur le port 5433)
 npm run server       # compile et lance le serveur de jeu autoritaire sur :8787
 npm run dev          # dans un autre terminal ; le client passe par un proxy vers le serveur
 ```

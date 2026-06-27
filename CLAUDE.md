@@ -42,7 +42,7 @@ Most directories above have their own `CLAUDE.md` with local conventions; read i
 - `npm test`: Vitest. **Prefer a single file while iterating:** `npx vitest run tests/sim.test.ts`.
 - `npm run build`: generate media manifest, then `vite build`, then emit manifest. Two entries (game + admin).
 - `npm run env` / `npm run bench`: build + run the headless RL env server.
-- `npm run db:up` / `npm run db:down`: Postgres 16 in Docker (dev DB on :5433).
+- `npm run db:up` / `npm run db:down`: native Postgres 16 helper (dev DB on :5433). On Windows, it auto-bootstraps the official binaries in the user profile.
 - `npm run realms`: run multiple realm processes locally.
 
 Online, multiplayer, and admin verification must run against the persistent
@@ -181,7 +181,7 @@ behavior, optimize for re-mergeability:
 - For this fork's real-device or multiplayer sessions, start and restart the local
   stack through `node scripts/online_lan.mjs` (use `--restart` when replacing an
   existing pair). Do not spin up localhost-only variants such as `--host 127.0.0.1`.
-- Live online and admin checks also require the persistent Docker Postgres service
+- Live online and admin checks also require the persistent native Postgres service
   from `npm run db:up`, not a temporary bootstrap realm or in-memory database.
 
 ## Working style and effort by model

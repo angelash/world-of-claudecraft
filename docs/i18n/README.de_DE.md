@@ -51,7 +51,8 @@ für alle online ausführt.
 ```bash
 cp .env.example .env
 # .env bearbeiten und ein langes, zufälliges POSTGRES_PASSWORD setzen
-docker compose up -d --build     # postgres + game server, vollständig gebaut
+npm run db:up                    # natives Postgres 16 auf 127.0.0.1:5433
+node scripts/online_lan.mjs server --restart
 # http://localhost:8787 öffnen — Accounts, Charaktere, die ganze Welt
 ```
 
@@ -70,7 +71,7 @@ von den Test-Bots genutzt werden).
 npm install
 cp .env.example .env
 # .env bearbeiten und POSTGRES_PASSWORD sowie DATABASE_URL auf dasselbe Passwort setzen
-npm run db:up        # postgres 16 in docker (Port 5433, volume-persistiert)
+npm run db:up        # natives Postgres 16 auf 127.0.0.1:5433
 npm run server       # autoritativer game server auf :8787 (REST + WebSocket)
 npm run dev          # client dev server auf :5173 (proxyt /api und /ws)
 ```
@@ -131,7 +132,7 @@ Morthen the Gravecaller am Grund der Krypta unter der Kapelle.
   mit ~10 Toden (`node scripts/crypt_raid.mjs`, benötigt ALLOW_DEV_COMMANDS=1).
 
 ```
-docker compose ps          # eastbrook-db (postgres:16-alpine, healthcheck)
+npm run db:up              # stellt sicher, dass das native Postgres noch läuft
 node scripts/mp_integration.mjs   # 26-Prüfungen API/WS/Persistenz-Suite
 node scripts/mp_browser.mjs       # zwei echte Browser-Clients sehen sich gegenseitig
 ```

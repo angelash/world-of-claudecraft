@@ -20,7 +20,7 @@
 
 **English** · [Español](docs/i18n/README.es.md) · [Español (España)](docs/i18n/README.es_ES.md) · [Français](docs/i18n/README.fr_FR.md) · [Français (Canada)](docs/i18n/README.fr_CA.md) · [Italiano](docs/i18n/README.it_IT.md) · [Deutsch](docs/i18n/README.de_DE.md) · [简体中文](docs/i18n/README.zh_CN.md) · [繁體中文](docs/i18n/README.zh_TW.md) · [한국어](docs/i18n/README.ko_KR.md) · [日本語](docs/i18n/README.ja_JP.md) · [Português (Brasil)](docs/i18n/README.pt_BR.md) · [Русский](docs/i18n/README.ru_RU.md)
 
-[Play now](https://worldofclaudecraft.com/) · [Host your own world](#host-your-own-world-one-command) · [Train an agent](#train-an-agent-headless-rl) · [Web3](#web3) · [Contributing](CONTRIBUTING.md) · [Discord](https://discord.gg/GjhnUsBtw)
+[Play now](https://worldofclaudecraft.com/) · [Host your own world](#host-your-own-world) · [Train an agent](#train-an-agent-headless-rl) · [Web3](#web3) · [Contributing](CONTRIBUTING.md) · [Discord](https://discord.gg/GjhnUsBtw)
 
 ![World of ClaudeCraft title screen](docs/screenshots/title-screen.jpg)
 
@@ -82,18 +82,34 @@ Name your character, pick any of the nine classes, and you start in **Eastbrook 
 
 ### Online, with other players
 
-See [Host your own world](#host-your-own-world-one-command) below to stand up the real client/server game with accounts and persistent characters.
+See [Host your own world](#host-your-own-world) below to stand up the real client/server game with accounts and persistent characters.
 
-## Host your own world (one command)
+## Host your own world
 
 ```bash
+npm install
 cp .env.example .env
-# edit .env and set a long random POSTGRES_PASSWORD
-docker compose up -d --build     # postgres + game server, fully built
+# edit .env and keep POSTGRES_PASSWORD and DATABASE_URL in sync
+npm run db:up                    # native postgres 16 on 127.0.0.1:5433
+node scripts/online_lan.mjs server --restart
 # open http://localhost:8787 or http://<host-ip>:8787 on your LAN for accounts, characters, and the whole world
 ```
 
-For **remote hosting**, put the compose stack on any VPS, set a real `POSTGRES_PASSWORD` in the environment, and front port 8787 with a TLS reverse proxy. Caddy makes this two lines (`your.domain { reverse_proxy localhost:8787 }`); WebSockets are proxied automatically and the client auto-selects `wss://` on https pages. Auth endpoints are rate-limited per IP, passwords are scrypt-hashed, and tokens expire after 7 days. Never set `ALLOW_DEV_COMMANDS=1` in production, since it enables the level and teleport cheats the test bots use. See [DEPLOY.md](DEPLOY.md) for the full production guide.
+On Windows, `npm run db:up` downloads the official PostgreSQL 16 Windows x64
+binaries into `%LOCALAPPDATA%\WorldOfClaudeCraft\postgresql\` if they are
+missing, initializes a persistent cluster there, and keeps it bound to loopback
+only. On macOS and Linux, install PostgreSQL natively and make `pg_ctl`,
+`initdb`, and `psql` available on `PATH`, or point `POSTGRES_BIN_DIR` at the
+native install.
+
+For **remote hosting**, point `DATABASE_URL` at any persistent PostgreSQL
+instance, run `npm run server`, and front port 8787 with a TLS reverse proxy.
+Caddy makes this two lines (`your.domain { reverse_proxy localhost:8787 }`);
+WebSockets are proxied automatically and the client auto-selects `wss://` on
+https pages. Auth endpoints are rate-limited per IP, passwords are scrypt-hashed,
+and tokens expire after 7 days. Never set `ALLOW_DEV_COMMANDS=1` in production,
+since it enables the level and teleport cheats the test bots use. See
+[DEPLOY.md](DEPLOY.md) for the full production guide.
 
 ### Develop online with hot reload
 
@@ -101,7 +117,7 @@ For **remote hosting**, put the compose stack on any VPS, set a real `POSTGRES_P
 npm install
 cp .env.example .env
 # set POSTGRES_PASSWORD and point DATABASE_URL at the same password
-npm run db:up        # postgres 16 in docker (port 5433, volume-persisted)
+npm run db:up        # native postgres 16 on 127.0.0.1:5433
 node scripts/online_lan.mjs --restart
 ```
 
@@ -118,7 +134,13 @@ npm run server       # authoritative game server on :8787 (REST + WebSocket)
 npm run dev          # client dev server on :5173 (proxies /api and /ws)
 ```
 
-Open http://localhost:5173 or the printed `http://<host-ip>:5173` URL from another LAN device, choose **Play Online**, create an account, create a character, and Enter World. Open a second tab and log in again to see each other in town. `Enter` opens chat. A real MediaWiki player wiki comes up alongside the Docker Compose stack at http://localhost:8080/wiki/; its seed pages are generated from current game content with `npm run wiki:seed`.
+Open http://localhost:5173 or the printed `http://<host-ip>:5173` URL from
+another LAN device, choose **Play Online**, create an account, create a
+character, and Enter World. Open a second tab and log in again to see each
+other in town. `Enter` opens chat. The local native game stack does not
+bootstrap MediaWiki; if you also want the separate player wiki locally, run
+your own native or deploy-style MediaWiki stack. Its seed pages are still
+generated from current game content with `npm run wiki:seed`.
 
 What persists and how the server stays in charge:
 

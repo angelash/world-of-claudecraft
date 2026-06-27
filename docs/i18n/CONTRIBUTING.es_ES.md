@@ -41,7 +41,7 @@ Aquí hay un sitio para todo el mundo:
 ## Primeros pasos
 
 Necesitarás [Node.js 22+](https://nodejs.org/) y npm. Para el servidor multijugador
-también te vendrá bien [Docker](https://www.docker.com/) para ejecutar Postgres.
+usa PostgreSQL nativo. En Windows, `npm run db:up` lo prepara en tu perfil de usuario; en macOS/Linux instala PostgreSQL de forma nativa y pon `pg_ctl`, `initdb` y `psql` en `PATH`, o define `POSTGRES_BIN_DIR`.
 
 ```bash
 # 1. Haz un fork del repositorio en GitHub y luego clona tu fork
@@ -59,7 +59,7 @@ Con eso basta para jugar al mundo sin conexión y trabajar en la mayoría de las
 cosas. Para ejecutar la pila completa en línea:
 
 ```bash
-npm run db:up        # arranca Postgres 16 en Docker (BD de desarrollo en el puerto 5433)
+npm run db:up        # arranca Postgres 16 nativo (BD de desarrollo en el puerto 5433)
 npm run server       # compila y ejecuta el servidor de juego autoritativo en :8787
 npm run dev          # en otra terminal; el cliente hace de proxy hacia el servidor
 ```

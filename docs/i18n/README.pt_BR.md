@@ -51,7 +51,8 @@ autoritativo roda para todos online.
 ```bash
 cp .env.example .env
 # edite o .env e defina um POSTGRES_PASSWORD longo e aleatório
-docker compose up -d --build     # postgres + servidor do jogo, totalmente compilado
+npm run db:up                    # Postgres 16 nativo em 127.0.0.1:5433
+node scripts/online_lan.mjs server --restart
 # abra http://localhost:8787 — contas, personagens, o mundo inteiro
 ```
 
@@ -70,7 +71,7 @@ level/teleporte usadas pelos bots de teste).
 npm install
 cp .env.example .env
 # edite o .env e defina POSTGRES_PASSWORD e DATABASE_URL com a mesma senha
-npm run db:up        # postgres 16 no docker (porta 5433, persistido em volume)
+npm run db:up        # Postgres 16 nativo em 127.0.0.1:5433
 npm run server       # servidor de jogo autoritativo na :8787 (REST + WebSocket)
 npm run dev          # servidor de dev do cliente na :5173 (faz proxy de /api e /ws)
 ```
@@ -136,7 +137,7 @@ Gravecaller no fundo da cripta sob a capela.
   ALLOW_DEV_COMMANDS=1).
 
 ```
-docker compose ps          # eastbrook-db (postgres:16-alpine, healthcheck)
+npm run db:up              # garante que o Postgres nativo continua ativo
 node scripts/mp_integration.mjs   # suíte de 26 verificações de API/WS/persistência
 node scripts/mp_browser.mjs       # dois clientes de navegador reais veem um ao outro
 ```

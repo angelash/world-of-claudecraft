@@ -5,10 +5,8 @@
 //   node scripts/grant_admin.mjs <username> --revoke   revoke
 //
 // Uses DATABASE_URL. For local dev, copy .env.example to .env first.
-// On the EC2 box (where this script isn't in the runtime image), grant via
-// the db container instead:
-//   sudo docker exec eastbrook-db psql -U eastbrook eastbrook \
-//     -c "UPDATE accounts SET is_admin = TRUE WHERE username = 'name';"
+// Example direct SQL:
+//   psql "$env:DATABASE_URL" -c "UPDATE accounts SET is_admin = TRUE WHERE username = 'name';"
 import pg from 'pg';
 
 try {

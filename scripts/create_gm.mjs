@@ -8,11 +8,9 @@
 // and is_gm is only ever set here / by an operator.
 //
 // Uses DATABASE_URL. For local dev, copy .env.example to .env first.
-// On the EC2 box (where this script isn't in the runtime image), create via
-// the db container instead:
-//   sudo docker exec eastbrook-db psql -U eastbrook eastbrook -c \
-//     "INSERT INTO characters (account_id, name, class, level, is_gm)
-//      SELECT id, 'GM01', 'paladin', 20, TRUE FROM accounts WHERE username = 'name';"
+// Example direct SQL:
+//   psql "$env:DATABASE_URL" -c "INSERT INTO characters (account_id, name, class, level, is_gm)
+//     SELECT id, 'GM01', 'paladin', 20, TRUE FROM accounts WHERE username = 'name';"
 import pg from 'pg';
 
 try {

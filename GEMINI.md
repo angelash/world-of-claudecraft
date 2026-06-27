@@ -66,8 +66,8 @@ When working inside the simulation package:
 ```bash
 npm install                     # Install dependencies
 cp .env.example .env            # Copy env template (set POSTGRES_PASSWORD)
-npm run db:up                   # Spin up Postgres 16 in Docker (port 5433)
-npm run db:down                 # Stop the database container
+npm run db:up                   # Start native Postgres 16 (port 5433)
+npm run db:down                 # Stop the local native database
 ```
 
 For online, multiplayer, and admin verification, always use this persistent
@@ -81,7 +81,7 @@ npm run env                     # Build & run headless Gymnasium RL server
 ```
 
 Prefer `node scripts/online_lan.mjs --restart` for the local online stack so the
-real server and dev client both run against the persistent Docker Postgres
+real server and dev client both run against the persistent native Postgres
 service.
 
 ### User Management & Cheats
@@ -119,7 +119,7 @@ The workspace uses MCP servers to enhance the agent's capabilities. Configuratio
 
 #### 🛠️ Available Servers & Tools
 1. **Playwright**: Interact with the frontend and automate browser testing.
-2. **Postgres**: Read/write queries directly to the local database. Ensure the container is started first (`npm run db:up`).
+2. **Postgres**: Read/write queries directly to the local database. Ensure the native database is started first (`npm run db:up`).
 3. **Context7**: Resolve library IDs and pull up-to-date documentation.
 
 #### 📖 Documentation Retrieval Best Practices

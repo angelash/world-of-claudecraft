@@ -51,7 +51,8 @@ multijugador autoritativo ejecuta para todos en línea.
 ```bash
 cp .env.example .env
 # edita .env y define un POSTGRES_PASSWORD largo y aleatorio
-docker compose up -d --build     # postgres + servidor del juego, totalmente compilado
+npm run db:up                    # postgres 16 nativo en 127.0.0.1:5433
+node scripts/online_lan.mjs server --restart
 # abre http://localhost:8787 — cuentas, personajes, el mundo completo
 ```
 
@@ -70,7 +71,7 @@ producción (habilita trampas de nivel/teletransporte que usan los bots de prueb
 npm install
 cp .env.example .env
 # edita .env y define POSTGRES_PASSWORD y DATABASE_URL con la misma contraseña
-npm run db:up        # postgres 16 en docker (puerto 5433, persistido en volumen)
+npm run db:up        # postgres 16 nativo en 127.0.0.1:5433
 npm run server       # servidor de juego autoritativo en :8787 (REST + WebSocket)
 npm run dev          # servidor de desarrollo del cliente en :5173 (proxea /api y /ws)
 ```
@@ -139,7 +140,7 @@ Morthen the Gravecaller en el fondo de la cripta bajo la capilla.
   ALLOW_DEV_COMMANDS=1).
 
 ```
-docker compose ps          # eastbrook-db (postgres:16-alpine, healthcheck)
+npm run db:up              # asegura que el Postgres nativo siga en marcha
 node scripts/mp_integration.mjs   # suite de 26 comprobaciones de API/WS/persistencia
 node scripts/mp_browser.mjs       # dos clientes de navegador reales se ven entre sí
 ```

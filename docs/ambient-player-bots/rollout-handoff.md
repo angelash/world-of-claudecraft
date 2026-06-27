@@ -19,7 +19,7 @@
 
 ## Local workstation stack
 
-- Start Docker Postgres with `npm run db:up`.
+- Start native Postgres with `npm run db:up`.
 - Boot the real local realm through `node scripts/online_lan.mjs server --restart`
   or `node scripts/online_lan.mjs --restart`.
 - Promote a known account with `npm run admin:grant <username>` if the operator

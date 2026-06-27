@@ -51,7 +51,8 @@ server multigiocatore autoritativo esegue per tutti online.
 ```bash
 cp .env.example .env
 # modifica .env e imposta una POSTGRES_PASSWORD lunga e casuale
-docker compose up -d --build     # postgres + game server, già compilato per intero
+npm run db:up                    # Postgres 16 nativo su 127.0.0.1:5433
+node scripts/online_lan.mjs server --restart
 # apri http://localhost:8787 — account, personaggi, l'intero mondo
 ```
 
@@ -70,7 +71,7 @@ cheat di livello/teletrasporto usati dai bot di test).
 npm install
 cp .env.example .env
 # modifica .env e imposta POSTGRES_PASSWORD e DATABASE_URL con la stessa password
-npm run db:up        # postgres 16 in docker (porta 5433, persistente su volume)
+npm run db:up        # Postgres 16 nativo su 127.0.0.1:5433
 npm run server       # server di gioco autoritativo su :8787 (REST + WebSocket)
 npm run dev          # server di sviluppo del client su :5173 (proxy di /api e /ws)
 ```
@@ -143,7 +144,7 @@ Essence dai morti irrequieti) → **Into the Hollow** (*giocatori suggeriti: 5*)
   ALLOW_DEV_COMMANDS=1).
 
 ```
-docker compose ps          # eastbrook-db (postgres:16-alpine, healthcheck)
+npm run db:up              # verifica che il Postgres nativo sia ancora attivo
 node scripts/mp_integration.mjs   # suite di 26 controlli API/WS/persistenza
 node scripts/mp_browser.mjs       # due client browser reali si vedono a vicenda
 ```

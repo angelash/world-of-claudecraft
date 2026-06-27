@@ -48,7 +48,8 @@
 ```bash
 cp .env.example .env
 # .env를 편집해 길고 무작위한 POSTGRES_PASSWORD를 설정하세요
-docker compose up -d --build     # postgres + 게임 서버, 완전히 빌드됨
+npm run db:up                    # 127.0.0.1:5433 에서 네이티브 Postgres 16 시작
+node scripts/online_lan.mjs server --restart
 # http://localhost:8787 을 여세요 — 계정, 캐릭터, 세계 전체
 ```
 
@@ -60,7 +61,7 @@ docker compose up -d --build     # postgres + 게임 서버, 완전히 빌드됨
 npm install
 cp .env.example .env
 # .env를 편집해 POSTGRES_PASSWORD와 DATABASE_URL을 같은 비밀번호로 설정하세요
-npm run db:up        # docker 내 postgres 16 (포트 5433, 볼륨에 영속화)
+npm run db:up        # 127.0.0.1:5433 에서 네이티브 Postgres 16 시작
 npm run server       # :8787에서 권위 있는 게임 서버 (REST + WebSocket)
 npm run dev          # :5173에서 클라이언트 개발 서버 (/api와 /ws를 프록시)
 ```
@@ -86,7 +87,7 @@ Brother Aldric의 이야기 줄기는 *The Restless Dead* 이후로 계속됩니
 - 진정으로 5인용으로 조율되어 있습니다: 우리의 자동화된 5봇 공격대(전사, 성기사, 사제, 마법사, 사냥꾼, 집중 사격 + 힐러 AI)는 약 5분 만에 ~10번의 죽음으로 클리어합니다(`node scripts/crypt_raid.mjs`, ALLOW_DEV_COMMANDS=1 필요).
 
 ```
-docker compose ps          # eastbrook-db (postgres:16-alpine, 헬스체크)
+npm run db:up              # 네이티브 Postgres 가 계속 실행 중인지 확인
 node scripts/mp_integration.mjs   # 26개 점검 API/WS/영속성 스위트
 node scripts/mp_browser.mjs       # 두 개의 실제 브라우저 클라이언트가 서로를 봄
 ```

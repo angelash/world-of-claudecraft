@@ -45,17 +45,25 @@
 
 ---
 
-## Host it（一条命令）
+## Host it
 
 ```bash
+npm install
 cp .env.example .env
-# 编辑 .env，设置一个又长又随机的 POSTGRES_PASSWORD
-docker compose up -d --build     # postgres + 游戏服务器，完整构建
-# 打开 http://localhost:8787 —— 账号、角色，以及整个世界
+# 编辑 .env，并保持 POSTGRES_PASSWORD 和 DATABASE_URL 同步
+npm run db:up                    # 原生 postgres 16，监听 127.0.0.1:5433
+node scripts/online_lan.mjs server --restart
+# 打开 http://localhost:8787 或 http://<host-ip>:8787 —— 账号、角色，以及整个世界
 ```
 
-如需**远程托管**：把 compose 栈部署到任意 VPS，在环境变量中设置一个真实的
-`POSTGRES_PASSWORD`，并用一个 TLS 反向代理来对外暴露 8787 端口（用 Caddy 只需
+在 Windows 上，`npm run db:up` 会在缺少二进制时自动把官方 PostgreSQL 16
+Windows x64 版本下载到 `%LOCALAPPDATA%\\WorldOfClaudeCraft\\postgresql\\`，
+在那里初始化一个持久化集群，并且只绑定到本机回环地址。macOS / Linux 请使用原生
+安装的 PostgreSQL，并把 `pg_ctl`、`initdb`、`psql` 放到 `PATH` 中，或者设置
+`POSTGRES_BIN_DIR`。
+
+如需**远程托管**：将 `DATABASE_URL` 指向任意持久化 PostgreSQL 实例，运行
+`npm run server`，并用一个 TLS 反向代理来对外暴露 8787 端口（用 Caddy 只需
 两行 —— `your.domain { reverse_proxy localhost:8787 }`）；WebSocket 会被自动代理，
 客户端在 https 页面上会自动选择 `wss://`。认证端点按 IP 进行限流；密码使用
 scrypt 哈希；令牌在 7 天后过期。切勿在生产环境中设置 `ALLOW_DEV_COMMANDS=1`
@@ -67,7 +75,7 @@ scrypt 哈希；令牌在 7 天后过期。切勿在生产环境中设置 `ALLOW
 npm install
 cp .env.example .env
 # 编辑 .env，将 POSTGRES_PASSWORD 和 DATABASE_URL 设为同一个密码
-npm run db:up        # docker 中的 postgres 16（端口 5433，数据卷持久化）
+npm run db:up        # 原生 postgres 16（监听 127.0.0.1:5433）
 npm run server       # :8787 上的权威游戏服务器（REST + WebSocket）
 npm run dev          # :5173 上的客户端开发服务器（代理 /api 和 /ws）
 ```
@@ -121,7 +129,7 @@ Blessed Tallow，从不安的亡者身上收集 Ghostly Essence）→ **Into the
   （`node scripts/crypt_raid.mjs`，需要 ALLOW_DEV_COMMANDS=1）。
 
 ```
-docker compose ps          # eastbrook-db（postgres:16-alpine，健康检查）
+npm run db:up                     # 确保原生 Postgres 已启动
 node scripts/mp_integration.mjs   # 26 项检查的 API/WS/持久化测试套件
 node scripts/mp_browser.mjs       # 两个真实浏览器客户端看到彼此
 ```

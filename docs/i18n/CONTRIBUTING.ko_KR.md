@@ -27,7 +27,7 @@
 
 ## 시작하기
 
-[Node.js 22+](https://nodejs.org/)와 npm이 필요합니다. 멀티플레이어 서버를 실행하려면 Postgres를 구동하기 위한 [Docker](https://www.docker.com/)도 필요합니다.
+[Node.js 22+](https://nodejs.org/)와 npm이 필요합니다. 멀티플레이어 서버에는 네이티브 PostgreSQL을 사용하세요. Windows에서는 `npm run db:up` 이 사용자 프로필 아래에 자동으로 준비해 주고, macOS/Linux에서는 PostgreSQL을 네이티브로 설치한 뒤 `pg_ctl`, `initdb`, `psql` 을 `PATH` 에 두거나 `POSTGRES_BIN_DIR` 을 설정하세요.
 
 ```bash
 # 1. GitHub에서 저장소를 포크한 다음, 포크한 저장소를 클론합니다
@@ -44,7 +44,7 @@ npm run dev          # 출력되는 URL을 엽니다 (보통 http://localhost:51
 오프라인 월드를 즐기고 대부분의 작업을 진행하기에는 이 정도면 충분합니다. 전체 온라인 스택을 실행하려면 다음과 같이 합니다.
 
 ```bash
-npm run db:up        # Docker에서 Postgres 16을 시작합니다 (개발 DB는 port 5433)
+npm run db:up        # 네이티브 Postgres 16을 시작합니다 (개발 DB는 port 5433)
 npm run server       # 권한을 가진 게임 서버를 빌드해 :8787에서 실행합니다
 npm run dev          # 다른 터미널에서 실행합니다. 클라이언트가 서버로 프록시합니다
 ```

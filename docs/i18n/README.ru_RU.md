@@ -51,7 +51,8 @@
 ```bash
 cp .env.example .env
 # отредактируйте .env и задайте длинный случайный POSTGRES_PASSWORD
-docker compose up -d --build     # postgres + игровой сервер, полностью собранные
+npm run db:up                    # нативный Postgres 16 на 127.0.0.1:5433
+node scripts/online_lan.mjs server --restart
 # откройте http://localhost:8787 — учётные записи, персонажи, весь мир
 ```
 
@@ -70,7 +71,7 @@ localhost:8787 }`); WebSocket-соединения проксируются ав
 npm install
 cp .env.example .env
 # отредактируйте .env и задайте одинаковый пароль в POSTGRES_PASSWORD и DATABASE_URL
-npm run db:up        # postgres 16 в docker (порт 5433, с сохранением на томе)
+npm run db:up        # нативный Postgres 16 на 127.0.0.1:5433
 npm run server       # авторитетный игровой сервер на :8787 (REST + WebSocket)
 npm run dev          # клиентский dev-сервер на :5173 (проксирует /api и /ws)
 ```
@@ -131,7 +132,7 @@ Morthen the Gravecaller на дне склепа под часовней.
   с ~10 смертями (`node scripts/crypt_raid.mjs`, требует ALLOW_DEV_COMMANDS=1).
 
 ```
-docker compose ps          # eastbrook-db (postgres:16-alpine, healthcheck)
+npm run db:up              # убедиться, что нативный Postgres все еще запущен
 node scripts/mp_integration.mjs   # набор из 26 проверок API/WS/персистентности
 node scripts/mp_browser.mjs       # два реальных браузерных клиента видят друг друга
 ```

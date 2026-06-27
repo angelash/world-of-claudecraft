@@ -28,7 +28,7 @@
 
 ## 開始上手
 
-你會需要 [Node.js 22+](https://nodejs.org/) 和 npm。如果要跑多人連線伺服器，還會用到 [Docker](https://www.docker.com/) 來執行 Postgres。
+你會需要 [Node.js 22+](https://nodejs.org/) 和 npm。如果要跑多人連線伺服器，請使用原生 PostgreSQL。Windows 上可以直接執行 `npm run db:up` 在使用者目錄下自舉；macOS / Linux 請原生安裝 PostgreSQL，並把 `pg_ctl`、`initdb`、`psql` 放到 `PATH` 中，或設定 `POSTGRES_BIN_DIR`。
 
 ```bash
 # 1. 在 GitHub 上 fork 這個 repo，然後 clone 你的 fork
@@ -45,7 +45,7 @@ npm run dev          # 打開它印出的網址（通常是 http://localhost:517
 這樣就足以遊玩離線世界，也能處理大部分的工作。若要執行完整的線上環境：
 
 ```bash
-npm run db:up        # 在 Docker 中啟動 Postgres 16（開發資料庫在 port 5433）
+npm run db:up        # 啟動原生 Postgres 16（開發資料庫在 port 5433）
 npm run server       # 建置並執行權威遊戲伺服器，位於 :8787
 npm run dev          # 在另一個終端機執行；用戶端會代理到伺服器
 ```

@@ -105,7 +105,7 @@ Keep the LAN/IP startup policy in that fork-local script instead of changing the
 upstream default `npm run dev` / `npm run server` flow or launching `127.0.0.1`-only
 variants ad hoc.
 Do not use in-memory or `pg-mem` realm harnesses for online, multiplayer, or admin
-verification. Bring up the persistent Docker Postgres service with `npm run db:up`
+verification. Bring up the persistent native Postgres service with `npm run db:up`
 and run the real stack against that database.
 
 Browser or visual UI changes should be verified with a running dev server and browser automation when feasible.

@@ -52,7 +52,8 @@ multijoueur faisant autorité exécute pour tout le monde en ligne.
 ```bash
 cp .env.example .env
 # modifiez .env et définissez un POSTGRES_PASSWORD long et aléatoire
-docker compose up -d --build     # postgres + serveur de jeu, entièrement compilé
+npm run db:up                    # Postgres 16 natif sur 127.0.0.1:5433
+node scripts/online_lan.mjs server --restart
 # ouvrez http://localhost:8787 — comptes, personnages, le monde au complet
 ```
 
@@ -72,7 +73,7 @@ niveau et de téléportation utilisées par les bots de test).
 npm install
 cp .env.example .env
 # modifiez .env et donnez le même mot de passe à POSTGRES_PASSWORD et DATABASE_URL
-npm run db:up        # postgres 16 dans docker (port 5433, persistant par volume)
+npm run db:up        # Postgres 16 natif sur 127.0.0.1:5433
 npm run server       # serveur de jeu faisant autorité sur :8787 (REST + WebSocket)
 npm run dev          # serveur de dev du client sur :5173 (relaie /api et /ws)
 ```
@@ -146,7 +147,7 @@ Ghostly Essence sur les morts agités) → **Into the Hollow** (*joueurs suggér
   ALLOW_DEV_COMMANDS=1).
 
 ```
-docker compose ps          # eastbrook-db (postgres:16-alpine, healthcheck)
+npm run db:up              # vérifie que le Postgres natif tourne encore
 node scripts/mp_integration.mjs   # suite de 26 vérifications API/WS/persistance
 node scripts/mp_browser.mjs       # deux vrais clients fureteur se voient l'un l'autre
 ```

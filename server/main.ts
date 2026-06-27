@@ -1483,7 +1483,7 @@ async function handleApi(req: http.IncomingMessage, res: http.ServerResponse): P
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
-  // wait for the database (it may still be starting in docker)
+  // wait for the database (the local native helper may still be starting it)
   for (let attempt = 1; ; attempt++) {
     try {
       await pool.query('SELECT 1');

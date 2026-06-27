@@ -43,16 +43,25 @@
 
 ---
 
-## Host it（一行指令）
+## Host it
 
 ```bash
+npm install
 cp .env.example .env
-# 編輯 .env，並設定一組長而隨機的 POSTGRES_PASSWORD
-docker compose up -d --build     # postgres + 遊戲伺服器，完整建置
-# 開啟 http://localhost:8787 —— 帳號、角色、整個世界
+# 編輯 .env，並保持 POSTGRES_PASSWORD 和 DATABASE_URL 同步
+npm run db:up                    # 原生 postgres 16，監聽 127.0.0.1:5433
+node scripts/online_lan.mjs server --restart
+# 開啟 http://localhost:8787 或 http://<host-ip>:8787 —— 帳號、角色、整個世界
 ```
 
-若要**遠端架設**：把 compose 堆疊部署到任意 VPS，在環境中設定一組真正的 `POSTGRES_PASSWORD`，並以 TLS 反向代理在 8787 連接埠前面把關（用 Caddy 只要兩行——`your.domain { reverse_proxy localhost:8787 }`）；WebSocket 會自動被代理，而用戶端在 https 頁面上會自動選用 `wss://`。驗證端點會依 IP 進行速率限制；密碼採用 scrypt 雜湊；權杖在 7 天後過期。切勿在正式環境中設定 `ALLOW_DEV_COMMANDS=1`（它會啟用測試機器人所用的升級／傳送作弊指令）。
+在 Windows 上，`npm run db:up` 會在缺少二進位時自動把官方 PostgreSQL 16
+Windows x64 版本下載到 `%LOCALAPPDATA%\\WorldOfClaudeCraft\\postgresql\\`，
+在那裡初始化一個持久化叢集，並且只綁定到本機迴圈位址。macOS / Linux 請使用原生
+安裝的 PostgreSQL，並把 `pg_ctl`、`initdb`、`psql` 放到 `PATH` 中，或設定
+`POSTGRES_BIN_DIR`。
+
+若要**遠端架設**：將 `DATABASE_URL` 指向任意持久化 PostgreSQL 實例，執行
+`npm run server`，並以 TLS 反向代理在 8787 連接埠前面把關（用 Caddy 只要兩行——`your.domain { reverse_proxy localhost:8787 }`）；WebSocket 會自動被代理，而用戶端在 https 頁面上會自動選用 `wss://`。驗證端點會依 IP 進行速率限制；密碼採用 scrypt 雜湊；權杖在 7 天後過期。切勿在正式環境中設定 `ALLOW_DEV_COMMANDS=1`（它會啟用測試機器人所用的升級／傳送作弊指令）。
 
 ## Develop online（熱重載）
 
@@ -60,7 +69,7 @@ docker compose up -d --build     # postgres + 遊戲伺服器，完整建置
 npm install
 cp .env.example .env
 # 編輯 .env，把 POSTGRES_PASSWORD 與 DATABASE_URL 設為相同的密碼
-npm run db:up        # docker 中的 postgres 16（連接埠 5433，以 volume 持久化）
+npm run db:up        # 原生 postgres 16（監聽 127.0.0.1:5433）
 npm run server       # 在 :8787 上的權威遊戲伺服器（REST + WebSocket）
 npm run dev          # 在 :5173 上的用戶端開發伺服器（代理 /api 與 /ws）
 ```
@@ -86,7 +95,7 @@ Brother Aldric 的故事線延續到 *The Restless Dead* 之後：**Whispers Bel
 - 它確實是針對 5 人調校的：我們的自動化 5 機器人團隊（warrior、paladin、priest、mage、hunter，搭配集火與治療 AI）約 5 分鐘清完，約陣亡 10 次（`node scripts/crypt_raid.mjs`，需要 ALLOW_DEV_COMMANDS=1）。
 
 ```
-docker compose ps          # eastbrook-db（postgres:16-alpine，含健康檢查）
+npm run db:up                     # 確保原生 Postgres 已啟動
 node scripts/mp_integration.mjs   # 26 項檢查的 API/WS/持久化測試組
 node scripts/mp_browser.mjs       # 兩個真實瀏覽器用戶端互相看見
 ```

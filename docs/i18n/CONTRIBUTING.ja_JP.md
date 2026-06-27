@@ -27,7 +27,7 @@
 
 ## はじめに
 
-[Node.js 22 以上](https://nodejs.org/) と npm が必要です。マルチプレイヤーサーバーを動かすには、Postgres を実行するための [Docker](https://www.docker.com/) も用意してください。
+[Node.js 22 以上](https://nodejs.org/) と npm が必要です。マルチプレイヤーサーバーにはネイティブ PostgreSQL を使ってください。Windows では `npm run db:up` がユーザープロファイル配下に自動で用意します。macOS/Linux では PostgreSQL をネイティブに導入し、`pg_ctl`、`initdb`、`psql` を `PATH` に置くか、`POSTGRES_BIN_DIR` を設定してください。
 
 ```bash
 # 1. GitHub でリポジトリをフォークしてから、自分のフォークをクローンします
@@ -44,7 +44,7 @@ npm run dev          # 表示された URL を開きます（通常は http://lo
 オフラインの世界で遊んだり、ほとんどの作業を進めたりするには、これだけで十分です。オンラインのフルスタックを実行するには、次のようにします。
 
 ```bash
-npm run db:up        # Docker で Postgres 16 を起動します（開発用 DB は port 5433）
+npm run db:up        # ネイティブ Postgres 16 を起動します（開発用 DB は port 5433）
 npm run server       # 権威サーバーをビルドして :8787 で実行します
 npm run dev          # 別のターミナルで実行します。クライアントはサーバーへプロキシします
 ```

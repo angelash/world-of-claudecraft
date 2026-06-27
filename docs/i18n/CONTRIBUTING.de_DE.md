@@ -43,8 +43,9 @@ Hier ist für jeden ein Platz:
 ## Erste Schritte
 
 Du brauchst [Node.js 22+](https://nodejs.org/) und npm. Für den Mehrspieler-Server
-solltest du außerdem [Docker](https://www.docker.com/) haben, um Postgres
-auszuführen.
+verwende natives PostgreSQL. Unter Windows richtet `npm run db:up` es in deinem
+Benutzerprofil ein; unter macOS/Linux installiere PostgreSQL nativ und stelle
+`pg_ctl`, `initdb` und `psql` im `PATH` bereit oder setze `POSTGRES_BIN_DIR`.
 
 ```bash
 # 1. Forke das Repo auf GitHub und klone anschließend deinen Fork
@@ -62,7 +63,7 @@ Das reicht aus, um die Offline-Welt zu spielen und an den meisten Dingen zu
 arbeiten. Um den vollständigen Online-Stack auszuführen:
 
 ```bash
-npm run db:up        # starte Postgres 16 in Docker (Entwicklungs-DB auf Port 5433)
+npm run db:up        # starte natives Postgres 16 (Entwicklungs-DB auf Port 5433)
 npm run server       # baue und starte den autoritativen Spielserver auf :8787
 npm run dev          # in einem anderen Terminal; der Client leitet zum Server weiter
 ```
