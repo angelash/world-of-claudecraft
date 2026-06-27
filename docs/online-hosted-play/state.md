@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: Phase 4
-- phase status: Phase 3 implementation is complete, the packet is ready for Phase 4 QA
+- current phase: Phase 5
+- phase status: Phase 4 QA is complete, the packet is ready for social and LLM overlays
 
 ## Locked decisions
 
@@ -40,6 +40,12 @@
   - `npx vitest run tests/hosted_play_api.test.ts tests/hosted_play_runtime.test.ts tests/hosted_play_party.test.ts tests/hosted_play_game_server.test.ts tests/character_db.test.ts tests/companion_read_api.test.ts`
   - `npm run build:server`
   - `npm run build`
+- Phase 4 QA target:
+  - restart the local hosted-play verification server before validation
+  - `npx vitest run tests/hosted_play_api.test.ts tests/hosted_play_runtime.test.ts tests/hosted_play_party.test.ts tests/hosted_play_game_server.test.ts tests/character_db.test.ts tests/companion_read_api.test.ts`
+  - `npm run build:server`
+  - `npm run build`
+  - live HTTP and WebSocket verification of hosted-play settings save and login resume
 - Phase 2 QA target:
   - `npx vitest run tests/character_db.test.ts tests/hosted_play_runtime.test.ts tests/hosted_play_game_server.test.ts tests/hosted_play_api.test.ts tests/ambient_player_bot_brain.test.ts tests/companion_read_api.test.ts`
   - `npm run build:server`

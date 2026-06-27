@@ -7,7 +7,7 @@
 | 1 | completed | 2026-06-27 | 2026-06-27 |
 | 2 | completed | 2026-06-27 | 2026-06-27 |
 | 3 | completed | 2026-06-27 | 2026-06-27 |
-| 4 | pending |  |  |
+| 4 | completed | 2026-06-27 | 2026-06-27 |
 | 5 | pending |  |  |
 | 6 | pending |  |  |
 
@@ -73,6 +73,26 @@ Notes:
 - Party support stays on the real server command path by adapting the ambient
   bot `/follow` pattern rather than introducing a hosted-only movement shortcut.
 - Validation run:
+  - `npx vitest run tests/hosted_play_api.test.ts tests/hosted_play_runtime.test.ts tests/hosted_play_party.test.ts tests/hosted_play_game_server.test.ts tests/character_db.test.ts tests/companion_read_api.test.ts`
+  - `npm run build:server`
+  - `npm run build`
+
+## Phase 4 checklist
+
+- [x] additive migration safety verified
+- [x] owner settings route verified against the live online path
+- [x] login resume correctness verified against the live online path
+- [x] party regroup and follow behavior verified in targeted tests
+- [x] validation green
+
+Notes:
+- The local hosted-play verification server on `http://127.0.0.1:8787` was
+  restarted with the latest Phase 3 code before QA.
+- Live verification used the real REST and WebSocket path against the pg-mem
+  realm: register account, create character, enter the world, save hosted-play
+  settings, enable hosted play, disconnect, reconnect, and confirm the
+  persisted resume and party settings were restored.
+- Focused validation re-ran:
   - `npx vitest run tests/hosted_play_api.test.ts tests/hosted_play_runtime.test.ts tests/hosted_play_party.test.ts tests/hosted_play_game_server.test.ts tests/character_db.test.ts tests/companion_read_api.test.ts`
   - `npm run build:server`
   - `npm run build`
