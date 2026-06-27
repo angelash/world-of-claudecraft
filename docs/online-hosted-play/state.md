@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: Phase 6
-- phase status: Phase 5 is complete, the packet is ready for final QA and teardown
+- current phase: packet complete
+- phase status: Phase 6 final QA is complete, awaiting an explicit teardown decision for `docs/online-hosted-play/`
 
 ## Locked decisions
 

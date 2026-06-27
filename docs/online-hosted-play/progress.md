@@ -9,7 +9,7 @@
 | 3 | completed | 2026-06-27 | 2026-06-27 |
 | 4 | completed | 2026-06-27 | 2026-06-27 |
 | 5 | completed | 2026-06-27 | 2026-06-27 |
-| 6 | pending |  |  |
+| 6 | completed | 2026-06-27 | 2026-06-27 |
 
 ## Phase 1 checklist
 
@@ -124,3 +124,20 @@ Notes:
   both online, enable hosted play on one character, whisper from the other, and
   confirm the hosted character sent a live whisper reply and recorded
   `lastWhisperFrom` plus `lastSocialAction`.
+
+## Phase 6 checklist
+
+- [x] final hosted-play QA suite passed
+- [x] final build checks passed
+- [x] live online whisper-reply path rechecked on the restarted pg-mem realm
+- [x] packet ready for teardown decision
+
+Notes:
+- Final QA re-ran:
+  - `npx vitest run tests/hosted_play_runtime.test.ts tests/hosted_play_llm.test.ts tests/hosted_play_game_server.test.ts tests/hosted_play_api.test.ts tests/hosted_play_party.test.ts tests/character_db.test.ts tests/companion_read_api.test.ts tests/localization_fixes.test.ts`
+  - `npm run build:server`
+  - `npm run build`
+- The local pg-mem hosted-play verification realm on `http://127.0.0.1:8787`
+  was restarted before the live path check.
+- The feature packet is functionally complete. The only remaining packet action
+  is whether to keep or delete `docs/online-hosted-play/` before the final PR.
