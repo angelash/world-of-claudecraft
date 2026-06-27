@@ -1430,7 +1430,13 @@ export async function listCharacters(accountId: number): Promise<CharacterRow[]>
        LEFT JOIN (
          SELECT character_id,
                 MAX(started_at) AS last_played,
-                COALESCE(SUM(EXTRACT(EPOCH FROM (COALESCE(ended_at, now()) - started_at))), 0)::bigint AS playtime_seconds
+                COALESCE(
+                  SUM(
+                    EXTRACT(EPOCH FROM COALESCE(ended_at, now()))
+                    - EXTRACT(EPOCH FROM started_at)
+                  ),
+                  0
+                )::bigint AS playtime_seconds
            FROM play_sessions
           WHERE account_id = $1
           GROUP BY character_id

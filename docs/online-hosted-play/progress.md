@@ -5,7 +5,7 @@
 | Phase | Status | Started | Completed |
 |---|---|---|---|
 | 1 | completed | 2026-06-27 | 2026-06-27 |
-| 2 | pending |  |  |
+| 2 | completed | 2026-06-27 | 2026-06-27 |
 | 3 | pending |  |  |
 | 4 | pending |  |  |
 | 5 | pending |  |  |
@@ -31,7 +31,29 @@ Notes:
   - `npx vitest run tests/hosted_play_runtime.test.ts tests/hosted_play_game_server.test.ts tests/hosted_play_api.test.ts tests/ambient_player_bot_brain.test.ts tests/companion_read_api.test.ts`
   - `npm run build:server`
   - `npm run build`
-- Phase 2 is the next QA target.
+
+## Phase 2 checklist
+
+- [x] owner-only hosted-play API verified against the live online path
+- [x] manual input pause and resume verified against the live online path
+- [x] game-menu Hosted Play panel verified in a real browser session
+- [x] pg-mem local verification harness compatibility fixed for character roster loading
+- [x] QA validation green
+
+Notes:
+- Live API and WebSocket verification was run against the pg-mem realm on
+  `http://127.0.0.1:8879`, including enable, pause on manual input, resume
+  after the pause window, and disable.
+- Browser verification was run through `http://127.0.0.1:5173` with the pg-mem
+  server on `http://127.0.0.1:8787`, confirming the Hosted Play panel title,
+  button set, and enable or disable state transitions in the real UI.
+- QA uncovered a pg-mem execution failure in the character-roster playtime
+  query. The fix rewrote the playtime aggregation to subtract epoch values
+  instead of subtracting timestamps directly.
+- Validation run:
+  - `npx vitest run tests/character_db.test.ts tests/hosted_play_runtime.test.ts tests/hosted_play_game_server.test.ts tests/hosted_play_api.test.ts tests/ambient_player_bot_brain.test.ts tests/companion_read_api.test.ts`
+  - `npm run build:server`
+  - `npm run build`
 
 ## Phase 3 checklist
 

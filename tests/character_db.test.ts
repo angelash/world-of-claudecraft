@@ -14,7 +14,8 @@ vi.mock('pg', () => ({
 
 import {
   createAccount, createCharacterCapped, deleteCharacter, grantAccountMechChroma, loadAccountCosmetics,
-  markAccountQuestComplete, openPlaySession, reclaimDeactivatedName, renameCharacter, revokeAccountMechChroma, touchLogin,
+  listCharacters, markAccountQuestComplete, openPlaySession, reclaimDeactivatedName, renameCharacter,
+  revokeAccountMechChroma, touchLogin,
 } from '../server/db';
 import { REALM } from '../server/realm';
 
@@ -48,6 +49,20 @@ describe('deleteCharacter', () => {
 
     dbMock.query.mockResolvedValueOnce({ rowCount: 1 } as any);
     expect(await deleteCharacter(7, 42)).toBe(true);
+  });
+});
+
+describe('listCharacters', () => {
+  it('computes playtime from epoch values so pg-mem can execute the realm roster query', async () => {
+    dbMock.query.mockResolvedValueOnce({ rows: [] } as any);
+
+    await listCharacters(7);
+
+    const [sql, params] = dbMock.query.mock.calls[0];
+    expect(sql).toContain('EXTRACT(EPOCH FROM COALESCE(ended_at, now()))');
+    expect(sql).toContain('EXTRACT(EPOCH FROM started_at)');
+    expect(sql).not.toContain('COALESCE(ended_at, now()) - started_at');
+    expect(params).toEqual([7, REALM]);
   });
 });
 

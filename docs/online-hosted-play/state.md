@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: Phase 2
-- phase status: Phase 1 implementation is complete and awaiting the dedicated QA pass
+- current phase: Phase 3
+- phase status: Phase 2 QA is complete, the packet is ready for persistence and party support
 
 ## Locked decisions
 
@@ -35,6 +35,10 @@
   - `npm run build:server`
 - client UI and API slice:
   - `npx vitest run tests/hosted_play_api.test.ts`
+  - `npm run build`
+- Phase 2 QA target:
+  - `npx vitest run tests/character_db.test.ts tests/hosted_play_runtime.test.ts tests/hosted_play_game_server.test.ts tests/hosted_play_api.test.ts tests/ambient_player_bot_brain.test.ts tests/companion_read_api.test.ts`
+  - `npm run build:server`
   - `npm run build`
 - Phase 1 pre-commit target:
   - `npx vitest run tests/hosted_play_runtime.test.ts tests/hosted_play_game_server.test.ts tests/hosted_play_api.test.ts tests/ambient_player_bot_brain.test.ts`
@@ -81,3 +85,6 @@
   action.
 - Any internal hosted action path must not regress idle timeout handling or
   player bot-detection behavior.
+- The local pg-mem verification harness relies on the character-roster query
+  staying compatible with timestamp arithmetic it can execute. Keep playtime
+  rollups expressed as epoch subtraction when possible.
