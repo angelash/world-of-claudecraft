@@ -50,6 +50,7 @@ describe('every mutating / owner-action route funnels through bearerActiveAccoun
     "if (url === '/api/characters') {", // POST create (and GET list)
     "if (req.method === 'POST' && renameMatch) {",
     "if (req.method === 'POST' && takeoverMatch) {",
+    'if (hostedPlayMatch) {',
     "if (req.method === 'DELETE' && delMatch) {",
     "if (req.method === 'GET' && standingMatch) {", // owner-scoped read
     "if (req.method === 'POST' && url === '/api/reports') {",

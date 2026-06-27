@@ -14,6 +14,7 @@ import {
   EQUIP_SLOTS,
   type EquipSlot,
   emptyMoveInput,
+  type PlayerClass,
   RUN_SPEED,
   type SimEvent,
 } from '../src/sim/types';
@@ -64,6 +65,7 @@ import type {
   AmbientPlayerBotDiagnosticsSnapshot,
   AmbientPlayerBotRecord,
 } from './ambient_bots/types';
+import type { AmbientPlayerBotLiveState } from './ambient_bots/ws_client';
 import type { Presence, PresenceStatus, SocialActor, SocialTransport } from './social';
 import { SocialService } from './social';
 import { PgSocialDb } from './social_db';
@@ -500,6 +502,7 @@ export class GameServer {
   private readonly aiActiveTriggers: AiActiveTriggerService;
   private readonly ambientPlayerBots: AmbientPlayerBotService;
   private ambientPlayerBotActionHandler: ((actions: readonly AmbientBotPlanAction[]) => void) | null = null;
+  private hostedPlayInputObserver: ((characterId: number, kind: 'input' | 'command') => void) | null = null;
   private readonly aiActiveDirectorBridgeVersions = new Map<string, number>();
   private aiInteractionSequence = 0;
 
@@ -1360,6 +1363,12 @@ export class GameServer {
     this.ambientPlayerBotActionHandler = handler;
   }
 
+  setHostedPlayInputObserver(
+    handler: ((characterId: number, kind: 'input' | 'command') => void) | null,
+  ): void {
+    this.hostedPlayInputObserver = handler;
+  }
+
   runAmbientPlayerBotPlanner(nowMs = Date.now()): readonly AmbientBotPlanAction[] {
     const actions = this.ambientPlayerBots.plan({
       humans: this.ambientHumanPresenceSnapshot(),
@@ -1490,6 +1499,86 @@ export class GameServer {
     if (!session) return null;
     const state = this.sim.serializeCharacter(session.pid);
     return state ? state.level : null;
+  }
+
+  hostedPlaySessionInfo(
+    characterId: number,
+  ): { characterId: number; characterName: string; playerClass: PlayerClass } | null {
+    const session = this.sessionsByCharacterId.get(characterId);
+    if (!session) return null;
+    const meta = this.sim.meta(session.pid);
+    if (!meta) return null;
+    return {
+      characterId,
+      characterName: session.name,
+      playerClass: meta.cls,
+    };
+  }
+
+  buildHostedPlayLiveState(characterId: number): AmbientPlayerBotLiveState | null {
+    const session = this.sessionsByCharacterId.get(characterId);
+    if (!session) return null;
+    const selfEntity = this.sim.entities.get(session.pid);
+    const meta = this.sim.meta(session.pid);
+    if (!selfEntity || !meta) return null;
+    const entities = new Map<number, Record<string, unknown>>();
+    this.sim.grid.forEachInRadius(selfEntity.pos.x, selfEntity.pos.z, INTEREST_QUERY_RADIUS, (entity, d2) => {
+      if (entity.id === session.pid) return;
+      if (!this.canObserveEntity(selfEntity, entity, d2)) return;
+      const limitSq =
+        selfEntity.targetId === entity.id
+          ? NPC_DROP_RADIUS * NPC_DROP_RADIUS
+          : interestLimitSq(entity, true);
+      if (d2 > limitSq) return;
+      entities.set(entity.id, wireEntity(entity));
+    });
+    const self = this.hostedPlaySelfState(selfEntity, meta);
+    entities.set(self.id as number, { ...self });
+    return {
+      pid: session.pid,
+      seed: this.sim.cfg.seed,
+      self,
+      entities,
+      social: null,
+    };
+  }
+
+  applyHostedPlayMoveInput(
+    characterId: number,
+    moveInput: Record<string, unknown>,
+    facing?: number,
+  ): boolean {
+    const session = this.sessionsByCharacterId.get(characterId);
+    if (!session) return false;
+    this.dispatchMessage(
+      session,
+      { t: 'input', mi: moveInput, ...(facing !== undefined ? { facing } : {}) },
+      '',
+      Date.now(),
+      'hosted',
+    );
+    return true;
+  }
+
+  applyHostedPlayCommand(characterId: number, command: Record<string, unknown>): boolean {
+    const session = this.sessionsByCharacterId.get(characterId);
+    if (!session || typeof command.cmd !== 'string') return false;
+    this.dispatchMessage(session, { t: 'cmd', ...command }, '', Date.now(), 'hosted');
+    return true;
+  }
+
+  clearHostedPlayControl(characterId: number): void {
+    const session = this.sessionsByCharacterId.get(characterId);
+    if (!session) return;
+    const meta = this.sim.meta(session.pid);
+    if (!meta) return;
+    Object.assign(meta.moveInput, emptyMoveInput());
+  }
+
+  noteHostedPlayActivity(characterId: number): void {
+    const session = this.sessionsByCharacterId.get(characterId);
+    if (!session) return;
+    session.lastActivityAt = Date.now();
   }
 
   disconnectAccount(accountId: number, reason: string): void {
@@ -1677,6 +1766,7 @@ export class GameServer {
     msg: any,
     raw: string,
     receivedAtMs: number,
+    source: 'client' | 'hosted' = 'client',
   ): void {
     // JSON.parse returns null / numbers / strings / arrays for valid JSON that
     // isn't an object — `null` in particular threw on `msg.t`. Drop anything
@@ -1700,6 +1790,9 @@ export class GameServer {
       const movedOrActed = isActiveMoveInput(frame.moveInput);
       const turned = frame.facing !== null && Math.abs(frame.facing - e.facing) > 0.001;
       if (movedOrActed || turned) session.lastActivityAt = Date.now();
+      if (source === 'client' && (movedOrActed || turned)) {
+        this.hostedPlayInputObserver?.(session.characterId, 'input');
+      }
       Object.assign(meta.moveInput, frame.moveInput);
       session.lastInputAt = sim.time;
       if (typeof msg.seq === 'number' && Number.isFinite(msg.seq) && msg.seq > 0) {
@@ -1708,7 +1801,9 @@ export class GameServer {
       if (frame.facing !== null && !e.dead) {
         e.facing = frame.facing;
       }
-      this.botDetector.observeInput(session.botTrackingContext, frame, receivedAtMs);
+      if (source === 'client') {
+        this.botDetector.observeInput(session.botTrackingContext, frame, receivedAtMs);
+      }
       return;
     }
     if (msg.t !== 'cmd') {
@@ -1721,12 +1816,15 @@ export class GameServer {
       return;
     }
     session.lastActivityAt = Date.now();
-    this.botDetector.observeCommand(
-      session.botTrackingContext,
-      String(msg.cmd ?? ''),
-      receivedAtMs,
-      msg,
-    );
+    if (source === 'client') {
+      this.hostedPlayInputObserver?.(session.characterId, 'command');
+      this.botDetector.observeCommand(
+        session.botTrackingContext,
+        String(msg.cmd ?? ''),
+        receivedAtMs,
+        msg,
+      );
+    }
     switch (msg.cmd) {
       case 'castSlot':
         sim.castAbilityBySlot(msg.slot | 0, pid);
@@ -2743,6 +2841,34 @@ export class GameServer {
       activeLoadout: meta.activeLoadout,
     });
     return extra === '' ? json : `${json.slice(0, -1) + extra}}`;
+  }
+
+  private hostedPlaySelfState(p: Entity, meta: PlayerMeta): Record<string, unknown> {
+    const self = wireEntity(p);
+    Object.assign(self, {
+      res: Math.round(p.resource * 10) / 10,
+      mres: p.maxResource,
+      rtype: p.resourceType,
+      copper: meta.copper,
+      gcd: round2(p.gcdRemaining),
+      target: p.targetId,
+      auto: p.autoAttack,
+      cast: p.castingAbility,
+      eat: p.eating ? { remaining: round2(p.eating.remaining) } : null,
+      drk: p.drinking ? { remaining: round2(p.drinking.remaining) } : null,
+      inv: meta.inventory,
+      qlog: [...meta.questLog.values()],
+      qdone: [...meta.questsDone],
+      cds: Object.fromEntries([...p.cooldowns.entries()].map(([key, value]) => [key, round2(value)])),
+      tal: {
+        alloc: meta.talents,
+        spec: meta.talentMods.spec,
+        role: meta.talentMods.role,
+        loadouts: meta.loadouts,
+        activeLoadout: meta.activeLoadout,
+      },
+    });
+    return self;
   }
 
   private partyWire(pid: number): unknown {

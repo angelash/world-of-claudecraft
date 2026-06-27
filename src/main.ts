@@ -1478,6 +1478,40 @@ async function startGame(
       setPlacement: (on) => perfOverlay.setPlacementMode(on),
     },
     gamepad: gamepadBindings,
+    hostedPlay: online
+      ? {
+          status: async () => {
+            const status = await api.hostedPlayStatus(online.characterId);
+            return {
+              online: status.online,
+              enabled: status.enabled,
+              active: status.active,
+              paused: status.paused,
+              mode: status.mode,
+              objectiveLabel: status.objectiveLabel,
+              pauseReason: status.pauseReason,
+              pauseSecondsRemaining: status.pauseSecondsRemaining,
+              lastError: status.lastError,
+            };
+          },
+          setEnabled: async (enabled) => {
+            const status = enabled
+              ? await api.enableHostedPlay(online.characterId)
+              : await api.disableHostedPlay(online.characterId);
+            return {
+              online: status.online,
+              enabled: status.enabled,
+              active: status.active,
+              paused: status.paused,
+              mode: status.mode,
+              objectiveLabel: status.objectiveLabel,
+              pauseReason: status.pauseReason,
+              pauseSecondsRemaining: status.pauseSecondsRemaining,
+              lastError: status.lastError,
+            };
+          },
+        }
+      : undefined,
   });
   if (online) {
     hud.attachReporting({

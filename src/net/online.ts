@@ -71,6 +71,36 @@ export interface CharacterSummary {
   playtimeSeconds?: number;
 }
 
+export type HostedPlayMode =
+  | 'offline'
+  | 'disabled'
+  | 'active'
+  | 'paused';
+
+export type HostedPlayPauseReason =
+  | ''
+  | 'manual_input'
+  | 'manual_command'
+  | 'runtime_error';
+
+export interface HostedPlayStatus {
+  characterId: number;
+  characterName: string;
+  playerClass: PlayerClass | null;
+  online: boolean;
+  enabled: boolean;
+  active: boolean;
+  paused: boolean;
+  mode: HostedPlayMode;
+  objectiveId: string;
+  objectiveLabel: string;
+  pauseReason: HostedPlayPauseReason;
+  pauseUntilMs: number | null;
+  pauseSecondsRemaining: number;
+  lastError: string;
+  lastAutomationAtMs: number | null;
+}
+
 function stringList(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string')
@@ -420,6 +450,27 @@ export class Api {
   async takeoverCharacter(characterId: number): Promise<boolean> {
     const data = await this.post(`/api/characters/${characterId}/takeover`, {});
     return data.takenOver === true;
+  }
+
+  async hostedPlayStatus(characterId: number): Promise<HostedPlayStatus> {
+    return this.get(`/api/characters/${characterId}/hosted-play`);
+  }
+
+  async enableHostedPlay(characterId: number): Promise<HostedPlayStatus> {
+    return this.post(`/api/characters/${characterId}/hosted-play`, {});
+  }
+
+  async disableHostedPlay(characterId: number): Promise<HostedPlayStatus> {
+    const res = await fetch(apiUrl(`/api/characters/${characterId}/hosted-play`, this.base), {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ApiError(data.error ?? `request failed (${res.status})`, res.status);
+    return data;
   }
 
   async reportPlayer(

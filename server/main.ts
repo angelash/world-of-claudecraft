@@ -95,6 +95,7 @@ import { ambientPlayerBotLlmConfigFromEnv, AmbientPlayerBotLlmCoordinator } from
 import { AmbientBotCodexCliProvider } from './ambient_bots/llm_provider';
 import { AmbientPlayerBotRuntime } from './ambient_bots/runtime';
 import { GameServer, type ClientSession } from './game';
+import { HostedPlayRuntime } from './hosted_play/runtime';
 import { PgAmbientPlayerBotDb } from './ambient_player_bot_db';
 import { isUniqueViolation, json, readBody } from './http_util';
 import { handleInternalApi } from './internal';
@@ -219,6 +220,7 @@ const ambientPlayerBotRuntime = ambientPlayerBotExperimentEnabled
     llmConfig: ambientPlayerBotLlmConfig,
   })
   : null;
+const hostedPlayRuntime = new HostedPlayRuntime({ game });
 const ambientPlayerBotAdmin = {
   diagnosticsSnapshot() {
     return {
@@ -943,7 +945,28 @@ async function handleApi(req: http.IncomingMessage, res: http.ServerResponse): P
     const delMatch = /^\/api\/characters\/(\d+)$/.exec(url);
     const renameMatch = /^\/api\/characters\/(\d+)\/rename$/.exec(url);
     const takeoverMatch = /^\/api\/characters\/(\d+)\/takeover$/.exec(url);
+    const hostedPlayMatch = /^\/api\/characters\/(\d+)\/hosted-play$/.exec(url);
     const standingMatch = /^\/api\/characters\/(\d+)\/standing$/.exec(url);
+    if (hostedPlayMatch) {
+      const accountId = await bearerActiveAccount(req, res);
+      if (accountId === null) return;
+      const characterId = Number(hostedPlayMatch[1]);
+      const character = await getCharacter(accountId, characterId);
+      if (!character) return json(res, 404, { error: 'character not found' });
+      if (req.method === 'GET') {
+        return json(res, 200, hostedPlayRuntime.status(characterId));
+      }
+      if (req.method === 'POST') {
+        try {
+          return json(res, 200, hostedPlayRuntime.enable(characterId));
+        } catch (err) {
+          return json(res, 409, { error: err instanceof Error ? err.message : String(err) });
+        }
+      }
+      if (req.method === 'DELETE') {
+        return json(res, 200, hostedPlayRuntime.disable(characterId));
+      }
+    }
     if (req.method === 'GET' && standingMatch) {
       const accountId = await bearerActiveAccount(req, res);
       if (accountId === null) return;
@@ -1412,6 +1435,7 @@ async function main(): Promise<void> {
       `pruned ${prunedPerfReports} client perf report row(s) older than ${PERF_REPORT_RETENTION_DAYS} days`,
     );
   if (ambientPlayerBotRuntime) await ambientPlayerBotRuntime.start();
+  await hostedPlayRuntime.start();
   await game.loadMarket();
   await game.loadChatFilter();
   await game.loadBlockedIps();
@@ -1687,6 +1711,7 @@ async function main(): Promise<void> {
     console.log('shutting down: saving characters...');
     clearInterval(wsHeartbeat);
     if (ambientPlayerBotRuntime) await ambientPlayerBotRuntime.stop();
+    await hostedPlayRuntime.stop();
     ambientPlayerBotLlmCoordinator?.close();
     game.stop();
     await game.saveAll('shutdown');

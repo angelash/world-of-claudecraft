@@ -624,6 +624,34 @@ export const it_IT: EnTranslations = {
         "other": "Chi: {count} giocatori online su {realm}."
       }
     },
+    "hostedPlay": {
+      "menuButton": "Hosted Play",
+      "title": "Hosted Play",
+      "note": "Hosted play uses your current online session only. Manual movement or actions pause it briefly so you can take over at any time.",
+      "statusLabel": "Status",
+      "objectiveLabel": "Objective",
+      "pauseLabel": "Pause Reason",
+      "errorLabel": "Runtime",
+      "loadingStatus": "Loading hosted-play status...",
+      "statusLoadFailed": "Could not load hosted-play status right now.",
+      "updateFailed": "Could not update hosted play right now.",
+      "objectiveNone": "No active objective",
+      "enable": "Enable Hosted Play",
+      "disable": "Disable Hosted Play",
+      "refresh": "Refresh",
+      "runtimeIssue": "Automation hit a runtime issue.",
+      "state": {
+        "offline": "Offline",
+        "disabled": "Off",
+        "active": "Running",
+        "paused": "Paused"
+      },
+      "pause": {
+        "manualInput": "Paused after manual movement.",
+        "manualCommand": "Paused after a manual action.",
+        "runtimeError": "Paused after an automation error."
+      }
+    },
     "bugReport": {
       "menuButton": "Segnala un bug",
       "realm": "Reame",

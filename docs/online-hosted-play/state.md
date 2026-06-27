@@ -2,8 +2,8 @@
 
 ## Current phase
 
-- current phase: Phase 1
-- phase status: in progress
+- current phase: Phase 2
+- phase status: Phase 1 implementation is complete and awaiting the dedicated QA pass
 
 ## Locked decisions
 
@@ -53,17 +53,19 @@
 - `src/ui/hud.ts`
 - `src/main.ts`
 - `src/ui/i18n.catalog/hud_chrome.ts`
+- `src/ui/i18n.resolved.generated/*`
+- `src/ui/i18n.status.summary.json`
 - `tests/hosted_play_runtime.test.ts`
 - `tests/hosted_play_game_server.test.ts`
 - `tests/hosted_play_api.test.ts`
 
-## Planned API surface
+## Active API surface
 
 - `GET /api/characters/:id/hosted-play`
 - `POST /api/characters/:id/hosted-play`
 - `DELETE /api/characters/:id/hosted-play`
 
-## Planned user-facing state
+## Active user-facing state
 
 - enabled
 - active

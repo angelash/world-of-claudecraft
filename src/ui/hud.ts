@@ -333,6 +333,7 @@ export interface OptionsHooks {
   // structurally), so the Controller options panel can read & rebind buttons
   // without the HUD importing the manager.
   gamepad: GamepadBindingsHooks;
+  hostedPlay?: HostedPlayHooks;
 }
 
 export interface ThemeHooks {
@@ -347,6 +348,23 @@ export interface GamepadBindingsHooks {
   entries(): { button: number; action: string }[];
   bind(button: number, action: string): void;
   reset(): void;
+}
+
+export interface HostedPlayStatusView {
+  online: boolean;
+  enabled: boolean;
+  active: boolean;
+  paused: boolean;
+  mode: 'offline' | 'disabled' | 'active' | 'paused';
+  objectiveLabel: string;
+  pauseReason: '' | 'manual_input' | 'manual_command' | 'runtime_error';
+  pauseSecondsRemaining: number;
+  lastError: string;
+}
+
+export interface HostedPlayHooks {
+  status(): Promise<HostedPlayStatusView>;
+  setEnabled(enabled: boolean): Promise<HostedPlayStatusView>;
 }
 
 export interface ReportHooks {
@@ -742,7 +760,8 @@ export class Hud {
     | 'interface'
     | 'performance'
     | 'controller'
-    | 'bugreport' = 'main';
+    | 'bugreport'
+    | 'hostedPlay' = 'main';
   // The Options > Performance panel, lazily built and reused (it caches the live
   // position-slider handles so a drag-to-move can update them in place).
   private perfSettings: PerfOverlaySettingsPanel | null = null;
@@ -13339,6 +13358,10 @@ export class Hud {
       this.renderBugReport();
       return;
     }
+    if (this.optionsView === 'hostedPlay') {
+      this.renderHostedPlay();
+      return;
+    }
     const el = $('#options-menu');
     el.innerHTML = `<div class="panel-title"><span>${esc(t('hud.options.gameMenu'))}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('hud.options.returnToGame'))}">${svgIcon('close')}</button></div>`;
     const list = document.createElement('div');
@@ -13361,7 +13384,8 @@ export class Hud {
         | 'interface'
         | 'performance'
         | 'controller'
-        | 'bugreport',
+        | 'bugreport'
+        | 'hostedPlay',
     ) => {
       this.optionsView = view;
       this.keybindNote = '';
@@ -13373,6 +13397,7 @@ export class Hud {
     add(t('hud.options.interface'), () => goto('interface'));
     add(t('hud.options.audio'), () => goto('audio'));
     add(t('hudChrome.perf.title'), () => goto('performance'));
+    if (this.optionsHooks?.hostedPlay) add(t('hudChrome.hostedPlay.menuButton'), () => goto('hostedPlay'));
     // Online-only: capturing realm/character/position needs an authoritative server.
     if (this.bugReportHooks) add(t('hudChrome.bugReport.menuButton'), () => goto('bugreport'));
     add(t('hud.options.logout'), () => this.optionsHooks?.logout());
@@ -13569,6 +13594,162 @@ export class Hud {
       this.renderOptions();
     });
     el.append(reset, back);
+    el.querySelector('[data-close]')?.addEventListener('click', () => this.closeOptions());
+  }
+
+  private renderHostedPlay(): void {
+    const hooks = this.optionsHooks?.hostedPlay;
+    if (!hooks) {
+      this.optionsView = 'main';
+      this.renderOptions();
+      return;
+    }
+    const body = this.settingsViewShell(t('hudChrome.hostedPlay.title'));
+
+    const note = document.createElement('p');
+    note.className = 'set-note';
+    note.textContent = t('hudChrome.hostedPlay.note');
+    body.appendChild(note);
+
+    const statusBox = document.createElement('div');
+    statusBox.className = 'bug-info';
+    body.appendChild(statusBox);
+
+    const message = document.createElement('div');
+    message.className = 'set-note';
+    body.appendChild(message);
+
+    const actions = document.createElement('div');
+    actions.className = 'set-choice';
+    body.appendChild(actions);
+
+    const enableBtn = document.createElement('button');
+    enableBtn.type = 'button';
+    enableBtn.className = 'btn set-choice-btn';
+    enableBtn.textContent = t('hudChrome.hostedPlay.enable');
+    actions.appendChild(enableBtn);
+
+    const disableBtn = document.createElement('button');
+    disableBtn.type = 'button';
+    disableBtn.className = 'btn set-choice-btn';
+    disableBtn.textContent = t('hudChrome.hostedPlay.disable');
+    actions.appendChild(disableBtn);
+
+    const refreshBtn = document.createElement('button');
+    refreshBtn.type = 'button';
+    refreshBtn.className = 'btn set-choice-btn';
+    refreshBtn.textContent = t('hudChrome.hostedPlay.refresh');
+    actions.appendChild(refreshBtn);
+
+    let pending = false;
+    let currentStatus: HostedPlayStatusView | null = null;
+
+    const appendRow = (label: string, value: string) => {
+      const row = document.createElement('div');
+      row.className = 'bug-info-row';
+      const labelEl = document.createElement('span');
+      labelEl.className = 'bug-info-label';
+      labelEl.textContent = label;
+      const valueEl = document.createElement('span');
+      valueEl.className = 'bug-info-val';
+      valueEl.textContent = value;
+      row.append(labelEl, valueEl);
+      statusBox.appendChild(row);
+    };
+
+    const statusText = (status: HostedPlayStatusView): string => {
+      switch (status.mode) {
+        case 'offline':
+          return t('hudChrome.hostedPlay.state.offline');
+        case 'disabled':
+          return t('hudChrome.hostedPlay.state.disabled');
+        case 'paused':
+          return t('hudChrome.hostedPlay.state.paused');
+        case 'active':
+        default:
+          return t('hudChrome.hostedPlay.state.active');
+      }
+    };
+
+    const pauseReasonText = (status: HostedPlayStatusView): string => {
+      switch (status.pauseReason) {
+        case 'manual_input':
+          return t('hudChrome.hostedPlay.pause.manualInput');
+        case 'manual_command':
+          return t('hudChrome.hostedPlay.pause.manualCommand');
+        case 'runtime_error':
+          return t('hudChrome.hostedPlay.pause.runtimeError');
+        default:
+          return '';
+      }
+    };
+
+    const syncButtons = () => {
+      const online = currentStatus?.online ?? false;
+      const enabled = currentStatus?.enabled ?? false;
+      enableBtn.disabled = pending || !online || enabled;
+      disableBtn.disabled = pending || !enabled;
+      refreshBtn.disabled = pending;
+    };
+
+    const renderStatus = (status: HostedPlayStatusView) => {
+      currentStatus = status;
+      statusBox.replaceChildren();
+      appendRow(t('hudChrome.hostedPlay.statusLabel'), statusText(status));
+      appendRow(
+        t('hudChrome.hostedPlay.objectiveLabel'),
+        status.objectiveLabel || t('hudChrome.hostedPlay.objectiveNone'),
+      );
+      const pauseReason = pauseReasonText(status);
+      if (pauseReason) appendRow(t('hudChrome.hostedPlay.pauseLabel'), pauseReason);
+      if (status.lastError) appendRow(t('hudChrome.hostedPlay.errorLabel'), t('hudChrome.hostedPlay.runtimeIssue'));
+      syncButtons();
+    };
+
+    const runAction = async (
+      action: () => Promise<HostedPlayStatusView>,
+      failureKey: 'hudChrome.hostedPlay.statusLoadFailed' | 'hudChrome.hostedPlay.updateFailed',
+    ) => {
+      pending = true;
+      message.textContent = '';
+      syncButtons();
+      try {
+        renderStatus(await action());
+      } catch (err) {
+        console.error('hosted play panel request failed:', err);
+        message.textContent = t(failureKey);
+      } finally {
+        pending = false;
+        syncButtons();
+      }
+    };
+
+    enableBtn.addEventListener('click', () => {
+      audio.click();
+      void runAction(() => hooks.setEnabled(true), 'hudChrome.hostedPlay.updateFailed');
+    });
+    disableBtn.addEventListener('click', () => {
+      audio.click();
+      void runAction(() => hooks.setEnabled(false), 'hudChrome.hostedPlay.updateFailed');
+    });
+    refreshBtn.addEventListener('click', () => {
+      audio.click();
+      void runAction(() => hooks.status(), 'hudChrome.hostedPlay.statusLoadFailed');
+    });
+
+    message.textContent = t('hudChrome.hostedPlay.loadingStatus');
+    void runAction(() => hooks.status(), 'hudChrome.hostedPlay.statusLoadFailed');
+
+    const el = $('#options-menu');
+    const back = document.createElement('button');
+    back.className = 'btn';
+    back.textContent = t('hud.options.back');
+    back.addEventListener('click', () => {
+      audio.click();
+      this.optionsView = 'main';
+      this.renderOptions();
+    });
+    el.append(back);
     el.querySelector('[data-close]')?.addEventListener('click', () => this.closeOptions());
   }
 
