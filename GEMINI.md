@@ -70,12 +70,19 @@ npm run db:up                   # Spin up Postgres 16 in Docker (port 5433)
 npm run db:down                 # Stop the database container
 ```
 
+For online, multiplayer, and admin verification, always use this persistent
+Postgres-backed environment. Do not use in-memory or `pg-mem` fallback realms.
+
 ### Running the Game
 ```bash
 npm run server                  # Build & start authoritative game server (:8787)
 npm run dev                     # Start client dev server (:5173, proxies api/ws)
 npm run env                     # Build & run headless Gymnasium RL server
 ```
+
+Prefer `node scripts/online_lan.mjs --restart` for the local online stack so the
+real server and dev client both run against the persistent Docker Postgres
+service.
 
 ### User Management & Cheats
 ```bash
@@ -161,6 +168,7 @@ Types: `feat`, `fix`, `refactor`, `style`, `docs`, `test`, `chore`.
    - **Red team your own diffs**: Critically review your changes before declaring completion. Ask: "What breaks under edge cases? What's the worst input?"
    - **Verification goes beyond compile checks**: Ensure unit/integration tests pass (`npm run test`), and visually verify/interact with UI changes in the browser using the Playwright MCP server (testing both success and error paths).
    - **Restart persistent services when required**: Assume the local online server and dev client may already be running. If a change affects server runtime code, bundled output, WebSocket handling, environment-controlled behavior, or startup-read configuration, check the listening process and restart the affected service before declaring the fix live. For online gameplay bugs, verify against the actual running client/server path after the restart.
+   - **Never fall back to `pg-mem` for live-path checks**: admin, multiplayer, and online verification must exercise the persistent Postgres-backed stack started from `npm run db:up` and `node scripts/online_lan.mjs`.
    - **Zero Warnings & Errors**: Keep code free of TypeScript compiler warnings/errors and ensure 100% test coverage for newly introduced utilities.
 8. **UI Text & Copy Standards**:
    - UI-facing text must NEVER use em dashes. Use alternative punctuation (like hyphens, colons, or parentheses) to prevent text from appearing AI-generated.

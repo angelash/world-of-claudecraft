@@ -21,7 +21,7 @@ real ambient bot runtime.
 - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
 - `npm run build:server`
 - `npx tsc --noEmit`
-- `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+- `node scripts/ambient_bot_admin_smoke.mjs`
 
 ## Exit criteria
 

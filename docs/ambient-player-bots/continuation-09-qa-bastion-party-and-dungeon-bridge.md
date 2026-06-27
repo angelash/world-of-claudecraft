@@ -12,7 +12,7 @@ progression past Zone 2.
 - verify Olen remains the first in-instance target, while `q_olen` turn-in is
   deferred until `q_mistcaller` is no longer active
 - verify the dungeon-exit handoff works once the Bastion boss quests are ready
-- verify focused ambient-bot suites, `build:server`, and the local pg-mem smoke
+- verify focused ambient-bot suites, `build:server`, and the persistent Postgres smoke
   stay green
 - confirm `npx tsc --noEmit` adds no new errors outside the unrelated repo
   baseline
@@ -22,7 +22,7 @@ progression past Zone 2.
 - `npx vitest run tests/ambient_player_bot_naming.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
 - `npm run build:server`
 - `npx tsc --noEmit`
-- `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
+- `node scripts/ambient_bot_admin_smoke.mjs`
 
 ## Stop conditions
 

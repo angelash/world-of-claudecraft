@@ -1,5 +1,10 @@
 # Progress: Ambient Player Bots
 
+Historical note: some older entries below mention the retired Phase 16 `pg-mem`
+realm harness. Current live verification policy is persistent Postgres only:
+use `npm run db:up`, `node scripts/online_lan.mjs`, and
+`node scripts/ambient_bot_admin_smoke.mjs`.
+
 ## Status table
 
 | Phase | Status | Started | Completed |

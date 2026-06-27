@@ -56,6 +56,9 @@
 19. The Gravewyrm Sanctum boss ladder should stay sequential: `q_korgath`,
     then `q_velkhar`, then the later final boss bridge, with no overlap or
     skip past an unfinished earlier Sanctum boss step.
+20. The Phase 16 `pg-mem` realm harness is retired. Every live ambient-bot,
+    admin, and multiplayer verification path must use the persistent
+    Postgres-backed stack.
 
 ## Non-negotiable constraints
 
@@ -85,8 +88,9 @@
   - `npx tsc --noEmit`
   - runner and server vitest files
   - real-wire script or smoke flow when available
-  - `node scripts/ambient_bot_admin_smoke_pgmem.mjs` when the workstation has
-    no local Postgres service
+  - `npm run db:up`
+  - `node scripts/online_lan.mjs server --restart`
+  - `node scripts/ambient_bot_admin_smoke.mjs`
 - pre-merge gate:
   - `npm test`
   - `npx tsc --noEmit`
@@ -203,9 +207,6 @@
 
 ### Phase 16
 
-- `scripts/ambient_bot_pgmem_support.mjs`
-- `scripts/ambient_bot_server_pgmem.mjs`
-- `scripts/ambient_bot_admin_smoke_pgmem.mjs`
 - `package.json`
 - `package-lock.json`
 - `docs/ambient-player-bots/progress.md`
@@ -245,7 +246,6 @@
 ### Continuation 04
 
 - `server/ambient_bots/brain.ts`
-- `scripts/ambient_bot_pgmem_support.mjs`
 - `tests/ambient_player_bot_brain.test.ts`
 - `tests/ambient_player_bot_runtime.test.ts`
 - `docs/ambient-player-bots/continuation-04-town-resupply-and-consumables.md`

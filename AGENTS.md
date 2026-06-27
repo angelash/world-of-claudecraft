@@ -104,12 +104,18 @@ For this fork's real-device or multiplayer sessions, start the local stack throu
 Keep the LAN/IP startup policy in that fork-local script instead of changing the
 upstream default `npm run dev` / `npm run server` flow or launching `127.0.0.1`-only
 variants ad hoc.
+Do not use in-memory or `pg-mem` realm harnesses for online, multiplayer, or admin
+verification. Bring up the persistent Docker Postgres service with `npm run db:up`
+and run the real stack against that database.
 
 Browser or visual UI changes should be verified with a running dev server and browser automation when feasible.
 
 ## Runtime Service Rules
 
 - Treat the local game as a persistent service environment: `npm run server` on port `8787` and `npm run dev` on port `5173` may already be running.
+- Treat the database the same way: live online and admin checks must target the
+  persistent Postgres-backed environment, not a temporary bootstrap realm or an
+  in-memory database shim.
 - If a change affects server runtime code, bundled output, WebSocket command handling, environment-controlled behavior, or anything a process only reads at startup, check the running port/process and restart the affected service yourself before reporting success.
 - For online gameplay fixes, verify the live online path after restart. Do not rely only on unit tests or a direct `GameServer.handleMessage` test when the user is seeing the issue in the running client.
 - When committing after a restart-related fix, mention both the code validation and the service restart/live-path verification in the final response.

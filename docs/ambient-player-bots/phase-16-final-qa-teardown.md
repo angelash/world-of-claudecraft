@@ -6,8 +6,7 @@ packet before a PR is opened.
 ## Audit checklist
 
 - run the focused ambient bot and admin validation suites
-- run the real admin smoke against a reachable realm, or the local `pg-mem`
-  realm harness when the workstation has no Postgres service
+- run the real admin smoke against a reachable persistent realm
 - verify pause, restore, and optional logout-all controls work end to end
 - confirm the repo-wide TypeScript and build baselines are unchanged except for
   known unrelated failures
@@ -17,7 +16,6 @@ packet before a PR is opened.
 ## Suggested validation
 
 - `node scripts/ambient_bot_admin_smoke.mjs`
-- `node scripts/ambient_bot_admin_smoke_pgmem.mjs`
 - `npx vitest run tests/ambient_player_bot_llm.test.ts tests/ambient_player_bot_social.test.ts tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_ws_client.test.ts tests/ambient_player_bot_service.test.ts tests/ambient_player_bot_db.test.ts tests/ambient_player_bot_game_server.test.ts tests/ambient_player_bot_connection_gate.test.ts tests/game_sessions.test.ts tests/admin.test.ts`
 - `npm run build:server`
 - `npx tsc --noEmit`

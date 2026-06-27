@@ -17,16 +17,15 @@
 4. Only when safe, rerun with `AMBIENT_SMOKE_ALLOW_LOGOUT=1` to exercise the
    incident control path.
 
-## Local workstation fallback
+## Local workstation stack
 
-- When Docker or Postgres is unavailable locally, run
-  `node scripts/ambient_bot_admin_smoke_pgmem.mjs`.
-- The fallback boots a local realm through the normal server entrypoint with a
-  `pg-mem` backing store, creates a temporary admin account, then reuses
-  `scripts/ambient_bot_admin_smoke.mjs` against the real admin HTTP surface.
-- Use this fallback to verify control-plane behavior before a staging or
-  production smoke. It supplements a deployed-realm check, it does not replace
-  one.
+- Start Docker Postgres with `npm run db:up`.
+- Boot the real local realm through `node scripts/online_lan.mjs server --restart`
+  or `node scripts/online_lan.mjs --restart`.
+- Promote a known account with `npm run admin:grant <username>` if the operator
+  account does not already have admin access.
+- Run `node scripts/ambient_bot_admin_smoke.mjs` against that persistent local
+  realm before any staging or production smoke.
 
 ## Incident control sequence
 

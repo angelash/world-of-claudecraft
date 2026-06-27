@@ -45,6 +45,10 @@ Most directories above have their own `CLAUDE.md` with local conventions; read i
 - `npm run db:up` / `npm run db:down`: Postgres 16 in Docker (dev DB on :5433).
 - `npm run realms`: run multiple realm processes locally.
 
+Online, multiplayer, and admin verification must run against the persistent
+Postgres-backed environment. Do not use in-memory realm harnesses or `pg-mem`
+fallbacks for live-path checks.
+
 See `README.md` for the full host/develop/play guide and the classic-fidelity checklist; `DEPLOY.md` for production.
 
 ## Architecture (the load-bearing ideas)
@@ -177,6 +181,8 @@ behavior, optimize for re-mergeability:
 - For this fork's real-device or multiplayer sessions, start and restart the local
   stack through `node scripts/online_lan.mjs` (use `--restart` when replacing an
   existing pair). Do not spin up localhost-only variants such as `--host 127.0.0.1`.
+- Live online and admin checks also require the persistent Docker Postgres service
+  from `npm run db:up`, not a temporary bootstrap realm or in-memory database.
 
 ## Working style and effort by model
 This whole file is the baseline for **any** model: obey all of it. Your active model is

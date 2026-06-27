@@ -48,6 +48,6 @@ This checklist is for the final packet gate, not every intermediate commit.
 ## Release gate
 
 - [ ] targeted tests are green for each phase
-- [ ] admin smoke passes against a reachable realm (`node scripts/ambient_bot_admin_smoke.mjs`), or the local `pg-mem` fallback passes when the workstation has no Postgres (`node scripts/ambient_bot_admin_smoke_pgmem.mjs`)
+- [ ] admin smoke passes against a reachable persistent realm (`node scripts/ambient_bot_admin_smoke.mjs`) after `npm run db:up` and the local stack startup path are in place
 - [ ] CI-equivalent local gate is green before final release work
 - [ ] rollout and rollback steps are documented

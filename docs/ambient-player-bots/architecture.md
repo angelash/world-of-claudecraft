@@ -92,12 +92,11 @@ Responsibilities:
 Primary files:
 - `server/admin.ts`
 - `scripts/ambient_bot_admin_smoke.mjs`
-- `scripts/ambient_bot_admin_smoke_pgmem.mjs`
 
 Responsibilities:
 - expose planner, runtime, and LLM diagnostics
 - support rollout levers and incident controls
-- provide local and operator smoke paths
+- provide operator smoke paths against persistent Postgres-backed realms
 
 ## Runtime flow
 

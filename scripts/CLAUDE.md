@@ -18,6 +18,10 @@ generators. Many more run directly via `node scripts/<name>.mjs`.
   (and its shared `lan_host.mjs` helper) instead of rewriting the upstream default
   `npm run dev` / `npm run server` path or sprinkling `127.0.0.1` host overrides
   through ad hoc commands.
+- **Persistent Postgres is mandatory for live-path script checks**. Online,
+  multiplayer, and admin smoke scripts must run against the Docker-backed
+  Postgres environment from `npm run db:up`; do not add or use `pg-mem` or other
+  in-memory realm fallbacks.
 - **Browser scripts** use `puppeteer-core` + `browser_path.mjs` and need `npm run dev`
   (:5173). They launch headless Chrome/Edge with `--use-angle=swiftshader` and drive
   the real game via the `window.__game` global (`__game.sim`, `.hud`, `.input`, `.renderer`).
