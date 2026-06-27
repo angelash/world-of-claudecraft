@@ -40,6 +40,7 @@ Primary files:
 - `server/hosted_play/runtime.ts`
 - `server/hosted_play/types.ts`
 - `server/hosted_play/party.ts`
+- `server/hosted_play/llm.ts`
 
 Responsibilities:
 - track which live characters have hosted play enabled
@@ -48,6 +49,7 @@ Responsibilities:
 - clear movement when pausing or stopping
 - expose live status for API and UI use
 - coordinate party follow or regroup overlays before brain drive is applied
+- host bounded social shell and LLM overlay state for the current live session
 
 ### 3. Preference persistence and login resume
 
@@ -87,15 +89,18 @@ Responsibilities:
 - provide the grouped `/follow` and regroup pattern that hosted play adapts for
   player parties
 
-### 6. Later social and LLM layers
+### 6. Social and LLM overlays
 
 Primary files:
-- later shared or adapted `group.ts` and `social.ts`
-- later LLM coordinator reuse or a hosted-play wrapper
+- `server/ambient_bots/social.ts`
+- `server/ambient_bots/llm_coordinator.ts`
+- `server/hosted_play/llm.ts`
 
 Responsibilities:
 - support party follow or regroup
-- support bounded social and LLM overlays
+- support bounded whisper and friend overlays
+- reuse the structured LLM plan and reply coordinator with hosted-play-specific
+  budgets and cooldowns
 
 ## Runtime flow
 
@@ -107,10 +112,12 @@ Responsibilities:
    current `ClientSession` and nearby entities.
 5. The runtime feeds that view into the shared automation brain.
 6. The brain returns movement input and normal commands.
-7. The hosted runtime applies those actions through named `GameServer` seams.
-8. If the player manually acts, the runtime pauses hosted play briefly and
+7. The hosted runtime layers party coordination, social shell behavior, and any
+   validated LLM overlays on top of that live state.
+8. The hosted runtime applies those actions through named `GameServer` seams.
+9. If the player manually acts, the runtime pauses hosted play briefly and
    clears stale movement.
-9. If the session disconnects or the player disables hosted play, the runtime
+10. If the session disconnects or the player disables hosted play, the runtime
    stops and clears control state.
 
 ## Authority boundary
@@ -118,7 +125,7 @@ Responsibilities:
 - `src/sim/` remains deterministic and unaware of hosted play.
 - The shared sim still resolves all combat, loot, quest, and economy outcomes.
 - Hosted play may automate inputs, not outcomes.
-- LLM output, when added later, may shape social or planning overlays only and
+- LLM output may shape social or planning overlays only and
   must never directly mutate authoritative state.
 
 ## Design priorities
@@ -127,5 +134,4 @@ Responsibilities:
 2. Reuse ambient automation logic where it fits, especially the progression
    brain.
 3. Keep the manual override path simple and trustworthy.
-4. Add persistence, party coordination, and LLM overlays only after the first
-   online loop is stable.
+4. Keep social and LLM layers as overlays on the stable same-session loop.

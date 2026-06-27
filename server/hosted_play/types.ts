@@ -1,4 +1,5 @@
 import type { PlayerClass } from '../../src/sim/types';
+import type { AmbientPlayerBotLlmDecisionStatus } from '../ambient_bots/types';
 
 export type HostedPlayMode =
   | 'offline'
@@ -54,6 +55,20 @@ export interface HostedPlayStatusSnapshot {
   groupMode: HostedPlayGroupMode;
   groupLeaderName: string;
   groupLeaderDistance: number;
+  socialPendingReplies: number;
+  socialFriends: number;
+  socialBlocks: number;
+  lastWhisperFrom: string;
+  lastSocialAction: string;
+  llmEnabled: boolean;
+  llmPlanPending: boolean;
+  llmPlanMode: string;
+  llmPlanFocus: string;
+  llmPlanStatus: AmbientPlayerBotLlmDecisionStatus | '';
+  llmPlanReason: string;
+  llmSocialStatus: AmbientPlayerBotLlmDecisionStatus | '';
+  llmSocialReason: string;
+  llmSocialTarget: string;
 }
 
 export function defaultHostedPlayPreferences(): HostedPlayPreferences {

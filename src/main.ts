@@ -355,6 +355,20 @@ function hostedPlayStatusView(status: Awaited<ReturnType<Api['hostedPlayStatus']
     groupMode: status.groupMode,
     groupLeaderName: status.groupLeaderName,
     groupLeaderDistance: status.groupLeaderDistance,
+    socialPendingReplies: status.socialPendingReplies,
+    socialFriends: status.socialFriends,
+    socialBlocks: status.socialBlocks,
+    lastWhisperFrom: status.lastWhisperFrom,
+    lastSocialAction: status.lastSocialAction,
+    llmEnabled: status.llmEnabled,
+    llmPlanPending: status.llmPlanPending,
+    llmPlanMode: status.llmPlanMode,
+    llmPlanFocus: status.llmPlanFocus,
+    llmPlanStatus: status.llmPlanStatus,
+    llmPlanReason: status.llmPlanReason,
+    llmSocialStatus: status.llmSocialStatus,
+    llmSocialReason: status.llmSocialReason,
+    llmSocialTarget: status.llmSocialTarget,
   };
 }
 

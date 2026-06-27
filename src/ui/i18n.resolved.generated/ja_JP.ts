@@ -636,6 +636,17 @@ export const ja_JP: EnTranslations = {
       "groupModeLabel": "Current Group State",
       "groupLeaderLabel": "Group Leader",
       "groupLeaderDistanceLabel": "Leader Distance",
+      "socialPendingRepliesLabel": "Pending Replies",
+      "socialFriendsLabel": "Friends",
+      "socialBlocksLabel": "Blocked Players",
+      "lastWhisperFromLabel": "Last Whisper From",
+      "lastSocialActionLabel": "Last Social Action",
+      "llmEnabledLabel": "LLM Overlay",
+      "llmPlanLabel": "LLM Plan",
+      "llmPlanModeLabel": "LLM Social Mode",
+      "llmPlanFocusLabel": "LLM Focus",
+      "llmReplyLabel": "LLM Reply",
+      "llmReplyTargetLabel": "LLM Reply Target",
       "pauseLabel": "Pause Reason",
       "errorLabel": "Runtime",
       "loadingStatus": "Loading hosted-play status...",
@@ -656,6 +667,28 @@ export const ja_JP: EnTranslations = {
         "brain": "Running the normal progression brain",
         "followLeader": "Following the party leader",
         "holdRegroup": "Holding for party regroup"
+      },
+      "llmStatus": {
+        "pending": "Pending",
+        "accepted": "Accepted",
+        "cacheHit": "Cache Hit",
+        "rejected": "Rejected",
+        "error": "Error",
+        "budgetDenied": "Budget Limited",
+        "disabled": "Disabled"
+      },
+      "llmMode": {
+        "quiet": "Quiet",
+        "brief": "Brief",
+        "friendly": "Friendly",
+        "helpful": "Helpful"
+      },
+      "socialAction": {
+        "friendAdd": "Sent a friend request to {name}",
+        "reply": "Replied to {name}",
+        "wave": "Waved at {name}",
+        "cheer": "Cheered at {name}",
+        "sentChat": "Sent a social chat command"
       },
       "state": {
         "offline": "Offline",

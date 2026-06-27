@@ -360,6 +360,22 @@ export type HostedPlayGroupModeView =
   | 'follow_leader'
   | 'hold_regroup';
 
+export type HostedPlayLlmDecisionStatusView =
+  | ''
+  | 'accepted'
+  | 'cache_hit'
+  | 'rejected'
+  | 'error'
+  | 'budget_denied'
+  | 'disabled';
+
+export type HostedPlayLlmModeView =
+  | ''
+  | 'quiet'
+  | 'brief'
+  | 'friendly'
+  | 'helpful';
+
 export interface HostedPlaySettingsView {
   resumeOnLogin: boolean;
   partyMode: HostedPlayPartyModeView;
@@ -378,6 +394,20 @@ export interface HostedPlayStatusView extends HostedPlaySettingsView {
   groupMode: HostedPlayGroupModeView;
   groupLeaderName: string;
   groupLeaderDistance: number;
+  socialPendingReplies: number;
+  socialFriends: number;
+  socialBlocks: number;
+  lastWhisperFrom: string;
+  lastSocialAction: string;
+  llmEnabled: boolean;
+  llmPlanPending: boolean;
+  llmPlanMode: HostedPlayLlmModeView;
+  llmPlanFocus: string;
+  llmPlanStatus: HostedPlayLlmDecisionStatusView;
+  llmPlanReason: string;
+  llmSocialStatus: HostedPlayLlmDecisionStatusView;
+  llmSocialReason: string;
+  llmSocialTarget: string;
 }
 
 export interface HostedPlayHooks {
@@ -13755,6 +13785,62 @@ export class Hud {
       }
     };
 
+    const llmDecisionStatusText = (value: HostedPlayLlmDecisionStatusView): string => {
+      switch (value) {
+        case 'accepted':
+          return t('hudChrome.hostedPlay.llmStatus.accepted');
+        case 'cache_hit':
+          return t('hudChrome.hostedPlay.llmStatus.cacheHit');
+        case 'rejected':
+          return t('hudChrome.hostedPlay.llmStatus.rejected');
+        case 'error':
+          return t('hudChrome.hostedPlay.llmStatus.error');
+        case 'budget_denied':
+          return t('hudChrome.hostedPlay.llmStatus.budgetDenied');
+        case 'disabled':
+          return t('hudChrome.hostedPlay.llmStatus.disabled');
+        default:
+          return '';
+      }
+    };
+
+    const llmPlanText = (status: HostedPlayStatusView): string => {
+      if (status.llmPlanPending) return t('hudChrome.hostedPlay.llmStatus.pending');
+      return llmDecisionStatusText(status.llmPlanStatus);
+    };
+
+    const llmModeText = (value: HostedPlayLlmModeView): string => {
+      switch (value) {
+        case 'quiet':
+          return t('hudChrome.hostedPlay.llmMode.quiet');
+        case 'brief':
+          return t('hudChrome.hostedPlay.llmMode.brief');
+        case 'friendly':
+          return t('hudChrome.hostedPlay.llmMode.friendly');
+        case 'helpful':
+          return t('hudChrome.hostedPlay.llmMode.helpful');
+        default:
+          return '';
+      }
+    };
+
+    const lastSocialActionText = (value: string): string => {
+      if (!value) return '';
+      if (value.startsWith('friend_add:')) {
+        return t('hudChrome.hostedPlay.socialAction.friendAdd', { name: value.slice('friend_add:'.length) });
+      }
+      if (value.startsWith('reply:')) {
+        return t('hudChrome.hostedPlay.socialAction.reply', { name: value.slice('reply:'.length) });
+      }
+      if (value.startsWith('/wave ')) {
+        return t('hudChrome.hostedPlay.socialAction.wave', { name: value.slice('/wave '.length) });
+      }
+      if (value.startsWith('/cheer ')) {
+        return t('hudChrome.hostedPlay.socialAction.cheer', { name: value.slice('/cheer '.length) });
+      }
+      return t('hudChrome.hostedPlay.socialAction.sentChat');
+    };
+
     const syncControls = () => {
       const online = currentStatus?.online ?? false;
       const enabled = currentStatus?.enabled ?? false;
@@ -13799,6 +13885,43 @@ export class Hud {
           t('hudChrome.hostedPlay.groupLeaderDistanceLabel'),
           formatNumber(status.groupLeaderDistance, { maximumFractionDigits: 0 }),
         );
+      }
+      appendRow(
+        t('hudChrome.hostedPlay.socialPendingRepliesLabel'),
+        formatNumber(status.socialPendingReplies, { maximumFractionDigits: 0 }),
+      );
+      appendRow(
+        t('hudChrome.hostedPlay.socialFriendsLabel'),
+        formatNumber(status.socialFriends, { maximumFractionDigits: 0 }),
+      );
+      appendRow(
+        t('hudChrome.hostedPlay.socialBlocksLabel'),
+        formatNumber(status.socialBlocks, { maximumFractionDigits: 0 }),
+      );
+      if (status.lastWhisperFrom) {
+        appendRow(t('hudChrome.hostedPlay.lastWhisperFromLabel'), status.lastWhisperFrom);
+      }
+      if (status.lastSocialAction) {
+        appendRow(
+          t('hudChrome.hostedPlay.lastSocialActionLabel'),
+          lastSocialActionText(status.lastSocialAction),
+        );
+      }
+      appendRow(
+        t('hudChrome.hostedPlay.llmEnabledLabel'),
+        status.llmEnabled ? t('hud.options.on') : t('hud.options.off'),
+      );
+      const llmPlan = llmPlanText(status);
+      if (llmPlan) appendRow(t('hudChrome.hostedPlay.llmPlanLabel'), llmPlan);
+      const llmMode = llmModeText(status.llmPlanMode);
+      if (llmMode) appendRow(t('hudChrome.hostedPlay.llmPlanModeLabel'), llmMode);
+      if (status.llmPlanFocus) {
+        appendRow(t('hudChrome.hostedPlay.llmPlanFocusLabel'), status.llmPlanFocus);
+      }
+      const llmSocial = llmDecisionStatusText(status.llmSocialStatus);
+      if (llmSocial) appendRow(t('hudChrome.hostedPlay.llmReplyLabel'), llmSocial);
+      if (status.llmSocialTarget) {
+        appendRow(t('hudChrome.hostedPlay.llmReplyTargetLabel'), status.llmSocialTarget);
       }
       const pauseReason = pauseReasonText(status);
       if (pauseReason) appendRow(t('hudChrome.hostedPlay.pauseLabel'), pauseReason);

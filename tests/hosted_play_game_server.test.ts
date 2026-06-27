@@ -80,4 +80,75 @@ describe('GameServer hosted play seams', () => {
     server.applyHostedPlayMoveInput(101, { forward: 1 });
     expect(observer).not.toHaveBeenCalled();
   });
+
+  it('captures hosted-play social state and recent events while observation is enabled', () => {
+    const server = new GameServer();
+    const session = expectJoined(server.join(fakeWs(), 1, 101, 'Hero', 'warrior', null));
+
+    server.setHostedPlayObserved(101, true);
+    (server as any).send(session, {
+      t: 'social',
+      friends: [{
+        id: 201,
+        name: 'Aleph',
+        cls: 'warrior',
+        level: 5,
+        realm: 'Test Realm',
+        online: true,
+        status: 'online',
+        zone: 'Eastbrook Vale',
+      }],
+      blocks: [{ id: 301, name: 'Blocked' }],
+      guild: null,
+    });
+    (server as any).send(session, {
+      t: 'events',
+      list: [{
+        type: 'chat',
+        fromPid: 201,
+        from: 'Aleph',
+        text: 'hey there',
+        channel: 'whisper',
+        pid: session.pid,
+      }],
+    });
+
+    expect(server.buildHostedPlayLiveState(101)?.social).toEqual({
+      friends: [{
+        id: 201,
+        name: 'Aleph',
+        cls: 'warrior',
+        level: 5,
+        realm: 'Test Realm',
+        online: true,
+        status: 'online',
+        zone: 'Eastbrook Vale',
+      }],
+      blocks: [{ id: 301, name: 'Blocked' }],
+      guild: null,
+    });
+    expect(server.drainHostedPlayRecentEvents(101)).toEqual([{
+      type: 'chat',
+      fromPid: 201,
+      from: 'Aleph',
+      text: 'hey there',
+      channel: 'whisper',
+      pid: session.pid,
+    }]);
+    expect(server.drainHostedPlayRecentEvents(101)).toEqual([]);
+
+    server.setHostedPlayObserved(101, false);
+    (server as any).send(session, {
+      t: 'events',
+      list: [{
+        type: 'chat',
+        fromPid: 202,
+        from: 'Bran',
+        text: 'ping',
+        channel: 'whisper',
+        pid: session.pid,
+      }],
+    });
+    expect(server.drainHostedPlayRecentEvents(101)).toEqual([]);
+  });
 });

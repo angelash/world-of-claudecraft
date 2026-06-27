@@ -636,6 +636,17 @@ export const en_XA: EnTranslations = {
       "groupModeLabel": "[Çúŕŕéñţ Ĝŕóúþ Šţáţé]",
       "groupLeaderLabel": "[Ĝŕóúþ Ļéáðéŕ]",
       "groupLeaderDistanceLabel": "[Ļéáðéŕ Ðíšţáñçé]",
+      "socialPendingRepliesLabel": "[Þéñðíñĝ Ŕéþļíéš]",
+      "socialFriendsLabel": "[Ƒŕíéñðš]",
+      "socialBlocksLabel": "[Ɓļóçķéð Þļáýéŕš]",
+      "lastWhisperFromLabel": "[Ļášţ Ŵĥíšþéŕ Ƒŕóɱ]",
+      "lastSocialActionLabel": "[Ļášţ Šóçíáļ Áçţíóñ]",
+      "llmEnabledLabel": "[ĻĻⱮ Óʋéŕļáý]",
+      "llmPlanLabel": "[ĻĻⱮ Þļáñ]",
+      "llmPlanModeLabel": "[ĻĻⱮ Šóçíáļ Ɱóðé]",
+      "llmPlanFocusLabel": "[ĻĻⱮ Ƒóçúš]",
+      "llmReplyLabel": "[ĻĻⱮ Ŕéþļý]",
+      "llmReplyTargetLabel": "[ĻĻⱮ Ŕéþļý Ţáŕĝéţ]",
       "pauseLabel": "[Þáúšé Ŕéášóñ]",
       "errorLabel": "[Ŕúñţíɱé]",
       "loadingStatus": "[Ļóáðíñĝ ĥóšţéð-þļáý šţáţúš...]",
@@ -656,6 +667,28 @@ export const en_XA: EnTranslations = {
         "brain": "[Ŕúññíñĝ ţĥé ñóŕɱáļ þŕóĝŕéššíóñ ƀŕáíñ]",
         "followLeader": "[Ƒóļļóŵíñĝ ţĥé þáŕţý ļéáðéŕ]",
         "holdRegroup": "[Ĥóļðíñĝ ƒóŕ þáŕţý ŕéĝŕóúþ]"
+      },
+      "llmStatus": {
+        "pending": "[Þéñðíñĝ]",
+        "accepted": "[Áççéþţéð]",
+        "cacheHit": "[Çáçĥé Ĥíţ]",
+        "rejected": "[Ŕéĵéçţéð]",
+        "error": "[Éŕŕóŕ]",
+        "budgetDenied": "[Ɓúðĝéţ Ļíɱíţéð]",
+        "disabled": "[Ðíšáƀļéð]"
+      },
+      "llmMode": {
+        "quiet": "[Ɋúíéţ]",
+        "brief": "[Ɓŕíéƒ]",
+        "friendly": "[Ƒŕíéñðļý]",
+        "helpful": "[Ĥéļþƒúļ]"
+      },
+      "socialAction": {
+        "friendAdd": "[Šéñţ á ƒŕíéñð ŕéɋúéšţ ţó {name}]",
+        "reply": "[Ŕéþļíéð ţó {name}]",
+        "wave": "[Ŵáʋéð áţ {name}]",
+        "cheer": "[Çĥééŕéð áţ {name}]",
+        "sentChat": "[Šéñţ á šóçíáļ çĥáţ çóɱɱáñð]"
       },
       "state": {
         "offline": "[Óƒƒļíñé]",

@@ -119,6 +119,20 @@ export interface HostedPlayStatus {
   groupMode: HostedPlayGroupMode;
   groupLeaderName: string;
   groupLeaderDistance: number;
+  socialPendingReplies: number;
+  socialFriends: number;
+  socialBlocks: number;
+  lastWhisperFrom: string;
+  lastSocialAction: string;
+  llmEnabled: boolean;
+  llmPlanPending: boolean;
+  llmPlanMode: string;
+  llmPlanFocus: string;
+  llmPlanStatus: 'accepted' | 'cache_hit' | 'rejected' | 'error' | 'budget_denied' | 'disabled' | '';
+  llmPlanReason: string;
+  llmSocialStatus: 'accepted' | 'cache_hit' | 'rejected' | 'error' | 'budget_denied' | 'disabled' | '';
+  llmSocialReason: string;
+  llmSocialTarget: string;
 }
 
 function stringList(value: unknown): string[] {

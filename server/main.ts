@@ -97,6 +97,7 @@ import { ambientPlayerBotLlmConfigFromEnv, AmbientPlayerBotLlmCoordinator } from
 import { AmbientBotCodexCliProvider } from './ambient_bots/llm_provider';
 import { AmbientPlayerBotRuntime } from './ambient_bots/runtime';
 import { GameServer, type ClientSession } from './game';
+import { hostedPlayLlmConfigFromEnv } from './hosted_play/llm';
 import { HostedPlayRuntime } from './hosted_play/runtime';
 import type { HostedPlayPartyMode, HostedPlayPreferences } from './hosted_play/types';
 import { PgAmbientPlayerBotDb } from './ambient_player_bot_db';
@@ -223,7 +224,18 @@ const ambientPlayerBotRuntime = ambientPlayerBotExperimentEnabled
     llmConfig: ambientPlayerBotLlmConfig,
   })
   : null;
-const hostedPlayRuntime = new HostedPlayRuntime({ game });
+const hostedPlayLlmConfig = hostedPlayLlmConfigFromEnv();
+const hostedPlayLlmCoordinator = hostedPlayLlmConfig.enabled
+  ? new AmbientPlayerBotLlmCoordinator({
+    config: hostedPlayLlmConfig,
+    provider: new AmbientBotCodexCliProvider(),
+  })
+  : null;
+const hostedPlayRuntime = new HostedPlayRuntime({
+  game,
+  llmCoordinator: hostedPlayLlmCoordinator,
+  llmConfig: hostedPlayLlmConfig,
+});
 const ambientPlayerBotAdmin = {
   diagnosticsSnapshot() {
     return {
@@ -1781,6 +1793,7 @@ async function main(): Promise<void> {
     if (ambientPlayerBotRuntime) await ambientPlayerBotRuntime.stop();
     await hostedPlayRuntime.stop();
     ambientPlayerBotLlmCoordinator?.close();
+    hostedPlayLlmCoordinator?.close();
     game.stop();
     await game.saveAll('shutdown');
     await game.saveMarket();

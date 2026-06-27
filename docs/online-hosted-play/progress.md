@@ -8,7 +8,7 @@
 | 2 | completed | 2026-06-27 | 2026-06-27 |
 | 3 | completed | 2026-06-27 | 2026-06-27 |
 | 4 | completed | 2026-06-27 | 2026-06-27 |
-| 5 | pending |  |  |
+| 5 | completed | 2026-06-27 | 2026-06-27 |
 | 6 | pending |  |  |
 
 ## Phase 1 checklist
@@ -99,7 +99,28 @@ Notes:
 
 ## Phase 5 checklist
 
-- [ ] social shell landed
-- [ ] bounded LLM overlay landed
-- [ ] audit and fallback coverage landed
-- [ ] validation green
+- [x] social shell landed
+- [x] bounded LLM overlay landed
+- [x] audit and fallback coverage landed
+- [x] validation green
+
+Notes:
+- Hosted play now reuses the ambient social shell against the real player
+  session by buffering live social snapshots and recent session events inside
+  `GameServer`, then feeding them into `server/ambient_bots/social.ts`.
+- Hosted play also reuses the structured ambient LLM coordinator through a
+  dedicated hosted-play config surface (`HOSTED_PLAY_LLM_*`) and keeps the
+  output bounded to plan and whisper overlays only.
+- The Hosted Play panel now shows pending reply count, social memory counts,
+  last whisper and last social action, plus LLM overlay state for plan and
+  reply decisions.
+- Validation run:
+  - `npx vitest run tests/hosted_play_runtime.test.ts tests/hosted_play_llm.test.ts tests/hosted_play_game_server.test.ts tests/hosted_play_api.test.ts`
+  - `npx vitest run tests/localization_fixes.test.ts`
+  - `npm run build:server`
+  - `npm run build`
+- Live verification ran against the restarted pg-mem verification realm on
+  `http://127.0.0.1:8787`: register two accounts, create two characters, enter
+  both online, enable hosted play on one character, whisper from the other, and
+  confirm the hosted character sent a live whisper reply and recorded
+  `lastWhisperFrom` plus `lastSocialAction`.

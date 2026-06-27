@@ -18,7 +18,7 @@ import {
   RUN_SPEED,
   type SimEvent,
 } from '../src/sim/types';
-import { isOverheadEmoteId, type AiNpcInteractionTopic } from '../src/world_api';
+import { isOverheadEmoteId, type AiNpcInteractionTopic, type SocialInfo } from '../src/world_api';
 import { recordOnlineSample } from './admin_db';
 import { offensiveName } from './auth';
 import type { BotDetector, BotTrackingContext } from './bot_detector/contract';
@@ -140,6 +140,7 @@ const AI_NPC_INTERACTION_COOLDOWN_SECONDS = 4;
 const AI_NPC_QUESTION_COOLDOWN_SECONDS = 2;
 const AI_OBJECT_INSPECT_COOLDOWN_SECONDS = 2;
 const AI_DIRECT_THINKING_DURATION_MS = 2200;
+const HOSTED_PLAY_EVENT_BUFFER_MAX = 32;
 
 function envMs(name: string, fallback: number, min: number): number {
   const raw = Number(process.env[name] ?? fallback);
@@ -199,6 +200,9 @@ export interface ClientSession {
   // last social snapshot. Drives the cheap periodic position push (no DB) that
   // keeps allies live on the world map.
   socialTrackedIds?: number[];
+  hostedPlayObserved: boolean;
+  hostedPlayRecentEvents: SimEvent[];
+  hostedPlaySocial: SocialInfo | null;
   // IP address at join time (from requestMetadata); used for per-IP session counting.
   ip: string;
   isAdmin: boolean;
@@ -632,6 +636,7 @@ export class GameServer {
         ...snap.friends.map((f) => f.id),
         ...(snap.guild ? snap.guild.members.map((m) => m.id) : []),
       ];
+      session.hostedPlaySocial = snap;
     } catch (err) {
       console.error('social snapshot failed:', err);
     }
@@ -1061,6 +1066,9 @@ export class GameServer {
       lastInputAt: this.sim.time,
       lastSent: {},
       sentEnts: new Map(),
+      hostedPlayObserved: false,
+      hostedPlayRecentEvents: [],
+      hostedPlaySocial: null,
       ip: sessionIp,
       isAdmin: meta.isAdmin ?? false,
       clientSeed: meta.clientSeed ?? '',
@@ -1539,8 +1547,30 @@ export class GameServer {
       seed: this.sim.cfg.seed,
       self,
       entities,
-      social: null,
+      social: session.hostedPlaySocial,
     };
+  }
+
+  setHostedPlayObserved(characterId: number, observed: boolean): void {
+    const session = this.sessionsByCharacterId.get(characterId);
+    if (!session) return;
+    session.hostedPlayObserved = observed;
+    if (!observed) session.hostedPlayRecentEvents.length = 0;
+  }
+
+  drainHostedPlayRecentEvents(characterId: number): SimEvent[] {
+    const session = this.sessionsByCharacterId.get(characterId);
+    if (!session || session.hostedPlayRecentEvents.length === 0) return [];
+    const events = [...session.hostedPlayRecentEvents];
+    session.hostedPlayRecentEvents.length = 0;
+    return events;
+  }
+
+  ambientPlayerBotNames(): string[] {
+    return this.ambientPlayerBots
+      .directoryRecords()
+      .map((record) => record.characterName)
+      .filter(Boolean);
   }
 
   applyHostedPlayMoveInput(
@@ -3314,7 +3344,41 @@ export class GameServer {
   }
 
   private send(session: ClientSession, obj: unknown): void {
+    this.captureHostedPlayWireState(session, obj);
     this.sendRaw(session, JSON.stringify(obj));
+  }
+
+  private captureHostedPlayWireState(session: ClientSession, obj: unknown): void {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return;
+    const message = obj as Record<string, unknown>;
+    if (message.t === 'social') {
+      session.hostedPlaySocial = {
+        friends: Array.isArray(message.friends) ? message.friends as SocialInfo['friends'] : [],
+        blocks: Array.isArray(message.blocks) ? message.blocks as SocialInfo['blocks'] : [],
+        guild:
+          message.guild && typeof message.guild === 'object' && !Array.isArray(message.guild)
+            ? message.guild as SocialInfo['guild']
+            : null,
+      };
+    }
+    if (
+      message.t !== 'events'
+      || !session.hostedPlayObserved
+      || !Array.isArray(message.list)
+      || message.list.length === 0
+    ) {
+      return;
+    }
+    for (const event of message.list) {
+      if (!event || typeof event !== 'object' || Array.isArray(event)) continue;
+      session.hostedPlayRecentEvents.push(event as SimEvent);
+    }
+    if (session.hostedPlayRecentEvents.length > HOSTED_PLAY_EVENT_BUFFER_MAX) {
+      session.hostedPlayRecentEvents.splice(
+        0,
+        session.hostedPlayRecentEvents.length - HOSTED_PLAY_EVENT_BUFFER_MAX,
+      );
+    }
   }
 
   private sendRaw(session: ClientSession, payload: string): void {

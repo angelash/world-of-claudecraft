@@ -52,12 +52,14 @@ automation at any time from a first-party UI.
 - Future persistence and auto-resume may be added later, but they are not
   allowed to compromise same-session safety.
 
-### 5. Future social and LLM growth
+### 5. Social and LLM overlay behavior
 
-- Later phases should allow hosted characters to join parties, react to friend
-  or whisper interactions, and surface bounded conversational behavior.
+- Hosted characters should be able to react to friend or whisper interactions
+  through a bounded social shell layered on top of the hosted runtime.
 - Any LLM-assisted behavior must feel like an overlay on top of a safe,
   deterministic automation base, not a replacement for it.
+- LLM assistance may shape social tone or plan summaries, but it must not gain
+  direct authority over combat, movement, loot, or quest outcomes.
 
 ## Functional requirements
 
@@ -104,8 +106,7 @@ automation at any time from a first-party UI.
 
 ### F. Social and LLM overlays
 
-- Social shell and LLM behavior are later phases, not prerequisites for the
-  first hosted-play release.
+- Social shell and LLM behavior sit on top of the base hosted-play release.
 - Model output must be structured, validated, rate-limited, audited, and unable
   to directly mutate authoritative gameplay state.
 
