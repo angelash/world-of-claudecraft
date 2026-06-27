@@ -12,6 +12,12 @@ describe('hosted-play route auth', () => {
     expect(idx).toBeGreaterThanOrEqual(0);
     expect(MAIN.slice(idx, idx + 700)).toContain('bearerActiveAccount(req, res)');
   });
+
+  it('routes hosted-play settings owner access through bearerActiveAccount', () => {
+    const idx = MAIN.indexOf('if (hostedPlaySettingsMatch) {');
+    expect(idx).toBeGreaterThanOrEqual(0);
+    expect(MAIN.slice(idx, idx + 800)).toContain('bearerActiveAccount(req, res)');
+  });
 });
 
 describe('Api hosted-play helpers', () => {
@@ -42,6 +48,11 @@ describe('Api hosted-play helpers', () => {
       pauseSecondsRemaining: 0,
       lastError: '',
       lastAutomationAtMs: null,
+      resumeOnLogin: false,
+      partyMode: 'solo',
+      groupMode: '',
+      groupLeaderName: '',
+      groupLeaderDistance: 0,
     };
     fetchSpy.mockResolvedValueOnce({
       ok: true,
@@ -91,6 +102,42 @@ describe('Api hosted-play helpers', () => {
       'https://realm.example/api/characters/7/hosted-play',
       expect.objectContaining({
         method: 'DELETE',
+      }),
+    );
+  });
+
+  it('updates hosted-play settings with a PUT request', async () => {
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        enabled: false,
+        online: true,
+        mode: 'disabled',
+        resumeOnLogin: true,
+        partyMode: 'follow_leader',
+      }),
+    } as Response);
+
+    const api = new Api();
+    api.base = 'https://realm.example';
+    api.token = 'tok-1';
+
+    const result = await api.updateHostedPlaySettings(7, {
+      resumeOnLogin: true,
+      partyMode: 'follow_leader',
+    });
+    expect(result).toMatchObject({
+      resumeOnLogin: true,
+      partyMode: 'follow_leader',
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://realm.example/api/characters/7/hosted-play/settings',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({
+          resumeOnLogin: true,
+          partyMode: 'follow_leader',
+        }),
       }),
     );
   });

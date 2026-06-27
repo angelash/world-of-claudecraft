@@ -630,16 +630,33 @@ export const en_XA: EnTranslations = {
       "note": "[Ĥóšţéð þļáý úšéš ýóúŕ çúŕŕéñţ óñļíñé šéššíóñ óñļý. Ɱáñúáļ ɱóʋéɱéñţ óŕ áçţíóñš þáúšé íţ ƀŕíéƒļý šó ýóú çáñ ţáķé óʋéŕ áţ áñý ţíɱé.]",
       "statusLabel": "[Šţáţúš]",
       "objectiveLabel": "[Óƀĵéçţíʋé]",
+      "resumeOnLogin": "[Ŕéšúɱé óñ Ļóĝíñ]",
+      "partyModeLabel": "[Þáŕţý Ɱóðé]",
+      "partyModeStatusLabel": "[Þáŕţý Ɓéĥáʋíóŕ]",
+      "groupModeLabel": "[Çúŕŕéñţ Ĝŕóúþ Šţáţé]",
+      "groupLeaderLabel": "[Ĝŕóúþ Ļéáðéŕ]",
+      "groupLeaderDistanceLabel": "[Ļéáðéŕ Ðíšţáñçé]",
       "pauseLabel": "[Þáúšé Ŕéášóñ]",
       "errorLabel": "[Ŕúñţíɱé]",
       "loadingStatus": "[Ļóáðíñĝ ĥóšţéð-þļáý šţáţúš...]",
       "statusLoadFailed": "[Çóúļð ñóţ ļóáð ĥóšţéð-þļáý šţáţúš ŕíĝĥţ ñóŵ.]",
       "updateFailed": "[Çóúļð ñóţ úþðáţé ĥóšţéð þļáý ŕíĝĥţ ñóŵ.]",
+      "settingsSaveFailed": "[Çóúļð ñóţ šáʋé ĥóšţéð-þļáý šéţţíñĝš ŕíĝĥţ ñóŵ.]",
       "objectiveNone": "[Ñó áçţíʋé óƀĵéçţíʋé]",
       "enable": "[Éñáƀļé Ĥóšţéð Þļáý]",
       "disable": "[Ðíšáƀļé Ĥóšţéð Þļáý]",
       "refresh": "[Ŕéƒŕéšĥ]",
       "runtimeIssue": "[Áúţóɱáţíóñ ĥíţ á ŕúñţíɱé íššúé.]",
+      "partyMode": {
+        "solo": "[Šóļó þŕóĝŕéššíóñ]",
+        "followLeader": "[Ƒóļļóŵ þáŕţý ļéáðéŕ]"
+      },
+      "groupMode": {
+        "none": "[Ñó áçţíʋé ĝŕóúþ çóóŕðíñáţíóñ]",
+        "brain": "[Ŕúññíñĝ ţĥé ñóŕɱáļ þŕóĝŕéššíóñ ƀŕáíñ]",
+        "followLeader": "[Ƒóļļóŵíñĝ ţĥé þáŕţý ļéáðéŕ]",
+        "holdRegroup": "[Ĥóļðíñĝ ƒóŕ þáŕţý ŕéĝŕóúþ]"
+      },
       "state": {
         "offline": "[Óƒƒļíñé]",
         "disabled": "[Óƒƒ]",

@@ -339,6 +339,25 @@ function userFacingApiError(err: unknown): string {
   return text;
 }
 
+function hostedPlayStatusView(status: Awaited<ReturnType<Api['hostedPlayStatus']>>) {
+  return {
+    online: status.online,
+    enabled: status.enabled,
+    active: status.active,
+    paused: status.paused,
+    mode: status.mode,
+    objectiveLabel: status.objectiveLabel,
+    pauseReason: status.pauseReason,
+    pauseSecondsRemaining: status.pauseSecondsRemaining,
+    lastError: status.lastError,
+    resumeOnLogin: status.resumeOnLogin,
+    partyMode: status.partyMode,
+    groupMode: status.groupMode,
+    groupLeaderName: status.groupLeaderName,
+    groupLeaderDistance: status.groupLeaderDistance,
+  };
+}
+
 // --- Cloudflare Turnstile (bot gate on the login/register form) ---------------
 // The site key is injected at build time; when it is empty (local/offline dev or
 // a build without the env var) the widget never renders and the token is '', so
@@ -1480,36 +1499,15 @@ async function startGame(
     gamepad: gamepadBindings,
     hostedPlay: online
       ? {
-          status: async () => {
-            const status = await api.hostedPlayStatus(online.characterId);
-            return {
-              online: status.online,
-              enabled: status.enabled,
-              active: status.active,
-              paused: status.paused,
-              mode: status.mode,
-              objectiveLabel: status.objectiveLabel,
-              pauseReason: status.pauseReason,
-              pauseSecondsRemaining: status.pauseSecondsRemaining,
-              lastError: status.lastError,
-            };
-          },
+          status: async () => hostedPlayStatusView(await api.hostedPlayStatus(online.characterId)),
           setEnabled: async (enabled) => {
             const status = enabled
               ? await api.enableHostedPlay(online.characterId)
               : await api.disableHostedPlay(online.characterId);
-            return {
-              online: status.online,
-              enabled: status.enabled,
-              active: status.active,
-              paused: status.paused,
-              mode: status.mode,
-              objectiveLabel: status.objectiveLabel,
-              pauseReason: status.pauseReason,
-              pauseSecondsRemaining: status.pauseSecondsRemaining,
-              lastError: status.lastError,
-            };
+            return hostedPlayStatusView(status);
           },
+          updateSettings: async (settings) =>
+            hostedPlayStatusView(await api.updateHostedPlaySettings(online.characterId, settings)),
         }
       : undefined,
   });

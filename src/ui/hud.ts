@@ -350,7 +350,22 @@ export interface GamepadBindingsHooks {
   reset(): void;
 }
 
-export interface HostedPlayStatusView {
+export type HostedPlayPartyModeView =
+  | 'solo'
+  | 'follow_leader';
+
+export type HostedPlayGroupModeView =
+  | ''
+  | 'brain'
+  | 'follow_leader'
+  | 'hold_regroup';
+
+export interface HostedPlaySettingsView {
+  resumeOnLogin: boolean;
+  partyMode: HostedPlayPartyModeView;
+}
+
+export interface HostedPlayStatusView extends HostedPlaySettingsView {
   online: boolean;
   enabled: boolean;
   active: boolean;
@@ -360,11 +375,15 @@ export interface HostedPlayStatusView {
   pauseReason: '' | 'manual_input' | 'manual_command' | 'runtime_error';
   pauseSecondsRemaining: number;
   lastError: string;
+  groupMode: HostedPlayGroupModeView;
+  groupLeaderName: string;
+  groupLeaderDistance: number;
 }
 
 export interface HostedPlayHooks {
   status(): Promise<HostedPlayStatusView>;
   setEnabled(enabled: boolean): Promise<HostedPlayStatusView>;
+  updateSettings(settings: HostedPlaySettingsView): Promise<HostedPlayStatusView>;
 }
 
 export interface ReportHooks {
@@ -13623,6 +13642,10 @@ export class Hud {
     actions.className = 'set-choice';
     body.appendChild(actions);
 
+    const settings = document.createElement('div');
+    settings.className = 'set-rows';
+    body.appendChild(settings);
+
     const enableBtn = document.createElement('button');
     enableBtn.type = 'button';
     enableBtn.className = 'btn set-choice-btn';
@@ -13640,6 +13663,36 @@ export class Hud {
     refreshBtn.className = 'btn set-choice-btn';
     refreshBtn.textContent = t('hudChrome.hostedPlay.refresh');
     actions.appendChild(refreshBtn);
+
+    const resumeRow = document.createElement('div');
+    resumeRow.className = 'set-row';
+    const resumeLabel = document.createElement('span');
+    resumeLabel.className = 'set-name';
+    resumeLabel.textContent = t('hudChrome.hostedPlay.resumeOnLogin');
+    const resumeBtn = document.createElement('button');
+    resumeBtn.type = 'button';
+    resumeBtn.className = 'btn set-toggle';
+    resumeRow.append(resumeLabel, resumeBtn);
+    settings.appendChild(resumeRow);
+
+    const partyRow = document.createElement('div');
+    partyRow.className = 'set-row';
+    const partyLabel = document.createElement('span');
+    partyLabel.className = 'set-name';
+    partyLabel.textContent = t('hudChrome.hostedPlay.partyModeLabel');
+    const partyChoices = document.createElement('div');
+    partyChoices.className = 'set-choice';
+    const partySoloBtn = document.createElement('button');
+    partySoloBtn.type = 'button';
+    partySoloBtn.className = 'btn set-choice-btn';
+    partySoloBtn.textContent = t('hudChrome.hostedPlay.partyMode.solo');
+    const partyFollowBtn = document.createElement('button');
+    partyFollowBtn.type = 'button';
+    partyFollowBtn.className = 'btn set-choice-btn';
+    partyFollowBtn.textContent = t('hudChrome.hostedPlay.partyMode.followLeader');
+    partyChoices.append(partySoloBtn, partyFollowBtn);
+    partyRow.append(partyLabel, partyChoices);
+    settings.appendChild(partyRow);
 
     let pending = false;
     let currentStatus: HostedPlayStatusView | null = null;
@@ -13684,12 +13737,48 @@ export class Hud {
       }
     };
 
-    const syncButtons = () => {
+    const partyModeText = (status: HostedPlayStatusView): string =>
+      status.partyMode === 'follow_leader'
+        ? t('hudChrome.hostedPlay.partyMode.followLeader')
+        : t('hudChrome.hostedPlay.partyMode.solo');
+
+    const groupModeText = (status: HostedPlayStatusView): string => {
+      switch (status.groupMode) {
+        case 'brain':
+          return t('hudChrome.hostedPlay.groupMode.brain');
+        case 'follow_leader':
+          return t('hudChrome.hostedPlay.groupMode.followLeader');
+        case 'hold_regroup':
+          return t('hudChrome.hostedPlay.groupMode.holdRegroup');
+        default:
+          return t('hudChrome.hostedPlay.groupMode.none');
+      }
+    };
+
+    const syncControls = () => {
       const online = currentStatus?.online ?? false;
       const enabled = currentStatus?.enabled ?? false;
       enableBtn.disabled = pending || !online || enabled;
       disableBtn.disabled = pending || !enabled;
       refreshBtn.disabled = pending;
+
+      const resumeOnLogin = currentStatus?.resumeOnLogin ?? false;
+      resumeBtn.disabled = pending || !currentStatus;
+      resumeBtn.textContent = resumeOnLogin ? t('hud.options.on') : t('hud.options.off');
+      resumeBtn.classList.toggle('off', !resumeOnLogin);
+      resumeBtn.setAttribute('aria-pressed', String(resumeOnLogin));
+      resumeBtn.setAttribute('aria-label', t('hudChrome.hostedPlay.resumeOnLogin'));
+
+      const partyMode = currentStatus?.partyMode ?? 'solo';
+      for (const [button, mode] of [
+        [partySoloBtn, 'solo'],
+        [partyFollowBtn, 'follow_leader'],
+      ] as const) {
+        const selected = partyMode === mode;
+        button.disabled = pending || !currentStatus;
+        button.classList.toggle('sel', selected);
+        button.setAttribute('aria-pressed', String(selected));
+      }
     };
 
     const renderStatus = (status: HostedPlayStatusView) => {
@@ -13700,19 +13789,33 @@ export class Hud {
         t('hudChrome.hostedPlay.objectiveLabel'),
         status.objectiveLabel || t('hudChrome.hostedPlay.objectiveNone'),
       );
+      appendRow(t('hudChrome.hostedPlay.partyModeStatusLabel'), partyModeText(status));
+      appendRow(t('hudChrome.hostedPlay.groupModeLabel'), groupModeText(status));
+      if (status.groupLeaderName) {
+        appendRow(t('hudChrome.hostedPlay.groupLeaderLabel'), status.groupLeaderName);
+      }
+      if (status.groupLeaderDistance > 0) {
+        appendRow(
+          t('hudChrome.hostedPlay.groupLeaderDistanceLabel'),
+          formatNumber(status.groupLeaderDistance, { maximumFractionDigits: 0 }),
+        );
+      }
       const pauseReason = pauseReasonText(status);
       if (pauseReason) appendRow(t('hudChrome.hostedPlay.pauseLabel'), pauseReason);
       if (status.lastError) appendRow(t('hudChrome.hostedPlay.errorLabel'), t('hudChrome.hostedPlay.runtimeIssue'));
-      syncButtons();
+      syncControls();
     };
 
     const runAction = async (
       action: () => Promise<HostedPlayStatusView>,
-      failureKey: 'hudChrome.hostedPlay.statusLoadFailed' | 'hudChrome.hostedPlay.updateFailed',
+      failureKey:
+        | 'hudChrome.hostedPlay.statusLoadFailed'
+        | 'hudChrome.hostedPlay.updateFailed'
+        | 'hudChrome.hostedPlay.settingsSaveFailed',
     ) => {
       pending = true;
       message.textContent = '';
-      syncButtons();
+      syncControls();
       try {
         renderStatus(await action());
       } catch (err) {
@@ -13720,8 +13823,21 @@ export class Hud {
         message.textContent = t(failureKey);
       } finally {
         pending = false;
-        syncButtons();
+        syncControls();
       }
+    };
+
+    const updateSettings = (patch: Partial<HostedPlaySettingsView>) => {
+      const status = currentStatus;
+      if (!status) return;
+      void runAction(
+        () =>
+          hooks.updateSettings({
+            resumeOnLogin: patch.resumeOnLogin ?? status.resumeOnLogin,
+            partyMode: patch.partyMode ?? status.partyMode,
+          }),
+        'hudChrome.hostedPlay.settingsSaveFailed',
+      );
     };
 
     enableBtn.addEventListener('click', () => {
@@ -13736,8 +13852,21 @@ export class Hud {
       audio.click();
       void runAction(() => hooks.status(), 'hudChrome.hostedPlay.statusLoadFailed');
     });
+    resumeBtn.addEventListener('click', () => {
+      audio.click();
+      updateSettings({ resumeOnLogin: !currentStatus?.resumeOnLogin });
+    });
+    partySoloBtn.addEventListener('click', () => {
+      audio.click();
+      updateSettings({ partyMode: 'solo' });
+    });
+    partyFollowBtn.addEventListener('click', () => {
+      audio.click();
+      updateSettings({ partyMode: 'follow_leader' });
+    });
 
     message.textContent = t('hudChrome.hostedPlay.loadingStatus');
+    syncControls();
     void runAction(() => hooks.status(), 'hudChrome.hostedPlay.statusLoadFailed');
 
     const el = $('#options-menu');

@@ -51,6 +51,7 @@ describe('GameServer hosted play seams', () => {
         qlog: expect.any(Array),
         qdone: expect.any(Array),
         cds: expect.any(Object),
+        party: null,
       }),
     });
     expect(server.hostedPlaySessionInfo(101)).toEqual({

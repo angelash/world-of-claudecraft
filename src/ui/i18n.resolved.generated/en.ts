@@ -630,16 +630,33 @@ export const en: EnTranslations = {
       "note": "Hosted play uses your current online session only. Manual movement or actions pause it briefly so you can take over at any time.",
       "statusLabel": "Status",
       "objectiveLabel": "Objective",
+      "resumeOnLogin": "Resume on Login",
+      "partyModeLabel": "Party Mode",
+      "partyModeStatusLabel": "Party Behavior",
+      "groupModeLabel": "Current Group State",
+      "groupLeaderLabel": "Group Leader",
+      "groupLeaderDistanceLabel": "Leader Distance",
       "pauseLabel": "Pause Reason",
       "errorLabel": "Runtime",
       "loadingStatus": "Loading hosted-play status...",
       "statusLoadFailed": "Could not load hosted-play status right now.",
       "updateFailed": "Could not update hosted play right now.",
+      "settingsSaveFailed": "Could not save hosted-play settings right now.",
       "objectiveNone": "No active objective",
       "enable": "Enable Hosted Play",
       "disable": "Disable Hosted Play",
       "refresh": "Refresh",
       "runtimeIssue": "Automation hit a runtime issue.",
+      "partyMode": {
+        "solo": "Solo progression",
+        "followLeader": "Follow party leader"
+      },
+      "groupMode": {
+        "none": "No active group coordination",
+        "brain": "Running the normal progression brain",
+        "followLeader": "Following the party leader",
+        "holdRegroup": "Holding for party regroup"
+      },
       "state": {
         "offline": "Offline",
         "disabled": "Off",

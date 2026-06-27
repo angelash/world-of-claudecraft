@@ -29,7 +29,9 @@ Primary files:
 Responsibilities:
 - show hosted-play status to the owner
 - enable or disable hosted play
+- persist owner preference changes for login resume and party behavior
 - explain pause or error state
+- surface current group coordination state when party behavior is enabled
 - keep controls accessible on desktop and mobile
 
 ### 2. Hosted runtime
@@ -37,6 +39,7 @@ Responsibilities:
 Primary files:
 - `server/hosted_play/runtime.ts`
 - `server/hosted_play/types.ts`
+- `server/hosted_play/party.ts`
 
 Responsibilities:
 - track which live characters have hosted play enabled
@@ -44,8 +47,21 @@ Responsibilities:
 - pause on manual input
 - clear movement when pausing or stopping
 - expose live status for API and UI use
+- coordinate party follow or regroup overlays before brain drive is applied
 
-### 3. GameServer integration seam
+### 3. Preference persistence and login resume
+
+Primary files:
+- `server/db.ts`
+- `server/main.ts`
+
+Responsibilities:
+- store additive hosted-play preferences on each character row
+- read those preferences for status reads and enable requests
+- re-enable hosted play on login only when the persisted resume policy allows it
+- keep the ownership check on the existing authenticated character routes
+
+### 4. GameServer integration seam
 
 Primary files:
 - `server/game.ts`
@@ -56,26 +72,28 @@ Responsibilities:
 - apply hosted movement input and commands through the same server rule path
 - notify the hosted runtime when manual player input arrives
 
-### 4. Shared automation core
+### 5. Shared automation core
 
 Primary files:
 - `server/ambient_bots/brain.ts`
+- `server/ambient_bots/group.ts`
 - later: extracted shared automation helpers if duplication appears
 
 Responsibilities:
 - choose objectives from live world state
 - turn objective choice into movement and normal commands
 - stay heuristic, bounded, and reconstructible
+- provide the real progression brain that hosted play reuses
+- provide the grouped `/follow` and regroup pattern that hosted play adapts for
+  player parties
 
-### 5. Later persistence, party, social, and LLM layers
+### 6. Later social and LLM layers
 
 Primary files:
-- later hosted-play DB and party modules
 - later shared or adapted `group.ts` and `social.ts`
 - later LLM coordinator reuse or a hosted-play wrapper
 
 Responsibilities:
-- remember player preference and resume policy
 - support party follow or regroup
 - support bounded social and LLM overlays
 

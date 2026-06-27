@@ -125,6 +125,42 @@ describe('HostedPlayRuntime', () => {
     expect(game.activityCount).toBe(1);
   });
 
+  it('tracks persisted preferences and pauses the hosted brain for party follow', () => {
+    const game = fakeGame(liveState({
+      id: 102,
+      x: 1518,
+      z: -1200,
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'warrior', level: 12, hp: 100, mhp: 100, res: 0, mres: 100, rtype: 'mana', x: 1518, z: -1200, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+    }));
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: true,
+      partyMode: 'follow_leader',
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([{ cmd: 'chat', text: '/follow Branoraaa' }]);
+    expect(game.moveInputs).toHaveLength(0);
+    expect(runtime.status(7)).toMatchObject({
+      resumeOnLogin: true,
+      partyMode: 'follow_leader',
+      groupMode: 'follow_leader',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 18,
+    });
+  });
+
   it('pauses hosted play after manual player activity and clears held input', async () => {
     const game = fakeGame(liveState({ hp: 0 }));
     const runtime = new HostedPlayRuntime({

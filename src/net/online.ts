@@ -77,11 +77,26 @@ export type HostedPlayMode =
   | 'active'
   | 'paused';
 
+export type HostedPlayPartyMode =
+  | 'solo'
+  | 'follow_leader';
+
+export type HostedPlayGroupMode =
+  | ''
+  | 'brain'
+  | 'follow_leader'
+  | 'hold_regroup';
+
 export type HostedPlayPauseReason =
   | ''
   | 'manual_input'
   | 'manual_command'
   | 'runtime_error';
+
+export interface HostedPlaySettings {
+  resumeOnLogin: boolean;
+  partyMode: HostedPlayPartyMode;
+}
 
 export interface HostedPlayStatus {
   characterId: number;
@@ -99,6 +114,11 @@ export interface HostedPlayStatus {
   pauseSecondsRemaining: number;
   lastError: string;
   lastAutomationAtMs: number | null;
+  resumeOnLogin: boolean;
+  partyMode: HostedPlayPartyMode;
+  groupMode: HostedPlayGroupMode;
+  groupLeaderName: string;
+  groupLeaderDistance: number;
 }
 
 function stringList(value: unknown): string[] {
@@ -236,6 +256,20 @@ export class Api {
   private async post(path: string, body: unknown): Promise<any> {
     const res = await fetch(apiUrl(path, this.base), {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ApiError(data.error ?? `request failed (${res.status})`, res.status);
+    return data;
+  }
+
+  private async put(path: string, body: unknown): Promise<any> {
+    const res = await fetch(apiUrl(path, this.base), {
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
@@ -471,6 +505,13 @@ export class Api {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new ApiError(data.error ?? `request failed (${res.status})`, res.status);
     return data;
+  }
+
+  async updateHostedPlaySettings(
+    characterId: number,
+    settings: HostedPlaySettings,
+  ): Promise<HostedPlayStatus> {
+    return this.put(`/api/characters/${characterId}/hosted-play/settings`, settings);
   }
 
   async reportPlayer(

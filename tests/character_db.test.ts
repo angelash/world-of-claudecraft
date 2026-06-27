@@ -14,8 +14,9 @@ vi.mock('pg', () => ({
 
 import {
   createAccount, createCharacterCapped, deleteCharacter, grantAccountMechChroma, loadAccountCosmetics,
-  listCharacters, markAccountQuestComplete, openPlaySession, reclaimDeactivatedName, renameCharacter,
-  revokeAccountMechChroma, touchLogin,
+  getHostedPlayPreferences, listCharacters, markAccountQuestComplete, openPlaySession,
+  reclaimDeactivatedName, renameCharacter, revokeAccountMechChroma, setHostedPlayPreferences,
+  touchLogin,
 } from '../server/db';
 import { REALM } from '../server/realm';
 
@@ -63,6 +64,51 @@ describe('listCharacters', () => {
     expect(sql).toContain('EXTRACT(EPOCH FROM started_at)');
     expect(sql).not.toContain('COALESCE(ended_at, now()) - started_at');
     expect(params).toEqual([7, REALM]);
+  });
+});
+
+describe('hosted-play preferences', () => {
+  it('loads persisted hosted-play preferences with safe defaults', async () => {
+    dbMock.query.mockResolvedValueOnce({
+      rows: [{
+        hosted_play_resume_on_login: true,
+        hosted_play_party_mode: 'follow_leader',
+      }],
+    } as any);
+
+    await expect(getHostedPlayPreferences(42)).resolves.toEqual({
+      resumeOnLogin: true,
+      partyMode: 'follow_leader',
+    });
+
+    const [sql, params] = dbMock.query.mock.calls[0];
+    expect(sql).toContain('hosted_play_resume_on_login');
+    expect(sql).toContain('hosted_play_party_mode');
+    expect(params).toEqual([42, REALM]);
+  });
+
+  it('updates hosted-play preferences on the owning character row only', async () => {
+    dbMock.query.mockResolvedValueOnce({
+      rows: [{
+        hosted_play_resume_on_login: false,
+        hosted_play_party_mode: 'solo',
+      }],
+      rowCount: 1,
+    } as any);
+
+    await expect(setHostedPlayPreferences(7, 42, {
+      resumeOnLogin: false,
+      partyMode: 'solo',
+    })).resolves.toEqual({
+      resumeOnLogin: false,
+      partyMode: 'solo',
+    });
+
+    const [sql, params] = dbMock.query.mock.calls[0];
+    expect(sql).toMatch(/UPDATE characters/i);
+    expect(sql).toMatch(/hosted_play_resume_on_login/);
+    expect(sql).toMatch(/hosted_play_party_mode/);
+    expect(params).toEqual([42, 7, false, 'solo', REALM]);
   });
 });
 

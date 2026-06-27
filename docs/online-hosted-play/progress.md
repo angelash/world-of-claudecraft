@@ -6,7 +6,7 @@
 |---|---|---|---|
 | 1 | completed | 2026-06-27 | 2026-06-27 |
 | 2 | completed | 2026-06-27 | 2026-06-27 |
-| 3 | pending |  |  |
+| 3 | completed | 2026-06-27 | 2026-06-27 |
 | 4 | pending |  |  |
 | 5 | pending |  |  |
 | 6 | pending |  |  |
@@ -57,11 +57,25 @@ Notes:
 
 ## Phase 3 checklist
 
-- [ ] persistence schema landed
-- [ ] per-character preference round-trip covered
-- [ ] login resume policy implemented
-- [ ] party support landed
-- [ ] validation green
+- [x] persistence schema landed
+- [x] per-character preference round-trip covered
+- [x] login resume policy implemented
+- [x] party support landed
+- [x] validation green
+
+Notes:
+- Phase 3 persists hosted-play preferences directly on the character row with an
+  additive schema update, then threads those preferences through status reads,
+  enable calls, and same-session login resume.
+- The owner-facing Hosted Play panel now controls both login auto-resume and
+  party behavior, and it reports live group coordination state back to the
+  player.
+- Party support stays on the real server command path by adapting the ambient
+  bot `/follow` pattern rather than introducing a hosted-only movement shortcut.
+- Validation run:
+  - `npx vitest run tests/hosted_play_api.test.ts tests/hosted_play_runtime.test.ts tests/hosted_play_party.test.ts tests/hosted_play_game_server.test.ts tests/character_db.test.ts tests/companion_read_api.test.ts`
+  - `npm run build:server`
+  - `npm run build`
 
 ## Phase 5 checklist
 

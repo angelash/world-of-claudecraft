@@ -5,11 +5,18 @@ import {
 } from '../ambient_bots/brain';
 import type { AmbientPlayerBotRecord } from '../ambient_bots/types';
 import type { AmbientPlayerBotLiveState } from '../ambient_bots/ws_client';
+import {
+  createHostedPlayPartyState,
+  tickHostedPlayPartyCoordinator,
+  type HostedPlayPartyState,
+} from './party';
 import type {
+  HostedPlayPreferences,
   HostedPlayPauseReason,
   HostedPlaySessionInfo,
   HostedPlayStatusSnapshot,
 } from './types';
+import { defaultHostedPlayPreferences } from './types';
 
 const HOSTED_PLAY_BRAIN_INTERVAL_MS = 250;
 const HOSTED_PLAY_MANUAL_PAUSE_MS = 10_000;
@@ -19,13 +26,18 @@ interface HostedPlayEntry {
   characterName: string;
   playerClass: HostedPlaySessionInfo['playerClass'];
   enabledAtMs: number;
+  preferences: HostedPlayPreferences;
   pauseUntilMs: number | null;
   pauseReason: HostedPlayPauseReason;
   objectiveId: string;
   objectiveLabel: string;
   lastError: string;
   lastAutomationAtMs: number | null;
+  groupMode: HostedPlayStatusSnapshot['groupMode'];
+  groupLeaderName: string;
+  groupLeaderDistance: number;
   brainState: AmbientPlayerBotBrainState;
+  partyState: HostedPlayPartyState;
 }
 
 export interface HostedPlayRuntimeGame {
@@ -94,6 +106,7 @@ export class HostedPlayRuntime {
     const nowMs = this.nowMs();
     const info = this.game.hostedPlaySessionInfo(characterId);
     const entry = this.entries.get(characterId) ?? null;
+    const preferences = entry?.preferences ?? defaultHostedPlayPreferences();
     const paused = !!entry && entry.pauseUntilMs !== null && entry.pauseUntilMs > nowMs;
     const online = info !== null;
     const enabled = online && entry !== null;
@@ -123,37 +136,62 @@ export class HostedPlayRuntime {
           : 0,
       lastError: entry?.lastError ?? '',
       lastAutomationAtMs: entry?.lastAutomationAtMs ?? null,
+      resumeOnLogin: preferences.resumeOnLogin,
+      partyMode: preferences.partyMode,
+      groupMode: entry?.groupMode ?? '',
+      groupLeaderName: entry?.groupLeaderName ?? '',
+      groupLeaderDistance: entry?.groupLeaderDistance ?? 0,
     };
   }
 
-  enable(characterId: number): HostedPlayStatusSnapshot {
+  enable(
+    characterId: number,
+    preferences: HostedPlayPreferences = defaultHostedPlayPreferences(),
+  ): HostedPlayStatusSnapshot {
     const info = this.game.hostedPlaySessionInfo(characterId);
     if (!info) throw new Error('character is not currently online');
     const existing = this.entries.get(characterId);
     const entry: HostedPlayEntry = existing
-      ? {
-          ...existing,
-          characterName: info.characterName,
-          playerClass: info.playerClass,
-          pauseUntilMs: null,
-          pauseReason: '',
-          lastError: '',
-        }
-      : {
-          characterId,
-          characterName: info.characterName,
-          playerClass: info.playerClass,
-          enabledAtMs: this.nowMs(),
-          pauseUntilMs: null,
-          pauseReason: '',
-          objectiveId: '',
-          objectiveLabel: '',
-          lastError: '',
-          lastAutomationAtMs: null,
-          brainState: createAmbientPlayerBotBrainState(),
-        };
+        ? {
+            ...existing,
+            characterName: info.characterName,
+            playerClass: info.playerClass,
+            preferences: { ...preferences },
+            pauseUntilMs: null,
+            pauseReason: '',
+            lastError: '',
+          }
+        : {
+            characterId,
+            characterName: info.characterName,
+            playerClass: info.playerClass,
+            enabledAtMs: this.nowMs(),
+            preferences: { ...preferences },
+            pauseUntilMs: null,
+            pauseReason: '',
+            objectiveId: '',
+            objectiveLabel: '',
+            lastError: '',
+            lastAutomationAtMs: null,
+            groupMode: '',
+            groupLeaderName: '',
+            groupLeaderDistance: 0,
+            brainState: createAmbientPlayerBotBrainState(),
+            partyState: createHostedPlayPartyState(),
+          };
     this.entries.set(characterId, entry);
     this.game.clearHostedPlayControl(characterId);
+    return this.status(characterId);
+  }
+
+  updatePreferences(
+    characterId: number,
+    preferences: HostedPlayPreferences,
+  ): HostedPlayStatusSnapshot {
+    const entry = this.entries.get(characterId);
+    if (entry) {
+      entry.preferences = { ...preferences };
+    }
     return this.status(characterId);
   }
 
@@ -206,6 +244,10 @@ export class HostedPlayRuntime {
       this.entries.delete(characterId);
       return;
     }
+    if (!liveState.self) {
+      this.entries.delete(characterId);
+      return;
+    }
     this.game.noteHostedPlayActivity(characterId);
 
     const result = tickAmbientPlayerBotBrain(
@@ -220,13 +262,32 @@ export class HostedPlayRuntime {
     entry.objectiveLabel = result.objectiveLabel;
     entry.lastError = '';
 
-    if (hasHostedDrive(result.moveInput, result.facing)) {
+    const partyResult = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveState.self,
+        partyMode: entry.preferences.partyMode,
+        nowMs,
+      },
+      entry.partyState,
+    );
+    entry.groupMode = partyResult.groupMode;
+    entry.groupLeaderName = partyResult.groupLeaderName;
+    entry.groupLeaderDistance = partyResult.groupLeaderDistance;
+
+    for (const command of partyResult.commands) {
+      this.game.applyHostedPlayCommand(characterId, command);
+    }
+    if (partyResult.pauseBrainDrive) {
+      this.game.clearHostedPlayControl(characterId);
+    } else if (hasHostedDrive(result.moveInput, result.facing)) {
       this.game.applyHostedPlayMoveInput(characterId, result.moveInput, result.facing);
     } else {
       this.game.clearHostedPlayControl(characterId);
     }
-    for (const command of result.commands) {
-      this.game.applyHostedPlayCommand(characterId, command);
+    if (!partyResult.pauseBrainDrive) {
+      for (const command of result.commands) {
+        this.game.applyHostedPlayCommand(characterId, command);
+      }
     }
     entry.lastAutomationAtMs = nowMs;
   }

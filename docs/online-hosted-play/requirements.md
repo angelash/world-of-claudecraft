@@ -13,10 +13,17 @@ automation at any time from a first-party UI.
 ### 1. Online self-service control
 
 - The player can enable or disable hosted play from an in-game UI.
+- The same in-game UI lets the player choose whether hosted play should resume
+  automatically on the next login for that character.
+- The same in-game UI lets the player choose whether the hosted character stays
+  in solo progression mode or shifts into a party-follow posture.
 - The UI shows whether hosted play is idle, active, paused by manual input, or
   blocked by an error.
 - The UI shows at least one live activity hint, such as the current objective
   or pause reason.
+- When party behavior is active, the UI shows enough live group context for the
+  player to understand what the automation is doing, such as follow or regroup
+  state and the current party leader context.
 
 ### 2. Same-session safety
 
@@ -87,11 +94,13 @@ automation at any time from a first-party UI.
 
 ### E. Persistence and later lifecycle work
 
-- The first slice may keep hosted-play runtime state in memory.
-- Later slices should persist per-character preference and summary state
-  additively in the existing database schema.
-- Future login-resume behavior must remain ownership-gated and same-session
-  safe.
+- Per-character hosted-play preferences should persist additively in the
+  existing character schema.
+- The persisted preference set includes at least login auto-resume and party
+  behavior mode.
+- Login auto-resume must remain ownership-gated and same-session safe.
+- Summary runtime state may remain in memory for now as long as it can be
+  reconstructed from the live session and persisted preferences.
 
 ### F. Social and LLM overlays
 

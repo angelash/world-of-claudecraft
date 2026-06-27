@@ -60,6 +60,7 @@ import {
   getAccountsCount,
   getCharacter,
   getCharacterById,
+  getHostedPlayPreferences,
   guildNameForCharacter,
   isAdminAccount,
   lifetimeXpRankForCharacter,
@@ -82,6 +83,7 @@ import {
   searchCharacters,
   setAccountDeactivated,
   setAccountEmail,
+  setHostedPlayPreferences,
   type TokenScope,
   topArenaRatings,
   topLifetimeXp,
@@ -96,6 +98,7 @@ import { AmbientBotCodexCliProvider } from './ambient_bots/llm_provider';
 import { AmbientPlayerBotRuntime } from './ambient_bots/runtime';
 import { GameServer, type ClientSession } from './game';
 import { HostedPlayRuntime } from './hosted_play/runtime';
+import type { HostedPlayPartyMode, HostedPlayPreferences } from './hosted_play/types';
 import { PgAmbientPlayerBotDb } from './ambient_player_bot_db';
 import { isUniqueViolation, json, readBody } from './http_util';
 import { handleInternalApi } from './internal';
@@ -438,6 +441,34 @@ function characterListPayload(chars: CharacterRow[]): {
       lastPlayed: c.last_played ? new Date(c.last_played).toISOString() : null,
       playtimeSeconds: Number(c.playtime_seconds ?? 0),
     })),
+  };
+}
+
+function hostedPlayStatusPayload(
+  characterId: number,
+  preferences: HostedPlayPreferences,
+): ReturnType<HostedPlayRuntime['status']> {
+  return {
+    ...hostedPlayRuntime.status(characterId),
+    resumeOnLogin: preferences.resumeOnLogin,
+    partyMode: preferences.partyMode,
+  };
+}
+
+function parseHostedPlayPartyMode(value: unknown): HostedPlayPartyMode | null {
+  if (value === 'solo' || value === 'follow_leader') return value;
+  return null;
+}
+
+async function readHostedPlayPreferencesBody(
+  req: http.IncomingMessage,
+): Promise<HostedPlayPreferences | null> {
+  const body = await readBody(req);
+  const partyMode = parseHostedPlayPartyMode(body.partyMode);
+  if (typeof body.resumeOnLogin !== 'boolean' || !partyMode) return null;
+  return {
+    resumeOnLogin: body.resumeOnLogin,
+    partyMode,
   };
 }
 
@@ -945,26 +976,55 @@ async function handleApi(req: http.IncomingMessage, res: http.ServerResponse): P
     const delMatch = /^\/api\/characters\/(\d+)$/.exec(url);
     const renameMatch = /^\/api\/characters\/(\d+)\/rename$/.exec(url);
     const takeoverMatch = /^\/api\/characters\/(\d+)\/takeover$/.exec(url);
+    const hostedPlaySettingsMatch = /^\/api\/characters\/(\d+)\/hosted-play\/settings$/.exec(url);
     const hostedPlayMatch = /^\/api\/characters\/(\d+)\/hosted-play$/.exec(url);
     const standingMatch = /^\/api\/characters\/(\d+)\/standing$/.exec(url);
+    if (hostedPlaySettingsMatch) {
+      const accountId = await bearerActiveAccount(req, res);
+      if (accountId === null) return;
+      const characterId = Number(hostedPlaySettingsMatch[1]);
+      const character = await getCharacter(accountId, characterId);
+      if (!character) return json(res, 404, { error: 'character not found' });
+      if (req.method === 'PUT') {
+        const preferences = await readHostedPlayPreferencesBody(req);
+        if (!preferences) {
+          return json(res, 400, {
+            error: 'invalid hosted-play settings',
+          });
+        }
+        const saved = await setHostedPlayPreferences(accountId, characterId, preferences);
+        if (!saved) return json(res, 404, { error: 'character not found' });
+        hostedPlayRuntime.updatePreferences(characterId, saved);
+        return json(
+          res,
+          200,
+          hostedPlayStatusPayload(
+            characterId,
+            saved,
+          ),
+        );
+      }
+    }
     if (hostedPlayMatch) {
       const accountId = await bearerActiveAccount(req, res);
       if (accountId === null) return;
       const characterId = Number(hostedPlayMatch[1]);
       const character = await getCharacter(accountId, characterId);
       if (!character) return json(res, 404, { error: 'character not found' });
+      const preferences = await getHostedPlayPreferences(characterId);
       if (req.method === 'GET') {
-        return json(res, 200, hostedPlayRuntime.status(characterId));
+        return json(res, 200, hostedPlayStatusPayload(characterId, preferences));
       }
       if (req.method === 'POST') {
         try {
-          return json(res, 200, hostedPlayRuntime.enable(characterId));
+          return json(res, 200, hostedPlayRuntime.enable(characterId, preferences));
         } catch (err) {
           return json(res, 409, { error: err instanceof Error ? err.message : String(err) });
         }
       }
       if (req.method === 'DELETE') {
-        return json(res, 200, hostedPlayRuntime.disable(characterId));
+        hostedPlayRuntime.disable(characterId);
+        return json(res, 200, hostedPlayStatusPayload(characterId, preferences));
       }
     }
     if (req.method === 'GET' && standingMatch) {
@@ -1648,6 +1708,14 @@ async function main(): Promise<void> {
     if (health) {
       health.session = session;
       session.alive = health.alive;
+    }
+    try {
+      const preferences = await getHostedPlayPreferences(character.id);
+      if (preferences.resumeOnLogin) {
+        hostedPlayRuntime.enable(character.id, preferences);
+      }
+    } catch (err) {
+      console.error(`hosted-play auto-resume check failed for ${character.name}:`, err);
     }
     console.log(`+ ${character.name} (${character.class}) joined — ${game.clients.size} online`);
     ws.on('message', (data) => {

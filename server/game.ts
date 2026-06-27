@@ -65,7 +65,7 @@ import type {
   AmbientPlayerBotDiagnosticsSnapshot,
   AmbientPlayerBotRecord,
 } from './ambient_bots/types';
-import type { AmbientPlayerBotLiveState } from './ambient_bots/ws_client';
+import type { AmbientPlayerBotLiveState, AmbientPlayerBotWireSelf } from './ambient_bots/ws_client';
 import type { Presence, PresenceStatus, SocialActor, SocialTransport } from './social';
 import { SocialService } from './social';
 import { PgSocialDb } from './social_db';
@@ -2843,7 +2843,7 @@ export class GameServer {
     return extra === '' ? json : `${json.slice(0, -1) + extra}}`;
   }
 
-  private hostedPlaySelfState(p: Entity, meta: PlayerMeta): Record<string, unknown> {
+  private hostedPlaySelfState(p: Entity, meta: PlayerMeta): AmbientPlayerBotWireSelf {
     const self = wireEntity(p);
     Object.assign(self, {
       res: Math.round(p.resource * 10) / 10,
@@ -2860,6 +2860,7 @@ export class GameServer {
       qlog: [...meta.questLog.values()],
       qdone: [...meta.questsDone],
       cds: Object.fromEntries([...p.cooldowns.entries()].map(([key, value]) => [key, round2(value)])),
+      party: this.partyWire(p.id),
       tal: {
         alloc: meta.talents,
         spec: meta.talentMods.spec,
