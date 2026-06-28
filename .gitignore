@@ -22,6 +22,7 @@ private/*
 
 # test artifacts & screenshots
 tmp/
+output/
 .codex-research/
 .playwright-mcp/
 

@@ -23,8 +23,10 @@ generators. Many more run directly via `node scripts/<name>.mjs`.
   Postgres environment from `npm run db:up`; do not add or use `pg-mem` or other
   in-memory realm fallbacks.
 - **Browser scripts** use `puppeteer-core` + `browser_path.mjs` and need `npm run dev`
-  (:5173). They launch headless Chrome/Edge with `--use-angle=swiftshader` and drive
-  the real game via the `window.__game` global (`__game.sim`, `.hud`, `.input`, `.renderer`).
+  (:5173). Agent-run browser checks must use system Google Chrome, not the Codex
+  in-app browser or a bundled browser. Set `BROWSER_PATH` to Chrome if auto-detect
+  would choose another Chromium-family browser. Scripts drive the real game via
+  the `window.__game` global (`__game.sim`, `.hud`, `.input`, `.renderer`).
 - **Multiplayer scripts** use `ws` + `fetch` against a running `npm run server` (:8787).
   Override host with `SERVER_URL=` / `GAME_URL=`.
 - **Server bots that teleport/level/grant** (`dev_teleport`, `dev_level`, `dev_give`)

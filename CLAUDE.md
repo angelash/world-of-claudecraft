@@ -171,6 +171,10 @@ behavior, optimize for re-mergeability:
 - E2E/visual: `scripts/*.mjs` drive real browsers via `puppeteer-core` and need
   `npm run dev` (often `npm run server` too) running. Bot raids / E2E that teleport
   or level need `ALLOW_DEV_COMMANDS=1` (dev only).
+- Browser and visual UI verification for this fork uses the system Google Chrome
+  binary. Do not use the Codex in-app browser or bundled browser for this repo's
+  UI checks. If Chrome is not resolved by `scripts/browser_path.mjs`, set
+  `BROWSER_PATH` to the local Chrome executable before running the check.
 - Persistent local services are assumed to be running during agent work. When a
   change affects server runtime code, bundled output, environment-controlled
   behavior, WebSocket protocol handling, or any path that a running process only

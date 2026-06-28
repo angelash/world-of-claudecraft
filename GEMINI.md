@@ -94,12 +94,12 @@ npm run admin:grant <username>  # Grant GM/admin status to an account
 npm run test                    # Run Vitest unit & integration tests
 ```
 
-**Playwright Verification:**
-Verify game clients and frontend interface behavior using the Playwright MCP server:
-1. **Initialize Tab**: Call `browser_tabs` with argument `action: "new"` to prepare a browser page context.
-2. **Navigate**: Call `browser_navigate` with argument `url: "http://localhost:5173"` to load the local game client.
-3. **Interact & Inspect**: Use MCP tools like `browser_click`, `browser_press_key`, and `browser_evaluate` to verify state transitions and accessibility attributes.
-4. **Visual Check**: Run `browser_take_screenshot` (without `filename` to allow temp dir save) to capture the visual interface state.
+**Browser Verification:**
+Verify game clients and frontend interface behavior with the system Google Chrome
+binary, not the Codex in-app browser, a bundled browser, or browser MCP tools.
+Prefer the repo browser scripts or `puppeteer-core`/Playwright CLI pointed at
+Chrome. If auto-detection would choose another Chromium-family browser, set
+`BROWSER_PATH` to the local Chrome executable before running the check.
 
 **Automated Bot / Integration Scripts:**
 ```bash

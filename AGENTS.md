@@ -108,7 +108,11 @@ Do not use in-memory or `pg-mem` realm harnesses for online, multiplayer, or adm
 verification. Bring up the persistent native Postgres service with `npm run db:up`
 and run the real stack against that database.
 
-Browser or visual UI changes should be verified with a running dev server and browser automation when feasible.
+Browser or visual UI changes should be verified with a running dev server and
+browser automation when feasible. Use the system Google Chrome binary for this
+fork, not the Codex in-app browser or a bundled browser. If Chrome is not
+resolved by `scripts/browser_path.mjs`, set `BROWSER_PATH` to the local Chrome
+executable before running the check.
 
 ## Runtime Service Rules
 
