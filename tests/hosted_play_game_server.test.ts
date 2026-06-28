@@ -81,6 +81,39 @@ describe('GameServer hosted play seams', () => {
     expect(observer).not.toHaveBeenCalled();
   });
 
+  it('keeps hosted movement control when the observing client sends idle input', () => {
+    const server = new GameServer();
+    const session = expectJoined(server.join(fakeWs(), 1, 101, 'Hero', 'warrior', null));
+    const meta = server.sim.meta(session.pid);
+    if (!meta) throw new Error('missing player meta');
+
+    server.setHostedPlayObserved(101, true);
+    server.applyHostedPlayMoveInput(101, { f: 1 });
+    expect(meta.moveInput.forward).toBe(true);
+
+    (server as any).dispatchMessage(
+      session,
+      { t: 'input', seq: 7, mi: { f: 0, b: 0, tl: 0, tr: 0, sl: 0, sr: 0, j: 0 } },
+      '',
+      Date.now(),
+      'client',
+    );
+
+    expect(meta.moveInput.forward).toBe(true);
+    expect(session.lastInputSeq).toBe(7);
+
+    server.setHostedPlayObserved(101, false);
+    (server as any).dispatchMessage(
+      session,
+      { t: 'input', seq: 8, mi: { f: 0, b: 0, tl: 0, tr: 0, sl: 0, sr: 0, j: 0 } },
+      '',
+      Date.now(),
+      'client',
+    );
+    expect(meta.moveInput.forward).toBe(false);
+    expect(session.lastInputSeq).toBe(8);
+  });
+
   it('captures hosted-play social state and recent events while observation is enabled', () => {
     const server = new GameServer();
     const session = expectJoined(server.join(fakeWs(), 1, 101, 'Hero', 'warrior', null));

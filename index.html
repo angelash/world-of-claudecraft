@@ -1779,6 +1779,49 @@
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
+  #hosted-play-window .hosted-play-details-toggle {
+    flex: 1 1 auto;
+  }
+  #hosted-play-window .hosted-play-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 2px;
+    padding-top: 6px;
+    border-top: 1px solid #4a3d1d;
+  }
+  #hosted-play-window .hosted-play-debug-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  #hosted-play-window .hosted-play-debug-heading {
+    color: var(--color-accent);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  #hosted-play-window .hosted-play-debug-rows {
+    margin-bottom: 0;
+  }
+  #hosted-play-window .hosted-play-debug-block {
+    max-height: 210px;
+    margin: 0;
+    padding: 8px;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    background: #101018;
+    border: 1px solid #4a3d1d;
+    border-radius: 4px;
+    color: var(--color-text-light);
+    font-family: var(--mono-font, ui-monospace, SFMono-Regular, Consolas, monospace);
+    font-size: 11px;
+    line-height: 1.35;
+  }
+  #hosted-play-window .hosted-play-debug-note {
+    margin: 0;
+  }
   .woc-balance { display: inline-flex; align-items: center; gap: 5px; color: var(--gold-dim); font-weight: 600; white-space: nowrap; }
   .woc-balance.is-preview { color: #b8a66f; }
   .woc-balance.is-verified { color: var(--color-text-success); }

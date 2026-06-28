@@ -1817,6 +1817,12 @@ export class GameServer {
       const e = sim.entities.get(pid);
       if (!meta || !e) return;
       const frame = parseMoveInputFrame(msg);
+      if (typeof msg.seq === 'number' && Number.isFinite(msg.seq) && msg.seq > 0) {
+        session.lastInputSeq = Math.max(session.lastInputSeq, Math.floor(msg.seq));
+      }
+      if (source === 'client' && session.hostedPlayObserved) {
+        return;
+      }
       const movedOrActed = isActiveMoveInput(frame.moveInput);
       const turned = frame.facing !== null && Math.abs(frame.facing - e.facing) > 0.001;
       if (movedOrActed || turned) session.lastActivityAt = Date.now();
@@ -1825,9 +1831,6 @@ export class GameServer {
       }
       Object.assign(meta.moveInput, frame.moveInput);
       session.lastInputAt = sim.time;
-      if (typeof msg.seq === 'number' && Number.isFinite(msg.seq) && msg.seq > 0) {
-        session.lastInputSeq = Math.max(session.lastInputSeq, Math.floor(msg.seq));
-      }
       if (frame.facing !== null && !e.dead) {
         e.facing = frame.facing;
       }

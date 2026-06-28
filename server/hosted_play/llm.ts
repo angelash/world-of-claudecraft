@@ -16,10 +16,22 @@ export interface HostedPlayLlmState {
   planReason: string;
   planProvider: string;
   planFocus: string;
+  planLatencyMs: number | null;
+  planPrompt: string;
+  planRawOutput: string;
+  planPromptChars: number;
+  planRawOutputChars: number;
+  planCacheHit: boolean;
   socialStatus: AmbientPlayerBotLlmDecisionStatus | '';
   socialReason: string;
   socialTarget: string;
   socialProvider: string;
+  socialLatencyMs: number | null;
+  socialPrompt: string;
+  socialRawOutput: string;
+  socialPromptChars: number;
+  socialRawOutputChars: number;
+  socialCacheHit: boolean;
 }
 
 export function createHostedPlayLlmState(
@@ -36,10 +48,22 @@ export function createHostedPlayLlmState(
     planReason: '',
     planProvider: '',
     planFocus: '',
+    planLatencyMs: null,
+    planPrompt: '',
+    planRawOutput: '',
+    planPromptChars: 0,
+    planRawOutputChars: 0,
+    planCacheHit: false,
     socialStatus: '',
     socialReason: '',
     socialTarget: '',
     socialProvider: '',
+    socialLatencyMs: null,
+    socialPrompt: '',
+    socialRawOutput: '',
+    socialPromptChars: 0,
+    socialRawOutputChars: 0,
+    socialCacheHit: false,
   };
 }
 

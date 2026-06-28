@@ -96,6 +96,113 @@ export interface HostedPlaySettings {
   partyMode: HostedPlayPartyMode;
 }
 
+export interface HostedPlayDebugPoint {
+  x: number;
+  z: number;
+}
+
+export interface HostedPlayDebugTravelGoal {
+  target: HostedPlayDebugPoint;
+  arrivalRange: number;
+  goalKey: string;
+}
+
+export interface HostedPlayDebugCommand {
+  summary: string;
+  payloadJson: string;
+}
+
+export interface HostedPlayDebugCommandAge {
+  key: string;
+  atMs: number;
+  ageMs: number;
+}
+
+export interface HostedPlayDebugBrainState {
+  objectiveSinceMs: number | null;
+  lastProgressAtMs: number | null;
+  pathGoalKey: string;
+  pathLength: number;
+  nextPathPoint: HostedPlayDebugPoint | null;
+  campIndex: number;
+  noTargetSinceMs: number | null;
+  stuckResets: number;
+  lastCommandAtMs: HostedPlayDebugCommandAge[];
+}
+
+export interface HostedPlayDebugParty {
+  groupMode: HostedPlayGroupMode;
+  groupLeaderName: string;
+  groupLeaderDistance: number;
+  brainDrivePaused: boolean;
+}
+
+export interface HostedPlayDebugPendingReply {
+  toName: string;
+  incomingText: string;
+  fallbackText: string;
+  dueInMs: number;
+  askedForFriend: boolean;
+  revision: number;
+  llmStatus: string;
+  llmReplyText: string;
+  llmFriendAction: string;
+  llmPresenceEmote: string;
+  llmRequestedAgoMs: number | null;
+}
+
+export interface HostedPlayDebugSocial {
+  pendingReplies: HostedPlayDebugPendingReply[];
+}
+
+export interface HostedPlayDebugLlm {
+  enabled: boolean;
+  planPending: boolean;
+  planStatus: 'accepted' | 'cache_hit' | 'rejected' | 'error' | 'budget_denied' | 'disabled' | '';
+  planReason: string;
+  planProvider: string;
+  planLatencyMs: number | null;
+  planPrompt: string;
+  planRawOutput: string;
+  planPromptChars: number;
+  planRawOutputChars: number;
+  planCacheHit: boolean;
+  planMode: string;
+  planFocus: string;
+  socialStatus: 'accepted' | 'cache_hit' | 'rejected' | 'error' | 'budget_denied' | 'disabled' | '';
+  socialReason: string;
+  socialTarget: string;
+  socialProvider: string;
+  socialLatencyMs: number | null;
+  socialPrompt: string;
+  socialRawOutput: string;
+  socialPromptChars: number;
+  socialRawOutputChars: number;
+  socialCacheHit: boolean;
+}
+
+export interface HostedPlayDebugStatus {
+  lastBrainAtMs: number | null;
+  lastBrainAgeMs: number | null;
+  lastAutomationAtMs: number | null;
+  lastAutomationAgeMs: number | null;
+  brainDrivePaused: boolean;
+  objectiveId: string;
+  objectiveLabel: string;
+  objectiveQuestId: string;
+  objectiveDungeonId: string;
+  objectiveSuggestedPartySize: number;
+  moveInput: Record<string, unknown>;
+  facing: number | null;
+  commands: HostedPlayDebugCommand[];
+  travelGoal: HostedPlayDebugTravelGoal | null;
+  brainState: HostedPlayDebugBrainState;
+  party: HostedPlayDebugParty;
+  social: HostedPlayDebugSocial;
+  llm: HostedPlayDebugLlm;
+  lastError: string;
+}
+
 export interface HostedPlayStatus {
   characterId: number;
   characterName: string;
@@ -131,6 +238,7 @@ export interface HostedPlayStatus {
   llmSocialStatus: 'accepted' | 'cache_hit' | 'rejected' | 'error' | 'budget_denied' | 'disabled' | '';
   llmSocialReason: string;
   llmSocialTarget: string;
+  debug: HostedPlayDebugStatus;
 }
 
 function stringList(value: unknown): string[] {

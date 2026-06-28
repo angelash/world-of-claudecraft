@@ -218,6 +218,20 @@ describe('HostedPlayRuntime', () => {
     expect(game.moveInputs).toHaveLength(2);
     expect(game.moveInputs.every((input) => input.moveInput.f === 1)).toBe(true);
     expect(game.moveInputs.every((input) => typeof input.facing === 'number')).toBe(true);
+    const status = runtime.status(7);
+    expect(status.debug).toMatchObject({
+      objectiveId: status.objectiveId,
+      objectiveLabel: status.objectiveLabel,
+      lastBrainAgeMs: 50,
+      moveInput: { f: 1 },
+      brainState: {
+        pathLength: expect.any(Number),
+        stuckResets: expect.any(Number),
+      },
+    });
+    expect(status.debug.travelGoal).toMatchObject({
+      target: { x: 20, z: 0 },
+    });
   });
 
   it('pauses hosted play after runtime errors and clears held input', () => {

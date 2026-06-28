@@ -205,6 +205,17 @@ describe('HostedPlayRuntime llm overlay', () => {
         lastWhisperFrom: 'Aleph',
       });
     });
+    const debugStatus = runtime.status(7);
+    expect(debugStatus.debug.llm).toMatchObject({
+      planProvider: 'test-provider',
+      planLatencyMs: expect.any(Number),
+      planRawOutput: '{"kind":"plan"}',
+      socialProvider: 'test-provider',
+      socialLatencyMs: expect.any(Number),
+      socialRawOutput: '{"kind":"social"}',
+    });
+    expect(debugStatus.debug.llm.planPrompt).toContain('AmbientBotPlanDecisionV1');
+    expect(debugStatus.debug.llm.socialPrompt).toContain('AmbientBotSocialDecisionV1');
 
     nowMs = 12_000;
     (runtime as any).tick();

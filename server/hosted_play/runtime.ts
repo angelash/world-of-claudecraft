@@ -29,6 +29,10 @@ import {
   type HostedPlayLlmState,
 } from './llm';
 import type {
+  HostedPlayDebugCommand,
+  HostedPlayDebugPoint,
+  HostedPlayDebugSnapshot,
+  HostedPlayDebugTravelGoal,
   HostedPlayPreferences,
   HostedPlayPauseReason,
   HostedPlaySessionInfo,
@@ -39,6 +43,10 @@ import { defaultHostedPlayPreferences } from './types';
 const HOSTED_PLAY_BRAIN_INTERVAL_MS = 250;
 const HOSTED_PLAY_DRIVE_INTERVAL_MS = 50;
 const HOSTED_PLAY_ERROR_PAUSE_MS = 10_000;
+const HOSTED_PLAY_DEBUG_MAX_COMMANDS = 8;
+const HOSTED_PLAY_DEBUG_MAX_PENDING_REPLIES = 6;
+const HOSTED_PLAY_DEBUG_MAX_COMMAND_JSON_CHARS = 1_200;
+const HOSTED_PLAY_DEBUG_MAX_TEXT_CHARS = 240;
 
 interface HostedPlayEntry {
   characterId: number;
@@ -189,6 +197,7 @@ export class HostedPlayRuntime {
       llmSocialStatus: entry?.llmState.socialStatus ?? '',
       llmSocialReason: entry?.llmState.socialReason ?? '',
       llmSocialTarget: entry?.llmState.socialTarget ?? '',
+      debug: hostedPlayDebugSnapshot(entry, nowMs, this.llmEnabled),
     };
   }
 
@@ -477,6 +486,12 @@ export class HostedPlayRuntime {
       liveEntry.llmState.planStatus = result.status;
       liveEntry.llmState.planReason = result.audit.reason;
       liveEntry.llmState.planProvider = result.audit.provider;
+      liveEntry.llmState.planLatencyMs = result.audit.latencyMs;
+      liveEntry.llmState.planPrompt = result.audit.promptText;
+      liveEntry.llmState.planRawOutput = result.audit.rawOutput;
+      liveEntry.llmState.planPromptChars = result.audit.promptChars;
+      liveEntry.llmState.planRawOutputChars = result.audit.rawOutputChars;
+      liveEntry.llmState.planCacheHit = result.audit.cacheHit;
       if ((result.status === 'accepted' || result.status === 'cache_hit') && result.decision) {
         liveEntry.llmState.plan = cloneHostedPlayPlan(result.decision);
         liveEntry.llmState.planFocus = result.decision.focusLabel;
@@ -487,6 +502,11 @@ export class HostedPlayRuntime {
       liveEntry.llmState.planPending = false;
       liveEntry.llmState.planStatus = 'error';
       liveEntry.llmState.planReason = error instanceof Error ? error.message : String(error);
+      liveEntry.llmState.planProvider = '';
+      liveEntry.llmState.planLatencyMs = null;
+      liveEntry.llmState.planRawOutput = '';
+      liveEntry.llmState.planRawOutputChars = 0;
+      liveEntry.llmState.planCacheHit = false;
     });
   }
 
@@ -536,6 +556,12 @@ export class HostedPlayRuntime {
         liveEntry.llmState.socialReason = result.audit.reason;
         liveEntry.llmState.socialTarget = snapshot.toName;
         liveEntry.llmState.socialProvider = result.audit.provider;
+        liveEntry.llmState.socialLatencyMs = result.audit.latencyMs;
+        liveEntry.llmState.socialPrompt = result.audit.promptText;
+        liveEntry.llmState.socialRawOutput = result.audit.rawOutput;
+        liveEntry.llmState.socialPromptChars = result.audit.promptChars;
+        liveEntry.llmState.socialRawOutputChars = result.audit.rawOutputChars;
+        liveEntry.llmState.socialCacheHit = result.audit.cacheHit;
       }).catch((error) => {
         const liveEntry = this.entries.get(characterId);
         if (liveEntry !== entry) return;
@@ -546,9 +572,171 @@ export class HostedPlayRuntime {
         liveEntry.llmState.socialStatus = 'error';
         liveEntry.llmState.socialReason = error instanceof Error ? error.message : String(error);
         liveEntry.llmState.socialTarget = snapshot.toName;
+        liveEntry.llmState.socialProvider = '';
+        liveEntry.llmState.socialLatencyMs = null;
+        liveEntry.llmState.socialRawOutput = '';
+        liveEntry.llmState.socialRawOutputChars = 0;
+        liveEntry.llmState.socialCacheHit = false;
       });
     }
   }
+}
+
+function hostedPlayDebugSnapshot(
+  entry: HostedPlayEntry | null,
+  nowMs: number,
+  llmEnabled: boolean,
+): HostedPlayDebugSnapshot {
+  const result = entry?.lastBrainResult ?? null;
+  const facing = result?.facing;
+  return {
+    lastBrainAtMs: entry?.lastBrainAtMs ?? null,
+    lastBrainAgeMs: ageMs(entry?.lastBrainAtMs ?? null, nowMs),
+    lastAutomationAtMs: entry?.lastAutomationAtMs ?? null,
+    lastAutomationAgeMs: ageMs(entry?.lastAutomationAtMs ?? null, nowMs),
+    brainDrivePaused: entry?.brainDrivePaused ?? false,
+    objectiveId: result?.objectiveId ?? entry?.objectiveId ?? '',
+    objectiveLabel: result?.objectiveLabel ?? entry?.objectiveLabel ?? '',
+    objectiveQuestId: result?.objectiveQuestId ?? '',
+    objectiveDungeonId: result?.objectiveDungeonId ?? '',
+    objectiveSuggestedPartySize: result?.objectiveSuggestedPartySize ?? 0,
+    moveInput: result ? { ...result.moveInput } : {},
+    facing: typeof facing === 'number' && Number.isFinite(facing) ? roundDebugNumber(facing) : null,
+    commands: result
+      ? result.commands.slice(0, HOSTED_PLAY_DEBUG_MAX_COMMANDS).map(hostedPlayDebugCommand)
+      : [],
+    travelGoal: result?.travelGoal ? hostedPlayDebugTravelGoal(result.travelGoal) : null,
+    brainState: {
+      objectiveSinceMs: entry?.brainState.objectiveSinceMs ?? null,
+      lastProgressAtMs: entry?.brainState.lastProgressAtMs ?? null,
+      pathGoalKey: entry?.brainState.pathGoalKey ?? '',
+      pathLength: entry?.brainState.path.length ?? 0,
+      nextPathPoint: entry?.brainState.path[0] ? hostedPlayDebugPoint(entry.brainState.path[0]) : null,
+      campIndex: entry?.brainState.campIndex ?? 0,
+      noTargetSinceMs: entry?.brainState.noTargetSinceMs ?? null,
+      stuckResets: entry?.brainState.stuckResets ?? 0,
+      lastCommandAtMs: hostedPlayCommandAges(entry?.brainState.lastCommandAtMs ?? {}, nowMs),
+    },
+    party: {
+      groupMode: entry?.groupMode ?? '',
+      groupLeaderName: entry?.groupLeaderName ?? '',
+      groupLeaderDistance: roundDebugNumber(entry?.groupLeaderDistance ?? 0),
+      brainDrivePaused: entry?.brainDrivePaused ?? false,
+    },
+    social: {
+      pendingReplies: (entry?.socialState.pendingReplies ?? [])
+        .slice(0, HOSTED_PLAY_DEBUG_MAX_PENDING_REPLIES)
+        .map((reply) => ({
+          toName: reply.toName,
+          incomingText: truncateDebugText(reply.incomingText),
+          fallbackText: truncateDebugText(reply.fallbackText),
+          dueInMs: Math.max(0, Math.round(reply.dueAtMs - nowMs)),
+          askedForFriend: reply.askedForFriend,
+          revision: reply.revision,
+          llmStatus: reply.llmStatus ?? '',
+          llmReplyText: truncateDebugText(reply.llmReplyText ?? ''),
+          llmFriendAction: reply.llmFriendAction ?? '',
+          llmPresenceEmote: reply.llmPresenceEmote ?? '',
+          llmRequestedAgoMs: ageMs(reply.llmRequestedAtMs ?? null, nowMs),
+        })),
+    },
+    llm: {
+      enabled: entry?.llmState.enabled ?? llmEnabled,
+      planPending: entry?.llmState.planPending ?? false,
+      planStatus: entry?.llmState.planStatus ?? '',
+      planReason: entry?.llmState.planReason ?? '',
+      planProvider: entry?.llmState.planProvider ?? '',
+      planLatencyMs: entry?.llmState.planLatencyMs ?? null,
+      planPrompt: entry?.llmState.planPrompt ?? '',
+      planRawOutput: entry?.llmState.planRawOutput ?? '',
+      planPromptChars: entry?.llmState.planPromptChars ?? 0,
+      planRawOutputChars: entry?.llmState.planRawOutputChars ?? 0,
+      planCacheHit: entry?.llmState.planCacheHit ?? false,
+      planMode: entry?.llmState.plan?.socialMode ?? '',
+      planFocus: entry?.llmState.plan?.focusLabel ?? entry?.llmState.planFocus ?? '',
+      socialStatus: entry?.llmState.socialStatus ?? '',
+      socialReason: entry?.llmState.socialReason ?? '',
+      socialTarget: entry?.llmState.socialTarget ?? '',
+      socialProvider: entry?.llmState.socialProvider ?? '',
+      socialLatencyMs: entry?.llmState.socialLatencyMs ?? null,
+      socialPrompt: entry?.llmState.socialPrompt ?? '',
+      socialRawOutput: entry?.llmState.socialRawOutput ?? '',
+      socialPromptChars: entry?.llmState.socialPromptChars ?? 0,
+      socialRawOutputChars: entry?.llmState.socialRawOutputChars ?? 0,
+      socialCacheHit: entry?.llmState.socialCacheHit ?? false,
+    },
+    lastError: entry?.lastError ?? '',
+  };
+}
+
+function hostedPlayDebugTravelGoal(
+  goal: NonNullable<AmbientPlayerBotBrainTickResult['travelGoal']>,
+): HostedPlayDebugTravelGoal {
+  return {
+    target: hostedPlayDebugPoint(goal.target),
+    arrivalRange: roundDebugNumber(goal.arrivalRange),
+    goalKey: goal.goalKey,
+  };
+}
+
+function hostedPlayDebugPoint(point: HostedPlayDebugPoint): HostedPlayDebugPoint {
+  return {
+    x: roundDebugNumber(point.x),
+    z: roundDebugNumber(point.z),
+  };
+}
+
+function hostedPlayDebugCommand(command: Record<string, unknown>): HostedPlayDebugCommand {
+  const payloadJson = truncateDebugText(
+    stringifyDebugPayload(command),
+    HOSTED_PLAY_DEBUG_MAX_COMMAND_JSON_CHARS,
+  );
+  const kind = typeof command.cmd === 'string'
+    ? command.cmd
+    : typeof command.type === 'string'
+    ? command.type
+    : payloadJson;
+  return {
+    summary: truncateDebugText(kind, HOSTED_PLAY_DEBUG_MAX_TEXT_CHARS),
+    payloadJson,
+  };
+}
+
+function hostedPlayCommandAges(
+  lastCommandAtMs: Record<string, number>,
+  nowMs: number,
+): HostedPlayDebugSnapshot['brainState']['lastCommandAtMs'] {
+  return Object.entries(lastCommandAtMs)
+    .filter(([, atMs]) => Number.isFinite(atMs))
+    .map(([key, atMs]) => ({
+      key,
+      atMs,
+      ageMs: Math.max(0, Math.round(nowMs - atMs)),
+    }))
+    .sort((a, b) => b.atMs - a.atMs || a.key.localeCompare(b.key))
+    .slice(0, HOSTED_PLAY_DEBUG_MAX_COMMANDS);
+}
+
+function ageMs(atMs: number | null, nowMs: number): number | null {
+  return atMs === null || !Number.isFinite(atMs)
+    ? null
+    : Math.max(0, Math.round(nowMs - atMs));
+}
+
+function roundDebugNumber(value: number): number {
+  return Number.isFinite(value) ? Math.round(value * 100) / 100 : 0;
+}
+
+function stringifyDebugPayload(value: Record<string, unknown>): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return '{"unserializable":true}';
+  }
+}
+
+function truncateDebugText(value: string, maxChars = HOSTED_PLAY_DEBUG_MAX_TEXT_CHARS): string {
+  return value.length > maxChars ? `${value.slice(0, Math.max(0, maxChars - 3))}...` : value;
 }
 
 function hostedPlayBotRecord(

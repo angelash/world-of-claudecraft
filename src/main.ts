@@ -369,6 +369,7 @@ function hostedPlayStatusView(status: Awaited<ReturnType<Api['hostedPlayStatus']
     llmSocialStatus: status.llmSocialStatus,
     llmSocialReason: status.llmSocialReason,
     llmSocialTarget: status.llmSocialTarget,
+    debug: status.debug,
   };
 }
 
