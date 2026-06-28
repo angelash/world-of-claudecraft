@@ -135,6 +135,10 @@ export function findPath(
     }
     return walk[i] === 1;
   };
+  const cellPoint = (idx: number): { x: number; z: number } => ({
+    x: cx(idx % W),
+    z: cz((idx / W) | 0),
+  });
 
   const gScore = new Float64Array(W * H).fill(Infinity);
   const cameFrom = new Int32Array(W * H).fill(-1);
@@ -190,6 +194,9 @@ export function findPath(
         if (!walkable(n)) continue;
         // diagonals only when both orthogonal cells are clear (no corner clipping)
         if (dx !== 0 && dz !== 0 && (!walkable(gz * W + nx) || !walkable(nz * W + gx))) continue;
+        const legFrom = cur === startIdx ? from : cellPoint(cur);
+        const legTo = n === goalIdx ? to : cellPoint(n);
+        if (!segmentWalkable(legFrom, legTo, o, n === goalIdx)) continue;
         const stepLen = (dx !== 0 && dz !== 0 ? Math.SQRT2 : 1) * CELL;
         const rise = rideHeight(groundAt(n), o.swim) - hCur;
         if (rise > 0 && rise / stepLen > o.maxClimbSlope) continue;

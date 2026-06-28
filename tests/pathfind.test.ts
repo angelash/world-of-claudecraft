@@ -86,6 +86,22 @@ describe('player pathfinding', () => {
     expect(path[path.length - 1]).toEqual(to);
   });
 
+  it('does not route the first leg through a fence endpoint when starting beside it', () => {
+    const seed = 20061;
+    // Regression: ambient bots stuck at Eastbrook's left fence end while turning
+    // in Webwood Menace. The start cell center was across the rail, so A* handed
+    // the driver an illegal first waypoint.
+    const from = { x: -20.28, z: 1.2 };
+    const to = resolvePlayerDestination(seed, { x: 11, z: -3 });
+    const path = findPlayerPath(seed, from, to);
+
+    let prev = from;
+    for (const point of path) {
+      expect(pathCrossesFence(prev.x, prev.z, point.x, point.z)).toBe(false);
+      prev = point;
+    }
+  });
+
   it('routes over a fence when the mover can jump it (click-to-move)', () => {
     const seed = 20061;
     const from = { x: 13, z: 7 };
