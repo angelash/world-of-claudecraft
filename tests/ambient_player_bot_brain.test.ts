@@ -207,6 +207,10 @@ describe('ambient player bot brain', () => {
           res: 100,
           mres: 100,
           rtype: 'mana',
+          auras: [
+            { id: 'frost_armor', kind: 'buff_armor', rem: 1_700, dur: 1_800 },
+            { id: 'arcane_intellect', kind: 'buff_int', rem: 1_700, dur: 1_800 },
+          ],
           qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
         },
         entities: [
@@ -222,6 +226,148 @@ describe('ambient player bot brain', () => {
       expect.objectContaining({ cmd: 'cast' }),
     ]);
     expect(result.moveInput).toEqual({});
+  });
+
+  it('prepares mage armor before pulling a quest wolf', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot({
+        class: 'mage',
+        profileId: 'eastbrook_vale_mage_newcomer',
+      }),
+      liveState: liveState({
+        self: {
+          res: 100,
+          mres: 100,
+          rtype: 'mana',
+          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+        },
+        entities: [
+          { id: 9003, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('prepare_combat');
+    expect(result.commands).toEqual([{ cmd: 'cast', ability: 'frost_armor' }]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('drinks before a pull when a prepared mage is low on mana', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot({
+        class: 'mage',
+        profileId: 'eastbrook_vale_mage_newcomer',
+      }),
+      liveState: liveState({
+        self: {
+          res: 20,
+          mres: 100,
+          rtype: 'mana',
+          inv: [{ itemId: 'spring_water', count: 1 }],
+          auras: [
+            { id: 'frost_armor', kind: 'buff_armor', rem: 1_700, dur: 1_800 },
+            { id: 'arcane_intellect', kind: 'buff_int', rem: 1_700, dur: 1_800 },
+          ],
+          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+        },
+        entities: [
+          { id: 9004, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('recover');
+    expect(result.commands).toEqual([{ cmd: 'use', item: 'spring_water' }]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('summons a warlock demon before pulling when no owned pet is present', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot({
+        class: 'warlock',
+        profileId: 'eastbrook_vale_warlock_newcomer',
+      }),
+      liveState: liveState({
+        self: {
+          res: 100,
+          mres: 100,
+          rtype: 'mana',
+          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+        },
+        entities: [
+          { id: 9005, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('prepare_combat');
+    expect(result.commands).toEqual([{ cmd: 'cast', ability: 'summon_imp' }]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('does not recast a warlock summon when an owned pet is already active', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot({
+        class: 'warlock',
+        profileId: 'eastbrook_vale_warlock_newcomer',
+      }),
+      liveState: liveState({
+        self: {
+          res: 100,
+          mres: 100,
+          rtype: 'mana',
+          auras: [{ id: 'demon_skin', kind: 'buff_armor', rem: 1_700, dur: 1_800 }],
+          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+        },
+        entities: [
+          { id: 9101, k: 'mob', tid: 'imp', x: 1, z: 1, own: 101, lv: 1 },
+          { id: 9006, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('combat');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9006 },
+      expect.objectContaining({ cmd: 'cast' }),
+    ]);
+    expect(result.commands).not.toContainEqual({ cmd: 'cast', ability: 'summon_imp' });
+  });
+
+  it('fights immediately instead of preparing when the mob is already threatening the bot', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot({
+        class: 'mage',
+        profileId: 'eastbrook_vale_mage_newcomer',
+      }),
+      liveState: liveState({
+        self: {
+          res: 100,
+          mres: 100,
+          rtype: 'mana',
+          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+        },
+        entities: [
+          { id: 9007, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1, aggro: 101 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('combat');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9007 },
+      expect.objectContaining({ cmd: 'cast' }),
+    ]);
   });
 
   it('loots a nearby corpse before resuming the quest route', () => {

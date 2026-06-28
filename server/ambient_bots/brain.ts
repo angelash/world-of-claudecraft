@@ -31,6 +31,7 @@ import {
   type AmbientBotPoint2d,
   type AmbientBotQuestRoute,
 } from './progression_routes';
+import { maybePrepareForPull } from './pre_combat';
 
 const DEFAULT_WORLD_SEED = 20_061;
 const PATH_NODE_REACHED_RANGE = 2.2;
@@ -91,6 +92,14 @@ interface BotEntityView {
   lootable: boolean;
   hostile: boolean;
   aggroTargetId: number | null;
+  ownerId: number | null;
+}
+
+interface BotAuraView {
+  id: string;
+  kind: string;
+  remaining: number;
+  duration: number;
 }
 
 interface BotSelfView {
@@ -111,6 +120,7 @@ interface BotSelfView {
   castingAbility: string | null;
   eatingRemaining: number | null;
   drinkingRemaining: number | null;
+  auras: BotAuraView[];
   inventory: InvSlot[];
   questLog: Map<string, QuestProgress>;
   questsDone: Set<string>;
@@ -723,6 +733,20 @@ function huntMob(
     ?? (objective.allowAnyHostileFallback ? nearestAnyHostileMob(view) : null);
   if (target) {
     state.noTargetSinceMs = null;
+    const preparation = maybePrepareForPull({
+      bot: input.bot,
+      self: view.self,
+      entities: view.entities,
+      issueCommand: (key, cooldownMs) => canIssue(state, key, input.nowMs, cooldownMs),
+    });
+    if (preparation) {
+      return idleStep(
+        preparation.objectiveId,
+        preparation.objectiveLabel,
+        preparation.commands,
+        facingFor(view.self.pos, target.pos),
+      );
+    }
     return fightTarget(view, input.bot, target, state, input.nowMs, objective.label);
   }
 
@@ -1016,6 +1040,7 @@ function parseSelf(raw: Record<string, unknown> | null): BotSelfView | null {
     castingAbility: readString(raw.cast),
     eatingRemaining: readNumber(readRecord(raw.eat)?.remaining),
     drinkingRemaining: readNumber(readRecord(raw.drk)?.remaining),
+    auras: readAuras(raw.auras),
     inventory: readInventory(raw.inv),
     questLog: new Map(readQuestLog(raw.qlog).map((quest) => [quest.questId, quest])),
     questsDone: new Set(readStringArray(raw.qdone)),
@@ -1039,7 +1064,26 @@ function parseEntity(raw: Record<string, unknown>): BotEntityView | null {
     lootable: readBoolean(raw.loot),
     hostile: readBoolean(raw.h),
     aggroTargetId: readNumber(raw.aggro),
+    ownerId: readNumber(raw.own),
   };
+}
+
+function readAuras(raw: unknown): BotAuraView[] {
+  if (!Array.isArray(raw)) return [];
+  const auras: BotAuraView[] = [];
+  for (const item of raw) {
+    const record = readRecord(item);
+    const id = record ? readString(record.id) : null;
+    const kind = record ? readString(record.kind) : null;
+    if (!id || !kind) continue;
+    auras.push({
+      id,
+      kind,
+      remaining: readNumber(record?.rem) ?? readNumber(record?.remaining) ?? 0,
+      duration: readNumber(record?.dur) ?? readNumber(record?.duration) ?? 0,
+    });
+  }
+  return auras;
 }
 
 function readInventory(raw: unknown): InvSlot[] {
