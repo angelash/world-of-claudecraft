@@ -143,6 +143,12 @@ interface AmbientBotVendorPurchase {
   targetCount: number;
 }
 
+export interface AmbientPlayerBotTravelGoal {
+  target: AmbientBotPoint2d;
+  arrivalRange: number;
+  goalKey: string;
+}
+
 export interface AmbientPlayerBotBrainState {
   objectiveId: string | null;
   objectiveSinceMs: number | null;
@@ -169,6 +175,7 @@ export interface AmbientPlayerBotBrainTickResult {
   moveInput: MoveInputPayload;
   facing?: number;
   commands: readonly BrainCommand[];
+  travelGoal?: AmbientPlayerBotTravelGoal;
   objectiveQuestId?: string;
   objectiveDungeonId?: string;
   objectiveSuggestedPartySize?: number;
@@ -587,7 +594,15 @@ function interactWithNpc(
   const target = npc?.pos ?? fallback;
   if (!target) return idleStep(objective.id, objective.label);
   if (dist2d(view.self.pos, pointToVec(target)) > INTERACT_RANGE + 1.5) {
-    return travelToPoint(view, state, input, objective, target, INTERACT_RANGE + 1.5, `npc:${objective.npcTemplateId}`);
+    return travelToPoint(
+      view,
+      state,
+      input.liveState.seed ?? DEFAULT_WORLD_SEED,
+      objective,
+      target,
+      INTERACT_RANGE + 1.5,
+      `npc:${objective.npcTemplateId}`,
+    );
   }
   const commands: BrainCommand[] = [];
   if (npc && view.self.targetId !== npc.id && canIssue(state, `target:${npc.id}`, input.nowMs, COMMAND_COOLDOWN_MS)) {
@@ -610,7 +625,15 @@ function handleVendorObjective(
   const target = npc?.pos ?? fallback;
   if (!target) return idleStep(objective.id, objective.label);
   if (dist2d(view.self.pos, pointToVec(target)) > INTERACT_RANGE + 1.5) {
-    return travelToPoint(view, state, input, objective, target, INTERACT_RANGE + 1.5, `vendor:${objective.npcTemplateId}`);
+    return travelToPoint(
+      view,
+      state,
+      input.liveState.seed ?? DEFAULT_WORLD_SEED,
+      objective,
+      target,
+      INTERACT_RANGE + 1.5,
+      `vendor:${objective.npcTemplateId}`,
+    );
   }
   const commands: BrainCommand[] = [];
   if (npc && view.self.targetId !== npc.id && canIssue(state, `target:${npc.id}`, input.nowMs, COMMAND_COOLDOWN_MS)) {
@@ -643,7 +666,7 @@ function handleDungeonObjective(
       return travelToPoint(
         view,
         state,
-        input,
+        input.liveState.seed ?? DEFAULT_WORLD_SEED,
         objective,
         exitPoint,
         INTERACT_RANGE + 1.5,
@@ -664,7 +687,7 @@ function handleDungeonObjective(
     return travelToPoint(
       view,
       state,
-      input,
+      input.liveState.seed ?? DEFAULT_WORLD_SEED,
       objective,
       dungeon.doorPos,
       INTERACT_RANGE + 2,
@@ -721,7 +744,7 @@ function huntMob(
   return travelToPoint(
     view,
     state,
-    input,
+    input.liveState.seed ?? DEFAULT_WORLD_SEED,
     objective,
     activeCamp,
     CAMP_ARRIVAL_RANGE,
@@ -745,7 +768,7 @@ function collectObject(
       return travelToPoint(
         view,
         state,
-        input,
+        input.liveState.seed ?? DEFAULT_WORLD_SEED,
         objective,
         { x: target.pos.x, z: target.pos.z },
         INTERACT_RANGE + 1.5,
@@ -780,7 +803,7 @@ function collectObject(
   return travelToPoint(
     view,
     state,
-    input,
+    input.liveState.seed ?? DEFAULT_WORLD_SEED,
     objective,
     activePoint,
     CAMP_ARRIVAL_RANGE,
@@ -855,7 +878,7 @@ function fightTarget(
 function travelToPoint(
   view: BotWorldView,
   state: AmbientPlayerBotBrainState,
-  input: AmbientPlayerBotBrainTickInput,
+  seed: number,
   objective: AmbientBotObjective,
   target: BotPoint2d,
   arrivalRange: number,
@@ -865,8 +888,33 @@ function travelToPoint(
     clearPath(state);
     return idleStep(objective.id, objective.label, [], facingFor(view.self.pos, pointToVec(target)));
   }
-  const nextPoint = ensurePath(view, state, input.liveState.seed ?? DEFAULT_WORLD_SEED, target, goalKey);
-  return moveStep(objective.id, objective.label, facingFor(view.self.pos, pointToVec(nextPoint)));
+  const nextPoint = ensurePath(view, state, seed, target, goalKey);
+  return withTravelGoal(
+    moveStep(objective.id, objective.label, facingFor(view.self.pos, pointToVec(nextPoint))),
+    target,
+    arrivalRange,
+    goalKey,
+  );
+}
+
+export function continueAmbientPlayerBotTravel(
+  liveState: AmbientPlayerBotLiveState,
+  state: AmbientPlayerBotBrainState,
+  objectiveId: string,
+  objectiveLabel: string,
+  goal: AmbientPlayerBotTravelGoal,
+): AmbientPlayerBotBrainTickResult | null {
+  const view = buildWorldView(liveState);
+  if (!view) return null;
+  return travelToPoint(
+    view,
+    state,
+    liveState.seed ?? DEFAULT_WORLD_SEED,
+    { id: objectiveId, label: objectiveLabel },
+    goal.target,
+    goal.arrivalRange,
+    goal.goalKey,
+  );
 }
 
 function ensurePath(
@@ -1388,6 +1436,22 @@ function idleStep(
     commands,
     moveInput: {},
     ...(facing !== undefined ? { facing } : {}),
+  };
+}
+
+function withTravelGoal(
+  step: AmbientPlayerBotBrainTickResult,
+  target: BotPoint2d,
+  arrivalRange: number,
+  goalKey: string,
+): AmbientPlayerBotBrainTickResult {
+  return {
+    ...step,
+    travelGoal: {
+      target: { x: target.x, z: target.z },
+      arrivalRange,
+      goalKey,
+    },
   };
 }
 

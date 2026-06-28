@@ -346,7 +346,7 @@ describe('AmbientPlayerBotRuntime', () => {
         lastKnownX: 12,
         lastKnownZ: 34,
         lastKnownLevel: 2,
-        runnerState: { pid: 77, connected: true },
+        runnerState: expect.objectContaining({ pid: 77, connected: true }),
       }));
     });
 

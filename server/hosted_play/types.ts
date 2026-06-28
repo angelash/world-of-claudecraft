@@ -19,8 +19,6 @@ export type HostedPlayGroupMode =
 
 export type HostedPlayPauseReason =
   | ''
-  | 'manual_input'
-  | 'manual_command'
   | 'runtime_error';
 
 export interface HostedPlayPreferences {

@@ -1,7 +1,9 @@
 import {
+  continueAmbientPlayerBotTravel,
   createAmbientPlayerBotBrainState,
   tickAmbientPlayerBotBrain,
   type AmbientPlayerBotBrainState,
+  type AmbientPlayerBotBrainTickResult,
 } from '../ambient_bots/brain';
 import { AmbientPlayerBotLlmCoordinator } from '../ambient_bots/llm_coordinator';
 import {
@@ -35,7 +37,8 @@ import type {
 import { defaultHostedPlayPreferences } from './types';
 
 const HOSTED_PLAY_BRAIN_INTERVAL_MS = 250;
-const HOSTED_PLAY_MANUAL_PAUSE_MS = 10_000;
+const HOSTED_PLAY_DRIVE_INTERVAL_MS = 50;
+const HOSTED_PLAY_ERROR_PAUSE_MS = 10_000;
 
 interface HostedPlayEntry {
   characterId: number;
@@ -57,14 +60,14 @@ interface HostedPlayEntry {
   lastWhisperFrom: string;
   lastSocialAction: string;
   brainState: AmbientPlayerBotBrainState;
+  lastBrainAtMs: number | null;
+  lastBrainResult: AmbientPlayerBotBrainTickResult | null;
+  brainDrivePaused: boolean;
   partyState: HostedPlayPartyState;
   llmState: HostedPlayLlmState;
 }
 
 export interface HostedPlayRuntimeGame {
-  setHostedPlayInputObserver(
-    handler: ((characterId: number, kind: 'input' | 'command') => void) | null,
-  ): void;
   hostedPlaySessionInfo(characterId: number): HostedPlaySessionInfo | null;
   buildHostedPlayLiveState(characterId: number): AmbientPlayerBotLiveState | null;
   applyHostedPlayMoveInput(
@@ -85,7 +88,7 @@ export interface HostedPlayRuntimeOptions {
   llmCoordinator?: AmbientPlayerBotLlmCoordinator | null;
   llmConfig?: AmbientPlayerBotLlmConfig | null;
   brainIntervalMs?: number;
-  manualPauseMs?: number;
+  errorPauseMs?: number;
   nowMs?: () => number;
 }
 
@@ -94,8 +97,9 @@ export class HostedPlayRuntime {
   private readonly llmCoordinator: AmbientPlayerBotLlmCoordinator | null;
   private readonly llmConfig: AmbientPlayerBotLlmConfig;
   private readonly llmEnabled: boolean;
-  private readonly brainIntervalMs: number;
-  private readonly manualPauseMs: number;
+  private readonly brainDecisionIntervalMs: number;
+  private readonly loopIntervalMs: number;
+  private readonly errorPauseMs: number;
   private readonly nowMs: () => number;
   private readonly entries = new Map<number, HostedPlayEntry>();
   private interval: NodeJS.Timeout | null = null;
@@ -106,20 +110,18 @@ export class HostedPlayRuntime {
     this.llmCoordinator = options.llmCoordinator ?? null;
     this.llmConfig = options.llmConfig ?? hostedPlayLlmConfigFromEnv();
     this.llmEnabled = this.llmConfig.enabled && this.llmCoordinator !== null;
-    this.brainIntervalMs = options.brainIntervalMs ?? HOSTED_PLAY_BRAIN_INTERVAL_MS;
-    this.manualPauseMs = options.manualPauseMs ?? HOSTED_PLAY_MANUAL_PAUSE_MS;
+    this.brainDecisionIntervalMs = options.brainIntervalMs ?? HOSTED_PLAY_BRAIN_INTERVAL_MS;
+    this.loopIntervalMs = Math.min(this.brainDecisionIntervalMs, HOSTED_PLAY_DRIVE_INTERVAL_MS);
+    this.errorPauseMs = options.errorPauseMs ?? HOSTED_PLAY_ERROR_PAUSE_MS;
     this.nowMs = options.nowMs ?? (() => Date.now());
   }
 
   async start(): Promise<void> {
     if (this.started) return;
     this.started = true;
-    this.game.setHostedPlayInputObserver((characterId, kind) => {
-      this.handleManualActivity(characterId, kind);
-    });
     this.interval = setInterval(() => {
       this.tick();
-    }, this.brainIntervalMs);
+    }, this.loopIntervalMs);
   }
 
   async stop(): Promise<void> {
@@ -127,7 +129,6 @@ export class HostedPlayRuntime {
     this.started = false;
     if (this.interval) clearInterval(this.interval);
     this.interval = null;
-    this.game.setHostedPlayInputObserver(null);
     for (const characterId of this.entries.keys()) {
       this.game.setHostedPlayObserved(characterId, false);
       this.game.clearHostedPlayControl(characterId);
@@ -207,6 +208,9 @@ export class HostedPlayRuntime {
           pauseUntilMs: null,
           pauseReason: '',
           lastError: '',
+          lastBrainAtMs: null,
+          lastBrainResult: null,
+          brainDrivePaused: false,
         }
       : {
           characterId,
@@ -228,6 +232,9 @@ export class HostedPlayRuntime {
           lastWhisperFrom: '',
           lastSocialAction: '',
           brainState: createAmbientPlayerBotBrainState(),
+          lastBrainAtMs: null,
+          lastBrainResult: null,
+          brainDrivePaused: false,
           partyState: createHostedPlayPartyState(),
           llmState: createHostedPlayLlmState(this.llmEnabled ? this.llmConfig : null),
         };
@@ -255,21 +262,13 @@ export class HostedPlayRuntime {
     return this.status(characterId);
   }
 
-  private handleManualActivity(characterId: number, kind: 'input' | 'command'): void {
-    const entry = this.entries.get(characterId);
-    if (!entry) return;
-    entry.pauseUntilMs = this.nowMs() + this.manualPauseMs;
-    entry.pauseReason = kind === 'command' ? 'manual_command' : 'manual_input';
-    this.game.clearHostedPlayControl(characterId);
-  }
-
   private tick(): void {
     for (const [characterId, entry] of [...this.entries.entries()]) {
       try {
         this.tickEntry(characterId, entry);
       } catch (err) {
         entry.lastError = err instanceof Error ? err.message : String(err);
-        entry.pauseUntilMs = this.nowMs() + this.manualPauseMs;
+        entry.pauseUntilMs = this.nowMs() + this.errorPauseMs;
         entry.pauseReason = 'runtime_error';
         this.game.clearHostedPlayControl(characterId);
       }
@@ -287,6 +286,7 @@ export class HostedPlayRuntime {
     entry.playerClass = info.playerClass;
 
     const nowMs = this.nowMs();
+    const runtimeAtMs = nowMs;
     if (entry.pauseUntilMs !== null && entry.pauseUntilMs > nowMs) return;
     if (entry.pauseUntilMs !== null && entry.pauseUntilMs <= nowMs) {
       entry.pauseUntilMs = null;
@@ -306,6 +306,13 @@ export class HostedPlayRuntime {
       return;
     }
     this.game.noteHostedPlayActivity(characterId);
+    const decisionDue = entry.lastBrainResult === null
+      || entry.lastBrainAtMs === null
+      || runtimeAtMs - entry.lastBrainAtMs >= this.brainDecisionIntervalMs;
+    if (!decisionDue) {
+      this.driveHostedEntry(characterId, entry, liveState);
+      return;
+    }
     const recentEvents = this.game.drainHostedPlayRecentEvents(characterId);
 
     const result = tickAmbientPlayerBotBrain(
@@ -316,6 +323,8 @@ export class HostedPlayRuntime {
       },
       entry.brainState,
     );
+    entry.lastBrainAtMs = runtimeAtMs;
+    entry.lastBrainResult = result;
     entry.objectiveId = result.objectiveId;
     entry.objectiveLabel = result.objectiveLabel;
     entry.lastError = '';
@@ -331,6 +340,7 @@ export class HostedPlayRuntime {
     entry.groupMode = partyResult.groupMode;
     entry.groupLeaderName = partyResult.groupLeaderName;
     entry.groupLeaderDistance = partyResult.groupLeaderDistance;
+    entry.brainDrivePaused = partyResult.pauseBrainDrive;
 
     const socialResult = tickAmbientPlayerBotSocialShell(
       {
@@ -354,10 +364,8 @@ export class HostedPlayRuntime {
     }
     if (partyResult.pauseBrainDrive) {
       this.game.clearHostedPlayControl(characterId);
-    } else if (hasHostedDrive(result.moveInput, result.facing)) {
-      this.game.applyHostedPlayMoveInput(characterId, result.moveInput, result.facing);
     } else {
-      this.game.clearHostedPlayControl(characterId);
+      this.driveHostedEntry(characterId, entry, liveState, result);
     }
     if (!partyResult.pauseBrainDrive) {
       for (const command of result.commands) {
@@ -384,6 +392,32 @@ export class HostedPlayRuntime {
       }
     }
     entry.lastAutomationAtMs = nowMs;
+  }
+
+  private driveHostedEntry(
+    characterId: number,
+    entry: HostedPlayEntry,
+    liveState: AmbientPlayerBotLiveState,
+    result: AmbientPlayerBotBrainTickResult | null = entry.lastBrainResult,
+  ): void {
+    if (!result || entry.brainDrivePaused) {
+      this.game.clearHostedPlayControl(characterId);
+      return;
+    }
+    const driveResult = result.travelGoal
+      ? continueAmbientPlayerBotTravel(
+          liveState,
+          entry.brainState,
+          result.objectiveId,
+          result.objectiveLabel,
+          result.travelGoal,
+        ) ?? result
+      : result;
+    if (hasHostedDrive(driveResult.moveInput, driveResult.facing)) {
+      this.game.applyHostedPlayMoveInput(characterId, driveResult.moveInput, driveResult.facing);
+    } else {
+      this.game.clearHostedPlayControl(characterId);
+    }
   }
 
   private applyHostedPlaySocialCommand(

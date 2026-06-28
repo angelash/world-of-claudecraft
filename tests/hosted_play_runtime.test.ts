@@ -57,14 +57,12 @@ function fakeGame(
     ambientBotNames?: string[];
   } = {},
 ): HostedPlayRuntimeGame & {
-  observer: ((characterId: number, kind: 'input' | 'command') => void) | null;
   commands: Record<string, unknown>[];
   moveInputs: Array<{ moveInput: Record<string, unknown>; facing?: number }>;
   clearCount: number;
   activityCount: number;
   observed: boolean;
 } {
-  let observer: ((characterId: number, kind: 'input' | 'command') => void) | null = null;
   const commands: Record<string, unknown>[] = [];
   const moveInputs: Array<{ moveInput: Record<string, unknown>; facing?: number }> = [];
   let clearCount = 0;
@@ -72,9 +70,6 @@ function fakeGame(
   let observed = false;
   let recentEvents = [...(options.recentEvents ?? [])];
   return {
-    get observer() {
-      return observer;
-    },
     get commands() {
       return commands;
     },
@@ -89,9 +84,6 @@ function fakeGame(
     },
     get observed() {
       return observed;
-    },
-    setHostedPlayInputObserver(handler) {
-      observer = handler;
     },
     hostedPlaySessionInfo(characterId) {
       return state
@@ -200,26 +192,53 @@ describe('HostedPlayRuntime', () => {
     });
   });
 
-  it('pauses hosted play after manual player activity and clears held input', async () => {
-    const game = fakeGame(liveState({ hp: 0 }));
+  it('keeps driving travel between full brain decisions', () => {
+    let nowMs = 20_000;
+    const state = liveState({
+      x: 0,
+      z: 0,
+      entities: [
+        { id: 201, k: 'npc', tid: 'marshal_redbrook', x: 20, z: 0, lv: 1 },
+      ],
+    });
+    const game = fakeGame(state);
+    const runtime = new HostedPlayRuntime({
+      game,
+      brainIntervalMs: 250,
+      nowMs: () => nowMs,
+    });
+
+    runtime.enable(7);
+    (runtime as any).tick();
+    nowMs += 50;
+    state.self!.x = 3;
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([]);
+    expect(game.moveInputs).toHaveLength(2);
+    expect(game.moveInputs.every((input) => input.moveInput.f === 1)).toBe(true);
+    expect(game.moveInputs.every((input) => typeof input.facing === 'number')).toBe(true);
+  });
+
+  it('pauses hosted play after runtime errors and clears held input', () => {
+    const game = fakeGame(liveState());
     const runtime = new HostedPlayRuntime({
       game,
       nowMs: () => 20_000,
     });
-    await runtime.start();
     runtime.enable(7);
-    game.observer?.(7, 'input');
+    game.buildHostedPlayLiveState = () => {
+      throw new Error('hosted brain failed');
+    };
+
     (runtime as any).tick();
 
-    expect(game.commands).toHaveLength(0);
     expect(runtime.status(7)).toMatchObject({
       paused: true,
       mode: 'paused',
-      pauseReason: 'manual_input',
+      pauseReason: 'runtime_error',
     });
     expect(game.clearCount).toBeGreaterThan(0);
-
-    await runtime.stop();
   });
 
   it('disables hosted play cleanly', () => {

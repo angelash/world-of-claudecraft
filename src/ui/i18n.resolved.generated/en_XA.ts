@@ -627,7 +627,6 @@ export const en_XA: EnTranslations = {
     "hostedPlay": {
       "menuButton": "[Ĥóšţéð Þļáý]",
       "title": "[Ĥóšţéð Þļáý]",
-      "note": "[Ĥóšţéð þļáý úšéš ýóúŕ çúŕŕéñţ óñļíñé šéššíóñ óñļý. Ɱáñúáļ ɱóʋéɱéñţ óŕ áçţíóñš þáúšé íţ ƀŕíéƒļý šó ýóú çáñ ţáķé óʋéŕ áţ áñý ţíɱé.]",
       "statusLabel": "[Šţáţúš]",
       "objectiveLabel": "[Óƀĵéçţíʋé]",
       "resumeOnLogin": "[Ŕéšúɱé óñ Ļóĝíñ]",
@@ -697,8 +696,6 @@ export const en_XA: EnTranslations = {
         "paused": "[Þáúšéð]"
       },
       "pause": {
-        "manualInput": "[Þáúšéð áƒţéŕ ɱáñúáļ ɱóʋéɱéñţ.]",
-        "manualCommand": "[Þáúšéð áƒţéŕ á ɱáñúáļ áçţíóñ.]",
         "runtimeError": "[Þáúšéð áƒţéŕ áñ áúţóɱáţíóñ éŕŕóŕ.]"
       }
     },

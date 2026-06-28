@@ -63,7 +63,6 @@ function fakeGame(
     get commands() {
       return commands;
     },
-    setHostedPlayInputObserver() {},
     hostedPlaySessionInfo(characterId) {
       return state
         ? {

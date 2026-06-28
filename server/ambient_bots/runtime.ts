@@ -2,9 +2,11 @@ import { performance } from 'node:perf_hooks';
 import { zoneAt } from '../../src/sim/data';
 import { accountForToken } from '../db';
 import {
+  continueAmbientPlayerBotTravel,
   createAmbientPlayerBotBrainState,
   tickAmbientPlayerBotBrain,
   type AmbientPlayerBotBrainState,
+  type AmbientPlayerBotBrainTickResult,
 } from './brain';
 import {
   createAmbientPlayerBotGroupRuntimeState,
@@ -36,6 +38,9 @@ import type {
   AmbientPlayerBotRuntimeSessionSnapshot,
 } from './types';
 import { AmbientPlayerBotWsClient, type AmbientPlayerBotLiveState, type AmbientPlayerBotSocket } from './ws_client';
+
+const AMBIENT_BOT_DECISION_INTERVAL_MS = 250;
+const AMBIENT_BOT_DRIVE_INTERVAL_MS = 50;
 
 export interface AmbientPlayerBotRuntimeGame {
   replaceAmbientPlayerBotDirectory(records: readonly AmbientPlayerBotRecord[]): void;
@@ -71,6 +76,9 @@ interface RunnerEntry {
   brainState: AmbientPlayerBotBrainState;
   groupState: AmbientPlayerBotGroupRuntimeState;
   socialState: AmbientPlayerBotSocialRuntimeState;
+  lastBrainAtMs: number | null;
+  lastBrainResult: AmbientPlayerBotBrainTickResult | null;
+  brainDrivePaused: boolean;
   llmPlan: AmbientBotPlanDecisionV1 | null;
   llmPlanPending: boolean;
   llmPlanRequestedAtMs: number | null;
@@ -126,7 +134,8 @@ export class AmbientPlayerBotRuntime {
   private readonly wsBaseUrl: string;
   private readonly llmCoordinator: AmbientPlayerBotLlmCoordinator | null;
   private readonly llmConfig: AmbientPlayerBotLlmConfig;
-  private readonly brainIntervalMs: number;
+  private readonly brainDecisionIntervalMs: number;
+  private readonly brainLoopIntervalMs: number;
   private readonly webSocketFactory?: (url: string) => AmbientPlayerBotSocket;
   private readonly nowMs: () => number;
   private readonly resolveAccountIdForToken: (token: string) => Promise<number | null>;
@@ -148,7 +157,8 @@ export class AmbientPlayerBotRuntime {
     this.wsBaseUrl = options.wsBaseUrl.replace(/\/+$/, '');
     this.llmCoordinator = options.llmCoordinator ?? null;
     this.llmConfig = options.llmConfig ?? ambientPlayerBotLlmConfigFromEnv();
-    this.brainIntervalMs = options.brainIntervalMs ?? 250;
+    this.brainDecisionIntervalMs = options.brainIntervalMs ?? AMBIENT_BOT_DECISION_INTERVAL_MS;
+    this.brainLoopIntervalMs = Math.min(this.brainDecisionIntervalMs, AMBIENT_BOT_DRIVE_INTERVAL_MS);
     this.webSocketFactory = options.webSocketFactory;
     this.nowMs = options.nowMs ?? (() => Date.now());
     this.resolveAccountIdForToken = options.resolveAccountIdForToken ?? accountForToken;
@@ -283,7 +293,7 @@ export class AmbientPlayerBotRuntime {
         this.recordFailure('brain_loop', '', error);
         console.error('ambient bot brain loop failed:', error);
       });
-    }, this.brainIntervalMs);
+    }, this.brainLoopIntervalMs);
     this.brainInterval.unref?.();
   }
 
@@ -456,6 +466,9 @@ export class AmbientPlayerBotRuntime {
       brainState: createAmbientPlayerBotBrainState(),
       groupState: createAmbientPlayerBotGroupRuntimeState(),
       socialState: createAmbientPlayerBotSocialRuntimeState(),
+      lastBrainAtMs: null,
+      lastBrainResult: null,
+      brainDrivePaused: false,
       llmPlan: null,
       llmPlanPending: false,
       llmPlanRequestedAtMs: null,
@@ -561,7 +574,9 @@ export class AmbientPlayerBotRuntime {
   private async runBrainLoop(): Promise<void> {
     const startedAt = performance.now();
     this.metrics.brainLoops++;
-    this.metrics.lastBrainAtMs = this.nowMs();
+    const nowMs = this.nowMs();
+    const runtimeAtMs = startedAt;
+    this.metrics.lastBrainAtMs = nowMs;
     for (const [botId, entry] of this.runners) {
       if (!this.started || !entry.connected) continue;
       this.metrics.brainBotTicks++;
@@ -570,12 +585,21 @@ export class AmbientPlayerBotRuntime {
       try {
         const liveState = entry.client.state();
         if (!liveState.self) continue;
+        const decisionDue = entry.lastBrainResult === null
+          || entry.lastBrainAtMs === null
+          || runtimeAtMs - entry.lastBrainAtMs >= this.brainDecisionIntervalMs;
+        if (!decisionDue) {
+          this.driveAmbientBotEntry(entry, liveState);
+          continue;
+        }
         const recentEvents = entry.client.drainEvents();
         const result = tickAmbientPlayerBotBrain({
           bot: record,
           liveState,
-          nowMs: this.nowMs(),
+          nowMs,
         }, entry.brainState);
+        entry.lastBrainAtMs = runtimeAtMs;
+        entry.lastBrainResult = result;
         const latest = this.game.ambientPlayerBotRecord(botId);
         if (!latest) continue;
         const groupResult = (result.objectiveSuggestedPartySize ?? 0) > 1
@@ -588,7 +612,7 @@ export class AmbientPlayerBotRuntime {
               objectiveDungeonId: result.objectiveDungeonId,
               objectiveSuggestedPartySize: result.objectiveSuggestedPartySize ?? 1,
               directory: this.game.ambientPlayerBotDirectory(),
-              nowMs: this.nowMs(),
+              nowMs,
             }, entry.groupState)
           : {
               commands: [],
@@ -607,10 +631,11 @@ export class AmbientPlayerBotRuntime {
                 groupLeaderDistance: 0,
               },
             };
+        entry.brainDrivePaused = groupResult.pauseBrainDrive;
         for (const command of groupResult.commands) entry.client.command(command);
         if (!groupResult.pauseBrainDrive) {
           for (const command of result.commands) entry.client.command(command);
-          entry.client.input(result.moveInput, result.facing);
+          this.driveAmbientBotEntry(entry, liveState, result);
         } else {
           entry.client.input({});
         }
@@ -622,7 +647,7 @@ export class AmbientPlayerBotRuntime {
             this.game.ambientPlayerBotDirectory().map((candidate) => candidate.characterName).filter(Boolean),
           ),
           llmPlan: entry.llmPlan,
-          nowMs: this.nowMs(),
+          nowMs,
         }, entry.socialState);
         for (const command of socialResult.commands) {
           switch (command.type) {
@@ -683,6 +708,31 @@ export class AmbientPlayerBotRuntime {
       }
     }
     this.metrics.lastBrainDurationMs = Math.max(0, Math.round(performance.now() - startedAt));
+  }
+
+  private driveAmbientBotEntry(
+    entry: RunnerEntry,
+    liveState: AmbientPlayerBotLiveState,
+    result: AmbientPlayerBotBrainTickResult | null = entry.lastBrainResult,
+  ): void {
+    if (!result || entry.brainDrivePaused) {
+      entry.client.input({});
+      return;
+    }
+    const driveResult = result.travelGoal
+      ? continueAmbientPlayerBotTravel(
+          liveState,
+          entry.brainState,
+          result.objectiveId,
+          result.objectiveLabel,
+          result.travelGoal,
+        ) ?? result
+      : result;
+    if (hasAmbientDrive(driveResult.moveInput, driveResult.facing)) {
+      entry.client.input(driveResult.moveInput, driveResult.facing);
+    } else {
+      entry.client.input({});
+    }
   }
 
   private maybeQueuePlanDecision(
@@ -861,6 +911,11 @@ function normalizeBootRecord(record: AmbientPlayerBotRecord): AmbientPlayerBotRe
 function isRetryableCharacterCreateError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   return /that name is taken|invalid character name/i.test(error.message);
+}
+
+function hasAmbientDrive(moveInput: Record<string, unknown>, facing?: number): boolean {
+  if (facing !== undefined && Number.isFinite(facing)) return true;
+  return Object.values(moveInput).some((value) => value === 1 || value === true);
 }
 
 function sameRunnerState(

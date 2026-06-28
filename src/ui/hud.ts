@@ -51,6 +51,7 @@ import {
   validateAllocation,
 } from '../sim/content/talents';
 import type { ZoneDef } from '../sim/data';
+import { formatAuraDuration } from './aura_duration';
 import {
   ABILITIES,
   CAMPS,
@@ -279,6 +280,7 @@ import { localizeSimAuraName, localizeSimText } from './sim_i18n';
 import { buildStatTooltip, type StatId, type StatTooltipModel, weaponDps } from './stat_tooltip';
 import { type StatTooltipI18n, statCellHtml, statTooltipHtml } from './stat_tooltip_view';
 import { nearestSubzone } from './subzone';
+import { renderHostedPlayPanel, type HostedPlayHooks } from './hosted_play_panel';
 import { localizeTalentTitle, tTalent } from './talent_i18n';
 import { talentChoiceIconDataUrl, talentNodeIconDataUrl } from './talent_icons';
 import {
@@ -348,72 +350,6 @@ export interface GamepadBindingsHooks {
   entries(): { button: number; action: string }[];
   bind(button: number, action: string): void;
   reset(): void;
-}
-
-export type HostedPlayPartyModeView =
-  | 'solo'
-  | 'follow_leader';
-
-export type HostedPlayGroupModeView =
-  | ''
-  | 'brain'
-  | 'follow_leader'
-  | 'hold_regroup';
-
-export type HostedPlayLlmDecisionStatusView =
-  | ''
-  | 'accepted'
-  | 'cache_hit'
-  | 'rejected'
-  | 'error'
-  | 'budget_denied'
-  | 'disabled';
-
-export type HostedPlayLlmModeView =
-  | ''
-  | 'quiet'
-  | 'brief'
-  | 'friendly'
-  | 'helpful';
-
-export interface HostedPlaySettingsView {
-  resumeOnLogin: boolean;
-  partyMode: HostedPlayPartyModeView;
-}
-
-export interface HostedPlayStatusView extends HostedPlaySettingsView {
-  online: boolean;
-  enabled: boolean;
-  active: boolean;
-  paused: boolean;
-  mode: 'offline' | 'disabled' | 'active' | 'paused';
-  objectiveLabel: string;
-  pauseReason: '' | 'manual_input' | 'manual_command' | 'runtime_error';
-  pauseSecondsRemaining: number;
-  lastError: string;
-  groupMode: HostedPlayGroupModeView;
-  groupLeaderName: string;
-  groupLeaderDistance: number;
-  socialPendingReplies: number;
-  socialFriends: number;
-  socialBlocks: number;
-  lastWhisperFrom: string;
-  lastSocialAction: string;
-  llmEnabled: boolean;
-  llmPlanPending: boolean;
-  llmPlanMode: HostedPlayLlmModeView;
-  llmPlanFocus: string;
-  llmPlanStatus: HostedPlayLlmDecisionStatusView;
-  llmPlanReason: string;
-  llmSocialStatus: HostedPlayLlmDecisionStatusView;
-  llmSocialReason: string;
-  llmSocialTarget: string;
-}
-
-export interface HostedPlayHooks {
-  status(): Promise<HostedPlayStatusView>;
-  setEnabled(enabled: boolean): Promise<HostedPlayStatusView>;
-  updateSettings(settings: HostedPlaySettingsView): Promise<HostedPlayStatusView>;
 }
 
 export interface ReportHooks {
@@ -809,8 +745,7 @@ export class Hud {
     | 'interface'
     | 'performance'
     | 'controller'
-    | 'bugreport'
-    | 'hostedPlay' = 'main';
+    | 'bugreport' = 'main';
   // The Options > Performance panel, lazily built and reused (it caches the live
   // position-slider handles so a drag-to-move can update them in place).
   private perfSettings: PerfOverlaySettingsPanel | null = null;
@@ -1352,6 +1287,11 @@ export class Hud {
     mapCanvas.addEventListener('pointerup', endDrag);
     mapCanvas.addEventListener('pointercancel', endDrag);
     $('#mm-bag').addEventListener('click', () => this.toggleBags());
+    $('#mm-hosted-play')?.addEventListener('click', () => {
+      if (!this.optionsHooks?.hostedPlay) return;
+      audio.click();
+      this.toggleHostedPlayWindow();
+    });
     // Drop an equipped piece dragged out of the paperdoll onto the bags window.
     const bagsEl = $('#bags');
     bagsEl.addEventListener('dragover', (e) => {
@@ -1565,7 +1505,12 @@ export class Hud {
   }
 
   private placeNewWindow(el: HTMLElement): void {
-    if (el.dataset.windowMoved === '1' || el.id === 'loot-window' || el.id === 'confirm-dialog')
+    if (
+      el.dataset.windowMoved === '1' ||
+      el.id === 'loot-window' ||
+      el.id === 'confirm-dialog' ||
+      el.id === 'hosted-play-window'
+    )
       return;
     if (
       document.body.classList.contains('vendor-open') &&
@@ -1710,6 +1655,9 @@ export class Hud {
           this.hideTooltip();
           this.cancelPetFeed();
         }
+        break;
+      case 'hosted-play-window':
+        this.closeHostedPlayWindow();
         break;
       case 'talents-window':
         el.style.display = 'none';
@@ -13312,6 +13260,9 @@ export class Hud {
 
   attachOptions(hooks: OptionsHooks): void {
     this.optionsHooks = hooks;
+    const hostedPlayBtn = document.getElementById('mm-hosted-play') as HTMLButtonElement | null;
+    if (hostedPlayBtn) hostedPlayBtn.hidden = !hooks.hostedPlay;
+    if (!hooks.hostedPlay) this.closeHostedPlayWindow();
   }
 
   attachReporting(hooks: ReportHooks): void {
@@ -13407,10 +13358,6 @@ export class Hud {
       this.renderBugReport();
       return;
     }
-    if (this.optionsView === 'hostedPlay') {
-      this.renderHostedPlay();
-      return;
-    }
     const el = $('#options-menu');
     el.innerHTML = `<div class="panel-title"><span>${esc(t('hud.options.gameMenu'))}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('hud.options.returnToGame'))}">${svgIcon('close')}</button></div>`;
     const list = document.createElement('div');
@@ -13433,8 +13380,7 @@ export class Hud {
         | 'interface'
         | 'performance'
         | 'controller'
-        | 'bugreport'
-        | 'hostedPlay',
+        | 'bugreport',
     ) => {
       this.optionsView = view;
       this.keybindNote = '';
@@ -13446,7 +13392,11 @@ export class Hud {
     add(t('hud.options.interface'), () => goto('interface'));
     add(t('hud.options.audio'), () => goto('audio'));
     add(t('hudChrome.perf.title'), () => goto('performance'));
-    if (this.optionsHooks?.hostedPlay) add(t('hudChrome.hostedPlay.menuButton'), () => goto('hostedPlay'));
+    if (this.optionsHooks?.hostedPlay)
+      add(t('hudChrome.hostedPlay.menuButton'), () => {
+        this.closeOptions();
+        this.openHostedPlayWindow();
+      });
     // Online-only: capturing realm/character/position needs an authoritative server.
     if (this.bugReportHooks) add(t('hudChrome.bugReport.menuButton'), () => goto('bugreport'));
     add(t('hud.options.logout'), () => this.optionsHooks?.logout());
@@ -13610,13 +13560,16 @@ export class Hud {
     sync();
   }
 
-  private settingsViewShell(title: string): HTMLElement {
-    const el = $('#options-menu');
-    el.innerHTML = `<div class="panel-title"><span>${esc(title)}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('hud.options.returnToGame'))}">${svgIcon('close')}</button></div>`;
+  private panelViewShell(target: HTMLElement, title: string): HTMLElement {
+    target.innerHTML = `<div class="panel-title"><span>${esc(title)}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('hud.options.returnToGame'))}">${svgIcon('close')}</button></div>`;
     const body = document.createElement('div');
     body.className = 'set-rows';
-    el.appendChild(body);
+    target.appendChild(body);
     return body;
+  }
+
+  private settingsViewShell(title: string): HTMLElement {
+    return this.panelViewShell($('#options-menu'), title);
   }
 
   private settingsViewFooter(): void {
@@ -13646,363 +13599,43 @@ export class Hud {
     el.querySelector('[data-close]')?.addEventListener('click', () => this.closeOptions());
   }
 
-  private renderHostedPlay(): void {
-    const hooks = this.optionsHooks?.hostedPlay;
-    if (!hooks) {
-      this.optionsView = 'main';
-      this.renderOptions();
+  private closeHostedPlayWindow(): void {
+    const el = $('#hosted-play-window');
+    if (el.style.display === 'none') return;
+    el.style.display = 'none';
+    this.hideTooltip();
+  }
+
+  private openHostedPlayWindow(): void {
+    if (!this.optionsHooks?.hostedPlay) return;
+    if (this.optionsOpen) this.closeOptions();
+    this.closeOtherWindows('#hosted-play-window');
+    const el = $('#hosted-play-window');
+    const wasOpen = this.isWindowVisible(el);
+    this.renderHostedPlayWindow();
+    el.style.display = 'flex';
+    if (wasOpen) this.bringWindowToFront(el);
+  }
+
+  private toggleHostedPlayWindow(): void {
+    const el = $('#hosted-play-window');
+    if (this.isWindowVisible(el)) {
+      this.closeHostedPlayWindow();
       return;
     }
-    const body = this.settingsViewShell(t('hudChrome.hostedPlay.title'));
+    this.openHostedPlayWindow();
+  }
 
-    const note = document.createElement('p');
-    note.className = 'set-note';
-    note.textContent = t('hudChrome.hostedPlay.note');
-    body.appendChild(note);
-
-    const statusBox = document.createElement('div');
-    statusBox.className = 'bug-info';
-    body.appendChild(statusBox);
-
-    const message = document.createElement('div');
-    message.className = 'set-note';
-    body.appendChild(message);
-
-    const actions = document.createElement('div');
-    actions.className = 'set-choice';
-    body.appendChild(actions);
-
-    const settings = document.createElement('div');
-    settings.className = 'set-rows';
-    body.appendChild(settings);
-
-    const enableBtn = document.createElement('button');
-    enableBtn.type = 'button';
-    enableBtn.className = 'btn set-choice-btn';
-    enableBtn.textContent = t('hudChrome.hostedPlay.enable');
-    actions.appendChild(enableBtn);
-
-    const disableBtn = document.createElement('button');
-    disableBtn.type = 'button';
-    disableBtn.className = 'btn set-choice-btn';
-    disableBtn.textContent = t('hudChrome.hostedPlay.disable');
-    actions.appendChild(disableBtn);
-
-    const refreshBtn = document.createElement('button');
-    refreshBtn.type = 'button';
-    refreshBtn.className = 'btn set-choice-btn';
-    refreshBtn.textContent = t('hudChrome.hostedPlay.refresh');
-    actions.appendChild(refreshBtn);
-
-    const resumeRow = document.createElement('div');
-    resumeRow.className = 'set-row';
-    const resumeLabel = document.createElement('span');
-    resumeLabel.className = 'set-name';
-    resumeLabel.textContent = t('hudChrome.hostedPlay.resumeOnLogin');
-    const resumeBtn = document.createElement('button');
-    resumeBtn.type = 'button';
-    resumeBtn.className = 'btn set-toggle';
-    resumeRow.append(resumeLabel, resumeBtn);
-    settings.appendChild(resumeRow);
-
-    const partyRow = document.createElement('div');
-    partyRow.className = 'set-row';
-    const partyLabel = document.createElement('span');
-    partyLabel.className = 'set-name';
-    partyLabel.textContent = t('hudChrome.hostedPlay.partyModeLabel');
-    const partyChoices = document.createElement('div');
-    partyChoices.className = 'set-choice';
-    const partySoloBtn = document.createElement('button');
-    partySoloBtn.type = 'button';
-    partySoloBtn.className = 'btn set-choice-btn';
-    partySoloBtn.textContent = t('hudChrome.hostedPlay.partyMode.solo');
-    const partyFollowBtn = document.createElement('button');
-    partyFollowBtn.type = 'button';
-    partyFollowBtn.className = 'btn set-choice-btn';
-    partyFollowBtn.textContent = t('hudChrome.hostedPlay.partyMode.followLeader');
-    partyChoices.append(partySoloBtn, partyFollowBtn);
-    partyRow.append(partyLabel, partyChoices);
-    settings.appendChild(partyRow);
-
-    let pending = false;
-    let currentStatus: HostedPlayStatusView | null = null;
-
-    const appendRow = (label: string, value: string) => {
-      const row = document.createElement('div');
-      row.className = 'bug-info-row';
-      const labelEl = document.createElement('span');
-      labelEl.className = 'bug-info-label';
-      labelEl.textContent = label;
-      const valueEl = document.createElement('span');
-      valueEl.className = 'bug-info-val';
-      valueEl.textContent = value;
-      row.append(labelEl, valueEl);
-      statusBox.appendChild(row);
-    };
-
-    const statusText = (status: HostedPlayStatusView): string => {
-      switch (status.mode) {
-        case 'offline':
-          return t('hudChrome.hostedPlay.state.offline');
-        case 'disabled':
-          return t('hudChrome.hostedPlay.state.disabled');
-        case 'paused':
-          return t('hudChrome.hostedPlay.state.paused');
-        case 'active':
-        default:
-          return t('hudChrome.hostedPlay.state.active');
-      }
-    };
-
-    const pauseReasonText = (status: HostedPlayStatusView): string => {
-      switch (status.pauseReason) {
-        case 'manual_input':
-          return t('hudChrome.hostedPlay.pause.manualInput');
-        case 'manual_command':
-          return t('hudChrome.hostedPlay.pause.manualCommand');
-        case 'runtime_error':
-          return t('hudChrome.hostedPlay.pause.runtimeError');
-        default:
-          return '';
-      }
-    };
-
-    const partyModeText = (status: HostedPlayStatusView): string =>
-      status.partyMode === 'follow_leader'
-        ? t('hudChrome.hostedPlay.partyMode.followLeader')
-        : t('hudChrome.hostedPlay.partyMode.solo');
-
-    const groupModeText = (status: HostedPlayStatusView): string => {
-      switch (status.groupMode) {
-        case 'brain':
-          return t('hudChrome.hostedPlay.groupMode.brain');
-        case 'follow_leader':
-          return t('hudChrome.hostedPlay.groupMode.followLeader');
-        case 'hold_regroup':
-          return t('hudChrome.hostedPlay.groupMode.holdRegroup');
-        default:
-          return t('hudChrome.hostedPlay.groupMode.none');
-      }
-    };
-
-    const llmDecisionStatusText = (value: HostedPlayLlmDecisionStatusView): string => {
-      switch (value) {
-        case 'accepted':
-          return t('hudChrome.hostedPlay.llmStatus.accepted');
-        case 'cache_hit':
-          return t('hudChrome.hostedPlay.llmStatus.cacheHit');
-        case 'rejected':
-          return t('hudChrome.hostedPlay.llmStatus.rejected');
-        case 'error':
-          return t('hudChrome.hostedPlay.llmStatus.error');
-        case 'budget_denied':
-          return t('hudChrome.hostedPlay.llmStatus.budgetDenied');
-        case 'disabled':
-          return t('hudChrome.hostedPlay.llmStatus.disabled');
-        default:
-          return '';
-      }
-    };
-
-    const llmPlanText = (status: HostedPlayStatusView): string => {
-      if (status.llmPlanPending) return t('hudChrome.hostedPlay.llmStatus.pending');
-      return llmDecisionStatusText(status.llmPlanStatus);
-    };
-
-    const llmModeText = (value: HostedPlayLlmModeView): string => {
-      switch (value) {
-        case 'quiet':
-          return t('hudChrome.hostedPlay.llmMode.quiet');
-        case 'brief':
-          return t('hudChrome.hostedPlay.llmMode.brief');
-        case 'friendly':
-          return t('hudChrome.hostedPlay.llmMode.friendly');
-        case 'helpful':
-          return t('hudChrome.hostedPlay.llmMode.helpful');
-        default:
-          return '';
-      }
-    };
-
-    const lastSocialActionText = (value: string): string => {
-      if (!value) return '';
-      if (value.startsWith('friend_add:')) {
-        return t('hudChrome.hostedPlay.socialAction.friendAdd', { name: value.slice('friend_add:'.length) });
-      }
-      if (value.startsWith('reply:')) {
-        return t('hudChrome.hostedPlay.socialAction.reply', { name: value.slice('reply:'.length) });
-      }
-      if (value.startsWith('/wave ')) {
-        return t('hudChrome.hostedPlay.socialAction.wave', { name: value.slice('/wave '.length) });
-      }
-      if (value.startsWith('/cheer ')) {
-        return t('hudChrome.hostedPlay.socialAction.cheer', { name: value.slice('/cheer '.length) });
-      }
-      return t('hudChrome.hostedPlay.socialAction.sentChat');
-    };
-
-    const syncControls = () => {
-      const online = currentStatus?.online ?? false;
-      const enabled = currentStatus?.enabled ?? false;
-      enableBtn.disabled = pending || !online || enabled;
-      disableBtn.disabled = pending || !enabled;
-      refreshBtn.disabled = pending;
-
-      const resumeOnLogin = currentStatus?.resumeOnLogin ?? false;
-      resumeBtn.disabled = pending || !currentStatus;
-      resumeBtn.textContent = resumeOnLogin ? t('hud.options.on') : t('hud.options.off');
-      resumeBtn.classList.toggle('off', !resumeOnLogin);
-      resumeBtn.setAttribute('aria-pressed', String(resumeOnLogin));
-      resumeBtn.setAttribute('aria-label', t('hudChrome.hostedPlay.resumeOnLogin'));
-
-      const partyMode = currentStatus?.partyMode ?? 'solo';
-      for (const [button, mode] of [
-        [partySoloBtn, 'solo'],
-        [partyFollowBtn, 'follow_leader'],
-      ] as const) {
-        const selected = partyMode === mode;
-        button.disabled = pending || !currentStatus;
-        button.classList.toggle('sel', selected);
-        button.setAttribute('aria-pressed', String(selected));
-      }
-    };
-
-    const renderStatus = (status: HostedPlayStatusView) => {
-      currentStatus = status;
-      statusBox.replaceChildren();
-      appendRow(t('hudChrome.hostedPlay.statusLabel'), statusText(status));
-      appendRow(
-        t('hudChrome.hostedPlay.objectiveLabel'),
-        status.objectiveLabel || t('hudChrome.hostedPlay.objectiveNone'),
-      );
-      appendRow(t('hudChrome.hostedPlay.partyModeStatusLabel'), partyModeText(status));
-      appendRow(t('hudChrome.hostedPlay.groupModeLabel'), groupModeText(status));
-      if (status.groupLeaderName) {
-        appendRow(t('hudChrome.hostedPlay.groupLeaderLabel'), status.groupLeaderName);
-      }
-      if (status.groupLeaderDistance > 0) {
-        appendRow(
-          t('hudChrome.hostedPlay.groupLeaderDistanceLabel'),
-          formatNumber(status.groupLeaderDistance, { maximumFractionDigits: 0 }),
-        );
-      }
-      appendRow(
-        t('hudChrome.hostedPlay.socialPendingRepliesLabel'),
-        formatNumber(status.socialPendingReplies, { maximumFractionDigits: 0 }),
-      );
-      appendRow(
-        t('hudChrome.hostedPlay.socialFriendsLabel'),
-        formatNumber(status.socialFriends, { maximumFractionDigits: 0 }),
-      );
-      appendRow(
-        t('hudChrome.hostedPlay.socialBlocksLabel'),
-        formatNumber(status.socialBlocks, { maximumFractionDigits: 0 }),
-      );
-      if (status.lastWhisperFrom) {
-        appendRow(t('hudChrome.hostedPlay.lastWhisperFromLabel'), status.lastWhisperFrom);
-      }
-      if (status.lastSocialAction) {
-        appendRow(
-          t('hudChrome.hostedPlay.lastSocialActionLabel'),
-          lastSocialActionText(status.lastSocialAction),
-        );
-      }
-      appendRow(
-        t('hudChrome.hostedPlay.llmEnabledLabel'),
-        status.llmEnabled ? t('hud.options.on') : t('hud.options.off'),
-      );
-      const llmPlan = llmPlanText(status);
-      if (llmPlan) appendRow(t('hudChrome.hostedPlay.llmPlanLabel'), llmPlan);
-      const llmMode = llmModeText(status.llmPlanMode);
-      if (llmMode) appendRow(t('hudChrome.hostedPlay.llmPlanModeLabel'), llmMode);
-      if (status.llmPlanFocus) {
-        appendRow(t('hudChrome.hostedPlay.llmPlanFocusLabel'), status.llmPlanFocus);
-      }
-      const llmSocial = llmDecisionStatusText(status.llmSocialStatus);
-      if (llmSocial) appendRow(t('hudChrome.hostedPlay.llmReplyLabel'), llmSocial);
-      if (status.llmSocialTarget) {
-        appendRow(t('hudChrome.hostedPlay.llmReplyTargetLabel'), status.llmSocialTarget);
-      }
-      const pauseReason = pauseReasonText(status);
-      if (pauseReason) appendRow(t('hudChrome.hostedPlay.pauseLabel'), pauseReason);
-      if (status.lastError) appendRow(t('hudChrome.hostedPlay.errorLabel'), t('hudChrome.hostedPlay.runtimeIssue'));
-      syncControls();
-    };
-
-    const runAction = async (
-      action: () => Promise<HostedPlayStatusView>,
-      failureKey:
-        | 'hudChrome.hostedPlay.statusLoadFailed'
-        | 'hudChrome.hostedPlay.updateFailed'
-        | 'hudChrome.hostedPlay.settingsSaveFailed',
-    ) => {
-      pending = true;
-      message.textContent = '';
-      syncControls();
-      try {
-        renderStatus(await action());
-      } catch (err) {
-        console.error('hosted play panel request failed:', err);
-        message.textContent = t(failureKey);
-      } finally {
-        pending = false;
-        syncControls();
-      }
-    };
-
-    const updateSettings = (patch: Partial<HostedPlaySettingsView>) => {
-      const status = currentStatus;
-      if (!status) return;
-      void runAction(
-        () =>
-          hooks.updateSettings({
-            resumeOnLogin: patch.resumeOnLogin ?? status.resumeOnLogin,
-            partyMode: patch.partyMode ?? status.partyMode,
-          }),
-        'hudChrome.hostedPlay.settingsSaveFailed',
-      );
-    };
-
-    enableBtn.addEventListener('click', () => {
-      audio.click();
-      void runAction(() => hooks.setEnabled(true), 'hudChrome.hostedPlay.updateFailed');
+  private renderHostedPlayWindow(): void {
+    const hooks = this.optionsHooks?.hostedPlay;
+    if (!hooks) {
+      this.closeHostedPlayWindow();
+      return;
+    }
+    const el = $('#hosted-play-window');
+    renderHostedPlayPanel(el, hooks, {
+      onClose: () => this.closeHostedPlayWindow(),
     });
-    disableBtn.addEventListener('click', () => {
-      audio.click();
-      void runAction(() => hooks.setEnabled(false), 'hudChrome.hostedPlay.updateFailed');
-    });
-    refreshBtn.addEventListener('click', () => {
-      audio.click();
-      void runAction(() => hooks.status(), 'hudChrome.hostedPlay.statusLoadFailed');
-    });
-    resumeBtn.addEventListener('click', () => {
-      audio.click();
-      updateSettings({ resumeOnLogin: !currentStatus?.resumeOnLogin });
-    });
-    partySoloBtn.addEventListener('click', () => {
-      audio.click();
-      updateSettings({ partyMode: 'solo' });
-    });
-    partyFollowBtn.addEventListener('click', () => {
-      audio.click();
-      updateSettings({ partyMode: 'follow_leader' });
-    });
-
-    message.textContent = t('hudChrome.hostedPlay.loadingStatus');
-    syncControls();
-    void runAction(() => hooks.status(), 'hudChrome.hostedPlay.statusLoadFailed');
-
-    const el = $('#options-menu');
-    const back = document.createElement('button');
-    back.className = 'btn';
-    back.textContent = t('hud.options.back');
-    back.addEventListener('click', () => {
-      audio.click();
-      this.optionsView = 'main';
-      this.renderOptions();
-    });
-    el.append(back);
-    el.querySelector('[data-close]')?.addEventListener('click', () => this.closeOptions());
   }
 
   private renderBugReport(): void {

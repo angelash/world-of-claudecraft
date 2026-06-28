@@ -434,7 +434,6 @@ export const hudChromeStrings = {
   hostedPlay: {
     menuButton: 'Hosted Play',
     title: 'Hosted Play',
-    note: 'Hosted play uses your current online session only. Manual movement or actions pause it briefly so you can take over at any time.',
     statusLabel: 'Status',
     objectiveLabel: 'Objective',
     resumeOnLogin: 'Resume on Login',
@@ -504,8 +503,6 @@ export const hudChromeStrings = {
       paused: 'Paused',
     },
     pause: {
-      manualInput: 'Paused after manual movement.',
-      manualCommand: 'Paused after a manual action.',
       runtimeError: 'Paused after an automation error.',
     },
   },
