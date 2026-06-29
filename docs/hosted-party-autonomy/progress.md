@@ -95,6 +95,16 @@ Current date: 2026-06-29
   `0.0.0.0`, and the short live harness passed with party fill, hosted invite,
   party chat, intent, support or combat, quest signals, runtime clean, and max
   stuck resets 0.
+- The next level 20 run reached level 3 and showed the intent release fix
+  working, but a distant follower could remain in `follow_leader` without
+  closing the gap after `/follow` stopped pulling them. Non-combat hosted
+  follow now adds a travel goal toward the leader whenever the follower is
+  outside the close-follow range, including while the `/follow` chat command is
+  on cooldown.
+- After that fix, the stack was restarted, IP access was verified on
+  `0.0.0.0`, and the short live harness passed with party fill, hosted invite,
+  party chat, intent, support or combat, quest signals, runtime clean, and max
+  stuck resets 0.
 
 ## Planning Packet Checklist
 
@@ -160,4 +170,6 @@ Current date: 2026-06-29
   stuck in leader regroup hold.
 - [x] Stale regroup or recovery intents release once the current party facts no
   longer require holding the leader.
+- [x] Trailing followers keep actively traveling toward the leader while
+  `/follow` is cooling down or no longer pulling them.
 - [ ] Final run occurs after the last code change and service restart.

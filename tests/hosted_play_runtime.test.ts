@@ -197,7 +197,7 @@ describe('HostedPlayRuntime', () => {
     });
   });
 
-  it('tracks persisted preferences and pauses the hosted brain for party follow', () => {
+  it('tracks persisted preferences and drives a trailing hosted follower toward the party leader', () => {
     const game = fakeGame(liveState({
       id: 102,
       x: 1518,
@@ -230,7 +230,11 @@ describe('HostedPlayRuntime', () => {
     (runtime as any).tick();
 
     expect(game.commands).toEqual([{ cmd: 'chat', text: '/follow Branoraaa' }]);
-    expect(game.moveInputs).toHaveLength(0);
+    expect(game.moveInputs).toHaveLength(1);
+    expect(game.moveInputs[0]).toEqual(expect.objectContaining({
+      moveInput: { f: 1 },
+      facing: expect.any(Number),
+    }));
     expect(runtime.status(7)).toMatchObject({
       resumeOnLogin: true,
       partyMode: 'follow_leader',

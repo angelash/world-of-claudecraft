@@ -242,6 +242,9 @@ export function tickHostedPlayPartyCoordinator(
     && leaderDistance <= HOSTED_PLAY_FOLLOW_MAX_RANGE;
   if (followerShouldStayWithLeader) {
     const commands: HostedPlayCommand[] = [];
+    const followTravelGoal = leaderDistance > HOSTED_PLAY_FOLLOW_START_RANGE
+      ? travelGoalToPartyMember(leaderMember, HOSTED_PLAY_FOLLOW_START_RANGE, 'hosted-follow-leader')
+      : null;
     if (
       groupLeaderName
       && leaderDistance > HOSTED_PLAY_FOLLOW_START_RANGE
@@ -254,6 +257,7 @@ export function tickHostedPlayPartyCoordinator(
     return {
       commands,
       pauseBrainDrive: true,
+      ...(followTravelGoal ? { travelGoal: followTravelGoal } : {}),
       groupMode: 'follow_leader',
       groupLeaderName,
       groupLeaderDistance: leaderDistance,

@@ -55,6 +55,10 @@ progress.
 - Hosted party coordination treats party-chat intent as advisory. A
   hold-advance regroup or recovery intent must still match current party facts
   before it can pause the hosted leader.
+- Hosted followers no longer rely on `/follow` alone. When a non-combat
+  follower is outside close-follow range, party coordination also gives it a
+  travel goal toward the leader so movement continues while `/follow` is cooling
+  down or no longer pulling.
 
 ## Key Existing Files
 
@@ -254,6 +258,19 @@ progress.
 - `tests/hosted_play_party.test.ts` covers stale regroup intent release after
   the party is assembled and stale recovery intent release after party health
   is stable.
+- Phase 6 follow-up report `tmp/hosted-play-level20-20260630-034227.json`
+  reached level 3 and showed intent release working, then stalled because Cordaz
+  remained roughly 40 yards from the leader in `follow_leader`. The leader was
+  correctly holding regroup, but `/follow` alone was not closing the gap.
+- `server/hosted_play/party.ts` now adds a travel goal toward the leader for
+  non-combat hosted followers outside close-follow range. This still sends
+  `/follow` when the command cooldown allows it, but movement no longer depends
+  on chat follow alone.
+- `tests/hosted_play_party.test.ts` covers a trailing follower receiving both
+  `/follow` and a leader travel goal, plus continued leader travel while
+  `/follow` is on cooldown.
+- `tests/hosted_play_runtime.test.ts` now covers the hosted runtime applying
+  movement input for a trailing follower while preserving the `/follow` command.
 
 ## Phase 5 Validation
 
@@ -307,6 +324,13 @@ progress.
 - Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
 - `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after restart. The report was `tmp/hosted-play-live-harness-2026-06-29T19-39-41-804Z.json`; it observed hosted invite, party target size, party chat, party intent and roles, cooperation mode, quest signals, support or combat signals, clean runtime, and stuck resets within limit.
+- `npx vitest run tests\hosted_play_party.test.ts`: passed, 1 file and 22 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed, 5 files and 193 tests.
+- `npm run build:server`: passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed after the follow travel-goal fix.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after restart. The report was `tmp/hosted-play-live-harness-2026-06-29T20-02-20-316Z.json`; it observed hosted invite, party target size, party chat, party intent and roles, cooperation mode, quest signals, support or combat signals, clean runtime, and stuck resets within limit.
 
 ## Validation Matrix
 
@@ -352,8 +376,8 @@ progress.
 
 ## Known Current Gaps
 
-- A clean post-fix level 20 hosted run is still required after the party-intent
-  release fix and service restart.
+- A clean post-fix level 20 hosted run is still required after the follow
+  travel-goal fix and service restart.
 
 ## New Files In This Packet
 
