@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 3 implementation complete. Phase 3 QA is next.
+Phase 4 implementation complete. Phase 4 QA is next.
 
 ## Locked Decisions
 
@@ -37,6 +37,11 @@ Phase 3 implementation complete. Phase 3 QA is next.
   regrouping without parsing free-form chat.
 - Hosted debug details expose party role, duty, intent kind, intent behavior,
   intent summary, intent target, and last party chat action.
+- Warrior tank support now prioritizes taunting mobs off healers before
+  switching into defensive stance.
+- Priest support now shields threatened, slightly wounded allies before
+  swapping to focus damage, while still allowing full-health tank pulls to keep
+  opening damage.
 
 ## Key Existing Files
 
@@ -133,6 +138,28 @@ Phase 3 implementation complete. Phase 3 QA is next.
 - `npx vitest run tests/localization_fixes.test.ts tests/hosted_play_status_view.test.ts tests/ambient_player_bot_party_chat.test.ts tests/hosted_play_runtime.test.ts tests/hosted_play_party.test.ts`: passed, 5 files, 66 tests passed and 3 skipped.
 - `npm run build:server`: passed.
 - `npm run build`: passed with existing Vite chunk, dynamic import, and cursor resolution warnings.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed.
+- `node scripts/online_lan.mjs urls`: printed LAN/IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- Ports `5173` and `8787` listen on `0.0.0.0`.
+
+## Phase 4 Changes
+
+- `server/ambient_bots/group_support.ts` now tries emergency warrior taunts
+  before defensive stance setup.
+- `server/ambient_bots/group_support.ts` now lets priests shield threatened,
+  slightly wounded allies before switching to focus damage.
+- `tests/ambient_player_bot_group.test.ts` covers warrior rescue taunt priority
+  and priest shield priority without regressing the existing focus-fire case.
+- `tests/hosted_play_party.test.ts` covers the hosted warrior rescue-taunt path.
+
+## Phase 4 Validation
+
+- `npx vitest run tests/ambient_player_bot_group.test.ts`: passed, 19 tests.
+- `npx vitest run tests/ambient_player_bot_group.test.ts tests/ambient_player_bot_party_chat.test.ts tests/hosted_play_party.test.ts`: passed, 3 files and 43 tests.
+- `npx vitest run tests/hosted_play_runtime.test.ts tests/hosted_play_party.test.ts tests/ambient_player_bot_group.test.ts`: passed, 3 files and 50 tests.
+- `git diff --check`: passed.
+- `npm run build:server`: passed.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed.
 - `node scripts/online_lan.mjs urls`: printed LAN/IP game and server URLs.
 - `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.

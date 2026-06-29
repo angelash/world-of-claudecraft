@@ -737,6 +737,115 @@ describe('ambient player bot group coordinator', () => {
     }));
   });
 
+  it('has a warrior taunt a healer before switching into defensive stance', () => {
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          id: 101,
+          lv: 12,
+          x: 0,
+          z: 0,
+          res: 20,
+          mres: 100,
+          rtype: 'rage',
+          gcd: 0,
+          target: null,
+          cast: null,
+          cds: {},
+          auras: [],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 20, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Branoracc', cls: 'priest', level: 12, hp: 88, mhp: 90, res: 160, mres: 160, rtype: 'mana', x: 3, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 102, k: 'player', nm: 'Branoracc', x: 3, z: 0, auras: [] },
+          { id: 501, k: 'mob', h: 80, x: 3, z: 1, aggro: 102, auras: [] },
+        ],
+      }),
+      recentEvents: [],
+      objectiveId: 'hunt_boars',
+      objectiveQuestId: 'q_boars',
+      objectiveSuggestedPartySize: 1,
+      directory: [bot()],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 501 },
+      { cmd: 'cast', ability: 'taunt' },
+    ]);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'taunt_party',
+    }));
+  });
+
+  it('has a priest shield a threatened tank before switching to damage', () => {
+    const priest = bot({
+      botId: 'bot-2',
+      accountId: 12,
+      characterId: 102,
+      characterName: 'Branoracc',
+      accountUsername: 'bot_user_2',
+      authToken: 'token-2',
+      class: 'priest',
+    });
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: priest,
+      liveState: liveState({
+        self: {
+          id: 102,
+          lv: 12,
+          x: 0,
+          z: 0,
+          hp: 90,
+          mhp: 90,
+          res: 180,
+          mres: 180,
+          rtype: 'mana',
+          gcd: 0,
+          target: null,
+          cast: null,
+          cds: {},
+          auras: [],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 118, mhp: 120, res: 10, mres: 100, rtype: 'rage', x: 2, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Branoracc', cls: 'priest', level: 12, hp: 90, mhp: 90, res: 180, mres: 180, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 101, k: 'player', nm: 'Branoraaa', x: 2, z: 0, auras: [] },
+          { id: 501, k: 'mob', h: 80, x: 2, z: 1, aggro: 101, auras: [] },
+        ],
+      }),
+      recentEvents: [],
+      objectiveId: 'hunt_boars',
+      objectiveQuestId: 'q_boars',
+      objectiveSuggestedPartySize: 1,
+      directory: [bot(), priest],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 101 },
+      { cmd: 'cast', ability: 'power_word_shield' },
+    ]);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'shield_party',
+    }));
+  });
+
   it('retargets onto the party focus target before combat logic resumes', () => {
     const follower = bot();
     const state = createAmbientPlayerBotGroupRuntimeState();

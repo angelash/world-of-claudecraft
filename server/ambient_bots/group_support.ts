@@ -16,6 +16,7 @@ const LONG_CAST_COMMAND_COOLDOWN_MS = 1_600;
 const ATTACK_COMMAND_COOLDOWN_MS = 1_200;
 const GROUP_HEAL_OUT_OF_COMBAT_RATIO = 0.92;
 const GROUP_HEAL_IN_COMBAT_RATIO = 0.82;
+const GROUP_SHIELD_THREATENED_RATIO = 0.99;
 
 interface SupportAuraView {
   id: string;
@@ -278,12 +279,6 @@ function maybeSupportTank(input: {
   reserveCommandBatch: AmbientPartySupportInput['reserveCommandBatch'];
 }): AmbientPartySupportDecision | null {
   if (input.bot.class === 'warrior') {
-    const defensiveStance = input.abilities.get('defensive_stance');
-    if (defensiveStance && !hasAuraId(input.self.auras, 'defensive_stance')) {
-      const decision = queueSelfCast(input.self, defensiveStance, 'tank_party', input.reserveCommandBatch);
-      if (decision) return decision;
-    }
-
     const taunt = input.abilities.get('taunt');
     if (taunt) {
       const tauntDecision = tryHostileCastOnCandidates(
@@ -294,6 +289,12 @@ function maybeSupportTank(input: {
         input.reserveCommandBatch,
       );
       if (tauntDecision) return tauntDecision;
+    }
+
+    const defensiveStance = input.abilities.get('defensive_stance');
+    if (defensiveStance && !hasAuraId(input.self.auras, 'defensive_stance')) {
+      const decision = queueSelfCast(input.self, defensiveStance, 'tank_party', input.reserveCommandBatch);
+      if (decision) return decision;
     }
 
     const thunderClap = input.abilities.get('thunder_clap');
@@ -401,7 +402,11 @@ function maybePriestHeal(
   for (const target of candidates) {
     const ratio = healthRatio(target.member);
     const shield = abilities.get('power_word_shield');
-    if (shield && ratio <= 0.38 && !hasFreshFriendlyAura(target, shield)) {
+    if (
+      shield
+      && (ratio <= 0.38 || (target.threatenedCount > 0 && ratio <= GROUP_SHIELD_THREATENED_RATIO))
+      && !hasFreshFriendlyAura(target, shield)
+    ) {
       const decision = queueFriendlyCast(self, target, shield, 'shield_party', reserveCommandBatch);
       if (decision) return decision;
     }

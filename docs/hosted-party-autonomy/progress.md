@@ -12,8 +12,8 @@ Current date: 2026-06-29
 | Phase 2 QA | Pending |  |  |
 | Phase 3 | Complete | 2026-06-29 | 2026-06-29 |
 | Phase 3 QA | Complete | 2026-06-29 | 2026-06-29 |
-| Phase 4 | Pending |  |  |
-| Phase 4 QA | Pending |  |  |
+| Phase 4 | Complete | 2026-06-29 | 2026-06-29 |
+| Phase 4 QA | Complete | 2026-06-29 | 2026-06-29 |
 | Phase 5 | Pending |  |  |
 | Phase 5 QA | Pending |  |  |
 | Phase 6 | Pending |  |  |
@@ -38,6 +38,9 @@ Current date: 2026-06-29
   briefings and member acknowledgements, hosted party coordination consumes
   hold-advance intent without parsing chat text, and hosted debug details expose
   party role, duty, intent, target, and last party-chat action.
+- Phase 4 tightened cooperative support priorities. Warrior tanks now taunt
+  mobs off healers before spending the moment on defensive stance, and priests
+  shield threatened, slightly wounded allies before switching to focus damage.
 
 ## Planning Packet Checklist
 
@@ -74,10 +77,10 @@ Current date: 2026-06-29
 
 ## Phase 4 Checklist
 
-- [ ] Buff, heal, tank, focus, regroup, and recovery behavior work in hosted
+- [x] Buff, heal, tank, focus, regroup, and recovery behavior work in hosted
   parties.
-- [ ] Support behavior does not suppress in-range opening attacks.
-- [ ] Tests cover class-role combinations used in the level 20 run.
+- [x] Support behavior does not suppress in-range opening attacks.
+- [x] Tests cover class-role combinations used in the level 20 run.
 
 ## Phase 5 Checklist
 

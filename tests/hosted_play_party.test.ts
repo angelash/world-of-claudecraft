@@ -280,6 +280,54 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
+  it('has a hosted warrior taunt off the healer before switching stance', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          x: 0,
+          z: 0,
+          res: 20,
+          mres: 100,
+          rtype: 'rage',
+          target: null,
+          auras: [],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Hero', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 20, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 12, hp: 88, mhp: 90, res: 120, mres: 120, rtype: 'mana', x: 3, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 102, k: 'player', nm: 'Branorabb', x: 3, z: 0, auras: [] },
+          { id: 501, k: 'mob', h: 80, x: 3, z: 1, aggro: 102, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [
+        { cmd: 'target', id: 501 },
+        { cmd: 'cast', ability: 'taunt' },
+      ],
+      pauseBrainDrive: true,
+      groupMode: 'assist_party',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+  });
+
   it('keeps a nearby hosted follower from breaking the server follow state', () => {
     const state = createHostedPlayPartyState();
 
