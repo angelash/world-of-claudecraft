@@ -64,6 +64,9 @@ progress.
   member must meet that grouped safe level.
 - Distant non-combat followers must close the leader gap before doing
   preparation buffs or preparation-style support.
+- Hosted followers must keep traveling back to the leader at any distance while
+  they are alive and not personally in combat. The 60-yard threshold is only a
+  party action or assist range, not a cap on regroup travel.
 
 ## Key Existing Files
 
@@ -297,6 +300,17 @@ progress.
   is outside close-follow range.
 - `tests/hosted_play_party.test.ts` covers a distant paladin follower choosing
   leader follow and a travel goal instead of party preparation buffs.
+- Phase 6 follow-up report `tmp/hosted-play-level20-20260630-061736.json`
+  reached a full party and level 5 with no deaths or runtime errors, but then
+  exposed another regroup soft lock. A follower more than 60 yards from the
+  leader had no leader travel path while the leader waited in regroup hold.
+- `server/hosted_play/party.ts` now lets alive, out-of-combat followers travel
+  back to the leader at any distance. Followers beyond the 60-yard party action
+  range also skip support decisions that would otherwise return before
+  regrouping.
+- `tests/hosted_play_party.test.ts` covers a 76-yard follower staying in
+  leader-follow mode and receiving a leader travel goal while `/follow` is on
+  cooldown.
 
 ## Phase 5 Validation
 
@@ -372,6 +386,15 @@ progress.
 - Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
 - `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after restart. The report was `tmp/hosted-play-live-harness-2026-06-29T22-11-31-866Z.json`; it observed hosted invite, party target size, party chat, party intent and roles, cooperation mode, quest signals, all party members touching quest state, support or combat signals, clean runtime, and stuck resets within limit.
+- `npx vitest run tests\hosted_play_party.test.ts`: failed before the range-cap fix with the new 76-yard follower regression test, proving the level 5 live-run soft lock.
+- `npx vitest run tests\hosted_play_party.test.ts`: passed after the range-cap fix, 1 file and 24 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed, 5 files and 196 tests.
+- `npm run build:server`: passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed after the range-cap fix.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: first run after restart had clean runtime but missed the all-members quest-state gate inside 120 seconds.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed on immediate rerun after the same restart. The report was `tmp/hosted-play-live-harness-2026-06-29T23-07-43-580Z.json`; it observed hosted invite, party target size, party chat, party intent and roles, cooperation mode, quest signals, all party members touching quest state, support or combat signals, clean runtime, and stuck resets within limit.
 
 ## Validation Matrix
 
@@ -417,8 +440,8 @@ progress.
 
 ## Known Current Gaps
 
-- A clean post-fix level 20 hosted run is still required after the follower
-  preparation priority fix and service restart.
+- A clean post-fix level 20 hosted run is still required after the range-cap
+  follower regroup fix and service restart.
 
 ## New Files In This Packet
 

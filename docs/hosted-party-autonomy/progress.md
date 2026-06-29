@@ -113,6 +113,18 @@ Current date: 2026-06-29
   `0.0.0.0`, the related test suite and server build passed, and the short live
   harness passed with party fill, hosted invite, party chat, intent, support or
   combat, quest signals, runtime clean, and max stuck resets 0.
+- The next post-change level 20 run reached a full party and level 5 with no
+  deaths or runtime errors, but stalled when a follower was more than the
+  60-yard party action range from the leader. The leader held regroup, while the
+  follower fell back to brain behavior with no leader travel path. Hosted
+  followers now treat 60 yards as an action and assist range only, not a cap on
+  returning to the leader.
+- After that fix, the stack was restarted, IP access was verified on
+  `0.0.0.0`, the related test suite and server build passed, the first short
+  live harness run missed the all-members quest-state gate inside 120 seconds,
+  and an immediate rerun passed with party fill, hosted invite, party chat,
+  intent, support or combat, quest signals, runtime clean, and max stuck resets
+  within limit.
 - The next level 20 run reached level 3 and showed the intent release fix
   working, but a distant follower could remain in `follow_leader` without
   closing the gap after `/follow` stopped pulling them. Non-combat hosted
@@ -194,4 +206,6 @@ Current date: 2026-06-29
   longer drag underlevel teammates into higher routes.
 - [x] Distant followers return to the leader before doing non-combat
   preparation or preparation-style support.
+- [x] Followers outside the 60-yard party action range still travel back to the
+  leader instead of dropping to brain behavior while the leader holds regroup.
 - [ ] Final run occurs after the last code change and service restart.

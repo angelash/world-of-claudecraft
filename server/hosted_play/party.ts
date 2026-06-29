@@ -111,15 +111,16 @@ export function tickHostedPlayPartyCoordinator(
   const partyInCombat = party.members.some((member) => member.inCombat === 1) || hasPartyThreat(entities, party);
   const botRecord = hostedPlayPartyBotRecord(input.playerClass, selfMember);
   const liveState = hostedPartyLiveState(input.liveSelf, entities);
-  const followerShouldStayWithLeader = selfMember.pid !== leaderMember.pid
+  const followerCanMoveToLeader = selfMember.pid !== leaderMember.pid
     && !selfMember.dead
     && !leaderMember.dead
-    && !selfMember.inCombat
-    && !leaderMember.inCombat
-    && leaderDistance <= HOSTED_PLAY_FOLLOW_MAX_RANGE;
+    && !selfMember.inCombat;
   const followerNeedsToCloseGap =
-    followerShouldStayWithLeader && leaderDistance > HOSTED_PLAY_FOLLOW_START_RANGE;
-  const supportDecision = partyInCombat || (canHostedProvidePartyPreparation(input.playerClass) && !followerNeedsToCloseGap)
+    followerCanMoveToLeader && leaderDistance > HOSTED_PLAY_FOLLOW_START_RANGE;
+  const followerOutsidePartyActionRange =
+    followerNeedsToCloseGap && leaderDistance > HOSTED_PLAY_FOLLOW_MAX_RANGE;
+  const supportDecision = !followerOutsidePartyActionRange
+    && (partyInCombat || (canHostedProvidePartyPreparation(input.playerClass) && !followerNeedsToCloseGap))
     ? maybeCoordinateAmbientPartySupport({
       bot: botRecord,
       liveState,
@@ -242,7 +243,7 @@ export function tickHostedPlayPartyCoordinator(
     };
   }
 
-  if (followerShouldStayWithLeader) {
+  if (followerCanMoveToLeader) {
     const commands: HostedPlayCommand[] = [];
     const followTravelGoal = leaderDistance > HOSTED_PLAY_FOLLOW_START_RANGE
       ? travelGoalToPartyMember(leaderMember, HOSTED_PLAY_FOLLOW_START_RANGE, 'hosted-follow-leader')

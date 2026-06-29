@@ -201,6 +201,55 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
+  it('keeps an out-of-range hosted follower moving back to the regrouping leader', () => {
+    const state = createHostedPlayPartyState();
+    state.lastFollowCommandAtMs = 5_000;
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 103,
+          x: 1576,
+          z: -1200,
+          auras: [
+            { id: 'frost_armor', kind: 'buff_armor', rem: 1700, dur: 1800 },
+            { id: 'arcane_intellect', kind: 'buff_int', rem: 1700, dur: 1800 },
+          ],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Corda', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1576, z: -1200, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 101, k: 'player', nm: 'Branoraaa', x: 1500, z: -1200, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', dead: 0, cmb: 0, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 6_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 1500, z: -1200 },
+        arrivalRange: 4,
+        goalKey: 'hosted-follow-leader:101:1500:-1200',
+      },
+      groupMode: 'follow_leader',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 76,
+    });
+  });
+
   it('has the hosted leader hold position while the party regroups', () => {
     const state = createHostedPlayPartyState();
 
