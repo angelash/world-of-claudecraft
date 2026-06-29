@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { AmbientPlayerBotRecord } from '../server/ambient_bots/types';
 import type { AmbientPlayerBotLiveState } from '../server/ambient_bots/ws_client';
 import { HostedPlayRuntime, type HostedPlayRuntimeGame } from '../server/hosted_play/runtime';
 import type { SimEvent } from '../src/sim/types';
@@ -55,6 +56,7 @@ function fakeGame(
   options: {
     recentEvents?: SimEvent[];
     ambientBotNames?: string[];
+    ambientDirectory?: readonly AmbientPlayerBotRecord[];
   } = {},
 ): HostedPlayRuntimeGame & {
   commands: Record<string, unknown>[];
@@ -129,6 +131,9 @@ function fakeGame(
     sendHostedPlayActionLog(_characterId, text) {
       logs.push(text);
     },
+    ambientPlayerBotDirectory() {
+      return [...(options.ambientDirectory ?? [])];
+    },
     ambientPlayerBotNames() {
       return [...(options.ambientBotNames ?? [])];
     },
@@ -169,6 +174,10 @@ describe('HostedPlayRuntime', () => {
       id: 102,
       x: 1518,
       z: -1200,
+      res: 0,
+      mres: 0,
+      rtype: 'rage',
+      auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
       party: {
         leader: 101,
         raid: false,
@@ -187,6 +196,7 @@ describe('HostedPlayRuntime', () => {
       resumeOnLogin: true,
       partyMode: 'follow_leader',
       actionLogEnabled: false,
+      autoInviteNearbyPlayers: true,
     });
     (runtime as any).tick();
 
@@ -196,6 +206,7 @@ describe('HostedPlayRuntime', () => {
       resumeOnLogin: true,
       partyMode: 'follow_leader',
       actionLogEnabled: false,
+      autoInviteNearbyPlayers: true,
       groupMode: 'follow_leader',
       groupLeaderName: 'Branoraaa',
       groupLeaderDistance: 18,
@@ -215,6 +226,7 @@ describe('HostedPlayRuntime', () => {
       resumeOnLogin: false,
       partyMode: 'follow_leader',
       actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
     });
     (runtime as any).tick();
 
@@ -253,16 +265,69 @@ describe('HostedPlayRuntime', () => {
       resumeOnLogin: false,
       partyMode: 'follow_leader',
       actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
     });
     (runtime as any).tick();
 
     expect(game.commands).toEqual([{ cmd: 'target', id: 501 }]);
-    expect(game.moveInputs).toHaveLength(0);
+    expect(game.moveInputs).toHaveLength(1);
+    expect(game.moveInputs[0]).toEqual(expect.objectContaining({
+      moveInput: { f: 1 },
+      facing: expect.any(Number),
+    }));
     expect(runtime.status(7)).toMatchObject({
       groupMode: 'assist_party',
       groupLeaderName: 'Branoraaa',
       groupLeaderDistance: 8,
     });
+  });
+
+  it('has the hosted leader send one party role split before the pull', () => {
+    let nowMs = 5_000;
+    const game = fakeGame(liveState({
+      id: 101,
+      x: 4,
+      z: 6,
+      rtype: 'rage',
+      mres: 0,
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Hero', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 4, z: 6, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Branorabb', cls: 'priest', level: 12, hp: 90, mhp: 90, res: 120, mres: 120, rtype: 'mana', x: 5, z: 6, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 102, k: 'player', nm: 'Branorabb', x: 5, z: 6 },
+      ],
+    }), {
+      ambientBotNames: ['Branorabb'],
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      brainIntervalMs: 250,
+      nowMs: () => nowMs,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands.some((command) => command.cmd === 'chat' && String(command.text).startsWith('/p '))).toBe(false);
+
+    nowMs = 6_500;
+    (runtime as any).tick();
+
+    expect(game.commands.some((command) =>
+      command.cmd === 'chat'
+      && typeof command.text === 'string'
+      && command.text.startsWith('/p '),
+    )).toBe(true);
   });
 
   it('emits hosted-play action logs when enabled and throttles repeated lines', () => {
@@ -278,6 +343,7 @@ describe('HostedPlayRuntime', () => {
       resumeOnLogin: false,
       partyMode: 'solo',
       actionLogEnabled: true,
+      autoInviteNearbyPlayers: false,
     });
     (runtime as any).tick();
     nowMs += 250;
@@ -297,6 +363,7 @@ describe('HostedPlayRuntime', () => {
       resumeOnLogin: false,
       partyMode: 'solo',
       actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
     });
     (runtime as any).tick();
 

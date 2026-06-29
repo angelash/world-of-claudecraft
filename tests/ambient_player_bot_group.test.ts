@@ -155,6 +155,110 @@ describe('ambient player bot group coordinator', () => {
     }));
   });
 
+  it('uses live party pids instead of stored character ids when a follower syncs to the leader', () => {
+    const leader = bot({
+      runnerState: { pid: 401 },
+    });
+    const follower = bot({
+      botId: 'bot-2',
+      accountId: 12,
+      characterId: 102,
+      characterName: 'Branorabb',
+      accountUsername: 'bot_user_2',
+      authToken: 'token-2',
+      class: 'mage',
+      runnerState: { pid: 402 },
+    });
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: follower,
+      liveState: liveState({
+        self: {
+          id: 402,
+          x: 1518,
+          z: -1200,
+          dgn: 'sunken_bastion',
+          party: {
+            leader: 401,
+            raid: false,
+            members: [
+              { pid: 401, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 402, name: 'Branorabb', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1518, z: -1200, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+      }),
+      recentEvents: [],
+      objectiveId: 'hunt_olen',
+      objectiveQuestId: 'q_olen',
+      objectiveDungeonId: 'sunken_bastion',
+      objectiveSuggestedPartySize: 5,
+      directory: [leader, follower],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([
+      { cmd: 'chat', text: '/follow Branoraaa' },
+    ]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'follow_leader',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 18,
+    }));
+  });
+
+  it('has the ambient leader hold position while another bot is still finishing party prep', () => {
+    const leader = bot({
+      runnerState: { pid: 401 },
+    });
+    const priest = bot({
+      botId: 'bot-2',
+      accountId: 12,
+      characterId: 102,
+      characterName: 'Branoracc',
+      accountUsername: 'bot_user_2',
+      authToken: 'token-2',
+      class: 'priest',
+      runnerState: { pid: 402, groupMode: 'buff_party' },
+    });
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: leader,
+      liveState: liveState({
+        self: {
+          id: 401,
+          x: 1500,
+          z: -1200,
+          dgn: 'sunken_bastion',
+          party: {
+            leader: 401,
+            raid: false,
+            members: [
+              { pid: 401, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 402, name: 'Branoracc', cls: 'priest', level: 12, hp: 90, mhp: 90, res: 180, mres: 180, rtype: 'mana', x: 1502, z: -1200, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+      }),
+      recentEvents: [],
+      objectiveId: 'hunt_olen',
+      objectiveQuestId: 'q_olen',
+      objectiveDungeonId: 'sunken_bastion',
+      objectiveSuggestedPartySize: 5,
+      directory: [leader, priest],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'buff_party',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 0,
+    }));
+  });
+
   it('waits for the outdoor q_crushers party to assemble before the leader moves on', () => {
     const leader = bot({
       lastKnownLevel: 18,
@@ -459,6 +563,67 @@ describe('ambient player bot group coordinator', () => {
     }));
   });
 
+  it('has a grouped warlock summon before the party keeps advancing', () => {
+    const warlock = bot({
+      botId: 'bot-2',
+      accountId: 12,
+      characterId: 102,
+      characterName: 'Branorawl',
+      accountUsername: 'bot_user_2',
+      authToken: 'token-2',
+      class: 'warlock',
+    });
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: warlock,
+      liveState: liveState({
+        self: {
+          id: 102,
+          lv: 12,
+          x: 0,
+          z: 0,
+          hp: 90,
+          mhp: 90,
+          res: 180,
+          mres: 180,
+          rtype: 'mana',
+          gcd: 0,
+          target: null,
+          cast: null,
+          cds: {},
+          auras: [],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorawl', cls: 'warlock', level: 12, hp: 90, mhp: 90, res: 180, mres: 180, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 101, k: 'player', nm: 'Branoraaa', x: 2, z: 0, auras: [] },
+        ],
+      }),
+      recentEvents: [],
+      objectiveId: 'hunt_boars',
+      objectiveQuestId: 'q_boars',
+      objectiveSuggestedPartySize: 1,
+      directory: [bot(), warlock],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([
+      { cmd: 'cast', ability: 'summon_succubus' },
+    ]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'prepare_party',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 2,
+    }));
+  });
+
   it('has a nearby healer top up a wounded party member in combat', () => {
     const shaman = bot({
       botId: 'bot-2',
@@ -610,6 +775,69 @@ describe('ambient player bot group coordinator', () => {
       groupMode: 'focus_fire',
       groupLeaderName: 'Realhero',
       groupLeaderDistance: 8,
+    }));
+  });
+
+  it('has a grouped priest cast on the focus target instead of only jogging after it', () => {
+    const priest = bot({
+      botId: 'bot-2',
+      accountId: 12,
+      characterId: 102,
+      characterName: 'Branoracc',
+      accountUsername: 'bot_user_2',
+      authToken: 'token-2',
+      class: 'priest',
+    });
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: priest,
+      liveState: liveState({
+        self: {
+          id: 102,
+          lv: 12,
+          x: 0,
+          z: 0,
+          hp: 90,
+          mhp: 90,
+          res: 180,
+          mres: 180,
+          rtype: 'mana',
+          gcd: 0,
+          target: null,
+          cast: null,
+          cds: {},
+          auras: [],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 10, mres: 100, rtype: 'rage', x: 6, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Branoracc', cls: 'priest', level: 12, hp: 90, mhp: 90, res: 180, mres: 180, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 101, k: 'player', nm: 'Branoraaa', x: 6, z: 0, auras: [] },
+          { id: 501, k: 'mob', h: 80, x: 25, z: 0, aggro: 101, auras: [] },
+        ],
+      }),
+      recentEvents: [],
+      objectiveId: 'hunt_boars',
+      objectiveQuestId: 'q_boars',
+      objectiveSuggestedPartySize: 1,
+      directory: [bot(), priest],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 501 },
+      expect.objectContaining({ cmd: 'cast' }),
+    ]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'focus_fire',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 6,
     }));
   });
 

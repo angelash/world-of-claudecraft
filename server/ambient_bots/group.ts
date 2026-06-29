@@ -1,11 +1,13 @@
 import { DUNGEONS } from '../../src/sim/data';
 import type { SimEvent } from '../../src/sim/types';
 import type { PartyInfo, PartyMemberInfo } from '../../src/world_api';
+import { distanceBetweenPartyMembers, type PartyTravelGoal, findPartyCombatTarget, partyAssistArrivalRange, travelGoalToPartyMember, travelGoalToPartyTarget } from '../party_coordination';
 import { readAssignedPlayerName } from './assignment';
 import {
   maybeCoordinateAmbientPartySupport,
   type AmbientGroupCommandReservation,
 } from './group_support';
+import { inspectAmbientPartyPreparation } from './party_preparation';
 import type { AmbientPlayerBotRecord } from './types';
 import type { AmbientPlayerBotLiveState } from './ws_client';
 
@@ -41,6 +43,7 @@ export interface AmbientPlayerBotGroupTickInput {
 export interface AmbientPlayerBotGroupTickResult {
   commands: readonly GroupCommand[];
   pauseBrainDrive: boolean;
+  travelGoal?: PartyTravelGoal;
   runnerStatePatch: Record<string, unknown>;
 }
 
@@ -70,6 +73,7 @@ export function tickAmbientPlayerBotGroupCoordinator(
   if (!self || !input.bot.assignedClusterId) {
     return emptyGroupResult();
   }
+  const selfPid = readSelfPid(self);
 
   const party = parsePartyInfo(self.party);
   const activeBots = input.directory
@@ -86,7 +90,7 @@ export function tickAmbientPlayerBotGroupCoordinator(
   const leaderRecord = currentLeaderRecord(coordinatorBots, party);
   const fallbackBotLeader = coordinatorBots[0] ?? input.bot;
   const leaderMember = party ? findPartyLeaderMember(party) : null;
-  const selfMember = party ? findPartyMember(party, input.bot) : null;
+  const selfMember = party ? findPartyMember(party, input.bot, selfPid) : null;
   const partySize = party?.members.length ?? 1;
   const targetPartySize = Math.max(
     1,
@@ -100,11 +104,11 @@ export function tickAmbientPlayerBotGroupCoordinator(
   let groupMode = '';
   let groupLeaderName = leaderMember?.name ?? leaderRecord?.characterName ?? fallbackBotLeader.characterName;
   const botIsGroupLeader = party
-    ? party.leader === input.bot.characterId
+    ? selfPid !== null && party.leader === selfPid
     : fallbackBotLeader.botId === input.bot.botId;
   const assignedPlayerName = readAssignedPlayerName(input.bot.plannerState);
   const leaderDistance = selfMember && leaderMember
-    ? distanceBetweenMembers(selfMember, leaderMember)
+    ? distanceBetweenPartyMembers(selfMember, leaderMember)
     : null;
   let groupLeaderDistance = leaderDistance ?? 0;
 
@@ -166,6 +170,7 @@ export function tickAmbientPlayerBotGroupCoordinator(
     return {
       commands: supportDecision.commands,
       pauseBrainDrive: true,
+      ...(supportDecision.travelGoal ? { travelGoal: supportDecision.travelGoal } : {}),
       runnerStatePatch: groupRunnerStatePatch({
         objectiveDungeonId: input.objectiveDungeonId,
         objectiveQuestId: input.objectiveQuestId,
@@ -196,21 +201,56 @@ export function tickAmbientPlayerBotGroupCoordinator(
     }
   }
 
-  const assistTarget = party ? partyCombatTarget(input.liveState, party) : null;
+  const inObjectiveDungeon = !!input.objectiveDungeonId && readSelfDungeonId(self) === input.objectiveDungeonId;
+  const groupTravelActive = inObjectiveDungeon || isOutdoorGroupedObjective;
+  const assistTarget = party
+    ? findPartyCombatTarget({
+      liveSelf: self,
+      entities: input.liveState.entities.values(),
+      party,
+      maxDistance: GROUP_FOLLOW_MAX_RANGE,
+    })
+    : null;
+  const assistArrivalRange = partyAssistArrivalRange(input.bot.class);
+  const assistTravelGoal = assistTarget && assistTarget.distance > assistArrivalRange
+    ? travelGoalToPartyTarget(assistTarget, assistArrivalRange)
+    : null;
+  const followerShouldAdvanceIntoCombat = groupTravelActive
+    && !botIsGroupLeader
+    && !!selfMember
+    && !!leaderMember
+    && !memberInCombat(selfMember)
+    && memberInCombat(leaderMember)
+    && !selfMember.dead
+    && !leaderMember.dead
+    && leaderDistance !== null
+    && leaderDistance > GROUP_FOLLOW_START_RANGE
+    && leaderDistance <= GROUP_FOLLOW_MAX_RANGE;
+  const combatLeaderTravelGoal = followerShouldAdvanceIntoCombat
+    ? travelGoalToPartyMember(leaderMember, GROUP_FOLLOW_START_RANGE, 'combat-leader')
+    : null;
   if (
     assistTarget
     && selfMember
     && !memberInCombat(selfMember)
     && readSelfTargetId(self) !== assistTarget.id
+    && !commands.some((command) => command.cmd === 'target' && command.id === assistTarget.id)
     && canIssue(state, `assist:${assistTarget.id}`, input.nowMs, GROUP_ASSIST_COOLDOWN_MS)
   ) {
     commands.push({ cmd: 'target', id: assistTarget.id });
-    pauseBrainDrive = true;
     groupMode = 'assist_party';
   }
+  let travelGoal: PartyTravelGoal | undefined;
+  if (assistTravelGoal) {
+    pauseBrainDrive = true;
+    groupMode = 'assist_party';
+    travelGoal = assistTravelGoal;
+  } else if (combatLeaderTravelGoal) {
+    pauseBrainDrive = true;
+    if (!groupMode) groupMode = 'assist_party';
+    travelGoal = combatLeaderTravelGoal;
+  }
 
-  const inObjectiveDungeon = !!input.objectiveDungeonId && readSelfDungeonId(self) === input.objectiveDungeonId;
-  const groupTravelActive = inObjectiveDungeon || isOutdoorGroupedObjective;
   const laggingAmbientMembers = leaderMember && party
     ? countLaggingAmbientMembers(party, leaderMember, activeNames)
     : 0;
@@ -219,15 +259,23 @@ export function tickAmbientPlayerBotGroupCoordinator(
     && partySize < targetPartySize
     && ungroupedVisiblePeers.length > 0;
   const leaderShouldHoldForLag = groupTravelActive
-    && leaderRecord?.botId === input.bot.botId
+    && botIsGroupLeader
     && !!leaderMember
     && !memberInCombat(leaderMember)
     && laggingAmbientMembers > 0;
-  const leaderShouldHold = leaderShouldWaitForParty || leaderShouldHoldForLag;
+  const preparationStatus = party && groupTravelActive && botIsGroupLeader && leaderMember && !memberInCombat(leaderMember)
+    ? inspectAmbientPartyPreparation({
+      botId: input.bot.botId,
+      party,
+      coordinatorBots,
+    })
+    : null;
+  const leaderShouldHoldForPreparation = !!preparationStatus;
+  const leaderShouldHold = leaderShouldWaitForParty || leaderShouldHoldForLag || leaderShouldHoldForPreparation;
   if (leaderShouldHold) pauseBrainDrive = true;
   groupLeaderDistance = leaderDistance ?? 0;
   const followerShouldStayWithLeader = groupTravelActive
-    && party?.leader !== input.bot.characterId
+    && party?.leader !== selfPid
     && !!selfMember
     && !!leaderMember
     && !memberInCombat(selfMember)
@@ -249,6 +297,7 @@ export function tickAmbientPlayerBotGroupCoordinator(
   }
   if (leaderShouldWaitForParty) groupMode = 'wait_party';
   else if (leaderShouldHoldForLag) groupMode = 'hold_regroup';
+  else if (leaderShouldHoldForPreparation) groupMode = preparationStatus?.mode ?? 'prepare_party';
   else if (!groupMode && (party || input.objectiveSuggestedPartySize > 1)) groupMode = 'brain';
 
   const distanceToDoor = dungeon && typeof self.x === 'number' && typeof self.z === 'number'
@@ -269,6 +318,7 @@ export function tickAmbientPlayerBotGroupCoordinator(
   return {
     commands,
     pauseBrainDrive,
+    ...(travelGoal ? { travelGoal } : {}),
     runnerStatePatch: groupRunnerStatePatch({
       objectiveDungeonId: input.objectiveDungeonId,
       objectiveQuestId: input.objectiveQuestId,
@@ -335,14 +385,27 @@ function currentLeaderRecord(
 ): AmbientPlayerBotRecord | null {
   if (!party) return null;
   const leaderPid = party.leader;
+  const leaderByRunnerPid = records.find((record) => readRunnerNumber(record.runnerState, 'pid') === leaderPid);
+  if (leaderByRunnerPid) return leaderByRunnerPid;
+  const leaderMember = party.members.find((member) => member.pid === leaderPid) ?? null;
+  if (leaderMember) {
+    const leaderByName = records.find((record) => record.characterName === leaderMember.name);
+    if (leaderByName) return leaderByName;
+  }
   return records.find((record) => record.characterId === leaderPid) ?? null;
 }
 
 function findPartyMember(
   party: PartyInfo,
   record: AmbientPlayerBotRecord,
+  preferredPid: number | null = null,
 ): PartyMemberInfo | null {
-  return party.members.find((member) => member.pid === record.characterId || member.name === record.characterName) ?? null;
+  const runnerPid = readRunnerNumber(record.runnerState, 'pid');
+  return party.members.find((member) =>
+    (preferredPid !== null && member.pid === preferredPid)
+    || (runnerPid !== null && member.pid === runnerPid)
+    || member.pid === record.characterId
+    || member.name === record.characterName) ?? null;
 }
 
 function findPartyLeaderMember(party: PartyInfo): PartyMemberInfo | null {
@@ -405,6 +468,18 @@ function readRunnerString(
 ): string {
   const field = value[key];
   return typeof field === 'string' ? field : '';
+}
+
+function readRunnerNumber(
+  value: Record<string, unknown>,
+  key: string,
+): number | null {
+  const field = value[key];
+  return typeof field === 'number' && Number.isFinite(field) ? field : null;
+}
+
+function readSelfPid(value: Record<string, unknown>): number | null {
+  return typeof value.id === 'number' && Number.isFinite(value.id) ? value.id : null;
 }
 
 function runnerStateObjectiveMatchKey(
@@ -485,29 +560,6 @@ function groupRunnerStatePatch(input: GroupRunnerStatePatchInput): Record<string
   };
 }
 
-function partyCombatTarget(
-  liveState: AmbientPlayerBotLiveState,
-  party: PartyInfo,
-): { id: number } | null {
-  const self = liveState.self;
-  const selfId = typeof self?.id === 'number' ? self.id : null;
-  const selfX = typeof self?.x === 'number' ? self.x : null;
-  const selfZ = typeof self?.z === 'number' ? self.z : null;
-  if (selfId === null || selfX === null || selfZ === null) return null;
-  const partyMemberIds = new Set(party.members.map((member) => member.pid).filter((pid) => pid !== selfId));
-  if (partyMemberIds.size === 0) return null;
-  let best: { id: number; distance: number } | null = null;
-  for (const entity of liveState.entities.values()) {
-    if (entity.k !== 'mob' || entity.dead || !entity.h || typeof entity.id !== 'number') continue;
-    if (typeof entity.aggro !== 'number' || !partyMemberIds.has(entity.aggro)) continue;
-    if (typeof entity.x !== 'number' || typeof entity.z !== 'number') continue;
-    const distance = distanceToPoint(selfX, selfZ, entity.x, entity.z);
-    if (distance > GROUP_FOLLOW_MAX_RANGE || (best && distance >= best.distance)) continue;
-    best = { id: entity.id, distance };
-  }
-  return best ? { id: best.id } : null;
-}
-
 function distanceToPoint(
   x1: number,
   z1: number,
@@ -517,13 +569,6 @@ function distanceToPoint(
   const dx = x1 - x2;
   const dz = z1 - z2;
   return Math.sqrt(dx * dx + dz * dz);
-}
-
-function distanceBetweenMembers(
-  a: PartyMemberInfo,
-  b: PartyMemberInfo,
-): number {
-  return distanceToPoint(a.x, a.z, b.x, b.z);
 }
 
 function memberInCombat(member: PartyMemberInfo): boolean {
@@ -539,7 +584,7 @@ function countLaggingAmbientMembers(
   for (const member of party.members) {
     if (member.pid === leader.pid) continue;
     if (!activeNames.has(member.name) || member.dead) continue;
-    if (distanceBetweenMembers(member, leader) > GROUP_REGROUP_RANGE) count++;
+    if (distanceBetweenPartyMembers(member, leader) > GROUP_REGROUP_RANGE) count++;
   }
   return count;
 }

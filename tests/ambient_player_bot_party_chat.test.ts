@@ -217,6 +217,121 @@ describe('ambient player bot party chat shell', () => {
     expect(state.pendingUtterances).toHaveLength(0);
   });
 
+  it('uses the live pid when the ambient leader briefs the party before a pull', () => {
+    const state = createAmbientPlayerBotPartyChatRuntimeState();
+    const party: PartyInfo = {
+      leader: 401,
+      raid: false,
+      members: [
+        { pid: 401, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+        { pid: 402, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 0, group: 1 },
+      ],
+    };
+
+    const first = tickAmbientPlayerBotPartyChatShell({
+      bot: bot(),
+      liveState: liveState({
+        selfId: 401,
+        party,
+        entities: [{ id: 402, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
+      }),
+      recentEvents: [],
+      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+      objectiveId: 'q_wolves',
+      objectiveLabel: 'Wolves at the Door',
+      groupMode: 'prepare_party',
+      nowMs: 5_000,
+    }, state);
+
+    expect(first.commands).toEqual([]);
+    expect(state.pendingUtterances).toHaveLength(1);
+    expect(state.pendingUtterances[0]?.briefKey).toContain('|prepare_party');
+
+    const second = tickAmbientPlayerBotPartyChatShell({
+      bot: bot(),
+      liveState: liveState({
+        selfId: 401,
+        party,
+        entities: [{ id: 402, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
+      }),
+      recentEvents: [],
+      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+      objectiveId: 'q_wolves',
+      objectiveLabel: 'Wolves at the Door',
+      groupMode: 'prepare_party',
+      nowMs: 7_000,
+    }, state);
+
+    expect(second.commands).toEqual([
+      expect.objectContaining({
+        type: 'chat',
+        text: expect.stringMatching(/^\/p /),
+      }),
+    ]);
+  });
+
+  it('acknowledges a tactical line from a real player leader without taking over party leadership', () => {
+    const state = createAmbientPlayerBotPartyChatRuntimeState();
+    const party: PartyInfo = {
+      leader: 201,
+      raid: false,
+      members: [
+        { pid: 201, name: 'Aleph', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+        { pid: 101, name: 'Branoraaa', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 0, group: 1 },
+      ],
+    };
+
+    const first = tickAmbientPlayerBotPartyChatShell({
+      bot: bot({
+        class: 'priest',
+        profileId: 'eastbrook_vale_priest_newcomer',
+      }),
+      liveState: liveState({
+        party,
+        entities: [{ id: 201, nm: 'Aleph', k: 'player', x: 0, z: 0 }],
+      }),
+      recentEvents: [{
+        type: 'chat',
+        fromPid: 201,
+        from: 'Aleph',
+        text: 'Buff up, stay tight, then burn my target.',
+        channel: 'party',
+      }],
+      ambientBotNames: new Set(['Branoraaa']),
+      objectiveId: 'q_wolves',
+      objectiveLabel: 'Wolves at the Door',
+      groupMode: 'brain',
+      nowMs: 5_000,
+    }, state);
+
+    expect(first.commands).toEqual([]);
+    expect(state.pendingUtterances).toHaveLength(1);
+
+    const second = tickAmbientPlayerBotPartyChatShell({
+      bot: bot({
+        class: 'priest',
+        profileId: 'eastbrook_vale_priest_newcomer',
+      }),
+      liveState: liveState({
+        party,
+        entities: [{ id: 201, nm: 'Aleph', k: 'player', x: 0, z: 0 }],
+      }),
+      recentEvents: [],
+      ambientBotNames: new Set(['Branoraaa']),
+      objectiveId: 'q_wolves',
+      objectiveLabel: 'Wolves at the Door',
+      groupMode: 'brain',
+      nowMs: 8_000,
+    }, state);
+
+    expect(second.commands).toEqual([
+      expect.objectContaining({
+        type: 'chat',
+        text: expect.stringMatching(/^\/p /),
+      }),
+    ]);
+  });
+
   it('does not auto-brief when a real player leads the party', () => {
     const state = createAmbientPlayerBotPartyChatRuntimeState();
     const party: PartyInfo = {

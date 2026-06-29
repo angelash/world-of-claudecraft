@@ -72,6 +72,10 @@
     travel semantics between slower brain decisions so objective movement,
     combat setup, and object interaction stay reconstructible from live route
     state.
+24. When grouped coordination pauses brain drive for follow, focus fire, or
+    party prep, that pause only suppresses duplicate solo-brain steering.
+    Grouped support must still issue live offensive or support commands as soon
+    as the target or ally is already in usable range.
 
 ## Non-negotiable constraints
 

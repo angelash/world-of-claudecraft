@@ -4,14 +4,63 @@ import {
   createHostedPlayPartyState,
   tickHostedPlayPartyCoordinator,
 } from '../server/hosted_play/party';
+import type { AmbientPlayerBotRecord } from '../server/ambient_bots/types';
 
 function liveSelf(input: Record<string, unknown>): Record<string, unknown> {
   return {
     id: 101,
+    nm: 'Hero',
     x: 0,
     z: 0,
+    lv: 12,
+    hp: 100,
+    mhp: 100,
+    res: 120,
+    mres: 120,
+    rtype: 'mana',
+    target: null,
+    gcd: 0,
+    cast: null,
+    eat: null,
+    drk: null,
+    inv: [],
+    cds: {},
+    auras: [],
     party: null,
     ...input,
+  };
+}
+
+function ambientBot(overrides: Partial<AmbientPlayerBotRecord> = {}): AmbientPlayerBotRecord {
+  return {
+    botId: 'bot-1',
+    accountId: 11,
+    accountUsername: 'bot_user',
+    accountPassword: 'BotPassword123',
+    characterId: 101,
+    characterName: 'Branorabb',
+    profileId: 'eastbrook_vale_mage_newcomer',
+    class: 'mage',
+    authToken: 'token-1',
+    authTokenExpiresAtMs: 200_000,
+    lifecycleStatus: 'online',
+    provisionState: 'ready',
+    levelBand: { min: 1, max: 60 },
+    preferredZoneIds: ['eastbrook_vale'],
+    lastKnownZoneId: 'eastbrook_vale',
+    lastKnownLevel: 12,
+    lastKnownX: 0,
+    lastKnownZ: 0,
+    assignedClusterId: 'cluster-1',
+    assignedPlayerCharacterId: 1,
+    cooldownUntilMs: null,
+    reservationUntilMs: null,
+    lastRunnerError: '',
+    lastRunnerAtMs: null,
+    plannerState: {},
+    runnerState: {},
+    socialState: {},
+    ...overrides,
   };
 }
 
@@ -25,6 +74,7 @@ describe('hosted-play party coordinator', () => {
           id: 102,
           x: 1518,
           z: -1200,
+          auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
           party: {
             leader: 101,
             raid: false,
@@ -36,7 +86,9 @@ describe('hosted-play party coordinator', () => {
         }),
         entities: [],
         recentEvents: [],
+        playerClass: 'warrior',
         partyMode: 'follow_leader',
+        ambientDirectory: [],
         nowMs: 5_000,
       },
       state,
@@ -60,6 +112,7 @@ describe('hosted-play party coordinator', () => {
           id: 101,
           x: 1500,
           z: -1200,
+          auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
           party: {
             leader: 101,
             raid: false,
@@ -71,7 +124,9 @@ describe('hosted-play party coordinator', () => {
         }),
         entities: [],
         recentEvents: [],
+        playerClass: 'warrior',
         partyMode: 'follow_leader',
+        ambientDirectory: [],
         nowMs: 5_000,
       },
       state,
@@ -94,7 +149,9 @@ describe('hosted-play party coordinator', () => {
         liveSelf: liveSelf({ party: null }),
         entities: [],
         recentEvents: [{ type: 'partyInvite', fromPid: 201, fromName: 'Aleph' }],
+        playerClass: 'mage',
         partyMode: 'follow_leader',
+        ambientDirectory: [],
         nowMs: 5_000,
       },
       state,
@@ -117,7 +174,9 @@ describe('hosted-play party coordinator', () => {
         liveSelf: liveSelf({ party: null }),
         entities: [],
         recentEvents: [{ type: 'partyInvite', fromPid: 201, fromName: 'Aleph' }],
+        playerClass: 'mage',
         partyMode: 'solo',
+        ambientDirectory: [],
         nowMs: 5_000,
       },
       state,
@@ -147,7 +206,7 @@ describe('hosted-play party coordinator', () => {
             raid: false,
             members: [
               { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 8, z: 0, dead: 0, inCombat: 1, group: 1 },
-              { pid: 102, name: 'Hero', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'rogue', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'energy', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
             ],
           },
         }),
@@ -155,7 +214,9 @@ describe('hosted-play party coordinator', () => {
           { id: 501, k: 'mob', h: 80, x: 7, z: 0, aggro: 101 },
         ],
         recentEvents: [],
+        playerClass: 'rogue',
         partyMode: 'follow_leader',
+        ambientDirectory: [],
         nowMs: 5_000,
       },
       state,
@@ -164,9 +225,58 @@ describe('hosted-play party coordinator', () => {
     expect(result).toEqual({
       commands: [{ cmd: 'target', id: 501 }],
       pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 7, z: 0 },
+        arrivalRange: 4.5,
+        goalKey: 'party-target:501:7:0',
+      },
       groupMode: 'assist_party',
       groupLeaderName: 'Branoraaa',
       groupLeaderDistance: 8,
+    });
+  });
+
+  it('starts attacking the party focus target instead of only stutter-following when out of mana', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 0,
+          z: 0,
+          res: 0,
+          target: null,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 6, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 0, mres: 120, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 20, z: 0, aggro: 101 },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [
+        { cmd: 'target', id: 501 },
+        { cmd: 'attack' },
+      ],
+      pauseBrainDrive: true,
+      groupMode: 'assist_party',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 6,
     });
   });
 
@@ -179,6 +289,7 @@ describe('hosted-play party coordinator', () => {
           id: 102,
           x: 1502,
           z: -1200,
+          auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
           party: {
             leader: 101,
             raid: false,
@@ -190,7 +301,178 @@ describe('hosted-play party coordinator', () => {
         }),
         entities: [],
         recentEvents: [],
+        playerClass: 'warrior',
         partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: true,
+      groupMode: 'follow_leader',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 2,
+    });
+  });
+
+  it('has the hosted leader hold position while an ambient teammate is still preparing', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          x: 1500,
+          z: -1200,
+          rtype: 'rage',
+          res: 0,
+          mres: 0,
+          auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Hero', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'warlock', level: 12, hp: 90, mhp: 90, res: 120, mres: 120, rtype: 'mana', x: 1502, z: -1200, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        ambientDirectory: [
+          ambientBot({
+            characterId: 102,
+            characterName: 'Branorabb',
+            class: 'warlock',
+            runnerState: { groupMode: 'prepare_party' },
+          }),
+        ],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: true,
+      groupMode: 'prepare_party',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+  });
+
+  it('has a hosted warlock summon before the party advances into combat', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          x: 1500,
+          z: -1200,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Hero', cls: 'warlock', level: 12, hp: 90, mhp: 90, res: 120, mres: 120, rtype: 'mana', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1502, z: -1200, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 102, k: 'player', nm: 'Branoraaa', x: 1502, z: -1200, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'warlock',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [{ cmd: 'cast', ability: 'summon_succubus' }],
+      pauseBrainDrive: true,
+      groupMode: 'prepare_party',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+  });
+
+  it('invites the nearest nearby player when auto-invite is enabled for group content', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          nm: 'Hero',
+          x: 100,
+          z: 100,
+          party: null,
+        }),
+        entities: [
+          { id: 201, k: 'player', nm: 'Faraway', x: 130, z: 100, dead: 0 },
+          { id: 202, k: 'player', nm: 'Nearby', x: 108, z: 100, dead: 0 },
+        ],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'solo',
+        autoInviteNearbyPlayers: true,
+        objectiveSuggestedPartySize: 5,
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [{ cmd: 'pinvite', id: 202 }],
+      pauseBrainDrive: false,
+      groupMode: 'invite_nearby',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+  });
+
+  it('does not invite extra players when the hosted character is following another leader', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          nm: 'Hero',
+          x: 1502,
+          z: -1200,
+          auras: [
+            { id: 'frost_armor', kind: 'buff_armor', rem: 1700, dur: 1800 },
+            { id: 'arcane_intellect', kind: 'buff_int', rem: 1700, dur: 1800 },
+          ],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1502, z: -1200, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 203, k: 'player', nm: 'ExtraPlayer', x: 1504, z: -1200, dead: 0 },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        autoInviteNearbyPlayers: true,
+        objectiveSuggestedPartySize: 5,
+        ambientDirectory: [],
         nowMs: 5_000,
       },
       state,

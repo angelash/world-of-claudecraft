@@ -75,6 +75,12 @@ use `npm run db:up`, `node scripts/online_lan.mjs`, and
   beats deferred higher-risk routes and fallback grinding. This closes the
   mixed quest-log stall where ready work could be hidden behind a stale boar
   grind loop. See `post-packet-archive.md`.
+- 2026-06-29: tighten grouped combat coordination so focus-fire pauses no
+  longer leave followers jogging in place beside an already reachable target.
+  The shared support layer now opens with real casts or attacks as soon as the
+  focus target is in range, and the planning docs lock that pause semantics as
+  "movement ownership only", not "stop fighting". See `requirements.md`,
+  `architecture.md`, and `state.md`.
 
 ## Phase 1 checklist
 

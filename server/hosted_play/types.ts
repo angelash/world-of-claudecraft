@@ -17,7 +17,9 @@ export type HostedPlayGroupMode =
   | 'assist_party'
   | 'brain'
   | 'follow_leader'
-  | 'hold_regroup';
+  | 'hold_regroup'
+  | 'invite_nearby'
+  | 'prepare_party';
 
 export type HostedPlayPauseReason =
   | ''
@@ -27,6 +29,7 @@ export interface HostedPlayPreferences {
   resumeOnLogin: boolean;
   partyMode: HostedPlayPartyMode;
   actionLogEnabled: boolean;
+  autoInviteNearbyPlayers: boolean;
 }
 
 export interface HostedPlaySessionInfo {
@@ -161,6 +164,7 @@ export interface HostedPlayStatusSnapshot {
   resumeOnLogin: boolean;
   partyMode: HostedPlayPartyMode;
   actionLogEnabled: boolean;
+  autoInviteNearbyPlayers: boolean;
   groupMode: HostedPlayGroupMode;
   groupLeaderName: string;
   groupLeaderDistance: number;
@@ -183,8 +187,9 @@ export interface HostedPlayStatusSnapshot {
 
 export function defaultHostedPlayPreferences(): HostedPlayPreferences {
   return {
-    resumeOnLogin: false,
-    partyMode: 'solo',
-    actionLogEnabled: true,
+  resumeOnLogin: false,
+  partyMode: 'solo',
+  actionLogEnabled: true,
+  autoInviteNearbyPlayers: false,
   };
 }

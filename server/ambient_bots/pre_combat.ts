@@ -52,6 +52,13 @@ export interface PreCombatPreparationStep {
   commands: readonly PreCombatCommand[];
 }
 
+export interface LivePreCombatPreparationInput {
+  bot: AmbientPlayerBotRecord;
+  liveSelf: Record<string, unknown> | null;
+  entities: Iterable<Record<string, unknown>>;
+  issueCommand: CommandGate;
+}
+
 const PREPARE_LABEL = 'Preparing for combat';
 const RESTORE_MANA_LABEL = 'Restoring mana before pull';
 const PREP_CAST_COOLDOWN_MS = 900;
@@ -95,6 +102,22 @@ export function maybePrepareForPull(input: PreCombatPreparationInput): PreCombat
   if (buff) return castPreparedAbility(input, buff, false);
 
   return maybeRestoreManaForPull(input, pullManaRequirement(abilities));
+}
+
+export function maybePrepareForPullFromLiveState(
+  input: LivePreCombatPreparationInput,
+): PreCombatPreparationStep | null {
+  const self = parsePreCombatSelf(input.liveSelf);
+  if (!self) return null;
+  const entities = [...input.entities]
+    .map(parsePreCombatEntity)
+    .filter((entity): entity is PreCombatEntityView => entity !== null);
+  return maybePrepareForPull({
+    bot: input.bot,
+    self,
+    entities,
+    issueCommand: input.issueCommand,
+  });
 }
 
 function knownAbilitiesFor(
@@ -304,4 +327,114 @@ function waitToPrepare(): PreCombatPreparationStep {
 
 function waitToRestoreMana(): PreCombatPreparationStep {
   return recoverStep([]);
+}
+
+function parsePreCombatSelf(raw: Record<string, unknown> | null): PreCombatSelfView | null {
+  if (!raw) return null;
+  const id = readNumber(raw.id);
+  const level = readNumber(raw.lv);
+  const hp = readNumber(raw.hp);
+  const maxHp = readNumber(raw.mhp);
+  if (id === null || level === null || hp === null || maxHp === null) return null;
+  return {
+    id,
+    level,
+    hp,
+    maxHp,
+    resource: readNumber(raw.res) ?? 0,
+    maxResource: readNumber(raw.mres) ?? 0,
+    resourceType: readString(raw.rtype) ?? '',
+    gcdRemaining: readNumber(raw.gcd) ?? 0,
+    cooldowns: readNumberRecord(raw.cds),
+    castingAbility: readString(raw.cast),
+    eatingRemaining: readNumber(readRecord(raw.eat)?.remaining),
+    drinkingRemaining: readNumber(readRecord(raw.drk)?.remaining),
+    inventory: readInventory(raw.inv),
+    auras: readAuras(raw.auras),
+    talents: readTalentAllocation(raw.tal),
+  };
+}
+
+function parsePreCombatEntity(raw: Record<string, unknown>): PreCombatEntityView | null {
+  const kind = readString(raw.k);
+  if (!kind) return null;
+  return {
+    kind,
+    dead: readBoolean(raw.dead),
+    ownerId: readNumber(raw.own),
+  };
+}
+
+function readTalentAllocation(raw: unknown): TalentAllocation | null {
+  const record = readRecord(raw);
+  const alloc = record ? readRecord(record.alloc) : null;
+  const ranks = alloc ? readRecord(alloc.ranks) : null;
+  const choices = alloc ? readRecord(alloc.choices) : null;
+  return alloc
+    ? {
+      spec: readString(alloc.spec),
+      ranks: ranks ? Object.fromEntries(Object.entries(ranks).map(([key, value]) => [key, readNumber(value) ?? 0])) : {},
+      choices: choices ? Object.fromEntries(Object.entries(choices).map(([key, value]) => [key, readString(value) ?? ''])) : {},
+    }
+    : null;
+}
+
+function readAuras(raw: unknown): PreCombatAuraView[] {
+  if (!Array.isArray(raw)) return [];
+  const auras: PreCombatAuraView[] = [];
+  for (const item of raw) {
+    const record = readRecord(item);
+    const id = record ? readString(record.id) : null;
+    const kind = record ? readString(record.kind) : null;
+    if (!id || !kind) continue;
+    auras.push({
+      id,
+      kind,
+      remaining: readNumber(record?.rem) ?? readNumber(record?.remaining) ?? 0,
+      duration: readNumber(record?.dur) ?? readNumber(record?.duration) ?? 0,
+    });
+  }
+  return auras;
+}
+
+function readInventory(raw: unknown): InvSlot[] {
+  if (!Array.isArray(raw)) return [];
+  const inventory: InvSlot[] = [];
+  for (const slot of raw) {
+    const record = readRecord(slot);
+    const itemId = record ? readString(record.itemId) : null;
+    const count = record ? readNumber(record.count) : null;
+    if (!itemId || count === null) continue;
+    inventory.push({ itemId, count });
+  }
+  return inventory;
+}
+
+function readNumberRecord(raw: unknown): Record<string, number> {
+  const record = readRecord(raw);
+  if (!record) return {};
+  const values: Record<string, number> = {};
+  for (const [key, value] of Object.entries(record)) {
+    const number = readNumber(value);
+    if (number !== null) values[key] = number;
+  }
+  return values;
+}
+
+function readRecord(raw: unknown): Record<string, unknown> | null {
+  return raw && typeof raw === 'object' && !Array.isArray(raw)
+    ? raw as Record<string, unknown>
+    : null;
+}
+
+function readString(raw: unknown): string | null {
+  return typeof raw === 'string' ? raw : null;
+}
+
+function readNumber(raw: unknown): number | null {
+  return typeof raw === 'number' && Number.isFinite(raw) ? raw : null;
+}
+
+function readBoolean(raw: unknown): boolean {
+  return raw === true || raw === 1;
 }

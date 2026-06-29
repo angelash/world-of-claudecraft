@@ -171,8 +171,8 @@ The ambient group coordinator is intentionally narrow and lives outside
   start range. When already near the leader, they still pause brain movement to
   preserve the server follow state.
 - If a visible hostile mob is attacking another party member, the bot targets it
-  so the normal progression and combat brain can assist through regular combat
-  commands.
+  so grouped support can either open on it directly or hand it to the normal
+  combat brain through regular combat commands.
 
 ## Party role and chat flow
 
@@ -209,11 +209,22 @@ allowed to drive.
 - Out of combat, support-capable classes apply party-wide preparation through
   normal target-and-cast commands: Priest Fortitude and Shield, Druid Mark and
   Thorns, Paladin Blessing of Might.
+- Group preparation is intended to finish before the pull resumes. Leaders may
+  hold the party in a safe staging position while buffs, summons, or recovery
+  complete, instead of letting members drift into melee range first.
 - Tank-role support then runs before generic DPS behavior. The first slice
   covers Warrior tanking directly, plus Bear Druid taunt support when already in
   bear form.
 - When no higher-priority support action is needed, grouped bots retarget to a
   shared focus mob so the party collapses damage onto one threat anchor.
+- If that focus mob is already inside a usable damage-ability range or
+  auto-attack range, the support layer emits the actual offensive command
+  itself, such as `target + cast` or `target + attack`, while group
+  coordination still owns movement pause. It falls back to travel goals only
+  when distance must still be closed.
+- This matters because ambient and hosted-play party control both reuse the same
+  grouped support layer. A paused brain drive means "do not let the solo brain
+  steer this tick", not "stand still and wait to attack".
 
 Current role coverage is intentionally staged rather than pretending every class
 has a complete bespoke rotation already:

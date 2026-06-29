@@ -632,6 +632,19 @@ export class AmbientPlayerBotRuntime {
         if (!groupResult.pauseBrainDrive) {
           for (const command of result.commands) entry.client.command(command);
           this.driveAmbientBotEntry(entry, liveState, result);
+        } else if (groupResult.travelGoal) {
+          const groupDrive = continueAmbientPlayerBotTravel(
+            liveState,
+            entry.brainState,
+            result.objectiveId,
+            result.objectiveLabel,
+            groupResult.travelGoal,
+          );
+          if (groupDrive && (Object.keys(groupDrive.moveInput).length > 0 || groupDrive.facing !== undefined)) {
+            entry.client.input(groupDrive.moveInput, groupDrive.facing);
+          } else {
+            entry.client.input({});
+          }
         } else {
           entry.client.input({});
         }

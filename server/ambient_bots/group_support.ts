@@ -1,9 +1,11 @@
 import type { KnownAbility } from '../../src/sim/content/classes';
 import type { Role, TalentAllocation } from '../../src/sim/content/talents';
 import { computeTalentModifiers } from '../../src/sim/content/talents';
-import { abilitiesKnownAt } from '../../src/sim/data';
-import { dist2d } from '../../src/sim/types';
+import { CLASSES, abilitiesKnownAt } from '../../src/sim/data';
+import { MELEE_RANGE, dist2d } from '../../src/sim/types';
 import type { PartyInfo, PartyMemberInfo } from '../../src/world_api';
+import { type PartyCombatTarget, type PartyTravelGoal, partyAssistArrivalRange, travelGoalToPartyTarget } from '../party_coordination';
+import { maybePrepareForPullFromLiveState } from './pre_combat';
 import { planAmbientPartyRoles } from './party_roles';
 import type { AmbientPlayerBotRecord } from './types';
 import type { AmbientPlayerBotLiveState } from './ws_client';
@@ -11,6 +13,7 @@ import type { AmbientPlayerBotLiveState } from './ws_client';
 const TARGET_COMMAND_COOLDOWN_MS = 900;
 const CAST_COMMAND_COOLDOWN_MS = 900;
 const LONG_CAST_COMMAND_COOLDOWN_MS = 1_600;
+const ATTACK_COMMAND_COOLDOWN_MS = 1_200;
 const GROUP_HEAL_OUT_OF_COMBAT_RATIO = 0.92;
 const GROUP_HEAL_IN_COMBAT_RATIO = 0.82;
 
@@ -27,6 +30,7 @@ interface SupportSelfView {
   level: number;
   pos: { x: number; z: number };
   targetId: number | null;
+  autoAttack: boolean;
   resource: number;
   gcdRemaining: number;
   cooldowns: Record<string, number>;
@@ -67,6 +71,7 @@ export interface AmbientPartySupportInput {
 export interface AmbientPartySupportDecision {
   commands: readonly Record<string, unknown>[];
   groupMode: string;
+  travelGoal?: PartyTravelGoal;
 }
 
 export function maybeCoordinateAmbientPartySupport(
@@ -100,6 +105,13 @@ export function maybeCoordinateAmbientPartySupport(
   if (healDecision) return healDecision;
 
   if (!partyInCombat) {
+    const selfPreparationDecision = maybePrepareSelfForParty({
+      bot: input.bot,
+      liveState: input.liveState,
+      reserveCommandBatch: input.reserveCommandBatch,
+    });
+    if (selfPreparationDecision) return selfPreparationDecision;
+
     const buffDecision = maybeBuffParty({
       self,
       bot: input.bot,
@@ -127,16 +139,37 @@ export function maybeCoordinateAmbientPartySupport(
   if (partyInCombat) {
     const focusDecision = maybeFocusFire({
       self,
+      bot: input.bot,
       hostileMobs,
       members,
       tankPid,
       leaderPid: input.leaderMember?.pid ?? null,
+      abilities,
       reserveCommandBatch: input.reserveCommandBatch,
     });
     if (focusDecision) return focusDecision;
   }
 
   return null;
+}
+
+function maybePrepareSelfForParty(input: {
+  bot: AmbientPlayerBotRecord;
+  liveState: AmbientPlayerBotLiveState;
+  reserveCommandBatch: AmbientPartySupportInput['reserveCommandBatch'];
+}): AmbientPartySupportDecision | null {
+  const step = maybePrepareForPullFromLiveState({
+    bot: input.bot,
+    liveSelf: input.liveState.self,
+    entities: input.liveState.entities.values(),
+    issueCommand: (key, cooldownMs) =>
+      input.reserveCommandBatch([{ key, cooldownMs }]),
+  });
+  if (!step) return null;
+  return {
+    commands: [...step.commands],
+    groupMode: 'prepare_party',
+  };
 }
 
 function maybeBuffParty(input: {
@@ -296,21 +329,66 @@ function maybeSupportTank(input: {
 
 function maybeFocusFire(input: {
   self: SupportSelfView;
+  bot: AmbientPlayerBotRecord;
   hostileMobs: readonly SupportMobView[];
   members: readonly SupportPartyMemberView[];
   tankPid: number | null;
   leaderPid: number | null;
+  abilities: ReadonlyMap<string, KnownAbility>;
   reserveCommandBatch: AmbientPartySupportInput['reserveCommandBatch'];
 }): AmbientPartySupportDecision | null {
   const focusTarget = selectFocusTarget(input.hostileMobs, input.members, input.tankPid, input.leaderPid);
-  if (!focusTarget || input.self.targetId === focusTarget.id) return null;
-  if (!input.reserveCommandBatch([{ key: `target:${focusTarget.id}`, cooldownMs: TARGET_COMMAND_COOLDOWN_MS }])) {
-    return null;
+  if (!focusTarget) return null;
+
+  const distance = planarDistance(input.self.pos, focusTarget.pos);
+  const abilityDecision = maybeQueueFocusFireAbility({
+    self: input.self,
+    cls: input.bot.class,
+    target: focusTarget,
+    distance,
+    abilities: input.abilities,
+    reserveCommandBatch: input.reserveCommandBatch,
+  });
+  if (abilityDecision) return abilityDecision;
+
+  const attackDecision = queueHostileAttack(
+    input.self,
+    input.bot.class,
+    focusTarget,
+    'focus_fire',
+    input.reserveCommandBatch,
+  );
+  if (attackDecision) return attackDecision;
+
+  const rangedAbilityInRange = hasFocusFireAbilityAtDistance(input.bot.class, input.abilities, distance);
+  const classArrivalRange = partyAssistArrivalRange(input.bot.class);
+  const shouldTravel = !rangedAbilityInRange
+    && !withinAutoAttackRange(input.bot.class, distance)
+    && distance > classArrivalRange;
+  const travelGoal = shouldTravel
+    ? travelGoalToPartyTarget(focusTargetAsCombatTarget(focusTarget, distance), classArrivalRange)
+    : undefined;
+
+  if (input.self.targetId !== focusTarget.id) {
+    if (!input.reserveCommandBatch([{ key: `target:${focusTarget.id}`, cooldownMs: TARGET_COMMAND_COOLDOWN_MS }])) {
+      return null;
+    }
+    return {
+      commands: [{ cmd: 'target', id: focusTarget.id }],
+      groupMode: 'focus_fire',
+      ...(travelGoal ? { travelGoal } : {}),
+    };
   }
-  return {
-    commands: [{ cmd: 'target', id: focusTarget.id }],
-    groupMode: 'focus_fire',
-  };
+
+  if (travelGoal) {
+    return {
+      commands: [],
+      groupMode: 'focus_fire',
+      travelGoal,
+    };
+  }
+
+  return null;
 }
 
 function maybePriestHeal(
@@ -479,6 +557,30 @@ function queueHostileCast(
   };
 }
 
+function queueHostileAttack(
+  self: SupportSelfView,
+  cls: AmbientPlayerBotRecord['class'],
+  target: SupportMobView,
+  groupMode: string,
+  reserveCommandBatch: AmbientPartySupportInput['reserveCommandBatch'],
+): AmbientPartySupportDecision | null {
+  const distance = planarDistance(self.pos, target.pos);
+  if (self.autoAttack || !withinAutoAttackRange(cls, distance)) return null;
+  const reservations: AmbientGroupCommandReservation[] = [];
+  if (self.targetId !== target.id) {
+    reservations.push({ key: `target:${target.id}`, cooldownMs: TARGET_COMMAND_COOLDOWN_MS });
+  }
+  reservations.push({ key: 'attack', cooldownMs: ATTACK_COMMAND_COOLDOWN_MS });
+  if (!reserveCommandBatch(reservations)) return null;
+  return {
+    commands: [
+      ...(self.targetId !== target.id ? [{ cmd: 'target', id: target.id }] : []),
+      { cmd: 'attack' },
+    ],
+    groupMode,
+  };
+}
+
 function queueSelfCast(
   self: SupportSelfView,
   ability: KnownAbility,
@@ -591,6 +693,147 @@ function knownAbilityMap(
 ): ReadonlyMap<string, KnownAbility> {
   const mods = self.talents ? computeTalentModifiers(bot.class, self.talents) : undefined;
   return new Map(abilitiesKnownAt(bot.class, self.level, mods).map((ability) => [ability.def.id, ability]));
+}
+
+function maybeQueueFocusFireAbility(input: {
+  self: SupportSelfView;
+  cls: AmbientPlayerBotRecord['class'];
+  target: SupportMobView;
+  distance: number;
+  abilities: ReadonlyMap<string, KnownAbility>;
+  reserveCommandBatch: AmbientPartySupportInput['reserveCommandBatch'];
+}): AmbientPartySupportDecision | null {
+  const ability = pickFocusFireAbility(input.cls, input.self, input.abilities, input.distance);
+  if (!ability) return null;
+
+  const reservations: AmbientGroupCommandReservation[] = [];
+  if (input.self.targetId !== input.target.id) {
+    reservations.push({ key: `target:${input.target.id}`, cooldownMs: TARGET_COMMAND_COOLDOWN_MS });
+  }
+  reservations.push({ key: `cast:${ability.def.id}`, cooldownMs: castCommandCooldownMs(ability) });
+  if (!input.self.autoAttack && input.distance <= MELEE_RANGE + 0.3) {
+    reservations.push({ key: 'attack', cooldownMs: ATTACK_COMMAND_COOLDOWN_MS });
+  }
+  if (!input.reserveCommandBatch(reservations)) return null;
+
+  return {
+    commands: [
+      ...(input.self.targetId !== input.target.id ? [{ cmd: 'target', id: input.target.id }] : []),
+      { cmd: 'cast', ability: ability.def.id },
+      ...(!input.self.autoAttack && input.distance <= MELEE_RANGE + 0.3 ? [{ cmd: 'attack' }] : []),
+    ],
+    groupMode: 'focus_fire',
+  };
+}
+
+function pickFocusFireAbility(
+  cls: AmbientPlayerBotRecord['class'],
+  self: SupportSelfView,
+  abilities: ReadonlyMap<string, KnownAbility>,
+  distance: number,
+): KnownAbility | null {
+  const preferRanged = !!CLASSES[cls].ranged;
+  const candidates = [...abilities.values()]
+    .filter(isFocusFireAbility)
+    .filter((ability) => abilityMatchesDistance(ability, distance))
+    .filter((ability) => canUseAbility(self, ability));
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => scoreFocusFireAbility(b, preferRanged) - scoreFocusFireAbility(a, preferRanged));
+  return candidates[0] ?? null;
+}
+
+function hasFocusFireAbilityAtDistance(
+  cls: AmbientPlayerBotRecord['class'],
+  abilities: ReadonlyMap<string, KnownAbility>,
+  distance: number,
+): boolean {
+  const preferRanged = !!CLASSES[cls].ranged;
+  return [...abilities.values()]
+    .filter(isFocusFireAbility)
+    .sort((a, b) => scoreFocusFireAbility(b, preferRanged) - scoreFocusFireAbility(a, preferRanged))
+    .some((ability) => abilityMatchesDistance(ability, distance));
+}
+
+function isFocusFireAbility(ability: KnownAbility): boolean {
+  if (!ability.def.requiresTarget) return false;
+  if (ability.def.requiresStealth) return false;
+  if (ability.def.requiresOutOfCombat) return false;
+  if (ability.def.requiresDodgeProc) return false;
+  if (ability.def.requiresTargetHpBelow) return false;
+  if (ability.def.spendsCombo) return false;
+  if (ability.def.targetType === 'friendly') return false;
+  if (ability.effects.some((effect) => effect.type === 'weaponStrike' && effect.requiresBehind)) return false;
+  if (ability.effects.some((effect) =>
+    effect.type === 'incapacitate'
+    || effect.type === 'polymorph'
+    || effect.type === 'stun',
+  )) {
+    return false;
+  }
+  return ability.effects.some((effect) =>
+    effect.type === 'directDamage'
+    || effect.type === 'weaponDamage'
+    || effect.type === 'weaponStrike'
+    || effect.type === 'dot'
+    || effect.type === 'drainTick'
+    || effect.type === 'finisherDamage'
+    || effect.type === 'aoeDamage',
+  );
+}
+
+function scoreFocusFireAbility(ability: KnownAbility, preferRanged: boolean): number {
+  const range = abilityRange(ability);
+  let score = 0;
+  if (preferRanged && range > MELEE_RANGE + 1) score += 100;
+  if (!preferRanged && range <= MELEE_RANGE + 1) score += 80;
+  if (ability.castTime === 0) score += 10;
+  score += range;
+  for (const effect of ability.effects) {
+    switch (effect.type) {
+      case 'directDamage':
+      case 'weaponDamage':
+      case 'weaponStrike':
+        score += 24;
+        break;
+      case 'aoeDamage':
+      case 'finisherDamage':
+        score += 12;
+        break;
+      case 'dot':
+      case 'drainTick':
+        score += 6;
+        break;
+    }
+  }
+  return score;
+}
+
+function abilityMatchesDistance(ability: KnownAbility, distance: number): boolean {
+  return distance <= abilityRange(ability) + 0.35
+    && distance >= (ability.def.minRange ?? 0) - 0.35;
+}
+
+function abilityRange(ability: KnownAbility): number {
+  return ability.def.range > 0 ? ability.def.range : MELEE_RANGE;
+}
+
+function withinAutoAttackRange(
+  cls: AmbientPlayerBotRecord['class'],
+  distance: number,
+): boolean {
+  const ranged = CLASSES[cls].ranged;
+  if (!ranged) return distance <= MELEE_RANGE + 0.3;
+  const minRange = ranged.wand ? 0 : ranged.minRange;
+  return distance <= ranged.maxRange + 0.35 && distance >= minRange - 0.35;
+}
+
+function focusTargetAsCombatTarget(target: SupportMobView, distance: number): PartyCombatTarget {
+  return {
+    id: target.id,
+    x: target.pos.x,
+    z: target.pos.z,
+    distance,
+  };
 }
 
 function healthRatio(member: PartyMemberInfo): number {
@@ -814,6 +1057,7 @@ function parseSupportSelf(raw: Record<string, unknown> | null): SupportSelfView 
     level: readNumber(raw.lv) ?? 1,
     pos: { x, z },
     targetId: readNumber(raw.target),
+    autoAttack: readBoolean(raw.auto),
     resource: readNumber(raw.res) ?? 0,
     gcdRemaining: readNumber(raw.gcd) ?? 0,
     cooldowns: readNumberRecord(raw.cds),

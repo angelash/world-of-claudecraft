@@ -754,7 +754,8 @@ export const zh_CN: EnTranslations = {
         "assistParty": "Assisting the party in combat",
         "brain": "正在运行常规推进逻辑",
         "followLeader": "正在跟随队长",
-        "holdRegroup": "正在等待队伍重新集合"
+        "holdRegroup": "正在等待队伍重新集合",
+        "prepareParty": "Holding for battle preparation"
       },
       "llmStatus": {
         "pending": "等待中",

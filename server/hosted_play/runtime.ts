@@ -7,6 +7,11 @@ import {
 } from '../ambient_bots/brain';
 import { AmbientPlayerBotLlmCoordinator } from '../ambient_bots/llm_coordinator';
 import {
+  createAmbientPlayerBotPartyChatRuntimeState,
+  tickAmbientPlayerBotPartyChatShell,
+  type AmbientPlayerBotPartyChatRuntimeState,
+} from '../ambient_bots/party_chat';
+import {
   createAmbientPlayerBotSocialRuntimeState,
   tickAmbientPlayerBotSocialShell,
   type AmbientPlayerBotSocialCommand,
@@ -76,6 +81,7 @@ interface HostedPlayEntry {
   lastBrainResult: AmbientPlayerBotBrainTickResult | null;
   brainDrivePaused: boolean;
   partyState: HostedPlayPartyState;
+  partyChatState: AmbientPlayerBotPartyChatRuntimeState;
   llmState: HostedPlayLlmState;
   actionLogAtMs: Record<string, number>;
 }
@@ -94,6 +100,7 @@ export interface HostedPlayRuntimeGame {
   setHostedPlayObserved(characterId: number, observed: boolean): void;
   drainHostedPlayRecentEvents(characterId: number): SimEvent[];
   sendHostedPlayActionLog(characterId: number, text: string): void;
+  ambientPlayerBotDirectory(): AmbientPlayerBotRecord[];
   ambientPlayerBotNames(): string[];
 }
 
@@ -187,6 +194,7 @@ export class HostedPlayRuntime {
       resumeOnLogin: preferences.resumeOnLogin,
       partyMode: preferences.partyMode,
       actionLogEnabled: preferences.actionLogEnabled,
+      autoInviteNearbyPlayers: preferences.autoInviteNearbyPlayers,
       groupMode: entry?.groupMode ?? '',
       groupLeaderName: entry?.groupLeaderName ?? '',
       groupLeaderDistance: entry?.groupLeaderDistance ?? 0,
@@ -228,6 +236,7 @@ export class HostedPlayRuntime {
           lastBrainAtMs: null,
           lastBrainResult: null,
           brainDrivePaused: false,
+          partyChatState: createAmbientPlayerBotPartyChatRuntimeState(),
           actionLogAtMs: {},
         }
       : {
@@ -254,6 +263,7 @@ export class HostedPlayRuntime {
           lastBrainResult: null,
           brainDrivePaused: false,
           partyState: createHostedPlayPartyState(),
+          partyChatState: createAmbientPlayerBotPartyChatRuntimeState(),
           llmState: createHostedPlayLlmState(this.llmEnabled ? this.llmConfig : null),
           actionLogAtMs: {},
         };
@@ -354,7 +364,11 @@ export class HostedPlayRuntime {
         liveSelf: liveState.self,
         entities: liveState.entities.values(),
         recentEvents,
+        playerClass: info.playerClass,
         partyMode: entry.preferences.partyMode,
+        autoInviteNearbyPlayers: entry.preferences.autoInviteNearbyPlayers,
+        objectiveSuggestedPartySize: result.objectiveSuggestedPartySize ?? 0,
+        ambientDirectory: this.game.ambientPlayerBotDirectory(),
         nowMs,
       },
       entry.partyState,
@@ -380,12 +394,45 @@ export class HostedPlayRuntime {
     if (typeof lastWhisperFrom === 'string') entry.lastWhisperFrom = lastWhisperFrom;
     const lastSocialAction = socialResult.runnerStatePatch.lastSocialAction;
     if (typeof lastSocialAction === 'string') entry.lastSocialAction = lastSocialAction;
+    const partyChatResult = entry.preferences.partyMode === 'follow_leader'
+      ? tickAmbientPlayerBotPartyChatShell(
+        {
+          bot: hostedPlayBotRecord(info, liveState, entry),
+          liveState,
+          recentEvents,
+          ambientBotNames: new Set(this.game.ambientPlayerBotNames()),
+          llmPlan: entry.llmState.plan,
+          objectiveId: result.objectiveId,
+          objectiveLabel: result.objectiveLabel,
+          objectiveQuestId: result.objectiveQuestId,
+          objectiveDungeonId: result.objectiveDungeonId,
+          groupMode: entry.groupMode,
+          nowMs,
+        },
+        entry.partyChatState,
+      )
+      : { commands: [], runnerStatePatch: {} };
 
     for (const command of partyResult.commands) {
       this.game.applyHostedPlayCommand(characterId, command);
     }
     if (partyResult.pauseBrainDrive) {
-      this.game.clearHostedPlayControl(characterId);
+      if (partyResult.travelGoal) {
+        const groupDrive = continueAmbientPlayerBotTravel(
+          liveState,
+          entry.brainState,
+          result.objectiveId,
+          result.objectiveLabel,
+          partyResult.travelGoal,
+        );
+        if (groupDrive && hasHostedDrive(groupDrive.moveInput, groupDrive.facing)) {
+          this.game.applyHostedPlayMoveInput(characterId, groupDrive.moveInput, groupDrive.facing);
+        } else {
+          this.game.clearHostedPlayControl(characterId);
+        }
+      } else {
+        this.game.clearHostedPlayControl(characterId);
+      }
     } else {
       this.driveHostedEntry(characterId, entry, liveState, result);
     }
@@ -396,6 +443,11 @@ export class HostedPlayRuntime {
     }
     for (const command of socialResult.commands) {
       this.applyHostedPlaySocialCommand(characterId, command);
+    }
+    for (const command of partyChatResult.commands) {
+      if (command.type === 'chat') {
+        this.game.applyHostedPlayCommand(characterId, { cmd: 'chat', text: command.text });
+      }
     }
     if (this.llmEnabled && this.llmCoordinator) {
       const bot = hostedPlayBotRecord(info, liveState, entry);
@@ -828,6 +880,8 @@ function hostedPlayPreferencesWithDefaults(
     resumeOnLogin: preferences.resumeOnLogin,
     partyMode: preferences.partyMode,
     actionLogEnabled: preferences.actionLogEnabled ?? defaults.actionLogEnabled,
+    autoInviteNearbyPlayers:
+      preferences.autoInviteNearbyPlayers ?? defaults.autoInviteNearbyPlayers,
   };
 }
 

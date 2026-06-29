@@ -79,6 +79,10 @@ and get replaced through the same server surfaces that human players use.
 - Grouped bots must complete practical pre-battle preparation through normal
   player commands: self prep, party-wide buffs where the class can provide
   them, tank-side readying, and healer-side top-offs before the pull resumes.
+- Pre-battle preparation should happen in a safe staging position when
+  possible. Bots should not walk into a mob's face, stop, and only then start
+  buffing or summoning unless the encounter or map leaves no safer staging
+  space.
 - Ambient-bot-led parties should derive one shared role split from current
   party composition, then use that same split for both tactical behavior and
   party-chat simulation.
@@ -97,6 +101,10 @@ and get replaced through the same server surfaces that human players use.
   accept a real player's invite.
 - Grouped bots preserve the server follow state by pausing brain movement while
   near the party leader.
+- Brain-drive pause for grouped coordination must not suppress an opening
+  attack. If the shared focus target is already in usable spell range or
+  auto-attack range, the grouped support layer should issue the offensive
+  command immediately and use movement fallback only to close distance.
 - Grouped bots should converge on a shared combat focus target instead of
   free-splitting damage across multiple nearby enemies.
 - Tank-capable grouped bots must reclaim loose mobs from healers or other
@@ -169,6 +177,9 @@ and get replaced through the same server surfaces that human players use.
   leadership decisions or breaking follow.
 - Grouped parties finish obvious prep work, heal up, buff up, and then collapse
   onto one combat target instead of scattering opening actions.
+- Grouped followers do not stutter-run beside an in-range target waiting for
+  the leader to stop. When a focus target is already reachable, they start
+  casting or attacking right away.
 - Ambient-bot-led parties visibly sound coordinated: the leader briefly calls
   assignments and focus in party chat, followers confirm their role once, and
   the later tactical behavior matches what the party just said it would do.

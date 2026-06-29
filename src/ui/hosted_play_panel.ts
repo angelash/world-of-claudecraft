@@ -13,7 +13,9 @@ export type HostedPlayGroupModeView =
   | 'assist_party'
   | 'brain'
   | 'follow_leader'
-  | 'hold_regroup';
+  | 'hold_regroup'
+  | 'invite_nearby'
+  | 'prepare_party';
 
 export type HostedPlayLlmDecisionStatusView =
   | ''
@@ -28,6 +30,7 @@ export interface HostedPlaySettingsView {
   resumeOnLogin: boolean;
   partyMode: HostedPlayPartyModeView;
   actionLogEnabled: boolean;
+  autoInviteNearbyPlayers: boolean;
 }
 
 export interface HostedPlayDebugPointView {
@@ -253,6 +256,17 @@ export function renderHostedPlayPanel(
   actionLogRow.append(actionLogLabel, actionLogBtn);
   settings.appendChild(actionLogRow);
 
+  const autoInviteRow = document.createElement('div');
+  autoInviteRow.className = 'set-row';
+  const autoInviteLabel = document.createElement('span');
+  autoInviteLabel.className = 'set-name';
+  autoInviteLabel.textContent = t('hudChrome.hostedPlay.autoInviteNearbyLabel');
+  const autoInviteBtn = document.createElement('button');
+  autoInviteBtn.type = 'button';
+  autoInviteBtn.className = 'btn set-toggle';
+  autoInviteRow.append(autoInviteLabel, autoInviteBtn);
+  settings.appendChild(autoInviteRow);
+
   const partyRow = document.createElement('div');
   partyRow.className = 'set-row';
   const partyLabel = document.createElement('span');
@@ -319,6 +333,13 @@ export function renderHostedPlayPanel(
     actionLogBtn.classList.toggle('off', !actionLogEnabled);
     actionLogBtn.setAttribute('aria-pressed', String(actionLogEnabled));
     actionLogBtn.setAttribute('aria-label', t('hudChrome.hostedPlay.actionLogLabel'));
+
+    const autoInviteNearbyPlayers = currentStatus?.autoInviteNearbyPlayers ?? false;
+    autoInviteBtn.disabled = pending || !currentStatus;
+    autoInviteBtn.textContent = autoInviteNearbyPlayers ? t('hud.options.on') : t('hud.options.off');
+    autoInviteBtn.classList.toggle('off', !autoInviteNearbyPlayers);
+    autoInviteBtn.setAttribute('aria-pressed', String(autoInviteNearbyPlayers));
+    autoInviteBtn.setAttribute('aria-label', t('hudChrome.hostedPlay.autoInviteNearbyLabel'));
 
     const partyMode = currentStatus?.partyMode ?? 'solo';
     for (const [button, mode] of [
@@ -442,6 +463,10 @@ export function renderHostedPlayPanel(
       t('hudChrome.hostedPlay.actionLogLabel'),
       status.actionLogEnabled ? t('hud.options.on') : t('hud.options.off'),
     );
+    appendRow(
+      t('hudChrome.hostedPlay.autoInviteNearbyLabel'),
+      status.autoInviteNearbyPlayers ? t('hud.options.on') : t('hud.options.off'),
+    );
     appendRow(t('hudChrome.hostedPlay.partyModeStatusLabel'), partyModeText(status));
     appendRow(t('hudChrome.hostedPlay.groupModeLabel'), groupModeText(status));
     if (status.groupLeaderName) {
@@ -524,6 +549,8 @@ export function renderHostedPlayPanel(
           resumeOnLogin: patch.resumeOnLogin ?? status.resumeOnLogin,
           partyMode: patch.partyMode ?? status.partyMode,
           actionLogEnabled: patch.actionLogEnabled ?? status.actionLogEnabled,
+          autoInviteNearbyPlayers:
+            patch.autoInviteNearbyPlayers ?? status.autoInviteNearbyPlayers,
         }),
       'hudChrome.hostedPlay.settingsSaveFailed',
     );
@@ -554,6 +581,10 @@ export function renderHostedPlayPanel(
   actionLogBtn.addEventListener('click', () => {
     audio.click();
     updateSettings({ actionLogEnabled: !currentStatus?.actionLogEnabled });
+  });
+  autoInviteBtn.addEventListener('click', () => {
+    audio.click();
+    updateSettings({ autoInviteNearbyPlayers: !currentStatus?.autoInviteNearbyPlayers });
   });
   partySoloBtn.addEventListener('click', () => {
     audio.click();
@@ -769,6 +800,10 @@ function groupModeText(status: HostedPlayStatusView): string {
       return t('hudChrome.hostedPlay.groupMode.followLeader');
     case 'hold_regroup':
       return t('hudChrome.hostedPlay.groupMode.holdRegroup');
+    case 'invite_nearby':
+      return t('hudChrome.hostedPlay.groupMode.inviteNearby');
+    case 'prepare_party':
+      return t('hudChrome.hostedPlay.groupMode.prepareParty');
     default:
       return t('hudChrome.hostedPlay.groupMode.none');
   }

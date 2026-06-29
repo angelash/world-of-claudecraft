@@ -438,6 +438,7 @@ export const hudChromeStrings = {
     objectiveLabel: 'Objective',
     resumeOnLogin: 'Resume on Login',
     actionLogLabel: 'Chat Action Log',
+    autoInviteNearbyLabel: 'Auto Invite Nearby Players',
     partyModeLabel: 'Party Mode',
     partyModeStatusLabel: 'Party Behavior',
     groupModeLabel: 'Current Group State',
@@ -562,6 +563,8 @@ export const hudChromeStrings = {
       brain: 'Running the normal progression brain',
       followLeader: 'Following the party leader',
       holdRegroup: 'Holding for party regroup',
+      inviteNearby: 'Inviting nearby players',
+      prepareParty: 'Holding for battle preparation',
     },
     llmStatus: {
       pending: 'Pending',

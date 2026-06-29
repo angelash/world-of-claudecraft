@@ -87,7 +87,9 @@ export type HostedPlayGroupMode =
   | 'assist_party'
   | 'brain'
   | 'follow_leader'
-  | 'hold_regroup';
+  | 'hold_regroup'
+  | 'invite_nearby'
+  | 'prepare_party';
 
 export type HostedPlayPauseReason =
   | ''
@@ -97,6 +99,7 @@ export interface HostedPlaySettings {
   resumeOnLogin: boolean;
   partyMode: HostedPlayPartyMode;
   actionLogEnabled: boolean;
+  autoInviteNearbyPlayers: boolean;
 }
 
 export interface HostedPlayDebugPoint {
@@ -225,6 +228,7 @@ export interface HostedPlayStatus {
   resumeOnLogin: boolean;
   partyMode: HostedPlayPartyMode;
   actionLogEnabled: boolean;
+  autoInviteNearbyPlayers: boolean;
   groupMode: HostedPlayGroupMode;
   groupLeaderName: string;
   groupLeaderDistance: number;

@@ -92,6 +92,7 @@ export function tickAmbientPlayerBotPartyChatShell(
   ambientBotNames.add(input.bot.characterName);
   const leader = party.members.find((member) => member.pid === party.leader) ?? null;
   const leaderIsAmbientBot = !!leader && ambientBotNames.has(leader.name);
+  const selfPid = readSelfPid(self);
   const rolePlan = planAmbientPartyRoles({
     party,
     liveState: input.liveState,
@@ -100,7 +101,7 @@ export function tickAmbientPlayerBotPartyChatShell(
     objectiveQuestId: input.objectiveQuestId,
     objectiveDungeonId: input.objectiveDungeonId,
   });
-  const selfRole = ambientPartyRoleAssignmentForPid(rolePlan, input.bot.characterId ?? -1)
+  const selfRole = ambientPartyRoleAssignmentForPid(rolePlan, selfPid ?? -1)
     ?? rolePlan.assignments.find((assignment) => assignment.name === input.bot.characterName)
     ?? null;
   if (!selfRole) {
@@ -115,7 +116,7 @@ export function tickAmbientPlayerBotPartyChatShell(
     .filter((utterance) => utterance.briefKey.startsWith(rolePlan.key))
     .slice(0, MAX_PENDING_UTTERANCES);
 
-  if (leaderIsAmbientBot && leader?.pid === input.bot.characterId) {
+  if (leaderIsAmbientBot && leader?.pid === selfPid) {
     const leaderBriefKey = `${rolePlan.key}|${leaderBriefReason(input.groupMode)}`;
     if (
       leaderBriefKey !== state.lastLeaderBriefKey
@@ -134,9 +135,9 @@ export function tickAmbientPlayerBotPartyChatShell(
     }
   }
 
-  if (leaderIsAmbientBot && leader?.pid !== input.bot.characterId && leader) {
+  if (leader?.pid !== selfPid && leader) {
     const leaderEvent = latestLeaderPartyEvent(input.recentEvents, leader.name);
-    if (leaderEvent) {
+    if (leaderEvent && (leaderIsAmbientBot || looksLikePartyCoordinationLine(leaderEvent.text))) {
       const ackKey = `${rolePlan.key}|ack|${normalizeChatText(leaderEvent.text)}`;
       if (
         ackKey !== state.lastAckedBriefKey
@@ -224,6 +225,10 @@ function parsePartyInfo(value: unknown): PartyInfo | null {
     : null;
 }
 
+function readSelfPid(value: Record<string, unknown>): number | null {
+  return typeof value.id === 'number' && Number.isFinite(value.id) ? value.id : null;
+}
+
 function emptyPartyRunnerStatePatch(): Record<string, unknown> {
   return {
     partyRole: '',
@@ -242,6 +247,7 @@ function emptyPartyRunnerStatePatch(): Record<string, unknown> {
 
 function leaderBriefReason(groupMode: string): string {
   if (groupMode === 'hold_regroup' || groupMode === 'wait_party') return groupMode;
+  if (isPreparationGroupMode(groupMode)) return 'prepare_party';
   return 'plan';
 }
 
@@ -269,7 +275,7 @@ function buildLeaderFallbackText(
   selfRole: AmbientPartyRoleAssignment,
   groupMode: string,
 ): string {
-  const prepLine = groupMode === 'hold_regroup' || groupMode === 'wait_party'
+  const prepLine = isPreparationGroupMode(groupMode) || groupMode === 'hold_regroup' || groupMode === 'wait_party'
     ? 'Regroup on me, finish buffs, then move together'
     : 'Buff up first, then collapse on one target';
   const healerCall = rolePlan.healerName
@@ -314,6 +320,12 @@ function buildMemberAckFallbackText(
   return chooseTemplate(`${rolePlan.key}|${selfRole.name}`, templates);
 }
 
+function isPreparationGroupMode(groupMode: string): boolean {
+  return groupMode === 'buff_party'
+    || groupMode === 'prepare_party'
+    || groupMode === 'heal_party';
+}
+
 function partyLineText(utterance: AmbientPlayerBotPendingPartyUtterance): string {
   const text = utterance.llmStatus === 'ready' && utterance.llmLineText
     ? utterance.llmLineText
@@ -340,6 +352,29 @@ function memberAckDelayMs(botId: string, key: string): number {
 
 function normalizeChatText(text: string): string {
   return text.replace(/\s+/g, ' ').trim();
+}
+
+function looksLikePartyCoordinationLine(text: string): boolean {
+  const normalized = normalizeChatText(text).toLowerCase();
+  if (normalized.length < 18 || normalized.length > 160) return false;
+  const keywords = [
+    'assist',
+    'buff',
+    'burn',
+    'collapse',
+    'focus',
+    'frontline',
+    'heal',
+    'hold',
+    'peel',
+    'pull',
+    'regroup',
+    'stay tight',
+    'tank',
+    'target',
+    'top',
+  ];
+  return keywords.some((keyword) => normalized.includes(keyword));
 }
 
 function stableHash(value: string): number {

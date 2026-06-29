@@ -754,7 +754,8 @@ export const en_XA: EnTranslations = {
         "assistParty": "[Áššíšţíñĝ ţĥé þáŕţý íñ çóɱƀáţ]",
         "brain": "[Ŕúññíñĝ ţĥé ñóŕɱáļ þŕóĝŕéššíóñ ƀŕáíñ]",
         "followLeader": "[Ƒóļļóŵíñĝ ţĥé þáŕţý ļéáðéŕ]",
-        "holdRegroup": "[Ĥóļðíñĝ ƒóŕ þáŕţý ŕéĝŕóúþ]"
+        "holdRegroup": "[Ĥóļðíñĝ ƒóŕ þáŕţý ŕéĝŕóúþ]",
+        "prepareParty": "[Ĥóļðíñĝ ƒóŕ ƀáţţļé þŕéþáŕáţíóñ]"
       },
       "llmStatus": {
         "pending": "[Þéñðíñĝ]",

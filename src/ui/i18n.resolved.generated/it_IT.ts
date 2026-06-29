@@ -754,7 +754,8 @@ export const it_IT: EnTranslations = {
         "assistParty": "Assisting the party in combat",
         "brain": "Running the normal progression brain",
         "followLeader": "Following the party leader",
-        "holdRegroup": "Holding for party regroup"
+        "holdRegroup": "Holding for party regroup",
+        "prepareParty": "Holding for battle preparation"
       },
       "llmStatus": {
         "pending": "Pending",
