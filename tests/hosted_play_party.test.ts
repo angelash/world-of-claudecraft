@@ -141,6 +141,86 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
+  it('does not make the hosted leader hold regroup from stale party roster coordinates when live entities are nearby', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          x: 1500,
+          z: -1200,
+          auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1529, z: -1200, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 102, k: 'player', nm: 'Branorabb', x: 1502, z: -1200, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', dead: 0, cmb: 0 },
+        ],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: false,
+      groupMode: 'brain',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 0,
+    });
+  });
+
+  it('still makes the hosted leader hold regroup when live entity coordinates show a member is lagging', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          x: 1500,
+          z: -1200,
+          auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1502, z: -1200, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 102, k: 'player', nm: 'Branorabb', x: 1535, z: -1200, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', dead: 0, cmb: 0 },
+        ],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: true,
+      groupMode: 'hold_regroup',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 0,
+    });
+  });
+
   it('accepts an incoming party invite while follow-leader mode is enabled', () => {
     const state = createHostedPlayPartyState();
 

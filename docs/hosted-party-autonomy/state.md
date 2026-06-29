@@ -2,8 +2,8 @@
 
 ## Current Phase
 
-Phase 5 implementation and QA are complete. Phase 6 long-run validation is
-next.
+Phase 5 implementation and QA are complete. Phase 6 long-run validation is in
+progress.
 
 ## Locked Decisions
 
@@ -49,6 +49,9 @@ next.
 - Non-combat party follow, regroup, and preparation no longer suppress nearby
   local quest accept or turn-in work for hosted followers. Distant old quest
   objectives still do not override follow.
+- Hosted party coordination refreshes dynamic party member position, combat,
+  health, and resource fields from current `self` and visible player entity
+  snapshots before making follow, regroup, support, and assist decisions.
 
 ## Key Existing Files
 
@@ -225,6 +228,17 @@ next.
   combat routing and distant travel remain under party coordination.
 - `tests/hosted_play_runtime.test.ts` covers a grouped hosted character buying
   healing potions from a nearby vendor while party preparation pauses movement.
+- Phase 6 follow-up report `tmp/hosted-play-level20-20260630-030127.json`
+  reached party size 5 with chat paced, max stuck resets 0, and no hosted
+  runtime errors, but stalled at 843 seconds because the leader stayed in
+  `hold_regroup` while all members were already physically nearby. The stale
+  party roster coordinates lagged behind the visible entity snapshots.
+- `server/hosted_play/party.ts` now refreshes party member dynamic fields from
+  the current `self` and visible player entities before computing leader
+  distance, regroup holds, support, and assist behavior.
+- `tests/hosted_play_party.test.ts` covers both stale far roster coordinates
+  corrected by nearby live entities and stale near roster coordinates corrected
+  by far live entities.
 
 ## Phase 5 Validation
 
@@ -264,6 +278,13 @@ next.
 - Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
 - `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after restart. The report was `tmp/hosted-play-live-harness-2026-06-29T18-57-50-148Z.json`; it reached party size 5, observed 4 invites accepted, 23 party-chat events, quest state on all 5 party members, support and combat signals, 0 player deaths, 0 hosted runtime errors, and max stuck resets 0.
+- `npx vitest run tests\hosted_play_party.test.ts tests\hosted_play_runtime.test.ts`: passed, 2 files and 36 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed, 5 files and 190 tests.
+- `npm run build:server`: passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed after the fresh party coordinate fix.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after restart. The report was `tmp/hosted-play-live-harness-2026-06-29T19-23-56-424Z.json`; it observed hosted invite, party target size, party chat, party intent and roles, cooperation mode, quest signals, support or combat signals, clean runtime, and max stuck resets 0.
 
 ## Validation Matrix
 
@@ -309,8 +330,8 @@ next.
 
 ## Known Current Gaps
 
-- A clean post-fix level 20 hosted run is still required after the party-chat
-  pacing change and service restart.
+- A clean post-fix level 20 hosted run is still required after the fresh party
+  coordinate fix and service restart.
 
 ## New Files In This Packet
 

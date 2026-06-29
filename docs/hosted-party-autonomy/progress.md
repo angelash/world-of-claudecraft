@@ -74,6 +74,16 @@ Current date: 2026-06-29
   party coordinator.
 - After that fix, the short live harness passed with party size 5, 23 party-chat
   events, no chat-rate errors, 0 hosted runtime errors, and max stuck resets 0.
+- The next level 20 run exposed a false regroup hold at 843 seconds. The party
+  was physically assembled, but the hosted leader still read stale party roster
+  coordinates and stayed in `hold_regroup`. Hosted party coordination now
+  refreshes dynamic party member position, combat, health, and resource fields
+  from the current `self` and visible player entity snapshots before deciding
+  follow, regroup, support, and assist behavior.
+- After that fix, the stack was restarted, ports `5173` and `8787` were verified
+  on `0.0.0.0`, LAN URLs were printed, and the short live harness passed with
+  party fill, hosted invite, party chat, intent, support or combat, quest
+  signals, runtime clean, and max stuck resets 0.
 
 ## Planning Packet Checklist
 
@@ -135,4 +145,6 @@ Current date: 2026-06-29
   failures.
 - [x] Nearby vendor restocking and other self-maintenance commands continue
   during party preparation pauses.
+- [x] Stale party roster coordinates do not keep a physically assembled party
+  stuck in leader regroup hold.
 - [ ] Final run occurs after the last code change and service restart.

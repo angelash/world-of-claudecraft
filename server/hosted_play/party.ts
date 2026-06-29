@@ -1,6 +1,6 @@
 import type { PartyInfo, PartyMemberInfo } from '../../src/world_api';
 import type { SimEvent } from '../../src/sim/types';
-import type { PlayerClass } from '../../src/sim/types';
+import type { PlayerClass, ResourceType } from '../../src/sim/types';
 import {
   normalizeHostedPlayAutoInviteTargetPartySize,
   type HostedPlayAutoInviteTargetPartySize,
@@ -75,7 +75,10 @@ export function tickHostedPlayPartyCoordinator(
   input: HostedPlayPartyTickInput,
   state: HostedPlayPartyState,
 ): HostedPlayPartyTickResult {
-  const party = parsePartyInfo(input.liveSelf.party);
+  const entities = Array.from(input.entities);
+  const liveInput: HostedPlayPartyTickInput = { ...input, entities };
+  const rawParty = parsePartyInfo(input.liveSelf.party);
+  const party = rawParty ? refreshPartyInfoFromLiveState(rawParty, input.liveSelf, entities) : null;
   const inviteFromName = !party && input.partyMode === 'follow_leader'
     ? input.recentEvents
         .map(partyInviteFromName)
@@ -91,7 +94,7 @@ export function tickHostedPlayPartyCoordinator(
     };
   }
 
-  const nearbyInviteResult = maybeInviteNearbyPlayer(input, state, party);
+  const nearbyInviteResult = maybeInviteNearbyPlayer(liveInput, state, party);
   if (nearbyInviteResult) return nearbyInviteResult;
 
   if (!party || input.partyMode !== 'follow_leader' || party.members.length < 2) {
@@ -104,9 +107,9 @@ export function tickHostedPlayPartyCoordinator(
 
   const leaderDistance = distanceBetweenPartyMembers(selfMember, leaderMember);
   const groupLeaderName = leaderMember.name;
-  const partyInCombat = party.members.some((member) => member.inCombat === 1) || hasPartyThreat(input.entities, party);
+  const partyInCombat = party.members.some((member) => member.inCombat === 1) || hasPartyThreat(entities, party);
   const botRecord = hostedPlayPartyBotRecord(input.playerClass, selfMember);
-  const liveState = hostedPartyLiveState(input.liveSelf, input.entities);
+  const liveState = hostedPartyLiveState(input.liveSelf, entities);
   const supportDecision = partyInCombat || canHostedProvidePartyPreparation(input.playerClass)
     ? maybeCoordinateAmbientPartySupport({
       bot: botRecord,
@@ -141,7 +144,7 @@ export function tickHostedPlayPartyCoordinator(
     const selfPreparation = maybePrepareForPullFromLiveState({
       bot: botRecord,
       liveSelf: input.liveSelf,
-      entities: input.entities,
+      entities,
       issueCommand: (key, cooldownMs) =>
         reserveCommandBatch(state, input.nowMs, [{ key, cooldownMs }]),
     });
@@ -173,7 +176,7 @@ export function tickHostedPlayPartyCoordinator(
 
   const assistTarget = findPartyCombatTarget({
     liveSelf: input.liveSelf,
-    entities: input.entities,
+    entities,
     party,
     maxDistance: HOSTED_PLAY_FOLLOW_MAX_RANGE,
   });
@@ -318,6 +321,79 @@ function parsePartyInfo(value: unknown): PartyInfo | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const party = value as PartyInfo;
   return Array.isArray(party.members) ? party : null;
+}
+
+function refreshPartyInfoFromLiveState(
+  party: PartyInfo,
+  liveSelf: Record<string, unknown>,
+  entities: readonly Record<string, unknown>[],
+): PartyInfo {
+  const liveByPlayerId = new Map<number, Record<string, unknown>>();
+  for (const entity of entities) {
+    if (entity.k !== 'player') continue;
+    const id = readFiniteNumber(entity.id);
+    if (id === null) continue;
+    liveByPlayerId.set(id, entity);
+  }
+  const selfId = readSelfId(liveSelf);
+  return {
+    ...party,
+    members: party.members.map((member) => {
+      const liveMember = member.pid === selfId ? liveSelf : liveByPlayerId.get(member.pid);
+      return liveMember ? refreshPartyMemberFromLiveState(member, liveMember) : member;
+    }),
+  };
+}
+
+function refreshPartyMemberFromLiveState(
+  member: PartyMemberInfo,
+  liveMember: Record<string, unknown>,
+): PartyMemberInfo {
+  const liveX = readFiniteNumber(liveMember.x);
+  const liveZ = readFiniteNumber(liveMember.z);
+  const liveLevel = readFiniteNumber(liveMember.lv);
+  const liveHp = readFiniteNumber(liveMember.hp);
+  const liveMaxHp = readFiniteNumber(liveMember.mhp);
+  const liveResource = readFiniteNumber(liveMember.res);
+  const liveMaxResource = readFiniteNumber(liveMember.mres);
+  const liveResourceType = readResourceType(liveMember.rtype);
+  const liveDead = readPartyFlag(liveMember.dead);
+  const liveInCombat = readPartyFlag(liveMember.cmb) ?? readPartyFlag(liveMember.inCombat);
+  return {
+    ...member,
+    ...(liveLevel !== null ? { level: Math.max(1, Math.floor(liveLevel)) } : {}),
+    ...(liveHp !== null ? { hp: liveHp } : {}),
+    ...(liveMaxHp !== null ? { mhp: liveMaxHp } : {}),
+    ...(liveResource !== null ? { res: liveResource } : {}),
+    ...(liveMaxResource !== null ? { mres: liveMaxResource } : {}),
+    ...(liveResourceType !== undefined ? { rtype: liveResourceType } : {}),
+    ...(liveX !== null ? { x: liveX } : {}),
+    ...(liveZ !== null ? { z: liveZ } : {}),
+    ...(liveDead !== null ? { dead: liveDead } : {}),
+    ...(liveInCombat !== null ? { inCombat: liveInCombat } : {}),
+  };
+}
+
+function readFiniteNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function readPartyFlag(value: unknown): 0 | 1 | null {
+  if (value === true || value === 1) return 1;
+  if (value === false || value === 0) return 0;
+  return null;
+}
+
+function readResourceType(value: unknown): ResourceType | null | undefined {
+  if (value === null) return null;
+  switch (value) {
+    case 'rage':
+    case 'mana':
+    case 'energy':
+      return value;
+    default:
+      return undefined;
+  }
 }
 
 function readSelfId(value: Record<string, unknown>): number {
