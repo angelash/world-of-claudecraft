@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 1 implementation complete. Phase 1 QA is next.
+Phase 2 implementation complete. Phase 2 QA is next.
 
 ## Locked Decisions
 
@@ -23,6 +23,12 @@ Phase 1 implementation complete. Phase 1 QA is next.
 - `hosted_play_preferences_version` marks explicitly saved hosted settings.
   Legacy rows that still contain the old blank default tuple `solo/off/2` and
   version `0` are read as the new cooperative defaults.
+- Quest intake and pursuit are now separate in the ambient brain. Visible
+  nearby quest givers can be accepted before the route leaves a hub, but
+  resupply remains higher priority.
+- Nearby alive party members lower route pursuit gates by up to two levels.
+- Dungeon entry and follower regrouping now run before party preparation when
+  the group is already at the door or already inside the objective dungeon.
 
 ## Key Existing Files
 
@@ -65,6 +71,26 @@ Phase 1 implementation complete. Phase 1 QA is next.
 
 - `git diff --check`: passed.
 - `npx vitest run tests/character_db.test.ts tests/hosted_play_action_log.test.ts tests/hosted_play_api.test.ts tests/hosted_play_game_server.test.ts tests/hosted_play_llm.test.ts tests/hosted_play_party.test.ts tests/hosted_play_runtime.test.ts tests/hosted_play_status_view.test.ts`: passed, 8 files and 67 tests.
+- `npm run build:server`: passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed.
+- `node scripts/online_lan.mjs urls`: printed LAN/IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- Ports `5173` and `8787` listen on `0.0.0.0`.
+
+## Phase 2 Changes
+
+- `server/ambient_bots/brain.ts` added visible nearby quest intake, separated
+  quest acceptability from pursuit safety, and lowered pursuit gates using
+  nearby party strength.
+- `server/ambient_bots/group.ts` now prioritizes assembled dungeon entry before
+  preparation and keeps lagging followers in `follow_leader` mode while follow
+  cooldown is active.
+- `tests/ambient_player_bot_brain.test.ts` covers nearby pickup priority and
+  grouped pursuit below solo safe level.
+
+## Phase 2 Validation
+
+- `npx vitest run tests/ambient_player_bot_runtime.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_group.test.ts tests/hosted_play_runtime.test.ts tests/hosted_play_party.test.ts`: passed, 5 files and 199 tests.
 - `npm run build:server`: passed.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed.
 - `node scripts/online_lan.mjs urls`: printed LAN/IP game and server URLs.

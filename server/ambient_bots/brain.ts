@@ -46,6 +46,9 @@ const STUCK_PROGRESS_DISTANCE = 0.75;
 const STUCK_TIMEOUT_MS = 4_000;
 const NO_TARGET_ROTATE_MS = 5_000;
 const COMMAND_COOLDOWN_MS = 900;
+const QUEST_INTAKE_NEARBY_RANGE = 18;
+const PARTY_ROUTE_NEARBY_RANGE = 48;
+const PARTY_ROUTE_MAX_LEVEL_BONUS = 2;
 const RECOVERY_HP_THRESHOLD = 0.7;
 const RECOVERY_MANA_THRESHOLD = 0.45;
 const FOOD_RESTOCK_TRIGGER_COUNT = 2;
@@ -471,6 +474,9 @@ function chooseQuestObjective(view: BotWorldView): AmbientBotObjective | null {
     };
   }
 
+  const nearbyAvailableRoute = nearbyAvailableQuestRoute(view);
+  if (nearbyAvailableRoute) return acceptQuestObjective(nearbyAvailableRoute);
+
   const activeRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find((route) => isQuestRouteActive(route, view));
   if (activeRoute) {
     if (activeRoute.dungeonId && view.self.dungeonId !== activeRoute.dungeonId) {
@@ -502,11 +508,15 @@ function chooseQuestObjective(view: BotWorldView): AmbientBotObjective | null {
 
   const availableRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find((route) => isQuestRouteAvailable(route, view));
   if (!availableRoute) return null;
+  return acceptQuestObjective(availableRoute);
+}
+
+function acceptQuestObjective(route: AmbientBotQuestRoute): AmbientBotObjective {
   return {
-    id: availableRoute.acceptObjectiveId,
-    label: availableRoute.acceptLabel,
-    questId: availableRoute.questId,
-    npcTemplateId: availableRoute.giverNpcTemplateId,
+    id: route.acceptObjectiveId,
+    label: route.acceptLabel,
+    questId: route.questId,
+    npcTemplateId: route.giverNpcTemplateId,
   };
 }
 
@@ -514,7 +524,7 @@ function deferredActiveQuestRoute(view: BotWorldView): AmbientBotQuestRoute | nu
   return AMBIENT_BOT_SOLO_QUEST_ROUTES.find((route) => {
     const progress = view.self.questLog.get(route.questId);
     if (!progress || progress.state !== 'active') return false;
-    if (view.self.level >= route.pursueAtLevel) return false;
+    if (view.self.level >= effectiveRoutePursueLevel(route, view)) return false;
     return routeObjectiveNeedsWork(route, progress);
   }) ?? null;
 }
@@ -538,7 +548,7 @@ function isQuestRouteActive(
 ): boolean {
   const progress = view.self.questLog.get(route.questId);
   if (!progress || progress.state !== 'active') return false;
-  if (view.self.level < route.pursueAtLevel) return false;
+  if (view.self.level < effectiveRoutePursueLevel(route, view)) return false;
   if (route.acceptBeforeActiveQuestIds?.some((questId) => isStandaloneQuestAvailable(questId, view))) {
     return false;
   }
@@ -549,14 +559,64 @@ function isQuestRouteAvailable(
   route: AmbientBotQuestRoute,
   view: BotWorldView,
 ): boolean {
+  return isQuestRouteAcceptable(route, view)
+    && view.self.level >= effectiveRoutePursueLevel(route, view);
+}
+
+function isQuestRouteAcceptable(
+  route: AmbientBotQuestRoute,
+  view: BotWorldView,
+): boolean {
   const progress = view.self.questLog.get(route.questId);
   if (view.self.questsDone.has(route.questId) || progress) return false;
   const quest = QUESTS[route.questId];
   if (!quest) return false;
-  const minLevel = Math.max(quest.minLevel ?? 1, route.pursueAtLevel);
-  if (view.self.level < minLevel) return false;
+  if (view.self.level < (quest.minLevel ?? 1)) return false;
   if (quest.requiresQuest && !view.self.questsDone.has(quest.requiresQuest)) return false;
   return true;
+}
+
+function nearbyAvailableQuestRoute(view: BotWorldView): AmbientBotQuestRoute | null {
+  if (buildVendorPurchases(view.self, vendorProfileFor(view.self)).length > 0) return null;
+  let best: { route: AmbientBotQuestRoute; distance: number; index: number } | null = null;
+  for (let index = 0; index < AMBIENT_BOT_SOLO_QUEST_ROUTES.length; index++) {
+    const route = AMBIENT_BOT_SOLO_QUEST_ROUTES[index];
+    if (!route || !isQuestRouteAcceptable(route, view)) continue;
+    const distance = visibleQuestGiverDistance(view, route);
+    if (distance === null || distance > QUEST_INTAKE_NEARBY_RANGE) continue;
+    if (!best || distance < best.distance || (distance === best.distance && index < best.index)) {
+      best = { route, distance, index };
+    }
+  }
+  return best?.route ?? null;
+}
+
+function visibleQuestGiverDistance(view: BotWorldView, route: AmbientBotQuestRoute): number | null {
+  const npc = findNpc(view, route.giverNpcTemplateId);
+  return npc ? dist2d(view.self.pos, npc.pos) : null;
+}
+
+function effectiveRoutePursueLevel(route: AmbientBotQuestRoute, view: BotWorldView): number {
+  return Math.max(1, route.pursueAtLevel - partyRouteLevelBonus(view));
+}
+
+function partyRouteLevelBonus(view: BotWorldView): number {
+  const nearbyPartySize = nearbyContributingPartySize(view);
+  return Math.min(PARTY_ROUTE_MAX_LEVEL_BONUS, Math.max(0, nearbyPartySize - 1));
+}
+
+function nearbyContributingPartySize(view: BotWorldView): number {
+  let count = 0;
+  const seen = new Set<number>();
+  for (const entity of view.entities) {
+    if (seen.has(entity.id)) continue;
+    if (entity.kind !== 'player' || entity.dead) continue;
+    if (entity.id !== view.self.id && !view.self.partyMemberIds.has(entity.id)) continue;
+    if (dist2d(view.self.pos, entity.pos) > PARTY_ROUTE_NEARBY_RANGE) continue;
+    seen.add(entity.id);
+    count++;
+  }
+  return Math.max(1, count);
 }
 
 function routeObjectiveNeedsWork(
@@ -573,13 +633,8 @@ function isStandaloneQuestAvailable(
   questId: string,
   view: BotWorldView,
 ): boolean {
-  const progress = view.self.questLog.get(questId);
-  if (view.self.questsDone.has(questId) || progress) return false;
-  const quest = QUESTS[questId];
-  if (!quest) return false;
-  if (view.self.level < (quest.minLevel ?? 1)) return false;
-  if (quest.requiresQuest && !view.self.questsDone.has(quest.requiresQuest)) return false;
-  return true;
+  const route = AMBIENT_BOT_SOLO_QUEST_ROUTES.find((candidate) => candidate.questId === questId);
+  return route ? isQuestRouteAcceptable(route, view) : false;
 }
 
 function dungeonEntryObjective(route: AmbientBotQuestRoute): AmbientBotObjective {

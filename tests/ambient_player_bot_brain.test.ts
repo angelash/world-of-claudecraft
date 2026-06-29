@@ -289,6 +289,37 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
+  it('picks up a nearby eligible quest before leaving for an active route', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 3,
+          x: -7,
+          z: 3,
+          inv: [
+            { itemId: 'baked_bread', count: 4 },
+            { itemId: 'minor_healing_potion', count: 3 },
+          ],
+          qdone: ['q_wolves'],
+          qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
+        },
+        entities: [
+          { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_supplies');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 7100 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
   it('casts a ranged damage spell when a mage sees a wolf in quest range', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
@@ -916,6 +947,43 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
+  it('uses nearby party strength to pursue an accepted quest below the solo safe level', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          id: 101,
+          lv: 4,
+          x: 100,
+          z: 100,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw', 'q_supplies'],
+          qlog: [{ questId: 'q_murlocs', counts: [5], state: 'active' }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 4, hp: 90, mhp: 90, res: 0, mres: 0, rtype: 'rage', x: 100, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 4, hp: 75, mhp: 75, res: 90, mres: 90, rtype: 'mana', x: 102, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Branoracc', cls: 'mage', level: 4, hp: 70, mhp: 70, res: 100, mres: 100, rtype: 'mana', x: 103, z: 100, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 102, k: 'player', tid: 'priest', x: 102, z: 100, dead: 0 },
+          { id: 103, k: 'player', tid: 'mage', x: 103, z: 100, dead: 0 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_murlocs');
+    expect(result.objectiveLabel).toBe('Driving back the Mudfin');
+    expect(result.travelGoal?.goalKey).toBe('camp:mudfin_murloc:0');
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('resumes the murloc quest once the bot reaches the safe route level', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
@@ -984,7 +1052,7 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
-  it('keeps grinding boars at level 5 instead of entering the bandit camp', () => {
+  it('picks up the bandit quest at level 5 before deciding when to enter the camp', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
       bot: bot(),
@@ -1006,11 +1074,12 @@ describe('ambient player bot brain', () => {
       nowMs: 1_000,
     }, state);
 
-    expect(result.objectiveId).toBe('grind');
-    expect(result.objectiveLabel).toBe('Grinding Wild Boar');
-    expect(result.travelGoal?.goalKey).toBe('camp:wild_boar:0');
-    expect(result.moveInput).toEqual({ f: 1 });
-    expect(result.commands).toEqual([]);
+    expect(result.objectiveId).toBe('accept_bandits');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 7300 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
   });
 
   it('uses pathing while chasing a distant combat target after the Greyjaw turn-in', () => {

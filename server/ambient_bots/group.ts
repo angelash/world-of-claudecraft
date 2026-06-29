@@ -156,6 +156,77 @@ export function tickAmbientPlayerBotGroupCoordinator(
     };
   }
 
+  const inObjectiveDungeon = !!input.objectiveDungeonId && readSelfDungeonId(self) === input.objectiveDungeonId;
+  const groupTravelActive = inObjectiveDungeon || isOutdoorGroupedObjective;
+  const distanceToDoor = dungeon && typeof self.x === 'number' && typeof self.z === 'number'
+    ? distanceToPoint(self.x, self.z, dungeon.doorPos.x, dungeon.doorPos.z)
+    : Number.POSITIVE_INFINITY;
+  if (
+    dungeon
+    && typeof self.x === 'number'
+    && typeof self.z === 'number'
+    && distanceToDoor <= GROUP_DOOR_RANGE
+    && (!self.dgn || self.dgn !== input.objectiveDungeonId)
+    && partySize >= targetPartySize
+    && canIssue(state, `enter:${input.objectiveDungeonId}`, input.nowMs, GROUP_ENTER_COOLDOWN_MS)
+  ) {
+    commands.push({ cmd: 'enter_dungeon', dungeon: input.objectiveDungeonId });
+    return {
+      commands,
+      pauseBrainDrive: true,
+      runnerStatePatch: groupRunnerStatePatch({
+        objectiveDungeonId: input.objectiveDungeonId,
+        objectiveQuestId: input.objectiveQuestId,
+        isOutdoorGroupedObjective,
+        groupLeaderName,
+        groupTargetSize: targetPartySize,
+        groupPartySize: partySize,
+        groupMode: 'brain',
+        groupNeedsRegroup: false,
+        groupAwaitingParty: false,
+        groupLaggingMembers: 0,
+        groupLeaderDistance: leaderDistance ?? 0,
+      }),
+    };
+  }
+
+  const followerShouldRegroupBeforePreparation = groupTravelActive
+    && party?.leader !== selfPid
+    && !!selfMember
+    && !!leaderMember
+    && !memberInCombat(selfMember)
+    && !memberInCombat(leaderMember)
+    && !selfMember.dead
+    && !leaderMember.dead
+    && leaderDistance !== null
+    && leaderDistance > GROUP_FOLLOW_START_RANGE
+    && leaderDistance <= GROUP_FOLLOW_MAX_RANGE;
+  if (followerShouldRegroupBeforePreparation) {
+    if (
+      leaderMember.name
+      && canIssue(state, `follow:${leaderMember.name}`, input.nowMs, GROUP_FOLLOW_COOLDOWN_MS)
+    ) {
+      commands.push({ cmd: 'chat', text: `/follow ${leaderMember.name}` });
+    }
+    return {
+      commands,
+      pauseBrainDrive: true,
+      runnerStatePatch: groupRunnerStatePatch({
+        objectiveDungeonId: input.objectiveDungeonId,
+        objectiveQuestId: input.objectiveQuestId,
+        isOutdoorGroupedObjective,
+        groupLeaderName,
+        groupTargetSize: targetPartySize,
+        groupPartySize: partySize,
+        groupMode: 'follow_leader',
+        groupNeedsRegroup: false,
+        groupAwaitingParty: false,
+        groupLaggingMembers: 0,
+        groupLeaderDistance: leaderDistance,
+      }),
+    };
+  }
+
   const supportDecision = party
     ? maybeCoordinateAmbientPartySupport({
       bot: input.bot,
@@ -201,8 +272,6 @@ export function tickAmbientPlayerBotGroupCoordinator(
     }
   }
 
-  const inObjectiveDungeon = !!input.objectiveDungeonId && readSelfDungeonId(self) === input.objectiveDungeonId;
-  const groupTravelActive = inObjectiveDungeon || isOutdoorGroupedObjective;
   const assistTarget = party
     ? findPartyCombatTarget({
       liveSelf: self,
@@ -299,21 +368,6 @@ export function tickAmbientPlayerBotGroupCoordinator(
   else if (leaderShouldHoldForLag) groupMode = 'hold_regroup';
   else if (leaderShouldHoldForPreparation) groupMode = preparationStatus?.mode ?? 'prepare_party';
   else if (!groupMode && (party || input.objectiveSuggestedPartySize > 1)) groupMode = 'brain';
-
-  const distanceToDoor = dungeon && typeof self.x === 'number' && typeof self.z === 'number'
-    ? distanceToPoint(self.x, self.z, dungeon.doorPos.x, dungeon.doorPos.z)
-    : Number.POSITIVE_INFINITY;
-  if (
-    dungeon
-    && typeof self.x === 'number'
-    && typeof self.z === 'number'
-    && distanceToDoor <= GROUP_DOOR_RANGE
-    && (!self.dgn || self.dgn !== input.objectiveDungeonId)
-    && partySize >= targetPartySize
-    && canIssue(state, `enter:${input.objectiveDungeonId}`, input.nowMs, GROUP_ENTER_COOLDOWN_MS)
-  ) {
-    commands.push({ cmd: 'enter_dungeon', dungeon: input.objectiveDungeonId });
-  }
 
   return {
     commands,

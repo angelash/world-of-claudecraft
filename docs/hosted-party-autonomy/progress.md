@@ -8,7 +8,7 @@ Current date: 2026-06-29
 | Planning packet | In progress | 2026-06-29 |  |
 | Phase 1 | Complete | 2026-06-29 | 2026-06-29 |
 | Phase 1 QA | Pending |  |  |
-| Phase 2 | Pending |  |  |
+| Phase 2 | Complete | 2026-06-29 | 2026-06-29 |
 | Phase 2 QA | Pending |  |  |
 | Phase 3 | Pending |  |  |
 | Phase 3 QA | Pending |  |  |
@@ -28,6 +28,11 @@ Current date: 2026-06-29
   versioning for legacy default upgrade, expanded invite guard tests, ran the
   targeted hosted and character DB suites, built the server, restarted the
   stack, and verified LAN/IP access.
+- Phase 2 split quest intake from pursuit. Visible nearby quest givers can now
+  be picked up before leaving for active routes, while resupply remains higher
+  priority. Nearby alive party members lower safe pursuit gates by up to two
+  levels, and group movement now prioritizes dungeon entry and regroup follow
+  over pre-pull preparation when already assembled.
 
 ## Planning Packet Checklist
 
@@ -49,10 +54,10 @@ Current date: 2026-06-29
 
 ## Phase 2 Checklist
 
-- [ ] Quest intake sweep accepts eligible local quests before leaving a hub.
-- [ ] Pursuit scoring considers party size and role coverage.
-- [ ] Hard quests remain gated when the party is not ready.
-- [ ] Tests cover accepted-but-deferred quests and grouped pursuit.
+- [x] Quest intake sweep accepts eligible local quests before leaving a hub.
+- [x] Pursuit scoring considers nearby party size.
+- [x] Hard quests remain gated when the party is not ready.
+- [x] Tests cover accepted-but-deferred quests and grouped pursuit.
 
 ## Phase 3 Checklist
 
