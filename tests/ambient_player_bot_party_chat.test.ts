@@ -324,6 +324,105 @@ describe('ambient player bot party chat shell', () => {
     expect(state.pendingUtterances).toHaveLength(0);
   });
 
+  it('paces leader briefings across repeated combat intent changes', () => {
+    const state = createAmbientPlayerBotPartyChatRuntimeState();
+    const party: PartyInfo = {
+      leader: 101,
+      raid: false,
+      members: [
+        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+        { pid: 102, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 1, group: 1 },
+      ],
+    };
+    const sentAtMs: number[] = [];
+
+    for (let nowMs = 5_000; nowMs <= 125_000; nowMs += 2_000) {
+      const result = tickAmbientPlayerBotPartyChatShell({
+        bot: bot(),
+        liveState: liveState({
+          party,
+          entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: `combat_${nowMs}`,
+        objectiveLabel: `Changing Combat Target ${nowMs}`,
+        groupMode: 'assist_party',
+        nowMs,
+      }, state);
+      if (result.commands.length > 0) sentAtMs.push(nowMs);
+    }
+
+    expect(sentAtMs.length).toBeLessThanOrEqual(5);
+    for (let i = 1; i < sentAtMs.length; i++) {
+      expect(sentAtMs[i] - sentAtMs[i - 1]).toBeGreaterThanOrEqual(28_000);
+    }
+  });
+
+  it('selects one member acknowledgement instead of making every follower repeat the call', () => {
+    const members: PartyInfo['members'] = [
+      { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+      { pid: 102, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 0, group: 1 },
+      { pid: 103, name: 'Branoracc', cls: 'mage', level: 3, hp: 30, mhp: 30, res: 20, mres: 20, rtype: 'mana', x: 2, z: 1, dead: 0, inCombat: 0, group: 1 },
+      { pid: 104, name: 'Branoradd', cls: 'paladin', level: 3, hp: 38, mhp: 38, res: 20, mres: 20, rtype: 'mana', x: 3, z: 1, dead: 0, inCombat: 0, group: 1 },
+      { pid: 105, name: 'Branoraee', cls: 'druid', level: 3, hp: 34, mhp: 34, res: 20, mres: 20, rtype: 'mana', x: 4, z: 1, dead: 0, inCombat: 0, group: 1 },
+    ];
+    const party: PartyInfo = {
+      leader: 101,
+      raid: false,
+      members,
+    };
+    const commands: string[] = [];
+
+    for (const member of members.slice(1)) {
+      const state = createAmbientPlayerBotPartyChatRuntimeState();
+      const followerBot = bot({
+        botId: `bot-${member.pid}`,
+        characterId: member.pid,
+        characterName: member.name,
+        class: member.cls,
+      });
+      const followerLiveState = liveState({
+        selfId: member.pid,
+        selfName: member.name,
+        party,
+        entities: members
+          .filter((candidate) => candidate.pid !== member.pid)
+          .map((candidate) => ({ id: candidate.pid, nm: candidate.name, k: 'player', x: candidate.x, z: candidate.z })),
+      });
+      tickAmbientPlayerBotPartyChatShell({
+        bot: followerBot,
+        liveState: followerLiveState,
+        recentEvents: [{
+          type: 'chat',
+          fromPid: 101,
+          from: 'Branoraaa',
+          text: 'Buff up first, then collapse on one target.',
+          channel: 'party',
+        }],
+        ambientBotNames: new Set([member.name]),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'brain',
+        nowMs: 5_000,
+      }, state);
+      const result = tickAmbientPlayerBotPartyChatShell({
+        bot: followerBot,
+        liveState: followerLiveState,
+        recentEvents: [],
+        ambientBotNames: new Set([member.name]),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'brain',
+        nowMs: 8_000,
+      }, state);
+      commands.push(...result.commands.map((command) => command.text));
+    }
+
+    expect(commands).toHaveLength(1);
+    expect(commands[0]).toMatch(/^\/p /);
+  });
+
   it('uses the live pid when the ambient leader briefs the party before a pull', () => {
     const state = createAmbientPlayerBotPartyChatRuntimeState();
     const party: PartyInfo = {

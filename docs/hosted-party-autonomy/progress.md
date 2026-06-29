@@ -16,7 +16,7 @@ Current date: 2026-06-29
 | Phase 4 QA | Complete | 2026-06-29 | 2026-06-29 |
 | Phase 5 | Complete | 2026-06-29 | 2026-06-29 |
 | Phase 5 QA | Complete | 2026-06-29 | 2026-06-29 |
-| Phase 6 | Pending |  |  |
+| Phase 6 | In progress | 2026-06-29 |  |
 | Phase 6 QA | Pending |  |  |
 
 ## Completed
@@ -49,6 +49,15 @@ Current date: 2026-06-29
   pickup objectives but lose their local `target/interact` or short movement
   while party follow paused brain drive. The hosted runtime now lets nearby
   local accept and turn-in objectives complete before resuming follow.
+- Phase 6 long-run QA reached party size 5 with quest, support, and combat
+  signals, but the run exposed party-chat spam before level 20. The 151 second
+  report recorded 516 party-chat events and server chat-rate lock messages.
+  Party chat now paces leader briefings and selects one follower acknowledgement
+  per leader call instead of making every follower repeat the same line.
+- After the party-chat pacing fix, the stack was restarted through
+  `scripts/windows_stack.ps1`, IP access was verified on `0.0.0.0`, and the short
+  live harness passed with 15 party-chat events, no chat-rate errors, party size
+  5, quest signals, support signals, and 0 hosted runtime errors.
 
 ## Planning Packet Checklist
 
@@ -104,4 +113,6 @@ Current date: 2026-06-29
   blocker.
 - [ ] Final run includes party fill, ongoing invites, chat, buffs, healing,
   tanking, focus fire, regrouping, and recovery.
+- [x] Party chat is paced below server rate limits during repeated combat and
+  regroup intent changes.
 - [ ] Final run occurs after the last code change and service restart.

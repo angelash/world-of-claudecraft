@@ -185,6 +185,16 @@ next.
 - `tests/hosted_play_runtime.test.ts` covers grouped followers accepting a
   nearby quest in place, walking a short distance to a nearby quest giver, and
   still ignoring distant legacy quest objectives while following the leader.
+- Phase 6 long-run precheck report
+  `tmp/hosted-play-level20-20260630-020335.json` reached party size 5 and
+  showed healthy quest, support, and combat signals, but it produced 516
+  party-chat events in 151 seconds and triggered server chat-rate lock messages.
+- `server/ambient_bots/party_chat.ts` now paces leader briefings, uses a shorter
+  urgent cooldown for recovery and correction calls, and deterministically picks
+  one non-leader party member to acknowledge each leader line.
+- `tests/ambient_player_bot_party_chat.test.ts` now covers repeated combat
+  intent changes staying paced and full hosted-style parties producing one
+  acknowledgement instead of four repeated replies.
 
 ## Phase 5 Validation
 
@@ -198,6 +208,18 @@ next.
 - `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
 - Ports `5173` and `8787` listen on `0.0.0.0`.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after the final restart. The report was `tmp/hosted-play-live-harness-2026-06-29T17-56-38-671Z.json`; it reached party size 5, observed 4 invites accepted, 157 party chat messages, quest state on all 5 party members, support and combat signals, 0 player deaths, 0 hosted runtime errors, and max stuck resets 3.
+
+## Phase 6 Validation
+
+- `npx vitest run tests\ambient_player_bot_party_chat.test.ts`: passed, 1 file and 9 tests.
+- `npx vitest run tests\ambient_player_bot_party_chat.test.ts tests\hosted_play_runtime.test.ts`: passed, 2 files and 25 tests.
+- `git diff --check`: passed with line-ending warnings only for edited TS files.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed, 5 files and 186 tests.
+- `npm run build:server`: passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after restart. The report was `tmp/hosted-play-live-harness-2026-06-29T18-20-29-961Z.json`; it reached party size 5, observed 4 invites accepted, 15 party-chat events, quest state on all 5 party members, support and combat signals, 0 player deaths, 0 hosted runtime errors, and max stuck resets 1. No chat-rate or chat-lock errors were recorded.
 
 ## Validation Matrix
 
@@ -243,9 +265,8 @@ next.
 
 ## Known Current Gaps
 
-- Phase 4 still needs deeper support-role validation across buffs, healing,
-  tanking, focus fire, regrouping, and recovery combinations.
-- No dedicated long-run hosted-play harness currently proves level 1 to 20.
+- A clean post-fix level 20 hosted run is still required after the party-chat
+  pacing change and service restart.
 
 ## New Files In This Packet
 

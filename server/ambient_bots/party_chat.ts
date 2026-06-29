@@ -17,6 +17,9 @@ import type { AmbientPlayerBotLiveState } from './ws_client';
 
 const MAX_PARTY_COMMANDS_PER_TICK = 1;
 const MAX_PENDING_UTTERANCES = 2;
+const LEADER_BRIEF_COOLDOWN_MS = 28_000;
+const URGENT_LEADER_BRIEF_COOLDOWN_MS = 18_000;
+const MEMBER_ACK_COOLDOWN_MS = 55_000;
 
 export type AmbientPlayerBotPartyChatMode = 'leader_brief' | 'member_ack';
 export type AmbientPlayerBotPartyChatLlmStatus =
@@ -44,6 +47,9 @@ export interface AmbientPlayerBotPartyChatRuntimeState {
   pendingUtterances: AmbientPlayerBotPendingPartyUtterance[];
   lastLeaderBriefKey: string;
   lastAckedBriefKey: string;
+  lastPartyChatAtMs: number;
+  lastLeaderBriefAtMs: number;
+  lastMemberAckAtMs: number;
   nextRevision: number;
 }
 
@@ -77,6 +83,9 @@ export function createAmbientPlayerBotPartyChatRuntimeState(): AmbientPlayerBotP
     pendingUtterances: [],
     lastLeaderBriefKey: '',
     lastAckedBriefKey: '',
+    lastPartyChatAtMs: 0,
+    lastLeaderBriefAtMs: 0,
+    lastMemberAckAtMs: 0,
     nextRevision: 1,
   };
 }
@@ -136,6 +145,7 @@ export function tickAmbientPlayerBotPartyChatShell(
     const leaderBriefKey = `${rolePlan.key}|${partyIntent.key}`;
     if (
       leaderBriefKey !== state.lastLeaderBriefKey
+      && canQueueLeaderBrief(state, input.nowMs, partyIntent)
       && !state.pendingUtterances.some((utterance) =>
         utterance.mode === 'leader_brief' && utterance.briefKey === leaderBriefKey)
     ) {
@@ -157,6 +167,8 @@ export function tickAmbientPlayerBotPartyChatShell(
       const ackKey = `${rolePlan.key}|ack|${normalizeChatText(leaderEvent.text)}`;
       if (
         ackKey !== state.lastAckedBriefKey
+        && shouldSelfAcknowledgeLeaderLine(party, selfPid, ackKey)
+        && canQueueMemberAck(state, input.nowMs)
         && !state.pendingUtterances.some((utterance) =>
           utterance.mode === 'member_ack' && utterance.briefKey === ackKey)
       ) {
@@ -179,10 +191,14 @@ export function tickAmbientPlayerBotPartyChatShell(
     .sort((a, b) => a.dueAtMs - b.dueAtMs || a.revision - b.revision);
   for (const utterance of dueUtterances) {
     if (commands.length >= MAX_PARTY_COMMANDS_PER_TICK) break;
+    const nextAllowedAtMs = nextAllowedPartyChatAtMs(state, utterance);
+    if (nextAllowedAtMs > input.nowMs) {
+      utterance.dueAtMs = nextAllowedAtMs;
+      continue;
+    }
     const lineText = partyLineText(utterance);
     commands.push({ type: 'chat', text: `/p ${lineText}` });
-    if (utterance.mode === 'leader_brief') state.lastLeaderBriefKey = utterance.briefKey;
-    else state.lastAckedBriefKey = utterance.briefKey;
+    markPartyChatSent(state, utterance, input.nowMs);
     state.pendingUtterances = state.pendingUtterances.filter((candidate) => candidate.revision !== utterance.revision);
   }
 
@@ -213,6 +229,87 @@ export function tickAmbientPlayerBotPartyChatShell(
         : {}),
     },
   };
+}
+
+function canQueueLeaderBrief(
+  state: AmbientPlayerBotPartyChatRuntimeState,
+  nowMs: number,
+  partyIntent: AmbientPartyCoordinationIntent,
+): boolean {
+  return !hasRecentTimestamp(state.lastLeaderBriefAtMs, nowMs, leaderBriefCooldownMs(partyIntent));
+}
+
+function canQueueMemberAck(
+  state: AmbientPlayerBotPartyChatRuntimeState,
+  nowMs: number,
+): boolean {
+  return !hasRecentTimestamp(state.lastMemberAckAtMs, nowMs, MEMBER_ACK_COOLDOWN_MS);
+}
+
+function nextAllowedPartyChatAtMs(
+  state: AmbientPlayerBotPartyChatRuntimeState,
+  utterance: AmbientPlayerBotPendingPartyUtterance,
+): number {
+  const modeLastAtMs = utterance.mode === 'leader_brief'
+    ? state.lastLeaderBriefAtMs
+    : state.lastMemberAckAtMs;
+  const modeCooldownMs = utterance.mode === 'leader_brief'
+    ? leaderBriefCooldownMsForUtterance(utterance)
+    : MEMBER_ACK_COOLDOWN_MS;
+  return Math.max(
+    nextAllowedAfter(state.lastPartyChatAtMs, modeCooldownMs),
+    nextAllowedAfter(modeLastAtMs, modeCooldownMs),
+  );
+}
+
+function markPartyChatSent(
+  state: AmbientPlayerBotPartyChatRuntimeState,
+  utterance: AmbientPlayerBotPendingPartyUtterance,
+  nowMs: number,
+): void {
+  state.lastPartyChatAtMs = nowMs;
+  if (utterance.mode === 'leader_brief') {
+    state.lastLeaderBriefKey = utterance.briefKey;
+    state.lastLeaderBriefAtMs = nowMs;
+  } else {
+    state.lastAckedBriefKey = utterance.briefKey;
+    state.lastMemberAckAtMs = nowMs;
+  }
+}
+
+function leaderBriefCooldownMs(intent: AmbientPartyCoordinationIntent): number {
+  return intent.kind === 'recovery' || intent.kind === 'correction'
+    ? URGENT_LEADER_BRIEF_COOLDOWN_MS
+    : LEADER_BRIEF_COOLDOWN_MS;
+}
+
+function leaderBriefCooldownMsForUtterance(utterance: AmbientPlayerBotPendingPartyUtterance): number {
+  return utterance.briefKey.includes('|party-intent|recovery|')
+    || utterance.briefKey.includes('|party-intent|correction|')
+    ? URGENT_LEADER_BRIEF_COOLDOWN_MS
+    : LEADER_BRIEF_COOLDOWN_MS;
+}
+
+function hasRecentTimestamp(lastAtMs: number, nowMs: number, cooldownMs: number): boolean {
+  return lastAtMs > 0 && nowMs - lastAtMs < cooldownMs;
+}
+
+function nextAllowedAfter(lastAtMs: number, cooldownMs: number): number {
+  return lastAtMs > 0 ? lastAtMs + cooldownMs : 0;
+}
+
+function shouldSelfAcknowledgeLeaderLine(
+  party: PartyInfo,
+  selfPid: number | null,
+  ackKey: string,
+): boolean {
+  if (selfPid === null) return false;
+  const eligibleMembers = party.members
+    .filter((member) => member.pid !== party.leader && !member.dead)
+    .sort((a, b) => a.pid - b.pid);
+  if (eligibleMembers.length === 0) return false;
+  const selected = eligibleMembers[stableHash(ackKey) % eligibleMembers.length];
+  return selected?.pid === selfPid;
 }
 
 function enqueueUtterance(
