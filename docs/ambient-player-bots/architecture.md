@@ -27,12 +27,16 @@ Primary files:
 - `server/ambient_bots/service.ts`
 - `server/ambient_bots/config.ts`
 - `server/ambient_bots/profiles.ts`
+- `server/ambient_bots/assignment.ts`
 
 Responsibilities:
 - cluster nearby humans
 - compute target ambient population
 - reuse suitable online bots before provisioning fresh ones
 - emit login, logout, release, and provision actions
+- persist a stable assigned-player identity bridge, currently the assigned
+  player's character name, so later runtime layers can trust the right human
+  even if live entity pids change across sessions
 
 ### 3. Real-server runtime
 
@@ -49,6 +53,8 @@ Responsibilities:
 - merge snapshots and events
 - dispatch real commands and movement input
 - persist live runner state back into the registry
+- carry assignment metadata from planner actions into durable bot state so
+  group and social layers read the same assigned-player identity
 
 ### 4. Progression brain
 
@@ -74,6 +80,8 @@ Responsibilities:
 - stay bounded to bots already assigned to the same nearby human cluster
 - distinguish bot-led parties from real-player-led parties so assigned bots
   follow and assist a human leader without taking over group assembly
+- resolve trusted real-player invites through stable assigned-player metadata
+  instead of comparing a transient live entity pid to a stored character id
 
 ### 6. Social shell and LLM overlays
 
@@ -89,6 +97,9 @@ Responsibilities:
 - handle whispers, friend adds, presence emotes, and lightweight memory
 - optionally ask the model for bounded social or planning overlays
 - validate, audit, cache, and rate-limit every model-assisted output
+- mirror direct friend adds from real players back through the normal social
+  command path so the live UX settles into a mutual friend state instead of a
+  fake pending-request state
 
 ### 7. Admin and rollout surface
 
@@ -125,6 +136,10 @@ The ambient group coordinator is intentionally narrow and lives outside
   bots on different quest steps do not form incoherent parties.
 - If a bot is not in a party and receives a trusted invite from a same-cluster
   bot or its assigned player, it sends `paccept`.
+- Assigned-player trust comes from planner-assigned identity metadata,
+  currently the assigned player's character name, because the party invite
+  event's live `fromPid` is an entity pid and may not match the persistent
+  assigned player character id.
 - If a bot receives an unrelated invite, it sends `pdecline` so later trusted
   invites are not blocked by the sim's single pending invite slot.
 - If the bot is the bot-led group leader, it may invite visible same-objective

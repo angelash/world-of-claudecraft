@@ -38,6 +38,10 @@ and get replaced through the same server surfaces that human players use.
 
 - Players should eventually be able to add bots as friends, whisper them, party
   with them, and receive believable delayed replies or silence.
+- Direct friend adds should behave like the live game surface, not like a
+  pending friend-request workflow. When a real player adds a nearby ambient bot
+  as a friend, the bot should mirror that add back so both sides settle into a
+  stable friend state.
 - Bot social behavior should remember lightweight prior interactions.
 - Social realism must stay moderation-safe and operator-visible.
 - When a real player invites an assigned nearby bot, the bot should accept the
@@ -75,6 +79,10 @@ and get replaced through the same server surfaces that human players use.
 - For party invites, bots accept invites from same-cluster ambient peers and
   from their assigned player, while declining unrelated invites so a stale
   stranger invite does not block trusted grouping.
+- Assigned-player party trust must come from a stable player identity that
+  survives reconnects and live entity pid churn. The runtime must not rely on a
+  live entity pid matching a stored character id when deciding whether to
+  accept a real player's invite.
 - Grouped bots preserve the server follow state by pausing brain movement while
   near the party leader.
 - Grouped bots assist party members by targeting visible hostile mobs that are
@@ -135,3 +143,5 @@ and get replaced through the same server surfaces that human players use.
   leadership decisions or breaking follow.
 - Friend, whisper, and chat surfaces remain bounded, moderated, and operator
   visible.
+- Real-player friend adds against nearby ambient bots settle into a mutual
+  friend state without surfacing a fake pending-request UX.
