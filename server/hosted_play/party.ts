@@ -25,6 +25,7 @@ const HOSTED_PLAY_NEARBY_INVITE_RANGE = 32;
 const HOSTED_PLAY_REGROUP_RANGE = 28;
 const HOSTED_PLAY_FOLLOW_START_RANGE = 4;
 const HOSTED_PLAY_FOLLOW_MAX_RANGE = 60;
+const HOSTED_PLAY_RECOVERY_CRITICAL_HEALTH_RATIO = 0.45;
 
 type HostedPlayCommand = Record<string, unknown>;
 
@@ -133,6 +134,7 @@ export function tickHostedPlayPartyCoordinator(
 
   const intentHold = maybeHoldForPartyIntent({
     intent: input.partyIntent ?? null,
+    party,
     selfMember,
     leaderMember,
     leaderDistance,
@@ -262,10 +264,7 @@ export function tickHostedPlayPartyCoordinator(
     selfMember.pid === leaderMember.pid
     && !selfMember.dead
     && !selfMember.inCombat
-    && party.members.some((member) =>
-      member.pid !== selfMember.pid
-      && !member.dead
-      && distanceBetweenPartyMembers(member, selfMember) > HOSTED_PLAY_REGROUP_RANGE)
+    && partyNeedsRegroup(party, selfMember)
   ) {
     return {
       commands: [],
@@ -287,6 +286,7 @@ export function tickHostedPlayPartyCoordinator(
 
 function maybeHoldForPartyIntent(input: {
   intent: AmbientPartyCoordinationIntent | null;
+  party: PartyInfo;
   selfMember: PartyMemberInfo;
   leaderMember: PartyMemberInfo;
   leaderDistance: number;
@@ -295,6 +295,7 @@ function maybeHoldForPartyIntent(input: {
   if (!input.intent?.holdAdvance || input.partyInCombat) return null;
   if (input.selfMember.dead || input.leaderMember.dead) return null;
   if (input.selfMember.pid !== input.leaderMember.pid) return null;
+  if (!partyIntentStillNeedsHold(input.intent, input.party, input.leaderMember)) return null;
   const groupMode: HostedPlayGroupMode = input.intent.behavior === 'regroup'
     ? 'hold_regroup'
     : 'prepare_party';
@@ -305,6 +306,39 @@ function maybeHoldForPartyIntent(input: {
     groupLeaderName: input.leaderMember.name,
     groupLeaderDistance: input.leaderDistance,
   };
+}
+
+function partyIntentStillNeedsHold(
+  intent: AmbientPartyCoordinationIntent,
+  party: PartyInfo,
+  leaderMember: PartyMemberInfo,
+): boolean {
+  switch (intent.behavior) {
+    case 'regroup':
+      return partyNeedsRegroup(party, leaderMember);
+    case 'recover':
+      return partyNeedsRecovery(party);
+    case 'prepare':
+      return false;
+    default:
+      return true;
+  }
+}
+
+function partyNeedsRegroup(
+  party: PartyInfo,
+  leaderMember: PartyMemberInfo,
+): boolean {
+  return party.members.some((member) =>
+    member.pid !== leaderMember.pid
+    && !member.dead
+    && distanceBetweenPartyMembers(member, leaderMember) > HOSTED_PLAY_REGROUP_RANGE);
+}
+
+function partyNeedsRecovery(party: PartyInfo): boolean {
+  return party.members.some((member) =>
+    member.dead
+    || (member.mhp > 0 && member.hp / member.mhp <= HOSTED_PLAY_RECOVERY_CRITICAL_HEALTH_RATIO));
 }
 
 function idlePartyResult(): HostedPlayPartyTickResult {

@@ -84,6 +84,17 @@ Current date: 2026-06-29
   on `0.0.0.0`, LAN URLs were printed, and the short live harness passed with
   party fill, hosted invite, party chat, intent, support or combat, quest
   signals, runtime clean, and max stuck resets 0.
+- A follow-up level 20 run showed that the stale roster fix worked, but an old
+  `correction/regroup` party intent could keep the leader paused after the
+  party had already assembled. Hosted party coordination now rechecks current
+  party facts before consuming a hold-advance intent: regroup only holds when a
+  member is still outside regroup range, recovery only holds while someone is
+  dead or critically low, and stale prepare intent is released to the normal
+  preparation logic.
+- After that fix, the stack was restarted, IP access was verified on
+  `0.0.0.0`, and the short live harness passed with party fill, hosted invite,
+  party chat, intent, support or combat, quest signals, runtime clean, and max
+  stuck resets 0.
 
 ## Planning Packet Checklist
 
@@ -147,4 +158,6 @@ Current date: 2026-06-29
   during party preparation pauses.
 - [x] Stale party roster coordinates do not keep a physically assembled party
   stuck in leader regroup hold.
+- [x] Stale regroup or recovery intents release once the current party facts no
+  longer require holding the leader.
 - [ ] Final run occurs after the last code change and service restart.

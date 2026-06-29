@@ -546,6 +546,118 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
+  it('releases stale regroup intent once the hosted party is already assembled', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          nm: 'Hero',
+          x: 0,
+          z: 0,
+          rtype: 'rage',
+          res: 0,
+          mres: 0,
+          auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Hero', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 12, hp: 90, mhp: 90, res: 120, mres: 120, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Branoracc', cls: 'mage', level: 12, hp: 84, mhp: 84, res: 120, mres: 120, rtype: 'mana', x: -1, z: 1, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 102, k: 'player', nm: 'Branorabb', x: 2, z: 0, hp: 90, mhp: 90, res: 120, mres: 120, rtype: 'mana', dead: 0, cmb: 0 },
+          { id: 103, k: 'player', nm: 'Branoracc', x: -1, z: 1, hp: 84, mhp: 84, res: 120, mres: 120, rtype: 'mana', dead: 0, cmb: 0 },
+        ],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        partyIntent: {
+          schemaVersion: 1,
+          kind: 'correction',
+          behavior: 'regroup',
+          key: 'party-intent|correction|regroup',
+          summary: 'Hold the group together before moving',
+          targetName: 'Hero',
+          focusCallerName: 'Hero',
+          holdAdvance: true,
+          preferAssist: false,
+        },
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: false,
+      groupMode: 'brain',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+  });
+
+  it('releases stale recovery intent once party health is stable', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          nm: 'Hero',
+          x: 0,
+          z: 0,
+          rtype: 'rage',
+          res: 0,
+          mres: 0,
+          auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Hero', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 12, hp: 90, mhp: 90, res: 120, mres: 120, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 102, k: 'player', nm: 'Branorabb', x: 2, z: 0, hp: 90, mhp: 90, res: 120, mres: 120, rtype: 'mana', dead: 0, cmb: 0 },
+        ],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        partyIntent: {
+          schemaVersion: 1,
+          kind: 'recovery',
+          behavior: 'recover',
+          key: 'party-intent|recovery|recover',
+          summary: 'Stabilize health before the next pull',
+          targetName: 'Hero',
+          focusCallerName: 'Hero',
+          holdAdvance: true,
+          preferAssist: false,
+        },
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: false,
+      groupMode: 'brain',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+  });
+
   it('has a hosted warlock summon before the party advances into combat', () => {
     const state = createHostedPlayPartyState();
 
