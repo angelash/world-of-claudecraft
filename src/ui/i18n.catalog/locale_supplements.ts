@@ -70,6 +70,7 @@ const hostedPlayDeDE: LocaleSupplement = {
 
 const hostedPlayZhCN: LocaleSupplement = {
   'hudChrome.hostedPlay.actionLogLabel': '聊天行为日志',
+  'hudChrome.hostedPlay.socialAction.friendAdd': '已将 {name} 加入好友',
   'hudChrome.hostedPlay.log.accept': '托管：前往接取 {quest}。',
   'hudChrome.hostedPlay.log.questWork': '托管：正在推进 {quest}。',
   'hudChrome.hostedPlay.log.turnIn': '托管：前往交付 {quest}。',
@@ -86,6 +87,7 @@ const hostedPlayZhCN: LocaleSupplement = {
 
 const hostedPlayZhTW: LocaleSupplement = {
   'hudChrome.hostedPlay.actionLogLabel': '聊天行為日誌',
+  'hudChrome.hostedPlay.socialAction.friendAdd': '已將 {name} 加入好友',
   'hudChrome.hostedPlay.log.accept': '託管：前往接取 {quest}。',
   'hudChrome.hostedPlay.log.questWork': '託管：正在推進 {quest}。',
   'hudChrome.hostedPlay.log.turnIn': '託管：前往交付 {quest}。',

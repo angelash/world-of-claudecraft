@@ -1,6 +1,7 @@
 import { performance } from 'node:perf_hooks';
 import { zoneAt } from '../../src/sim/data';
 import { accountForToken } from '../db';
+import { writeAssignedPlayerName } from './assignment';
 import {
   continueAmbientPlayerBotTravel,
   createAmbientPlayerBotBrainState,
@@ -395,7 +396,7 @@ export class AmbientPlayerBotRuntime {
       reservationUntilMs: this.nowMs() + this.provisionReservationMs,
       lastRunnerError: '',
       lastRunnerAtMs: null,
-      plannerState: {},
+      plannerState: writeAssignedPlayerName({}, action.targetCharacterName ?? ''),
       runnerState: {},
       socialState: {},
     };
@@ -409,6 +410,7 @@ export class AmbientPlayerBotRuntime {
     if (record) {
       record.assignedClusterId = action.clusterId;
       record.assignedPlayerCharacterId = action.targetCharacterId;
+      record.plannerState = writeAssignedPlayerName(record.plannerState, action.targetCharacterName ?? '');
       record.lastKnownZoneId = action.zoneId;
       this.game.upsertAmbientPlayerBotRecord(record);
       await this.db.saveBot(record);
@@ -563,6 +565,7 @@ export class AmbientPlayerBotRuntime {
     record.lifecycleStatus = 'ready';
     record.assignedClusterId = null;
     record.assignedPlayerCharacterId = null;
+    record.plannerState = writeAssignedPlayerName(record.plannerState, '');
     record.reservationUntilMs = null;
     record.lastRunnerError = error?.message ?? '';
     record.lastRunnerAtMs = this.nowMs();
@@ -880,6 +883,7 @@ function normalizeBootRecord(record: AmbientPlayerBotRecord): AmbientPlayerBotRe
       lifecycleStatus: 'ready',
       assignedClusterId: null,
       assignedPlayerCharacterId: null,
+      plannerState: writeAssignedPlayerName(record.plannerState, ''),
       reservationUntilMs: null,
       runnerState: {},
     };
@@ -956,6 +960,7 @@ function resetRecordForAdminLogout(
     lifecycleStatus: record.lifecycleStatus === 'retired' ? 'retired' : 'ready',
     assignedClusterId: null,
     assignedPlayerCharacterId: null,
+    plannerState: writeAssignedPlayerName(record.plannerState, ''),
     reservationUntilMs: null,
     lastRunnerError: reason,
     lastRunnerAtMs: nowMs,

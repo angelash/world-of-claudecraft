@@ -1087,6 +1087,101 @@ describe('AmbientPlayerBotRuntime', () => {
     await runtime.stop();
   });
 
+  it('accepts a trusted human party invite after login even when the live pid differs from the assigned character id', async () => {
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'eastbrook_vale:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, {
+          self: {
+            id: 101,
+            x: 4,
+            z: 6,
+            lv: 1,
+            hp: 40,
+            mhp: 40,
+            res: 0,
+            mres: 0,
+            rtype: 'rage',
+            gcd: 0,
+            inv: [],
+            qlog: [],
+            qdone: [],
+            cds: {},
+          },
+          ents: [
+            { id: 201, k: 'player', nm: 'Realhero', x: 6, z: 6, lv: 1 },
+          ],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => 5_000,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'eastbrook_vale:1',
+      zoneId: 'eastbrook_vale',
+      targetCharacterId: 1,
+      targetCharacterName: 'Realhero',
+      reason: 'trusted human party invite regression',
+    }]);
+
+    await vi.waitFor(() => {
+      expect(sockets).toHaveLength(1);
+    });
+
+    sockets[0]?.emitJson({
+      t: 'events',
+      list: [{
+        type: 'partyInvite',
+        fromPid: 201,
+        fromName: 'Realhero',
+        pid: 101,
+      }],
+    });
+
+    await vi.waitFor(() => {
+      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string });
+      expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'paccept')).toBe(true);
+      expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'pdecline')).toBe(false);
+    });
+
+    expect(game.ambientPlayerBotDirectory()).toEqual([
+      expect.objectContaining({
+        plannerState: expect.objectContaining({
+          assignedPlayerName: 'Realhero',
+        }),
+      }),
+    ]);
+
+    await runtime.stop();
+  });
+
   it('forms an outdoor q_crushers party before pushing the grouped war-camp objective', async () => {
     const game = new FakeGame();
     const sockets: FakeSocket[] = [];

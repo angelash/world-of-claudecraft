@@ -1,5 +1,6 @@
 import { applyAmbientPlayerBotConfigPatch } from './config';
 import { DEFAULT_AMBIENT_BOT_PROFILES } from './profiles';
+import { writeAssignedPlayerName } from './assignment';
 import type {
   AmbientBotPlanAction,
   AmbientBotProfile,
@@ -163,6 +164,7 @@ export class AmbientPlayerBotService {
         this.prepareBotForReassignment(bot);
         continue;
       }
+      bot.plannerState = writeAssignedPlayerName(bot.plannerState, cluster.members[0]?.name ?? '');
       bot.assignedPlayerCharacterId = pickClusterAnchorCharacterId(cluster);
       pushMapValue(retainedAssignmentsByCluster, cluster.clusterId, {
         bot,
@@ -194,6 +196,7 @@ export class AmbientPlayerBotService {
           if (filled >= cluster.desiredBots) break;
           bot.assignedClusterId = cluster.clusterId;
           bot.assignedPlayerCharacterId = pickClusterAnchorCharacterId(cluster);
+          bot.plannerState = writeAssignedPlayerName(bot.plannerState, cluster.members[0]?.name ?? '');
           if (bot.lifecycleStatus !== 'online') {
             bot.lifecycleStatus = 'reserved';
             bot.reservationUntilMs = nowMs + this.config.reservationMs;
@@ -203,6 +206,7 @@ export class AmbientPlayerBotService {
               clusterId: cluster.clusterId,
               zoneId: cluster.zoneId,
               targetCharacterId: cluster.members[0]?.characterId ?? 0,
+              targetCharacterName: cluster.members[0]?.name ?? '',
               reason: 'matched ready bot to active human cluster',
             });
           }
@@ -232,6 +236,7 @@ export class AmbientPlayerBotService {
             clusterId: cluster.clusterId,
             zoneId: cluster.zoneId,
             targetCharacterId: cluster.members[0]?.characterId ?? 0,
+            targetCharacterName: cluster.members[0]?.name ?? '',
             reason: 'no suitable ready bot was available for this cluster',
           });
           pushClass(seenClassesByCluster, cluster.clusterId, profile.class);
@@ -381,6 +386,7 @@ export class AmbientPlayerBotService {
   private prepareBotForReassignment(bot: AmbientPlayerBotRecord): void {
     bot.assignedClusterId = null;
     bot.assignedPlayerCharacterId = null;
+    bot.plannerState = writeAssignedPlayerName(bot.plannerState, '');
     bot.reservationUntilMs = null;
     if (bot.lifecycleStatus !== 'online' && bot.lifecycleStatus !== 'retired') {
       bot.lifecycleStatus = 'ready';
@@ -390,6 +396,7 @@ export class AmbientPlayerBotService {
   private releaseBot(bot: AmbientPlayerBotRecord, nowMs: number): void {
     bot.assignedClusterId = null;
     bot.assignedPlayerCharacterId = null;
+    bot.plannerState = writeAssignedPlayerName(bot.plannerState, '');
     bot.reservationUntilMs = null;
     if (bot.lifecycleStatus !== 'retired') {
       bot.lifecycleStatus = 'cooldown';
@@ -403,6 +410,7 @@ export class AmbientPlayerBotService {
         bot.lifecycleStatus = 'ready';
         bot.assignedClusterId = null;
         bot.assignedPlayerCharacterId = null;
+        bot.plannerState = writeAssignedPlayerName(bot.plannerState, '');
         bot.reservationUntilMs = null;
       }
       if (bot.lifecycleStatus === 'cooldown' && (bot.cooldownUntilMs ?? 0) <= nowMs) {

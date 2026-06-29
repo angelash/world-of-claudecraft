@@ -149,6 +149,35 @@ describe('ambient player bot social shell', () => {
     }));
   });
 
+  it('reciprocates when a player adds the bot as a friend', () => {
+    const state = createAmbientPlayerBotSocialRuntimeState();
+    const result = tickAmbientPlayerBotSocialShell({
+      bot: bot(),
+      liveState: liveState({
+        social: {
+          friends: [],
+          blocks: [],
+          guild: null,
+        },
+      }),
+      recentEvents: [{
+        type: 'friendAddedBy',
+        fromName: 'Aleph',
+      } as unknown as SimEvent],
+      ambientBotNames: new Set(['Branoraaa']),
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toContainEqual({ type: 'friendAdd', name: 'Aleph' });
+    expect(result.socialState).toEqual(expect.objectContaining({
+      contacts: expect.objectContaining({
+        Aleph: expect.objectContaining({
+          outgoingFriendAtMs: 5_000,
+        }),
+      }),
+    }));
+  });
+
   it('does not respond to blocked whisper senders', () => {
     const state = createAmbientPlayerBotSocialRuntimeState();
     const result = tickAmbientPlayerBotSocialShell({

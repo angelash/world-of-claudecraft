@@ -772,7 +772,7 @@ export const en_XA: EnTranslations = {
         "helpful": "[Ĥéļþƒúļ]"
       },
       "socialAction": {
-        "friendAdd": "[Šéñţ á ƒŕíéñð ŕéɋúéšţ ţó {name}]",
+        "friendAdd": "[Áððéð {name} ţó ƒŕíéñðš]",
         "reply": "[Ŕéþļíéð ţó {name}]",
         "wave": "[Ŵáʋéð áţ {name}]",
         "cheer": "[Çĥééŕéð áţ {name}]",

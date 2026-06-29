@@ -330,8 +330,13 @@ describe('ambient player bot group coordinator', () => {
     }));
   });
 
-  it('accepts a party invite from its assigned player even on a solo objective', () => {
-    const follower = bot();
+  it('accepts a party invite from its assigned player even when the live pid differs from the assigned character id', () => {
+    const follower = bot({
+      assignedPlayerCharacterId: 1,
+      plannerState: {
+        assignedPlayerName: 'Realhero',
+      },
+    });
     const state = createAmbientPlayerBotGroupRuntimeState();
     const result = tickAmbientPlayerBotGroupCoordinator({
       bot: follower,
@@ -342,7 +347,7 @@ describe('ambient player bot group coordinator', () => {
           z: 6,
         },
       }),
-      recentEvents: [{ type: 'partyInvite', fromPid: 1, fromName: 'Realhero' }],
+      recentEvents: [{ type: 'partyInvite', fromPid: 201, fromName: 'Realhero' }],
       objectiveId: 'accept_wolves',
       objectiveQuestId: 'q_wolves',
       objectiveSuggestedPartySize: 1,

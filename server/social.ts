@@ -121,7 +121,10 @@ export type SocialEvent =
   | { type: 'log'; text: string; color?: string }
   | { type: 'error'; text: string }
   | { type: 'chat'; from: string; text: string; channel: 'guild' | 'officer' }
-  | { type: 'guildInvite'; fromName: string; guildName: string };
+  | { type: 'guildInvite'; fromName: string; guildName: string }
+  // Bot-only hint: the regular player UI ignores unknown event types, while the
+  // ambient bot social loop uses this to reciprocate a player's friend add.
+  | { type: 'friendAddedBy'; fromName: string };
 
 const FRIEND_LIMIT = 50;
 const BLOCK_LIMIT = 50;
@@ -229,6 +232,7 @@ export class SocialService {
     if (friends.length >= FRIEND_LIMIT) { this.err(actor.characterId, 'Your friends list is full.'); return; }
     await this.db.addFriend(actor.characterId, target.id);
     this.info(actor.characterId, `${target.name} added to friends.`);
+    this.tx.deliver(target.id, [{ type: 'friendAddedBy', fromName: actor.name }]);
     this.push(actor.characterId);
   }
 

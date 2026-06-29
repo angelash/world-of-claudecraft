@@ -772,7 +772,7 @@ export const es_ES: EnTranslations = {
         "helpful": "Helpful"
       },
       "socialAction": {
-        "friendAdd": "Sent a friend request to {name}",
+        "friendAdd": "Added {name} to friends",
         "reply": "Replied to {name}",
         "wave": "Waved at {name}",
         "cheer": "Cheered at {name}",

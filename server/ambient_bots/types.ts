@@ -235,6 +235,7 @@ export type AmbientBotPlanAction =
     clusterId: string;
     zoneId: string;
     targetCharacterId: number;
+    targetCharacterName?: string;
     reason: string;
   }
   | {
@@ -250,6 +251,7 @@ export type AmbientBotPlanAction =
     clusterId: string;
     zoneId: string;
     targetCharacterId: number;
+    targetCharacterName?: string;
     reason: string;
   };
 

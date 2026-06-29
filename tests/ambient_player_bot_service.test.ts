@@ -110,6 +110,7 @@ describe('AmbientPlayerBotService', () => {
       type: 'loginBot',
       botId: 'bot-1',
       clusterId: 'eastbrook_vale:1',
+      targetCharacterName: 'P1',
     }));
     expect(actions.filter((action) => action.type === 'provisionBot')).toHaveLength(4);
   });

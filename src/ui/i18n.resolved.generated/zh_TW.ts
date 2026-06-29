@@ -772,7 +772,7 @@ export const zh_TW: EnTranslations = {
         "helpful": "樂於助人"
       },
       "socialAction": {
-        "friendAdd": "已向 {name} 傳送好友請求",
+        "friendAdd": "已將 {name} 加入好友",
         "reply": "已回覆 {name}",
         "wave": "向 {name} 揮手",
         "cheer": "為 {name} 歡呼",

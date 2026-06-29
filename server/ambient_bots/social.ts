@@ -21,6 +21,10 @@ interface AmbientIncomingWhisper {
   text: string;
 }
 
+interface AmbientIncomingFriendAdd {
+  from: string;
+}
+
 interface AmbientBotContactMemory {
   firstSeenAtMs: number;
   lastSeenAtMs: number;
@@ -141,6 +145,27 @@ export function tickAmbientPlayerBotSocialShell(
   trimContacts(persistent, input.nowMs);
 
   for (const event of input.recentEvents) {
+    const friendAdd = incomingFriendAdd(event, ambientBotNames);
+    if (friendAdd) {
+      const contact = ensureContact(persistent, friendAdd.from, input.nowMs);
+      if (contact.created) {
+        changed = true;
+        shouldPersist = true;
+      }
+      contact.entry.lastSeenAtMs = input.nowMs;
+      if (
+        !blockNameSet.has(friendAdd.from)
+        && !friendNameSet.has(friendAdd.from)
+        && canSendFriendAdd(contact.entry, input.nowMs)
+        && commands.length < MAX_SOCIAL_COMMANDS_PER_TICK
+      ) {
+        commands.push({ type: 'friendAdd', name: friendAdd.from });
+        contact.entry.outgoingFriendAtMs = input.nowMs;
+        changed = true;
+        shouldPersist = true;
+      }
+      continue;
+    }
     const whisper = incomingWhisper(event, input.liveState.self?.id ?? -1, ambientBotNames);
     if (!whisper) continue;
     lastWhisperFrom = whisper.from;
@@ -376,6 +401,16 @@ function incomingWhisper(
     from: event.from,
     text: event.text,
   };
+}
+
+function incomingFriendAdd(
+  event: SimEvent,
+  ambientBotNames: ReadonlySet<string>,
+): AmbientIncomingFriendAdd | null {
+  const row = event as SimEvent & { type?: unknown; fromName?: unknown };
+  if (row.type !== 'friendAddedBy') return null;
+  if (typeof row.fromName !== 'string' || ambientBotNames.has(row.fromName)) return null;
+  return { from: row.fromName };
 }
 
 function canSendFriendAdd(contact: AmbientBotContactMemory, nowMs: number): boolean {

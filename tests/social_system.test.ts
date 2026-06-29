@@ -237,6 +237,15 @@ describe('friends', () => {
     expect(h.tx.textFor(1).join()).toMatch(/Bet has come online/);
     expect(h.tx.snapshotCount.get(1)).toBe(1);
   });
+
+  it('notifies an online target when someone adds them as a friend', async () => {
+    h.tx.setOnline(2);
+    await h.svc.friendAdd(h.actor(1), 'Bet');
+    expect(h.tx.eventsFor(2)).toContainEqual({
+      type: 'friendAddedBy',
+      fromName: 'Aleph',
+    });
+  });
 });
 
 describe('ignore / block', () => {

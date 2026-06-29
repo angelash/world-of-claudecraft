@@ -1,6 +1,7 @@
 import { DUNGEONS } from '../../src/sim/data';
 import type { SimEvent } from '../../src/sim/types';
 import type { PartyInfo, PartyMemberInfo } from '../../src/world_api';
+import { readAssignedPlayerName } from './assignment';
 import type { AmbientPlayerBotRecord } from './types';
 import type { AmbientPlayerBotLiveState } from './ws_client';
 
@@ -98,9 +99,10 @@ export function tickAmbientPlayerBotGroupCoordinator(
   const botIsGroupLeader = party
     ? party.leader === input.bot.characterId
     : fallbackBotLeader.botId === input.bot.botId;
+  const assignedPlayerName = readAssignedPlayerName(input.bot.plannerState);
 
   const inviteDecision = !party
-    ? ambientPartyInviteDecision(input.recentEvents, activeNames, input.bot.assignedPlayerCharacterId)
+    ? ambientPartyInviteDecision(input.recentEvents, activeNames, assignedPlayerName)
     : null;
   if (inviteDecision?.trusted && canIssue(state, `accept:${inviteDecision.fromName}`, input.nowMs, GROUP_ACCEPT_COOLDOWN_MS)) {
     commands.push({ cmd: 'paccept' });
@@ -377,7 +379,7 @@ interface AmbientPartyInviteDecision {
 function ambientPartyInviteDecision(
   events: readonly SimEvent[],
   activeNames: ReadonlySet<string>,
-  assignedPlayerCharacterId: number | null,
+  assignedPlayerName: string,
 ): AmbientPartyInviteDecision | null {
   let untrusted: AmbientPartyInviteDecision | null = null;
   for (const event of events) {
@@ -389,7 +391,7 @@ function ambientPartyInviteDecision(
       continue;
     }
     const trusted = activeNames.has(event.fromName)
-      || (assignedPlayerCharacterId !== null && event.fromPid === assignedPlayerCharacterId);
+      || (assignedPlayerName !== '' && event.fromName === assignedPlayerName);
     const decision = { fromPid: event.fromPid, fromName: event.fromName, trusted };
     if (trusted) return decision;
     untrusted ??= decision;
