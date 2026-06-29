@@ -3,6 +3,8 @@ import type {
   AmbientBotLlmMemoryTag,
   AmbientBotLlmPresenceEmote,
   AmbientBotLlmSocialMode,
+  AmbientBotPartyChatContextV1,
+  AmbientBotPartyChatDecisionV1,
   AmbientBotPlanContextV1,
   AmbientBotPlanDecisionV1,
   AmbientBotSocialContextV1,
@@ -138,6 +140,48 @@ export function validateAmbientBotSocialDecision(
   };
 }
 
+export function validateAmbientBotPartyChatDecision(
+  value: unknown,
+  context: AmbientBotPartyChatContextV1,
+): AmbientBotPartyChatDecisionV1 {
+  const record = requireRecord(value, 'party decision');
+  rejectUnexpectedKeys(record, [
+    'schemaVersion',
+    'jobId',
+    'botRef',
+    'mode',
+    'ttlMs',
+    'confidence',
+    'lineText',
+    'audit',
+  ], 'party decision');
+  const schemaVersion = requireLiteral(record.schemaVersion, 1, 'party decision.schemaVersion');
+  const jobId = requireString(record.jobId, 'party decision.jobId');
+  if (jobId !== context.jobId) throw new Error('party decision jobId mismatch');
+  const botRef = parseBotRef(record.botRef, 'party decision.botRef');
+  requireMatchingBotRef(botRef, context.botRef, 'party decision.botRef');
+  const mode = requireString(record.mode, 'party decision.mode');
+  if (mode !== context.mode) throw new Error('party decision mode mismatch');
+  const ttlMs = requireNumberInRange(record.ttlMs, 'party decision.ttlMs', 5_000, 180_000);
+  const confidence = requireNumberInRange(record.confidence, 'party decision.confidence', 0, 1);
+  const lineText = requireChatLineText(
+    record.lineText,
+    'party decision.lineText',
+    context.constraints.maxReplyChars,
+  );
+  const audit = parsePlanAudit(record.audit);
+  return {
+    schemaVersion,
+    jobId,
+    botRef,
+    mode,
+    ttlMs,
+    confidence,
+    lineText,
+    audit,
+  };
+}
+
 function parsePlanAudit(value: unknown): AmbientBotPlanDecisionV1['audit'] {
   const record = requireRecord(value, 'plan decision.audit');
   rejectUnexpectedKeys(record, ['shortReason', 'safetyNotes'], 'plan decision.audit');
@@ -258,10 +302,15 @@ function requireShortText(value: unknown, path: string, maxLength: number): stri
 }
 
 function requireReplyText(value: unknown, maxLength: number): string {
-  const text = requireShortText(value, 'social decision.replyText', maxLength);
-  if (text.startsWith('/')) throw new Error('social decision.replyText cannot start with slash');
-  if (META_REPLY_PATTERN.test(text)) throw new Error('social decision.replyText contains meta disclosure');
-  if (EXTERNAL_REPLY_PATTERN.test(text)) throw new Error('social decision.replyText contains external coordination');
+  const text = requireChatLineText(value, 'social decision.replyText', maxLength);
+  return text;
+}
+
+function requireChatLineText(value: unknown, path: string, maxLength: number): string {
+  const text = requireShortText(value, path, maxLength);
+  if (text.startsWith('/')) throw new Error(`${path} cannot start with slash`);
+  if (META_REPLY_PATTERN.test(text)) throw new Error(`${path} contains meta disclosure`);
+  if (EXTERNAL_REPLY_PATTERN.test(text)) throw new Error(`${path} contains external coordination`);
   return text;
 }
 

@@ -137,6 +137,7 @@ export interface AmbientPlayerBotRuntimeSessionSnapshot {
   objectiveId: string;
   objectiveLabel: string;
   socialPendingReplies: number;
+  partyChatPending: number;
   llmPlanPending: boolean;
   llmPlanMode: string;
   llmPlanFocus: string;
@@ -194,13 +195,15 @@ export interface AmbientPlayerBotLlmBudgetSnapshot {
 export interface AmbientPlayerBotLlmCacheSnapshot {
   planEntries: number;
   socialEntries: number;
+  partyEntries: number;
 }
 
 export interface AmbientPlayerBotLlmMetricsSnapshot {
   plan: AmbientPlayerBotLlmDecisionCountSnapshot;
   social: AmbientPlayerBotLlmDecisionCountSnapshot;
+  party: AmbientPlayerBotLlmDecisionCountSnapshot;
   lastDecisionAtMs: number | null;
-  lastDecisionKind: 'plan' | 'social' | '';
+  lastDecisionKind: 'plan' | 'social' | 'party' | '';
   lastDecisionStatus: AmbientPlayerBotLlmDecisionStatus | '';
   lastDecisionReason: string;
   lastDecisionProvider: string;

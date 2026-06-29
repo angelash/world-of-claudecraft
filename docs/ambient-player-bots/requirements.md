@@ -79,6 +79,15 @@ and get replaced through the same server surfaces that human players use.
 - Grouped bots must complete practical pre-battle preparation through normal
   player commands: self prep, party-wide buffs where the class can provide
   them, tank-side readying, and healer-side top-offs before the pull resumes.
+- Ambient-bot-led parties should derive one shared role split from current
+  party composition, then use that same split for both tactical behavior and
+  party-chat simulation.
+- In ambient-bot-led parties, the leader should use the real party channel to
+  call the plan: who is tanking, who is healing, when to regroup or finish
+  buffs, and which target the party should focus.
+- Ambient-bot followers in an ambient-bot-led party should acknowledge the
+  leader's call in party chat and confirm their own responsibility instead of
+  acting like a silent hivemind.
 - For party invites, bots accept invites from same-cluster ambient peers and
   from their assigned player, while declining unrelated invites so a stale
   stranger invite does not block trusted grouping.
@@ -98,12 +107,21 @@ and get replaced through the same server surfaces that human players use.
 - Bots do not treat a real-player-led party as a bot-led party. They follow and
   assist, but do not wait for more members or invite others on behalf of the
   player.
+- Player-led parties must stay player-led. Bots may follow, assist, and answer
+  direct player instructions, but they must not inject bot-only roleplay or
+  override the player's leadership tone with autonomous party chatter.
 
 ### D. Social and LLM behavior
 
 - Keep low-level play heuristic and cheap.
 - Use LLMs only for sparse planning, social intent, reply phrasing, and memory
   summarization.
+- Ambient-bot party chat should be LLM-first when enabled and budget allows:
+  short leader briefings and follower acknowledgements may be model-authored,
+  but they must fall back to bounded templates when disabled, denied, rejected,
+  or unnecessary.
+- Template fallback for party chat must vary across multiple short patterns so
+  the same role split does not produce obviously repeated lines every pull.
 - Require structured output, validation, cooldowns, budgets, caching, and
   operator audit for every model-assisted path.
 - Never let model output directly mutate authoritative world state.
@@ -151,6 +169,9 @@ and get replaced through the same server surfaces that human players use.
   leadership decisions or breaking follow.
 - Grouped parties finish obvious prep work, heal up, buff up, and then collapse
   onto one combat target instead of scattering opening actions.
+- Ambient-bot-led parties visibly sound coordinated: the leader briefly calls
+  assignments and focus in party chat, followers confirm their role once, and
+  the later tactical behavior matches what the party just said it would do.
 - Friend, whisper, and chat surfaces remain bounded, moderated, and operator
   visible.
 - Real-player friend adds against nearby ambient bots settle into a mutual

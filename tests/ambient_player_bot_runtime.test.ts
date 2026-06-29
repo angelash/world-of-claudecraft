@@ -3238,6 +3238,180 @@ describe('AmbientPlayerBotRuntime', () => {
 
     await runtime.stop();
   });
+
+  it('queues llm party chat for an ambient-led group and sends the accepted /p briefing', async () => {
+    let nowMs = 5_000;
+    const game = new FakeGame();
+    const sockets: FakeSocket[] = [];
+    const db = {
+      listBots: vi.fn(async () => [
+        bot({
+          authTokenExpiresAtMs: 200_000,
+          lifecycleStatus: 'reserved',
+          assignedClusterId: 'eastbrook_vale:1',
+          assignedPlayerCharacterId: 1,
+          reservationUntilMs: 6_000,
+          profileId: 'eastbrook_vale_warrior_newcomer',
+          class: 'warrior',
+        }),
+      ]),
+      saveBot: vi.fn(async () => {}),
+    };
+    const provider: AmbientBotLlmProvider = {
+      decide: vi.fn(async ({ promptText }) => {
+        const context = extractPromptContext(promptText);
+        const botRef = readRecord(context, 'botRef');
+        if (promptText.includes('AmbientBotPlanDecisionV1')) {
+          return {
+            value: {
+              schemaVersion: 1,
+              jobId: readString(context, 'jobId'),
+              botRef,
+              ttlMs: 120_000,
+              confidence: 0.9,
+              socialMode: 'friendly',
+              focusLabel: 'Wolves at the Door',
+              selfSummary: 'helping with the wolf quest route',
+              friendPolicy: 'ifAsked',
+              allowPresenceEmote: true,
+              audit: {
+                shortReason: 'starter helper plan',
+                safetyNotes: ['boundedPlan'],
+              },
+            },
+            promptText,
+            rawOutput: '{"kind":"plan"}',
+            providerTimings: { provider: 'test-provider', totalMs: 12, steps: [] },
+          };
+        }
+        if (promptText.includes('AmbientBotPartyChatDecisionV1')) {
+          return {
+            value: {
+              schemaVersion: 1,
+              jobId: readString(context, 'jobId'),
+              botRef,
+              mode: readString(context, 'mode'),
+              ttlMs: 30_000,
+              confidence: 0.9,
+              lineText: 'Buff up, stay tight, then burn my target.',
+              audit: {
+                shortReason: 'short party pull call',
+                safetyNotes: ['boundedPartyLine'],
+              },
+            },
+            promptText,
+            rawOutput: '{"kind":"party"}',
+            providerTimings: { provider: 'test-provider', totalMs: 14, steps: [] },
+          };
+        }
+        throw new Error('unexpected prompt type');
+      }),
+    };
+    const llmCoordinator = new AmbientPlayerBotLlmCoordinator({
+      config: {
+        enabled: true,
+        planCooldownMs: 120_000,
+        socialCooldownMs: 45_000,
+        maxCalls5h: 20,
+        maxCallsWeek: 40,
+        cacheMaxEntries: 32,
+        cacheMaxTtlMs: 300_000,
+      },
+      provider,
+    });
+    const runtime = new AmbientPlayerBotRuntime({
+      game,
+      db,
+      apiClient: {
+        register: vi.fn(),
+        login: vi.fn(),
+        createCharacter: vi.fn(),
+      },
+      wsBaseUrl: 'ws://ambient.test',
+      llmCoordinator,
+      llmConfig: {
+        enabled: true,
+        planCooldownMs: 120_000,
+        socialCooldownMs: 45_000,
+        maxCalls5h: 20,
+        maxCallsWeek: 40,
+        cacheMaxEntries: 32,
+        cacheMaxTtlMs: 300_000,
+      },
+      brainIntervalMs: 5,
+      webSocketFactory: () => {
+        const socket = new FakeSocket(91, {
+          self: {
+            id: 101,
+            x: 4,
+            z: 6,
+            lv: 1,
+            hp: 40,
+            mhp: 40,
+            res: 0,
+            mres: 0,
+            rtype: 'rage',
+            gcd: 0,
+            inv: [],
+            qlog: [],
+            qdone: [],
+            cds: {},
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 1, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 4, z: 6, dead: 0, inCombat: 0, group: 1 },
+                { pid: 102, name: 'Branorabb', cls: 'priest', level: 1, hp: 32, mhp: 32, res: 30, mres: 30, rtype: 'mana', x: 5, z: 6, dead: 0, inCombat: 0, group: 1 },
+              ],
+            },
+          },
+          ents: [
+            { id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 },
+            { id: 102, k: 'player', nm: 'Branorabb', x: 5, z: 6 },
+          ],
+        });
+        sockets.push(socket);
+        return socket;
+      },
+      nowMs: () => nowMs,
+    });
+
+    await runtime.start();
+    game.actionHandler?.([{
+      type: 'loginBot',
+      botId: 'bot-1',
+      clusterId: 'eastbrook_vale:1',
+      zoneId: 'eastbrook_vale',
+      targetCharacterId: 1,
+      reason: 'test login',
+    }]);
+
+    await vi.waitFor(() => {
+      expect(game.ambientPlayerBotDirectory()).toEqual([
+        expect.objectContaining({
+          runnerState: expect.objectContaining({
+            partyChatPending: 1,
+            llmPartyStatus: 'accepted',
+            llmPartyMode: 'leader_brief',
+            partyTankName: 'Branoraaa',
+            partyHealerName: 'Branorabb',
+          }),
+        }),
+      ]);
+    });
+
+    nowMs = 7_000;
+    await vi.waitFor(() => {
+      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; text?: string });
+      expect(sent?.some((message) =>
+        message.t === 'cmd'
+        && message.cmd === 'chat'
+        && message.text === '/p Buff up, stay tight, then burn my target.',
+      )).toBe(true);
+    });
+
+    await runtime.stop();
+  });
 });
 
 function cloneRecord(record: AmbientPlayerBotRecord): AmbientPlayerBotRecord {

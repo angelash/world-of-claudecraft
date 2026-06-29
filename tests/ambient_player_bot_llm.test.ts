@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AmbientPlayerBotLlmCoordinator } from '../server/ambient_bots/llm_coordinator';
 import type { AmbientBotLlmProvider } from '../server/ambient_bots/llm_types';
+import type { AmbientPlayerBotPendingPartyUtterance } from '../server/ambient_bots/party_chat';
 import type { AmbientPlayerBotPendingReply } from '../server/ambient_bots/social';
 import type { AmbientPlayerBotRecord } from '../server/ambient_bots/types';
 import type { AmbientPlayerBotLiveState } from '../server/ambient_bots/ws_client';
@@ -83,6 +84,21 @@ function pendingReply(overrides: Partial<AmbientPlayerBotPendingReply> = {}): Am
     dueAtMs: 10_000,
     askedForFriend: false,
     revision: 1,
+    llmStatus: 'idle',
+    ...overrides,
+  };
+}
+
+function pendingPartyUtterance(
+  overrides: Partial<AmbientPlayerBotPendingPartyUtterance> = {},
+): AmbientPlayerBotPendingPartyUtterance {
+  return {
+    mode: 'leader_brief',
+    briefKey: 'party-plan|wolf-run',
+    dueAtMs: 10_000,
+    revision: 1,
+    fallbackText: 'Buff up first, then collapse on one target.',
+    leaderPromptText: '',
     llmStatus: 'idle',
     ...overrides,
   };
@@ -349,6 +365,7 @@ describe('ambient player bot llm coordinator', () => {
       cache: expect.objectContaining({
         planEntries: 1,
         socialEntries: 0,
+        partyEntries: 0,
       }),
       metrics: expect.objectContaining({
         plan: expect.objectContaining({
@@ -361,5 +378,110 @@ describe('ambient player bot llm coordinator', () => {
         lastDecisionProvider: 'cache',
       }),
     }));
+  });
+
+  it('accepts and caches bounded party chat decisions', async () => {
+    const provider: AmbientBotLlmProvider = {
+      decide: vi.fn(async () => ({
+        value: {
+          schemaVersion: 1,
+          jobId: 'ambient-party:bot-1:leader_brief:1:1000',
+          botRef: {
+            botId: 'bot-1',
+            characterName: 'Branoraaa',
+            profileId: 'eastbrook_vale_paladin_quester',
+            classId: 'paladin',
+            archetype: 'quester',
+          },
+          mode: 'leader_brief',
+          ttlMs: 45_000,
+          confidence: 0.87,
+          lineText: 'Buff up, stay tight, then burn my target.',
+          audit: {
+            shortReason: 'short pull call',
+            safetyNotes: ['boundedPartyLine'],
+          },
+        },
+        promptText: 'party prompt',
+        rawOutput: '{"ok":true}',
+        providerTimings: { provider: 'test-provider', totalMs: 16, steps: [] },
+      })),
+    };
+    const coordinator = new AmbientPlayerBotLlmCoordinator({
+      config: {
+        enabled: true,
+        planCooldownMs: 120_000,
+        socialCooldownMs: 45_000,
+        maxCalls5h: 10,
+        maxCallsWeek: 20,
+        cacheMaxEntries: 32,
+        cacheMaxTtlMs: 300_000,
+      },
+      provider,
+    });
+
+    const party = {
+      leader: 101,
+      raid: false,
+      members: [
+        { pid: 101, name: 'Branoraaa', cls: 'paladin', level: 3, hp: 40, mhp: 40, res: 30, mres: 30, rtype: 'mana', x: 4, z: 6, dead: 0, inCombat: 0, group: 1 },
+        { pid: 201, name: 'Aleph', cls: 'priest', level: 3, hp: 30, mhp: 30, res: 30, mres: 30, rtype: 'mana', x: 6, z: 6, dead: 0, inCombat: 0, group: 1 },
+      ],
+    };
+    const baseLiveState = liveState();
+    const first = await coordinator.decidePartyChat({
+      bot: bot({
+        runnerState: {
+          objectiveLabel: 'Wolves at the Door',
+          groupMode: 'brain',
+          partyLeaderName: 'Branoraaa',
+          partyTankName: 'Branoraaa',
+          partyHealerName: 'Aleph',
+          partyFocusCaller: 'Branoraaa',
+          partyComposition: 'Branoraaa tanks, Aleph heals',
+          partyRole: 'tank',
+          partyDuty: 'take point, set the pace, and keep threat stable',
+        },
+      }),
+      liveState: {
+        ...baseLiveState,
+        self: {
+          ...baseLiveState.self!,
+          party,
+        },
+      },
+      pendingUtterance: pendingPartyUtterance({ revision: 1 }),
+      nowMs: 1_000,
+    });
+    const second = await coordinator.decidePartyChat({
+      bot: bot({
+        runnerState: {
+          objectiveLabel: 'Wolves at the Door',
+          groupMode: 'brain',
+          partyLeaderName: 'Branoraaa',
+          partyTankName: 'Branoraaa',
+          partyHealerName: 'Aleph',
+          partyFocusCaller: 'Branoraaa',
+          partyComposition: 'Branoraaa tanks, Aleph heals',
+          partyRole: 'tank',
+          partyDuty: 'take point, set the pace, and keep threat stable',
+        },
+      }),
+      liveState: {
+        ...baseLiveState,
+        self: {
+          ...baseLiveState.self!,
+          party,
+        },
+      },
+      pendingUtterance: pendingPartyUtterance({ revision: 1 }),
+      nowMs: 5_000,
+    });
+
+    expect(first.status).toBe('accepted');
+    expect(first.decision?.lineText).toBe('Buff up, stay tight, then burn my target.');
+    expect(second.status).toBe('cache_hit');
+    expect(second.decision?.jobId).toBe('ambient-party:bot-1:leader_brief:1:5000');
+    expect(provider.decide).toHaveBeenCalledTimes(1);
   });
 });

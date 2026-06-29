@@ -26,6 +26,10 @@ export type AmbientBotLlmMemoryTag =
   | 'solo'
   | 'helpful';
 
+export type AmbientBotPartyChatMode =
+  | 'leader_brief'
+  | 'member_ack';
+
 export interface AmbientBotLlmBotRef {
   botId: string;
   characterName: string;
@@ -143,6 +147,58 @@ export interface AmbientBotSocialDecisionV1 {
   };
 }
 
+export interface AmbientBotPartyChatMemberSummary {
+  name: string;
+  classId: PlayerClass;
+  combatRole: 'tank' | 'healer' | 'dps';
+  dutyLabel: string;
+  isLeader: boolean;
+}
+
+export interface AmbientBotPartyChatContextV1 {
+  schemaVersion: 1;
+  jobId: string;
+  botRef: AmbientBotLlmBotRef;
+  mode: AmbientBotPartyChatMode;
+  progression: {
+    level: number;
+    zoneId: string;
+    objectiveLabel: string;
+    groupMode: string;
+  };
+  party: {
+    leaderName: string;
+    tankName: string;
+    healerName: string;
+    focusCallerName: string;
+    compositionSummary: string;
+    leaderPromptText: string;
+    fallbackText: string;
+    members: AmbientBotPartyChatMemberSummary[];
+  };
+  selfRole: {
+    combatRole: 'tank' | 'healer' | 'dps';
+    dutyLabel: string;
+  };
+  constraints: {
+    maxReplyChars: number;
+  };
+}
+
+export interface AmbientBotPartyChatDecisionV1 {
+  schemaVersion: 1;
+  jobId: string;
+  botRef: AmbientBotLlmBotRef;
+  mode: AmbientBotPartyChatMode;
+  ttlMs: number;
+  confidence: number;
+  lineText: string;
+  audit: {
+    shortReason: string;
+    safetyNotes: string[];
+  };
+}
+
 export interface AmbientBotLlmProviderResult {
   value: unknown;
   promptText: string;
@@ -168,7 +224,7 @@ export type AmbientBotLlmAuditStatus =
   | 'disabled';
 
 export interface AmbientBotLlmAuditSnapshot {
-  kind: 'plan' | 'social';
+  kind: 'plan' | 'social' | 'party';
   status: AmbientBotLlmAuditStatus;
   jobId: string;
   atMs: number;

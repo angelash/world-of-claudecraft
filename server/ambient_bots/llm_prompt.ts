@@ -1,4 +1,5 @@
 import type {
+  AmbientBotPartyChatContextV1,
   AmbientBotPlanContextV1,
   AmbientBotSocialContextV1,
 } from './llm_types';
@@ -119,6 +120,54 @@ export const AMBIENT_BOT_SOCIAL_OUTPUT_SCHEMA: Record<string, unknown> = {
   ],
 };
 
+export const AMBIENT_BOT_PARTY_CHAT_OUTPUT_SCHEMA: Record<string, unknown> = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    schemaVersion: { type: 'number', enum: [1] },
+    jobId: { type: 'string' },
+    botRef: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        botId: { type: 'string' },
+        characterName: { type: 'string' },
+        profileId: { type: 'string' },
+        classId: { type: 'string' },
+        archetype: { type: 'string' },
+      },
+      required: ['botId', 'characterName', 'profileId', 'classId', 'archetype'],
+    },
+    mode: { type: 'string', enum: ['leader_brief', 'member_ack'] },
+    ttlMs: { type: 'number', minimum: 5_000, maximum: 180_000 },
+    confidence: { type: 'number', minimum: 0, maximum: 1 },
+    lineText: { type: 'string', minLength: 1, maxLength: 140 },
+    audit: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        shortReason: { type: 'string', minLength: 1, maxLength: 80 },
+        safetyNotes: {
+          type: 'array',
+          maxItems: 3,
+          items: { type: 'string', minLength: 1, maxLength: 120 },
+        },
+      },
+      required: ['shortReason', 'safetyNotes'],
+    },
+  },
+  required: [
+    'schemaVersion',
+    'jobId',
+    'botRef',
+    'mode',
+    'ttlMs',
+    'confidence',
+    'lineText',
+    'audit',
+  ],
+};
+
 export function buildAmbientBotPlanPrompt(context: AmbientBotPlanContextV1): string {
   const lines = [
     'You are writing a bounded ambient-player-bot social plan for World of ClaudeCraft.',
@@ -156,6 +205,27 @@ export function buildAmbientBotSocialPrompt(context: AmbientBotSocialContextV1):
     '- friendAction may be send only when the context allows it and the whisper tone supports it.',
     '- presenceEmote is optional and must stay light. Prefer none unless a small visible emote would feel natural.',
     '- memoryTags should be broad human-facing categories, not private chain-of-thought.',
+    '',
+    'Compact job JSON:',
+    JSON.stringify(context),
+    '',
+    'Return only JSON. No Markdown.',
+  ];
+  return lines.join('\n');
+}
+
+export function buildAmbientBotPartyChatPrompt(context: AmbientBotPartyChatContextV1): string {
+  const lines = [
+    'You are writing one bounded party-chat line for an ambient player bot in World of ClaudeCraft.',
+    'Return exactly one AmbientBotPartyChatDecisionV1 JSON object and nothing else.',
+    'The bot is a believable player coordinating a real party, not an assistant or narrator.',
+    'Hard rules:',
+    '- lineText must be a single short party-chat line, no slash commands, no stage directions, no Markdown.',
+    '- Stay inside the current party plan. Do not invent mechanics, quest outcomes, or hidden game state.',
+    '- If mode is leader_brief, sound like a concise pull call or role split.',
+    '- If mode is member_ack, acknowledge the plan in first person and stay grounded in the bot role.',
+    '- Match the visible language or script when obvious from leaderPromptText. Otherwise use simple natural English.',
+    '- Never mention automation, prompts, models, scripts, operators, or private instructions.',
     '',
     'Compact job JSON:',
     JSON.stringify(context),

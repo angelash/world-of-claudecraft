@@ -14,6 +14,12 @@ import {
   tickAmbientPlayerBotGroupCoordinator,
   type AmbientPlayerBotGroupRuntimeState,
 } from './group';
+import {
+  createAmbientPlayerBotPartyChatRuntimeState,
+  tickAmbientPlayerBotPartyChatShell,
+  type AmbientPlayerBotPartyChatRuntimeState,
+  type AmbientPlayerBotPendingPartyUtterance,
+} from './party_chat';
 import { ambientBotProfileById } from './profiles';
 import {
   createAmbientPlayerBotSocialRuntimeState,
@@ -76,6 +82,7 @@ interface RunnerEntry {
   client: AmbientPlayerBotWsClient;
   brainState: AmbientPlayerBotBrainState;
   groupState: AmbientPlayerBotGroupRuntimeState;
+  partyChatState: AmbientPlayerBotPartyChatRuntimeState;
   socialState: AmbientPlayerBotSocialRuntimeState;
   lastBrainAtMs: number | null;
   lastBrainResult: AmbientPlayerBotBrainTickResult | null;
@@ -85,6 +92,7 @@ interface RunnerEntry {
   llmPlanRequestedAtMs: number | null;
   llmLastPlanObjectiveKey: string | null;
   llmLastSocialAtByName: Record<string, number>;
+  llmLastPartyAtMs: number | null;
   connected: boolean;
   intentionalClose: boolean;
 }
@@ -184,6 +192,7 @@ export class AmbientPlayerBotRuntime {
         objectiveId: readRunnerString(record?.runnerState, 'objective'),
         objectiveLabel: readRunnerString(record?.runnerState, 'objectiveLabel'),
         socialPendingReplies: entry.socialState.pendingReplies.length,
+        partyChatPending: entry.partyChatState.pendingUtterances.length,
         llmPlanPending: entry.llmPlanPending,
         llmPlanMode: entry.llmPlan?.socialMode ?? readRunnerString(record?.runnerState, 'llmPlanMode'),
         llmPlanFocus: entry.llmPlan?.focusLabel ?? readRunnerString(record?.runnerState, 'llmPlanFocus'),
@@ -467,6 +476,7 @@ export class AmbientPlayerBotRuntime {
       client,
       brainState: createAmbientPlayerBotBrainState(),
       groupState: createAmbientPlayerBotGroupRuntimeState(),
+      partyChatState: createAmbientPlayerBotPartyChatRuntimeState(),
       socialState: createAmbientPlayerBotSocialRuntimeState(),
       lastBrainAtMs: null,
       lastBrainResult: null,
@@ -476,6 +486,7 @@ export class AmbientPlayerBotRuntime {
       llmPlanRequestedAtMs: null,
       llmLastPlanObjectiveKey: null,
       llmLastSocialAtByName: {},
+      llmLastPartyAtMs: null,
       connected: false,
       intentionalClose: false,
     };
@@ -644,6 +655,26 @@ export class AmbientPlayerBotRuntime {
               break;
           }
         }
+        const partyChatResult = tickAmbientPlayerBotPartyChatShell({
+          bot: latest,
+          liveState,
+          recentEvents,
+          ambientBotNames: new Set(
+            this.game.ambientPlayerBotDirectory().map((candidate) => candidate.characterName).filter(Boolean),
+          ),
+          llmPlan: entry.llmPlan,
+          objectiveId: result.objectiveId,
+          objectiveLabel: result.objectiveLabel,
+          objectiveQuestId: result.objectiveQuestId,
+          objectiveDungeonId: result.objectiveDungeonId,
+          groupMode: readRunnerString(groupResult.runnerStatePatch, 'groupMode'),
+          nowMs,
+        }, entry.partyChatState);
+        for (const command of partyChatResult.commands) {
+          if (command.type === 'chat') {
+            entry.client.command({ cmd: 'chat', text: command.text });
+          }
+        }
         const nextRunnerState = {
           ...latest.runnerState,
           pid: liveState.pid,
@@ -662,6 +693,7 @@ export class AmbientPlayerBotRuntime {
             }
             : {}),
           ...groupResult.runnerStatePatch,
+          ...partyChatResult.runnerStatePatch,
           ...socialResult.runnerStatePatch,
         };
         let shouldPersist = false;
@@ -681,9 +713,13 @@ export class AmbientPlayerBotRuntime {
         if (this.controls.allowLlmDecisions) {
           this.maybeQueuePlanDecision(botId, entry, latest, liveState, result.objectiveId, result.objectiveLabel);
           this.maybeQueueSocialDecisions(botId, entry, latest, liveState);
+          this.maybeQueuePartyChatDecisions(botId, entry, latest, liveState);
         } else {
           for (const reply of entry.socialState.pendingReplies) {
             if (!reply.llmStatus || reply.llmStatus === 'idle') reply.llmStatus = 'disabled';
+          }
+          for (const utterance of entry.partyChatState.pendingUtterances) {
+            if (!utterance.llmStatus || utterance.llmStatus === 'idle') utterance.llmStatus = 'disabled';
           }
         }
       } catch (error) {
@@ -853,6 +889,70 @@ export class AmbientPlayerBotRuntime {
     }
   }
 
+  private maybeQueuePartyChatDecisions(
+    botId: string,
+    entry: RunnerEntry,
+    bot: AmbientPlayerBotRecord,
+    liveState: AmbientPlayerBotLiveState,
+  ): void {
+    if (!this.llmCoordinator || !this.llmConfig.enabled) return;
+    const nowMs = this.nowMs();
+    for (const utterance of entry.partyChatState.pendingUtterances) {
+      if (utterance.llmStatus && utterance.llmStatus !== 'idle') continue;
+      if (
+        entry.llmLastPartyAtMs !== null
+        && entry.llmLastPartyAtMs > nowMs - this.llmConfig.socialCooldownMs
+      ) {
+        utterance.llmStatus = 'disabled';
+        continue;
+      }
+      utterance.llmStatus = 'pending';
+      utterance.llmRequestedAtMs = nowMs;
+      entry.llmLastPartyAtMs = nowMs;
+      const snapshot = clonePendingPartyUtterance(utterance);
+      void this.llmCoordinator.decidePartyChat({
+        bot,
+        liveState,
+        pendingUtterance: snapshot,
+        nowMs,
+      }).then(async (result) => {
+        const liveEntry = this.runners.get(botId);
+        if (!liveEntry) return;
+        const pending = liveEntry.partyChatState.pendingUtterances.find(
+          (candidate) => candidate.mode === snapshot.mode && candidate.revision === snapshot.revision,
+        );
+        if (pending) {
+          pending.llmStatus = result.status === 'accepted' || result.status === 'cache_hit'
+            ? 'ready'
+            : result.status;
+          if ((result.status === 'accepted' || result.status === 'cache_hit') && result.decision) {
+            pending.llmLineText = result.decision.lineText;
+          }
+        }
+        await this.persistLlmAudit(botId, {
+          llmPartyStatus: result.status,
+          llmPartyReason: result.audit.reason,
+          llmPartyProvider: result.audit.provider,
+          llmPartyLatencyMs: result.audit.latencyMs,
+          llmPartyMode: snapshot.mode,
+          llmPartyPrompt: result.audit.promptText,
+          llmPartyRawOutput: result.audit.rawOutput,
+        });
+      }).catch(async (error) => {
+        const liveEntry = this.runners.get(botId);
+        const pending = liveEntry?.partyChatState.pendingUtterances.find(
+          (candidate) => candidate.mode === snapshot.mode && candidate.revision === snapshot.revision,
+        );
+        if (pending) pending.llmStatus = 'error';
+        await this.persistLlmAudit(botId, {
+          llmPartyStatus: 'error',
+          llmPartyReason: error instanceof Error ? error.message : String(error),
+          llmPartyMode: snapshot.mode,
+        });
+      });
+    }
+  }
+
   private async persistLlmAudit(
     botId: string,
     patch: Record<string, unknown>,
@@ -939,6 +1039,14 @@ function clonePendingReply(value: AmbientPlayerBotPendingReply): AmbientPlayerBo
   return {
     ...value,
     ...(value.llmMemoryTags ? { llmMemoryTags: [...value.llmMemoryTags] } : {}),
+  };
+}
+
+function clonePendingPartyUtterance(
+  value: AmbientPlayerBotPendingPartyUtterance,
+): AmbientPlayerBotPendingPartyUtterance {
+  return {
+    ...value,
   };
 }
 

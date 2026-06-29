@@ -4,6 +4,7 @@ import { computeTalentModifiers } from '../../src/sim/content/talents';
 import { abilitiesKnownAt } from '../../src/sim/data';
 import { dist2d } from '../../src/sim/types';
 import type { PartyInfo, PartyMemberInfo } from '../../src/world_api';
+import { planAmbientPartyRoles } from './party_roles';
 import type { AmbientPlayerBotRecord } from './types';
 import type { AmbientPlayerBotLiveState } from './ws_client';
 
@@ -80,8 +81,10 @@ export function maybeCoordinateAmbientPartySupport(
   const partyIds = new Set(input.party.members.map((member) => member.pid));
   const hostileMobs = readPartyHostileMobs(input.liveState, partyIds);
   const members = buildSupportMembers(input.party, input.liveState, self, hostileMobs);
-  const tankMember = designatedTankMember(members, input.leaderMember);
-  const tankPid = tankMember?.pid ?? null;
+  const tankPid = planAmbientPartyRoles({
+    party: input.party,
+    liveState: input.liveState,
+  }).tankPid;
   const partyInCombat = input.party.members.some((member) => member.inCombat === 1) || hostileMobs.length > 0;
   const role = supportRoleForSelf(input.bot.class, self);
 
@@ -534,29 +537,6 @@ function supportRoleForSelf(
   }
 }
 
-function designatedTankMember(
-  members: readonly SupportPartyMemberView[],
-  leaderMember: PartyMemberInfo | null,
-): PartyMemberInfo | null {
-  const leaderPid = leaderMember?.pid ?? null;
-  const ordered = [...members].sort((a, b) => {
-    const delta = tankPriority(a, leaderPid) - tankPriority(b, leaderPid);
-    return delta !== 0 ? delta : a.member.pid - b.member.pid;
-  });
-  return ordered[0]?.member ?? leaderMember ?? null;
-}
-
-function tankPriority(
-  member: SupportPartyMemberView,
-  leaderPid: number | null,
-): number {
-  if (member.member.cls === 'warrior') return 0;
-  if (member.member.cls === 'druid' && hasAuraKind(member.auras, 'form_bear')) return 1;
-  if (member.member.cls === 'paladin') return 2;
-  if (leaderPid !== null && member.member.pid === leaderPid) return 3;
-  return 4;
-}
-
 function orderedBuffTargets(
   members: readonly SupportPartyMemberView[],
   tankPid: number | null,
@@ -625,7 +605,10 @@ function orderedTauntTargets(
   const memberByPid = new Map(members.map((member) => [member.member.pid, member]));
   return [...hostileMobs]
     .filter((mob) => mob.aggroTargetId !== null && mob.aggroTargetId !== self.id)
-    .filter((mob) => memberByPid.has(mob.aggroTargetId))
+    .filter((mob) => {
+      const aggroTargetId = mob.aggroTargetId;
+      return aggroTargetId !== null && memberByPid.has(aggroTargetId);
+    })
     .sort((a, b) => {
       const aThreatened = memberByPid.get(a.aggroTargetId ?? -1);
       const bThreatened = memberByPid.get(b.aggroTargetId ?? -1);

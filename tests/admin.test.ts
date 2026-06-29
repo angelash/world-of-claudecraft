@@ -170,6 +170,7 @@ function fakeAmbientBotAdmin() {
         objectiveId: 'accept_wolves',
         objectiveLabel: 'Picking up Wolves at the Door',
         socialPendingReplies: 0,
+        partyChatPending: 0,
         llmPlanPending: false,
         llmPlanMode: 'friendly',
         llmPlanFocus: 'Wolves at the Door',
@@ -200,6 +201,7 @@ function fakeAmbientBotAdmin() {
       cache: {
         planEntries: 1,
         socialEntries: 0,
+        partyEntries: 0,
       },
       metrics: {
         plan: {
@@ -212,6 +214,15 @@ function fakeAmbientBotAdmin() {
           disabled: 0,
         },
         social: {
+          requests: 0,
+          accepted: 0,
+          cacheHit: 0,
+          rejected: 0,
+          error: 0,
+          budgetDenied: 0,
+          disabled: 0,
+        },
+        party: {
           requests: 0,
           accepted: 0,
           cacheHit: 0,

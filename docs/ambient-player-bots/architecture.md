@@ -5,7 +5,8 @@
 Ambient player bots are a layered real-server system. The planner decides which
 bots should exist around nearby humans. The runtime logs those bots into the
 real server. The progression brain decides what they try to do next. Group and
-social layers shape the bot's behavior without bypassing server authority.
+social layers shape the bot's behavior without bypassing server authority. A
+shared party-role planner keeps grouped tactics and grouped dialogue aligned.
 
 ## Component model
 
@@ -73,12 +74,16 @@ Responsibilities:
 Primary files:
 - `server/ambient_bots/group.ts`
 - `server/ambient_bots/group_support.ts`
+- `server/ambient_bots/party_roles.ts`
 
 Responsibilities:
 - use party state to invite, accept, decline, enter dungeons, regroup, follow,
   assist, and hold pulls
 - run party support tactics outside the main progression brain: pre-fight party
   buffs, healer response, tank response, and focus-fire target selection
+- derive a deterministic role split from live party composition, such as main
+  tank, primary healer, and focus-following damage roles, so the support layer
+  and dialogue layer reference the same assignments
 - keep grouped bots cohesive without dungeon-only cheat paths
 - stay bounded to bots already assigned to the same nearby human cluster
 - distinguish bot-led parties from real-player-led parties so assigned bots
@@ -86,10 +91,11 @@ Responsibilities:
 - resolve trusted real-player invites through stable assigned-player metadata
   instead of comparing a transient live entity pid to a stored character id
 
-### 6. Social shell and LLM overlays
+### 6. Social shell, party chat shell, and LLM overlays
 
 Primary files:
 - `server/ambient_bots/social.ts`
+- `server/ambient_bots/party_chat.ts`
 - `server/ambient_bots/llm_types.ts`
 - `server/ambient_bots/llm_prompt.ts`
 - `server/ambient_bots/llm_validate.ts`
@@ -98,7 +104,15 @@ Primary files:
 
 Responsibilities:
 - handle whispers, friend adds, presence emotes, and lightweight memory
+- handle ambient-bot-led party-chat simulation through the normal `chat`
+  command path (`/p ...`), including leader briefings and follower
+  acknowledgements
+- keep player-led parties quiet by default so bots do not talk over the real
+  leader
 - optionally ask the model for bounded social or planning overlays
+- optionally ask the model for bounded party-chat phrasing, while falling back
+  to short deterministic template pools when the model is disabled, denied, or
+  rejected
 - validate, audit, cache, and rate-limit every model-assisted output
 - mirror direct friend adds from real players back through the normal social
   command path so the live UX settles into a mutual friend state instead of a
@@ -123,7 +137,8 @@ Responsibilities:
 4. The runtime fulfills those actions through the real HTTP and WS surfaces.
 5. The bot runner receives live snapshots and ticks the progression brain.
 6. Group and social layers add party invite handling, follow preservation,
-   regroup, combat support, focus-fire nudges, and chat behavior.
+   regroup, combat support, focus-fire nudges, role planning, and chat
+   behavior.
 7. The runtime updates registry state, metrics, and optional LLM overlays.
 8. If the bot drifts beyond cluster release rules, the planner logs it out and
    later replaces it with a better local fit.
@@ -149,12 +164,35 @@ The ambient group coordinator is intentionally narrow and lives outside
   peers and hold while ambient party members lag.
 - If a real player is the party leader, the bot treats itself as a follower. It
   follows and assists, but does not wait for more members or invite other bots.
+- When the party is ambient-bot-led, the coordinator also exposes one shared
+  role plan, currently leader, tank, healer, and focus-following members, so
+  grouped support and grouped dialogue do not drift apart.
 - Followers use the normal `/follow <leader>` chat path when outside the follow
   start range. When already near the leader, they still pause brain movement to
   preserve the server follow state.
 - If a visible hostile mob is attacking another party member, the bot targets it
   so the normal progression and combat brain can assist through regular combat
   commands.
+
+## Party role and chat flow
+
+The party role planner and party chat shell are intentionally separate from the
+whisper social shell.
+
+- `party_roles.ts` reads live party composition and visible aura state to pick a
+  deterministic frontline anchor, a primary healer when available, and the
+  remaining focus-following roles.
+- `party_chat.ts` consumes that plan and schedules small real party-chat lines
+  through normal `/p` commands, never privileged server-side text injection.
+- In ambient-bot-led parties, the leader queues one short briefing when the
+  composition, objective, or regroup state changes enough to matter.
+- Followers listen for the ambient leader's party line, queue one
+  acknowledgement, and confirm their own duty.
+- The LLM path is advisory and bounded. It may rephrase the line, but it cannot
+  change party structure, commands, or tactics. If the LLM is unavailable, the
+  shell falls back to short varied templates derived from the same role plan.
+- In player-led parties, bots continue to follow and assist, but they do not
+  autonomously start this party-roleplay loop.
 
 ## Party support flow
 
@@ -164,6 +202,8 @@ allowed to drive.
 
 - It first inspects live party state, visible ally auras, hostile aggro targets,
   and the bot's currently known abilities.
+- It reads the shared role plan so tank-selection logic stays consistent with
+  the role the party dialogue just announced.
 - Healing comes first. Healer-capable classes use simple health and threat
   ordering so wounded or threatened allies interrupt DPS behavior.
 - Out of combat, support-capable classes apply party-wide preparation through
@@ -213,5 +253,5 @@ Avoid these:
    deeper into the live quest graph.
 2. Harden grouped dungeon behavior so bots stay cohesive and complete bosses
    reliably.
-3. Continue social realism through bounded memory and LLM overlays.
+3. Continue social realism through bounded memory, party chat, and LLM overlays.
 4. Preserve operator control and debuggability as the behavior surface grows.

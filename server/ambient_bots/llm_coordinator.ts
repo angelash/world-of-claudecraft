@@ -1,8 +1,10 @@
 import { performance } from 'node:perf_hooks';
 import { ambientBotProfileById } from './profiles';
 import {
+  AMBIENT_BOT_PARTY_CHAT_OUTPUT_SCHEMA,
   AMBIENT_BOT_PLAN_OUTPUT_SCHEMA,
   AMBIENT_BOT_SOCIAL_OUTPUT_SCHEMA,
+  buildAmbientBotPartyChatPrompt,
   buildAmbientBotPlanPrompt,
   buildAmbientBotSocialPrompt,
 } from './llm_prompt';
@@ -10,12 +12,18 @@ import type {
   AmbientBotLlmAuditSnapshot,
   AmbientBotLlmContactSummary,
   AmbientBotLlmProvider,
+  AmbientBotPartyChatContextV1,
+  AmbientBotPartyChatDecisionV1,
   AmbientBotPlanContextV1,
   AmbientBotPlanDecisionV1,
   AmbientBotSocialContextV1,
   AmbientBotSocialDecisionV1,
 } from './llm_types';
-import { validateAmbientBotPlanDecision, validateAmbientBotSocialDecision } from './llm_validate';
+import {
+  validateAmbientBotPartyChatDecision,
+  validateAmbientBotPlanDecision,
+  validateAmbientBotSocialDecision,
+} from './llm_validate';
 import type {
   AmbientPlayerBotLlmConfig,
   AmbientPlayerBotLlmDecisionCountSnapshot,
@@ -24,11 +32,13 @@ import type {
   AmbientPlayerBotLlmMetricsSnapshot,
   AmbientPlayerBotRecord,
 } from './types';
+import type { AmbientPlayerBotPendingPartyUtterance } from './party_chat';
 import type { AmbientPlayerBotPendingReply } from './social';
 import type { AmbientPlayerBotLiveState } from './ws_client';
 
 const PLAN_PROMPT_MAX_CHARS = 1_200;
 const SOCIAL_PROMPT_MAX_CHARS = 1_200;
+const PARTY_PROMPT_MAX_CHARS = 1_200;
 const RAW_OUTPUT_MAX_CHARS = 1_200;
 
 export interface AmbientPlayerBotLlmPlanResult {
@@ -40,6 +50,12 @@ export interface AmbientPlayerBotLlmPlanResult {
 export interface AmbientPlayerBotLlmSocialResult {
   status: AmbientPlayerBotLlmDecisionStatus;
   decision?: AmbientBotSocialDecisionV1;
+  audit: AmbientBotLlmAuditSnapshot;
+}
+
+export interface AmbientPlayerBotLlmPartyChatResult {
+  status: AmbientPlayerBotLlmDecisionStatus;
+  decision?: AmbientBotPartyChatDecisionV1;
   audit: AmbientBotLlmAuditSnapshot;
 }
 
@@ -64,6 +80,7 @@ function emptyMetrics(): AmbientPlayerBotLlmMetricsSnapshot {
   return {
     plan: emptyDecisionCounts(),
     social: emptyDecisionCounts(),
+    party: emptyDecisionCounts(),
     lastDecisionAtMs: null,
     lastDecisionKind: '',
     lastDecisionStatus: '',
@@ -80,6 +97,7 @@ export class AmbientPlayerBotLlmCoordinator {
   private readonly recentCallsWeekMs: number[] = [];
   private readonly planCache = new Map<string, CacheEntry<AmbientBotPlanDecisionV1>>();
   private readonly socialCache = new Map<string, CacheEntry<AmbientBotSocialDecisionV1>>();
+  private readonly partyCache = new Map<string, CacheEntry<AmbientBotPartyChatDecisionV1>>();
   private readonly metrics: AmbientPlayerBotLlmMetricsSnapshot = emptyMetrics();
 
   constructor(input: {
@@ -103,6 +121,7 @@ export class AmbientPlayerBotLlmCoordinator {
     pruneTimes(this.recentCallsWeekMs, nowMs, 7 * 24 * 60 * 60 * 1000);
     this.pruneCache(this.planCache, nowMs);
     this.pruneCache(this.socialCache, nowMs);
+    this.pruneCache(this.partyCache, nowMs);
     return {
       enabled: this.config.enabled,
       providerAvailable: this.provider !== null,
@@ -118,6 +137,7 @@ export class AmbientPlayerBotLlmCoordinator {
       cache: {
         planEntries: this.planCache.size,
         socialEntries: this.socialCache.size,
+        partyEntries: this.partyCache.size,
       },
       metrics: cloneMetrics(this.metrics),
     };
@@ -148,6 +168,18 @@ export class AmbientPlayerBotLlmCoordinator {
     const promptText = buildAmbientBotSocialPrompt(context);
     const cacheKey = socialCacheKey(context);
     return this.executeSocial(context, promptText, cacheKey, input.nowMs);
+  }
+
+  async decidePartyChat(input: {
+    bot: AmbientPlayerBotRecord;
+    liveState: AmbientPlayerBotLiveState;
+    pendingUtterance: AmbientPlayerBotPendingPartyUtterance;
+    nowMs: number;
+  }): Promise<AmbientPlayerBotLlmPartyChatResult> {
+    const context = buildPartyChatContext(input);
+    const promptText = buildAmbientBotPartyChatPrompt(context);
+    const cacheKey = partyCacheKey(context);
+    return this.executePartyChat(context, promptText, cacheKey, input.nowMs);
   }
 
   private async executePlan(
@@ -390,12 +422,136 @@ export class AmbientPlayerBotLlmCoordinator {
     }
   }
 
+  private async executePartyChat(
+    context: AmbientBotPartyChatContextV1,
+    promptText: string,
+    cacheKey: string,
+    nowMs: number,
+  ): Promise<AmbientPlayerBotLlmPartyChatResult> {
+    const cached = this.lookupCache(this.partyCache, cacheKey, nowMs);
+    if (cached) {
+      const decision = clonePartyChatDecisionForJob(cached, context.jobId);
+      const audit = auditSnapshot({
+        kind: 'party',
+        status: 'cache_hit',
+        jobId: context.jobId,
+        nowMs,
+        latencyMs: 0,
+        reason: 'cache hit',
+        provider: 'cache',
+        promptText,
+        rawOutput: JSON.stringify(decision),
+        cacheHit: true,
+      });
+      this.recordDecision('party', 'cache_hit', audit);
+      return {
+        status: 'cache_hit',
+        decision,
+        audit,
+      };
+    }
+    if (!this.config.enabled || !this.provider) {
+      const audit = auditSnapshot({
+        kind: 'party',
+        status: 'disabled',
+        jobId: context.jobId,
+        nowMs,
+        latencyMs: 0,
+        reason: 'ambient bot llm disabled',
+        provider: 'disabled',
+        promptText,
+        rawOutput: '',
+        cacheHit: false,
+      });
+      this.recordDecision('party', 'disabled', audit);
+      return {
+        status: 'disabled',
+        audit,
+      };
+    }
+    if (!this.consumeBudget(nowMs)) {
+      const audit = auditSnapshot({
+        kind: 'party',
+        status: 'budget_denied',
+        jobId: context.jobId,
+        nowMs,
+        latencyMs: 0,
+        reason: 'ambient bot llm budget denied',
+        provider: 'budget',
+        promptText,
+        rawOutput: '',
+        cacheHit: false,
+      });
+      this.recordDecision('party', 'budget_denied', audit);
+      return {
+        status: 'budget_denied',
+        audit,
+      };
+    }
+
+    const startedAt = performance.now();
+    try {
+      const providerResult = await this.provider.decide({
+        promptText,
+        outputSchema: AMBIENT_BOT_PARTY_CHAT_OUTPUT_SCHEMA,
+      });
+      const decision = validateAmbientBotPartyChatDecision(providerResult.value, context);
+      const latencyMs = performance.now() - startedAt;
+      this.storeCache(this.partyCache, cacheKey, decision, nowMs, decision.ttlMs);
+      const audit = auditSnapshot({
+        kind: 'party',
+        status: 'accepted',
+        jobId: context.jobId,
+        nowMs,
+        latencyMs,
+        reason: decision.audit.shortReason,
+        provider: providerResult.providerTimings?.provider ?? 'ambient-bot-codex-exec',
+        promptText: providerResult.promptText,
+        rawOutput: providerResult.rawOutput,
+        cacheHit: false,
+        providerTimings: providerResult.providerTimings,
+      });
+      this.recordDecision('party', 'accepted', audit);
+      return {
+        status: 'accepted',
+        decision,
+        audit,
+      };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      const status = /must be|mismatch|invalid|cannot|too long|disclosure/i.test(reason)
+        ? 'rejected'
+        : 'error';
+      const audit = auditSnapshot({
+        kind: 'party',
+        status,
+        jobId: context.jobId,
+        nowMs,
+        latencyMs: performance.now() - startedAt,
+        reason,
+        provider: 'ambient-bot-codex-exec',
+        promptText,
+        rawOutput: '',
+        cacheHit: false,
+      });
+      this.recordDecision('party', status, audit);
+      return {
+        status,
+        audit,
+      };
+    }
+  }
+
   private recordDecision(
-    kind: 'plan' | 'social',
+    kind: 'plan' | 'social' | 'party',
     status: AmbientPlayerBotLlmDecisionStatus,
     audit: AmbientBotLlmAuditSnapshot,
   ): void {
-    const bucket = kind === 'plan' ? this.metrics.plan : this.metrics.social;
+    const bucket = kind === 'plan'
+      ? this.metrics.plan
+      : kind === 'social'
+        ? this.metrics.social
+        : this.metrics.party;
     bucket.requests++;
     switch (status) {
       case 'accepted':
@@ -593,6 +749,50 @@ function buildSocialContext(input: {
   };
 }
 
+function buildPartyChatContext(input: {
+  bot: AmbientPlayerBotRecord;
+  liveState: AmbientPlayerBotLiveState;
+  pendingUtterance: AmbientPlayerBotPendingPartyUtterance;
+  nowMs: number;
+}): AmbientBotPartyChatContextV1 {
+  const profile = ambientBotProfileById(input.bot.profileId);
+  return {
+    schemaVersion: 1,
+    jobId: `ambient-party:${input.bot.botId}:${input.pendingUtterance.mode}:${input.pendingUtterance.revision}:${input.nowMs}`,
+    botRef: {
+      botId: input.bot.botId,
+      characterName: input.bot.characterName,
+      profileId: input.bot.profileId,
+      classId: input.bot.class,
+      archetype: profile?.archetype ?? 'quester',
+    },
+    mode: input.pendingUtterance.mode,
+    progression: {
+      level: input.bot.lastKnownLevel,
+      zoneId: input.bot.lastKnownZoneId,
+      objectiveLabel: readRunnerString(input.bot.runnerState, 'objectiveLabel'),
+      groupMode: readRunnerString(input.bot.runnerState, 'groupMode'),
+    },
+    party: {
+      leaderName: readRunnerString(input.bot.runnerState, 'partyLeaderName'),
+      tankName: readRunnerString(input.bot.runnerState, 'partyTankName'),
+      healerName: readRunnerString(input.bot.runnerState, 'partyHealerName'),
+      focusCallerName: readRunnerString(input.bot.runnerState, 'partyFocusCaller'),
+      compositionSummary: readRunnerString(input.bot.runnerState, 'partyComposition'),
+      leaderPromptText: input.pendingUtterance.leaderPromptText,
+      fallbackText: input.pendingUtterance.fallbackText,
+      members: readPartyChatMembers(input.liveState.self?.party, input.bot.runnerState),
+    },
+    selfRole: {
+      combatRole: readPartyCombatRole(input.bot.runnerState.partyRole),
+      dutyLabel: readRunnerString(input.bot.runnerState, 'partyDuty'),
+    },
+    constraints: {
+      maxReplyChars: 140,
+    },
+  };
+}
+
 function contactSummaries(socialState: Record<string, unknown>): AmbientBotLlmContactSummary[] {
   const contacts = contactMap(socialState);
   return Object.entries(contacts)
@@ -650,7 +850,7 @@ function nearbyPlayers(liveState: AmbientPlayerBotLiveState) {
 }
 
 function auditSnapshot(input: {
-  kind: 'plan' | 'social';
+  kind: 'plan' | 'social' | 'party';
   status: AmbientBotLlmAuditSnapshot['status'];
   jobId: string;
   nowMs: number;
@@ -664,7 +864,11 @@ function auditSnapshot(input: {
 }): AmbientBotLlmAuditSnapshot {
   const prompt = truncateText(
     input.promptText,
-    input.kind === 'plan' ? PLAN_PROMPT_MAX_CHARS : SOCIAL_PROMPT_MAX_CHARS,
+    input.kind === 'plan'
+      ? PLAN_PROMPT_MAX_CHARS
+      : input.kind === 'social'
+        ? SOCIAL_PROMPT_MAX_CHARS
+        : PARTY_PROMPT_MAX_CHARS,
   );
   const rawOutput = truncateText(input.rawOutput, RAW_OUTPUT_MAX_CHARS);
   return {
@@ -688,6 +892,7 @@ function cloneMetrics(value: AmbientPlayerBotLlmMetricsSnapshot): AmbientPlayerB
   return {
     plan: { ...value.plan },
     social: { ...value.social },
+    party: { ...value.party },
     lastDecisionAtMs: value.lastDecisionAtMs,
     lastDecisionKind: value.lastDecisionKind,
     lastDecisionStatus: value.lastDecisionStatus,
@@ -741,6 +946,27 @@ function cloneSocialDecisionForJob(
   };
 }
 
+function clonePartyChatDecision(value: AmbientBotPartyChatDecisionV1): AmbientBotPartyChatDecisionV1 {
+  return {
+    ...value,
+    botRef: { ...value.botRef },
+    audit: {
+      shortReason: value.audit.shortReason,
+      safetyNotes: [...value.audit.safetyNotes],
+    },
+  };
+}
+
+function clonePartyChatDecisionForJob(
+  value: AmbientBotPartyChatDecisionV1,
+  jobId: string,
+): AmbientBotPartyChatDecisionV1 {
+  return {
+    ...clonePartyChatDecision(value),
+    jobId,
+  };
+}
+
 function planCacheKey(context: AmbientBotPlanContextV1): string {
   return `plan|${JSON.stringify({
     ...context,
@@ -750,6 +976,13 @@ function planCacheKey(context: AmbientBotPlanContextV1): string {
 
 function socialCacheKey(context: AmbientBotSocialContextV1): string {
   return `social|${JSON.stringify({
+    ...context,
+    jobId: '',
+  })}`;
+}
+
+function partyCacheKey(context: AmbientBotPartyChatContextV1): string {
+  return `party|${JSON.stringify({
     ...context,
     jobId: '',
   })}`;
@@ -795,4 +1028,49 @@ function distance(ax: number, az: number, bx: number, bz: number): number {
   const dx = ax - bx;
   const dz = az - bz;
   return Math.sqrt(dx * dx + dz * dz);
+}
+
+function readRunnerString(
+  runnerState: Record<string, unknown>,
+  key: string,
+): string {
+  const value = runnerState[key];
+  return typeof value === 'string' ? value : '';
+}
+
+function readPartyChatMembers(
+  party: unknown,
+  runnerState: Record<string, unknown>,
+): AmbientBotPartyChatContextV1['party']['members'] {
+  if (!party || typeof party !== 'object' || Array.isArray(party)) return [];
+  const record = party as Record<string, unknown>;
+  const leaderPid = typeof record.leader === 'number' ? record.leader : -1;
+  const members = Array.isArray(record.members) ? record.members : [];
+  const tankName = readRunnerString(runnerState, 'partyTankName');
+  const healerName = readRunnerString(runnerState, 'partyHealerName');
+  return members
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+      const member = entry as Record<string, unknown>;
+      const name = typeof member.name === 'string' ? member.name : '';
+      const classId = typeof member.cls === 'string' ? member.cls : '';
+      if (!name || !classId) return null;
+      const combatRole = name === tankName
+        ? 'tank'
+        : name === healerName
+          ? 'healer'
+          : 'dps';
+      return {
+        name,
+        classId: classId as AmbientBotPartyChatContextV1['party']['members'][number]['classId'],
+        combatRole,
+        dutyLabel: '',
+        isLeader: member.pid === leaderPid,
+      };
+    })
+    .filter((member): member is AmbientBotPartyChatContextV1['party']['members'][number] => member !== null);
+}
+
+function readPartyCombatRole(value: unknown): AmbientBotPartyChatContextV1['selfRole']['combatRole'] {
+  return value === 'tank' || value === 'healer' ? value : 'dps';
 }
