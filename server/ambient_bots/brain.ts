@@ -48,7 +48,7 @@ const NO_TARGET_ROTATE_MS = 5_000;
 const COMMAND_COOLDOWN_MS = 900;
 const QUEST_INTAKE_NEARBY_RANGE = 18;
 const PARTY_ROUTE_NEARBY_RANGE = 48;
-const PARTY_ROUTE_MAX_LEVEL_BONUS = 2;
+const PARTY_ROUTE_MAX_LEVEL_BONUS = 1;
 const RECOVERY_HP_THRESHOLD = 0.7;
 const RECOVERY_MANA_THRESHOLD = 0.45;
 const FOOD_RESTOCK_TRIGGER_COUNT = 2;
@@ -598,26 +598,29 @@ function visibleQuestGiverDistance(view: BotWorldView, route: AmbientBotQuestRou
 }
 
 function effectiveRoutePursueLevel(route: AmbientBotQuestRoute, view: BotWorldView): number {
-  return Math.max(1, route.pursueAtLevel - partyRouteLevelBonus(view));
+  return Math.max(1, route.pursueAtLevel - partyRouteLevelBonus(route, view));
 }
 
-function partyRouteLevelBonus(view: BotWorldView): number {
-  const nearbyPartySize = nearbyContributingPartySize(view);
-  return Math.min(PARTY_ROUTE_MAX_LEVEL_BONUS, Math.max(0, nearbyPartySize - 1));
+function partyRouteLevelBonus(route: AmbientBotQuestRoute, view: BotWorldView): number {
+  const nearbyPartyLevels = nearbyContributingPartyLevels(view);
+  const bonus = Math.min(PARTY_ROUTE_MAX_LEVEL_BONUS, Math.max(0, nearbyPartyLevels.length - 1));
+  if (bonus <= 0) return 0;
+  const effectiveLevel = Math.max(1, route.pursueAtLevel - bonus);
+  return Math.min(...nearbyPartyLevels) >= effectiveLevel ? bonus : 0;
 }
 
-function nearbyContributingPartySize(view: BotWorldView): number {
-  let count = 0;
-  const seen = new Set<number>();
+function nearbyContributingPartyLevels(view: BotWorldView): number[] {
+  const levels = [view.self.level];
+  const seen = new Set<number>([view.self.id]);
   for (const entity of view.entities) {
     if (seen.has(entity.id)) continue;
     if (entity.kind !== 'player' || entity.dead) continue;
     if (entity.id !== view.self.id && !view.self.partyMemberIds.has(entity.id)) continue;
     if (dist2d(view.self.pos, entity.pos) > PARTY_ROUTE_NEARBY_RANGE) continue;
     seen.add(entity.id);
-    count++;
+    levels.push(entity.level);
   }
-  return Math.max(1, count);
+  return levels;
 }
 
 function routeObjectiveNeedsWork(

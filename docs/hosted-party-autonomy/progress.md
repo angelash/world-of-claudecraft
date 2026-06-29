@@ -95,6 +95,15 @@ Current date: 2026-06-29
   `0.0.0.0`, and the short live harness passed with party fill, hosted invite,
   party chat, intent, support or combat, quest signals, runtime clean, and max
   stuck resets 0.
+- The next level 20 run reached level 5 and progressed further, but deaths
+  occurred when a level 5 leader pulled level 4 teammates into level 6 mine
+  content. Group strength no longer blindly lowers route gates by two levels:
+  the bonus is capped at one level, and every nearby contributing party member
+  must meet the resulting grouped safe level before the route can be pursued.
+- After that fix, the stack was restarted, IP access was verified on
+  `0.0.0.0`, the related test suite and server build passed, and a rerun of the
+  short live harness passed with party fill, hosted invite, party chat, intent,
+  support or combat, quest signals, runtime clean, and max stuck resets 0.
 - The next level 20 run reached level 3 and showed the intent release fix
   working, but a distant follower could remain in `follow_leader` without
   closing the gap after `/follow` stopped pulling them. Non-combat hosted
@@ -172,4 +181,6 @@ Current date: 2026-06-29
   longer require holding the leader.
 - [x] Trailing followers keep actively traveling toward the leader while
   `/follow` is cooling down or no longer pulling them.
+- [x] Group route gate reductions consider nearby party member levels and no
+  longer drag underlevel teammates into higher routes.
 - [ ] Final run occurs after the last code change and service restart.

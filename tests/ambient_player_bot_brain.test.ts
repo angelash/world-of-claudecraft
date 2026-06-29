@@ -948,14 +948,14 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
-  it('uses nearby party strength to pursue an accepted quest below the solo safe level', () => {
+  it('uses nearby party strength to pursue an accepted quest one level below the solo safe level', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
       bot: bot(),
       liveState: liveState({
         self: {
           id: 101,
-          lv: 4,
+          lv: 5,
           x: 100,
           z: 100,
           inv: [{ itemId: 'baked_bread', count: 4 }],
@@ -965,15 +965,15 @@ describe('ambient player bot brain', () => {
             leader: 101,
             raid: false,
             members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 4, hp: 90, mhp: 90, res: 0, mres: 0, rtype: 'rage', x: 100, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'priest', level: 4, hp: 75, mhp: 75, res: 90, mres: 90, rtype: 'mana', x: 102, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 103, name: 'Branoracc', cls: 'mage', level: 4, hp: 70, mhp: 70, res: 100, mres: 100, rtype: 'mana', x: 103, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 90, mhp: 90, res: 0, mres: 0, rtype: 'rage', x: 100, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 5, hp: 75, mhp: 75, res: 90, mres: 90, rtype: 'mana', x: 102, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Branoracc', cls: 'mage', level: 5, hp: 70, mhp: 70, res: 100, mres: 100, rtype: 'mana', x: 103, z: 100, dead: 0, inCombat: 0, group: 1 },
             ],
           },
         },
         entities: [
-          { id: 102, k: 'player', tid: 'priest', x: 102, z: 100, dead: 0 },
-          { id: 103, k: 'player', tid: 'mage', x: 103, z: 100, dead: 0 },
+          { id: 102, k: 'player', tid: 'priest', lv: 5, x: 102, z: 100, dead: 0 },
+          { id: 103, k: 'player', tid: 'mage', lv: 5, x: 103, z: 100, dead: 0 },
         ],
       }),
       nowMs: 1_000,
@@ -983,6 +983,42 @@ describe('ambient player bot brain', () => {
     expect(result.objectiveLabel).toBe('Driving back the Mudfin');
     expect(result.travelGoal?.goalKey).toBe('camp:mudfin_murloc:0');
     expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('does not rush a higher route when nearby party members are below the grouped safe level', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          id: 101,
+          lv: 5,
+          x: 100,
+          z: 100,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_greyjaw'],
+          qlog: [{ questId: 'q_mine', counts: [0], state: 'active' }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 100, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 4, hp: 75, mhp: 75, res: 90, mres: 90, rtype: 'mana', x: 102, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Branoracc', cls: 'mage', level: 4, hp: 70, mhp: 70, res: 100, mres: 100, rtype: 'mana', x: 103, z: 100, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 102, k: 'player', tid: 'priest', lv: 4, x: 102, z: 100, dead: 0 },
+          { id: 103, k: 'player', tid: 'mage', lv: 4, x: 103, z: 100, dead: 0 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Wild Boar');
+    expect(result.travelGoal?.goalKey).toBe('camp:wild_boar:0');
   });
 
   it('resumes the murloc quest once the bot reaches the safe route level', () => {
