@@ -64,6 +64,7 @@ const DANGEROUS_PULL_LOW_HP_THRESHOLD = 0.58;
 const DANGEROUS_PULL_POTION_HP_THRESHOLD = 0.68;
 const DANGEROUS_PULL_SAFE_ARRIVAL_RANGE = INTERACT_RANGE + 4;
 const DANGEROUS_PULL_MIN_LEVEL = 5;
+const SELF_MAINTENANCE_OBJECTIVES = ['recover', 'prepare_combat', 'equip_upgrade', 'sell_junk'] as const;
 
 interface AmbientBotVendorProfile {
   vendorNpcTemplateId: string;
@@ -1387,6 +1388,37 @@ export function markAmbientPlayerBotBrainExternalProgress(
   state.lastZ = z;
   state.lastProgressAtMs = nowMs;
   clearPath(state);
+}
+
+export function ambientBrainSelfMaintenanceAllowedWhilePartyPaused(input: {
+  result: AmbientPlayerBotBrainTickResult;
+  groupMode: string;
+  liveState: AmbientPlayerBotLiveState;
+  maxTravelRange: number;
+}): boolean {
+  if (!isSelfMaintenanceGroupMode(input.groupMode)) return false;
+  if (!isSelfMaintenanceObjective(input.result.objectiveId)) return false;
+  if (!input.result.travelGoal) return true;
+  const self = input.liveState.self;
+  const selfX = typeof self?.x === 'number' && Number.isFinite(self.x) ? self.x : null;
+  const selfZ = typeof self?.z === 'number' && Number.isFinite(self.z) ? self.z : null;
+  if (selfX === null || selfZ === null) return false;
+  return Math.hypot(input.result.travelGoal.target.x - selfX, input.result.travelGoal.target.z - selfZ)
+    <= input.maxTravelRange;
+}
+
+function isSelfMaintenanceGroupMode(groupMode: string): boolean {
+  return groupMode === 'follow_leader'
+    || groupMode === 'hold_regroup'
+    || groupMode === 'prepare_party'
+    || groupMode === 'heal_party'
+    || groupMode === 'buff_party';
+}
+
+function isSelfMaintenanceObjective(objectiveId: string): boolean {
+  return (SELF_MAINTENANCE_OBJECTIVES as readonly string[]).includes(objectiveId)
+    || objectiveId.startsWith('restock_')
+    || objectiveId.startsWith('buy_');
 }
 
 function ensurePath(

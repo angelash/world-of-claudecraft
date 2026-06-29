@@ -66,6 +66,14 @@ Current date: 2026-06-29
   goal, so `/follow`, regroup, and preparation waits do not inflate stuck resets.
 - After that fix, the short live harness passed with party size 5, 12 party-chat
   events, no chat-rate errors, 0 hosted runtime errors, and max stuck resets 0.
+- A later level 20 run showed another stall: party preparation paused movement
+  while the brain was at a vendor with a restock objective, so safe vendor
+  commands such as `buy` were not executed. Party-paused self-maintenance now
+  allows recover, prepare, equip, sell, restock, and upgrade objectives to
+  execute nearby utility commands without allowing combat routing to bypass the
+  party coordinator.
+- After that fix, the short live harness passed with party size 5, 23 party-chat
+  events, no chat-rate errors, 0 hosted runtime errors, and max stuck resets 0.
 
 ## Planning Packet Checklist
 
@@ -125,4 +133,6 @@ Current date: 2026-06-29
   regroup intent changes.
 - [x] Party follow and preparation pauses do not count as repeated brain pathing
   failures.
+- [x] Nearby vendor restocking and other self-maintenance commands continue
+  during party preparation pauses.
 - [ ] Final run occurs after the last code change and service restart.

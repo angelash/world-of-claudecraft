@@ -1,4 +1,5 @@
 import {
+  ambientBrainSelfMaintenanceAllowedWhilePartyPaused,
   continueAmbientPlayerBotTravel,
   createAmbientPlayerBotBrainState,
   markAmbientPlayerBotBrainExternalProgress,
@@ -391,7 +392,14 @@ export class HostedPlayRuntime {
       partyResult.groupMode,
       liveState,
     );
-    entry.brainDrivePaused = partyResult.pauseBrainDrive && !allowLocalQuestBrain;
+    const allowSelfMaintenanceBrain = partyResult.pauseBrainDrive
+      && ambientBrainSelfMaintenanceAllowedWhilePartyPaused({
+        result,
+        groupMode: partyResult.groupMode,
+        liveState,
+        maxTravelRange: HOSTED_PLAY_LOCAL_QUEST_OVERRIDE_RANGE,
+      });
+    entry.brainDrivePaused = partyResult.pauseBrainDrive && !allowLocalQuestBrain && !allowSelfMaintenanceBrain;
     if (entry.brainDrivePaused && !partyResult.travelGoal) {
       markAmbientPlayerBotBrainExternalProgress(entry.brainState, liveState, nowMs);
     }
@@ -457,7 +465,7 @@ export class HostedPlayRuntime {
     } else {
       this.driveHostedEntry(characterId, entry, liveState, result);
     }
-    if (!partyResult.pauseBrainDrive || allowLocalQuestBrain) {
+    if (!partyResult.pauseBrainDrive || allowLocalQuestBrain || allowSelfMaintenanceBrain) {
       for (const command of result.commands) {
         this.game.applyHostedPlayCommand(characterId, command);
       }

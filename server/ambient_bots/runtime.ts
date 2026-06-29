@@ -3,6 +3,7 @@ import { zoneAt } from '../../src/sim/data';
 import { accountForToken } from '../db';
 import { writeAssignedPlayerName } from './assignment';
 import {
+  ambientBrainSelfMaintenanceAllowedWhilePartyPaused,
   continueAmbientPlayerBotTravel,
   createAmbientPlayerBotBrainState,
   markAmbientPlayerBotBrainExternalProgress,
@@ -628,12 +629,20 @@ export class AmbientPlayerBotRuntime {
           directory: this.game.ambientPlayerBotDirectory(),
           nowMs,
         }, entry.groupState);
-        entry.brainDrivePaused = groupResult.pauseBrainDrive;
-        if (groupResult.pauseBrainDrive && !groupResult.travelGoal) {
+        const groupMode = readRunnerString(groupResult.runnerStatePatch, 'groupMode');
+        const allowSelfMaintenanceBrain = groupResult.pauseBrainDrive
+          && ambientBrainSelfMaintenanceAllowedWhilePartyPaused({
+            result,
+            groupMode,
+            liveState,
+            maxTravelRange: 24,
+          });
+        entry.brainDrivePaused = groupResult.pauseBrainDrive && !allowSelfMaintenanceBrain;
+        if (entry.brainDrivePaused && !groupResult.travelGoal) {
           markAmbientPlayerBotBrainExternalProgress(entry.brainState, liveState, nowMs);
         }
         for (const command of groupResult.commands) entry.client.command(command);
-        if (!groupResult.pauseBrainDrive) {
+        if (!groupResult.pauseBrainDrive || allowSelfMaintenanceBrain) {
           for (const command of result.commands) entry.client.command(command);
           this.driveAmbientBotEntry(entry, liveState, result);
         } else if (groupResult.travelGoal) {
@@ -684,7 +693,7 @@ export class AmbientPlayerBotRuntime {
           objectiveLabel: result.objectiveLabel,
           objectiveQuestId: result.objectiveQuestId,
           objectiveDungeonId: result.objectiveDungeonId,
-          groupMode: readRunnerString(groupResult.runnerStatePatch, 'groupMode'),
+          groupMode,
           nowMs,
         }, entry.partyChatState);
         for (const command of partyChatResult.commands) {
