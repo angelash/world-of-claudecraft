@@ -13,6 +13,7 @@ const WS_BASE = BASE.replace(/^http/, 'ws');
 const DEFAULT_PASSWORD = 'hunter22';
 const DEFAULT_PARTY_SIZE = 5;
 const DEFAULT_SAMPLE_MS = 2_000;
+const DEFAULT_CHECKPOINT_MS = 30_000;
 const DEFAULT_SHORT_DURATION_MS = 120_000;
 const DEFAULT_LONG_DURATION_MS = 90 * 60_000;
 const DEFAULT_MIN_RUN_MS = 45_000;
@@ -42,6 +43,7 @@ function usage(exitCode = 0) {
   out('Options:');
   out('  --duration-ms=N        Max run time. Defaults to 120000, or 90 minutes with --target-level.');
   out('  --sample-ms=N          Hosted status sample interval. Defaults to 2000.');
+  out('  --checkpoint-ms=N      Progress report write interval. Defaults to 30000.');
   out('  --target-level=N       Run until the hosted leader reaches this level.');
   out('  --party-size=N         Target party size, 2 to 5. Defaults to 5.');
   out('  --max-stuck-resets=N   Allowed path stuck resets before failing. Defaults to 4.');
@@ -55,6 +57,7 @@ function parseArgs(argv) {
   const args = {
     durationMs: null,
     sampleMs: DEFAULT_SAMPLE_MS,
+    checkpointMs: DEFAULT_CHECKPOINT_MS,
     targetLevel: 0,
     partySize: DEFAULT_PARTY_SIZE,
     maxStuckResets: 4,
@@ -77,6 +80,9 @@ function parseArgs(argv) {
       case 'sample-ms':
         args.sampleMs = positiveInt(value, key);
         break;
+      case 'checkpoint-ms':
+        args.checkpointMs = positiveInt(value, key);
+        break;
       case 'target-level':
         args.targetLevel = positiveInt(value, key);
         break;
@@ -97,6 +103,7 @@ function parseArgs(argv) {
     throw new Error('--party-size must be between 2 and 5');
   }
   if (args.sampleMs < 500) throw new Error('--sample-ms must be at least 500');
+  if (args.checkpointMs < args.sampleMs) throw new Error('--checkpoint-ms must be at least --sample-ms');
   return {
     ...args,
     durationMs: args.durationMs ?? (args.targetLevel > 0 ? DEFAULT_LONG_DURATION_MS : DEFAULT_SHORT_DURATION_MS),
@@ -620,6 +627,11 @@ function reportPath(options) {
   return path.join(repoRoot, 'tmp', `hosted-play-live-harness-${stamp}.json`);
 }
 
+function writeReport(report, outPath) {
+  mkdirSync(path.dirname(outPath), { recursive: true });
+  writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const status = await api('/api/status');
@@ -644,6 +656,8 @@ async function main() {
   await sleep(1_200);
 
   const report = createReport(options, clients, status.body);
+  const outPath = reportPath(options);
+  writeReport(report, outPath);
   const leader = clients[0];
   const members = clients.slice(1);
   const enabledLeader = await configureAndEnableHosted(leader, options.partySize, true);
@@ -659,6 +673,7 @@ async function main() {
   const deadlineMs = startedAtMs + options.durationMs;
   const eventCursorByPid = new Map(clients.map((client) => [client.pid, 0]));
   let nextSampleAtMs = 0;
+  let nextCheckpointAtMs = startedAtMs + options.checkpointMs;
   let finalReason = 'duration';
 
   while (Date.now() < deadlineMs) {
@@ -689,6 +704,23 @@ async function main() {
         break;
       }
     }
+    if (nowMs >= nextCheckpointAtMs) {
+      report.completedAt = new Date().toISOString();
+      report.finalReason = 'running';
+      report.metrics.wsErrors = clients.flatMap((client) =>
+        client.errors.map((error) => ({ character: client.name, error })),
+      );
+      report.checks = buildChecks(report, options);
+      writeReport(report, outPath);
+      console.log(
+        `progress ${Math.round((nowMs - startedAtMs) / 1000)}s `
+        + `level=${report.metrics.maxLeaderLevel} `
+        + `party=${report.metrics.maxPartySize} `
+        + `quests=${Object.values(report.metrics.questStateByCharacter).join(',')} `
+        + `stuck=${report.metrics.maxStuckResets}`,
+      );
+      nextCheckpointAtMs = nowMs + options.checkpointMs;
+    }
 
     await sleep(250);
   }
@@ -713,9 +745,7 @@ async function main() {
 
   for (const client of clients) client.close();
 
-  const outPath = reportPath(options);
-  mkdirSync(path.dirname(outPath), { recursive: true });
-  writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  writeReport(report, outPath);
 
   for (const entry of report.checks) {
     console.log(`${entry.pass ? 'OK  ' : 'FAIL'} ${entry.name}`);
