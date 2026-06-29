@@ -2,7 +2,8 @@
 
 ## Current Phase
 
-Phase 4 implementation complete. Phase 4 QA is next.
+Phase 5 implementation and QA are complete. Phase 6 long-run validation is
+next.
 
 ## Locked Decisions
 
@@ -42,6 +43,12 @@ Phase 4 implementation complete. Phase 4 QA is next.
 - Priest support now shields threatened, slightly wounded allies before
   swapping to focus damage, while still allowing full-health tank pulls to keep
   opening damage.
+- The live harness is `scripts/hosted_play_live_harness.mjs`. It uses real REST
+  and WebSocket clients against the persistent LAN/IP stack and writes JSON
+  artifacts under `tmp/`.
+- Non-combat party follow, regroup, and preparation no longer suppress nearby
+  local quest accept or turn-in work for hosted followers. Distant old quest
+  objectives still do not override follow.
 
 ## Key Existing Files
 
@@ -65,6 +72,7 @@ Phase 4 implementation complete. Phase 4 QA is next.
 - `tests/hosted_play_api.test.ts`
 - `tests/ambient_player_bot_brain.test.ts`
 - `tests/ambient_player_bot_party_chat.test.ts`
+- `scripts/hosted_play_live_harness.mjs`
 
 ## Phase 1 Changes
 
@@ -165,6 +173,32 @@ Phase 4 implementation complete. Phase 4 QA is next.
 - `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
 - Ports `5173` and `8787` listen on `0.0.0.0`.
 
+## Phase 5 Changes
+
+- `scripts/hosted_play_live_harness.mjs` provisions a temporary five-player
+  online party, enables hosted play through the owner hosted-play API, accepts
+  real party invites over WebSocket, samples hosted debug status, and records
+  invite, quest, chat, support, combat, death, error, and stuck signals.
+- `server/hosted_play/runtime.ts` now allows nearby local quest accept and
+  turn-in objectives to drive movement and `target/interact` while non-combat
+  party follow, regroup, or preparation would otherwise pause the brain.
+- `tests/hosted_play_runtime.test.ts` covers grouped followers accepting a
+  nearby quest in place, walking a short distance to a nearby quest giver, and
+  still ignoring distant legacy quest objectives while following the leader.
+
+## Phase 5 Validation
+
+- `node --check scripts/hosted_play_live_harness.mjs`: passed.
+- `npx vitest run tests/hosted_play_runtime.test.ts`: passed, 16 tests.
+- `npx vitest run tests/hosted_play_runtime.test.ts tests/hosted_play_party.test.ts tests/ambient_player_bot_brain.test.ts tests/ambient_player_bot_group.test.ts tests/ambient_player_bot_party_chat.test.ts`: passed, 5 files and 184 tests.
+- `git diff --check`: passed with line-ending warnings only for edited TS files.
+- `npm run build:server`: passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed.
+- `node scripts/online_lan.mjs urls`: printed LAN/IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- Ports `5173` and `8787` listen on `0.0.0.0`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after the final restart. The report was `tmp/hosted-play-live-harness-2026-06-29T17-56-38-671Z.json`; it reached party size 5, observed 4 invites accepted, 157 party chat messages, quest state on all 5 party members, support and combat signals, 0 player deaths, 0 hosted runtime errors, and max stuck resets 3.
+
 ## Validation Matrix
 
 ### Docs Only
@@ -211,8 +245,6 @@ Phase 4 implementation complete. Phase 4 QA is next.
 
 - Phase 4 still needs deeper support-role validation across buffs, healing,
   tanking, focus fire, regrouping, and recovery combinations.
-- The live harness still needs to prove invites, party size, chat, support,
-  quests, deaths, and progression against the persistent LAN/IP stack.
 - No dedicated long-run hosted-play harness currently proves level 1 to 20.
 
 ## New Files In This Packet

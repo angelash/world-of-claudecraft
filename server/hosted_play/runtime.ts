@@ -58,6 +58,7 @@ const HOSTED_PLAY_DEBUG_MAX_COMMANDS = 8;
 const HOSTED_PLAY_DEBUG_MAX_PENDING_REPLIES = 6;
 const HOSTED_PLAY_DEBUG_MAX_COMMAND_JSON_CHARS = 1_200;
 const HOSTED_PLAY_DEBUG_MAX_TEXT_CHARS = 240;
+const HOSTED_PLAY_LOCAL_QUEST_OVERRIDE_RANGE = 24;
 
 interface HostedPlayEntry {
   characterId: number;
@@ -384,7 +385,12 @@ export class HostedPlayRuntime {
     entry.groupMode = partyResult.groupMode;
     entry.groupLeaderName = partyResult.groupLeaderName;
     entry.groupLeaderDistance = partyResult.groupLeaderDistance;
-    entry.brainDrivePaused = partyResult.pauseBrainDrive;
+    const allowLocalQuestBrain = hostedLocalQuestBrainAllowedWhilePartyPaused(
+      result,
+      partyResult.groupMode,
+      liveState,
+    );
+    entry.brainDrivePaused = partyResult.pauseBrainDrive && !allowLocalQuestBrain;
 
     const socialResult = tickAmbientPlayerBotSocialShell(
       {
@@ -422,10 +428,12 @@ export class HostedPlayRuntime {
       : { commands: [], runnerStatePatch: {} };
     entry.partyChatRunnerState = { ...partyChatResult.runnerStatePatch };
 
-    for (const command of partyResult.commands) {
-      this.game.applyHostedPlayCommand(characterId, command);
+    if (!allowLocalQuestBrain) {
+      for (const command of partyResult.commands) {
+        this.game.applyHostedPlayCommand(characterId, command);
+      }
     }
-    if (partyResult.pauseBrainDrive) {
+    if (partyResult.pauseBrainDrive && !allowLocalQuestBrain) {
       if (partyResult.travelGoal) {
         const groupDrive = continueAmbientPlayerBotTravel(
           liveState,
@@ -445,8 +453,16 @@ export class HostedPlayRuntime {
     } else {
       this.driveHostedEntry(characterId, entry, liveState, result);
     }
-    if (!partyResult.pauseBrainDrive) {
+    if (!partyResult.pauseBrainDrive || allowLocalQuestBrain) {
       for (const command of result.commands) {
+        this.game.applyHostedPlayCommand(characterId, command);
+      }
+    } else {
+      for (const command of hostedBrainCommandsAllowedWhilePartyPaused(
+        result,
+        partyResult.groupMode,
+        liveState,
+      )) {
         this.game.applyHostedPlayCommand(characterId, command);
       }
     }
@@ -761,6 +777,42 @@ function hostedPlayDebugSnapshot(
     },
     lastError: entry?.lastError ?? '',
   };
+}
+
+function hostedBrainCommandsAllowedWhilePartyPaused(
+  result: AmbientPlayerBotBrainTickResult,
+  groupMode: string,
+  liveState: AmbientPlayerBotLiveState,
+): readonly Record<string, unknown>[] {
+  if (!hostedLocalQuestBrainAllowedWhilePartyPaused(result, groupMode, liveState)) return [];
+  return result.commands.filter(isHostedLocalQuestCommand);
+}
+
+function isHostedLocalQuestObjective(objectiveId: string): boolean {
+  return objectiveId.startsWith('accept_') || objectiveId.startsWith('turnin_');
+}
+
+function hostedLocalQuestBrainAllowedWhilePartyPaused(
+  result: AmbientPlayerBotBrainTickResult,
+  groupMode: string,
+  liveState: AmbientPlayerBotLiveState,
+): boolean {
+  if (!isHostedLocalQuestObjective(result.objectiveId)) return false;
+  const localGroupMode = groupMode === 'follow_leader'
+    || groupMode === 'hold_regroup'
+    || groupMode === 'prepare_party';
+  if (!localGroupMode) return false;
+  if (!result.travelGoal) return true;
+  const selfX = typeof liveState.self?.x === 'number' ? liveState.self.x : null;
+  const selfZ = typeof liveState.self?.z === 'number' ? liveState.self.z : null;
+  if (selfX === null || selfZ === null) return false;
+  return Math.hypot(result.travelGoal.target.x - selfX, result.travelGoal.target.z - selfZ)
+    <= HOSTED_PLAY_LOCAL_QUEST_OVERRIDE_RANGE;
+}
+
+function isHostedLocalQuestCommand(command: Record<string, unknown>): boolean {
+  const kind = command.cmd;
+  return kind === 'target' || kind === 'interact';
 }
 
 function hostedPlayDebugTravelGoal(

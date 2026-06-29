@@ -5,7 +5,7 @@ Current date: 2026-06-29
 | Phase | Status | Started | Completed |
 |---|---|---|---|
 | LAN/IP rules | Complete | 2026-06-29 | 2026-06-29 |
-| Planning packet | In progress | 2026-06-29 |  |
+| Planning packet | Complete | 2026-06-29 | 2026-06-29 |
 | Phase 1 | Complete | 2026-06-29 | 2026-06-29 |
 | Phase 1 QA | Pending |  |  |
 | Phase 2 | Complete | 2026-06-29 | 2026-06-29 |
@@ -14,8 +14,8 @@ Current date: 2026-06-29
 | Phase 3 QA | Complete | 2026-06-29 | 2026-06-29 |
 | Phase 4 | Complete | 2026-06-29 | 2026-06-29 |
 | Phase 4 QA | Complete | 2026-06-29 | 2026-06-29 |
-| Phase 5 | Pending |  |  |
-| Phase 5 QA | Pending |  |  |
+| Phase 5 | Complete | 2026-06-29 | 2026-06-29 |
+| Phase 5 QA | Complete | 2026-06-29 | 2026-06-29 |
 | Phase 6 | Pending |  |  |
 | Phase 6 QA | Pending |  |  |
 
@@ -41,6 +41,14 @@ Current date: 2026-06-29
 - Phase 4 tightened cooperative support priorities. Warrior tanks now taunt
   mobs off healers before spending the moment on defensive stance, and priests
   shield threatened, slightly wounded allies before switching to focus damage.
+- Phase 5 added `scripts/hosted_play_live_harness.mjs`, a repeatable live
+  Postgres-backed LAN/IP harness that creates real online clients, enables
+  hosted play through REST, observes invites, party fill, chat, quests, support,
+  deaths, errors, and stuck resets, and writes a JSON report under `tmp/`.
+- Phase 5 live QA exposed that grouped followers could identify nearby quest
+  pickup objectives but lose their local `target/interact` or short movement
+  while party follow paused brain drive. The hosted runtime now lets nearby
+  local accept and turn-in objectives complete before resuming follow.
 
 ## Planning Packet Checklist
 
@@ -84,10 +92,10 @@ Current date: 2026-06-29
 
 ## Phase 5 Checklist
 
-- [ ] Live harness can start from the persistent LAN/IP stack.
-- [ ] Harness observes invites, party size, chat, support, quests, deaths, and
+- [x] Live harness can start from the persistent LAN/IP stack.
+- [x] Harness observes invites, party size, chat, support, quests, deaths, and
   progression.
-- [ ] Harness writes a concise machine-readable artifact.
+- [x] Harness writes a concise machine-readable artifact.
 
 ## Phase 6 Checklist
 

@@ -242,6 +242,104 @@ describe('HostedPlayRuntime', () => {
     });
   });
 
+  it('lets a grouped hosted follower pick up a nearby quest while movement is paused', () => {
+    const game = fakeGame(liveState({
+      id: 102,
+      x: 4,
+      z: 6,
+      lv: 1,
+      rtype: 'rage',
+      mres: 0,
+      auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 1, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 4, z: 6, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'warrior', level: 1, hp: 100, mhp: 100, res: 0, mres: 0, rtype: 'rage', x: 4, z: 6, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 },
+      ],
+    }));
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([
+      { cmd: 'target', id: 7001 },
+      { cmd: 'interact' },
+    ]);
+    expect(game.moveInputs).toEqual([
+      { moveInput: {}, facing: expect.any(Number) },
+    ]);
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'follow_leader',
+      objectiveId: 'accept_wolves',
+    });
+  });
+
+  it('lets a grouped hosted follower walk to a nearby quest giver before resuming follow', () => {
+    const game = fakeGame(liveState({
+      id: 102,
+      x: 4,
+      z: 15,
+      lv: 1,
+      rtype: 'rage',
+      mres: 0,
+      auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 1, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 4, z: 15, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'warrior', level: 1, hp: 100, mhp: 100, res: 0, mres: 0, rtype: 'rage', x: 4, z: 15, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 },
+      ],
+    }));
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([]);
+    expect(game.moveInputs).toHaveLength(1);
+    expect(game.moveInputs[0]).toEqual(expect.objectContaining({
+      moveInput: { f: 1 },
+      facing: expect.any(Number),
+    }));
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'follow_leader',
+      objectiveId: 'accept_wolves',
+      debug: {
+        brainDrivePaused: false,
+      },
+    });
+  });
+
   it('accepts party invites through the hosted runtime while follow-leader mode is enabled', () => {
     const game = fakeGame(liveState(), {
       recentEvents: [{ type: 'partyInvite', fromPid: 201, fromName: 'Aleph' }],
