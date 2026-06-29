@@ -95,6 +95,9 @@ function fakeGame(
       return drained;
     },
     sendHostedPlayActionLog() {},
+    ambientPlayerBotDirectory() {
+      return [];
+    },
     ambientPlayerBotNames() {
       return [];
     },
@@ -193,7 +196,13 @@ describe('HostedPlayRuntime llm overlay', () => {
       nowMs: () => nowMs,
     });
 
-    runtime.enable(7);
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'solo',
+      actionLogEnabled: true,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
     (runtime as any).tick();
 
     await vi.waitFor(() => {
@@ -311,7 +320,13 @@ describe('HostedPlayRuntime llm overlay', () => {
       nowMs: () => nowMs,
     });
 
-    runtime.enable(7);
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'solo',
+      actionLogEnabled: true,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
     (runtime as any).tick();
 
     await vi.waitFor(() => {

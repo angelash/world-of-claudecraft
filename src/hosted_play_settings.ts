@@ -1,5 +1,6 @@
 export const HOSTED_PLAY_AUTO_INVITE_MIN_PARTY_SIZE = 2;
 export const HOSTED_PLAY_AUTO_INVITE_MAX_PARTY_SIZE = 5;
+export const HOSTED_PLAY_AUTO_INVITE_DEFAULT_PARTY_SIZE = HOSTED_PLAY_AUTO_INVITE_MAX_PARTY_SIZE;
 
 export const HOSTED_PLAY_AUTO_INVITE_TARGET_PARTY_SIZES = [
   2,
@@ -30,5 +31,5 @@ export function normalizeHostedPlayAutoInviteTargetPartySize(
       Math.min(HOSTED_PLAY_AUTO_INVITE_MAX_PARTY_SIZE, Math.floor(value)),
     ) as HostedPlayAutoInviteTargetPartySize;
   }
-  return HOSTED_PLAY_AUTO_INVITE_MIN_PARTY_SIZE;
+  return HOSTED_PLAY_AUTO_INVITE_DEFAULT_PARTY_SIZE;
 }

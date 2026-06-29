@@ -478,6 +478,79 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
+  it('does not auto-invite while dead or already in combat', () => {
+    for (const selfState of [{ dead: 1 }, { cmb: 1 }]) {
+      const state = createHostedPlayPartyState();
+
+      const result = tickHostedPlayPartyCoordinator(
+        {
+          liveSelf: liveSelf({
+            id: 101,
+            nm: 'Hero',
+            x: 100,
+            z: 100,
+            party: null,
+            ...selfState,
+          }),
+          entities: [
+            { id: 202, k: 'player', nm: 'Nearby', x: 108, z: 100, dead: 0 },
+          ],
+          recentEvents: [],
+          playerClass: 'warrior',
+          partyMode: 'follow_leader',
+          autoInviteNearbyPlayers: true,
+          autoInviteNearbyTargetPartySize: 5,
+          objectiveSuggestedPartySize: 5,
+          ambientDirectory: [],
+          nowMs: 5_000,
+        },
+        state,
+      );
+
+      expect(result).toEqual({
+        commands: [],
+        pauseBrainDrive: false,
+        groupMode: '',
+        groupLeaderName: '',
+        groupLeaderDistance: 0,
+      });
+    }
+  });
+
+  it('does not repeat-invite the same nearby player while the target cooldown is active', () => {
+    const state = createHostedPlayPartyState();
+    const input = {
+      liveSelf: liveSelf({
+        id: 101,
+        nm: 'Hero',
+        x: 100,
+        z: 100,
+        party: null,
+      }),
+      entities: [
+        { id: 202, k: 'player', nm: 'Nearby', x: 108, z: 100, dead: 0 },
+      ],
+      recentEvents: [],
+      playerClass: 'warrior' as const,
+      partyMode: 'follow_leader' as const,
+      autoInviteNearbyPlayers: true,
+      autoInviteNearbyTargetPartySize: 5 as const,
+      objectiveSuggestedPartySize: 5,
+      ambientDirectory: [],
+    };
+
+    expect(tickHostedPlayPartyCoordinator({ ...input, nowMs: 5_000 }, state).commands)
+      .toEqual([{ cmd: 'pinvite', id: 202 }]);
+
+    expect(tickHostedPlayPartyCoordinator({ ...input, nowMs: 20_000 }, state)).toEqual({
+      commands: [],
+      pauseBrainDrive: false,
+      groupMode: '',
+      groupLeaderName: '',
+      groupLeaderDistance: 0,
+    });
+  });
+
   it('stops inviting once the configured target party size has been reached', () => {
     const state = createHostedPlayPartyState();
 

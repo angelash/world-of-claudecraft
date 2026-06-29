@@ -1,6 +1,6 @@
 import type { PlayerClass } from '../../src/sim/types';
 import {
-  HOSTED_PLAY_AUTO_INVITE_MIN_PARTY_SIZE,
+  HOSTED_PLAY_AUTO_INVITE_DEFAULT_PARTY_SIZE,
   type HostedPlayAutoInviteTargetPartySize,
 } from '../../src/hosted_play_settings';
 import type { AmbientPlayerBotLlmDecisionStatus } from '../ambient_bots/types';
@@ -194,9 +194,9 @@ export interface HostedPlayStatusSnapshot {
 export function defaultHostedPlayPreferences(): HostedPlayPreferences {
   return {
     resumeOnLogin: false,
-    partyMode: 'solo',
+    partyMode: 'follow_leader',
     actionLogEnabled: true,
-    autoInviteNearbyPlayers: false,
-    autoInviteNearbyTargetPartySize: HOSTED_PLAY_AUTO_INVITE_MIN_PARTY_SIZE,
+    autoInviteNearbyPlayers: true,
+    autoInviteNearbyTargetPartySize: HOSTED_PLAY_AUTO_INVITE_DEFAULT_PARTY_SIZE,
   };
 }

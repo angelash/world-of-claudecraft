@@ -76,6 +76,7 @@ describe('hosted-play preferences', () => {
         hosted_play_action_log_enabled: false,
         hosted_play_auto_invite_nearby: true,
         hosted_play_auto_invite_target_party_size: 4,
+        hosted_play_preferences_version: 1,
       }],
     } as any);
 
@@ -93,7 +94,29 @@ describe('hosted-play preferences', () => {
     expect(sql).toContain('hosted_play_action_log_enabled');
     expect(sql).toContain('hosted_play_auto_invite_nearby');
     expect(sql).toContain('hosted_play_auto_invite_target_party_size');
+    expect(sql).toContain('hosted_play_preferences_version');
     expect(params).toEqual([42, REALM]);
+  });
+
+  it('upgrades untouched legacy hosted-play defaults to cooperative party fill', async () => {
+    dbMock.query.mockResolvedValueOnce({
+      rows: [{
+        hosted_play_resume_on_login: false,
+        hosted_play_party_mode: 'solo',
+        hosted_play_action_log_enabled: true,
+        hosted_play_auto_invite_nearby: false,
+        hosted_play_auto_invite_target_party_size: 2,
+        hosted_play_preferences_version: 0,
+      }],
+    } as any);
+
+    await expect(getHostedPlayPreferences(42)).resolves.toEqual({
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: true,
+      autoInviteNearbyPlayers: true,
+      autoInviteNearbyTargetPartySize: 5,
+    });
   });
 
   it('updates hosted-play preferences on the owning character row only', async () => {
@@ -104,6 +127,7 @@ describe('hosted-play preferences', () => {
         hosted_play_action_log_enabled: true,
         hosted_play_auto_invite_nearby: false,
         hosted_play_auto_invite_target_party_size: 2,
+        hosted_play_preferences_version: 1,
       }],
       rowCount: 1,
     } as any);
@@ -129,7 +153,8 @@ describe('hosted-play preferences', () => {
     expect(sql).toMatch(/hosted_play_action_log_enabled/);
     expect(sql).toMatch(/hosted_play_auto_invite_nearby/);
     expect(sql).toMatch(/hosted_play_auto_invite_target_party_size/);
-    expect(params).toEqual([42, 7, false, 'solo', true, false, 2, REALM]);
+    expect(sql).toMatch(/hosted_play_preferences_version/);
+    expect(params).toEqual([42, 7, false, 'solo', true, false, 2, 1, REALM]);
   });
 });
 

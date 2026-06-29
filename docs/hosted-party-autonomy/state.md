@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Planning packet in progress.
+Phase 1 implementation complete. Phase 1 QA is next.
 
 ## Locked Decisions
 
@@ -18,6 +18,11 @@ Planning packet in progress.
   ecology is deferred.
 - The final acceptance run must be a single clean pass after the last code
   change.
+- Hosted play defaults now resolve to `follow_leader`,
+  `autoInviteNearbyPlayers: true`, and target party size `5`.
+- `hosted_play_preferences_version` marks explicitly saved hosted settings.
+  Legacy rows that still contain the old blank default tuple `solo/off/2` and
+  version `0` are read as the new cooperative defaults.
 
 ## Key Existing Files
 
@@ -40,6 +45,31 @@ Planning packet in progress.
 - `tests/hosted_play_api.test.ts`
 - `tests/ambient_player_bot_brain.test.ts`
 - `tests/ambient_player_bot_party_chat.test.ts`
+
+## Phase 1 Changes
+
+- `src/hosted_play_settings.ts` added
+  `HOSTED_PLAY_AUTO_INVITE_DEFAULT_PARTY_SIZE`.
+- `server/hosted_play/types.ts` now defaults hosted play to cooperative party
+  fill.
+- `server/db.ts` added `hosted_play_preferences_version`, updated hosted-play
+  column defaults for new characters, upgrades untouched legacy default rows at
+  read time, and marks saved preferences with version `1`.
+- `tests/character_db.test.ts` covers legacy default upgrade and versioned
+  saves.
+- `tests/hosted_play_runtime.test.ts` covers default hosted auto invite.
+- `tests/hosted_play_party.test.ts` covers dead, combat, and per-target invite
+  cooldown guards.
+
+## Phase 1 Validation
+
+- `git diff --check`: passed.
+- `npx vitest run tests/character_db.test.ts tests/hosted_play_action_log.test.ts tests/hosted_play_api.test.ts tests/hosted_play_game_server.test.ts tests/hosted_play_llm.test.ts tests/hosted_play_party.test.ts tests/hosted_play_runtime.test.ts tests/hosted_play_status_view.test.ts`: passed, 8 files and 67 tests.
+- `npm run build:server`: passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed.
+- `node scripts/online_lan.mjs urls`: printed LAN/IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- Ports `5173` and `8787` listen on `0.0.0.0`.
 
 ## Validation Matrix
 

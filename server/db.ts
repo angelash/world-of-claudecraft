@@ -14,7 +14,7 @@ import { OAUTH_SCHEMA } from './oauth_db';
 import { REALM } from './realm';
 import { chooseArchiveName } from './reclaim_name';
 import { SOCIAL_SCHEMA } from './social_db';
-import type { HostedPlayPartyMode, HostedPlayPreferences } from './hosted_play/types';
+import { defaultHostedPlayPreferences, type HostedPlayPartyMode, type HostedPlayPreferences } from './hosted_play/types';
 
 try {
   process.loadEnvFile?.();
@@ -42,6 +42,7 @@ export const DATABASE_URL =
 export const pool = new Pool({ connectionString: DATABASE_URL, max: 10 });
 
 const REALM_SQL_DEFAULT = REALM.replace(/'/g, "''");
+const HOSTED_PLAY_PREFERENCES_VERSION = 1;
 const LIFETIME_XP_EXPR = "((state->>'lifetimeXp')::bigint)";
 
 export const SCHEMA = `
@@ -80,10 +81,14 @@ CREATE TABLE IF NOT EXISTS characters (
 CREATE INDEX IF NOT EXISTS characters_account ON characters(account_id);
 ALTER TABLE characters ADD COLUMN IF NOT EXISTS realm TEXT NOT NULL DEFAULT '${REALM_SQL_DEFAULT}';
 ALTER TABLE characters ADD COLUMN IF NOT EXISTS hosted_play_resume_on_login BOOLEAN NOT NULL DEFAULT FALSE;
-ALTER TABLE characters ADD COLUMN IF NOT EXISTS hosted_play_party_mode TEXT NOT NULL DEFAULT 'solo';
+ALTER TABLE characters ADD COLUMN IF NOT EXISTS hosted_play_party_mode TEXT NOT NULL DEFAULT 'follow_leader';
 ALTER TABLE characters ADD COLUMN IF NOT EXISTS hosted_play_action_log_enabled BOOLEAN NOT NULL DEFAULT TRUE;
-ALTER TABLE characters ADD COLUMN IF NOT EXISTS hosted_play_auto_invite_nearby BOOLEAN NOT NULL DEFAULT FALSE;
-ALTER TABLE characters ADD COLUMN IF NOT EXISTS hosted_play_auto_invite_target_party_size INTEGER NOT NULL DEFAULT 2;
+ALTER TABLE characters ADD COLUMN IF NOT EXISTS hosted_play_auto_invite_nearby BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE characters ADD COLUMN IF NOT EXISTS hosted_play_auto_invite_target_party_size INTEGER NOT NULL DEFAULT 5;
+ALTER TABLE characters ADD COLUMN IF NOT EXISTS hosted_play_preferences_version INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE characters ALTER COLUMN hosted_play_party_mode SET DEFAULT 'follow_leader';
+ALTER TABLE characters ALTER COLUMN hosted_play_auto_invite_nearby SET DEFAULT TRUE;
+ALTER TABLE characters ALTER COLUMN hosted_play_auto_invite_target_party_size SET DEFAULT 5;
 -- Max-Level XP Overflow leaderboard: indexed lifetime-XP sort key. The first
 -- index serves the realm-scoped in-game panel; the second serves the global
 -- (cross-realm) home-page board.
@@ -1429,6 +1434,7 @@ export interface CharacterRow {
   hosted_play_action_log_enabled?: boolean | null;
   hosted_play_auto_invite_nearby?: boolean | null;
   hosted_play_auto_invite_target_party_size?: number | null;
+  hosted_play_preferences_version?: number | string | null;
 }
 
 function normalizeHostedPlayPartyMode(value: unknown): HostedPlayPartyMode {
@@ -1438,6 +1444,12 @@ function normalizeHostedPlayPartyMode(value: unknown): HostedPlayPartyMode {
 function hostedPlayPreferencesFromRow(
   row: Record<string, unknown> | null | undefined,
 ): HostedPlayPreferences {
+  const defaults = defaultHostedPlayPreferences();
+  if (!row) return defaults;
+  const version = readHostedPlayPreferenceVersion(row.hosted_play_preferences_version);
+  if (version < HOSTED_PLAY_PREFERENCES_VERSION && isLegacyHostedPlayDefaultRow(row)) {
+    return defaults;
+  }
   return {
     resumeOnLogin: row?.hosted_play_resume_on_login === true,
     partyMode: normalizeHostedPlayPartyMode(row?.hosted_play_party_mode),
@@ -1447,6 +1459,23 @@ function hostedPlayPreferencesFromRow(
       row?.hosted_play_auto_invite_target_party_size,
     ),
   };
+}
+
+function readHostedPlayPreferenceVersion(value: unknown): number {
+  const version = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(version) ? Math.max(0, Math.floor(version)) : 0;
+}
+
+function isLegacyHostedPlayDefaultRow(row: Record<string, unknown>): boolean {
+  const targetSize = typeof row.hosted_play_auto_invite_target_party_size === 'number'
+    ? row.hosted_play_auto_invite_target_party_size
+    : Number(row.hosted_play_auto_invite_target_party_size ?? 2);
+  return row.hosted_play_resume_on_login !== true
+    && normalizeHostedPlayPartyMode(row.hosted_play_party_mode) === 'solo'
+    && row.hosted_play_action_log_enabled !== false
+    && row.hosted_play_auto_invite_nearby !== true
+    && Number.isFinite(targetSize)
+    && Math.floor(targetSize) === 2;
 }
 
 // Character reads/writes are scoped to this process's realm: an account may
@@ -1483,7 +1512,7 @@ export async function getCharacter(
   characterId: number,
 ): Promise<CharacterRow | null> {
   const res = await pool.query(
-    'SELECT id, account_id, name, class, level, state, is_gm, force_rename, hosted_play_resume_on_login, hosted_play_party_mode, hosted_play_action_log_enabled, hosted_play_auto_invite_nearby, hosted_play_auto_invite_target_party_size FROM characters WHERE id = $1 AND account_id = $2 AND realm = $3',
+    'SELECT id, account_id, name, class, level, state, is_gm, force_rename, hosted_play_resume_on_login, hosted_play_party_mode, hosted_play_action_log_enabled, hosted_play_auto_invite_nearby, hosted_play_auto_invite_target_party_size, hosted_play_preferences_version FROM characters WHERE id = $1 AND account_id = $2 AND realm = $3',
     [characterId, accountId, REALM],
   );
   return res.rows[0] ?? null;
@@ -1505,7 +1534,7 @@ export async function listCharacterNamesForSitemap(limit = 50000): Promise<strin
 // the same shape as getCharacter so the sheet normalizer treats both alike.
 export async function getCharacterById(characterId: number): Promise<CharacterRow | null> {
   const res = await pool.query(
-    'SELECT id, account_id, name, class, level, state, is_gm, force_rename, hosted_play_resume_on_login, hosted_play_party_mode, hosted_play_action_log_enabled, hosted_play_auto_invite_nearby, hosted_play_auto_invite_target_party_size FROM characters WHERE id = $1 AND realm = $2',
+    'SELECT id, account_id, name, class, level, state, is_gm, force_rename, hosted_play_resume_on_login, hosted_play_party_mode, hosted_play_action_log_enabled, hosted_play_auto_invite_nearby, hosted_play_auto_invite_target_party_size, hosted_play_preferences_version FROM characters WHERE id = $1 AND realm = $2',
     [characterId, REALM],
   );
   return res.rows[0] ?? null;
@@ -1515,7 +1544,7 @@ export async function getHostedPlayPreferences(
   characterId: number,
 ): Promise<HostedPlayPreferences> {
   const res = await pool.query(
-    'SELECT hosted_play_resume_on_login, hosted_play_party_mode, hosted_play_action_log_enabled, hosted_play_auto_invite_nearby, hosted_play_auto_invite_target_party_size FROM characters WHERE id = $1 AND realm = $2',
+    'SELECT hosted_play_resume_on_login, hosted_play_party_mode, hosted_play_action_log_enabled, hosted_play_auto_invite_nearby, hosted_play_auto_invite_target_party_size, hosted_play_preferences_version FROM characters WHERE id = $1 AND realm = $2',
     [characterId, REALM],
   );
   return hostedPlayPreferencesFromRow(res.rows[0]);
@@ -1533,9 +1562,10 @@ export async function setHostedPlayPreferences(
             hosted_play_action_log_enabled = $5,
             hosted_play_auto_invite_nearby = $6,
             hosted_play_auto_invite_target_party_size = $7,
+            hosted_play_preferences_version = $8,
             updated_at = now()
-      WHERE id = $1 AND account_id = $2 AND realm = $8
-      RETURNING hosted_play_resume_on_login, hosted_play_party_mode, hosted_play_action_log_enabled, hosted_play_auto_invite_nearby, hosted_play_auto_invite_target_party_size`,
+      WHERE id = $1 AND account_id = $2 AND realm = $9
+      RETURNING hosted_play_resume_on_login, hosted_play_party_mode, hosted_play_action_log_enabled, hosted_play_auto_invite_nearby, hosted_play_auto_invite_target_party_size, hosted_play_preferences_version`,
     [
       characterId,
       accountId,
@@ -1544,6 +1574,7 @@ export async function setHostedPlayPreferences(
       preferences.actionLogEnabled,
       preferences.autoInviteNearbyPlayers,
       preferences.autoInviteNearbyTargetPartySize,
+      HOSTED_PLAY_PREFERENCES_VERSION,
       REALM,
     ],
   );

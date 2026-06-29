@@ -169,6 +169,33 @@ describe('HostedPlayRuntime', () => {
     expect(game.activityCount).toBe(1);
   });
 
+  it('defaults hosted play to cooperative full-party auto invite', () => {
+    const game = fakeGame(liveState({
+      id: 101,
+      nm: 'Hero',
+      x: 100,
+      z: 100,
+      entities: [
+        { id: 202, k: 'player', nm: 'Nearby', x: 108, z: 100, dead: 0 },
+      ],
+    }));
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7);
+    (runtime as any).tick();
+
+    expect(game.commands).toContainEqual({ cmd: 'pinvite', id: 202 });
+    expect(runtime.status(7)).toMatchObject({
+      partyMode: 'follow_leader',
+      autoInviteNearbyPlayers: true,
+      autoInviteNearbyTargetPartySize: 5,
+      groupMode: 'invite_nearby',
+    });
+  });
+
   it('tracks persisted preferences and pauses the hosted brain for party follow', () => {
     const game = fakeGame(liveState({
       id: 102,

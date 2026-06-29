@@ -6,7 +6,7 @@ Current date: 2026-06-29
 |---|---|---|---|
 | LAN/IP rules | Complete | 2026-06-29 | 2026-06-29 |
 | Planning packet | In progress | 2026-06-29 |  |
-| Phase 1 | Pending |  |  |
+| Phase 1 | Complete | 2026-06-29 | 2026-06-29 |
 | Phase 1 QA | Pending |  |  |
 | Phase 2 | Pending |  |  |
 | Phase 2 QA | Pending |  |  |
@@ -24,6 +24,10 @@ Current date: 2026-06-29
 - LAN/IP helper rules were added and pushed in commit `21bb4182`.
 - The Windows helper delegates to `online_lan.mjs`, preserves IP access, and is
   agent-maintainable after service unregister.
+- Phase 1 changed hosted defaults to cooperative party fill, added preference
+  versioning for legacy default upgrade, expanded invite guard tests, ran the
+  targeted hosted and character DB suites, built the server, restarted the
+  stack, and verified LAN/IP access.
 
 ## Planning Packet Checklist
 
@@ -36,12 +40,12 @@ Current date: 2026-06-29
 
 ## Phase 1 Checklist
 
-- [ ] Cooperative hosted defaults are applied.
-- [ ] Legacy preference semantics are handled safely.
-- [ ] Nearby invite tests cover full-party target, cooldowns, leader-only
+- [x] Cooperative hosted defaults are applied.
+- [x] Legacy preference semantics are handled safely.
+- [x] Nearby invite tests cover full-party target, cooldowns, leader-only
   inviting, dead, in combat, party target reached, and missing candidates.
-- [ ] API and UI status still expose settings clearly.
-- [ ] Backend stack is restarted and LAN/IP access verified.
+- [x] API and UI status still expose settings clearly.
+- [x] Backend stack is restarted and LAN/IP access verified.
 
 ## Phase 2 Checklist
 
