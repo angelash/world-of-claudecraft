@@ -701,6 +701,11 @@ export const ko_KR: EnTranslations = {
         "groupLeader": "Group Leader",
         "groupDistance": "Group Distance",
         "partyPaused": "Party Paused Brain",
+        "partyRole": "Party Role",
+        "partyIntent": "Party Intent",
+        "partyIntentTarget": "Intent Target",
+        "partyIntentValue": "{kind}, {behavior}",
+        "lastPartyChat": "Last Party Chat",
         "llmEnabled": "LLM Enabled",
         "llmPending": "Pending",
         "llmStatus": "Status",
@@ -761,6 +766,27 @@ export const ko_KR: EnTranslations = {
         "holdRegroup": "Holding for party regroup",
         "inviteNearby": "Inviting nearby players",
         "prepareParty": "Holding for battle preparation"
+      },
+      "partyRole": {
+        "tank": "Tank",
+        "healer": "Healer",
+        "dps": "Damage"
+      },
+      "partyIntent": {
+        "routePlan": "Route plan",
+        "buffs": "Buffs and preparation",
+        "focus": "Focus fire",
+        "praise": "Praise",
+        "correction": "Correction",
+        "recovery": "Recovery"
+      },
+      "partyBehavior": {
+        "advance": "advance",
+        "prepare": "prepare",
+        "assist": "assist",
+        "celebrate": "celebrate",
+        "regroup": "regroup",
+        "recover": "recover"
       },
       "llmStatus": {
         "pending": "Pending",

@@ -366,6 +366,58 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
+  it('lets party recovery intent hold the hosted leader before advancing', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          nm: 'Hero',
+          x: 1500,
+          z: -1200,
+          rtype: 'rage',
+          res: 0,
+          mres: 0,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Hero', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 12, hp: 36, mhp: 90, res: 120, mres: 120, rtype: 'mana', x: 1502, z: -1200, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        partyIntent: {
+          schemaVersion: 1,
+          kind: 'recovery',
+          behavior: 'recover',
+          key: 'party-intent|recovery|recover',
+          summary: 'Stabilize health before the next pull',
+          targetName: 'Hero',
+          focusCallerName: 'Hero',
+          holdAdvance: true,
+          preferAssist: false,
+        },
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: true,
+      groupMode: 'prepare_party',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+  });
+
   it('has a hosted warlock summon before the party advances into combat', () => {
     const state = createHostedPlayPartyState();
 

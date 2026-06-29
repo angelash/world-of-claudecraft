@@ -701,6 +701,11 @@ export const en_XA: EnTranslations = {
         "groupLeader": "[Ĝŕóúþ Ļéáðéŕ]",
         "groupDistance": "[Ĝŕóúþ Ðíšţáñçé]",
         "partyPaused": "[Þáŕţý Þáúšéð Ɓŕáíñ]",
+        "partyRole": "[Þáŕţý Ŕóļé]",
+        "partyIntent": "[Þáŕţý Íñţéñţ]",
+        "partyIntentTarget": "[Íñţéñţ Ţáŕĝéţ]",
+        "partyIntentValue": "[{kind}, {behavior}]",
+        "lastPartyChat": "[Ļášţ Þáŕţý Çĥáţ]",
         "llmEnabled": "[ĻĻⱮ Éñáƀļéð]",
         "llmPending": "[Þéñðíñĝ]",
         "llmStatus": "[Šţáţúš]",
@@ -761,6 +766,27 @@ export const en_XA: EnTranslations = {
         "holdRegroup": "[Ĥóļðíñĝ ƒóŕ þáŕţý ŕéĝŕóúþ]",
         "inviteNearby": "[Íñʋíţíñĝ ñéáŕƀý þļáýéŕš]",
         "prepareParty": "[Ĥóļðíñĝ ƒóŕ ƀáţţļé þŕéþáŕáţíóñ]"
+      },
+      "partyRole": {
+        "tank": "[Ţáñķ]",
+        "healer": "[Ĥéáļéŕ]",
+        "dps": "[Ðáɱáĝé]"
+      },
+      "partyIntent": {
+        "routePlan": "[Ŕóúţé þļáñ]",
+        "buffs": "[Ɓúƒƒš áñð þŕéþáŕáţíóñ]",
+        "focus": "[Ƒóçúš ƒíŕé]",
+        "praise": "[Þŕáíšé]",
+        "correction": "[Çóŕŕéçţíóñ]",
+        "recovery": "[Ŕéçóʋéŕý]"
+      },
+      "partyBehavior": {
+        "advance": "[áðʋáñçé]",
+        "prepare": "[þŕéþáŕé]",
+        "assist": "[áššíšţ]",
+        "celebrate": "[çéļéƀŕáţé]",
+        "regroup": "[ŕéĝŕóúþ]",
+        "recover": "[ŕéçóʋéŕ]"
       },
       "llmStatus": {
         "pending": "[Þéñðíñĝ]",

@@ -6,6 +6,12 @@ import {
   planAmbientPartyRoles,
   type AmbientPartyRoleAssignment,
 } from './party_roles';
+import {
+  buildAmbientPartyCoordinationIntent,
+  emptyPartyIntentRunnerStatePatch,
+  partyIntentRunnerStatePatch,
+  type AmbientPartyCoordinationIntent,
+} from './party_intent';
 import type { AmbientPlayerBotRecord } from './types';
 import type { AmbientPlayerBotLiveState } from './ws_client';
 
@@ -52,6 +58,7 @@ export interface TickAmbientPlayerBotPartyChatInput {
   objectiveQuestId?: string;
   objectiveDungeonId?: string;
   groupMode: string;
+  partyIntent?: AmbientPartyCoordinationIntent | null;
   nowMs: number;
 }
 
@@ -111,13 +118,22 @@ export function tickAmbientPlayerBotPartyChatShell(
       runnerStatePatch: emptyPartyRunnerStatePatch(),
     };
   }
+  const partyIntent = input.partyIntent ?? buildAmbientPartyCoordinationIntent({
+    party,
+    liveState: input.liveState,
+    recentEvents: input.recentEvents,
+    rolePlan,
+    objectiveId: input.objectiveId,
+    objectiveLabel: input.objectiveLabel,
+    groupMode: input.groupMode,
+  });
 
   state.pendingUtterances = state.pendingUtterances
     .filter((utterance) => utterance.briefKey.startsWith(rolePlan.key))
     .slice(0, MAX_PENDING_UTTERANCES);
 
   if (leaderIsAmbientBot && leader?.pid === selfPid) {
-    const leaderBriefKey = `${rolePlan.key}|${leaderBriefReason(input.groupMode)}`;
+    const leaderBriefKey = `${rolePlan.key}|${partyIntent.key}`;
     if (
       leaderBriefKey !== state.lastLeaderBriefKey
       && !state.pendingUtterances.some((utterance) =>
@@ -128,7 +144,7 @@ export function tickAmbientPlayerBotPartyChatShell(
         briefKey: leaderBriefKey,
         dueAtMs: input.nowMs + leaderBriefDelayMs(input.bot.botId, leaderBriefKey),
         revision: nextRevision(state),
-        fallbackText: buildLeaderFallbackText(rolePlan, selfRole, input.groupMode),
+        fallbackText: buildLeaderFallbackText(rolePlan, selfRole, input.groupMode, partyIntent),
         leaderPromptText: '',
         llmStatus: 'idle',
       });
@@ -149,7 +165,7 @@ export function tickAmbientPlayerBotPartyChatShell(
           briefKey: ackKey,
           dueAtMs: input.nowMs + memberAckDelayMs(input.bot.botId, ackKey),
           revision: nextRevision(state),
-          fallbackText: buildMemberAckFallbackText(rolePlan, selfRole),
+          fallbackText: buildMemberAckFallbackText(rolePlan, selfRole, partyIntent),
           leaderPromptText: leaderEvent.text,
           llmStatus: 'idle',
         });
@@ -179,6 +195,7 @@ export function tickAmbientPlayerBotPartyChatShell(
       partyTankName: rolePlan.tankName,
       partyHealerName: rolePlan.healerName,
       partyFocusCaller: rolePlan.focusCallerName,
+      ...partyIntentRunnerStatePatch(partyIntent),
       partyChatPending: state.pendingUtterances.length,
       partyLastLeaderBriefKey: state.lastLeaderBriefKey,
       partyLastAckBriefKey: state.lastAckedBriefKey,
@@ -237,18 +254,13 @@ function emptyPartyRunnerStatePatch(): Record<string, unknown> {
     partyTankName: '',
     partyHealerName: '',
     partyFocusCaller: '',
+    ...emptyPartyIntentRunnerStatePatch(),
     partyChatPending: 0,
     partyLastLeaderBriefKey: '',
     partyLastAckBriefKey: '',
     partyComposition: '',
     lastPartyChatAction: '',
   };
-}
-
-function leaderBriefReason(groupMode: string): string {
-  if (groupMode === 'hold_regroup' || groupMode === 'wait_party') return groupMode;
-  if (isPreparationGroupMode(groupMode)) return 'prepare_party';
-  return 'plan';
 }
 
 function latestLeaderPartyEvent(
@@ -274,6 +286,7 @@ function buildLeaderFallbackText(
   rolePlan: ReturnType<typeof planAmbientPartyRoles>,
   selfRole: AmbientPartyRoleAssignment,
   groupMode: string,
+  partyIntent: AmbientPartyCoordinationIntent,
 ): string {
   const prepLine = isPreparationGroupMode(groupMode) || groupMode === 'hold_regroup' || groupMode === 'wait_party'
     ? 'Regroup on me, finish buffs, then move together'
@@ -284,6 +297,41 @@ function buildLeaderFallbackText(
   const focusCall = rolePlan.focusCallerName && rolePlan.focusCallerName !== selfRole.name
     ? `assist ${rolePlan.focusCallerName}`
     : 'assist my target';
+  if (partyIntent.kind === 'recovery') {
+    return chooseTemplate(partyIntent.key, [
+      `Reset a second. ${healerCall}, then ${focusCall}.`,
+      'Hold up, top health and mana before the next pull.',
+      `Recover first, then we move together on ${focusCall}.`,
+    ]);
+  }
+  if (partyIntent.kind === 'correction') {
+    return chooseTemplate(partyIntent.key, [
+      'Too spread. Stack back on the group before we move.',
+      `Tighten up on ${rolePlan.tankName || rolePlan.leaderName || 'the lead'}, then ${focusCall}.`,
+      'Slow down, regroup clean, then we pull together.',
+    ]);
+  }
+  if (partyIntent.kind === 'buffs') {
+    return chooseTemplate(partyIntent.key, [
+      'Hold for buffs and drinks, then we move together.',
+      `${rolePlan.tankName || 'Frontline'} waits for ready checks, then ${focusCall}.`,
+      `Buff pass first. ${healerCall}, everyone stay close.`,
+    ]);
+  }
+  if (partyIntent.kind === 'focus') {
+    return chooseTemplate(partyIntent.key, [
+      `Focus up: ${focusCall}, peel anything loose.`,
+      `${rolePlan.tankName || 'Frontline'} holds it, everyone burn the called target.`,
+      `Stay tight, ${focusCall}, and peel for ${rolePlan.healerName || 'the backline'}.`,
+    ]);
+  }
+  if (partyIntent.kind === 'praise') {
+    return chooseTemplate(partyIntent.key, [
+      'Nice work, clean pace. Keep this rhythm.',
+      `Good pull. ${focusCall} and we keep rolling.`,
+      'That was clean. Same focus, same spacing.',
+    ]);
+  }
   const templates = [
     `I take point. ${healerCall}, then ${focusCall}.`,
     `${prepLine}. ${rolePlan.tankName || 'Frontline'} sets the pace, everyone stay on focus.`,
@@ -296,10 +344,59 @@ function buildLeaderFallbackText(
 function buildMemberAckFallbackText(
   rolePlan: ReturnType<typeof planAmbientPartyRoles>,
   selfRole: AmbientPartyRoleAssignment,
+  partyIntent: AmbientPartyCoordinationIntent,
 ): string {
   const focusCall = rolePlan.focusCallerName
     ? `${rolePlan.focusCallerName}'s target`
     : 'the called target';
+  if (partyIntent.kind === 'recovery') {
+    return chooseTemplate(`${partyIntent.key}|${selfRole.name}`, selfRole.combatRole === 'healer'
+      ? [
+        `Copy, stabilizing ${rolePlan.tankName || 'the frontline'} before we move.`,
+        'On it, I am topping people before the next pull.',
+      ]
+      : [
+        'Copy, holding for recovery and watching for strays.',
+        'Got it, resetting and staying close.',
+      ]);
+  }
+  if (partyIntent.kind === 'correction') {
+    return chooseTemplate(`${partyIntent.key}|${selfRole.name}`, [
+      'My bad, tightening up on the group.',
+      'Copy, stacking back in.',
+      'Got it, closing the gap now.',
+    ]);
+  }
+  if (partyIntent.kind === 'buffs') {
+    return chooseTemplate(`${partyIntent.key}|${selfRole.name}`, [
+      'Copy, refreshing buffs and waiting for ready.',
+      'On it, buff pass first.',
+      'Got it, holding for ready checks.',
+    ]);
+  }
+  if (partyIntent.kind === 'focus') {
+    return chooseTemplate(`${partyIntent.key}|${selfRole.name}`, selfRole.combatRole === 'tank'
+      ? [
+        'Copy, I will hold the front and peel strays.',
+        'On it, anchoring the pull.',
+      ]
+      : selfRole.combatRole === 'healer'
+        ? [
+          `Copy, keeping ${rolePlan.tankName || 'the frontline'} stable while you burn focus.`,
+          'On heals, watching spikes and loose mobs.',
+        ]
+        : [
+          `Copy, staying on ${focusCall} and peeling runners.`,
+          'On it, all damage on focus.',
+        ]);
+  }
+  if (partyIntent.kind === 'praise') {
+    return chooseTemplate(`${partyIntent.key}|${selfRole.name}`, [
+      'Clean pull, keeping the pace.',
+      'Nice, same rhythm on the next one.',
+      'Good work, staying tight.',
+    ]);
+  }
   const templates = selfRole.combatRole === 'tank'
     ? [
       'Copy, I take point and keep loose mobs off the backline.',
@@ -366,13 +463,17 @@ function looksLikePartyCoordinationLine(text: string): boolean {
     'frontline',
     'heal',
     'hold',
+    'mana',
     'peel',
     'pull',
+    'ready',
     'regroup',
+    'reset',
     'stay tight',
     'tank',
     'target',
     'top',
+    'too spread',
   ];
   return keywords.some((keyword) => normalized.includes(keyword));
 }

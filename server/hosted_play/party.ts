@@ -1,4 +1,4 @@
-import type { PartyInfo } from '../../src/world_api';
+import type { PartyInfo, PartyMemberInfo } from '../../src/world_api';
 import type { SimEvent } from '../../src/sim/types';
 import type { PlayerClass } from '../../src/sim/types';
 import {
@@ -10,6 +10,7 @@ import {
   maybeCoordinateAmbientPartySupport,
   type AmbientGroupCommandReservation,
 } from '../ambient_bots/group_support';
+import type { AmbientPartyCoordinationIntent } from '../ambient_bots/party_intent';
 import { maybePrepareForPullFromLiveState } from '../ambient_bots/pre_combat';
 import type { AmbientPlayerBotRecord } from '../ambient_bots/types';
 import type { AmbientPlayerBotLiveState } from '../ambient_bots/ws_client';
@@ -45,6 +46,7 @@ export interface HostedPlayPartyTickInput {
   autoInviteNearbyPlayers?: boolean;
   autoInviteNearbyTargetPartySize?: HostedPlayAutoInviteTargetPartySize;
   objectiveSuggestedPartySize?: number;
+  partyIntent?: AmbientPartyCoordinationIntent | null;
   ambientDirectory: readonly AmbientPlayerBotRecord[];
   nowMs: number;
 }
@@ -125,6 +127,15 @@ export function tickHostedPlayPartyCoordinator(
       groupLeaderDistance: leaderDistance,
     };
   }
+
+  const intentHold = maybeHoldForPartyIntent({
+    intent: input.partyIntent ?? null,
+    selfMember,
+    leaderMember,
+    leaderDistance,
+    partyInCombat,
+  });
+  if (intentHold) return intentHold;
 
   if (!partyInCombat) {
     const selfPreparation = maybePrepareForPullFromLiveState({
@@ -268,6 +279,28 @@ export function tickHostedPlayPartyCoordinator(
     groupMode: 'brain',
     groupLeaderName,
     groupLeaderDistance: leaderDistance,
+  };
+}
+
+function maybeHoldForPartyIntent(input: {
+  intent: AmbientPartyCoordinationIntent | null;
+  selfMember: PartyMemberInfo;
+  leaderMember: PartyMemberInfo;
+  leaderDistance: number;
+  partyInCombat: boolean;
+}): HostedPlayPartyTickResult | null {
+  if (!input.intent?.holdAdvance || input.partyInCombat) return null;
+  if (input.selfMember.dead || input.leaderMember.dead) return null;
+  if (input.selfMember.pid !== input.leaderMember.pid) return null;
+  const groupMode: HostedPlayGroupMode = input.intent.behavior === 'regroup'
+    ? 'hold_regroup'
+    : 'prepare_party';
+  return {
+    commands: [],
+    pauseBrainDrive: true,
+    groupMode,
+    groupLeaderName: input.leaderMember.name,
+    groupLeaderDistance: input.leaderDistance,
   };
 }
 

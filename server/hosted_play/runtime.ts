@@ -11,6 +11,7 @@ import {
   tickAmbientPlayerBotPartyChatShell,
   type AmbientPlayerBotPartyChatRuntimeState,
 } from '../ambient_bots/party_chat';
+import { ambientPartyCoordinationIntentFromRunnerState } from '../ambient_bots/party_intent';
 import {
   createAmbientPlayerBotSocialRuntimeState,
   tickAmbientPlayerBotSocialShell,
@@ -83,6 +84,7 @@ interface HostedPlayEntry {
   brainDrivePaused: boolean;
   partyState: HostedPlayPartyState;
   partyChatState: AmbientPlayerBotPartyChatRuntimeState;
+  partyChatRunnerState: Record<string, unknown>;
   llmState: HostedPlayLlmState;
   actionLogAtMs: Record<string, number>;
 }
@@ -239,6 +241,7 @@ export class HostedPlayRuntime {
           lastBrainResult: null,
           brainDrivePaused: false,
           partyChatState: createAmbientPlayerBotPartyChatRuntimeState(),
+          partyChatRunnerState: {},
           actionLogAtMs: {},
         }
       : {
@@ -266,6 +269,7 @@ export class HostedPlayRuntime {
           brainDrivePaused: false,
           partyState: createHostedPlayPartyState(),
           partyChatState: createAmbientPlayerBotPartyChatRuntimeState(),
+          partyChatRunnerState: {},
           llmState: createHostedPlayLlmState(this.llmEnabled ? this.llmConfig : null),
           actionLogAtMs: {},
         };
@@ -371,6 +375,7 @@ export class HostedPlayRuntime {
         autoInviteNearbyPlayers: entry.preferences.autoInviteNearbyPlayers,
         autoInviteNearbyTargetPartySize: entry.preferences.autoInviteNearbyTargetPartySize,
         objectiveSuggestedPartySize: result.objectiveSuggestedPartySize ?? 0,
+        partyIntent: ambientPartyCoordinationIntentFromRunnerState(entry.partyChatRunnerState),
         ambientDirectory: this.game.ambientPlayerBotDirectory(),
         nowMs,
       },
@@ -415,6 +420,7 @@ export class HostedPlayRuntime {
         entry.partyChatState,
       )
       : { commands: [], runnerStatePatch: {} };
+    entry.partyChatRunnerState = { ...partyChatResult.runnerStatePatch };
 
     for (const command of partyResult.commands) {
       this.game.applyHostedPlayCommand(characterId, command);
@@ -703,6 +709,13 @@ function hostedPlayDebugSnapshot(
       groupLeaderName: entry?.groupLeaderName ?? '',
       groupLeaderDistance: roundDebugNumber(entry?.groupLeaderDistance ?? 0),
       brainDrivePaused: entry?.brainDrivePaused ?? false,
+      partyRole: readDebugString(entry?.partyChatRunnerState, 'partyRole'),
+      partyDuty: readDebugString(entry?.partyChatRunnerState, 'partyDuty'),
+      intentKind: readDebugString(entry?.partyChatRunnerState, 'partyIntentKind'),
+      intentBehavior: readDebugString(entry?.partyChatRunnerState, 'partyIntentBehavior'),
+      intentSummary: readDebugString(entry?.partyChatRunnerState, 'partyIntentSummary'),
+      intentTargetName: readDebugString(entry?.partyChatRunnerState, 'partyIntentTargetName'),
+      lastPartyChatAction: readDebugString(entry?.partyChatRunnerState, 'lastPartyChatAction'),
     },
     social: {
       pendingReplies: (entry?.socialState.pendingReplies ?? [])
@@ -820,6 +833,11 @@ function truncateDebugText(value: string, maxChars = HOSTED_PLAY_DEBUG_MAX_TEXT_
   return value.length > maxChars ? `${value.slice(0, Math.max(0, maxChars - 3))}...` : value;
 }
 
+function readDebugString(value: Record<string, unknown> | undefined, key: string): string {
+  const field = value?.[key];
+  return typeof field === 'string' ? truncateDebugText(field) : '';
+}
+
 function hostedPlayBotRecord(
   info: HostedPlaySessionInfo,
   liveState: AmbientPlayerBotLiveState,
@@ -857,6 +875,7 @@ function hostedPlayBotRecord(
       objectiveLabel: entry.objectiveLabel,
       llmPlanMode: entry.llmState.plan?.socialMode ?? '',
       llmPlanFocus: entry.llmState.plan?.focusLabel ?? entry.llmState.planFocus,
+      ...entry.partyChatRunnerState,
     },
     socialState: entry.socialMemory,
   };

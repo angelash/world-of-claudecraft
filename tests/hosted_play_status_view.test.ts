@@ -78,6 +78,13 @@ function hostedPlayStatus(
         groupLeaderName: '',
         groupLeaderDistance: 0,
         brainDrivePaused: false,
+        partyRole: '',
+        partyDuty: '',
+        intentKind: '',
+        intentBehavior: '',
+        intentSummary: '',
+        intentTargetName: '',
+        lastPartyChatAction: '',
       },
       social: {
         pendingReplies: [],

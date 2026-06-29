@@ -82,6 +82,13 @@ export interface HostedPlayDebugParty {
   groupLeaderName: string;
   groupLeaderDistance: number;
   brainDrivePaused: boolean;
+  partyRole: string;
+  partyDuty: string;
+  intentKind: string;
+  intentBehavior: string;
+  intentSummary: string;
+  intentTargetName: string;
+  lastPartyChatAction: string;
 }
 
 export interface HostedPlayDebugPendingReply {

@@ -701,6 +701,11 @@ export const zh_TW: EnTranslations = {
         "groupLeader": "隊長",
         "groupDistance": "隊伍距離",
         "partyPaused": "隊伍暫停腦驅動",
+        "partyRole": "Party Role",
+        "partyIntent": "Party Intent",
+        "partyIntentTarget": "Intent Target",
+        "partyIntentValue": "{kind}, {behavior}",
+        "lastPartyChat": "Last Party Chat",
         "llmEnabled": "LLM 已啟用",
         "llmPending": "等待中",
         "llmStatus": "狀態",
@@ -761,6 +766,27 @@ export const zh_TW: EnTranslations = {
         "holdRegroup": "正在等待隊伍重新集合",
         "inviteNearby": "正在邀請附近玩家",
         "prepareParty": "Holding for battle preparation"
+      },
+      "partyRole": {
+        "tank": "Tank",
+        "healer": "Healer",
+        "dps": "Damage"
+      },
+      "partyIntent": {
+        "routePlan": "Route plan",
+        "buffs": "Buffs and preparation",
+        "focus": "Focus fire",
+        "praise": "Praise",
+        "correction": "Correction",
+        "recovery": "Recovery"
+      },
+      "partyBehavior": {
+        "advance": "advance",
+        "prepare": "prepare",
+        "assist": "assist",
+        "celebrate": "celebrate",
+        "regroup": "regroup",
+        "recover": "recover"
       },
       "llmStatus": {
         "pending": "等待中",

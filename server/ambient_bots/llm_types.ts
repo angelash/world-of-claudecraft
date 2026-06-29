@@ -1,5 +1,9 @@
 import type { PlayerClass } from '../../src/sim/types';
 import type { AiProviderTimingSnapshot } from '../ai/ai_types';
+import type {
+  AmbientPartyCoordinationBehavior,
+  AmbientPartyCoordinationIntentKind,
+} from './party_intent';
 import type { AmbientBotArchetype } from './types';
 
 export type AmbientBotLlmSocialMode =
@@ -165,6 +169,14 @@ export interface AmbientBotPartyChatContextV1 {
     zoneId: string;
     objectiveLabel: string;
     groupMode: string;
+  };
+  intent: {
+    kind: AmbientPartyCoordinationIntentKind;
+    behavior: AmbientPartyCoordinationBehavior;
+    summary: string;
+    targetName: string;
+    holdAdvance: boolean;
+    preferAssist: boolean;
   };
   party: {
     leaderName: string;

@@ -362,6 +362,51 @@ describe('HostedPlayRuntime', () => {
     )).toBe(true);
   });
 
+  it('surfaces hosted party roles and coordination intent in debug status', () => {
+    const game = fakeGame(liveState({
+      id: 101,
+      x: 4,
+      z: 6,
+      rtype: 'rage',
+      mres: 0,
+      auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Hero', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 4, z: 6, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Branorabb', cls: 'priest', level: 12, hp: 90, mhp: 90, res: 120, mres: 120, rtype: 'mana', x: 5, z: 6, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 102, k: 'player', nm: 'Branorabb', x: 5, z: 6 },
+      ],
+    }), {
+      ambientBotNames: ['Branorabb'],
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(runtime.status(7).debug.party).toEqual(expect.objectContaining({
+      partyRole: 'tank',
+      intentKind: 'route_plan',
+      intentBehavior: 'advance',
+      intentSummary: expect.stringContaining('Plan the route'),
+      intentTargetName: 'Hero',
+    }));
+  });
+
   it('emits hosted-play action logs when enabled and throttles repeated lines', () => {
     let nowMs = 10_000;
     const game = fakeGame(liveState({ hp: 0 }));

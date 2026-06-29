@@ -10,8 +10,8 @@ Current date: 2026-06-29
 | Phase 1 QA | Pending |  |  |
 | Phase 2 | Complete | 2026-06-29 | 2026-06-29 |
 | Phase 2 QA | Pending |  |  |
-| Phase 3 | Pending |  |  |
-| Phase 3 QA | Pending |  |  |
+| Phase 3 | Complete | 2026-06-29 | 2026-06-29 |
+| Phase 3 QA | Complete | 2026-06-29 | 2026-06-29 |
 | Phase 4 | Pending |  |  |
 | Phase 4 QA | Pending |  |  |
 | Phase 5 | Pending |  |  |
@@ -33,6 +33,11 @@ Current date: 2026-06-29
   priority. Nearby alive party members lower safe pursuit gates by up to two
   levels, and group movement now prioritizes dungeon entry and regroup follow
   over pre-pull preparation when already assembled.
+- Phase 3 added a structured party intent layer for route plans, buffs, focus,
+  praise, correction, and recovery. Party chat now uses that intent for leader
+  briefings and member acknowledgements, hosted party coordination consumes
+  hold-advance intent without parsing chat text, and hosted debug details expose
+  party role, duty, intent, target, and last party-chat action.
 
 ## Planning Packet Checklist
 
@@ -61,11 +66,11 @@ Current date: 2026-06-29
 
 ## Phase 3 Checklist
 
-- [ ] Hosted parties emit real party chat lines for plan, ack, praise, and
+- [x] Hosted parties emit real party chat lines for plan, ack, praise, and
   correction.
-- [ ] Chat produces validated behavior intent.
-- [ ] Behavior layers consume intent without parsing free-form text.
-- [ ] Template fallback works without LLM.
+- [x] Chat produces validated behavior intent.
+- [x] Behavior layers consume intent without parsing free-form text.
+- [x] Template fallback works without LLM.
 
 ## Phase 4 Checklist
 

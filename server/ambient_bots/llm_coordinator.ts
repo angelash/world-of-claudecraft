@@ -33,6 +33,7 @@ import type {
   AmbientPlayerBotRecord,
 } from './types';
 import type { AmbientPlayerBotPendingPartyUtterance } from './party_chat';
+import { ambientPartyCoordinationIntentFromRunnerState } from './party_intent';
 import type { AmbientPlayerBotPendingReply } from './social';
 import type { AmbientPlayerBotLiveState } from './ws_client';
 
@@ -756,6 +757,7 @@ function buildPartyChatContext(input: {
   nowMs: number;
 }): AmbientBotPartyChatContextV1 {
   const profile = ambientBotProfileById(input.bot.profileId);
+  const intent = ambientPartyCoordinationIntentFromRunnerState(input.bot.runnerState);
   return {
     schemaVersion: 1,
     jobId: `ambient-party:${input.bot.botId}:${input.pendingUtterance.mode}:${input.pendingUtterance.revision}:${input.nowMs}`,
@@ -773,6 +775,23 @@ function buildPartyChatContext(input: {
       objectiveLabel: readRunnerString(input.bot.runnerState, 'objectiveLabel'),
       groupMode: readRunnerString(input.bot.runnerState, 'groupMode'),
     },
+    intent: intent
+      ? {
+        kind: intent.kind,
+        behavior: intent.behavior,
+        summary: intent.summary,
+        targetName: intent.targetName,
+        holdAdvance: intent.holdAdvance,
+        preferAssist: intent.preferAssist,
+      }
+      : {
+        kind: 'route_plan',
+        behavior: 'advance',
+        summary: 'Coordinate the next route step',
+        targetName: '',
+        holdAdvance: false,
+        preferAssist: false,
+      },
     party: {
       leaderName: readRunnerString(input.bot.runnerState, 'partyLeaderName'),
       tankName: readRunnerString(input.bot.runnerState, 'partyTankName'),

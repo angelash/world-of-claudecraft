@@ -78,6 +78,13 @@ export interface HostedPlayDebugPartyView {
   groupLeaderName: string;
   groupLeaderDistance: number;
   brainDrivePaused: boolean;
+  partyRole: string;
+  partyDuty: string;
+  intentKind: string;
+  intentBehavior: string;
+  intentSummary: string;
+  intentTargetName: string;
+  lastPartyChatAction: string;
 }
 
 export interface HostedPlayDebugPendingReplyView {
@@ -452,6 +459,10 @@ export function renderHostedPlayPanel(
       [t('hudChrome.hostedPlay.details.groupLeader'), valueOrNone(debug.party.groupLeaderName)],
       [t('hudChrome.hostedPlay.details.groupDistance'), formatNullableNumber(debug.party.groupLeaderDistance, 0)],
       [t('hudChrome.hostedPlay.details.partyPaused'), onOffText(debug.party.brainDrivePaused)],
+      [t('hudChrome.hostedPlay.details.partyRole'), partyRoleText(debug.party.partyRole)],
+      [t('hudChrome.hostedPlay.details.partyIntent'), partyIntentText(debug.party.intentKind, debug.party.intentBehavior)],
+      [t('hudChrome.hostedPlay.details.partyIntentTarget'), valueOrNone(debug.party.intentTargetName)],
+      [t('hudChrome.hostedPlay.details.lastPartyChat'), valueOrNone(debug.party.lastPartyChatAction)],
     ]);
 
     appendDebugBlock(
@@ -859,6 +870,69 @@ function groupModeText(status: HostedPlayStatusView): string {
       return t('hudChrome.hostedPlay.groupMode.prepareParty');
     default:
       return t('hudChrome.hostedPlay.groupMode.none');
+  }
+}
+
+function partyIntentText(kind: string, behavior: string): string {
+  const kindText = partyIntentKindText(kind);
+  const behaviorText = partyIntentBehaviorText(behavior);
+  if (kindText && behaviorText) {
+    return t('hudChrome.hostedPlay.details.partyIntentValue', {
+      kind: kindText,
+      behavior: behaviorText,
+    });
+  }
+  return kindText || behaviorText || t('hudChrome.hostedPlay.details.none');
+}
+
+function partyRoleText(role: string): string {
+  switch (role) {
+    case 'tank':
+      return t('hudChrome.hostedPlay.partyRole.tank');
+    case 'healer':
+      return t('hudChrome.hostedPlay.partyRole.healer');
+    case 'dps':
+      return t('hudChrome.hostedPlay.partyRole.dps');
+    default:
+      return t('hudChrome.hostedPlay.details.none');
+  }
+}
+
+function partyIntentKindText(kind: string): string {
+  switch (kind) {
+    case 'route_plan':
+      return t('hudChrome.hostedPlay.partyIntent.routePlan');
+    case 'buffs':
+      return t('hudChrome.hostedPlay.partyIntent.buffs');
+    case 'focus':
+      return t('hudChrome.hostedPlay.partyIntent.focus');
+    case 'praise':
+      return t('hudChrome.hostedPlay.partyIntent.praise');
+    case 'correction':
+      return t('hudChrome.hostedPlay.partyIntent.correction');
+    case 'recovery':
+      return t('hudChrome.hostedPlay.partyIntent.recovery');
+    default:
+      return '';
+  }
+}
+
+function partyIntentBehaviorText(behavior: string): string {
+  switch (behavior) {
+    case 'advance':
+      return t('hudChrome.hostedPlay.partyBehavior.advance');
+    case 'prepare':
+      return t('hudChrome.hostedPlay.partyBehavior.prepare');
+    case 'assist':
+      return t('hudChrome.hostedPlay.partyBehavior.assist');
+    case 'celebrate':
+      return t('hudChrome.hostedPlay.partyBehavior.celebrate');
+    case 'regroup':
+      return t('hudChrome.hostedPlay.partyBehavior.regroup');
+    case 'recover':
+      return t('hudChrome.hostedPlay.partyBehavior.recover');
+    default:
+      return '';
   }
 }
 
