@@ -195,6 +195,21 @@ next.
 - `tests/ambient_player_bot_party_chat.test.ts` now covers repeated combat
   intent changes staying paced and full hosted-style parties producing one
   acknowledgement instead of four repeated replies.
+- Phase 6 follow-up report `tmp/hosted-play-level20-20260630-022346.json`
+  confirmed chat stayed under control, but the run reached max stuck resets of
+  24 while followers were mostly in `follow_leader` and leaders were sometimes
+  in preparation pauses. This was a false stuck signal from brain pathing being
+  computed before party coordination replaced movement.
+- `server/ambient_bots/brain.ts` now exports
+  `markAmbientPlayerBotBrainExternalProgress`, which refreshes the brain's
+  progress position and clears stale paths when an external coordinator owns the
+  movement moment.
+- `server/ambient_bots/runtime.ts` and `server/hosted_play/runtime.ts` call that
+  helper only when group or hosted party coordination pauses brain drive without
+  a travel goal. Explicit party travel goals still use normal stuck detection.
+- `tests/ambient_player_bot_brain.test.ts` covers that externally controlled
+  party waiting does not count as stuck pathing while the original stuck reset
+  test still covers real no-progress movement.
 
 ## Phase 5 Validation
 
@@ -220,6 +235,13 @@ next.
 - Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
 - `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after restart. The report was `tmp/hosted-play-live-harness-2026-06-29T18-20-29-961Z.json`; it reached party size 5, observed 4 invites accepted, 15 party-chat events, quest state on all 5 party members, support and combat signals, 0 player deaths, 0 hosted runtime errors, and max stuck resets 1. No chat-rate or chat-lock errors were recorded.
+- `npx vitest run tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\hosted_play_runtime.test.ts`: passed, 3 files and 161 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed, 5 files and 187 tests.
+- `npm run build:server`: passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed after the external-progress fix.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after restart. The report was `tmp/hosted-play-live-harness-2026-06-29T18-35-42-359Z.json`; it reached party size 5, observed 4 invites accepted, 12 party-chat events, quest state on all 5 party members, support and combat signals, 0 player deaths, 0 hosted runtime errors, and max stuck resets 0.
 
 ## Validation Matrix
 

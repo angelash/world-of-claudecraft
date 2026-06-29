@@ -4,6 +4,7 @@ import { DT, INTERACT_RANGE, RUN_SPEED } from '../src/sim/types';
 import {
   continueAmbientPlayerBotTravel,
   createAmbientPlayerBotBrainState,
+  markAmbientPlayerBotBrainExternalProgress,
   tickAmbientPlayerBotBrain,
 } from '../server/ambient_bots/brain';
 import type { AmbientPlayerBotRecord } from '../server/ambient_bots/types';
@@ -3800,5 +3801,32 @@ describe('ambient player bot brain', () => {
       { cmd: 'stopattack' },
       { cmd: 'target', id: null },
     ]);
+  });
+
+  it('does not count externally controlled party waiting as stuck pathing', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const firstLiveState = liveState({
+      self: {
+        x: 2,
+        z: -2,
+        qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+      },
+    });
+    tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: firstLiveState,
+      nowMs: 1_000,
+    }, state);
+
+    markAmbientPlayerBotBrainExternalProgress(state, firstLiveState, 5_900);
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: firstLiveState,
+      nowMs: 6_000,
+    }, state);
+
+    expect(state.stuckResets).toBe(0);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.commands).toEqual([]);
   });
 });

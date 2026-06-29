@@ -58,6 +58,14 @@ Current date: 2026-06-29
   `scripts/windows_stack.ps1`, IP access was verified on `0.0.0.0`, and the short
   live harness passed with 15 party-chat events, no chat-rate errors, party size
   5, quest signals, support signals, and 0 hosted runtime errors.
+- The next level 20 run confirmed chat stayed under control, but exposed a
+  separate stuck-reset issue: followers in `follow_leader` or leaders in
+  preparation pauses could have their own brain movement replaced by party
+  coordination, then miscount that pause as failed pathing. The brain now records
+  external party progress when group coordination pauses it without a travel
+  goal, so `/follow`, regroup, and preparation waits do not inflate stuck resets.
+- After that fix, the short live harness passed with party size 5, 12 party-chat
+  events, no chat-rate errors, 0 hosted runtime errors, and max stuck resets 0.
 
 ## Planning Packet Checklist
 
@@ -115,4 +123,6 @@ Current date: 2026-06-29
   tanking, focus fire, regrouping, and recovery.
 - [x] Party chat is paced below server rate limits during repeated combat and
   regroup intent changes.
+- [x] Party follow and preparation pauses do not count as repeated brain pathing
+  failures.
 - [ ] Final run occurs after the last code change and service restart.

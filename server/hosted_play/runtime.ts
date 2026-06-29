@@ -1,6 +1,7 @@
 import {
   continueAmbientPlayerBotTravel,
   createAmbientPlayerBotBrainState,
+  markAmbientPlayerBotBrainExternalProgress,
   tickAmbientPlayerBotBrain,
   type AmbientPlayerBotBrainState,
   type AmbientPlayerBotBrainTickResult,
@@ -391,6 +392,9 @@ export class HostedPlayRuntime {
       liveState,
     );
     entry.brainDrivePaused = partyResult.pauseBrainDrive && !allowLocalQuestBrain;
+    if (entry.brainDrivePaused && !partyResult.travelGoal) {
+      markAmbientPlayerBotBrainExternalProgress(entry.brainState, liveState, nowMs);
+    }
 
     const socialResult = tickAmbientPlayerBotSocialShell(
       {

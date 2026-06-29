@@ -5,6 +5,7 @@ import { writeAssignedPlayerName } from './assignment';
 import {
   continueAmbientPlayerBotTravel,
   createAmbientPlayerBotBrainState,
+  markAmbientPlayerBotBrainExternalProgress,
   tickAmbientPlayerBotBrain,
   type AmbientPlayerBotBrainState,
   type AmbientPlayerBotBrainTickResult,
@@ -628,6 +629,9 @@ export class AmbientPlayerBotRuntime {
           nowMs,
         }, entry.groupState);
         entry.brainDrivePaused = groupResult.pauseBrainDrive;
+        if (groupResult.pauseBrainDrive && !groupResult.travelGoal) {
+          markAmbientPlayerBotBrainExternalProgress(entry.brainState, liveState, nowMs);
+        }
         for (const command of groupResult.commands) entry.client.command(command);
         if (!groupResult.pauseBrainDrive) {
           for (const command of result.commands) entry.client.command(command);

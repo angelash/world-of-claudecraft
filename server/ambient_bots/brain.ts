@@ -1374,6 +1374,21 @@ export function continueAmbientPlayerBotTravel(
   );
 }
 
+export function markAmbientPlayerBotBrainExternalProgress(
+  state: AmbientPlayerBotBrainState,
+  liveState: AmbientPlayerBotLiveState,
+  nowMs: number,
+): void {
+  const self = liveState.self;
+  const x = typeof self?.x === 'number' && Number.isFinite(self.x) ? self.x : null;
+  const z = typeof self?.z === 'number' && Number.isFinite(self.z) ? self.z : null;
+  if (x === null || z === null) return;
+  state.lastX = x;
+  state.lastZ = z;
+  state.lastProgressAtMs = nowMs;
+  clearPath(state);
+}
+
 function ensurePath(
   view: BotWorldView,
   state: AmbientPlayerBotBrainState,
