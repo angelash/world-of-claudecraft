@@ -877,7 +877,7 @@ describe('ambient player bot brain', () => {
           mres: 100,
           rtype: 'mana',
           inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders'],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
           qlog: [{ questId: 'q_murlocs', counts: [0], state: 'active' }],
         },
         entities: [
@@ -903,7 +903,7 @@ describe('ambient player bot brain', () => {
         self: {
           lv: 4,
           inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders'],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
           qlog: [{ questId: 'q_murlocs', counts: [5], state: 'active' }],
         },
       }),
@@ -955,6 +955,32 @@ describe('ambient player bot brain', () => {
     expect(result.objectiveId).toBe('grind');
     expect(result.objectiveLabel).toBe('Grinding Wild Boar');
     expect(result.travelGoal?.goalKey).toBe('camp:wild_boar:0');
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('keeps pursuing Greyjaw when later level-6 routes are active but still deferred', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 5,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
+          qlog: [
+            { questId: 'q_supplies', counts: [0], state: 'active' },
+            { questId: 'q_greyjaw', counts: [0], state: 'active' },
+            { questId: 'q_bandits', counts: [0], state: 'active' },
+            { questId: 'q_mine', counts: [0], state: 'active' },
+          ],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_greyjaw');
+    expect(result.objectiveLabel).toBe('Hunting Old Greyjaw');
+    expect(result.travelGoal?.goalKey).toBe('camp:old_greyjaw:0');
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
@@ -1342,7 +1368,7 @@ describe('ambient player bot brain', () => {
         self: {
           lv: 4,
           inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_greyjaw'],
           qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
         },
         entities: [

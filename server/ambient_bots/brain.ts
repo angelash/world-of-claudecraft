@@ -392,16 +392,16 @@ export function tickAmbientPlayerBotBrain(
 function chooseObjective(view: BotWorldView, bot: AmbientPlayerBotRecord): AmbientBotObjective {
   if (view.self.hp <= 0) return { id: 'release', label: 'Releasing spirit' };
 
-  const deferredQuestRoute = deferredActiveQuestRoute(view);
-  const questObjective = deferredQuestRoute ? null : chooseQuestObjective(view);
+  const questObjective = chooseQuestObjective(view);
   const resupplyObjective = chooseResupplyObjective(view, questObjective);
   if (resupplyObjective) return resupplyObjective;
   const gearPurchaseObjective = questObjective?.id.startsWith('turnin_')
     ? null
     : chooseGearPurchaseObjective(view, bot);
   if (gearPurchaseObjective) return gearPurchaseObjective;
-  if (deferredQuestRoute) return grindObjectiveForSelf(view.self);
+  const deferredQuestRoute = deferredActiveQuestRoute(view);
   if (questObjective) return questObjective;
+  if (deferredQuestRoute) return grindObjectiveForSelf(view.self);
 
   if (inventoryHasJunk(view.self.inventory)) {
     const vendorProfile = vendorProfileFor(view.self);
