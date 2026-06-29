@@ -53,6 +53,11 @@ import {
 import type { ZoneDef } from '../sim/data';
 import { formatAuraDuration } from './aura_duration';
 import {
+  auraRenderSignature,
+  isDebuffAura,
+  visiblePartyFrameAuras,
+} from './aura_view';
+import {
   ABILITIES,
   CAMPS,
   CLASSES,
@@ -3751,7 +3756,7 @@ export class Hud {
           );
         }
       }
-      this.renderAuras(this.targetDebuffsEl, target, 'debuffs');
+      this.renderAuras(this.targetDebuffsEl, target, target.hostile ? 'debuffs' : 'all');
       // target/boss cast bar (e.g. Nythraxis' Deathless Rage) — shown under the
       // name + HP so the raid sees exactly when to channel the wardstones
       const tcb = castBarState(target);
@@ -4230,39 +4235,14 @@ export class Hud {
 
   private renderAuras(el: HTMLElement, e: Entity, mode: 'all' | 'debuffs'): void {
     // cheap diff: rebuild only when the aura set changes
-    const sig = e.auras.map((a) => `${a.id}${Math.ceil(a.remaining)}x${a.stacks ?? 0}`).join('|');
+    const sig = auraRenderSignature(e.id, mode, e.auras);
     if ((el as any).__sig === sig) return;
     (el as any).__sig = sig;
     el.innerHTML = '';
     for (const a of e.auras) {
       // A negative-value stat aura (e.g. a mob's Withering Wail sapping attack
       // power, or an Intellect-draining curse) is a debuff even though it reuses a buff_* kind.
-      const isDebuff =
-        [
-          'dot',
-          'slow',
-          'root',
-          'stun',
-          'incapacitate',
-          'polymorph',
-          'attackspeed',
-          'debuff_ap',
-          'sunder',
-          'mortal_wound',
-          'silence',
-          'disarm',
-          'blind',
-          'expose',
-          'spellvuln',
-          'lockout',
-          'vulnerability',
-          'hex',
-          'tongues',
-          'cost_tax',
-          'heal_absorb',
-          'critvuln',
-        ].includes(a.kind) ||
-        (a.kind.startsWith('buff_') && a.value < 0);
+      const isDebuff = isDebuffAura(a);
       if (mode === 'debuffs' && !isDebuff) continue;
       const d = document.createElement('div');
       d.className = `buff${isDebuff ? ' debuff' : ''}`;
@@ -12079,7 +12059,7 @@ export class Hud {
     const myGroup = info.members.find((m) => m.pid === this.sim.playerId)?.group ?? 1;
     const others = selectPartyFrameMembers(info, this.sim.playerId, this.sim.player.pos);
     // include combat/range state so the frames rebuild when a badge changes
-    const sig = `${others.map((m) => `${m.pid}:${m.group}:${m.hp}/${m.mhp}:${m.res}:${m.dead}:${m.inCombat}:${m.oor ? 1 : 0}:${m.level}`).join('|')}L${info.leader}:R${info.raid ? 1 : 0}:G${myGroup}`;
+    const sig = `${others.map((m) => `${m.pid}:${m.group}:${m.hp}/${m.mhp}:${m.res}:${m.dead}:${m.inCombat}:${m.oor ? 1 : 0}:${m.level}:${(m.auras ?? []).map((a) => `${a.id}x${a.stacks ?? 0}`).join(',')}`).join('|')}L${info.leader}:R${info.raid ? 1 : 0}:G${myGroup}`;
     if (sig === this.lastPartySig) return;
     this.lastPartySig = sig;
     el.innerHTML = '';
@@ -12102,15 +12082,34 @@ export class Hud {
       const crest = m.cls
         ? `<img class="pfm-crest" src="${iconDataUrl('crest', `class_${m.cls}`, 20)}" alt="">`
         : '';
+      const auras = visiblePartyFrameAuras(m.auras);
+      const auraHtml = auras.length > 0
+        ? `<div class="pfm-auras">${auras.map((a, idx) => `
+          <div
+            class="pfm-aura"
+            data-aura-idx="${idx}"
+            style="background-image:url(${iconDataUrl('aura', ABILITIES[a.id] ? a.id : `aura_${a.kind}`)})"
+          >${a.stacks && a.stacks > 1 ? `<span class="pfm-aura-stacks">${formatNumber(a.stacks, { maximumFractionDigits: 0 })}</span>` : ''}</div>`).join('')}</div>`
+        : '';
       frame.innerHTML = `
         <div class="pfm-name"><span class="pfm-id">${crest}${esc(m.name)}</span><span class="pfm-meta">${badge}${range}<span class="lead">${info.leader === m.pid ? '★' : ''}${m.level}</span></span></div>
         <div class="bar hp"><div class="bar-fill" style="transform:scaleX(${(m.hp / Math.max(1, m.mhp)).toFixed(3)})"></div></div>
-        <div class="bar ${resClass}"><div class="bar-fill" style="transform:scaleX(${(m.res / Math.max(1, m.mres)).toFixed(3)})"></div></div>`;
+        <div class="bar ${resClass}"><div class="bar-fill" style="transform:scaleX(${(m.res / Math.max(1, m.mres)).toFixed(3)})"></div></div>
+        ${auraHtml}`;
       frame.addEventListener('click', () => this.sim.targetEntity(m.pid));
       frame.addEventListener('contextmenu', (ev) => {
         ev.preventDefault();
         this.openContextMenu(m.pid, m.name, ev.clientX, ev.clientY);
       });
+      for (const auraEl of frame.querySelectorAll<HTMLElement>('.pfm-aura')) {
+        const idx = Number(auraEl.dataset.auraIdx);
+        const aura = auras[idx];
+        if (!aura) continue;
+        const auraName = ABILITIES[aura.id]
+          ? abilityDisplayName(ABILITIES[aura.id])
+          : auraDisplayNameFromSource(aura.name);
+        this.attachTooltip(auraEl, () => `<div class="tt-title">${esc(auraName)}</div>`);
+      }
       el.appendChild(frame);
     }
     const leave = document.createElement('button');

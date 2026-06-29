@@ -388,6 +388,17 @@ describe('parties', () => {
     expect(info.z).toBeCloseTo(-23, 3);
   });
 
+  it('partyInfo carries active buffs so party frames can show teammate auras', () => {
+    const { sim, a, b } = makeDuo();
+    sim.setPlayerLevel(6, b);
+    sim.targetEntity(a, b);
+    sim.castAbility('power_word_shield', b);
+    sim.tick();
+    expect(mustPartyMember(sim, a).auras).toContainEqual(
+      expect.objectContaining({ id: 'power_word_shield', kind: 'absorb' }),
+    );
+  });
+
   it('converts a party to a two-group raid with a ten player cap', () => {
     const sim = makeWorld();
     const leader = sim.addPlayer('warrior', 'Leader');

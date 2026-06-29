@@ -5331,6 +5331,12 @@
   .party-frame .pf-badge { font-size: 10px; line-height: 1; filter: drop-shadow(0 0 2px #000); }
   .party-frame .pf-badge.combat { animation: pf-combat-pulse 1s ease-in-out infinite; }
   .party-frame .bar { height: 9px; margin-top: 2px; }
+  .party-frame .pfm-auras { display: flex; flex-wrap: nowrap; gap: 2px; margin-top: 3px; min-height: 14px; }
+  .party-frame .pfm-aura { position: relative; width: 14px; height: 14px; flex: 0 0 auto; border: 1px solid rgba(113, 86, 32, 0.95);
+    border-radius: 3px; background-position: center; background-repeat: no-repeat; background-size: cover;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55), 0 0 4px rgba(0, 0, 0, 0.35); }
+  .party-frame .pfm-aura-stacks { position: absolute; right: -2px; bottom: -4px; color: var(--gold); font-size: 8px;
+    font-family: var(--title-font); line-height: 1; text-shadow: 1px 1px 2px #000; }
   .party-frame.combat { box-shadow: 0 0 7px #e74c3c99; }
   .party-frame.dead { opacity: 0.7; }
   .party-frame.dead .pfm-id { color: #888 !important; text-shadow: none; }
@@ -6400,6 +6406,21 @@
     height: 5px;
     margin-top: 1px;
   }
+  body.mobile-touch #party-frames .pfm-auras {
+    gap: 1px;
+    margin-top: 2px;
+    min-height: 10px;
+  }
+  body.mobile-touch #party-frames .pfm-aura {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+  }
+  body.mobile-touch #party-frames .pfm-aura-stacks {
+    right: -1px;
+    bottom: -5px;
+    font-size: 7px;
+  }
   body.mobile-touch #party-frames #party-leave {
     width: 132px;
     min-height: 32px;
@@ -7312,6 +7333,16 @@
     }
     body.mobile-touch #party-frames .party-frame .bar {
       height: 4px;
+    }
+    body.mobile-touch #party-frames .pfm-auras {
+      min-height: 9px;
+    }
+    body.mobile-touch #party-frames .pfm-aura {
+      width: 9px;
+      height: 9px;
+    }
+    body.mobile-touch #party-frames .pfm-aura-stacks {
+      font-size: 6px;
     }
     body.mobile-touch #party-frames #party-leave {
       width: 118px;

@@ -15170,6 +15170,16 @@ export class Sim {
                 dead: e.dead ? 1 : 0,
                 inCombat: e.inCombat ? 1 : 0,
                 group: party.raidGroups.get(mPid) ?? 1,
+                auras: e.auras.flatMap((a) =>
+                  a.kind.startsWith('buff_') || a.kind === 'absorb' || a.kind === 'hot'
+                    ? [{
+                        id: a.id,
+                        name: a.name,
+                        kind: a.kind,
+                        ...(a.stacks && a.stacks > 1 ? { stacks: a.stacks } : {}),
+                      }]
+                    : [],
+                ),
               },
             ]
           : [];

@@ -507,7 +507,7 @@ describe('raid party wire', () => {
     fcLeader = fakeWs();
     leader = joinServer(server, fcLeader, 1, 'Leada');
     fcMember = fakeWs();
-    member = joinServer(server, fcMember, 2, 'Memba');
+    member = joinServer(server, fcMember, 2, 'Memba', 'priest');
     // Form a party, then mark it a raid and split into two subgroups. The
     // convert-to-raid command gates on a full five-player party, so we set the
     // raid state directly: this test pins the WIRE serialization, not that gate.
@@ -541,6 +541,24 @@ describe('raid party wire', () => {
     expect(client.partyInfo).not.toBeNull();
     expect(client.partyInfo?.raid).toBe(true);
     expect(client.partyInfo?.members.find((m) => m.pid === member.pid)?.group).toBe(2);
+  });
+
+  it('self.party wire carries teammate buff summaries for party frames', () => {
+    server.sim.setPlayerLevel(6, member.pid);
+    server.sim.targetEntity(leader.pid, member.pid);
+    server.sim.castAbility('power_word_shield', member.pid);
+    server.sim.tick();
+    broadcast(server);
+    const snap = lastSnap(fcLeader.sent);
+    const memberWire = snap.self.party.members.find((m: any) => m.pid === leader.pid);
+    expect(memberWire.auras).toContainEqual(
+      expect.objectContaining({ id: 'power_word_shield', kind: 'absorb' }),
+    );
+    const client = bareClient(member.pid);
+    (client as any).applySnapshot(snap);
+    expect(client.partyInfo?.members.find((m) => m.pid === leader.pid)?.auras).toContainEqual(
+      expect.objectContaining({ id: 'power_word_shield', kind: 'absorb' }),
+    );
   });
 });
 

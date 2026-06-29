@@ -3,6 +3,7 @@ import type { LeaderboardPage } from './sim/leaderboard_page';
 import type { Ante, LootTier, PickAction, VisibleCell } from './sim/lockpick';
 import type { ResolvedAbility } from './sim/sim';
 import {
+  type AuraKind,
   type ArenaCombatant,
   type ArenaFormat,
   type ArenaStanding,
@@ -24,6 +25,13 @@ import {
 
 export type { LeaderboardPage } from './sim/leaderboard_page';
 
+export interface PartyAuraInfo {
+  id: string;
+  name: string;
+  kind: AuraKind;
+  stacks?: number;
+}
+
 export interface PartyMemberInfo {
   pid: number;
   name: string;
@@ -39,6 +47,7 @@ export interface PartyMemberInfo {
   dead: number;
   inCombat: number;
   group: 1 | 2;
+  auras?: PartyAuraInfo[];
 }
 
 export interface PartyInfo {
