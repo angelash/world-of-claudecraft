@@ -631,6 +631,9 @@ export const ru_RU: EnTranslations = {
       "objectiveLabel": "Objective",
       "resumeOnLogin": "Resume on Login",
       "actionLogLabel": "Журнал действий",
+      "autoInviteNearbyLabel": "Auto Invite Nearby Players",
+      "autoInviteTargetPartySizeLabel": "Auto-Invite Target Party Size",
+      "autoInviteTargetPartySizeAria": "Invite until the party reaches {count} players",
       "partyModeLabel": "Party Mode",
       "partyModeStatusLabel": "Party Behavior",
       "groupModeLabel": "Current Group State",
@@ -653,6 +656,7 @@ export const ru_RU: EnTranslations = {
       "statusLoadFailed": "Could not load hosted-play status right now.",
       "updateFailed": "Could not update hosted play right now.",
       "settingsSaveFailed": "Could not save hosted-play settings right now.",
+      "serverRestartRequired": "Hosted-play needs a local server restart before this toggle can work.",
       "objectiveNone": "No active objective",
       "enable": "Enable Hosted Play",
       "disable": "Disable Hosted Play",
@@ -755,6 +759,7 @@ export const ru_RU: EnTranslations = {
         "brain": "Running the normal progression brain",
         "followLeader": "Following the party leader",
         "holdRegroup": "Holding for party regroup",
+        "inviteNearby": "Inviting nearby players",
         "prepareParty": "Holding for battle preparation"
       },
       "llmStatus": {

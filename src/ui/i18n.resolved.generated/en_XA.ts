@@ -631,6 +631,9 @@ export const en_XA: EnTranslations = {
       "objectiveLabel": "[Óƀĵéçţíʋé]",
       "resumeOnLogin": "[Ŕéšúɱé óñ Ļóĝíñ]",
       "actionLogLabel": "[Çĥáţ Áçţíóñ Ļóĝ]",
+      "autoInviteNearbyLabel": "[Áúţó Íñʋíţé Ñéáŕƀý Þļáýéŕš]",
+      "autoInviteTargetPartySizeLabel": "[Áúţó-Íñʋíţé Ţáŕĝéţ Þáŕţý Šížé]",
+      "autoInviteTargetPartySizeAria": "[Íñʋíţé úñţíļ ţĥé þáŕţý ŕéáçĥéš {count} þļáýéŕš]",
       "partyModeLabel": "[Þáŕţý Ɱóðé]",
       "partyModeStatusLabel": "[Þáŕţý Ɓéĥáʋíóŕ]",
       "groupModeLabel": "[Çúŕŕéñţ Ĝŕóúþ Šţáţé]",
@@ -653,6 +656,7 @@ export const en_XA: EnTranslations = {
       "statusLoadFailed": "[Çóúļð ñóţ ļóáð ĥóšţéð-þļáý šţáţúš ŕíĝĥţ ñóŵ.]",
       "updateFailed": "[Çóúļð ñóţ úþðáţé ĥóšţéð þļáý ŕíĝĥţ ñóŵ.]",
       "settingsSaveFailed": "[Çóúļð ñóţ šáʋé ĥóšţéð-þļáý šéţţíñĝš ŕíĝĥţ ñóŵ.]",
+      "serverRestartRequired": "[Ĥóšţéð-þļáý ñééðš á ļóçáļ šéŕʋéŕ ŕéšţáŕţ ƀéƒóŕé ţĥíš ţóĝĝļé çáñ ŵóŕķ.]",
       "objectiveNone": "[Ñó áçţíʋé óƀĵéçţíʋé]",
       "enable": "[Éñáƀļé Ĥóšţéð Þļáý]",
       "disable": "[Ðíšáƀļé Ĥóšţéð Þļáý]",
@@ -755,6 +759,7 @@ export const en_XA: EnTranslations = {
         "brain": "[Ŕúññíñĝ ţĥé ñóŕɱáļ þŕóĝŕéššíóñ ƀŕáíñ]",
         "followLeader": "[Ƒóļļóŵíñĝ ţĥé þáŕţý ļéáðéŕ]",
         "holdRegroup": "[Ĥóļðíñĝ ƒóŕ þáŕţý ŕéĝŕóúþ]",
+        "inviteNearby": "[Íñʋíţíñĝ ñéáŕƀý þļáýéŕš]",
         "prepareParty": "[Ĥóļðíñĝ ƒóŕ ƀáţţļé þŕéþáŕáţíóñ]"
       },
       "llmStatus": {

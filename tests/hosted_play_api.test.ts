@@ -51,6 +51,8 @@ describe('Api hosted-play helpers', () => {
       resumeOnLogin: false,
       partyMode: 'solo',
       actionLogEnabled: true,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
       groupMode: '',
       groupLeaderName: '',
       groupLeaderDistance: 0,
@@ -131,6 +133,8 @@ describe('Api hosted-play helpers', () => {
         resumeOnLogin: true,
         partyMode: 'follow_leader',
         actionLogEnabled: false,
+        autoInviteNearbyPlayers: true,
+        autoInviteNearbyTargetPartySize: 4,
       }),
     } as Response);
 
@@ -142,11 +146,15 @@ describe('Api hosted-play helpers', () => {
       resumeOnLogin: true,
       partyMode: 'follow_leader',
       actionLogEnabled: false,
+      autoInviteNearbyPlayers: true,
+      autoInviteNearbyTargetPartySize: 4,
     });
     expect(result).toMatchObject({
       resumeOnLogin: true,
       partyMode: 'follow_leader',
       actionLogEnabled: false,
+      autoInviteNearbyPlayers: true,
+      autoInviteNearbyTargetPartySize: 4,
     });
     expect(fetchSpy).toHaveBeenCalledWith(
       'https://realm.example/api/characters/7/hosted-play/settings',
@@ -156,6 +164,8 @@ describe('Api hosted-play helpers', () => {
           resumeOnLogin: true,
           partyMode: 'follow_leader',
           actionLogEnabled: false,
+          autoInviteNearbyPlayers: true,
+          autoInviteNearbyTargetPartySize: 4,
         }),
       }),
     );

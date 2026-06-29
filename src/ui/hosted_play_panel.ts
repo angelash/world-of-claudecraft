@@ -1,5 +1,10 @@
 import { audio } from '../game/audio';
+import {
+  HOSTED_PLAY_AUTO_INVITE_MIN_PARTY_SIZE,
+  HOSTED_PLAY_AUTO_INVITE_TARGET_PARTY_SIZES,
+} from '../hosted_play_settings';
 import { esc } from './esc';
+import { HostedPlayCompatibilityError } from './hosted_play_status_view';
 import { formatDateTime, formatNumber, t } from './i18n';
 import { svgIcon } from './ui_icons';
 
@@ -31,6 +36,7 @@ export interface HostedPlaySettingsView {
   partyMode: HostedPlayPartyModeView;
   actionLogEnabled: boolean;
   autoInviteNearbyPlayers: boolean;
+  autoInviteNearbyTargetPartySize: number;
 }
 
 export interface HostedPlayDebugPointView {
@@ -267,6 +273,30 @@ export function renderHostedPlayPanel(
   autoInviteRow.append(autoInviteLabel, autoInviteBtn);
   settings.appendChild(autoInviteRow);
 
+  const autoInviteTargetRow = document.createElement('div');
+  autoInviteTargetRow.className = 'set-row';
+  const autoInviteTargetLabel = document.createElement('span');
+  autoInviteTargetLabel.className = 'set-name';
+  autoInviteTargetLabel.textContent = t('hudChrome.hostedPlay.autoInviteTargetPartySizeLabel');
+  const autoInviteTargetChoices = document.createElement('div');
+  autoInviteTargetChoices.className = 'set-choice';
+  const autoInviteTargetButtons = HOSTED_PLAY_AUTO_INVITE_TARGET_PARTY_SIZES.map((size) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn set-choice-btn';
+    button.textContent = formatNumber(size, { maximumFractionDigits: 0 });
+    button.setAttribute(
+      'aria-label',
+      t('hudChrome.hostedPlay.autoInviteTargetPartySizeAria', {
+        count: formatNumber(size, { maximumFractionDigits: 0 }),
+      }),
+    );
+    autoInviteTargetChoices.appendChild(button);
+    return { button, size };
+  });
+  autoInviteTargetRow.append(autoInviteTargetLabel, autoInviteTargetChoices);
+  settings.appendChild(autoInviteTargetRow);
+
   const partyRow = document.createElement('div');
   partyRow.className = 'set-row';
   const partyLabel = document.createElement('span');
@@ -340,6 +370,15 @@ export function renderHostedPlayPanel(
     autoInviteBtn.classList.toggle('off', !autoInviteNearbyPlayers);
     autoInviteBtn.setAttribute('aria-pressed', String(autoInviteNearbyPlayers));
     autoInviteBtn.setAttribute('aria-label', t('hudChrome.hostedPlay.autoInviteNearbyLabel'));
+
+    const autoInviteNearbyTargetPartySize =
+      currentStatus?.autoInviteNearbyTargetPartySize ?? HOSTED_PLAY_AUTO_INVITE_MIN_PARTY_SIZE;
+    for (const { button, size } of autoInviteTargetButtons) {
+      const selected = autoInviteNearbyTargetPartySize === size;
+      button.disabled = pending || !currentStatus;
+      button.classList.toggle('sel', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    }
 
     const partyMode = currentStatus?.partyMode ?? 'solo';
     for (const [button, mode] of [
@@ -467,6 +506,10 @@ export function renderHostedPlayPanel(
       t('hudChrome.hostedPlay.autoInviteNearbyLabel'),
       status.autoInviteNearbyPlayers ? t('hud.options.on') : t('hud.options.off'),
     );
+    appendRow(
+      t('hudChrome.hostedPlay.autoInviteTargetPartySizeLabel'),
+      formatNumber(status.autoInviteNearbyTargetPartySize, { maximumFractionDigits: 0 }),
+    );
     appendRow(t('hudChrome.hostedPlay.partyModeStatusLabel'), partyModeText(status));
     appendRow(t('hudChrome.hostedPlay.groupModeLabel'), groupModeText(status));
     if (status.groupLeaderName) {
@@ -533,7 +576,9 @@ export function renderHostedPlayPanel(
       renderStatus(await action());
     } catch (err) {
       console.error('hosted play panel request failed:', err);
-      message.textContent = t(failureKey);
+      message.textContent = err instanceof HostedPlayCompatibilityError
+        ? t('hudChrome.hostedPlay.serverRestartRequired')
+        : t(failureKey);
     } finally {
       pending = false;
       syncControls();
@@ -551,6 +596,8 @@ export function renderHostedPlayPanel(
           actionLogEnabled: patch.actionLogEnabled ?? status.actionLogEnabled,
           autoInviteNearbyPlayers:
             patch.autoInviteNearbyPlayers ?? status.autoInviteNearbyPlayers,
+          autoInviteNearbyTargetPartySize:
+            patch.autoInviteNearbyTargetPartySize ?? status.autoInviteNearbyTargetPartySize,
         }),
       'hudChrome.hostedPlay.settingsSaveFailed',
     );
@@ -586,6 +633,12 @@ export function renderHostedPlayPanel(
     audio.click();
     updateSettings({ autoInviteNearbyPlayers: !currentStatus?.autoInviteNearbyPlayers });
   });
+  for (const { button, size } of autoInviteTargetButtons) {
+    button.addEventListener('click', () => {
+      audio.click();
+      updateSettings({ autoInviteNearbyTargetPartySize: size });
+    });
+  }
   partySoloBtn.addEventListener('click', () => {
     audio.click();
     updateSettings({ partyMode: 'solo' });

@@ -70,6 +70,11 @@ const hostedPlayDeDE: LocaleSupplement = {
 
 const hostedPlayZhCN: LocaleSupplement = {
   'hudChrome.hostedPlay.actionLogLabel': '聊天行为日志',
+  'hudChrome.hostedPlay.autoInviteNearbyLabel': '自动邀请附近玩家',
+  'hudChrome.hostedPlay.autoInviteTargetPartySizeLabel': '自动邀请目标队伍人数',
+  'hudChrome.hostedPlay.autoInviteTargetPartySizeAria': '邀请到队伍达到 {count} 人',
+  'hudChrome.hostedPlay.serverRestartRequired': '托管后端还是旧版本，重启本地联机服务后这个开关才会生效。',
+  'hudChrome.hostedPlay.groupMode.inviteNearby': '正在邀请附近玩家',
   'hudChrome.hostedPlay.socialAction.friendAdd': '已将 {name} 加入好友',
   'hudChrome.hostedPlay.log.accept': '托管：前往接取 {quest}。',
   'hudChrome.hostedPlay.log.questWork': '托管：正在推进 {quest}。',
@@ -87,6 +92,11 @@ const hostedPlayZhCN: LocaleSupplement = {
 
 const hostedPlayZhTW: LocaleSupplement = {
   'hudChrome.hostedPlay.actionLogLabel': '聊天行為日誌',
+  'hudChrome.hostedPlay.autoInviteNearbyLabel': '自動邀請附近玩家',
+  'hudChrome.hostedPlay.autoInviteTargetPartySizeLabel': '自動邀請目標隊伍人數',
+  'hudChrome.hostedPlay.autoInviteTargetPartySizeAria': '邀請到隊伍達到 {count} 人',
+  'hudChrome.hostedPlay.serverRestartRequired': '託管後端還是舊版本，重新啟動本地連線服務後這個開關才會生效。',
+  'hudChrome.hostedPlay.groupMode.inviteNearby': '正在邀請附近玩家',
   'hudChrome.hostedPlay.socialAction.friendAdd': '已將 {name} 加入好友',
   'hudChrome.hostedPlay.log.accept': '託管：前往接取 {quest}。',
   'hudChrome.hostedPlay.log.questWork': '託管：正在推進 {quest}。',

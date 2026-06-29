@@ -100,6 +100,7 @@ export interface HostedPlaySettings {
   partyMode: HostedPlayPartyMode;
   actionLogEnabled: boolean;
   autoInviteNearbyPlayers: boolean;
+  autoInviteNearbyTargetPartySize: number;
 }
 
 export interface HostedPlayDebugPoint {
@@ -229,6 +230,7 @@ export interface HostedPlayStatus {
   partyMode: HostedPlayPartyMode;
   actionLogEnabled: boolean;
   autoInviteNearbyPlayers: boolean;
+  autoInviteNearbyTargetPartySize: number;
   groupMode: HostedPlayGroupMode;
   groupLeaderName: string;
   groupLeaderDistance: number;

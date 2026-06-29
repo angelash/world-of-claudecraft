@@ -425,6 +425,7 @@ describe('hosted-play party coordinator', () => {
         playerClass: 'warrior',
         partyMode: 'solo',
         autoInviteNearbyPlayers: true,
+        autoInviteNearbyTargetPartySize: 5,
         objectiveSuggestedPartySize: 5,
         ambientDirectory: [],
         nowMs: 5_000,
@@ -437,6 +438,85 @@ describe('hosted-play party coordinator', () => {
       pauseBrainDrive: false,
       groupMode: 'invite_nearby',
       groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+  });
+
+  it('invites a nearby player even when the current objective does not require a full group', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          nm: 'Hero',
+          x: 100,
+          z: 100,
+          party: null,
+        }),
+        entities: [
+          { id: 202, k: 'player', nm: 'Nearby', x: 108, z: 100, dead: 0 },
+        ],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'solo',
+        autoInviteNearbyPlayers: true,
+        autoInviteNearbyTargetPartySize: 3,
+        objectiveSuggestedPartySize: 0,
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [{ cmd: 'pinvite', id: 202 }],
+      pauseBrainDrive: false,
+      groupMode: 'invite_nearby',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+  });
+
+  it('stops inviting once the configured target party size has been reached', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          nm: 'Hero',
+          x: 100,
+          z: 100,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Hero', cls: 'warrior', level: 12, hp: 100, mhp: 100, res: 0, mres: 0, rtype: 'rage', x: 100, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Ally', cls: 'priest', level: 12, hp: 90, mhp: 90, res: 120, mres: 120, rtype: 'mana', x: 102, z: 100, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 202, k: 'player', nm: 'Nearby', x: 108, z: 100, dead: 0 },
+        ],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'solo',
+        autoInviteNearbyPlayers: true,
+        autoInviteNearbyTargetPartySize: 2,
+        objectiveSuggestedPartySize: 5,
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: false,
+      groupMode: '',
+      groupLeaderName: '',
       groupLeaderDistance: 0,
     });
   });
@@ -471,6 +551,7 @@ describe('hosted-play party coordinator', () => {
         playerClass: 'mage',
         partyMode: 'follow_leader',
         autoInviteNearbyPlayers: true,
+        autoInviteNearbyTargetPartySize: 5,
         objectiveSuggestedPartySize: 5,
         ambientDirectory: [],
         nowMs: 5_000,

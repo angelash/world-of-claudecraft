@@ -1,4 +1,8 @@
 import type { PlayerClass } from '../../src/sim/types';
+import {
+  HOSTED_PLAY_AUTO_INVITE_MIN_PARTY_SIZE,
+  type HostedPlayAutoInviteTargetPartySize,
+} from '../../src/hosted_play_settings';
 import type { AmbientPlayerBotLlmDecisionStatus } from '../ambient_bots/types';
 
 export type HostedPlayMode =
@@ -30,6 +34,7 @@ export interface HostedPlayPreferences {
   partyMode: HostedPlayPartyMode;
   actionLogEnabled: boolean;
   autoInviteNearbyPlayers: boolean;
+  autoInviteNearbyTargetPartySize: HostedPlayAutoInviteTargetPartySize;
 }
 
 export interface HostedPlaySessionInfo {
@@ -165,6 +170,7 @@ export interface HostedPlayStatusSnapshot {
   partyMode: HostedPlayPartyMode;
   actionLogEnabled: boolean;
   autoInviteNearbyPlayers: boolean;
+  autoInviteNearbyTargetPartySize: HostedPlayAutoInviteTargetPartySize;
   groupMode: HostedPlayGroupMode;
   groupLeaderName: string;
   groupLeaderDistance: number;
@@ -187,9 +193,10 @@ export interface HostedPlayStatusSnapshot {
 
 export function defaultHostedPlayPreferences(): HostedPlayPreferences {
   return {
-  resumeOnLogin: false,
-  partyMode: 'solo',
-  actionLogEnabled: true,
-  autoInviteNearbyPlayers: false,
+    resumeOnLogin: false,
+    partyMode: 'solo',
+    actionLogEnabled: true,
+    autoInviteNearbyPlayers: false,
+    autoInviteNearbyTargetPartySize: HOSTED_PLAY_AUTO_INVITE_MIN_PARTY_SIZE,
   };
 }

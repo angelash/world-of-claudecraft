@@ -19,6 +19,7 @@ import {
 } from '../ambient_bots/social';
 import type { AmbientPlayerBotLlmConfig, AmbientPlayerBotRecord } from '../ambient_bots/types';
 import type { AmbientPlayerBotLiveState } from '../ambient_bots/ws_client';
+import { normalizeHostedPlayAutoInviteTargetPartySize } from '../../src/hosted_play_settings';
 import { zoneAt } from '../../src/sim/data';
 import type { SimEvent } from '../../src/sim/types';
 import {
@@ -195,6 +196,7 @@ export class HostedPlayRuntime {
       partyMode: preferences.partyMode,
       actionLogEnabled: preferences.actionLogEnabled,
       autoInviteNearbyPlayers: preferences.autoInviteNearbyPlayers,
+      autoInviteNearbyTargetPartySize: preferences.autoInviteNearbyTargetPartySize,
       groupMode: entry?.groupMode ?? '',
       groupLeaderName: entry?.groupLeaderName ?? '',
       groupLeaderDistance: entry?.groupLeaderDistance ?? 0,
@@ -367,6 +369,7 @@ export class HostedPlayRuntime {
         playerClass: info.playerClass,
         partyMode: entry.preferences.partyMode,
         autoInviteNearbyPlayers: entry.preferences.autoInviteNearbyPlayers,
+        autoInviteNearbyTargetPartySize: entry.preferences.autoInviteNearbyTargetPartySize,
         objectiveSuggestedPartySize: result.objectiveSuggestedPartySize ?? 0,
         ambientDirectory: this.game.ambientPlayerBotDirectory(),
         nowMs,
@@ -882,6 +885,9 @@ function hostedPlayPreferencesWithDefaults(
     actionLogEnabled: preferences.actionLogEnabled ?? defaults.actionLogEnabled,
     autoInviteNearbyPlayers:
       preferences.autoInviteNearbyPlayers ?? defaults.autoInviteNearbyPlayers,
+    autoInviteNearbyTargetPartySize: normalizeHostedPlayAutoInviteTargetPartySize(
+      preferences.autoInviteNearbyTargetPartySize ?? defaults.autoInviteNearbyTargetPartySize,
+    ),
   };
 }
 

@@ -185,9 +185,12 @@ behavior, optimize for re-mergeability:
   change affects server runtime code, bundled output, environment-controlled
   behavior, WebSocket protocol handling, or any path that a running process only
   reads at startup, restart the affected local service yourself before reporting
-  success. Check the listening ports/processes, restart `npm run server` for
+  success. Do this automatically, do not wait for the operator to ask. Check the listening ports/processes, restart `npm run server` for
   authoritative-server changes, keep or reload `npm run dev` as needed for client
   changes, then verify against the live online path rather than only unit tests.
+- If an automatic restart is blocked by the current session, such as a port that
+  stays occupied or a process you cannot stop, report the exact blocker with the
+  relevant process ids or ports instead of silently skipping the restart.
 - For this fork's real-device or multiplayer sessions, start and restart the local
   stack through `node scripts/online_lan.mjs` (use `--restart` when replacing an
   existing pair). Do not spin up localhost-only variants such as `--host 127.0.0.1`.

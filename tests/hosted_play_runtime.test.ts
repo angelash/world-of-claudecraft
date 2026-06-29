@@ -197,6 +197,7 @@ describe('HostedPlayRuntime', () => {
       partyMode: 'follow_leader',
       actionLogEnabled: false,
       autoInviteNearbyPlayers: true,
+      autoInviteNearbyTargetPartySize: 4,
     });
     (runtime as any).tick();
 
@@ -207,6 +208,7 @@ describe('HostedPlayRuntime', () => {
       partyMode: 'follow_leader',
       actionLogEnabled: false,
       autoInviteNearbyPlayers: true,
+      autoInviteNearbyTargetPartySize: 4,
       groupMode: 'follow_leader',
       groupLeaderName: 'Branoraaa',
       groupLeaderDistance: 18,
@@ -227,6 +229,7 @@ describe('HostedPlayRuntime', () => {
       partyMode: 'follow_leader',
       actionLogEnabled: false,
       autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
     });
     (runtime as any).tick();
 
@@ -266,6 +269,7 @@ describe('HostedPlayRuntime', () => {
       partyMode: 'follow_leader',
       actionLogEnabled: false,
       autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
     });
     (runtime as any).tick();
 
@@ -315,6 +319,7 @@ describe('HostedPlayRuntime', () => {
       partyMode: 'follow_leader',
       actionLogEnabled: false,
       autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
     });
     (runtime as any).tick();
 
@@ -344,6 +349,7 @@ describe('HostedPlayRuntime', () => {
       partyMode: 'solo',
       actionLogEnabled: true,
       autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
     });
     (runtime as any).tick();
     nowMs += 250;
@@ -364,6 +370,7 @@ describe('HostedPlayRuntime', () => {
       partyMode: 'solo',
       actionLogEnabled: false,
       autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
     });
     (runtime as any).tick();
 

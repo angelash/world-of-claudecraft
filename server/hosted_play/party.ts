@@ -1,6 +1,10 @@
 import type { PartyInfo } from '../../src/world_api';
 import type { SimEvent } from '../../src/sim/types';
 import type { PlayerClass } from '../../src/sim/types';
+import {
+  normalizeHostedPlayAutoInviteTargetPartySize,
+  type HostedPlayAutoInviteTargetPartySize,
+} from '../../src/hosted_play_settings';
 import { distanceBetweenPartyMembers, type PartyTravelGoal, findPartyCombatTarget, partyAssistArrivalRange, travelGoalToPartyMember, travelGoalToPartyTarget } from '../party_coordination';
 import {
   maybeCoordinateAmbientPartySupport,
@@ -39,6 +43,7 @@ export interface HostedPlayPartyTickInput {
   playerClass: PlayerClass;
   partyMode: HostedPlayPartyMode;
   autoInviteNearbyPlayers?: boolean;
+  autoInviteNearbyTargetPartySize?: HostedPlayAutoInviteTargetPartySize;
   objectiveSuggestedPartySize?: number;
   ambientDirectory: readonly AmbientPlayerBotRecord[];
   nowMs: number;
@@ -322,8 +327,10 @@ function maybeInviteNearbyPlayer(
   party: PartyInfo | null,
 ): HostedPlayPartyTickResult | null {
   if (input.autoInviteNearbyPlayers !== true) return null;
-  const targetPartySize = hostedPlayTargetPartySize(input.objectiveSuggestedPartySize ?? 0);
-  if (targetPartySize <= 1) return null;
+  const fallbackPartySize = Math.max(2, hostedPlayTargetPartySize(input.objectiveSuggestedPartySize ?? 0));
+  const targetPartySize = normalizeHostedPlayAutoInviteTargetPartySize(
+    input.autoInviteNearbyTargetPartySize ?? fallbackPartySize,
+  );
   const selfId = readSelfId(input.liveSelf);
   const selfName = readSelfName(input.liveSelf);
   if (selfId <= 0 || memberIsDead(input.liveSelf) || memberInCombatLive(input.liveSelf)) return null;

@@ -118,6 +118,7 @@ import {
   tPlural,
 } from './ui/i18n';
 import { iconDataUrl } from './ui/icons';
+import { hostedPlayStatusView } from './ui/hosted_play_status_view';
 import { createMetricsSampler } from './ui/perf_metrics_sampler';
 import { PerfOverlay } from './ui/perf_overlay';
 import { type PerfOverlayConfig, PerfOverlayConfigStore } from './ui/perf_overlay_config';
@@ -337,41 +338,6 @@ function userFacingApiError(err: unknown): string {
   // Transport/runtime failures are diagnostic code errors. Preserve their
   // English source text so browser logs and support reports match exactly.
   return text;
-}
-
-function hostedPlayStatusView(status: Awaited<ReturnType<Api['hostedPlayStatus']>>) {
-  return {
-    online: status.online,
-    enabled: status.enabled,
-    active: status.active,
-    paused: status.paused,
-    mode: status.mode,
-    objectiveLabel: status.objectiveLabel,
-    pauseReason: status.pauseReason,
-    pauseSecondsRemaining: status.pauseSecondsRemaining,
-    lastError: status.lastError,
-    resumeOnLogin: status.resumeOnLogin,
-    partyMode: status.partyMode,
-    actionLogEnabled: status.actionLogEnabled,
-    groupMode: status.groupMode,
-    groupLeaderName: status.groupLeaderName,
-    groupLeaderDistance: status.groupLeaderDistance,
-    socialPendingReplies: status.socialPendingReplies,
-    socialFriends: status.socialFriends,
-    socialBlocks: status.socialBlocks,
-    lastWhisperFrom: status.lastWhisperFrom,
-    lastSocialAction: status.lastSocialAction,
-    llmEnabled: status.llmEnabled,
-    llmPlanPending: status.llmPlanPending,
-    llmPlanMode: status.llmPlanMode,
-    llmPlanFocus: status.llmPlanFocus,
-    llmPlanStatus: status.llmPlanStatus,
-    llmPlanReason: status.llmPlanReason,
-    llmSocialStatus: status.llmSocialStatus,
-    llmSocialReason: status.llmSocialReason,
-    llmSocialTarget: status.llmSocialTarget,
-    debug: status.debug,
-  };
 }
 
 // --- Cloudflare Turnstile (bot gate on the login/register form) ---------------

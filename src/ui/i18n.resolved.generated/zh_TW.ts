@@ -631,6 +631,9 @@ export const zh_TW: EnTranslations = {
       "objectiveLabel": "目標",
       "resumeOnLogin": "登入後恢復",
       "actionLogLabel": "聊天行為日誌",
+      "autoInviteNearbyLabel": "自動邀請附近玩家",
+      "autoInviteTargetPartySizeLabel": "自動邀請目標隊伍人數",
+      "autoInviteTargetPartySizeAria": "邀請到隊伍達到 {count} 人",
       "partyModeLabel": "隊伍模式",
       "partyModeStatusLabel": "隊伍行為",
       "groupModeLabel": "目前隊伍狀態",
@@ -653,6 +656,7 @@ export const zh_TW: EnTranslations = {
       "statusLoadFailed": "目前無法載入託管狀態。",
       "updateFailed": "目前無法更新託管狀態。",
       "settingsSaveFailed": "目前無法儲存託管設定。",
+      "serverRestartRequired": "託管後端還是舊版本，重新啟動本地連線服務後這個開關才會生效。",
       "objectiveNone": "暫無活動目標",
       "enable": "啟用託管遊玩",
       "disable": "停用託管遊玩",
@@ -755,6 +759,7 @@ export const zh_TW: EnTranslations = {
         "brain": "正在執行常規推進邏輯",
         "followLeader": "正在跟隨隊長",
         "holdRegroup": "正在等待隊伍重新集合",
+        "inviteNearby": "正在邀請附近玩家",
         "prepareParty": "Holding for battle preparation"
       },
       "llmStatus": {

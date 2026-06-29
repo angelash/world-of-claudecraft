@@ -631,6 +631,9 @@ export const zh_CN: EnTranslations = {
       "objectiveLabel": "目标",
       "resumeOnLogin": "登录后恢复",
       "actionLogLabel": "聊天行为日志",
+      "autoInviteNearbyLabel": "自动邀请附近玩家",
+      "autoInviteTargetPartySizeLabel": "自动邀请目标队伍人数",
+      "autoInviteTargetPartySizeAria": "邀请到队伍达到 {count} 人",
       "partyModeLabel": "队伍模式",
       "partyModeStatusLabel": "队伍行为",
       "groupModeLabel": "当前队伍状态",
@@ -653,6 +656,7 @@ export const zh_CN: EnTranslations = {
       "statusLoadFailed": "现在无法加载托管状态。",
       "updateFailed": "现在无法更新托管状态。",
       "settingsSaveFailed": "现在无法保存托管设置。",
+      "serverRestartRequired": "托管后端还是旧版本，重启本地联机服务后这个开关才会生效。",
       "objectiveNone": "暂无活动目标",
       "enable": "启用托管游玩",
       "disable": "停用托管游玩",
@@ -755,6 +759,7 @@ export const zh_CN: EnTranslations = {
         "brain": "正在运行常规推进逻辑",
         "followLeader": "正在跟随队长",
         "holdRegroup": "正在等待队伍重新集合",
+        "inviteNearby": "正在邀请附近玩家",
         "prepareParty": "Holding for battle preparation"
       },
       "llmStatus": {

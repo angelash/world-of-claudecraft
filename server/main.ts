@@ -12,6 +12,7 @@ import { Sim } from '../src/sim/sim';
 import type { PlayerClass } from '../src/sim/types';
 import { virtualLevel } from '../src/sim/types';
 import type { LeaderboardEntry } from '../src/world_api';
+import { isHostedPlayAutoInviteTargetPartySize } from '../src/hosted_play_settings';
 import {
   handleAccount2faDisable,
   handleAccount2faEnable,
@@ -465,6 +466,8 @@ function hostedPlayStatusPayload(
     resumeOnLogin: preferences.resumeOnLogin,
     partyMode: preferences.partyMode,
     actionLogEnabled: preferences.actionLogEnabled,
+    autoInviteNearbyPlayers: preferences.autoInviteNearbyPlayers,
+    autoInviteNearbyTargetPartySize: preferences.autoInviteNearbyTargetPartySize,
   };
 }
 
@@ -478,10 +481,17 @@ async function readHostedPlayPreferencesBody(
 ): Promise<HostedPlayPreferences | null> {
   const body = await readBody(req);
   const partyMode = parseHostedPlayPartyMode(body.partyMode);
+  const autoInviteNearbyTargetPartySize = isHostedPlayAutoInviteTargetPartySize(
+    body.autoInviteNearbyTargetPartySize,
+  )
+    ? body.autoInviteNearbyTargetPartySize
+    : null;
   if (
     typeof body.resumeOnLogin !== 'boolean'
     || !partyMode
     || typeof body.actionLogEnabled !== 'boolean'
+    || typeof body.autoInviteNearbyPlayers !== 'boolean'
+    || autoInviteNearbyTargetPartySize === null
   ) {
     return null;
   }
@@ -489,6 +499,8 @@ async function readHostedPlayPreferencesBody(
     resumeOnLogin: body.resumeOnLogin,
     partyMode,
     actionLogEnabled: body.actionLogEnabled,
+    autoInviteNearbyPlayers: body.autoInviteNearbyPlayers,
+    autoInviteNearbyTargetPartySize,
   };
 }
 

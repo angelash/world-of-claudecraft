@@ -74,6 +74,8 @@ describe('hosted-play preferences', () => {
         hosted_play_resume_on_login: true,
         hosted_play_party_mode: 'follow_leader',
         hosted_play_action_log_enabled: false,
+        hosted_play_auto_invite_nearby: true,
+        hosted_play_auto_invite_target_party_size: 4,
       }],
     } as any);
 
@@ -81,12 +83,16 @@ describe('hosted-play preferences', () => {
       resumeOnLogin: true,
       partyMode: 'follow_leader',
       actionLogEnabled: false,
+      autoInviteNearbyPlayers: true,
+      autoInviteNearbyTargetPartySize: 4,
     });
 
     const [sql, params] = dbMock.query.mock.calls[0];
     expect(sql).toContain('hosted_play_resume_on_login');
     expect(sql).toContain('hosted_play_party_mode');
     expect(sql).toContain('hosted_play_action_log_enabled');
+    expect(sql).toContain('hosted_play_auto_invite_nearby');
+    expect(sql).toContain('hosted_play_auto_invite_target_party_size');
     expect(params).toEqual([42, REALM]);
   });
 
@@ -96,6 +102,8 @@ describe('hosted-play preferences', () => {
         hosted_play_resume_on_login: false,
         hosted_play_party_mode: 'solo',
         hosted_play_action_log_enabled: true,
+        hosted_play_auto_invite_nearby: false,
+        hosted_play_auto_invite_target_party_size: 2,
       }],
       rowCount: 1,
     } as any);
@@ -104,10 +112,14 @@ describe('hosted-play preferences', () => {
       resumeOnLogin: false,
       partyMode: 'solo',
       actionLogEnabled: true,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
     })).resolves.toEqual({
       resumeOnLogin: false,
       partyMode: 'solo',
       actionLogEnabled: true,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
     });
 
     const [sql, params] = dbMock.query.mock.calls[0];
@@ -115,7 +127,9 @@ describe('hosted-play preferences', () => {
     expect(sql).toMatch(/hosted_play_resume_on_login/);
     expect(sql).toMatch(/hosted_play_party_mode/);
     expect(sql).toMatch(/hosted_play_action_log_enabled/);
-    expect(params).toEqual([42, 7, false, 'solo', true, REALM]);
+    expect(sql).toMatch(/hosted_play_auto_invite_nearby/);
+    expect(sql).toMatch(/hosted_play_auto_invite_target_party_size/);
+    expect(params).toEqual([42, 7, false, 'solo', true, false, 2, REALM]);
   });
 });
 

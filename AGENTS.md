@@ -121,8 +121,9 @@ executable before running the check.
 - Treat the database the same way: live online and admin checks must target the
   persistent Postgres-backed environment, not a temporary bootstrap realm or an
   in-memory database shim.
-- If a change affects server runtime code, bundled output, WebSocket command handling, environment-controlled behavior, or anything a process only reads at startup, check the running port/process and restart the affected service yourself before reporting success.
+- If a change affects server runtime code, bundled output, WebSocket command handling, environment-controlled behavior, or anything a process only reads at startup, check the running port/process and restart the affected service yourself before reporting success. Do this by default, do not wait for the operator to remind you.
 - For online gameplay fixes, verify the live online path after restart. Do not rely only on unit tests or a direct `GameServer.handleMessage` test when the user is seeing the issue in the running client.
+- If an automatic restart is blocked by the current session, such as ports that cannot be released or a process you cannot stop, surface that blocker immediately and include the exact process or port information in the final response.
 - When committing after a restart-related fix, mention both the code validation and the service restart/live-path verification in the final response.
 
 ## Git And Commit Rules
