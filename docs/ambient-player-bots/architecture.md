@@ -68,9 +68,12 @@ Primary files:
 - `server/ambient_bots/group.ts`
 
 Responsibilities:
-- use party state to invite, accept, enter dungeons, regroup, and hold pulls
+- use party state to invite, accept, decline, enter dungeons, regroup, follow,
+  assist, and hold pulls
 - keep grouped bots cohesive without dungeon-only cheat paths
 - stay bounded to bots already assigned to the same nearby human cluster
+- distinguish bot-led parties from real-player-led parties so assigned bots
+  follow and assist a human leader without taking over group assembly
 
 ### 6. Social shell and LLM overlays
 
@@ -105,10 +108,35 @@ Responsibilities:
 3. It emits provision or login actions for the best-fitting identities.
 4. The runtime fulfills those actions through the real HTTP and WS surfaces.
 5. The bot runner receives live snapshots and ticks the progression brain.
-6. Group and social layers add party, regroup, and chat behavior.
+6. Group and social layers add party invite handling, follow preservation,
+   combat assist, regroup, and chat behavior.
 7. The runtime updates registry state, metrics, and optional LLM overlays.
 8. If the bot drifts beyond cluster release rules, the planner logs it out and
    later replaces it with a better local fit.
+
+## Group coordination flow
+
+The ambient group coordinator is intentionally narrow and lives outside
+`server/game.ts`.
+
+- It reads the bot's current live snapshot, recent personal events, objective
+  metadata, and the ambient bot directory.
+- It scopes same-bot grouping to the assigned cluster and current objective, so
+  bots on different quest steps do not form incoherent parties.
+- If a bot is not in a party and receives a trusted invite from a same-cluster
+  bot or its assigned player, it sends `paccept`.
+- If a bot receives an unrelated invite, it sends `pdecline` so later trusted
+  invites are not blocked by the sim's single pending invite slot.
+- If the bot is the bot-led group leader, it may invite visible same-objective
+  peers and hold while ambient party members lag.
+- If a real player is the party leader, the bot treats itself as a follower. It
+  follows and assists, but does not wait for more members or invite other bots.
+- Followers use the normal `/follow <leader>` chat path when outside the follow
+  start range. When already near the leader, they still pause brain movement to
+  preserve the server follow state.
+- If a visible hostile mob is attacking another party member, the bot targets it
+  so the normal progression and combat brain can assist through regular combat
+  commands.
 
 ## Authority boundary
 

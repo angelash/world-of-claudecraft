@@ -630,6 +630,7 @@ export const en_CA: EnTranslations = {
       "statusLabel": "Status",
       "objectiveLabel": "Objective",
       "resumeOnLogin": "Resume on Login",
+      "actionLogLabel": "Chat Action Log",
       "partyModeLabel": "Party Mode",
       "partyModeStatusLabel": "Party Behavior",
       "groupModeLabel": "Current Group State",
@@ -729,12 +730,28 @@ export const en_CA: EnTranslations = {
         "pendingReplyPresence": "Presence Emote",
         "pendingReplyRequested": "LLM Requested"
       },
+      "log": {
+        "accept": "Hosted play: heading to accept {quest}.",
+        "questWork": "Hosted play: working on {quest}.",
+        "turnIn": "Hosted play: heading to turn in {quest}.",
+        "resupply": "Hosted play: heading to a vendor for supplies.",
+        "upgrade": "Hosted play: heading to a vendor for an upgrade.",
+        "grind": "Hosted play: grinding for experience.",
+        "recover": "Hosted play: recovering between pulls.",
+        "retreat": "Hosted play: retreating to safety.",
+        "release": "Hosted play: releasing spirit.",
+        "gatherParty": "Hosted play: gathering a party for {quest}.",
+        "leaveDungeon": "Hosted play: leaving {dungeon}.",
+        "leaveDungeonForQuest": "Hosted play: leaving the dungeon for {quest}."
+      },
       "partyMode": {
         "solo": "Solo progression",
         "followLeader": "Follow party leader"
       },
       "groupMode": {
         "none": "No active group coordination",
+        "acceptInvite": "Accepting a party invite",
+        "assistParty": "Assisting the party in combat",
         "brain": "Running the normal progression brain",
         "followLeader": "Following the party leader",
         "holdRegroup": "Holding for party regroup"

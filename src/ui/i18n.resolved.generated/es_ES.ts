@@ -630,6 +630,7 @@ export const es_ES: EnTranslations = {
       "statusLabel": "Status",
       "objectiveLabel": "Objective",
       "resumeOnLogin": "Resume on Login",
+      "actionLogLabel": "Registro de acciones",
       "partyModeLabel": "Party Mode",
       "partyModeStatusLabel": "Party Behavior",
       "groupModeLabel": "Current Group State",
@@ -729,12 +730,28 @@ export const es_ES: EnTranslations = {
         "pendingReplyPresence": "Presence Emote",
         "pendingReplyRequested": "LLM Requested"
       },
+      "log": {
+        "accept": "Juego asistido: yendo a aceptar {quest}.",
+        "questWork": "Juego asistido: avanzando en {quest}.",
+        "turnIn": "Juego asistido: yendo a entregar {quest}.",
+        "resupply": "Juego asistido: yendo a un vendedor para reabastecerse.",
+        "upgrade": "Juego asistido: yendo a un vendedor para comprar una mejora.",
+        "grind": "Juego asistido: ganando experiencia.",
+        "recover": "Juego asistido: recuperandose entre combates.",
+        "retreat": "Juego asistido: retirandose a una zona segura.",
+        "release": "Juego asistido: liberando espiritu.",
+        "gatherParty": "Juego asistido: reuniendo un grupo para {quest}.",
+        "leaveDungeon": "Juego asistido: saliendo de {dungeon}.",
+        "leaveDungeonForQuest": "Juego asistido: saliendo de la mazmorra para entregar {quest}."
+      },
       "partyMode": {
         "solo": "Solo progression",
         "followLeader": "Follow party leader"
       },
       "groupMode": {
         "none": "No active group coordination",
+        "acceptInvite": "Accepting a party invite",
+        "assistParty": "Assisting the party in combat",
         "brain": "Running the normal progression brain",
         "followLeader": "Following the party leader",
         "holdRegroup": "Holding for party regroup"

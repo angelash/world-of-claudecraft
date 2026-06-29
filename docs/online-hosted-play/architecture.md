@@ -40,15 +40,18 @@ Primary files:
 - `server/hosted_play/runtime.ts`
 - `server/hosted_play/types.ts`
 - `server/hosted_play/party.ts`
+- `server/hosted_play/action_log.ts`
 - `server/hosted_play/llm.ts`
 
 Responsibilities:
 - track which live characters have hosted play enabled
 - tick the hosted brain on a bounded timer
-- pause on manual input
 - clear movement when pausing or stopping
 - expose live status for API and UI use
-- coordinate party follow or regroup overlays before brain drive is applied
+- coordinate party invite, follow, assist, and regroup overlays before brain
+  drive is applied
+- emit throttled player-visible action log lines when enabled
+- expose bounded debug snapshots for UI inspection
 - host bounded social shell and LLM overlay state for the current live session
 
 ### 3. Preference persistence and login resume
@@ -61,6 +64,7 @@ Responsibilities:
 - store additive hosted-play preferences on each character row
 - read those preferences for status reads and enable requests
 - re-enable hosted play on login only when the persisted resume policy allows it
+- persist the party behavior mode and chat action log preference
 - keep the ownership check on the existing authenticated character routes
 
 ### 4. GameServer integration seam
@@ -72,7 +76,7 @@ Responsibilities:
 - provide named access to a live owner session
 - expose a safe hosted-play live view for that session
 - apply hosted movement input and commands through the same server rule path
-- notify the hosted runtime when manual player input arrives
+- send hosted-play action log events to only the owning player
 
 ### 5. Shared automation core
 
@@ -97,7 +101,7 @@ Primary files:
 - `server/hosted_play/llm.ts`
 
 Responsibilities:
-- support party follow or regroup
+- support party follow, combat assist, and regroup
 - support bounded whisper and friend overlays
 - reuse the structured LLM plan and reply coordinator with hosted-play-specific
   budgets and cooldowns
@@ -112,13 +116,49 @@ Responsibilities:
    current `ClientSession` and nearby entities.
 5. The runtime feeds that view into the shared automation brain.
 6. The brain returns movement input and normal commands.
-7. The hosted runtime layers party coordination, social shell behavior, and any
-   validated LLM overlays on top of that live state.
+7. The hosted runtime layers party coordination, social shell behavior, action
+   logging, and any validated LLM overlays on top of that live state.
 8. The hosted runtime applies those actions through named `GameServer` seams.
-9. If the player manually acts, the runtime pauses hosted play briefly and
-   clears stale movement.
+9. If the runtime hits an internal error, it pauses briefly and clears stale
+   movement while surfacing the error to the UI.
 10. If the session disconnects or the player disables hosted play, the runtime
    stops and clears control state.
+
+## Party coordination flow
+
+The hosted party layer runs before normal brain movement is applied. It is a
+small overlay rather than a second gameplay brain.
+
+- `solo` mode ignores incoming party invites so the player remains in control.
+- `follow_leader` mode accepts incoming party invites with `paccept`.
+- Once grouped, the layer reads the authoritative `self.party` snapshot.
+- A follower uses `/follow <leader>` only when outside the small follow start
+  range and inside the maximum follow range.
+- A nearby follower keeps brain movement paused even when it does not need to
+  resend `/follow`, preserving server-side follow instead of fighting it.
+- If a visible hostile mob is attacking another party member, the layer targets
+  that mob and lets the normal combat brain continue from that target.
+- A leader may hold for distant party members, but a hosted follower does not
+  invite more members or override a real player's leadership.
+
+## Diagnostics flow
+
+Hosted play keeps a bounded debug snapshot in memory for the owner status
+endpoint. The UI uses it to show:
+
+- current objective, quest, dungeon, movement intent, facing, and travel goal
+- recent brain commands and command ages
+- party mode, party leader, leader distance, and whether brain movement is
+  paused by the party overlay
+- pending social replies and LLM request state
+- LLM plan and social prompt, raw output, provider, latency, cache status, and
+  validation result
+
+The chat action log is separate from the detail view. It emits short, throttled
+log lines for major automation intentions such as accepting a quest, working on
+a quest, recovering, releasing spirit, traveling to a vendor, or gathering a
+party. It is persisted as a per-character preference so players can keep the
+chat log quiet while retaining the detail panel for debugging.
 
 ## Authority boundary
 
@@ -133,5 +173,6 @@ Responsibilities:
 1. Ship same-session hosted play before persistence and social realism.
 2. Reuse ambient automation logic where it fits, especially the progression
    brain.
-3. Keep the manual override path simple and trustworthy.
+3. Keep explicit player control simple and trustworthy: start, stop, settings,
+   and visible diagnostics.
 4. Keep social and LLM layers as overlays on the stable same-session loop.

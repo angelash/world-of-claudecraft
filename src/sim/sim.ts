@@ -10265,6 +10265,11 @@ export class Sim {
     meta.copper -= def.buyValue;
     this.addItem(itemId, 1, meta.entityId);
     this.emit({ type: 'vendor', action: 'buy', itemId, pid: meta.entityId });
+    this.emit({
+      type: 'loot',
+      text: `Bought ${def.name} for ${formatMoney(def.buyValue)}.`,
+      pid: meta.entityId,
+    });
   }
 
   private vendorInRange(p: Entity): boolean {

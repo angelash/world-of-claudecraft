@@ -630,6 +630,7 @@ export const zh_CN: EnTranslations = {
       "statusLabel": "状态",
       "objectiveLabel": "目标",
       "resumeOnLogin": "登录后恢复",
+      "actionLogLabel": "聊天行为日志",
       "partyModeLabel": "队伍模式",
       "partyModeStatusLabel": "队伍行为",
       "groupModeLabel": "当前队伍状态",
@@ -729,12 +730,28 @@ export const zh_CN: EnTranslations = {
         "pendingReplyPresence": "存在感表情",
         "pendingReplyRequested": "LLM 请求于"
       },
+      "log": {
+        "accept": "托管：前往接取 {quest}。",
+        "questWork": "托管：正在推进 {quest}。",
+        "turnIn": "托管：前往交付 {quest}。",
+        "resupply": "托管：前往商人处补给。",
+        "upgrade": "托管：前往商人处购买升级。",
+        "grind": "托管：正在刷怪获取经验。",
+        "recover": "托管：正在两次战斗间恢复。",
+        "retreat": "托管：正在撤退到安全位置。",
+        "release": "托管：正在释放灵魂。",
+        "gatherParty": "托管：正在为 {quest} 集合队伍。",
+        "leaveDungeon": "托管：正在离开 {dungeon}。",
+        "leaveDungeonForQuest": "托管：正在离开副本，准备交付 {quest}。"
+      },
       "partyMode": {
         "solo": "单人推进",
         "followLeader": "跟随队长"
       },
       "groupMode": {
         "none": "当前没有队伍协同行为",
+        "acceptInvite": "Accepting a party invite",
+        "assistParty": "Assisting the party in combat",
         "brain": "正在运行常规推进逻辑",
         "followLeader": "正在跟随队长",
         "holdRegroup": "正在等待队伍重新集合"

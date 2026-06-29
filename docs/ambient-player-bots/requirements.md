@@ -40,6 +40,9 @@ and get replaced through the same server surfaces that human players use.
   with them, and receive believable delayed replies or silence.
 - Bot social behavior should remember lightweight prior interactions.
 - Social realism must stay moderation-safe and operator-visible.
+- When a real player invites an assigned nearby bot, the bot should accept the
+  invite and behave like a follower instead of trying to become the party
+  leader.
 
 ## Functional requirements
 
@@ -69,6 +72,16 @@ and get replaced through the same server surfaces that human players use.
   deep special cases in `server/game.ts`.
 - Support solo and grouped content, including dungeon entry, in-instance
   routing, encounter sequencing, regrouping, and exit flow.
+- For party invites, bots accept invites from same-cluster ambient peers and
+  from their assigned player, while declining unrelated invites so a stale
+  stranger invite does not block trusted grouping.
+- Grouped bots preserve the server follow state by pausing brain movement while
+  near the party leader.
+- Grouped bots assist party members by targeting visible hostile mobs that are
+  attacking a party member.
+- Bots do not treat a real-player-led party as a bot-led party. They follow and
+  assist, but do not wait for more members or invite others on behalf of the
+  player.
 
 ### D. Social and LLM behavior
 
@@ -118,5 +131,7 @@ and get replaced through the same server surfaces that human players use.
 - Local depletion naturally refills through logins or handoffs without obvious
   spawning tricks.
 - Grouped bots can enter and complete dungeon content using only real commands.
+- Player-led groups can include assigned bots without the bots stealing
+  leadership decisions or breaking follow.
 - Friend, whisper, and chat surfaces remain bounded, moderated, and operator
   visible.

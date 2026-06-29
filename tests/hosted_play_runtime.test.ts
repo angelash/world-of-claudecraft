@@ -58,12 +58,14 @@ function fakeGame(
   } = {},
 ): HostedPlayRuntimeGame & {
   commands: Record<string, unknown>[];
+  logs: string[];
   moveInputs: Array<{ moveInput: Record<string, unknown>; facing?: number }>;
   clearCount: number;
   activityCount: number;
   observed: boolean;
 } {
   const commands: Record<string, unknown>[] = [];
+  const logs: string[] = [];
   const moveInputs: Array<{ moveInput: Record<string, unknown>; facing?: number }> = [];
   let clearCount = 0;
   let activityCount = 0;
@@ -72,6 +74,9 @@ function fakeGame(
   return {
     get commands() {
       return commands;
+    },
+    get logs() {
+      return logs;
     },
     get moveInputs() {
       return moveInputs;
@@ -120,6 +125,9 @@ function fakeGame(
       const drained = [...recentEvents];
       recentEvents = [];
       return drained;
+    },
+    sendHostedPlayActionLog(_characterId, text) {
+      logs.push(text);
     },
     ambientPlayerBotNames() {
       return [...(options.ambientBotNames ?? [])];
@@ -178,6 +186,7 @@ describe('HostedPlayRuntime', () => {
     runtime.enable(7, {
       resumeOnLogin: true,
       partyMode: 'follow_leader',
+      actionLogEnabled: false,
     });
     (runtime as any).tick();
 
@@ -186,10 +195,112 @@ describe('HostedPlayRuntime', () => {
     expect(runtime.status(7)).toMatchObject({
       resumeOnLogin: true,
       partyMode: 'follow_leader',
+      actionLogEnabled: false,
       groupMode: 'follow_leader',
       groupLeaderName: 'Branoraaa',
       groupLeaderDistance: 18,
     });
+  });
+
+  it('accepts party invites through the hosted runtime while follow-leader mode is enabled', () => {
+    const game = fakeGame(liveState(), {
+      recentEvents: [{ type: 'partyInvite', fromPid: 201, fromName: 'Aleph' }],
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([{ cmd: 'paccept' }]);
+    expect(game.moveInputs).toHaveLength(0);
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'accept_invite',
+      groupLeaderName: 'Aleph',
+    });
+  });
+
+  it('assists another party member through the hosted runtime before driving movement', () => {
+    const game = fakeGame(liveState({
+      id: 102,
+      x: 0,
+      z: 0,
+      target: null,
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 8, z: 0, dead: 0, inCombat: 1, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'warrior', level: 12, hp: 100, mhp: 100, res: 0, mres: 100, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 501, k: 'mob', h: 80, x: 7, z: 0, aggro: 101 },
+      ],
+    }));
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([{ cmd: 'target', id: 501 }]);
+    expect(game.moveInputs).toHaveLength(0);
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'assist_party',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 8,
+    });
+  });
+
+  it('emits hosted-play action logs when enabled and throttles repeated lines', () => {
+    let nowMs = 10_000;
+    const game = fakeGame(liveState({ hp: 0 }));
+    const runtime = new HostedPlayRuntime({
+      game,
+      brainIntervalMs: 250,
+      nowMs: () => nowMs,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'solo',
+      actionLogEnabled: true,
+    });
+    (runtime as any).tick();
+    nowMs += 250;
+    (runtime as any).tick();
+
+    expect(game.logs).toEqual(['Hosted play: releasing spirit.']);
+  });
+
+  it('skips hosted-play action logs when the setting is off', () => {
+    const game = fakeGame(liveState({ hp: 0 }));
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 10_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'solo',
+      actionLogEnabled: false,
+    });
+    (runtime as any).tick();
+
+    expect(game.logs).toEqual([]);
   });
 
   it('keeps driving travel between full brain decisions', () => {

@@ -7583,6 +7583,12 @@ export class Hud {
       'Trade window opened.': 'hud.logs.tradeOpened',
       'Trade complete.': 'hud.logs.tradeComplete',
       'Trade cancelled.': 'hud.logs.tradeCancelled',
+      'Hosted play: heading to a vendor for supplies.': 'hudChrome.hostedPlay.log.resupply',
+      'Hosted play: heading to a vendor for an upgrade.': 'hudChrome.hostedPlay.log.upgrade',
+      'Hosted play: grinding for experience.': 'hudChrome.hostedPlay.log.grind',
+      'Hosted play: recovering between pulls.': 'hudChrome.hostedPlay.log.recover',
+      'Hosted play: retreating to safety.': 'hudChrome.hostedPlay.log.retreat',
+      'Hosted play: releasing spirit.': 'hudChrome.hostedPlay.log.release',
     };
     const key = exact[text];
     if (key) return t(key);
@@ -7619,6 +7625,24 @@ export class Hud {
     if (match) return t('questUi.logs.abandoned', { name: questTitleFromSource(match[1]) });
     match = /^Quest completed: (.+)$/.exec(text);
     if (match) return t('questUi.logs.completed', { name: questTitleFromSource(match[1]) });
+    match = /^Hosted play: heading to accept (.+)\.$/.exec(text);
+    if (match) return t('hudChrome.hostedPlay.log.accept', { quest: questTitleFromSource(match[1]) });
+    match = /^Hosted play: working on (.+)\.$/.exec(text);
+    if (match) return t('hudChrome.hostedPlay.log.questWork', { quest: questTitleFromSource(match[1]) });
+    match = /^Hosted play: heading to turn in (.+)\.$/.exec(text);
+    if (match) return t('hudChrome.hostedPlay.log.turnIn', { quest: questTitleFromSource(match[1]) });
+    match = /^Hosted play: gathering a party for (.+)\.$/.exec(text);
+    if (match) return t('hudChrome.hostedPlay.log.gatherParty', { quest: questTitleFromSource(match[1]) });
+    match = /^Hosted play: leaving the dungeon for (.+)\.$/.exec(text);
+    if (match)
+      return t('hudChrome.hostedPlay.log.leaveDungeonForQuest', {
+        quest: questTitleFromSource(match[1]),
+      });
+    match = /^Hosted play: leaving (.+)\.$/.exec(text);
+    if (match)
+      return t('hudChrome.hostedPlay.log.leaveDungeon', {
+        dungeon: dungeonDisplayNameFromSource(match[1]),
+      });
     match = /^(.+) accepted your shared quest\.$/.exec(text);
     if (match) return t('hudChrome.questShare.accepted', { name: match[1] });
     match = /^(.+) \(Complete\)$/.exec(text);

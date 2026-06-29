@@ -630,6 +630,7 @@ export const ru_RU: EnTranslations = {
       "statusLabel": "Status",
       "objectiveLabel": "Objective",
       "resumeOnLogin": "Resume on Login",
+      "actionLogLabel": "Журнал действий",
       "partyModeLabel": "Party Mode",
       "partyModeStatusLabel": "Party Behavior",
       "groupModeLabel": "Current Group State",
@@ -729,12 +730,28 @@ export const ru_RU: EnTranslations = {
         "pendingReplyPresence": "Presence Emote",
         "pendingReplyRequested": "LLM Requested"
       },
+      "log": {
+        "accept": "Автоигра: идем брать {quest}.",
+        "questWork": "Автоигра: выполняем {quest}.",
+        "turnIn": "Автоигра: идем сдавать {quest}.",
+        "resupply": "Автоигра: идем к торговцу за припасами.",
+        "upgrade": "Автоигра: идем к торговцу за улучшением.",
+        "grind": "Автоигра: набираем опыт.",
+        "recover": "Автоигра: восстанавливаемся между боями.",
+        "retreat": "Автоигра: отступаем в безопасное место.",
+        "release": "Автоигра: освобождаем дух.",
+        "gatherParty": "Автоигра: собираем группу для {quest}.",
+        "leaveDungeon": "Автоигра: покидаем {dungeon}.",
+        "leaveDungeonForQuest": "Автоигра: выходим из подземелья, чтобы сдать {quest}."
+      },
       "partyMode": {
         "solo": "Solo progression",
         "followLeader": "Follow party leader"
       },
       "groupMode": {
         "none": "No active group coordination",
+        "acceptInvite": "Accepting a party invite",
+        "assistParty": "Assisting the party in combat",
         "brain": "Running the normal progression brain",
         "followLeader": "Following the party leader",
         "holdRegroup": "Holding for party regroup"

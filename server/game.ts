@@ -141,6 +141,7 @@ const AI_NPC_QUESTION_COOLDOWN_SECONDS = 2;
 const AI_OBJECT_INSPECT_COOLDOWN_SECONDS = 2;
 const AI_DIRECT_THINKING_DURATION_MS = 2200;
 const HOSTED_PLAY_EVENT_BUFFER_MAX = 32;
+const HOSTED_PLAY_ACTION_LOG_COLOR = '#7fd4ff';
 
 function envMs(name: string, fallback: number, min: number): number {
   const raw = Number(process.env[name] ?? fallback);
@@ -1564,6 +1565,17 @@ export class GameServer {
     const events = [...session.hostedPlayRecentEvents];
     session.hostedPlayRecentEvents.length = 0;
     return events;
+  }
+
+  sendHostedPlayActionLog(characterId: number, text: string): void {
+    const session = this.sessionsByCharacterId.get(characterId);
+    if (!session) return;
+    this.routeEvents([{
+      type: 'log',
+      text,
+      color: HOSTED_PLAY_ACTION_LOG_COLOR,
+      pid: session.pid,
+    }]);
   }
 
   ambientPlayerBotNames(): string[] {

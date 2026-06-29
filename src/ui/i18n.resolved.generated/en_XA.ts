@@ -630,6 +630,7 @@ export const en_XA: EnTranslations = {
       "statusLabel": "[Šţáţúš]",
       "objectiveLabel": "[Óƀĵéçţíʋé]",
       "resumeOnLogin": "[Ŕéšúɱé óñ Ļóĝíñ]",
+      "actionLogLabel": "[Çĥáţ Áçţíóñ Ļóĝ]",
       "partyModeLabel": "[Þáŕţý Ɱóðé]",
       "partyModeStatusLabel": "[Þáŕţý Ɓéĥáʋíóŕ]",
       "groupModeLabel": "[Çúŕŕéñţ Ĝŕóúþ Šţáţé]",
@@ -729,12 +730,28 @@ export const en_XA: EnTranslations = {
         "pendingReplyPresence": "[Þŕéšéñçé Éɱóţé]",
         "pendingReplyRequested": "[ĻĻⱮ Ŕéɋúéšţéð]"
       },
+      "log": {
+        "accept": "[Ĥóšţéð þļáý: ĥéáðíñĝ ţó áççéþţ {quest}.]",
+        "questWork": "[Ĥóšţéð þļáý: ŵóŕķíñĝ óñ {quest}.]",
+        "turnIn": "[Ĥóšţéð þļáý: ĥéáðíñĝ ţó ţúŕñ íñ {quest}.]",
+        "resupply": "[Ĥóšţéð þļáý: ĥéáðíñĝ ţó á ʋéñðóŕ ƒóŕ šúþþļíéš.]",
+        "upgrade": "[Ĥóšţéð þļáý: ĥéáðíñĝ ţó á ʋéñðóŕ ƒóŕ áñ úþĝŕáðé.]",
+        "grind": "[Ĥóšţéð þļáý: ĝŕíñðíñĝ ƒóŕ éẋþéŕíéñçé.]",
+        "recover": "[Ĥóšţéð þļáý: ŕéçóʋéŕíñĝ ƀéţŵééñ þúļļš.]",
+        "retreat": "[Ĥóšţéð þļáý: ŕéţŕéáţíñĝ ţó šáƒéţý.]",
+        "release": "[Ĥóšţéð þļáý: ŕéļéášíñĝ šþíŕíţ.]",
+        "gatherParty": "[Ĥóšţéð þļáý: ĝáţĥéŕíñĝ á þáŕţý ƒóŕ {quest}.]",
+        "leaveDungeon": "[Ĥóšţéð þļáý: ļéáʋíñĝ {dungeon}.]",
+        "leaveDungeonForQuest": "[Ĥóšţéð þļáý: ļéáʋíñĝ ţĥé ðúñĝéóñ ƒóŕ {quest}.]"
+      },
       "partyMode": {
         "solo": "[Šóļó þŕóĝŕéššíóñ]",
         "followLeader": "[Ƒóļļóŵ þáŕţý ļéáðéŕ]"
       },
       "groupMode": {
         "none": "[Ñó áçţíʋé ĝŕóúþ çóóŕðíñáţíóñ]",
+        "acceptInvite": "[Áççéþţíñĝ á þáŕţý íñʋíţé]",
+        "assistParty": "[Áššíšţíñĝ ţĥé þáŕţý íñ çóɱƀáţ]",
         "brain": "[Ŕúññíñĝ ţĥé ñóŕɱáļ þŕóĝŕéššíóñ ƀŕáíñ]",
         "followLeader": "[Ƒóļļóŵíñĝ ţĥé þáŕţý ļéáðéŕ]",
         "holdRegroup": "[Ĥóļðíñĝ ƒóŕ þáŕţý ŕéĝŕóúþ]"

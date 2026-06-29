@@ -329,4 +329,208 @@ describe('ambient player bot group coordinator', () => {
       groupPartySize: 1,
     }));
   });
+
+  it('accepts a party invite from its assigned player even on a solo objective', () => {
+    const follower = bot();
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: follower,
+      liveState: liveState({
+        self: {
+          id: 101,
+          x: 4,
+          z: 6,
+        },
+      }),
+      recentEvents: [{ type: 'partyInvite', fromPid: 1, fromName: 'Realhero' }],
+      objectiveId: 'accept_wolves',
+      objectiveQuestId: 'q_wolves',
+      objectiveSuggestedPartySize: 1,
+      directory: [follower],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([{ cmd: 'paccept' }]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'accept_invite',
+      groupLeaderName: 'Realhero',
+      groupTargetSize: 1,
+    }));
+  });
+
+  it('declines an unrelated party invite so trusted invites are not blocked', () => {
+    const follower = bot();
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: follower,
+      liveState: liveState({
+        self: {
+          id: 101,
+          x: 4,
+          z: 6,
+        },
+      }),
+      recentEvents: [{ type: 'partyInvite', fromPid: 900, fromName: 'Stranger' }],
+      objectiveId: 'accept_wolves',
+      objectiveQuestId: 'q_wolves',
+      objectiveSuggestedPartySize: 1,
+      directory: [follower],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([{ cmd: 'pdecline' }]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: '',
+      groupLeaderName: 'Branoraaa',
+    }));
+  });
+
+  it('targets a mob attacking another party member before returning to the brain', () => {
+    const follower = bot();
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: follower,
+      liveState: liveState({
+        self: {
+          id: 101,
+          x: 0,
+          z: 0,
+          target: null,
+          party: {
+            leader: 1,
+            raid: false,
+            members: [
+              { pid: 1, name: 'Realhero', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 8, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 100, mhp: 100, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 7, z: 0, aggro: 1 },
+        ],
+      }),
+      recentEvents: [],
+      objectiveId: 'hunt_boars',
+      objectiveQuestId: 'q_boars',
+      objectiveSuggestedPartySize: 1,
+      directory: [follower],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([{ cmd: 'target', id: 501 }]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'assist_party',
+      groupLeaderName: 'Realhero',
+      groupLeaderDistance: 8,
+    }));
+  });
+
+  it('keeps a nearby ambient follower from breaking the server follow state', () => {
+    const leader = bot();
+    const follower = bot({
+      botId: 'bot-2',
+      accountId: 12,
+      characterId: 102,
+      characterName: 'Branorabb',
+      accountUsername: 'bot_user_2',
+      authToken: 'token-2',
+      class: 'mage',
+    });
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: follower,
+      liveState: liveState({
+        self: {
+          id: 102,
+          x: -123,
+          z: 738,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 18, hp: 150, mhp: 150, res: 0, mres: 0, rtype: 'rage', x: -125, z: 738, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'mage', level: 18, hp: 120, mhp: 120, res: 180, mres: 180, rtype: 'mana', x: -123, z: 738, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+      }),
+      recentEvents: [],
+      objectiveId: 'hunt_crushers',
+      objectiveQuestId: 'q_crushers',
+      objectiveSuggestedPartySize: 3,
+      directory: [leader, follower],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'follow_leader',
+      groupObjectiveScope: 'outdoor',
+      groupLeaderDistance: 2,
+    }));
+  });
+
+  it('does not wait for more members when a real player is the party leader', () => {
+    const follower = bot();
+    const peerA = bot({
+      botId: 'bot-2',
+      accountId: 12,
+      characterId: 102,
+      characterName: 'Branorabb',
+      accountUsername: 'bot_user_2',
+      authToken: 'token-2',
+      class: 'mage',
+    });
+    const peerB = bot({
+      botId: 'bot-3',
+      accountId: 13,
+      characterId: 103,
+      characterName: 'Branoracc',
+      accountUsername: 'bot_user_3',
+      authToken: 'token-3',
+      class: 'priest',
+    });
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: follower,
+      liveState: liveState({
+        self: {
+          id: 101,
+          x: 2,
+          z: 0,
+          party: {
+            leader: 1,
+            raid: false,
+            members: [
+              { pid: 1, name: 'Realhero', cls: 'warrior', level: 18, hp: 150, mhp: 150, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 18, hp: 150, mhp: 150, res: 0, mres: 0, rtype: 'rage', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 102, k: 'player', nm: 'Branorabb', x: 3, z: 0, lv: 18 },
+          { id: 103, k: 'player', nm: 'Branoracc', x: 4, z: 0, lv: 18 },
+        ],
+      }),
+      recentEvents: [],
+      objectiveId: 'hunt_crushers',
+      objectiveQuestId: 'q_crushers',
+      objectiveSuggestedPartySize: 3,
+      directory: [follower, peerA, peerB],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'follow_leader',
+      groupLeaderName: 'Realhero',
+      groupAwaitingParty: false,
+      groupLeaderDistance: 2,
+    }));
+  });
 });

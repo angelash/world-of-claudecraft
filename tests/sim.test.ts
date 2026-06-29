@@ -859,6 +859,11 @@ describe('food, drink, vendor', () => {
     sim.buyItem(wilkes.id, 'baked_bread');
     expect(sim.countItem('baked_bread')).toBe(1);
     expect(sim.copper).toBe(75);
+    expect(sim.events).toContainEqual({
+      type: 'loot',
+      text: 'Bought Freshly Baked Bread for 25c.',
+      pid: sim.player.id,
+    });
     sim.addItem('wolf_fang', 2);
     sim.sellItem('wolf_fang');
     expect(sim.copper).toBe(79);

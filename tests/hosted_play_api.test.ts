@@ -50,6 +50,7 @@ describe('Api hosted-play helpers', () => {
       lastAutomationAtMs: null,
       resumeOnLogin: false,
       partyMode: 'solo',
+      actionLogEnabled: true,
       groupMode: '',
       groupLeaderName: '',
       groupLeaderDistance: 0,
@@ -129,6 +130,7 @@ describe('Api hosted-play helpers', () => {
         mode: 'disabled',
         resumeOnLogin: true,
         partyMode: 'follow_leader',
+        actionLogEnabled: false,
       }),
     } as Response);
 
@@ -139,10 +141,12 @@ describe('Api hosted-play helpers', () => {
     const result = await api.updateHostedPlaySettings(7, {
       resumeOnLogin: true,
       partyMode: 'follow_leader',
+      actionLogEnabled: false,
     });
     expect(result).toMatchObject({
       resumeOnLogin: true,
       partyMode: 'follow_leader',
+      actionLogEnabled: false,
     });
     expect(fetchSpy).toHaveBeenCalledWith(
       'https://realm.example/api/characters/7/hosted-play/settings',
@@ -151,6 +155,7 @@ describe('Api hosted-play helpers', () => {
         body: JSON.stringify({
           resumeOnLogin: true,
           partyMode: 'follow_leader',
+          actionLogEnabled: false,
         }),
       }),
     );

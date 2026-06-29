@@ -80,6 +80,7 @@ CREATE INDEX IF NOT EXISTS characters_account ON characters(account_id);
 ALTER TABLE characters ADD COLUMN IF NOT EXISTS realm TEXT NOT NULL DEFAULT '${REALM_SQL_DEFAULT}';
 ALTER TABLE characters ADD COLUMN IF NOT EXISTS hosted_play_resume_on_login BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE characters ADD COLUMN IF NOT EXISTS hosted_play_party_mode TEXT NOT NULL DEFAULT 'solo';
+ALTER TABLE characters ADD COLUMN IF NOT EXISTS hosted_play_action_log_enabled BOOLEAN NOT NULL DEFAULT TRUE;
 -- Max-Level XP Overflow leaderboard: indexed lifetime-XP sort key. The first
 -- index serves the realm-scoped in-game panel; the second serves the global
 -- (cross-realm) home-page board.
@@ -1422,6 +1423,7 @@ export interface CharacterRow {
   playtime_seconds?: string | number | null;
   hosted_play_resume_on_login?: boolean | null;
   hosted_play_party_mode?: HostedPlayPartyMode | string | null;
+  hosted_play_action_log_enabled?: boolean | null;
 }
 
 function normalizeHostedPlayPartyMode(value: unknown): HostedPlayPartyMode {
@@ -1434,6 +1436,7 @@ function hostedPlayPreferencesFromRow(
   return {
     resumeOnLogin: row?.hosted_play_resume_on_login === true,
     partyMode: normalizeHostedPlayPartyMode(row?.hosted_play_party_mode),
+    actionLogEnabled: row?.hosted_play_action_log_enabled !== false,
   };
 }
 
@@ -1471,7 +1474,7 @@ export async function getCharacter(
   characterId: number,
 ): Promise<CharacterRow | null> {
   const res = await pool.query(
-    'SELECT id, account_id, name, class, level, state, is_gm, force_rename, hosted_play_resume_on_login, hosted_play_party_mode FROM characters WHERE id = $1 AND account_id = $2 AND realm = $3',
+    'SELECT id, account_id, name, class, level, state, is_gm, force_rename, hosted_play_resume_on_login, hosted_play_party_mode, hosted_play_action_log_enabled FROM characters WHERE id = $1 AND account_id = $2 AND realm = $3',
     [characterId, accountId, REALM],
   );
   return res.rows[0] ?? null;
@@ -1493,7 +1496,7 @@ export async function listCharacterNamesForSitemap(limit = 50000): Promise<strin
 // the same shape as getCharacter so the sheet normalizer treats both alike.
 export async function getCharacterById(characterId: number): Promise<CharacterRow | null> {
   const res = await pool.query(
-    'SELECT id, account_id, name, class, level, state, is_gm, force_rename, hosted_play_resume_on_login, hosted_play_party_mode FROM characters WHERE id = $1 AND realm = $2',
+    'SELECT id, account_id, name, class, level, state, is_gm, force_rename, hosted_play_resume_on_login, hosted_play_party_mode, hosted_play_action_log_enabled FROM characters WHERE id = $1 AND realm = $2',
     [characterId, REALM],
   );
   return res.rows[0] ?? null;
@@ -1503,7 +1506,7 @@ export async function getHostedPlayPreferences(
   characterId: number,
 ): Promise<HostedPlayPreferences> {
   const res = await pool.query(
-    'SELECT hosted_play_resume_on_login, hosted_play_party_mode FROM characters WHERE id = $1 AND realm = $2',
+    'SELECT hosted_play_resume_on_login, hosted_play_party_mode, hosted_play_action_log_enabled FROM characters WHERE id = $1 AND realm = $2',
     [characterId, REALM],
   );
   return hostedPlayPreferencesFromRow(res.rows[0]);
@@ -1518,10 +1521,18 @@ export async function setHostedPlayPreferences(
     `UPDATE characters
         SET hosted_play_resume_on_login = $3,
             hosted_play_party_mode = $4,
+            hosted_play_action_log_enabled = $5,
             updated_at = now()
-      WHERE id = $1 AND account_id = $2 AND realm = $5
-      RETURNING hosted_play_resume_on_login, hosted_play_party_mode`,
-    [characterId, accountId, preferences.resumeOnLogin, preferences.partyMode, REALM],
+      WHERE id = $1 AND account_id = $2 AND realm = $6
+      RETURNING hosted_play_resume_on_login, hosted_play_party_mode, hosted_play_action_log_enabled`,
+    [
+      characterId,
+      accountId,
+      preferences.resumeOnLogin,
+      preferences.partyMode,
+      preferences.actionLogEnabled,
+      REALM,
+    ],
   );
   return res.rows[0] ? hostedPlayPreferencesFromRow(res.rows[0]) : null;
 }

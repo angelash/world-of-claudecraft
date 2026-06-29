@@ -602,35 +602,17 @@ export class AmbientPlayerBotRuntime {
         entry.lastBrainResult = result;
         const latest = this.game.ambientPlayerBotRecord(botId);
         if (!latest) continue;
-        const groupResult = (result.objectiveSuggestedPartySize ?? 0) > 1
-          ? tickAmbientPlayerBotGroupCoordinator({
-              bot: latest,
-              liveState,
-              recentEvents,
-              objectiveId: result.objectiveId,
-              objectiveQuestId: result.objectiveQuestId,
-              objectiveDungeonId: result.objectiveDungeonId,
-              objectiveSuggestedPartySize: result.objectiveSuggestedPartySize ?? 1,
-              directory: this.game.ambientPlayerBotDirectory(),
-              nowMs,
-            }, entry.groupState)
-          : {
-              commands: [],
-              pauseBrainDrive: false,
-              runnerStatePatch: {
-                groupDungeonId: '',
-                groupObjectiveQuestId: '',
-                groupObjectiveScope: '',
-                groupLeaderName: '',
-                groupTargetSize: 0,
-                groupPartySize: 0,
-                groupMode: '',
-                groupNeedsRegroup: false,
-                groupAwaitingParty: false,
-                groupLaggingMembers: 0,
-                groupLeaderDistance: 0,
-              },
-            };
+        const groupResult = tickAmbientPlayerBotGroupCoordinator({
+          bot: latest,
+          liveState,
+          recentEvents,
+          objectiveId: result.objectiveId,
+          objectiveQuestId: result.objectiveQuestId,
+          objectiveDungeonId: result.objectiveDungeonId,
+          objectiveSuggestedPartySize: result.objectiveSuggestedPartySize ?? 1,
+          directory: this.game.ambientPlayerBotDirectory(),
+          nowMs,
+        }, entry.groupState);
         entry.brainDrivePaused = groupResult.pauseBrainDrive;
         for (const command of groupResult.commands) entry.client.command(command);
         if (!groupResult.pauseBrainDrive) {

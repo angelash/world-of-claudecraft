@@ -22,6 +22,10 @@ import {
   type HostedPlayPartyState,
 } from './party';
 import {
+  hostedPlayActionLogForResult,
+  type HostedPlayActionLog,
+} from './action_log';
+import {
   cloneHostedPlayPendingReply,
   cloneHostedPlayPlan,
   createHostedPlayLlmState,
@@ -73,6 +77,7 @@ interface HostedPlayEntry {
   brainDrivePaused: boolean;
   partyState: HostedPlayPartyState;
   llmState: HostedPlayLlmState;
+  actionLogAtMs: Record<string, number>;
 }
 
 export interface HostedPlayRuntimeGame {
@@ -88,6 +93,7 @@ export interface HostedPlayRuntimeGame {
   noteHostedPlayActivity(characterId: number): void;
   setHostedPlayObserved(characterId: number, observed: boolean): void;
   drainHostedPlayRecentEvents(characterId: number): SimEvent[];
+  sendHostedPlayActionLog(characterId: number, text: string): void;
   ambientPlayerBotNames(): string[];
 }
 
@@ -180,6 +186,7 @@ export class HostedPlayRuntime {
       lastAutomationAtMs: entry?.lastAutomationAtMs ?? null,
       resumeOnLogin: preferences.resumeOnLogin,
       partyMode: preferences.partyMode,
+      actionLogEnabled: preferences.actionLogEnabled,
       groupMode: entry?.groupMode ?? '',
       groupLeaderName: entry?.groupLeaderName ?? '',
       groupLeaderDistance: entry?.groupLeaderDistance ?? 0,
@@ -208,25 +215,27 @@ export class HostedPlayRuntime {
     const info = this.game.hostedPlaySessionInfo(characterId);
     if (!info) throw new Error('character is not currently online');
     const existing = this.entries.get(characterId);
+    const normalizedPreferences = hostedPlayPreferencesWithDefaults(preferences);
     const entry: HostedPlayEntry = existing
       ? {
           ...existing,
           characterName: info.characterName,
           playerClass: info.playerClass,
-          preferences: { ...preferences },
+          preferences: normalizedPreferences,
           pauseUntilMs: null,
           pauseReason: '',
           lastError: '',
           lastBrainAtMs: null,
           lastBrainResult: null,
           brainDrivePaused: false,
+          actionLogAtMs: {},
         }
       : {
           characterId,
           characterName: info.characterName,
           playerClass: info.playerClass,
           enabledAtMs: this.nowMs(),
-          preferences: { ...preferences },
+          preferences: normalizedPreferences,
           pauseUntilMs: null,
           pauseReason: '',
           objectiveId: '',
@@ -246,6 +255,7 @@ export class HostedPlayRuntime {
           brainDrivePaused: false,
           partyState: createHostedPlayPartyState(),
           llmState: createHostedPlayLlmState(this.llmEnabled ? this.llmConfig : null),
+          actionLogAtMs: {},
         };
     this.entries.set(characterId, entry);
     this.game.setHostedPlayObserved(characterId, true);
@@ -259,7 +269,7 @@ export class HostedPlayRuntime {
   ): HostedPlayStatusSnapshot {
     const entry = this.entries.get(characterId);
     if (entry) {
-      entry.preferences = { ...preferences };
+      entry.preferences = hostedPlayPreferencesWithDefaults(preferences);
     }
     return this.status(characterId);
   }
@@ -337,10 +347,13 @@ export class HostedPlayRuntime {
     entry.objectiveId = result.objectiveId;
     entry.objectiveLabel = result.objectiveLabel;
     entry.lastError = '';
+    this.maybeSendHostedPlayActionLog(characterId, entry, result, nowMs);
 
     const partyResult = tickHostedPlayPartyCoordinator(
       {
         liveSelf: liveState.self,
+        entities: liveState.entities.values(),
+        recentEvents,
         partyMode: entry.preferences.partyMode,
         nowMs,
       },
@@ -580,6 +593,19 @@ export class HostedPlayRuntime {
       });
     }
   }
+
+  private maybeSendHostedPlayActionLog(
+    characterId: number,
+    entry: HostedPlayEntry,
+    result: AmbientPlayerBotBrainTickResult,
+    nowMs: number,
+  ): void {
+    if (!entry.preferences.actionLogEnabled) return;
+    const actionLog = hostedPlayActionLogForResult(result);
+    if (!actionLog || !hostedPlayActionLogDue(entry, actionLog, nowMs)) return;
+    entry.actionLogAtMs[actionLog.key] = nowMs;
+    this.game.sendHostedPlayActionLog(characterId, actionLog.text);
+  }
 }
 
 function hostedPlayDebugSnapshot(
@@ -792,4 +818,24 @@ function socialNameCount(
 ): number {
   const names = value?.[key];
   return Array.isArray(names) ? names.filter((name): name is string => typeof name === 'string').length : 0;
+}
+
+function hostedPlayPreferencesWithDefaults(
+  preferences: HostedPlayPreferences,
+): HostedPlayPreferences {
+  const defaults = defaultHostedPlayPreferences();
+  return {
+    resumeOnLogin: preferences.resumeOnLogin,
+    partyMode: preferences.partyMode,
+    actionLogEnabled: preferences.actionLogEnabled ?? defaults.actionLogEnabled,
+  };
+}
+
+function hostedPlayActionLogDue(
+  entry: HostedPlayEntry,
+  actionLog: HostedPlayActionLog,
+  nowMs: number,
+): boolean {
+  const lastAtMs = entry.actionLogAtMs[actionLog.key];
+  return lastAtMs === undefined || lastAtMs <= nowMs - actionLog.cooldownMs;
 }

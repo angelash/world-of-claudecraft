@@ -73,17 +73,20 @@ describe('hosted-play preferences', () => {
       rows: [{
         hosted_play_resume_on_login: true,
         hosted_play_party_mode: 'follow_leader',
+        hosted_play_action_log_enabled: false,
       }],
     } as any);
 
     await expect(getHostedPlayPreferences(42)).resolves.toEqual({
       resumeOnLogin: true,
       partyMode: 'follow_leader',
+      actionLogEnabled: false,
     });
 
     const [sql, params] = dbMock.query.mock.calls[0];
     expect(sql).toContain('hosted_play_resume_on_login');
     expect(sql).toContain('hosted_play_party_mode');
+    expect(sql).toContain('hosted_play_action_log_enabled');
     expect(params).toEqual([42, REALM]);
   });
 
@@ -92,6 +95,7 @@ describe('hosted-play preferences', () => {
       rows: [{
         hosted_play_resume_on_login: false,
         hosted_play_party_mode: 'solo',
+        hosted_play_action_log_enabled: true,
       }],
       rowCount: 1,
     } as any);
@@ -99,16 +103,19 @@ describe('hosted-play preferences', () => {
     await expect(setHostedPlayPreferences(7, 42, {
       resumeOnLogin: false,
       partyMode: 'solo',
+      actionLogEnabled: true,
     })).resolves.toEqual({
       resumeOnLogin: false,
       partyMode: 'solo',
+      actionLogEnabled: true,
     });
 
     const [sql, params] = dbMock.query.mock.calls[0];
     expect(sql).toMatch(/UPDATE characters/i);
     expect(sql).toMatch(/hosted_play_resume_on_login/);
     expect(sql).toMatch(/hosted_play_party_mode/);
-    expect(params).toEqual([42, 7, false, 'solo', REALM]);
+    expect(sql).toMatch(/hosted_play_action_log_enabled/);
+    expect(params).toEqual([42, 7, false, 'solo', true, REALM]);
   });
 });
 

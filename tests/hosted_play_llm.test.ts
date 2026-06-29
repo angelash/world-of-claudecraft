@@ -94,6 +94,7 @@ function fakeGame(
       bufferedEvents = [];
       return drained;
     },
+    sendHostedPlayActionLog() {},
     ambientPlayerBotNames() {
       return [];
     },

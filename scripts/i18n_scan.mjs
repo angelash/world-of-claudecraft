@@ -118,6 +118,7 @@ async function loadSources() {
   const lines = [];
   lines.push(`export { en } from '${sourceModule('en')}';`);
   for (const lang of NON_EN) lines.push(`export { ${lang} } from '${sourceModule(lang)}';`);
+  lines.push("export { localeSupplements } from './src/ui/i18n.catalog/locale_supplements';");
   lines.push("export { DICT as serverDICT } from './src/ui/server_i18n';");
   lines.push("export { DICT as simDICT } from './src/ui/sim_i18n';");
   lines.push("export { en as adminEn } from './src/admin/i18n.en';");
@@ -138,7 +139,9 @@ async function loadSources() {
   const dataUrl = `data:text/javascript;base64,${Buffer.from(build.outputFiles[0].text).toString('base64')}`;
   const mod = await import(dataUrl);
   const overlays = {};
-  for (const lang of NON_EN) overlays[lang] = mod[lang];
+  for (const lang of NON_EN) {
+    overlays[lang] = { ...(mod[lang] ?? {}), ...(mod.localeSupplements?.[lang] ?? {}) };
+  }
   const adminOverlays = {};
   for (const lang of NON_EN) adminOverlays[lang] = mod[`admin_${lang}`];
   return { en: mod.en, overlays, serverDICT: mod.serverDICT, simDICT: mod.simDICT, adminEn: mod.adminEn, adminOverlays };

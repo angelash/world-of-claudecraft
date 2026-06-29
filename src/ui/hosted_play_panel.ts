@@ -9,6 +9,8 @@ export type HostedPlayPartyModeView =
 
 export type HostedPlayGroupModeView =
   | ''
+  | 'accept_invite'
+  | 'assist_party'
   | 'brain'
   | 'follow_leader'
   | 'hold_regroup';
@@ -25,6 +27,7 @@ export type HostedPlayLlmDecisionStatusView =
 export interface HostedPlaySettingsView {
   resumeOnLogin: boolean;
   partyMode: HostedPlayPartyModeView;
+  actionLogEnabled: boolean;
 }
 
 export interface HostedPlayDebugPointView {
@@ -239,6 +242,17 @@ export function renderHostedPlayPanel(
   resumeRow.append(resumeLabel, resumeBtn);
   settings.appendChild(resumeRow);
 
+  const actionLogRow = document.createElement('div');
+  actionLogRow.className = 'set-row';
+  const actionLogLabel = document.createElement('span');
+  actionLogLabel.className = 'set-name';
+  actionLogLabel.textContent = t('hudChrome.hostedPlay.actionLogLabel');
+  const actionLogBtn = document.createElement('button');
+  actionLogBtn.type = 'button';
+  actionLogBtn.className = 'btn set-toggle';
+  actionLogRow.append(actionLogLabel, actionLogBtn);
+  settings.appendChild(actionLogRow);
+
   const partyRow = document.createElement('div');
   partyRow.className = 'set-row';
   const partyLabel = document.createElement('span');
@@ -298,6 +312,13 @@ export function renderHostedPlayPanel(
     resumeBtn.classList.toggle('off', !resumeOnLogin);
     resumeBtn.setAttribute('aria-pressed', String(resumeOnLogin));
     resumeBtn.setAttribute('aria-label', t('hudChrome.hostedPlay.resumeOnLogin'));
+
+    const actionLogEnabled = currentStatus?.actionLogEnabled ?? true;
+    actionLogBtn.disabled = pending || !currentStatus;
+    actionLogBtn.textContent = actionLogEnabled ? t('hud.options.on') : t('hud.options.off');
+    actionLogBtn.classList.toggle('off', !actionLogEnabled);
+    actionLogBtn.setAttribute('aria-pressed', String(actionLogEnabled));
+    actionLogBtn.setAttribute('aria-label', t('hudChrome.hostedPlay.actionLogLabel'));
 
     const partyMode = currentStatus?.partyMode ?? 'solo';
     for (const [button, mode] of [
@@ -417,6 +438,10 @@ export function renderHostedPlayPanel(
       t('hudChrome.hostedPlay.objectiveLabel'),
       status.objectiveLabel || t('hudChrome.hostedPlay.objectiveNone'),
     );
+    appendRow(
+      t('hudChrome.hostedPlay.actionLogLabel'),
+      status.actionLogEnabled ? t('hud.options.on') : t('hud.options.off'),
+    );
     appendRow(t('hudChrome.hostedPlay.partyModeStatusLabel'), partyModeText(status));
     appendRow(t('hudChrome.hostedPlay.groupModeLabel'), groupModeText(status));
     if (status.groupLeaderName) {
@@ -498,6 +523,7 @@ export function renderHostedPlayPanel(
         hooks.updateSettings({
           resumeOnLogin: patch.resumeOnLogin ?? status.resumeOnLogin,
           partyMode: patch.partyMode ?? status.partyMode,
+          actionLogEnabled: patch.actionLogEnabled ?? status.actionLogEnabled,
         }),
       'hudChrome.hostedPlay.settingsSaveFailed',
     );
@@ -524,6 +550,10 @@ export function renderHostedPlayPanel(
   resumeBtn.addEventListener('click', () => {
     audio.click();
     updateSettings({ resumeOnLogin: !currentStatus?.resumeOnLogin });
+  });
+  actionLogBtn.addEventListener('click', () => {
+    audio.click();
+    updateSettings({ actionLogEnabled: !currentStatus?.actionLogEnabled });
   });
   partySoloBtn.addEventListener('click', () => {
     audio.click();
@@ -729,6 +759,10 @@ function partyModeText(status: HostedPlayStatusView): string {
 
 function groupModeText(status: HostedPlayStatusView): string {
   switch (status.groupMode) {
+    case 'accept_invite':
+      return t('hudChrome.hostedPlay.groupMode.acceptInvite');
+    case 'assist_party':
+      return t('hudChrome.hostedPlay.groupMode.assistParty');
     case 'brain':
       return t('hudChrome.hostedPlay.groupMode.brain');
     case 'follow_leader':

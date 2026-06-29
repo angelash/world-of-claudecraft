@@ -87,7 +87,10 @@ function sourceModule(lang) {
 // Bundle the source locale objects via a tiny stub and import the result. We pull
 // `en` and each locale export by its code; none of this touches the generated file.
 async function loadLocales() {
-  const stub = LOCALES.map((lang) => `export { ${lang} } from '${sourceModule(lang)}';`).join('\n');
+  const stub = [
+    ...LOCALES.map((lang) => `export { ${lang} } from '${sourceModule(lang)}';`),
+    "export { localeSupplements } from './src/ui/i18n.catalog/locale_supplements';",
+  ].join('\n');
   const build = await esbuild.build({
     stdin: {
       contents: stub,
@@ -104,7 +107,14 @@ async function loadLocales() {
   const dataUrl = `data:text/javascript;base64,${Buffer.from(build.outputFiles[0].text).toString('base64')}`;
   const mod = await import(dataUrl);
   const out = {};
-  for (const lang of LOCALES) out[lang] = mod[lang];
+  for (const lang of LOCALES) {
+    const base = mod[lang];
+    if (lang === 'en') {
+      out[lang] = base;
+      continue;
+    }
+    out[lang] = { ...(base ?? {}), ...(mod.localeSupplements?.[lang] ?? {}) };
+  }
   return out;
 }
 

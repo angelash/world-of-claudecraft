@@ -630,6 +630,7 @@ export const ko_KR: EnTranslations = {
       "statusLabel": "Status",
       "objectiveLabel": "Objective",
       "resumeOnLogin": "Resume on Login",
+      "actionLogLabel": "채팅 행동 기록",
       "partyModeLabel": "Party Mode",
       "partyModeStatusLabel": "Party Behavior",
       "groupModeLabel": "Current Group State",
@@ -729,12 +730,28 @@ export const ko_KR: EnTranslations = {
         "pendingReplyPresence": "Presence Emote",
         "pendingReplyRequested": "LLM Requested"
       },
+      "log": {
+        "accept": "자동 플레이: {quest} 수락하러 이동 중.",
+        "questWork": "자동 플레이: {quest} 진행 중.",
+        "turnIn": "자동 플레이: {quest} 완료 보고하러 이동 중.",
+        "resupply": "자동 플레이: 보급을 위해 상인에게 이동 중.",
+        "upgrade": "자동 플레이: 업그레이드를 사기 위해 상인에게 이동 중.",
+        "grind": "자동 플레이: 경험치를 위해 사냥 중.",
+        "recover": "자동 플레이: 전투 사이에 회복 중.",
+        "retreat": "자동 플레이: 안전한 곳으로 후퇴 중.",
+        "release": "자동 플레이: 영혼을 해방하는 중.",
+        "gatherParty": "자동 플레이: {quest} 를 위해 파티를 모으는 중.",
+        "leaveDungeon": "자동 플레이: {dungeon} 에서 나가는 중.",
+        "leaveDungeonForQuest": "자동 플레이: {quest} 보고를 위해 던전에서 나가는 중."
+      },
       "partyMode": {
         "solo": "Solo progression",
         "followLeader": "Follow party leader"
       },
       "groupMode": {
         "none": "No active group coordination",
+        "acceptInvite": "Accepting a party invite",
+        "assistParty": "Assisting the party in combat",
         "brain": "Running the normal progression brain",
         "followLeader": "Following the party leader",
         "holdRegroup": "Holding for party regroup"

@@ -464,6 +464,7 @@ function hostedPlayStatusPayload(
     ...hostedPlayRuntime.status(characterId),
     resumeOnLogin: preferences.resumeOnLogin,
     partyMode: preferences.partyMode,
+    actionLogEnabled: preferences.actionLogEnabled,
   };
 }
 
@@ -477,10 +478,17 @@ async function readHostedPlayPreferencesBody(
 ): Promise<HostedPlayPreferences | null> {
   const body = await readBody(req);
   const partyMode = parseHostedPlayPartyMode(body.partyMode);
-  if (typeof body.resumeOnLogin !== 'boolean' || !partyMode) return null;
+  if (
+    typeof body.resumeOnLogin !== 'boolean'
+    || !partyMode
+    || typeof body.actionLogEnabled !== 'boolean'
+  ) {
+    return null;
+  }
   return {
     resumeOnLogin: body.resumeOnLogin,
     partyMode,
+    actionLogEnabled: body.actionLogEnabled,
   };
 }
 

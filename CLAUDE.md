@@ -92,6 +92,12 @@ See `README.md` for the full host/develop/play guide and the classic-fidelity ch
     never put English, a placeholder, or a `// TODO` into one. The build English-fills
     omissions (registry marks them `pending`): the PR-tier gate permits English-only,
     the release-tier gate (`I18N_RELEASE_TIER=1`) hard-fails on any `pending` row.
+    A gameplay or UI feature is still NOT complete until this support lands in the
+    same change: every player-facing string keyed, every sim/server emit matched, and
+    generated i18n artifacts refreshed. If the operator explicitly needs the current
+    build to show real non-English text for new strings, add those locale values
+    through `src/ui/i18n.catalog/locale_supplements.ts`, not by hand-editing the
+    sparse overlays.
   - **`src/sim/` and `server/` stay language-agnostic** (no `t()`, no DOM) but their
     player text is in scope: emit a stable key plus values, or English re-localized
     via the client matcher (`src/ui/sim_i18n.ts` + `server_i18n.ts`) in the SAME

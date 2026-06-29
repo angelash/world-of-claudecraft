@@ -19,6 +19,13 @@ English-only PR correct and safe, so that is the contract.
 
 Translating your own locale is **permitted but never required** of a contributor.
 
+Feature-complete means more than "added an English key": no gameplay or UI system is
+done until every player-facing string in that change routes through `t()` or the
+sim/server matcher, and the generated i18n artifacts are refreshed in the same diff.
+When the operator explicitly needs the current build to show real non-English text for
+new strings, add those locale values in `src/ui/i18n.catalog/locale_supplements.ts`
+instead of hand-editing the sparse overlays.
+
 ## Adding a player-visible string (by origin)
 
 Pick the recipe for where the string is emitted. In all four, add ENGLISH only,

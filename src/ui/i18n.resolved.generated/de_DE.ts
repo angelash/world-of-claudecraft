@@ -630,6 +630,7 @@ export const de_DE: EnTranslations = {
       "statusLabel": "Status",
       "objectiveLabel": "Objective",
       "resumeOnLogin": "Resume on Login",
+      "actionLogLabel": "Aktionsprotokoll",
       "partyModeLabel": "Party Mode",
       "partyModeStatusLabel": "Party Behavior",
       "groupModeLabel": "Current Group State",
@@ -729,12 +730,28 @@ export const de_DE: EnTranslations = {
         "pendingReplyPresence": "Presence Emote",
         "pendingReplyRequested": "LLM Requested"
       },
+      "log": {
+        "accept": "Betreutes Spiel: auf dem Weg, um {quest} anzunehmen.",
+        "questWork": "Betreutes Spiel: Fortschritt bei {quest}.",
+        "turnIn": "Betreutes Spiel: auf dem Weg, um {quest} abzugeben.",
+        "resupply": "Betreutes Spiel: auf dem Weg zu einem Haendler fuer Nachschub.",
+        "upgrade": "Betreutes Spiel: auf dem Weg zu einem Haendler fuer eine Aufwertung.",
+        "grind": "Betreutes Spiel: sammelt Erfahrung.",
+        "recover": "Betreutes Spiel: erholt sich zwischen Kaempfen.",
+        "retreat": "Betreutes Spiel: Rueckzug an einen sicheren Ort.",
+        "release": "Betreutes Spiel: Geist wird freigelassen.",
+        "gatherParty": "Betreutes Spiel: sammelt eine Gruppe fuer {quest}.",
+        "leaveDungeon": "Betreutes Spiel: verlaesst {dungeon}.",
+        "leaveDungeonForQuest": "Betreutes Spiel: verlaesst den Dungeon, um {quest} abzugeben."
+      },
       "partyMode": {
         "solo": "Solo progression",
         "followLeader": "Follow party leader"
       },
       "groupMode": {
         "none": "No active group coordination",
+        "acceptInvite": "Accepting a party invite",
+        "assistParty": "Assisting the party in combat",
         "brain": "Running the normal progression brain",
         "followLeader": "Following the party leader",
         "holdRegroup": "Holding for party regroup"

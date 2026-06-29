@@ -630,6 +630,7 @@ export const ja_JP: EnTranslations = {
       "statusLabel": "Status",
       "objectiveLabel": "Objective",
       "resumeOnLogin": "Resume on Login",
+      "actionLogLabel": "チャット行動ログ",
       "partyModeLabel": "Party Mode",
       "partyModeStatusLabel": "Party Behavior",
       "groupModeLabel": "Current Group State",
@@ -729,12 +730,28 @@ export const ja_JP: EnTranslations = {
         "pendingReplyPresence": "Presence Emote",
         "pendingReplyRequested": "LLM Requested"
       },
+      "log": {
+        "accept": "自動プレイ: {quest} を受けに向かっています。",
+        "questWork": "自動プレイ: {quest} を進行中です。",
+        "turnIn": "自動プレイ: {quest} を報告しに向かっています。",
+        "resupply": "自動プレイ: 補給のため商人に向かっています。",
+        "upgrade": "自動プレイ: 強化を買うため商人に向かっています。",
+        "grind": "自動プレイ: 経験値のために狩りをしています。",
+        "recover": "自動プレイ: 戦闘の合間に回復しています。",
+        "retreat": "自動プレイ: 安全な場所へ退避しています。",
+        "release": "自動プレイ: 魂を解放しています。",
+        "gatherParty": "自動プレイ: {quest} のためにパーティーを集めています。",
+        "leaveDungeon": "自動プレイ: {dungeon} から退出しています。",
+        "leaveDungeonForQuest": "自動プレイ: {quest} の報告のためダンジョンを離れています。"
+      },
       "partyMode": {
         "solo": "Solo progression",
         "followLeader": "Follow party leader"
       },
       "groupMode": {
         "none": "No active group coordination",
+        "acceptInvite": "Accepting a party invite",
+        "assistParty": "Assisting the party in combat",
         "brain": "Running the normal progression brain",
         "followLeader": "Following the party leader",
         "holdRegroup": "Holding for party regroup"

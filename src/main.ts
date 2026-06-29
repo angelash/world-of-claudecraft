@@ -352,6 +352,7 @@ function hostedPlayStatusView(status: Awaited<ReturnType<Api['hostedPlayStatus']
     lastError: status.lastError,
     resumeOnLogin: status.resumeOnLogin,
     partyMode: status.partyMode,
+    actionLogEnabled: status.actionLogEnabled,
     groupMode: status.groupMode,
     groupLeaderName: status.groupLeaderName,
     groupLeaderDistance: status.groupLeaderDistance,
