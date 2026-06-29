@@ -1,6 +1,7 @@
 import type { KnownAbility } from '../../src/sim/content/classes';
 import type { TalentAllocation } from '../../src/sim/content/talents';
 import { computeTalentModifiers } from '../../src/sim/content/talents';
+import { canEquipItem } from '../../src/sim/equipment_rules';
 import {
   CAMPS,
   CLASSES,
@@ -17,11 +18,14 @@ import {
 } from '../../src/sim/data';
 import { findPlayerPath, resolvePlayerDestination } from '../../src/sim/pathfind';
 import {
+  type EquipSlot,
   INTERACT_RANGE,
   MELEE_RANGE,
   angleTo,
   dist2d,
+  type ItemDef,
   type InvSlot,
+  type PlayerClass,
   type QuestProgress,
 } from '../../src/sim/types';
 import type { AmbientPlayerBotRecord } from './types';
@@ -34,43 +38,65 @@ import {
 import { maybePrepareForPull } from './pre_combat';
 
 const DEFAULT_WORLD_SEED = 20_061;
-const PATH_NODE_REACHED_RANGE = 2.2;
+const PATH_NODE_REACHED_RANGE = 0.5;
+const OBJECT_PICKUP_ARRIVAL_RANGE = INTERACT_RANGE;
 const CAMP_ARRIVAL_RANGE = 7;
 const MOB_SEARCH_RADIUS = 55;
 const STUCK_PROGRESS_DISTANCE = 0.75;
 const STUCK_TIMEOUT_MS = 4_000;
 const NO_TARGET_ROTATE_MS = 5_000;
 const COMMAND_COOLDOWN_MS = 900;
-const RECOVERY_HP_THRESHOLD = 0.55;
+const RECOVERY_HP_THRESHOLD = 0.7;
 const RECOVERY_MANA_THRESHOLD = 0.45;
 const FOOD_RESTOCK_TRIGGER_COUNT = 2;
 const FOOD_RESTOCK_TARGET_COUNT = 4;
 const DRINK_RESTOCK_TRIGGER_COUNT = 2;
 const DRINK_RESTOCK_TARGET_COUNT = 4;
+const HEALING_POTION_HP_THRESHOLD = 0.38;
+const HEALING_POTION_RESTOCK_TRIGGER_COUNT = 2;
+const HEALING_POTION_RESTOCK_TARGET_COUNT = 3;
+const DANGEROUS_PULL_THREAT_COUNT = 3;
+const DANGEROUS_PULL_LOW_HP_THREAT_COUNT = 2;
+const DANGEROUS_PULL_LOW_HP_THRESHOLD = 0.58;
+const DANGEROUS_PULL_POTION_HP_THRESHOLD = 0.68;
+const DANGEROUS_PULL_SAFE_ARRIVAL_RANGE = INTERACT_RANGE + 4;
+const DANGEROUS_PULL_MIN_LEVEL = 5;
 
 interface AmbientBotVendorProfile {
   vendorNpcTemplateId: string;
   foodItemId: string;
   drinkItemId: string;
+  healingPotionItemId: string;
 }
 
 const EASTBROOK_VENDOR_PROFILE: AmbientBotVendorProfile = {
   vendorNpcTemplateId: 'trader_wilkes',
   foodItemId: 'baked_bread',
   drinkItemId: 'spring_water',
+  healingPotionItemId: 'minor_healing_potion',
 };
 
 const FENBRIDGE_VENDOR_PROFILE: AmbientBotVendorProfile = {
   vendorNpcTemplateId: 'provisioner_hale',
   foodItemId: 'fenbridge_rye',
   drinkItemId: 'marsh_mint_tea',
+  healingPotionItemId: 'lesser_healing_potion',
 };
 
 const HIGHWATCH_VENDOR_PROFILE: AmbientBotVendorProfile = {
   vendorNpcTemplateId: 'quartermaster_bree',
   foodItemId: 'trail_hardtack',
   drinkItemId: 'meltwater_flask',
+  healingPotionItemId: 'healing_potion',
 };
+
+const EASTBROOK_GEAR_VENDOR_NPC_TEMPLATE_ID = 'smith_haldren';
+const EASTBROOK_WEAPON_UPGRADE_IDS = [
+  'eastbrook_arming_sword',
+  'bronzework_mace',
+  'vale_carving_knife',
+  'hickory_shortstaff',
+] as const;
 
 type BrainCommand = Record<string, unknown>;
 type MoveInputPayload = Record<string, 1>;
@@ -92,7 +118,19 @@ interface BotEntityView {
   lootable: boolean;
   hostile: boolean;
   aggroTargetId: number | null;
+  tappedById: number | null;
   ownerId: number | null;
+  corpseLoot: BotCorpseLoot | null;
+}
+
+interface BotLootSlot extends InvSlot {
+  personalFor?: readonly number[];
+  openToAll?: boolean;
+}
+
+interface BotCorpseLoot {
+  copper: number;
+  items: readonly BotLootSlot[];
 }
 
 interface BotAuraView {
@@ -122,6 +160,8 @@ interface BotSelfView {
   drinkingRemaining: number | null;
   auras: BotAuraView[];
   inventory: InvSlot[];
+  equipment: Partial<Record<EquipSlot, string>>;
+  partyMemberIds: ReadonlySet<number>;
   questLog: Map<string, QuestProgress>;
   questsDone: Set<string>;
   talents: TalentAllocation | null;
@@ -143,6 +183,7 @@ interface AmbientBotObjective {
   npcTemplateId?: string;
   allowAnyHostileFallback?: boolean;
   vendorPurchases?: readonly AmbientBotVendorPurchase[];
+  vendorSales?: readonly AmbientBotVendorSale[];
   dungeonId?: string;
   suggestedPartySize?: number;
   leaveDungeon?: boolean;
@@ -151,6 +192,16 @@ interface AmbientBotObjective {
 interface AmbientBotVendorPurchase {
   itemId: string;
   targetCount: number;
+}
+
+interface AmbientBotVendorSale {
+  itemId: string;
+  count: number;
+}
+
+interface AmbientBotWeaponPurchasePlan {
+  itemId: string;
+  vendorSales: readonly AmbientBotVendorSale[];
 }
 
 export interface AmbientPlayerBotTravelGoal {
@@ -223,7 +274,7 @@ export function tickAmbientPlayerBotBrain(
   if (!view) return idleStep('waiting_for_snapshot', 'Waiting for snapshot');
 
   const { self } = view;
-  const objective = chooseObjective(view);
+  const objective = chooseObjective(view, input.bot);
   beginObjective(state, objective.id, input.nowMs, self.pos);
 
   if (objective.id === 'release') {
@@ -232,7 +283,32 @@ export function tickAmbientPlayerBotBrain(
     return finalizeStep(state, input, view, objective, idleStep(objective.id, objective.label, commands));
   }
 
-  const recovery = maybeRecover(view, state, input.nowMs);
+  const gearUpgrade = maybeEquipUpgrade(view, input.bot, state, input.nowMs);
+  if (gearUpgrade) {
+    beginObjective(state, 'equip_upgrade', input.nowMs, self.pos);
+    return finalizeStep(
+      state,
+      input,
+      view,
+      { id: 'equip_upgrade', label: 'Equipping gear upgrade' },
+      gearUpgrade,
+    );
+  }
+
+  const threat = findThreateningMob(view);
+  const dangerousPull = maybeRetreatFromDangerousPull(view, state, input);
+  if (dangerousPull) {
+    beginObjective(state, 'retreat', input.nowMs, self.pos);
+    return finalizeStep(
+      state,
+      input,
+      view,
+      objective,
+      dangerousPull,
+    );
+  }
+
+  const recovery = maybeRecover(view, state, input.nowMs, threat !== null);
   if (recovery) {
     beginObjective(state, 'recover', input.nowMs, self.pos);
     return finalizeStep(
@@ -244,14 +320,21 @@ export function tickAmbientPlayerBotBrain(
     );
   }
 
-  const loot = maybeLootNearby(view, state, input.nowMs);
-  if (loot) return finalizeStep(state, input, view, objective, loot);
-
-  const threat = findThreateningMob(view);
   if (threat) {
-    const threatStep = fightTarget(view, input.bot, threat, state, input.nowMs, objective.label);
+    const threatStep = fightTarget(
+      view,
+      input.bot,
+      threat,
+      state,
+      input.liveState.seed ?? DEFAULT_WORLD_SEED,
+      input.nowMs,
+      objective.label,
+    );
     return finalizeStep(state, input, view, objective, threatStep);
   }
+
+  const loot = maybeLootNearby(view, state, input.nowMs);
+  if (loot) return finalizeStep(state, input, view, objective, loot);
 
   if (objective.id === 'recover') {
     return finalizeStep(state, input, view, objective, idleStep(objective.id, objective.label));
@@ -306,12 +389,18 @@ export function tickAmbientPlayerBotBrain(
   return finalizeStep(state, input, view, objective, idleStep(objective.id, objective.label));
 }
 
-function chooseObjective(view: BotWorldView): AmbientBotObjective {
+function chooseObjective(view: BotWorldView, bot: AmbientPlayerBotRecord): AmbientBotObjective {
   if (view.self.hp <= 0) return { id: 'release', label: 'Releasing spirit' };
 
-  const questObjective = chooseQuestObjective(view);
+  const deferredQuestRoute = deferredActiveQuestRoute(view);
+  const questObjective = deferredQuestRoute ? null : chooseQuestObjective(view);
   const resupplyObjective = chooseResupplyObjective(view, questObjective);
   if (resupplyObjective) return resupplyObjective;
+  const gearPurchaseObjective = questObjective?.id.startsWith('turnin_')
+    ? null
+    : chooseGearPurchaseObjective(view, bot);
+  if (gearPurchaseObjective) return gearPurchaseObjective;
+  if (deferredQuestRoute) return grindObjectiveForSelf(view.self);
   if (questObjective) return questObjective;
 
   if (inventoryHasJunk(view.self.inventory)) {
@@ -323,7 +412,11 @@ function chooseObjective(view: BotWorldView): AmbientBotObjective {
     };
   }
 
-  const grind = grindRouteForSelf(view.self);
+  return grindObjectiveForSelf(view.self);
+}
+
+function grindObjectiveForSelf(self: BotSelfView): AmbientBotObjective {
+  const grind = grindRouteForSelf(self);
   return {
     id: 'grind',
     label: `Grinding ${displayMobName(grind.mobId)}`,
@@ -346,6 +439,21 @@ function chooseResupplyObjective(
     label: resupplyLabel(vendorPurchases),
     npcTemplateId: vendorProfile.vendorNpcTemplateId,
     vendorPurchases,
+  };
+}
+
+function chooseGearPurchaseObjective(
+  view: BotWorldView,
+  bot: AmbientPlayerBotRecord,
+): AmbientBotObjective | null {
+  const plan = bestAffordableVendorWeaponPlan(bot.class, view.self);
+  if (!plan) return null;
+  return {
+    id: `buy_${plan.itemId}`,
+    label: `Buying ${ITEMS[plan.itemId]?.name ?? plan.itemId}`,
+    npcTemplateId: EASTBROOK_GEAR_VENDOR_NPC_TEMPLATE_ID,
+    vendorPurchases: [{ itemId: plan.itemId, targetCount: 1 }],
+    ...(plan.vendorSales.length > 0 ? { vendorSales: plan.vendorSales } : {}),
   };
 }
 
@@ -402,6 +510,15 @@ function chooseQuestObjective(view: BotWorldView): AmbientBotObjective | null {
   };
 }
 
+function deferredActiveQuestRoute(view: BotWorldView): AmbientBotQuestRoute | null {
+  return AMBIENT_BOT_SOLO_QUEST_ROUTES.find((route) => {
+    const progress = view.self.questLog.get(route.questId);
+    if (!progress || progress.state !== 'active') return false;
+    if (view.self.level >= route.pursueAtLevel) return false;
+    return routeObjectiveNeedsWork(route, progress);
+  }) ?? null;
+}
+
 function isQuestRouteReady(
   route: AmbientBotQuestRoute,
   view: BotWorldView,
@@ -421,6 +538,7 @@ function isQuestRouteActive(
 ): boolean {
   const progress = view.self.questLog.get(route.questId);
   if (!progress || progress.state !== 'active') return false;
+  if (view.self.level < route.pursueAtLevel) return false;
   if (route.acceptBeforeActiveQuestIds?.some((questId) => isStandaloneQuestAvailable(questId, view))) {
     return false;
   }
@@ -514,18 +632,27 @@ function buildVendorPurchases(
 ): AmbientBotVendorPurchase[] {
   const purchases: AmbientBotVendorPurchase[] = [];
   const canSellJunk = inventoryHasJunk(self.inventory);
-  if (
+  const shouldRestockFood =
     countConsumables(self.inventory, 'food') < FOOD_RESTOCK_TRIGGER_COUNT
-    && canAffordVendorItem(self.copper, vendorProfile.foodItemId, canSellJunk)
-  ) {
+    && canAffordVendorItem(self.copper, vendorProfile.foodItemId, canSellJunk);
+  if (shouldRestockFood) {
     purchases.push({ itemId: vendorProfile.foodItemId, targetCount: FOOD_RESTOCK_TARGET_COUNT });
   }
-  if (
+  const shouldRestockDrink =
     self.resourceType === 'mana'
     && countConsumables(self.inventory, 'drink') < DRINK_RESTOCK_TRIGGER_COUNT
-    && canAffordVendorItem(self.copper, vendorProfile.drinkItemId, canSellJunk)
-  ) {
+    && canAffordVendorItem(self.copper, vendorProfile.drinkItemId, canSellJunk);
+  if (shouldRestockDrink) {
     purchases.push({ itemId: vendorProfile.drinkItemId, targetCount: DRINK_RESTOCK_TARGET_COUNT });
+  }
+  if (
+    countHealingPotions(self.inventory) < HEALING_POTION_RESTOCK_TRIGGER_COUNT
+    && canAffordVendorItem(self.copper, vendorProfile.healingPotionItemId, canSellJunk)
+  ) {
+    purchases.push({
+      itemId: vendorProfile.healingPotionItemId,
+      targetCount: HEALING_POTION_RESTOCK_TARGET_COUNT,
+    });
   }
   return purchases;
 }
@@ -558,24 +685,224 @@ function maybeRecover(
   view: BotWorldView,
   state: AmbientPlayerBotBrainState,
   nowMs: number,
+  immediateThreat: boolean,
 ): AmbientPlayerBotBrainTickResult | null {
   const commands: BrainCommand[] = [];
   const hpRatio = view.self.maxHp > 0 ? view.self.hp / view.self.maxHp : 1;
   if (view.self.eatingRemaining !== null || view.self.drinkingRemaining !== null) {
     return idleStep('recover', 'Recovering between pulls');
   }
+  if (hpRatio < HEALING_POTION_HP_THRESHOLD) {
+    const potion = findHealingPotion(view.self.inventory);
+    if (potion && canIssue(state, `use:${potion}`, nowMs, 3_000)) {
+      commands.push({ cmd: 'use', item: potion });
+    }
+    if (commands.length > 0 && immediateThreat) {
+      return idleStep('recover', 'Recovering between pulls', commands);
+    }
+  }
   if (hpRatio < RECOVERY_HP_THRESHOLD) {
     const food = findConsumable(view.self.inventory, 'food');
-    if (food && canIssue(state, `use:${food}`, nowMs, 3_000)) commands.push({ cmd: 'use', item: food });
+    if (!immediateThreat && food && canIssue(state, `use:${food}`, nowMs, 3_000)) {
+      commands.push({ cmd: 'use', item: food });
+    }
+    if (!immediateThreat) return idleStep('recover', 'Recovering between pulls', commands);
   }
   if (view.self.resourceType === 'mana' && view.self.maxResource > 0) {
     const manaRatio = view.self.resource / view.self.maxResource;
     if (manaRatio < RECOVERY_MANA_THRESHOLD) {
       const drink = findConsumable(view.self.inventory, 'drink');
-      if (drink && canIssue(state, `use:${drink}`, nowMs, 3_000)) commands.push({ cmd: 'use', item: drink });
+      if (!immediateThreat && drink && canIssue(state, `use:${drink}`, nowMs, 3_000)) {
+        commands.push({ cmd: 'use', item: drink });
+      }
+      if (!immediateThreat) return idleStep('recover', 'Recovering between pulls', commands);
     }
   }
   return commands.length > 0 ? idleStep('recover', 'Recovering between pulls', commands) : null;
+}
+
+function maybeRetreatFromDangerousPull(
+  view: BotWorldView,
+  state: AmbientPlayerBotBrainState,
+  input: AmbientPlayerBotBrainTickInput,
+): AmbientPlayerBotBrainTickResult | null {
+  if (view.self.level < DANGEROUS_PULL_MIN_LEVEL) return null;
+  const threats = threateningMobs(view);
+  if (threats.length === 0) return null;
+
+  const hpRatio = view.self.maxHp > 0 ? view.self.hp / view.self.maxHp : 1;
+  const dangerousByCount = threats.length >= DANGEROUS_PULL_THREAT_COUNT;
+  const dangerousByLowHp =
+    threats.length >= DANGEROUS_PULL_LOW_HP_THREAT_COUNT
+    && hpRatio < DANGEROUS_PULL_LOW_HP_THRESHOLD;
+  if (!dangerousByCount && !dangerousByLowHp) return null;
+
+  const commands: BrainCommand[] = [];
+  if (hpRatio < DANGEROUS_PULL_POTION_HP_THRESHOLD) {
+    const potion = findHealingPotion(view.self.inventory);
+    if (potion && canIssue(state, `use:${potion}`, input.nowMs, 3_000)) {
+      commands.push({ cmd: 'use', item: potion });
+    }
+  }
+  if (view.self.autoAttack && canIssue(state, 'stopattack', input.nowMs, 1_500)) {
+    commands.push({ cmd: 'stopattack' });
+  }
+  if (view.self.targetId !== null && canIssue(state, 'clear_target', input.nowMs, 1_500)) {
+    commands.push({ cmd: 'target', id: null });
+  }
+
+  const vendorTemplateId = vendorProfileFor(view.self).vendorNpcTemplateId;
+  const safePoint = npcFallbackPoint(vendorTemplateId) ?? { x: 0, z: 0 };
+  return travelToPoint(
+    view,
+    state,
+    input.liveState.seed ?? DEFAULT_WORLD_SEED,
+    { id: 'recover', label: 'Retreating from a dangerous pull' },
+    safePoint,
+    DANGEROUS_PULL_SAFE_ARRIVAL_RANGE,
+    `retreat:${vendorTemplateId}`,
+    commands,
+  );
+}
+
+function maybeEquipUpgrade(
+  view: BotWorldView,
+  bot: AmbientPlayerBotRecord,
+  state: AmbientPlayerBotBrainState,
+  nowMs: number,
+): AmbientPlayerBotBrainTickResult | null {
+  const itemId = bestEquipmentUpgrade(bot.class, view.self);
+  if (!itemId || !canIssue(state, `equip:${itemId}`, nowMs, COMMAND_COOLDOWN_MS)) return null;
+  return idleStep('equip_upgrade', 'Equipping gear upgrade', [{ cmd: 'equip', item: itemId }]);
+}
+
+function bestEquipmentUpgrade(cls: PlayerClass, self: BotSelfView): string | null {
+  let bestItemId: string | null = null;
+  let bestDelta = 0;
+  for (const slot of self.inventory) {
+    const item = ITEMS[slot.itemId];
+    if (!item?.slot || (item.kind !== 'weapon' && item.kind !== 'armor')) continue;
+    if (!canEquipItem(cls, item)) continue;
+    const current = self.equipment[item.slot] ? ITEMS[self.equipment[item.slot]!] : null;
+    const delta = equipmentScore(item) - equipmentScore(current);
+    if (delta > bestDelta + 0.1) {
+      bestDelta = delta;
+      bestItemId = item.id;
+    }
+  }
+  return bestItemId;
+}
+
+function bestAffordableVendorWeapon(cls: PlayerClass, self: BotSelfView): string | null {
+  return bestAffordableVendorWeaponPlan(cls, self)?.itemId ?? null;
+}
+
+function bestAffordableVendorWeaponPlan(
+  cls: PlayerClass,
+  self: BotSelfView,
+): AmbientBotWeaponPurchasePlan | null {
+  const current = self.equipment.mainhand ? ITEMS[self.equipment.mainhand] : null;
+  const junkValue = sellAllJunkValue(self.inventory);
+  const saleCandidates = vendorSaleCandidatesForGearPurchase(cls, self);
+  let bestItemId: string | null = null;
+  let bestDelta = 0;
+  let bestVendorSales: readonly AmbientBotVendorSale[] = [];
+  for (const itemId of EASTBROOK_WEAPON_UPGRADE_IDS) {
+    if (countItemInInventory(self.inventory, itemId) > 0) continue;
+    const item = ITEMS[itemId];
+    if (!item?.buyValue) continue;
+    if (!canEquipItem(cls, item)) continue;
+    const delta = equipmentScore(item) - equipmentScore(current);
+    const remainingAfterJunk = item.buyValue - self.copper - junkValue;
+    const vendorSales = remainingAfterJunk > 0
+      ? vendorSalesForNeed(saleCandidates, remainingAfterJunk)
+      : [];
+    const totalFunds = self.copper + junkValue + vendorSaleTotal(vendorSales);
+    if (totalFunds < item.buyValue) continue;
+    if (delta > bestDelta + 0.1) {
+      bestDelta = delta;
+      bestItemId = item.id;
+      bestVendorSales = vendorSales;
+    }
+  }
+  return bestItemId ? { itemId: bestItemId, vendorSales: bestVendorSales } : null;
+}
+
+function sellAllJunkValue(inventory: readonly InvSlot[]): number {
+  let total = 0;
+  for (const slot of inventory) {
+    const item = ITEMS[slot.itemId];
+    if (!item || item.quality !== 'poor' || item.kind === 'quest' || item.noVendorSell || slot.count <= 0) continue;
+    total += item.sellValue * slot.count;
+  }
+  return total;
+}
+
+function vendorSaleCandidatesForGearPurchase(
+  cls: PlayerClass,
+  self: BotSelfView,
+): AmbientBotVendorSale[] {
+  const sales: AmbientBotVendorSale[] = [];
+  for (const slot of self.inventory) {
+    if (slot.count <= 0) continue;
+    const item = ITEMS[slot.itemId];
+    if (!item || item.sellValue <= 0 || item.kind === 'quest' || item.noVendorSell) continue;
+    if (item.kind === 'food' || item.kind === 'drink' || item.kind === 'potion' || item.kind === 'elixir') continue;
+    if (item.quality === 'poor' && item.kind === 'junk') continue;
+    if (item.kind === 'armor' || item.kind === 'weapon') {
+      if (!item.slot) continue;
+      if (canEquipItem(cls, item)) {
+        const current = self.equipment[item.slot] ? ITEMS[self.equipment[item.slot]!] : null;
+        if (equipmentScore(item) > equipmentScore(current) + 0.1) continue;
+      }
+    } else if (item.kind !== 'junk') {
+      continue;
+    }
+    sales.push({ itemId: slot.itemId, count: slot.count });
+  }
+  return sales;
+}
+
+function vendorSalesForNeed(
+  candidates: readonly AmbientBotVendorSale[],
+  copperNeeded: number,
+): AmbientBotVendorSale[] {
+  const sales: AmbientBotVendorSale[] = [];
+  let remaining = copperNeeded;
+  for (const candidate of candidates) {
+    const item = ITEMS[candidate.itemId];
+    if (!item || item.sellValue <= 0) continue;
+    const count = Math.min(candidate.count, Math.ceil(remaining / item.sellValue));
+    if (count <= 0) continue;
+    sales.push({ itemId: candidate.itemId, count });
+    remaining -= item.sellValue * count;
+    if (remaining <= 0) break;
+  }
+  return remaining <= 0 ? sales : [];
+}
+
+function vendorSaleTotal(sales: readonly AmbientBotVendorSale[]): number {
+  let total = 0;
+  for (const sale of sales) {
+    const item = ITEMS[sale.itemId];
+    if (!item) continue;
+    total += item.sellValue * sale.count;
+  }
+  return total;
+}
+
+function equipmentScore(item: ItemDef | null | undefined): number {
+  if (!item) return 0;
+  const stats = item.stats;
+  const statScore =
+    (stats?.armor ?? 0)
+    + (stats?.sta ?? 0) * 8
+    + (stats?.str ?? 0) * 4
+    + (stats?.agi ?? 0) * 3
+    + (stats?.int ?? 0) * 3
+    + (stats?.spi ?? 0) * 2;
+  if (item.kind !== 'weapon' || !item.weapon) return statScore;
+  return statScore + ((item.weapon.min + item.weapon.max) / Math.max(0.1, item.weapon.speed)) * 6;
 }
 
 function maybeLootNearby(
@@ -651,6 +978,11 @@ function handleVendorObjective(
   }
   if (inventoryHasJunk(view.self.inventory) && canIssue(state, 'sell_all_junk', input.nowMs, 5_000)) {
     commands.push({ cmd: 'sell_all_junk' });
+  } else if (objective.vendorSales && objective.vendorSales.length > 0) {
+    const sale = nextVendorSale(objective.vendorSales, view.self.inventory);
+    if (sale && canIssue(state, `sell:${sale.itemId}`, input.nowMs, COMMAND_COOLDOWN_MS)) {
+      commands.push({ cmd: 'sell', item: sale.itemId, count: sale.count });
+    }
   } else if (npc && objective.vendorPurchases) {
     const purchase = nextVendorPurchase(objective.vendorPurchases, view.self.inventory);
     if (purchase && canIssue(state, `buy:${purchase.itemId}`, input.nowMs, COMMAND_COOLDOWN_MS)) {
@@ -717,6 +1049,18 @@ function nextVendorPurchase(
   return null;
 }
 
+function nextVendorSale(
+  sales: readonly AmbientBotVendorSale[],
+  inventory: readonly InvSlot[],
+): AmbientBotVendorSale | null {
+  for (const sale of sales) {
+    const available = countItemInInventory(inventory, sale.itemId);
+    if (available <= 0) continue;
+    return { itemId: sale.itemId, count: Math.min(sale.count, available) };
+  }
+  return null;
+}
+
 function huntMob(
   view: BotWorldView,
   input: AmbientPlayerBotBrainTickInput,
@@ -747,7 +1091,15 @@ function huntMob(
         facingFor(view.self.pos, target.pos),
       );
     }
-    return fightTarget(view, input.bot, target, state, input.nowMs, objective.label);
+    return fightTarget(
+      view,
+      input.bot,
+      target,
+      state,
+      input.liveState.seed ?? DEFAULT_WORLD_SEED,
+      input.nowMs,
+      objective.label,
+    );
   }
 
   const camps = objective.camps ?? [];
@@ -788,14 +1140,14 @@ function collectObject(
   if (target) {
     state.noTargetSinceMs = null;
     const facing = facingFor(view.self.pos, target.pos);
-    if (dist2d(view.self.pos, target.pos) > INTERACT_RANGE + 1.5) {
+    if (dist2d(view.self.pos, target.pos) > OBJECT_PICKUP_ARRIVAL_RANGE) {
       return travelToPoint(
         view,
         state,
         input.liveState.seed ?? DEFAULT_WORLD_SEED,
         objective,
         { x: target.pos.x, z: target.pos.z },
-        INTERACT_RANGE + 1.5,
+        OBJECT_PICKUP_ARRIVAL_RANGE,
         `object:${preferredItemId ?? 'item'}:${target.id}`,
       );
     }
@@ -840,6 +1192,7 @@ function fightTarget(
   bot: AmbientPlayerBotRecord,
   target: BotEntityView,
   state: AmbientPlayerBotBrainState,
+  seed: number,
   nowMs: number,
   label: string,
 ): AmbientPlayerBotBrainTickResult {
@@ -868,7 +1221,16 @@ function fightTarget(
   }
 
   if (distance > preferredRange) {
-    return moveStep('combat', label, facing, commands);
+    return travelToPoint(
+      view,
+      state,
+      seed,
+      { id: 'combat', label },
+      { x: target.pos.x, z: target.pos.z },
+      preferredRange,
+      movingTargetGoalKey(target),
+      commands,
+    );
   }
 
   if (
@@ -894,9 +1256,24 @@ function fightTarget(
   }
 
   if (commands.length === 0 && distance > MELEE_RANGE + 0.3) {
-    return moveStep('combat', label, facing, commands);
+    return travelToPoint(
+      view,
+      state,
+      seed,
+      { id: 'combat', label },
+      { x: target.pos.x, z: target.pos.z },
+      MELEE_RANGE + 0.3,
+      movingTargetGoalKey(target),
+      commands,
+    );
   }
   return idleStep('combat', label, commands, facing);
+}
+
+function movingTargetGoalKey(target: BotEntityView): string {
+  const x = Math.round(target.pos.x);
+  const z = Math.round(target.pos.z);
+  return `target:${target.id}:${x}:${z}`;
 }
 
 function travelToPoint(
@@ -907,14 +1284,15 @@ function travelToPoint(
   target: BotPoint2d,
   arrivalRange: number,
   goalKey: string,
+  commands: readonly BrainCommand[] = [],
 ): AmbientPlayerBotBrainTickResult {
   if (dist2d(view.self.pos, pointToVec(target)) <= arrivalRange) {
     clearPath(state);
-    return idleStep(objective.id, objective.label, [], facingFor(view.self.pos, pointToVec(target)));
+    return idleStep(objective.id, objective.label, commands, facingFor(view.self.pos, pointToVec(target)));
   }
   const nextPoint = ensurePath(view, state, seed, target, goalKey);
   return withTravelGoal(
-    moveStep(objective.id, objective.label, facingFor(view.self.pos, pointToVec(nextPoint))),
+    moveStep(objective.id, objective.label, facingFor(view.self.pos, pointToVec(nextPoint)), commands),
     target,
     arrivalRange,
     goalKey,
@@ -1042,6 +1420,8 @@ function parseSelf(raw: Record<string, unknown> | null): BotSelfView | null {
     drinkingRemaining: readNumber(readRecord(raw.drk)?.remaining),
     auras: readAuras(raw.auras),
     inventory: readInventory(raw.inv),
+    equipment: readEquipment(raw.equip),
+    partyMemberIds: readPartyMemberIds(raw.party, id),
     questLog: new Map(readQuestLog(raw.qlog).map((quest) => [quest.questId, quest])),
     questsDone: new Set(readStringArray(raw.qdone)),
     talents: readTalents(raw.tal),
@@ -1064,7 +1444,9 @@ function parseEntity(raw: Record<string, unknown>): BotEntityView | null {
     lootable: readBoolean(raw.loot),
     hostile: readBoolean(raw.h),
     aggroTargetId: readNumber(raw.aggro),
+    tappedById: readNumber(raw.tap),
     ownerId: readNumber(raw.own),
+    corpseLoot: readCorpseLoot(raw.lootList),
   };
 }
 
@@ -1099,6 +1481,66 @@ function readInventory(raw: unknown): InvSlot[] {
   return items;
 }
 
+function readCorpseLoot(raw: unknown): BotCorpseLoot | null {
+  const record = readRecord(raw);
+  if (!record) return null;
+  const slots: BotLootSlot[] = [];
+  if (Array.isArray(record.items)) {
+    for (const slot of record.items) {
+      const item = readRecord(slot);
+      const itemId = item ? readString(item.itemId) : null;
+      const count = item ? readNumber(item.count) : null;
+      if (!itemId || count === null || count <= 0) continue;
+      const personalFor = readNumberArray(item?.personalFor);
+      slots.push({
+        itemId,
+        count,
+        ...(personalFor.length > 0 ? { personalFor } : {}),
+        ...(readBoolean(item?.openToAll) ? { openToAll: true } : {}),
+      });
+    }
+  }
+  return {
+    copper: readNumber(record.copper) ?? 0,
+    items: slots,
+  };
+}
+
+function readPartyMemberIds(raw: unknown, selfId: number): ReadonlySet<number> {
+  const ids = new Set<number>([selfId]);
+  const record = readRecord(raw);
+  if (!record || !Array.isArray(record.members)) return ids;
+  for (const member of record.members) {
+    const memberRecord = readRecord(member);
+    const pid = memberRecord ? readNumber(memberRecord.pid) : null;
+    if (pid !== null) ids.add(pid);
+  }
+  return ids;
+}
+
+function readEquipment(raw: unknown): Partial<Record<EquipSlot, string>> {
+  const record = readRecord(raw);
+  const equipment: Partial<Record<EquipSlot, string>> = {};
+  if (!record) return equipment;
+  for (const slot of Object.keys(record)) {
+    if (!isEquipSlot(slot)) continue;
+    const itemId = readString(record[slot]);
+    if (itemId) equipment[slot] = itemId;
+  }
+  return equipment;
+}
+
+function isEquipSlot(value: string): value is EquipSlot {
+  return value === 'mainhand'
+    || value === 'helmet'
+    || value === 'shoulder'
+    || value === 'chest'
+    || value === 'waist'
+    || value === 'legs'
+    || value === 'gloves'
+    || value === 'feet';
+}
+
 function readQuestLog(raw: unknown): QuestProgress[] {
   if (!Array.isArray(raw)) return [];
   const quests: QuestProgress[] = [];
@@ -1129,13 +1571,13 @@ function readTalents(raw: unknown): TalentAllocation | null {
 
 function findNearbyCorpse(view: BotWorldView): BotEntityView | null {
   const current = view.self.targetId !== null
-    ? view.entities.find((entity) => entity.id === view.self.targetId && entity.kind === 'mob' && entity.lootable && entity.dead) ?? null
+    ? view.entities.find((entity) => entity.id === view.self.targetId && canLootCorpse(view.self, entity)) ?? null
     : null;
   if (current && dist2d(view.self.pos, current.pos) <= INTERACT_RANGE + 0.25) return current;
   let best: BotEntityView | null = null;
   let bestDistance = Infinity;
   for (const entity of view.entities) {
-    if (entity.kind !== 'mob' || !entity.dead || !entity.lootable) continue;
+    if (!canLootCorpse(view.self, entity)) continue;
     const distance = dist2d(view.self.pos, entity.pos);
     if (distance > INTERACT_RANGE + 0.25 || distance >= bestDistance) continue;
     best = entity;
@@ -1144,18 +1586,34 @@ function findNearbyCorpse(view: BotWorldView): BotEntityView | null {
   return best;
 }
 
+function canLootCorpse(self: BotSelfView, entity: BotEntityView): boolean {
+  if (entity.kind !== 'mob' || !entity.dead || !entity.lootable) return false;
+  const hasSharedLootRights =
+    entity.tappedById === null ||
+    entity.tappedById === self.id ||
+    self.partyMemberIds.has(entity.tappedById);
+  if (hasSharedLootRights) return true;
+  const loot = entity.corpseLoot;
+  if (!loot) return false;
+  return loot.items.some((slot) =>
+    (slot.openToAll && slot.count > 0) ||
+    slot.personalFor?.includes(self.id),
+  );
+}
+
 function findThreateningMob(view: BotWorldView): BotEntityView | null {
-  let best: BotEntityView | null = null;
-  let bestDistance = Infinity;
+  return threateningMobs(view)[0] ?? null;
+}
+
+function threateningMobs(view: BotWorldView): BotEntityView[] {
+  const threats: Array<{ entity: BotEntityView; distance: number }> = [];
   for (const entity of view.entities) {
     if (entity.kind !== 'mob' || entity.dead || !entity.hostile) continue;
-    if (entity.aggroTargetId !== view.self.id && view.self.targetId !== entity.id) continue;
-    const distance = dist2d(view.self.pos, entity.pos);
-    if (distance >= bestDistance) continue;
-    best = entity;
-    bestDistance = distance;
+    if (entity.aggroTargetId !== view.self.id) continue;
+    threats.push({ entity, distance: dist2d(view.self.pos, entity.pos) });
   }
-  return best;
+  threats.sort((a, b) => a.distance - b.distance);
+  return threats.map((threat) => threat.entity);
 }
 
 function currentRouteHostileTarget(
@@ -1263,6 +1721,16 @@ function countConsumables(
   return total;
 }
 
+function countHealingPotions(inventory: readonly InvSlot[]): number {
+  let total = 0;
+  for (const slot of inventory) {
+    const item = ITEMS[slot.itemId];
+    if (!item || item.kind !== 'potion' || !item.potionHp || slot.count <= 0) continue;
+    total += slot.count;
+  }
+  return total;
+}
+
 function countItemInInventory(
   inventory: readonly InvSlot[],
   itemId: string,
@@ -1282,6 +1750,20 @@ function findConsumable(inventory: readonly InvSlot[], kind: 'food' | 'drink'): 
     if (kind === 'drink' && item.drinkMana) return slot.itemId;
   }
   return null;
+}
+
+function findHealingPotion(inventory: readonly InvSlot[]): string | null {
+  let bestItemId: string | null = null;
+  let bestHeal = 0;
+  for (const slot of inventory) {
+    const item = ITEMS[slot.itemId];
+    if (!item || item.kind !== 'potion' || !item.potionHp || slot.count <= 0) continue;
+    if (item.potionHp > bestHeal) {
+      bestHeal = item.potionHp;
+      bestItemId = slot.itemId;
+    }
+  }
+  return bestItemId;
 }
 
 function pickCombatAbility(
@@ -1366,8 +1848,8 @@ function grindRouteForSelf(self: BotSelfView): { mobId: string; camps: readonly 
     return { mobId: 'stormcrag_elemental', camps: campsFor('stormcrag_elemental') };
   }
   const level = self.level;
-  if (level <= 2) return { mobId: 'forest_wolf', camps: campsFor('forest_wolf') };
-  if (level <= 4) return { mobId: 'wild_boar', camps: campsFor('wild_boar') };
+  if (level <= 3) return { mobId: 'forest_wolf', camps: campsFor('forest_wolf') };
+  if (level <= 5) return { mobId: 'wild_boar', camps: campsFor('wild_boar') };
   return { mobId: 'webwood_spider', camps: campsFor('webwood_spider') };
 }
 

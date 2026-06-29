@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { resolveMovement } from '../src/sim/colliders';
+import { DT, INTERACT_RANGE, RUN_SPEED } from '../src/sim/types';
 import {
+  continueAmbientPlayerBotTravel,
   createAmbientPlayerBotBrainState,
   tickAmbientPlayerBotBrain,
 } from '../server/ambient_bots/brain';
@@ -193,6 +196,97 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
     expect(result.commands).toEqual([]);
     expect(typeof result.facing).toBe('number');
+  });
+
+  it('does not skip a fence-corner waypoint before the bot has cleared it', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const seed = 20_061;
+    let pos = { x: -19.91, z: 4.95 };
+    const baseSelf = {
+      lv: 4,
+      qdone: ['q_wolves'],
+    };
+    const initial = tickAmbientPlayerBotBrain({
+      bot: bot({
+        lastKnownLevel: 4,
+      }),
+      liveState: liveState({
+        seed,
+        self: {
+          ...baseSelf,
+          x: pos.x,
+          z: pos.z,
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(initial.objectiveId).toBe('accept_boars');
+    expect(initial.travelGoal).toMatchObject({
+      target: { x: -7, z: 3 },
+    });
+
+    const goal = initial.travelGoal!;
+    let reached = false;
+    let zeroMoveTicks = 0;
+    for (let i = 0; i < 90; i++) {
+      const drive = continueAmbientPlayerBotTravel(
+        liveState({
+          seed,
+          self: {
+            ...baseSelf,
+            x: pos.x,
+            z: pos.z,
+          },
+        }),
+        state,
+        initial.objectiveId,
+        initial.objectiveLabel,
+        goal,
+      );
+      expect(drive).not.toBeNull();
+      if (!drive!.moveInput.f) {
+        reached = true;
+        break;
+      }
+      expect(typeof drive!.facing).toBe('number');
+      const next = {
+        x: pos.x + Math.sin(drive!.facing!) * RUN_SPEED * DT,
+        z: pos.z + Math.cos(drive!.facing!) * RUN_SPEED * DT,
+      };
+      const moved = resolveMovement(seed, pos.x, pos.z, next.x, next.z);
+      if (Math.hypot(moved.x - pos.x, moved.z - pos.z) < 0.01) zeroMoveTicks++;
+      pos = moved;
+    }
+
+    expect(zeroMoveTicks).toBe(0);
+    expect(reached || Math.hypot(pos.x - goal.target.x, pos.z - goal.target.z) <= goal.arrivalRange).toBe(true);
+  });
+
+  it('picks up the boar route at level 3 instead of grinding wolves to 4', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 3,
+          x: -7,
+          z: 3,
+          qdone: ['q_wolves'],
+        },
+        entities: [
+          { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_boars');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 7100 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
   });
 
   it('casts a ranged damage spell when a mage sees a wolf in quest range', () => {
@@ -393,6 +487,111 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
+  it('fights an active threat before looting a nearby corpse', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          qlog: [{ questId: 'q_wolves', counts: [3], state: 'active' }],
+        },
+        entities: [
+          { id: 9002, k: 'mob', tid: 'forest_wolf', x: 0, z: 2, h: 1, lv: 1, dead: 1, loot: 1 },
+          { id: 9003, k: 'mob', tid: 'forest_wolf', x: 0, z: 3, h: 1, lv: 1, aggro: 101 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('combat');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9003 },
+      { cmd: 'attack' },
+    ]);
+    expect(result.commands).not.toContainEqual({ cmd: 'loot', id: 9002 });
+  });
+
+  it('skips nearby corpses tapped by another solo player', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          qlog: [{ questId: 'q_wolves', counts: [3], state: 'active' }],
+        },
+        entities: [
+          {
+            id: 9010,
+            k: 'mob',
+            tid: 'forest_wolf',
+            x: 1,
+            z: 0,
+            h: 1,
+            dead: 1,
+            loot: 1,
+            tap: 202,
+            lootList: { copper: 8, items: [{ itemId: 'wolf_fang', count: 1 }] },
+          },
+          {
+            id: 9011,
+            k: 'mob',
+            tid: 'forest_wolf',
+            x: 1.5,
+            z: 0,
+            h: 1,
+            dead: 1,
+            loot: 1,
+            tap: 101,
+            lootList: { copper: 7, items: [{ itemId: 'wolf_fang', count: 1 }] },
+          },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('loot');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9011 },
+      { cmd: 'loot', id: 9011 },
+    ]);
+  });
+
+  it('loots personal corpse drops even when another player tapped the mob', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          qlog: [{ questId: 'q_wolves', counts: [3], state: 'active' }],
+        },
+        entities: [
+          {
+            id: 9012,
+            k: 'mob',
+            tid: 'forest_wolf',
+            x: 1,
+            z: 0,
+            h: 1,
+            dead: 1,
+            loot: 1,
+            tap: 202,
+            lootList: {
+              copper: 0,
+              items: [{ itemId: 'wolf_fang', count: 1, personalFor: [101] }],
+            },
+          },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('loot');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9012 },
+      { cmd: 'loot', id: 9012 },
+    ]);
+  });
+
   it('returns to Marshal Redbrook and interacts when the wolves quest is ready to turn in', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
@@ -436,7 +635,7 @@ describe('ambient player bot brain', () => {
       nowMs: 1_000,
     }, state);
 
-    expect(result.objectiveId).toBe('restock_baked_bread');
+    expect(result.objectiveId).toBe('restock_food_and_drink');
     expect(result.commands).toEqual([
       { cmd: 'target', id: 7100 },
       { cmd: 'sell_all_junk' },
@@ -463,10 +662,200 @@ describe('ambient player bot brain', () => {
       nowMs: 1_000,
     }, state);
 
-    expect(result.objectiveId).toBe('restock_baked_bread');
+    expect(result.objectiveId).toBe('restock_food_and_drink');
     expect(result.commands).toEqual([
       { cmd: 'target', id: 7100 },
       { cmd: 'buy', npc: 7100, item: 'baked_bread' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('waits to recover instead of pulling another mob while low health and unthreatened', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 2,
+          hp: 70,
+          mhp: 128,
+          inv: [{ itemId: 'baked_bread', count: 1 }],
+          qdone: ['q_wolves'],
+          qlog: [{ questId: 'q_boars', counts: [2], state: 'active' }],
+        },
+        entities: [
+          { id: 8101, k: 'mob', tid: 'wild_boar', x: 2, z: 0, h: true },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('recover');
+    expect(result.objectiveLabel).toBe('Recovering between pulls');
+    expect(result.commands).toEqual([{ cmd: 'use', item: 'baked_bread' }]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('uses a healing potion while threatened at dangerous health', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          hp: 60,
+          mhp: 214,
+          inv: [{ itemId: 'minor_healing_potion', count: 1 }],
+          qdone: ['q_wolves'],
+          qlog: [{ questId: 'q_boars', counts: [4], state: 'active' }],
+        },
+        entities: [
+          { id: 8101, k: 'mob', tid: 'wild_boar', x: 2, z: 0, h: true, aggro: 101 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('recover');
+    expect(result.commands).toEqual([{ cmd: 'use', item: 'minor_healing_potion' }]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('retreats from a multi-mob pull instead of standing in the murloc camp', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 6,
+          x: -75,
+          z: 50,
+          hp: 220,
+          mhp: 290,
+          target: 9101,
+          auto: true,
+          inv: [
+            { itemId: 'baked_bread', count: 4 },
+            { itemId: 'minor_healing_potion', count: 3 },
+          ],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+          qlog: [{ questId: 'q_murlocs', counts: [7], state: 'active' }],
+        },
+        entities: [
+          { id: 9101, k: 'mob', tid: 'mudfin_murloc', x: -73, z: 49, h: true, aggro: 101 },
+          { id: 9102, k: 'mob', tid: 'mudfin_murloc', x: -77, z: 52, h: true, aggro: 101 },
+          { id: 9103, k: 'mob', tid: 'mudfin_murloc', x: -80, z: 54, h: true, aggro: 101 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('recover');
+    expect(result.objectiveLabel).toBe('Retreating from a dangerous pull');
+    expect(result.travelGoal?.goalKey).toBe('retreat:trader_wilkes');
+    expect(result.commands).toEqual([
+      { cmd: 'stopattack' },
+      { cmd: 'target', id: null },
+    ]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('uses a potion while retreating from a low-health multi-mob pull', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 6,
+          x: -75,
+          z: 50,
+          hp: 150,
+          mhp: 290,
+          target: 9101,
+          auto: true,
+          inv: [
+            { itemId: 'baked_bread', count: 4 },
+            { itemId: 'minor_healing_potion', count: 1 },
+          ],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+          qlog: [{ questId: 'q_murlocs', counts: [7], state: 'active' }],
+        },
+        entities: [
+          { id: 9101, k: 'mob', tid: 'mudfin_murloc', x: -73, z: 49, h: true, aggro: 101 },
+          { id: 9102, k: 'mob', tid: 'mudfin_murloc', x: -77, z: 52, h: true, aggro: 101 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('recover');
+    expect(result.commands).toEqual([
+      { cmd: 'use', item: 'minor_healing_potion' },
+      { cmd: 'stopattack' },
+      { cmd: 'target', id: null },
+    ]);
+    expect(result.travelGoal?.goalKey).toBe('retreat:trader_wilkes');
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('does not use the dangerous-pull retreat for early wolf grinding', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 2,
+          x: -6,
+          z: 35,
+          hp: 122,
+          mhp: 138,
+          target: 8101,
+          auto: true,
+          inv: [
+            { itemId: 'baked_bread', count: 4 },
+            { itemId: 'minor_healing_potion', count: 3 },
+          ],
+          qdone: ['q_wolves'],
+        },
+        entities: [
+          { id: 8101, k: 'mob', tid: 'forest_wolf', x: -5, z: 36, h: true, aggro: 101 },
+          { id: 8102, k: 'mob', tid: 'forest_wolf', x: -7, z: 37, h: true, aggro: 101 },
+          { id: 8103, k: 'mob', tid: 'forest_wolf', x: -9, z: 38, h: true, aggro: 101 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('combat');
+    expect(result.objectiveLabel).toBe('Grinding Forest Wolf');
+    expect(result.travelGoal).toBeUndefined();
+  });
+
+  it('restocks healing potions before resuming an outdoor combat quest', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          x: -7,
+          z: 3,
+          copper: 100,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves'],
+          qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
+        },
+        entities: [
+          { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('restock_minor_healing_potion');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 7100 },
+      { cmd: 'buy', npc: 7100, item: 'minor_healing_potion' },
     ]);
     expect(result.moveInput).toEqual({});
   });
@@ -498,11 +887,269 @@ describe('ambient player bot brain', () => {
       nowMs: 1_000,
     }, state);
 
-    expect(result.objectiveId).toBe('restock_spring_water');
+    expect(result.objectiveId).toBe('restock_food_and_drink');
     expect(result.commands).toEqual([
       { cmd: 'target', id: 7100 },
       { cmd: 'buy', npc: 7100, item: 'spring_water' },
     ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('grinds instead of forcing an accepted murloc quest below the safe route level', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders'],
+          qlog: [{ questId: 'q_murlocs', counts: [5], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Wild Boar');
+    expect(result.travelGoal?.goalKey).toBe('camp:wild_boar:0');
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('resumes the murloc quest once the bot reaches the safe route level', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 6,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders'],
+          qlog: [{ questId: 'q_murlocs', counts: [5], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_murlocs');
+    expect(result.objectiveLabel).toBe('Driving back the Mudfin');
+    expect(result.travelGoal?.goalKey).toBe('camp:mudfin_murloc:0');
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('keeps grinding boars at level 5 instead of rushing an accepted murloc quest', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 5,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+          qlog: [{ questId: 'q_murlocs', counts: [3], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Wild Boar');
+    expect(result.travelGoal?.goalKey).toBe('camp:wild_boar:0');
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('keeps grinding boars at level 5 instead of entering the bandit camp', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 5,
+          copper: 200,
+          inv: [
+            { itemId: 'baked_bread', count: 4 },
+            { itemId: 'minor_healing_potion', count: 2 },
+          ],
+          equip: { mainhand: 'vale_carving_knife' },
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+        },
+        entities: [
+          { id: 7300, k: 'npc', tid: 'marshal_redbrook', x: 0, z: 0 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Wild Boar');
+    expect(result.travelGoal?.goalKey).toBe('camp:wild_boar:0');
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.commands).toEqual([]);
+  });
+
+  it('uses pathing while chasing a distant combat target after the Greyjaw turn-in', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          x: 7.35,
+          z: 7.99,
+          hp: 214,
+          mhp: 214,
+          copper: 0,
+          inv: [
+            { itemId: 'baked_bread', count: 4 },
+            { itemId: 'minor_healing_potion', count: 3 },
+          ],
+          equip: { mainhand: 'vale_carving_knife' },
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+        },
+        entities: [
+          { id: 39, k: 'mob', tid: 'wild_boar', x: 55, z: 12, h: true },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('combat');
+    expect(result.objectiveLabel).toBe('Grinding Wild Boar');
+    expect(result.travelGoal?.goalKey).toBe('target:39:55:12');
+    expect(result.commands).toEqual([{ cmd: 'target', id: 39 }]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('buys an affordable weapon upgrade before accepting the murloc quest', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 6,
+          x: 7,
+          z: 16.5,
+          copper: 1_500,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          equip: { mainhand: 'worn_sword', chest: 'recruit_tunic' },
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+        },
+        entities: [
+          { id: 7200, k: 'npc', tid: 'smith_haldren', x: 7, z: 16.5 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('buy_eastbrook_arming_sword');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 7200 },
+      { cmd: 'buy', npc: 7200, item: 'eastbrook_arming_sword' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('sells redundant gear at the smith when that funds a weapon upgrade', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 6,
+          x: 7,
+          z: 16.5,
+          copper: 1_290,
+          inv: [
+            { itemId: 'baked_bread', count: 4 },
+            { itemId: 'milepost_boots', count: 2 },
+          ],
+          equip: { mainhand: 'worn_sword', chest: 'recruit_tunic', feet: 'milepost_boots' },
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+        },
+        entities: [
+          { id: 7200, k: 'npc', tid: 'smith_haldren', x: 7, z: 16.5 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('buy_eastbrook_arming_sword');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 7200 },
+      { cmd: 'sell', item: 'milepost_boots', count: 1 },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('turns in a ready quest instead of detouring to buy a weapon', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 6,
+          x: 11,
+          z: -3,
+          copper: 1_500,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          equip: { mainhand: 'worn_sword', chest: 'recruit_tunic' },
+          qdone: ['q_wolves', 'q_boars'],
+          qlog: [{ questId: 'q_spiders', counts: [6, 4], state: 'ready' }],
+        },
+        entities: [
+          { id: 7101, k: 'npc', tid: 'apothecary_lin', x: 11, z: -3 },
+          { id: 7200, k: 'npc', tid: 'smith_haldren', x: 7, z: 16.5 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('turnin_spiders');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 7101 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('equips a backpack armor upgrade before pulling the next target', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          inv: [{ itemId: 'trail_leggings', count: 1 }],
+          equip: { mainhand: 'worn_sword', chest: 'recruit_tunic' },
+          qdone: ['q_wolves', 'q_boars', 'q_spiders'],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('equip_upgrade');
+    expect(result.objectiveLabel).toBe('Equipping gear upgrade');
+    expect(result.commands).toEqual([{ cmd: 'equip', item: 'trail_leggings' }]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('equips a backpack weapon upgrade before pulling the next target', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 5,
+          inv: [{ itemId: 'redbrook_blade', count: 1 }],
+          equip: { mainhand: 'worn_sword', chest: 'recruit_tunic' },
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('equip_upgrade');
+    expect(result.commands).toEqual([{ cmd: 'equip', item: 'redbrook_blade' }]);
     expect(result.moveInput).toEqual({});
   });
 
@@ -562,13 +1209,32 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
+  it('takes the boar route once the bot reaches level 3', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 3,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves'],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_boars');
+    expect(result.travelGoal?.goalKey).toBe('npc:trader_wilkes');
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('picks up the boar-hide quest once the bot outlevels the starter wolf loop', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
       bot: bot(),
       liveState: liveState({
         self: {
-          lv: 2,
+          lv: 4,
           x: -7,
           z: 3,
           copper: 200,
@@ -586,6 +1252,35 @@ describe('ambient player bot brain', () => {
       { cmd: 'target', id: 7100 },
       { cmd: 'interact' },
     ]);
+  });
+
+  it('turns in a ready quest instead of fighting a stale non-aggro target', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          x: 37,
+          z: 7,
+          hp: 176,
+          mhp: 176,
+          target: 8101,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves'],
+          qlog: [{ questId: 'q_boars', counts: [5], state: 'ready' }],
+        },
+        entities: [
+          { id: 8101, k: 'mob', tid: 'wild_boar', x: 38, z: 7, h: true },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('turnin_boars');
+    expect(result.travelGoal?.goalKey).toBe('npc:trader_wilkes');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
   });
 
   it('turns in the spider quest at Apothecary Lin once the silk run is ready', () => {
@@ -620,7 +1315,7 @@ describe('ambient player bot brain', () => {
       bot: bot(),
       liveState: liveState({
         self: {
-          lv: 4,
+          lv: 6,
           qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
           qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
         },
@@ -639,13 +1334,63 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
+  it('grinds instead of forcing an accepted supplies quest below the safe route level', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
+          qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
+        },
+        entities: [
+          { id: 9401, k: 'object', obj: 'supply_crate', x: 2, z: 2, loot: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Wild Boar');
+    expect(result.travelGoal?.goalKey).toBe('camp:wild_boar:0');
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('keeps walking to a supply crate until it is inside pickup range', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 6,
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
+          qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
+        },
+        entities: [
+          { id: 9401, k: 'object', obj: 'supply_crate', x: INTERACT_RANGE + 0.75, z: 0, loot: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('collect_supplies');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal).toMatchObject({
+      target: { x: INTERACT_RANGE + 0.75, z: 0 },
+      arrivalRange: INTERACT_RANGE,
+    });
+  });
+
   it('targets and interacts with the gravecaller sigil when the Aldric clue quest is active', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
       bot: bot(),
       liveState: liveState({
         self: {
-          lv: 5,
+          lv: 6,
           qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_mine', 'q_greyjaw', 'q_bandits', 'q_ringleader', 'q_bones'],
           qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
         },

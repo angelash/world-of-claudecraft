@@ -197,6 +197,8 @@ describe('HostedPlayRuntime', () => {
     const state = liveState({
       x: 0,
       z: 0,
+      rtype: 'rage',
+      mres: 0,
       entities: [
         { id: 201, k: 'npc', tid: 'marshal_redbrook', x: 20, z: 0, lv: 1 },
       ],

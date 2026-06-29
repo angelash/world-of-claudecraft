@@ -488,7 +488,7 @@ describe('AmbientPlayerBotRuntime', () => {
             id: 101,
             x: 58,
             z: -58,
-            lv: 4,
+            lv: 6,
             hp: 40,
             mhp: 40,
             res: 0,
@@ -716,8 +716,8 @@ describe('AmbientPlayerBotRuntime', () => {
       expect.objectContaining({
         runnerState: expect.objectContaining({
           connected: true,
-          objective: 'restock_baked_bread',
-          objectiveLabel: 'Restocking Freshly Baked Bread',
+          objective: 'restock_food_and_drink',
+          objectiveLabel: 'Restocking Freshly Baked Bread and Minor Healing Potion',
         }),
       }),
     ]);
@@ -827,8 +827,8 @@ describe('AmbientPlayerBotRuntime', () => {
       expect.objectContaining({
         runnerState: expect.objectContaining({
           connected: true,
-          objective: 'restock_fenbridge_rye',
-          objectiveLabel: 'Restocking Fenbridge Rye Loaf',
+          objective: 'restock_food_and_drink',
+          objectiveLabel: 'Restocking Fenbridge Rye Loaf and Lesser Healing Potion',
         }),
       }),
     ]);
@@ -2044,7 +2044,7 @@ describe('AmbientPlayerBotRuntime', () => {
         runnerState: expect.objectContaining({
           connected: true,
           objective: 'restock_food_and_drink',
-          objectiveLabel: 'Restocking Highwatch Trail Hardtack and Meltwater Flask',
+          objectiveLabel: 'Restocking Highwatch Trail Hardtack and Meltwater Flask and Healing Potion',
         }),
       }),
     ]);
