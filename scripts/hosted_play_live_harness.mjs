@@ -335,6 +335,11 @@ function samePartyAsLeader(leader, client) {
   return members.some((member) => member.pid === client.pid || member.name === client.name);
 }
 
+function samePartyAsClient(client, peer) {
+  const members = partyMembers(client);
+  return members.some((member) => member.pid === peer.pid || member.name === peer.name);
+}
+
 function distance(a, b) {
   if (!a || !b) return Number.POSITIVE_INFINITY;
   return Math.hypot(Number(a.x ?? 0) - Number(b.x ?? 0), Number(a.z ?? 0) - Number(b.z ?? 0));
@@ -376,11 +381,17 @@ function acceptPendingInvites(clients, report) {
 
 async function enableHostedForJoinedMembers(leader, members, targetPartySize, report) {
   for (const member of members) {
-    if (member.hostedEnabled || !samePartyAsLeader(leader, member)) continue;
-    const status = await configureAndEnableHosted(member, targetPartySize, true);
+    if (member.hostedEnabled) continue;
+    const joinedByLeaderView = samePartyAsLeader(leader, member);
+    const joinedByMemberView = samePartyAsClient(member, leader);
+    const nearFullLeader = partySize(leader) >= targetPartySize
+      && distance(member.self, leader.self) <= 8;
+    if (!joinedByLeaderView && !joinedByMemberView && !nearFullLeader) continue;
+    const joined = joinedByLeaderView || joinedByMemberView;
+    const status = await configureAndEnableHosted(member, targetPartySize, joined);
     report.lifecycle.push({
       atMs: Date.now(),
-      action: 'enable-member-hosted',
+      action: joined ? 'enable-member-hosted' : 'enable-near-leader-hosted',
       name: member.name,
       mode: status.mode,
       groupMode: status.groupMode,
@@ -465,6 +476,7 @@ function summarizeStatus(client, status) {
     x: round(client.self?.x ?? 0),
     z: round(client.self?.z ?? 0),
     partySize: partySize(client),
+    partyMembers: partyMembers(client).map((member) => member.name ?? String(member.pid ?? 'unknown')),
     qlog: client.self?.qlog?.length ?? 0,
     qdone: client.self?.qdone?.length ?? 0,
     hosted: {
@@ -585,6 +597,9 @@ function buildChecks(report, options) {
       .some((mode) => metrics.groupModes[mode] > 0);
   const questSignalObserved = metrics.questEvents > 0 || metrics.maxQuestLog > 0 || metrics.maxQuestDone > 0;
   const allMembersTouchedQuestState = report.roster.every((entry) => (metrics.questStateByCharacter[entry.name] ?? 0) > 0);
+  const latestRows = report.statusSamples.at(-1)?.rows ?? [];
+  const allClientsCurrentlyInTargetParty = latestRows.length >= options.partySize
+    && latestRows.every((row) => row.partySize >= options.partySize);
   const supportEventObserved =
     metrics.auraGainedEvents > 0
     || metrics.healEvents > 0
@@ -602,6 +617,7 @@ function buildChecks(report, options) {
     check('all clients connected', report.roster.every((entry) => entry.pid > 0)),
     check('hosted invite observed', metrics.invitesReceived > 0 || metrics.pinviteCommandSamples > 0),
     check('party reached target size', metrics.maxPartySize >= options.partySize),
+    check('all clients currently see target party', allClientsCurrentlyInTargetParty),
     check('party chat observed', metrics.partyChatMessages > 0),
     check('party intent and roles observed', supportIntentObserved),
     check('cooperation mode observed', cooperationObserved),

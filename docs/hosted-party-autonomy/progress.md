@@ -125,6 +125,13 @@ Current date: 2026-06-29
   and an immediate rerun passed with party fill, hosted invite, party chat,
   intent, support or combat, quest signals, runtime clean, and max stuck resets
   within limit.
+- The next level 20 run started after that commit and reached level 3, but was
+  invalid because Darian stayed `disabled`, party size 1, and quest state 0
+  while the other clients were already progressing. The live harness now records
+  each client's current party member names, requires every client to currently
+  see the target party, and can enable a nearby member without active inviting
+  when the leader already appears full. This prevents a false pass when one
+  client is still outside the active hosted-party loop.
 - The next level 20 run reached level 3 and showed the intent release fix
   working, but a distant follower could remain in `follow_leader` without
   closing the gap after `/follow` stopped pulling them. Non-combat hosted
@@ -208,4 +215,6 @@ Current date: 2026-06-29
   preparation or preparation-style support.
 - [x] Followers outside the 60-yard party action range still travel back to the
   leader instead of dropping to brain behavior while the leader holds regroup.
+- [x] Live harness fails unless every client currently sees the target party,
+  and reports current party members for diagnosing startup desync.
 - [ ] Final run occurs after the last code change and service restart.

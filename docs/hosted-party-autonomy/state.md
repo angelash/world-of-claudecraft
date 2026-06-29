@@ -67,6 +67,8 @@ progress.
 - Hosted followers must keep traveling back to the leader at any distance while
   they are alive and not personally in combat. The 60-yard threshold is only a
   party action or assist range, not a cap on regroup travel.
+- The live harness must prove current full-party agreement across every client,
+  not only that the leader once reached the target party size.
 
 ## Key Existing Files
 
@@ -311,6 +313,15 @@ progress.
 - `tests/hosted_play_party.test.ts` covers a 76-yard follower staying in
   leader-follow mode and receiving a leader travel goal while `/follow` is on
   cooldown.
+- Phase 6 follow-up report `tmp/hosted-play-level20-20260630-071151.json`
+  reached level 3, but Darian remained `disabled`, party size 1, and quest
+  state 0 while the other clients progressed. This invalidated the run before
+  it could count as a post-fix level 20 attempt.
+- `scripts/hosted_play_live_harness.mjs` now records each client's current
+  party member names and adds an `all clients currently see target party` gate.
+  It also can enable a nearby member without active inviting when the leader
+  already appears full, preventing one disabled client from silently staying
+  outside the hosted-party loop.
 
 ## Phase 5 Validation
 
@@ -395,6 +406,8 @@ progress.
 - `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: first run after restart had clean runtime but missed the all-members quest-state gate inside 120 seconds.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed on immediate rerun after the same restart. The report was `tmp/hosted-play-live-harness-2026-06-29T23-07-43-580Z.json`; it observed hosted invite, party target size, party chat, party intent and roles, cooperation mode, quest signals, all party members touching quest state, support or combat signals, clean runtime, and stuck resets within limit.
+- `node --check scripts\hosted_play_live_harness.mjs`: passed after the current-party harness gate fix.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed with the new all-clients-currently-see-target-party gate. The report was `tmp/hosted-play-live-harness-2026-06-29T23-24-13-857Z.json`; it observed hosted invite, party target size, every client currently seeing the target party, party chat, party intent and roles, cooperation mode, quest signals, all party members touching quest state, support or combat signals, clean runtime, and stuck resets within limit.
 
 ## Validation Matrix
 
@@ -440,8 +453,9 @@ progress.
 
 ## Known Current Gaps
 
-- A clean post-fix level 20 hosted run is still required after the range-cap
-  follower regroup fix and service restart.
+- A clean post-fix level 20 hosted run is still required after the harness
+  current-party validation fix. No new backend restart is required for that
+  script-only change, but the already running LAN/IP stack remains verified.
 
 ## New Files In This Packet
 
