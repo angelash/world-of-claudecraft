@@ -127,6 +127,19 @@ policy in one fork-local script instead of rewriting the upstream default
 the reachable `http://<host-ip>:5173` URLs, and can replace stale listeners with
 `--restart`.
 
+If an older Windows service wrapper still owns ports `5173` and `8787`, remove
+it once from an elevated PowerShell window, then use the repo-managed stack
+helper for future restarts from a normal, non-admin PowerShell window:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 unregister-service
+powershell -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart
+```
+
+The helper keeps PID and log files in `tmp/stack/`. See
+[`scripts/windows_stack.md`](scripts/windows_stack.md) for the full command set.
+It still launches `online_lan.mjs`, so LAN/IP device access stays enabled.
+
 If you need the raw split-terminal flow, the upstream commands still work:
 
 ```bash

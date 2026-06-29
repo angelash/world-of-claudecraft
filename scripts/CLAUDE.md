@@ -18,6 +18,12 @@ generators. Many more run directly via `node scripts/<name>.mjs`.
   (and its shared `lan_host.mjs` helper) instead of rewriting the upstream default
   `npm run dev` / `npm run server` path or sprinkling `127.0.0.1` host overrides
   through ad hoc commands.
+- **`windows_stack.ps1` is the Windows service escape hatch**. Use it when a
+  legacy local Windows service owns `:5173` and `:8787` and blocks repo-managed
+  restarts. It unregisters `WorldOfClaudeCraftStack`, then starts, stops, or
+  restarts the normal `online_lan.mjs` launcher as a user-owned background
+  process with state under `tmp/stack/`. It must preserve LAN/IP access and must
+  not become a localhost-only replacement for `online_lan.mjs`.
 - **Persistent Postgres is mandatory for live-path script checks**. Online,
   multiplayer, and admin smoke scripts must run against the native
   Postgres environment from `npm run db:up`; do not add or use `pg-mem` or other

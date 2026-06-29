@@ -37,6 +37,10 @@ Most directories above have their own `CLAUDE.md` with local conventions; read i
   and multiplayer testing. This is the default local startup path for this fork:
   it binds Vite and the authoritative server for IP access, prints the reachable
   LAN URLs, and replaces stale listeners on :5173 / :8787 when asked.
+- `powershell -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`:
+  Windows helper for the same LAN/IP stack after the old service wrapper has
+  been unregistered. It must keep using `online_lan.mjs`, keep LAN binding, and
+  never switch this fork to localhost-only startup.
 - `npm run dev`: Vite client on :5173 (proxies `/api`, `/admin/api`, `/ws` to :8787).
 - `npm run server`: esbuild-bundle + run the authoritative server on :8787.
 - `npm test`: Vitest. **Prefer a single file while iterating:** `npx vitest run tests/sim.test.ts`.
@@ -159,6 +163,10 @@ behavior, optimize for re-mergeability:
 - Keep local IP-access startup policy in the fork-local launchers under `scripts/`
   (`online_lan.mjs`, `lan_host.mjs`) rather than rewriting the upstream default
   `npm run dev` / `npm run server` flow or hardcoding loopback flags into ad hoc commands.
+- On Windows, keep service replacement and agent-managed restarts in
+  `scripts/windows_stack.ps1`. That helper is an operational wrapper around
+  `online_lan.mjs`, not a second startup policy, so it must preserve printed
+  LAN URLs and IP-device access.
 - Prefer a registry, handler map, or small hook over editing a giant mixed-concern
   branch when the behavior is fork-only or optional.
 - Keep fork-local shell HTML/CSS changes in one contiguous block with stable ids/classes
@@ -193,7 +201,9 @@ behavior, optimize for re-mergeability:
   relevant process ids or ports instead of silently skipping the restart.
 - For this fork's real-device or multiplayer sessions, start and restart the local
   stack through `node scripts/online_lan.mjs` (use `--restart` when replacing an
-  existing pair). Do not spin up localhost-only variants such as `--host 127.0.0.1`.
+  existing pair), or through `scripts/windows_stack.ps1` on Windows once that
+  helper owns the local stack. Do not spin up localhost-only variants such as
+  `--host 127.0.0.1`.
 - Live online and admin checks also require the persistent native Postgres service
   from `npm run db:up`, not a temporary bootstrap realm or in-memory database.
 

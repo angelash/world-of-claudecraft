@@ -84,6 +84,11 @@ Prefer `node scripts/online_lan.mjs --restart` for the local online stack so the
 real server and dev client both run against the persistent native Postgres
 service.
 
+On Windows after unregistering the legacy service wrapper, prefer
+`powershell -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`.
+That helper still runs `online_lan.mjs`, must preserve LAN/IP access, and must
+not be replaced with localhost-only `npm run dev` or `npm run server` flows.
+
 ### User Management & Cheats
 ```bash
 npm run admin:grant <username>  # Grant GM/admin status to an account
@@ -167,7 +172,7 @@ Types: `feat`, `fix`, `refactor`, `style`, `docs`, `test`, `chore`.
    - **Reason through blast radius**: For simulation changes, DB persistence alterations, API routes, or WebSocket handler updates, reason through failure modes (concurrency, partial success, side-effects) before writing code.
    - **Red team your own diffs**: Critically review your changes before declaring completion. Ask: "What breaks under edge cases? What's the worst input?"
    - **Verification goes beyond compile checks**: Ensure unit/integration tests pass (`npm run test`), and visually verify/interact with UI changes in the browser using the Playwright MCP server (testing both success and error paths).
-   - **Restart persistent services when required**: Assume the local online server and dev client may already be running. If a change affects server runtime code, bundled output, WebSocket handling, environment-controlled behavior, or startup-read configuration, check the listening process and restart the affected service before declaring the fix live. Do this automatically, without waiting for the operator to remind you. For online gameplay bugs, verify against the actual running client/server path after the restart. If the restart is blocked, report the exact port or process that prevented it.
+   - **Restart persistent services when required**: Assume the local online server and dev client may already be running. If a change affects server runtime code, bundled output, WebSocket handling, environment-controlled behavior, or startup-read configuration, check the listening process and restart the affected service before declaring the fix live. Do this automatically, without waiting for the operator to remind you. On Windows, use `scripts/windows_stack.ps1 restart` when it owns the stack, and preserve LAN/IP access. For online gameplay bugs, verify against the actual running client/server path after the restart. If the restart is blocked, report the exact port or process that prevented it.
    - **Never fall back to `pg-mem` for live-path checks**: admin, multiplayer, and online verification must exercise the persistent Postgres-backed stack started from `npm run db:up` and `node scripts/online_lan.mjs`.
    - **Zero Warnings & Errors**: Keep code free of TypeScript compiler warnings/errors and ensure 100% test coverage for newly introduced utilities.
 8. **UI Text & Copy Standards**:

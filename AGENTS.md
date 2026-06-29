@@ -105,6 +105,10 @@ For this fork's real-device or multiplayer sessions, start the local stack throu
 Keep the LAN/IP startup policy in that fork-local script instead of changing the
 upstream default `npm run dev` / `npm run server` flow or launching `127.0.0.1`-only
 variants ad hoc.
+On Windows after the old service wrapper is removed, use
+`powershell -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`.
+That script is only a wrapper around `online_lan.mjs`; it must keep LAN/IP access
+and must not become a localhost-only startup path.
 Do not use in-memory or `pg-mem` realm harnesses for online, multiplayer, or admin
 verification. Bring up the persistent native Postgres service with `npm run db:up`
 and run the real stack against that database.
@@ -122,6 +126,9 @@ executable before running the check.
   persistent Postgres-backed environment, not a temporary bootstrap realm or an
   in-memory database shim.
 - If a change affects server runtime code, bundled output, WebSocket command handling, environment-controlled behavior, or anything a process only reads at startup, check the running port/process and restart the affected service yourself before reporting success. Do this by default, do not wait for the operator to remind you.
+- On this Windows workstation, prefer `scripts/windows_stack.ps1 restart` for
+  backend-affecting local restarts because it preserves LAN/IP binding and gives
+  this agent a tracked user-owned process to maintain.
 - For online gameplay fixes, verify the live online path after restart. Do not rely only on unit tests or a direct `GameServer.handleMessage` test when the user is seeing the issue in the running client.
 - If an automatic restart is blocked by the current session, such as ports that cannot be released or a process you cannot stop, surface that blocker immediately and include the exact process or port information in the final response.
 - When committing after a restart-related fix, mention both the code validation and the service restart/live-path verification in the final response.
