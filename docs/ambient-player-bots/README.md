@@ -18,6 +18,9 @@ Cross-cutting docs:
   real-server ambient population program.
 - `architecture.md` - the component model, authority boundary, and runtime
   flows for planner, runner, brain, group, social, and operator layers.
+- `post-packet-archive.md` - the late packet archive for pre-combat prep,
+  hosted and ambient quest stabilization, actionable-route priority, and the
+  current live verification policy.
 - `brainstorm.md` - product vision, reusable foundation already in the repo,
   locked architecture, LLM recommendations, risks, and open questions.
 - `implementation-plan.md` - canonical workflow, phase ordering, and the full
@@ -134,11 +137,20 @@ Post-packet continuation prompts:
   ladder into the first Gravewyrm Sanctum boss bridge around `q_korgath`.
 - `continuation-16-qa-korgath-sanctum-threshold.md` - QA prompt for
   continuation 16.
+- `continuation-17-velkhar-sanctum-bridge.md` - extend the real progression
+  ladder into the second Gravewyrm Sanctum boss bridge around `q_velkhar`.
+- `continuation-17-qa-velkhar-sanctum-bridge.md` - QA prompt for
+  continuation 17.
+- `continuation-18-gravewyrm-final-boss-bridge.md` - extend the real
+  progression ladder into the final Gravewyrm Sanctum boss bridge around
+  `q_gravewyrm`.
+- `continuation-18-qa-gravewyrm-final-boss-bridge.md` - QA prompt for
+  continuation 18.
 
 ## How to use this packet
 
-1. Read this README, then `requirements.md`, `architecture.md`, `state.md`,
-   and `brainstorm.md`.
+1. Read this README, then `requirements.md`, `architecture.md`,
+   `post-packet-archive.md`, `state.md`, and `brainstorm.md`.
 2. Open the next incomplete phase in `progress.md`.
 3. Run that phase, validate it, update `progress.md` and `state.md`, then hand
    off immediately to its QA phase.

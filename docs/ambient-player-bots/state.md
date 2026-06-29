@@ -5,7 +5,9 @@
 - current phase: continuation ladder complete pending review
 - phase status: Continuation 18 QA is complete, the Gravewyrm Sanctum ladder
   now runs through `q_gravewyrm`, and packet teardown remains deferred so the
-  planning docs stay available for user review and follow-up edits
+  planning docs stay available for user review and follow-up edits. The
+  late-cycle refinements after Continuation 18 QA are archived in
+  `post-packet-archive.md`.
 
 ## Locked decisions
 
@@ -59,6 +61,17 @@
 20. The Phase 16 `pg-mem` realm harness is retired. Every live ambient-bot,
     admin, and multiplayer verification path must use the persistent
     Postgres-backed stack.
+21. Before a non-threatening quest pull, the brain may spend a short bounded
+    prep window on class-safe readiness work such as buffs, pet summons, or
+    mana recovery instead of opening the fight immediately.
+22. When multiple quest routes are visible, currently actionable quest work
+    must beat deferred higher-risk routes and fallback grind loops. Safety
+    defers remain valid, but they must not hide ready work such as
+    `q_greyjaw`.
+23. Hosted-play reuse and ambient-player-bot execution should share path-goal
+    travel semantics between slower brain decisions so objective movement,
+    combat setup, and object interaction stay reconstructible from live route
+    state.
 
 ## Non-negotiable constraints
 
@@ -427,9 +440,9 @@
   progression goal
 - the current progression brain now covers the Eastbrook solo kill chain
   through `q_ringleader`, not just `q_wolves`
-- local `pg-mem` live verification now reaches a real ambient bot session after
-  a human logs in, and the runtime exposes a real objective such as
-  `accept_wolves` through the admin diagnostics surface
+- live ambient-bot verification now targets the persistent Postgres-backed
+  stack through `npm run db:up`, `node scripts/online_lan.mjs --restart`, and
+  `node scripts/ambient_bot_admin_smoke.mjs`
 - Continuation 02 adds collect-object progression support for `q_supplies`,
   `q_whispers`, and `q_names_of_the_dead`, plus the supporting Aldric kill
   routes around them
@@ -441,8 +454,6 @@
 - Continuation 04 QA confirmed the resupply layer still defers to nearby NPC
   quest flow, still sells junk before buying, and adds no new smoke or build
   regressions
-- the local pg-mem harness now strips one unsupported suspicious-registration
-  regex predicate so admin smoke output stays clean on this workstation
 - Continuation 05 extends the route registry into the Fenbridge starter ladder
   and adds distinct turn-in NPC support for cross-zone handoff quests
 - the current progression brain now covers Fenbridge starter routes through
@@ -559,6 +570,14 @@
   through `q_gravewyrm`
 - Continuation 18 QA is complete, and the continuation ladder is now complete
   through `q_gravewyrm`
+- the post-packet archive records the late-cycle refinements after Continuation
+  18 QA: bounded pre-combat prep, hosted and ambient route stabilization, and
+  actionable-quest priority over deferred grind loops
+- the current progression brain now does bounded class-safe preparation before
+  low-risk quest pulls instead of opening every valid fight immediately
+- mixed quest logs now resolve currently actionable quest work before deferred
+  higher-risk routes, so ready work such as `q_greyjaw` no longer stalls on a
+  stale boar grind fallback
 - Phase 6 QA closed the local progression-brain gaps for starter quest turn-in,
   corpse loot coverage, and ws delta-self preservation. No new known Phase 5
   blocker remains after that audit
@@ -584,12 +603,9 @@
 - Phase 14 QA tightened logout-all so it only resets active or assigned bots
   and added direct planner-config route coverage. No new known Phase 13 or
   Phase 14 blocker remains after that audit
-- Phase 16 added a local `pg-mem` realm harness, and the ambient-bot admin
-  smoke now passes end to end on this workstation without Docker or Postgres.
-  A separate staging or production smoke is still an operational follow-up when
-  such an environment is available, not a packet blocker.
-- packet teardown is deferred until the continuation ladder closes and still
-  requires explicit user confirmation before removal
+- packet teardown stays deferred for archive review and follow-up edits even
+  though the continuation ladder is now complete, and still requires explicit
+  user confirmation before removal
 - repo-wide `npx tsc --noEmit` is currently red for unrelated pre-existing
   issues outside this feature slice. The current baseline includes existing
   errors in `server/ai/active_triggers.ts`, `server/game.ts`, `src/ui/hud.ts`,

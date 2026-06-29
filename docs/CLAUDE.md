@@ -19,7 +19,7 @@ PRDs say so explicitly) and note the deviation.
 | `ui-architecture-hud-modularization/` | Phased HUD modularization refactor program. |
 | `release-notes/` | Per-version release notes. |
 | `screenshots/` | JPG/PNG assets embedded by docs and the repo-root `README.md` (table below). |
-| `*.md` (top level) | One-off reports — `hud-program-roadmap.md`, `hud-program-validation-report.md`, `performance-feel-audit.md`. |
+| `*.md` (top level) | One-off reports: `hud-program-roadmap.md`, `hud-program-validation-report.md`, `performance-feel-audit.md`, `change-archive-audit.zh_CN.md`. |
 
 ## design/ — how systems are/should be built
 | File | What it is |

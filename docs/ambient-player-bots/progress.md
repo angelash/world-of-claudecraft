@@ -62,6 +62,20 @@ use `npm run db:up`, `node scripts/online_lan.mjs`, and
 | Continuation 18 | completed | 2026-06-26 | 2026-06-26 |
 | Continuation 18 QA | completed | 2026-06-26 | 2026-06-26 |
 
+## Post-packet archive checkpoints
+
+- 2026-06-28: add bounded pre-combat preparation before safe quest pulls so
+  ambient bots can refresh buffs, restore mana, or summon missing pets before
+  opening the next route target. See `post-packet-archive.md`.
+- 2026-06-28 to 2026-06-29: stabilize hosted and ambient quest automation with
+  shared path-goal travel, tighter arrival thresholds, richer self snapshots,
+  safer early-route gating, and loot-right filtering. See
+  `post-packet-archive.md`.
+- 2026-06-29: change objective arbitration so currently actionable quest work
+  beats deferred higher-risk routes and fallback grinding. This closes the
+  mixed quest-log stall where ready work could be hidden behind a stale boar
+  grind loop. See `post-packet-archive.md`.
+
 ## Phase 1 checklist
 
 - [x] requirements, vision, and architecture packet created

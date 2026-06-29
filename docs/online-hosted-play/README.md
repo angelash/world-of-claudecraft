@@ -12,3 +12,6 @@ real player character that is already online.
 
 - `requirements.md`: product, UX, safety, and functional requirements
 - `architecture.md`: runtime model, authority boundaries, and integration seams
+- `post-launch-archive.md`: late-cycle archive for the HUD panel refactor,
+  diagnostics expansion, action-log preference, and movement-control
+  refinements that landed after the original packet scaffolding was removed
