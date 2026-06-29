@@ -62,6 +62,8 @@ progress.
 - Grouped quest route gates now use a conservative party-level check. A group
   can reduce a route by at most one level, and every nearby contributing party
   member must meet that grouped safe level.
+- Distant non-combat followers must close the leader gap before doing
+  preparation buffs or preparation-style support.
 
 ## Key Existing Files
 
@@ -285,6 +287,16 @@ progress.
 - `tests/ambient_player_bot_brain.test.ts` covers both the allowed case (nearby
   party at the grouped safe level can pursue one level early) and the rejected
   case (underlevel nearby members do not unlock a higher route).
+- Phase 6 follow-up report `tmp/hosted-play-level20-20260630-044758.json`
+  stayed death-free through level 5 after the grouped route gate fix, but then
+  stalled around 80 minutes when Darian remained away from the leader in
+  `prepare_party`. The leader correctly held regroup, but the follower kept
+  preparing instead of first closing the gap.
+- `server/hosted_play/party.ts` now treats non-combat leader follow as higher
+  priority than preparation buffs and preparation-style support when a follower
+  is outside close-follow range.
+- `tests/hosted_play_party.test.ts` covers a distant paladin follower choosing
+  leader follow and a travel goal instead of party preparation buffs.
 
 ## Phase 5 Validation
 
@@ -353,6 +365,13 @@ progress.
 - `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: first run after restart had clean runtime but missed enabling one helper before the 120 second gate, so it failed the all-members quest-state check.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed on rerun after the same restart. The report was `tmp/hosted-play-live-harness-2026-06-29T20-44-48-266Z.json`; it observed hosted invite, party target size, party chat, party intent and roles, cooperation mode, quest signals, all party members touching quest state, support or combat signals, clean runtime, and stuck resets within limit.
+- `npx vitest run tests\hosted_play_party.test.ts`: passed, 1 file and 23 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed, 5 files and 195 tests.
+- `npm run build:server`: passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed after the follower preparation priority fix.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after restart. The report was `tmp/hosted-play-live-harness-2026-06-29T22-11-31-866Z.json`; it observed hosted invite, party target size, party chat, party intent and roles, cooperation mode, quest signals, all party members touching quest state, support or combat signals, clean runtime, and stuck resets within limit.
 
 ## Validation Matrix
 
@@ -398,8 +417,8 @@ progress.
 
 ## Known Current Gaps
 
-- A clean post-fix level 20 hosted run is still required after the grouped
-  route gate fix and service restart.
+- A clean post-fix level 20 hosted run is still required after the follower
+  preparation priority fix and service restart.
 
 ## New Files In This Packet
 

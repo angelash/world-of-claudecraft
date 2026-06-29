@@ -104,6 +104,15 @@ Current date: 2026-06-29
   `0.0.0.0`, the related test suite and server build passed, and a rerun of the
   short live harness passed with party fill, hosted invite, party chat, intent,
   support or combat, quest signals, runtime clean, and max stuck resets 0.
+- A later level 20 run stayed death-free through level 5, but progress stalled
+  when a follower away from the leader entered `prepare_party` instead of
+  closing the gap, leaving the leader in regroup hold. Non-combat preparation
+  and preparation-style support now yield to leader follow whenever a follower
+  is outside close-follow range.
+- After that fix, the stack was restarted, IP access was verified on
+  `0.0.0.0`, the related test suite and server build passed, and the short live
+  harness passed with party fill, hosted invite, party chat, intent, support or
+  combat, quest signals, runtime clean, and max stuck resets 0.
 - The next level 20 run reached level 3 and showed the intent release fix
   working, but a distant follower could remain in `follow_leader` without
   closing the gap after `/follow` stopped pulling them. Non-combat hosted
@@ -183,4 +192,6 @@ Current date: 2026-06-29
   `/follow` is cooling down or no longer pulling them.
 - [x] Group route gate reductions consider nearby party member levels and no
   longer drag underlevel teammates into higher routes.
+- [x] Distant followers return to the leader before doing non-combat
+  preparation or preparation-style support.
 - [ ] Final run occurs after the last code change and service restart.

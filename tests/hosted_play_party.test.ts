@@ -156,6 +156,51 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
+  it('prioritizes closing a non-combat follower gap before party preparation buffs', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 1538,
+          z: -1200,
+          auras: [],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Darian', cls: 'paladin', level: 12, hp: 110, mhp: 110, res: 120, mres: 120, rtype: 'mana', x: 1538, z: -1200, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 101, k: 'player', nm: 'Branoraaa', x: 1500, z: -1200, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', dead: 0, cmb: 0, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'paladin',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [{ cmd: 'chat', text: '/follow Branoraaa' }],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 1500, z: -1200 },
+        arrivalRange: 4,
+        goalKey: 'hosted-follow-leader:101:1500:-1200',
+      },
+      groupMode: 'follow_leader',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 38,
+    });
+  });
+
   it('has the hosted leader hold position while the party regroups', () => {
     const state = createHostedPlayPartyState();
 
