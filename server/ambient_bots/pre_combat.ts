@@ -151,23 +151,20 @@ function hasPreCombatEffect(ability: KnownAbility): boolean {
 }
 
 function isPreparedByAura(self: PreCombatSelfView, ability: KnownAbility): boolean {
-  const effects = ability.effects.filter(
-    (effect) =>
+  const duration = ability.effects.reduce((max, effect) => {
+    if (
       effect.type === 'selfBuff'
       || effect.type === 'buffTarget'
       || effect.type === 'imbue'
-      || effect.type === 'absorb',
-  );
-  return effects.length > 0 && effects.every((effect) => {
-    const refreshBelow = auraRefreshBelow(effect.duration);
-    return self.auras.some((aura) => {
-      if (aura.remaining <= refreshBelow) return false;
-      if (aura.id === ability.def.id) return true;
-      if (effect.type === 'selfBuff' || effect.type === 'buffTarget') return aura.kind === effect.kind;
-      if (effect.type === 'imbue') return aura.kind === 'imbue';
-      return false;
-    });
-  });
+      || effect.type === 'absorb'
+    ) {
+      return Math.max(max, effect.duration);
+    }
+    return max;
+  }, 0);
+  if (duration <= 0) return false;
+  const refreshBelow = auraRefreshBelow(duration);
+  return self.auras.some((aura) => aura.id === ability.def.id && aura.remaining > refreshBelow);
 }
 
 function auraRefreshBelow(duration: number): number {

@@ -76,6 +76,9 @@ and get replaced through the same server surfaces that human players use.
   deep special cases in `server/game.ts`.
 - Support solo and grouped content, including dungeon entry, in-instance
   routing, encounter sequencing, regrouping, and exit flow.
+- Grouped bots must complete practical pre-battle preparation through normal
+  player commands: self prep, party-wide buffs where the class can provide
+  them, tank-side readying, and healer-side top-offs before the pull resumes.
 - For party invites, bots accept invites from same-cluster ambient peers and
   from their assigned player, while declining unrelated invites so a stale
   stranger invite does not block trusted grouping.
@@ -85,8 +88,13 @@ and get replaced through the same server surfaces that human players use.
   accept a real player's invite.
 - Grouped bots preserve the server follow state by pausing brain movement while
   near the party leader.
-- Grouped bots assist party members by targeting visible hostile mobs that are
-  attacking a party member.
+- Grouped bots should converge on a shared combat focus target instead of
+  free-splitting damage across multiple nearby enemies.
+- Tank-capable grouped bots must reclaim loose mobs from healers or other
+  fragile party members, establish threat on the shared focus target, and apply
+  simple multi-target control when several nearby mobs are on the party.
+- Healer-capable grouped bots must prioritize wounded or currently threatened
+  allies ahead of general DPS behavior.
 - Bots do not treat a real-player-led party as a bot-led party. They follow and
   assist, but do not wait for more members or invite others on behalf of the
   player.
@@ -141,6 +149,8 @@ and get replaced through the same server surfaces that human players use.
 - Grouped bots can enter and complete dungeon content using only real commands.
 - Player-led groups can include assigned bots without the bots stealing
   leadership decisions or breaking follow.
+- Grouped parties finish obvious prep work, heal up, buff up, and then collapse
+  onto one combat target instead of scattering opening actions.
 - Friend, whisper, and chat surfaces remain bounded, moderated, and operator
   visible.
 - Real-player friend adds against nearby ambient bots settle into a mutual

@@ -2,6 +2,10 @@ import { DUNGEONS } from '../../src/sim/data';
 import type { SimEvent } from '../../src/sim/types';
 import type { PartyInfo, PartyMemberInfo } from '../../src/world_api';
 import { readAssignedPlayerName } from './assignment';
+import {
+  maybeCoordinateAmbientPartySupport,
+  type AmbientGroupCommandReservation,
+} from './group_support';
 import type { AmbientPlayerBotRecord } from './types';
 import type { AmbientPlayerBotLiveState } from './ws_client';
 
@@ -95,11 +99,14 @@ export function tickAmbientPlayerBotGroupCoordinator(
   let pauseBrainDrive = false;
   let groupMode = '';
   let groupLeaderName = leaderMember?.name ?? leaderRecord?.characterName ?? fallbackBotLeader.characterName;
-  let groupLeaderDistance = 0;
   const botIsGroupLeader = party
     ? party.leader === input.bot.characterId
     : fallbackBotLeader.botId === input.bot.botId;
   const assignedPlayerName = readAssignedPlayerName(input.bot.plannerState);
+  const leaderDistance = selfMember && leaderMember
+    ? distanceBetweenMembers(selfMember, leaderMember)
+    : null;
+  let groupLeaderDistance = leaderDistance ?? 0;
 
   const inviteDecision = !party
     ? ambientPartyInviteDecision(input.recentEvents, activeNames, assignedPlayerName)
@@ -141,6 +148,36 @@ export function tickAmbientPlayerBotGroupCoordinator(
         groupAwaitingParty: false,
         groupLaggingMembers: 0,
         groupLeaderDistance: 0,
+      }),
+    };
+  }
+
+  const supportDecision = party
+    ? maybeCoordinateAmbientPartySupport({
+      bot: input.bot,
+      liveState: input.liveState,
+      party,
+      leaderMember,
+      selfMember,
+      reserveCommandBatch: (reservations) => reserveCommandBatch(state, input.nowMs, reservations),
+    })
+    : null;
+  if (supportDecision) {
+    return {
+      commands: supportDecision.commands,
+      pauseBrainDrive: true,
+      runnerStatePatch: groupRunnerStatePatch({
+        objectiveDungeonId: input.objectiveDungeonId,
+        objectiveQuestId: input.objectiveQuestId,
+        isOutdoorGroupedObjective,
+        groupLeaderName,
+        groupTargetSize: targetPartySize,
+        groupPartySize: partySize,
+        groupMode: supportDecision.groupMode,
+        groupNeedsRegroup: false,
+        groupAwaitingParty: false,
+        groupLaggingMembers: 0,
+        groupLeaderDistance: leaderDistance ?? 0,
       }),
     };
   }
@@ -188,10 +225,6 @@ export function tickAmbientPlayerBotGroupCoordinator(
     && laggingAmbientMembers > 0;
   const leaderShouldHold = leaderShouldWaitForParty || leaderShouldHoldForLag;
   if (leaderShouldHold) pauseBrainDrive = true;
-
-  const leaderDistance = selfMember && leaderMember
-    ? distanceBetweenMembers(selfMember, leaderMember)
-    : null;
   groupLeaderDistance = leaderDistance ?? 0;
   const followerShouldStayWithLeader = groupTravelActive
     && party?.leader !== input.bot.characterId
@@ -337,10 +370,33 @@ function canIssue(
   nowMs: number,
   cooldownMs: number,
 ): boolean {
-  const lastAtMs = state.lastCommandAtMs[key] ?? Number.NEGATIVE_INFINITY;
-  if (nowMs - lastAtMs < cooldownMs) return false;
+  if (!commandReady(state, key, nowMs, cooldownMs)) return false;
   state.lastCommandAtMs[key] = nowMs;
   return true;
+}
+
+function reserveCommandBatch(
+  state: AmbientPlayerBotGroupRuntimeState,
+  nowMs: number,
+  reservations: readonly AmbientGroupCommandReservation[],
+): boolean {
+  for (const reservation of reservations) {
+    if (!commandReady(state, reservation.key, nowMs, reservation.cooldownMs)) return false;
+  }
+  for (const reservation of reservations) {
+    state.lastCommandAtMs[reservation.key] = nowMs;
+  }
+  return true;
+}
+
+function commandReady(
+  state: AmbientPlayerBotGroupRuntimeState,
+  key: string,
+  nowMs: number,
+  cooldownMs: number,
+): boolean {
+  const lastAtMs = state.lastCommandAtMs[key] ?? Number.NEGATIVE_INFINITY;
+  return nowMs - lastAtMs >= cooldownMs;
 }
 
 function readRunnerString(

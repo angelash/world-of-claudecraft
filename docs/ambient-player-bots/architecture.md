@@ -72,10 +72,13 @@ Responsibilities:
 
 Primary files:
 - `server/ambient_bots/group.ts`
+- `server/ambient_bots/group_support.ts`
 
 Responsibilities:
 - use party state to invite, accept, decline, enter dungeons, regroup, follow,
   assist, and hold pulls
+- run party support tactics outside the main progression brain: pre-fight party
+  buffs, healer response, tank response, and focus-fire target selection
 - keep grouped bots cohesive without dungeon-only cheat paths
 - stay bounded to bots already assigned to the same nearby human cluster
 - distinguish bot-led parties from real-player-led parties so assigned bots
@@ -120,7 +123,7 @@ Responsibilities:
 4. The runtime fulfills those actions through the real HTTP and WS surfaces.
 5. The bot runner receives live snapshots and ticks the progression brain.
 6. Group and social layers add party invite handling, follow preservation,
-   combat assist, regroup, and chat behavior.
+   regroup, combat support, focus-fire nudges, and chat behavior.
 7. The runtime updates registry state, metrics, and optional LLM overlays.
 8. If the bot drifts beyond cluster release rules, the planner logs it out and
    later replaces it with a better local fit.
@@ -152,6 +155,33 @@ The ambient group coordinator is intentionally narrow and lives outside
 - If a visible hostile mob is attacking another party member, the bot targets it
   so the normal progression and combat brain can assist through regular combat
   commands.
+
+## Party support flow
+
+The new party support layer lives in `server/ambient_bots/group_support.ts` and
+is called from the ambient group coordinator before the normal combat brain is
+allowed to drive.
+
+- It first inspects live party state, visible ally auras, hostile aggro targets,
+  and the bot's currently known abilities.
+- Healing comes first. Healer-capable classes use simple health and threat
+  ordering so wounded or threatened allies interrupt DPS behavior.
+- Out of combat, support-capable classes apply party-wide preparation through
+  normal target-and-cast commands: Priest Fortitude and Shield, Druid Mark and
+  Thorns, Paladin Blessing of Might.
+- Tank-role support then runs before generic DPS behavior. The first slice
+  covers Warrior tanking directly, plus Bear Druid taunt support when already in
+  bear form.
+- When no higher-priority support action is needed, grouped bots retarget to a
+  shared focus mob so the party collapses damage onto one threat anchor.
+
+Current role coverage is intentionally staged rather than pretending every class
+has a complete bespoke rotation already:
+
+- Healer support: Priest, Paladin, Shaman, caster-form Druid.
+- Tank support: Warrior first-class, Bear Druid taunt support.
+- Party buffs: Priest, Druid, Paladin.
+- Shared combat coordination: all grouped bots can retarget for focus fire.
 
 ## Authority boundary
 
