@@ -539,4 +539,21 @@ Current date: 2026-06-30
   hosted party regression, server build, LAN/IP restart, IP URL and status
   verification, and short live harness report
   `tmp/hosted-play-live-harness-2026-06-30T15-22-10-342Z.json`.
+- [x] Level 20 candidate
+  `tmp/hosted-play-level20-20260630-232527.json` stayed full-party, death-free,
+  and runtime-clean, but was stopped after about 27 minutes because the party
+  repeatedly fell into recovery around the boar and spider route. The final
+  samples showed a low-health tank with food and a potion available while the
+  hosted runtime suppressed the ambient brain's `recover` use command during an
+  `assist_party` recovery pause.
+- [x] Hosted runtime now lets only `recover` use-consumable commands pass
+  through party recovery pauses while keeping ordinary local combat, loot, and
+  quest brain commands paused. The fix has focused runtime tests for both the
+  allowed consumable use and the blocked local combat case.
+- [x] The recovery consumable override was covered by
+  `npx vitest run tests\hosted_play_runtime.test.ts`, the 6-file hosted,
+  brain, group, chat, and social regression, `npm run build:server`, LAN/IP
+  restart, `0.0.0.0` port verification, printed IP URLs, `/api/status`, and
+  short live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T16-02-17-977Z.json`.
 - [ ] Final run occurs after the last code change and service restart.

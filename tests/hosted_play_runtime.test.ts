@@ -534,6 +534,109 @@ describe('HostedPlayRuntime', () => {
     });
   });
 
+  it('lets a grouped hosted member use recovery consumables while party recovery pauses assist movement', () => {
+    const game = fakeGame(liveState({
+      id: 102,
+      x: 0,
+      z: 6,
+      lv: 3,
+      hp: 60,
+      mhp: 100,
+      res: 100,
+      mres: 100,
+      rtype: 'mana',
+      inv: [{ itemId: 'baked_bread', count: 1 }],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 70, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'mage', level: 3, hp: 60, mhp: 100, res: 100, mres: 100, rtype: 'mana', x: 0, z: 6, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+    }), {
+      playerClass: 'mage',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toContainEqual({ cmd: 'use', item: 'baked_bread' });
+    expect(game.commands).not.toContainEqual(expect.objectContaining({ cmd: 'attack' }));
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'assist_party',
+      objectiveId: 'recover',
+      debug: {
+        brainDrivePaused: true,
+      },
+    });
+  });
+
+  it('keeps ordinary local combat commands paused while another party member needs recovery', () => {
+    const game = fakeGame(liveState({
+      id: 102,
+      x: 0,
+      z: 6,
+      lv: 3,
+      hp: 100,
+      mhp: 100,
+      res: 100,
+      mres: 100,
+      rtype: 'mana',
+      qdone: ['q_wolves'],
+      qlog: [{ questId: 'q_boars', counts: [3], state: 'active' }],
+      auras: [
+        { id: 'frost_armor', kind: 'buff_armor', rem: 1700, dur: 1800 },
+        { id: 'arcane_intellect', kind: 'buff_int', rem: 1700, dur: 1800 },
+      ],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 70, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'mage', level: 3, hp: 100, mhp: 100, res: 100, mres: 100, rtype: 'mana', x: 0, z: 6, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 8101, k: 'mob', tid: 'wild_boar', x: 0, z: 10, h: true, lv: 3 },
+      ],
+    }), {
+      playerClass: 'mage',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([]);
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'assist_party',
+      objectiveId: 'combat',
+      debug: {
+        brainDrivePaused: true,
+      },
+    });
+  });
+
   it('accepts party invites through the hosted runtime while follow-leader mode is enabled', () => {
     const game = fakeGame(liveState(), {
       recentEvents: [{ type: 'partyInvite', fromPid: 201, fromName: 'Aleph' }],

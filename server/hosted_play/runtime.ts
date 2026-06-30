@@ -797,8 +797,13 @@ function hostedBrainCommandsAllowedWhilePartyPaused(
   groupMode: string,
   liveState: AmbientPlayerBotLiveState,
 ): readonly Record<string, unknown>[] {
-  if (!hostedLocalQuestBrainAllowedWhilePartyPaused(result, groupMode, liveState)) return [];
-  return result.commands.filter(isHostedLocalQuestCommand);
+  if (hostedLocalQuestBrainAllowedWhilePartyPaused(result, groupMode, liveState)) {
+    return result.commands.filter(isHostedLocalQuestCommand);
+  }
+  if (hostedRecoveryBrainAllowedWhilePartyPaused(result, groupMode)) {
+    return result.commands.filter(isHostedRecoveryCommand);
+  }
+  return [];
 }
 
 function isHostedLocalQuestObjective(objectiveId: string): boolean {
@@ -830,6 +835,23 @@ function isHostedActiveQuestObjective(result: AmbientPlayerBotBrainTickResult): 
   return !!result.objectiveQuestId
     && result.objectiveId !== 'recover'
     && result.objectiveId !== 'prepare_combat';
+}
+
+function hostedRecoveryBrainAllowedWhilePartyPaused(
+  result: AmbientPlayerBotBrainTickResult,
+  groupMode: string,
+): boolean {
+  return result.objectiveId === 'recover'
+    && (groupMode === 'assist_party'
+      || groupMode === 'prepare_party'
+      || groupMode === 'follow_leader'
+      || groupMode === 'hold_regroup'
+      || groupMode === 'heal_party'
+      || groupMode === 'buff_party');
+}
+
+function isHostedRecoveryCommand(command: Record<string, unknown>): boolean {
+  return command.cmd === 'use';
 }
 
 function hostedLocalQuestTravelIsNearby(

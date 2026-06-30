@@ -124,6 +124,10 @@ progress.
 - Nearby corpse loot is treated as local quest work while party movement is
   paused by follow, regroup, or preparation. Tight followers can still target
   and loot nearby corpses so personal quest drops do not stall the whole party.
+- Hosted recovery brain commands can use food, drink, or potions while party
+  recovery has paused ordinary brain drive, including `assist_party` recovery
+  pauses. Other local combat, loot, and quest commands remain suppressed during
+  recovery unless they are explicitly allowed by a safer local-work rule.
 
 ## Key Existing Files
 
@@ -1165,8 +1169,9 @@ progress.
 
 ## Known Current Gaps
 
-- A clean post-fix level 20 hosted run is still required after the local active
-  quest override, service restart, and short live harness check.
+- A clean post-fix level 20 hosted run is still required after the latest
+  hosted recovery consumable override, service restart, and short live harness
+  check.
 
 ## New Files In This Packet
 
