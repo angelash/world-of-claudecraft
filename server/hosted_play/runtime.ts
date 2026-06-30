@@ -817,6 +817,10 @@ function hostedLocalQuestBrainAllowedWhilePartyPaused(
   if (isHostedLocalQuestObjective(result.objectiveId)) {
     return hostedLocalQuestTravelIsNearby(result, liveState);
   }
+  if (result.objectiveId === 'loot') {
+    if (hostedLeaderDistance(liveState) > HOSTED_PLAY_LOCAL_ACTIVE_QUEST_MAX_LEADER_DISTANCE) return false;
+    return hostedLocalQuestTravelIsNearby(result, liveState);
+  }
   if (!isHostedActiveQuestObjective(result)) return false;
   if (hostedLeaderDistance(liveState) > HOSTED_PLAY_LOCAL_ACTIVE_QUEST_MAX_LEADER_DISTANCE) return false;
   return hostedLocalQuestTravelIsNearby(result, liveState);

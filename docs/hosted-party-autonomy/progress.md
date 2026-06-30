@@ -528,4 +528,15 @@ Current date: 2026-06-30
   on `0.0.0.0` with printed IP URLs and `/api/status`, and smoke-tested with
   live harness report
   `tmp/hosted-play-live-harness-2026-06-30T14-50-36-383Z.json`.
+- [x] The next level 20 candidate
+  `tmp/hosted-play-level20-20260630-225342.json` stayed death-free and
+  runtime-clean, but was stopped after about 23 minutes because lagging members
+  were still stuck on `q_boars` personal drops while the party stayed in
+  follow/regroup modes. Hosted runtime now lets tight followers execute nearby
+  `loot` brain commands while party follow, regroup, or preparation has paused
+  ordinary brain drive.
+- [x] The local loot override was covered by a hosted runtime test, the 6-file
+  hosted party regression, server build, LAN/IP restart, IP URL and status
+  verification, and short live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T15-22-10-342Z.json`.
 - [ ] Final run occurs after the last code change and service restart.

@@ -137,6 +137,12 @@ through the same recovery pause as other fragile roles: stop attacking, clear
 the hostile target, and retreat to a stable anchor. Other healers or later
 instant tools can still protect them while they move.
 
+Loot is part of local quest completion. A tight follower whose brain wants to
+loot a nearby corpse may run the local loot commands while party follow,
+regroup, or preparation has paused ordinary brain drive. This prevents personal
+quest drops from being left on corpses while the leader keeps the group in
+formation.
+
 This is a behavior rule, not just party chat flavor. Recovery and correction
 lines should reflect the same underlying state so the run looks and behaves
 like players calling a reset.
