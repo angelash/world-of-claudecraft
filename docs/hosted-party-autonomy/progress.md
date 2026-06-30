@@ -177,6 +177,10 @@ Current date: 2026-06-29
   out. This lets a complete hosted party move into safer murloc-style routes
   earlier without reintroducing the supplies, bandit, mine, or chapel early-entry
   deaths.
+- After that fix, the stack was restarted, IP access was verified on
+  `0.0.0.0`, and the short live harness passed with current full-party
+  agreement, hosted invite, party chat, intent, support or combat, quest
+  signals, runtime clean, and stuck resets within limit.
 - The next level 20 run reached level 3 and showed the intent release fix
   working, but a distant follower could remain in `follow_leader` without
   closing the gap after `/follow` stopped pulling them. Non-combat hosted
