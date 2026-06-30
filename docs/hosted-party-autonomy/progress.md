@@ -150,6 +150,11 @@ Current date: 2026-06-29
   Auto-invite now still allows ambient fillers, but prefers visible non-ambient
   players before ambient bots so nearby real hosted members do not get crowded
   out of a full party.
+- After that fix, the stack was restarted, IP access was verified on
+  `0.0.0.0`, and the short live harness passed with current full-party
+  agreement across the 5 new clients, hosted invites, party chat, intent,
+  support or combat, quest state on all members, runtime clean, and stuck
+  resets 0.
 - The next level 20 run reached level 3 and showed the intent release fix
   working, but a distant follower could remain in `follow_leader` without
   closing the gap after `/follow` stopped pulling them. Non-combat hosted
