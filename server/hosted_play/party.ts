@@ -25,7 +25,9 @@ const HOSTED_PLAY_NEARBY_INVITE_RANGE = 32;
 const HOSTED_PLAY_REGROUP_RANGE = 28;
 const HOSTED_PLAY_FOLLOW_START_RANGE = 4;
 const HOSTED_PLAY_FOLLOW_MAX_RANGE = 60;
+const HOSTED_PLAY_RECOVERY_ANCHOR_RANGE = 8;
 const HOSTED_PLAY_RECOVERY_CRITICAL_HEALTH_RATIO = 0.45;
+const HOSTED_PLAY_RECOVERY_COMMAND_COOLDOWN_MS = 1_500;
 
 type HostedPlayCommand = Record<string, unknown>;
 
@@ -140,6 +142,17 @@ export function tickHostedPlayPartyCoordinator(
       groupLeaderDistance: leaderDistance,
     };
   }
+
+  const recoveryPause = maybePauseForPartyRecovery({
+    liveSelf: input.liveSelf,
+    party,
+    selfMember,
+    leaderMember,
+    leaderDistance,
+    state,
+    nowMs: input.nowMs,
+  });
+  if (recoveryPause) return recoveryPause;
 
   const intentHold = maybeHoldForPartyIntent({
     intent: input.partyIntent ?? null,
@@ -291,6 +304,51 @@ export function tickHostedPlayPartyCoordinator(
   };
 }
 
+function maybePauseForPartyRecovery(input: {
+  liveSelf: Record<string, unknown>;
+  party: PartyInfo;
+  selfMember: PartyMemberInfo;
+  leaderMember: PartyMemberInfo;
+  leaderDistance: number;
+  state: HostedPlayPartyState;
+  nowMs: number;
+}): HostedPlayPartyTickResult | null {
+  if (!partyNeedsRecovery(input.party) || input.selfMember.dead) return null;
+
+  const commands: HostedPlayCommand[] = [];
+  const selfNeedsEscape = input.selfMember.pid !== input.leaderMember.pid
+    || memberHealthRatio(input.selfMember) <= HOSTED_PLAY_RECOVERY_CRITICAL_HEALTH_RATIO;
+  if (
+    selfNeedsEscape
+    && readSelfAutoAttack(input.liveSelf)
+    && reserveCommandBatch(input.state, input.nowMs, [{ key: 'stopattack', cooldownMs: HOSTED_PLAY_RECOVERY_COMMAND_COOLDOWN_MS }])
+  ) {
+    commands.push({ cmd: 'stopattack' });
+  }
+  if (
+    selfNeedsEscape
+    && readSelfTargetId(input.liveSelf) !== null
+    && reserveCommandBatch(input.state, input.nowMs, [{ key: 'clear_target', cooldownMs: HOSTED_PLAY_RECOVERY_COMMAND_COOLDOWN_MS }])
+  ) {
+    commands.push({ cmd: 'target', id: null });
+  }
+
+  const anchor = partyRecoveryAnchor(input.party, input.selfMember, input.leaderMember);
+  const anchorDistance = anchor ? distanceBetweenPartyMembers(input.selfMember, anchor) : 0;
+  const travelGoal = anchor && anchorDistance > HOSTED_PLAY_RECOVERY_ANCHOR_RANGE
+    ? travelGoalToPartyMember(anchor, HOSTED_PLAY_RECOVERY_ANCHOR_RANGE, 'hosted-party-recover')
+    : undefined;
+
+  return {
+    commands,
+    pauseBrainDrive: true,
+    ...(travelGoal ? { travelGoal } : {}),
+    groupMode: input.selfMember.pid === input.leaderMember.pid && !travelGoal ? 'prepare_party' : 'assist_party',
+    groupLeaderName: input.leaderMember.name,
+    groupLeaderDistance: input.leaderDistance,
+  };
+}
+
 function maybeHoldForPartyIntent(input: {
   intent: AmbientPartyCoordinationIntent | null;
   party: PartyInfo;
@@ -345,7 +403,31 @@ function partyNeedsRegroup(
 function partyNeedsRecovery(party: PartyInfo): boolean {
   return party.members.some((member) =>
     member.dead
-    || (member.mhp > 0 && member.hp / member.mhp <= HOSTED_PLAY_RECOVERY_CRITICAL_HEALTH_RATIO));
+    || memberHealthRatio(member) <= HOSTED_PLAY_RECOVERY_CRITICAL_HEALTH_RATIO);
+}
+
+function partyRecoveryAnchor(
+  party: PartyInfo,
+  selfMember: PartyMemberInfo,
+  leaderMember: PartyMemberInfo,
+): PartyMemberInfo | null {
+  const aliveMembers = party.members.filter((member) => member.pid !== selfMember.pid && !member.dead);
+  const stableMembers = aliveMembers.filter((member) =>
+    memberHealthRatio(member) > HOSTED_PLAY_RECOVERY_CRITICAL_HEALTH_RATIO);
+  if (
+    leaderMember.pid !== selfMember.pid
+    && !leaderMember.dead
+    && memberHealthRatio(leaderMember) > HOSTED_PLAY_RECOVERY_CRITICAL_HEALTH_RATIO
+  ) {
+    return leaderMember;
+  }
+  const candidates = stableMembers.length > 0 ? stableMembers : aliveMembers;
+  return [...candidates].sort((a, b) =>
+    distanceBetweenPartyMembers(selfMember, a) - distanceBetweenPartyMembers(selfMember, b))[0] ?? null;
+}
+
+function memberHealthRatio(member: PartyMemberInfo): number {
+  return member.mhp > 0 ? member.hp / member.mhp : 1;
 }
 
 function idlePartyResult(): HostedPlayPartyTickResult {
@@ -443,6 +525,10 @@ function readSelfId(value: Record<string, unknown>): number {
 
 function readSelfTargetId(value: Record<string, unknown>): number | null {
   return typeof value.target === 'number' ? value.target : null;
+}
+
+function readSelfAutoAttack(value: Record<string, unknown>): boolean {
+  return value.auto === true || value.auto === 1;
 }
 
 function partyInviteFromName(event: SimEvent): string | null {

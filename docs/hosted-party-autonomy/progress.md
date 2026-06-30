@@ -270,6 +270,18 @@ Current date: 2026-06-30
   verified on `0.0.0.0`, the targeted brain suite, hosted behavior suite,
   server build, and short live harness all passed. The short harness report was
   `tmp/hosted-play-live-harness-2026-06-30T07-07-57-024Z.json`.
+- Follow-up report `tmp/hosted-play-level20-20260630-151234.json` confirmed the
+  Greyjaw opt-out held, but failed later around levels 6 to 7 with repeated
+  player deaths. The party had recovery intent active, yet members without an
+  immediate heal or taunt action could still resume ordinary brain work such as
+  `collect_supplies`, splitting the group while fragile members were critical.
+  Hosted party recovery now pauses ordinary brain work, stops attacks, clears
+  unsafe targets, and travels back to a stable party anchor when recovery is
+  needed and no higher-priority support action is available.
+- After that recovery hard-pause fix, the stack was restarted, IP access was
+  verified on `0.0.0.0`, the hosted party suite, hosted behavior suite, server
+  build, and short live harness all passed. The short harness report was
+  `tmp/hosted-play-live-harness-2026-06-30T08-37-40-545Z.json`.
 
 ## Planning Packet Checklist
 
@@ -363,4 +375,7 @@ Current date: 2026-06-30
   Greyjaw band.
 - [x] Old Greyjaw opts out of party level bonuses so a level 4 full party cannot
   lower the level 5 route gate back to 4.
+- [x] Hosted party recovery pauses ordinary brain work and pulls members back
+  to a stable party anchor instead of letting quest collection continue while
+  the team is critical.
 - [ ] Final run occurs after the last code change and service restart.
