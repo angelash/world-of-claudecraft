@@ -218,6 +218,13 @@ Current date: 2026-06-30
   `0.0.0.0`, the targeted brain suite, hosted behavior suite, server build, and
   short live harness all passed. The short harness report was
   `tmp/hosted-play-live-harness-2026-06-30T04-17-19-755Z.json`.
+- The first final level 20 attempt after that commit ended at 60 seconds
+  because the live harness let a transient hosted-status `fetch failed`
+  exception escape from `Promise.all`. The run had already reached a full party,
+  no deaths, no hosted errors, no WebSocket errors, and stuck resets 0, so this
+  was a harness robustness issue rather than a gameplay failure. The harness now
+  retries hosted-status polls, records recovered sampling failures separately,
+  and only aborts after repeated consecutive sampling failures.
 
 ## Planning Packet Checklist
 
@@ -302,4 +309,6 @@ Current date: 2026-06-30
   focus fire.
 - [x] Distant cross-zone quest pickups do not use party strength to bypass the
   original route gate, while accepted safe quests can still use group pursuit.
+- [x] The live harness tolerates transient hosted-status poll failures without
+  hiding repeated REST sampling failure.
 - [ ] Final run occurs after the last code change and service restart.

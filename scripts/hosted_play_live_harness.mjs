@@ -19,6 +19,10 @@ const DEFAULT_LONG_DURATION_MS = 90 * 60_000;
 const DEFAULT_MIN_RUN_MS = 45_000;
 const RECENT_EVENT_LIMIT = 240;
 const STATUS_SAMPLE_LIMIT = 2_000;
+const STATUS_POLL_ERROR_LIMIT = 120;
+const STATUS_FETCH_RETRIES = 3;
+const STATUS_FETCH_RETRY_DELAY_MS = 500;
+const MAX_CONSECUTIVE_STATUS_SAMPLE_FAILURES = 3;
 
 const DELTA_SELF_KEYS = [
   'inv',
@@ -315,11 +319,20 @@ async function configureAndEnableHosted(client, targetPartySize, autoInviteNearb
 }
 
 async function hostedStatus(client) {
-  const res = await api(`/api/characters/${client.characterId}/hosted-play`, {}, client.token);
-  if (res.status !== 200) {
-    throw new Error(`hosted status failed for ${client.name}: ${res.status} ${res.body.error ?? ''}`);
+  let lastError = null;
+  for (let attempt = 1; attempt <= STATUS_FETCH_RETRIES; attempt++) {
+    try {
+      const res = await api(`/api/characters/${client.characterId}/hosted-play`, {}, client.token);
+      if (res.status !== 200) {
+        throw new Error(`hosted status failed for ${client.name}: ${res.status} ${res.body.error ?? ''}`);
+      }
+      return res.body;
+    } catch (err) {
+      lastError = err;
+      if (attempt < STATUS_FETCH_RETRIES) await sleep(STATUS_FETCH_RETRY_DELAY_MS * attempt);
+    }
   }
-  return res.body;
+  throw lastError instanceof Error ? lastError : new Error(`hosted status failed for ${client.name}`);
 }
 
 function partyMembers(client) {
@@ -486,6 +499,15 @@ function trimArray(values, limit) {
   if (values.length > limit) values.splice(0, values.length - limit);
 }
 
+function errorMessage(err) {
+  return err instanceof Error ? err.message : String(err);
+}
+
+async function sampleHostedRows(clients) {
+  const statuses = await Promise.all(clients.map((client) => hostedStatus(client)));
+  return statuses.map((statusRow, index) => summarizeStatus(clients[index], statusRow));
+}
+
 function summarizeStatus(client, status) {
   const debug = status.debug ?? {};
   const party = debug.party ?? {};
@@ -607,6 +629,7 @@ function createReport(options, clients, statusBody) {
       deadPlayerNames: [],
       wsErrors: [],
       hostedErrors: [],
+      statusPollErrors: [],
     },
     checks: [],
   };
@@ -717,6 +740,7 @@ async function main() {
   let nextSampleAtMs = 0;
   let nextCheckpointAtMs = startedAtMs + options.checkpointMs;
   let finalReason = 'duration';
+  let consecutiveStatusSampleFailures = 0;
 
   while (Date.now() < deadlineMs) {
     acceptPendingInvites(clients, report);
@@ -726,24 +750,40 @@ async function main() {
 
     const nowMs = Date.now();
     if (nowMs >= nextSampleAtMs) {
-      const statuses = await Promise.all(clients.map((client) => hostedStatus(client)));
-      const rows = statuses.map((statusRow, index) => summarizeStatus(clients[index], statusRow));
-      updateMetricsFromStatus(report, rows);
-      report.statusSamples.push({
-        atMs: nowMs,
-        elapsedMs: nowMs - startedAtMs,
-        rows,
-      });
-      trimArray(report.statusSamples, STATUS_SAMPLE_LIMIT);
-      nextSampleAtMs = nowMs + options.sampleMs;
+      let rows = null;
+      try {
+        rows = await sampleHostedRows(clients);
+        consecutiveStatusSampleFailures = 0;
+      } catch (err) {
+        consecutiveStatusSampleFailures++;
+        report.metrics.statusPollErrors.push({
+          atMs: nowMs,
+          elapsedMs: nowMs - startedAtMs,
+          consecutiveFailures: consecutiveStatusSampleFailures,
+          error: errorMessage(err),
+        });
+        trimArray(report.metrics.statusPollErrors, STATUS_POLL_ERROR_LIMIT);
+        nextSampleAtMs = nowMs + options.sampleMs;
+        if (consecutiveStatusSampleFailures >= MAX_CONSECUTIVE_STATUS_SAMPLE_FAILURES) throw err;
+      }
+      if (rows) {
+        updateMetricsFromStatus(report, rows);
+        report.statusSamples.push({
+          atMs: nowMs,
+          elapsedMs: nowMs - startedAtMs,
+          rows,
+        });
+        trimArray(report.statusSamples, STATUS_SAMPLE_LIMIT);
+        nextSampleAtMs = nowMs + options.sampleMs;
 
-      const checks = buildChecks(report, options);
-      const allRequiredPassed = checks.every((entry) => entry.pass || entry.name === 'target level not requested');
-      const targetLevelReached = options.targetLevel <= 0 || report.metrics.maxLeaderLevel >= options.targetLevel;
-      const minRunElapsed = nowMs - startedAtMs >= DEFAULT_MIN_RUN_MS;
-      if (options.earlyExit && minRunElapsed && allRequiredPassed && targetLevelReached) {
-        finalReason = options.targetLevel > 0 ? 'target-level' : 'checks-passed';
-        break;
+        const checks = buildChecks(report, options);
+        const allRequiredPassed = checks.every((entry) => entry.pass || entry.name === 'target level not requested');
+        const targetLevelReached = options.targetLevel <= 0 || report.metrics.maxLeaderLevel >= options.targetLevel;
+        const minRunElapsed = nowMs - startedAtMs >= DEFAULT_MIN_RUN_MS;
+        if (options.earlyExit && minRunElapsed && allRequiredPassed && targetLevelReached) {
+          finalReason = options.targetLevel > 0 ? 'target-level' : 'checks-passed';
+          break;
+        }
       }
     }
     if (nowMs >= nextCheckpointAtMs) {
@@ -768,16 +808,30 @@ async function main() {
   }
 
   collectEvents(clients, report, eventCursorByPid);
-  const finalStatuses = await Promise.all(clients.map((client) => hostedStatus(client)));
-  const finalRows = finalStatuses.map((statusRow, index) => summarizeStatus(clients[index], statusRow));
-  updateMetricsFromStatus(report, finalRows);
-  report.statusSamples.push({
-    atMs: Date.now(),
-    elapsedMs: Date.now() - startedAtMs,
-    rows: finalRows,
-    final: true,
-  });
-  trimArray(report.statusSamples, STATUS_SAMPLE_LIMIT);
+  let finalRows = null;
+  try {
+    finalRows = await sampleHostedRows(clients);
+  } catch (err) {
+    report.metrics.statusPollErrors.push({
+      atMs: Date.now(),
+      elapsedMs: Date.now() - startedAtMs,
+      consecutiveFailures: consecutiveStatusSampleFailures + 1,
+      final: true,
+      error: errorMessage(err),
+    });
+    trimArray(report.metrics.statusPollErrors, STATUS_POLL_ERROR_LIMIT);
+    if (report.statusSamples.length === 0) throw err;
+  }
+  if (finalRows) {
+    updateMetricsFromStatus(report, finalRows);
+    report.statusSamples.push({
+      atMs: Date.now(),
+      elapsedMs: Date.now() - startedAtMs,
+      rows: finalRows,
+      final: true,
+    });
+    trimArray(report.statusSamples, STATUS_SAMPLE_LIMIT);
+  }
   report.completedAt = new Date().toISOString();
   report.finalReason = finalReason;
   report.metrics.wsErrors = clients.flatMap((client) =>

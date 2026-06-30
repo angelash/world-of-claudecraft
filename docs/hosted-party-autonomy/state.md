@@ -90,6 +90,10 @@ progress.
   and spider chain, deferred level gates grind Webwood Lurkers instead of
   lower-yield Wild Boars; Mirefen and Thornpeak fallback routes stay in their
   current zone instead of walking back to old starter mobs.
+- The live harness retries transient hosted-status poll failures and records
+  repeated sampling failures separately from gameplay hosted errors. Recovered
+  sampling failures should not crash a long validation run, but repeated
+  consecutive failures still abort the run.
 
 ## Key Existing Files
 
@@ -580,6 +584,17 @@ progress.
   party intent and roles, cooperation mode, quest signals, all party members
   touching quest state, support or combat signals, clean runtime, and stuck
   resets within limit.
+- `node --check scripts\hosted_play_live_harness.mjs`: passed after the
+  hosted-status poll retry fix.
+- `git diff --check -- scripts\hosted_play_live_harness.mjs`: passed after the
+  hosted-status poll retry fix with line-ending warnings only.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`:
+  passed after the hosted-status poll retry fix. The report was
+  `tmp/hosted-play-live-harness-2026-06-30T04-28-25-067Z.json`; it observed
+  hosted invite, party target size, current full-party agreement, party chat,
+  party intent and roles, cooperation mode, quest signals, all party members
+  touching quest state, support or combat signals, clean runtime, stuck resets
+  within limit, and `statusPollErrors=0`.
 
 ## Validation Matrix
 
