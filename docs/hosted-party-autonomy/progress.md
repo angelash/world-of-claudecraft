@@ -30,9 +30,10 @@ Current date: 2026-06-30
   stack, and verified LAN/IP access.
 - Phase 2 split quest intake from pursuit. Visible nearby quest givers can now
   be picked up before leaving for active routes, while resupply remains higher
-  priority. Nearby alive party members lower safe pursuit gates by up to two
-  levels, and group movement now prioritizes dungeon entry and regroup follow
-  over pre-pull preparation when already assembled.
+  priority. Nearby alive party members influence safe pursuit gates, with the
+  current Phase 6 cap tightened to one level after live-run deaths. Group
+  movement now prioritizes dungeon entry and regroup follow over pre-pull
+  preparation when already assembled.
 - Phase 3 added a structured party intent layer for route plans, buffs, focus,
   praise, correction, and recovery. Party chat now uses that intent for leader
   briefings and member acknowledgements, hosted party coordination consumes
@@ -172,11 +173,11 @@ Current date: 2026-06-30
   agreement, hosted invite, party chat, intent, support or combat, quest
   signals, runtime clean, and stuck resets within limit.
 - The next long run confirmed the new grind fallback at level 4, but progression
-  was still too slow for a 20-level acceptance window. Full 5-player parties now
-  lower safe route gates by up to 2 levels, while dense camp routes still opt
-  out. This lets a complete hosted party move into safer murloc-style routes
-  earlier without reintroducing the supplies, bandit, mine, or chapel early-entry
-  deaths.
+  was still too slow for a 20-level acceptance window. A temporary experiment let
+  full 5-player parties lower safe route gates by up to 2 levels, while dense
+  camp routes still opted out. Later live runs proved that was still too
+  aggressive around murlocs and Greyjaw, so Phase 6 now caps every party route
+  reduction at one level.
 - After that fix, the stack was restarted, IP access was verified on
   `0.0.0.0`, and the short live harness passed with current full-party
   agreement, hosted invite, party chat, intent, support or combat, quest
@@ -249,6 +250,16 @@ Current date: 2026-06-30
   `0.0.0.0`, the targeted brain suite, hosted behavior suite, server build, and
   short live harness all passed. The short harness report was
   `tmp/hosted-play-live-harness-2026-06-30T05-51-19-202Z.json`.
+- Follow-up report `tmp/hosted-play-level20-20260630-135502.json` still failed
+  around the Old Greyjaw and Mudfin lake travel band. A full level 4 party could
+  move into level 6-style risk too early, and Greyjaw at level 4 remained unsafe
+  for fragile non-tank members even after emergency retreat tuning. Party route
+  reductions are now capped at one level for every group size, and `q_greyjaw`
+  starts at level 5.
+- After that safety-gate fix, the stack was restarted, IP access was verified on
+  `0.0.0.0`, the targeted brain suite, hosted behavior suite, server build, and
+  short live harness all passed. The short harness report was
+  `tmp/hosted-play-live-harness-2026-06-30T06-32-26-730Z.json`.
 
 ## Planning Packet Checklist
 
@@ -337,4 +348,7 @@ Current date: 2026-06-30
   hiding repeated REST sampling failure.
 - [x] Level 4 characters at emergency health retreat from a single active
   threat before continuing restock, turn-in, or combat objectives.
+- [x] Full-party route gate reductions are capped at one level, and Old Greyjaw
+  pursuit waits until level 5 after repeated live deaths near the murloc and
+  Greyjaw band.
 - [ ] Final run occurs after the last code change and service restart.

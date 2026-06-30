@@ -1020,7 +1020,7 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
-  it('uses a nearby full party to pursue a safe route two levels below the solo gate', () => {
+  it('does not use a nearby full party to pursue a route two levels below the solo gate', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
       bot: bot(),
@@ -1055,9 +1055,9 @@ describe('ambient player bot brain', () => {
       nowMs: 1_000,
     }, state);
 
-    expect(result.objectiveId).toBe('hunt_murlocs');
-    expect(result.objectiveLabel).toBe('Driving back the Mudfin');
-    expect(result.travelGoal?.goalKey).toBe('camp:mudfin_murloc:0');
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
@@ -1068,7 +1068,7 @@ describe('ambient player bot brain', () => {
       liveState: liveState({
         self: {
           id: 101,
-          lv: 4,
+          lv: 5,
           x: 0,
           z: 0,
           inv: [{ itemId: 'baked_bread', count: 4 }],
@@ -3960,12 +3960,12 @@ describe('ambient player bot brain', () => {
       bot: bot(),
       liveState: liveState({
         self: {
-          lv: 4,
+          lv: 5,
           qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_mine'],
           qlog: [{ questId: 'q_greyjaw', counts: [0], state: 'active' }],
         },
         entities: [
-          { id: 9301, k: 'mob', tid: 'forest_wolf', x: 2, z: 2, h: 1, lv: 2 },
+          { id: 9301, k: 'mob', tid: 'forest_wolf', x: 120, z: 120, h: 1, lv: 2 },
         ],
       }),
       nowMs: 1_000,

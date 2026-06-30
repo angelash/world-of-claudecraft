@@ -27,7 +27,8 @@ progress.
 - Quest intake and pursuit are now separate in the ambient brain. Visible
   nearby quest givers can be accepted before the route leaves a hub, but
   resupply remains higher priority.
-- Nearby alive party members lower route pursuit gates by up to two levels.
+- Nearby alive party members can lower route pursuit gates, but the current
+  safety cap is one level for every group size.
 - Dungeon entry and follower regrouping now run before party preparation when
   the group is already at the door or already inside the objective dungeon.
 - Party chat now produces a structured party intent before generating player
@@ -67,9 +68,11 @@ progress.
 - Grouped quest route gates now use a conservative party-level check. A partial
   group can reduce a route by at most one level, and every nearby contributing
   party member must meet that grouped safe level.
-- A full nearby 5-player party can reduce safe route gates by up to two levels.
-  Dense camp routes that set `allowPartyLevelBonus: false` still receive no
-  party gate reduction.
+- A full nearby 5-player party can reduce safe route gates by one level at
+  most. Dense camp routes that set `allowPartyLevelBonus: false` still receive
+  no party gate reduction.
+- `q_greyjaw` pursuit starts at level 5 after repeated live deaths around the
+  murloc and Old Greyjaw travel band.
 - Distant quest pickup travel does not receive party route gate reduction. The
   group can use party strength for accepted safe pursuit, but a far-away giver
   such as Fenbridge `q_prowlers` still requires the original route pickup level.
@@ -392,12 +395,14 @@ progress.
 - Phase 6 follow-up report `tmp/hosted-play-level20-20260630-094001.json`
   confirmed the Webwood grind fallback but still reached only level 4 after
   about 25 minutes.
-- `server/ambient_bots/brain.ts` now allows a full nearby 5-player party to
-  lower safe route gates by up to two levels. Routes that opt out of party gate
-  reduction remain unchanged.
-- `tests/ambient_player_bot_brain.test.ts` covers a level 4 full party entering
-  the murloc route two levels below the solo gate while the dense route tests
-  continue to require original gates.
+- A temporary `server/ambient_bots/brain.ts` experiment allowed a full nearby
+  5-player party to lower safe route gates by up to two levels. Later live runs
+  proved that was too aggressive, so the current rule caps every party route
+  reduction at one level. Routes that opt out of party gate reduction remain
+  unchanged.
+- `tests/ambient_player_bot_brain.test.ts` now covers a level 4 full party
+  staying on grind instead of entering the murloc route two levels below the
+  solo gate, while the dense route tests continue to require original gates.
 - Phase 6 follow-up report `tmp/hosted-play-level20-20260630-101426.json`
   kept the correct five-client party and had no hosted or WebSocket errors, but
   recorded player deaths near Old Greyjaw and the Mudfin lake route. The common
@@ -635,6 +640,22 @@ progress.
   party intent and roles, cooperation mode, quest signals, all party members
   touching quest state, support or combat signals, clean runtime, stuck resets
   within limit, no deaths, and `statusPollErrors=0`.
+- `npx vitest run tests\ambient_player_bot_brain.test.ts`: passed after the
+  full-party route gate rollback and Greyjaw level 5 gate, 1 file and 131
+  tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed after the full-party route gate rollback, 5 files and 202 tests.
+- `npm run build:server`: passed after the full-party route gate rollback.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed after the full-party route gate rollback.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls`
+  printed the IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`:
+  passed after restart. The report was
+  `tmp/hosted-play-live-harness-2026-06-30T06-32-26-730Z.json`; it observed
+  hosted invite, party target size, current full-party agreement, party chat,
+  party intent and roles, cooperation mode, quest signals, all party members
+  touching quest state, support or combat signals, clean runtime, stuck resets
+  within limit, and no deaths.
 
 ## Validation Matrix
 
@@ -680,8 +701,8 @@ progress.
 
 ## Known Current Gaps
 
-- A clean post-fix level 20 hosted run is still required after the 45 percent
-  emergency retreat threshold fix and service restart.
+- A clean post-fix level 20 hosted run is still required after the full-party
+  route gate rollback, Greyjaw level 5 gate, and service restart.
 
 ## New Files In This Packet
 
