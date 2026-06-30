@@ -43,6 +43,9 @@ progress.
 - Priest support now shields threatened, slightly wounded allies before
   swapping to focus damage, while still allowing full-health tank pulls to keep
   opening damage.
+- Non-tank party members who are threatened at dangerous health self-preserve
+  before focus fire. They use an available healing potion, stop attacking, clear
+  the hostile target, and travel back toward the tank or leader.
 - The live harness is `scripts/hosted_play_live_harness.mjs`. It uses real REST
   and WebSocket clients against the persistent LAN/IP stack and writes JSON
   artifacts under `tmp/`.
@@ -380,6 +383,18 @@ progress.
 - `tests/ambient_player_bot_brain.test.ts` covers a level 4 full party entering
   the murloc route two levels below the solo gate while the dense route tests
   continue to require original gates.
+- Phase 6 follow-up report `tmp/hosted-play-level20-20260630-101426.json`
+  kept the correct five-client party and had no hosted or WebSocket errors, but
+  recorded player deaths near Old Greyjaw and the Mudfin lake route. The common
+  failure was a fragile non-tank member staying in ordinary combat or quest
+  brain behavior while critically low.
+- `server/ambient_bots/group_support.ts` now adds a self-preservation decision
+  before focus fire for non-tank members at dangerous health. The decision can
+  use the best healing potion in inventory, stop auto attack, clear the target,
+  and travel toward the tank or leader.
+- `tests/hosted_play_party.test.ts` covers a low-health hosted mage being hit by
+  a mob and choosing recovery commands plus party-anchor travel instead of
+  continuing focus fire.
 
 ## Phase 5 Validation
 
@@ -499,6 +514,25 @@ progress.
   grind fallback route fix, 1 file and 128 tests.
 - `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed, 5 files and 198 tests.
 - `npm run build:server`: passed.
+- `npx vitest run tests\hosted_play_party.test.ts`: passed after the
+  low-health self-preservation fix, 1 file and 26 tests.
+- `npx vitest run tests\ambient_player_bot_group.test.ts`: passed after the
+  low-health self-preservation fix, 1 file and 19 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed after the low-health self-preservation fix, 5 files and 200 tests.
+- `git diff --check`: passed after the low-health self-preservation fix with
+  line-ending warnings only for edited files.
+- `npm run build:server`: passed after the low-health self-preservation fix.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed after the low-health self-preservation fix.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls`
+  printed the IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`:
+  passed after restart. The report was
+  `tmp/hosted-play-live-harness-2026-06-30T03-06-19-490Z.json`; it observed
+  hosted invite, party target size, current full-party agreement, party chat,
+  party intent and roles, cooperation mode, quest signals, all party members
+  touching quest state, support or combat signals, clean runtime, and stuck
+  resets within limit.
 
 ## Validation Matrix
 

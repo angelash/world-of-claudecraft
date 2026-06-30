@@ -60,6 +60,9 @@ operator to restart services manually.
   damage without cause.
 - Tank-capable characters should protect healers and fragile allies.
 - Healer-capable characters should prioritize wounded or threatened allies.
+- Non-tank members who are threatened at dangerous health should stop attacking,
+  clear unsafe targets, use a healing potion when available, and collapse back
+  toward the tank or leader before resuming damage or quest actions.
 - Buff-capable characters should apply practical party buffs before pulls.
 - The group should hold briefly for regrouping, recovery, buffs, and summons
   before harder pulls.
@@ -90,6 +93,8 @@ operator to restart services manually.
 - Observe quest pickup behavior before leaving the local quest hub.
 - Observe party chat lines that correspond to actual behavior.
 - Observe support roles using buffs, healing, tanking, and focus fire.
+- Observe low-health self-preservation during combat: threatened damage dealers
+  and healers should not keep attacking or turning in while nearly dead.
 - Run one uninterrupted validation that reaches level 20 and completes every
   currently practical pre-20 quest.
 - If any logic changes during validation, restart the affected services and run

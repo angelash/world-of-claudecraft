@@ -1,10 +1,10 @@
 import type { KnownAbility } from '../../src/sim/content/classes';
 import type { Role, TalentAllocation } from '../../src/sim/content/talents';
 import { computeTalentModifiers } from '../../src/sim/content/talents';
-import { CLASSES, abilitiesKnownAt } from '../../src/sim/data';
-import { MELEE_RANGE, dist2d } from '../../src/sim/types';
+import { CLASSES, ITEMS, abilitiesKnownAt } from '../../src/sim/data';
+import { MELEE_RANGE, dist2d, type InvSlot } from '../../src/sim/types';
 import type { PartyInfo, PartyMemberInfo } from '../../src/world_api';
-import { type PartyCombatTarget, type PartyTravelGoal, partyAssistArrivalRange, travelGoalToPartyTarget } from '../party_coordination';
+import { type PartyCombatTarget, type PartyTravelGoal, partyAssistArrivalRange, travelGoalToPartyMember, travelGoalToPartyTarget } from '../party_coordination';
 import { maybePrepareForPullFromLiveState } from './pre_combat';
 import { planAmbientPartyRoles } from './party_roles';
 import type { AmbientPlayerBotRecord } from './types';
@@ -14,9 +14,16 @@ const TARGET_COMMAND_COOLDOWN_MS = 900;
 const CAST_COMMAND_COOLDOWN_MS = 900;
 const LONG_CAST_COMMAND_COOLDOWN_MS = 1_600;
 const ATTACK_COMMAND_COOLDOWN_MS = 1_200;
+const STOP_ATTACK_COMMAND_COOLDOWN_MS = 1_500;
+const CLEAR_TARGET_COMMAND_COOLDOWN_MS = 1_500;
+const USE_POTION_COMMAND_COOLDOWN_MS = 3_000;
 const GROUP_HEAL_OUT_OF_COMBAT_RATIO = 0.92;
 const GROUP_HEAL_IN_COMBAT_RATIO = 0.82;
 const GROUP_SHIELD_THREATENED_RATIO = 0.99;
+const GROUP_SELF_PRESERVE_THREATENED_RATIO = 0.55;
+const GROUP_SELF_PRESERVE_EMERGENCY_RATIO = 0.32;
+const GROUP_SELF_PRESERVE_POTION_RATIO = 0.45;
+const GROUP_SELF_PRESERVE_ANCHOR_RANGE = 6;
 
 interface SupportAuraView {
   id: string;
@@ -37,6 +44,7 @@ interface SupportSelfView {
   cooldowns: Record<string, number>;
   castingAbility: string | null;
   auras: readonly SupportAuraView[];
+  inventory: readonly InvSlot[];
   talents: TalentAllocation | null;
   role: Role | null;
 }
@@ -136,6 +144,17 @@ export function maybeCoordinateAmbientPartySupport(
     });
     if (tankDecision) return tankDecision;
   }
+
+  const selfPreserveDecision = maybePreserveThreatenedSelf({
+    self,
+    members,
+    tankPid,
+    leaderMember: input.leaderMember,
+    role,
+    partyInCombat,
+    reserveCommandBatch: input.reserveCommandBatch,
+  });
+  if (selfPreserveDecision) return selfPreserveDecision;
 
   if (partyInCombat) {
     const focusDecision = maybeFocusFire({
@@ -390,6 +409,79 @@ function maybeFocusFire(input: {
   }
 
   return null;
+}
+
+function maybePreserveThreatenedSelf(input: {
+  self: SupportSelfView;
+  members: readonly SupportPartyMemberView[];
+  tankPid: number | null;
+  leaderMember: PartyMemberInfo | null;
+  role: Role;
+  partyInCombat: boolean;
+  reserveCommandBatch: AmbientPartySupportInput['reserveCommandBatch'];
+}): AmbientPartySupportDecision | null {
+  if (!input.partyInCombat || input.role === 'tank') return null;
+  const selfMember = input.members.find((member) => member.member.pid === input.self.id) ?? null;
+  if (!selfMember || selfMember.member.dead) return null;
+
+  const ratio = healthRatio(selfMember.member);
+  const threatened = selfMember.threatenedCount > 0;
+  const shouldPreserve =
+    (threatened && ratio <= GROUP_SELF_PRESERVE_THREATENED_RATIO)
+    || ratio <= GROUP_SELF_PRESERVE_EMERGENCY_RATIO;
+  if (!shouldPreserve) return null;
+
+  const commands: Record<string, unknown>[] = [];
+  const potion = ratio <= GROUP_SELF_PRESERVE_POTION_RATIO
+    ? findHealingPotion(input.self.inventory)
+    : null;
+  if (
+    potion
+    && input.reserveCommandBatch([{ key: `use:${potion}`, cooldownMs: USE_POTION_COMMAND_COOLDOWN_MS }])
+  ) {
+    commands.push({ cmd: 'use', item: potion });
+  }
+  if (
+    input.self.autoAttack
+    && input.reserveCommandBatch([{ key: 'stopattack', cooldownMs: STOP_ATTACK_COMMAND_COOLDOWN_MS }])
+  ) {
+    commands.push({ cmd: 'stopattack' });
+  }
+  if (
+    input.self.targetId !== null
+    && input.reserveCommandBatch([{ key: 'clear_target', cooldownMs: CLEAR_TARGET_COMMAND_COOLDOWN_MS }])
+  ) {
+    commands.push({ cmd: 'target', id: null });
+  }
+
+  const anchor = selfPreserveAnchor(input.members, input.tankPid, input.leaderMember, input.self.id);
+  const anchorDistance = anchor ? planarDistance(input.self.pos, anchor) : 0;
+  const travelGoal = anchor && anchorDistance > GROUP_SELF_PRESERVE_ANCHOR_RANGE
+    ? travelGoalToPartyMember(anchor, GROUP_SELF_PRESERVE_ANCHOR_RANGE, 'party-recover-anchor')
+    : undefined;
+
+  return {
+    commands,
+    groupMode: 'heal_party',
+    ...(travelGoal ? { travelGoal } : {}),
+  };
+}
+
+function selfPreserveAnchor(
+  members: readonly SupportPartyMemberView[],
+  tankPid: number | null,
+  leaderMember: PartyMemberInfo | null,
+  selfId: number,
+): PartyMemberInfo | null {
+  const tank = tankPid !== null
+    ? members.find((member) => member.member.pid === tankPid)?.member ?? null
+    : null;
+  if (tank && tank.pid !== selfId && !tank.dead) return tank;
+  if (leaderMember && leaderMember.pid !== selfId && !leaderMember.dead) return leaderMember;
+  return members
+    .map((member) => member.member)
+    .filter((member) => member.pid !== selfId && !member.dead)
+    .sort((a, b) => a.pid - b.pid)[0] ?? null;
 }
 
 function maybePriestHeal(
@@ -698,6 +790,23 @@ function knownAbilityMap(
 ): ReadonlyMap<string, KnownAbility> {
   const mods = self.talents ? computeTalentModifiers(bot.class, self.talents) : undefined;
   return new Map(abilitiesKnownAt(bot.class, self.level, mods).map((ability) => [ability.def.id, ability]));
+}
+
+function findHealingPotion(inventory: readonly InvSlot[]): string | null {
+  let bestItemId: string | null = null;
+  let bestHealing = 0;
+  for (const slot of inventory) {
+    if (slot.count <= 0) continue;
+    const item = ITEMS[slot.itemId];
+    const healing = item && item.kind === 'potion' && 'potionHp' in item && typeof item.potionHp === 'number'
+      ? item.potionHp
+      : 0;
+    if (healing > bestHealing) {
+      bestHealing = healing;
+      bestItemId = slot.itemId;
+    }
+  }
+  return bestItemId;
 }
 
 function maybeQueueFocusFireAbility(input: {
@@ -1068,6 +1177,7 @@ function parseSupportSelf(raw: Record<string, unknown> | null): SupportSelfView 
     cooldowns: readNumberRecord(raw.cds),
     castingAbility: readString(raw.cast),
     auras: readAuras(raw.auras),
+    inventory: readInventory(raw.inv),
     talents: readTalentAllocation(raw.tal),
     role: readRole(raw.tal),
   };
@@ -1110,6 +1220,20 @@ function readAuras(raw: unknown): SupportAuraView[] {
     });
   }
   return auras;
+}
+
+function readInventory(raw: unknown): InvSlot[] {
+  if (!Array.isArray(raw)) return [];
+  const inventory: InvSlot[] = [];
+  for (const item of raw) {
+    const record = readRecord(item);
+    if (!record) continue;
+    const itemId = readString(record.itemId);
+    const count = readNumber(record.count);
+    if (!itemId || count === null || count <= 0) continue;
+    inventory.push({ itemId, count });
+  }
+  return inventory;
 }
 
 function readNumberRecord(raw: unknown): Record<string, number> {

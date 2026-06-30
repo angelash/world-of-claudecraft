@@ -49,6 +49,23 @@ The invite target selection should prefer nearby, eligible, useful candidates.
 The first implementation can keep nearest-first. Later slices may add class
 composition scoring.
 
+## Combat Recovery Contract
+
+Combat coordination should prevent fragile members from continuing ordinary
+quest brain behavior when they are nearly dead. After normal healer support and
+tank protection have a chance to act, a non-tank member who is threatened at
+dangerous health should:
+
+- use the best available healing potion
+- stop auto attacking
+- clear its hostile target
+- travel back toward the tank, or the leader if no tank anchor is available
+- pause ordinary focus-fire and quest actions until it stabilizes
+
+This is a behavior rule, not just party chat flavor. Recovery and correction
+lines should reflect the same underlying state so the run looks and behaves
+like players calling a reset.
+
 ## Quest Intake Contract
 
 The quest layer should distinguish two operations:

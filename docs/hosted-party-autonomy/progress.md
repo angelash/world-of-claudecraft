@@ -1,6 +1,6 @@
 # Progress: Hosted Party Autonomy
 
-Current date: 2026-06-29
+Current date: 2026-06-30
 
 | Phase | Status | Started | Completed |
 |---|---|---|---|
@@ -191,6 +191,18 @@ Current date: 2026-06-29
   `0.0.0.0`, and the short live harness passed with party fill, hosted invite,
   party chat, intent, support or combat, quest signals, runtime clean, and max
   stuck resets 0.
+- The next level 20 run `tmp/hosted-play-level20-20260630-101426.json` kept the
+  correct five-client party and stayed free of hosted or WebSocket errors, but
+  Cord died near Old Greyjaw and Elowen died during the Mudfin turn-in. In both
+  cases a fragile non-tank member was critically low while ordinary combat or
+  quest brain behavior continued. Group support now gives non-tank members a
+  self-preservation step before focus fire: use a healing potion if available,
+  stop attacking, clear the hostile target, and collapse back toward the tank
+  or leader.
+- After the self-preservation fix, the stack was restarted, IP access was
+  verified on `0.0.0.0`, and the short live harness passed with current
+  full-party agreement, hosted invite, party chat, intent, support or combat,
+  quest signals, clean runtime, and stuck resets within limit.
 
 ## Planning Packet Checklist
 
@@ -270,4 +282,7 @@ Current date: 2026-06-29
   the level 5 supplies-camp death.
 - [x] Auto-invite prefers visible non-ambient players over ambient bot fillers
   when both are nearby.
+- [x] Low-health non-tank members stop attacking, clear unsafe targets, use
+  available healing potions, and collapse back to the party before resuming
+  focus fire.
 - [ ] Final run occurs after the last code change and service restart.
