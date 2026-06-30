@@ -77,10 +77,12 @@ should not let tanking, preparation, focus, or ordinary combat commands preempt
 using a potion, stopping attacks, clearing the hostile target, or moving toward
 a recovery anchor.
 
-Recovery-anchor movement uses a 4-yard arrival range. A wounded local leader
-prefers a stable healer anchor before a closer damage dealer, so the party
-actually collapses into a recoverable formation instead of hovering at the edge
-of danger.
+Recovery-anchor movement uses a 4-yard arrival range for ordinary party
+recovery and a tighter 1.5-yard arrival range when the local hosted member is
+itself at or below the recovery threshold. A wounded local leader prefers a
+stable healer anchor before a closer damage dealer, so the party actually
+collapses into a recoverable formation instead of hovering at the edge of
+danger.
 
 When party correction asks the team to regroup, a distant follower returns to
 the leader before ordinary support, combat, restock, or quest brain continues.

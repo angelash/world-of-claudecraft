@@ -451,4 +451,12 @@ Current date: 2026-06-30
 - [x] The tight recovery-anchor fix was unit-tested, server-built, restarted
   through the LAN/IP stack, and verified with a short live harness report at
   `tmp/hosted-play-live-harness-2026-06-30T11-29-43-962Z.json`.
+- [x] A failed level 20 candidate at
+  `tmp/hosted-play-level20-20260630-193345.json` showed wounded members
+  stopping at the edge of the 4-yard recovery anchor while still taking damage.
+  Self-low-health recovery now uses a 1.5-yard urgent anchor and has a focused
+  regression test.
+- [x] The live harness now uses profanity-filter-safe test names and
+  consonant-only unique suffixes so validation is not blocked by character name
+  rejection.
 - [ ] Final run occurs after the last code change and service restart.

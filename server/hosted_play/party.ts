@@ -27,6 +27,7 @@ const HOSTED_PLAY_REGROUP_RANGE = 28;
 const HOSTED_PLAY_FOLLOW_START_RANGE = 4;
 const HOSTED_PLAY_FOLLOW_MAX_RANGE = 60;
 const HOSTED_PLAY_RECOVERY_ANCHOR_RANGE = 4;
+const HOSTED_PLAY_URGENT_RECOVERY_ANCHOR_RANGE = 1.5;
 const HOSTED_PLAY_RECOVERY_HEALTH_RATIO = 0.72;
 const HOSTED_PLAY_RECOVERY_POTION_RATIO = 0.65;
 const HOSTED_PLAY_RECOVERY_COMMAND_COOLDOWN_MS = 1_500;
@@ -416,8 +417,11 @@ function maybePauseForPartyRecovery(input: {
 
   const anchor = partyRecoveryAnchor(input.party, input.selfMember, input.leaderMember);
   const anchorDistance = anchor ? distanceBetweenPartyMembers(input.selfMember, anchor) : 0;
-  const travelGoal = anchor && anchorDistance > HOSTED_PLAY_RECOVERY_ANCHOR_RANGE
-    ? travelGoalToPartyMember(anchor, HOSTED_PLAY_RECOVERY_ANCHOR_RANGE, 'hosted-party-recover')
+  const recoveryAnchorRange = selfHealthRatio <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO
+    ? HOSTED_PLAY_URGENT_RECOVERY_ANCHOR_RANGE
+    : HOSTED_PLAY_RECOVERY_ANCHOR_RANGE;
+  const travelGoal = anchor && anchorDistance > recoveryAnchorRange
+    ? travelGoalToPartyMember(anchor, recoveryAnchorRange, 'hosted-party-recover')
     : undefined;
 
   return {

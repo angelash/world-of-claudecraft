@@ -23,6 +23,7 @@ const STATUS_POLL_ERROR_LIMIT = 120;
 const STATUS_FETCH_RETRIES = 3;
 const STATUS_FETCH_RETRY_DELAY_MS = 500;
 const MAX_CONSECUTIVE_STATUS_SAMPLE_FAILURES = 3;
+const SAFE_NAME_SUFFIX_LETTERS = 'bcdfghjklmnpqrstvwxyz';
 
 const DELTA_SELF_KEYS = [
   'inv',
@@ -127,11 +128,11 @@ function sleep(ms) {
 }
 
 function alphaSuffix(seed) {
-  return seed
-    .replace(/[0-9]/g, (digit) => 'abcdefghij'[Number(digit)])
-    .replace(/[^a-z]/gi, '')
-    .slice(-6)
-    .padStart(6, 'a');
+  const chars = [];
+  for (const char of seed) {
+    chars.push(SAFE_NAME_SUFFIX_LETTERS[char.charCodeAt(0) % SAFE_NAME_SUFFIX_LETTERS.length]);
+  }
+  return chars.slice(-6).join('').padStart(6, 'b');
 }
 
 function mergeSelf(prev, next) {
@@ -707,11 +708,11 @@ async function main() {
   const runId = Date.now().toString(36);
   const suffix = alphaSuffix(runId);
   const clients = [
-    new Client('Aldric', 'warrior'),
-    new Client('Brana', 'priest'),
-    new Client('Corda', 'mage'),
-    new Client('Darian', 'paladin'),
-    new Client('Elowen', 'druid'),
+    new Client('Alden', 'warrior'),
+    new Client('Mira', 'priest'),
+    new Client('Corin', 'mage'),
+    new Client('Tovin', 'paladin'),
+    new Client('Liora', 'druid'),
   ].slice(0, options.partySize);
 
   for (const client of clients) {

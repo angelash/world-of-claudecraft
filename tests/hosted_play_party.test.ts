@@ -552,7 +552,7 @@ describe('hosted-play party coordinator', () => {
       pauseBrainDrive: true,
       travelGoal: {
         target: { x: 12, z: 0 },
-        arrivalRange: 4,
+        arrivalRange: 1.5,
         goalKey: 'hosted-party-recover:101:12:0',
       },
       groupMode: 'assist_party',
@@ -611,12 +611,63 @@ describe('hosted-play party coordinator', () => {
       pauseBrainDrive: true,
       travelGoal: {
         target: { x: 12, z: 0 },
-        arrivalRange: 4,
+        arrivalRange: 1.5,
         goalKey: 'hosted-party-recover:101:12:0',
       },
       groupMode: 'assist_party',
       groupLeaderName: 'Branoraaa',
       groupLeaderDistance: 12,
+    });
+  });
+
+  it('keeps a wounded hosted member moving when only loosely near the anchor', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 3.5,
+          z: 0,
+          hp: 30,
+          mhp: 100,
+          target: 501,
+          auto: true,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'mage', level: 12, hp: 30, mhp: 100, res: 100, mres: 120, rtype: 'mana', x: 3.5, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 3.5, z: 1, aggro: 102 },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [
+        { cmd: 'stopattack' },
+        { cmd: 'target', id: null },
+      ],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 0, z: 0 },
+        arrivalRange: 1.5,
+        goalKey: 'hosted-party-recover:101:0:0',
+      },
+      groupMode: 'assist_party',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 3.5,
     });
   });
 
@@ -816,7 +867,7 @@ describe('hosted-play party coordinator', () => {
       pauseBrainDrive: true,
       travelGoal: {
         target: { x: 0, z: 0 },
-        arrivalRange: 4,
+        arrivalRange: 1.5,
         goalKey: 'hosted-party-recover:101:0:0',
       },
       groupMode: 'assist_party',
@@ -873,7 +924,7 @@ describe('hosted-play party coordinator', () => {
       pauseBrainDrive: true,
       travelGoal: {
         target: { x: 12, z: 0 },
-        arrivalRange: 4,
+        arrivalRange: 1.5,
         goalKey: 'hosted-party-recover:102:12:0',
       },
       groupMode: 'assist_party',
@@ -930,7 +981,7 @@ describe('hosted-play party coordinator', () => {
       pauseBrainDrive: true,
       travelGoal: {
         target: { x: 14, z: 0 },
-        arrivalRange: 4,
+        arrivalRange: 1.5,
         goalKey: 'hosted-party-recover:103:14:0',
       },
       groupMode: 'assist_party',

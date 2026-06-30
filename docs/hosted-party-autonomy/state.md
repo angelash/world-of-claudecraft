@@ -860,6 +860,37 @@ progress.
   party intent and roles, cooperation mode, quest signals, all party members
   touching quest state, support or combat signals, clean runtime, and stuck
   resets within limit.
+- Final-run attempt `tmp/hosted-play-level20-20260630-193345.json` failed
+  around level 2 with Corda and Darian deaths. The party was full and recovery
+  intent was active. Samples showed low-health members were within the standard
+  4-yard recovery anchor and therefore stopped moving while still taking damage.
+- `server/hosted_play/party.ts` now keeps the 4-yard recovery anchor for
+  ordinary party recovery, but uses a tighter 1.5-yard urgent recovery anchor
+  when the local hosted member is itself at or below the recovery threshold.
+- `tests/hosted_play_party.test.ts` covers a wounded member at 3.5 yards from
+  the anchor continuing to move instead of treating the loose formation as safe.
+- `npx vitest run tests\hosted_play_party.test.ts`: passed after the urgent
+  recovery-anchor fix, 1 file and 35 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`:
+  passed after the urgent recovery-anchor fix, 5 files and 212 tests.
+- `npm run build:server`: passed after the urgent recovery-anchor fix.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`:
+  passed after the urgent recovery-anchor fix.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls`
+  printed the IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- Short live harness initially failed before gameplay because the previous
+  fixed test name `Brana` was rejected by the server name filter.
+- `scripts/hosted_play_live_harness.mjs` now uses safer fixed labels and a
+  consonant-only unique suffix so repeated validation runs avoid accidental
+  offensive-name matches.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`:
+  passed after the harness-name fix. The report was
+  `tmp/hosted-play-live-harness-2026-06-30T11-49-22-318Z.json`; it observed
+  hosted invite, target party size, current full-party agreement, party chat,
+  party intent and roles, cooperation mode, quest signals, all party members
+  touching quest state, support or combat signals, clean runtime, and stuck
+  resets within limit.
 
 ## Validation Matrix
 
@@ -905,7 +936,7 @@ progress.
 
 ## Known Current Gaps
 
-- A clean post-fix level 20 hosted run is still required after the tight
+- A clean post-fix level 20 hosted run is still required after the urgent
   recovery-anchor fix, service restart, and short live harness check.
 
 ## New Files In This Packet
