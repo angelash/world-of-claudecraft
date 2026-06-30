@@ -103,6 +103,10 @@ operator to restart services manually.
 - During regroup correction, a distant follower should return to the party
   leader before continuing local combat, restock, or quest brain, even if the
   follower is already in combat.
+- During regroup correction, a hosted leader must hold position for returning
+  party members before continuing local quest, loot, restock, buy, preparation,
+  or combat brain work. Recovery consumables can still run through the recovery
+  gate.
 - Buff-capable characters should apply practical party buffs before pulls.
 - The group should hold briefly for regrouping, recovery, buffs, and summons
   before harder pulls.

@@ -723,4 +723,25 @@ Current date: 2026-06-30
   `tmp/hosted-play-live-harness-2026-06-30T23-07-38-590Z.json`. The short run
   reached the target five-player party, observed invite, chat, intent, quest,
   and support signals, stayed runtime-clean, and had zero player deaths.
+- [x] Level 20 candidate `tmp\hosted-play-level20-20260701-071148.json`
+  reached a full five-player party but failed around level 2 with three player
+  deaths. Samples showed the leader entering `hold_regroup` while nearby
+  restock or combat brain work continued, pulling the party apart during
+  regroup and recovery windows.
+- [x] Hosted runtime now treats leader `hold_regroup` as a hard pause for local
+  quest, loot, restock, buy, preparation, and combat brain work. The leader
+  waits for living party members outside regroup range before ordinary brain
+  drive resumes, while recovery consumables remain controlled by the recovery
+  gate.
+- [x] Focused validation after the leader regroup gate fix passed:
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_group.test.ts`.
+- [x] Broader validation after the leader regroup gate fix also passed:
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`.
+- [x] Leader regroup gating was also covered by `git diff --check`,
+  `npm run build:server`, `npm run build`, LAN/IP restart through
+  `scripts\windows_stack.ps1`, `0.0.0.0` port verification, printed IP URLs,
+  `/api/status`, and short live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T23-32-39-772Z.json`. The short run
+  reached a current full party, observed invite, chat, intent, quest, and
+  support signals, stayed runtime-clean, and had no player deaths.
 - [ ] Final run occurs after the last code change and service restart.

@@ -170,6 +170,13 @@ regroup, or preparation has paused ordinary brain drive. This prevents personal
 quest drops from being left on corpses while the leader keeps the group in
 formation.
 
+Regroup is stricter for the leader than for followers. When the hosted party
+coordinator enters `hold_regroup` for the leader, local quest and
+self-maintenance exceptions must not leak through the runtime brain gate. The
+leader waits instead of buying, looting, moving to a nearby objective, or
+starting a local combat route while other living members are outside regroup
+range. Recovery items remain controlled by the separate recovery command gate.
+
 This is a behavior rule, not just party chat flavor. Recovery and correction
 lines should reflect the same underlying state so the run looks and behaves
 like players calling a reset.

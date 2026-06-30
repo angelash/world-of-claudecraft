@@ -354,6 +354,69 @@ describe('HostedPlayRuntime', () => {
     });
   });
 
+  it('keeps the hosted leader waiting while regroup pauses nearby restocking', () => {
+    const game = fakeGame(liveState({
+      id: 11,
+      x: -7,
+      z: 3,
+      lv: 5,
+      hp: 100,
+      mhp: 100,
+      res: 100,
+      mres: 100,
+      rtype: 'mana',
+      copper: 300,
+      inv: [
+        { itemId: 'baked_bread', count: 4 },
+        { itemId: 'spring_water', count: 4 },
+      ],
+      qdone: ['q_wolves'],
+      qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
+      auras: [
+        { id: 'frost_armor', kind: 'buff_armor', rem: 1_700, dur: 1_800 },
+        { id: 'arcane_intellect', kind: 'buff_int', rem: 1_700, dur: 1_800 },
+      ],
+      party: {
+        leader: 11,
+        raid: false,
+        members: [
+          { pid: 11, name: 'Hero', cls: 'mage', level: 5, hp: 100, mhp: 100, res: 100, mres: 100, rtype: 'mana', x: -7, z: 3, dead: 0, inCombat: 0, group: 1 },
+          { pid: 12, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: -40, z: 3, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
+      ],
+    }), {
+      playerClass: 'mage',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([]);
+    expect(game.moveInputs).toEqual([]);
+    expect(game.clearCount).toBeGreaterThanOrEqual(1);
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'hold_regroup',
+      objectiveId: 'restock_minor_healing_potion',
+      debug: {
+        brainDrivePaused: true,
+        commands: [],
+      },
+    });
+  });
+
   it('lets a grouped hosted follower walk to a nearby quest giver before resuming follow', () => {
     const game = fakeGame(liveState({
       id: 102,

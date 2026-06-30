@@ -173,6 +173,11 @@ progress.
   collect and kill routes when `questObjectiveIndex` is omitted. Full local
   progress must stop active route pursuit even if a live snapshot still says
   the quest state is `active`.
+- Hosted leaders in `hold_regroup` must not let local quest, loot, restock,
+  buy, preparation, or combat brain work override the regroup pause. The leader
+  must wait for living party members outside regroup range before ordinary
+  brain drive resumes. Recovery consumables remain governed by the recovery
+  gate.
 
 ## Key Existing Files
 

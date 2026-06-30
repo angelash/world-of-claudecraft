@@ -397,6 +397,7 @@ export class HostedPlayRuntime {
       liveState,
     );
     const allowSelfMaintenanceBrain = partyResult.pauseBrainDrive
+      && !hostedLeaderMustHoldRegroup(partyResult.groupMode, liveState)
       && ambientBrainSelfMaintenanceAllowedWhilePartyPaused({
         result,
         groupMode: partyResult.groupMode,
@@ -823,6 +824,7 @@ function hostedLocalQuestBrainAllowedWhilePartyPaused(
   groupMode: string,
   liveState: AmbientPlayerBotLiveState,
 ): boolean {
+  if (hostedLeaderMustHoldRegroup(groupMode, liveState)) return false;
   const localGroupMode = groupMode === 'follow_leader'
     || groupMode === 'hold_regroup'
     || groupMode === 'prepare_party';
@@ -885,6 +887,19 @@ function hostedLeaderDistance(liveState: AmbientPlayerBotLiveState): number {
   const selfMember = party.members.find((member) => member.pid === selfId) ?? null;
   if (!leader || !selfMember) return 0;
   return Math.hypot(leader.x - selfMember.x, leader.z - selfMember.z);
+}
+
+function hostedLeaderMustHoldRegroup(
+  groupMode: string,
+  liveState: AmbientPlayerBotLiveState,
+): boolean {
+  return groupMode === 'hold_regroup' && hostedSelfIsPartyLeader(liveState);
+}
+
+function hostedSelfIsPartyLeader(liveState: AmbientPlayerBotLiveState): boolean {
+  const self = liveState.self;
+  const party = parseHostedRuntimeParty(self?.party);
+  return typeof self?.id === 'number' && !!party && party.leader === self.id;
 }
 
 function parseHostedRuntimeParty(value: unknown): { leader: number; members: Array<{ pid: number; x: number; z: number }> } | null {
