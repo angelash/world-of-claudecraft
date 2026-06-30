@@ -459,4 +459,21 @@ Current date: 2026-06-30
 - [x] The live harness now uses profanity-filter-safe test names and
   consonant-only unique suffixes so validation is not blocked by character name
   rejection.
+- [x] A failed level 20 candidate at
+  `tmp/hosted-play-level20-20260630-195329.json` showed a wounded hosted
+  priest moving toward recovery but dying before self-healing. Low-health
+  healer-capable hosted members can now cast urgent self-heal or shield support
+  before movement recovery.
+- [x] Short harness report
+  `tmp/hosted-play-live-harness-2026-06-30T12-05-24-660Z.json` showed low-health
+  members reaching the recovery cluster but still dying while actively targeted.
+  Threatened urgent recovery now retreats past the anchor away from the nearby
+  mob.
+- [x] Short harness report
+  `tmp/hosted-play-live-harness-2026-06-30T12-14-56-982Z.json` still showed a
+  low-health tank dying during recovery. Recovery focus suppression now has a
+  protective exception for mobs actively attacking low-health party members.
+- [x] The protective recovery focus fix was restarted through the LAN/IP stack
+  and verified with short live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T12-26-47-398Z.json`.
 - [ ] Final run occurs after the last code change and service restart.

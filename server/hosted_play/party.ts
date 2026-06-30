@@ -28,6 +28,8 @@ const HOSTED_PLAY_FOLLOW_START_RANGE = 4;
 const HOSTED_PLAY_FOLLOW_MAX_RANGE = 60;
 const HOSTED_PLAY_RECOVERY_ANCHOR_RANGE = 4;
 const HOSTED_PLAY_URGENT_RECOVERY_ANCHOR_RANGE = 1.5;
+const HOSTED_PLAY_URGENT_RECOVERY_THREAT_RANGE = 10;
+const HOSTED_PLAY_URGENT_RECOVERY_RETREAT_DISTANCE = 8;
 const HOSTED_PLAY_RECOVERY_HEALTH_RATIO = 0.72;
 const HOSTED_PLAY_RECOVERY_POTION_RATIO = 0.65;
 const HOSTED_PLAY_RECOVERY_COMMAND_COOLDOWN_MS = 1_500;
@@ -130,6 +132,27 @@ export function tickHostedPlayPartyCoordinator(
   const selfNeedsUrgentRecovery = partyRecovering
     && !selfMember.dead
     && memberHealthRatio(selfMember) <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO;
+  if (selfNeedsUrgentRecovery && canHostedProvidePartyHealing(input.playerClass)) {
+    const urgentHealDecision = maybeCoordinateAmbientPartySupport({
+      bot: botRecord,
+      liveState,
+      party,
+      leaderMember,
+      selfMember,
+      suppressFocusFire: true,
+      reserveCommandBatch: (reservations) => reserveCommandBatch(state, input.nowMs, reservations),
+    });
+    if (urgentHealDecision && isUrgentSelfHealingDecision(urgentHealDecision)) {
+      return {
+        commands: urgentHealDecision.commands,
+        pauseBrainDrive: true,
+        ...(urgentHealDecision.travelGoal ? { travelGoal: urgentHealDecision.travelGoal } : {}),
+        groupMode: normalizeHostedGroupMode(urgentHealDecision.groupMode, partyInCombat),
+        groupLeaderName,
+        groupLeaderDistance: leaderDistance,
+      };
+    }
+  }
   if (selfNeedsUrgentRecovery) {
     const recoveryPause = maybePauseForPartyRecovery({
       liveSelf: input.liveSelf,
@@ -139,6 +162,7 @@ export function tickHostedPlayPartyCoordinator(
       leaderDistance,
       state,
       nowMs: input.nowMs,
+      entities,
     });
     if (recoveryPause) return recoveryPause;
   }
@@ -185,6 +209,7 @@ export function tickHostedPlayPartyCoordinator(
     leaderDistance,
     state,
     nowMs: input.nowMs,
+    entities,
   });
   if (recoveryPause) return recoveryPause;
 
@@ -346,6 +371,7 @@ function maybeReturnForRegroupIntent(input: {
   leaderDistance: number;
   state: HostedPlayPartyState;
   nowMs: number;
+  entities: Iterable<Record<string, unknown>>;
 }): HostedPlayPartyTickResult | null {
   if (input.intent?.behavior !== 'regroup') return null;
   if (input.selfMember.pid === input.leaderMember.pid) return null;
@@ -420,9 +446,12 @@ function maybePauseForPartyRecovery(input: {
   const recoveryAnchorRange = selfHealthRatio <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO
     ? HOSTED_PLAY_URGENT_RECOVERY_ANCHOR_RANGE
     : HOSTED_PLAY_RECOVERY_ANCHOR_RANGE;
-  const travelGoal = anchor && anchorDistance > recoveryAnchorRange
+  const threatRetreatGoal = anchor && selfHealthRatio <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO
+    ? recoveryThreatRetreatGoal(input.liveSelf, input.entities, input.selfMember, anchor, recoveryAnchorRange)
+    : null;
+  const travelGoal = threatRetreatGoal ?? (anchor && anchorDistance > recoveryAnchorRange
     ? travelGoalToPartyMember(anchor, recoveryAnchorRange, 'hosted-party-recover')
-    : undefined;
+    : undefined);
 
   return {
     commands,
@@ -431,6 +460,44 @@ function maybePauseForPartyRecovery(input: {
     groupMode: input.selfMember.pid === input.leaderMember.pid && !travelGoal ? 'prepare_party' : 'assist_party',
     groupLeaderName: input.leaderMember.name,
     groupLeaderDistance: input.leaderDistance,
+  };
+}
+
+function recoveryThreatRetreatGoal(
+  liveSelf: Record<string, unknown>,
+  entities: Iterable<Record<string, unknown>>,
+  selfMember: PartyMemberInfo,
+  anchor: PartyMemberInfo,
+  arrivalRange: number,
+): PartyTravelGoal | null {
+  const selfId = readSelfId(liveSelf);
+  const selfX = typeof liveSelf.x === 'number' ? liveSelf.x : selfMember.x;
+  const selfZ = typeof liveSelf.z === 'number' ? liveSelf.z : selfMember.z;
+  let threat: { id: number; x: number; z: number; distance: number } | null = null;
+  for (const entity of entities) {
+    if (entity.k !== 'mob' || entity.dead === 1 || entity.dead === true || entity.aggro !== selfId) continue;
+    const id = typeof entity.id === 'number' ? entity.id : null;
+    const x = typeof entity.x === 'number' ? entity.x : null;
+    const z = typeof entity.z === 'number' ? entity.z : null;
+    if (id === null || x === null || z === null) continue;
+    const distance = Math.hypot(selfX - x, selfZ - z);
+    if (distance > HOSTED_PLAY_URGENT_RECOVERY_THREAT_RANGE || (threat && distance >= threat.distance)) continue;
+    threat = { id, x, z, distance };
+  }
+  if (!threat) return null;
+
+  const awayX = anchor.x - threat.x;
+  const awayZ = anchor.z - threat.z;
+  const length = Math.hypot(awayX, awayZ);
+  if (length <= 0.001) return null;
+  const target = {
+    x: anchor.x + (awayX / length) * HOSTED_PLAY_URGENT_RECOVERY_RETREAT_DISTANCE,
+    z: anchor.z + (awayZ / length) * HOSTED_PLAY_URGENT_RECOVERY_RETREAT_DISTANCE,
+  };
+  return {
+    target,
+    arrivalRange,
+    goalKey: `hosted-party-retreat:${anchor.pid}:${threat.id}:${Math.round(target.x)}:${Math.round(target.z)}`,
   };
 }
 
@@ -812,6 +879,13 @@ function canHostedProvidePartyPreparation(playerClass: PlayerClass): boolean {
     || playerClass === 'shaman';
 }
 
+function canHostedProvidePartyHealing(playerClass: PlayerClass): boolean {
+  return playerClass === 'priest'
+    || playerClass === 'paladin'
+    || playerClass === 'druid'
+    || playerClass === 'shaman';
+}
+
 function normalizeHostedGroupMode(
   groupMode: string,
   partyInCombat: boolean,
@@ -827,6 +901,14 @@ function normalizeHostedGroupMode(
     default:
       return 'assist_party';
   }
+}
+
+function isUrgentSelfHealingDecision(decision: {
+  commands: readonly HostedPlayCommand[];
+  groupMode: string;
+}): boolean {
+  if (decision.groupMode !== 'heal_party' && decision.groupMode !== 'shield_party') return false;
+  return decision.commands.some((command) => command.cmd === 'cast');
 }
 
 function ambientPartyMemberPreparing(

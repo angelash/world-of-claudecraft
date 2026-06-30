@@ -70,6 +70,8 @@ operator to restart services manually.
 - When any party member is dead or below the recovery threshold, ordinary
   hosted damage-dealer focus fire should pause unless a higher-priority heal,
   self-preservation, or tank protection action is being performed.
+- During recovery, healthy damage dealers may still use protective focus fire
+  against a mob that is actively attacking a low-health party member.
 - Recovery should trigger early enough for low-level cloth and healer survival,
   and recovery should use an available healing potion before the character is
   nearly dead.
@@ -78,8 +80,14 @@ operator to restart services manually.
 - Recovery movement should be tight enough that low-health members actually
   reach safety. Standard recovery uses a 4-yard anchor, while a member that is
   itself low-health uses a tighter 1.5-yard urgent recovery anchor.
+- If a low-health member is still being attacked near the recovery anchor, it
+  should continue retreating past the anchor away from the active threat rather
+  than stop on the anchor edge.
 - If the low-health local member is also the party leader, it should prefer a
   stable healer anchor before a closer damage dealer.
+- If the low-health local member can heal, urgent self-heal or shield casts may
+  preempt movement recovery. Other support, preparation, tanking, and offense
+  still must not preempt self-preservation.
 - During regroup correction, a distant follower should return to the party
   leader before continuing local combat, restock, or quest brain, even if the
   follower is already in combat.

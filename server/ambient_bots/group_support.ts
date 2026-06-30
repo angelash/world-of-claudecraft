@@ -24,6 +24,7 @@ const GROUP_SELF_PRESERVE_THREATENED_RATIO = 0.72;
 const GROUP_SELF_PRESERVE_EMERGENCY_RATIO = 0.72;
 const GROUP_SELF_PRESERVE_POTION_RATIO = 0.65;
 const GROUP_SELF_PRESERVE_ANCHOR_RANGE = 6;
+const GROUP_RECOVERY_EMERGENCY_FOCUS_RATIO = 0.72;
 
 interface SupportAuraView {
   id: string;
@@ -156,6 +157,18 @@ export function maybeCoordinateAmbientPartySupport(
     reserveCommandBatch: input.reserveCommandBatch,
   });
   if (selfPreserveDecision) return selfPreserveDecision;
+
+  if (partyInCombat && input.suppressFocusFire === true) {
+    const emergencyFocusDecision = maybeEmergencyRecoveryFocusFire({
+      self,
+      bot: input.bot,
+      hostileMobs,
+      members,
+      abilities,
+      reserveCommandBatch: input.reserveCommandBatch,
+    });
+    if (emergencyFocusDecision) return emergencyFocusDecision;
+  }
 
   if (partyInCombat && input.suppressFocusFire !== true) {
     const focusDecision = maybeFocusFire({
@@ -361,22 +374,61 @@ function maybeFocusFire(input: {
   const focusTarget = selectFocusTarget(input.hostileMobs, input.members, input.tankPid, input.leaderPid);
   if (!focusTarget) return null;
 
-  const distance = planarDistance(input.self.pos, focusTarget.pos);
+  return maybeFocusFireTarget({
+    self: input.self,
+    bot: input.bot,
+    target: focusTarget,
+    abilities: input.abilities,
+    reserveCommandBatch: input.reserveCommandBatch,
+    groupMode: 'focus_fire',
+  });
+}
+
+function maybeEmergencyRecoveryFocusFire(input: {
+  self: SupportSelfView;
+  bot: AmbientPlayerBotRecord;
+  hostileMobs: readonly SupportMobView[];
+  members: readonly SupportPartyMemberView[];
+  abilities: ReadonlyMap<string, KnownAbility>;
+  reserveCommandBatch: AmbientPartySupportInput['reserveCommandBatch'];
+}): AmbientPartySupportDecision | null {
+  const focusTarget = selectEmergencyRecoveryThreat(input.hostileMobs, input.members);
+  if (!focusTarget) return null;
+  return maybeFocusFireTarget({
+    self: input.self,
+    bot: input.bot,
+    target: focusTarget,
+    abilities: input.abilities,
+    reserveCommandBatch: input.reserveCommandBatch,
+    groupMode: 'protect_party',
+  });
+}
+
+function maybeFocusFireTarget(input: {
+  self: SupportSelfView;
+  bot: AmbientPlayerBotRecord;
+  target: SupportMobView;
+  abilities: ReadonlyMap<string, KnownAbility>;
+  reserveCommandBatch: AmbientPartySupportInput['reserveCommandBatch'];
+  groupMode: string;
+}): AmbientPartySupportDecision | null {
+  const distance = planarDistance(input.self.pos, input.target.pos);
   const abilityDecision = maybeQueueFocusFireAbility({
     self: input.self,
     cls: input.bot.class,
-    target: focusTarget,
+    target: input.target,
     distance,
     abilities: input.abilities,
     reserveCommandBatch: input.reserveCommandBatch,
+    groupMode: input.groupMode,
   });
   if (abilityDecision) return abilityDecision;
 
   const attackDecision = queueHostileAttack(
     input.self,
     input.bot.class,
-    focusTarget,
-    'focus_fire',
+    input.target,
+    input.groupMode,
     input.reserveCommandBatch,
   );
   if (attackDecision) return attackDecision;
@@ -387,16 +439,16 @@ function maybeFocusFire(input: {
     && !withinAutoAttackRange(input.bot.class, distance)
     && distance > classArrivalRange;
   const travelGoal = shouldTravel
-    ? travelGoalToPartyTarget(focusTargetAsCombatTarget(focusTarget, distance), classArrivalRange)
+    ? travelGoalToPartyTarget(focusTargetAsCombatTarget(input.target, distance), classArrivalRange)
     : undefined;
 
-  if (input.self.targetId !== focusTarget.id) {
-    if (!input.reserveCommandBatch([{ key: `target:${focusTarget.id}`, cooldownMs: TARGET_COMMAND_COOLDOWN_MS }])) {
+  if (input.self.targetId !== input.target.id) {
+    if (!input.reserveCommandBatch([{ key: `target:${input.target.id}`, cooldownMs: TARGET_COMMAND_COOLDOWN_MS }])) {
       return null;
     }
     return {
-      commands: [{ cmd: 'target', id: focusTarget.id }],
-      groupMode: 'focus_fire',
+      commands: [{ cmd: 'target', id: input.target.id }],
+      groupMode: input.groupMode,
       ...(travelGoal ? { travelGoal } : {}),
     };
   }
@@ -404,7 +456,7 @@ function maybeFocusFire(input: {
   if (travelGoal) {
     return {
       commands: [],
-      groupMode: 'focus_fire',
+      groupMode: input.groupMode,
       travelGoal,
     };
   }
@@ -817,6 +869,7 @@ function maybeQueueFocusFireAbility(input: {
   distance: number;
   abilities: ReadonlyMap<string, KnownAbility>;
   reserveCommandBatch: AmbientPartySupportInput['reserveCommandBatch'];
+  groupMode: string;
 }): AmbientPartySupportDecision | null {
   const ability = pickFocusFireAbility(input.cls, input.self, input.abilities, input.distance);
   if (!ability) return null;
@@ -837,7 +890,7 @@ function maybeQueueFocusFireAbility(input: {
       { cmd: 'cast', ability: ability.def.id },
       ...(!input.self.autoAttack && input.distance <= MELEE_RANGE + 0.3 ? [{ cmd: 'attack' }] : []),
     ],
-    groupMode: 'focus_fire',
+    groupMode: input.groupMode,
   };
 }
 
@@ -1003,6 +1056,31 @@ function selectFocusTarget(
     const bAnchor = memberByPid.get(b.aggroTargetId ?? -1);
     const aDistance = aAnchor ? planarDistance({ x: aAnchor.x, z: aAnchor.z }, a.pos) : 0;
     const bDistance = bAnchor ? planarDistance({ x: bAnchor.x, z: bAnchor.z }, b.pos) : 0;
+    if (Math.abs(aDistance - bDistance) > 0.001) return aDistance - bDistance;
+    return a.id - b.id;
+  });
+  return sorted[0] ?? null;
+}
+
+function selectEmergencyRecoveryThreat(
+  hostileMobs: readonly SupportMobView[],
+  members: readonly SupportPartyMemberView[],
+): SupportMobView | null {
+  const threatenedMembers = new Map(
+    members
+      .filter((member) => !member.member.dead && healthRatio(member.member) <= GROUP_RECOVERY_EMERGENCY_FOCUS_RATIO)
+      .map((member) => [member.member.pid, member]),
+  );
+  const sorted = [...hostileMobs].filter((mob) =>
+    mob.aggroTargetId !== null && threatenedMembers.has(mob.aggroTargetId));
+  sorted.sort((a, b) => {
+    const aMember = threatenedMembers.get(a.aggroTargetId ?? -1);
+    const bMember = threatenedMembers.get(b.aggroTargetId ?? -1);
+    const aRatio = aMember ? healthRatio(aMember.member) : 1;
+    const bRatio = bMember ? healthRatio(bMember.member) : 1;
+    if (Math.abs(aRatio - bRatio) > 0.001) return aRatio - bRatio;
+    const aDistance = aMember ? planarDistance({ x: aMember.member.x, z: aMember.member.z }, a.pos) : 0;
+    const bDistance = bMember ? planarDistance({ x: bMember.member.x, z: bMember.member.z }, b.pos) : 0;
     if (Math.abs(aDistance - bDistance) > 0.001) return aDistance - bDistance;
     return a.id - b.id;
   });

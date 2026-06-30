@@ -71,6 +71,11 @@ some members keep pulling pressure onto a collapsing fight. Heals,
 self-preservation, and tank protection still run before this pause so the group
 can save an ally instead of standing idle.
 
+Recovery focus suppression has one tactical exception: if a mob is actively
+attacking a low-health party member, healthy damage dealers may protectively
+focus that specific mob. This keeps recovery from becoming passive while a
+threat is already killing the tank or healer.
+
 If the local hosted character is itself at or below the recovery threshold,
 self-preservation comes first, even for the leader or tank. The coordinator
 should not let tanking, preparation, focus, or ordinary combat commands preempt
@@ -83,6 +88,15 @@ itself at or below the recovery threshold. A wounded local leader prefers a
 stable healer anchor before a closer damage dealer, so the party actually
 collapses into a recoverable formation instead of hovering at the edge of
 danger.
+
+When the low-health local member can heal, urgent self-heal or shield casts can
+run before movement recovery. This is deliberately narrow: ordinary tanking,
+preparation, support setup, and offense still stay behind self-preservation.
+
+If a low-health local member is still being attacked by a nearby mob, recovery
+movement computes a retreat point beyond the current anchor and away from that
+threat. This prevents a character from reaching the healer or leader, stopping,
+and dying while the same mob keeps landing hits.
 
 When party correction asks the team to regroup, a distant follower returns to
 the leader before ordinary support, combat, restock, or quest brain continues.

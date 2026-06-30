@@ -551,9 +551,9 @@ describe('hosted-play party coordinator', () => {
       ],
       pauseBrainDrive: true,
       travelGoal: {
-        target: { x: 12, z: 0 },
+        target: { x: 20, z: 0 },
         arrivalRange: 1.5,
-        goalKey: 'hosted-party-recover:101:12:0',
+        goalKey: 'hosted-party-retreat:101:501:20:0',
       },
       groupMode: 'assist_party',
       groupLeaderName: 'Branoraaa',
@@ -661,13 +661,114 @@ describe('hosted-play party coordinator', () => {
       ],
       pauseBrainDrive: true,
       travelGoal: {
-        target: { x: 0, z: 0 },
+        target: { x: -7.692191581126584, z: -2.197769023179024 },
         arrivalRange: 1.5,
-        goalKey: 'hosted-party-recover:101:0:0',
+        goalKey: 'hosted-party-retreat:101:501:-8:-2',
       },
       groupMode: 'assist_party',
       groupLeaderName: 'Branoraaa',
       groupLeaderDistance: 3.5,
+    });
+  });
+
+  it('retreats past the recovery anchor while a wounded member is still being attacked', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 0,
+          z: 0,
+          hp: 20,
+          mhp: 100,
+          target: 501,
+          auto: true,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'mage', level: 12, hp: 20, mhp: 100, res: 100, mres: 120, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 0, z: -1, aggro: 102, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [
+        { cmd: 'stopattack' },
+        { cmd: 'target', id: null },
+      ],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 6.65685424949238, z: 5.65685424949238 },
+        arrivalRange: 1.5,
+        goalKey: 'hosted-party-retreat:101:501:7:6',
+      },
+      groupMode: 'assist_party',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 1,
+    });
+  });
+
+  it('lets a wounded hosted healer cast an urgent self heal before fleeing', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 8,
+          z: 0,
+          lv: 2,
+          hp: 23,
+          mhp: 67,
+          res: 100,
+          mres: 100,
+          rtype: 'mana',
+          target: 501,
+          auto: false,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'priest', level: 2, hp: 23, mhp: 67, res: 100, mres: 100, rtype: 'mana', x: 8, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 8, z: 1, aggro: 102, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'priest',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [
+        { cmd: 'target', id: 102 },
+        { cmd: 'cast', ability: 'lesser_heal' },
+      ],
+      pauseBrainDrive: true,
+      groupMode: 'assist_party',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 8,
     });
   });
 
@@ -771,6 +872,50 @@ describe('hosted-play party coordinator', () => {
       groupLeaderName: 'Branoraaa',
       groupLeaderDistance: 16,
     });
+  });
+
+  it('allows protective focus fire on a mob attacking a low-health party member during recovery', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 16,
+          z: 0,
+          hp: 100,
+          mhp: 100,
+          target: null,
+          auto: false,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 16, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 103, name: 'Branorabb', cls: 'priest', level: 12, hp: 24, mhp: 100, res: 80, mres: 100, rtype: 'mana', x: 13, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 13, z: 1, aggro: 103, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 501 },
+      { cmd: 'cast', ability: 'arcane_missiles' },
+      { cmd: 'attack' },
+    ]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.groupMode).toBe('assist_party');
   });
 
   it('starts hosted party recovery before a wounded cloth teammate becomes critical', () => {
@@ -923,9 +1068,9 @@ describe('hosted-play party coordinator', () => {
       ],
       pauseBrainDrive: true,
       travelGoal: {
-        target: { x: 12, z: 0 },
+        target: { x: 20, z: 0 },
         arrivalRange: 1.5,
-        goalKey: 'hosted-party-recover:102:12:0',
+        goalKey: 'hosted-party-retreat:102:501:20:0',
       },
       groupMode: 'assist_party',
       groupLeaderName: 'Hero',
@@ -980,9 +1125,9 @@ describe('hosted-play party coordinator', () => {
       ],
       pauseBrainDrive: true,
       travelGoal: {
-        target: { x: 14, z: 0 },
+        target: { x: 22, z: 0 },
         arrivalRange: 1.5,
-        goalKey: 'hosted-party-recover:103:14:0',
+        goalKey: 'hosted-party-retreat:103:501:22:0',
       },
       groupMode: 'assist_party',
       groupLeaderName: 'Hero',
