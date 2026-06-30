@@ -326,6 +326,20 @@ Current date: 2026-06-30
   hosted behavior suite, server build, and short live harness all passed. The
   short harness report was
   `tmp/hosted-play-live-harness-2026-06-30T11-00-03-907Z.json`.
+- Follow-up report `tmp/hosted-play-level20-20260630-190448.json` failed at
+  level 1 when Aldric died during an early recovery window. The party recovery
+  intent was active, but Aldric was the low-health leader and tank-style support
+  or preparation commands could still preempt his own recovery pause, leaving
+  him at 3 health while commands such as target, cast, and attack continued.
+- Low-health hosted members now take urgent recovery before support
+  coordination. When the local character is at or below the recovery threshold,
+  the party coordinator uses the recovery path first, including potion use,
+  stop attack, target clear, and recovery-anchor travel, before any tank
+  support, preparation, or offensive action can run.
+- After that urgent self-recovery priority fix, the stack was restarted, IP
+  access was verified on `0.0.0.0`, the hosted behavior suite, server build,
+  and short live harness all passed. The short harness report was
+  `tmp/hosted-play-live-harness-2026-06-30T11-10-17-012Z.json`.
 
 ## Planning Packet Checklist
 
@@ -430,4 +444,6 @@ Current date: 2026-06-30
 - [x] Party recovery starts before low-level cloth members become critical,
   directly uses healing potions, and makes distant followers return during
   regroup correction even while in combat.
+- [x] A low-health hosted leader or tank recovers before support preparation,
+  tanking, or offensive commands can preempt self-preservation.
 - [ ] Final run occurs after the last code change and service restart.

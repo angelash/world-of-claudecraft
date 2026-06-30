@@ -552,8 +552,8 @@ describe('hosted-play party coordinator', () => {
       pauseBrainDrive: true,
       travelGoal: {
         target: { x: 12, z: 0 },
-        arrivalRange: 6,
-        goalKey: 'party-recover-anchor:101:12:0',
+        arrivalRange: 8,
+        goalKey: 'hosted-party-recover:101:12:0',
       },
       groupMode: 'assist_party',
       groupLeaderName: 'Branoraaa',
@@ -611,8 +611,8 @@ describe('hosted-play party coordinator', () => {
       pauseBrainDrive: true,
       travelGoal: {
         target: { x: 12, z: 0 },
-        arrivalRange: 6,
-        goalKey: 'party-recover-anchor:101:12:0',
+        arrivalRange: 8,
+        goalKey: 'hosted-party-recover:101:12:0',
       },
       groupMode: 'assist_party',
       groupLeaderName: 'Branoraaa',
@@ -822,6 +822,63 @@ describe('hosted-play party coordinator', () => {
       groupMode: 'assist_party',
       groupLeaderName: 'Branoraaa',
       groupLeaderDistance: 16,
+    });
+  });
+
+  it('lets low-health hosted leaders recover before tank support or preparation commands', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          x: 0,
+          z: 0,
+          hp: 60,
+          mhp: 100,
+          res: 20,
+          mres: 100,
+          rtype: 'rage',
+          target: 501,
+          auto: true,
+          inv: [{ itemId: 'minor_healing_potion', count: 1 }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Hero', cls: 'warrior', level: 12, hp: 60, mhp: 100, res: 20, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 12, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 2, z: 0, aggro: 101, auras: [] },
+          { id: 102, k: 'player', nm: 'Branorabb', x: 12, z: 0, hp: 100, mhp: 100, dead: 0, cmb: 0, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [
+        { cmd: 'use', item: 'minor_healing_potion' },
+        { cmd: 'stopattack' },
+        { cmd: 'target', id: null },
+      ],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 12, z: 0 },
+        arrivalRange: 8,
+        goalKey: 'hosted-party-recover:102:12:0',
+      },
+      groupMode: 'assist_party',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
     });
   });
 

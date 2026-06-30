@@ -71,6 +71,12 @@ some members keep pulling pressure onto a collapsing fight. Heals,
 self-preservation, and tank protection still run before this pause so the group
 can save an ally instead of standing idle.
 
+If the local hosted character is itself at or below the recovery threshold,
+self-preservation comes first, even for the leader or tank. The coordinator
+should not let tanking, preparation, focus, or ordinary combat commands preempt
+using a potion, stopping attacks, clearing the hostile target, or moving toward
+a recovery anchor.
+
 When party correction asks the team to regroup, a distant follower returns to
 the leader before ordinary support, combat, restock, or quest brain continues.
 This also applies while the follower is already in combat, because bringing the

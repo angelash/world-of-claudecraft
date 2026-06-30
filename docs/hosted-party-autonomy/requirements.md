@@ -73,6 +73,8 @@ operator to restart services manually.
 - Recovery should trigger early enough for low-level cloth and healer survival,
   and recovery should use an available healing potion before the character is
   nearly dead.
+- A low-health hosted leader or tank should recover before tanking,
+  preparation, focus, or ordinary combat commands continue.
 - During regroup correction, a distant follower should return to the party
   leader before continuing local combat, restock, or quest brain, even if the
   follower is already in combat.

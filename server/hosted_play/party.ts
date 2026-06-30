@@ -126,6 +126,22 @@ export function tickHostedPlayPartyCoordinator(
   const followerOutsidePartyActionRange =
     followerNeedsToCloseGap && leaderDistance > HOSTED_PLAY_FOLLOW_MAX_RANGE;
 
+  const selfNeedsUrgentRecovery = partyRecovering
+    && !selfMember.dead
+    && memberHealthRatio(selfMember) <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO;
+  if (selfNeedsUrgentRecovery) {
+    const recoveryPause = maybePauseForPartyRecovery({
+      liveSelf: input.liveSelf,
+      party,
+      selfMember,
+      leaderMember,
+      leaderDistance,
+      state,
+      nowMs: input.nowMs,
+    });
+    if (recoveryPause) return recoveryPause;
+  }
+
   const regroupReturn = !partyRecovering ? maybeReturnForRegroupIntent({
     intent: input.partyIntent ?? null,
     liveSelf: input.liveSelf,
