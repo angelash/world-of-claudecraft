@@ -145,6 +145,10 @@ progress.
 - Ambient group support must check self-preservation before hard-cast party
   healing so a wounded threatened healer does not stand still to cast while
   being hit.
+- Hosted frontline members under direct threat start urgent self-recovery at
+  82 percent health. Warrior, paladin, and druid members who are directly
+  targeted should retreat, stop attacking, clear target, and use the forced
+  recovery potion line before ordinary 72 percent recovery would trigger.
 - Full nearby level-5 parties that have completed `q_murlocs` grind Mudfin
   Skulkers while waiting for level 6 dense-route gates. This does not lower the
   supplies, mine, bandit, ringleader, or chapel-dense route gates.
@@ -1173,6 +1177,18 @@ progress.
   `scripts/windows_stack.ps1`, `0.0.0.0` port verification, printed IP URLs,
   `/api/status`, and short live harness report
   `tmp/hosted-play-live-harness-2026-06-30T18-33-58-431Z.json` all passed.
+- `tmp/hosted-play-level20-20260701-023827.json` stayed full-party and
+  death-free through level 5 and the murloc turn-in, then failed during Mudfin
+  grind when Alden, the warrior leader, died once under sustained direct aggro.
+  The ordinary 72 percent self-recovery threshold was too late for that
+  frontline tank window.
+- Latest focused validation after the frontline direct-threat fix:
+  `npx vitest run tests\hosted_play_party.test.ts`, the 7-file hosted, brain,
+  group, chat, game-server, and social regression, `git diff --check`,
+  `npm run build:server`, LAN/IP restart through `scripts/windows_stack.ps1`,
+  `0.0.0.0` port verification, printed IP URLs, `/api/status`, and short live
+  harness report `tmp/hosted-play-live-harness-2026-06-30T19-36-31-774Z.json`
+  all passed.
 
 ## Validation Matrix
 
@@ -1219,7 +1235,7 @@ progress.
 ## Known Current Gaps
 
 - A clean post-fix level 20 hosted run is still required after the latest
-  recovery-intent self-preservation fix, service restart, and short live
+  frontline direct-threat recovery fix, service restart, and short live
   harness check.
 
 ## New Files In This Packet

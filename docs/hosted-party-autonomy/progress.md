@@ -632,4 +632,22 @@ Current date: 2026-06-30
   `git diff --check`, `npm run build:server`, LAN/IP restart, `0.0.0.0` port
   verification, printed IP URLs, `/api/status`, and short live harness report
   `tmp/hosted-play-live-harness-2026-06-30T18-33-58-431Z.json`.
+- [x] Level 20 candidate
+  `tmp/hosted-play-level20-20260701-023827.json` stayed full-party,
+  runtime-clean, and death-free through level 5 and the murloc turn-in, but
+  failed during level 5 Mudfin grind when Alden, the warrior leader, died once.
+  The failure showed the frontline recovery path waiting for the ordinary 72
+  percent self-health threshold, which was too late for a tank under sustained
+  direct aggro.
+- [x] Hosted frontline members now start urgent self-recovery under direct
+  threat at 82 percent health. Warrior, paladin, and druid members who are
+  directly targeted stop attacking, clear unsafe targets, retreat through the
+  urgent anchor path, and use the existing forced-recovery potion line before
+  they become critical.
+- [x] The frontline direct-threat recovery fix was covered by
+  `npx vitest run tests\hosted_play_party.test.ts`, the 7-file hosted, brain,
+  group, chat, game-server, and social regression, `git diff --check`,
+  `npm run build:server`, LAN/IP restart, `0.0.0.0` port verification, printed
+  IP URLs, `/api/status`, and short live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T19-36-31-774Z.json`.
 - [ ] Final run occurs after the last code change and service restart.

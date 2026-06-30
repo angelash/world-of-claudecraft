@@ -35,6 +35,7 @@ const HOSTED_PLAY_RECOVERY_POTION_RATIO = 0.65;
 const HOSTED_PLAY_FRAGILE_THREAT_RECOVERY_HEALTH_RATIO = 0.9;
 const HOSTED_PLAY_FRAGILE_THREAT_RECOVERY_POTION_RATIO = 0.72;
 const HOSTED_PLAY_FRAGILE_THREAT_MAX_LEVEL = 4;
+const HOSTED_PLAY_FRONTLINE_THREAT_RECOVERY_HEALTH_RATIO = 0.82;
 const HOSTED_PLAY_RECOVERY_COMMAND_COOLDOWN_MS = 1_500;
 const HOSTED_PLAY_RECOVERY_POTION_COOLDOWN_MS = 60_000;
 
@@ -139,11 +140,13 @@ export function tickHostedPlayPartyCoordinator(
     selfMember,
     partyIntentRecovering,
   );
+  const selfNeedsFrontlineRecovery = selfNeedsFrontlineThreatRecovery(selfMember, entities);
   const selfNeedsUrgentRecovery = !selfMember.dead
     && (
       (partyRecovering && memberHealthRatio(selfMember) <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO)
       || selfNeedsEarlyThreatRecovery
       || selfNeedsIntentRecovery
+      || selfNeedsFrontlineRecovery
     );
   if (selfNeedsUrgentRecovery) {
     const recoveryPause = maybePauseForPartyRecovery({
@@ -155,7 +158,7 @@ export function tickHostedPlayPartyCoordinator(
       state,
       nowMs: input.nowMs,
       entities,
-      forceSelfRecovery: selfNeedsEarlyThreatRecovery || selfNeedsIntentRecovery,
+      forceSelfRecovery: selfNeedsEarlyThreatRecovery || selfNeedsIntentRecovery || selfNeedsFrontlineRecovery,
     });
     if (recoveryPause) return recoveryPause;
   }
@@ -630,8 +633,25 @@ function selfNeedsFragileIntentRecovery(
   return memberHealthRatio(selfMember) <= HOSTED_PLAY_FRAGILE_THREAT_RECOVERY_HEALTH_RATIO;
 }
 
+function selfNeedsFrontlineThreatRecovery(
+  selfMember: PartyMemberInfo,
+  entities: readonly Record<string, unknown>[],
+): boolean {
+  if (selfMember.dead || !isFrontlineHostedClass(selfMember.cls)) return false;
+  if (memberHealthRatio(selfMember) > HOSTED_PLAY_FRONTLINE_THREAT_RECOVERY_HEALTH_RATIO) return false;
+  return entities.some((entity) =>
+    entity.k === 'mob'
+    && entity.dead !== 1
+    && entity.dead !== true
+    && entity.aggro === selfMember.pid);
+}
+
 function isFragileHostedClass(cls: PlayerClass): boolean {
   return cls === 'mage' || cls === 'priest' || cls === 'warlock';
+}
+
+function isFrontlineHostedClass(cls: PlayerClass): boolean {
+  return cls === 'warrior' || cls === 'paladin' || cls === 'druid';
 }
 
 function partyRecoveryAnchor(

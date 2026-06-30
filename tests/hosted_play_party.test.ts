@@ -1244,6 +1244,63 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
+  it('starts threatened hosted frontline recovery before the standard recovery threshold', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          x: 0,
+          z: 0,
+          hp: 205,
+          mhp: 252,
+          res: 20,
+          mres: 100,
+          rtype: 'rage',
+          target: 501,
+          auto: true,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Hero', cls: 'warrior', level: 5, hp: 205, mhp: 252, res: 20, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Mirajwkynf', cls: 'priest', level: 5, hp: 112, mhp: 112, res: 120, mres: 120, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Corinjwkynf', cls: 'mage', level: 5, hp: 107, mhp: 107, res: 120, mres: 120, rtype: 'mana', x: 3, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: -1, z: 0, aggro: 101, auras: [] },
+          { id: 102, k: 'player', nm: 'Mirajwkynf', x: 2, z: 0, hp: 112, mhp: 112, dead: 0, cmb: 0, auras: [] },
+          { id: 103, k: 'player', nm: 'Corinjwkynf', x: 3, z: 0, hp: 107, mhp: 107, dead: 0, cmb: 0, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [
+        { cmd: 'stopattack' },
+        { cmd: 'target', id: null },
+      ],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 10, z: 0 },
+        arrivalRange: 1.5,
+        goalKey: 'hosted-party-retreat:102:501:10:0',
+      },
+      groupMode: 'assist_party',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+  });
+
   it('anchors a wounded hosted leader on a stable healer instead of a closer damage dealer', () => {
     const state = createHostedPlayPartyState();
 
