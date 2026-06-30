@@ -106,6 +106,17 @@ export function maybeCoordinateAmbientPartySupport(
   const partyInCombat = input.party.members.some((member) => member.inCombat === 1) || hostileMobs.length > 0;
   const role = supportRoleForSelf(input.bot.class, self);
 
+  const selfPreserveDecision = maybePreserveThreatenedSelf({
+    self,
+    members,
+    tankPid,
+    leaderMember: input.leaderMember,
+    role,
+    partyInCombat,
+    reserveCommandBatch: input.reserveCommandBatch,
+  });
+  if (selfPreserveDecision) return selfPreserveDecision;
+
   const healDecision = maybeHealParty({
     self,
     bot: input.bot,
@@ -148,17 +159,6 @@ export function maybeCoordinateAmbientPartySupport(
     });
     if (tankDecision) return tankDecision;
   }
-
-  const selfPreserveDecision = maybePreserveThreatenedSelf({
-    self,
-    members,
-    tankPid,
-    leaderMember: input.leaderMember,
-    role,
-    partyInCombat,
-    reserveCommandBatch: input.reserveCommandBatch,
-  });
-  if (selfPreserveDecision) return selfPreserveDecision;
 
   if (partyInCombat && input.suppressFocusFire === true) {
     const emergencyFocusDecision = maybeEmergencyRecoveryFocusFire({

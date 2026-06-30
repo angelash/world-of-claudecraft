@@ -685,6 +685,74 @@ describe('ambient player bot group coordinator', () => {
     }));
   });
 
+  it('has a wounded priest preserve itself before hard-casting a heal', () => {
+    const priest = bot({
+      botId: 'bot-2',
+      accountId: 12,
+      characterId: 102,
+      characterName: 'Branorash',
+      accountUsername: 'bot_user_2',
+      authToken: 'token-2',
+      class: 'priest',
+    });
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: priest,
+      liveState: liveState({
+        self: {
+          id: 102,
+          lv: 2,
+          x: 0,
+          z: 0,
+          hp: 42,
+          mhp: 66,
+          res: 100,
+          mres: 100,
+          rtype: 'mana',
+          gcd: 0,
+          target: 501,
+          auto: true,
+          cast: null,
+          cds: {},
+          auras: [],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 70, mhp: 166, res: 10, mres: 100, rtype: 'rage', x: 12, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Branorash', cls: 'priest', level: 2, hp: 42, mhp: 66, res: 100, mres: 100, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 101, k: 'player', nm: 'Branoraaa', x: 12, z: 0, auras: [] },
+          { id: 501, k: 'mob', h: 80, x: 1, z: 0, aggro: 102, auras: [] },
+        ],
+      }),
+      recentEvents: [],
+      objectiveId: 'hunt_boars',
+      objectiveQuestId: 'q_boars',
+      objectiveSuggestedPartySize: 1,
+      directory: [priest],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([
+      { cmd: 'stopattack' },
+      { cmd: 'target', id: null },
+    ]);
+    expect(result.travelGoal).toEqual({
+      target: { x: 12, z: 0 },
+      arrivalRange: 6,
+      goalKey: 'party-recover-anchor:101:12:0',
+    });
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'heal_party',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 12,
+    }));
+  });
+
   it('has a warrior taunt a mob off the party healer', () => {
     const state = createAmbientPlayerBotGroupRuntimeState();
     const result = tickAmbientPlayerBotGroupCoordinator({

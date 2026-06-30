@@ -610,4 +610,26 @@ Current date: 2026-06-30
   `npm run build:server`, LAN/IP restart, `0.0.0.0` port verification, printed
   IP URLs, `/api/status`, and short live harness report
   `tmp/hosted-play-live-harness-2026-06-30T17-58-57-655Z.json`.
+- [x] Short live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T18-19-50-394Z.json` reached a
+  current full party with invite, chat, intent, quest, and support signals, but
+  failed clean runtime because Corin, a level 1 mage, died during a recovery
+  window. Samples showed recovery intent active while the low-level cloth
+  member was still below 90 percent health and before the direct aggro snapshot
+  consistently triggered urgent self recovery.
+- [x] Low-level fragile hosted members now obey recovery intent as a hard
+  self-preservation signal even when the current mob snapshot does not show
+  direct aggro. Level 4 and below mage, priest, and warlock members under a
+  recovery intent below 90 percent health use the urgent recovery path, stop
+  attacking, clear unsafe targets, and return to the recovery anchor before
+  ordinary support or offense can continue.
+- [x] Ambient group support now runs self-preservation before party healing, so
+  a wounded threatened healer retreats, stops attacking, and clears target
+  before trying a long hard-cast heal under pressure.
+- [x] The recovery-intent self-preservation fix was covered by
+  `npx vitest run tests\hosted_play_party.test.ts tests\ambient_player_bot_group.test.ts`,
+  the 7-file hosted, brain, group, chat, game-server, and social regression,
+  `git diff --check`, `npm run build:server`, LAN/IP restart, `0.0.0.0` port
+  verification, printed IP URLs, `/api/status`, and short live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T18-33-58-431Z.json`.
 - [ ] Final run occurs after the last code change and service restart.

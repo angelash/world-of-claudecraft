@@ -721,6 +721,66 @@ describe('hosted-play party coordinator', () => {
     expect(result.groupMode).toBe('assist_party');
   });
 
+  it('makes a low-level wounded cloth member obey recovery intent without explicit aggro', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 5,
+          z: 35,
+          lv: 1,
+          hp: 46,
+          mhp: 54,
+          target: 501,
+          auto: true,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Aldenjwkzpv', cls: 'warrior', level: 1, hp: 90, mhp: 90, res: 0, mres: 0, rtype: 'rage', x: 8, z: 36, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Corinjwkzpv', cls: 'mage', level: 1, hp: 46, mhp: 54, res: 100, mres: 120, rtype: 'mana', x: 5, z: 35, dead: 0, inCombat: 1, group: 1 },
+              { pid: 103, name: 'Mirajwkzpv', cls: 'priest', level: 1, hp: 54, mhp: 54, res: 100, mres: 100, rtype: 'mana', x: 7, z: 36, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 6, z: 35, aggro: 101, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        partyIntent: {
+          schemaVersion: 1,
+          kind: 'recovery',
+          behavior: 'recover',
+          key: 'party-intent|recovery|recover',
+          summary: 'Stabilize health before the next pull',
+          targetName: 'Aldenjwkzpv',
+          focusCallerName: 'Aldenjwkzpv',
+          holdAdvance: true,
+          preferAssist: false,
+        },
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result.commands).toEqual([
+      { cmd: 'stopattack' },
+      { cmd: 'target', id: null },
+    ]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.travelGoal).toEqual({
+      target: { x: 8, z: 36 },
+      arrivalRange: 1.5,
+      goalKey: 'hosted-party-recover:101:8:36',
+    });
+    expect(result.groupMode).toBe('assist_party');
+  });
+
   it('keeps a wounded hosted member moving when only loosely near the anchor', () => {
     const state = createHostedPlayPartyState();
 

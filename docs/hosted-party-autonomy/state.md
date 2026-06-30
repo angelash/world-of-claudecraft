@@ -138,6 +138,13 @@ progress.
   line.
 - Party-chat intent uses the same low-level fragile threat rule so group
   communication switches to recovery before the member becomes critical.
+- Low-level fragile hosted members also treat an active recovery intent as a
+  hard self-preservation signal below 90 percent health, even when the current
+  mob snapshot does not show direct aggro. This keeps party communication and
+  hosted behavior aligned during fast-moving low-level fights.
+- Ambient group support must check self-preservation before hard-cast party
+  healing so a wounded threatened healer does not stand still to cast while
+  being hit.
 - Full nearby level-5 parties that have completed `q_murlocs` grind Mudfin
   Skulkers while waiting for level 6 dense-route gates. This does not lower the
   supplies, mine, bandit, ringleader, or chapel-dense route gates.
@@ -1138,6 +1145,35 @@ progress.
   touching quest state, support or combat signals, clean runtime, and stuck
   resets within limit.
 
+### Recent Phase 6 Checkpoints
+
+- `tmp/hosted-play-level20-20260701-000540.json` exposed that online hosted
+  party wire lacked member quest state. `GameServer.partyWire()` now includes
+  `qlog` and `qdone`, with a hosted live-state seam test.
+- `tmp/hosted-play-level20-20260701-003111.json` exposed a level 2 mage dying
+  before ordinary recovery thresholds. Low-level fragile mage, priest, and
+  warlock members under direct aggro now self-preserve below 90 percent health
+  and may use potions at 72 percent.
+- `tmp/hosted-play-level20-20260701-010039.json` stayed clean through level 5
+  but showed slow grind selection. Full nearby level 5 parties that completed
+  `q_murlocs` now grind Mudfin Skulkers while waiting for level 6 dense-route
+  gates.
+- `tmp/hosted-play-live-harness-2026-06-30T18-19-50-394Z.json` failed because
+  Corin, a level 1 mage, died during a recovery intent window. Hosted party
+  recovery now treats active recovery intent as a hard self-preservation signal
+  for level 4 and below mage, priest, and warlock members below 90 percent
+  health, even without an explicit direct-aggro snapshot.
+- Ambient group support now checks self-preservation before hard-cast party
+  healing so a threatened wounded healer retreats before trying to cast under
+  pressure.
+- Latest focused validation after the recovery-intent fix:
+  `npx vitest run tests\hosted_play_party.test.ts tests\ambient_player_bot_group.test.ts`,
+  the 7-file hosted, brain, group, chat, game-server, and social regression,
+  `git diff --check`, `npm run build:server`, LAN/IP restart through
+  `scripts/windows_stack.ps1`, `0.0.0.0` port verification, printed IP URLs,
+  `/api/status`, and short live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T18-33-58-431Z.json` all passed.
+
 ## Validation Matrix
 
 ### Docs Only
@@ -1183,7 +1219,7 @@ progress.
 ## Known Current Gaps
 
 - A clean post-fix level 20 hosted run is still required after the latest
-  level-5 full-party murloc grind fallback, service restart, and short live
+  recovery-intent self-preservation fix, service restart, and short live
   harness check.
 
 ## New Files In This Packet

@@ -121,6 +121,8 @@ export function tickHostedPlayPartyCoordinator(
   const groupLeaderName = leaderMember.name;
   const partyInCombat = party.members.some((member) => member.inCombat === 1) || hasPartyThreat(entities, party);
   const partyRecovering = partyNeedsRecovery(party);
+  const partyIntentRecovering = input.partyIntent?.kind === 'recovery'
+    || input.partyIntent?.behavior === 'recover';
   const botRecord = hostedPlayPartyBotRecord(input.playerClass, selfMember);
   const liveState = hostedPartyLiveState(input.liveSelf, entities);
   const followerCanMoveToLeader = selfMember.pid !== leaderMember.pid
@@ -133,10 +135,15 @@ export function tickHostedPlayPartyCoordinator(
     followerNeedsToCloseGap && leaderDistance > HOSTED_PLAY_FOLLOW_MAX_RANGE;
 
   const selfNeedsEarlyThreatRecovery = selfNeedsFragileThreatRecovery(selfMember, entities);
+  const selfNeedsIntentRecovery = selfNeedsFragileIntentRecovery(
+    selfMember,
+    partyIntentRecovering,
+  );
   const selfNeedsUrgentRecovery = !selfMember.dead
     && (
       (partyRecovering && memberHealthRatio(selfMember) <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO)
       || selfNeedsEarlyThreatRecovery
+      || selfNeedsIntentRecovery
     );
   if (selfNeedsUrgentRecovery) {
     const recoveryPause = maybePauseForPartyRecovery({
@@ -148,7 +155,7 @@ export function tickHostedPlayPartyCoordinator(
       state,
       nowMs: input.nowMs,
       entities,
-      forceSelfRecovery: selfNeedsEarlyThreatRecovery,
+      forceSelfRecovery: selfNeedsEarlyThreatRecovery || selfNeedsIntentRecovery,
     });
     if (recoveryPause) return recoveryPause;
   }
@@ -611,6 +618,16 @@ function selfNeedsFragileThreatRecovery(
     && entity.dead !== 1
     && entity.dead !== true
     && entity.aggro === selfMember.pid);
+}
+
+function selfNeedsFragileIntentRecovery(
+  selfMember: PartyMemberInfo,
+  partyIntentRecovering: boolean,
+): boolean {
+  if (!partyIntentRecovering) return false;
+  if (selfMember.dead || selfMember.level > HOSTED_PLAY_FRAGILE_THREAT_MAX_LEVEL) return false;
+  if (!isFragileHostedClass(selfMember.cls)) return false;
+  return memberHealthRatio(selfMember) <= HOSTED_PLAY_FRAGILE_THREAT_RECOVERY_HEALTH_RATIO;
 }
 
 function isFragileHostedClass(cls: PlayerClass): boolean {
