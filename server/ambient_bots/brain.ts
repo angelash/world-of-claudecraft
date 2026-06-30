@@ -400,6 +400,15 @@ export function tickAmbientPlayerBotBrain(
         : interactWithNpc(view, state, input, objective),
     );
   }
+  if (objective.camps?.length) {
+    return finalizeStep(
+      state,
+      input,
+      view,
+      objective,
+      patrolObjectiveCamps(view, state, input, objective),
+    );
+  }
   return finalizeStep(state, input, view, objective, idleStep(objective.id, objective.label));
 }
 
@@ -484,7 +493,7 @@ function chooseQuestObjective(view: BotWorldView): AmbientBotObjective | null {
   if (partyBackfillRoute) {
     return partyBackfillRoute.progress.state === 'ready'
       ? readyQuestObjectiveForRoute(view, partyBackfillRoute.route)
-      : activeQuestObjectiveForRoute(view, partyBackfillRoute.route);
+      : partyBackfillObjectiveForRoute(view, partyBackfillRoute.route);
   }
 
   const activeRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find((route) => isQuestRouteActive(route, view));
@@ -540,6 +549,42 @@ function activeQuestObjectiveForRoute(
       : {
           objectItemId: route.objectItemId,
         }),
+  };
+}
+
+function partyBackfillObjectiveForRoute(
+  view: BotWorldView,
+  route: AmbientBotQuestRoute,
+): AmbientBotObjective {
+  if (route.kind === 'collect') {
+    const selfProgress = view.self.questLog.get(route.questId);
+    if (selfProgress?.state === 'active' && routeObjectiveNeedsWork(route, selfProgress)) {
+      return activeQuestObjectiveForRoute(view, route);
+    }
+    return escortQuestObjectiveForRoute(view, route);
+  }
+  return activeQuestObjectiveForRoute(view, route);
+}
+
+function escortQuestObjectiveForRoute(
+  view: BotWorldView,
+  route: AmbientBotQuestRoute,
+): AmbientBotObjective {
+  if (route.dungeonId && view.self.dungeonId !== route.dungeonId) {
+    return dungeonEntryObjective(route);
+  }
+  const activeCamps = route.dungeonId
+    ? resolveDungeonRouteCamps(view.self, route)
+    : route.camps;
+  return {
+    id: `assist_${route.activeObjectiveId}`,
+    label: route.activeLabel,
+    questId: route.questId,
+    camps: activeCamps,
+    ...(route.dungeonId ? { dungeonId: route.dungeonId } : {}),
+    ...(route.suggestedPartySize
+      ? { suggestedPartySize: route.suggestedPartySize }
+      : {}),
   };
 }
 
@@ -687,10 +732,28 @@ function routeObjectiveNeedsWork(
   route: AmbientBotQuestRoute,
   progress: QuestProgress,
 ): boolean {
-  if (route.questObjectiveIndex === undefined) return true;
-  const objective = QUESTS[route.questId]?.objectives[route.questObjectiveIndex];
+  const objectiveIndex = questObjectiveIndexForRoute(route);
+  if (objectiveIndex === null) return true;
+  const objective = QUESTS[route.questId]?.objectives[objectiveIndex];
   if (!objective) return true;
-  return (progress.counts[route.questObjectiveIndex] ?? 0) < objective.count;
+  return (progress.counts[objectiveIndex] ?? 0) < objective.count;
+}
+
+function questObjectiveIndexForRoute(route: AmbientBotQuestRoute): number | null {
+  if (route.questObjectiveIndex !== undefined) return route.questObjectiveIndex;
+  const quest = QUESTS[route.questId];
+  if (!quest) return null;
+  if (route.kind === 'collect') {
+    const objectiveIndex = quest.objectives.findIndex(
+      (objective) => objective.type === 'collect' && objective.itemId === route.objectItemId,
+    );
+    return objectiveIndex >= 0 ? objectiveIndex : null;
+  }
+  const mobIds = new Set([route.mobId, ...(route.alternateMobIds ?? [])]);
+  const objectiveIndex = quest.objectives.findIndex(
+    (objective) => objective.type === 'kill' && mobIds.has(objective.targetMobId),
+  );
+  return objectiveIndex >= 0 ? objectiveIndex : null;
 }
 
 function isStandaloneQuestAvailable(
@@ -1222,6 +1285,15 @@ function huntMob(
     );
   }
 
+  return patrolObjectiveCamps(view, state, input, objective);
+}
+
+function patrolObjectiveCamps(
+  view: BotWorldView,
+  state: AmbientPlayerBotBrainState,
+  input: AmbientPlayerBotBrainTickInput,
+  objective: AmbientBotObjective,
+): AmbientPlayerBotBrainTickResult {
   const camps = objective.camps ?? [];
   if (camps.length === 0) return idleStep(objective.id, objective.label);
   const camp = camps[state.campIndex % camps.length];
@@ -1244,7 +1316,7 @@ function huntMob(
     objective,
     activeCamp,
     CAMP_ARRIVAL_RANGE,
-    `camp:${objective.mobId ?? 'mob'}:${state.campIndex % camps.length}`,
+    `camp:${objective.mobId ?? objective.objectItemId ?? objective.id}:${state.campIndex % camps.length}`,
   );
 }
 

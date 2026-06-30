@@ -1791,6 +1791,97 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
+  it('does not keep interacting with supply crates once the local collect count is full', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 6,
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
+          qlog: [
+            { questId: 'q_supplies', counts: [4], state: 'active' },
+            { questId: 'q_mine', counts: [0], state: 'active' },
+          ],
+        },
+        entities: [
+          { id: 9401, k: 'object', obj: 'supply_crate', x: 2, z: 2, loot: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_mine');
+    expect(result.objectiveLabel).toBe('Clearing Tunnel Rats');
+    expect(result.commands).not.toContainEqual({ cmd: 'interact' });
+  });
+
+  it('escorts party members on collect backfill without clicking completed supply crates', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          id: 101,
+          lv: 6,
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies'],
+          qlog: [{ questId: 'q_mine', counts: [0], state: 'active' }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              {
+                pid: 101,
+                name: 'Branoraaa',
+                cls: 'warrior',
+                level: 6,
+                hp: 120,
+                mhp: 120,
+                res: 0,
+                mres: 0,
+                rtype: 'rage',
+                x: 0,
+                z: 0,
+                dead: 0,
+                inCombat: 0,
+                group: 1,
+                qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies'],
+                qlog: [{ questId: 'q_mine', counts: [0], state: 'active' }],
+              },
+              {
+                pid: 102,
+                name: 'Branorabb',
+                cls: 'priest',
+                level: 6,
+                hp: 75,
+                mhp: 75,
+                res: 90,
+                mres: 90,
+                rtype: 'mana',
+                x: 2,
+                z: 0,
+                dead: 0,
+                inCombat: 0,
+                group: 1,
+                qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
+                qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
+              },
+            ],
+          },
+        },
+        entities: [
+          { id: 102, k: 'player', tid: 'priest', lv: 6, x: 2, z: 0, dead: 0 },
+          { id: 9401, k: 'object', obj: 'supply_crate', x: 2, z: 2, loot: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('assist_collect_supplies');
+    expect(result.objectiveLabel).toBe('Recovering Stolen Supplies');
+    expect(result.commands).not.toContainEqual({ cmd: 'interact' });
+  });
+
   it('grinds instead of forcing an accepted supplies quest below the safe route level', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({

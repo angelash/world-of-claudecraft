@@ -152,6 +152,15 @@ progress.
 - Full nearby level-5 parties that have completed `q_murlocs` grind Mudfin
   Skulkers while waiting for level 6 dense-route gates. This does not lower the
   supplies, mine, bandit, ringleader, or chapel-dense route gates.
+- Collect-route party backfill must not make done members click quest objects
+  they cannot collect. A member only interacts with a collect object when its
+  own local quest progress still needs that objective; otherwise it escorts the
+  party near the route camps and lets support, combat, regroup, and recovery
+  behavior protect the member who still needs the object.
+- Route objective completion checks infer the objective index for simple
+  collect and kill routes when `questObjectiveIndex` is omitted. Full local
+  progress must stop active route pursuit even if a live snapshot still says
+  the quest state is `active`.
 
 ## Key Existing Files
 
@@ -1189,6 +1198,19 @@ progress.
   `0.0.0.0` port verification, printed IP URLs, `/api/status`, and short live
   harness report `tmp/hosted-play-live-harness-2026-06-30T19-36-31-774Z.json`
   all passed.
+- `tmp/hosted-play-level20-20260701-033916.json` was stopped at about 78
+  minutes after a clean full-party run reached level 6, accepted supplies and
+  mine work, and survived a ringleader recovery window. The blocker was invalid
+  collect backfill: members who had already completed or did not hold
+  `q_supplies` kept clicking supply crates for a teammate and received repeated
+  `The crate is nailed shut.` errors while quest-event progress stayed flat.
+- Latest focused validation after the collect-backfill escort fix:
+  `npx vitest run tests\ambient_player_bot_brain.test.ts`, the 7-file hosted,
+  brain, group, chat, game-server, and social regression, `git diff --check`,
+  `npm run build:server`, LAN/IP restart through `scripts/windows_stack.ps1`,
+  `0.0.0.0` port verification, printed IP URLs, `/api/status`, and short live
+  harness report `tmp/hosted-play-live-harness-2026-06-30T21-06-22-045Z.json`
+  all passed.
 
 ## Validation Matrix
 
@@ -1235,8 +1257,7 @@ progress.
 ## Known Current Gaps
 
 - A clean post-fix level 20 hosted run is still required after the latest
-  frontline direct-threat recovery fix, service restart, and short live
-  harness check.
+  collect-backfill escort fix, service restart, and short live harness check.
 
 ## New Files In This Packet
 

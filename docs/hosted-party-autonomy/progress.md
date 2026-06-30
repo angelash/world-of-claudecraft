@@ -650,4 +650,27 @@ Current date: 2026-06-30
   `npm run build:server`, LAN/IP restart, `0.0.0.0` port verification, printed
   IP URLs, `/api/status`, and short live harness report
   `tmp/hosted-play-live-harness-2026-06-30T19-36-31-774Z.json`.
+- [x] Level 20 candidate
+  `tmp/hosted-play-level20-20260701-033916.json` stayed full-party,
+  death-free, runtime-clean, and stuck-free into level 6, accepted the dense
+  supplies and mine route, and survived a low-health recovery window around
+  the ringleader. It was stopped at about 78 minutes because done members kept
+  backfilling a party collect route by clicking supply crates they could no
+  longer collect, producing repeated `The crate is nailed shut.` errors and no
+  quest-event progress.
+- [x] Collect route backfill now separates local collection from party escort.
+  A member only clicks a collect object when its own quest progress still needs
+  that objective. Members who have already completed or do not hold that
+  collect objective stay near the route camps as escorts, where normal party
+  support can heal, protect, and fight without spamming invalid interactions.
+- [x] Route work checks now infer the objective index for simple collect and
+  kill routes, so a route with full local progress is no longer treated as
+  unfinished merely because it did not declare an explicit
+  `questObjectiveIndex`.
+- [x] The collect-backfill escort fix was covered by
+  `npx vitest run tests\ambient_player_bot_brain.test.ts`, the 7-file hosted,
+  brain, group, chat, game-server, and social regression, `git diff --check`,
+  `npm run build:server`, LAN/IP restart, `0.0.0.0` port verification, printed
+  IP URLs, `/api/status`, and short live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T21-06-22-045Z.json`.
 - [ ] Final run occurs after the last code change and service restart.
