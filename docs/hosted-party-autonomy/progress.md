@@ -144,6 +144,12 @@ Current date: 2026-06-29
   harness passed with current full-party agreement, hosted invite, party chat,
   intent, support or combat, quest signals, runtime clean, and max stuck resets
   within limit.
+- The next level 20 run reached early party fill but was invalid because the
+  leader filled the fifth slot with a closer ambient bot (`Ilyraafsn`) while
+  the real harness mage (`Cordazxbfwc`) was still outside the current party.
+  Auto-invite now still allows ambient fillers, but prefers visible non-ambient
+  players before ambient bots so nearby real hosted members do not get crowded
+  out of a full party.
 - The next level 20 run reached level 3 and showed the intent release fix
   working, but a distant follower could remain in `follow_leader` without
   closing the gap after `/follow` stopped pulling them. Non-combat hosted
@@ -231,4 +237,6 @@ Current date: 2026-06-29
   and reports current party members for diagnosing startup desync.
 - [x] Dense camp routes do not use party strength to enter one level early after
   the level 5 supplies-camp death.
+- [x] Auto-invite prefers visible non-ambient players over ambient bot fillers
+  when both are nearby.
 - [ ] Final run occurs after the last code change and service restart.

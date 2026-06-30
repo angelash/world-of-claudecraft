@@ -509,7 +509,8 @@ function collectNearbyInviteCandidate(
   selfName: string,
 ): { id: number; name: string } | null {
   const partyMemberNames = new Set(party?.members.map((member) => member.name) ?? []);
-  let bestCandidate: { id: number; name: string; distance: number } | null = null;
+  const ambientBotNames = new Set(input.ambientDirectory.map((bot) => bot.characterName).filter(Boolean));
+  let bestCandidate: { id: number; name: string; distance: number; ambient: boolean } | null = null;
   for (const entity of input.entities) {
     if (entity.k !== 'player' || typeof entity.id !== 'number' || typeof entity.nm !== 'string') continue;
     if (entity.id === selfId || (selfName && entity.nm === selfName) || partyMemberNames.has(entity.nm)) continue;
@@ -518,8 +519,12 @@ function collectNearbyInviteCandidate(
     if (distance === null || distance > HOSTED_PLAY_NEARBY_INVITE_RANGE) continue;
     const lastInviteAtMs = state.lastNearbyInviteAtMsByName[entity.nm] ?? Number.NEGATIVE_INFINITY;
     if (input.nowMs - lastInviteAtMs < HOSTED_PLAY_NEARBY_INVITE_TARGET_COOLDOWN_MS) continue;
-    if (!bestCandidate || distance < bestCandidate.distance) {
-      bestCandidate = { id: entity.id, name: entity.nm, distance };
+    const ambient = ambientBotNames.has(entity.nm);
+    const betterCandidate = !bestCandidate
+      || (bestCandidate.ambient && !ambient)
+      || (bestCandidate.ambient === ambient && distance < bestCandidate.distance);
+    if (betterCandidate) {
+      bestCandidate = { id: entity.id, name: entity.nm, distance, ambient };
     }
   }
   return bestCandidate ? { id: bestCandidate.id, name: bestCandidate.name } : null;

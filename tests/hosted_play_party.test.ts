@@ -881,6 +881,45 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
+  it('prefers nearby non-ambient players over closer ambient bot fillers', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          nm: 'Hero',
+          x: 100,
+          z: 100,
+          party: null,
+        }),
+        entities: [
+          { id: 201, k: 'player', nm: 'Ilyraafsn', x: 104, z: 100, dead: 0 },
+          { id: 202, k: 'player', nm: 'Cordazxbfwc', x: 112, z: 100, dead: 0 },
+        ],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'solo',
+        autoInviteNearbyPlayers: true,
+        autoInviteNearbyTargetPartySize: 5,
+        objectiveSuggestedPartySize: 5,
+        ambientDirectory: [
+          ambientBot({ characterId: 201, characterName: 'Ilyraafsn' }),
+        ],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [{ cmd: 'pinvite', id: 202 }],
+      pauseBrainDrive: false,
+      groupMode: 'invite_nearby',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+  });
+
   it('invites a nearby player even when the current objective does not require a full group', () => {
     const state = createHostedPlayPartyState();
 

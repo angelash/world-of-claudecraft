@@ -72,6 +72,9 @@ progress.
 - Dense camp routes may opt out of party level-bonus gating. Group strength can
   lower safer route gates by one level, but supplies, mine, bandit, ringleader,
   and chapel-dense routes must wait for the original safe route level.
+- Nearby auto-invite treats ambient bots as filler candidates. If a visible
+  non-ambient player and a visible ambient bot are both eligible, the
+  non-ambient player wins even when the ambient bot is closer.
 
 ## Key Existing Files
 
@@ -338,6 +341,15 @@ progress.
 - `tests/ambient_player_bot_brain.test.ts` covers a level 5 nearby party not
   entering the supplies camp early while preserving the existing murloc group
   bonus coverage.
+- Phase 6 follow-up report `tmp/hosted-play-level20-20260630-083548.json`
+  reached early party fill but filled the fifth slot with ambient bot
+  `Ilyraafsn` while real harness member `Cordazxbfwc` was outside the current
+  party, invalidating the run.
+- `server/hosted_play/party.ts` now prefers nearby non-ambient players over
+  ambient bot fillers when selecting auto-invite candidates. Ambient bots remain
+  eligible as filler when no non-ambient candidate is available.
+- `tests/hosted_play_party.test.ts` covers a closer ambient bot losing invite
+  priority to a nearby non-ambient player.
 
 ## Phase 5 Validation
 
@@ -432,6 +444,9 @@ progress.
 - Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
 - `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after restart. The report was `tmp/hosted-play-live-harness-2026-06-30T00-29-01-477Z.json`; it observed hosted invite, party target size, every client currently seeing the target party, party chat, party intent and roles, cooperation mode, quest signals, all party members touching quest state, support or combat signals, clean runtime, and stuck resets within limit.
+- `npx vitest run tests\hosted_play_party.test.ts`: passed after the non-ambient invite priority fix, 1 file and 25 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed, 5 files and 198 tests.
+- `npm run build:server`: passed.
 
 ## Validation Matrix
 
