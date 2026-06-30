@@ -67,6 +67,9 @@ operator to restart services manually.
 - Non-tank members who are threatened at dangerous health should stop attacking,
   clear unsafe targets, use a healing potion when available, and collapse back
   toward the tank or leader before resuming damage or quest actions.
+- When any party member is dead or below the recovery threshold, ordinary
+  hosted damage-dealer focus fire should pause unless a higher-priority heal,
+  self-preservation, or tank protection action is being performed.
 - Buff-capable characters should apply practical party buffs before pulls.
 - The group should hold briefly for regrouping, recovery, buffs, and summons
   before harder pulls.

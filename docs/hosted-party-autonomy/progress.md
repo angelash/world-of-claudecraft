@@ -293,6 +293,22 @@ Current date: 2026-06-30
   was verified on `0.0.0.0`, the hosted party suite, hosted behavior suite,
   server build, and short live harness all passed. The short harness report was
   `tmp/hosted-play-live-harness-2026-06-30T08-54-55-735Z.json`.
+- Follow-up report `tmp/hosted-play-level20-20260630-165949.json` reached
+  level 7 with party size 5, no hosted, WebSocket, or status errors, and no
+  stuck resets, but failed with 8 player deaths. Samples showed
+  `recovery/recover` intent active while healthy damage dealers still resumed
+  focus-fire style combat near critical or dead teammates, so the recovery
+  state needed to suppress ordinary offensive support, not just ordinary quest
+  brain work.
+- Hosted party support now suppresses normal focus fire while any party member
+  is dead or below the recovery threshold. Healing, self-preservation, and tank
+  protection can still act first; otherwise hosted members stop attacking,
+  clear unsafe targets, and collapse toward the recovery anchor.
+- After the recovery focus-suppression fix, the stack was restarted, IP access
+  was verified on `0.0.0.0`, the hosted party suite, ambient brain suite,
+  hosted behavior suite, server build, and short live harness all passed. The
+  short harness report was
+  `tmp/hosted-play-live-harness-2026-06-30T10-30-40-509Z.json`.
 
 ## Planning Packet Checklist
 
@@ -391,4 +407,7 @@ Current date: 2026-06-30
   the team is critical.
 - [x] Non-tank group self-preservation starts early enough for low-level cloth
   and healer safety instead of waiting until the character is nearly dead.
+- [x] Party recovery suppresses hosted damage-dealer focus fire while another
+  member is dead or critical, while preserving healing, self-preservation, and
+  tank protection.
 - [ ] Final run occurs after the last code change and service restart.

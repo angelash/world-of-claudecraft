@@ -111,6 +111,7 @@ export function tickHostedPlayPartyCoordinator(
   const leaderDistance = distanceBetweenPartyMembers(selfMember, leaderMember);
   const groupLeaderName = leaderMember.name;
   const partyInCombat = party.members.some((member) => member.inCombat === 1) || hasPartyThreat(entities, party);
+  const partyRecovering = partyNeedsRecovery(party);
   const botRecord = hostedPlayPartyBotRecord(input.playerClass, selfMember);
   const liveState = hostedPartyLiveState(input.liveSelf, entities);
   const followerCanMoveToLeader = selfMember.pid !== leaderMember.pid
@@ -129,6 +130,7 @@ export function tickHostedPlayPartyCoordinator(
       party,
       leaderMember,
       selfMember,
+      suppressFocusFire: partyRecovering,
       reserveCommandBatch: (reservations) => reserveCommandBatch(state, input.nowMs, reservations),
     })
     : null;
@@ -164,7 +166,7 @@ export function tickHostedPlayPartyCoordinator(
   });
   if (intentHold) return intentHold;
 
-  if (!partyInCombat && !followerNeedsToCloseGap) {
+  if (!partyInCombat && !partyRecovering && !followerNeedsToCloseGap) {
     const selfPreparation = maybePrepareForPullFromLiveState({
       bot: botRecord,
       liveSelf: input.liveSelf,

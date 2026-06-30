@@ -62,6 +62,13 @@ dangerous health should:
 - travel back toward the tank, or the leader if no tank anchor is available
 - pause ordinary focus-fire and quest actions until it stabilizes
 
+When party recovery is active because any member is dead or below the recovery
+threshold, healthy hosted damage dealers also pause ordinary focus fire. That
+keeps the party from treating recovery chat as flavor while some members keep
+pulling pressure onto a collapsing fight. Heals, self-preservation, and tank
+protection still run before this pause so the group can save an ally instead of
+standing idle.
+
 This is a behavior rule, not just party chat flavor. Recovery and correction
 lines should reflect the same underlying state so the run looks and behaves
 like players calling a reset.

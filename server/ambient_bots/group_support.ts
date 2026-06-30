@@ -74,6 +74,7 @@ export interface AmbientPartySupportInput {
   party: PartyInfo;
   leaderMember: PartyMemberInfo | null;
   selfMember: PartyMemberInfo | null;
+  suppressFocusFire?: boolean;
   reserveCommandBatch: (reservations: readonly AmbientGroupCommandReservation[]) => boolean;
 }
 
@@ -156,7 +157,7 @@ export function maybeCoordinateAmbientPartySupport(
   });
   if (selfPreserveDecision) return selfPreserveDecision;
 
-  if (partyInCombat) {
+  if (partyInCombat && input.suppressFocusFire !== true) {
     const focusDecision = maybeFocusFire({
       self,
       bot: input.bot,
