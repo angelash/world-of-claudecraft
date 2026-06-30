@@ -62,9 +62,10 @@ const HEALING_POTION_RESTOCK_TARGET_COUNT = 3;
 const DANGEROUS_PULL_THREAT_COUNT = 3;
 const DANGEROUS_PULL_LOW_HP_THREAT_COUNT = 2;
 const DANGEROUS_PULL_LOW_HP_THRESHOLD = 0.58;
+const DANGEROUS_PULL_EMERGENCY_HP_THRESHOLD = 0.32;
 const DANGEROUS_PULL_POTION_HP_THRESHOLD = 0.68;
 const DANGEROUS_PULL_SAFE_ARRIVAL_RANGE = INTERACT_RANGE + 4;
-const DANGEROUS_PULL_MIN_LEVEL = 5;
+const DANGEROUS_PULL_MIN_LEVEL = 4;
 const SELF_MAINTENANCE_OBJECTIVES = ['recover', 'prepare_combat', 'equip_upgrade', 'sell_junk'] as const;
 
 interface AmbientBotVendorProfile {
@@ -803,7 +804,8 @@ function maybeRetreatFromDangerousPull(
   const dangerousByLowHp =
     threats.length >= DANGEROUS_PULL_LOW_HP_THREAT_COUNT
     && hpRatio < DANGEROUS_PULL_LOW_HP_THRESHOLD;
-  if (!dangerousByCount && !dangerousByLowHp) return null;
+  const dangerousByEmergencyHp = hpRatio < DANGEROUS_PULL_EMERGENCY_HP_THRESHOLD;
+  if (!dangerousByCount && !dangerousByLowHp && !dangerousByEmergencyHp) return null;
 
   const commands: BrainCommand[] = [];
   if (hpRatio < DANGEROUS_PULL_POTION_HP_THRESHOLD) {

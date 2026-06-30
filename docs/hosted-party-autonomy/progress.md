@@ -225,6 +225,20 @@ Current date: 2026-06-30
   was a harness robustness issue rather than a gameplay failure. The harness now
   retries hosted-status polls, records recovered sampling failures separately,
   and only aborts after repeated consecutive sampling failures.
+- Follow-up report `tmp/hosted-play-level20-20260630-123354.json` passed the
+  prior Fenbridge pickup risk and reached level 5 with a full party, no hosted
+  errors, no WebSocket errors, and no status-poll errors, but failed because
+  Elowen died once near the murloc and Greyjaw travel band. The immediate bad
+  behavior was a level 4 non-tank at emergency health continuing `brain:combat`
+  around a restock objective instead of retreating from a single active threat.
+  The ambient brain now starts dangerous-pull retreat at level 4 and treats a
+  single threat plus emergency health as enough to retreat, and the harness
+  de-duplicates the same player death reported as both `death` and
+  `playerDeath`.
+- After that fix, the stack was restarted, IP access was verified on
+  `0.0.0.0`, the targeted brain suite, hosted behavior suite, server build, and
+  short live harness all passed. The short harness report was
+  `tmp/hosted-play-live-harness-2026-06-30T05-11-24-049Z.json`.
 
 ## Planning Packet Checklist
 
@@ -311,4 +325,6 @@ Current date: 2026-06-30
   original route gate, while accepted safe quests can still use group pursuit.
 - [x] The live harness tolerates transient hosted-status poll failures without
   hiding repeated REST sampling failure.
+- [x] Level 4 characters at emergency health retreat from a single active
+  threat before continuing restock, turn-in, or combat objectives.
 - [ ] Final run occurs after the last code change and service restart.

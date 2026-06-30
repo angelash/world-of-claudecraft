@@ -734,7 +734,7 @@ describe('ambient player bot brain', () => {
       bot: bot(),
       liveState: liveState({
         self: {
-          lv: 4,
+          lv: 3,
           hp: 60,
           mhp: 214,
           inv: [{ itemId: 'minor_healing_potion', count: 1 }],
@@ -751,6 +751,41 @@ describe('ambient player bot brain', () => {
     expect(result.objectiveId).toBe('recover');
     expect(result.commands).toEqual([{ cmd: 'use', item: 'minor_healing_potion' }]);
     expect(result.moveInput).toEqual({});
+  });
+
+  it('retreats from a single threat at emergency health before continuing a restock objective', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          x: -75,
+          z: 58,
+          hp: 31,
+          mhp: 144,
+          target: 9101,
+          auto: true,
+          copper: 100,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders'],
+          qlog: [{ questId: 'q_murlocs', counts: [3], state: 'active' }],
+        },
+        entities: [
+          { id: 9101, k: 'mob', tid: 'mudfin_murloc', x: -74, z: 59, h: true, aggro: 101 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('recover');
+    expect(result.objectiveLabel).toBe('Retreating from a dangerous pull');
+    expect(result.travelGoal?.goalKey).toBe('retreat:trader_wilkes');
+    expect(result.commands).toEqual([
+      { cmd: 'stopattack' },
+      { cmd: 'target', id: null },
+    ]);
+    expect(result.moveInput).toEqual({ f: 1 });
   });
 
   it('retreats from a multi-mob pull instead of standing in the murloc camp', () => {

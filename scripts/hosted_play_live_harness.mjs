@@ -456,7 +456,7 @@ function recordPlayerDeath(report, victim, event) {
   const victimPid = Number(event.entityId ?? event.pid ?? victim.pid ?? -1);
   const killerId = Number(event.killerId ?? -1);
   const timeBucketMs = Math.floor(Number(event.atMs ?? 0) / 1_000) * 1_000;
-  const key = `${victimPid}:${killerId}:${timeBucketMs}`;
+  const key = `${victimPid}:${timeBucketMs}`;
   if (report.metrics.playerDeathRecords.some((record) => record.key === key)) return;
   report.metrics.playerDeathRecords.push({
     key,
