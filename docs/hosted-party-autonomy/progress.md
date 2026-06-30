@@ -167,6 +167,10 @@ Current date: 2026-06-29
   have moved past boars grind Webwood Lurkers while waiting for level gates,
   Mirefen fallback stays on local marsh mobs, and Thornpeak fallback moves from
   Stormcrag to Wyrmcult targets at the high end.
+- After that fix, the stack was restarted, IP access was verified on
+  `0.0.0.0`, and the short live harness passed with current full-party
+  agreement, hosted invite, party chat, intent, support or combat, quest
+  signals, runtime clean, and stuck resets within limit.
 - The next level 20 run reached level 3 and showed the intent release fix
   working, but a distant follower could remain in `follow_leader` without
   closing the gap after `/follow` stopped pulling them. Non-combat hosted

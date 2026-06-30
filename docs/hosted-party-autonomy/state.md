@@ -465,6 +465,10 @@ progress.
 - `npx vitest run tests\hosted_play_party.test.ts`: passed after the non-ambient invite priority fix, 1 file and 25 tests.
 - `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed, 5 files and 198 tests.
 - `npm run build:server`: passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed after the grind fallback route fix.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after restart. The report was `tmp/hosted-play-live-harness-2026-06-30T01-37-15-385Z.json`; it observed hosted invite, party target size, every client currently seeing the target party, party chat, party intent and roles, cooperation mode, quest signals, all party members touching quest state, support or combat signals, clean runtime, and stuck resets within limit.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed after the non-ambient invite priority fix.
 - Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
 - `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
