@@ -110,6 +110,15 @@ still allowing short ranged spacing during pulls. A follower already in combat
 and beyond that threshold stops attacking, clears its local target, and travels
 back to the leader before continuing local fighting.
 
+When a follower is still within that tight formation range and its own accepted
+quest objective is local, the runtime may let that follower continue the local
+quest brain while normal follow movement is paused. This is intentionally
+bounded: the objective must belong to an accepted quest, the follower must still
+be within 18 yards of the leader, and any travel target must be within the
+local 24-yard quest override range. The goal is to let lagging members finish
+nearby kills, loot, pickups, and turn-ins without allowing the party to split
+across the zone.
+
 This is a behavior rule, not just party chat flavor. Recovery and correction
 lines should reflect the same underlying state so the run looks and behaves
 like players calling a reset.

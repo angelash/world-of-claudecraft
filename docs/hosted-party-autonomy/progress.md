@@ -487,4 +487,15 @@ Current date: 2026-06-30
   the LAN/IP stack, verified on `0.0.0.0` with printed IP URLs, and smoke-tested
   with live harness report
   `tmp/hosted-play-live-harness-2026-06-30T13-00-44-250Z.json`.
+- [x] The next level 20 candidate at
+  `tmp/hosted-play-level20-20260630-210322.json` stayed full-party and clean
+  for 25.6 minutes, but exposed quest sync lag: Alden and Tovin had finished
+  wolves, boars, and spiders while Mira and Liora were still active on boars
+  and spiders. Hosted runtime now lets tight grouped followers continue local
+  accepted quest objectives while follow movement is paused, so lagging members
+  can finish nearby work before being pulled onward.
+- [x] The local active quest override was unit-tested, server-built, restarted
+  through the LAN/IP stack, verified on `0.0.0.0` with printed IP URLs, and
+  smoke-tested with live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T13-34-19-062Z.json`.
 - [ ] Final run occurs after the last code change and service restart.

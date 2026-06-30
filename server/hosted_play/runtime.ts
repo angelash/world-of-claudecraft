@@ -61,6 +61,7 @@ const HOSTED_PLAY_DEBUG_MAX_PENDING_REPLIES = 6;
 const HOSTED_PLAY_DEBUG_MAX_COMMAND_JSON_CHARS = 1_200;
 const HOSTED_PLAY_DEBUG_MAX_TEXT_CHARS = 240;
 const HOSTED_PLAY_LOCAL_QUEST_OVERRIDE_RANGE = 24;
+const HOSTED_PLAY_LOCAL_ACTIVE_QUEST_MAX_LEADER_DISTANCE = 18;
 
 interface HostedPlayEntry {
   characterId: number;
@@ -809,17 +810,64 @@ function hostedLocalQuestBrainAllowedWhilePartyPaused(
   groupMode: string,
   liveState: AmbientPlayerBotLiveState,
 ): boolean {
-  if (!isHostedLocalQuestObjective(result.objectiveId)) return false;
   const localGroupMode = groupMode === 'follow_leader'
     || groupMode === 'hold_regroup'
     || groupMode === 'prepare_party';
   if (!localGroupMode) return false;
+  if (isHostedLocalQuestObjective(result.objectiveId)) {
+    return hostedLocalQuestTravelIsNearby(result, liveState);
+  }
+  if (!isHostedActiveQuestObjective(result)) return false;
+  if (hostedLeaderDistance(liveState) > HOSTED_PLAY_LOCAL_ACTIVE_QUEST_MAX_LEADER_DISTANCE) return false;
+  return hostedLocalQuestTravelIsNearby(result, liveState);
+}
+
+function isHostedActiveQuestObjective(result: AmbientPlayerBotBrainTickResult): boolean {
+  return !!result.objectiveQuestId
+    && result.objectiveId !== 'recover'
+    && result.objectiveId !== 'prepare_combat';
+}
+
+function hostedLocalQuestTravelIsNearby(
+  result: AmbientPlayerBotBrainTickResult,
+  liveState: AmbientPlayerBotLiveState,
+): boolean {
   if (!result.travelGoal) return true;
   const selfX = typeof liveState.self?.x === 'number' ? liveState.self.x : null;
   const selfZ = typeof liveState.self?.z === 'number' ? liveState.self.z : null;
   if (selfX === null || selfZ === null) return false;
   return Math.hypot(result.travelGoal.target.x - selfX, result.travelGoal.target.z - selfZ)
     <= HOSTED_PLAY_LOCAL_QUEST_OVERRIDE_RANGE;
+}
+
+function hostedLeaderDistance(liveState: AmbientPlayerBotLiveState): number {
+  const self = liveState.self;
+  const party = parseHostedRuntimeParty(self?.party);
+  if (!self || !party) return 0;
+  const selfId = typeof self.id === 'number' ? self.id : null;
+  if (selfId === null || party.leader === selfId) return 0;
+  const leader = party.members.find((member) => member.pid === party.leader) ?? null;
+  const selfMember = party.members.find((member) => member.pid === selfId) ?? null;
+  if (!leader || !selfMember) return 0;
+  return Math.hypot(leader.x - selfMember.x, leader.z - selfMember.z);
+}
+
+function parseHostedRuntimeParty(value: unknown): { leader: number; members: Array<{ pid: number; x: number; z: number }> } | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as { leader?: unknown; members?: unknown };
+  if (typeof record.leader !== 'number' || !Array.isArray(record.members)) return null;
+  const members = record.members
+    .map((raw) => {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+      const member = raw as { pid?: unknown; x?: unknown; z?: unknown };
+      return typeof member.pid === 'number'
+        && typeof member.x === 'number'
+        && typeof member.z === 'number'
+        ? { pid: member.pid, x: member.x, z: member.z }
+        : null;
+    })
+    .filter((member): member is { pid: number; x: number; z: number } => member !== null);
+  return { leader: record.leader, members };
 }
 
 function isHostedLocalQuestCommand(command: Record<string, unknown>): boolean {

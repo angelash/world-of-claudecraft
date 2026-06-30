@@ -980,6 +980,39 @@ progress.
   party intent and roles, cooperation mode, quest signals, all party members
   touching quest state, support or combat signals, clean runtime, and stuck
   resets within limit.
+- The next level 20 candidate,
+  `tmp/hosted-play-level20-20260630-210322.json`, was stopped after about 25.6
+  minutes with a full party, no deaths, no hosted errors, no WebSocket errors,
+  and no status errors. It exposed a quest sync gap instead of a survival
+  issue: Alden and Tovin had finished wolves, boars, and spiders, while Mira
+  and Liora were still active on boars and spiders and were being pulled toward
+  the leader's later route.
+- `server/hosted_play/runtime.ts` now allows a tight grouped follower to keep
+  driving its own accepted local quest objective while follow movement is
+  paused. The gate requires an accepted quest objective, no more than 18 yards
+  from the leader, and any travel target within the local 24-yard quest
+  override range.
+- `tests/hosted_play_runtime.test.ts` covers a grouped mage follower staying
+  close to the leader while targeting, casting, and attacking a local boar for
+  its own active quest instead of issuing `/follow`.
+- `npx vitest run tests\hosted_play_runtime.test.ts`: passed after the local
+  active quest override, 1 file and 18 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`:
+  passed after the local active quest override, 5 files and 218 tests.
+- `npm run build:server`: passed after the local active quest override.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`:
+  passed after the local active quest override.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls`
+  printed the IP game and server URLs after the restart.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon` after
+  the restart.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`:
+  passed after the local active quest override. The report was
+  `tmp/hosted-play-live-harness-2026-06-30T13-34-19-062Z.json`; it observed
+  hosted invite, target party size, current full-party agreement, party chat,
+  party intent and roles, cooperation mode, quest signals, all party members
+  touching quest state, support or combat signals, clean runtime, and stuck
+  resets within limit.
 
 ## Validation Matrix
 
@@ -1025,8 +1058,8 @@ progress.
 
 ## Known Current Gaps
 
-- A clean post-fix level 20 hosted run is still required after the tight
-  formation fix, service restart, and short live harness check.
+- A clean post-fix level 20 hosted run is still required after the local active
+  quest override, service restart, and short live harness check.
 
 ## New Files In This Packet
 

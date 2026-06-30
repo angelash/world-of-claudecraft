@@ -404,6 +404,66 @@ describe('HostedPlayRuntime', () => {
     });
   });
 
+  it('lets a tight grouped follower keep finishing its own active quest before resuming follow', () => {
+    const game = fakeGame(liveState({
+      id: 102,
+      x: 0,
+      z: 6,
+      lv: 3,
+      hp: 78,
+      mhp: 78,
+      res: 100,
+      mres: 100,
+      rtype: 'mana',
+      qdone: ['q_wolves'],
+      qlog: [{ questId: 'q_boars', counts: [3], state: 'active' }],
+      auras: [
+        { id: 'frost_armor', kind: 'buff_armor', rem: 1700, dur: 1800 },
+        { id: 'arcane_intellect', kind: 'buff_int', rem: 1700, dur: 1800 },
+      ],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'mage', level: 3, hp: 78, mhp: 78, res: 100, mres: 100, rtype: 'mana', x: 0, z: 6, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 8101, k: 'mob', tid: 'wild_boar', x: 0, z: 10, h: true, lv: 3 },
+      ],
+    }), {
+      playerClass: 'mage',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([
+      { cmd: 'target', id: 8101 },
+      expect.objectContaining({ cmd: 'cast' }),
+      { cmd: 'attack' },
+    ]);
+    expect(game.commands).not.toContainEqual({ cmd: 'chat', text: '/follow Branoraaa' });
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'follow_leader',
+      objectiveId: 'combat',
+      debug: {
+        brainDrivePaused: false,
+      },
+    });
+  });
+
   it('accepts party invites through the hosted runtime while follow-leader mode is enabled', () => {
     const game = fakeGame(liveState(), {
       recentEvents: [{ type: 'partyInvite', fromPid: 201, fromName: 'Aleph' }],
