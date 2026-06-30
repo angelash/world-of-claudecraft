@@ -69,6 +69,9 @@ progress.
   party action or assist range, not a cap on regroup travel.
 - The live harness must prove current full-party agreement across every client,
   not only that the leader once reached the target party size.
+- Dense camp routes may opt out of party level-bonus gating. Group strength can
+  lower safer route gates by one level, but supplies, mine, bandit, ringleader,
+  and chapel-dense routes must wait for the original safe route level.
 
 ## Key Existing Files
 
@@ -322,6 +325,19 @@ progress.
   It also can enable a nearby member without active inviting when the leader
   already appears full, preventing one disabled client from silently staying
   outside the hosted-party loop.
+- Phase 6 follow-up report `tmp/hosted-play-level20-20260630-072745.json`
+  reached full current-party agreement, all clients active, level 5, and
+  several quest turn-ins, but Cord died during a dangerous pull near the
+  southeast supplies and bandit camp.
+- `server/ambient_bots/progression_routes.ts` now lets dense routes opt out of
+  party level-bonus gating. Supplies, mine, bandits, ringleader, chapel undead,
+  whisper, ledger, silence, and rite routes keep their original safe level even
+  in a full party.
+- `server/ambient_bots/brain.ts` honors `allowPartyLevelBonus: false` before
+  applying the nearby party level bonus.
+- `tests/ambient_player_bot_brain.test.ts` covers a level 5 nearby party not
+  entering the supplies camp early while preserving the existing murloc group
+  bonus coverage.
 
 ## Phase 5 Validation
 
@@ -408,6 +424,14 @@ progress.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed on immediate rerun after the same restart. The report was `tmp/hosted-play-live-harness-2026-06-29T23-07-43-580Z.json`; it observed hosted invite, party target size, party chat, party intent and roles, cooperation mode, quest signals, all party members touching quest state, support or combat signals, clean runtime, and stuck resets within limit.
 - `node --check scripts\hosted_play_live_harness.mjs`: passed after the current-party harness gate fix.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed with the new all-clients-currently-see-target-party gate. The report was `tmp/hosted-play-live-harness-2026-06-29T23-24-13-857Z.json`; it observed hosted invite, party target size, every client currently seeing the target party, party chat, party intent and roles, cooperation mode, quest signals, all party members touching quest state, support or combat signals, clean runtime, and stuck resets within limit.
+- `npx vitest run tests\ambient_player_bot_brain.test.ts`: failed before the dense-route gate fix with a level 5 party entering `collect_supplies`, proving the supplies-camp early-entry bug.
+- `npx vitest run tests\ambient_player_bot_brain.test.ts`: passed after the dense-route gate fix, 1 file and 128 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed, 5 files and 197 tests.
+- `npm run build:server`: passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed after the dense-route gate fix.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after restart. The report was `tmp/hosted-play-live-harness-2026-06-30T00-29-01-477Z.json`; it observed hosted invite, party target size, every client currently seeing the target party, party chat, party intent and roles, cooperation mode, quest signals, all party members touching quest state, support or combat signals, clean runtime, and stuck resets within limit.
 
 ## Validation Matrix
 
@@ -453,9 +477,8 @@ progress.
 
 ## Known Current Gaps
 
-- A clean post-fix level 20 hosted run is still required after the harness
-  current-party validation fix. No new backend restart is required for that
-  script-only change, but the already running LAN/IP stack remains verified.
+- A clean post-fix level 20 hosted run is still required after the dense-route
+  gate fix and service restart.
 
 ## New Files In This Packet
 

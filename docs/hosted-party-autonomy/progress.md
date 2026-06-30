@@ -132,6 +132,18 @@ Current date: 2026-06-29
   see the target party, and can enable a nearby member without active inviting
   when the leader already appears full. This prevents a false pass when one
   client is still outside the active hosted-party loop.
+- The next level 20 run reached full current-party agreement, all clients active,
+  level 5, and multiple extra quest turn-ins, but Cord died during a dangerous
+  pull near the southeast supplies and bandit camp. The route planner had let a
+  5-player party lower dense 6+ route gates by one level. Dense camp routes now
+  opt out of party level-bonus gating, so the group can still benefit from
+  party strength on safer routes but must level to the original safe level before
+  entering supplies, mine, bandit, ringleader, and chapel-dense routes.
+- After that fix, the stack was restarted, IP access was verified on
+  `0.0.0.0`, the related test suite and server build passed, and the short live
+  harness passed with current full-party agreement, hosted invite, party chat,
+  intent, support or combat, quest signals, runtime clean, and max stuck resets
+  within limit.
 - The next level 20 run reached level 3 and showed the intent release fix
   working, but a distant follower could remain in `follow_leader` without
   closing the gap after `/follow` stopped pulling them. Non-combat hosted
@@ -217,4 +229,6 @@ Current date: 2026-06-29
   leader instead of dropping to brain behavior while the leader holds regroup.
 - [x] Live harness fails unless every client currently sees the target party,
   and reports current party members for diagnosing startup desync.
+- [x] Dense camp routes do not use party strength to enter one level early after
+  the level 5 supplies-camp death.
 - [ ] Final run occurs after the last code change and service restart.

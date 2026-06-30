@@ -602,6 +602,7 @@ function effectiveRoutePursueLevel(route: AmbientBotQuestRoute, view: BotWorldVi
 }
 
 function partyRouteLevelBonus(route: AmbientBotQuestRoute, view: BotWorldView): number {
+  if (route.allowPartyLevelBonus === false) return 0;
   const nearbyPartyLevels = nearbyContributingPartyLevels(view);
   const bonus = Math.min(PARTY_ROUTE_MAX_LEVEL_BONUS, Math.max(0, nearbyPartyLevels.length - 1));
   if (bonus <= 0) return 0;

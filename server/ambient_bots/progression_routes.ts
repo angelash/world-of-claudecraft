@@ -22,6 +22,7 @@ interface AmbientBotQuestRouteBase {
   deferReadyWhileQuestIdsActive?: readonly string[];
   dungeonId?: string;
   suggestedPartySize?: number;
+  allowPartyLevelBonus?: boolean;
 }
 
 export interface AmbientBotKillQuestRoute extends AmbientBotQuestRouteBase {
@@ -47,6 +48,7 @@ interface AmbientBotQuestRouteConfig {
   deferReadyWhileQuestIdsActive?: readonly string[];
   dungeonId?: string;
   suggestedPartySize?: number;
+  allowPartyLevelBonus?: boolean;
 }
 
 function campsForMobIds(mobIds: readonly string[]): AmbientBotPoint2d[] {
@@ -121,6 +123,7 @@ function killRoute(
       : {}),
     ...(dungeonId ? { dungeonId } : {}),
     ...(suggestedPartySize ? { suggestedPartySize } : {}),
+    ...(config.allowPartyLevelBonus === false ? { allowPartyLevelBonus: false } : {}),
   };
 }
 
@@ -158,6 +161,7 @@ function collectRoute(
       : {}),
     ...(config.dungeonId ? { dungeonId: config.dungeonId } : {}),
     ...(suggestedPartySize ? { suggestedPartySize } : {}),
+    ...(config.allowPartyLevelBonus === false ? { allowPartyLevelBonus: false } : {}),
   };
 }
 
@@ -166,22 +170,22 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
   killRoute('q_boars', 'trader_wilkes', 'wild_boar', 3, 'Collecting Bristly Boar Hides'),
   killRoute('q_spiders', 'apothecary_lin', 'webwood_spider', 4, 'Collecting Webwood Silk'),
   killRoute('q_murlocs', 'fisherman_brandt', 'mudfin_murloc', 6, 'Driving back the Mudfin'),
-  collectRoute('q_supplies', 'trader_wilkes', 'supply_crate', 6, 'Recovering Stolen Supplies'),
-  killRoute('q_mine', 'foreman_odell', 'tunnel_rat', 6, 'Clearing Tunnel Rats'),
+  collectRoute('q_supplies', 'trader_wilkes', 'supply_crate', 6, 'Recovering Stolen Supplies', { allowPartyLevelBonus: false }),
+  killRoute('q_mine', 'foreman_odell', 'tunnel_rat', 6, 'Clearing Tunnel Rats', { allowPartyLevelBonus: false }),
   killRoute('q_greyjaw', 'marshal_redbrook', 'old_greyjaw', 4, 'Hunting Old Greyjaw'),
-  killRoute('q_bandits', 'marshal_redbrook', 'vale_bandit', 6, 'Breaking the Vale Bandits'),
-  killRoute('q_ringleader', 'marshal_redbrook', 'gorrak', 7, 'Hunting Gorrak the Ruthless'),
-  killRoute('q_bones', 'brother_aldric', 'restless_bones', 6, 'Laying Restless Bones to Rest'),
-  collectRoute('q_whispers', 'brother_aldric', 'gravecaller_sigil', 6, "Searching for the Gravecaller's Sigil"),
-  collectRoute('q_names_of_the_dead', 'brother_aldric', 'weathered_ledger_page', 6, 'Gathering Weathered Ledger Pages'),
-  killRoute('q_silence_the_call', 'brother_aldric', 'restless_bones', 6, 'Silencing the Chapel Dead'),
+  killRoute('q_bandits', 'marshal_redbrook', 'vale_bandit', 6, 'Breaking the Vale Bandits', { allowPartyLevelBonus: false }),
+  killRoute('q_ringleader', 'marshal_redbrook', 'gorrak', 7, 'Hunting Gorrak the Ruthless', { allowPartyLevelBonus: false }),
+  killRoute('q_bones', 'brother_aldric', 'restless_bones', 6, 'Laying Restless Bones to Rest', { allowPartyLevelBonus: false }),
+  collectRoute('q_whispers', 'brother_aldric', 'gravecaller_sigil', 6, "Searching for the Gravecaller's Sigil", { allowPartyLevelBonus: false }),
+  collectRoute('q_names_of_the_dead', 'brother_aldric', 'weathered_ledger_page', 6, 'Gathering Weathered Ledger Pages', { allowPartyLevelBonus: false }),
+  killRoute('q_silence_the_call', 'brother_aldric', 'restless_bones', 6, 'Silencing the Chapel Dead', { allowPartyLevelBonus: false }),
   killRoute(
     'q_rite',
     'brother_aldric',
     'tunnel_rat',
     6,
     'Collecting Blessed Tallow',
-    { activeObjectiveId: 'hunt_rite_blessed_wax', questObjectiveIndex: 0 },
+    { activeObjectiveId: 'hunt_rite_blessed_wax', questObjectiveIndex: 0, allowPartyLevelBonus: false },
   ),
   killRoute(
     'q_rite',
@@ -189,7 +193,7 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'restless_bones',
     6,
     'Collecting Ghostly Essence',
-    { activeObjectiveId: 'hunt_rite_ghostly_essence', questObjectiveIndex: 1 },
+    { activeObjectiveId: 'hunt_rite_ghostly_essence', questObjectiveIndex: 1, allowPartyLevelBonus: false },
   ),
   collectRoute(
     'q_fenbridge_muster',

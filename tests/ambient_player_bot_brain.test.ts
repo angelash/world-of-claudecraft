@@ -985,6 +985,42 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
+  it('does not use party strength to enter the dense supplies camp early', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          id: 101,
+          lv: 5,
+          x: 100,
+          z: 100,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_greyjaw'],
+          qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 100, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 5, hp: 75, mhp: 75, res: 90, mres: 90, rtype: 'mana', x: 102, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Branoracc', cls: 'mage', level: 5, hp: 70, mhp: 70, res: 100, mres: 100, rtype: 'mana', x: 103, z: 100, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 102, k: 'player', tid: 'priest', lv: 5, x: 102, z: 100, dead: 0 },
+          { id: 103, k: 'player', tid: 'mage', lv: 5, x: 103, z: 100, dead: 0 },
+          { id: 9401, k: 'object', obj: 'supply_crate', x: 102, z: 100, loot: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).not.toBe('collect_supplies');
+    expect(result.objectiveLabel).not.toBe('Recovering Stolen Supplies');
+  });
+
   it('does not rush a higher route when nearby party members are below the grouped safe level', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
