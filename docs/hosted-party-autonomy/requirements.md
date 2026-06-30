@@ -75,6 +75,10 @@ operator to restart services manually.
   nearly dead.
 - A low-health hosted leader or tank should recover before tanking,
   preparation, focus, or ordinary combat commands continue.
+- Recovery movement should be tight enough that low-health members actually
+  reach safety. The current recovery travel anchor target is 4 yards.
+- If the low-health local member is also the party leader, it should prefer a
+  stable healer anchor before a closer damage dealer.
 - During regroup correction, a distant follower should return to the party
   leader before continuing local combat, restock, or quest brain, even if the
   follower is already in combat.

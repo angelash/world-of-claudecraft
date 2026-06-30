@@ -834,6 +834,32 @@ progress.
   party intent and roles, cooperation mode, quest signals, all party members
   touching quest state, support or combat signals, clean runtime, and stuck
   resets within limit.
+- Final-run attempt `tmp/hosted-play-level20-20260630-191457.json` failed
+  around level 2 with Aldric and Brana deaths. The party was full and recovery
+  intent was active, but low-health members stayed too loose around danger.
+- `server/hosted_play/party.ts` now tightens hosted recovery-anchor travel from
+  8 yards to 4 yards. When the local hosted leader is wounded, recovery first
+  prefers a stable healer anchor before falling back to a closer non-healer or
+  any other alive member.
+- `tests/hosted_play_party.test.ts` covers the new 4-yard recovery range and a
+  wounded leader choosing a stable priest over a closer rogue during recovery.
+- `npx vitest run tests\hosted_play_party.test.ts`: passed after the tight
+  recovery-anchor fix, 1 file and 34 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`:
+  passed after the tight recovery-anchor fix, 5 files and 211 tests.
+- `npm run build:server`: passed after the tight recovery-anchor fix.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`:
+  passed after the tight recovery-anchor fix.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls`
+  printed the IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`:
+  passed after restart. The report was
+  `tmp/hosted-play-live-harness-2026-06-30T11-29-43-962Z.json`; it observed
+  hosted invite, target party size, current full-party agreement, party chat,
+  party intent and roles, cooperation mode, quest signals, all party members
+  touching quest state, support or combat signals, clean runtime, and stuck
+  resets within limit.
 
 ## Validation Matrix
 
@@ -879,8 +905,8 @@ progress.
 
 ## Known Current Gaps
 
-- A clean post-fix level 20 hosted run is still required after the urgent
-  self-recovery priority fix and service restart.
+- A clean post-fix level 20 hosted run is still required after the tight
+  recovery-anchor fix, service restart, and short live harness check.
 
 ## New Files In This Packet
 

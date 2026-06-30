@@ -446,4 +446,9 @@ Current date: 2026-06-30
   regroup correction even while in combat.
 - [x] A low-health hosted leader or tank recovers before support preparation,
   tanking, or offensive commands can preempt self-preservation.
+- [x] Hosted party recovery uses a tighter 4-yard recovery anchor and wounded
+  leaders prefer stable healer anchors before closer damage dealers.
+- [x] The tight recovery-anchor fix was unit-tested, server-built, restarted
+  through the LAN/IP stack, and verified with a short live harness report at
+  `tmp/hosted-play-live-harness-2026-06-30T11-29-43-962Z.json`.
 - [ ] Final run occurs after the last code change and service restart.

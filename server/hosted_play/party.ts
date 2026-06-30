@@ -26,7 +26,7 @@ const HOSTED_PLAY_NEARBY_INVITE_RANGE = 32;
 const HOSTED_PLAY_REGROUP_RANGE = 28;
 const HOSTED_PLAY_FOLLOW_START_RANGE = 4;
 const HOSTED_PLAY_FOLLOW_MAX_RANGE = 60;
-const HOSTED_PLAY_RECOVERY_ANCHOR_RANGE = 8;
+const HOSTED_PLAY_RECOVERY_ANCHOR_RANGE = 4;
 const HOSTED_PLAY_RECOVERY_HEALTH_RATIO = 0.72;
 const HOSTED_PLAY_RECOVERY_POTION_RATIO = 0.65;
 const HOSTED_PLAY_RECOVERY_COMMAND_COOLDOWN_MS = 1_500;
@@ -495,6 +495,13 @@ function partyRecoveryAnchor(
   const aliveMembers = party.members.filter((member) => member.pid !== selfMember.pid && !member.dead);
   const stableMembers = aliveMembers.filter((member) =>
     memberHealthRatio(member) > HOSTED_PLAY_RECOVERY_HEALTH_RATIO);
+  if (leaderMember.pid === selfMember.pid && memberHealthRatio(selfMember) <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO) {
+    const stableHealer = [...stableMembers]
+      .filter((member) => canClassHeal(member.cls))
+      .sort((a, b) =>
+        distanceBetweenPartyMembers(selfMember, b) - distanceBetweenPartyMembers(selfMember, a))[0] ?? null;
+    if (stableHealer) return stableHealer;
+  }
   if (
     leaderMember.pid !== selfMember.pid
     && !leaderMember.dead
@@ -505,6 +512,10 @@ function partyRecoveryAnchor(
   const candidates = stableMembers.length > 0 ? stableMembers : aliveMembers;
   return [...candidates].sort((a, b) =>
     distanceBetweenPartyMembers(selfMember, a) - distanceBetweenPartyMembers(selfMember, b))[0] ?? null;
+}
+
+function canClassHeal(cls: PartyMemberInfo['cls']): boolean {
+  return cls === 'priest' || cls === 'paladin' || cls === 'shaman' || cls === 'druid';
 }
 
 function memberHealthRatio(member: PartyMemberInfo): number {
