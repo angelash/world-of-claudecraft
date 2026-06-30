@@ -172,7 +172,7 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
   killRoute('q_murlocs', 'fisherman_brandt', 'mudfin_murloc', 6, 'Driving back the Mudfin'),
   collectRoute('q_supplies', 'trader_wilkes', 'supply_crate', 6, 'Recovering Stolen Supplies', { allowPartyLevelBonus: false }),
   killRoute('q_mine', 'foreman_odell', 'tunnel_rat', 6, 'Clearing Tunnel Rats', { allowPartyLevelBonus: false }),
-  killRoute('q_greyjaw', 'marshal_redbrook', 'old_greyjaw', 5, 'Hunting Old Greyjaw'),
+  killRoute('q_greyjaw', 'marshal_redbrook', 'old_greyjaw', 5, 'Hunting Old Greyjaw', { allowPartyLevelBonus: false }),
   killRoute('q_bandits', 'marshal_redbrook', 'vale_bandit', 6, 'Breaking the Vale Bandits', { allowPartyLevelBonus: false }),
   killRoute('q_ringleader', 'marshal_redbrook', 'gorrak', 7, 'Hunting Gorrak the Ruthless', { allowPartyLevelBonus: false }),
   killRoute('q_bones', 'brother_aldric', 'restless_bones', 6, 'Laying Restless Bones to Rest', { allowPartyLevelBonus: false }),

@@ -260,6 +260,16 @@ Current date: 2026-06-30
   `0.0.0.0`, the targeted brain suite, hosted behavior suite, server build, and
   short live harness all passed. The short harness report was
   `tmp/hosted-play-live-harness-2026-06-30T06-32-26-730Z.json`.
+- The next post-commit level 20 attempt
+  `tmp/hosted-play-level20-20260630-143908.json` was stopped at about 24
+  minutes before a death because Brana was still level 4 but had already picked
+  `hunt_greyjaw`. The base route was level 5, but the one-level party bonus
+  still lowered it back to 4. Old Greyjaw now opts out of party level bonuses,
+  matching the intended "wait until level 5" rule.
+- After that Greyjaw bonus opt-out, the stack was restarted, IP access was
+  verified on `0.0.0.0`, the targeted brain suite, hosted behavior suite,
+  server build, and short live harness all passed. The short harness report was
+  `tmp/hosted-play-live-harness-2026-06-30T07-07-57-024Z.json`.
 
 ## Planning Packet Checklist
 
@@ -351,4 +361,6 @@ Current date: 2026-06-30
 - [x] Full-party route gate reductions are capped at one level, and Old Greyjaw
   pursuit waits until level 5 after repeated live deaths near the murloc and
   Greyjaw band.
+- [x] Old Greyjaw opts out of party level bonuses so a level 4 full party cannot
+  lower the level 5 route gate back to 4.
 - [ ] Final run occurs after the last code change and service restart.

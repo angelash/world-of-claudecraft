@@ -1061,6 +1061,47 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
+  it('does not use full-party strength to pursue Old Greyjaw at level 4', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          id: 101,
+          lv: 4,
+          x: 100,
+          z: 100,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_mine'],
+          qlog: [{ questId: 'q_greyjaw', counts: [0], state: 'active' }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 4, hp: 100, mhp: 100, res: 0, mres: 0, rtype: 'rage', x: 100, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 4, hp: 75, mhp: 75, res: 90, mres: 90, rtype: 'mana', x: 102, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Branoracc', cls: 'mage', level: 4, hp: 70, mhp: 70, res: 100, mres: 100, rtype: 'mana', x: 103, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 104, name: 'Branoradd', cls: 'paladin', level: 4, hp: 95, mhp: 95, res: 90, mres: 90, rtype: 'mana', x: 104, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 105, name: 'Branoraee', cls: 'druid', level: 4, hp: 80, mhp: 80, res: 95, mres: 95, rtype: 'mana', x: 105, z: 100, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 102, k: 'player', tid: 'priest', lv: 4, x: 102, z: 100, dead: 0 },
+          { id: 103, k: 'player', tid: 'mage', lv: 4, x: 103, z: 100, dead: 0 },
+          { id: 104, k: 'player', tid: 'paladin', lv: 4, x: 104, z: 100, dead: 0 },
+          { id: 105, k: 'player', tid: 'druid', lv: 4, x: 105, z: 100, dead: 0 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('does not use full-party strength to travel early for a distant Fenbridge pickup', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({

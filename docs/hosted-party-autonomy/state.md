@@ -71,8 +71,8 @@ progress.
 - A full nearby 5-player party can reduce safe route gates by one level at
   most. Dense camp routes that set `allowPartyLevelBonus: false` still receive
   no party gate reduction.
-- `q_greyjaw` pursuit starts at level 5 after repeated live deaths around the
-  murloc and Old Greyjaw travel band.
+- `q_greyjaw` pursuit starts at level 5 and opts out of party level bonuses
+  after repeated live deaths around the murloc and Old Greyjaw travel band.
 - Distant quest pickup travel does not receive party route gate reduction. The
   group can use party strength for accepted safe pursuit, but a far-away giver
   such as Fenbridge `q_prowlers` still requires the original route pickup level.
@@ -656,6 +656,30 @@ progress.
   party intent and roles, cooperation mode, quest signals, all party members
   touching quest state, support or combat signals, clean runtime, stuck resets
   within limit, and no deaths.
+- Final-run attempt `tmp/hosted-play-level20-20260630-143908.json` was stopped
+  at about 24 minutes because a level 4 full-party member selected
+  `hunt_greyjaw`. The route had a level 5 base gate, but the one-level party
+  bonus lowered it back to 4.
+- `server/ambient_bots/progression_routes.ts` now marks `q_greyjaw` with
+  `allowPartyLevelBonus: false` so the route waits until level 5 even in a full
+  party.
+- `tests/ambient_player_bot_brain.test.ts` covers a level 4 full party with
+  `q_greyjaw` active staying on Webwood grind instead of pursuing Old Greyjaw.
+- `npx vitest run tests\ambient_player_bot_brain.test.ts`: passed after the
+  Greyjaw party-bonus opt-out, 1 file and 132 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed after the Greyjaw party-bonus opt-out, 5 files and 203 tests.
+- `npm run build:server`: passed after the Greyjaw party-bonus opt-out.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed after the Greyjaw party-bonus opt-out.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls`
+  printed the IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`:
+  passed after restart. The report was
+  `tmp/hosted-play-live-harness-2026-06-30T07-07-57-024Z.json`; it observed
+  hosted invite, party target size, current full-party agreement, party chat,
+  party intent and roles, cooperation mode, quest signals, all party members
+  touching quest state, support or combat signals, clean runtime, and stuck
+  resets within limit.
 
 ## Validation Matrix
 
@@ -701,8 +725,8 @@ progress.
 
 ## Known Current Gaps
 
-- A clean post-fix level 20 hosted run is still required after the full-party
-  route gate rollback, Greyjaw level 5 gate, and service restart.
+- A clean post-fix level 20 hosted run is still required after the Greyjaw
+  party-bonus opt-out and service restart.
 
 ## New Files In This Packet
 
