@@ -46,6 +46,8 @@ progress.
 - Non-tank party members who are threatened at dangerous health self-preserve
   before focus fire. They use an available healing potion, stop attacking, clear
   the hostile target, and travel back toward the tank or leader.
+- Self-preservation healing potion commands respect the server potion cooldown.
+  Do not retry potion use every brain tick while the item is still cooling down.
 - The live harness is `scripts/hosted_play_live_harness.mjs`. It uses real REST
   and WebSocket clients against the persistent LAN/IP stack and writes JSON
   artifacts under `tmp/`.
@@ -395,6 +397,14 @@ progress.
 - `tests/hosted_play_party.test.ts` covers a low-health hosted mage being hit by
   a mob and choosing recovery commands plus party-anchor travel instead of
   continuing focus fire.
+- A follow-up 20-level run reached about 16 minutes with a clean five-client
+  party, no deaths, no hosted or WebSocket errors, and max stuck resets 0, but
+  exposed repeated healing-potion cooldown errors from the new self-preservation
+  path.
+- `server/ambient_bots/group_support.ts` now uses a 60 second command cooldown
+  for self-preservation healing potions.
+- `tests/hosted_play_party.test.ts` covers the same low-health hosted mage not
+  retrying the potion command 3 seconds later.
 
 ## Phase 5 Validation
 
@@ -529,6 +539,23 @@ progress.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`:
   passed after restart. The report was
   `tmp/hosted-play-live-harness-2026-06-30T03-06-19-490Z.json`; it observed
+  hosted invite, party target size, current full-party agreement, party chat,
+  party intent and roles, cooperation mode, quest signals, all party members
+  touching quest state, support or combat signals, clean runtime, and stuck
+  resets within limit.
+- `npx vitest run tests\hosted_play_party.test.ts`: passed after the potion
+  cooldown fix, 1 file and 26 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed after the potion cooldown fix, 5 files and 200 tests.
+- `git diff --check`: passed after the potion cooldown fix with line-ending
+  warnings only for edited files.
+- `npm run build:server`: passed after the potion cooldown fix.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed after the potion cooldown fix.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls`
+  printed the IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`:
+  passed after restart. The report was
+  `tmp/hosted-play-live-harness-2026-06-30T03-29-37-569Z.json`; it observed
   hosted invite, party target size, current full-party agreement, party chat,
   party intent and roles, cooperation mode, quest signals, all party members
   touching quest state, support or combat signals, clean runtime, and stuck

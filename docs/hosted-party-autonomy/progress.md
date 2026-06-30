@@ -203,6 +203,11 @@ Current date: 2026-06-30
   verified on `0.0.0.0`, and the short live harness passed with current
   full-party agreement, hosted invite, party chat, intent, support or combat,
   quest signals, clean runtime, and stuck resets within limit.
+- A follow-up 20-level run reached about 16 minutes with a clean five-player
+  party, no deaths, no hosted or WebSocket errors, and max stuck resets 0, but
+  the new self-preservation path retried healing potions faster than the
+  server's potion cooldown. The self-preservation potion command now uses a
+  60 second cooldown, and a regression test prevents the old 3 second retry.
 
 ## Planning Packet Checklist
 
