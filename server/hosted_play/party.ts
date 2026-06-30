@@ -31,6 +31,7 @@ const HOSTED_PLAY_URGENT_RECOVERY_ANCHOR_RANGE = 1.5;
 const HOSTED_PLAY_URGENT_RECOVERY_THREAT_RANGE = 10;
 const HOSTED_PLAY_URGENT_RECOVERY_RETREAT_DISTANCE = 8;
 const HOSTED_PLAY_RECOVERY_HEALTH_RATIO = 0.72;
+const HOSTED_PLAY_RECOVERY_STABLE_HEALTH_RATIO = 0.9;
 const HOSTED_PLAY_RECOVERY_POTION_RATIO = 0.65;
 const HOSTED_PLAY_FRAGILE_THREAT_RECOVERY_HEALTH_RATIO = 0.9;
 const HOSTED_PLAY_FRAGILE_THREAT_RECOVERY_POTION_RATIO = 0.72;
@@ -121,9 +122,9 @@ export function tickHostedPlayPartyCoordinator(
   const leaderDistance = distanceBetweenPartyMembers(selfMember, leaderMember);
   const groupLeaderName = leaderMember.name;
   const partyInCombat = party.members.some((member) => member.inCombat === 1) || hasPartyThreat(entities, party);
-  const partyRecovering = partyNeedsRecovery(party);
   const partyIntentRecovering = input.partyIntent?.kind === 'recovery'
     || input.partyIntent?.behavior === 'recover';
+  const partyRecovering = partyNeedsRecovery(party, partyIntentRecovering);
   const botRecord = hostedPlayPartyBotRecord(input.playerClass, selfMember);
   const liveState = hostedPartyLiveState(input.liveSelf, entities);
   const followerCanMoveToLeader = selfMember.pid !== leaderMember.pid
@@ -143,7 +144,7 @@ export function tickHostedPlayPartyCoordinator(
   const selfNeedsFrontlineRecovery = selfNeedsFrontlineThreatRecovery(selfMember, entities);
   const selfNeedsUrgentRecovery = !selfMember.dead
     && (
-      (partyRecovering && memberHealthRatio(selfMember) <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO)
+      (partyRecovering && memberHealthRatio(selfMember) <= HOSTED_PLAY_RECOVERY_STABLE_HEALTH_RATIO)
       || selfNeedsEarlyThreatRecovery
       || selfNeedsIntentRecovery
       || selfNeedsFrontlineRecovery
@@ -159,6 +160,7 @@ export function tickHostedPlayPartyCoordinator(
       nowMs: input.nowMs,
       entities,
       forceSelfRecovery: selfNeedsEarlyThreatRecovery || selfNeedsIntentRecovery || selfNeedsFrontlineRecovery,
+      forcePartyRecovery: partyRecovering,
     });
     if (recoveryPause) return recoveryPause;
   }
@@ -217,6 +219,7 @@ export function tickHostedPlayPartyCoordinator(
     nowMs: input.nowMs,
     entities,
     forceSelfRecovery: false,
+    forcePartyRecovery: partyRecovering,
   });
   if (recoveryPause) return recoveryPause;
 
@@ -456,8 +459,9 @@ function maybePauseForPartyRecovery(input: {
   nowMs: number;
   entities: Iterable<Record<string, unknown>>;
   forceSelfRecovery: boolean;
+  forcePartyRecovery: boolean;
 }): HostedPlayPartyTickResult | null {
-  if ((!partyNeedsRecovery(input.party) && !input.forceSelfRecovery) || input.selfMember.dead) return null;
+  if ((!input.forcePartyRecovery && !input.forceSelfRecovery) || input.selfMember.dead) return null;
 
   const selfHealthRatio = memberHealthRatio(input.selfMember);
   const commands: HostedPlayCommand[] = [];
@@ -474,6 +478,7 @@ function maybePauseForPartyRecovery(input: {
     commands.push({ cmd: 'use', item: potion });
   }
   const selfNeedsEscape = input.selfMember.pid !== input.leaderMember.pid
+    || input.forcePartyRecovery
     || selfHealthRatio <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO
     || input.forceSelfRecovery;
   if (
@@ -585,7 +590,7 @@ function partyIntentStillNeedsHold(
     case 'regroup':
       return partyNeedsRegroup(party, leaderMember);
     case 'recover':
-      return partyNeedsRecovery(party);
+      return partyNeedsRecovery(party, true);
     case 'prepare':
       return false;
     default:
@@ -603,10 +608,13 @@ function partyNeedsRegroup(
     && distanceBetweenPartyMembers(member, leaderMember) > HOSTED_PLAY_REGROUP_RANGE);
 }
 
-function partyNeedsRecovery(party: PartyInfo): boolean {
+function partyNeedsRecovery(party: PartyInfo, holdUntilStable = false): boolean {
+  const threshold = holdUntilStable
+    ? HOSTED_PLAY_RECOVERY_STABLE_HEALTH_RATIO
+    : HOSTED_PLAY_RECOVERY_HEALTH_RATIO;
   return party.members.some((member) =>
     member.dead
-    || memberHealthRatio(member) <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO);
+    || memberHealthRatio(member) <= threshold);
 }
 
 function selfNeedsFragileThreatRecovery(
@@ -661,7 +669,7 @@ function partyRecoveryAnchor(
 ): PartyMemberInfo | null {
   const aliveMembers = party.members.filter((member) => member.pid !== selfMember.pid && !member.dead);
   const stableMembers = aliveMembers.filter((member) =>
-    memberHealthRatio(member) > HOSTED_PLAY_RECOVERY_HEALTH_RATIO);
+    memberHealthRatio(member) > HOSTED_PLAY_RECOVERY_STABLE_HEALTH_RATIO);
   if (leaderMember.pid === selfMember.pid && memberHealthRatio(selfMember) <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO) {
     const stableHealer = [...stableMembers]
       .filter((member) => canClassHeal(member.cls))
@@ -672,7 +680,7 @@ function partyRecoveryAnchor(
   if (
     leaderMember.pid !== selfMember.pid
     && !leaderMember.dead
-    && memberHealthRatio(leaderMember) > HOSTED_PLAY_RECOVERY_HEALTH_RATIO
+    && memberHealthRatio(leaderMember) > HOSTED_PLAY_RECOVERY_STABLE_HEALTH_RATIO
   ) {
     return leaderMember;
   }

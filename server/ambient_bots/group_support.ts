@@ -128,6 +128,30 @@ export function maybeCoordinateAmbientPartySupport(
   });
   if (healDecision) return healDecision;
 
+  if (input.suppressFocusFire === true) {
+    const protectionDecision = maybeProtectPartyDuringRecovery({
+      self,
+      bot: input.bot,
+      hostileMobs,
+      members,
+      abilities,
+      reserveCommandBatch: input.reserveCommandBatch,
+    });
+    if (protectionDecision) return protectionDecision;
+
+    const emergencyFocusDecision = maybeEmergencyRecoveryFocusFire({
+      self,
+      bot: input.bot,
+      hostileMobs,
+      members,
+      abilities,
+      reserveCommandBatch: input.reserveCommandBatch,
+    });
+    if (emergencyFocusDecision) return emergencyFocusDecision;
+
+    return null;
+  }
+
   if (!partyInCombat && input.suppressFocusFire !== true) {
     const selfPreparationDecision = maybePrepareSelfForParty({
       bot: input.bot,
@@ -160,18 +184,6 @@ export function maybeCoordinateAmbientPartySupport(
     if (tankDecision) return tankDecision;
   }
 
-  if (partyInCombat && input.suppressFocusFire === true) {
-    const emergencyFocusDecision = maybeEmergencyRecoveryFocusFire({
-      self,
-      bot: input.bot,
-      hostileMobs,
-      members,
-      abilities,
-      reserveCommandBatch: input.reserveCommandBatch,
-    });
-    if (emergencyFocusDecision) return emergencyFocusDecision;
-  }
-
   if (partyInCombat && input.suppressFocusFire !== true) {
     const focusDecision = maybeFocusFire({
       self,
@@ -184,6 +196,41 @@ export function maybeCoordinateAmbientPartySupport(
       reserveCommandBatch: input.reserveCommandBatch,
     });
     if (focusDecision) return focusDecision;
+  }
+
+  return null;
+}
+
+function maybeProtectPartyDuringRecovery(input: {
+  self: SupportSelfView;
+  bot: AmbientPlayerBotRecord;
+  hostileMobs: readonly SupportMobView[];
+  members: readonly SupportPartyMemberView[];
+  abilities: ReadonlyMap<string, KnownAbility>;
+  reserveCommandBatch: AmbientPartySupportInput['reserveCommandBatch'];
+}): AmbientPartySupportDecision | null {
+  if (input.bot.class === 'warrior') {
+    const taunt = input.abilities.get('taunt');
+    if (!taunt) return null;
+    return tryHostileCastOnCandidates(
+      input.self,
+      orderedTauntTargets(input.hostileMobs, input.members, input.self),
+      taunt,
+      'taunt_party',
+      input.reserveCommandBatch,
+    );
+  }
+
+  if (input.bot.class === 'druid' && hasAuraKind(input.self.auras, 'form_bear')) {
+    const growl = input.abilities.get('growl');
+    if (!growl) return null;
+    return tryHostileCastOnCandidates(
+      input.self,
+      orderedTauntTargets(input.hostileMobs, input.members, input.self),
+      growl,
+      'taunt_party',
+      input.reserveCommandBatch,
+    );
   }
 
   return null;
@@ -394,6 +441,7 @@ function maybeEmergencyRecoveryFocusFire(input: {
   abilities: ReadonlyMap<string, KnownAbility>;
   reserveCommandBatch: AmbientPartySupportInput['reserveCommandBatch'];
 }): AmbientPartySupportDecision | null {
+  if (!recoveryEmergencyFocusAllowed(input.self, input.members)) return null;
   const focusTarget = selectEmergencyRecoveryThreat(input.hostileMobs, input.members);
   if (!focusTarget) return null;
   return maybeFocusFireTarget({
@@ -404,6 +452,19 @@ function maybeEmergencyRecoveryFocusFire(input: {
     reserveCommandBatch: input.reserveCommandBatch,
     groupMode: 'protect_party',
   });
+}
+
+function recoveryEmergencyFocusAllowed(
+  self: SupportSelfView,
+  members: readonly SupportPartyMemberView[],
+): boolean {
+  const selfMember = members.find((member) => member.member.pid === self.id) ?? null;
+  if (!selfMember || selfMember.member.dead || selfMember.threatenedCount > 0) return false;
+  if (healthRatio(selfMember.member) <= 0.9) return false;
+  if (members.some((member) => member.member.dead)) return false;
+  const unstableMembers = members.filter((member) =>
+    !member.member.dead && healthRatio(member.member) <= GROUP_RECOVERY_EMERGENCY_FOCUS_RATIO);
+  return unstableMembers.length === 1 && unstableMembers[0]?.member.pid !== self.id;
 }
 
 function maybeFocusFireTarget(input: {

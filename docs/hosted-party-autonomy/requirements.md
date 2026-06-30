@@ -78,6 +78,12 @@ operator to restart services manually.
   self-preservation, or tank protection action is being performed.
 - During recovery, healthy damage dealers may still use protective focus fire
   against a mob that is actively attacking a low-health party member.
+- Protective focus fire during recovery is narrow: it may run only when exactly
+  one non-self member is unstable, no one is dead, the helper is stable and not
+  threatened, and the target mob is actively attacking that unstable member.
+- Once recovery intent has been called, the party should stay in recovery until
+  every living member is above the stable recovery line, about 90 percent
+  health, so the group does not oscillate back to combat at the edge.
 - Recovery should trigger early enough for low-level cloth and healer survival,
   and recovery should use an available healing potion before the character is
   nearly dead.
@@ -102,6 +108,9 @@ operator to restart services manually.
   before harder pulls.
 - The group should keep questing after combat, looting, deaths, resupply, or
   party-size changes.
+- Hosted debug and live-harness command displays should show the commands that
+  the recovery gate actually allows, not raw brain suggestions that were
+  suppressed by the party coordinator.
 
 ### 5. Watchable Social Realism
 

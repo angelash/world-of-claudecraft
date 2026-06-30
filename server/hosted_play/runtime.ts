@@ -85,6 +85,7 @@ interface HostedPlayEntry {
   brainState: AmbientPlayerBotBrainState;
   lastBrainAtMs: number | null;
   lastBrainResult: AmbientPlayerBotBrainTickResult | null;
+  lastEffectiveCommands: readonly Record<string, unknown>[];
   brainDrivePaused: boolean;
   partyState: HostedPlayPartyState;
   partyChatState: AmbientPlayerBotPartyChatRuntimeState;
@@ -243,6 +244,7 @@ export class HostedPlayRuntime {
           lastError: '',
           lastBrainAtMs: null,
           lastBrainResult: null,
+          lastEffectiveCommands: [],
           brainDrivePaused: false,
           partyChatState: createAmbientPlayerBotPartyChatRuntimeState(),
           partyChatRunnerState: {},
@@ -270,6 +272,7 @@ export class HostedPlayRuntime {
           brainState: createAmbientPlayerBotBrainState(),
           lastBrainAtMs: null,
           lastBrainResult: null,
+          lastEffectiveCommands: [],
           brainDrivePaused: false,
           partyState: createHostedPlayPartyState(),
           partyChatState: createAmbientPlayerBotPartyChatRuntimeState(),
@@ -441,9 +444,11 @@ export class HostedPlayRuntime {
       : { commands: [], runnerStatePatch: {} };
     entry.partyChatRunnerState = { ...partyChatResult.runnerStatePatch };
 
+    const effectiveCommands: Record<string, unknown>[] = [];
     if (!allowLocalQuestBrain) {
       for (const command of partyResult.commands) {
         this.game.applyHostedPlayCommand(characterId, command);
+        effectiveCommands.push(command);
       }
     }
     if (partyResult.pauseBrainDrive && !allowLocalQuestBrain) {
@@ -469,6 +474,7 @@ export class HostedPlayRuntime {
     if (!partyResult.pauseBrainDrive || allowLocalQuestBrain || allowSelfMaintenanceBrain) {
       for (const command of result.commands) {
         this.game.applyHostedPlayCommand(characterId, command);
+        effectiveCommands.push(command);
       }
     } else {
       for (const command of hostedBrainCommandsAllowedWhilePartyPaused(
@@ -477,8 +483,10 @@ export class HostedPlayRuntime {
         liveState,
       )) {
         this.game.applyHostedPlayCommand(characterId, command);
+        effectiveCommands.push(command);
       }
     }
+    entry.lastEffectiveCommands = effectiveCommands;
     for (const command of socialResult.commands) {
       this.applyHostedPlaySocialCommand(characterId, command);
     }
@@ -718,8 +726,8 @@ function hostedPlayDebugSnapshot(
     objectiveSuggestedPartySize: result?.objectiveSuggestedPartySize ?? 0,
     moveInput: result ? { ...result.moveInput } : {},
     facing: typeof facing === 'number' && Number.isFinite(facing) ? roundDebugNumber(facing) : null,
-    commands: result
-      ? result.commands.slice(0, HOSTED_PLAY_DEBUG_MAX_COMMANDS).map(hostedPlayDebugCommand)
+    commands: entry
+      ? entry.lastEffectiveCommands.slice(0, HOSTED_PLAY_DEBUG_MAX_COMMANDS).map(hostedPlayDebugCommand)
       : [],
     travelGoal: result?.travelGoal ? hostedPlayDebugTravelGoal(result.travelGoal) : null,
     brainState: {

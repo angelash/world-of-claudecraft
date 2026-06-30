@@ -696,4 +696,31 @@ Current date: 2026-06-30
   `npm run build:server`, `npm run build`, LAN/IP restart, `0.0.0.0` port
   verification, printed IP URLs, `/api/status`, and short live harness report
   `tmp/hosted-play-live-harness-2026-06-30T22-36-21-740Z.json`.
+- [x] Level 20 candidate `tmp\hosted-play-level20-20260701-063937.json`
+  reached a full five-player party and showed invite, chat, roles, quest, and
+  recovery signals, but failed around level 2 with six player deaths. Samples
+  showed `recovery/recover` intent active while status still displayed
+  `target`, `cast`, `attack`, `loot`, restock, and combat objectives. The group
+  also kept trying to act while several members were below a safe recovery line.
+- [x] Hosted recovery now holds active recovery intent until all living members
+  are above the stable line, about 90 percent health, instead of releasing as
+  soon as the 72 percent start line is crossed. Recovery support now allows only
+  healing, self-preservation, taunt or growl protection, and narrow protective
+  focus when exactly one non-self member is unstable and the helper is stable.
+  Ordinary tank offense, preparation, and damage-dealer focus remain blocked.
+- [x] Hosted runtime debug command snapshots now record the effective commands
+  allowed by the party coordinator, so live reports no longer show suppressed
+  brain `target`, `cast`, `attack`, or `loot` commands as if they were active
+  behavior during recovery.
+- [x] Focused validation after the recovery stabilization fix passed:
+  `npx vitest run tests\hosted_play_party.test.ts tests\hosted_play_runtime.test.ts tests\ambient_player_bot_group.test.ts`.
+- [x] Broader validation after the recovery stabilization fix also passed:
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`.
+- [x] Recovery stabilization was also covered by `git diff --check`,
+  `npm run build:server`, `npm run build`, LAN/IP restart through
+  `scripts\windows_stack.ps1`, `0.0.0.0` port verification, printed IP URLs,
+  `/api/status`, and short live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T23-07-38-590Z.json`. The short run
+  reached the target five-player party, observed invite, chat, intent, quest,
+  and support signals, stayed runtime-clean, and had zero player deaths.
 - [ ] Final run occurs after the last code change and service restart.

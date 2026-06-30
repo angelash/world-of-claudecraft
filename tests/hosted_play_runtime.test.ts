@@ -633,6 +633,7 @@ describe('HostedPlayRuntime', () => {
       objectiveId: 'combat',
       debug: {
         brainDrivePaused: true,
+        commands: [],
       },
     });
   });

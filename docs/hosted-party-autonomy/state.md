@@ -105,6 +105,18 @@ progress.
   or self-preservation support gets first chance, any remaining hosted member
   must pause ordinary brain work, stop attacking, clear unsafe targets, and
   travel back to a stable party anchor while the party still needs recovery.
+- Active recovery intent now holds the party until all living members are above
+  the stable recovery line, about 90 percent health. The normal 72 percent line
+  starts recovery, and the stable line releases it only after the group is ready
+  to resume pulls.
+- Recovery support is deliberately narrow. During recovery, group support may
+  heal, self-preserve, taunt or growl a mob off an ally, or use protective focus
+  only when exactly one non-self member is unstable, no one is dead, and the
+  helper is stable and not threatened. Ordinary tank offense, preparation, and
+  damage-dealer focus stay blocked.
+- Hosted debug command snapshots now show effective commands that survived the
+  recovery gate, not raw brain commands that were suppressed by the party
+  coordinator.
 - Non-tank group self-preservation starts at 72 percent health during party
   combat, and healing potion use starts at 65 percent health. This is
   intentionally earlier than solo emergency retreat so low-level cloth and
@@ -1243,6 +1255,29 @@ progress.
   party intent and roles, cooperation mode, quest signals, all party members
   touching quest state, support or combat signals, clean runtime, and stuck
   resets within limit.
+- `tmp\hosted-play-level20-20260701-063937.json` reached a full five-player
+  party but failed around level 2 with six player deaths. Recovery intent was
+  active, but several members still showed combat, restock, loot, target, cast,
+  and attack behavior while multiple party members were below a stable recovery
+  line.
+- Recovery stabilization now holds active recovery intent until all living
+  members exceed about 90 percent health. During recovery, support allows only
+  healing, self-preservation, taunt or growl protection, and a narrow protective
+  focus case with one unstable non-self target. Runtime debug commands now show
+  the effective commands allowed by the party coordinator.
+- Latest focused validation after the recovery stabilization fix:
+  `npx vitest run tests\hosted_play_party.test.ts tests\hosted_play_runtime.test.ts tests\ambient_player_bot_group.test.ts`
+  passed.
+- Latest broader validation after the recovery stabilization fix:
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`
+  passed.
+- Recovery stabilization was also covered by `git diff --check`,
+  `npm run build:server`, `npm run build`, LAN/IP restart through
+  `scripts\windows_stack.ps1`, `0.0.0.0` port verification, printed IP URLs,
+  `/api/status`, and short live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T23-07-38-590Z.json`. The short run
+  reached the target five-player party, observed invite, chat, intent, quest,
+  and support signals, stayed runtime-clean, and had zero player deaths.
 
 ## Validation Matrix
 
@@ -1289,7 +1324,7 @@ progress.
 ## Known Current Gaps
 
 - A clean post-fix level 20 hosted run is still required after the latest
-  recovery hard-pause fix, service restart, and short live harness check.
+  recovery stabilization fix, service restart, and short live harness check.
 
 ## New Files In This Packet
 

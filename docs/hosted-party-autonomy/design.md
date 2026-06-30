@@ -68,13 +68,21 @@ hosted recovery threshold is intentionally early for low-level play: about 72
 percent health, with healing potion use below about 65 percent when one is
 available. That keeps the party from treating recovery chat as flavor while
 some members keep pulling pressure onto a collapsing fight. Heals,
-self-preservation, and tank protection still run before this pause so the group
-can save an ally instead of standing idle.
+self-preservation, and taunt or growl style tank protection still run before
+this pause so the group can save an ally instead of standing idle. Ordinary
+tank offense, preparation, buff setup, and damage-dealer focus stay blocked
+while recovery suppression is active.
 
 Party chat uses the same recovery line as behavior. Any living member below
 the hosted recovery threshold keeps the party intent in recovery, not focus or
 buff preparation. This avoids the visible mismatch where characters say the
 team is stable while someone is still below the health line.
+
+Once recovery intent is active, the hosted coordinator uses a stable release
+line of about 90 percent health. The 72 percent line starts recovery early, and
+the 90 percent line ends it only after the party is actually ready to pull
+again. This hysteresis prevents the group from oscillating between recovery and
+focus while low-level members are still fragile.
 
 `recover_party` is the explicit no-advance state for hosted recovery without a
 movement target. It is not battle preparation. While this mode is active, the
@@ -83,9 +91,17 @@ the pause. Only recovery consumables, healing, tank protection, and protective
 focus against a mob actively killing a low-health member may proceed.
 
 Recovery focus suppression has one tactical exception: if a mob is actively
-attacking a low-health party member, healthy damage dealers may protectively
-focus that specific mob. This keeps recovery from becoming passive while a
-threat is already killing the tank or healer.
+attacking a low-health party member, one stable and unthreatened damage dealer
+may protectively focus that specific mob. This exception is disabled when any
+member is dead, when the helper is not stable, or when more than one member is
+unstable. In those cases the correct player-like behavior is to reset the pull,
+not to add more damage pressure to a collapsing fight.
+
+Hosted debug status reports effective commands for the last decision tick. If
+the party coordinator suppresses a raw brain command during recovery, the live
+harness and hosted panel should show the filtered command set instead of
+displaying `target`, `cast`, `attack`, or `loot` as though they were current
+behavior.
 
 If the local hosted character is itself at or below the recovery threshold,
 self-preservation comes first, even for the leader or tank. The coordinator
