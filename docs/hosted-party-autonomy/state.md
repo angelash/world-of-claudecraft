@@ -59,9 +59,12 @@ progress.
   follower is outside close-follow range, party coordination also gives it a
   travel goal toward the leader so movement continues while `/follow` is cooling
   down or no longer pulling.
-- Grouped quest route gates now use a conservative party-level check. A group
-  can reduce a route by at most one level, and every nearby contributing party
-  member must meet that grouped safe level.
+- Grouped quest route gates now use a conservative party-level check. A partial
+  group can reduce a route by at most one level, and every nearby contributing
+  party member must meet that grouped safe level.
+- A full nearby 5-player party can reduce safe route gates by up to two levels.
+  Dense camp routes that set `allowPartyLevelBonus: false` still receive no
+  party gate reduction.
 - Distant non-combat followers must close the leader gap before doing
   preparation buffs or preparation-style support.
 - Hosted followers must keep traveling back to the leader at any distance while
@@ -368,6 +371,15 @@ progress.
   Zealots.
 - `tests/ambient_player_bot_brain.test.ts` covers the updated deferred-route
   grind expectations.
+- Phase 6 follow-up report `tmp/hosted-play-level20-20260630-094001.json`
+  confirmed the Webwood grind fallback but still reached only level 4 after
+  about 25 minutes.
+- `server/ambient_bots/brain.ts` now allows a full nearby 5-player party to
+  lower safe route gates by up to two levels. Routes that opt out of party gate
+  reduction remain unchanged.
+- `tests/ambient_player_bot_brain.test.ts` covers a level 4 full party entering
+  the murloc route two levels below the solo gate while the dense route tests
+  continue to require original gates.
 
 ## Phase 5 Validation
 
@@ -469,6 +481,10 @@ progress.
 - Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
 - `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after restart. The report was `tmp/hosted-play-live-harness-2026-06-30T01-37-15-385Z.json`; it observed hosted invite, party target size, every client currently seeing the target party, party chat, party intent and roles, cooperation mode, quest signals, all party members touching quest state, support or combat signals, clean runtime, and stuck resets within limit.
+- `npx vitest run tests\ambient_player_bot_brain.test.ts`: passed after the
+  full-party route gate bonus fix, 1 file and 129 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed, 5 files and 199 tests.
+- `npm run build:server`: passed.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed after the non-ambient invite priority fix.
 - Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
 - `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.

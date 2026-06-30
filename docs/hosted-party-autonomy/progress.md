@@ -171,6 +171,12 @@ Current date: 2026-06-29
   `0.0.0.0`, and the short live harness passed with current full-party
   agreement, hosted invite, party chat, intent, support or combat, quest
   signals, runtime clean, and stuck resets within limit.
+- The next long run confirmed the new grind fallback at level 4, but progression
+  was still too slow for a 20-level acceptance window. Full 5-player parties now
+  lower safe route gates by up to 2 levels, while dense camp routes still opt
+  out. This lets a complete hosted party move into safer murloc-style routes
+  earlier without reintroducing the supplies, bandit, mine, or chapel early-entry
+  deaths.
 - The next level 20 run reached level 3 and showed the intent release fix
   working, but a distant follower could remain in `follow_leader` without
   closing the gap after `/follow` stopped pulling them. Non-combat hosted

@@ -49,6 +49,7 @@ const COMMAND_COOLDOWN_MS = 900;
 const QUEST_INTAKE_NEARBY_RANGE = 18;
 const PARTY_ROUTE_NEARBY_RANGE = 48;
 const PARTY_ROUTE_MAX_LEVEL_BONUS = 1;
+const PARTY_ROUTE_FULL_GROUP_LEVEL_BONUS = 2;
 const RECOVERY_HP_THRESHOLD = 0.7;
 const RECOVERY_MANA_THRESHOLD = 0.45;
 const FOOD_RESTOCK_TRIGGER_COUNT = 2;
@@ -604,7 +605,10 @@ function effectiveRoutePursueLevel(route: AmbientBotQuestRoute, view: BotWorldVi
 function partyRouteLevelBonus(route: AmbientBotQuestRoute, view: BotWorldView): number {
   if (route.allowPartyLevelBonus === false) return 0;
   const nearbyPartyLevels = nearbyContributingPartyLevels(view);
-  const bonus = Math.min(PARTY_ROUTE_MAX_LEVEL_BONUS, Math.max(0, nearbyPartyLevels.length - 1));
+  const maxBonus = nearbyPartyLevels.length >= 5
+    ? PARTY_ROUTE_FULL_GROUP_LEVEL_BONUS
+    : PARTY_ROUTE_MAX_LEVEL_BONUS;
+  const bonus = Math.min(maxBonus, Math.max(0, nearbyPartyLevels.length - 1));
   if (bonus <= 0) return 0;
   const effectiveLevel = Math.max(1, route.pursueAtLevel - bonus);
   return Math.min(...nearbyPartyLevels) >= effectiveLevel ? bonus : 0;
