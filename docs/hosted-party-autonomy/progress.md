@@ -594,4 +594,20 @@ Current date: 2026-06-30
   `git diff --check`, `npm run build:server`, LAN/IP restart, `0.0.0.0` port
   verification, printed IP URLs, `/api/status`, and short live harness report
   `tmp/hosted-play-live-harness-2026-06-30T16-57-01-151Z.json`.
+- [x] Post-fix observation run
+  `tmp/hosted-play-level20-20260701-010039.json` stayed full-party,
+  death-free, runtime-clean, and stuck-free through level 5, but it showed a
+  slow level-5 grind: after the murloc and Greyjaw work was complete, the party
+  still used Webwood Lurkers while waiting for level 6 dense-route gates.
+- [x] Full nearby level-5 parties that have completed `q_murlocs` now grind
+  Mudfin Skulkers instead of Webwood Lurkers while waiting for the level 6
+  route gates. This keeps the dense supplies, mine, and bandit safety gates at
+  level 6, but lets a proven full group choose a more level-appropriate local
+  fallback.
+- [x] The level-5 full-party murloc grind fallback was covered by
+  `npx vitest run tests\ambient_player_bot_brain.test.ts`, the 7-file hosted,
+  brain, group, chat, game-server, and social regression, `git diff --check`,
+  `npm run build:server`, LAN/IP restart, `0.0.0.0` port verification, printed
+  IP URLs, `/api/status`, and short live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T17-58-57-655Z.json`.
 - [ ] Final run occurs after the last code change and service restart.

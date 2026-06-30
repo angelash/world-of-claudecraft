@@ -138,6 +138,9 @@ progress.
   line.
 - Party-chat intent uses the same low-level fragile threat rule so group
   communication switches to recovery before the member becomes critical.
+- Full nearby level-5 parties that have completed `q_murlocs` grind Mudfin
+  Skulkers while waiting for level 6 dense-route gates. This does not lower the
+  supplies, mine, bandit, ringleader, or chapel-dense route gates.
 
 ## Key Existing Files
 
@@ -1180,7 +1183,7 @@ progress.
 ## Known Current Gaps
 
 - A clean post-fix level 20 hosted run is still required after the latest
-  low-level fragile threat recovery fix, service restart, and short live
+  level-5 full-party murloc grind fallback, service restart, and short live
   harness check.
 
 ## New Files In This Packet

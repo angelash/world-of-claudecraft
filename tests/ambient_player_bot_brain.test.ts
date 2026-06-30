@@ -1348,6 +1348,46 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
+  it('uses murlocs as the level 5 full-party grind after the murloc quest is done', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          id: 101,
+          lv: 5,
+          x: 100,
+          z: 100,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_greyjaw'],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 100, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 5, hp: 75, mhp: 75, res: 90, mres: 90, rtype: 'mana', x: 102, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Branoracc', cls: 'mage', level: 5, hp: 70, mhp: 70, res: 100, mres: 100, rtype: 'mana', x: 103, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 104, name: 'Branoradd', cls: 'paladin', level: 5, hp: 95, mhp: 95, res: 90, mres: 90, rtype: 'mana', x: 104, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 105, name: 'Branoraee', cls: 'druid', level: 5, hp: 80, mhp: 80, res: 95, mres: 95, rtype: 'mana', x: 105, z: 100, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 102, k: 'player', tid: 'priest', lv: 5, x: 102, z: 100, dead: 0 },
+          { id: 103, k: 'player', tid: 'mage', lv: 5, x: 103, z: 100, dead: 0 },
+          { id: 104, k: 'player', tid: 'paladin', lv: 5, x: 104, z: 100, dead: 0 },
+          { id: 105, k: 'player', tid: 'druid', lv: 5, x: 105, z: 100, dead: 0 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Mudfin Skulker');
+    expect(result.travelGoal?.goalKey).toBe('camp:mudfin_murloc:0');
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('keeps pursuing Greyjaw when later level-6 routes are active but still deferred', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({

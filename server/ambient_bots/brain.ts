@@ -2052,7 +2052,19 @@ function grindRouteForView(view: BotWorldView): { mobId: string; camps: readonly
   ) {
     return { mobId: 'wild_boar', camps: campsFor('wild_boar') };
   }
+  if (
+    level === 5
+    && self.questsDone.has('q_murlocs')
+    && hasNearbyFullPartyAtLevel(view, 5)
+  ) {
+    return { mobId: 'mudfin_murloc', camps: campsFor('mudfin_murloc') };
+  }
   return { mobId: 'webwood_spider', camps: campsFor('webwood_spider') };
+}
+
+function hasNearbyFullPartyAtLevel(view: BotWorldView, minLevel: number): boolean {
+  const levels = nearbyContributingPartyLevels(view);
+  return levels.length >= 5 && levels.every((level) => level >= minLevel);
 }
 
 function questLabel(questId: string): string {
