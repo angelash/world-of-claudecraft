@@ -75,6 +75,10 @@ progress.
 - Nearby auto-invite treats ambient bots as filler candidates. If a visible
   non-ambient player and a visible ambient bot are both eligible, the
   non-ambient player wins even when the ambient bot is closer.
+- Grind fallback must be local and level-appropriate. After the Eastbrook boar
+  and spider chain, deferred level gates grind Webwood Lurkers instead of
+  lower-yield Wild Boars; Mirefen and Thornpeak fallback routes stay in their
+  current zone instead of walking back to old starter mobs.
 
 ## Key Existing Files
 
@@ -353,6 +357,17 @@ progress.
 - `scripts/hosted_play_live_harness.mjs` now keeps `entityId`, `killerId`, and
   `pid` in slim events, and records de-duplicated `playerDeathRecords` so one
   player death broadcast to all clients is not counted once per receiver.
+- Phase 6 follow-up report `tmp/hosted-play-level20-20260630-090303.json`
+  kept the correct 5-client party alive for about 25 minutes with zero player
+  deaths, but only reached level 4 because the leader fell back to grinding
+  Wild Boars after the early quest chain.
+- `server/ambient_bots/brain.ts` now chooses grind fallback from the full world
+  view. Eastbrook fallback moves to Webwood Lurkers after boars/spiders or
+  deferred murloc/supplies gates, Mirefen fallback stays on local marsh mobs,
+  and late Thornpeak fallback moves from Stormcrag Elementals to Wyrmcult
+  Zealots.
+- `tests/ambient_player_bot_brain.test.ts` covers the updated deferred-route
+  grind expectations.
 
 ## Phase 5 Validation
 
@@ -456,6 +471,10 @@ progress.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after restart. The report was `tmp/hosted-play-live-harness-2026-06-30T00-44-26-769Z.json`; it observed hosted invite, party target size, every client currently seeing the same 5 new clients in party, party chat, party intent and roles, cooperation mode, quest signals, all party members touching quest state, support or combat signals, clean runtime, and stuck resets 0.
 - `node --check scripts\hosted_play_live_harness.mjs`: passed after the
   player-death diagnostics fix.
+- `npx vitest run tests\ambient_player_bot_brain.test.ts`: passed after the
+  grind fallback route fix, 1 file and 128 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed, 5 files and 198 tests.
+- `npm run build:server`: passed.
 
 ## Validation Matrix
 

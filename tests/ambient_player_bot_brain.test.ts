@@ -943,8 +943,8 @@ describe('ambient player bot brain', () => {
     }, state);
 
     expect(result.objectiveId).toBe('grind');
-    expect(result.objectiveLabel).toBe('Grinding Wild Boar');
-    expect(result.travelGoal?.goalKey).toBe('camp:wild_boar:0');
+    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
@@ -1053,8 +1053,8 @@ describe('ambient player bot brain', () => {
     }, state);
 
     expect(result.objectiveId).toBe('grind');
-    expect(result.objectiveLabel).toBe('Grinding Wild Boar');
-    expect(result.travelGoal?.goalKey).toBe('camp:wild_boar:0');
+    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
   });
 
   it('resumes the murloc quest once the bot reaches the safe route level', () => {
@@ -1078,7 +1078,7 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
-  it('keeps grinding boars at level 5 instead of rushing an accepted murloc quest', () => {
+  it('keeps grinding spiders at level 5 instead of rushing an accepted murloc quest', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
       bot: bot(),
@@ -1094,8 +1094,8 @@ describe('ambient player bot brain', () => {
     }, state);
 
     expect(result.objectiveId).toBe('grind');
-    expect(result.objectiveLabel).toBe('Grinding Wild Boar');
-    expect(result.travelGoal?.goalKey).toBe('camp:wild_boar:0');
+    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
@@ -1175,15 +1175,15 @@ describe('ambient player bot brain', () => {
           qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
         },
         entities: [
-          { id: 39, k: 'mob', tid: 'wild_boar', x: 55, z: 12, h: true },
+          { id: 39, k: 'mob', tid: 'webwood_spider', x: -45, z: 12, h: true },
         ],
       }),
       nowMs: 1_000,
     }, state);
 
     expect(result.objectiveId).toBe('combat');
-    expect(result.objectiveLabel).toBe('Grinding Wild Boar');
-    expect(result.travelGoal?.goalKey).toBe('target:39:55:12');
+    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.travelGoal?.goalKey).toBe('target:39:-45:12');
     expect(result.commands).toEqual([{ cmd: 'target', id: 39 }]);
     expect(result.moveInput).toEqual({ f: 1 });
   });
@@ -1521,8 +1521,8 @@ describe('ambient player bot brain', () => {
     }, state);
 
     expect(result.objectiveId).toBe('grind');
-    expect(result.objectiveLabel).toBe('Grinding Wild Boar');
-    expect(result.travelGoal?.goalKey).toBe('camp:wild_boar:0');
+    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
     expect(result.moveInput).toEqual({ f: 1 });
   });
 

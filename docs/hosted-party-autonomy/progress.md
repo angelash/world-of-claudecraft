@@ -160,6 +160,13 @@ Current date: 2026-06-29
   summary dropped `entityId` and `killerId` and counted the same death once per
   client receiver, so the harness now records de-duplicated player death details
   before the next reproduction run.
+- The following reproduction run kept the correct 5-client party alive for
+  about 25 minutes with zero player deaths, but only reached level 4 and the
+  leader spent too much time grinding low-yield Wild Boars after the early
+  quest chain. Grind fallback now uses the full world view: Eastbrook bots that
+  have moved past boars grind Webwood Lurkers while waiting for level gates,
+  Mirefen fallback stays on local marsh mobs, and Thornpeak fallback moves from
+  Stormcrag to Wyrmcult targets at the high end.
 - The next level 20 run reached level 3 and showed the intent release fix
   working, but a distant follower could remain in `follow_leader` without
   closing the gap after `/follow` stopped pulling them. Non-combat hosted

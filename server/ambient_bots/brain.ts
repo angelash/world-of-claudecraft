@@ -405,7 +405,7 @@ function chooseObjective(view: BotWorldView, bot: AmbientPlayerBotRecord): Ambie
   if (gearPurchaseObjective) return gearPurchaseObjective;
   const deferredQuestRoute = deferredActiveQuestRoute(view);
   if (questObjective) return questObjective;
-  if (deferredQuestRoute) return grindObjectiveForSelf(view.self);
+  if (deferredQuestRoute) return grindObjectiveForView(view);
 
   if (inventoryHasJunk(view.self.inventory)) {
     const vendorProfile = vendorProfileFor(view.self);
@@ -416,11 +416,11 @@ function chooseObjective(view: BotWorldView, bot: AmbientPlayerBotRecord): Ambie
     };
   }
 
-  return grindObjectiveForSelf(view.self);
+  return grindObjectiveForView(view);
 }
 
-function grindObjectiveForSelf(self: BotSelfView): AmbientBotObjective {
-  const grind = grindRouteForSelf(self);
+function grindObjectiveForView(view: BotWorldView): AmbientBotObjective {
+  const grind = grindRouteForView(view);
   return {
     id: 'grind',
     label: `Grinding ${displayMobName(grind.mobId)}`,
@@ -1945,17 +1945,34 @@ function scoreCombatAbility(ability: CombatAbility, preferRanged: boolean): numb
   return score;
 }
 
-function grindRouteForSelf(self: BotSelfView): { mobId: string; camps: readonly BotPoint2d[] } {
+function grindRouteForView(view: BotWorldView): { mobId: string; camps: readonly BotPoint2d[] } {
+  const self = view.self;
   const zoneId = zoneAt(self.pos.z).id;
-  if (zoneId === 'thornpeak_heights') {
-    if (self.level <= 13) return { mobId: 'ridge_stalker', camps: campsFor('ridge_stalker') };
-    if (self.level <= 14) return { mobId: 'deeprock_kobold', camps: campsFor('deeprock_kobold') };
-    if (self.level <= 15) return { mobId: 'thornpeak_ogre', camps: campsFor('thornpeak_ogre') };
-    return { mobId: 'stormcrag_elemental', camps: campsFor('stormcrag_elemental') };
-  }
   const level = self.level;
+  if (zoneId === 'thornpeak_heights') {
+    if (level <= 13) return { mobId: 'ridge_stalker', camps: campsFor('ridge_stalker') };
+    if (level <= 14) return { mobId: 'deeprock_kobold', camps: campsFor('deeprock_kobold') };
+    if (level <= 15) return { mobId: 'thornpeak_ogre', camps: campsFor('thornpeak_ogre') };
+    if (level <= 17) return { mobId: 'stormcrag_elemental', camps: campsFor('stormcrag_elemental') };
+    return { mobId: 'wyrmcult_zealot', camps: campsFor('wyrmcult_zealot') };
+  }
+  if (zoneId === 'mirefen_marsh') {
+    if (level <= 7) return { mobId: 'mire_prowler', camps: campsFor('mire_prowler') };
+    if (level <= 8) return { mobId: 'deepfen_murloc', camps: campsFor('deepfen_murloc') };
+    if (level <= 10) return { mobId: 'mire_widow', camps: campsFor('mire_widow') };
+    if (level <= 11) return { mobId: 'fen_troll', camps: campsFor('fen_troll') };
+    return { mobId: 'gravecaller_cultist', camps: campsFor('gravecaller_cultist') };
+  }
   if (level <= 3) return { mobId: 'forest_wolf', camps: campsFor('forest_wolf') };
-  if (level <= 5) return { mobId: 'wild_boar', camps: campsFor('wild_boar') };
+  if (
+    level <= 5
+    && !self.questsDone.has('q_boars')
+    && !self.questsDone.has('q_spiders')
+    && !self.questLog.has('q_murlocs')
+    && !self.questLog.has('q_supplies')
+  ) {
+    return { mobId: 'wild_boar', camps: campsFor('wild_boar') };
+  }
   return { mobId: 'webwood_spider', camps: campsFor('webwood_spider') };
 }
 
