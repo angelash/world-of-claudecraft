@@ -321,6 +321,83 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
+  it('helps party members backfill an earlier active quest before pushing ahead', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          inv: [
+            { itemId: 'baked_bread', count: 4 },
+            { itemId: 'minor_healing_potion', count: 3 },
+          ],
+          qdone: ['q_wolves', 'q_boars'],
+          qlog: [{ questId: 'q_spiders', counts: [0, 0], state: 'active' }],
+          party: {
+            members: [
+              { pid: 101, dead: false, qdone: ['q_wolves', 'q_boars'], qlog: [] },
+              {
+                pid: 202,
+                dead: false,
+                qdone: ['q_wolves'],
+                qlog: [{ questId: 'q_boars', counts: [2], state: 'active' }],
+              },
+            ],
+          },
+        },
+        entities: [
+          { id: 202, k: 'player', tid: 'mage', x: 1, z: 1, lv: 4 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_boars');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('helps party members turn in an earlier ready quest before pushing ahead', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          x: 37,
+          z: 7,
+          inv: [
+            { itemId: 'baked_bread', count: 4 },
+            { itemId: 'minor_healing_potion', count: 3 },
+          ],
+          qdone: ['q_wolves', 'q_boars'],
+          qlog: [{ questId: 'q_spiders', counts: [0, 0], state: 'active' }],
+          party: {
+            members: [
+              { pid: 101, dead: false, qdone: ['q_wolves', 'q_boars'], qlog: [] },
+              {
+                pid: 202,
+                dead: false,
+                qdone: ['q_wolves'],
+                qlog: [{ questId: 'q_boars', counts: [5], state: 'ready' }],
+              },
+            ],
+          },
+        },
+        entities: [
+          { id: 202, k: 'player', tid: 'mage', x: 36, z: 7, lv: 4 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('turnin_boars');
+    expect(result.travelGoal?.goalKey).toBe('npc:trader_wilkes');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('casts a ranged damage spell when a mage sees a wolf in quest range', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({

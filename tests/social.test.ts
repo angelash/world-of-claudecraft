@@ -399,6 +399,19 @@ describe('parties', () => {
     );
   });
 
+  it('partyInfo carries member quest state for hosted party coordination', () => {
+    const { sim, b } = makeDuo();
+    const meta = sim.meta(b);
+    if (!meta) throw new Error('missing party member meta');
+    meta.questLog.set('q_boars', { questId: 'q_boars', counts: [2], state: 'active' });
+    meta.questsDone.add('q_wolves');
+
+    const info = mustPartyMember(sim, b);
+
+    expect(info.qlog).toEqual([{ questId: 'q_boars', counts: [2], state: 'active' }]);
+    expect(info.qdone).toEqual(['q_wolves']);
+  });
+
   it('converts a party to a two-group raid with a ten player cap', () => {
     const sim = makeWorld();
     const leader = sim.addPlayer('warrior', 'Leader');

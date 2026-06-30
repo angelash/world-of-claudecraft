@@ -111,6 +111,12 @@ progress.
   healer characters do not wait until they are nearly dead.
 - The live harness de-duplicates one player death reported through both
   `death` and `playerDeath` events by victim and second-level time bucket.
+- `partyInfo` member snapshots now include `qlog` and `qdone` so hosted and
+  ambient coordination can reason about party quest sync.
+- The ambient quest brain scans party member quest state from earliest route to
+  latest route after visible local quest intake and before its own active
+  route. A leader who has already completed an earlier route helps a living
+  party member finish or turn in that route before pushing ahead.
 
 ## Key Existing Files
 
@@ -1009,6 +1015,43 @@ progress.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`:
   passed after the local active quest override. The report was
   `tmp/hosted-play-live-harness-2026-06-30T13-34-19-062Z.json`; it observed
+  hosted invite, target party size, current full-party agreement, party chat,
+  party intent and roles, cooperation mode, quest signals, all party members
+  touching quest state, support or combat signals, clean runtime, and stuck
+  resets within limit.
+- The next level 20 candidate,
+  `tmp/hosted-play-level20-20260630-213929.json`, was stopped after about 28.6
+  minutes with a full party, no deaths, no hosted errors, no WebSocket errors,
+  and no status errors. It exposed an early collection sync gap: Alden had
+  finished `q_boars`, while Mira, Corin, Tovin, and Liora were still active on
+  `q_boars` and short on `boar_hide` drops.
+- `src/world_api.ts` added optional `qlog` and `qdone` fields to
+  `PartyMemberInfo`.
+- `src/sim/sim.ts` now fills those fields in `partyInfo` member snapshots from
+  each member's `PlayerMeta`.
+- `server/ambient_bots/brain.ts` now parses party member quest state and uses
+  party backfill before the bot continues its own later active quest route.
+- `tests/social.test.ts` covers party snapshots carrying member quest state.
+- `tests/ambient_player_bot_brain.test.ts` covers helping a party member with
+  an earlier active `q_boars` route and routing to the earlier ready turn-in.
+- `npx vitest run tests\ambient_player_bot_brain.test.ts tests\social.test.ts`:
+  passed after party quest backfill, 2 files and 176 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`:
+  passed after party quest backfill, 6 files and 262 tests.
+- `npm run build:server`: passed after party quest backfill.
+- `npx tsc --noEmit`: failed on existing unrelated type errors in
+  `server/ai/active_triggers.ts`, `server/ambient_bots/social.ts`,
+  `server/game.ts`, `server/hosted_play/party.ts`, generated locale outputs,
+  and `tests/auto_loot.test.ts`. The focused server bundle still passes.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`:
+  passed after party quest backfill.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls`
+  printed the IP game and server URLs after the restart.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon` after
+  the restart.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`:
+  passed after party quest backfill. The report was
+  `tmp/hosted-play-live-harness-2026-06-30T14-25-44-997Z.json`; it observed
   hosted invite, target party size, current full-party agreement, party chat,
   party intent and roles, cooperation mode, quest signals, all party members
   touching quest state, support or combat signals, clean runtime, and stuck

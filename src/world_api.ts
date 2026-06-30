@@ -48,6 +48,8 @@ export interface PartyMemberInfo {
   inCombat: number;
   group: 1 | 2;
   auras?: PartyAuraInfo[];
+  qlog?: QuestProgress[];
+  qdone?: string[];
 }
 
 export interface PartyInfo {

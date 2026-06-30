@@ -498,4 +498,22 @@ Current date: 2026-06-30
   through the LAN/IP stack, verified on `0.0.0.0` with printed IP URLs, and
   smoke-tested with live harness report
   `tmp/hosted-play-live-harness-2026-06-30T13-34-19-062Z.json`.
+- [x] A later level 20 candidate at
+  `tmp/hosted-play-level20-20260630-213929.json` stayed full-party, death-free,
+  and runtime-clean for about 28.6 minutes, but showed the leader still
+  advancing after finishing `q_boars` while several members lacked boar hides.
+  `partyInfo` now carries member quest logs and completed quest ids, and the
+  ambient brain backfills the earliest living party member's active or ready
+  quest route before pushing its own later active route.
+- [x] The party quest backfill fix was covered by social snapshot tests and
+  ambient brain tests for active and ready member backfill. The targeted 6-file
+  hosted, brain, group, chat, and social regression passed, and
+  `npm run build:server` passed. `npx tsc --noEmit` still reports existing
+  repository type errors in unrelated files and generated locale outputs, so it
+  is recorded as a known broad gate blocker, not a blocker for this focused
+  runtime build.
+- [x] The party quest backfill fix was restarted through the LAN/IP stack,
+  verified on `0.0.0.0` with printed IP URLs and `/api/status`, and
+  smoke-tested with live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T14-25-44-997Z.json`.
 - [ ] Final run occurs after the last code change and service restart.

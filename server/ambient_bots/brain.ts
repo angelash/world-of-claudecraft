@@ -168,9 +168,17 @@ interface BotSelfView {
   inventory: InvSlot[];
   equipment: Partial<Record<EquipSlot, string>>;
   partyMemberIds: ReadonlySet<number>;
+  partyMembers: readonly BotPartyQuestMemberView[];
   questLog: Map<string, QuestProgress>;
   questsDone: Set<string>;
   talents: TalentAllocation | null;
+}
+
+interface BotPartyQuestMemberView {
+  id: number;
+  dead: boolean;
+  questLog: Map<string, QuestProgress>;
+  questsDone: Set<string>;
 }
 
 interface BotWorldView {
@@ -466,52 +474,73 @@ function chooseGearPurchaseObjective(
 function chooseQuestObjective(view: BotWorldView): AmbientBotObjective | null {
   const readyRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find((route) => isQuestRouteReady(route, view));
   if (readyRoute) {
-    if (readyRoute.dungeonId && view.self.dungeonId === readyRoute.dungeonId) {
-      return dungeonExitObjective(readyRoute);
-    }
-    return {
-      id: readyRoute.turnInObjectiveId,
-      label: readyRoute.turnInLabel,
-      questId: readyRoute.questId,
-      npcTemplateId: readyRoute.turnInNpcTemplateId,
-    };
+    return readyQuestObjectiveForRoute(view, readyRoute);
   }
 
   const nearbyAvailableRoute = nearbyAvailableQuestRoute(view);
   if (nearbyAvailableRoute) return acceptQuestObjective(nearbyAvailableRoute);
 
+  const partyBackfillRoute = partyBackfillQuestRoute(view);
+  if (partyBackfillRoute) {
+    return partyBackfillRoute.progress.state === 'ready'
+      ? readyQuestObjectiveForRoute(view, partyBackfillRoute.route)
+      : activeQuestObjectiveForRoute(view, partyBackfillRoute.route);
+  }
+
   const activeRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find((route) => isQuestRouteActive(route, view));
   if (activeRoute) {
-    if (activeRoute.dungeonId && view.self.dungeonId !== activeRoute.dungeonId) {
-      return dungeonEntryObjective(activeRoute);
-    }
-    const activeCamps = activeRoute.dungeonId
-      ? resolveDungeonRouteCamps(view.self, activeRoute)
-      : activeRoute.camps;
-    return {
-      id: activeRoute.activeObjectiveId,
-      label: activeRoute.activeLabel,
-      questId: activeRoute.questId,
-      camps: activeCamps,
-      ...(activeRoute.dungeonId ? { dungeonId: activeRoute.dungeonId } : {}),
-      ...(activeRoute.suggestedPartySize
-        ? { suggestedPartySize: activeRoute.suggestedPartySize }
-        : {}),
-      ...(activeRoute.kind === 'kill'
-        ? {
-            mobId: activeRoute.mobId,
-            ...(activeRoute.alternateMobIds ? { alternateMobIds: activeRoute.alternateMobIds } : {}),
-            allowAnyHostileFallback: activeRoute.allowAnyHostileFallback ?? false,
-          }
-        : {
-            objectItemId: activeRoute.objectItemId,
-          }),
-    };
+    return activeQuestObjectiveForRoute(view, activeRoute);
   }
 
   const availableRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find((route) => isQuestRouteAvailable(route, view));
   if (!availableRoute) return null;
   return acceptQuestObjective(availableRoute);
+}
+
+function readyQuestObjectiveForRoute(
+  view: BotWorldView,
+  route: AmbientBotQuestRoute,
+): AmbientBotObjective {
+  if (route.dungeonId && view.self.dungeonId === route.dungeonId) {
+    return dungeonExitObjective(route);
+  }
+  return {
+    id: route.turnInObjectiveId,
+    label: route.turnInLabel,
+    questId: route.questId,
+    npcTemplateId: route.turnInNpcTemplateId,
+  };
+}
+
+function activeQuestObjectiveForRoute(
+  view: BotWorldView,
+  route: AmbientBotQuestRoute,
+): AmbientBotObjective {
+  if (route.dungeonId && view.self.dungeonId !== route.dungeonId) {
+    return dungeonEntryObjective(route);
+  }
+  const activeCamps = route.dungeonId
+    ? resolveDungeonRouteCamps(view.self, route)
+    : route.camps;
+  return {
+    id: route.activeObjectiveId,
+    label: route.activeLabel,
+    questId: route.questId,
+    camps: activeCamps,
+    ...(route.dungeonId ? { dungeonId: route.dungeonId } : {}),
+    ...(route.suggestedPartySize
+      ? { suggestedPartySize: route.suggestedPartySize }
+      : {}),
+    ...(route.kind === 'kill'
+      ? {
+          mobId: route.mobId,
+          ...(route.alternateMobIds ? { alternateMobIds: route.alternateMobIds } : {}),
+          allowAnyHostileFallback: route.allowAnyHostileFallback ?? false,
+        }
+      : {
+          objectItemId: route.objectItemId,
+        }),
+  };
 }
 
 function acceptQuestObjective(route: AmbientBotQuestRoute): AmbientBotObjective {
@@ -521,6 +550,27 @@ function acceptQuestObjective(route: AmbientBotQuestRoute): AmbientBotObjective 
     questId: route.questId,
     npcTemplateId: route.giverNpcTemplateId,
   };
+}
+
+function partyBackfillQuestRoute(
+  view: BotWorldView,
+): { route: AmbientBotQuestRoute; progress: QuestProgress } | null {
+  const partyMembers = view.self.partyMembers.filter((member) =>
+    member.id !== view.self.id && !member.dead);
+  if (partyMembers.length === 0) return null;
+  for (const route of AMBIENT_BOT_SOLO_QUEST_ROUTES) {
+    if (view.self.level < effectiveRoutePursueLevel(route, view)) continue;
+    for (const member of partyMembers) {
+      if (member.questsDone.has(route.questId)) continue;
+      const progress = member.questLog.get(route.questId);
+      if (!progress || progress.state === 'done') continue;
+      if (progress.state === 'ready') return { route, progress };
+      if (progress.state === 'active' && routeObjectiveNeedsWork(route, progress)) {
+        return { route, progress };
+      }
+    }
+  }
+  return null;
 }
 
 function deferredActiveQuestRoute(view: BotWorldView): AmbientBotQuestRoute | null {
@@ -1538,6 +1588,7 @@ function parseSelf(raw: Record<string, unknown> | null): BotSelfView | null {
     inventory: readInventory(raw.inv),
     equipment: readEquipment(raw.equip),
     partyMemberIds: readPartyMemberIds(raw.party, id),
+    partyMembers: readPartyQuestMembers(raw.party),
     questLog: new Map(readQuestLog(raw.qlog).map((quest) => [quest.questId, quest])),
     questsDone: new Set(readStringArray(raw.qdone)),
     talents: readTalents(raw.tal),
@@ -1632,6 +1683,24 @@ function readPartyMemberIds(raw: unknown, selfId: number): ReadonlySet<number> {
     if (pid !== null) ids.add(pid);
   }
   return ids;
+}
+
+function readPartyQuestMembers(raw: unknown): BotPartyQuestMemberView[] {
+  const record = readRecord(raw);
+  if (!record || !Array.isArray(record.members)) return [];
+  const members: BotPartyQuestMemberView[] = [];
+  for (const member of record.members) {
+    const memberRecord = readRecord(member);
+    const pid = memberRecord ? readNumber(memberRecord.pid) : null;
+    if (pid === null) continue;
+    members.push({
+      id: pid,
+      dead: readBoolean(memberRecord?.dead),
+      questLog: new Map(readQuestLog(memberRecord?.qlog).map((quest) => [quest.questId, quest])),
+      questsDone: new Set(readStringArray(memberRecord?.qdone)),
+    });
+  }
+  return members;
 }
 
 function readEquipment(raw: unknown): Partial<Record<EquipSlot, string>> {

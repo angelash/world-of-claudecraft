@@ -119,6 +119,16 @@ local 24-yard quest override range. The goal is to let lagging members finish
 nearby kills, loot, pickups, and turn-ins without allowing the party to split
 across the zone.
 
+The leader also needs visibility into party quest state, not only positions and
+health. Party snapshots carry each member's active quest log and completed
+quest ids. The ambient brain uses that to scan the route list from earliest to
+latest and select the first living party member who is behind on an accepted or
+ready route. If the member is active, the leader routes to the same objective
+and helps with kills or collection. If the member is ready, the leader routes
+to the turn-in. This backfill happens after local visible quest intake, so the
+team still accepts nearby pickups before leaving a hub, but before the leader
+continues its own later active route.
+
 This is a behavior rule, not just party chat flavor. Recovery and correction
 lines should reflect the same underlying state so the run looks and behaves
 like players calling a reset.

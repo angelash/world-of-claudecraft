@@ -15180,6 +15180,12 @@ export class Sim {
                       }]
                     : [],
                 ),
+                qlog: [...meta.questLog.values()].map((q) => ({
+                  questId: q.questId,
+                  counts: [...q.counts],
+                  state: q.state,
+                })),
+                qdone: [...meta.questsDone],
               },
             ]
           : [];

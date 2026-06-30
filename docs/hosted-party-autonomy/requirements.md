@@ -54,6 +54,12 @@ operator to restart services manually.
   level, gear, resupply, or finish easier active quests first.
 - Hosted play should avoid leaving pickup quests unaccepted when it is already
   near their quest giver and has room in the quest log.
+- The party should not abandon lagging members on earlier accepted quests. If
+  one member has completed a route but another living nearby party member is
+  still active or ready on that earlier route, the leader should help backfill
+  the earliest unfinished party quest before pushing into later content, except
+  when the character is already beside an eligible local quest giver and should
+  first accept that pickup.
 
 ### 4. Cooperative Tactics
 
