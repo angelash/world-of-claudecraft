@@ -128,6 +128,9 @@ progress.
   recovery has paused ordinary brain drive, including `assist_party` recovery
   pauses. Other local combat, loot, and quest commands remain suppressed during
   recovery unless they are explicitly allowed by a safer local-work rule.
+- The server hosted live-state party wire must include every member's `qlog`
+  and `qdone`. Ambient backfill depends on that live path, not only on
+  `Sim.partyInfo`, so GameServer seam tests cover it directly.
 
 ## Key Existing Files
 

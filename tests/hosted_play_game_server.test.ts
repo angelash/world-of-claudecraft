@@ -61,6 +61,36 @@ describe('GameServer hosted play seams', () => {
     });
   });
 
+  it('includes party member quest state in hosted-play live state', () => {
+    const server = new GameServer();
+    const leader = expectJoined(server.join(fakeWs(), 1, 101, 'Leader', 'warrior', null));
+    const member = expectJoined(server.join(fakeWs(), 2, 102, 'Member', 'mage', null));
+    const leaderMeta = server.sim.meta(leader.pid);
+    const memberMeta = server.sim.meta(member.pid);
+    if (!leaderMeta || !memberMeta) throw new Error('missing player meta');
+    leaderMeta.questsDone.add('q_wolves');
+    leaderMeta.questsDone.add('q_boars');
+    memberMeta.questsDone.add('q_wolves');
+    memberMeta.questLog.set('q_boars', { questId: 'q_boars', counts: [2], state: 'active' });
+
+    server.sim.partyInvite(member.pid, leader.pid);
+    server.sim.partyAccept(member.pid);
+    const state = server.buildHostedPlayLiveState(101);
+    const party = state?.self?.party as {
+      members?: Array<{
+        pid?: number;
+        qlog?: Array<{ questId: string; counts: number[]; state: string }>;
+        qdone?: string[];
+      }>;
+    } | null | undefined;
+    const memberWire = party?.members?.find((entry) => entry.pid === member.pid);
+
+    expect(memberWire).toMatchObject({
+      qlog: [{ questId: 'q_boars', counts: [2], state: 'active' }],
+      qdone: ['q_wolves'],
+    });
+  });
+
   it('notifies hosted-play observers only for real client input, not hosted input', () => {
     const server = new GameServer();
     const session = expectJoined(server.join(fakeWs(), 1, 101, 'Hero', 'warrior', null));

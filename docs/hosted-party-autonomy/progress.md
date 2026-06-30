@@ -556,4 +556,21 @@ Current date: 2026-06-30
   restart, `0.0.0.0` port verification, printed IP URLs, `/api/status`, and
   short live harness report
   `tmp/hosted-play-live-harness-2026-06-30T16-02-17-977Z.json`.
+- [x] Post-fix level 20 candidate
+  `tmp/hosted-play-level20-20260701-000540.json` reached a full party with no
+  deaths or hosted, WebSocket, or status errors, but was stopped around 16
+  minutes because the leader finished boars and spiders while four party
+  members still had active `q_boars` progress. The root cause was a live-path
+  gap: `Sim.partyInfo` carried member `qlog` and `qdone`, but
+  `GameServer.partyWire()` did not, so hosted runtime and ambient backfill could
+  not see teammate quest state online.
+- [x] `GameServer.partyWire()` now includes member `qlog` and `qdone`, with a
+  hosted live-state seam test proving the online hosted path exposes teammate
+  quest state for backfill decisions.
+- [x] The hosted party quest-state wire fix was covered by
+  `npx vitest run tests\hosted_play_game_server.test.ts`, the 7-file hosted,
+  brain, group, chat, and social regression, `npm run build:server`, LAN/IP
+  restart, `0.0.0.0` port verification, printed IP URLs, `/api/status`, and
+  short live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T16-29-09-687Z.json`.
 - [ ] Final run occurs after the last code change and service restart.

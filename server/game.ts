@@ -2947,7 +2947,7 @@ export class GameServer {
                 dead: e.dead ? 1 : 0,
                 inCombat: e.inCombat ? 1 : 0,
                 group: party.raidGroups.get(mPid) ?? 1,
-                auras: e.auras.flatMap((a) =>
+                 auras: e.auras.flatMap((a) =>
                   a.kind.startsWith('buff_') || a.kind === 'absorb' || a.kind === 'hot'
                     ? [{
                         id: a.id,
@@ -2957,6 +2957,8 @@ export class GameServer {
                       }]
                     : [],
                 ),
+                qlog: [...meta.questLog.values()],
+                qdone: [...meta.questsDone],
               }
             : null;
         })
