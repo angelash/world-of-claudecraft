@@ -418,10 +418,15 @@ function collectEvents(clients, report, eventCursorByPid) {
       if (event.type === 'castStart' || event.type === 'castStop') report.metrics.castEvents++;
       if (event.type === 'death') {
         const entityId = Number(event.entityId ?? -1);
-        if (clients.some((candidate) => candidate.pid === entityId)) report.metrics.playerDeathEvents++;
+        const victim = clients.find((candidate) => candidate.pid === entityId);
+        if (victim) recordPlayerDeath(report, victim, event);
         else report.metrics.mobDeathEvents++;
       }
-      if (event.type === 'playerDeath') report.metrics.playerDeathEvents++;
+      if (event.type === 'playerDeath') {
+        const pid = Number(event.pid ?? -1);
+        const victim = clients.find((candidate) => candidate.pid === pid);
+        recordPlayerDeath(report, victim ?? client, event);
+      }
       if (event.type === 'error') {
         report.metrics.errorEvents++;
         const text = typeof event.text === 'string' ? event.text : 'unknown error';
@@ -432,6 +437,23 @@ function collectEvents(clients, report, eventCursorByPid) {
     }
     eventCursorByPid.set(client.pid, client.events.length);
   }
+}
+
+function recordPlayerDeath(report, victim, event) {
+  const victimPid = Number(event.entityId ?? event.pid ?? victim.pid ?? -1);
+  const killerId = Number(event.killerId ?? -1);
+  const timeBucketMs = Math.floor(Number(event.atMs ?? 0) / 1_000) * 1_000;
+  const key = `${victimPid}:${killerId}:${timeBucketMs}`;
+  if (report.metrics.playerDeathRecords.some((record) => record.key === key)) return;
+  report.metrics.playerDeathRecords.push({
+    key,
+    atMs: Number(event.atMs ?? 0),
+    victimPid,
+    victimName: victim.name,
+    killerId,
+    eventType: event.type,
+  });
+  report.metrics.playerDeathEvents = report.metrics.playerDeathRecords.length;
 }
 
 function slimEvent(client, event) {
@@ -451,6 +473,9 @@ function slimEvent(client, event) {
     'gained',
     'amount',
     'ability',
+    'entityId',
+    'killerId',
+    'pid',
   ]) {
     if (event[key] !== undefined) slim[key] = event[key];
   }
@@ -570,6 +595,7 @@ function createReport(options, clients, statusBody) {
       combatCommandSamples: 0,
       mobDeathEvents: 0,
       playerDeathEvents: 0,
+      playerDeathRecords: [],
       errorEvents: 0,
       errorTexts: {},
       maxStuckResets: 0,

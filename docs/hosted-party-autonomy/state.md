@@ -350,6 +350,9 @@ progress.
   eligible as filler when no non-ambient candidate is available.
 - `tests/hosted_play_party.test.ts` covers a closer ambient bot losing invite
   priority to a nearby non-ambient player.
+- `scripts/hosted_play_live_harness.mjs` now keeps `entityId`, `killerId`, and
+  `pid` in slim events, and records de-duplicated `playerDeathRecords` so one
+  player death broadcast to all clients is not counted once per receiver.
 
 ## Phase 5 Validation
 
@@ -451,6 +454,8 @@ progress.
 - Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls` printed the IP game and server URLs.
 - `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`: passed after restart. The report was `tmp/hosted-play-live-harness-2026-06-30T00-44-26-769Z.json`; it observed hosted invite, party target size, every client currently seeing the same 5 new clients in party, party chat, party intent and roles, cooperation mode, quest signals, all party members touching quest state, support or combat signals, clean runtime, and stuck resets 0.
+- `node --check scripts\hosted_play_live_harness.mjs`: passed after the
+  player-death diagnostics fix.
 
 ## Validation Matrix
 

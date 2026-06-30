@@ -155,6 +155,11 @@ Current date: 2026-06-29
   agreement across the 5 new clients, hosted invites, party chat, intent,
   support or combat, quest state on all members, runtime clean, and stuck
   resets 0.
+- The next level 20 run reached level 3 with the correct 5-client party, but
+  was invalid because a player death occurred. The old harness recent-event
+  summary dropped `entityId` and `killerId` and counted the same death once per
+  client receiver, so the harness now records de-duplicated player death details
+  before the next reproduction run.
 - The next level 20 run reached level 3 and showed the intent release fix
   working, but a distant follower could remain in `follow_leader` without
   closing the gap after `/follow` stopped pulling them. Non-combat hosted
