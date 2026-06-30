@@ -104,6 +104,12 @@ This also applies while the follower is already in combat, because bringing the
 danger back to the tank is safer than letting a cloth or healer continue a
 split pull.
 
+The normal party correction threshold is 18 yards from the leader. This keeps a
+full party close enough to share targets, buffs, heals, and quest credit while
+still allowing short ranged spacing during pulls. A follower already in combat
+and beyond that threshold stops attacking, clears its local target, and travels
+back to the leader before continuing local fighting.
+
 This is a behavior rule, not just party chat flavor. Recovery and correction
 lines should reflect the same underlying state so the run looks and behaves
 like players calling a reset.

@@ -23,7 +23,7 @@ const HOSTED_PLAY_FOLLOW_COOLDOWN_MS = 6_000;
 const HOSTED_PLAY_NEARBY_INVITE_COOLDOWN_MS = 12_000;
 const HOSTED_PLAY_NEARBY_INVITE_TARGET_COOLDOWN_MS = 90_000;
 const HOSTED_PLAY_NEARBY_INVITE_RANGE = 32;
-const HOSTED_PLAY_REGROUP_RANGE = 28;
+const HOSTED_PLAY_REGROUP_RANGE = 18;
 const HOSTED_PLAY_FOLLOW_START_RANGE = 4;
 const HOSTED_PLAY_FOLLOW_MAX_RANGE = 60;
 const HOSTED_PLAY_RECOVERY_ANCHOR_RANGE = 4;
@@ -177,6 +177,16 @@ export function tickHostedPlayPartyCoordinator(
     nowMs: input.nowMs,
   }) : null;
   if (regroupReturn) return regroupReturn;
+
+  const formationReturn = !partyRecovering ? maybeReturnForFormationBreak({
+    liveSelf: input.liveSelf,
+    selfMember,
+    leaderMember,
+    leaderDistance,
+    state,
+    nowMs: input.nowMs,
+  }) : null;
+  if (formationReturn) return formationReturn;
 
   const supportDecision = !followerOutsidePartyActionRange
     && (partyInCombat || (canHostedProvidePartyPreparation(input.playerClass) && !followerNeedsToCloseGap))
@@ -377,6 +387,43 @@ function maybeReturnForRegroupIntent(input: {
   if (input.selfMember.pid === input.leaderMember.pid) return null;
   if (input.selfMember.dead || input.leaderMember.dead) return null;
   if (input.leaderDistance <= HOSTED_PLAY_REGROUP_RANGE) return null;
+
+  const commands: HostedPlayCommand[] = [];
+  if (
+    readSelfAutoAttack(input.liveSelf)
+    && reserveCommandBatch(input.state, input.nowMs, [{ key: 'stopattack', cooldownMs: HOSTED_PLAY_RECOVERY_COMMAND_COOLDOWN_MS }])
+  ) {
+    commands.push({ cmd: 'stopattack' });
+  }
+  if (
+    readSelfTargetId(input.liveSelf) !== null
+    && reserveCommandBatch(input.state, input.nowMs, [{ key: 'clear_target', cooldownMs: HOSTED_PLAY_RECOVERY_COMMAND_COOLDOWN_MS }])
+  ) {
+    commands.push({ cmd: 'target', id: null });
+  }
+
+  return {
+    commands,
+    pauseBrainDrive: true,
+    travelGoal: travelGoalToPartyMember(input.leaderMember, HOSTED_PLAY_FOLLOW_START_RANGE, 'hosted-regroup-leader'),
+    groupMode: 'follow_leader',
+    groupLeaderName: input.leaderMember.name,
+    groupLeaderDistance: input.leaderDistance,
+  };
+}
+
+function maybeReturnForFormationBreak(input: {
+  liveSelf: Record<string, unknown>;
+  selfMember: PartyMemberInfo;
+  leaderMember: PartyMemberInfo;
+  leaderDistance: number;
+  state: HostedPlayPartyState;
+  nowMs: number;
+}): HostedPlayPartyTickResult | null {
+  if (input.selfMember.pid === input.leaderMember.pid) return null;
+  if (input.selfMember.dead || input.leaderMember.dead) return null;
+  if (input.leaderDistance <= HOSTED_PLAY_REGROUP_RANGE) return null;
+  if (!input.selfMember.inCombat) return null;
 
   const commands: HostedPlayCommand[] = [];
   if (

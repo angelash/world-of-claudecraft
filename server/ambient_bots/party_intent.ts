@@ -3,7 +3,7 @@ import type { PartyInfo, PartyMemberInfo } from '../../src/world_api';
 import type { AmbientPartyRolePlan } from './party_roles';
 import type { AmbientPlayerBotLiveState } from './ws_client';
 
-const PARTY_REGROUP_RANGE = 28;
+const PARTY_REGROUP_RANGE = 18;
 const RECOVERY_CRITICAL_HEALTH_RATIO = 0.45;
 
 const INTENT_KINDS = [

@@ -476,4 +476,15 @@ Current date: 2026-06-30
 - [x] The protective recovery focus fix was restarted through the LAN/IP stack
   and verified with short live harness report
   `tmp/hosted-play-live-harness-2026-06-30T12-26-47-398Z.json`.
+- [x] A post-recovery level 20 candidate at
+  `tmp/hosted-play-level20-20260630-203014.json` reached a full party with no
+  deaths or hosted errors, but by 23.5 minutes the group was only level 3 to 4
+  and members were repeatedly 20 to 30 yards apart on separate objectives. Party
+  regroup correction is now tightened to 18 yards, and combat-split followers
+  stop attacking, clear local targets, and return to the leader before local
+  fighting continues.
+- [x] The tight-formation fix was unit-tested, server-built, restarted through
+  the LAN/IP stack, verified on `0.0.0.0` with printed IP URLs, and smoke-tested
+  with live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T13-00-44-250Z.json`.
 - [ ] Final run occurs after the last code change and service restart.
