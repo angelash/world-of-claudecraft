@@ -5,6 +5,8 @@ import type { AmbientPlayerBotLiveState } from './ws_client';
 
 const PARTY_REGROUP_RANGE = 18;
 const RECOVERY_CRITICAL_HEALTH_RATIO = 0.45;
+const RECOVERY_FRAGILE_THREAT_HEALTH_RATIO = 0.9;
+const RECOVERY_FRAGILE_THREAT_MAX_LEVEL = 4;
 
 const INTENT_KINDS = [
   'route_plan',
@@ -198,9 +200,10 @@ function partyIntentFacts(
   let deadCount = 0;
   let criticalHealthCount = 0;
   let laggingCount = 0;
+  const threatenedPids = threatenedPartyPids(liveState, partyIds);
   for (const member of party.members) {
     if (member.dead) deadCount++;
-    else if (member.mhp > 0 && member.hp / member.mhp <= RECOVERY_CRITICAL_HEALTH_RATIO) {
+    else if (memberNeedsRecoveryIntent(member, threatenedPids)) {
       criticalHealthCount++;
     }
     if (leader && member.pid !== leader.pid && distanceBetweenMembers(member, leader) > PARTY_REGROUP_RANGE) {
@@ -213,6 +216,23 @@ function partyIntentFacts(
     criticalHealthCount,
     laggingCount,
   };
+}
+
+function memberNeedsRecoveryIntent(
+  member: PartyMemberInfo,
+  threatenedPids: ReadonlySet<number>,
+): boolean {
+  if (member.mhp <= 0) return false;
+  const ratio = member.hp / member.mhp;
+  if (ratio <= RECOVERY_CRITICAL_HEALTH_RATIO) return true;
+  return threatenedPids.has(member.pid)
+    && isFragileLowLevelMember(member)
+    && ratio <= RECOVERY_FRAGILE_THREAT_HEALTH_RATIO;
+}
+
+function isFragileLowLevelMember(member: PartyMemberInfo): boolean {
+  if (member.level > RECOVERY_FRAGILE_THREAT_MAX_LEVEL) return false;
+  return member.cls === 'mage' || member.cls === 'priest' || member.cls === 'warlock';
 }
 
 function latestPartyMilestone(
@@ -261,11 +281,19 @@ function hasPartyThreat(
   liveState: AmbientPlayerBotLiveState,
   partyIds: ReadonlySet<number>,
 ): boolean {
+  return threatenedPartyPids(liveState, partyIds).size > 0;
+}
+
+function threatenedPartyPids(
+  liveState: AmbientPlayerBotLiveState,
+  partyIds: ReadonlySet<number>,
+): Set<number> {
+  const threatened = new Set<number>();
   for (const entity of liveState.entities.values()) {
     if (entity.k !== 'mob' || entity.dead === 1 || entity.dead === true) continue;
-    if (typeof entity.aggro === 'number' && partyIds.has(entity.aggro)) return true;
+    if (typeof entity.aggro === 'number' && partyIds.has(entity.aggro)) threatened.add(entity.aggro);
   }
-  return false;
+  return threatened;
 }
 
 function distanceBetweenMembers(a: PartyMemberInfo, b: PartyMemberInfo): number {

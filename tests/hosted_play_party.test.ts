@@ -620,6 +620,107 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
+  it('has a low-level threatened cloth member recover before the party recovery threshold', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 0,
+          z: 0,
+          lv: 2,
+          hp: 60,
+          mhp: 67,
+          target: 501,
+          auto: true,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 2, hp: 128, mhp: 128, res: 0, mres: 0, rtype: 'rage', x: 12, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'mage', level: 2, hp: 60, mhp: 67, res: 100, mres: 120, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 2, z: 0, aggro: 102 },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [
+        { cmd: 'stopattack' },
+        { cmd: 'target', id: null },
+      ],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 20, z: 0 },
+        arrivalRange: 1.5,
+        goalKey: 'hosted-party-retreat:101:501:20:0',
+      },
+      groupMode: 'assist_party',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 12,
+    });
+  });
+
+  it('uses a potion earlier for a low-level threatened cloth member', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 0,
+          z: 0,
+          lv: 2,
+          hp: 46,
+          mhp: 67,
+          target: 501,
+          auto: true,
+          inv: [{ itemId: 'minor_healing_potion', count: 1 }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 2, hp: 128, mhp: 128, res: 0, mres: 0, rtype: 'rage', x: 12, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'mage', level: 2, hp: 46, mhp: 67, res: 100, mres: 120, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 2, z: 0, aggro: 102 },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result.commands).toEqual([
+      { cmd: 'use', item: 'minor_healing_potion' },
+      { cmd: 'stopattack' },
+      { cmd: 'target', id: null },
+    ]);
+    expect(result.travelGoal).toEqual({
+      target: { x: 20, z: 0 },
+      arrivalRange: 1.5,
+      goalKey: 'hosted-party-retreat:101:501:20:0',
+    });
+    expect(result.groupMode).toBe('assist_party');
+  });
+
   it('keeps a wounded hosted member moving when only loosely near the anchor', () => {
     const state = createHostedPlayPartyState();
 

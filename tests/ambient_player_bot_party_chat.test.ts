@@ -226,6 +226,42 @@ describe('ambient player bot party chat shell', () => {
     }));
   });
 
+  it('calls recovery when a low-level cloth member is threatened before critical health', () => {
+    const state = createAmbientPlayerBotPartyChatRuntimeState();
+    const party: PartyInfo = {
+      leader: 101,
+      raid: false,
+      members: [
+        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 2, hp: 128, mhp: 128, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+        { pid: 102, name: 'Branorabb', cls: 'mage', level: 2, hp: 60, mhp: 67, res: 100, mres: 120, rtype: 'mana', x: 4, z: 0, dead: 0, inCombat: 1, group: 1 },
+      ],
+    };
+
+    const result = tickAmbientPlayerBotPartyChatShell({
+      bot: bot(),
+      liveState: liveState({
+        party,
+        entities: [
+          { id: 102, nm: 'Branorabb', k: 'player', x: 4, z: 0 },
+          { id: 501, k: 'mob', x: 5, z: 0, aggro: 102, dead: 0 },
+        ],
+      }),
+      recentEvents: [],
+      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+      objectiveId: 'q_boars',
+      objectiveLabel: 'Boar Hides',
+      groupMode: 'assist_party',
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      partyIntentKind: 'recovery',
+      partyIntentBehavior: 'recover',
+      partyIntentHoldAdvance: true,
+      partyIntentPreferAssist: false,
+    }));
+  });
+
   it('turns recent quest progress into praise intent and a quick morale call', () => {
     const state = createAmbientPlayerBotPartyChatRuntimeState();
     const party: PartyInfo = {

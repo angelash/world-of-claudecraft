@@ -573,4 +573,25 @@ Current date: 2026-06-30
   restart, `0.0.0.0` port verification, printed IP URLs, `/api/status`, and
   short live harness report
   `tmp/hosted-play-live-harness-2026-06-30T16-29-09-687Z.json`.
+- [x] Follow-up level 20 candidate
+  `tmp/hosted-play-level20-20260701-003111.json` proved the party quest-state
+  wire fix worked: all five members completed `q_wolves` and `q_boars`, but
+  Corin died at level 2 during a boar fight. The death timeline showed Corin
+  at 60/67 health still following focus intent, then at 46/67 health with no
+  potion command, leaving too little time for a cloth character to escape.
+- [x] Low-level fragile party members now self-preserve earlier while
+  threatened. Hosted and ambient support treat level 4 and below mage, priest,
+  and warlock characters as fragile under direct aggro below 90 percent health,
+  stop attacks, clear unsafe targets, retreat through the urgent recovery path,
+  and use a healing potion at the 72 percent party recovery line instead of
+  waiting for the ordinary 65 percent potion line.
+- [x] Party intent now calls recovery for the same low-level fragile threat
+  case, so party chat and behavior both switch away from focus before the
+  member becomes critical.
+- [x] The fragile-threat recovery fix was covered by
+  `npx vitest run tests\hosted_play_party.test.ts tests\ambient_player_bot_party_chat.test.ts`,
+  the 7-file hosted, brain, group, chat, game-server, and social regression,
+  `git diff --check`, `npm run build:server`, LAN/IP restart, `0.0.0.0` port
+  verification, printed IP URLs, `/api/status`, and short live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T16-57-01-151Z.json`.
 - [ ] Final run occurs after the last code change and service restart.

@@ -32,6 +32,9 @@ const HOSTED_PLAY_URGENT_RECOVERY_THREAT_RANGE = 10;
 const HOSTED_PLAY_URGENT_RECOVERY_RETREAT_DISTANCE = 8;
 const HOSTED_PLAY_RECOVERY_HEALTH_RATIO = 0.72;
 const HOSTED_PLAY_RECOVERY_POTION_RATIO = 0.65;
+const HOSTED_PLAY_FRAGILE_THREAT_RECOVERY_HEALTH_RATIO = 0.9;
+const HOSTED_PLAY_FRAGILE_THREAT_RECOVERY_POTION_RATIO = 0.72;
+const HOSTED_PLAY_FRAGILE_THREAT_MAX_LEVEL = 4;
 const HOSTED_PLAY_RECOVERY_COMMAND_COOLDOWN_MS = 1_500;
 const HOSTED_PLAY_RECOVERY_POTION_COOLDOWN_MS = 60_000;
 
@@ -129,9 +132,12 @@ export function tickHostedPlayPartyCoordinator(
   const followerOutsidePartyActionRange =
     followerNeedsToCloseGap && leaderDistance > HOSTED_PLAY_FOLLOW_MAX_RANGE;
 
-  const selfNeedsUrgentRecovery = partyRecovering
-    && !selfMember.dead
-    && memberHealthRatio(selfMember) <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO;
+  const selfNeedsEarlyThreatRecovery = selfNeedsFragileThreatRecovery(selfMember, entities);
+  const selfNeedsUrgentRecovery = !selfMember.dead
+    && (
+      (partyRecovering && memberHealthRatio(selfMember) <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO)
+      || selfNeedsEarlyThreatRecovery
+    );
   if (selfNeedsUrgentRecovery) {
     const recoveryPause = maybePauseForPartyRecovery({
       liveSelf: input.liveSelf,
@@ -142,6 +148,7 @@ export function tickHostedPlayPartyCoordinator(
       state,
       nowMs: input.nowMs,
       entities,
+      forceSelfRecovery: selfNeedsEarlyThreatRecovery,
     });
     if (recoveryPause) return recoveryPause;
   }
@@ -199,6 +206,7 @@ export function tickHostedPlayPartyCoordinator(
     state,
     nowMs: input.nowMs,
     entities,
+    forceSelfRecovery: false,
   });
   if (recoveryPause) return recoveryPause;
 
@@ -436,12 +444,17 @@ function maybePauseForPartyRecovery(input: {
   leaderDistance: number;
   state: HostedPlayPartyState;
   nowMs: number;
+  entities: Iterable<Record<string, unknown>>;
+  forceSelfRecovery: boolean;
 }): HostedPlayPartyTickResult | null {
-  if (!partyNeedsRecovery(input.party) || input.selfMember.dead) return null;
+  if ((!partyNeedsRecovery(input.party) && !input.forceSelfRecovery) || input.selfMember.dead) return null;
 
   const selfHealthRatio = memberHealthRatio(input.selfMember);
   const commands: HostedPlayCommand[] = [];
-  const potion = selfHealthRatio <= HOSTED_PLAY_RECOVERY_POTION_RATIO
+  const potionThreshold = input.forceSelfRecovery
+    ? HOSTED_PLAY_FRAGILE_THREAT_RECOVERY_POTION_RATIO
+    : HOSTED_PLAY_RECOVERY_POTION_RATIO;
+  const potion = selfHealthRatio <= potionThreshold
     ? findHealingPotion(input.liveSelf)
     : null;
   if (
@@ -451,7 +464,8 @@ function maybePauseForPartyRecovery(input: {
     commands.push({ cmd: 'use', item: potion });
   }
   const selfNeedsEscape = input.selfMember.pid !== input.leaderMember.pid
-    || selfHealthRatio <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO;
+    || selfHealthRatio <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO
+    || input.forceSelfRecovery;
   if (
     selfNeedsEscape
     && readSelfAutoAttack(input.liveSelf)
@@ -469,10 +483,11 @@ function maybePauseForPartyRecovery(input: {
 
   const anchor = partyRecoveryAnchor(input.party, input.selfMember, input.leaderMember);
   const anchorDistance = anchor ? distanceBetweenPartyMembers(input.selfMember, anchor) : 0;
-  const recoveryAnchorRange = selfHealthRatio <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO
+  const urgentSelfRecovery = input.forceSelfRecovery || selfHealthRatio <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO;
+  const recoveryAnchorRange = urgentSelfRecovery
     ? HOSTED_PLAY_URGENT_RECOVERY_ANCHOR_RANGE
     : HOSTED_PLAY_RECOVERY_ANCHOR_RANGE;
-  const threatRetreatGoal = anchor && selfHealthRatio <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO
+  const threatRetreatGoal = anchor && urgentSelfRecovery
     ? recoveryThreatRetreatGoal(input.liveSelf, input.entities, input.selfMember, anchor, recoveryAnchorRange)
     : null;
   const travelGoal = threatRetreatGoal ?? (anchor && anchorDistance > recoveryAnchorRange
@@ -582,6 +597,24 @@ function partyNeedsRecovery(party: PartyInfo): boolean {
   return party.members.some((member) =>
     member.dead
     || memberHealthRatio(member) <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO);
+}
+
+function selfNeedsFragileThreatRecovery(
+  selfMember: PartyMemberInfo,
+  entities: readonly Record<string, unknown>[],
+): boolean {
+  if (selfMember.dead || selfMember.level > HOSTED_PLAY_FRAGILE_THREAT_MAX_LEVEL) return false;
+  if (!isFragileHostedClass(selfMember.cls)) return false;
+  if (memberHealthRatio(selfMember) > HOSTED_PLAY_FRAGILE_THREAT_RECOVERY_HEALTH_RATIO) return false;
+  return entities.some((entity) =>
+    entity.k === 'mob'
+    && entity.dead !== 1
+    && entity.dead !== true
+    && entity.aggro === selfMember.pid);
+}
+
+function isFragileHostedClass(cls: PlayerClass): boolean {
+  return cls === 'mage' || cls === 'priest' || cls === 'warlock';
 }
 
 function partyRecoveryAnchor(

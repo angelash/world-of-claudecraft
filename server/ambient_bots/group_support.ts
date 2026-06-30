@@ -22,6 +22,8 @@ const GROUP_HEAL_IN_COMBAT_RATIO = 0.82;
 const GROUP_SHIELD_THREATENED_RATIO = 0.99;
 const GROUP_SELF_PRESERVE_THREATENED_RATIO = 0.72;
 const GROUP_SELF_PRESERVE_EMERGENCY_RATIO = 0.72;
+const GROUP_FRAGILE_SELF_PRESERVE_THREATENED_RATIO = 0.9;
+const GROUP_FRAGILE_SELF_PRESERVE_MAX_LEVEL = 4;
 const GROUP_SELF_PRESERVE_POTION_RATIO = 0.65;
 const GROUP_SELF_PRESERVE_ANCHOR_RANGE = 6;
 const GROUP_RECOVERY_EMERGENCY_FOCUS_RATIO = 0.72;
@@ -479,8 +481,11 @@ function maybePreserveThreatenedSelf(input: {
 
   const ratio = healthRatio(selfMember.member);
   const threatened = selfMember.threatenedCount > 0;
+  const threatenedRatio = isFragileLowLevelMember(selfMember.member)
+    ? GROUP_FRAGILE_SELF_PRESERVE_THREATENED_RATIO
+    : GROUP_SELF_PRESERVE_THREATENED_RATIO;
   const shouldPreserve =
-    (threatened && ratio <= GROUP_SELF_PRESERVE_THREATENED_RATIO)
+    (threatened && ratio <= threatenedRatio)
     || ratio <= GROUP_SELF_PRESERVE_EMERGENCY_RATIO;
   if (!shouldPreserve) return null;
 
@@ -535,6 +540,11 @@ function selfPreserveAnchor(
     .map((member) => member.member)
     .filter((member) => member.pid !== selfId && !member.dead)
     .sort((a, b) => a.pid - b.pid)[0] ?? null;
+}
+
+function isFragileLowLevelMember(member: PartyMemberInfo): boolean {
+  if (member.level > GROUP_FRAGILE_SELF_PRESERVE_MAX_LEVEL) return false;
+  return member.cls === 'mage' || member.cls === 'priest' || member.cls === 'warlock';
 }
 
 function maybePriestHeal(

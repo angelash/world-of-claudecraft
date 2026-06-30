@@ -131,6 +131,13 @@ progress.
 - The server hosted live-state party wire must include every member's `qlog`
   and `qdone`. Ambient backfill depends on that live path, not only on
   `Sim.partyInfo`, so GameServer seam tests cover it directly.
+- Low-level fragile party members under direct aggro must self-preserve before
+  the general recovery line. Level 4 and below mage, priest, and warlock
+  members begin threatened recovery below 90 percent health, use the urgent
+  retreat path, and may use healing potions at the 72 percent party recovery
+  line.
+- Party-chat intent uses the same low-level fragile threat rule so group
+  communication switches to recovery before the member becomes critical.
 
 ## Key Existing Files
 
@@ -1173,8 +1180,8 @@ progress.
 ## Known Current Gaps
 
 - A clean post-fix level 20 hosted run is still required after the latest
-  hosted recovery consumable override, service restart, and short live harness
-  check.
+  low-level fragile threat recovery fix, service restart, and short live
+  harness check.
 
 ## New Files In This Packet
 
