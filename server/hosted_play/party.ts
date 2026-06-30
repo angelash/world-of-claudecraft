@@ -1,6 +1,7 @@
 import type { PartyInfo, PartyMemberInfo } from '../../src/world_api';
 import type { SimEvent } from '../../src/sim/types';
 import type { PlayerClass, ResourceType } from '../../src/sim/types';
+import { ITEMS } from '../../src/sim/data';
 import {
   normalizeHostedPlayAutoInviteTargetPartySize,
   type HostedPlayAutoInviteTargetPartySize,
@@ -26,8 +27,10 @@ const HOSTED_PLAY_REGROUP_RANGE = 28;
 const HOSTED_PLAY_FOLLOW_START_RANGE = 4;
 const HOSTED_PLAY_FOLLOW_MAX_RANGE = 60;
 const HOSTED_PLAY_RECOVERY_ANCHOR_RANGE = 8;
-const HOSTED_PLAY_RECOVERY_CRITICAL_HEALTH_RATIO = 0.45;
+const HOSTED_PLAY_RECOVERY_HEALTH_RATIO = 0.72;
+const HOSTED_PLAY_RECOVERY_POTION_RATIO = 0.65;
 const HOSTED_PLAY_RECOVERY_COMMAND_COOLDOWN_MS = 1_500;
+const HOSTED_PLAY_RECOVERY_POTION_COOLDOWN_MS = 60_000;
 
 type HostedPlayCommand = Record<string, unknown>;
 
@@ -122,6 +125,18 @@ export function tickHostedPlayPartyCoordinator(
     followerCanMoveToLeader && leaderDistance > HOSTED_PLAY_FOLLOW_START_RANGE;
   const followerOutsidePartyActionRange =
     followerNeedsToCloseGap && leaderDistance > HOSTED_PLAY_FOLLOW_MAX_RANGE;
+
+  const regroupReturn = !partyRecovering ? maybeReturnForRegroupIntent({
+    intent: input.partyIntent ?? null,
+    liveSelf: input.liveSelf,
+    selfMember,
+    leaderMember,
+    leaderDistance,
+    state,
+    nowMs: input.nowMs,
+  }) : null;
+  if (regroupReturn) return regroupReturn;
+
   const supportDecision = !followerOutsidePartyActionRange
     && (partyInCombat || (canHostedProvidePartyPreparation(input.playerClass) && !followerNeedsToCloseGap))
     ? maybeCoordinateAmbientPartySupport({
@@ -306,6 +321,44 @@ export function tickHostedPlayPartyCoordinator(
   };
 }
 
+function maybeReturnForRegroupIntent(input: {
+  intent: AmbientPartyCoordinationIntent | null;
+  liveSelf: Record<string, unknown>;
+  selfMember: PartyMemberInfo;
+  leaderMember: PartyMemberInfo;
+  leaderDistance: number;
+  state: HostedPlayPartyState;
+  nowMs: number;
+}): HostedPlayPartyTickResult | null {
+  if (input.intent?.behavior !== 'regroup') return null;
+  if (input.selfMember.pid === input.leaderMember.pid) return null;
+  if (input.selfMember.dead || input.leaderMember.dead) return null;
+  if (input.leaderDistance <= HOSTED_PLAY_REGROUP_RANGE) return null;
+
+  const commands: HostedPlayCommand[] = [];
+  if (
+    readSelfAutoAttack(input.liveSelf)
+    && reserveCommandBatch(input.state, input.nowMs, [{ key: 'stopattack', cooldownMs: HOSTED_PLAY_RECOVERY_COMMAND_COOLDOWN_MS }])
+  ) {
+    commands.push({ cmd: 'stopattack' });
+  }
+  if (
+    readSelfTargetId(input.liveSelf) !== null
+    && reserveCommandBatch(input.state, input.nowMs, [{ key: 'clear_target', cooldownMs: HOSTED_PLAY_RECOVERY_COMMAND_COOLDOWN_MS }])
+  ) {
+    commands.push({ cmd: 'target', id: null });
+  }
+
+  return {
+    commands,
+    pauseBrainDrive: true,
+    travelGoal: travelGoalToPartyMember(input.leaderMember, HOSTED_PLAY_FOLLOW_START_RANGE, 'hosted-regroup-leader'),
+    groupMode: 'follow_leader',
+    groupLeaderName: input.leaderMember.name,
+    groupLeaderDistance: input.leaderDistance,
+  };
+}
+
 function maybePauseForPartyRecovery(input: {
   liveSelf: Record<string, unknown>;
   party: PartyInfo;
@@ -317,9 +370,19 @@ function maybePauseForPartyRecovery(input: {
 }): HostedPlayPartyTickResult | null {
   if (!partyNeedsRecovery(input.party) || input.selfMember.dead) return null;
 
+  const selfHealthRatio = memberHealthRatio(input.selfMember);
   const commands: HostedPlayCommand[] = [];
+  const potion = selfHealthRatio <= HOSTED_PLAY_RECOVERY_POTION_RATIO
+    ? findHealingPotion(input.liveSelf)
+    : null;
+  if (
+    potion
+    && reserveCommandBatch(input.state, input.nowMs, [{ key: `use:${potion}`, cooldownMs: HOSTED_PLAY_RECOVERY_POTION_COOLDOWN_MS }])
+  ) {
+    commands.push({ cmd: 'use', item: potion });
+  }
   const selfNeedsEscape = input.selfMember.pid !== input.leaderMember.pid
-    || memberHealthRatio(input.selfMember) <= HOSTED_PLAY_RECOVERY_CRITICAL_HEALTH_RATIO;
+    || selfHealthRatio <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO;
   if (
     selfNeedsEscape
     && readSelfAutoAttack(input.liveSelf)
@@ -405,7 +468,7 @@ function partyNeedsRegroup(
 function partyNeedsRecovery(party: PartyInfo): boolean {
   return party.members.some((member) =>
     member.dead
-    || memberHealthRatio(member) <= HOSTED_PLAY_RECOVERY_CRITICAL_HEALTH_RATIO);
+    || memberHealthRatio(member) <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO);
 }
 
 function partyRecoveryAnchor(
@@ -415,11 +478,11 @@ function partyRecoveryAnchor(
 ): PartyMemberInfo | null {
   const aliveMembers = party.members.filter((member) => member.pid !== selfMember.pid && !member.dead);
   const stableMembers = aliveMembers.filter((member) =>
-    memberHealthRatio(member) > HOSTED_PLAY_RECOVERY_CRITICAL_HEALTH_RATIO);
+    memberHealthRatio(member) > HOSTED_PLAY_RECOVERY_HEALTH_RATIO);
   if (
     leaderMember.pid !== selfMember.pid
     && !leaderMember.dead
-    && memberHealthRatio(leaderMember) > HOSTED_PLAY_RECOVERY_CRITICAL_HEALTH_RATIO
+    && memberHealthRatio(leaderMember) > HOSTED_PLAY_RECOVERY_HEALTH_RATIO
   ) {
     return leaderMember;
   }
@@ -531,6 +594,28 @@ function readSelfTargetId(value: Record<string, unknown>): number | null {
 
 function readSelfAutoAttack(value: Record<string, unknown>): boolean {
   return value.auto === true || value.auto === 1;
+}
+
+function findHealingPotion(liveSelf: Record<string, unknown>): string | null {
+  const inventory = Array.isArray(liveSelf.inv) ? liveSelf.inv : [];
+  let bestItemId: string | null = null;
+  let bestHealing = 0;
+  for (const rawSlot of inventory) {
+    if (!rawSlot || typeof rawSlot !== 'object' || Array.isArray(rawSlot)) continue;
+    const slot = rawSlot as Record<string, unknown>;
+    const itemId = typeof slot.itemId === 'string' ? slot.itemId : '';
+    const count = typeof slot.count === 'number' && Number.isFinite(slot.count) ? slot.count : 0;
+    if (!itemId || count <= 0) continue;
+    const item = ITEMS[itemId];
+    const healing = item && item.kind === 'potion' && 'potionHp' in item && typeof item.potionHp === 'number'
+      ? item.potionHp
+      : 0;
+    if (healing > bestHealing) {
+      bestHealing = healing;
+      bestItemId = itemId;
+    }
+  }
+  return bestItemId;
 }
 
 function partyInviteFromName(event: SimEvent): string | null {

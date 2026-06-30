@@ -63,11 +63,19 @@ dangerous health should:
 - pause ordinary focus-fire and quest actions until it stabilizes
 
 When party recovery is active because any member is dead or below the recovery
-threshold, healthy hosted damage dealers also pause ordinary focus fire. That
-keeps the party from treating recovery chat as flavor while some members keep
-pulling pressure onto a collapsing fight. Heals, self-preservation, and tank
-protection still run before this pause so the group can save an ally instead of
-standing idle.
+threshold, healthy hosted damage dealers also pause ordinary focus fire. The
+hosted recovery threshold is intentionally early for low-level play: about 72
+percent health, with healing potion use below about 65 percent when one is
+available. That keeps the party from treating recovery chat as flavor while
+some members keep pulling pressure onto a collapsing fight. Heals,
+self-preservation, and tank protection still run before this pause so the group
+can save an ally instead of standing idle.
+
+When party correction asks the team to regroup, a distant follower returns to
+the leader before ordinary support, combat, restock, or quest brain continues.
+This also applies while the follower is already in combat, because bringing the
+danger back to the tank is safer than letting a cloth or healer continue a
+split pull.
 
 This is a behavior rule, not just party chat flavor. Recovery and correction
 lines should reflect the same underlying state so the run looks and behaves

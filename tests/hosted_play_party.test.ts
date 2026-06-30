@@ -722,6 +722,171 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
+  it('starts hosted party recovery before a wounded cloth teammate becomes critical', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 16,
+          z: 0,
+          hp: 100,
+          mhp: 100,
+          target: 501,
+          auto: true,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 16, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 103, name: 'Branorabb', cls: 'priest', level: 12, hp: 70, mhp: 100, res: 80, mres: 100, rtype: 'mana', x: 13, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 3, z: 0, aggro: 101, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [
+        { cmd: 'stopattack' },
+        { cmd: 'target', id: null },
+      ],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 0, z: 0 },
+        arrivalRange: 8,
+        goalKey: 'hosted-party-recover:101:0:0',
+      },
+      groupMode: 'assist_party',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 16,
+    });
+  });
+
+  it('uses a healing potion from hosted party recovery before resuming local brain work', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 16,
+          z: 0,
+          hp: 60,
+          mhp: 100,
+          target: 501,
+          auto: true,
+          inv: [{ itemId: 'minor_healing_potion', count: 1 }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'rogue', level: 12, hp: 60, mhp: 100, res: 120, mres: 120, rtype: 'energy', x: 16, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [],
+        recentEvents: [],
+        playerClass: 'rogue',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [
+        { cmd: 'use', item: 'minor_healing_potion' },
+        { cmd: 'stopattack' },
+        { cmd: 'target', id: null },
+      ],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 0, z: 0 },
+        arrivalRange: 8,
+        goalKey: 'hosted-party-recover:101:0:0',
+      },
+      groupMode: 'assist_party',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 16,
+    });
+  });
+
+  it('brings a distant hosted follower back to the leader during regroup intent even while in combat', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 40,
+          z: 0,
+          hp: 100,
+          mhp: 100,
+          target: 501,
+          auto: true,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 40, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 42, z: 0, aggro: 102, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        partyIntent: {
+          schemaVersion: 1,
+          kind: 'correction',
+          behavior: 'regroup',
+          key: 'party-intent|correction|regroup',
+          summary: 'Tighten formation before moving',
+          targetName: 'Branoraaa',
+          focusCallerName: 'Branoraaa',
+          holdAdvance: true,
+          preferAssist: false,
+        },
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [
+        { cmd: 'stopattack' },
+        { cmd: 'target', id: null },
+      ],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 0, z: 0 },
+        arrivalRange: 4,
+        goalKey: 'hosted-regroup-leader:101:0:0',
+      },
+      groupMode: 'follow_leader',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 40,
+    });
+  });
+
   it('has a hosted warrior taunt off the healer before switching stance', () => {
     const state = createHostedPlayPartyState();
 

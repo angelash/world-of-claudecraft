@@ -775,6 +775,39 @@ progress.
   party intent and roles, cooperation mode, quest signals, all party members
   touching quest state, support or combat signals, clean runtime, and stuck
   resets within limit.
+- Final-run attempt `tmp/hosted-play-level20-20260630-183604.json` reached
+  level 3, party size 5, max quest log 5, max quest done 2, no stuck resets,
+  and no hosted, WebSocket, or status errors. It failed acceptance because
+  Corda and Brana died. Samples showed recovery intent active at the deaths,
+  but the recovery trigger still waited until about 45 percent health and a
+  distant healer could keep local combat or restock brain during correction
+  before recovery fully took over.
+- `server/hosted_play/party.ts` now starts party recovery at 72 percent health,
+  uses available healing potions below 65 percent directly from the party
+  recovery path, and returns distant followers to the leader during regroup
+  intent before ordinary support or combat can continue.
+- `tests/hosted_play_party.test.ts` covers early recovery at 70 percent team
+  health, direct recovery-potion use, and in-combat follower return during
+  regroup correction.
+- `npx vitest run tests\hosted_play_party.test.ts`: passed after the early
+  recovery and regroup-return fix, 1 file and 32 tests.
+- `npx vitest run tests\hosted_play_party.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_brain.test.ts`: passed after the early recovery and regroup-return fix, 3 files and 183 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed after the early recovery and regroup-return fix, 2 files and 26 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed after the early recovery and regroup-return fix, 5 files and 209 tests.
+- `npm run build:server`: passed after the early recovery and regroup-return
+  fix.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`:
+  passed after the early recovery and regroup-return fix.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls`
+  printed the IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`:
+  passed after restart. The report was
+  `tmp/hosted-play-live-harness-2026-06-30T11-00-03-907Z.json`; it observed
+  hosted invite, party target size, current full-party agreement, party chat,
+  party intent and roles, cooperation mode, quest signals, all party members
+  touching quest state, support or combat signals, clean runtime, and stuck
+  resets within limit.
 
 ## Validation Matrix
 
@@ -820,8 +853,8 @@ progress.
 
 ## Known Current Gaps
 
-- A clean post-fix level 20 hosted run is still required after the recovery
-  focus-suppression fix and service restart.
+- A clean post-fix level 20 hosted run is still required after the early
+  recovery and regroup-return fix and service restart.
 
 ## New Files In This Packet
 

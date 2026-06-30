@@ -70,6 +70,12 @@ operator to restart services manually.
 - When any party member is dead or below the recovery threshold, ordinary
   hosted damage-dealer focus fire should pause unless a higher-priority heal,
   self-preservation, or tank protection action is being performed.
+- Recovery should trigger early enough for low-level cloth and healer survival,
+  and recovery should use an available healing potion before the character is
+  nearly dead.
+- During regroup correction, a distant follower should return to the party
+  leader before continuing local combat, restock, or quest brain, even if the
+  follower is already in combat.
 - Buff-capable characters should apply practical party buffs before pulls.
 - The group should hold briefly for regrouping, recovery, buffs, and summons
   before harder pulls.

@@ -309,6 +309,23 @@ Current date: 2026-06-30
   hosted behavior suite, server build, and short live harness all passed. The
   short harness report was
   `tmp/hosted-play-live-harness-2026-06-30T10-30-40-509Z.json`.
+- Follow-up report `tmp/hosted-play-level20-20260630-183604.json` reached
+  level 3 with party size 5, broad quest intake, no stuck resets, and no hosted,
+  WebSocket, or status errors, but failed with deaths for Corda and Brana.
+  Samples showed the party was already issuing recovery and correction intents,
+  but low-level cloth recovery waited until about 45 percent health and a
+  distant healer could keep local combat or restock brain while regroup intent
+  was active.
+- Hosted party recovery now starts at 72 percent health, uses available healing
+  potions below 65 percent from the party recovery path itself, and makes
+  distant followers return to the leader during regroup intent even while they
+  are in combat. This prevents local combat or restock brain from overriding a
+  real party reset call.
+- After that early recovery and regroup-return fix, the stack was restarted, IP
+  access was verified on `0.0.0.0`, the hosted party suite, ambient brain suite,
+  hosted behavior suite, server build, and short live harness all passed. The
+  short harness report was
+  `tmp/hosted-play-live-harness-2026-06-30T11-00-03-907Z.json`.
 
 ## Planning Packet Checklist
 
@@ -410,4 +427,7 @@ Current date: 2026-06-30
 - [x] Party recovery suppresses hosted damage-dealer focus fire while another
   member is dead or critical, while preserving healing, self-preservation, and
   tank protection.
+- [x] Party recovery starts before low-level cloth members become critical,
+  directly uses healing potions, and makes distant followers return during
+  regroup correction even while in combat.
 - [ ] Final run occurs after the last code change and service restart.
