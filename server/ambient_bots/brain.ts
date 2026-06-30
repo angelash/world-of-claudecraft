@@ -562,7 +562,11 @@ function isQuestRouteAvailable(
   view: BotWorldView,
 ): boolean {
   return isQuestRouteAcceptable(route, view)
-    && view.self.level >= effectiveRoutePursueLevel(route, view);
+    && view.self.level >= distantQuestPickupLevel(route);
+}
+
+function distantQuestPickupLevel(route: AmbientBotQuestRoute): number {
+  return route.pursueAtLevel;
 }
 
 function isQuestRouteAcceptable(

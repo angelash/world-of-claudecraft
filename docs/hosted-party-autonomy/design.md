@@ -73,6 +73,8 @@ The quest layer should distinguish two operations:
 - Intake: accept eligible quests when the character is near the giver and has
   enough quest-log capacity.
 - Pursuit: choose which accepted or ready quest to actively complete now.
+- Distant pickup: choose a far-away giver only when the character meets the
+  route's original safe pickup level, without applying nearby party bonuses.
 
 The ambient brain currently chooses one ready, active, or available route from
 `AMBIENT_BOT_SOLO_QUEST_ROUTES`. Hosted autonomy should add a focused wrapper
@@ -93,7 +95,8 @@ Pursuit scoring should consider:
 
 The first scoring rule can be conservative. Party strength should lower the
 solo safety threshold only when party members are nearby, alive, and able to
-contribute.
+contribute. That party bonus applies to pursuing accepted work, not to sending
+an underlevel group across the map to pick up a new quest.
 
 ## Social Intent Contract
 

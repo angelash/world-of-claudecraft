@@ -46,6 +46,10 @@ operator to restart services manually.
   and party composition.
 - If a quest is too dangerous solo but practical with the current party, hosted
   play may pursue it earlier than the solo route would.
+- Party strength may lower pursuit thresholds for accepted quests, but it must
+  not lower the level gate for distant cross-zone pickup travel. Far-away quest
+  pickups still require the route's original safe level unless the giver is
+  already visibly nearby.
 - If a quest remains too dangerous even with the party, hosted play should
   level, gear, resupply, or finish easier active quests first.
 - Hosted play should avoid leaving pickup quests unaccepted when it is already

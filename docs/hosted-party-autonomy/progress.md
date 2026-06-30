@@ -208,6 +208,16 @@ Current date: 2026-06-30
   the new self-preservation path retried healing potions faster than the
   server's potion cooldown. The self-preservation potion command now uses a
   60 second cooldown, and a regression test prevents the old 3 second retry.
+- Follow-up report `tmp/hosted-play-level20-20260630-113229.json` then ran
+  about 31 minutes with a full party, no deaths, no hosted errors, and no
+  WebSocket errors, but failed the stuck-reset gate when Aldric tried to travel
+  from Eastbrook to Fenbridge to pick up `q_prowlers` at level 4. Distant quest
+  pickups now require the route's original `pursueAtLevel`, while already
+  accepted safe routes can still benefit from nearby full-party pursuit.
+- After that fix, the stack was restarted, IP access was verified on
+  `0.0.0.0`, the targeted brain suite, hosted behavior suite, server build, and
+  short live harness all passed. The short harness report was
+  `tmp/hosted-play-live-harness-2026-06-30T04-17-19-755Z.json`.
 
 ## Planning Packet Checklist
 
@@ -290,4 +300,6 @@ Current date: 2026-06-30
 - [x] Low-health non-tank members stop attacking, clear unsafe targets, use
   available healing potions, and collapse back to the party before resuming
   focus fire.
+- [x] Distant cross-zone quest pickups do not use party strength to bypass the
+  original route gate, while accepted safe quests can still use group pursuit.
 - [ ] Final run occurs after the last code change and service restart.
