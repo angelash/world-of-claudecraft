@@ -643,7 +643,7 @@ function buildChecks(report, options) {
     Object.keys(metrics.partyRoles).length > 0
     && Object.keys(metrics.intentKinds).length > 0;
   const cooperationObserved =
-    ['follow_leader', 'assist_party', 'prepare_party', 'hold_regroup', 'brain']
+    ['follow_leader', 'assist_party', 'prepare_party', 'recover_party', 'hold_regroup', 'brain']
       .some((mode) => metrics.groupModes[mode] > 0);
   const questSignalObserved = metrics.questEvents > 0 || metrics.maxQuestLog > 0 || metrics.maxQuestDone > 0;
   const allMembersTouchedQuestState = report.roster.every((entry) => (metrics.questStateByCharacter[entry.name] ?? 0) > 0);

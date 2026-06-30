@@ -23,7 +23,8 @@ export type HostedPlayGroupMode =
   | 'follow_leader'
   | 'hold_regroup'
   | 'invite_nearby'
-  | 'prepare_party';
+  | 'prepare_party'
+  | 'recover_party';
 
 export type HostedPlayPauseReason =
   | ''

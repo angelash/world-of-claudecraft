@@ -71,6 +71,17 @@ some members keep pulling pressure onto a collapsing fight. Heals,
 self-preservation, and tank protection still run before this pause so the group
 can save an ally instead of standing idle.
 
+Party chat uses the same recovery line as behavior. Any living member below
+the hosted recovery threshold keeps the party intent in recovery, not focus or
+buff preparation. This avoids the visible mismatch where characters say the
+team is stable while someone is still below the health line.
+
+`recover_party` is the explicit no-advance state for hosted recovery without a
+movement target. It is not battle preparation. While this mode is active, the
+runtime must not let nearby restock, buy, quest, or ordinary brain work override
+the pause. Only recovery consumables, healing, tank protection, and protective
+focus against a mob actively killing a low-health member may proceed.
+
 Recovery focus suppression has one tactical exception: if a mob is actively
 attacking a low-health party member, healthy damage dealers may protectively
 focus that specific mob. This keeps recovery from becoming passive while a

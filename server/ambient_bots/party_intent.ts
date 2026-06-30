@@ -4,7 +4,7 @@ import type { AmbientPartyRolePlan } from './party_roles';
 import type { AmbientPlayerBotLiveState } from './ws_client';
 
 const PARTY_REGROUP_RANGE = 18;
-const RECOVERY_CRITICAL_HEALTH_RATIO = 0.45;
+const RECOVERY_HEALTH_RATIO = 0.72;
 const RECOVERY_FRAGILE_THREAT_HEALTH_RATIO = 0.9;
 const RECOVERY_FRAGILE_THREAT_MAX_LEVEL = 4;
 
@@ -224,7 +224,7 @@ function memberNeedsRecoveryIntent(
 ): boolean {
   if (member.mhp <= 0) return false;
   const ratio = member.hp / member.mhp;
-  if (ratio <= RECOVERY_CRITICAL_HEALTH_RATIO) return true;
+  if (ratio <= RECOVERY_HEALTH_RATIO) return true;
   return threatenedPids.has(member.pid)
     && isFragileLowLevelMember(member)
     && ratio <= RECOVERY_FRAGILE_THREAT_HEALTH_RATIO;
@@ -267,7 +267,8 @@ function isPreparationGroupMode(groupMode: string): boolean {
 
 function isRecoveryGroupMode(groupMode: string): boolean {
   return groupMode === 'heal_party'
-    || groupMode === 'shield_party';
+    || groupMode === 'shield_party'
+    || groupMode === 'recover_party';
 }
 
 function isFocusGroupMode(groupMode: string): boolean {

@@ -128,7 +128,7 @@ export function maybeCoordinateAmbientPartySupport(
   });
   if (healDecision) return healDecision;
 
-  if (!partyInCombat) {
+  if (!partyInCombat && input.suppressFocusFire !== true) {
     const selfPreparationDecision = maybePrepareSelfForParty({
       bot: input.bot,
       liveState: input.liveState,

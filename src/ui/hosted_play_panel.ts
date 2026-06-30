@@ -20,7 +20,8 @@ export type HostedPlayGroupModeView =
   | 'follow_leader'
   | 'hold_regroup'
   | 'invite_nearby'
-  | 'prepare_party';
+  | 'prepare_party'
+  | 'recover_party';
 
 export type HostedPlayLlmDecisionStatusView =
   | ''
@@ -868,6 +869,8 @@ function groupModeText(status: HostedPlayStatusView): string {
       return t('hudChrome.hostedPlay.groupMode.inviteNearby');
     case 'prepare_party':
       return t('hudChrome.hostedPlay.groupMode.prepareParty');
+    case 'recover_party':
+      return t('hudChrome.hostedPlay.groupMode.recoverParty');
     default:
       return t('hudChrome.hostedPlay.groupMode.none');
   }

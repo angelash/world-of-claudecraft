@@ -637,6 +637,61 @@ describe('HostedPlayRuntime', () => {
     });
   });
 
+  it('keeps restock brain work paused while a nearby party member is recovering', () => {
+    const game = fakeGame(liveState({
+      id: 101,
+      nm: 'Hero',
+      x: -7,
+      z: 3,
+      lv: 5,
+      hp: 252,
+      mhp: 252,
+      res: 0,
+      mres: 0,
+      rtype: 'rage',
+      copper: 100,
+      inv: [],
+      qdone: ['q_wolves', 'q_supplies'],
+      qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Hero', cls: 'warrior', level: 5, hp: 252, mhp: 252, res: 0, mres: 0, rtype: 'rage', x: -7, z: 3, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Branorabb', cls: 'rogue', level: 5, hp: 70, mhp: 100, res: 100, mres: 100, rtype: 'energy', x: -5, z: 3, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
+        { id: 102, k: 'player', nm: 'Branorabb', x: -5, z: 3, hp: 70, mhp: 100, dead: 0, cmb: 0 },
+      ],
+    }), {
+      playerClass: 'warrior',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([]);
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'recover_party',
+      objectiveId: 'restock_food_and_drink',
+      debug: {
+        brainDrivePaused: true,
+      },
+    });
+  });
+
   it('accepts party invites through the hosted runtime while follow-leader mode is enabled', () => {
     const game = fakeGame(liveState(), {
       recentEvents: [{ type: 'partyInvite', fromPid: 201, fromName: 'Aleph' }],

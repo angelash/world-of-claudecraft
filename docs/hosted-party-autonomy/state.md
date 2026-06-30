@@ -1211,6 +1211,38 @@ progress.
   `0.0.0.0` port verification, printed IP URLs, `/api/status`, and short live
   harness report `tmp/hosted-play-live-harness-2026-06-30T21-06-22-045Z.json`
   all passed.
+- `tmp/hosted-play-level20-20260701-051040.json` reached level 6 with full
+  party and no collect-spam regression, but failed clean runtime during the
+  Mudfin and restock transition. The death window showed recovery intent
+  falling back to focus or buffs while party members were still below the
+  hosted recovery threshold, and the runtime could still allow nearby restock
+  or preparation-style brain work during a recovery pause.
+- Hosted recovery pauses without a movement target now report `recover_party`
+  instead of `prepare_party`. This state is intentionally not a self-maintenance
+  override, so restock, buy, local quest, and ordinary brain work stay paused
+  until recovery clears.
+- Party intent now treats any member at or below the hosted 72 percent recovery
+  line as recovery, aligning party chat with the behavior gate. Group support
+  also skips non-healing preparation while recovery suppresses focus fire.
+- Focused validation after the recovery hard-pause fix:
+  `npx vitest run tests\hosted_play_party.test.ts tests\hosted_play_runtime.test.ts tests\ambient_player_bot_party_chat.test.ts`
+  passed before the broader validation pass.
+- Broader validation after the recovery hard-pause fix also passed:
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`,
+  `node scripts\i18n_resolved_hash.mjs --check`, `git diff --check`,
+  `npm run build:server`, and `npm run build`.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`
+  passed after the recovery hard-pause fix. Ports `5173` and `8787` listened
+  on `0.0.0.0`, `node scripts\online_lan.mjs urls` printed IP game and server
+  URLs, and `http://127.0.0.1:8787/api/status` returned ok for realm
+  `Claudemoon`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`
+  passed after the recovery hard-pause fix. The report was
+  `tmp/hosted-play-live-harness-2026-06-30T22-36-21-740Z.json`; it observed
+  hosted invite, target party size, current full-party agreement, party chat,
+  party intent and roles, cooperation mode, quest signals, all party members
+  touching quest state, support or combat signals, clean runtime, and stuck
+  resets within limit.
 
 ## Validation Matrix
 
@@ -1257,7 +1289,7 @@ progress.
 ## Known Current Gaps
 
 - A clean post-fix level 20 hosted run is still required after the latest
-  collect-backfill escort fix, service restart, and short live harness check.
+  recovery hard-pause fix, service restart, and short live harness check.
 
 ## New Files In This Packet
 

@@ -847,7 +847,8 @@ function hostedRecoveryBrainAllowedWhilePartyPaused(
       || groupMode === 'follow_leader'
       || groupMode === 'hold_regroup'
       || groupMode === 'heal_party'
-      || groupMode === 'buff_party');
+      || groupMode === 'buff_party'
+      || groupMode === 'recover_party');
 }
 
 function isHostedRecoveryCommand(command: Record<string, unknown>): boolean {

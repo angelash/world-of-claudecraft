@@ -1651,7 +1651,7 @@ describe('hosted-play party coordinator', () => {
     expect(result).toEqual({
       commands: [],
       pauseBrainDrive: true,
-      groupMode: 'prepare_party',
+      groupMode: 'recover_party',
       groupLeaderName: 'Hero',
       groupLeaderDistance: 0,
     });

@@ -765,7 +765,8 @@ export const ru_RU: EnTranslations = {
         "followLeader": "Following the party leader",
         "holdRegroup": "Holding for party regroup",
         "inviteNearby": "Inviting nearby players",
-        "prepareParty": "Holding for battle preparation"
+        "prepareParty": "Holding for battle preparation",
+        "recoverParty": "Holding for party recovery"
       },
       "partyRole": {
         "tank": "Tank",

@@ -765,7 +765,8 @@ export const zh_CN: EnTranslations = {
         "followLeader": "正在跟随队长",
         "holdRegroup": "正在等待队伍重新集合",
         "inviteNearby": "正在邀请附近玩家",
-        "prepareParty": "Holding for battle preparation"
+        "prepareParty": "Holding for battle preparation",
+        "recoverParty": "Holding for party recovery"
       },
       "partyRole": {
         "tank": "Tank",

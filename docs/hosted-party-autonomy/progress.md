@@ -673,4 +673,27 @@ Current date: 2026-06-30
   `npm run build:server`, LAN/IP restart, `0.0.0.0` port verification, printed
   IP URLs, `/api/status`, and short live harness report
   `tmp/hosted-play-live-harness-2026-06-30T21-06-22-045Z.json`.
+- [x] Level 20 candidate
+  `tmp/hosted-play-level20-20260701-051040.json` reached level 6 with a full
+  party and no invalid supply-crate spam, proving the collect escort fix, but
+  failed clean runtime during the level 5 to 6 Mudfin and restock transition.
+  Samples showed recovery intent dropping back to focus or buffs while members
+  were still below the hosted recovery threshold, and nearby restock or combat
+  brain work could continue during an otherwise active recovery window.
+- [x] Hosted recovery now has an explicit `recover_party` no-advance state for
+  party recovery pauses without a movement target. The runtime no longer lets
+  restock, buy, quest, or ordinary self-maintenance brain work override that
+  pause. Party intent also uses the same 72 percent hosted recovery line, so
+  chat continues to call recovery until the party is actually stable.
+- [x] Group support now suppresses non-healing preparation and buff passes while
+  focus fire is suppressed for party recovery, letting healing, tank protection,
+  self-preservation, and protective focus remain the only allowed recovery
+  actions.
+- [x] The recovery hard-pause fix was covered by
+  `npx vitest run tests\hosted_play_party.test.ts tests\hosted_play_runtime.test.ts tests\ambient_player_bot_party_chat.test.ts`,
+  the 7-file hosted, brain, group, chat, game-server, and social regression,
+  `node scripts\i18n_resolved_hash.mjs --check`, `git diff --check`,
+  `npm run build:server`, `npm run build`, LAN/IP restart, `0.0.0.0` port
+  verification, printed IP URLs, `/api/status`, and short live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T22-36-21-740Z.json`.
 - [ ] Final run occurs after the last code change and service restart.

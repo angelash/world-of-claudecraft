@@ -508,7 +508,7 @@ function maybePauseForPartyRecovery(input: {
     commands,
     pauseBrainDrive: true,
     ...(travelGoal ? { travelGoal } : {}),
-    groupMode: input.selfMember.pid === input.leaderMember.pid && !travelGoal ? 'prepare_party' : 'assist_party',
+    groupMode: input.selfMember.pid === input.leaderMember.pid && !travelGoal ? 'recover_party' : 'assist_party',
     groupLeaderName: input.leaderMember.name,
     groupLeaderDistance: input.leaderDistance,
   };

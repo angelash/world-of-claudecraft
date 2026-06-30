@@ -573,6 +573,7 @@ export const hudChromeStrings = {
       holdRegroup: 'Holding for party regroup',
       inviteNearby: 'Inviting nearby players',
       prepareParty: 'Holding for battle preparation',
+      recoverParty: 'Holding for party recovery',
     },
     partyRole: {
       tank: 'Tank',

@@ -765,7 +765,8 @@ export const en_XA: EnTranslations = {
         "followLeader": "[Ƒóļļóŵíñĝ ţĥé þáŕţý ļéáðéŕ]",
         "holdRegroup": "[Ĥóļðíñĝ ƒóŕ þáŕţý ŕéĝŕóúþ]",
         "inviteNearby": "[Íñʋíţíñĝ ñéáŕƀý þļáýéŕš]",
-        "prepareParty": "[Ĥóļðíñĝ ƒóŕ ƀáţţļé þŕéþáŕáţíóñ]"
+        "prepareParty": "[Ĥóļðíñĝ ƒóŕ ƀáţţļé þŕéþáŕáţíóñ]",
+        "recoverParty": "[Ĥóļðíñĝ ƒóŕ þáŕţý ŕéçóʋéŕý]"
       },
       "partyRole": {
         "tank": "[Ţáñķ]",
