@@ -571,6 +571,55 @@ describe('hosted-play party coordinator', () => {
     ]);
   });
 
+  it('has a wounded hosted damage dealer recover before becoming critical', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 0,
+          z: 0,
+          hp: 70,
+          mhp: 100,
+          target: 501,
+          auto: true,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 12, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'mage', level: 12, hp: 70, mhp: 100, res: 100, mres: 120, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        }),
+        entities: [],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [
+        { cmd: 'stopattack' },
+        { cmd: 'target', id: null },
+      ],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 12, z: 0 },
+        arrivalRange: 6,
+        goalKey: 'party-recover-anchor:101:12:0',
+      },
+      groupMode: 'assist_party',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 12,
+    });
+  });
+
   it('pauses ordinary hosted brain work while the party is recovering', () => {
     const state = createHostedPlayPartyState();
 

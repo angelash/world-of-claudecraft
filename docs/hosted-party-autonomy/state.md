@@ -105,6 +105,10 @@ progress.
   or self-preservation support gets first chance, any remaining hosted member
   must pause ordinary brain work, stop attacking, clear unsafe targets, and
   travel back to a stable party anchor while the party still needs recovery.
+- Non-tank group self-preservation starts at 72 percent health during party
+  combat, and healing potion use starts at 65 percent health. This is
+  intentionally earlier than solo emergency retreat so low-level cloth and
+  healer characters do not wait until they are nearly dead.
 - The live harness de-duplicates one player death reported through both
   `death` and `playerDeath` events by victim and second-level time bucket.
 
@@ -711,6 +715,29 @@ progress.
   party intent and roles, cooperation mode, quest signals, all party members
   touching quest state, support or combat signals, clean runtime, and stuck
   resets within limit.
+- Final-run attempt `tmp/hosted-play-level20-20260630-164236.json` failed early
+  with Corda dying at level 2. The timeline showed recovery intent active, but
+  the mage dropped from about 70 percent health to near zero in roughly 20
+  seconds, so self-preservation needed to trigger before critical health.
+- `server/ambient_bots/group_support.ts` now starts non-tank self-preservation
+  at 72 percent health during party combat and starts potion use at 65 percent.
+- `tests/hosted_play_party.test.ts` covers a wounded hosted damage dealer
+  recovering before becoming critical.
+- `npx vitest run tests\hosted_play_party.test.ts tests\ambient_player_bot_group.test.ts`:
+  passed after the earlier self-preservation fix, 2 files and 47 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`: passed after the earlier self-preservation fix, 5 files and 205 tests.
+- `npm run build:server`: passed after the earlier self-preservation fix.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`: passed after the earlier self-preservation fix.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls`
+  printed the IP game and server URLs.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon`.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`:
+  passed after restart. The report was
+  `tmp/hosted-play-live-harness-2026-06-30T08-54-55-735Z.json`; it observed
+  hosted invite, party target size, current full-party agreement, party chat,
+  party intent and roles, cooperation mode, quest signals, all party members
+  touching quest state, support or combat signals, clean runtime, and stuck
+  resets within limit.
 
 ## Validation Matrix
 
@@ -756,8 +783,8 @@ progress.
 
 ## Known Current Gaps
 
-- A clean post-fix level 20 hosted run is still required after the hosted party
-  recovery hard-pause fix and service restart.
+- A clean post-fix level 20 hosted run is still required after the earlier
+  non-tank self-preservation fix and service restart.
 
 ## New Files In This Packet
 

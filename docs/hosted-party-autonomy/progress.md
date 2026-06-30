@@ -282,6 +282,17 @@ Current date: 2026-06-30
   verified on `0.0.0.0`, the hosted party suite, hosted behavior suite, server
   build, and short live harness all passed. The short harness report was
   `tmp/hosted-play-live-harness-2026-06-30T08-37-40-545Z.json`.
+- Follow-up report `tmp/hosted-play-level20-20260630-164236.json` failed much
+  earlier when Corda died at level 2. The death timeline showed recovery intent
+  active, but the mage dropped from about 70 percent health to near zero in
+  roughly 20 seconds, so the previous self-preservation threshold was too late
+  for low-level cloth survival. Non-tank group self-preservation now starts at
+  72 percent health during party combat, and healing potion use starts at 65
+  percent.
+- After that earlier self-preservation fix, the stack was restarted, IP access
+  was verified on `0.0.0.0`, the hosted party suite, hosted behavior suite,
+  server build, and short live harness all passed. The short harness report was
+  `tmp/hosted-play-live-harness-2026-06-30T08-54-55-735Z.json`.
 
 ## Planning Packet Checklist
 
@@ -378,4 +389,6 @@ Current date: 2026-06-30
 - [x] Hosted party recovery pauses ordinary brain work and pulls members back
   to a stable party anchor instead of letting quest collection continue while
   the team is critical.
+- [x] Non-tank group self-preservation starts early enough for low-level cloth
+  and healer safety instead of waiting until the character is nearly dead.
 - [ ] Final run occurs after the last code change and service restart.
