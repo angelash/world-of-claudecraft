@@ -239,6 +239,16 @@ Current date: 2026-06-30
   `0.0.0.0`, the targeted brain suite, hosted behavior suite, server build, and
   short live harness all passed. The short harness report was
   `tmp/hosted-play-live-harness-2026-06-30T05-11-24-049Z.json`.
+- Follow-up report `tmp/hosted-play-level20-20260630-131512.json` passed the
+  Fenbridge pickup risk and the prior Elowen emergency-health scenario, but
+  Brana died once around 33 minutes while at level 4 with 38/90 to 33/90 health
+  and a single active threat. The 32 percent emergency threshold was too low
+  for cloth and healer safety, so single-threat retreat now starts below 45
+  percent health.
+- After that threshold fix, the stack was restarted, IP access was verified on
+  `0.0.0.0`, the targeted brain suite, hosted behavior suite, server build, and
+  short live harness all passed. The short harness report was
+  `tmp/hosted-play-live-harness-2026-06-30T05-51-19-202Z.json`.
 
 ## Planning Packet Checklist
 
