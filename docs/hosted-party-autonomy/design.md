@@ -129,6 +129,14 @@ to the turn-in. This backfill happens after local visible quest intake, so the
 team still accepts nearby pickups before leaving a hub, but before the leader
 continues its own later active route.
 
+Low-health recovery beats self-cast healing when the healer is personally under
+threat. Early priests do not yet have instant shields or heal-over-time spells,
+so standing still to hard-cast Lesser Heal can lose the race against incoming
+melee. The hosted party coordinator sends the threatened low-health healer
+through the same recovery pause as other fragile roles: stop attacking, clear
+the hostile target, and retreat to a stable anchor. Other healers or later
+instant tools can still protect them while they move.
+
 This is a behavior rule, not just party chat flavor. Recovery and correction
 lines should reflect the same underlying state so the run looks and behaves
 like players calling a reset.

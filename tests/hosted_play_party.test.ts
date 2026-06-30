@@ -722,7 +722,7 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
-  it('lets a wounded hosted healer cast an urgent self heal before fleeing', () => {
+  it('has a wounded hosted healer retreat instead of hard-casting under threat', () => {
     const state = createHostedPlayPartyState();
 
     const result = tickHostedPlayPartyCoordinator(
@@ -738,7 +738,7 @@ describe('hosted-play party coordinator', () => {
           mres: 100,
           rtype: 'mana',
           target: 501,
-          auto: false,
+          auto: true,
           party: {
             leader: 101,
             raid: false,
@@ -762,10 +762,15 @@ describe('hosted-play party coordinator', () => {
 
     expect(result).toEqual({
       commands: [
-        { cmd: 'target', id: 102 },
-        { cmd: 'cast', ability: 'lesser_heal' },
+        { cmd: 'stopattack' },
+        { cmd: 'target', id: null },
       ],
       pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: -7.938223013709342, z: -0.9922778767136677 },
+        arrivalRange: 1.5,
+        goalKey: 'hosted-party-retreat:101:501:-8:-1',
+      },
       groupMode: 'assist_party',
       groupLeaderName: 'Branoraaa',
       groupLeaderDistance: 8,

@@ -117,6 +117,10 @@ progress.
   latest route after visible local quest intake and before its own active
   route. A leader who has already completed an earlier route helps a living
   party member finish or turn in that route before pushing ahead.
+- Threatened low-health hosted healers use the same urgent recovery pause as
+  other fragile roles. They stop attacking, clear their hostile target, and
+  retreat to a stable anchor instead of standing still to hard-cast a self heal
+  while being hit.
 
 ## Key Existing Files
 
@@ -1052,6 +1056,33 @@ progress.
 - `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`:
   passed after party quest backfill. The report was
   `tmp/hosted-play-live-harness-2026-06-30T14-25-44-997Z.json`; it observed
+  hosted invite, target party size, current full-party agreement, party chat,
+  party intent and roles, cooperation mode, quest signals, all party members
+  touching quest state, support or combat signals, clean runtime, and stuck
+  resets within limit.
+- Level 20 candidate `tmp/hosted-play-level20-20260630-222842.json` was stopped
+  after Miraj died at about 13.1 minutes. Status samples showed recovery intent
+  was active, but the low-level priest still relied on hard-cast self healing
+  while under threat.
+- `server/hosted_play/party.ts` now lets urgent self recovery run before healer
+  self-cast support, so threatened low-health healers stop attacking, clear
+  target, and retreat.
+- `tests/hosted_play_party.test.ts` now covers a wounded hosted priest
+  retreating instead of hard-casting under threat.
+- `npx vitest run tests\hosted_play_party.test.ts`: passed after healer
+  recovery hardening, 1 file and 39 tests.
+- `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`:
+  passed after healer recovery hardening, 6 files and 262 tests.
+- `npm run build:server`: passed after healer recovery hardening.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows_stack.ps1 restart`:
+  passed after healer recovery hardening.
+- Ports `5173` and `8787` listen on `0.0.0.0`; `node scripts\online_lan.mjs urls`
+  printed the IP game and server URLs after the restart.
+- `http://127.0.0.1:8787/api/status`: returned ok for realm `Claudemoon` after
+  the restart.
+- `node scripts\hosted_play_live_harness.mjs --duration-ms=120000 --sample-ms=2000`:
+  passed after healer recovery hardening. The report was
+  `tmp/hosted-play-live-harness-2026-06-30T14-50-36-383Z.json`; it observed
   hosted invite, target party size, current full-party agreement, party chat,
   party intent and roles, cooperation mode, quest signals, all party members
   touching quest state, support or combat signals, clean runtime, and stuck

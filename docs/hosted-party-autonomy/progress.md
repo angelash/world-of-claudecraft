@@ -516,4 +516,16 @@ Current date: 2026-06-30
   verified on `0.0.0.0` with printed IP URLs and `/api/status`, and
   smoke-tested with live harness report
   `tmp/hosted-play-live-harness-2026-06-30T14-25-44-997Z.json`.
+- [x] Level 20 candidate
+  `tmp/hosted-play-level20-20260630-222842.json` was stopped after Miraj died
+  at about 13.1 minutes. The party was already in recovery, but the low-level
+  priest self-heal path tried to hard-cast under threat and skipped the
+  stronger stop, clear-target, and retreat recovery path. Hosted recovery now
+  makes threatened low-health healers retreat instead of standing still for a
+  long self-heal cast.
+- [x] The healer recovery fix was unit-tested, covered by the 6-file hosted
+  party regression, server-built, restarted through the LAN/IP stack, verified
+  on `0.0.0.0` with printed IP URLs and `/api/status`, and smoke-tested with
+  live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T14-50-36-383Z.json`.
 - [ ] Final run occurs after the last code change and service restart.

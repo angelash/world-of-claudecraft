@@ -132,27 +132,6 @@ export function tickHostedPlayPartyCoordinator(
   const selfNeedsUrgentRecovery = partyRecovering
     && !selfMember.dead
     && memberHealthRatio(selfMember) <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO;
-  if (selfNeedsUrgentRecovery && canHostedProvidePartyHealing(input.playerClass)) {
-    const urgentHealDecision = maybeCoordinateAmbientPartySupport({
-      bot: botRecord,
-      liveState,
-      party,
-      leaderMember,
-      selfMember,
-      suppressFocusFire: true,
-      reserveCommandBatch: (reservations) => reserveCommandBatch(state, input.nowMs, reservations),
-    });
-    if (urgentHealDecision && isUrgentSelfHealingDecision(urgentHealDecision)) {
-      return {
-        commands: urgentHealDecision.commands,
-        pauseBrainDrive: true,
-        ...(urgentHealDecision.travelGoal ? { travelGoal: urgentHealDecision.travelGoal } : {}),
-        groupMode: normalizeHostedGroupMode(urgentHealDecision.groupMode, partyInCombat),
-        groupLeaderName,
-        groupLeaderDistance: leaderDistance,
-      };
-    }
-  }
   if (selfNeedsUrgentRecovery) {
     const recoveryPause = maybePauseForPartyRecovery({
       liveSelf: input.liveSelf,
@@ -926,13 +905,6 @@ function canHostedProvidePartyPreparation(playerClass: PlayerClass): boolean {
     || playerClass === 'shaman';
 }
 
-function canHostedProvidePartyHealing(playerClass: PlayerClass): boolean {
-  return playerClass === 'priest'
-    || playerClass === 'paladin'
-    || playerClass === 'druid'
-    || playerClass === 'shaman';
-}
-
 function normalizeHostedGroupMode(
   groupMode: string,
   partyInCombat: boolean,
@@ -948,14 +920,6 @@ function normalizeHostedGroupMode(
     default:
       return 'assist_party';
   }
-}
-
-function isUrgentSelfHealingDecision(decision: {
-  commands: readonly HostedPlayCommand[];
-  groupMode: string;
-}): boolean {
-  if (decision.groupMode !== 'heal_party' && decision.groupMode !== 'shield_party') return false;
-  return decision.commands.some((command) => command.cmd === 'cast');
 }
 
 function ambientPartyMemberPreparing(
