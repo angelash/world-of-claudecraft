@@ -833,6 +833,12 @@ function hostedLocalQuestBrainAllowedWhilePartyPaused(
   if (!localGroupMode && !recoveryQuestIntakeMode) return false;
   if (isHostedLocalQuestObjective(result.objectiveId)) {
     if (
+      localGroupMode
+      && hostedLeaderDistance(liveState) > HOSTED_PLAY_LOCAL_ACTIVE_QUEST_MAX_LEADER_DISTANCE
+    ) {
+      return false;
+    }
+    if (
       recoveryQuestIntakeMode
       && (
         !result.objectiveId.startsWith('accept_')

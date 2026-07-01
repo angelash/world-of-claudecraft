@@ -196,6 +196,11 @@ progress.
   line may target and attack active party threats during recovery, and the
   generic recovery pause must not stop attack or clear target for a stable
   protector already holding combat pressure.
+- Local quest accept and turn-in overrides while party movement is paused must
+  respect the 18-yard leader-distance gate. Tight followers can finish nearby
+  quest work, but followers outside regroup range must close the leader gap
+  before local `accept_*` or `turnin_*` brain work can override follow or
+  regroup travel.
 
 ## Key Existing Files
 
@@ -1371,6 +1376,24 @@ progress.
   verification, LAN URL printing, `/api/status`, and short live harness report
   `tmp\hosted-play-live-harness-2026-07-01T03-02-00-542Z.json` passed with all
   party members touching quest state.
+- Level-10 candidate `tmp\hosted-play-level10-20260701-110817.json` reached
+  level 4, proving the level-2 recovery loop was no longer a hard blocker, but
+  was stopped after a `turnin_spiders` deadlock. Followers outside the 18-yard
+  regroup line could keep local turn-in brain work active while the leader held
+  `hold_regroup`, leaving the party split around the quest NPC.
+- `server/hosted_play/runtime.ts` now gates local `accept_*` and `turnin_*`
+  overrides by leader distance during follow, regroup, and preparation pauses.
+  `tests\hosted_play_runtime.test.ts` covers a follower near a turn-in NPC but
+  outside leader range prioritizing regroup movement over the local interact.
+- Validation after that fix passed:
+  `npx vitest run tests\hosted_play_runtime.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`,
+  `git diff --check`, and `npm run build:server`.
+- The fix is loaded in the local LAN/IP stack. Restart, port binding
+  verification, LAN URL printing, `/api/status`, and short live harness report
+  `tmp\hosted-play-live-harness-2026-07-01T03-43-07-406Z.json` passed with all
+  party members touching quest state.
 
 ## Validation Matrix
 
@@ -1417,9 +1440,9 @@ progress.
 ## Known Current Gaps
 
 - A clean post-fix level-10 hosted run is the current target after the latest
-  stable recovery protector fix, service restart, and short live harness check.
-  Focus the next candidate on level-2 recovery survival, progression through
-  level 3, and route/turn-in cadence up to level 10.
+  turn-in regroup gate fix, service restart, and short live harness check.
+  Focus the next candidate on level-4 turn-in cadence, later route transitions,
+  and continued recovery survival up to level 10.
 
 ## New Files In This Packet
 

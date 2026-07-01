@@ -895,4 +895,26 @@ Current date: 2026-07-01
   reached a full party, all members touched quest state, program runtime stayed
   clean, stuck resets stayed at zero, and hosted follow start-stop noise was
   absent.
+- [x] Level-10 candidate `tmp\hosted-play-level10-20260701-110817.json`
+  progressed past the previous level-2 recovery death spiral and reached level
+  4 with a full party, but was stopped after a level-4 `turnin_spiders`
+  deadlock. The leader held `hold_regroup` while followers stayed just outside
+  the 18-yard regroup line and local `turnin_*` brain override kept them on the
+  nearby quest NPC instead of returning to the leader.
+- [x] Local `accept_*` and `turnin_*` overrides while party movement is paused
+  now obey the same 18-yard leader-distance gate as local loot and active quest
+  work. Tight followers can still finish nearby quest work, but followers
+  outside regroup range must first close the leader gap.
+- [x] Validation for the turn-in regroup gate fix passed:
+  `npx vitest run tests\hosted_play_runtime.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`,
+  `git diff --check`, and `npm run build:server`.
+- [x] The turn-in regroup gate fix was loaded in the LAN/IP stack and covered
+  by `scripts\windows_stack.ps1` restart, `0.0.0.0` port verification, printed
+  LAN URLs, `/api/status`, and short live harness report
+  `tmp\hosted-play-live-harness-2026-07-01T03-43-07-406Z.json`. The short run
+  reached a full party, all members touched quest state, program runtime stayed
+  clean, stuck resets stayed at zero, and hosted follow start-stop noise was
+  absent.
 - [ ] Final run occurs after the last code change and service restart.

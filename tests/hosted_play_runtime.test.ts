@@ -467,6 +467,67 @@ describe('HostedPlayRuntime', () => {
     });
   });
 
+  it('prioritizes regrouping over a nearby turn-in when the follower is outside leader range', () => {
+    const game = fakeGame(liveState({
+      id: 102,
+      x: 20,
+      z: 0,
+      lv: 4,
+      hp: 93,
+      mhp: 93,
+      res: 120,
+      mres: 120,
+      rtype: 'mana',
+      qdone: ['q_wolves', 'q_boars'],
+      qlog: [{ questId: 'q_spiders', counts: [6, 4], state: 'ready' }],
+      auras: [
+        { id: 'frost_armor', kind: 'buff_armor', rem: 1700, dur: 1800 },
+        { id: 'arcane_intellect', kind: 'buff_int', rem: 1700, dur: 1800 },
+      ],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 4, hp: 204, mhp: 204, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'mage', level: 4, hp: 93, mhp: 93, res: 120, mres: 120, rtype: 'mana', x: 20, z: 0, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 20, z: 0 },
+      ],
+    }), {
+      playerClass: 'mage',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([]);
+    expect(game.moveInputs).toHaveLength(1);
+    expect(game.moveInputs[0]).toEqual(expect.objectContaining({
+      moveInput: { f: 1 },
+      facing: expect.any(Number),
+    }));
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'follow_leader',
+      objectiveId: 'turnin_spiders',
+      debug: {
+        brainDrivePaused: true,
+        commands: [],
+      },
+    });
+  });
+
   it('lets a tight grouped follower keep finishing its own active quest before resuming follow', () => {
     const game = fakeGame(liveState({
       id: 102,
