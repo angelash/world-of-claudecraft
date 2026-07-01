@@ -1304,6 +1304,28 @@ progress.
   cooperation, quest, and combat signals with zero stuck resets, zero hosted
   errors, zero WebSocket errors, zero player deaths, and no hosted follow
   start-stop noise.
+- Follow-up candidate `tmp\hosted-play-level20-20260701-091944.json` stayed
+  program-clean but exposed a recovery strategy issue: by about 14.5 minutes it
+  had four player deaths, was still level 2, and samples showed recovery intent
+  allowing assist combat while multiple members were unstable.
+- `server/ambient_bots/group_support.ts` now allows recovery emergency focus
+  only when exactly one non-self unstable member is actively threatened. If
+  multiple party members are unstable, support returns no protective focus
+  decision and hosted party recovery falls back to stop/clear target plus
+  recovery travel.
+- Validation after that fix passed:
+  `npx vitest run tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`,
+  `git diff --check`, and `npm run build:server`.
+- The fix is loaded in the local LAN/IP stack. Restart, port binding
+  verification, LAN URL printing, `/api/status`, and short live harness report
+  `tmp\hosted-play-live-harness-2026-07-01T01-40-40-120Z.json` passed.
+- Follow-up candidate `tmp\hosted-play-level20-20260701-094156.json` reached
+  level 3 at about 15 minutes with zero player deaths, zero hosted errors, zero
+  WebSocket errors, zero status poll errors, zero stuck resets, a full party,
+  and four active quest logs per member. It was stopped after confirming the
+  previous level-2 death spiral window was clean.
 
 ## Validation Matrix
 
@@ -1350,9 +1372,10 @@ progress.
 ## Known Current Gaps
 
 - A clean post-fix level 20 hosted run is still required after the latest
-  hosted-follow noise fix, service restart, and short live harness check. Focus
-  the next candidate on early progression slope, route choice, quest intake,
-  and post-death recovery behavior.
+  recovery emergency focus fix, service restart, short live harness check, and
+  level-3 candidate checkpoint. Focus the next candidate on full level-20
+  completion, level-3 to level-5 routing, quest turn-in cadence, and any later
+  death recovery behavior.
 
 ## New Files In This Packet
 

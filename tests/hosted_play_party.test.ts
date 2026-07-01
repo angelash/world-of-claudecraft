@@ -1082,7 +1082,7 @@ describe('hosted-play party coordinator', () => {
     expect(result.groupMode).toBe('assist_party');
   });
 
-  it('allows protective focus fire when recovery has multiple unstable members', () => {
+  it('keeps recovery paused instead of protective focus when multiple members are unstable', () => {
     const state = createHostedPlayPartyState();
 
     const result = tickHostedPlayPartyCoordinator(
@@ -1118,13 +1118,18 @@ describe('hosted-play party coordinator', () => {
       state,
     );
 
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 501 },
-      { cmd: 'cast', ability: 'arcane_missiles' },
-      { cmd: 'attack' },
-    ]);
-    expect(result.pauseBrainDrive).toBe(true);
-    expect(result.groupMode).toBe('assist_party');
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 0, z: 0 },
+        arrivalRange: 4,
+        goalKey: 'hosted-party-recover:101:0:0',
+      },
+      groupMode: 'assist_party',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 16,
+    });
   });
 
   it('keeps recovery intent active until the party reaches the stable line', () => {

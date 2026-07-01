@@ -821,4 +821,29 @@ Current date: 2026-07-01
   cooperation mode, quest, and combat signals, had zero stuck resets, zero
   hosted errors, zero WebSocket errors, zero player deaths, and no hosted follow
   start-stop noise.
+- [x] Follow-up candidate `tmp\hosted-play-level20-20260701-091944.json`
+  confirmed the follow-noise fix but exposed a level-2 recovery strategy issue:
+  the run stayed program-clean with zero stuck resets, but by about 14.5 minutes
+  it had four player deaths, no level-3 progress, and samples showed recovery
+  intent still allowing assist combat while multiple members were unstable.
+- [x] Recovery emergency focus is now limited to the narrow rescue case where
+  exactly one non-self unstable party member is actively threatened. When
+  multiple members are unstable, support no longer uses protective focus fire
+  and party recovery falls back to stop/clear target plus recovery travel.
+- [x] Focused validation after the recovery emergency focus fix passed:
+  `npx vitest run tests\hosted_play_party.test.ts` and
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts`.
+- [x] Broader validation after the recovery emergency focus fix passed:
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`,
+  `git diff --check`, and `npm run build:server`.
+- [x] Recovery emergency focus was also covered by LAN/IP restart through
+  `scripts\windows_stack.ps1`, `0.0.0.0` port verification, printed IP URLs,
+  `/api/status`, and short live harness report
+  `tmp\hosted-play-live-harness-2026-07-01T01-40-40-120Z.json`.
+- [x] The next level-20 candidate checkpoint
+  `tmp\hosted-play-level20-20260701-094156.json` reached level 3 at about 15
+  minutes with a full party, four active quest logs per member, zero player
+  deaths, zero hosted errors, zero WebSocket errors, zero status poll errors,
+  zero stuck resets, and no hosted follow start-stop noise. The run was stopped
+  after confirming the previous level-2 death spiral window was clean.
 - [ ] Final run occurs after the last code change and service restart.
