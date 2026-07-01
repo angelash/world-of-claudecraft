@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Live hosted-play harness against the persistent LAN/IP stack.
 // It uses only public REST and WebSocket paths so failures match the real client.
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -54,6 +54,8 @@ function usage(exitCode = 0) {
   out('  --max-stuck-resets=N   Allowed path stuck resets before failing. Defaults to 4.');
   out('  --no-early-exit        Keep running until duration even after short checks pass.');
   out('  --report=PATH          Report path. Defaults under tmp/.');
+  out('  --resume-report=PATH   Continue with the roster from a previous harness report.');
+  out('  --resume-run-id=ID     Run id for older reports that do not include usernames.');
   out('  --help                 Show this help.');
   process.exit(exitCode);
 }
@@ -68,6 +70,8 @@ function parseArgs(argv) {
     maxStuckResets: 4,
     earlyExit: true,
     reportPath: '',
+    resumeReportPath: '',
+    resumeRunId: '',
   };
   for (const arg of argv) {
     if (arg === '--help' || arg === '-h') usage(0);
@@ -99,6 +103,12 @@ function parseArgs(argv) {
         break;
       case 'report':
         args.reportPath = value;
+        break;
+      case 'resume-report':
+        args.resumeReportPath = value;
+        break;
+      case 'resume-run-id':
+        args.resumeRunId = value;
         break;
       default:
         usage(1);
@@ -217,6 +227,20 @@ class Client {
     }
     this.name = created.body.name ?? `${this.label}${suffix}`.slice(0, 16);
     this.characterId = created.body.id;
+  }
+
+  async loginExisting(username, name, characterId) {
+    this.username = username;
+    this.name = name;
+    this.characterId = characterId;
+    const loggedIn = await api('/api/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password: DEFAULT_PASSWORD }),
+    });
+    if (loggedIn.status !== 200 || !loggedIn.body.token) {
+      throw new Error(`login failed for ${this.label}: ${loggedIn.status} ${loggedIn.body.error ?? ''}`);
+    }
+    this.token = loggedIn.body.token;
   }
 
   connect() {
@@ -589,10 +613,13 @@ function createReport(options, clients, statusBody) {
     baseUrl: BASE,
     serverStatus: statusBody,
     options,
+    ...(options.runId ? { runId: options.runId } : {}),
+    ...(options.resumedFrom ? { resumedFrom: options.resumedFrom } : {}),
     roster: clients.map((client) => ({
       label: client.label,
       name: client.name,
       class: client.characterClass,
+      username: client.username,
       characterId: client.characterId,
       pid: client.pid,
     })),
@@ -703,6 +730,49 @@ function reportPath(options) {
   return path.join(repoRoot, 'tmp', `hosted-play-live-harness-${stamp}.json`);
 }
 
+function loadReport(reportPath) {
+  const fullPath = path.resolve(repoRoot, reportPath);
+  return {
+    fullPath,
+    report: JSON.parse(readFileSync(fullPath, 'utf8')),
+  };
+}
+
+function usernameFromResumeEntry(entry, options, sourceReport) {
+  if (typeof entry.username === 'string' && entry.username.length > 0) return entry.username;
+  const runId = options.resumeRunId || sourceReport.runId || '';
+  if (runId) return `hosted_${runId}_${String(entry.label).toLowerCase()}`;
+  throw new Error(
+    `resume report entry for ${entry.label ?? entry.name ?? 'unknown'} does not include a username; pass --resume-run-id`,
+  );
+}
+
+async function resumeClients(options) {
+  const { fullPath, report } = loadReport(options.resumeReportPath);
+  if (!Array.isArray(report.roster) || report.roster.length === 0) {
+    throw new Error(`resume report has no roster: ${fullPath}`);
+  }
+  const clients = [];
+  for (const entry of report.roster.slice(0, options.partySize)) {
+    const label = String(entry.label ?? '');
+    const characterClass = String(entry.class ?? '');
+    const name = String(entry.name ?? '');
+    const characterId = Number(entry.characterId ?? 0);
+    if (!label || !characterClass || !name || !Number.isInteger(characterId) || characterId <= 0) {
+      throw new Error(`resume report has an invalid roster entry: ${JSON.stringify(entry)}`);
+    }
+    const client = new Client(label, characterClass);
+    const username = usernameFromResumeEntry(entry, options, report);
+    await client.loginExisting(username, name, characterId);
+    clients.push(client);
+  }
+  return {
+    clients,
+    source: fullPath,
+    sourceRunId: report.runId || options.resumeRunId || '',
+  };
+}
+
 function writeReport(report, outPath) {
   mkdirSync(path.dirname(outPath), { recursive: true });
   writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
@@ -715,19 +785,28 @@ async function main() {
     throw new Error(`server status failed: ${status.status}`);
   }
 
-  const runId = Date.now().toString(36);
-  const suffix = alphaSuffix(runId);
-  const clients = [
-    new Client('Alden', 'warrior'),
-    new Client('Mira', 'priest'),
-    new Client('Corin', 'mage'),
-    new Client('Tovin', 'paladin'),
-    new Client('Liora', 'druid'),
-  ].slice(0, options.partySize);
+  let runId = Date.now().toString(36);
+  let clients;
+  if (options.resumeReportPath) {
+    const resumed = await resumeClients(options);
+    clients = resumed.clients;
+    options.resumedFrom = resumed.source;
+    if (resumed.sourceRunId) runId = resumed.sourceRunId;
+  } else {
+    const suffix = alphaSuffix(runId);
+    clients = [
+      new Client('Alden', 'warrior'),
+      new Client('Mira', 'priest'),
+      new Client('Corin', 'mage'),
+      new Client('Tovin', 'paladin'),
+      new Client('Liora', 'druid'),
+    ].slice(0, options.partySize);
 
-  for (const client of clients) {
-    await client.provision(runId, suffix);
+    for (const client of clients) {
+      await client.provision(runId, suffix);
+    }
   }
+  options.runId = runId;
   await Promise.all(clients.map((client) => client.connect()));
   await sleep(1_200);
 
