@@ -1138,6 +1138,46 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
+  it('does not lower the Bristly Boar Hides route below level 3 for a full party', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          id: 101,
+          lv: 2,
+          x: 0,
+          z: 0,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves'],
+          qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 2, hp: 100, mhp: 100, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 2, hp: 75, mhp: 75, res: 90, mres: 90, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Branoracc', cls: 'mage', level: 2, hp: 70, mhp: 70, res: 100, mres: 100, rtype: 'mana', x: 3, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 104, name: 'Branoradd', cls: 'paladin', level: 2, hp: 90, mhp: 90, res: 80, mres: 80, rtype: 'mana', x: 4, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 105, name: 'Branoraee', cls: 'druid', level: 2, hp: 80, mhp: 80, res: 90, mres: 90, rtype: 'mana', x: 5, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 102, k: 'player', tid: 'priest', lv: 2, x: 2, z: 0, dead: 0 },
+          { id: 103, k: 'player', tid: 'mage', lv: 2, x: 3, z: 0, dead: 0 },
+          { id: 104, k: 'player', tid: 'paladin', lv: 2, x: 4, z: 0, dead: 0 },
+          { id: 105, k: 'player', tid: 'druid', lv: 2, x: 5, z: 0, dead: 0 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Forest Wolf');
+    expect(result.travelGoal?.goalKey).toBe('camp:forest_wolf:0');
+  });
+
   it('does not use full-party strength to pursue Old Greyjaw at level 4', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({

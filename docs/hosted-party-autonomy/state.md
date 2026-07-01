@@ -111,9 +111,10 @@ progress.
   to resume pulls.
 - Recovery support is deliberately narrow. During recovery, group support may
   heal, self-preserve, taunt or growl a mob off an ally, or use protective focus
-  only when exactly one non-self member is unstable, no one is dead, and the
-  helper is stable and not threatened. Ordinary tank offense, preparation, and
-  damage-dealer focus stay blocked.
+  only when no one is dead, the helper is stable and not threatened, at least
+  one non-self member is unstable, and the target mob is actively attacking an
+  unstable member. Ordinary tank offense, preparation, and damage-dealer focus
+  stay blocked.
 - Hosted debug command snapshots now show effective commands that survived the
   recovery gate, not raw brain commands that were suppressed by the party
   coordinator.
@@ -178,6 +179,9 @@ progress.
   must wait for living party members outside regroup range before ordinary
   brain drive resumes. Recovery consumables remain governed by the recovery
   gate.
+- `q_boars` opts out of party level-bonus pursuit because Bristly Boar Hides
+  combines a level-3 route with reactive boar damage. Full level-2 parties may
+  pick the quest up, but should grind safer Forest Wolves before hunting boars.
 
 ## Key Existing Files
 

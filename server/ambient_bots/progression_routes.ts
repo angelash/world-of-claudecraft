@@ -167,7 +167,7 @@ function collectRoute(
 
 export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
   killRoute('q_wolves', 'marshal_redbrook', 'forest_wolf', 1, 'Hunting Forest Wolves'),
-  killRoute('q_boars', 'trader_wilkes', 'wild_boar', 3, 'Collecting Bristly Boar Hides'),
+  killRoute('q_boars', 'trader_wilkes', 'wild_boar', 3, 'Collecting Bristly Boar Hides', { allowPartyLevelBonus: false }),
   killRoute('q_spiders', 'apothecary_lin', 'webwood_spider', 4, 'Collecting Webwood Silk'),
   killRoute('q_murlocs', 'fisherman_brandt', 'mudfin_murloc', 6, 'Driving back the Mudfin'),
   collectRoute('q_supplies', 'trader_wilkes', 'supply_crate', 6, 'Recovering Stolen Supplies', { allowPartyLevelBonus: false }),

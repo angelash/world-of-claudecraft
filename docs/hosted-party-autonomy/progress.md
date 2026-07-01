@@ -706,7 +706,7 @@ Current date: 2026-06-30
   are above the stable line, about 90 percent health, instead of releasing as
   soon as the 72 percent start line is crossed. Recovery support now allows only
   healing, self-preservation, taunt or growl protection, and narrow protective
-  focus when exactly one non-self member is unstable and the helper is stable.
+  focus when a non-self member is unstable and the helper is stable.
   Ordinary tank offense, preparation, and damage-dealer focus remain blocked.
 - [x] Hosted runtime debug command snapshots now record the effective commands
   allowed by the party coordinator, so live reports no longer show suppressed
@@ -744,4 +744,30 @@ Current date: 2026-06-30
   `tmp/hosted-play-live-harness-2026-06-30T23-32-39-772Z.json`. The short run
   reached a current full party, observed invite, chat, intent, quest, and
   support signals, stayed runtime-clean, and had no player deaths.
+- [x] Level 20 candidate `tmp\hosted-play-level20-20260701-073517.json`
+  reached a full five-player party and kept quest logs filled, but failed near
+  level 2 with seven player deaths. Samples showed recovery intent active while
+  level-2 members were hunting Bristly Boar Hides, losing health to a route
+  that had been lowered by party bonus, and stable helpers did not protectively
+  focus because multiple members were unstable at once.
+- [x] `q_boars` now opts out of party level-bonus pursuit. Full level-2 parties
+  may still pick up Bristly Boar Hides, but they grind safer Forest Wolves
+  until level 3 before hunting reactive boars.
+- [x] Protective recovery focus now works when multiple party members are
+  unstable. A stable, unthreatened helper may attack the mob actively hitting
+  the most endangered unstable member, while the dead-member, self-stability,
+  and active-threat guards remain intact.
+- [x] Focused validation after the boar gate and multi-unstable protection fix
+  passed:
+  `npx vitest run tests\ambient_player_bot_brain.test.ts tests\hosted_play_party.test.ts tests\ambient_player_bot_group.test.ts`.
+- [x] Broader validation after the boar gate and multi-unstable protection fix
+  also passed:
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`.
+- [x] Boar gating and multi-unstable protection were also covered by
+  `git diff --check`, `npm run build:server`, `npm run build`, LAN/IP restart
+  through `scripts\windows_stack.ps1`, `0.0.0.0` port verification, printed IP
+  URLs, `/api/status`, and short live harness report
+  `tmp/hosted-play-live-harness-2026-06-30T23-58-39-007Z.json`. The short run
+  reached a current full party, observed invite, chat, intent, quest, and
+  support signals, and stayed runtime-clean.
 - [ ] Final run occurs after the last code change and service restart.

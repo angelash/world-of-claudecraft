@@ -464,7 +464,7 @@ function recoveryEmergencyFocusAllowed(
   if (members.some((member) => member.member.dead)) return false;
   const unstableMembers = members.filter((member) =>
     !member.member.dead && healthRatio(member.member) <= GROUP_RECOVERY_EMERGENCY_FOCUS_RATIO);
-  return unstableMembers.length === 1 && unstableMembers[0]?.member.pid !== self.id;
+  return unstableMembers.some((member) => member.member.pid !== self.id);
 }
 
 function maybeFocusFireTarget(input: {

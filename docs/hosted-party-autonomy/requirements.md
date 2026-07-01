@@ -78,9 +78,10 @@ operator to restart services manually.
   self-preservation, or tank protection action is being performed.
 - During recovery, healthy damage dealers may still use protective focus fire
   against a mob that is actively attacking a low-health party member.
-- Protective focus fire during recovery is narrow: it may run only when exactly
-  one non-self member is unstable, no one is dead, the helper is stable and not
-  threatened, and the target mob is actively attacking that unstable member.
+- Protective focus fire during recovery is narrow: it may run only when no one
+  is dead, the helper is stable and not threatened, at least one non-self
+  member is unstable, and the target mob is actively attacking an unstable
+  member.
 - Once recovery intent has been called, the party should stay in recovery until
   every living member is above the stable recovery line, about 90 percent
   health, so the group does not oscillate back to combat at the edge.
