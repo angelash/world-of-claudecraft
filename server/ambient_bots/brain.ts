@@ -50,6 +50,7 @@ const NO_TARGET_ROTATE_MS = 5_000;
 const COMMAND_COOLDOWN_MS = 900;
 const QUEST_INTAKE_NEARBY_RANGE = 18;
 const PARTY_ROUTE_NEARBY_RANGE = 48;
+const COLLECT_RESUPPLY_DEFER_RANGE = PARTY_ROUTE_NEARBY_RANGE + CAMP_ARRIVAL_RANGE;
 const PARTY_ROUTE_MAX_LEVEL_BONUS = 1;
 const PARTY_ROUTE_FULL_GROUP_LEVEL_BONUS = 1;
 const RECOVERY_HP_THRESHOLD = 0.7;
@@ -488,7 +489,7 @@ function shouldFinishNearbyCollectObjectiveBeforeResupply(
   const visibleObject = nearestObject(view, objective.objectItemId);
   if (visibleObject) return true;
   const camps = objective.camps ?? [];
-  return camps.some((camp) => dist2d(view.self.pos, pointToVec(camp)) <= PARTY_ROUTE_NEARBY_RANGE);
+  return camps.some((camp) => dist2d(view.self.pos, pointToVec(camp)) <= COLLECT_RESUPPLY_DEFER_RANGE);
 }
 
 function chooseGearPurchaseObjective(
