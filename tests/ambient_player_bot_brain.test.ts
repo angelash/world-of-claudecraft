@@ -2231,6 +2231,29 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
+  it('continues a nearby collect objective instead of restocking at the object camp', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 8,
+          x: 80,
+          z: 88,
+          copper: 100,
+          inv: [],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_mine', 'q_greyjaw', 'q_bandits', 'q_ringleader', 'q_bones'],
+          qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('collect_whispers');
+    expect(result.objectiveLabel).toBe("Searching for the Gravecaller's Sigil");
+    expect(result.moveInput).toEqual({});
+  });
+
   it('picks up q_rite from Brother Aldric after the earlier chapel chain is complete', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({

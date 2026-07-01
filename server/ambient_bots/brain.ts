@@ -468,6 +468,7 @@ function chooseResupplyObjective(
   questObjective: AmbientBotObjective | null,
 ): AmbientBotObjective | null {
   if (questObjective?.npcTemplateId) return null;
+  if (questObjective && shouldFinishNearbyCollectObjectiveBeforeResupply(view, questObjective)) return null;
   const vendorProfile = vendorProfileFor(view.self);
   const vendorPurchases = buildVendorPurchases(view.self, vendorProfile);
   if (vendorPurchases.length === 0) return null;
@@ -477,6 +478,17 @@ function chooseResupplyObjective(
     npcTemplateId: vendorProfile.vendorNpcTemplateId,
     vendorPurchases,
   };
+}
+
+function shouldFinishNearbyCollectObjectiveBeforeResupply(
+  view: BotWorldView,
+  objective: AmbientBotObjective,
+): boolean {
+  if (!objective.objectItemId) return false;
+  const visibleObject = nearestObject(view, objective.objectItemId);
+  if (visibleObject) return true;
+  const camps = objective.camps ?? [];
+  return camps.some((camp) => dist2d(view.self.pos, pointToVec(camp)) <= PARTY_ROUTE_NEARBY_RANGE);
 }
 
 function chooseGearPurchaseObjective(
