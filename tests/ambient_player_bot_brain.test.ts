@@ -354,8 +354,51 @@ describe('ambient player bot brain', () => {
     }, state);
 
     expect(result.objectiveId).toBe('hunt_boars');
+    expect(result.travelGoal?.target).toEqual({ x: 55, z: 12 });
     expect(result.commands).toEqual([]);
     expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('keeps boar backfill on the safe camp when Mogger-side boars are visible', () => {
+    const state = createAmbientPlayerBotBrainState();
+    state.noTargetSinceMs = 1_000;
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          x: 55,
+          z: 12,
+          inv: [
+            { itemId: 'baked_bread', count: 4 },
+            { itemId: 'minor_healing_potion', count: 3 },
+          ],
+          qdone: ['q_wolves', 'q_boars'],
+          qlog: [{ questId: 'q_spiders', counts: [0, 0], state: 'active' }],
+          party: {
+            members: [
+              { pid: 101, dead: false, qdone: ['q_wolves', 'q_boars'], qlog: [] },
+              {
+                pid: 202,
+                dead: false,
+                qdone: ['q_wolves'],
+                qlog: [{ questId: 'q_boars', counts: [2], state: 'active' }],
+              },
+            ],
+          },
+        },
+        entities: [
+          { id: 202, k: 'player', tid: 'mage', x: 56, z: 13, lv: 4 },
+          { id: 8102, k: 'mob', tid: 'wild_boar', x: 80, z: -15, lv: 3, h: true },
+        ],
+      }),
+      nowMs: 7_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('hunt_boars');
+    expect(result.travelGoal).toBeUndefined();
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({});
   });
 
   it('helps party members turn in an earlier ready quest before pushing ahead', () => {
@@ -1220,6 +1263,36 @@ describe('ambient player bot brain', () => {
     expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
     expect(result.travelGoal?.target).toEqual({ x: -43, z: -2 });
     expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('keeps early boar grinding on the safe camp when Mogger-side boars are visible', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          x: 55,
+          z: 12,
+          inv: [{ itemId: 'baked_bread', count: 4 }],
+          qdone: ['q_wolves'],
+          qlog: [
+            { questId: 'q_boars', counts: [5], state: 'done' },
+            { questId: 'q_spiders', counts: [6, 4], state: 'done' },
+          ],
+        },
+        entities: [
+          { id: 8102, k: 'mob', tid: 'wild_boar', x: 80, z: -15, lv: 3, h: true },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Wild Boar');
+    expect(result.travelGoal).toBeUndefined();
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({});
   });
 
   it('does not lower the Bristly Boar Hides route below level 3 for a full party', () => {

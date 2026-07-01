@@ -1401,6 +1401,40 @@ progress.
   verification, LAN URL printing, `/api/status`, and short live harness report
   `tmp\hosted-play-live-harness-2026-07-01T03-43-07-406Z.json` passed with all
   party members touching quest state.
+- Level-10 candidate `tmp\hosted-play-level10-20260701-114734.json` reached
+  level 4 and stayed program-clean, but remained level 4 after about 42.5
+  minutes with eight Webwood Lurker deaths around the level-3 spider route and
+  level-4 fallback grind.
+- `server/ambient_bots/brain.ts` now starts dangerous-pull retreat for Webwood
+  Lurker threats at level 3 and keeps full nearby level-4 post-spider parties on
+  Webwood edge patrol points while `q_murlocs` remains level-gated.
+- Validation after the Webwood safety fix passed:
+  `npx vitest run tests\ambient_player_bot_brain.test.ts`,
+  `npx vitest run tests\ambient_player_bot_brain.test.ts tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`,
+  `git diff --check`, and `npm run build:server`.
+- The Webwood safety fix is loaded in the local LAN/IP stack. Restart, port
+  binding verification, LAN URL printing, `/api/status`, and short live harness
+  report `tmp\hosted-play-live-harness-2026-07-01T04-49-03-596Z.json` passed
+  with all party members touching quest state.
+- Level-10 candidate `tmp\hosted-play-level10-20260701-125248.json` stayed
+  program-clean and reached a full party with all five members touching quest
+  state, but was stopped after about 14 minutes at max leader level 3 with
+  three player deaths. The party drifted from the safe boar area toward the
+  second wild-boar camp near Mogger while working `q_boars`.
+- `server/ambient_bots/progression_routes.ts` now points Bristly Boar Hides at
+  the safe Eastbrook boar camp, and `server/ambient_bots/brain.ts` honors an
+  optional camp target radius so `q_boars` and early boar grinding do not chase
+  visible Mogger-side wild boars from the unsafe camp.
+- Validation after the safe boar camp fix passed:
+  `npx vitest run tests\ambient_player_bot_brain.test.ts`,
+  `npx vitest run tests\ambient_player_bot_brain.test.ts tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`,
+  `git diff --check`, and `npm run build:server`.
+- The safe boar camp fix is loaded in the local LAN/IP stack. Restart, port
+  binding verification, LAN URL printing, `/api/status`, and short live harness
+  report `tmp\hosted-play-live-harness-2026-07-01T05-31-49-154Z.json` passed
+  with all party members touching quest state and zero stuck resets.
 
 ## Validation Matrix
 
@@ -1447,9 +1481,10 @@ progress.
 ## Known Current Gaps
 
 - A clean post-fix level-10 hosted run is the current target after the latest
-  Webwood safety fix, service restart, and short live harness check. Focus the
-  next candidate on the level-3 spider route, level-4 Webwood fallback survival,
-  the level-5 transition into murlocs and Greyjaw, and progress up to level 10.
+  safe boar camp fix, service restart, and short live harness check. Focus the
+  next candidate on safe level-3 boar completion, level-3 spider recovery,
+  level-4 Webwood fallback survival, the level-5 transition into murlocs and
+  Greyjaw, and progress up to level 10.
 
 ## New Files In This Packet
 

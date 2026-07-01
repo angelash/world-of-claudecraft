@@ -32,6 +32,8 @@ import type { AmbientPlayerBotRecord } from './types';
 import type { AmbientPlayerBotLiveState } from './ws_client';
 import {
   AMBIENT_BOT_SOLO_QUEST_ROUTES,
+  EASTBROOK_SAFE_BOAR_CAMPS,
+  EASTBROOK_SAFE_BOAR_TARGET_RADIUS,
   type AmbientBotPoint2d,
   type AmbientBotQuestRoute,
 } from './progression_routes';
@@ -201,6 +203,7 @@ interface AmbientBotObjective {
   alternateMobIds?: readonly string[];
   objectItemId?: string;
   camps?: readonly BotPoint2d[];
+  targetCampRadius?: number;
   npcTemplateId?: string;
   allowAnyHostileFallback?: boolean;
   vendorPurchases?: readonly AmbientBotVendorPurchase[];
@@ -452,6 +455,7 @@ function grindObjectiveForView(view: BotWorldView): AmbientBotObjective {
     label: `Grinding ${displayMobName(grind.mobId)}`,
     mobId: grind.mobId,
     camps: grind.camps,
+    ...(grind.targetCampRadius !== undefined ? { targetCampRadius: grind.targetCampRadius } : {}),
     allowAnyHostileFallback: true,
   };
 }
@@ -543,6 +547,7 @@ function activeQuestObjectiveForRoute(
     label: route.activeLabel,
     questId: route.questId,
     camps: activeCamps,
+    ...(route.targetCampRadius !== undefined ? { targetCampRadius: route.targetCampRadius } : {}),
     ...(route.dungeonId ? { dungeonId: route.dungeonId } : {}),
     ...(route.suggestedPartySize
       ? { suggestedPartySize: route.suggestedPartySize }
@@ -1263,10 +1268,15 @@ function huntMob(
   const preferredMobIds = objective.mobId
     ? [objective.mobId, ...(objective.alternateMobIds ?? [])]
     : [...(objective.alternateMobIds ?? [])];
-  const currentTarget = currentRouteHostileTarget(view, preferredMobIds);
+  const currentTarget = currentRouteHostileTarget(
+    view,
+    preferredMobIds,
+    objective.camps,
+    objective.targetCampRadius,
+  );
   const target =
     currentTarget
-    ?? nearestHostileMobByPriority(view, preferredMobIds)
+    ?? nearestHostileMobByPriority(view, preferredMobIds, objective.camps, objective.targetCampRadius)
     ?? (objective.allowAnyHostileFallback ? nearestAnyHostileMob(view) : null);
   if (target) {
     state.noTargetSinceMs = null;
@@ -1886,6 +1896,8 @@ function threateningMobs(view: BotWorldView): BotEntityView[] {
 function currentRouteHostileTarget(
   view: BotWorldView,
   templateIds: readonly string[],
+  camps: readonly BotPoint2d[] | undefined,
+  targetCampRadius: number | undefined,
 ): BotEntityView | null {
   if (view.self.targetId === null) return null;
   return view.entities.find(
@@ -1894,7 +1906,8 @@ function currentRouteHostileTarget(
       && entity.kind === 'mob'
       && entity.hostile
       && !entity.dead
-      && templateIds.includes(entity.templateId),
+      && templateIds.includes(entity.templateId)
+      && isWithinTargetCamps(entity, camps, targetCampRadius),
   ) ?? null;
 }
 
@@ -1909,12 +1922,18 @@ function currentTargetObject(view: BotWorldView, objectItemId: string | null): B
   ) ?? null;
 }
 
-function nearestHostileMob(view: BotWorldView, templateId: string): BotEntityView | null {
+function nearestHostileMob(
+  view: BotWorldView,
+  templateId: string,
+  camps: readonly BotPoint2d[] | undefined,
+  targetCampRadius: number | undefined,
+): BotEntityView | null {
   let best: BotEntityView | null = null;
   let bestDistance = Infinity;
   for (const entity of view.entities) {
     if (entity.kind !== 'mob' || entity.dead || !entity.hostile || entity.templateId !== templateId) continue;
     if (entity.level > view.self.level + 2) continue;
+    if (!isWithinTargetCamps(entity, camps, targetCampRadius)) continue;
     const distance = dist2d(view.self.pos, entity.pos);
     if (distance > MOB_SEARCH_RADIUS || distance >= bestDistance) continue;
     best = entity;
@@ -1926,12 +1945,23 @@ function nearestHostileMob(view: BotWorldView, templateId: string): BotEntityVie
 function nearestHostileMobByPriority(
   view: BotWorldView,
   templateIds: readonly string[],
+  camps: readonly BotPoint2d[] | undefined,
+  targetCampRadius: number | undefined,
 ): BotEntityView | null {
   for (const templateId of templateIds) {
-    const mob = nearestHostileMob(view, templateId);
+    const mob = nearestHostileMob(view, templateId, camps, targetCampRadius);
     if (mob) return mob;
   }
   return null;
+}
+
+function isWithinTargetCamps(
+  entity: BotEntityView,
+  camps: readonly BotPoint2d[] | undefined,
+  targetCampRadius: number | undefined,
+): boolean {
+  if (targetCampRadius === undefined || !camps || camps.length === 0) return true;
+  return camps.some((camp) => dist2d(entity.pos, pointToVec(camp)) <= targetCampRadius);
 }
 
 function nearestObject(view: BotWorldView, objectItemId: string): BotEntityView | null {
@@ -2106,7 +2136,11 @@ function scoreCombatAbility(ability: CombatAbility, preferRanged: boolean): numb
   return score;
 }
 
-function grindRouteForView(view: BotWorldView): { mobId: string; camps: readonly BotPoint2d[] } {
+function grindRouteForView(view: BotWorldView): {
+  mobId: string;
+  camps: readonly BotPoint2d[];
+  targetCampRadius?: number;
+} {
   const self = view.self;
   const zoneId = zoneAt(self.pos.z).id;
   const level = self.level;
@@ -2132,7 +2166,11 @@ function grindRouteForView(view: BotWorldView): { mobId: string; camps: readonly
     && !self.questLog.has('q_murlocs')
     && !self.questLog.has('q_supplies')
   ) {
-    return { mobId: 'wild_boar', camps: campsFor('wild_boar') };
+    return {
+      mobId: 'wild_boar',
+      camps: EASTBROOK_SAFE_BOAR_CAMPS,
+      targetCampRadius: EASTBROOK_SAFE_BOAR_TARGET_RADIUS,
+    };
   }
   if (
     level === 5

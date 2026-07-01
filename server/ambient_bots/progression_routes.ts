@@ -16,6 +16,7 @@ interface AmbientBotQuestRouteBase {
   giverNpcTemplateId: string;
   turnInNpcTemplateId: string;
   camps: readonly AmbientBotPoint2d[];
+  targetCampRadius?: number;
   pursueAtLevel: number;
   questObjectiveIndex?: number;
   acceptBeforeActiveQuestIds?: readonly string[];
@@ -24,6 +25,12 @@ interface AmbientBotQuestRouteBase {
   suggestedPartySize?: number;
   allowPartyLevelBonus?: boolean;
 }
+
+export const EASTBROOK_SAFE_BOAR_CAMPS: readonly AmbientBotPoint2d[] = [
+  { x: 55, z: 12 },
+];
+
+export const EASTBROOK_SAFE_BOAR_TARGET_RADIUS = 28;
 
 export interface AmbientBotKillQuestRoute extends AmbientBotQuestRouteBase {
   kind: 'kill';
@@ -49,6 +56,8 @@ interface AmbientBotQuestRouteConfig {
   dungeonId?: string;
   suggestedPartySize?: number;
   allowPartyLevelBonus?: boolean;
+  camps?: readonly AmbientBotPoint2d[];
+  targetCampRadius?: number;
 }
 
 function campsForMobIds(mobIds: readonly string[]): AmbientBotPoint2d[] {
@@ -96,9 +105,9 @@ function killRoute(
   const dungeonId = config.dungeonId;
   const suggestedPartySize = config.suggestedPartySize
     ?? (dungeonId ? DUNGEONS[dungeonId]?.suggestedPlayers ?? 1 : undefined);
-  const camps = dungeonId
+  const camps = config.camps ?? (dungeonId
     ? dungeonPointsFor(dungeonId, [mobId, ...(config.alternateMobIds ?? [])])
-    : campsForMobIds([mobId, ...(config.alternateMobIds ?? [])]);
+    : campsForMobIds([mobId, ...(config.alternateMobIds ?? [])]));
   return {
     kind: 'kill',
     questId,
@@ -113,6 +122,7 @@ function killRoute(
     mobId,
     ...(config.alternateMobIds ? { alternateMobIds: config.alternateMobIds } : {}),
     camps,
+    ...(config.targetCampRadius !== undefined ? { targetCampRadius: config.targetCampRadius } : {}),
     pursueAtLevel,
     questObjectiveIndex: config.questObjectiveIndex,
     ...(config.acceptBeforeActiveQuestIds
@@ -167,7 +177,11 @@ function collectRoute(
 
 export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
   killRoute('q_wolves', 'marshal_redbrook', 'forest_wolf', 1, 'Hunting Forest Wolves'),
-  killRoute('q_boars', 'trader_wilkes', 'wild_boar', 3, 'Collecting Bristly Boar Hides', { allowPartyLevelBonus: false }),
+  killRoute('q_boars', 'trader_wilkes', 'wild_boar', 3, 'Collecting Bristly Boar Hides', {
+    allowPartyLevelBonus: false,
+    camps: EASTBROOK_SAFE_BOAR_CAMPS,
+    targetCampRadius: EASTBROOK_SAFE_BOAR_TARGET_RADIUS,
+  }),
   killRoute('q_spiders', 'apothecary_lin', 'webwood_spider', 4, 'Collecting Webwood Silk'),
   killRoute('q_murlocs', 'fisherman_brandt', 'mudfin_murloc', 6, 'Driving back the Mudfin'),
   collectRoute('q_supplies', 'trader_wilkes', 'supply_crate', 6, 'Recovering Stolen Supplies', { allowPartyLevelBonus: false }),

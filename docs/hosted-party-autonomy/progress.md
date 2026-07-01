@@ -940,4 +940,26 @@ Current date: 2026-07-01
   reached a full party, all members touched quest state, program runtime stayed
   clean, stuck resets stayed within the gate, and hosted follow start-stop noise
   was absent.
+- [x] Level-10 candidate `tmp\hosted-play-level10-20260701-125248.json`
+  stayed program-clean and reached a full party with all five members touching
+  quest state, but was stopped after about 14 minutes at max leader level 3
+  with three player deaths. Two deaths were from Mogger while the party worked
+  `q_boars` near the second wild-boar camp, and the recovery spiral then let a
+  nearby boar kill the healer.
+- [x] Bristly Boar Hides and the early boar grind fallback now stay on the safe
+  Eastbrook boar camp at `{ x: 55, z: 12 }`. The route also carries a camp
+  target radius so the brain will not chase visible Mogger-side wild boars from
+  the unsafe camp at `{ x: 80, z: -15 }`.
+- [x] Validation for the safe boar camp fix passed:
+  `npx vitest run tests\ambient_player_bot_brain.test.ts`,
+  `npx vitest run tests\ambient_player_bot_brain.test.ts tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`,
+  `git diff --check`, and `npm run build:server`.
+- [x] The safe boar camp fix was loaded in the LAN/IP stack and covered by
+  `scripts\windows_stack.ps1` restart, `0.0.0.0` port verification, printed LAN
+  URLs, `/api/status`, and short live harness report
+  `tmp\hosted-play-live-harness-2026-07-01T05-31-49-154Z.json`. The short run
+  reached a full party, all members touched quest state, program runtime stayed
+  clean, stuck resets stayed at zero, and hosted follow start-stop noise was
+  absent.
 - [ ] Final run occurs after the last code change and service restart.

@@ -531,8 +531,8 @@ describe('HostedPlayRuntime', () => {
   it('lets a tight grouped follower keep finishing its own active quest before resuming follow', () => {
     const game = fakeGame(liveState({
       id: 102,
-      x: 0,
-      z: 6,
+      x: 55,
+      z: 12,
       lv: 3,
       hp: 78,
       mhp: 78,
@@ -549,12 +549,12 @@ describe('HostedPlayRuntime', () => {
         leader: 101,
         raid: false,
         members: [
-          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-          { pid: 102, name: 'Hero', cls: 'mage', level: 3, hp: 78, mhp: 78, res: 100, mres: 100, rtype: 'mana', x: 0, z: 6, dead: 0, inCombat: 0, group: 1 },
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 53, z: 12, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'mage', level: 3, hp: 78, mhp: 78, res: 100, mres: 100, rtype: 'mana', x: 55, z: 12, dead: 0, inCombat: 0, group: 1 },
         ],
       },
       entities: [
-        { id: 8101, k: 'mob', tid: 'wild_boar', x: 0, z: 10, h: true, lv: 3 },
+        { id: 8101, k: 'mob', tid: 'wild_boar', x: 55, z: 16, h: true, lv: 3 },
       ],
     }), {
       playerClass: 'mage',
@@ -591,8 +591,8 @@ describe('HostedPlayRuntime', () => {
   it('lets a tight grouped follower loot personal quest drops before resuming follow', () => {
     const game = fakeGame(liveState({
       id: 102,
-      x: 0,
-      z: 6,
+      x: 55,
+      z: 12,
       lv: 3,
       hp: 78,
       mhp: 78,
@@ -601,12 +601,16 @@ describe('HostedPlayRuntime', () => {
       rtype: 'mana',
       qdone: ['q_wolves'],
       qlog: [{ questId: 'q_boars', counts: [4], state: 'active' }],
+      auras: [
+        { id: 'frost_armor', kind: 'buff_armor', rem: 1700, dur: 1800 },
+        { id: 'arcane_intellect', kind: 'buff_int', rem: 1700, dur: 1800 },
+      ],
       party: {
         leader: 101,
         raid: false,
         members: [
-          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-          { pid: 102, name: 'Hero', cls: 'mage', level: 3, hp: 78, mhp: 78, res: 100, mres: 100, rtype: 'mana', x: 0, z: 6, dead: 0, inCombat: 0, group: 1 },
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 53, z: 12, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'mage', level: 3, hp: 78, mhp: 78, res: 100, mres: 100, rtype: 'mana', x: 55, z: 12, dead: 0, inCombat: 0, group: 1 },
         ],
       },
       entities: [
@@ -614,8 +618,8 @@ describe('HostedPlayRuntime', () => {
           id: 8102,
           k: 'mob',
           tid: 'wild_boar',
-          x: 0,
-          z: 6.5,
+          x: 55,
+          z: 12.5,
           h: true,
           lv: 3,
           dead: true,
@@ -709,8 +713,8 @@ describe('HostedPlayRuntime', () => {
   it('keeps ordinary local combat commands paused while another party member needs recovery', () => {
     const game = fakeGame(liveState({
       id: 102,
-      x: 0,
-      z: 6,
+      x: 55,
+      z: 12,
       lv: 3,
       hp: 100,
       mhp: 100,
@@ -727,12 +731,12 @@ describe('HostedPlayRuntime', () => {
         leader: 101,
         raid: false,
         members: [
-          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 70, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-          { pid: 102, name: 'Hero', cls: 'mage', level: 3, hp: 100, mhp: 100, res: 100, mres: 100, rtype: 'mana', x: 0, z: 6, dead: 0, inCombat: 0, group: 1 },
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 70, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 53, z: 12, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'mage', level: 3, hp: 100, mhp: 100, res: 100, mres: 100, rtype: 'mana', x: 55, z: 12, dead: 0, inCombat: 0, group: 1 },
         ],
       },
       entities: [
-        { id: 8101, k: 'mob', tid: 'wild_boar', x: 0, z: 10, h: true, lv: 3 },
+        { id: 8101, k: 'mob', tid: 'wild_boar', x: 55, z: 16, h: true, lv: 3 },
       ],
     }), {
       playerClass: 'mage',
