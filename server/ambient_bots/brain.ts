@@ -110,8 +110,8 @@ const EASTBROOK_WEAPON_UPGRADE_IDS = [
 const EASTBROOK_WEBWOOD_PARTY_GRIND_CAMPS: readonly BotPoint2d[] = [
   { x: -43, z: -2 },
   { x: -52, z: -6 },
-  { x: -66, z: -7 },
 ];
+const EASTBROOK_WEBWOOD_PARTY_GRIND_TARGET_RADIUS = 18;
 
 type BrainCommand = Record<string, unknown>;
 type MoveInputPayload = Record<string, 1>;
@@ -2179,11 +2179,15 @@ function grindRouteForView(view: BotWorldView): {
   ) {
     return { mobId: 'mudfin_murloc', camps: campsFor('mudfin_murloc') };
   }
+  const useWebwoodPartyGrindCamps = shouldUseWebwoodPartyGrindCamps(view);
   return {
     mobId: 'webwood_spider',
-    camps: shouldUseWebwoodPartyGrindCamps(view)
+    camps: useWebwoodPartyGrindCamps
       ? EASTBROOK_WEBWOOD_PARTY_GRIND_CAMPS
       : campsFor('webwood_spider'),
+    ...(useWebwoodPartyGrindCamps
+      ? { targetCampRadius: EASTBROOK_WEBWOOD_PARTY_GRIND_TARGET_RADIUS }
+      : {}),
   };
 }
 

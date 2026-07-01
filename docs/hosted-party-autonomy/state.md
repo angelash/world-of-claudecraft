@@ -1435,6 +1435,26 @@ progress.
   binding verification, LAN URL printing, `/api/status`, and short live harness
   report `tmp\hosted-play-live-harness-2026-07-01T05-31-49-154Z.json` passed
   with all party members touching quest state and zero stuck resets.
+- Level-10 candidate `tmp\hosted-play-level10-20260701-133523.json` confirmed
+  the safe boar route and reached level 4 with every member at quest state 8,
+  but was stopped dirty after two deaths. Alden died to a Forest Wolf during
+  the level-2 wolf grind, and Corin died to a deep Webwood Lurker while the
+  level-4 party used the post-spider edge grind. The run stayed program-clean:
+  zero hosted errors, zero WebSocket errors, zero status poll errors, and max
+  stuck resets 1.
+- `server/ambient_bots/brain.ts` now removes the deepest Webwood party grind
+  edge point and applies a camp target radius to the level-4 full-party
+  post-spider Webwood grind. This prevents the safe edge route from chasing
+  visible deep Webwood Lurkers around `{ x: -75, z: -6 }`.
+- Validation after the Webwood edge target fix passed:
+  `npx vitest run tests\ambient_player_bot_brain.test.ts`,
+  `npx vitest run tests\ambient_player_bot_brain.test.ts tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`,
+  `git diff --check`, and `npm run build:server`.
+- The Webwood edge target fix is loaded in the local LAN/IP stack. Restart, port
+  binding verification, LAN URL printing, `/api/status`, and short live harness
+  report `tmp\hosted-play-live-harness-2026-07-01T06-10-03-950Z.json` passed
+  with all party members touching quest state and zero stuck resets.
 
 ## Validation Matrix
 
@@ -1481,10 +1501,10 @@ progress.
 ## Known Current Gaps
 
 - A clean post-fix level-10 hosted run is the current target after the latest
-  safe boar camp fix, service restart, and short live harness check. Focus the
-  next candidate on safe level-3 boar completion, level-3 spider recovery,
-  level-4 Webwood fallback survival, the level-5 transition into murlocs and
-  Greyjaw, and progress up to level 10.
+  Webwood edge target fix, service restart, and short live harness check. Focus
+  the next candidate on the early level-2 Forest Wolf death window, safe
+  level-3 boar completion, level-4 Webwood fallback survival, the level-5
+  transition into murlocs and Greyjaw, and progress up to level 10.
 
 ## New Files In This Packet
 

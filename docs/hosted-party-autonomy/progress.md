@@ -962,4 +962,27 @@ Current date: 2026-07-01
   reached a full party, all members touched quest state, program runtime stayed
   clean, stuck resets stayed at zero, and hosted follow start-stop noise was
   absent.
+- [x] Level-10 candidate `tmp\hosted-play-level10-20260701-133523.json`
+  confirmed the safe boar route and reached level 4 with all five members at
+  quest state 8, but was stopped dirty after two deaths: an early Forest Wolf
+  death during the level-2 wolf grind, and a Webwood Lurker death during the
+  level-4 post-spider edge grind. It stayed program-clean with zero hosted
+  errors, zero WebSocket errors, zero status poll errors, and max stuck resets
+  1.
+- [x] The Webwood party grind edge is now narrower and camp-bound. The deepest
+  Webwood edge point was removed, and the level-4 full-party post-spider grind
+  now carries a target radius so visible deep Webwood Lurkers near
+  `{ x: -75, z: -6 }` are not chased from the safe edge.
+- [x] Validation for the Webwood edge target fix passed:
+  `npx vitest run tests\ambient_player_bot_brain.test.ts`,
+  `npx vitest run tests\ambient_player_bot_brain.test.ts tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`,
+  `git diff --check`, and `npm run build:server`.
+- [x] The Webwood edge target fix was loaded in the LAN/IP stack and covered by
+  `scripts\windows_stack.ps1` restart, `0.0.0.0` port verification, printed LAN
+  URLs, `/api/status`, and short live harness report
+  `tmp\hosted-play-live-harness-2026-07-01T06-10-03-950Z.json`. The short run
+  reached a full party, all members touched quest state, program runtime stayed
+  clean, stuck resets stayed at zero, and hosted follow start-stop noise was
+  absent.
 - [ ] Final run occurs after the last code change and service restart.

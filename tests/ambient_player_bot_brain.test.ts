@@ -1265,6 +1265,53 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
+  it('keeps Webwood edge grinding from chasing deep spiders', () => {
+    const state = createAmbientPlayerBotBrainState();
+    state.campIndex = 1;
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          id: 101,
+          lv: 4,
+          x: -52,
+          z: -6,
+          inv: [
+            { itemId: 'baked_bread', count: 4 },
+            { itemId: 'minor_healing_potion', count: 3 },
+          ],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders'],
+          qlog: [{ questId: 'q_murlocs', counts: [0], state: 'active' }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 4, hp: 204, mhp: 204, res: 0, mres: 0, rtype: 'rage', x: -52, z: -6, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 4, hp: 90, mhp: 90, res: 120, mres: 120, rtype: 'mana', x: -50, z: -5, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Branoracc', cls: 'mage', level: 4, hp: 93, mhp: 93, res: 120, mres: 120, rtype: 'mana', x: -49, z: -5, dead: 0, inCombat: 0, group: 1 },
+              { pid: 104, name: 'Branoradd', cls: 'paladin', level: 4, hp: 216, mhp: 216, res: 100, mres: 100, rtype: 'mana', x: -48, z: -4, dead: 0, inCombat: 0, group: 1 },
+              { pid: 105, name: 'Branoraee', cls: 'druid', level: 4, hp: 144, mhp: 144, res: 100, mres: 100, rtype: 'mana', x: -47, z: -4, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 102, k: 'player', tid: 'priest', lv: 4, x: -50, z: -5, dead: 0 },
+          { id: 103, k: 'player', tid: 'mage', lv: 4, x: -49, z: -5, dead: 0 },
+          { id: 104, k: 'player', tid: 'paladin', lv: 4, x: -48, z: -4, dead: 0 },
+          { id: 105, k: 'player', tid: 'druid', lv: 4, x: -47, z: -4, dead: 0 },
+          { id: 8201, k: 'mob', tid: 'webwood_spider', x: -75, z: -6, lv: 3, h: true },
+        ],
+      }),
+      nowMs: 7_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.travelGoal).toBeUndefined();
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({});
+  });
+
   it('keeps early boar grinding on the safe camp when Mogger-side boars are visible', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
