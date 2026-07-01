@@ -32,6 +32,8 @@ const HOSTED_PLAY_URGENT_RECOVERY_THREAT_RANGE = 10;
 const HOSTED_PLAY_URGENT_RECOVERY_RETREAT_DISTANCE = 8;
 const HOSTED_PLAY_RECOVERY_HEALTH_RATIO = 0.72;
 const HOSTED_PLAY_RECOVERY_STABLE_HEALTH_RATIO = 0.9;
+const HOSTED_PLAY_RECOVERY_RESOURCE_RATIO = 0.45;
+const HOSTED_PLAY_RECOVERY_STABLE_RESOURCE_RATIO = 0.65;
 const HOSTED_PLAY_RECOVERY_POTION_RATIO = 0.65;
 const HOSTED_PLAY_FRAGILE_THREAT_RECOVERY_HEALTH_RATIO = 0.9;
 const HOSTED_PLAY_FRAGILE_THREAT_RECOVERY_POTION_RATIO = 0.72;
@@ -609,12 +611,27 @@ function partyNeedsRegroup(
 }
 
 function partyNeedsRecovery(party: PartyInfo, holdUntilStable = false): boolean {
-  const threshold = holdUntilStable
+  const healthThreshold = holdUntilStable
     ? HOSTED_PLAY_RECOVERY_STABLE_HEALTH_RATIO
     : HOSTED_PLAY_RECOVERY_HEALTH_RATIO;
+  const resourceThreshold = holdUntilStable
+    ? HOSTED_PLAY_RECOVERY_STABLE_RESOURCE_RATIO
+    : HOSTED_PLAY_RECOVERY_RESOURCE_RATIO;
   return party.members.some((member) =>
     member.dead
-    || memberHealthRatio(member) <= threshold);
+    || memberHealthRatio(member) <= healthThreshold
+    || memberNeedsResourceRecovery(member, resourceThreshold));
+}
+
+function memberNeedsResourceRecovery(
+  member: PartyMemberInfo,
+  threshold: number,
+): boolean {
+  return !member.dead
+    && member.rtype === 'mana'
+    && member.mres > 0
+    && canClassHeal(member.cls)
+    && memberResourceRatio(member) <= threshold;
 }
 
 function selfNeedsFragileThreatRecovery(
@@ -695,6 +712,10 @@ function canClassHeal(cls: PartyMemberInfo['cls']): boolean {
 
 function memberHealthRatio(member: PartyMemberInfo): number {
   return member.mhp > 0 ? member.hp / member.mhp : 1;
+}
+
+function memberResourceRatio(member: PartyMemberInfo): number {
+  return member.mres > 0 ? member.res / member.mres : 1;
 }
 
 function idlePartyResult(): HostedPlayPartyTickResult {

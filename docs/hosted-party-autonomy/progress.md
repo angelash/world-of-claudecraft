@@ -770,4 +770,26 @@ Current date: 2026-06-30
   `tmp/hosted-play-live-harness-2026-06-30T23-58-39-007Z.json`. The short run
   reached a current full party, observed invite, chat, intent, quest, and
   support signals, and stayed runtime-clean.
+- [x] Level 20 candidate `tmp\hosted-play-level20-20260701-080110.json`
+  confirmed level-2 parties now grind Forest Wolves instead of prematurely
+  hunting Bristly Boar Hides, but failed after one player death during a long
+  grind recovery window. Samples showed many heals had already fired, the group
+  was still in recovery intent, and the healer began using protective pressure
+  instead of reliable healing, indicating healer mana needed to be a recovery
+  gate.
+- [x] Party recovery now considers healer mana. Healer-capable mana users at or
+  below 45 percent mana start recovery, and active recovery holds until they are
+  above about 65 percent mana. Party chat intent uses the same low-healer-mana
+  fact and says to recover health and mana before moving.
+- [x] Focused validation after the healer mana recovery fix passed:
+  `npx vitest run tests\hosted_play_party.test.ts tests\ambient_player_bot_party_chat.test.ts tests\hosted_play_runtime.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_brain.test.ts`.
+- [x] Broader validation after the healer mana recovery fix also passed:
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`.
+- [x] Healer mana recovery was also covered by `git diff --check`,
+  `npm run build:server`, `npm run build`, LAN/IP restart through
+  `scripts\windows_stack.ps1`, `0.0.0.0` port verification, printed IP URLs,
+  `/api/status`, and short live harness report
+  `tmp/hosted-play-live-harness-2026-07-01T00-23-00-016Z.json`. The short run
+  reached a current full party, observed invite, chat, intent, quest, and
+  support signals, and stayed runtime-clean.
 - [ ] Final run occurs after the last code change and service restart.

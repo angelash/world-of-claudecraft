@@ -5,6 +5,7 @@ import type { AmbientPlayerBotLiveState } from './ws_client';
 
 const PARTY_REGROUP_RANGE = 18;
 const RECOVERY_HEALTH_RATIO = 0.72;
+const RECOVERY_HEALER_MANA_RATIO = 0.45;
 const RECOVERY_FRAGILE_THREAT_HEALTH_RATIO = 0.9;
 const RECOVERY_FRAGILE_THREAT_MAX_LEVEL = 4;
 
@@ -55,6 +56,7 @@ interface PartyIntentFacts {
   partyInCombat: boolean;
   deadCount: number;
   criticalHealthCount: number;
+  criticalResourceCount: number;
   laggingCount: number;
 }
 
@@ -72,12 +74,19 @@ export function buildAmbientPartyCoordinationIntent(
   let holdAdvance = false;
   let preferAssist = false;
 
-  if (facts.deadCount > 0 || facts.criticalHealthCount > 0 || isRecoveryGroupMode(input.groupMode)) {
+  if (
+    facts.deadCount > 0
+    || facts.criticalHealthCount > 0
+    || facts.criticalResourceCount > 0
+    || isRecoveryGroupMode(input.groupMode)
+  ) {
     kind = 'recovery';
     behavior = 'recover';
     summary = facts.deadCount > 0
       ? 'Recover the party before moving'
-      : 'Stabilize health before the next pull';
+      : facts.criticalResourceCount > 0
+        ? 'Recover health and mana before moving'
+        : 'Stabilize health before the next pull';
     holdAdvance = true;
   } else if (input.groupMode === 'hold_regroup' || input.groupMode === 'wait_party' || facts.laggingCount > 0) {
     kind = 'correction';
@@ -199,6 +208,7 @@ function partyIntentFacts(
   const leader = party.members.find((member) => member.pid === party.leader) ?? null;
   let deadCount = 0;
   let criticalHealthCount = 0;
+  let criticalResourceCount = 0;
   let laggingCount = 0;
   const threatenedPids = threatenedPartyPids(liveState, partyIds);
   for (const member of party.members) {
@@ -206,6 +216,7 @@ function partyIntentFacts(
     else if (memberNeedsRecoveryIntent(member, threatenedPids)) {
       criticalHealthCount++;
     }
+    if (memberNeedsResourceRecoveryIntent(member)) criticalResourceCount++;
     if (leader && member.pid !== leader.pid && distanceBetweenMembers(member, leader) > PARTY_REGROUP_RANGE) {
       laggingCount++;
     }
@@ -214,6 +225,7 @@ function partyIntentFacts(
     partyInCombat: party.members.some((member) => member.inCombat === 1) || hasPartyThreat(liveState, partyIds),
     deadCount,
     criticalHealthCount,
+    criticalResourceCount,
     laggingCount,
   };
 }
@@ -233,6 +245,18 @@ function memberNeedsRecoveryIntent(
 function isFragileLowLevelMember(member: PartyMemberInfo): boolean {
   if (member.level > RECOVERY_FRAGILE_THREAT_MAX_LEVEL) return false;
   return member.cls === 'mage' || member.cls === 'priest' || member.cls === 'warlock';
+}
+
+function memberNeedsResourceRecoveryIntent(member: PartyMemberInfo): boolean {
+  return !member.dead
+    && member.rtype === 'mana'
+    && member.mres > 0
+    && canClassHeal(member.cls)
+    && member.res / member.mres <= RECOVERY_HEALER_MANA_RATIO;
+}
+
+function canClassHeal(cls: PartyMemberInfo['cls']): boolean {
+  return cls === 'priest' || cls === 'paladin' || cls === 'shaman' || cls === 'druid';
 }
 
 function latestPartyMilestone(

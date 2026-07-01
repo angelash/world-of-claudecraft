@@ -85,6 +85,9 @@ operator to restart services manually.
 - Once recovery intent has been called, the party should stay in recovery until
   every living member is above the stable recovery line, about 90 percent
   health, so the group does not oscillate back to combat at the edge.
+- A healer-capable mana user below the recovery mana line should make the party
+  hold for recovery before the next pull, even when everyone is currently at
+  safe health.
 - Recovery should trigger early enough for low-level cloth and healer survival,
   and recovery should use an available healing potion before the character is
   nearly dead.

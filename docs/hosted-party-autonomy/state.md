@@ -182,6 +182,10 @@ progress.
 - `q_boars` opts out of party level-bonus pursuit because Bristly Boar Hides
   combines a level-3 route with reactive boar damage. Full level-2 parties may
   pick the quest up, but should grind safer Forest Wolves before hunting boars.
+- Healer-capable mana users now contribute to party recovery checks. Recovery
+  starts when a healer is at or below 45 percent mana and holds until the healer
+  is above about 65 percent mana, so long grind sessions pause for drinks before
+  the next pull instead of running the healer dry.
 
 ## Key Existing Files
 
