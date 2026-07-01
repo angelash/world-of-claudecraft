@@ -828,10 +828,22 @@ function hostedLocalQuestBrainAllowedWhilePartyPaused(
   const localGroupMode = groupMode === 'follow_leader'
     || groupMode === 'hold_regroup'
     || groupMode === 'prepare_party';
-  if (!localGroupMode) return false;
+  const recoveryQuestIntakeMode = groupMode === 'assist_party'
+    || groupMode === 'recover_party';
+  if (!localGroupMode && !recoveryQuestIntakeMode) return false;
   if (isHostedLocalQuestObjective(result.objectiveId)) {
+    if (
+      recoveryQuestIntakeMode
+      && (
+        !result.objectiveId.startsWith('accept_')
+        || !hostedSelfNeedsInitialQuestIntake(liveState)
+      )
+    ) {
+      return false;
+    }
     return hostedLocalQuestTravelIsNearby(result, liveState);
   }
+  if (recoveryQuestIntakeMode) return false;
   if (result.objectiveId === 'loot') {
     if (hostedLeaderDistance(liveState) > HOSTED_PLAY_LOCAL_ACTIVE_QUEST_MAX_LEADER_DISTANCE) return false;
     return hostedLocalQuestTravelIsNearby(result, liveState);
@@ -839,6 +851,18 @@ function hostedLocalQuestBrainAllowedWhilePartyPaused(
   if (!isHostedActiveQuestObjective(result)) return false;
   if (hostedLeaderDistance(liveState) > HOSTED_PLAY_LOCAL_ACTIVE_QUEST_MAX_LEADER_DISTANCE) return false;
   return hostedLocalQuestTravelIsNearby(result, liveState);
+}
+
+function hostedSelfNeedsInitialQuestIntake(liveState: AmbientPlayerBotLiveState): boolean {
+  const self = liveState.self;
+  if (!self) return false;
+  if (self.dead === 1 || self.dead === true) return false;
+  const hp = typeof self.hp === 'number' ? self.hp : 1;
+  const maxHp = typeof self.mhp === 'number' ? self.mhp : 1;
+  if (maxHp > 0 && hp / maxHp < 0.9) return false;
+  const qlog = Array.isArray(self.qlog) ? self.qlog : [];
+  const qdone = Array.isArray(self.qdone) ? self.qdone : [];
+  return qlog.length === 0 && qdone.length === 0;
 }
 
 function isHostedActiveQuestObjective(result: AmbientPlayerBotBrainTickResult): boolean {

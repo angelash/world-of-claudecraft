@@ -491,8 +491,19 @@ function maybePauseForPartyRecovery(input: {
   const recoveryAnchorRange = urgentSelfRecovery
     ? HOSTED_PLAY_URGENT_RECOVERY_ANCHOR_RANGE
     : HOSTED_PLAY_RECOVERY_ANCHOR_RANGE;
+  const includePartyThreats = input.forceSelfRecovery
+    && input.selfMember.level <= HOSTED_PLAY_FRAGILE_THREAT_MAX_LEVEL
+    && isFragileHostedClass(input.selfMember.cls);
   const threatRetreatGoal = anchor && urgentSelfRecovery
-    ? recoveryThreatRetreatGoal(input.liveSelf, input.entities, input.selfMember, anchor, recoveryAnchorRange)
+    ? recoveryThreatRetreatGoal(
+      input.liveSelf,
+      input.entities,
+      input.party,
+      input.selfMember,
+      anchor,
+      recoveryAnchorRange,
+      includePartyThreats,
+    )
     : null;
   const travelGoal = threatRetreatGoal ?? (anchor && anchorDistance > recoveryAnchorRange
     ? travelGoalToPartyMember(anchor, recoveryAnchorRange, 'hosted-party-recover')
@@ -511,16 +522,21 @@ function maybePauseForPartyRecovery(input: {
 function recoveryThreatRetreatGoal(
   liveSelf: Record<string, unknown>,
   entities: Iterable<Record<string, unknown>>,
+  party: PartyInfo,
   selfMember: PartyMemberInfo,
   anchor: PartyMemberInfo,
   arrivalRange: number,
+  includePartyThreats: boolean,
 ): PartyTravelGoal | null {
   const selfId = readSelfId(liveSelf);
+  const partyIds = new Set(party.members.map((member) => member.pid));
   const selfX = typeof liveSelf.x === 'number' ? liveSelf.x : selfMember.x;
   const selfZ = typeof liveSelf.z === 'number' ? liveSelf.z : selfMember.z;
   let threat: { id: number; x: number; z: number; distance: number } | null = null;
   for (const entity of entities) {
-    if (entity.k !== 'mob' || entity.dead === 1 || entity.dead === true || entity.aggro !== selfId) continue;
+    if (entity.k !== 'mob' || entity.dead === 1 || entity.dead === true) continue;
+    const aggro = typeof entity.aggro === 'number' ? entity.aggro : null;
+    if (aggro !== selfId && (!includePartyThreats || aggro === null || !partyIds.has(aggro))) continue;
     const id = typeof entity.id === 'number' ? entity.id : null;
     const x = typeof entity.x === 'number' ? entity.x : null;
     const z = typeof entity.z === 'number' ? entity.z : null;

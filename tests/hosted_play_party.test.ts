@@ -772,11 +772,75 @@ describe('hosted-play party coordinator', () => {
     ]);
     expect(result.pauseBrainDrive).toBe(true);
     expect(result.travelGoal).toEqual({
-      target: { x: 8, z: 36 },
+      target: { x: 15.155417527999326, z: 39.57770876399967 },
       arrivalRange: 1.5,
-      goalKey: 'hosted-party-recover:101:8:36',
+      goalKey: 'hosted-party-retreat:101:501:15:40',
     });
     expect(result.groupMode).toBe('assist_party');
+  });
+
+  it('retreats a low-level fragile member from party threats during recovery intent', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 1,
+          z: 0,
+          lv: 2,
+          hp: 49,
+          mhp: 67,
+          target: 501,
+          auto: true,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Aldenjwkzpv', cls: 'warrior', level: 2, hp: 128, mhp: 128, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Mirajwkzpv', cls: 'priest', level: 2, hp: 49, mhp: 67, res: 70, mres: 100, rtype: 'mana', x: 1, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 103, name: 'Corinjwkzpv', cls: 'mage', level: 2, hp: 67, mhp: 67, res: 100, mres: 120, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 2, z: 0, aggro: 101, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'priest',
+        partyMode: 'follow_leader',
+        partyIntent: {
+          schemaVersion: 1,
+          kind: 'recovery',
+          behavior: 'recover',
+          key: 'party-intent|recovery|recover',
+          summary: 'Stabilize health before the next pull',
+          targetName: 'Aldenjwkzpv',
+          focusCallerName: 'Aldenjwkzpv',
+          holdAdvance: true,
+          preferAssist: false,
+        },
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [
+        { cmd: 'stopattack' },
+        { cmd: 'target', id: null },
+      ],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: -8, z: 0 },
+        arrivalRange: 1.5,
+        goalKey: 'hosted-party-retreat:101:501:-8:0',
+      },
+      groupMode: 'assist_party',
+      groupLeaderName: 'Aldenjwkzpv',
+      groupLeaderDistance: 1,
+    });
   });
 
   it('keeps a wounded hosted member moving when only loosely near the anchor', () => {

@@ -701,6 +701,110 @@ describe('HostedPlayRuntime', () => {
     });
   });
 
+  it('lets a healthy untouched member accept starter quests while party recovery is paused', () => {
+    const game = fakeGame(liveState({
+      id: 102,
+      x: 4,
+      z: 6,
+      lv: 1,
+      hp: 95,
+      mhp: 95,
+      rtype: 'rage',
+      mres: 0,
+      qlog: [],
+      qdone: [],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 1, hp: 60, mhp: 90, res: 0, mres: 0, rtype: 'rage', x: 4, z: 6, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'warrior', level: 1, hp: 95, mhp: 95, res: 0, mres: 0, rtype: 'rage', x: 4, z: 6, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 },
+      ],
+    }), {
+      playerClass: 'warrior',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([
+      { cmd: 'target', id: 7001 },
+      { cmd: 'interact' },
+    ]);
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'assist_party',
+      objectiveId: 'accept_wolves',
+      debug: {
+        brainDrivePaused: false,
+      },
+    });
+  });
+
+  it('keeps low-health untouched members paused instead of overriding recovery for quest intake', () => {
+    const game = fakeGame(liveState({
+      id: 102,
+      x: 4,
+      z: 6,
+      lv: 1,
+      hp: 50,
+      mhp: 95,
+      rtype: 'rage',
+      mres: 0,
+      qlog: [],
+      qdone: [],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 1, hp: 60, mhp: 90, res: 0, mres: 0, rtype: 'rage', x: 4, z: 6, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'warrior', level: 1, hp: 50, mhp: 95, res: 0, mres: 0, rtype: 'rage', x: 4, z: 6, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 },
+      ],
+    }), {
+      playerClass: 'warrior',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([]);
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'assist_party',
+      objectiveId: 'recover',
+      debug: {
+        brainDrivePaused: true,
+        commands: [],
+      },
+    });
+  });
+
   it('keeps restock brain work paused while a nearby party member is recovering', () => {
     const game = fakeGame(liveState({
       id: 101,

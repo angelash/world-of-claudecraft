@@ -1326,6 +1326,27 @@ progress.
   WebSocket errors, zero status poll errors, zero stuck resets, a full party,
   and four active quest logs per member. It was stopped after confirming the
   previous level-2 death spiral window was clean.
+- Current execution target is a level-10 candidate.
+- Level-10 candidate `tmp\hosted-play-level10-20260701-100508.json` was stopped
+  after it exposed a blocker: by about 12.5 minutes it was still level 2, had
+  three player deaths, and later short validation showed two members could stay
+  at zero quest state while recovery intent kept the group in `assist_party`.
+- `server/hosted_play/party.ts` now treats nearby party threats as retreat
+  threats for low-level fragile members during forced recovery, even when the
+  mob is currently targeting another party member.
+- `server/hosted_play/runtime.ts` now allows healthy qlog/qdone-empty members
+  to perform initial `accept_*` quest intake while party recovery pauses in
+  `assist_party` or `recover_party`. Low-health members still stay paused for
+  recovery.
+- Validation after that fix passed:
+  `npx vitest run tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`,
+  `git diff --check`, and `npm run build:server`.
+- The fix is loaded in the local LAN/IP stack. Restart, port binding
+  verification, LAN URL printing, `/api/status`, and short live harness report
+  `tmp\hosted-play-live-harness-2026-07-01T02-31-27-760Z.json` passed with all
+  party members touching quest state.
 
 ## Validation Matrix
 
@@ -1371,11 +1392,10 @@ progress.
 
 ## Known Current Gaps
 
-- A clean post-fix level 20 hosted run is still required after the latest
-  recovery emergency focus fix, service restart, short live harness check, and
-  level-3 candidate checkpoint. Focus the next candidate on full level-20
-  completion, level-3 to level-5 routing, quest turn-in cadence, and any later
-  death recovery behavior.
+- A clean post-fix level-10 hosted run is the current target after the latest
+  intake/recovery fix, service restart, and short live harness check. Focus the
+  next candidate on early quest intake, level-2 recovery, progression through
+  level 3, and route/turn-in cadence up to level 10.
 
 ## New Files In This Packet
 

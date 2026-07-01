@@ -846,4 +846,29 @@ Current date: 2026-07-01
   deaths, zero hosted errors, zero WebSocket errors, zero status poll errors,
   zero stuck resets, and no hosted follow start-stop noise. The run was stopped
   after confirming the previous level-2 death spiral window was clean.
+- [x] Level-10 candidate `tmp\hosted-play-level10-20260701-100508.json`
+  stayed program-clean but failed the strategy bar: by about 12.5 minutes it was
+  still level 2, had three player deaths, and short follow-up validation showed
+  two members could remain at zero quest state while recovery intent held the
+  party in `assist_party`.
+- [x] Low-level fragile hosted members now retreat from nearby party threats
+  during forced recovery, not only mobs directly targeting themselves. This
+  keeps priests, mages, and warlocks from staying beside a mob that is currently
+  hitting another party member but can still swap or finish them during recovery.
+- [x] Healthy untouched members can now complete initial `accept_*` quest intake
+  while party recovery is paused in `assist_party` or `recover_party`. The
+  override is limited to qlog/qdone-empty, healthy members and does not allow
+  low-health members to override recovery.
+- [x] Validation for the level-10 candidate intake/recovery fix passed:
+  `npx vitest run tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`,
+  `git diff --check`, and `npm run build:server`.
+- [x] The intake/recovery fix was loaded in the LAN/IP stack and covered by
+  `scripts\windows_stack.ps1` restart, `0.0.0.0` port verification, printed LAN
+  URLs, `/api/status`, and short live harness report
+  `tmp\hosted-play-live-harness-2026-07-01T02-31-27-760Z.json`. The short run
+  reached a full party, all members touched quest state, program runtime stayed
+  clean, stuck resets stayed at zero, and hosted follow start-stop noise was
+  absent.
 - [ ] Final run occurs after the last code change and service restart.
