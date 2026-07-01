@@ -17,6 +17,7 @@ const DEFAULT_CHECKPOINT_MS = 30_000;
 const DEFAULT_SHORT_DURATION_MS = 120_000;
 const DEFAULT_LONG_DURATION_MS = 90 * 60_000;
 const DEFAULT_MIN_RUN_MS = 45_000;
+const DEAD_RELEASE_COOLDOWN_MS = 5_000;
 const RECENT_EVENT_LIMIT = 240;
 const STATUS_SAMPLE_LIMIT = 2_000;
 const STATUS_POLL_ERROR_LIMIT = 120;
@@ -201,6 +202,7 @@ class Client {
     this.snapshots = 0;
     this.inviteCursor = 0;
     this.hostedEnabled = false;
+    this.lastReleaseAtMs = 0;
     this.ws = null;
   }
 
@@ -414,6 +416,17 @@ function acceptPendingInvites(clients, report) {
       client.cmd({ cmd: 'paccept' });
       report.metrics.invitesAccepted++;
     }
+  }
+}
+
+function releaseDeadClients(clients, rows, nowMs, report) {
+  for (const row of rows) {
+    if (!row.dead) continue;
+    const client = clients.find((candidate) => candidate.name === row.character);
+    if (!client || nowMs - client.lastReleaseAtMs < DEAD_RELEASE_COOLDOWN_MS) continue;
+    client.cmd({ cmd: 'release' });
+    client.lastReleaseAtMs = nowMs;
+    report.metrics.releaseCommandSamples++;
   }
 }
 
@@ -655,6 +668,7 @@ function createReport(options, clients, statusBody) {
       partyChatActions: {},
       questStateByCharacter: {},
       deadPlayerNames: [],
+      releaseCommandSamples: 0,
       wsErrors: [],
       hostedErrors: [],
       statusPollErrors: [],
@@ -857,6 +871,7 @@ async function main() {
         if (consecutiveStatusSampleFailures >= MAX_CONSECUTIVE_STATUS_SAMPLE_FAILURES) throw err;
       }
       if (rows) {
+        releaseDeadClients(clients, rows, nowMs, report);
         updateMetricsFromStatus(report, rows);
         report.statusSamples.push({
           atMs: nowMs,
