@@ -148,6 +148,9 @@ export function tickHostedPlayPartyCoordinator(
       || selfNeedsIntentRecovery
       || selfNeedsFrontlineRecovery
     );
+  const selfCanHoldRecoveryCombat = partyRecovering
+    && partyInCombat
+    && canHostedRecoveryProtectorStayEngaged(input.playerClass, input.liveSelf, selfMember);
   if (selfNeedsUrgentRecovery) {
     const recoveryPause = maybePauseForPartyRecovery({
       liveSelf: input.liveSelf,
@@ -160,6 +163,7 @@ export function tickHostedPlayPartyCoordinator(
       entities,
       forceSelfRecovery: selfNeedsEarlyThreatRecovery || selfNeedsIntentRecovery || selfNeedsFrontlineRecovery,
       forcePartyRecovery: partyRecovering,
+      allowProtectiveCombat: false,
     });
     if (recoveryPause) return recoveryPause;
   }
@@ -219,6 +223,7 @@ export function tickHostedPlayPartyCoordinator(
     entities,
     forceSelfRecovery: false,
     forcePartyRecovery: partyRecovering,
+    allowProtectiveCombat: selfCanHoldRecoveryCombat,
   });
   if (recoveryPause) return recoveryPause;
 
@@ -449,6 +454,7 @@ function maybePauseForPartyRecovery(input: {
   entities: Iterable<Record<string, unknown>>;
   forceSelfRecovery: boolean;
   forcePartyRecovery: boolean;
+  allowProtectiveCombat: boolean;
 }): HostedPlayPartyTickResult | null {
   if ((!input.forcePartyRecovery && !input.forceSelfRecovery) || input.selfMember.dead) return null;
 
@@ -466,8 +472,12 @@ function maybePauseForPartyRecovery(input: {
   ) {
     commands.push({ cmd: 'use', item: potion });
   }
+  const holdingProtectiveCombat = input.allowProtectiveCombat
+    && !input.forceSelfRecovery
+    && selfHealthRatio > HOSTED_PLAY_RECOVERY_STABLE_HEALTH_RATIO
+    && (input.selfMember.inCombat === 1 || readSelfAutoAttack(input.liveSelf) || readSelfTargetId(input.liveSelf) !== null);
   const selfNeedsEscape = input.selfMember.pid !== input.leaderMember.pid
-    || input.forcePartyRecovery
+    || (input.forcePartyRecovery && !holdingProtectiveCombat)
     || selfHealthRatio <= HOSTED_PLAY_RECOVERY_HEALTH_RATIO
     || input.forceSelfRecovery;
   if (
@@ -494,7 +504,7 @@ function maybePauseForPartyRecovery(input: {
   const includePartyThreats = input.forceSelfRecovery
     && input.selfMember.level <= HOSTED_PLAY_FRAGILE_THREAT_MAX_LEVEL
     && isFragileHostedClass(input.selfMember.cls);
-  const threatRetreatGoal = anchor && urgentSelfRecovery
+  const threatRetreatGoal = !holdingProtectiveCombat && anchor && urgentSelfRecovery
     ? recoveryThreatRetreatGoal(
       input.liveSelf,
       input.entities,
@@ -505,7 +515,7 @@ function maybePauseForPartyRecovery(input: {
       includePartyThreats,
     )
     : null;
-  const travelGoal = threatRetreatGoal ?? (anchor && anchorDistance > recoveryAnchorRange
+  const travelGoal = holdingProtectiveCombat ? undefined : threatRetreatGoal ?? (anchor && anchorDistance > recoveryAnchorRange
     ? travelGoalToPartyMember(anchor, recoveryAnchorRange, 'hosted-party-recover')
     : undefined);
 
@@ -680,6 +690,30 @@ function isFragileHostedClass(cls: PlayerClass): boolean {
 
 function isFrontlineHostedClass(cls: PlayerClass): boolean {
   return cls === 'warrior' || cls === 'paladin' || cls === 'druid';
+}
+
+function canHostedRecoveryProtectorStayEngaged(
+  playerClass: PlayerClass,
+  liveSelf: Record<string, unknown>,
+  selfMember: PartyMemberInfo,
+): boolean {
+  if (selfMember.dead) return false;
+  if (memberHealthRatio(selfMember) <= HOSTED_PLAY_RECOVERY_STABLE_HEALTH_RATIO) return false;
+  if (playerClass === 'warrior' || playerClass === 'paladin') return true;
+  return playerClass === 'druid' && liveSelfHasAuraKind(liveSelf, 'form_bear');
+}
+
+function liveSelfHasAuraKind(
+  liveSelf: Record<string, unknown>,
+  auraKind: string,
+): boolean {
+  const auras = Array.isArray(liveSelf.auras) ? liveSelf.auras : [];
+  return auras.some((aura) => {
+    if (!aura || typeof aura !== 'object' || Array.isArray(aura)) return false;
+    const record = aura as Record<string, unknown>;
+    const remaining = typeof record.rem === 'number' ? record.rem : 0;
+    return record.kind === auraKind && remaining > 3;
+  });
 }
 
 function partyRecoveryAnchor(

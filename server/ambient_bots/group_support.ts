@@ -27,6 +27,7 @@ const GROUP_FRAGILE_SELF_PRESERVE_MAX_LEVEL = 4;
 const GROUP_SELF_PRESERVE_POTION_RATIO = 0.65;
 const GROUP_SELF_PRESERVE_ANCHOR_RANGE = 6;
 const GROUP_RECOVERY_EMERGENCY_FOCUS_RATIO = 0.72;
+const GROUP_RECOVERY_PROTECTOR_STABLE_RATIO = 0.9;
 
 interface SupportAuraView {
   id: string;
@@ -211,29 +212,43 @@ function maybeProtectPartyDuringRecovery(input: {
 }): AmbientPartySupportDecision | null {
   if (input.bot.class === 'warrior') {
     const taunt = input.abilities.get('taunt');
-    if (!taunt) return null;
-    return tryHostileCastOnCandidates(
-      input.self,
-      orderedTauntTargets(input.hostileMobs, input.members, input.self),
-      taunt,
-      'taunt_party',
-      input.reserveCommandBatch,
-    );
+    if (taunt) {
+      const tauntDecision = tryHostileCastOnCandidates(
+        input.self,
+        orderedTauntTargets(input.hostileMobs, input.members, input.self),
+        taunt,
+        'taunt_party',
+        input.reserveCommandBatch,
+      );
+      if (tauntDecision) return tauntDecision;
+    }
   }
 
   if (input.bot.class === 'druid' && hasAuraKind(input.self.auras, 'form_bear')) {
     const growl = input.abilities.get('growl');
-    if (!growl) return null;
-    return tryHostileCastOnCandidates(
-      input.self,
-      orderedTauntTargets(input.hostileMobs, input.members, input.self),
-      growl,
-      'taunt_party',
-      input.reserveCommandBatch,
-    );
+    if (growl) {
+      const growlDecision = tryHostileCastOnCandidates(
+        input.self,
+        orderedTauntTargets(input.hostileMobs, input.members, input.self),
+        growl,
+        'taunt_party',
+        input.reserveCommandBatch,
+      );
+      if (growlDecision) return growlDecision;
+    }
   }
 
-  return null;
+  if (!recoveryProtectorCanEngage(input.bot.class, input.self, input.members)) return null;
+  const protectionTarget = selectRecoveryProtectionTarget(input.hostileMobs, input.members, input.self);
+  if (!protectionTarget) return null;
+  return maybeFocusFireTarget({
+    self: input.self,
+    bot: input.bot,
+    target: protectionTarget,
+    abilities: input.abilities,
+    reserveCommandBatch: input.reserveCommandBatch,
+    groupMode: 'protect_party',
+  });
 }
 
 function maybePrepareSelfForParty(input: {
@@ -469,6 +484,19 @@ function recoveryEmergencyFocusAllowed(
   return !!unstableMember
     && unstableMember.member.pid !== self.id
     && unstableMember.threatenedCount > 0;
+}
+
+function recoveryProtectorCanEngage(
+  cls: AmbientPlayerBotRecord['class'],
+  self: SupportSelfView,
+  members: readonly SupportPartyMemberView[],
+): boolean {
+  const selfMember = members.find((member) => member.member.pid === self.id) ?? null;
+  if (!selfMember || selfMember.member.dead) return false;
+  if (healthRatio(selfMember.member) <= GROUP_RECOVERY_PROTECTOR_STABLE_RATIO) return false;
+  return cls === 'warrior'
+    || cls === 'paladin'
+    || (cls === 'druid' && hasAuraKind(self.auras, 'form_bear'));
 }
 
 function maybeFocusFireTarget(input: {
@@ -1160,6 +1188,47 @@ function selectEmergencyRecoveryThreat(
     return a.id - b.id;
   });
   return sorted[0] ?? null;
+}
+
+function selectRecoveryProtectionTarget(
+  hostileMobs: readonly SupportMobView[],
+  members: readonly SupportPartyMemberView[],
+  self: SupportSelfView,
+): SupportMobView | null {
+  const memberByPid = new Map(members
+    .filter((member) => !member.member.dead)
+    .map((member) => [member.member.pid, member]));
+  const sorted = [...hostileMobs].filter((mob) =>
+    mob.aggroTargetId !== null && memberByPid.has(mob.aggroTargetId));
+  sorted.sort((a, b) => {
+    const aMember = memberByPid.get(a.aggroTargetId ?? -1);
+    const bMember = memberByPid.get(b.aggroTargetId ?? -1);
+    const aPriority = aMember ? recoveryProtectionPriority(aMember, self.id) : 4;
+    const bPriority = bMember ? recoveryProtectionPriority(bMember, self.id) : 4;
+    if (aPriority !== bPriority) return aPriority - bPriority;
+    const aHealer = aMember && canClassHeal(aMember.member.cls) ? 1 : 0;
+    const bHealer = bMember && canClassHeal(bMember.member.cls) ? 1 : 0;
+    if (aHealer !== bHealer) return bHealer - aHealer;
+    const aRatio = aMember ? healthRatio(aMember.member) : 1;
+    const bRatio = bMember ? healthRatio(bMember.member) : 1;
+    if (Math.abs(aRatio - bRatio) > 0.001) return aRatio - bRatio;
+    const aDistance = planarDistance(self.pos, a.pos);
+    const bDistance = planarDistance(self.pos, b.pos);
+    if (Math.abs(aDistance - bDistance) > 0.001) return aDistance - bDistance;
+    return a.id - b.id;
+  });
+  return sorted[0] ?? null;
+}
+
+function recoveryProtectionPriority(
+  member: SupportPartyMemberView,
+  selfId: number,
+): number {
+  if (member.member.pid === selfId) return 3;
+  const ratio = healthRatio(member.member);
+  if (ratio <= GROUP_RECOVERY_EMERGENCY_FOCUS_RATIO) return 0;
+  if (ratio <= GROUP_RECOVERY_PROTECTOR_STABLE_RATIO) return 1;
+  return 2;
 }
 
 function focusPriority(

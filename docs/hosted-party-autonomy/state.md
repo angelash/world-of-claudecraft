@@ -115,11 +115,11 @@ progress.
   starts recovery, and the stable line releases it only after the group is ready
   to resume pulls.
 - Recovery support is deliberately narrow. During recovery, group support may
-  heal, self-preserve, taunt or growl a mob off an ally, or use protective focus
-  only when no one is dead, the helper is stable and not threatened, at least
-  one non-self member is unstable, and the target mob is actively attacking an
-  unstable member. Ordinary tank offense, preparation, and damage-dealer focus
-  stay blocked.
+  heal, self-preserve, taunt or growl a mob off an ally, let stable warrior,
+  paladin, or bear-form druid protectors keep combat pressure on active party
+  threats, or use narrow emergency focus when exactly one non-self unstable
+  member is actively threatened. Low-health members, fragile members, ordinary
+  preparation, and damage-dealer focus stay blocked.
 - Hosted debug command snapshots now show effective commands that survived the
   recovery gate, not raw brain commands that were suppressed by the party
   coordinator.
@@ -191,6 +191,11 @@ progress.
   starts when a healer is at or below 45 percent mana and holds until the healer
   is above about 65 percent mana, so long grind sessions pause for drinks before
   the next pull instead of running the healer dry.
+- Stable recovery protectors can stay engaged while the rest of the party
+  recovers. Warriors, paladins, and bear-form druids above the stable health
+  line may target and attack active party threats during recovery, and the
+  generic recovery pause must not stop attack or clear target for a stable
+  protector already holding combat pressure.
 
 ## Key Existing Files
 
@@ -1347,6 +1352,25 @@ progress.
   verification, LAN URL printing, `/api/status`, and short live harness report
   `tmp\hosted-play-live-harness-2026-07-01T02-31-27-760Z.json` passed with all
   party members touching quest state.
+- Level-10 candidate `tmp\hosted-play-level10-20260701-103523.json` stayed
+  program-clean and reached full-party quest state, but failed during an 8 to 9
+  minute recovery window with three player deaths. Multiple members remained in
+  recovery while stable low-level frontliners did not reliably clear active
+  threats.
+- `server/ambient_bots/group_support.ts` now lets stable warrior, paladin, and
+  bear-form druid protectors target and attack active party threats during
+  recovery, even when multiple members are unstable. `server/hosted_play/party.ts`
+  no longer forces a stable protector already holding combat pressure to stop
+  attack or clear target during the generic party recovery pause.
+- Validation after that fix passed:
+  `npx vitest run tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`,
+  `git diff --check`, and `npm run build:server`.
+- The fix is loaded in the local LAN/IP stack. Restart, port binding
+  verification, LAN URL printing, `/api/status`, and short live harness report
+  `tmp\hosted-play-live-harness-2026-07-01T03-02-00-542Z.json` passed with all
+  party members touching quest state.
 
 ## Validation Matrix
 
@@ -1393,8 +1417,8 @@ progress.
 ## Known Current Gaps
 
 - A clean post-fix level-10 hosted run is the current target after the latest
-  intake/recovery fix, service restart, and short live harness check. Focus the
-  next candidate on early quest intake, level-2 recovery, progression through
+  stable recovery protector fix, service restart, and short live harness check.
+  Focus the next candidate on level-2 recovery survival, progression through
   level 3, and route/turn-in cadence up to level 10.
 
 ## New Files In This Packet

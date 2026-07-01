@@ -871,4 +871,28 @@ Current date: 2026-07-01
   reached a full party, all members touched quest state, program runtime stayed
   clean, stuck resets stayed at zero, and hosted follow start-stop noise was
   absent.
+- [x] Level-10 candidate `tmp\hosted-play-level10-20260701-103523.json`
+  stayed program-clean, reached a full party, touched quest state on every
+  member, and had all members at level 2 by about 4 minutes, but failed the
+  strategy bar during an 8 to 9 minute recovery window. Samples showed multiple
+  members in `assist_party` recovery while low-level stable frontliners had no
+  low-level taunt action and recovery pause could clear their active attack.
+- [x] Stable recovery protectors now keep combat pressure during recovery.
+  Warriors, paladins, and bear-form druids above the stable health line can
+  target and attack the active party threat even when multiple members are
+  unstable, and a stable protector that is already attacking is no longer forced
+  to stop attack or clear target by the generic recovery pause. Low-health
+  members, fragile members, and damage-dealer recovery limits remain intact.
+- [x] Validation for the stable recovery protector fix passed:
+  `npx vitest run tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`,
+  `git diff --check`, and `npm run build:server`.
+- [x] The stable recovery protector fix was loaded in the LAN/IP stack and
+  covered by `scripts\windows_stack.ps1` restart, `0.0.0.0` port verification,
+  printed LAN URLs, `/api/status`, and short live harness report
+  `tmp\hosted-play-live-harness-2026-07-01T03-02-00-542Z.json`. The short run
+  reached a full party, all members touched quest state, program runtime stayed
+  clean, stuck resets stayed at zero, and hosted follow start-stop noise was
+  absent.
 - [ ] Final run occurs after the last code change and service restart.

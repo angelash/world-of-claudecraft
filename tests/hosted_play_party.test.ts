@@ -1196,6 +1196,101 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
+  it('lets a stable hosted tank protect the party while multiple members recover', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          lv: 2,
+          x: 0,
+          z: 0,
+          hp: 128,
+          mhp: 128,
+          res: 0,
+          mres: 100,
+          rtype: 'rage',
+          target: null,
+          auto: false,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Hero', cls: 'warrior', level: 2, hp: 128, mhp: 128, res: 0, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Mira', cls: 'priest', level: 2, hp: 44, mhp: 67, res: 80, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 103, name: 'Corin', cls: 'mage', level: 2, hp: 44, mhp: 67, res: 80, mres: 100, rtype: 'mana', x: 3, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 2, z: 0, aggro: 102, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 501 },
+      { cmd: 'attack' },
+    ]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.groupMode).toBe('assist_party');
+  });
+
+  it('keeps a stable hosted tank attacking during party recovery', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          lv: 2,
+          x: 0,
+          z: 0,
+          hp: 128,
+          mhp: 128,
+          res: 0,
+          mres: 100,
+          rtype: 'rage',
+          target: 501,
+          auto: true,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Hero', cls: 'warrior', level: 2, hp: 128, mhp: 128, res: 0, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Mira', cls: 'priest', level: 2, hp: 44, mhp: 67, res: 80, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 103, name: 'Corin', cls: 'mage', level: 2, hp: 44, mhp: 67, res: 80, mres: 100, rtype: 'mana', x: 3, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 2, z: 0, aggro: 102, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: true,
+      groupMode: 'recover_party',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+  });
+
   it('keeps recovery intent active until the party reaches the stable line', () => {
     const state = createHostedPlayPartyState();
 
