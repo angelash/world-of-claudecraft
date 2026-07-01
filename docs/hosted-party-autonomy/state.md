@@ -201,6 +201,13 @@ progress.
   quest work, but followers outside regroup range must close the leader gap
   before local `accept_*` or `turnin_*` brain work can override follow or
   regroup travel.
+- Webwood Lurker threats can trigger ambient dangerous-pull retreat starting at
+  level 3. This keeps the spider route from waiting until the generic level-4
+  retreat threshold while preserving the early level-2 wolf grind behavior.
+- Full nearby level-4 parties that have completed `q_spiders` grind Webwood
+  from edge patrol points while the murloc route is still level-gated. The goal
+  is to reduce center-camp chain pulls without lowering the murloc or Greyjaw
+  safety gates.
 
 ## Key Existing Files
 
@@ -1440,9 +1447,9 @@ progress.
 ## Known Current Gaps
 
 - A clean post-fix level-10 hosted run is the current target after the latest
-  turn-in regroup gate fix, service restart, and short live harness check.
-  Focus the next candidate on level-4 turn-in cadence, later route transitions,
-  and continued recovery survival up to level 10.
+  Webwood safety fix, service restart, and short live harness check. Focus the
+  next candidate on the level-3 spider route, level-4 Webwood fallback survival,
+  the level-5 transition into murlocs and Greyjaw, and progress up to level 10.
 
 ## New Files In This Packet
 

@@ -975,6 +975,45 @@ describe('ambient player bot brain', () => {
     expect(result.travelGoal).toBeUndefined();
   });
 
+  it('uses dangerous-pull retreat for level 3 Webwood threats', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 3,
+          x: -50,
+          z: 3,
+          hp: 90,
+          mhp: 166,
+          target: 8101,
+          auto: true,
+          inv: [
+            { itemId: 'baked_bread', count: 4 },
+            { itemId: 'minor_healing_potion', count: 3 },
+          ],
+          qdone: ['q_wolves', 'q_boars'],
+          qlog: [{ questId: 'q_spiders', counts: [3, 2], state: 'active' }],
+        },
+        entities: [
+          { id: 8101, k: 'mob', tid: 'webwood_spider', x: -49, z: 3, h: true, aggro: 101 },
+          { id: 8102, k: 'mob', tid: 'webwood_spider', x: -52, z: 5, h: true, aggro: 101 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('recover');
+    expect(result.objectiveLabel).toBe('Retreating from a dangerous pull');
+    expect(result.commands).toEqual([
+      { cmd: 'use', item: 'minor_healing_potion' },
+      { cmd: 'stopattack' },
+      { cmd: 'target', id: null },
+    ]);
+    expect(result.travelGoal?.goalKey).toBe('retreat:trader_wilkes');
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('restocks healing potions before resuming an outdoor combat quest', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
@@ -1135,6 +1174,51 @@ describe('ambient player bot brain', () => {
     expect(result.objectiveId).toBe('grind');
     expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
     expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('uses Webwood edge camps for level 4 full-party grind after spider turn-in', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          id: 101,
+          lv: 4,
+          x: 0,
+          z: 0,
+          inv: [
+            { itemId: 'baked_bread', count: 4 },
+            { itemId: 'minor_healing_potion', count: 3 },
+          ],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders'],
+          qlog: [{ questId: 'q_murlocs', counts: [0], state: 'active' }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 4, hp: 204, mhp: 204, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 4, hp: 90, mhp: 90, res: 120, mres: 120, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Branoracc', cls: 'mage', level: 4, hp: 93, mhp: 93, res: 120, mres: 120, rtype: 'mana', x: 3, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 104, name: 'Branoradd', cls: 'paladin', level: 4, hp: 216, mhp: 216, res: 100, mres: 100, rtype: 'mana', x: 4, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 105, name: 'Branoraee', cls: 'druid', level: 4, hp: 144, mhp: 144, res: 100, mres: 100, rtype: 'mana', x: 5, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 102, k: 'player', tid: 'priest', lv: 4, x: 2, z: 0, dead: 0 },
+          { id: 103, k: 'player', tid: 'mage', lv: 4, x: 3, z: 0, dead: 0 },
+          { id: 104, k: 'player', tid: 'paladin', lv: 4, x: 4, z: 0, dead: 0 },
+          { id: 105, k: 'player', tid: 'druid', lv: 4, x: 5, z: 0, dead: 0 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
+    expect(result.travelGoal?.target).toEqual({ x: -43, z: -2 });
     expect(result.moveInput).toEqual({ f: 1 });
   });
 

@@ -66,6 +66,7 @@ const DANGEROUS_PULL_EMERGENCY_HP_THRESHOLD = 0.45;
 const DANGEROUS_PULL_POTION_HP_THRESHOLD = 0.68;
 const DANGEROUS_PULL_SAFE_ARRIVAL_RANGE = INTERACT_RANGE + 4;
 const DANGEROUS_PULL_MIN_LEVEL = 4;
+const DANGEROUS_PULL_WEBWOOD_MIN_LEVEL = 3;
 const SELF_MAINTENANCE_OBJECTIVES = ['recover', 'prepare_combat', 'equip_upgrade', 'sell_junk'] as const;
 
 interface AmbientBotVendorProfile {
@@ -103,6 +104,12 @@ const EASTBROOK_WEAPON_UPGRADE_IDS = [
   'vale_carving_knife',
   'hickory_shortstaff',
 ] as const;
+
+const EASTBROOK_WEBWOOD_PARTY_GRIND_CAMPS: readonly BotPoint2d[] = [
+  { x: -43, z: -2 },
+  { x: -52, z: -6 },
+  { x: -66, z: -7 },
+];
 
 type BrainCommand = Record<string, unknown>;
 type MoveInputPayload = Record<string, 1>;
@@ -908,9 +915,12 @@ function maybeRetreatFromDangerousPull(
   state: AmbientPlayerBotBrainState,
   input: AmbientPlayerBotBrainTickInput,
 ): AmbientPlayerBotBrainTickResult | null {
-  if (view.self.level < DANGEROUS_PULL_MIN_LEVEL) return null;
   const threats = threateningMobs(view);
   if (threats.length === 0) return null;
+  const minLevel = threats.some((threat) => threat.templateId === 'webwood_spider')
+    ? DANGEROUS_PULL_WEBWOOD_MIN_LEVEL
+    : DANGEROUS_PULL_MIN_LEVEL;
+  if (view.self.level < minLevel) return null;
 
   const hpRatio = view.self.maxHp > 0 ? view.self.hp / view.self.maxHp : 1;
   const dangerousByCount = threats.length >= DANGEROUS_PULL_THREAT_COUNT;
@@ -2131,12 +2141,25 @@ function grindRouteForView(view: BotWorldView): { mobId: string; camps: readonly
   ) {
     return { mobId: 'mudfin_murloc', camps: campsFor('mudfin_murloc') };
   }
-  return { mobId: 'webwood_spider', camps: campsFor('webwood_spider') };
+  return {
+    mobId: 'webwood_spider',
+    camps: shouldUseWebwoodPartyGrindCamps(view)
+      ? EASTBROOK_WEBWOOD_PARTY_GRIND_CAMPS
+      : campsFor('webwood_spider'),
+  };
 }
 
 function hasNearbyFullPartyAtLevel(view: BotWorldView, minLevel: number): boolean {
   const levels = nearbyContributingPartyLevels(view);
   return levels.length >= 5 && levels.every((level) => level >= minLevel);
+}
+
+function shouldUseWebwoodPartyGrindCamps(view: BotWorldView): boolean {
+  const self = view.self;
+  return self.level === 4
+    && self.questsDone.has('q_spiders')
+    && !self.questsDone.has('q_murlocs')
+    && hasNearbyFullPartyAtLevel(view, 4);
 }
 
 function questLabel(questId: string): string {

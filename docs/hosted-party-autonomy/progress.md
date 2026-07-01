@@ -917,4 +917,27 @@ Current date: 2026-07-01
   reached a full party, all members touched quest state, program runtime stayed
   clean, stuck resets stayed at zero, and hosted follow start-stop noise was
   absent.
+- [x] Level-10 candidate `tmp\hosted-play-level10-20260701-114734.json`
+  passed the prior turn-in deadlock and reached level 4 with all five hosted
+  members at `qdone` 3, but remained level 4 after about 42.5 minutes. It stayed
+  free of hosted errors, WebSocket errors, and status poll errors, but recorded
+  eight Webwood Lurker player deaths and frequent recovery windows around the
+  level-3 spider route and the level-4 post-spider fallback grind.
+- [x] Webwood recovery safety now starts dangerous-pull retreat for level-3
+  characters when the active threats are Webwood Lurkers, without changing the
+  early level-2 wolf grind guard. Full nearby level-4 parties that have turned
+  in `q_spiders` now grind Webwood from edge patrol points while `q_murlocs`
+  remains level-gated, instead of walking straight to the camp center.
+- [x] Validation for the Webwood safety fix passed:
+  `npx vitest run tests\ambient_player_bot_brain.test.ts`,
+  `npx vitest run tests\ambient_player_bot_brain.test.ts tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts`,
+  `npx vitest run tests\hosted_play_runtime.test.ts tests\hosted_play_party.test.ts tests\hosted_play_game_server.test.ts tests\ambient_player_bot_brain.test.ts tests\ambient_player_bot_group.test.ts tests\ambient_player_bot_party_chat.test.ts tests\social.test.ts`,
+  `git diff --check`, and `npm run build:server`.
+- [x] The Webwood safety fix was loaded in the LAN/IP stack and covered by
+  `scripts\windows_stack.ps1` restart, `0.0.0.0` port verification, printed LAN
+  URLs, `/api/status`, and short live harness report
+  `tmp\hosted-play-live-harness-2026-07-01T04-49-03-596Z.json`. The short run
+  reached a full party, all members touched quest state, program runtime stayed
+  clean, stuck resets stayed within the gate, and hosted follow start-stop noise
+  was absent.
 - [ ] Final run occurs after the last code change and service restart.
