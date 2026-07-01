@@ -319,6 +319,9 @@ export function tickAmbientPlayerBotBrain(
     );
   }
 
+  const nearbyObject = collectObjectAtHand(view, state, input, objective);
+  if (nearbyObject) return finalizeStep(state, input, view, objective, nearbyObject);
+
   const threat = findThreateningMob(view);
   const dangerousPull = maybeRetreatFromDangerousPull(view, state, input);
   if (dangerousPull) {
@@ -1338,6 +1341,29 @@ function patrolObjectiveCamps(
     CAMP_ARRIVAL_RANGE,
     `camp:${objective.mobId ?? objective.objectItemId ?? objective.id}:${state.campIndex % camps.length}`,
   );
+}
+
+function collectObjectAtHand(
+  view: BotWorldView,
+  state: AmbientPlayerBotBrainState,
+  input: AmbientPlayerBotBrainTickInput,
+  objective: AmbientBotObjective,
+): AmbientPlayerBotBrainTickResult | null {
+  const preferredItemId = objective.objectItemId;
+  if (!preferredItemId) return null;
+  const currentTarget = currentTargetObject(view, preferredItemId);
+  const target = currentTarget ?? nearestObject(view, preferredItemId);
+  if (!target || dist2d(view.self.pos, target.pos) > OBJECT_PICKUP_ARRIVAL_RANGE) return null;
+
+  state.noTargetSinceMs = null;
+  const commands: BrainCommand[] = [];
+  if (view.self.targetId !== target.id && canIssue(state, `target:${target.id}`, input.nowMs, COMMAND_COOLDOWN_MS)) {
+    commands.push({ cmd: 'target', id: target.id });
+  }
+  if (canIssue(state, `interact_object:${target.id}`, input.nowMs, 1_500)) {
+    commands.push({ cmd: 'interact' });
+  }
+  return idleStep(objective.id, objective.label, commands, facingFor(view.self.pos, target.pos));
 }
 
 function collectObject(
