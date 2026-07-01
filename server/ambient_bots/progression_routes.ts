@@ -32,6 +32,14 @@ export const EASTBROOK_SAFE_BOAR_CAMPS: readonly AmbientBotPoint2d[] = [
 
 export const EASTBROOK_SAFE_BOAR_TARGET_RADIUS = 28;
 
+const FENBRIDGE_MUSTER_ROUTE_CAMPS: readonly AmbientBotPoint2d[] = [
+  { x: 0, z: 80 },
+  { x: 0, z: 180 },
+  { x: -8, z: 240 },
+  { x: 1, z: 294 },
+  { x: -2, z: 297 },
+];
+
 export interface AmbientBotKillQuestRoute extends AmbientBotQuestRouteBase {
   kind: 'kill';
   mobId: string;
@@ -160,7 +168,7 @@ function collectRoute(
     giverNpcTemplateId,
     turnInNpcTemplateId: config.turnInNpcTemplateId ?? giverNpcTemplateId,
     objectItemId,
-    camps: objectPointsFor(objectItemId),
+    camps: config.camps ?? objectPointsFor(objectItemId),
     pursueAtLevel,
     questObjectiveIndex: config.questObjectiveIndex,
     ...(config.acceptBeforeActiveQuestIds
@@ -215,7 +223,7 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'fen_muster_order',
     6,
     'Carrying the Fenbridge muster order north',
-    { turnInNpcTemplateId: 'warden_fenwick' },
+    { turnInNpcTemplateId: 'warden_fenwick', camps: FENBRIDGE_MUSTER_ROUTE_CAMPS },
   ),
   killRoute(
     'q_prowlers',

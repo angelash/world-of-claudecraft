@@ -2434,6 +2434,81 @@ describe('ambient player bot brain', () => {
     expect(typeof result.facing).toBe('number');
   });
 
+  it('uses a reachable road waypoint from the live Fenbridge muster stuck point', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const seed = 20_061;
+    let pos = { x: -20.3, z: 1.2 };
+    const baseSelf = {
+      lv: 9,
+      qdone: [
+        'q_wolves',
+        'q_boars',
+        'q_spiders',
+        'q_murlocs',
+        'q_supplies',
+        'q_mine',
+        'q_greyjaw',
+        'q_bandits',
+        'q_ringleader',
+        'q_bones',
+        'q_whispers',
+        'q_names_of_the_dead',
+        'q_silence_the_call',
+        'q_rite',
+      ],
+      qlog: [{ questId: 'q_fenbridge_muster', counts: [0], state: 'active' }],
+    };
+    const initial = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        seed,
+        self: {
+          ...baseSelf,
+          x: pos.x,
+          z: pos.z,
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(initial.objectiveId).toBe('collect_fenbridge_muster');
+    expect(initial.travelGoal).toMatchObject({
+      target: { x: 0, z: 80 },
+    });
+
+    const goal = initial.travelGoal!;
+    let zeroMoveTicks = 0;
+    for (let i = 0; i < 30; i++) {
+      const drive = continueAmbientPlayerBotTravel(
+        liveState({
+          seed,
+          self: {
+            ...baseSelf,
+            x: pos.x,
+            z: pos.z,
+          },
+        }),
+        state,
+        initial.objectiveId,
+        initial.objectiveLabel,
+        goal,
+      );
+      expect(drive).not.toBeNull();
+      expect(drive!.moveInput).toEqual({ f: 1 });
+      expect(typeof drive!.facing).toBe('number');
+      const next = {
+        x: pos.x + Math.sin(drive!.facing!) * RUN_SPEED * DT,
+        z: pos.z + Math.cos(drive!.facing!) * RUN_SPEED * DT,
+      };
+      const moved = resolveMovement(seed, pos.x, pos.z, next.x, next.z);
+      if (Math.hypot(moved.x - pos.x, moved.z - pos.z) < 0.01) zeroMoveTicks++;
+      pos = moved;
+    }
+
+    expect(zeroMoveTicks).toBe(0);
+    expect(Math.hypot(pos.x + 20.3, pos.z - 1.2)).toBeGreaterThan(2);
+  });
+
   it('turns in the Fenbridge muster quest at Warden Fenwick after the gatepost pickup', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
