@@ -131,6 +131,15 @@ This also applies while the follower is already in combat, because bringing the
 danger back to the tank is safer than letting a cloth or healer continue a
 split pull.
 
+Hosted follow uses one movement authority at a time. When the hosted party
+coordinator has a travel goal back to the leader, it must drive movement input
+directly and must not also send `/follow`. In the live server path, the
+subsequent movement input immediately cancels the server follow state, producing
+repeated "Now following" and "You stop following" feedback. That looks less like
+a player and more like two automation loops fighting, so hosted follow relies
+on the travel goal while ambient bot follow can keep its separate `/follow`
+behavior.
+
 The normal party correction threshold is 18 yards from the leader. This keeps a
 full party close enough to share targets, buffs, heals, and quest credit while
 still allowing short ranged spacing during pulls. A follower already in combat
@@ -242,6 +251,15 @@ The player should be able to watch the run like a live cooperative session:
   current objective.
 - The live harness captures invite, chat, support, quest, death, stuck, and
   progression timelines.
+- The live harness fails if hosted follow creates repeated follow start-stop
+  error text, because that is behavior noise rather than useful cooperation.
+
+Deaths are gameplay timeline events, not program runtime failures. The harness
+keeps de-duplicated death records so strategy can react to them, but a death
+should only fail validation indirectly if automation cannot recover, stops
+progressing, exceeds the stuck-reset limit, loses the party, or emits hosted,
+WebSocket, or status-poll errors. A player-like hosted group is allowed to die,
+release, regroup, pick an easier route or grind, and retry later.
 
 ## Validation Design
 

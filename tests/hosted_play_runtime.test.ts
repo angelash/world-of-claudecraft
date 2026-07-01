@@ -229,7 +229,7 @@ describe('HostedPlayRuntime', () => {
     });
     (runtime as any).tick();
 
-    expect(game.commands).toEqual([{ cmd: 'chat', text: '/follow Branoraaa' }]);
+    expect(game.commands).toEqual([]);
     expect(game.moveInputs).toHaveLength(1);
     expect(game.moveInputs[0]).toEqual(expect.objectContaining({
       moveInput: { f: 1 },

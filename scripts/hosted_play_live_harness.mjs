@@ -655,11 +655,11 @@ function buildChecks(report, options) {
     || metrics.healEvents > 0
     || metrics.castEvents > 0
     || metrics.combatCommandSamples > 0;
-  const fatalRuntimeClean =
+  const followStartStopNoise = countErrorTexts(metrics, (text) =>
+    text.startsWith('Now following ') || text === 'You stop following.');
+  const programRuntimeClean =
     metrics.hostedErrors.length === 0
-    && metrics.wsErrors.length === 0
-    && metrics.playerDeathEvents === 0
-    && metrics.deadPlayerNames.length === 0;
+    && metrics.wsErrors.length === 0;
   const stuckWithinLimit = metrics.maxStuckResets <= options.maxStuckResets;
 
   return [
@@ -674,7 +674,8 @@ function buildChecks(report, options) {
     check('quest signal observed', questSignalObserved),
     check('all party members touched quest state', allMembersTouchedQuestState),
     check('support or combat signal observed', supportEventObserved),
-    check('runtime stayed clean', fatalRuntimeClean),
+    check('hosted follow start-stop noise absent', followStartStopNoise === 0),
+    check('program runtime stayed clean', programRuntimeClean),
     check(`stuck resets at or below ${options.maxStuckResets}`, stuckWithinLimit),
     check(
       options.targetLevel > 0 ? `leader reached level ${options.targetLevel}` : 'target level not requested',
@@ -685,6 +686,15 @@ function buildChecks(report, options) {
 
 function check(name, pass) {
   return { name, pass: !!pass };
+}
+
+function countErrorTexts(metrics, predicate) {
+  let count = 0;
+  for (const [text, value] of Object.entries(metrics.errorTexts ?? {})) {
+    if (!predicate(text)) continue;
+    count += Number(value) || 0;
+  }
+  return count;
 }
 
 function reportPath(options) {

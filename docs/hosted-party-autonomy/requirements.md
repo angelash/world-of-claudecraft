@@ -107,6 +107,10 @@ operator to restart services manually.
 - During regroup correction, a distant follower should return to the party
   leader before continuing local combat, restock, or quest brain, even if the
   follower is already in combat.
+- Hosted follow movement must not issue a `/follow` chat command in the same
+  tick that explicit hosted movement input is steering the character toward the
+  leader. The movement input cancels server follow and creates noisy
+  start-stop feedback instead of a player-like return to formation.
 - During regroup correction, a hosted leader must hold position for returning
   party members before continuing local quest, loot, restock, buy, preparation,
   or combat brain work. Recovery consumables can still run through the recovery
@@ -116,6 +120,10 @@ operator to restart services manually.
   before harder pulls.
 - The group should keep questing after combat, looting, deaths, resupply, or
   party-size changes.
+- In-game deaths, wipes, failed pulls, or abandoned attempts are gameplay
+  events, not program failures. Hosted play should release, regroup, retry,
+  choose easier work, resupply, or level first, and the live validation should
+  fail only on programmatic issues or unrecovered stuck behavior.
 - Hosted debug and live-harness command displays should show the commands that
   the recovery gate actually allows, not raw brain suggestions that were
   suppressed by the party coordinator.
@@ -132,6 +140,10 @@ operator to restart services manually.
   running ahead.
 - Chat should influence behavior through explicit runtime state, such as a
   hold, regroup, focus, buff, heal, or route intent.
+- Live validation should track behavior noise, not only feature presence.
+  Repeated follow start-stop messages, invalid self-maintenance during group
+  movement, or long periods without level and quest progress are defects even
+  when the party is full and runtime-clean.
 - Template fallback is required even when LLM overlays are disabled or denied.
 - LLM output, if enabled, may shape phrasing only. It must not directly control
   authoritative gameplay.
@@ -146,6 +158,9 @@ operator to restart services manually.
 - Observe support roles using buffs, healing, tanking, and focus fire.
 - Observe low-health self-preservation during combat: threatened damage dealers
   and healers should not keep attacking or turning in while nearly dead.
+- Observe death recovery if it happens: the party should release, recover,
+  regroup, and continue or choose safer work. A death record is diagnostic
+  evidence for route tuning, not a failing check by itself.
 - Run one uninterrupted validation that reaches level 20 and completes every
   currently practical pre-20 quest.
 - If any logic changes during validation, restart the affected services and run

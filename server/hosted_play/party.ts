@@ -19,7 +19,6 @@ import type { HostedPlayGroupMode, HostedPlayPartyMode } from './types';
 
 const HOSTED_PLAY_ACCEPT_COOLDOWN_MS = 1_500;
 const HOSTED_PLAY_ASSIST_COOLDOWN_MS = 1_200;
-const HOSTED_PLAY_FOLLOW_COOLDOWN_MS = 6_000;
 const HOSTED_PLAY_NEARBY_INVITE_COOLDOWN_MS = 12_000;
 const HOSTED_PLAY_NEARBY_INVITE_TARGET_COOLDOWN_MS = 90_000;
 const HOSTED_PLAY_NEARBY_INVITE_RANGE = 32;
@@ -47,7 +46,6 @@ type HostedPlayCommand = Record<string, unknown>;
 export interface HostedPlayPartyState {
   lastAcceptCommandAtMs: number | null;
   lastAssistCommandAtMs: number | null;
-  lastFollowCommandAtMs: number | null;
   lastNearbyInviteCommandAtMs: number | null;
   lastNearbyInviteAtMsByName: Record<string, number>;
   lastCommandAtMs: Record<string, number>;
@@ -80,7 +78,6 @@ export function createHostedPlayPartyState(): HostedPlayPartyState {
   return {
     lastAcceptCommandAtMs: null,
     lastAssistCommandAtMs: null,
-    lastFollowCommandAtMs: null,
     lastNearbyInviteCommandAtMs: null,
     lastNearbyInviteAtMsByName: {},
     lastCommandAtMs: {},
@@ -328,21 +325,11 @@ export function tickHostedPlayPartyCoordinator(
   }
 
   if (followerCanMoveToLeader) {
-    const commands: HostedPlayCommand[] = [];
     const followTravelGoal = leaderDistance > HOSTED_PLAY_FOLLOW_START_RANGE
       ? travelGoalToPartyMember(leaderMember, HOSTED_PLAY_FOLLOW_START_RANGE, 'hosted-follow-leader')
       : null;
-    if (
-      groupLeaderName
-      && leaderDistance > HOSTED_PLAY_FOLLOW_START_RANGE
-      && (state.lastFollowCommandAtMs === null
-        || input.nowMs - state.lastFollowCommandAtMs >= HOSTED_PLAY_FOLLOW_COOLDOWN_MS)
-    ) {
-      state.lastFollowCommandAtMs = input.nowMs;
-      commands.push({ cmd: 'chat', text: `/follow ${groupLeaderName}` });
-    }
     return {
-      commands,
+      commands: [],
       pauseBrainDrive: true,
       ...(followTravelGoal ? { travelGoal: followTravelGoal } : {}),
       groupMode: 'follow_leader',

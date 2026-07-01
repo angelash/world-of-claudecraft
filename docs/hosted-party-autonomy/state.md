@@ -17,8 +17,13 @@ progress.
   keeping visible controls for solo mode and smaller targets.
 - Social realism starts with believable hosted party play. Wider NPC and monster
   ecology is deferred.
-- The final acceptance run must be a single clean pass after the last code
-  change.
+- The final acceptance run must be a single program-clean pass after the last
+  code change: no hosted runtime errors, WebSocket errors, unrecovered status
+  polling failures, excessive stuck resets, or behavior-noise harness failures.
+- In-game deaths, wipes, and failed pulls are allowed gameplay events. They stay
+  in reports as route and strategy diagnostics, but they are not program
+  failures unless hosted play cannot release, regroup, retry, level first, or
+  otherwise continue.
 - Hosted play defaults now resolve to `follow_leader`,
   `autoInviteNearbyPlayers: true`, and target party size `5`.
 - `hosted_play_preferences_version` marks explicitly saved hosted settings.
@@ -61,10 +66,10 @@ progress.
 - Hosted party coordination treats party-chat intent as advisory. A
   hold-advance regroup or recovery intent must still match current party facts
   before it can pause the hosted leader.
-- Hosted followers no longer rely on `/follow` alone. When a non-combat
-  follower is outside close-follow range, party coordination also gives it a
-  travel goal toward the leader so movement continues while `/follow` is cooling
-  down or no longer pulling.
+- Hosted followers no longer rely on `/follow`. When a non-combat follower is
+  outside close-follow range, party coordination gives it a travel goal toward
+  the leader and does not also send `/follow`, because explicit hosted movement
+  input cancels server follow and creates noisy start-stop feedback.
 - Grouped quest route gates now use a conservative party-level check. A partial
   group can reduce a route by at most one level, and every nearby contributing
   party member must meet that grouped safe level.
@@ -390,14 +395,14 @@ progress.
   remained roughly 40 yards from the leader in `follow_leader`. The leader was
   correctly holding regroup, but `/follow` alone was not closing the gap.
 - `server/hosted_play/party.ts` now adds a travel goal toward the leader for
-  non-combat hosted followers outside close-follow range. This still sends
-  `/follow` when the command cooldown allows it, but movement no longer depends
-  on chat follow alone.
-- `tests/hosted_play_party.test.ts` covers a trailing follower receiving both
-  `/follow` and a leader travel goal, plus continued leader travel while
-  `/follow` is on cooldown.
+  non-combat hosted followers outside close-follow range. Hosted follow no
+  longer sends `/follow` while the runtime is also applying explicit movement
+  input toward the leader.
+- `tests/hosted_play_party.test.ts` covers a trailing follower receiving a
+  leader travel goal without a follow chat command, plus continued leader
+  travel across repeated follow ticks.
 - `tests/hosted_play_runtime.test.ts` now covers the hosted runtime applying
-  movement input for a trailing follower while preserving the `/follow` command.
+  movement input for a trailing follower without sending `/follow`.
 - Phase 6 follow-up report `tmp/hosted-play-level20-20260630-040508.json`
   reached level 5 and confirmed trailing followers kept up, but the run then
   recorded player deaths after the level 5 leader moved level 4 teammates into
@@ -1291,6 +1296,14 @@ progress.
   `tmp/hosted-play-live-harness-2026-06-30T23-07-38-590Z.json`. The short run
   reached the target five-player party, observed invite, chat, intent, quest,
   and support signals, stayed runtime-clean, and had zero player deaths.
+- The hosted-follow noise fix is loaded in the local LAN/IP stack. Restart,
+  port binding verification, LAN URL printing, `/api/status`, and short live
+  harness report
+  `tmp\hosted-play-live-harness-2026-07-01T01-12-22-330Z.json` passed. The
+  short run observed a full party, invite, party chat, roles, intent,
+  cooperation, quest, and combat signals with zero stuck resets, zero hosted
+  errors, zero WebSocket errors, zero player deaths, and no hosted follow
+  start-stop noise.
 
 ## Validation Matrix
 
@@ -1337,7 +1350,9 @@ progress.
 ## Known Current Gaps
 
 - A clean post-fix level 20 hosted run is still required after the latest
-  recovery stabilization fix, service restart, and short live harness check.
+  hosted-follow noise fix, service restart, and short live harness check. Focus
+  the next candidate on early progression slope, route choice, quest intake,
+  and post-death recovery behavior.
 
 ## New Files In This Packet
 

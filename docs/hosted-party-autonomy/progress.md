@@ -1,6 +1,6 @@
 # Progress: Hosted Party Autonomy
 
-Current date: 2026-06-30
+Current date: 2026-07-01
 
 | Phase | Status | Started | Completed |
 |---|---|---|---|
@@ -792,4 +792,33 @@ Current date: 2026-06-30
   `tmp/hosted-play-live-harness-2026-07-01T00-23-00-016Z.json`. The short run
   reached a current full party, observed invite, chat, intent, quest, and
   support signals, and stayed runtime-clean.
+- [x] Level 20 candidate `tmp\hosted-play-level20-20260701-082604.json`
+  reached a current full five-player party, accepted early quest state on every
+  member, stayed death-free through the early level-2 grind, and showed no
+  hosted or WebSocket errors during observation. It also exposed behavior noise:
+  hosted follow sent `/follow` while runtime movement input was already steering
+  followers back to the leader, producing repeated "Now following" and "You stop
+  following" messages. The run also showed slow early progress that needs a
+  later progression-slope review after the movement-noise fix is live.
+- [x] Hosted follow now uses the hosted travel goal as the single movement
+  authority. When a follower is outside close-follow range, the party
+  coordinator returns a leader travel goal and no longer sends `/follow`, so the
+  runtime does not start server follow and cancel it with movement input in the
+  same tick.
+- [x] The live harness now fails on hosted follow start-stop noise, so repeated
+  "Now following" and "You stop following" messages cannot be hidden inside
+  otherwise passing invite, chat, support, and quest signals.
+- [x] Live validation now treats deaths, wipes, and failed pulls as gameplay
+  events instead of program failures. The harness still records de-duplicated
+  player deaths for strategy analysis, but the runtime-clean gate now focuses
+  on hosted errors and WebSocket errors, while recovery, regroup, level-first
+  routing, and retry behavior handle deaths in the normal play loop.
+- [x] Follow-noise validation was also covered by LAN/IP restart through
+  `scripts\windows_stack.ps1`, `0.0.0.0` port verification, printed IP URLs,
+  `/api/status`, and short live harness report
+  `tmp\hosted-play-live-harness-2026-07-01T01-12-22-330Z.json`. The short run
+  reached a current full party, observed invite, party chat, roles, intent,
+  cooperation mode, quest, and combat signals, had zero stuck resets, zero
+  hosted errors, zero WebSocket errors, zero player deaths, and no hosted follow
+  start-stop noise.
 - [ ] Final run occurs after the last code change and service restart.

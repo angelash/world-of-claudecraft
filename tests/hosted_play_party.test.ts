@@ -65,7 +65,7 @@ function ambientBot(overrides: Partial<AmbientPlayerBotRecord> = {}): AmbientPla
 }
 
 describe('hosted-play party coordinator', () => {
-  it('uses the real /follow path when a hosted follower trails the party leader', () => {
+  it('drives a hosted follower back to the party leader without spamming /follow', () => {
     const state = createHostedPlayPartyState();
 
     const result = tickHostedPlayPartyCoordinator(
@@ -95,7 +95,7 @@ describe('hosted-play party coordinator', () => {
     );
 
     expect(result).toEqual({
-      commands: [{ cmd: 'chat', text: '/follow Branoraaa' }],
+      commands: [],
       pauseBrainDrive: true,
       travelGoal: {
         target: { x: 1500, z: -1200 },
@@ -108,9 +108,8 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
-  it('keeps moving a trailing hosted follower toward the leader while /follow is on cooldown', () => {
+  it('keeps moving a trailing hosted follower toward the leader across repeated follow ticks', () => {
     const state = createHostedPlayPartyState();
-    state.lastFollowCommandAtMs = 5_000;
 
     const result = tickHostedPlayPartyCoordinator(
       {
@@ -188,7 +187,7 @@ describe('hosted-play party coordinator', () => {
     );
 
     expect(result).toEqual({
-      commands: [{ cmd: 'chat', text: '/follow Branoraaa' }],
+      commands: [],
       pauseBrainDrive: true,
       travelGoal: {
         target: { x: 1500, z: -1200 },
@@ -203,7 +202,6 @@ describe('hosted-play party coordinator', () => {
 
   it('keeps an out-of-range hosted follower moving back to the regrouping leader', () => {
     const state = createHostedPlayPartyState();
-    state.lastFollowCommandAtMs = 5_000;
 
     const result = tickHostedPlayPartyCoordinator(
       {
