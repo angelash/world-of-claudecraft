@@ -870,6 +870,74 @@ describe('HostedPlayRuntime', () => {
     });
   });
 
+  it('lets a healthy member turn in a nearby completed quest while party recovery is paused', () => {
+    const game = fakeGame(liveState({
+      id: 102,
+      x: -14,
+      z: -10,
+      lv: 7,
+      hp: 164,
+      mhp: 164,
+      rtype: 'mana',
+      res: 120,
+      mres: 120,
+      qdone: [
+        'q_wolves',
+        'q_boars',
+        'q_spiders',
+        'q_murlocs',
+        'q_supplies',
+        'q_mine',
+        'q_greyjaw',
+        'q_bandits',
+        'q_ringleader',
+        'q_bones',
+        'q_whispers',
+        'q_names_of_the_dead',
+      ],
+      qlog: [{ questId: 'q_silence_the_call', counts: [12], state: 'ready' }],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 7, hp: 60, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: -12, z: -14, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'mage', level: 7, hp: 164, mhp: 164, res: 120, mres: 120, rtype: 'mana', x: -14, z: -10, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 7002, k: 'npc', tid: 'brother_aldric', x: -14, z: -10 },
+        { id: 101, k: 'player', nm: 'Branoraaa', x: -12, z: -14, hp: 60, mhp: 120, dead: 0, cmb: 0 },
+      ],
+    }), {
+      playerClass: 'mage',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([
+      { cmd: 'target', id: 7002 },
+      { cmd: 'interact' },
+    ]);
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'assist_party',
+      objectiveId: 'turnin_silence_the_call',
+      debug: {
+        brainDrivePaused: false,
+      },
+    });
+  });
+
   it('keeps restock brain work paused while a nearby party member is recovering', () => {
     const game = fakeGame(liveState({
       id: 101,

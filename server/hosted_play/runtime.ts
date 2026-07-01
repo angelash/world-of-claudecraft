@@ -62,6 +62,7 @@ const HOSTED_PLAY_DEBUG_MAX_COMMAND_JSON_CHARS = 1_200;
 const HOSTED_PLAY_DEBUG_MAX_TEXT_CHARS = 240;
 const HOSTED_PLAY_LOCAL_QUEST_OVERRIDE_RANGE = 24;
 const HOSTED_PLAY_LOCAL_ACTIVE_QUEST_MAX_LEADER_DISTANCE = 18;
+const HOSTED_PLAY_RECOVERY_LOCAL_QUEST_MIN_HEALTH_RATIO = 0.9;
 
 interface HostedPlayEntry {
   characterId: number;
@@ -838,14 +839,14 @@ function hostedLocalQuestBrainAllowedWhilePartyPaused(
     ) {
       return false;
     }
-    if (
-      recoveryQuestIntakeMode
-      && (
-        !result.objectiveId.startsWith('accept_')
-        || !hostedSelfNeedsInitialQuestIntake(liveState)
-      )
-    ) {
-      return false;
+    if (recoveryQuestIntakeMode) {
+      if (result.objectiveId.startsWith('accept_')) {
+        if (!hostedSelfNeedsInitialQuestIntake(liveState)) return false;
+      } else if (result.objectiveId.startsWith('turnin_')) {
+        if (!hostedSelfCanTurnInQuestDuringRecovery(liveState)) return false;
+      } else {
+        return false;
+      }
     }
     return hostedLocalQuestTravelIsNearby(result, liveState);
   }
@@ -860,15 +861,24 @@ function hostedLocalQuestBrainAllowedWhilePartyPaused(
 }
 
 function hostedSelfNeedsInitialQuestIntake(liveState: AmbientPlayerBotLiveState): boolean {
+  if (!hostedSelfIsHealthyForRecoveryQuestWork(liveState)) return false;
+  const self = liveState.self;
+  const qlog = Array.isArray(self.qlog) ? self.qlog : [];
+  const qdone = Array.isArray(self.qdone) ? self.qdone : [];
+  return qlog.length === 0 && qdone.length === 0;
+}
+
+function hostedSelfCanTurnInQuestDuringRecovery(liveState: AmbientPlayerBotLiveState): boolean {
+  return hostedSelfIsHealthyForRecoveryQuestWork(liveState);
+}
+
+function hostedSelfIsHealthyForRecoveryQuestWork(liveState: AmbientPlayerBotLiveState): boolean {
   const self = liveState.self;
   if (!self) return false;
   if (self.dead === 1 || self.dead === true) return false;
   const hp = typeof self.hp === 'number' ? self.hp : 1;
   const maxHp = typeof self.mhp === 'number' ? self.mhp : 1;
-  if (maxHp > 0 && hp / maxHp < 0.9) return false;
-  const qlog = Array.isArray(self.qlog) ? self.qlog : [];
-  const qdone = Array.isArray(self.qdone) ? self.qdone : [];
-  return qlog.length === 0 && qdone.length === 0;
+  return maxHp <= 0 || hp / maxHp >= HOSTED_PLAY_RECOVERY_LOCAL_QUEST_MIN_HEALTH_RATIO;
 }
 
 function isHostedActiveQuestObjective(result: AmbientPlayerBotBrainTickResult): boolean {
