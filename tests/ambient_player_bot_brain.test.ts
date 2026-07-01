@@ -2279,6 +2279,45 @@ describe('ambient player bot brain', () => {
     expect(result.travelGoal?.arrivalRange).toBeGreaterThan(INTERACT_RANGE);
   });
 
+  it('prioritizes its own active sigil collect over party supply backfill', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          id: 101,
+          lv: 8,
+          x: 71,
+          z: 68,
+          copper: 100,
+          inv: [],
+          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_mine', 'q_greyjaw', 'q_bandits', 'q_ringleader', 'q_bones'],
+          qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
+          party: {
+            members: [
+              { pid: 101, dead: false, qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_mine', 'q_greyjaw', 'q_bandits', 'q_ringleader', 'q_bones'], qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }] },
+              {
+                pid: 102,
+                dead: false,
+                qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
+                qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
+              },
+            ],
+          },
+        },
+        entities: [
+          { id: 102, k: 'player', tid: 'priest', lv: 8, x: 63, z: 64, dead: 0 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('collect_whispers');
+    expect(result.objectiveLabel).toBe("Searching for the Gravecaller's Sigil");
+    expect(result.objectiveQuestId).toBe('q_whispers');
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('picks up q_rite from Brother Aldric after the earlier chapel chain is complete', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({

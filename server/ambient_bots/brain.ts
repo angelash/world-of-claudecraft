@@ -516,6 +516,11 @@ function chooseQuestObjective(view: BotWorldView): AmbientBotObjective | null {
   const nearbyAvailableRoute = nearbyAvailableQuestRoute(view);
   if (nearbyAvailableRoute) return acceptQuestObjective(nearbyAvailableRoute);
 
+  const activeCollectRoute = AMBIENT_BOT_SOLO_QUEST_ROUTES.find(
+    (route) => route.kind === 'collect' && isQuestRouteActive(route, view),
+  );
+  if (activeCollectRoute) return activeQuestObjectiveForRoute(view, activeCollectRoute);
+
   const partyBackfillRoute = partyBackfillQuestRoute(view);
   if (partyBackfillRoute) {
     return partyBackfillRoute.progress.state === 'ready'
