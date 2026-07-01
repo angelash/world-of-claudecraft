@@ -119,6 +119,12 @@ type MoveInputPayload = Record<string, 1>;
 
 type BotPoint2d = AmbientBotPoint2d;
 
+const EASTBROOK_VENDOR_WEST_APPROACH_POINT: BotPoint2d = { x: -10, z: -2 };
+const EASTBROOK_VENDOR_WEST_APPROACH_ARRIVAL_RANGE = 1.5;
+const EASTBROOK_VENDOR_WEST_APPROACH_START_X = -12;
+const EASTBROOK_VENDOR_WEST_APPROACH_MIN_Z = -4;
+const EASTBROOK_VENDOR_WEST_APPROACH_MAX_Z = 70;
+
 interface BotVec3 extends BotPoint2d {
   y: number;
 }
@@ -1180,14 +1186,30 @@ function handleVendorObjective(
   const fallback = objective.npcTemplateId ? npcFallbackPoint(objective.npcTemplateId) : null;
   const target = npc?.pos ?? fallback;
   if (!target) return idleStep(objective.id, objective.label);
-  if (dist2d(view.self.pos, pointToVec(target)) > INTERACT_RANGE + 1.5) {
+  const arrivalRange = INTERACT_RANGE + 1.5;
+  if (dist2d(view.self.pos, pointToVec(target)) > arrivalRange) {
+    const approach = vendorApproachPoint(objective.npcTemplateId, view.self.pos);
+    if (
+      approach
+      && dist2d(view.self.pos, pointToVec(approach)) > EASTBROOK_VENDOR_WEST_APPROACH_ARRIVAL_RANGE
+    ) {
+      return travelToPoint(
+        view,
+        state,
+        input.liveState.seed ?? DEFAULT_WORLD_SEED,
+        objective,
+        approach,
+        EASTBROOK_VENDOR_WEST_APPROACH_ARRIVAL_RANGE,
+        `vendor-approach:${objective.npcTemplateId}`,
+      );
+    }
     return travelToPoint(
       view,
       state,
       input.liveState.seed ?? DEFAULT_WORLD_SEED,
       objective,
       target,
-      INTERACT_RANGE + 1.5,
+      arrivalRange,
       `vendor:${objective.npcTemplateId}`,
     );
   }
@@ -1209,6 +1231,21 @@ function handleVendorObjective(
     }
   }
   return idleStep(objective.id, objective.label, commands, facingFor(view.self.pos, pointToVec(target)));
+}
+
+function vendorApproachPoint(
+  npcTemplateId: string | undefined,
+  selfPos: BotVec3,
+): BotPoint2d | null {
+  if (npcTemplateId !== EASTBROOK_VENDOR_PROFILE.vendorNpcTemplateId) return null;
+  if (selfPos.x > EASTBROOK_VENDOR_WEST_APPROACH_START_X) return null;
+  if (
+    selfPos.z < EASTBROOK_VENDOR_WEST_APPROACH_MIN_Z
+    || selfPos.z > EASTBROOK_VENDOR_WEST_APPROACH_MAX_Z
+  ) {
+    return null;
+  }
+  return EASTBROOK_VENDOR_WEST_APPROACH_POINT;
 }
 
 function handleDungeonObjective(

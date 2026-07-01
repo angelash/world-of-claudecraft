@@ -2509,6 +2509,72 @@ describe('ambient player bot brain', () => {
     expect(Math.hypot(pos.x + 20.3, pos.z - 1.2)).toBeGreaterThan(2);
   });
 
+  it('routes Eastbrook restock around the left fence from the live stuck point', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const seed = 20_061;
+    let pos = { x: -20.38, z: 1.23 };
+    const baseSelf = {
+      lv: 4,
+      copper: 100,
+      inv: [{ itemId: 'baked_bread', count: 4 }],
+      qdone: ['q_wolves'],
+      qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
+    };
+    const initial = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        seed,
+        self: {
+          ...baseSelf,
+          x: pos.x,
+          z: pos.z,
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(initial.objectiveId).toBe('restock_minor_healing_potion');
+    expect(initial.travelGoal).toMatchObject({
+      target: { x: -10, z: -2 },
+    });
+
+    const goal = initial.travelGoal!;
+    let zeroMoveTicks = 0;
+    let reached = false;
+    for (let i = 0; i < 50; i++) {
+      const drive = continueAmbientPlayerBotTravel(
+        liveState({
+          seed,
+          self: {
+            ...baseSelf,
+            x: pos.x,
+            z: pos.z,
+          },
+        }),
+        state,
+        initial.objectiveId,
+        initial.objectiveLabel,
+        goal,
+      );
+      expect(drive).not.toBeNull();
+      if (!drive!.moveInput.f) {
+        reached = true;
+        break;
+      }
+      expect(typeof drive!.facing).toBe('number');
+      const next = {
+        x: pos.x + Math.sin(drive!.facing!) * RUN_SPEED * DT,
+        z: pos.z + Math.cos(drive!.facing!) * RUN_SPEED * DT,
+      };
+      const moved = resolveMovement(seed, pos.x, pos.z, next.x, next.z);
+      if (Math.hypot(moved.x - pos.x, moved.z - pos.z) < 0.01) zeroMoveTicks++;
+      pos = moved;
+    }
+
+    expect(zeroMoveTicks).toBe(0);
+    expect(reached || Math.hypot(pos.x - goal.target.x, pos.z - goal.target.z) <= goal.arrivalRange).toBe(true);
+  });
+
   it('turns in the Fenbridge muster quest at Warden Fenwick after the gatepost pickup', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
