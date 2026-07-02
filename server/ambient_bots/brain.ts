@@ -718,11 +718,17 @@ function isQuestRouteAcceptable(
 }
 
 function nearbyAvailableQuestRoute(view: BotWorldView): AmbientBotQuestRoute | null {
-  if (buildVendorPurchases(view.self, vendorProfileFor(view.self)).length > 0) return null;
+  const vendorPurchases = buildVendorPurchases(view.self, vendorProfileFor(view.self));
   let best: { route: AmbientBotQuestRoute; distance: number; index: number } | null = null;
   for (let index = 0; index < AMBIENT_BOT_SOLO_QUEST_ROUTES.length; index++) {
     const route = AMBIENT_BOT_SOLO_QUEST_ROUTES[index];
     if (!route || !isQuestRouteAcceptable(route, view)) continue;
+    if (
+      vendorPurchases.length > 0
+      && !nearbyQuestIntakeCanPreemptResupply(view, route)
+    ) {
+      continue;
+    }
     const distance = visibleQuestGiverDistance(view, route);
     if (distance === null || distance > QUEST_INTAKE_NEARBY_RANGE) continue;
     if (!best || distance < best.distance || (distance === best.distance && index < best.index)) {
@@ -730,6 +736,15 @@ function nearbyAvailableQuestRoute(view: BotWorldView): AmbientBotQuestRoute | n
     }
   }
   return best?.route ?? null;
+}
+
+function nearbyQuestIntakeCanPreemptResupply(
+  view: BotWorldView,
+  route: AmbientBotQuestRoute,
+): boolean {
+  const zoneId = zoneAt(view.self.pos.z).id;
+  if (zoneId === 'eastbrook_vale') return false;
+  return view.self.level >= Math.max(1, route.pursueAtLevel - PARTY_ROUTE_MAX_LEVEL_BONUS);
 }
 
 function visibleQuestGiverDistance(view: BotWorldView, route: AmbientBotQuestRoute): number | null {

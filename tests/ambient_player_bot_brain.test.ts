@@ -1910,6 +1910,60 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
+  it('picks up a nearby Fenbridge route quest before restocking at the hub', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot({
+        class: 'mage',
+        profileId: 'mirefen_marsh_mage_quester',
+      }),
+      liveState: liveState({
+        self: {
+          lv: 8,
+          x: -4,
+          z: 308,
+          copper: 900,
+          res: 100,
+          mres: 100,
+          rtype: 'mana',
+          inv: [],
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_fenbridge_muster',
+          ],
+          qlog: [
+            { questId: 'q_prowlers', counts: [1], state: 'active' },
+            { questId: 'q_prowler_pelts', counts: [0], state: 'active' },
+            { questId: 'q_rite', counts: [0, 6], state: 'active' },
+          ],
+        },
+        entities: [
+          { id: 9800, k: 'npc', tid: 'provisioner_hale', x: -4, z: 308 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('accept_fen_supplies');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9800 },
+      { cmd: 'interact' },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
   it('takes the boar route once the bot reaches level 3', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({

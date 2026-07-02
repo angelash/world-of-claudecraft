@@ -841,7 +841,7 @@ function hostedLocalQuestBrainAllowedWhilePartyPaused(
     }
     if (recoveryQuestIntakeMode) {
       if (result.objectiveId.startsWith('accept_')) {
-        if (!hostedSelfNeedsInitialQuestIntake(liveState)) return false;
+        if (!hostedSelfCanAcceptQuestDuringRecovery(liveState)) return false;
       } else if (result.objectiveId.startsWith('turnin_')) {
         if (!hostedSelfCanTurnInQuestDuringRecovery(liveState)) return false;
       } else {
@@ -860,12 +860,8 @@ function hostedLocalQuestBrainAllowedWhilePartyPaused(
   return hostedLocalQuestTravelIsNearby(result, liveState);
 }
 
-function hostedSelfNeedsInitialQuestIntake(liveState: AmbientPlayerBotLiveState): boolean {
-  if (!hostedSelfIsHealthyForRecoveryQuestWork(liveState)) return false;
-  const self = liveState.self;
-  const qlog = Array.isArray(self.qlog) ? self.qlog : [];
-  const qdone = Array.isArray(self.qdone) ? self.qdone : [];
-  return qlog.length === 0 && qdone.length === 0;
+function hostedSelfCanAcceptQuestDuringRecovery(liveState: AmbientPlayerBotLiveState): boolean {
+  return hostedSelfIsHealthyForRecoveryQuestWork(liveState);
 }
 
 function hostedSelfCanTurnInQuestDuringRecovery(liveState: AmbientPlayerBotLiveState): boolean {

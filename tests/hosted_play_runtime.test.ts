@@ -938,6 +938,81 @@ describe('HostedPlayRuntime', () => {
     });
   });
 
+  it('lets a healthy member accept a nearby available quest while party recovery is paused', () => {
+    const game = fakeGame(liveState({
+      id: 102,
+      x: -4,
+      z: 308,
+      lv: 8,
+      hp: 195,
+      mhp: 195,
+      rtype: 'mana',
+      res: 120,
+      mres: 120,
+      inv: [],
+      qdone: [
+        'q_wolves',
+        'q_boars',
+        'q_spiders',
+        'q_murlocs',
+        'q_supplies',
+        'q_mine',
+        'q_greyjaw',
+        'q_bandits',
+        'q_ringleader',
+        'q_bones',
+        'q_whispers',
+        'q_names_of_the_dead',
+        'q_silence_the_call',
+        'q_fenbridge_muster',
+      ],
+      qlog: [
+        { questId: 'q_prowlers', counts: [1], state: 'active' },
+        { questId: 'q_prowler_pelts', counts: [0], state: 'active' },
+        { questId: 'q_rite', counts: [0, 6], state: 'active' },
+      ],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 8, hp: 60, mhp: 160, res: 0, mres: 0, rtype: 'rage', x: -6, z: 306, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'mage', level: 8, hp: 195, mhp: 195, res: 120, mres: 120, rtype: 'mana', x: -4, z: 308, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 9800, k: 'npc', tid: 'provisioner_hale', x: -4, z: 308 },
+        { id: 101, k: 'player', nm: 'Branoraaa', x: -6, z: 306, hp: 60, mhp: 160, dead: 0, cmb: 0 },
+      ],
+    }), {
+      playerClass: 'mage',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([
+      { cmd: 'target', id: 9800 },
+      { cmd: 'interact' },
+    ]);
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'assist_party',
+      objectiveId: 'accept_fen_supplies',
+      debug: {
+        brainDrivePaused: false,
+      },
+    });
+  });
+
   it('keeps restock brain work paused while a nearby party member is recovering', () => {
     const game = fakeGame(liveState({
       id: 101,
