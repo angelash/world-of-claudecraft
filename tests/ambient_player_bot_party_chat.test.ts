@@ -295,6 +295,39 @@ describe('ambient player bot party chat shell', () => {
     }));
   });
 
+  it('does not renew recovery intent from a stale recovery group mode alone', () => {
+    const state = createAmbientPlayerBotPartyChatRuntimeState();
+    const party: PartyInfo = {
+      leader: 101,
+      raid: false,
+      members: [
+        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 252, mhp: 252, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+        { pid: 102, name: 'Branorabb', cls: 'priest', level: 5, hp: 100, mhp: 100, res: 80, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+      ],
+    };
+
+    const result = tickAmbientPlayerBotPartyChatShell({
+      bot: bot(),
+      liveState: liveState({
+        party,
+        entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 2, z: 0 }],
+      }),
+      recentEvents: [],
+      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+      objectiveId: 'loot',
+      objectiveLabel: 'Looting a nearby corpse',
+      groupMode: 'recover_party',
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      partyIntentKind: 'route_plan',
+      partyIntentBehavior: 'advance',
+      partyIntentHoldAdvance: false,
+      partyIntentPreferAssist: false,
+    }));
+  });
+
   it('calls recovery when the healer needs mana before the next pull', () => {
     const state = createAmbientPlayerBotPartyChatRuntimeState();
     const party: PartyInfo = {
@@ -325,6 +358,39 @@ describe('ambient player bot party chat shell', () => {
       partyIntentBehavior: 'recover',
       partyIntentSummary: 'Recover health and mana before moving',
       partyIntentHoldAdvance: true,
+      partyIntentPreferAssist: false,
+    }));
+  });
+
+  it('advances when healer mana is above the pull-ready floor', () => {
+    const state = createAmbientPlayerBotPartyChatRuntimeState();
+    const party: PartyInfo = {
+      leader: 101,
+      raid: false,
+      members: [
+        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 252, mhp: 252, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+        { pid: 102, name: 'Branorabb', cls: 'priest', level: 5, hp: 100, mhp: 100, res: 40, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+      ],
+    };
+
+    const result = tickAmbientPlayerBotPartyChatShell({
+      bot: bot(),
+      liveState: liveState({
+        party,
+        entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 2, z: 0 }],
+      }),
+      recentEvents: [],
+      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+      objectiveId: 'grind',
+      objectiveLabel: 'Grinding Forest Wolf',
+      groupMode: 'brain',
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      partyIntentKind: 'route_plan',
+      partyIntentBehavior: 'advance',
+      partyIntentHoldAdvance: false,
       partyIntentPreferAssist: false,
     }));
   });

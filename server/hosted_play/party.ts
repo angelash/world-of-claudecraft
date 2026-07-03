@@ -24,21 +24,27 @@ const HOSTED_PLAY_NEARBY_INVITE_TARGET_COOLDOWN_MS = 90_000;
 const HOSTED_PLAY_NEARBY_INVITE_RANGE = 32;
 const HOSTED_PLAY_FOLLOW_START_RANGE = 4;
 const HOSTED_PLAY_FOLLOW_MAX_RANGE = 60;
-const HOSTED_PLAY_TRAIN_LINK_REGROUP_RANGE = 8;
+const HOSTED_PLAY_TRAIN_LINK_REGROUP_RANGE = 10;
 const HOSTED_PLAY_TRAIN_MAX_LEADER_RANGE = 24;
 const HOSTED_PLAY_RECOVERY_ANCHOR_RANGE = 4;
 const HOSTED_PLAY_URGENT_RECOVERY_ANCHOR_RANGE = 1.5;
 const HOSTED_PLAY_URGENT_RECOVERY_THREAT_RANGE = 10;
 const HOSTED_PLAY_URGENT_RECOVERY_RETREAT_DISTANCE = 8;
+const HOSTED_PLAY_FRONTLINE_URGENT_RECOVERY_RETREAT_DISTANCE = 12;
 const HOSTED_PLAY_RECOVERY_HEALTH_RATIO = 0.72;
 const HOSTED_PLAY_RECOVERY_STABLE_HEALTH_RATIO = 0.9;
-const HOSTED_PLAY_RECOVERY_RESOURCE_RATIO = 0.45;
-const HOSTED_PLAY_RECOVERY_STABLE_RESOURCE_RATIO = 0.65;
+const HOSTED_PLAY_RECOVERY_RESOURCE_RATIO = 0.35;
+const HOSTED_PLAY_RECOVERY_STABLE_RESOURCE_RATIO = 0.35;
 const HOSTED_PLAY_RECOVERY_POTION_RATIO = 0.65;
 const HOSTED_PLAY_FRAGILE_THREAT_RECOVERY_HEALTH_RATIO = 0.9;
 const HOSTED_PLAY_FRAGILE_THREAT_RECOVERY_POTION_RATIO = 0.72;
 const HOSTED_PLAY_FRAGILE_THREAT_MAX_LEVEL = 4;
 const HOSTED_PLAY_FRONTLINE_THREAT_RECOVERY_HEALTH_RATIO = 0.82;
+const HOSTED_PLAY_HIGH_THREAT_RETREAT_MOBS = 3;
+const HOSTED_PLAY_HIGH_THREAT_RETREAT_HOSTILES = 20;
+const HOSTED_PLAY_DENSE_RECOVERY_HOSTILES = 28;
+const HOSTED_PLAY_DENSE_RECOVERY_RADIUS = 38;
+const HOSTED_PLAY_DENSE_RECOVERY_RETREAT_DISTANCE = 18;
 const HOSTED_PLAY_RECOVERY_COMMAND_COOLDOWN_MS = 1_500;
 const HOSTED_PLAY_RECOVERY_POTION_COOLDOWN_MS = 60_000;
 
@@ -111,6 +117,9 @@ export function tickHostedPlayPartyCoordinator(
   const nearbyInviteResult = maybeInviteNearbyPlayer(liveInput, state, party);
   if (nearbyInviteResult) return nearbyInviteResult;
 
+  const partyFormationHold = maybeHoldForTargetParty(liveInput, party);
+  if (partyFormationHold) return partyFormationHold;
+
   if (!party || input.partyMode !== 'follow_leader' || party.members.length < 2) {
     return idlePartyResult();
   }
@@ -123,10 +132,19 @@ export function tickHostedPlayPartyCoordinator(
   const groupLeaderName = leaderMember.name;
   const followAnchor = hostedPartyTrainAnchor(party, selfMember, leaderMember);
   const followAnchorDistance = followAnchor ? distanceBetweenPartyMembers(selfMember, followAnchor) : leaderDistance;
-  const partyInCombat = party.members.some((member) => member.inCombat === 1) || hasPartyThreat(entities, party);
+  const partyThreatCount = countPartyThreatMobs(entities, party);
+  const nearbyHostileCount = countNearbyHostileMobs(entities);
+  const partyHighThreatRecovery = partyThreatCount >= HOSTED_PLAY_HIGH_THREAT_RETREAT_MOBS
+    && nearbyHostileCount >= HOSTED_PLAY_HIGH_THREAT_RETREAT_HOSTILES;
+  const partyInCombat = party.members.some((member) => member.inCombat === 1) || partyThreatCount > 0;
   const partyIntentRecovering = input.partyIntent?.kind === 'recovery'
     || input.partyIntent?.behavior === 'recover';
-  const partyRecovering = partyNeedsRecovery(party, partyIntentRecovering);
+  const partyNeedsImmediateRecovery = partyNeedsRecovery(party);
+  const partyRecovering = partyNeedsImmediateRecovery
+    || partyHighThreatRecovery
+    || (!partyInCombat && partyIntentRecovering && partyNeedsRecovery(party, true));
+  const partyRecoveryHasHealthRisk = partyNeedsHealthRecovery(party, partyIntentRecovering);
+  const partyRecoveringOnlyResources = partyRecovering && !partyRecoveryHasHealthRisk;
   const botRecord = hostedPlayPartyBotRecord(input.playerClass, selfMember);
   const liveState = hostedPartyLiveState(input.liveSelf, entities);
   const followerCanMoveToParty = !!followAnchor
@@ -144,12 +162,14 @@ export function tickHostedPlayPartyCoordinator(
     partyIntentRecovering,
   );
   const selfNeedsFrontlineRecovery = selfNeedsFrontlineThreatRecovery(selfMember, entities);
+  const selfNeedsHighThreatRetreat = partyHighThreatRecovery && !selfMember.dead;
   const selfNeedsUrgentRecovery = !selfMember.dead
     && (
       (partyRecovering && memberHealthRatio(selfMember) <= HOSTED_PLAY_RECOVERY_STABLE_HEALTH_RATIO)
       || selfNeedsEarlyThreatRecovery
       || selfNeedsIntentRecovery
       || selfNeedsFrontlineRecovery
+      || selfNeedsHighThreatRetreat
     );
   const selfCanHoldRecoveryCombat = partyRecovering
     && partyInCombat
@@ -164,14 +184,17 @@ export function tickHostedPlayPartyCoordinator(
       state,
       nowMs: input.nowMs,
       entities,
-      forceSelfRecovery: selfNeedsEarlyThreatRecovery || selfNeedsIntentRecovery || selfNeedsFrontlineRecovery,
+      forceSelfRecovery: selfNeedsEarlyThreatRecovery
+        || selfNeedsIntentRecovery
+        || selfNeedsFrontlineRecovery
+        || selfNeedsHighThreatRetreat,
       forcePartyRecovery: partyRecovering,
       allowProtectiveCombat: false,
     });
     if (recoveryPause) return recoveryPause;
   }
 
-  const regroupReturn = !partyRecovering ? maybeReturnForRegroupIntent({
+  const regroupReturn = (!partyRecovering || partyRecoveringOnlyResources) ? maybeReturnForRegroupIntent({
     intent: input.partyIntent ?? null,
     liveSelf: input.liveSelf,
     selfMember,
@@ -184,7 +207,7 @@ export function tickHostedPlayPartyCoordinator(
   }) : null;
   if (regroupReturn) return regroupReturn;
 
-  const formationReturn = !partyRecovering ? maybeReturnForFormationBreak({
+  const formationReturn = (!partyRecovering || partyRecoveringOnlyResources) ? maybeReturnForFormationBreak({
     liveSelf: input.liveSelf,
     selfMember,
     leaderMember,
@@ -196,6 +219,33 @@ export function tickHostedPlayPartyCoordinator(
   }) : null;
   if (formationReturn) return formationReturn;
 
+  const assistTarget = findPartyCombatTarget({
+    liveSelf: input.liveSelf,
+    entities,
+    party,
+    maxDistance: HOSTED_PLAY_FOLLOW_MAX_RANGE,
+  });
+  const assistArrivalRange = partyAssistArrivalRange(input.playerClass);
+  const assistTravelGoal = assistTarget && assistTarget.distance > assistArrivalRange
+    ? travelGoalToPartyTarget(assistTarget, assistArrivalRange)
+    : null;
+  const earlyUnresolvedCombatReturn = !assistTarget
+    && partyInCombat
+    && (!partyRecovering || partyRecoveringOnlyResources)
+    ? maybeReturnForUnresolvedPartyCombat({
+        liveSelf: input.liveSelf,
+        party,
+        selfMember,
+        leaderMember,
+        leaderDistance,
+        state,
+        nowMs: input.nowMs,
+        entities,
+        playerClass: input.playerClass,
+      })
+    : null;
+  if (earlyUnresolvedCombatReturn) return earlyUnresolvedCombatReturn;
+
   const normalSupportDecision = !followerOutsidePartyActionRange
     && (partyInCombat || (canHostedProvidePartyPreparation(input.playerClass) && !followerNeedsToCloseGap))
     ? maybeCoordinateAmbientPartySupport({
@@ -204,7 +254,7 @@ export function tickHostedPlayPartyCoordinator(
       party,
       leaderMember,
       selfMember,
-      suppressFocusFire: partyRecovering,
+      suppressFocusFire: partyRecovering && partyRecoveryHasHealthRisk,
       reserveCommandBatch: (reservations) => reserveCommandBatch(state, input.nowMs, reservations),
     })
     : null;
@@ -283,6 +333,7 @@ export function tickHostedPlayPartyCoordinator(
     selfMember.pid === leaderMember.pid
     && !selfMember.dead
     && !selfMember.inCombat
+    && !partyInCombat
     && ambientPartyMemberPreparing(party, input.ambientDirectory, selfMember.pid)
   ) {
     return {
@@ -293,17 +344,6 @@ export function tickHostedPlayPartyCoordinator(
       groupLeaderDistance: 0,
     };
   }
-
-  const assistTarget = findPartyCombatTarget({
-    liveSelf: input.liveSelf,
-    entities,
-    party,
-    maxDistance: HOSTED_PLAY_FOLLOW_MAX_RANGE,
-  });
-  const assistArrivalRange = partyAssistArrivalRange(input.playerClass);
-  const assistTravelGoal = assistTarget && assistTarget.distance > assistArrivalRange
-    ? travelGoalToPartyTarget(assistTarget, assistArrivalRange)
-    : null;
 
   if (
     assistTarget
@@ -331,6 +371,21 @@ export function tickHostedPlayPartyCoordinator(
       groupLeaderDistance: leaderDistance,
     };
   }
+
+  const unresolvedCombatReturn = !assistTarget && partyInCombat
+    ? maybeReturnForUnresolvedPartyCombat({
+        liveSelf: input.liveSelf,
+        party,
+        selfMember,
+        leaderMember,
+        leaderDistance,
+        state,
+        nowMs: input.nowMs,
+        entities,
+        playerClass: input.playerClass,
+      })
+    : null;
+  if (unresolvedCombatReturn) return unresolvedCombatReturn;
 
   const combatFollowTravelGoal = selfMember.pid !== leaderMember.pid
     && !selfMember.dead
@@ -392,6 +447,110 @@ export function tickHostedPlayPartyCoordinator(
     groupLeaderName,
     groupLeaderDistance: leaderDistance,
   };
+}
+
+function maybeReturnForUnresolvedPartyCombat(input: {
+  liveSelf: Record<string, unknown>;
+  party: PartyInfo;
+  selfMember: PartyMemberInfo;
+  leaderMember: PartyMemberInfo;
+  leaderDistance: number;
+  state: HostedPlayPartyState;
+  nowMs: number;
+  entities: readonly Record<string, unknown>[];
+  playerClass: PlayerClass;
+}): HostedPlayPartyTickResult | null {
+  if (input.selfMember.dead) return null;
+  if (input.selfMember.inCombat === 1 || memberInCombatLive(input.liveSelf)) return null;
+  const anchor = partyCombatAnchor(input.party, input.selfMember, input.leaderMember, input.entities);
+  if (!anchor || anchor.pid === input.selfMember.pid || anchor.dead) return null;
+
+  const commands: HostedPlayCommand[] = [];
+  if (
+    readSelfAutoAttack(input.liveSelf)
+    && reserveCommandBatch(input.state, input.nowMs, [{ key: 'stopattack', cooldownMs: HOSTED_PLAY_RECOVERY_COMMAND_COOLDOWN_MS }])
+  ) {
+    commands.push({ cmd: 'stopattack' });
+  }
+  if (
+    readSelfTargetId(input.liveSelf) !== null
+    && reserveCommandBatch(input.state, input.nowMs, [{ key: 'clear_target', cooldownMs: HOSTED_PLAY_RECOVERY_COMMAND_COOLDOWN_MS }])
+  ) {
+    commands.push({ cmd: 'target', id: null });
+  }
+
+  const arrivalRange = Math.max(HOSTED_PLAY_FOLLOW_START_RANGE, partyAssistArrivalRange(input.playerClass));
+  const anchorDistance = distanceBetweenPartyMembers(input.selfMember, anchor);
+  const travelGoal = anchorDistance > arrivalRange
+    ? travelGoalToPartyMember(anchor, arrivalRange, 'hosted-party-combat')
+    : undefined;
+  return {
+    commands,
+    pauseBrainDrive: true,
+    ...(travelGoal ? { travelGoal } : {}),
+    groupMode: 'assist_party',
+    groupLeaderName: input.leaderMember.name,
+    groupLeaderDistance: input.leaderDistance,
+  };
+}
+
+function partyCombatAnchor(
+  party: PartyInfo,
+  selfMember: PartyMemberInfo,
+  leaderMember: PartyMemberInfo,
+  entities: readonly Record<string, unknown>[],
+): PartyMemberInfo | null {
+  const threatenedIds = partyThreatTargetIds(entities, party);
+  const candidates = party.members.filter((member) =>
+    member.pid !== selfMember.pid
+    && !member.dead
+    && (member.inCombat === 1 || threatenedIds.has(member.pid)));
+  const leaderCandidate = candidates.find((member) => member.pid === leaderMember.pid) ?? null;
+  if (leaderCandidate) return leaderCandidate;
+  return [...candidates].sort((a, b) => {
+    const healthDelta = memberHealthRatio(a) - memberHealthRatio(b);
+    if (Math.abs(healthDelta) > 0.001) return healthDelta;
+    return distanceBetweenPartyMembers(selfMember, a) - distanceBetweenPartyMembers(selfMember, b);
+  })[0] ?? null;
+}
+
+function partyThreatTargetIds(
+  entities: Iterable<Record<string, unknown>>,
+  party: PartyInfo,
+): Set<number> {
+  const partyIds = new Set(party.members.map((member) => member.pid));
+  const threatenedIds = new Set<number>();
+  for (const entity of entities) {
+    if (entity.k !== 'mob' || entity.dead === 1 || entity.dead === true) continue;
+    if (typeof entity.aggro === 'number' && partyIds.has(entity.aggro)) {
+      threatenedIds.add(entity.aggro);
+    }
+  }
+  return threatenedIds;
+}
+
+function countPartyThreatMobs(
+  entities: Iterable<Record<string, unknown>>,
+  party: PartyInfo,
+): number {
+  const partyIds = new Set(party.members.map((member) => member.pid));
+  let count = 0;
+  for (const entity of entities) {
+    if (entity.k !== 'mob' || entity.dead === 1 || entity.dead === true) continue;
+    if (typeof entity.aggro === 'number' && partyIds.has(entity.aggro)) count++;
+  }
+  return count;
+}
+
+function countNearbyHostileMobs(
+  entities: Iterable<Record<string, unknown>>,
+): number {
+  let count = 0;
+  for (const entity of entities) {
+    if (entity.k !== 'mob' || entity.dead === 1 || entity.dead === true) continue;
+    if (entity.h === true || entity.h === 1 || typeof entity.aggro === 'number') count++;
+  }
+  return count;
 }
 
 function maybeReturnForRegroupIntent(input: {
@@ -540,9 +699,12 @@ function maybePauseForPartyRecovery(input: {
   const recoveryAnchorRange = urgentSelfRecovery
     ? HOSTED_PLAY_URGENT_RECOVERY_ANCHOR_RANGE
     : HOSTED_PLAY_RECOVERY_ANCHOR_RANGE;
-  const includePartyThreats = input.forceSelfRecovery
-    && input.selfMember.level <= HOSTED_PLAY_FRAGILE_THREAT_MAX_LEVEL
-    && isFragileHostedClass(input.selfMember.cls);
+  const includePartyThreats = input.forcePartyRecovery
+    || (
+      input.forceSelfRecovery
+      && input.selfMember.level <= HOSTED_PLAY_FRAGILE_THREAT_MAX_LEVEL
+      && isFragileHostedClass(input.selfMember.cls)
+    );
   const threatRetreatGoal = !holdingProtectiveCombat && anchor && urgentSelfRecovery
     ? recoveryThreatRetreatGoal(
       input.liveSelf,
@@ -554,7 +716,10 @@ function maybePauseForPartyRecovery(input: {
       includePartyThreats,
     )
     : null;
-  const travelGoal = holdingProtectiveCombat ? undefined : threatRetreatGoal ?? (anchor && anchorDistance > recoveryAnchorRange
+  const densityRetreatGoal = !holdingProtectiveCombat && anchor && input.forcePartyRecovery
+    ? recoveryDensityRetreatGoal(input.entities, anchor, recoveryAnchorRange)
+    : null;
+  const travelGoal = holdingProtectiveCombat ? undefined : threatRetreatGoal ?? densityRetreatGoal ?? (anchor && anchorDistance > recoveryAnchorRange
     ? travelGoalToPartyMember(anchor, recoveryAnchorRange, 'hosted-party-recover')
     : undefined);
 
@@ -601,14 +766,64 @@ function recoveryThreatRetreatGoal(
   const length = Math.hypot(awayX, awayZ);
   if (length <= 0.001) return null;
   const target = {
-    x: anchor.x + (awayX / length) * HOSTED_PLAY_URGENT_RECOVERY_RETREAT_DISTANCE,
-    z: anchor.z + (awayZ / length) * HOSTED_PLAY_URGENT_RECOVERY_RETREAT_DISTANCE,
+    x: anchor.x + (awayX / length) * recoveryRetreatDistance(selfMember),
+    z: anchor.z + (awayZ / length) * recoveryRetreatDistance(selfMember),
   };
   return {
     target,
     arrivalRange,
     goalKey: `hosted-party-retreat:${anchor.pid}:${threat.id}:${Math.round(target.x)}:${Math.round(target.z)}`,
   };
+}
+
+function recoveryDensityRetreatGoal(
+  entities: Iterable<Record<string, unknown>>,
+  anchor: PartyMemberInfo,
+  arrivalRange: number,
+): PartyTravelGoal | null {
+  let count = 0;
+  let sumX = 0;
+  let sumZ = 0;
+  let closest: { x: number; z: number; distance: number } | null = null;
+  for (const entity of entities) {
+    if (entity.k !== 'mob' || entity.dead === 1 || entity.dead === true) continue;
+    if (entity.h !== true && entity.h !== 1 && typeof entity.aggro !== 'number') continue;
+    const x = typeof entity.x === 'number' ? entity.x : null;
+    const z = typeof entity.z === 'number' ? entity.z : null;
+    if (x === null || z === null) continue;
+    const distance = Math.hypot(anchor.x - x, anchor.z - z);
+    if (distance > HOSTED_PLAY_DENSE_RECOVERY_RADIUS) continue;
+    count++;
+    sumX += x;
+    sumZ += z;
+    if (!closest || distance < closest.distance) closest = { x, z, distance };
+  }
+  if (count < HOSTED_PLAY_DENSE_RECOVERY_HOSTILES) return null;
+
+  let awayX = anchor.x - (sumX / count);
+  let awayZ = anchor.z - (sumZ / count);
+  let length = Math.hypot(awayX, awayZ);
+  if (length <= 0.001 && closest) {
+    awayX = anchor.x - closest.x;
+    awayZ = anchor.z - closest.z;
+    length = Math.hypot(awayX, awayZ);
+  }
+  if (length <= 0.001) return null;
+  const target = {
+    x: anchor.x + (awayX / length) * HOSTED_PLAY_DENSE_RECOVERY_RETREAT_DISTANCE,
+    z: anchor.z + (awayZ / length) * HOSTED_PLAY_DENSE_RECOVERY_RETREAT_DISTANCE,
+  };
+  return {
+    target,
+    arrivalRange,
+    goalKey: `hosted-party-density-retreat:${anchor.pid}:${count}:${Math.round(target.x)}:${Math.round(target.z)}`,
+  };
+}
+
+function recoveryRetreatDistance(selfMember: PartyMemberInfo): number {
+  return isFrontlineHostedClass(selfMember.cls)
+    ? HOSTED_PLAY_FRONTLINE_URGENT_RECOVERY_RETREAT_DISTANCE
+    : HOSTED_PLAY_URGENT_RECOVERY_RETREAT_DISTANCE;
 }
 
 function maybeHoldForPartyIntent(input: {
@@ -703,16 +918,24 @@ function hostedPartyTrainMembers(
 }
 
 function partyNeedsRecovery(party: PartyInfo, holdUntilStable = false): boolean {
+  return partyNeedsHealthRecovery(party, holdUntilStable)
+    || partyNeedsResourceRecovery(party, holdUntilStable);
+}
+
+function partyNeedsHealthRecovery(party: PartyInfo, holdUntilStable = false): boolean {
   const healthThreshold = holdUntilStable
     ? HOSTED_PLAY_RECOVERY_STABLE_HEALTH_RATIO
     : HOSTED_PLAY_RECOVERY_HEALTH_RATIO;
+  return party.members.some((member) =>
+    member.dead
+    || memberHealthRatio(member) <= healthThreshold);
+}
+
+function partyNeedsResourceRecovery(party: PartyInfo, holdUntilStable = false): boolean {
   const resourceThreshold = holdUntilStable
     ? HOSTED_PLAY_RECOVERY_STABLE_RESOURCE_RATIO
     : HOSTED_PLAY_RECOVERY_RESOURCE_RATIO;
-  return party.members.some((member) =>
-    member.dead
-    || memberHealthRatio(member) <= healthThreshold
-    || memberNeedsResourceRecovery(member, resourceThreshold));
+  return party.members.some((member) => memberNeedsResourceRecovery(member, resourceThreshold));
 }
 
 function memberNeedsResourceRecovery(
@@ -991,10 +1214,7 @@ function maybeInviteNearbyPlayer(
   party: PartyInfo | null,
 ): HostedPlayPartyTickResult | null {
   if (input.autoInviteNearbyPlayers !== true) return null;
-  const fallbackPartySize = Math.max(2, hostedPlayTargetPartySize(input.objectiveSuggestedPartySize ?? 0));
-  const targetPartySize = normalizeHostedPlayAutoInviteTargetPartySize(
-    input.autoInviteNearbyTargetPartySize ?? fallbackPartySize,
-  );
+  const targetPartySize = hostedPlayTargetPartySizeForInput(input);
   const selfId = readSelfId(input.liveSelf);
   const selfName = readSelfName(input.liveSelf);
   if (selfId <= 0 || memberIsDead(input.liveSelf) || memberInCombatLive(input.liveSelf)) return null;
@@ -1006,13 +1226,44 @@ function maybeInviteNearbyPlayer(
   state.lastNearbyInviteAtMsByName[nearbyInvite.name] = input.nowMs;
   return {
     commands: [{ cmd: 'pinvite', id: nearbyInvite.id }],
-    pauseBrainDrive: false,
+    pauseBrainDrive: true,
     groupMode: 'invite_nearby',
     groupLeaderName: party
       ? party.members.find((member) => member.pid === party.leader)?.name ?? selfName
       : selfName,
     groupLeaderDistance: 0,
   };
+}
+
+function maybeHoldForTargetParty(
+  input: HostedPlayPartyTickInput,
+  party: PartyInfo | null,
+): HostedPlayPartyTickResult | null {
+  if (input.autoInviteNearbyPlayers !== true) return null;
+  if (!party) return null;
+  const targetPartySize = hostedPlayTargetPartySizeForInput(input);
+  const partySize = party?.members.length ?? 1;
+  if (partySize >= targetPartySize || partySize >= 5) return null;
+  const selfId = readSelfId(input.liveSelf);
+  if (selfId <= 0 || memberIsDead(input.liveSelf) || memberInCombatLive(input.liveSelf)) return null;
+  if (party && party.leader !== selfId) return null;
+  const selfName = readSelfName(input.liveSelf);
+  return {
+    commands: [],
+    pauseBrainDrive: true,
+    groupMode: 'invite_nearby',
+    groupLeaderName: party
+      ? party.members.find((member) => member.pid === party.leader)?.name ?? selfName
+      : selfName,
+    groupLeaderDistance: 0,
+  };
+}
+
+function hostedPlayTargetPartySizeForInput(input: HostedPlayPartyTickInput): HostedPlayAutoInviteTargetPartySize {
+  const fallbackPartySize = Math.max(2, hostedPlayTargetPartySize(input.objectiveSuggestedPartySize ?? 0));
+  return normalizeHostedPlayAutoInviteTargetPartySize(
+    input.autoInviteNearbyTargetPartySize ?? fallbackPartySize,
+  );
 }
 
 function collectNearbyInviteCandidate(
@@ -1220,11 +1471,5 @@ function hasPartyThreat(
   entities: Iterable<Record<string, unknown>>,
   party: PartyInfo,
 ): boolean {
-  const partyIds = new Set(party.members.map((member) => member.pid));
-  for (const entity of entities) {
-    if (entity.k !== 'mob' || entity.dead === 1 || entity.dead === true) continue;
-    if (entity.aggro === null || entity.aggro === undefined) continue;
-    if (typeof entity.aggro === 'number' && partyIds.has(entity.aggro)) return true;
-  }
-  return false;
+  return partyThreatTargetIds(entities, party).size > 0;
 }

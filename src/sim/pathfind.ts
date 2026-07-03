@@ -1,4 +1,5 @@
 import { isBlocked, pathCrossesFence, resolvePosition } from './colliders';
+import { ROADS } from './data';
 import { groundHeight, WATER_LEVEL } from './world';
 
 // Local A* over a 1-yard grid, used for short forced moves (warrior Charge).
@@ -32,10 +33,18 @@ const CELL = 1; // yards
 const MARGIN = 8; // yards of slack around the start/goal bounding box
 const MAX_SPAN = 64; // cells per axis; beyond this fall back to a straight line
 const SMOOTH_SAMPLE_STEP = 0.25; // yards; keeps line-of-sight smoothing inside movement sweep granularity
+const ROAD_LINK_RANGE = 64;
+const ROAD_ATTACH_RANGE = 140;
+const ROAD_ATTACH_LIMIT = 6;
 
 export const PLAYER_BODY_RADIUS = 0.5;
 export const PLAYER_MAX_CLIMB_SLOPE = 1.5;
 export const PLAYER_SWIM_DEPTH = 0.8;
+
+interface RoadGraph {
+  nodes: { x: number; z: number }[];
+  edges: [number, number][];
+}
 
 function segmentWalkable(
   from: { x: number; z: number },
@@ -93,9 +102,147 @@ function smoothPath(
   return out;
 }
 
+function roadGraph(): RoadGraph {
+  const nodes: { x: number; z: number }[] = [];
+  const nodeByKey = new Map<string, number>();
+  const edges: [number, number][] = [];
+  const nodeIndex = (point: { x: number; z: number }): number => {
+    const key = `${point.x},${point.z}`;
+    const existing = nodeByKey.get(key);
+    if (existing !== undefined) return existing;
+    const next = nodes.length;
+    nodes.push({ x: point.x, z: point.z });
+    nodeByKey.set(key, next);
+    return next;
+  };
+
+  for (const road of ROADS) {
+    let prev: number | null = null;
+    for (const point of road) {
+      const current = nodeIndex(point);
+      if (prev !== null) edges.push([prev, current]);
+      prev = current;
+    }
+  }
+  return { nodes, edges };
+}
+
+function roadConnectionWalkable(
+  from: { x: number; z: number },
+  to: { x: number; z: number },
+  o: PathOpts,
+  allowBlockedEnd: boolean,
+): boolean {
+  if (segmentWalkable(from, to, o, allowBlockedEnd)) return true;
+  if (groundHeight(from.x, from.z, o.seed) >= o.minGround) return false;
+  return segmentWalkable(from, to, { ...o, minGround: -Infinity, swim: true }, allowBlockedEnd);
+}
+
+function nearestRoadAttachments(
+  point: { x: number; z: number },
+  graph: RoadGraph,
+  maxDistance: number,
+): number[] {
+  return graph.nodes
+    .map((node, index) => ({
+      index,
+      distance: Math.hypot(node.x - point.x, node.z - point.z),
+    }))
+    .filter((entry) => entry.distance <= maxDistance)
+    .sort((a, b) => a.distance - b.distance || a.index - b.index)
+    .slice(0, ROAD_ATTACH_LIMIT)
+    .map((entry) => entry.index);
+}
+
+function addGraphEdge(
+  edges: number[][],
+  from: number,
+  to: number,
+  cost: number,
+): void {
+  edges[from].push(to, cost);
+  edges[to].push(from, cost);
+}
+
+function findRoadFallbackPath(
+  from: { x: number; z: number },
+  to: { x: number; z: number },
+  o: PathOpts,
+): { x: number; z: number }[] {
+  if (segmentWalkable(from, to, o, true)) return [{ x: to.x, z: to.z }];
+
+  const graph = roadGraph();
+  if (graph.nodes.length === 0) return [];
+  const nodes = [from, to, ...graph.nodes];
+  const edges = Array.from({ length: nodes.length }, () => [] as number[]);
+  const roadOffset = 2;
+  for (const [a, b] of graph.edges) {
+    const fromIndex = roadOffset + a;
+    const toIndex = roadOffset + b;
+    const aPoint = nodes[fromIndex];
+    const bPoint = nodes[toIndex];
+    if (!segmentWalkable(aPoint, bPoint, o, false)) continue;
+    addGraphEdge(edges, fromIndex, toIndex, Math.hypot(aPoint.x - bPoint.x, aPoint.z - bPoint.z));
+  }
+
+  for (let i = 0; i < graph.nodes.length; i++) {
+    for (let j = i + 1; j < graph.nodes.length; j++) {
+      const aPoint = graph.nodes[i];
+      const bPoint = graph.nodes[j];
+      const distance = Math.hypot(aPoint.x - bPoint.x, aPoint.z - bPoint.z);
+      if (distance > ROAD_LINK_RANGE) continue;
+      if (!segmentWalkable(aPoint, bPoint, o, false)) continue;
+      addGraphEdge(edges, roadOffset + i, roadOffset + j, distance);
+    }
+  }
+
+  for (const roadIndex of nearestRoadAttachments(from, graph, ROAD_ATTACH_RANGE)) {
+    const node = graph.nodes[roadIndex];
+    if (!roadConnectionWalkable(from, node, o, false)) continue;
+    addGraphEdge(edges, 0, roadOffset + roadIndex, Math.hypot(from.x - node.x, from.z - node.z));
+  }
+  for (const roadIndex of nearestRoadAttachments(to, graph, ROAD_ATTACH_RANGE)) {
+    const node = graph.nodes[roadIndex];
+    if (!segmentWalkable(node, to, o, true)) continue;
+    addGraphEdge(edges, 1, roadOffset + roadIndex, Math.hypot(to.x - node.x, to.z - node.z));
+  }
+
+  const dist = new Float64Array(nodes.length).fill(Infinity);
+  const prev = new Int32Array(nodes.length).fill(-1);
+  const seen = new Uint8Array(nodes.length);
+  dist[0] = 0;
+  for (;;) {
+    let current = -1;
+    let best = Infinity;
+    for (let i = 0; i < nodes.length; i++) {
+      if (seen[i] || dist[i] >= best) continue;
+      current = i;
+      best = dist[i];
+    }
+    if (current === -1 || current === 1) break;
+    seen[current] = 1;
+    const row = edges[current];
+    for (let i = 0; i < row.length; i += 2) {
+      const next = row[i];
+      const cost = row[i + 1];
+      const candidate = dist[current] + cost;
+      if (candidate >= dist[next]) continue;
+      dist[next] = candidate;
+      prev[next] = current;
+    }
+  }
+  if (!Number.isFinite(dist[1])) return [];
+
+  const route: number[] = [];
+  for (let i = 1; i !== -1; i = prev[i]) route.push(i);
+  route.reverse();
+  return route.slice(1).map((index) => ({ x: nodes[index].x, z: nodes[index].z }));
+}
+
 // Returns world-space waypoints from `from` to `to`, excluding the start and
-// ending exactly at `to`. Falls back to [to] (straight line) when the window
-// is too large, the goal is unreachable, or start and goal share a cell.
+// ending exactly at `to`. Long routes prefer the road graph when the direct
+// line is not walkable, so automation does not cut across lakes or ridge walls.
+// Falls back to [to] when the goal is unreachable or start and goal share a cell.
 export function findPath(
   from: { x: number; z: number }, to: { x: number; z: number }, o: PathOpts,
 ): { x: number; z: number }[] {
@@ -104,7 +251,10 @@ export function findPath(
   const W = Math.ceil((Math.max(from.x, to.x) + MARGIN - minX) / CELL);
   const H = Math.ceil((Math.max(from.z, to.z) + MARGIN - minZ) / CELL);
   const maxSpan = o.maxSpan ?? MAX_SPAN;
-  if (W > maxSpan || H > maxSpan) return [{ x: to.x, z: to.z }];
+  if (W > maxSpan || H > maxSpan) {
+    const fallback = findRoadFallbackPath(from, to, o);
+    return fallback.length > 0 ? fallback : [{ x: to.x, z: to.z }];
+  }
   const cx = (gx: number) => minX + (gx + 0.5) * CELL;
   const cz = (gz: number) => minZ + (gz + 0.5) * CELL;
   const toCell = (x: number, z: number) => ({
@@ -233,6 +383,15 @@ export function findPlayerPath(
   ignoreFences = false,
   swim = false,
 ): { x: number; z: number }[] {
+  if (!swim && groundHeight(from.x, from.z, seed) < WATER_LEVEL - PLAYER_SWIM_DEPTH) {
+    const shore = resolvePlayerDestination(seed, from);
+    if (Math.hypot(shore.x - from.x, shore.z - from.z) > 0.5) {
+      return [
+        shore,
+        ...findPlayerPath(seed, shore, to, maxSpan, ignoreFences, false),
+      ];
+    }
+  }
   return findPath(from, to, {
     seed,
     bodyRadius: PLAYER_BODY_RADIUS,

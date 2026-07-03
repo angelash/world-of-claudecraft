@@ -74,6 +74,26 @@ describe('player pathfinding', () => {
     expect(groundHeight(end.x, end.z, seed)).toBeLessThan(deepThreshold);
   });
 
+  it('routes long Mirefen travel out of water and along the road instead of cutting through a pond', () => {
+    const seed = 20061;
+    const from = { x: -27, z: 441 };
+    const to = resolvePlayerDestination(seed, { x: 1, z: 654 });
+    const deepThreshold = WATER_LEVEL - PLAYER_SWIM_DEPTH;
+
+    expect(groundHeight(from.x, from.z, seed)).toBeLessThan(deepThreshold);
+    const path = findPlayerPath(seed, from, to);
+
+    expect(path.length).toBeGreaterThan(1);
+    expect(path[path.length - 1]).toEqual(to);
+    expect(path[0]).not.toEqual(to);
+    expect(groundHeight(path[0].x, path[0].z, seed)).toBeGreaterThanOrEqual(deepThreshold);
+    expect(path).toEqual(expect.arrayContaining([
+      expect.objectContaining({ x: 10, z: 450 }),
+      expect.objectContaining({ x: 0, z: 540 }),
+      expect.objectContaining({ x: 0, z: 660 }),
+    ]));
+  });
+
   it('treats fence runs as movement blockers', () => {
     const seed = 20061;
     expect(isBlocked(seed, 19, 10)).toBe(true);

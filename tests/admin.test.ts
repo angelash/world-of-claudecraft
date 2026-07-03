@@ -286,9 +286,9 @@ const fakeGame: any = {
       plannerIntervalMs: 10_000,
       clusterRadius: 70,
       releaseRadius: 220,
-      soloTargetBots: 5,
+      soloTargetBots: 30,
       extraBotsPerAdditionalPlayer: 1,
-      maxBotsPerCluster: 8,
+      maxBotsPerCluster: 50,
       maxProvisionPerTick: 5,
       cooldownMs: 120_000,
       reservationMs: 90_000,
@@ -298,7 +298,7 @@ const fakeGame: any = {
       cycles: 4,
       humansObserved: 2,
       clustersObserved: 1,
-      desiredBots: 5,
+      desiredBots: 31,
       assignedBots: 4,
       loginPlans: 1,
       provisionPlans: 0,
@@ -1639,7 +1639,7 @@ describe('ambient bots admin routes', () => {
     expect(ambientBots.diagnosticsSnapshot).toHaveBeenCalled();
     expect(res.body.data).toEqual(expect.objectContaining({
       planner: expect.objectContaining({
-        metrics: expect.objectContaining({ desiredBots: 5 }),
+        metrics: expect.objectContaining({ desiredBots: 31 }),
       }),
       runtime: expect.objectContaining({
         activeRunners: 1,

@@ -87,9 +87,21 @@ describe('GameServer ambient player bot integration', () => {
       expect.objectContaining({
         clusterId: expect.stringContaining('eastbrook_vale'),
         memberCharacterIds: [human.characterId],
-        desiredBots: 5,
+        desiredBots: 30,
       }),
     ]);
+  });
+
+  it('does not count ambient bot sessions against the human per-ip gate', () => {
+    const server = new GameServer();
+    expectJoined(server.join(fakeWs(), 1, 101, 'Human', 'warrior', null, false, { ip: '127.0.0.1' }));
+    expectJoined(server.join(fakeWs(), 2, 102, 'Bot', 'warrior', null, false, {
+      ambientBotId: 'bot-1',
+      ip: '127.0.0.1',
+    }));
+
+    expect(server.countIpSessions('127.0.0.1')).toBe(2);
+    expect(server.countHumanIpSessions('127.0.0.1')).toBe(1);
   });
 
   it('surfaces login plans through the GameServer diagnostics seam', () => {

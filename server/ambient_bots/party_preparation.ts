@@ -2,7 +2,7 @@ import type { PartyInfo, PartyMemberInfo } from '../../src/world_api';
 import type { AmbientPlayerBotRecord } from './types';
 
 const PARTY_HEAL_HOLD_RATIO = 0.92;
-const PARTY_MANA_HOLD_RATIO = 0.45;
+const PARTY_MANA_HOLD_RATIO = 0.35;
 const ACTIVE_PREPARATION_MODES = ['buff_party', 'prepare_party', 'heal_party'] as const;
 
 export type AmbientPartyPreparationMode = (typeof ACTIVE_PREPARATION_MODES)[number];

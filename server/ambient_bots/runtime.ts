@@ -609,6 +609,7 @@ export class AmbientPlayerBotRuntime {
           continue;
         }
         const recentEvents = entry.client.drainEvents();
+        const stuckResetsBeforeBrain = entry.brainState.stuckResets;
         const result = tickAmbientPlayerBotBrain({
           bot: record,
           liveState,
@@ -637,9 +638,15 @@ export class AmbientPlayerBotRuntime {
             liveState,
             maxTravelRange: 24,
           });
+        const groupControlActive = groupResult.pauseBrainDrive && groupMode !== 'brain';
         entry.brainDrivePaused = groupResult.pauseBrainDrive && !allowSelfMaintenanceBrain;
-        if (entry.brainDrivePaused && !groupResult.travelGoal) {
-          markAmbientPlayerBotBrainExternalProgress(entry.brainState, liveState, nowMs);
+        if (groupControlActive) {
+          if (entry.brainState.stuckResets > stuckResetsBeforeBrain) {
+            entry.brainState.stuckResets = stuckResetsBeforeBrain;
+          }
+          markAmbientPlayerBotBrainExternalProgress(entry.brainState, liveState, nowMs, {
+            preservePath: !!groupResult.travelGoal || allowSelfMaintenanceBrain,
+          });
         }
         for (const command of groupResult.commands) entry.client.command(command);
         if (!groupResult.pauseBrainDrive || allowSelfMaintenanceBrain) {

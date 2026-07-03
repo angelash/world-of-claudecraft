@@ -1703,7 +1703,7 @@ async function main(): Promise<void> {
         blocked: game.isIpBlocked(ip),
         isAdmin,
         isAmbientBot: ambientBotSession !== null,
-        ipSessions: game.countIpSessions(ip),
+        ipSessions: game.countHumanIpSessions(ip),
         hardLimit: MAX_WS_PER_IP_HARD,
       })
     ) {

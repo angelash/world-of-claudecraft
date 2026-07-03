@@ -64,7 +64,7 @@ function bot(overrides: Partial<AmbientPlayerBotRecord> = {}): AmbientPlayerBotR
 }
 
 describe('AmbientPlayerBotService', () => {
-  it('requests a five-bot ambient pod for a solo human cluster', () => {
+  it('targets a thirty-bot ambient pod for a solo human cluster', () => {
     const service = new AmbientPlayerBotService({ config: cfg({ maxProvisionPerTick: 5 }) });
     const actions = service.plan({
       humans: [human(1, 'eastbrook_vale', 2, 0, 0)],
@@ -76,7 +76,7 @@ describe('AmbientPlayerBotService', () => {
     expect(service.diagnosticsSnapshot().clusters).toEqual([
       expect.objectContaining({
         clusterId: 'eastbrook_vale:1',
-        desiredBots: 5,
+        desiredBots: 30,
         memberCharacterIds: [1],
       }),
     ]);
@@ -92,9 +92,9 @@ describe('AmbientPlayerBotService', () => {
       nowMs: 1_000,
     });
 
-    expect(actions).toHaveLength(6);
+    expect(actions).toHaveLength(10);
     expect(service.diagnosticsSnapshot().clusters).toHaveLength(1);
-    expect(service.diagnosticsSnapshot().clusters[0]?.desiredBots).toBe(6);
+    expect(service.diagnosticsSnapshot().clusters[0]?.desiredBots).toBe(31);
   });
 
   it('prefers ready bots before provisioning new ones', () => {
@@ -112,7 +112,7 @@ describe('AmbientPlayerBotService', () => {
       clusterId: 'eastbrook_vale:1',
       targetCharacterName: 'P1',
     }));
-    expect(actions.filter((action) => action.type === 'provisionBot')).toHaveLength(4);
+    expect(actions.filter((action) => action.type === 'provisionBot')).toHaveLength(10);
   });
 
   it('releases an assigned bot that drifted beyond the release radius', () => {
@@ -140,7 +140,13 @@ describe('AmbientPlayerBotService', () => {
   });
 
   it('holds pending provision slots long enough to avoid immediate reprovision spam', () => {
-    const service = new AmbientPlayerBotService({ config: cfg({ maxProvisionPerTick: 5 }) });
+    const service = new AmbientPlayerBotService({
+      config: cfg({
+        maxProvisionPerTick: 5,
+        soloTargetBots: 5,
+        maxBotsPerCluster: 5,
+      }),
+    });
     const first = service.plan({
       humans: [human(1, 'eastbrook_vale', 2, 0, 0)],
       nowMs: 1_000,
@@ -156,7 +162,13 @@ describe('AmbientPlayerBotService', () => {
   });
 
   it('keeps cluster identity stable when nearby membership shrinks', () => {
-    const service = new AmbientPlayerBotService({ config: cfg({ maxProvisionPerTick: 10 }) });
+    const service = new AmbientPlayerBotService({
+      config: cfg({
+        maxProvisionPerTick: 10,
+        soloTargetBots: 5,
+        maxBotsPerCluster: 6,
+      }),
+    });
     const first = service.plan({
       humans: [
         human(1, 'eastbrook_vale', 2, 0, 0),
@@ -182,7 +194,13 @@ describe('AmbientPlayerBotService', () => {
   });
 
   it('hands an online bot to a better nearby cluster before logging it out', () => {
-    const service = new AmbientPlayerBotService({ config: cfg({ maxProvisionPerTick: 10 }) });
+    const service = new AmbientPlayerBotService({
+      config: cfg({
+        maxProvisionPerTick: 10,
+        soloTargetBots: 5,
+        maxBotsPerCluster: 5,
+      }),
+    });
     service.replaceDirectory([
       bot({
         lifecycleStatus: 'online',

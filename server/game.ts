@@ -547,6 +547,17 @@ export class GameServer {
     return this.ipSessionCounts.get(ip) ?? 0;
   }
 
+  // Ambient bots can share the local operator's IP in development and hosted
+  // tests. Keep the human hard cap focused on real sessions so a full local bot
+  // cluster does not lock the operator out of the realm.
+  countHumanIpSessions(ip: string): number {
+    let count = 0;
+    for (const session of this.clients.values()) {
+      if (session.ip === ip && session.ambientBotId === null) count++;
+    }
+    return count;
+  }
+
   // -------------------------------------------------------------------------
   // Social presence/transport: bridges the persistent SocialService to the
   // live client map + sim. Keyed by character id (stable across sessions),

@@ -247,6 +247,51 @@ describe('HostedPlayRuntime', () => {
     });
   });
 
+  it('does not count externally controlled follow travel as personal path stuck', () => {
+    let nowMs = 5_000;
+    const game = fakeGame(liveState({
+      id: 102,
+      x: 1518,
+      z: -1200,
+      res: 0,
+      mres: 0,
+      rtype: 'rage',
+      auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'warrior', level: 12, hp: 100, mhp: 100, res: 0, mres: 0, rtype: 'rage', x: 1518, z: -1200, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+    }));
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => nowMs,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 4,
+    });
+    (runtime as any).tick();
+    nowMs += 5_000;
+    (runtime as any).tick();
+
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'follow_leader',
+      debug: {
+        brainState: {
+          stuckResets: 0,
+        },
+      },
+    });
+  });
+
   it('lets a grouped hosted follower pick up a nearby quest while movement is paused', () => {
     const game = fakeGame(liveState({
       id: 102,
@@ -350,6 +395,76 @@ describe('HostedPlayRuntime', () => {
       objectiveId: 'restock_minor_healing_potion',
       debug: {
         brainDrivePaused: false,
+      },
+    });
+  });
+
+  it('blocks vendor restocking while a party member still has combat signal', () => {
+    const game = fakeGame(liveState({
+      id: 11,
+      x: -7,
+      z: 3,
+      lv: 5,
+      hp: 90,
+      mhp: 100,
+      res: 100,
+      mres: 100,
+      rtype: 'mana',
+      target: 7100,
+      copper: 300,
+      inv: [
+        { itemId: 'baked_bread', count: 4 },
+        { itemId: 'spring_water', count: 4 },
+      ],
+      qdone: ['q_wolves'],
+      qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
+      auras: [
+        { id: 'frost_armor', kind: 'buff_armor', rem: 1_700, dur: 1_800 },
+        { id: 'arcane_intellect', kind: 'buff_int', rem: 1_700, dur: 1_800 },
+      ],
+      party: {
+        leader: 11,
+        raid: false,
+        members: [
+          { pid: 11, name: 'Hero', cls: 'mage', level: 5, hp: 90, mhp: 100, res: 100, mres: 100, rtype: 'mana', x: -7, z: 3, dead: 0, inCombat: 0, group: 1 },
+          { pid: 12, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: -36, z: 3, dead: 0, inCombat: 1, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
+      ],
+    }), {
+      playerClass: 'mage',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([{ cmd: 'target', id: null }]);
+    expect(game.commands).not.toContainEqual({ cmd: 'target', id: 7100 });
+    expect(game.commands).not.toContainEqual({ cmd: 'buy', npc: 7100, item: 'minor_healing_potion' });
+    expect(game.moveInputs).toHaveLength(1);
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'assist_party',
+      objectiveId: 'restock_minor_healing_potion',
+      debug: {
+        brainDrivePaused: true,
+        commands: [
+          {
+            summary: 'target',
+            payloadJson: '{"cmd":"target","id":null}',
+          },
+        ],
       },
     });
   });
@@ -662,6 +777,77 @@ describe('HostedPlayRuntime', () => {
     });
   });
 
+  it('keeps nearby corpse looting paused while party health recovers', () => {
+    const game = fakeGame(liveState({
+      id: 102,
+      x: 55,
+      z: 12,
+      lv: 3,
+      hp: 100,
+      mhp: 100,
+      res: 100,
+      mres: 100,
+      rtype: 'mana',
+      qdone: ['q_wolves'],
+      qlog: [{ questId: 'q_boars', counts: [4], state: 'active' }],
+      auras: [
+        { id: 'frost_armor', kind: 'buff_armor', rem: 1700, dur: 1800 },
+        { id: 'arcane_intellect', kind: 'buff_int', rem: 1700, dur: 1800 },
+      ],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 70, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 53, z: 12, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'mage', level: 3, hp: 100, mhp: 100, res: 100, mres: 100, rtype: 'mana', x: 55, z: 12, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        {
+          id: 8102,
+          k: 'mob',
+          tid: 'wild_boar',
+          x: 55,
+          z: 12.5,
+          h: true,
+          lv: 3,
+          dead: true,
+          loot: true,
+          tap: 101,
+          lootInfo: {
+            copper: 0,
+            items: [{ itemId: 'boar_hide', count: 1, personalFor: [102] }],
+          },
+        },
+      ],
+    }), {
+      playerClass: 'mage',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([]);
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'assist_party',
+      objectiveId: 'loot',
+      debug: {
+        brainDrivePaused: true,
+        commands: [],
+      },
+    });
+  });
+
   it('lets a grouped hosted member use recovery consumables while party recovery pauses assist movement', () => {
     const game = fakeGame(liveState({
       id: 102,
@@ -766,7 +952,7 @@ describe('HostedPlayRuntime', () => {
     });
   });
 
-  it('lets a healthy untouched member accept starter quests while party recovery is paused', () => {
+  it('keeps healthy untouched members paused from quest intake while party health recovers', () => {
     const game = fakeGame(liveState({
       id: 102,
       x: 4,
@@ -806,6 +992,57 @@ describe('HostedPlayRuntime', () => {
     });
     (runtime as any).tick();
 
+    expect(game.commands).not.toContainEqual({ cmd: 'target', id: 7001 });
+    expect(game.commands).not.toContainEqual({ cmd: 'interact' });
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'assist_party',
+      objectiveId: 'accept_wolves',
+      debug: {
+        brainDrivePaused: true,
+      },
+    });
+  });
+
+  it('allows nearby quest intake during resource-only recovery when party health is stable', () => {
+    const game = fakeGame(liveState({
+      id: 102,
+      x: 4,
+      z: 6,
+      lv: 1,
+      hp: 95,
+      mhp: 95,
+      rtype: 'rage',
+      mres: 0,
+      qlog: [],
+      qdone: [],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Mira', cls: 'priest', level: 1, hp: 95, mhp: 95, res: 35, mres: 100, rtype: 'mana', x: 4, z: 6, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'warrior', level: 1, hp: 95, mhp: 95, res: 0, mres: 0, rtype: 'rage', x: 4, z: 6, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 },
+      ],
+    }), {
+      playerClass: 'warrior',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
     expect(game.commands).toEqual([
       { cmd: 'target', id: 7001 },
       { cmd: 'interact' },
@@ -815,6 +1052,58 @@ describe('HostedPlayRuntime', () => {
       objectiveId: 'accept_wolves',
       debug: {
         brainDrivePaused: false,
+      },
+    });
+  });
+
+  it('keeps nearby quest intake paused during recovery while the party still has combat signal', () => {
+    const game = fakeGame(liveState({
+      id: 102,
+      x: 4,
+      z: 6,
+      lv: 1,
+      hp: 95,
+      mhp: 95,
+      rtype: 'rage',
+      mres: 0,
+      qlog: [],
+      qdone: [],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Mira', cls: 'priest', level: 1, hp: 95, mhp: 95, res: 35, mres: 100, rtype: 'mana', x: 4, z: 6, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Hero', cls: 'warrior', level: 1, hp: 95, mhp: 95, res: 0, mres: 0, rtype: 'rage', x: 4, z: 6, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 },
+        { id: 8101, k: 'mob', tid: 'forest_wolf', x: 7, z: 6, h: true, lv: 1, aggro: 101 },
+      ],
+    }), {
+      playerClass: 'warrior',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).not.toContainEqual({ cmd: 'target', id: 7001 });
+    expect(game.commands).not.toContainEqual({ cmd: 'interact' });
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'assist_party',
+      objectiveId: 'accept_wolves',
+      debug: {
+        brainDrivePaused: true,
       },
     });
   });
@@ -870,7 +1159,7 @@ describe('HostedPlayRuntime', () => {
     });
   });
 
-  it('lets a healthy member turn in a nearby completed quest while party recovery is paused', () => {
+  it('keeps a healthy member from turning in while party health recovers', () => {
     const game = fakeGame(liveState({
       id: 102,
       x: -14,
@@ -925,20 +1214,18 @@ describe('HostedPlayRuntime', () => {
     });
     (runtime as any).tick();
 
-    expect(game.commands).toEqual([
-      { cmd: 'target', id: 7002 },
-      { cmd: 'interact' },
-    ]);
+    expect(game.commands).toEqual([]);
     expect(runtime.status(7)).toMatchObject({
       groupMode: 'assist_party',
       objectiveId: 'turnin_silence_the_call',
       debug: {
-        brainDrivePaused: false,
+        brainDrivePaused: true,
+        commands: [],
       },
     });
   });
 
-  it('lets a healthy member accept a nearby available quest while party recovery is paused', () => {
+  it('keeps a healthy member from accepting nearby quests while party health recovers', () => {
     const game = fakeGame(liveState({
       id: 102,
       x: -4,
@@ -1000,20 +1287,18 @@ describe('HostedPlayRuntime', () => {
     });
     (runtime as any).tick();
 
-    expect(game.commands).toEqual([
-      { cmd: 'target', id: 9800 },
-      { cmd: 'interact' },
-    ]);
+    expect(game.commands).toEqual([]);
     expect(runtime.status(7)).toMatchObject({
       groupMode: 'assist_party',
       objectiveId: 'accept_fen_supplies',
       debug: {
-        brainDrivePaused: false,
+        brainDrivePaused: true,
+        commands: [],
       },
     });
   });
 
-  it('keeps restock brain work paused while a nearby party member is recovering', () => {
+  it('lets nearby restock brain work continue while a party member is recovering', () => {
     const game = fakeGame(liveState({
       id: 101,
       nm: 'Hero',
@@ -1058,12 +1343,197 @@ describe('HostedPlayRuntime', () => {
     });
     (runtime as any).tick();
 
+    expect(game.commands).toEqual([
+      { cmd: 'target', id: 7100 },
+      { cmd: 'buy', npc: 7100, item: 'baked_bread' },
+    ]);
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'recover_party',
+      objectiveId: 'restock_food_and_drink',
+      debug: {
+        brainDrivePaused: false,
+      },
+    });
+  });
+
+  it('lets nearby restock travel continue while a party member is recovering', () => {
+    const game = fakeGame(liveState({
+      id: 101,
+      nm: 'Hero',
+      x: -25,
+      z: 3,
+      lv: 5,
+      hp: 252,
+      mhp: 252,
+      res: 0,
+      mres: 0,
+      rtype: 'rage',
+      copper: 100,
+      inv: [],
+      qdone: ['q_wolves', 'q_supplies'],
+      qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Hero', cls: 'warrior', level: 5, hp: 252, mhp: 252, res: 0, mres: 0, rtype: 'rage', x: -25, z: 3, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Branorabb', cls: 'rogue', level: 5, hp: 70, mhp: 100, res: 100, mres: 100, rtype: 'energy', x: -23, z: 3, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
+        { id: 102, k: 'player', nm: 'Branorabb', x: -23, z: 3, hp: 70, mhp: 100, dead: 0, cmb: 0 },
+      ],
+    }), {
+      playerClass: 'warrior',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([]);
+    expect(game.moveInputs).toHaveLength(1);
+    expect(game.moveInputs[0]).toEqual(expect.objectContaining({
+      moveInput: { f: 1 },
+      facing: expect.any(Number),
+    }));
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'recover_party',
+      objectiveId: 'restock_food_and_drink',
+      debug: {
+        brainDrivePaused: false,
+        travelGoal: {
+          target: { x: -10, z: -2 },
+        },
+      },
+    });
+  });
+
+  it('keeps distant restock brain work paused while a nearby party member is recovering', () => {
+    const game = fakeGame(liveState({
+      id: 101,
+      nm: 'Hero',
+      x: -40,
+      z: 3,
+      lv: 5,
+      hp: 252,
+      mhp: 252,
+      res: 0,
+      mres: 0,
+      rtype: 'rage',
+      copper: 100,
+      inv: [],
+      qdone: ['q_wolves', 'q_supplies'],
+      qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Hero', cls: 'warrior', level: 5, hp: 252, mhp: 252, res: 0, mres: 0, rtype: 'rage', x: -40, z: 3, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Branorabb', cls: 'rogue', level: 5, hp: 70, mhp: 100, res: 100, mres: 100, rtype: 'energy', x: -38, z: 3, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
+        { id: 102, k: 'player', nm: 'Branorabb', x: -38, z: 3, hp: 70, mhp: 100, dead: 0, cmb: 0 },
+      ],
+    }), {
+      playerClass: 'warrior',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 2,
+    });
+    (runtime as any).tick();
+
     expect(game.commands).toEqual([]);
     expect(runtime.status(7)).toMatchObject({
       groupMode: 'recover_party',
       objectiveId: 'restock_food_and_drink',
       debug: {
         brainDrivePaused: true,
+      },
+    });
+  });
+
+  it('lets the hosted leader travel for distant restock when recovery is only healer mana', () => {
+    const game = fakeGame(liveState({
+      id: 101,
+      nm: 'Hero',
+      x: 40,
+      z: 298,
+      lv: 10,
+      hp: 502,
+      mhp: 502,
+      res: 0,
+      mres: 0,
+      rtype: 'rage',
+      copper: 500,
+      inv: [{ itemId: 'lesser_healing_potion', count: 2 }],
+      qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies'],
+      qlog: [{ questId: 'q_broodmother', counts: [0, 0], state: 'active' }],
+      party: {
+        leader: 101,
+        raid: false,
+        members: [
+          { pid: 101, name: 'Hero', cls: 'warrior', level: 10, hp: 502, mhp: 502, res: 0, mres: 0, rtype: 'rage', x: 40, z: 298, dead: 0, inCombat: 0, group: 1 },
+          { pid: 102, name: 'Mira', cls: 'priest', level: 10, hp: 237, mhp: 237, res: 35, mres: 100, rtype: 'mana', x: 38, z: 298, dead: 0, inCombat: 0, group: 1 },
+          { pid: 103, name: 'Corin', cls: 'mage', level: 10, hp: 258, mhp: 258, res: 100, mres: 100, rtype: 'mana', x: 39, z: 298, dead: 0, inCombat: 0, group: 1 },
+        ],
+      },
+      entities: [
+        { id: 102, k: 'player', nm: 'Mira', x: 38, z: 298, hp: 237, mhp: 237, res: 35, mres: 100, rtype: 'mana', dead: 0, cmb: 0 },
+        { id: 103, k: 'player', nm: 'Corin', x: 39, z: 298, hp: 258, mhp: 258, res: 100, mres: 100, rtype: 'mana', dead: 0, cmb: 0 },
+      ],
+    }), {
+      playerClass: 'warrior',
+    });
+    const runtime = new HostedPlayRuntime({
+      game,
+      nowMs: () => 5_000,
+    });
+
+    runtime.enable(7, {
+      resumeOnLogin: false,
+      partyMode: 'follow_leader',
+      actionLogEnabled: false,
+      autoInviteNearbyPlayers: false,
+      autoInviteNearbyTargetPartySize: 3,
+    });
+    (runtime as any).tick();
+
+    expect(game.commands).toEqual([]);
+    expect(game.moveInputs).toHaveLength(1);
+    expect(game.moveInputs[0]).toEqual(expect.objectContaining({
+      moveInput: { f: 1 },
+      facing: expect.any(Number),
+    }));
+    expect(runtime.status(7)).toMatchObject({
+      groupMode: 'recover_party',
+      objectiveId: 'restock_fenbridge_rye',
+      debug: {
+        brainDrivePaused: false,
+        travelGoal: {
+          target: { x: -4, z: 308 },
+        },
       },
     });
   });

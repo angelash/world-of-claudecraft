@@ -531,6 +531,38 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
+  it('keeps pulling when a prepared caster has pull-ready mana but no drink', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot({
+        class: 'mage',
+        profileId: 'eastbrook_vale_mage_newcomer',
+      }),
+      liveState: liveState({
+        self: {
+          res: 40,
+          mres: 100,
+          rtype: 'mana',
+          auras: [
+            { id: 'frost_armor', kind: 'buff_armor', rem: 1_700, dur: 1_800 },
+            { id: 'arcane_intellect', kind: 'buff_int', rem: 1_700, dur: 1_800 },
+          ],
+          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+        },
+        entities: [
+          { id: 9004, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('combat');
+    expect(result.commands).toContainEqual({ cmd: 'target', id: 9004 });
+    expect(result.commands).toContainEqual(expect.objectContaining({ cmd: 'cast' }));
+    expect(result.commands).not.toEqual([{ cmd: 'use', item: 'spring_water' }]);
+    expect(result.moveInput).toEqual({});
+  });
+
   it('summons a warlock demon before pulling when no owned pet is present', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
@@ -614,6 +646,35 @@ describe('ambient player bot brain', () => {
       { cmd: 'target', id: 9007 },
       expect.objectContaining({ cmd: 'cast' }),
     ]);
+  });
+
+  it('does not choose bear-form attacks for a druid that is not in bear form', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot({ class: 'druid' }),
+      liveState: liveState({
+        self: {
+          lv: 11,
+          hp: 425,
+          mhp: 425,
+          res: 725,
+          mres: 725,
+          rtype: 'mana',
+        },
+        entities: [
+          { id: 9008, k: 'mob', tid: 'fen_troll', x: 2, z: 0, h: 1, lv: 11, aggro: 101 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('combat');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9008 },
+      { cmd: 'cast', ability: 'moonfire' },
+      { cmd: 'attack' },
+    ]);
+    expect(result.commands).not.toContainEqual({ cmd: 'cast', ability: 'maul' });
   });
 
   it('loots a nearby corpse before resuming the quest route', () => {
@@ -1757,6 +1818,43 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
+  it('stages dense high-aggro group pulls farther out', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 10,
+          hp: 502,
+          mhp: 502,
+          qdone: ['q_deepfen'],
+          qlog: [{ questId: 'q_idols', counts: [0], state: 'active' }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 10, hp: 502, mhp: 502, res: 0, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'mage', level: 10, hp: 258, mhp: 258, res: 240, mres: 240, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 9010, k: 'mob', tid: 'deepfen_murloc', x: 0, z: 30, h: 1, lv: 9 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('combat');
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9010 }]);
+    expect(result.travelGoal).toMatchObject({
+      target: { x: 0, z: 30 },
+      arrivalRange: 24,
+      goalKey: 'party-pull:9010:0:30',
+    });
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('holds grouped melee while an incoming pull is still far away', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
@@ -1785,6 +1883,39 @@ describe('ambient player bot brain', () => {
 
     expect(result.objectiveId).toBe('combat');
     expect(result.commands).toEqual([{ cmd: 'target', id: 9009 }]);
+    expect(result.moveInput).toEqual({});
+    expect(result.travelGoal).toBeUndefined();
+  });
+
+  it('holds grouped melee longer for dense high-aggro incoming pulls', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 10,
+          hp: 502,
+          mhp: 502,
+          qdone: ['q_deepfen'],
+          qlog: [{ questId: 'q_idols', counts: [0], state: 'active' }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 10, hp: 502, mhp: 502, res: 0, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'mage', level: 10, hp: 258, mhp: 258, res: 240, mres: 240, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 9011, k: 'mob', tid: 'deepfen_murloc', x: 8, z: 0, h: 1, lv: 9, aggro: 101 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('combat');
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9011 }]);
     expect(result.moveInput).toEqual({});
     expect(result.travelGoal).toBeUndefined();
   });
@@ -3047,7 +3178,7 @@ describe('ambient player bot brain', () => {
       bot: bot(),
       liveState: liveState({
         self: {
-          lv: 9,
+          lv: 13,
           qdone: [
             'q_wolves',
             'q_boars',
@@ -3341,7 +3472,7 @@ describe('ambient player bot brain', () => {
       bot: bot(),
       liveState: liveState({
         self: {
-          lv: 11,
+          lv: 12,
           x: -4,
           z: 308,
           qdone: [
@@ -3396,7 +3527,7 @@ describe('ambient player bot brain', () => {
       bot: bot(),
       liveState: liveState({
         self: {
-          lv: 11,
+          lv: 12,
           x: 6,
           z: 312,
           qdone: [
@@ -3446,13 +3577,123 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
-  it('heads for Gravecaller cultists once the reeds camp quest is active', () => {
+  it('grinds instead of entering the cult camp at level 11', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
       bot: bot(),
       liveState: liveState({
         self: {
           lv: 11,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+            'q_idols',
+            'q_deepfen_purge',
+            'q_widows',
+            'q_broodmother',
+            'q_drowned',
+            'q_drowned_censers',
+            'q_no_rest',
+            'q_trolls',
+            'q_troll_fetishes',
+            'q_grubjaw',
+          ],
+          qlog: [{ questId: 'q_cult_camp', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('does not use full-party strength to enter the cult camp at level 11', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          id: 101,
+          lv: 11,
+          qdone: [
+            'q_wolves',
+            'q_boars',
+            'q_spiders',
+            'q_murlocs',
+            'q_supplies',
+            'q_mine',
+            'q_greyjaw',
+            'q_bandits',
+            'q_ringleader',
+            'q_bones',
+            'q_whispers',
+            'q_names_of_the_dead',
+            'q_silence_the_call',
+            'q_rite',
+            'q_fenbridge_muster',
+            'q_prowlers',
+            'q_prowler_pelts',
+            'q_fen_supplies',
+            'q_deepfen',
+            'q_idols',
+            'q_deepfen_purge',
+            'q_widows',
+            'q_broodmother',
+            'q_drowned',
+            'q_drowned_censers',
+            'q_no_rest',
+            'q_trolls',
+            'q_troll_fetishes',
+            'q_grubjaw',
+          ],
+          qlog: [{ questId: 'q_cult_camp', counts: [0], state: 'active' }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 11, hp: 570, mhp: 570, res: 0, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 11, hp: 288, mhp: 288, res: 810, mres: 810, rtype: 'mana', x: 1, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Branoracc', cls: 'mage', level: 11, hp: 310, mhp: 310, res: 990, mres: 990, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 104, name: 'Branoradd', cls: 'paladin', level: 11, hp: 565, mhp: 565, res: 420, mres: 420, rtype: 'mana', x: 3, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 105, name: 'Branoraee', cls: 'druid', level: 11, hp: 455, mhp: 455, res: 725, mres: 725, rtype: 'mana', x: 4, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('heads for Gravecaller cultists once the reeds camp quest is active at level 12', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 12,
           qdone: [
             'q_wolves',
             'q_boars',
@@ -3501,7 +3742,7 @@ describe('ambient player bot brain', () => {
       bot: bot(),
       liveState: liveState({
         self: {
-          lv: 11,
+          lv: 12,
           x: -8,
           z: 296,
           qdone: [...mirefenThroughCultCamp],
@@ -3527,7 +3768,7 @@ describe('ambient player bot brain', () => {
       bot: bot(),
       liveState: liveState({
         self: {
-          lv: 11,
+          lv: 12,
           qdone: [...mirefenThroughCultCamp],
           qlog: [{ questId: 'q_summoners', counts: [3, 1], state: 'active' }],
         },
@@ -3549,7 +3790,7 @@ describe('ambient player bot brain', () => {
       bot: bot(),
       liveState: liveState({
         self: {
-          lv: 11,
+          lv: 12,
           qdone: [...mirefenThroughCultCamp],
           qlog: [{ questId: 'q_summoners', counts: [8, 0], state: 'active' }],
         },
@@ -3571,7 +3812,7 @@ describe('ambient player bot brain', () => {
       bot: bot(),
       liveState: liveState({
         self: {
-          lv: 11,
+          lv: 12,
           qdone: [...mirefenThroughCultCamp],
           qlog: [{ questId: 'q_summoners', counts: [8, 0], state: 'active' }],
         },
@@ -3593,7 +3834,7 @@ describe('ambient player bot brain', () => {
       bot: bot(),
       liveState: liveState({
         self: {
-          lv: 11,
+          lv: 12,
           qdone: [...mirefenThroughCultCamp],
           qlog: [{ questId: 'q_summoners', counts: [8, 0], state: 'active' }],
         },
@@ -3861,13 +4102,13 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
-  it('picks up the Highwatch summons from Brother Aldric after the Bastion chain is complete', () => {
+  it('picks up the Highwatch summons from Brother Aldric after reaching level 13', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
       bot: bot(),
       liveState: liveState({
         self: {
-          lv: 12,
+          lv: 13,
           x: -8,
           z: 296,
           qdone: [...mirefenThroughMistcaller],
@@ -3887,13 +4128,32 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
-  it('heads north to the Highwatch gate when the summons handoff is active', () => {
+  it('grinds instead of heading up the Highwatch road at level 12', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({
       bot: bot(),
       liveState: liveState({
         self: {
           lv: 12,
+          qdone: [...mirefenThroughMistcaller],
+          qlog: [{ questId: 'q_highwatch_summons', counts: [0], state: 'active' }],
+        },
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('heads north to the Highwatch gate when the summons handoff is active at level 13', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 13,
           qdone: [...mirefenThroughMistcaller],
           qlog: [{ questId: 'q_highwatch_summons', counts: [0], state: 'active' }],
         },

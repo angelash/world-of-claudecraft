@@ -5,7 +5,7 @@ import type { AmbientPlayerBotLiveState } from './ws_client';
 
 const PARTY_REGROUP_RANGE = 18;
 const RECOVERY_HEALTH_RATIO = 0.72;
-const RECOVERY_HEALER_MANA_RATIO = 0.45;
+const RECOVERY_HEALER_MANA_RATIO = 0.35;
 const RECOVERY_FRAGILE_THREAT_HEALTH_RATIO = 0.9;
 const RECOVERY_FRAGILE_THREAT_MAX_LEVEL = 4;
 
@@ -78,7 +78,6 @@ export function buildAmbientPartyCoordinationIntent(
     facts.deadCount > 0
     || facts.criticalHealthCount > 0
     || facts.criticalResourceCount > 0
-    || isRecoveryGroupMode(input.groupMode)
   ) {
     kind = 'recovery';
     behavior = 'recover';
@@ -287,12 +286,6 @@ function latestPartyMilestone(
 function isPreparationGroupMode(groupMode: string): boolean {
   return groupMode === 'buff_party'
     || groupMode === 'prepare_party';
-}
-
-function isRecoveryGroupMode(groupMode: string): boolean {
-  return groupMode === 'heal_party'
-    || groupMode === 'shield_party'
-    || groupMode === 'recover_party';
 }
 
 function isFocusGroupMode(groupMode: string): boolean {

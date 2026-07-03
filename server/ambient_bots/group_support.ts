@@ -1,7 +1,7 @@
 import type { KnownAbility } from '../../src/sim/content/classes';
 import type { Role, TalentAllocation } from '../../src/sim/content/talents';
 import { computeTalentModifiers } from '../../src/sim/content/talents';
-import { CLASSES, ITEMS, abilitiesKnownAt } from '../../src/sim/data';
+import { CLASSES, ITEMS, MOBS, abilitiesKnownAt } from '../../src/sim/data';
 import { MELEE_RANGE, dist2d, type InvSlot } from '../../src/sim/types';
 import type { PartyInfo, PartyMemberInfo } from '../../src/world_api';
 import { type PartyCombatTarget, type PartyTravelGoal, partyAssistArrivalRange, travelGoalToPartyMember, travelGoalToPartyTarget } from '../party_coordination';
@@ -30,6 +30,9 @@ const GROUP_RECOVERY_EMERGENCY_FOCUS_RATIO = 0.72;
 const GROUP_RECOVERY_PROTECTOR_STABLE_RATIO = 0.9;
 const GROUP_PULL_STAGING_RANGE = 18;
 const GROUP_PULL_MELEE_RELEASE_RANGE = 10;
+const GROUP_DENSE_PACK_PULL_AGGRO_RADIUS = 12;
+const GROUP_DENSE_PACK_PULL_STAGING_PADDING = 10;
+const GROUP_DENSE_PACK_PULL_MELEE_RELEASE_RANGE = 6;
 const GROUP_PULL_READY_LEADER_RANGE = 10;
 
 interface SupportAuraView {
@@ -59,6 +62,7 @@ interface SupportSelfView {
 
 interface SupportMobView {
   id: number;
+  templateId: string;
   pos: { x: number; z: number };
   aggroTargetId: number | null;
   auras: readonly SupportAuraView[];
@@ -522,11 +526,9 @@ function recoveryEmergencyFocusAllowed(
   if (members.some((member) => member.member.dead)) return false;
   const unstableMembers = members.filter((member) =>
     !member.member.dead && healthRatio(member.member) <= GROUP_RECOVERY_EMERGENCY_FOCUS_RATIO);
-  if (unstableMembers.length !== 1) return false;
-  const [unstableMember] = unstableMembers;
-  return !!unstableMember
-    && unstableMember.member.pid !== self.id
-    && unstableMember.threatenedCount > 0;
+  return unstableMembers.some((member) =>
+    member.member.pid !== self.id
+    && member.threatenedCount > 0);
 }
 
 function recoveryProtectorCanEngage(
@@ -636,12 +638,13 @@ function maybePrePullPartyTarget(input: {
   if (pullerPid === null || pullerPid !== input.self.id) return null;
 
   const distance = planarDistance(input.self.pos, target.pos);
-  if (distance > GROUP_PULL_STAGING_RANGE + 0.35) {
+  const stagingRange = groupPullStagingRange(target);
+  if (distance > stagingRange + 0.35) {
     const targetCommand = targetOnlyCommand(input.self, target, input.reserveCommandBatch);
     return {
       commands: targetCommand ? [targetCommand] : [],
       groupMode: 'prepare_party',
-      travelGoal: travelGoalToPartyTarget(focusTargetAsCombatTarget(target, distance), GROUP_PULL_STAGING_RANGE),
+      travelGoal: travelGoalToPartyTarget(focusTargetAsCombatTarget(target, distance), stagingRange),
     };
   }
 
@@ -681,7 +684,7 @@ function maybeHoldForIncomingPull(input: {
   groupMode: string;
 }): AmbientPartySupportDecision | null {
   if (input.target.aggroTargetId === null) return null;
-  if (input.distance <= GROUP_PULL_MELEE_RELEASE_RANGE) return null;
+  if (input.distance <= groupPullMeleeReleaseRange(input.target)) return null;
   if (hasPullAbilityAtDistance(input.abilities, input.distance)) return null;
   if (hasRangedAutoAttackAtDistance(input.bot.class, input.distance)) return null;
   const targetCommand = targetOnlyCommand(input.self, input.target, input.reserveCommandBatch);
@@ -689,6 +692,20 @@ function maybeHoldForIncomingPull(input: {
     commands: targetCommand ? [targetCommand] : [],
     groupMode: input.groupMode,
   };
+}
+
+function groupPullStagingRange(target: SupportMobView): number {
+  const aggroRadius = MOBS[target.templateId]?.aggroRadius ?? 0;
+  return aggroRadius >= GROUP_DENSE_PACK_PULL_AGGRO_RADIUS
+    ? Math.max(GROUP_PULL_STAGING_RANGE, aggroRadius + GROUP_DENSE_PACK_PULL_STAGING_PADDING)
+    : GROUP_PULL_STAGING_RANGE;
+}
+
+function groupPullMeleeReleaseRange(target: SupportMobView): number {
+  const aggroRadius = MOBS[target.templateId]?.aggroRadius ?? 0;
+  return aggroRadius >= GROUP_DENSE_PACK_PULL_AGGRO_RADIUS
+    ? GROUP_DENSE_PACK_PULL_MELEE_RELEASE_RANGE
+    : GROUP_PULL_MELEE_RELEASE_RANGE;
 }
 
 function maybePreserveThreatenedSelf(input: {
@@ -1794,6 +1811,7 @@ function readPartyHostileMobs(
     if (aggroTargetId !== null && !partyIds.has(aggroTargetId)) continue;
     mobs.push({
       id,
+      templateId: readString(raw.tid) ?? '',
       pos: { x, z },
       aggroTargetId,
       auras: readAuras(raw.auras),

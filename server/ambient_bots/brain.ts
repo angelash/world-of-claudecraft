@@ -54,7 +54,8 @@ const COLLECT_RESUPPLY_DEFER_RANGE = PARTY_ROUTE_NEARBY_RANGE + CAMP_ARRIVAL_RAN
 const PARTY_ROUTE_MAX_LEVEL_BONUS = 1;
 const PARTY_ROUTE_FULL_GROUP_LEVEL_BONUS = 1;
 const RECOVERY_HP_THRESHOLD = 0.7;
-const RECOVERY_MANA_THRESHOLD = 0.45;
+const RECOVERY_MANA_DRINK_THRESHOLD = 0.45;
+const RECOVERY_MANA_NO_DRINK_THRESHOLD = 0.35;
 const FOOD_RESTOCK_TRIGGER_COUNT = 2;
 const FOOD_RESTOCK_TARGET_COUNT = 4;
 const DRINK_RESTOCK_TRIGGER_COUNT = 2;
@@ -72,6 +73,9 @@ const DANGEROUS_PULL_MIN_LEVEL = 4;
 const DANGEROUS_PULL_WEBWOOD_MIN_LEVEL = 3;
 const PARTY_PULL_STAGING_RANGE = 18;
 const PARTY_PULL_MELEE_RELEASE_RANGE = 10;
+const DENSE_PACK_PULL_AGGRO_RADIUS = 12;
+const DENSE_PACK_PULL_STAGING_PADDING = 10;
+const DENSE_PACK_PULL_MELEE_RELEASE_RANGE = 6;
 const SELF_MAINTENANCE_OBJECTIVES = ['recover', 'prepare_combat', 'equip_upgrade', 'sell_junk'] as const;
 
 interface AmbientBotVendorProfile {
@@ -281,6 +285,7 @@ interface CombatAbility {
   minRange: number;
   castTime: number;
   cost: number;
+  requiresForm?: 'bear' | 'cat';
 }
 
 export function createAmbientPlayerBotBrainState(): AmbientPlayerBotBrainState {
@@ -948,8 +953,9 @@ function maybeRecover(
   }
   if (view.self.resourceType === 'mana' && view.self.maxResource > 0) {
     const manaRatio = view.self.resource / view.self.maxResource;
-    if (manaRatio < RECOVERY_MANA_THRESHOLD) {
-      const drink = findConsumable(view.self.inventory, 'drink');
+    const drink = findConsumable(view.self.inventory, 'drink');
+    const manaThreshold = drink ? RECOVERY_MANA_DRINK_THRESHOLD : RECOVERY_MANA_NO_DRINK_THRESHOLD;
+    if (manaRatio < manaThreshold) {
       if (!immediateThreat && drink && canIssue(state, `use:${drink}`, nowMs, 3_000)) {
         commands.push({ cmd: 'use', item: drink });
       }
@@ -1611,16 +1617,18 @@ function maybePartyPullStep(input: {
   if (input.view.self.partyMembers.length < 2) return null;
   const targetAggro = input.target.aggroTargetId;
   const aggroedToParty = targetAggro !== null && input.view.self.partyMemberIds.has(targetAggro);
+  const stagingRange = partyPullStagingRange(input.target);
+  const meleeReleaseRange = partyPullMeleeReleaseRange(input.target);
 
   if (!aggroedToParty) {
-    if (input.distance > PARTY_PULL_STAGING_RANGE + 0.35) {
+    if (input.distance > stagingRange + 0.35) {
       return travelToPoint(
         input.view,
         input.state,
         input.seed,
         { id: 'combat', label: input.label },
         { x: input.target.pos.x, z: input.target.pos.z },
-        PARTY_PULL_STAGING_RANGE,
+        stagingRange,
         partyPullGoalKey(input.target),
         input.commands,
       );
@@ -1658,12 +1666,26 @@ function maybePartyPullStep(input: {
 
   if (
     partyPullShouldHoldMelee(input.bot.class, input.rangedUsable, input.distance)
-    && input.distance > PARTY_PULL_MELEE_RELEASE_RANGE
+    && input.distance > meleeReleaseRange
   ) {
     return idleStep('combat', input.label, input.commands, input.facing);
   }
 
   return null;
+}
+
+function partyPullStagingRange(target: BotEntityView): number {
+  const aggroRadius = MOBS[target.templateId]?.aggroRadius ?? 0;
+  return aggroRadius >= DENSE_PACK_PULL_AGGRO_RADIUS
+    ? Math.max(PARTY_PULL_STAGING_RANGE, aggroRadius + DENSE_PACK_PULL_STAGING_PADDING)
+    : PARTY_PULL_STAGING_RANGE;
+}
+
+function partyPullMeleeReleaseRange(target: BotEntityView): number {
+  const aggroRadius = MOBS[target.templateId]?.aggroRadius ?? 0;
+  return aggroRadius >= DENSE_PACK_PULL_AGGRO_RADIUS
+    ? DENSE_PACK_PULL_MELEE_RELEASE_RANGE
+    : PARTY_PULL_MELEE_RELEASE_RANGE;
 }
 
 function partyPullGoalKey(target: BotEntityView): string {
@@ -1741,6 +1763,7 @@ export function markAmbientPlayerBotBrainExternalProgress(
   state: AmbientPlayerBotBrainState,
   liveState: AmbientPlayerBotLiveState,
   nowMs: number,
+  options: { preservePath?: boolean } = {},
 ): void {
   const self = liveState.self;
   const x = typeof self?.x === 'number' && Number.isFinite(self.x) ? self.x : null;
@@ -1749,7 +1772,7 @@ export function markAmbientPlayerBotBrainExternalProgress(
   state.lastX = x;
   state.lastZ = z;
   state.lastProgressAtMs = nowMs;
-  clearPath(state);
+  if (!options.preservePath) clearPath(state);
 }
 
 export function ambientBrainSelfMaintenanceAllowedWhilePartyPaused(input: {
@@ -2310,6 +2333,7 @@ function toCombatAbility(ability: KnownAbility): CombatAbility | null {
     minRange: ability.def.minRange ?? 0,
     castTime: ability.castTime,
     cost: ability.cost,
+    ...(ability.def.requiresForm ? { requiresForm: ability.def.requiresForm } : {}),
   };
 }
 
@@ -2317,11 +2341,28 @@ function canUseCombatAbility(ability: CombatAbility, self: BotSelfView): boolean
   if (self.gcdRemaining > 0.05) return false;
   if (self.castingAbility) return false;
   if ((self.cooldowns[ability.id] ?? 0) > 0.05) return false;
+  const form = currentSelfFormKind(self);
+  if (ability.requiresForm) {
+    const required = ability.requiresForm === 'bear' ? 'form_bear' : 'form_cat';
+    if (form !== required) return false;
+  } else if (form && !isFormToggle(ability.id)) {
+    return false;
+  }
   return canAfford(ability, self);
 }
 
 function canAfford(ability: CombatAbility, self: BotSelfView): boolean {
   return self.resource >= ability.cost;
+}
+
+function currentSelfFormKind(self: BotSelfView): string | null {
+  const aura = self.auras.find((entry) =>
+    entry.kind === 'form_bear' || entry.kind === 'form_cat' || entry.kind === 'form_travel');
+  return aura?.kind ?? null;
+}
+
+function isFormToggle(abilityId: string): boolean {
+  return abilityId === 'bear_form' || abilityId === 'cat_form' || abilityId === 'travel_form';
 }
 
 function abilityMatchesDistance(ability: CombatAbility, distance: number): boolean {

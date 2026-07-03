@@ -243,6 +243,45 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
+  it('lets the hosted leader advance when the first train link is only slightly stretched', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          x: 0,
+          z: 0,
+          auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Hero', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Mira', cls: 'priest', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 8.4, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Corda', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 9.2, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 6_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: false,
+      groupMode: 'brain',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+  });
+
   it('has the hosted leader hold when a train link breaks even if the tail is nearby', () => {
     const state = createHostedPlayPartyState();
 
@@ -259,7 +298,7 @@ describe('hosted-play party coordinator', () => {
             members: [
               { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
               { pid: 102, name: 'Mira', cls: 'priest', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1504, z: -1200, dead: 0, inCombat: 0, group: 1 },
-              { pid: 103, name: 'Corda', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1513, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Corda', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1515, z: -1200, dead: 0, inCombat: 0, group: 1 },
             ],
           },
         }),
@@ -1072,6 +1111,54 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
+  it('retreats a wounded member away from threats attacking the party', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 0,
+          z: 0,
+          hp: 20,
+          mhp: 100,
+          target: null,
+          auto: false,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'druid', level: 12, hp: 20, mhp: 100, res: 100, mres: 120, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 0, z: -1, aggro: 101, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'druid',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 9.48528137423857, z: 8.48528137423857 },
+        arrivalRange: 1.5,
+        goalKey: 'hosted-party-retreat:101:501:9:8',
+      },
+      groupMode: 'assist_party',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 1,
+    });
+  });
+
   it('has a wounded hosted healer retreat instead of hard-casting under threat', () => {
     const state = createHostedPlayPartyState();
 
@@ -1273,6 +1360,54 @@ describe('hosted-play party coordinator', () => {
     expect(result.groupMode).toBe('assist_party');
   });
 
+  it('keeps a safe leader near unresolved party combat instead of returning to brain', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          x: 0,
+          z: 0,
+          hp: 120,
+          mhp: 120,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          target: 7100,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Mira', cls: 'priest', level: 12, hp: 80, mhp: 100, res: 60, mres: 100, rtype: 'mana', x: 30, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        }),
+        entities: [],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [{ cmd: 'target', id: null }],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 30, z: 0 },
+        arrivalRange: 4.5,
+        goalKey: 'hosted-party-combat:102:30:0',
+      },
+      groupMode: 'assist_party',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 0,
+    });
+  });
+
   it('uses the hosted leader live target before aggro fallback', () => {
     const state = createHostedPlayPartyState();
 
@@ -1439,7 +1574,57 @@ describe('hosted-play party coordinator', () => {
     expect(result.groupMode).toBe('assist_party');
   });
 
-  it('keeps recovery paused instead of protective focus when multiple members are unstable', () => {
+  it('stages hosted dense high-aggro pre-pulls farther from the pack', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 0,
+          z: 0,
+          hp: 100,
+          mhp: 100,
+          res: 120,
+          mres: 120,
+          rtype: 'mana',
+          target: null,
+          auras: [
+            { id: 'frost_armor', kind: 'buff_armor', rem: 1_700, dur: 1_800 },
+            { id: 'arcane_intellect', kind: 'buff_int', rem: 1_700, dur: 1_800 },
+          ],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, targetId: 503, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 503, k: 'mob', tid: 'deepfen_murloc', h: 80, x: 28, z: 0, aggro: null, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result.commands).toEqual([{ cmd: 'target', id: 503 }]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.groupMode).toBe('prepare_party');
+    expect(result.travelGoal).toMatchObject({
+      target: { x: 28, z: 0 },
+      arrivalRange: 24,
+      goalKey: 'party-target:503:28:0',
+    });
+  });
+
+  it('allows protective focus when multiple members are unstable and one is under attack', () => {
     const state = createHostedPlayPartyState();
 
     const result = tickHostedPlayPartyCoordinator(
@@ -1475,18 +1660,13 @@ describe('hosted-play party coordinator', () => {
       state,
     );
 
-    expect(result).toEqual({
-      commands: [],
-      pauseBrainDrive: true,
-      travelGoal: {
-        target: { x: 0, z: 0 },
-        arrivalRange: 4,
-        goalKey: 'hosted-party-recover:101:0:0',
-      },
-      groupMode: 'assist_party',
-      groupLeaderName: 'Branoraaa',
-      groupLeaderDistance: 16,
-    });
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 501 },
+      { cmd: 'cast', ability: 'arcane_missiles' },
+      { cmd: 'attack' },
+    ]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.groupMode).toBe('assist_party');
   });
 
   it('lets a stable hosted tank protect the party while multiple members recover', () => {
@@ -1594,6 +1774,7 @@ describe('hosted-play party coordinator', () => {
           nm: 'Hero',
           x: 0,
           z: 0,
+          auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
           party: {
             leader: 101,
             raid: false,
@@ -1643,6 +1824,7 @@ describe('hosted-play party coordinator', () => {
           nm: 'Hero',
           x: 0,
           z: 0,
+          auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
           party: {
             leader: 101,
             raid: false,
@@ -1666,6 +1848,221 @@ describe('hosted-play party coordinator', () => {
       commands: [],
       pauseBrainDrive: true,
       groupMode: 'recover_party',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+  });
+
+  it('backs party recovery out of dense hostile areas before resting', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          nm: 'Hero',
+          x: 0,
+          z: 0,
+          auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Hero', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 12, hp: 100, mhp: 100, res: 20, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: Array.from({ length: 30 }, (_, index) => ({
+          id: 700 + index,
+          k: 'mob',
+          h: true,
+          x: 14,
+          z: 0,
+          aggro: null,
+          auras: [],
+        })),
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: -16, z: 0 },
+        arrivalRange: 4,
+        goalKey: 'hosted-party-density-retreat:102:30:-16:0',
+      },
+      groupMode: 'assist_party',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+  });
+
+  it('focuses an active fight while recovery is only waiting on healer mana', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          nm: 'Hero',
+          x: 0,
+          z: 0,
+          hp: 100,
+          mhp: 100,
+          res: 100,
+          mres: 120,
+          rtype: 'mana',
+          target: null,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 6, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 100, mres: 120, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 103, name: 'Mira', cls: 'priest', level: 12, hp: 100, mhp: 100, res: 35, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 7, z: 0, aggro: 101, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        partyIntent: {
+          schemaVersion: 1,
+          kind: 'recovery',
+          behavior: 'recover',
+          key: 'party-intent|recovery|recover',
+          summary: 'Recover health and mana before moving',
+          targetName: 'Branoraaa',
+          focusCallerName: 'Branoraaa',
+          holdAdvance: true,
+          preferAssist: false,
+        },
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 501 },
+      expect.objectContaining({ cmd: 'cast' }),
+    ]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.groupMode).toBe('assist_party');
+  });
+
+  it('pulls a combat-split follower back during resource-only recovery', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          nm: 'Hero',
+          x: 24,
+          z: 0,
+          hp: 100,
+          mhp: 100,
+          res: 100,
+          mres: 120,
+          rtype: 'mana',
+          target: 501,
+          auto: true,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 100, mres: 120, rtype: 'mana', x: 24, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 103, name: 'Mira', cls: 'priest', level: 12, hp: 100, mhp: 100, res: 35, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 26, z: 0, aggro: 102, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [
+        { cmd: 'stopattack' },
+        { cmd: 'target', id: null },
+      ],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 0, z: 0 },
+        arrivalRange: 4,
+        goalKey: 'hosted-regroup-leader:101:0:0',
+      },
+      groupMode: 'follow_leader',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 24,
+    });
+  });
+
+  it('releases recovery intent once the healer has pull-ready mana', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          nm: 'Hero',
+          x: 0,
+          z: 0,
+          auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Hero', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'priest', level: 12, hp: 100, mhp: 100, res: 40, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        partyIntent: {
+          schemaVersion: 1,
+          kind: 'recovery',
+          behavior: 'recover',
+          key: 'party-intent|recovery|recover',
+          summary: 'Stabilize health before the next pull',
+          targetName: 'Hero',
+          focusCallerName: 'Hero',
+          holdAdvance: true,
+          preferAssist: false,
+        },
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: false,
+      groupMode: 'brain',
       groupLeaderName: 'Hero',
       groupLeaderDistance: 0,
     });
@@ -1821,9 +2218,9 @@ describe('hosted-play party coordinator', () => {
       ],
       pauseBrainDrive: true,
       travelGoal: {
-        target: { x: 20, z: 0 },
+        target: { x: 24, z: 0 },
         arrivalRange: 1.5,
-        goalKey: 'hosted-party-retreat:102:501:20:0',
+        goalKey: 'hosted-party-retreat:102:501:24:0',
       },
       groupMode: 'assist_party',
       groupLeaderName: 'Hero',
@@ -1878,14 +2275,83 @@ describe('hosted-play party coordinator', () => {
       ],
       pauseBrainDrive: true,
       travelGoal: {
-        target: { x: 10, z: 0 },
+        target: { x: 14, z: 0 },
         arrivalRange: 1.5,
-        goalKey: 'hosted-party-retreat:102:501:10:0',
+        goalKey: 'hosted-party-retreat:102:501:14:0',
       },
       groupMode: 'assist_party',
       groupLeaderName: 'Hero',
       groupLeaderDistance: 0,
     });
+  });
+
+  it('retreats a healthy frontline leader early from dense multi-threat combat', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          x: 0,
+          z: 0,
+          hp: 240,
+          mhp: 252,
+          res: 20,
+          mres: 100,
+          rtype: 'rage',
+          target: 501,
+          auto: true,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Hero', cls: 'warrior', level: 5, hp: 240, mhp: 252, res: 20, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Mirajwkynf', cls: 'priest', level: 5, hp: 112, mhp: 112, res: 120, mres: 120, rtype: 'mana', x: 0, z: 4, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Corinjwkynf', cls: 'mage', level: 5, hp: 107, mhp: 107, res: 120, mres: 120, rtype: 'mana', x: 2, z: 2, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: true, x: 3, z: 0, aggro: 101, auras: [] },
+          { id: 502, k: 'mob', h: true, x: 4, z: 1, aggro: 101, auras: [] },
+          { id: 503, k: 'mob', h: true, x: 5, z: -1, aggro: 101, auras: [] },
+          ...Array.from({ length: 17 }, (_, index) => ({
+            id: 600 + index,
+            k: 'mob',
+            h: true,
+            x: 8 + index,
+            z: 8,
+            aggro: null,
+            auras: [],
+          })),
+          { id: 102, k: 'player', nm: 'Mirajwkynf', x: 0, z: 4, hp: 112, mhp: 112, dead: 0, cmb: 0, auras: [] },
+          { id: 103, k: 'player', nm: 'Corinjwkynf', x: 2, z: 2, hp: 107, mhp: 107, dead: 0, cmb: 0, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toMatchObject({
+      commands: [
+        { cmd: 'stopattack' },
+        { cmd: 'target', id: null },
+      ],
+      pauseBrainDrive: true,
+      travelGoal: {
+        arrivalRange: 1.5,
+        goalKey: 'hosted-party-retreat:103:501:-3:13',
+      },
+      groupMode: 'assist_party',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+    expect(result.travelGoal?.target.x).toBeCloseTo(-3.3665, 3);
+    expect(result.travelGoal?.target.z).toBeCloseTo(12.7331, 3);
   });
 
   it('anchors a wounded hosted leader on a stable healer instead of a closer damage dealer', () => {
@@ -1935,9 +2401,9 @@ describe('hosted-play party coordinator', () => {
       ],
       pauseBrainDrive: true,
       travelGoal: {
-        target: { x: 22, z: 0 },
+        target: { x: 26, z: 0 },
         arrivalRange: 1.5,
-        goalKey: 'hosted-party-retreat:103:501:22:0',
+        goalKey: 'hosted-party-retreat:103:501:26:0',
       },
       groupMode: 'assist_party',
       groupLeaderName: 'Hero',
@@ -2425,7 +2891,7 @@ describe('hosted-play party coordinator', () => {
 
     expect(result).toEqual({
       commands: [{ cmd: 'pinvite', id: 202 }],
-      pauseBrainDrive: false,
+      pauseBrainDrive: true,
       groupMode: 'invite_nearby',
       groupLeaderName: 'Hero',
       groupLeaderDistance: 0,
@@ -2464,7 +2930,7 @@ describe('hosted-play party coordinator', () => {
 
     expect(result).toEqual({
       commands: [{ cmd: 'pinvite', id: 202 }],
-      pauseBrainDrive: false,
+      pauseBrainDrive: true,
       groupMode: 'invite_nearby',
       groupLeaderName: 'Hero',
       groupLeaderDistance: 0,
@@ -2500,7 +2966,48 @@ describe('hosted-play party coordinator', () => {
 
     expect(result).toEqual({
       commands: [{ cmd: 'pinvite', id: 202 }],
-      pauseBrainDrive: false,
+      pauseBrainDrive: true,
+      groupMode: 'invite_nearby',
+      groupLeaderName: 'Hero',
+      groupLeaderDistance: 0,
+    });
+  });
+
+  it('holds advancement while auto-invite waits for the target party size', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          nm: 'Hero',
+          x: 100,
+          z: 100,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Hero', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 100, z: 100, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Mira', cls: 'priest', level: 12, hp: 100, mhp: 100, res: 100, mres: 100, rtype: 'mana', x: 102, z: 100, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        autoInviteNearbyPlayers: true,
+        autoInviteNearbyTargetPartySize: 5,
+        objectiveSuggestedPartySize: 5,
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: true,
       groupMode: 'invite_nearby',
       groupLeaderName: 'Hero',
       groupLeaderDistance: 0,

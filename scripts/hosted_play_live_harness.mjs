@@ -18,6 +18,9 @@ const DEFAULT_SHORT_DURATION_MS = 120_000;
 const DEFAULT_LONG_DURATION_MS = 90 * 60_000;
 const DEFAULT_MIN_RUN_MS = 45_000;
 const DEAD_RELEASE_COOLDOWN_MS = 5_000;
+const ROSTER_SLOT_REPAIR_COOLDOWN_MS = 8_000;
+const ROSTER_INVITE_COOLDOWN_MS = 4_000;
+const ROSTER_PARTY_READY_TIMEOUT_MS = 90_000;
 const RECENT_EVENT_LIMIT = 240;
 const STATUS_SAMPLE_LIMIT = 2_000;
 const STATUS_POLL_ERROR_LIMIT = 120;
@@ -25,6 +28,9 @@ const STATUS_FETCH_RETRIES = 3;
 const STATUS_FETCH_RETRY_DELAY_MS = 500;
 const MAX_CONSECUTIVE_STATUS_SAMPLE_FAILURES = 3;
 const SAFE_NAME_SUFFIX_LETTERS = 'bcdfghjklmnpqrstvwxyz';
+const FOOD_ITEM_IDS = new Set(['baked_bread', 'fenbridge_rye', 'trail_hardtack']);
+const DRINK_ITEM_IDS = new Set(['spring_water', 'marsh_mint_tea', 'meltwater_flask']);
+const POTION_ITEM_IDS = new Set(['minor_healing_potion', 'lesser_healing_potion']);
 
 const DELTA_SELF_KEYS = [
   'inv',
@@ -203,6 +209,8 @@ class Client {
     this.inviteCursor = 0;
     this.hostedEnabled = false;
     this.lastReleaseAtMs = 0;
+    this.lastRosterKickAtMs = 0;
+    this.lastRosterInviteAtMs = 0;
     this.ws = null;
   }
 
@@ -450,6 +458,72 @@ async function enableHostedForJoinedMembers(leader, members, targetPartySize, re
   }
 }
 
+function repairRosterPartySlots(leader, clients, targetPartySize, nowMs, report) {
+  const targetClients = clients.slice(0, targetPartySize);
+  const missingRosterMember = targetClients.some((client) =>
+    client !== leader && !samePartyAsLeader(leader, client));
+  if (!missingRosterMember) return;
+  const members = partyMembers(leader);
+  if (members.length < targetPartySize) return;
+  if (nowMs - leader.lastRosterKickAtMs < ROSTER_SLOT_REPAIR_COOLDOWN_MS) return;
+  const rosterNames = new Set(targetClients.map((client) => client.name));
+  const replacement = members.find((member) =>
+    !rosterNames.has(String(member.name ?? '')) && Number.isFinite(Number(member.pid)));
+  if (!replacement) return;
+  const replacementPid = Number(replacement.pid);
+  leader.cmd({ cmd: 'pkick', id: replacementPid });
+  leader.lastRosterKickAtMs = nowMs;
+  report.metrics.rosterSlotKicks++;
+  report.lifecycle.push({
+    atMs: nowMs,
+    action: 'kick-non-roster-party-slot',
+    name: String(replacement.name ?? replacementPid),
+  });
+}
+
+function targetRosterPartyReady(leader, clients, targetPartySize) {
+  const targetClients = clients.slice(0, targetPartySize);
+  return partySize(leader) >= targetPartySize
+    && targetClients.every((client) => client === leader || samePartyAsLeader(leader, client));
+}
+
+function inviteMissingRosterMembers(leader, clients, targetPartySize, nowMs, report) {
+  for (const member of clients.slice(1, targetPartySize)) {
+    if (samePartyAsLeader(leader, member) || samePartyAsClient(member, leader)) continue;
+    if (!Number.isFinite(member.pid) || member.pid <= 0) continue;
+    if (nowMs - member.lastRosterInviteAtMs < ROSTER_INVITE_COOLDOWN_MS) continue;
+    leader.cmd({ cmd: 'pinvite', id: member.pid });
+    member.lastRosterInviteAtMs = nowMs;
+    report.metrics.pinviteCommandSamples++;
+    report.lifecycle.push({
+      atMs: nowMs,
+      action: 'manual-roster-invite',
+      name: member.name,
+    });
+  }
+}
+
+async function waitForTargetRosterParty(leader, clients, targetPartySize, report) {
+  const deadlineMs = Date.now() + ROSTER_PARTY_READY_TIMEOUT_MS;
+  while (Date.now() < deadlineMs) {
+    const nowMs = Date.now();
+    acceptPendingInvites(clients, report);
+    guideWaitingHelpersTowardLeader(leader, clients.slice(1));
+    repairRosterPartySlots(leader, clients, targetPartySize, nowMs, report);
+    inviteMissingRosterMembers(leader, clients, targetPartySize, nowMs, report);
+    if (targetRosterPartyReady(leader, clients, targetPartySize)) {
+      report.lifecycle.push({
+        atMs: nowMs,
+        action: 'target-roster-party-ready',
+        partySize: partySize(leader),
+      });
+      return;
+    }
+    await sleep(500);
+  }
+  throw new Error(`target roster party did not reach ${targetPartySize} members before hosted enable`);
+}
+
 function collectEvents(clients, report, eventCursorByPid) {
   for (const client of clients) {
     const cursor = eventCursorByPid.get(client.pid) ?? 0;
@@ -543,6 +617,9 @@ function errorMessage(err) {
 
 async function sampleHostedRows(clients) {
   const statuses = await Promise.all(clients.map((client) => hostedStatus(client)));
+  statuses.forEach((statusRow, index) => {
+    clients[index].hostedEnabled = statusRow.enabled === true;
+  });
   return statuses.map((statusRow, index) => summarizeStatus(clients[index], statusRow));
 }
 
@@ -551,12 +628,24 @@ function summarizeStatus(client, status) {
   const party = debug.party ?? {};
   const brainState = debug.brainState ?? {};
   const commands = Array.isArray(debug.commands) ? debug.commands.map((command) => command.summary) : [];
+  const supplies = summarizeSupplies(client.self?.inv);
+  const partyThreats = countPartyThreats(client);
   return {
     character: client.name,
     level: client.self?.lv ?? client.self?.level ?? 0,
     xp: client.self?.xp ?? 0,
     hp: client.self?.hp ?? 0,
     maxHp: client.self?.mhp ?? 0,
+    res: client.self?.res ?? 0,
+    maxRes: client.self?.mres ?? 0,
+    resourceType: client.self?.rtype ?? '',
+    eating: !!client.self?.eat,
+    drinking: !!client.self?.drk,
+    inCombat: client.self?.cmb === 1 || client.self?.cmb === true,
+    targetId: typeof client.self?.target === 'number' ? client.self.target : null,
+    autoAttack: client.self?.auto === 1 || client.self?.auto === true,
+    supplies,
+    partyThreats,
     dead: client.self?.dead === 1 || client.self?.dead === true || (client.self?.hp ?? 1) <= 0,
     x: round(client.self?.x ?? 0),
     z: round(client.self?.z ?? 0),
@@ -582,6 +671,34 @@ function summarizeStatus(client, status) {
       pathLength: brainState.pathLength ?? 0,
     },
   };
+}
+
+function summarizeSupplies(inventory) {
+  const counts = { food: 0, drink: 0, potion: 0 };
+  if (!Array.isArray(inventory)) return counts;
+  for (const slot of inventory) {
+    const itemId = typeof slot?.itemId === 'string' ? slot.itemId : '';
+    const count = Number.isFinite(slot?.count) ? slot.count : 0;
+    if (FOOD_ITEM_IDS.has(itemId)) counts.food += count;
+    else if (DRINK_ITEM_IDS.has(itemId)) counts.drink += count;
+    else if (POTION_ITEM_IDS.has(itemId)) counts.potion += count;
+  }
+  return counts;
+}
+
+function countPartyThreats(client) {
+  const members = partyMembers(client);
+  const partyIds = new Set(members.map((member) => Number(member.pid)).filter((pid) => Number.isFinite(pid)));
+  if (typeof client.self?.id === 'number') partyIds.add(client.self.id);
+  let threats = 0;
+  let nearbyHostiles = 0;
+  for (const entity of client.entities.values()) {
+    if (entity?.k !== 'mob' || entity.dead === 1 || entity.dead === true) continue;
+    if (entity.h === 1 || entity.h === true) nearbyHostiles++;
+    const aggro = typeof entity.aggro === 'number' ? entity.aggro : null;
+    if (aggro !== null && partyIds.has(aggro)) threats++;
+  }
+  return { threats, nearbyHostiles };
 }
 
 function round(value) {
@@ -669,6 +786,7 @@ function createReport(options, clients, statusBody) {
       questStateByCharacter: {},
       deadPlayerNames: [],
       releaseCommandSamples: 0,
+      rosterSlotKicks: 0,
       wsErrors: [],
       hostedErrors: [],
       statusPollErrors: [],
@@ -829,6 +947,7 @@ async function main() {
   writeReport(report, outPath);
   const leader = clients[0];
   const members = clients.slice(1);
+  await waitForTargetRosterParty(leader, clients, options.partySize, report);
   const enabledLeader = await configureAndEnableHosted(leader, options.partySize, true);
   report.lifecycle.push({
     atMs: Date.now(),
@@ -837,6 +956,7 @@ async function main() {
     mode: enabledLeader.mode,
     groupMode: enabledLeader.groupMode,
   });
+  await enableHostedForJoinedMembers(leader, members, options.partySize, report);
 
   const startedAtMs = Date.now();
   const deadlineMs = startedAtMs + options.durationMs;
@@ -850,6 +970,7 @@ async function main() {
     acceptPendingInvites(clients, report);
     collectEvents(clients, report, eventCursorByPid);
     guideWaitingHelpersTowardLeader(leader, members);
+    repairRosterPartySlots(leader, clients, options.partySize, Date.now(), report);
     await enableHostedForJoinedMembers(leader, members, options.partySize, report);
 
     const nowMs = Date.now();

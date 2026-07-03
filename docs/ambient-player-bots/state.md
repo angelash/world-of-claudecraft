@@ -15,7 +15,8 @@
    surfaces. They do not get privileged sim-only cheat paths in production.
 2. The server owns orchestration. A separate runner owns low-level execution.
 3. Human players are grouped into shared nearby clusters. The target is about
-   five visible bots for a solo player, with shared pods for nearby humans.
+   30 visible bots for a solo player, with shared pods capped at 50 bots for
+   nearby humans.
 4. LLMs are sparse and bounded. They generate plans, social intent, and memory
    summaries, not direct authoritative world mutation.
 5. `src/sim/` remains deterministic and unaware of models. Any player-facing bot
