@@ -70,6 +70,8 @@ const DANGEROUS_PULL_POTION_HP_THRESHOLD = 0.68;
 const DANGEROUS_PULL_SAFE_ARRIVAL_RANGE = INTERACT_RANGE + 4;
 const DANGEROUS_PULL_MIN_LEVEL = 4;
 const DANGEROUS_PULL_WEBWOOD_MIN_LEVEL = 3;
+const PARTY_PULL_STAGING_RANGE = 18;
+const PARTY_PULL_MELEE_RELEASE_RANGE = 10;
 const SELF_MAINTENANCE_OBJECTIVES = ['recover', 'prepare_combat', 'equip_upgrade', 'sell_junk'] as const;
 
 interface AmbientBotVendorProfile {
@@ -1528,6 +1530,21 @@ function fightTarget(
     return idleStep('combat', label, commands, facing);
   }
 
+  const partyPullDecision = maybePartyPullStep({
+    view,
+    bot,
+    target,
+    state,
+    seed,
+    nowMs,
+    label,
+    distance,
+    rangedUsable,
+    commands,
+    facing,
+  });
+  if (partyPullDecision) return partyPullDecision;
+
   if (distance > preferredRange) {
     return travelToPoint(
       view,
@@ -1576,6 +1593,99 @@ function fightTarget(
     );
   }
   return idleStep('combat', label, commands, facing);
+}
+
+function maybePartyPullStep(input: {
+  view: BotWorldView;
+  bot: AmbientPlayerBotRecord;
+  target: BotEntityView;
+  state: AmbientPlayerBotBrainState;
+  seed: number;
+  nowMs: number;
+  label: string;
+  distance: number;
+  rangedUsable: CombatAbility | null;
+  commands: readonly BrainCommand[];
+  facing: number;
+}): AmbientPlayerBotBrainTickResult | null {
+  if (input.view.self.partyMembers.length < 2) return null;
+  const targetAggro = input.target.aggroTargetId;
+  const aggroedToParty = targetAggro !== null && input.view.self.partyMemberIds.has(targetAggro);
+
+  if (!aggroedToParty) {
+    if (input.distance > PARTY_PULL_STAGING_RANGE + 0.35) {
+      return travelToPoint(
+        input.view,
+        input.state,
+        input.seed,
+        { id: 'combat', label: input.label },
+        { x: input.target.pos.x, z: input.target.pos.z },
+        PARTY_PULL_STAGING_RANGE,
+        partyPullGoalKey(input.target),
+        input.commands,
+      );
+    }
+
+    if (input.rangedUsable && partyPullAbilityCanOpenAtRange(input.rangedUsable, input.distance)) {
+      return null;
+    }
+    if (classRangedAutoAttackMatchesDistance(input.bot.class, input.distance)) {
+      const commands = [...input.commands];
+      if (
+        !input.view.self.autoAttack
+        && canIssue(input.state, 'attack', input.nowMs, 1_200)
+      ) {
+        commands.push({ cmd: 'attack' });
+      }
+      return idleStep('combat', input.label, commands, input.facing);
+    }
+    return idleStep('combat', input.label, input.commands, input.facing);
+  }
+
+  if (
+    !input.rangedUsable
+    && classRangedAutoAttackMatchesDistance(input.bot.class, input.distance)
+  ) {
+    const commands = [...input.commands];
+    if (
+      !input.view.self.autoAttack
+      && canIssue(input.state, 'attack', input.nowMs, 1_200)
+    ) {
+      commands.push({ cmd: 'attack' });
+    }
+    return idleStep('combat', input.label, commands, input.facing);
+  }
+
+  if (
+    partyPullShouldHoldMelee(input.bot.class, input.rangedUsable, input.distance)
+    && input.distance > PARTY_PULL_MELEE_RELEASE_RANGE
+  ) {
+    return idleStep('combat', input.label, input.commands, input.facing);
+  }
+
+  return null;
+}
+
+function partyPullGoalKey(target: BotEntityView): string {
+  const x = Math.round(target.pos.x);
+  const z = Math.round(target.pos.z);
+  return `party-pull:${target.id}:${x}:${z}`;
+}
+
+function partyPullAbilityCanOpenAtRange(
+  ability: CombatAbility | null,
+  distance: number,
+): boolean {
+  return !!ability && ability.range > MELEE_RANGE + 1 && abilityMatchesDistance(ability, distance);
+}
+
+function partyPullShouldHoldMelee(
+  cls: PlayerClass,
+  ability: CombatAbility | null,
+  distance: number,
+): boolean {
+  if (partyPullAbilityCanOpenAtRange(ability, distance)) return false;
+  return !classRangedAutoAttackMatchesDistance(cls, distance);
 }
 
 function movingTargetGoalKey(target: BotEntityView): string {
@@ -2221,6 +2331,13 @@ function abilityMatchesDistance(ability: CombatAbility, distance: number): boole
 function desiredCombatRange(ability: CombatAbility): number {
   if (ability.range <= MELEE_RANGE + 1) return MELEE_RANGE * 0.9;
   return Math.max(ability.minRange + 0.75, Math.min(24, ability.range - 1.5));
+}
+
+function classRangedAutoAttackMatchesDistance(cls: PlayerClass, distance: number): boolean {
+  const ranged = CLASSES[cls].ranged;
+  if (!ranged) return false;
+  const minRange = ranged.wand ? 0 : ranged.minRange;
+  return distance <= ranged.maxRange + 0.35 && distance >= minRange - 0.35;
 }
 
 function scoreCombatAbility(ability: CombatAbility, preferRanged: boolean): number {

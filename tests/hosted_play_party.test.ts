@@ -1273,6 +1273,172 @@ describe('hosted-play party coordinator', () => {
     expect(result.groupMode).toBe('assist_party');
   });
 
+  it('uses the hosted leader live target before aggro fallback', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 0,
+          z: 0,
+          target: null,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 6, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 101, k: 'player', nm: 'Branoraaa', x: 6, z: 0, target: 502, auras: [] },
+          { id: 501, k: 'mob', h: 80, x: 8, z: 0, aggro: 101, auras: [] },
+          { id: 502, k: 'mob', h: 80, x: 10, z: 0, aggro: 101, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result.commands[0]).toEqual({ cmd: 'target', id: 502 });
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.groupMode).toBe('assist_party');
+  });
+
+  it('uses a hosted skull marker before the leader target', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 0,
+          z: 0,
+          target: null,
+          marks: { 502: 7 },
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 6, z: 0, dead: 0, inCombat: 1, targetId: 501, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 8, z: 0, aggro: 101, auras: [] },
+          { id: 502, k: 'mob', h: 80, x: 10, z: 0, aggro: 101, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result.commands[0]).toEqual({ cmd: 'target', id: 502 });
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.groupMode).toBe('assist_party');
+  });
+
+  it('lets a hosted ranged follower pull the leader target before melee engages', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 2,
+          z: 0,
+          hp: 100,
+          mhp: 100,
+          res: 120,
+          mres: 120,
+          rtype: 'mana',
+          target: null,
+          auras: [
+            { id: 'frost_armor', kind: 'buff_armor', rem: 1_700, dur: 1_800 },
+            { id: 'arcane_intellect', kind: 'buff_int', rem: 1_700, dur: 1_800 },
+          ],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, targetId: 502, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 502, k: 'mob', h: 80, x: 20, z: 0, aggro: null, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 502 },
+      expect.objectContaining({ cmd: 'cast' }),
+    ]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.groupMode).toBe('prepare_party');
+  });
+
+  it('keeps a hosted melee follower from charging an incoming pull too early', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 102,
+          x: 0,
+          z: 0,
+          hp: 100,
+          mhp: 100,
+          res: 100,
+          mres: 100,
+          rtype: 'energy',
+          target: null,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 2, z: 0, dead: 0, inCombat: 1, targetId: 501, group: 1 },
+              { pid: 102, name: 'Hero', cls: 'rogue', level: 12, hp: 100, mhp: 100, res: 100, mres: 100, rtype: 'energy', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [
+          { id: 501, k: 'mob', h: 80, x: 18, z: 0, aggro: 101, auras: [] },
+        ],
+        recentEvents: [],
+        playerClass: 'rogue',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 5_000,
+      },
+      state,
+    );
+
+    expect(result.commands).toEqual([{ cmd: 'target', id: 501 }]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.travelGoal).toBeUndefined();
+    expect(result.groupMode).toBe('assist_party');
+  });
+
   it('keeps recovery paused instead of protective focus when multiple members are unstable', () => {
     const state = createHostedPlayPartyState();
 

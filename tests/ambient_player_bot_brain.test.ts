@@ -1721,6 +1721,74 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
+  it('stages a grouped melee pull at range instead of running into the pack', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          hp: 214,
+          mhp: 214,
+          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 4, hp: 214, mhp: 214, res: 0, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'mage', level: 4, hp: 80, mhp: 80, res: 100, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 9008, k: 'mob', tid: 'forest_wolf', x: 0, z: 24, h: 1, lv: 1 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('combat');
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9008 }]);
+    expect(result.travelGoal).toMatchObject({
+      target: { x: 0, z: 24 },
+      arrivalRange: 18,
+      goalKey: 'party-pull:9008:0:24',
+    });
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('holds grouped melee while an incoming pull is still far away', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain({
+      bot: bot(),
+      liveState: liveState({
+        self: {
+          lv: 4,
+          hp: 214,
+          mhp: 214,
+          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 4, hp: 214, mhp: 214, res: 0, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Branorabb', cls: 'mage', level: 4, hp: 80, mhp: 80, res: 100, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 9009, k: 'mob', tid: 'forest_wolf', x: 0, z: 16, h: 1, lv: 1, aggro: 101 },
+        ],
+      }),
+      nowMs: 1_000,
+    }, state);
+
+    expect(result.objectiveId).toBe('combat');
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9009 }]);
+    expect(result.moveInput).toEqual({});
+    expect(result.travelGoal).toBeUndefined();
+  });
+
   it('buys an affordable weapon upgrade before accepting the murloc quest', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain({

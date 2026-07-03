@@ -46,6 +46,7 @@ export interface PartyMemberInfo {
   z: number;
   dead: number;
   inCombat: number;
+  targetId?: number | null;
   group: 1 | 2;
   auras?: PartyAuraInfo[];
   qlog?: QuestProgress[];

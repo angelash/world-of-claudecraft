@@ -196,7 +196,7 @@ export function tickHostedPlayPartyCoordinator(
   }) : null;
   if (formationReturn) return formationReturn;
 
-  const supportDecision = !followerOutsidePartyActionRange
+  const normalSupportDecision = !followerOutsidePartyActionRange
     && (partyInCombat || (canHostedProvidePartyPreparation(input.playerClass) && !followerNeedsToCloseGap))
     ? maybeCoordinateAmbientPartySupport({
       bot: botRecord,
@@ -208,6 +208,22 @@ export function tickHostedPlayPartyCoordinator(
       reserveCommandBatch: (reservations) => reserveCommandBatch(state, input.nowMs, reservations),
     })
     : null;
+  const prePullSupportDecision = !normalSupportDecision
+    && !followerOutsidePartyActionRange
+    && !partyInCombat
+    && !partyRecovering
+    && !followerNeedsToCloseGap
+    ? maybeCoordinateAmbientPartySupport({
+      bot: botRecord,
+      liveState,
+      party,
+      leaderMember,
+      selfMember,
+      prePullOnly: true,
+      reserveCommandBatch: (reservations) => reserveCommandBatch(state, input.nowMs, reservations),
+    })
+    : null;
+  const supportDecision = normalSupportDecision ?? prePullSupportDecision;
   if (supportDecision) {
     return {
       commands: supportDecision.commands,
@@ -870,6 +886,7 @@ function refreshPartyMemberFromLiveState(
   const liveResourceType = readResourceType(liveMember.rtype);
   const liveDead = readPartyFlag(liveMember.dead);
   const liveInCombat = readPartyFlag(liveMember.cmb) ?? readPartyFlag(liveMember.inCombat);
+  const liveTargetId = readFiniteNumber(liveMember.target);
   return {
     ...member,
     ...(liveLevel !== null ? { level: Math.max(1, Math.floor(liveLevel)) } : {}),
@@ -882,6 +899,7 @@ function refreshPartyMemberFromLiveState(
     ...(liveZ !== null ? { z: liveZ } : {}),
     ...(liveDead !== null ? { dead: liveDead } : {}),
     ...(liveInCombat !== null ? { inCombat: liveInCombat } : {}),
+    ...(liveTargetId !== null ? { targetId: liveTargetId } : {}),
   };
 }
 
