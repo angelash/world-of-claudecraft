@@ -1,5 +1,6 @@
 import { audio } from '../game/audio';
 import {
+  HOSTED_PLAY_AUTO_INVITE_DEFAULT_PARTY_SIZE,
   HOSTED_PLAY_AUTO_INVITE_MIN_PARTY_SIZE,
   HOSTED_PLAY_AUTO_INVITE_TARGET_PARTY_SIZES,
 } from '../hosted_play_settings';
@@ -11,6 +12,10 @@ import { svgIcon } from './ui_icons';
 export type HostedPlayPartyModeView =
   | 'solo'
   | 'follow_leader';
+
+type HostedPlayPartyPresetView =
+  | HostedPlayPartyModeView
+  | 'prefer_group';
 
 export type HostedPlayGroupModeView =
   | ''
@@ -320,7 +325,11 @@ export function renderHostedPlayPanel(
   partyFollowBtn.type = 'button';
   partyFollowBtn.className = 'btn set-choice-btn';
   partyFollowBtn.textContent = t('hudChrome.hostedPlay.partyMode.followLeader');
-  partyChoices.append(partySoloBtn, partyFollowBtn);
+  const partyPreferGroupBtn = document.createElement('button');
+  partyPreferGroupBtn.type = 'button';
+  partyPreferGroupBtn.className = 'btn set-choice-btn';
+  partyPreferGroupBtn.textContent = t('hudChrome.hostedPlay.partyMode.preferGroup');
+  partyChoices.append(partySoloBtn, partyFollowBtn, partyPreferGroupBtn);
   partyRow.append(partyLabel, partyChoices);
   settings.appendChild(partyRow);
 
@@ -388,12 +397,13 @@ export function renderHostedPlayPanel(
       button.setAttribute('aria-pressed', String(selected));
     }
 
-    const partyMode = currentStatus?.partyMode ?? 'solo';
+    const partyPreset = currentStatus ? partyPresetFromStatus(currentStatus) : 'solo';
     for (const [button, mode] of [
       [partySoloBtn, 'solo'],
       [partyFollowBtn, 'follow_leader'],
+      [partyPreferGroupBtn, 'prefer_group'],
     ] as const) {
-      const selected = partyMode === mode;
+      const selected = partyPreset === mode;
       button.disabled = pending || !currentStatus;
       button.classList.toggle('sel', selected);
       button.setAttribute('aria-pressed', String(selected));
@@ -653,11 +663,19 @@ export function renderHostedPlayPanel(
   }
   partySoloBtn.addEventListener('click', () => {
     audio.click();
-    updateSettings({ partyMode: 'solo' });
+    updateSettings({ partyMode: 'solo', autoInviteNearbyPlayers: false });
   });
   partyFollowBtn.addEventListener('click', () => {
     audio.click();
-    updateSettings({ partyMode: 'follow_leader' });
+    updateSettings({ partyMode: 'follow_leader', autoInviteNearbyPlayers: false });
+  });
+  partyPreferGroupBtn.addEventListener('click', () => {
+    audio.click();
+    updateSettings({
+      partyMode: 'follow_leader',
+      autoInviteNearbyPlayers: true,
+      autoInviteNearbyTargetPartySize: HOSTED_PLAY_AUTO_INVITE_DEFAULT_PARTY_SIZE,
+    });
   });
 
   message.textContent = t('hudChrome.hostedPlay.loadingStatus');
@@ -848,9 +866,22 @@ function pauseReasonText(status: HostedPlayStatusView): string {
 }
 
 function partyModeText(status: HostedPlayStatusView): string {
-  return status.partyMode === 'follow_leader'
-    ? t('hudChrome.hostedPlay.partyMode.followLeader')
-    : t('hudChrome.hostedPlay.partyMode.solo');
+  switch (partyPresetFromStatus(status)) {
+    case 'prefer_group':
+      return t('hudChrome.hostedPlay.partyMode.preferGroup');
+    case 'follow_leader':
+      return t('hudChrome.hostedPlay.partyMode.followLeader');
+    case 'solo':
+    default:
+      return t('hudChrome.hostedPlay.partyMode.solo');
+  }
+}
+
+function partyPresetFromStatus(status: HostedPlayStatusView): HostedPlayPartyPresetView {
+  if (status.partyMode === 'follow_leader' && status.autoInviteNearbyPlayers) {
+    return 'prefer_group';
+  }
+  return status.partyMode;
 }
 
 function groupModeText(status: HostedPlayStatusView): string {

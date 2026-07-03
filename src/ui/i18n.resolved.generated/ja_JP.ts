@@ -755,7 +755,8 @@ export const ja_JP: EnTranslations = {
       },
       "partyMode": {
         "solo": "Solo progression",
-        "followLeader": "Follow party leader"
+        "followLeader": "Follow party leader",
+        "preferGroup": "Prioritize party"
       },
       "groupMode": {
         "none": "No active group coordination",

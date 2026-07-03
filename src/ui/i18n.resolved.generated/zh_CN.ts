@@ -755,7 +755,8 @@ export const zh_CN: EnTranslations = {
       },
       "partyMode": {
         "solo": "单人推进",
-        "followLeader": "跟随队长"
+        "followLeader": "跟随队长",
+        "preferGroup": "优先组队"
       },
       "groupMode": {
         "none": "当前没有队伍协同行为",

@@ -755,7 +755,8 @@ export const en_XA: EnTranslations = {
       },
       "partyMode": {
         "solo": "[Šóļó þŕóĝŕéššíóñ]",
-        "followLeader": "[Ƒóļļóŵ þáŕţý ļéáðéŕ]"
+        "followLeader": "[Ƒóļļóŵ þáŕţý ļéáðéŕ]",
+        "preferGroup": "[Þŕíóŕíţížé þáŕţý]"
       },
       "groupMode": {
         "none": "[Ñó áçţíʋé ĝŕóúþ çóóŕðíñáţíóñ]",

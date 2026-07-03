@@ -755,7 +755,8 @@ export const zh_TW: EnTranslations = {
       },
       "partyMode": {
         "solo": "單人推進",
-        "followLeader": "跟隨隊長"
+        "followLeader": "跟隨隊長",
+        "preferGroup": "優先組隊"
       },
       "groupMode": {
         "none": "目前沒有隊伍協同行為",
