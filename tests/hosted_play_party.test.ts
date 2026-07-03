@@ -155,6 +155,133 @@ describe('hosted-play party coordinator', () => {
     });
   });
 
+  it('follows the previous live party member to form a compact train', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 103,
+          x: 1520,
+          z: -1200,
+          auras: [
+            { id: 'frost_armor', kind: 'buff_armor', rem: 1700, dur: 1800 },
+            { id: 'arcane_intellect', kind: 'buff_int', rem: 1700, dur: 1800 },
+          ],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Mira', cls: 'priest', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1506, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Corda', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1520, z: -1200, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [],
+        recentEvents: [],
+        playerClass: 'mage',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 6_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: true,
+      travelGoal: {
+        target: { x: 1506, z: -1200 },
+        arrivalRange: 4,
+        goalKey: 'hosted-follow-train:102:1506:-1200',
+      },
+      groupMode: 'follow_leader',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 20,
+    });
+  });
+
+  it('lets the hosted leader advance while a compact train stretches behind them', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          x: 1500,
+          z: -1200,
+          auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Mira', cls: 'priest', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1505, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Corda', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1510, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 104, name: 'Darian', cls: 'paladin', level: 12, hp: 110, mhp: 110, res: 120, mres: 120, rtype: 'mana', x: 1515, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 105, name: 'Liora', cls: 'hunter', level: 12, hp: 105, mhp: 105, res: 100, mres: 100, rtype: 'mana', x: 1520, z: -1200, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 6_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: false,
+      groupMode: 'brain',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 0,
+    });
+  });
+
+  it('has the hosted leader hold when a train link breaks even if the tail is nearby', () => {
+    const state = createHostedPlayPartyState();
+
+    const result = tickHostedPlayPartyCoordinator(
+      {
+        liveSelf: liveSelf({
+          id: 101,
+          x: 1500,
+          z: -1200,
+          auras: [{ id: 'battle_shout', kind: 'buff_ap', rem: 95, dur: 120 }],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Mira', cls: 'priest', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1504, z: -1200, dead: 0, inCombat: 0, group: 1 },
+              { pid: 103, name: 'Corda', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1513, z: -1200, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        }),
+        entities: [],
+        recentEvents: [],
+        playerClass: 'warrior',
+        partyMode: 'follow_leader',
+        ambientDirectory: [],
+        nowMs: 6_000,
+      },
+      state,
+    );
+
+    expect(result).toEqual({
+      commands: [],
+      pauseBrainDrive: true,
+      groupMode: 'hold_regroup',
+      groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 0,
+    });
+  });
+
   it('prioritizes closing a non-combat follower gap before party preparation buffs', () => {
     const state = createHostedPlayPartyState();
 

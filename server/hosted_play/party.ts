@@ -22,9 +22,10 @@ const HOSTED_PLAY_ASSIST_COOLDOWN_MS = 1_200;
 const HOSTED_PLAY_NEARBY_INVITE_COOLDOWN_MS = 12_000;
 const HOSTED_PLAY_NEARBY_INVITE_TARGET_COOLDOWN_MS = 90_000;
 const HOSTED_PLAY_NEARBY_INVITE_RANGE = 32;
-const HOSTED_PLAY_REGROUP_RANGE = 18;
 const HOSTED_PLAY_FOLLOW_START_RANGE = 4;
 const HOSTED_PLAY_FOLLOW_MAX_RANGE = 60;
+const HOSTED_PLAY_TRAIN_LINK_REGROUP_RANGE = 8;
+const HOSTED_PLAY_TRAIN_MAX_LEADER_RANGE = 24;
 const HOSTED_PLAY_RECOVERY_ANCHOR_RANGE = 4;
 const HOSTED_PLAY_URGENT_RECOVERY_ANCHOR_RANGE = 1.5;
 const HOSTED_PLAY_URGENT_RECOVERY_THREAT_RANGE = 10;
@@ -120,20 +121,22 @@ export function tickHostedPlayPartyCoordinator(
 
   const leaderDistance = distanceBetweenPartyMembers(selfMember, leaderMember);
   const groupLeaderName = leaderMember.name;
+  const followAnchor = hostedPartyTrainAnchor(party, selfMember, leaderMember);
+  const followAnchorDistance = followAnchor ? distanceBetweenPartyMembers(selfMember, followAnchor) : leaderDistance;
   const partyInCombat = party.members.some((member) => member.inCombat === 1) || hasPartyThreat(entities, party);
   const partyIntentRecovering = input.partyIntent?.kind === 'recovery'
     || input.partyIntent?.behavior === 'recover';
   const partyRecovering = partyNeedsRecovery(party, partyIntentRecovering);
   const botRecord = hostedPlayPartyBotRecord(input.playerClass, selfMember);
   const liveState = hostedPartyLiveState(input.liveSelf, entities);
-  const followerCanMoveToLeader = selfMember.pid !== leaderMember.pid
+  const followerCanMoveToParty = !!followAnchor
     && !selfMember.dead
-    && !leaderMember.dead
+    && !followAnchor.dead
     && !selfMember.inCombat;
   const followerNeedsToCloseGap =
-    followerCanMoveToLeader && leaderDistance > HOSTED_PLAY_FOLLOW_START_RANGE;
+    followerCanMoveToParty && followAnchorDistance > HOSTED_PLAY_FOLLOW_START_RANGE;
   const followerOutsidePartyActionRange =
-    followerNeedsToCloseGap && leaderDistance > HOSTED_PLAY_FOLLOW_MAX_RANGE;
+    followerNeedsToCloseGap && (leaderDistance > HOSTED_PLAY_FOLLOW_MAX_RANGE || followAnchorDistance > HOSTED_PLAY_FOLLOW_MAX_RANGE);
 
   const selfNeedsEarlyThreatRecovery = selfNeedsFragileThreatRecovery(selfMember, entities);
   const selfNeedsIntentRecovery = selfNeedsFragileIntentRecovery(
@@ -173,6 +176,8 @@ export function tickHostedPlayPartyCoordinator(
     liveSelf: input.liveSelf,
     selfMember,
     leaderMember,
+    followAnchor,
+    followAnchorDistance,
     leaderDistance,
     state,
     nowMs: input.nowMs,
@@ -183,6 +188,8 @@ export function tickHostedPlayPartyCoordinator(
     liveSelf: input.liveSelf,
     selfMember,
     leaderMember,
+    followAnchor,
+    followAnchorDistance,
     leaderDistance,
     state,
     nowMs: input.nowMs,
@@ -329,9 +336,13 @@ export function tickHostedPlayPartyCoordinator(
     };
   }
 
-  if (followerCanMoveToLeader) {
-    const followTravelGoal = leaderDistance > HOSTED_PLAY_FOLLOW_START_RANGE
-      ? travelGoalToPartyMember(leaderMember, HOSTED_PLAY_FOLLOW_START_RANGE, 'hosted-follow-leader')
+  if (followerCanMoveToParty) {
+    const followTravelGoal = followAnchorDistance > HOSTED_PLAY_FOLLOW_START_RANGE
+      ? travelGoalToPartyMember(
+          followAnchor,
+          HOSTED_PLAY_FOLLOW_START_RANGE,
+          followAnchor.pid === leaderMember.pid ? 'hosted-follow-leader' : 'hosted-follow-train',
+        )
       : null;
     return {
       commands: [],
@@ -372,6 +383,8 @@ function maybeReturnForRegroupIntent(input: {
   liveSelf: Record<string, unknown>;
   selfMember: PartyMemberInfo;
   leaderMember: PartyMemberInfo;
+  followAnchor: PartyMemberInfo | null;
+  followAnchorDistance: number;
   leaderDistance: number;
   state: HostedPlayPartyState;
   nowMs: number;
@@ -379,8 +392,8 @@ function maybeReturnForRegroupIntent(input: {
 }): HostedPlayPartyTickResult | null {
   if (input.intent?.behavior !== 'regroup') return null;
   if (input.selfMember.pid === input.leaderMember.pid) return null;
-  if (input.selfMember.dead || input.leaderMember.dead) return null;
-  if (input.leaderDistance <= HOSTED_PLAY_REGROUP_RANGE) return null;
+  if (input.selfMember.dead || !input.followAnchor || input.followAnchor.dead) return null;
+  if (!hostedFollowerNeedsTrainRegroup(input.followAnchorDistance, input.leaderDistance)) return null;
 
   const commands: HostedPlayCommand[] = [];
   if (
@@ -399,7 +412,11 @@ function maybeReturnForRegroupIntent(input: {
   return {
     commands,
     pauseBrainDrive: true,
-    travelGoal: travelGoalToPartyMember(input.leaderMember, HOSTED_PLAY_FOLLOW_START_RANGE, 'hosted-regroup-leader'),
+    travelGoal: travelGoalToPartyMember(
+      input.followAnchor,
+      HOSTED_PLAY_FOLLOW_START_RANGE,
+      input.followAnchor.pid === input.leaderMember.pid ? 'hosted-regroup-leader' : 'hosted-regroup-train',
+    ),
     groupMode: 'follow_leader',
     groupLeaderName: input.leaderMember.name,
     groupLeaderDistance: input.leaderDistance,
@@ -410,13 +427,15 @@ function maybeReturnForFormationBreak(input: {
   liveSelf: Record<string, unknown>;
   selfMember: PartyMemberInfo;
   leaderMember: PartyMemberInfo;
+  followAnchor: PartyMemberInfo | null;
+  followAnchorDistance: number;
   leaderDistance: number;
   state: HostedPlayPartyState;
   nowMs: number;
 }): HostedPlayPartyTickResult | null {
   if (input.selfMember.pid === input.leaderMember.pid) return null;
-  if (input.selfMember.dead || input.leaderMember.dead) return null;
-  if (input.leaderDistance <= HOSTED_PLAY_REGROUP_RANGE) return null;
+  if (input.selfMember.dead || !input.followAnchor || input.followAnchor.dead) return null;
+  if (!hostedFollowerNeedsTrainRegroup(input.followAnchorDistance, input.leaderDistance)) return null;
   if (!input.selfMember.inCombat) return null;
 
   const commands: HostedPlayCommand[] = [];
@@ -436,7 +455,11 @@ function maybeReturnForFormationBreak(input: {
   return {
     commands,
     pauseBrainDrive: true,
-    travelGoal: travelGoalToPartyMember(input.leaderMember, HOSTED_PLAY_FOLLOW_START_RANGE, 'hosted-regroup-leader'),
+    travelGoal: travelGoalToPartyMember(
+      input.followAnchor,
+      HOSTED_PLAY_FOLLOW_START_RANGE,
+      input.followAnchor.pid === input.leaderMember.pid ? 'hosted-regroup-leader' : 'hosted-regroup-train',
+    ),
     groupMode: 'follow_leader',
     groupLeaderName: input.leaderMember.name,
     groupLeaderDistance: input.leaderDistance,
@@ -613,14 +636,54 @@ function partyIntentStillNeedsHold(
   }
 }
 
+function hostedFollowerNeedsTrainRegroup(
+  followAnchorDistance: number,
+  leaderDistance: number,
+): boolean {
+  return followAnchorDistance > HOSTED_PLAY_TRAIN_LINK_REGROUP_RANGE
+    || leaderDistance > HOSTED_PLAY_TRAIN_MAX_LEADER_RANGE;
+}
+
 function partyNeedsRegroup(
   party: PartyInfo,
   leaderMember: PartyMemberInfo,
 ): boolean {
-  return party.members.some((member) =>
+  const trainMembers = hostedPartyTrainMembers(party, leaderMember)
+    .filter((member) => !member.dead);
+  if (trainMembers.length <= 1) return false;
+  let previous = trainMembers[0];
+  for (const member of trainMembers.slice(1)) {
+    if (distanceBetweenPartyMembers(previous, member) > HOSTED_PLAY_TRAIN_LINK_REGROUP_RANGE) {
+      return true;
+    }
+    previous = member;
+  }
+  return trainMembers.some((member) =>
     member.pid !== leaderMember.pid
-    && !member.dead
-    && distanceBetweenPartyMembers(member, leaderMember) > HOSTED_PLAY_REGROUP_RANGE);
+    && distanceBetweenPartyMembers(member, leaderMember) > HOSTED_PLAY_TRAIN_MAX_LEADER_RANGE);
+}
+
+function hostedPartyTrainAnchor(
+  party: PartyInfo,
+  selfMember: PartyMemberInfo,
+  leaderMember: PartyMemberInfo,
+): PartyMemberInfo | null {
+  if (selfMember.pid === leaderMember.pid || selfMember.dead) return null;
+  const trainMembers = hostedPartyTrainMembers(party, leaderMember)
+    .filter((member) => !member.dead);
+  const selfIndex = trainMembers.findIndex((member) => member.pid === selfMember.pid);
+  if (selfIndex <= 0) return null;
+  return trainMembers[selfIndex - 1] ?? null;
+}
+
+function hostedPartyTrainMembers(
+  party: PartyInfo,
+  leaderMember: PartyMemberInfo,
+): PartyMemberInfo[] {
+  return [
+    leaderMember,
+    ...party.members.filter((member) => member.pid !== leaderMember.pid),
+  ];
 }
 
 function partyNeedsRecovery(party: PartyInfo, holdUntilStable = false): boolean {
