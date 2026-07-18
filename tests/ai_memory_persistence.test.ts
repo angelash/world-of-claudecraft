@@ -141,6 +141,12 @@ const persistedSignal: AiMemoryAuditRecord = {
   reason: 'persistedFixture',
 };
 
+const unavailableProvider: AiProvider = {
+  async decide(): Promise<AiDecisionV1> {
+    throw new Error('provider unavailable in memory persistence tests');
+  },
+};
+
 function persistedDirectorSignal(playerEntityId: number): AiMemoryAuditRecord {
   return {
     kind: 'worldDirectorState',
@@ -562,14 +568,14 @@ describe('AI memory persistence integration', () => {
     const { sim, pid, wolfId } = makeSim();
     teleportNear(sim, pid, wolfId);
     const db = new FakeMemoryDb();
-    const firstLayer = new AiLifeLayer({ enabled: true, memoryDb: db });
+    const firstLayer = new AiLifeLayer({ enabled: true, provider: unavailableProvider, memoryDb: db });
     const discardedEvents: unknown[] = [];
 
     firstLayer.handleItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, deliver: (events) => discardedEvents.push(...events) });
     await firstLayer.flushMemoryWrites();
     db.loaded = db.saved.flat().map(cloneMemoryAudit);
 
-    const restartedLayer = new AiLifeLayer({ enabled: true, memoryDb: db });
+    const restartedLayer = new AiLifeLayer({ enabled: true, provider: unavailableProvider, memoryDb: db });
     const beforeQuestLog = JSON.stringify([...sim.meta(pid)!.questLog]);
     const beforeDone = JSON.stringify([...sim.meta(pid)!.questsDone]);
     const restoredEvents: unknown[] = [];
@@ -584,7 +590,7 @@ describe('AI memory persistence integration', () => {
     const clearResult = await restartedLayer.clearMemory(sim.time);
     expect(clearResult.persistedMemoryRecords).toBeGreaterThan(0);
 
-    const clearedRestartLayer = new AiLifeLayer({ enabled: true, memoryDb: db });
+    const clearedRestartLayer = new AiLifeLayer({ enabled: true, provider: unavailableProvider, memoryDb: db });
     const afterClearEvents: unknown[] = [];
     await clearedRestartLayer.handleSceneInspection({ sim, pid, locale: 'en', deliver: (events) => afterClearEvents.push(...events) });
 

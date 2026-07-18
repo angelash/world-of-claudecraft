@@ -1,5 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
+  cs_CZ,
+  da_DK,
   de_DE,
   en,
   en_CA,
@@ -10,16 +12,22 @@ import {
   fr_CA,
   fr_FR,
   hasTranslation,
+  id_ID,
   it_IT,
   ja_JP,
   ko_KR,
   languageTag,
+  nl_NL,
+  pl_PL,
   pt_BR,
   ru_RU,
   type SupportedLanguage,
   setLanguage,
   supportedLanguages,
+  sv_SE,
   tPlural,
+  tr_TR,
+  vi_VN,
   zh_CN,
   zh_TW,
 } from '../src/ui/i18n';
@@ -45,8 +53,15 @@ const TABLES: Record<SupportedLanguage, unknown> = {
   ja_JP,
   pt_BR,
   ru_RU,
+  cs_CZ,
+  nl_NL,
+  pl_PL,
+  id_ID,
+  tr_TR,
+  sv_SE,
+  vi_VN,
+  da_DK,
 };
-const RELEASE_TIER = process.env.I18N_RELEASE_TIER === "1";
 
 function flatten(
   obj: unknown,
@@ -135,7 +150,7 @@ describe('i18n whole-catalog completeness', () => {
   // leaves that legitimately stay identical are brand / URL strings, kept verbatim
   // in every locale on purpose; everything else must differ. Add a key here only if
   // it is a genuine brand/URL that should never be translated.
-  it.runIf(RELEASE_TIER)("non-Latin locales ship no untranslated English (only brand/URL leaves stay identical)", () => {
+  it('non-Latin player surfaces ship no untranslated English', () => {
     const BRAND_ALLOW = new Set([
       'footer.copyright', // "{year} World of ClaudeCraft" - brand
       'footer.githubLink', // repository URL
@@ -145,21 +160,43 @@ describe('i18n whole-catalog completeness', () => {
       'guide.brandShort', // "ClaudeCraft" - brand (Guide)
       'guide.home.title', // "World of ClaudeCraft" - brand (Guide hero)
       'guide.footer.rights', // "World of ClaudeCraft" - brand (Guide footer)
+      'hudChrome.discord.title', // "Discord" - brand
+      'hudChrome.discord.open', // "Discord" - brand
+      'hudChrome.steam.title', // "Steam" - brand
+      'hudChrome.discord.panelTitle', // "World of ClaudeCraft" - brand
+      'hudChrome.discord.linkedTitle', // "Discord: {name}" - brand + player name
+      'hudChrome.keybinds.discord', // "Discord" - brand (Key Bindings action label)
+      'hudChrome.claudium.title', // "Claudium" - in-game currency brand
+      'hudChrome.claudium.balanceUnit', // "{amount} Claudium" - currency brand
+      'hudChrome.claudium.storeCost', // "{amount} Claudium" - currency brand
+      'guide.controls.discord', // "Discord" - brand (Guide controls-page action label)
+      'desktop.crash.title', // "World of ClaudeCraft" - brand (desktop crash dialog title)
+      'auth.emailPlaceholder', // "you@example.com" - RFC 2606 example address, kept verbatim
     ]);
     const wordy = (v: string) => /[a-z]{4,}/.test(v.replace(/\{[^}]*\}/g, ''));
+    // The command center is enabled only in Vite development builds and cannot reach
+    // a player-facing production surface. Keep its contributor-owned catalog
+    // English-only, like other developer tooling, while release localization remains
+    // strict for every namespace that ships to players.
+    const isDevelopmentOnly = (key: string) => key.startsWith('devCommand.');
     const nonLatin: SupportedLanguage[] = ['zh_CN', 'zh_TW', 'ja_JP', 'ko_KR', 'ru_RU'];
     const leaks: string[] = [];
     for (const lang of nonLatin) {
       const flat = flatten(TABLES[lang]);
       for (const [key, enValue] of Object.entries(enFlat)) {
-        if (wordy(enValue) && flat[key] === enValue && !BRAND_ALLOW.has(key)) {
+        if (
+          wordy(enValue) &&
+          flat[key] === enValue &&
+          !BRAND_ALLOW.has(key) &&
+          !isDevelopmentOnly(key)
+        ) {
           leaks.push(`${lang} ${key}: "${enValue}"`);
         }
       }
     }
     expect(
       leaks,
-      `untranslated English leaked into non-Latin locales:\n${leaks.join('\n')}`,
+      `untranslated English leaked into non-Latin player surfaces:\n${leaks.join('\n')}`,
     ).toEqual([]);
   });
 });
@@ -179,7 +216,9 @@ describe('i18n CLDR pluralization', () => {
   it('declares the expected plural bases with all four CLDR categories in en', () => {
     expect(bases.sort()).toEqual([
       'characterCount',
+      'finderPartySize',
       'guildMembers',
+      'playersMatching',
       'playersOnline',
       'secondsRemaining',
     ]);

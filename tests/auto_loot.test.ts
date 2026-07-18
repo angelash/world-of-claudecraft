@@ -9,16 +9,17 @@ import type { PartyInfo } from '../src/world_api';
 import type { Entity } from '../src/sim/types';
 
 function entity(partial: Partial<Entity> & Pick<Entity, 'id' | 'kind'>): Entity {
+  const { id, kind, ...rest } = partial;
   return {
-    id: partial.id,
-    kind: partial.kind,
+    id,
+    kind,
     pos: { x: 0, y: 0, z: 0 },
     dead: false,
     lootable: false,
     loot: null,
     tappedById: null,
     scale: 1,
-    ...partial,
+    ...rest,
   } as Entity;
 }
 
@@ -26,6 +27,7 @@ function partyWith(...pids: number[]): PartyInfo {
   return {
     leader: pids[0] ?? 1,
     raid: false,
+    master: { enabled: false, looter: 0, threshold: 'uncommon' },
     members: pids.map((pid) => ({
       pid,
       name: `P${pid}`,

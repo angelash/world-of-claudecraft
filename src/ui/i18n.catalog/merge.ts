@@ -100,9 +100,9 @@ const MERGE_MOB_IDS = [
   'nhalia_mourner',
   'sister_nhalia',
   'varkas_boneguard',
-  'imp',
-  'voidwalker',
-  'succubus',
+  'emberkin',
+  'gloomshade',
+  'duskborn',
   'grix_the_tunnelking',
   'brutok_skullsmasher',
   'captain_verlan',
@@ -110,10 +110,10 @@ const MERGE_MOB_IDS = [
   'sloomtooth_the_drowned',
   'voskar_emberwing',
   'wraithbinder_maldrec',
-  'felhunter',
-  'felguard',
-  'infernal',
-  'doomguard',
+  'spellhound',
+  'warfiend',
+  'pyre_colossus',
+  'wraithborn',
 ] as const;
 
 type MergeNameTranslations<TId extends string> = Record<TId, { name: string }>;
@@ -140,25 +140,30 @@ function mergeNameTranslations<TId extends string>(
 const mergePetHud = {
   en: {
     attack: 'Attack',
+    waterJet: 'Water Jet',
     taunt: 'Taunt',
     healDemon: 'Heal Demon',
-    healPet: 'Heal Pet',
+    healPet: 'Feed Pet',
     passive: 'Passive',
     defensive: 'Defensive',
     aggressive: 'Aggressive',
     petAttackTitle: 'Pet Attack',
     petAttackDesc: 'Command your pet to attack your current hostile target.',
+    waterJetTitle: 'Water Jet',
+    waterJetDesc:
+      'Command your Water Elemental to channel a slowing stream for 3 seconds. 8 second cooldown. Right-click to auto-cast it whenever it is off cooldown.',
     petTauntTitle: 'Pet Taunt',
-    petTauntDesc: 'Command your pet to engage and Growl when in range. 10 second cooldown.',
+    petTauntDesc:
+      'Command your pet to engage and Growl when in range. 10 second cooldown. Right-click to auto-cast it whenever it is off cooldown.',
     healDemonDesc: 'Spend mana to channel healing into your demon over 5 seconds.',
-    healPetDesc: 'Click, then click food in your bags to feed and heal your pet over 5 seconds.',
+    healPetDesc: 'Click, then click food in your bags to feed your pet, healing it over 5 seconds.',
     stanceTitle: 'Pet Stance',
     stanceDesc: 'Click to choose Passive, Defensive, or Aggressive.',
     passiveDesc: 'Only attacks when you command it.',
     defensiveDesc: 'Attacks enemies that hurt you or your pet.',
     aggressiveDesc: 'Attacks nearby hostile enemies.',
     rename: 'Rename Pet',
-    revive: 'Revive Pet',
+    revive: 'Patch Up',
     abandon: 'Abandon Pet',
     cancel: 'Cancel',
     renameLabel: 'Choose a new pet name.',
@@ -171,6 +176,7 @@ const mergePetHud = {
   },
   es: {
     attack: 'Atacar',
+    waterJet: 'Chorro de agua',
     taunt: 'Provocar',
     healDemon: 'Sanar demonio',
     healPet: 'Sanar mascota',
@@ -179,9 +185,12 @@ const mergePetHud = {
     aggressive: 'Agresivo',
     petAttackTitle: 'Ataque de mascota',
     petAttackDesc: 'Ordena a tu mascota atacar a tu objetivo hostil actual.',
+    waterJetTitle: 'Chorro de agua',
+    waterJetDesc:
+      'Ordena a tu elemental de agua canalizar un chorro ralentizador durante 3 segundos. Reutilización de 8 segundos. Clic derecho para autolanzarlo cuando esté disponible.',
     petTauntTitle: 'Provocación de mascota',
     petTauntDesc:
-      'Ordena a tu mascota entrar en combate y usar Gruñido al estar en alcance. Reutilización de 10 segundos.',
+      'Ordena a tu mascota entrar en combate y usar Gruñido al estar en alcance. Reutilización de 10 segundos. Clic derecho para autolanzarlo cuando esté disponible.',
     healDemonDesc: 'Gasta maná para canalizar sanación hacia tu demonio durante 5 segundos.',
     healPetDesc:
       'Haz clic y luego haz clic en comida de tus bolsas para alimentar y sanar a tu mascota durante 5 segundos.',
@@ -191,7 +200,7 @@ const mergePetHud = {
     defensiveDesc: 'Ataca a enemigos que te dañen a ti o a tu mascota.',
     aggressiveDesc: 'Ataca a enemigos hostiles cercanos.',
     rename: 'Renombrar mascota',
-    revive: 'Revivir mascota',
+    revive: 'Remendar',
     abandon: 'Abandonar mascota',
     cancel: 'Cancelar',
     renameLabel: 'Elige un nuevo nombre para la mascota.',
@@ -224,7 +233,7 @@ const mergePetHud = {
     defensiveDesc: 'Attaque les ennemis qui vous blessent, vous ou votre familier.',
     aggressiveDesc: 'Attaque les ennemis hostiles proches.',
     rename: 'Renommer le familier',
-    revive: 'Ranimer le familier',
+    revive: 'Rafistoler',
     abandon: 'Abandonner le familier',
     cancel: 'Annuler',
     renameLabel: 'Choisissez un nouveau nom de familier.',
@@ -257,7 +266,7 @@ const mergePetHud = {
     defensiveDesc: 'Attacca i nemici che feriscono te o la tua mascotte.',
     aggressiveDesc: 'Attacca i nemici ostili vicini.',
     rename: 'Rinomina mascotte',
-    revive: 'Rianima mascotte',
+    revive: 'Rattoppare',
     abandon: 'Abbandona mascotte',
     cancel: 'Annulla',
     renameLabel: 'Scegli un nuovo nome per la mascotte.',
@@ -288,7 +297,7 @@ const mergePetHud = {
     defensiveDesc: 'Greift Gegner an, die dich oder deinen Begleiter verletzen.',
     aggressiveDesc: 'Greift nahe feindliche Gegner an.',
     rename: 'Begleiter umbenennen',
-    revive: 'Begleiter wiederbeleben',
+    revive: 'Zusammenflicken',
     abandon: 'Begleiter aufgeben',
     cancel: 'Abbrechen',
     renameLabel: 'Wähle einen neuen Begleiternamen.',
@@ -317,7 +326,7 @@ const mergePetHud = {
     defensiveDesc: '攻击伤害你或你宠物的敌人。',
     aggressiveDesc: '攻击附近的敌对敌人。',
     rename: '重命名宠物',
-    revive: '复活宠物',
+    revive: '修补',
     abandon: '放弃宠物',
     cancel: '取消',
     renameLabel: '选择一个新的宠物名称。',
@@ -346,7 +355,7 @@ const mergePetHud = {
     defensiveDesc: '攻擊傷害你或你寵物的敵人。',
     aggressiveDesc: '攻擊附近的敵對敵人。',
     rename: '重新命名寵物',
-    revive: '復活寵物',
+    revive: '修補',
     abandon: '放棄寵物',
     cancel: '取消',
     renameLabel: '選擇一個新的寵物名稱。',
@@ -376,7 +385,7 @@ const mergePetHud = {
     defensiveDesc: '당신이나 소환수를 해치는 적을 공격합니다.',
     aggressiveDesc: '근처의 적대적인 적을 공격합니다.',
     rename: '소환수 이름 변경',
-    revive: '소환수 되살리기',
+    revive: '응급 처치',
     abandon: '소환수 포기',
     cancel: '취소',
     renameLabel: '새 소환수 이름을 선택하세요.',
@@ -406,7 +415,7 @@ const mergePetHud = {
     defensiveDesc: 'あなたまたはペットを傷つけた敵を攻撃します。',
     aggressiveDesc: '近くの敵対的な敵を攻撃します。',
     rename: 'ペット名変更',
-    revive: 'ペット蘇生',
+    revive: '応急処置',
     abandon: 'ペット放棄',
     cancel: 'キャンセル',
     renameLabel: '新しいペット名を選んでください。',
@@ -437,7 +446,7 @@ const mergePetHud = {
     defensiveDesc: 'Ataca inimigos que ferem você ou seu mascote.',
     aggressiveDesc: 'Ataca inimigos hostis próximos.',
     rename: 'Renomear mascote',
-    revive: 'Reviver mascote',
+    revive: 'Remendar',
     abandon: 'Abandonar mascote',
     cancel: 'Cancelar',
     renameLabel: 'Escolha um novo nome para o mascote.',
@@ -468,7 +477,7 @@ const mergePetHud = {
     defensiveDesc: 'Атакует врагов, которые ранят вас или питомца.',
     aggressiveDesc: 'Атакует ближайших враждебных врагов.',
     rename: 'Переименовать питомца',
-    revive: 'Воскресить питомца',
+    revive: 'Подлатать',
     abandon: 'Оставить питомца',
     cancel: 'Отмена',
     renameLabel: 'Выберите новое имя питомца.',
@@ -482,7 +491,7 @@ const mergePetHud = {
 const mergeStringsEn = {
   abilityUi: {
     ...abilityStrings.en.abilityUi,
-    cast: { fishing: 'Fishing', demonHeal: 'Demon Heal' },
+    cast: { fishing: 'Fishing', demonHeal: 'Demon Heal', thunzharrStormcall: 'Stormcall' },
     actionBar: {
       ...abilityStrings.en.abilityUi.actionBar,
       clearHint: 'Shift-right-click or Shift-Delete to clear',
@@ -492,16 +501,23 @@ const mergeStringsEn = {
   },
   itemUi: {
     ...itemNames.en.itemUi,
-    kind: { ...itemNames.en.itemUi.kind, tool: 'Tool', potion: 'Potion', elixir: 'Elixir' },
+    kind: {
+      ...itemNames.en.itemUi.kind,
+      tool: 'Tool',
+      potion: 'Potion',
+      elixir: 'Elixir',
+      bag: 'Bag',
+    },
     tooltip: {
       ...itemNames.en.itemUi.tooltip,
       useFishing: 'Use: Fish in nearby waters.',
       useHealingPotion:
-        'Use: Instantly restores {amount} health. Usable in combat. 1 min cooldown.',
-      useManaPotion: 'Use: Instantly restores {amount} mana. Usable in combat. 1 min cooldown.',
+        'Use: Instantly restores {amount} health. Usable in combat. 2 min cooldown.',
+      useManaPotion: 'Use: Instantly restores {amount} mana. Usable in combat. 2 min cooldown.',
       clickUseInstant: 'Click to use instantly in combat',
       clickUse: 'Click to use',
       clickBuyback: 'Click to buy back',
+      bagSlots: '{slots} Slot Bag',
     },
     vendor: {
       ...itemNames.en.itemUi.vendor,
@@ -648,7 +664,11 @@ export const mergeStrings = {
   es: {
     abilityUi: {
       ...abilityStrings.es.abilityUi,
-      cast: { fishing: 'Pesca', demonHeal: 'Sanación demoníaca' },
+      cast: {
+        fishing: 'Pesca',
+        demonHeal: 'Sanación demoníaca',
+        thunzharrStormcall: 'Llamada de la tormenta',
+      },
       actionBar: {
         ...abilityStrings.es.abilityUi.actionBar,
         clearHint: 'Mayús-clic derecho o Mayús-Supr para vaciar',
@@ -663,6 +683,7 @@ export const mergeStrings = {
         tool: 'Herramienta',
         potion: 'Poción',
         elixir: 'Elixir',
+        bag: 'Bolsa',
       },
       tooltip: {
         ...itemNames.es.itemUi.tooltip,
@@ -674,6 +695,7 @@ export const mergeStrings = {
         clickUseInstant: 'Haz clic para usar al instante en combate',
         clickUse: 'Haz clic para usar',
         clickBuyback: 'Haz clic para recomprar',
+        bagSlots: 'Bolsa de {slots} huecos',
       },
       vendor: {
         ...itemNames.es.itemUi.vendor,
@@ -810,7 +832,11 @@ export const mergeStrings = {
   fr_FR: {
     abilityUi: {
       ...abilityStrings.fr_FR.abilityUi,
-      cast: { fishing: 'Pêche', demonHeal: 'Soin démoniaque' },
+      cast: {
+        fishing: 'Pêche',
+        demonHeal: 'Soin démoniaque',
+        thunzharrStormcall: 'Appel de la tempête',
+      },
       actionBar: {
         ...abilityStrings.fr_FR.abilityUi.actionBar,
         clearHint: 'Maj-clic droit ou Maj-Suppr pour vider',
@@ -820,7 +846,13 @@ export const mergeStrings = {
     },
     itemUi: {
       ...itemNames.fr_FR.itemUi,
-      kind: { ...itemNames.fr_FR.itemUi.kind, tool: 'Outil', potion: 'Potion', elixir: 'Élixir' },
+      kind: {
+        ...itemNames.fr_FR.itemUi.kind,
+        tool: 'Outil',
+        potion: 'Potion',
+        elixir: 'Élixir',
+        bag: 'Sac',
+      },
       tooltip: {
         ...itemNames.fr_FR.itemUi.tooltip,
         useFishing: 'Utiliser : pêcher dans les eaux proches.',
@@ -831,6 +863,7 @@ export const mergeStrings = {
         clickUseInstant: 'Cliquer pour utiliser instantanément en combat',
         clickUse: 'Cliquer pour utiliser',
         clickBuyback: 'Cliquer pour racheter',
+        bagSlots: 'Sac de {slots} emplacements',
       },
       vendor: {
         ...itemNames.fr_FR.itemUi.vendor,
@@ -968,7 +1001,11 @@ export const mergeStrings = {
   it_IT: {
     abilityUi: {
       ...abilityStrings.it_IT.abilityUi,
-      cast: { fishing: 'Pesca', demonHeal: 'Cura demoniaca' },
+      cast: {
+        fishing: 'Pesca',
+        demonHeal: 'Cura demoniaca',
+        thunzharrStormcall: 'Richiamo della tempesta',
+      },
       actionBar: {
         ...abilityStrings.it_IT.abilityUi.actionBar,
         clearHint: 'Maiusc-clic destro o Maiusc-Canc per svuotare',
@@ -983,6 +1020,7 @@ export const mergeStrings = {
         tool: 'Strumento',
         potion: 'Pozione',
         elixir: 'Elisir',
+        bag: 'Borsa',
       },
       tooltip: {
         ...itemNames.it_IT.itemUi.tooltip,
@@ -994,6 +1032,7 @@ export const mergeStrings = {
         clickUseInstant: 'Clicca per usare subito in combattimento',
         clickUse: 'Clicca per usare',
         clickBuyback: 'Clicca per ricomprare',
+        bagSlots: 'Borsa da {slots} scomparti',
       },
       vendor: {
         ...itemNames.it_IT.itemUi.vendor,
@@ -1128,7 +1167,7 @@ export const mergeStrings = {
   de_DE: {
     abilityUi: {
       ...abilityStrings.de_DE.abilityUi,
-      cast: { fishing: 'Angeln', demonHeal: 'Dämonenheilung' },
+      cast: { fishing: 'Angeln', demonHeal: 'Dämonenheilung', thunzharrStormcall: 'Sturmruf' },
       actionBar: {
         ...abilityStrings.de_DE.abilityUi.actionBar,
         clearHint: 'Umschalt-Rechtsklick oder Umschalt-Entf zum Leeren',
@@ -1143,6 +1182,7 @@ export const mergeStrings = {
         tool: 'Werkzeug',
         potion: 'Trank',
         elixir: 'Elixier',
+        bag: 'Tasche',
       },
       tooltip: {
         ...itemNames.de_DE.itemUi.tooltip,
@@ -1154,6 +1194,7 @@ export const mergeStrings = {
         clickUseInstant: 'Zum sofortigen Benutzen im Kampf klicken',
         clickUse: 'Zum Benutzen klicken',
         clickBuyback: 'Zum Rückkaufen klicken',
+        bagSlots: 'Tasche mit {slots} Plätzen',
       },
       vendor: {
         ...itemNames.de_DE.itemUi.vendor,
@@ -1288,7 +1329,7 @@ export const mergeStrings = {
   zh_CN: {
     abilityUi: {
       ...abilityStrings.zh_CN.abilityUi,
-      cast: { fishing: '钓鱼', demonHeal: '恶魔治疗' },
+      cast: { fishing: '钓鱼', demonHeal: '恶魔治疗', thunzharrStormcall: '风暴召唤' },
       actionBar: {
         ...abilityStrings.zh_CN.abilityUi.actionBar,
         clearHint: 'Shift-右键或 Shift-Delete 清除',
@@ -1298,7 +1339,13 @@ export const mergeStrings = {
     },
     itemUi: {
       ...itemNames.zh_CN.itemUi,
-      kind: { ...itemNames.zh_CN.itemUi.kind, tool: '工具', potion: '药水', elixir: '药剂' },
+      kind: {
+        ...itemNames.zh_CN.itemUi.kind,
+        tool: '工具',
+        potion: '药水',
+        elixir: '药剂',
+        bag: '背包',
+      },
       tooltip: {
         ...itemNames.zh_CN.itemUi.tooltip,
         useFishing: '使用：在附近水域钓鱼。',
@@ -1307,6 +1354,7 @@ export const mergeStrings = {
         clickUseInstant: '点击在战斗中立即使用',
         clickUse: '点击使用',
         clickBuyback: '点击回购',
+        bagSlots: '{slots}格背包',
       },
       vendor: {
         ...itemNames.zh_CN.itemUi.vendor,
@@ -1440,7 +1488,7 @@ export const mergeStrings = {
   zh_TW: {
     abilityUi: {
       ...abilityStrings.zh_TW.abilityUi,
-      cast: { fishing: '釣魚', demonHeal: '惡魔治療' },
+      cast: { fishing: '釣魚', demonHeal: '惡魔治療', thunzharrStormcall: '風暴召喚' },
       actionBar: {
         ...abilityStrings.zh_TW.abilityUi.actionBar,
         clearHint: 'Shift-右鍵或 Shift-Delete 清除',
@@ -1450,7 +1498,13 @@ export const mergeStrings = {
     },
     itemUi: {
       ...itemNames.zh_TW.itemUi,
-      kind: { ...itemNames.zh_TW.itemUi.kind, tool: '工具', potion: '藥水', elixir: '藥劑' },
+      kind: {
+        ...itemNames.zh_TW.itemUi.kind,
+        tool: '工具',
+        potion: '藥水',
+        elixir: '藥劑',
+        bag: '背包',
+      },
       tooltip: {
         ...itemNames.zh_TW.itemUi.tooltip,
         useFishing: '使用：在附近水域釣魚。',
@@ -1459,6 +1513,7 @@ export const mergeStrings = {
         clickUseInstant: '點擊在戰鬥中立即使用',
         clickUse: '點擊使用',
         clickBuyback: '點擊買回',
+        bagSlots: '{slots}格背包',
       },
       vendor: {
         ...itemNames.zh_TW.itemUi.vendor,
@@ -1592,7 +1647,7 @@ export const mergeStrings = {
   ko_KR: {
     abilityUi: {
       ...abilityStrings.ko_KR.abilityUi,
-      cast: { fishing: '낚시', demonHeal: '악마 치유' },
+      cast: { fishing: '낚시', demonHeal: '악마 치유', thunzharrStormcall: '폭풍의 부름' },
       actionBar: {
         ...abilityStrings.ko_KR.abilityUi.actionBar,
         clearHint: 'Shift-우클릭 또는 Shift-Delete로 비우기',
@@ -1602,7 +1657,13 @@ export const mergeStrings = {
     },
     itemUi: {
       ...itemNames.ko_KR.itemUi,
-      kind: { ...itemNames.ko_KR.itemUi.kind, tool: '도구', potion: '물약', elixir: '비약' },
+      kind: {
+        ...itemNames.ko_KR.itemUi.kind,
+        tool: '도구',
+        potion: '물약',
+        elixir: '비약',
+        bag: '가방',
+      },
       tooltip: {
         ...itemNames.ko_KR.itemUi.tooltip,
         useFishing: '사용: 가까운 물가에서 낚시합니다.',
@@ -1613,6 +1674,7 @@ export const mergeStrings = {
         clickUseInstant: '클릭하여 전투 중 즉시 사용',
         clickUse: '클릭하여 사용',
         clickBuyback: '클릭하여 되사기',
+        bagSlots: '{slots}칸 가방',
       },
       vendor: {
         ...itemNames.ko_KR.itemUi.vendor,
@@ -1747,7 +1809,7 @@ export const mergeStrings = {
   ja_JP: {
     abilityUi: {
       ...abilityStrings.ja_JP.abilityUi,
-      cast: { fishing: '釣り', demonHeal: '悪魔の治癒' },
+      cast: { fishing: '釣り', demonHeal: '悪魔の治癒', thunzharrStormcall: '嵐の呼び声' },
       actionBar: {
         ...abilityStrings.ja_JP.abilityUi.actionBar,
         clearHint: 'Shift-右クリックまたはShift-Deleteで消去',
@@ -1762,6 +1824,7 @@ export const mergeStrings = {
         tool: '道具',
         potion: 'ポーション',
         elixir: 'エリクサー',
+        bag: 'バッグ',
       },
       tooltip: {
         ...itemNames.ja_JP.itemUi.tooltip,
@@ -1772,6 +1835,7 @@ export const mergeStrings = {
         clickUseInstant: 'クリックして戦闘中に即使用',
         clickUse: 'クリックして使用',
         clickBuyback: 'クリックして買い戻す',
+        bagSlots: '{slots}スロットバッグ',
       },
       vendor: {
         ...itemNames.ja_JP.itemUi.vendor,
@@ -1906,7 +1970,11 @@ export const mergeStrings = {
   pt_BR: {
     abilityUi: {
       ...abilityStrings.pt_BR.abilityUi,
-      cast: { fishing: 'Pesca', demonHeal: 'Cura demoníaca' },
+      cast: {
+        fishing: 'Pesca',
+        demonHeal: 'Cura demoníaca',
+        thunzharrStormcall: 'Chamado da Tempestade',
+      },
       actionBar: {
         ...abilityStrings.pt_BR.abilityUi.actionBar,
         clearHint: 'Shift-clique direito ou Shift-Delete para limpar',
@@ -1921,6 +1989,7 @@ export const mergeStrings = {
         tool: 'Ferramenta',
         potion: 'Poção',
         elixir: 'Elixir',
+        bag: 'Bolsa',
       },
       tooltip: {
         ...itemNames.pt_BR.itemUi.tooltip,
@@ -1932,6 +2001,7 @@ export const mergeStrings = {
         clickUseInstant: 'Clique para usar instantaneamente em combate',
         clickUse: 'Clique para usar',
         clickBuyback: 'Clique para recomprar',
+        bagSlots: 'Bolsa de {slots} espaços',
       },
       vendor: {
         ...itemNames.pt_BR.itemUi.vendor,
@@ -2067,7 +2137,11 @@ export const mergeStrings = {
   ru_RU: {
     abilityUi: {
       ...abilityStrings.ru_RU.abilityUi,
-      cast: { fishing: 'Рыбная ловля', demonHeal: 'Исцеление демона' },
+      cast: {
+        fishing: 'Рыбная ловля',
+        demonHeal: 'Исцеление демона',
+        thunzharrStormcall: 'Зов бури',
+      },
       actionBar: {
         ...abilityStrings.ru_RU.abilityUi.actionBar,
         clearHint: 'Shift-правый щелчок или Shift-Delete, чтобы очистить',
@@ -2082,6 +2156,7 @@ export const mergeStrings = {
         tool: 'Инструмент',
         potion: 'Зелье',
         elixir: 'Эликсир',
+        bag: 'Сумка',
       },
       tooltip: {
         ...itemNames.ru_RU.itemUi.tooltip,
@@ -2093,6 +2168,7 @@ export const mergeStrings = {
         clickUseInstant: 'Нажмите, чтобы мгновенно использовать в бою',
         clickUse: 'Нажмите, чтобы использовать',
         clickBuyback: 'Нажмите, чтобы выкупить',
+        bagSlots: 'Сумка на {slots} ячеек',
       },
       vendor: {
         ...itemNames.ru_RU.itemUi.vendor,
@@ -2236,13 +2312,13 @@ const mergeEntitiesEn = {
   items: mergeNameTranslations(
     MERGE_ITEM_IDS,
     [
-      'Bristleback Maul',
+      'Gallowglass Hammer',
       "Broodmother's Silk Robe",
       'Cryptbone Greaves',
-      'Cryptstalker Jerkin',
-      'Deathlord Legguards',
-      'Deathlord Sabatons',
-      'Deathlord Warplate',
+      'Gravestalker Jerkin',
+      'Barrowlord Legguards',
+      'Barrowlord Sabatons',
+      'Barrowlord Warplate',
       "Drogmar's Warboots",
       'Drowned Prayer Leggings',
       'Drowned Prayer Sandals',
@@ -2268,9 +2344,9 @@ const mergeEntitiesEn = {
       "Mogger's Copper Cudgel",
       "Mogger's Shiv",
       "Mogger's Stomper Boots",
-      "Necromancer's Legwraps",
-      "Necromancer's Soulsteps",
-      "Necromancer's Starshroud",
+      'Mournweave Legwraps',
+      'Mournweave Soulsteps',
+      'Mournweave Starshroud',
       "Nhalia's Dirgeblade",
       "Nhalia's Funeral Wraps",
       'Raw Mirror Trout',
@@ -2282,15 +2358,15 @@ const mergeEntitiesEn = {
       'Valeborn Spellblade',
       "Voss's Sanctified Mace",
       'Wyrmcult Soulsteps',
-      'Wyrmshadow Harness',
-      'Wyrmshadow Legguards',
-      'Wyrmshadow Treads',
+      'Nightfang Harness',
+      'Nightfang Legguards',
+      'Nightfang Treads',
       'Glimmerfin Koi',
       'Raw Bog Eel',
       'Raw Frostgill Trout',
       'Raw Marsh Pike',
       'Raw River Perch',
-      'Raw Stonescale Carp',
+      'Raw Slatefin Carp',
       'Soggy Boot',
       'Elixir of the Bear',
       'Lesser Healing Potion',
@@ -2332,9 +2408,9 @@ const mergeEntitiesEn = {
       'Nhalia Mourner',
       'Sister Nhalia',
       'Varkas Boneguard',
-      'Imp',
-      'Voidwalker',
-      'Succubus',
+      'Emberkin',
+      'Gloomshade',
+      'Duskborn',
       'Grix the Tunnelking',
       'Brutok Skullsmasher',
       'Captain Verlan',
@@ -2342,10 +2418,10 @@ const mergeEntitiesEn = {
       'Sloomtooth the Drowned',
       'Voskar the Emberwing',
       'Wraithbinder Maldrec',
-      'Felhunter',
-      'Felguard',
-      'Infernal',
-      'Doomguard',
+      'Spellhound',
+      'Warfiend',
+      'Pyre Colossus',
+      'Wraithborn',
     ],
     'mob',
   ),
@@ -3683,21 +3759,29 @@ const mergeExtraEn = {
   abilities: abilityTranslations([
     [
       'bear_charge',
-      'Bear Charge',
-      'Charge an enemy, generating 9 rage and stunning it for 1 sec. 8-25 yd range. Bear Form only.',
+      'Bruin Rush',
+      'Charge an enemy, generating 9 rage and stunning it for 1 sec. 8-25 yd range. Bruin Form only.',
     ],
     [
       'demoralizing_roar',
-      'Demoralizing Roar',
-      'Demoralizes nearby enemies, reducing their attack power by 20 for 20 sec. Bear Form only.',
+      'Craven Roar',
+      'Demoralizes nearby enemies, reducing their attack power by 20 for 20 sec. Bruin Form only.',
     ],
-    ['prowl', 'Prowl', 'Enter stealth while in Wolf Form. Cannot be used in combat.'],
+    [
+      'prowl',
+      'Stalk',
+      'Enter stealth while in Wolf Form, moving 50% slower. Cannot be used in combat.',
+    ],
     [
       'rake',
-      'Rake',
+      'Flense',
       'A stealth opener that rakes the enemy for weapon damage plus {damage} and causes bleeding damage over 9 sec. Awards 1 combo point. Wolf Form only.',
     ],
-    ['revive_pet', 'Revive Pet', 'Revives your dead pet and returns it to your side.'],
+    [
+      'revive_pet',
+      'Patch Up',
+      'Patch up your companion, restoring {overTime} health over 12 sec in 3-sec ticks while it is alive. If it is dead, revive it at 35% health.',
+    ],
   ]),
   items: {
     ...mergeNameTranslations(
@@ -3714,9 +3798,9 @@ const mergeExtraEn = {
         'Warding Rubbing',
         'Moonpale Scale',
         'Moonscale Saber',
-        'Moonshroud Breastplate',
-        'Moonshroud Robe',
-        'Moonshroud Tunic',
+        'Moonwrack Breastplate',
+        'Moonwrack Robe',
+        'Moonwrack Tunic',
         'Pale Pearl',
         "Sethrael's Heartscale",
         'Palecoil Rod',
@@ -3731,13 +3815,13 @@ const mergeExtraEn = {
     boundstone_helm: { name: 'Boundstone Helm' },
     cryptbone_helm: { name: 'Cryptbone Helm' },
     cryptbone_pauldrons: { name: 'Cryptbone Pauldrons' },
-    deathlords_dread_visage: { name: "Deathlord's Dread Visage" },
+    deathlords_dread_visage: { name: 'Barrowlord Dread Visage' },
     gravewyrm_gauntlets: { name: 'Gravewyrm Gauntlets' },
     gravewyrm_mantle: { name: 'Gravewyrm Mantle' },
     mistveil_cord: { name: 'Mistveil Cord' },
     mistveil_grips: { name: 'Mistveil Grips' },
-    necromancers_soulspire_mantle: { name: "Necromancer's Soulspire Mantle" },
-    wyrmshadow_talongrips: { name: 'Wyrmshadow Talongrips' },
+    necromancers_soulspire_mantle: { name: 'Mournweave Soulspire Mantle' },
+    wyrmshadow_talongrips: { name: 'Nightfang Talongrips' },
   },
   mobs: mergeNameTranslations(
     DROWNED_MOB_IDS,
@@ -3843,7 +3927,11 @@ export const mergeExtra = {
         'Zarpazo',
         'Una apertura sigilosa que desgarra al enemigo causando el daño del arma más {damage} y provoca daño por sangrado durante 9 s. Otorga 1 punto de combo. Solo en Forma de lobo.',
       ],
-      ['revive_pet', 'Revivir mascota', 'Revive a tu mascota muerta y la devuelve a tu lado.'],
+      [
+        'revive_pet',
+        'Remendar',
+        'Remienda a tu mascota y restaura {overTime} de salud durante 12 s en pulsos cada 3 s mientras esté viva. Si está muerta, la revive con un 35% de salud.',
+      ],
     ]),
     items: {
       ...mergeNameTranslations(
@@ -3986,7 +4074,11 @@ export const mergeExtra = {
         'Lacérer',
         "Une attaque d'ouverture en camouflage qui lacère l'ennemi pour les dégâts de l'arme plus {damage} et inflige des dégâts de saignement sur 9 sec. Octroie 1 point de combo. Forme de loup uniquement.",
       ],
-      ['revive_pet', 'Ranimer le familier', 'Ranime votre familier mort et le ramène à vos côtés.'],
+      [
+        'revive_pet',
+        'Rafistoler',
+        "Rafistole votre familier et lui rend {overTime} points de vie en 12 s, par pulsations toutes les 3 s, s'il est vivant. S'il est mort, le ranime avec 35 % de ses points de vie.",
+      ],
     ]),
     items: {
       ...mergeNameTranslations(
@@ -4134,8 +4226,8 @@ export const mergeExtra = {
       ],
       [
         'revive_pet',
-        'Rianima Famiglio',
-        'Rianima il tuo famiglio morto e lo richiama al tuo fianco.',
+        'Rattoppare',
+        'Rattoppa il tuo famiglio, ripristinando {overTime} salute in 12 sec con impulsi ogni 3 sec se è vivo. Se è morto, lo rianima con il 35% della salute.',
       ],
     ]),
     items: mergeNameTranslations(
@@ -4271,8 +4363,8 @@ export const mergeExtra = {
       ],
       [
         'revive_pet',
-        'Begleiter wiederbeleben',
-        'Belebt deinen toten Begleiter wieder und ruft ihn an deine Seite zurück.',
+        'Zusammenflicken',
+        'Flickt deinen Begleiter zusammen und stellt ihm, solange er lebt, im Verlauf von 12 Sek. alle 3 Sek. insgesamt {overTime} Gesundheit wieder her. Ist er tot, wird er mit 35 % Gesundheit wiederbelebt.',
       ],
     ]),
     items: mergeNameTranslations(
@@ -4402,7 +4494,11 @@ export const mergeExtra = {
         '撕抓',
         '一记潜行起手技，以武器伤害外加{damage}撕抓敌人，并造成持续9秒的流血伤害。获得1点连击点数。仅限狼形态使用。',
       ],
-      ['revive_pet', '复活宠物', '复活你死去的宠物，并将其召回身边。'],
+      [
+        'revive_pet',
+        '修补',
+        '修补你的宠物。若其存活，在12秒内每3秒恢复一次生命值，共恢复{overTime}点；若其死亡，则以35%生命值将其复活。',
+      ],
     ]),
     items: mergeNameTranslations(
       DROWNED_ITEM_IDS,
@@ -4527,7 +4623,11 @@ export const mergeExtra = {
         '撕裂',
         '一招隱匿起手技，以武器傷害外加 {damage} 撕裂敵人，並造成持續 9 秒的流血傷害。給予 1 點連擊點數。僅限狼形態。',
       ],
-      ['revive_pet', '復活寵物', '復活你已死亡的寵物，並使其重回你身邊。'],
+      [
+        'revive_pet',
+        '修補',
+        '修補你的寵物。若其存活，在 12 秒內每 3 秒恢復一次生命值，共恢復 {overTime} 點；若其死亡，則以 35% 生命值將其復活。',
+      ],
     ]),
     items: mergeNameTranslations(
       DROWNED_ITEM_IDS,
@@ -4652,7 +4752,11 @@ export const mergeExtra = {
         '할퀴기',
         '은신 상태에서 적을 할퀴어 무기 피해에 더해 {damage}의 피해를 입히고 9초에 걸쳐 출혈 피해를 줍니다. 연계 점수 1을 부여합니다. 늑대 변신 상태에서만 사용 가능.',
       ],
-      ['revive_pet', '소환수 소생', '죽은 소환수를 되살려 당신의 곁으로 되돌립니다.'],
+      [
+        'revive_pet',
+        '응급 처치',
+        '소환수를 응급 처치합니다. 살아 있으면 12초에 걸쳐 3초마다 생명력을 회복해 총 {overTime}의 생명력을 회복합니다. 죽어 있으면 35%의 생명력으로 되살립니다.',
+      ],
     ]),
     items: mergeNameTranslations(
       DROWNED_ITEM_IDS,
@@ -4778,7 +4882,11 @@ export const mergeExtra = {
         '切り裂き',
         'ステルス状態からの先制攻撃で、武器ダメージに加えて{damage}のダメージを与え、9秒かけて出血ダメージを与える。コンボポイントを1獲得する。ウルフフォーム時のみ使用可能。',
       ],
-      ['revive_pet', 'ペット蘇生', '死んだペットを蘇生させ、自分のそばに呼び戻す。'],
+      [
+        'revive_pet',
+        '応急処置',
+        'ペットを応急処置する。生存している場合は12秒間、3秒ごとに回復し、合計{overTime}の体力を回復する。死亡している場合は体力35%で蘇生する。',
+      ],
     ]),
     items: mergeNameTranslations(
       DROWNED_ITEM_IDS,
@@ -4908,7 +5016,11 @@ export const mergeExtra = {
         'Dilacerar',
         'Um golpe de abertura furtivo que dilacera o inimigo causando dano de arma mais {damage} e provoca sangramento ao longo de 9 seg. Concede 1 ponto de combo. Apenas na Forma de Lobo.',
       ],
-      ['revive_pet', 'Reviver Mascote', 'Revive seu mascote morto e o traz de volta ao seu lado.'],
+      [
+        'revive_pet',
+        'Remendar',
+        'Remenda seu mascote, restaurando {overTime} de vida ao longo de 12 s em pulsos a cada 3 s se ele estiver vivo. Se estiver morto, revive-o com 35% da vida.',
+      ],
     ]),
     items: mergeNameTranslations(
       DROWNED_ITEM_IDS,
@@ -5040,8 +5152,8 @@ export const mergeExtra = {
       ],
       [
         'revive_pet',
-        'Оживление питомца',
-        'Оживляет вашего павшего питомца и возвращает его к вам.',
+        'Подлатать',
+        'Подлечивает питомца: если он жив, восстанавливает ему {overTime} ед. здоровья за 12 сек. с шагом в 3 сек. Если питомец мёртв, воскрешает его с 35% здоровья.',
       ],
     ]),
     items: mergeNameTranslations(

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { updateDelveCompanion } from '../src/sim/delves/companion';
 import { Sim } from '../src/sim/sim';
 import { terrainHeight } from '../src/sim/world';
 
@@ -115,8 +116,17 @@ describe('delve companions', () => {
     (sim as any).spawnDelveModule(run);
     const boss = [...sim.entities.values()].find((e) => e.templateId === 'deacon_varric');
     (sim as any).aggroMob(boss, sim.player, false);
-    const bark = sim.tick().find((e) => e.type === 'companionBark');
-    expect(bark?.barkId).toBe('boss_pull');
+    const bark = sim.tick().find((e) => e.type === 'companionBark' && e.barkId === 'boss_pull');
+    expect(bark).toBeDefined();
+  });
+
+  it('barks a run_start greeting when the companion spawns', () => {
+    const sim = makeSim();
+    sim.setPlayerLevel(10);
+    teleport(sim, 0, 0);
+    sim.enterDelve('collapsed_reliquary', 'normal');
+    const bark = sim.tick().find((e) => e.type === 'companionBark' && e.barkId === 'run_start');
+    expect(bark).toBeDefined();
   });
 
   it('does not repeat a bark id within a run (dedup guard)', () => {
@@ -132,10 +142,186 @@ describe('delve companions', () => {
     (sim as any).aggroMob(boss, sim.player, false);
     const first = sim.tick().find((e) => e.type === 'companionBark' && e.barkId === 'boss_pull');
     expect(first).toBeDefined();
+    // The event itself carries the speaker (hud must not depend on the mutable
+    // companionState mirror, which can be momentarily null online).
+    expect(first?.type === 'companionBark' ? first.companionId : null).toBe('companion_tessa');
     // Re-trigger the same pull; the dedup guard must suppress a repeat bark.
     (sim as any).aggroMob(boss, sim.player, false);
     const second = sim.tick().find((e) => e.type === 'companionBark' && e.barkId === 'boss_pull');
     expect(second).toBeUndefined();
+  });
+
+  it('rank 3 revives the fallen owner once per run at half health', () => {
+    const sim = makeSim();
+    sim.setPlayerLevel(20);
+    const meta = (sim as any).players.get(sim.playerId);
+    meta.companionUpgrades.companion_tessa = 3;
+    teleport(sim, 0, 0);
+    sim.enterDelve('collapsed_reliquary', 'normal');
+    const run = sim.delveRunForPlayer(sim.playerId)!;
+    const companion = sim.entities.get(run.companion!.entityId)!;
+    const p = sim.player;
+    p.dead = true;
+    p.hp = 0;
+    updateDelveCompanion((sim as any).ctx, companion);
+    expect(p.dead).toBe(false);
+    expect(p.hp).toBe(Math.max(1, Math.round(p.maxHp * 0.5)));
+    expect(run.companionReviveUsed).toBe(true);
+    expect(sim.entities.has(companion.id)).toBe(true); // she stays with the run
+    // Second death in the same run: the boon is spent, so the pre-existing
+    // dead-owner despawn behavior applies unchanged.
+    p.dead = true;
+    p.hp = 0;
+    updateDelveCompanion((sim as any).ctx, companion);
+    expect(p.dead).toBe(true);
+    expect(sim.entities.has(companion.id)).toBe(false);
+  });
+
+  it('rank 3 revive clears a movement intent held at death (issue 1651)', () => {
+    const sim = makeSim();
+    sim.setPlayerLevel(20);
+    const meta = (sim as any).players.get(sim.playerId);
+    meta.companionUpgrades.companion_tessa = 3;
+    teleport(sim, 0, 0);
+    sim.enterDelve('collapsed_reliquary', 'normal');
+    const run = sim.delveRunForPlayer(sim.playerId)!;
+    const companion = sim.entities.get(run.companion!.entityId)!;
+    const p = sim.player;
+    // Hold forward, then die: handleDeath does not zero moveInput, so the flag
+    // survives the dead interval and would re-activate the tick after the revive.
+    meta.moveInput.forward = true;
+    p.dead = true;
+    p.hp = 0;
+    updateDelveCompanion((sim as any).ctx, companion);
+    expect(p.dead).toBe(false);
+    expect(run.companionReviveUsed).toBe(true);
+    // The revived owner must not auto-walk from the stale intent.
+    expect(meta.moveInput.forward).toBe(false);
+  });
+
+  it('below rank 3 a dead owner still despawns the companion (no revive)', () => {
+    const sim = makeSim();
+    sim.setPlayerLevel(20);
+    teleport(sim, 0, 0);
+    sim.enterDelve('collapsed_reliquary', 'normal');
+    const run = sim.delveRunForPlayer(sim.playerId)!;
+    const companion = sim.entities.get(run.companion!.entityId)!;
+    const p = sim.player;
+    p.dead = true;
+    p.hp = 0;
+    updateDelveCompanion((sim as any).ctx, companion);
+    expect(p.dead).toBe(true);
+    expect(run.companionReviveUsed).toBe(false);
+    expect(sim.entities.has(companion.id)).toBe(false);
+  });
+
+  it('rank 3 revive does not recharge by leaving and re-entering the run', () => {
+    const sim = makeSim();
+    sim.setPlayerLevel(20);
+    const meta = (sim as any).players.get(sim.playerId);
+    meta.companionUpgrades.companion_tessa = 3;
+    teleport(sim, 0, 0);
+    sim.enterDelve('collapsed_reliquary', 'normal');
+    const run = sim.delveRunForPlayer(sim.playerId)!;
+    const companion = sim.entities.get(run.companion!.entityId)!;
+    const p = sim.player;
+    p.dead = true;
+    p.hp = 0;
+    updateDelveCompanion((sim as any).ctx, companion);
+    expect(p.dead).toBe(false); // boon spent on the first death
+    expect(run.companionReviveUsed).toBe(true);
+    // Door-cycle: leave (despawns the companion and re-mints its state on
+    // re-entry) and rejoin the SAME claimed run; the spent flag lives on the
+    // run, so the re-minted companion must not bring a fresh revive.
+    sim.leaveDelve();
+    teleport(sim, 0, 0);
+    sim.enterDelve('collapsed_reliquary', 'normal');
+    const run2 = sim.delveRunForPlayer(sim.playerId)!;
+    expect(run2).toBe(run); // rejoined, not re-claimed
+    expect(run2.companionReviveUsed).toBe(true);
+    const companion2 = sim.entities.get(run2.companion!.entityId)!;
+    p.dead = true;
+    p.hp = 0;
+    updateDelveCompanion((sim as any).ctx, companion2);
+    expect(p.dead).toBe(true); // no second revive in the same run
+  });
+
+  it('companion respawns after an in-delve player death and release', () => {
+    const sim = makeSim();
+    sim.setPlayerLevel(10);
+    teleport(sim, 0, 0);
+    sim.enterDelve('collapsed_reliquary', 'normal');
+    const run = sim.delveRunForPlayer(sim.playerId)!;
+    expect(run.companion).toBeDefined();
+    const oldId = run.companion!.entityId;
+
+    // Kill the owner and advance a couple of ticks so the mob-AI pass runs the
+    // owner-dead arm of updateDelveCompanion, which drops the companion entity
+    // before the player's spirit is released (mirrors the live sequence).
+    sim.player.dead = true;
+    sim.player.hp = 0;
+    sim.tick();
+    sim.tick();
+    expect(sim.entities.has(oldId)).toBe(false);
+
+    sim.releaseSpirit();
+
+    expect(run.companion).toBeDefined();
+    expect(run.companion!.entityId).not.toBe(oldId);
+    expect(sim.entities.has(run.companion!.entityId)).toBe(true);
+    expect(sim.companionState).not.toBeNull();
+  });
+
+  it('companion respawns after death in the Drowned Litany (Edda Reedhand)', () => {
+    const sim = makeSim();
+    sim.setPlayerLevel(14);
+    teleport(sim, 0, 0);
+    sim.enterDelve('drowned_litany', 'normal');
+    const run = sim.delveRunForPlayer(sim.playerId)!;
+    expect(run.companion?.companionId).toBe('companion_edda');
+    const oldId = run.companion!.entityId;
+
+    sim.player.dead = true;
+    sim.player.hp = 0;
+    sim.tick();
+    sim.tick();
+    expect(sim.entities.has(oldId)).toBe(false);
+
+    sim.releaseSpirit();
+
+    expect(run.companion?.companionId).toBe('companion_edda');
+    expect(run.companion!.entityId).not.toBe(oldId);
+    expect(sim.entities.has(run.companion!.entityId)).toBe(true);
+  });
+
+  it('respawning the companion after death does not recharge the rank 3 revive boon', () => {
+    const sim = makeSim();
+    sim.setPlayerLevel(20);
+    const meta = (sim as any).players.get(sim.playerId);
+    meta.companionUpgrades.companion_tessa = 3;
+    teleport(sim, 0, 0);
+    sim.enterDelve('collapsed_reliquary', 'normal');
+    const run = sim.delveRunForPlayer(sim.playerId)!;
+    const companion = sim.entities.get(run.companion!.entityId)!;
+
+    // Spend the once-per-run revive first.
+    sim.player.dead = true;
+    sim.player.hp = 0;
+    updateDelveCompanion((sim as any).ctx, companion);
+    expect(sim.player.dead).toBe(false);
+    expect(run.companionReviveUsed).toBe(true);
+
+    // A real death now (revive already spent) drops the companion; release
+    // should respawn her but must not reset the spent flag.
+    sim.player.dead = true;
+    sim.player.hp = 0;
+    sim.tick();
+    sim.tick();
+    sim.releaseSpirit();
+
+    expect(run.companionReviveUsed).toBe(true);
+    expect(run.companion).toBeDefined();
+    expect(sim.entities.has(run.companion!.entityId)).toBe(true);
   });
 
   it('companion upgrade rank 2 costs 3 marks (Marks only, no copper)', () => {
@@ -205,5 +391,79 @@ describe('delve companions', () => {
       if (sim.player.hp > Math.round(sim.player.maxHp * 0.5)) break;
     }
     expect(sim.player.hp).toBeGreaterThan(Math.round(sim.player.maxHp * 0.5));
+  });
+
+  // Direct module-import tests: drive the moved updateDelveCompanion(ctx, companion)
+  // straight against the live SimContext, proving src/sim/delves/companion.ts is the
+  // owner (no Sim method involved) across the heal, heel, and combat arms.
+  it('(module) heals the lowest-HP owner by the rank-scaled percent', () => {
+    const sim = makeSim();
+    sim.setPlayerLevel(10);
+    teleport(sim, 0, 0);
+    const meta = (sim as any).players.get(sim.playerId);
+    meta.companionUpgrades.companion_tessa = 2; // DELVE_COMPANION_HEAL_PCT[2] = 0.08
+    sim.enterDelve('collapsed_reliquary', 'normal');
+    const run = sim.delveRunForPlayer(sim.playerId)!;
+    const companion = sim.entities.get(run.companion!.entityId)!;
+    const p = sim.player;
+    p.hp = Math.max(1, Math.round(p.maxHp * 0.5));
+    companion.pos = { ...p.pos }; // within DELVE_COMPANION_HEAL_RANGE
+    companion.prevPos = { ...companion.pos };
+    companion.wanderTimer = 0; // heal cadence due this call
+    const before = p.hp;
+    updateDelveCompanion((sim as any).ctx, companion);
+    const expected = Math.min(p.maxHp - before, Math.round(p.maxHp * 0.08));
+    expect(expected).toBeGreaterThan(0);
+    expect(p.hp).toBe(before + expected);
+  });
+
+  it('(module) heels toward the owner when not in combat', () => {
+    const sim = makeSim();
+    sim.setPlayerLevel(10);
+    teleport(sim, 0, 0);
+    sim.enterDelve('collapsed_reliquary', 'normal');
+    const run = sim.delveRunForPlayer(sim.playerId)!;
+    const companion = sim.entities.get(run.companion!.entityId)!;
+    const p = sim.player;
+    p.targetId = null;
+    p.autoAttack = false;
+    p.inCombat = false;
+    // Drop hostile mobs so combatTarget is null and the heel arm runs.
+    for (const [id, e] of [...sim.entities]) {
+      if (e.kind === 'mob' && e.hostile) sim.entities.delete(id);
+    }
+    companion.pos = { x: p.pos.x + 10, y: p.pos.y, z: p.pos.z }; // > DELVE_COMPANION_FOLLOW (4)
+    companion.prevPos = { ...companion.pos };
+    companion.wanderTimer = 999; // keep the heal arm out of it
+    const d0 = Math.hypot(companion.pos.x - p.pos.x, companion.pos.z - p.pos.z);
+    updateDelveCompanion((sim as any).ctx, companion);
+    const d1 = Math.hypot(companion.pos.x - p.pos.x, companion.pos.z - p.pos.z);
+    expect(d1).toBeLessThan(d0); // moved toward the owner via ctx.moveToward
+  });
+
+  it('(module) acquires the owner target and swings it via mobSwing', () => {
+    const sim = makeSim();
+    sim.setPlayerLevel(10);
+    teleport(sim, 0, 0);
+    sim.enterDelve('collapsed_reliquary', 'normal');
+    const run = sim.delveRunForPlayer(sim.playerId)!;
+    run.modules = ['reliquary_sunken_ossuary'];
+    run.moduleIndex = 0;
+    (sim as any).spawnDelveModule(run);
+    const companion = sim.entities.get(run.companion!.entityId)!;
+    const mob = [...sim.entities.values()].find(
+      (e) => e.kind === 'mob' && e.hostile && e.templateId !== 'acolyte_tessa',
+    )!;
+    expect(mob).toBeDefined();
+    const hpBefore = mob.hp;
+    sim.player.targetId = mob.id; // companion prefers the owner's target
+    companion.pos = { ...mob.pos };
+    companion.prevPos = { ...companion.pos };
+    companion.swingTimer = 0;
+    for (let i = 0; i < 60; i++) {
+      updateDelveCompanion((sim as any).ctx, companion);
+      if (mob.hp < hpBefore) break;
+    }
+    expect(mob.hp).toBeLessThan(hpBefore);
   });
 });

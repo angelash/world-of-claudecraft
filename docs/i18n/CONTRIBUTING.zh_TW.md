@@ -1,6 +1,6 @@
 <div align="center">
 
-[English](../../CONTRIBUTING.md) · [Español](CONTRIBUTING.es.md) · [Español (España)](CONTRIBUTING.es_ES.md) · [Français](CONTRIBUTING.fr_FR.md) · [Français (Canada)](CONTRIBUTING.fr_CA.md) · [Italiano](CONTRIBUTING.it_IT.md) · [Deutsch](CONTRIBUTING.de_DE.md) · [简体中文](CONTRIBUTING.zh_CN.md) · **繁體中文** · [한국어](CONTRIBUTING.ko_KR.md) · [日本語](CONTRIBUTING.ja_JP.md) · [Português (Brasil)](CONTRIBUTING.pt_BR.md) · [Русский](CONTRIBUTING.ru_RU.md)
+[English](../../CONTRIBUTING.md) · [Español](CONTRIBUTING.es.md) · [Español (España)](CONTRIBUTING.es_ES.md) · [Français](CONTRIBUTING.fr_FR.md) · [Français (Canada)](CONTRIBUTING.fr_CA.md) · [Italiano](CONTRIBUTING.it_IT.md) · [Deutsch](CONTRIBUTING.de_DE.md) · [简体中文](CONTRIBUTING.zh_CN.md) · **繁體中文** · [한국어](CONTRIBUTING.ko_KR.md) · [日本語](CONTRIBUTING.ja_JP.md) · [Português (Brasil)](CONTRIBUTING.pt_BR.md) · [Русский](CONTRIBUTING.ru_RU.md) · [Nederlands](CONTRIBUTING.nl_NL.md) · [Polski](CONTRIBUTING.pl_PL.md) · [Bahasa Indonesia](CONTRIBUTING.id_ID.md) · [Türkçe](CONTRIBUTING.tr_TR.md) · [Svenska](CONTRIBUTING.sv_SE.md) · [Tiếng Việt](CONTRIBUTING.vi_VN.md) · [Dansk](CONTRIBUTING.da_DK.md)
 
 </div>
 
@@ -8,7 +8,7 @@
 
 首先，謝謝你來到這裡。World of ClaudeCraft 是由一群熱愛經典 MMO 的人共同打造的，每一份貢獻，無論大小，都讓它變得更好。修正一個錯字、翻譯遊戲、回報一個錯誤、打造一整座全新的地城：這些全都很有意義，我們很歡迎你。
 
-這份指南會協助你完成環境設定，並讓你的第一次貢獻順利進行。你不需要是專家。如果有任何不清楚的地方，歡迎到 [Discord](https://discord.gg/GjhnUsBtw) 提問，會有人很樂意幫你。
+這份指南會協助你完成環境設定，並讓你的第一次貢獻順利進行。你不需要是專家。如果有任何不清楚的地方，歡迎到 [Discord](https://discord.com/invite/worldofclaudecraft) 提問，會有人很樂意幫你。
 
 只要參與其中，就代表你同意遵守我們的[行為準則](../../CODE_OF_CONDUCT.md)。
 
@@ -118,7 +118,7 @@ World of ClaudeCraft 以多種語言發行，而且我們會在遊戲持續成�
 2. 改善既有的翻譯，或補上任何讀起來彆扭的部分。
 3. 執行 `npx tsc --noEmit` 確認沒有遺漏，然後開一個 PR。
 
-若要提議一個全新的語系，或想討論語氣與用語，請到 [Discord](https://discord.gg/GjhnUsBtw) 開一個討論串，我們會協助你把它接上去。我們特別歡迎母語者與流利的使用者。好的翻譯會讓世界各地的玩家覺得這款遊戲就像回到家一樣。
+若要提議一個全新的語系，或想討論語氣與用語，請到 [Discord](https://discord.com/invite/worldofclaudecraft) 開一個討論串，我們會協助你把它接上去。我們特別歡迎母語者與流利的使用者。好的翻譯會讓世界各地的玩家覺得這款遊戲就像回到家一樣。
 
 ## 回報錯誤與提出功能需求
 
@@ -129,7 +129,7 @@ World of ClaudeCraft 以多種語言發行，而且我們會在遊戲持續成�
 
 ## 取得協助
 
-卡住了，或只是想打聲招呼？歡迎加入[社群 Discord](https://discord.gg/GjhnUsBtw)。沒有任何問題太小，我們永遠歡迎新的貢獻者。
+卡住了，或只是想打聲招呼？歡迎加入[社群 Discord](https://discord.com/invite/worldofclaudecraft)。沒有任何問題太小，我們永遠歡迎新的貢獻者。
 
 ## 授權
 

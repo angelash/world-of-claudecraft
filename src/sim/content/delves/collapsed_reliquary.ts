@@ -103,6 +103,7 @@ export const COLLAPSED_RELIQUARY_DELVE: DelveDef = {
   index: 0,
   minLevel: 7,
   suggestedPlayers: 2,
+  maxPlayers: 2,
   doorPos: { x: -5, z: -52 },
   modules: ['reliquary_sunken_ossuary', 'reliquary_bell_niche', 'reliquary_saintless_hall'],
   moduleCount: [3, 3],
@@ -124,8 +125,8 @@ export const COLLAPSED_RELIQUARY_DELVE: DelveDef = {
     {
       id: 'heroic',
       label: 'Heroic',
-      // +3 enemy levels: at the delve floor (L7) that is a 44% player miss chance,
-      // so an under-levelled player is crushed even before the hard gate below.
+      // +3 enemy levels: at the delve floor (L7) that is the capped ~26% player miss
+      // chance, so an under-levelled player is punished even before the hard gate below.
       enemyLevelBonus: 3,
       affixCount: 1,
       rewardMult: 1.3,

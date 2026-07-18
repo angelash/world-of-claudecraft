@@ -1,0 +1,360 @@
+/* Fork-local AI diagnostics legacy island. The renderer stays pure and escaped in
+   tables.ts while AiOperations.svelte owns fetching, permissions, and events. */
+@layer components {
+  .admin-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 10px;
+  }
+  .admin-actions button,
+  .usage-table button {
+    min-height: 40px;
+    padding: 6px 10px;
+    border: 1px solid var(--border-soft);
+    border-radius: 3px;
+    color: var(--text-soft);
+    background: var(--btn-flat-bg);
+    cursor: pointer;
+  }
+  .admin-actions button:hover,
+  .usage-table button:hover {
+    color: var(--text-bright);
+    border-color: var(--gold-dim);
+  }
+  .admin-actions button:focus-visible,
+  .usage-table button:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+  .admin-actions button.danger {
+    color: var(--color-danger);
+    border-color: var(--color-danger-border);
+  }
+  .ai-details {
+    padding-top: 10px;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .ai-details summary,
+  .ai-audit-raw summary {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    color: var(--gold-dim);
+    cursor: pointer;
+  }
+  .ai-details summary:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+  .ai-details-body {
+    padding-top: 8px;
+  }
+  .ai-health-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .ai-health-cell {
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    background: var(--surface-inset);
+  }
+  .ai-health-value {
+    color: var(--gold);
+    font-family: var(--title-font);
+    font-size: 20px;
+    overflow-wrap: anywhere;
+  }
+  .ai-health-label {
+    margin-top: 3px;
+    color: var(--text-dim);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+  #ai-usage {
+    min-height: 0;
+  }
+  .ai-workspace {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 12px;
+    height: clamp(560px, calc(100vh - 216px), 980px);
+    min-width: 0;
+    overflow: hidden;
+  }
+  .ai-workspace > .ai-health-grid {
+    margin-bottom: 0;
+  }
+  .ai-tabbar {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    max-width: 100%;
+    padding-bottom: 2px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .ai-tab {
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding: 7px 12px;
+    border: 1px solid var(--border-soft);
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    color: var(--text-soft);
+    background: var(--surface-sunken);
+    font-family: var(--title-font);
+    font-size: 13px;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .ai-tab:hover {
+    color: var(--text-bright);
+    border-color: var(--gold-dim);
+  }
+  .ai-tab:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+  .ai-tab.active {
+    color: var(--gold);
+    border-color: var(--gold-dim);
+    background: var(--btn-flat-bg);
+  }
+  .ai-tab-panels {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .ai-tab-panel {
+    height: 100%;
+    min-width: 0;
+    padding-right: 2px;
+    overflow: auto;
+  }
+  .ai-tab-panel.active {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .ai-tab-panel[hidden] {
+    display: none;
+  }
+  .ai-tab-panel th,
+  .ai-tab-panel td {
+    vertical-align: top;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .ai-tab-panel .usage-table {
+    min-width: min(920px, 100%);
+    table-layout: auto;
+  }
+  .ai-tab-panel .table-scroll {
+    min-height: 0;
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    background: var(--surface-sunken);
+  }
+  .ai-audit-layout {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.82fr) minmax(420px, 1.18fr);
+    flex: 1 1 auto;
+    gap: 12px;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .ai-audit-list,
+  .ai-audit-detail-slot {
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    background: var(--surface-sunken);
+  }
+  .ai-audit-list {
+    display: grid;
+    grid-auto-rows: max-content;
+    align-content: start;
+    gap: 8px;
+    padding: 8px;
+  }
+  .ai-audit-detail-slot {
+    padding: 10px;
+  }
+  .ai-audit-card {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
+    min-width: 0;
+    min-height: 84px;
+    padding: 8px 10px;
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    color: var(--text);
+    background: var(--surface-inset);
+    font: inherit;
+    line-height: 1.3;
+    text-align: left;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+  }
+  .ai-audit-card:hover,
+  .ai-audit-card.active {
+    border-color: var(--gold-dim);
+  }
+  .ai-audit-card:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+  .ai-audit-card.active {
+    box-shadow: inset 3px 0 0 var(--gold-dim);
+  }
+  .ai-audit-card > * {
+    min-width: 0;
+  }
+  .ai-audit-card-top,
+  .ai-audit-card-meta,
+  .ai-audit-status-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+  }
+  .ai-audit-card-top {
+    justify-content: space-between;
+  }
+  .ai-audit-card-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+  .ai-audit-time,
+  .ai-audit-card-chip {
+    color: var(--text-dim);
+    font-size: var(--font-size-small);
+  }
+  .ai-audit-card-title {
+    overflow: hidden;
+    color: var(--gold);
+    font-family: var(--title-font);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ai-audit-card-sub,
+  .ai-audit-card-output {
+    overflow: hidden;
+    color: var(--text-soft);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ai-audit-card-chip {
+    display: block;
+    min-height: 18px;
+    padding: 1px 5px;
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    border-radius: 3px;
+    background: var(--bg-app);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ai-audit-detail-panel {
+    min-width: 0;
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    background: var(--surface-inset);
+  }
+  .ai-audit-detail-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .ai-audit-detail-title h4,
+  .ai-audit-detail-section h4 {
+    margin-bottom: 6px;
+    color: var(--gold-dim);
+    font-family: var(--title-font);
+    font-size: 13px;
+  }
+  .ai-audit-detail-panel dl {
+    display: grid;
+    grid-template-columns: minmax(120px, max-content) minmax(0, 1fr);
+    gap: 5px 10px;
+    font-size: var(--font-size-small);
+  }
+  .ai-audit-detail-panel dt {
+    color: var(--text-dim);
+  }
+  .ai-audit-detail-panel dd {
+    color: var(--text);
+    overflow-wrap: anywhere;
+  }
+  .ai-audit-detail-section {
+    min-width: 0;
+    margin-top: 12px;
+  }
+  .ai-audit-pre {
+    max-height: 360px;
+    padding: 10px;
+    overflow: auto;
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    color: var(--text);
+    background: var(--bg-app);
+    font-family: Consolas, "Courier New", monospace;
+    font-size: var(--font-size-small);
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .ai-audit-status-line {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .ai-audit-event-table {
+    min-width: 920px;
+  }
+
+  @media (max-width: 1000px) {
+    .ai-workspace {
+      height: auto;
+      min-height: 0;
+      max-height: none;
+      overflow: visible;
+    }
+    .ai-tab-panels,
+    .ai-tab-panel {
+      height: auto;
+      max-height: none;
+      overflow: visible;
+    }
+    .ai-audit-layout {
+      grid-template-columns: 1fr;
+      overflow: visible;
+    }
+    .ai-audit-list {
+      max-height: 42vh;
+    }
+    .ai-audit-detail-slot {
+      max-height: 70vh;
+    }
+  }
+}

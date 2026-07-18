@@ -1,27 +1,87 @@
 import type {
   AccountCosmetics,
+  ActiveFrostRing,
+  ActiveTemporalHourglass,
+  BankBonusSource,
+  CraftingIdentityView,
+  DailyRewardHistory,
+  DailyRewardLeaderboardPage,
+  DailyRewardSpinResult,
+  DailyRewardStatus,
   DelveCompanionInfo,
   DelveRunInfo,
   LockpickView,
+  PlayerProfessionsView,
 } from '../world_api';
-import { type AssistCandidate, resolveAssist } from './assist';
+import * as bagsMod from './bags';
+import { addStacked, BAG_SOCKETS, bagCapacity, canAddItem, migrationBagsFor } from './bags';
+import * as bankMod from './bank';
+import { type BankState, clampBonusSlots, sanitizeBankState } from './bank';
 import { lineOfSightClear, resolveMovement, resolvePosition } from './colliders';
+import { auraAffectsStats, removeCancelableAura } from './combat/aura_cancel';
+import { auraReplacementConflicts } from './combat/aura_stacking';
 import {
-  AUGMENTS_BY_ID,
-  type AugmentDef,
-  type AugmentSpecial,
-  type AugmentTier,
-  eligibleAugments,
-  POWERUPS,
-  POWERUPS_BY_ID,
-  type PowerupDef,
-  tierForWave,
-} from './content/augments';
+  cleanseFriendlyNpcAuras,
+  isRejectedFriendlyNpcAura,
+  updateAuras,
+  updateComboExpiry,
+  updateRegen,
+  updateTimers,
+} from './combat/auras';
 import {
-  delveChestItemsForTier,
-  LOCKPICK_TIER_REWARD,
-  lockpickPresetFor,
-} from './content/delves/lockpick_tiers';
+  meleeSwing as meleeSwingImpl,
+  rangedSwing as rangedSwingImpl,
+  startAutoAttack as startAutoAttackImpl,
+  stopAutoAttack as stopAutoAttackImpl,
+  updatePlayerAutoAttack as updatePlayerAutoAttackImpl,
+} from './combat/auto_attack';
+import {
+  cancelCast as cancelCastImpl,
+  castAbilityBySlot as castAbilityBySlotImpl,
+  castAbility as castAbilityImpl,
+  pushbackCast as pushbackCastImpl,
+  releaseEmpoweredAbility as releaseEmpoweredAbilityImpl,
+  spendResource as spendResourceImpl,
+  updateCasting as updateCastingImpl,
+} from './combat/casting_lifecycle';
+import { isLockedOut, isRooted, isSilenced, isStunned } from './combat/cc';
+import { aetherSurgeCostMult, echoVisibleTo } from './combat/chronomancy';
+import {
+  dealDamage as dealDamageImpl,
+  grantXp as grantXpImpl,
+  handleDeath as handleDeathImpl,
+} from './combat/damage';
+import { damageTakenWithin } from './combat/damage_history';
+import { runEffects as runEffectsImpl } from './combat/effect_dispatch';
+import { applyIgnite } from './combat/fire_mage';
+import { frostMageChannelPulse } from './combat/frost_mage';
+import { type FrozenOrbState, tickFrozenOrbs } from './combat/frozen_orb';
+import {
+  applyHeal as applyHealImpl,
+  consumeHealAbsorb as consumeHealAbsorbImpl,
+  critVulnBonus as critVulnBonusImpl,
+  healingTakenMult as healingTakenMultImpl,
+  healingThreat as healingThreatImpl,
+  hexOutputMult as hexOutputMultImpl,
+} from './combat/heal';
+import { advanceHeroicLeap } from './combat/heroic_leap';
+import { tickNaturesFury } from './combat/natures_fury';
+import * as resurrectionOfferMod from './combat/resurrection_offer';
+import { rewindHealAmount } from './combat/rewind';
+import { applySetProcs as applySetProcsImpl } from './combat/set_procs';
+import { spellCritBonusFromAuras, spellDamageMultFromAuras } from './combat/spell_combat';
+import { isSpellResisted } from './combat/spell_resist';
+import { warriorMeleeDefense } from './combat/warrior_hit_table';
+import { ensureWarriorStance } from './combat/warrior_stances';
+// A3: the augment/power-up content helpers used by the Fiesta match logic
+// (AUGMENTS_BY_ID/AugmentDef/eligibleAugments/POWERUPS/PowerupDef/tierForWave)
+// moved to social/fiesta.ts with that logic; sim.ts keeps only the type used by
+// the PlayerMeta interface + the power-up catalog the fiestaMatchInfo accessor reads.
+import { type AugmentSpecial, type AugmentTier, POWERUPS_BY_ID } from './content/augments';
+import { MAILBOXES } from './content/mailboxes';
+import type { GatheringProfessionId } from './content/professions';
+import { PTR_DEV_VENDOR_DEF } from './content/ptr_dev_vendor';
+import { FURY_ENTITY_ID, FURY_NPC_ID } from './content/pvp_honor';
 import {
   classHasSkin,
   EVENT_SKIN_TOKEN_ID,
@@ -35,122 +95,344 @@ import {
 import {
   cloneAllocation,
   computeTalentModifiers,
-  defaultBuild,
   emptyAllocation,
   emptyModifiers,
   FIRST_TALENT_LEVEL,
-  MAX_LOADOUTS,
-  pointsSpent,
   type Role,
+  repairAllocation,
   type SavedLoadout,
+  TALENTS,
   type TalentAllocation,
   type TalentModifiers,
-  talentPointsAtLevel,
-  talentsFor,
-  validateAllocation,
+  type TalentRowLevel,
 } from './content/talents';
+import {
+  resolveActiveWeaponSkin,
+  weaponSkinTypeMatches,
+  withWeaponSkinApplied,
+} from './content/weapon_skin_rules';
+import { WEAPON_SKINS } from './content/weapon_skins';
+import {
+  type AbilityChargeState,
+  applyCooldowns,
+  type SavedCooldowns,
+  serializeCooldowns,
+} from './cooldown_persist';
 import type { DelveShopGate, DelveShopOffer } from './data';
 import {
   ABILITIES,
-  ARENA_SLOT_COUNT,
+  ALL_RECIPES,
   abilitiesKnownAt,
   arenaOrigin,
-  CAMPS,
   CLASSES,
-  COMPANION_UPGRADE_COSTS,
   DEEPFEN_SHALLOWS_LAKE,
-  DELVE_AFFIXES,
   DELVE_COMPANIONS,
   DELVE_LIST,
-  DELVE_MODULES,
-  DELVE_SHOPS,
   DELVE_SLOT_COUNT,
-  DELVES,
   DUNGEON_LIST,
   DUNGEON_X_THRESHOLD,
-  DUNGEONS,
   delveAt,
-  delveModuleZOffset,
   delveOrigin,
-  delveShopGateUnlocked,
   dungeonAt,
   FISHING_RARE_ID,
   FISHING_TABLES,
-  GROUND_OBJECTS,
-  GROUP_XP_BONUS,
+  getActiveWorldContent,
   INSTANCE_SLOT_COUNT,
   ITEMS,
-  instanceOrigin,
   isArenaPos,
   isDelvePos,
   MOBS,
   NPCS,
-  PLAYER_START,
-  PROPS,
   QUESTS,
-  questRewardItemId,
-  resolveDelveShopOffers,
-  ZONES,
+  SPIRIT_HEALER_NPC_ID,
   zoneAt,
 } from './data';
+import * as deedsMod from './deeds';
 import {
-  DELVE_MODULE_LAYOUTS,
-  type DelveModuleId,
-  delveModuleEntry as delveLayoutEntry,
-} from './delve_layout';
-import {
-  ARENA_SPAWN_A,
-  ARENA_SPAWN_B,
-  ARENA_SPAWNS_A_2v2,
-  ARENA_SPAWNS_B_2v2,
-  DUNGEON_WALL_HW,
-  DUNGEON_WALL_X,
-} from './dungeon_layout';
+  createDeedRuntime,
+  type DeedRuntime,
+  freshDeedStats,
+  restoreDeedStats,
+  type SavedDeedStats,
+  serializeDeedStats,
+} from './deeds';
+import * as companionMod from './delves/companion';
+import * as lockpickMod from './delves/lockpick_controller';
+import * as runsMod from './delves/runs';
+import { CASCADE_SCENARIO } from './dev/cascade_playtest';
+import { despawnMobsForDev } from './dev_commands';
+import { projectOutsideDungeonDoors } from './dungeon_door_clearance';
+import * as nythraxis from './encounters/nythraxis';
+// A3: ARENA_SPAWNS_A_2v2/B_2v2 (read only by the moved fiestaRevive) now live with
+// social/fiesta.ts. The dungeon-wall consts (DUNGEON_WALL_HW/X) are now read only by
+// delves/runs.ts + render/dungeon.ts; W11 dropped the stranded sim.ts import. I2a's delve
+// move also dropped the now-unused delve_layout import (DELVE_MODULE_LAYOUTS et al.).
 import {
   createGroundObject,
   createMob,
   createNpc,
   createPlayer,
   type PlayerEquipment,
+  pctValue,
   recalcPlayerStats,
 } from './entity';
-import { canEquipItem } from './equipment_rules';
 import {
+  addEntityToRoster,
+  type DelayedEvent,
+  drainDelayedEvents,
+  dropEntityFromRoster,
+  type GroundAoE,
+  rebucketEntity,
+  releaseSpiritInDelve as releaseSpiritInDelveImpl,
+  runDespawnDecay,
+  tickGroundAoEs,
+} from './entity_roster';
+import { canEquipItem, resolveEquipSlot } from './equipment_rules';
+import { fleeSpeed } from './flee_speed';
+import { formatMoney } from './format_money';
+import * as interaction from './interaction';
+import { meetsLevelRequirement } from './item_level_req';
+import * as items from './items';
+import type { JailState } from './jail';
+import {
+  type DeedsLeaderboardPage,
+  type DevLeaderboardPage,
+  type GuildLeaderboardPage,
   LEADERBOARD_PAGE_SIZE,
   type LeaderboardPage,
+  paginateDeedsLeaderboard,
+  paginateDevLeaderboard,
+  paginateGuildLeaderboard,
   paginateLeaderboard,
 } from './leaderboard_page';
+import type { Ante, PickAction } from './lockpick';
+// L1: the loot-distribution layer (party-loot strategy, the rollLoot roller, copper
+// split, need-greed roll lifecycle, corpse-loot helpers) moved to ./loot/loot_roll.ts;
+// Sim keeps thin same-named delegates that call these.
 import {
-  ANTE_TO_PAGES,
-  ANTE_TO_STEP_TIMEOUT_MS,
-  ANTE_TO_TIER,
-  ANTE_TO_TRIES,
-  type Ante,
-  generateLockPages,
-  type LockSession,
-  type PickAction,
-  stepLock,
-  visibleCells,
-} from './lockpick';
-import { combatProfileForMob, effectiveMobMeleeRange, type MobCombatProfile } from './mob_combat';
+  activeLootRolls as activeLootRollsImpl,
+  assignMasterLoot as assignMasterLootImpl,
+  lootRollGroupStatus as lootRollGroupStatusImpl,
+  type PendingLootRoll,
+  partyLootCandidatesForMob as partyLootCandidatesForMobImpl,
+  removePlayerFromLootRolls,
+  resolveLootRoll as resolveLootRollImpl,
+  rollLoot as rollLootImpl,
+  setPartyLootMaster as setPartyLootMasterImpl,
+  submitLootRoll as submitLootRollImpl,
+} from './loot/loot_roll';
+import { type MailSave, PostOffice } from './mail/post_office';
+import { Market, type MarketListing, type MarketSave } from './market';
+import { defaultMarketQuery, type MarketQuery } from './market_query';
+import {
+  mobCombatProfile as mobCombatProfileFn,
+  mobEffectiveMeleeRange as mobEffectiveMeleeRangeFn,
+  tryMobMeleeSwingInRange as tryMobMeleeSwingInRangeFn,
+} from './mob/combat_profile';
+import { NYTHRAXIS_SPIRIT_MENDING_CAST_ID } from './mob/healer_channel';
+import * as lifecycle from './mob/lifecycle';
+import { resetEvadingMob as resetEvadingMobFn, updateMob as updateMobFn } from './mob/locomotion';
+import { runMobSwingAffixes } from './mob/mob_swing';
+import { rallyFleeingAllies } from './mob/social_aggro';
+import {
+  createMobScanCounters,
+  type MobScanCounters,
+  resetMobScanCounters,
+} from './mob/scan_counters';
+import {
+  isTrivialTo,
+  retargetMob as retargetMobFn,
+  updateMobTarget as updateMobTargetFn,
+} from './mob/targeting';
+import { emitMobYell } from './mob/yells';
+import type { MobCombatProfile } from './mob_combat';
 import {
   findPlayerPath,
   PLAYER_BODY_RADIUS,
   PLAYER_MAX_CLIMB_SLOPE,
   PLAYER_SWIM_DEPTH,
 } from './pathfind';
-import { questFallbackGrants } from './quest_fallback';
+import * as petAi from './pet/pet_ai';
+import * as petCommands from './pet/pet_commands';
+import {
+  isSwimming as isSwimmingImpl,
+  moveSpeedMult as moveSpeedMultImpl,
+  type PlayerMotionDeps,
+  SWIM_SPEED_MULT,
+  stepPlayerMotion,
+  swimSurfaceY,
+} from './player_motion';
+import {
+  type ArchetypeState,
+  acceptArchetypeQuest as acceptArchetypeQuestImpl,
+  advanceAmendsProgress as advanceAmendsProgressImpl,
+  archetypeStateFor,
+  archetypeTitleFor,
+  emptyArchetypeState,
+  hobbyCraftFor,
+  normalizeArchetypeState,
+  requiredAmendsProgress,
+  switchArchetype as switchArchetypeImpl,
+} from './professions/archetype';
+import {
+  type AcquireRecipeResult,
+  acquireRecipe as acquireRecipeImpl,
+  type CraftResult,
+  craftItem as craftItemImpl,
+} from './professions/crafting';
+import {
+  type ApplyEnchantResult,
+  applyEnchant as applyEnchantImpl,
+  type DisenchantResult,
+  disenchantItem as disenchantItemImpl,
+  isEnchantedInstance,
+} from './professions/enchanting';
+import * as professionsFocus from './professions/focus';
+import {
+  drainGatheringGrants,
+  emptyGatheringProficiency,
+  gatheringSkillsView,
+  gatherNodeById,
+  harvestNode as harvestNodeImpl,
+  isNodeHarvestableBy,
+  normalizeGatheringProficiency,
+} from './professions/gathering';
+import type { MasterworkProc } from './professions/masterwork';
+import { type SalvageResult, salvageItem as salvageItemImpl } from './professions/salvage';
+import type { ProfessionRecipeRecord as RecipeDef } from './professions/types';
+import {
+  craftSkillsFor,
+  emptyCraftSkills,
+  gainCraftSkill,
+  normalizeCraftSkills,
+} from './professions/wheel';
+import {
+  applyTalentAllocation,
+  deleteTalentLoadout,
+  respecTalents,
+  saveTalentLoadout,
+  selectTalentRow as selectTalentRowImpl,
+  setTalentSpec,
+  spendTalentPoint,
+  switchTalentLoadout,
+  talentPointBudget,
+} from './progression/talents';
+import { prestige as prestigeImpl, updateRested } from './progression/xp';
+import { advancePendingProjectiles, type PendingProjectile } from './projectile_travel';
+import * as honorMod from './pvp';
 import { sanitizeRemovedZone1Content } from './removed_zone1_content';
 import { Rng } from './rng';
+import { persistedResource } from './serialize_resource';
+import { createSimContext, type SimContext, type SimContextHost } from './sim_context';
+import * as chatMod from './social/chat';
+import * as tradeMod from './social/trade';
+import {
+  applyResurrectionSickness,
+  RESURRECTION_SICKNESS_ID,
+  releasePlayerSpirit,
+  resurrectAtCorpse,
+  resurrectAtSpiritHealer,
+  revivePlayerAt,
+  spawnOverworldSpiritHealers,
+} from './spirit';
+import { repairTalentLoadouts } from './talent_loadouts';
+import {
+  CURRENT_CHARACTER_CONTENT_REVISION,
+  migrateCharacterTalentsV2,
+} from './talent_save_migration';
+import {
+  rollWorldBossLoot as rollWorldBossLootImpl,
+  scaleWorldBossHp,
+  WORLD_BOSSES,
+  type WorldBossDef,
+} from './world_boss';
+
+// Same pattern for the Ravenpost mail book (server/db.ts persists it as a
+// per-realm world_state row alongside the market).
+export type { MailSave } from './mail/post_office';
+// Re-export so server/db.ts's `import type { MarketSave } from '../src/sim/sim'`
+// stays valid now that the type lives in market.ts.
+export type { MarketSave } from './market';
+
+import {
+  applyHeroicMobTuning,
+  mobLevelForDungeonDifficulty,
+  mobTemplateForDungeonDifficulty,
+} from './instances/difficulty';
+import {
+  awardHeroicMarks as awardHeroicMarksImpl,
+  enterCrypt as enterCryptImpl,
+  enterDungeon as enterDungeonImpl,
+  inheritDungeonResetLocks as inheritDungeonResetLocksImpl,
+  instanceClaimIdAt as instanceClaimIdAtImpl,
+  instanceInfoAt as instanceInfoAtImpl,
+  instanceKeyFor as instanceKeyForImpl,
+  instanceOriginOf as instanceOriginOfImpl,
+  instanceSlotAt as instanceSlotAtImpl,
+  leaveCrypt as leaveCryptImpl,
+  leaveDungeon as leaveDungeonImpl,
+  resetDungeonInstances as resetDungeonInstancesImpl,
+  updateDoorTriggers as updateDoorTriggersImpl,
+  updateInstances as updateInstancesImpl,
+} from './instances/dungeons';
+import { buyHeroicVendorItem as buyHeroicVendorItemImpl } from './instances/heroic_vendor';
+import * as questCommands from './quests/quest_commands';
+import {
+  checkQuestReady,
+  onInventoryChangedForQuests,
+  onMobKilledForQuests,
+  onNodeGatheredForQuests,
+  onRecipeCraftedForQuests,
+} from './quests/quest_credit';
+
+// computeQuestState (the pure quest-state fn) moved to quests/quest_commands.ts (W4);
+// re-export it here so ClientWorld's `import { computeQuestState } from '../sim/sim'`
+// (online.ts) stays byte-identical.
+export { computeQuestState } from './quests/quest_commands';
+
+import { completeCurrentQuestsForDev, completeQuestForDev } from './quests/dev_quest_commands';
+import * as arenaMod from './social/arena';
+import type { CardDuelMatch } from './social/card_duel';
+import * as cardDuelMod from './social/card_duel';
+import * as duelMod from './social/duel';
+// A4: Protect Yumi (formats yumi3/yumi5); match logic in social/yumi.ts, reached
+// via ctx callbacks + the two hostility arms in isHostileTo/isFriendlyTo.
+import * as yumiMod from './social/yumi';
+
+// A2: eloDelta (with ARENA_K_FACTOR) moved to social/arena.ts. Re-exported so the
+// public path `import { Sim, eloDelta } from './sim'` (tests/arena.test.ts) holds.
+export { eloDelta } from './social/arena';
+
+import { FINDER_ACTIVITIES, type FinderListingTag } from './content/dungeon_finder';
+import {
+  partyFrameAbsorb,
+  partyFrameAggroTargets,
+  partyFrameAuras,
+  partyFrameIncomingHeals,
+  partyFrameRole,
+} from './party_frame_info';
+import { DungeonFinderMachine } from './social/dungeon_finder';
+import * as fiestaMod from './social/fiesta';
+// A3: Fiesta tuning consts moved to social/fiesta.ts; these five are read back here
+// by the fiestaMatchInfo presentation accessor (which STAYS on Sim).
+import {
+  FIESTA_POWERUP_TELEGRAPH,
+  FIESTA_POWERUP_TTL,
+  FIESTA_RING_CX,
+  FIESTA_RING_CZ,
+  FIESTA_TOTAL_WAVES,
+} from './social/fiesta';
+import * as fiestaBotsMod from './social/fiesta_bots';
+import { PartyMachine } from './social/party';
+import * as readyCheckMod from './social/ready_check';
+import * as valeCupMod from './social/vale_cup';
+import { createVcState, type VcState } from './social/vale_cup';
+import * as valeCupBotsMod from './social/vale_cup_bots';
 import { SpatialGrid } from './spatial';
-import { orderTabTargets, TAB_QUERY_RADIUS } from './tab_target';
+import { isStunDrCategory } from './stun_dr';
+import { Targeting } from './targeting';
 import {
   addThreat,
-  clearThreat,
-  HEAL_THREAT_FACTOR,
-  MELEE_SWITCH_MULT,
-  RANGED_SWITCH_MULT,
-  stealthDetectionRadius,
   TAUNT_FORCE_SECONDS,
   threatEntries,
   threatModifier,
@@ -166,443 +448,264 @@ import {
   type AuraKind,
   angleTo,
   armorReduction,
-  CAST_PUSHBACK_SEC,
-  CHANNEL_PUSHBACK_FRACTION,
-  CONSUME_DURATION,
-  CONSUME_TICKS,
   type CrowdControlDrCategory,
-  type CurrencyLootStrategy,
-  canPrestige,
-  DEFAULT_PARTY_LOOT_STRATEGIES,
   type AiActiveMobActionRequest,
   type AiActiveMobActionResult,
   type AiActiveNpcActionRequest,
   type AiActiveNpcActionResult,
+  type CrowdControlDrState,
+  cloneInvSlot,
+  cloneItemInstancePayload,
+  DELVE_COMPANION_HEAL_INTERVAL,
+  type DeedStats,
   type DelveDef,
   type DelveModuleDef,
-  type DelveObjectState,
   type DelveRun,
   DT,
+  type DungeonDifficulty,
   dist2d,
   type Entity,
   type EquipSlot,
   type ErrorReason,
   emptyMoveInput,
+  FAERIE_FIRE_ARMOR_PCT,
   FISHING_CAST_ID,
   FISHING_CAST_TIME,
   GCD,
-  INTERACT_RANGE,
+  type HonorArenaDailyState,
   type InvSlot,
-  type ItemDef,
-  type ItemLootStrategy,
+  type ItemInstancePayload,
   isConsuming,
+  isDungeonDifficulty,
+  isPetClass,
   isQuestTurnInNpc,
-  type LootEntry,
+  INTERACT_RANGE,
+  LEASH_DISTANCE,
   type LootRollChoice,
+  type LootRollGroupStatus,
   type LootRollPrompt,
-  type LootSlot,
   type LootStrategies,
   MAX_LEVEL,
+  type MasterLootThreshold,
   MELEE_RANGE,
-  MILESTONES,
   type MobFamily,
-  type MobTemplate,
   type MoveInput,
-  meleeMissChance,
-  mobXpValue,
-  normAngle,
   type OverheadEmoteId,
+  PARTY_XP_RANGE,
+  type PendingResurrection,
   type PetMode,
   type PlayerClass,
-  type QuestDef,
   type QuestProgress,
   type QuestState,
-  questTurnInNpcIds,
+  questObjectiveRequired,
+  REVENGE_FREE_CHANCE,
+  REVENGE_FREE_DURATION,
+  type ReadyCheck,
+  type RiteIntensity,
   RUN_SPEED,
-  rageFromDealing,
-  rageFromTaking,
+  type SetProc,
   type SimConfig,
   type SimEvent,
   type SkinCatalog,
   type SkinRank,
-  spellHitChance,
-  TURN_SPEED,
+  type SportRole,
+  SUNDER_ARMOR_PCT_PER_STACK,
+  steadyAngleTo,
+  swingMissChance,
+  type VcBracket,
+  type VcNationId,
   type Vec3,
   virtualLevel,
-  xpForLevel,
+  type WeaponSkinLoadout,
+  type WeaponSkinType,
   xpToReachLevel,
 } from './types';
-import { groundHeight, WATER_LEVEL } from './world';
+import * as weaponStowMod from './weapon_stow';
+import {
+  groundHeight,
+  nearSteepWalls,
+  terrainSteepnessAt,
+  waterLevel,
+  waterLevelAt,
+} from './world';
 
-const LEASH_DISTANCE = 45;
-const DUNGEON_LEASH_DISTANCE = 70;
-// Classic "trivial con": a wild mob this many levels below the player goes
-// passive and will not auto-aggro from proximity (it still fights back if
-// attacked). Elites, rares, and bosses are never trivial.
-const TRIVIAL_LEVEL_GAP = 10;
-const CORPSE_DURATION = 60;
-const EVADE_SPEED_MULT = 1.6;
-// An evading mob walks a straight line home (no pathfinding) and stalls if deep
-// water or a collider sits between it and its spawn. Since evading mobs are
-// immune while resetting, a permanent stall = a permanently unkillable mob. If it
-// can't get closer to home for this long, it starts phasing through the blocker.
-const EVADE_STALL_TIMEOUT = 3;
+// TRIVIAL_LEVEL_GAP moved to mob/targeting.ts (used only by isTrivialTo).
+// CORPSE_DURATION moved to combat/damage.ts (C1; used only by the death path).
+// LEASH_DISTANCE / DUNGEON_LEASH_DISTANCE moved to types.ts (M2; shared with mob/locomotion.ts).
+// EVADE_SPEED_MULT / EVADE_STALL_TIMEOUT moved to mob/locomotion.ts (M2; slice-only).
 // Heading offsets (radians) a mob tries when its straight path is blocked, so it
 // can slide around a prop instead of pinning on it. Desired heading (0) first;
 // only evaluated past the first entry when that straight step is obstructed.
 const MOVE_SLIDE_FAN = [0, 0.5, -0.5, 1.0, -1.0, 1.6, -1.6];
-const BACKPEDAL_MULT = 0.65;
+// BACKPEDAL_MULT moved to player_motion.ts (MV1; read only by the movement kernel).
 // Low-HP flee ("fear"): a cowardly mob at or below this HP fraction panics, turns
 // and runs from its attacker for FLEE_DURATION seconds at FLEE_SPEED_MULT speed,
-// calling same-family allies within FLEE_HELP_RADIUS to assist. It flees only once
+// rallying same-family allies it runs past (mob/social_aggro.ts). It flees only once
 // per pull, then recovers its nerve and re-engages if it survived.
+// Retail-style combo points are character-bound: unspent points survive a target
+// swap and the combo target's death, then fade this many seconds after the last
+// point was built (awardCombo restamps comboUntil on every award).
+const COMBO_POINT_DURATION = 30;
 const FLEE_HP_THRESHOLD = 0.2;
 const FLEE_DURATION = 5;
-const FLEE_SPEED_MULT = 1.4;
-const FLEE_MAX_SPEED = RUN_SPEED;
-const FLEE_RETURN_GRACE = 8;
-const FLEE_HELP_RADIUS = 8;
+// FLEE_SPEED_MULT / FLEE_MAX_SPEED and the cap math live in ./flee_speed.ts.
+// FLEE_RETURN_GRACE moved to mob/locomotion.ts (M2; used only by recoverFromFlee).
 // Only sentient, cowardly families flee; beasts/undead/elementals/dragonkin fight
 // to the death. Elites, rares, and bosses never flee regardless of family.
-const FLEEING_FAMILIES: ReadonlySet<MobFamily> = new Set(['humanoid', 'kobold', 'murloc', 'troll']);
+const FLEEING_FAMILIES: ReadonlySet<MobFamily> = new Set([
+  'humanoid',
+  'burrower',
+  'mudfin',
+  'troll',
+]);
+
 const AI_ACTIVE_MOB_ACTION_MAX_DISTANCE = 28;
-const AI_ACTIVE_FLEE_FAMILIES: ReadonlySet<MobFamily> = new Set(['beast', 'humanoid', 'murloc', 'spider', 'kobold', 'troll', 'ogre']);
+const AI_ACTIVE_FLEE_FAMILIES: ReadonlySet<MobFamily> = new Set([
+  'beast',
+  'humanoid',
+  'mudfin',
+  'spider',
+  'burrower',
+  'troll',
+  'ogre',
+]);
 const AI_ACTIVE_NPC_PLAYER_DISTANCE = 28;
 const AI_ACTIVE_KEY_NPC_HOME_RADIUS = 3;
 const AI_ACTIVE_NPC_HOME_RADIUS = 6;
 const AI_ACTIVE_NPC_MOVE_SPEED_MULT = 0.35;
-const GRAVITY = 16;
-const JUMP_VELOCITY = 6; // apex = v^2/2g ≈ 1.125 yd
-const MELEE_ARC = 2.2; // radians half-arc within which melee swings connect
-const FALL_SAFE_DISTANCE = 12; // yards of free fall before damage
-const OBJECT_RESPAWN = 30;
-const NYTHRAXIS_RELIC_SUMMONS: Record<string, string> = {
-  captains_crest: 'fallen_captain_aldren',
-  priests_sigil: 'corrupted_priest_malric',
-  royal_seal: 'deathstalker_voss',
-};
-const _NYTHRAXIS_CRYPT_QUESTS = new Set(['q_nythraxis_sealed_crypt', 'q_nythraxis_bound_guardian']);
-const NYTHRAXIS_BOSS_ID = 'nythraxis_scourge_of_thornpeak';
-const NYTHRAXIS_ADD_ID = 'nythraxis_skeleton_warrior';
-const NYTHRAXIS_ALDRIC_ID = 'brother_aldric_raid';
-const _NYTHRAXIS_FINAL_QUEST_ID = 'q_nythraxis_scourges_end';
-const NYTHRAXIS_WARDSTONE_ITEM_ID = 'bastion_ward_stone';
-// How far a wardstone may sit from the boss spawn and still belong to this
-// encounter. The three arena wards form a wide forward triangle (~54yd out), so
-// this must comfortably exceed that; far above any cross-instance false match.
-const NYTHRAXIS_WARDSTONE_RANGE = 100;
-const NYTHRAXIS_GRAVEBREAKER_EVERY = 12;
-const NYTHRAXIS_GRAVEBREAKER_RANGE = 11;
-const NYTHRAXIS_GRAVEBREAKER_HALF_ARC = Math.PI / 3;
-const NYTHRAXIS_OPENER_SECOND_YELL_DELAY = 4;
-const NYTHRAXIS_DIALOGUE_LINE_SECONDS = 2.6;
-const NYTHRAXIS_RAISE_FALLEN_EVERY = 45;
-const NYTHRAXIS_PHASE_TWO_HP = 0.7;
-const NYTHRAXIS_SOUL_REND_EVERY = 30;
-const NYTHRAXIS_SOUL_REND_DURATION = 8;
-const NYTHRAXIS_SOUL_REND_STACK_RANGE = 5;
-const NYTHRAXIS_DEATHLESS_EVERY = 45;
-const NYTHRAXIS_DEATHLESS_CAST = 10;
-const NYTHRAXIS_DEATHLESS_CHANNEL = 5;
-const NYTHRAXIS_DEATHLESS_STUN = 5;
-const NYTHRAXIS_DEATHLESS_SOUL_REND_LOCKOUT = 15;
-const NYTHRAXIS_PHASE_TWO_SETTLE_DELAY = 5;
-const NYTHRAXIS_LOCKOUT_MS = 24 * 60 * 60 * 1000;
-const NYTHRAXIS_TRANSITION_DURATION = 21;
-const NYTHRAXIS_TRANSITION_STUN = 21.5;
-const NYTHRAXIS_FINAL_STAND_HP = 0.05;
-const NYTHRAXIS_ROOM_RADIUS = 260;
-// Brother Aldric enters on the door side of the arena (the raid's side, lower z
-// than the boss spawn) and walks toward the boss. Distances are yards in front
-// of the boss spawn: appears 50yd out, walks up to 30yd out (between door + boss).
-const NYTHRAXIS_ALDRIC_SPAWN_DIST = 50;
-const NYTHRAXIS_ALDRIC_WALK_DIST = 30;
-const PARTY_MAX = 5;
-const RAID_MIN = 5;
-const RAID_MAX = 10;
-const RAID_GROUP_MAX = 5;
-const DAMAGE_IDLE_DESPAWN_SECONDS = 60;
-const DAMAGE_IDLE_DESPAWN_MOB_IDS = new Set(['varkas_boneguard', 'bound_guardian']);
-const RAID_ALLOWED_DUNGEON_IDS = new Set(['nythraxis_crypt', 'nythraxis_boss_arena']);
-const RAID_REQUIRED_DUNGEON_IDS = new Set(['nythraxis_boss_arena']);
-const PARTY_XP_RANGE = 80; // yards: members this close share kill xp/credit
-// Rested XP (classic inn-rested bonus). Resting inside an inn footprint accrues a
-// pool that doubles KILL xp (200%) until spent — vanilla's signature casual-pacing
-// lever. Vanilla rate is 5% of a level per 8 in-game hours, capped at 1.5 levels.
-// The sim has no day/night clock, so "in-game hours" map to a fixed sim-seconds
-// constant (determinism: accrual is keyed off sim time via DT, never wall-clock).
-const RESTED_SECONDS_PER_GAME_HOUR = 60; // 1 in-game hour = 60 sim seconds
-const RESTED_FILL_FRACTION = 0.05; // a full "bubble" = 5% of the level's XP-to-level
-const RESTED_FILL_HOURS = 8; // accrued per this many in-game hours of resting
-const RESTED_CAP_LEVELS = 1.5; // pool clamps to 1.5 levels of XP, as in vanilla
-const RESTED_INN_PADDING = 2; // yards of slack around the inn footprint that still counts as resting
-const DUEL_COUNTDOWN = 3;
-// Ashen Coliseum 1v1 arena
-const ARENA_COUNTDOWN = 5; // gates pre-fight: heal up, no swings land yet
-const ARENA_RETURN_DELAY = 5; // aftermath: hold on the sands before going home
-const ARENA_MAX_DURATION = 150; // seconds; a stalling match resolves on hp%
-const ARENA_BASE_RATING = 1500; // every character starts here, unranked
-const ARENA_MIN_RATING = 100; // a rating floor so a losing streak can't go absurd
-const ARENA_K_FACTOR = 32; // Elo sensitivity per match
+
+// GRAVITY / JUMP_VELOCITY moved to player_motion.ts (MV1; movement-kernel-only).
+// FALL_SAFE_DISTANCE moved there too; re-exported for social/chat_readouts.ts (the
+// /falling readout shares the landing-damage threshold with the fall-damage model).
+export { FALL_SAFE_DISTANCE } from './player_motion';
+
+// Host-agnostic raid-lockout fallback: when no host injects a reset boundary (offline
+// browser, headless RL env, tests), a kill locks for a flat 24h day. The authoritative
+// server overrides this with its realm-local 3 AM daily reset via SimConfig.raidResetMs.
+const DEFAULT_RAID_LOCKOUT_MS = 24 * 60 * 60 * 1000;
+// OBJECT_RESPAWN moved to types.ts (shared with the extracted Nythraxis crypt-relic
+// respawn). The NYTHRAXIS_* encounter consts (relic summons, Aldric id, wardstone /
+// gravebreaker / soul-rend / deathless / transition tuning, room radius, lockout ms,
+// party-interact + vision delays) moved to encounters/nythraxis.ts (N1), the only
+// code that reads them. NYTHRAXIS_BOSS_ID / NYTHRAXIS_ADD_ID stay in types.ts.
+// PARTY_MAX / RAID_MIN / RAID_MAX / RAID_GROUP_MAX moved to social/party.ts (A1),
+// the only code that reads them.
+// RAID_ALLOWED_DUNGEON_IDS / RAID_REQUIRED_DUNGEON_IDS moved to instances/dungeons.ts
+// (I1: read only by enterDungeon's raid gate).
+// DAMAGE_IDLE_DESPAWN_SECONDS / DAMAGE_IDLE_DESPAWN_MOB_IDS moved to entity_roster.ts
+// (the despawn prologue's home); imported above for the damage-path timer reset.
+// RESTED_* rested-XP tuning + isResting/updateRested moved to progression/xp.ts (G1b),
+// the only code that reads them.
+// A2: DUEL_COUNTDOWN/DUEL_FORFEIT_DISTANCE moved to social/duel.ts; the Ashen
+// Coliseum 1v1 arena tuning (ARENA_COUNTDOWN/RETURN_DELAY/MAX_DURATION/BASE_RATING/
+// MIN_RATING/K_FACTOR) + eloDelta moved to social/arena.ts (ARENA_BASE_RATING is
+// imported back via arenaMod for the PlayerMeta ctor default).
 const ARENA_LADDER_SIZE = 10; // live online standings shipped to clients
-// 2v2 Fiesta — the dopamine-maxxed party mode. Score-based: down a foe to score,
-// they respawn (timers grow as the bout drags on), augments drop in three
-// escalating waves, and a hazard ring squeezes everyone toward the middle.
-const FIESTA_COUNTDOWN = 5;
-const FIESTA_SCORE_LIMIT = 15; // first team to this many takedowns wins
-const FIESTA_MAX_DURATION = 360; // hard cap (s); highest score wins, ties = draw
-const FIESTA_TOTAL_WAVES = 3; // augment waves
-const FIESTA_WAVE_INTERVAL = 50; // s of active play between augment waves
-const FIESTA_FIRST_WAVE_AT = 8; // s into the fight the first wave opens
-const FIESTA_RESPAWN_BASE = 3; // s for a first death
-const FIESTA_RESPAWN_PER_DEATH = 1.2; // each prior death lengthens your next wait
-const FIESTA_RESPAWN_PER_MINUTE = 1.5; // and the bout dragging on lengthens it too
-const FIESTA_RESPAWN_MAX = 14; // cap so it never feels hopeless
-const FIESTA_RING_CX = 0; // ring centre (instance-local) — the arena dais
-const FIESTA_RING_CZ = 2;
-const FIESTA_RING_START = 22; // radius covering both teams' spawns
-const FIESTA_RING_MIN = 6; // fully-closed radius
-const FIESTA_RING_DPS_PCT = 0.06; // max-hp fraction per second taken outside the ring
-const FIESTA_RING_SHRINK_RATE = 0.6; // yards/s the radius eases toward its target
-const FIESTA_POWERUP_FIRST = 12; // s into the bout before the first power-up
-const FIESTA_POWERUP_INTERVAL = 16; // s between power-up spawn attempts
-const FIESTA_POWERUP_TELEGRAPH = 5; // s of "spawning" warning before it's grabbable
-const FIESTA_POWERUP_TTL = 18; // s a ready power-up waits to be grabbed
-const FIESTA_POWERUP_RADIUS = 2; // grab radius
-const FIESTA_POWERUP_MAX = 3; // concurrent power-ups on the field
-const FIESTA_STANDARD_LEVEL = 20; // everyone fights at this level, balanced
+// A3: the 2v2 Fiesta tuning consts (score limit, augment waves, respawn growth,
+// hazard ring, power-ups, standard level) moved to social/fiesta.ts with the match
+// logic. FIESTA_RING_CX/CZ, FIESTA_TOTAL_WAVES, and FIESTA_POWERUP_TELEGRAPH/TTL are
+// imported back (above) for the fiestaMatchInfo presentation accessor, which stays
+// on Sim. (A2 already moved FIESTA_COUNTDOWN to social/arena.ts.)
 const PVP_ROOT_DR_RESET = 18; // seconds before a repeated PvP root is fresh again
+const PVP_STUN_DR_RESET = 18; // stuns share the root-style 100/50/25/immune scheme
 const PVP_POLYMORPH_DR_RESET = 60;
 const PVP_FEAR_DR_RESET = 60;
 const PVP_CC_DR_MULTIPLIERS = [1, 0.5, 0.25] as const;
 const PVP_POLYMORPH_DR_DURATIONS = [10, 5, 1] as const;
 const PVP_FEAR_DR_DURATIONS = [8, 4, 2, 1] as const;
-const SHAMAN_SHOCK_COOLDOWN_IDS = ['earth_shock', 'flame_shock', 'frost_shock'] as const;
-const DEMON_HEAL_CAST_ID = 'demon_heal';
-const SAY_RANGE = 25; // /say carries a short distance; /yell across a camp
-const YELL_RANGE = 100;
-const OVERHEAD_EMOTE_DURATION = 3.2;
-const CAST_COMPLETE_EPS = 1e-9;
+// Exported for social/chat.ts (broadcastEmote) + the /roll say/yell ranges; the in-sim
+// say/yell distance checks read it too. /say carries a short distance; /yell across a camp.
+export const SAY_RANGE = 25;
+// YELL_RANGE moved to types.ts (the chat router + the extracted Nythraxis yells share it).
+// OVERHEAD_EMOTE_DURATION moved to social/chat.ts (playEmote moved with it).
 
-// Predefined social emotes. Each entry maps a command (and its aliases) to the
-// third-person action text shown to everyone in /say range. `solo` is used with
-// no target; `target` (when present) is used when the emote names another
-// player and contains a `%t` placeholder for that player's name. The actor's
-// own name is rendered separately by the client, so these strings start at the
-// verb (e.g. "Aleph" + " waves.").
-interface EmoteDef {
-  solo: string;
-  target?: string;
-}
-const EMOTES: Record<string, EmoteDef> = {
-  wave: { solo: 'waves.', target: 'waves at %t.' },
-  bow: { solo: 'bows.', target: 'bows before %t.' },
-  cheer: { solo: 'cheers!', target: 'cheers at %t!' },
-  dance: { solo: 'bursts into dance.', target: 'dances with %t.' },
-  laugh: { solo: 'laughs.', target: 'laughs at %t.' },
-  cry: { solo: 'cries.', target: "cries on %t's shoulder." },
-  salute: { solo: 'salutes.', target: 'salutes %t.' },
-  thank: { solo: 'thanks everyone.', target: 'thanks %t.' },
-  clap: { solo: 'applauds. Bravo!', target: 'applauds %t. Bravo!' },
-  greet: { solo: 'greets everyone with a hearty hello.', target: 'greets %t with a hearty hello.' },
-  roar: { solo: 'lets out a mighty roar.', target: 'roars at %t.' },
-  sigh: { solo: 'sighs.', target: 'sighs at %t.' },
-  kneel: { solo: 'kneels down.', target: 'kneels before %t.' },
-  point: { solo: 'points.', target: 'points at %t.' },
-  flex: { solo: 'flexes.', target: 'flexes at %t.' },
-  cower: { solo: 'cowers in fear.', target: 'cowers in fear at the sight of %t.' },
-};
-// Command aliases → canonical emote key above.
-const EMOTE_ALIASES: Record<string, string> = {
-  hi: 'greet',
-  hello: 'greet',
-  thanks: 'thank',
-  applaud: 'clap',
-};
-// The auras a target carries that are working against it. Everything else
-// (buff_*, hot, absorb, imbue, stances, forms, stealth, thorns, attackspeed
-// haste) is treated as helpful/neutral. Used by /targetbuffs to tag each aura.
-const HARMFUL_AURA_KINDS: ReadonlySet<AuraKind> = new Set<AuraKind>([
-  'dot',
-  'slow',
-  'stun',
-  'root',
-  'incapacitate',
-  'polymorph',
-  'sunder',
-  'spellvuln',
-  'vulnerability',
-  'tongues',
-  'cost_tax',
-  'critvuln',
-]);
-
-function isHarmfulAura(kind: AuraKind): boolean {
-  return HARMFUL_AURA_KINDS.has(kind);
-}
-// A "Devour Magic"-strippable beneficial enhancement: a positive buff_* stat
-// buff, a heal-over-time, an absorb shield, or a weapon imbue. Stances, forms,
-// stealth, righteous fury, thorns and every debuff (incl. negative buff_* drains
-// like enfeeble/wither) are deliberately left alone — only an active "magic"
-// enhancement is eaten. Mirrors the inverse of the HUD's debuff test.
-function isDevourableAura(a: Aura): boolean {
-  return (
-    (a.kind.startsWith('buff_') && a.value > 0) ||
-    a.kind === 'hot' ||
-    a.kind === 'absorb' ||
-    a.kind === 'imbue'
-  );
-}
-const NEARBY_RANGE = 40; // /nearby scan radius — wider than say, tighter than yell
-const NEARBY_MAX = 10; // cap the /nearby list so a crowded camp can't spam chat
-// /assist resolves a named player only if they are within interest range (you can see
-// them) OR in your party/raid (you coordinate with them across the whole map). This
-// mirrors the server's ~120yd snapshot scope so /assist never reaches a stranger on the
-// far side of the world. Party/raid members are always included, regardless of distance.
-const ASSIST_RANGE = 120;
-const CHAT_BURST = 8; // messages a player may send back-to-back...
-const CHAT_REFILL = 2; // ...then this many more per second (caps spam amplifiers)
-// Max characters in a single chat line, matching classic WoW's 255-char editbox.
+// EmoteDef/EMOTES/EMOTE_ALIASES + ASSIST_RANGE moved to social/chat.ts (W5) with the
+// chat() router; HARMFUL_AURA_KINDS/isHarmfulAura + NEARBY_RANGE/NEARBY_MAX moved to
+// social/chat_readouts.ts with the /targetbuffs + /nearby readouts.
+// CHAT_BURST / CHAT_REFILL moved to social/chat.ts (chatAllowed moved with them).
+// Max characters in a single chat line, matching the classic 255-char editbox.
 // Authoritative cap: enforced here in the deterministic core so every host agrees;
 // the client maxlength + server chat-log slices mirror it.
 export const MAX_CHAT_MESSAGE_LEN = 255;
-const DUEL_FORFEIT_DISTANCE = 60;
-const TRADE_RANGE = 10;
-// The World Market (the Merchant's auction house)
-const MARKET_RANGE = INTERACT_RANGE + 2; // you must stand at the Merchant to deal
-const MARKET_MAX_LISTINGS = 12; // active player listings per seller
-const MARKET_MIN_PRICE = 1; // copper
-const MARKET_MAX_PRICE = 5_000_000; // 500g ceiling — guards against overflow / fat-finger
-const MARKET_CUT = 0.05; // the Merchant's cut on a completed sale (a gold sink)
-const MARKET_LISTING_DURATION = 48 * 3600; // sim-seconds an unsold listing lingers before returning
-const MARKET_WIRE_LIMIT = 120; // most listings shipped to one client at a time
-const VENDOR_BUYBACK_LIMIT = 12;
-const INSTANCE_EMPTY_TIMEOUT = 300; // seconds before an empty instance resets
-const DELVE_PLATE_RADIUS = 2.5;
-// Push-out radii (yards) for solid delve props, kept under the chest/grave interact
-// range (DELVE_PLATE_RADIUS + 2 = 4.5) so you can still loot from adjacent. Pressure
-// plates and open passages stay walkable (no entry here = radius 0).
-const DELVE_CHEST_SOLID_R = 2.4; // matches the enlarged reliquary chest footprint
-const DELVE_GRAVE_SOLID_R = 1.0;
-const DELVE_WALL_SOLID_R = 3.2; // an intact (undestroyed) destructible wall
-const DELVE_INTERACT_RANGE = 6;
-const DELVE_BAD_AIR_INTERVAL = 8;
-const DELVE_RAISE_DEAD_CHANNEL = 5;
-const DELVE_COMPANION_HEAL_RANGE = 22;
-const DELVE_COMPANION_HEAL_INTERVAL = 3;
-const DELVE_COMPANION_FOLLOW = 4;
-// Tessa heals a PERCENT of the target's max HP each tick, indexed by rank (1-3), so
-// her output stays relevant as player HP grows, the old flat `8 + rank*4` decayed to
-// noise by level 9. Tuned (combat spec) so L7 Normal is sustainable, L7 Heroic is not
-// savable by Tessa alone, and L9 Heroic is sustainable from rank 2.
-const DELVE_COMPANION_HEAL_PCT = [0, 0.06, 0.08, 0.1];
+// A2: DUEL_FORFEIT_DISTANCE moved to social/duel.ts.
+// G2: TRADE_RANGE moved to social/trade.ts with the trade methods.
+// The World Market (the Merchant's auction house) moved to market.ts (L2); the
+// MARKET_* consts live there now (MARKET_MAX_LISTINGS moved with the /listings readout
+// to social/chat_readouts.ts in W5, which imports it from market.ts directly).
+// VENDOR_BUYBACK_LIMIT moved to items.ts (W2) with the vendor sell/buyback methods.
+// INSTANCE_EMPTY_TIMEOUT relocated to types.ts (I1); no longer referenced in sim.ts.
+// Delve run-lifecycle consts moved to src/sim/delves/runs.ts (I2a): the solid-prop
+// radii (DELVE_CHEST/GRAVE/WALL_SOLID_R), DELVE_INTERACT_RANGE, DELVE_BAD_AIR_INTERVAL,
+// DELVE_RAISE_DEAD_CHANNEL, DELVE_EXIT_PORTAL_RADIUS, DELVE_LORE_ORDER, and (re-exported
+// below) DELVE_MODULE_NAMES + DELVE_IMPLEMENTED_AFFIXES. DELVE_PLATE_RADIUS +
+// DELVE_COMPANION_MAX_RANK + DELVE_COMPANION_HEAL_INTERVAL relocated to types.ts
+// (consumed by the I2a run module + I2c companion AI; of these sim.ts still reads only
+// DELVE_COMPANION_HEAL_INTERVAL, in the delve-companion path).
+// The companion (I2c) AI tuning consts (HEAL_RANGE/FOLLOW/HEAL_PCT) now live with the
+// per-tick brain in src/sim/delves/companion.ts; only LEVEL_PCT (spawn-only) stays.
 // Tessa's combat level as a fraction of the owner's, indexed by rank (1-3): she
 // arrives a junior aide and grows into a true peer as you invest Marks. Pairs with
 // DELVE_COMPANION_HEAL_PCT so a rank-up lifts both her survivability and her healing.
 const DELVE_COMPANION_LEVEL_PCT = [0, 0.5, 0.75, 1.0]; // index = rank
-const DELVE_COMPANION_MAX_RANK = 3;
-const DELVE_EXIT_PORTAL_RADIUS = 3.5;
-export const DELVE_MODULE_NAMES: Record<string, string> = {
-  reliquary_sunken_ossuary: 'The Sunken Ossuary',
-  reliquary_bell_niche: 'The Bell Niche',
-  reliquary_saintless_hall: 'The Saintless Hall',
-  reliquary_finale: 'The Bell-Buried Chamber',
-};
-// Lore journal entries unlocked one-per-clear across repeat runs (PRD §6.4 / §7.6).
-// Ids match the `delveUi.lore.*` i18n keys.
-const DELVE_LORE_ORDER = [
-  'eastbrook_ledger',
-  'first_collapse',
-  'gravecaller_mark',
-  'bell_below',
-  'tessa_note',
-] as const;
-// Affixes that actually have a sim hook today; rollDelveAffixes only draws from
-// these so a Heroic run never rolls an inert affix (PRD §6.7 v1 subset). The
-// other registered crypt affixes (grave_tax / unstable_roof / cult_remnants)
-// keep their UI/i18n entries but are excluded from the roll until implemented.
-export const DELVE_IMPLEMENTED_AFFIXES = new Set<string>([
-  'restless_graves',
-  'bad_air',
-  'candleblind',
-]);
-const MAX_CLIMB_SLOPE = PLAYER_MAX_CLIMB_SLOPE; // rise/run above which a ground move is blocked (cliffs, world rim)
+
+// DELVE_MODULE_NAMES + DELVE_IMPLEMENTED_AFFIXES now live in src/sim/delves/runs.ts;
+// re-exported from there so external importers (src/ui/sim_i18n.ts, tests) are unchanged.
+export { DELVE_IMPLEMENTED_AFFIXES, DELVE_MODULE_NAMES } from './delves/runs';
+
+// Rise/run above which ground is unwalkable (cliffs, mountain walls, the world
+// rim). Uphill steps are blocked both along the step direction AND by the true
+// terrain steepness at the destination (terrainSteepness), so a diagonal
+// switchback cannot beat the limit; airborne movement is gated the same way so
+// jump-spam cannot climb a face; and a player standing on ground steeper than
+// this slides downhill (STEEP_SLIDE_SPEED) and cannot jump until footing is
+// walkable again.
+const MAX_CLIMB_SLOPE = PLAYER_MAX_CLIMB_SLOPE;
+// STEEP_SLIDE_SPEED moved to player_motion.ts (MV1; movement-kernel-only).
 
 // How far a mob pulls same-family neighbours into a fight ("social aggro").
 // Murlocs (the clustered water mobs players call "frogs") used to pull too much,
 // chain-aggroing the whole pond and making solo pulls impossible (#102). Tune
 // per family here; everything else falls back to the default.
-const POTION_COOLDOWN = 60; // seconds; shared cooldown across combat potions (#103)
+// POTION_COOLDOWN moved to items.ts (W2) with the useItem potion branch.
 const DEFAULT_SOCIAL_PULL_RADIUS = 5;
 const SOCIAL_PULL_RADIUS: Partial<Record<MobFamily, number>> = {
-  murloc: 8,
+  mudfin: 8,
 };
-const PACK_FRENZY_AURA_ID = 'pack_frenzy'; // attack-speed buff granted to surviving packmates
-const BLOOD_FRENZY_AURA_ID = 'blood_frenzy'; // self attack-speed buff a wounded frenzyOnHit mob gains
-const SWIM_SURFACE_Y = WATER_LEVEL - 0.75; // body bobs just below the water line
+// PACK_FRENZY_AURA_ID moved to mob/lifecycle.ts (M4; used only by frenzyPackmates).
+// BLOOD_FRENZY_AURA_ID moved to combat/damage.ts (C1; used only by maybeFrenzyOnHit).
+// swimSurfaceY / SWIM_SPEED_MULT moved to player_motion.ts (MV1) and imported back
+// (follow trailing + the mob/pet water paths still read them here). swimSurfaceY
+// carries v0.22.0's location-aware form (waterLevelAt) in its new home.
 const SWIM_DEPTH = PLAYER_SWIM_DEPTH; // ground this far under the water line = deep water
-const SWIM_SPEED_MULT = 0.65;
 const FISHING_SAMPLE_DISTANCES = [4, 8, 12, 16, 20, 24];
 const DEEPFEN_FISHING_SHORE_MARGIN = 10;
 const THE_CODFATHER_ITEM_ID = 'the_codfather';
 const THE_CODFATHER_QUEST_ID = 'q_the_codfather';
-const DOOR_TRIGGER_RADIUS = 2.0; // walking this close to a dungeon door teleports you
-const NYTHRAXIS_PARTY_INTERACT_RANGE = 30;
-const NYTHRAXIS_VISION_LINE_DELAY = 5;
+// DOOR_TRIGGER_RADIUS moved to instances/dungeons.ts (I1: read only by updateDoorTriggers).
+// NYTHRAXIS_PARTY_INTERACT_RANGE / NYTHRAXIS_VISION_LINE_DELAY moved to
+// encounters/nythraxis.ts (N1) with the crypt-quest helpers that read them.
 const BODY_RADIUS = PLAYER_BODY_RADIUS;
 const CHARGE_SPEED_MULT = 3; // warrior charge runs at 3x normal speed
-const CHARGE_MAX_DURATION = 3; // seconds before a blocked charge gives up
 const CHARGE_ARRIVE_RANGE = MELEE_RANGE - 1; // stop inside melee range
 const FOLLOW_STOP_DIST = 3; // /follow trails this close behind the leader (yards)
 const FOLLOW_MAX_RANGE = 60; // give up follow once the leader is this far away
-const PET_LEASH = 40; // yards from the owner before a pet gives up its target
-const PET_FOLLOW_DISTANCE = 3.5;
-const PET_TELEPORT_DISTANCE = 60; // owner this far AND no route exists: pet warps to heel (last resort)
-const PET_PATH_RECALC = 0.5; // seconds between heel-path A* recomputes per pet (throttle)
-const PET_PATH_SPAN = 96; // A* search half-window in cells; covers the teleport distance + slack
-const PET_PATH_STALE_DISTANCE = 4; // path end this far from the (now-moved) owner: recompute the heel route
-const PET_WAYPOINT_REACHED = 1; // pet within this of the next waypoint: pop it and home on the next leg
-const PET_ASSIST_RANGE = 50; // how far the pet scans for enemies engaging the pair
-const PET_AGGRESSIVE_RANGE = 18; // aggressive pets look for idle enemies this close
-// Anti-AFK: an aggressive pet only proactively pulls fresh targets while its
-// owner has acted (moved, cast, or commanded the pet) within this many ticks.
-// 1200 ticks = 60s at 20Hz. Stops hunters/warlocks parking an aggressive pet to
-// farm XP/loot while AFK; the pet still DEFENDS an idle owner. Tunable.
-const PET_OWNER_IDLE_TICKS = 1200;
+// Pet-AI tick tuning (PET_LEASH/PET_FOLLOW_DISTANCE/PET_PATH_*/PET_WAYPOINT_REACHED/
+// PET_ASSIST_RANGE/PET_AGGRESSIVE_RANGE/PET_OWNER_IDLE_TICKS) moved with the slice to
+// src/sim/pet/pet_ai.ts (P1a). PET_GROWL_INTERVAL + PET_TELEPORT_DISTANCE relocated to
+// ./types: PET_GROWL_INTERVAL is consumed by pet_ai.ts + pet_commands.ts (petTaunt, P1b),
+// PET_TELEPORT_DISTANCE by pet_ai.ts + the delve-companion follow (delves/companion.ts);
+// sim.ts imports neither now.
 // A pet only keeps its OWNER flagged in combat while it is actively trading blows
 // (its combatTimer resets to 0 on every hit dealt/taken). A pet that merely holds a
 // target it is chasing or can't reach stops dragging the owner into perpetual combat
 // past this window, so the owner's out-of-combat health regen resumes. Matches the
 // 5s combat-linger used for the owner's own inCombat flag.
 const PET_COMBAT_LINGER = 5;
-const PET_TAUNT_RANGE = 5;
-const PET_GROWL_INTERVAL = 10; // controlled pets can tank by forcing attention
-const PET_FEED_DURATION = 5;
-const PET_FEED_TICK = 1;
-const DEMON_HEAL_MANA_COST = 55;
-const DEMON_HEAL_DURATION = 5;
-const DEMON_HEAL_TICK = 1;
-const TAMED_TARGET_RESPAWN_SECONDS = 60;
-const LOOT_ROLL_TIMEOUT = 30;
-const FRIENDLY_NPC_REJECTED_AURA_KINDS: ReadonlySet<AuraKind> = new Set([
-  'dot',
-  'slow',
-  'stun',
-  'root',
-  'incapacitate',
-  'polymorph',
-  'attackspeed',
-  'sunder',
-  'spellvuln',
-  'vulnerability',
-  'tongues',
-  'cost_tax',
-  'critvuln',
-]);
-
-function isRejectedFriendlyNpcAura(aura: Aura): boolean {
-  return FRIENDLY_NPC_REJECTED_AURA_KINDS.has(aura.kind);
-}
+// PET_TAUNT_RANGE / PET_FEED_DURATION / PET_FEED_TICK / DEMON_HEAL_MANA_COST /
+// DEMON_HEAL_DURATION / DEMON_HEAL_TICK / TAMED_TARGET_RESPAWN_SECONDS moved with the
+// slice to src/sim/pet/pet_commands.ts (P1b); DEMON_HEAL_CAST_ID -> ./types (read by the
+// casting channel-tick arm now in combat/casting_lifecycle.ts; sim.ts no longer imports it).
+// LOOT_ROLL_TIMEOUT moved with the loot slice to src/sim/loot/loot_roll.ts (L1).
 
 export interface Party {
   id: number;
@@ -611,17 +714,8 @@ export interface Party {
   raid: boolean;
   raidGroups: Map<number, 1 | 2>; // pid -> raid subgroup
   lootStrategies: LootStrategies;
-}
-
-interface PendingLootRoll {
-  id: number;
-  mobId: number;
-  itemId: string;
-  itemName: string;
-  quality: ItemDef['quality'];
-  candidates: number[];
-  choices: Map<number, { choice: LootRollChoice; roll: number | null }>;
-  expiresAt: number;
+  lootTurn: number; // round-robin common-item cursor; advances once per awarded item
+  dungeonDifficulty?: DungeonDifficulty;
 }
 
 export interface TradeSession {
@@ -640,18 +734,7 @@ export interface DuelState {
   timer: number; // countdown remaining / elapsed
 }
 
-type GroundAoE = {
-  sourceId: number;
-  pos: Vec3;
-  radius: number;
-  min: number;
-  max: number;
-  remaining: number;
-  interval: number;
-  tickTimer: number;
-  school: string;
-  ability: string;
-};
+// GroundAoE type moved to entity_roster.ts (the ground-AoE drain's home); imported above.
 
 export type { ArenaFormat } from './types';
 
@@ -664,6 +747,18 @@ export interface ArenaQueueUnit {
 // slot; `returns` remembers where each was standing so the match can put them
 // back when it ends. Ratings are snapshotted at the start purely for the
 // result message — the authoritative values live on each PlayerMeta.
+// Per-fighter recovery pools snapshotted at match formation (before the arena
+// clean-slate reset) so returnFromArena can restore them instead of full-healing.
+// This is what stops an arena bout being abused as a free, instant full restore
+// of HP, resource, and cooldowns (issue #1600).
+export interface ArenaReturnPools {
+  hp: number;
+  resource: number;
+  cooldowns: Map<string, number>;
+  abilityCharges: Record<string, AbilityChargeState>;
+  ccDr: Map<CrowdControlDrCategory, CrowdControlDrState>;
+}
+
 export interface ArenaMatch {
   id: number;
   format: ArenaFormat;
@@ -673,10 +768,22 @@ export interface ArenaMatch {
   state: 'countdown' | 'active' | 'over';
   timer: number; // countdown remaining, then elapsed once active, then return countdown
   returns: Map<number, { x: number; z: number; facing: number }>;
+  // Pre-match HP/resource/cooldown/CC DR pools keyed by pid, restored on return
+  // so no arena format can be farmed as a free full-restore (issue #1600).
+  // Optional only for compatibility with synthetic/legacy ArenaMatch fixtures.
+  preMatchPools?: Map<number, ArenaReturnPools>;
   ratingA: number; // team avg at start
   ratingB: number;
   defeated: Set<number>;
+  // Result accounting is exactly once even if a disconnect arrives during the
+  // post-match return delay. Practice matches never award honor.
+  resultRecorded?: boolean;
+  practice?: boolean;
+  // Stable team identities snapshotted at match start for persisted honor DR.
+  honorTeamAKey?: string;
+  honorTeamBKey?: string;
   fiesta?: FiestaState; // present only for format === 'fiesta'
+  yumi?: YumiMatchState; // present only for format 'yumi3' | 'yumi5'
 }
 
 // Everything that makes a Fiesta bout a fiesta. Lives on the ArenaMatch so it is
@@ -696,6 +803,8 @@ export interface FiestaState {
   respawn: Map<number, number>; // pid -> seconds until revive (absent = alive)
   deaths: Map<number, number>; // pid -> times downed (drives respawn growth)
   kills: Map<number, number>; // pid -> takedowns this bout (scoreboard)
+  // Per killer-victim takedown count for in-match honor diminishing returns.
+  honorKillsByPair: Map<string, number>;
   streak: Map<number, number>; // pid -> takedowns since last death (word pops)
   lastKill: Map<number, number>; // pid -> active-timer of last takedown (double-kill window)
   // Augment offers wait here until the player's NEXT death so a pick never
@@ -719,21 +828,55 @@ export interface FiestaPowerup {
   timer: number; // spawning: countdown to ready; ready: countdown to despawn
 }
 
-// Standard Elo. Returns the points the winner gains (and the loser loses) for
-// an outright result; a draw moves each toward its expected score by half.
-export function eloDelta(winnerRating: number, loserRating: number, score = 1): number {
-  const expected = 1 / (1 + 10 ** ((loserRating - winnerRating) / 400));
-  return Math.round(ARENA_K_FACTOR * (score - expected));
+// Everything that makes a Protect Yumi bout (formats 'yumi3'/'yumi5'; the
+// system lives in social/yumi.ts). Lives on the ArenaMatch so it is torn down
+// with the match. Teleport picks + the last-resort tiebreak draw from the
+// per-match `rng` (fiesta's two-stream rule), never the shared sim stream.
+export interface YumiMatchState {
+  teamSize: 3 | 5;
+  yumiA: number; // entity id of team A's cat
+  yumiB: number;
+  nextTeleportAt: number; // active-timer (s) of the next simultaneous teleport
+  suddenDeath: boolean; // latched at YUMI_SUDDEN_AT: teleports freeze, the bleed ramps
+  respawn: Map<number, number>; // pid -> seconds until revive (absent = alive)
+  deaths: Map<number, number>; // pid -> times downed (scoreboard)
+  kills: Map<number, number>; // pid -> takedowns (scoreboard)
+  dmgToYumiA: number; // cumulative player damage dealt TO cat A (tiebreak)
+  dmgToYumiB: number;
+  lastStatusSecond: number; // last whole active-second a yumiStatus heartbeat went out
+  rng: Rng;
 }
+
+// A2: eloDelta (with ARENA_K_FACTOR) moved to social/arena.ts; re-exported from the
+// import block above so `import { Sim, eloDelta } from './sim'` is preserved.
 
 export interface InstanceSlot {
   dungeonId: string;
+  difficulty: DungeonDifficulty;
   slot: number;
   partyKey: string | null; // party id or 'solo:<pid>'
   mobIds: number[];
   objectIds: number[];
   exitId: number | null;
   emptyFor: number;
+  // Sim-time until this live claim may be manually replaced again. Claim-owned
+  // authority prevents party roster or leadership churn from rotating away the
+  // reset cooldown; cleared whenever the slot returns to the free pool.
+  resetAvailableAt: number;
+  // Sim-time (seconds) this slot was claimed, cleared with the claim. Session
+  // state (instances never persist); the Sanctum speed deed reads it.
+  claimedAt?: number;
+  // Players whose heroic daily lockout FIRST landed with THIS claim's final-boss
+  // kill (instances/dungeons lockToHeroicClaim). The heroic door's cleared-run
+  // exception admits only these: a player locked by an earlier run can never
+  // treat someone else's cleared claim as their own loot run.
+  clearedBy: Set<number>;
+  // Players who stepped through this claim's door during this run (enterDungeon).
+  // Session-only like clearedBy, cleared with the claim. The heroic mail arm
+  // (instances/dungeons awardHeroicMarks) pays a locked-but-absent player only
+  // when they actually entered this run: a door-camper or a member parked in
+  // town takes the lockout without turning roster membership into mailed income.
+  enteredBy: Set<number>;
 }
 
 export interface ResolvedAbility {
@@ -745,6 +888,12 @@ export interface ResolvedAbility {
   effects: AbilityEffect[];
   threatFlat: number; // classic bonus threat on a successful use
   threatMult: number; // classic multiplier on this ability's damage-threat
+  castWhileMoving?: boolean; // talent-granted mobility (def.castWhileMoving covers baseline)
+  damagePushbackImmune?: boolean; // talent-granted immunity to damage-driven cast pushback
+  charges?: number; // authored stored uses; undefined means one use
+  bonusCharges?: number; // talent-added uses, kept distinct from native maxCharges
+  /** 1-based authoritative charge stage for hold-to-charge spells. */
+  empowerLevel?: number;
 }
 
 export interface RewardCounters {
@@ -790,6 +939,12 @@ export interface PlayerMeta {
   characterId?: number;
   cls: PlayerClass;
   name: string;
+  // Dev-only test dummy spawned via "/dev bot <name>" (social/chat.ts, gated by
+  // devCommands): a stationary player you can target and whisper to exercise social
+  // features offline; a whisper to it auto-replies. Runtime-only, never serialized.
+  isDevBot?: boolean;
+  // Offline Fiesta practice opponent. Session-only and never serialized.
+  isFiestaBot?: boolean;
   skin: number; // appearance index into the render SKINS[player_<cls>]; persisted, synced
   skinCatalog: SkinCatalog;
   // Cosmetic skin-select event: the rank rolled when the event token was used,
@@ -799,21 +954,82 @@ export interface PlayerMeta {
   pendingSkinCatalog: SkinCatalog | null;
   pendingSkinItemId: string | null;
   moveInput: MoveInput;
+  // Monotonic counter bumped when a bulky, rarely-changing wire field (the
+  // inventory, and the collection-quest progress derived from it) mutates, so a
+  // host can cheaply tell whether that state needs re-sending without diffing
+  // it every frame. Runtime-only signal, never serialized/persisted.
+  wireRev: number;
   inventory: InvSlot[];
+  // The 4 equippable bag sockets (itemId of a kind:'bag' item, or null). The
+  // 16-slot backpack is implicit; capacity math lives in bags.ts. Persisted.
+  bags: (string | null)[];
+  // The per-character bank: a second pooled item store with its own copper-bought
+  // slot budget. Capacity/move math lives in bank.ts. Persisted (inside the
+  // character save, exactly like inventory/bags).
+  bank: BankState;
+  // The per-source breakdown behind bank.bonusSlots, stamped by the host at join
+  // alongside the total (addPlayer's bankBonus opt). Display-only session state:
+  // never persisted, never sim-mutated, always [] offline; capacity itself rides
+  // bank.bonusSlots. Excluded from the parity meta sample (tests/parity/trace.ts).
+  bankBonusSources: BankBonusSource[];
   vendorBuyback: InvSlot[];
   copper: number;
   equipment: PlayerEquipment;
+  // Per-slot ItemInstancePayload for whichever equipped piece carries one (an
+  // enchanted item's rolled.stats, see src/sim/professions/enchanting.ts).
+  // Sparse: a slot with a plain (unenchanted) piece has no entry.
+  equipmentInstance: Partial<Record<EquipSlot, ItemInstancePayload>>;
   xp: number;
   // Post-cap progression (Max-Level XP Overflow). `lifetimeXp` is the monotonic
   // 64-bit-safe total of all XP ever earned — it keeps growing at the cap and is
   // the leaderboard sort key + virtual-level source. `prestigeRank` and
   // `unlockedMilestones` are cosmetic-only. All persisted in CharacterState.
   lifetimeXp: number;
+  // Soulbound PvP currency. honor is spendable; lifetimeHonor is monotonic.
+  honor: number;
+  lifetimeHonor: number;
+  // Persisted per-day, per-opponent ranked-win accounting for honor DR.
+  honorArenaDaily?: HonorArenaDailyState;
   prestigeRank: number;
   unlockedMilestones: Set<string>;
   // Classic Rested XP pool (copper-less XP units). Accrues while resting in an
   // inn, spent to double kill XP. Persisted in CharacterState.
   restedXp: number;
+  // Gathering profession proficiency (Mining/Logging/Herbalism). Independent,
+  // additive counters, one per profession: granting one never changes another.
+  // Persisted in CharacterState. See src/sim/professions/gathering.ts.
+  gatheringProficiency: Record<GatheringProfessionId, number>;
+  // Grants queued by the `/dev gather` cheat, drained once per player per tick
+  // (see drainGatheringGrants). Session-only, never persisted.
+  pendingGatherGrants: { professionId: GatheringProfessionId; amount: number }[];
+  // Per-player, per-node gather-node respawn readiness (#1121): nodeId ->
+  // sim.time (seconds) at or after which THIS player may harvest that node
+  // again. Absent means never harvested (always ready). Session-only, never
+  // persisted, and never shared across players: see
+  // src/sim/professions/gathering.ts (isNodeHarvestableBy/resolveHarvest).
+  nodeHarvestReadyAt: Record<string, number>;
+  // Outcome of this player's most recent craftItem command (#1127). Session-only,
+  // never persisted: the IWorld craft-result surface for the client to render a
+  // toast/log line off, without deciding the outcome itself. Null until the
+  // player's first craft attempt.
+  lastCraftResult: CraftResult | null;
+  // This player's most recent masterwork proc (Professions 2.0 Phase 2), same
+  // session-only shape as lastCraftResult above: never persisted into
+  // CharacterState. Null until the player's first masterwork proc this
+  // session. Backs the IWorld lastMasterwork read surface.
+  lastMasterwork: MasterworkProc | null;
+  // Outcome of this player's most recent salvageItem command (#1300), same
+  // session-only shape as lastCraftResult above. Null until the player's
+  // first salvage attempt. Not yet wired onto the IWorld/wire surface (same
+  // documented not-yet-wired status archetype identity carried before its
+  // wire-up): a future issue extends IWorldProfessions + ClientWorld +
+  // server/game.ts the way craft_item/harvest_node already are.
+  lastSalvageResult: SalvageResult | null;
+  // Outcome of this player's most recent disenchantItem/applyEnchant command
+  // (Enchanting profession), same session-only, not-yet-wired-onto-IWorld
+  // status as lastSalvageResult above.
+  lastDisenchantResult: DisenchantResult | null;
+  lastEnchantResult: ApplyEnchantResult | null;
   known: ResolvedAbility[];
   questLog: Map<string, QuestProgress>;
   questsDone: Set<string>;
@@ -822,6 +1038,11 @@ export interface PlayerMeta {
   // sim.time when this character entered the world; powers /played. Session-only
   // (sim.time resets to 0 each server boot), so it reports time this session.
   joinedAt: number;
+  // Seconds played across every session BEFORE this one (loaded from the save;
+  // powers /playtime). Combined with `this.time - joinedAt` for the running
+  // lifetime total; folded into a new persisted baseline by serializeCharacter
+  // on save, so it only ever advances while the character is actually in the world.
+  totalPlayedSeconds: number;
   // Tick of the player's last deliberate action (movement, ability cast, or pet
   // command). Session-only, never persisted. Powers the anti-AFK gate on
   // aggressive pet auto-pull (see PET_OWNER_IDLE_TICKS) so an idle owner's pet
@@ -835,11 +1056,32 @@ export interface PlayerMeta {
   arena2v2Rating: number;
   arena2v2Wins: number;
   arena2v2Losses: number;
+  // The Vale Cup (docs/prd/vale-cup.md). `sportRole` is the temporary sport-kit
+  // role while seated in a Sowfield match: SESSION-ONLY, never serialized
+  // (known is derived on load, so persistence is naturally safe with no restore
+  // snapshot). The W/L/D standing persists in CharacterState, absent until the
+  // first result so pre-cup saves and the parity samples are untouched.
+  sportRole: SportRole | null;
+  vcupWins: number;
+  vcupLosses: number;
+  vcupDraws: number;
+  // Cup W/L earned while entering under a guild banner (persisted; feeds the
+  // guild leaderboard). Only moves on a rated result while still in that guild.
+  vcupGuildWins: number;
+  vcupGuildLosses: number;
+  // Parimutuel spectator betting record (persisted; absent until the first bet
+  // settles). vcupBetNet is net copper across all settled bets (may be negative).
+  vcupBetWins: number;
+  vcupBetLosses: number;
+  vcupBetNet: number;
   // Talents & Specializations. `talents` is the active allocation; `talentMods`
   // is its precomputed flat struct — resolved only on allocation/respec/loadout
   // change (recomputeTalents), never walked on the combat or stat hot path.
   talents: TalentAllocation;
   talentMods: TalentModifiers;
+  // Battle Rhythm's every-third-ability counter. Session-only: a new login
+  // starts a fresh rhythm and persistence never needs to migrate it.
+  abilityRhythm: number;
   // 2v2 Fiesta (session-only, never persisted). `fiestaAugments` is the ordered
   // list of augment ids picked this bout; `fiestaMods` is talentMods with those
   // augments folded in (the effective modifier the stat/ability hot paths use
@@ -854,6 +1096,9 @@ export interface PlayerMeta {
   fiestaRestore: { level: number; xp: number; talents: TalentAllocation } | null;
   loadouts: SavedLoadout[];
   activeLoadout: number; // index into loadouts, or -1 for none
+  // Session-only dungeon preference. Omitted when normal so deterministic
+  // parity samples and character persistence do not churn on a default.
+  dungeonDifficulty?: DungeonDifficulty;
   raidLockouts: Map<string, number>; // dungeon id -> epoch ms expiry
   // Transient presence status. Set by /afk and /dnd, cleared when the player
   // chats again. Session-only — never persisted, so it resets on login.
@@ -864,14 +1109,66 @@ export interface PlayerMeta {
   // Session-only World Market browse filter. The market is capped at
   // MARKET_WIRE_LIMIT listings per snapshot to bound wire cost, so this
   // server-side substring filter (matched against item names) is how a player
-  // reaches goods past the cap. Never persisted — resets on login.
+  // reaches goods past the cap. Never persisted: resets on login.
   marketFilter: string;
+  // Session-only World Market browse query: the search string, the type / subtype /
+  // rarity filters, and the page index. The server filters + paginates against this,
+  // so the player can page through and filter the WHOLE market a window at a time.
+  // Never persisted, resets on login.
+  marketQuery: MarketQuery;
+  // Flat per-craft skill tracking (#1126): one independent, additive-only skill
+  // value per craft on the ten-craft ring (see professions/wheel.ts). Persisted
+  // in CharacterState.
+  craftSkills: Record<string, number>;
+  // Recipe acquisition (#1299): the set of recipe ids this player has learned
+  // via trainer/drop/quest. A recipe with no `acquisition` list is
+  // grandfathered (see professions/crafting.ts isRecipeKnown) and never needs
+  // to appear here. Persisted in CharacterState as a plain string array.
+  knownRecipes: Set<string>;
+  // Craft output throttle (#1301): a rolling window of successful crafts,
+  // any recipe. Session-only (like nodeHarvestReadyAt above), never
+  // persisted: a fresh login gets a fresh window rather than carrying a
+  // logout-time cooldown across sessions.
+  craftThrottle: { windowStart: number; count: number };
+  // Active-archetype state and quest-gated switching (#1129, superseded scope: see
+  // professions/archetype.ts). Never touches craftSkills. Persisted in CharacterState.
+  archetype: ArchetypeState;
+  // One-time Ravenpost welcome letter sent (persisted in CharacterState, so
+  // existing characters get the service announcement exactly once).
+  mailWelcomed: boolean;
   // Delve meta progression (persisted in CharacterState).
   delveMarks: number;
   delveClears: Record<string, number>;
   companionUpgrades: Record<string, number>;
   delveLoreUnlocked: Set<string>;
   delveDaily: { date: string; firstClearXp: Set<string>; markClears: number };
+  // Persistent town focus allocation (#1143): component type -> points spent.
+  // Set only while standing in a town hub; adds a bonus to that component's
+  // #1142 harvest yield, on top of the universal baseline, never below it.
+  townFocus: Record<string, number>;
+  // Heroic reset-window circuit progress for the Book of Deeds. Reward eligibility
+  // is gated only by raidLockouts; this persisted field records which distinct
+  // heroic clears contributed to one authoritative reset window without gating rewards.
+  heroicDaily: { date: string; marked: Set<string> };
+  // Set synchronously when authoritative leave teardown begins, before its
+  // first persistence await. Session-only: reward and lockout snapshots ignore
+  // the departing player so no post-save mutation is discarded on removal.
+  leaving?: boolean;
+  // World-boss loot lockouts live in `raidLockouts` (keyed worldboss:<mobId>), so the
+  // eligibility gate and the rendered raid-lockout countdown are one value. See
+  // world_boss.ts (markWorldBossLooted / isWorldBossLootEligible).
+  // The Book of Deeds (src/sim/deeds.ts). `deedsEarned` maps deed id to the
+  // utcDay it was earned ('' when the host set no calendar). `deedStats` is
+  // the persisted lifetime surface behind the counter/collection/visit
+  // triggers (the session RewardCounters stay the RL reward channel).
+  // `activeTitle` is the selected cosmetic title (a deed id; the setter
+  // command is a later slice, only persist/load lives here). `renown` is the
+  // incrementally maintained sum of earned deeds' renown, recomputed from the
+  // earned set on every load (the saved number exists for a SQL sort index).
+  deedsEarned: Map<string, string>;
+  deedStats: DeedStats;
+  activeTitle: string | null;
+  renown: number;
 }
 
 // Away-from-keyboard / do-not-disturb presence. `afk` still delivers whispers
@@ -882,70 +1179,65 @@ export interface AwayStatus {
 }
 
 // ---------------------------------------------------------------------------
-// The World Market — a single shared, server-authoritative auction house run
-// by the Merchant NPC. Listings live in the sim (so offline play has a market
-// too and the rules are testable); the server persists them to Postgres.
-// Sellers are keyed by stable character id where available, so proceeds and
-// returns still reach the right player after a character rename.
+// The World Market (a single shared, server-authoritative auction house run by
+// the Merchant NPC) moved to market.ts (L2). Its types (MarketListing,
+// MarketCollection, MarketSave) and the MARKET_* consts live there now; MarketSave
+// is re-exported from this module (above) for server/db.ts.
 // ---------------------------------------------------------------------------
-
-export interface MarketListing {
-  id: number;
-  sellerKey: string; // stable seller identity (character id string); '' for house stock
-  sellerName: string; // display name
-  itemId: string;
-  count: number;
-  price: number; // total copper buyout for the whole stack
-  expiresAt: number; // sim.time seconds; Infinity for the Merchant's own stock
-  house: boolean; // the Merchant's standing stock: never expires, never depletes, pays no one
-}
-
-// Gold + items awaiting pickup at the Merchant (sale proceeds, expired
-// listings), keyed by sellerKey so an offline seller can collect later.
-export interface MarketCollection {
-  copper: number;
-  items: InvSlot[];
-}
-
-// Persistable market state. `secondsLeft` is stored instead of an absolute
-// expiry because sim.time resets to 0 each server boot — on load it becomes
-// `this.time + secondsLeft`, so a restart never silently expires everything.
-export interface MarketSave {
-  listings: {
-    id: number;
-    sellerKey: string;
-    sellerName: string;
-    itemId: string;
-    count: number;
-    price: number;
-    secondsLeft: number;
-  }[];
-  collections: { key: string; copper: number; items: InvSlot[] }[];
-  nextListingId: number;
-}
 
 // Persistable character state (stored as JSONB server-side). The arena fields
 // are optional so characters saved before the Ashen Coliseum existed load
 // cleanly (addPlayer falls back to the unranked defaults).
 export interface CharacterState {
+  // Production content migration revision. Revision 1 is the v0.26 all-class
+  // Talents V2 migration; absent means a pre-v0.26 character JSONB save.
+  contentRevision?: number;
   level: number;
   xp: number;
   // Post-cap progression. All optional so characters saved before the Max-Level
   // XP Overflow system load cleanly (addPlayer backfills lifetimeXp from level).
   lifetimeXp?: number;
+  // Soulbound PvP progression. Optional so pre-honor saves load at zero.
+  honor?: number;
+  lifetimeHonor?: number;
+  honorArenaDaily?: HonorArenaDailyState;
   prestigeRank?: number;
   unlockedMilestones?: string[];
   // Rested XP pool. Optional so pre-rested-XP saves load cleanly (defaults to 0).
   restedXp?: number;
+  // Lifetime played time in seconds (unfloored, for drift-free accumulation; only
+  // the display floors), accumulated across every prior session (this session's
+  // elapsed time is folded in at save; see PlayerMeta.totalPlayedSeconds and
+  // /playtime in social/chat.ts). Optional so pre-/playtime saves load cleanly
+  // (defaults to 0).
+  totalPlayedSeconds?: number;
+  // Gathering profession proficiency (JSONB; optional so pre-professions saves
+  // load cleanly, defaulting every profession to 0). `professions` is the legacy
+  // pre-rename key, still WRITTEN on every save alongside the current
+  // `gatheringProficiency` key (dual-write for downgrade back-compat); reads
+  // prefer `gatheringProficiency` and fall back to `professions`.
+  professions?: Partial<Record<string, number>>;
+  gatheringProficiency?: Partial<Record<string, number>>;
   copper: number;
   hp: number;
   resource: number;
   pos: { x: number; z: number };
   facing: number;
   equipment: PlayerEquipment;
+  // Per-slot ItemInstancePayload for whichever equipped piece carries one (an
+  // enchanted item's rolled.stats, see src/sim/professions/enchanting.ts).
+  // Optional so pre-Enchanting saves load cleanly (defaults to no enchants).
+  equipmentInstance?: Partial<Record<EquipSlot, ItemInstancePayload>>;
   inventory: InvSlot[];
+  // Equipped bag sockets. Optional so pre-bag saves load cleanly (defaults to
+  // 4 empty sockets; an over-capacity legacy inventory is tolerated).
+  bags?: (string | null)[];
+  // Per-character bank (JSONB; optional so pre-bank saves load cleanly, defaulting
+  // to an empty bank with no purchased/bonus slots). sanitizeBankState is the one
+  // load path (never destroys items; tolerates an over-capacity inventory).
+  bank?: BankState;
   vendorBuyback?: InvSlot[];
-  questLog: { questId: string; counts: number[]; state: 'active' | 'ready' | 'done' }[];
+  questLog: QuestProgress[];
   questsDone: string[];
   // Legacy arenaRating/Wins/Losses are treated as 1v1 data. The explicit
   // 1v1 fields are written by new saves, while old saves fall back cleanly.
@@ -958,13 +1250,48 @@ export interface CharacterState {
   arena2v2Rating?: number;
   arena2v2Wins?: number;
   arena2v2Losses?: number;
-  // Talents & Specializations (JSONB; no schema migration). All optional so
-  // characters saved before talents existed load cleanly (default: no points spent).
+  // The Vale Cup standing (JSONB; optional and written only once a result
+  // exists, so pre-cup saves load cleanly and unchanged saves stay byte-equal).
+  vcupWins?: number;
+  vcupLosses?: number;
+  vcupDraws?: number;
+  // Guild-banner cup record (JSONB; written only once a guild result exists, so
+  // pre-guild-entry saves stay byte-equal).
+  vcupGuildWins?: number;
+  vcupGuildLosses?: number;
+  // The Vale Cup spectator betting record (JSONB; written only once a bet has
+  // settled, so pre-betting saves stay byte-equal).
+  vcupBetWins?: number;
+  vcupBetLosses?: number;
+  vcupBetNet?: number;
+  // Talents & Specializations (JSONB). All optional so characters saved before
+  // talents existed load cleanly; contentRevision owns point-tree -> row migration.
   talents?: TalentAllocation;
   loadouts?: SavedLoadout[];
   activeLoadout?: number;
   raidLockouts?: Record<string, number>;
+  // Ability/potion cooldowns as remaining-time deltas (JSONB; optional so pre-fix
+  // saves load cleanly with no cooldowns). Persisted so logging out and back in no
+  // longer wipes cooldowns and lets a player bypass them by relogging.
+  cooldowns?: SavedCooldowns;
   pet?: PetState | null;
+  // WoW-style ghost state (JSONB; optional so pre-ghost saves load alive). A player who
+  // logs out as a released spirit resumes as a ghost at the graveyard with the corpse
+  // still marked, rather than free-resurrecting on relog. See src/sim/spirit.ts.
+  ghost?: boolean;
+  corpsePos?: { x: number; z: number } | null;
+  // True when the character was saved dead (JSONB; optional so older saves load
+  // alive exactly as before). A dead-but-UNRELEASED logout resumes as a released
+  // ghost on relog (auto-release-on-logout), so logging out cannot bypass the
+  // death loop. See the addPlayer ghost block + src/sim/spirit.ts.
+  dead?: boolean;
+  // The Keeper's Toll (Resurrection Sickness) remaining seconds (JSONB; optional/null when
+  // none). Persisted so the penalty cannot be shed by logging out and back in.
+  resSickness?: number | null;
+  jail?: JailState;
+  // Z-key sheathed-weapon toggle (JSONB; written only while sheathed, so pre-feature
+  // saves and unsheathed characters stay byte-equal and load with the weapon drawn).
+  weaponStowed?: boolean;
   skin?: number; // appearance index (JSONB; optional so pre-skin saves load as 0)
   skinCatalog?: SkinCatalog;
   // Pending skin-select event rank (JSONB; optional so older saves load as null).
@@ -976,6 +1303,40 @@ export interface CharacterState {
   companionUpgrades?: Record<string, number>;
   delveLoreUnlocked?: string[];
   delveDaily?: { date: string; firstClearXp: string[]; markClears: number };
+  heroicDaily?: { date: string; marked: string[] };
+  // Ravenpost welcome letter already sent (optional so pre-mail saves load
+  // cleanly and receive the announcement letter once on their next login).
+  mailWelcomed?: boolean;
+  // World-boss loot lockouts now ride `raidLockouts` (keyed worldboss:<mobId>). The
+  // legacy per-day `worldBossDaily` field is intentionally dropped: pre-migration saves
+  // that still carry it just ignore it (a player locked at deploy may loot once more, a
+  // one-time, player-friendly transition), and their lockouts persist via raidLockouts
+  // from then on.
+  // World-boss daily loot record. Optional so saves from before world bosses load
+  // cleanly (addPlayer falls back to an empty record).
+  worldBossDaily?: { date: string; looted: string[] };
+  // Flat per-craft skill tracking (#1126; JSONB, additive back-compat: absent or
+  // partial on older saves loads the missing crafts as 0, see normalizeCraftSkills).
+  craftSkills?: Record<string, number>;
+  // Recipe acquisition (#1299; JSONB, additive back-compat: absent on older
+  // saves loads as an empty set, i.e. no learned non-grandfathered recipes).
+  knownRecipes?: string[];
+  townFocus?: Record<string, number>;
+  // Active-archetype state (#1129, superseded scope; JSONB, back-compat: absent on
+  // older saves loads as emptyArchetypeState, see normalizeArchetypeState).
+  archetype?: Partial<ArchetypeState>;
+  // The Book of Deeds (JSONB; ALL optional and written only once non-empty, so
+  // pre-deed saves load cleanly and stay byte-equal until the system engages).
+  // `deeds` maps deed id to the utcDay earned ('' when unknown); `renown` is
+  // denormalized for a later SQL sort index and RECOMPUTED from `deeds` on
+  // load (the sim is authoritative). Loading also unions the legacy
+  // `unlockedMilestones` ids into `deeds` (milestone unification), while new
+  // grants keep dual-writing `unlockedMilestones` for one release as
+  // forward-only rollback insurance.
+  deeds?: Record<string, string>;
+  deedStats?: SavedDeedStats;
+  activeTitle?: string | null;
+  renown?: number;
 }
 
 export interface PetState {
@@ -986,11 +1347,12 @@ export interface PetState {
   dead: boolean;
   mode?: PetMode;
   autoTaunt?: boolean;
+  autoWaterJet?: boolean;
 }
 
-const PET_NAME_RE = /^[A-Za-z][A-Za-z '-]{1,15}$/;
-
-interface PendingMobRespawn {
+// PendingMobRespawn is exported so SimContext can type the live `pendingMobRespawns`
+// view that pet_commands.ts (completeTame) pushes the tamed beast's respawn into.
+export interface PendingMobRespawn {
   templateId: string;
   level: number;
   pos: Vec3;
@@ -999,32 +1361,11 @@ interface PendingMobRespawn {
   timer: number;
 }
 
-// Pure quest-state computation, shared by the sim and the network client.
-export function computeQuestState(
-  questId: string,
-  questLog: Map<string, QuestProgress>,
-  questsDone: Set<string>,
-  playerLevel: number,
-): QuestState {
-  if (questsDone.has(questId)) return 'done';
-  const qp = questLog.get(questId);
-  if (qp) return qp.state === 'ready' ? 'ready' : 'active';
-  const quest = QUESTS[questId];
-  if (!quest) return 'unavailable';
-  if (quest.requiresQuest && !questsDone.has(quest.requiresQuest)) return 'unavailable';
-  if (quest.minLevel && playerLevel < quest.minLevel) return 'unavailable';
-  if (quest.retired) return 'unavailable';
-  return 'available';
-}
+// computeQuestState (the pure quest-state fn) moved to quests/quest_commands.ts (W4),
+// re-exported from sim.ts (see the import region) so the ClientWorld import stays
+// byte-identical.
 
-function copyPos(
-  dst: { x: number; y: number; z: number },
-  src: { x: number; y: number; z: number },
-): void {
-  dst.x = src.x;
-  dst.y = src.y;
-  dst.z = src.z;
-}
+// copyPos moved to entity_roster.ts (used only by the despawn prologue).
 
 function freshCounters(): RewardCounters {
   return {
@@ -1040,59 +1381,51 @@ function freshCounters(): RewardCounters {
   };
 }
 
-// Shapeshifts stay castable while shapeshifted (that's how you shift out).
-function isFormToggle(ability: AbilityDef): boolean {
-  return ability.effects.some(
-    (e) =>
-      e.type === 'selfBuff' &&
-      (e.kind === 'form_bear' || e.kind === 'form_cat' || e.kind === 'form_travel'),
-  );
-}
-
-// Forms, stances and stealth are toggles: re-casting cancels the aura, and
-// cancelling is never gated by cost or cooldown (the cooldown gates re-entry).
-function isToggleBuff(ability: AbilityDef): boolean {
-  if (ability.id === 'ghost_wolf') return true;
-  return ability.effects.some(
-    (e) =>
-      e.type === 'selfBuff' &&
-      (e.kind === 'form_bear' ||
-        e.kind === 'form_cat' ||
-        e.kind === 'form_travel' ||
-        e.kind === 'defensive_stance' ||
-        e.kind === 'stealth'),
-  );
-}
-
-function isStealthToggle(ability: AbilityDef): boolean {
-  return ability.effects.some((e) => e.type === 'selfBuff' && e.kind === 'stealth');
-}
-
-function preservesStealth(ability: AbilityDef): boolean {
-  return isStealthToggle(ability) || ability.id === 'sprint';
-}
-
-function isShamanShock(abilityId: string): boolean {
-  return (
-    (SHAMAN_SHOCK_COOLDOWN_IDS as readonly string[]).includes(abilityId) ||
-    abilityId === 'lightning_shock'
-  );
-}
-
-function ignoresDamagePushback(abilityId: string): boolean {
-  return abilityId === 'ghost_wolf';
-}
-
-function isPetClass(cls: PlayerClass): boolean {
-  return cls === 'hunter' || cls === 'warlock';
-}
+// isPetClass relocated to types.ts (P1b; imported in the './types' block above). The
+// cast-toggle predicates (isFormToggle/isToggleBuff/isStealthToggle/preservesStealth/
+// isShamanShock/ignoresDamagePushback) live in combat/casting_lifecycle.ts (C4a).
 
 export class Sim {
-  cfg: Required<Omit<SimConfig, 'noPlayer'>>;
+  // `world` stays optional (a custom map for play-test, else undefined for the
+  // built-in world); everything else is defaulted to a concrete value below.
+  cfg: Required<Omit<SimConfig, 'noPlayer' | 'world' | 'perfLap'>> &
+    Pick<SimConfig, 'world' | 'perfLap'>;
   rng: Rng;
   time = 0;
   tickCount = 0;
   entities = new Map<number, Entity>();
+  // The shared SimContext seam (S0b): a live view of rng/time/tickCount/entities +
+  // emit, plus the cross-system callbacks the extracted game-system slices route
+  // through instead of reaching into Sim. Built once in the ctor (buildSimContext);
+  // it moves no behavior. See src/sim/sim_context.ts.
+  readonly ctx: SimContext;
+  // Movement-kernel callbacks (MV1): binds stepPlayerMotion's deps to the live Sim
+  // (fiesta-aware moveSpeedMult, delve-aware resolveMove, cancelCast/standUp/
+  // dealDamage). Built once in the ctor; draws no rng and mutates nothing.
+  private playerMotionDeps!: PlayerMotionDeps;
+  // Party/raid state machine (A1): owns parties/partyByPid/partyInvites/nextPartyId
+  // and the invite/accept/convert/move/leave/kick/disband logic, moved off Sim
+  // behind SimContext. Built in the ctor after `ctx`. Sim keeps thin delegates
+  // (partyOf + the eight command methods) so IWorld + foreign call sites resolve.
+  private party!: PartyMachine;
+  // Dungeon Finder (docs/prd/dungeon-finder.md): the queue/proposal/board
+  // machine, its own system module behind SimContext. Built in the ctor after
+  // `party` (it forms groups through the party machine's formation seam). Sim
+  // keeps thin delegates so IWorld + server dispatch resolve.
+  private dungeonFinder!: DungeonFinderMachine;
+  // Active party/raid ready checks, keyed by party id (social/ready_check.ts). Swept
+  // in the end-of-tick block by updateReadyChecks. Exposed to the seam as ctx.readyChecks.
+  readyChecks = new Map<number, ReadyCheck>();
+  // Player-cast resurrection offers are transient authoritative combat state.
+  // They are intentionally not persisted and expire on the deterministic Sim clock.
+  pendingResurrections = new Map<number, PendingResurrection>();
+  // Player target selection + the party-scoped raid-marker store (T1): owns
+  // partyMarkers and the tab/nearest/friendly selectors, moved off Sim behind
+  // SimContext. Built in the ctor after `ctx`. Sim keeps thin delegates (the nine
+  // selectors + markersFor/setMarker/clearMarker/markerFor) so IWorld + the foreign
+  // main/hud/renderer/server/obs call sites resolve; clearEntityMarker/dropPartyMarkers
+  // reach it through the seam.
+  private targeting!: Targeting;
   players = new Map<number, PlayerMeta>(); // keyed by entity id
   // spatial indexes for radius queries; re-bucketed at the end of each tick
   // and kept roster-exact on spawn/despawn/teleport
@@ -1102,36 +1435,57 @@ export class Sim {
   primaryId = -1; // the local/RL player in single-player contexts
   nextId = 1;
   events: SimEvent[] = [];
-  private delayedEvents: { at: number; event: SimEvent; guard?: () => boolean }[] = [];
+  // Owned by E1 (entity_roster drains it); stays on Sim because N1/M3 schedule into
+  // it. Exposed as a live view via SimContext.
+  private delayedEvents: DelayedEvent[] = [];
+  // In-flight projectiles (projectile_travel.ts): pushed by the ranged combat paths,
+  // drained in the tick prologue when each bolt's flight elapses. Live view on ctx.
+  private pendingProjectiles: PendingProjectile[] = [];
   // social systems
-  parties = new Map<number, Party>();
-  accountCosmetics: AccountCosmetics = { completedQuestIds: [], mechChromaIds: [] };
-  partyByPid = new Map<number, number>(); // pid -> party id
-  partyInvites = new Map<number, { fromPid: number; expires: number }>(); // invitee pid -> invite
-  nextPartyId = 1;
+  // parties / partyByPid / partyInvites / nextPartyId moved to the PartyMachine
+  // (src/sim/social/party.ts, session A1); reached via `this.party`.
+  accountCosmetics: AccountCosmetics = {
+    completedQuestIds: [],
+    mechChromaIds: [],
+    weaponSkinIds: [],
+    weaponSkinLoadout: {},
+  };
   private nextLootRollId = 1;
   private pendingLootRolls = new Map<number, PendingLootRoll>();
-  // raid/target markers: partyId -> (enemy entityId -> markerId 0..7). A
-  // cosmetic, party-scoped overlay — never read by tick()/obs/persistence.
-  partyMarkers = new Map<number, Map<number, number>>();
   trades = new Map<number, TradeSession>(); // pid -> shared session (both pids point at it)
   tradeInvites = new Map<number, { fromPid: number; expires: number }>();
   duels = new Map<number, DuelState>(); // pid -> shared duel (both pids)
   duelInvites = new Map<number, { fromPid: number; expires: number }>();
+  // Card Duel minigame (src/sim/social/card_duel.ts): its own FIFO queue and
+  // live-match map, independent of the HP-based duels above.
+  cardDuelQueue: number[] = [];
+  cardDuels = new Map<number, CardDuelMatch>(); // pid -> shared match (both pids)
   // arena: format-specific queues, live bouts keyed by every participant pid,
   // and the set of busy instance slots
   arenaQueue1v1: number[] = [];
   arenaQueue2v2: ArenaQueueUnit[] = [];
   arenaQueueFiesta: ArenaQueueUnit[] = []; // 2v2 Fiesta (party mode) queue
+  arenaQueueYumi3: ArenaQueueUnit[] = []; // Protect Yumi 3v3 queue
+  arenaQueueYumi5: ArenaQueueUnit[] = []; // Protect Yumi 5v5 queue
   arenaMatches = new Map<number, ArenaMatch>(); // pid -> shared match (both pids)
   private arenaBusySlots = new Set<number>();
+  // Protect Yumi maze slots are their own pool (the maze band, not the pit);
+  // yumiCatMatches indexes cat entity id -> live match for the damage hub +
+  // hostility reads (both O(1) per attack).
+  private yumiBusySlots = new Set<number>();
+  private yumiCatMatches = new Map<number, ArenaMatch>();
   private nextArenaMatchId = 1;
+  // The Vale Cup boarball state (social/vale_cup.ts): ONE holder object (the
+  // per-bracket queues, the single Sowfield match slot, the Groundskeeper's
+  // deserter book, and the live bot pids), exposed as the live ctx.vcup view.
+  vcup: VcState = createVcState();
   // per-player chat token bucket (anti-spam); refilled lazily by sim time
   private chatTokens = new Map<number, { tokens: number; at: number }>();
   // per-player set of opt-in global channels (world, lfg) joined via /join
   private channelSubs = new Map<number, Set<JoinableChannel>>();
   // dungeon instances
   instances: InstanceSlot[] = [];
+  dungeonResetLocks = new Map<string, { availableAt: number; claimId: number }>();
   // delve instances (separate slot pool from dungeons)
   delveRuns: DelveRun[] = [];
   private delvePetStash = new Map<number, PetState>();
@@ -1141,16 +1495,85 @@ export class Sim {
   // "no calendar known" (headless/replay), the daily window then never rolls over,
   // keeping same-seed runs reproducible. Tests may set it to pin a date.
   utcDay = '';
-  // the World Market: one shared listing book, per-seller collections keyed by
-  // stable character identity, and the Merchant entity these are anchored to
-  marketListings: MarketListing[] = [];
-  private marketCollections = new Map<string, MarketCollection>();
-  private nextListingId = 1;
-  private merchantId = -1;
+  // the World Market (the Merchant's auction house): the Market instance owns the
+  // listing book, per-seller collections, the id counter, and the Merchant entity
+  // id. Constructed in the ctor after the SimContext (it consumes the seam); Sim
+  // keeps thin delegates + the `marketListings` getter below so server/IWorld/the
+  // /listings readout call sites resolve unchanged.
+  market!: Market;
+  // The Ravenpost (in-game mail): the PostOffice owns the world-scoped mail
+  // book, the id counter, and the mailbox entity ids; Sim keeps thin delegates
+  // (the market shape). Constructed in the ctor after the SimContext.
+  postOffice!: PostOffice;
+  // Entity ids of every NPC with `banker: true`, assigned by the ctor NPC loop.
+  // The bank is per-character self-storage (state on PlayerMeta.bank), so unlike
+  // the shared World Market there is no bank instance: this anchor list is all the
+  // sim needs, and any banker is a valid place to stand and use the bank. Exposed
+  // as a live SimContext view so bank.ts gates deposit/withdraw/buy on proximity.
+  bankerIds: number[] = [];
   /** When true, /dev level|tp|give chat commands are accepted (local dev only). */
   readonly devCommands: boolean;
+  // Entities spawned by the last /dev sandbox (dummy + practice bots), so re-running
+  // the command clears the previous scenario instead of piling more on. Dev only.
+  private devSandboxIds: number[] = [];
   private pendingMobRespawns: PendingMobRespawn[] = [];
   private groundAoEs: GroundAoE[] = [];
+  get activeFrostRings(): ActiveFrostRing[] {
+    const rings: ActiveFrostRing[] = [];
+    for (const effect of this.groundAoEs) {
+      const ring = effect.frostRing;
+      if (!ring || effect.remaining <= 0) continue;
+      rings.push({
+        id: ring.id,
+        x: effect.pos.x,
+        z: effect.pos.z,
+        radius: effect.radius,
+        innerRadius: ring.innerRadius,
+        duration: ring.duration,
+        remaining: effect.remaining,
+      });
+    }
+    return rings;
+  }
+  get activeTemporalHourglasses(): ActiveTemporalHourglass[] {
+    const hourglasses: ActiveTemporalHourglass[] = [];
+    for (const effect of this.groundAoEs) {
+      const hourglass = effect.temporalHourglass;
+      if (!hourglass || effect.remaining <= 0) continue;
+      hourglasses.push({
+        id: hourglass.id,
+        x: effect.pos.x,
+        z: effect.pos.z,
+        radius: effect.radius,
+        duration: hourglass.groundDuration,
+        remaining: effect.remaining,
+      });
+    }
+    return hourglasses;
+  }
+  // Live frost-mage Frozen Orbs (combat/frozen_orb.ts): sim state, never
+  // serialized; drifted and pulsed by tickFrozenOrbs in the tick prologue.
+  private frozenOrbs: FrozenOrbState[] = [];
+  // Book of Deeds: players whose deed-relevant state changed this tick (the
+  // evaluator drains it at the tick tail), the keyed marks naming WHICH
+  // trigger inputs changed (a dirty pid with no entry takes a full pass), and
+  // the session-only encounter/match bookkeeping behind the manual deeds. All
+  // exposed as live SimContext views.
+  deedDirtyPids = new Set<number>();
+  deedDirtyKeys = new Map<number, Set<string>>();
+  deedRuntime: DeedRuntime = createDeedRuntime();
+  // Mob-AI scan visit counters (observability): reset at the top of each tick,
+  // incremented in place by the aggro-scan and threat-table hot paths through
+  // ctx, and read by the host after tick() returns. Not persisted, never a
+  // gameplay input; exposed as a live SimContext view and via mobScanCounters.
+  private readonly _mobScanCounters = createMobScanCounters();
+  // World-boss scheduler, one slot per WORLD_BOSSES entry. `nextAt` is the next
+  // sim-time (seconds) a boss is due to rise; `entityId` is the live boss entity
+  // (null once none is alive). Driven by updateWorldBosses() in the tick prologue.
+  // Sim-time scheduling keeps it deterministic (no wall clock); on the live server
+  // the sim runs at 20 Hz wall speed, so the interval is real hours.
+  private worldBossNextAt: number[] = WORLD_BOSSES.map((b) => b.intervalSeconds);
+  private worldBossEntityIds: (number | null)[] = WORLD_BOSSES.map(() => null);
 
   constructor(cfg: SimConfig) {
     this.devCommands = cfg.devCommands ?? false;
@@ -1161,34 +1584,124 @@ export class Sim {
       autoEquip: cfg.autoEquip ?? false,
       playerName: cfg.playerName ?? 'Adventurer',
       devCommands: this.devCommands,
+      worldBossAtBoot: cfg.worldBossAtBoot ?? false,
       lockoutNowMs: cfg.lockoutNowMs ?? (() => Math.floor(this.time * 1000)),
+      raidResetMs: cfg.raidResetMs ?? ((nowMs: number) => nowMs + DEFAULT_RAID_LOCKOUT_MS),
+      valeCupShowcase: cfg.valeCupShowcase ?? false,
+      // Carried through so the renderer (which reaches the Sim as IWorld) can read
+      // the same custom world via sim.cfg.world. Undefined for the built-in world.
+      world: cfg.world,
+      perfLap: cfg.perfLap,
     };
     this.rng = new Rng(cfg.seed);
+    // Live server opt-in (worldBossAtBoot): the first world-boss rise is due
+    // immediately instead of one interval out, so a freshly (re)started realm
+    // has its boss up. Draws no rng here; the spawn itself fires on the first
+    // tick through the normal updateWorldBosses path.
+    if (cfg.worldBossAtBoot) this.worldBossNextAt = WORLD_BOSSES.map(() => 0);
+    // S0b seam: the shared SimContext every extracted slice routes through. Built
+    // once here (the rng now exists); a live view + bound callbacks, it draws no rng
+    // and mutates nothing, so it cannot perturb the construction draws below.
+    this.ctx = this.buildSimContext();
+    // Movement-kernel deps (MV1): pure binding, no rng draws, no construction effects.
+    this.playerMotionDeps = {
+      seed: this.cfg.seed,
+      moveSpeedMult: (e) => this.moveSpeedMult(e),
+      resolveMove: (fromX, fromZ, nx, nz, r, e, ignoreFences) =>
+        this.resolveMove(fromX, fromZ, nx, nz, r, e, ignoreFences),
+      resolvedAbility: (abilityId, pid) => this.resolvedAbility(abilityId, pid),
+      cancelCast: (p) => this.cancelCast(p),
+      standUp: (p) => this.standUp(p),
+      dealDamage: (source, target, amount, crit, school, ability, kind, noRage) => {
+        this.dealDamage(source, target, amount, crit, school, ability, kind, noRage);
+        // The one sim-side observer of a lethal fall (hid_fall_death): the
+        // shared pure kernel labels the hit 'Falling' with a null source, and
+        // this wrapper keeps the deed hook out of the kernel both hosts run.
+        if (source === null && ability === 'Falling' && target.kind === 'player' && target.dead) {
+          deedsMod.onFallDeathForDeeds(this.ctx, target);
+        }
+      },
+    };
+    // Party/raid machine (A1): constructed after ctx (it consumes the seam). The
+    // ctx party callbacks are lazy arrows, so this assignment before any tick/command
+    // is what they resolve against; nothing below this point draws on the machine
+    // during construction.
+    this.party = new PartyMachine(this.ctx);
+    // Dungeon Finder (consumes the seam plus the party formation seam; draws
+    // no rng, so constructing it here cannot perturb the draws below).
+    this.dungeonFinder = new DungeonFinderMachine(this.ctx);
+    // Target selection + raid-marker store (T1): also constructed after ctx (it
+    // consumes the seam). The ctx clearEntityMarker/dropPartyMarkers callbacks are
+    // lazy arrows resolving against this instance.
+    this.targeting = new Targeting(this.ctx);
+    // World Market (L2): owns its state; consumes the seam, so it is built right
+    // after the SimContext. The NPC loop below sets its merchantId, then seed().
+    this.market = new Market(this.ctx);
+    // Ravenpost mail: owns the mail book; consumes the seam. The mailbox object
+    // loop below (after ground objects) registers its mailbox entity ids.
+    this.postOffice = new PostOffice(this.ctx);
+
+    // Spawn content: a custom world (editor play-test) or the built-in world.
+    // CAMPS order is a determinism contract; both bundles preserve it.
+    // INVARIANT: terrain/colliders/roads read ONLY the data.ts module global
+    // (getActiveWorldContent), never cfg.world. A caller that passes cfg.world
+    // MUST also setActiveWorldContent() with content whose terrain-relevant
+    // fields (zones, camps, roads, terrainEdits, biomePaint, waterLevel) are
+    // identical, or spawns and geometry silently fork. Placements MAY differ
+    // (render-only ownership; the editor viewport strips them from cfg.world).
+    const worldContent = this.cfg.world ?? getActiveWorldContent();
 
     // NPCs — nudged out of buildings and deep water if their data position is bad
-    for (const npcDef of Object.values(NPCS)) {
+    for (const npcDef of Object.values(worldContent.npcs)) {
       if (npcDef.dynamic) continue; // spawned on demand by its owning system, not surface-placed
-      const safe = this.findSafePos(npcDef.pos.x, npcDef.pos.z, WATER_LEVEL + 0.6);
+      const safe = this.findSafePos(npcDef.pos.x, npcDef.pos.z, waterLevel() + 0.6);
       const npc = createNpc(this.nextId++, npcDef, this.groundPos(safe.x, safe.z));
       this.addEntity(npc);
-      if (npcDef.market) this.merchantId = npc.id; // the World Market is anchored here
+      if (npcDef.market) this.market.merchantIds.push(npc.id); // every auctioneer anchors the shared World Market
+      if (npcDef.banker) this.bankerIds.push(npc.id); // every bursar is a place to use the bank
     }
-    this.seedHouseListings();
+    this.market.seed();
 
     // Mobs from camps
-    for (const camp of CAMPS) {
+    for (const camp of worldContent.camps) {
       const template = MOBS[camp.mobId];
       // Aquatic/flagged swimmers may wade in the shallows; everyone else
       // still spawns on dry land even though combat movement can enter water.
-      const minHeight = this.mobCanSpawnInWater(template) ? WATER_LEVEL - 0.5 : WATER_LEVEL + 0.4;
+      const minHeight = this.mobCanSpawnInWater(template) ? waterLevel() - 0.5 : waterLevel() + 0.4;
       for (let i = 0; i < camp.count; i++) {
+        if (template.dummy) {
+          // A practice dummy is a fixed, deterministic prop (no scatter, fixed level,
+          // never wanders): spawn it WITHOUT drawing any RNG so adding one never
+          // perturbs the world's seed-stable spawns and rolls.
+          const safe = this.findSafePos(camp.center.x, camp.center.z, minHeight);
+          const mob = createMob(
+            this.nextId++,
+            template,
+            template.maxLevel,
+            this.groundPos(safe.x, safe.z),
+          );
+          mob.facing = 0;
+          mob.prevFacing = 0;
+          this.addEntity(mob);
+          continue;
+        }
         const ang = this.rng.range(0, Math.PI * 2);
         const r = Math.sqrt(this.rng.next()) * camp.radius;
-        const safe = this.findSafePos(
+        // Keep camp mobs out of every dungeon door's clear ring so approaching or
+        // zoning out of a dungeon never lands the player in a pack's aggro radius.
+        // Pure geometry on the already-rolled point: it draws no rng, so the spawn
+        // loop's own draw order is untouched (mob positions do shift, which moves
+        // their later idle-wander draws, but that is downstream in the drive phase).
+        const cleared = projectOutsideDungeonDoors(
           camp.center.x + Math.sin(ang) * r,
           camp.center.z + Math.cos(ang) * r,
-          minHeight,
         );
+        // findSafePos's inward spiral can walk a shore-side ring-edge point back
+        // toward land, i.e. back INTO the ring; re-project the safe point so the
+        // "never inside a door ring" guarantee holds for every seed, not just the
+        // shipped one. Still pure and rng-free.
+        const grounded = this.findSafePos(cleared.x, cleared.z, minHeight);
+        const safe = projectOutsideDungeonDoors(grounded.x, grounded.z);
         const pos = this.groundPos(safe.x, safe.z);
         const level = this.rng.int(template.minLevel, template.maxLevel);
         const mob = createMob(this.nextId++, template, level, pos);
@@ -1200,7 +1713,7 @@ export class Sim {
     }
 
     // Ground objects
-    for (const objDef of GROUND_OBJECTS) {
+    for (const objDef of worldContent.groundObjects) {
       for (const p of objDef.positions) {
         const obj = createGroundObject(
           this.nextId++,
@@ -1212,18 +1725,34 @@ export class Sim {
       }
     }
 
+    // Ravenpost mailboxes: one interactable raven pillar per town (draws no
+    // rng; findSafePos is deterministic, so the camp draws above are unmoved).
+    for (const boxDef of MAILBOXES) {
+      const safe = this.findSafePos(boxDef.x, boxDef.z, waterLevel() + 0.6);
+      const box = createGroundObject(this.nextId++, '', 'Mailbox', this.groundPos(safe.x, safe.z));
+      box.templateId = 'mailbox';
+      box.objectItemId = null;
+      box.lootable = true; // interactable
+      this.addEntity(box);
+      this.postOffice.mailboxIds.push(box.id);
+    }
+
     // Dungeon entrances + their private instance slots
     for (const dungeon of DUNGEON_LIST) {
       if (dungeon.overworldDoor === false) {
         for (let i = 0; i < INSTANCE_SLOT_COUNT; i++) {
           this.instances.push({
             dungeonId: dungeon.id,
+            difficulty: 'normal',
             slot: i,
             partyKey: null,
             mobIds: [],
             objectIds: [],
             exitId: null,
             emptyFor: 0,
+            resetAvailableAt: 0,
+            clearedBy: new Set(),
+            enteredBy: new Set(),
           });
         }
         continue;
@@ -1243,13 +1772,46 @@ export class Sim {
       for (let i = 0; i < INSTANCE_SLOT_COUNT; i++) {
         this.instances.push({
           dungeonId: dungeon.id,
+          difficulty: 'normal',
           slot: i,
           partyKey: null,
           mobIds: [],
           objectIds: [],
           exitId: null,
           emptyFor: 0,
+          resetAvailableAt: 0,
+          clearedBy: new Set(),
+          enteredBy: new Set(),
         });
+      }
+    }
+
+    // Spirit Healers (the angels): one hovering at every overworld graveyard.
+    // Per-instance dungeon/raid healers spawn on claim (instances/dungeons.ts).
+    // createNpc draws no rng, so world-gen determinism is preserved.
+    spawnOverworldSpiritHealers(this.ctx);
+
+    // Groundskeeper Bram at the Sowfield gate (Vale Cup). Placed through the
+    // SAME findSafePos path as the generic NPC loop above, but under a RESERVED
+    // entity id outside the nextId sequence (and after the rng-drawing camp
+    // loop), so world-gen determinism AND the parity goldens' pinned id
+    // sequence are both preserved. See social/vale_cup.ts VALE_CUP_BRAM_ID.
+    {
+      const bramDef = NPCS.groundskeeper_bram;
+      if (bramDef) {
+        const safe = this.findSafePos(bramDef.pos.x, bramDef.pos.z, waterLevel() + 0.6);
+        valeCupMod.spawnGroundskeeper(this.ctx, safe);
+      }
+    }
+
+    // FURY uses a reserved id and spawns after the rng-driven world roster, so
+    // the Honor Quartermaster cannot perturb existing entity ids or replay RNG.
+    {
+      const furyDef = worldContent.npcs[FURY_NPC_ID];
+      if (furyDef && !this.entities.has(FURY_ENTITY_ID)) {
+        const safe = this.findSafePos(furyDef.pos.x, furyDef.pos.z, waterLevel() + 0.6);
+        const fury = createNpc(FURY_ENTITY_ID, furyDef, this.groundPos(safe.x, safe.z));
+        this.addEntity(fury);
       }
     }
 
@@ -1276,7 +1838,9 @@ export class Sim {
           raiseDeadChannel: null,
           restlessPending: [],
           badAirTimer: 0,
+          blackwaterTimer: 0,
           companionBarks: [],
+          companionReviveUsed: false,
           exitPortalOpen: false,
           bountiful: false,
           rewardChestId: null,
@@ -1295,30 +1859,30 @@ export class Sim {
     return this.cfg.lockoutNowMs?.() ?? Math.floor(this.time * 1000);
   }
 
+  // The next raid-reset instant for a given lockout "now". The host owns the boundary
+  // (server: realm-local 3 AM daily reset); offline/headless fall back to a flat 24h day.
+  private raidResetMs(nowMs: number): number {
+    return this.cfg.raidResetMs(nowMs);
+  }
+
   // -------------------------------------------------------------------------
   // Entity roster: every add/remove/teleport goes through these so the
   // spatial indexes always match the entities map
   // -------------------------------------------------------------------------
 
+  // Roster ops live in entity_roster.ts (E1). These thin delegates keep the public
+  // surface (`sim.addEntity`/`sim.rebucket`) and every internal `this.addEntity` /
+  // `this.dropEntity` / `this.rebucket` call site resolving unchanged through the seam.
   addEntity(e: Entity): void {
-    this.entities.set(e.id, e);
-    this.grid.insert(e);
-    if (e.kind === 'player') this.playerGrid.insert(e);
-    if (e.templateId === 'dungeon_door' && this.dungeonDoorIds) this.dungeonDoorIds.push(e.id);
+    addEntityToRoster(this.ctx, e);
   }
 
   private dropEntity(id: number): void {
-    this.clearEntityMarker(id); // a despawned entity keeps no raid marker
-    const e = this.entities.get(id);
-    if (!e) return;
-    this.grid.remove(e);
-    if (e.kind === 'player') this.playerGrid.remove(e);
-    this.entities.delete(id);
+    dropEntityFromRoster(this.ctx, id);
   }
 
   rebucket(e: Entity): void {
-    this.grid.update(e);
-    if (e.kind === 'player') this.playerGrid.update(e);
+    rebucketEntity(this.ctx, e);
   }
 
   private updatePendingMobRespawns(): void {
@@ -1341,11 +1905,18 @@ export class Sim {
 
   aiActiveMobAction(input: AiActiveMobActionRequest): AiActiveMobActionResult {
     const mob = this.entities.get(input.mobId);
-    if (!mob) return { ok: false, intent: input.intent, reason: 'mob_missing', affectedEntityIds: [] };
+    if (!mob)
+      return { ok: false, intent: input.intent, reason: 'mob_missing', affectedEntityIds: [] };
     const player = this.entities.get(input.playerId);
-    if (!player) return { ok: false, intent: input.intent, reason: 'player_missing', affectedEntityIds: [] };
+    if (!player)
+      return { ok: false, intent: input.intent, reason: 'player_missing', affectedEntityIds: [] };
     if (mob.kind !== 'mob' || player.kind !== 'player') {
-      return { ok: false, intent: input.intent, reason: 'unsupported_entity', affectedEntityIds: [] };
+      return {
+        ok: false,
+        intent: input.intent,
+        reason: 'unsupported_entity',
+        affectedEntityIds: [],
+      };
     }
     if (mob.dead || player.dead || mob.aiState === 'dead') {
       return { ok: false, intent: input.intent, reason: 'dead_entity', affectedEntityIds: [] };
@@ -1355,16 +1926,26 @@ export class Sim {
     }
     const template = MOBS[mob.templateId];
     if (!template || template.boss || template.elite || template.rare) {
-      return { ok: false, intent: input.intent, reason: 'protected_creature', affectedEntityIds: [] };
+      return {
+        ok: false,
+        intent: input.intent,
+        reason: 'protected_creature',
+        affectedEntityIds: [],
+      };
     }
     const maxDistance = Math.max(1, input.maxDistance ?? AI_ACTIVE_MOB_ACTION_MAX_DISTANCE);
     if (dist2d(mob.pos, player.pos) > maxDistance) {
       return { ok: false, intent: input.intent, reason: 'distance_too_far', affectedEntityIds: [] };
     }
     if (player.inCombat) {
-      return { ok: false, intent: input.intent, reason: 'player_busy_combat', affectedEntityIds: [] };
+      return {
+        ok: false,
+        intent: input.intent,
+        reason: 'player_busy_combat',
+        affectedEntityIds: [],
+      };
     }
-    if (this.isTrivialTo(mob, player)) {
+    if (isTrivialTo(mob, player)) {
       return { ok: false, intent: input.intent, reason: 'target_trivial', affectedEntityIds: [] };
     }
     if (mob.aiState !== 'idle') {
@@ -1378,24 +1959,35 @@ export class Sim {
         break;
       case 'callForHelp':
         this.seedAiActiveMobCombat(mob, player);
-        this.callForHelp(mob, player);
+        rallyFleeingAllies(this.ctx, mob, player);
         break;
       case 'flee':
         if (!AI_ACTIVE_FLEE_FAMILIES.has(template.family)) {
-          return { ok: false, intent: input.intent, reason: 'protected_creature', affectedEntityIds: [] };
+          return {
+            ok: false,
+            intent: input.intent,
+            reason: 'protected_creature',
+            affectedEntityIds: [],
+          };
         }
         this.seedAiActiveMobCombat(mob, player);
         mob.aiState = 'flee';
         mob.hasFled = true;
         mob.fleeTimer = FLEE_DURATION;
-        this.callForHelp(mob, player);
+        rallyFleeingAllies(this.ctx, mob, player);
         break;
       default:
-        return { ok: false, intent: input.intent, reason: 'unsupported_intent', affectedEntityIds: [] };
+        return {
+          ok: false,
+          intent: input.intent,
+          reason: 'unsupported_intent',
+          affectedEntityIds: [],
+        };
     }
 
-    const affectedEntityIds = [...this.aiActiveMobActionTargets(player.id)]
-      .filter((id) => !before.has(id) || id === mob.id);
+    const affectedEntityIds = [...this.aiActiveMobActionTargets(player.id)].filter(
+      (id) => !before.has(id) || id === mob.id,
+    );
     if (affectedEntityIds.length === 0) {
       return { ok: false, intent: input.intent, reason: 'state_blocked', affectedEntityIds: [] };
     }
@@ -1424,7 +2016,8 @@ export class Sim {
     const npc = this.entities.get(input.npcId);
     if (!npc) return { ok: false, kind: input.kind, reason: 'npc_missing', affectedEntityIds: [] };
     const player = this.entities.get(input.playerId);
-    if (!player) return { ok: false, kind: input.kind, reason: 'player_missing', affectedEntityIds: [] };
+    if (!player)
+      return { ok: false, kind: input.kind, reason: 'player_missing', affectedEntityIds: [] };
     if (npc.kind !== 'npc' || player.kind !== 'player') {
       return { ok: false, kind: input.kind, reason: 'unsupported_entity', affectedEntityIds: [] };
     }
@@ -1449,15 +2042,16 @@ export class Sim {
     const distance = Math.min(homeRadius, Math.max(0.3, input.distance ?? 2.2));
     const relation = input.relation ?? 'sideStep';
     const angleToPlayer = angleTo(npc.pos, player.pos);
-    let rawTarget;
+    let rawTarget: Vec3;
     if (input.targetPos) {
       const focus = this.groundPos(input.targetPos.x, input.targetPos.z);
       const focusAngleBase = angleTo(focus, player.pos);
-      const focusAngle = relation === 'towardPlayer'
-        ? focusAngleBase
-        : relation === 'awayFromPlayer'
-          ? focusAngleBase + Math.PI
-          : focusAngleBase + (npc.id % 2 === 0 ? Math.PI / 2 : -Math.PI / 2);
+      const focusAngle =
+        relation === 'towardPlayer'
+          ? focusAngleBase
+          : relation === 'awayFromPlayer'
+            ? focusAngleBase + Math.PI
+            : focusAngleBase + (npc.id % 2 === 0 ? Math.PI / 2 : -Math.PI / 2);
       const focusDistance = Math.min(homeRadius, Math.max(0.45, Math.min(distance, 1.6)));
       const desired = this.groundPos(
         focus.x + Math.sin(focusAngle) * focusDistance,
@@ -1470,12 +2064,16 @@ export class Sim {
         npc.pos.z + Math.cos(stepAngle) * stepDistance,
       );
     } else {
-      const angle = relation === 'towardPlayer'
-        ? angleToPlayer
-        : relation === 'awayFromPlayer'
-          ? angleTo(player.pos, npc.pos)
-          : angleToPlayer + (npc.id % 2 === 0 ? Math.PI / 2 : -Math.PI / 2);
-      rawTarget = this.groundPos(npc.pos.x + Math.sin(angle) * distance, npc.pos.z + Math.cos(angle) * distance);
+      const angle =
+        relation === 'towardPlayer'
+          ? angleToPlayer
+          : relation === 'awayFromPlayer'
+            ? angleTo(player.pos, npc.pos)
+            : angleToPlayer + (npc.id % 2 === 0 ? Math.PI / 2 : -Math.PI / 2);
+      rawTarget = this.groundPos(
+        npc.pos.x + Math.sin(angle) * distance,
+        npc.pos.z + Math.cos(angle) * distance,
+      );
     }
     const target = this.clampAiActiveNpcTarget(npc, rawTarget, homeRadius);
     if (dist2d(npc.pos, target) < 0.3) {
@@ -1493,7 +2091,10 @@ export class Sim {
     };
   }
 
-  private startAiActiveNpcReturn(npc: Entity, kind: AiActiveNpcActionRequest['kind']): AiActiveNpcActionResult {
+  private startAiActiveNpcReturn(
+    npc: Entity,
+    kind: AiActiveNpcActionRequest['kind'],
+  ): AiActiveNpcActionResult {
     if (dist2d(npc.pos, npc.spawnPos) < 0.3) {
       npc.aiActiveMoveTarget = null;
       npc.aiActiveReturnAt = 0;
@@ -1512,9 +2113,10 @@ export class Sim {
   }
 
   private aiActiveNpcHomeRadius(npc: Entity, requested: number | undefined): number {
-    const cap = npc.questIds.length > 0 || npc.vendorItems.length > 0
-      ? AI_ACTIVE_KEY_NPC_HOME_RADIUS
-      : AI_ACTIVE_NPC_HOME_RADIUS;
+    const cap =
+      npc.questIds.length > 0 || npc.vendorItems.length > 0
+        ? AI_ACTIVE_KEY_NPC_HOME_RADIUS
+        : AI_ACTIVE_NPC_HOME_RADIUS;
     return Math.min(cap, Math.max(0.5, requested ?? cap));
   }
 
@@ -1528,6 +2130,70 @@ export class Sim {
     );
   }
 
+  // World-boss scheduler. Per WORLD_BOSSES slot: when the live boss is gone, clear
+  // the slot (and once its lootable corpse window has elapsed, remove the corpse +
+  // any stormlings it left). When the interval comes due, advance it and, if no
+  // boss is currently up, spawn a fresh one. Draws no rng and allocates no ids until
+  // a spawn actually fires (which never happens inside the short parity scenarios),
+  // so existing determinism traces are unaffected.
+  private updateWorldBosses(): void {
+    for (let i = 0; i < WORLD_BOSSES.length; i++) {
+      const def = WORLD_BOSSES[i];
+      const liveId = this.worldBossEntityIds[i];
+      if (liveId !== null) {
+        const boss = this.entities.get(liveId);
+        if (!boss) {
+          this.worldBossEntityIds[i] = null;
+        } else if (!boss.dead) {
+          // Grow the HP pool with the raid size (retail-style, up to the cap).
+          scaleWorldBossHp(this.ctx, boss, def);
+        }
+        if (boss?.dead) {
+          // Lootable corpse lingers WORLD_BOSS_CORPSE_SECONDS for contributors to
+          // loot, then is removed; respawnTimer is Infinity (handleDeath) so the
+          // normal in-place respawn never fires; only this scheduler respawns it.
+          if (boss.corpseTimer <= 0) {
+            for (const addId of boss.summonedIds) this.dropEntity(addId);
+            this.dropEntity(liveId);
+            this.worldBossEntityIds[i] = null;
+          }
+        }
+      }
+      if (this.time >= this.worldBossNextAt[i]) {
+        this.worldBossNextAt[i] += def.intervalSeconds;
+        if (this.worldBossEntityIds[i] === null) {
+          this.worldBossEntityIds[i] = this.spawnWorldBoss(def);
+        }
+      }
+    }
+  }
+
+  // Spawn a world boss at its fixed point and announce it server-wide. Returns the
+  // new entity id, or null if the template is missing. Uses no rng (fixed level +
+  // facing) so the spawn does not perturb the shared draw stream.
+  private spawnWorldBoss(def: WorldBossDef): number | null {
+    const template = MOBS[def.templateId];
+    if (!template) return null;
+    const pos = this.groundPos(def.pos.x, def.pos.z);
+    const mob = createMob(this.nextId++, template, template.maxLevel, pos);
+    mob.facing = 0;
+    mob.prevFacing = 0;
+    // World bosses use participant HP scaling (see scaleWorldBossHp), so their pool
+    // starts at the def base rather than the template's level-formula HP.
+    mob.maxHp = def.hpScale.base;
+    mob.hp = def.hpScale.base;
+    this.addEntity(mob);
+    // Anchorless log (no pid, no entityId) => routeEvents broadcasts to every
+    // connected player as a system notice. Localized by sim_i18n's worldBossSpawn
+    // RULE (matched on this exact literal shape).
+    this.emit({
+      type: 'log',
+      text: `${template.name} rises over Thornpeak Heights!`,
+      color: '#ffd100',
+    });
+    return mob.id;
+  }
+
   // -------------------------------------------------------------------------
   // Players: join / leave / persistence
   // -------------------------------------------------------------------------
@@ -1535,9 +2201,22 @@ export class Sim {
   addPlayer(
     cls: PlayerClass,
     name: string,
-    opts?: { autoEquip?: boolean; state?: CharacterState; characterId?: number },
+    opts?: {
+      autoEquip?: boolean;
+      state?: CharacterState;
+      characterId?: number;
+      // Server-stamped bank bonus slots, recomputed from account facts at every
+      // join (email/Discord/wallet/referrals). Overrides the persisted value so
+      // unlinking lowers capacity at the next login; a shrink below the used slot
+      // count leaves the bank over-capacity in the tolerated bags.ts sense (new
+      // deposits refuse, nothing is destroyed). Never passed offline (bonusSlots
+      // stays the sanitized save value, [] breakdown).
+      bankBonus?: { bonusSlots: number; sources: BankBonusSource[] };
+    },
   ): number {
-    const savedState = opts?.state ? sanitizeRemovedZone1Content(opts.state).state : undefined;
+    const savedState = opts?.state
+      ? sanitizeRemovedZone1Content(migrateCharacterTalentsV2(cls, opts.state)).state
+      : undefined;
     // Characters saved inside a dungeon instance rejoin at its entrance —
     // their old instance is gone (or belongs to someone else) by now.
     let savedPos = savedState?.pos ?? null;
@@ -1553,16 +2232,17 @@ export class Sim {
       const dungeon = dungeonAt(savedPos.x) ?? DUNGEON_LIST[0];
       savedPos = { x: dungeon.doorPos.x, z: dungeon.doorPos.z - 4 };
     }
+    const playerStart = (this.cfg.world ?? getActiveWorldContent()).playerStart;
     const startPos = savedPos
       ? this.groundPos(savedPos.x, savedPos.z)
-      : this.groundPos(PLAYER_START.x, PLAYER_START.z);
+      : this.groundPos(playerStart.x, playerStart.z);
     const savedArena1v1: ArenaStanding = {
-      rating: savedState?.arena1v1Rating ?? savedState?.arenaRating ?? ARENA_BASE_RATING,
+      rating: savedState?.arena1v1Rating ?? savedState?.arenaRating ?? arenaMod.ARENA_BASE_RATING,
       wins: savedState?.arena1v1Wins ?? savedState?.arenaWins ?? 0,
       losses: savedState?.arena1v1Losses ?? savedState?.arenaLosses ?? 0,
     };
     const savedArena2v2: ArenaStanding = {
-      rating: savedState?.arena2v2Rating ?? ARENA_BASE_RATING,
+      rating: savedState?.arena2v2Rating ?? arenaMod.ARENA_BASE_RATING,
       wins: savedState?.arena2v2Wins ?? 0,
       losses: savedState?.arena2v2Losses ?? 0,
     };
@@ -1580,21 +2260,41 @@ export class Sim {
       pendingSkinCatalog: savedState?.pendingSkinCatalog ?? null,
       pendingSkinItemId: savedState?.pendingSkinItemId ?? null,
       moveInput: emptyMoveInput(),
+      wireRev: 0,
       inventory: [],
+      bags: Array<string | null>(BAG_SOCKETS).fill(null),
+      bank: { inventory: [], purchasedSlots: 0, bonusSlots: 0 },
+      bankBonusSources: [],
       vendorBuyback: [],
       copper: 0,
-      equipment: { mainhand: classDef.startWeapon, chest: classDef.startChest },
+      equipment: {
+        mainhand: classDef.startWeapon,
+        chest: classDef.startChest,
+        ...(classDef.startOffhand ? { offhand: classDef.startOffhand } : {}),
+      },
+      equipmentInstance: {},
       xp: 0,
       lifetimeXp: 0,
+      honor: 0,
+      lifetimeHonor: 0,
       prestigeRank: 0,
       unlockedMilestones: new Set(),
       restedXp: 0,
+      gatheringProficiency: emptyGatheringProficiency(),
+      pendingGatherGrants: [],
+      nodeHarvestReadyAt: {},
+      lastCraftResult: null,
+      lastMasterwork: null,
+      lastSalvageResult: null,
+      lastDisenchantResult: null,
+      lastEnchantResult: null,
       known: [],
       questLog: new Map(),
       questsDone: new Set(),
       counters: freshCounters(),
       autoEquip: opts?.autoEquip ?? false,
       joinedAt: this.time,
+      totalPlayedSeconds: Math.max(0, savedState?.totalPlayedSeconds ?? 0),
       lastActiveTick: this.tickCount,
       arenaRating: savedArena1v1.rating,
       arenaWins: savedArena1v1.wins,
@@ -1602,8 +2302,18 @@ export class Sim {
       arena2v2Rating: savedArena2v2.rating,
       arena2v2Wins: savedArena2v2.wins,
       arena2v2Losses: savedArena2v2.losses,
+      sportRole: null,
+      vcupWins: savedState?.vcupWins ?? 0,
+      vcupLosses: savedState?.vcupLosses ?? 0,
+      vcupDraws: savedState?.vcupDraws ?? 0,
+      vcupGuildWins: savedState?.vcupGuildWins ?? 0,
+      vcupGuildLosses: savedState?.vcupGuildLosses ?? 0,
+      vcupBetWins: savedState?.vcupBetWins ?? 0,
+      vcupBetLosses: savedState?.vcupBetLosses ?? 0,
+      vcupBetNet: savedState?.vcupBetNet ?? 0,
       talents: emptyAllocation(),
       talentMods: emptyModifiers(),
+      abilityRhythm: 0,
       fiestaAugments: [],
       fiestaMods: null,
       fiestaSpecial: {},
@@ -1613,12 +2323,31 @@ export class Sim {
       raidLockouts: new Map(),
       away: null,
       marketFilter: '',
+      craftSkills: emptyCraftSkills(),
+      knownRecipes: new Set(),
+      craftThrottle: { windowStart: 0, count: 0 },
+      marketQuery: defaultMarketQuery(),
+      mailWelcomed: false,
+      archetype: emptyArchetypeState(),
       delveMarks: 0,
       delveClears: {},
       companionUpgrades: {},
       delveLoreUnlocked: new Set(),
       delveDaily: { date: '', firstClearXp: new Set(), markClears: 0 },
+      townFocus: {},
+      heroicDaily: { date: '', marked: new Set() },
+      deedsEarned: new Map(),
+      deedStats: freshDeedStats(),
+      activeTitle: null,
+      renown: 0,
     };
+    // A fresh character sets out provisioned (class-defined starter rations);
+    // a saved character loads its own bags from savedState below.
+    if (!savedState) {
+      for (const it of classDef.startItems) {
+        meta.inventory.push({ itemId: it.itemId, count: it.count });
+      }
+    }
     this.players.set(player.id, meta);
     player.skinCatalog = meta.skinCatalog;
     player.skin = meta.skin; // mirror onto the entity so the renderer + wire can read it
@@ -1634,45 +2363,87 @@ export class Sim {
       // plus their current bar progress, so the leaderboard is meaningful for
       // existing characters from day one.
       meta.lifetimeXp = s.lifetimeXp ?? xpToReachLevel(player.level) + Math.max(0, s.xp);
+      meta.honor = honorMod.normalizeHonorCounter(s.honor);
+      meta.lifetimeHonor = Math.max(
+        meta.honor,
+        honorMod.normalizeHonorCounter(s.lifetimeHonor ?? meta.honor),
+      );
+      meta.honorArenaDaily = honorMod.normalizeHonorDailyState(s.honorArenaDaily);
       meta.prestigeRank = s.prestigeRank ?? 0;
       meta.restedXp = Math.max(0, s.restedXp ?? 0);
+      // `s.professions` is the legacy pre-rename field (#1119); `s.gatheringProficiency`
+      // is the current one. Prefer the current field, fall back to the legacy one so
+      // saves from before the rename still load correctly.
+      meta.gatheringProficiency = normalizeGatheringProficiency(
+        s.gatheringProficiency ?? s.professions,
+      );
       if (s.unlockedMilestones)
         for (const id of s.unlockedMilestones) meta.unlockedMilestones.add(id);
       meta.copper = s.copper;
       meta.equipment = { ...s.equipment };
-      meta.inventory = s.inventory.map((i) => ({ ...i }));
-      meta.vendorBuyback = (s.vendorBuyback ?? []).map((i) => ({ ...i }));
+      meta.equipmentInstance = Object.fromEntries(
+        Object.entries(s.equipmentInstance ?? {}).map(([slot, inst]) => [
+          slot,
+          cloneItemInstancePayload(inst),
+        ]),
+      );
+      meta.inventory = s.inventory.map(cloneInvSlot);
+      if (s.bags === undefined) {
+        // PRE-BAG save: the character earned this space under the infinite
+        // inventory, so grant + equip bags that cover it (lowest quality tier
+        // that suffices; see migrationBagsFor). Runs once: the next save writes
+        // the bags field, so a re-login never double-grants. A hoard past the
+        // 72-slot ceiling keeps the tolerated overflow.
+        const grantedBags = migrationBagsFor(meta.inventory.length);
+        for (let i = 0; i < grantedBags.length; i++) meta.bags[i] = grantedBags[i];
+        if (grantedBags.length > 0) {
+          this.notice(player.id, 'Your belongings have been packed into new bags.');
+        }
+      } else {
+        for (let i = 0; i < BAG_SOCKETS; i++) {
+          const id = s.bags[i];
+          meta.bags[i] = id && ITEMS[id]?.kind === 'bag' ? id : null;
+        }
+      }
+      meta.vendorBuyback = (s.vendorBuyback ?? []).map(cloneInvSlot);
+      // Bank sanitizes on load (never destroys items; a pre-bank save has no `bank`
+      // field and sanitizes to an empty bank). See bank.ts sanitizeBankState.
+      meta.bank = sanitizeBankState(s.bank);
       for (const q of s.questLog) {
         if (q.state !== 'done')
           meta.questLog.set(q.questId, {
             questId: q.questId,
             counts: [...q.counts],
             state: q.state,
+            ...(q.selection === undefined ? {} : { selection: q.selection }),
+            ...(q.resolvedCounts === undefined ? {} : { resolvedCounts: [...q.resolvedCounts] }),
           });
       }
       for (const q of s.questsDone) meta.questsDone.add(q);
       if (s.talents)
-        meta.talents = {
-          spec: s.talents.spec ?? null,
-          ranks: { ...s.talents.ranks },
-          choices: { ...s.talents.choices },
-        };
-      if (s.loadouts)
-        meta.loadouts = s.loadouts.map((l) => ({
-          name: l.name,
-          alloc: cloneAllocation(l.alloc),
-          bar: [...(l.bar ?? [])],
-        }));
-      if (typeof s.activeLoadout === 'number') meta.activeLoadout = s.activeLoadout;
+        // Revalidate the persisted build against the current rules + level budget
+        // before it is baked into the flat mods below. A stored allocation replays
+        // verbatim on load, so without this an over-budget, prereq-broken, or gated
+        // build (stale tuning, a level-down, or a tampered save) would still grant
+        // its stats/abilities. An honest in-budget build is returned unchanged.
+        meta.talents = repairAllocation(cls, s.talents, player.level);
+      const repairedLoadouts = repairTalentLoadouts(cls, player.level, s.loadouts, s.activeLoadout);
+      meta.loadouts = repairedLoadouts.loadouts;
+      meta.activeLoadout = repairedLoadouts.activeLoadout;
       if (s.raidLockouts) {
         const now = this.lockoutNowMs();
         for (const [dungeonId, until] of Object.entries(s.raidLockouts)) {
           if (Number.isFinite(until) && until > now) meta.raidLockouts.set(dungeonId, until);
         }
       }
+      meta.craftSkills = normalizeCraftSkills(s.craftSkills);
+      if (s.knownRecipes) meta.knownRecipes = new Set(s.knownRecipes);
+      meta.archetype = normalizeArchetypeState(s.archetype, meta.craftSkills);
+      meta.mailWelcomed = s.mailWelcomed === true;
       meta.delveMarks = s.delveMarks ?? 0;
       meta.delveClears = { ...(s.delveClears ?? {}) };
       meta.companionUpgrades = { ...(s.companionUpgrades ?? {}) };
+      meta.townFocus = { ...(s.townFocus ?? {}) };
       if (s.delveLoreUnlocked) for (const id of s.delveLoreUnlocked) meta.delveLoreUnlocked.add(id);
       if (s.delveDaily) {
         meta.delveDaily = {
@@ -1681,13 +2452,46 @@ export class Sim {
           markClears: s.delveDaily.markClears,
         };
       }
+      if (s.heroicDaily) {
+        meta.heroicDaily = { date: s.heroicDaily.date, marked: new Set(s.heroicDaily.marked) };
+      }
+      // The Book of Deeds. Earned days load verbatim; the legacy milestone set
+      // unions into the earned map (milestone unification); renown is
+      // RECOMPUTED from the earned set below (the sim is authoritative, the
+      // saved number only feeds a SQL sort index).
+      for (const [deedId, day] of Object.entries(s.deeds ?? {})) {
+        if (typeof day === 'string') meta.deedsEarned.set(deedId, day);
+      }
+      meta.deedStats = restoreDeedStats(s.deedStats);
+      deedsMod.unionLegacyMilestones(meta);
+      deedsMod.recomputeRenown(meta);
+      // The saved title re-applies through the same validator the setter
+      // command uses (meta starts untitled), so a stale id from a content
+      // change loads as no title instead of riding the entity wire as a
+      // dangling reference. Stamps the entity `title` field alongside.
+      deedsMod.setActiveTitle(
+        meta,
+        player,
+        typeof s.activeTitle === 'string' ? s.activeTitle : null,
+      );
+      // Resume with the weapon sheathed exactly as saved (absent = drawn).
+      if (s.weaponStowed) player.weaponStowed = true;
+    }
+
+    // Host-stamped bank bonus slots (see the opt doc above). Applied on BOTH the
+    // saved-state and brand-new-character arms: a first-ever join can already have
+    // earned account bonuses. Values are host-trusted but clamped to the registry
+    // ceiling anyway; the breakdown rows are cloned at this write boundary.
+    if (opts?.bankBonus) {
+      meta.bank.bonusSlots = clampBonusSlots(opts.bankBonus.bonusSlots);
+      meta.bankBonusSources = opts.bankBonus.sources.map((s) => ({ ...s }));
     }
 
     // Resolve the flat talent struct once, before the stat pass + ability
     // resolver below consume it (they only ever read these flat numbers).
-    meta.talentMods = computeTalentModifiers(cls, meta.talents);
+    meta.talentMods = computeTalentModifiers(cls, meta.talents, player.level);
     this.refreshKnownAbilities(meta, false);
-    recalcPlayerStats(player, cls, meta.equipment, meta.talentMods);
+    recalcPlayerStats(player, cls, meta.equipment, meta.talentMods, meta.equipmentInstance);
     if (savedState) {
       player.hp = Math.max(1, Math.min(player.maxHp, savedState.hp));
       player.resource =
@@ -1706,8 +2510,298 @@ export class Sim {
             : 0;
     }
     player.swingTimer = 0;
+    // Restore ability/potion cooldowns so a relog cannot reset them (see
+    // cooldown_persist.ts). Re-anchored to this sim's clock; a fresh character has
+    // none. Charge-limited pools (abilityCharges) restore whole; a legacy save's
+    // {spent, cdMax} entries convert against the CURRENT resolved caps from
+    // meta.known (refreshed above).
+    const restoredAbilityCharges: Record<string, AbilityChargeState> = {};
+    const legacyChargeCaps = new Map<string, { maxCharges: number; cooldown: number }>();
+    for (const known of meta.known) {
+      const cap = known.charges ?? 1;
+      if (cap > 1 && known.cooldown > 0) {
+        legacyChargeCaps.set(known.def.id, { maxCharges: cap, cooldown: known.cooldown });
+      }
+    }
+    player.potionCooldownUntil = applyCooldowns(
+      savedState?.cooldowns,
+      player.cooldowns,
+      this.time,
+      restoredAbilityCharges,
+      legacyChargeCaps,
+      (id) => ABILITIES[id] !== undefined,
+    );
+    if (Object.keys(restoredAbilityCharges).length > 0) {
+      player.abilityCharges = restoredAbilityCharges;
+    }
+    // Re-derive the display copy from the restored authority; otherwise a relog inside
+    // the shared potion cooldown paints the action bar as READY (no swipe) while the
+    // use-gate (which reads potionCooldownUntil) still rejects the quaff.
+    player.potionCdRemaining = Math.max(0, player.potionCooldownUntil - this.time);
+    // Restore The Keeper's Toll (Resurrection Sickness) with its SAVED remaining, so the
+    // penalty cannot be shed by relogging. Applied after recalc so the aura re-reduces
+    // maxHp; hp is then clamped down to the reduced max (the ghost block below resets a
+    // ghost's greyed bar to that reduced max).
+    if (savedState?.resSickness && savedState.resSickness > 0) {
+      applyResurrectionSickness(this.ctx, player, savedState.resSickness);
+      player.hp = Math.min(player.hp, player.maxHp);
+    }
+    // Resume a ghost: a player who logged out as a released spirit comes back as a
+    // ghost at the graveyard (corpse still marked), not freely resurrected. dead stays
+    // unset for a non-ghost logout (the pre-existing revive-on-relog behavior).
+    if (savedState?.ghost) {
+      player.dead = true;
+      player.ghost = true;
+      player.corpsePos = savedState.corpsePos
+        ? this.groundPos(savedState.corpsePos.x, savedState.corpsePos.z)
+        : null;
+      player.hp = player.maxHp;
+    } else if (savedState?.dead && !isArenaPos(savedState.pos.x) && !isDelvePos(savedState.pos.x)) {
+      // Auto-release-on-logout: a character saved dead but UNRELEASED resumes as
+      // a released ghost rather than reviving in place at 1 hp (logging out must
+      // not bypass the death loop). Put the body back at the death spot, then run
+      // the normal release path so the corpse marker and graveyard choice
+      // (including the instance rule: a dungeon corpse releases to the outdoor
+      // graveyard nearest the door) cannot drift from spirit.ts. Delve, arena,
+      // and fiesta deaths keep their own bounded respawn rules and never enter
+      // the ghost loop, so those positions load exactly as before.
+      player.pos = this.groundPos(savedState.pos.x, savedState.pos.z);
+      player.prevPos = { ...player.pos };
+      this.rebucket(player);
+      player.dead = true;
+      releasePlayerSpirit(this.ctx, player.id);
+    }
     if (savedState?.pet) this.restorePet(player, savedState.pet);
+    // One-time Ravenpost welcome (doubles as the service announcement for
+    // characters saved before mail existed). Flipped before the send so a
+    // re-entrant save can never double-book the letter.
+    if (!meta.mailWelcomed) {
+      meta.mailWelcomed = true;
+      this.postOffice.sendWelcome(meta);
+    }
+    // Book of Deeds retro-on-join, after the saved state is fully restored:
+    // seed the discovery ledger from current holdings, apply the retro
+    // fallbacks a predicate cannot express (proof inferences plus the
+    // stranded-deed heals), then evaluate every predicate against the loaded
+    // state (a pure function of that state and the catalog: no rng, so join
+    // order cannot fork the draw order). Counters start at zero, so counter
+    // deeds never retro-grant; the emitted events carry retro: true and
+    // drain with the next tick to this player only.
+    deedsMod.seedItemDiscovery(this.ctx, meta);
+    deedsMod.retroFallbackGrants(this.ctx, meta, player);
+    deedsMod.evaluateDeedsFor(this.ctx, meta, player, true);
+    this.deedDirtyPids.delete(player.id);
+    this.deedDirtyKeys.delete(player.id);
     return player.id;
+  }
+
+  // Spawn a stationary test player ("/dev bot <name>", gated by devCommands in
+  // social/chat.ts): a dummy you can target and whisper to exercise social features
+  // offline. Placed a few yards from the primary player so it is visible, and marked
+  // isDevBot so a whisper to it auto-replies (see the whisper handler in chat.ts).
+  // Returns the new pid, or -1 if the name is blank or already taken (whisper
+  // resolution needs a unique name). Never reached in production (the caller runs
+  // only when devCommands is on).
+  spawnDevBot(name: string): number {
+    const clean = name.trim();
+    if (!clean) return -1;
+    for (const m of this.players.values())
+      if (m.name.toLowerCase() === clean.toLowerCase()) return -1;
+    const pid = this.addPlayer('mage', clean);
+    const meta = this.players.get(pid);
+    if (meta) meta.isDevBot = true;
+    const me = this.entities.get(this.primaryId);
+    const e = this.entities.get(pid);
+    if (e && me) {
+      e.pos = this.groundPos(me.pos.x + 3, me.pos.z + 3);
+      e.prevPos = { ...e.pos };
+      this.rebucket(e);
+    }
+    return pid;
+  }
+
+  // /dev vendor: spawn the free-epic Test Quartermaster next to the caller
+  // (dev-command realms only). Returns the vendor entity id, or -1 on failure.
+  spawnDevVendor(pid?: number): number {
+    const me = this.entities.get(pid ?? this.primaryId);
+    if (!me) return -1;
+    const pos = this.groundPos(me.pos.x + 2, me.pos.z + 2);
+    const npc = createNpc(this.nextId++, PTR_DEV_VENDOR_DEF, pos);
+    this.addEntity(npc);
+    return npc.id;
+  }
+
+  // A friendly stationary ally bot for the Cascada playtest scenario, dropped at an
+  // exact spot (no name-uniqueness gate, so /dev cascade can be re-run). Dev only.
+  private spawnScenarioAlly(name: string, x: number, z: number, cls: PlayerClass = 'mage'): number {
+    const id = this.addPlayer(cls, name);
+    const meta = this.players.get(id);
+    if (meta) meta.isDevBot = true;
+    // Level 20 like the mage: a level-1 ally has so little health that a single Echo
+    // tick (and the fast low-level regen) refills it instantly, leaving nothing to
+    // watch. A full level-20 pool makes the Echo healing readable as it climbs.
+    this.setPlayerLevel(20, id);
+    const e = this.entities.get(id);
+    if (e) {
+      e.pos = this.groundPos(x, z);
+      e.prevPos = { ...e.pos };
+      this.rebucket(e);
+    }
+    return id;
+  }
+
+  // /dev cascade: a controlled Cascada temporal playtest scenario (dev-command realms
+  // only). Spawns a NON-offensive training dummy in front (aggroRadius 0 / moveSpeed 0
+  // => it never chases the healer) plus a center ally and additional friendly allies at
+  // KNOWN distances from that center (one deliberately beyond the 15 yd radius), all in a
+  // raid with the mage and at reduced health. Starts the per-cast metrics session on the
+  // caster. Target the center, cast Temporal Cascade, then attack the dummy with Arcane
+  // spells to watch the Echo conversion heal the marked allies without any aggro.
+  startCascadePlaytest(pid?: number): void {
+    const mageId = pid ?? this.primaryId;
+    const mage = this.entities.get(mageId);
+    if (!mage) return;
+    const dummyPos = this.groundPos(mage.pos.x, mage.pos.z + CASCADE_SCENARIO.dummyFromMage);
+    const dummy = createMob(this.nextId++, MOBS.training_dummy, 20, dummyPos);
+    dummy.hostile = true;
+    this.addEntity(dummy);
+    const cx = mage.pos.x + CASCADE_SCENARIO.centerFromMage;
+    const cz = mage.pos.z;
+    const centerId = this.spawnScenarioAlly('EchoCenter', cx, cz);
+    const allyIds: number[] = [centerId];
+    CASCADE_SCENARIO.allyDistances.forEach((d, i) => {
+      const angle = (i * Math.PI) / 2; // spread the allies on the four cardinal axes
+      allyIds.push(
+        this.spawnScenarioAlly(`EchoAlly${d}`, cx + Math.cos(angle) * d, cz + Math.sin(angle) * d),
+      );
+    });
+    // Raid so Cascada (party/raid-only) can select every ally. A 5-cap party would drop
+    // bodies, so fill a party of five, convert, then add the rest.
+    for (const id of allyIds.slice(0, 4)) {
+      this.partyInvite(id, mageId);
+      this.partyAccept(id);
+    }
+    this.party.convertPartyToRaid(mageId);
+    for (const id of allyIds.slice(4)) {
+      this.partyInvite(id, mageId);
+      this.partyAccept(id);
+    }
+    for (const id of allyIds) {
+      const e = this.entities.get(id);
+      if (!e) continue;
+      e.hp = Math.max(1, Math.round(e.maxHp * CASCADE_SCENARIO.allyHpFraction));
+      // Freeze out-of-combat regen so ONLY the Chronomancer's Echo/initial healing
+      // moves these bars (the owner wants to isolate the conversion, not watch the
+      // allies self-heal). A zero-value "food" trips the `!p.eating` regen guard in
+      // updateRegen and heals nothing; an idle, unsitting bot never trips standUp,
+      // and the non-damaging dummy never clears it. Dev scenario only.
+      e.eating = {
+        itemId: 'dev_cascade_freeze',
+        kind: 'food',
+        hpPer2s: 0,
+        manaPer2s: 0,
+        remaining: 1_000_000,
+      };
+    }
+    mage.cascadeDevStats = {
+      startTime: this.time,
+      centerId,
+      arcaneDamage: 0,
+      convertedHeal: 0,
+      convertedOverheal: 0,
+      initialHeal: 0,
+    };
+    // The dev-channel "scenario ready" confirmation is emitted by the /dev cascade chat
+    // handler (like /dev bot), keeping this dev diagnostic out of the S3 sim.ts scanner.
+  }
+
+  // /dev sandbox: a GENERIC practice scenario for testing any ability (dev-command
+  // realms only). Spawns a non-offensive training dummy in front (aggroRadius 0 /
+  // moveSpeed 0, so nothing chases you) plus a raid of friendly level-20 allies with a
+  // roomy 10k health pool, started LOW, and out-of-combat regen FROZEN, so a healer can
+  // top them off for a good while (and the bar visibly climbs) with nothing but your own
+  // abilities moving it. Re-running RESETS it (clears the previous dummy + bots).
+  // Returns the number of allies spawned. (The Cascada-specific readout stays in
+  // startCascadePlaytest; this one is class-agnostic.)
+  startDevSandbox(pid?: number): number {
+    const casterId = pid ?? this.primaryId;
+    const me = this.entities.get(casterId);
+    if (!me) return 0;
+    for (const id of this.devSandboxIds) {
+      if (this.players.has(id)) this.removePlayer(id);
+      else this.dropEntity(id);
+    }
+    this.devSandboxIds = [];
+    const cfg = {
+      dummyX: -3,
+      dummyZ: 4,
+      bots: 5,
+      botZ: 2,
+      botX0: 2,
+      botGap: 1.5,
+      maxHp: 10_000,
+      hp: 0.15,
+    };
+    const dummy = createMob(
+      this.nextId++,
+      MOBS.training_dummy,
+      20,
+      this.groundPos(me.pos.x + cfg.dummyX, me.pos.z + cfg.dummyZ),
+    );
+    dummy.hostile = true;
+    this.addEntity(dummy);
+    // A mixed party rather than all-mages (owner 2026-07-13): a rotating spread of
+    // classes so the practice allies read like a real group (tank/healer/melee/etc.),
+    // each with its own class HP pool and armor.
+    const sandboxClasses: PlayerClass[] = [
+      'warrior',
+      'priest',
+      'rogue',
+      'hunter',
+      'shaman',
+      'warlock',
+      'druid',
+      'paladin',
+      'mage',
+    ];
+    const botIds: number[] = [];
+    for (let i = 0; i < cfg.bots; i++) {
+      const cls = sandboxClasses[i % sandboxClasses.length];
+      botIds.push(
+        this.spawnScenarioAlly(
+          `${cls[0].toUpperCase()}${cls.slice(1)}${i + 1}`,
+          me.pos.x + cfg.botX0 + i * cfg.botGap,
+          me.pos.z + cfg.botZ,
+          cls,
+        ),
+      );
+    }
+    for (const id of botIds.slice(0, 4)) {
+      this.partyInvite(id, casterId);
+      this.partyAccept(id);
+    }
+    if (botIds.length >= 5) this.party.convertPartyToRaid(casterId);
+    for (const id of botIds.slice(4)) {
+      this.partyInvite(id, casterId);
+      this.partyAccept(id);
+    }
+    for (const id of botIds) {
+      const e = this.entities.get(id);
+      if (!e) continue;
+      // A roomy 10k pool (not the dummy's near-infinite one), started low: heal for a
+      // good while AND watch the bar climb.
+      e.maxHp = cfg.maxHp;
+      e.hp = Math.max(1, Math.round(cfg.maxHp * cfg.hp));
+      e.eating = {
+        itemId: 'dev_sandbox_freeze',
+        kind: 'food',
+        hpPer2s: 0,
+        manaPer2s: 0,
+        remaining: 1_000_000,
+      };
+    }
+    this.devSandboxIds = [dummy.id, ...botIds];
+    return botIds.length;
   }
 
   removePlayer(pid: number): void {
@@ -1719,21 +2813,32 @@ export class Sim {
     // resolves via the still-present entity position and party key.
     const leavingRun = this.delveRunForPlayer(pid);
     if (leavingRun?.lockpick && leavingRun.lockpick.ownerId === pid)
-      this.abandonLockpick(leavingRun);
-    // leave social systems cleanly
-    this.removeFromParty(pid, 'has left the party');
+      this.ctx.abandonLockpick(leavingRun);
+    this.preparePlayerLeave(pid);
+    despawnMobsForDev(this.ctx, pid, 'spawned');
+    // leave social systems cleanly. removeFromParty lives on the PartyMachine now
+    // (A1); reach it through the seam, keeping this call in its load-bearing
+    // teardown position (must run while the leaver is still in players/entities).
+    this.ctx.removeFromParty(pid, 'has left the party');
     const trade = this.trades.get(pid);
     if (trade) this.tradeCancel(pid);
     const duel = this.duels.get(pid);
     if (duel) this.endDuel(duel, duel.a === pid ? duel.b : duel.a);
     // arena: leaving the queue is free; disconnecting mid-bout forfeits it
     this.arenaDequeue(pid);
-    const match = this.arenaMatches.get(pid);
-    if (match) {
-      const team = this.arenaTeamOf(match, pid);
-      this.endArenaMatch(match, team === 'A' ? 'B' : team === 'B' ? 'A' : null, 'forfeit');
-    }
-    this.partyInvites.delete(pid);
+    this.arenaResolveDesertion(pid);
+    // Card Duel: leaving the queue is free; a live match is forfeited to the
+    // opponent (mirrors the disconnect/jail paths in server/game.ts, and keeps
+    // the offline Sim / headless env from leaking cardDuels/cardDuelQueue
+    // entries for a departed pid).
+    this.leaveCardMinigameEntirely(pid);
+    // Vale Cup: leaving the queue is free; deserting a counted match benches
+    // the fighter (the team plays short), takes the loss, and arms the
+    // Groundskeeper's lockout. Idempotent: the server already resolved it
+    // before the leave save (vcupResolveDesertion is a public delegate).
+    valeCupMod.vcupDequeue(this.ctx, pid);
+    valeCupMod.vcupResolveDesertion(this.ctx, pid);
+    this.party.partyInvites.delete(pid);
     this.tradeInvites.delete(pid);
     this.duelInvites.delete(pid);
     // mobs forget the leaving player; persistent hunter pets are serialized
@@ -1757,6 +2862,7 @@ export class Sim {
       const e = this.entities.get(other.entityId);
       if (e && e.targetId === pid) e.targetId = null;
     }
+    resurrectionOfferMod.dropResurrectionOffer(this.ctx, pid);
     this.dropEntity(pid);
     this.players.delete(pid);
     this.chatTokens.delete(pid);
@@ -1766,8 +2872,75 @@ export class Sim {
     // pet is already persisted by now. Drop the transient stash entry here so the map
     // can't grow unbounded across sessions.
     this.delvePetStash.delete(pid);
+    // Same session hygiene for the deed runtime's per-pid maps.
+    deedsMod.dropDeedSessionState(this.ctx, pid);
     if (this.primaryId === pid)
       this.primaryId = this.players.size > 0 ? [...this.players.keys()][0] : -1;
+  }
+
+  // The online server calls this before serializing a leave. Keep it idempotent
+  // because removePlayer calls it again as an offline/headless safety net.
+  preparePlayerLeave(pid: number): void {
+    const meta = this.players.get(pid);
+    if (!meta) return;
+    meta.leaving = true;
+    // Dungeon Finder teardown FIRST, while the leaver's party/roster still resolves
+    // (drops their queue unit, fails their proposal, closes their listing, withdraws
+    // their application). It runs HERE, not in removePlayer, because the server calls
+    // preparePlayerLeave before the persistence await and only removes the player
+    // after it: without this a disconnecting player could still be matched, or burn a
+    // whole 30-second proposal for four other players. onPlayerRemoved is idempotent.
+    this.dungeonFinder.onPlayerRemoved(pid);
+    // Trades are not escrowed. Cancel before the leave snapshot so the other
+    // party cannot confirm during the persistence await and receive an item
+    // that the departing character's already-captured save still contains.
+    if (this.trades.has(pid)) this.tradeCancel(pid);
+    // Forfeit unresolved rolls while the player, party, and source corpse are
+    // still live, so every item goes to a remaining candidate or back to loot.
+    removePlayerFromLootRolls(this.ctx, pid);
+    const party = this.partyOf(pid);
+    // Re-anchor taps before persistence yields. This preserves the party's
+    // death-time corpse rights and loot strategy after the original tapper is
+    // removed, and lets an already-queued leaver DoT settle a fatal heroic hit
+    // through an eligible remaining participant. Without a qualified party
+    // member, clearing the tap mirrors immediate removal.
+    for (const entity of this.entities.values()) {
+      if (entity.kind === 'mob' && entity.tappedById === pid) {
+        entity.tappedById = this.replacementTapperForLeave(entity, pid, party?.members ?? []);
+      }
+    }
+  }
+
+  private replacementTapperForLeave(
+    mob: Entity,
+    leavingPid: number,
+    partyPids: number[],
+  ): number | null {
+    const instance = this.instances.find(
+      (slot) => slot.partyKey !== null && slot.mobIds.includes(mob.id),
+    );
+    for (const candidatePid of partyPids) {
+      if (candidatePid === leavingPid) continue;
+      const candidate = this.players.get(candidatePid);
+      const entity = this.entities.get(candidatePid);
+      if (!candidate || candidate.leaving || !entity) continue;
+      // A corpse already owns an authoritative death-time recipient snapshot.
+      // Re-anchor only to someone in that snapshot, irrespective of where they
+      // moved after the kill.
+      if (mob.lootRecipientIds && mob.lootRecipientIds.length > 0) {
+        if (mob.lootRecipientIds.includes(candidatePid)) return candidatePid;
+        continue;
+      }
+      const matchingInstanceCorpse =
+        entity.ghost &&
+        entity.corpsePos &&
+        (!instance || entity.corpseInstanceId === instance.exitId)
+          ? entity.corpsePos
+          : null;
+      const participationPos = matchingInstanceCorpse ?? entity.pos;
+      if (dist2d(participationPos, mob.pos) <= PARTY_XP_RANGE) return candidatePid;
+    }
+    return null;
   }
 
   serializeCharacter(pid: number): CharacterState | null {
@@ -1778,25 +2951,85 @@ export class Sim {
     // throwaway build, persist the PRE-fiesta snapshot so an autosave or
     // mid-match disconnect never writes the temporary state to the database.
     const restore = meta.fiestaRestore;
+    // Warlock demons are not persisted across logout: drop the snapshot so a relog
+    // forces a fresh re-summon instead of laundering the summon cooldown for free.
+    // Hunter pets (non-demon) persist. See pet_commands.isDemonPetState.
+    const petSnapshot = this.serializePet(pid);
+    // Seated in a Vale Cup match: persist the pre-match RETURN spot, never a
+    // mid-pitch position (a mid-match save or desertion must not strand the
+    // character on the Sowfield). The stowed pet persists via serializePet's
+    // delvePetStash fallback; known/sportRole are session-derived, not saved.
+    const cupReturn = valeCupMod.vcupReturnFor(this.ctx, pid);
     const state: CharacterState = {
+      contentRevision: CURRENT_CHARACTER_CONTENT_REVISION,
       level: restore ? restore.level : e.level,
       xp: restore ? restore.xp : meta.xp,
       lifetimeXp: meta.lifetimeXp,
+      ...(meta.honor || meta.lifetimeHonor
+        ? { honor: meta.honor, lifetimeHonor: meta.lifetimeHonor }
+        : {}),
+      ...(meta.honorArenaDaily
+        ? {
+            honorArenaDaily: {
+              date: meta.honorArenaDaily.date,
+              winsByOpponent: { ...meta.honorArenaDaily.winsByOpponent },
+              fiestaCompletionsByOpponent: {
+                ...meta.honorArenaDaily.fiestaCompletionsByOpponent,
+              },
+              totalWins: meta.honorArenaDaily.totalWins,
+            },
+          }
+        : {}),
       prestigeRank: meta.prestigeRank,
       unlockedMilestones: [...meta.unlockedMilestones],
       restedXp: meta.restedXp,
+      // Fold this session's elapsed time into the persisted baseline (see
+      // PlayerMeta.totalPlayedSeconds); /playtime reads the running total the
+      // same way without waiting for a save.
+      totalPlayedSeconds: meta.totalPlayedSeconds + Math.max(0, this.time - meta.joinedAt),
+      professions: { ...meta.gatheringProficiency },
+      gatheringProficiency: { ...meta.gatheringProficiency },
       copper: meta.copper,
       hp: e.hp,
-      resource: e.resource,
-      pos: { x: e.pos.x, z: e.pos.z },
-      facing: e.facing,
+      // A druid saved while shifted runs on rage/energy with its mana parked in
+      // savedMana; persist the parked mana so reload (always caster form) restores
+      // it instead of clamping the form bar into the mana pool.
+      resource: persistedResource(
+        CLASSES[meta.cls].resourceType,
+        e.resourceType,
+        e.resource,
+        e.savedMana,
+      ),
+      pos: cupReturn ? { x: cupReturn.x, z: cupReturn.z } : { x: e.pos.x, z: e.pos.z },
+      facing: cupReturn ? cupReturn.facing : e.facing,
+      // Death state: a released spirit resumes its corpse run on relog, and a
+      // dead-but-unreleased corpse auto-releases on load (see addPlayer).
+      dead: e.dead,
+      ghost: e.ghost,
+      corpsePos: e.corpsePos ? { x: e.corpsePos.x, z: e.corpsePos.z } : null,
+      // The Keeper's Toll persists across logout (it cannot be shed by relogging).
+      resSickness: e.auras.find((a) => a.id === RESURRECTION_SICKNESS_ID)?.remaining ?? null,
       equipment: { ...meta.equipment },
-      inventory: meta.inventory.map((i) => ({ ...i })),
-      vendorBuyback: meta.vendorBuyback.map((i) => ({ ...i })),
+      equipmentInstance: Object.fromEntries(
+        Object.entries(meta.equipmentInstance).map(([slot, inst]) => [
+          slot,
+          cloneItemInstancePayload(inst),
+        ]),
+      ),
+      inventory: meta.inventory.map(cloneInvSlot),
+      bags: [...meta.bags],
+      bank: {
+        inventory: meta.bank.inventory.map(cloneInvSlot),
+        purchasedSlots: meta.bank.purchasedSlots,
+        bonusSlots: meta.bank.bonusSlots,
+      },
+      vendorBuyback: meta.vendorBuyback.map(cloneInvSlot),
       questLog: [...meta.questLog.values()].map((q) => ({
         questId: q.questId,
         counts: [...q.counts],
         state: q.state,
+        ...(q.selection === undefined ? {} : { selection: q.selection }),
+        ...(q.resolvedCounts === undefined ? {} : { resolvedCounts: [...q.resolvedCounts] }),
       })),
       questsDone: [...meta.questsDone],
       arenaRating: meta.arenaRating,
@@ -1808,6 +3041,24 @@ export class Sim {
       arena2v2Rating: meta.arena2v2Rating,
       arena2v2Wins: meta.arena2v2Wins,
       arena2v2Losses: meta.arena2v2Losses,
+      // Absent until sheathed (back-compat + parity-stable saves).
+      ...(e.weaponStowed ? { weaponStowed: true } : {}),
+      // Absent until the first cup result (back-compat + parity-stable saves).
+      ...(meta.vcupWins || meta.vcupLosses || meta.vcupDraws
+        ? { vcupWins: meta.vcupWins, vcupLosses: meta.vcupLosses, vcupDraws: meta.vcupDraws }
+        : {}),
+      // Absent until the first guild-banner result (back-compat + parity-stable).
+      ...(meta.vcupGuildWins || meta.vcupGuildLosses
+        ? { vcupGuildWins: meta.vcupGuildWins, vcupGuildLosses: meta.vcupGuildLosses }
+        : {}),
+      // Absent until the first settled bet (back-compat + parity-stable saves).
+      ...(meta.vcupBetWins || meta.vcupBetLosses || meta.vcupBetNet
+        ? {
+            vcupBetWins: meta.vcupBetWins,
+            vcupBetLosses: meta.vcupBetLosses,
+            vcupBetNet: meta.vcupBetNet,
+          }
+        : {}),
       talents: cloneAllocation(restore ? restore.talents : meta.talents),
       loadouts: meta.loadouts.map((l) => ({
         name: l.name,
@@ -1818,12 +3069,21 @@ export class Sim {
       raidLockouts: Object.fromEntries(
         [...meta.raidLockouts].filter(([, until]) => until > this.lockoutNowMs()),
       ),
-      pet: this.serializePet(pid),
+      pet: petCommands.isDemonPetState(petSnapshot) ? null : petSnapshot,
+      cooldowns: serializeCooldowns(
+        e.cooldowns,
+        e.potionCooldownUntil,
+        this.time,
+        e.abilityCharges,
+      ),
       skin: meta.skin,
       skinCatalog: meta.skinCatalog,
       pendingSkinRank: meta.pendingSkinRank,
       pendingSkinCatalog: meta.pendingSkinCatalog,
       pendingSkinItemId: meta.pendingSkinItemId,
+      craftSkills: { ...meta.craftSkills },
+      knownRecipes: [...meta.knownRecipes],
+      archetype: { ...meta.archetype, attunedPairs: [...meta.archetype.attunedPairs] },
       delveMarks: meta.delveMarks,
       delveClears: { ...meta.delveClears },
       companionUpgrades: { ...meta.companionUpgrades },
@@ -1833,6 +3093,20 @@ export class Sim {
         firstClearXp: [...meta.delveDaily.firstClearXp],
         markClears: meta.delveDaily.markClears,
       },
+      heroicDaily: { date: meta.heroicDaily.date, marked: [...meta.heroicDaily.marked] },
+      mailWelcomed: meta.mailWelcomed,
+      townFocus: { ...meta.townFocus },
+      // World-boss lockouts serialize via raidLockouts (above), not a separate field.
+      // Book of Deeds: every field conditional (absent while empty/null/zero)
+      // so pre-deed saves stay byte-equal until the system engages. The
+      // legacy unlockedMilestones above stays dual-written for one release.
+      ...(meta.deedsEarned.size > 0 ? { deeds: Object.fromEntries(meta.deedsEarned) } : {}),
+      ...(() => {
+        const deedStats = serializeDeedStats(meta.deedStats);
+        return deedStats ? { deedStats } : {};
+      })(),
+      ...(meta.activeTitle !== null ? { activeTitle: meta.activeTitle } : {}),
+      ...(meta.renown > 0 ? { renown: meta.renown } : {}),
     };
     return sanitizeRemovedZone1Content(state).state;
   }
@@ -1850,6 +3124,7 @@ export class Sim {
     meta.skinCatalog = catalog;
     e.skin = idx;
     e.skinCatalog = catalog;
+    deedsMod.markDeedsDirty(this.ctx, meta.entityId); // col_true_colors reads the skin state
     return true;
   }
 
@@ -1857,12 +3132,104 @@ export class Sim {
     this.setPlayerSkin(this.primaryId, skin, catalog);
   }
 
+  /** Replace a player's whole weapon-skin loadout (host seed: the server pushes
+   *  the account-wide selection at join; offline keeps session-local state) and
+   *  re-resolve the active skin against the equipped mainhand. Cosmetic only. */
+  setWeaponSkinLoadout(pid: number, loadout: WeaponSkinLoadout): void {
+    const e = this.entities.get(pid);
+    if (!e || e.kind !== 'player') return;
+    const next: WeaponSkinLoadout = {};
+    for (const [t, skinId] of Object.entries(loadout)) {
+      if (typeof skinId !== 'string') continue;
+      const def = WEAPON_SKINS[skinId];
+      if (def && def.weaponType === t) next[def.weaponType] = skinId;
+    }
+    e.weaponSkinLoadout = next;
+    // For player entities templateId is the class id (createPlayer).
+    e.weaponSkinId = resolveActiveWeaponSkin(e.templateId, e.mainhandItemId, next);
+    this.mirrorWeaponSkinLoadout(pid, e);
+  }
+
+  /** Keep the local player's accountCosmetics view of the loadout in step with
+   *  the entity, so the store's applied badges read the same on BOTH hosts
+   *  (ClientWorld mirrors optimistically; offline Sim mirrors here). */
+  private mirrorWeaponSkinLoadout(pid: number, e: Entity): void {
+    if (pid !== this.primaryId) return;
+    const weaponSkinLoadout: Record<string, string> = {};
+    for (const [t, skinId] of Object.entries(e.weaponSkinLoadout)) {
+      if (skinId) weaponSkinLoadout[t] = skinId;
+    }
+    this.accountCosmetics = { ...this.accountCosmetics, weaponSkinLoadout };
+  }
+
+  /** Apply (skinId) or detach (null + weaponType) one weapon-skin loadout entry.
+   *  Applying requires a weapon of the skin's type equipped right now (the
+   *  account-ownership gate is the server's, before this call). Returns whether
+   *  the loadout changed. */
+  setWeaponSkin(pid: number, skinId: string | null, weaponType?: WeaponSkinType): boolean {
+    const e = this.entities.get(pid);
+    if (!e || e.kind !== 'player') return false;
+    const cls = e.templateId;
+    if (skinId !== null) {
+      const def = WEAPON_SKINS[skinId];
+      if (!def) return false;
+      if (!weaponSkinTypeMatches(cls, e.mainhandItemId, def.weaponType)) return false;
+      e.weaponSkinLoadout = withWeaponSkinApplied(e.weaponSkinLoadout, skinId) ?? {};
+    } else {
+      const t = weaponType;
+      if (!t || !e.weaponSkinLoadout[t]) return false;
+      const next = { ...e.weaponSkinLoadout };
+      delete next[t];
+      e.weaponSkinLoadout = next;
+    }
+    e.weaponSkinId = resolveActiveWeaponSkin(cls, e.mainhandItemId, e.weaponSkinLoadout);
+    this.mirrorWeaponSkinLoadout(pid, e);
+    return true;
+  }
+
+  changeWeaponSkin(skinId: string | null, weaponType?: WeaponSkinType): void {
+    this.setWeaponSkin(this.primaryId, skinId, weaponType);
+  }
+
+  /** Z-key sheathe toggle (IWorld.toggleWeaponStow; server `stow_weapon` command).
+   *  Cosmetic only: flips Entity.weaponStowed, which rides the entity wire and the
+   *  renderer maps to the on-back weapon pose. Refused while dead (like /sit). */
+  toggleWeaponStow(pid?: number): void {
+    const r = this.resolve(pid);
+    if (!r) return;
+    weaponStowMod.toggleWeaponStow(r.e);
+  }
+
   /** Set a player's guild name (online only) so it rides the entity wire and
    *  shows under their nameplate. Guilds live in the server social DB, not the
-   *  Sim, so this is a passive display field. Offline/headless leave it ''. */
-  setPlayerGuild(pid: number, guild: string): void {
+   *  Sim, so this is a passive display field. Offline/headless leave it ''.
+   *
+   *  retroDeeds marks the FIRST join-time stamp: a '' -> non-empty transition
+   *  then is a PRE-EXISTING membership hydrated a beat after addPlayer's retro
+   *  pass (the name lives in the social DB, not the loaded blob), not a live
+   *  join. In that one case, evaluate the deeds retro (the silent Book summary,
+   *  no banner or audio) and clear the marks, mirroring the addPlayer retro tail,
+   *  so an existing guildmate does not re-earn soc_guild_joined with the live
+   *  fanfare on every post-ship first login. guildMember is the only deed
+   *  predicate reading host-stamped entity state hydrated after addPlayer, so a
+   *  full retro pass grants exactly that one deed and re-checks the rest as
+   *  no-ops. Any later membership change is a genuine live join: mark dirty for
+   *  the normal unlock path (banner, audio, broadcast gate). */
+  setPlayerGuild(pid: number, guild: string, opts: { retroDeeds?: boolean } = {}): void {
     const e = this.entities.get(pid);
-    if (e) e.guild = guild;
+    if (!e) return;
+    const wasUnaffiliated = e.guild === '';
+    e.guild = guild;
+    if (opts.retroDeeds && wasUnaffiliated && guild !== '') {
+      const meta = this.players.get(pid);
+      if (meta) {
+        deedsMod.evaluateDeedsFor(this.ctx, meta, e, true);
+        this.deedDirtyPids.delete(pid);
+        this.deedDirtyKeys.delete(pid);
+        return;
+      }
+    }
+    deedsMod.markDeedsDirty(this.ctx, pid); // soc_guild_joined reads the stamped name
   }
 
   /** Cosmetic skin-select event: rolls a rarity rank (once) and emits the
@@ -1982,6 +3349,12 @@ export class Sim {
   get inventory(): InvSlot[] {
     return this.primary.inventory;
   }
+  get bags(): (string | null)[] {
+    return this.primary.bags;
+  }
+  get bagCapacity(): number {
+    return bagCapacity(this.primary.bags);
+  }
   get vendorBuyback(): InvSlot[] {
     return this.primary.vendorBuyback;
   }
@@ -2036,9 +3409,80 @@ export class Sim {
         virtualLevel: virtualLevel(meta.lifetimeXp),
         lifetimeXp: meta.lifetimeXp,
         prestigeRank: meta.prestigeRank,
+        // the selected Book of Deeds title (a deed id), like the server fill
+        title: meta.activeTitle,
       }));
     return Promise.resolve(paginateLeaderboard(rows, page, pageSize));
   }
+  // Guilds are a server-only social system (they live in the server's social DB,
+  // never in the deterministic sim), so the offline world ranks no guilds: an
+  // empty page, paged through the same helper so the board renders its empty
+  // state. Online play overrides this with the cached, realm-scoped server query.
+  guildLeaderboard(page = 0, pageSize = LEADERBOARD_PAGE_SIZE): Promise<GuildLeaderboardPage> {
+    return Promise.resolve(paginateGuildLeaderboard([], page, pageSize));
+  }
+  // The developer board is sourced from GitHub's contributor stats, which the
+  // offline world cannot fetch, so it ranks none: an empty page through the same
+  // helper. Online play overrides this with the cached server query.
+  devLeaderboard(page = 0, pageSize = LEADERBOARD_PAGE_SIZE): Promise<DevLeaderboardPage> {
+    return Promise.resolve(paginateDevLeaderboard([], page, pageSize));
+  }
+  // The Renown board is account-level (accounts live only on the server), so
+  // the offline sandbox ranks none: an empty page through the same helper, and
+  // never a self row. Online play overrides this with the cached server query.
+  deedsLeaderboard(page = 0, pageSize = LEADERBOARD_PAGE_SIZE): Promise<DeedsLeaderboardPage> {
+    return Promise.resolve(paginateDeedsLeaderboard([], page, pageSize));
+  }
+
+  dailyRewards(): Promise<DailyRewardStatus> {
+    const day = '1970-01-01';
+    return Promise.resolve({
+      day,
+      resetAt: '1970-01-02T00:00:00.000Z',
+      prizePoolUsd: 0,
+      prizePoolSol: null,
+      eligibility: {
+        eligible: false,
+        reason: 'no_wallet',
+        banReason: null,
+        walletPubkey: null,
+        wocBalance: null,
+        wocUsdPrice: null,
+        usdValue: null,
+        minUsd: 20,
+      },
+      score: 0,
+      rank: null,
+      spin: { claimed: false, points: null, outcomeKey: null, claimedAt: null },
+      tasks: [],
+      leaderboard: [],
+      leaderboardTotal: 0,
+    });
+  }
+
+  dailyRewardLeaderboard(
+    page = 0,
+    pageSize = LEADERBOARD_PAGE_SIZE,
+  ): Promise<DailyRewardLeaderboardPage> {
+    return Promise.resolve({
+      day: '1970-01-01',
+      leaders: [],
+      page: Math.max(0, Math.floor(page)),
+      pageCount: 1,
+      total: 0,
+      pageSize,
+    });
+  }
+
+  async spinDailyReward(): Promise<DailyRewardSpinResult> {
+    const status = await this.dailyRewards();
+    return { ...status, awardedPoints: 0, outcomeKey: '' };
+  }
+
+  dailyRewardHistory(): Promise<DailyRewardHistory> {
+    return Promise.resolve({ payouts: [] });
+  }
+
   get known(): ResolvedAbility[] {
     return this.primary.known;
   }
@@ -2047,6 +3491,31 @@ export class Sim {
   }
   get questsDone(): Set<string> {
     return this.primary.questsDone;
+  }
+  // --- IWorldDeeds: the Book of Deeds read surface + title selection. The
+  // reads expose the live per-player state (the questLog precedent above);
+  // the facet types them Readonly so no seam consumer mutates them. ---
+  get deedsEarned(): ReadonlyMap<string, string> {
+    return this.primary.deedsEarned;
+  }
+  get deedStats(): Readonly<DeedStats> {
+    return this.primary.deedStats;
+  }
+  get renown(): number {
+    return this.primary.renown;
+  }
+  get activeTitle(): string | null {
+    return this.primary.activeTitle;
+  }
+  setActiveTitle(deedId: string | null, pid?: number): void {
+    const r = this.resolve(pid);
+    if (r) deedsMod.setActiveTitle(r.meta, r.e, deedId);
+  }
+  // Offline the sandbox has no population, so there is no rarity to report:
+  // always null (the facet's documented no-data value; the window hides the
+  // slot). Deterministic, no fetch, no clock (the dailyRewards stub doctrine).
+  deedsRarity(): Promise<import('../world_api').DeedsRarity | null> {
+    return Promise.resolve(null);
   }
   raidLockouts(): import('../world_api').RaidLockout[] {
     const now = this.lockoutNowMs();
@@ -2131,10 +3600,620 @@ export class Sim {
     return out;
   }
 
+  // Mob-AI scan visit counters for the tick that just ran (observability). The
+  // host reads this after tick() returns to attribute mob.update cost; typed
+  // Readonly so no external reader mutates the live tally the sim owns.
+  get mobScanCounters(): Readonly<MobScanCounters> {
+    return this._mobScanCounters;
+  }
+
+  // Build the shared SimContext seam (S0b). Pure plumbing: it exposes the live core
+  // primitives (rng/time/tickCount/entities via getters) and binds the still-on-Sim
+  // methods the early extracted slices call. It MOVES NO behavior - every callback
+  // routes straight back to the Sim method of the same name (the callback registry
+  // in 02-WORKING-MEMORY.md). As a later slice owns one of these, it reimplements the
+  // callback in its own module without renaming it here, so consumers never change.
+  private buildSimContext(): SimContext {
+    const sim = this;
+    const host: SimContextHost = {
+      get rng() {
+        return sim.rng;
+      },
+      get time() {
+        return sim.time;
+      },
+      get tickCount() {
+        return sim.tickCount;
+      },
+      get entities() {
+        return sim.entities;
+      },
+      get players() {
+        return sim.players;
+      },
+      get primaryId() {
+        return sim.primaryId;
+      },
+      get tradeInvites() {
+        return sim.tradeInvites;
+      },
+      get duelInvites() {
+        return sim.duelInvites;
+      },
+      get nextId() {
+        return sim.nextId;
+      },
+      set nextId(v) {
+        sim.nextId = v;
+      },
+      get grid() {
+        return sim.grid;
+      },
+      get playerGrid() {
+        return sim.playerGrid;
+      },
+      get delayedEvents() {
+        return sim.delayedEvents;
+      },
+      set delayedEvents(v) {
+        sim.delayedEvents = v;
+      },
+      get pendingProjectiles() {
+        return sim.pendingProjectiles;
+      },
+      set pendingProjectiles(v) {
+        sim.pendingProjectiles = v;
+      },
+      get groundAoEs() {
+        return sim.groundAoEs;
+      },
+      get frozenOrbs() {
+        return sim.frozenOrbs;
+      },
+      get dungeonDoorIds() {
+        return sim.dungeonDoorIds;
+      },
+      set dungeonDoorIds(v) {
+        sim.dungeonDoorIds = v;
+      },
+      get instances() {
+        return sim.instances;
+      },
+      get dungeonResetLocks() {
+        return sim.dungeonResetLocks;
+      },
+      get arenaMatches() {
+        return sim.arenaMatches;
+      },
+      get duels() {
+        return sim.duels;
+      },
+      get cardDuelQueue() {
+        return sim.cardDuelQueue;
+      },
+      get cardDuels() {
+        return sim.cardDuels;
+      },
+      get cfg() {
+        return sim.cfg;
+      },
+      // A2: duel + arena state stays on Sim, exposed as live views (backing fields
+      // mutated in place / the queues reassigned by the matchmaker filter).
+      get trades() {
+        return sim.trades;
+      },
+      get arenaQueue1v1() {
+        return sim.arenaQueue1v1;
+      },
+      set arenaQueue1v1(v) {
+        sim.arenaQueue1v1 = v;
+      },
+      get arenaQueue2v2() {
+        return sim.arenaQueue2v2;
+      },
+      set arenaQueue2v2(v) {
+        sim.arenaQueue2v2 = v;
+      },
+      get arenaQueueFiesta() {
+        return sim.arenaQueueFiesta;
+      },
+      set arenaQueueFiesta(v) {
+        sim.arenaQueueFiesta = v;
+      },
+      get arenaBusySlots() {
+        return sim.arenaBusySlots;
+      },
+      // A4 Protect Yumi live views: the two format queues (reassigned by the
+      // matchmaker's prune filter), the maze slot pool, and the cat -> match index.
+      get arenaQueueYumi3() {
+        return sim.arenaQueueYumi3;
+      },
+      set arenaQueueYumi3(v) {
+        sim.arenaQueueYumi3 = v;
+      },
+      get arenaQueueYumi5() {
+        return sim.arenaQueueYumi5;
+      },
+      set arenaQueueYumi5(v) {
+        sim.arenaQueueYumi5 = v;
+      },
+      get yumiBusySlots() {
+        return sim.yumiBusySlots;
+      },
+      get yumiCatMatches() {
+        return sim.yumiCatMatches;
+      },
+      get nextArenaMatchId() {
+        return sim.nextArenaMatchId;
+      },
+      set nextArenaMatchId(v) {
+        sim.nextArenaMatchId = v;
+      },
+      get delveRuns() {
+        return sim.delveRuns;
+      },
+      get delvePetStash() {
+        return sim.delvePetStash;
+      },
+      get utcDay() {
+        return sim.utcDay;
+      },
+      get pendingMobRespawns() {
+        return sim.pendingMobRespawns;
+      },
+      // G2 social plumbing live views. partyInvites lives on the PartyMachine now (A1),
+      // so it reads through sim.party; chatTokens/channelSubs stay direct Sim fields.
+      // (trades/tradeInvites/duelInvites getters are already bound above; deduped.)
+      get partyInvites() {
+        return sim.party.partyInvites;
+      },
+      get readyChecks() {
+        return sim.readyChecks;
+      },
+      get pendingResurrections() {
+        return sim.pendingResurrections;
+      },
+      get chatTokens() {
+        return sim.chatTokens;
+      },
+      get channelSubs() {
+        return sim.channelSubs;
+      },
+      // L1 loot-distribution state stays on Sim (live views): the pending need-greed
+      // rolls map (mutated in place) and the roll-id counter (bumped via ctx.nextLootRollId++).
+      get pendingLootRolls() {
+        return sim.pendingLootRolls;
+      },
+      get nextLootRollId() {
+        return sim.nextLootRollId;
+      },
+      set nextLootRollId(v) {
+        sim.nextLootRollId = v;
+      },
+      // W5 chat router/readouts live views: devCommands gates the /dev chat cheats;
+      // marketListings is the Market book the /listings readout filters (the Market
+      // instance is constructed after this host literal, so the getter reads it lazily).
+      get devCommands() {
+        return sim.devCommands;
+      },
+      get marketListings() {
+        return sim.marketListings;
+      },
+      // Banker anchor list (bank system): the live array of every banker
+      // NPC id, read by bank.ts's proximity gate. Sim-owned, never reassigned.
+      get bankerIds() {
+        return sim.bankerIds;
+      },
+      // The Vale Cup holder (queues/deserters/botPids mutated in place; the
+      // match slot reassigned inside the holder, so no setter is needed).
+      get vcup() {
+        return sim.vcup;
+      },
+      // Book of Deeds live views (all mutated in place, never reassigned).
+      get deedDirtyPids() {
+        return sim.deedDirtyPids;
+      },
+      get deedDirtyKeys() {
+        return sim.deedDirtyKeys;
+      },
+      // The world-boss scheduler's live ids: slot values reassigned in place,
+      // read by the deeds proximity sweep through the seam.
+      get worldBossEntityIds() {
+        return sim.worldBossEntityIds;
+      },
+      get deedRuntime() {
+        return sim.deedRuntime;
+      },
+      // Mob-AI scan visit counters: the live Sim-owned holder (reset at the top
+      // of tick, incremented in place by the scan hot paths through ctx).
+      get mobScanCounters() {
+        return sim._mobScanCounters;
+      },
+      // Offline Fiesta practice-bot roster (fiesta_bots.ts mutates it in place);
+      // the deeds real-bout gate reads it through the seam.
+      get fiestaBotPids() {
+        return sim.fiestaBotPids;
+      },
+      // LATE-bound (not .bind(sim)): a moved emit site (C5 meleeSwing/rangedSwing)
+      // now emits via ctx.emit, and tests swap (sim as any).emit post-construction to
+      // observe events (mob_blind/mob_cleave). An early .bind(sim) would capture the
+      // original method and bypass that swap, breaking the dynamic-dispatch semantics
+      // the pre-move this.emit had. (Mirrors the late-bound ctx.error C4a installed.)
+      emit: (ev) => sim.emit(ev),
+      dealDamage: sim.dealDamage.bind(sim),
+      handleDeath: sim.handleDeath.bind(sim),
+      cancelCast: sim.cancelCast.bind(sim),
+      pushbackCast: sim.pushbackCast.bind(sim),
+      refreshMobLeashFromAction: sim.refreshMobLeashFromAction.bind(sim),
+      retargetMob: sim.retargetMob.bind(sim),
+      // N1: the Nythraxis add-AI pair now lives in encounters/nythraxis.ts; late-bound
+      // arrows so sim.ctx resolves at call time (mob/targeting.ts retarget reaches them).
+      nythraxisAddFallbackTarget: (add) => nythraxis.nythraxisAddFallbackTarget(sim.ctx, add),
+      scheduleNythraxisAddDespawnIfBossReset: (add) =>
+        nythraxis.scheduleNythraxisAddDespawnIfBossReset(sim.ctx, add),
+      isArenaCrossTeam: sim.isArenaCrossTeam.bind(sim),
+      arenaTeamOf: sim.arenaTeamOf.bind(sim),
+      endArenaMatch: sim.endArenaMatch.bind(sim),
+      endDuel: sim.endDuel.bind(sim),
+      fiestaTakedown: sim.fiestaTakedown.bind(sim),
+      fiestaDown: sim.fiestaDown.bind(sim),
+      // A4 Protect Yumi hooks: late-bound arrows into social/yumi.ts (the
+      // nythraxis style; no Sim facade methods needed, no foreign name resolves
+      // on Sim). updateArena drives matchmake/update/cleanup; the damage hub
+      // drives the cat + player-down arms.
+      matchmakeYumi: () => yumiMod.matchmakeYumi(sim.ctx),
+      updateYumiActive: (match) => yumiMod.updateYumiActive(sim.ctx, match),
+      yumiPlayerDown: (match, victim, killerPid) =>
+        yumiMod.yumiPlayerDown(sim.ctx, match, victim, killerPid),
+      yumiCatDamaged: (
+        match,
+        source,
+        cat,
+        amount,
+        crit,
+        school,
+        ability,
+        kind,
+        attackAnimationStarted,
+      ) =>
+        yumiMod.yumiCatDamaged(
+          sim.ctx,
+          match,
+          source,
+          cat,
+          amount,
+          crit,
+          school,
+          ability,
+          kind,
+          attackAnimationStarted,
+        ),
+      cleanupYumiMatch: (match) => yumiMod.cleanupYumiMatch(sim.ctx, match),
+      // A2: isArenaCrossTeam/arenaTeamOf/endArenaMatch/endDuel (above) now forward to
+      // social/arena.ts + social/duel.ts via Sim's thin delegates. The block below is
+      // what the moved code CONSUMES that stays on Sim (clearAurasFromSource has
+      // non-duel callers; entityInDungeon/hasPendingSocialInvite are core; the five
+      // fiesta* hooks are A3-owned), plus the arena bodies EXPOSED for Fiesta (A3).
+      clearAurasFromSource: sim.clearAurasFromSource.bind(sim),
+      entityInDungeon: sim.entityInDungeon.bind(sim),
+      hasPendingSocialInvite: sim.hasPendingSocialInvite.bind(sim),
+      createFiestaState: sim.createFiestaState.bind(sim),
+      fiestaStandardize: sim.fiestaStandardize.bind(sim),
+      updateFiestaActive: sim.updateFiestaActive.bind(sim),
+      fiestaRestoreChar: sim.fiestaRestoreChar.bind(sim),
+      clearFiestaAugments: sim.clearFiestaAugments.bind(sim),
+      readyArenaFighter: sim.readyArenaFighter.bind(sim),
+      resetForArena: sim.resetForArena.bind(sim),
+      isArenaTeamWiped: sim.isArenaTeamWiped.bind(sim),
+      arenaIsDown: sim.arenaIsDown.bind(sim),
+      arenaAllPids: sim.arenaAllPids.bind(sim),
+      rollLoot: sim.rollLoot.bind(sim),
+      rollWorldBossLoot: sim.rollWorldBossLoot.bind(sim),
+      applyHeal: sim.applyHeal.bind(sim),
+      spellCrit: sim.spellCrit.bind(sim),
+      applyAura: sim.applyAura.bind(sim),
+      // General control-aura predicate (stays on Sim); the extracted Nythraxis
+      // isNythraxisControlAura consults it through the seam.
+      isControlAura: sim.isControlAura.bind(sim),
+      applyRootAura: sim.applyRootAura.bind(sim),
+      applyKnockback: sim.applyKnockback.bind(sim),
+      diminishedCrowdControlDuration: sim.diminishedCrowdControlDuration.bind(sim),
+      hostilesInRadius: sim.hostilesInRadius.bind(sim),
+      friendliesInRadius: sim.friendliesInRadius.bind(sim),
+      breakStealth: sim.breakStealth.bind(sim),
+      applyTaunt: sim.applyTaunt.bind(sim),
+      summonPet: sim.summonPet.bind(sim),
+      petOf: sim.petOf.bind(sim),
+      completeTame: sim.completeTame.bind(sim),
+      // partyOf stays bound to Sim's thin delegate (it forwards to this.party);
+      // removeFromParty routes to the moved machine (points-at social/party, A1).
+      // clearEntityMarker + dropPartyMarkers now route to the moved marker store
+      // (points-at targeting, T1); lazy arrows since `sim.targeting` is built after ctx.
+      clearEntityMarker: (id: number) => sim.targeting.clearEntityMarker(id),
+      // P1b new shared-helper bindings; both STAY on Sim. error/playerGcdFor/
+      // healingThreat/countItem are bound elsewhere in this host (C4a/C2/C3/Q1) - deduped.
+      spendResource: sim.spendResource.bind(sim),
+      removeItem: sim.removeItem.bind(sim),
+      // B1 bags capacity pre-check (stays on Sim next to the inventory hub).
+      canAddItem: sim.canAddItem.bind(sim),
+      removeFungibleItem: sim.removeFungibleItem.bind(sim),
+      countEnchantableItem: sim.countEnchantableItem.bind(sim),
+      removeEnchantableItem: sim.removeEnchantableItem.bind(sim),
+      partyOf: sim.partyOf.bind(sim),
+      partyInvite: (targetPid: number, pid?: number) => sim.party.partyInvite(targetPid, pid),
+      readyCheckStart: (pid?: number) => sim.readyCheckStart(pid),
+      removeFromParty: (pid: number, verb: string) => sim.party.removeFromParty(pid, verb),
+      // Dungeon Finder formation seam (points at the party machine); lazy arrow
+      // since `sim.party` is built after ctx.
+      formDungeonFinderGroup: (units, opts) => sim.party.formDungeonFinderGroup(units, opts),
+      // dropPartyMarkers flips to the T1 marker store (targeting); lazy arrow since
+      // sim.targeting is built after ctx. The T1 selectors consume isHostileTo/
+      // isFriendlyTo/pvpController/stopFollow, which are already bound above (C4a/C1) and
+      // stay on Sim.
+      dropPartyMarkers: (partyId: number) => sim.targeting.dropPartyMarkers(partyId),
+      // Q1 quest-credit trio now lives in quests/quest_credit.ts; the callbacks route
+      // through `sim.ctx` (lazily read at call time, after the ctor sets it). countItem
+      // stays on Sim (L2 inventory hub) and is consumed by the collect updater.
+      onMobKilledForQuests: (mob, meta) => onMobKilledForQuests(sim.ctx, mob, meta),
+      onRecipeCraftedForQuests: (recipeId, meta) =>
+        onRecipeCraftedForQuests(sim.ctx, recipeId, meta),
+      onNodeGatheredForQuests: (node, itemId, meta) =>
+        onNodeGatheredForQuests(sim.ctx, node, itemId, meta),
+      onInventoryChangedForQuests: (meta) => onInventoryChangedForQuests(sim.ctx, meta),
+      checkQuestReady: (qp, meta) => checkQuestReady(sim.ctx, qp, meta),
+      countItem: sim.countItem.bind(sim),
+      countFungibleItem: sim.countFungibleItem.bind(sim),
+      completeQuestForDev: (questId, pid) => completeQuestForDev(sim.ctx, questId, pid),
+      completeCurrentQuestsForDev: (pid) => completeCurrentQuestsForDev(sim.ctx, pid),
+      // I1 dungeon instancing now lives in instances/dungeons.ts; these route through
+      // the same-named Sim delegates (foreign callers use this.X). lockoutNowMs is the
+      // shared raid-lockout clock that stays on Sim (N1 also writes through it);
+      // raidResetMs is the host-owned reset boundary the lockout grant reads through.
+      lockoutNowMs: sim.lockoutNowMs.bind(sim),
+      raidResetMs: sim.raidResetMs.bind(sim),
+      instanceKeyFor: sim.instanceKeyFor.bind(sim),
+      instanceOriginOf: sim.instanceOriginOf.bind(sim),
+      instanceClaimIdAt: sim.instanceClaimIdAt.bind(sim),
+      enterDungeon: sim.enterDungeon.bind(sim),
+      leaveDungeon: sim.leaveDungeon.bind(sim),
+      resetDungeonInstances: sim.resetDungeonInstances.bind(sim),
+      inheritDungeonResetLocks: sim.inheritDungeonResetLocks.bind(sim),
+      dungeonDifficulty: sim.dungeonDifficulty.bind(sim),
+      setDungeonDifficulty: sim.setDungeonDifficulty.bind(sim),
+      awardHeroicMarks: sim.awardHeroicMarks.bind(sim),
+      addEntity: sim.addEntity.bind(sim),
+      dropEntity: sim.dropEntity.bind(sim),
+      rebucket: sim.rebucket.bind(sim),
+      resolve: sim.resolve.bind(sim),
+      groundPos: sim.groundPos.bind(sim),
+      playerMods: sim.playerMods.bind(sim),
+      delveRunForPlayer: sim.delveRunForPlayer.bind(sim),
+      delveModuleEntry: sim.delveModuleEntry.bind(sim),
+      failDelveRun: sim.failDelveRun.bind(sim),
+      pulseGroundAoE: sim.pulseGroundAoE.bind(sim),
+      enterCombat: sim.enterCombat.bind(sim),
+      hexOutputMult: sim.hexOutputMult.bind(sim),
+      critVulnBonus: sim.critVulnBonus.bind(sim),
+      pvpController: sim.pvpController.bind(sim),
+      threatMod: sim.threatMod.bind(sim),
+      clearNonPlayerStatAuras: sim.clearNonPlayerStatAuras.bind(sim),
+      // C3 aura/regen runner (combat/auras.ts) consumes these: the incoming-heal mult +
+      // effective-healing threat (both delegate to combat/heal.ts), and the per-aura stat
+      // apply/remove on expiry (stays on Sim).
+      healingTakenMult: sim.healingTakenMult.bind(sim),
+      healingThreat: sim.healingThreat.bind(sim),
+      applyNonPlayerStatAura: sim.applyNonPlayerStatAura.bind(sim),
+      // N1: grantNythraxisLockout now lives in encounters/nythraxis.ts; late-bound arrow
+      // (handleDeath in combat/damage.ts reaches it via ctx on the boss-death path).
+      grantNythraxisLockout: (boss) => nythraxis.grantNythraxisLockout(sim.ctx, boss),
+      // frenzyPackmates / armDeathThroes flipped points-at to mob/lifecycle (M4); their
+      // late-bound lifecycle arrows live in the death-lifecycle block below.
+      refreshKnownAbilities: sim.refreshKnownAbilities.bind(sim),
+      syncPetLevel: sim.syncPetLevel.bind(sim),
+      // M2 mob locomotion seam (all still on Sim; owners flip points-at later).
+      moveToward: sim.moveToward.bind(sim),
+      mobSwing: sim.mobSwing.bind(sim),
+      updateRangedPetAttack: sim.updateRangedPetAttack.bind(sim),
+      fleeMoveSpeed: sim.fleeMoveSpeed.bind(sim),
+      maybeFlee: sim.maybeFlee.bind(sim),
+      aggroMob: sim.aggroMob.bind(sim),
+      // C3 moved the CC predicates to combat/cc.ts; ctx.isStunned/isRooted (consumed by
+      // mob/locomotion.ts, M2) now point at those pure functions instead of Sim methods.
+      isStunned: isStunned,
+      isRooted: isRooted,
+      moveSpeedMult: sim.moveSpeedMult.bind(sim),
+      swingIntervalMult: sim.swingIntervalMult.bind(sim),
+      mobCanSwim: sim.mobCanSwim.bind(sim),
+      resolveMovePoint: sim.resolveMovePoint.bind(sim),
+      resolveMove: sim.resolveMove.bind(sim),
+      // P1a pet AI lives in src/sim/pet/pet_ai.ts; locomotion.updateMob reaches it
+      // through this seam binding (late-bound arrow so sim.ctx resolves at call time).
+      updatePet: (pet) => petAi.updatePet(sim.ctx, pet),
+      isDelveCompanionMob: sim.isDelveCompanionMob.bind(sim),
+      // I2c delve companion AI lives in src/sim/delves/companion.ts; locomotion.updateMob's
+      // owned-companion branch reaches it through this seam binding (late-bound arrow so
+      // sim.ctx resolves at call time). points-at = delves/companion. The shared
+      // mobSwing/moveToward/isHostileTo/isRooted/moveSpeedMult/swingIntervalMult it consumes
+      // stay on Sim and are bound above (M2/T1/C4a), not re-bound for the companion slice.
+      updateDelveCompanion: (companion) => companionMod.updateDelveCompanion(sim.ctx, companion),
+      updateBossMechanics: sim.updateBossMechanics.bind(sim),
+      // N1: updateNythraxisEncounter now lives in encounters/nythraxis.ts; late-bound
+      // arrow (mob/locomotion.ts updateMob drives it via ctx). resetNythraxisEncounter
+      // keeps its .bind delegate (foreign callers + a test reach sim.resetNythraxisEncounter).
+      updateNythraxisEncounter: (boss) => nythraxis.updateNythraxisEncounter(sim.ctx, boss),
+      resetNythraxisEncounter: sim.resetNythraxisEncounter.bind(sim),
+      updateFearMovement: sim.updateFearMovement.bind(sim),
+      // M4 mob death lifecycle: the five execution bodies live in mob/lifecycle.ts;
+      // handleDeath (combat/damage.ts) + the updateMob corpse-tick reach them through
+      // these seam bindings (late-bound arrows so sim.ctx resolves at call time, after
+      // the ctor finishes building it). despawnPersistentPet (P1b, Sim thin delegate) +
+      // clearNonPlayerStatAuras (P1b, Sim thin delegate) + delveDetectMult keep their
+      // existing bindings elsewhere in this literal; despawnPet FLIPS to pet/pet_commands
+      // (P1b removed the Sim method) and is bound at its M4/I2a location below.
+      respawnMob: (mob) => lifecycle.respawnMob(sim.ctx, mob),
+      // M2 evade reset (Sim thin delegate -> mob/locomotion.ts); N1's wipe reaches it
+      // via ctx, and it re-enters resetNythraxisEncounter for the boss (mutual recursion).
+      resetEvadingMob: sim.resetEvadingMob.bind(sim),
+      despawnSummonedAdds: (boss) => lifecycle.despawnSummonedAdds(sim.ctx, boss),
+      frenzyPackmates: (dead) => lifecycle.frenzyPackmates(sim.ctx, dead),
+      armDeathThroes: (dead) => lifecycle.armDeathThroes(sim.ctx, dead),
+      detonateCorpse: (dead) => lifecycle.detonateCorpse(sim.ctx, dead),
+      // N1: the Nythraxis death dialogue now lives in encounters/nythraxis.ts; late-bound
+      // arrow (updateMob's dead-branch fires it via ctx for every dead mob; draws no rng).
+      onBossDeath: (mob) => nythraxis.onBossDeath(sim.ctx, mob),
+      // M3 mob on-hit affix cascade seam: effectiveArmor (cleave splash armor) +
+      // the devour recalc wrapper. Both stay on Sim; the cascade reaches them via ctx.
+      effectiveArmor: sim.effectiveArmor.bind(sim),
+      recalcPlayer: sim.recalcPlayer.bind(sim),
+      // I2a delve run lifecycle now lives in src/sim/delves/runs.ts; the moved module
+      // reaches the still-on-Sim helpers / gate predicates / pet seam / I2b lockpick /
+      // I2c companion through these delegates. The five reach-in callbacks resolve back
+      // to the moved body via the Sim delegate (delveRunForMob/onDelveBossDefeated/
+      // delveDetectMult/startDelveRaiseDeadChannel + delveRunForPlayer above). These wrap
+      // still-on-Sim methods as LATE-bound arrows (looked up at call time, not `.bind`d at
+      // ctor) so they preserve the pre-move `this.X` semantics exactly, including tests
+      // that reassign a method (e.g. delves.test.ts swaps sim.grantXp to observe payout).
+      // grantXp/delveRunForMob/onDelveBossDefeated/delveDetectMult/despawnPet were also
+      // bound above by C1/M2/C3 (eager .bind); deduped here to the I2a late-bound form so
+      // the reassign-aware delve tests hold. grantXp/despawnPet stay Sim; the three delve
+      // reach-ins delegate to delves/runs via their Sim method body.
+      partyMembersForKey: (key) => sim.partyMembersForKey(key),
+      grantXp: (amount, meta, opts) => sim.grantXp(amount, meta, opts),
+      addItem: (itemId, count, pid) => sim.addItem(itemId, count, pid),
+      addItemInstance: (itemId, instance, pid) => sim.addItemInstance(itemId, instance, pid),
+      // L2's World Market escrow (marketList) also consumes removeItem; it is bound once
+      // above (P1b inventory-hub helper, points-at Sim) - deduped, not re-added here.
+      spawnBossAdds: (boss, mobId, count) => sim.spawnBossAdds(boss, mobId, count),
+      tradeFor: (pid) => sim.tradeFor(pid),
+      duelFor: (pid) => sim.duelFor(pid),
+      serializePet: (ownerPid) => sim.serializePet(ownerPid),
+      restorePet: (owner, state) => sim.restorePet(owner, state),
+      // despawnPet FLIPS points-at -> pet/pet_commands (P1b): no Sim delegate remains, so
+      // the binding calls the module directly (late-bound; locomotion corpse-tick + the
+      // in-module demon-stow reach it via ctx.despawnPet). despawnPersistentPet keeps a
+      // thin Sim delegate (removePlayer consumes it), so its binding is unchanged.
+      despawnPet: (pet) => petCommands.despawnPet(sim.ctx, pet),
+      despawnPersistentPet: (pet) => sim.despawnPersistentPet(pet),
+      isPetClass,
+      spawnDelveCompanion: (run, pid, companionId) =>
+        sim.spawnDelveCompanion(run, pid, companionId),
+      despawnDelveCompanion: (run) => sim.despawnDelveCompanion(run),
+      maybeCompanionBark: (run, pid, barkId) => sim.maybeCompanionBark(run, pid, barkId),
+      abandonLockpick: (run) => lockpickMod.abandonLockpick(sim.ctx, run),
+      tickLockpickTimeout: (run) => lockpickMod.tickLockpickTimeout(sim.ctx, run),
+      delveRunForMob: (mobId) => sim.delveRunForMob(mobId),
+      onDelveBossDefeated: (run) => sim.onDelveBossDefeated(run),
+      delveDetectMult: (player) => sim.delveDetectMult(player),
+      startDelveRaiseDeadChannel: (run, boss, mobId, count) =>
+        sim.startDelveRaiseDeadChannel(run, boss, mobId, count),
+      resolvedAbility: sim.resolvedAbility.bind(sim),
+      playerGcdFor: sim.playerGcdFor.bind(sim),
+      // LATE-bound (not .bind(sim)): the moved cast guards emit through ctx.error, and
+      // several tests swap (sim as any).error post-construction to observe the message.
+      // A .bind(sim) would early-capture the original method and bypass that stub,
+      // breaking the `this.error` dynamic-dispatch semantics the pre-move code had.
+      error: (pid, text, reason) => sim.error(pid, text, reason),
+      isFriendlyTo: sim.isFriendlyTo.bind(sim),
+      isHostileTo: sim.isHostileTo.bind(sim),
+      lineOfSightBlocked: sim.lineOfSightBlocked.bind(sim),
+      stopFollow: sim.stopFollow.bind(sim),
+      tameError: sim.tameError.bind(sim),
+      standUp: sim.standUp.bind(sim),
+      breakGhostWolf: sim.breakGhostWolf.bind(sim),
+      startAutoAttack: sim.startAutoAttack.bind(sim),
+      revivePet: sim.revivePet.bind(sim),
+      completeFishing: sim.completeFishing.bind(sim),
+      applyDemonHealTick: sim.applyDemonHealTick.bind(sim),
+      // C4b effect-dispatch surface: the per-effect switch the cast lifecycle hands
+      // off to. awardCombo, the stat/LoS helpers, and meleeSwing STAY on Sim
+      // (shared entry points; effectiveArmor is the M3 binding above, not re-bound
+      // here); only `runEffects` flips points-at to combat/effect_dispatch. No Sim
+      // runEffects method remains, so the binding calls the module directly with the
+      // live ctx (late-bound: sim.ctx is assigned after this host literal is built,
+      // and the arrow reads it only at call time).
+      awardCombo: sim.awardCombo.bind(sim),
+      meleeSwing: sim.meleeSwing.bind(sim),
+      effectiveAttackPower: sim.effectiveAttackPower.bind(sim),
+      hasLineOfSight: sim.hasLineOfSight.bind(sim),
+      findChargePath: sim.findChargePath.bind(sim),
+      runEffects: (p, meta, target, res, attackAnimationStarted) =>
+        runEffectsImpl(sim.ctx, p, meta, target, res, attackAnimationStarted),
+      applySetProcs: sim.applySetProcs.bind(sim),
+      // P1a pet-AI seam: the helper the moved updatePet/petRangedAttack/petPickTarget
+      // reach back for. syncPetAspect STAYS on Sim (pet-management, P1b owns it eventually);
+      // effectiveAttackPower (C4b binding above) + isHostileTo (C4a binding above) are
+      // already bound, not re-bound here.
+      // C5 auto-attack consumes aggroMob/swingIntervalMult, already bound above (M2; deduped).
+      syncPetAspect: sim.syncPetAspect.bind(sim),
+      // G2 social plumbing: setPlayerLevel backs the /dev level cheat in social/chat.ts;
+      // notice is the /join /leave chat-log line. Both stay on Sim. (hasPendingSocialInvite
+      // already bound above; isRooted/moveSpeedMult/swingIntervalMult are M2 bindings above.)
+      setPlayerLevel: sim.setPlayerLevel.bind(sim),
+      notice: sim.notice.bind(sim),
+      // Dev-only test-dummy spawner backing "/dev bot <name>" in social/chat.ts.
+      spawnDevBot: sim.spawnDevBot.bind(sim),
+      spawnDevVendor: sim.spawnDevVendor.bind(sim),
+      startCascadePlaytest: sim.startCascadePlaytest.bind(sim),
+      startDevSandbox: sim.startDevSandbox.bind(sim),
+      seedDungeonFinderDev: sim.seedDungeonFinderDev.bind(sim),
+      // L2 inventory/vendor (W2): the four still-on-Sim helpers the moved items.useItem
+      // dispatches to. Late-bound arrows (looked up at call time, not `.bind`d at ctor)
+      // so they preserve the pre-move `this.X` dynamic-dispatch semantics, including tests
+      // that reassign a Sim method post-construction. startFishing/unlockMechChromaFromItem/
+      // openSkinSelect are private on Sim; isSwimming is public. The owning facets stay TBD.
+      startFishing: (p, meta) => sim.startFishing(p, meta),
+      unlockMechChromaFromItem: (meta, itemId, chromaId) =>
+        sim.unlockMechChromaFromItem(meta, itemId, chromaId),
+      openSkinSelect: (meta, catalog, itemId) => sim.openSkinSelect(meta, catalog, itemId),
+      isSwimming: (e) => sim.isSwimming(e),
+      revalidateOffhandForSpec: (pid) => items.revalidateOffhandForSpec(sim.ctx, pid),
+      // Interaction (W3): the moved interaction.interact dispatches into the quest-NPC
+      // surface that STAYS on Sim (W4 owns talkToNpc / interactNpcForQuests /
+      // isQuestInteractionEntity). Late-bound arrows (call-time lookup, not `.bind`d) so
+      // W4 can re-point them into the quests module without touching this binding, and so
+      // a test that reassigns sim.talkToNpc is honored. talkToNpc is public; isQuestInteractionEntity
+      // is private on Sim. Both MUST keep talkToNpc a resolvable Sim delegate (W4 contract).
+      talkToNpc: (npcId, pid) => sim.talkToNpc(npcId, pid),
+      isQuestInteractionEntity: (e) => sim.isQuestInteractionEntity(e),
+      // W5 chat router/readouts reach-backs. Late-bound arrows (call-time lookup): the
+      // /assist branch routes through Sim's targetEntity delegate (-> targeting.ts);
+      // partyReadout reads the cap off the party machine; the /listings readout asks the
+      // Market instance (constructed after this literal) for listing ownership.
+      targetEntity: (id, pid) => sim.targetEntity(id, pid),
+      partyCapacity: (party) => sim.party.partyCapacity(party),
+      marketListingBelongsTo: (listing, meta) => sim.market.marketListingBelongsTo(listing, meta),
+      queueQuestLetter: (questId, pid) => sim.postOffice.queueQuestLetter(questId, pid),
+      mailHeroicMarks: (pid, itemId, count) => sim.postOffice.mailHeroicMarks(pid, itemId, count),
+      // Book of Deeds seam callbacks (owned by deeds.ts). Late-bound arrows so
+      // sim.ctx resolves at call time (the Q1 pattern).
+      bumpDeedStat: (meta, stat, delta) => deedsMod.bumpDeedStat(sim.ctx, meta, stat, delta),
+      markItemDiscovered: (meta, itemId, rolledQuality) =>
+        deedsMod.markItemDiscovered(sim.ctx, meta, itemId, rolledQuality),
+      markVisited: (meta, markId) => deedsMod.markVisited(sim.ctx, meta, markId),
+      markDeedsDirty: (pid) => deedsMod.markDeedsDirty(sim.ctx, pid),
+      grantDeed: (meta, deedId, opts) => deedsMod.grantDeed(sim.ctx, meta, deedId, opts),
+      // The Vale Cup sport-move arms (owned by social/vale_cup.ts). Late-bound
+      // arrows so sim.ctx resolves at call time (the Q1 pattern).
+      vcupBallKick: (caster, power, loft, range) =>
+        valeCupMod.vcupBallKick(sim.ctx, caster, power, loft, range),
+      vcupBallPass: (caster, power, loft, range) =>
+        valeCupMod.vcupBallPass(sim.ctx, caster, power, loft, range),
+      vcupShoot: (caster, power, loft, range) =>
+        valeCupMod.vcupShoot(sim.ctx, caster, power, loft, range),
+      vcupSportDash: (caster, distance, catchBall) =>
+        valeCupMod.vcupSportDash(sim.ctx, caster, distance, catchBall),
+      vcupSportShove: (caster, target, distance) =>
+        valeCupMod.vcupSportShove(sim.ctx, caster, target, distance),
+    };
+    return createSimContext(host);
+  }
+
   private refreshKnownAbilities(meta: PlayerMeta, announce: boolean): void {
     const e = this.entities.get(meta.entityId);
     if (!e) return;
     const before = new Map(meta.known.map((k) => [k.def.id, k.rank]));
+    // (Frost's second Ice Block charge is resolved inside abilitiesKnownAt, the
+    // shared known-list builder, so ClientWorld's recomputed list matches.)
     meta.known = abilitiesKnownAt(meta.cls, e.level, meta.talentMods);
     if (announce) {
       for (const k of meta.known) {
@@ -2162,9 +4241,17 @@ export class Sim {
 
   // Mark a player as a GM: invulnerable (see dealDamage). Server-side only —
   // set at join time from the characters.is_gm column.
-  setGm(pid?: number): void {
+  setGm(pid?: number, enabled = true): void {
     const r = this.resolve(pid);
-    if (r) r.e.gm = true;
+    if (r) r.e.gm = enabled;
+  }
+
+  // Mark a player as moderation-jailed: prisoners are mutually hostile (the
+  // jail brawl arm in isHostileTo). Server-side only: set on jail/unjail and
+  // at join restore; the offline Sim never calls it.
+  setJailed(enabled: boolean, pid?: number): void {
+    const r = this.resolve(pid);
+    if (r) r.e.jailed = enabled;
   }
 
   // Dev/test convenience: jump a player to a level (learns abilities, recalcs stats).
@@ -2176,130 +4263,77 @@ export class Sim {
     // from a sane baseline (virtualLevel never falls below the real level). Only
     // ever raises it — lifetimeXp is monotonic.
     r.meta.lifetimeXp = Math.max(r.meta.lifetimeXp, xpToReachLevel(r.e.level));
-    recalcPlayerStats(r.e, r.meta.cls, r.meta.equipment, this.playerMods(r.meta));
+    // Re-bake the flat talent mods at the new level before the stat + ability pass:
+    // spec mastery magnitudes scale with level (min(1, level/20)), so a dev/GM level
+    // jump must strengthen (or weaken) the mastery, exactly like the live ding path
+    // (combat/damage.ts grantXp). Without this a level-jumped character keeps the
+    // mastery baked at the OLD level.
+    r.meta.talentMods = computeTalentModifiers(r.meta.cls, r.meta.talents, r.e.level);
+    recalcPlayerStats(
+      r.e,
+      r.meta.cls,
+      r.meta.equipment,
+      this.playerMods(r.meta),
+      r.meta.equipmentInstance,
+    );
     r.e.hp = r.e.maxHp;
     if (r.e.resourceType === 'mana') r.e.resource = r.e.maxResource;
     this.refreshKnownAbilities(r.meta, false);
     this.syncPetLevel(r.e);
+    deedsMod.markDeedsDirty(this.ctx, r.meta.entityId); // level/lifetimeXp predicates re-check
   }
 
   // -------------------------------------------------------------------------
-  // Talents & Specializations (server-authoritative). Every allocation change
-  // validates against the level-derived point budget + tree rules, then
-  // recomputes the flat modifier struct. Restricted to out-of-combat (and not
-  // mid-arena): talents never change during a fight.
+  // Talents & Specializations (server-authoritative). The application layer
+  // (validate -> bake the flat TalentModifiers struct -> manage specs + the named
+  // loadouts) lives in progression/talents.ts (G1a). These stay here as thin wrappers
+  // that delegate into the module via this.ctx, so the IWorld / server-command surface
+  // (sim.applyTalents(...) etc.) is unchanged. recomputeTalents (the SOLE tree walk),
+  // talentLockReason, and sanitizeTalentAllocation are module-internal there. The
+  // talent-facing getters (talents/talentSpec/talentRole/loadouts/activeLoadout) and
+  // playerMods (the Fiesta overlay) stay on Sim.
   // -------------------------------------------------------------------------
-
-  // The ONLY place a talent tree is walked. Re-resolves the flat modifier struct
-  // and refreshes the stat pass + known-ability resolver that consume it.
-  private recomputeTalents(meta: PlayerMeta): void {
-    meta.talentMods = computeTalentModifiers(meta.cls, meta.talents);
-    const e = this.entities.get(meta.entityId);
-    if (e) recalcPlayerStats(e, meta.cls, meta.equipment, this.playerMods(meta));
-    this.refreshKnownAbilities(meta, false);
-  }
-
-  private talentLockReason(p: Entity): string | null {
-    if (p.inCombat) return 'You cannot change talents in combat.';
-    if (this.arenaMatches.has(p.id)) return 'You cannot change talents during an arena match.';
-    return null;
-  }
 
   talentPoints(pid?: number): { total: number; spent: number } {
-    const r = this.resolve(pid);
-    if (!r) return { total: 0, spent: 0 };
-    return { total: talentPointsAtLevel(r.e.level), spent: pointsSpent(r.meta.talents) };
+    return talentPointBudget(this.ctx, pid);
   }
 
-  private sanitizeTalentAllocation(alloc: TalentAllocation): TalentAllocation {
-    const sanitized: TalentAllocation = {
-      spec: alloc.spec ?? null,
-      ranks: {},
-      choices: { ...alloc.choices },
-    };
-    for (const id in alloc.ranks) {
-      const v = Math.floor(alloc.ranks[id]);
-      if (v > 0) sanitized.ranks[id] = v;
+  // A successful talent mutation marks the player deed-dirty from these thin
+  // wrappers (the talent predicates read the persisted allocation), keeping
+  // the extracted module untouched.
+  private markTalentDeeds(ok: boolean, pid?: number): boolean {
+    if (ok) {
+      const r = this.resolve(pid);
+      if (r) deedsMod.markDeedsDirty(this.ctx, r.meta.entityId);
     }
-    return sanitized;
+    return ok;
   }
 
   // Commit a whole staged allocation in one shot (the UI's "Apply"). Rejects any
   // allocation that fails server-side validation with a reason event (FR-4.5).
   applyTalents(alloc: TalentAllocation, pid?: number): boolean {
-    const r = this.resolve(pid);
-    if (!r) return false;
-    const lock = this.talentLockReason(r.e);
-    if (lock) {
-      this.error(r.e.id, lock);
-      return false;
-    }
-    const sanitized = this.sanitizeTalentAllocation(alloc);
-    if (sanitized.spec && r.e.level < FIRST_TALENT_LEVEL) {
-      this.error(r.e.id, `You may choose a specialization at level ${FIRST_TALENT_LEVEL}.`);
-      return false;
-    }
-    const check = validateAllocation(r.meta.cls, sanitized, talentPointsAtLevel(r.e.level));
-    if (!check.ok) {
-      this.error(r.e.id, check.reason ?? 'Invalid talent build.');
-      return false;
-    }
-    r.meta.talents = sanitized;
-    this.recomputeTalents(r.meta);
-    this.emit({ type: 'log', pid: r.e.id, text: 'Talents updated.', color: '#ffd100' });
-    return true;
+    return this.markTalentDeeds(applyTalentAllocation(this.ctx, alloc, pid), pid);
   }
 
   // Spend a single point into a node (incremental API; the UI mostly stages then
   // applies). Validated identically by building + checking a candidate alloc.
   spendTalent(nodeId: string, pid?: number): boolean {
-    const r = this.resolve(pid);
-    if (!r) return false;
-    const cand = cloneAllocation(r.meta.talents);
-    cand.ranks[nodeId] = (cand.ranks[nodeId] ?? 0) + 1;
-    return this.applyTalents(cand, pid);
+    return this.markTalentDeeds(spendTalentPoint(this.ctx, nodeId, pid), pid);
   }
 
   // Choose / change specialization. Switching specs drops the previous spec
   // tree's points (they belonged to that tree); the class tree is untouched.
   setSpec(specId: string | null, pid?: number): boolean {
-    const r = this.resolve(pid);
-    if (!r) return false;
-    const lock = this.talentLockReason(r.e);
-    if (lock) {
-      this.error(r.e.id, lock);
-      return false;
-    }
-    const ct = talentsFor(r.meta.cls);
-    if (specId !== null && !ct?.specs.some((s) => s.id === specId)) {
-      this.error(r.e.id, 'Unknown specialization.');
-      return false;
-    }
-    const cand = cloneAllocation(r.meta.talents);
-    cand.spec = specId;
-    for (const id of Object.keys(cand.ranks)) {
-      const node = ct?.nodes.find((n) => n.id === id);
-      if (node?.tree === 'spec' && node.specId !== specId) {
-        delete cand.ranks[id];
-        delete cand.choices[id];
-      }
-    }
-    return this.applyTalents(cand, pid);
+    return this.markTalentDeeds(setTalentSpec(this.ctx, specId, pid), pid);
+  }
+
+  selectTalentRow(level: TalentRowLevel, optionId: string | null, pid?: number): boolean {
+    return this.markTalentDeeds(selectTalentRowImpl(this.ctx, level, optionId, pid), pid);
   }
 
   // Free respec (out of combat): wipe all talent points. Spec is retained.
   respec(pid?: number): boolean {
-    const r = this.resolve(pid);
-    if (!r) return false;
-    const lock = this.talentLockReason(r.e);
-    if (lock) {
-      this.error(r.e.id, lock);
-      return false;
-    }
-    r.meta.talents = { spec: r.meta.talents.spec, ranks: {}, choices: {} };
-    this.recomputeTalents(r.meta);
-    this.emit({ type: 'log', pid: r.e.id, text: 'Talents reset.', color: '#ffd100' });
-    return true;
+    return this.markTalentDeeds(respecTalents(this.ctx, pid), pid);
   }
 
   // Save the current build (talents + spec + the given action-bar slot map) as a
@@ -2311,104 +4345,25 @@ export class Sim {
     pidOrAlloc?: number | TalentAllocation,
     allocMaybe?: TalentAllocation,
   ): number {
+    const idx = saveTalentLoadout(this.ctx, name, bar, pidOrAlloc, allocMaybe);
+    // A successful save applies the staged allocation (the UI's Save flow always
+    // passes it), so mark the talent deeds like the sibling wrappers; -1 is a
+    // rejected save. saveTalentLoadout derives its pid the same way.
     const pid = typeof pidOrAlloc === 'number' ? pidOrAlloc : undefined;
-    const alloc = typeof pidOrAlloc === 'object' ? pidOrAlloc : allocMaybe;
-    const r = this.resolve(pid);
-    if (!r) return -1;
-    if (alloc) {
-      const lock = this.talentLockReason(r.e);
-      if (lock) {
-        this.error(r.e.id, lock);
-        return -1;
-      }
-      const sanitized = this.sanitizeTalentAllocation(alloc);
-      if (sanitized.spec && r.e.level < FIRST_TALENT_LEVEL) {
-        this.error(r.e.id, `You may choose a specialization at level ${FIRST_TALENT_LEVEL}.`);
-        return -1;
-      }
-      const check = validateAllocation(r.meta.cls, sanitized, talentPointsAtLevel(r.e.level));
-      if (!check.ok) {
-        this.error(r.e.id, check.reason ?? 'Invalid talent build.');
-        return -1;
-      }
-      r.meta.talents = sanitized;
-      this.recomputeTalents(r.meta);
-    }
-    const clean = (name || 'Build').toString().slice(0, 24);
-    const safeBar = Array.isArray(bar)
-      ? bar.slice(0, 16).map((b) => (typeof b === 'string' ? b : null))
-      : [];
-    const lo: SavedLoadout = { name: clean, alloc: cloneAllocation(r.meta.talents), bar: safeBar };
-    const existing = r.meta.loadouts.findIndex((l) => l.name === clean);
-    if (existing >= 0) {
-      r.meta.loadouts[existing] = lo;
-      r.meta.activeLoadout = existing;
-      this.emit({ type: 'log', pid: r.e.id, text: `Saved build "${clean}".`, color: '#ffd100' });
-      return existing;
-    }
-    if (r.meta.loadouts.length >= MAX_LOADOUTS) {
-      this.error(r.e.id, `You can save at most ${MAX_LOADOUTS} loadouts.`);
-      return -1;
-    }
-    r.meta.loadouts.push(lo);
-    r.meta.activeLoadout = r.meta.loadouts.length - 1;
-    this.emit({ type: 'log', pid: r.e.id, text: `Saved build "${clean}".`, color: '#ffd100' });
-    return r.meta.activeLoadout;
+    this.markTalentDeeds(idx >= 0, pid);
+    return idx;
   }
 
   // Apply a saved loadout's talents (out of combat). The action bar is restored
   // client-side from the loadout's stored slot map. Re-validated server-side.
   switchLoadout(index: number, pid?: number): boolean {
-    const r = this.resolve(pid);
-    if (!r) return false;
-    const lock = this.talentLockReason(r.e);
-    if (lock) {
-      this.error(r.e.id, lock);
-      return false;
-    }
-    const lo = r.meta.loadouts[index];
-    if (!lo) {
-      this.error(r.e.id, 'No such loadout.');
-      return false;
-    }
-    if (lo.alloc.spec && r.e.level < FIRST_TALENT_LEVEL) {
-      this.error(r.e.id, 'That loadout needs a higher level.');
-      return false;
-    }
-    const check = validateAllocation(r.meta.cls, lo.alloc, talentPointsAtLevel(r.e.level));
-    if (!check.ok) {
-      this.error(r.e.id, `Loadout invalid: ${check.reason ?? 'unknown'}`);
-      return false;
-    }
-    r.meta.talents = cloneAllocation(lo.alloc);
-    r.meta.activeLoadout = index;
-    this.recomputeTalents(r.meta);
-    this.emit({
-      type: 'log',
-      pid: r.e.id,
-      text: `Loadout "${lo.name}" applied.`,
-      color: '#ffd100',
-    });
-    return true;
+    return this.markTalentDeeds(switchTalentLoadout(this.ctx, index, pid), pid);
   }
 
   deleteLoadout(index: number, pid?: number): boolean {
-    const r = this.resolve(pid);
-    if (!r || index < 0 || index >= r.meta.loadouts.length) return false;
-    const wasActive = r.meta.activeLoadout === index;
-    const name = r.meta.loadouts[index].name;
-    r.meta.loadouts.splice(index, 1);
-    if (wasActive) {
-      r.meta.activeLoadout =
-        r.meta.loadouts.length > 0 ? Math.min(index, r.meta.loadouts.length - 1) : -1;
-      const next = r.meta.activeLoadout >= 0 ? r.meta.loadouts[r.meta.activeLoadout] : null;
-      if (next) {
-        r.meta.talents = cloneAllocation(next.alloc);
-        this.recomputeTalents(r.meta);
-      }
-    } else if (r.meta.activeLoadout > index) r.meta.activeLoadout -= 1;
-    this.emit({ type: 'log', pid: r.e.id, text: `Deleted build "${name}".`, color: '#ffd100' });
-    return true;
+    // Deleting the active loadout auto-applies the next one (talents.ts), which
+    // can newly satisfy a talent deed, so mark on success like switchLoadout.
+    return this.markTalentDeeds(deleteTalentLoadout(this.ctx, index, pid), pid);
   }
 
   // Threat modifier including the tank-role talent bonus (e.g. Protection's
@@ -2432,9 +4387,24 @@ export class Sim {
     // checks/spends read, so the affordability check and the spend stay in
     // lockstep. Return a shallow copy so the cached known-list entry is never
     // mutated.
+    let cost = found.cost;
+    if (
+      cost > 0 &&
+      this.playerMods(r.meta).spec === 'arms' &&
+      r.meta.known.some((known) => known.def.id === 'measured_fury' && known.def.passive)
+    ) {
+      cost = Math.max(0, Math.round(cost * 0.9));
+    }
     const tax = this.costTaxMult(r.e);
-    if (tax > 1 && found.cost > 0) return { ...found, cost: Math.ceil(found.cost * tax) };
-    return found;
+    if (tax > 1 && cost > 0) cost = Math.ceil(cost * tax);
+    // Aether Surge (Chronomancy Phase 3, combat/chronomancy.ts): each held Arcane
+    // Charge steeply multiplies the next cast's cost. Deterministic read of the
+    // caster's own charge aura; no rng. Folded here so the affordability gate and
+    // the spend both see the scaled cost. (docs/prd/mage-chronomancy.md 13.4 / 14)
+    if (abilityId === 'arcane_surge' && cost > 0) {
+      cost = Math.round(cost * aetherSurgeCostMult(r.e));
+    }
+    return cost === found.cost ? found : { ...found, cost };
   }
 
   // Highest active cost_tax aura, expressed as a cost multiplier (1 = no tax).
@@ -2449,57 +4419,96 @@ export class Sim {
   // -------------------------------------------------------------------------
 
   tick(): SimEvent[] {
+    // The shared SimContext seam (`this.ctx`, built in the ctor) spans this whole
+    // tick: the head/tail phases and the end-of-tick system block all run on the Sim
+    // that holds it, so a later slice's extracted update() routes through `this.ctx`
+    // without changing the phase order below. S0b threads the seam but moves no
+    // behavior, so every phase here is byte-identical (the parity gate proves it).
     this.time += DT;
     this.tickCount++;
+    // Optional per-phase timing hook (cfg.perfLap): the host attributes the elapsed
+    // time since its previous mark to the named phase. Undefined offline/headless, so
+    // this is a no-op there; it draws no rng and mutates nothing either way, keeping
+    // the tick deterministic. The server injects it for its on-demand tick profiler.
+    // The mob loop additionally passes the mob it just updated as a sub-phase tag so
+    // the host can split mob.update per zone; every other call omits it.
+    const lap = this.cfg.perfLap;
+    // Zero the mob-AI scan visit counters for this tick before any tick work runs, so
+    // the getter reads this tick's totals once tick() returns (observability only,
+    // draws no rng, mutates no gameplay state).
+    resetMobScanCounters(this._mobScanCounters);
     this.updatePendingMobRespawns();
-    this.updateGroundAoEs();
+    lap?.('respawns');
+    this.updateWorldBosses();
+    lap?.('worldBosses');
+    tickGroundAoEs(this.ctx);
+    lap?.('groundAoEs');
+    tickFrozenOrbs(this.ctx);
+    lap?.('frozenOrbs');
 
-    const despawnIds: number[] = [];
-    for (const e of this.entities.values()) {
-      copyPos(e.prevPos, e.pos);
-      e.prevFacing = e.facing;
-      if (e.despawnTimer !== undefined) {
-        e.despawnTimer -= DT;
-        if (e.despawnTimer <= 0) despawnIds.push(e.id);
-      }
-      if (
-        e.kind === 'mob' &&
-        DAMAGE_IDLE_DESPAWN_MOB_IDS.has(e.templateId) &&
-        !e.dead &&
-        !e.inCombat
-      ) {
-        e.damageIdleDespawnTimer = (e.damageIdleDespawnTimer ?? DAMAGE_IDLE_DESPAWN_SECONDS) - DT;
-        if (e.damageIdleDespawnTimer <= 0) despawnIds.push(e.id);
-      }
-      if (e.overheadEmoteId && this.time >= e.overheadEmoteUntil) {
-        e.overheadEmoteId = null;
-        e.overheadEmoteUntil = 0;
-      }
-    }
-    for (const id of despawnIds) this.dropEntity(id);
+    runDespawnDecay(this.ctx);
+    lap?.('despawnDecay');
+    // Step in-flight projectiles toward their live targets before this tick's casts and
+    // swings, so a homing bolt resolves on a fixed, deterministic phase boundary.
+    advancePendingProjectiles(this.ctx);
+    lap?.('projectiles');
 
     for (const meta of this.players.values()) {
       const p = this.entities.get(meta.entityId);
       if (!p) continue;
       if (!p.dead) {
+        ensureWarriorStance(this.ctx, p, meta);
+        this.updatePlayerMovement(p, meta);
+        lap?.('p.move');
+        this.updateDoorTriggers(p);
+        lap?.('p.doors');
+        this.updateCasting(p, meta);
+        lap?.('p.casting');
+        this.updatePlayerAutoAttack(p, meta);
+        lap?.('p.autoAtk');
+        // Nature's Fury: the moonwing party-crit pulse (no-op for everyone
+        // without the druid row talent).
+        tickNaturesFury(this.ctx, p, meta);
+        updateRegen(this.ctx, p, meta);
+        // Rested XP feeds one one-shot deed predicate, so only the 0 to
+        // positive transition needs a dirty mark (a resting player must not
+        // stay perpetually dirty for the tick-tail evaluator).
+        const wasUnrested = meta.restedXp === 0;
+        updateRested(p, meta);
+        if (wasUnrested && meta.restedXp > 0) deedsMod.markDeedsDirty(this.ctx, p.id);
+        if (meta.pendingGatherGrants.length > 0) {
+          drainGatheringGrants(meta);
+          // Proficiency just became visible; the gathering predicates re-check.
+          deedsMod.markDeedsDirty(this.ctx, p.id);
+        }
+        lap?.('p.regen');
+      } else if (p.ghost) {
+        // A released spirit only runs (boosted speed via moveSpeedMult); it does not
+        // fight, cast, or regen. It CAN walk into a dungeon/raid door to re-enter its
+        // instance and resurrect at the entrance (the corpse run under the instance
+        // death model), or resurrect at its corpse / an overworld Spirit Healer.
         this.updatePlayerMovement(p, meta);
         this.updateDoorTriggers(p);
-        this.updateCasting(p, meta);
-        this.updatePlayerAutoAttack(p, meta);
-        this.updateRegen(p, meta);
-        this.updateRested(p, meta);
+        lap?.('p.move');
       }
-      this.updateTimers(p);
-      this.updateAuras(p);
+      updateTimers(p);
+      updateComboExpiry(this.ctx, p);
+      updateAuras(this.ctx, p);
+      lap?.('p.auras');
     }
 
     for (const e of this.entities.values()) {
       if (e.kind === 'mob') {
         this.updateMob(e);
-        this.updateAuras(e);
+        // Tag the mob.update lap with the mob so the host can attribute this slice
+        // of the phase cost to its zone/group. The sim reads nothing
+        // from it and allocates nothing, so this stays behavior- and parity-inert.
+        lap?.('mob.update', e);
+        updateAuras(this.ctx, e);
+        lap?.('mob.auras');
       } else if (e.kind === 'npc') {
         this.updateAiActiveNpc(e);
-        this.cleanseFriendlyNpcAuras(e);
+        cleanseFriendlyNpcAuras(this.ctx, e);
       } else if (e.kind === 'object') {
         if (!e.lootable) {
           e.respawnTimer -= DT;
@@ -2507,6 +4516,7 @@ export class Sim {
         }
       }
     }
+    lap?.('ent.misc');
 
     // one pass over the entities collects every player a mob is engaged
     // with, instead of one full scan per player
@@ -2536,20 +4546,51 @@ export class Sim {
       const p = this.entities.get(meta.entityId);
       if (p) p.inCombat = this.engagedPids.has(p.id) || p.combatTimer < 5;
     }
+    lap?.('engaged');
 
     this.updateDuels();
+    lap?.('duels');
+    this.updateCardDuelQueue();
+    this.updateCardDuelDeadlines();
+    lap?.('cardDuel');
     this.updateArena();
+    lap?.('arena');
     this.updateTradesAndInvites();
+    this.updateReadyChecks();
+    resurrectionOfferMod.updateResurrectionOffers(this.ctx);
+    lap?.('trades');
     this.updateLootRolls();
+    lap?.('lootRolls');
     this.updateInstances();
+    lap?.('instances');
     this.updateDelveRuns();
-    this.updateMarket();
-    this.emitDueDelayedEvents();
+    lap?.('delves');
+    // The Vale Cup phase draws ZERO shared rng (pure ball physics + timers +
+    // tick-staggered bots), so appending it here cannot fork the draw order.
+    this.updateValeCup();
+    lap?.('valecup');
+    // The Dungeon Finder phase draws ZERO rng (queue bookkeeping + role
+    // matching on the sim clock), so appending it here cannot fork the draw order.
+    this.updateDungeonFinder();
+    lap?.('dfinder');
+    this.market.update();
+    lap?.('market');
+    this.postOffice.update();
+    lap?.('postOffice');
+    drainDelayedEvents(this.ctx);
+    lap?.('delayedEv');
+    // The Book of Deeds evaluator runs at the very end of the tail: it sees
+    // same-tick delayed-event results, and because it draws ZERO rng (pure
+    // predicate checks over dirty players plus a 1 Hz proximity sweep) its
+    // position cannot fork the draw order (the Vale Cup tail precedent).
+    deedsMod.updateDeeds(this.ctx);
+    lap?.('deeds');
 
     // movement re-bucketing: queries during the next tick and the server's
     // snapshot broadcast right after this one see fresh cells
     this.grid.refresh(this.entities.values());
     this.playerGrid.refresh(this.playerEntities());
+    lap?.('gridRefresh');
 
     const out = this.events;
     this.events = [];
@@ -2563,13 +4604,22 @@ export class Sim {
       npc.aiActiveReturningHome = false;
       return;
     }
-    if (!npc.aiActiveMoveTarget && !npc.aiActiveReturningHome && npc.aiActiveReturnAt > 0 && this.time >= npc.aiActiveReturnAt) {
+    if (
+      !npc.aiActiveMoveTarget &&
+      !npc.aiActiveReturningHome &&
+      npc.aiActiveReturnAt > 0 &&
+      this.time >= npc.aiActiveReturnAt
+    ) {
       npc.aiActiveMoveTarget = { ...npc.spawnPos };
       npc.aiActiveReturnAt = 0;
       npc.aiActiveReturningHome = true;
     }
     if (!npc.aiActiveMoveTarget) return;
-    const arrived = this.moveToward(npc, npc.aiActiveMoveTarget, npc.moveSpeed * AI_ACTIVE_NPC_MOVE_SPEED_MULT);
+    const arrived = this.moveToward(
+      npc,
+      npc.aiActiveMoveTarget,
+      npc.moveSpeed * AI_ACTIVE_NPC_MOVE_SPEED_MULT,
+    );
     if (!arrived) return;
     if (npc.aiActiveReturningHome) {
       npc.aiActiveMoveTarget = null;
@@ -2580,18 +4630,8 @@ export class Sim {
     npc.aiActiveMoveTarget = null;
   }
 
-  private emitDueDelayedEvents(): void {
-    if (this.delayedEvents.length === 0) return;
-    const pending: { at: number; event: SimEvent; guard?: () => boolean }[] = [];
-    for (const delayed of this.delayedEvents) {
-      if (delayed.at <= this.time) {
-        if (!delayed.guard || delayed.guard()) this.emit(delayed.event);
-      } else pending.push(delayed);
-    }
-    this.delayedEvents = pending;
-  }
-
   private updateLootRolls(): void {
+    if (this.pendingLootRolls.size === 0) return; // skip the defensive copy on the common idle tick
     for (const roll of [...this.pendingLootRolls.values()]) {
       if (roll.expiresAt <= this.time) this.resolveLootRoll(roll);
     }
@@ -2608,14 +4648,6 @@ export class Sim {
   // Player movement
   // -------------------------------------------------------------------------
 
-  private isStunned(e: Entity): boolean {
-    return e.auras.some(
-      (a) => a.kind === 'stun' || a.kind === 'incapacitate' || a.kind === 'polymorph',
-    );
-  }
-  private isRooted(e: Entity): boolean {
-    return this.isStunned(e) || e.auras.some((a) => a.kind === 'root');
-  }
   private fearAura(e: Entity): Aura | undefined {
     return e.auras.find((a) => a.id === 'fear_incap' && a.kind === 'incapacitate');
   }
@@ -2627,175 +4659,128 @@ export class Sim {
     this.moveToward(e, dest, this.fleeMoveSpeed(e));
     return true;
   }
-  // Silence locks out spell (non-physical) casts but leaves physical abilities,
-  // movement and melee untouched — unlike a stun, which freezes everything.
-  private isSilenced(e: Entity): boolean {
-    return e.auras.some((a) => a.kind === 'silence');
-  }
-
-  // Extra chance for the entity's own weapon swings to whiff while blinded.
-  // Returns the strongest active blind aura's value (0 when not blinded).
-  private blindMissBonus(e: Entity): number {
-    let bonus = 0;
-    for (const a of e.auras) if (a.kind === 'blind' && a.value > bonus) bonus = a.value;
-    return bonus;
-  }
-
-  // Disarm suppresses weapon swings (auto-attack, melee and ranged) but leaves
-  // movement, spells and instant abilities untouched — the inverse of silence.
-  private isDisarmed(e: Entity): boolean {
-    return e.auras.some((a) => a.kind === 'disarm');
-  }
-
-  // A school lockout denies casts of one specific school only (a counterspell),
-  // leaving every other school — and physical abilities — untouched.
-  private isLockedOut(e: Entity, school: Aura['school']): boolean {
-    return e.auras.some((a) => a.kind === 'lockout' && a.school === school);
-  }
-
-  // Curse of Tongues: returns the spell cast-time multiplier (>=1) imposed by any
-  // active `tongues` aura, or 1 when unafflicted. Non-stacking across sources — the
-  // strongest curse wins (refresh-by-id keeps a single source from compounding).
-  private tonguesMult(e: Entity): number {
-    let m = 1;
-    for (const a of e.auras) if (a.kind === 'tongues') m = Math.max(m, a.value);
-    return m;
-  }
   private mobCanSwim(template: { family?: string; canSwim?: boolean } | undefined): boolean {
     return !!template;
   }
   private mobCanSpawnInWater(
     template: { family?: string; canSwim?: boolean } | undefined,
   ): boolean {
-    return !!template && (template.canSwim === true || template.family === 'murloc');
+    return !!template && (template.canSwim === true || template.family === 'mudfin');
   }
   private isControlAura(kind: AuraKind): boolean {
     return kind === 'stun' || kind === 'root' || kind === 'incapacitate' || kind === 'polymorph';
   }
+  private isIceBlockCrowdControlAura(kind: AuraKind): boolean {
+    return (
+      this.isControlAura(kind) ||
+      kind === 'silence' ||
+      kind === 'blind' ||
+      kind === 'disarm' ||
+      kind === 'slow' ||
+      kind === 'lockout' ||
+      kind === 'tongues'
+    );
+  }
+  private isIceBlocked(target: Entity): boolean {
+    return target.auras.some(
+      (existing) => existing.id === 'ice_block' && existing.kind === 'stasis',
+    );
+  }
+  // Nythraxis CC-immunity predicates moved to encounters/nythraxis.ts (N1); Sim keeps
+  // thin delegates because the hot applyAura immunity path reads them via this.X
+  // (isNythraxisControlAura routes back through ctx.isControlAura, which stays on Sim).
   private isNythraxisControlAura(kind: AuraKind): boolean {
-    return kind === 'slow' || this.isControlAura(kind);
+    return nythraxis.isNythraxisControlAura(this.ctx, kind);
   }
   private isNythraxisRaidEnemy(target: Entity): boolean {
-    return (
-      target.kind === 'mob' &&
-      (target.templateId === NYTHRAXIS_BOSS_ID || target.templateId === NYTHRAXIS_ADD_ID)
-    );
+    return nythraxis.isNythraxisRaidEnemy(target);
   }
   private isNythraxisScriptedControl(target: Entity, aura: Aura): boolean {
-    return (
-      target.kind === 'mob' &&
-      (target.templateId === NYTHRAXIS_ADD_ID || target.ownerId !== null) &&
-      aura.id === 'nythraxis_transition_stun'
-    );
+    return nythraxis.isNythraxisScriptedControl(target, aura);
   }
-  private partyLootStrategiesForMob(mob: Entity): LootStrategies | null {
-    if (mob.tappedById === null) return null;
-    return this.partyOf(mob.tappedById)?.lootStrategies ?? null;
-  }
+  // L1 loot distribution moved to loot/loot_roll.ts (behind SimContext). Sim keeps a
+  // thin delegate for partyLootCandidatesForMob because dead_party_loot.test.ts reaches
+  // it via cast; the strategy resolvers it used have no other caller and moved fully.
   private partyLootCandidatesForMob(mob: Entity): PlayerMeta[] {
-    if (mob.lootRecipientIds && mob.lootRecipientIds.length > 0) {
-      return mob.lootRecipientIds.flatMap((pid) => {
-        const candidate = this.players.get(pid);
-        return candidate ? [candidate] : [];
-      });
-    }
-    if (mob.tappedById === null) return [];
-    const party = this.partyOf(mob.tappedById);
-    if (!party || party.members.length <= 1) return [];
-    const candidates: PlayerMeta[] = [];
-    for (const pid of party.members) {
-      const candidate = this.players.get(pid);
-      const e = this.entities.get(pid);
-      // Before a corpse has a death-time snapshot, fall back to current range.
-      // Do not filter on `e.dead`: a downed member whose corpse is still in
-      // range keeps loot rights.
-      if (candidate && e && dist2d(e.pos, mob.pos) <= PARTY_XP_RANGE) candidates.push(candidate);
-    }
-    return candidates;
+    return partyLootCandidatesForMobImpl(this.ctx, mob);
   }
-  private effectiveCurrencyLootStrategy(mob: Entity): CurrencyLootStrategy {
-    return this.partyLootStrategiesForMob(mob)?.currency ?? 'looter-takes-all';
-  }
-  private effectiveItemLootStrategy(itemId: string, mob: Entity): ItemLootStrategy {
-    const q = ITEMS[itemId]?.quality ?? 'common';
-    const strategies = this.partyLootStrategiesForMob(mob);
-    if (!strategies) return 'looter-takes-all';
-    return q === 'poor' || q === 'common' ? strategies.commonItems : strategies.premiumItems;
-  }
+  // Body moved to player_motion.ts (MV1). The ghost/aura math is host-agnostic
+  // there; only the Fiesta augment needs PlayerMeta, so this delegate feeds it in.
   moveSpeedMult(e: Entity): number {
-    let slow = 1,
-      speed = 1;
-    for (const a of e.auras) {
-      if (a.kind === 'slow' || a.kind === 'stealth') slow = Math.min(slow, a.value);
-      // buff_speed and form_travel both carry a 1+fraction multiplier (1.4 = +40%).
-      if (a.kind === 'buff_speed' || a.kind === 'form_travel') speed = Math.max(speed, a.value);
-    }
-    // Fiesta move-speed augments (only ever non-zero inside a Fiesta bout).
-    if (e.kind === 'player') {
-      const ms = this.players.get(e.id)?.fiestaSpecial.moveSpeedPct;
-      if (ms) speed += ms;
-    }
-    return slow * speed;
+    const extra =
+      e.kind === 'player' ? (this.players.get(e.id)?.fiestaSpecial.moveSpeedPct ?? 0) : 0;
+    return moveSpeedMultImpl(e, extra);
   }
 
   private fleeMoveSpeed(e: Entity): number {
-    return Math.min(e.moveSpeed * FLEE_SPEED_MULT, FLEE_MAX_SPEED) * this.moveSpeedMult(e);
+    return fleeSpeed(e.moveSpeed, this.moveSpeedMult(e));
   }
 
-  private recoverFromFlee(mob: Entity, target: Entity, leash: number, leashAnchor: Vec3): void {
-    mob.aiState = dist2d(mob.pos, target.pos) > MELEE_RANGE ? 'chase' : 'attack';
-    mob.fleeTimer = 0;
-    if (dist2d(mob.pos, leashAnchor) >= leash - 1) mob.fleeReturnTimer = FLEE_RETURN_GRACE;
-  }
+  // recoverFromFlee moved to mob/locomotion.ts (M2; called only by the flee arm).
 
-  // Fiesta "Moon Boots" power-up: a buff_jump aura multiplies jump height.
-  private jumpMult(e: Entity): number {
-    let m = 1;
-    for (const a of e.auras) if (a.kind === 'buff_jump') m = Math.max(m, a.value);
-    return m;
-  }
+  // jumpMult moved to player_motion.ts (MV1; read only by the movement kernel).
 
   // Sunder Armor stacks shave flat armor off the defender for physical hits.
   private effectiveArmor(e: Entity): number {
     let armor = e.stats.armor;
+    // Player/rogue armor debuffs are PERCENTAGES that do NOT stack with each other:
+    // Sunder Armor (2% per stack, up to 10% at 5 stacks) and Faerie Fire (a flat 10%)
+    // max-combine, so a fully-stacked Sunder and a Faerie Fire are redundant rather
+    // than additive. Mob corrosion (kind 'corrode') is a separate FLAT shred that
+    // subtracts value*stacks before the percent debuffs apply.
+    let reductionPct = 0;
+    const baseArmor = e.stats.armor;
     for (const a of e.auras) {
       if (e.kind !== 'player' && a.kind === 'buff_armor') armor += a.value;
-      if (a.kind === 'sunder') armor -= a.value * (a.stacks ?? 1);
+      // Percent armor raid buff (Devotion Aura) on a controlled pet; players fold it
+      // in recalcPlayerStats.
+      else if (e.kind !== 'player' && a.kind === 'buff_armor_pct')
+        armor += (baseArmor * a.value) / 100;
+      // Mob corrosion: flat, stacking armor shred (value per stack).
+      if (a.kind === 'corrode') armor -= a.value * (a.stacks ?? 1);
+      else if (a.kind === 'sunder')
+        reductionPct = Math.max(reductionPct, SUNDER_ARMOR_PCT_PER_STACK * (a.stacks ?? 1));
+      else if (a.kind === 'faerie_fire')
+        reductionPct = Math.max(reductionPct, FAERIE_FIRE_ARMOR_PCT);
     }
-    return Math.max(0, armor);
+    return Math.max(0, armor * (1 - reductionPct));
   }
 
   private effectiveAttackPower(e: Entity): number {
     let attackPower = e.attackPower;
     if (e.kind !== 'player') {
+      const base = e.attackPower;
       for (const a of e.auras) {
         if (a.kind === 'buff_ap') attackPower += a.value;
         else if (a.kind === 'debuff_ap') attackPower -= a.value;
+        // Percent attack-power raid buffs (Blessing of Might / Battle Shout) on a
+        // controlled pet: percent of the pet's base AP. Players fold this in recalc.
+        else if (a.kind === 'buff_ap_pct') attackPower += (base * a.value) / 100;
       }
     }
     return Math.max(0, attackPower);
   }
 
-  private nonPlayerAuraHp(aura: Aura): number {
-    if (aura.kind === 'buff_sta') return aura.value * 10;
-    if (aura.kind === 'buff_allstats') return aura.value * 10;
-    return 0;
+  private petDamageMult(e: Entity): number {
+    if (e.ownerId === null) return 1;
+    let mult = 1;
+    for (const a of e.auras) {
+      if (a.kind === 'pet_damage_pct') mult += pctValue(a.value);
+    }
+    const ownerMeta = this.players.get(e.ownerId);
+    if (ownerMeta) mult *= 1 + this.playerMods(ownerMeta).global.petDmgPct;
+    return mult;
   }
 
+  // Non-player stat-aura HP bookkeeping moved to pet/pet_commands.ts (P1b); Sim keeps
+  // these thin delegates for the applyAura/aura-expiry callers (this.applyNonPlayerStatAura)
+  // and respawnMob's ctx.clearNonPlayerStatAuras.
   private applyNonPlayerStatAura(target: Entity, aura: Aura, direction: 1 | -1): void {
-    if (target.kind === 'player') return;
-    const hpDelta = this.nonPlayerAuraHp(aura) * direction;
-    if (hpDelta === 0) return;
-    const hpFrac = target.maxHp > 0 ? target.hp / target.maxHp : 1;
-    target.maxHp = Math.max(1, target.maxHp + hpDelta);
-    target.hp = target.dead
-      ? 0
-      : Math.max(1, Math.min(target.maxHp, Math.round(target.maxHp * hpFrac)));
+    petCommands.applyNonPlayerStatAura(this.ctx, target, aura, direction);
   }
 
   private clearNonPlayerStatAuras(target: Entity): void {
-    if (target.kind === 'player') return;
-    for (const aura of target.auras) this.applyNonPlayerStatAura(target, aura, -1);
+    petCommands.clearNonPlayerStatAuras(this.ctx, target);
   }
 
   private syncPetAspect(pet: Entity, owner: Entity): void {
@@ -2823,27 +4808,35 @@ export class Sim {
     });
   }
 
-  // swing interval multiplier: >1 = slower (thunder clap), haste divides
+  // swing interval multiplier: >1 = slower (thunder clap), haste divides.
+  // v0.27.1: ALL haste folds into ONE additive bucket applied once, mirroring
+  // spellHasteMult (always additive). Before this, each buff_haste aura divided
+  // the interval independently and the meleeHaste stat (item sets + the warrior
+  // Enrage) divided again in auto_attack, so stacked raid buffs COMPOUNDED:
+  // Bloodlust 1.3 x Wildfang Rally 1.05 x Enrage 1.25 = 1.71x attack speed
+  // instead of the additive 1.6x. Single-source cases are unchanged
+  // (1/(1 + x) === 1/mult for one aura). Slows keep their own multiplicative
+  // axis so layered slows are not weakened by the haste change.
   swingIntervalMult(e: Entity): number {
-    let m = 1;
+    let slow = 1;
+    let haste = e.meleeHaste;
     for (const a of e.auras) {
-      if (a.kind === 'attackspeed') m *= a.value;
-      if (a.kind === 'buff_haste') m /= a.value;
+      if (a.kind === 'attackspeed' || a.kind === 'sanguine') slow *= a.value;
+      if (a.kind === 'buff_haste') haste += a.value - 1;
     }
     // Enrage frenzy: an enraged mob swings faster (mirrors the inline dmgMult
-    // applied in mobSwing). Composes with any slow/haste auras above.
+    // applied in mobSwing). Joins the same additive bucket; identical when it
+    // is the mob's only haste, which it always is today.
     if (e.enraged) {
       const h = MOBS[e.templateId]?.enrage?.hasteMult;
-      if (h && h > 0) m /= h;
+      if (h && h > 0) haste += h - 1;
     }
-    return m;
+    return slow / (1 + Math.max(0, haste));
   }
 
+  // Body moved to player_motion.ts (MV1); thin delegate (also bound on the seam).
   isSwimming(e: Entity): boolean {
-    return (
-      groundHeight(e.pos.x, e.pos.z, this.cfg.seed) < WATER_LEVEL - SWIM_DEPTH &&
-      e.pos.y <= SWIM_SURFACE_Y + 0.15
-    );
+    return isSwimmingImpl(e, this.cfg.seed);
   }
 
   private findChargePath(p: Entity, target: Entity): Vec3[] {
@@ -2863,11 +4856,11 @@ export class Sim {
     const done = (arrived: boolean): boolean => {
       p.chargeTargetId = null;
       p.chargePath = [];
-      if (target) p.facing = angleTo(p.pos, target.pos);
+      if (target) p.facing = steadyAngleTo(p.pos, target.pos, p.facing);
       if (arrived) this.startAutoAttack(p.id);
       return true;
     };
-    if (!target || target.dead || p.chargeTimeLeft <= 0 || this.isRooted(p)) return done(false);
+    if (!target || target.dead || p.chargeTimeLeft <= 0 || isRooted(p)) return done(false);
     if (dist2d(p.pos, target.pos) <= CHARGE_ARRIVE_RANGE) return done(true);
     if (p.sitting) this.standUp(p);
     // re-route when the target has run well away from where the path ends
@@ -2883,8 +4876,14 @@ export class Sim {
     // deep water and cliffs end the charge early rather than dragging the player in
     const h0 = groundHeight(p.pos.x, p.pos.z, this.cfg.seed);
     const h1 = groundHeight(nx, nz, this.cfg.seed);
-    if (h1 < WATER_LEVEL - SWIM_DEPTH) return done(false);
-    if (h1 > h0 && (h1 - h0) / step > MAX_CLIMB_SLOPE) return done(false);
+    if (h1 < waterLevelAt(nx, nz) - SWIM_DEPTH) return done(false);
+    if (
+      h1 > h0 &&
+      ((h1 - h0) / step > MAX_CLIMB_SLOPE ||
+        terrainSteepnessAt(nx, nz, this.cfg.seed) > MAX_CLIMB_SLOPE)
+    ) {
+      return done(false);
+    }
     const resolved = this.resolveMove(p.pos.x, p.pos.z, nx, nz, BODY_RADIUS, p);
     p.pos.x = resolved.x;
     p.pos.z = resolved.z;
@@ -2936,8 +4935,8 @@ export class Sim {
       return false;
     }
     // always turn to face the leader, even while held in place
-    p.facing = angleTo(p.pos, t.pos);
-    if (this.isStunned(p) || this.isRooted(p) || d <= FOLLOW_STOP_DIST) return true;
+    p.facing = steadyAngleTo(p.pos, t.pos, p.facing);
+    if (isStunned(p) || isRooted(p) || d <= FOLLOW_STOP_DIST) return true;
     let speed = RUN_SPEED * this.moveSpeedMult(p);
     if (this.isSwimming(p)) speed *= SWIM_SPEED_MULT;
     const step = Math.min(speed * DT, d - FOLLOW_STOP_DIST);
@@ -2945,8 +4944,15 @@ export class Sim {
     const nz = p.pos.z + Math.cos(p.facing) * step;
     const h0 = groundHeight(p.pos.x, p.pos.z, this.cfg.seed);
     const h1 = groundHeight(nx, nz, this.cfg.seed);
-    if (h1 < WATER_LEVEL - SWIM_DEPTH) return true; // don't trail into deep water
-    if (h1 > h0 && step > 1e-5 && (h1 - h0) / step > MAX_CLIMB_SLOPE) return true; // wall/cliff
+    if (h1 < waterLevelAt(nx, nz) - SWIM_DEPTH) return true; // don't trail into deep water
+    if (
+      h1 > h0 &&
+      step > 1e-5 &&
+      ((h1 - h0) / step > MAX_CLIMB_SLOPE ||
+        terrainSteepnessAt(nx, nz, this.cfg.seed) > MAX_CLIMB_SLOPE)
+    ) {
+      return true; // wall/cliff
+    }
     const resolved = this.resolveMove(p.pos.x, p.pos.z, nx, nz, BODY_RADIUS, p);
     p.pos.x = resolved.x;
     p.pos.z = resolved.z;
@@ -2971,167 +4977,17 @@ export class Sim {
     ) {
       meta.lastActiveTick = this.tickCount;
     }
+    if (advanceHeroicLeap(this.ctx, p)) return;
     if (this.updateChargeMovement(p)) return;
     if (this.updateFollowMovement(p, meta)) return;
     if (this.updateFearMovement(p)) return;
-    const inp = meta.moveInput;
-    // Convention: facing f points along (sin f, cos f); the camera sits behind
-    // the player, so screen-right is the world vector (-cos f, sin f).
-    // Turning right therefore DECREASES facing.
-    if (!this.isStunned(p)) {
-      if (inp.turnLeft) p.facing = normAngle(p.facing + TURN_SPEED * DT);
-      if (inp.turnRight) p.facing = normAngle(p.facing - TURN_SPEED * DT);
-    }
-
-    let mx = 0,
-      mz = 0; // local: z forward, x strafe-right
-    if (inp.forward) mz += 1;
-    if (inp.back) mz -= 1;
-    if (inp.strafeLeft) mx -= 1;
-    if (inp.strafeRight) mx += 1;
-
-    const wantsMove = mx !== 0 || mz !== 0 || inp.jump;
-    if (wantsMove && p.sitting) this.standUp(p);
-
-    const hasMoveInput = mx !== 0 || mz !== 0;
-    const moving = hasMoveInput && !this.isRooted(p);
-    const swimming = this.isSwimming(p);
-    let wishX = 0,
-      wishZ = 0,
-      wishSpeed = 0;
-    if (moving) {
-      if (p.castingAbility) this.cancelCast(p);
-      const len = Math.hypot(mx, mz);
-      mx /= len;
-      mz /= len;
-      let speed = RUN_SPEED * this.moveSpeedMult(p);
-      if (mz < 0) speed *= BACKPEDAL_MULT;
-      if (swimming) speed *= SWIM_SPEED_MULT;
-      // world = forward * mz + right * mx, with right = (-cos f, sin f)
-      const sin = Math.sin(p.facing),
-        cos = Math.cos(p.facing);
-      const wx = mz * sin - mx * cos;
-      const wz = mz * cos + mx * sin;
-      wishX = wx;
-      wishZ = wz;
-      wishSpeed = speed;
-    }
-
-    const movingOnGround = moving && (p.onGround || swimming);
-    if (movingOnGround || (!p.onGround && (p.vx !== 0 || p.vz !== 0))) {
-      const stepX = movingOnGround ? wishX * wishSpeed : p.vx;
-      const stepZ = movingOnGround ? wishZ * wishSpeed : p.vz;
-      let nx = p.pos.x + stepX * DT;
-      let nz = p.pos.z + stepZ * DT;
-      // cliffs and the world rim are walls, not ramps
-      if (p.onGround && !swimming) {
-        const h0 = groundHeight(p.pos.x, p.pos.z, this.cfg.seed);
-        const h1 = groundHeight(nx, nz, this.cfg.seed);
-        const run = Math.hypot(nx - p.pos.x, nz - p.pos.z);
-        if (h1 > h0 && run > 1e-5 && (h1 - h0) / run > MAX_CLIMB_SLOPE) {
-          nx = p.pos.x;
-          nz = p.pos.z;
-          if (!p.onGround) {
-            p.vx = 0;
-            p.vz = 0;
-          }
-        }
-      }
-      // Slide along buildings, trees, crypt walls — but while airborne from a
-      // jump, pass through fences for the whole arc. Keying off the jump itself
-      // (not a height threshold) makes this independent of slope: an uphill
-      // approach no longer flickers the clearance off right at the rail.
-      const clearFences = !p.onGround && p.jumping;
-      const resolved = this.resolveMove(p.pos.x, p.pos.z, nx, nz, BODY_RADIUS, p, clearFences);
-      p.pos.x = resolved.x;
-      p.pos.z = resolved.z;
-      if (!p.onGround && (resolved.x !== nx || resolved.z !== nz)) {
-        p.vx = (resolved.x - p.prevPos.x) / DT;
-        p.vz = (resolved.z - p.prevPos.z) / DT;
-      }
-    }
-
-    // Vertical: jumping, gravity, swimming, fall damage
-    const ground = groundHeight(p.pos.x, p.pos.z, this.cfg.seed);
-    const deepWater = ground < WATER_LEVEL - SWIM_DEPTH;
-    if (deepWater && p.pos.y <= SWIM_SURFACE_Y + 0.05) {
-      // treading water at the surface
-      p.pos.y = SWIM_SURFACE_Y;
-      p.vy = 0;
-      p.vx = 0;
-      p.vz = 0;
-      p.onGround = true;
-      p.jumping = false;
-      p.fallStartY = p.pos.y;
-      if (inp.jump && !this.isRooted(p)) {
-        // small hop to climb onto shores and docks
-        p.vy = JUMP_VELOCITY * 0.7 * this.jumpMult(p);
-        p.vx = wishX * wishSpeed;
-        p.vz = wishZ * wishSpeed;
-        p.onGround = false;
-        p.jumping = true;
-      }
-      return;
-    }
-    if (inp.jump && p.onGround && !this.isRooted(p)) {
-      p.vy = JUMP_VELOCITY * this.jumpMult(p);
-      p.vx = wishX * wishSpeed;
-      p.vz = wishZ * wishSpeed;
-      p.onGround = false;
-      p.jumping = true;
-      p.fallStartY = p.pos.y;
-    }
-    if (!p.onGround) {
-      p.vy -= GRAVITY * DT;
-      p.pos.y += p.vy * DT;
-      p.fallStartY = Math.max(p.fallStartY, p.pos.y);
-      if (deepWater && p.pos.y <= SWIM_SURFACE_Y) {
-        // splashing into deep water breaks the fall
-        p.pos.y = SWIM_SURFACE_Y;
-        p.vy = 0;
-        p.vx = 0;
-        p.vz = 0;
-        p.onGround = true;
-        p.jumping = false;
-        p.fallStartY = p.pos.y;
-        return;
-      }
-      if (p.pos.y <= ground) {
-        p.pos.y = ground;
-        p.vy = 0;
-        p.vx = 0;
-        p.vz = 0;
-        p.onGround = true;
-        p.jumping = false;
-        const drop = p.fallStartY - ground;
-        if (drop > FALL_SAFE_DISTANCE) {
-          const dmg = Math.round(p.maxHp * (drop - FALL_SAFE_DISTANCE) * 0.07);
-          if (dmg > 0) this.dealDamage(null, p, dmg, false, 'physical', 'Falling', 'hit', true);
-        }
-        p.fallStartY = ground;
-      }
-    } else {
-      // Distinguish a walkable downhill slope from a genuine cliff/ledge. The
-      // drop the ground can take in one tick scales with how far we moved: a
-      // slope no steeper than MAX_CLIMB_SLOPE (the same gate that blocks uphill
-      // climbs) is walkable, so we snap down to follow it instead of falling.
-      // Only a steeper-than-walkable drop counts as walking off a ledge. The
-      // 0.4 base keeps a near-stationary player snapped over tiny terrain noise.
-      const run = Math.hypot(p.pos.x - p.prevPos.x, p.pos.z - p.prevPos.z);
-      const maxStepDown = 0.4 + run * MAX_CLIMB_SLOPE;
-      if (ground < p.pos.y - maxStepDown) {
-        // walked off a ledge — not a jump, so fences still block
-        p.onGround = false;
-        p.jumping = false;
-        p.vx = 0;
-        p.vz = 0;
-        p.vy = 0;
-        p.fallStartY = p.pos.y;
-      } else {
-        p.pos.y = ground;
-        p.fallStartY = ground;
-      }
-    }
+    // The rest of the step (turn integration, wish vector, slope gates, swept
+    // static collision, the vertical pass with fall damage) moved VERBATIM to
+    // player_motion.ts (MV1), which also eases the body off terrain walls at the
+    // end (the standoff); playerMotionDeps binds the live Sim callbacks (fiesta-
+    // aware moveSpeedMult, delve-aware resolveMove, cancelCast/standUp/dealDamage)
+    // so behavior and the rng draw order are unchanged.
+    stepPlayerMotion(this.playerMotionDeps, p, meta.moveInput);
   }
 
   private standUp(p: Entity): void {
@@ -3147,139 +5003,18 @@ export class Sim {
   // Regen, timers, auras
   // -------------------------------------------------------------------------
 
-  private updateRegen(p: Entity, _meta: PlayerMeta): void {
-    if (this.tickCount % 40 !== 0) return; // every 2 seconds (the classic tick)
-    if (p.resourceType === 'mana') {
-      if (p.fiveSecondRule >= 5) {
-        // out-of-combat mana regen: faster than before and scales with spirit
-        // (gear/level) plus a small flat per-level floor so low-spirit casters
-        // still recover at a reasonable pace (#103)
-        const regen = p.stats.spi / 3 + 4 + Math.floor(p.level / 5);
-        p.resource = Math.min(p.maxResource, p.resource + Math.round(regen));
-      }
-    } else if (p.resourceType === 'energy') {
-      p.resource = Math.min(p.maxResource, p.resource + 20);
-    } else if (p.resourceType === 'rage' && !p.inCombat) {
-      p.resource = Math.max(0, p.resource - 2);
-    }
-    if (!p.inCombat && p.hp < p.maxHp && !p.eating) {
-      const regen = p.stats.sta * 0.3 + 2;
-      p.hp = Math.min(p.maxHp, p.hp + Math.round(regen));
-    }
-    // food and drink tick independently, so both can run at once
-    for (const slot of ['eating', 'drinking'] as const) {
-      const c = p[slot];
-      if (!c) continue;
-      if (c.hpPer2s > 0 && p.hp < p.maxHp) {
-        const heal = Math.min(Math.round(c.hpPer2s * this.healingTakenMult(p)), p.maxHp - p.hp);
-        p.hp += heal;
-        this.emit({ type: 'heal', targetId: p.id, amount: heal });
-      }
-      if (c.manaPer2s > 0 && p.resourceType === 'mana') {
-        p.resource = Math.min(p.maxResource, p.resource + c.manaPer2s);
-      }
-      c.remaining -= 2;
-      if (c.remaining <= 0) p[slot] = null;
-    }
-  }
-
-  private updateTimers(p: Entity): void {
-    p.gcdRemaining = Math.max(0, p.gcdRemaining - DT);
-    p.fiveSecondRule += DT;
-    p.combatTimer += DT;
-    for (const [k, v] of p.cooldowns) {
-      const nv = v - DT;
-      if (nv <= 0) p.cooldowns.delete(k);
-      else p.cooldowns.set(k, nv);
-    }
-  }
-
-  private cleanseFriendlyNpcAuras(e: Entity): void {
-    for (let i = e.auras.length - 1; i >= 0; i--) {
-      const aura = e.auras[i];
-      if (!isRejectedFriendlyNpcAura(aura)) continue;
-      e.auras.splice(i, 1);
-      this.emit({ type: 'aura', targetId: e.id, name: aura.name, gained: false });
-    }
-  }
-
-  private updateAuras(e: Entity): void {
-    if (e.dead) return;
-    let statsDirty = false;
-    for (let i = e.auras.length - 1; i >= 0; i--) {
-      const a = e.auras[i];
-      a.remaining -= DT;
-      if (a.tickInterval) {
-        a.tickTimer = (a.tickTimer ?? a.tickInterval) - DT;
-        if (a.tickTimer <= CAST_COMPLETE_EPS) {
-          a.tickTimer += a.tickInterval;
-          if (a.kind === 'dot') {
-            this.emit({
-              type: 'spellfx',
-              sourceId: a.sourceId,
-              targetId: e.id,
-              school: a.school,
-              fx: 'tick',
-            });
-            this.dealDamage(
-              this.entities.get(a.sourceId) ?? null,
-              e,
-              a.value,
-              false,
-              a.school,
-              a.name,
-              'hit',
-              true,
-            );
-            if (e.dead) return;
-          } else if (a.kind === 'hot') {
-            const healed = Math.min(Math.round(a.value * this.healingTakenMult(e)), e.maxHp - e.hp);
-            if (healed > 0) {
-              e.hp += healed;
-              this.emit({
-                type: 'heal2',
-                sourceId: a.sourceId,
-                targetId: e.id,
-                amount: healed,
-                crit: false,
-                ability: a.name,
-              });
-              const src = this.entities.get(a.sourceId);
-              if (src) this.healingThreat(src, e, healed);
-            }
-          } else if (a.kind === 'polymorph') {
-            const heal = Math.round(e.maxHp * 0.1);
-            e.hp = Math.min(e.maxHp, e.hp + heal);
-          }
-        }
-      }
-      if (a.remaining <= CAST_COMPLETE_EPS) {
-        e.auras.splice(i, 1);
-        this.applyNonPlayerStatAura(e, a, -1);
-        this.emit({ type: 'aura', targetId: e.id, name: a.name, gained: false });
-        if (a.kind.startsWith('buff') || a.kind.startsWith('form')) statsDirty = true;
-      }
-    }
-    if (statsDirty && e.kind === 'player') {
-      const meta = this.players.get(e.id);
-      if (meta) recalcPlayerStats(e, meta.cls, meta.equipment, this.playerMods(meta));
-    }
-  }
-
-  private updateGroundAoEs(): void {
-    for (let i = this.groundAoEs.length - 1; i >= 0; i--) {
-      const effect = this.groundAoEs[i];
-      effect.remaining -= DT;
-      effect.tickTimer -= DT;
-      while (effect.tickTimer <= CAST_COMPLETE_EPS && effect.remaining > CAST_COMPLETE_EPS) {
-        effect.tickTimer += effect.interval;
-        this.pulseGroundAoE(effect);
-      }
-      if (effect.remaining <= CAST_COMPLETE_EPS) this.groundAoEs.splice(i, 1);
-    }
-  }
-
-  private pulseGroundAoE(effect: GroundAoE, threatOpts?: { flat?: number; mult?: number }): void {
+  // updateRegen / updateTimers / cleanseFriendlyNpcAuras / updateAuras moved to
+  // combat/auras.ts (C3); the tick() coordinator calls them in their existing per-entity
+  // phase (dead players still tick timers/auras). updateAuras keeps its two load-bearing
+  // e.dead guards (a DoT tick can kill the target mid-walk) inside the module.
+  // updateGroundAoEs (the drain) moved to entity_roster.ts (tickGroundAoEs); it pulses
+  // through this.ctx.pulseGroundAoE. pulseGroundAoE STAYS here (shared entry point,
+  // also called on-cast from the effect path).
+  private pulseGroundAoE(
+    effect: GroundAoE,
+    threatOpts?: { flat?: number; mult?: number },
+    direct = false,
+  ): void {
     const source = this.entities.get(effect.sourceId);
     if (!source || source.dead) return;
     this.emit({
@@ -3289,9 +5024,52 @@ export class Sim {
       school: effect.school,
       fx: 'tick',
     });
+    // Rune of Power (mage choice row): a FRIENDLY zone pulse. Buffs every ally
+    // standing inside (refresh keeps it while they stay near, and it falls off
+    // one pulse after they leave) and returns before the hostile loop, so the
+    // damage roll below is never drawn for a friendly zone. Draws no rng.
+    if (effect.allyBuffPct) {
+      for (const ally of this.friendliesInRadius(source, effect.pos, effect.radius)) {
+        this.applyAura(ally, {
+          id: 'rune_of_power',
+          name: effect.ability,
+          kind: 'buff_dmg_done',
+          value: effect.allyBuffPct,
+          remaining: effect.interval + 1,
+          duration: effect.interval + 1,
+          sourceId: source.id,
+          // GroundAoE carries school as a plain string; a rune is only ever
+          // authored with a real school literal, so the narrow cast is safe.
+          school: effect.school as Aura['school'],
+        });
+      }
+      return;
+    }
+    let zoneStruck = 0;
     for (const target of this.hostilesInRadius(source, effect.pos, effect.radius)) {
       if (!this.hasLineOfSight(source, target)) continue;
-      const dmg = Math.round(this.rng.range(effect.min, effect.max));
+      zoneStruck++;
+      const isSpell = effect.school !== 'physical';
+      const rawDmg = this.rng.range(effect.min, effect.max) + (effect.spBonus ?? 0);
+      const dmg = Math.round(isSpell ? rawDmg * spellDamageMultFromAuras(source) : rawDmg);
+      // Blizzard: the zone snares everyone it strikes, pulse by pulse.
+      if (effect.slowMult && effect.slowDuration && !target.dead) {
+        this.applyAura(target, {
+          id: 'blizzard_slow',
+          name: effect.ability,
+          kind: 'slow',
+          value: effect.slowMult,
+          remaining: effect.slowDuration,
+          duration: effect.slowDuration,
+          sourceId: source.id,
+          school: effect.school as Aura['school'],
+        });
+      }
+      // Meteor (fire mage): each struck enemy is also Ignited for a fraction
+      // of THIS resolved pulse damage (applyIgnite copies it, no re-roll).
+      if (effect.igniteFrac && dmg > 0 && !target.dead) {
+        applyIgnite(this.ctx, source, target, Math.round(dmg * effect.igniteFrac));
+      }
       this.dealDamage(
         source,
         target,
@@ -3302,7 +5080,14 @@ export class Sim {
         'hit',
         false,
         threatOpts,
+        direct,
       );
+    }
+    // Blizzard: every enemy this pulse struck shaves the running Frozen Orb
+    // cooldown, bounded by the per-cast budget reset at zone placement
+    // (frost_mage owns the math; deterministic, no rng).
+    if (effect.orbCdr && zoneStruck > 0 && source.kind === 'player') {
+      frostMageChannelPulse(this.ctx, source, 'blizzard', zoneStruck);
     }
   }
 
@@ -3310,1243 +5095,176 @@ export class Sim {
   // Casting, channeling & abilities
   // -------------------------------------------------------------------------
 
+  // Casting lifecycle (cast start/progress/finish, GCD, resource+cost+talent mods,
+  // cooldown arming) moved to src/sim/combat/casting_lifecycle.ts (C4a). These stay
+  // as thin delegates so the tick() updateCasting call, the public castAbility /
+  // castAbilityBySlot entry points (server/game.ts, hud.ts, obs.ts, tests), the
+  // dealDamage spell-pushback arms (cancelCast/pushbackCast via the SimContext seam),
+  // the despawn/demon-channel cancelCast callers, and the demon-heal/queued-swing
+  // spendResource callers all resolve unchanged. runEffects now lives in
+  // src/sim/combat/effect_dispatch.ts (C4b); the cast lifecycle reaches it (and every
+  // other helper) only through SimContext.
   private updateCasting(p: Entity, meta: PlayerMeta): void {
-    if (!p.castingAbility) return;
-    if (this.isStunned(p)) {
-      this.cancelCast(p);
-      return;
-    }
-    // a silence breaks an in-progress spell, but never the fishing cast or a
-    // physical channel (e.g. an aimed-shot kind) — those aren't spells.
-    if (this.isSilenced(p) && p.castingAbility !== FISHING_CAST_ID) {
-      const cast = this.resolvedAbility(p.castingAbility, p.id);
-      if (cast && cast.def.school !== 'physical') {
-        this.cancelCast(p);
-        return;
-      }
-    }
-    // a school lockout breaks an in-progress spell only when it matches the locked school.
-    if (p.castingAbility !== FISHING_CAST_ID) {
-      const cast = this.resolvedAbility(p.castingAbility, p.id);
-      if (cast && cast.def.school !== 'physical' && this.isLockedOut(p, cast.def.school)) {
-        this.cancelCast(p);
-        return;
-      }
-    }
-    p.castRemaining -= DT;
-
-    if (p.channeling) {
-      p.channelTickTimer -= DT;
-      if (p.channelTickTimer <= 0) {
-        p.channelTickTimer += p.channelTickEvery;
-        if (p.castingAbility === DEMON_HEAL_CAST_ID) {
-          this.applyDemonHealTick(p);
-        } else {
-          const res = this.resolvedAbility(p.castingAbility, p.id);
-          if (res) this.applyChannelTick(p, res);
-        }
-      }
-      if (p.castRemaining <= CAST_COMPLETE_EPS) {
-        p.castingAbility = null;
-        p.channeling = false;
-        this.emit({ type: 'castStop', entityId: p.id, success: true });
-      }
-      return;
-    }
-
-    if (p.castRemaining <= CAST_COMPLETE_EPS) {
-      const castId = p.castingAbility;
-      p.castingAbility = null;
-      p.castRemaining = 0;
-      this.emit({ type: 'castStop', entityId: p.id, success: true });
-      if (castId === FISHING_CAST_ID) {
-        this.completeFishing(p, meta);
-        return;
-      }
-      const res = this.resolvedAbility(castId, p.id);
-      if (res) this.applyAbility(p, meta, res);
-    }
+    updateCastingImpl(this.ctx, p, meta);
   }
 
   private cancelCast(p: Entity): void {
-    p.castingAbility = null;
-    p.castRemaining = 0;
-    p.channeling = false;
-    this.emit({ type: 'castStop', entityId: p.id, success: false });
+    cancelCastImpl(this.ctx, p);
   }
 
-  private abilityNeedsLineOfSight(ability: AbilityDef): boolean {
+  private abilityNeedsLineOfSight(ability: AbilityDef, source?: Entity): boolean {
     if (!ability.requiresTarget) return false;
-    return ability.school !== 'physical' || ability.range > MELEE_RANGE;
+    if (ability.school !== 'physical' || ability.range > MELEE_RANGE) return true;
+    // Melee/auto-attack skips line of sight everywhere else (it is always at
+    // point-blank range), but the arena's thin enclosing walls sit well within
+    // MELEE_RANGE: without this, a combatant pressed against a wall can swing
+    // through it at an opponent on the far side. Ranked fairness requires every
+    // attack to respect the same walls movement does inside the pit.
+    return source !== undefined && isArenaPos(source.pos.x);
   }
 
   private hasLineOfSight(source: Entity, target: Entity): boolean {
-    return lineOfSightClear(this.cfg.seed, source.pos, target.pos);
+    const run =
+      this.delveRunForMob(source.id) ??
+      this.delveRunForMob(target.id) ??
+      this.delveRunForPlayer(source.id) ??
+      this.delveRunForPlayer(target.id);
+    return lineOfSightClear(this.cfg.seed, source.pos, target.pos, 0.05, run?.modules);
   }
 
   private lineOfSightBlocked(source: Entity, target: Entity, ability: AbilityDef): boolean {
-    return this.abilityNeedsLineOfSight(ability) && !this.hasLineOfSight(source, target);
+    return this.abilityNeedsLineOfSight(ability, source) && !this.hasLineOfSight(source, target);
   }
 
   private pushbackCast(p: Entity): void {
-    if (p.channeling) {
-      p.castRemaining = Math.max(0, p.castRemaining - p.castTotal * CHANNEL_PUSHBACK_FRACTION);
-    } else {
-      p.castRemaining += CAST_PUSHBACK_SEC;
-      p.castTotal += CAST_PUSHBACK_SEC;
-    }
+    pushbackCastImpl(p);
   }
 
-  castAbilityBySlot(slot: number, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const known = r.meta.known[slot];
-    if (known) this.castAbility(known.def.id, pid);
+  castAbilityBySlot(slot: number, pid?: number, aim?: { x: number; z: number }): void {
+    castAbilityBySlotImpl(this.ctx, slot, pid, aim);
   }
 
-  castAbility(abilityId: string, pid?: number): void {
+  castAbility(abilityId: string, pid?: number, aim?: { x: number; z: number }): void {
+    castAbilityImpl(this.ctx, abilityId, pid, aim);
+  }
+
+  // IWorld ground-targeted cast: offline, the local player (pid undefined) casts
+  // the ability aimed at the world point (x, z).
+  castAbilityAt(abilityId: string, aim: { x: number; z: number }): void {
+    castAbilityImpl(this.ctx, abilityId, undefined, aim);
+  }
+
+  // Mouseover cast (Clique-style): cast a friendly ability on an explicit
+  // target without touching the player's persistent selection. The IWorld
+  // surface behind the party-frame hover cast; the server routes the online
+  // {cmd:'cast', target} form here with its session pid.
+  castAbilityOn(abilityId: string, targetId: number, pid?: number): void {
+    // no ground aim: the override is an entity target, the two are exclusive
+    castAbilityImpl(this.ctx, abilityId, pid, undefined, targetId);
+  }
+
+  releaseEmpoweredAbility(abilityId: string, pid?: number): void {
+    releaseEmpoweredAbilityImpl(this.ctx, abilityId, pid);
+  }
+
+  // Voluntarily cancel one of a player's own helpful auras (the HUD right-click-a-buff
+  // action). Authoritative: the pure predicate refuses debuffs, so a player can never
+  // strip a silence/hex/root off themselves. Mirrors clearAurasFromSource's fade-event
+  // + conditional stat recalc so a stripped buff_*/form_* actually un-folds.
+  cancelAura(auraId: string, pid?: number): void {
     const r = this.resolve(pid);
     if (!r) return;
-    const { meta, e: p } = r;
-    const res = this.resolvedAbility(abilityId, p.id);
-    if (!res || p.dead) return;
-    meta.lastActiveTick = this.tickCount; // a cast attempt is a deliberate action
-    const ability = res.def;
-    if (this.isStunned(p)) {
-      this.error(p.id, 'You are stunned!');
-      return;
+    const { e, meta } = r;
+    const removed = removeCancelableAura(e.auras, auraId);
+    if (!removed) return;
+    this.emit({ type: 'aura', targetId: e.id, name: removed.name, gained: false });
+    if (auraAffectsStats(removed)) {
+      recalcPlayerStats(e, meta.cls, meta.equipment, this.playerMods(meta), meta.equipmentInstance);
     }
-    if (ability.school !== 'physical' && this.isSilenced(p)) {
-      this.error(p.id, 'You are silenced!');
-      return;
-    }
-    if (ability.school !== 'physical' && this.isLockedOut(p, ability.school)) {
-      this.error(p.id, 'You are silenced!');
-      return;
-    }
-    if (p.castingAbility) {
-      this.error(p.id, 'You are busy.');
-      return;
-    }
-    if (!ability.offGcd && p.gcdRemaining > 0) return; // silent, classic spams this
-    const togglingOff = isToggleBuff(ability) && p.auras.some((a) => a.id === ability.id);
-    const sharedCooldown = isShamanShock(ability.id)
-      ? SHAMAN_SHOCK_COOLDOWN_IDS.find((id) => p.cooldowns.has(id))
-      : undefined;
-    if ((p.cooldowns.has(ability.id) || sharedCooldown) && !togglingOff) {
-      this.error(p.id, 'That ability is not ready yet.');
-      return;
-    }
-    // shifting out of a form is free; shifting across forms bills the parked
-    // mana (the live bar is rage/energy in a form) — see spendAbilityCost
-    if (p.resource < res.cost && !togglingOff && !this.formShiftKind(p, ability)) {
-      this.error(
-        p.id,
-        p.resourceType === 'rage'
-          ? 'Not enough rage!'
-          : p.resourceType === 'energy'
-            ? 'Not enough energy!'
-            : 'Not enough mana!',
-      );
-      return;
-    }
-    // casting is deliberate action — drop any active follow so you don't drift
-    this.stopFollow(p);
-    if (ability.requiresDodgeProc && this.time > p.overpowerUntil) {
-      this.error(p.id, 'Your target must dodge first.');
-      return;
-    }
-    if (ability.spendsCombo && (p.comboPoints <= 0 || p.comboTargetId !== p.targetId)) {
-      this.error(p.id, 'That ability requires combo points.');
-      return;
-    }
-    // druid forms gate their kit both ways: form abilities need the form, and
-    // everything else (the caster kit) is locked while shapeshifted
-    const form = p.auras.find(
-      (a) => a.kind === 'form_bear' || a.kind === 'form_cat' || a.kind === 'form_travel',
-    );
-    if (ability.requiresForm) {
-      const need = ability.requiresForm === 'bear' ? 'form_bear' : 'form_cat';
-      if (!form || form.kind !== need) {
-        this.error(
-          p.id,
-          `You must be in ${ability.requiresForm === 'bear' ? 'Bear' : 'Wolf'} Form.`,
-        );
-        return;
-      }
-    } else if (form && !isFormToggle(ability)) {
-      this.error(p.id, "You can't do that while shapeshifted.");
-      return;
-    }
-    if (ability.requiresStealth && !p.auras.some((a) => a.kind === 'stealth')) {
-      this.error(p.id, 'You must be stealthed.');
-      return;
-    }
-    if (ability.requiresOutOfCombat && p.inCombat) {
-      this.error(p.id, "You can't do that while in combat.");
-      return;
-    }
-
-    let target: Entity | null = null;
-    if (ability.requiresTarget && ability.targetType === 'friendly') {
-      // heals/buffs: current friendly target, else yourself
-      const cur = p.targetId !== null ? (this.entities.get(p.targetId) ?? null) : null;
-      target = cur && !cur.dead && this.isFriendlyTo(p, cur) ? cur : p;
-      const d = dist2d(p.pos, target.pos);
-      if (d > Math.max(ability.range, 5)) {
-        this.error(p.id, 'Out of range.');
-        return;
-      }
-      if (this.lineOfSightBlocked(p, target, ability)) {
-        this.error(p.id, 'Line of sight.');
-        return;
-      }
-    } else if (ability.requiresTarget) {
-      target = p.targetId !== null ? (this.entities.get(p.targetId) ?? null) : null;
-      if (!target || target.dead || !this.isHostileTo(p, target)) {
-        this.error(p.id, 'You have no target.', target?.dead ? 'target_dead' : undefined);
-        return;
-      }
-      const d = dist2d(p.pos, target.pos);
-      const maxRange = ability.range > 0 ? ability.range : MELEE_RANGE;
-      if (d > maxRange) {
-        this.error(p.id, 'Out of range.');
-        return;
-      }
-      if (ability.minRange && d < ability.minRange) {
-        this.error(p.id, 'Too close!');
-        return;
-      }
-      if (this.lineOfSightBlocked(p, target, ability)) {
-        this.error(p.id, 'Line of sight.');
-        return;
-      }
-      const facingDiff = Math.abs(normAngle(angleTo(p.pos, target.pos) - p.facing));
-      if (facingDiff > MELEE_ARC) {
-        this.error(p.id, 'You must be facing your target.');
-        return;
-      }
-      // execute-style gate: only usable while the target is nearly dead
-      if (
-        ability.requiresTargetHpBelow !== undefined &&
-        target.hp > target.maxHp * ability.requiresTargetHpBelow
-      ) {
-        this.error(
-          p.id,
-          `That ability requires the target below ${Math.round(ability.requiresTargetHpBelow * 100)}% health.`,
-        );
-        return;
-      }
-      for (const eff of res.effects) {
-        if (eff.type === 'weaponStrike' && eff.requiresBehind) {
-          if (!p.weapon.dagger) {
-            this.error(p.id, 'You must wield a dagger.');
-            return;
-          }
-          const behindDiff = Math.abs(normAngle(angleTo(target.pos, p.pos) - target.facing));
-          if (behindDiff < Math.PI / 2) {
-            this.error(p.id, 'You must be behind your target.');
-            return;
-          }
-        }
-        if (eff.type === 'polymorph') {
-          if (target.kind === 'mob') {
-            const fam = MOBS[target.templateId]?.family;
-            if (fam === 'undead' || target.templateId === 'gorrak') {
-              this.error(p.id, 'This creature cannot be polymorphed.');
-              return;
-            }
-          } else if (target.kind !== 'player') {
-            this.error(p.id, 'This creature cannot be polymorphed.');
-            return;
-          }
-        }
-        if (
-          eff.type === 'judgement' &&
-          !p.auras.some((a) => a.kind === 'imbue' && a.value2 !== undefined)
-        ) {
-          this.error(p.id, 'You have no active Seal.');
-          return;
-        }
-        if (eff.type === 'taunt' && target.kind !== 'mob') {
-          this.error(p.id, 'You cannot taunt that.');
-          return;
-        }
-        if (eff.type === 'tamePet') {
-          const err = this.tameError(p, target);
-          if (err) {
-            this.error(p.id, err);
-            return;
-          }
-        }
-      }
-    }
-    if (p.sitting) this.standUp(p);
-    if (ability.id !== 'ghost_wolf' && p.auras.some((a) => a.id === 'ghost_wolf')) {
-      this.breakGhostWolf(p);
-    }
-
-    // Heroic-strike style: queue on next swing, pay cost on the swing itself.
-    if (ability.onNextSwing) {
-      p.queuedOnSwing = p.queuedOnSwing === ability.id ? null : ability.id;
-      if (!p.autoAttack && target) this.startAutoAttack(p.id);
-      return;
-    }
-
-    const gcd = this.playerGcdFor(meta.cls);
-
-    if (ability.channel) {
-      this.spendResource(p, res.cost);
-      this.armAbilityCooldown(p, ability.id, res.cooldown);
-      p.castingAbility = ability.id;
-      p.castTotal = ability.channel.duration;
-      p.castRemaining = ability.channel.duration;
-      p.channeling = true;
-      p.channelTickEvery = ability.channel.duration / ability.channel.ticks;
-      p.channelTickTimer = p.channelTickEvery;
-      p.gcdRemaining = Math.max(p.gcdRemaining, gcd);
-      this.emit({
-        type: 'castStart',
-        entityId: p.id,
-        ability: ability.id,
-        time: ability.channel.duration,
-      });
-      return;
-    }
-
-    if (res.castTime > 0 && !togglingOff) {
-      // Curse of Tongues stretches the resolved (already haste-adjusted) cast time.
-      const castTime = res.castTime * this.tonguesMult(p);
-      p.castingAbility = ability.id;
-      p.castTotal = castTime;
-      p.castRemaining = castTime;
-      p.gcdRemaining = Math.max(p.gcdRemaining, gcd);
-      this.emit({ type: 'castStart', entityId: p.id, ability: ability.id, time: castTime });
-      return;
-    }
-
-    if (!ability.offGcd) p.gcdRemaining = Math.max(p.gcdRemaining, gcd);
-    this.applyAbility(p, meta, res);
   }
 
   private spendResource(p: Entity, cost: number): void {
-    p.resource = Math.max(0, p.resource - cost);
-    if (p.resourceType === 'mana' && cost > 0) p.fiveSecondRule = 0;
-  }
-
-  /** Is this cast a form toggle while already shapeshifted? 'off' = leaving
-   *  the form (free, classic), 'cross' = bear<->cat (costs the parked mana). */
-  private formShiftKind(p: Entity, ability: AbilityDef): 'off' | 'cross' | null {
-    if (!isFormToggle(ability)) return null;
-    if (p.auras.some((a) => a.id === ability.id)) return 'off';
-    if (
-      p.auras.some(
-        (a) => a.kind === 'form_bear' || a.kind === 'form_cat' || a.kind === 'form_travel',
-      )
-    )
-      return 'cross';
-    return null;
-  }
-
-  private spendAbilityCost(p: Entity, res: ResolvedAbility): void {
-    if (isToggleBuff(res.def) && p.auras.some((a) => a.id === res.def.id)) return;
-    const shift = this.formShiftKind(p, res.def);
-    if (shift === 'off') return;
-    if (shift === 'cross') {
-      p.savedMana = Math.max(0, p.savedMana - res.cost);
-      return;
-    }
-    this.spendResource(p, res.cost);
-  }
-
-  private armAbilityCooldown(
-    p: Entity,
-    abilityId: string,
-    cooldown: number,
-    togglingOff = false,
-  ): void {
-    if (cooldown <= 0 || togglingOff) return;
-    if (isShamanShock(abilityId)) {
-      for (const id of SHAMAN_SHOCK_COOLDOWN_IDS) p.cooldowns.set(id, cooldown);
-      return;
-    }
-    p.cooldowns.set(abilityId, cooldown);
-  }
-
-  private applyChannelTick(p: Entity, res: ResolvedAbility): void {
-    const target = p.targetId !== null ? this.entities.get(p.targetId) : null;
-    if (!target || target.dead || !this.isHostileTo(p, target)) {
-      this.cancelCast(p);
-      return;
-    }
-    const maxRange = res.def.range > 0 ? res.def.range : MELEE_RANGE;
-    if (dist2d(p.pos, target.pos) > maxRange) {
-      this.error(p.id, 'Out of range.');
-      this.cancelCast(p);
-      return;
-    }
-    if (this.lineOfSightBlocked(p, target, res.def)) {
-      this.error(p.id, 'Line of sight.');
-      this.cancelCast(p);
-      return;
-    }
-    this.emit({
-      type: 'spellfx',
-      sourceId: p.id,
-      targetId: target.id,
-      school: res.def.school,
-      fx: 'projectile',
-    });
-    for (const eff of res.effects) {
-      if (eff.type === 'directDamage') {
-        const crit = this.rng.chance(this.spellCrit(p));
-        let dmg = this.rng.range(eff.min, eff.max);
-        if (crit) dmg *= 1.5;
-        this.dealDamage(p, target, Math.round(dmg), crit, res.def.school, res.def.name, 'hit');
-      } else if (eff.type === 'drainTick') {
-        const dmg = Math.round(this.rng.range(eff.min, eff.max));
-        this.dealDamage(p, target, dmg, false, res.def.school, res.def.name, 'hit');
-        if (!p.dead) {
-          const healed = Math.min(Math.round(dmg * eff.healFrac), p.maxHp - p.hp);
-          if (healed > 0) {
-            p.hp += healed;
-            this.emit({
-              type: 'heal2',
-              sourceId: p.id,
-              targetId: p.id,
-              amount: healed,
-              crit: false,
-              ability: res.def.name,
-            });
-            this.healingThreat(p, p, healed);
-          }
-        }
-      }
-    }
+    spendResourceImpl(p, cost);
   }
 
   private spellCrit(p: Entity): number {
-    return 0.05 + p.stats.int * 0.0008;
+    // Base + Intellect + the shared crit core (crit rating, talent/set crit,
+    // flat crit auras; recalcPlayerStats) + spell-crit-specific auras.
+    return 0.05 + p.stats.int * 0.0008 + (p.sharedCritBonus ?? 0) + spellCritBonusFromAuras(p);
   }
 
-  // Combined incoming-healing multiplier from Mortal Wound debuffs (classic
-  // Mortal Strike): each reduces healing the target receives; multiple stack
-  // multiplicatively. 1 = unaffected, 0 = fully suppressed.
+  // Heal core, heal multipliers, heal-absorb soak, crit-vuln bonus, and the
+  // healing-threat fan-out moved to src/sim/combat/heal.ts (C2). These stay as thin
+  // delegates so the foreign `this.X` callers (aura `hot` tick, regen/potion heal,
+  // the heal ability effect, mob mendAlly, and dealDamage's hex/crit-vuln reads via
+  // the seam) plus the existing `(sim as any).X` unit tests resolve unchanged.
+  // threatEntryMatchesEntity moved too; it had no caller outside healingThreat, so it
+  // is module-private there with no Sim delegate.
   private healingTakenMult(target: Entity): number {
-    let mult = 1;
-    for (const a of target.auras) {
-      if (a.kind === 'mortal_wound') mult *= 1 - a.value;
-    }
-    return mult < 0 ? 0 : mult;
+    return healingTakenMultImpl(this.ctx, target);
   }
 
-  // Weakening Hex: while a `hex` aura rides the source, the damage AND healing it
-  // deals are scaled by (1 - value). Read by dealDamage (outgoing damage) and
-  // applyHeal (outgoing healing) so a hexed player's whole output is throttled.
   private hexOutputMult(source: Entity | null): number {
-    if (!source) return 1;
-    let mult = 1;
-    for (const a of source.auras) {
-      if (a.kind === 'hex') mult *= 1 - a.value;
-    }
-    return mult < 0 ? 0 : mult;
+    return hexOutputMultImpl(this.ctx, source);
   }
 
-  // Consume the victim's Heal-Absorb shields (classic necrotic blight): each such
-  // aura holds a remaining budget of healing it devours. Drains `healed` against
-  // every active shield, decrementing their stored budget and dropping any that
-  // run dry. Returns the healing that survives (>= 0). A no-op when none are set.
   private consumeHealAbsorb(target: Entity, healed: number): number {
-    if (healed <= 0) return healed;
-    let remaining = healed;
-    let depleted = false;
-    for (const a of target.auras) {
-      if (a.kind !== 'heal_absorb' || a.value <= 0) continue;
-      const eaten = Math.min(remaining, a.value);
-      a.value -= eaten;
-      remaining -= eaten;
-      if (a.value <= 0) depleted = true;
-      if (remaining <= 0) break;
-    }
-    if (depleted)
-      target.auras = target.auras.filter((a) => !(a.kind === 'heal_absorb' && a.value <= 0));
-    return remaining;
+    return consumeHealAbsorbImpl(this.ctx, target, healed);
   }
 
-  // "Find Weakness" vulnerability: the largest active critvuln aura adds its
-  // fraction to the damage of CRITICAL hits the target takes (read in dealDamage).
   private critVulnBonus(target: Entity): number {
-    let bonus = 0;
-    for (const a of target.auras) {
-      if (a.kind === 'critvuln' && a.value > bonus) bonus = a.value;
-    }
-    return bonus;
+    return critVulnBonusImpl(this.ctx, target);
   }
 
-  private applyHeal(source: Entity, target: Entity, amount: number, ability: string): void {
-    if (target.dead) return;
-    const crit = this.rng.chance(this.spellCrit(source));
-    let healed = Math.round(
-      amount * (crit ? 1.5 : 1) * this.hexOutputMult(source) * this.healingTakenMult(target),
-    );
-    healed = this.consumeHealAbsorb(target, healed);
-    healed = Math.min(healed, target.maxHp - target.hp);
-    target.hp += healed;
-    this.emit({
-      type: 'heal2',
-      sourceId: source.id,
-      targetId: target.id,
-      amount: healed,
-      crit,
+  private applyHeal(
+    source: Entity,
+    target: Entity,
+    amount: number,
+    ability: string,
+    abilityId: string | null = null,
+    canCrit = true,
+    canTriggerWeaponProcs = true,
+  ): number {
+    return applyHealImpl(
+      this.ctx,
+      source,
+      target,
+      amount,
       ability,
-    });
-    this.healingThreat(source, target, healed);
+      abilityId,
+      canCrit,
+      canTriggerWeaponProcs,
+    );
   }
 
-  // Classic healing threat: 0.5 per point of EFFECTIVE healing (overheal is
-  // free), split evenly among every mob already fighting the healed target.
-  // Party membership does not change threat; it only affects social systems.
   private healingThreat(source: Entity, target: Entity, healed: number): void {
-    if (source.kind !== 'player' || healed <= 0) return;
-    const total = healed * HEAL_THREAT_FACTOR * this.threatMod(source, 'physical');
-    const aware: Entity[] = [];
-    for (const m of this.entities.values()) {
-      if (m.kind !== 'mob' || m.dead || !m.hostile || !m.inCombat || m.threat.size === 0) continue;
-      if (this.threatEntryMatchesEntity(m, target)) aware.push(m);
-    }
-    if (aware.length === 0) return;
-    const per = total / aware.length;
-    for (const m of aware) addThreat(m, source.id, per);
+    healingThreatImpl(this.ctx, source, target, healed);
   }
 
-  /** True when a hate-table entry belongs to the healed entity or its pet. */
-  private threatEntryMatchesEntity(mob: Entity, e: Entity): boolean {
-    if (mob.threat.has(e.id)) return true;
-    if (e.kind !== 'player') return false;
-    for (const id of mob.threat.keys()) {
-      const entry = this.entities.get(id);
-      if (entry?.ownerId === e.id) return true;
-    }
-    return false;
+  private applySetProcs(source: Entity, target: Entity | null, trigger: SetProc['trigger']): void {
+    applySetProcsImpl(this.ctx, source, target, trigger);
   }
 
-  private applyAbility(p: Entity, meta: PlayerMeta, res: ResolvedAbility): void {
-    const ability = res.def;
-    const togglingOff = isToggleBuff(ability) && p.auras.some((a) => a.id === ability.id);
-    if (ability.id === 'conjure_water') {
-      this.spendResource(p, res.cost);
-      // higher ranks conjure better water (falls back if the item isn't defined)
-      const tiered = `conjured_water${res.rank}`;
-      this.addItem(res.rank > 1 && ITEMS[tiered] ? tiered : 'conjured_water', 2, p.id);
-      return;
-    }
-    if (ability.id === 'conjure_food') {
-      this.spendResource(p, res.cost);
-      // higher ranks conjure heartier fare (falls back if the item isn't defined)
-      const tiered = `conjured_bread${res.rank}`;
-      this.addItem(res.rank > 1 && ITEMS[tiered] ? tiered : 'conjured_bread', 2, p.id);
-      return;
-    }
-    if (ability.id === 'revive_pet') {
-      const pet = this.petOf(p.id, true);
-      if (!pet) {
-        this.error(p.id, 'You have no pet.');
-        return;
-      }
-      if (!pet.dead) {
-        this.error(p.id, 'Your pet is already alive.');
-        return;
-      }
-      this.spendResource(p, res.cost);
-      this.armAbilityCooldown(p, ability.id, res.cooldown);
-      this.revivePet(p.id);
-      return;
-    }
-
-    let target: Entity | null = null;
-    if (ability.requiresTarget && ability.targetType === 'friendly') {
-      const cur = p.targetId !== null ? (this.entities.get(p.targetId) ?? null) : null;
-      target = cur && !cur.dead && this.isFriendlyTo(p, cur) ? cur : p;
-      if (dist2d(p.pos, target.pos) > Math.max(ability.range, 5) + 2) {
-        this.error(p.id, 'Out of range.');
-        return;
-      }
-      if (this.lineOfSightBlocked(p, target, ability)) {
-        this.error(p.id, 'Line of sight.');
-        return;
-      }
-    } else if (ability.requiresTarget) {
-      target = p.targetId !== null ? (this.entities.get(p.targetId) ?? null) : null;
-      if (!target || target.dead || !this.isHostileTo(p, target)) {
-        this.error(p.id, 'You have no target.');
-        return;
-      }
-      const d = dist2d(p.pos, target.pos);
-      const maxRange = ability.range > 0 ? ability.range : MELEE_RANGE;
-      if (d > maxRange + 2) {
-        this.error(p.id, 'Out of range.');
-        return;
-      }
-      if (this.lineOfSightBlocked(p, target, ability)) {
-        this.error(p.id, 'Line of sight.');
-        return;
-      }
-    }
-    if (p.resource < res.cost && !togglingOff && !this.formShiftKind(p, ability)) {
-      this.error(p.id, `Not enough ${p.resourceType ?? 'resource'}!`);
-      return;
-    }
-
-    // helpful spells never miss
-    if (ability.targetType === 'friendly') {
-      this.spendAbilityCost(p, res);
-      this.armAbilityCooldown(p, ability.id, res.cooldown, togglingOff);
-      this.runEffects(p, meta, target, res);
-      return;
-    }
-
-    if (target && ability.school !== 'physical') {
-      this.spendAbilityCost(p, res);
-      this.armAbilityCooldown(p, ability.id, res.cooldown, togglingOff);
-      this.emit({
-        type: 'spellfx',
-        sourceId: p.id,
-        targetId: target.id,
-        school: ability.school,
-        fx: 'projectile',
-      });
-      if (!this.rng.chance(spellHitChance(p.level, target.level))) {
-        this.emit({
-          type: 'damage',
-          sourceId: p.id,
-          targetId: target.id,
-          amount: 0,
-          crit: false,
-          school: ability.school,
-          ability: ability.name,
-          kind: 'miss',
-        });
-        this.enterCombat(p, target);
-        return;
-      }
-      this.runEffects(p, meta, target, res);
-      return;
-    }
-
-    this.spendAbilityCost(p, res);
-    this.armAbilityCooldown(p, ability.id, res.cooldown, togglingOff);
-    this.runEffects(p, meta, target, res);
-  }
-
-  private runEffects(
-    p: Entity,
-    meta: PlayerMeta,
-    target: Entity | null,
-    res: ResolvedAbility,
-  ): void {
-    const ability = res.def;
-    const isSpell = ability.school !== 'physical';
-    const spentCombo = ability.spendsCombo ? p.comboPoints : 0;
-    let comboAwarded = false;
-    // acting breaks stealth (the opener itself still lands first inside the swing).
-    // Stealth toggles and Rogue Sprint are allowed while remaining hidden.
-    if (!preservesStealth(ability)) this.breakStealth(p);
-    const threatOpts = { flat: res.threatFlat, mult: res.threatMult };
-
-    for (const eff of res.effects) {
-      switch (eff.type) {
-        case 'weaponStrike': {
-          if (!target) break;
-          const hit = this.meleeSwing(p, target, eff.bonus, ability.name, {
-            cannotBeDodged: eff.cannotBeDodged,
-            weaponMult: eff.weaponMult ?? 1,
-            threatFlat: res.threatFlat,
-            threatMult: res.threatMult,
-          });
-          if (hit && ability.awardsCombo) {
-            this.awardCombo(p, target, ability.awardsCombo);
-            comboAwarded = true;
-          }
-          if (ability.requiresDodgeProc) p.overpowerUntil = -1;
-          break;
-        }
-        case 'directDamage': {
-          if (!target) break;
-          const critChance = isSpell ? this.spellCrit(p) : p.critChance;
-          let dmg = this.rng.range(eff.min, eff.max);
-          const crit = this.rng.chance(critChance);
-          if (crit) dmg *= isSpell ? 1.5 : 2;
-          if (!isSpell) dmg *= 1 - armorReduction(this.effectiveArmor(target), p.level);
-          this.dealDamage(
-            p,
-            target,
-            Math.round(dmg),
-            crit,
-            ability.school,
-            ability.name,
-            'hit',
-            false,
-            threatOpts,
-          );
-          if (!target.dead && ability.awardsCombo && !comboAwarded) {
-            this.awardCombo(p, target, ability.awardsCombo);
-            comboAwarded = true;
-          }
-          break;
-        }
-        case 'finisherDamage': {
-          if (!target || spentCombo <= 0) break;
-          let dmg =
-            eff.base +
-            eff.perCombo * spentCombo +
-            this.rng.range(0, eff.variance) +
-            this.effectiveAttackPower(p) / 14;
-          const crit = this.rng.chance(p.critChance);
-          if (crit) dmg *= 2;
-          dmg *= 1 - armorReduction(this.effectiveArmor(target), p.level);
-          this.dealDamage(
-            p,
-            target,
-            Math.round(dmg),
-            crit,
-            'physical',
-            ability.name,
-            'hit',
-            false,
-            threatOpts,
-          );
-          break;
-        }
-        case 'finisherHaste': {
-          if (spentCombo <= 0) break;
-          this.applyAura(p, {
-            id: ability.id,
-            name: ability.name,
-            kind: 'buff_haste',
-            remaining: eff.basedur + eff.perCombo * spentCombo,
-            duration: eff.basedur + eff.perCombo * spentCombo,
-            value: eff.mult,
-            sourceId: p.id,
-            school: 'physical',
-          });
-          break;
-        }
-        case 'finisherStun': {
-          if (!target || target.dead || spentCombo <= 0) break;
-          const dur = eff.base + eff.perCombo * spentCombo;
-          this.applyAura(target, {
-            id: `${ability.id}_stun`,
-            name: ability.name,
-            kind: 'stun',
-            remaining: dur,
-            duration: dur,
-            value: 0,
-            sourceId: p.id,
-            school: ability.school,
-          });
-          this.enterCombat(p, target);
-          break;
-        }
-        case 'weaponDamage':
-          break;
-        case 'heal': {
-          const healTarget = target ?? p;
-          this.applyHeal(p, healTarget, this.rng.range(eff.min, eff.max), ability.name);
-          break;
-        }
-        case 'hot': {
-          const hotTarget = target ?? p;
-          this.applyAura(hotTarget, {
-            id: ability.id,
-            name: ability.name,
-            kind: 'hot',
-            remaining: eff.duration,
-            duration: eff.duration,
-            value: Math.max(1, Math.round(eff.total / (eff.duration / eff.interval))),
-            tickInterval: eff.interval,
-            tickTimer: eff.interval,
-            sourceId: p.id,
-            school: ability.school,
-          });
-          break;
-        }
-        case 'absorb': {
-          const shieldTarget = target ?? p;
-          this.applyAura(shieldTarget, {
-            id: ability.id,
-            name: ability.name,
-            kind: 'absorb',
-            remaining: eff.duration,
-            duration: eff.duration,
-            value: eff.amount,
-            sourceId: p.id,
-            school: ability.school,
-          });
-          break;
-        }
-        case 'imbue': {
-          for (let i = p.auras.length - 1; i >= 0; i--) {
-            const a = p.auras[i];
-            if (a.kind === 'imbue' && a.id !== ability.id) {
-              p.auras.splice(i, 1);
-              this.emit({ type: 'aura', targetId: p.id, name: a.name, gained: false });
-            }
-          }
-          this.applyAura(p, {
-            id: ability.id,
-            name: ability.name,
-            kind: 'imbue',
-            remaining: eff.duration,
-            duration: eff.duration,
-            value: eff.bonus,
-            value2: eff.judgeMin,
-            value3: eff.judgeMax,
-            sourceId: p.id,
-            school: ability.school,
-          });
-          break;
-        }
-        case 'judgement': {
-          if (!target) break;
-          const sealIdx = p.auras.findIndex((a) => a.kind === 'imbue' && a.value2 !== undefined);
-          if (sealIdx < 0) {
-            this.error(p.id, 'You have no active Seal.');
-            break;
-          }
-          const seal = p.auras[sealIdx];
-          p.auras.splice(sealIdx, 1);
-          this.emit({ type: 'aura', targetId: p.id, name: seal.name, gained: false });
-          let dmg = this.rng.range(seal.value2 ?? 10, seal.value3 ?? 15);
-          const crit = this.rng.chance(this.spellCrit(p));
-          if (crit) dmg *= 1.5;
-          this.dealDamage(p, target, Math.round(dmg), crit, 'holy', ability.name, 'hit');
-          break;
-        }
-        case 'lifeTap': {
-          if (p.hp <= eff.hp) {
-            this.error(p.id, 'Not enough health.');
-            break;
-          }
-          p.hp -= eff.hp;
-          this.emit({
-            type: 'damage',
-            sourceId: p.id,
-            targetId: p.id,
-            amount: eff.hp,
-            crit: false,
-            school: 'shadow',
-            ability: ability.name,
-            kind: 'hit',
-          });
-          p.resource = Math.min(p.maxResource, p.resource + eff.mana);
-          break;
-        }
-        case 'drainTick':
-          break; // handled per channel tick
-        case 'buffTarget': {
-          const buffTarget = target ?? p;
-          this.applyAura(buffTarget, {
-            id: ability.id,
-            name: ability.name,
-            kind: eff.kind,
-            remaining: eff.duration,
-            duration: eff.duration,
-            value: eff.value,
-            sourceId: p.id,
-            school: ability.school,
-          });
-          break;
-        }
-        case 'dot': {
-          if (!target || target.dead) break;
-          this.applyAura(target, {
-            id: ability.id,
-            name: ability.name,
-            kind: 'dot',
-            remaining: eff.duration,
-            duration: eff.duration,
-            value: Math.max(1, Math.round(eff.total / (eff.duration / eff.interval))),
-            tickInterval: eff.interval,
-            tickTimer: eff.interval,
-            sourceId: p.id,
-            school: ability.school,
-          });
-          this.enterCombat(p, target);
-          break;
-        }
-        case 'slow': {
-          if (!target || target.dead) break;
-          this.applyAura(target, {
-            id: `${ability.id}_slow`,
-            name: ability.name,
-            kind: 'slow',
-            remaining: eff.duration,
-            duration: eff.duration,
-            value: eff.mult,
-            sourceId: p.id,
-            school: ability.school,
-          });
-          this.enterCombat(p, target);
-          break;
-        }
-        case 'root': {
-          if (!target || target.dead) break;
-          this.applyRootAura(
-            p,
-            target,
-            ability.name,
-            `${ability.id}_root`,
-            eff.duration,
-            ability.school,
-          );
-          this.enterCombat(p, target);
-          break;
-        }
-        case 'stun': {
-          if (!target || target.dead) break;
-          this.applyAura(target, {
-            id: `${ability.id}_stun`,
-            name: ability.name,
-            kind: 'stun',
-            remaining: eff.duration,
-            duration: eff.duration,
-            value: 0,
-            sourceId: p.id,
-            school: ability.school,
-          });
-          this.enterCombat(p, target);
-          break;
-        }
-        case 'incapacitate': {
-          if (!target || target.dead) break;
-          const remaining =
-            ability.id === 'fear'
-              ? this.diminishedCrowdControlDuration(p, target, 'fear', eff.duration)
-              : eff.duration;
-          if (remaining === null) break;
-          this.applyAura(target, {
-            id: `${ability.id}_incap`,
-            name: ability.name,
-            kind: 'incapacitate',
-            remaining,
-            duration: remaining,
-            value: ability.id === 'fear' ? this.rng.range(-Math.PI, Math.PI) : 0,
-            sourceId: p.id,
-            school: ability.school,
-            breaksOnDamage: true,
-          });
-          if (ability.awardsCombo && !comboAwarded) {
-            this.awardCombo(p, target, ability.awardsCombo);
-            comboAwarded = true;
-          }
-          this.enterCombat(p, target);
-          break;
-        }
-        case 'polymorph': {
-          if (!target || target.dead) break;
-          const remaining = this.diminishedCrowdControlDuration(
-            p,
-            target,
-            'polymorph',
-            eff.duration,
-          );
-          if (remaining === null) break;
-          target.hp = target.maxHp;
-          this.applyAura(target, {
-            id: ability.id,
-            name: ability.name,
-            kind: 'polymorph',
-            remaining,
-            duration: remaining,
-            value: 0,
-            tickInterval: 1,
-            tickTimer: 1,
-            sourceId: p.id,
-            school: ability.school,
-            breaksOnDamage: true,
-          });
-          target.auras = target.auras.filter((a) => a.kind !== 'dot' || a.id === ability.id);
-          this.enterCombat(p, target);
-          break;
-        }
-        case 'aoeDamage': {
-          this.emit({
-            type: 'spellfx',
-            sourceId: p.id,
-            targetId: p.id,
-            school: ability.school,
-            fx: 'nova',
-          });
-          for (const m of this.hostilesInRadius(p, p.pos, eff.radius)) {
-            if (!this.hasLineOfSight(p, m)) continue;
-            let dmg = this.rng.range(eff.min, eff.max);
-            // Armor only mitigates physical damage, mirroring the single-target
-            // path above — spell-school AoE (Arcane Explosion, Consecration) is
-            // not reduced by the target's armor.
-            if (!isSpell) dmg *= 1 - armorReduction(this.effectiveArmor(m), p.level);
-            this.dealDamage(
-              p,
-              m,
-              Math.round(dmg),
-              false,
-              ability.school,
-              ability.name,
-              'hit',
-              false,
-              threatOpts,
-            );
-          }
-          break;
-        }
-        case 'groundAoE': {
-          const groundEffect: GroundAoE = {
-            sourceId: p.id,
-            pos: { ...p.pos },
-            radius: eff.radius,
-            min: eff.min,
-            max: eff.max,
-            remaining: eff.duration,
-            interval: eff.interval,
-            tickTimer: eff.interval,
-            school: ability.school,
-            ability: ability.name,
-          };
-          this.emit({
-            type: 'spellfx',
-            sourceId: p.id,
-            targetId: p.id,
-            school: ability.school,
-            fx: 'nova',
-          });
-          this.pulseGroundAoE(groundEffect, threatOpts);
-          this.groundAoEs.push(groundEffect);
-          break;
-        }
-        case 'aoeAttackSpeed': {
-          for (const m of this.hostilesInRadius(p, p.pos, eff.radius)) {
-            if (m.dead) continue;
-            if (!this.hasLineOfSight(p, m)) continue;
-            this.applyAura(m, {
-              id: `${ability.id}_as`,
-              name: ability.name,
-              kind: 'attackspeed',
-              remaining: eff.duration,
-              duration: eff.duration,
-              value: eff.mult,
-              sourceId: p.id,
-              school: ability.school,
-            });
-          }
-          break;
-        }
-        case 'aoeAttackPower': {
-          for (const m of this.hostilesInRadius(p, p.pos, eff.radius)) {
-            if (m.dead) continue;
-            this.applyAura(m, {
-              id: `${ability.id}_ap`,
-              name: ability.name,
-              kind: 'debuff_ap',
-              remaining: eff.duration,
-              duration: eff.duration,
-              value: eff.amount,
-              sourceId: p.id,
-              school: ability.school,
-            });
-            this.enterCombat(p, m);
-            if (m.kind === 'mob' && m.hostile)
-              addThreat(m, p.id, 10 * this.threatMod(p, ability.school));
-          }
-          break;
-        }
-        case 'aoeRoot': {
-          this.emit({
-            type: 'spellfx',
-            sourceId: p.id,
-            targetId: p.id,
-            school: ability.school,
-            fx: 'nova',
-          });
-          for (const m of this.hostilesInRadius(p, p.pos, eff.radius)) {
-            if (!this.hasLineOfSight(p, m)) continue;
-            const dmg = this.rng.range(eff.min, eff.max);
-            this.dealDamage(p, m, Math.round(dmg), false, ability.school, ability.name, 'hit');
-            if (!m.dead && this.isHostileTo(p, m)) {
-              this.applyRootAura(
-                p,
-                m,
-                ability.name,
-                `${ability.id}_root`,
-                eff.duration,
-                ability.school,
-              );
-            }
-          }
-          break;
-        }
-        case 'selfBuff': {
-          // forms, stances and stealth are toggles: casting again cancels
-          const isFormKind =
-            eff.kind === 'form_bear' || eff.kind === 'form_cat' || eff.kind === 'form_travel';
-          const isToggle =
-            isFormKind ||
-            eff.kind === 'defensive_stance' ||
-            eff.kind === 'stealth' ||
-            ability.id === 'ghost_wolf';
-          if (isToggle) {
-            const existing = p.auras.findIndex((a) => a.id === ability.id);
-            if (existing >= 0) {
-              p.auras.splice(existing, 1);
-              this.emit({ type: 'aura', targetId: p.id, name: ability.name, gained: false });
-              recalcPlayerStats(p, meta.cls, meta.equipment, this.playerMods(meta));
-              break;
-            }
-          }
-          // shapeshifting out of one form into another (bear/cat/travel are exclusive)
-          if (isFormKind) {
-            for (let i = p.auras.length - 1; i >= 0; i--) {
-              const a = p.auras[i];
-              if (
-                (a.kind === 'form_bear' || a.kind === 'form_cat' || a.kind === 'form_travel') &&
-                a.kind !== eff.kind
-              ) {
-                p.auras.splice(i, 1);
-                this.emit({ type: 'aura', targetId: p.id, name: a.name, gained: false });
-              }
-            }
-          }
-          this.applyAura(p, {
-            id: ability.id,
-            name: ability.name,
-            kind: eff.kind,
-            remaining: eff.duration,
-            duration: eff.duration,
-            value: eff.value,
-            sourceId: p.id,
-            school: ability.school,
-          });
-          recalcPlayerStats(p, meta.cls, meta.equipment, this.playerMods(meta));
-          break;
-        }
-        case 'gainResource': {
-          p.resource = Math.min(p.maxResource, p.resource + eff.amount);
-          break;
-        }
-        case 'selfDamagePctMax': {
-          const dmg = Math.round(p.maxHp * eff.pct);
-          p.hp = Math.max(1, p.hp - dmg);
-          this.emit({
-            type: 'damage',
-            sourceId: p.id,
-            targetId: p.id,
-            amount: dmg,
-            crit: false,
-            school: 'physical',
-            ability: ability.name,
-            kind: 'hit',
-          });
-          break;
-        }
-        case 'charge': {
-          if (!target) break;
-          // the stun effect in the same ability lands this tick; the player
-          // then runs the route at charge speed instead of teleporting
-          p.chargeTargetId = target.id;
-          p.chargeTimeLeft = CHARGE_MAX_DURATION;
-          p.chargePath = this.findChargePath(p, target);
-          if (p.resourceType === 'rage') p.resource = Math.min(p.maxResource, p.resource + 9);
-          this.enterCombat(p, target);
-          break;
-        }
-        case 'sunder': {
-          if (!target || target.dead) break;
-          // a sunder can miss like any melee attack — a miss causes no threat
-          if (this.rng.chance(meleeMissChance(p.level, target.level))) {
-            this.emit({
-              type: 'damage',
-              sourceId: p.id,
-              targetId: target.id,
-              amount: 0,
-              crit: false,
-              school: 'physical',
-              ability: ability.name,
-              kind: 'miss',
-            });
-            this.enterCombat(p, target);
-            break;
-          }
-          const existing = target.auras.find((a) => a.kind === 'sunder');
-          if (existing) {
-            existing.stacks = Math.min(eff.maxStacks, (existing.stacks ?? 1) + 1);
-            existing.value = eff.armor;
-            existing.remaining = existing.duration;
-            this.emit({ type: 'aura', targetId: target.id, name: ability.name, gained: true });
-          } else {
-            this.applyAura(target, {
-              id: ability.id,
-              name: ability.name,
-              kind: 'sunder',
-              remaining: 30,
-              duration: 30,
-              value: eff.armor,
-              stacks: 1,
-              sourceId: p.id,
-              school: 'physical',
-            });
-          }
-          // sunder deals no damage: its threat is the flat value, stance-scaled
-          addThreat(target, p.id, res.threatFlat * this.threatMod(p, 'physical'));
-          this.enterCombat(p, target);
-          break;
-        }
-        case 'taunt': {
-          if (target?.kind !== 'mob' || target.dead) break;
-          this.applyTaunt(p, target);
-          break;
-        }
-        case 'tamePet': {
-          if (target) this.completeTame(p, target);
-          break;
-        }
-        case 'summonPet': {
-          this.summonPet(p, eff.templateId);
-          break;
-        }
-        case 'dismissPet': {
-          const pet = this.petOf(p.id);
-          if (!pet) {
-            this.error(p.id, 'You have no pet.');
-            break;
-          }
-          this.error(p.id, 'Permanent pets can only be abandoned from the pet frame.');
-          break;
-        }
-        case 'summonDemon': {
-          this.summonPet(p, eff.mobId);
-          break;
-        }
-      }
-      if (target?.dead) target = null;
-    }
-
-    if (ability.spendsCombo && spentCombo > 0) {
-      p.comboPoints = 0;
-      this.emit({ type: 'comboPoint', points: 0, pid: p.id });
-    }
-  }
-
-  private awardCombo(p: Entity, target: Entity, points: number): void {
-    if (p.comboTargetId !== target.id) {
-      p.comboPoints = 0;
-      p.comboTargetId = target.id;
-    }
+  // Combo points are character-bound (retail-style): building on any target adds
+  // to the one pool, and the pool persists across target swaps until spent, the
+  // player dies, or COMBO_POINT_DURATION passes without a new point.
+  private awardCombo(p: Entity, _target: Entity, points: number): void {
     p.comboPoints = Math.min(5, p.comboPoints + points);
+    p.comboUntil = this.time + COMBO_POINT_DURATION;
     this.emit({ type: 'comboPoint', points: p.comboPoints, pid: p.id });
   }
 
   private applyAura(target: Entity, aura: Aura): void {
     if (target.kind === 'npc' && isRejectedFriendlyNpcAura(aura)) return;
     if (
+      this.isIceBlocked(target) &&
+      this.isIceBlockCrowdControlAura(aura.kind) &&
+      aura.sourceId !== target.id
+    )
+      return;
+    if (
       this.isNythraxisRaidEnemy(target) &&
+      !nythraxis.isNythraxisControllableAdd(target) && // priest + stalker are meant to be CC'd
       this.isNythraxisControlAura(aura.kind) &&
       aura.sourceId !== target.id &&
       !this.isNythraxisScriptedControl(target, aura)
@@ -4554,27 +5272,72 @@ export class Sim {
       return;
     if (
       target.kind === 'mob' &&
-      MOBS[target.templateId]?.ccImmune &&
+      (MOBS[target.templateId]?.ccImmune || target.ccImmune) &&
       this.isControlAura(aura.kind) &&
       aura.sourceId !== target.id &&
       !this.isNythraxisScriptedControl(target, aura)
     )
       return;
-    const existing = target.auras.findIndex(
-      (a) => a.id === aura.id && a.sourceId === aura.sourceId,
-    );
-    if (existing >= 0) {
+    // Slow immunity is separate from ccImmune: snares (kind 'slow') are not control auras,
+    // so a slowImmune raid boss shrugs off Frostbolt/Hamstring-style movement snares while
+    // still taking a self-applied slow (e.g. a scripted mechanic) through sourceId === self.
+    // The entity-level flags are the heroic-spawn twins (see Entity.ccImmune).
+    if (
+      target.kind === 'mob' &&
+      (MOBS[target.templateId]?.slowImmune || target.slowImmune) &&
+      aura.kind === 'slow' &&
+      aura.sourceId !== target.id
+    )
+      return;
+    // Temporal Rift (mage choice row): every 20 sec the next stun, root or
+    // silence to land on the wearer is cleansed instantly, i.e. never applied.
+    // The ICD rides an 'internal_cd' aura (no new entity field enters the
+    // parity state hash) that the player can watch tick down. Draws no rng.
+    if (
+      target.kind === 'player' &&
+      (aura.kind === 'stun' || aura.kind === 'root' || aura.kind === 'silence') &&
+      aura.sourceId !== target.id
+    ) {
+      const riftMeta = this.players.get(target.id);
+      if (
+        riftMeta &&
+        this.playerMods(riftMeta).global.temporalRift > 0 &&
+        !target.auras.some((a) => a.id === 'temporal_rift_cd')
+      ) {
+        this.applyAura(target, {
+          id: 'temporal_rift_cd',
+          name: 'Temporal Rift',
+          kind: 'internal_cd',
+          value: 0,
+          remaining: 20,
+          duration: 20,
+          sourceId: target.id,
+          school: 'arcane',
+        });
+        this.emit({ type: 'aura', targetId: target.id, name: aura.name, gained: false });
+        return;
+      }
+    }
+    for (const existing of auraReplacementConflicts(target.auras, aura)) {
       this.applyNonPlayerStatAura(target, target.auras[existing], -1);
       target.auras.splice(existing, 1);
     }
     target.auras.push(aura);
+    if (aura.kind === 'stealth') target.stealthed = true; // keep the cache live without waiting for updateAuras
     this.applyNonPlayerStatAura(target, aura, 1);
     this.emit({ type: 'aura', targetId: target.id, name: aura.name, gained: true });
     const source = this.entities.get(aura.sourceId);
     this.refreshMobLeashFromAction(source ?? null, target);
     if (target.kind === 'player') {
       const meta = this.players.get(target.id);
-      if (meta) recalcPlayerStats(target, meta.cls, meta.equipment, this.playerMods(meta));
+      if (meta)
+        recalcPlayerStats(
+          target,
+          meta.cls,
+          meta.equipment,
+          this.playerMods(meta),
+          meta.equipmentInstance,
+        );
     }
   }
 
@@ -4604,8 +5367,17 @@ export class Sim {
   // `source`. Instantaneous displacement (no aura) walked in small steps so it can
   // be terrain-clamped exactly like a warrior charge — the shove stops at the last
   // safe footing before deep water or a cliff rather than stranding the victim off
-  // the world. Returns the yards actually moved (0 if blocked immediately).
+  // the world. Each step is also collider-swept (resolveMove, the same walker uses)
+  // so a wall (an arena side wall in particular) stops the shove instead of letting
+  // it tunnel through in one coarse hop. Returns the yards actually moved (0 if
+  // blocked immediately).
   private applyKnockback(source: Entity, target: Entity, distance: number): number {
+    if (source.id !== target.id && this.isIceBlocked(target)) return 0;
+    // Knockback resistance (the caster tier-set 2-piece grants 100%) is applied
+    // centrally here so no caller can bypass it: a fully-resisted shove moves 0 yards
+    // and never displaces the victim, so a caster keeps casting through it.
+    distance *= 1 - (target.knockbackResistance ?? 0);
+    if (distance <= 0) return 0;
     let dx = target.pos.x - source.pos.x;
     let dz = target.pos.z - source.pos.z;
     let len = Math.hypot(dx, dz);
@@ -4627,19 +5399,29 @@ export class Sim {
         nz = cz + uz * adv;
       const h0 = groundHeight(cx, cz, this.cfg.seed);
       const h1 = groundHeight(nx, nz, this.cfg.seed);
-      if (h1 < WATER_LEVEL - SWIM_DEPTH) break; // would land in deep water
-      if (h1 > h0 && (h1 - h0) / adv > MAX_CLIMB_SLOPE) break; // would slam into a cliff
-      cx = nx;
-      cz = nz;
+      if (h1 < waterLevelAt(nx, nz) - SWIM_DEPTH) break; // would land in deep water
+      if (
+        h1 > h0 &&
+        ((h1 - h0) / adv > MAX_CLIMB_SLOPE ||
+          terrainSteepnessAt(nx, nz, this.cfg.seed) > MAX_CLIMB_SLOPE)
+      ) {
+        break; // would slam into a cliff
+      }
+      // resolveMove sweeps cx,cz -> nx,nz against static colliders (walls,
+      // pillars, delve module bounds/doors) in small sub-steps, so a thin wall
+      // stops the shove at its face instead of the coarse 0.5yd hop skipping
+      // over it.
+      const resolved = this.resolveMove(cx, cz, nx, nz, BODY_RADIUS, target);
+      const blocked = Math.hypot(resolved.x - nx, resolved.z - nz) > BODY_RADIUS * 0.25;
+      cx = resolved.x;
+      cz = resolved.z;
       moved += adv;
+      if (blocked) break; // hit a wall: stop the shove here
     }
     if (moved <= 0) return 0;
-    // resolveMovePoint is a no-op wrapper over resolvePosition outside a delve, and
-    // applies the run's module colliders + portcullis doors when target is inside one.
-    const resolved = this.resolveMovePoint(cx, cz, BODY_RADIUS, target);
-    target.pos.x = resolved.x;
-    target.pos.z = resolved.z;
-    target.pos.y = groundHeight(resolved.x, resolved.z, this.cfg.seed);
+    target.pos.x = cx;
+    target.pos.z = cz;
+    target.pos.y = groundHeight(cx, cz, this.cfg.seed);
     target.vy = 0;
     target.onGround = true;
     target.fallStartY = target.pos.y;
@@ -4655,6 +5437,11 @@ export class Sim {
     if (source.kind !== 'player' || target.kind !== 'player' || !this.isHostileTo(source, target)) {
       return duration;
     }
+    // Balance pass (maintainer): player stuns are exempt from PvP diminishing
+    // returns. They operate differently from fear: short flat durations behind
+    // real cooldowns, so the ladder only made banked stuns (Twin Gavels) feel
+    // broken. Fear, polymorph, root, and school lockouts keep their ladders.
+    if (isStunDrCategory(category)) return duration;
     const existing = target.ccDr.get(category);
     const stage = existing && existing.resetAt > this.time ? existing.stage : 0;
     const reset =
@@ -4662,7 +5449,11 @@ export class Sim {
         ? PVP_POLYMORPH_DR_RESET
         : category === 'fear'
           ? PVP_FEAR_DR_RESET
-          : PVP_ROOT_DR_RESET;
+          : category === 'lockout'
+            ? PVP_STUN_DR_RESET
+            : isStunDrCategory(category)
+              ? PVP_STUN_DR_RESET
+              : PVP_ROOT_DR_RESET;
     if (category === 'polymorph') {
       target.ccDr.set(category, { stage: stage + 1, resetAt: this.time + reset });
       return PVP_POLYMORPH_DR_DURATIONS[Math.min(stage, PVP_POLYMORPH_DR_DURATIONS.length - 1)];
@@ -4684,11 +5475,20 @@ export class Sim {
     return out;
   }
 
+  private friendliesInRadius(source: Entity, pos: Vec3, radius: number): Entity[] {
+    const out: Entity[] = [];
+    this.grid.forEachInRadius(pos.x, pos.z, radius, (e) => {
+      if (!e.dead && (e.id === source.id || this.isFriendlyTo(source, e))) out.push(e);
+    });
+    return out;
+  }
+
   private breakStealth(e: Entity): void {
     const idx = e.auras.findIndex((a) => a.kind === 'stealth');
     if (idx < 0) return;
     const name = e.auras[idx].name;
     e.auras.splice(idx, 1);
+    e.stealthed = false; // keep the cache live without waiting for updateAuras
     this.emit({ type: 'aura', targetId: e.id, name, gained: false });
   }
 
@@ -4706,6 +5506,14 @@ export class Sim {
     const top = topThreatValue(mob);
     const mine = mob.threat.get(p.id) ?? 0;
     mob.threat.set(p.id, Math.max(mine, top, 1));
+    // A mob flagged ignoreTaunt (special add AI) or a training dummy takes the
+    // threat (it shows on the meters) but never turns, forces, or fights: without
+    // this guard a taunt (or an area taunt like Defiant Bellow in range) force-
+    // aggroed it permanently and pinned the attacker in combat forever.
+    if (MOBS[mob.templateId]?.ignoreTaunt || MOBS[mob.templateId]?.dummy) {
+      this.enterCombat(p, mob);
+      return;
+    }
     if (p.ownerId !== null && MOBS[mob.templateId]?.boss) {
       this.enterCombat(p, mob);
       return;
@@ -4727,661 +5535,131 @@ export class Sim {
   // Hunter pets
   // -------------------------------------------------------------------------
 
+  // Pet commands & lifecycle moved to src/sim/pet/pet_commands.ts (P1b). Sim keeps
+  // same-named thin delegates: the 9 public commands satisfy IWorld, and the lifecycle
+  // helpers stay reachable for the foreign this.X/sim.X callers (persistence, the
+  // updateCasting Demon-Heal-channel arm, the /pet + /pettaunt handlers, delve enter/
+  // exit, and the tests). The seam (ctx) carries petOf/summonPet/completeTame/
+  // despawnPersistentPet/despawnPet/clearNonPlayerStatAuras into the module.
   petOf(ownerPid: number, includeDead = false): Entity | null {
-    for (const e of this.entities.values()) {
-      if (
-        e.kind === 'mob' &&
-        e.ownerId === ownerPid &&
-        !this.isDelveCompanionMob(e) &&
-        (includeDead || !e.dead)
-      )
-        return e;
-    }
-    return null;
+    return petCommands.petOf(this.ctx, ownerPid, includeDead);
+  }
+
+  stowPetForSpectate(ownerPid: number): PetState | null {
+    return petCommands.stowPetForSpectate(this.ctx, ownerPid);
+  }
+
+  restorePetAfterSpectate(ownerPid: number, state: PetState | null): void {
+    petCommands.restorePetAfterSpectate(this.ctx, ownerPid, state);
   }
 
   private serializePet(ownerPid: number): PetState | null {
-    const pet = this.petOf(ownerPid, true);
-    // While the owner is inside a delve their pet is despawned and parked in
-    // delvePetStash (stowPetForDelve). It has no live entity, so fall back to the
-    // stashed snapshot, otherwise a save taken mid-delve (autosave, disconnect, or
-    // shutdown saveAll) would persist pet:null and lose the pet on reload.
-    if (!pet) return this.delvePetStash.get(ownerPid) ?? null;
-    return {
-      templateId: pet.templateId,
-      name: pet.name,
-      level: pet.level,
-      hp: pet.dead ? 0 : Math.max(1, Math.min(pet.maxHp, pet.hp)),
-      dead: pet.dead,
-      mode: pet.petMode,
-      autoTaunt: pet.petAutoTaunt,
-    };
+    return petCommands.serializePet(this.ctx, ownerPid);
   }
 
   private restorePet(owner: Entity, state: PetState): void {
-    const template = MOBS[state.templateId];
-    if (!template) return;
-    const level = owner.level;
-    const pos = this.groundPos(owner.pos.x + 2, owner.pos.z + 1);
-    const pet = createMob(this.nextId++, template, level, pos);
-    pet.name = this.cleanPetName(state.name) ?? template.name;
-    pet.ownerId = owner.id;
-    pet.petMode = state.mode ?? 'defensive';
-    pet.petTauntTimer = 0;
-    pet.petAutoTaunt = state.autoTaunt ?? false;
-    pet.petManualTauntPending = false;
-    pet.hostile = false;
-    pet.aiState = state.dead ? 'dead' : 'idle';
-    pet.aggroTargetId = null;
-    pet.inCombat = false;
-    pet.tappedById = null;
-    pet.loot = null;
-    pet.lootable = false;
-    pet.wanderTarget = null;
-    clearThreat(pet);
-    if (state.dead) {
-      pet.dead = true;
-      pet.hp = 0;
-      pet.corpseTimer = Infinity;
-      pet.respawnTimer = Infinity;
-    } else {
-      pet.hp = Math.max(1, Math.min(pet.maxHp, Math.round(state.hp) || pet.maxHp));
-    }
-    this.addEntity(pet);
+    petCommands.restorePet(this.ctx, owner, state);
   }
 
   private syncPetLevel(owner: Entity): void {
-    const pet = this.petOf(owner.id, true);
-    if (!pet || pet.level === owner.level) return;
-    const template = MOBS[pet.templateId];
-    if (!template) return;
-    const hpFrac = pet.maxHp > 0 ? pet.hp / pet.maxHp : 1;
-    const scaled = createMob(-1, template, owner.level, pet.pos);
-    pet.level = scaled.level;
-    pet.maxHp = scaled.maxHp;
-    pet.weapon = scaled.weapon;
-    pet.stats.armor = scaled.stats.armor;
-    pet.moveSpeed = scaled.moveSpeed;
-    pet.scale = scaled.scale;
-    pet.color = scaled.color;
-    pet.hp = pet.dead ? 0 : Math.max(1, Math.min(pet.maxHp, Math.round(pet.maxHp * hpFrac)));
-  }
-
-  private cleanPetName(raw: string): string | null {
-    const name = raw.trim().replace(/\s+/g, ' ');
-    return PET_NAME_RE.test(name) ? name : null;
+    petCommands.syncPetLevel(this.ctx, owner);
   }
 
   private tameError(p: Entity, target: Entity): string | null {
-    if (target.kind !== 'mob' || !target.hostile) return 'You cannot tame that.';
-    const template = MOBS[target.templateId];
-    if (!template || (template.family !== 'beast' && template.family !== 'spider'))
-      return 'Only beasts can be tamed.';
-    if (template.elite || template.boss || template.rare)
-      return 'That beast is too strong to tame.';
-    if (target.level > p.level) return 'That beast is too high level for you to tame.';
-    if (target.spawnPos.x > DUNGEON_X_THRESHOLD) return 'You cannot tame dungeon creatures.';
-    if (this.petOf(p.id, true)) return 'You already have a pet.';
-    return null;
+    return petCommands.tameError(this.ctx, p, target);
   }
 
   private completeTame(p: Entity, target: Entity): void {
-    const err = this.tameError(p, target);
-    if (err) {
-      this.error(p.id, err);
-      return;
-    }
-    const template = MOBS[target.templateId];
-    const pet = createMob(
-      this.nextId++,
-      template,
-      target.level,
-      this.groundPos(p.pos.x + 2, p.pos.z + 1),
-    );
-    pet.name = target.name;
-    pet.ownerId = p.id;
-    pet.petMode = 'defensive';
-    pet.petTauntTimer = 0;
-    pet.petAutoTaunt = false;
-    pet.petManualTauntPending = false;
-    pet.hostile = false;
-    pet.aiState = 'idle';
-    pet.aggroTargetId = null;
-    pet.inCombat = false;
-    pet.tappedById = null;
-    pet.auras = [];
-    pet.hp = pet.maxHp;
-    pet.loot = null;
-    pet.lootable = false;
-    pet.wanderTarget = null;
-    clearThreat(pet);
-
-    this.pendingMobRespawns.push({
-      templateId: target.templateId,
-      level: target.level,
-      pos: { ...target.spawnPos },
-      facing: target.facing,
-      dungeonId: target.dungeonId,
-      timer: TAMED_TARGET_RESPAWN_SECONDS,
-    });
-    this.clearEntityMarker(target.id);
-    this.dropEntity(target.id);
-
-    // The owned copy is friendly now: nobody keeps swinging at the old target,
-    // other mobs forget both the old entity and the new pet starts clean.
-    for (const other of this.players.values()) {
-      const e = this.entities.get(other.entityId);
-      if (e && e.targetId === target.id) e.autoAttack = false;
-    }
-    for (const m of this.entities.values()) {
-      if (m.kind !== 'mob') continue;
-      m.threat.delete(target.id);
-      if (m.aggroTargetId === target.id && !m.dead && m.aiState !== 'dead') this.retargetMob(m);
-    }
-    this.addEntity(pet);
-    this.syncPetLevel(p);
-    this.emit({
-      type: 'log',
-      text: `${pet.name} is now your loyal companion.`,
-      color: '#8f8',
-      pid: p.id,
-    });
-    this.emit({ type: 'aura', targetId: pet.id, name: 'Tamed', gained: true });
+    petCommands.completeTame(this.ctx, p, target);
   }
 
   private summonPet(owner: Entity, templateId: string): void {
-    const template = MOBS[templateId];
-    if (!template) {
-      this.error(owner.id, 'That summon is unavailable.');
-      return;
-    }
-    const existing = this.petOf(owner.id, true);
-    if (existing) {
-      this.despawnPersistentPet(existing);
-      if (existing.templateId === templateId && !existing.dead) {
-        this.emit({
-          type: 'log',
-          text: `${existing.name} fades back into the void.`,
-          color: '#b894ff',
-          pid: owner.id,
-        });
-        return;
-      }
-    }
-
-    const pet = this.createDemonPet(owner, templateId);
-    if (!pet) return;
-    this.emit({
-      type: 'log',
-      text: `${pet.name} answers your summons.`,
-      color: '#b894ff',
-      pid: owner.id,
-    });
-    this.emit({ type: 'aura', targetId: pet.id, name: 'Summoned', gained: true });
+    petCommands.summonPet(this.ctx, owner, templateId);
   }
 
   private createDemonPet(owner: Entity, mobId: string, emit = false): Entity | null {
-    const template = MOBS[mobId];
-    if (!template) return null;
-    const pet = createMob(
-      this.nextId++,
-      template,
-      owner.level,
-      this.groundPos(owner.pos.x + 2, owner.pos.z + 1),
-    );
-    pet.name = template.name;
-    pet.ownerId = owner.id;
-    pet.petMode = 'defensive';
-    pet.petTauntTimer = 0;
-    pet.petAutoTaunt = false;
-    pet.petManualTauntPending = false;
-    pet.hostile = false;
-    pet.aiState = 'idle';
-    pet.aggroTargetId = null;
-    pet.inCombat = false;
-    pet.tappedById = null;
-    pet.auras = [];
-    pet.hp = pet.maxHp;
-    pet.loot = null;
-    pet.lootable = false;
-    pet.wanderTarget = null;
-    clearThreat(pet);
-    this.addEntity(pet);
-    if (emit)
-      this.emit({
-        type: 'log',
-        text: `${pet.name} answers your summons.`,
-        color: '#b894ff',
-        pid: owner.id,
-      });
-    return pet;
+    return petCommands.createDemonPet(this.ctx, owner, mobId, emit);
   }
 
   private despawnPersistentPet(pet: Entity): void {
-    this.clearNonPlayerStatAuras(pet);
-    pet.auras = [];
-    clearThreat(pet);
-    for (const m of this.entities.values()) {
-      if (m.kind !== 'mob' || m.id === pet.id) continue;
-      m.threat.delete(pet.id);
-      if (m.aggroTargetId === pet.id && !m.dead && m.aiState !== 'dead') this.retargetMob(m);
-    }
-    this.dropEntity(pet.id);
+    petCommands.despawnPersistentPet(this.ctx, pet);
   }
 
   abandonPet(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    if (r.meta.cls !== 'hunter') {
-      this.error(r.e.id, 'Only hunters can abandon pets.');
-      return;
-    }
-    const pet = this.petOf(r.e.id, true);
-    if (!pet) {
-      this.error(r.e.id, 'You have no pet.');
-      return;
-    }
-    this.emit({ type: 'log', text: `You abandon ${pet.name}.`, color: '#f66', pid: r.e.id });
-    this.despawnPersistentPet(pet);
+    petCommands.abandonPet(this.ctx, pid);
   }
 
   renamePet(name: string, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    if (!isPetClass(r.meta.cls)) {
-      this.error(r.e.id, 'Only pet classes can rename pets.');
-      return;
-    }
-    const pet = this.petOf(r.e.id, true);
-    if (!pet) {
-      this.error(r.e.id, 'You have no pet.');
-      return;
-    }
-    const clean = this.cleanPetName(name);
-    if (!clean) {
-      this.error(
-        r.e.id,
-        'Pet name must be 2-16 letters/spaces/hyphen/apostrophe and start with a letter.',
-      );
-      return;
-    }
-    pet.name = clean;
-    this.emit({ type: 'log', text: `Your pet is now named ${clean}.`, color: '#8f8', pid: r.e.id });
+    petCommands.renamePet(this.ctx, name, pid);
   }
 
   revivePet(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    if (!isPetClass(r.meta.cls)) {
-      this.error(r.e.id, 'Only pet classes can revive pets.');
-      return;
-    }
-    const pet = this.petOf(r.e.id, true);
-    if (!pet) {
-      this.error(r.e.id, 'You have no pet.');
-      return;
-    }
-    if (!pet.dead) {
-      this.error(r.e.id, 'Your pet is already alive.');
-      return;
-    }
-    pet.dead = false;
-    pet.hostile = false;
-    pet.ownerId = r.e.id;
-    pet.aiState = 'idle';
-    pet.aggroTargetId = null;
-    pet.inCombat = false;
-    pet.corpseTimer = 0;
-    pet.respawnTimer = 0;
-    pet.loot = null;
-    pet.lootable = false;
-    pet.tappedById = null;
-    clearThreat(pet);
-    pet.pos = this.groundPos(r.e.pos.x + 2, r.e.pos.z + 1);
-    pet.prevPos = { ...pet.pos };
-    this.rebucket(pet);
-    pet.hp = Math.max(1, Math.round(pet.maxHp * 0.35));
-    this.emit({
-      type: 'log',
-      text: `${pet.name} returns to your side.`,
-      color: '#8f8',
-      pid: r.e.id,
-    });
+    petCommands.revivePet(this.ctx, pid);
   }
 
   petAttack(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    if (!isPetClass(r.meta.cls)) {
-      this.error(r.e.id, 'Only pet classes can command pets.');
-      return;
-    }
-    r.meta.lastActiveTick = this.tickCount; // commanding the pet is a deliberate action
-    const pet = this.petOf(r.e.id);
-    if (!pet) {
-      this.error(r.e.id, 'You have no living pet.');
-      return;
-    }
-    const target = r.e.targetId !== null ? this.entities.get(r.e.targetId) : null;
-    if (!target || target.dead || !this.isHostileTo(pet, target)) {
-      this.error(r.e.id, 'Your pet needs a hostile target.');
-      return;
-    }
-    pet.aggroTargetId = target.id;
-    pet.inCombat = true;
-    if (target.kind === 'mob' && target.hostile) addThreat(target, pet.id, 1);
+    petCommands.petAttack(this.ctx, pid);
   }
 
   petTaunt(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    if (!isPetClass(r.meta.cls)) {
-      this.error(r.e.id, 'Only pet classes can command pets.');
-      return;
-    }
-    r.meta.lastActiveTick = this.tickCount; // commanding the pet is a deliberate action
-    const pet = this.petOf(r.e.id);
-    if (!pet) {
-      this.error(r.e.id, 'You have no living pet.');
-      return;
-    }
-    if (pet.petTauntTimer > 0) {
-      this.error(r.e.id, 'Pet taunt is not ready.');
-      return;
-    }
-    const target =
-      pet.aggroTargetId !== null
-        ? (this.entities.get(pet.aggroTargetId) ?? null)
-        : r.e.targetId !== null
-          ? (this.entities.get(r.e.targetId) ?? null)
-          : null;
-    if (target?.kind !== 'mob' || target.dead || !target.hostile || target.ownerId !== null) {
-      this.error(r.e.id, 'Your pet needs a hostile target.');
-      return;
-    }
-    pet.aggroTargetId = target.id;
-    pet.inCombat = true;
-    addThreat(target, pet.id, 1);
-    if (dist2d(pet.pos, target.pos) > PET_TAUNT_RANGE) {
-      pet.petManualTauntPending = true;
-      return;
-    }
-    this.applyTaunt(pet, target);
-    pet.petManualTauntPending = false;
-    pet.petTauntTimer = PET_GROWL_INTERVAL;
+    petCommands.petTaunt(this.ctx, pid);
+  }
+
+  petWaterJet(pid?: number): void {
+    petCommands.petWaterJet(this.ctx, pid);
   }
 
   feedPet(itemId: string, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    if (r.meta.cls !== 'hunter') {
-      this.error(r.e.id, 'Only hunters can feed pets.');
-      return;
-    }
-    const pet = this.petOf(r.e.id);
-    if (!pet) {
-      this.error(r.e.id, 'You have no living pet.');
-      return;
-    }
-    const item = ITEMS[itemId];
-    if (item?.kind !== 'food' || !item.foodHp) {
-      this.error(r.e.id, 'Your pet can only eat food.');
-      return;
-    }
-    if (this.countItem(itemId, r.e.id) <= 0) {
-      this.error(r.e.id, "You don't have that item.");
-      return;
-    }
-    if (pet.hp >= pet.maxHp) {
-      this.error(r.e.id, 'Your pet is already at full health.');
-      return;
-    }
-    this.removeItem(itemId, 1, r.e.id);
-    pet.auras = pet.auras.filter((a) => a.id !== 'feed_pet');
-    this.applyAura(pet, {
-      id: 'feed_pet',
-      name: 'Fed',
-      kind: 'hot',
-      value: Math.max(1, Math.ceil(item.foodHp / PET_FEED_DURATION)),
-      duration: PET_FEED_DURATION,
-      remaining: PET_FEED_DURATION,
-      sourceId: r.e.id,
-      school: 'nature',
-      tickInterval: PET_FEED_TICK,
-      tickTimer: PET_FEED_TICK,
-    });
-    this.emit({ type: 'log', text: `You feed ${pet.name}.`, color: '#8f8', pid: r.e.id });
+    petCommands.feedPet(this.ctx, itemId, pid);
   }
 
   healPet(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    if (r.meta.cls !== 'warlock') {
-      this.error(r.e.id, 'Only warlocks can channel demon healing.');
-      return;
-    }
-    if (r.e.dead) {
-      this.error(r.e.id, 'You are dead.');
-      return;
-    }
-    if (this.isStunned(r.e)) {
-      this.error(r.e.id, 'You are stunned.');
-      return;
-    }
-    if (r.e.castingAbility) {
-      this.error(r.e.id, 'You are busy.');
-      return;
-    }
-    const pet = this.petOf(r.e.id);
-    if (!pet) {
-      this.error(r.e.id, 'You have no living demon.');
-      return;
-    }
-    if (pet.hp >= pet.maxHp) {
-      this.error(r.e.id, 'Your demon is already at full health.');
-      return;
-    }
-    if (r.e.resource < DEMON_HEAL_MANA_COST) {
-      this.error(r.e.id, 'Not enough mana!');
-      return;
-    }
-    this.spendResource(r.e, DEMON_HEAL_MANA_COST);
-    r.e.castingAbility = DEMON_HEAL_CAST_ID;
-    r.e.castTotal = DEMON_HEAL_DURATION;
-    r.e.castRemaining = DEMON_HEAL_DURATION;
-    r.e.channeling = true;
-    r.e.channelTickEvery = DEMON_HEAL_TICK;
-    r.e.channelTickTimer = DEMON_HEAL_TICK;
-    r.e.gcdRemaining = Math.max(r.e.gcdRemaining, this.playerGcdFor(r.meta.cls));
-    this.emit({
-      type: 'log',
-      text: `You channel healing into ${pet.name}.`,
-      color: '#b894ff',
-      pid: r.e.id,
-    });
-    this.emit({
-      type: 'castStart',
-      entityId: r.e.id,
-      ability: DEMON_HEAL_CAST_ID,
-      time: DEMON_HEAL_DURATION,
-    });
+    petCommands.healPet(this.ctx, pid);
   }
 
   private applyDemonHealTick(owner: Entity): void {
-    const pet = this.petOf(owner.id);
-    if (!pet) {
-      this.cancelCast(owner);
-      return;
-    }
-    const amount = Math.max(1, Math.ceil(pet.maxHp * 0.08));
-    const healed = Math.min(amount, pet.maxHp - pet.hp);
-    if (healed <= 0) return;
-    pet.hp += healed;
-    this.emit({
-      type: 'heal2',
-      sourceId: owner.id,
-      targetId: pet.id,
-      amount: healed,
-      crit: false,
-      ability: 'Demon Heal',
-    });
-    this.healingThreat(owner, pet, healed);
+    petCommands.applyDemonHealTick(this.ctx, owner);
   }
 
   setPetMode(mode: PetMode, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    if (!isPetClass(r.meta.cls)) {
-      this.error(r.e.id, 'Only pet classes can command pets.');
-      return;
-    }
-    r.meta.lastActiveTick = this.tickCount; // commanding the pet is a deliberate action
-    const pet = this.petOf(r.e.id, true);
-    if (!pet) {
-      this.error(r.e.id, 'You have no pet.');
-      return;
-    }
-    pet.petMode = mode;
-    if (mode === 'passive') {
-      pet.aggroTargetId = null;
-      pet.inCombat = false;
-      pet.autoAttack = false;
-      pet.petManualTauntPending = false;
-    }
-    this.emit({ type: 'log', text: `${pet.name} is now ${mode}.`, color: '#ffd100', pid: r.e.id });
+    petCommands.setPetMode(this.ctx, mode, pid);
   }
 
   setPetAutoTaunt(enabled: boolean, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    if (!isPetClass(r.meta.cls)) {
-      this.error(r.e.id, 'Only pet classes can command pets.');
-      return;
-    }
-    r.meta.lastActiveTick = this.tickCount; // commanding the pet is a deliberate action
-    const pet = this.petOf(r.e.id, true);
-    if (!pet) {
-      this.error(r.e.id, 'You have no pet.');
-      return;
-    }
-    pet.petAutoTaunt = enabled;
+    petCommands.setPetAutoTaunt(this.ctx, enabled, pid);
   }
 
-  /** Remove a summoned demon from the world entirely, scrubbing any references
-   *  (player targets/combo, other mobs' hate) the way boss adds are despawned. */
-  private despawnPet(pet: Entity): void {
-    for (const meta of this.players.values()) {
-      const e = this.entities.get(meta.entityId);
-      if (!e) continue;
-      if (e.targetId === pet.id) e.targetId = null;
-      if (e.comboTargetId === pet.id) {
-        e.comboTargetId = null;
-        e.comboPoints = 0;
-      }
-    }
-    for (const m of this.entities.values()) {
-      if (m.kind !== 'mob' || m.id === pet.id) continue;
-      m.threat.delete(pet.id);
-      if (m.aggroTargetId === pet.id && !m.dead && m.aiState !== 'dead') this.retargetMob(m);
-    }
-    this.dropEntity(pet.id);
+  setPetAutoWaterJet(enabled: boolean, pid?: number): void {
+    petCommands.setPetAutoWaterJet(this.ctx, enabled, pid);
   }
+
+  // despawnPet (summoned-demon hard despawn: player-target + threat scrub) moved to
+  // pet/pet_commands.ts (P1b). No Sim delegate: the death/corpse-tick caller in
+  // mob/locomotion.ts and the in-module stowPetForDelve demon path reach it via the
+  // seam (ctx.despawnPet -> petCommands.despawnPet). Distinct from despawnPersistentPet
+  // (threat scrub only), which Sim keeps as a delegate for removePlayer.
 
   // -------------------------------------------------------------------------
   // Auto-attack & melee
   // -------------------------------------------------------------------------
 
+  // The swing system (player auto-attack driver + the melee/ranged white-hit table)
+  // lives in src/sim/combat/auto_attack.ts (C5). These thin delegates keep the public
+  // IWorld surface (start/stopAutoAttack), the tick() driver dispatch
+  // (updatePlayerAutoAttack, kept byte-identical between updateCasting and
+  // updateRegen), the ctx.meleeSwing weaponStrike entry (effect_dispatch), and the
+  // `(sim as any)` test call sites (mob_blind/mob_thorns/mob_disarm/fixes) resolving
+  // unchanged. meleeSwing still returns the connected flag effect_dispatch gates on.
   startAutoAttack(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const p = r.e;
-    if (p.dead) return;
-    const t = p.targetId !== null ? this.entities.get(p.targetId) : null;
-    if (!t || t.dead || !this.isHostileTo(p, t)) {
-      this.error(p.id, 'Invalid attack target.');
-      return;
-    }
-    if (p.sitting) this.standUp(p);
-    p.autoAttack = true;
-    r.meta.lastActiveTick = this.tickCount; // starting auto-attack is a deliberate action
-    const d = dist2d(p.pos, t.pos);
-    const ranged = CLASSES[r.meta.cls].ranged;
-    const inAutoAttackRange = ranged
-      ? d <= ranged.maxRange &&
-        d >= (ranged.wand ? 0 : ranged.minRange) &&
-        this.hasLineOfSight(p, t)
-      : d <= MELEE_RANGE;
-    if (
-      inAutoAttackRange &&
-      t.kind === 'mob' &&
-      t.hostile &&
-      t.ownerId === null &&
-      t.aiState !== 'evade'
-    ) {
-      if (t.aiState === 'idle') this.aggroMob(t, p, true);
-      else if (t.aggroTargetId === null) t.aggroTargetId = p.id;
-      addThreat(t, p.id, 1);
-      p.combatTimer = 0;
-      p.inCombat = true;
-    }
+    startAutoAttackImpl(this.ctx, pid);
   }
 
   stopAutoAttack(pid?: number): void {
-    const r = this.resolve(pid);
-    if (r) r.e.autoAttack = false;
+    stopAutoAttackImpl(this.ctx, pid);
   }
 
   private updatePlayerAutoAttack(p: Entity, meta: PlayerMeta): void {
-    p.swingTimer = Math.max(0, p.swingTimer - DT);
-    if (!p.autoAttack || p.castingAbility) return;
-    const t = p.targetId !== null ? this.entities.get(p.targetId) : null;
-    if (!t || t.dead || !this.isHostileTo(p, t)) {
-      p.autoAttack = false;
-      return;
-    }
-    if (p.swingTimer > 0) return;
-    if (this.isStunned(p)) return;
-    if (this.isDisarmed(p)) return; // weapon knocked away: no auto-attack swings
-    const d = dist2d(p.pos, t.pos);
-    const facingDiff = Math.abs(normAngle(angleTo(p.pos, t.pos) - p.facing));
-    if (facingDiff > MELEE_ARC) return;
-
-    // ranged auto-attack: hunters (auto shot, dead zone inside minRange) and
-    // casters (wand-style, no dead zone so they don't run into melee — #94)
-    const ranged = CLASSES[meta.cls].ranged;
-    if (ranged && d <= ranged.maxRange && d >= (ranged.wand ? 0 : ranged.minRange)) {
-      if (!this.hasLineOfSight(p, t)) return;
-      this.breakGhostWolf(p);
-      this.rangedSwing(p, t, ranged);
-      p.swingTimer = ranged.speed * this.swingIntervalMult(p);
-      return;
-    }
-    if (d > MELEE_RANGE) return;
-    this.breakGhostWolf(p);
-
-    let bonus = 0;
-    let abilityName: string | null = null;
-    let threatFlat = 0;
-    let threatMult = 1;
-    if (p.queuedOnSwing) {
-      const queued = this.resolvedAbility(p.queuedOnSwing, p.id);
-      if (queued) {
-        const eff = queued.effects.find((e) => e.type === 'weaponDamage');
-        if (p.resource >= queued.cost && eff && eff.type === 'weaponDamage') {
-          this.spendResource(p, queued.cost);
-          // on-next-swing abilities (e.g. Raptor Strike) resolve here rather than
-          // in castAbility, so their cooldown must be applied on the swing too (#56)
-          if (queued.def.cooldown > 0) p.cooldowns.set(queued.def.id, queued.def.cooldown);
-          bonus = eff.bonus;
-          abilityName = queued.def.name;
-          threatFlat = queued.threatFlat;
-          threatMult = queued.threatMult;
-        }
-      }
-      p.queuedOnSwing = null;
-    }
-    this.meleeSwing(p, t, bonus, abilityName, { threatFlat, threatMult });
-    p.swingTimer = p.weapon.speed * this.swingIntervalMult(p);
+    updatePlayerAutoAttackImpl(this.ctx, p, meta);
   }
 
   private rangedSwing(
@@ -5389,45 +5667,9 @@ export class Sim {
     target: Entity,
     ranged: { min: number; max: number; speed: number; wand?: boolean; school?: string },
   ): void {
-    const school = ranged.wand ? (ranged.school ?? 'arcane') : 'physical';
-    const label = ranged.wand ? 'Wand' : 'Auto Shot';
-    this.emit({
-      type: 'spellfx',
-      sourceId: attacker.id,
-      targetId: target.id,
-      school,
-      fx: 'projectile',
-    });
-    const missChance =
-      meleeMissChance(attacker.level, target.level) + this.blindMissBonus(attacker);
-    if (this.rng.chance(missChance)) {
-      this.emit({
-        type: 'damage',
-        sourceId: attacker.id,
-        targetId: target.id,
-        amount: 0,
-        crit: false,
-        school,
-        ability: label,
-        kind: 'miss',
-      });
-      this.enterCombat(attacker, target);
-      return;
-    }
-    let dmg = this.rng.range(ranged.min, ranged.max) + (attacker.rangedPower / 14) * ranged.speed;
-    // ranged white hits suffer the same higher-level crit suppression as melee
-    const critChance = Math.max(
-      0.005,
-      attacker.critChance - Math.max(0, target.level - attacker.level) * 0.002,
-    );
-    const crit = this.rng.chance(critChance);
-    if (crit) dmg *= 2;
-    // wand bolts are magic — armor doesn't apply; physical auto shot is mitigated
-    if (!ranged.wand) dmg *= 1 - armorReduction(this.effectiveArmor(target), attacker.level);
-    this.dealDamage(attacker, target, Math.max(1, Math.round(dmg)), crit, school, label, 'hit');
+    rangedSwingImpl(this.ctx, attacker, target, ranged);
   }
 
-  // Returns true if the swing connected.
   private meleeSwing(
     attacker: Entity,
     target: Entity,
@@ -5438,96 +5680,12 @@ export class Sim {
       weaponMult?: number;
       threatFlat?: number;
       threatMult?: number;
+      forceCrit?: boolean;
+      critBonus?: number;
+      onDealt?: (amount: number) => void;
     },
   ): boolean {
-    const missChance =
-      meleeMissChance(attacker.level, target.level) + this.blindMissBonus(attacker);
-    const dodgeChance = opts.cannotBeDodged
-      ? 0
-      : target.kind === 'player'
-        ? target.dodgeChance
-        : 0.05 + Math.max(0, target.level - attacker.level) * 0.005;
-    const roll = this.rng.next();
-    if (roll < missChance) {
-      this.emit({
-        type: 'damage',
-        sourceId: attacker.id,
-        targetId: target.id,
-        amount: 0,
-        crit: false,
-        school: 'physical',
-        ability: abilityName,
-        kind: 'miss',
-      });
-      this.enterCombat(attacker, target);
-      return false;
-    }
-    if (roll < missChance + dodgeChance) {
-      this.emit({
-        type: 'damage',
-        sourceId: attacker.id,
-        targetId: target.id,
-        amount: 0,
-        crit: false,
-        school: 'physical',
-        ability: abilityName,
-        kind: 'dodge',
-      });
-      this.enterCombat(attacker, target);
-      if (attacker.kind === 'player') attacker.overpowerUntil = this.time + 5;
-      return false;
-    }
-    const mult = opts.weaponMult ?? 1;
-    // weapon imbues (seals, rockbiter) add flat damage to every swing
-    let imbueBonus = 0;
-    for (const a of attacker.auras) if (a.kind === 'imbue') imbueBonus += a.value;
-    let dmg =
-      (this.rng.range(attacker.weapon.min, attacker.weapon.max) +
-        (this.effectiveAttackPower(attacker) / 14) * attacker.weapon.speed) *
-        mult +
-      bonus +
-      imbueBonus;
-    const critChance = Math.max(
-      0.005,
-      attacker.critChance - Math.max(0, target.level - attacker.level) * 0.002,
-    );
-    const crit = this.rng.chance(critChance);
-    if (crit) dmg *= 2;
-    dmg *= 1 - armorReduction(this.effectiveArmor(target), attacker.level);
-    this.dealDamage(
-      attacker,
-      target,
-      Math.max(1, Math.round(dmg)),
-      crit,
-      'physical',
-      abilityName,
-      'hit',
-      false,
-      { flat: opts.threatFlat ?? 0, mult: opts.threatMult ?? 1 },
-    );
-    // thorns / lightning shield: melee attackers take damage back
-    if (!attacker.dead) {
-      for (const a of target.auras) {
-        if (a.kind === 'thorns') {
-          this.dealDamage(target, attacker, a.value, false, a.school, a.name, 'hit', true);
-        }
-      }
-      // innate "spiked hide" mobs (e.g. bristleback boars) reflect on every hit
-      const spikes = MOBS[target.templateId]?.thorns;
-      if (spikes && !attacker.dead) {
-        this.dealDamage(
-          target,
-          attacker,
-          spikes.value,
-          false,
-          spikes.school ?? 'physical',
-          spikes.name ?? 'Spiked Hide',
-          'hit',
-          true,
-        );
-      }
-    }
-    return true;
+    return meleeSwingImpl(this.ctx, attacker, target, bonus, abilityName, opts);
   }
 
   // -------------------------------------------------------------------------
@@ -5544,400 +5702,28 @@ export class Sim {
     kind: 'hit' | 'miss' | 'dodge',
     noRage = false,
     threatOpts?: { flat?: number; mult?: number },
+    direct = true,
+    attackAnimationStarted = false,
+    alreadyFinal = false,
+    abilityId: string | null = null,
+    aoe = false,
   ): void {
-    if (target.dead) return;
-    if (target.gm) return; // GM characters are invulnerable — every damage path funnels here
-    // A mob that broke leash (or a pet freed to the wild) is in 'evade': it has
-    // dropped its hate table and walks home without fighting back, healing to
-    // full only on arrival. Classic mechanics make it immune while it retreats,
-    // so it can't be chipped down — or killed outright — for a risk-free kill.
-    if (target.kind === 'mob' && target.aiState === 'evade') return;
-    amount = Math.max(0, amount);
-
-    // Defensive Stance, classic: deal 10% less, take 10% less (and +30% threat below)
-    if (
-      source &&
-      source.id !== target.id &&
-      source.auras.some((a) => a.kind === 'defensive_stance')
-    ) {
-      amount = Math.round(amount * 0.9);
-    }
-    if (
-      source &&
-      source.id !== target.id &&
-      target.auras.some((a) => a.kind === 'defensive_stance')
-    ) {
-      amount = Math.round(amount * 0.9);
-    }
-
-    // Expose: a cracked-guard debuff amplifies the physical damage the victim
-    // takes (from any attacker) until it expires. Armor is already applied at the
-    // swing site, so this rides on top of the post-mitigation amount.
-    if (school === 'physical' && amount > 0) {
-      let exposeMult = 1;
-      for (const a of target.auras) if (a.kind === 'expose') exposeMult += a.value;
-      if (exposeMult !== 1) amount = Math.round(amount * exposeMult);
-    }
-
-    // Spell Vulnerability: a `spellvuln` debuff amplifies all NON-physical (magic)
-    // damage the victim takes from every attacker. Holy is excluded so healing-
-    // school spells are untouched. Stacks additively across active debuffs and
-    // lands before absorb shields, so a soaked hit still soaks the amplified total.
-    if (amount > 0 && school !== 'physical' && school !== 'holy') {
-      let amp = 0;
-      for (const a of target.auras) {
-        if (a.kind === 'spellvuln') amp += a.value;
-      }
-      if (amp > 0) amount = Math.round(amount * (1 + amp));
-    }
-
-    // Curse of frailty: a cursed victim takes more damage from every source. The
-    // offensive mirror of Defensive Stance's cut above. Multiple curses stack
-    // additively (sum of amps) so layered curses can't multiply out of control.
-    if (amount > 0) {
-      let vuln = 0;
-      for (const a of target.auras) if (a.kind === 'vulnerability') vuln += a.value;
-      if (vuln > 0) amount = Math.round(amount * (1 + vuln));
-    }
-
-    // Weakening Hex: a hexed source deals less damage (mirrors the healing cut in
-    // applyHeal). Self-damage paths (source === target) are left untouched.
-    if (source && source.id !== target.id) {
-      const hexMult = this.hexOutputMult(source);
-      if (hexMult !== 1) amount = Math.round(amount * hexMult);
-    }
-
-    // "Find Weakness": a critvuln debuff makes the target's exposed flesh take
-    // extra damage from CRITICAL hits only (any attacker, any school). Applied
-    // after the defensive-stance reduction, before absorb shields soak it.
-    if (crit && amount > 0 && source && source.id !== target.id) {
-      const bonus = this.critVulnBonus(target);
-      if (bonus > 0) amount = Math.round(amount * (1 + bonus));
-    }
-
-    // absorb shields soak damage first
-    if (amount > 0) {
-      for (let i = target.auras.length - 1; i >= 0 && amount > 0; i--) {
-        const a = target.auras[i];
-        if (a.kind !== 'absorb') continue;
-        const soaked = Math.min(a.value, amount);
-        a.value -= soaked;
-        amount -= soaked;
-        if (a.value <= 0) {
-          target.auras.splice(i, 1);
-          this.emit({ type: 'aura', targetId: target.id, name: a.name, gained: false });
-        }
-      }
-    }
-
-    const sourcePlayer = this.pvpController(source);
-
-    // duels end at 1 hp — nobody dies
-    const duel = target.kind === 'player' ? this.duels.get(target.id) : undefined;
-    if (
-      duel &&
-      duel.state === 'active' &&
-      sourcePlayer &&
-      (sourcePlayer.id === duel.a || sourcePlayer.id === duel.b)
-    ) {
-      if (target.hp - amount < 1) {
-        amount = Math.max(0, target.hp - 1);
-        target.hp = 1;
-        this.emit({
-          type: 'damage',
-          sourceId: source?.id ?? -1,
-          targetId: target.id,
-          amount,
-          crit,
-          school,
-          ability,
-          kind,
-        });
-        this.endDuel(duel, sourcePlayer.id);
-        return;
-      }
-    }
-
-    // Fiesta takedowns score a point and put the victim on a (growing) respawn
-    // timer instead of permanently eliminating them — the party never stops.
-    const match = target.kind === 'player' ? this.arenaMatches.get(target.id) : undefined;
-    // Fiesta lifesteal augment: heal the attacker for a slice of damage dealt.
-    if (
-      match?.fiesta &&
-      match.state === 'active' &&
-      sourcePlayer &&
-      amount > 0 &&
-      this.isArenaCrossTeam(match, sourcePlayer.id, target.id)
-    ) {
-      const ls = this.players.get(sourcePlayer.id)?.fiestaSpecial.lifestealPct ?? 0;
-      if (ls > 0 && !sourcePlayer.dead && sourcePlayer.hp < sourcePlayer.maxHp) {
-        const heal = Math.max(1, Math.round(amount * ls));
-        sourcePlayer.hp = Math.min(sourcePlayer.maxHp, sourcePlayer.hp + heal);
-        this.emit({ type: 'heal', targetId: sourcePlayer.id, amount: heal });
-      }
-    }
-    if (
-      match?.fiesta &&
-      match.state === 'active' &&
-      sourcePlayer &&
-      this.isArenaCrossTeam(match, sourcePlayer.id, target.id)
-    ) {
-      if (target.hp - amount <= 0) {
-        amount = Math.max(0, target.hp);
-        target.hp = 0;
-        this.emit({
-          type: 'damage',
-          sourceId: source?.id ?? -1,
-          targetId: target.id,
-          amount,
-          crit,
-          school,
-          ability,
-          kind,
-        });
-        this.fiestaTakedown(match, sourcePlayer.id, target);
-        return;
-      }
-    }
-
-    // Ranked arena eliminations use normal death state so clients and combat
-    // logic see a real 0 HP defeat. The return timer revives everyone after.
-    if (
-      match &&
-      !match.fiesta &&
-      match.state === 'active' &&
-      sourcePlayer &&
-      this.isArenaCrossTeam(match, sourcePlayer.id, target.id)
-    ) {
-      if (match.defeated.has(target.id)) return;
-      if (target.hp - amount <= 0) {
-        amount = Math.max(0, target.hp);
-        target.hp = 0;
-        match.defeated.add(target.id);
-        this.emit({
-          type: 'damage',
-          sourceId: source?.id ?? -1,
-          targetId: target.id,
-          amount,
-          crit,
-          school,
-          ability,
-          kind,
-        });
-        this.handleDeath(target, source);
-        const loserTeam = this.arenaTeamOf(match, target.id);
-        if (loserTeam && this.isArenaTeamWiped(match, loserTeam)) {
-          this.endArenaMatch(match, loserTeam === 'A' ? 'B' : 'A', 'defeat');
-        }
-        return;
-      }
-    }
-
-    target.hp = Math.max(0, target.hp - amount);
-    this.emit({
-      type: 'damage',
-      sourceId: source?.id ?? -1,
-      targetId: target.id,
+    dealDamageImpl(
+      this.ctx,
+      source,
+      target,
       amount,
       crit,
       school,
       ability,
       kind,
-    });
-
-    if (amount > 0) {
-      if (target.kind === 'mob' && DAMAGE_IDLE_DESPAWN_MOB_IDS.has(target.templateId)) {
-        target.damageIdleDespawnTimer = DAMAGE_IDLE_DESPAWN_SECONDS;
-      }
-      for (let i = target.auras.length - 1; i >= 0; i--) {
-        if (target.auras[i].breaksOnDamage) {
-          this.emit({
-            type: 'aura',
-            targetId: target.id,
-            name: target.auras[i].name,
-            gained: false,
-          });
-          target.auras.splice(i, 1);
-        }
-      }
-    }
-
-    // taking or dealing real damage breaks stealth
-    if (amount > 0) {
-      this.breakStealth(target);
-      if (source && source.id !== target.id) {
-        this.breakStealth(source);
-      }
-    }
-
-    if (source && source.id !== target.id) this.enterCombat(source, target);
-    this.refreshMobLeashFromAction(source, target);
-
-    // classic threat: damage (and the ability's flat bonus) lands on the mob's
-    // hate table, scaled by the attacker's stance/form modifiers
-    if (
-      source &&
-      source.id !== target.id &&
-      target.kind === 'mob' &&
-      target.hostile &&
-      (source.kind === 'player' || source.ownerId !== null)
-    ) {
-      const threat =
-        (amount * (threatOpts?.mult ?? 1) + (threatOpts?.flat ?? 0)) *
-        this.threatMod(source, school);
-      addThreat(target, source.id, threat);
-    }
-
-    // tap rights: the first player (or their pet) to damage a mob owns it
-    if (
-      source &&
-      target.kind === 'mob' &&
-      target.hostile &&
-      target.tappedById === null &&
-      amount > 0
-    ) {
-      if (source.kind === 'player') target.tappedById = source.id;
-      else if (source.ownerId !== null) target.tappedById = source.ownerId;
-    }
-
-    if (source && source.kind === 'player' && source.id !== target.id) {
-      const meta = this.players.get(source.id);
-      if (meta) meta.counters.damageDealt += amount;
-      if (source.resourceType === 'rage' && !noRage && school === 'physical' && !ability) {
-        source.resource = Math.min(
-          source.maxResource,
-          source.resource + rageFromDealing(amount, source.level),
-        );
-      }
-    }
-    if (target.kind === 'player') {
-      const meta = this.players.get(target.id);
-      if (meta) meta.counters.damageTaken += amount;
-      if (target.resourceType === 'rage' && source && source.id !== target.id) {
-        target.resource = Math.min(
-          target.maxResource,
-          target.resource + rageFromTaking(amount, source.level),
-        );
-      }
-      if (isConsuming(target)) {
-        target.eating = null;
-        target.drinking = null;
-      }
-      if (target.sitting) target.sitting = false;
-      // vanilla spell pushback: a landed hit delays the cast rather than
-      // cancelling it (misses and fully absorbed hits don't push back)
-      if (
-        target.castingAbility &&
-        source &&
-        source.id !== target.id &&
-        amount > 0 &&
-        kind === 'hit'
-      ) {
-        if (target.castingAbility === FISHING_CAST_ID) this.cancelCast(target);
-        else if (!ignoresDamagePushback(target.castingAbility)) this.pushbackCast(target);
-      }
-    }
-
-    // Reactive "Frenzy": a wounded mob carrying frenzyOnHit may lash out faster.
-    // Rolls only for mobs that actually carry the trait (the helper bails before
-    // touching rng otherwise), so existing fixed-seed combat stays byte-identical.
-    if (kind === 'hit' && amount > 0 && !target.dead && target.hp > 0) {
-      this.maybeFrenzyOnHit(target, source);
-    }
-    this.reflectSpellWard(source, target, amount, kind, school);
-
-    if (target.hp <= 0) {
-      // A fiesta fighter who somehow bottoms out via a non-takedown path (a
-      // friendly DoT tail, self-damage) is benched, not killed — never let the
-      // party-mode hp hit a permanent death + graveyard flow.
-      const fmatch = target.kind === 'player' ? this.arenaMatches.get(target.id) : undefined;
-      if (fmatch?.fiesta && fmatch.state === 'active' && !this.arenaIsDown(fmatch, target.id)) {
-        this.fiestaDown(fmatch, target, null);
-      } else {
-        this.handleDeath(target, source);
-      }
-    }
-  }
-
-  // Reactive beast "Frenzy": when a mob with the frenzyOnHit trait is struck by a
-  // player (or their pet), it has a chance to fly into a blood frenzy and swing
-  // faster for a few seconds. Modelled as a refreshable buff_haste self-aura — the
-  // same primitive packFrenzy uses — so it rides the normal aura tick and snapshot
-  // wire with no new Entity field. The struck mob buffs ITSELF, so there is no
-  // recursion risk (the buff is not damage) and no player-facing debuff string.
-  private maybeFrenzyOnHit(target: Entity, source: Entity | null): void {
-    const fr = MOBS[target.templateId]?.frenzyOnHit;
-    if (!fr) return; // non-carriers never reach rng — keeps determinism neutral
-    if (target.kind !== 'mob' || !target.hostile || target.ownerId !== null) return;
-    if (!source || source.id === target.id) return;
-    const fromPlayer = source.kind === 'player' || source.ownerId !== null;
-    if (!fromPlayer) return;
-    if (!this.rng.chance(fr.chance)) return;
-    const name = fr.name ?? 'Blood Frenzy';
-    const existing = target.auras.find((a) => a.id === BLOOD_FRENZY_AURA_ID);
-    if (existing) {
-      existing.remaining = fr.duration; // refresh on each further wound; don't stack
-      return;
-    }
-    target.auras.push({
-      id: BLOOD_FRENZY_AURA_ID,
-      name,
-      kind: 'buff_haste',
-      remaining: fr.duration,
-      duration: fr.duration,
-      value: fr.hasteMult,
-      sourceId: target.id,
-      school: 'physical',
-    });
-    this.emit({ type: 'aura', targetId: target.id, name, gained: true });
-    this.emit({
-      type: 'log',
-      text: `${target.name} flies into a frenzy!`,
-      color: '#ff8c00',
-      entityId: target.id,
-    });
-    this.emit({
-      type: 'spellfx',
-      sourceId: target.id,
-      targetId: target.id,
-      school: 'physical',
-      fx: 'nova',
-    });
-  }
-
-  /**
-   * Innate "warded" mobs reflect flat damage onto a caster whose SPELL connects
-   * — the magic-school twin of melee thorns (which only punishes melee swings).
-   * Fires for any non-physical hit the mob survives; the reflected blow is
-   * mob-sourced, so it can never re-trigger a reflect (players carry no template).
-   */
-  private reflectSpellWard(
-    source: Entity | null,
-    target: Entity,
-    amount: number,
-    kind: 'hit' | 'miss' | 'dodge',
-    school: string,
-  ): void {
-    if (source?.kind !== 'player' || source.id === target.id) return;
-    if (
-      target.kind !== 'mob' ||
-      target.hp <= 0 ||
-      kind !== 'hit' ||
-      amount <= 0 ||
-      school === 'physical'
-    )
-      return;
-    const ward = MOBS[target.templateId]?.spellReflect;
-    if (!ward) return;
-    this.dealDamage(
-      target,
-      source,
-      ward.value,
-      false,
-      ward.school ?? 'shadow',
-      ward.name ?? 'Spell Reflection',
-      'hit',
-      true,
+      noRage,
+      threatOpts,
+      direct,
+      attackAnimationStarted,
+      alreadyFinal,
+      abilityId,
+      aoe,
     );
   }
 
@@ -5948,7 +5734,14 @@ export class Sim {
     b.inCombat = true;
     // players and their pets pull wild mobs; pets never run wild-mob AI
     const aAttacker = a.kind === 'player' || (a.kind === 'mob' && a.ownerId !== null);
-    if (b.kind === 'mob' && b.ownerId === null && !b.dead && aAttacker && b.aiState !== 'evade') {
+    if (
+      b.kind === 'mob' &&
+      b.ownerId === null &&
+      !b.dead &&
+      aAttacker &&
+      b.aiState !== 'evade' &&
+      !MOBS[b.templateId]?.dummy // a training dummy never retaliates
+    ) {
       if (b.aiState === 'idle') this.aggroMob(b, a, true);
       else if (b.aggroTargetId === null) b.aggroTargetId = a.id;
     }
@@ -5957,264 +5750,21 @@ export class Sim {
       a.ownerId === null &&
       !a.dead &&
       b.kind === 'player' &&
-      a.aiState === 'idle'
+      a.aiState === 'idle' &&
+      !MOBS[a.templateId]?.dummy // a training dummy never aggros
     ) {
       this.aggroMob(a, b, false);
     }
   }
 
   private handleDeath(e: Entity, killer: Entity | null): void {
-    e.dead = true;
-    e.hp = 0;
-    this.clearNonPlayerStatAuras(e);
-    e.auras = [];
-    e.ccDr.clear();
-    e.castingAbility = null;
-    this.emit({ type: 'death', entityId: e.id, killerId: killer?.id ?? -1 });
-
-    // a dead mob keeps no raid marker — respawnMob reuses the same entity id,
-    // so a stale mark would otherwise reappear on the respawn
-    if (e.kind === 'mob') this.clearEntityMarker(e.id);
-
-    // the dead drop off every hate table (and any taunt lock on them)
-    for (const m of this.entities.values()) {
-      if (m.kind !== 'mob' || m.id === e.id) continue;
-      m.threat.delete(e.id);
-      if (m.forcedTargetId === e.id) {
-        m.forcedTargetId = null;
-        m.forcedTargetTimer = 0;
-      }
-    }
-
-    if (e.kind === 'player') {
-      const meta = this.players.get(e.id);
-      if (meta) meta.counters.deaths++;
-      e.autoAttack = false;
-      e.queuedOnSwing = null;
-      e.comboPoints = 0;
-      e.eating = null;
-      e.drinking = null;
-      e.sitting = false;
-      e.chargeTargetId = null;
-      e.chargePath = [];
-      e.followTargetId = null;
-      this.emit({ type: 'playerDeath', pid: e.id });
-      for (const m of this.entities.values()) {
-        if (m.kind === 'mob' && !m.dead && m.aggroTargetId === e.id && m.aiState !== 'dead') {
-          // turn on the next nearby attacker; go home only if nobody is left
-          this.retargetMob(m);
-        }
-      }
-      return;
-    }
-
-    if (e.kind === 'mob') {
-      const template = MOBS[e.templateId];
-      const run = this.delveRunForMob(e.id);
-      if (
-        run &&
-        template &&
-        DELVES[run.delveId]?.bosses.includes(template.id) &&
-        !run.completed &&
-        !run.objective.complete
-      ) {
-        run.objective.complete = true;
-        this.onDelveBossDefeated(run);
-      }
-      if (
-        run?.affixes.includes('restless_graves') &&
-        template &&
-        !template.boss &&
-        !template.elite
-      ) {
-        run.restlessPending.push({
-          at: this.time + 3,
-          x: e.pos.x,
-          z: e.pos.z,
-          mobId: 'reliquary_bonewalker',
-        });
-      }
-      if (e.templateId === NYTHRAXIS_BOSS_ID) this.grantNythraxisLockout(e);
-      e.aiState = 'dead';
-      e.corpseTimer = CORPSE_DURATION;
-      e.respawnTimer =
-        this.cfg.respawnSeconds * (template?.respawnMult ?? (template?.rare ? 4 : 1));
-      e.aggroTargetId = null;
-      clearThreat(e);
-      if (e.ownerId !== null) {
-        e.corpseTimer = Infinity;
-        e.respawnTimer = Infinity;
-        e.hostile = false;
-        e.inCombat = false;
-        this.emit({ type: 'log', text: `${e.name} dies.`, color: '#f66', pid: e.ownerId });
-        // a slain summoned demon lingers only briefly, then unravels (updateMob)
-        if (MOBS[e.templateId]?.family === 'demon') e.corpseTimer = 3;
-        return; // owned pets drop no loot/credit; demons unravel, hunters revive or abandon
-      }
-      this.frenzyPackmates(e); // wild packmates fly into a frenzy when one falls
-      this.armDeathThroes(e); // volatile corpses begin to destabilize, then burst
-
-      // credit goes to the tapping player (fall back to the killer)
-      const creditId = e.tappedById ?? (killer?.kind === 'player' ? killer.id : null);
-      const meta = creditId !== null ? this.players.get(creditId) : null;
-      const creditEntity = creditId !== null ? this.entities.get(creditId) : null;
-      if (meta && creditEntity) {
-        const eliteMult = MOBS[e.templateId]?.elite ? 2 : 1;
-        // party play: kill credit, xp split and quest progress shared with
-        // members nearby (classic group rules + group bonus). A member downed
-        // during the fight still counts while their corpse is in range: classic
-        // groups credit fallen members (and their loot rights), they are not
-        // erased for dying or for releasing to the graveyard after the kill.
-        const party = this.partyOf(creditEntity.id);
-        const eligible: PlayerMeta[] = [];
-        if (party) {
-          for (const mPid of party.members) {
-            const mMeta = this.players.get(mPid);
-            const mE = this.entities.get(mPid);
-            if (mMeta && mE && dist2d(mE.pos, e.pos) <= PARTY_XP_RANGE) eligible.push(mMeta);
-          }
-        }
-        if (eligible.length === 0) eligible.push(meta);
-        e.lootRecipientIds = eligible.map((member) => member.entityId);
-        const bonus = GROUP_XP_BONUS[Math.min(eligible.length, GROUP_XP_BONUS.length) - 1];
-
-        meta.counters.kills++;
-        if (creditEntity.targetId === e.id) creditEntity.autoAttack = false;
-        if (creditEntity.comboTargetId === e.id) {
-          creditEntity.comboPoints = 0;
-          creditEntity.comboTargetId = null;
-          this.emit({ type: 'comboPoint', points: 0, pid: creditEntity.id });
-        }
-        for (const member of eligible) {
-          const mE = this.entities.get(member.entityId);
-          if (!mE) continue;
-          // mobXpValue keeps the level-diff (anti-farm) scaling; grantXp now
-          // routes the award to lifetimeXp even at the cap, so the party gate no
-          // longer blocks max-level members — it just forwards every positive award.
-          const xpGain = Math.round(
-            (mobXpValue(e.level, mE.level) * eliteMult * bonus) / eligible.length,
-          );
-          if (xpGain > 0) this.grantXp(xpGain, member, { fromKill: true });
-          this.onMobKilledForQuests(e, member);
-        }
-        this.rollLoot(e, meta, eligible);
-      }
-    }
-  }
-
-  // True while the player is standing in (or just beside) an inn footprint and
-  // out of combat — the classic "resting" state that accrues rested XP.
-  private isResting(p: Entity): boolean {
-    if (p.inCombat) return false;
-    for (const b of PROPS.buildings) {
-      if (b.kind !== 'inn') continue;
-      // Point-in-rotated-rect: bring the player into the inn's local frame.
-      const dx = p.pos.x - b.x;
-      const dz = p.pos.z - b.z;
-      const cos = Math.cos(-b.rot);
-      const sin = Math.sin(-b.rot);
-      const lx = dx * cos - dz * sin;
-      const lz = dx * sin + dz * cos;
-      if (
-        Math.abs(lx) <= b.w / 2 + RESTED_INN_PADDING &&
-        Math.abs(lz) <= b.d / 2 + RESTED_INN_PADDING
-      )
-        return true;
-    }
-    return false;
-  }
-
-  // Accrue rested XP while resting in an inn. Vanilla: 5% of the level's
-  // XP-to-level per 8 in-game hours, clamped to 1.5 levels. Deterministic —
-  // paced off DT, never wall-clock. No accrual at the cap (no level bar).
-  private updateRested(p: Entity, meta: PlayerMeta): void {
-    if (p.level >= MAX_LEVEL) return;
-    const cap = RESTED_CAP_LEVELS * xpForLevel(p.level);
-    if (meta.restedXp >= cap) {
-      meta.restedXp = cap;
-      return;
-    }
-    if (!this.isResting(p)) return;
-    const fillSeconds = RESTED_FILL_HOURS * RESTED_SECONDS_PER_GAME_HOUR;
-    const perSecond = (RESTED_FILL_FRACTION * xpForLevel(p.level)) / fillSeconds;
-    meta.restedXp = Math.min(cap, meta.restedXp + perSecond * DT);
+    // Body moved to combat/damage.ts (C1). The moved copy routes its quest-credit
+    // call through ctx.onMobKilledForQuests (points-at quest_credit, Q1).
+    handleDeathImpl(this.ctx, e, killer);
   }
 
   grantXp(amount: number, meta: PlayerMeta = this.primary, opts?: { fromKill?: boolean }): void {
-    const p = this.entities.get(meta.entityId);
-    if (!p || amount <= 0) return;
-    // Rested XP bonus: classic vanilla only doubles KILL xp (not quests), and
-    // never past the cap (no level bar to advance). The bonus equals the rested
-    // amount drawn down, so the effective award is up to 2x while the pool lasts.
-    let restedBonus = 0;
-    if (opts?.fromKill && p.level < MAX_LEVEL && meta.restedXp > 0) {
-      restedBonus = Math.min(Math.floor(meta.restedXp), amount);
-      meta.restedXp -= restedBonus;
-      amount += restedBonus;
-    }
-    // Lifetime XP accrues for EVERY award, including at the cap — this is what
-    // makes post-cap progression work. It feeds the virtual level, the
-    // leaderboard, and cosmetic milestones. The level bar below only advances
-    // while under the cap; once capped the remainder lives on in lifetimeXp
-    // rather than being discarded to gold/zero (FR-1.4).
-    this.accrueLifetimeXp(amount, meta, p);
-    meta.counters.xpGained += amount;
-    this.emit({
-      type: 'xp',
-      amount,
-      pid: p.id,
-      ...(restedBonus > 0 ? { rested: restedBonus } : {}),
-    });
-
-    if (p.level >= MAX_LEVEL) return; // bar frozen at cap; lifetimeXp already credited
-
-    meta.xp += amount;
-    while (p.level < MAX_LEVEL && meta.xp >= xpForLevel(p.level)) {
-      meta.xp -= xpForLevel(p.level);
-      p.level++;
-      meta.counters.levelUps++;
-      recalcPlayerStats(p, meta.cls, meta.equipment, this.playerMods(meta));
-      p.hp = p.maxHp;
-      if (p.resourceType === 'mana') p.resource = p.maxResource;
-      this.emit({ type: 'levelup', level: p.level, pid: p.id });
-      this.refreshKnownAbilities(meta, true);
-      this.syncPetLevel(p);
-    }
-    // Dinged to cap mid-grant: clear the leftover from the BAR. It is not lost —
-    // the full award was already added to lifetimeXp above (FR-1.4).
-    if (p.level >= MAX_LEVEL) meta.xp = 0;
-  }
-
-  // Add to the monotonic lifetime counter, emitting cosmetic virtual-level-up
-  // events past the cap and unlocking any newly crossed milestones. Cheap: one
-  // add plus an O(log n) table lookup, never touched on the per-tick hot path.
-  private accrueLifetimeXp(amount: number, meta: PlayerMeta, p: Entity): void {
-    const atCap = p.level >= MAX_LEVEL;
-    const beforeVL = atCap ? virtualLevel(meta.lifetimeXp) : 0;
-    meta.lifetimeXp += amount;
-    // 64-bit-safe invariant: JS numbers are exact to 2^53. A single character
-    // reaching this is effectively impossible, but clamp + log if it ever does.
-    if (meta.lifetimeXp >= Number.MAX_SAFE_INTEGER) {
-      meta.lifetimeXp = Number.MAX_SAFE_INTEGER;
-      console.warn(`lifetimeXp for ${meta.name} hit the 2^53 ceiling and was clamped`);
-    }
-    if (atCap) {
-      const afterVL = virtualLevel(meta.lifetimeXp);
-      for (let v = beforeVL + 1; v <= afterVL; v++) {
-        this.emit({ type: 'virtualLevelUp', level: v, pid: p.id });
-      }
-    }
-    this.checkMilestones(meta, p);
-  }
-
-  // Unlock any cosmetic milestone whose lifetime-XP threshold was just crossed.
-  private checkMilestones(meta: PlayerMeta, p: Entity): void {
-    for (const m of MILESTONES) {
-      if (meta.lifetimeXp >= m.lifetimeXp && !meta.unlockedMilestones.has(m.id)) {
-        meta.unlockedMilestones.add(m.id);
-        this.emit({ type: 'milestoneUnlocked', milestoneId: m.id, pid: p.id });
-      }
-    }
+    grantXpImpl(this.ctx, amount, meta, opts);
   }
 
   // Opt-in cosmetic prestige: only at the cap. Resets the level XP
@@ -6222,261 +5772,61 @@ export class Sim {
   // and deliberately leaves lifetimeXp, level, gear, talents, and learned
   // abilities untouched — strictly cosmetic, zero power change (FR-6.1/6.3).
   prestige(pid?: number): boolean {
-    const r = this.resolve(pid);
-    if (!r) return false;
-    // Authoritative anti-abuse gate: must be at the cap AND have earned a full
-    // prestige bar of post-cap XP since the last rank. This caps prestigeRank at
-    // what lifetimeXp supports, so spamming the `prestige` command (e.g. from a
-    // hacked client) can never inflate the rank beyond XP actually earned.
-    if (!canPrestige(r.e.level, r.meta.lifetimeXp, r.meta.prestigeRank)) return false;
-    r.meta.xp = 0;
-    r.meta.prestigeRank += 1;
-    this.emit({
-      type: 'log',
-      pid: r.e.id,
-      text: `You have prestiged! Prestige Rank ${r.meta.prestigeRank}.`,
-      color: '#ffd100',
-    });
-    return true;
+    return prestigeImpl(this.ctx, pid);
   }
 
-  private needsQuestDrop(entry: LootEntry, meta: PlayerMeta): boolean {
-    if (!entry.questId || !entry.itemId) return false;
-    const qp = meta.questLog.get(entry.questId);
-    if (qp?.state !== 'active') return false;
-    const quest = QUESTS[entry.questId];
-    const objIdx = quest.objectives.findIndex(
-      (o) => o.type === 'collect' && o.itemId === entry.itemId,
-    );
-    // A quest-gated drop is only "needed" while the player has an actual collect
-    // objective for this item that is still short of its required count. If the
-    // quest has no matching collect objective, the player never needs the item,
-    // so it must not drop (fail closed rather than dropping unconditionally).
-    return (
-      objIdx >= 0 && this.countItem(entry.itemId, meta.entityId) < quest.objectives[objIdx].count
-    );
+  // L1 loot distribution (party-loot strategy, rollLoot, copper split, need-greed
+  // lifecycle, corpse-loot helpers) moved to loot/loot_roll.ts behind SimContext.
+  // Sim keeps thin same-named delegates only where a foreign caller resolves them:
+  //  - rollLoot: ctx.rollLoot (combat/damage.ts handleDeath) + (sim as any) test casts.
+  //  - resolveLootRoll: the updateLootRolls tick driver (stays on Sim) calls it.
+  //  - activeLootRolls/submitLootRoll: the public IWorld surface (HUD + player action).
+  // The strategy resolvers + copper/need-greed internals had no external caller and
+  // moved fully (no delegate). The corpse-loot helpers (distributeLootCopper/
+  // awardSharedLootItem/lootSlotVisibleTo/pruneCorpseLoot) had their sole Sim caller
+  // (lootCorpse) moved to interaction.ts (W3), which now imports them directly.
+  private rollLoot(
+    mob: Entity,
+    meta: PlayerMeta,
+    eligible: PlayerMeta[] = [meta],
+    contributors?: PlayerMeta[],
+  ): void {
+    rollLootImpl(this.ctx, mob, meta, eligible, contributors);
   }
 
-  private rollLoot(mob: Entity, meta: PlayerMeta, eligible: PlayerMeta[] = [meta]): void {
-    const template = MOBS[mob.templateId];
-    if (!template) return;
-    let copper = 0;
-    const items: LootSlot[] = [];
-    const rolledGroups = new Set<string>();
-    for (const entry of template.loot) {
-      // Exclusive groups: a single rng draw is partitioned by the group
-      // entries' chances, so at most one matching entry drops.
-      // Exactly one rng.next() per group keeps replays deterministic.
-      if (entry.rollGroup) {
-        if (rolledGroups.has(entry.rollGroup)) continue;
-        rolledGroups.add(entry.rollGroup);
-        const group = template.loot.filter((l) => l.rollGroup === entry.rollGroup);
-        const roll = this.rng.next();
-        let cumulative = 0;
-        for (const g of group) {
-          cumulative += g.chance;
-          if (roll < cumulative) {
-            if (g.itemId) items.push({ itemId: g.itemId, count: 1 });
-            break;
-          }
-        }
-        continue;
-      }
-      if (entry.questId) {
-        const questRecipients = eligible.filter((m) => this.needsQuestDrop(entry, m));
-        if (questRecipients.length === 0) continue;
-        if (!this.rng.chance(entry.chance)) continue;
-        items.push({
-          itemId: entry.itemId!,
-          count: 1,
-          personalFor: questRecipients.map((m) => m.entityId),
-        });
-        continue;
-      }
-      if (!this.rng.chance(entry.chance)) continue;
-      if (entry.copper)
-        copper += this.rng.int(Math.ceil(entry.copper * 0.6), Math.ceil(entry.copper * 1.4));
-      if (entry.itemId) items.push({ itemId: entry.itemId, count: 1 });
-    }
-    if (copper > 0 || items.length > 0) {
-      mob.loot = { copper, items };
-      mob.lootable = true;
-    }
+  // World-boss personal loot: an independent roll per contributor, once per day.
+  // Called from combat/damage.ts handleDeath for worldBoss templates via ctx.
+  private rollWorldBossLoot(mob: Entity, contributors: PlayerMeta[]): void {
+    rollWorldBossLootImpl(this.ctx, mob, contributors);
   }
 
-  private grantLootCopper(meta: PlayerMeta, amount: number): void {
-    meta.copper += amount;
-    meta.counters.lootCopper += amount;
-    this.emit({ type: 'loot', text: `You loot ${formatMoney(amount)}.`, pid: meta.entityId });
-  }
-
-  private awardAllCopperToLooter(looter: PlayerMeta, copper: number): void {
-    this.grantLootCopper(looter, copper);
-  }
-
-  private tryAwardCopperByFairSplit(mob: Entity, copper: number): boolean {
-    if (this.effectiveCurrencyLootStrategy(mob) !== 'fair-split') return false;
-    const candidates = this.partyLootCandidatesForMob(mob);
-    if (candidates.length <= 1) return false;
-    const base = Math.floor(copper / candidates.length);
-    const remainder = copper % candidates.length;
-    const shares = new Map<PlayerMeta, number>(candidates.map((candidate) => [candidate, base]));
-    const order = [...candidates];
-    for (let i = 0; i < remainder; i++) {
-      const idx = this.rng.int(i, order.length - 1);
-      [order[i], order[idx]] = [order[idx], order[i]];
-      shares.set(order[i], (shares.get(order[i]) ?? 0) + 1);
-    }
-    for (const candidate of candidates) {
-      const amount = shares.get(candidate) ?? 0;
-      if (amount > 0) this.grantLootCopper(candidate, amount);
-    }
-    return true;
-  }
-
-  private distributeLootCopper(mob: Entity, looter: PlayerMeta): void {
-    if (!mob.loot || mob.loot.copper <= 0) return;
-    const copper = mob.loot.copper;
-    if (!this.tryAwardCopperByFairSplit(mob, copper)) this.awardAllCopperToLooter(looter, copper);
-    mob.loot.copper = 0;
-  }
-
-  private startNeedGreedRoll(itemId: string, mob: Entity): boolean {
-    if (this.effectiveItemLootStrategy(itemId, mob) !== 'need-greed') return false;
-    const candidates = this.partyLootCandidatesForMob(mob);
-    if (candidates.length <= 1) return false;
-    const def = ITEMS[itemId];
-    const itemName = def?.name ?? itemId;
-    const roll: PendingLootRoll = {
-      id: this.nextLootRollId++,
-      mobId: mob.id,
-      itemId,
-      itemName,
-      quality: def?.quality,
-      candidates: candidates.map((candidate) => candidate.entityId),
-      choices: new Map(),
-      expiresAt: this.time + LOOT_ROLL_TIMEOUT,
-    };
-    this.pendingLootRolls.set(roll.id, roll);
-    mob.corpseTimer = Math.max(mob.corpseTimer, LOOT_ROLL_TIMEOUT + 2);
-    for (const candidate of candidates) {
-      this.emit({
-        type: 'lootRoll',
-        rollId: roll.id,
-        itemId,
-        itemName,
-        quality: roll.quality,
-        expiresAt: roll.expiresAt,
-        pid: candidate.entityId,
-      });
-    }
-    return true;
-  }
-
-  private awardSharedLootItem(itemId: string, mob: Entity, looter: PlayerMeta): void {
-    if (!this.startNeedGreedRoll(itemId, mob)) this.addItem(itemId, 1, looter.entityId);
-  }
-
-  // Open need-greed rolls the given player may still answer. Mirrors the
-  // `lootRoll` events but is reconciled from authoritative state, so a client
-  // that missed an event (reconnect, interest churn, a dropped frame) can
-  // re-show the prompt instead of losing the roll while groupmates roll.
   activeLootRolls(pid = this.playerId): LootRollPrompt[] {
-    const out: LootRollPrompt[] = [];
-    for (const roll of this.pendingLootRolls.values()) {
-      if (!roll.candidates.includes(pid) || roll.choices.has(pid)) continue;
-      out.push({
-        rollId: roll.id,
-        itemId: roll.itemId,
-        itemName: roll.itemName,
-        quality: roll.quality,
-        expiresAt: roll.expiresAt,
-      });
-    }
-    return out;
+    return activeLootRollsImpl(this.ctx, pid);
+  }
+
+  lootRollGroupStatus(pid = this.playerId): LootRollGroupStatus[] {
+    return lootRollGroupStatusImpl(this.ctx, pid);
   }
 
   submitLootRoll(rollId: number, choice: LootRollChoice, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const roll = this.pendingLootRolls.get(rollId);
-    if (!roll?.candidates.includes(r.meta.entityId) || roll.choices.has(r.meta.entityId)) return;
-    roll.choices.set(r.meta.entityId, {
-      choice,
-      roll: choice === 'need' || choice === 'greed' ? this.rng.int(1, 100) : null,
-    });
-    if (roll.choices.size >= roll.candidates.length) this.resolveLootRoll(roll);
+    submitLootRollImpl(this.ctx, rollId, choice, pid);
   }
 
   private resolveLootRoll(roll: PendingLootRoll): void {
-    if (!this.pendingLootRolls.delete(roll.id)) return;
-    const entries = roll.candidates
-      .map((pid) => ({
-        pid,
-        result: roll.choices.get(pid) ?? { choice: 'pass' as const, roll: null },
-      }))
-      .filter((entry) => entry.result.choice !== 'pass');
-    const needers = entries.filter((entry) => entry.result.choice === 'need');
-    const contenders =
-      needers.length > 0 ? needers : entries.filter((entry) => entry.result.choice === 'greed');
-    if (contenders.length === 0) {
-      this.returnLootRollItemToCorpse(roll);
-      for (const pid of roll.candidates)
-        this.emit({ type: 'loot', text: `Everyone passed on ${roll.itemName}.`, pid });
-      return;
-    }
-    let winner = contenders[0];
-    for (const contender of contenders.slice(1)) {
-      if ((contender.result.roll ?? 0) > (winner.result.roll ?? 0)) winner = contender;
-    }
-    const winnerMeta = this.players.get(winner.pid);
-    const winnerName = winnerMeta?.name ?? 'Unknown';
-    for (const pid of roll.candidates) {
-      this.emit({
-        type: 'loot',
-        text: `${winnerName} wins ${roll.itemName} (${winner.result.roll ?? 0})`,
-        pid,
-      });
-    }
-    this.addItem(roll.itemId, 1, winner.pid);
+    resolveLootRollImpl(this.ctx, roll);
   }
 
-  private returnLootRollItemToCorpse(roll: PendingLootRoll): void {
-    const mob = this.entities.get(roll.mobId);
-    if (!mob?.dead) return;
-    if (!mob.loot) mob.loot = { copper: 0, items: [] };
-    const existing = mob.loot.items.find(
-      (slot) => slot.openToAll && slot.itemId === roll.itemId && !slot.personalFor,
-    );
-    if (existing) existing.count += 1;
-    else mob.loot.items.push({ itemId: roll.itemId, count: 1, openToAll: true });
-    mob.lootable = true;
+  assignMasterLoot(rollId: number, targetPids: number[], pid?: number): void {
+    assignMasterLootImpl(this.ctx, rollId, targetPids, pid);
   }
 
-  private lootSlotVisibleTo(slot: LootSlot, pid: number): boolean {
-    return slot.openToAll || !slot.personalFor || slot.personalFor.includes(pid);
-  }
-
-  private hasPendingLootRollForMob(mobId: number): boolean {
-    return [...this.pendingLootRolls.values()].some((roll) => roll.mobId === mobId);
-  }
-
-  private pruneCorpseLoot(mob: Entity): void {
-    if (!mob.loot) return;
-    mob.loot.items = mob.loot.items.filter(
-      (s) => s.count > 0 && (!s.personalFor || s.personalFor.length > 0),
-    );
-    if (mob.loot.copper <= 0 && mob.loot.items.length === 0) {
-      if (this.hasPendingLootRollForMob(mob.id)) {
-        mob.loot = null;
-        mob.lootable = true;
-        mob.corpseTimer = Math.max(mob.corpseTimer, LOOT_ROLL_TIMEOUT + 2);
-        return;
-      }
-      mob.loot = null;
-      mob.lootable = false;
-      mob.corpseTimer = Math.min(mob.corpseTimer, 4);
-    }
+  setPartyLootMaster(
+    enabled: boolean,
+    looter: number,
+    threshold: MasterLootThreshold,
+    pid?: number,
+  ): void {
+    setPartyLootMasterImpl(this.ctx, enabled, looter, threshold, pid);
   }
 
   // -------------------------------------------------------------------------
@@ -6496,116 +5846,23 @@ export class Sim {
     target.leashAnchor = { ...target.pos };
   }
 
-  // When a mob's target dies/leaves it swings to its next-highest-threat
-  // attacker. With no living threat left, it evades home instead of grabbing a
-  // nearby bystander who never acted on the mob.
+  // Target selection + threat switching live in mob/targeting.ts (M1). These thin
+  // delegates keep every `this.retargetMob` / `this.updateMobTarget` / `this.isTrivialTo`
+  // call site (and the ctx.retargetMob seam binding) resolving unchanged through the seam.
   private retargetMob(mob: Entity): void {
-    const next = this.highestThreatTarget(mob);
-    if (next) {
-      mob.aggroTargetId = next.id;
-      mob.aiState = 'chase';
-      mob.inCombat = true;
-      mob.despawnTimer = undefined;
-      return;
-    }
-    const nythraxisFallback = this.nythraxisAddFallbackTarget(mob);
-    if (nythraxisFallback) {
-      mob.aggroTargetId = nythraxisFallback.id;
-      mob.aiState = 'chase';
-      mob.inCombat = true;
-      mob.despawnTimer = undefined;
-      addThreat(mob, nythraxisFallback.id, 1);
-      return;
-    }
-    if (this.scheduleNythraxisAddDespawnIfBossReset(mob)) return;
-    mob.aggroTargetId = null;
-    mob.aiState = 'evade';
+    retargetMobFn(this.ctx, mob);
   }
 
-  private findNythraxisBossForAdd(add: Entity): Entity | null {
-    if (add.kind !== 'mob' || add.templateId !== NYTHRAXIS_ADD_ID) return null;
-    for (const e of this.entities.values()) {
-      if (e.kind !== 'mob' || e.templateId !== NYTHRAXIS_BOSS_ID || e.dead) continue;
-      if (e.summonedIds.includes(add.id) || dist2d(e.spawnPos, add.spawnPos) < 1) return e;
-    }
-    return null;
-  }
+  // Nythraxis add-AI (findNythraxisBossForAdd + the fallback-target / despawn-if-reset
+  // pair) moved to encounters/nythraxis.ts (N1). The mob-retarget block in
+  // mob/targeting.ts reaches the pair through ctx.nythraxisAddFallbackTarget /
+  // ctx.scheduleNythraxisAddDespawnIfBossReset (bound to the module in buildSimContext).
 
-  private nythraxisAddFallbackTarget(add: Entity): Entity | null {
-    const boss = this.findNythraxisBossForAdd(add);
-    if (!boss?.inCombat || boss.aiState === 'idle' || boss.aiState === 'evade') return null;
-    const target = boss.aggroTargetId !== null ? this.entities.get(boss.aggroTargetId) : null;
-    return target && !target.dead && target.kind === 'player' ? target : null;
-  }
+  // highestThreatTarget moved to mob/targeting.ts (M1); retargetMob/updateMobTarget
+  // call it there. No Sim delegate: it had no caller outside those two methods.
 
-  private scheduleNythraxisAddDespawnIfBossReset(add: Entity): boolean {
-    const boss = this.findNythraxisBossForAdd(add);
-    if (!boss || (boss.inCombat && boss.aiState !== 'idle' && boss.aiState !== 'evade'))
-      return false;
-    add.aggroTargetId = null;
-    add.aiState = 'idle';
-    add.inCombat = false;
-    add.hostile = false;
-    add.despawnTimer = add.despawnTimer ?? 10;
-    clearThreat(add);
-    return true;
-  }
-
-  /** Highest-threat living attacker on the table; prunes stale entries. */
-  private highestThreatTarget(mob: Entity): Entity | null {
-    let best: Entity | null = null;
-    let bestT = -1;
-    for (const [id, t] of mob.threat) {
-      const e = this.entities.get(id);
-      if (!e || e.dead) {
-        mob.threat.delete(id);
-        continue;
-      }
-      if (t > bestT) {
-        bestT = t;
-        best = e;
-      }
-    }
-    return best;
-  }
-
-  // Classic pull-over rules, applied every AI tick while fighting: an attacker
-  // takes aggro past 110% of the current target's threat in melee range of
-  // the mob, or past 130% at range. A taunt forces the target outright.
   private updateMobTarget(mob: Entity): void {
-    if (mob.forcedTargetTimer > 0) {
-      mob.forcedTargetTimer -= DT;
-      const forced = mob.forcedTargetId !== null ? this.entities.get(mob.forcedTargetId) : null;
-      if (forced && !forced.dead) {
-        mob.aggroTargetId = forced.id;
-        return;
-      }
-    }
-    if (mob.forcedTargetTimer <= 0) mob.forcedTargetId = null;
-    const cur = mob.aggroTargetId !== null ? this.entities.get(mob.aggroTargetId) : null;
-    if (!cur || cur.dead) {
-      const next = this.highestThreatTarget(mob);
-      if (next) mob.aggroTargetId = next.id;
-      return;
-    }
-    const curThreat = mob.threat.get(cur.id) ?? 0;
-    let best = cur;
-    let bestT = curThreat;
-    for (const [id, t] of mob.threat) {
-      if (id === cur.id || t <= bestT) continue;
-      const e = this.entities.get(id);
-      if (!e || e.dead) {
-        mob.threat.delete(id);
-        continue;
-      }
-      const inMelee = dist2d(mob.pos, e.pos) <= MELEE_RANGE * 1.2;
-      const needed = curThreat * (inMelee ? MELEE_SWITCH_MULT : RANGED_SWITCH_MULT);
-      if (t > needed) {
-        best = e;
-        bestT = t;
-      }
-    }
-    if (best !== cur) mob.aggroTargetId = best.id;
+    updateMobTargetFn(this.ctx, mob);
   }
 
   // Effective melee reach. Large creatures measure range from their centre, which
@@ -6617,84 +5874,15 @@ export class Sim {
   }
 
   private mobCombatProfile(mob: Entity): MobCombatProfile {
-    return combatProfileForMob(mob.templateId, mob.scale);
+    return mobCombatProfileFn(mob);
   }
 
   private mobEffectiveMeleeRange(mob: Entity): number {
-    const profile = this.mobCombatProfile(mob);
-    const mobMoved = dist2d(mob.pos, mob.prevPos) > 0.05;
-    return effectiveMobMeleeRange(profile, mobMoved);
+    return mobEffectiveMeleeRangeFn(mob);
   }
 
   private tryMobMeleeSwingInRange(mob: Entity, target: Entity): boolean {
-    if (dist2d(mob.pos, target.pos) > this.mobEffectiveMeleeRange(mob)) return false;
-    mob.aiState = 'attack';
-    mob.facing = angleTo(mob.pos, target.pos);
-    if (mob.swingTimer <= 0) {
-      this.mobSwing(mob, target);
-      mob.swingTimer = mob.weapon.speed * this.swingIntervalMult(mob);
-    }
-    return true;
-  }
-
-  private usesProfiledMobCombat(mob: Entity): boolean {
-    const profile = this.mobCombatProfile(mob);
-    return profile.swingWhilePursuing || profile.immediateSwingOnEnterRange || !profile.canLeash;
-  }
-
-  private updateProfiledMobCombat(mob: Entity): void {
-    const profile = this.mobCombatProfile(mob);
-    this.updateMobTarget(mob);
-    const target = mob.aggroTargetId !== null ? this.entities.get(mob.aggroTargetId) : null;
-    if (!target || target.dead) {
-      this.retargetMob(mob);
-      return;
-    }
-    if (this.maybeFlee(mob, target)) return;
-
-    if (profile.canLeash) {
-      const leash = mob.spawnPos.x > DUNGEON_X_THRESHOLD ? DUNGEON_LEASH_DISTANCE : LEASH_DISTANCE;
-      const leashAnchor = mob.leashAnchor ?? mob.spawnPos;
-      if (mob.fleeReturnTimer > 0) {
-        mob.fleeReturnTimer = Math.max(0, mob.fleeReturnTimer - DT);
-        if (dist2d(mob.pos, leashAnchor) <= leash - 1) mob.fleeReturnTimer = 0;
-      }
-      if (dist2d(mob.pos, leashAnchor) > leash && mob.fleeReturnTimer <= 0) {
-        mob.aiState = 'evade';
-        mob.aggroTargetId = null;
-        clearThreat(mob);
-        mob.leashAnchor = null;
-        return;
-      }
-    }
-
-    mob.swingTimer = Math.max(0, mob.swingTimer - DT);
-    if (profile.swingWhilePursuing || mob.aiState === 'attack') {
-      this.tryMobMeleeSwingInRange(mob, target);
-    }
-
-    if (dist2d(mob.pos, target.pos) > profile.desiredRange) {
-      if (!this.isRooted(mob)) {
-        this.moveToward(
-          mob,
-          target.pos,
-          mob.moveSpeed * profile.chaseSpeedMult * this.moveSpeedMult(mob),
-        );
-      } else {
-        mob.facing = angleTo(mob.pos, target.pos);
-      }
-    } else {
-      mob.facing = angleTo(mob.pos, target.pos);
-    }
-
-    if (
-      profile.immediateSwingOnEnterRange ||
-      profile.swingWhilePursuing ||
-      mob.aiState === 'attack'
-    ) {
-      this.tryMobMeleeSwingInRange(mob, target);
-    }
-    mob.aiState = dist2d(mob.pos, target.pos) <= profile.meleeRange ? 'attack' : 'chase';
+    return tryMobMeleeSwingInRangeFn(this.ctx, mob, target);
   }
 
   aggroMob(mob: Entity, target: Entity, social: boolean): void {
@@ -6714,6 +5902,16 @@ export class Sim {
     if (target.kind === 'player' && MOBS[mob.templateId]?.boss) {
       const run = this.delveRunForPlayer(target.id);
       if (run) this.maybeCompanionBark(run, target.id, 'boss_pull');
+    }
+    // Boss engage bark: once per pull, on the first player-driven aggro. A
+    // player-owned pet pull counts (a hunter opening with the pet still wakes
+    // the boss); yelledEngage resets with the other per-pull state on
+    // evade/respawn.
+    const engageYell = MOBS[mob.templateId]?.yells?.engage;
+    const playerPull = target.kind === 'player' || target.ownerId !== null;
+    if (engageYell && playerPull && !mob.yelledEngage) {
+      mob.yelledEngage = true;
+      emitMobYell(this.ctx, mob, engageYell, MOBS[mob.templateId]?.battleYells?.range);
     }
     if (social) {
       const family = MOBS[mob.templateId]?.family;
@@ -6739,510 +5937,25 @@ export class Sim {
     }
   }
 
-  // Classic "trivial con": a wild mob far below the player's level stops
-  // auto-aggroing from proximity. Elites, rares, and bosses are never trivial.
-  private isTrivialTo(mob: Entity, player: Entity): boolean {
-    const template = MOBS[mob.templateId];
-    if (template.elite || template.rare || template.boss) return false;
-    return player.level - mob.level >= TRIVIAL_LEVEL_GAP;
-  }
-
   private updateMob(mob: Entity): void {
-    if (mob.dead) {
-      if (mob.templateId === NYTHRAXIS_BOSS_ID && mob.nythraxis && !mob.nythraxis.deathSpoken) {
-        mob.nythraxis.deathSpoken = true;
-        mob.nythraxis.phase = 'dead';
-        this.nythraxisDialogueSet(mob, [
-          { speaker: 'nythraxis', text: 'Malric...', delay: 0 },
-          {
-            speaker: 'nythraxis',
-            text: 'What have you done',
-            delay: NYTHRAXIS_DIALOGUE_LINE_SECONDS,
-          },
-        ]);
-      }
-      if (mob.ownerId !== null && MOBS[mob.templateId]?.family !== 'demon') return;
-      mob.corpseTimer -= DT;
-      mob.respawnTimer -= DT;
-      // Death Throes: a volatile corpse counts down its fuse, then detonates once.
-      if (mob.detonateTimer !== Infinity) {
-        mob.detonateTimer -= DT;
-        if (mob.detonateTimer <= 0) {
-          mob.detonateTimer = Infinity;
-          this.detonateCorpse(mob);
-        }
-      }
-      // a slain summoned demon unravels rather than respawning into the wild
-      if (mob.ownerId !== null && MOBS[mob.templateId]?.family === 'demon') {
-        if (mob.corpseTimer <= 0) this.despawnPet(mob);
-        return;
-      }
-      // dungeon mobs stay dead until the instance resets
-      const isInstanceMob = mob.spawnPos.x > DUNGEON_X_THRESHOLD;
-      if (!isInstanceMob && mob.respawnTimer <= 0 && (mob.corpseTimer <= 0 || !mob.lootable)) {
-        this.respawnMob(mob);
-      }
-      return;
-    }
-
-    mob.combatTimer += DT;
-
-    if (mob.templateId.startsWith('vision_')) {
-      mob.hostile = false;
-      mob.aiState = 'idle';
-      mob.inCombat = false;
-      mob.aggroTargetId = null;
-      clearThreat(mob);
-      return;
-    }
-
-    if (mob.ownerId !== null) {
-      if (this.isStunned(mob)) return;
-      if (this.isDelveCompanionMob(mob)) {
-        this.updateDelveCompanion(mob);
-        return;
-      }
-      this.updatePet(mob);
-      return;
-    }
-
-    // Self-healing safety net (#113/#99): every mob spawns hostile and only
-    // taming clears that (which always assigns an owner). A live, owner-less,
-    // non-hostile mob is therefore a leak — exactly the "immortal, invalid
-    // target" wolves players hit. Restore hostility so no mob can ever be left
-    // permanently untargetable, whatever path corrupted it.
-    if (mob.templateId === NYTHRAXIS_ADD_ID && mob.despawnTimer !== undefined) {
-      mob.hostile = false;
-      mob.aiState = 'idle';
-      mob.inCombat = false;
-      mob.aggroTargetId = null;
-      return;
-    }
-
-    if (!mob.hostile) mob.hostile = true;
-
-    const isNythraxis = mob.templateId === NYTHRAXIS_BOSS_ID;
-    if (mob.inCombat || (isNythraxis && mob.nythraxis && mob.nythraxis.phase !== 'dead')) {
-      const nythraxisScriptLocked =
-        isNythraxis &&
-        mob.nythraxis &&
-        (mob.nythraxis.phase === 'transition' ||
-          mob.nythraxis.deathlessCastRemaining > 0 ||
-          mob.nythraxis.deathlessStunRemaining > 0);
-      if (isNythraxis) {
-        this.updateNythraxisEncounter(mob);
-        if (
-          nythraxisScriptLocked ||
-          (mob.nythraxis &&
-            (mob.nythraxis.phase === 'transition' ||
-              mob.nythraxis.deathlessCastRemaining > 0 ||
-              mob.nythraxis.deathlessStunRemaining > 0))
-        )
-          return;
-      } else {
-        this.updateBossMechanics(mob);
-      }
-    }
-
-    if (this.isStunned(mob)) {
-      if (this.updateFearMovement(mob)) return;
-      if (mob.auras.some((a) => a.kind === 'polymorph')) {
-        mob.wanderTimer -= DT;
-        if (mob.wanderTimer <= 0) {
-          mob.wanderTimer = this.rng.range(0.8, 2);
-          mob.facing = this.rng.range(-Math.PI, Math.PI);
-        }
-        const step = 1.6 * DT;
-        mob.pos.x += Math.sin(mob.facing) * step;
-        mob.pos.z += Math.cos(mob.facing) * step;
-        mob.pos.y = groundHeight(mob.pos.x, mob.pos.z, this.cfg.seed);
-      }
-      return;
-    }
-
-    switch (mob.aiState) {
-      case 'idle': {
-        if (mob.templateId === NYTHRAXIS_BOSS_ID && !mob.inCombat) {
-          mob.wanderTarget = null;
-          mob.wanderTimer = 3;
-          mob.pos = { ...mob.spawnPos };
-          mob.prevPos = { ...mob.pos };
-          mob.facing = Math.PI;
-          mob.prevFacing = Math.PI;
-          const template = MOBS[mob.templateId];
-          let detected: Entity | null = null;
-          let detectedD = Infinity;
-          this.playerGrid.forEachInRadius(mob.pos.x, mob.pos.z, 25, (e, d2) => {
-            if (e.dead) return;
-            const radius = Math.max(
-              4,
-              Math.min(20, template.aggroRadius + (mob.level - e.level) * 1.5),
-            );
-            const d = Math.sqrt(d2);
-            if (d < radius && d < detectedD) {
-              detected = e;
-              detectedD = d;
-            }
-          });
-          if (detected) this.aggroMob(mob, detected, true);
-          return;
-        }
-        const template = MOBS[mob.templateId];
-        let detected: Entity | null = null;
-        let detectedD = Infinity;
-        this.playerGrid.forEachInRadius(mob.pos.x, mob.pos.z, 25, (e, d2) => {
-          if (e.dead) return;
-          if (this.isTrivialTo(mob, e)) return;
-          let radius = Math.max(
-            4,
-            Math.min(20, template.aggroRadius + (mob.level - e.level) * 1.5),
-          );
-          radius *= this.delveDetectMult(e);
-          // stealthed rogues are harder to detect, relative to observer level
-          if (e.auras.some((a) => a.kind === 'stealth'))
-            radius = stealthDetectionRadius(mob, e, radius);
-          const d = Math.sqrt(d2);
-          if (d < radius && d < detectedD) {
-            detected = e;
-            detectedD = d;
-          }
-        });
-        if (detected) {
-          this.aggroMob(mob, detected, true);
-          break;
-        }
-        mob.wanderTimer -= DT;
-        if (mob.wanderTimer <= 0) {
-          if (mob.wanderTarget) {
-            mob.wanderTarget = null;
-            mob.wanderTimer = this.rng.range(3, 10);
-          } else {
-            const ang = this.rng.range(0, Math.PI * 2);
-            const r = this.rng.range(2, 9);
-            mob.wanderTarget = this.groundPos(
-              mob.spawnPos.x + Math.sin(ang) * r,
-              mob.spawnPos.z + Math.cos(ang) * r,
-            );
-            mob.wanderTimer = 30;
-          }
-        }
-        if (mob.wanderTarget) {
-          const arrived = this.moveToward(mob, mob.wanderTarget, mob.moveSpeed * 0.35);
-          if (arrived) {
-            mob.wanderTarget = null;
-            mob.wanderTimer = this.rng.range(3, 10);
-          }
-        }
-        break;
-      }
-      case 'chase': {
-        if (this.usesProfiledMobCombat(mob)) {
-          this.updateProfiledMobCombat(mob);
-          break;
-        }
-        this.updateMobTarget(mob);
-        const target = mob.aggroTargetId !== null ? this.entities.get(mob.aggroTargetId) : null;
-        if (!target || target.dead) {
-          this.retargetMob(mob);
-          break;
-        }
-        if (this.maybeFlee(mob, target)) break;
-        const spell = MOBS[mob.templateId]?.petSpell;
-        const leash =
-          mob.spawnPos.x > DUNGEON_X_THRESHOLD ? DUNGEON_LEASH_DISTANCE : LEASH_DISTANCE;
-        const leashAnchor = mob.leashAnchor ?? mob.spawnPos;
-        if (mob.fleeReturnTimer > 0) {
-          mob.fleeReturnTimer = Math.max(0, mob.fleeReturnTimer - DT);
-          if (dist2d(mob.pos, leashAnchor) <= leash - 1) mob.fleeReturnTimer = 0;
-        }
-        // Nythraxis is a raid boss: he never leashes/resets from being kited.
-        // Only a full wipe resets him (handled in updateNythraxisEncounter).
-        if (!isNythraxis && dist2d(mob.pos, leashAnchor) > leash && mob.fleeReturnTimer <= 0) {
-          mob.aiState = 'evade';
-          mob.aggroTargetId = null;
-          clearThreat(mob);
-          mob.leashAnchor = null;
-          break;
-        }
-        const d = dist2d(mob.pos, target.pos);
-        if (spell && d <= spell.range) {
-          mob.aiState = 'attack';
-          mob.swingTimer = Math.min(mob.swingTimer, 0.4);
-          break;
-        }
-        mob.swingTimer = Math.max(0, mob.swingTimer - DT);
-        if (this.tryMobMeleeSwingInRange(mob, target)) break;
-        if (!this.isRooted(mob))
-          this.moveToward(mob, target.pos, mob.moveSpeed * this.moveSpeedMult(mob));
-        else mob.facing = angleTo(mob.pos, target.pos);
-        if (this.tryMobMeleeSwingInRange(mob, target)) break;
-        break;
-      }
-      case 'attack': {
-        if (this.usesProfiledMobCombat(mob)) {
-          this.updateProfiledMobCombat(mob);
-          break;
-        }
-        this.updateMobTarget(mob);
-        const target = mob.aggroTargetId !== null ? this.entities.get(mob.aggroTargetId) : null;
-        if (!target || target.dead) {
-          this.retargetMob(mob);
-          break;
-        }
-        if (this.maybeFlee(mob, target)) break;
-        const d = dist2d(mob.pos, target.pos);
-        const spell = MOBS[mob.templateId]?.petSpell;
-        if (spell) {
-          if (d > spell.range) {
-            mob.aiState = 'chase';
-            break;
-          }
-          this.updateRangedPetAttack(mob, target, spell);
-          break;
-        }
-        if (d > this.mobEffectiveMeleeRange(mob)) {
-          mob.aiState = 'chase';
-          break;
-        }
-        mob.facing = angleTo(mob.pos, target.pos);
-        mob.swingTimer -= DT;
-        if (mob.swingTimer <= 0) {
-          this.mobSwing(mob, target);
-          mob.swingTimer = mob.weapon.speed * this.swingIntervalMult(mob);
-        }
-        // Boss/miniboss pulse mechanic.
-        const pulse = MOBS[mob.templateId]?.aoePulse;
-        if (pulse) {
-          mob.pulseTimer -= DT;
-          if (mob.pulseTimer <= 0) {
-            mob.pulseTimer = pulse.every;
-            const school = pulse.school ?? 'shadow';
-            this.emit({
-              type: 'spellfx',
-              sourceId: mob.id,
-              targetId: mob.id,
-              school,
-              fx: pulse.fx ?? 'nova',
-            });
-            for (const meta of this.players.values()) {
-              const pe = this.entities.get(meta.entityId);
-              if (pe && !pe.dead && dist2d(pe.pos, mob.pos) <= pulse.radius) {
-                const dmg = Math.round(this.rng.range(pulse.min, pulse.max));
-                this.dealDamage(mob, pe, dmg, false, school, pulse.name, 'hit', true);
-              }
-            }
-          }
-        }
-        // Boss/miniboss War Stomp: a periodic ground slam that stuns (and
-        // optionally damages) nearby players. Telegraphed via createMob, which
-        // seeds stompTimer to one full interval so the first slam never lands
-        // the instant combat opens.
-        const stomp = MOBS[mob.templateId]?.stomp;
-        if (stomp) {
-          mob.stompTimer -= DT;
-          if (mob.stompTimer <= 0) {
-            mob.stompTimer = stomp.every;
-            const school = stomp.school ?? 'physical';
-            this.emit({ type: 'spellfx', sourceId: mob.id, targetId: mob.id, school, fx: 'nova' });
-            this.emit({
-              type: 'log',
-              text: `${mob.name} unleashes ${stomp.name}!`,
-              color: '#ff9933',
-              entityId: mob.id,
-            });
-            for (const meta of this.players.values()) {
-              const pe = this.entities.get(meta.entityId);
-              if (!pe || pe.dead || dist2d(pe.pos, mob.pos) > stomp.radius) continue;
-              if (stomp.min !== undefined && stomp.max !== undefined) {
-                const dmg = Math.round(this.rng.range(stomp.min, stomp.max));
-                this.dealDamage(mob, pe, dmg, false, school, stomp.name, 'hit', true);
-              }
-              if (pe.dead) continue; // a fatal slam shouldn't also stun the corpse
-              this.applyAura(pe, {
-                id: 'stomp_stun',
-                name: stomp.name,
-                kind: 'stun',
-                remaining: stomp.duration,
-                duration: stomp.duration,
-                value: 0,
-                sourceId: mob.id,
-                school: school as Aura['school'],
-              });
-            }
-          }
-        }
-        // Stoneskin: a periodic self-absorb barrier. Telegraphed via createMob,
-        // which seeds stoneskinTimer to one full interval so the first barrier
-        // never snaps up the instant combat opens. Reuses the `absorb` aura,
-        // which dealDamage already soaks before any health is lost.
-        const stoneskin = MOBS[mob.templateId]?.stoneskin;
-        if (stoneskin) {
-          mob.stoneskinTimer -= DT;
-          if (mob.stoneskinTimer <= 0) {
-            mob.stoneskinTimer = stoneskin.every;
-            const school = (stoneskin.school ?? 'physical') as Aura['school'];
-            this.emit({ type: 'spellfx', sourceId: mob.id, targetId: mob.id, school, fx: 'nova' });
-            this.emit({
-              type: 'log',
-              text: `${mob.name} unleashes ${stoneskin.name}!`,
-              color: '#c9c2b5',
-              entityId: mob.id,
-            });
-            this.applyAura(mob, {
-              id: `stoneskin_${mob.templateId}`,
-              name: stoneskin.name,
-              kind: 'absorb',
-              remaining: stoneskin.duration,
-              duration: stoneskin.duration,
-              value: stoneskin.amount,
-              sourceId: mob.id,
-              school,
-            });
-          }
-        }
-        // Banshee's Wail: a periodic, telegraphed scream that terrifies nearby
-        // players into fleeing. The fear analogue of War Stomp — same timed,
-        // room-wide cadence — but it applies the `fear_incap` aura the on-hit
-        // `dread` and player-cast Fear share, so `updateFearMovement` drives the
-        // panic. Telegraphed via createMob, which seeds terrifyTimer to one full
-        // interval so the first wail never lands the instant combat opens.
-        const terrify = MOBS[mob.templateId]?.terrify;
-        if (terrify) {
-          mob.terrifyTimer -= DT;
-          if (mob.terrifyTimer <= 0) {
-            mob.terrifyTimer = terrify.every;
-            const school = terrify.school ?? 'shadow';
-            this.emit({ type: 'spellfx', sourceId: mob.id, targetId: mob.id, school, fx: 'nova' });
-            this.emit({
-              type: 'log',
-              text: `${mob.name} unleashes ${terrify.name}!`,
-              color: '#ff9933',
-              entityId: mob.id,
-            });
-            for (const meta of this.players.values()) {
-              const pe = this.entities.get(meta.entityId);
-              if (!pe || pe.dead || dist2d(pe.pos, mob.pos) > terrify.radius) continue;
-              const remaining = this.diminishedCrowdControlDuration(
-                mob,
-                pe,
-                'fear',
-                terrify.duration,
-              );
-              if (remaining === null) continue;
-              this.applyAura(pe, {
-                id: 'fear_incap',
-                name: terrify.name,
-                kind: 'incapacitate',
-                remaining,
-                duration: remaining,
-                value: this.rng.range(-Math.PI, Math.PI),
-                sourceId: mob.id,
-                school,
-                breaksOnDamage: true,
-              });
-            }
-          }
-        }
-        break;
-      }
-      case 'flee': {
-        const target = mob.aggroTargetId !== null ? this.entities.get(mob.aggroTargetId) : null;
-        if (!target || target.dead) {
-          this.retargetMob(mob);
-          break;
-        }
-        const fleeSpeed = this.fleeMoveSpeed(mob);
-        // A panic flee should not be the thing that breaks leash and full-heals
-        // the mob. If it reaches the leash edge, it recovers and re-engages;
-        // normal chase/attack leash checks still handle genuine dragged pulls.
-        const leash =
-          mob.spawnPos.x > DUNGEON_X_THRESHOLD ? DUNGEON_LEASH_DISTANCE : LEASH_DISTANCE;
-        const leashAnchor = mob.leashAnchor ?? mob.spawnPos;
-        if (dist2d(mob.pos, leashAnchor) >= leash - fleeSpeed * DT) {
-          this.recoverFromFlee(mob, target, leash, leashAnchor);
-          break;
-        }
-        mob.fleeTimer -= DT;
-        if (mob.fleeTimer <= 0) {
-          // Recover nerve and turn to fight again; hasFled keeps it from re-fleeing.
-          this.recoverFromFlee(mob, target, leash, leashAnchor);
-          mob.swingTimer = Math.min(mob.swingTimer, 0.4);
-          break;
-        }
-        // Run directly away from the attacker. A root pins it in place (it just
-        // cowers facing away); a stun is already handled by the early return above.
-        const away = angleTo(target.pos, mob.pos);
-        mob.facing = away;
-        if (!this.isRooted(mob)) {
-          const fleePos = this.groundPos(
-            mob.pos.x + Math.sin(away) * 10,
-            mob.pos.z + Math.cos(away) * 10,
-          );
-          this.moveToward(mob, fleePos, fleeSpeed);
-        }
-        break;
-      }
-      case 'evade': {
-        // moveToward has no pathfinding: a straight line home that crosses a prop
-        // (the camp tent/crate/campfire) or deep water makes no progress, so the
-        // mob stays evading — and therefore immune — forever. Walk home normally,
-        // but once stalled, phase straight through the blocker just until a normal
-        // step works again. Phasing always makes progress, so arrival is the
-        // backstop: worst case it phases the rest of the way home.
-        const phasing = mob.evadeStall >= EVADE_STALL_TIMEOUT;
-        const distBefore = dist2d(mob.pos, mob.spawnPos);
-        const arrived = this.moveToward(
-          mob,
-          mob.spawnPos,
-          mob.moveSpeed * EVADE_SPEED_MULT,
-          phasing,
-        );
-        if (arrived) {
-          this.resetEvadingMob(mob);
-        } else if (phasing) {
-          if (!this.blockedTowardSpawn(mob, mob.spawnPos)) mob.evadeStall = 0; // cleared the obstacle
-        } else if (dist2d(mob.pos, mob.spawnPos) < distBefore - 1e-3) {
-          mob.evadeStall = 0; // walking home fine
-        } else {
-          mob.evadeStall += DT; // pinned on something
-        }
-        break;
-      }
-    }
+    updateMobFn(this.ctx, mob);
   }
 
-  // An evading mob has reached its spawn (walking or phasing): drop the pull
-  // entirely and return to idle at full health, ready to be pulled again.
+  // onBossDeath (the Nythraxis phase->dead + death dialogue) moved to
+  // encounters/nythraxis.ts (N1). updateMob's dead-branch (mob/locomotion.ts) fires it
+  // via ctx.onBossDeath for every dead mob (it draws no rng, so the unconditional call
+  // preserves draw order); the arrow binding lives in buildSimContext.
+
+  // resetEvadingMob moved to mob/locomotion.ts (M2). Sim keeps a thin delegate because
+  // wipeNythraxisEncounter + 8 mob_* tests + the parity scenario call sim.resetEvadingMob.
   private resetEvadingMob(mob: Entity): void {
-    mob.aiState = 'idle';
-    mob.hp = mob.maxHp;
-    mob.auras = [];
-    mob.inCombat = false;
-    mob.tappedById = null;
-    mob.leashAnchor = null;
-    mob.evadeStall = 0;
-    mob.fleeTimer = 0;
-    mob.fleeReturnTimer = 0;
-    mob.hasFled = false;
-    clearThreat(mob);
-    this.despawnSummonedAdds(mob);
-    mob.firedSummons = 0;
-    mob.enraged = false;
-    mob.healedThisPull = false;
-    mob.stompTimer = MOBS[mob.templateId]?.stomp?.every ?? 0;
-    mob.terrifyTimer = MOBS[mob.templateId]?.terrify?.every ?? 0;
-    mob.mendTimer = MOBS[mob.templateId]?.mendAlly?.every ?? 0;
-    mob.wardTimer = MOBS[mob.templateId]?.wardAllies?.every ?? 0;
-    mob.stoneskinTimer = MOBS[mob.templateId]?.stoneskin?.every ?? 0;
-    mob.rallyTimer = MOBS[mob.templateId]?.rally?.every ?? 0;
-    mob.warcryTimer = MOBS[mob.templateId]?.warcry?.every ?? 0;
-    mob.wanderTimer = this.rng.range(2, 8);
-    if (mob.templateId === NYTHRAXIS_BOSS_ID) this.resetNythraxisEncounter(mob);
+    resetEvadingMobFn(this.ctx, mob);
   }
 
   // Cowardly mobs panic once per pull at low HP: turn and run from the attacker
-  // for a few seconds, rallying nearby same-family allies. Returns true if the mob
-  // entered (or is already in) the flee state so the caller can stop its turn.
+  // for a few seconds, rallying nearby same-family allies, then recover their nerve.
+  // Returns true if the mob entered (or is already in) the flee state so the caller
+  // can stop its turn.
   private canFlee(mob: Entity): boolean {
     if (mob.hasFled || mob.enraged) return false;
     const tmpl = MOBS[mob.templateId];
@@ -7250,7 +5963,7 @@ export class Sim {
     return FLEEING_FAMILIES.has(tmpl.family);
   }
 
-  private maybeFlee(mob: Entity, target: Entity): boolean {
+  private maybeFlee(mob: Entity, _target: Entity): boolean {
     if (mob.maxHp <= 0 || mob.hp / mob.maxHp > FLEE_HP_THRESHOLD) return false;
     if (!this.canFlee(mob)) return false;
     mob.aiState = 'flee';
@@ -7262,38 +5975,16 @@ export class Sim {
       color: '#ffd966',
       entityId: mob.id,
     });
-    this.callForHelp(mob, target);
+    // The rally is NOT seeded here at the panic spot. The fleer runs first and rallies
+    // the first local same-family cluster it reaches, then turns back to fight with it;
+    // that per-tick scan lives in the flee arm (mob/locomotion.ts -> mob/social_aggro.ts).
     return true;
   }
 
-  // A fleeing mob shouts for aid: nearby idle same-family mobs join the fight,
-  // mirroring the social-pull seeding in aggroMob.
-  private callForHelp(mob: Entity, target: Entity): void {
-    const family = MOBS[mob.templateId]?.family;
-    if (!family) return;
-    this.grid.forEachInRadius(mob.pos.x, mob.pos.z, FLEE_HELP_RADIUS, (m, d2) => {
-      if (
-        m.kind === 'mob' &&
-        m.id !== mob.id &&
-        !m.dead &&
-        m.hostile &&
-        m.aiState === 'idle' &&
-        m.ownerId === null &&
-        MOBS[m.templateId]?.family === family &&
-        d2 < FLEE_HELP_RADIUS * FLEE_HELP_RADIUS
-      ) {
-        m.aiState = 'chase';
-        m.aggroTargetId = target.id;
-        m.inCombat = true;
-        m.leashAnchor = { ...m.pos };
-        addThreat(m, target.id, 1);
-      }
-    });
-  }
-
   mobSwing(mob: Entity, target: Entity): void {
-    const missChance = meleeMissChance(mob.level, target.level);
+    const missChance = swingMissChance(mob, target);
     const dodgeChance = target.kind === 'player' ? target.dodgeChance : 0.05;
+    const { parryChance, blockChance } = warriorMeleeDefense(target, mob);
     const roll = this.rng.next();
     if (roll < missChance) {
       this.emit({
@@ -7319,6 +6010,21 @@ export class Sim {
         ability: null,
         kind: 'dodge',
       });
+      this.tryRevengeFree(target);
+      return;
+    }
+    if (roll < missChance + dodgeChance + parryChance) {
+      this.emit({
+        type: 'damage',
+        sourceId: mob.id,
+        targetId: target.id,
+        amount: 0,
+        crit: false,
+        school: 'physical',
+        ability: null,
+        kind: 'parry',
+      });
+      this.tryRevengeFree(target);
       return;
     }
     let dmg =
@@ -7328,1114 +6034,46 @@ export class Sim {
     if (crit) dmg *= 2;
     const enrage = MOBS[mob.templateId]?.enrage;
     if (mob.enraged && enrage) dmg *= enrage.dmgMult;
+    dmg *= this.petDamageMult(mob);
     const rawDmg = dmg; // pre-armor, post-crit/enrage — basis for cleave splash
     dmg *= 1 - armorReduction(this.effectiveArmor(target), mob.level);
+    if (blockChance > 0 && roll < missChance + dodgeChance + parryChance + blockChance) {
+      dmg = Math.max(1, dmg - target.blockValue);
+    }
     const dealt = Math.max(1, Math.round(dmg));
     this.dealDamage(mob, target, dealt, crit, 'physical', null, 'hit');
-    // Lifesteal: a landed swing heals the mob for a fraction of the damage it
-    // just dealt. Hostile mobs only, so a friendly pet (mobSwing's other caller)
-    // never drains for its owner; skip if the mob is already topped off or died
-    // to the defender's thorns/reflect earlier this swing.
-    const leech = MOBS[mob.templateId]?.lifeleech;
-    if (
-      leech &&
-      mob.hostile &&
-      !mob.dead &&
-      mob.hp < mob.maxHp &&
-      this.rng.chance(leech.chance ?? 1)
-    ) {
-      const heal = Math.min(mob.maxHp - mob.hp, Math.max(1, Math.round(dealt * leech.healFrac)));
-      if (heal > 0) {
-        mob.hp += heal;
-        this.emit({ type: 'heal', targetId: mob.id, amount: heal });
-      }
-    }
-    // Battle Fury (Rampage): a landed swing whips this attacker into an escalating
-    // frenzy — a self-applied, stacking buff_ap aura (up to `maxStacks`) that grows
-    // its attack power, and thus its melee damage, the longer the fight drags on.
-    // Rides the existing buff_ap aura that effectiveAttackPower already folds into
-    // mob swing damage, so there is no new combat math. Hostile mobs only, so a
-    // friendly pet (mobSwing's other caller) never self-buffs off the party's kills;
-    // skip if the mob died to the defender's thorns/reflect earlier this swing. The
-    // single shared aura slot is bumped and refreshed each hit; left alone it falls
-    // off after `duration`s, so burning the mob down or kiting it out of melee both
-    // reset the ramp.
-    const rampage = MOBS[mob.templateId]?.rampage;
-    if (rampage && mob.hostile && !mob.dead) {
-      const existing = mob.auras.find(
-        (a) => a.id === `rampage_${mob.templateId}` && a.sourceId === mob.id,
-      );
-      const stacks = Math.min(rampage.maxStacks, (existing?.stacks ?? 0) + 1);
-      this.applyAura(mob, {
-        id: `rampage_${mob.templateId}`,
-        name: rampage.name,
-        kind: 'buff_ap',
-        remaining: rampage.duration,
-        duration: rampage.duration,
-        value: rampage.ap * stacks,
-        stacks,
-        sourceId: mob.id,
-        school: rampage.school ?? 'physical',
-      });
-    }
-    // Cleave: the swing splashes onto other players standing near the primary
-    // target, each taking the hit reduced by their own armor. Hostile mobs only,
-    // so a friendly pet swinging through mobSwing never cleaves its owner's party.
-    const cleave = MOBS[mob.templateId]?.cleave;
-    if (cleave && mob.hostile && !mob.dead) {
-      for (const meta of this.players.values()) {
-        const pe = this.entities.get(meta.entityId);
-        if (!pe || pe.dead || pe.id === target.id) continue;
-        if (dist2d(pe.pos, target.pos) > cleave.radius) continue;
-        let sd = rawDmg * cleave.mult;
-        sd *= 1 - armorReduction(this.effectiveArmor(pe), mob.level);
-        this.dealDamage(
-          mob,
-          pe,
-          Math.max(1, Math.round(sd)),
-          crit,
-          'physical',
-          cleave.name ?? 'Cleave',
-          'hit',
-          true,
-        );
-      }
-    }
-    // venom: a landed swing may inflict a refreshing poison DoT (hostile mobs only,
-    // never a friendly pet — mobSwing is also the pet attack path).
-    const venom = MOBS[mob.templateId]?.venom;
-    if (venom && mob.hostile && !target.dead && this.rng.chance(venom.chance)) {
-      this.applyAura(target, {
-        id: `venom_${mob.templateId}`,
-        name: venom.name,
-        kind: 'dot',
-        remaining: venom.duration,
-        duration: venom.duration,
-        value: Math.max(1, Math.round(venom.perTick)),
-        tickInterval: venom.interval,
-        tickTimer: venom.interval,
-        sourceId: mob.id,
-        school: (venom.school as Aura['school']) ?? 'nature',
-      });
-    }
-    // soulrot ("Soulrot"): a landed swing may fester a refreshing SHADOW DoT.
-    // Same on-hit DoT seam as venom, but shadow-school — the undead/necrotic
-    // flavour. Hostile mobs only (mobSwing is also the pet attack path, so a
-    // friendly pet must never rot the party).
-    const soulrot = MOBS[mob.templateId]?.soulrot;
-    if (soulrot && mob.hostile && !target.dead && this.rng.chance(soulrot.chance)) {
-      this.applyAura(target, {
-        id: `soulrot_${mob.templateId}`,
-        name: soulrot.name,
-        kind: 'dot',
-        remaining: soulrot.duration,
-        duration: soulrot.duration,
-        value: Math.max(1, Math.round(soulrot.perTick)),
-        tickInterval: soulrot.interval,
-        tickTimer: soulrot.interval,
-        sourceId: mob.id,
-        school: (soulrot.school as Aura['school']) ?? 'shadow',
-      });
-    }
-    // bleed ("Rend"): a landed swing may open a refreshing PHYSICAL DoT wound.
-    // Same on-hit DoT seam as venom, but physical-school — the predator/beast
-    // flavour (raking claws, gore). Hostile mobs only (mobSwing is also the pet
-    // attack path, so a friendly pet must never bleed the party).
-    const bleed = MOBS[mob.templateId]?.bleed;
-    if (bleed && mob.hostile && !target.dead && this.rng.chance(bleed.chance)) {
-      this.applyAura(target, {
-        id: `bleed_${mob.templateId}`,
-        name: bleed.name,
-        kind: 'dot',
-        remaining: bleed.duration,
-        duration: bleed.duration,
-        value: Math.max(1, Math.round(bleed.perTick)),
-        tickInterval: bleed.interval,
-        tickTimer: bleed.interval,
-        sourceId: mob.id,
-        school: (bleed.school as Aura['school']) ?? 'physical',
-      });
-    }
-
-    // frostbite: a landed swing may sear the victim with a refreshing frost DoT
-    // (the frost twin of venom — chilling elementals). Hostile mobs only, never a
-    // friendly pet (mobSwing is also the pet attack path).
-    const frostbite = MOBS[mob.templateId]?.frostbite;
-    if (frostbite && mob.hostile && !target.dead && this.rng.chance(frostbite.chance)) {
-      this.applyAura(target, {
-        id: `frostbite_${mob.templateId}`,
-        name: frostbite.name,
-        kind: 'dot',
-        remaining: frostbite.duration,
-        duration: frostbite.duration,
-        value: Math.max(1, Math.round(frostbite.perTick)),
-        tickInterval: frostbite.interval,
-        tickTimer: frostbite.interval,
-        sourceId: mob.id,
-        school: (frostbite.school as Aura['school']) ?? 'frost',
-      });
-    }
-
-    // smoldering fuse: a landed swing may ignite a refreshing fire DoT — the
-    // fire-school sibling of venom (same guards: hostile mobs only, never a pet).
-    const smolder = MOBS[mob.templateId]?.smolder;
-    if (smolder && mob.hostile && !target.dead && this.rng.chance(smolder.chance)) {
-      this.applyAura(target, {
-        id: `smolder_${mob.templateId}`,
-        name: smolder.name,
-        kind: 'dot',
-        remaining: smolder.duration,
-        duration: smolder.duration,
-        value: Math.max(1, Math.round(smolder.perTick)),
-        tickInterval: smolder.interval,
-        tickTimer: smolder.interval,
-        sourceId: mob.id,
-        school: (smolder.school as Aura['school']) ?? 'fire',
-      });
-    }
-
-    // cinder: the fire-school twin of venom — a landed swing may set a refreshing
-    // burning DoT (hostile mobs only, never a friendly pet — mobSwing is also the
-    // pet attack path). Reuses the same dot aura seam; school defaults 'fire'.
-    const cinder = MOBS[mob.templateId]?.cinder;
-    if (cinder && mob.hostile && !target.dead && this.rng.chance(cinder.chance)) {
-      this.applyAura(target, {
-        id: `cinder_${mob.templateId}`,
-        name: cinder.name,
-        kind: 'dot',
-        remaining: cinder.duration,
-        duration: cinder.duration,
-        value: Math.max(1, Math.round(cinder.perTick)),
-        tickInterval: cinder.interval,
-        tickTimer: cinder.interval,
-        sourceId: mob.id,
-        school: (cinder.school as Aura['school']) ?? 'fire',
-      });
-    }
-    // arcane rot: a landed swing may brand the victim with a searing arcane rune
-    // that festers as a refreshing DoT. The arcane-school twin of venom; reuses
-    // the `dot` aura. Guarded on hostile + alive so a friendly pet (the other
-    // mobSwing caller) never debuffs an ally.
-    const arcaneRot = MOBS[mob.templateId]?.arcaneRot;
-    if (arcaneRot && mob.hostile && !target.dead && this.rng.chance(arcaneRot.chance)) {
-      this.applyAura(target, {
-        id: `arcaneRot_${mob.templateId}`,
-        name: arcaneRot.name,
-        kind: 'dot',
-        remaining: arcaneRot.duration,
-        duration: arcaneRot.duration,
-        value: Math.max(1, Math.round(arcaneRot.perTick)),
-        tickInterval: arcaneRot.interval,
-        tickTimer: arcaneRot.interval,
-        sourceId: mob.id,
-        school: (arcaneRot.school as Aura['school']) ?? 'arcane',
-      });
-    }
-
-    // deadly poison: a landed swing may apply (or add a stack to) a ramping DoT.
-    // Guarded on hostile so a friendly pet (the other mobSwing caller) never
-    // poisons an ally. Per-tick damage scales with the stack count.
-    const stackPoison = MOBS[mob.templateId]?.stackPoison;
-    if (stackPoison && mob.hostile && !target.dead && this.rng.chance(stackPoison.chance)) {
-      this.applyStackPoison(mob, target, stackPoison);
-    }
-    // corrosive bite: a landed hit may shred the victim's armor (stacking sunder).
-    // Guarded on hostile so a friendly pet (the other mobSwing caller) never debuffs an ally.
-    const corrode = MOBS[mob.templateId]?.corrode;
-    if (corrode && mob.hostile && !target.dead && this.rng.chance(corrode.chance)) {
-      this.applyCorrosion(mob, target, corrode);
-    }
-    // silencing shriek: anti-caster mobs can lock the victim's spells on a hit.
-    // Guard on hostile + alive so a friendly pet (the other mobSwing caller)
-    // never silences the party. updateCasting interrupts any live spell next tick.
-    const silence = MOBS[mob.templateId]?.silence;
-    if (silence && mob.hostile && !target.dead && this.rng.chance(silence.chance)) {
-      this.applyAura(target, {
-        id: `silence_${mob.templateId}`,
-        name: silence.name,
-        kind: 'silence',
-        remaining: silence.duration,
-        duration: silence.duration,
-        value: 0,
-        sourceId: mob.id,
-        school: (silence.school ?? 'shadow') as Aura['school'],
-      });
-    }
-    // blinding powder: a thrown handful of grit can leave the victim's own
-    // weapon swings whiffing. Guarded on hostile + alive so a friendly pet
-    // (mobSwing's other caller) never blinds the party. Carries the added miss
-    // chance in the aura value, read back in melee/ranged swings via blindMissBonus.
-    const blind = MOBS[mob.templateId]?.blind;
-    if (blind && mob.hostile && !target.dead && this.rng.chance(blind.chance)) {
-      this.applyAura(target, {
-        id: `blind_${mob.templateId}`,
-        name: blind.name,
-        kind: 'blind',
-        remaining: blind.duration,
-        duration: blind.duration,
-        value: blind.miss,
-        sourceId: mob.id,
-        school: (blind.school ?? 'physical') as Aura['school'],
-      });
-    }
-    // disarm: a brutal swing can knock the weapon from a player's grip, suppressing
-    // their auto-attack for a duration. Players only (only they run the primary-target
-    // auto-attack path) and hostile only, so a friendly pet (mobSwing's other caller)
-    // never disarms the party. Refreshes by id; never stacks.
-    const disarm = MOBS[mob.templateId]?.disarm;
-    if (
-      disarm &&
-      mob.hostile &&
-      target.kind === 'player' &&
-      !target.dead &&
-      this.rng.chance(disarm.chance)
-    ) {
-      this.applyAura(target, {
-        id: `disarm_${mob.templateId}`,
-        name: disarm.name,
-        kind: 'disarm',
-        remaining: disarm.duration,
-        duration: disarm.duration,
-        value: 0,
-        sourceId: mob.id,
-        school: (disarm.school ?? 'physical') as Aura['school'],
-      });
-    }
-
-    // school lockout: a counterspell-on-hit that seals a single spell school. Same
-    // hostile + alive guard as silence so a friendly pet never locks out the party.
-    const lockout = MOBS[mob.templateId]?.lockout;
-    if (lockout && mob.hostile && !target.dead && this.rng.chance(lockout.chance)) {
-      this.applyAura(target, {
-        id: `lockout_${mob.templateId}`,
-        name: lockout.name,
-        kind: 'lockout',
-        remaining: lockout.duration,
-        duration: lockout.duration,
-        value: 0,
-        sourceId: mob.id,
-        school: lockout.school,
-      });
-    }
-    // draining curse: a landed hit can leave a cost-tax debuff that inflates the
-    // victim's ability costs. Guarded on hostile + alive so a friendly pet (the
-    // other mobSwing caller) never debuffs the party.
-    const costTax = MOBS[mob.templateId]?.costTax;
-    if (costTax && mob.hostile && !target.dead && this.rng.chance(costTax.chance)) {
-      this.applyAura(target, {
-        id: `cost_tax_${mob.templateId}`,
-        name: costTax.name,
-        kind: 'cost_tax',
-        remaining: costTax.duration,
-        duration: costTax.duration,
-        value: costTax.pct,
-        sourceId: mob.id,
-        school: (costTax.school ?? 'shadow') as Aura['school'],
-      });
-    }
-
-    // Find Weakness: a landed hit can leave the victim's flesh exposed, so the
-    // next critical hits against them bite deeper. Hostile + player-only, like the
-    // other on-hit debuffs, so a friendly pet (mobSwing's other caller) never marks
-    // the party.
-    const cv = MOBS[mob.templateId]?.critVuln;
-    if (
-      cv &&
-      mob.hostile &&
-      target.kind === 'player' &&
-      !target.dead &&
-      this.rng.chance(cv.chance)
-    ) {
-      this.applyAura(target, {
-        id: `critvuln_${mob.templateId}`,
-        name: cv.name,
-        kind: 'critvuln',
-        remaining: cv.duration,
-        duration: cv.duration,
-        value: cv.critDamage,
-        sourceId: mob.id,
-        school: (cv.school ?? 'physical') as Aura['school'],
-      });
-    }
-    // thorns / lightning shield on the defender
-    if (!mob.dead) {
-      for (const a of target.auras) {
-        if (a.kind === 'thorns') {
-          this.dealDamage(target, mob, a.value, false, a.school, a.name, 'hit', true);
-        }
-      }
-    }
-    // Mortal Strike: a landed hit can leave a healing-reduction debuff. Guarded on
-    // `hostile` so a friendly pet (mobSwing's other caller) never debuffs the party.
-    const ms = MOBS[mob.templateId]?.mortalStrike;
-    if (ms && mob.hostile && !target.dead && this.rng.chance(ms.chance)) {
-      this.applyAura(target, {
-        id: `mortal_wound_${mob.templateId}`,
-        name: ms.name,
-        kind: 'mortal_wound',
-        remaining: ms.duration,
-        duration: ms.duration,
-        value: ms.healReduction,
-        sourceId: mob.id,
-        school: (ms.school as Aura['school']) ?? 'physical',
-      });
-    }
-    // Spell Vulnerability: a landed hit may curse the victim so they take more
-    // magic damage from everyone (the arcane twin of corrode's armor shred).
-    // Hostile mobs only, so a friendly pet (mobSwing's other caller) never curses
-    // the party. A single refreshing slot keyed by template, like mortal_wound.
-    const sv = MOBS[mob.templateId]?.spellVuln;
-    if (sv && mob.hostile && !target.dead && this.rng.chance(sv.chance)) {
-      this.applyAura(target, {
-        id: `spellvuln_${mob.templateId}`,
-        name: sv.name,
-        kind: 'spellvuln',
-        remaining: sv.duration,
-        duration: sv.duration,
-        value: sv.amp,
-        sourceId: mob.id,
-        school: (sv.school as Aura['school']) ?? 'arcane',
-      });
-    }
-
-    // Staggering blow: a landed hit may knock the victim off-balance, cutting their
-    // dodge for a short while so attacks land more reliably. Hostile mobs only (a
-    // friendly pet shares this swing path) and only players have a meaningful dodge
-    // chance. Rides buff_dodge with a NEGATIVE value — recalcPlayerStats already
-    // folds buff_dodge into e.dodgeChance and it recalcs on expiry (buff* kind), so
-    // no new aura kind is needed.
-    const stagger = MOBS[mob.templateId]?.staggerHit;
-    if (
-      stagger &&
-      mob.hostile &&
-      target.kind === 'player' &&
-      !target.dead &&
-      this.rng.chance(stagger.chance)
-    ) {
-      this.applyAura(target, {
-        id: `stagger_${mob.templateId}`,
-        name: stagger.name,
-        kind: 'buff_dodge',
-        remaining: stagger.duration,
-        duration: stagger.duration,
-        value: -stagger.dodgeReduction,
-        sourceId: mob.id,
-        school: 'physical',
-      });
-    }
-
-    // Heal-Absorb: a landed hit can brand the victim with a necrotic blight that
-    // devours the next chunk of incoming healing. The sibling of Mortal Strike —
-    // where Mortal Strike scales every heal down, this eats a fixed pool then
-    // fades. Guarded on `hostile` so a friendly pet (mobSwing's other caller)
-    // never blights an ally.
-    const ha = MOBS[mob.templateId]?.healAbsorb;
-    if (ha && mob.hostile && !target.dead && this.rng.chance(ha.chance)) {
-      this.applyAura(target, {
-        id: `heal_absorb_${mob.templateId}`,
-        name: ha.name,
-        kind: 'heal_absorb',
-        remaining: ha.duration,
-        duration: ha.duration,
-        value: ha.amount,
-        sourceId: mob.id,
-        school: (ha.school as Aura['school']) ?? 'shadow',
-      });
-    }
-    // Ensnare: a landed hit may web the victim in place (root). Hostile mobs only
-    // (a friendly pet shares this swing path) and only roots players — `applyRootAura`
-    // applies crowd-control DR so repeated webs from the same mob shrink and break.
-    const ensnare = MOBS[mob.templateId]?.ensnare;
-    if (
-      ensnare &&
-      mob.hostile &&
-      target.kind === 'player' &&
-      !target.dead &&
-      this.rng.chance(ensnare.chance)
-    ) {
-      this.applyRootAura(
-        mob,
-        target,
-        ensnare.name,
-        `ensnare_${mob.templateId}`,
-        ensnare.duration,
-        ensnare.school ?? 'nature',
-      );
-    }
-    // stunOnHit: a landed crushing blow may briefly stun the victim. Hostile mobs
-    // only (a friendly pet shares this swing path) and only stuns players. Reuses
-    // the `stun` aura the AoE stomp already applies, so isStunned()/the HUD handle
-    // it with no new wiring. Kept low-chance/short so it threatens without locking.
-    const stunOnHit = MOBS[mob.templateId]?.stunOnHit;
-    if (
-      stunOnHit &&
-      mob.hostile &&
-      target.kind === 'player' &&
-      !target.dead &&
-      this.rng.chance(stunOnHit.chance)
-    ) {
-      this.applyAura(target, {
-        id: `stun_${mob.templateId}`,
-        name: stunOnHit.name,
-        kind: 'stun',
-        remaining: stunOnHit.duration,
-        duration: stunOnHit.duration,
-        value: 0,
-        sourceId: mob.id,
-        school: stunOnHit.school ?? 'physical',
-      });
-    }
-    // Knockback: a landed hit can physically hurl the player victim straight back.
-    // Hostile mobs only (a friendly pet shares this swing path) and players only —
-    // shoving a fellow mob is meaningless. Pure positional displacement (no aura),
-    // terrain-clamped so it never strands the victim off the world; surfaced via a
-    // spellfx nova + the same "unleashes" log line War Stomp uses.
-    const knockback = MOBS[mob.templateId]?.knockback;
-    if (
-      knockback &&
-      mob.hostile &&
-      target.kind === 'player' &&
-      !target.dead &&
-      this.rng.chance(knockback.chance)
-    ) {
-      if (this.applyKnockback(mob, target, knockback.distance) > 0) {
-        const school = (knockback.school ?? 'physical') as Aura['school'];
-        this.emit({ type: 'spellfx', sourceId: mob.id, targetId: target.id, school, fx: 'nova' });
-        this.emit({
-          type: 'log',
-          text: `${mob.name} unleashes ${knockback.name}!`,
-          color: '#ff9933',
-          entityId: mob.id,
-        });
-      }
-    }
-    // slowStrike: a landed hit may mire the victim, slowing their attack speed.
-    // Rides the existing `attackspeed` aura (swingIntervalMult: value > 1 = slower);
-    // refreshes by id and never stacks. Guarded on `hostile` so a friendly pet
-    // (mobSwing's other caller) never debuffs the party.
-    const slowStrike = MOBS[mob.templateId]?.slowStrike;
-    if (slowStrike && mob.hostile && !target.dead && this.rng.chance(slowStrike.chance)) {
-      this.applyAura(target, {
-        id: `slowstrike_${mob.templateId}`,
-        name: slowStrike.name,
-        kind: 'attackspeed',
-        remaining: slowStrike.duration,
-        duration: slowStrike.duration,
-        value: slowStrike.mult,
-        sourceId: mob.id,
-        school: (slowStrike.school as Aura['school']) ?? 'physical',
-      });
-    }
-    // Curse of Tongues: a landed hit may garble the victim's incantations, stretching
-    // their spell cast times (`tonguesMult` reads this at cast-start). Refreshes by id
-    // and never stacks. Guarded on `hostile` so a friendly pet (mobSwing's other
-    // caller) never curses an ally; players only, since only players hard-cast here.
-    const tongues = MOBS[mob.templateId]?.tongues;
-    if (
-      tongues &&
-      mob.hostile &&
-      target.kind === 'player' &&
-      !target.dead &&
-      this.rng.chance(tongues.chance)
-    ) {
-      this.applyAura(target, {
-        id: `tongues_${mob.templateId}`,
-        name: tongues.name,
-        kind: 'tongues',
-        remaining: tongues.duration,
-        duration: tongues.duration,
-        value: tongues.mult,
-        sourceId: mob.id,
-        school: (tongues.school as Aura['school']) ?? 'shadow',
-      });
-    }
-    // Mana Burn: a landed hit may sap a flat amount of mana from a mana-using
-    // victim (casters). No effect on rage/energy users. Guarded on `hostile` so
-    // a friendly pet (mobSwing's other caller) never drains an ally's mana. The
-    // mana bar visibly drops and the affix is surfaced via an `aura` log line.
-    const burn = MOBS[mob.templateId]?.manaBurn;
-    if (
-      burn &&
-      mob.hostile &&
-      !target.dead &&
-      target.resourceType === 'mana' &&
-      target.resource > 0 &&
-      this.rng.chance(burn.chance)
-    ) {
-      target.resource = Math.max(0, target.resource - burn.amount);
-      this.emit({ type: 'aura', targetId: target.id, name: burn.name, gained: true });
-    }
-    // Sap Vigor: the melee-resource twin of manaBurn. A landed hit can drain a
-    // flat amount of rage or energy from a melee victim, starving their ability
-    // use. Mana users are unaffected (it does nothing to casters); hostile mobs
-    // only, so a friendly pet (mobSwing's other caller) never saps an ally. The
-    // resource bar visibly drops and the affix is surfaced via an `aura` log line.
-    const sap = MOBS[mob.templateId]?.sapVigor;
-    if (
-      sap &&
-      mob.hostile &&
-      !target.dead &&
-      (target.resourceType === 'rage' || target.resourceType === 'energy') &&
-      target.resource > 0 &&
-      this.rng.chance(sap.chance)
-    ) {
-      target.resource = Math.max(0, target.resource - sap.amount);
-      this.emit({ type: 'aura', targetId: target.id, name: sap.name, gained: true });
-    }
-    // Maddening curse: a landed hit can fog a caster's mind, draining Intellect
-    // and thus shrinking their mana pool. Mana users only (it does nothing to
-    // rage/energy users); hostile mobs only, so a friendly pet (mobSwing's other
-    // caller) never debuffs the party. Rides buff_int with a negative value, so
-    // recalcPlayerStats folds it through to maxResource with no new math.
-    const enfeeble = MOBS[mob.templateId]?.enfeeble;
-    if (
-      enfeeble &&
-      mob.hostile &&
-      !target.dead &&
-      target.resourceType === 'mana' &&
-      this.rng.chance(enfeeble.chance)
-    ) {
-      this.applyAura(target, {
-        id: `enfeeble_${mob.templateId}`,
-        name: enfeeble.name,
-        kind: 'buff_int',
-        remaining: enfeeble.duration,
-        duration: enfeeble.duration,
-        value: -Math.abs(enfeeble.int),
-        sourceId: mob.id,
-        school: enfeeble.school ?? 'shadow',
-      });
-    }
-    // Vitality drain: a landed hit can siphon the victim's Stamina, shrinking
-    // their maximum-HP pool. Hits every class (all players have Stamina), unlike
-    // the mana-only enfeeble. Hostile mobs only, so a friendly pet (mobSwing's
-    // other caller) never drains the party. Rides buff_sta with a negative value,
-    // so recalcPlayerStats folds it through to maxHp with no new HP math.
-    const enervate = MOBS[mob.templateId]?.enervate;
-    if (
-      enervate &&
-      mob.hostile &&
-      target.kind === 'player' &&
-      !target.dead &&
-      this.rng.chance(enervate.chance)
-    ) {
-      this.applyAura(target, {
-        id: `enervate_${mob.templateId}`,
-        name: enervate.name,
-        kind: 'buff_sta',
-        remaining: enervate.duration,
-        duration: enervate.duration,
-        value: -Math.abs(enervate.sta),
-        sourceId: mob.id,
-        school: enervate.school ?? 'shadow',
-      });
-    }
-
-    // Plague: a landed hit can rot the victim's vitality, draining Stamina and
-    // thus shrinking their health pool (recalcPlayerStats folds the smaller
-    // Stamina through to a smaller maxHp; current HP scales down with it).
-    // Players only; hostile mobs only, so a friendly pet (mobSwing's other
-    // caller) never debuffs the party. Rides buff_sta with a negative value, so
-    // there is no new HP math. Refreshes by id and never stacks.
-    const plague = MOBS[mob.templateId]?.plague;
-    if (
-      plague &&
-      mob.hostile &&
-      target.kind === 'player' &&
-      !target.dead &&
-      this.rng.chance(plague.chance)
-    ) {
-      this.applyAura(target, {
-        id: `plague_${mob.templateId}`,
-        name: plague.name,
-        kind: 'buff_sta',
-        remaining: plague.duration,
-        duration: plague.duration,
-        value: -Math.abs(plague.sta),
-        sourceId: mob.id,
-        school: plague.school ?? 'nature',
-      });
-    }
-
-    // Withering curse: a landed hit can rot the victim's sinews, draining Agility
-    // and so thinning their armor (agi*2) and dodge at once. Hostile mobs only, so a
-    // friendly pet (mobSwing's other caller) never debuffs the party; player targets
-    // only (mobs derive no stats from auras). Rides buff_agi with a negative value, so
-    // recalcPlayerStats folds it through with no new stat math.
-    const wither = MOBS[mob.templateId]?.wither;
-    if (
-      wither &&
-      mob.hostile &&
-      target.kind === 'player' &&
-      !target.dead &&
-      this.rng.chance(wither.chance)
-    ) {
-      this.applyAura(target, {
-        id: `wither_${mob.templateId}`,
-        name: wither.name,
-        kind: 'buff_agi',
-        remaining: wither.duration,
-        duration: wither.duration,
-        value: -Math.abs(wither.agi),
-        sourceId: mob.id,
-        school: wither.school ?? 'nature',
-      });
-    }
-
-    // Spirit Siphon: a landed hit can drain a caster's Spirit, slowing their
-    // out-of-combat mana/health regen (updateRegen reads stats.spi). Mana users
-    // only (it does nothing to rage/energy users); hostile mobs only, so a
-    // friendly pet (mobSwing's other caller) never debuffs the party. Rides
-    // buff_spi with a negative value, so recalcPlayerStats folds it through with
-    // no new regen math; it expires like any buff* aura.
-    const siphon = MOBS[mob.templateId]?.siphonSpirit;
-    if (
-      siphon &&
-      mob.hostile &&
-      !target.dead &&
-      target.resourceType === 'mana' &&
-      this.rng.chance(siphon.chance)
-    ) {
-      this.applyAura(target, {
-        id: `siphon_spirit_${mob.templateId}`,
-        name: siphon.name,
-        kind: 'buff_spi',
-        remaining: siphon.duration,
-        duration: siphon.duration,
-        value: -Math.abs(siphon.spi),
-        sourceId: mob.id,
-        school: siphon.school ?? 'shadow',
-      });
-    }
-    // On-hit chill: frost-touched mobs numb the victim, slowing their movement.
-    const chill = MOBS[mob.templateId]?.chillOnHit;
-    if (chill && !mob.dead && !target.dead && this.rng.chance(chill.chance)) {
-      this.applyAura(target, {
-        id: `${mob.templateId}_chill`,
-        name: chill.name,
-        kind: 'slow',
-        remaining: chill.duration,
-        duration: chill.duration,
-        value: chill.mult,
-        sourceId: mob.id,
-        school: 'frost',
-      });
-    }
-    // Demoralizing affix: a successful hit saps the player victim's attack
-    // power for a few seconds, weakening the damage they deal back.
-    const demo = MOBS[mob.templateId]?.demoralize;
-    if (demo && !mob.dead && target.kind === 'player' && this.rng.chance(demo.chance ?? 1)) {
-      this.applyAura(target, {
-        id: 'mob_demoralize',
-        name: demo.name ?? 'Demoralized',
-        kind: 'buff_ap',
-        remaining: demo.duration,
-        duration: demo.duration,
-        value: -Math.abs(demo.ap),
-        sourceId: mob.id,
-        school: 'physical',
-      });
-    }
-    // Dread: a landed hit can terrify the victim into fleeing. Reuses the exact
-    // `fear_incap` incapacitate aura the player-cast Fear applies, so
-    // `updateFearMovement` drives the panicked run — no new aura kind or hook.
-    // Guarded on `hostile` (a friendly pet never fears the party) and on a player
-    // target (mobs can't flee via this path). `diminishedCrowdControlDuration`
-    // returns the full duration for a mob source (DR is PvP-only), so the victim
-    // gets the authored fear length.
-    const dread = MOBS[mob.templateId]?.dread;
-    if (
-      dread &&
-      mob.hostile &&
-      target.kind === 'player' &&
-      !target.dead &&
-      this.rng.chance(dread.chance)
-    ) {
-      const remaining = this.diminishedCrowdControlDuration(mob, target, 'fear', dread.duration);
-      if (remaining !== null) {
-        this.applyAura(target, {
-          id: 'fear_incap',
-          name: dread.name,
-          kind: 'incapacitate',
-          remaining,
-          duration: remaining,
-          value: this.rng.range(-Math.PI, Math.PI),
-          sourceId: mob.id,
-          school: dread.school ?? 'shadow',
-          breaksOnDamage: true,
-        });
-      }
-    }
-    // Polymorph hex: a landed hit can briefly turn the victim into a critter,
-    // applying the same `polymorph` aura the mage's Polymorph uses — `isStunned`
-    // locks out every action and the aura is stripped the instant the victim
-    // takes damage (the caster's own next hit ends it), so it's a brief flavor
-    // incap, not a hard lock. Unlike the player-cast version we deliberately do
-    // NOT heal the victim to full on apply (a monster shouldn't restore its prey),
-    // but keep the aura's inherent regen tick. Guarded on `hostile` + a player
-    // target; `diminishedCrowdControlDuration` returns the full duration for a
-    // mob source (DR is PvP-only).
-    const hex = MOBS[mob.templateId]?.polymorphHex;
-    if (
-      hex &&
-      mob.hostile &&
-      target.kind === 'player' &&
-      !target.dead &&
-      this.rng.chance(hex.chance)
-    ) {
-      const remaining = this.diminishedCrowdControlDuration(mob, target, 'polymorph', hex.duration);
-      if (remaining !== null) {
-        this.applyAura(target, {
-          id: `hex_${mob.templateId}`,
-          name: hex.name,
-          kind: 'polymorph',
-          remaining,
-          duration: remaining,
-          value: 0,
-          tickInterval: 1,
-          tickTimer: 1,
-          sourceId: mob.id,
-          school: hex.school ?? 'nature',
-          breaksOnDamage: true,
-        });
-      }
-    }
-    // Concussive Blow: a landed hit can briefly STUN the victim (single-target,
-    // distinct from War Stomp's AoE slam). Hostile mobs only so a friendly pet
-    // never stuns an ally; CC DR is PvP-only so a mob source always lands full.
-    const concuss = MOBS[mob.templateId]?.concuss;
-    if (
-      concuss &&
-      mob.hostile &&
-      target.kind === 'player' &&
-      !target.dead &&
-      this.rng.chance(concuss.chance)
-    ) {
-      this.applyAura(target, {
-        id: `concuss_${mob.templateId}`,
-        name: concuss.name,
-        kind: 'stun',
-        remaining: concuss.duration,
-        duration: concuss.duration,
-        value: 0,
-        sourceId: mob.id,
-        school: concuss.school ?? 'physical',
-      });
-    }
-
-    // Expose: a landed hit can crack the victim's guard, raising the physical
-    // damage they take for a duration. Guarded on `hostile` so a friendly pet
-    // (mobSwing's other caller) never debuffs the party.
-    const expose = MOBS[mob.templateId]?.expose;
-    if (expose && mob.hostile && !target.dead && this.rng.chance(expose.chance)) {
-      this.applyAura(target, {
-        id: `expose_${mob.templateId}`,
-        name: expose.name,
-        kind: 'expose',
-        remaining: expose.duration,
-        duration: expose.duration,
-        value: expose.dmgIncrease,
-        sourceId: mob.id,
-        school: (expose.school as Aura['school']) ?? 'physical',
-      });
-    }
-
-    // Curse of frailty: a landed hit may curse the victim so they take more
-    // damage from every source (a `vulnerability` aura read in dealDamage).
-    // Players only, hostile mobs only, so a friendly pet (mobSwing's other
-    // caller) never softens an ally. Refreshes by id, never stacks past one.
-    const vuln = MOBS[mob.templateId]?.vulnerability;
-    if (
-      vuln &&
-      mob.hostile &&
-      target.kind === 'player' &&
-      !target.dead &&
-      this.rng.chance(vuln.chance)
-    ) {
-      this.applyAura(target, {
-        id: `vulnerability_${mob.templateId}`,
-        name: vuln.name,
-        kind: 'vulnerability',
-        remaining: vuln.duration,
-        duration: vuln.duration,
-        value: vuln.amp,
-        sourceId: mob.id,
-        school: vuln.school ?? 'shadow',
-      });
-    }
-
-    // Weakening Hex: a landed hit can curse the player victim, scaling the damage
-    // AND healing they deal by (1 - reductionPct) for a while. Guarded on
-    // `hostile` so a friendly pet (mobSwing's other caller) never hexes the party,
-    // and on a player target. Rides a dedicated `hex` aura read by hexOutputMult.
-    const weakHex = MOBS[mob.templateId]?.hex;
-    if (
-      weakHex &&
-      mob.hostile &&
-      target.kind === 'player' &&
-      !target.dead &&
-      this.rng.chance(weakHex.chance)
-    ) {
-      this.applyAura(target, {
-        id: `hex_${mob.templateId}`,
-        name: weakHex.name,
-        kind: 'hex',
-        remaining: weakHex.duration,
-        duration: weakHex.duration,
-        value: weakHex.reductionPct,
-        sourceId: mob.id,
-        school: weakHex.school ?? 'shadow',
-      });
-    }
-    // Devour Magic: a landed hit can strip one beneficial enhancement buff off
-    // the player victim (classic warlock/demon Devour Magic). Hostile mobs only
-    // (a friendly pet — mobSwing's other caller — must never purge its owner's
-    // party) and players only. No-op when the victim carries no devourable buff.
-    const purge = MOBS[mob.templateId]?.purgeOnHit;
-    if (
-      purge &&
-      mob.hostile &&
-      target.kind === 'player' &&
-      !target.dead &&
-      this.rng.chance(purge.chance)
-    ) {
-      this.devourBeneficialAura(target, purge.name);
-    }
+    runMobSwingAffixes(this.ctx, mob, target, { dealt, crit, rawDmg });
   }
 
-  // Strip one beneficial enhancement aura from a player victim. Removes the
-  // first devourable buff (auras are in application order, so this is
-  // deterministic), recalcs the player's derived stats so a stripped
-  // buff_armor/buff_ap/buff_int actually un-folds, and surfaces the proc via the
-  // standard `aura` event (the full aura array on the next snapshot reflects the
-  // removal to online clients). Returns whether anything was devoured.
-  private devourBeneficialAura(target: Entity, name: string): boolean {
-    const idx = target.auras.findIndex(isDevourableAura);
-    if (idx < 0) return false;
-    target.auras.splice(idx, 1);
+  private tryRevengeFree(target: Entity): void {
+    if (target.kind !== 'player') return;
     const meta = this.players.get(target.id);
-    if (meta) recalcPlayerStats(target, meta.cls, meta.equipment, meta.talentMods);
-    this.emit({ type: 'aura', targetId: target.id, name, gained: true });
-    return true;
-  }
-
-  // Apply (or add a stack to) a ramping poison DoT on the victim. One shared
-  // `dot` slot found by id, its per-tick `value` recomputed as perTick*stacks
-  // (bumped up to `maxStacks`) and its timer fully refreshed each application —
-  // so the per-tick damage climbs the longer the creature keeps biting. The dot
-  // tick reads `value` directly, so storing perTick*stacks is what makes it ramp.
-  private applyStackPoison(
-    mob: Entity,
-    target: Entity,
-    sp: NonNullable<MobTemplate['stackPoison']>,
-  ): void {
-    const id = `stackpoison_${mob.templateId}`;
-    const existing = target.auras.find((a) => a.id === id && a.kind === 'dot');
-    if (existing) {
-      existing.stacks = Math.min(sp.maxStacks, (existing.stacks ?? 1) + 1);
-      existing.value = Math.max(1, Math.round(sp.perTick * existing.stacks));
-      existing.remaining = existing.duration;
-      this.emit({ type: 'aura', targetId: target.id, name: sp.name, gained: true });
-    } else {
-      this.applyAura(target, {
-        id,
-        name: sp.name,
-        kind: 'dot',
-        remaining: sp.duration,
-        duration: sp.duration,
-        value: Math.max(1, Math.round(sp.perTick)),
-        tickInterval: sp.interval,
-        tickTimer: sp.interval,
-        stacks: 1,
-        sourceId: mob.id,
-        school: (sp.school as Aura['school']) ?? 'nature',
-      });
-    }
-  }
-
-  // Apply (or refresh + stack) a corrosive armor-shred debuff on the victim.
-  // Mirrors the warrior Sunder Armor stacking: one shared `sunder` slot found by
-  // kind, bumped up to `maxStacks`, with its timer fully refreshed each application.
-  // effectiveArmor() already subtracts value*stacks, so the victim takes more
-  // physical damage from every attacker until it expires.
-  private applyCorrosion(
-    mob: Entity,
-    target: Entity,
-    corrode: NonNullable<MobTemplate['corrode']>,
-  ): void {
-    const existing = target.auras.find((a) => a.kind === 'sunder');
-    if (existing) {
-      existing.stacks = Math.min(corrode.maxStacks, (existing.stacks ?? 1) + 1);
-      existing.value = corrode.armor;
-      existing.remaining = existing.duration;
-      this.emit({ type: 'aura', targetId: target.id, name: corrode.name, gained: true });
-    } else {
-      this.applyAura(target, {
-        id: `corrode_${mob.templateId}`,
-        name: corrode.name,
-        kind: 'sunder',
-        remaining: corrode.duration,
-        duration: corrode.duration,
-        value: corrode.armor,
-        stacks: 1,
-        sourceId: mob.id,
-        school: corrode.school ?? 'nature',
-      });
-    }
-  }
-
-  // Pet brain: assist the owner (attack whatever they fight or whatever
-  // attacks either of you), otherwise heel. Pets swing like mobs and build
-  // their own entries on enemy hate tables.
-  private updatePet(pet: Entity): void {
-    const owner = pet.ownerId !== null ? this.entities.get(pet.ownerId) : null;
-    if (owner?.kind !== 'player' || !this.players.has(owner.id)) {
-      this.despawnPersistentPet(pet);
-      return;
-    }
-    if (this.isStunned(pet)) return;
-    this.syncPetAspect(pet, owner);
-    pet.petTauntTimer = Math.max(0, pet.petTauntTimer - DT);
-    if (!pet.inCombat && this.tickCount % 40 === 0 && pet.hp < pet.maxHp) {
-      pet.hp = Math.min(pet.maxHp, pet.hp + Math.max(1, Math.round(pet.maxHp * 0.02)));
-    }
-
-    let target = pet.aggroTargetId !== null ? (this.entities.get(pet.aggroTargetId) ?? null) : null;
-    if (target && (target.dead || !this.isHostileTo(pet, target))) target = null;
-    if (target && dist2d(owner.pos, pet.pos) > PET_LEASH) target = null;
-    if (!target && !owner.dead) target = this.petPickTarget(pet, owner);
-    pet.aggroTargetId = target?.id ?? null;
-    pet.inCombat = target !== null;
-    if (!target) pet.petManualTauntPending = false;
-
-    if (target) {
-      // ranged demon (imp) holds its distance and hurls bolts; melee pets close
-      // in, taunt to hold threat (voidwalker tank), and swing
-      const ranged = MOBS[pet.templateId]?.petRanged;
-      const template = MOBS[pet.templateId];
-      if (!ranged && template?.petRole === 'ranged_dps' && template.petSpell) {
-        this.updateRangedPetAttack(pet, target, template.petSpell);
-        return;
-      }
-      const reach = ranged ? ranged.range : MELEE_RANGE * 0.8;
-      const d = dist2d(pet.pos, target.pos);
-      if (d > reach) {
-        if (!this.isRooted(pet))
-          this.moveToward(pet, target.pos, pet.moveSpeed * this.moveSpeedMult(pet));
-        pet.swingTimer = Math.max(0, pet.swingTimer - DT);
-      } else {
-        pet.facing = angleTo(pet.pos, target.pos);
-        if (
-          target.kind === 'mob' &&
-          !ranged &&
-          pet.petTauntTimer <= 0 &&
-          (pet.petAutoTaunt || pet.petManualTauntPending)
-        ) {
-          this.applyTaunt(pet, target);
-          pet.petManualTauntPending = false;
-          pet.petTauntTimer = PET_GROWL_INTERVAL;
-        }
-        pet.swingTimer -= DT;
-        if (pet.swingTimer <= 0) {
-          if (ranged) this.petRangedAttack(pet, target, ranged);
-          else this.mobSwing(pet, target);
-          pet.swingTimer = pet.weapon.speed * this.swingIntervalMult(pet);
-        }
-      }
-      return;
-    }
-
-    // heel
-    pet.swingTimer = Math.max(0, pet.swingTimer - DT);
-    this.petFollow(pet, owner);
-  }
-
-  // Heel locomotion: route the pet to its owner AROUND obstacles instead of
-  // letting greedy slide-steering wedge on a wall and then snapping the pet to
-  // the owner. Mirrors the warrior-charge path cache (`petPath`): A* is recomputed
-  // at most every PET_PATH_RECALC and otherwise the cached waypoints are followed.
-  // The 60yd teleport is kept only as a true last resort, for when no route to the
-  // owner exists at all (e.g. owner stranded across un-navigable terrain).
-  private petFollow(pet: Entity, owner: Entity): void {
-    pet.petPathCooldown = Math.max(0, pet.petPathCooldown - DT);
-    const d = dist2d(pet.pos, owner.pos);
-    if (d <= PET_FOLLOW_DISTANCE) {
-      pet.petPath = [];
-      return;
-    }
-    if (this.isRooted(pet)) return;
-
-    const swim = this.mobCanSwim(MOBS[pet.templateId]);
-    const recompute = (): void => {
-      pet.petPath = findPlayerPath(
-        this.cfg.seed,
-        pet.pos,
-        owner.pos,
-        PET_PATH_SPAN,
-        false,
-        swim,
-      ).map((w) => ({ x: w.x, y: 0, z: w.z }));
-      pet.petPathCooldown = PET_PATH_RECALC;
-    };
-    // recompute when the throttle has elapsed and the cache is stale: empty, or
-    // its end no longer lands near the (now-moved) owner. findPlayerPath returns a
-    // single-waypoint straight line (length 1) when the goal is unreachable.
-    const end = pet.petPath[pet.petPath.length - 1];
-    const stale = !end || dist2d(end, owner.pos) > PET_PATH_STALE_DISTANCE;
-    if (pet.petPathCooldown <= 0 && stale) recompute();
-    // drop waypoints we've reached; the last leg homes on the live owner position.
-    while (pet.petPath.length > 1 && dist2d(pet.pos, pet.petPath[0]) < PET_WAYPOINT_REACHED)
-      pet.petPath.shift();
-
-    // Last-resort teleport: only when the owner is far AND genuinely unreachable.
-    // We confirm with a FRESH path (ignoring the throttle) so a stale single-point
-    // cache from a moment ago can never trigger a spurious snap while a real route
-    // exists — e.g. right after a combat→heel transition.
     if (
-      pet.petPath.length <= 1 &&
-      d > PET_TELEPORT_DISTANCE &&
-      !lineOfSightClear(this.cfg.seed, pet.pos, owner.pos, BODY_RADIUS)
+      !meta?.known.some((known) => known.def.id === 'revenge') ||
+      !this.rng.chance(REVENGE_FREE_CHANCE)
     ) {
-      recompute();
-      if (pet.petPath.length <= 1) {
-        pet.pos = { ...owner.pos };
-        pet.prevPos = { ...pet.pos };
-        pet.petPath = [];
-        // a warp is a teleport: keep the spatial grid exact this tick instead of
-        // waiting for the end-of-tick refresh, so same-tick aggro/AoE queries
-        // don't miss the pet at its old cell (matches every other teleport site)
-        this.rebucket(pet);
-        return;
-      }
+      return;
     }
-
-    const routed = pet.petPath.length > 1;
-    const aim = routed ? pet.petPath[0] : owner.pos;
-    const speed = Math.max(pet.moveSpeed, RUN_SPEED * 1.1) * this.moveSpeedMult(pet);
-    this.moveToward(pet, aim, speed);
+    this.applyAura(target, {
+      id: 'revenge_free',
+      name: 'Revenge!',
+      kind: 'revenge_free',
+      remaining: REVENGE_FREE_DURATION,
+      duration: REVENGE_FREE_DURATION,
+      value: 0,
+      sourceId: target.id,
+      school: 'physical',
+    });
   }
 
-  /** A ranged demon pet (imp) hurls a spell-school bolt: a telegraphed
-   *  projectile that bypasses armor, mirroring the player caster path. Damage
-   *  comes from the mob's weapon range + AP, exactly like its melee siblings. */
-  private petRangedAttack(
-    pet: Entity,
-    target: Entity,
-    ranged: { range: number; school: Aura['school'] },
-  ): void {
-    this.emit({
-      type: 'spellfx',
-      sourceId: pet.id,
-      targetId: target.id,
-      school: ranged.school,
-      fx: 'projectile',
-    });
-    const crit = this.rng.chance(0.05);
-    let dmg =
-      this.rng.range(pet.weapon.min, pet.weapon.max) +
-      (this.effectiveAttackPower(pet) / 14) * pet.weapon.speed;
-    if (crit) dmg *= 2;
-    this.dealDamage(pet, target, Math.max(1, Math.round(dmg)), crit, ranged.school, null, 'hit');
+  // Recompute a player victim's derived stats after the Devour Magic cascade in
+  // mob_swing.ts strips a beneficial aura, so a stripped buff_armor/buff_ap/buff_int
+  // actually un-folds. Routed through SimContext (ctx.recalcPlayer) so the extracted
+  // module never reaches into the Sim players map directly.
+  private recalcPlayer(target: Entity): void {
+    const meta = this.players.get(target.id);
+    if (meta)
+      recalcPlayerStats(target, meta.cls, meta.equipment, meta.talentMods, meta.equipmentInstance);
   }
 
   private updateRangedPetAttack(
@@ -8448,81 +6086,84 @@ export class Sim {
       max: number;
       range: number;
       every: number;
+      windup?: number;
     },
   ): void {
     const d = dist2d(pet.pos, target.pos);
     if (d > spell.range) {
-      if (!this.isRooted(pet))
-        this.moveToward(pet, target.pos, pet.moveSpeed * this.moveSpeedMult(pet));
+      if (!isRooted(pet)) this.moveToward(pet, target.pos, pet.moveSpeed * this.moveSpeedMult(pet));
       pet.swingTimer = Math.max(0, pet.swingTimer - DT);
       return;
     }
-    pet.facing = angleTo(pet.pos, target.pos);
+    pet.facing = steadyAngleTo(pet.pos, target.pos, pet.facing);
     pet.swingTimer -= DT;
-    if (pet.swingTimer > 0) return;
-    this.emit({
-      type: 'spellfx',
-      sourceId: pet.id,
-      targetId: target.id,
-      school: spell.school,
-      fx: 'projectile',
-    });
-    if (!this.rng.chance(spellHitChance(pet.level, target.level))) {
+    // Emit the projectile + resolve the hit (resisted, not missed: the same
+    // semantics as player casts). Shared by the instant path and the windup
+    // release below; the caller owns the swing-timer bookkeeping.
+    const fire = () => {
       this.emit({
-        type: 'damage',
+        type: 'spellfx',
         sourceId: pet.id,
         targetId: target.id,
-        amount: 0,
-        crit: false,
         school: spell.school,
-        ability: spell.name,
-        kind: 'miss',
+        fx: 'projectile',
       });
-      this.enterCombat(pet, target);
-    } else {
-      const dmg = Math.round(
-        this.rng.range(spell.min + pet.level * 0.8, spell.max + pet.level * 1.1),
-      );
-      this.dealDamage(pet, target, Math.max(1, dmg), false, spell.school, spell.name, 'hit');
+      if (isSpellResisted(this.rng, pet.level, target.level, pet.hitBonus)) {
+        this.emit({
+          type: 'damage',
+          sourceId: pet.id,
+          targetId: target.id,
+          amount: 0,
+          crit: false,
+          school: spell.school,
+          ability: spell.name,
+          kind: 'resist',
+        });
+        this.enterCombat(pet, target);
+      } else {
+        const dmg = Math.round(
+          this.rng.range(spell.min + pet.level * 0.8, spell.max + pet.level * 1.1) *
+            this.petDamageMult(pet),
+        );
+        this.dealDamage(pet, target, Math.max(1, dmg), false, spell.school, spell.name, 'hit');
+      }
+    };
+    // A committed windup releases when its tick arrives, regardless of the
+    // swing timer (which is already counting the NEXT cycle: the windup eats
+    // into the cadence rather than extending it).
+    if (pet.rangedWindupReleaseTick != null) {
+      if (this.tickCount < pet.rangedWindupReleaseTick) return;
+      pet.rangedWindupReleaseTick = null;
+      fire();
+      return;
     }
+    if (pet.swingTimer > 0) return;
+    const windupTicks = Math.round((spell.windup ?? 0) / DT);
+    if (windupTicks > 0) {
+      // Telegraph first: the renderer starts the throw animation on 'windup'
+      // and the projectile leaves the hand at the release tick, lined up with
+      // the animation's release pose.
+      this.emit({
+        type: 'spellfx',
+        sourceId: pet.id,
+        targetId: target.id,
+        school: spell.school,
+        fx: 'windup',
+      });
+      pet.rangedWindupReleaseTick = this.tickCount + windupTicks;
+      pet.swingTimer = spell.every;
+      return;
+    }
+    fire();
     pet.swingTimer = spell.every;
   }
 
-  private petPickTarget(pet: Entity, owner: Entity): Entity | null {
-    if (pet.petMode === 'passive') return null;
-    // Anti-AFK: an aggressive pet only proactively pulls fresh targets while its
-    // owner is actually playing. An idle owner's pet still defends (engagingUs /
-    // ownerOffense below) but cannot farm the area alone (hunter/warlock).
-    const ownerMeta = this.players.get(owner.id);
-    const ownerIdle =
-      !ownerMeta || this.tickCount - ownerMeta.lastActiveTick > PET_OWNER_IDLE_TICKS;
-    let best: Entity | null = null;
-    let bestD = pet.petMode === 'aggressive' ? PET_AGGRESSIVE_RANGE : PET_ASSIST_RANGE;
-    for (const m of this.entities.values()) {
-      if (m.id === pet.id || m.dead || !this.isHostileTo(pet, m)) continue;
-      const engagingUs =
-        m.kind === 'mob' && (m.aggroTargetId === owner.id || m.aggroTargetId === pet.id);
-      const ownerOffense =
-        owner.targetId === m.id &&
-        (owner.autoAttack || (m.kind === 'mob' && m.threat.has(owner.id)));
-      const aggressive =
-        pet.petMode === 'aggressive' &&
-        !ownerIdle &&
-        dist2d(pet.pos, m.pos) <= PET_AGGRESSIVE_RANGE;
-      if (!engagingUs && !ownerOffense && !aggressive) continue;
-      const d = dist2d(pet.pos, m.pos);
-      if (d < bestD) {
-        best = m;
-        bestD = d;
-      }
-    }
-    return best;
-  }
-
   // Step `e` one tick toward `dest`. With `ignoreObstacles`, the mover phases
-  // straight through props — used to free a stuck evader, never for normal
-  // locomotion. Returns true on arrival.
+  // straight through props — used to free a stuck evader, and forced on for
+  // templates flagged `phasesThroughObstacles` (mountain-sized world bosses
+  // that must never wedge on a collider mid-chase). Returns true on arrival.
   private moveToward(e: Entity, dest: Vec3, speed: number, ignoreObstacles = false): boolean {
+    if (!ignoreObstacles && MOBS[e.templateId]?.phasesThroughObstacles) ignoreObstacles = true;
     const d = dist2d(e.pos, dest);
     if (d < 0.3) return true;
     const desired = angleTo(e.pos, dest);
@@ -8536,7 +6177,7 @@ export class Sim {
       e.pos.x = nx;
       e.pos.z = nz;
       const g = groundHeight(nx, nz, this.cfg.seed);
-      e.pos.y = Math.max(g, SWIM_SURFACE_Y); // ride the surface while phasing, don't sink under terrain/water
+      e.pos.y = Math.max(g, swimSurfaceY(nx, nz)); // ride the surface while phasing, don't sink under terrain/water
       return d - step < 0.3;
     }
     // Mobs have no nav mesh. Try the straight path first; only if a prop or the
@@ -8546,12 +6187,35 @@ export class Sim {
     let bestX = e.pos.x,
       bestZ = e.pos.z,
       bestProgress = 1e-3;
+    // Swimmers ride the water surface, so slope checks clamp submerged ground
+    // to the waterline (a sloped lake bed is not a wall; see pathfind rideHeight).
+    // The waterline itself is terrain/feature-aware: outside a declared lake's
+    // footprint there is no waterline at all, so a dry sunken feature never
+    // reads as a shore.
+    const ride = (x: number, z: number, h: number): number => {
+      const wl = waterLevelAt(x, z);
+      return canSwim && h < wl ? wl : h;
+    };
+    let h0 = Number.NaN; // lazily sampled: only steep cells pay for heights
     for (const off of MOVE_SLIDE_FAN) {
       const a = desired + off;
       const nx = e.pos.x + Math.sin(a) * step;
       const nz = e.pos.z + Math.cos(a) * step;
       // landlocked creatures stop at the waterline instead of walking under it
-      if (!canSwim && groundHeight(nx, nz, this.cfg.seed) < WATER_LEVEL - SWIM_DEPTH) continue;
+      if (!canSwim && groundHeight(nx, nz, this.cfg.seed) < waterLevelAt(nx, nz) - SWIM_DEPTH) {
+        continue;
+      }
+      // Mobs, pets, and feared players obey the wall rule too: no uphill step
+      // onto unwalkably steep ground. Screened to the wall bands so the hot
+      // open-world fan pays nothing; inside a band the memoized cell steepness
+      // screens next, and only actual wall cells pay for exact heights. This
+      // is a NEW gate for these movers, so the finer per-step cliff check
+      // players get is not replicated here.
+      if (nearSteepWalls(nx, nz) && terrainSteepnessAt(nx, nz, this.cfg.seed) > MAX_CLIMB_SLOPE) {
+        if (Number.isNaN(h0))
+          h0 = ride(e.pos.x, e.pos.z, groundHeight(e.pos.x, e.pos.z, this.cfg.seed));
+        if (ride(nx, nz, groundHeight(nx, nz, this.cfg.seed)) > h0) continue;
+      }
       const r = this.resolveMovePoint(nx, nz, BODY_RADIUS, e);
       const progress = d - Math.hypot(r.x - dest.x, r.z - dest.z);
       if (progress > bestProgress) {
@@ -8564,185 +6228,20 @@ export class Sim {
     e.pos.x = bestX;
     e.pos.z = bestZ;
     const g = groundHeight(bestX, bestZ, this.cfg.seed);
-    e.pos.y = canSwim && g < WATER_LEVEL - SWIM_DEPTH ? SWIM_SURFACE_Y : g;
+    e.pos.y =
+      canSwim && g < waterLevelAt(bestX, bestZ) - SWIM_DEPTH ? swimSurfaceY(bestX, bestZ) : g;
     return dist2d(e.pos, dest) < 0.3;
   }
 
-  // Would a normal (collision- and water-aware) step toward `dest` be blocked —
-  // i.e. is a prop or deep water right in front of this mob? Used to decide when
-  // a phasing evader has cleared the obstacle and can walk normally again.
-  private blockedTowardSpawn(e: Entity, dest: Vec3): boolean {
-    const d = dist2d(e.pos, dest);
-    if (d < 0.3) return false;
-    const facing = angleTo(e.pos, dest);
-    const step = Math.min(e.moveSpeed * EVADE_SPEED_MULT * DT, d);
-    const nx = e.pos.x + Math.sin(facing) * step;
-    const nz = e.pos.z + Math.cos(facing) * step;
-    if (
-      !this.mobCanSwim(MOBS[e.templateId]) &&
-      groundHeight(nx, nz, this.cfg.seed) < WATER_LEVEL - SWIM_DEPTH
-    )
-      return true;
-    const resolved = this.resolveMovePoint(nx, nz, BODY_RADIUS, e);
-    // a collider ate most of the intended movement -> still blocked
-    return Math.hypot(nx - resolved.x, nz - resolved.z) > step * 0.5;
-  }
+  // blockedTowardSpawn moved to mob/locomotion.ts (M2; called only by the evade arm).
 
-  private respawnMob(mob: Entity): void {
-    if (mob.ownerId !== null) {
-      this.despawnPersistentPet(mob);
-      return;
-    }
-    this.clearNonPlayerStatAuras(mob);
-    mob.dead = false;
-    mob.lootable = false;
-    mob.loot = null;
-    mob.lootRecipientIds = undefined;
-    mob.tappedById = null;
-    mob.ownerId = null;
-    mob.hostile = true;
-    mob.pos = { ...mob.spawnPos };
-    mob.pos.y = groundHeight(mob.pos.x, mob.pos.z, this.cfg.seed);
-    mob.prevPos = { ...mob.pos };
-    this.rebucket(mob);
-    mob.hp = mob.maxHp;
-    mob.auras = [];
-    mob.aiState = 'idle';
-    mob.aggroTargetId = null;
-    mob.inCombat = false;
-    if (mob.templateId === NYTHRAXIS_BOSS_ID) {
-      mob.facing = Math.PI;
-      mob.prevFacing = Math.PI;
-    }
-    mob.leashAnchor = null;
-    mob.evadeStall = 0;
-    mob.fleeTimer = 0;
-    mob.fleeReturnTimer = 0;
-    mob.hasFled = false;
-    clearThreat(mob);
-    this.despawnSummonedAdds(mob);
-    mob.firedSummons = 0;
-    mob.enraged = false;
-    mob.healedThisPull = false;
-    mob.stompTimer = MOBS[mob.templateId]?.stomp?.every ?? 0;
-    mob.terrifyTimer = MOBS[mob.templateId]?.terrify?.every ?? 0;
-    mob.mendTimer = MOBS[mob.templateId]?.mendAlly?.every ?? 0;
-    mob.wardTimer = MOBS[mob.templateId]?.wardAllies?.every ?? 0;
-    mob.stoneskinTimer = MOBS[mob.templateId]?.stoneskin?.every ?? 0;
-    mob.rallyTimer = MOBS[mob.templateId]?.rally?.every ?? 0;
-    mob.warcryTimer = MOBS[mob.templateId]?.warcry?.every ?? 0;
-    mob.wanderTimer = this.rng.range(2, 8);
-    if (mob.templateId === NYTHRAXIS_BOSS_ID) this.resetNythraxisEncounter(mob);
-    for (const meta of this.players.values()) {
-      const e = this.entities.get(meta.entityId);
-      if (e && e.targetId === mob.id) e.targetId = null;
-    }
-  }
-
-  // Encounter reset: remove the adds a boss summoned this pull so retries
-  // start clean (firedSummons re-fires a fresh wave per pull). Player
-  // target/combo refs are cleared first, like freeInstance does.
-  private despawnSummonedAdds(boss: Entity): void {
-    if (boss.summonedIds.length === 0) return;
-    for (const id of boss.summonedIds) {
-      if (!this.entities.has(id)) continue;
-      for (const meta of this.players.values()) {
-        const e = this.entities.get(meta.entityId);
-        if (e?.targetId === id) e.targetId = null;
-        if (e?.comboTargetId === id) {
-          e.comboTargetId = null;
-          e.comboPoints = 0;
-        }
-      }
-      this.dropEntity(id);
-    }
-    boss.summonedIds = [];
-  }
-
-  // Classic beast "Frenzy": when a mob carrying the packFrenzy trait dies, the
-  // surviving same-family hostile mobs nearby briefly attack faster. Modelled as
-  // a refreshable buff_haste aura, so it rides the normal aura tick (expires on
-  // its own) and the existing snapshot wire — no new Entity field is needed.
-  private frenzyPackmates(dead: Entity): void {
-    const fr = MOBS[dead.templateId]?.packFrenzy;
-    if (!fr) return;
-    const r2 = fr.radius * fr.radius;
-    this.grid.forEachInRadius(dead.pos.x, dead.pos.z, fr.radius, (m, d2) => {
-      if (m.id === dead.id || m.kind !== 'mob' || m.dead || m.aiState === 'dead') return;
-      if (!m.hostile || m.ownerId !== null || d2 > r2) return;
-      // packmates = same creature type (a wolf pack), matching the social-aggro convention
-      if (m.templateId !== dead.templateId) return;
-      const existing = m.auras.find((a) => a.id === PACK_FRENZY_AURA_ID);
-      if (existing) {
-        existing.remaining = fr.duration; // refresh on each further loss; don't stack
-        return;
-      }
-      m.auras.push({
-        id: PACK_FRENZY_AURA_ID,
-        name: 'Pack Frenzy',
-        kind: 'buff_haste',
-        remaining: fr.duration,
-        duration: fr.duration,
-        value: fr.hasteMult,
-        sourceId: m.id,
-        school: 'physical',
-      });
-      this.emit({ type: 'aura', targetId: m.id, name: 'Pack Frenzy', gained: true });
-      this.emit({
-        type: 'log',
-        text: `${m.name} flies into a frenzy!`,
-        color: '#ff8c00',
-        entityId: m.id,
-      });
-      this.emit({
-        type: 'spellfx',
-        sourceId: m.id,
-        targetId: m.id,
-        school: 'physical',
-        fx: 'nova',
-      });
-    });
-  }
-
-  // Death Throes (arm): a volatile creature does not explode the instant it
-  // dies. Its corpse destabilizes for `delay` seconds — a telegraph players can
-  // run from — by arming a fuse that the corpse tick (updateMob) counts down.
-  private armDeathThroes(dead: Entity): void {
-    const dt = MOBS[dead.templateId]?.deathThroes;
-    if (!dt) return;
-    dead.detonateTimer = dt.delay;
-    const school = dt.school ?? 'nature';
-    this.emit({ type: 'spellfx', sourceId: dead.id, targetId: dead.id, school, fx: 'nova' });
-    this.emit({
-      type: 'log',
-      text: `${dead.name} begins to swell — get clear!`,
-      color: '#9acd32',
-      entityId: dead.id,
-    });
-  }
-
-  // Death Throes (detonate): the corpse bursts for min..max `school` damage to
-  // every living player within `radius`. Mirrors the aoePulse damage loop; the
-  // dead mob is the damage source so credit/threat resolve as a normal hit.
-  private detonateCorpse(dead: Entity): void {
-    const dt = MOBS[dead.templateId]?.deathThroes;
-    if (!dt) return;
-    const school = dt.school ?? 'nature';
-    this.emit({ type: 'spellfx', sourceId: dead.id, targetId: dead.id, school, fx: 'nova' });
-    this.emit({
-      type: 'log',
-      text: `${dead.name} bursts in a cloud of ${dt.name}!`,
-      color: '#9acd32',
-      entityId: dead.id,
-    });
-    for (const meta of this.players.values()) {
-      const pe = this.entities.get(meta.entityId);
-      if (pe && !pe.dead && dist2d(pe.pos, dead.pos) <= dt.radius) {
-        const dmg = Math.round(this.rng.range(dt.min, dt.max));
-        this.dealDamage(dead, pe, dmg, false, school, dt.name, 'hit', true);
-      }
-    }
-  }
+  // respawnMob / despawnSummonedAdds / frenzyPackmates / armDeathThroes /
+  // detonateCorpse moved to mob/lifecycle.ts (M4). The five execution bodies are
+  // reached through SimContext: handleDeath fires ctx.frenzyPackmates +
+  // ctx.armDeathThroes; the updateMob corpse-tick (mob/locomotion.ts) fires
+  // ctx.detonateCorpse + ctx.respawnMob; resetEvadingMob fires
+  // ctx.despawnSummonedAdds. despawnPersistentPet + clearNonPlayerStatAuras stay
+  // Sim methods, now also exposed on the seam for the moved respawnMob to consume.
 
   // Boss threshold mechanics: add waves (summonAdds) and enrage. Checked
   // every tick while the boss is in combat; thresholds fire once per pull
@@ -8756,6 +6255,7 @@ export class Sim {
         !tmpl.desperateHeal &&
         !tmpl.mendAlly &&
         !tmpl.wardAllies &&
+        !tmpl.channelHeal &&
         !tmpl.rally &&
         !tmpl.warcry)
     )
@@ -8765,6 +6265,8 @@ export class Sim {
       const thresholds = tmpl.summonAdds.atHpPct;
       while (mob.firedSummons < thresholds.length && hpFrac <= thresholds[mob.firedSummons]) {
         mob.firedSummons++;
+        if (tmpl.yells?.summon)
+          emitMobYell(this.ctx, mob, tmpl.yells.summon, tmpl.battleYells?.range);
         const run = this.delveRunForMob(mob.id);
         if (
           run &&
@@ -8782,13 +6284,16 @@ export class Sim {
     const enrageAllowed = !enrageRun || enrageRun.tierId === 'heroic';
     if (tmpl.enrage && enrageAllowed && !mob.enraged && hpFrac <= tmpl.enrage.belowHpPct) {
       mob.enraged = true;
+      if (tmpl.yells?.enrage)
+        emitMobYell(this.ctx, mob, tmpl.yells.enrage, tmpl.battleYells?.range);
       this.emit({ type: 'aura', targetId: mob.id, name: 'Enrage', gained: true });
-      this.emit({
-        type: 'log',
-        text: `${mob.name} becomes enraged!`,
-        color: '#ff6666',
-        entityId: mob.id,
-      });
+      if (!tmpl.quietMechanics)
+        this.emit({
+          type: 'log',
+          text: `${mob.name} becomes enraged!`,
+          color: '#ff6666',
+          entityId: mob.id,
+        });
       this.emit({
         type: 'spellfx',
         sourceId: mob.id,
@@ -8842,7 +6347,10 @@ export class Sim {
             entityId: mob.id,
           });
           for (const ally of wounded) {
-            const amount = Math.round(this.rng.range(tmpl.mendAlly.healMin, tmpl.mendAlly.healMax));
+            const amount = Math.round(
+              this.rng.range(tmpl.mendAlly.healMin, tmpl.mendAlly.healMax) *
+                (mob.mechanicHealMult ?? 1),
+            );
             this.applyHeal(mob, ally, amount, tmpl.mendAlly.name);
           }
         }
@@ -8852,7 +6360,7 @@ export class Sim {
     // friendly mob in range (including the caster) in an absorb shield. Unlike
     // Mend it targets healthy allies too — a barrier pre-empts the next blows.
     // Refreshes each interval, replacing any partially-soaked ward (same aura id).
-    if (tmpl.wardAllies) {
+    if (tmpl.wardAllies && !this.ctx.isStunned(mob)) {
       mob.wardTimer -= DT;
       if (mob.wardTimer <= 0) {
         mob.wardTimer = tmpl.wardAllies.every;
@@ -8879,11 +6387,87 @@ export class Sim {
               kind: 'absorb',
               remaining: tmpl.wardAllies.duration,
               duration: tmpl.wardAllies.duration,
-              value: tmpl.wardAllies.amount,
+              value: Math.round(tmpl.wardAllies.amount * (mob.mechanicHealMult ?? 1)),
               sourceId: mob.id,
               school,
             });
           }
+        }
+      }
+    }
+    // Channeled ESCALATING heal ("Hierophant's Mending"): heal the strongest
+    // friendly mob in range (its protectee, the raid boss) for a base amount plus
+    // a ramp that grows each uninterrupted tick. Any stun/incapacitate/silence
+    // (isStunned covers stun/incap/polymorph) breaks the channel and RESETS the
+    // ramp, so a raid that fails to lock the caster down watches the boss heal for
+    // more and more. The caster is CC-able by design (ccImmune: false).
+    if (tmpl.channelHeal) {
+      const ch = tmpl.channelHeal;
+      // Stun, a true silence, OR a school lockout (a real interrupt: Kick / Pummel /
+      // Counterspell lands a lockout of the channel's school) all break the channel
+      // and reset the ramp. This is what makes the interruptible cast bar honest.
+      const interrupted =
+        this.ctx.isStunned(mob) || isSilenced(mob) || isLockedOut(mob, ch.school ?? 'shadow');
+      if (interrupted) {
+        // Clear the (scripted) channel bar so a stunned/interrupted healer is not
+        // left rendering a frozen cast; updateHealerHold re-arms it once free.
+        if (mob.castingAbility === NYTHRAXIS_SPIRIT_MENDING_CAST_ID) {
+          mob.castingAbility = null;
+          mob.castTotal = 0;
+          mob.castRemaining = 0;
+          mob.channeling = false;
+        }
+        if (mob.channelRamp > 0) {
+          mob.channelRamp = 0;
+          if (!tmpl.quietMechanics)
+            this.emit({
+              type: 'log',
+              text: `${ch.name} is interrupted!`,
+              color: '#ffcc66',
+              entityId: mob.id,
+            });
+        }
+        mob.channelTimer = ch.every;
+      } else {
+        mob.channelTimer -= DT;
+        if (mob.channelTimer <= 0) {
+          mob.channelTimer = ch.every;
+          let protectee: Entity | null = null;
+          for (const ally of this.entities.values()) {
+            if (ally.kind !== 'mob' || ally.dead || ally.ownerId !== null) continue; // skip players, pets, corpses
+            if (ally.hostile !== mob.hostile || ally.id === mob.id) continue; // same-faction, not self
+            if (dist2d(ally.pos, mob.pos) > ch.radius) continue;
+            if (!protectee || ally.maxHp > protectee.maxHp) protectee = ally; // the boss = biggest pool
+          }
+          if (protectee && protectee.hp < protectee.maxHp) {
+            const amount = Math.round(
+              Math.min(ch.maxHeal, ch.baseHeal + mob.channelRamp) * (mob.mechanicHealMult ?? 1),
+            );
+            const school = ch.school ?? 'shadow';
+            this.emit({
+              type: 'spellfx',
+              sourceId: mob.id,
+              targetId: protectee.id,
+              school,
+              fx: 'beam',
+            });
+            // Reuse the existing "{name} channels {mechanic}." log shape (localized
+            // by the broad channels rule in sim_i18n.ts); the heal amount surfaces
+            // through the heal event + beam above, so no bespoke number string ships.
+            // quietMechanics healers (the Nythraxis spirit adds) stay silent: the
+            // beam + heal event are enough, no per-tick chat line.
+            if (!tmpl.quietMechanics)
+              this.emit({
+                type: 'log',
+                text: `${mob.name} channels ${ch.name}.`,
+                color: '#66ff99',
+                entityId: mob.id,
+              });
+            this.applyHeal(mob, protectee, amount, ch.name);
+          }
+          // The ramp grows each uninterrupted tick (capped so base+ramp never
+          // exceeds maxHeal), so an ignored channel heals more and more over time.
+          mob.channelRamp = Math.min(ch.maxHeal - ch.baseHeal, mob.channelRamp + ch.rampAdd);
         }
       }
     }
@@ -8906,12 +6490,13 @@ export class Sim {
         if (allies.length > 0) {
           const school = tmpl.rally.school ?? 'physical';
           this.emit({ type: 'spellfx', sourceId: mob.id, targetId: mob.id, school, fx: 'nova' });
-          this.emit({
-            type: 'log',
-            text: `${mob.name} unleashes ${tmpl.rally.name}!`,
-            color: '#ffcc33',
-            entityId: mob.id,
-          });
+          if (!tmpl.quietMechanics)
+            this.emit({
+              type: 'log',
+              text: `${mob.name} unleashes ${tmpl.rally.name}!`,
+              color: '#ffcc33',
+              entityId: mob.id,
+            });
           for (const ally of allies) {
             this.applyAura(ally, {
               id: `rally_${mob.templateId}`,
@@ -8974,766 +6559,17 @@ export class Sim {
     }
   }
 
-  private initNythraxisEncounter(boss: Entity): NonNullable<Entity['nythraxis']> {
-    if (!boss.nythraxis) {
-      boss.nythraxis = {
-        phase: 1,
-        introSpoken: false,
-        transitionStarted: false,
-        transitionTimer: 0,
-        transitionCues: [],
-        transitionReleased: false,
-        dialogueBusyUntil: 0,
-        dialogueToken: 0,
-        gravebreakerTimer: 1.5,
-        gravebreakerCasts: 0,
-        raiseFallenTimer: NYTHRAXIS_RAISE_FALLEN_EVERY,
-        soulRendTimer: NYTHRAXIS_SOUL_REND_EVERY,
-        soulRendMarks: [],
-        soulRendLockout: 0,
-        deathlessTimer: NYTHRAXIS_DEATHLESS_EVERY,
-        deathlessCastRemaining: 0,
-        deathlessStunRemaining: 0,
-        wardChannels: [],
-        finalStand: false,
-        deathSpoken: false,
-      };
-    }
-    return boss.nythraxis;
-  }
-
+  // The Nythraxis encounter core (init/reset/wipe/update, dialogue + yell scheduling,
+  // room/participant queries, lockout grant, Gravebreaker/Raise Fallen/adds, the Aldric
+  // transition + wardstones, Soul Rend, Deathless Rage + ward channels) moved to
+  // encounters/nythraxis.ts (N1). updateNythraxisEncounter + grantNythraxisLockout are
+  // reached only via ctx (bound to the module in buildSimContext). Sim keeps one thin
+  // delegate: resetNythraxisEncounter (reached by resetEvadingMob's boss-reset re-entry,
+  // respawnMob, and nythraxis_aldric_npc.test.ts via cast). tryStartNythraxisWardChannel
+  // moved with its sole callers (lootCorpse/pickUpObject/interact) to interaction.ts (W3),
+  // which imports it directly from encounters/nythraxis.ts.
   private resetNythraxisEncounter(boss: Entity): void {
-    for (const p of this.playersInNythraxisRoom(boss)) {
-      p.auras = p.auras.filter(
-        (a) => a.id !== 'nythraxis_soul_rend' && a.id !== 'nythraxis_transition_stun',
-      );
-      this.clearNythraxisWardChannelCast(p);
-    }
-    for (const e of this.nythraxisTransitionStunTargets(boss)) {
-      if (e.kind !== 'player')
-        e.auras = e.auras.filter((a) => a.id !== 'nythraxis_transition_stun');
-    }
-    const aldric = this.findNythraxisAldric(boss);
-    if (aldric) this.dropEntity(aldric.id);
-    for (const ward of this.nythraxisDeathlessChannelObjects(boss)) {
-      ward.auras = ward.auras.filter((a) => a.id !== 'nythraxis_wardstone_lit');
-    }
-    boss.nythraxis = undefined;
-    boss.castingAbility = null;
-    boss.castRemaining = 0;
-    boss.castTotal = 0;
-    boss.channeling = false;
-  }
-
-  // Full wipe: every player in the arena is dead. Send Nythraxis home at full
-  // health, clear his adds/Aldric/wards/auras, and drop combat so the sealed
-  // doors reopen and the raid can run back in for another attempt.
-  private wipeNythraxisEncounter(boss: Entity): void {
-    boss.pos = { ...boss.spawnPos };
-    boss.prevPos = { ...boss.spawnPos };
-    this.rebucket(boss);
-    this.resetEvadingMob(boss); // restores hp, clears threat/auras/adds + resetNythraxisEncounter
-  }
-
-  private updateNythraxisEncounter(boss: Entity): void {
-    const st = this.initNythraxisEncounter(boss);
-    if (!st.introSpoken) {
-      st.introSpoken = true;
-      this.nythraxisDialogueSet(boss, [
-        { speaker: 'nythraxis', text: 'Another kingdom comes to challenge me', delay: 0 },
-        {
-          speaker: 'nythraxis',
-          text: 'You will join the rest',
-          delay: NYTHRAXIS_OPENER_SECOND_YELL_DELAY,
-        },
-      ]);
-    }
-
-    // Wipe-or-kill is the only reset: if every player in the arena is dead the
-    // encounter resets for a retry; otherwise keep the boss locked onto a live
-    // target so kiting him out of melee never sends him home.
-    const room = this.playersInNythraxisRoom(boss);
-    if (room.length === 0) {
-      this.wipeNythraxisEncounter(boss);
-      return;
-    }
-    const tgt = boss.aggroTargetId !== null ? this.entities.get(boss.aggroTargetId) : null;
-    if (
-      !tgt ||
-      tgt.dead ||
-      tgt.kind !== 'player' ||
-      dist2d(tgt.pos, boss.spawnPos) > NYTHRAXIS_ROOM_RADIUS
-    ) {
-      const topId = threatEntries(boss, 1)[0]?.[0] ?? null;
-      const top = topId !== null ? this.entities.get(topId) : null;
-      const next = top && !top.dead && top.kind === 'player' ? top : room[0];
-      boss.aggroTargetId = next.id;
-      boss.inCombat = true;
-      if (boss.aiState === 'idle' || boss.aiState === 'evade') boss.aiState = 'chase';
-    }
-    if (boss.aggroTargetId !== null && (boss.aiState === 'idle' || boss.aiState === 'evade')) {
-      boss.inCombat = true;
-      boss.aiState = 'chase';
-    }
-
-    if (st.soulRendLockout > 0) st.soulRendLockout = Math.max(0, st.soulRendLockout - DT);
-    this.updateNythraxisSoulRend(boss, st);
-    if (st.phase === 'transition') {
-      this.updateNythraxisTransition(boss, st);
-      return;
-    }
-    if (st.phase === 'dead') return;
-
-    const hpFrac = boss.hp / Math.max(1, boss.maxHp);
-    if (st.phase === 1 && hpFrac <= NYTHRAXIS_PHASE_TWO_HP) {
-      this.startNythraxisTransition(boss, st);
-      return;
-    }
-
-    if (st.phase === 2 && !st.finalStand && hpFrac <= NYTHRAXIS_FINAL_STAND_HP) {
-      st.finalStand = true;
-      boss.enraged = true;
-      this.nythraxisDialogueSet(boss, [
-        { speaker: 'nythraxis', text: 'I built a kingdom', delay: 0 },
-        {
-          speaker: 'nythraxis',
-          text: 'I will not lose it again',
-          delay: NYTHRAXIS_DIALOGUE_LINE_SECONDS,
-        },
-      ]);
-      this.applyAura(boss, {
-        id: 'nythraxis_final_stand',
-        name: 'Final Stand',
-        kind: 'buff_haste',
-        remaining: 600,
-        duration: 600,
-        value: 1.45,
-        sourceId: boss.id,
-        school: 'shadow',
-      });
-      this.emit({
-        type: 'spellfx',
-        sourceId: boss.id,
-        targetId: boss.id,
-        school: 'shadow',
-        fx: 'nova',
-      });
-    }
-
-    if (st.deathlessStunRemaining > 0) {
-      st.deathlessStunRemaining = Math.max(0, st.deathlessStunRemaining - DT);
-      return;
-    }
-    if (st.deathlessCastRemaining > 0) {
-      this.updateNythraxisDeathlessRage(boss, st);
-      return;
-    }
-
-    this.updateNythraxisGravebreaker(boss, st);
-    if (st.phase === 1) this.updateNythraxisRaiseFallen(boss, st);
-    if (st.phase === 2) {
-      st.soulRendTimer -= DT;
-      if (st.soulRendTimer <= 0) {
-        if (this.canCastNythraxisSoulRend(st)) this.castNythraxisSoulRend(boss, st);
-        else st.soulRendTimer = 1;
-      }
-      st.deathlessTimer -= DT;
-      if (st.deathlessTimer <= 0) {
-        if (st.soulRendMarks.length === 0 && st.soulRendLockout <= 0)
-          this.startNythraxisDeathlessRage(boss, st);
-        else st.deathlessTimer = 1;
-      }
-    }
-  }
-
-  private reserveNythraxisDialogue(
-    boss: Entity,
-    duration: number,
-    critical = false,
-    queue = false,
-  ): { st: NonNullable<Entity['nythraxis']>; token: number } | null {
-    const st = this.initNythraxisEncounter(boss);
-    const busyUntil = st.dialogueBusyUntil ?? 0;
-    if (!critical && busyUntil > this.time && !queue) return null;
-    const delay = !critical && queue && busyUntil > this.time ? busyUntil - this.time : 0;
-    const token = (st.dialogueToken ?? 0) + 1;
-    st.dialogueToken = token;
-    st.dialogueBusyUntil = this.time + delay + duration;
-    return { st, token };
-  }
-
-  private nythraxisDialogueSet(
-    boss: Entity,
-    lines: { speaker: 'nythraxis' | 'aldric'; text: string; delay: number }[],
-    critical = false,
-    queue = false,
-  ): boolean {
-    if (lines.length === 0) return true;
-    const duration = Math.max(...lines.map((line) => line.delay)) + NYTHRAXIS_DIALOGUE_LINE_SECONDS;
-    const busyUntil = boss.nythraxis?.dialogueBusyUntil ?? 0;
-    const startDelay = !critical && queue && busyUntil > this.time ? busyUntil - this.time : 0;
-    const reservation = this.reserveNythraxisDialogue(boss, duration, critical, queue);
-    if (!reservation) return false;
-    const { st, token } = reservation;
-    for (const line of lines) {
-      const delay = startDelay + line.delay;
-      if (delay <= 0) {
-        this.emitNythraxisYell(boss, line.speaker, line.text);
-        continue;
-      }
-      this.delayedEvents.push({
-        at: this.time + delay,
-        event: this.nythraxisYellEvent(boss, line.speaker, line.text),
-        guard: () => critical || st.dialogueToken === token,
-      });
-    }
-    return true;
-  }
-
-  private nythraxisSay(
-    boss: Entity,
-    speaker: 'nythraxis' | 'aldric',
-    text: string,
-    critical = false,
-  ): boolean {
-    const reservation = this.reserveNythraxisDialogue(
-      boss,
-      NYTHRAXIS_DIALOGUE_LINE_SECONDS,
-      critical,
-    );
-    if (!reservation) return false;
-    this.emitNythraxisYell(boss, speaker, text);
-    return true;
-  }
-
-  private nythraxisYellEvent(
-    boss: Entity,
-    speaker: 'nythraxis' | 'aldric',
-    text: string,
-  ): SimEvent {
-    const actor = speaker === 'aldric' ? this.findNythraxisAldric(boss) : boss;
-    const from = actor?.name ?? (speaker === 'aldric' ? 'Brother Aldric' : boss.name);
-    const fromPid = actor?.id ?? boss.id;
-    return { type: 'chat', fromPid, from, text, channel: 'yell', entityId: actor?.id ?? boss.id };
-  }
-
-  private emitNythraxisYell(boss: Entity, speaker: 'nythraxis' | 'aldric', text: string): void {
-    const event = this.nythraxisYellEvent(boss, speaker, text);
-    for (const meta of this.players.values()) {
-      const p = this.entities.get(meta.entityId);
-      if (!p || dist2d(p.pos, boss.pos) > YELL_RANGE) continue;
-      this.emit({ ...event, pid: meta.entityId });
-    }
-  }
-
-  private findNythraxisAldric(boss: Entity): Entity | null {
-    for (const e of this.entities.values()) {
-      if (
-        e.templateId === NYTHRAXIS_ALDRIC_ID &&
-        !e.dead &&
-        dist2d(e.spawnPos, boss.spawnPos) < NYTHRAXIS_ROOM_RADIUS
-      )
-        return e;
-    }
-    return null;
-  }
-
-  private playersInNythraxisRoom(boss: Entity): Entity[] {
-    const out: Entity[] = [];
-    for (const meta of this.players.values()) {
-      const p = this.entities.get(meta.entityId);
-      if (p && !p.dead && dist2d(p.pos, boss.spawnPos) <= NYTHRAXIS_ROOM_RADIUS) out.push(p);
-    }
-    out.sort((a, b) => a.id - b.id);
-    return out;
-  }
-
-  private nythraxisTransitionStunTargets(boss: Entity): Entity[] {
-    return [...this.entities.values()].filter(
-      (e) =>
-        !e.dead &&
-        dist2d(e.pos, boss.spawnPos) <= NYTHRAXIS_ROOM_RADIUS &&
-        (e.kind === 'player' ||
-          (e.kind === 'mob' && (e.templateId === NYTHRAXIS_ADD_ID || e.ownerId !== null))),
-    );
-  }
-
-  private nythraxisRoomMetas(boss: Entity): PlayerMeta[] {
-    const out: PlayerMeta[] = [];
-    for (const meta of this.players.values()) {
-      const p = this.entities.get(meta.entityId);
-      if (p && dist2d(p.pos, boss.spawnPos) <= NYTHRAXIS_ROOM_RADIUS) out.push(meta);
-    }
-    out.sort((a, b) => a.entityId - b.entityId);
-    return out;
-  }
-
-  private grantNythraxisLockout(boss: Entity): void {
-    const until = this.lockoutNowMs() + NYTHRAXIS_LOCKOUT_MS;
-    for (const meta of this.nythraxisRoomMetas(boss)) {
-      meta.raidLockouts.set('nythraxis_boss_arena', until);
-    }
-  }
-
-  private updateNythraxisGravebreaker(boss: Entity, st: NonNullable<Entity['nythraxis']>): void {
-    st.gravebreakerTimer -= DT;
-    if (st.gravebreakerTimer > 0) return;
-    st.gravebreakerTimer = NYTHRAXIS_GRAVEBREAKER_EVERY;
-    st.gravebreakerCasts = (st.gravebreakerCasts ?? 0) + 1;
-    if (st.gravebreakerCasts % 3 === 0)
-      this.nythraxisSay(boss, 'nythraxis', 'Kneel before your king');
-    this.emit({
-      type: 'spellfx',
-      sourceId: boss.id,
-      targetId: boss.id,
-      school: 'physical',
-      fx: 'nova',
-    });
-    let rawDmg =
-      this.rng.range(boss.weapon.min, boss.weapon.max) +
-      (this.effectiveAttackPower(boss) / 14) * boss.weapon.speed;
-    const enrage = MOBS[boss.templateId]?.enrage;
-    if (boss.enraged && enrage) rawDmg *= enrage.dmgMult;
-    for (const p of this.playersInNythraxisRoom(boss)) {
-      const d = dist2d(p.pos, boss.pos);
-      if (d > NYTHRAXIS_GRAVEBREAKER_RANGE) continue;
-      const delta = Math.abs(normAngle(angleTo(boss.pos, p.pos) - boss.facing));
-      if (delta > NYTHRAXIS_GRAVEBREAKER_HALF_ARC) continue;
-      const mult = p.id === boss.aggroTargetId ? 1 : 1.5;
-      const mitigated = rawDmg * mult * (1 - armorReduction(this.effectiveArmor(p), boss.level));
-      const dmg = Math.max(1, Math.round(mitigated));
-      this.dealDamage(boss, p, dmg, false, 'physical', 'Gravebreaker', 'hit', true);
-    }
-  }
-
-  private updateNythraxisRaiseFallen(boss: Entity, st: NonNullable<Entity['nythraxis']>): void {
-    st.raiseFallenTimer -= DT;
-    if (st.raiseFallenTimer > 0) return;
-    st.raiseFallenTimer = NYTHRAXIS_RAISE_FALLEN_EVERY;
-    this.nythraxisDialogueSet(boss, [
-      { speaker: 'nythraxis', text: 'Rise once more', delay: 0 },
-      {
-        speaker: 'nythraxis',
-        text: 'Your king commands it',
-        delay: NYTHRAXIS_DIALOGUE_LINE_SECONDS,
-      },
-    ]);
-    this.spawnNythraxisAdds(boss);
-  }
-
-  private spawnNythraxisAdds(boss: Entity): void {
-    const template = MOBS[NYTHRAXIS_ADD_ID];
-    if (!template) return;
-    // Raise the guards from BEHIND the boss (toward the back wall), so they rise
-    // up behind him and march out around him, not between the boss and the raid.
-    const back = boss.spawnPos.z + 16;
-    const spawnPoints = [
-      this.groundPos(boss.spawnPos.x - 12, back),
-      this.groundPos(boss.spawnPos.x + 12, back),
-    ];
-    const inst = this.instances.find((i) => i.partyKey !== null && i.mobIds.includes(boss.id));
-    const victimId = boss.aggroTargetId ?? threatEntries(boss, 1)[0]?.[0] ?? null;
-    const victim = victimId !== null ? this.entities.get(victimId) : null;
-    for (const pos of spawnPoints) {
-      const add = createMob(this.nextId++, template, template.maxLevel, pos);
-      add.spawnPos = { ...boss.spawnPos };
-      add.tappedById = boss.tappedById;
-      this.addEntity(add);
-      boss.summonedIds.push(add.id);
-      inst?.mobIds.push(add.id);
-      if (victim && !victim.dead && victim.kind === 'player') this.aggroMob(add, victim, false);
-    }
-    this.emit({
-      type: 'spellfx',
-      sourceId: boss.id,
-      targetId: boss.id,
-      school: 'shadow',
-      fx: 'nova',
-    });
-  }
-
-  private startNythraxisTransition(boss: Entity, st: NonNullable<Entity['nythraxis']>): void {
-    st.phase = 'transition';
-    st.transitionStarted = true;
-    const queuedDialogueDelay = Math.max(0, (st.dialogueBusyUntil ?? 0) - this.time);
-    st.transitionTimer = NYTHRAXIS_TRANSITION_DURATION + queuedDialogueDelay;
-    st.transitionReleased = false;
-    st.soulRendMarks = [];
-    st.deathlessCastRemaining = 0;
-    boss.castingAbility = null;
-    boss.castRemaining = 0;
-    boss.castTotal = 0;
-    const transitionLines = [
-      { speaker: 'nythraxis' as const, text: 'Another priest...', delay: 0 },
-      { speaker: 'aldric' as const, text: 'Your kingdom is gone, Nythraxis', delay: 3.0 },
-      { speaker: 'aldric' as const, text: 'Yet you still cling to it', delay: 5.7 },
-      { speaker: 'aldric' as const, text: 'Champions, listen carefully!', delay: 8.4 },
-      { speaker: 'aldric' as const, text: 'The wardstones still bind his soul.', delay: 11.2 },
-      { speaker: 'aldric' as const, text: 'When the time comes, do not ignore them.', delay: 14.1 },
-      { speaker: 'aldric' as const, text: 'Fail and we all perish', delay: 17.1 },
-    ];
-    this.emit({
-      type: 'spellfx',
-      sourceId: boss.id,
-      targetId: boss.id,
-      school: 'physical',
-      fx: 'nova',
-    });
-    for (const e of this.nythraxisTransitionStunTargets(boss)) {
-      this.applyAura(e, {
-        id: 'nythraxis_transition_stun',
-        name: 'War Stomp',
-        kind: 'stun',
-        remaining: NYTHRAXIS_TRANSITION_STUN,
-        duration: NYTHRAXIS_TRANSITION_STUN,
-        value: 0,
-        sourceId: boss.id,
-        school: 'physical',
-      });
-    }
-    this.applyAura(boss, {
-      id: 'nythraxis_transition_pause',
-      name: 'War Stomp',
-      kind: 'stun',
-      remaining: NYTHRAXIS_TRANSITION_STUN,
-      duration: NYTHRAXIS_TRANSITION_STUN,
-      value: 0,
-      sourceId: boss.id,
-      school: 'physical',
-    });
-    this.spawnNythraxisAldric(boss);
-    this.lightNythraxisWardstones(boss);
-    this.nythraxisDialogueSet(boss, transitionLines, false, true);
-    st.transitionCues = [];
-  }
-
-  private spawnNythraxisAldric(boss: Entity): void {
-    if (this.findNythraxisAldric(boss)) return;
-    // Brother Aldric is a friendly quest NPC, not a mob: modeling him as an NPC
-    // lets the online client mirror his questIds and open the turn-in dialog
-    // (createMob produced a friendly mob the client could never interact with).
-    const def = NPCS[NYTHRAXIS_ALDRIC_ID];
-    if (!def) return;
-    const aldric = createNpc(
-      this.nextId++,
-      def,
-      this.groundPos(boss.spawnPos.x, boss.spawnPos.z - NYTHRAXIS_ALDRIC_SPAWN_DIST),
-    );
-    aldric.level = boss.level; // createNpc defaults to 10; match the boss's level for the nameplate
-    aldric.hostile = false;
-    aldric.facing = 0;
-    aldric.prevFacing = 0;
-    aldric.spawnPos = { ...aldric.pos };
-    this.addEntity(aldric);
-    const inst = this.instances.find((i) => i.partyKey !== null && i.mobIds.includes(boss.id));
-    inst?.mobIds.push(aldric.id);
-  }
-
-  private updateNythraxisTransition(boss: Entity, st: NonNullable<Entity['nythraxis']>): void {
-    const aldric = this.findNythraxisAldric(boss);
-    if (aldric) {
-      const dest = this.groundPos(boss.spawnPos.x, boss.spawnPos.z - NYTHRAXIS_ALDRIC_WALK_DIST);
-      this.moveToward(aldric, dest, aldric.moveSpeed);
-    }
-    st.transitionTimer -= DT;
-    if (st.transitionTimer > 0) return;
-    st.phase = 2;
-    st.transitionReleased = true;
-    st.gravebreakerTimer = 3;
-    st.soulRendTimer = NYTHRAXIS_PHASE_TWO_SETTLE_DELAY;
-    st.deathlessTimer = NYTHRAXIS_PHASE_TWO_SETTLE_DELAY + 15;
-    boss.auras = boss.auras.filter((a) => a.id !== 'nythraxis_transition_pause');
-    for (const e of this.nythraxisTransitionStunTargets(boss)) {
-      e.auras = e.auras.filter((a) => a.id !== 'nythraxis_transition_stun');
-    }
-  }
-
-  private lightNythraxisWardstones(boss: Entity): void {
-    for (const ward of this.nythraxisDeathlessChannelObjects(boss)) {
-      this.applyAura(ward, {
-        id: 'nythraxis_wardstone_lit',
-        name: 'Soul Ward',
-        kind: 'absorb',
-        remaining: 600,
-        duration: 600,
-        value: 1,
-        sourceId: boss.id,
-        school: 'arcane',
-      });
-      this.emit({
-        type: 'spellfx',
-        sourceId: ward.id,
-        targetId: boss.id,
-        school: 'arcane',
-        fx: 'projectile',
-      });
-    }
-  }
-
-  private canCastNythraxisSoulRend(st: NonNullable<Entity['nythraxis']>): boolean {
-    return st.deathlessCastRemaining <= 0 && st.deathlessStunRemaining <= 0;
-  }
-
-  private castNythraxisSoulRend(boss: Entity, st: NonNullable<Entity['nythraxis']>): void {
-    const candidates = this.playersInNythraxisRoom(boss).filter((p) => p.id !== boss.aggroTargetId);
-    if (candidates.length === 0) {
-      st.soulRendTimer = 3;
-      return;
-    }
-    const picked: Entity[] = [];
-    while (picked.length < 3 && candidates.length > 0) {
-      const idx = this.rng.int(0, candidates.length - 1);
-      picked.push(candidates.splice(idx, 1)[0]);
-    }
-    st.soulRendMarks = picked.map((p) => ({
-      playerId: p.id,
-      remaining: NYTHRAXIS_SOUL_REND_DURATION,
-    }));
-    st.soulRendTimer = NYTHRAXIS_SOUL_REND_EVERY;
-    this.nythraxisSay(boss, 'nythraxis', 'Your spirit belongs to me', true);
-    for (const p of picked) {
-      this.applyAura(p, {
-        id: 'nythraxis_soul_rend',
-        name: 'Soul Rend',
-        kind: 'vulnerability',
-        remaining: NYTHRAXIS_SOUL_REND_DURATION,
-        duration: NYTHRAXIS_SOUL_REND_DURATION,
-        value: 0,
-        sourceId: boss.id,
-        school: 'shadow',
-      });
-      this.emit({
-        type: 'spellfx',
-        sourceId: boss.id,
-        targetId: p.id,
-        school: 'shadow',
-        fx: 'projectile',
-      });
-    }
-  }
-
-  private updateNythraxisSoulRend(boss: Entity, st: NonNullable<Entity['nythraxis']>): void {
-    if (st.soulRendMarks.length === 0) return;
-    for (const mark of st.soulRendMarks) mark.remaining -= DT;
-    if (st.soulRendMarks.some((m) => m.remaining > 0)) return;
-    const marked = st.soulRendMarks
-      .map((m) => this.entities.get(m.playerId))
-      .filter((e): e is Entity => !!e && e.kind === 'player' && !e.dead);
-    for (const p of marked) {
-      const stacked = marked.filter(
-        (other) => dist2d(other.pos, p.pos) <= NYTHRAXIS_SOUL_REND_STACK_RANGE,
-      ).length;
-      const share = Math.max(1, stacked);
-      this.dealDamage(
-        boss,
-        p,
-        Math.ceil(p.maxHp / share),
-        false,
-        'shadow',
-        'Soul Rend',
-        'hit',
-        true,
-      );
-      p.auras = p.auras.filter((a) => a.id !== 'nythraxis_soul_rend');
-      this.emit({
-        type: 'spellfx',
-        sourceId: boss.id,
-        targetId: p.id,
-        school: 'shadow',
-        fx: 'nova',
-      });
-    }
-    st.soulRendMarks = [];
-  }
-
-  private startNythraxisDeathlessRage(boss: Entity, st: NonNullable<Entity['nythraxis']>): void {
-    st.deathlessTimer = NYTHRAXIS_DEATHLESS_EVERY;
-    st.deathlessCastRemaining = NYTHRAXIS_DEATHLESS_CAST;
-    st.soulRendLockout = NYTHRAXIS_DEATHLESS_SOUL_REND_LOCKOUT;
-    st.wardChannels = this.nythraxisDeathlessChannelObjects(boss).map((ward) => ({
-      objectId: ward.id,
-      playerId: null,
-      remaining: NYTHRAXIS_DEATHLESS_CHANNEL,
-      complete: false,
-    }));
-    boss.castingAbility = 'nythraxis_deathless_rage';
-    boss.castTotal = NYTHRAXIS_DEATHLESS_CAST;
-    boss.castRemaining = NYTHRAXIS_DEATHLESS_CAST;
-    boss.channeling = false;
-    this.nythraxisSay(boss, 'nythraxis', 'Witness true eternity!', true);
-    this.emit({
-      type: 'spellfx',
-      sourceId: boss.id,
-      targetId: boss.id,
-      school: 'shadow',
-      fx: 'nova',
-    });
-  }
-
-  private updateNythraxisDeathlessRage(boss: Entity, st: NonNullable<Entity['nythraxis']>): void {
-    st.deathlessCastRemaining = Math.max(0, st.deathlessCastRemaining - DT);
-    boss.castingAbility = 'nythraxis_deathless_rage';
-    boss.castTotal = NYTHRAXIS_DEATHLESS_CAST;
-    boss.castRemaining = st.deathlessCastRemaining;
-    this.updateNythraxisWardChannels(boss, st);
-    if (this.nythraxisWardstoneInterruptReady(st)) {
-      st.deathlessCastRemaining = 0;
-      boss.castingAbility = null;
-      boss.castRemaining = 0;
-      boss.castTotal = 0;
-      st.deathlessStunRemaining = NYTHRAXIS_DEATHLESS_STUN;
-      this.applyAura(boss, {
-        id: 'nythraxis_deathless_stun',
-        name: 'Deathless Rage Interrupted',
-        kind: 'stun',
-        remaining: NYTHRAXIS_DEATHLESS_STUN,
-        duration: NYTHRAXIS_DEATHLESS_STUN,
-        value: 0,
-        sourceId: boss.id,
-        school: 'arcane',
-      });
-      this.emit({
-        type: 'spellfx',
-        sourceId: boss.id,
-        targetId: boss.id,
-        school: 'arcane',
-        fx: 'nova',
-      });
-      return;
-    }
-    if (st.deathlessCastRemaining > 0) return;
-    boss.castingAbility = null;
-    boss.castRemaining = 0;
-    boss.castTotal = 0;
-    this.nythraxisSay(boss, 'nythraxis', 'You cannot stop what was promised..', true);
-    this.emit({
-      type: 'spellfx',
-      sourceId: boss.id,
-      targetId: boss.id,
-      school: 'shadow',
-      fx: 'nova',
-    });
-    for (const p of this.playersInNythraxisRoom(boss)) {
-      this.dealDamage(
-        boss,
-        p,
-        Math.ceil(p.maxHp * 0.82),
-        false,
-        'shadow',
-        'Deathless Rage',
-        'hit',
-        true,
-      );
-    }
-  }
-
-  private nythraxisWardstoneInterruptReady(st: NonNullable<Entity['nythraxis']>): boolean {
-    if (
-      st.wardChannels.length === 0 ||
-      !st.wardChannels.every((c) => c.complete && c.playerId !== null)
-    )
-      return false;
-    return new Set(st.wardChannels.map((c) => c.playerId)).size === st.wardChannels.length;
-  }
-
-  private updateNythraxisWardChannels(boss: Entity, st: NonNullable<Entity['nythraxis']>): void {
-    for (const channel of st.wardChannels) {
-      if (channel.complete || channel.playerId === null) continue;
-      const ward = this.entities.get(channel.objectId);
-      const p = this.entities.get(channel.playerId);
-      if (
-        !ward ||
-        !p ||
-        p.dead ||
-        this.isStunned(p) ||
-        dist2d(p.pos, ward.pos) > INTERACT_RANGE + 1
-      ) {
-        if (p) this.clearNythraxisWardChannelCast(p);
-        channel.playerId = null;
-        channel.remaining = NYTHRAXIS_DEATHLESS_CHANNEL;
-        continue;
-      }
-      channel.remaining = Math.max(0, channel.remaining - DT);
-      p.castingAbility = 'nythraxis_ward_channel';
-      p.channeling = true;
-      p.castTotal = NYTHRAXIS_DEATHLESS_CHANNEL;
-      p.castRemaining = channel.remaining;
-      this.emit({
-        type: 'spellfx',
-        sourceId: ward.id,
-        targetId: boss.id,
-        school: 'shadow',
-        fx: 'beam',
-      });
-      if (channel.remaining <= 0) {
-        channel.complete = true;
-        this.clearNythraxisWardChannelCast(p);
-        this.emit({
-          type: 'spellfx',
-          sourceId: ward.id,
-          targetId: boss.id,
-          school: 'arcane',
-          fx: 'nova',
-        });
-      }
-    }
-  }
-
-  private clearNythraxisWardChannelCast(p: Entity): void {
-    if (p.castingAbility !== 'nythraxis_ward_channel') return;
-    p.castingAbility = null;
-    p.channeling = false;
-    p.castRemaining = 0;
-    p.castTotal = 0;
-  }
-
-  private nythraxisWardstones(boss: Entity): Entity[] {
-    const wards = [...this.entities.values()].filter(
-      (e) =>
-        e.kind === 'object' &&
-        e.objectItemId === NYTHRAXIS_WARDSTONE_ITEM_ID &&
-        dist2d(e.pos, boss.spawnPos) < NYTHRAXIS_WARDSTONE_RANGE,
-    );
-    wards.sort((a, b) => a.id - b.id);
-    return wards;
-  }
-
-  private nythraxisDeathlessChannelObjects(boss: Entity): Entity[] {
-    return this.nythraxisWardstones(boss);
-  }
-
-  private tryStartNythraxisWardChannel(ward: Entity, player: Entity): boolean {
-    if (ward.objectItemId !== NYTHRAXIS_WARDSTONE_ITEM_ID) return false;
-    const boss = [...this.entities.values()].find(
-      (e) =>
-        e.kind === 'mob' &&
-        e.templateId === NYTHRAXIS_BOSS_ID &&
-        !e.dead &&
-        dist2d(e.spawnPos, ward.pos) < NYTHRAXIS_WARDSTONE_RANGE,
-    );
-    // No Nythraxis boss in range: this is not a raid wardstone but the overworld
-    // "Sunken Bastion" quest ward stone (same item id). Fall through so the normal
-    // quest pickup runs, instead of swallowing the interaction.
-    if (!boss) return false;
-    if (!boss.nythraxis || boss.nythraxis.deathlessCastRemaining <= 0) return true;
-    const channel = boss.nythraxis.wardChannels.find((c) => c.objectId === ward.id);
-    if (!channel || channel.complete) return true;
-    if (channel.playerId === player.id) return true;
-    if (channel.playerId !== null && channel.playerId !== player.id) return true;
-    channel.playerId = player.id;
-    channel.remaining = NYTHRAXIS_DEATHLESS_CHANNEL;
-    player.castingAbility = 'nythraxis_ward_channel';
-    player.channeling = true;
-    player.castTotal = NYTHRAXIS_DEATHLESS_CHANNEL;
-    player.castRemaining = NYTHRAXIS_DEATHLESS_CHANNEL;
-    this.emit({
-      type: 'spellfx',
-      sourceId: ward.id,
-      targetId: boss.id,
-      school: 'shadow',
-      fx: 'beam',
-    });
-    return true;
+    nythraxis.resetNythraxisEncounter(this.ctx, boss);
   }
 
   private spawnBossAdds(boss: Entity, mobId: string, count: number): void {
@@ -9761,16 +6597,46 @@ export class Sim {
     });
     const [topThreatId] = threatEntries(boss, 1)[0] ?? [];
     const victimId = boss.aggroTargetId ?? topThreatId ?? null;
-    const victim = victimId !== null ? this.entities.get(victimId) : null;
+    let victim = victimId !== null ? (this.entities.get(victimId) ?? null) : null;
+    if (!victim || victim.dead || victim.kind !== 'player') {
+      // Fallback so freshly-summoned adds always have a nearby enemy to charge even if
+      // the boss's own target just died or dropped: pick the closest live player.
+      let best: Entity | null = null;
+      let bestD = Infinity;
+      this.playerGrid.forEachInRadius(boss.pos.x, boss.pos.z, LEASH_DISTANCE, (pl, d2) => {
+        if (pl.kind === 'player' && !pl.dead && d2 < bestD) {
+          bestD = d2;
+          best = pl;
+        }
+      });
+      victim = best;
+    }
+    // World bosses erupt their adds from directly underneath them (centered, a tight
+    // 1yd cluster spread only enough to not stack on one point); ordinary summoners keep
+    // the wider 3.5yd ring beside the boss.
+    const spawnRadius = MOBS[boss.templateId]?.worldBoss ? 1 : 3.5;
     for (let k = 0; k < count; k++) {
       const ang = (k / count) * Math.PI * 2 + 0.7;
       const pos = this.groundPos(
-        boss.pos.x + Math.sin(ang) * 3.5,
-        boss.pos.z + Math.cos(ang) * 3.5,
+        boss.pos.x + Math.sin(ang) * spawnRadius,
+        boss.pos.z + Math.cos(ang) * spawnRadius,
       );
-      const level = this.rng.int(template.minLevel, template.maxLevel);
-      const add = createMob(this.nextId++, template, level, pos);
-      add.spawnPos = { ...boss.spawnPos }; // leashes with the boss; stays dead in instances
+      const rolledLevel = this.rng.int(template.minLevel, template.maxLevel);
+      const difficulty = inst?.difficulty ?? 'normal';
+      const addTemplate = mobTemplateForDungeonDifficulty(
+        template,
+        inst?.dungeonId ?? '',
+        difficulty,
+        { summonedAdd: true },
+      );
+      const level = mobLevelForDungeonDifficulty(inst?.dungeonId ?? '', difficulty, rolledLevel);
+      const add = createMob(this.nextId++, addTemplate, level, pos);
+      applyHeroicMobTuning(add, inst?.dungeonId ?? '', difficulty, { summonedAdd: true });
+      // The add is anchored where it ERUPTED (createMob already set spawnPos to the
+      // spawn point beside the boss): a boss kited far from HIS original spawn must
+      // not hatch adds that are instantly past their own leash and evade home without
+      // ever swinging. Kited from here, the chase-case leash check walks it back to
+      // this eruption point, not the boss's distant home.
       add.tappedById = boss.tappedById;
       this.addEntity(add);
       boss.summonedIds.push(add.id);
@@ -9780,8 +6646,13 @@ export class Sim {
         add.aggroTargetId = victim.id;
         add.inCombat = true;
         add.aiState = dist2d(add.pos, victim.pos) > this.mobMeleeRange(add) ? 'chase' : 'attack';
+        // Same seeding aggroMob does on a normal pull: the leash measures from the
+        // eruption point until a hostile player action refreshes it.
+        add.leashAnchor = { ...add.pos };
         addThreat(add, victim.id, 1);
       }
+      // Book of Deeds kill-order tasks track every add this attempt summoned.
+      deedsMod.onBossAddsSummonedForDeeds(this.ctx, boss, [add.id]);
     }
   }
 
@@ -9789,141 +6660,29 @@ export class Sim {
   // Targeting
   // -------------------------------------------------------------------------
 
+  // Target selection moved to src/sim/targeting.ts (T1); Sim keeps thin same-named
+  // delegates so IWorld + the foreign main/hud/server/obs/interactions call sites
+  // (and the internal assist command) resolve unchanged. enemyCandidates /
+  // isEnemyTargetCandidate / friendlyCandidates are now module-private (no caller
+  // outside the slice).
   targetEntity(id: number | null, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const p = r.e;
-    // switching to a different target ends a follow (re-targeting is manual intent)
-    if (p.followTargetId !== null && id !== p.followTargetId)
-      this.stopFollow(p, 'You stop following.');
-    if (id === null) {
-      p.targetId = null;
-      p.autoAttack = false;
-      return;
-    }
-    const e = this.entities.get(id);
-    if (!e || (e.dead && !e.lootable)) return;
-    p.targetId = id;
-    if (!this.isHostileTo(p, e) || e.dead) p.autoAttack = false;
+    this.targeting.targetEntity(id, pid);
   }
 
   tabTarget(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const p = r.e;
-    const candidates = this.enemyCandidates(p);
-    if (candidates.length === 0) return;
-    // Cycle the enemies the player can see / is fighting first; off-screen ones
-    // stay reachable but never steal the selection (see tab_target.ts).
-    const { ids, primaryCount } = orderTabTargets(
-      candidates.map((c) => ({
-        id: c.e.id,
-        dx: c.e.pos.x - p.pos.x,
-        dz: c.e.pos.z - p.pos.z,
-        d: c.d,
-        engaged: c.e.aggroTargetId === p.id || c.e.targetId === p.id,
-      })),
-      p.facing,
-    );
-    const curIdx = ids.indexOf(p.targetId ?? -1);
-    if (curIdx === -1) {
-      // No (or no longer valid) target: grab the priority enemy, cluster first.
-      p.targetId = ids[0];
-    } else if (curIdx < primaryCount) {
-      // Cycling the near fight cluster: wrap back to its first (priority) mob
-      // instead of stepping out to a distant idle enemy still in range.
-      p.targetId = ids[(curIdx + 1) % primaryCount];
-    } else {
-      // Sitting on a distant fallback target: walk the rest of the fallback,
-      // then wrap back into the near cluster.
-      const next = curIdx + 1;
-      p.targetId = next < ids.length ? ids[next] : ids[0];
-    }
+    this.targeting.tabTarget(pid);
   }
 
   targetNearestEnemy(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const p = r.e;
-    let best: Entity | null = null;
-    let bestD2 = TAB_QUERY_RADIUS * TAB_QUERY_RADIUS;
-    this.grid.forEachInRadius(p.pos.x, p.pos.z, TAB_QUERY_RADIUS, (e, d2) => {
-      if (!this.isEnemyTargetCandidate(p, e)) return;
-      if (d2 < bestD2) {
-        bestD2 = d2;
-        best = e;
-      }
-    });
-    if (best) p.targetId = (best as Entity).id;
-  }
-
-  private enemyCandidates(p: Entity): { e: Entity; d: number }[] {
-    const out: { e: Entity; d: number }[] = [];
-    if (p.dead) return out;
-    this.grid.forEachInRadius(p.pos.x, p.pos.z, TAB_QUERY_RADIUS, (e, d2) => {
-      if (!this.isEnemyTargetCandidate(p, e)) return;
-      out.push({ e, d: Math.sqrt(d2) });
-    });
-    return out;
-  }
-
-  private isEnemyTargetCandidate(attacker: Entity, target: Entity): boolean {
-    if (attacker.dead) return false;
-    if (target.id === attacker.id || target.dead) return false;
-    if (this.isHostileTo(attacker, target)) return true;
-    if (target.kind === 'mob' && target.ownerId !== null) {
-      const owner = this.entities.get(target.ownerId);
-      return !!owner && owner.kind === 'player' && this.isEnemyTargetCandidate(attacker, owner);
-    }
-    if (target.kind !== 'player') return false;
-    const attackerPlayer = this.pvpController(attacker);
-    if (!attackerPlayer || attackerPlayer.dead) return false;
-    const match = this.arenaMatches.get(attackerPlayer.id);
-    return (
-      !!match &&
-      match.state === 'countdown' &&
-      this.isArenaCrossTeam(match, attackerPlayer.id, target.id)
-    );
-  }
-
-  // Nearby allies a beneficial spell can land on: other players (and friendly
-  // pets) within range, never yourself, never dead/hostile. Mirrors the enemy
-  // targeting helpers so heals/buffs are reachable by keyboard, not just by
-  // clicking party frames or world models (#133).
-  private friendlyCandidates(p: Entity): { e: Entity; d: number }[] {
-    const out: { e: Entity; d: number }[] = [];
-    this.grid.forEachInRadius(p.pos.x, p.pos.z, 40, (e, d2) => {
-      if (e.id === p.id || e.dead || !this.isFriendlyTo(p, e)) return;
-      out.push({ e, d: Math.sqrt(d2) });
-    });
-    return out;
+    this.targeting.targetNearestEnemy(pid);
   }
 
   targetNearestFriendly(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const p = r.e;
-    let best: Entity | null = null;
-    let bestD = Infinity;
-    for (const c of this.friendlyCandidates(p)) {
-      if (c.d < bestD) {
-        bestD = c.d;
-        best = c.e;
-      }
-    }
-    if (best) p.targetId = best.id;
+    this.targeting.targetNearestFriendly(pid);
   }
 
   friendlyTabTarget(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const p = r.e;
-    const candidates = this.friendlyCandidates(p);
-    if (candidates.length === 0) return;
-    candidates.sort((a, b) => a.d - b.d);
-    const curIdx = candidates.findIndex((c) => c.e.id === p.targetId);
-    const next = candidates[(curIdx + 1) % candidates.length];
-    p.targetId = next.e.id;
+    this.targeting.friendlyTabTarget(pid);
   }
 
   // -------------------------------------------------------------------------
@@ -9938,117 +6697,216 @@ export class Sim {
     return n;
   }
 
+  // Fungible-only count for `itemId` (excludes per-instance slots, #1165). The
+  // World Market lists/escrows against this, never the instanced count, so an
+  // instanced copy is never sold as if it were a plain stack member.
+  countFungibleItem(itemId: string, pid?: number): number {
+    const r = this.resolve(pid);
+    if (!r) return 0;
+    let n = 0;
+    for (const s of r.meta.inventory) if (s.itemId === itemId && !s.instance) n += s.count;
+    return n;
+  }
+
+  // Grants are stack-aware (bags.ts addStacked, which never merges into an
+  // instanced slot, #1165) but NEVER capacity-capped here: a grant that reaches
+  // this hub always lands, so an async award (loot roll, master loot, delve
+  // rewards) can't destroy items. Capacity is enforced by canAddItem pre-checks
+  // at the command boundaries instead.
   addItem(itemId: string, count: number, pid?: number): void {
     const r = this.resolve(pid);
     if (!r) return;
     const { meta } = r;
     const def = ITEMS[itemId];
-    const existing = meta.inventory.find((s) => s.itemId === itemId);
-    if (existing) existing.count += count;
-    else meta.inventory.push({ itemId, count });
+    addStacked(meta.inventory, itemId, count);
+    // Every grant that reaches the hub is an acquisition for the Book of
+    // Deeds discovery ledger (loot, craft, quest reward, vendor, mail, trade).
+    deedsMod.markItemDiscovered(this.ctx, meta, itemId);
     this.emit({
       type: 'loot',
       // biome-ignore lint/style/useTemplate: keep this scanner-friendly shape for i18n extraction.
       text: `You receive: ${def?.name ?? itemId}${count > 1 ? ' x' + count : ''}.`,
       pid: meta.entityId,
     });
-    this.onInventoryChangedForQuests(meta);
-    if (meta.autoEquip && (def?.kind === 'weapon' || def?.kind === 'armor')) {
+    this.ctx.onInventoryChangedForQuests(meta);
+    if (
+      meta.autoEquip &&
+      (def?.kind === 'weapon' || def?.kind === 'armor' || def?.kind === 'held_offhand')
+    ) {
       this.maybeAutoEquip(itemId, meta);
     }
   }
 
-  removeItem(itemId: string, count: number, pid?: number): void {
+  // Grant a single non-fungible copy of `itemId` carrying an instance payload
+  // (#1165: signer/charges/rolled/boundTo). Always its own slot entry (count 1),
+  // never merged with an existing plain or differently-instanced stack.
+  addItemInstance(itemId: string, instance: ItemInstancePayload, pid?: number): void {
     const r = this.resolve(pid);
     if (!r) return;
+    const { meta } = r;
+    const def = ITEMS[itemId];
+    meta.inventory.push({ itemId, count: 1, instance });
+    // Discovery ledger: the instance's rolled quality (gathered rares) beats
+    // the static def quality for the quality-first marks.
+    deedsMod.markItemDiscovered(this.ctx, meta, itemId, instance.rolled?.quality);
+    this.emit({
+      type: 'loot',
+      text: `You receive: ${def?.name ?? itemId}.`,
+      pid: meta.entityId,
+    });
+    this.ctx.onInventoryChangedForQuests(meta);
+  }
+
+  // Returns the `instance` payload of every instanced slot actually consumed
+  // (highest-index/most-recently-added slot first, matching the removal
+  // order below), so a caller that needs to attribute an effect to the
+  // SPECIFIC copy removed (e.g. #1149 Battlefield Experience) never guesses
+  // at a different slot than the one this call actually took from.
+  removeItem(itemId: string, count: number, pid?: number): ItemInstancePayload[] {
+    const consumedInstances: ItemInstancePayload[] = [];
+    const r = this.resolve(pid);
+    if (!r) return consumedInstances;
     const { meta } = r;
     for (let i = meta.inventory.length - 1; i >= 0 && count > 0; i--) {
       const s = meta.inventory[i];
       if (s.itemId !== itemId) continue;
+      if (s.instance) consumedInstances.push(s.instance);
       const take = Math.min(s.count, count);
       s.count -= take;
       count -= take;
       if (s.count <= 0) meta.inventory.splice(i, 1);
     }
-    this.onInventoryChangedForQuests(meta);
+    this.ctx.onInventoryChangedForQuests(meta);
+    return consumedInstances;
   }
 
-  discardItem(itemId: string, count = 1, pid?: number): void {
+  // Fungible-only removal (#1165): skips instanced slots entirely, so a market
+  // listing/escrow can never consume a signed/rolled/bound copy even when the
+  // caller only checked countFungibleItem beforehand.
+  removeFungibleItem(itemId: string, count: number, pid?: number): void {
     const r = this.resolve(pid);
     if (!r) return;
     const { meta } = r;
-    const def = ITEMS[itemId];
-    const available = this.countItem(itemId, meta.entityId);
-    if (!def || available <= 0) {
-      this.error(meta.entityId, "You don't have that item.");
-      return;
+    for (let i = meta.inventory.length - 1; i >= 0 && count > 0; i--) {
+      const s = meta.inventory[i];
+      if (s.itemId !== itemId || s.instance) continue;
+      const take = Math.min(s.count, count);
+      s.count -= take;
+      count -= take;
+      if (s.count <= 0) meta.inventory.splice(i, 1);
     }
-    if (def.noDiscard) return;
-    const discardCount = Number.isFinite(count) ? Math.min(Math.floor(count), available) : 0;
-    if (discardCount <= 0) return;
-    this.removeItem(itemId, discardCount, meta.entityId);
-    this.emit({
-      type: 'log',
-      // biome-ignore lint/style/useTemplate: keep this scanner-friendly shape for i18n extraction.
-      text: `Discarded ${def.name}${discardCount > 1 ? ' x' + discardCount : ''}.`,
-      color: '#999',
-      pid: meta.entityId,
-    });
+    this.ctx.onInventoryChangedForQuests(meta);
+  }
+
+  // Enchanting-eligible count for `itemId` (#1712 review): a plain fungible
+  // stack counts, and so does an instanced copy that is not itself already
+  // enchanted (e.g. crafting.ts's single-copy rare+ grant or a Phase 2
+  // masterwork copy, whose rolled.stats are its baked bonus, NOT an enchant).
+  // Only an already-enchanted copy (professions/enchanting.ts
+  // isEnchantedInstance: the explicit `enchant` marker, or legacy bare
+  // rolled.stats without rolled.masterwork) is excluded, so disenchant/
+  // apply-enchant never consumes an already-enchanted copy but DOES accept
+  // crafted and masterwork gear, unlike the fungible-only gate this replaces
+  // for enchanting.ts specifically.
+  countEnchantableItem(itemId: string, pid?: number): number {
+    const r = this.resolve(pid);
+    if (!r) return 0;
+    let n = 0;
+    for (const s of r.meta.inventory) {
+      if (s.itemId !== itemId) continue;
+      if (s.instance && isEnchantedInstance(s.instance)) continue;
+      n += s.count;
+    }
+    return n;
+  }
+
+  // Removal counterpart to countEnchantableItem above: prefers plain fungible
+  // stacks (matching removeFungibleItem's ordering within that subset) and only
+  // reaches for an instanced-but-unenchanted copy once no fungible copy is left.
+  // Never removes an already-enchanted copy (isEnchantedInstance). Returns the
+  // `instance` payload of every instanced slot actually consumed (matching
+  // removeItem's return contract) so a caller applying an enchant can merge a
+  // crafted copy's signer/masterwork/legacy rolled.quality into the
+  // freshly-enchanted instance instead of silently dropping them (#1712
+  // round-3 review).
+  removeEnchantableItem(itemId: string, count: number, pid?: number): ItemInstancePayload[] {
+    const consumedInstances: ItemInstancePayload[] = [];
+    const r = this.resolve(pid);
+    if (!r) return consumedInstances;
+    const { meta } = r;
+    // Pass 1: plain fungible stacks only, same order removeFungibleItem uses.
+    for (let i = meta.inventory.length - 1; i >= 0 && count > 0; i--) {
+      const s = meta.inventory[i];
+      if (s.itemId !== itemId || s.instance) continue;
+      const take = Math.min(s.count, count);
+      s.count -= take;
+      count -= take;
+      if (s.count <= 0) meta.inventory.splice(i, 1);
+    }
+    // Pass 2: instanced copies that are not already enchanted.
+    for (let i = meta.inventory.length - 1; i >= 0 && count > 0; i--) {
+      const s = meta.inventory[i];
+      if (s.itemId !== itemId || !s.instance || isEnchantedInstance(s.instance)) continue;
+      consumedInstances.push(s.instance);
+      const take = Math.min(s.count, count);
+      s.count -= take;
+      count -= take;
+      if (s.count <= 0) meta.inventory.splice(i, 1);
+    }
+    this.ctx.onInventoryChangedForQuests(meta);
+    return consumedInstances;
+  }
+
+  // True when `count` copies of the item fit the player's pooled bag budget
+  // (existing stacks top up first). The capacity gate every blocking command
+  // path (buy, loot, pickup, fish, conjure, collect, trade, turn-in) pre-checks.
+  canAddItem(itemId: string, count: number, pid?: number): boolean {
+    const r = this.resolve(pid);
+    if (!r) return false;
+    const { meta } = r;
+    return canAddItem(meta.inventory, bagCapacity(meta.bags), itemId, count);
+  }
+
+  equipBag(itemId: string, socket?: number, pid?: number): void {
+    bagsMod.equipBag(this.ctx, itemId, socket, pid);
+  }
+
+  unequipBag(socket: number, pid?: number): void {
+    bagsMod.unequipBag(this.ctx, socket, pid);
+  }
+
+  discardItem(itemId: string, count = 1, pid?: number): void {
+    items.discardItem(this.ctx, itemId, count, pid);
   }
 
   equipItem(itemId: string, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const { meta, e: p } = r;
-    const def = ITEMS[itemId];
-    if (!def?.slot || (def.kind !== 'weapon' && def.kind !== 'armor')) return;
-    if (this.countItem(itemId, meta.entityId) <= 0) return;
-    if (!canEquipItem(meta.cls, def)) {
-      this.error(meta.entityId, 'You cannot equip that.');
-      return;
-    }
-    const slot = def.slot;
-    const old = meta.equipment[slot];
-    this.removeItem(itemId, 1, meta.entityId);
-    if (old) this.addItemSilent(old, 1, meta);
-    meta.equipment[slot] = itemId;
-    recalcPlayerStats(p, meta.cls, meta.equipment, this.playerMods(meta));
-    this.emit({ type: 'log', text: `Equipped ${def.name}.`, color: '#8f8', pid: meta.entityId });
+    items.equipItem(this.ctx, itemId, pid);
   }
 
-  // Remove the piece in `slot` back to the bags, leaving the slot empty. Unlike
-  // equipItem (which only swaps in a replacement) this is the way to fully
-  // unequip. Bags are uncapped, so the returned item never has nowhere to go.
+  // Manual bag order: the player dragged the stack at `from` onto the cell at `to`.
+  moveInventoryItem(from: number, to: number, pid?: number): void {
+    items.moveInventoryItem(this.ctx, from, to, pid);
+  }
+
+  // Equip into the exact slot the player aimed at (the paperdoll drop target),
+  // rather than letting the resolver pick. items.equipItem re-validates the slot
+  // against the item, so this is a request, never a bypass.
+  equipItemToSlot(itemId: string, slot: EquipSlot, pid?: number): void {
+    items.equipItem(this.ctx, itemId, pid, slot);
+  }
+
   unequipItem(slot: EquipSlot, pid?: number): boolean {
-    const r = this.resolve(pid);
-    if (!r) return false;
-    const { meta, e: p } = r;
-    const itemId = meta.equipment[slot];
-    if (!itemId) return false;
-    delete meta.equipment[slot];
-    // addItemSilent (not addItem): returning a piece you already owned to bags is
-    // not a fresh acquisition, so it must not fire collect-quest credit. No quest
-    // today keys on an unequip, so there is nothing to award here regardless.
-    this.addItemSilent(itemId, 1, meta);
-    recalcPlayerStats(p, meta.cls, meta.equipment, this.playerMods(meta));
-    const def = ITEMS[itemId];
-    this.emit({
-      type: 'log',
-      text: `Unequipped ${def?.name ?? itemId}.`,
-      color: '#8f8',
-      pid: meta.entityId,
-    });
-    return true;
+    return items.unequipItem(this.ctx, slot, pid);
   }
 
   private hasFishableWaterAhead(p: Entity): boolean {
     const sin = Math.sin(p.facing);
     const cos = Math.cos(p.facing);
-    return FISHING_SAMPLE_DISTANCES.some(
-      (d) =>
-        groundHeight(p.pos.x + sin * d, p.pos.z + cos * d, this.cfg.seed) <
-        WATER_LEVEL - SWIM_DEPTH,
-    );
+    return FISHING_SAMPLE_DISTANCES.some((d) => {
+      const x = p.pos.x + sin * d;
+      const z = p.pos.z + cos * d;
+      return groundHeight(x, z, this.cfg.seed) < waterLevelAt(x, z) - SWIM_DEPTH;
+    });
   }
 
   private isAtDeepfenShallowsFishingSpot(p: Entity): boolean {
@@ -10090,6 +6948,7 @@ export class Sim {
     p.castingAbility = FISHING_CAST_ID;
     p.castTotal = FISHING_CAST_TIME;
     p.castRemaining = FISHING_CAST_TIME;
+    p.castTargetId = null;
     p.channeling = false;
     this.emit({
       type: 'castStart',
@@ -10101,6 +6960,9 @@ export class Sim {
 
   private completeFishing(p: Entity, meta: PlayerMeta): void {
     if (this.shouldCatchCodfather(p, meta)) {
+      // Deliberately NOT capacity-gated: this once-ever quest catch is guarded
+      // to a single copy by shouldCatchCodfather, and losing it to full bags
+      // could soft-lock the quest chain. Force-add (over-capacity tolerated).
       this.addItem(THE_CODFATHER_ITEM_ID, 1, meta.entityId);
       return;
     }
@@ -10122,6 +6984,12 @@ export class Sim {
       this.emit({ type: 'log', text: 'No fish are biting.', color: '#999', pid: p.id });
       return;
     }
+    // Capacity gate AFTER the table roll so the rng draw order never depends
+    // on bag state; a catch with no room to land simply gets away.
+    if (!this.canAddItem(caught, 1, meta.entityId)) {
+      this.error(meta.entityId, 'Your bags are full.');
+      return;
+    }
     if (caught === FISHING_RARE_ID) {
       this.emit({
         type: 'log',
@@ -10131,306 +6999,182 @@ export class Sim {
       });
     }
     this.addItem(caught, 1, meta.entityId);
+    // Book of Deeds: a real fish (never weeds or boots) from this zone's
+    // waters feeds the per-zone first-cast mark.
+    deedsMod.onFishCaughtForDeeds(this.ctx, meta, zoneAt(p.pos.z).id, caught);
   }
 
   useItem(itemId: string, pid?: number): ItemUseResult | undefined {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const { meta, e: p } = r;
-    const def = ITEMS[itemId];
-    if (!def) return;
-    if (this.countItem(itemId, meta.entityId) <= 0) {
-      this.error(meta.entityId, "You don't have that item.");
-      return;
-    }
-    if (def.use?.type === 'fishing') {
-      this.startFishing(p, meta);
-      return;
-    }
-    if (def.use?.type === 'mechChroma') {
-      return this.unlockMechChromaFromItem(meta, itemId, def.use.chromaId);
-    }
-    if (def.use?.type === 'skinSelect') {
-      this.openSkinSelect(meta, def.use.catalog ?? 'class', itemId);
-      return;
-    }
-    if (p.castingAbility === FISHING_CAST_ID) {
-      this.error(meta.entityId, 'You are busy.');
-      return;
-    }
-    if (p.dead) return;
-    if (def.kind === 'food' || def.kind === 'drink') {
-      if (p.inCombat) {
-        this.error(meta.entityId, "You can't do that while in combat.");
-        return;
-      }
-      if (this.isSwimming(p)) {
-        this.error(meta.entityId, "You can't do that while swimming.");
-        return;
-      }
-      this.removeItem(itemId, 1, meta.entityId);
-      p.sitting = true;
-      // food and drink occupy separate slots, so you can do both at once
-      const slot = def.kind === 'food' ? 'eating' : 'drinking';
-      p[slot] = {
-        itemId,
-        kind: def.kind,
-        hpPer2s: def.foodHp ? Math.round(def.foodHp / CONSUME_TICKS) : 0,
-        manaPer2s: def.drinkMana ? Math.round(def.drinkMana / CONSUME_TICKS) : 0,
-        remaining: CONSUME_DURATION,
-      };
-      this.emit({
-        type: 'log',
-        text: def.kind === 'food' ? 'You sit down to eat.' : 'You sit down to drink.',
-        color: '#999',
-        pid: meta.entityId,
-      });
-    } else if (def.kind === 'potion') {
-      // instant, usable in combat, on a shared 60s cooldown (#103)
-      if (this.time < p.potionCooldownUntil) {
-        this.error(meta.entityId, 'That potion is not ready yet.');
-        return;
-      }
-      const restoresMana =
-        (def.potionMana ?? 0) > 0 && p.resourceType === 'mana' && p.resource < p.maxResource;
-      const restoresHp = (def.potionHp ?? 0) > 0 && p.hp < p.maxHp;
-      if (!restoresHp && !restoresMana) {
-        this.error(
-          meta.entityId,
-          p.hp >= p.maxHp && (def.potionMana ?? 0) === 0
-            ? 'You are already at full health.'
-            : 'Nothing to restore.',
-        );
-        return;
-      }
-      this.removeItem(itemId, 1, meta.entityId);
-      p.potionCooldownUntil = this.time + POTION_COOLDOWN;
-      if (restoresHp) {
-        const heal = Math.min(Math.round(def.potionHp! * this.healingTakenMult(p)), p.maxHp - p.hp);
-        p.hp += heal;
-        this.emit({ type: 'heal', targetId: p.id, amount: heal });
-      }
-      if (restoresMana) {
-        p.resource = Math.min(p.maxResource, p.resource + def.potionMana!);
-      }
-      this.emit({ type: 'log', text: `You quaff ${def.name}.`, color: '#c9f', pid: meta.entityId });
-    } else if (def.kind === 'elixir') {
-      // Battle elixir: grant a temporary stat-buff aura. Usable in combat (classic),
-      // no shared potion cooldown; re-quaffing refreshes the buff via applyAura.
-      const elx = def.elixir;
-      if (!elx) return;
-      this.removeItem(itemId, 1, meta.entityId);
-      this.applyAura(p, {
-        id: `elixir_${itemId}`,
-        name: elx.aura,
-        kind: elx.kind,
-        remaining: elx.duration,
-        duration: elx.duration,
-        value: elx.value,
-        sourceId: p.id,
-        school: 'nature',
-      });
-      this.emit({ type: 'log', text: `You quaff ${def.name}.`, color: '#c9f', pid: meta.entityId });
-    } else if (def.kind === 'weapon' || def.kind === 'armor') {
-      this.equipItem(itemId, meta.entityId);
-    }
+    return items.useItem(this.ctx, itemId, pid);
   }
 
   buyItem(npcId: number, itemId: string, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const { meta, e: p } = r;
-    const npc = this.entities.get(npcId);
-    const def = ITEMS[itemId];
-    if (npc?.kind !== 'npc' || npc.vendorItems.length === 0) {
-      this.error(meta.entityId, 'That merchant is not available.');
-      return;
-    }
-    if (!npc.vendorItems.includes(itemId)) {
-      this.error(meta.entityId, 'That item is not sold here.');
-      return;
-    }
-    if (!def?.buyValue) {
-      this.error(meta.entityId, 'That item is not for sale.');
-      return;
-    }
-    if (dist2d(p.pos, npc.pos) > INTERACT_RANGE + 2) {
-      this.error(meta.entityId, 'Too far away.');
-      return;
-    }
-    if (meta.copper < def.buyValue) {
-      this.error(meta.entityId, 'Not enough money.');
-      return;
-    }
-    meta.copper -= def.buyValue;
-    this.addItem(itemId, 1, meta.entityId);
-    this.emit({ type: 'vendor', action: 'buy', itemId, pid: meta.entityId });
-    this.emit({
-      type: 'loot',
-      text: `Bought ${def.name} for ${formatMoney(def.buyValue)}.`,
-      pid: meta.entityId,
-    });
-  }
-
-  private vendorInRange(p: Entity): boolean {
-    return [...this.entities.values()].some(
-      (e) =>
-        e.kind === 'npc' && e.vendorItems.length > 0 && dist2d(p.pos, e.pos) <= INTERACT_RANGE + 2,
-    );
-  }
-
-  private recordVendorBuyback(meta: PlayerMeta, itemId: string, count: number): void {
-    const existingIndex = meta.vendorBuyback.findIndex((s) => s.itemId === itemId);
-    if (existingIndex >= 0) {
-      const [existing] = meta.vendorBuyback.splice(existingIndex, 1);
-      existing.count += count;
-      meta.vendorBuyback.unshift(existing);
-    } else {
-      meta.vendorBuyback.unshift({ itemId, count });
-    }
-    while (meta.vendorBuyback.length > VENDOR_BUYBACK_LIMIT) meta.vendorBuyback.pop();
+    items.buyItem(this.ctx, npcId, itemId, pid);
   }
 
   sellItem(itemId: string, count = 1, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const { meta, e: p } = r;
-    const def = ITEMS[itemId];
-    const available = this.countItem(itemId, meta.entityId);
-    if (!def || available <= 0) {
-      this.error(meta.entityId, "You don't have that item.");
-      return;
-    }
-    if (p.dead) {
-      this.error(meta.entityId, "You can't do that while dead.");
-      return;
-    }
-    const sellCount = Number.isFinite(count) ? Math.min(Math.floor(count), available) : 0;
-    if (sellCount <= 0) return;
-    if (!this.vendorInRange(p)) {
-      this.error(meta.entityId, 'There is no merchant nearby.');
-      return;
-    }
-    if (def.noVendorSell) {
-      this.error(meta.entityId, 'That item is not for sale.');
-      return;
-    }
-    if (def.kind === 'quest') {
-      this.error(meta.entityId, 'You cannot sell quest items.');
-      return;
-    }
-    this.removeItem(itemId, sellCount, meta.entityId);
-    this.recordVendorBuyback(meta, itemId, sellCount);
-    const payout = def.sellValue * sellCount;
-    meta.copper += payout;
-    this.emit({ type: 'vendor', action: 'sell', itemId, pid: meta.entityId });
-    this.emit({
-      type: 'loot',
-      // biome-ignore lint/style/useTemplate: keep this scanner-friendly shape for i18n extraction.
-      text: `Sold ${def.name}${sellCount > 1 ? ' x' + sellCount : ''} for ${formatMoney(payout)}.`,
-      pid: meta.entityId,
-    });
+    items.sellItem(this.ctx, itemId, count, pid);
   }
 
-  // Bulk-sell every gray (poor-quality) item in the bags in one action, applying the
-  // same rules as the per-item sellItem path: quest items and noVendorSell items are
-  // left untouched and each sold stack is recorded for buyback. One summary loot line
-  // is emitted instead of one per stack.
   sellAllJunk(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const { meta, e: p } = r;
-    if (p.dead) {
-      this.error(meta.entityId, "You can't do that while dead.");
-      return;
-    }
-    if (!this.vendorInRange(p)) {
-      this.error(meta.entityId, 'There is no merchant nearby.');
-      return;
-    }
-    const junk = meta.inventory
-      .filter((s) => {
-        const def = ITEMS[s.itemId];
-        return (
-          !!def &&
-          def.quality === 'poor' &&
-          def.kind !== 'quest' &&
-          !def.noVendorSell &&
-          s.count > 0
-        );
-      })
-      .map((s) => ({ itemId: s.itemId, count: s.count }));
-    if (junk.length === 0) return; // nothing gray to sell; the vendor UI keeps the button disabled here
-    let total = 0;
-    let soldCount = 0;
-    for (const { itemId, count } of junk) {
-      const def = ITEMS[itemId]!;
-      this.removeItem(itemId, count, meta.entityId);
-      this.recordVendorBuyback(meta, itemId, count);
-      total += def.sellValue * count;
-      soldCount += count;
-    }
-    meta.copper += total;
-    this.emit({ type: 'vendor', action: 'sell', pid: meta.entityId });
-    this.emit({
-      type: 'loot',
-      text: `Sold ${soldCount} junk item${soldCount === 1 ? '' : 's'} for ${formatMoney(total)}.`,
-      pid: meta.entityId,
-    });
+    items.sellAllJunk(this.ctx, pid);
   }
 
   buyBackItem(itemId: string, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const { meta, e: p } = r;
-    const def = ITEMS[itemId];
-    const slot = meta.vendorBuyback.find((s) => s.itemId === itemId);
-    if (!def || !slot || slot.count <= 0) {
-      this.error(meta.entityId, 'That item is not available for buyback.');
-      return;
-    }
-    if (p.dead) {
-      this.error(meta.entityId, "You can't do that while dead.");
-      return;
-    }
-    if (!this.vendorInRange(p)) {
-      this.error(meta.entityId, 'There is no merchant nearby.');
-      return;
-    }
-    if (meta.copper < def.sellValue) {
-      this.error(meta.entityId, 'Not enough money.');
-      return;
-    }
-    meta.copper -= def.sellValue;
-    slot.count -= 1;
-    if (slot.count <= 0) meta.vendorBuyback = meta.vendorBuyback.filter((s) => s !== slot);
-    this.addItemSilent(itemId, 1, meta);
-    this.onInventoryChangedForQuests(meta);
-    this.emit({ type: 'vendor', action: 'buyback', itemId, pid: meta.entityId });
-    this.emit({
-      type: 'loot',
-      text: `Bought back ${def.name} for ${formatMoney(def.sellValue)}.`,
-      pid: meta.entityId,
-    });
+    items.buyBackItem(this.ctx, itemId, pid);
   }
 
-  private addItemSilent(itemId: string, count: number, meta: PlayerMeta): void {
-    const existing = meta.inventory.find((s) => s.itemId === itemId);
-    if (existing) existing.count += count;
-    else meta.inventory.push({ itemId, count });
+  // Gather-node harvest (#1121): a thin delegate onto
+  // src/sim/professions/gathering.ts, resolved on the deterministic tick the
+  // command arrives on, same as buyItem/useItem above.
+  harvestNode(nodeId: string, pid?: number): boolean {
+    return harvestNodeImpl(this.ctx, nodeId, pid);
+  }
+
+  // IWorld read surface (IWorldProfessions): whether the given node is
+  // harvestable right now BY THIS PLAYER specifically (per-player respawn
+  // timer, #1121). Never reflects another player's cooldown for the same node.
+  // Takes an explicit pid (mirrors gatheringProficiencyFor) so both the
+  // local-viewer getter below and tests can check any player's own timer.
+  nodeHarvestableByMeFor(nodeId: string, pid: number): boolean {
+    const meta = this.players.get(pid);
+    if (!meta) return false;
+    if (!gatherNodeById(nodeId)) return false;
+    return isNodeHarvestableBy(meta, nodeId, this.time);
+  }
+
+  nodeHarvestableByMe(nodeId: string): boolean {
+    return this.nodeHarvestableByMeFor(nodeId, this.primaryId);
+  }
+
+  // IWorld read surface (IWorldProfessions, #1127): the full recipe list
+  // (common tier plus combo recipes, #1132), a plain content read (no
+  // per-player state), same shape both worlds can serve without a wire
+  // round-trip.
+  get recipeList(): readonly RecipeDef[] {
+    return ALL_RECIPES;
+  }
+
+  // Common-tier crafting command (#1127): a thin delegate onto
+  // src/sim/professions/crafting.ts, resolved on the deterministic tick the
+  // command arrives on, same as harvestNode/buyItem/useItem above. Stashes
+  // the outcome on the resolved player's PlayerMeta so the IWorld
+  // lastCraftResult read surface (below) reflects it.
+  craftItem(recipeId: string, pid?: number): void {
+    const result = craftItemImpl(this.ctx, recipeId, pid);
+    const meta = this.players.get(pid ?? this.primaryId);
+    if (meta) meta.lastCraftResult = result;
+    this.emit({
+      type: 'craftResult',
+      ok: result.ok,
+      recipeId: result.recipeId,
+      itemId: result.itemId,
+      count: result.count,
+      quality: result.quality,
+      masterwork: result.masterwork,
+      reason: result.reason,
+      pid: meta?.entityId,
+    });
+    // Masterwork proc surface (Professions 2.0 Phase 2): stash the per-player
+    // view (session-only, like lastCraftResult above) and emit the personal
+    // masterwork event, in addition to the craftResult emit.
+    if (result.masterwork && result.itemId && meta) {
+      const proc: MasterworkProc = {
+        recipeId: result.recipeId,
+        itemId: result.itemId,
+        crafter: meta.entityId,
+      };
+      meta.lastMasterwork = proc;
+      this.emit({ type: 'masterwork', ...proc, pid: meta.entityId });
+    }
+  }
+
+  // IWorld read surface (IWorldProfessions, #1127): the local viewer's most
+  // recent craft-result, or null before their first craft attempt this session.
+  get lastCraftResult(): CraftResult | null {
+    return this.players.get(this.primaryId)?.lastCraftResult ?? null;
+  }
+
+  // IWorld read surface (IWorldProfessions, Phase 2): the local viewer's most
+  // recent masterwork proc, or null before their first proc this session.
+  get lastMasterwork(): MasterworkProc | null {
+    return this.players.get(this.primaryId)?.lastMasterwork ?? null;
+  }
+
+  // Recipe acquisition command (#1299): a thin delegate onto
+  // src/sim/professions/crafting.ts acquireRecipe, resolved on the
+  // deterministic tick the command arrives on. Not yet wired onto the
+  // IWorld/wire surface (see the AcquireRecipeResult return: callers today
+  // are tests and future trainer/loot/quest-reward integrations), same
+  // documented not-yet-wired status the active-archetype identity carried
+  // before its own wire-up.
+  acquireRecipe(
+    recipeId: string,
+    source: 'trainer' | 'drop' | 'quest',
+    pid?: number,
+  ): AcquireRecipeResult {
+    return acquireRecipeImpl(this.ctx, pid ?? this.primaryId, recipeId, source);
+  }
+
+  // Salvage/disenchant command (#1300): a thin delegate onto
+  // src/sim/professions/salvage.ts, resolved on the deterministic tick the
+  // command arrives on, same shape as craftItem above. Stashes the outcome
+  // on the resolved player's PlayerMeta so lastSalvageResult reflects it.
+  salvageItem(itemId: string, pid?: number): void {
+    const result = salvageItemImpl(this.ctx, itemId, pid);
+    const meta = this.players.get(pid ?? this.primaryId);
+    if (meta) meta.lastSalvageResult = result;
+  }
+
+  // The local viewer's most recent salvage-result, or null before their
+  // first salvage attempt this session. Same not-yet-wired-onto-IWorld
+  // status as the salvageItem command above.
+  get lastSalvageResult(): SalvageResult | null {
+    return this.players.get(this.primaryId)?.lastSalvageResult ?? null;
+  }
+
+  // Enchanting profession commands: same thin-delegate/stash-result/not-yet-
+  // wired-onto-IWorld shape as salvageItem/lastSalvageResult above.
+  disenchantItem(itemId: string, pid?: number): void {
+    const result = disenchantItemImpl(this.ctx, itemId, pid);
+    const meta = this.players.get(pid ?? this.primaryId);
+    if (meta) meta.lastDisenchantResult = result;
+  }
+
+  get lastDisenchantResult(): DisenchantResult | null {
+    return this.players.get(this.primaryId)?.lastDisenchantResult ?? null;
+  }
+
+  applyEnchant(itemId: string, enchantId: string, pid?: number): void {
+    const result = applyEnchantImpl(this.ctx, itemId, enchantId, pid);
+    const meta = this.players.get(pid ?? this.primaryId);
+    if (meta) meta.lastEnchantResult = result;
+  }
+
+  get lastEnchantResult(): ApplyEnchantResult | null {
+    return this.players.get(this.primaryId)?.lastEnchantResult ?? null;
   }
 
   private maybeAutoEquip(itemId: string, meta: PlayerMeta): void {
     const def = ITEMS[itemId];
     if (!def?.slot) return;
     if (!canEquipItem(meta.cls, def)) return;
+    // Skip silently (no error toast) if the piece is gated above the player's
+    // level: auto-equip is a convenience, the explicit equip path is where the
+    // "must be level N" message belongs.
+    const e = this.entities.get(meta.entityId);
+    if (e && !meetsLevelRequirement(e.level, def)) return;
     if (def.kind === 'weapon') {
       const cur = meta.equipment.mainhand ? ITEMS[meta.equipment.mainhand]?.weapon : null;
       const next = def.weapon;
       if (next && (!cur || next.min + next.max > cur.min + cur.max))
         this.equipItem(itemId, meta.entityId);
     } else {
-      const cur = meta.equipment[def.slot] ? ITEMS[meta.equipment[def.slot]!] : null;
+      // resolveEquipSlot maps a ring item to its concrete ring1/ring2 key
+      // (empty-first), so auto-equip fills an open jewelry slot too.
+      const slot = resolveEquipSlot(def, meta.equipment);
+      const curId = slot ? meta.equipment[slot] : undefined;
+      const cur = curId ? ITEMS[curId] : null;
       if (!cur || (def.stats?.armor ?? 0) > (cur.stats?.armor ?? 0))
         this.equipItem(itemId, meta.entityId);
     }
@@ -10440,393 +7184,68 @@ export class Sim {
   // Interaction: looting, quest NPCs, ground objects
   // -------------------------------------------------------------------------
 
-  lootCorpse(mobId: number, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const { meta, e: p } = r;
-    const mob = this.entities.get(mobId);
-    if (!mob?.lootable || !mob.loot) return;
-    const tapperParty = mob.tappedById !== null ? this.partyOf(mob.tappedById) : null;
-    const hasSharedLootRights =
-      mob.tappedById === null ||
-      mob.tappedById === meta.entityId ||
-      !!tapperParty?.members.includes(meta.entityId);
-    const hasPersonalLoot = mob.loot.items.some((s) => s.personalFor?.includes(meta.entityId));
-    const hasOpenLoot = mob.loot.items.some((s) => s.openToAll && s.count > 0);
-    if (!hasSharedLootRights && !hasPersonalLoot && !hasOpenLoot) {
-      this.error(meta.entityId, "You don't have permission to loot that.");
-      return;
-    }
-    if (dist2d(p.pos, mob.pos) > INTERACT_RANGE) {
-      this.error(meta.entityId, 'Too far away.');
-      return;
-    }
-    if (hasSharedLootRights) this.distributeLootCopper(mob, meta);
-    for (const s of [...mob.loot.items]) {
-      if (!this.lootSlotVisibleTo(s, meta.entityId)) continue;
-      if (s.openToAll) {
-        for (let i = 0; i < s.count; i++) this.addItem(s.itemId, 1, meta.entityId);
-        s.count = 0;
-        continue;
-      }
-      if (s.personalFor) {
-        this.addItem(s.itemId, 1, meta.entityId);
-        s.personalFor = s.personalFor.filter((id) => id !== meta.entityId);
-        continue;
-      }
-      if (!hasSharedLootRights) continue;
-      for (let i = 0; i < s.count; i++) {
-        this.awardSharedLootItem(s.itemId, mob, meta);
-      }
-      s.count = 0;
-    }
-    this.pruneCorpseLoot(mob);
-    if (p.targetId === mobId) p.targetId = null;
+  // lootCorpse / pickUpObject / interact (the three IWorldInteraction members) moved
+  // to interaction.ts (W3) behind SimContext. Sim keeps thin same-named PUBLIC delegates
+  // (the widened `pid?` overload preserved) so the IWorld surface, server/game.ts, and
+  // tests resolve them on the Sim facade unchanged; each forwards via this.ctx. The
+  // quest-NPC dispatch they fan into (talkToNpc / isQuestInteractionEntity below) STAYS
+  // on Sim (W4) and is reached through two append-only SimContext callbacks.
+  lootCorpse(mobId: number, pid?: number): boolean {
+    return interaction.lootCorpse(this.ctx, mobId, pid);
   }
 
-  pickUpObject(objId: number, pid?: number): void {
+  // Walk-by autoloot: the passive counterpart to lootCorpse, called every
+  // frame as the trigger nears a corpse. Silent on ineligibility (see
+  // interaction.ts); the widened `pid?` overload lets tests drive a
+  // non-primary party member the same way lootCorpse does.
+  autoLoot(mobId: number, pid?: number): void {
+    interaction.autoLootForParty(this.ctx, mobId, pid ?? this.primaryId);
+  }
+
+  harvestCorpse(mobId: number, components?: string[], pid?: number): void {
+    interaction.harvestCorpse(this.ctx, mobId, components, pid);
+  }
+
+  pickUpObject(objId: number, pid?: number): boolean {
+    return interaction.pickUpObject(this.ctx, objId, pid);
+  }
+
+  townFocusFor(pid: number): Record<string, number> {
+    return this.players.get(pid)?.townFocus ?? {};
+  }
+
+  get townFocus(): Record<string, number> {
+    return this.townFocusFor(this.primaryId);
+  }
+
+  // #1143: sets the caller's persistent town focus allocation. Gated on the
+  // player standing in their current zone's town hub (professions/focus.ts
+  // isInTownZone); rejected requests (out of town, malformed, over budget)
+  // leave the previous allocation untouched and surface a toast.
+  setTownFocus(allocation: Record<string, number>, pid?: number): void {
     const r = this.resolve(pid);
     if (!r) return;
     const { meta, e: p } = r;
-    const obj = this.entities.get(objId);
-    if (obj?.kind !== 'object' || !obj.lootable || !obj.objectItemId) return;
-    if (dist2d(p.pos, obj.pos) > INTERACT_RANGE) {
-      this.error(meta.entityId, 'Too far away.');
-      return;
-    }
-    if (this.tryStartNythraxisWardChannel(obj, p)) return;
-    if (this.activateNythraxisRelic(obj, meta)) return;
-    if (this.interactObjectForQuests(obj, meta)) return;
-    const def = ITEMS[obj.objectItemId];
-    if (def?.questId) {
-      const qp = meta.questLog.get(def.questId);
-      if (!qp || (qp.state !== 'active' && qp.state !== 'ready')) {
-        this.error(meta.entityId, def.pickupDeny ?? `You cannot take the ${def.name} yet.`);
-        return;
-      }
-      const quest = QUESTS[def.questId];
-      const objIdx = quest.objectives.findIndex(
-        (o) => o.type === 'collect' && o.itemId === obj.objectItemId,
+    const zone = zoneAt(p.pos.z);
+    const inTown = professionsFocus.isInTownZone(p.pos, zone);
+    const result = professionsFocus.setTownFocus(meta.townFocus, allocation, inTown);
+    if (!result.ok) {
+      this.error(
+        meta.entityId,
+        result.reason === 'not_in_town'
+          ? 'You must be in town to set your focus.'
+          : result.reason === 'over_budget'
+            ? 'That allocation exceeds your focus point budget.'
+            : 'Invalid focus allocation.',
       );
-      if (objIdx < 0) {
-        this.error(meta.entityId, def.pickupEnough ?? `${def.name} offers nothing more.`);
-        return;
-      }
-      if (
-        objIdx >= 0 &&
-        this.countItem(obj.objectItemId, meta.entityId) >= quest.objectives[objIdx].count
-      ) {
-        this.error(meta.entityId, def.pickupEnough ?? 'You have enough of those.');
-        return;
-      }
+      return;
     }
-    this.addItem(obj.objectItemId, 1, meta.entityId);
-    obj.lootable = false;
-    obj.respawnTimer = OBJECT_RESPAWN;
-  }
-
-  private activateNythraxisRelic(obj: Entity, meta: PlayerMeta): boolean {
-    if (!obj.objectItemId) return false;
-    const mobId = NYTHRAXIS_RELIC_SUMMONS[obj.objectItemId];
-    if (!mobId) return false;
-    const qp = meta.questLog.get('q_nythraxis_sealed_crypt');
-    if (qp?.state !== 'active') {
-      const def = ITEMS[obj.objectItemId];
-      this.error(meta.entityId, def?.pickupDeny ?? 'The relic is bound by the sealed crypt.');
-      return true;
-    }
-    const quest = QUESTS.q_nythraxis_sealed_crypt;
-    const objectiveIndex = quest.objectives.findIndex(
-      (o) => o.type === 'collect' && o.itemId === obj.objectItemId,
-    );
-    if (
-      objectiveIndex >= 0 &&
-      this.countItem(obj.objectItemId, meta.entityId) >= quest.objectives[objectiveIndex].count
-    ) {
-      const def = ITEMS[obj.objectItemId];
-      this.error(meta.entityId, def?.pickupEnough ?? 'You have already recovered this relic.');
-      return true;
-    }
-    this.summonQuestMob(mobId, obj.pos, meta.entityId);
-    obj.lootable = false;
-    obj.respawnTimer = OBJECT_RESPAWN;
-    return true;
-  }
-
-  private interactObjectForQuests(obj: Entity, meta: PlayerMeta): boolean {
-    if (!obj.objectItemId) return false;
-    let handled = false;
-    for (const qp of meta.questLog.values()) {
-      if (qp.state !== 'active') continue;
-      const quest = QUESTS[qp.questId];
-      quest.objectives.forEach((objective, objectiveIndex) => {
-        if (objective.type !== 'interact' || objective.targetObjectItemId !== obj.objectItemId)
-          return;
-        handled = true;
-        const isRitual = obj.objectItemId === 'crypt_ritual_circle';
-        if (isRitual && !this.countItem('crypt_keystone', meta.entityId)) {
-          this.error(meta.entityId, 'The ritual circle is silent without the Crypt Keystone.');
-          return;
-        }
-        // Re-summon the Bound Guardian whenever the player still owes the kill.
-        // The interact objective is one-shot, but a guardian lost to the idle
-        // despawn (leash, wipe) must stay reachable or the kill/collect/signet
-        // dead-ends with no way to retry. summonQuestMob no-ops if one is alive.
-        if (isRitual) {
-          const killIdx = quest.objectives.findIndex(
-            (o) => o.type === 'kill' && o.targetMobId === 'bound_guardian',
-          );
-          if (killIdx >= 0 && qp.counts[killIdx] < quest.objectives[killIdx].count) {
-            this.summonQuestMob('bound_guardian', obj.pos, meta.entityId);
-          }
-        }
-        // The interact objective itself (and its one-time vision) only credits once.
-        if (qp.counts[objectiveIndex] >= objective.count) return;
-        const shared = this.sharedNythraxisObjectParticipants(
-          meta,
-          obj,
-          qp.questId,
-          objectiveIndex,
-        );
-        for (const member of shared) {
-          const memberQp = member.questLog.get(qp.questId);
-          if (memberQp?.state !== 'active') continue;
-          if (memberQp.counts[objectiveIndex] >= objective.count) continue;
-          memberQp.counts[objectiveIndex]++;
-          member.counters.questProgress++;
-          this.emit({
-            type: 'questProgress',
-            questId: memberQp.questId,
-            text: `${objective.label}: ${memberQp.counts[objectiveIndex]}/${objective.count}`,
-            pid: member.entityId,
-          });
-          this.checkQuestReady(memberQp, member);
-        }
-        const visionId = this.summonQuestVision(obj.objectItemId, obj.pos);
-        this.emitQuestObjectVision(
-          obj.objectItemId,
-          shared.map((m) => m.entityId),
-          visionId,
-        );
-      });
-    }
-    return handled;
-  }
-
-  private sharedNythraxisObjectParticipants(
-    actor: PlayerMeta,
-    obj: Entity,
-    questId: string,
-    objectiveIndex: number,
-  ): PlayerMeta[] {
-    if (
-      obj.objectItemId !== 'grave_sir_aldren' &&
-      obj.objectItemId !== 'grave_high_priest_malric' &&
-      obj.objectItemId !== 'grave_captain_voss' &&
-      obj.objectItemId !== 'crypt_ritual_circle'
-    ) {
-      return [actor];
-    }
-    const quest = QUESTS[questId];
-    const objective = quest.objectives[objectiveIndex];
-    const party = this.partyOf(actor.entityId);
-    const members = party ? party.members : [actor.entityId];
-    const eligible: PlayerMeta[] = [];
-    for (const pid of members) {
-      const member = this.players.get(pid);
-      const entity = this.entities.get(pid);
-      const memberQp = member?.questLog.get(questId);
-      if (!member || !entity || entity.dead || !memberQp || memberQp.state !== 'active') continue;
-      if (memberQp.counts[objectiveIndex] >= objective.count) continue;
-      if (dist2d(entity.pos, obj.pos) > NYTHRAXIS_PARTY_INTERACT_RANGE) continue;
-      eligible.push(member);
-    }
-    return eligible.some((member) => member.entityId === actor.entityId) ? eligible : [actor];
-  }
-
-  private emitQuestObjectVision(itemId: string, pids: number[], entityId?: number | null): void {
-    const lines =
-      itemId === 'grave_sir_aldren'
-        ? ['My king was a good man.', 'I swore my blade to him.', 'I would do so again.']
-        : itemId === 'grave_high_priest_malric'
-          ? [
-              'There had to be another way.',
-              'I could not let him die.',
-              'I only wanted to save him.',
-            ]
-          : itemId === 'grave_captain_voss'
-            ? [
-                'The king was already dead.',
-                'Malric refused to accept it.',
-                'We should have let him rest.',
-                'If you find the crypt... end this.',
-              ]
-            : itemId === 'crypt_ritual_circle'
-              ? ['The Crypt Keystone turns cold as the seal breaks.']
-              : null;
-    if (!lines) return;
-    for (let i = 0; i < lines.length; i++) {
-      for (const pid of pids) {
-        const event: SimEvent = {
-          type: 'log',
-          text: lines[i],
-          color: '#b8d7ff',
-          pid,
-          entityId: entityId ?? undefined,
-        };
-        if (i === 0) this.emit(event);
-        else this.delayedEvents.push({ at: this.time + i * NYTHRAXIS_VISION_LINE_DELAY, event });
-      }
-    }
-  }
-
-  private summonQuestVision(itemId: string, pos: Vec3): number | null {
-    const templateId =
-      itemId === 'grave_sir_aldren'
-        ? 'vision_aldren_warrior'
-        : itemId === 'grave_high_priest_malric'
-          ? 'vision_malric_mage'
-          : itemId === 'grave_captain_voss'
-            ? 'vision_deathstalker_voss'
-            : null;
-    if (!templateId) return null;
-    const existing = [...this.entities.values()].find(
-      (e) => e.kind === 'mob' && e.templateId === templateId && !e.dead && dist2d(e.pos, pos) < 10,
-    );
-    if (existing) return existing.id;
-    const template = MOBS[templateId];
-    if (!template) return null;
-    const mob = createMob(
-      this.nextId++,
-      template,
-      template.maxLevel,
-      this.groundPos(pos.x + 2.4, pos.z + 2.4),
-    );
-    mob.hostile = false;
-    mob.aiState = 'idle';
-    mob.lootable = false;
-    mob.loot = null;
-    mob.despawnTimer = 22;
-    mob.facing = Math.PI;
-    mob.prevFacing = mob.facing;
-    mob.swingTimer = Infinity;
-    this.addEntity(mob);
-    return mob.id;
-  }
-
-  private summonQuestMob(templateId: string, pos: Vec3, ownerPid: number): void {
-    const existing = [...this.entities.values()].some(
-      (e) => e.kind === 'mob' && e.templateId === templateId && !e.dead && dist2d(e.pos, pos) < 18,
-    );
-    if (existing) return;
-    const template = MOBS[templateId];
-    if (!template) return;
-    const mob = createMob(
-      this.nextId++,
-      template,
-      template.maxLevel,
-      this.groundPos(pos.x, pos.z + 3),
-    );
-    mob.facing = Math.PI;
-    mob.prevFacing = mob.facing;
-    mob.tappedById = ownerPid;
-    this.addEntity(mob);
-    const owner = this.entities.get(ownerPid);
-    if (owner && owner.kind === 'player' && !owner.dead) this.aggroMob(mob, owner, false);
-    const inst = this.instances.find((i) => {
-      if (i.partyKey === null) return false;
-      const origin = this.instanceOriginOf(i);
-      return Math.abs(mob.pos.x - origin.x) < 120 && Math.abs(mob.pos.z - origin.z) < 250;
-    });
-    if (inst) inst.mobIds.push(mob.id);
-    this.emit({ type: 'log', text: `${template.name} awakens!`, color: '#ff6666' });
-    this.emitQuestMobDialogue(templateId, mob.id);
-  }
-
-  private emitQuestMobDialogue(templateId: string, entityId: number): void {
-    const text =
-      templateId === 'fallen_captain_aldren'
-        ? 'Fallen Captain Aldren yells, "None shall disturb the king\'s rest! For Thornpeak!"'
-        : templateId === 'corrupted_priest_malric'
-          ? 'Corrupted Priest Malric yells, "Death shall never claim my king! The ritual must endure!"'
-          : templateId === 'deathstalker_voss'
-            ? 'Deathstalker Voss yells, "You will not reach him! The king must endure!"'
-            : null;
-    if (text) this.emit({ type: 'log', text, color: '#ff9999', entityId });
+    meta.townFocus = result.allocation as Record<string, number>;
+    deedsMod.markDeedsDirty(this.ctx, meta.entityId); // soc_civic_duty reads the allocation
   }
 
   interact(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const p = r.e;
-    if (p.targetId !== null) {
-      const target = this.entities.get(p.targetId);
-      if (target && dist2d(p.pos, target.pos) <= INTERACT_RANGE + 2) {
-        if (target.kind === 'mob' && target.lootable) {
-          this.lootCorpse(target.id, p.id);
-          return;
-        }
-        if (target.kind === 'object' && target.lootable) {
-          if (target.templateId === 'dungeon_door' && target.dungeonId) {
-            this.enterDungeon(target.dungeonId, p.id);
-            return;
-          }
-          if (target.templateId === 'dungeon_exit') {
-            this.leaveDungeon(p.id);
-            return;
-          }
-          if (this.tryStartNythraxisWardChannel(target, p)) return;
-          this.pickUpObject(target.id, p.id);
-          return;
-        }
-        if (this.isQuestInteractionEntity(target)) {
-          this.talkToNpc(target.id, p.id);
-          return;
-        }
-      }
-    }
-    let bestCorpse: Entity | null = null;
-    let bestCorpseD2 = INTERACT_RANGE * INTERACT_RANGE;
-    let bestObj: Entity | null = null;
-    let bestObjD2 = INTERACT_RANGE * INTERACT_RANGE;
-    let bestQuestEntity: Entity | null = null;
-    let bestQuestD2 = INTERACT_RANGE * INTERACT_RANGE;
-    this.grid.forEachInRadius(p.pos.x, p.pos.z, INTERACT_RANGE, (e, d2) => {
-      if (e.kind === 'mob' && e.lootable && d2 < bestCorpseD2) {
-        bestCorpse = e;
-        bestCorpseD2 = d2;
-      }
-      if (e.kind === 'object' && e.lootable && d2 < bestObjD2) {
-        bestObj = e;
-        bestObjD2 = d2;
-      }
-      if (this.isQuestInteractionEntity(e) && d2 < bestQuestD2) {
-        bestQuestEntity = e;
-        bestQuestD2 = d2;
-      }
-    });
-    // re-read through wider types: TS cannot see the closure assignments above
-    const corpse = bestCorpse as Entity | null;
-    const obj = bestObj as Entity | null;
-    const questEntity = bestQuestEntity as Entity | null;
-    if (corpse) {
-      this.lootCorpse(corpse.id, p.id);
-      return;
-    }
-    if (obj) {
-      if (obj.templateId === 'dungeon_door' && obj.dungeonId) {
-        this.enterDungeon(obj.dungeonId, p.id);
-        return;
-      }
-      if (obj.templateId === 'dungeon_exit') {
-        this.leaveDungeon(p.id);
-        return;
-      }
-      if (this.tryStartNythraxisWardChannel(obj, p)) return;
-      this.pickUpObject(obj.id, p.id);
-      return;
-    }
-    if (questEntity) this.talkToNpc(questEntity.id, p.id);
+    interaction.interact(this.ctx, pid);
   }
 
   private isQuestInteractionEntity(e: Entity): boolean {
@@ -10839,37 +7258,56 @@ export class Sim {
     const npc = this.entities.get(npcId);
     if (!r || !npc || npc.kind !== 'npc') return;
     if (dist2d(r.e.pos, npc.pos) > INTERACT_RANGE + 2) return;
-    const speakerName = NPCS[npc.templateId]?.name ?? npc.name;
-    const interactionId = `offline-${r.e.id}-${npc.id}-${this.tickCount}`;
-    this.emit({
-      type: 'aiThinking',
-      speakerId: npc.id,
-      speakerName,
-      durationMs: 1600,
-      interactionId,
-      pid: r.e.id,
-    });
-    this.emit({
-      type: 'error',
-      text: 'AI response failed: Offline simulation has no Codex CLI provider. Use the online server for living AI interactions.',
-      pid: r.e.id,
-    });
+    this.emitOfflineAiUnavailable(r.e.id, npc, NPCS[npc.templateId]?.name ?? npc.name);
   }
 
-  aiInspectObject(_objectId: number, _locale: string): void {
-    // Offline simulation keeps AI life-layer side effects out of the deterministic core.
+  aiInspectObject(objectId: number, _locale: string): void {
+    const r = this.resolve();
+    const object = this.entities.get(objectId);
+    if (!r || !object || object.kind !== 'object') return;
+    if (dist2d(r.e.pos, object.pos) > INTERACT_RANGE + 4) return;
+    this.emitOfflineAiUnavailable(r.e.id, object, object.name);
   }
 
   aiInspectScene(_locale: string): void {
-    // Offline simulation keeps AI life-layer side effects out of the deterministic core.
+    const r = this.resolve();
+    if (r) this.emitOfflineAiUnavailable(r.e.id);
+  }
+
+  private emitOfflineAiUnavailable(pid: number, speaker?: Entity, speakerName?: string): void {
+    if (speaker) {
+      this.emit({
+        type: 'aiThinking',
+        speakerId: speaker.id,
+        speakerName: speakerName ?? speaker.name,
+        durationMs: 1600,
+        interactionId: `offline-${pid}-${speaker.id}-${this.tickCount}`,
+        pid,
+      });
+    }
+    this.emit({
+      type: 'error',
+      text: 'AI response failed: Offline simulation has no Codex CLI provider. Use the online server for living AI interactions.',
+      pid,
+    });
   }
 
   talkToNpc(npcId: number, pid?: number): void {
     const r = this.resolve(pid);
     if (!r) return;
-    const { meta } = r;
+    const { meta, e: p } = r;
     const npc = this.entities.get(npcId);
     if (!npc || !this.isQuestInteractionEntity(npc)) return;
+    // Dead players (released ghosts included) cannot talk to quest NPCs. The
+    // Spirit Healer is the one exception: talking to the angel is how a ghost
+    // reaches its resurrection offer (the res itself is resurrectAtSpiritHealer).
+    if (p.dead && npc.templateId !== SPIRIT_HEALER_NPC_ID) {
+      this.error(meta.entityId, "You can't do that while dead.");
+      return;
+    }
+    // Book of Deeds: chronicler talks feed their visited mark; talking to any
+    // other NPC resets the Saul consecutive-talk counter.
+    deedsMod.onNpcTalkedForDeeds(this.ctx, meta, npc.templateId);
     if (this.interactNpcForQuests(npc, meta)) return;
     for (const qid of npc.questIds) {
       const quest = QUESTS[qid];
@@ -10885,6 +7323,7 @@ export class Sim {
     for (const qid of npc.questIds) {
       if (
         QUESTS[qid].giverNpcId === npc.templateId &&
+        !QUESTS[qid].completionEffect &&
         this.questState(qid, meta.entityId) === 'available'
       ) {
         this.acceptQuest(qid, meta.entityId);
@@ -10900,17 +7339,21 @@ export class Sim {
       const quest = QUESTS[qp.questId];
       quest.objectives.forEach((objective, objectiveIndex) => {
         if (objective.type !== 'interact' || objective.targetNpcId !== npc.templateId) return;
-        if (qp.counts[objectiveIndex] >= objective.count) return;
+        const required = questObjectiveRequired(quest, qp, objectiveIndex);
+        if (qp.counts[objectiveIndex] >= required) return;
         qp.counts[objectiveIndex]++;
         progressed = true;
         meta.counters.questProgress++;
         this.emit({
           type: 'questProgress',
           questId: qp.questId,
-          text: `${objective.label}: ${qp.counts[objectiveIndex]}/${objective.count}`,
+          objectiveIndex,
+          current: qp.counts[objectiveIndex],
+          required,
+          text: `${objective.label}: ${qp.counts[objectiveIndex]}/${required}`,
           pid: meta.entityId,
         });
-        this.checkQuestReady(qp, meta);
+        this.ctx.checkQuestReady(qp, meta);
       });
     }
     return progressed;
@@ -10920,1085 +7363,96 @@ export class Sim {
   // Quests
   // -------------------------------------------------------------------------
 
+  // The quest command surface (questState + acceptQuest/acceptLinkedQuest/abandonQuest/
+  // turnInQuest, plus the private helpers questNpcFor/finalizeQuestAccept and the pure
+  // computeQuestState) moved to quests/quest_commands.ts (W4) behind SimContext. Sim
+  // keeps these thin same-named PUBLIC delegates (the widened `pid?` overload preserved)
+  // so the IWorld surface, server/game.ts, and the in-file interaction path (talkToNpc
+  // above) resolve them on the Sim facade unchanged; each forwards via this.ctx. The
+  // moved questNpcFor reaches the still-on-Sim isQuestInteractionEntity predicate via the
+  // ctx.isQuestInteractionEntity callback.
   questState(questId: string, pid?: number): QuestState {
-    const r = this.resolve(pid);
-    if (!r) return 'unavailable';
-    return computeQuestState(questId, r.meta.questLog, r.meta.questsDone, r.e.level);
+    return questCommands.questState(this.ctx, questId, pid);
   }
 
-  private questNpcFor(
-    questId: string,
-    role: 'giver' | 'turnIn',
-    p: Entity,
-  ): { npc: Entity | null; tooFar: boolean } {
-    const quest = QUESTS[questId];
-    const templateIds = role === 'giver' ? [quest.giverNpcId] : questTurnInNpcIds(quest);
-    let sawNpc = false;
-    for (const e of this.entities.values()) {
-      if (!this.isQuestInteractionEntity(e) || !templateIds.includes(e.templateId)) continue;
-      if (role === 'giver' && e.kind !== 'npc') continue;
-      sawNpc = true;
-      if (dist2d(p.pos, e.pos) <= INTERACT_RANGE + 2) return { npc: e, tooFar: false };
-    }
-    return { npc: null, tooFar: sawNpc };
-  }
-
-  // Shared accept core for the NPC and linked-share paths. Records progress, then
-  // re-grants any requiredItem the player no longer holds so a lost prerequisite item
-  // can never permanently block the quest, and announces the accept. Both callers go
-  // through here so the two paths cannot drift (notably this re-grant).
-  private finalizeQuestAccept(questId: string, quest: QuestDef, meta: PlayerMeta): void {
-    meta.questLog.set(questId, { questId, counts: quest.objectives.map(() => 0), state: 'active' });
-    for (const itemId of questFallbackGrants(
-      quest,
-      (id) => this.countItem(id, meta.entityId) > 0,
-    )) {
-      this.addItem(itemId, 1, meta.entityId);
-    }
-    this.emit({ type: 'questAccepted', questId, pid: meta.entityId });
-    this.emit({
-      type: 'log',
-      text: `Quest accepted: ${quest.name}`,
-      color: '#ff0',
-      pid: meta.entityId,
-    });
-    this.onInventoryChangedForQuests(meta);
-  }
-
-  acceptQuest(questId: string, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const quest = QUESTS[questId];
-    const { meta, e: p } = r;
-    if (!quest) {
-      this.error(meta.entityId, 'That quest is not available.');
-      return;
-    }
-    if (this.questState(questId, meta.entityId) !== 'available') {
-      this.error(meta.entityId, 'That quest is not available.');
-      return;
-    }
-    const nearby = this.questNpcFor(questId, 'giver', p);
-    if (!nearby.npc) {
-      this.error(
-        meta.entityId,
-        nearby.tooFar ? 'Too far away.' : 'That quest giver is not nearby.',
-      );
-      return;
-    }
-    this.finalizeQuestAccept(questId, quest, meta);
+  acceptQuest(questId: string, selectionOrPid?: string | number, pid?: number): void {
+    questCommands.acceptQuest(this.ctx, questId, selectionOrPid, pid);
   }
 
   acceptLinkedQuest(questId: string, sharerPid: number, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const { meta } = r;
-    const quest = QUESTS[questId];
-    if (!quest || quest.retired || quest.shareable === false) {
-      this.error(meta.entityId, "This quest can't be shared.");
-      return;
-    }
-    const myParty = this.partyOf(meta.entityId);
-    const sharerParty = this.partyOf(sharerPid);
-    const sharer = this.players.get(sharerPid);
-    if (!myParty || !sharerParty || myParty.id !== sharerParty.id) {
-      const sharerName = sharer ? sharer.name : 'that player';
-      this.error(meta.entityId, `You must be in ${sharerName}'s party to accept that quest.`);
-      return;
-    }
-    if (this.questState(questId, meta.entityId) !== 'available') {
-      this.error(meta.entityId, 'That quest is not available.');
-      return;
-    }
-    this.finalizeQuestAccept(questId, quest, meta);
-    if (sharer) this.notice(sharerPid, `${meta.name} accepted your shared quest.`);
+    questCommands.acceptLinkedQuest(this.ctx, questId, sharerPid, pid);
   }
 
   abandonQuest(questId: string, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const { meta } = r;
-    if (!meta.questLog.has(questId)) return;
-    meta.questLog.delete(questId);
-    this.emit({
-      type: 'log',
-      text: `Quest abandoned: ${QUESTS[questId].name}`,
-      color: '#f66',
-      pid: meta.entityId,
-    });
+    questCommands.abandonQuest(this.ctx, questId, pid);
   }
 
   turnInQuest(questId: string, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const { meta, e: p } = r;
-    const quest = QUESTS[questId];
-    if (!quest) {
-      this.error(meta.entityId, 'That quest is not available.');
-      return;
-    }
-    const qp = meta.questLog.get(questId);
-    if (!qp) {
-      this.error(meta.entityId, 'That quest is not in your log.');
-      return;
-    }
-    if (qp.state !== 'ready') {
-      this.error(meta.entityId, 'That quest is not complete.');
-      return;
-    }
-    const nearby = this.questNpcFor(questId, 'turnIn', p);
-    if (!nearby.npc) {
-      this.error(
-        meta.entityId,
-        nearby.tooFar ? 'Too far away.' : 'That quest turn-in is not nearby.',
-      );
-      return;
-    }
+    questCommands.turnInQuest(this.ctx, questId, pid);
+  }
 
-    for (const obj of quest.objectives) {
-      if (obj.type === 'collect' && obj.itemId)
-        this.removeItem(obj.itemId, obj.count, meta.entityId);
-    }
-    qp.state = 'done';
-    meta.questLog.delete(questId);
-    meta.questsDone.add(questId);
-    meta.counters.questsCompleted++;
-    if (quest.copperReward > 0) {
-      meta.copper += quest.copperReward;
-      this.emit({
-        type: 'loot',
-        text: `You receive ${formatMoney(quest.copperReward)}.`,
-        pid: meta.entityId,
-      });
-    }
-    const rewardItem = questRewardItemId(quest, meta.cls);
-    if (rewardItem) this.addItem(rewardItem, 1, meta.entityId);
-    this.grantXp(quest.xpReward, meta);
-    this.emit({ type: 'questDone', questId, pid: meta.entityId });
-    this.emit({
-      type: 'log',
-      text: `Quest completed: ${quest.name}`,
-      color: '#ff0',
-      pid: meta.entityId,
-    });
+  completeQuestForDev(questId: string, pid?: number): boolean {
+    return completeQuestForDev(this.ctx, questId, pid);
+  }
+
+  completeCurrentQuestsForDev(pid?: number): number {
+    return completeCurrentQuestsForDev(this.ctx, pid);
   }
 
   // No-op in offline mode
   reportTelemetry(): void {}
 
-  private onMobKilledForQuests(mob: Entity, meta: PlayerMeta): void {
-    for (const qp of meta.questLog.values()) {
-      if (qp.state !== 'active') continue;
-      const quest = QUESTS[qp.questId];
-      let changed = false;
-      quest.objectives.forEach((obj, i) => {
-        if (obj.type === 'kill' && obj.targetMobId === mob.templateId && qp.counts[i] < obj.count) {
-          qp.counts[i]++;
-          changed = true;
-          meta.counters.questProgress++;
-          this.emit({
-            type: 'questProgress',
-            questId: qp.questId,
-            text: `${obj.label}: ${qp.counts[i]}/${obj.count}`,
-            pid: meta.entityId,
-          });
-        }
-      });
-      if (changed) this.checkQuestReady(qp, meta);
-    }
-  }
-
-  private onInventoryChangedForQuests(meta: PlayerMeta): void {
-    for (const qp of meta.questLog.values()) {
-      const quest = QUESTS[qp.questId];
-      let changed = false;
-      quest.objectives.forEach((obj, i) => {
-        if (obj.type === 'collect' && obj.itemId) {
-          const have = Math.min(obj.count, this.countItem(obj.itemId, meta.entityId));
-          if (have !== qp.counts[i]) {
-            if (have > qp.counts[i]) meta.counters.questProgress += have - qp.counts[i];
-            qp.counts[i] = have;
-            changed = true;
-            this.emit({
-              type: 'questProgress',
-              questId: qp.questId,
-              text: `${obj.label}: ${have}/${obj.count}`,
-              pid: meta.entityId,
-            });
-          }
-        }
-      });
-      if (changed) this.checkQuestReady(qp, meta);
-    }
-  }
-
-  private checkQuestReady(qp: QuestProgress, meta: PlayerMeta): void {
-    const quest = QUESTS[qp.questId];
-    const ready = quest.objectives.every((obj, i) => qp.counts[i] >= obj.count);
-    if (ready && qp.state === 'active') {
-      qp.state = 'ready';
-      this.emit({ type: 'questReady', questId: qp.questId, pid: meta.entityId });
-      this.emit({
-        type: 'log',
-        text: `${quest.name} (Complete)`,
-        color: '#ff0',
-        pid: meta.entityId,
-      });
-    } else if (!ready && qp.state === 'ready') {
-      qp.state = 'active';
-    }
-  }
+  // Quest-credit math (onMobKilledForQuests / onInventoryChangedForQuests /
+  // checkQuestReady) moved to quests/quest_credit.ts (Q1) behind SimContext. Foreign
+  // callers reach the trio via this.ctx.<name>: the handleDeath party loop calls
+  // ctx.onMobKilledForQuests, the inventory hub (addItem/removeItem/buyBackItem) and
+  // finalizeQuestAccept call ctx.onInventoryChangedForQuests, and interactNpcForQuests
+  // plus the N1 crypt interactObjectForQuests call ctx.checkQuestReady.
 
   // -------------------------------------------------------------------------
   // Player death / respawn
   // -------------------------------------------------------------------------
 
+  // Player death/respawn lives in entity_roster.ts (E1, merged E2). Thin delegate
+  // keeps the public IWorld surface (`sim.releaseSpirit`) resolving unchanged.
   releaseSpirit(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const { meta, e: p } = r;
-    if (!p.dead) return;
-    if (this.arenaMatches.has(p.id)) return;
-    if (isDelvePos(p.pos.x)) {
-      this.releaseSpiritInDelve(meta.entityId);
-      return;
-    }
-    p.dead = false;
-    // dying in a dungeon sends you to the graveyard of the zone its door is
-    // in; dying outdoors, to your current zone's graveyard
-    const dungeon = dungeonAt(p.pos.x);
-    const graveyard = zoneAt(dungeon ? dungeon.doorPos.z : p.pos.z).graveyard;
-    p.pos = this.groundPos(graveyard.x, graveyard.z);
-    p.prevPos = { ...p.pos };
-    this.rebucket(p);
-    p.facing = 0;
-    p.auras = [];
-    p.ccDr.clear();
-    recalcPlayerStats(p, meta.cls, meta.equipment, this.playerMods(meta));
-    p.hp = p.maxHp;
-    p.resource = p.resourceType === 'mana' ? p.maxResource : p.resourceType === 'energy' ? 100 : 0;
-    p.targetId = null;
-    p.autoAttack = false;
-    p.queuedOnSwing = null;
-    p.combatTimer = 99;
-    p.inCombat = false;
-    this.emit({ type: 'respawn', pid: meta.entityId });
+    releasePlayerSpirit(this.ctx, pid);
   }
 
-  // Token-bucket throttle: returns false (and notifies the player once) when
-  // they are out of chat tokens. Keeps /g and /w from being spam amplifiers.
-  private chatAllowed(pid: number): boolean {
-    let b = this.chatTokens.get(pid);
-    if (!b) {
-      b = { tokens: CHAT_BURST, at: this.time };
-      this.chatTokens.set(pid, b);
-    }
-    b.tokens = Math.min(CHAT_BURST, b.tokens + (this.time - b.at) * CHAT_REFILL);
-    b.at = this.time;
-    if (b.tokens < 1) return false;
-    b.tokens -= 1;
-    return true;
+  // Ghost resurrection (src/sim/spirit.ts): run the spirit back to its corpse to
+  // resurrect penalty-free, or accept a Spirit Healer's resurrection (with
+  // Resurrection Sickness). Thin delegates so the IWorld surface resolves unchanged.
+  resurrectAtCorpse(pid?: number): void {
+    resurrectAtCorpse(this.ctx, pid);
   }
 
-  // Dev chat cheats — only when Sim.devCommands is enabled (offline local play
-  // or online server with ALLOW_DEV_COMMANDS=1). Returns null when handled
-  // (no channel message), or undefined when not a dev command.
-  private handleDevChat(raw: string, pid: number): SentChat | null | undefined {
-    const levelM = /^\/(?:dev\s+level|devlevel)\s+(\d+)\s*$/i.exec(raw);
-    if (levelM) {
-      const level = Number(levelM[1]);
-      this.setPlayerLevel(level, pid);
-      this.emit({
-        type: 'log',
-        text: `[dev] Level set to ${Math.max(1, Math.min(MAX_LEVEL, level))}.`,
-        pid,
-      });
-      return null;
-    }
-    const tpM = /^\/(?:dev\s+tp|devtp)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*$/i.exec(raw);
-    if (tpM) {
-      const e = this.entities.get(pid);
-      if (e) {
-        const p = this.groundPos(Number(tpM[1]), Number(tpM[2]));
-        e.pos = p;
-        e.prevPos = { ...p };
-        this.grid.update(e);
-        this.playerGrid.update(e);
-        this.emit({
-          type: 'log',
-          text: `[dev] Teleported to ${p.x.toFixed(1)}, ${p.z.toFixed(1)}.`,
-          pid,
-        });
-      }
-      return null;
-    }
-    const giveM = /^\/(?:dev\s+give|devgive)\s+(\S+)(?:\s+(\d+))?\s*$/i.exec(raw);
-    if (giveM) {
-      const itemId = giveM[1];
-      const count = Math.max(1, Math.min(20, Number(giveM[2] ?? 1)));
-      if (!ITEMS[itemId]) {
-        this.error(pid, `[dev] Unknown item '${itemId}'.`);
-        return null;
-      }
-      this.addItem(itemId, count, pid);
-      return null;
-    }
-    if (/^\/dev(?:\s|$)/i.test(raw)) {
-      this.error(pid, 'Dev commands: /dev level N, /dev tp X Z, /dev give itemId [count]');
-      return null;
-    }
-    return undefined;
+  resurrectAtSpiritHealer(pid?: number): boolean {
+    return resurrectAtSpiritHealer(this.ctx, pid);
   }
 
-  private whisperMessageForName(rest: string, name: string, exactCase: boolean): string | null {
-    const input = exactCase ? rest : rest.toLowerCase();
-    const prefix = exactCase ? name : name.toLowerCase();
-    if (!input.startsWith(prefix)) return null;
-    const next = rest.charAt(name.length);
-    if (!next || !/\s/.test(next)) return null;
-    const message = rest.slice(name.length).trim();
-    return message ? message : null;
+  respondToResurrection(accept: boolean, pid?: number): void {
+    resurrectionOfferMod.respondToResurrection(this.ctx, accept, pid);
   }
 
-  private resolveWhisperTarget(
-    rest: string,
-  ): { target: PlayerMeta; message: string } | { error: string } | null {
-    const trimmed = rest.trim();
-    if (!trimmed) return null;
-    const matches: { target: PlayerMeta; message: string; exactCase: boolean }[] = [];
-    for (const target of this.players.values()) {
-      const exactMessage = this.whisperMessageForName(trimmed, target.name, true);
-      if (exactMessage !== null) {
-        matches.push({ target, message: exactMessage, exactCase: true });
-        continue;
-      }
-      const insensitiveMessage = this.whisperMessageForName(trimmed, target.name, false);
-      if (insensitiveMessage !== null)
-        matches.push({ target, message: insensitiveMessage, exactCase: false });
-    }
-    matches.sort((a, b) => b.target.name.length - a.target.name.length);
-    const longestLength = matches[0]?.target.name.length ?? 0;
-    const longest = matches.filter((m) => m.target.name.length === longestLength);
-    const exact = longest.filter((m) => m.exactCase);
-    if (exact.length > 0) return exact[0];
-    if (longest.length === 1) return longest[0];
-    const typedName = trimmed.split(/\s+/, 1)[0] ?? trimmed;
-    if (longest.length > 1)
-      return { error: `Several players match '${typedName}'. Use exact capitalization.` };
-    return { error: `There is no player named '${typedName}' online.` };
+  revivePlayerAt(pid: number, pos: Vec3, hpFrac = 1): void {
+    revivePlayerAt(this.ctx, pid, pos, hpFrac);
   }
+
+  // chatAllowed / whisperMessageForName / resolveWhisperTarget moved to social/chat.ts;
+  // handleDevChat moved to dev_commands.ts. The chat() router dispatches via
+  // chatMod.*(this.ctx, ...); they had no callers outside chat().
 
   chat(text: string, pid?: number): SentChat | null {
-    const r = this.resolve(pid);
-    if (!r) return null;
-    const raw = text.trim().slice(0, MAX_CHAT_MESSAGE_LEN);
-    if (!raw) return null;
-    if (!this.chatAllowed(r.meta.entityId)) {
-      this.error(r.meta.entityId, 'You are sending messages too quickly.');
-      return null;
-    }
-
-    // "/afk [message]" / "/dnd [message]" — set a presence status. Repeating
-    // the same command with no message toggles it off. While away, anyone who
-    // whispers you gets an auto-reply; /dnd also withholds the whisper itself.
-    const awaym = /^\/(afk|dnd)(?:\s+([\s\S]+))?$/i.exec(raw);
-    if (awaym) {
-      const mode = awaym[1].toLowerCase() as AwayStatus['mode'];
-      const custom = awaym[2]?.trim();
-      if (r.meta.away?.mode === mode && !custom) {
-        r.meta.away = null;
-        this.emit({
-          type: 'log',
-          text:
-            mode === 'afk'
-              ? 'You are no longer Away From Keyboard.'
-              : 'You have left Do Not Disturb mode.',
-          color: '#ffd100',
-          pid: r.meta.entityId,
-        });
-      } else {
-        const message = custom || (mode === 'afk' ? 'Away From Keyboard' : 'Do Not Disturb');
-        r.meta.away = { mode, message };
-        this.emit({
-          type: 'log',
-          text:
-            mode === 'afk'
-              ? `You are now Away From Keyboard: ${message}`
-              : `You are now in Do Not Disturb mode: ${message}`,
-          color: '#ffd100',
-          pid: r.meta.entityId,
-        });
-      }
-      return null;
-    }
-
-    // Any other chat means you're back — clear a lingering away status.
-    if (r.meta.away) {
-      r.meta.away = null;
-      this.emit({
-        type: 'log',
-        text: 'You are no longer marked as away.',
-        color: '#ffd100',
-        pid: r.meta.entityId,
-      });
-    }
-
-    // "/party" (no message) is a self-only roster readout; "/party <msg>"
-    // and "/p <msg>" stay party chat (the trailing \s in that branch below).
-    if (/^\/(party|group|grp)\s*$/i.test(raw)) {
-      this.error(r.meta.entityId, this.partyReadout(r.meta.entityId));
-      return null;
-    }
-
-    if (this.devCommands) {
-      const devHandled = this.handleDevChat(raw, r.meta.entityId);
-      if (devHandled !== undefined && devHandled !== null) return devHandled;
-    }
-
-    if (/^\/who(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, 'The /who roster is available in online play.');
-      return null;
-    }
-
-    // "/talents" (aliases "/talent", "/spec") — self-only readout of the
-    // player's specialization and how their talent points are spent. Returns
-    // null (unlogged); no server interceptor, so it works online for free.
-    if (/^\/(?:talents|talent|spec)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.talentsReadout(r.meta, r.e));
-      return null;
-    }
-
-    // "/help" (or "/?" / "/commands") lists the available chat commands as a
-    // system notice to the asker only. Like /who, it produces no chat message,
-    // so it works identically offline and online without server wiring.
-    if (/^\/(?:help|commands|\?)(?:\s|$)/i.test(raw)) {
-      for (const line of this.helpLines()) this.error(r.meta.entityId, line);
-      return null;
-    }
-
-    // "/roll", "/roll N", "/roll M-N" — a classic random roll for loot disputes
-    // and social play. Rolled through the deterministic sim RNG so it is
-    // server-authoritative (clients can't fake a result) and identical offline.
-    const rollm = /^\/roll(?:\s+(\d+)(?:\s*-\s*(\d+))?)?\s*$/i.exec(raw);
-    if (rollm) {
-      let lo = 1,
-        hi = 100;
-      if (rollm[1] !== undefined) {
-        const n = parseInt(rollm[1], 10);
-        if (rollm[2] !== undefined) {
-          lo = n;
-          hi = parseInt(rollm[2], 10);
-        } else {
-          hi = n;
-        }
-      }
-      const MAX_ROLL = 1_000_000;
-      if (lo < 1 || hi > MAX_ROLL || lo > hi) {
-        this.error(
-          r.meta.entityId,
-          `Invalid roll range. Use /roll, /roll N, or /roll M-N (1-${MAX_ROLL}).`,
-        );
-        return null;
-      }
-      const result = this.rng.int(lo, hi);
-      const text = `${result} (${lo}-${hi})`;
-      const party = this.partyOf(r.meta.entityId);
-      if (party) {
-        for (const mPid of party.members) {
-          this.emit({
-            type: 'chat',
-            fromPid: r.meta.entityId,
-            from: r.meta.name,
-            text,
-            channel: 'roll',
-            pid: mPid,
-          });
-        }
-      } else {
-        for (const meta of this.players.values()) {
-          const e = this.entities.get(meta.entityId);
-          if (!e || dist2d(r.e.pos, e.pos) > SAY_RANGE) continue;
-          this.emit({
-            type: 'chat',
-            fromPid: r.meta.entityId,
-            from: r.meta.name,
-            text,
-            channel: 'roll',
-            pid: meta.entityId,
-          });
-        }
-      }
-      return null;
-    }
-
-    // "/r message" — reply to the last player who whispered us. Rewrite it to
-    // the "/w <name> message" form so delivery, the echo, and case-matching
-    // all stay in the single whisper handler below.
-    const rm = /^\/r(?:eply)?\s+([\s\S]+)$/i.exec(raw);
-    let line = raw;
-    if (rm) {
-      const replyTo = r.meta.lastWhisperFrom;
-      if (!replyTo) {
-        this.error(r.meta.entityId, 'You have no one to reply to.');
-        return null;
-      }
-      line = `/w ${replyTo} ${rm[1]}`;
-    }
-
-    // "/inspect name" — self-only readout of another online player's level,
-    // class, and health. The first cross-player readout; mirrors WoW's Inspect.
-    const im = /^\/(?:inspect|ins|examine)(?:\s+([\s\S]+))?$/i.exec(raw);
-    if (im) {
-      const targetName = (im[1] ?? '').trim();
-      if (!targetName) {
-        this.error(r.meta.entityId, 'Inspect whom? Usage: /inspect <name>.');
-        return null;
-      }
-      // resolve by name with the same exact-then-unambiguous-CI rule as /w
-      let target: PlayerMeta | null = null;
-      const ciMatches: PlayerMeta[] = [];
-      const wanted = targetName.toLowerCase();
-      for (const meta of this.players.values()) {
-        if (meta.name === targetName) {
-          target = meta;
-          break;
-        }
-        if (meta.name.toLowerCase() === wanted) ciMatches.push(meta);
-      }
-      if (!target) {
-        if (ciMatches.length === 1) target = ciMatches[0];
-        else if (ciMatches.length > 1) {
-          this.error(
-            r.meta.entityId,
-            `Several players match '${targetName}'. Use exact capitalization.`,
-          );
-          return null;
-        }
-      }
-      const te = target ? this.entities.get(target.entityId) : null;
-      if (!target || !te) {
-        this.error(r.meta.entityId, `There is no player named '${targetName}' online.`);
-        return null;
-      }
-      this.error(r.meta.entityId, this.inspectReadout(target, te));
-      return null;
-    }
-
-    // "/unfollow" stops an active follow
-    if (/^\/unfollow(?:\s|$)/i.test(raw)) {
-      if (r.e.followTargetId === null) this.error(r.meta.entityId, 'You are not following anyone.');
-      else this.stopFollow(r.e, 'You stop following.');
-      return null;
-    }
-
-    // "/follow [name]" trails another player; with no name it follows the
-    // current target. Movement, combat, casting, re-targeting, or the leader
-    // moving out of range all end it (see updateFollowMovement).
-    const fm = /^\/follow(?:\s+([\s\S]+))?$/i.exec(raw);
-    if (fm) {
-      if (r.e.inCombat) {
-        this.error(r.meta.entityId, "You can't start following while in combat.");
-        return null;
-      }
-      let target: PlayerMeta | null = null;
-      const nameArg = (fm[1] ?? '').trim();
-      if (nameArg) {
-        const wanted = nameArg.toLowerCase();
-        const ci: PlayerMeta[] = [];
-        for (const meta of this.players.values()) {
-          if (meta.name === nameArg) {
-            target = meta;
-            break;
-          }
-          if (meta.name.toLowerCase() === wanted) ci.push(meta);
-        }
-        if (!target) {
-          if (ci.length === 1) target = ci[0];
-          else if (ci.length > 1) {
-            this.error(
-              r.meta.entityId,
-              `Several players match '${nameArg}'. Use exact capitalization.`,
-            );
-            return null;
-          }
-        }
-        if (!target) {
-          this.error(r.meta.entityId, `There is no player named '${nameArg}' online.`);
-          return null;
-        }
-      } else {
-        const cur = r.e.targetId !== null ? this.players.get(r.e.targetId) : undefined;
-        if (!cur) {
-          this.error(r.meta.entityId, 'Target a player to follow, or use /follow <name>.');
-          return null;
-        }
-        target = cur;
-      }
-      if (target.entityId === r.meta.entityId) {
-        this.error(r.meta.entityId, "You can't follow yourself.");
-        return null;
-      }
-      r.e.followTargetId = target.entityId;
-      this.error(r.meta.entityId, `Now following ${target.name}.`);
-      return null;
-    }
-
-    // "/assist [name]" targets whatever the named player is targeting (group-play /
-    // multiboxing target-matching). With no name it assists the player you currently
-    // have targeted. Resolution lives in the pure resolveAssist() core.
-    const am = /^\/(?:assist|as)(?:\s+([\s\S]+))?$/i.exec(raw);
-    if (am) {
-      // Scope the candidate roster the way the server scopes a snapshot: players within
-      // interest range of the caster, PLUS the caster's party/raid members by name no
-      // matter how far they have roamed. Classic /assist only resolves a unit you could
-      // know about, never an arbitrary stranger across the map.
-      const assistParty = this.partyOf(r.meta.entityId);
-      const candidates: AssistCandidate[] = [];
-      for (const meta of this.players.values()) {
-        const ent = this.entities.get(meta.entityId);
-        const inParty = assistParty ? assistParty.members.includes(meta.entityId) : false;
-        const inRange = ent ? dist2d(r.e.pos, ent.pos) <= ASSIST_RANGE : false;
-        if (meta.entityId !== r.meta.entityId && !inParty && !inRange) continue;
-        candidates.push({
-          entityId: meta.entityId,
-          name: meta.name,
-          targetId: ent ? ent.targetId : null,
-        });
-      }
-      const res = resolveAssist(candidates, r.meta.entityId, am[1] ?? '');
-      if (res.kind === 'error') {
-        this.error(r.meta.entityId, res.message);
-        return null;
-      }
-      this.targetEntity(res.targetId, pid);
-      this.error(r.meta.entityId, `Assisting ${res.leaderName}.`);
-      return null;
-    }
-
-    // "/played" — report how long this character has been in the world this
-    // session. Self-only informational line, like /who's reply.
-    if (/^\/played(?:\s|$)/i.test(raw)) {
-      const secs = Math.max(0, Math.floor(this.time - r.meta.joinedAt));
-      const h = Math.floor(secs / 3600);
-      const m = Math.floor((secs % 3600) / 60);
-      const s = secs % 60;
-      const parts: string[] = [];
-      if (h) parts.push(`${h}h`);
-      if (h || m) parts.push(`${m}m`);
-      parts.push(`${s}s`);
-      this.error(r.meta.entityId, `Time played this session: ${parts.join(' ')}.`);
-      return null;
-    }
-
-    // Self-only readouts: emit a private system line and never become chat.
-    if (/^\/(?:where|loc|zone)(?:\s|$)/i.test(raw)) {
-      const zone = zoneAt(r.e.pos.z);
-      const [lo, hi] = zone.levelRange;
-      this.error(
-        r.meta.entityId,
-        `You are in ${zone.name} (levels ${lo}–${hi}) at (${Math.floor(r.e.pos.x)}, ${Math.floor(r.e.pos.z)}).`,
-      );
-      return null;
-    }
-    if (/^\/(?:target|tar)(?:\s|$)/i.test(raw)) {
-      const tid = r.e.targetId;
-      const t = tid !== null ? (this.entities.get(tid) ?? null) : null;
-      if (!t) this.error(r.meta.entityId, 'You have no target.');
-      else this.error(r.meta.entityId, this.targetReadout(t));
-      return null;
-    }
-    if (/^\/(?:xp|exp|experience)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.xpReadout(r.meta, r.e.level));
-      return null;
-    }
-    if (/^\/(?:gold|money|coins)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.goldReadout(r.meta.copper));
-      return null;
-    }
-    if (/^\/(?:stats|st|sheet)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.statsReadout(r.meta, r.e));
-      return null;
-    }
-    if (/^\/(?:buffs?|auras)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.buffsReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:cooldowns?|cds?)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.cooldownsReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:bags|inv|inventory)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.bagsReadout(r.meta));
-      return null;
-    }
-    if (/^\/(?:quests?|ql)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.questReadout(r.meta));
-      return null;
-    }
-    if (/^\/(?:gear|equip|equipment)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.gearReadout(r.meta));
-      return null;
-    }
-    if (/^\/(?:abilities|spells|spellbook)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.abilitiesReadout(r.meta, r.e));
-      return null;
-    }
-    if (/^\/(?:pet|pets|companion)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.petReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:session|sess|sessionstats)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.sessionReadout(r.meta));
-      return null;
-    }
-    if (/^\/(?:threat|aggro)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.threatReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:zones|zonelist|worldmap)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.zonesReadout(r.e.pos.z));
-      return null;
-    }
-    if (/^\/(?:nearby|near|around)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.nearbyReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:arena|pvp|rating)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.arenaReadout(r.meta));
-      return null;
-    }
-    if (/^\/(?:range|dist|distance)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.rangeReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:buyback|bb|repurchase)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.buybackReadout(r.meta));
-      return null;
-    }
-    if (/^\/(?:combo|cp|combopoints)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.comboReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:combat|cb|incombat)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.combatReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:graveyard|gy|spirithealer)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.graveyardReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:dungeons|dungeon|instances)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.dungeonsReadout());
-      return null;
-    }
-    if (/^\/(?:consider|con|difficulty)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.considerReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:pois|poi|landmarks)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.poisReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:completed|questsdone|qdone)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.completedReadout(r.meta));
-      return null;
-    }
-    if (/^\/(?:listings|mylistings|auctions)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.listingsReadout(r.meta));
-      return null;
-    }
-    if (/^\/(?:targetbuffs|debuffs|tb)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.targetBuffsReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:casting|cast|castbar)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.castingReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:speed|movespeed|ms)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.speedReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:attack|autoattack|aa)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.attackReadout(r.e, r.meta));
-      return null;
-    }
-    if (/^\/(consumable|consumables|eat|drink)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.consumableReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:potion|potioncd|pot)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.potionReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:overpower|op|overpowered)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.overpowerReadout(r.e, r.meta));
-      return null;
-    }
-    if (/^\/(form|stance|shapeshift)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.formReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:manaregen|regen|5sr)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.manaRegenReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:falling|jump|airborne)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.fallingReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:pettaunt|petgrowl|growl)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.petTauntReadout(r.e));
-      return null;
-    }
-    if (/^\/(queued|onswing|swingqueue)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.queuedReadout(r.e));
-      return null;
-    }
-    if (/^\/(?:savedmana|parkedmana|sm)(?:\s|$)/i.test(raw)) {
-      this.error(r.meta.entityId, this.savedManaReadout(r.meta, r.e));
-      return null;
-    }
-
-    // "/w name message" — private whisper to an online player. Match against
-    // `line` so a "/r" reply (rewritten to the /w form above) flows through the
-    // same longest-online-name resolver.
-    const wm = /^\/(?:w|whisper|t|tell)\s+([\s\S]+)$/i.exec(line);
-    if (wm) {
-      const resolved = this.resolveWhisperTarget(wm[1]);
-      if (!resolved) return null;
-      if ('error' in resolved) {
-        this.error(r.meta.entityId, resolved.error);
-        return null;
-      }
-      const { target, message: msg } = resolved;
-      if (target.entityId === r.meta.entityId) {
-        this.error(r.meta.entityId, 'You mutter to yourself. Nobody hears it.');
-        return null;
-      }
-      if (target.away) {
-        const label = target.away.mode === 'afk' ? 'Away From Keyboard' : 'Do Not Disturb';
-        this.emit({
-          type: 'log',
-          text: `${target.name} is ${label}: ${target.away.message}`,
-          color: '#ffd100',
-          pid: r.meta.entityId,
-        });
-        if (target.away.mode === 'dnd') {
-          // Withhold the whisper, but still echo the sender's own line so they
-          // see what they tried to send.
-          this.emit({
-            type: 'chat',
-            fromPid: r.meta.entityId,
-            from: r.meta.name,
-            to: target.name,
-            text: msg,
-            channel: 'whisper',
-            pid: r.meta.entityId,
-          });
-          return { channel: 'whisper', message: msg };
-        }
-      }
-      // classic-WoW "/r": the recipient's reply target is whoever last
-      // whispered them, so record it on the target (not the sender).
-      target.lastWhisperFrom = r.meta.name;
-      this.emit({
-        type: 'chat',
-        fromPid: r.meta.entityId,
-        from: r.meta.name,
-        text: msg,
-        channel: 'whisper',
-        pid: target.entityId,
-      });
-      this.emit({
-        type: 'chat',
-        fromPid: r.meta.entityId,
-        from: r.meta.name,
-        to: target.name,
-        text: msg,
-        channel: 'whisper',
-        pid: r.meta.entityId,
-      });
-      return { channel: 'whisper', message: msg, target: target.name };
-    }
-
-    // "/p message" goes to the party channel
-    if (/^\/p(arty)?\s/i.test(raw)) {
-      const clean = raw.replace(/^\/p(arty)?\s+/i, '').trim();
-      if (!clean) return null;
-      const party = this.partyOf(r.meta.entityId);
-      if (!party) {
-        this.error(r.meta.entityId, 'You are not in a party.');
-        return null;
-      }
-      for (const mPid of party.members) {
-        this.emit({
-          type: 'chat',
-          fromPid: r.meta.entityId,
-          from: r.meta.name,
-          text: clean,
-          channel: 'party',
-          pid: mPid,
-        });
-      }
-      return { channel: 'party', message: clean };
-    }
-
-    // "/g message" — world-wide general channel (no pid = broadcast to all)
-    if (/^\/g(eneral)?\s/i.test(raw)) {
-      const clean = raw.replace(/^\/g(eneral)?\s+/i, '').trim();
-      if (!clean) return null;
-      this.emit({
-        type: 'chat',
-        fromPid: r.meta.entityId,
-        from: r.meta.name,
-        text: clean,
-        channel: 'general',
-      });
-      return { channel: 'general', message: clean };
-    }
-
-    // "/join <channel>" / "/leave <channel>" — opt-in global channels
-    const jm = /^\/(join|leave)\b\s*(\S*)\s*$/i.exec(raw);
-    if (jm) {
-      this.handleChannelMembership(
-        r.meta,
-        jm[1].toLowerCase() as 'join' | 'leave',
-        jm[2].toLowerCase(),
-      );
-      return null;
-    }
-
-    // "/world message" / "/lfg message" — talk in an opt-in channel; only
-    // players who have /join-ed it hear the message (the sender included)
-    const cm = /^\/(world|lfg)\s+([\s\S]+)$/i.exec(raw);
-    if (cm) {
-      const channel = cm[1].toLowerCase() as JoinableChannel;
-      const clean = cm[2].trim();
-      if (!clean) return null;
-      const mine = this.channelSubs.get(r.meta.entityId);
-      if (!mine?.has(channel)) {
-        this.error(
-          r.meta.entityId,
-          `You are not in the ${channel} channel. Type /join ${channel} first.`,
-        );
-        return null;
-      }
-      for (const [subPid, set] of this.channelSubs) {
-        if (set.has(channel) && this.players.has(subPid)) {
-          this.emit({
-            type: 'chat',
-            fromPid: r.meta.entityId,
-            from: r.meta.name,
-            text: clean,
-            channel,
-            pid: subPid,
-          });
-        }
-      }
-      return { channel, message: clean };
-    }
-
-    // "/me <action>" — freeform third-person action text, e.g.
-    // "/me ponders the void" → "Aleph ponders the void". Emotes never become
-    // the player's sticky chat channel, so this returns null on success.
-    const meMatch = /^\/(?:me|emote|e)\s+([\s\S]+)$/i.exec(raw);
-    if (meMatch) {
-      const action = meMatch[1].trim();
-      if (action) this.broadcastEmote(r.meta, r.e, action);
-      return null;
-    }
-
-    // "/wave", "/dance [name]" — predefined social emotes. An optional name
-    // targets an online player (in range or not); unknown names fall back to
-    // the untargeted form, matching the classic-MMO convention.
-    const emMatch = /^\/([a-z]+)(?:\s+(\S+))?\s*$/i.exec(raw);
-    if (emMatch) {
-      const key = EMOTE_ALIASES[emMatch[1].toLowerCase()] ?? emMatch[1].toLowerCase();
-      const def = EMOTES[key];
-      if (def) {
-        const targetName = emMatch[2];
-        let text = def.solo;
-        if (targetName && def.target) {
-          const t = this.findPlayerByName(targetName);
-          if (t) text = def.target.replace('%t', t.name === r.meta.name ? 'themselves' : t.name);
-        }
-        this.broadcastEmote(r.meta, r.e, text);
-        return null;
-      }
-    }
-
-    // bare text and "/s" are local say; "/y" carries further — both are
-    // delivered per-player by range and carry the speaker for chat bubbles
-    let channel: 'say' | 'yell' = 'say';
-    let clean = raw;
-    if (/^\/y(ell)?\s/i.test(raw)) {
-      channel = 'yell';
-      clean = raw.replace(/^\/y(ell)?\s+/i, '').trim();
-    } else if (/^\/s(ay)?\s/i.test(raw)) {
-      clean = raw.replace(/^\/s(ay)?\s+/i, '').trim();
-    } else if (raw.startsWith('/')) {
-      this.error(r.meta.entityId, `Unknown command: ${raw.split(' ')[0]}. Type /help for a list.`);
-      return null;
-    }
-    if (!clean) return null;
-    const range = channel === 'yell' ? YELL_RANGE : SAY_RANGE;
-    for (const meta of this.players.values()) {
-      const e = this.entities.get(meta.entityId);
-      if (!e || dist2d(r.e.pos, e.pos) > range) continue;
-      this.emit({
-        type: 'chat',
-        fromPid: r.meta.entityId,
-        from: r.meta.name,
-        text: clean,
-        channel,
-        entityId: r.e.id,
-        pid: meta.entityId,
-      });
-    }
-    return { channel, message: clean };
+    return chatMod.chat(this.ctx, text, pid);
   }
 
+  // PUBLIC (IWorld + server) overhead-emote entry; body moved to social/chat.ts (G2).
   playEmote(emoteId: OverheadEmoteId, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    r.e.overheadEmoteId = emoteId;
-    r.e.overheadEmoteUntil = this.time + OVERHEAD_EMOTE_DURATION;
-    r.e.overheadEmoteSeq += 1;
+    chatMod.playEmote(this.ctx, emoteId, pid);
   }
 
-  // Resolve a player by name the same way whispers do: an exact-case match
-  // wins outright, otherwise a case-insensitive match is used only when it is
-  // unambiguous.
-  private findPlayerByName(name: string): PlayerMeta | null {
-    const wanted = name.toLowerCase();
-    const ci: PlayerMeta[] = [];
-    for (const meta of this.players.values()) {
-      if (meta.name === name) return meta;
-      if (meta.name.toLowerCase() === wanted) ci.push(meta);
-    }
-    return ci.length === 1 ? ci[0] : null;
-  }
-
-  // Send a third-person emote to every player within /say range (including the
-  // actor). `from` carries the actor's name so the client can render it as a
-  // clickable name; `text` is the action predicate (e.g. "waves at Bet.").
-  private broadcastEmote(actor: PlayerMeta, actorEntity: Entity, text: string): void {
-    const body = text.slice(0, MAX_CHAT_MESSAGE_LEN);
-    for (const meta of this.players.values()) {
-      const e = this.entities.get(meta.entityId);
-      if (!e || dist2d(actorEntity.pos, e.pos) > SAY_RANGE) continue;
-      this.emit({
-        type: 'chat',
-        fromPid: actor.entityId,
-        from: actor.name,
-        text: body,
-        channel: 'emote',
-        entityId: actorEntity.id,
-        pid: meta.entityId,
-      });
-    }
-  }
+  // findPlayerByName / broadcastEmote moved to social/chat.ts (G2); chat() reaches
+  // them via chatMod.*(this.ctx, ...). They had no callers outside chat().
 
   // -------------------------------------------------------------------------
   // Hostility: mobs are hostile to players; controlled pets inherit their
@@ -12018,6 +7472,9 @@ export class Sim {
   isHostileTo(attacker: Entity, target: Entity): boolean {
     if (target.kind === 'mob') {
       if (target.templateId.startsWith('vision_')) return false;
+      // A Protect Yumi cat is attackable only by the opposing team of its
+      // live match (social/yumi.ts owns the rule).
+      if (yumiMod.isYumiCat(target)) return yumiMod.yumiCatHostileTo(this.ctx, attacker, target);
       if (target.ownerId !== null) {
         const owner = this.entities.get(target.ownerId);
         return !!owner && owner.kind === 'player' && this.isHostileTo(attacker, owner);
@@ -12038,11 +7495,35 @@ export class Sim {
       )
         return true;
       const match = this.arenaMatches.get(attackerPlayer.id);
-      return (
-        !!match &&
+      if (
+        match &&
         match.state === 'active' &&
         !match.defeated.has(attackerPlayer.id) &&
         this.isArenaCrossTeam(match, attackerPlayer.id, target.id)
+      ) {
+        return true;
+      }
+      // The jail brawl: prisoners are hostile to each other, always (pets
+      // resolve to their owner via pvpController above, so a prisoner's pet
+      // fights too). A visiting moderator is never jailed, so no prisoner
+      // action can ever target them; GM invulnerability (dealDamage) is the
+      // backstop. isFriendlyTo mirrors this, so prisoners cannot cross-heal.
+      if (attackerPlayer.jailed && target.jailed) return true;
+      // One-way warden arm: a GM (the visiting moderator; enterJailVisit sets
+      // the flag) MAY strike prisoners. Deliberately asymmetric: the reverse
+      // direction stays non-hostile, and any reflected/proc damage still
+      // bounces off GM invulnerability. Audited punishment stays /kill; this
+      // is for roughing up the cellblock.
+      if (attackerPlayer.gm && target.jailed) return true;
+      // The Vale Cup: opposing fighters are hostile only while play is live so
+      // the harvest-truce Shoulder can land on them (targeting also opens during
+      // the countdown via targeting.ts; damage between seated fighters is
+      // floored to 0 in combat/damage.ts, boots and shoulders only).
+      const cupMatch = this.vcup.match;
+      return (
+        !!cupMatch &&
+        (cupMatch.phase === 'active' || cupMatch.phase === 'golden') &&
+        valeCupMod.isVcupCrossTeam(cupMatch, attackerPlayer.id, target.id)
       );
     }
     return false;
@@ -12050,6 +7531,9 @@ export class Sim {
 
   private isFriendlyTo(caster: Entity, target: Entity): boolean {
     if (target.kind === 'player') return !this.isHostileTo(caster, target);
+    // A Protect Yumi cat is heal/shield-targetable only by its own team.
+    if (target.kind === 'mob' && yumiMod.isYumiCat(target))
+      return yumiMod.yumiCatFriendlyTo(this.ctx, caster, target);
     if (target.kind === 'mob' && target.ownerId !== null) {
       const owner = this.entities.get(target.ownerId);
       return !!owner && owner.kind === 'player' && !this.isHostileTo(caster, owner);
@@ -12061,371 +7545,254 @@ export class Sim {
   // Parties
   // -------------------------------------------------------------------------
 
+  // A1: the party/raid state machine lives in src/sim/social/party.ts. partyOf + the
+  // eight command methods stay as thin delegates so IWorld + the many foreign
+  // `this.partyOf` call sites (loot/xp/tap/quest/arena/dungeon/UI) resolve unchanged;
+  // hasPendingSocialInvite stays reachable for the trade/duel invite path still on Sim;
+  // partyCapacity moved to the SimContext seam (W5), reached by the moved partyReadout.
   partyOf(pid: number): Party | null {
-    const partyId = this.partyByPid.get(pid);
-    return partyId !== undefined ? (this.parties.get(partyId) ?? null) : null;
-  }
-
-  private hasActiveInvite(
-    map: Map<number, { fromPid: number; expires: number }>,
-    targetPid: number,
-  ): boolean {
-    const invite = map.get(targetPid);
-    if (!invite) return false;
-    if (invite.expires < this.time) {
-      map.delete(targetPid);
-      return false;
-    }
-    return true;
+    return this.party.partyOf(pid);
   }
 
   private hasPendingSocialInvite(targetPid: number): boolean {
-    return (
-      this.hasActiveInvite(this.partyInvites, targetPid) ||
-      this.hasActiveInvite(this.tradeInvites, targetPid) ||
-      this.hasActiveInvite(this.duelInvites, targetPid)
-    );
+    return this.party.hasPendingSocialInvite(targetPid);
   }
 
   private entityInDungeon(e: Entity, dungeonId: string): boolean {
     return dungeonAt(e.pos.x)?.id === dungeonId;
   }
 
-  private partyCapacity(party: Party | null): number {
-    return party?.raid ? RAID_MAX : PARTY_MAX;
+  partyInvite(targetPid: number, pid?: number): void {
+    this.party.partyInvite(targetPid, pid);
   }
 
-  partyInvite(targetPid: number, pid?: number): void {
-    const r = this.resolve(pid);
-    const target = this.players.get(targetPid);
-    if (!r || !target) return;
-    if (targetPid === r.meta.entityId) return;
-    const myParty = this.partyOf(r.meta.entityId);
-    if (myParty && myParty.leader !== r.meta.entityId) {
-      this.error(r.meta.entityId, 'Only the party leader may invite.');
-      return;
-    }
-    if (myParty && myParty.members.length >= this.partyCapacity(myParty)) {
-      this.error(r.meta.entityId, myParty.raid ? 'Your raid is full.' : 'Your party is full.');
-      return;
-    }
-    if (this.partyOf(targetPid)) {
-      this.error(r.meta.entityId, `${target.name} is already in a party.`);
-      return;
-    }
-    if (this.hasPendingSocialInvite(targetPid)) {
-      this.error(r.meta.entityId, `${target.name} already has a pending invitation.`);
-      return;
-    }
-    this.partyInvites.set(targetPid, { fromPid: r.meta.entityId, expires: this.time + 30 });
-    this.emit({
-      type: 'partyInvite',
-      fromPid: r.meta.entityId,
-      fromName: r.meta.name,
-      pid: targetPid,
-    });
-    this.emit({
-      type: 'log',
-      text: `You have invited ${target.name} to your party.`,
-      color: '#aaf',
-      pid: r.meta.entityId,
-    });
+  // Ready check (social/ready_check.ts). readyCheckStart is leader-gated and reached
+  // by the chat "/ready" command through ctx; readyCheckRespond is the yes/no answer
+  // (IWorld surface + server dispatch), defaulting to the primary player.
+  readyCheckStart(pid?: number): void {
+    readyCheckMod.readyCheckStart(this.ctx, pid);
+  }
+
+  readyCheckRespond(ready: boolean, pid?: number): void {
+    readyCheckMod.readyCheckRespond(this.ctx, ready, pid);
+  }
+
+  updateReadyChecks(): void {
+    readyCheckMod.updateReadyChecks(this.ctx);
   }
 
   partyAccept(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const invite = this.partyInvites.get(r.meta.entityId);
-    if (!invite || invite.expires < this.time) {
-      this.error(r.meta.entityId, 'The invitation has expired.');
-      return;
-    }
-    this.partyInvites.delete(r.meta.entityId);
-    // A player can hold a stale incoming invite while having since joined or
-    // formed a party of their own (inviting others never consumes one's own
-    // pending invite). Accepting now would add them to a second party's member
-    // list, corrupting the "at most one party" invariant.
-    if (this.partyOf(r.meta.entityId)) {
-      this.error(r.meta.entityId, 'You are already in a party.');
-      return;
-    }
-    const leaderMeta = this.players.get(invite.fromPid);
-    if (!leaderMeta) return;
-    let party = this.partyOf(invite.fromPid);
-    if (!party) {
-      party = {
-        id: this.nextPartyId++,
-        leader: invite.fromPid,
-        members: [invite.fromPid],
-        raid: false,
-        raidGroups: new Map([[invite.fromPid, 1]]),
-        lootStrategies: { ...DEFAULT_PARTY_LOOT_STRATEGIES },
-      };
-      this.parties.set(party.id, party);
-      this.partyByPid.set(invite.fromPid, party.id);
-    }
-    if (party.members.length >= this.partyCapacity(party)) {
-      this.error(r.meta.entityId, party.raid ? 'That raid is full.' : 'That party is full.');
-      return;
-    }
-    const raidGroup = this.nextRaidGroupFor(party);
-    party.members.push(r.meta.entityId);
-    party.raidGroups.set(r.meta.entityId, raidGroup);
-    this.partyByPid.set(r.meta.entityId, party.id);
-    for (const mPid of party.members) {
-      this.emit({ type: 'log', text: `${r.meta.name} joins the party.`, color: '#aaf', pid: mPid });
-    }
+    this.party.partyAccept(pid);
   }
 
   partyDecline(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const invite = this.partyInvites.get(r.meta.entityId);
-    this.partyInvites.delete(r.meta.entityId);
-    if (invite) {
-      this.emit({
-        type: 'log',
-        text: `${r.meta.name} declines your invitation.`,
-        color: '#aaf',
-        pid: invite.fromPid,
-      });
-    }
+    this.party.partyDecline(pid);
   }
 
   partyLeave(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    this.removeFromParty(r.meta.entityId, 'leaves the party');
+    this.party.partyLeave(pid);
   }
 
   partyKick(targetPid: number, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const party = this.partyOf(r.meta.entityId);
-    if (!party || party.leader !== r.meta.entityId) {
-      this.error(r.meta.entityId, 'You are not the party leader.');
-      return;
-    }
-    if (!party.members.includes(targetPid) || targetPid === r.meta.entityId) return;
-    this.removeFromParty(targetPid, 'has been removed from the party');
+    this.party.partyKick(targetPid, pid);
+  }
+
+  partyPromote(targetPid: number, pid?: number): void {
+    this.party.partyPromote(targetPid, pid);
   }
 
   convertPartyToRaid(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const party = this.partyOf(r.meta.entityId);
-    if (!party) {
-      this.error(r.meta.entityId, 'You need a full party of five before converting to raid.');
-      return;
-    }
-    if (party.leader !== r.meta.entityId) {
-      this.error(r.meta.entityId, 'Only the party leader may convert to raid.');
-      return;
-    }
-    if (party.raid) {
-      this.error(r.meta.entityId, 'Your group is already a raid.');
-      return;
-    }
-    if (party.members.length < RAID_MIN) {
-      this.error(r.meta.entityId, 'You need a full party of five before converting to raid.');
-      return;
-    }
-    party.raid = true;
-    this.normalizeRaidGroups(party);
-    for (const mPid of party.members) {
-      this.emit({
-        type: 'log',
-        text: 'Your party has converted to a raid group.',
-        color: '#aaf',
-        pid: mPid,
-      });
-    }
+    this.party.convertPartyToRaid(pid);
   }
 
   convertRaidToParty(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const party = this.partyOf(r.meta.entityId);
-    if (!party) {
-      this.error(r.meta.entityId, 'You are not in a raid group.');
-      return;
-    }
-    if (party.leader !== r.meta.entityId) {
-      this.error(r.meta.entityId, 'Only the raid leader may convert to a party.');
-      return;
-    }
-    if (!party.raid) {
-      this.error(r.meta.entityId, 'Your group is not a raid.');
-      return;
-    }
-    // A raid can hold up to two subgroups; only one party's worth can fold back.
-    if (party.members.length > PARTY_MAX) {
-      this.error(
-        r.meta.entityId,
-        'A raid with more than five members cannot convert back to a party.',
-      );
-      return;
-    }
-    party.raid = false;
-    party.raidGroups.clear();
-    for (const mPid of party.members) {
-      this.emit({
-        type: 'log',
-        text: 'Your raid has converted back to a party.',
-        color: '#aaf',
-        pid: mPid,
-      });
-    }
+    this.party.convertRaidToParty(pid);
   }
 
   moveRaidMember(targetPid: number, group: 1 | 2, pid?: number): void {
+    this.party.moveRaidMember(targetPid, group, pid);
+  }
+  // nextRaidGroupFor / normalizeRaidGroups / removeFromParty moved to the
+  // PartyMachine (src/sim/social/party.ts, A1). removeFromParty is reachable by
+  // removePlayer through `this.ctx.removeFromParty` (the SimContext seam).
+
+  // -------------------------------------------------------------------------
+  // Dungeon Finder (thin delegates into social/dungeon_finder.ts; the IWorld
+  // facet methods take a trailing optional pid for the server dispatch path)
+  // -------------------------------------------------------------------------
+  private updateDungeonFinder(): void {
+    this.dungeonFinder.update();
+  }
+
+  dungeonFinderSetRoles(roles: Role[], pid?: number): void {
+    this.dungeonFinder.dungeonFinderSetRoles(roles, pid);
+  }
+
+  dungeonFinderQueueJoin(activityIds: string[], pid?: number): void {
+    this.dungeonFinder.dungeonFinderQueueJoin(activityIds, pid);
+  }
+
+  dungeonFinderQueueLeave(pid?: number): void {
+    this.dungeonFinder.dungeonFinderQueueLeave(pid);
+  }
+
+  dungeonFinderRespond(accept: boolean, pid?: number): void {
+    this.dungeonFinder.dungeonFinderRespond(accept, pid);
+  }
+
+  dungeonFinderListingCreate(activityId: string, tags: FinderListingTag[], pid?: number): void {
+    this.dungeonFinder.dungeonFinderListingCreate(activityId, tags, pid);
+  }
+
+  dungeonFinderListingClose(pid?: number): void {
+    this.dungeonFinder.dungeonFinderListingClose(pid);
+  }
+
+  dungeonFinderApply(listingId: number, pid?: number): void {
+    this.dungeonFinder.dungeonFinderApply(listingId, pid);
+  }
+
+  dungeonFinderApplyCancel(pid?: number): void {
+    this.dungeonFinder.dungeonFinderApplyCancel(pid);
+  }
+
+  dungeonFinderApplicationRespond(applicantPid: number, accept: boolean, pid?: number): void {
+    this.dungeonFinder.dungeonFinderApplicationRespond(applicantPid, accept, pid);
+  }
+
+  // Dev-only Dungeon Finder scenario seeding ("/dev lfg" in social/chat.ts,
+  // gated by devCommands; never a wire command). Spawns whisperable dev bots
+  // around the caller so the queue/proposal/board flows can be exercised
+  // without other humans:
+  //  - 'queue': fills the five-man composition around the caller's first
+  //    selected role and queues the bots for every eligible five-man;
+  //  - 'raid': same for the ten-player raid composition;
+  //  - 'board': publishes two bot listings and, when the caller leads a
+  //    listing, sends them one applicant.
+  // Deterministic: fixed classes/names (numeric suffixes on collision) and no
+  // rng draws of its own.
+  seedDungeonFinderDev(
+    mode: 'queue' | 'raid' | 'board',
+    pid?: number,
+  ): { spawned: number; note: 'ok' | 'needRoles' | 'noneEligible' } {
     const r = this.resolve(pid);
-    if (!r) return;
-    const party = this.partyOf(r.meta.entityId);
-    if (!party?.raid) {
-      this.error(r.meta.entityId, 'You are not in a raid group.');
-      return;
-    }
-    if (party.leader !== r.meta.entityId) {
-      this.error(r.meta.entityId, 'Only the raid leader may adjust groups.');
-      return;
-    }
-    if (!party.members.includes(targetPid)) return;
-    const current = party.raidGroups.get(targetPid) ?? 1;
-    if (current === group) return;
-    const inTargetGroup = party.members.filter(
-      (mPid) => (party.raidGroups.get(mPid) ?? 1) === group,
-    ).length;
-    if (inTargetGroup >= RAID_GROUP_MAX) {
-      this.error(r.meta.entityId, `Raid group ${group} is full.`);
-      return;
-    }
-    party.raidGroups.set(targetPid, group);
-    const moved = this.players.get(targetPid)?.name ?? 'Someone';
-    for (const mPid of party.members) {
-      this.emit({
-        type: 'log',
-        text: `${moved} has been moved to raid group ${group}.`,
-        color: '#aaf',
-        pid: mPid,
-      });
-    }
-  }
-
-  private nextRaidGroupFor(party: Party): 1 | 2 {
-    const g1 = party.members.filter((mPid) => (party.raidGroups.get(mPid) ?? 1) === 1).length;
-    return g1 < RAID_GROUP_MAX ? 1 : 2;
-  }
-
-  private normalizeRaidGroups(party: Party): void {
-    party.raidGroups.clear();
-    for (let i = 0; i < party.members.length; i++) {
-      party.raidGroups.set(party.members[i], i < RAID_GROUP_MAX ? 1 : 2);
-    }
-  }
-
-  private removeFromParty(pid: number, verb: string): void {
-    const party = this.partyOf(pid);
-    if (!party) return;
-    const meta = this.players.get(pid);
-    party.members = party.members.filter((m) => m !== pid);
-    party.raidGroups.delete(pid);
-    this.partyByPid.delete(pid);
-    for (const mPid of [...party.members, pid]) {
-      this.emit({
-        type: 'log',
-        text: `${meta?.name ?? 'Someone'} ${verb}.`,
-        color: '#aaf',
-        pid: mPid,
-      });
-    }
-    if (party.members.length <= 1) {
-      for (const mPid of party.members) {
-        this.partyByPid.delete(mPid);
-        this.emit({ type: 'log', text: 'Your party has disbanded.', color: '#aaf', pid: mPid });
+    if (!r) return { spawned: 0, note: 'noneEligible' };
+    const id = r.meta.entityId;
+    const level = this.entities.get(id)?.level ?? 1;
+    let spawnSeq = 0;
+    const spawnBot = (cls: PlayerClass, role: Role, baseName: string): number => {
+      let name = baseName;
+      for (let n = 2; ; n++) {
+        const taken = [...this.players.values()].some(
+          (m) => m.name.toLowerCase() === name.toLowerCase(),
+        );
+        if (!taken) break;
+        name = `${baseName}${n}`;
       }
-      this.parties.delete(party.id);
-      this.partyMarkers.delete(party.id);
-    } else if (party.leader === pid) {
-      party.leader = party.members[0];
-      const newLeader = this.players.get(party.leader);
-      for (const mPid of party.members) {
-        this.emit({
-          type: 'log',
-          text: `${newLeader?.name ?? 'Someone'} is now the party leader.`,
-          color: '#aaf',
-          pid: mPid,
-        });
+      const botPid = this.addPlayer(cls, name);
+      const meta = this.players.get(botPid);
+      if (meta) meta.isDevBot = true;
+      spawnSeq++;
+      const e = this.entities.get(botPid);
+      const me = this.entities.get(id);
+      if (e && me) {
+        e.pos = this.groundPos(me.pos.x + 2 + spawnSeq, me.pos.z + 2 + (spawnSeq % 3));
+        e.prevPos = { ...e.pos };
+        this.rebucket(e);
       }
+      this.setPlayerLevel(level, botPid);
+      if (level >= FIRST_TALENT_LEVEL) {
+        const spec = TALENTS[cls]?.specs.find((s) => s.role === role);
+        if (spec) this.setSpec(spec.id, botPid);
+      }
+      this.dungeonFinderSetRoles([role], botPid);
+      return botPid;
+    };
+    const inBand = (a: (typeof FINDER_ACTIVITIES)[number]) =>
+      level >= a.minLevel && level <= a.maxLevel;
+    const BOT_KITS: Record<Role, { cls: PlayerClass; name: string }> = {
+      tank: { cls: 'warrior', name: 'Tankbot' },
+      healer: { cls: 'priest', name: 'Healbot' },
+      dps: { cls: 'mage', name: 'Dpsbot' },
+    };
+
+    if (mode === 'board') {
+      const listable = FINDER_ACTIVITIES.filter(inBand);
+      if (listable.length === 0) return { spawned: 0, note: 'noneEligible' };
+      let spawned = 0;
+      const lister1 = spawnBot('paladin', 'tank', 'Listerbot');
+      spawned++;
+      this.dungeonFinderListingCreate(listable[0].id, ['learning'], lister1);
+      const lister2 = spawnBot('shaman', 'healer', 'Callerbot');
+      spawned++;
+      this.dungeonFinderListingCreate(
+        (listable[1] ?? listable[0]).id,
+        ['fast_run', 'full_clear'],
+        lister2,
+      );
+      const mine = this.dungeonFinderInfoFor(id)?.myListing;
+      if (mine) {
+        const applicant = spawnBot('rogue', 'dps', 'Seekerbot');
+        spawned++;
+        this.dungeonFinderApply(mine.id, applicant);
+      }
+      return { spawned, note: 'ok' };
     }
-    if (party.raid) this.normalizeRaidGroups(party);
+
+    const size = mode === 'raid' ? 10 : 5;
+    const activityIds = FINDER_ACTIVITIES.filter(
+      (a) => a.autoQueue && a.size === size && inBand(a),
+    ).map((a) => a.id);
+    if (activityIds.length === 0) return { spawned: 0, note: 'noneEligible' };
+    const myRoles = this.dungeonFinderInfoFor(id)?.roles ?? [];
+    if (myRoles.length === 0) return { spawned: 0, note: 'needRoles' };
+    const slots: Role[] =
+      mode === 'raid'
+        ? ['tank', 'tank', 'healer', 'healer', 'dps', 'dps', 'dps', 'dps', 'dps', 'dps']
+        : ['tank', 'healer', 'dps', 'dps', 'dps'];
+    // Leave exactly one slot open that the caller's first selected role fills.
+    slots.splice(slots.indexOf(myRoles[0]), 1);
+    let spawned = 0;
+    for (const role of slots) {
+      const kit = BOT_KITS[role];
+      const botPid = spawnBot(kit.cls, role, kit.name);
+      spawned++;
+      this.dungeonFinderQueueJoin(activityIds, botPid);
+    }
+    return { spawned, note: 'ok' };
+  }
+
+  dungeonFinderInfoFor(pid: number): import('../world_api').DungeonFinderInfo | null {
+    if (!this.players.has(pid)) return null;
+    return this.dungeonFinder.buildInfoFor(pid);
+  }
+
+  dungeonFinderBoardView(): import('../world_api').DungeonFinderBoard {
+    return this.dungeonFinder.buildBoard();
   }
 
   // -------------------------------------------------------------------------
   // Raid markers (party-scoped target markers)
   // -------------------------------------------------------------------------
 
-  // Every mark visible to the actor's party, as { entityId: markerId }. Empty
-  // when the actor is not in a party. Pure read — cleanup happens on the
-  // death/despawn/disband hooks, never here.
+  // The raid-marker store + methods moved to src/sim/targeting.ts (T1); Sim keeps thin
+  // same-named delegates so the foreign hud/renderer/server call sites resolve.
+  // clearEntityMarker is no longer on Sim: the death/despawn hooks reach it through
+  // this.ctx.clearEntityMarker, and the A1 disband path through this.ctx.dropPartyMarkers.
   markersFor(pid: number): Record<number, number> {
-    const party = this.partyOf(pid);
-    if (!party) return {};
-    const marks = this.partyMarkers.get(party.id);
-    if (!marks) return {};
-    const out: Record<number, number> = {};
-    for (const [eid, mid] of marks) out[eid] = mid;
-    return out;
+    return this.targeting.markersFor(pid);
   }
 
   setMarker(entityId: number, markerId: number, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const party = this.partyOf(r.meta.entityId);
-    if (!party) {
-      this.error(r.meta.entityId, 'You must be in a party to use raid markers.');
-      return;
-    }
-    if (!Number.isInteger(markerId) || markerId < 0 || markerId > 7) return;
-    // markable: a live, wild, hostile mob (not players, NPCs, corpses, or pets)
-    const target = this.entities.get(entityId);
-    if (target?.kind !== 'mob' || target.dead || !target.hostile || target.ownerId !== null) return;
-    let marks = this.partyMarkers.get(party.id);
-    if (!marks) {
-      marks = new Map();
-      this.partyMarkers.set(party.id, marks);
-    }
-    // re-applying the same symbol to the same mob toggles it off
-    if (marks.get(entityId) === markerId) {
-      marks.delete(entityId);
-      return;
-    }
-    // a symbol is unique within the party: take it off whatever held it
-    for (const [eid, mid] of marks) {
-      if (mid === markerId) marks.delete(eid);
-    }
-    marks.set(entityId, markerId);
+    this.targeting.setMarker(entityId, markerId, pid);
   }
 
   clearMarker(entityId: number, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const party = this.partyOf(r.meta.entityId);
-    if (!party) return;
-    this.partyMarkers.get(party.id)?.delete(entityId);
+    this.targeting.clearMarker(entityId, pid);
   }
 
-  // The local player's view of one entity's mark (for the renderer). Direct
-  // lookup, no per-call allocation.
   markerFor(entityId: number): number | null {
-    const party = this.partyOf(this.primaryId);
-    if (!party) return null;
-    return this.partyMarkers.get(party.id)?.get(entityId) ?? null;
-  }
-
-  // Strip an entity's mark from every party — used when it dies or despawns.
-  private clearEntityMarker(entityId: number): void {
-    for (const marks of this.partyMarkers.values()) marks.delete(entityId);
+    return this.targeting.markerFor(entityId);
   }
 
   // -------------------------------------------------------------------------
@@ -12433,95 +7800,15 @@ export class Sim {
   // -------------------------------------------------------------------------
 
   duelRequest(targetPid: number, pid?: number): void {
-    const r = this.resolve(pid);
-    const target = this.players.get(targetPid);
-    const targetE = this.entities.get(targetPid);
-    if (!r || !target || !targetE) return;
-    if (targetPid === r.meta.entityId) return;
-    if (
-      this.entityInDungeon(r.e, 'nythraxis_boss_arena') ||
-      this.entityInDungeon(targetE, 'nythraxis_boss_arena')
-    ) {
-      this.error(r.meta.entityId, 'You cannot duel in Nythraxis Raid Arena.');
-      return;
-    }
-    if (this.duels.has(r.meta.entityId) || this.duels.has(targetPid)) {
-      this.error(r.meta.entityId, 'A duel is already in progress.');
-      return;
-    }
-    if (dist2d(r.e.pos, targetE.pos) > 30) {
-      this.error(r.meta.entityId, 'Target is too far away.');
-      return;
-    }
-    if (this.hasPendingSocialInvite(targetPid)) {
-      this.error(r.meta.entityId, `${target.name} already has a pending invitation.`);
-      return;
-    }
-    this.duelInvites.set(targetPid, { fromPid: r.meta.entityId, expires: this.time + 30 });
-    this.emit({
-      type: 'duelRequest',
-      fromPid: r.meta.entityId,
-      fromName: r.meta.name,
-      pid: targetPid,
-    });
-    this.emit({
-      type: 'log',
-      text: `You have challenged ${target.name} to a duel.`,
-      color: '#fa6',
-      pid: r.meta.entityId,
-    });
+    duelMod.duelRequest(this.ctx, targetPid, pid);
   }
 
   duelAccept(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const invite = this.duelInvites.get(r.meta.entityId);
-    if (!invite || invite.expires < this.time) {
-      this.error(r.meta.entityId, 'The challenge has expired.');
-      return;
-    }
-    this.duelInvites.delete(r.meta.entityId);
-    const other = this.players.get(invite.fromPid);
-    if (!other) return;
-    const otherE = this.entities.get(invite.fromPid);
-    if (
-      !otherE ||
-      this.entityInDungeon(r.e, 'nythraxis_boss_arena') ||
-      this.entityInDungeon(otherE, 'nythraxis_boss_arena')
-    ) {
-      this.error(r.meta.entityId, 'You cannot duel in Nythraxis Raid Arena.');
-      return;
-    }
-    if (this.duels.has(invite.fromPid) || this.duels.has(r.meta.entityId)) {
-      this.error(r.meta.entityId, 'A duel is already in progress.');
-      return;
-    }
-    const duel: DuelState = {
-      a: invite.fromPid,
-      b: r.meta.entityId,
-      state: 'countdown',
-      timer: DUEL_COUNTDOWN,
-    };
-    this.duels.set(duel.a, duel);
-    this.duels.set(duel.b, duel);
-    for (const dPid of [duel.a, duel.b]) {
-      this.emit({ type: 'duelCountdown', seconds: DUEL_COUNTDOWN, pid: dPid });
-    }
+    duelMod.duelAccept(this.ctx, pid);
   }
 
   duelDecline(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const invite = this.duelInvites.get(r.meta.entityId);
-    this.duelInvites.delete(r.meta.entityId);
-    if (invite) {
-      this.emit({
-        type: 'log',
-        text: `${r.meta.name} declines your challenge.`,
-        color: '#fa6',
-        pid: invite.fromPid,
-      });
-    }
+    duelMod.duelDecline(this.ctx, pid);
   }
 
   // Persistent social systems (friends / ignore / guilds) require an account
@@ -12533,6 +7820,8 @@ export class Sim {
   friendRemove(_name: string): void {}
   blockAdd(_name: string): void {}
   blockRemove(_name: string): void {}
+  ignoreAdd(_name: string): void {}
+  ignoreRemove(_name: string): void {}
   guildCreate(_name: string): void {}
   guildInvite(_name: string): void {}
   guildAccept(): void {}
@@ -12543,47 +7832,23 @@ export class Sim {
   guildDemote(_name: string): void {}
   guildTransfer(_name: string): void {}
   guildDisband(): void {}
+  guildEventCreate(_day: string, _hour: number | null, _title: string, _note: string): void {}
+  guildEventRemove(_eventId: number): void {}
   searchCharacters(_query: string): Promise<import('../world_api').CharacterSearchResult[]> {
     return Promise.resolve([]);
   }
+  characterProfile(_name: string): Promise<import('../world_api').CharacterProfile | null> {
+    return Promise.resolve(null);
+  }
+  // Account flair is operator-set on an ACCOUNT, and offline play has none, so the
+  // offline world never has any to report. The sim must never read this for
+  // gameplay either way: it is cosmetic, server-set, and confers no effect.
+  accountFlair(_name: string): import('./account_flair').PlayerFlair | null {
+    return null;
+  }
 
   private updateDuels(): void {
-    const seen = new Set<DuelState>();
-    for (const duel of this.duels.values()) {
-      if (seen.has(duel)) continue;
-      seen.add(duel);
-      const ea = this.entities.get(duel.a);
-      const eb = this.entities.get(duel.b);
-      if (!ea || !eb) {
-        this.endDuel(duel, null);
-        continue;
-      }
-      if (duel.state === 'countdown') {
-        const before = Math.ceil(duel.timer);
-        duel.timer -= DT;
-        const after = Math.ceil(duel.timer);
-        if (after < before && after > 0) {
-          for (const dPid of [duel.a, duel.b])
-            this.emit({ type: 'duelCountdown', seconds: after, pid: dPid });
-        }
-        if (duel.timer <= 0) {
-          duel.state = 'active';
-          for (const dPid of [duel.a, duel.b]) {
-            this.emit({ type: 'log', text: 'The duel has begun!', color: '#fa6', pid: dPid });
-            this.emit({ type: 'duelStart', pid: dPid });
-          }
-        }
-        continue;
-      }
-      // forfeit by running away or dying to something else
-      if (dist2d(ea.pos, eb.pos) > DUEL_FORFEIT_DISTANCE) {
-        this.endDuel(duel, null);
-      } else if (ea.dead) {
-        this.endDuel(duel, duel.b);
-      } else if (eb.dead) {
-        this.endDuel(duel, duel.a);
-      }
-    }
+    duelMod.updateDuels(this.ctx);
   }
 
   private clearAurasFromSource(target: Entity, sourceId: number): void {
@@ -12597,40 +7862,81 @@ export class Sim {
     }
     if (statsDirty && target.kind === 'player') {
       const meta = this.players.get(target.id);
-      if (meta) recalcPlayerStats(target, meta.cls, meta.equipment, this.playerMods(meta));
+      if (meta)
+        recalcPlayerStats(
+          target,
+          meta.cls,
+          meta.equipment,
+          this.playerMods(meta),
+          meta.equipmentInstance,
+        );
     }
   }
 
   // winnerPid null = draw/cancelled
   private endDuel(duel: DuelState, winnerPid: number | null): void {
-    this.duels.delete(duel.a);
-    this.duels.delete(duel.b);
-    const aMeta = this.players.get(duel.a);
-    const bMeta = this.players.get(duel.b);
-    const ea = this.entities.get(duel.a);
-    const eb = this.entities.get(duel.b);
-    // stop the combatants from swinging at each other
-    for (const e of [ea, eb]) {
-      if (e) e.ccDr.clear();
-      if (e && e.targetId !== null && (e.targetId === duel.a || e.targetId === duel.b)) {
-        e.autoAttack = false;
-      }
-    }
-    if (ea) this.clearAurasFromSource(ea, duel.b);
-    if (eb) this.clearAurasFromSource(eb, duel.a);
-    if (winnerPid !== null && aMeta && bMeta) {
-      const winner = winnerPid === duel.a ? aMeta : bMeta;
-      const loser = winnerPid === duel.a ? bMeta : aMeta;
-      this.emit({ type: 'duelEnd', winnerName: winner.name, loserName: loser.name });
-    } else if (aMeta && bMeta) {
-      for (const dPid of [duel.a, duel.b]) {
-        this.emit({ type: 'log', text: 'The duel has ended.', color: '#fa6', pid: dPid });
-      }
-    }
+    duelMod.endDuel(this.ctx, duel, winnerPid);
   }
 
   duelFor(pid: number): DuelState | null {
-    return this.duels.get(pid) ?? null;
+    return duelMod.duelFor(this.ctx, pid);
+  }
+
+  // -------------------------------------------------------------------------
+  // Card Duel minigame (src/sim/social/card_duel.ts): thin delegates for the
+  // IWorld card_minigame facet.
+  private updateCardDuelQueue(): void {
+    cardDuelMod.updateCardDuelQueue(this.ctx);
+  }
+
+  private updateCardDuelDeadlines(): void {
+    cardDuelMod.updateCardDuelDeadlines(this.ctx);
+  }
+
+  joinCardDuelQueue(pid?: number): void {
+    cardDuelMod.joinCardMinigameQueue(this.ctx, pid);
+  }
+
+  leaveCardDuelQueue(pid?: number): void {
+    cardDuelMod.leaveCardMinigameQueue(this.ctx, pid);
+  }
+
+  isQueuedForCardMinigame(pid: number): boolean {
+    return cardDuelMod.isQueuedForCardMinigame(this.ctx, pid);
+  }
+
+  cardDuelMatchFor(pid: number): CardDuelMatch | null {
+    return cardDuelMod.cardDuelMatchFor(this.ctx, pid);
+  }
+
+  playCardInDuel(cardValue: number, pid?: number): void {
+    cardDuelMod.playCardInDuel(this.ctx, cardValue, pid);
+  }
+
+  // Player-issuable forfeit of a LIVE match (distinct from leaveCardDuelQueue,
+  // which only leaves the matchmaking queue): lets a player stuck against an
+  // idle opponent get out immediately instead of waiting for the AFK deadline.
+  forfeitCardDuel(pid?: number): void {
+    cardDuelMod.forfeitCardDuelMatch(this.ctx, pid);
+  }
+
+  // IWorldCardMinigame read surface: the local player's queue/match snapshot.
+  get cardMinigameInfo(): cardDuelMod.CardMinigameInfo {
+    return this.cardMinigameInfoFor(this.primaryId);
+  }
+
+  // Server-side pid-parameterized reader (like arenaInfoFor), for wiring an
+  // arbitrary session's snapshot rather than only the local/primary player.
+  // View assembly itself lives in card_duel.ts (buildCardMinigameInfo): it
+  // needs nothing from Sim's private state, matching the six thin delegates
+  // directly above.
+  cardMinigameInfoFor(pid: number): cardDuelMod.CardMinigameInfo {
+    return cardDuelMod.buildCardMinigameInfo(this.ctx, pid);
+  }
+
+  // Called from the leave/disconnect path (mirrors duel forfeit-on-leave).
+  leaveCardMinigameEntirely(pid: number): void {
+    cardDuelMod.leaveCardMinigameEntirely(this.ctx, pid);
   }
 
   // -------------------------------------------------------------------------
@@ -12638,641 +7944,62 @@ export class Sim {
   // -------------------------------------------------------------------------
 
   arenaQueueJoin(pidOrFormat?: number | ArenaFormat, format: ArenaFormat = '1v1'): void {
-    let pid: number | undefined;
-    let fmt: ArenaFormat = format;
-    if (typeof pidOrFormat === 'string') {
-      fmt = pidOrFormat;
-      pid = undefined;
-    } else {
-      pid = pidOrFormat;
-    }
-    const r = this.resolve(pid);
-    if (!r) return;
-    const id = r.meta.entityId;
-    if (this.isArenaQueued(id)) {
-      const currentFmt = this.arenaQueuedFormat(id);
-      if (currentFmt !== fmt) {
-        this.error(
-          id,
-          `You are already in the ${currentFmt} queue. Leave it before queueing for ${fmt}.`,
-        );
-        return;
-      }
-      const position = this.arenaQueuePosition(id, fmt);
-      this.emit({ type: 'arenaQueued', position, format: fmt, pid: id });
-      return;
-    }
-    if (this.arenaMatches.has(id)) {
-      this.error(id, 'You are already in an arena match.');
-      return;
-    }
-    if (r.e.dead) {
-      this.error(id, 'You cannot queue for the arena while dead.');
-      return;
-    }
-    if (this.duels.has(id)) {
-      this.error(id, 'You cannot queue while dueling.');
-      return;
-    }
-    if (this.trades.has(id)) {
-      this.error(id, 'Finish your trade before queueing.');
-      return;
-    }
-    if (r.e.pos.x > DUNGEON_X_THRESHOLD) {
-      this.error(id, 'You cannot queue from inside an instance.');
-      return;
-    }
-
-    if (fmt === '1v1') {
-      const party = this.partyOf(id);
-      if (party && party.members.length > 1) {
-        this.error(id, 'Leave your party before queueing for 1v1.');
-        return;
-      }
-      this.arenaQueue1v1.push(id);
-      this.emit({
-        type: 'arenaQueued',
-        position: this.arenaQueue1v1.length,
-        format: '1v1',
-        pid: id,
-      });
-      this.emit({
-        type: 'log',
-        text: 'You join the Ashen Coliseum queue. Stand by for a worthy opponent…',
-        color: '#ffa040',
-        pid: id,
-      });
-      return;
-    }
-
-    // 2v2 and Fiesta share the same team-formation + queueing path; only the
-    // destination queue and the flavour text differ.
-    const isFiesta = fmt === 'fiesta';
-    const label = isFiesta ? 'Fiesta' : '2v2';
-    const party = this.partyOf(id);
-    let unitPids: number[];
-    if (!party || party.members.length === 1) {
-      unitPids = [id];
-    } else if (party.members.length === 2) {
-      if (party.leader !== id) {
-        this.error(id, `Only the party leader may queue your team for ${label}.`);
-        return;
-      }
-      unitPids = [...party.members];
-    } else {
-      this.error(id, `${label} premade requires a party of exactly two.`);
-      return;
-    }
-    for (const mPid of unitPids) {
-      if (mPid === id) continue;
-      const e = this.entities.get(mPid);
-      const mMeta = this.players.get(mPid);
-      if (!e || !mMeta) {
-        this.error(id, 'A party member is unavailable.');
-        return;
-      }
-      if (e.dead) {
-        this.error(id, `${mMeta.name} cannot queue while dead.`);
-        return;
-      }
-      if (this.arenaMatches.has(mPid)) {
-        this.error(id, `${mMeta.name} is already in an arena match.`);
-        return;
-      }
-      if (this.isArenaQueued(mPid)) {
-        this.error(id, `${mMeta.name} is already in the arena queue.`);
-        return;
-      }
-      if (this.duels.has(mPid)) {
-        this.error(id, `${mMeta.name} cannot queue while dueling.`);
-        return;
-      }
-      if (this.trades.has(mPid)) {
-        this.error(id, `${mMeta.name} must finish trading before queueing.`);
-        return;
-      }
-      if (e.pos.x > DUNGEON_X_THRESHOLD) {
-        this.error(id, `${mMeta.name} cannot queue from inside an instance.`);
-        return;
-      }
-    }
-    const queue = isFiesta ? this.arenaQueueFiesta : this.arenaQueue2v2;
-    const unit: ArenaQueueUnit = { pids: unitPids, rating: this.arenaTeamRating(unitPids, '2v2') };
-    queue.push(unit);
-    const position = queue.reduce((n, u) => n + u.pids.length, 0);
-    const joinText = isFiesta
-      ? 'You join the 2v2 Fiesta queue. Get ready to PARTY…'
-      : 'You join the Ashen Coliseum 2v2 queue. Stand by for opponents…';
-    for (const mPid of unitPids) {
-      this.emit({ type: 'arenaQueued', position, format: fmt, pid: mPid });
-      this.emit({
-        type: 'log',
-        text: joinText,
-        color: isFiesta ? '#ff3df0' : '#ffa040',
-        pid: mPid,
-      });
-    }
+    arenaMod.arenaQueueJoin(this.ctx, pidOrFormat, format);
   }
 
   arenaQueueLeave(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const id = r.meta.entityId;
-    const fmt = this.arenaQueuedFormat(id);
-    const teamQueue =
-      fmt === '2v2' ? this.arenaQueue2v2 : fmt === 'fiesta' ? this.arenaQueueFiesta : null;
-    const unit = teamQueue ? teamQueue.find((u) => u.pids.includes(id)) : null;
-    if (this.arenaDequeue(id)) {
-      this.emit({ type: 'arenaUnqueued', pid: id });
-      const leaveText =
-        fmt === 'fiesta'
-          ? 'You leave the 2v2 Fiesta queue.'
-          : fmt === '2v2'
-            ? 'You leave the Ashen Coliseum 2v2 queue.'
-            : 'You leave the Ashen Coliseum queue.';
-      this.emit({ type: 'log', text: leaveText, color: '#ffa040', pid: id });
-      if (unit) {
-        const teamLeaveText =
-          fmt === 'fiesta'
-            ? 'Your team leaves the 2v2 Fiesta queue.'
-            : 'Your team leaves the Ashen Coliseum 2v2 queue.';
-        for (const mPid of unit.pids) {
-          if (mPid === id) continue;
-          this.emit({ type: 'arenaUnqueued', pid: mPid });
-          this.emit({ type: 'log', text: teamLeaveText, color: '#ffa040', pid: mPid });
-        }
-      }
-    }
+    arenaMod.arenaQueueLeave(this.ctx, pid);
   }
 
   private isArenaQueued(pid: number): boolean {
-    return (
-      this.arenaQueue1v1.includes(pid) ||
-      this.arenaQueue2v2.some((u) => u.pids.includes(pid)) ||
-      this.arenaQueueFiesta.some((u) => u.pids.includes(pid))
-    );
+    return arenaMod.isArenaQueued(this.ctx, pid);
   }
 
   private arenaQueuedFormat(pid: number): ArenaFormat | null {
-    if (this.arenaQueue1v1.includes(pid)) return '1v1';
-    if (this.arenaQueue2v2.some((u) => u.pids.includes(pid))) return '2v2';
-    if (this.arenaQueueFiesta.some((u) => u.pids.includes(pid))) return 'fiesta';
-    return null;
-  }
-
-  private arenaQueuePosition(pid: number, format: ArenaFormat): number {
-    if (format === '1v1') return this.arenaQueue1v1.indexOf(pid) + 1;
-    const queue = format === 'fiesta' ? this.arenaQueueFiesta : this.arenaQueue2v2;
-    let pos = 0;
-    for (const unit of queue) {
-      if (unit.pids.includes(pid)) return pos + 1;
-      pos += unit.pids.length;
-    }
-    return pos + 1;
+    return arenaMod.arenaQueuedFormat(this.ctx, pid);
   }
 
   private arenaDequeue(pid: number): boolean {
-    const i1 = this.arenaQueue1v1.indexOf(pid);
-    if (i1 >= 0) {
-      this.arenaQueue1v1.splice(i1, 1);
-      return true;
-    }
-    const ui = this.arenaQueue2v2.findIndex((u) => u.pids.includes(pid));
-    if (ui >= 0) {
-      this.arenaQueue2v2.splice(ui, 1);
-      return true;
-    }
-    const fi = this.arenaQueueFiesta.findIndex((u) => u.pids.includes(pid));
-    if (fi >= 0) {
-      this.arenaQueueFiesta.splice(fi, 1);
-      return true;
-    }
-    return false;
-  }
-
-  private freeArenaSlot(): number | null {
-    for (let i = 0; i < ARENA_SLOT_COUNT; i++) {
-      if (!this.arenaBusySlots.has(i)) return i;
-    }
-    return null;
+    return arenaMod.arenaDequeue(this.ctx, pid);
   }
 
   private arenaTeamOf(match: ArenaMatch, pid: number): 'A' | 'B' | null {
-    if (match.teamA.includes(pid)) return 'A';
-    if (match.teamB.includes(pid)) return 'B';
-    return null;
+    return arenaMod.arenaTeamOf(this.ctx, match, pid);
   }
 
   arenaAllPids(match: ArenaMatch): number[] {
-    return [...match.teamA, ...match.teamB];
+    return arenaMod.arenaAllPids(match);
   }
 
   private arenaStanding(meta: PlayerMeta, format: ArenaFormat): ArenaStanding {
-    return format === '2v2'
-      ? { rating: meta.arena2v2Rating, wins: meta.arena2v2Wins, losses: meta.arena2v2Losses }
-      : { rating: meta.arenaRating, wins: meta.arenaWins, losses: meta.arenaLosses };
-  }
-
-  private arenaRatingForPid(pid: number, format: ArenaFormat): number {
-    const meta = this.players.get(pid);
-    return meta ? this.arenaStanding(meta, format).rating : ARENA_BASE_RATING;
-  }
-
-  private addArenaResult(
-    meta: PlayerMeta,
-    format: ArenaFormat,
-    delta: number,
-    won: boolean | null,
-  ): { before: number; after: number } {
-    const before = this.arenaStanding(meta, format).rating;
-    const after = Math.max(ARENA_MIN_RATING, before + delta);
-    if (format === '2v2') {
-      meta.arena2v2Rating = after;
-      if (won === true) meta.arena2v2Wins++;
-      else if (won === false) meta.arena2v2Losses++;
-    } else {
-      meta.arenaRating = after;
-      if (won === true) meta.arenaWins++;
-      else if (won === false) meta.arenaLosses++;
-    }
-    return { before, after };
-  }
-
-  private arenaTeamRating(pids: number[], format: ArenaFormat): number {
-    if (pids.length === 0) return ARENA_BASE_RATING;
-    let sum = 0;
-    for (const pid of pids) sum += this.arenaRatingForPid(pid, format);
-    return sum / pids.length;
+    return arenaMod.arenaStanding(meta, format);
   }
 
   private isArenaCrossTeam(match: ArenaMatch, attackerPid: number, targetPid: number): boolean {
-    const atkTeam = this.arenaTeamOf(match, attackerPid);
-    const tgtTeam = this.arenaTeamOf(match, targetPid);
-    if (!atkTeam || !tgtTeam || atkTeam === tgtTeam) return false;
-    if (this.arenaIsDown(match, attackerPid)) return false;
-    return !this.arenaIsDown(match, targetPid);
+    return arenaMod.isArenaCrossTeam(this.ctx, match, attackerPid, targetPid);
   }
 
-  // "Down" = out of the fight right now. Ranked bouts eliminate permanently
-  // (`defeated`); Fiesta only benches you until your respawn timer elapses.
   private arenaIsDown(match: ArenaMatch, pid: number): boolean {
-    if (match.fiesta) return match.fiesta.respawn.has(pid);
-    return match.defeated.has(pid);
+    return arenaMod.arenaIsDown(match, pid);
   }
 
   private isArenaTeamWiped(match: ArenaMatch, team: 'A' | 'B'): boolean {
-    const pids = team === 'A' ? match.teamA : match.teamB;
-    return pids.every((pid) => match.defeated.has(pid));
-  }
-
-  private arenaTeamHpFrac(match: ArenaMatch, team: 'A' | 'B'): number {
-    const pids = team === 'A' ? match.teamA : match.teamB;
-    let sum = 0,
-      count = 0;
-    for (const pid of pids) {
-      if (match.defeated.has(pid)) continue;
-      const e = this.entities.get(pid);
-      if (!e) continue;
-      sum += e.hp / Math.max(1, e.maxHp);
-      count++;
-    }
-    return count > 0 ? sum / count : 0;
+    return arenaMod.isArenaTeamWiped(match, team);
   }
 
   private arenaCombatants(pids: number[]): ArenaCombatant[] {
-    const out: ArenaCombatant[] = [];
-    for (const pid of pids) {
-      const meta = this.players.get(pid);
-      const e = this.entities.get(pid);
-      if (meta && e) out.push({ pid, name: meta.name, cls: meta.cls, level: e.level });
-    }
-    return out;
+    return arenaMod.arenaCombatants(this.ctx, pids);
   }
 
   private updateArena(): void {
-    this.matchmakeArena1v1();
-    this.matchmakeArena2v2();
-    const seen = new Set<ArenaMatch>();
-    for (const match of this.arenaMatches.values()) {
-      if (seen.has(match)) continue;
-      seen.add(match);
-      const missingA = match.teamA.some((pid) => !this.entities.get(pid));
-      const missingB = match.teamB.some((pid) => !this.entities.get(pid));
-      if (missingA || missingB) {
-        if (match.state === 'over') this.returnFromArena(match);
-        else {
-          let winner: 'A' | 'B' | null = null;
-          if (missingA && !missingB) winner = 'B';
-          else if (missingB && !missingA) winner = 'A';
-          this.endArenaMatch(match, winner, 'forfeit');
-        }
-        continue;
-      }
-      if (match.state === 'over') {
-        match.timer -= DT;
-        if (match.timer <= 0) this.returnFromArena(match);
-        continue;
-      }
-      const fighters = this.arenaAllPids(match)
-        .map((pid) => this.entities.get(pid)!)
-        .filter(Boolean);
-      if (match.state === 'countdown') {
-        const before = Math.ceil(match.timer);
-        match.timer -= DT;
-        const after = Math.ceil(match.timer);
-        if (after < before && after > 0) {
-          for (const mPid of this.arenaAllPids(match))
-            this.emit({ type: 'arenaCountdown', seconds: after, pid: mPid });
-        }
-        if (match.timer <= 0) {
-          match.state = 'active';
-          match.timer = 0;
-          for (const e of fighters) this.readyArenaFighter(e, { clearPrep: false });
-          for (const mPid of this.arenaAllPids(match)) {
-            this.emit({
-              type: 'log',
-              text: match.fiesta ? 'FIESTA — GO!' : 'Fight!',
-              color: '#ff5a3c',
-              pid: mPid,
-            });
-            this.emit({ type: 'arenaStart', pid: mPid });
-          }
-          if (match.fiesta) {
-            for (const mPid of this.arenaAllPids(match)) {
-              this.emit({
-                type: 'fiestaScore',
-                a: 0,
-                b: 0,
-                limit: match.fiesta.scoreLimit,
-                team: this.arenaTeamOf(match, mPid)!,
-                pid: mPid,
-              });
-            }
-          }
-        }
-        continue;
-      }
-      match.timer += DT;
-      if (match.fiesta) {
-        this.updateFiestaActive(match);
-        continue;
-      }
-      if (match.timer >= ARENA_MAX_DURATION) {
-        const fa = this.arenaTeamHpFrac(match, 'A');
-        const fb = this.arenaTeamHpFrac(match, 'B');
-        const winner = Math.abs(fa - fb) < 0.02 ? null : fa > fb ? 'A' : 'B';
-        this.endArenaMatch(match, winner, 'timeout');
-      }
-    }
+    arenaMod.updateArena(this.ctx);
   }
 
-  private matchmakeArena1v1(): void {
-    let guard = ARENA_SLOT_COUNT + 1;
-    while (guard-- > 0) {
-      this.arenaQueue1v1 = this.arenaQueue1v1.filter((id) => {
-        const e = this.entities.get(id);
-        return !!e && !e.dead && !this.arenaMatches.has(id);
-      });
-      if (this.arenaQueue1v1.length < 2 || this.freeArenaSlot() === null) return;
-      const aPid = this.arenaQueue1v1[0];
-      const aRating = this.arenaRatingForPid(aPid, '1v1');
-      let bPid = -1,
-        bestGap = Infinity;
-      for (let i = 1; i < this.arenaQueue1v1.length; i++) {
-        const id = this.arenaQueue1v1[i];
-        const gap = Math.abs(this.arenaRatingForPid(id, '1v1') - aRating);
-        if (gap < bestGap) {
-          bestGap = gap;
-          bPid = id;
-        }
-      }
-      if (bPid < 0) return;
-      this.arenaDequeue(aPid);
-      this.arenaDequeue(bPid);
-      this.startArenaMatch('1v1', [aPid], [bPid]);
-    }
-  }
-
-  private pruneTeamQueue(fmt: '2v2' | 'fiesta'): void {
-    const keep = (unit: ArenaQueueUnit) =>
-      unit.pids.every((id) => {
-        const e = this.entities.get(id);
-        return !!e && !e.dead && !this.arenaMatches.has(id);
-      });
-    if (fmt === 'fiesta') this.arenaQueueFiesta = this.arenaQueueFiesta.filter(keep);
-    else this.arenaQueue2v2 = this.arenaQueue2v2.filter(keep);
-  }
-
-  private removeTeamQueueUnits(units: ArenaQueueUnit[], fmt: '2v2' | 'fiesta'): void {
-    const queue = fmt === 'fiesta' ? this.arenaQueueFiesta : this.arenaQueue2v2;
-    for (const unit of units) {
-      const i = queue.indexOf(unit);
-      if (i >= 0) queue.splice(i, 1);
-    }
-  }
-
-  private matchmakeArena2v2(): void {
-    this.matchmakeTeamFormat('2v2');
-    this.matchmakeTeamFormat('fiesta');
-  }
-
-  // Shared 2v2 / Fiesta matchmaker: premades pair off first, then a premade is
-  // filled out against the two closest-rated solos, then four solos form two
-  // pairs. Identical for both formats — only the queue + spawned format differ.
-  private matchmakeTeamFormat(fmt: '2v2' | 'fiesta'): void {
-    let guard = ARENA_SLOT_COUNT + 1;
-    while (guard-- > 0) {
-      this.pruneTeamQueue(fmt);
-      if (this.freeArenaSlot() === null) return;
-      const queue = fmt === 'fiesta' ? this.arenaQueueFiesta : this.arenaQueue2v2;
-
-      const premades = queue.filter((u) => u.pids.length === 2);
-      if (premades.length >= 2) {
-        const anchor = premades[0];
-        let best = premades[1],
-          bestGap = Math.abs(premades[1].rating - anchor.rating);
-        for (let i = 2; i < premades.length; i++) {
-          const gap = Math.abs(premades[i].rating - anchor.rating);
-          if (gap < bestGap) {
-            bestGap = gap;
-            best = premades[i];
-          }
-        }
-        this.removeTeamQueueUnits([anchor, best], fmt);
-        this.startArenaMatch(fmt, anchor.pids, best.pids);
-        continue;
-      }
-
-      if (premades.length >= 1) {
-        const solos = queue.filter((u) => u.pids.length === 1);
-        if (solos.length >= 2) {
-          const premade = premades[0];
-          const anchorSolo = solos[0];
-          let partner = solos[1],
-            bestGap = Math.abs(solos[1].rating - anchorSolo.rating);
-          for (let i = 2; i < solos.length; i++) {
-            const gap = Math.abs(solos[i].rating - anchorSolo.rating);
-            if (gap < bestGap) {
-              bestGap = gap;
-              partner = solos[i];
-            }
-          }
-          this.removeTeamQueueUnits([premade, anchorSolo, partner], fmt);
-          this.startArenaMatch(fmt, premade.pids, [anchorSolo.pids[0], partner.pids[0]]);
-          continue;
-        }
-      }
-
-      const solos = queue.filter((u) => u.pids.length === 1);
-      if (solos.length >= 4) {
-        const anchor = solos[0];
-        let partner = solos[1],
-          bestGap = Math.abs(solos[1].rating - anchor.rating);
-        for (let i = 2; i < solos.length; i++) {
-          const gap = Math.abs(solos[i].rating - anchor.rating);
-          if (gap < bestGap) {
-            bestGap = gap;
-            partner = solos[i];
-          }
-        }
-        const teamASet = new Set([anchor.pids[0], partner.pids[0]]);
-        const rest = solos.filter((u) => !teamASet.has(u.pids[0]));
-        if (rest.length >= 2) {
-          this.removeTeamQueueUnits([anchor, partner, rest[0], rest[1]], fmt);
-          this.startArenaMatch(
-            fmt,
-            [anchor.pids[0], partner.pids[0]],
-            [rest[0].pids[0], rest[1].pids[0]],
-          );
-          continue;
-        }
-      }
-      return;
-    }
-  }
-
-  private startArenaMatch(format: ArenaFormat, teamA: number[], teamB: number[]): void {
-    const slot = this.freeArenaSlot();
-    const allPids = [...teamA, ...teamB];
-    const entities = allPids.map((pid) => this.entities.get(pid));
-    const metas = allPids.map((pid) => this.players.get(pid));
-    if (slot === null || entities.some((e) => !e) || metas.some((m) => !m)) {
-      if (format === '1v1') {
-        for (const pid of allPids) {
-          if (this.entities.get(pid) && !this.arenaMatches.has(pid))
-            this.arenaQueue1v1.unshift(pid);
-        }
-      } else {
-        const requeue = format === 'fiesta' ? this.arenaQueueFiesta : this.arenaQueue2v2;
-        const okA = teamA.every((pid) => this.entities.get(pid) && !this.arenaMatches.has(pid));
-        const okB = teamB.every((pid) => this.entities.get(pid) && !this.arenaMatches.has(pid));
-        if (okB) requeue.unshift({ pids: teamB, rating: this.arenaTeamRating(teamB, format) });
-        if (okA) requeue.unshift({ pids: teamA, rating: this.arenaTeamRating(teamA, format) });
-      }
-      return;
-    }
-    this.arenaBusySlots.add(slot);
-    const returns = new Map<number, { x: number; z: number; facing: number }>();
-    for (let i = 0; i < allPids.length; i++) {
-      const e = entities[i]!;
-      returns.set(allPids[i], { x: e.pos.x, z: e.pos.z, facing: e.facing });
-    }
-    const isFiesta = format === 'fiesta';
-    const countdown = isFiesta ? FIESTA_COUNTDOWN : ARENA_COUNTDOWN;
-    const match: ArenaMatch = {
-      id: this.nextArenaMatchId++,
-      format,
-      teamA,
-      teamB,
-      slot,
-      state: 'countdown',
-      timer: countdown,
-      returns,
-      ratingA: this.arenaTeamRating(teamA, format),
-      ratingB: this.arenaTeamRating(teamB, format),
-      defeated: new Set(),
-      fiesta: isFiesta ? this.createFiestaState() : undefined,
-    };
-    for (const pid of allPids) this.arenaMatches.set(pid, match);
-    const origin = arenaOrigin(slot);
-    if (format === '1v1') {
-      this.placeInArena(entities[0]!, origin, ARENA_SPAWN_A);
-      this.placeInArena(entities[1]!, origin, ARENA_SPAWN_B);
-    } else {
-      this.placeTeamInArena(teamA, origin, ARENA_SPAWNS_A_2v2);
-      this.placeTeamInArena(teamB, origin, ARENA_SPAWNS_B_2v2);
-    }
-    // Fiesta: everyone fights at a balanced level 20 — standardize before the
-    // clean-slate reset so countdown stats/abilities already reflect it.
-    if (isFiesta) {
-      for (let i = 0; i < allPids.length; i++) {
-        const m = metas[i];
-        const e = entities[i];
-        if (m && e) this.fiestaStandardize(m, e);
-      }
-    }
-    for (const e of entities) this.resetForArena(e!);
-    this.emitArenaFound(match);
-    const stepText = isFiesta
-      ? 'Welcome to the 2v2 FIESTA! Score takedowns, grab augments, survive the ring!'
-      : 'You step onto the sands of the Ashen Coliseum.';
-    for (const mPid of allPids) {
-      this.emit({ type: 'arenaCountdown', seconds: countdown, pid: mPid });
-      this.emit({
-        type: 'log',
-        text: stepText,
-        color: isFiesta ? '#ff3df0' : '#ffa040',
-        pid: mPid,
-      });
-    }
-  }
-
+  // A3: createFiestaState (FiestaState factory + per-match sub-Rng seed) moved to
+  // social/fiesta.ts. Thin delegate keeps the ctx.createFiestaState seam binding
+  // (consumed by the moved arena startArenaMatch) resolving into the module.
   private createFiestaState(): FiestaState {
-    return {
-      scoreA: 0,
-      scoreB: 0,
-      scoreLimit: FIESTA_SCORE_LIMIT,
-      wave: 0,
-      nextWaveAt: FIESTA_FIRST_WAVE_AT,
-      offers: new Map(),
-      ringRadius: FIESTA_RING_START,
-      ringTarget: FIESTA_RING_START,
-      respawn: new Map(),
-      deaths: new Map(),
-      kills: new Map(),
-      streak: new Map(),
-      lastKill: new Map(),
-      pending: new Map(),
-      powerups: [],
-      nextPowerupId: 1,
-      powerupTimer: FIESTA_POWERUP_FIRST,
-      firstBlood: false,
-      // Per-match deterministic stream, seeded off the sim clock + slot so a
-      // replay re-offers identical augment cards.
-      rng: new Rng((this.tickCount * 2654435761 + this.nextArenaMatchId * 40503) >>> 0),
-    };
-  }
-
-  private emitArenaFound(match: ArenaMatch): void {
-    for (const pid of this.arenaAllPids(match)) {
-      const myTeam = this.arenaTeamOf(match, pid)!;
-      const allyPids = (myTeam === 'A' ? match.teamA : match.teamB).filter((p) => p !== pid);
-      const enemyPids = myTeam === 'A' ? match.teamB : match.teamA;
-      const allies = this.arenaCombatants(allyPids);
-      const enemies = this.arenaCombatants(enemyPids);
-      const primary = enemies[0];
-      if (!primary) continue;
-      this.emit({
-        type: 'arenaFound',
-        format: match.format,
-        oppName: enemies.map((e) => e.name).join(' & '),
-        oppClass: primary.cls,
-        oppLevel: primary.level,
-        allies,
-        enemies,
-        pid,
-      });
-    }
+    return fiestaMod.createFiestaState(this.ctx);
   }
 
   private placeInArena(
@@ -13280,185 +8007,40 @@ export class Sim {
     origin: { x: number; z: number },
     spawn: { x: number; z: number; facing: number },
   ): void {
-    e.pos = this.groundPos(origin.x + spawn.x, origin.z + spawn.z);
-    e.prevPos = { ...e.pos };
-    e.facing = spawn.facing;
-    e.prevFacing = spawn.facing;
-    this.rebucket(e);
+    arenaMod.placeInArena(this.ctx, e, origin, spawn);
   }
 
-  private placeTeamInArena(
-    pids: number[],
-    origin: { x: number; z: number },
-    spawns: { x: number; z: number; facing: number }[],
-  ): void {
-    for (let i = 0; i < pids.length; i++) {
-      const e = this.entities.get(pids[i]);
-      if (e) this.placeInArena(e, origin, spawns[i] ?? spawns[spawns.length - 1]);
-    }
-  }
-
-  // A clean slate so the bout is decided by play, not by what each fighter
-  // walked in carrying: full health/resource, cooldowns and combat reset.
   private resetForArena(e: Entity): void {
-    this.readyArenaFighter(e, { clearPrep: true });
+    arenaMod.resetForArena(this.ctx, e);
   }
 
   private readyArenaFighter(e: Entity, opts: { clearPrep: boolean }): void {
-    e.dead = false;
-    if (opts.clearPrep) {
-      e.auras = [];
-      e.cooldowns.clear();
-      e.ccDr.clear();
-    }
-    const meta = this.players.get(e.id);
-    if (meta) recalcPlayerStats(e, meta.cls, meta.equipment, this.playerMods(meta));
-    e.hp = e.maxHp;
-    e.resource = e.resourceType === 'mana' ? e.maxResource : e.resourceType === 'energy' ? 100 : 0;
-    e.targetId = null;
-    e.autoAttack = false;
-    e.queuedOnSwing = null;
-    e.castingAbility = null;
-    e.castRemaining = 0;
-    e.channeling = false;
-    e.comboPoints = 0;
-    e.comboTargetId = null;
-    e.gcdRemaining = 0;
-    e.swingTimer = 0;
-    e.chargeTargetId = null;
-    e.chargePath = [];
-    e.followTargetId = null;
-    e.combatTimer = 99;
-    e.inCombat = false;
-    e.sitting = false;
-    e.eating = null;
-    e.drinking = null;
+    arenaMod.readyArenaFighter(this.ctx, e, opts);
   }
 
-  // Decide a bout: score it (once), then either send survivors home now (a
-  // forfeit) or hold everyone on the sands for a brief aftermath before
-  // returning them. winnerTeam null = draw.
   private endArenaMatch(
     match: ArenaMatch,
     winnerTeam: 'A' | 'B' | null,
     reason: 'defeat' | 'timeout' | 'forfeit',
   ): void {
-    const ratingA0 = match.ratingA;
-    const ratingB0 = match.ratingB;
-    // Fiesta is unranked party play — it never moves the Elo ladder.
-    const ranked = !match.fiesta;
-    let deltaA: number;
-    if (!ranked) {
-      deltaA = 0;
-    } else if (winnerTeam === null) {
-      deltaA = eloDelta(ratingA0, ratingB0, 0.5);
-    } else if (winnerTeam === 'A') {
-      deltaA = eloDelta(ratingA0, ratingB0, 1);
-    } else {
-      deltaA = -eloDelta(ratingB0, ratingA0, 1);
-    }
-
-    const scoreTeam = (team: 'A' | 'B', delta: number, won: boolean | null) => {
-      const pids = team === 'A' ? match.teamA : match.teamB;
-      const enemies = team === 'A' ? match.teamB : match.teamA;
-      const enemyNames = enemies.map((pid) => this.players.get(pid)?.name ?? '?').join(' & ');
-      for (const pid of pids) {
-        const meta = this.players.get(pid);
-        if (!meta) continue;
-        // Fiesta is unranked party play — it never moves the ladder, so report
-        // an unchanged rating; ranked bouts go through the per-bracket updater.
-        let ratingBefore: number, ratingAfter: number;
-        if (ranked) {
-          ({ before: ratingBefore, after: ratingAfter } = this.addArenaResult(
-            meta,
-            match.format,
-            delta,
-            won,
-          ));
-        } else {
-          ratingBefore = ratingAfter = this.arenaStanding(meta, match.format).rating;
-        }
-        this.emit({
-          type: 'arenaEnd',
-          pid,
-          format: match.format,
-          draw: winnerTeam === null,
-          won: won === true,
-          oppName: enemyNames,
-          ratingBefore,
-          ratingAfter,
-          allies: this.arenaCombatants(pids.filter((p) => p !== pid)),
-          enemies: this.arenaCombatants(enemies),
-        });
-      }
-    };
-
-    const wonA = winnerTeam === null ? null : winnerTeam === 'A';
-    const wonB = winnerTeam === null ? null : winnerTeam === 'B';
-    scoreTeam('A', deltaA, wonA);
-    scoreTeam('B', -deltaA, wonB);
-
-    if (reason === 'forfeit') {
-      this.returnFromArena(match);
-      return;
-    }
-
-    const allPresent = this.arenaAllPids(match).every((pid) => this.entities.get(pid));
-    if (!allPresent) {
-      this.returnFromArena(match);
-      return;
-    }
-
-    for (const pid of this.arenaAllPids(match)) {
-      if (match.defeated.has(pid)) continue;
-      const e = this.entities.get(pid);
-      if (e) this.resetForArena(e);
-    }
-    match.state = 'over';
-    match.timer = ARENA_RETURN_DELAY;
-    const overText = match.fiesta
-      ? 'FIESTA OVER! What a party. Returning to the world…'
-      : 'The bout is decided. Returning to the world…';
-    for (const mPid of this.arenaAllPids(match)) {
-      this.emit({
-        type: 'log',
-        text: overText,
-        color: match.fiesta ? '#ff3df0' : '#ffa040',
-        pid: mPid,
-      });
-    }
+    arenaMod.endArenaMatch(this.ctx, match, winnerTeam, reason);
   }
 
-  // Teleport all fighters back to where they queued, fully cleansed, and
-  // release the instance slot.
+  // Resolve a ranked/Fiesta disconnect before the server's leave save. The
+  // ArenaMatch result guard makes the removePlayer cleanup call harmless.
+  arenaResolveDesertion(pid: number): void {
+    const match = this.arenaMatches.get(pid);
+    if (!match) return;
+    const team = this.arenaTeamOf(match, pid);
+    this.endArenaMatch(match, team === 'A' ? 'B' : team === 'B' ? 'A' : null, 'forfeit');
+  }
+
   private returnFromArena(match: ArenaMatch): void {
-    for (const pid of this.arenaAllPids(match)) this.arenaMatches.delete(pid);
-    this.arenaBusySlots.delete(match.slot);
-    for (const pid of this.arenaAllPids(match)) {
-      const e = this.entities.get(pid);
-      const ret = match.returns.get(pid);
-      if (!e || !ret) continue;
-      // Fiesta augments + the level-20 standardization are bout-only — undo both
-      // before the player goes home so resetForArena recomputes their real stats.
-      if (match.fiesta) {
-        const meta = this.players.get(pid);
-        if (meta) {
-          this.fiestaRestoreChar(meta, e);
-          this.clearFiestaAugments(meta, e);
-        }
-      }
-      this.resetForArena(e);
-      e.pos = this.groundPos(ret.x, ret.z);
-      e.prevPos = { ...e.pos };
-      e.facing = ret.facing;
-      e.dead = false;
-      this.rebucket(e);
-      this.emit({ type: 'respawn', pid: e.id });
-    }
+    arenaMod.returnFromArena(this.ctx, match);
   }
 
   arenaMatchFor(pid: number): ArenaMatch | null {
-    return this.arenaMatches.get(pid) ?? null;
+    return arenaMod.arenaMatchFor(this.ctx, pid);
   }
 
   // -------------------------------------------------------------------------
@@ -13474,622 +8056,148 @@ export class Sim {
     return meta.fiestaMods ?? meta.talentMods;
   }
 
-  // talentMods + the chosen augments' flat effects, deep-cloned so the base
-  // talent struct is never mutated.
-  private mergeAugmentMods(base: TalentModifiers, augIds: string[]): TalentModifiers {
-    const m: TalentModifiers = {
-      spec: base.spec,
-      role: base.role,
-      stats: { ...base.stats },
-      global: { ...base.global },
-      abilities: {},
-      grants: [...base.grants],
-    };
-    for (const k in base.abilities) m.abilities[k] = { ...base.abilities[k] };
-    for (const id of augIds) {
-      const eff = AUGMENTS_BY_ID[id]?.effect;
-      if (!eff) continue;
-      if (eff.stats) {
-        const s = m.stats,
-          e = eff.stats;
-        s.str += e.str ?? 0;
-        s.agi += e.agi ?? 0;
-        s.sta += e.sta ?? 0;
-        s.int += e.int ?? 0;
-        s.spi += e.spi ?? 0;
-        s.armor += e.armor ?? 0;
-        s.ap += e.ap ?? 0;
-        s.crit += e.crit ?? 0;
-        s.dodge += e.dodge ?? 0;
-        s.apPct += e.apPct ?? 0;
-        s.staPct += e.staPct ?? 0;
-        s.armorPct += e.armorPct ?? 0;
-        s.maxHpPct += e.maxHpPct ?? 0;
-      }
-      if (eff.global) {
-        const g = m.global,
-          e = eff.global;
-        g.meleeDmgPct += e.meleeDmgPct ?? 0;
-        g.spellDmgPct += e.spellDmgPct ?? 0;
-        g.healPct += e.healPct ?? 0;
-        g.threatPct += e.threatPct ?? 0;
-      }
-      for (const am of eff.ability ?? []) {
-        if (!m.abilities[am.ability]) {
-          m.abilities[am.ability] = {
-            dmgPct: 0,
-            flatDmg: 0,
-            costPct: 0,
-            cooldownPct: 0,
-            castPct: 0,
-          };
-        }
-        const cur = m.abilities[am.ability];
-        cur.dmgPct += am.dmgPct ?? 0;
-        cur.flatDmg += am.flatDmg ?? 0;
-        cur.costPct += am.costPct ?? 0;
-        cur.cooldownPct += am.cooldownPct ?? 0;
-        cur.castPct += am.castPct ?? 0;
-      }
-      if (eff.grant) m.grants.push({ ability: eff.grant.ability, rank: eff.grant.rank ?? 1 });
-    }
-    return m;
-  }
+  // -------------------------------------------------------------------------
+  // 2v2 Fiesta: match logic MOVED to social/fiesta.ts (A3). Sim keeps thin
+  // same-named delegates for the foreign-reachable surface: the seam-bound hooks
+  // (createFiestaState above; fiestaStandardize / updateFiestaActive /
+  // fiestaRestoreChar / clearFiestaAugments consumed by the moved arena lifecycle;
+  // fiestaTakedown / fiestaDown consumed by dealDamage's cross-team arms), the
+  // public arenaAugmentPick command (HUD + offline bots), and fiestaOpenWave /
+  // fiestaRespawnTime (parity scenario + fiesta tests). The module-internal helpers
+  // (mergeAugmentMods, fiestaApplyAugments, fiestaDownEntity, fiestaRevive,
+  // fiestaPresentPending, fiestaPickOffers, fiestaRingDamage, fiestaUpdatePowerups,
+  // fiestaSpawnPowerup, fiestaGrabPowerup) have no foreign caller and live only in
+  // the module. playerMods (above) + fiestaMatchInfo (below) STAY on Sim.
+  // -------------------------------------------------------------------------
 
-  // Recompute a fighter's effective modifiers + special bag from their picked
-  // augments, then rebuild known abilities and stats (preserving hp fraction so
-  // a +maxHp augment grows the bar instead of healing to full).
-  private fiestaApplyAugments(meta: PlayerMeta, e: Entity): void {
-    meta.fiestaMods = this.mergeAugmentMods(meta.talentMods, meta.fiestaAugments);
-    const sp: AugmentSpecial = {};
-    for (const id of meta.fiestaAugments) {
-      const s = AUGMENTS_BY_ID[id]?.special;
-      if (!s) continue;
-      if (s.lifestealPct) sp.lifestealPct = (sp.lifestealPct ?? 0) + s.lifestealPct;
-      if (s.moveSpeedPct) sp.moveSpeedPct = (sp.moveSpeedPct ?? 0) + s.moveSpeedPct;
-      if (s.scorePerKill) sp.scorePerKill = (sp.scorePerKill ?? 0) + s.scorePerKill;
-    }
-    meta.fiestaSpecial = sp;
-    meta.known = abilitiesKnownAt(meta.cls, e.level, meta.fiestaMods);
-    const frac = e.maxHp > 0 ? e.hp / e.maxHp : 1;
-    recalcPlayerStats(e, meta.cls, meta.equipment, meta.fiestaMods);
-    e.hp = e.dead ? 0 : Math.max(1, Math.round(e.maxHp * frac));
-  }
-
-  // Strip all Fiesta augment state and restore plain talent-only stats/abilities.
   private clearFiestaAugments(meta: PlayerMeta, e: Entity): void {
-    if (
-      meta.fiestaAugments.length === 0 &&
-      !meta.fiestaMods &&
-      !meta.fiestaSpecial.lifestealPct &&
-      !meta.fiestaSpecial.moveSpeedPct &&
-      !meta.fiestaSpecial.scorePerKill
-    )
-      return;
-    meta.fiestaAugments = [];
-    meta.fiestaMods = null;
-    meta.fiestaSpecial = {};
-    meta.known = abilitiesKnownAt(meta.cls, e.level, meta.talentMods);
-    recalcPlayerStats(e, meta.cls, meta.equipment, meta.talentMods);
+    fiestaMod.clearFiestaAugments(meta, e);
   }
 
-  // Standardize a fighter to a balanced level-20 build for the bout. The
-  // pre-fiesta character is snapshotted in meta.fiestaRestore (which also makes
-  // serializeCharacter persist the real, not the temporary, state).
   private fiestaStandardize(meta: PlayerMeta, e: Entity): void {
-    if (meta.fiestaRestore) return;
-    meta.fiestaRestore = { level: e.level, xp: meta.xp, talents: cloneAllocation(meta.talents) };
-    e.level = FIESTA_STANDARD_LEVEL;
-    meta.talents = defaultBuild(meta.cls, talentPointsAtLevel(FIESTA_STANDARD_LEVEL));
-    meta.talentMods = computeTalentModifiers(meta.cls, meta.talents);
-    meta.known = abilitiesKnownAt(meta.cls, e.level, this.playerMods(meta));
-    recalcPlayerStats(e, meta.cls, meta.equipment, this.playerMods(meta));
+    fiestaMod.fiestaStandardize(this.ctx, meta, e);
   }
 
-  // Undo fiestaStandardize: restore the player's real level/xp/talents.
   private fiestaRestoreChar(meta: PlayerMeta, e: Entity): void {
-    const snap = meta.fiestaRestore;
-    if (!snap) return;
-    e.level = snap.level;
-    meta.xp = snap.xp;
-    meta.talents = snap.talents;
-    meta.talentMods = computeTalentModifiers(meta.cls, meta.talents);
-    meta.fiestaRestore = null;
-    meta.known = abilitiesKnownAt(meta.cls, e.level, meta.talentMods);
-    recalcPlayerStats(e, meta.cls, meta.equipment, meta.talentMods);
+    fiestaMod.fiestaRestoreChar(meta, e);
   }
 
-  // Player command: lock in one of the augments currently on offer.
   arenaAugmentPick(augmentId: string, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const id = r.meta.entityId;
-    const match = this.arenaMatches.get(id);
-    if (!match?.fiesta || match.state !== 'active') return;
-    const offer = match.fiesta.offers.get(id);
-    if (!offer) {
-      this.error(id, 'You have no augment to choose right now.');
-      return;
-    }
-    if (!offer.choices.includes(augmentId)) {
-      this.error(id, 'That augment is not on offer.');
-      return;
-    }
-    match.fiesta.offers.delete(id);
-    r.meta.fiestaAugments.push(augmentId);
-    this.fiestaApplyAugments(r.meta, r.e);
-    for (const mPid of this.arenaAllPids(match)) {
-      this.emit({
-        type: 'augmentChosen',
-        augmentId,
-        byPid: id,
-        byName: r.meta.name,
-        mine: mPid === id,
-        pid: mPid,
-      });
-    }
-    // Still benched with more waves banked? Offer the next one right away.
-    if (this.arenaIsDown(match, id)) this.fiestaPresentPending(match, id);
+    fiestaMod.arenaAugmentPick(this.ctx, augmentId, pid);
   }
 
   private fiestaRespawnTime(deaths: number, elapsed: number): number {
-    const t =
-      FIESTA_RESPAWN_BASE +
-      (deaths - 1) * FIESTA_RESPAWN_PER_DEATH +
-      Math.floor(elapsed / 60) * FIESTA_RESPAWN_PER_MINUTE;
-    return Math.min(FIESTA_RESPAWN_MAX, t);
+    return fiestaMod.fiestaRespawnTime(deaths, elapsed);
   }
 
-  // Strip a downed fighter to a clean dead state WITHOUT the normal player-death
-  // (graveyard) flow — Fiesta revives them itself on a timer.
-  private fiestaDownEntity(e: Entity, killer: Entity | null): void {
-    e.dead = true;
-    e.hp = 0;
-    e.auras = [];
-    e.ccDr.clear();
-    e.castingAbility = null;
-    e.castRemaining = 0;
-    e.channeling = false;
-    e.autoAttack = false;
-    e.queuedOnSwing = null;
-    e.comboPoints = 0;
-    e.comboTargetId = null;
-    e.eating = null;
-    e.drinking = null;
-    e.sitting = false;
-    e.chargeTargetId = null;
-    e.chargePath = [];
-    e.followTargetId = null;
-    e.targetId = null;
-    const meta = this.players.get(e.id);
-    if (meta) meta.counters.deaths++;
-    this.emit({ type: 'death', entityId: e.id, killerId: killer?.id ?? -1 });
-  }
-
-  // Bench a fighter and start their (growing) respawn countdown.
   private fiestaDown(match: ArenaMatch, victim: Entity, killerPid: number | null): void {
-    const f = match.fiesta!;
-    if (f.respawn.has(victim.id)) return;
-    const killer = killerPid !== null ? (this.entities.get(killerPid) ?? null) : null;
-    this.fiestaDownEntity(victim, killer);
-    const deaths = (f.deaths.get(victim.id) ?? 0) + 1;
-    f.deaths.set(victim.id, deaths);
-    const respawnIn = this.fiestaRespawnTime(deaths, match.timer);
-    f.respawn.set(victim.id, respawnIn);
-    f.streak.set(victim.id, 0);
-    this.emit({ type: 'fiestaDown', seconds: Math.ceil(respawnIn), pid: victim.id });
-    // Down time is the polite moment to offer any augment that's been waiting.
-    this.fiestaPresentPending(match, victim.id);
+    fiestaMod.fiestaDown(this.ctx, match, victim, killerPid);
   }
 
-  // A scored takedown: award the point(s), bench the victim, fire the right
-  // word-pop, broadcast the new tally, and end the bout if the cap is reached.
   private fiestaTakedown(match: ArenaMatch, killerPid: number, victim: Entity): void {
-    const f = match.fiesta!;
-    const victimStreak = f.streak.get(victim.id) ?? 0;
-    const killerTeam = this.arenaTeamOf(match, killerPid);
-    const killerMeta = this.players.get(killerPid);
-    const points = 1 + (killerMeta?.fiestaSpecial.scorePerKill ?? 0);
-    if (killerTeam === 'A') f.scoreA += points;
-    else if (killerTeam === 'B') f.scoreB += points;
-    if (killerMeta) killerMeta.counters.kills++;
-    f.kills.set(killerPid, (f.kills.get(killerPid) ?? 0) + 1);
-
-    this.fiestaDown(match, victim, killerPid);
-
-    const now = match.timer;
-    const rapid = now - (f.lastKill.get(killerPid) ?? -999) <= 4;
-    f.lastKill.set(killerPid, now);
-    const ks = (f.streak.get(killerPid) ?? 0) + 1;
-    f.streak.set(killerPid, ks);
-    if (!f.firstBlood) {
-      f.firstBlood = true;
-      this.emit({ type: 'fiestaWord', flavor: 'firstblood', pid: killerPid });
-    } else if (victimStreak >= 3)
-      this.emit({ type: 'fiestaWord', flavor: 'shutdown', pid: killerPid });
-    else if (rapid) this.emit({ type: 'fiestaWord', flavor: 'doublekill', pid: killerPid });
-    else if (ks >= 3) this.emit({ type: 'fiestaWord', flavor: 'spree', n: ks, pid: killerPid });
-    else this.emit({ type: 'fiestaWord', flavor: 'kill', pid: killerPid });
-
-    for (const mPid of this.arenaAllPids(match)) {
-      this.emit({
-        type: 'fiestaScore',
-        a: f.scoreA,
-        b: f.scoreB,
-        limit: f.scoreLimit,
-        team: this.arenaTeamOf(match, mPid)!,
-        pid: mPid,
-      });
-    }
-
-    if (f.scoreA >= f.scoreLimit || f.scoreB >= f.scoreLimit) {
-      this.endArenaMatch(match, f.scoreA >= f.scoreLimit ? 'A' : 'B', 'defeat');
-    }
-  }
-
-  private fiestaRevive(match: ArenaMatch, e: Entity): void {
-    const f = match.fiesta!;
-    f.respawn.delete(e.id);
-    const team = this.arenaTeamOf(match, e.id);
-    if (!team) return;
-    const origin = arenaOrigin(match.slot);
-    const spawns = team === 'A' ? ARENA_SPAWNS_A_2v2 : ARENA_SPAWNS_B_2v2;
-    const teamPids = team === 'A' ? match.teamA : match.teamB;
-    const idx = Math.max(0, teamPids.indexOf(e.id));
-    this.placeInArena(e, origin, spawns[idx] ?? spawns[0]);
-    this.readyArenaFighter(e, { clearPrep: true });
-    this.emit({ type: 'respawn', pid: e.id });
-    this.emit({ type: 'fiestaWord', flavor: 'revived', pid: e.id });
+    fiestaMod.fiestaTakedown(this.ctx, match, killerPid, victim);
   }
 
   private fiestaOpenWave(match: ArenaMatch): void {
-    const f = match.fiesta!;
-    f.wave++;
-    f.nextWaveAt = match.timer + FIESTA_WAVE_INTERVAL;
-    // Close the ring one step toward its minimum with each wave.
-    const frac = f.wave / FIESTA_TOTAL_WAVES;
-    f.ringTarget = Math.round(FIESTA_RING_START - (FIESTA_RING_START - FIESTA_RING_MIN) * frac);
-    const tier = tierForWave(f.wave);
-    for (const pid of this.arenaAllPids(match)) {
-      const meta = this.players.get(pid);
-      const e = this.entities.get(pid);
-      if (!meta || !e) continue;
-      const owned = new Set(meta.fiestaAugments);
-      const pool = eligibleAugments(tier, meta.cls, this.playerMods(meta).role, owned);
-      const choices = this.fiestaPickOffers(f.rng, pool, 3);
-      if (choices.length === 0) continue;
-      // Don't interrupt the fight: queue the offer and reveal it on the player's
-      // next death (or right now if they're already down).
-      const queue = f.pending.get(pid) ?? [];
-      queue.push({ tier, wave: f.wave, choices });
-      f.pending.set(pid, queue);
-      if (this.arenaIsDown(match, pid)) this.fiestaPresentPending(match, pid);
-    }
-    for (const mPid of this.arenaAllPids(match)) {
-      this.emit({ type: 'fiestaWave', wave: f.wave, totalWaves: FIESTA_TOTAL_WAVES, pid: mPid });
-    }
-  }
-
-  // Reveal the oldest queued augment offer (the pick UI watches `offers`), unless
-  // the player is already mid-choice. Fired on death and on wave-open-while-down.
-  private fiestaPresentPending(match: ArenaMatch, pid: number): void {
-    const f = match.fiesta!;
-    if (f.offers.has(pid)) return;
-    const queue = f.pending.get(pid);
-    if (!queue || queue.length === 0) return;
-    const next = queue.shift()!;
-    if (queue.length === 0) f.pending.delete(pid);
-    f.offers.set(pid, next);
-    this.emit({
-      type: 'augmentOffer',
-      tier: next.tier,
-      wave: next.wave,
-      choices: next.choices,
-      pid,
-    });
-  }
-
-  // Deterministic Fisher–Yates draw of up to n augment ids from the eligible pool.
-  private fiestaPickOffers(rng: Rng, pool: AugmentDef[], n: number): string[] {
-    const arr = pool.slice();
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(rng.next() * (i + 1));
-      const tmp = arr[i];
-      arr[i] = arr[j];
-      arr[j] = tmp;
-    }
-    return arr.slice(0, Math.min(n, arr.length)).map((a) => a.id);
-  }
-
-  private fiestaRingDamage(match: ArenaMatch): void {
-    if (this.tickCount % 10 !== 0) return; // twice a second
-    const f = match.fiesta!;
-    const origin = arenaOrigin(match.slot);
-    const cx = origin.x + FIESTA_RING_CX,
-      cz = origin.z + FIESTA_RING_CZ;
-    const interval = 10 * DT;
-    for (const pid of this.arenaAllPids(match)) {
-      if (this.arenaIsDown(match, pid)) continue;
-      const e = this.entities.get(pid);
-      if (!e || e.dead) continue;
-      const d = Math.hypot(e.pos.x - cx, e.pos.z - cz);
-      if (d <= f.ringRadius) continue;
-      const dmg = Math.max(1, Math.round(e.maxHp * FIESTA_RING_DPS_PCT * interval));
-      this.emit({
-        type: 'damage',
-        sourceId: -1,
-        targetId: pid,
-        amount: Math.min(dmg, e.hp),
-        crit: false,
-        school: 'fire',
-        ability: null,
-        kind: 'hit',
-      });
-      if (e.hp - dmg <= 0) {
-        e.hp = 0;
-        this.fiestaDown(match, e, null);
-      } else e.hp -= dmg;
-    }
+    fiestaMod.fiestaOpenWave(this.ctx, match);
   }
 
   private updateFiestaActive(match: ArenaMatch): void {
-    const f = match.fiesta!;
-    if (match.timer >= FIESTA_MAX_DURATION) {
-      const winner = f.scoreA === f.scoreB ? null : f.scoreA > f.scoreB ? 'A' : 'B';
-      this.endArenaMatch(match, winner, 'timeout');
-      return;
-    }
-    // Ease the ring toward its target radius and burn anyone caught outside.
-    if (f.ringRadius > f.ringTarget) {
-      f.ringRadius = Math.max(f.ringTarget, f.ringRadius - FIESTA_RING_SHRINK_RATE * DT);
-    }
-    this.fiestaRingDamage(match);
-    this.fiestaUpdatePowerups(match);
-    if (f.wave < FIESTA_TOTAL_WAVES && match.timer >= f.nextWaveAt) this.fiestaOpenWave(match);
-    for (const [pid, t] of [...f.respawn]) {
-      const nt = t - DT;
-      const e = this.entities.get(pid);
-      if (!e) {
-        f.respawn.delete(pid);
-        continue;
-      }
-      if (nt <= 0) this.fiestaRevive(match, e);
-      else f.respawn.set(pid, nt);
-    }
-  }
-
-  // ---- Ring power-ups: spawn on a timer, telegraph, then wait to be grabbed --
-
-  private fiestaUpdatePowerups(match: ArenaMatch): void {
-    const f = match.fiesta!;
-    // age existing power-ups (telegraph → ready → despawn)
-    for (let i = f.powerups.length - 1; i >= 0; i--) {
-      const p = f.powerups[i];
-      p.timer -= DT;
-      if (p.timer <= 0) {
-        if (p.state === 'spawning') {
-          p.state = 'ready';
-          p.timer = FIESTA_POWERUP_TTL;
-        } else {
-          f.powerups.splice(i, 1);
-        }
-      }
-    }
-    // pickups: a live fighter touching a ready power-up scoops it
-    for (let i = f.powerups.length - 1; i >= 0; i--) {
-      const p = f.powerups[i];
-      if (p.state !== 'ready') continue;
-      for (const pid of this.arenaAllPids(match)) {
-        if (this.arenaIsDown(match, pid)) continue;
-        const e = this.entities.get(pid);
-        if (!e || e.dead) continue;
-        if (Math.hypot(e.pos.x - p.x, e.pos.z - p.z) > FIESTA_POWERUP_RADIUS) continue;
-        this.fiestaGrabPowerup(match, e, p);
-        f.powerups.splice(i, 1);
-        break;
-      }
-    }
-    // spawn timer
-    f.powerupTimer -= DT;
-    if (f.powerupTimer <= 0) {
-      f.powerupTimer = FIESTA_POWERUP_INTERVAL;
-      if (f.powerups.length < FIESTA_POWERUP_MAX) this.fiestaSpawnPowerup(match);
-    }
-  }
-
-  private fiestaSpawnPowerup(match: ArenaMatch): void {
-    const f = match.fiesta!;
-    const def: PowerupDef = f.rng.pick(POWERUPS);
-    const origin = arenaOrigin(match.slot);
-    const cx = origin.x + FIESTA_RING_CX,
-      cz = origin.z + FIESTA_RING_CZ;
-    // somewhere inside the current ring (kept off the exact centre)
-    const ang = f.rng.next() * Math.PI * 2;
-    const r = (0.25 + f.rng.next() * 0.6) * Math.max(3, f.ringRadius - 2);
-    f.powerups.push({
-      id: f.nextPowerupId++,
-      defId: def.id,
-      x: cx + Math.sin(ang) * r,
-      z: cz + Math.cos(ang) * r,
-      state: 'spawning',
-      timer: FIESTA_POWERUP_TELEGRAPH,
-    });
-  }
-
-  private fiestaGrabPowerup(_match: ArenaMatch, e: Entity, p: FiestaPowerup): void {
-    const def = POWERUPS_BY_ID[p.defId];
-    if (!def) return;
-    // Re-apply (refreshing) each buff aura for the power-up's duration. These are
-    // real auras, so they survive recalc and tick down in updateAuras.
-    for (const b of def.buffs) {
-      this.applyAura(e, {
-        id: `powerup_${def.id}_${b.kind}`,
-        name: def.name,
-        kind: b.kind,
-        remaining: def.duration,
-        duration: def.duration,
-        value: b.value,
-        sourceId: e.id,
-        school: 'nature',
-      });
-    }
-    // The client localizes the pickup banner/log from this event (defId), so no
-    // English log text is emitted from the sim here.
-    this.emit({
-      type: 'fiestaPowerup',
-      entityId: e.id,
-      defId: def.id,
-      glow: def.glow,
-      duration: def.duration,
-    });
+    fiestaMod.updateFiestaActive(this.ctx, match);
   }
 
   // -------------------------------------------------------------------------
-  // 2v2 Fiesta — OFFLINE/DEV practice vs bots. Spawns three AI-driven player
-  // bots, queues them with the local player, and steers them each tick so a full
-  // Fiesta bout plays out solo. Offline only (the online server never calls
-  // these — matches there are made of real players). Deterministic: all bot
-  // randomness flows through this.rng.
+  // 2v2 Fiesta: OFFLINE/DEV practice vs bots. The harness (spawn + queue + steer
+  // three AI player bots) MOVED to social/fiesta_bots.ts (A3). It is offline-only
+  // and reaches deep into Sim (casting, auto-attack, movement, add/remove player),
+  // so its functions take the Sim directly rather than polluting the seam with a
+  // dozen offline-only callbacks; arena queue/return helpers route through the
+  // arena module. fiestaBotPids STAYS a Sim field (the E1 "state stays on Sim"
+  // pattern) so the module reads/writes it via sim.fiestaBotPids and the existing
+  // tests' (sim as any).fiestaBotPids reads resolve unchanged. Sim keeps the four
+  // public delegates so main.ts (offline loop) + tests resolve unchanged.
   // -------------------------------------------------------------------------
 
-  private fiestaBotPids: number[] = [];
+  fiestaBotPids: number[] = [];
 
   fiestaPracticeActive(): boolean {
-    return this.fiestaBotPids.some((pid) => this.entities.has(pid));
+    return fiestaBotsMod.fiestaPracticeActive(this);
   }
 
-  // Toggle target: start a practice set (spawn + queue bots + queue you), or
-  // tear it down if one is already running. Returns true when a set is active
-  // afterward.
   startFiestaPractice(): boolean {
-    const me = this.entities.get(this.primaryId);
-    const meMeta = this.players.get(this.primaryId);
-    if (!me || !meMeta) return false;
-    if (this.fiestaPracticeActive()) {
-      this.stopFiestaPractice();
-      return false;
-    }
-    if (me.pos.x > DUNGEON_X_THRESHOLD) return false; // must queue from the overworld
-
-    this.fiestaBotPids = [];
-    const kit: { cls: PlayerClass; name: string }[] = [
-      { cls: 'paladin', name: 'Sir Botsworth' },
-      { cls: 'mage', name: 'Botzo the Arcane' },
-      { cls: 'rogue', name: 'Sneakbot' },
-    ];
-    for (let i = 0; i < kit.length; i++) {
-      const pid = this.addPlayer(kit[i].cls, kit[i].name);
-      const e = this.entities.get(pid);
-      if (e) {
-        const ang = (i / kit.length) * Math.PI * 2;
-        e.pos = this.groundPos(me.pos.x + Math.sin(ang) * 4, me.pos.z + Math.cos(ang) * 4);
-        e.prevPos = { ...e.pos };
-        this.rebucket(e);
-        if (me.level > 1) this.setPlayerLevel(me.level, pid); // a fair fight
-      }
-      this.fiestaBotPids.push(pid);
-    }
-    this.fiestaPracticeRequeue(true);
-    return true;
+    return fiestaBotsMod.startFiestaPractice(this);
   }
 
   stopFiestaPractice(): void {
-    for (const pid of this.fiestaBotPids) {
-      this.arenaQueueLeave(pid);
-      const match = this.arenaMatches.get(pid);
-      if (match) this.returnFromArena(match);
-      if (this.entities.has(pid)) this.removePlayer(pid);
-    }
-    this.fiestaBotPids = [];
+    fiestaBotsMod.stopFiestaPractice(this);
   }
 
-  // Keep idle practice participants in the queue so bouts flow back-to-back.
-  // `includeMe` also (re)queues the local player — used on the explicit Start
-  // click; the per-tick driver only tops up the bots so you can step away.
-  private fiestaPracticeRequeue(includeMe: boolean): void {
-    const ids = includeMe ? [this.primaryId, ...this.fiestaBotPids] : [...this.fiestaBotPids];
-    for (const pid of ids) {
-      const e = this.entities.get(pid);
-      if (!e || e.dead) continue;
-      if (this.arenaMatches.has(pid) || this.isArenaQueued(pid)) continue;
-      if (e.pos.x > DUNGEON_X_THRESHOLD) continue;
-      this.arenaQueueJoin(pid, 'fiesta');
-    }
-  }
-
-  // Called once per tick from the offline loop (before tick()): keeps the bots
-  // queued between bouts and steers any that are mid-fight.
   updateFiestaBots(): void {
-    if (this.fiestaBotPids.length === 0) return;
-    // drop any bot that no longer exists (shouldn't happen offline, but be safe)
-    this.fiestaBotPids = this.fiestaBotPids.filter((pid) => this.entities.has(pid));
-    this.fiestaPracticeRequeue(false);
-    for (const pid of this.fiestaBotPids) this.driveFiestaBot(pid);
+    fiestaBotsMod.updateFiestaBots(this);
   }
 
-  private driveFiestaBot(pid: number): void {
-    const e = this.entities.get(pid);
-    const meta = this.players.get(pid);
-    if (!e || !meta) return;
-    const match = this.arenaMatches.get(pid);
-    // Snap up any offered augment immediately (random, deterministic via rng).
-    if (match?.fiesta) {
-      const offer = match.fiesta.offers.get(pid);
-      if (offer?.choices.length) this.arenaAugmentPick(this.rng.pick(offer.choices), pid);
-    }
-    meta.moveInput = emptyMoveInput();
-    if (e.dead || !match?.fiesta || match.state !== 'active') return;
+  // -------------------------------------------------------------------------
+  // The Vale Cup: boarball at the Sowfield (social/vale_cup.ts +
+  // social/vale_cup_bots.ts). State stays on Sim (`this.vcup`); Sim keeps thin
+  // same-named delegates for the IWorld facet, the server, and tests. The bots
+  // are driven inside the same tick phase (they need Sim-only affordances), so
+  // the server's queue backfill and the offline Practice run identical code.
+  // -------------------------------------------------------------------------
 
-    const team = this.arenaTeamOf(match, pid);
-    const enemyPids = team === 'A' ? match.teamB : match.teamA;
-    let target: Entity | null = null,
-      best = Infinity;
-    for (const id of enemyPids) {
-      const en = this.entities.get(id);
-      if (!en || en.dead || this.arenaIsDown(match, id)) continue;
-      const d = dist2d(e.pos, en.pos);
-      if (d < best) {
-        best = d;
-        target = en;
-      }
-    }
-
-    // Stay inside the closing ring above all else.
-    const origin = arenaOrigin(match.slot);
-    const cx = origin.x + FIESTA_RING_CX,
-      cz = origin.z + FIESTA_RING_CZ;
-    const distCenter = Math.hypot(e.pos.x - cx, e.pos.z - cz);
-    if (distCenter > match.fiesta.ringRadius - 2.5) {
-      e.facing = angleTo(e.pos, { x: cx, y: 0, z: cz });
-      meta.moveInput.forward = true;
-      return;
-    }
-    if (!target) return;
-
-    e.facing = angleTo(e.pos, target.pos);
-    const engageRange = CLASSES[meta.cls].ranged ? 22 : MELEE_RANGE * 0.9;
-    if (best > engageRange) meta.moveInput.forward = true;
-    e.targetId = target.id;
-    if (!e.autoAttack) this.startAutoAttack(pid);
-    // Fire an offensive ability now and then (staggered per bot by pid).
-    if (this.tickCount % 24 === pid % 24) {
-      const ability = this.pickBotAbility(meta);
-      if (ability) this.castAbility(ability, pid);
-    }
+  private updateValeCup(): void {
+    valeCupMod.updateValeCup(this.ctx);
+    valeCupBotsMod.updateValeCupBots(this);
   }
 
-  // The bot's go-to offensive ability: a known, enemy-targeted, damage-dealing
-  // spell/strike. castAbility no-ops if it's on cooldown or unaffordable.
-  private pickBotAbility(meta: PlayerMeta): string | null {
-    for (const k of meta.known) {
-      const def = k.def;
-      if (def.targetType === 'friendly' || !def.requiresTarget) continue;
-      const dealsDamage = def.effects.some(
-        (ef) => ef.type === 'directDamage' || ef.type === 'weaponDamage' || ef.type === 'dot',
-      );
-      if (dealsDamage) return def.id;
-    }
-    return null;
+  vcupQueueJoin(
+    bracket: VcBracket,
+    nation: VcNationId,
+    role: SportRole,
+    enterAsGuild = false,
+    pid?: number,
+  ): void {
+    valeCupMod.vcupQueueJoin(this.ctx, bracket, nation, role, enterAsGuild, pid);
+  }
+
+  vcupQueueLeave(pid?: number): void {
+    valeCupMod.vcupQueueLeave(this.ctx, pid);
+  }
+
+  vcupSetRole(role: SportRole, pid?: number): void {
+    valeCupMod.vcupSetRole(this.ctx, role, pid);
+  }
+
+  vcupReady(pid?: number): void {
+    valeCupMod.vcupReady(this.ctx, pid);
+  }
+
+  vcupBet(side: 'A' | 'B', amount: number, pid?: number): void {
+    valeCupMod.vcupPlaceBet(this.ctx, pid ?? this.primaryId, side, amount);
+  }
+
+  // Private practice bout vs bots on an instanced pitch copy (parallel to the
+  // real match). Runs identically offline and on the server (via vcup_practice).
+  vcupPracticeStart(bracket: VcBracket, pid?: number): void {
+    valeCupBotsMod.startValeCupPractice(this, bracket, pid);
+  }
+
+  /** The live cup match this pid is seated in, if any (server helpers). */
+  vcupMatchOf(pid: number): valeCupMod.VcMatch | null {
+    return valeCupMod.vcupMatchOf(this.ctx, pid);
+  }
+
+  /** Idempotent desertion resolution; the server calls it BEFORE the leave
+   *  save so the counted loss reaches the persisted standing. */
+  vcupResolveDesertion(pid: number): void {
+    valeCupMod.vcupResolveDesertion(this.ctx, pid);
+  }
+
+  cupInfoFor(pid: number): import('../world_api/vale_cup').CupInfo | null {
+    return valeCupMod.cupInfoFor(this.ctx, pid);
+  }
+
+  get cupInfo(): import('../world_api/vale_cup').CupInfo | null {
+    return this.primaryId === -1 ? null : this.cupInfoFor(this.primaryId);
   }
 
   private fiestaMatchInfo(
@@ -14194,6 +8302,7 @@ export class Sim {
             enemies,
             returnIn: match.state === 'over' ? Math.max(0, Math.ceil(match.timer)) : undefined,
             fiesta: match.fiesta ? this.fiestaMatchInfo(match, pid, myTeam) : undefined,
+            yumi: match.yumi ? yumiMod.yumiMatchInfo(this.ctx, match, pid, myTeam) : undefined,
           };
         }
       }
@@ -14204,11 +8313,16 @@ export class Sim {
       // Fiesta is unranked party play — it keeps no standing of its own; mirror
       // 2v2 just to satisfy the bracket record (the Fiesta UI never reads it).
       fiesta: this.arenaStanding(meta, '2v2'),
+      // Protect Yumi is unranked too (same mirror-the-record trick).
+      yumi3: this.arenaStanding(meta, '2v2'),
+      yumi5: this.arenaStanding(meta, '2v2'),
     };
     const ladders: Record<ArenaFormat, import('../world_api').ArenaLadderEntry[]> = {
       '1v1': this.arenaLadder('1v1'),
       '2v2': this.arenaLadder('2v2'),
       fiesta: [],
+      yumi3: [],
+      yumi5: [],
     };
     const format = match?.format ?? queuedFmt;
     const readoutFormat = format ?? '1v1';
@@ -14217,11 +8331,15 @@ export class Sim {
     const queueSize =
       format === 'fiesta'
         ? playerCount(this.arenaQueueFiesta)
-        : format === '2v2'
-          ? playerCount(this.arenaQueue2v2)
-          : format === '1v1'
-            ? this.arenaQueue1v1.length
-            : 0;
+        : format === 'yumi3'
+          ? playerCount(this.arenaQueueYumi3)
+          : format === 'yumi5'
+            ? playerCount(this.arenaQueueYumi5)
+            : format === '2v2'
+              ? playerCount(this.arenaQueue2v2)
+              : format === '1v1'
+                ? this.arenaQueue1v1.length
+                : 0;
     return {
       rating: standing.rating,
       wins: standing.wins,
@@ -14240,916 +8358,328 @@ export class Sim {
   // Trading
   // -------------------------------------------------------------------------
 
+  // Trade SESSION + INVITE state stays on Sim (live ctx views this.trades /
+  // this.tradeInvites); the method bodies moved to social/trade.ts (G2). Sim keeps
+  // thin same-named delegates so the IWorld + server + leave-path + tick() call
+  // sites resolve unchanged.
   tradeRequest(targetPid: number, pid?: number): void {
-    const r = this.resolve(pid);
-    const target = this.players.get(targetPid);
-    const targetE = this.entities.get(targetPid);
-    if (!r || !target || !targetE) return;
-    if (targetPid === r.meta.entityId) return;
-    if (this.trades.has(r.meta.entityId) || this.trades.has(targetPid)) {
-      this.error(r.meta.entityId, 'A trade is already in progress.');
-      return;
-    }
-    if (dist2d(r.e.pos, targetE.pos) > TRADE_RANGE) {
-      this.error(r.meta.entityId, 'Target is too far away to trade.');
-      return;
-    }
-    if (this.hasPendingSocialInvite(targetPid)) {
-      this.error(r.meta.entityId, `${target.name} already has a pending invitation.`);
-      return;
-    }
-    this.tradeInvites.set(targetPid, { fromPid: r.meta.entityId, expires: this.time + 30 });
-    this.emit({
-      type: 'tradeRequest',
-      fromPid: r.meta.entityId,
-      fromName: r.meta.name,
-      pid: targetPid,
-    });
-    this.emit({
-      type: 'log',
-      text: `You have requested to trade with ${target.name}.`,
-      color: '#8df',
-      pid: r.meta.entityId,
-    });
+    tradeMod.tradeRequest(this.ctx, targetPid, pid);
   }
 
   tradeAccept(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const invite = this.tradeInvites.get(r.meta.entityId);
-    if (!invite || invite.expires < this.time) {
-      this.error(r.meta.entityId, 'The trade request has expired.');
-      return;
-    }
-    this.tradeInvites.delete(r.meta.entityId);
-    if (!this.players.get(invite.fromPid)) return;
-    if (this.trades.has(invite.fromPid) || this.trades.has(r.meta.entityId)) {
-      this.error(r.meta.entityId, 'That player is already trading.');
-      return;
-    }
-    const session: TradeSession = {
-      a: invite.fromPid,
-      b: r.meta.entityId,
-      offerA: { items: [], copper: 0 },
-      offerB: { items: [], copper: 0 },
-      acceptedA: false,
-      acceptedB: false,
-    };
-    this.trades.set(session.a, session);
-    this.trades.set(session.b, session);
-    for (const tPid of [session.a, session.b]) {
-      this.emit({ type: 'log', text: 'Trade window opened.', color: '#8df', pid: tPid });
-    }
+    tradeMod.tradeAccept(this.ctx, pid);
   }
 
   tradeSetOffer(items: InvSlot[], copper: number, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const session = this.trades.get(r.meta.entityId);
-    if (!session) return;
-    // validate the offer against the player's bags; merge duplicate slots so
-    // the offered total per item is checked, not each slot in isolation
-    const merged = new Map<string, number>();
-    for (const slot of items.slice(0, 6)) {
-      // slots come straight off the wire — reject anything malformed
-      if (!slot || typeof slot.itemId !== 'string' || !Number.isFinite(slot.count)) continue;
-      const count = Math.max(1, Math.floor(slot.count));
-      const def = ITEMS[slot.itemId];
-      if (!def || def.kind === 'quest') continue; // quest items are soulbound-ish
-      merged.set(slot.itemId, (merged.get(slot.itemId) ?? 0) + count);
-    }
-    const cleaned: InvSlot[] = [];
-    for (const [itemId, count] of merged) {
-      if (this.countItem(itemId, r.meta.entityId) < count) continue;
-      cleaned.push({ itemId, count });
-    }
-    const offer = {
-      items: cleaned,
-      copper: Math.max(0, Math.min(Math.floor(copper), r.meta.copper)),
-    };
-    if (session.a === r.meta.entityId) session.offerA = offer;
-    else session.offerB = offer;
-    session.acceptedA = false;
-    session.acceptedB = false;
+    tradeMod.tradeSetOffer(this.ctx, items, copper, pid);
   }
 
   tradeConfirm(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const session = this.trades.get(r.meta.entityId);
-    if (!session) return;
-    if (session.a === r.meta.entityId) session.acceptedA = true;
-    else session.acceptedB = true;
-    if (!(session.acceptedA && session.acceptedB)) return;
-
-    const metaA = this.players.get(session.a);
-    const metaB = this.players.get(session.b);
-    if (!metaA || !metaB) {
-      this.tradeCancel(session.a);
-      return;
-    }
-    // final validation before the atomic swap
-    const valid =
-      session.offerA.copper <= metaA.copper &&
-      session.offerB.copper <= metaB.copper &&
-      this.offerCovered(session.offerA.items, session.a) &&
-      this.offerCovered(session.offerB.items, session.b);
-    if (!valid) {
-      for (const tPid of [session.a, session.b])
-        this.error(tPid, 'Trade failed: items or money no longer available.');
-      this.closeTrade(session);
-      return;
-    }
-    // swap
-    metaA.copper = metaA.copper - session.offerA.copper + session.offerB.copper;
-    metaB.copper = metaB.copper - session.offerB.copper + session.offerA.copper;
-    for (const s of session.offerA.items) {
-      this.removeItem(s.itemId, s.count, session.a);
-      this.addItem(s.itemId, s.count, session.b);
-    }
-    for (const s of session.offerB.items) {
-      this.removeItem(s.itemId, s.count, session.b);
-      this.addItem(s.itemId, s.count, session.a);
-    }
-    for (const tPid of [session.a, session.b]) {
-      this.emit({ type: 'log', text: 'Trade complete.', color: '#8df', pid: tPid });
-      this.emit({ type: 'tradeDone', pid: tPid });
-    }
-    this.closeTrade(session);
+    tradeMod.tradeConfirm(this.ctx, pid);
   }
 
   tradeCancel(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const session = this.trades.get(r.meta.entityId);
-    if (!session) return;
-    for (const tPid of [session.a, session.b]) {
-      this.emit({ type: 'log', text: 'Trade cancelled.', color: '#8df', pid: tPid });
-    }
-    this.closeTrade(session);
+    tradeMod.tradeCancel(this.ctx, pid);
   }
 
-  // true when the player's bags cover the offered totals per item, summing
-  // duplicate slots — a per-slot check would let duplicates each pass alone
-  private offerCovered(items: InvSlot[], pid: number): boolean {
-    const totals = new Map<string, number>();
-    for (const s of items) totals.set(s.itemId, (totals.get(s.itemId) ?? 0) + s.count);
-    for (const [itemId, count] of totals) {
-      if (this.countItem(itemId, pid) < count) return false;
-    }
-    return true;
-  }
-
-  private closeTrade(session: TradeSession): void {
-    this.trades.delete(session.a);
-    this.trades.delete(session.b);
-  }
+  // offerCovered / closeTrade are module-internal in social/trade.ts now (no Sim
+  // delegate; only the moved trade methods used them).
 
   tradeFor(pid: number): TradeSession | null {
-    return this.trades.get(pid) ?? null;
+    return tradeMod.tradeFor(this.ctx, pid);
   }
 
+  // Stays in the end-of-tick system block (trades phase, called from tick()). The
+  // joint party/trade/duel invite-expiry sweep + the trade-drift cancel pass moved
+  // verbatim to social/trade.ts; partyInvites/duelInvites route through ctx.
   private updateTradesAndInvites(): void {
-    // expire stale invites
-    for (const map of [this.partyInvites, this.tradeInvites, this.duelInvites]) {
-      for (const [pid, invite] of map) {
-        if (invite.expires < this.time) map.delete(pid);
-      }
-    }
-    // cancel trades when the parties drift apart
-    const seen = new Set<TradeSession>();
-    for (const session of this.trades.values()) {
-      if (seen.has(session)) continue;
-      seen.add(session);
-      const ea = this.entities.get(session.a);
-      const eb = this.entities.get(session.b);
-      if (!ea || !eb || dist2d(ea.pos, eb.pos) > TRADE_RANGE + 4 || ea.dead || eb.dead) {
-        this.tradeCancel(session.a);
-      }
-    }
+    tradeMod.updateTradesAndInvites(this.ctx);
+  }
+
+  // -------------------------------------------------------------------------
+  // The Bank: the per-character deposit box
+  // -------------------------------------------------------------------------
+
+  // Thin delegates to the bank free functions (bank.ts). The bank state lives on
+  // PlayerMeta.bank and serializes inside the character save; server/game.ts and
+  // the IWorld surface call these unchanged, reaching the inventory hub through
+  // the SimContext. Each op has one entry point, gated on banker proximity (nearBanker).
+
+  bankDeposit(slotIndex: number, count?: number, pid?: number): void {
+    bankMod.bankDeposit(this.ctx, slotIndex, count, pid);
+  }
+
+  bankWithdraw(slotIndex: number, count?: number, pid?: number): void {
+    bankMod.bankWithdraw(this.ctx, slotIndex, count, pid);
+  }
+
+  bankBuySlots(pid?: number): void {
+    bankMod.bankBuySlots(this.ctx, pid);
+  }
+
+  bankInfoFor(pid: number): import('../world_api').BankInfo | null {
+    return bankMod.bankInfoFor(this.ctx, pid);
   }
 
   // -------------------------------------------------------------------------
   // The World Market — the Merchant's auction house
   // -------------------------------------------------------------------------
 
-  private merchantEntity(): Entity | null {
-    const e = this.entities.get(this.merchantId);
-    return e && e.kind === 'npc' ? e : null;
-  }
+  // These are thin delegates to the Market instance (this.market), which owns the
+  // listing book / collections / id counter / merchant id and runs the logic
+  // (extracted to market.ts, L2). server/game.ts, server/main.ts, the IWorld
+  // surface, and the /listings readout call these unchanged; the inventory hub
+  // (addItem/removeItem/countItem) stays on Sim and the market reaches it via the
+  // SimContext.
 
-  private nearMerchant(e: Entity): boolean {
-    const m = this.merchantEntity();
-    return !!m && dist2d(e.pos, m.pos) <= MARKET_RANGE;
-  }
-
-  private marketSellerKey(meta: PlayerMeta): string {
-    return String(meta.characterId ?? meta.entityId);
-  }
-
-  private marketListingBelongsTo(listing: MarketListing, meta: PlayerMeta): boolean {
-    if (listing.house) return false;
-    return listing.sellerKey === this.marketSellerKey(meta) || listing.sellerKey === meta.name;
-  }
-
-  private metaByMarketSellerKey(key: string): PlayerMeta | null {
-    if (!key) return null;
-    for (const m of this.players.values()) {
-      if (this.marketSellerKey(m) === key || m.name === key) return m;
-    }
-    return null;
-  }
-
-  private collectionFor(key: string): MarketCollection {
-    let c = this.marketCollections.get(key);
-    if (!c) {
-      c = { copper: 0, items: [] };
-      this.marketCollections.set(key, c);
-    }
-    return c;
-  }
-
-  private mergeMarketCollections(fromKey: string, toKey: string): boolean {
-    if (!fromKey || fromKey === toKey) return false;
-    const from = this.marketCollections.get(fromKey);
-    if (!from) return false;
-    const to = this.collectionFor(toKey);
-    to.copper += from.copper;
-    to.items.push(...from.items.map((s) => ({ ...s })));
-    this.marketCollections.delete(fromKey);
-    return true;
-  }
-
-  private collectionForSeller(meta: PlayerMeta): MarketCollection | undefined {
-    const key = this.marketSellerKey(meta);
-    this.mergeMarketCollections(meta.name, key);
-    return this.marketCollections.get(key);
+  /** Live read of the shared listing book (the /listings readout + tests). */
+  get marketListings(): MarketListing[] {
+    return this.market.marketListings;
   }
 
   rekeyMarketSeller(characterId: number, oldName: string, newName: string): boolean {
-    if (!Number.isFinite(characterId)) return false;
-    const key = String(characterId);
-    let changed = this.mergeMarketCollections(oldName, key);
-    changed = this.mergeMarketCollections(newName, key) || changed;
-    for (const listing of this.marketListings) {
-      if (listing.house) continue;
-      if (
-        listing.sellerKey === key ||
-        listing.sellerKey === oldName ||
-        listing.sellerKey === newName
-      ) {
-        if (listing.sellerKey !== key || listing.sellerName !== newName) changed = true;
-        listing.sellerKey = key;
-        listing.sellerName = newName;
-      }
-    }
-    return changed;
+    return this.market.rekeyMarketSeller(characterId, oldName, newName);
   }
 
-  // The Merchant always keeps a little stock so the market is never empty —
-  // standing consignments that never expire, never deplete, and pay no one.
-  private seedHouseListings(): void {
-    const stock: { itemId: string; count: number; price: number }[] = [
-      { itemId: 'roasted_boar', count: 5, price: 700 },
-      { itemId: 'spring_water', count: 5, price: 160 },
-      { itemId: 'oiled_boots', count: 1, price: 1900 },
-      { itemId: 'quilted_trousers', count: 1, price: 2400 },
-      { itemId: 'greyjaw_pelt_cloak', count: 1, price: 2900 },
-      // Quartermaster's Consignment — a standing line of practical travel gear.
-      { itemId: 'roadwardens_helm', count: 1, price: 2200 },
-      { itemId: 'wayfarers_hood', count: 1, price: 2000 },
-      { itemId: 'acolytes_circlet', count: 1, price: 2000 },
-      { itemId: 'reinforced_pauldrons', count: 1, price: 2400 },
-      { itemId: 'embroidered_mantle', count: 1, price: 1900 },
-      { itemId: 'sturdy_belt', count: 1, price: 1700 },
-      { itemId: 'silk_sash', count: 1, price: 1700 },
-      { itemId: 'roughspun_gloves', count: 1, price: 1500 },
-      // Crossroads Outfitters — eight pieces kept in standing stock
-      { itemId: 'tradesman_hatchet', count: 1, price: 2300 },
-      { itemId: 'drovers_staff', count: 1, price: 2500 },
-      { itemId: 'caravan_warden_dirk', count: 1, price: 2400 },
-      { itemId: 'outrider_brigandine', count: 1, price: 2600 },
-      { itemId: 'caravan_quilted_vest', count: 1, price: 1800 },
-      { itemId: 'outrider_legguards', count: 1, price: 2100 },
-      { itemId: 'pilgrims_leggings', count: 1, price: 1700 },
-      { itemId: 'outrider_sabatons', count: 1, price: 1900 },
-    ];
-    for (const s of stock) {
-      if (!ITEMS[s.itemId]) continue;
-      this.marketListings.push({
-        id: this.nextListingId++,
-        sellerKey: '',
-        sellerName: 'The Merchant',
-        itemId: s.itemId,
-        count: s.count,
-        price: s.price,
-        expiresAt: Infinity,
-        house: true,
-      });
-    }
-  }
-
-  // List a stack from your bags for sale. The goods are escrowed (pulled from
-  // your bags immediately) and held by the Merchant until bought or reclaimed.
-  // Set the player's session-only World Market browse filter. Purely a
-  // display/query narrowing — no gameplay effect — so it needs no proximity or
-  // liveness gate; the next marketInfoFor snapshot reflects it.
-  marketSearch(query: string, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    r.meta.marketFilter = (query ?? '').slice(0, 40);
+  marketSearch(query: MarketQuery, pid?: number): void {
+    this.market.marketSearch(query, pid);
   }
 
   marketList(itemId: string, count: number, price: number, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const { meta, e: p } = r;
-    if (p.dead) return;
-    if (!this.nearMerchant(p)) {
-      this.error(meta.entityId, 'You must bring your goods to the Merchant.');
-      return;
-    }
-    const def = ITEMS[itemId];
-    if (!def) return;
-    if (def.kind === 'quest') {
-      this.error(meta.entityId, 'The Merchant will not broker quest items.');
-      return;
-    }
-    if (def.noMarketList) {
-      this.error(meta.entityId, 'That item cannot be listed on the World Market.');
-      return;
-    }
-    if (!Number.isFinite(count)) {
-      this.error(meta.entityId, 'Name how many you wish to sell.');
-      return;
-    }
-    const want = Math.max(1, Math.floor(count));
-    if (this.countItem(itemId, meta.entityId) < want) {
-      this.error(meta.entityId, 'You do not have that many to sell.');
-      return;
-    }
-    const ask = Math.floor(price);
-    if (!Number.isFinite(ask) || ask < MARKET_MIN_PRICE) {
-      this.error(meta.entityId, 'Name a price of at least 1 copper.');
-      return;
-    }
-    if (ask > MARKET_MAX_PRICE) {
-      this.error(meta.entityId, 'That price is beyond what the Merchant will broker.');
-      return;
-    }
-    const sellerKey = this.marketSellerKey(meta);
-    const mine = this.marketListings.reduce(
-      (n, l) => n + (this.marketListingBelongsTo(l, meta) ? 1 : 0),
-      0,
-    );
-    if (mine >= MARKET_MAX_LISTINGS) {
-      this.error(
-        meta.entityId,
-        `You may keep at most ${MARKET_MAX_LISTINGS} goods on the market at once.`,
-      );
-      return;
-    }
-    this.removeItem(itemId, want, meta.entityId); // escrow
-    this.marketListings.push({
-      id: this.nextListingId++,
-      sellerKey,
-      sellerName: meta.name,
-      itemId,
-      count: want,
-      price: ask,
-      expiresAt: this.time + MARKET_LISTING_DURATION,
-      house: false,
-    });
-    this.emit({
-      type: 'loot',
-      // biome-ignore lint/style/useTemplate: keep this scanner-friendly shape for i18n extraction.
-      text: `Listed ${def.name}${want > 1 ? ' x' + want : ''} on the World Market for ${formatMoney(ask)}.`,
-      pid: meta.entityId,
-    });
+    this.market.marketList(itemId, count, price, pid);
   }
 
-  // Buy a listing outright. Coin leaves the buyer, goods enter their bags, and
-  // the seller's proceeds (less the Merchant's cut) wait in their collection.
   marketBuy(listingId: number, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const { meta, e: p } = r;
-    if (p.dead) return;
-    if (!this.nearMerchant(p)) {
-      this.error(meta.entityId, 'You are too far from the Merchant.');
-      return;
-    }
-    const idx = this.marketListings.findIndex((l) => l.id === listingId);
-    if (idx < 0) {
-      this.error(meta.entityId, 'That listing is no longer available.');
-      return;
-    }
-    const listing = this.marketListings[idx];
-    const def = ITEMS[listing.itemId];
-    if (!def) {
-      this.marketListings.splice(idx, 1);
-      return;
-    }
-    if (this.marketListingBelongsTo(listing, meta)) {
-      this.error(meta.entityId, 'That is your own listing — cancel it to reclaim it.');
-      return;
-    }
-    if (meta.copper < listing.price) {
-      this.error(meta.entityId, 'You cannot afford that.');
-      return;
-    }
-    meta.copper -= listing.price;
-    this.addItem(listing.itemId, listing.count, meta.entityId);
-    if (!listing.house) {
-      const proceeds = Math.max(0, Math.floor(listing.price * (1 - MARKET_CUT)));
-      this.collectionFor(listing.sellerKey).copper += proceeds;
-      this.marketListings.splice(idx, 1);
-      const sellerMeta = this.metaByMarketSellerKey(listing.sellerKey);
-      if (sellerMeta) {
-        this.emit({
-          type: 'loot',
-          text: `${meta.name} bought your ${def.name} for ${formatMoney(listing.price)} - collect ${formatMoney(proceeds)} from the Merchant.`,
-          pid: sellerMeta.entityId,
-        });
-      }
-    }
-    this.emit({
-      type: 'loot',
-      // biome-ignore lint/style/useTemplate: keep this scanner-friendly shape for i18n extraction.
-      text: `Bought ${def.name}${listing.count > 1 ? ' x' + listing.count : ''} for ${formatMoney(listing.price)}.`,
-      pid: meta.entityId,
-    });
+    this.market.marketBuy(listingId, pid);
   }
 
-  // Reclaim your own listing; the escrowed goods go straight back to your bags.
   marketCancel(listingId: number, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const { meta, e: p } = r;
-    if (!this.nearMerchant(p)) {
-      this.error(meta.entityId, 'You are too far from the Merchant.');
-      return;
-    }
-    const idx = this.marketListings.findIndex((l) => l.id === listingId);
-    if (idx < 0) return;
-    const listing = this.marketListings[idx];
-    if (!this.marketListingBelongsTo(listing, meta)) {
-      this.error(meta.entityId, 'That is not your listing.');
-      return;
-    }
-    this.marketListings.splice(idx, 1);
-    this.addItem(listing.itemId, listing.count, meta.entityId);
-    const def = ITEMS[listing.itemId];
-    this.emit({
-      type: 'loot',
-      // biome-ignore lint/style/useTemplate: keep this scanner-friendly shape for i18n extraction.
-      text: `Reclaimed ${def?.name ?? listing.itemId}${listing.count > 1 ? ' x' + listing.count : ''} from the market.`,
-      pid: meta.entityId,
-    });
+    this.market.marketCancel(listingId, pid);
   }
 
-  // Take everything waiting for you at the Merchant: sale gold and any items
-  // returned from expired listings.
   marketCollect(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const { meta, e: p } = r;
-    if (!this.nearMerchant(p)) {
-      this.error(meta.entityId, 'You are too far from the Merchant.');
-      return;
-    }
-    const col = this.collectionForSeller(meta);
-    if (!col || (col.copper <= 0 && col.items.length === 0)) {
-      this.error(meta.entityId, 'You have nothing to collect.');
-      return;
-    }
-    if (col.copper > 0) {
-      meta.copper += col.copper;
-      this.emit({
-        type: 'loot',
-        text: `You collect ${formatMoney(col.copper)} from the Merchant.`,
-        pid: meta.entityId,
-      });
-    }
-    for (const s of col.items) this.addItem(s.itemId, s.count, meta.entityId);
-    this.marketCollections.delete(this.marketSellerKey(meta));
-  }
-
-  // Once a second: return expired player listings to their seller's collection.
-  private updateMarket(): void {
-    if (this.tickCount % 20 !== 0) return;
-    for (let i = this.marketListings.length - 1; i >= 0; i--) {
-      const l = this.marketListings[i];
-      if (l.house || this.time < l.expiresAt) continue;
-      this.marketListings.splice(i, 1);
-      this.collectionFor(l.sellerKey).items.push({ itemId: l.itemId, count: l.count });
-      const sellerMeta = this.metaByMarketSellerKey(l.sellerKey);
-      if (sellerMeta) {
-        const def = ITEMS[l.itemId];
-        this.emit({
-          type: 'log',
-          text: `Your market listing of ${def?.name ?? l.itemId} expired and waits at the Merchant.`,
-          color: '#caa472',
-          pid: sellerMeta.entityId,
-        });
-      }
-    }
+    this.market.marketCollect(pid);
   }
 
   marketInfoFor(pid: number): import('../world_api').MarketInfo | null {
-    const meta = this.players.get(pid);
-    const e = this.entities.get(pid);
-    if (!meta || !e) return null;
-    // the World Market is a place you visit — only stream it while standing by
-    // the Merchant, which also bounds the per-snapshot wire cost
-    if (!this.nearMerchant(e)) return null;
-    // Server-side browse filter: a substring match on item name (and id) lets a
-    // player reach goods past MARKET_WIRE_LIMIT without lifting the wire cap.
-    const filter = meta.marketFilter.trim().toLowerCase();
-    const matched = filter
-      ? this.marketListings.filter((l) => {
-          const name = (ITEMS[l.itemId]?.name ?? l.itemId).toLowerCase();
-          return name.includes(filter) || l.itemId.toLowerCase().includes(filter);
-        })
-      : this.marketListings;
-    const sorted = [...matched].sort((a, b) => {
-      const na = ITEMS[a.itemId]?.name ?? a.itemId;
-      const nb = ITEMS[b.itemId]?.name ?? b.itemId;
-      return na.localeCompare(nb) || a.price - b.price;
-    });
-    // Always wire the seller their own listings first, then fill the rest of the
-    // wire budget with everyone else's. Without this, on a busy shared market a
-    // seller's goods can sort past MARKET_WIRE_LIMIT and never reach them — the
-    // SELL tab would then read "12/12" while only a handful of their listings
-    // are visible. MARKET_MAX_LISTINGS (12) ≪ MARKET_WIRE_LIMIT (120), so a
-    // seller's own goods always fit alongside a healthy slice of the market.
-    const isMine = (l: MarketListing) => this.marketListingBelongsTo(l, meta);
-    const mineSorted = sorted.filter(isMine);
-    const others = sorted.filter((l) => !isMine(l));
-    const wired = [
-      ...mineSorted,
-      ...others.slice(0, Math.max(0, MARKET_WIRE_LIMIT - mineSorted.length)),
-    ];
-    const listings = wired.map((l) => ({
-      id: l.id,
-      sellerName: isMine(l) ? meta.name : l.sellerName,
-      itemId: l.itemId,
-      count: l.count,
-      price: l.price,
-      mine: isMine(l),
-      house: l.house,
-    }));
-    const col = this.collectionForSeller(meta);
-    const myListingCount = this.marketListings.reduce(
-      (n, l) => n + (this.marketListingBelongsTo(l, meta) ? 1 : 0),
-      0,
-    );
-    return {
-      listings,
-      totalCount: matched.length,
-      filter: meta.marketFilter,
-      collectionCopper: col?.copper ?? 0,
-      collectionItems: col ? col.items.map((s) => ({ ...s })) : [],
-      cutPct: Math.round(MARKET_CUT * 100),
-      maxListings: MARKET_MAX_LISTINGS,
-      myListingCount,
-    };
+    return this.market.marketInfoFor(pid);
   }
 
-  // Persist only player listings + collections; house stock is reseeded each
-  // boot so content edits take effect. secondsLeft survives the time reset.
   serializeMarket(): MarketSave {
-    return {
-      listings: this.marketListings
-        .filter((l) => !l.house)
-        .map((l) => ({
-          id: l.id,
-          sellerKey: l.sellerKey,
-          sellerName: l.sellerName,
-          itemId: l.itemId,
-          count: l.count,
-          price: l.price,
-          secondsLeft: Number.isFinite(l.expiresAt)
-            ? Math.max(0, Math.round(l.expiresAt - this.time))
-            : MARKET_LISTING_DURATION,
-        })),
-      collections: [...this.marketCollections.entries()].map(([key, c]) => ({
-        key,
-        copper: c.copper,
-        items: c.items.map((s) => ({ ...s })),
-      })),
-      nextListingId: this.nextListingId,
-    };
+    return this.market.serializeMarket();
   }
 
   loadMarket(save: MarketSave | null | undefined): void {
-    if (!save) return;
-    for (const l of save.listings ?? []) {
-      if (!l || typeof l.itemId !== 'string' || !ITEMS[l.itemId]) continue;
-      this.marketListings.push({
-        id: l.id,
-        sellerKey: String(l.sellerKey ?? ''),
-        sellerName: String(l.sellerName ?? l.sellerKey ?? '?'),
-        itemId: l.itemId,
-        count: Math.max(1, l.count | 0),
-        price: Math.max(
-          MARKET_MIN_PRICE,
-          Math.min(MARKET_MAX_PRICE, Math.floor(l.price) || MARKET_MIN_PRICE),
-        ),
-        expiresAt:
-          this.time +
-          (Number.isFinite(l.secondsLeft) ? Math.max(0, l.secondsLeft) : MARKET_LISTING_DURATION),
-        house: false,
-      });
-    }
-    for (const c of save.collections ?? []) {
-      if (!c || typeof c.key !== 'string') continue;
-      this.marketCollections.set(c.key, {
-        copper: Math.max(0, Math.floor(c.copper) || 0),
-        items: (c.items ?? [])
-          .filter((s) => s && ITEMS[s.itemId])
-          .map((s) => ({ itemId: s.itemId, count: Math.max(1, s.count | 0) })),
-      });
-    }
-    const maxId = this.marketListings.reduce((m, l) => Math.max(m, l.id + 1), 1);
-    this.nextListingId = Math.max(this.nextListingId, save.nextListingId ?? 1, maxId);
+    this.market.loadMarket(save);
+  }
+
+  // -------------------------------------------------------------------------
+  // The Ravenpost: in-game mail
+  // -------------------------------------------------------------------------
+
+  // Thin delegates to the PostOffice instance (this.postOffice), which owns the
+  // mail book / id counter / mailbox entity ids (mail/post_office.ts, the
+  // market.ts shape). server/game.ts and the IWorld surface call these
+  // unchanged; the inventory hub stays on Sim, reached via the SimContext.
+
+  mailSend(
+    to: string,
+    subject: string,
+    body: string,
+    copper: number,
+    items: InvSlot[],
+    pid?: number,
+  ): void {
+    this.postOffice.mailSend(to, subject, body, copper, items, pid);
+  }
+
+  /** Server path: the recipient identity is resolved against the character DB. */
+  mailSendResolved(
+    recipient: { key: string; name: string },
+    subject: string,
+    body: string,
+    copper: number,
+    items: InvSlot[],
+    pid?: number,
+  ): void {
+    this.postOffice.mailSendResolved(recipient, subject, body, copper, items, pid);
+  }
+
+  mailTake(mailId: number, pid?: number): void {
+    this.postOffice.mailTake(mailId, pid);
+  }
+
+  mailDelete(mailId: number, pid?: number): void {
+    this.postOffice.mailDelete(mailId, pid);
+  }
+
+  mailMarkRead(mailId: number, pid?: number): void {
+    this.postOffice.mailMarkRead(mailId, pid);
+  }
+
+  mailInfoFor(pid: number): import('../world_api').MailInfo | null {
+    return this.postOffice.mailInfoFor(pid);
+  }
+
+  mailUnreadFor(pid: number): number {
+    return this.postOffice.mailUnreadFor(pid);
+  }
+
+  rekeyMailOwner(characterId: number, oldName: string, newName: string): boolean {
+    return this.postOffice.rekeyMailOwner(characterId, oldName, newName);
+  }
+
+  serializeMail(): MailSave {
+    return this.postOffice.serializeMail();
+  }
+
+  loadMail(save: MailSave | null | undefined): void {
+    this.postOffice.loadMail(save);
   }
 
   // -------------------------------------------------------------------------
   // Dungeons: party-instanced elite content (the Hollow Crypt and friends)
   // -------------------------------------------------------------------------
 
+  // The dungeon-instancing slice now lives in instances/dungeons.ts (I1, moved behind
+  // SimContext). These are same-named thin delegates so every foreign `this.X` call
+  // site + the tick loop resolve unchanged; the in-module helpers (canEnterNythraxisRaid/
+  // isRaidLocked/nythraxisInstanceSealed/claimInstance/freeInstance) have no Sim caller
+  // and live only in the module. The instance pool (`this.instances`) and door-id cache
+  // (`dungeonDoorIds`) stay Sim-owned fields, exposed to the module as live SimContext views.
+
   private instanceKeyFor(pid: number): string {
-    const party = this.partyOf(pid);
-    return party ? `party:${party.id}` : `solo:${pid}`;
+    return instanceKeyForImpl(this.ctx, pid);
   }
 
   private instanceOriginOf(inst: InstanceSlot): { x: number; z: number } {
-    return instanceOrigin(DUNGEONS[inst.dungeonId].index, inst.slot);
+    return instanceOriginOfImpl(inst);
   }
 
-  // Walking into a dungeon door teleports you through it (no click needed).
-  // Party members who walk in land in the same instance via instanceKeyFor.
+  // Lazily built on first updateDoorTriggers, then appended on dungeon_door spawn
+  // (entity_roster.addEntityToRoster). Stays Sim-owned; reached via ctx.dungeonDoorIds.
   private dungeonDoorIds: number[] | null = null;
 
   private updateDoorTriggers(p: Entity): void {
-    if (p.kind !== 'player') return;
-    if (p.pos.x > DUNGEON_X_THRESHOLD) {
-      // inside: walking into the exit portal climbs back out
-      for (const inst of this.instances) {
-        if (inst.exitId === null) continue;
-        const exit = this.entities.get(inst.exitId);
-        if (exit && dist2d(p.pos, exit.pos) < DOOR_TRIGGER_RADIUS) {
-          this.leaveDungeon(p.id);
-          return;
-        }
-      }
-    }
-    if (this.dungeonDoorIds === null) {
-      this.dungeonDoorIds = [];
-      for (const e of this.entities.values()) {
-        if (e.templateId === 'dungeon_door') this.dungeonDoorIds.push(e.id);
-      }
-    }
-    for (const doorId of this.dungeonDoorIds) {
-      const door = this.entities.get(doorId);
-      if (door?.dungeonId && dist2d(p.pos, door.pos) < DOOR_TRIGGER_RADIUS) {
-        this.enterDungeon(door.dungeonId, p.id);
-        return;
-      }
-    }
+    updateDoorTriggersImpl(this.ctx, p);
   }
 
-  enterDungeon(dungeonId: string, pid?: number): void {
+  enterDungeon(dungeonId: string, pid?: number): boolean {
+    return enterDungeonImpl(this.ctx, dungeonId, pid);
+  }
+
+  leaveDungeon(pid?: number): boolean {
+    return leaveDungeonImpl(this.ctx, pid);
+  }
+
+  resetDungeonInstances(pid?: number): void {
+    resetDungeonInstancesImpl(this.ctx, pid);
+  }
+
+  inheritDungeonResetLocks(pid: number): void {
+    inheritDungeonResetLocksImpl(this.ctx, pid);
+  }
+
+  dungeonDifficulty(pid?: number): DungeonDifficulty {
     const r = this.resolve(pid);
-    const dungeon = DUNGEONS[dungeonId];
-    if (!r || !dungeon || r.e.dead) return;
+    if (!r) return 'normal';
+    return this.dungeonDifficultyForPid(r.meta.entityId);
+  }
+
+  setDungeonDifficulty(difficulty: DungeonDifficulty, pid?: number): void {
+    if (!isDungeonDifficulty(difficulty)) return;
+    const r = this.resolve(pid);
+    if (!r) return;
     const party = this.partyOf(r.meta.entityId);
-    const raidAllowed = RAID_ALLOWED_DUNGEON_IDS.has(dungeonId);
-    const raidRequired = RAID_REQUIRED_DUNGEON_IDS.has(dungeonId);
-    if (party?.raid && !raidAllowed) {
-      this.error(r.meta.entityId, 'Raid groups cannot enter standard dungeons.');
+    if (party && party.leader !== r.meta.entityId) {
+      this.error(r.meta.entityId, 'You are not the party leader.');
       return;
     }
-    if (!party?.raid && raidRequired) {
-      this.error(r.meta.entityId, 'You must convert your party to a raid group first.');
-      return;
+    // Only the SETTER's own preference is stamped: members mirror the party via
+    // dungeonDifficultyForPid while grouped and keep their own prior preference
+    // after leaving, so a stale stamp can never leak into another group.
+    if (difficulty === 'normal') delete r.meta.dungeonDifficulty;
+    else r.meta.dungeonDifficulty = difficulty;
+    if (party) {
+      if (difficulty === 'normal') delete party.dungeonDifficulty;
+      else party.dungeonDifficulty = difficulty;
     }
-    if (dungeonId === 'nythraxis_boss_arena' && !this.canEnterNythraxisRaid(r.meta)) {
-      this.error(r.meta.entityId, 'The royal door is sealed to you.');
-      return;
-    }
-    if (dungeonId === 'nythraxis_boss_arena' && this.isRaidLocked(r.meta, dungeonId)) {
-      this.error(r.meta.entityId, 'You are locked to Nythraxis Raid Arena.');
-      return;
-    }
-    if (dungeonId === 'nythraxis_boss_arena') {
-      const engaged = this.instances.find(
-        (i) => i.dungeonId === dungeonId && i.partyKey === this.instanceKeyFor(r.meta.entityId),
-      );
-      if (engaged && this.nythraxisInstanceSealed(engaged)) {
-        this.error(r.meta.entityId, 'Nythraxis is engaged — the royal door has sealed shut.');
-        return;
-      }
-    }
-    const key = this.instanceKeyFor(r.meta.entityId);
-    let inst = this.instances.find((i) => i.dungeonId === dungeonId && i.partyKey === key);
-    if (!inst) {
-      inst = this.instances.find((i) => i.dungeonId === dungeonId && i.partyKey === null);
-      if (!inst) {
-        this.error(r.meta.entityId, `All instances of ${dungeon.name} are busy. Try again soon.`);
-        return;
-      }
-      this.claimInstance(inst, key);
-    }
-    if (!party || party.members.length < dungeon.suggestedPlayers) {
-      this.emit({
-        type: 'log',
-        text: `${dungeon.name} is meant for a full party of ${dungeon.suggestedPlayers}. Tread carefully.`,
-        color: '#f96',
-        pid: r.meta.entityId,
-      });
-    }
-    const origin = this.instanceOriginOf(inst);
-    const p = r.e;
-    p.pos = this.groundPos(origin.x + dungeon.entry.x, origin.z + dungeon.entry.z);
-    p.prevPos = { ...p.pos };
-    this.rebucket(p);
-    p.facing = 0;
-    p.targetId = null;
-    p.autoAttack = false;
-    inst.emptyFor = 0;
-    this.emit({ type: 'log', text: dungeon.enterText, color: '#b9f', pid: r.meta.entityId });
+    this.error(
+      r.meta.entityId,
+      difficulty === 'heroic'
+        ? 'Dungeon difficulty set to Heroic.'
+        : 'Dungeon difficulty set to Normal.',
+    );
   }
 
-  private canEnterNythraxisRaid(meta: PlayerMeta): boolean {
-    return meta.questsDone.has('q_nythraxis_bound_guardian');
+  // Owned by instances/dungeons (heroic final-boss reward + lockout settlement);
+  // the C1 death hub reaches it through the seam, this delegate keeps the facade.
+  awardHeroicMarks(mob: Entity, recipients: PlayerMeta[]): void {
+    awardHeroicMarksImpl(this.ctx, mob, recipients);
   }
 
-  private isRaidLocked(meta: PlayerMeta, dungeonId: string): boolean {
-    const until = meta.raidLockouts.get(dungeonId) ?? 0;
-    if (until <= this.lockoutNowMs()) {
-      meta.raidLockouts.delete(dungeonId);
-      return false;
-    }
-    return true;
+  // Heroic Quartermaster purchase (owned by instances/heroic_vendor.ts): the
+  // heroic_buy command dispatch and the offline HUD resolve it on the facade.
+  buyHeroicVendorItem(itemId: string, pid?: number): void {
+    buyHeroicVendorItemImpl(this.ctx, itemId, pid);
   }
 
-  // The royal door seals once Nythraxis is engaged (pulled, alive, pre-death).
-  // It reopens on his death or a full raid wipe (handled in the encounter loop).
-  private nythraxisInstanceSealed(inst: InstanceSlot): boolean {
-    for (const id of inst.mobIds) {
-      const e = this.entities.get(id);
-      if (
-        e &&
-        e.templateId === NYTHRAXIS_BOSS_ID &&
-        !e.dead &&
-        e.inCombat &&
-        e.nythraxis &&
-        e.nythraxis.phase !== 'dead'
-      )
-        return true;
-    }
-    return false;
-  }
-
-  leaveDungeon(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r || r.e.dead) return;
-    const p = r.e;
-    // not inside any instance: nothing to leave (no DUNGEON_LIST[0] fallback —
-    // that silently teleported outdoor callers to the Hollow Crypt door)
-    const dungeon = dungeonAt(p.pos.x);
-    if (!dungeon) return;
-    if (dungeon.id === 'nythraxis_boss_arena') {
-      const inst = this.instances.find(
-        (i) => i.dungeonId === dungeon.id && i.partyKey === this.instanceKeyFor(p.id),
-      );
-      if (inst && this.nythraxisInstanceSealed(inst)) {
-        this.error(r.meta.entityId, 'The royal door is sealed — Nythraxis must fall first.');
-        return;
-      }
-    }
-    p.pos = this.groundPos(dungeon.doorPos.x, dungeon.doorPos.z - 4);
-    p.prevPos = { ...p.pos };
-    this.rebucket(p);
-    p.targetId = null;
-    p.autoAttack = false;
-    this.emit({ type: 'log', text: dungeon.leaveText, color: '#b9f', pid: r.meta.entityId });
+  private dungeonDifficultyForPid(pid: number): DungeonDifficulty {
+    // In a party the PARTY state is the only authority (leader-set): falling
+    // through to a member's personal stamp would let a stale solo preference
+    // bypass the leader-only rule at the dungeon door.
+    const party = this.partyOf(pid);
+    if (party) return party.dungeonDifficulty ?? 'normal';
+    return this.players.get(pid)?.dungeonDifficulty ?? 'normal';
   }
 
   // Legacy single-dungeon entry points (tests + scripts use these).
   enterCrypt(pid?: number): void {
-    this.enterDungeon('hollow_crypt', pid);
+    enterCryptImpl(this.ctx, pid);
   }
 
   leaveCrypt(pid?: number): void {
-    this.leaveDungeon(pid);
-  }
-
-  private claimInstance(inst: InstanceSlot, key: string): void {
-    const dungeon = DUNGEONS[inst.dungeonId];
-    inst.partyKey = key;
-    inst.emptyFor = 0;
-    const origin = this.instanceOriginOf(inst);
-    for (const spawn of dungeon.spawns) {
-      const template = MOBS[spawn.mobId];
-      const level = this.rng.int(template.minLevel, template.maxLevel);
-      const mob = createMob(
-        this.nextId++,
-        template,
-        level,
-        this.groundPos(origin.x + spawn.x, origin.z + spawn.z),
-      );
-      mob.facing = Math.PI; // face the entrance
-      mob.prevFacing = mob.facing;
-      this.addEntity(mob);
-      inst.mobIds.push(mob.id);
-    }
-    for (const objDef of dungeon.objects ?? []) {
-      const obj = createGroundObject(
-        this.nextId++,
-        objDef.itemId,
-        objDef.name,
-        this.groundPos(origin.x + objDef.x, origin.z + objDef.z),
-      );
-      if (objDef.templateId) {
-        obj.templateId = objDef.templateId;
-        obj.dungeonId = objDef.dungeonId ?? null;
-        obj.objectItemId = null;
-        obj.lootable = true;
-      }
-      this.addEntity(obj);
-      inst.objectIds.push(obj.id);
-    }
-    const exit = createGroundObject(
-      this.nextId++,
-      '',
-      `${dungeon.name} Exit`,
-      this.groundPos(origin.x + dungeon.exitOffset.x, origin.z + dungeon.exitOffset.z),
-    );
-    exit.templateId = 'dungeon_exit';
-    exit.dungeonId = dungeon.id;
-    exit.objectItemId = null;
-    exit.lootable = true;
-    this.addEntity(exit);
-    inst.exitId = exit.id;
-  }
-
-  private freeInstance(inst: InstanceSlot): void {
-    for (const id of inst.mobIds) {
-      if (!this.entities.has(id)) continue;
-      // drop any player targets on the despawning mob so the delete is clean
-      for (const meta of this.players.values()) {
-        const e = this.entities.get(meta.entityId);
-        if (e?.targetId === id) e.targetId = null;
-        if (e?.comboTargetId === id) {
-          e.comboTargetId = null;
-          e.comboPoints = 0;
-        }
-      }
-      this.dropEntity(id);
-    }
-    for (const id of inst.objectIds) {
-      if (this.entities.has(id)) this.dropEntity(id);
-    }
-    if (inst.exitId !== null) this.dropEntity(inst.exitId);
-    inst.partyKey = null;
-    inst.mobIds = [];
-    inst.objectIds = [];
-    inst.exitId = null;
-    inst.emptyFor = 0;
+    leaveCryptImpl(this.ctx, pid);
   }
 
   private updateInstances(): void {
-    if (this.tickCount % 20 !== 0) return; // once a second
-    for (const inst of this.instances) {
-      if (inst.partyKey === null) continue;
-      const origin = this.instanceOriginOf(inst);
-      let occupied = false;
-      for (const meta of this.players.values()) {
-        const e = this.entities.get(meta.entityId);
-        if (e && Math.abs(e.pos.x - origin.x) < 120 && Math.abs(e.pos.z - origin.z) < 250) {
-          occupied = true;
-          break;
-        }
-      }
-      if (occupied) {
-        inst.emptyFor = 0;
-      } else {
-        inst.emptyFor += 1;
-        if (inst.emptyFor >= INSTANCE_EMPTY_TIMEOUT) this.freeInstance(inst);
-      }
-    }
+    updateInstancesImpl(this.ctx);
   }
 
   // UI-facing info objects (the same shapes the server sends over the wire)
+  partyIncomingHeals(memberIds: readonly number[]): Map<number, number> {
+    const members = new Set(memberIds);
+    const incoming = new Map<number, number>();
+    for (const casterId of memberIds) {
+      const caster = this.entities.get(casterId);
+      if (!caster?.castingAbility || caster.castTargetId === null) continue;
+      if (!members.has(caster.castTargetId)) continue;
+      const ability = this.players
+        .get(casterId)
+        ?.known.find((known) => known.def.id === caster.castingAbility);
+      if (!ability) continue;
+      let amount = 0;
+      for (const effect of ability.effects) {
+        if (effect.type === 'heal') amount += Math.round((effect.min + effect.max) / 2);
+        else if (effect.type === 'hot') amount += effect.total;
+      }
+      if (amount > 0)
+        incoming.set(caster.castTargetId, (incoming.get(caster.castTargetId) ?? 0) + amount);
+    }
+    return incoming;
+  }
+
   get partyInfo(): import('../world_api').PartyInfo | null {
     const party = this.partyOf(this.primaryId);
     if (!party) return null;
+    const aggroTargets = partyFrameAggroTargets(this.entities.values());
+    const incomingHeals = partyFrameIncomingHeals(this.entities.values(), (abilityId, casterId) =>
+      this.resolvedAbility(abilityId, casterId),
+    );
     return {
       leader: party.leader,
       raid: party.raid,
+      master: { ...party.lootStrategies.master },
       members: party.members.flatMap((mPid) => {
         const meta = this.players.get(mPid);
         const e = this.entities.get(mPid);
@@ -15171,21 +8701,20 @@ export class Sim {
                 inCombat: e.inCombat ? 1 : 0,
                 targetId: e.targetId,
                 group: party.raidGroups.get(mPid) ?? 1,
-                auras: e.auras.flatMap((a) =>
-                  a.kind.startsWith('buff_') || a.kind === 'absorb' || a.kind === 'hot'
-                    ? [{
-                        id: a.id,
-                        name: a.name,
-                        kind: a.kind,
-                        ...(a.stacks && a.stacks > 1 ? { stacks: a.stacks } : {}),
-                      }]
-                    : [],
-                ),
-                qlog: [...meta.questLog.values()].map((q) => ({
-                  questId: q.questId,
-                  counts: [...q.counts],
-                  state: q.state,
-                })),
+                absorb: partyFrameAbsorb(e.auras),
+                role: partyFrameRole(meta.talentMods.role),
+                // Effective health Rewind could currently restore to this member
+                // (combat/rewind.ts); 0 for members with no recent recorded loss.
+                rewind: rewindHealAmount(damageTakenWithin(e, this.tickCount), e.hp, e.maxHp),
+                connected: 1,
+                hasAggro: aggroTargets.has(mPid) ? 1 : 0,
+                incomingHeal: incomingHeals.get(mPid) ?? 0,
+                // Temporal Echo marks are filtered to the LOCAL player's own (owner
+                // 2026-07-12): other chronomancers' echoes still heal in the sim but
+                // never show in this viewer's group/raid strip. echoVisibleTo reads
+                // the real aura sourceId, so no wire field is added.
+                auras: partyFrameAuras(e.auras.filter((a) => echoVisibleTo(a, this.primaryId))),
+                qlog: [...meta.questLog.values()],
                 qdone: [...meta.questsDone],
               },
             ]
@@ -15195,18 +8724,7 @@ export class Sim {
   }
 
   get tradeInfo(): import('../world_api').TradeInfo | null {
-    const t = this.tradeFor(this.primaryId);
-    if (!t) return null;
-    const mine = t.a === this.primaryId;
-    const otherPid = mine ? t.b : t.a;
-    return {
-      otherPid,
-      otherName: this.players.get(otherPid)?.name ?? '?',
-      myOffer: mine ? t.offerA : t.offerB,
-      theirOffer: mine ? t.offerB : t.offerA,
-      myAccepted: mine ? t.acceptedA : t.acceptedB,
-      theirAccepted: mine ? t.acceptedB : t.acceptedA,
-    };
+    return tradeMod.tradeInfoFor(this.ctx, this.primaryId);
   }
 
   get duelInfo(): import('../world_api').DuelInfo | null {
@@ -15220,366 +8738,57 @@ export class Sim {
     return this.primaryId === -1 ? null : this.arenaInfoFor(this.primaryId);
   }
 
+  get dungeonFinderInfo(): import('../world_api').DungeonFinderInfo | null {
+    return this.primaryId === -1 ? null : this.dungeonFinderInfoFor(this.primaryId);
+  }
+
+  get dungeonFinderBoard(): import('../world_api').DungeonFinderBoard | null {
+    return this.primaryId === -1 ? null : this.dungeonFinderBoardView();
+  }
+
+  get honor(): number {
+    return this.primaryId === -1 ? 0 : (this.players.get(this.primaryId)?.honor ?? 0);
+  }
+
+  get lifetimeHonor(): number {
+    return this.primaryId === -1 ? 0 : (this.players.get(this.primaryId)?.lifetimeHonor ?? 0);
+  }
+
   get marketInfo(): import('../world_api').MarketInfo | null {
     return this.primaryId === -1 ? null : this.marketInfoFor(this.primaryId);
   }
 
-  instanceSlotAt(pos: Vec3): number | null {
-    for (const inst of this.instances) {
-      const origin = this.instanceOriginOf(inst);
-      if (Math.abs(pos.x - origin.x) < 120 && Math.abs(pos.z - origin.z) < 250) return inst.slot;
-    }
-    return null;
+  get mailInfo(): import('../world_api').MailInfo | null {
+    return this.primaryId === -1 ? null : this.mailInfoFor(this.primaryId);
   }
 
-  // Builds the self-only "/stats" readout line from live entity state. The
-  // resource clause is dropped for classes whose resourceType is null.
-  private statsReadout(meta: PlayerMeta, e: Entity): string {
-    const className = CLASSES[meta.cls].name;
-    const crit = (e.critChance * 100).toFixed(1);
-    let line = `Level ${e.level} ${className} — HP ${Math.round(e.hp)}/${Math.round(e.maxHp)}`;
-    if (e.resourceType) {
-      const res = e.resourceType.charAt(0).toUpperCase() + e.resourceType.slice(1);
-      line += `, ${res} ${Math.round(e.resource)}/${Math.round(e.maxResource)}`;
-    }
-    line += `. AP ${Math.round(e.attackPower)}, Crit ${crit}%, Armor ${Math.round(e.stats.armor)}.`;
-    return line;
+  get mailUnread(): number {
+    return this.primaryId === -1 ? 0 : this.mailUnreadFor(this.primaryId);
   }
-  // Self-only readout of carried items for "/bags": items sorted by quality
-  // (epic first), ties keeping inventory order, with the purse appended via
-  // formatMoney. Reads only PlayerMeta state, so it works online for free.
-  private bagsReadout(meta: PlayerMeta): string {
-    const purse = `Purse: ${formatMoney(meta.copper)}.`;
-    if (meta.inventory.length === 0) return `Your bags are empty. ${purse}`;
-    const rank: Record<string, number> = { epic: 0, rare: 1, uncommon: 2, common: 3, poor: 4 };
-    const sorted = meta.inventory
-      .map((s, i) => ({ s, i }))
-      .sort((a, b) => {
-        const qa = rank[ITEMS[a.s.itemId]?.quality ?? 'common'] ?? 3;
-        const qb = rank[ITEMS[b.s.itemId]?.quality ?? 'common'] ?? 3;
-        return qa - qb || a.i - b.i;
-      });
-    const parts = sorted.map(({ s }) => {
-      const name = ITEMS[s.itemId]?.name ?? s.itemId;
-      return s.count > 1 ? `${name} x${s.count}` : name;
-    });
-    return `Bags (${parts.length}): ${parts.join(', ')}. ${purse}`;
+
+  get bankInfo(): import('../world_api').BankInfo | null {
+    return this.primaryId === -1 ? null : this.bankInfoFor(this.primaryId);
   }
-  // Self-only readout of the player's party: each member in join order with
-  // level, class, and HP% (or (dead)/(offline)), the leader tagged [leader].
-  private partyReadout(pid: number): string {
-    const party = this.partyOf(pid);
-    if (!party) return 'You are not in a party.';
-    const parts = party.members.map((mPid) => {
-      const meta = this.players.get(mPid);
-      const e = this.entities.get(mPid);
-      if (!meta || !e) return meta ? `${meta.name} (offline)` : `Player ${mPid} (offline)`;
-      const cls = CLASSES[meta.cls].name;
-      const state = e.hp <= 0 ? '(dead)' : `${Math.round((e.hp / e.maxHp) * 100)}%`;
-      const tag = mPid === party.leader ? ' [leader]' : '';
-      return `${meta.name} (Lvl ${e.level} ${cls}, ${state})${tag}`;
-    });
-    return `${party.raid ? 'Raid' : 'Party'} (${party.members.length}/${this.partyCapacity(party)}): ${parts.join(', ')}.`;
+
+  instanceSlotAt(pos: Vec3): number | null {
+    return instanceSlotAtImpl(this.ctx, pos);
   }
-  // Self-only readout for "/zones": lists every overworld zone in travel order
-  // (south -> north) with its level range, tagging the zone the player is in.
-  // `currentZ` is the player's world Z (use zoneAt(currentZ) to find their zone).
-  // ZONES is the ordered ZoneDef[] from ./data; each has .name and
-  // .levelRange = [min, max].
-  private zonesReadout(currentZ: number): string {
-    if (ZONES.length === 0) return 'No zones are defined.';
-    const here = zoneAt(currentZ);
-    const parts = ZONES.map((z) => {
-      const line = `${z.name} (Lvl ${z.levelRange[0]}-${z.levelRange[1]})`;
-      return z.id === here.id ? `${line} [you are here]` : line;
-    });
-    return `Zones (${ZONES.length}): ${parts.join(', ')}.`;
+
+  instanceClaimIdAt(pos: Vec3): number | null {
+    return instanceClaimIdAtImpl(this.ctx, pos);
   }
-  // Self-only readout of a character's Ashen Coliseum standing. Reads only the
-  // persisted PlayerMeta arena fields (no new state). Draws count as neither a
-  // win nor a loss (see resolveArena), so "matches played" is wins + losses.
-  private arenaReadout(meta: PlayerMeta): string {
-    const part = (label: ArenaFormat, rating: number, wins: number, losses: number): string => {
-      const played = wins + losses;
-      if (played <= 0) return `${label} Rating ${rating} - no matches played yet`;
-      const pct = Math.round((wins / played) * 100);
-      return `${label} Rating ${rating} - ${wins} wins, ${losses} losses (${pct}% win rate)`;
-    };
-    return `Arena: ${part('1v1', meta.arenaRating, meta.arenaWins, meta.arenaLosses)}. ${part('2v2', meta.arena2v2Rating, meta.arena2v2Wins, meta.arena2v2Losses)}.`;
-  }
-  private buybackReadout(meta: PlayerMeta): string {
-    const slots = meta.vendorBuyback.filter((s) => ITEMS[s.itemId] && s.count > 0);
-    if (slots.length === 0) return 'Your vendor buyback list is empty.';
-    const parts = slots.map((s) => {
-      const def = ITEMS[s.itemId];
-      const qty = s.count > 1 ? ` x${s.count}` : '';
-      return `${def.name}${qty} (${formatMoney(def.sellValue)} each)`;
-    });
-    return `Vendor buyback (${slots.length}): ${parts.join(', ')}. Repurchase at any merchant.`;
-  }
-  private comboReadout(e: Entity): string {
-    if (e.comboPoints <= 0) return 'You have no combo points built up.';
-    const target = e.comboTargetId !== null ? this.entities.get(e.comboTargetId) : undefined;
-    const on = target ? ` on ${target.name}` : '';
-    return `Combo points: ${e.comboPoints}/5${on}.`;
-  }
-  // Readout for "/combat": reads only the live Entity.inCombat / combatTimer
-  // (no new fields). combatTimer is "time since last combat event"; a player
-  // lingers in combat until it reaches COMBAT_LINGER (the literal 5s drop-out
-  // window applied in updatePlayers, sim.ts where inCombat is recomputed). If
-  // inCombat is still set past that window, an enemy is actively engaged, so no
-  // countdown can be promised.
-  private combatReadout(e: Entity): string {
-    if (!e.inCombat) return 'You are not in combat.';
-    const COMBAT_LINGER = 5;
-    const remaining = COMBAT_LINGER - e.combatTimer;
-    if (remaining > 0) {
-      return `You are in combat — leaving in ${Math.ceil(remaining)}s if no further action.`;
-    }
-    return 'You are in combat (enemies still engaged).';
-  }
-  // Readout for "/graveyard": names the zone graveyard your spirit returns to
-  // if you die here, and its coordinates. Reads only existing zone/dungeon
-  // lookups (no new fields) and resolves the same target as releaseSpirit —
-  // dying inside a dungeon resurrects you at the graveyard of the zone its door
-  // sits in, dying outdoors at your current zone's graveyard.
-  private graveyardReadout(p: Entity): string {
-    const dungeon = dungeonAt(p.pos.x);
-    const zone = zoneAt(dungeon ? dungeon.doorPos.z : p.pos.z);
-    const gy = zone.graveyard;
-    return `If you fall here, your spirit returns to the ${zone.name} graveyard at (${Math.floor(gy.x)}, ${Math.floor(gy.z)}).`;
-  }
-  // Readout for "/dungeons": lists every group instance in entrance order with
-  // the overworld zone its door sits in and its suggested party size. Reads
-  // only the static DUNGEON_LIST (already entrance-sorted by index) and the
-  // door zone via zoneAt — no new fields.
-  private dungeonsReadout(): string {
-    const parts = DUNGEON_LIST.map(
-      (d) => `${d.name} (${zoneAt(d.doorPos.z).name}, ${d.suggestedPlayers} players)`,
-    );
-    return `Dungeons (${parts.length}): ${parts.join(', ')}.`;
-  }
-  // Readout for "/consider": sizes up the current target's level versus yours.
-  // The verdict bands track the real combat model — meleeMissChance (types.ts)
-  // applies a sharp miss penalty once the target is 3+ levels above you (its
-  // `diff > 2` cliff), and dodge/crit also scale with the level gap — so a
-  // target 3+ levels up is flagged as a steep step beyond a merely tough one.
-  // Reads only the live target Entity.level versus your own (no new fields).
-  private considerReadout(self: Entity): string {
-    const t = self.targetId !== null ? this.entities.get(self.targetId) : undefined;
-    if (!t) return 'You have no target to consider.';
-    const diff = t.level - self.level;
-    let verdict: string;
-    if (diff >= 5) verdict = 'an overwhelming fight';
-    else if (diff >= 3) verdict = 'a daunting fight';
-    else if (diff >= 1) verdict = 'a tough fight';
-    else if (diff === 0) verdict = 'an even fight';
-    else if (diff >= -2) verdict = 'a manageable fight';
-    else verdict = 'an easy fight';
-    return `${t.name} is level ${t.level} — ${verdict} for you (level ${self.level}).`;
-  }
-  // Readout for "/pois": the named landmarks of your current zone, nearest
-  // first, each with its distance in yards. Reads only the static ZoneDef.pois
-  // (the same labels the HUD pins on the map) and your live position — no new
-  // fields.
-  private poisReadout(self: Entity): string {
-    const zone = zoneAt(self.pos.z);
-    if (zone.pois.length === 0) return `${zone.name} has no notable landmarks.`;
-    const parts = zone.pois
-      .map((p) => ({ label: p.label, d: dist2d(self.pos, { x: p.x, y: 0, z: p.z }) }))
-      .sort((a, b) => a.d - b.d)
-      .map((p) => `${p.label} (${Math.round(p.d)}yd)`);
-    return `Landmarks in ${zone.name} (${parts.length}): ${parts.join(', ')}.`;
-  }
-  // Readout for "/completed": the quests you have turned in, in completion
-  // order (questsDone is a Set whose insertion order is preserved on save/load).
-  // Reads only PlayerMeta.questsDone + the QUESTS registry for names (no new
-  // fields); distinct from /quest, which lists the active log.
-  private completedReadout(meta: PlayerMeta): string {
-    const names = [...meta.questsDone].map((id) => QUESTS[id]?.name ?? id);
-    if (names.length === 0) return 'You have not completed any quests yet.';
-    return `Completed quests (${names.length}): ${names.join(', ')}.`;
-  }
-  // Readout for "/listings": your own active World Market listings (house stock
-  // and other sellers excluded), each with item, asking price, and time left
-  // before it returns unsold. Reads only the live marketListings, ITEMS names,
-  // and this.time (no new fields); the count is shown against MARKET_MAX_LISTINGS
-  // so you know how much room you have left, mirroring the cap in marketList.
-  private listingsReadout(meta: PlayerMeta): string {
-    const mine = this.marketListings.filter((l) => this.marketListingBelongsTo(l, meta));
-    if (mine.length === 0) return 'You have no goods on the World Market.';
-    const parts = mine.map((l) => {
-      const name = ITEMS[l.itemId]?.name ?? l.itemId;
-      const qty = l.count > 1 ? ` x${l.count}` : '';
-      const secs = Math.max(0, Math.ceil(l.expiresAt - this.time));
-      const h = Math.floor(secs / 3600),
-        m = Math.floor((secs % 3600) / 60);
-      const left = h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m` : `${secs}s`;
-      return `${name}${qty} — ${formatMoney(l.price)} (${left} left)`;
-    });
-    return `Your market listings (${parts.length}/${MARKET_MAX_LISTINGS}): ${parts.join(', ')}.`;
-  }
-  // Self-only readout of the auras on the player's current target, each tagged
-  // [buff] or [debuff]. Mirrors the self-aura readout but reaches across to the
-  // target's live Entity.auras, so it works for mobs, pets, and other players.
-  private targetBuffsReadout(self: Entity): string {
-    const target = self.targetId !== null ? this.entities.get(self.targetId) : undefined;
-    if (!target || target.hp <= 0) return 'You have no target.';
-    const auras = target.auras;
-    if (auras.length === 0) return `${target.name} has no active effects.`;
-    const parts = auras.map((a) => {
-      const stack = (a.stacks ?? 1) > 1 ? ` x${a.stacks}` : '';
-      const tag = isHarmfulAura(a.kind) ? 'debuff' : 'buff';
-      return `${a.name}${stack} [${tag}] (${Math.ceil(a.remaining)}s)`;
-    });
-    return `Effects on ${target.name} (${auras.length}): ${parts.join(', ')}.`;
-  }
-  // Self-only readout of current movement speed as a percent of normal run
-  // speed. Effective speed is RUN_SPEED * moveSpeedMult(p), where the
-  // multiplier folds slow/stealth auras against speed buffs; a root pins the
-  // player regardless of the multiplier, so it is reported first.
-  private speedReadout(e: Entity): string {
-    if (this.isRooted(e)) return 'You are rooted in place and cannot move.';
-    const mult = this.moveSpeedMult(e);
-    const pct = Math.round(mult * 100);
-    if (pct > 100) return `Movement speed: ${pct}% of normal (hastened).`;
-    if (pct < 100) return `Movement speed: ${pct}% of normal (slowed).`;
-    return 'Movement speed: 100% of normal.';
-  }
-  // Self-only readout for /attack: reads only live Entity auto-attack state
-  // (autoAttack/swingTimer/targetId). The displayed swing interval reuses the
-  // exact expression the engine resets the timer with (weapon.speed *
-  // swingIntervalMult), so it reflects any active haste/slow auras.
-  private attackReadout(p: Entity, meta: PlayerMeta): string {
-    if (!p.autoAttack) return 'Auto-attack is off.';
-    const t = p.targetId !== null ? this.entities.get(p.targetId) : null;
-    if (!t || t.dead) return 'Auto-attack is on, but you have no valid target.';
-    // ranged classes (hunter auto shot, caster wands) swing at their ranged
-    // speed; everyone else uses the equipped weapon's speed
-    const base = CLASSES[meta.cls].ranged?.speed ?? p.weapon.speed;
-    const interval = base * this.swingIntervalMult(p);
-    const next = p.swingTimer <= 0 ? 'now' : `in ${p.swingTimer.toFixed(1)}s`;
-    return `Auto-attack is on against ${t.name} — next swing ${next} (${interval.toFixed(1)}s swing).`;
-  }
-  // Overpower is a warrior reactive: an enemy dodging the player's attack opens
-  // a 5s window (overpowerUntil = time + 5) in which the ability becomes usable.
-  // It is neither an aura nor a normal cooldown, so no other readout exposes it.
-  private overpowerReadout(e: Entity, meta: PlayerMeta): string {
-    if (meta.cls !== 'warrior') return 'Overpower is a warrior ability; your class cannot use it.';
-    const remaining = Math.ceil(e.overpowerUntil - this.time);
-    if (remaining > 0) {
-      return `Overpower is ready — strike within ${remaining}s (an enemy dodged your attack).`;
-    }
-    return 'Overpower is not available. It opens for 5s after an enemy dodges your attack.';
-  }
-  // Reports the active shapeshift form or combat stance. Anchored to the
-  // same toggle set the cast path treats as mutually-exclusive persistent
-  // states (form_bear / form_cat / defensive_stance / stealth); realistically
-  // only one is ever active, so the first match is the answer.
-  private formReadout(e: Entity): string {
-    const form = e.auras.find(
-      (a) =>
-        a.kind === 'form_bear' ||
-        a.kind === 'form_cat' ||
-        a.kind === 'form_travel' ||
-        a.kind === 'defensive_stance' ||
-        a.kind === 'stealth',
-    );
-    if (!form) return 'You are not in any form or stance.';
-    if (form.kind === 'stealth') return 'You are stealthed.';
-    return `You are in ${form.name}.`;
-  }
-  // Self-only readout of the five-second-rule mana state (#103 out-of-combat
-  // regen). `fiveSecondRule` is the seconds elapsed since the player last spent
-  // mana on an ability (reset to 0 at sim.ts cast path, bumped by DT each tick);
-  // out-of-combat mana regen only ticks once it reaches FSR_THRESHOLD. Only
-  // mana users have meaningful state here — rage/energy classes never spend mana.
-  private manaRegenReadout(e: Entity): string {
-    const FSR_THRESHOLD = 5; // matches the `fiveSecondRule >= 5` gate in updateRegen
-    if (e.resourceType !== 'mana') {
-      return 'Mana regeneration does not apply to your class.';
-    }
-    if (e.fiveSecondRule >= FSR_THRESHOLD) {
-      return 'Your mana is regenerating (out of combat for 5s+).';
-    }
-    const resumesIn = Math.ceil(FSR_THRESHOLD - e.fiveSecondRule);
-    return `Mana regen is paused — resumes in ${resumesIn}s (you spent mana recently).`;
-  }
-  // Self-only readout of vertical/fall state — surfaces the otherwise-invisible
-  // jump physics (sim.ts updatePlayerMovement). Reads only live Entity fields and
-  // the same groundHeight()/FALL_SAFE_DISTANCE the landing-damage model uses, so
-  // the "this will hurt" preview matches what an actual landing would deal.
-  private fallingReadout(e: Entity): string {
-    const ground = groundHeight(e.pos.x, e.pos.z, this.cfg.seed);
-    if (e.onGround) return 'You are on solid ground.';
-    const height = Math.max(0, Math.round(e.pos.y - ground));
-    if (e.vy > 0) return `You are airborne and rising — ${height}yd above the ground.`;
-    const drop = e.fallStartY - ground;
-    const danger =
-      drop > FALL_SAFE_DISTANCE
-        ? ' Brace for impact — this fall is going to hurt.'
-        : ' It should be a safe landing.';
-    return `You are falling — ${height}yd above the ground.${danger}`;
-  }
-  // Self-only readout of the controlled pet's Growl cooldown and autocast state.
-  // Distinct from /pet (vitals) and /cooldowns (the player's own ability map,
-  // which never holds this timer).
-  private petTauntReadout(owner: Entity): string {
-    const pet = this.petOf(owner.id);
-    if (!pet) return 'You do not have a pet.';
-    if (pet.petTauntTimer <= 0) {
-      return pet.petAutoTaunt
-        ? `Your pet's Growl is ready. Auto-taunt is on.`
-        : `Your pet's Growl is ready. Auto-taunt is off.`;
-    }
-    const seconds = Math.ceil(pet.petTauntTimer);
-    return pet.petAutoTaunt
-      ? `Your pet's Growl is on cooldown. Auto-taunt is on. Ready in ${seconds}s.`
-      : `Your pet's Growl is on cooldown. Auto-taunt is off. Ready in ${seconds}s.`;
-  }
-  // Druid forms park the mana bar in savedMana and run on rage/energy instead
-  // (entity.ts:126-130). That parked pool has no in-game UI — the bar shows the
-  // form's resource — so this readout is the only way to see what returns on
-  // shift-out. Gates on the class's natural resource so non-casters get a clean
-  // "never applies" rather than a misleading zero.
-  private savedManaReadout(meta: PlayerMeta, e: Entity): string {
-    if (CLASSES[meta.cls].resourceType !== 'mana') {
-      return 'Only mana-using classes park mana; your class never does.';
-    }
-    if (e.resourceType === 'mana') {
-      return 'Your mana is not parked — you are not shapeshifted.';
-    }
-    if (e.savedMana <= 0) {
-      return 'You have no mana parked while shifted.';
-    }
-    return `You have ${Math.round(e.savedMana)} mana parked while shifted; it returns when you leave your form.`;
+
+  instanceInfoAt(pos: Vec3): { slot: number; dungeonId: string } | null {
+    return instanceInfoAtImpl(this.ctx, pos);
   }
 
   private error(pid: number, text: string, reason?: ErrorReason): void {
     this.emit(reason ? { type: 'error', text, pid, reason } : { type: 'error', text, pid });
   }
 
-  // Lines shown by the "/help" command, one system notice per entry. Keep this
-  // in sync with the commands handled in chat() above.
-  private helpLines(): string[] {
-    return [
-      'Chat channels: /s say, /y yell, /general, /p party, /world, /lfg.',
-      'Whisper a player with /w <name> <message>, reply with /r.',
-      'Other commands: /join <world|lfg>, /roll, /inspect <name>, /follow <name>, /unfollow, /assist <name>, /afk, /dnd, /who.',
-      'Character readouts: /played, /xp, /gold, /stats, /bags, /gear, /abilities, /buffs, /cooldowns, /quest, /completed.',
-      'World readouts: /where, /zones, /nearby, /pois, /graveyard, /dungeons, /arena, /session, /listings, /buyback.',
-      'Combat readouts: /target, /targetbuffs, /range, /attack, /casting, /combat, /threat, /consider, /combo, /overpower.',
-      'State readouts: /pet, /pettaunt, /speed, /consumable, /potion, /form, /manaregen, /falling, /queued, /savedmana.',
-    ];
-  }
-
-  // One-line readout for /inspect: another player's level, class, and health.
-  private inspectReadout(target: PlayerMeta, e: Entity): string {
-    const cls = CLASSES[target.cls]?.name ?? target.cls;
-    const hp =
-      e.hp <= 0 ? 'dead' : `${Math.round(Math.max(0, Math.min(1, e.hp / e.maxHp)) * 100)}%`;
-    return `${target.name}: Level ${e.level} ${cls} — HP ${hp}.`;
-  }
+  // helpLines / inspectReadout moved to social/chat.ts (G2); chat() reaches them
+  // via chatMod.*. notice() below stays (the /join handler in chat.ts consumes it
+  // via ctx.notice, and the quest-share path still calls this.notice).
 
   // A positive, personal chat-log notice (e.g. confirming a /join). Unlike
   // error(), this lands in the chat log rather than flashing the error toast.
@@ -15587,355 +8796,31 @@ export class Sim {
     this.emit({ type: 'log', text, color, pid });
   }
 
-  // Handles /join and /leave for the opt-in global channels.
-  private handleChannelMembership(meta: PlayerMeta, action: 'join' | 'leave', arg: string): void {
-    const pid = meta.entityId;
-    if (!arg) {
-      this.error(pid, `Usage: /${action} <channel>. Channels: ${JOINABLE_CHANNELS.join(', ')}.`);
-      return;
-    }
-    if (arg === 'general') {
-      this.error(pid, 'The General channel is always on - just use /general.');
-      return;
-    }
-    if (!JOINABLE_CHANNELS.includes(arg as JoinableChannel)) {
-      this.error(
-        pid,
-        `There is no channel named '${arg}'. Channels: ${JOINABLE_CHANNELS.join(', ')}.`,
-      );
-      return;
-    }
-    const channel = arg as JoinableChannel;
-    let set = this.channelSubs.get(pid);
-    if (action === 'join') {
-      if (!set) {
-        set = new Set();
-        this.channelSubs.set(pid, set);
-      }
-      if (set.has(channel)) {
-        this.error(pid, `You are already in the ${channel} channel.`);
-        return;
-      }
-      set.add(channel);
-      this.notice(pid, `Joined the ${channel} channel. Type /${channel} <message> to talk.`);
-    } else {
-      if (!set?.has(channel)) {
-        this.error(pid, `You are not in the ${channel} channel.`);
-        return;
-      }
-      set.delete(channel);
-      if (set.size === 0) this.channelSubs.delete(pid);
-      this.notice(pid, `Left the ${channel} channel.`);
-    }
-  }
-  // One-line description of an entity for the self-only "/target" readout:
-  // name, level, what it is (player / pet / mob), and current health. A dead
-  // body reports "dead" instead of a percentage so a lootable corpse reads
-  // sensibly.
-  private targetReadout(t: Entity): string {
-    const kind = t.kind === 'player' ? 'player' : t.ownerId !== null ? 'pet' : 'mob';
-    const health = t.dead ? 'dead' : `${Math.round((t.hp / t.maxHp) * 100)}% HP`;
-    return `Target: ${t.name} (level ${t.level} ${kind}) — ${health}.`;
-  }
-  // One-line leveling summary for the /xp readout. At MAX_LEVEL there is no
-  // "next level" so we avoid the percent/remaining math (xpForLevel is 0 there).
-  private xpReadout(meta: PlayerMeta, level: number): string {
-    if (level >= MAX_LEVEL) return `Level ${MAX_LEVEL} — maximum level reached.`;
-    const need = xpForLevel(level);
-    const have = Math.max(0, Math.min(meta.xp, need));
-    const pct = Math.floor((have / need) * 100);
-    const fmt = (n: number) => n.toLocaleString('en-US');
-    return `Level ${level} — ${fmt(have)}/${fmt(need)} XP (${pct}%), ${fmt(need - have)} to go.`;
-  }
-  // Render the /gold readout. An empty purse gets flavor text rather than the
-  // bare "You have 0c." that formatMoney would otherwise produce.
-  private goldReadout(copper: number): string {
-    if (copper <= 0) return 'Your purse is empty.';
-    return `You have ${formatMoney(copper)}.`;
-  }
-  // Self-only readout for "/buffs": summarise the auras currently on the
-  // entity. Auras carry no buff/debuff flag, only an AuraKind and a `remaining`
-  // time in seconds; toggles (stances, forms, stealth) use a 3600s sentinel
-  // duration rather than Infinity, so a raw "(3600s)" reads poorly.
-  private buffsReadout(e: Entity): string {
-    if (e.auras.length === 0) return 'You have no active effects.';
-    const parts = e.auras.map((a) => this.auraLabel(a));
-    return `Active effects (${e.auras.length}): ${parts.join(', ')}.`;
-  }
+  // handleChannelMembership moved to social/chat.ts (G2); the chat() /join /leave
+  // branch reaches it via chatMod.handleChannelMembership(this.ctx, ...).
 
-  // Render one aura for the /buffs list, e.g. "Rend (4s)". `remaining` is a
-  // float, so Math.ceil keeps a still-active 0.3s remainder showing as "(1s)".
-  private auraLabel(a: Aura): string {
-    return `${a.name} (${Math.ceil(a.remaining)}s)`;
-  }
-  // Self-only readout for "/cooldowns": summarise the abilities currently on
-  // cooldown for this entity, soonest-ready first.
-  //
-  // `e.cooldowns` is a Map<abilityId, remainingSeconds> — entries exist ONLY
-  // while an ability is cooling down (updateTimers deletes them at <= 0), so an
-  // empty map means everything is ready. Resolve the display name via
-  // ABILITIES[id]?.name (fall back to the raw id if an ability is ever missing
-  // from the table). `remaining` is a float, so Math.ceil keeps a 0.3s
-  // remainder showing as "(1s)", matching how /buffs renders aura timers.
-  //
-  private cooldownsReadout(e: Entity): string {
-    if (e.cooldowns.size === 0) return 'No abilities are on cooldown.';
-    const parts = [...e.cooldowns]
-      .sort((a, b) => a[1] - b[1])
-      .map(([id, remaining]) => `${ABILITIES[id]?.name ?? id} (${Math.ceil(remaining)}s)`);
-    return `Abilities on cooldown (${parts.length}): ${parts.join(', ')}.`;
-  }
-  // Self-only readout of the active quest log: one entry per tracked quest with
-  // per-objective progress. questLog only ever holds 'active'/'ready' quests
-  // (turn-in deletes the entry), so iterating it gives exactly what to show.
-  private questReadout(meta: PlayerMeta): string {
-    const lines: string[] = [];
-    for (const [qid, qp] of meta.questLog) {
-      const quest = QUESTS[qid];
-      if (!quest) continue;
-      const objs = quest.objectives
-        .map((o, i) => `${o.label} ${Math.min(qp.counts[i] ?? 0, o.count)}/${o.count}`)
-        .join(', ');
-      const tag = qp.state === 'ready' ? ' (ready)' : '';
-      lines.push(`${quest.name}${tag} — ${objs}`);
-    }
-    if (lines.length === 0) return 'Your quest log is empty.';
-    return `Quest log (${lines.length}): ${lines.join(' | ')}.`;
-  }
-  // Self-only readout of equipped items, walked in a fixed slot order so the
-  // line is stable and empty slots are visible (the point of a gear check).
-  private gearReadout(meta: PlayerMeta): string {
-    const slots: [EquipSlot, string][] = [
-      ['mainhand', 'Main Hand'],
-      ['helmet', 'Helmet'],
-      ['shoulder', 'Shoulder'],
-      ['chest', 'Chest'],
-      ['waist', 'Waist'],
-      ['legs', 'Legs'],
-      ['gloves', 'Gloves'],
-      ['feet', 'Feet'],
-    ];
-    let worn = 0;
-    const parts = slots.map(([slot, label]) => {
-      const itemId = meta.equipment[slot];
-      if (!itemId) return `${label}: (empty)`;
-      worn++;
-      return `${label}: ${ITEMS[itemId]?.name ?? itemId}`;
-    });
-    if (worn === 0) return 'You have nothing equipped.';
-    return `Equipped (${worn}/${slots.length}): ${parts.join(', ')}.`;
-  }
-  private abilitiesReadout(meta: PlayerMeta, e: Entity): string {
-    const known = abilitiesKnownAt(meta.cls, e.level);
-    if (known.length === 0) return 'You have not learned any abilities yet.';
-    const list = known.map((k) => `${k.def.name} (Rank ${k.rank})`).join(', ');
-    return `Spellbook (${known.length}): ${list}.`;
-  }
-  // Self-only readout of the player's active pet: name, level, beast family,
-  // and current health. Reads live pet state via petOf() so it stays accurate
-  // regardless of how the pet was acquired (tame, summon).
-  private petReadout(owner: Entity): string {
-    const pet = this.petOf(owner.id);
-    if (!pet) return 'You do not have a pet.';
-    const family = MOBS[pet.templateId]?.family;
-    const kind = family ? ` ${family}` : '';
-    const pct = pet.maxHp > 0 ? Math.round((pet.hp / pet.maxHp) * 100) : 0;
-    return `Your pet: ${pet.name} (level ${pet.level}${kind}) — HP ${pet.hp}/${pet.maxHp} (${pct}%).`;
-  }
-  // Build the self-only "/session" line from this session's RewardCounters.
-  // Counters are reset each boot (freshCounters), so this is always per-session.
-  // Format kills/deaths first, then a damage clause, then XP — using
-  // toLocaleString('en-US') for thousands separators on the large numbers.
-  private sessionReadout(meta: PlayerMeta): string {
-    const c = meta.counters;
-    const n = (v: number) => v.toLocaleString('en-US');
-    const plural = (v: number, word: string) => `${n(v)} ${word}${v === 1 ? '' : 's'}`;
-    return (
-      `Session: ${plural(c.kills, 'kill')}, ${plural(c.deaths, 'death')}. ` +
-      `Damage dealt ${n(c.damageDealt)}, taken ${n(c.damageTaken)}. ` +
-      `XP gained ${n(c.xpGained)}.`
-    );
-  }
-  /** Self-only readout of the threat table on the player's current target,
-   *  highest first, as a percentage of the current threat leader. */
-  private threatReadout(self: Entity): string {
-    const t = self.targetId !== null ? this.entities.get(self.targetId) : undefined;
-    if (!t || t.hp <= 0) return 'You have no target.';
-    if (t.kind !== 'mob') return `Threat is only tracked on enemies; ${t.name} is not one.`;
-    const entries = threatEntries(t, 10);
-    if (entries.length === 0) return `Nobody has any threat on ${t.name}.`;
-    const top = entries[0][1] || 1;
-    const parts = entries.map(([id, v], i) => {
-      const pct = Math.round((v / top) * 100);
-      const you = id === self.id ? ' (you)' : '';
-      const lead = i === 0 ? ' [leader]' : '';
-      return `${this.threatName(id)}${you} ${pct}%${lead}`;
-    });
-    return `Threat on ${t.name} (${entries.length}): ${parts.join(', ')}.`;
-  }
-
-  /** Display name for a threat-table source: a player by pid, else the entity
-   *  (pet/mob) name, else a placeholder for sources that have despawned. */
-  private threatName(id: number): string {
-    const meta = this.players.get(id);
-    if (meta) return meta.name;
-    return this.entities.get(id)?.name || 'Unknown';
-  }
-  // One scannable entry per nearby entity: name, what it is, and how far.
-  // Pets are mobs with a non-null ownerId; players have no level prefix.
-  private nearbyLabel(e: Entity, d: number): string {
-    const yd = `${Math.round(d)}yd`;
-    if (e.kind === 'player') return `${e.name} (player, ${yd})`;
-    const kind = e.kind === 'mob' && e.ownerId !== null ? 'pet' : e.kind;
-    return `${e.name} (Lvl ${e.level} ${kind}, ${yd})`;
-  }
-
-  // Self-only readout of living entities within NEARBY_RANGE of `self`,
-  // nearest first. Reads only live Entity state (pos/kind/level/hp), so it
-  // never desyncs and adds no persisted fields.
-  private nearbyReadout(self: Entity): string {
-    const found: { e: Entity; d: number }[] = [];
-    for (const e of this.entities.values()) {
-      if (e.id === self.id || e.kind === 'object' || e.hp <= 0) continue;
-      const d = dist2d(self.pos, e.pos);
-      if (d <= NEARBY_RANGE) found.push({ e, d });
-    }
-    if (found.length === 0) return 'Nothing is nearby.';
-    found.sort((a, b) => a.d - b.d);
-    const shown = found.slice(0, NEARBY_MAX);
-    const labels = shown.map(({ e, d }) => this.nearbyLabel(e, d));
-    const more = found.length - shown.length;
-    if (more > 0) labels.push(`(+${more} more)`);
-    return `Nearby (${found.length}): ${labels.join(', ')}.`;
-  }
-  // Distance from the player to their current target. Reads only live Entity
-  // state (targetId + positions), so it needs no new fields and works online
-  // for free. The in-melee hint compares the RAW distance to MELEE_RANGE — the
-  // same threshold the swing-resolution code uses — while the displayed yards
-  // are rounded, so the hint stays truthful even when rounding lands on 5yd.
-  private rangeReadout(self: Entity): string {
-    if (self.targetId === null) return 'You have no target.';
-    const t = this.entities.get(self.targetId);
-    if (!t) return 'You have no target.';
-    const d = dist2d(self.pos, t.pos);
-    const reach = d <= MELEE_RANGE ? 'in melee range' : 'out of melee range';
-    return `Your target ${t.name} is ${Math.round(d)}yd away (${reach}).`;
-  }
-  // Reads the live cast-bar state (no stored fields): castingAbility holds an
-  // ability id or the FISHING_CAST_ID sentinel, channeling distinguishes a
-  // channel from a normal cast. Times are fractional seconds, so toFixed(1)
-  // stays truthful rather than rounding a 2.5s cast to "3s".
-  private castingReadout(e: Entity): string {
-    if (!e.castingAbility) return 'You are not casting anything.';
-    const remaining = e.castRemaining.toFixed(1);
-    const total = e.castTotal.toFixed(1);
-    if (e.castingAbility === FISHING_CAST_ID) {
-      return `You are fishing — ${remaining}s of ${total}s remaining.`;
-    }
-    const name = ABILITIES[e.castingAbility]?.name ?? e.castingAbility;
-    const verb = e.channeling ? 'Channeling' : 'Casting';
-    return `${verb} ${name} — ${remaining}s of ${total}s remaining.`;
-  }
-  // Self-only readout of what the player is currently eating/drinking. Food and
-  // drink occupy separate slots and tick concurrently, each on its own remaining
-  // timer, so both are reported with their own restore rate and time left.
-  private consumableReadout(e: Entity): string {
-    const parts: string[] = [];
-    for (const c of [e.eating, e.drinking]) {
-      if (!c) continue;
-      const name = ITEMS[c.itemId]?.name ?? c.itemId;
-      const restores: string[] = [];
-      if (c.hpPer2s > 0) restores.push(`+${c.hpPer2s} HP/2s`);
-      if (c.manaPer2s > 0) restores.push(`+${c.manaPer2s} mana/2s`);
-      restores.push(`${Math.ceil(c.remaining)}s left`);
-      const verb = c.kind === 'food' ? 'eating' : 'drinking';
-      parts.push(`${verb} ${name} (${restores.join(', ')})`);
-    }
-    if (parts.length === 0) return 'You are not eating or drinking.';
-    return `You are ${parts.join(' and ')}.`;
-  }
-  // Self-only readout of the shared combat-potion cooldown (#103). Distinct from
-  // /cooldowns, which reads the per-ability Entity.cooldowns map and never shows
-  // this separate 60s potion timer. potionCooldownUntil is an absolute sim-time
-  // deadline, so the remaining time is computed against this.time.
-  private potionReadout(e: Entity): string {
-    const remaining = e.potionCooldownUntil - this.time;
-    if (remaining <= 0) return 'Combat potion is ready to use.';
-    return `Combat potion on cooldown — ready in ${Math.ceil(remaining)}s.`;
-  }
-  // Self-only readout of the ability armed to fire on the next melee swing
-  // (Heroic Strike / Raptor Strike / Maul). Distinct from /casting (active
-  // cast bar) and /cooldowns (recharge timers): an on-swing ability is neither
-  // casting nor on cooldown, just waiting for the swing — and it silently
-  // fizzles if the resource can't be paid when the swing lands (see swing
-  // resolution), so the readout flags that case up front.
-  private queuedReadout(e: Entity): string {
-    if (!e.queuedOnSwing) return 'You have no ability queued for your next swing.';
-    const queued = this.resolvedAbility(e.queuedOnSwing, e.id);
-    const name = queued?.def.name ?? e.queuedOnSwing;
-    if (!queued) return `${name} is queued for your next melee swing.`;
-    const res = e.resourceType ?? 'resource';
-    const have = Math.floor(e.resource);
-    if (e.resource >= queued.cost) {
-      return `${name} is queued for your next melee swing (costs ${queued.cost} ${res}; you have ${have}).`;
-    }
-    return `${name} is queued for your next melee swing, but you cannot afford it (costs ${queued.cost} ${res}; you have ${have}) — it will fizzle.`;
-  }
-
-  // Self-only readout for "/talents": the player's specialization and how their
-  // talent points are split across the Class tree and the chosen spec tree.
-  // Points are derived live from level (talentPointsAtLevel), so the total stays
-  // correct after a level-up even if the allocation hasn't been touched since.
-  private talentsReadout(meta: PlayerMeta, e: Entity): string {
-    const ct = talentsFor(meta.cls);
-    if (!ct) return 'Your class has no talent tree yet.';
-    const total = talentPointsAtLevel(e.level);
-    if (total <= 0)
-      return `You have not unlocked talents yet — they begin at level ${FIRST_TALENT_LEVEL}.`;
-    const spent = pointsSpent(meta.talents);
-    // Split spent points by tree (cold path: walk the allocation once on demand).
-    const byId = new Map(ct.nodes.map((n) => [n.id, n] as const));
-    let classPts = 0;
-    let specPts = 0;
-    for (const id in meta.talents.ranks) {
-      const node = byId.get(id);
-      if (!node) continue;
-      if (node.tree === 'class') classPts += meta.talents.ranks[id];
-      else specPts += meta.talents.ranks[id];
-    }
-    const specName = meta.talents.spec
-      ? (ct.specs.find((s) => s.id === meta.talents.spec)?.name ?? meta.talents.spec)
-      : null;
-    const head = specName ?? 'no specialization';
-    const breakdown = specName ? `Class ${classPts}, ${specName} ${specPts}` : `Class ${classPts}`;
-    const unspent = total - spent;
-    const tail = unspent > 0 ? ` ${unspent} unspent.` : '';
-    return `Talents: ${head} — ${spent}/${total} points spent (${breakdown}).${tail}`;
-  }
   // -------------------------------------------------------------------------
   // Delves, replayable modular instances (see docs/prd/delves.md)
   // -------------------------------------------------------------------------
 
+  // Delve run lifecycle (I2a) lives in src/sim/delves/runs.ts; Sim keeps same-named
+  // thin delegates so the IWorld surface, the shared reach-in entry points, the
+  // interleaved I2b/I2c callers, the movement clamps, and the (sim as any) test casts
+  // all resolve unchanged. The bodies moved verbatim behind SimContext.
   private delveOriginOf(run: DelveRun): { x: number; z: number } {
-    return delveOrigin(DELVES[run.delveId].index, run.slot);
+    return runsMod.delveOriginOf(run);
   }
 
   private delveModuleZOffset(run: DelveRun, moduleIndex = run.moduleIndex): number {
-    return delveModuleZOffset(run.modules, moduleIndex);
+    return runsMod.delveModuleZOffset(run, moduleIndex);
   }
 
   private delveOccupancyRadius(run: DelveRun): number {
-    const mi = Math.max(0, run.modules.length - 1);
-    const modId = run.modules[mi] as DelveModuleId;
-    const layout = DELVE_MODULE_LAYOUTS[modId];
-    const span = layout ? layout.zMax - layout.zMin : 50;
-    return delveModuleZOffset(run.modules, mi) + span + 40;
+    return runsMod.delveOccupancyRadius(run);
   }
 
   private delveRunForEntity(e: Entity): DelveRun | null {
-    const byPlayer = this.delveRunForPlayer(e.id);
-    if (byPlayer) return byPlayer;
-    return this.delveRunForMob(e.id);
+    return runsMod.delveRunForEntity(this.ctx, e);
   }
 
   // Swept move resolution for players, keeps v0.10.0's segment-based
@@ -15966,951 +8851,203 @@ export class Sim {
     return this.clampDelveDoors(run, clamped.x, clamped.z, r);
   }
 
-  // Confine an entity to the active module's interior box. Module-to-module
-  // travel is teleport-only (advanceDelveModule), so the 16u inter-module gap is
-  // never meant to be walkable: without this clamp the gap is an unsealed dead
-  // zone (no side walls) the player can slip into and walk out of the map, and
-  // it lets a freshly-transitioned player backtrack south into the prior room.
-  // Bounds come straight from the active module's own layout so they always
-  // match the room the player is actually standing in.
   private clampDelveModuleBounds(
     run: DelveRun,
     x: number,
     z: number,
     r: number,
   ): { x: number; z: number } {
-    const moduleId = run.modules[run.moduleIndex] as DelveModuleId;
-    const layout = DELVE_MODULE_LAYOUTS[moduleId];
-    if (!layout) return { x, z };
-    const wallX = layout.wallX ?? DUNGEON_WALL_X;
-    const halfX = wallX - DUNGEON_WALL_HW - r; // inner wall face minus body radius
-    const zBase = this.delveModuleZOffset(run);
-    const localX = x - run.origin.x;
-    const localZ = z - (run.origin.z + zBase);
-    const clampedX = Math.max(-halfX, Math.min(halfX, localX));
-    // Front/back end walls are DUNGEON_WALL_HW thick at zMin/zMax; keep the body
-    // inside their inner faces.
-    const minZ = layout.zMin + DUNGEON_WALL_HW + r;
-    const maxZ = layout.zMax - DUNGEON_WALL_HW - r;
-    const clampedZ = Math.max(minZ, Math.min(maxZ, localZ));
-    return { x: clampedX + run.origin.x, z: clampedZ + run.origin.z + zBase };
+    return runsMod.clampDelveModuleBounds(run, x, z, r);
   }
 
-  // Closed portcullis doors block the full walkable aisle until all plates fire;
-  // solid props (chests, cracked graves, an intact destructible wall) block as
-  // circles so you cannot walk through them. Pressure plates and open passages
-  // stay walkable. Mobs and the companion route through the same clamp.
   private clampDelveDoors(
     run: DelveRun,
     x: number,
     z: number,
     r: number,
   ): { x: number; z: number } {
-    for (const id of run.objectIds) {
-      const state = run.objectState[id];
-      if (!state) continue;
-      const obj = this.entities.get(id);
-      if (!obj) continue;
-      if (state.kind === 'locked_door') {
-        if (state.open) continue;
-        // Span the full walkable aisle (delve side walls at |x|=25, hw=1) so the
-        // portcullis cannot be bypassed by skirting the centre mesh.
-        const hw = 24,
-          hd = 1.2;
-        const dx = x - obj.pos.x,
-          dz = z - obj.pos.z;
-        const ox = Math.abs(dx) - hw - r;
-        const oz = Math.abs(dz) - hd - r;
-        if (ox < 0 && oz < 0) {
-          if (ox > oz) x = obj.pos.x + Math.sign(dx || 1) * (hw + r);
-          else z = obj.pos.z + Math.sign(dz || 1) * (hd + r);
-        }
-        continue;
-      }
-      let solidR = 0;
-      if (state.kind === 'reward_chest' || state.kind === 'locked_chest')
-        solidR = DELVE_CHEST_SOLID_R;
-      else if (state.kind === 'cracked_grave') solidR = DELVE_GRAVE_SOLID_R;
-      else if (state.kind === 'destructible_wall') solidR = obj.hp > 0 ? DELVE_WALL_SOLID_R : 0;
-      if (solidR <= 0) continue;
-      const dx = x - obj.pos.x,
-        dz = z - obj.pos.z;
-      const dist = Math.hypot(dx, dz);
-      const min = solidR + r;
-      if (dist < min) {
-        if (dist > 1e-6) {
-          x = obj.pos.x + (dx / dist) * min;
-          z = obj.pos.z + (dz / dist) * min;
-        } else x = obj.pos.x + min;
-      }
-    }
-    return { x, z };
+    return runsMod.clampDelveDoors(this.ctx, run, x, z, r);
   }
 
   delveModuleEntry(run: DelveRun): Vec3 {
-    const moduleId = run.modules[run.moduleIndex] as DelveModuleId;
-    const layout = DELVE_MODULE_LAYOUTS[moduleId];
-    const entry = layout ? delveLayoutEntry(layout) : { x: 0, z: 8 };
-    const zBase = this.delveModuleZOffset(run);
-    return this.groundPos(run.origin.x + entry.x, run.origin.z + zBase + entry.z);
+    return runsMod.delveModuleEntry(this.ctx, run);
   }
 
   delveRunForPlayer(pid: number): DelveRun | null {
-    const e = this.entities.get(pid);
-    if (!e) return null;
-    const key = this.instanceKeyFor(pid);
-    for (const run of this.delveRuns) {
-      if (run.partyKey !== key) continue;
-      const dx = Math.abs(e.pos.x - run.origin.x);
-      const dz = Math.abs(e.pos.z - run.origin.z);
-      if (dx <= 120 && dz <= this.delveOccupancyRadius(run)) return run;
-    }
-    if (!isDelvePos(e.pos.x)) return null;
-    const delve = delveAt(e.pos.x);
-    if (!delve) return null;
-    return this.delveRuns.find((r) => r.delveId === delve.id && r.partyKey === key) ?? null;
+    return runsMod.delveRunForPlayer(this.ctx, pid);
   }
 
   private delveRunForMob(mobId: number): DelveRun | null {
-    return this.delveRuns.find((r) => r.partyKey !== null && r.mobIds.includes(mobId)) ?? null;
+    return runsMod.delveRunForMob(this.ctx, mobId);
   }
 
+  // Party membership alone is NOT "in this delve run": a party member who never
+  // walked through the door (e.g. AFK back in town) must not be swept into
+  // module-advance / eject / reward teleports meant for players who are actually
+  // inside. Every caller of this is delve-scoped, so gate on physical presence.
   private partyMembersForKey(key: string): number[] {
     const out: number[] = [];
     for (const meta of this.players.values()) {
-      if (this.instanceKeyFor(meta.entityId) === key) out.push(meta.entityId);
+      if (this.instanceKeyFor(meta.entityId) !== key) continue;
+      const e = this.entities.get(meta.entityId);
+      if (!e || !isDelvePos(e.pos.x)) continue;
+      out.push(meta.entityId);
     }
     return out;
   }
 
   private refreshDelveDaily(meta: PlayerMeta): void {
-    // `utcDay` is supplied by the host (never read from the wall clock here, so the
-    // sim stays deterministic). When unknown (''), the daily window does not roll
-    // over, same-seed replays stay reproducible.
-    const today = this.utcDay;
-    if (today && meta.delveDaily.date !== today) {
-      meta.delveDaily = { date: today, firstClearXp: new Set(), markClears: 0 };
-    }
+    runsMod.refreshDelveDaily(this.ctx, meta);
   }
 
   private pickDelveModules(delve: DelveDef, seed: number, tierId: string): string[] {
-    const rng = new Rng(seed);
-    const pool = delve.modules.filter((id) => id !== delve.finaleModuleId);
-    const shuffled = [...pool];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = rng.int(0, i);
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    // moduleCount is [normal, heroic] in tier order; pick by the tier's position so
-    // a higher tier can run more rooms. Defaults to the Normal count if unmatched.
-    const tierIdx = delve.tiers.findIndex((t) => t.id === tierId);
-    const count = delve.moduleCount[tierIdx >= 0 ? tierIdx : 0] ?? delve.moduleCount[0];
-    const picked = shuffled.slice(0, count);
-    picked.push(delve.finaleModuleId);
-    return picked;
+    return runsMod.pickDelveModules(delve, seed, tierId);
   }
 
   private stowPetForDelve(pid: number): void {
-    const meta = this.players.get(pid);
-    if (!meta || !isPetClass(meta.cls)) return;
-    const pet = this.petOf(pid, true);
-    if (!pet) return;
-    const state = this.serializePet(pid);
-    if (state) this.delvePetStash.set(pid, state);
-    if (MOBS[pet.templateId]?.family === 'demon') this.despawnPet(pet);
-    else this.despawnPersistentPet(pet);
+    petCommands.stowPetForDelve(this.ctx, pid);
   }
 
   private restorePetFromDelveStash(pid: number): void {
-    const state = this.delvePetStash.get(pid);
-    if (!state) return;
-    this.delvePetStash.delete(pid);
-    const e = this.entities.get(pid);
-    if (!e || this.petOf(pid, true)) return;
-    this.restorePet(e, state);
+    petCommands.restorePetFromDelveStash(this.ctx, pid);
   }
 
   private canEnterDelve(pid: number): string | null {
-    const r = this.resolve(pid);
-    if (!r || r.e.dead) return 'You cannot enter a delve right now.';
-    if (dungeonAt(r.e.pos.x)) return 'Leave the dungeon first.';
-    if (isArenaPos(r.e.pos.x)) return 'Leave the arena first.';
-    if (isDelvePos(r.e.pos.x)) return 'You are already in a delve.';
-    if (this.tradeFor(pid)) return 'You cannot enter a delve while trading.';
-    if (this.duelFor(pid)) return 'You cannot enter a delve during a duel.';
-    if (this.arenaMatches.has(pid)) return 'You cannot enter a delve during an arena match.';
-    return null;
+    return runsMod.canEnterDelve(this.ctx, pid);
   }
 
   enterDelve(delveId: string, tierId: string, pid?: number): void {
-    const r = this.resolve(pid);
-    const delve = DELVES[delveId];
-    if (!r || !delve) return;
-    const gate = this.canEnterDelve(r.meta.entityId);
-    if (gate) {
-      this.error(r.meta.entityId, gate);
-      return;
-    }
-    if (!delve.tiers.some((t) => t.id === tierId)) {
-      this.error(r.meta.entityId, 'Unknown delve tier.');
-      return;
-    }
-    if (r.e.level < delve.minLevel) {
-      this.error(r.meta.entityId, `You must be level ${delve.minLevel} to enter ${delve.name}.`);
-      return;
-    }
-    const tierDef = delve.tiers.find((t) => t.id === tierId);
-    if (tierDef?.minPlayerLevel && r.e.level < tierDef.minPlayerLevel) {
-      this.error(
-        r.meta.entityId,
-        `You must be level ${tierDef.minPlayerLevel} to enter ${delve.name} on ${tierDef.label}.`,
-      );
-      return;
-    }
-    const key = this.instanceKeyFor(r.meta.entityId);
-    let run = this.delveRuns.find((d) => d.delveId === delveId && d.partyKey === key);
-    if (!run) {
-      run = this.delveRuns.find((d) => d.delveId === delveId && d.partyKey === null);
-      if (!run) {
-        this.error(r.meta.entityId, `All instances of ${delve.name} are busy. Try again soon.`);
-        return;
-      }
-      this.claimDelveRun(run, key, delveId, tierId);
-    } else {
-      run.emptyFor = 0;
-    }
-    this.stowPetForDelve(r.meta.entityId);
-    const entry = this.delveModuleEntry(run);
-    const p = r.e;
-    p.pos = entry;
-    p.prevPos = { ...entry };
-    this.rebucket(p);
-    p.facing = 0;
-    p.targetId = null;
-    p.autoAttack = false;
-    run.emptyFor = 0;
-    if (key.startsWith('solo:') && delve.autoCompanionId && !run.companion) {
-      this.spawnDelveCompanion(run, r.meta.entityId, delve.autoCompanionId);
-    }
-    this.emit({ type: 'log', text: delve.enterText, color: '#b9f', pid: r.meta.entityId });
-    this.emit({ type: 'delveEntered', delveId, tierId, pid: r.meta.entityId });
+    runsMod.enterDelve(this.ctx, delveId, tierId, pid);
   }
 
-  // Early-abandon path: drop the player back at the board door without completing
-  // (despawns the companion, restores the stowed pet, tears down any lockpick). The
-  // shipped in-delve exit instead runs through the 'surface_exit' interactable ->
-  // freeDelveRun, so this IWorld method (and its server 'leave_delve' command) is
-  // currently only reachable as scaffolding for a future explicit "Abandon Delve"
-  // control; kept wired in both worlds so that control needs no new plumbing.
   leaveDelve(pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r || r.e.dead) return;
-    const run = this.delveRunForPlayer(r.meta.entityId);
-    if (!run) return;
-    const delve = DELVES[run.delveId];
-    // Tear down the leaver's live lockpick session, if any (preserves the attempt).
-    if (run.lockpick && run.lockpick.ownerId === r.meta.entityId) this.abandonLockpick(run);
-    if (run?.companion) this.despawnDelveCompanion(run);
-    this.restorePetFromDelveStash(r.meta.entityId);
-    const p = r.e;
-    p.pos = this.groundPos(delve.doorPos.x, delve.doorPos.z - 4);
-    p.prevPos = { ...p.pos };
-    this.rebucket(p);
-    p.targetId = null;
-    p.autoAttack = false;
-    this.emit({ type: 'log', text: delve.leaveText, color: '#b9f', pid: r.meta.entityId });
+    runsMod.leaveDelve(this.ctx, pid);
   }
 
   private claimDelveRun(run: DelveRun, key: string, delveId: string, tierId: string): void {
-    const delve = DELVES[delveId];
-    run.partyKey = key;
-    run.seed = this.rng.int(1, 0x7fffffff);
-    run.tierId = tierId;
-    // §7.6, roll Bountiful once at run start (Heroic 5% / Normal 2%). Derived from
-    // run.seed in its own stream (like affixes/modules) so it is deterministic
-    // without perturbing the global rng draw order that the chest loot depends on.
-    run.bountiful = new Rng((run.seed ^ 0x600dc0ff) >>> 0).chance(
-      tierId === 'heroic' ? 0.05 : 0.02,
-    );
-    run.affixes = this.rollDelveAffixes(delve, tierId, run.seed);
-    run.modules = this.pickDelveModules(delve, run.seed, tierId);
-    run.moduleIndex = 0;
-    run.completed = false;
-    run.emptyFor = 0;
-    run.deathsThisRun = {};
-    run.objectState = {};
-    run.raiseDeadChannel = null;
-    run.restlessPending = [];
-    run.badAirTimer = 0;
-    run.companionBarks = [];
-    run.companion = undefined;
-    run.exitPortalOpen = false;
-    run.rewardChestId = null;
-    run.surfaceExitId = null;
-    run.objective = { kind: delve.objective, counts: [0], complete: false };
-    const origin = this.delveOriginOf(run);
-    run.origin = { x: origin.x, z: origin.z };
-    this.spawnDelveModule(run);
+    runsMod.claimDelveRun(this.ctx, run, key, delveId, tierId);
   }
 
   private spawnDelveModule(run: DelveRun): void {
-    for (const id of run.mobIds) {
-      if (!this.entities.has(id)) continue;
-      for (const meta of this.players.values()) {
-        const e = this.entities.get(meta.entityId);
-        if (e?.targetId === id) e.targetId = null;
-        if (e?.comboTargetId === id) {
-          e.comboTargetId = null;
-          e.comboPoints = 0;
-        }
-      }
-      this.dropEntity(id);
-    }
-    run.mobIds = [];
-    for (const id of run.objectIds) {
-      if (this.entities.has(id)) this.dropEntity(id);
-    }
-    run.objectIds = [];
-    run.objectState = {};
-    run.raiseDeadChannel = null;
-    run.exitPortalOpen = false;
-    run.rewardChestId = null;
-    run.surfaceExitId = null;
-
-    const moduleId = run.modules[run.moduleIndex];
-    const mod = DELVE_MODULES[moduleId];
-    if (!mod) return;
-    const delve = DELVES[run.delveId];
-    const tier = delve.tiers.find((t) => t.id === run.tierId) ?? delve.tiers[0];
-    const zBase = this.delveModuleZOffset(run);
-    const spawnSet = this.pickDelveSpawnSet(mod, run.seed, run.moduleIndex);
-    if (!spawnSet) return;
-    for (const spawn of spawnSet.spawns) {
-      const template = MOBS[spawn.mobId];
-      if (!template) continue;
-      const level = template.minLevel + tier.enemyLevelBonus;
-      const mob = createMob(
-        this.nextId++,
-        template,
-        level,
-        this.groundPos(run.origin.x + spawn.x, run.origin.z + zBase + spawn.z),
-      );
-      mob.facing = Math.PI;
-      mob.prevFacing = mob.facing;
-      this.addEntity(mob);
-      run.mobIds.push(mob.id);
-    }
-    this.spawnDelveInteractables(run, mod, zBase);
-    const isFinale = mod.id === delve.finaleModuleId || run.moduleIndex >= run.modules.length - 1;
-    if (!isFinale) this.spawnDelveModuleExit(run, mod, zBase);
-    this.emitDelveModuleEnter(run, mod);
-    if (run.companion) {
-      const companion = this.entities.get(run.companion.entityId);
-      if (companion) {
-        const entry = this.delveModuleEntry(run);
-        companion.pos = this.groundPos(entry.x + 1.5, entry.z);
-        companion.prevPos = { ...companion.pos };
-        this.rebucket(companion);
-      }
-    }
+    runsMod.spawnDelveModule(this.ctx, run);
   }
 
   private freeDelveRun(run: DelveRun): void {
-    this.abandonLockpick(run);
-    if (run.companion) this.despawnDelveCompanion(run);
-    for (const id of run.mobIds) {
-      if (!this.entities.has(id)) continue;
-      for (const meta of this.players.values()) {
-        const e = this.entities.get(meta.entityId);
-        if (e?.targetId === id) e.targetId = null;
-        if (e?.comboTargetId === id) {
-          e.comboTargetId = null;
-          e.comboPoints = 0;
-        }
-      }
-      this.dropEntity(id);
-    }
-    for (const id of run.objectIds) {
-      if (this.entities.has(id)) this.dropEntity(id);
-    }
-    run.partyKey = null;
-    run.seed = 0;
-    run.tierId = 'normal';
-    run.affixes = [];
-    run.modules = [];
-    run.moduleIndex = 0;
-    run.mobIds = [];
-    run.objectIds = [];
-    run.objective = { kind: DELVES[run.delveId].objective, counts: [0], complete: false };
-    run.completed = false;
-    run.emptyFor = 0;
-    run.deathsThisRun = {};
-    run.objectState = {};
-    run.raiseDeadChannel = null;
-    run.restlessPending = [];
-    run.badAirTimer = 0;
-    run.companionBarks = [];
-    run.companion = undefined;
-    run.exitPortalOpen = false;
-    run.bountiful = false;
-    run.rewardChestId = null;
-    run.surfaceExitId = null;
-    run.lockpick = null;
+    runsMod.freeDelveRun(this.ctx, run);
   }
 
   private updateDelveRuns(): void {
-    for (const run of this.delveRuns) {
-      // The lockpick per-step clock is enforced for EVERY run (a solo offline run
-      // has partyKey === null and is skipped by tickDelveRun below, but its lock
-      // must still time out identically to an online/headless one).
-      this.tickLockpickTimeout(run);
-      if (run.partyKey !== null) this.tickDelveRun(run);
-    }
-    if (this.tickCount % 20 !== 0) return;
-    for (const run of this.delveRuns) {
-      if (run.partyKey === null) continue;
-      const origin = run.origin;
-      let occupied = false;
-      for (const meta of this.players.values()) {
-        const e = this.entities.get(meta.entityId);
-        if (
-          e &&
-          Math.abs(e.pos.x - origin.x) < 120 &&
-          Math.abs(e.pos.z - origin.z) < this.delveOccupancyRadius(run)
-        ) {
-          occupied = true;
-          break;
-        }
-      }
-      if (occupied) run.emptyFor = 0;
-      else {
-        run.emptyFor += 1;
-        if (run.emptyFor >= INSTANCE_EMPTY_TIMEOUT) this.freeDelveRun(run);
-      }
-    }
+    runsMod.updateDelveRuns(this.ctx);
   }
 
   private ejectToDelveDoor(pid: number, delve: DelveDef): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const p = r.e;
-    p.dead = false;
-    p.pos = this.groundPos(delve.doorPos.x, delve.doorPos.z - 4);
-    p.prevPos = { ...p.pos };
-    this.rebucket(p);
-    p.facing = 0;
-    p.auras = [];
-    p.ccDr.clear();
-    recalcPlayerStats(p, r.meta.cls, r.meta.equipment, r.meta.talentMods);
-    p.hp = p.maxHp;
-    p.resource = p.resourceType === 'mana' ? p.maxResource : p.resourceType === 'energy' ? 100 : 0;
-    p.targetId = null;
-    p.combatTimer = 99;
-    p.inCombat = false;
-    p.autoAttack = false;
+    runsMod.ejectToDelveDoor(this.ctx, pid, delve);
   }
 
   private failDelveRun(run: DelveRun): void {
-    const delve = DELVES[run.delveId];
-    const members = run.partyKey ? this.partyMembersForKey(run.partyKey) : [];
-    for (const pid of members) {
-      this.restorePetFromDelveStash(pid);
-      this.ejectToDelveDoor(pid, delve);
-      this.emit({ type: 'delveFailed', delveId: run.delveId, tierId: run.tierId, pid });
-      this.emit({ type: 'log', text: `${delve.name} run failed.`, color: '#f66', pid });
-    }
-    this.freeDelveRun(run);
+    runsMod.failDelveRun(this.ctx, run);
   }
 
   private onDelveBossDefeated(run: DelveRun): void {
-    // Guard against double-spawn (e.g. if called twice due to a race)
-    if (run.rewardChestId !== null) return;
-    const delve = DELVES[run.delveId];
-    const moduleId = run.modules[run.moduleIndex] as DelveModuleId;
-    if (moduleId !== delve.finaleModuleId) return;
-    const layout = DELVE_MODULE_LAYOUTS[moduleId];
-    const zBase = this.delveModuleZOffset(run);
-    const dais = layout?.dais ?? { x: 0, z: 52 };
-    // Centre aisle, toward the entrance (south) edge of the dais and facing the
-    // approaching player, clear of the north surface-exit stairs at dais.z+6.
-    const chestLocalZ = dais.z - 14;
-    const chestPos = this.groundPos(run.origin.x, run.origin.z + zBase + chestLocalZ);
-    // Drop any stale module_exit (same z as dais / north passage) before placing the chest.
-    for (const id of [...run.objectIds]) {
-      if (run.objectState[id]?.kind !== 'module_exit') continue;
-      this.dropEntity(id);
-      run.objectIds = run.objectIds.filter((oid) => oid !== id);
-      delete run.objectState[id];
-    }
-    const chest = this.createDelveObject(run, 'locked_chest', chestPos);
-    chest.facing = Math.PI; // face south, toward the player entering from the aisle
-    chest.prevFacing = Math.PI;
-    run.rewardChestId = chest.id;
-    run.objectState[chest.id].attemptAvailable = true;
-    if (!run.partyKey) return;
-    for (const pid of this.partyMembersForKey(run.partyKey)) {
-      this.emit({
-        type: 'log',
-        text: 'The boss falls. A warded reliquary chest rises on the dais. Pick its lock to claim your spoils.',
-        color: '#8f8',
-        pid,
-      });
-    }
+    runsMod.onDelveBossDefeated(this.ctx, run);
   }
 
-  // Base Marks payout for one clear. PRD §6.5 FR-5.3: full Marks for the first 3
-  // completions per UTC day, then a diminished payout (Heroic 1 guaranteed, Normal
-  // 50% chance of 1). §6.7 FR-7.1 Heroic "+30% Marks" rides the tier `rewardMult`.
-  // Reads `markClears` BEFORE the caller increments it. NOTE: at the base of 1 Mark
-  // the +30% rounds to no per-clear difference; the Heroic mark advantage comes from
-  // the post-3 guaranteed-vs-50% rule. Uses `this.rng` only (deterministic).
   private delveMarkPayout(run: DelveRun, meta: PlayerMeta): number {
-    const isHeroic = run.tierId === 'heroic';
-    // First 3 clears/day pay full: 1 Normal / 2 Heroic (§7.4). After that, Heroic
-    // still guarantees 1; Normal has a 50% shot. (The old `Math.round(rewardMult)`
-    // rounded Heroic's 1.3 down to 1, silently erasing the Heroic advantage.)
-    if (meta.delveDaily.markClears < 3) return isHeroic ? 2 : 1;
-    if (isHeroic) return 1;
-    return this.rng.chance(0.5) ? 1 : 0;
+    return runsMod.delveMarkPayout(this.ctx, run, meta);
   }
 
-  // Unlock the next un-owned lore journal entry (PRD §6.4 / §7.6, five entries
-  // across repeat clears). Emits a stable lore id (no English crosses the sim
-  // boundary); the client localises it via the `delveUi.lore.*` keys.
   private unlockNextDelveLore(meta: PlayerMeta, pid: number): void {
-    const idx = meta.delveLoreUnlocked.size;
-    if (idx >= DELVE_LORE_ORDER.length) return;
-    const loreId = DELVE_LORE_ORDER[idx];
-    meta.delveLoreUnlocked.add(loreId);
-    this.emit({ type: 'delveLoreUnlock', loreId, pid });
+    runsMod.unlockNextDelveLore(this.ctx, meta, pid);
   }
 
-  // Shared per-member clear economy used by BOTH completion paths so they cannot
-  // diverge: daily reset, first-vs-repeat XP, Marks (FR-5.3), clear tally, copper,
-  // next lore entry, pet restore, and the delveComplete event.
   private grantDelveClearTo(run: DelveRun, delve: DelveDef, meta: PlayerMeta, pid: number): void {
-    this.refreshDelveDaily(meta);
-    const tier = delve.tiers.find((t) => t.id === run.tierId);
-    const clearKey = `${run.delveId}:${run.tierId}`;
-    const firstClear = !meta.delveDaily.firstClearXp.has(clearKey);
-    // Per-tier reward overrides (Heroic 1050/650, copper 16-24) fall back to the
-    // delve's Normal baseRewards when a tier omits them.
-    const xp = firstClear
-      ? (tier?.firstClearXp ?? delve.baseRewards.firstClearXp)
-      : (tier?.repeatClearXp ?? delve.baseRewards.repeatClearXp);
-    if (firstClear) meta.delveDaily.firstClearXp.add(clearKey);
-    const marks = this.delveMarkPayout(run, meta);
-    meta.delveDaily.markClears += 1;
-    meta.delveMarks += marks;
-    meta.delveClears[clearKey] = (meta.delveClears[clearKey] ?? 0) + 1;
-    this.grantXp(xp, meta);
-    const copper = this.rng.int(
-      tier?.copperMin ?? delve.baseRewards.copperMin,
-      tier?.copperMax ?? delve.baseRewards.copperMax,
-    );
-    meta.copper += copper;
-    this.unlockNextDelveLore(meta, pid);
-    this.maybeCompanionBark(run, pid, 'completion');
-    this.restorePetFromDelveStash(pid);
-    this.emit({ type: 'delveComplete', delveId: run.delveId, tierId: run.tierId, pid });
+    runsMod.grantDelveClearTo(this.ctx, run, delve, meta, pid);
   }
 
   private grantDelveRewards(run: DelveRun): void {
-    if (run.completed) return;
-    run.completed = true;
-    const delve = DELVES[run.delveId];
-    const members = run.partyKey ? this.partyMembersForKey(run.partyKey) : [];
-    for (const pid of members) {
-      const meta = this.players.get(pid);
-      if (!meta) continue;
-      this.grantDelveClearTo(run, delve, meta, pid);
-    }
+    runsMod.grantDelveRewards(this.ctx, run);
   }
 
   private openDelveSurfaceExit(run: DelveRun): void {
-    if (run.surfaceExitId !== null) return;
-    const moduleId = run.modules[run.moduleIndex] as DelveModuleId;
-    const layout = DELVE_MODULE_LAYOUTS[moduleId];
-    const zBase = this.delveModuleZOffset(run);
-    const dais = layout?.dais ?? { x: 0, z: 52 };
-    const exitLocalZ = Math.min(layout.zMax - 2, dais.z + 6);
-    const exitPos = this.groundPos(run.origin.x + dais.x, run.origin.z + zBase + exitLocalZ);
-    const exitObj = this.createDelveObject(run, 'surface_exit', exitPos);
-    run.objectState[exitObj.id].open = true;
-    run.surfaceExitId = exitObj.id;
-    if (!run.partyKey) return;
-    for (const pid of this.partyMembersForKey(run.partyKey)) {
-      this.emit({
-        type: 'log',
-        text: 'A stairway to the surface opens. Press F at the stairs to leave.',
-        color: '#8cf',
-        pid,
-      });
-    }
+    runsMod.openDelveSurfaceExit(this.ctx, run);
   }
 
+  // In-delve respawn lives in entity_roster.ts (E1, merged E2). Thin delegate keeps
+  // the public method resolving unchanged.
   releaseSpiritInDelve(pid: number): void {
-    const r = this.resolve(pid);
-    if (!r?.e.dead) return;
-    const run = this.delveRunForPlayer(pid);
-    if (!run) return;
-    const deaths = (run.deathsThisRun[pid] ?? 0) + 1;
-    run.deathsThisRun[pid] = deaths;
-    if (deaths >= 2) {
-      r.e.dead = false;
-      this.failDelveRun(run);
-      return;
-    }
-    const p = r.e;
-    p.dead = false;
-    const entry = this.delveModuleEntry(run);
-    p.pos = entry;
-    p.prevPos = { ...entry };
-    this.rebucket(p);
-    p.facing = 0;
-    p.auras = [];
-    p.ccDr.clear();
-    recalcPlayerStats(p, r.meta.cls, r.meta.equipment, r.meta.talentMods);
-    p.hp = Math.max(1, Math.round(p.maxHp * 0.5));
-    p.resource =
-      p.resourceType === 'mana'
-        ? Math.round(p.maxResource * 0.5)
-        : p.resourceType === 'energy'
-          ? 100
-          : 0;
-    p.targetId = null;
-    p.combatTimer = 99;
-    p.inCombat = false;
-    this.emit({ type: 'respawn', pid });
+    releaseSpiritInDelveImpl(this.ctx, pid);
   }
 
   private pickDelveSpawnSet(mod: DelveModuleDef, seed: number, moduleIndex: number) {
-    if (!mod.spawnSets.length) return null;
-    if (mod.spawnSets.length === 1) return mod.spawnSets[0];
-    const rng = new Rng(seed ^ (moduleIndex * 7919));
-    const total = mod.spawnSets.reduce((sum, set) => sum + set.weight, 0);
-    let roll = rng.int(1, total);
-    for (const set of mod.spawnSets) {
-      roll -= set.weight;
-      if (roll <= 0) return set;
-    }
-    return mod.spawnSets[0];
+    return runsMod.pickDelveSpawnSet(mod, seed, moduleIndex);
   }
 
   private spawnDelveInteractables(run: DelveRun, mod: DelveModuleDef, zBase: number): void {
-    const spawned: { kind: string; id: number }[] = [];
-    for (const slot of mod.interactableSlots) {
-      for (const variant of slot.variants) {
-        if (variant === 'darkness_zone') continue;
-        const pos = this.groundPos(run.origin.x + slot.x, run.origin.z + zBase + slot.z);
-        const obj = this.createDelveObject(run, variant, pos);
-        spawned.push({ kind: variant, id: obj.id });
-      }
-    }
-    // Link every pressure plate in this module to every locked door.
-    // A door only opens once ALL plates that reference it are triggered.
-    const plates = spawned.filter((s) => s.kind === 'pressure_plate');
-    const doors = spawned.filter((s) => s.kind === 'locked_door');
-    for (const door of doors) {
-      run.objectState[door.id].open = false;
-    }
-    for (const plate of plates) {
-      run.objectState[plate.id].linkIds = doors.map((d) => d.id);
-    }
+    runsMod.spawnDelveInteractables(this.ctx, run, mod, zBase);
   }
 
   private createDelveObject(run: DelveRun, kind: string, pos: Vec3): Entity {
-    const names: Record<string, string> = {
-      pressure_plate: 'Pressure Plate',
-      locked_door: 'Locked Door',
-      cracked_grave: 'Cracked Grave',
-      destructible_wall: 'Cracked Wall',
-      module_exit: 'Sealed Passage',
-      reward_chest: 'Reliquary Chest',
-      locked_chest: 'Warded Reliquary Chest',
-      surface_exit: 'Ascend to the Surface',
-    };
-    const maxHp = kind === 'destructible_wall' ? 80 : 1;
-    const obj = createGroundObject(this.nextId++, '', names[kind] ?? kind, pos);
-    obj.templateId = `delve_${kind}`;
-    obj.maxHp = maxHp;
-    obj.hp = maxHp;
-    obj.lootable =
-      kind === 'cracked_grave' || kind === 'destructible_wall' || kind === 'module_exit';
-    const startOpen = kind !== 'locked_door' && kind !== 'locked_chest';
-    run.objectState[obj.id] = {
-      kind,
-      triggered: false,
-      hp: maxHp,
-      maxHp,
-      linkIds: [],
-      open: startOpen,
-    };
-    run.objectIds.push(obj.id);
-    this.addEntity(obj);
-    return obj;
+    return runsMod.createDelveObject(this.ctx, run, kind, pos);
   }
 
   private tickDelveRun(run: DelveRun): void {
-    this.tickDelvePressurePlates(run);
-    this.tickDelveModuleExit(run);
-    this.tickDelveRaiseDeadChannel(run);
-    this.tickDelveBadAir(run);
-    this.tickDelveRestlessGraves(run);
+    runsMod.tickDelveRun(this.ctx, run);
   }
 
   private emitDelveModuleEnter(run: DelveRun, mod: DelveModuleDef): void {
-    if (!run.partyKey) return;
-    const modName = DELVE_MODULE_NAMES[mod.id] ?? mod.id;
-    const isFinale = run.moduleIndex >= run.modules.length - 1;
-    for (const pid of this.partyMembersForKey(run.partyKey)) {
-      // Keep the objective as a literal at each emit site (not a variable) so the
-      // S3 guard sees the full "<module>: Clear the room." / ": Defeat the boss."
-      // strings the sim_i18n rules are anchored on.
-      this.emit({
-        type: 'log',
-        text: isFinale ? `${modName}: Defeat the boss.` : `${modName}: Clear the room.`,
-        color: '#cc9',
-        pid,
-      });
-      if (run.moduleIndex === 0 && !isFinale) {
-        this.emit({
-          type: 'log',
-          text: 'A tombstone passage opens to the north when the room is cleared.',
-          color: '#aaa',
-          pid,
-        });
-      }
-    }
+    runsMod.emitDelveModuleEnter(this.ctx, run, mod);
   }
 
   private spawnDelveModuleExit(run: DelveRun, mod: DelveModuleDef, zBase: number): void {
-    const layout = DELVE_MODULE_LAYOUTS[mod.layout as DelveModuleId];
-    if (!layout) return;
-    const pos = this.groundPos(run.origin.x, run.origin.z + zBase + layout.zMax - 6);
-    const obj = this.createDelveObject(run, 'module_exit', pos);
-    run.objectState[obj.id].open = false;
-    obj.name = 'Sealed Passage';
+    runsMod.spawnDelveModuleExit(this.ctx, run, mod, zBase);
   }
 
   private findDelveExitPortal(run: DelveRun): Entity | null {
-    for (const id of run.objectIds) {
-      if (run.objectState[id]?.kind === 'module_exit') return this.entities.get(id) ?? null;
-    }
-    return null;
+    return runsMod.findDelveExitPortal(this.ctx, run);
   }
 
   private tryOpenDelveExitPortal(run: DelveRun): void {
-    if (run.exitPortalOpen || run.moduleIndex >= run.modules.length - 1) return;
-    const liveMobs = run.mobIds.some((id) => {
-      const e = this.entities.get(id);
-      return e && !e.dead;
-    });
-    if (liveMobs) return;
-    const plates = run.objectIds.filter((id) => run.objectState[id]?.kind === 'pressure_plate');
-    if (plates.length > 0 && !plates.some((id) => run.objectState[id].triggered)) return;
-    this.openDelveExitPortal(run);
+    runsMod.tryOpenDelveExitPortal(this.ctx, run);
   }
 
   private openDelveExitPortal(run: DelveRun): void {
-    if (run.exitPortalOpen) return;
-    run.exitPortalOpen = true;
-    const portal = this.findDelveExitPortal(run);
-    if (portal) {
-      run.objectState[portal.id].open = true;
-      portal.name = 'Exit to next chamber';
-    }
-    if (!run.partyKey) return;
-    for (const pid of this.partyMembersForKey(run.partyKey)) {
-      this.emit({
-        type: 'log',
-        text: 'A sealed tombstone passage grinds open to the north. Walk into it to continue.',
-        color: '#8cf',
-        pid,
-      });
-    }
+    runsMod.openDelveExitPortal(this.ctx, run);
   }
 
   private advanceDelveModule(run: DelveRun): void {
-    if (!run.exitPortalOpen || run.moduleIndex >= run.modules.length - 1) return;
-    const members = run.partyKey ? this.partyMembersForKey(run.partyKey) : [];
-    run.moduleIndex += 1;
-    this.spawnDelveModule(run);
-    const entry = this.delveModuleEntry(run);
-    const modId = run.modules[run.moduleIndex];
-    const modName = modId ? (DELVE_MODULE_NAMES[modId] ?? modId) : 'the next chamber';
-    for (const pid of members) {
-      const p = this.entities.get(pid);
-      if (!p || p.dead) continue;
-      p.pos = entry;
-      p.prevPos = { ...entry };
-      this.rebucket(p);
-      p.facing = 0;
-      this.emit({
-        type: 'log',
-        text: `You pass through the tombstone into ${modName}.`,
-        color: '#b9f',
-        pid,
-      });
-    }
+    runsMod.advanceDelveModule(this.ctx, run);
   }
 
   private tickDelveModuleExit(run: DelveRun): void {
-    if (!run.exitPortalOpen) {
-      this.tryOpenDelveExitPortal(run);
-      return;
-    }
-    const portal = this.findDelveExitPortal(run);
-    if (!portal || !run.partyKey) return;
-    for (const pid of this.partyMembersForKey(run.partyKey)) {
-      const p = this.entities.get(pid);
-      if (!p || p.dead) continue;
-      if (dist2d(p.pos, portal.pos) <= DELVE_EXIT_PORTAL_RADIUS) {
-        this.advanceDelveModule(run);
-        return;
-      }
-    }
+    runsMod.tickDelveModuleExit(this.ctx, run);
   }
 
   private tickDelvePressurePlates(run: DelveRun): void {
-    for (const id of run.objectIds) {
-      const state = run.objectState[id];
-      if (state?.kind !== 'pressure_plate' || state.triggered) continue;
-      const plate = this.entities.get(id);
-      if (!plate || !run.partyKey) continue;
-      for (const pid of this.partyMembersForKey(run.partyKey)) {
-        const p = this.entities.get(pid);
-        if (!p || p.dead) continue;
-        const d = dist2d(p.pos, plate.pos);
-        // Companion warns when a party member first nears an un-triggered plate.
-        if (d <= DELVE_PLATE_RADIUS + 4) this.maybeCompanionBark(run, pid, 'trap_spotted');
-        if (d > DELVE_PLATE_RADIUS) continue;
-        state.triggered = true;
-        // Switch the visual to the triggered (green) variant, renderer rebuilds the view.
-        plate.templateId = 'delve_pressure_plate_triggered';
-        // Open each linked door only when ALL plates referencing it are triggered.
-        for (const linkId of state.linkIds) {
-          const linked = run.objectState[linkId];
-          if (linked?.kind !== 'locked_door' || linked.open) continue;
-          const allTriggered = run.objectIds.every((oid) => {
-            const s = run.objectState[oid];
-            if (s?.kind !== 'pressure_plate') return true;
-            if (!s.linkIds.includes(linkId)) return true;
-            return s.triggered;
-          });
-          if (!allTriggered) continue;
-          linked.open = true;
-          const doorEnt = this.entities.get(linkId);
-          if (doorEnt) this.dropEntity(linkId);
-          for (const party of this.partyMembersForKey(run.partyKey)) {
-            this.emit({
-              type: 'log',
-              text: 'A mechanism clicks open nearby. A passage opens to the north. Find the exit portal ahead.',
-              color: '#cc9',
-              pid: party,
-            });
-          }
-        }
-        break;
-      }
-    }
+    runsMod.tickDelvePressurePlates(this.ctx, run);
   }
 
   private tickDelveRaiseDeadChannel(run: DelveRun): void {
-    const channel = run.raiseDeadChannel;
-    if (!channel) return;
-    channel.remaining -= DT;
-    if (channel.remaining > 0) return;
-    run.raiseDeadChannel = null;
-    const boss = this.entities.get(channel.bossId);
-    if (boss && !boss.dead) {
-      this.spawnBossAdds(boss, channel.mobId, channel.count);
-      // Raise Dead resolved uninterrupted (PRD §7.4 telegraph): mirror of the
-      // interrupt-success line emitted from delveInteract on the cracked grave.
-      this.emit({
-        type: 'log',
-        text: "The dead answer Deacon Varric's call!",
-        color: '#f96',
-        entityId: boss.id,
-      });
-    }
+    runsMod.tickDelveRaiseDeadChannel(this.ctx, run);
   }
 
   private tickDelveBadAir(run: DelveRun): void {
-    if (!run.affixes.includes('bad_air')) return;
-    run.badAirTimer += DT;
-    if (run.badAirTimer < DELVE_BAD_AIR_INTERVAL) return;
-    run.badAirTimer = 0;
-    if (!run.partyKey) return;
-    for (const pid of this.partyMembersForKey(run.partyKey)) {
-      const p = this.entities.get(pid);
-      if (!p || p.dead) continue;
-      this.applyAura(p, {
-        id: 'bad_air',
-        name: 'Bad Air',
-        kind: 'dot',
-        school: 'nature',
-        remaining: 4,
-        duration: 4,
-        value: 3,
-        tickInterval: 2,
-        tickTimer: 2,
-        sourceId: p.id,
-      });
-    }
+    runsMod.tickDelveBadAir(this.ctx, run);
   }
 
   private tickDelveRestlessGraves(run: DelveRun): void {
-    if (!run.restlessPending.length) return;
-    const ready: typeof run.restlessPending = [];
-    const pending: typeof run.restlessPending = [];
-    for (const spawn of run.restlessPending) {
-      if (spawn.at <= this.time) ready.push(spawn);
-      else pending.push(spawn);
-    }
-    run.restlessPending = pending;
-    for (const spawn of ready) {
-      const template = MOBS[spawn.mobId];
-      if (!template) continue;
-      const mob = createMob(
-        this.nextId++,
-        template,
-        template.minLevel,
-        this.groundPos(spawn.x, spawn.z),
-      );
-      mob.facing = Math.PI;
-      this.addEntity(mob);
-      run.mobIds.push(mob.id);
-    }
+    runsMod.tickDelveRestlessGraves(this.ctx, run);
   }
 
   private rollDelveAffixes(delve: DelveDef, tierId: string, seed: number): string[] {
-    const tier = delve.tiers.find((t) => t.id === tierId) ?? delve.tiers[0];
-    if (tier.affixCount <= 0) return [];
-    const pool = Object.values(DELVE_AFFIXES).filter(
-      (a) => !a.blessing && a.themes.includes(delve.theme) && DELVE_IMPLEMENTED_AFFIXES.has(a.id),
-    );
-    if (!pool.length) return [];
-    const rng = new Rng(seed ^ 0x5a11c0de);
-    const shuffled = [...pool];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = rng.int(0, i);
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled.slice(0, Math.min(tier.affixCount, shuffled.length)).map((a) => a.id);
+    return runsMod.rollDelveAffixes(delve, tierId, seed);
   }
 
   private delveDetectMult(player: Entity): number {
-    const run = this.delveRunForPlayer(player.id);
-    if (!run?.affixes.includes('candleblind')) return 1;
-    return 0.65;
+    return runsMod.delveDetectMult(this.ctx, player);
   }
 
   private findDelveObject(run: DelveRun, kind: string): Entity | null {
-    for (const id of run.objectIds) {
-      if (run.objectState[id]?.kind === kind) return this.entities.get(id) ?? null;
-    }
-    return null;
+    return runsMod.findDelveObject(this.ctx, run, kind);
   }
 
   private startDelveRaiseDeadChannel(
@@ -16919,22 +9056,7 @@ export class Sim {
     mobId: string,
     count: number,
   ): boolean {
-    const grave = this.findDelveObject(run, 'cracked_grave');
-    if (!grave) return false;
-    run.raiseDeadChannel = {
-      graveId: grave.id,
-      bossId: boss.id,
-      mobId,
-      count,
-      remaining: DELVE_RAISE_DEAD_CHANNEL,
-    };
-    this.emit({
-      type: 'log',
-      text: `${boss.name} begins Raise Dead.`,
-      color: '#f96',
-      entityId: boss.id,
-    });
-    return true;
+    return runsMod.startDelveRaiseDeadChannel(this.ctx, run, boss, mobId, count);
   }
 
   private isDelveCompanionMob(mob: Entity): boolean {
@@ -16967,6 +9089,7 @@ export class Sim {
     mob.wanderTimer = DELVE_COMPANION_HEAL_INTERVAL;
     this.addEntity(mob);
     run.companion = { companionId, entityId: mob.id };
+    this.maybeCompanionBark(run, pid, 'run_start');
   }
 
   private despawnDelveCompanion(run: DelveRun): void {
@@ -16978,829 +9101,104 @@ export class Sim {
   private maybeCompanionBark(run: DelveRun, pid: number, barkId: string): void {
     if (!run.companion || run.companionBarks.includes(barkId)) return;
     run.companionBarks.push(barkId);
-    this.emit({ type: 'companionBark', barkId, pid });
+    // Carry the speaker on the event so the HUD does not have to resolve it
+    // from mutable companionState (which can be momentarily null online).
+    this.emit({ type: 'companionBark', barkId, companionId: run.companion.companionId, pid });
   }
 
-  private updateDelveCompanion(companion: Entity): void {
-    const owner = companion.ownerId !== null ? this.entities.get(companion.ownerId) : null;
-    if (owner?.kind !== 'player' || owner.dead) {
-      this.dropEntity(companion.id);
-      return;
-    }
-    const run = this.delveRunForPlayer(owner.id);
-    if (!run?.companion || run.companion.entityId !== companion.id) {
-      this.dropEntity(companion.id);
-      return;
-    }
-    if (owner.inCombat) this.maybeCompanionBark(run, owner.id, 'combat_start');
-    if (owner.hp / Math.max(1, owner.maxHp) < 0.3) this.maybeCompanionBark(run, owner.id, 'low_hp');
-
-    companion.swingTimer = (companion.swingTimer ?? 0) - DT;
-    let combatTarget: Entity | null = null;
-    if (owner.targetId !== null) {
-      const t = this.entities.get(owner.targetId);
-      if (t && !t.dead && this.isHostileTo(companion, t)) combatTarget = t;
-    }
-    if (!combatTarget) {
-      let best: Entity | null = null;
-      let bestD = 40;
-      for (const m of this.entities.values()) {
-        if (m.kind !== 'mob' || m.dead || !this.isHostileTo(companion, m)) continue;
-        const engagingOwner = m.aggroTargetId === owner.id;
-        const ownerOffense =
-          owner.targetId === m.id && (owner.autoAttack || owner.inCombat || m.threat.has(owner.id));
-        if (!engagingOwner && !ownerOffense) continue;
-        const d = dist2d(companion.pos, m.pos);
-        if (d < bestD) {
-          best = m;
-          bestD = d;
-        }
-      }
-      combatTarget = best;
-    }
-    if (combatTarget) {
-      companion.inCombat = true;
-      const reach = MELEE_RANGE * 0.9;
-      const cd = dist2d(companion.pos, combatTarget.pos);
-      if (cd > reach) {
-        companion.swingTimer = Math.max(0, (companion.swingTimer ?? 0) - DT);
-        if (!this.isRooted(companion)) {
-          this.moveToward(
-            companion,
-            combatTarget.pos,
-            companion.moveSpeed * this.moveSpeedMult(companion),
-          );
-        }
-      } else {
-        companion.facing = angleTo(companion.pos, combatTarget.pos);
-        companion.swingTimer = (companion.swingTimer ?? 0) - DT;
-        if (companion.swingTimer <= 0) {
-          this.mobSwing(companion, combatTarget);
-          companion.swingTimer = companion.weapon.speed * this.swingIntervalMult(companion);
-        }
-      }
-    } else {
-      companion.inCombat = false;
-      companion.swingTimer = Math.max(0, (companion.swingTimer ?? 0) - DT);
-    }
-
-    companion.wanderTimer = (companion.wanderTimer ?? 0) - DT;
-    if (companion.wanderTimer <= 0) {
-      companion.wanderTimer = DELVE_COMPANION_HEAL_INTERVAL;
-      const rank = this.players.get(owner.id)?.companionUpgrades[run.companion.companionId] ?? 1;
-      let target: Entity = owner;
-      let lowest = owner.hp / owner.maxHp;
-      if (run.partyKey) {
-        for (const pid of this.partyMembersForKey(run.partyKey)) {
-          const ally = this.entities.get(pid);
-          if (!ally || ally.dead) continue;
-          const frac = ally.hp / ally.maxHp;
-          if (frac < lowest && dist2d(companion.pos, ally.pos) <= DELVE_COMPANION_HEAL_RANGE) {
-            lowest = frac;
-            target = ally;
-          }
-        }
-      }
-      if (
-        target.hp < target.maxHp &&
-        dist2d(companion.pos, target.pos) <= DELVE_COMPANION_HEAL_RANGE
-      ) {
-        const pct =
-          DELVE_COMPANION_HEAL_PCT[Math.min(rank, DELVE_COMPANION_MAX_RANK)] ??
-          DELVE_COMPANION_HEAL_PCT[1];
-        const healed = Math.min(target.maxHp - target.hp, Math.round(target.maxHp * pct));
-        target.hp += healed;
-        this.emit({ type: 'heal', targetId: target.id, amount: healed });
-        this.emit({
-          type: 'spellfx',
-          sourceId: companion.id,
-          targetId: target.id,
-          school: 'holy',
-          fx: 'tick',
-        });
-      }
-    }
-    if (combatTarget) return;
-    const d = dist2d(companion.pos, owner.pos);
-    if (d > PET_TELEPORT_DISTANCE) {
-      companion.pos = { ...owner.pos };
-      companion.prevPos = { ...companion.pos };
-      this.rebucket(companion);
-    } else if (d > DELVE_COMPANION_FOLLOW && !this.isRooted(companion)) {
-      this.moveToward(companion, owner.pos, companion.moveSpeed * this.moveSpeedMult(companion));
-    }
-  }
-
-  delveInteract(objectId: number, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    let run = this.delveRunForPlayer(r.meta.entityId);
-    if (!run) {
-      run =
-        this.delveRuns.find((d) => d.partyKey !== null && d.objectIds.includes(objectId)) ?? null;
-    }
-    if (!run) {
-      this.error(r.meta.entityId, 'You are not in a delve.');
-      return;
-    }
-    const state = run.objectState[objectId];
-    const obj = this.entities.get(objectId);
-    if (!state || !obj || !run.objectIds.includes(objectId)) {
-      this.error(r.meta.entityId, 'You cannot interact with that.');
-      return;
-    }
-    if (dist2d(r.e.pos, obj.pos) > DELVE_INTERACT_RANGE) {
-      this.error(r.meta.entityId, 'You are too far away.');
-      return;
-    }
-    if (state.kind === 'cracked_grave') {
-      if (run.raiseDeadChannel) {
-        run.raiseDeadChannel = null;
-        this.emit({
-          type: 'log',
-          text: 'The grave rite falters.',
-          color: '#8f8',
-          pid: r.meta.entityId,
-        });
-      } else {
-        this.error(r.meta.entityId, 'The grave is silent for now.');
-      }
-      return;
-    }
-    if (state.kind === 'locked_door') {
-      if (state.open)
-        this.emit({
-          type: 'log',
-          text: 'The door is already open.',
-          color: '#aaa',
-          pid: r.meta.entityId,
-        });
-      else this.error(r.meta.entityId, 'The door is locked.');
-      return;
-    }
-    if (state.kind === 'destructible_wall') {
-      this.error(r.meta.entityId, 'Strike the wall to break through.');
-      return;
-    }
-    if (state.kind === 'module_exit') {
-      if (!state.open) {
-        this.error(r.meta.entityId, 'The passage is sealed.');
-        return;
-      }
-      if (dist2d(r.e.pos, obj.pos) > DELVE_EXIT_PORTAL_RADIUS + 2) {
-        this.error(r.meta.entityId, 'Move closer to the passage.');
-        return;
-      }
-      this.advanceDelveModule(run);
-      return;
-    }
-    if (state.kind === 'locked_chest') {
-      if (dist2d(r.e.pos, obj.pos) > DELVE_PLATE_RADIUS + 2) {
-        this.error(r.meta.entityId, 'Move closer to the chest.');
-        return;
-      }
-      if (state.looted) {
-        this.emit({
-          type: 'log',
-          text: 'The chest is empty.',
-          color: '#aaa',
-          pid: r.meta.entityId,
-        });
-        return;
-      }
-      if (!state.attemptAvailable) {
-        this.error(
-          r.meta.entityId,
-          'The lock is jammed beyond picking. Clear the delve again for another attempt.',
-        );
-        return;
-      }
-      if (run.lockpick && run.lockpick.state === 'IN_PROGRESS') {
-        // Someone is already picking it (single interactor, v1).
-        if (run.lockpick.ownerId !== r.meta.entityId) {
-          this.error(r.meta.entityId, 'Someone is already working the lock.');
-        }
-        return;
-      }
-      // Open the ante selector on the client; no session yet. A Bountiful Coffer
-      // (purple) tells the client to force the Hard/Premium ante (§7.6).
-      const isCoffer = run.bountiful && objectId === run.rewardChestId;
-      // No per-move budget on the offer: the clock is an ante dial, so the client
-      // shows each ante's own time from ANTE_TO_STEP_TIMEOUT_MS in the selector.
-      this.emit({ type: 'lockpickOffer', objectId, bountiful: isCoffer, pid: r.meta.entityId });
-      return;
-    }
-    if (state.kind === 'reward_chest') {
-      if (dist2d(r.e.pos, obj.pos) > DELVE_PLATE_RADIUS + 2) {
-        this.error(r.meta.entityId, 'Move closer to the chest.');
-        return;
-      }
-      if (state.open && state.triggered) {
-        this.emit({
-          type: 'log',
-          text: 'The chest is empty.',
-          color: '#aaa',
-          pid: r.meta.entityId,
-        });
-        return;
-      }
-      this.grantDelveRewards(run);
-      state.triggered = true;
-      state.open = true;
-      obj.name = 'Opened Chest';
-      this.openDelveSurfaceExit(run);
-      return;
-    }
-    if (state.kind === 'surface_exit') {
-      if (!state.open) {
-        this.error(r.meta.entityId, 'The way out is not yet open.');
-        return;
-      }
-      if (dist2d(r.e.pos, obj.pos) > DELVE_EXIT_PORTAL_RADIUS + 2) {
-        this.error(r.meta.entityId, 'Move closer to the stairs.');
-        return;
-      }
-      const delve = DELVES[run.delveId];
-      const members = run.partyKey ? this.partyMembersForKey(run.partyKey) : [];
-      for (const pid of members) {
-        this.restorePetFromDelveStash(pid);
-        this.ejectToDelveDoor(pid, delve);
-      }
-      this.freeDelveRun(run);
-      return;
-    }
-    this.error(r.meta.entityId, 'Nothing happens.');
+  delveInteract(objectId: number, pid?: number): boolean {
+    return runsMod.delveInteract(this.ctx, objectId, pid);
   }
 
   // -------------------------------------------------------------------------
-  // Lockpicking minigame ("Tumbler's Path"), server-authoritative. The client
-  // submits one action enum per step; the sim owns the lock, validates every
-  // step, and grants loot only on a server-side SUCCESS. The full lock layout is
+  // Lockpicking minigame ("Tumbler's Path"), server-authoritative. The session
+  // state machine MOVED to delves/lockpick_controller.ts (I2b); Sim keeps thin
+  // delegates so the public IWorld surface (engage/action/abort/view + the
+  // lockpickState accessor below) stays reachable, while the per-tick timeout
+  // clock and the leave/disconnect teardown reach the controller via SimContext
+  // (ctx.tickLockpickTimeout / ctx.abandonLockpick). The full lock layout is
   // never serialized, only visibleCells() inside the fog window is emitted.
   // -------------------------------------------------------------------------
 
-  /** Resolve the locked-chest object + run for an acting player, with all the
-   * proximity/eligibility guards. Returns null (after emitting an error) on any
-   * failure. */
-  private resolveLockChest(
-    objectId: number,
-    pid?: number,
-  ): {
-    r: { e: Entity; meta: PlayerMeta };
-    run: DelveRun;
-    state: DelveObjectState;
-    obj: Entity;
-  } | null {
-    const r = this.resolve(pid);
-    if (!r) return null;
-    let run = this.delveRunForPlayer(r.meta.entityId);
-    if (!run)
-      run =
-        this.delveRuns.find((d) => d.partyKey !== null && d.objectIds.includes(objectId)) ?? null;
-    if (!run) {
-      this.error(r.meta.entityId, 'You are not in a delve.');
-      return null;
-    }
-    const state = run.objectState[objectId];
-    const obj = this.entities.get(objectId);
-    if (!state || !obj || state.kind !== 'locked_chest') {
-      this.error(r.meta.entityId, 'You cannot pick that.');
-      return null;
-    }
-    if (dist2d(r.e.pos, obj.pos) > DELVE_PLATE_RADIUS + 2) {
-      this.error(r.meta.entityId, 'Move closer to the chest.');
-      return null;
-    }
-    return { r, run, state, obj };
-  }
-
   /** Start a lockpicking attempt: commit an ante (1/2/3 lives = loot tier). */
   lockpickEngage(objectId: number, ante: Ante, pid?: number): void {
-    const got = this.resolveLockChest(objectId, pid);
-    if (!got) return;
-    const { r, run, state } = got;
-    if (ante !== 1 && ante !== 2 && ante !== 3) {
-      this.error(r.meta.entityId, 'Choose 1, 2, or 3 picks.');
-      return;
-    }
-    if (state.looted) {
-      this.emit({ type: 'log', text: 'The chest is empty.', color: '#aaa', pid: r.meta.entityId });
-      return;
-    }
-    if (!state.attemptAvailable) {
-      this.error(
-        r.meta.entityId,
-        'The lock is jammed beyond picking. Clear the delve again for another attempt.',
-      );
-      return;
-    }
-    if (run.lockpick && run.lockpick.state === 'IN_PROGRESS') {
-      this.error(r.meta.entityId, 'Someone is already working the lock.');
-      return;
-    }
-
-    // §7.6 Bountiful Coffer: a purple coffer only yields to a Hard-tier (heroic
-    // preset) + Premium-ante (1) solve. Server-authoritative, rejected here no
-    // matter what ante the UI offered; the lower antes are not an option.
-    const isCoffer = run.bountiful && objectId === run.rewardChestId;
-    if (isCoffer && ante !== 1) {
-      this.error(
-        r.meta.entityId,
-        "This seal yields only to a master's hand. Only the Premium ante can open it.",
-      );
-      return;
-    }
-
-    const tier = lockpickPresetFor(isCoffer ? 'heroic' : run.tierId);
-    const baseSeed = (run.seed ^ (objectId * 0x9e3779b1)) >>> 0;
-    const triesTotal = ANTE_TO_TRIES[ante];
-    const pages = generateLockPages(baseSeed, tier, ANTE_TO_PAGES[ante]);
-    const spec = pages[0];
-    const session: LockSession = {
-      // Unique per engage (tickCount is the deterministic sim clock) so the
-      // staleness guard rejects actions from a prior, re-engaged attempt.
-      sessionId: `lp_${objectId}_${this.tickCount}`,
-      chestId: objectId,
-      ownerId: r.meta.entityId,
-      baseSeed,
-      pages,
-      pageIndex: 0,
-      ante,
-      lootTier: ANTE_TO_TIER[ante],
-      col: 0,
-      row: spec.startRow,
-      triesLeft: triesTotal,
-      triesTotal,
-      stepDeadlineTick: 0, // set by armLockpickStep below
-      state: 'IN_PROGRESS',
-    };
-    run.lockpick = session;
-    this.armLockpickStep(session);
-    this.emit({
-      type: 'lockpickSession',
-      sessionId: session.sessionId,
-      objectId,
-      w: spec.tier.cols,
-      h: spec.tier.rows,
-      col: session.col,
-      row: session.row,
-      page: 1,
-      pageCount: pages.length,
-      tries: session.triesLeft,
-      triesTotal: session.triesTotal,
-      lootTier: session.lootTier,
-      allowed: spec.tier.allowedActions,
-      visible: visibleCells(spec, session.col, spec.tier.visibilityWindow),
-      stepTimeoutMs: ANTE_TO_STEP_TIMEOUT_MS[ante],
-      pid: r.meta.entityId,
-    });
+    lockpickMod.lockpickEngage(this.ctx, objectId, ante, pid);
   }
 
-  /** (Re)start the per-step clock for the active page. The deadline is in sim
-   * ticks (deterministic), so the timeout is reproducible from the input timing
-   * alone and identical offline, on the server, and headless. The budget is the
-   * ante's ANTE_TO_STEP_TIMEOUT_MS (hard 3s / medium 6s / easy 9s per move). */
-  private armLockpickStep(session: LockSession): void {
-    const ms = ANTE_TO_STEP_TIMEOUT_MS[session.ante];
-    session.stepDeadlineTick = this.tickCount + Math.ceil(ms / (DT * 1000));
-  }
-
-  /** Server-authoritative per-step clock, run every tick for every run (so a solo
-   * offline run, an online run, and a headless run all enforce it identically).
-   * When the active step's deadline passes it counts as a failed try; the client
-   * never reports a timeout. */
-  private tickLockpickTimeout(run: DelveRun): void {
-    const s = run.lockpick;
-    if (s?.state !== 'IN_PROGRESS') return;
-    if (this.tickCount >= s.stepDeadlineTick) this.lockpickStepTimeout(run, s);
-  }
-
-  /** A step's clock expired: burn a try (board reset on retry, chest jams when
-   * tries run out), mirroring a slip. lockpickBurnTry re-arms the clock on retry. */
-  private lockpickStepTimeout(run: DelveRun, session: LockSession): void {
-    const result = this.lockpickBurnTry(session);
-    const spec = session.pages[session.pageIndex];
-    this.emit({
-      type: 'lockpickStep',
-      sessionId: session.sessionId,
-      col: session.col,
-      row: session.row,
-      page: session.pageIndex + 1,
-      pageCount: session.pages.length,
-      tries: session.triesLeft,
-      triesTotal: session.triesTotal,
-      result,
-      visible: visibleCells(spec, session.col, spec.tier.visibilityWindow),
-      pid: session.ownerId,
-    });
-    if (result === 'fail') this.lockpickFail(run, session);
-  }
-
-  /** Submit one pick action on the player's active attempt. Abort ends it
-   * (preserving the chest). `sessionId`, when supplied (server path), is checked
-   * for staleness; offline play omits it and acts on the one live session. */
+  /** Submit one pick action on the player's active attempt (server-authoritative). */
   lockpickAction(action: PickAction, pid?: number, sessionId?: string): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const run = this.delveRunForPlayer(r.meta.entityId);
-    const session = run?.lockpick ?? null;
-    if (!run || !session) {
-      this.error(r.meta.entityId, 'No lock attempt in progress.');
-      return;
-    }
-    if (sessionId !== undefined && session.sessionId !== sessionId) {
-      this.error(r.meta.entityId, 'No lock attempt in progress.');
-      return;
-    }
-    if (session.ownerId !== r.meta.entityId) {
-      this.error(r.meta.entityId, 'That is not your lock.');
-      return;
-    }
-    if (session.state !== 'IN_PROGRESS') return;
-
-    if (action === 'abort') {
-      this.lockpickAbort(r.meta.entityId, session.sessionId);
-      return;
-    }
-    let spec = session.pages[session.pageIndex];
-    if (!spec.tier.allowedActions.includes(action)) {
-      this.error(r.meta.entityId, 'That tool slips off this lock.');
-      return;
-    }
-
-    const step = stepLock(spec, session.col, session.row, action);
-    let result = step.result;
-    if (result === 'slip' || result === 'bind' || result === 'trap') {
-      // The try failed. Burn one try; if any remain, reset to a fresh board so
-      // the player can try again. Only when tries run out does the chest jam.
-      result = this.lockpickBurnTry(session);
-      spec = session.pages[session.pageIndex];
-    } else {
-      session.col = step.col;
-      session.row = step.row;
-      if (result === 'success' && session.pageIndex < session.pages.length - 1) {
-        // Page seated but more remain, roll onto the next lock board.
-        session.pageIndex += 1;
-        spec = session.pages[session.pageIndex];
-        session.col = 0;
-        session.row = spec.startRow;
-        result = 'pageCleared';
-      }
-      // A correct move re-arms the per-step clock (a terminal success ends the
-      // session right after, so the fresh deadline is simply never reached).
-      this.armLockpickStep(session);
-    }
-
-    this.emit({
-      type: 'lockpickStep',
-      sessionId: session.sessionId,
-      col: session.col,
-      row: session.row,
-      page: session.pageIndex + 1,
-      pageCount: session.pages.length,
-      tries: session.triesLeft,
-      triesTotal: session.triesTotal,
-      result,
-      visible: visibleCells(spec, session.col, spec.tier.visibilityWindow),
-      pid: r.meta.entityId,
-    });
-
-    if (result === 'success') {
-      this.lockpickSucceed(run, session);
-    } else if (result === 'fail') {
-      this.lockpickFail(run, session);
-    }
-  }
-
-  /** A try failed (slip/bind/trap or timeout). Consume one try; if any remain,
-   * regenerate a fresh page set and reset to the start, returning 'retry'.
-   * Otherwise return 'fail' (caller jams the chest). */
-  private lockpickBurnTry(session: LockSession): 'retry' | 'fail' {
-    session.triesLeft -= 1;
-    if (session.triesLeft <= 0) return 'fail';
-    // Fresh boards each try so a failed run can't simply be memorized.
-    const triesUsed = session.triesTotal - session.triesLeft;
-    const seed = (session.baseSeed ^ (triesUsed * 0x85ebca6b)) >>> 0;
-    session.pages = generateLockPages(seed, session.pages[0].tier, session.pages.length);
-    session.pageIndex = 0;
-    session.col = 0;
-    session.row = session.pages[0].startRow;
-    this.armLockpickStep(session); // fresh board, fresh per-step clock
-    return 'retry';
+    lockpickMod.lockpickAction(this.ctx, action, pid, sessionId);
   }
 
   lockpickAbort(pid?: number, sessionId?: string): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const run = this.delveRunForPlayer(r.meta.entityId);
-    const session = run?.lockpick ?? null;
-    if (!run || !session || session.ownerId !== r.meta.entityId) return;
-    if (sessionId !== undefined && session.sessionId !== sessionId) return;
-    session.state = 'ABANDONED';
-    run.lockpick = null;
-    // ABANDONED preserves the attempt (disconnect-friendly): attemptAvailable stays true.
-    this.emit({
-      type: 'lockpickEnd',
-      sessionId: session.sessionId,
-      outcome: 'abandoned',
-      pid: r.meta.entityId,
-    });
+    lockpickMod.lockpickAbort(this.ctx, pid, sessionId);
   }
 
   /** Claim item loot from an opened delve chest (shown on the loot overlay). */
   collectDelveChestLoot(chestId: number, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const run = this.delveRunForPlayer(r.meta.entityId);
-    if (!run) return;
-    const state = run.objectState[chestId];
-    const obj = this.entities.get(chestId);
-    if (state?.kind !== 'locked_chest' || !state.pendingLoot?.length) {
-      this.error(r.meta.entityId, 'There is nothing left to take.');
-      return;
-    }
-    if (state.lootOwnerId != null && state.lootOwnerId !== r.meta.entityId) {
-      this.error(r.meta.entityId, 'There is nothing left to take.');
-      return;
-    }
-    if (!obj || dist2d(r.e.pos, obj.pos) > DELVE_PLATE_RADIUS + 2) {
-      this.error(r.meta.entityId, 'Move closer to the chest.');
-      return;
-    }
-    for (const slot of state.pendingLoot) {
-      this.addItem(slot.itemId, slot.count, r.meta.entityId);
-    }
-    state.pendingLoot = [];
+    runsMod.collectDelveChestLoot(this.ctx, chestId, pid);
   }
 
-  /** Tear down any active lockpick session on a run (player left / disconnected). */
-  private abandonLockpick(run: DelveRun): void {
-    const session = run.lockpick;
-    if (session?.state !== 'IN_PROGRESS') return;
-    session.state = 'ABANDONED';
-    run.lockpick = null;
-    this.emit({
-      type: 'lockpickEnd',
-      sessionId: session.sessionId,
-      outcome: 'abandoned',
-      pid: session.ownerId,
-    });
-  }
-
-  private lockpickSucceed(run: DelveRun, session: LockSession): void {
-    session.state = 'SUCCESS';
-    const state = run.objectState[session.chestId];
-    const obj = this.entities.get(session.chestId);
-    const ownerCls = this.players.get(session.ownerId)?.cls ?? 'warrior';
-    // A solved Bountiful Coffer guarantees the signature rare (see §7.6).
-    const isCoffer = run.bountiful && session.chestId === run.rewardChestId;
-    const items = delveChestItemsForTier(session.lootTier, ownerCls, this.rng, isCoffer);
-    if (state) {
-      state.looted = true;
-      state.open = true;
-      state.triggered = true;
-      state.attemptAvailable = false;
-      state.lootedTier = session.lootTier;
-      state.pendingLoot = items.map((s) => ({ ...s }));
-      // Loot belongs to the picker; record it so a non-picker party member who is
-      // also standing on the chest cannot front-run the collect.
-      state.lootOwnerId = session.ownerId;
-    }
-    if (obj) {
-      obj.name = 'Opened Chest';
-      obj.templateId = 'delve_reward_chest';
-    }
-    this.grantDelveRewards(run);
-    this.grantLockpickBonus(run, session.lootTier);
-    this.openDelveSurfaceExit(run);
-    this.emit({ type: 'delveChestLoot', chestId: session.chestId, items, pid: session.ownerId });
-    this.emit({
-      type: 'lockpickEnd',
-      sessionId: session.sessionId,
-      outcome: 'success',
-      lootTier: session.lootTier,
-      pid: session.ownerId,
-    });
-    run.lockpick = null;
-  }
-
-  private lockpickFail(run: DelveRun, session: LockSession): void {
-    session.state = 'FAILED';
-    const state = run.objectState[session.chestId];
-    if (state) state.attemptAvailable = false; // chest lost, re-clear the delve
-    this.emit({
-      type: 'lockpickEnd',
-      sessionId: session.sessionId,
-      outcome: 'fail',
-      pid: session.ownerId,
-    });
-    if (run.partyKey) {
-      for (const pid of this.partyMembersForKey(run.partyKey)) {
-        this.emit({
-          type: 'log',
-          text: 'The last pick snaps. The lock jams. The chest is lost unless you clear the delve again.',
-          color: '#f88',
-          pid,
-        });
-      }
-    }
-    // The boss is already dead and the chest is now jammed: open the surface exit
-    // so a failed pick can never strand the party in a cleared delve. (Success
-    // opens it via lockpickSuccess; this mirrors that for the failure path.)
-    this.openDelveSurfaceExit(run);
-    run.lockpick = null;
-  }
-
-  /** Loot-tier bonus on top of the base delve chest rewards (marks + copper). */
-  private grantLockpickBonus(run: DelveRun, tier: 'premium' | 'medium' | 'low'): void {
-    const reward = LOCKPICK_TIER_REWARD[tier];
-    const delve = DELVES[run.delveId];
-    const members = run.partyKey ? this.partyMembersForKey(run.partyKey) : [];
-    const baseCopper = Math.round((delve.baseRewards.copperMin + delve.baseRewards.copperMax) / 2);
-    const bonusCopper = Math.round(baseCopper * (reward.copperMult - 1));
-    for (const pid of members) {
-      const meta = this.players.get(pid);
-      if (!meta) continue;
-      meta.delveMarks += reward.bonusMarks;
-      meta.copper += bonusCopper;
-      // Structured (no prose crosses the sim boundary): the client builds the
-      // localized "spoils" line from the tier token and formats the numbers.
-      this.emit({
-        type: 'lockpickBonus',
-        tier,
-        marks: reward.bonusMarks,
-        copper: bonusCopper,
-        pid,
-      });
-    }
+  /** The Drowned Litany finale: lock in the chosen rite difficulty (offline). */
+  delveRiteChoose(intensity: RiteIntensity, pid?: number): void {
+    runsMod.delveRiteChoose(this.ctx, intensity, pid);
   }
 
   /** Read-only projection of the active lockpick attempt for IWorld (offline). */
   lockpickViewFor(pid?: number): LockpickView | null {
-    const r = this.resolve(pid);
-    if (!r) return null;
-    const run = this.delveRunForPlayer(r.meta.entityId);
-    const s = run?.lockpick ?? null;
-    if (s?.state !== 'IN_PROGRESS' || s.ownerId !== r.meta.entityId) return null;
-    const spec = s.pages[s.pageIndex];
-    return {
-      sessionId: s.sessionId,
-      objectId: s.chestId,
-      w: spec.tier.cols,
-      h: spec.tier.rows,
-      col: s.col,
-      row: s.row,
-      page: s.pageIndex + 1,
-      pageCount: s.pages.length,
-      tries: s.triesLeft,
-      triesTotal: s.triesTotal,
-      lootTier: s.lootTier,
-      allowed: spec.tier.allowedActions.slice(),
-      visible: visibleCells(spec, s.col, spec.tier.visibilityWindow),
-      stepTimeoutMs: ANTE_TO_STEP_TIMEOUT_MS[s.ante],
-    };
+    return lockpickMod.lockpickViewFor(this.ctx, pid);
   }
 
   companionUpgrade(companionId: string, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const def = DELVE_COMPANIONS[companionId];
-    if (!def) {
-      this.error(r.meta.entityId, 'Unknown companion.');
-      return;
-    }
-    const rank = r.meta.companionUpgrades[companionId] ?? 1;
-    if (rank >= DELVE_COMPANION_MAX_RANK) {
-      this.error(r.meta.entityId, 'This companion is already fully upgraded.');
-      return;
-    }
-    const next = rank + 1;
-    const cost = COMPANION_UPGRADE_COSTS[next];
-    if (!cost) return;
-    if (r.meta.delveMarks < cost.marks) {
-      this.error(r.meta.entityId, `You need ${cost.marks} Delve Marks to upgrade ${def.name}.`);
-      return;
-    }
-    if (r.meta.copper < cost.copper) {
-      this.error(r.meta.entityId, 'You cannot afford this upgrade.');
-      return;
-    }
-    r.meta.delveMarks -= cost.marks;
-    r.meta.copper -= cost.copper;
-    r.meta.companionUpgrades[companionId] = next;
-    this.emit({
-      type: 'log',
-      text: `${def.name} reaches rank ${next}.`,
-      color: '#8f8',
-      pid: r.meta.entityId,
-    });
+    runsMod.companionUpgrade(this.ctx, companionId, pid);
   }
 
-  // Has the player unlocked a Marks-vendor entry? `available` is always open;
-  // `clears:N` counts total clears of this delve at ANY difficulty; `heroicClear`
-  // requires at least one Heroic (difficulty ≥ 2) completion. Delegates to the pure
-  // content helper so the server-authoritative buy and the client lock badge
-  // (ClientWorld) agree, same answer offline, on the server, and headless.
   delveShopGateMet(meta: PlayerMeta, delveId: string, gate: DelveShopGate): boolean {
-    return delveShopGateUnlocked(meta.delveClears, delveId, gate);
+    return runsMod.delveShopGateMet(meta, delveId, gate);
   }
 
-  // Brother Halven's stock for `delveId`, each entry resolved against this player's
-  // clears (unlock state). The client renders the lock badge from this; the buy is
-  // re-validated server-side in delveBuyShopItem regardless of what the UI shows.
   delveShopOffersFor(delveId: string, pid: number): DelveShopOffer[] {
-    return resolveDelveShopOffers(delveId, this.players.get(pid)?.delveClears ?? {});
+    return runsMod.delveShopOffersFor(this.ctx, delveId, pid);
   }
 
-  // Per-player clears map for the self-snapshot wire (so the online client can
-  // resolve shop lock state without the server shipping the whole offer list).
   delveClearsFor(pid: number): Record<string, number> {
-    return { ...(this.players.get(pid)?.delveClears ?? {}) };
+    return runsMod.delveClearsFor(this.ctx, pid);
   }
 
-  // Server-authoritative Marks-vendor purchase. Re-validates the gate + balance
-  // here regardless of what the client shows; the client only sends intent. The
-  // server geo-gates this to the board NPC (see the `delve_buy` command) so a
-  // player must be standing at Brother Halven, mirroring `enter_delve`.
   delveBuyShopItem(delveId: string, itemId: string, pid?: number): void {
-    const r = this.resolve(pid);
-    if (!r) return;
-    const { meta } = r;
-    const entry = DELVE_SHOPS[delveId]?.find((s) => s.itemId === itemId);
-    if (!entry) {
-      this.error(meta.entityId, 'That item is not sold here.');
-      return;
-    }
-    const def = ITEMS[itemId];
-    if (!def) {
-      this.error(meta.entityId, 'That item is not for sale.');
-      return;
-    }
-    if (!this.delveShopGateMet(meta, delveId, entry.gate)) {
-      this.error(meta.entityId, 'You have not unlocked that item yet.');
-      return;
-    }
-    if (meta.delveMarks < entry.marks) {
-      this.error(meta.entityId, `You need ${entry.marks} Delve Marks to buy ${def.name}.`);
-      return;
-    }
-    meta.delveMarks -= entry.marks;
-    this.addItem(itemId, 1, meta.entityId);
-    // Feedback rides the 'vendor' event (the shop panel re-renders), matching the
-    // regular buyItem path, no raw English log string emitted from the sim.
-    this.emit({ type: 'vendor', action: 'buy', itemId, pid: meta.entityId });
+    runsMod.delveBuyShopItem(this.ctx, delveId, itemId, pid);
   }
 
   delveCompanionWire(pid: number): DelveCompanionInfo | null {
-    const run = this.delveRunForPlayer(pid);
-    if (!run?.companion) return null;
-    const e = this.entities.get(run.companion.entityId);
-    if (!e) return null;
-    return {
-      companionId: run.companion.companionId,
-      entityId: e.id,
-      rank: this.players.get(pid)?.companionUpgrades[run.companion.companionId] ?? 1,
-      hp: e.hp,
-      maxHp: e.maxHp,
-    };
+    return runsMod.delveCompanionWire(this.ctx, pid);
   }
 
   delveRunWire(pid: number): object | null {
-    const run = this.delveRunForPlayer(pid);
-    if (!run?.partyKey) return null;
-    return {
-      delveId: run.delveId,
-      tierId: run.tierId,
-      slot: run.slot,
-      origin: { x: run.origin.x, z: run.origin.z },
-      moduleIndex: run.moduleIndex,
-      moduleCount: run.modules.length,
-      modules: run.modules,
-      objective: run.objective,
-      affixes: run.affixes,
-      completed: run.completed,
-      exitPortalOpen: run.exitPortalOpen,
-      bountiful: run.bountiful,
-    };
+    return runsMod.delveRunWire(this.ctx, pid);
   }
 
   delveMarksFor(pid: number): number {
-    return this.players.get(pid)?.delveMarks ?? 0;
+    return runsMod.delveMarksFor(this.ctx, pid);
   }
 
   companionUpgradesFor(pid: number): Record<string, number> {
-    return { ...(this.players.get(pid)?.companionUpgrades ?? {}) };
+    return runsMod.companionUpgradesFor(this.ctx, pid);
+  }
+
+  craftSkillsFor(pid: number): Record<string, number> {
+    return craftSkillsFor(this.ctx, pid);
+  }
+
+  /** Additive-only skill gain for exactly one craft; never affects any other craft
+   *  (see professions/wheel.ts). No-op for an unknown pid or craft id. */
+  gainCraftSkill(pid: number, craftId: string, amount: number): void {
+    const meta = this.players.get(pid);
+    if (!meta) return;
+    gainCraftSkill(meta.craftSkills, craftId, amount);
   }
 
   delveDailyWire(pid: number): { date: string; firstClearXp: string[]; markClears: number } {
-    const meta = this.players.get(pid);
-    if (!meta) return { date: '', firstClearXp: [], markClears: 0 };
-    this.refreshDelveDaily(meta);
-    return {
-      date: meta.delveDaily.date,
-      firstClearXp: [...meta.delveDaily.firstClearXp],
-      markClears: meta.delveDaily.markClears,
-    };
+    return runsMod.delveDailyWire(this.ctx, pid);
   }
 
   get delveRun(): DelveRunInfo | null {
@@ -17827,6 +9225,129 @@ export class Sim {
     return this.companionUpgradesFor(this.primaryId);
   }
 
+  get craftSkills(): Record<string, number> {
+    return this.craftSkillsFor(this.primaryId);
+  }
+
+  craftingIdentityFor(pid: number): CraftingIdentityView {
+    const state = archetypeStateFor(this.ctx, pid);
+    return {
+      version: 1,
+      synced: true,
+      craftSkills: this.craftSkillsFor(pid),
+      activeArchetype: state.activeArchetype,
+      pairedMajor: state.pairedMajor,
+      hobbyCraft: state.hobbyCraft,
+      attunedPairs: [...state.attunedPairs],
+      switchCount: state.switchCount,
+      amendsProgress: state.amendsProgress,
+      amendsRequired: requiredAmendsProgress(state.switchCount),
+    };
+  }
+
+  get craftingIdentity(): CraftingIdentityView {
+    return this.craftingIdentityFor(this.primaryId);
+  }
+
+  /** The active-archetype craft id, or null before the zone-1 acceptance quest has
+   *  ever been completed (see professions/archetype.ts). */
+  activeArchetypeFor(pid: number): string | null {
+    return archetypeStateFor(this.ctx, pid).activeArchetype;
+  }
+
+  get activeArchetype(): string | null {
+    return this.activeArchetypeFor(this.primaryId);
+  }
+
+  /** Total successful archetype switches this character has ever made. */
+  archetypeSwitchCountFor(pid: number): number {
+    return archetypeStateFor(this.ctx, pid).switchCount;
+  }
+
+  get archetypeSwitchCount(): number {
+    return this.archetypeSwitchCountFor(this.primaryId);
+  }
+
+  /** Amends progress accrued toward the CURRENT switch's threshold, and the
+   *  threshold itself (see requiredAmendsProgress: it scales with switchCount). */
+  archetypeAmendsProgressFor(pid: number): number {
+    return archetypeStateFor(this.ctx, pid).amendsProgress;
+  }
+
+  get archetypeAmendsProgress(): number {
+    return this.archetypeAmendsProgressFor(this.primaryId);
+  }
+
+  archetypeAmendsRequiredFor(pid: number): number {
+    return requiredAmendsProgress(archetypeStateFor(this.ctx, pid).switchCount);
+  }
+
+  get archetypeAmendsRequired(): number {
+    return this.archetypeAmendsRequiredFor(this.primaryId);
+  }
+
+  /** The title granted by the CURRENTLY-ACTIVE pair attunement (#1130,
+   *  pair-named under Professions 2.0): the canonical pair id whose named title
+   *  is earned, or null before an archetype is ever chosen. See
+   *  professions/archetype.ts getArchetypeTitle for the "no title" rule. */
+  archetypeTitleFor(pid: number): string | null {
+    return archetypeTitleFor(this.ctx, pid);
+  }
+
+  get archetypeTitle(): string | null {
+    return this.archetypeTitleFor(this.primaryId);
+  }
+
+  /** The hobby craft granted by the CURRENTLY-ACTIVE archetype (#1294): the
+   *  opposite craft on CRAFT_RING, empowered up to rare. See
+   *  professions/archetype.ts getHobbyCraft for the "no hobby before an
+   *  archetype is chosen" rule. */
+  hobbyCraftFor(pid: number): string | null {
+    return hobbyCraftFor(this.ctx, pid);
+  }
+
+  get hobbyCraft(): string | null {
+    return this.hobbyCraftFor(this.primaryId);
+  }
+
+  /** Stub entry point for the zone-1 acceptance quest's completion (see
+   *  professions/archetype.ts for what is stubbed and why). No-op (returns false)
+   *  if an archetype is already set. */
+  acceptArchetypeQuest(craftId: string, pid?: number): boolean {
+    const r = this.resolve(pid);
+    if (!r) return false;
+    return acceptArchetypeQuestImpl(this.ctx, r.meta.entityId, craftId);
+  }
+
+  /** Stub entry point for one completion of the repeatable "make amends" quest
+   *  (see professions/archetype.ts). No-op before an archetype has ever been
+   *  chosen. */
+  advanceAmendsProgress(pid?: number): void {
+    const r = this.resolve(pid);
+    if (!r) return;
+    advanceAmendsProgressImpl(this.ctx, r.meta.entityId);
+  }
+
+  /** Attempt to switch the active archetype to a different craft; blocked (a
+   *  complete no-op) unless enough amends progress has accrued. See
+   *  professions/archetype.ts switchArchetype for the full gating rule. */
+  switchArchetype(craftId: string, pid?: number): boolean {
+    const r = this.resolve(pid);
+    if (!r) return false;
+    return switchArchetypeImpl(this.ctx, r.meta.entityId, craftId);
+  }
+
+  // Read-only gathering-profession proficiency surface for IWorld. Stubbed
+  // directly on IWorld pending issue #1164 (a broader professions facet); see
+  // that issue for the eventual reconciliation.
+  gatheringProficiencyFor(pid: number): Record<string, number> {
+    return { ...(this.players.get(pid)?.gatheringProficiency ?? emptyGatheringProficiency()) };
+  }
+
+  get gatheringProficiency(): Record<string, number> {
+    return this.gatheringProficiencyFor(this.primaryId);
+  }
+
   delveShopOffers(delveId: string): DelveShopOffer[] {
     return this.delveShopOffersFor(delveId, this.primaryId);
   }
@@ -17834,15 +9355,22 @@ export class Sim {
   get delveDaily(): { date: string; firstClearXp: string[]; markClears: number } {
     return this.delveDailyWire(this.primaryId);
   }
+
+  // Gathering profession proficiency (Mining/Logging/Herbalism), the real
+  // read surface for #1119, mapped onto the settled #1164 shape. Crafting/
+  // secondary professions still contribute nothing until #1120/#1125/#1126/
+  // #1140 land.
+  professionsStateFor(pid: number): PlayerProfessionsView {
+    const proficiency = this.players.get(pid)?.gatheringProficiency ?? emptyGatheringProficiency();
+    return { skills: gatheringSkillsView(proficiency) };
+  }
+
+  get professionsState(): PlayerProfessionsView {
+    return this.professionsStateFor(this.primaryId);
+  }
 }
 
-export function formatMoney(copper: number): string {
-  const g = Math.floor(copper / 10000);
-  const s = Math.floor((copper % 10000) / 100);
-  const c = copper % 100;
-  const parts: string[] = [];
-  if (g > 0) parts.push(`${g}g`);
-  if (s > 0) parts.push(`${s}s`);
-  if (c > 0 || parts.length === 0) parts.push(`${c}c`);
-  return parts.join(' ');
-}
+// formatMoney now lives in ./format_money (a leaf module, to break the value-cycle
+// with market.ts and loot/loot_roll.ts). Re-exported here so existing importers
+// (e.g. tests/gold_command.test.ts) that import it from './sim' keep working.
+export { formatMoney };

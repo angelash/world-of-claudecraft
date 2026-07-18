@@ -1,6 +1,6 @@
 <div align="center">
 
-[English](../../CONTRIBUTING.md) · [Español](CONTRIBUTING.es.md) · [Español (España)](CONTRIBUTING.es_ES.md) · [Français](CONTRIBUTING.fr_FR.md) · [Français (Canada)](CONTRIBUTING.fr_CA.md) · [Italiano](CONTRIBUTING.it_IT.md) · [Deutsch](CONTRIBUTING.de_DE.md) · [简体中文](CONTRIBUTING.zh_CN.md) · [繁體中文](CONTRIBUTING.zh_TW.md) · [한국어](CONTRIBUTING.ko_KR.md) · [日本語](CONTRIBUTING.ja_JP.md) · **Português (Brasil)** · [Русский](CONTRIBUTING.ru_RU.md)
+[English](../../CONTRIBUTING.md) · [Español](CONTRIBUTING.es.md) · [Español (España)](CONTRIBUTING.es_ES.md) · [Français](CONTRIBUTING.fr_FR.md) · [Français (Canada)](CONTRIBUTING.fr_CA.md) · [Italiano](CONTRIBUTING.it_IT.md) · [Deutsch](CONTRIBUTING.de_DE.md) · [简体中文](CONTRIBUTING.zh_CN.md) · [繁體中文](CONTRIBUTING.zh_TW.md) · [한국어](CONTRIBUTING.ko_KR.md) · [日本語](CONTRIBUTING.ja_JP.md) · **Português (Brasil)** · [Русский](CONTRIBUTING.ru_RU.md) · [Nederlands](CONTRIBUTING.nl_NL.md) · [Polski](CONTRIBUTING.pl_PL.md) · [Bahasa Indonesia](CONTRIBUTING.id_ID.md) · [Türkçe](CONTRIBUTING.tr_TR.md) · [Svenska](CONTRIBUTING.sv_SE.md) · [Tiếng Việt](CONTRIBUTING.vi_VN.md) · [Dansk](CONTRIBUTING.da_DK.md)
 
 </div>
 
@@ -14,7 +14,7 @@ aqui.
 
 Este guia vai te ajudar a configurar o ambiente e tornar sua primeira contribuição
 algo tranquilo. Você não precisa ser especialista. Se algo não estiver claro,
-pergunte no [Discord](https://discord.gg/GjhnUsBtw) e alguém terá o maior prazer
+pergunte no [Discord](https://discord.com/invite/worldofclaudecraft) e alguém terá o maior prazer
 em ajudar.
 
 Ao participar, você concorda em seguir nosso [Código de Conduta](../../CODE_OF_CONDUCT.md).
@@ -181,7 +181,7 @@ escrever nenhum código de jogo para isso:
    PR.
 
 Para propor um locale totalmente novo, ou para conversar sobre tom e terminologia,
-inicie uma thread no [Discord](https://discord.gg/GjhnUsBtw) e nós te ajudamos a
+inicie uma thread no [Discord](https://discord.com/invite/worldofclaudecraft) e nós te ajudamos a
 deixar tudo conectado. Falantes nativos e fluentes são especialmente bem-vindos.
 Boas traduções fazem o jogo parecer um lar para jogadores de todos os lugares.
 
@@ -200,7 +200,7 @@ Por favor, use os [modelos de issue](https://github.com/levy-street/world-of-cla
 ## Conseguindo ajuda
 
 Travou ou só quer dar um oi? Entre no
-[Discord da comunidade](https://discord.gg/GjhnUsBtw). Nenhuma pergunta é pequena
+[Discord da comunidade](https://discord.com/invite/worldofclaudecraft). Nenhuma pergunta é pequena
 demais, e novos contribuidores são sempre bem-vindos.
 
 ## Licença

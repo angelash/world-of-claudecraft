@@ -1,10 +1,17 @@
 import type { KnownAbility } from '../../src/sim/content/classes';
 import type { Role, TalentAllocation } from '../../src/sim/content/talents';
 import { computeTalentModifiers } from '../../src/sim/content/talents';
+import { parseTalentAllocation } from '../../src/sim/talent_allocation_input';
 import { CLASSES, ITEMS, MOBS, abilitiesKnownAt } from '../../src/sim/data';
-import { MELEE_RANGE, dist2d, type InvSlot } from '../../src/sim/types';
+import { MELEE_RANGE, angleTo, dist2d, type InvSlot } from '../../src/sim/types';
 import type { PartyInfo, PartyMemberInfo } from '../../src/world_api';
-import { type PartyCombatTarget, type PartyTravelGoal, partyAssistArrivalRange, travelGoalToPartyMember, travelGoalToPartyTarget } from '../party_coordination';
+import {
+  type PartyCombatTarget,
+  type PartyTravelGoal,
+  partyAssistArrivalRange,
+  travelGoalToPartyMember,
+  travelGoalToPartyTarget,
+} from '../party_coordination';
 import { maybePrepareForPullFromLiveState } from './pre_combat';
 import { planAmbientPartyRoles } from './party_roles';
 import type { AmbientPlayerBotRecord } from './types';
@@ -28,12 +35,15 @@ const GROUP_SELF_PRESERVE_POTION_RATIO = 0.65;
 const GROUP_SELF_PRESERVE_ANCHOR_RANGE = 6;
 const GROUP_RECOVERY_EMERGENCY_FOCUS_RATIO = 0.72;
 const GROUP_RECOVERY_PROTECTOR_STABLE_RATIO = 0.9;
+const GROUP_RECOVERY_PROTECTOR_ENGAGE_RATIO = 0.65;
 const GROUP_PULL_STAGING_RANGE = 18;
 const GROUP_PULL_MELEE_RELEASE_RANGE = 10;
 const GROUP_DENSE_PACK_PULL_AGGRO_RADIUS = 12;
 const GROUP_DENSE_PACK_PULL_STAGING_PADDING = 10;
 const GROUP_DENSE_PACK_PULL_MELEE_RELEASE_RANGE = 6;
 const GROUP_PULL_READY_LEADER_RANGE = 10;
+const PARTY_ROSTER_VISIBILITY_RANGE = 40;
+const GROUP_NON_EMERGENCY_MANA_RESERVE_RATIO = 0.35;
 
 interface SupportAuraView {
   id: string;
@@ -51,6 +61,8 @@ interface SupportSelfView {
   targetMarkers: Record<string, number>;
   autoAttack: boolean;
   resource: number;
+  maxResource: number;
+  resourceType: string;
   gcdRemaining: number;
   cooldowns: Record<string, number>;
   castingAbility: string | null;
@@ -88,6 +100,7 @@ export interface AmbientPartySupportInput {
   selfMember: PartyMemberInfo | null;
   prePullOnly?: boolean;
   suppressFocusFire?: boolean;
+  suppressRecoveryOffense?: boolean;
   reserveCommandBatch: (reservations: readonly AmbientGroupCommandReservation[]) => boolean;
 }
 
@@ -95,6 +108,7 @@ export interface AmbientPartySupportDecision {
   commands: readonly Record<string, unknown>[];
   groupMode: string;
   travelGoal?: PartyTravelGoal;
+  facing?: number;
 }
 
 export function maybeCoordinateAmbientPartySupport(
@@ -113,8 +127,9 @@ export function maybeCoordinateAmbientPartySupport(
     party: input.party,
     liveState: input.liveState,
   }).tankPid;
-  const partyInCombat = input.party.members.some((member) => member.inCombat === 1)
-    || hostileMobs.some((mob) => mob.aggroTargetId !== null);
+  const partyInCombat =
+    input.party.members.some((member) => member.inCombat === 1) ||
+    hostileMobs.some((mob) => mob.aggroTargetId !== null);
   const role = supportRoleForSelf(input.bot.class, self);
 
   const selfPreserveDecision = maybePreserveThreatenedSelf({
@@ -123,6 +138,7 @@ export function maybeCoordinateAmbientPartySupport(
     tankPid,
     leaderMember: input.leaderMember,
     role,
+    canSelfHeal: canProvidePartyHealing(input.bot.class, self),
     partyInCombat,
     reserveCommandBatch: input.reserveCommandBatch,
   });
@@ -159,24 +175,27 @@ export function maybeCoordinateAmbientPartySupport(
       hostileMobs,
       members,
       abilities,
+      allowOffense: input.suppressRecoveryOffense !== true,
       reserveCommandBatch: input.reserveCommandBatch,
     });
     if (protectionDecision) return protectionDecision;
 
-    const emergencyFocusDecision = maybeEmergencyRecoveryFocusFire({
-      self,
-      bot: input.bot,
-      hostileMobs,
-      members,
-      abilities,
-      reserveCommandBatch: input.reserveCommandBatch,
-    });
-    if (emergencyFocusDecision) return emergencyFocusDecision;
+    if (input.suppressRecoveryOffense !== true) {
+      const emergencyFocusDecision = maybeEmergencyRecoveryFocusFire({
+        self,
+        bot: input.bot,
+        hostileMobs,
+        members,
+        abilities,
+        reserveCommandBatch: input.reserveCommandBatch,
+      });
+      if (emergencyFocusDecision) return emergencyFocusDecision;
+    }
 
     return null;
   }
 
-  if (!partyInCombat && input.suppressFocusFire !== true) {
+  if (!partyInCombat) {
     const selfPreparationDecision = maybePrepareSelfForParty({
       bot: input.bot,
       liveState: input.liveState,
@@ -220,7 +239,7 @@ export function maybeCoordinateAmbientPartySupport(
     if (tankDecision) return tankDecision;
   }
 
-  if (partyInCombat && input.suppressFocusFire !== true) {
+  if (partyInCombat) {
     const focusDecision = maybeFocusFire({
       self,
       bot: input.bot,
@@ -243,6 +262,7 @@ function maybeProtectPartyDuringRecovery(input: {
   hostileMobs: readonly SupportMobView[];
   members: readonly SupportPartyMemberView[];
   abilities: ReadonlyMap<string, KnownAbility>;
+  allowOffense: boolean;
   reserveCommandBatch: AmbientPartySupportInput['reserveCommandBatch'];
 }): AmbientPartySupportDecision | null {
   if (input.bot.class === 'warrior') {
@@ -273,8 +293,13 @@ function maybeProtectPartyDuringRecovery(input: {
     }
   }
 
+  if (!input.allowOffense) return null;
   if (!recoveryProtectorCanEngage(input.bot.class, input.self, input.members)) return null;
-  const protectionTarget = selectRecoveryProtectionTarget(input.hostileMobs, input.members, input.self);
+  const protectionTarget = selectRecoveryProtectionTarget(
+    input.hostileMobs,
+    input.members,
+    input.self,
+  );
   if (!protectionTarget) return null;
   return maybeFocusFireTarget({
     self: input.self,
@@ -295,8 +320,7 @@ function maybePrepareSelfForParty(input: {
     bot: input.bot,
     liveSelf: input.liveState.self,
     entities: input.liveState.entities.values(),
-    issueCommand: (key, cooldownMs) =>
-      input.reserveCommandBatch([{ key, cooldownMs }]),
+    issueCommand: (key, cooldownMs) => input.reserveCommandBatch([{ key, cooldownMs }]),
   });
   if (!step) return null;
   return {
@@ -319,7 +343,13 @@ function maybeBuffParty(input: {
       if (fortitude) {
         for (const target of orderedBuffTargets(input.members, input.tankPid, input.self.id)) {
           if (hasFreshFriendlyAura(target, fortitude)) continue;
-          const decision = queueFriendlyCast(input.self, target, fortitude, 'buff_party', input.reserveCommandBatch);
+          const decision = queueFriendlyCast(
+            input.self,
+            target,
+            fortitude,
+            'buff_party',
+            input.reserveCommandBatch,
+          );
           if (decision) return decision;
         }
       }
@@ -327,7 +357,13 @@ function maybeBuffParty(input: {
       if (shield && input.tankPid !== null) {
         const tank = input.members.find((member) => member.member.pid === input.tankPid) ?? null;
         if (tank && !hasFreshFriendlyAura(tank, shield)) {
-          const decision = queueFriendlyCast(input.self, tank, shield, 'prepare_party', input.reserveCommandBatch);
+          const decision = queueFriendlyCast(
+            input.self,
+            tank,
+            shield,
+            'prepare_party',
+            input.reserveCommandBatch,
+          );
           if (decision) return decision;
         }
       }
@@ -339,7 +375,13 @@ function maybeBuffParty(input: {
       for (const target of orderedBuffTargets(input.members, input.tankPid, input.self.id)) {
         if (!prefersBlessingOfMight(target.member)) continue;
         if (hasFreshFriendlyAura(target, blessing)) continue;
-        const decision = queueFriendlyCast(input.self, target, blessing, 'buff_party', input.reserveCommandBatch);
+        const decision = queueFriendlyCast(
+          input.self,
+          target,
+          blessing,
+          'buff_party',
+          input.reserveCommandBatch,
+        );
         if (decision) return decision;
       }
       return null;
@@ -349,7 +391,13 @@ function maybeBuffParty(input: {
       if (mark) {
         for (const target of orderedBuffTargets(input.members, input.tankPid, input.self.id)) {
           if (hasFreshFriendlyAura(target, mark)) continue;
-          const decision = queueFriendlyCast(input.self, target, mark, 'buff_party', input.reserveCommandBatch);
+          const decision = queueFriendlyCast(
+            input.self,
+            target,
+            mark,
+            'buff_party',
+            input.reserveCommandBatch,
+          );
           if (decision) return decision;
         }
       }
@@ -357,7 +405,13 @@ function maybeBuffParty(input: {
       if (thorns && input.tankPid !== null) {
         const tank = input.members.find((member) => member.member.pid === input.tankPid) ?? null;
         if (tank && !hasFreshFriendlyAura(tank, thorns)) {
-          const decision = queueFriendlyCast(input.self, tank, thorns, 'prepare_party', input.reserveCommandBatch);
+          const decision = queueFriendlyCast(
+            input.self,
+            tank,
+            thorns,
+            'prepare_party',
+            input.reserveCommandBatch,
+          );
           if (decision) return decision;
         }
       }
@@ -389,13 +443,27 @@ function maybeHealParty(input: {
 
   switch (input.bot.class) {
     case 'priest':
-      return maybePriestHeal(input.self, candidates, input.partyInCombat, input.abilities, input.reserveCommandBatch);
+      return maybePriestHeal(
+        input.self,
+        candidates,
+        input.partyInCombat,
+        input.abilities,
+        input.reserveCommandBatch,
+      );
     case 'paladin':
       return maybePaladinHeal(input.self, candidates, input.abilities, input.reserveCommandBatch);
     case 'shaman':
-      return maybeSingleHeal(input.self, candidates, input.abilities, input.reserveCommandBatch, ['healing_wave']);
+      return maybeSingleHeal(input.self, candidates, input.abilities, input.reserveCommandBatch, [
+        'healing_wave',
+      ]);
     case 'druid':
-      return maybeDruidHeal(input.self, candidates, input.partyInCombat, input.abilities, input.reserveCommandBatch);
+      return maybeDruidHeal(
+        input.self,
+        candidates,
+        input.partyInCombat,
+        input.abilities,
+        input.reserveCommandBatch,
+      );
     default:
       return null;
   }
@@ -425,13 +493,23 @@ function maybeSupportTank(input: {
 
     const defensiveStance = input.abilities.get('defensive_stance');
     if (defensiveStance && !hasAuraId(input.self.auras, 'defensive_stance')) {
-      const decision = queueSelfCast(input.self, defensiveStance, 'tank_party', input.reserveCommandBatch);
+      const decision = queueSelfCast(
+        input.self,
+        defensiveStance,
+        'tank_party',
+        input.reserveCommandBatch,
+      );
       if (decision) return decision;
     }
 
     const thunderClap = input.abilities.get('thunder_clap');
     if (thunderClap && countNearbyThreats(input.hostileMobs, input.self.pos, 8) >= 2) {
-      const decision = queueSelfCast(input.self, thunderClap, 'tank_party', input.reserveCommandBatch);
+      const decision = queueSelfCast(
+        input.self,
+        thunderClap,
+        'tank_party',
+        input.reserveCommandBatch,
+      );
       if (decision) return decision;
     }
 
@@ -444,7 +522,13 @@ function maybeSupportTank(input: {
       leaderPid: input.tankPid,
     });
     if (sunderArmor && focusTarget && sunderStacks(focusTarget) < 2) {
-      const decision = queueHostileCast(input.self, focusTarget, sunderArmor, 'tank_party', input.reserveCommandBatch);
+      const decision = queueHostileCast(
+        input.self,
+        focusTarget,
+        sunderArmor,
+        'tank_party',
+        input.reserveCommandBatch,
+      );
       if (decision) return decision;
     }
   }
@@ -524,11 +608,13 @@ function recoveryEmergencyFocusAllowed(
   if (!selfMember || selfMember.member.dead || selfMember.threatenedCount > 0) return false;
   if (healthRatio(selfMember.member) <= 0.9) return false;
   if (members.some((member) => member.member.dead)) return false;
-  const unstableMembers = members.filter((member) =>
-    !member.member.dead && healthRatio(member.member) <= GROUP_RECOVERY_EMERGENCY_FOCUS_RATIO);
-  return unstableMembers.some((member) =>
-    member.member.pid !== self.id
-    && member.threatenedCount > 0);
+  const unstableMembers = members.filter(
+    (member) =>
+      !member.member.dead && healthRatio(member.member) <= GROUP_RECOVERY_EMERGENCY_FOCUS_RATIO,
+  );
+  return unstableMembers.some(
+    (member) => member.member.pid !== self.id && member.threatenedCount > 0,
+  );
 }
 
 function recoveryProtectorCanEngage(
@@ -538,10 +624,12 @@ function recoveryProtectorCanEngage(
 ): boolean {
   const selfMember = members.find((member) => member.member.pid === self.id) ?? null;
   if (!selfMember || selfMember.member.dead) return false;
-  if (healthRatio(selfMember.member) <= GROUP_RECOVERY_PROTECTOR_STABLE_RATIO) return false;
-  return cls === 'warrior'
-    || cls === 'paladin'
-    || (cls === 'druid' && hasAuraKind(self.auras, 'form_bear'));
+  if (healthRatio(selfMember.member) <= GROUP_RECOVERY_PROTECTOR_ENGAGE_RATIO) return false;
+  return (
+    cls === 'warrior' ||
+    cls === 'paladin' ||
+    (cls === 'druid' && hasAuraKind(self.auras, 'form_bear'))
+  );
 }
 
 function maybeFocusFireTarget(input: {
@@ -584,17 +672,26 @@ function maybeFocusFireTarget(input: {
   );
   if (attackDecision) return attackDecision;
 
-  const rangedAbilityInRange = hasFocusFireAbilityAtDistance(input.bot.class, input.abilities, distance);
+  const rangedAbilityInRange = hasFocusFireAbilityAtDistance(
+    input.bot.class,
+    input.abilities,
+    distance,
+  );
   const classArrivalRange = partyAssistArrivalRange(input.bot.class);
-  const shouldTravel = !rangedAbilityInRange
-    && !withinAutoAttackRange(input.bot.class, distance)
-    && distance > classArrivalRange;
+  const shouldTravel =
+    !rangedAbilityInRange &&
+    !withinAutoAttackRange(input.bot.class, distance) &&
+    distance > classArrivalRange;
   const travelGoal = shouldTravel
     ? travelGoalToPartyTarget(focusTargetAsCombatTarget(input.target, distance), classArrivalRange)
     : undefined;
 
   if (input.self.targetId !== input.target.id) {
-    if (!input.reserveCommandBatch([{ key: `target:${input.target.id}`, cooldownMs: TARGET_COMMAND_COOLDOWN_MS }])) {
+    if (
+      !input.reserveCommandBatch([
+        { key: `target:${input.target.id}`, cooldownMs: TARGET_COMMAND_COOLDOWN_MS },
+      ])
+    ) {
       return null;
     }
     return {
@@ -644,7 +741,10 @@ function maybePrePullPartyTarget(input: {
     return {
       commands: targetCommand ? [targetCommand] : [],
       groupMode: 'prepare_party',
-      travelGoal: travelGoalToPartyTarget(focusTargetAsCombatTarget(target, distance), stagingRange),
+      travelGoal: travelGoalToPartyTarget(
+        focusTargetAsCombatTarget(target, distance),
+        stagingRange,
+      ),
     };
   }
 
@@ -714,6 +814,7 @@ function maybePreserveThreatenedSelf(input: {
   tankPid: number | null;
   leaderMember: PartyMemberInfo | null;
   role: Role;
+  canSelfHeal: boolean;
   partyInCombat: boolean;
   reserveCommandBatch: AmbientPartySupportInput['reserveCommandBatch'];
 }): AmbientPartySupportDecision | null {
@@ -727,38 +828,57 @@ function maybePreserveThreatenedSelf(input: {
     ? GROUP_FRAGILE_SELF_PRESERVE_THREATENED_RATIO
     : GROUP_SELF_PRESERVE_THREATENED_RATIO;
   const shouldPreserve =
-    (threatened && ratio <= threatenedRatio)
-    || ratio <= GROUP_SELF_PRESERVE_EMERGENCY_RATIO;
+    (threatened && ratio <= threatenedRatio) || ratio <= GROUP_SELF_PRESERVE_EMERGENCY_RATIO;
   if (!shouldPreserve) return null;
 
   const commands: Record<string, unknown>[] = [];
-  const potion = ratio <= GROUP_SELF_PRESERVE_POTION_RATIO
-    ? findHealingPotion(input.self.inventory)
-    : null;
+  const potion =
+    ratio <= GROUP_SELF_PRESERVE_POTION_RATIO ? findHealingPotion(input.self.inventory) : null;
+  let usedPotion = false;
   if (
-    potion
-    && input.reserveCommandBatch([{ key: `use:${potion}`, cooldownMs: USE_POTION_COMMAND_COOLDOWN_MS }])
+    potion &&
+    input.reserveCommandBatch([
+      { key: `use:${potion}`, cooldownMs: USE_POTION_COMMAND_COOLDOWN_MS },
+    ])
   ) {
     commands.push({ cmd: 'use', item: potion });
+    usedPotion = true;
   }
   if (
-    input.self.autoAttack
-    && input.reserveCommandBatch([{ key: 'stopattack', cooldownMs: STOP_ATTACK_COMMAND_COOLDOWN_MS }])
+    !usedPotion &&
+    input.canSelfHeal &&
+    ratio <= GROUP_SELF_PRESERVE_EMERGENCY_RATIO &&
+    selfIsMostUrgentWoundedMember(input.members, input.self.id, ratio)
+  ) {
+    return null;
+  }
+  if (
+    input.self.autoAttack &&
+    input.reserveCommandBatch([{ key: 'stopattack', cooldownMs: STOP_ATTACK_COMMAND_COOLDOWN_MS }])
   ) {
     commands.push({ cmd: 'stopattack' });
   }
   if (
-    input.self.targetId !== null
-    && input.reserveCommandBatch([{ key: 'clear_target', cooldownMs: CLEAR_TARGET_COMMAND_COOLDOWN_MS }])
+    input.self.targetId !== null &&
+    input.reserveCommandBatch([
+      { key: 'clear_target', cooldownMs: CLEAR_TARGET_COMMAND_COOLDOWN_MS },
+    ])
   ) {
     commands.push({ cmd: 'target', id: null });
   }
 
-  const anchor = selfPreserveAnchor(input.members, input.tankPid, input.leaderMember, input.self.id);
+  const anchor = selfPreserveAnchor(
+    input.members,
+    input.tankPid,
+    input.leaderMember,
+    input.self.id,
+  );
   const anchorDistance = anchor ? planarDistance(input.self.pos, anchor) : 0;
-  const travelGoal = anchor && anchorDistance > GROUP_SELF_PRESERVE_ANCHOR_RANGE
-    ? travelGoalToPartyMember(anchor, GROUP_SELF_PRESERVE_ANCHOR_RANGE, 'party-recover-anchor')
-    : undefined;
+  const travelGoal =
+    anchor && anchorDistance > GROUP_SELF_PRESERVE_ANCHOR_RANGE
+      ? travelGoalToPartyMember(anchor, GROUP_SELF_PRESERVE_ANCHOR_RANGE, 'party-recover-anchor')
+      : undefined;
+  if (commands.length === 0 && !travelGoal) return null;
 
   return {
     commands,
@@ -773,15 +893,31 @@ function selfPreserveAnchor(
   leaderMember: PartyMemberInfo | null,
   selfId: number,
 ): PartyMemberInfo | null {
-  const tank = tankPid !== null
-    ? members.find((member) => member.member.pid === tankPid)?.member ?? null
-    : null;
+  const tank =
+    tankPid !== null
+      ? (members.find((member) => member.member.pid === tankPid)?.member ?? null)
+      : null;
   if (tank && tank.pid !== selfId && !tank.dead) return tank;
   if (leaderMember && leaderMember.pid !== selfId && !leaderMember.dead) return leaderMember;
-  return members
-    .map((member) => member.member)
-    .filter((member) => member.pid !== selfId && !member.dead)
-    .sort((a, b) => a.pid - b.pid)[0] ?? null;
+  return (
+    members
+      .map((member) => member.member)
+      .filter((member) => member.pid !== selfId && !member.dead)
+      .sort((a, b) => a.pid - b.pid)[0] ?? null
+  );
+}
+
+function selfIsMostUrgentWoundedMember(
+  members: readonly SupportPartyMemberView[],
+  selfId: number,
+  selfRatio: number,
+): boolean {
+  return !members.some(
+    (member) =>
+      member.member.pid !== selfId &&
+      !member.member.dead &&
+      healthRatio(member.member) < selfRatio - 0.001,
+  );
 }
 
 function isFragileLowLevelMember(member: PartyMemberInfo): boolean {
@@ -800,9 +936,9 @@ function maybePriestHeal(
     const ratio = healthRatio(target.member);
     const shield = abilities.get('power_word_shield');
     if (
-      shield
-      && (ratio <= 0.38 || (target.threatenedCount > 0 && ratio <= GROUP_SHIELD_THREATENED_RATIO))
-      && !hasFreshFriendlyAura(target, shield)
+      shield &&
+      (ratio <= 0.38 || (target.threatenedCount > 0 && ratio <= GROUP_SHIELD_THREATENED_RATIO)) &&
+      !hasFreshFriendlyAura(target, shield)
     ) {
       const decision = queueFriendlyCast(self, target, shield, 'shield_party', reserveCommandBatch);
       if (decision) return decision;
@@ -815,9 +951,16 @@ function maybePriestHeal(
     }
 
     if (ratio <= 0.48) {
-      const emergency = abilities.get('flash_heal') ?? abilities.get('heal') ?? abilities.get('lesser_heal');
+      const emergency =
+        abilities.get('flash_heal') ?? abilities.get('heal') ?? abilities.get('lesser_heal');
       if (emergency) {
-        const decision = queueFriendlyCast(self, target, emergency, 'heal_party', reserveCommandBatch);
+        const decision = queueFriendlyCast(
+          self,
+          target,
+          emergency,
+          'heal_party',
+          reserveCommandBatch,
+        );
         if (decision) return decision;
       }
     }
@@ -842,7 +985,13 @@ function maybePaladinHeal(
     const ratio = healthRatio(target.member);
     const layOnHands = abilities.get('lay_on_hands');
     if (layOnHands && ratio <= 0.18) {
-      const decision = queueFriendlyCast(self, target, layOnHands, 'heal_party', reserveCommandBatch);
+      const decision = queueFriendlyCast(
+        self,
+        target,
+        layOnHands,
+        'heal_party',
+        reserveCommandBatch,
+      );
       if (decision) return decision;
     }
     const flash = abilities.get('flash_of_light');
@@ -852,7 +1001,13 @@ function maybePaladinHeal(
     }
     const holyLight = abilities.get('holy_light');
     if (holyLight && ratio <= 0.72) {
-      const decision = queueFriendlyCast(self, target, holyLight, 'heal_party', reserveCommandBatch);
+      const decision = queueFriendlyCast(
+        self,
+        target,
+        holyLight,
+        'heal_party',
+        reserveCommandBatch,
+      );
       if (decision) return decision;
     }
   }
@@ -869,8 +1024,18 @@ function maybeDruidHeal(
   for (const target of candidates) {
     const ratio = healthRatio(target.member);
     const rejuvenation = abilities.get('rejuvenation');
-    if (rejuvenation && ratio <= (inCombat ? 0.8 : 0.88) && !hasFreshFriendlyAura(target, rejuvenation)) {
-      const decision = queueFriendlyCast(self, target, rejuvenation, 'heal_party', reserveCommandBatch);
+    if (
+      rejuvenation &&
+      ratio <= (inCombat ? 0.8 : 0.88) &&
+      !hasFreshFriendlyAura(target, rejuvenation)
+    ) {
+      const decision = queueFriendlyCast(
+        self,
+        target,
+        rejuvenation,
+        'heal_party',
+        reserveCommandBatch,
+      );
       if (decision) return decision;
     }
 
@@ -882,7 +1047,13 @@ function maybeDruidHeal(
 
     const healingTouch = abilities.get('healing_touch');
     if (healingTouch && ratio <= 0.5) {
-      const decision = queueFriendlyCast(self, target, healingTouch, 'heal_party', reserveCommandBatch);
+      const decision = queueFriendlyCast(
+        self,
+        target,
+        healingTouch,
+        'heal_party',
+        reserveCommandBatch,
+      );
       if (decision) return decision;
     }
   }
@@ -917,11 +1088,15 @@ function queueFriendlyCast(
 ): AmbientPartySupportDecision | null {
   if (target.member.pid !== self.id && !target.visible) return null;
   if (!canUseAbility(self, ability)) return null;
+  if (!nonEmergencyFriendlyCastKeepsManaReserve(self, ability, groupMode)) return null;
   const range = ability.def.range > 0 ? ability.def.range : 5;
   if (!withinRange(self.pos, target.member, range)) return null;
   const reservations: AmbientGroupCommandReservation[] = [];
   if (self.targetId !== target.member.pid) {
-    reservations.push({ key: `target:${target.member.pid}`, cooldownMs: TARGET_COMMAND_COOLDOWN_MS });
+    reservations.push({
+      key: `target:${target.member.pid}`,
+      cooldownMs: TARGET_COMMAND_COOLDOWN_MS,
+    });
   }
   reservations.push({ key: `cast:${ability.def.id}`, cooldownMs: castCommandCooldownMs(ability) });
   if (!reserveCommandBatch(reservations)) return null;
@@ -956,6 +1131,7 @@ function queueHostileCast(
       { cmd: 'cast', ability: ability.def.id },
     ],
     groupMode,
+    facing: facingForHostile(self, target),
   };
 }
 
@@ -980,6 +1156,7 @@ function queueHostileAttack(
       { cmd: 'attack' },
     ],
     groupMode,
+    facing: facingForHostile(self, target),
   };
 }
 
@@ -1004,6 +1181,7 @@ function queueRangedHostileAttack(
       { cmd: 'attack' },
     ],
     groupMode,
+    facing: facingForHostile(self, target),
   };
 }
 
@@ -1014,7 +1192,11 @@ function queueSelfCast(
   reserveCommandBatch: AmbientPartySupportInput['reserveCommandBatch'],
 ): AmbientPartySupportDecision | null {
   if (!canUseAbility(self, ability)) return null;
-  if (!reserveCommandBatch([{ key: `cast:${ability.def.id}`, cooldownMs: castCommandCooldownMs(ability) }])) {
+  if (
+    !reserveCommandBatch([
+      { key: `cast:${ability.def.id}`, cooldownMs: castCommandCooldownMs(ability) },
+    ])
+  ) {
     return null;
   }
   return {
@@ -1043,7 +1225,9 @@ function targetOnlyCommand(
   reserveCommandBatch: AmbientPartySupportInput['reserveCommandBatch'],
 ): Record<string, unknown> | null {
   if (self.targetId === target.id) return null;
-  if (!reserveCommandBatch([{ key: `target:${target.id}`, cooldownMs: TARGET_COMMAND_COOLDOWN_MS }])) {
+  if (
+    !reserveCommandBatch([{ key: `target:${target.id}`, cooldownMs: TARGET_COMMAND_COOLDOWN_MS }])
+  ) {
     return null;
   }
   return { cmd: 'target', id: target.id };
@@ -1055,15 +1239,14 @@ function canProvidePartyHealing(
 ): boolean {
   if (cls === 'priest' || cls === 'paladin' || cls === 'shaman') return true;
   if (cls !== 'druid') return false;
-  return !hasAuraKind(self.auras, 'form_bear')
-    && !hasAuraKind(self.auras, 'form_cat')
-    && !hasAuraKind(self.auras, 'form_travel');
+  return (
+    !hasAuraKind(self.auras, 'form_bear') &&
+    !hasAuraKind(self.auras, 'form_cat') &&
+    !hasAuraKind(self.auras, 'form_travel')
+  );
 }
 
-function supportRoleForSelf(
-  cls: AmbientPlayerBotRecord['class'],
-  self: SupportSelfView,
-): Role {
+function supportRoleForSelf(cls: AmbientPlayerBotRecord['class'], self: SupportSelfView): Role {
   if (self.role === 'tank' || self.role === 'healer' || self.role === 'dps') return self.role;
   switch (cls) {
     case 'warrior':
@@ -1086,9 +1269,12 @@ function partyReadyForPull(
   if (!leader || leader.member.dead) return false;
   return members
     .filter((member) => !member.member.dead)
-    .every((member) =>
-      member.member.pid === leaderPid
-      || planarDistance({ x: member.member.x, z: member.member.z }, leader.member) <= GROUP_PULL_READY_LEADER_RANGE);
+    .every(
+      (member) =>
+        member.member.pid === leaderPid ||
+        planarDistance({ x: member.member.x, z: member.member.z }, leader.member) <=
+          GROUP_PULL_READY_LEADER_RANGE,
+    );
 }
 
 function selectPartyPullerPid(
@@ -1174,12 +1360,14 @@ function orderedWoundedMembers(
 }
 
 function prefersBlessingOfMight(member: PartyMemberInfo): boolean {
-  return member.cls === 'warrior'
-    || member.cls === 'rogue'
-    || member.cls === 'hunter'
-    || member.cls === 'paladin'
-    || member.cls === 'shaman'
-    || member.cls === 'druid';
+  return (
+    member.cls === 'warrior' ||
+    member.cls === 'rogue' ||
+    member.cls === 'hunter' ||
+    member.cls === 'paladin' ||
+    member.cls === 'shaman' ||
+    member.cls === 'druid'
+  );
 }
 
 function knownAbilityMap(
@@ -1187,7 +1375,9 @@ function knownAbilityMap(
   self: SupportSelfView,
 ): ReadonlyMap<string, KnownAbility> {
   const mods = self.talents ? computeTalentModifiers(bot.class, self.talents) : undefined;
-  return new Map(abilitiesKnownAt(bot.class, self.level, mods).map((ability) => [ability.def.id, ability]));
+  return new Map(
+    abilitiesKnownAt(bot.class, self.level, mods).map((ability) => [ability.def.id, ability]),
+  );
 }
 
 function findHealingPotion(inventory: readonly InvSlot[]): string | null {
@@ -1196,9 +1386,10 @@ function findHealingPotion(inventory: readonly InvSlot[]): string | null {
   for (const slot of inventory) {
     if (slot.count <= 0) continue;
     const item = ITEMS[slot.itemId];
-    const healing = item && item.kind === 'potion' && 'potionHp' in item && typeof item.potionHp === 'number'
-      ? item.potionHp
-      : 0;
+    const healing =
+      item && item.kind === 'potion' && 'potionHp' in item && typeof item.potionHp === 'number'
+        ? item.potionHp
+        : 0;
     if (healing > bestHealing) {
       bestHealing = healing;
       bestItemId = slot.itemId;
@@ -1236,7 +1427,15 @@ function maybeQueueFocusFireAbility(input: {
       ...(!input.self.autoAttack && input.distance <= MELEE_RANGE + 0.3 ? [{ cmd: 'attack' }] : []),
     ],
     groupMode: input.groupMode,
+    facing: facingForHostile(input.self, input.target),
   };
+}
+
+function facingForHostile(self: SupportSelfView, target: SupportMobView): number {
+  return angleTo(
+    { x: self.pos.x, y: 0, z: self.pos.z },
+    { x: target.pos.x, y: 0, z: target.pos.z },
+  );
 }
 
 function maybeQueuePullAbility(input: {
@@ -1249,7 +1448,13 @@ function maybeQueuePullAbility(input: {
 }): AmbientPartySupportDecision | null {
   const ability = pickPullAbility(input.abilities, input.distance, input.self);
   if (!ability) return null;
-  return queueHostileCast(input.self, input.target, ability, input.groupMode, input.reserveCommandBatch);
+  return queueHostileCast(
+    input.self,
+    input.target,
+    ability,
+    input.groupMode,
+    input.reserveCommandBatch,
+  );
 }
 
 function pickFocusFireAbility(
@@ -1264,7 +1469,9 @@ function pickFocusFireAbility(
     .filter((ability) => abilityMatchesDistance(ability, distance))
     .filter((ability) => canUseAbility(self, ability));
   if (candidates.length === 0) return null;
-  candidates.sort((a, b) => scoreFocusFireAbility(b, preferRanged) - scoreFocusFireAbility(a, preferRanged));
+  candidates.sort(
+    (a, b) => scoreFocusFireAbility(b, preferRanged) - scoreFocusFireAbility(a, preferRanged),
+  );
   return candidates[0] ?? null;
 }
 
@@ -1321,22 +1528,25 @@ function isFocusFireAbility(ability: KnownAbility): boolean {
   if (ability.def.requiresTargetHpBelow) return false;
   if (ability.def.spendsCombo) return false;
   if (ability.def.targetType === 'friendly') return false;
-  if (ability.effects.some((effect) => effect.type === 'weaponStrike' && effect.requiresBehind)) return false;
-  if (ability.effects.some((effect) =>
-    effect.type === 'incapacitate'
-    || effect.type === 'polymorph'
-    || effect.type === 'stun',
-  )) {
+  if (ability.effects.some((effect) => effect.type === 'weaponStrike' && effect.requiresBehind))
+    return false;
+  if (
+    ability.effects.some(
+      (effect) =>
+        effect.type === 'incapacitate' || effect.type === 'polymorph' || effect.type === 'stun',
+    )
+  ) {
     return false;
   }
-  return ability.effects.some((effect) =>
-    effect.type === 'directDamage'
-    || effect.type === 'weaponDamage'
-    || effect.type === 'weaponStrike'
-    || effect.type === 'dot'
-    || effect.type === 'drainTick'
-    || effect.type === 'finisherDamage'
-    || effect.type === 'aoeDamage',
+  return ability.effects.some(
+    (effect) =>
+      effect.type === 'directDamage' ||
+      effect.type === 'weaponDamage' ||
+      effect.type === 'weaponStrike' ||
+      effect.type === 'dot' ||
+      effect.type === 'drainTick' ||
+      effect.type === 'finisherDamage' ||
+      effect.type === 'aoeDamage',
   );
 }
 
@@ -1368,18 +1578,14 @@ function scoreFocusFireAbility(ability: KnownAbility, preferRanged: boolean): nu
 }
 
 function abilityMatchesDistance(ability: KnownAbility, distance: number): boolean {
-  return distance <= abilityRange(ability) + 0.35
-    && distance >= (ability.def.minRange ?? 0) - 0.35;
+  return distance <= abilityRange(ability) + 0.35 && distance >= (ability.def.minRange ?? 0) - 0.35;
 }
 
 function abilityRange(ability: KnownAbility): number {
   return ability.def.range > 0 ? ability.def.range : MELEE_RANGE;
 }
 
-function withinAutoAttackRange(
-  cls: AmbientPlayerBotRecord['class'],
-  distance: number,
-): boolean {
+function withinAutoAttackRange(cls: AmbientPlayerBotRecord['class'], distance: number): boolean {
   const ranged = CLASSES[cls].ranged;
   if (!ranged) return distance <= MELEE_RANGE + 0.3;
   const minRange = ranged.wand ? 0 : ranged.minRange;
@@ -1441,15 +1647,13 @@ function canClassHeal(cls: PartyMemberInfo['cls']): boolean {
   return cls === 'priest' || cls === 'paladin' || cls === 'shaman' || cls === 'druid';
 }
 
-function selectFocusTarget(
-  input: {
-    hostileMobs: readonly SupportMobView[];
-    members: readonly SupportPartyMemberView[];
-    markerByEntityId: Record<string, number>;
-    tankPid: number | null;
-    leaderPid: number | null;
-  },
-): SupportMobView | null {
+function selectFocusTarget(input: {
+  hostileMobs: readonly SupportMobView[];
+  members: readonly SupportPartyMemberView[];
+  markerByEntityId: Record<string, number>;
+  tankPid: number | null;
+  leaderPid: number | null;
+}): SupportMobView | null {
   const mobById = new Map(input.hostileMobs.map((mob) => [mob.id, mob]));
   const markedTarget = selectMarkedFocusTarget(mobById, input.markerByEntityId);
   if (markedTarget) return markedTarget;
@@ -1457,7 +1661,12 @@ function selectFocusTarget(
   const leaderTarget = selectLeaderFocusTarget(mobById, input.members, input.leaderPid);
   if (leaderTarget) return leaderTarget;
 
-  const votedTarget = selectVotedFocusTarget(mobById, input.members, input.tankPid, input.leaderPid);
+  const votedTarget = selectVotedFocusTarget(
+    mobById,
+    input.members,
+    input.tankPid,
+    input.leaderPid,
+  );
   if (votedTarget) return votedTarget;
 
   return selectAggroFocusTarget(input.hostileMobs, input.members, input.tankPid, input.leaderPid);
@@ -1470,12 +1679,15 @@ function selectMarkedFocusTarget(
   const marked = Object.entries(markerByEntityId)
     .map(([entityIdText, markerId]) => {
       const entityId = Number(entityIdText);
-      const mob = Number.isInteger(entityId) ? mobById.get(entityId) ?? null : null;
+      const mob = Number.isInteger(entityId) ? (mobById.get(entityId) ?? null) : null;
       return mob && isValidRaidMarkerId(markerId)
         ? { mob, markerId, priority: markerFocusPriority(markerId) }
         : null;
     })
-    .filter((entry): entry is { mob: SupportMobView; markerId: number; priority: number } => entry !== null);
+    .filter(
+      (entry): entry is { mob: SupportMobView; markerId: number; priority: number } =>
+        entry !== null,
+    );
   marked.sort((a, b) => {
     if (a.priority !== b.priority) return a.priority - b.priority;
     if (a.markerId !== b.markerId) return a.markerId - b.markerId;
@@ -1493,7 +1705,7 @@ function selectLeaderFocusTarget(
   const leader = members.find((member) => member.member.pid === leaderPid) ?? null;
   if (!leader || leader.member.dead) return null;
   const targetId = leader.member.targetId;
-  return targetId !== undefined && targetId !== null ? mobById.get(targetId) ?? null : null;
+  return targetId !== undefined && targetId !== null ? (mobById.get(targetId) ?? null) : null;
 }
 
 function selectVotedFocusTarget(
@@ -1502,12 +1714,15 @@ function selectVotedFocusTarget(
   tankPid: number | null,
   leaderPid: number | null,
 ): SupportMobView | null {
-  const tallies = new Map<number, {
-    mob: SupportMobView;
-    votes: number;
-    score: number;
-    nearestVoteDistance: number;
-  }>();
+  const tallies = new Map<
+    number,
+    {
+      mob: SupportMobView;
+      votes: number;
+      score: number;
+      nearestVoteDistance: number;
+    }
+  >();
   for (const member of members) {
     if (member.member.dead) continue;
     const targetId = member.member.targetId;
@@ -1548,7 +1763,9 @@ function selectAggroFocusTarget(
   leaderPid: number | null,
 ): SupportMobView | null {
   const memberByPid = new Map(members.map((member) => [member.member.pid, member.member]));
-  const sorted = [...hostileMobs].filter((mob) => mob.aggroTargetId !== null && memberByPid.has(mob.aggroTargetId));
+  const sorted = [...hostileMobs].filter(
+    (mob) => mob.aggroTargetId !== null && memberByPid.has(mob.aggroTargetId),
+  );
   sorted.sort((a, b) => {
     const aPriority = focusPriority(a, tankPid, leaderPid);
     const bPriority = focusPriority(b, tankPid, leaderPid);
@@ -1607,19 +1824,27 @@ function selectEmergencyRecoveryThreat(
 ): SupportMobView | null {
   const threatenedMembers = new Map(
     members
-      .filter((member) => !member.member.dead && healthRatio(member.member) <= GROUP_RECOVERY_EMERGENCY_FOCUS_RATIO)
+      .filter(
+        (member) =>
+          !member.member.dead && healthRatio(member.member) <= GROUP_RECOVERY_EMERGENCY_FOCUS_RATIO,
+      )
       .map((member) => [member.member.pid, member]),
   );
-  const sorted = [...hostileMobs].filter((mob) =>
-    mob.aggroTargetId !== null && threatenedMembers.has(mob.aggroTargetId));
+  const sorted = [...hostileMobs].filter(
+    (mob) => mob.aggroTargetId !== null && threatenedMembers.has(mob.aggroTargetId),
+  );
   sorted.sort((a, b) => {
     const aMember = threatenedMembers.get(a.aggroTargetId ?? -1);
     const bMember = threatenedMembers.get(b.aggroTargetId ?? -1);
     const aRatio = aMember ? healthRatio(aMember.member) : 1;
     const bRatio = bMember ? healthRatio(bMember.member) : 1;
     if (Math.abs(aRatio - bRatio) > 0.001) return aRatio - bRatio;
-    const aDistance = aMember ? planarDistance({ x: aMember.member.x, z: aMember.member.z }, a.pos) : 0;
-    const bDistance = bMember ? planarDistance({ x: bMember.member.x, z: bMember.member.z }, b.pos) : 0;
+    const aDistance = aMember
+      ? planarDistance({ x: aMember.member.x, z: aMember.member.z }, a.pos)
+      : 0;
+    const bDistance = bMember
+      ? planarDistance({ x: bMember.member.x, z: bMember.member.z }, b.pos)
+      : 0;
     if (Math.abs(aDistance - bDistance) > 0.001) return aDistance - bDistance;
     return a.id - b.id;
   });
@@ -1631,11 +1856,12 @@ function selectRecoveryProtectionTarget(
   members: readonly SupportPartyMemberView[],
   self: SupportSelfView,
 ): SupportMobView | null {
-  const memberByPid = new Map(members
-    .filter((member) => !member.member.dead)
-    .map((member) => [member.member.pid, member]));
-  const sorted = [...hostileMobs].filter((mob) =>
-    mob.aggroTargetId !== null && memberByPid.has(mob.aggroTargetId));
+  const memberByPid = new Map(
+    members.filter((member) => !member.member.dead).map((member) => [member.member.pid, member]),
+  );
+  const sorted = [...hostileMobs].filter(
+    (mob) => mob.aggroTargetId !== null && memberByPid.has(mob.aggroTargetId),
+  );
   sorted.sort((a, b) => {
     const aMember = memberByPid.get(a.aggroTargetId ?? -1);
     const bMember = memberByPid.get(b.aggroTargetId ?? -1);
@@ -1656,10 +1882,7 @@ function selectRecoveryProtectionTarget(
   return sorted[0] ?? null;
 }
 
-function recoveryProtectionPriority(
-  member: SupportPartyMemberView,
-  selfId: number,
-): number {
+function recoveryProtectionPriority(member: SupportPartyMemberView, selfId: number): number {
   if (member.member.pid === selfId) return 3;
   const ratio = healthRatio(member.member);
   if (ratio <= GROUP_RECOVERY_EMERGENCY_FOCUS_RATIO) return 0;
@@ -1693,10 +1916,7 @@ function castCommandCooldownMs(ability: KnownAbility): number {
   return ability.castTime > 0 ? LONG_CAST_COMMAND_COOLDOWN_MS : CAST_COMMAND_COOLDOWN_MS;
 }
 
-function canUseAbility(
-  self: SupportSelfView,
-  ability: KnownAbility,
-): boolean {
+function canUseAbility(self: SupportSelfView, ability: KnownAbility): boolean {
   if (self.castingAbility) return false;
   if (!ability.def.offGcd && self.gcdRemaining > 0.05) return false;
   if ((self.cooldowns[ability.def.id] ?? 0) > 0.05) return false;
@@ -1711,9 +1931,21 @@ function canUseAbility(
   return true;
 }
 
+function nonEmergencyFriendlyCastKeepsManaReserve(
+  self: SupportSelfView,
+  ability: KnownAbility,
+  groupMode: string,
+): boolean {
+  if (groupMode !== 'buff_party' && groupMode !== 'prepare_party') return true;
+  if (self.resourceType !== 'mana' || self.maxResource <= 0 || ability.cost <= 0) return true;
+  return (
+    (self.resource - ability.cost) / self.maxResource >= GROUP_NON_EMERGENCY_MANA_RESERVE_RATIO
+  );
+}
+
 function currentFormKind(auras: readonly SupportAuraView[]): string | null {
-  const form = auras.find((aura) =>
-    aura.kind === 'form_bear' || aura.kind === 'form_cat' || aura.kind === 'form_travel',
+  const form = auras.find(
+    (aura) => aura.kind === 'form_bear' || aura.kind === 'form_cat' || aura.kind === 'form_travel',
   );
   return form?.kind ?? null;
 }
@@ -1734,22 +1966,16 @@ function planarDistance(
   source: { x: number; z: number },
   target: { x: number; z: number },
 ): number {
-  return dist2d(
-    { x: source.x, y: 0, z: source.z },
-    { x: target.x, y: 0, z: target.z },
-  );
+  return dist2d({ x: source.x, y: 0, z: source.z }, { x: target.x, y: 0, z: target.z });
 }
 
-function hasFreshFriendlyAura(
-  target: SupportPartyMemberView,
-  ability: KnownAbility,
-): boolean {
+function hasFreshFriendlyAura(target: SupportPartyMemberView, ability: KnownAbility): boolean {
   const duration = ability.effects.reduce((max, effect) => {
     if (
-      effect.type === 'buffTarget'
-      || effect.type === 'selfBuff'
-      || effect.type === 'absorb'
-      || effect.type === 'hot'
+      effect.type === 'buffTarget' ||
+      effect.type === 'selfBuff' ||
+      effect.type === 'absorb' ||
+      effect.type === 'hot'
     ) {
       return Math.max(max, effect.duration);
     }
@@ -1765,17 +1991,11 @@ function auraRefreshBelow(duration: number): number {
   return Math.min(30, Math.max(8, duration * 0.2));
 }
 
-function hasAuraId(
-  auras: readonly SupportAuraView[],
-  auraId: string,
-): boolean {
+function hasAuraId(auras: readonly SupportAuraView[], auraId: string): boolean {
   return auras.some((aura) => aura.id === auraId && aura.remaining > 3);
 }
 
-function hasAuraKind(
-  auras: readonly SupportAuraView[],
-  auraKind: string,
-): boolean {
+function hasAuraKind(auras: readonly SupportAuraView[], auraKind: string): boolean {
   return auras.some((aura) => aura.kind === auraKind && aura.remaining > 3);
 }
 
@@ -1786,10 +2006,12 @@ function buildSupportMembers(
   hostileMobs: readonly SupportMobView[],
 ): SupportPartyMemberView[] {
   return party.members.map((member) => {
-    const visibleRecord = member.pid === self.id ? liveState.self : liveState.entities.get(member.pid) ?? null;
+    const visibleRecord =
+      member.pid === self.id ? liveState.self : (liveState.entities.get(member.pid) ?? null);
+    const rosterVisible = planarDistance(self.pos, member) <= PARTY_ROSTER_VISIBILITY_RANGE;
     return {
       member,
-      visible: !!visibleRecord,
+      visible: !!visibleRecord || rosterVisible,
       auras: member.pid === self.id ? [...self.auras] : readAuras(visibleRecord?.auras),
       threatenedCount: hostileMobs.filter((mob) => mob.aggroTargetId === member.pid).length,
     };
@@ -1802,7 +2024,7 @@ function readPartyHostileMobs(
 ): SupportMobView[] {
   const mobs: SupportMobView[] = [];
   for (const raw of liveState.entities.values()) {
-    if (readString(raw.k) !== 'mob' || readBoolean(raw.dead) || !hasPositiveHealth(raw.h)) continue;
+    if (!isAttackableMob(raw)) continue;
     const id = readNumber(raw.id);
     const x = readNumber(raw.x);
     const z = readNumber(raw.z);
@@ -1834,6 +2056,8 @@ function parseSupportSelf(raw: Record<string, unknown> | null): SupportSelfView 
     targetMarkers: readNumberRecord(raw.marks),
     autoAttack: readBoolean(raw.auto),
     resource: readNumber(raw.res) ?? 0,
+    maxResource: readNumber(raw.mres) ?? 0,
+    resourceType: readString(raw.rtype) ?? '',
     gcdRemaining: readNumber(raw.gcd) ?? 0,
     cooldowns: readNumberRecord(raw.cds),
     castingAbility: readString(raw.cast),
@@ -1852,16 +2076,7 @@ function readRole(raw: unknown): Role | null {
 
 function readTalentAllocation(raw: unknown): TalentAllocation | null {
   const record = readRecord(raw);
-  const alloc = record ? readRecord(record.alloc) : null;
-  const ranks = alloc ? readRecord(alloc.ranks) : null;
-  const choices = alloc ? readRecord(alloc.choices) : null;
-  return alloc
-    ? {
-      spec: readString(alloc.spec),
-      ranks: ranks ? Object.fromEntries(Object.entries(ranks).map(([key, value]) => [key, readNumber(value) ?? 0])) : {},
-      choices: choices ? Object.fromEntries(Object.entries(choices).map(([key, value]) => [key, readString(value) ?? ''])) : {},
-    }
-    : null;
+  return parseTalentAllocation(record?.alloc);
 }
 
 function readAuras(raw: unknown): SupportAuraView[] {
@@ -1910,7 +2125,7 @@ function readNumberRecord(raw: unknown): Record<string, number> {
 
 function readRecord(raw: unknown): Record<string, unknown> | null {
   return raw && typeof raw === 'object' && !Array.isArray(raw)
-    ? raw as Record<string, unknown>
+    ? (raw as Record<string, unknown>)
     : null;
 }
 
@@ -1926,8 +2141,15 @@ function readBoolean(raw: unknown): boolean {
   return raw === true || raw === 1;
 }
 
-function hasPositiveHealth(raw: unknown): boolean {
-  const hp = readNumber(raw);
-  if (hp !== null) return hp > 0;
-  return readBoolean(raw);
+function isAttackableMob(raw: Record<string, unknown>): boolean {
+  if (readString(raw.k) !== 'mob' || readBoolean(raw.dead)) return false;
+  const hp = readNumber(raw.hp);
+  if (hp !== null && hp <= 0) return false;
+  return readHostileSignal(raw.h) || readNumber(raw.aggro) !== null;
+}
+
+function readHostileSignal(raw: unknown): boolean {
+  if (readBoolean(raw)) return true;
+  const numeric = readNumber(raw);
+  return numeric !== null && numeric > 0;
 }

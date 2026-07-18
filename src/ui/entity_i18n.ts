@@ -1,8 +1,15 @@
 import {
+  HEROIC_MARK_LETTER,
+  type LetterDef,
+  QUEST_LETTERS,
+  WELCOME_LETTER,
+} from '../sim/content/letters';
+import {
   ABILITIES,
   CLASSES,
   DELVES,
   DUNGEONS,
+  ITEM_SETS,
   ITEMS,
   MOBS,
   NPCS,
@@ -17,10 +24,11 @@ import {
   type InterpolationValues,
   type SupportedLanguage,
   supportedLanguages,
+  t,
   tOptional,
 } from './i18n';
 
-export type EntityTranslationGroup = 'classAbility' | 'item' | 'world';
+export type EntityTranslationGroup = 'classAbility' | 'item' | 'itemSet' | 'world';
 export type EntityTranslationKind =
   | 'class'
   | 'ability'
@@ -32,7 +40,9 @@ export type EntityTranslationKind =
   | 'zone'
   | 'zonePoi'
   | 'dungeon'
-  | 'delve';
+  | 'delve'
+  | 'itemSet'
+  | 'letter';
 export type EntityTranslationField =
   | 'name'
   | 'description'
@@ -43,12 +53,24 @@ export type EntityTranslationField =
   | 'label'
   | 'welcome'
   | 'enterText'
-  | 'leaveText';
+  | 'leaveText'
+  | 'bonus2'
+  | 'bonus3'
+  | 'bonus4'
+  | 'sender'
+  | 'subject'
+  | 'body';
 
 export type EntityTranslationRequest =
   | { kind: 'class'; id: PlayerClass; field: 'name' | 'description'; values?: InterpolationValues }
   | { kind: 'ability'; id: string; field: 'name' | 'description'; values?: InterpolationValues }
   | { kind: 'item'; id: string; field: 'name'; values?: InterpolationValues }
+  | {
+      kind: 'itemSet';
+      id: string;
+      field: 'name' | 'bonus2' | 'bonus3' | 'bonus4';
+      values?: InterpolationValues;
+    }
   | { kind: 'mob'; id: string; field: 'name'; values?: InterpolationValues }
   | { kind: 'npc'; id: string; field: 'name' | 'title' | 'greeting'; values?: InterpolationValues }
   | {
@@ -82,6 +104,12 @@ export type EntityTranslationRequest =
       kind: 'delve';
       id: string;
       field: 'name' | 'enterText' | 'leaveText';
+      values?: InterpolationValues;
+    }
+  | {
+      kind: 'letter';
+      id: string;
+      field: 'sender' | 'subject' | 'body';
       values?: InterpolationValues;
     };
 
@@ -129,6 +157,15 @@ const CLASS_DESCRIPTION_KEYS: Record<PlayerClass, string> = {
 
 const fallbackLog = new Map<string, EntityTranslationFallback>();
 
+// Ravenpost authored letters by letterId (the welcome letter, the Heroic Marks
+// reward letter, and the quest thank-you letters), the canonical English source
+// the 'letter' kind reads.
+const LETTERS_BY_ID: Record<string, LetterDef> = {
+  [WELCOME_LETTER.letterId]: WELCOME_LETTER,
+  [HEROIC_MARK_LETTER.letterId]: HEROIC_MARK_LETTER,
+};
+for (const letter of Object.values(QUEST_LETTERS)) LETTERS_BY_ID[letter.letterId] = letter;
+
 function entityPathSegment(value: string): string {
   return value.replace(/[^A-Za-z0-9_]/g, '_');
 }
@@ -154,7 +191,19 @@ function interpolateSource(source: string, values?: InterpolationValues): string
   const legacy = source
     .replace(/\$N/g, String(values.playerName ?? values.name ?? '$N'))
     .replace(/\$C/g, String(className))
-    .replace(/\$d/g, String(values.damage ?? values.d ?? '$d'));
+    .replace(/\$d/g, String(values.damage ?? values.d ?? '$d'))
+    // Ability-description placeholders beyond the damage number: a hybrid's
+    // over-time total ($o), the first buff's resolved value ($b), the first
+    // timed effect's resolved duration ($t); hud.ts supplies all three.
+    .replace(/\$o/g, String(values.overTime ?? '$o'))
+    .replace(/\$b/g, String(values.buff ?? '$b'))
+    .replace(/\$t/g, String(values.duration ?? '$t'))
+    .replace(/\$h/g, String(values.healing ?? '$h'))
+    .replace(/\$e/g, String(values.hostilePveDuration ?? '$e'))
+    .replace(/\$p/g, String(values.hostilePvpDuration ?? '$p'))
+    .replace(/\$g/g, String(values.groundDuration ?? '$g'))
+    .replace(/\$s/g, String(values.selfCooldownRecovery ?? '$s'))
+    .replace(/\$a/g, String(values.allyCooldownRecovery ?? '$a'));
   return legacy.replace(/\{([A-Za-z0-9_]+)\}/g, (match, name: string) => {
     const value = values[name];
     return value === undefined ? match : String(value);
@@ -178,6 +227,13 @@ function canonicalEntityText(request: EntityTranslationRequest): string {
     }
     case 'item':
       return ITEMS[request.id]?.name ?? request.id;
+    case 'itemSet': {
+      const set = ITEM_SETS[request.id];
+      if (!set) return request.id;
+      if (request.field === 'name') return set.name;
+      const pieces = request.field === 'bonus2' ? 2 : request.field === 'bonus3' ? 3 : 4;
+      return set.bonuses.find((b) => b.pieces === pieces)?.text ?? request.id;
+    }
     case 'mob':
       return MOBS[request.id]?.name ?? request.id;
     case 'npc': {
@@ -222,6 +278,13 @@ function canonicalEntityText(request: EntityTranslationRequest): string {
       if (request.field === 'leaveText') return delve.leaveText;
       return delve.name;
     }
+    case 'letter': {
+      const letter = LETTERS_BY_ID[request.id];
+      if (!letter) return request.id;
+      if (request.field === 'sender') return letter.senderName;
+      if (request.field === 'body') return letter.body;
+      return letter.subject;
+    }
   }
 }
 
@@ -235,6 +298,8 @@ export function entityTranslationKey(request: EntityTranslationRequest): string 
       return `entities.abilities.${entityPathSegment(request.id)}.${request.field}`;
     case 'item':
       return `entities.items.${entityPathSegment(request.id)}.name`;
+    case 'itemSet':
+      return `entities.itemSets.${entityPathSegment(request.id)}.${request.field}`;
     case 'mob':
       return `entities.mobs.${entityPathSegment(request.id)}.name`;
     case 'npc':
@@ -251,6 +316,8 @@ export function entityTranslationKey(request: EntityTranslationRequest): string 
       return `entities.dungeons.${entityPathSegment(request.id)}.${request.field}`;
     case 'delve':
       return `entities.delves.${entityPathSegment(request.id)}.${request.field}`;
+    case 'letter':
+      return `entities.letters.${entityPathSegment(request.id)}.${request.field}`;
   }
 }
 
@@ -264,9 +331,11 @@ function requestManifestEntry(request: EntityTranslationRequest): EntityTranslat
   const group: EntityTranslationGroup =
     request.kind === 'class' || request.kind === 'ability'
       ? 'classAbility'
-      : request.kind === 'item'
-        ? 'item'
-        : 'world';
+      : request.kind === 'itemSet'
+        ? 'itemSet'
+        : request.kind === 'item'
+          ? 'item'
+          : 'world';
   return entry(
     request.kind,
     id,
@@ -293,7 +362,35 @@ export function tEntity(request: EntityTranslationRequest): string {
 }
 
 export function itemDisplayName(item: ItemDef): string {
+  // Heroic upgraded variants share the base item's name (classic behavior: a heroic
+  // drop reads the same as its normal counterpart). The heroic distinction shows as
+  // an "[HEROIC]" tag on the tooltip's quality/kind line, not in the name, so a
+  // variant never needs its own translated name key.
+  if (item.heroicOf) {
+    const base = ITEMS[item.heroicOf];
+    return base ? itemDisplayName(base) : item.heroicOf;
+  }
   return tEntity({ kind: 'item', id: item.id, field: 'name' });
+}
+
+// Thin tEntity wrappers for the display helpers that several windows + painters each
+// re-declared (class/zone/poi/dungeon names). Mirroring itemDisplayName above, these are
+// the single shared home so hud.ts, the cold windows, and map_window_painter import one
+// definition instead of redefining it per module.
+export function classDisplayName(cls: PlayerClass): string {
+  return tEntity({ kind: 'class', id: cls, field: 'name' });
+}
+
+export function zoneDisplayName(zoneId: string): string {
+  return tEntity({ kind: 'zone', id: zoneId, field: 'name' });
+}
+
+export function zonePoiLabel(zoneId: string, poiIndex: number): string {
+  return tEntity({ kind: 'zonePoi', zoneId, poiIndex, field: 'label' });
+}
+
+export function dungeonDisplayName(dungeonId: string): string {
+  return tEntity({ kind: 'dungeon', id: dungeonId, field: 'name' });
 }
 
 export function resetEntityTranslationFallbackLog(): void {
@@ -343,6 +440,9 @@ export function entityTranslationManifest(): EntityTranslationManifestEntry[] {
     );
   }
   for (const item of Object.values(ITEMS).sort(compareById)) {
+    // Heroic upgraded variants carry no name key: they share the base item's name
+    // (see itemDisplayName), so they never enter the manifest.
+    if (item.heroicOf) continue;
     entries.push(
       entry(
         'item',
@@ -353,6 +453,26 @@ export function entityTranslationManifest(): EntityTranslationManifestEntry[] {
         entityTranslationKey({ kind: 'item', id: item.id, field: 'name' }),
       ),
     );
+  }
+  for (const set of Object.values(ITEM_SETS).sort(compareById)) {
+    // Only tiers the set actually has: the leveling haste kits carry a single
+    // 3-piece tier, so registering a bonus2 row would emit an id-fallback string.
+    const fields: ('name' | 'bonus2' | 'bonus3' | 'bonus4')[] = ['name'];
+    if (set.bonuses.some((b) => b.pieces === 2)) fields.push('bonus2');
+    if (set.bonuses.some((b) => b.pieces === 3)) fields.push('bonus3');
+    if (set.bonuses.some((b) => b.pieces === 4)) fields.push('bonus4');
+    for (const field of fields) {
+      entries.push(
+        entry(
+          'itemSet',
+          set.id,
+          field,
+          canonicalEntityText({ kind: 'itemSet', id: set.id, field }),
+          'itemSet',
+          entityTranslationKey({ kind: 'itemSet', id: set.id, field }),
+        ),
+      );
+    }
   }
   for (const mob of Object.values(MOBS).sort(compareById)) {
     entries.push(
@@ -544,6 +664,23 @@ export function entityTranslationManifest(): EntityTranslationManifestEntry[] {
         entityTranslationKey({ kind: 'delve', id: delve.id, field: 'leaveText' }),
       ),
     );
+  }
+  for (const letter of Object.values(LETTERS_BY_ID).sort((a, b) =>
+    a.letterId.localeCompare(b.letterId),
+  )) {
+    const fields: ('sender' | 'subject' | 'body')[] = ['sender', 'subject', 'body'];
+    for (const field of fields) {
+      entries.push(
+        entry(
+          'letter',
+          letter.letterId,
+          field,
+          canonicalEntityText({ kind: 'letter', id: letter.letterId, field }),
+          'world',
+          entityTranslationKey({ kind: 'letter', id: letter.letterId, field }),
+        ),
+      );
+    }
   }
   return entries;
 }

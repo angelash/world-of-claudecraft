@@ -73,6 +73,7 @@ describe('ambient player bot party chat shell', () => {
     const party: PartyInfo = {
       leader: 101,
       raid: false,
+      master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
         { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
         { pid: 102, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 0, group: 1 },
@@ -145,6 +146,7 @@ describe('ambient player bot party chat shell', () => {
     const party: PartyInfo = {
       leader: 101,
       raid: false,
+      master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
         { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
         { pid: 102, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 42, z: 0, dead: 0, inCombat: 0, group: 1 },
@@ -199,6 +201,7 @@ describe('ambient player bot party chat shell', () => {
     const party: PartyInfo = {
       leader: 101,
       raid: false,
+      master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
         { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
         { pid: 102, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 22, z: 0, dead: 0, inCombat: 0, group: 1 },
@@ -231,6 +234,7 @@ describe('ambient player bot party chat shell', () => {
     const party: PartyInfo = {
       leader: 101,
       raid: false,
+      master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
         { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 2, hp: 128, mhp: 128, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
         { pid: 102, name: 'Branorabb', cls: 'mage', level: 2, hp: 60, mhp: 67, res: 100, mres: 120, rtype: 'mana', x: 4, z: 0, dead: 0, inCombat: 1, group: 1 },
@@ -267,6 +271,7 @@ describe('ambient player bot party chat shell', () => {
     const party: PartyInfo = {
       leader: 101,
       raid: false,
+      master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
         { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 252, mhp: 252, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
         { pid: 102, name: 'Branorabb', cls: 'rogue', level: 5, hp: 70, mhp: 100, res: 100, mres: 100, rtype: 'energy', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
@@ -300,6 +305,7 @@ describe('ambient player bot party chat shell', () => {
     const party: PartyInfo = {
       leader: 101,
       raid: false,
+      master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
         { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 252, mhp: 252, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
         { pid: 102, name: 'Branorabb', cls: 'priest', level: 5, hp: 100, mhp: 100, res: 80, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
@@ -333,6 +339,7 @@ describe('ambient player bot party chat shell', () => {
     const party: PartyInfo = {
       leader: 101,
       raid: false,
+      master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
         { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 252, mhp: 252, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
         { pid: 102, name: 'Branorabb', cls: 'priest', level: 5, hp: 100, mhp: 100, res: 35, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
@@ -367,6 +374,7 @@ describe('ambient player bot party chat shell', () => {
     const party: PartyInfo = {
       leader: 101,
       raid: false,
+      master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
         { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 252, mhp: 252, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
         { pid: 102, name: 'Branorabb', cls: 'priest', level: 5, hp: 100, mhp: 100, res: 40, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
@@ -400,6 +408,7 @@ describe('ambient player bot party chat shell', () => {
     const party: PartyInfo = {
       leader: 101,
       raid: false,
+      master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
         { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
         { pid: 102, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 0, group: 1 },
@@ -453,6 +462,7 @@ describe('ambient player bot party chat shell', () => {
     const party: PartyInfo = {
       leader: 101,
       raid: false,
+      master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
         { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
         { pid: 102, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 0, group: 1 },
@@ -530,6 +540,7 @@ describe('ambient player bot party chat shell', () => {
     const party: PartyInfo = {
       leader: 101,
       raid: false,
+      master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
         { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
         { pid: 102, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 1, group: 1 },
@@ -571,6 +582,7 @@ describe('ambient player bot party chat shell', () => {
     const party: PartyInfo = {
       leader: 101,
       raid: false,
+      master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members,
     };
     const commands: string[] = [];
@@ -629,6 +641,7 @@ describe('ambient player bot party chat shell', () => {
     const party: PartyInfo = {
       leader: 401,
       raid: false,
+      master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
         { pid: 401, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
         { pid: 402, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 0, group: 1 },
@@ -682,6 +695,7 @@ describe('ambient player bot party chat shell', () => {
     const party: PartyInfo = {
       leader: 201,
       raid: false,
+      master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
         { pid: 201, name: 'Aleph', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
         { pid: 101, name: 'Branoraaa', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 0, group: 1 },
@@ -744,6 +758,7 @@ describe('ambient player bot party chat shell', () => {
     const party: PartyInfo = {
       leader: 201,
       raid: false,
+      master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
         { pid: 201, name: 'Aleph', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
         { pid: 101, name: 'Branoraaa', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 0, group: 1 },

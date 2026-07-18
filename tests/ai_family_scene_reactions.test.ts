@@ -71,9 +71,10 @@ describe('AI family scene reactions', () => {
     const cases: Array<[MobFamily, ReturnType<typeof familyRoutinePlanKind>, ReturnType<typeof familyRoutinePlanKind>, ReturnType<typeof familyRoutinePlanKind>]> = [
       ['beast', 'forageScent', 'keepDistanceFromFire', 'guardScent'],
       ['humanoid', 'campClaim', 'fallBackFromThreat', 'campMutter'],
-      ['murloc', 'shoalForage', 'splashBack', 'shoalAlarm'],
+      ['mudfin', 'shoalForage', 'splashBack', 'shoalAlarm'],
       ['spider', 'webStalk', 'retreatToWeb', 'webVigil'],
-      ['kobold', 'snatchShiny', 'hideWithCandle', 'candleGuard'],
+      ['burrower', 'snatchShiny', 'hideWithCandle', 'candleGuard'],
+      ['reptile', 'forageScent', 'keepDistanceFromFire', 'guardScent'],
       ['undead', 'graveDrift', 'shunLivingWarmth', 'graveListen'],
       ['troll', 'meatClaim', 'sniffWariness', 'campGrumble'],
       ['ogre', 'blockPath', 'backOffMagic', 'territoryLoom'],
@@ -136,7 +137,7 @@ describe('AI family scene reactions', () => {
     });
     const murloc = scoreFamilySceneReaction(rainyLake, mob(15, 'mudfin_murloc'));
     expect(murloc).toMatchObject({
-      family: 'murloc',
+      family: 'mudfin',
       reaction: 'approach',
       reasonTags: expect.arrayContaining(['rain', 'waterComfort']),
     });

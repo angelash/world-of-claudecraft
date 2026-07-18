@@ -23,6 +23,8 @@ import { dedup, meshopt, prune, simplify, textureCompress, weld } from '@gltf-tr
 import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
 import sharp from 'sharp';
 
+// URL.pathname keeps a leading slash before a Windows drive letter, which
+// path.resolve mangles into "D:\D:\..."; fileURLToPath is correct on every OS.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const SIMPLIFY_ERROR = 0.05;
@@ -76,15 +78,24 @@ async function processItem(io, item) {
 
   const transforms = [];
   if (item.simplify) {
-    transforms.push(weld(), simplify({
-      simplifier: MeshoptSimplifier, ratio: item.simplify, error: SIMPLIFY_ERROR,
-    }));
+    transforms.push(
+      weld(),
+      simplify({
+        simplifier: MeshoptSimplifier,
+        ratio: item.simplify,
+        error: SIMPLIFY_ERROR,
+      }),
+    );
   }
   transforms.push(prune(), dedup());
   if (item.maxTex) {
-    transforms.push(textureCompress({
-      encoder: sharp, targetFormat: 'webp', resize: [item.maxTex, item.maxTex],
-    }));
+    transforms.push(
+      textureCompress({
+        encoder: sharp,
+        targetFormat: 'webp',
+        resize: [item.maxTex, item.maxTex],
+      }),
+    );
   }
   transforms.push(meshopt({ encoder: MeshoptEncoder, level: 'high' }));
   await doc.transform(...transforms);

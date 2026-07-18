@@ -16,15 +16,25 @@ import {
   LAKE,
   MOBS,
   NPCS,
+  PROPS,
   QUESTS,
   zoneAt,
   zoneWelcomeText,
 } from '../src/sim/data';
 import { createMob } from '../src/sim/entity';
 import { ACTIONS, encodeObs } from '../src/sim/obs';
+import { PLAYER_BODY_RADIUS, PLAYER_MAX_CLIMB_SLOPE } from '../src/sim/pathfind';
 import { Sim } from '../src/sim/sim';
 import { dist2d, type Entity, type SimEvent } from '../src/sim/types';
-import { generateDecorations, groundHeight, WATER_LEVEL } from '../src/sim/world';
+import {
+  DECORATION_MAX_SLOPE,
+  generateDecorations,
+  groundHeight,
+  terrainSteepness,
+  terrainSteepnessAt,
+  terrainWallStandoff,
+  WATER_LEVEL,
+} from '../src/sim/world';
 
 const SEED = 20061;
 
@@ -67,7 +77,7 @@ describe('quest lifecycle', () => {
     const starterZone = zoneAt(sim.player.pos.z);
 
     expect(zoneWelcomeText(starterZone, (questId) => sim.questState(questId))).toBe(
-      'Find Marshal Redbrook in town — he has work for you.',
+      'Find Marshal Redbrook in town - he has work for you.',
     );
 
     const redbrook = [...sim.entities.values()].find((e) => e.templateId === 'marshal_redbrook')!;
@@ -162,7 +172,7 @@ describe('collision & terrain', () => {
     for (const e of sim.entities.values()) {
       if (e.kind !== 'mob') continue;
       const h = groundHeight(e.pos.x, e.pos.z, SEED);
-      const canWade = MOBS[e.templateId].family === 'murloc' || MOBS[e.templateId].canSwim;
+      const canWade = MOBS[e.templateId].family === 'mudfin' || MOBS[e.templateId].canSwim;
       const min = canWade ? WATER_LEVEL - 0.55 : WATER_LEVEL + 0.35;
       expect(h, `${e.name} at ${e.pos.x.toFixed(0)},${e.pos.z.toFixed(0)}`).toBeGreaterThan(min);
     }
@@ -231,6 +241,159 @@ describe('collision & terrain', () => {
     const blocked = resolvePosition(SEED, tree.x, tree.z, 0.5);
     expect(Math.abs(blocked.x - tree.x) + Math.abs(blocked.z - tree.z)).toBeGreaterThan(0.5);
   });
+
+  it('does not scatter trees or rocks onto cliff faces', () => {
+    // A prop on a wall steeper than the climb limit floats off the face and
+    // (for large rocks / trunks) plants an invisible collider there.
+    expect(DECORATION_MAX_SLOPE).toBe(1.5);
+    const onCliffs = generateDecorations(SEED)
+      .filter((d) => terrainSteepness(d.x, d.z, SEED) > DECORATION_MAX_SLOPE)
+      .map((d) => `${d.kind}@${d.x.toFixed(0)},${d.z.toFixed(0)}`);
+    expect(onCliffs).toEqual([]);
+  });
+});
+
+describe('terrain wall standoff', () => {
+  const R = PLAYER_BODY_RADIUS;
+  const SLOPE = PLAYER_MAX_CLIMB_SLOPE;
+
+  it('leaves open ground untouched', () => {
+    // the Eastbrook hub plateau: flat, no wall within a body radius
+    const s = terrainWallStandoff(0, 0, SEED, R, SLOPE);
+    expect(s).toEqual({ x: 0, z: 0 });
+  });
+
+  it('eases a body off the rim wall, bounded by one body radius', () => {
+    let pushed = 0;
+    let maxMove = 0;
+    for (let x = -175; x <= -148; x += 0.5) {
+      for (let z = 555; z <= 645; z += 0.5) {
+        // only positions a player could actually stand on
+        if (terrainSteepness(x, z, SEED) > SLOPE) continue;
+        const s = terrainWallStandoff(x, z, SEED, R, SLOPE);
+        const moved = Math.hypot(s.x - x, s.z - z);
+        if (moved === 0) continue;
+        pushed++;
+        maxMove = Math.max(maxMove, moved);
+      }
+    }
+    expect(pushed).toBeGreaterThan(0); // the standoff actually engages along the wall
+    expect(maxMove).toBeLessThanOrEqual(R + 1e-9); // never more than a body radius
+  });
+
+  it('keeps the Abandoned Crypt door reachable (door trigger 2.0yd)', () => {
+    // the crypt door sits in the west rim at (-152, 610); the standoff must not
+    // fence the player out of its 2.0yd trigger.
+    const door = { x: -152, z: 610 };
+    let closest = Infinity;
+    for (let x = -156; x <= -148; x += 0.5) {
+      for (let z = 606; z <= 614; z += 0.5) {
+        if (terrainSteepness(x, z, SEED) > SLOPE) continue;
+        const s = terrainWallStandoff(x, z, SEED, R, SLOPE);
+        if (terrainSteepness(s.x, s.z, SEED) > SLOPE) continue;
+        closest = Math.min(closest, Math.hypot(s.x - door.x, s.z - door.z));
+      }
+    }
+    expect(closest).toBeLessThan(2.0);
+  });
+
+  it('keeps the Abandoned Crypt door clear of the mine-mound collider (door trigger 2.0yd)', () => {
+    // The crypt entrance reuses the "mine entrance" prop (rock mound + timber
+    // portal) for its visual, sharing the door's exact (x, z). The mound's
+    // collider circle must not swallow the door tile itself: a ghost can only
+    // ever re-enter through the walk-in proximity trigger (interact() refuses
+    // it while dead), so if the full collider stack (not just terrain) pushes
+    // every approach outside the 2.0yd trigger, no released spirit can ever
+    // get back in.
+    const door = { x: -152, z: 610 };
+    expect(isBlocked(SEED, door.x, door.z, PLAYER_BODY_RADIUS)).toBe(false);
+    let closest = Infinity;
+    for (let x = -156; x <= -148; x += 0.25) {
+      for (let z = 606; z <= 614; z += 0.25) {
+        if (isBlocked(SEED, x, z, PLAYER_BODY_RADIUS)) continue;
+        const s = resolvePosition(SEED, x, z, PLAYER_BODY_RADIUS);
+        if (isBlocked(SEED, s.x, s.z, PLAYER_BODY_RADIUS)) continue;
+        closest = Math.min(closest, Math.hypot(s.x - door.x, s.z - door.z));
+      }
+    }
+    expect(closest).toBeLessThan(2.0);
+  });
+
+  it('keeps the Abandoned Crypt mound collider matched to its visible rock pile', () => {
+    // Follow-up to the door-clear fix above: the mound circle must clear the
+    // door trigger WITHOUT drifting so far back that it disagrees with the
+    // rendered pile (src/render/props.ts), which would open a collision gap
+    // under the flanking boulders and wall off open ground behind them that
+    // no player ever needed to cross.
+    const door = { x: -152, z: 610 };
+    // A point inside the rendered flanking boulder (local (2.65, -2.3), r 1.75;
+    // world (-154.5, 607.5), rot PI/2) stays blocked under the tightened mound.
+    expect(isBlocked(SEED, -154.5, 607.5, PLAYER_BODY_RADIUS)).toBe(true);
+    // Open ground well behind the pile's rendered extent (local z < -8, past
+    // the farthest rock at z -4.15, r 2.35) is not swallowed by the collider.
+    expect(isBlocked(SEED, door.x - 9, door.z, PLAYER_BODY_RADIUS)).toBe(false);
+  });
+
+  it('eases a player parked at a rim wall foot off it, end to end through the Sim', () => {
+    // A cell the Sim itself treats as FLAT footing (terrainSteepnessAt well under
+    // the limit, so no downhill slide and no move gate fires) that still has a
+    // wall within a body radius. A no-input grounded tick therefore moves the
+    // player ONLY via the standoff in the shared movement kernel, isolating it
+    // from the slide: without the standoff the player would not move at all.
+    const cell = { x: -150, z: 546.75 };
+    expect(terrainSteepnessAt(cell.x, cell.z, SEED)).toBeLessThan(1.0); // flat footing: no slide
+    const sim = makeSim();
+    teleportTo(sim, cell.x, cell.z);
+    sim.player.onGround = true;
+    sim.player.vx = 0;
+    sim.player.vz = 0;
+    sim.player.vy = 0;
+    sim.tick();
+    const moved = Math.hypot(sim.player.pos.x - cell.x, sim.player.pos.z - cell.z);
+    expect(moved).toBeGreaterThan(0.1); // the standoff engaged in the live Sim
+    expect(moved).toBeLessThanOrEqual(R + 1e-6); // and never more than a body radius
+    // and it did not shove the player onto a wall to slide back off
+    expect(terrainSteepnessAt(sim.player.pos.x, sim.player.pos.z, SEED)).toBeLessThanOrEqual(
+      SLOPE + 1e-6,
+    );
+  });
+
+  it('does not sawtooth when holding forward into the western wall', () => {
+    const sim = makeSim();
+    teleportTo(sim, -90, -154);
+    sim.player.facing = Math.PI;
+    const meta = sim.players.get(sim.playerId);
+    if (!meta) throw new Error('missing player meta');
+    meta.moveInput.forward = true;
+
+    sim.tick(); // allow the body-width standoff to clear the initial wall overlap
+    let totalJitter = 0;
+    let largestStep = 0;
+    for (let i = 0; i < 60; i++) {
+      const beforeZ = sim.player.pos.z;
+      sim.tick();
+      const dz = Math.abs(sim.player.pos.z - beforeZ);
+      totalJitter += dz;
+      largestStep = Math.max(largestStep, dz);
+    }
+
+    expect(largestStep).toBeLessThan(0.02);
+    expect(totalJitter).toBeLessThan(0.05);
+  });
+
+  it('still preserves tangential wall slide when pushing into the western wall at an angle', () => {
+    const sim = makeSim();
+    teleportTo(sim, -90, -154);
+    sim.player.facing = Math.PI - 0.2;
+    const meta = sim.players.get(sim.playerId);
+    if (!meta) throw new Error('missing player meta');
+    meta.moveInput.forward = true;
+
+    for (let i = 0; i < 20; i++) sim.tick();
+
+    expect(sim.player.pos.x).toBeGreaterThan(-88.5);
+    expect(Math.abs(sim.player.pos.z + 153.65)).toBeLessThan(0.25);
+  });
 });
 
 describe('swimming', () => {
@@ -295,7 +458,9 @@ describe('rare spawn rules', () => {
       });
       if (id === 'mirejaw_the_ravenous' || id === 'sister_nhalia')
         expect(MOBS[id].respawnMult).toBe(648);
-      else expect(MOBS[id].respawnMult).toBe(864);
+      // Ironvein Foreman + Marrowlord Varkas rise hourly (144 * 25s base) so
+      // their epic T1 boots/legs are farmable on a predictable cadence.
+      else expect(MOBS[id].respawnMult).toBe(144);
     }
     expect(MOBS.mogger).toMatchObject({
       rare: true,
@@ -426,8 +591,12 @@ describe('the Hollow Crypt doors', () => {
     expect(eb.pos.x).toBeGreaterThan(DUNGEON_X_THRESHOLD);
     const slotA = sim.instanceSlotAt(ea.pos);
     const slotB = sim.instanceSlotAt(eb.pos);
+    const infoA = sim.instanceInfoAt(ea.pos);
+    const infoB = sim.instanceInfoAt(eb.pos);
     expect(slotA).not.toBeNull();
     expect(slotA).toBe(slotB);
+    expect(infoA).toEqual({ slot: slotA, dungeonId: 'hollow_crypt' });
+    expect(infoB).toEqual(infoA);
   });
 
   it('solo players from different groups get different instances', () => {
@@ -623,7 +792,7 @@ describe('boss loot and encounter resets', () => {
     expect(mob.loot).toBeNull();
   });
 
-  it('poor and common corpse drops are looted directly by the looter without need-greed rolls', () => {
+  it('poor and common corpse drops are awarded directly (round-robin) without need-greed rolls', () => {
     const sim = makeSim();
     const a = sim.playerId;
     const b = sim.addPlayer('mage', 'Bert');
@@ -647,10 +816,14 @@ describe('boss loot and encounter resets', () => {
     sim.events.length = 0;
     sim.lootCorpse(mob.id, a);
 
+    // Both drops are auto-awarded (no roll), but the default common-item
+    // strategy is round-robin, not looter-takes-all: the cursor advances once
+    // per item, so the two drops spread across the party rather than both
+    // landing on the looter.
     expect(sim.countItem('wolf_fang', a)).toBe(1);
-    expect(sim.countItem('raw_mirror_trout', a)).toBe(1);
+    expect(sim.countItem('raw_mirror_trout', b)).toBe(1);
     expect(sim.countItem('wolf_fang', b)).toBe(0);
-    expect(sim.countItem('raw_mirror_trout', b)).toBe(0);
+    expect(sim.countItem('raw_mirror_trout', a)).toBe(0);
     const prompts = sim.events.filter((e) => e.type === 'lootRoll');
     expect(prompts).toHaveLength(0);
     expect(mob.loot).toBeNull();
@@ -738,7 +911,7 @@ describe('boss loot and encounter resets', () => {
     expect(sim.countItem('greyjaw_hide_boots', a)).toBe(1);
     expect(sim.countItem('greyjaw_hide_boots', b)).toBe(0);
     expect(
-      sim.events.some((e) => e.type === 'loot' && e.text.includes('wins Greyjaw Hide Boots')),
+      sim.events.some((e) => e.type === 'loot' && e.text.includes('wins [[i:greyjaw_hide_boots]]')),
     ).toBe(true);
   });
 
@@ -786,12 +959,14 @@ describe('boss loot and encounter resets', () => {
     sim.events.length = 0;
     sim.lootCorpse(mob.id, a);
     const events: SimEvent[] = [];
-    for (let i = 0; i < 31 * 20; i++) events.push(...sim.tick());
+    for (let i = 0; i < 61 * 20; i++) events.push(...sim.tick());
 
     expect(sim.countItem('greyjaw_hide_boots', a)).toBe(0);
     expect(sim.countItem('greyjaw_hide_boots', b)).toBe(0);
     expect(
-      events.some((e) => e.type === 'loot' && e.text === 'Everyone passed on Greyjaw Hide Boots.'),
+      events.some(
+        (e) => e.type === 'loot' && e.text === 'Everyone passed on [[i:greyjaw_hide_boots]].',
+      ),
     ).toBe(true);
   });
 
@@ -881,7 +1056,7 @@ describe('boss loot and encounter resets', () => {
 
     sim.events.length = 0;
     sim.lootCorpse(mob.id, a);
-    for (let i = 0; i < 31 * 20; i++) sim.tick();
+    for (let i = 0; i < 61 * 20; i++) sim.tick();
 
     expect(mob.loot?.items).toEqual([{ itemId: 'greyjaw_hide_boots', count: 1, openToAll: true }]);
 
@@ -1557,24 +1732,26 @@ describe('pet heel warp', () => {
   it('keeps the spatial grid exact when a pet warps to its owner', () => {
     const sim = makeSim();
     const p = sim.player;
-    // park the owner behind the spawn building, far enough that no heel route
-    // exists: the gap (87yd) exceeds the pet's A* search window and the building
-    // breaks line of sight, so the pet can only fall back to the last-resort warp.
-    teleportTo(sim, 0, 82);
+    // Park the owner on the open road and strand the pet beyond the forced
+    // recovery boundary so the fresh straight-line path triggers a heel warp.
+    teleportTo(sim, 0, -40);
 
-    // adopt a wild beast as a heeling pet and strand it on the far side of the wall
+    // Adopt a wild beast as a heeling pet and strand it past the recovery boundary.
     const pet = [...sim.entities.values()].find((e) => e.kind === 'mob' && !e.dead)!;
     pet.ownerId = p.id;
     pet.hostile = false;
     pet.aggroTargetId = null;
     pet.inCombat = false;
     pet.petMode = 'passive';
-    pet.pos = { x: 0, z: -5, y: p.pos.y };
+    pet.pos = { x: 100, z: -40, y: p.pos.y };
     pet.prevPos = { ...pet.pos };
     (sim as any).grid.update(pet); // grid now buckets the pet at its far cell
+    for (const entity of sim.entities.values()) {
+      if (entity.kind === 'mob' && entity.id !== pet.id) entity.dead = true;
+    }
 
-    // unreachable owner with nothing to fight: the pet warps back to heel
-    (sim as any).updatePet(pet);
+    // Over-distance owner with nothing to fight: the pet warps back to heel.
+    (sim as any).ctx.updatePet(pet);
     expect(dist2d(pet.pos, p.pos)).toBeLessThan(1);
 
     // a same-tick radius query at the warp destination must see the pet — it
@@ -1592,7 +1769,10 @@ describe('aoe damage vs armor', () => {
   // other spell in the game.
   function aoeSetup(ability: string) {
     const sim = makeSim('mage');
-    (sim as any).grantXp(99999); // level up far past Arcane Explosion (lvl 14)
+    (sim as any).grantXp(99999); // level up far past Aetherburst (lvl 7)
+    // The mage rework spec-gated Aetherburst (arcane_explosion) to the arcane
+    // spec; a no-spec mage drops it from the known list, so commit first.
+    expect(sim.setSpec('arcane')).toBe(true);
     const p = sim.player;
     const wolf = [...sim.entities.values()].find(
       (e) => e.kind === 'mob' && e.templateId === 'forest_wolf' && !e.dead,
@@ -1647,24 +1827,26 @@ describe('pet heel warp', () => {
   it('keeps the spatial grid exact when a pet warps to its owner', () => {
     const sim = makeSim();
     const p = sim.player;
-    // park the owner behind the spawn building, far enough that no heel route
-    // exists: the gap (87yd) exceeds the pet's A* search window and the building
-    // breaks line of sight, so the pet can only fall back to the last-resort warp.
-    teleportTo(sim, 0, 82);
+    // Park the owner on the open road and strand the pet beyond the forced
+    // recovery boundary so the fresh straight-line path triggers a heel warp.
+    teleportTo(sim, 0, -40);
 
-    // adopt a wild beast as a heeling pet and strand it on the far side of the wall
+    // Adopt a wild beast as a heeling pet and strand it past the recovery boundary.
     const pet = [...sim.entities.values()].find((e) => e.kind === 'mob' && !e.dead)!;
     pet.ownerId = p.id;
     pet.hostile = false;
     pet.aggroTargetId = null;
     pet.inCombat = false;
     pet.petMode = 'passive';
-    pet.pos = { x: 0, z: -5, y: p.pos.y };
+    pet.pos = { x: 100, z: -40, y: p.pos.y };
     pet.prevPos = { ...pet.pos };
     (sim as any).grid.update(pet); // grid now buckets the pet at its far cell
+    for (const entity of sim.entities.values()) {
+      if (entity.kind === 'mob' && entity.id !== pet.id) entity.dead = true;
+    }
 
-    // unreachable owner with nothing to fight: the pet warps back to heel
-    (sim as any).updatePet(pet);
+    // Over-distance owner with nothing to fight: the pet warps back to heel.
+    (sim as any).ctx.updatePet(pet);
     expect(dist2d(pet.pos, p.pos)).toBeLessThan(1);
 
     // a same-tick radius query at the warp destination must see the pet — it
@@ -1715,13 +1897,21 @@ describe('ranged auto-attack crit suppression', () => {
   // The crit chance a swing rolls against is the second rng.chance() call in
   // both meleeSwing and rangedSwing (the first is the miss roll). Capture the
   // args and return false so no miss/crit branches fire and perturb state.
-  function critChanceRolled(sim: Sim, swing: () => void): number {
+  function critChanceRolled(sim: Sim, swing: () => void, source: any, target: any): number {
     const calls: number[] = [];
     (sim as any).rng.chance = (p: number) => {
       calls.push(p);
       return false;
     };
     swing();
+    // The shot's miss + crit rolls now run when the projectile lands, not on the
+    // swing tick: resolve the scheduled bolt directly so this stays an isolated unit
+    // test (ticking the whole Sim would pollute `calls` with regen/AI rolls).
+    const pending = (sim as any).pendingProjectiles as Array<{
+      resolve: (s: any, t: any) => void;
+    }>;
+    for (const proj of pending) proj.resolve(source, target);
+    pending.length = 0;
     return calls[1];
   }
 
@@ -1738,14 +1928,24 @@ describe('ranged auto-attack crit suppression', () => {
 
   it('suppresses crit against a higher-level target, matching melee', () => {
     const { sim, hunter, wolf, ranged } = setup(10, 13); // +3 levels
-    const rolled = critChanceRolled(sim, () => (sim as any).rangedSwing(hunter, wolf, ranged));
+    const rolled = critChanceRolled(
+      sim,
+      () => (sim as any).rangedSwing(hunter, wolf, ranged),
+      hunter,
+      wolf,
+    );
     // 0.5 base - 3 * 0.002 suppression = 0.494 (was a flat 0.5 before the fix)
     expect(rolled).toBeCloseTo(0.5 - 3 * 0.002, 5);
   });
 
   it('does not suppress crit against an equal-or-lower-level target', () => {
     const { sim, hunter, wolf, ranged } = setup(10, 8); // lower level
-    const rolled = critChanceRolled(sim, () => (sim as any).rangedSwing(hunter, wolf, ranged));
+    const rolled = critChanceRolled(
+      sim,
+      () => (sim as any).rangedSwing(hunter, wolf, ranged),
+      hunter,
+      wolf,
+    );
     expect(rolled).toBeCloseTo(0.5, 5);
   });
 });
@@ -1814,6 +2014,50 @@ describe('spell visuals', () => {
     expect(events.some((e) => e.type === 'castStart' && e.ability === 'fireball')).toBe(true);
   });
 
+  it('a LOW prop (campfire) no longer blocks spell line of sight, buildings still do', () => {
+    const sim = makeSim('mage');
+    const seed = sim.cfg.seed;
+    // Straddle a world campfire: its collider sits on the ray (it still blocks
+    // MOVEMENT below), but its visual top (1.45) is under the eye line (1.6),
+    // so the cast sees straight over it.
+    const [cx, cz] = PROPS.campfires[0];
+    expect(isBlocked(seed, cx, cz, 0.5)).toBe(true); // movement still collides
+    expect(lineOfSightClear(seed, { x: cx - 3, z: cz }, { x: cx + 3, z: cz })).toBe(true);
+    // A building straddled through its center still blocks (top far above eyes).
+    const b = PROPS.buildings[0];
+    const span = b.w + b.d;
+    expect(lineOfSightClear(seed, { x: b.x - span, z: b.z }, { x: b.x + span, z: b.z })).toBe(
+      false,
+    );
+  });
+
+  it('a LOW fence no longer blocks spell line of sight, tall walls still do (#1668)', () => {
+    const sim = makeSim('mage');
+    const seed = sim.cfg.seed;
+    // Caster and target on opposite sides of a waist-high village fence: the
+    // rail top (~0.95yd) sits under the eye line (1.6), so the cast sees over it,
+    // the way the player sees the mob on screen. The rail is still solid mover
+    // collision, so this is not a "walk through the fence" change.
+    const f = PROPS.fences[0];
+    const mx = (f.x1 + f.x2) / 2,
+      mz = (f.z1 + f.z2) / 2;
+    const dx = f.x2 - f.x1,
+      dz = f.z2 - f.z1;
+    const len = Math.hypot(dx, dz);
+    const nx = -dz / len,
+      nz = dx / len; // unit normal across the fence run
+    const a = { x: mx + nx * 3, z: mz + nz * 3 };
+    const b = { x: mx - nx * 3, z: mz - nz * 3 };
+    expect(isBlocked(seed, mx, mz, 0.5)).toBe(true); // movement still collides
+    expect(lineOfSightClear(seed, a, b)).toBe(true);
+    // A building straddled through its centre still blocks (top far above eyes).
+    const bld = PROPS.buildings[0];
+    const span = bld.w + bld.d;
+    expect(
+      lineOfSightClear(seed, { x: bld.x - span, z: bld.z }, { x: bld.x + span, z: bld.z }),
+    ).toBe(false);
+  });
+
   it('ranged auto shot does not fire through dungeon walls', () => {
     const sim = makeSim('hunter');
     const origin = instanceOrigin(2, 0);
@@ -1845,8 +2089,7 @@ describe('mob auto attacks against moving targets', () => {
     );
   }
 
-  it('continues landing melee swings after the target moves around melee range', () => {
-    const sim = makeSim();
+  function orbitScenario(sim: ReturnType<typeof makeSim>, angularSpeed: number) {
     const p = sim.player;
     p.maxHp = 1_000_000;
     p.hp = p.maxHp;
@@ -1867,7 +2110,7 @@ describe('mob auto attacks against moving targets', () => {
       const t = i / 20;
       if (t > 2) {
         const oldPos = { ...p.pos };
-        const angle = (t - 2) * 1.6;
+        const angle = (t - 2) * angularSpeed;
         p.pos.x = wolf.spawnPos.x + Math.sin(angle) * 8;
         p.pos.z = wolf.spawnPos.z + Math.cos(angle) * 8;
         p.pos.y = groundHeight(p.pos.x, p.pos.z, sim.cfg.seed);
@@ -1876,9 +2119,37 @@ describe('mob auto attacks against moving targets', () => {
       const events = sim.tick();
       if (damageTimesFrom(events, wolf.id, p.id)) hitTimes.push(i / 20);
     }
+    return { p, wolf, hitTimes };
+  }
 
-    expect(hitTimes.length).toBeGreaterThanOrEqual(6);
+  it('continues landing melee swings after the target moves around melee range', () => {
+    // The target circles at 7 yd/s (0.875 rad/s at r=8), a legitimately attainable
+    // player run speed. Pursuit combat must keep the wolf (8 yd/s) glued at its
+    // desired range, landing a swing on every full weapon cadence, all the way to
+    // the end of the window. This is STRONGER than the legacy stop-go behavior,
+    // which hovered at the reach boundary and only connected every ~3.5s.
+    const sim = makeSim();
+    const { hitTimes } = orbitScenario(sim, 0.875);
+
+    expect(hitTimes.length).toBeGreaterThanOrEqual(9);
     expect(hitTimes.at(-1)).toBeGreaterThan(15);
+  });
+
+  it('stays locked onto a super-speed circler it cannot catch (kited, never resets)', () => {
+    // At 12.8 yd/s (1.6 rad/s at r=8) the orbiter outruns the wolf outright: a
+    // sustained speed no player reaches without stacked cooldowns. Fluid pursuit
+    // settles into a tail-chase just outside reach, so the circler CAN kite the
+    // wolf hit-free after the opening contact: that is the deliberate trade for
+    // hit-and-run combat (the mobs that must not be kiteable carry anti-kite
+    // pulses instead, see aoeSlow). What the wolf must never do is give up:
+    // it stays engaged and on the target the whole window.
+    const sim = makeSim();
+    const { p, wolf, hitTimes } = orbitScenario(sim, 1.6);
+
+    expect(hitTimes.length).toBeGreaterThanOrEqual(3); // the opening contact still lands
+    expect(wolf.aggroTargetId).toBe(p.id);
+    expect(wolf.inCombat).toBe(true);
+    expect(['chase', 'attack']).toContain(wolf.aiState);
   });
 });
 

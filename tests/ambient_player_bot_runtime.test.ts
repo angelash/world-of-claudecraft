@@ -142,7 +142,9 @@ class FakeGame {
     this.upsertAmbientPlayerBotRecord(record);
   }
 
-  setAmbientPlayerBotActionHandler(handler: ((actions: readonly AmbientBotPlanAction[]) => void) | null): void {
+  setAmbientPlayerBotActionHandler(
+    handler: ((actions: readonly AmbientBotPlanAction[]) => void) | null,
+  ): void {
     this.actionHandler = handler;
   }
 }
@@ -172,14 +174,18 @@ class FakeSocket implements AmbientPlayerBotSocket {
     const payload = JSON.parse(data) as { t?: string };
     if (payload.t !== 'auth') return;
     queueMicrotask(() => {
-      this.emitMessage(JSON.stringify({ t: 'hello', pid: this.helloPid, seed: this.snap.seed ?? 20_061 }));
+      this.emitMessage(
+        JSON.stringify({ t: 'hello', pid: this.helloPid, seed: this.snap.seed ?? 20_061 }),
+      );
       queueMicrotask(() => {
-        this.emitMessage(JSON.stringify({
-          t: 'snap',
-          self: this.snap.self,
-          ents: this.snap.ents ?? [],
-          keep: this.snap.keep ?? [],
-        }));
+        this.emitMessage(
+          JSON.stringify({
+            t: 'snap',
+            self: this.snap.self,
+            ents: this.snap.ents ?? [],
+            keep: this.snap.keep ?? [],
+          }),
+        );
       });
     });
   }
@@ -195,7 +201,11 @@ class FakeSocket implements AmbientPlayerBotSocket {
   on(event: 'close', listener: (code?: number, reason?: Buffer) => void): this;
   on(
     event: 'open' | 'message' | 'error' | 'close',
-    listener: (() => void) | ((data: unknown) => void) | ((error: Error) => void) | ((code?: number, reason?: Buffer) => void),
+    listener:
+      | (() => void)
+      | ((data: unknown) => void)
+      | ((error: Error) => void)
+      | ((code?: number, reason?: Buffer) => void),
   ): this {
     switch (event) {
       case 'open':
@@ -323,34 +333,42 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'provisionBot',
-      requestId: 'req-1',
-      profileId: 'eastbrook_vale_mage_newcomer',
-      class: 'mage',
-      clusterId: 'eastbrook_vale:1',
-      zoneId: 'eastbrook_vale',
-      targetCharacterId: 1,
-      reason: 'test provision',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'provisionBot',
+        requestId: 'req-1',
+        profileId: 'eastbrook_vale_mage_newcomer',
+        class: 'mage',
+        clusterId: 'eastbrook_vale:1',
+        zoneId: 'eastbrook_vale',
+        targetCharacterId: 1,
+        reason: 'test provision',
+      },
+    ]);
 
     await vi.waitFor(() => {
       const records = game.ambientPlayerBotDirectory();
       expect(records).toHaveLength(1);
-      expect(records[0]).toEqual(expect.objectContaining({
-        accountId: 22,
-        characterId: 202,
-        lifecycleStatus: 'online',
-        provisionState: 'ready',
-        authToken: 'token-2',
-        lastKnownX: 12,
-        lastKnownZ: 34,
-        lastKnownLevel: 2,
-        runnerState: expect.objectContaining({ pid: 77, connected: true }),
-      }));
+      expect(records[0]).toEqual(
+        expect.objectContaining({
+          accountId: 22,
+          characterId: 202,
+          lifecycleStatus: 'online',
+          provisionState: 'ready',
+          authToken: 'token-2',
+          lastKnownX: 12,
+          lastKnownZ: 34,
+          lastKnownLevel: 2,
+          runnerState: expect.objectContaining({ pid: 77, connected: true }),
+        }),
+      );
     });
 
-    const authPayload = JSON.parse(sockets[0]?.sent[0] ?? '{}') as { t?: string; token?: string; character?: number };
+    const authPayload = JSON.parse(sockets[0]?.sent[0] ?? '{}') as {
+      t?: string;
+      token?: string;
+      character?: number;
+    };
     expect(authPayload).toEqual({
       t: 'auth',
       token: 'token-2',
@@ -419,9 +437,7 @@ describe('AmbientPlayerBotRuntime', () => {
             qdone: [],
             cds: {},
           },
-          ents: [
-            { id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 },
-          ],
+          ents: [{ id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 }],
         });
         sockets.push(socket);
         return socket;
@@ -430,17 +446,21 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'eastbrook_vale:1',
-      zoneId: 'eastbrook_vale',
-      targetCharacterId: 1,
-      reason: 'test login',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'eastbrook_vale:1',
+        zoneId: 'eastbrook_vale',
+        targetCharacterId: 1,
+        reason: 'test login',
+      },
+    ]);
 
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string });
+      const sent = sockets[0]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string },
+      );
       expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'interact')).toBe(true);
     });
 
@@ -500,9 +520,7 @@ describe('AmbientPlayerBotRuntime', () => {
             qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
             cds: {},
           },
-          ents: [
-            { id: 9401, k: 'object', obj: 'supply_crate', x: 59, z: -58, loot: 1 },
-          ],
+          ents: [{ id: 9401, k: 'object', obj: 'supply_crate', x: 59, z: -58, loot: 1 }],
         });
         sockets.push(socket);
         return socket;
@@ -511,18 +529,26 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'eastbrook_vale:1',
-      zoneId: 'eastbrook_vale',
-      targetCharacterId: 1,
-      reason: 'test object route',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'eastbrook_vale:1',
+        zoneId: 'eastbrook_vale',
+        targetCharacterId: 1,
+        reason: 'test object route',
+      },
+    ]);
 
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; id?: number });
-      expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'target' && message.id === 9401)).toBe(true);
+      const sent = sockets[0]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string; id?: number },
+      );
+      expect(
+        sent?.some(
+          (message) => message.t === 'cmd' && message.cmd === 'target' && message.id === 9401,
+        ),
+      ).toBe(true);
       expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'interact')).toBe(true);
     });
 
@@ -607,20 +633,25 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'eastbrook_vale:1',
-      zoneId: 'eastbrook_vale',
-      targetCharacterId: 1,
-      reason: 'test Fenbridge handoff',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'eastbrook_vale:1',
+        zoneId: 'eastbrook_vale',
+        targetCharacterId: 1,
+        reason: 'test Fenbridge handoff',
+      },
+    ]);
 
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as {
-        t?: string;
-        mi?: Record<string, number>;
-      });
+      const sent = sockets[0]?.sent.map(
+        (message) =>
+          JSON.parse(message) as {
+            t?: string;
+            mi?: Record<string, number>;
+          },
+      );
       expect(sent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(true);
     });
 
@@ -682,9 +713,7 @@ describe('AmbientPlayerBotRuntime', () => {
             qdone: ['q_wolves'],
             cds: {},
           },
-          ents: [
-            { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
-          ],
+          ents: [{ id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 }],
         });
         sockets.push(socket);
         return socket;
@@ -693,23 +722,31 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'eastbrook_vale:1',
-      zoneId: 'eastbrook_vale',
-      targetCharacterId: 1,
-      reason: 'test resupply route',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'eastbrook_vale:1',
+        zoneId: 'eastbrook_vale',
+        targetCharacterId: 1,
+        reason: 'test resupply route',
+      },
+    ]);
 
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; item?: string; npc?: number });
-      expect(sent?.some((message) =>
-        message.t === 'cmd'
-        && message.cmd === 'buy'
-        && message.item === 'baked_bread'
-        && message.npc === 7100,
-      )).toBe(true);
+      const sent = sockets[0]?.sent.map(
+        (message) =>
+          JSON.parse(message) as { t?: string; cmd?: string; item?: string; npc?: number },
+      );
+      expect(
+        sent?.some(
+          (message) =>
+            message.t === 'cmd' &&
+            message.cmd === 'buy' &&
+            message.item === 'baked_bread' &&
+            message.npc === 7100,
+        ),
+      ).toBe(true);
     });
 
     expect(game.ambientPlayerBotDirectory()).toEqual([
@@ -717,7 +754,7 @@ describe('AmbientPlayerBotRuntime', () => {
         runnerState: expect.objectContaining({
           connected: true,
           objective: 'restock_food_and_drink',
-          objectiveLabel: 'Restocking Freshly Baked Bread and Minor Healing Potion',
+          objectiveLabel: 'Restocking Cottage Loaf and Minor Healing Potion',
         }),
       }),
     ]);
@@ -793,9 +830,7 @@ describe('AmbientPlayerBotRuntime', () => {
             ],
             cds: {},
           },
-          ents: [
-            { id: 7201, k: 'npc', tid: 'provisioner_hale', x: -4, z: 308 },
-          ],
+          ents: [{ id: 7201, k: 'npc', tid: 'provisioner_hale', x: -4, z: 308 }],
         });
         sockets.push(socket);
         return socket;
@@ -804,23 +839,31 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'mirefen_marsh:1',
-      zoneId: 'mirefen_marsh',
-      targetCharacterId: 1,
-      reason: 'test Fenbridge resupply route',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'mirefen_marsh:1',
+        zoneId: 'mirefen_marsh',
+        targetCharacterId: 1,
+        reason: 'test Fenbridge resupply route',
+      },
+    ]);
 
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; item?: string; npc?: number });
-      expect(sent?.some((message) =>
-        message.t === 'cmd'
-        && message.cmd === 'buy'
-        && message.item === 'fenbridge_rye'
-        && message.npc === 7201,
-      )).toBe(true);
+      const sent = sockets[0]?.sent.map(
+        (message) =>
+          JSON.parse(message) as { t?: string; cmd?: string; item?: string; npc?: number },
+      );
+      expect(
+        sent?.some(
+          (message) =>
+            message.t === 'cmd' &&
+            message.cmd === 'buy' &&
+            message.item === 'fenbridge_rye' &&
+            message.npc === 7201,
+        ),
+      ).toBe(true);
     });
 
     expect(game.ambientPlayerBotDirectory()).toEqual([
@@ -894,14 +937,16 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'eastbrook_vale:1',
-      zoneId: 'eastbrook_vale',
-      targetCharacterId: 1,
-      reason: 'test login',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'eastbrook_vale:1',
+        zoneId: 'eastbrook_vale',
+        targetCharacterId: 1,
+        reason: 'test login',
+      },
+    ]);
 
     await vi.waitFor(() => {
       expect(sockets).toHaveLength(1);
@@ -915,25 +960,41 @@ describe('AmbientPlayerBotRuntime', () => {
     });
     sockets[0]?.emitJson({
       t: 'events',
-      list: [{
-        type: 'chat',
-        fromPid: 201,
-        from: 'Aleph',
-        text: 'hey, what are you doing?',
-        channel: 'whisper',
-        pid: 101,
-      }],
+      list: [
+        {
+          type: 'chat',
+          fromPid: 201,
+          from: 'Aleph',
+          text: 'hey, what are you doing?',
+          channel: 'whisper',
+          pid: 101,
+        },
+      ],
     });
 
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; name?: string });
-      expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'friend_add' && message.name === 'Aleph')).toBe(true);
+      const sent = sockets[0]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string; name?: string },
+      );
+      expect(
+        sent?.some(
+          (message) =>
+            message.t === 'cmd' && message.cmd === 'friend_add' && message.name === 'Aleph',
+        ),
+      ).toBe(true);
     });
 
     nowMs = 12_000;
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; text?: string });
-      expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'chat' && message.text?.startsWith('/w Aleph '))).toBe(true);
+      const sent = sockets[0]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string; text?: string },
+      );
+      expect(
+        sent?.some(
+          (message) =>
+            message.t === 'cmd' && message.cmd === 'chat' && message.text?.startsWith('/w Aleph '),
+        ),
+      ).toBe(true);
     });
 
     expect(game.ambientPlayerBotDirectory()).toEqual([
@@ -971,7 +1032,7 @@ describe('AmbientPlayerBotRuntime', () => {
           assignedClusterId: 'mirefen_marsh:1',
           assignedPlayerCharacterId: 1,
           reservationUntilMs: 6_000,
-          lastKnownLevel: 12,
+          lastKnownLevel: 16,
           lastKnownZoneId: 'mirefen_marsh',
         }),
         bot({
@@ -989,7 +1050,7 @@ describe('AmbientPlayerBotRuntime', () => {
           assignedClusterId: 'mirefen_marsh:1',
           assignedPlayerCharacterId: 1,
           reservationUntilMs: 6_000,
-          lastKnownLevel: 12,
+          lastKnownLevel: 16,
           lastKnownZoneId: 'mirefen_marsh',
         }),
       ]),
@@ -1012,7 +1073,7 @@ describe('AmbientPlayerBotRuntime', () => {
             id: isLeader ? 101 : 102,
             x: 45 + (isLeader ? 0 : 1),
             z: 511,
-            lv: 12,
+            lv: 16,
             hp: 120,
             mhp: 120,
             res: isLeader ? 0 : 120,
@@ -1034,7 +1095,7 @@ describe('AmbientPlayerBotRuntime', () => {
               nm: isLeader ? 'Branorabb' : 'Branoraaa',
               x: 46,
               z: 511,
-              lv: 12,
+              lv: 16,
             },
           ],
         });
@@ -1065,22 +1126,32 @@ describe('AmbientPlayerBotRuntime', () => {
     ]);
 
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; id?: number });
-      expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'pinvite' && message.id === 102)).toBe(true);
+      const sent = sockets[0]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string; id?: number },
+      );
+      expect(
+        sent?.some(
+          (message) => message.t === 'cmd' && message.cmd === 'pinvite' && message.id === 102,
+        ),
+      ).toBe(true);
     });
 
     sockets[1]?.emitJson({
       t: 'events',
-      list: [{
-        type: 'partyInvite',
-        fromPid: 101,
-        fromName: 'Branoraaa',
-        pid: 102,
-      }],
+      list: [
+        {
+          type: 'partyInvite',
+          fromPid: 101,
+          fromName: 'Branoraaa',
+          pid: 102,
+        },
+      ],
     });
 
     await vi.waitFor(() => {
-      const sent = sockets[1]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string });
+      const sent = sockets[1]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string },
+      );
       expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'paccept')).toBe(true);
     });
 
@@ -1130,9 +1201,7 @@ describe('AmbientPlayerBotRuntime', () => {
             qdone: [],
             cds: {},
           },
-          ents: [
-            { id: 201, k: 'player', nm: 'Realhero', x: 6, z: 6, lv: 1 },
-          ],
+          ents: [{ id: 201, k: 'player', nm: 'Realhero', x: 6, z: 6, lv: 1 }],
         });
         sockets.push(socket);
         return socket;
@@ -1141,15 +1210,17 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'eastbrook_vale:1',
-      zoneId: 'eastbrook_vale',
-      targetCharacterId: 1,
-      targetCharacterName: 'Realhero',
-      reason: 'trusted human party invite regression',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'eastbrook_vale:1',
+        zoneId: 'eastbrook_vale',
+        targetCharacterId: 1,
+        targetCharacterName: 'Realhero',
+        reason: 'trusted human party invite regression',
+      },
+    ]);
 
     await vi.waitFor(() => {
       expect(sockets).toHaveLength(1);
@@ -1157,18 +1228,24 @@ describe('AmbientPlayerBotRuntime', () => {
 
     sockets[0]?.emitJson({
       t: 'events',
-      list: [{
-        type: 'partyInvite',
-        fromPid: 201,
-        fromName: 'Realhero',
-        pid: 101,
-      }],
+      list: [
+        {
+          type: 'partyInvite',
+          fromPid: 201,
+          fromName: 'Realhero',
+          pid: 101,
+        },
+      ],
     });
 
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string });
+      const sent = sockets[0]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string },
+      );
       expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'paccept')).toBe(true);
-      expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'pdecline')).toBe(false);
+      expect(sent?.some((message) => message.t === 'cmd' && message.cmd === 'pdecline')).toBe(
+        false,
+      );
     });
 
     expect(game.ambientPlayerBotDirectory()).toEqual([
@@ -1285,37 +1362,59 @@ describe('AmbientPlayerBotRuntime', () => {
     ]);
 
     await vi.waitFor(() => {
-      const leaderSent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; id?: number; mi?: Record<string, number> });
-      expect(leaderSent?.some((message) => message.t === 'cmd' && message.cmd === 'pinvite' && message.id === 102)).toBe(true);
-      expect(leaderSent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(false);
+      const leaderSent = sockets[0]?.sent.map(
+        (message) =>
+          JSON.parse(message) as {
+            t?: string;
+            cmd?: string;
+            id?: number;
+            mi?: Record<string, number>;
+          },
+      );
+      expect(
+        leaderSent?.some(
+          (message) => message.t === 'cmd' && message.cmd === 'pinvite' && message.id === 102,
+        ),
+      ).toBe(true);
+      expect(leaderSent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(
+        false,
+      );
     });
 
     sockets[1]?.emitJson({
       t: 'events',
-      list: [{
-        type: 'partyInvite',
-        fromPid: 101,
-        fromName: 'Branoraaa',
-        pid: 102,
-      }],
+      list: [
+        {
+          type: 'partyInvite',
+          fromPid: 101,
+          fromName: 'Branoraaa',
+          pid: 102,
+        },
+      ],
     });
 
     await vi.waitFor(() => {
-      const followerSent = sockets[1]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string });
-      expect(followerSent?.some((message) => message.t === 'cmd' && message.cmd === 'paccept')).toBe(true);
+      const followerSent = sockets[1]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string },
+      );
+      expect(
+        followerSent?.some((message) => message.t === 'cmd' && message.cmd === 'paccept'),
+      ).toBe(true);
     });
 
-    expect(game.ambientPlayerBotDirectory()).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        botId: 'bot-1',
-        runnerState: expect.objectContaining({
-          objectiveQuestId: 'q_crushers',
-          groupMode: 'wait_party',
-          groupObjectiveScope: 'outdoor',
-          groupAwaitingParty: true,
+    expect(game.ambientPlayerBotDirectory()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          botId: 'bot-1',
+          runnerState: expect.objectContaining({
+            objectiveQuestId: 'q_crushers',
+            groupMode: 'wait_party',
+            groupObjectiveScope: 'outdoor',
+            groupAwaitingParty: true,
+          }),
         }),
-      }),
-    ]));
+      ]),
+    );
 
     await runtime.stop();
   });
@@ -1360,8 +1459,38 @@ describe('AmbientPlayerBotRuntime', () => {
       leader: 101,
       raid: false,
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 18, hp: 150, mhp: 150, res: 0, mres: 0, rtype: 'rage', x: 0, z: 880, dead: 0, inCombat: 0, group: 1 },
-        { pid: 102, name: 'Branorabb', cls: 'mage', level: 18, hp: 120, mhp: 120, res: 180, mres: 180, rtype: 'mana', x: 1, z: 880, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 18,
+          hp: 150,
+          mhp: 150,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 858,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 102,
+          name: 'Branorabb',
+          cls: 'mage',
+          level: 18,
+          hp: 120,
+          mhp: 120,
+          res: 180,
+          mres: 180,
+          rtype: 'mana',
+          x: 1,
+          z: 858,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
     const runtime = new AmbientPlayerBotRuntime({
@@ -1380,7 +1509,7 @@ describe('AmbientPlayerBotRuntime', () => {
           self: {
             id: isLeader ? 101 : 102,
             x: isLeader ? 0 : 1,
-            z: 880,
+            z: 858,
             lv: 18,
             hp: 150,
             mhp: 150,
@@ -1400,7 +1529,7 @@ describe('AmbientPlayerBotRuntime', () => {
               k: 'player',
               nm: isLeader ? 'Branorabb' : 'Branoraaa',
               x: 1,
-              z: 880,
+              z: 858,
               lv: 18,
             },
           ],
@@ -1432,14 +1561,28 @@ describe('AmbientPlayerBotRuntime', () => {
     ]);
 
     await vi.waitFor(() => {
-      const leaderSent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string });
-      const followerSent = sockets[1]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string });
-      expect(leaderSent?.some((message) =>
-        message.t === 'cmd' && message.cmd === 'enter_dungeon' && message.dungeon === 'gravewyrm_sanctum',
-      )).toBe(true);
-      expect(followerSent?.some((message) =>
-        message.t === 'cmd' && message.cmd === 'enter_dungeon' && message.dungeon === 'gravewyrm_sanctum',
-      )).toBe(true);
+      const leaderSent = sockets[0]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string },
+      );
+      const followerSent = sockets[1]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string },
+      );
+      expect(
+        leaderSent?.some(
+          (message) =>
+            message.t === 'cmd' &&
+            message.cmd === 'enter_dungeon' &&
+            message.dungeon === 'gravewyrm_sanctum',
+        ),
+      ).toBe(true);
+      expect(
+        followerSent?.some(
+          (message) =>
+            message.t === 'cmd' &&
+            message.cmd === 'enter_dungeon' &&
+            message.dungeon === 'gravewyrm_sanctum',
+        ),
+      ).toBe(true);
     });
 
     await runtime.stop();
@@ -1485,8 +1628,38 @@ describe('AmbientPlayerBotRuntime', () => {
       leader: 101,
       raid: false,
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 18, hp: 150, mhp: 150, res: 0, mres: 0, rtype: 'rage', x: 0, z: 880, dead: 0, inCombat: 0, group: 1 },
-        { pid: 102, name: 'Branorabb', cls: 'mage', level: 18, hp: 120, mhp: 120, res: 180, mres: 180, rtype: 'mana', x: 1, z: 880, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 18,
+          hp: 150,
+          mhp: 150,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 858,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 102,
+          name: 'Branorabb',
+          cls: 'mage',
+          level: 18,
+          hp: 120,
+          mhp: 120,
+          res: 180,
+          mres: 180,
+          rtype: 'mana',
+          x: 1,
+          z: 858,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
     const runtime = new AmbientPlayerBotRuntime({
@@ -1505,7 +1678,7 @@ describe('AmbientPlayerBotRuntime', () => {
           self: {
             id: isLeader ? 101 : 102,
             x: isLeader ? 0 : 1,
-            z: 880,
+            z: 858,
             lv: 18,
             hp: 150,
             mhp: 150,
@@ -1525,7 +1698,7 @@ describe('AmbientPlayerBotRuntime', () => {
               k: 'player',
               nm: isLeader ? 'Branorabb' : 'Branoraaa',
               x: 1,
-              z: 880,
+              z: 858,
               lv: 18,
             },
           ],
@@ -1557,14 +1730,28 @@ describe('AmbientPlayerBotRuntime', () => {
     ]);
 
     await vi.waitFor(() => {
-      const leaderSent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string });
-      const followerSent = sockets[1]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string });
-      expect(leaderSent?.some((message) =>
-        message.t === 'cmd' && message.cmd === 'enter_dungeon' && message.dungeon === 'gravewyrm_sanctum',
-      )).toBe(true);
-      expect(followerSent?.some((message) =>
-        message.t === 'cmd' && message.cmd === 'enter_dungeon' && message.dungeon === 'gravewyrm_sanctum',
-      )).toBe(true);
+      const leaderSent = sockets[0]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string },
+      );
+      const followerSent = sockets[1]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string },
+      );
+      expect(
+        leaderSent?.some(
+          (message) =>
+            message.t === 'cmd' &&
+            message.cmd === 'enter_dungeon' &&
+            message.dungeon === 'gravewyrm_sanctum',
+        ),
+      ).toBe(true);
+      expect(
+        followerSent?.some(
+          (message) =>
+            message.t === 'cmd' &&
+            message.cmd === 'enter_dungeon' &&
+            message.dungeon === 'gravewyrm_sanctum',
+        ),
+      ).toBe(true);
     });
 
     await runtime.stop();
@@ -1610,8 +1797,38 @@ describe('AmbientPlayerBotRuntime', () => {
       leader: 101,
       raid: false,
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 18, hp: 150, mhp: 150, res: 0, mres: 0, rtype: 'rage', x: 0, z: 880, dead: 0, inCombat: 0, group: 1 },
-        { pid: 102, name: 'Branorabb', cls: 'mage', level: 18, hp: 120, mhp: 120, res: 180, mres: 180, rtype: 'mana', x: 1, z: 880, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 18,
+          hp: 150,
+          mhp: 150,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 858,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 102,
+          name: 'Branorabb',
+          cls: 'mage',
+          level: 18,
+          hp: 120,
+          mhp: 120,
+          res: 180,
+          mres: 180,
+          rtype: 'mana',
+          x: 1,
+          z: 858,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
     const runtime = new AmbientPlayerBotRuntime({
@@ -1630,7 +1847,7 @@ describe('AmbientPlayerBotRuntime', () => {
           self: {
             id: isLeader ? 101 : 102,
             x: isLeader ? 0 : 1,
-            z: 880,
+            z: 858,
             lv: 18,
             hp: 150,
             mhp: 150,
@@ -1650,7 +1867,7 @@ describe('AmbientPlayerBotRuntime', () => {
               k: 'player',
               nm: isLeader ? 'Branorabb' : 'Branoraaa',
               x: 1,
-              z: 880,
+              z: 858,
               lv: 18,
             },
           ],
@@ -1682,20 +1899,34 @@ describe('AmbientPlayerBotRuntime', () => {
     ]);
 
     await vi.waitFor(() => {
-      const leaderSent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string });
-      const followerSent = sockets[1]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string });
-      expect(leaderSent?.some((message) =>
-        message.t === 'cmd' && message.cmd === 'enter_dungeon' && message.dungeon === 'gravewyrm_sanctum',
-      )).toBe(true);
-      expect(followerSent?.some((message) =>
-        message.t === 'cmd' && message.cmd === 'enter_dungeon' && message.dungeon === 'gravewyrm_sanctum',
-      )).toBe(true);
+      const leaderSent = sockets[0]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string },
+      );
+      const followerSent = sockets[1]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string },
+      );
+      expect(
+        leaderSent?.some(
+          (message) =>
+            message.t === 'cmd' &&
+            message.cmd === 'enter_dungeon' &&
+            message.dungeon === 'gravewyrm_sanctum',
+        ),
+      ).toBe(true);
+      expect(
+        followerSent?.some(
+          (message) =>
+            message.t === 'cmd' &&
+            message.cmd === 'enter_dungeon' &&
+            message.dungeon === 'gravewyrm_sanctum',
+        ),
+      ).toBe(true);
     });
 
     await runtime.stop();
   });
 
-  it('enters the Sunken Bastion once the ambient Bastion party is assembled at the door', async () => {
+  it('has only the leader enter Sunken Bastion first once the ambient Bastion party is assembled at the door', async () => {
     const game = new FakeGame();
     const sockets: FakeSocket[] = [];
     let socketIndex = 0;
@@ -1707,7 +1938,7 @@ describe('AmbientPlayerBotRuntime', () => {
           assignedClusterId: 'mirefen_marsh:1',
           assignedPlayerCharacterId: 1,
           reservationUntilMs: 6_000,
-          lastKnownLevel: 12,
+          lastKnownLevel: 16,
           lastKnownZoneId: 'mirefen_marsh',
         }),
         bot({
@@ -1725,7 +1956,7 @@ describe('AmbientPlayerBotRuntime', () => {
           assignedClusterId: 'mirefen_marsh:1',
           assignedPlayerCharacterId: 1,
           reservationUntilMs: 6_000,
-          lastKnownLevel: 12,
+          lastKnownLevel: 16,
           lastKnownZoneId: 'mirefen_marsh',
         }),
       ]),
@@ -1735,8 +1966,38 @@ describe('AmbientPlayerBotRuntime', () => {
       leader: 101,
       raid: false,
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 45, z: 511, dead: 0, inCombat: 0, group: 1 },
-        { pid: 102, name: 'Branorabb', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 46, z: 511, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 16,
+          hp: 120,
+          mhp: 120,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 45,
+          z: 511,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 102,
+          name: 'Branorabb',
+          cls: 'mage',
+          level: 16,
+          hp: 100,
+          mhp: 100,
+          res: 120,
+          mres: 120,
+          rtype: 'mana',
+          x: 46,
+          z: 511,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
     const runtime = new AmbientPlayerBotRuntime({
@@ -1756,7 +2017,7 @@ describe('AmbientPlayerBotRuntime', () => {
             id: isLeader ? 101 : 102,
             x: 45 + (isLeader ? 0 : 1),
             z: 511,
-            lv: 12,
+            lv: 16,
             hp: 120,
             mhp: 120,
             res: isLeader ? 0 : 120,
@@ -1779,7 +2040,7 @@ describe('AmbientPlayerBotRuntime', () => {
               nm: isLeader ? 'Branorabb' : 'Branoraaa',
               x: 46,
               z: 511,
-              lv: 12,
+              lv: 16,
             },
           ],
         });
@@ -1810,14 +2071,28 @@ describe('AmbientPlayerBotRuntime', () => {
     ]);
 
     await vi.waitFor(() => {
-      const leaderSent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string });
-      const followerSent = sockets[1]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string });
-      expect(leaderSent?.some((message) =>
-        message.t === 'cmd' && message.cmd === 'enter_dungeon' && message.dungeon === 'sunken_bastion',
-      )).toBe(true);
-      expect(followerSent?.some((message) =>
-        message.t === 'cmd' && message.cmd === 'enter_dungeon' && message.dungeon === 'sunken_bastion',
-      )).toBe(true);
+      const leaderSent = sockets[0]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string },
+      );
+      const followerSent = sockets[1]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string; dungeon?: string },
+      );
+      expect(
+        leaderSent?.some(
+          (message) =>
+            message.t === 'cmd' &&
+            message.cmd === 'enter_dungeon' &&
+            message.dungeon === 'sunken_bastion',
+        ),
+      ).toBe(true);
+      expect(
+        followerSent?.some(
+          (message) =>
+            message.t === 'cmd' &&
+            message.cmd === 'enter_dungeon' &&
+            message.dungeon === 'sunken_bastion',
+        ),
+      ).toBe(false);
     });
 
     await runtime.stop();
@@ -1835,7 +2110,7 @@ describe('AmbientPlayerBotRuntime', () => {
           assignedClusterId: 'mirefen_marsh:1',
           assignedPlayerCharacterId: 1,
           reservationUntilMs: 6_000,
-          lastKnownLevel: 12,
+          lastKnownLevel: 16,
           lastKnownZoneId: 'mirefen_marsh',
         }),
         bot({
@@ -1853,7 +2128,7 @@ describe('AmbientPlayerBotRuntime', () => {
           assignedClusterId: 'mirefen_marsh:1',
           assignedPlayerCharacterId: 1,
           reservationUntilMs: 6_000,
-          lastKnownLevel: 12,
+          lastKnownLevel: 16,
           lastKnownZoneId: 'mirefen_marsh',
         }),
       ]),
@@ -1863,8 +2138,38 @@ describe('AmbientPlayerBotRuntime', () => {
       leader: 101,
       raid: false,
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1532, z: -1200, dead: 0, inCombat: 0, group: 1 },
-        { pid: 102, name: 'Branorabb', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1506, z: -1200, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 16,
+          hp: 120,
+          mhp: 120,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 1532,
+          z: -1200,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 102,
+          name: 'Branorabb',
+          cls: 'mage',
+          level: 16,
+          hp: 100,
+          mhp: 100,
+          res: 120,
+          mres: 120,
+          rtype: 'mana',
+          x: 1506,
+          z: -1200,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
     const runtime = new AmbientPlayerBotRuntime({
@@ -1885,7 +2190,7 @@ describe('AmbientPlayerBotRuntime', () => {
             x: isLeader ? 1532 : 1506,
             z: -1200,
             dgn: 'sunken_bastion',
-            lv: 12,
+            lv: 16,
             hp: 120,
             mhp: 120,
             res: isLeader ? 0 : 120,
@@ -1908,7 +2213,7 @@ describe('AmbientPlayerBotRuntime', () => {
               nm: isLeader ? 'Branorabb' : 'Branoraaa',
               x: isLeader ? 1506 : 1532,
               z: -1200,
-              lv: 12,
+              lv: 16,
               dgn: 'sunken_bastion',
             },
           ],
@@ -1940,34 +2245,51 @@ describe('AmbientPlayerBotRuntime', () => {
     ]);
 
     await vi.waitFor(() => {
-      const leaderSent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; mi?: Record<string, number> });
-      const followerSent = sockets[1]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; text?: string; mi?: Record<string, number> });
-      expect(leaderSent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(false);
-      expect(followerSent?.some((message) =>
-        message.t === 'cmd'
-        && message.cmd === 'chat'
-        && message.text === '/follow Branoraaa',
-      )).toBe(true);
-      expect(followerSent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(false);
+      const leaderSent = sockets[0]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; mi?: Record<string, number> },
+      );
+      const followerSent = sockets[1]?.sent.map(
+        (message) =>
+          JSON.parse(message) as {
+            t?: string;
+            cmd?: string;
+            text?: string;
+            mi?: Record<string, number>;
+          },
+      );
+      expect(leaderSent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(
+        false,
+      );
+      expect(
+        followerSent?.some(
+          (message) =>
+            message.t === 'cmd' && message.cmd === 'chat' && message.text === '/follow Branoraaa',
+        ),
+      ).toBe(true);
+      expect(followerSent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(
+        false,
+      );
     });
 
-    expect(game.ambientPlayerBotDirectory()).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        botId: 'bot-1',
-        runnerState: expect.objectContaining({
-          groupMode: 'hold_regroup',
-          groupNeedsRegroup: true,
-          groupLaggingMembers: 1,
+    expect(game.ambientPlayerBotDirectory()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          botId: 'bot-1',
+          runnerState: expect.objectContaining({
+            groupMode: 'hold_regroup',
+            groupNeedsRegroup: true,
+            groupLaggingMembers: 1,
+          }),
         }),
-      }),
-      expect.objectContaining({
-        botId: 'bot-2',
-        runnerState: expect.objectContaining({
-          groupMode: 'follow_leader',
-          groupLeaderName: 'Branoraaa',
+        expect.objectContaining({
+          botId: 'bot-2',
+          runnerState: expect.objectContaining({
+            groupMode: 'follow_leader',
+            groupLeaderName: 'Branoraaa',
+          }),
         }),
-      }),
-    ]));
+      ]),
+    );
 
     await runtime.stop();
   });
@@ -1983,7 +2305,7 @@ describe('AmbientPlayerBotRuntime', () => {
           assignedClusterId: 'mirefen_marsh:1',
           assignedPlayerCharacterId: 1,
           reservationUntilMs: 6_000,
-          lastKnownLevel: 12,
+          lastKnownLevel: 13,
           lastKnownZoneId: 'mirefen_marsh',
         }),
       ]),
@@ -2005,7 +2327,7 @@ describe('AmbientPlayerBotRuntime', () => {
             id: 101,
             x: 0,
             z: 300,
-            lv: 12,
+            lv: 13,
             hp: 120,
             mhp: 120,
             res: 0,
@@ -2026,20 +2348,25 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'mirefen_marsh:1',
-      zoneId: 'mirefen_marsh',
-      targetCharacterId: 1,
-      reason: 'test Highwatch handoff',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'mirefen_marsh:1',
+        zoneId: 'mirefen_marsh',
+        targetCharacterId: 1,
+        reason: 'test Highwatch handoff',
+      },
+    ]);
 
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as {
-        t?: string;
-        mi?: Record<string, number>;
-      });
+      const sent = sockets[0]?.sent.map(
+        (message) =>
+          JSON.parse(message) as {
+            t?: string;
+            mi?: Record<string, number>;
+          },
+      );
       expect(sent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(true);
     });
 
@@ -2048,7 +2375,7 @@ describe('AmbientPlayerBotRuntime', () => {
         runnerState: expect.objectContaining({
           connected: true,
           objective: 'collect_highwatch_summons',
-          objectiveLabel: 'Carrying Aldric\'s summons to Highwatch',
+          objectiveLabel: "Carrying Aldric's summons to Highwatch",
         }),
       }),
     ]);
@@ -2100,13 +2427,16 @@ describe('AmbientPlayerBotRuntime', () => {
             gcd: 0,
             copper: 2500,
             inv: [],
-            qdone: [...mirefenThroughMistcaller, 'q_highwatch_summons', 'q_stalkers', 'q_stalker_pelts'],
+            qdone: [
+              ...mirefenThroughMistcaller,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+            ],
             qlog: [],
             cds: {},
           },
-          ents: [
-            { id: 9824, k: 'npc', tid: 'quartermaster_bree', x: -5, z: 668 },
-          ],
+          ents: [{ id: 9824, k: 'npc', tid: 'quartermaster_bree', x: -5, z: 668 }],
         });
         sockets.push(socket);
         return socket;
@@ -2115,23 +2445,31 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'thornpeak_heights:1',
-      zoneId: 'thornpeak_heights',
-      targetCharacterId: 1,
-      reason: 'test Highwatch resupply',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'thornpeak_heights:1',
+        zoneId: 'thornpeak_heights',
+        targetCharacterId: 1,
+        reason: 'test Highwatch resupply',
+      },
+    ]);
 
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; item?: string; npc?: number });
-      expect(sent?.some((message) =>
-        message.t === 'cmd'
-        && message.cmd === 'buy'
-        && message.item === 'trail_hardtack'
-        && message.npc === 9824,
-      )).toBe(true);
+      const sent = sockets[0]?.sent.map(
+        (message) =>
+          JSON.parse(message) as { t?: string; cmd?: string; item?: string; npc?: number },
+      );
+      expect(
+        sent?.some(
+          (message) =>
+            message.t === 'cmd' &&
+            message.cmd === 'buy' &&
+            message.item === 'trail_hardtack' &&
+            message.npc === 9824,
+        ),
+      ).toBe(true);
     });
 
     expect(game.ambientPlayerBotDirectory()).toEqual([
@@ -2139,7 +2477,8 @@ describe('AmbientPlayerBotRuntime', () => {
         runnerState: expect.objectContaining({
           connected: true,
           objective: 'restock_food_and_drink',
-          objectiveLabel: 'Restocking Highwatch Trail Hardtack and Meltwater Flask and Healing Potion',
+          objectiveLabel:
+            'Restocking Highwatch Trail Hardtack and Meltwater Flask and Healing Potion',
         }),
       }),
     ]);
@@ -2201,20 +2540,25 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'thornpeak_heights:1',
-      zoneId: 'thornpeak_heights',
-      targetCharacterId: 1,
-      reason: 'test ogre totem route',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'thornpeak_heights:1',
+        zoneId: 'thornpeak_heights',
+        targetCharacterId: 1,
+        reason: 'test ogre totem route',
+      },
+    ]);
 
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as {
-        t?: string;
-        mi?: Record<string, number>;
-      });
+      const sent = sockets[0]?.sent.map(
+        (message) =>
+          JSON.parse(message) as {
+            t?: string;
+            mi?: Record<string, number>;
+          },
+      );
       expect(sent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(true);
     });
 
@@ -2272,7 +2616,14 @@ describe('AmbientPlayerBotRuntime', () => {
             rtype: 'rage',
             gcd: 0,
             inv: [],
-            qdone: [...thornpeakThroughStarters, 'q_ogre_edges', 'q_ogre_totems', 'q_ogre_bounty', 'q_elementals', 'q_shard_cores'],
+            qdone: [
+              ...thornpeakThroughStarters,
+              'q_ogre_edges',
+              'q_ogre_totems',
+              'q_ogre_bounty',
+              'q_elementals',
+              'q_shard_cores',
+            ],
             qlog: [],
             cds: {},
           },
@@ -2285,20 +2636,25 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'thornpeak_heights:1',
-      zoneId: 'thornpeak_heights',
-      targetCharacterId: 1,
-      reason: 'test Stormcrag fallback grind',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'thornpeak_heights:1',
+        zoneId: 'thornpeak_heights',
+        targetCharacterId: 1,
+        reason: 'test Stormcrag fallback grind',
+      },
+    ]);
 
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as {
-        t?: string;
-        mi?: Record<string, number>;
-      });
+      const sent = sockets[0]?.sent.map(
+        (message) =>
+          JSON.parse(message) as {
+            t?: string;
+            mi?: Record<string, number>;
+          },
+      );
       expect(sent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(true);
     });
 
@@ -2369,20 +2725,25 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'thornpeak_heights:1',
-      zoneId: 'thornpeak_heights',
-      targetCharacterId: 1,
-      reason: 'test cult orders route',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'thornpeak_heights:1',
+        zoneId: 'thornpeak_heights',
+        targetCharacterId: 1,
+        reason: 'test cult orders route',
+      },
+    ]);
 
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as {
-        t?: string;
-        mi?: Record<string, number>;
-      });
+      const sent = sockets[0]?.sent.map(
+        (message) =>
+          JSON.parse(message) as {
+            t?: string;
+            mi?: Record<string, number>;
+          },
+      );
       expect(sent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(true);
     });
 
@@ -2440,7 +2801,13 @@ describe('AmbientPlayerBotRuntime', () => {
             rtype: 'rage',
             gcd: 0,
             inv: [],
-            qdone: [...thornpeakThroughWarfront, 'q_zealots', 'q_cult_orders', 'q_necromancers', 'q_revenants'],
+            qdone: [
+              ...thornpeakThroughWarfront,
+              'q_zealots',
+              'q_cult_orders',
+              'q_necromancers',
+              'q_revenants',
+            ],
             qlog: [{ questId: 'q_revenant_vanguard', counts: [5], state: 'active' }],
             cds: {},
           },
@@ -2453,20 +2820,25 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'thornpeak_heights:1',
-      zoneId: 'thornpeak_heights',
-      targetCharacterId: 1,
-      reason: 'test revenant vanguard route',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'thornpeak_heights:1',
+        zoneId: 'thornpeak_heights',
+        targetCharacterId: 1,
+        reason: 'test revenant vanguard route',
+      },
+    ]);
 
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as {
-        t?: string;
-        mi?: Record<string, number>;
-      });
+      const sent = sockets[0]?.sent.map(
+        (message) =>
+          JSON.parse(message) as {
+            t?: string;
+            mi?: Record<string, number>;
+          },
+      );
       expect(sent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(true);
     });
 
@@ -2537,20 +2909,25 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'thornpeak_heights:1',
-      zoneId: 'thornpeak_heights',
-      targetCharacterId: 1,
-      reason: 'test sanctum sigil route',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'thornpeak_heights:1',
+        zoneId: 'thornpeak_heights',
+        targetCharacterId: 1,
+        reason: 'test sanctum sigil route',
+      },
+    ]);
 
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as {
-        t?: string;
-        mi?: Record<string, number>;
-      });
+      const sent = sockets[0]?.sent.map(
+        (message) =>
+          JSON.parse(message) as {
+            t?: string;
+            mi?: Record<string, number>;
+          },
+      );
       expect(sent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(true);
     });
 
@@ -2621,20 +2998,25 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'thornpeak_heights:1',
-      zoneId: 'thornpeak_heights',
-      targetCharacterId: 1,
-      reason: 'test voice below necromancer route',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'thornpeak_heights:1',
+        zoneId: 'thornpeak_heights',
+        targetCharacterId: 1,
+        reason: 'test voice below necromancer route',
+      },
+    ]);
 
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as {
-        t?: string;
-        mi?: Record<string, number>;
-      });
+      const sent = sockets[0]?.sent.map(
+        (message) =>
+          JSON.parse(message) as {
+            t?: string;
+            mi?: Record<string, number>;
+          },
+      );
       expect(sent?.some((message) => message.t === 'input' && message.mi?.f === 1)).toBe(true);
     });
 
@@ -2682,25 +3064,29 @@ describe('AmbientPlayerBotRuntime', () => {
 
     await runtime.start();
     runtime.updateControls({ acceptLoginActions: false });
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'eastbrook_vale:1',
-      zoneId: 'eastbrook_vale',
-      targetCharacterId: 1,
-      reason: 'paused login test',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'eastbrook_vale:1',
+        zoneId: 'eastbrook_vale',
+        targetCharacterId: 1,
+        reason: 'paused login test',
+      },
+    ]);
 
     await vi.waitFor(() => {
-      expect(runtime.diagnosticsSnapshot()).toEqual(expect.objectContaining({
-        controls: expect.objectContaining({
-          acceptLoginActions: false,
+      expect(runtime.diagnosticsSnapshot()).toEqual(
+        expect.objectContaining({
+          controls: expect.objectContaining({
+            acceptLoginActions: false,
+          }),
+          metrics: expect.objectContaining({
+            loginSkipped: 1,
+          }),
+          activeRunners: 0,
         }),
-        metrics: expect.objectContaining({
-          loginSkipped: 1,
-        }),
-        activeRunners: 0,
-      }));
+      );
     });
     expect(sockets).toHaveLength(0);
 
@@ -2753,23 +3139,27 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'eastbrook_vale:1',
-      zoneId: 'eastbrook_vale',
-      targetCharacterId: 1,
-      reason: 'operator logout drill',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'eastbrook_vale:1',
+        zoneId: 'eastbrook_vale',
+        targetCharacterId: 1,
+        reason: 'operator logout drill',
+      },
+    ]);
 
     await vi.waitFor(() => {
       expect(runtime.diagnosticsSnapshot().activeRunners).toBe(1);
-      expect(game.ambientPlayerBotDirectory()).toEqual(expect.arrayContaining([
-        expect.objectContaining({
-          botId: 'bot-1',
-          lifecycleStatus: 'online',
-        }),
-      ]));
+      expect(game.ambientPlayerBotDirectory()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            botId: 'bot-1',
+            lifecycleStatus: 'online',
+          }),
+        ]),
+      );
     });
 
     const result = await runtime.logoutAll('operator drill');
@@ -2779,12 +3169,14 @@ describe('AmbientPlayerBotRuntime', () => {
       resetRecords: 1,
       atMs: 5_000,
     });
-    expect(runtime.diagnosticsSnapshot()).toEqual(expect.objectContaining({
-      activeRunners: 0,
-      metrics: expect.objectContaining({
-        logoutAllRequests: 1,
+    expect(runtime.diagnosticsSnapshot()).toEqual(
+      expect.objectContaining({
+        activeRunners: 0,
+        metrics: expect.objectContaining({
+          logoutAllRequests: 1,
+        }),
       }),
-    }));
+    );
     expect(game.ambientPlayerBotDirectory()).toEqual([
       expect.objectContaining({
         lifecycleStatus: 'ready',
@@ -2937,14 +3329,16 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'eastbrook_vale:1',
-      zoneId: 'eastbrook_vale',
-      targetCharacterId: 1,
-      reason: 'test login',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'eastbrook_vale:1',
+        zoneId: 'eastbrook_vale',
+        targetCharacterId: 1,
+        reason: 'test login',
+      },
+    ]);
 
     await vi.waitFor(() => {
       expect(game.ambientPlayerBotDirectory()).toEqual([
@@ -2965,14 +3359,16 @@ describe('AmbientPlayerBotRuntime', () => {
     });
     sockets[0]?.emitJson({
       t: 'events',
-      list: [{
-        type: 'chat',
-        fromPid: 201,
-        from: 'Aleph',
-        text: 'hey, what are you doing?',
-        channel: 'whisper',
-        pid: 101,
-      }],
+      list: [
+        {
+          type: 'chat',
+          fromPid: 201,
+          from: 'Aleph',
+          text: 'hey, what are you doing?',
+          channel: 'whisper',
+          pid: 101,
+        },
+      ],
     });
     await vi.waitFor(() => {
       expect(game.ambientPlayerBotDirectory()).toEqual([
@@ -3012,12 +3408,17 @@ describe('AmbientPlayerBotRuntime', () => {
         }),
       ]);
     });
-    const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; text?: string });
-    expect(sent?.some((message) =>
-      message.t === 'cmd'
-      && message.cmd === 'chat'
-      && message.text === '/w Aleph running the wolf quest route right now',
-    )).toBe(true);
+    const sent = sockets[0]?.sent.map(
+      (message) => JSON.parse(message) as { t?: string; cmd?: string; text?: string },
+    );
+    expect(
+      sent?.some(
+        (message) =>
+          message.t === 'cmd' &&
+          message.cmd === 'chat' &&
+          message.text === '/w Aleph running the wolf quest route right now',
+      ),
+    ).toBe(true);
 
     await runtime.stop();
   });
@@ -3153,14 +3554,16 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'eastbrook_vale:1',
-      zoneId: 'eastbrook_vale',
-      targetCharacterId: 1,
-      reason: 'test login',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'eastbrook_vale:1',
+        zoneId: 'eastbrook_vale',
+        targetCharacterId: 1,
+        reason: 'test login',
+      },
+    ]);
 
     await vi.waitFor(() => {
       expect(game.ambientPlayerBotDirectory()).toEqual([
@@ -3181,14 +3584,16 @@ describe('AmbientPlayerBotRuntime', () => {
     });
     sockets[0]?.emitJson({
       t: 'events',
-      list: [{
-        type: 'chat',
-        fromPid: 201,
-        from: 'Aleph',
-        text: 'hey, what are you doing?',
-        channel: 'whisper',
-        pid: 101,
-      }],
+      list: [
+        {
+          type: 'chat',
+          fromPid: 201,
+          from: 'Aleph',
+          text: 'hey, what are you doing?',
+          channel: 'whisper',
+          pid: 101,
+        },
+      ],
     });
     await vi.waitFor(() => {
       expect(game.ambientPlayerBotDirectory()).toEqual([
@@ -3229,12 +3634,15 @@ describe('AmbientPlayerBotRuntime', () => {
         }),
       ]);
     });
-    const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; text?: string });
-    expect(sent?.some((message) =>
-      message.t === 'cmd'
-      && message.cmd === 'chat'
-      && message.text === '/w Aleph hey there',
-    )).toBe(true);
+    const sent = sockets[0]?.sent.map(
+      (message) => JSON.parse(message) as { t?: string; cmd?: string; text?: string },
+    );
+    expect(
+      sent?.some(
+        (message) =>
+          message.t === 'cmd' && message.cmd === 'chat' && message.text === '/w Aleph hey there',
+      ),
+    ).toBe(true);
 
     await runtime.stop();
   });
@@ -3360,8 +3768,38 @@ describe('AmbientPlayerBotRuntime', () => {
               leader: 101,
               raid: false,
               members: [
-                { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 1, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 4, z: 6, dead: 0, inCombat: 0, group: 1 },
-                { pid: 102, name: 'Branorabb', cls: 'priest', level: 1, hp: 32, mhp: 32, res: 30, mres: 30, rtype: 'mana', x: 5, z: 6, dead: 0, inCombat: 0, group: 1 },
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 1,
+                  hp: 40,
+                  mhp: 40,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 4,
+                  z: 6,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'priest',
+                  level: 1,
+                  hp: 32,
+                  mhp: 32,
+                  res: 30,
+                  mres: 30,
+                  rtype: 'mana',
+                  x: 5,
+                  z: 6,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
               ],
             },
           },
@@ -3377,14 +3815,16 @@ describe('AmbientPlayerBotRuntime', () => {
     });
 
     await runtime.start();
-    game.actionHandler?.([{
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'eastbrook_vale:1',
-      zoneId: 'eastbrook_vale',
-      targetCharacterId: 1,
-      reason: 'test login',
-    }]);
+    game.actionHandler?.([
+      {
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'eastbrook_vale:1',
+        zoneId: 'eastbrook_vale',
+        targetCharacterId: 1,
+        reason: 'test login',
+      },
+    ]);
 
     await vi.waitFor(() => {
       expect(game.ambientPlayerBotDirectory()).toEqual([
@@ -3402,12 +3842,17 @@ describe('AmbientPlayerBotRuntime', () => {
 
     nowMs = 7_000;
     await vi.waitFor(() => {
-      const sent = sockets[0]?.sent.map((message) => JSON.parse(message) as { t?: string; cmd?: string; text?: string });
-      expect(sent?.some((message) =>
-        message.t === 'cmd'
-        && message.cmd === 'chat'
-        && message.text === '/p Buff up, stay tight, then burn my target.',
-      )).toBe(true);
+      const sent = sockets[0]?.sent.map(
+        (message) => JSON.parse(message) as { t?: string; cmd?: string; text?: string },
+      );
+      expect(
+        sent?.some(
+          (message) =>
+            message.t === 'cmd' &&
+            message.cmd === 'chat' &&
+            message.text === '/p Buff up, stay tight, then burn my target.',
+        ),
+      ).toBe(true);
     });
 
     await runtime.stop();

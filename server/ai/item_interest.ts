@@ -45,6 +45,14 @@ export function itemSemanticFor(itemId: string): ItemSemantic {
     itemTags.add('drink');
     smellTags.add('water');
   }
+  if (item.kind === 'tool') {
+    itemTags.add('tool');
+    valueSignals.add('useful');
+  }
+  if (item.kind === 'bag') {
+    itemTags.add('bag');
+    valueSignals.add('gear');
+  }
   if (item.kind === 'weapon') {
     itemTags.add('weapon');
     itemTags.add('metal');
@@ -90,6 +98,18 @@ export function itemSemanticFor(itemId: string): ItemSemantic {
   if (/crate|goods|supply|boot|moccasin|scrap|cloth|bandana|weed|reeds?/.test(lower)) {
     itemTags.add('tool');
     valueSignals.add('campLife');
+  }
+  if (/ore|bar|ingot/.test(lower)) {
+    itemTags.add('metal');
+    valueSignals.add('useful');
+  }
+  if (/log|wood|lumber/.test(lower)) {
+    itemTags.add('wood');
+    valueSignals.add('useful');
+  }
+  if (/herb|petal|leaf/.test(lower)) {
+    itemTags.add('herb');
+    smellTags.add('herb');
   }
   if (/pearl|nugget|ring|signet|crest|gem|gold|silver|copper|amber|onyx|ivory|steel|iron/.test(lower)) {
     itemTags.add('metal');
@@ -184,8 +204,8 @@ export function scoreItemReaction(
     }
   }
   if (family === 'beast' && food) curiosity += 0.35;
-  if (family === 'murloc' && tags.has('fish')) curiosity += 0.4;
-  if (family === 'kobold' && (tags.has('metal') || tags.has('coin'))) curiosity += 0.35;
+  if (family === 'mudfin' && tags.has('fish')) curiosity += 0.4;
+  if (family === 'burrower' && (tags.has('metal') || tags.has('coin'))) curiosity += 0.35;
   if (entity.kind === 'npc' && cursed) fear += 0.25;
 
   curiosity = clamp01(curiosity);

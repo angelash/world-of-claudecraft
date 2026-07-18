@@ -22,9 +22,15 @@ export const ITEM_WEAPON_VARIANTS: Record<string, string> = {
   valeborn_spellblade: 'sword_g', // crystalline
   maldrecs_soulbinder: 'sword_g',
   highwatch_warblade: 'adv_sword_1handed',
+  eastbrook_greatsword: 'adv_sword_2handed',
+  highwatch_greatsword: 'adv_sword_2handed',
   verlans_oathblade: 'adv_sword_2handed',
   moonscale_saber: 'adv_sword_2handed',
   wyrmfang_greatblade: 'adv_sword_2handed_color', // EPIC: gold greatblade
+  deathless_greatblade: 'adv_sword_2handed_color', // EPIC: Heroic Nythraxis greatblade
+  final_argument_greatblade: 'adv_sword_2handed_color', // WARFARE Strength main hand
+  bonewrought_greatsword: 'adv_sword_2handed_color', // EPIC: Nythraxis raid 2H
+  direfang_greatblade: 'adv_sword_2handed_color', // EPIC: Nythraxis hunter 2H
 
   // ---- daggers (only 4 models for ~21 daggers; spread as evenly as art allows)-
   rusty_dagger: 'dagger_a',
@@ -48,6 +54,7 @@ export const ITEM_WEAPON_VARIANTS: Record<string, string> = {
   drownedmoon_kris: 'adv_dagger',
   sloomtooth_tidefang: 'adv_dagger',
   skullsplitter_dirk: 'adv_dagger',
+  first_blood_razor: 'adv_dagger', // WARFARE Agility main hand
 
   // ---- staves (staff_a..d + adv_staff + adv_druid_staff) ----------------------
   gnarled_staff: 'staff_a',
@@ -67,6 +74,7 @@ export const ITEM_WEAPON_VARIANTS: Record<string, string> = {
   staff_of_the_gravewyrm: 'adv_druid_staff',
   deathless_heartwood: 'adv_druid_staff', // LEGENDARY druid relic (antler staff)
   drovers_staff: 'adv_druid_staff',
+  emberglass_warstaff: 'adv_staff', // WARFARE caster main hand
 
   // ---- wands (1H caster: scepters / rods) -------------------------------------
   drowned_tide_scepter: 'wand_a',

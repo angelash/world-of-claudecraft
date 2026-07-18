@@ -43,7 +43,11 @@ export class AmbientPlayerBotApiClient implements AmbientPlayerBotApi {
   }
 
   async register(username: string, password: string): Promise<AmbientRegisterResult> {
-    return this.postJson('/api/register', { username, password });
+    return this.postJson('/api/register', {
+      username,
+      password,
+      email: `${username}@ambient.invalid`,
+    });
   }
 
   async login(username: string, password: string): Promise<AmbientLoginResult> {

@@ -12,6 +12,10 @@ vi.mock('../server/db', () => ({
   grantAccountMechChroma: vi.fn(async () => ({ completedQuestIds: [], mechChromaIds: [] })),
   revokeAccountMechChroma: vi.fn(async () => ({ completedQuestIds: [], mechChromaIds: [] })),
   walletForAccount: vi.fn(async () => null),
+  touchCharacterLogin: vi.fn(async () => {}),
+  heartbeatCharacterLeases: vi.fn(async () => {}),
+  saveMailState: vi.fn(async () => {}),
+  loadAccountFlair: vi.fn(async () => ({ ai: false, streamer: false, links: {} })),
 }));
 
 import { AI_MEMORY_PRUNE_INTERVAL_MS, GameServer, type ClientSession } from '../server/game';
@@ -345,7 +349,7 @@ describe('server AI interact command', () => {
       speech: {
         mode: 'dynamicText',
         language: 'zh_CN',
-        text: '码头那边刚转了风，水面碎得不太自然。',
+        text: '码头那边刚转了风，水面碎得不太自然。你要问最近的动静，我会先看网绳和鱼群。',
       },
       source: 'codex',
       pid: session.pid,
@@ -359,7 +363,7 @@ describe('server AI interact command', () => {
         lastLocale: 'zh_CN',
         lastFingerprintSource: 'profile',
         lastBefore: '不过，码头那边刚转了风，而且水面碎得不太自然。你要问最近的动静，我会先看网绳和鱼群。',
-        lastAfter: '码头那边刚转了风，水面碎得不太自然。',
+        lastAfter: '码头那边刚转了风，水面碎得不太自然。你要问最近的动静，我会先看网绳和鱼群。',
       }),
     });
     expect(speechEvents.some((event) =>

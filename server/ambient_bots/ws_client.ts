@@ -28,7 +28,7 @@ const DELTA_SELF_KEYS = [
   'delveDaily',
   'tal',
 ];
-const ENTITY_IDENTITY_KEYS = ['k', 'tid', 'nm', 'lv', 'sc', 'c', 'dgn'];
+const ENTITY_IDENTITY_KEYS = ['k', 'tid', 'nm', 'lv', 'sc', 'c', 'dgn', 'obj'];
 
 export interface AmbientPlayerBotWireSelf {
   id: number;

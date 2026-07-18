@@ -1,26 +1,74 @@
-import { escapeHtml, fmtCopper, fmtDate, fmtDuration, fmtNumber, fmtPercent, fmtRelative } from './format';
-import { classLabel, zoneLabel, t } from './i18n';
+import {
+  escapeHtml,
+  fmtCopper,
+  fmtDate,
+  fmtDuration,
+  fmtNumber,
+  fmtPercent,
+  fmtRelative,
+} from './format';
+import { classLabel, t, zoneLabel } from './i18n';
 import type {
-  AccountDetail, AccountRow, BlockedIpsData, BlockedIpRow, BugReportRow, CharacterRow, ChatFilterData, ChatModeratedAccount,
-  ChatModerationDetail, FilterWord, LivePlayer, ModerationAccountDetail, ModerationQueueRow,
-  AiActivePollRule, AiActiveTriggerAdminSnapshot, AiActiveTriggerDecisionSnapshot,
-  AiActiveRuntimeSnapshot, AiActiveTriggerMetricsSnapshot,
-  AiActiveQueuedEventSnapshot, AiActiveSequenceSnapshot, AiAuditEventSummary, AiAuditPlayerAction, AiAuditRecord, AiAuditSnapshot,
-  AiContentCoverageReport, AiContentReviewChecklist, AiContentReviewChecklistItem, AiDecisionJournalEntry, AiLifeLayerDiagnosticsSnapshot, AiNpcMemory, AiRumorMemory,
-  AiLifeLayerMetricsSnapshot, AiProfileAuthoringIssue, AiProfileAuthoringValidationReport,
-  AiProfilePreviewReport, AiProfilePreviewRow, AiProviderTimingSnapshot,
-  AiProfilePreviewTarget, AiWorldDirectorProposalAuditEntry, AiWorldDirectorState,
-  ProviderUsageCache, ProviderUsageSnapshot,
+  AccountDetail,
+  AccountRow,
+  AiActivePollRule,
+  AiActiveQueuedEventSnapshot,
+  AiActiveRuntimeSnapshot,
+  AiActiveSequenceSnapshot,
+  AiActiveTriggerAdminSnapshot,
+  AiActiveTriggerDecisionSnapshot,
+  AiActiveTriggerMetricsSnapshot,
+  AiAuditEventSummary,
+  AiAuditPlayerAction,
+  AiAuditRecord,
+  AiAuditSnapshot,
+  AiContentCoverageReport,
+  AiContentReviewChecklist,
+  AiContentReviewChecklistItem,
+  AiDecisionJournalEntry,
+  AiLifeLayerDiagnosticsSnapshot,
+  AiLifeLayerMetricsSnapshot,
+  AiNpcMemory,
+  AiProfileAuthoringIssue,
+  AiProfileAuthoringValidationReport,
+  AiProfilePreviewReport,
+  AiProfilePreviewRow,
+  AiProfilePreviewTarget,
+  AiProviderTimingSnapshot,
+  AiRumorMemory,
+  AiWorldDirectorProposalAuditEntry,
+  AiWorldDirectorState,
+  BlockedIpRow,
+  BlockedIpsData,
+  BugReportRow,
+  CharacterRow,
+  ChatFilterData,
+  ChatModeratedAccount,
+  ChatModerationDetail,
+  FilterWord,
+  LivePlayer,
+  ModerationAccountDetail,
+  ModerationQueueRow,
+  ProviderUsageCache,
+  ProviderUsageSnapshot,
 } from './types';
 
-export type AiLifeLayerTab = 'audit' | 'active' | 'usage' | 'coverage' | 'profiles' | 'diagnostics' | 'details';
+export type AiLifeLayerTab =
+  | 'audit'
+  | 'active'
+  | 'usage'
+  | 'coverage'
+  | 'profiles'
+  | 'diagnostics'
+  | 'details';
 
 // Pure HTML-string renderers for the dashboard tables. All dynamic values go
 // through escapeHtml — usernames and character names are player-controlled.
 
 export function renderOnlineTable(players: LivePlayer[]): string {
   if (players.length === 0) return `<div class="empty">${t('online.empty')}</div>`;
-  const rows = players.map((p) => `
+  const rows = players.map(
+    (p) => `
     <tr>
       <td>${escapeHtml(p.name)}</td>
       <td>${escapeHtml(classLabel(p.class))}</td>
@@ -31,7 +79,8 @@ export function renderOnlineTable(players: LivePlayer[]): string {
       <td class="num">${fmtDuration(p.sessionSeconds)}</td>
       <td class="num">${fmtDuration(p.lastSaveSecondsAgo)} ${t('common.ago')}</td>
       <td class="num">${p.accountId}</td>
-    </tr>`);
+    </tr>`,
+  );
   return `<table>
     <thead><tr>
       <th>${t('online.colCharacter')}</th><th>${t('online.colClass')}</th><th class="num">${t('online.colLevel')}</th><th>${t('online.colZone')}</th>
@@ -48,10 +97,12 @@ function renderMetricCount(value: number): string {
 
 function renderCacheEntries(cache: ProviderUsageCache): string {
   if (cache.maxEntries === null) return escapeHtml(fmtNumber(cache.entries));
-  return escapeHtml(t('usage.cacheEntriesOfMax', {
-    entries: fmtNumber(cache.entries),
-    max: fmtNumber(cache.maxEntries),
-  }));
+  return escapeHtml(
+    t('usage.cacheEntriesOfMax', {
+      entries: fmtNumber(cache.entries),
+      max: fmtNumber(cache.maxEntries),
+    }),
+  );
 }
 
 function renderCacheHitRate(cache: ProviderUsageCache): string {
@@ -83,37 +134,62 @@ function renderAiTimingShare(value: number, total: number): string {
 
 function aiProviderTimingProviderLabel(provider: string): string {
   switch (provider) {
-    case 'codex-exec': return t('usage.aiProviderTimingProviderExec');
-    case 'codex-app-server': return t('usage.aiProviderTimingProviderAppServer');
-    default: return provider ? t('usage.aiProviderTimingProviderUnknown', { provider }) : t('usage.aiDiagnosticsNone');
+    case 'codex-exec':
+      return t('usage.aiProviderTimingProviderExec');
+    case 'codex-app-server':
+      return t('usage.aiProviderTimingProviderAppServer');
+    default:
+      return provider
+        ? t('usage.aiProviderTimingProviderUnknown', { provider })
+        : t('usage.aiDiagnosticsNone');
   }
 }
 
 function aiProviderTimingStepLabel(key: string): string {
   switch (key) {
-    case 'tempDirMs': return t('usage.aiProviderTimingStepTempDir');
-    case 'buildPromptMs': return t('usage.aiProviderTimingStepBuildPrompt');
-    case 'writeFilesMs': return t('usage.aiProviderTimingStepWriteFiles');
-    case 'codexExecMs': return t('usage.aiProviderTimingStepCodexExec');
-    case 'readOutputMs': return t('usage.aiProviderTimingStepReadOutput');
-    case 'parseOutputMs': return t('usage.aiProviderTimingStepParseOutput');
-    case 'startupWaitMs': return t('usage.aiProviderTimingStepStartupWait');
-    case 'queueWaitMs': return t('usage.aiProviderTimingStepQueueWait');
-    case 'turnStartAckMs': return t('usage.aiProviderTimingStepTurnStartAck');
-    case 'turnCompleteMs': return t('usage.aiProviderTimingStepTurnComplete');
-    case 'firstDeltaMs': return t('usage.aiProviderTimingStepFirstDelta');
-    case 'firstAgentMessageMs': return t('usage.aiProviderTimingStepFirstAgentMessage');
-    case 'rollbackMs': return t('usage.aiProviderTimingStepRollback');
-    case 'threadResetMs': return t('usage.aiProviderTimingStepThreadReset');
-    default: return t('usage.aiProviderTimingStepUnknown', { key });
+    case 'tempDirMs':
+      return t('usage.aiProviderTimingStepTempDir');
+    case 'buildPromptMs':
+      return t('usage.aiProviderTimingStepBuildPrompt');
+    case 'writeFilesMs':
+      return t('usage.aiProviderTimingStepWriteFiles');
+    case 'codexExecMs':
+      return t('usage.aiProviderTimingStepCodexExec');
+    case 'readOutputMs':
+      return t('usage.aiProviderTimingStepReadOutput');
+    case 'parseOutputMs':
+      return t('usage.aiProviderTimingStepParseOutput');
+    case 'startupWaitMs':
+      return t('usage.aiProviderTimingStepStartupWait');
+    case 'queueWaitMs':
+      return t('usage.aiProviderTimingStepQueueWait');
+    case 'turnStartAckMs':
+      return t('usage.aiProviderTimingStepTurnStartAck');
+    case 'turnCompleteMs':
+      return t('usage.aiProviderTimingStepTurnComplete');
+    case 'firstDeltaMs':
+      return t('usage.aiProviderTimingStepFirstDelta');
+    case 'firstAgentMessageMs':
+      return t('usage.aiProviderTimingStepFirstAgentMessage');
+    case 'rollbackMs':
+      return t('usage.aiProviderTimingStepRollback');
+    case 'threadResetMs':
+      return t('usage.aiProviderTimingStepThreadReset');
+    default:
+      return t('usage.aiProviderTimingStepUnknown', { key });
   }
 }
 
-function aiSpeechPolishSourceLabel(source: AiLifeLayerMetricsSnapshot['speechPolish']['lastFingerprintSource']): string {
+function aiSpeechPolishSourceLabel(
+  source: AiLifeLayerMetricsSnapshot['speechPolish']['lastFingerprintSource'],
+): string {
   switch (source) {
-    case 'profile': return t('usage.aiSpeechPolishSource.profile');
-    case 'family': return t('usage.aiSpeechPolishSource.family');
-    default: return t('usage.aiSpeechPolishSource.none');
+    case 'profile':
+      return t('usage.aiSpeechPolishSource.profile');
+    case 'family':
+      return t('usage.aiSpeechPolishSource.family');
+    default:
+      return t('usage.aiSpeechPolishSource.none');
   }
 }
 
@@ -125,24 +201,31 @@ function renderAiProviderTimingSummary(timings: AiProviderTimingSnapshot | undef
   if (!timings) return `<span class="hint">${escapeHtml(t('usage.aiProviderTimingNone'))}</span>`;
   const slowest = [...timings.steps].sort((a, b) => b.ms - a.ms)[0];
   const slowestLine = slowest
-    ? `<div class="hint">${escapeHtml(t('usage.aiProviderTimingSlowest', {
-      step: aiProviderTimingStepLabel(slowest.key),
-      duration: t('usage.aiMilliseconds', { value: fmtNumber(slowest.ms) }),
-    }))}</div>`
+    ? `<div class="hint">${escapeHtml(
+        t('usage.aiProviderTimingSlowest', {
+          step: aiProviderTimingStepLabel(slowest.key),
+          duration: t('usage.aiMilliseconds', { value: fmtNumber(slowest.ms) }),
+        }),
+      )}</div>`
     : '';
   return `${escapeHtml(aiProviderTimingProviderLabel(timings.provider))} / ${renderAiLatency(timings.totalMs)}${slowestLine}`;
 }
 
 function renderAiProviderTimingTable(timings: AiProviderTimingSnapshot | undefined): string {
   if (!timings) return `<div class="empty">${t('usage.aiProviderTimingNone')}</div>`;
-  const rows = timings.steps.length === 0
-    ? `<tr><td colspan="3" class="empty">${t('usage.aiProviderTimingNone')}</td></tr>`
-    : timings.steps.map((step) => `
+  const rows =
+    timings.steps.length === 0
+      ? `<tr><td colspan="3" class="empty">${t('usage.aiProviderTimingNone')}</td></tr>`
+      : timings.steps
+          .map(
+            (step) => `
       <tr>
         <td>${escapeHtml(aiProviderTimingStepLabel(step.key))}<div class="hint">${escapeHtml(step.key)}</div></td>
         <td class="num">${renderAiLatency(step.ms)}</td>
         <td class="num">${renderAiTimingShare(step.ms, timings.totalMs)}</td>
-      </tr>`).join('');
+      </tr>`,
+          )
+          .join('');
   return `
     <div class="ai-audit-status-line">
       <span class="badge">${escapeHtml(aiProviderTimingProviderLabel(timings.provider))}</span>
@@ -193,7 +276,11 @@ function normalizeAiTab(tab: string | undefined): AiLifeLayerTab {
   }
 }
 
-function renderAiTabButton(tab: AiLifeLayerTab, labelKey: string, activeTab: AiLifeLayerTab): string {
+function renderAiTabButton(
+  tab: AiLifeLayerTab,
+  labelKey: string,
+  activeTab: AiLifeLayerTab,
+): string {
   const selected = tab === activeTab;
   return `<button type="button" class="ai-tab${selected ? ' active' : ''}" role="tab" data-ai-tab="${tab}" aria-selected="${selected ? 'true' : 'false'}" aria-controls="ai-tab-${tab}" tabindex="${selected ? '0' : '-1'}">${escapeHtml(t(labelKey))}</button>`;
 }
@@ -230,8 +317,12 @@ function coverageIssueCount(coverage: AiContentCoverageReport): number {
 }
 
 function renderCoverageItems(items: readonly string[]): string {
-  if (items.length === 0) return `<span class="hint">${escapeHtml(t('usage.aiCoverageAllClear'))}</span>`;
-  const visible = items.slice(0, 8).map((item) => escapeHtml(item)).join(', ');
+  if (items.length === 0)
+    return `<span class="hint">${escapeHtml(t('usage.aiCoverageAllClear'))}</span>`;
+  const visible = items
+    .slice(0, 8)
+    .map((item) => escapeHtml(item))
+    .join(', ');
   const remaining = items.length - 8;
   return remaining > 0
     ? `${visible} <span class="hint">${escapeHtml(t('usage.aiCoverageMore', { count: fmtNumber(remaining) }))}</span>`
@@ -249,36 +340,52 @@ function coverageRow(labelKey: string, items: readonly string[]): string {
 
 function aiCoverageChecklistStatusLabel(status: AiContentReviewChecklistItem['status']): string {
   switch (status) {
-    case 'pass': return t('usage.aiCoverageChecklistStatusPass');
-    case 'needs_attention': return t('usage.aiCoverageChecklistStatusNeedsAttention');
+    case 'pass':
+      return t('usage.aiCoverageChecklistStatusPass');
+    case 'needs_attention':
+      return t('usage.aiCoverageChecklistStatusNeedsAttention');
   }
 }
 
 function aiCoverageChecklistLabel(id: AiContentReviewChecklistItem['id']): string {
   switch (id) {
-    case 'mob-family-semantics': return t('usage.aiCoverageChecklistLabel.mobFamilySemantics');
-    case 'interactive-npc-profiles': return t('usage.aiCoverageChecklistLabel.interactiveNpcProfiles');
-    case 'scene-semantic-anchors': return t('usage.aiCoverageChecklistLabel.sceneSemanticAnchors');
-    case 'discardable-item-semantics': return t('usage.aiCoverageChecklistLabel.discardableItemSemantics');
-    case 'ai-lineid-registration': return t('usage.aiCoverageChecklistLabel.aiLineIdRegistration');
-    default: return escapeHtml(id);
+    case 'mob-family-semantics':
+      return t('usage.aiCoverageChecklistLabel.mobFamilySemantics');
+    case 'interactive-npc-profiles':
+      return t('usage.aiCoverageChecklistLabel.interactiveNpcProfiles');
+    case 'scene-semantic-anchors':
+      return t('usage.aiCoverageChecklistLabel.sceneSemanticAnchors');
+    case 'discardable-item-semantics':
+      return t('usage.aiCoverageChecklistLabel.discardableItemSemantics');
+    case 'ai-lineid-registration':
+      return t('usage.aiCoverageChecklistLabel.aiLineIdRegistration');
+    default:
+      return escapeHtml(id);
   }
 }
 
 function aiCoverageChecklistReviewPrompt(id: AiContentReviewChecklistItem['id']): string {
   switch (id) {
-    case 'mob-family-semantics': return t('usage.aiCoverageChecklistReview.mobFamilySemantics');
-    case 'interactive-npc-profiles': return t('usage.aiCoverageChecklistReview.interactiveNpcProfiles');
-    case 'scene-semantic-anchors': return t('usage.aiCoverageChecklistReview.sceneSemanticAnchors');
-    case 'discardable-item-semantics': return t('usage.aiCoverageChecklistReview.discardableItemSemantics');
-    case 'ai-lineid-registration': return t('usage.aiCoverageChecklistReview.aiLineIdRegistration');
-    default: return escapeHtml(id);
+    case 'mob-family-semantics':
+      return t('usage.aiCoverageChecklistReview.mobFamilySemantics');
+    case 'interactive-npc-profiles':
+      return t('usage.aiCoverageChecklistReview.interactiveNpcProfiles');
+    case 'scene-semantic-anchors':
+      return t('usage.aiCoverageChecklistReview.sceneSemanticAnchors');
+    case 'discardable-item-semantics':
+      return t('usage.aiCoverageChecklistReview.discardableItemSemantics');
+    case 'ai-lineid-registration':
+      return t('usage.aiCoverageChecklistReview.aiLineIdRegistration');
+    default:
+      return escapeHtml(id);
   }
 }
 
 function renderAiCoverageChecklist(checklist?: AiContentReviewChecklist): string {
   if (!checklist || checklist.items.length === 0) return '';
-  const rows = checklist.items.map((item) => `
+  const rows = checklist.items
+    .map(
+      (item) => `
     <tr>
       <td>${escapeHtml(aiCoverageChecklistLabel(item.id))}</td>
       <td class="num"><span class="badge${item.status === 'needs_attention' ? ' warn' : ''}">${escapeHtml(aiCoverageChecklistStatusLabel(item.status))}</span></td>
@@ -286,7 +393,9 @@ function renderAiCoverageChecklist(checklist?: AiContentReviewChecklist): string
       <td>${renderCoverageItems(item.examples)}</td>
       <td>${escapeHtml(aiCoverageChecklistReviewPrompt(item.id))}</td>
       <td><code>${escapeHtml(item.validationCommand)}</code></td>
-    </tr>`).join('');
+    </tr>`,
+    )
+    .join('');
   return `
     <div class="usage-section">
       <h4>${t('usage.aiCoverageChecklistTitle')}</h4>
@@ -307,8 +416,12 @@ function renderAiCoverageChecklist(checklist?: AiContentReviewChecklist): string
 }
 
 function renderAiDelimitedItems(items: readonly string[], limit = 4): string {
-  if (items.length === 0) return `<span class="hint">${escapeHtml(t('usage.aiDiagnosticsNone'))}</span>`;
-  const visible = items.slice(0, limit).map((item) => escapeHtml(item)).join(', ');
+  if (items.length === 0)
+    return `<span class="hint">${escapeHtml(t('usage.aiDiagnosticsNone'))}</span>`;
+  const visible = items
+    .slice(0, limit)
+    .map((item) => escapeHtml(item))
+    .join(', ');
   const remaining = items.length - limit;
   return remaining > 0
     ? `${visible} <span class="hint">${escapeHtml(t('usage.aiDiagnosticsMore', { count: fmtNumber(remaining) }))}</span>`
@@ -317,20 +430,29 @@ function renderAiDelimitedItems(items: readonly string[], limit = 4): string {
 
 function aiProfileTargetKindLabel(kind: string): string {
   switch (kind) {
-    case 'npc': return t('usage.aiProfileKindNpc');
-    case 'mob': return t('usage.aiProfileKindMob');
-    case 'object': return t('usage.aiProfileKindObject');
-    default: return t('usage.aiDiagnosticsUnknownValue', { value: kind });
+    case 'npc':
+      return t('usage.aiProfileKindNpc');
+    case 'mob':
+      return t('usage.aiProfileKindMob');
+    case 'object':
+      return t('usage.aiProfileKindObject');
+    default:
+      return t('usage.aiDiagnosticsUnknownValue', { value: kind });
   }
 }
 
 function aiEntityKindLabel(kind: string): string {
   switch (kind) {
-    case 'npc': return t('usage.aiProfileKindNpc');
-    case 'mob': return t('usage.aiProfileKindMob');
-    case 'object': return t('usage.aiProfileKindObject');
-    case 'system': return t('usage.aiEntityKindSystem');
-    default: return t('usage.aiDiagnosticsUnknownValue', { value: kind });
+    case 'npc':
+      return t('usage.aiProfileKindNpc');
+    case 'mob':
+      return t('usage.aiProfileKindMob');
+    case 'object':
+      return t('usage.aiProfileKindObject');
+    case 'system':
+      return t('usage.aiEntityKindSystem');
+    default:
+      return t('usage.aiDiagnosticsUnknownValue', { value: kind });
   }
 }
 
@@ -453,7 +575,8 @@ function aiTemplateLabel(templateId: string): string {
 }
 
 function aiSpeakerLabel(speakerName: string): string {
-  const templateId = AI_DISPLAY_NAME_TEMPLATE_IDS[speakerName.trim().toLowerCase().replace(/\s+/g, ' ')];
+  const templateId =
+    AI_DISPLAY_NAME_TEMPLATE_IDS[speakerName.trim().toLowerCase().replace(/\s+/g, ' ')];
   return templateId ? aiTemplateLabel(templateId) : speakerName;
 }
 
@@ -464,12 +587,18 @@ function aiSceneLabel(sceneId: string): string {
 
 function aiTopicLabel(topic: string): string {
   switch (topic) {
-    case 'greeting': return t('usage.aiTopicGreeting');
-    case 'recent': return t('usage.aiTopicRecent');
-    case 'rumor': return t('usage.aiTopicRumor');
-    case 'place': return t('usage.aiTopicPlace');
-    case 'quest_hint': return t('usage.aiTopicQuestHint');
-    default: return t('usage.aiDiagnosticsUnknownValue', { value: topic });
+    case 'greeting':
+      return t('usage.aiTopicGreeting');
+    case 'recent':
+      return t('usage.aiTopicRecent');
+    case 'rumor':
+      return t('usage.aiTopicRumor');
+    case 'place':
+      return t('usage.aiTopicPlace');
+    case 'quest_hint':
+      return t('usage.aiTopicQuestHint');
+    default:
+      return t('usage.aiDiagnosticsUnknownValue', { value: topic });
   }
 }
 
@@ -489,11 +618,19 @@ function aiProfileTargetTemplateLabel(target: AiProfilePreviewTarget): string {
 }
 
 function renderAiProfileTargets(targets: readonly AiProfilePreviewTarget[]): string {
-  if (targets.length === 0) return `<span class="hint">${escapeHtml(t('usage.aiDiagnosticsNone'))}</span>`;
-  const visible = targets.slice(0, 3).map((target) => escapeHtml(t('usage.aiProfileTargetSummary', {
-    kind: aiProfileTargetKindLabel(target.kind),
-    templateId: aiProfileTargetTemplateLabel(target),
-  }))).join(', ');
+  if (targets.length === 0)
+    return `<span class="hint">${escapeHtml(t('usage.aiDiagnosticsNone'))}</span>`;
+  const visible = targets
+    .slice(0, 3)
+    .map((target) =>
+      escapeHtml(
+        t('usage.aiProfileTargetSummary', {
+          kind: aiProfileTargetKindLabel(target.kind),
+          templateId: aiProfileTargetTemplateLabel(target),
+        }),
+      ),
+    )
+    .join(', ');
   const remaining = targets.length - 3;
   return remaining > 0
     ? `${visible} <span class="hint">${escapeHtml(t('usage.aiDiagnosticsMore', { count: fmtNumber(remaining) }))}</span>`
@@ -515,23 +652,35 @@ function aiProfileIssueSeverityClass(severity: string): string {
 
 function aiProfileIssueSeverityLabel(severity: string): string {
   switch (severity) {
-    case 'error': return t('usage.aiProfileIssueError');
-    case 'warning': return t('usage.aiProfileIssueWarning');
-    default: return t('usage.aiDiagnosticsUnknownValue', { value: severity });
+    case 'error':
+      return t('usage.aiProfileIssueError');
+    case 'warning':
+      return t('usage.aiProfileIssueWarning');
+    default:
+      return t('usage.aiDiagnosticsUnknownValue', { value: severity });
   }
 }
 
 function aiProfileIssueDescription(issue: AiProfileAuthoringIssue): string {
   switch (issue.code) {
-    case 'duplicateProfileId': return t('usage.aiProfileIssueDuplicateProfileId');
-    case 'missingAuthoringField': return t('usage.aiProfileIssueMissingAuthoringField');
-    case 'fallbackNotAllowed': return t('usage.aiProfileIssueFallbackNotAllowed');
-    case 'invalidLineIdShape': return t('usage.aiProfileIssueInvalidLineIdShape');
-    case 'duplicateProfileTarget': return t('usage.aiProfileIssueDuplicateProfileTarget');
-    case 'unknownNpcTarget': return t('usage.aiProfileIssueUnknownNpcTarget');
-    case 'unknownMobTarget': return t('usage.aiProfileIssueUnknownMobTarget');
-    case 'missingInteractiveProfile': return t('usage.aiProfileIssueMissingInteractiveProfile');
-    default: return t('usage.aiDiagnosticsUnknownValue', { value: issue.code });
+    case 'duplicateProfileId':
+      return t('usage.aiProfileIssueDuplicateProfileId');
+    case 'missingAuthoringField':
+      return t('usage.aiProfileIssueMissingAuthoringField');
+    case 'fallbackNotAllowed':
+      return t('usage.aiProfileIssueFallbackNotAllowed');
+    case 'invalidLineIdShape':
+      return t('usage.aiProfileIssueInvalidLineIdShape');
+    case 'duplicateProfileTarget':
+      return t('usage.aiProfileIssueDuplicateProfileTarget');
+    case 'unknownNpcTarget':
+      return t('usage.aiProfileIssueUnknownNpcTarget');
+    case 'unknownMobTarget':
+      return t('usage.aiProfileIssueUnknownMobTarget');
+    case 'missingInteractiveProfile':
+      return t('usage.aiProfileIssueMissingInteractiveProfile');
+    default:
+      return t('usage.aiDiagnosticsUnknownValue', { value: issue.code });
   }
 }
 
@@ -539,10 +688,12 @@ function renderAiProfileIssueTarget(issue: AiProfileAuthoringIssue): string {
   if (!issue.targetKind || !issue.targetTemplateId) {
     return `<span class="hint">${escapeHtml(t('usage.aiDiagnosticsNone'))}</span>`;
   }
-  return escapeHtml(t('usage.aiProfileTargetSummary', {
-    kind: aiProfileTargetKindLabel(issue.targetKind),
-    templateId: issue.targetTemplateId,
-  }));
+  return escapeHtml(
+    t('usage.aiProfileTargetSummary', {
+      kind: aiProfileTargetKindLabel(issue.targetKind),
+      templateId: issue.targetTemplateId,
+    }),
+  );
 }
 
 function renderAiProfileIssueRow(issue: AiProfileAuthoringIssue): string {
@@ -561,9 +712,10 @@ function renderAiProfileValidation(validation: AiProfileAuthoringValidationRepor
   }
   const visibleIssues = validation.issues.slice(0, 8);
   const hiddenCount = Math.max(0, validation.totalIssues - visibleIssues.length);
-  const hiddenHint = validation.truncated || hiddenCount > 0
-    ? `<div class="hint">${escapeHtml(t('usage.aiProfileValidationMore', { count: fmtNumber(hiddenCount) }))}</div>`
-    : '';
+  const hiddenHint =
+    validation.truncated || hiddenCount > 0
+      ? `<div class="hint">${escapeHtml(t('usage.aiProfileValidationMore', { count: fmtNumber(hiddenCount) }))}</div>`
+      : '';
   return `
     ${hiddenHint}
     <div class="table-scroll">
@@ -593,7 +745,9 @@ function renderAiProfileRow(row: AiProfilePreviewRow): string {
     itemAvoids: fmtNumber(row.itemInterest.avoids),
   });
   const timeCompanionSummary = t('usage.aiProfileTimeCompanionSummary', {
-    time: row.hasTimeWeatherSensitivity ? t('usage.aiProfileTimeReady') : t('usage.aiProfileTimeMissing'),
+    time: row.hasTimeWeatherSensitivity
+      ? t('usage.aiProfileTimeReady')
+      : t('usage.aiProfileTimeMissing'),
     companions: fmtNumber(row.companionReactionCount),
   });
   const knowledgeSummary = t('usage.aiProfileKnowledgeSummary', {
@@ -626,98 +780,153 @@ function aiDecisionStatusClass(status: string): string {
 
 function aiDecisionStatusLabel(status: string): string {
   switch (status) {
-    case 'accepted': return t('usage.aiDecisionStatusAccepted');
-    case 'rejected': return t('usage.aiDecisionStatusRejected');
-    case 'provider_error': return t('usage.aiDecisionStatusProviderError');
-    case 'local_reaction': return t('usage.aiDecisionStatusLocalReaction');
-    default: return t('usage.aiDiagnosticsUnknownValue', { value: status });
+    case 'accepted':
+      return t('usage.aiDecisionStatusAccepted');
+    case 'rejected':
+      return t('usage.aiDecisionStatusRejected');
+    case 'provider_error':
+      return t('usage.aiDecisionStatusProviderError');
+    case 'local_reaction':
+      return t('usage.aiDecisionStatusLocalReaction');
+    default:
+      return t('usage.aiDiagnosticsUnknownValue', { value: status });
   }
 }
 
 function aiTriggerLabel(trigger: string): string {
   switch (trigger) {
-    case 'npc_gossip_opened': return t('usage.aiTriggerNpcGossip');
-    case 'npc_question': return t('usage.aiTriggerNpcQuestion');
-    case 'object_inspected': return t('usage.aiTriggerObjectInspected');
-    case 'singularity_candidate': return t('usage.aiTriggerSingularityCandidate');
-    case 'active_event': return t('usage.aiActiveGlobalEvents');
-    case 'active_poll': return t('usage.aiActiveGlobalPolls');
-    case 'item_discarded': return t('usage.aiTriggerItemDiscarded');
-    case 'scene_inspected': return t('usage.aiTriggerSceneInspected');
-    case 'encounter_memory': return t('usage.aiTriggerEncounterMemory');
-    case 'quest_completed': return t('usage.aiTriggerQuestCompleted');
-    default: return t('usage.aiDiagnosticsUnknownValue', { value: trigger });
+    case 'npc_gossip_opened':
+      return t('usage.aiTriggerNpcGossip');
+    case 'npc_question':
+      return t('usage.aiTriggerNpcQuestion');
+    case 'object_inspected':
+      return t('usage.aiTriggerObjectInspected');
+    case 'singularity_candidate':
+      return t('usage.aiTriggerSingularityCandidate');
+    case 'active_event':
+      return t('usage.aiActiveGlobalEvents');
+    case 'active_poll':
+      return t('usage.aiActiveGlobalPolls');
+    case 'item_discarded':
+      return t('usage.aiTriggerItemDiscarded');
+    case 'scene_inspected':
+      return t('usage.aiTriggerSceneInspected');
+    case 'encounter_memory':
+      return t('usage.aiTriggerEncounterMemory');
+    case 'quest_completed':
+      return t('usage.aiTriggerQuestCompleted');
+    default:
+      return t('usage.aiDiagnosticsUnknownValue', { value: trigger });
   }
 }
 
 function aiMoodLabel(mood: string): string {
   switch (mood) {
-    case 'uncanny': return t('usage.aiMoodUncanny');
-    case 'haunted': return t('usage.aiMoodHaunted');
-    case 'hungry': return t('usage.aiMoodHungry');
-    case 'covetous': return t('usage.aiMoodCovetous');
-    case 'stirred': return t('usage.aiMoodStirred');
-    case 'triumphant': return t('usage.aiMoodTriumphant');
-    case 'dread': return t('usage.aiMoodDread');
-    case 'relieved': return t('usage.aiMoodRelieved');
-    default: return t('usage.aiDiagnosticsUnknownValue', { value: mood });
+    case 'uncanny':
+      return t('usage.aiMoodUncanny');
+    case 'haunted':
+      return t('usage.aiMoodHaunted');
+    case 'hungry':
+      return t('usage.aiMoodHungry');
+    case 'covetous':
+      return t('usage.aiMoodCovetous');
+    case 'stirred':
+      return t('usage.aiMoodStirred');
+    case 'triumphant':
+      return t('usage.aiMoodTriumphant');
+    case 'dread':
+      return t('usage.aiMoodDread');
+    case 'relieved':
+      return t('usage.aiMoodRelieved');
+    default:
+      return t('usage.aiDiagnosticsUnknownValue', { value: mood });
   }
 }
 
 function aiProposalLabel(proposal: string): string {
   switch (proposal) {
-    case 'npcTopicShift': return t('usage.aiProposalNpcTopicShift');
-    case 'campAlert': return t('usage.aiProposalCampAlert');
-    case 'traceEcho': return t('usage.aiProposalTraceEcho');
-    case 'encounterEcho': return t('usage.aiProposalEncounterEcho');
-    case 'questEcho': return t('usage.aiProposalQuestEcho');
-    default: return t('usage.aiDiagnosticsUnknownValue', { value: proposal });
+    case 'npcTopicShift':
+      return t('usage.aiProposalNpcTopicShift');
+    case 'campAlert':
+      return t('usage.aiProposalCampAlert');
+    case 'traceEcho':
+      return t('usage.aiProposalTraceEcho');
+    case 'encounterEcho':
+      return t('usage.aiProposalEncounterEcho');
+    case 'questEcho':
+      return t('usage.aiProposalQuestEcho');
+    default:
+      return t('usage.aiDiagnosticsUnknownValue', { value: proposal });
   }
 }
 
 function aiProposalIntentLabel(intent: string): string {
   switch (intent) {
-    case 'nudgeNpcRumor': return t('usage.aiProposalIntentNudgeNpcRumor');
-    case 'raiseCampCaution': return t('usage.aiProposalIntentRaiseCampCaution');
-    case 'echoTrace': return t('usage.aiProposalIntentEchoTrace');
-    case 'echoEncounterMemory': return t('usage.aiProposalIntentEchoEncounterMemory');
-    case 'echoQuestRelief': return t('usage.aiProposalIntentEchoQuestRelief');
-    default: return t('usage.aiDiagnosticsUnknownValue', { value: intent });
+    case 'nudgeNpcRumor':
+      return t('usage.aiProposalIntentNudgeNpcRumor');
+    case 'raiseCampCaution':
+      return t('usage.aiProposalIntentRaiseCampCaution');
+    case 'echoTrace':
+      return t('usage.aiProposalIntentEchoTrace');
+    case 'echoEncounterMemory':
+      return t('usage.aiProposalIntentEchoEncounterMemory');
+    case 'echoQuestRelief':
+      return t('usage.aiProposalIntentEchoQuestRelief');
+    default:
+      return t('usage.aiDiagnosticsUnknownValue', { value: intent });
   }
 }
 
 function aiSubjectKindLabel(kind: string): string {
   switch (kind) {
-    case 'item': return t('usage.aiSubjectItem');
-    case 'encounter': return t('usage.aiSubjectEncounter');
-    case 'quest': return t('usage.aiSubjectQuest');
-    case 'scene': return t('usage.aiSubjectScene');
-    default: return t('usage.aiDiagnosticsUnknownValue', { value: kind });
+    case 'item':
+      return t('usage.aiSubjectItem');
+    case 'encounter':
+      return t('usage.aiSubjectEncounter');
+    case 'quest':
+      return t('usage.aiSubjectQuest');
+    case 'scene':
+      return t('usage.aiSubjectScene');
+    default:
+      return t('usage.aiDiagnosticsUnknownValue', { value: kind });
   }
 }
 
 function aiProviderSourceLabel(source: string): string {
   switch (source) {
-    case 'codex': return t('usage.aiProviderSourceCodex');
-    case 'provider': return t('usage.aiProviderSourceProvider');
-    case 'fallback': return t('usage.aiProviderSourceFallback');
-    case 'local': return t('usage.aiProviderSourceLocal');
-    default: return t('usage.aiDiagnosticsUnknownValue', { value: source });
+    case 'codex':
+      return t('usage.aiProviderSourceCodex');
+    case 'provider':
+      return t('usage.aiProviderSourceProvider');
+    case 'fallback':
+      return t('usage.aiProviderSourceFallback');
+    case 'local':
+      return t('usage.aiProviderSourceLocal');
+    default:
+      return t('usage.aiDiagnosticsUnknownValue', { value: source });
   }
 }
 
 function aiProposalLifecycleLabel(lifecycle: string): string {
   switch (lifecycle) {
-    case 'created': return t('usage.aiProposalLifecycleCreated');
-    case 'refreshed': return t('usage.aiProposalLifecycleRefreshed');
-    case 'expired': return t('usage.aiProposalLifecycleExpired');
-    case 'evicted': return t('usage.aiProposalLifecycleEvicted');
-    default: return t('usage.aiDiagnosticsUnknownValue', { value: lifecycle });
+    case 'created':
+      return t('usage.aiProposalLifecycleCreated');
+    case 'refreshed':
+      return t('usage.aiProposalLifecycleRefreshed');
+    case 'expired':
+      return t('usage.aiProposalLifecycleExpired');
+    case 'evicted':
+      return t('usage.aiProposalLifecycleEvicted');
+    default:
+      return t('usage.aiDiagnosticsUnknownValue', { value: lifecycle });
   }
 }
 
 function renderAiMemoryWrites(entry: AiDecisionJournalEntry): string {
-  return renderAiDelimitedItems(entry.memoryWrites.map((record) => `${record.kind}:${record.refId}`), 3);
+  return renderAiDelimitedItems(
+    entry.memoryWrites.map((record) => `${record.kind}:${record.refId}`),
+    3,
+  );
 }
 
 function renderAiDecisionRow(entry: AiDecisionJournalEntry): string {
@@ -735,36 +944,56 @@ function renderAiDecisionRow(entry: AiDecisionJournalEntry): string {
 }
 
 function renderAiAuditEntity(record: AiAuditRecord): string {
-  return escapeHtml(t('usage.aiAuditEntitySummary', {
-    kind: aiEntityKindLabel(record.entityKind),
-    templateId: record.templateId ? aiTemplateLabel(record.templateId) : t('usage.aiDiagnosticsNone'),
-    entityId: record.entityId === null ? t('usage.aiDiagnosticsNone') : fmtNumber(record.entityId),
-  }));
+  return escapeHtml(
+    t('usage.aiAuditEntitySummary', {
+      kind: aiEntityKindLabel(record.entityKind),
+      templateId: record.templateId
+        ? aiTemplateLabel(record.templateId)
+        : t('usage.aiDiagnosticsNone'),
+      entityId:
+        record.entityId === null ? t('usage.aiDiagnosticsNone') : fmtNumber(record.entityId),
+    }),
+  );
 }
 
 function renderAiAuditScene(record: AiAuditRecord): string {
-  if (!record.sceneId && !record.zoneId) return `<span class="hint">${escapeHtml(t('usage.aiDiagnosticsNone'))}</span>`;
-  return escapeHtml(t('usage.aiSceneZoneSummary', {
-    sceneId: record.sceneId ? aiSceneLabel(record.sceneId) : t('usage.aiDiagnosticsNone'),
-    zoneId: record.zoneId ? aiSceneLabel(record.zoneId) : t('usage.aiDiagnosticsNone'),
-  }));
+  if (!record.sceneId && !record.zoneId)
+    return `<span class="hint">${escapeHtml(t('usage.aiDiagnosticsNone'))}</span>`;
+  return escapeHtml(
+    t('usage.aiSceneZoneSummary', {
+      sceneId: record.sceneId ? aiSceneLabel(record.sceneId) : t('usage.aiDiagnosticsNone'),
+      zoneId: record.zoneId ? aiSceneLabel(record.zoneId) : t('usage.aiDiagnosticsNone'),
+    }),
+  );
 }
 
 function aiAuditActionLabel(action: AiAuditPlayerAction | undefined, trigger: string): string {
   if (!action) return aiTriggerLabel(trigger);
   switch (action.labelKey) {
-    case 'usage.aiActionNpcGreeting': return t('usage.aiActionNpcGreeting');
-    case 'usage.aiActionNpcQuestion': return t('usage.aiActionNpcQuestion');
-    case 'usage.aiActionNpcRecent': return t('usage.aiActionNpcRecent');
-    case 'usage.aiActionNpcRumor': return t('usage.aiActionNpcRumor');
-    case 'usage.aiActionNpcPlace': return t('usage.aiActionNpcPlace');
-    case 'usage.aiActionNpcQuestHint': return t('usage.aiActionNpcQuestHint');
-    case 'usage.aiActionObjectInspected': return t('usage.aiActionObjectInspected');
-    case 'usage.aiActionSingularityCandidate': return t('usage.aiActionSingularityCandidate');
-    case 'usage.aiActionPetCommand': return t('usage.aiActionPetCommand');
-    case 'usage.aiActiveGlobalEvents': return t('usage.aiActiveGlobalEvents');
-    case 'usage.aiActiveGlobalPolls': return t('usage.aiActiveGlobalPolls');
-    default: return aiTriggerLabel(trigger);
+    case 'usage.aiActionNpcGreeting':
+      return t('usage.aiActionNpcGreeting');
+    case 'usage.aiActionNpcQuestion':
+      return t('usage.aiActionNpcQuestion');
+    case 'usage.aiActionNpcRecent':
+      return t('usage.aiActionNpcRecent');
+    case 'usage.aiActionNpcRumor':
+      return t('usage.aiActionNpcRumor');
+    case 'usage.aiActionNpcPlace':
+      return t('usage.aiActionNpcPlace');
+    case 'usage.aiActionNpcQuestHint':
+      return t('usage.aiActionNpcQuestHint');
+    case 'usage.aiActionObjectInspected':
+      return t('usage.aiActionObjectInspected');
+    case 'usage.aiActionSingularityCandidate':
+      return t('usage.aiActionSingularityCandidate');
+    case 'usage.aiActionPetCommand':
+      return t('usage.aiActionPetCommand');
+    case 'usage.aiActiveGlobalEvents':
+      return t('usage.aiActiveGlobalEvents');
+    case 'usage.aiActiveGlobalPolls':
+      return t('usage.aiActiveGlobalPolls');
+    default:
+      return aiTriggerLabel(trigger);
   }
 }
 
@@ -783,14 +1012,21 @@ function aiAuditActionDetail(action: AiAuditPlayerAction | undefined, trigger: s
     : t('usage.aiAuditActionTrigger', { trigger: aiTriggerLabel(trigger) });
 }
 
-function renderAiAuditTokens(inputTokens: number, outputTokens: number, totalTokens: number, estimated: boolean): string {
+function renderAiAuditTokens(
+  inputTokens: number,
+  outputTokens: number,
+  totalTokens: number,
+  estimated: boolean,
+): string {
   const estimate = estimated
     ? `<div class="hint">${escapeHtml(t('usage.aiAuditEstimated'))}</div>`
     : '';
-  return `${renderAiNumber(totalTokens)}<div class="hint">${escapeHtml(t('usage.aiAuditTokenInOut', {
-    input: fmtNumber(inputTokens),
-    output: fmtNumber(outputTokens),
-  }))}</div>${estimate}`;
+  return `${renderAiNumber(totalTokens)}<div class="hint">${escapeHtml(
+    t('usage.aiAuditTokenInOut', {
+      input: fmtNumber(inputTokens),
+      output: fmtNumber(outputTokens),
+    }),
+  )}</div>${estimate}`;
 }
 
 function localizeAiAuditSummaryText(text: string): string {
@@ -799,7 +1035,8 @@ function localizeAiAuditSummaryText(text: string): string {
     return t('usage.aiAuditLineIdOnlySummary');
   }
   if (/^thinking:[^:]+:\d+(\.\d+)?$/i.test(normalized)) {
-    const [, speakerName = '', durationMs = '0'] = /^thinking:([^:]+):(\d+(?:\.\d+)?)$/i.exec(normalized) ?? [];
+    const [, speakerName = '', durationMs = '0'] =
+      /^thinking:([^:]+):(\d+(?:\.\d+)?)$/i.exec(normalized) ?? [];
     return t('usage.aiAuditThinkingSummary', {
       speaker: speakerName ? aiSpeakerLabel(speakerName) : t('usage.aiDiagnosticsNone'),
       duration: fmtNumber(Number(durationMs) || 0),
@@ -813,13 +1050,16 @@ function renderAiAuditFinalSummary(record: AiAuditRecord): string {
   if (summary.length === 0 && (record.error || record.reason)) {
     return renderAiAuditOptionalText(record.error || record.reason);
   }
-  if (summary.length === 0) return `<span class="hint">${escapeHtml(t('usage.aiAuditNoDelivered'))}</span>`;
+  if (summary.length === 0)
+    return `<span class="hint">${escapeHtml(t('usage.aiAuditNoDelivered'))}</span>`;
   return renderAiDelimitedItems(summary.map(localizeAiAuditSummaryText), 2);
 }
 
 function renderAiAuditSummary(audit: AiAuditSnapshot): string {
   const totals = audit.summary.totals;
-  const rows = audit.summary.windows.map((window) => `
+  const rows = audit.summary.windows
+    .map(
+      (window) => `
     <tr>
       <td>${escapeHtml(t(window.labelKey))}</td>
       <td class="num">${renderAiNumber(window.providerJobs)}</td>
@@ -830,7 +1070,9 @@ function renderAiAuditSummary(audit: AiAuditSnapshot): string {
       <td class="num">${renderAiNumber(window.localReactions)}</td>
       <td class="num">${renderAiNumber(window.memoryWrites)}</td>
       <td class="num">${renderAiAuditTokens(window.inputTokens, window.outputTokens, window.totalTokens, window.estimatedTokens)}</td>
-    </tr>`).join('');
+    </tr>`,
+    )
+    .join('');
   const estimateClass = totals.estimatedTokens ? ' warn' : '';
   return `<div class="usage-section">
       <div class="hint">${escapeHtml(t('usage.aiAuditTokenNote'))}</div>
@@ -901,9 +1143,13 @@ function renderAiAuditRecordCard(record: AiAuditRecord, selectedAuditId: string 
 }
 
 function renderAiAuditRecords(audit: AiAuditSnapshot, selectedAuditId: string | null): string {
-  const records = audit.recent.length === 0
-    ? `<div class="empty">${t('usage.aiAuditNoRecords')}</div>`
-    : audit.recent.slice(0, 40).map((record) => renderAiAuditRecordCard(record, selectedAuditId)).join('');
+  const records =
+    audit.recent.length === 0
+      ? `<div class="empty">${t('usage.aiAuditNoRecords')}</div>`
+      : audit.recent
+          .slice(0, 40)
+          .map((record) => renderAiAuditRecordCard(record, selectedAuditId))
+          .join('');
   return `
       <div class="admin-actions">
         <button class="danger" data-clean-ai-audit>${t('usage.aiAuditCleanNonReal')}</button>
@@ -947,8 +1193,12 @@ function aiAuditEventText(event: AiAuditEventSummary): string {
 
 function aiAuditEventTarget(event: AiAuditEventSummary): string {
   const parts = [
-    event.targetEntityId !== null ? t('usage.aiAuditTargetEntity', { value: fmtNumber(event.targetEntityId) }) : '',
-    event.targetObjectId !== null ? t('usage.aiAuditTargetObject', { value: fmtNumber(event.targetObjectId) }) : '',
+    event.targetEntityId !== null
+      ? t('usage.aiAuditTargetEntity', { value: fmtNumber(event.targetEntityId) })
+      : '',
+    event.targetObjectId !== null
+      ? t('usage.aiAuditTargetObject', { value: fmtNumber(event.targetObjectId) })
+      : '',
     event.targetItemId ? t('usage.aiAuditTargetItem', { value: event.targetItemId }) : '',
     event.reactionKind ? t('usage.aiAuditReaction', { value: event.reactionKind }) : '',
   ].filter(Boolean);
@@ -957,12 +1207,24 @@ function aiAuditEventTarget(event: AiAuditEventSummary): string {
 
 function renderAiAuditEvents(events: readonly AiAuditEventSummary[]): string {
   if (events.length === 0) return `<div class="empty">${t('usage.aiAuditNoEvents')}</div>`;
-  const rows = events.map((event) => `
+  const rows = events
+    .map(
+      (event) => `
     <tr>
       <td>${escapeHtml(event.type)}</td>
-      <td>${event.speakerName
-        ? escapeHtml(t('usage.aiAuditSpeakerSummary', { name: aiSpeakerLabel(event.speakerName), id: event.speakerId === null ? t('usage.aiDiagnosticsNone') : fmtNumber(event.speakerId) }))
-        : `<span class="hint">${escapeHtml(t('usage.aiDiagnosticsNone'))}</span>`}</td>
+      <td>${
+        event.speakerName
+          ? escapeHtml(
+              t('usage.aiAuditSpeakerSummary', {
+                name: aiSpeakerLabel(event.speakerName),
+                id:
+                  event.speakerId === null
+                    ? t('usage.aiDiagnosticsNone')
+                    : fmtNumber(event.speakerId),
+              }),
+            )
+          : `<span class="hint">${escapeHtml(t('usage.aiDiagnosticsNone'))}</span>`
+      }</td>
       <td>${escapeHtml(event.source || event.speechMode || t('usage.aiDiagnosticsNone'))}</td>
       <td>${escapeHtml(localizeAiAuditSummaryText(aiAuditEventText(event)))}</td>
       <td>${escapeHtml(aiAuditEventTarget(event) || t('usage.aiDiagnosticsNone'))}</td>
@@ -973,7 +1235,9 @@ function renderAiAuditEvents(events: readonly AiAuditEventSummary[]): string {
           ${event.rawTruncated ? `<div class="hint">${escapeHtml(t('usage.aiAuditTruncated'))}</div>` : ''}
         </details>
       </td>
-    </tr>`).join('');
+    </tr>`,
+    )
+    .join('');
   return `<div class="table-scroll">
     <table class="usage-table ai-audit-event-table">
       <thead><tr>
@@ -1022,16 +1286,22 @@ export function renderAiAuditRecordDetail(record: AiAuditRecord): string {
           ${renderAiAuditDetailPair('usage.aiAuditDetailTrigger', aiTriggerLabel(record.trigger))}
           ${renderAiAuditDetailPair('usage.aiAuditDetailScene', `${record.sceneId ? aiSceneLabel(record.sceneId) : t('usage.aiDiagnosticsNone')} / ${record.zoneId ? aiSceneLabel(record.zoneId) : t('usage.aiDiagnosticsNone')}`)}
           ${renderAiAuditDetailPair('usage.aiAuditDetailOutputMode', record.outputMode)}
-          ${renderAiAuditDetailPair('usage.aiAuditDetailAllowed', t('usage.aiAuditAllowedSummary', {
-            intents: fmtNumber(record.allowedIntentCount),
-            lines: fmtNumber(record.allowedLineIdCount),
-          }))}
-          ${renderAiAuditDetailPair('usage.aiAuditDetailContextCounts', t('usage.aiAuditContextCountSummary', {
-            memory: fmtNumber(record.memorySignalCount),
-            director: fmtNumber(record.directorProposalCount),
-            objects: fmtNumber(record.sceneObjectCount),
-            companions: fmtNumber(record.companionCount),
-          }))}
+          ${renderAiAuditDetailPair(
+            'usage.aiAuditDetailAllowed',
+            t('usage.aiAuditAllowedSummary', {
+              intents: fmtNumber(record.allowedIntentCount),
+              lines: fmtNumber(record.allowedLineIdCount),
+            }),
+          )}
+          ${renderAiAuditDetailPair(
+            'usage.aiAuditDetailContextCounts',
+            t('usage.aiAuditContextCountSummary', {
+              memory: fmtNumber(record.memorySignalCount),
+              director: fmtNumber(record.directorProposalCount),
+              objects: fmtNumber(record.sceneObjectCount),
+              companions: fmtNumber(record.companionCount),
+            }),
+          )}
           ${renderAiAuditDetailPair('usage.aiAuditDetailPromptSize', t('usage.aiCharacters', { value: fmtNumber(promptChars) }))}
           ${renderAiAuditDetailPair('usage.aiAuditDetailRawOutputSize', t('usage.aiCharacters', { value: fmtNumber(rawOutputChars) }))}
         </dl>
@@ -1075,17 +1345,21 @@ export function renderAiAuditRecordDetail(record: AiAuditRecord): string {
 
 function renderAiDirectorSubject(state: AiWorldDirectorState): string {
   const subject = state.subjectName ?? state.subjectTemplateId ?? state.itemId;
-  return escapeHtml(t('usage.aiSubjectSummary', {
-    kind: aiSubjectKindLabel(state.subjectKind),
-    value: subject,
-  }));
+  return escapeHtml(
+    t('usage.aiSubjectSummary', {
+      kind: aiSubjectKindLabel(state.subjectKind),
+      value: subject,
+    }),
+  );
 }
 
 function renderAiDirectorScene(state: AiWorldDirectorState): string {
-  return escapeHtml(t('usage.aiSceneZoneSummary', {
-    sceneId: aiSceneLabel(state.sceneId),
-    zoneId: aiSceneLabel(state.zoneId),
-  }));
+  return escapeHtml(
+    t('usage.aiSceneZoneSummary', {
+      sceneId: aiSceneLabel(state.sceneId),
+      zoneId: aiSceneLabel(state.zoneId),
+    }),
+  );
 }
 
 function renderAiDirectorRow(state: AiWorldDirectorState): string {
@@ -1118,10 +1392,12 @@ function renderAiNpcMemoryRow(memory: AiNpcMemory): string {
     <td><span class="badge">${escapeHtml(t('usage.aiSocialTypeNpcMemory'))}</span></td>
     <td>${escapeHtml(aiTemplateLabel(memory.templateId))}</td>
     <td>${renderAiDelimitedItems(memory.sceneIds.map(aiSceneLabel), 3)}</td>
-    <td>${escapeHtml(t('usage.aiSocialPlayerSummary', {
-      playerName: memory.playerName,
-      playerEntityId: fmtNumber(memory.playerEntityId),
-    }))}</td>
+    <td>${escapeHtml(
+      t('usage.aiSocialPlayerSummary', {
+        playerName: memory.playerName,
+        playerEntityId: fmtNumber(memory.playerEntityId),
+      }),
+    )}</td>
     <td class="num">${renderAiNumber(memory.interactionCount)}</td>
     <td class="num">${escapeHtml(fmtPercent(memory.affinity))}</td>
     <td>${escapeHtml(t('usage.aiSocialLastSeen', { value: fmtNumber(memory.lastInteractionAt) }))}</td>
@@ -1130,9 +1406,20 @@ function renderAiNpcMemoryRow(memory: AiNpcMemory): string {
 }
 
 function renderAiRumorRow(rumor: AiRumorMemory): string {
-  const subject = rumor.subjectKind === 'quest'
-    ? escapeHtml(t('usage.aiSubjectSummary', { kind: aiSubjectKindLabel('quest'), value: rumor.questId ?? rumor.itemId }))
-    : escapeHtml(t('usage.aiSubjectSummary', { kind: aiSubjectKindLabel(rumor.subjectKind), value: rumor.itemId }));
+  const subject =
+    rumor.subjectKind === 'quest'
+      ? escapeHtml(
+          t('usage.aiSubjectSummary', {
+            kind: aiSubjectKindLabel('quest'),
+            value: rumor.questId ?? rumor.itemId,
+          }),
+        )
+      : escapeHtml(
+          t('usage.aiSubjectSummary', {
+            kind: aiSubjectKindLabel(rumor.subjectKind),
+            value: rumor.itemId,
+          }),
+        );
   return `<tr>
     <td><span class="badge">${escapeHtml(t('usage.aiSocialTypeRumor'))}</span></td>
     <td>${subject}</td>
@@ -1175,18 +1462,22 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
     batchSize: 0,
   };
 
-  const decisionRows = recentDecisions.length === 0
-    ? `<tr><td colspan="9" class="empty">${t('usage.aiDiagnosticsNoDecisions')}</td></tr>`
-    : recentDecisions.map(renderAiDecisionRow).join('');
-  const directorRows = directorStates.length === 0
-    ? `<tr><td colspan="7" class="empty">${t('usage.aiDiagnosticsNoDirectorStates')}</td></tr>`
-    : directorStates.map(renderAiDirectorRow).join('');
-  const proposalJournalRows = proposalJournal.length === 0
-    ? `<tr><td colspan="8" class="empty">${t('usage.aiDiagnosticsNoProposalJournal')}</td></tr>`
-    : proposalJournal.map(renderAiProposalJournalRow).join('');
-  const socialTableRows = socialRows.length === 0
-    ? `<tr><td colspan="8" class="empty">${t('usage.aiDiagnosticsNoSocialMemory')}</td></tr>`
-    : socialRows.join('');
+  const decisionRows =
+    recentDecisions.length === 0
+      ? `<tr><td colspan="9" class="empty">${t('usage.aiDiagnosticsNoDecisions')}</td></tr>`
+      : recentDecisions.map(renderAiDecisionRow).join('');
+  const directorRows =
+    directorStates.length === 0
+      ? `<tr><td colspan="7" class="empty">${t('usage.aiDiagnosticsNoDirectorStates')}</td></tr>`
+      : directorStates.map(renderAiDirectorRow).join('');
+  const proposalJournalRows =
+    proposalJournal.length === 0
+      ? `<tr><td colspan="8" class="empty">${t('usage.aiDiagnosticsNoProposalJournal')}</td></tr>`
+      : proposalJournal.map(renderAiProposalJournalRow).join('');
+  const socialTableRows =
+    socialRows.length === 0
+      ? `<tr><td colspan="8" class="empty">${t('usage.aiDiagnosticsNoSocialMemory')}</td></tr>`
+      : socialRows.join('');
 
   return `
       <div class="admin-actions">
@@ -1251,9 +1542,11 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
           <div class="ai-health-label">${t('usage.aiDiagnosticsMemoryErrors')}</div>
         </div>
       </div>
-      <div class="hint">${persistenceErrors.length > 0
-        ? renderAiDelimitedItems(persistenceErrors, 2)
-        : escapeHtml(t('usage.aiDiagnosticsNoMemoryErrors'))}</div>
+      <div class="hint">${
+        persistenceErrors.length > 0
+          ? renderAiDelimitedItems(persistenceErrors, 2)
+          : escapeHtml(t('usage.aiDiagnosticsNoMemoryErrors'))
+      }</div>
       <div class="table-scroll">
         <table class="usage-table">
           <thead><tr>
@@ -1316,7 +1609,10 @@ function renderAiDiagnostics(diagnostics: AiLifeLayerDiagnosticsSnapshot): strin
       </div>`;
 }
 
-function renderAiContentCoverage(coverage: AiContentCoverageReport, checklist?: AiContentReviewChecklist): string {
+function renderAiContentCoverage(
+  coverage: AiContentCoverageReport,
+  checklist?: AiContentReviewChecklist,
+): string {
   const issueCount = coverageIssueCount(coverage);
   const statusKey = issueCount > 0 ? 'usage.aiCoverageStatusGaps' : 'usage.aiCoverageStatusReady';
   const statusClass = issueCount > 0 ? ' warn' : '';
@@ -1324,24 +1620,60 @@ function renderAiContentCoverage(coverage: AiContentCoverageReport, checklist?: 
     coverageRow('usage.aiCoverageFamiliesMissingSemantics', coverage.families.missingSemantics),
     coverageRow('usage.aiCoverageFamiliesNoTemplates', coverage.families.semanticsWithoutContent),
     coverageRow('usage.aiCoverageFamiliesMissingDepth', coverage.families.familiesMissingDepth),
-    coverageRow('usage.aiCoverageFamiliesInvalidMood', coverage.families.familiesWithInvalidMoodBias),
+    coverageRow(
+      'usage.aiCoverageFamiliesInvalidMood',
+      coverage.families.familiesWithInvalidMoodBias,
+    ),
     coverageRow('usage.aiCoverageNpcMissingProfiles', coverage.npcs.missingInteractiveProfiles),
-    coverageRow('usage.aiCoverageNpcMissingScene', coverage.npcs.authoredNpcProfilesMissingSceneAffinities),
-    coverageRow('usage.aiCoverageNpcMissingItems', coverage.npcs.authoredNpcProfilesMissingItemInterest),
-    coverageRow('usage.aiCoverageNpcMissingTimeWeather', coverage.npcs.authoredNpcProfilesMissingTimeWeatherSensitivity),
+    coverageRow(
+      'usage.aiCoverageNpcMissingScene',
+      coverage.npcs.authoredNpcProfilesMissingSceneAffinities,
+    ),
+    coverageRow(
+      'usage.aiCoverageNpcMissingItems',
+      coverage.npcs.authoredNpcProfilesMissingItemInterest,
+    ),
+    coverageRow(
+      'usage.aiCoverageNpcMissingTimeWeather',
+      coverage.npcs.authoredNpcProfilesMissingTimeWeatherSensitivity,
+    ),
     coverageRow('usage.aiCoverageNpcThinMemory', coverage.npcs.authoredNpcProfilesWithThinMemory),
-    coverageRow('usage.aiCoverageSceneMissingObjects', coverage.scenes.anchorsMissingSemanticObjects),
+    coverageRow(
+      'usage.aiCoverageSceneMissingObjects',
+      coverage.scenes.anchorsMissingSemanticObjects,
+    ),
     coverageRow('usage.aiCoverageSceneMissingTags', coverage.scenes.anchorsMissingTags),
     coverageRow('usage.aiCoverageSceneMissingDepth', coverage.scenes.anchorsMissingTagDepth),
     coverageRow('usage.aiCoverageObjectMissingTags', coverage.scenes.semanticObjectsMissingTags),
-    coverageRow('usage.aiCoverageObjectMissingDepth', coverage.scenes.semanticObjectsMissingTagDepth),
-    coverageRow('usage.aiCoverageObjectMissingFeatures', coverage.scenes.semanticObjectsMissingFeatureTags),
-    coverageRow('usage.aiCoverageObjectMissingAffordances', coverage.scenes.semanticObjectsMissingAffordanceTags),
-    coverageRow('usage.aiCoverageObjectMissingOverlap', coverage.scenes.semanticObjectsMissingAnchorOverlap),
+    coverageRow(
+      'usage.aiCoverageObjectMissingDepth',
+      coverage.scenes.semanticObjectsMissingTagDepth,
+    ),
+    coverageRow(
+      'usage.aiCoverageObjectMissingFeatures',
+      coverage.scenes.semanticObjectsMissingFeatureTags,
+    ),
+    coverageRow(
+      'usage.aiCoverageObjectMissingAffordances',
+      coverage.scenes.semanticObjectsMissingAffordanceTags,
+    ),
+    coverageRow(
+      'usage.aiCoverageObjectMissingOverlap',
+      coverage.scenes.semanticObjectsMissingAnchorOverlap,
+    ),
     coverageRow('usage.aiCoverageItemMissingRequired', coverage.items.missingRequiredItems),
-    coverageRow('usage.aiCoverageItemMissingRequiredSignals', coverage.items.requiredItemsMissingSignals),
-    coverageRow('usage.aiCoverageItemMissingDiscardSignals', coverage.items.discardableItemsMissingSignals),
-    coverageRow('usage.aiCoverageItemMissingImportantSignals', coverage.items.importantItemsMissingSignals),
+    coverageRow(
+      'usage.aiCoverageItemMissingRequiredSignals',
+      coverage.items.requiredItemsMissingSignals,
+    ),
+    coverageRow(
+      'usage.aiCoverageItemMissingDiscardSignals',
+      coverage.items.discardableItemsMissingSignals,
+    ),
+    coverageRow(
+      'usage.aiCoverageItemMissingImportantSignals',
+      coverage.items.importantItemsMissingSignals,
+    ),
   ].join('');
 
   return `
@@ -1388,20 +1720,26 @@ function renderAiProfilePreview(profiles: AiProfilePreviewReport): string {
   const totalGaps = profiles.rows.reduce((sum, row) => sum + row.missingAuthoringFields.length, 0);
   const visibleRows = profiles.rows.slice(0, 12);
   const hiddenCount = Math.max(0, profiles.authoredTotal - visibleRows.length);
-  const validationStatusKey = profiles.validation.errorCount > 0
-    ? 'usage.aiProfileValidationErrors'
-    : profiles.validation.warningCount > 0
-      ? 'usage.aiProfileValidationWarnings'
-      : 'usage.aiProfileValidationPassed';
-  const validationStatusClass = profiles.validation.errorCount > 0
-    ? ' bad'
-    : profiles.validation.warningCount > 0 ? ' warn' : '';
-  const rows = visibleRows.length === 0
-    ? `<tr><td colspan="9" class="empty">${t('usage.aiProfilesNoRows')}</td></tr>`
-    : visibleRows.map(renderAiProfileRow).join('');
-  const truncatedHint = profiles.truncated || hiddenCount > 0
-    ? `<div class="hint">${escapeHtml(t('usage.aiProfilesTruncated', { count: fmtNumber(hiddenCount) }))}</div>`
-    : '';
+  const validationStatusKey =
+    profiles.validation.errorCount > 0
+      ? 'usage.aiProfileValidationErrors'
+      : profiles.validation.warningCount > 0
+        ? 'usage.aiProfileValidationWarnings'
+        : 'usage.aiProfileValidationPassed';
+  const validationStatusClass =
+    profiles.validation.errorCount > 0
+      ? ' bad'
+      : profiles.validation.warningCount > 0
+        ? ' warn'
+        : '';
+  const rows =
+    visibleRows.length === 0
+      ? `<tr><td colspan="9" class="empty">${t('usage.aiProfilesNoRows')}</td></tr>`
+      : visibleRows.map(renderAiProfileRow).join('');
+  const truncatedHint =
+    profiles.truncated || hiddenCount > 0
+      ? `<div class="hint">${escapeHtml(t('usage.aiProfilesTruncated', { count: fmtNumber(hiddenCount) }))}</div>`
+      : '';
 
   return `
       <div class="ai-health-grid">
@@ -1452,38 +1790,70 @@ function renderAiProfilePreview(profiles: AiProfilePreviewReport): string {
 
 function aiActiveCategoryLabel(category: AiActivePollRule['category']): string {
   switch (category) {
-    case 'sceneAmbient': return t('usage.aiActiveCategorySceneAmbient');
-    case 'time': return t('usage.aiActiveCategoryTime');
-    case 'weather': return t('usage.aiActiveCategoryWeather');
-    case 'townLife': return t('usage.aiActiveCategoryTownLife');
-    case 'livingRoutine': return t('usage.aiActiveCategoryLivingRoutine');
-    case 'creatureRoutine': return t('usage.aiActiveCategoryCreatureRoutine');
-    case 'socialSequence': return t('usage.aiActiveCategorySocialSequence');
+    case 'sceneAmbient':
+      return t('usage.aiActiveCategorySceneAmbient');
+    case 'time':
+      return t('usage.aiActiveCategoryTime');
+    case 'weather':
+      return t('usage.aiActiveCategoryWeather');
+    case 'townLife':
+      return t('usage.aiActiveCategoryTownLife');
+    case 'livingRoutine':
+      return t('usage.aiActiveCategoryLivingRoutine');
+    case 'creatureRoutine':
+      return t('usage.aiActiveCategoryCreatureRoutine');
+    case 'socialSequence':
+      return t('usage.aiActiveCategorySocialSequence');
   }
 }
 
 function aiActiveProviderPolicyLabel(policy: AiActivePollRule['providerPolicy']): string {
   switch (policy) {
-    case 'localOnly': return t('usage.aiActiveProviderLocalOnly');
-    case 'codexAllowed': return t('usage.aiActiveProviderCodexAllowed');
-    case 'codexPreferred': return t('usage.aiActiveProviderCodexPreferred');
+    case 'localOnly':
+      return t('usage.aiActiveProviderLocalOnly');
+    case 'codexAllowed':
+      return t('usage.aiActiveProviderCodexAllowed');
+    case 'codexPreferred':
+      return t('usage.aiActiveProviderCodexPreferred');
   }
 }
 
 function aiActiveOutputModeLabel(mode: AiActivePollRule['outputMode']): string {
   switch (mode) {
-    case 'lineIdOnly': return t('usage.aiActiveOutputLineIdOnly');
-    case 'dynamicTextFirst': return t('usage.aiActiveOutputDynamicTextFirst');
-    case 'mixedLivingWorld': return t('usage.aiActiveOutputMixedLivingWorld');
+    case 'lineIdOnly':
+      return t('usage.aiActiveOutputLineIdOnly');
+    case 'dynamicTextFirst':
+      return t('usage.aiActiveOutputDynamicTextFirst');
+    case 'mixedLivingWorld':
+      return t('usage.aiActiveOutputMixedLivingWorld');
   }
 }
 
-function aiActiveRuleSelect<T extends string>(field: string, value: T, values: readonly T[], label: (value: T) => string, ariaKey: string, ruleTitle: string): string {
-  const options = values.map((option) => `<option value="${escapeHtml(option)}"${option === value ? ' selected' : ''}>${escapeHtml(label(option))}</option>`).join('');
+function aiActiveRuleSelect<T extends string>(
+  field: string,
+  value: T,
+  values: readonly T[],
+  label: (value: T) => string,
+  ariaKey: string,
+  ruleTitle: string,
+): string {
+  const options = values
+    .map(
+      (option) =>
+        `<option value="${escapeHtml(option)}"${option === value ? ' selected' : ''}>${escapeHtml(label(option))}</option>`,
+    )
+    .join('');
   return `<select data-ai-active-rule-field="${field}" aria-label="${escapeHtml(t(ariaKey, { rule: ruleTitle }))}">${options}</select>`;
 }
 
-function aiActiveRuleNumberInput(rule: AiActivePollRule, field: string, value: number, min: number, max: number, ariaKey: string): string {
+function aiActiveRuleNumberInput(
+  rule: AiActivePollRule,
+  field: string,
+  value: number,
+  min: number,
+  max: number,
+  ariaKey: string,
+): string {
   return `<input type="number" min="${min}" max="${max}" step="1" value="${value}" data-ai-active-rule-field="${field}" aria-label="${escapeHtml(t(ariaKey, { rule: rule.title }))}">`;
 }
 
@@ -1532,34 +1902,37 @@ function renderAiActiveSpeakerCell(sequence: AiActiveSequenceSnapshot): string {
   const names = sequence.speakerNames
     .map((speakerName) => aiSpeakerLabel(speakerName))
     .filter((speakerName, index, list) => speakerName && list.indexOf(speakerName) === index);
-  const primary = names.length > 0
-    ? names.slice(0, 3).join(', ')
-    : sequence.speakerTemplateIds.slice(0, 3).map(aiTemplateLabel).join(', ');
+  const primary =
+    names.length > 0
+      ? names.slice(0, 3).join(', ')
+      : sequence.speakerTemplateIds.slice(0, 3).map(aiTemplateLabel).join(', ');
   const technicalIds = sequence.speakerTemplateIds.slice(0, 3).join(', ');
-  const details = technicalIds && technicalIds !== primary
-    ? `<div class="hint">${escapeHtml(technicalIds)}</div>`
-    : '';
+  const details =
+    technicalIds && technicalIds !== primary
+      ? `<div class="hint">${escapeHtml(technicalIds)}</div>`
+      : '';
   return `${escapeHtml(primary || t('usage.aiDiagnosticsNone'))}${details}`;
 }
 
 function renderAiActiveFocusCell(sequence: AiActiveSequenceSnapshot): string {
-  const primary = sequence.focusDisplayName?.trim()
-    || (sequence.focusObjectTemplateId ? aiTemplateLabel(sequence.focusObjectTemplateId) : '')
-    || sequence.focusObjectId
-    || t('usage.aiDiagnosticsNone');
+  const primary =
+    sequence.focusDisplayName?.trim() ||
+    (sequence.focusObjectTemplateId ? aiTemplateLabel(sequence.focusObjectTemplateId) : '') ||
+    sequence.focusObjectId ||
+    t('usage.aiDiagnosticsNone');
   const details = [sequence.focusObjectTemplateId, sequence.focusObjectId]
     .filter((value): value is string => Boolean(value))
     .join(' / ');
-  const hint = details && details !== primary
-    ? `<div class="hint">${escapeHtml(details)}</div>`
-    : '';
+  const hint =
+    details && details !== primary ? `<div class="hint">${escapeHtml(details)}</div>` : '';
   return `${escapeHtml(primary)}${hint}`;
 }
 
 function renderAiActiveSequence(sequence: AiActiveSequenceSnapshot): string {
-  const kind = sequence.kind === 'creature' && sequence.family
-    ? `${sequence.kind}:${sequence.family}`
-    : sequence.kind;
+  const kind =
+    sequence.kind === 'creature' && sequence.family
+      ? `${sequence.kind}:${sequence.family}`
+      : sequence.kind;
   return `<tr>
     <td>
       <b>${escapeHtml(kind)}</b>
@@ -1579,23 +1952,28 @@ function renderAiActiveLastAction(metrics: AiActiveTriggerMetricsSnapshot): stri
   if (!metrics.activeLastActionKind || !metrics.activeLastActionResult) {
     return escapeHtml(t('usage.aiActiveActionNone'));
   }
-  const resultKey = metrics.activeLastActionResult === 'applied'
-    ? 'usage.aiActiveActionApplied'
-    : 'usage.aiActiveActionRejected';
-  const parts = [
-    metrics.activeLastActionKind,
-    t(resultKey),
-    metrics.activeLastActionReason,
-  ].filter(Boolean);
+  const resultKey =
+    metrics.activeLastActionResult === 'applied'
+      ? 'usage.aiActiveActionApplied'
+      : 'usage.aiActiveActionRejected';
+  const parts = [metrics.activeLastActionKind, t(resultKey), metrics.activeLastActionReason].filter(
+    Boolean,
+  );
   return escapeHtml(parts.join(' / '));
 }
 
-function aiActiveProviderResultLabel(result: AiActiveTriggerMetricsSnapshot['activeLastProviderResult']): string {
+function aiActiveProviderResultLabel(
+  result: AiActiveTriggerMetricsSnapshot['activeLastProviderResult'],
+): string {
   switch (result) {
-    case 'success': return t('usage.aiActiveProviderResult.success');
-    case 'rejected': return t('usage.aiActiveProviderResult.rejected');
-    case 'error': return t('usage.aiActiveProviderResult.error');
-    default: return t('usage.aiActiveProviderResult.none');
+    case 'success':
+      return t('usage.aiActiveProviderResult.success');
+    case 'rejected':
+      return t('usage.aiActiveProviderResult.rejected');
+    case 'error':
+      return t('usage.aiActiveProviderResult.error');
+    default:
+      return t('usage.aiActiveProviderResult.none');
   }
 }
 
@@ -1616,34 +1994,53 @@ function renderAiActiveRuntimeAge(ageMs: number): string {
 
 function aiActiveRuntimeStateLabel(runtime: AiActiveRuntimeSnapshot): string {
   switch (runtime.lastTickState) {
-    case 'disabled': return t('usage.aiActiveRuntimeState.disabled');
-    case 'event': return t('usage.aiActiveRuntimeState.event');
-    case 'poll': return t('usage.aiActiveRuntimeState.poll');
-    case 'idle': return t('usage.aiActiveRuntimeState.idle');
+    case 'disabled':
+      return t('usage.aiActiveRuntimeState.disabled');
+    case 'event':
+      return t('usage.aiActiveRuntimeState.event');
+    case 'poll':
+      return t('usage.aiActiveRuntimeState.poll');
+    case 'idle':
+      return t('usage.aiActiveRuntimeState.idle');
   }
 }
 
 function aiActiveSkipReasonLabel(reason: AiActiveRuntimeSnapshot['lastTickSkipReason']): string {
   switch (reason) {
-    case 'disabled': return t('usage.aiActiveSkip.disabled');
-    case 'events_disabled': return t('usage.aiActiveSkip.events_disabled');
-    case 'polls_disabled': return t('usage.aiActiveSkip.polls_disabled');
-    case 'no_online_players': return t('usage.aiActiveSkip.no_online_players');
-    case 'not_due': return t('usage.aiActiveSkip.not_due');
-    case 'player_missing': return t('usage.aiActiveSkip.player_missing');
-    case 'player_busy_combat': return t('usage.aiActiveSkip.player_busy_combat');
-    case 'player_recent_ai_speech': return t('usage.aiActiveSkip.player_recent_ai_speech');
-    case 'no_candidate': return t('usage.aiActiveSkip.no_candidate');
-    case 'entity_cooldown': return t('usage.aiActiveSkip.entity_cooldown');
-    default: return t('usage.aiDiagnosticsNone');
+    case 'disabled':
+      return t('usage.aiActiveSkip.disabled');
+    case 'events_disabled':
+      return t('usage.aiActiveSkip.events_disabled');
+    case 'polls_disabled':
+      return t('usage.aiActiveSkip.polls_disabled');
+    case 'no_online_players':
+      return t('usage.aiActiveSkip.no_online_players');
+    case 'not_due':
+      return t('usage.aiActiveSkip.not_due');
+    case 'player_missing':
+      return t('usage.aiActiveSkip.player_missing');
+    case 'player_busy_combat':
+      return t('usage.aiActiveSkip.player_busy_combat');
+    case 'player_recent_ai_speech':
+      return t('usage.aiActiveSkip.player_recent_ai_speech');
+    case 'no_candidate':
+      return t('usage.aiActiveSkip.no_candidate');
+    case 'entity_cooldown':
+      return t('usage.aiActiveSkip.entity_cooldown');
+    default:
+      return t('usage.aiDiagnosticsNone');
   }
 }
 
-function renderAiActiveRuntimeHint(diagnostics: AiActiveTriggerAdminSnapshot['diagnostics']): string {
+function renderAiActiveRuntimeHint(
+  diagnostics: AiActiveTriggerAdminSnapshot['diagnostics'],
+): string {
   const { runtime } = diagnostics;
   if (!diagnostics.enabled) return escapeHtml(t('usage.aiActiveRuntimeHintDisabled'));
   if (runtime.lastTickState === 'event' || runtime.lastTickState === 'poll') {
-    return escapeHtml(t('usage.aiActiveRuntimeHintProduced', { count: fmtNumber(runtime.lastTickProducedEvents) }));
+    return escapeHtml(
+      t('usage.aiActiveRuntimeHintProduced', { count: fmtNumber(runtime.lastTickProducedEvents) }),
+    );
   }
   if (runtime.lastTickSkipReason === 'no_online_players') {
     return escapeHtml(t('usage.aiActiveRuntimeHintNoOnline'));
@@ -1652,9 +2049,11 @@ function renderAiActiveRuntimeHint(diagnostics: AiActiveTriggerAdminSnapshot['di
     return escapeHtml(t('usage.aiActiveRuntimeHintNotDue'));
   }
   if (runtime.lastTickSkipReason) {
-    return escapeHtml(t('usage.aiActiveRuntimeHintIdleReason', {
-      reason: aiActiveSkipReasonLabel(runtime.lastTickSkipReason),
-    }));
+    return escapeHtml(
+      t('usage.aiActiveRuntimeHintIdleReason', {
+        reason: aiActiveSkipReasonLabel(runtime.lastTickSkipReason),
+      }),
+    );
   }
   return escapeHtml(t('usage.aiActiveRuntimeHintHealthy'));
 }
@@ -1664,20 +2063,27 @@ function renderAiActiveTriggerControls(active?: AiActiveTriggerAdminSnapshot): s
   const { diagnostics, metrics } = active;
   const policy = diagnostics.populationPolicy;
   const runtime = diagnostics.runtime;
-  const runtimeStateClass = !diagnostics.enabled
-    || (runtime.lastTickState === 'idle' && runtime.lastTickSkipReason !== '' && runtime.lastTickSkipReason !== 'no_online_players' && runtime.lastTickSkipReason !== 'not_due')
-    ? ' warn'
-    : '';
+  const runtimeStateClass =
+    !diagnostics.enabled ||
+    (runtime.lastTickState === 'idle' &&
+      runtime.lastTickSkipReason !== '' &&
+      runtime.lastTickSkipReason !== 'no_online_players' &&
+      runtime.lastTickSkipReason !== 'not_due')
+      ? ' warn'
+      : '';
   const rules = diagnostics.rules.map(renderAiActiveRuleRow).join('');
-  const recentRows = diagnostics.recentDecisions.length === 0
-    ? `<tr><td colspan="6" class="empty">${t('usage.aiActiveNoRecentDecisions')}</td></tr>`
-    : diagnostics.recentDecisions.slice(0, 12).map(renderAiActiveRecentDecision).join('');
-  const queueRows = diagnostics.eventQueue.length === 0
-    ? `<tr><td colspan="5" class="empty">${t('usage.aiActiveNoQueuedEvents')}</td></tr>`
-    : diagnostics.eventQueue.slice(0, 12).map(renderAiActiveQueuedEvent).join('');
-  const sequenceRows = diagnostics.activeSequences.length === 0
-    ? `<tr><td colspan="8" class="empty">${t('usage.aiActiveNoActiveSequences')}</td></tr>`
-    : diagnostics.activeSequences.slice(0, 12).map(renderAiActiveSequence).join('');
+  const recentRows =
+    diagnostics.recentDecisions.length === 0
+      ? `<tr><td colspan="6" class="empty">${t('usage.aiActiveNoRecentDecisions')}</td></tr>`
+      : diagnostics.recentDecisions.slice(0, 12).map(renderAiActiveRecentDecision).join('');
+  const queueRows =
+    diagnostics.eventQueue.length === 0
+      ? `<tr><td colspan="5" class="empty">${t('usage.aiActiveNoQueuedEvents')}</td></tr>`
+      : diagnostics.eventQueue.slice(0, 12).map(renderAiActiveQueuedEvent).join('');
+  const sequenceRows =
+    diagnostics.activeSequences.length === 0
+      ? `<tr><td colspan="8" class="empty">${t('usage.aiActiveNoActiveSequences')}</td></tr>`
+      : diagnostics.activeSequences.slice(0, 12).map(renderAiActiveSequence).join('');
   return `
     <div class="ai-health-grid">
       <div class="ai-health-cell">
@@ -1885,7 +2291,11 @@ export function renderAiLifeLayerMetrics(
   coverageChecklist?: AiContentReviewChecklist,
 ): string {
   const selectedTab = normalizeAiTab(activeTab);
-  const needsAttention = ai.providerErrors > 0 || ai.memoryFlushFailures > 0 || ai.memoryPruneFailures > 0 || ai.memoryBudgetFailures > 0;
+  const needsAttention =
+    ai.providerErrors > 0 ||
+    ai.memoryFlushFailures > 0 ||
+    ai.memoryPruneFailures > 0 ||
+    ai.memoryBudgetFailures > 0;
   const statusKey = needsAttention ? 'usage.aiStatusAttention' : 'usage.aiStatusHealthy';
   const statusClass = needsAttention ? ' warn' : '';
   const rows = [
@@ -1914,11 +2324,20 @@ export function renderAiLifeLayerMetrics(
     aiMetricRow('usage.aiLatencyP95', renderAiLatency(ai.providerLatencyP95Ms)),
     aiMetricRow('usage.aiLastPromptChars', renderAiChars(ai.lastPromptChars)),
     aiMetricRow('usage.aiLastRawOutputChars', renderAiChars(ai.lastRawOutputChars)),
-    aiMetricRow('usage.aiSpeechPolishChangedChecked', renderAiPolishCountPair(ai.speechPolish.changed, ai.speechPolish.processed)),
+    aiMetricRow(
+      'usage.aiSpeechPolishChangedChecked',
+      renderAiPolishCountPair(ai.speechPolish.changed, ai.speechPolish.processed),
+    ),
     aiMetricRow('usage.aiSpeechPolishCharsTrimmed', renderAiChars(ai.speechPolish.charsTrimmed)),
-    aiMetricRow('usage.aiSpeechPolishSource', escapeHtml(aiSpeechPolishSourceLabel(ai.speechPolish.lastFingerprintSource))),
+    aiMetricRow(
+      'usage.aiSpeechPolishSource',
+      escapeHtml(aiSpeechPolishSourceLabel(ai.speechPolish.lastFingerprintSource)),
+    ),
     aiMetricRow('usage.aiSpeechPolishLocale', renderAiOptionalValue(ai.speechPolish.lastLocale)),
-    aiMetricRow('usage.aiLastProviderTiming', renderAiProviderTimingSummary(ai.lastProviderTimings)),
+    aiMetricRow(
+      'usage.aiLastProviderTiming',
+      renderAiProviderTimingSummary(ai.lastProviderTimings),
+    ),
     aiMetricRow('usage.aiLastProviderError', renderAiOptionalText(ai.lastProviderError)),
     aiMetricRow('usage.aiLastMemoryError', renderAiOptionalText(ai.lastMemoryPersistenceError)),
     aiMetricRow('usage.aiLastMemoryPruneError', renderAiOptionalText(ai.lastMemoryPruneError)),
@@ -1926,12 +2345,22 @@ export function renderAiLifeLayerMetrics(
   ].join('');
 
   const panels: Record<AiLifeLayerTab, string> = {
-    audit: audit ? renderAiAuditRecords(audit, selectedAuditId) : `<div class="empty">${t('usage.aiAuditNoRecords')}</div>`,
+    audit: audit
+      ? renderAiAuditRecords(audit, selectedAuditId)
+      : `<div class="empty">${t('usage.aiAuditNoRecords')}</div>`,
     active: renderAiActiveTriggerControls(active),
-    usage: audit ? renderAiAuditSummary(audit) : `<div class="empty">${t('usage.aiAuditNoRecords')}</div>`,
-    coverage: coverage ? renderAiContentCoverage(coverage, coverageChecklist) : `<div class="empty">${t('usage.aiCoverageAllClear')}</div>`,
-    profiles: profiles ? renderAiProfilePreview(profiles) : `<div class="empty">${t('usage.aiProfilesNoRows')}</div>`,
-    diagnostics: diagnostics ? renderAiDiagnostics(diagnostics) : `<div class="empty">${t('usage.aiDiagnosticsNoDecisions')}</div>`,
+    usage: audit
+      ? renderAiAuditSummary(audit)
+      : `<div class="empty">${t('usage.aiAuditNoRecords')}</div>`,
+    coverage: coverage
+      ? renderAiContentCoverage(coverage, coverageChecklist)
+      : `<div class="empty">${t('usage.aiCoverageAllClear')}</div>`,
+    profiles: profiles
+      ? renderAiProfilePreview(profiles)
+      : `<div class="empty">${t('usage.aiProfilesNoRows')}</div>`,
+    diagnostics: diagnostics
+      ? renderAiDiagnostics(diagnostics)
+      : `<div class="empty">${t('usage.aiDiagnosticsNoDecisions')}</div>`,
     details: `
       <div class="table-scroll">
         <table class="usage-table">
@@ -1995,12 +2424,18 @@ export function renderAiLifeLayerMetrics(
 }
 
 export function renderProviderUsage(usage: ProviderUsageSnapshot): string {
-  const metricRows = usage.metrics.map((metric) => `
+  const metricRows = usage.metrics
+    .map(
+      (metric) => `
     <tr>
       <td>${escapeHtml(t(metric.labelKey))}</td>
       ${usage.windows.map((window) => `<td class="num">${renderMetricCount(metric.counts[window.key] ?? 0)}</td>`).join('')}
-    </tr>`).join('');
-  const cacheRows = usage.caches.map((cache) => `
+    </tr>`,
+    )
+    .join('');
+  const cacheRows = usage.caches
+    .map(
+      (cache) => `
     <tr>
       <td>${escapeHtml(t(cache.labelKey))}</td>
       <td class="num">${renderCacheEntries(cache)}</td>
@@ -2011,7 +2446,9 @@ export function renderProviderUsage(usage: ProviderUsageSnapshot): string {
       <td class="num">${renderMetricCount(cache.stores)}</td>
       <td class="num">${renderMetricCount(cache.failures)}</td>
       <td class="num">${renderMetricCount(cache.evictions)}</td>
-    </tr>`).join('');
+    </tr>`,
+    )
+    .join('');
 
   return `
     <div class="hint">${escapeHtml(t('usage.externalServiceNote'))}</div>
@@ -2050,7 +2487,8 @@ export function renderProviderUsage(usage: ProviderUsageSnapshot): string {
 
 export function renderAccountsTable(rows: AccountRow[]): string {
   if (rows.length === 0) return `<div class="empty">${t('accounts.empty')}</div>`;
-  const body = rows.map((a) => `
+  const body = rows.map(
+    (a) => `
     <tr class="clickable" data-account-id="${a.id}">
       <td class="num">${a.id}</td>
       <td>${escapeHtml(a.username)}${a.isAdmin ? ` <span class="badge">${t('accounts.badgeAdmin')}</span>` : ''} ${accountStatusBadge(a)}</td>
@@ -2059,7 +2497,8 @@ export function renderAccountsTable(rows: AccountRow[]): string {
       <td class="num">${fmtDuration(a.playtimeSeconds)}</td>
       <td>${fmtDate(a.createdAt)}</td>
       <td>${fmtRelative(a.lastLogin)}</td>
-    </tr>`);
+    </tr>`,
+  );
   return `<table>
     <thead><tr>
       <th class="num">${t('accounts.colId')}</th><th>${t('accounts.colUsername')}</th><th class="num">${t('accounts.colChars')}</th><th class="num">${t('accounts.colMaxLvl')}</th>
@@ -2072,24 +2511,31 @@ export function renderAccountsTable(rows: AccountRow[]): string {
 function accountStatusBadge(a: { bannedAt: string | null; suspendedUntil: string | null }): string {
   if (a.bannedAt) return `<span class="badge bad">${t('accounts.badgeBanned')}</span>`;
   const suspendedUntil = a.suspendedUntil ? new Date(a.suspendedUntil) : null;
-  if (suspendedUntil && suspendedUntil.getTime() > Date.now()) return `<span class="badge warn">${t('accounts.badgeSuspended')}</span>`;
+  if (suspendedUntil && suspendedUntil.getTime() > Date.now())
+    return `<span class="badge warn">${t('accounts.badgeSuspended')}</span>`;
   return '';
 }
 
 function accountStatusDetail(d: AccountDetail): string {
-  const activeSuspension = d.suspendedUntil !== null && new Date(d.suspendedUntil).getTime() > Date.now();
-  const activeChatMute = d.chatMutedUntil !== null && new Date(d.chatMutedUntil).getTime() > Date.now();
-  if (d.bannedAt) return `<span class="badge bad">${t('accounts.badgeBanned')}</span> <span class="hint">${t('detail.since', { value: fmtDate(d.bannedAt) })}</span>`;
-  if (activeSuspension) return `<span class="badge warn">${t('detail.suspendedUntil', { value: fmtDate(d.suspendedUntil) })}</span>`;
+  const activeSuspension =
+    d.suspendedUntil !== null && new Date(d.suspendedUntil).getTime() > Date.now();
+  const activeChatMute =
+    d.chatMutedUntil !== null && new Date(d.chatMutedUntil).getTime() > Date.now();
+  if (d.bannedAt)
+    return `<span class="badge bad">${t('accounts.badgeBanned')}</span> <span class="hint">${t('detail.since', { value: fmtDate(d.bannedAt) })}</span>`;
+  if (activeSuspension)
+    return `<span class="badge warn">${t('detail.suspendedUntil', { value: fmtDate(d.suspendedUntil) })}</span>`;
   return `<span class="badge">${t('detail.statusActive')}</span>${activeChatMute ? ` <span class="badge warn">${t('detail.chatMutedUntil', { value: fmtDate(d.chatMutedUntil) })}</span>` : ''}`;
 }
 
 export function renderAccountDetail(d: AccountDetail, includeAdminControls = false): string {
   const canModerateAccount = includeAdminControls && !d.isAdmin;
-  const chars = d.characters.length === 0
-    ? `<div class="empty">${t('detail.noCharacters')}</div>`
-    : `<table><thead><tr><th>${t('detail.colName')}</th><th>${t('characters.colClass')}</th><th class="num">${t('characters.colLevel')}</th><th class="num">${t('detail.colXp')}</th><th class="num">${t('detail.colMoney')}</th><th class="num">${t('online.colPos')}</th><th>${t('characters.colLastPlayed')}</th>${canModerateAccount ? `<th>${t('detail.colActions')}</th>` : ''}</tr></thead><tbody>${
-        d.characters.map((c) => `
+  const chars =
+    d.characters.length === 0
+      ? `<div class="empty">${t('detail.noCharacters')}</div>`
+      : `<table><thead><tr><th>${t('detail.colName')}</th><th>${t('characters.colClass')}</th><th class="num">${t('characters.colLevel')}</th><th class="num">${t('detail.colXp')}</th><th class="num">${t('detail.colMoney')}</th><th class="num">${t('online.colPos')}</th><th>${t('characters.colLastPlayed')}</th>${canModerateAccount ? `<th>${t('detail.colActions')}</th>` : ''}</tr></thead><tbody>${d.characters
+          .map(
+            (c) => `
           <tr>
             <td>${escapeHtml(c.name)}</td>
             <td>${escapeHtml(classLabel(c.class))}</td>
@@ -2099,21 +2545,27 @@ export function renderAccountDetail(d: AccountDetail, includeAdminControls = fal
             <td class="num">${c.pos ? `${Math.round(c.pos.x)}, ${Math.round(c.pos.z)}` : '—'}</td>
             <td>${fmtRelative(c.updatedAt)}</td>
             ${canModerateAccount ? `<td><button data-force-rename-character="${c.id}" data-character-name="${escapeHtml(c.name)}">${t('detail.forceNameChange')}</button></td>` : ''}
-          </tr>`).join('')
-      }</tbody></table>`;
-  const sessions = d.recentSessions.length === 0
-    ? `<div class="empty">${t('detail.noSessions')}</div>`
-    : `<table><thead><tr><th>${t('online.colCharacter')}</th><th>${t('detail.started')}</th><th class="num">${t('dialog.length')}</th></tr></thead><tbody>${
-        d.recentSessions.map((s) => `
+          </tr>`,
+          )
+          .join('')}</tbody></table>`;
+  const sessions =
+    d.recentSessions.length === 0
+      ? `<div class="empty">${t('detail.noSessions')}</div>`
+      : `<table><thead><tr><th>${t('online.colCharacter')}</th><th>${t('detail.started')}</th><th class="num">${t('dialog.length')}</th></tr></thead><tbody>${d.recentSessions
+          .map(
+            (s) => `
           <tr>
             <td>${escapeHtml(s.characterName)}</td>
             <td>${fmtDate(s.startedAt)}</td>
             <td class="num">${s.endedAt ? fmtDuration(s.seconds) : t('detail.onlineNow')}</td>
-          </tr>`).join('')
-      }</tbody></table>`;
+          </tr>`,
+          )
+          .join('')}</tbody></table>`;
   const accountStatus = accountStatusDetail(d);
-  const accountActionButtons = d.bannedAt ? `
-      <button data-unban-account="1">${t('detail.unban')}</button>` : `
+  const accountActionButtons = d.bannedAt
+    ? `
+      <button data-unban-account="1">${t('detail.unban')}</button>`
+    : `
       <button data-suspend-hours="1">${t('detail.suspend1h')}</button>
       <button data-suspend-hours="24">${t('detail.suspend24h')}</button>
       <button data-suspend-hours="72">${t('detail.suspend3d')}</button>
@@ -2124,26 +2576,33 @@ export function renderAccountDetail(d: AccountDetail, includeAdminControls = fal
       <button data-chat-mute-hours="1">${t('detail.chatMute1h')}</button>
       <button data-chat-mute-custom="1">${t('detail.chatMuteCustom')}</button>
       <button data-ban-account="1" class="danger">${t('detail.ban')}</button>`;
-  const adminControls = canModerateAccount ? `
+  const adminControls = canModerateAccount
+    ? `
     <div class="account-admin-controls mod-account-actions" data-action-account-id="${d.id}">
       <div class="account-status"><b>${t('detail.status')}</b> ${accountStatus}${d.moderationReason ? ` <span class="hint">${t('detail.reason', { value: escapeHtml(d.moderationReason) })}</span>` : ''}</div>
       ${d.chatMutedUntil && new Date(d.chatMutedUntil).getTime() > Date.now() && d.chatMuteReason ? `<div class="account-status"><b>${t('detail.chatMuteLabel')}</b> <span class="hint">${t('detail.reason', { value: escapeHtml(d.chatMuteReason) })}</span></div>` : ''}
       <input class="account-mod-reason" placeholder="${t('detail.notePlaceholder')}" maxlength="500" />
       ${accountActionButtons}
     </div>
-    <div class="mod-confirm account-mod-confirm"></div>` : includeAdminControls ? `
+    <div class="mod-confirm account-mod-confirm"></div>`
+    : includeAdminControls
+      ? `
     <div class="account-admin-controls">
       <div class="account-status"><b>${t('detail.status')}</b> <span class="badge">${t('accounts.badgeAdmin')}</span> ${accountStatus}</div>
-    </div>` : '';
+    </div>`
+      : '';
   // Chat-mute controls are shown for EVERY account (admins included): the chat
   // filter auto-mutes admins too, and ban/suspend gating must not strand them.
-  const activeChatMute = d.chatMutedUntil !== null && new Date(d.chatMutedUntil).getTime() > Date.now();
-  const chatModControls = includeAdminControls ? `
+  const activeChatMute =
+    d.chatMutedUntil !== null && new Date(d.chatMutedUntil).getTime() > Date.now();
+  const chatModControls = includeAdminControls
+    ? `
     <div class="account-admin-controls chat-mod-controls" data-action-account-id="${d.id}">
       <div class="account-status"><b>${t('chatMod.chatLabel')}</b> ${activeChatMute ? `<span class="badge warn">${t('chatMod.mutedUntil', { value: fmtDate(d.chatMutedUntil) })}</span>` : `<span class="badge">${t('chatMod.notMuted')}</span>`} &middot; ${t('chatMod.strikesInline')} <b>${d.chatStrikes}</b></div>
       ${activeChatMute ? `<button data-lift-mute="1">${t('chatMod.liftChatMute')}</button>` : ''}
       ${d.chatStrikes > 0 ? `<button data-reset-strikes="1">${t('chatMod.resetChatStrikes')}</button>` : ''}
-    </div>` : '';
+    </div>`
+    : '';
   return `<div class="account-detail" data-action-account-id="${d.id}">${adminControls}${chatModControls}<div class="detail-grid">
     <div><h4>${t('detail.charactersHeader')}</h4>${chars}</div>
     <div><h4>${t('detail.sessionsHeader', { value: fmtDuration(d.playtimeSeconds) })}</h4>${sessions}</div>
@@ -2155,7 +2614,8 @@ export function renderCharactersTable(rows: CharacterRow[], sort: string, dir: s
   const arrow = (col: string) => (sort === col ? (dir === 'asc' ? ' ▲' : ' ▼') : '');
   const sortableHeader = (col: string, label: string, numeric = false) =>
     `<th class="sortable${numeric ? ' num' : ''}" data-sort="${col}">${label}${arrow(col)}</th>`;
-  const body = rows.map((c) => `
+  const body = rows.map(
+    (c) => `
     <tr>
       <td class="num">${c.id}</td>
       <td>${escapeHtml(c.name)}</td>
@@ -2166,7 +2626,8 @@ export function renderCharactersTable(rows: CharacterRow[], sort: string, dir: s
       <td>${escapeHtml(c.username)}</td>
       <td>${fmtDate(c.createdAt)}</td>
       <td>${fmtRelative(c.updatedAt)}</td>
-    </tr>`);
+    </tr>`,
+  );
   return `<table>
     <thead><tr>
       ${sortableHeader('id', t('characters.colId'), true)}
@@ -2191,7 +2652,8 @@ export function renderPager(total: number, page: number, limit: number): string 
 
 export function renderModerationQueue(rows: ModerationQueueRow[]): string {
   if (rows.length === 0) return `<div class="empty">${t('moderation.empty')}</div>`;
-  const body = rows.map((r) => `
+  const body = rows.map(
+    (r) => `
     <tr class="clickable" data-moderation-account-id="${r.accountId}">
       <td>${escapeHtml(r.username)}${r.online ? ` <span class="badge">${t('moderation.badgeOnline')}</span>` : ''}</td>
       <td>${r.characterNames.map(escapeHtml).join(', ') || '—'}</td>
@@ -2199,7 +2661,8 @@ export function renderModerationQueue(rows: ModerationQueueRow[]): string {
       <td>${escapeHtml(reasonLabel(r.latestReason))}</td>
       <td>${fmtRelative(r.latestReportAt)}</td>
       <td>${statusBadge(r.status, r.suspendedUntil)}</td>
-    </tr>`);
+    </tr>`,
+  );
   return `<table>
     <thead><tr>
       <th>${t('moderation.colAccount')}</th><th>${t('moderation.colCharacters')}</th><th class="num">${t('moderation.colOpenReports')}</th><th>${t('moderation.colLatestReason')}</th><th>${t('moderation.colLatest')}</th><th>${t('moderation.colStatus')}</th>
@@ -2209,18 +2672,22 @@ export function renderModerationQueue(rows: ModerationQueueRow[]): string {
 }
 
 export function renderModerationDetail(d: ModerationAccountDetail): string {
-  const reports = d.reports.map((r) => {
-    const chat = r.chatContext.length === 0
-      ? `<div class="empty">${t('report.noChat')}</div>`
-      : `<table><thead><tr><th>${t('report.colTime')}</th><th>${t('report.colChannel')}</th><th>${t('report.colMessage')}</th></tr></thead><tbody>${
-          r.chatContext.map((c) => `
+  const reports = d.reports
+    .map((r) => {
+      const chat =
+        r.chatContext.length === 0
+          ? `<div class="empty">${t('report.noChat')}</div>`
+          : `<table><thead><tr><th>${t('report.colTime')}</th><th>${t('report.colChannel')}</th><th>${t('report.colMessage')}</th></tr></thead><tbody>${r.chatContext
+              .map(
+                (c) => `
             <tr>
               <td>${fmtDate(c.createdAt)}</td>
               <td>${escapeHtml(c.channel)}</td>
               <td><b>${escapeHtml(c.characterName)}:</b> ${escapeHtml(c.message)}</td>
-            </tr>`).join('')
-        }</tbody></table>`;
-    return `<div class="mod-report panel" data-report-id="${r.id}">
+            </tr>`,
+              )
+              .join('')}</tbody></table>`;
+      return `<div class="mod-report panel" data-report-id="${r.id}">
       <div class="panel-title">${t('report.title', { id: r.id })} <span class="hint">${fmtDate(r.createdAt)}</span></div>
       <div class="mod-report-meta">
         <div><b>${t('report.reporter')}</b> ${escapeHtml(r.reporterUsername ?? t('common.unknown'))} / ${escapeHtml(r.reporterCharacterName || t('common.unknown'))}</div>
@@ -2235,9 +2702,12 @@ export function renderModerationDetail(d: ModerationAccountDetail): string {
       <h4>${t('report.recentChat')}</h4>
       ${chat}
     </div>`;
-  }).join('');
-  const moderationAccountButtons = d.account.bannedAt ? `
-      <button data-unban-account="1">${t('detail.unban')}</button>` : `
+    })
+    .join('');
+  const moderationAccountButtons = d.account.bannedAt
+    ? `
+      <button data-unban-account="1">${t('detail.unban')}</button>`
+    : `
       <button data-suspend-hours="1">${t('detail.suspend1h')}</button>
       <button data-suspend-hours="24">${t('detail.suspend24h')}</button>
       <button data-suspend-hours="72">${t('detail.suspend3d')}</button>
@@ -2276,34 +2746,50 @@ function renderIpBlockSection(d: ModerationAccountDetail): string {
   const seen = new Set<string>();
   // Newest-first (last login, then recent sessions DESC), capped.
   const add = (ip: string | null) => {
-    if (ip && !seen.has(ip) && ips.length < MAX_KNOWN_IPS) { seen.add(ip); ips.push(ip); }
+    if (ip && !seen.has(ip) && ips.length < MAX_KNOWN_IPS) {
+      seen.add(ip);
+      ips.push(ip);
+    }
   };
   add(d.account.lastLoginIp);
   for (const s of d.account.recentSessions) add(s.ip);
   // Surface this account's blocked IPs even past the cap, so Unblock stays reachable.
   for (const ip of d.blockedIps) {
-    if (!seen.has(ip)) { seen.add(ip); ips.push(ip); }
+    if (!seen.has(ip)) {
+      seen.add(ip);
+      ips.push(ip);
+    }
   }
-  const rows = ips.length === 0
-    ? `<div class="empty">${t('blockedIps.noKnownIps')}</div>`
-    : ips.map((ip, i) => {
-        const isBlocked = blocked.has(ip);
-        const label = i === 0 ? ` <span class="hint">${t('blockedIps.lastIp')}</span>` : '';
-        const badge = isBlocked ? ` <span class="badge bad">${t('blockedIps.blockedBadge')}</span>` : '';
-        // Admins can't be locked out, so don't offer to ban their IP; Unblock
-        // stays in case it was blocked from elsewhere.
-        const banButtons = [
-          { duration: '1d', label: t('blockedIps.ban24h') },
-          { duration: '30d', label: t('blockedIps.ban30d') },
-          { duration: '', label: t('blockedIps.banForever') },
-        ].map((b) => `<button data-ban-ip="${escapeHtml(ip)}" data-ban-duration="${b.duration}" class="danger">${b.label}</button>`).join('');
-        const action = isBlocked
-          ? `<button data-unblock-ip="${escapeHtml(ip)}">${t('blockedIps.unblock')}</button>`
-          : d.account.isAdmin
-            ? `<span class="hint">${t('blockedIps.adminProtected')}</span>`
-            : banButtons;
-        return `<div class="ip-row"><code>${escapeHtml(ip)}</code>${label}${badge} ${action}</div>`;
-      }).join('');
+  const rows =
+    ips.length === 0
+      ? `<div class="empty">${t('blockedIps.noKnownIps')}</div>`
+      : ips
+          .map((ip, i) => {
+            const isBlocked = blocked.has(ip);
+            const label = i === 0 ? ` <span class="hint">${t('blockedIps.lastIp')}</span>` : '';
+            const badge = isBlocked
+              ? ` <span class="badge bad">${t('blockedIps.blockedBadge')}</span>`
+              : '';
+            // Admins can't be locked out, so don't offer to ban their IP; Unblock
+            // stays in case it was blocked from elsewhere.
+            const banButtons = [
+              { duration: '1d', label: t('blockedIps.ban24h') },
+              { duration: '30d', label: t('blockedIps.ban30d') },
+              { duration: '', label: t('blockedIps.banForever') },
+            ]
+              .map(
+                (b) =>
+                  `<button data-ban-ip="${escapeHtml(ip)}" data-ban-duration="${b.duration}" class="danger">${b.label}</button>`,
+              )
+              .join('');
+            const action = isBlocked
+              ? `<button data-unblock-ip="${escapeHtml(ip)}">${t('blockedIps.unblock')}</button>`
+              : d.account.isAdmin
+                ? `<span class="hint">${t('blockedIps.adminProtected')}</span>`
+                : banButtons;
+            return `<div class="ip-row"><code>${escapeHtml(ip)}</code>${label}${badge} ${action}</div>`;
+          })
+          .join('');
   return `<div class="panel ip-block">
     <div class="panel-title">${t('blockedIps.accountSectionTitle')}</div>
     ${rows}
@@ -2316,18 +2802,21 @@ function renderChatModeration(chat: ChatModerationDetail): string {
   const muteStatus = chat.chatMutedUntil
     ? `<span class="badge bad">${t('chatMod.mutedUntil', { value: fmtDate(chat.chatMutedUntil) })}</span>`
     : `<span class="badge">${t('chatMod.notMuted')}</span>`;
-  const incidents = chat.violations.length === 0
-    ? `<div class="empty">${t('chatMod.noIncidents')}</div>`
-    : `<table><thead><tr><th>${t('report.colTime')}</th><th>${t('report.colChannel')}</th><th>${t('chatMod.colWord')}</th><th>${t('dialog.action')}</th><th>${t('report.colMessage')}</th></tr></thead><tbody>${
-        chat.violations.map((v) => `
+  const incidents =
+    chat.violations.length === 0
+      ? `<div class="empty">${t('chatMod.noIncidents')}</div>`
+      : `<table><thead><tr><th>${t('report.colTime')}</th><th>${t('report.colChannel')}</th><th>${t('chatMod.colWord')}</th><th>${t('dialog.action')}</th><th>${t('report.colMessage')}</th></tr></thead><tbody>${chat.violations
+          .map(
+            (v) => `
           <tr>
             <td>${fmtDate(v.createdAt)}</td>
             <td>${escapeHtml(v.channel)}</td>
             <td>${escapeHtml(v.term)}</td>
             <td>${escapeHtml(v.action)}${v.muteSeconds > 0 ? ` (${escapeHtml(fmtDuration(v.muteSeconds))})` : ''}</td>
             <td>${escapeHtml(v.message)}</td>
-          </tr>`).join('')
-      }</tbody></table>`;
+          </tr>`,
+          )
+          .join('')}</tbody></table>`;
   return `<div class="panel chat-mod">
     <div class="panel-title">${t('chatMod.title')}</div>
     <div class="chat-mod-status">${t('chatMod.status')} ${muteStatus} &middot; ${t('chatMod.strikes')} <b>${chat.chatStrikes}</b></div>
@@ -2342,9 +2831,12 @@ function renderChatModeration(chat: ChatModerationDetail): string {
 
 function renderWordChips(words: FilterWord[]): string {
   if (words.length === 0) return `<div class="empty">${t('chatFilter.noWords')}</div>`;
-  return `<div class="word-chips">${
-    words.map((w) => `<span class="word-chip">${escapeHtml(w.word)}<button class="word-del" data-del-word="${w.id}" title="${t('chatFilter.removeWord')}">&times;</button></span>`).join('')
-  }</div>`;
+  return `<div class="word-chips">${words
+    .map(
+      (w) =>
+        `<span class="word-chip">${escapeHtml(w.word)}<button class="word-del" data-del-word="${w.id}" title="${t('chatFilter.removeWord')}">&times;</button></span>`,
+    )
+    .join('')}</div>`;
 }
 
 export function renderChatFilter(data: ChatFilterData): string {
@@ -2406,12 +2898,14 @@ export function renderBlockedIps(data: BlockedIpsData): string {
 function renderBlockedIpsTable(rows: BlockedIpRow[]): string {
   if (rows.length === 0) return `<div class="empty">${t('blockedIps.empty')}</div>`;
   const now = Date.now();
-  const body = rows.map((r) => {
-    const expired = r.expiresAt !== null && new Date(r.expiresAt).getTime() <= now;
-    const expiry = r.expiresAt === null
-      ? `<span class="badge">${t('blockedIps.permanent')}</span>`
-      : `<span class="badge ${expired ? 'bad' : 'warn'}">${fmtDate(r.expiresAt)}</span>`;
-    return `<tr>
+  const body = rows
+    .map((r) => {
+      const expired = r.expiresAt !== null && new Date(r.expiresAt).getTime() <= now;
+      const expiry =
+        r.expiresAt === null
+          ? `<span class="badge">${t('blockedIps.permanent')}</span>`
+          : `<span class="badge ${expired ? 'bad' : 'warn'}">${fmtDate(r.expiresAt)}</span>`;
+      return `<tr>
       <td><code>${escapeHtml(r.ip)}</code></td>
       <td>${escapeHtml(r.reason || '—')}</td>
       <td>${expiry}</td>
@@ -2419,7 +2913,8 @@ function renderBlockedIpsTable(rows: BlockedIpRow[]): string {
       <td>${fmtDate(r.createdAt)}</td>
       <td><button data-unblock-ip="${escapeHtml(r.ip)}">${t('blockedIps.remove')}</button></td>
     </tr>`;
-  }).join('');
+    })
+    .join('');
   return `<table><thead><tr>
     <th>${t('blockedIps.colIp')}</th>
     <th>${t('blockedIps.colReason')}</th>
@@ -2431,36 +2926,44 @@ function renderBlockedIpsTable(rows: BlockedIpRow[]): string {
 }
 
 function renderChatModeratedAccounts(accounts: ChatModeratedAccount[]): string {
-  if (accounts.length === 0) return `<div class="empty">${t('chatFilter.noModeratedAccounts')}</div>`;
-  const rows = accounts.map((a) => {
-    const muted = a.chatMutedUntil !== null && new Date(a.chatMutedUntil).getTime() > Date.now();
-    const muteCell = muted
-      ? `<span class="badge warn">${t('chatMod.mutedUntil', { value: fmtDate(a.chatMutedUntil) })}</span>`
-      : `<span class="badge">${t('chatMod.notMuted')}</span>`;
-    const actions = `${muted ? `<button data-lift-mute="1">${t('chatMod.liftMute')}</button>` : ''}${a.chatStrikes > 0 ? ` <button data-reset-strikes="1">${t('chatMod.resetStrikes')}</button>` : ''}`;
-    return `<tr data-action-account-id="${a.id}">
+  if (accounts.length === 0)
+    return `<div class="empty">${t('chatFilter.noModeratedAccounts')}</div>`;
+  const rows = accounts
+    .map((a) => {
+      const muted = a.chatMutedUntil !== null && new Date(a.chatMutedUntil).getTime() > Date.now();
+      const muteCell = muted
+        ? `<span class="badge warn">${t('chatMod.mutedUntil', { value: fmtDate(a.chatMutedUntil) })}</span>`
+        : `<span class="badge">${t('chatMod.notMuted')}</span>`;
+      const actions = `${muted ? `<button data-lift-mute="1">${t('chatMod.liftMute')}</button>` : ''}${a.chatStrikes > 0 ? ` <button data-reset-strikes="1">${t('chatMod.resetStrikes')}</button>` : ''}`;
+      return `<tr data-action-account-id="${a.id}">
       <td>${escapeHtml(a.username)}${a.isAdmin ? ` <span class="badge">${t('accounts.badgeAdmin')}</span>` : ''}</td>
       <td class="num">${a.chatStrikes}</td>
       <td>${muteCell}</td>
       <td>${actions}</td>
     </tr>`;
-  }).join('');
+    })
+    .join('');
   return `<table><thead><tr><th>${t('moderation.colAccount')}</th><th class="num">${t('chatMod.colStrikes')}</th><th>${t('chatMod.colMute')}</th><th>${t('detail.colActions')}</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 function reasonLabel(reason: string): string {
-  return ({
-    harassment: t('reason.harassment'),
-    spam: t('reason.spam'),
-    cheating: t('reason.cheating'),
-    offensive_name_or_chat: t('reason.offensiveName'),
-    other: t('reason.other'),
-  } as Record<string, string>)[reason] ?? reason;
+  return (
+    (
+      {
+        harassment: t('reason.harassment'),
+        spam: t('reason.spam'),
+        cheating: t('reason.cheating'),
+        offensive_name_or_chat: t('reason.offensiveName'),
+        other: t('reason.other'),
+      } as Record<string, string>
+    )[reason] ?? reason
+  );
 }
 
 function statusBadge(status: string, suspendedUntil: string | null): string {
   if (status === 'banned') return `<span class="badge bad">${t('accounts.badgeBanned')}</span>`;
-  if (status === 'suspended') return `<span class="badge warn">${t('detail.suspendedUntil', { value: fmtDate(suspendedUntil) })}</span>`;
+  if (status === 'suspended')
+    return `<span class="badge warn">${t('detail.suspendedUntil', { value: fmtDate(suspendedUntil) })}</span>`;
   return `<span class="badge">${t('detail.statusActive')}</span>`;
 }
 

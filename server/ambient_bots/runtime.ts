@@ -99,6 +99,43 @@ interface RunnerEntry {
   intentionalClose: boolean;
 }
 
+interface AmbientBrainDriveProgressSnapshot {
+  lastProgressAtMs: number | null;
+  lastX: number | null;
+  lastZ: number | null;
+  pathGoalKey: string | null;
+  path: AmbientPlayerBotBrainState['path'];
+  campIndex: number;
+  stuckResets: number;
+}
+
+function ambientBrainDriveProgressSnapshot(
+  state: AmbientPlayerBotBrainState,
+): AmbientBrainDriveProgressSnapshot {
+  return {
+    lastProgressAtMs: state.lastProgressAtMs,
+    lastX: state.lastX,
+    lastZ: state.lastZ,
+    pathGoalKey: state.pathGoalKey,
+    path: state.path.map((point) => ({ x: point.x, z: point.z })),
+    campIndex: state.campIndex,
+    stuckResets: state.stuckResets,
+  };
+}
+
+function restoreAmbientBrainDriveProgress(
+  state: AmbientPlayerBotBrainState,
+  snapshot: AmbientBrainDriveProgressSnapshot,
+): void {
+  state.lastProgressAtMs = snapshot.lastProgressAtMs;
+  state.lastX = snapshot.lastX;
+  state.lastZ = snapshot.lastZ;
+  state.pathGoalKey = snapshot.pathGoalKey;
+  state.path = snapshot.path.map((point) => ({ x: point.x, z: point.z }));
+  state.campIndex = snapshot.campIndex;
+  state.stuckResets = snapshot.stuckResets;
+}
+
 function defaultRuntimeControls(): AmbientPlayerBotRuntimeControlSnapshot {
   return {
     acceptProvisionActions: true,
@@ -605,10 +642,11 @@ export class AmbientPlayerBotRuntime {
           || entry.lastBrainAtMs === null
           || runtimeAtMs - entry.lastBrainAtMs >= this.brainDecisionIntervalMs;
         if (!decisionDue) {
-          this.driveAmbientBotEntry(entry, liveState);
+          this.driveAmbientBotEntry(entry, liveState, entry.lastBrainResult, nowMs);
           continue;
         }
         const recentEvents = entry.client.drainEvents();
+        const brainDriveProgressBeforeBrain = ambientBrainDriveProgressSnapshot(entry.brainState);
         const stuckResetsBeforeBrain = entry.brainState.stuckResets;
         const result = tickAmbientPlayerBotBrain({
           bot: record,
@@ -641,7 +679,9 @@ export class AmbientPlayerBotRuntime {
         const groupControlActive = groupResult.pauseBrainDrive && groupMode !== 'brain';
         entry.brainDrivePaused = groupResult.pauseBrainDrive && !allowSelfMaintenanceBrain;
         if (groupControlActive) {
-          if (entry.brainState.stuckResets > stuckResetsBeforeBrain) {
+          if (entry.brainDrivePaused) {
+            restoreAmbientBrainDriveProgress(entry.brainState, brainDriveProgressBeforeBrain);
+          } else if (entry.brainState.stuckResets > stuckResetsBeforeBrain) {
             entry.brainState.stuckResets = stuckResetsBeforeBrain;
           }
           markAmbientPlayerBotBrainExternalProgress(entry.brainState, liveState, nowMs, {
@@ -649,23 +689,37 @@ export class AmbientPlayerBotRuntime {
           });
         }
         for (const command of groupResult.commands) entry.client.command(command);
+        const allowPausedBrainTransitionCommands = groupMode !== 'hold_regroup' && groupMode !== 'wait_party';
+        const brainCommands = groupResult.pauseBrainDrive && !allowSelfMaintenanceBrain
+          ? allowPausedBrainTransitionCommands
+            ? result.commands.filter((command) =>
+                isDungeonTransitionCommand(command)
+                && !groupResult.commands.some((groupCommand) =>
+                  sameDungeonTransitionCommand(groupCommand, command),
+                ))
+            : []
+          : result.commands;
         if (!groupResult.pauseBrainDrive || allowSelfMaintenanceBrain) {
-          for (const command of result.commands) entry.client.command(command);
-          this.driveAmbientBotEntry(entry, liveState, result);
-        } else if (groupResult.travelGoal) {
+          for (const command of brainCommands) entry.client.command(command);
+          this.driveAmbientBotEntry(entry, liveState, result, nowMs);
+        } else {
+          for (const command of brainCommands) entry.client.command(command);
+        }
+        if (groupResult.pauseBrainDrive && !allowSelfMaintenanceBrain && groupResult.travelGoal) {
           const groupDrive = continueAmbientPlayerBotTravel(
             liveState,
             entry.brainState,
             result.objectiveId,
             result.objectiveLabel,
             groupResult.travelGoal,
+            nowMs,
           );
           if (groupDrive && (Object.keys(groupDrive.moveInput).length > 0 || groupDrive.facing !== undefined)) {
             entry.client.input(groupDrive.moveInput, groupDrive.facing);
           } else {
             entry.client.input({});
           }
-        } else {
+        } else if (groupResult.pauseBrainDrive && !allowSelfMaintenanceBrain) {
           entry.client.input({});
         }
         const socialResult = tickAmbientPlayerBotSocialShell({
@@ -768,6 +822,7 @@ export class AmbientPlayerBotRuntime {
     entry: RunnerEntry,
     liveState: AmbientPlayerBotLiveState,
     result: AmbientPlayerBotBrainTickResult | null = entry.lastBrainResult,
+    nowMs: number = this.nowMs(),
   ): void {
     if (!result || entry.brainDrivePaused) {
       entry.client.input({});
@@ -780,6 +835,7 @@ export class AmbientPlayerBotRuntime {
           result.objectiveId,
           result.objectiveLabel,
           result.travelGoal,
+          nowMs,
         ) ?? result
       : result;
     if (hasAmbientDrive(driveResult.moveInput, driveResult.facing)) {
@@ -1035,6 +1091,21 @@ function isRetryableCharacterCreateError(error: unknown): boolean {
 function hasAmbientDrive(moveInput: Record<string, unknown>, facing?: number): boolean {
   if (facing !== undefined && Number.isFinite(facing)) return true;
   return Object.values(moveInput).some((value) => value === 1 || value === true);
+}
+
+function isDungeonTransitionCommand(command: Record<string, unknown>): boolean {
+  return command.cmd === 'enter_dungeon' || command.cmd === 'leave_dungeon';
+}
+
+function sameDungeonTransitionCommand(
+  current: Record<string, unknown>,
+  next: Record<string, unknown>,
+): boolean {
+  if (!isDungeonTransitionCommand(current) || !isDungeonTransitionCommand(next)) return false;
+  if (current.cmd !== next.cmd) return false;
+  return current.cmd === 'enter_dungeon'
+    ? current.dungeon === next.dungeon
+    : true;
 }
 
 function sameRunnerState(

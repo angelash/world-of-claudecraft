@@ -5,19 +5,16 @@
 // therefore carries ONLY the keys whose value differs from es; every other key is
 // intentionally omitted. A key must NOT be re-added with a value equal to es
 // (redundant duplication). Every key here must be a real `en` leaf
-// path (tests/i18n_overlay_key_membership.test.ts + the byte gate). Keys are in `en`'s
+// path (the flat TranslationKey union type + the byte gate). Keys are in `en`'s
 // leaf order.
 
 import type { TranslationKey } from '../i18n.catalog';
 
 export const es_ES: Partial<Record<TranslationKey, string>> = {
-  // Stat tooltips inherit the es base: none of these keys needs a genuine Iberian
-  // divergence (es already uses "hechizos" and neutral wording), so per the
-  // divergence-only policy es_ES carries no hudChrome.statInfo.* overrides.
   'hudChrome.emotes.question': '¿Tío?',
   'nav.loginRegister': 'Iniciar sesión/Registrarse',
   'stats.playersOnline': 'Jugadores en línea',
-  'stats.realmName': 'Nombre del reino',
+  'stats.realmName': 'Nombre del mundo',
   'footer.githubLabel': 'Proyecto de código abierto',
   'footer.terms': 'Términos de servicio',
   'footer.privacy': 'Política de privacidad',
@@ -25,15 +22,17 @@ export const es_ES: Partial<Record<TranslationKey, string>> = {
   'wiki.title': 'Wiki y guía del juego',
   'news.title': 'Noticias y actualizaciones',
   'download.title': 'Descargar lanzador de escritorio',
+  'download.macCta': 'Descargar version macOS',
+  'download.windowsPending': 'Compilacion de Windows pendiente.',
   'mode.onlineTitle': 'Jugar en línea',
-  'mode.onlineAria': 'Jugar en línea: inicia sesión en el reino compartido persistente',
+  'mode.onlineAria': 'Jugar en línea: conéctate al mundo compartido persistente',
   'mode.offlineTitle': 'Jugar en solitario',
   'mode.offlineAria': 'Jugar en solitario: inicia una sesión local instantánea de un jugador',
-  'auth.enterRealm': 'Entrar al reino',
+  'auth.enterRealm': 'Entrar al mundo',
   'auth.logIn': 'Iniciar sesión',
   'auth.createAccount': 'Crear cuenta',
-  'auth.realmList': 'Lista de reinos',
-  'auth.changeRealm': 'Cambiar de reino',
+  'auth.realmList': 'Lista de mundos',
+  'auth.changeRealm': 'Cambiar de mundo',
   'auth.createCharacter': 'Crear personaje',
   'auth.characterName': 'Nombre del personaje',
   'auth.enterWorld': 'Entrar al mundo',
@@ -60,7 +59,7 @@ export const es_ES: Partial<Record<TranslationKey, string>> = {
   'controls.friends': 'Amigos y hermandad',
   'controls.chat': 'Abrir chat',
   'seo.description':
-    'Emprende una aventura épica en World of ClaudeCraft, un micro-MMO de estilo clásico jugable directamente en el navegador. Únete a un reino compartido, sube clases de nivel y derrota enemigos.',
+    'Emprende una aventura épica en World of ClaudeCraft, un micro-MMO de estilo clásico jugable directamente en tu navegador. Únete a un mundo compartido persistente, sube de nivel tus clases y derrota a tus enemigos.',
   'a11y.goHome': 'Ir a la página de inicio',
   'a11y.characterActions': 'Acciones del personaje',
   'a11y.githubProject': 'Abrir el proyecto World of ClaudeCraft en GitHub',
@@ -79,13 +78,13 @@ export const es_ES: Partial<Record<TranslationKey, string>> = {
   'classDetails.lore.warrior':
     'Los guerreros son combatientes curtidos que generan ira al infligir o recibir daño. Absorben grandes golpes o aplastan enemigos con armas pesadas.',
   'classDetails.lore.hunter':
-    'Los cazadores dominan lo salvaje, rastrean enemigos desde lejos con arcos o armas de fuego y controlan el campo con trampas.',
+    'Los cazadores son especialistas a distancia que combaten junto a una bestia domada, acribillan a los enemigos con disparos certeros y veloces, los ralentizan con picaduras y fuego conmocionante, y cambian de aspecto según lo exija el momento.',
   'classDetails.lore.rogue':
     'Los pícaros son asesinos sigilosos que gastan energía y puntos de combo en puñaladas y golpes finales desde las sombras.',
   'classDetails.lore.shaman':
     'Los chamanes dominan los elementos, imbuyen armas con poder, golpean con relámpagos y restauran a sus aliados.',
   'classDetails.lore.warlock':
-    'Los brujos invocan demonios, lanzan maldiciones y daño en el tiempo, y drenan vida para resistir.',
+    'Los brujos invocan demonios, lanzan maldiciones y magia de daño continuo, y sorben la vida de sus enemigos para aguantar.',
   'classDetails.lore.druid':
     'Los druidas canalizan la naturaleza, curan heridas, enredan enemigos y cambian a formas animales para defender o dañar.',
   'mobilePreflight.baseLandscape': 'Gira el dispositivo a horizontal antes de entrar en el mundo.',
@@ -181,10 +180,49 @@ export const es_ES: Partial<Record<TranslationKey, string>> = {
   'delveUi.tracker.complete': 'Completada',
   'delveUi.tracker.marks': 'Marcas de Profundidad: {count}',
   'delveUi.tracker.title': 'Profundidad',
+  'entities.abilities.blazing_barrier.name': 'Barrera ardiente',
+  'entities.abilities.blazing_barrier.description':
+    'Rodéate de fuego para absorber 130 de daño durante 60 s. (Fuego)',
+  'entities.abilities.cold_snap.name': 'Llamada invernal',
+  'entities.abilities.cold_snap.description':
+    'Restablece el tiempo de reutilización de Paso centelleante, Velo de Escarcha e Invisibilidad mejorada. (Talento de mago)',
+  'entities.abilities.greater_invisibility.name': 'Invisibilidad mejorada',
+  'entities.abilities.greater_invisibility.description':
+    'Te esfumas durante 20 s: suprime 2 efectos de daño periódico y reduce el daño recibido un 90% mientras sigues invisible y durante un breve periodo posterior. (Talento de mago)',
+  'entities.abilities.hot_streak.name': 'Racha ardiente',
+  'entities.abilities.hot_streak.description':
+    'Pasivo: dos críticos consecutivos de tus hechizos de Fuego (Bola de Fuego, Explosión de Fuego, Agostar, Piroexplosión o Fogonazo) convierten tu siguiente Piroexplosión o Fogonazo en un lanzamiento instantáneo y sin coste. Los hechizos que gastan el efecto aportan a la racha SIGUIENTE, también si son gratuitos; Fogonazo aporta una sola vez, aunque alcance a varios enemigos, y únicamente puede aportar el primer impacto. (Fuego)',
+  'entities.abilities.ice_floes.name': 'Hielos flotantes',
+  'entities.abilities.ice_floes.description':
+    'Puedes lanzar en movimiento tus dos siguientes hechizos que tengan tiempo de lanzamiento. Permanece 15 s. (Talento de mago)',
+  'entities.abilities.ignition.name': 'Combustión',
+  'entities.abilities.ignition.description':
+    'Pasivo: los críticos de tus hechizos prenden al objetivo y le infligen un 40% del daño causado a lo largo de 6 s; el efecto se acumula. (Maestría de Fuego)',
+  'entities.abilities.mass_barrier.name': 'Barrera colectiva',
+  'entities.abilities.mass_barrier.description':
+    'Otorga un escudo a ti y a un máximo de 4 aliados cercanos en 30 m; cada uno absorbe 130 de daño durante 60 s. (Talento de mago)',
+  'entities.abilities.overload.name': 'Potenciación',
+  'entities.abilities.overload.description':
+    'Potencia tu siguiente hechizo un 40%, pero aumenta su coste de maná un 50%. Permanece 10 s. (Talento de mago)',
+  'entities.abilities.power_echo.name': 'Eco de potencia',
+  'entities.abilities.power_echo.description':
+    'Tu siguiente hechizo directo vuelve a actuar con un 50% de potencia sobre el mismo objetivo. Permanece 10 s. (Talento de mago)',
+  'entities.abilities.rings_of_frost.name': 'Círculo de Escarcha',
+  'entities.abilities.rings_of_frost.description':
+    'Crea un círculo durante 10 s. Los enemigos que atraviesan el borde quedan congelados durante 4 s. (Talento de mago)',
+  'entities.abilities.rune_of_power.name': 'Runa de potencia',
+  'entities.abilities.rune_of_power.description':
+    'Traza una runa de potencia bajo tus pies durante 15 s: los aliados situados a menos de 8 m infligen un 10% más de daño. (Talento de mago)',
+  'entities.abilities.summon_water_elemental.name': 'Invocar a un elemental de agua',
+  'entities.abilities.summon_water_elemental.description':
+    'Invoca a un elemental de agua que combate junto a ti, dispara Descargas de Agua contra tu objetivo y canaliza Chorro de Agua. (Escarcha)',
+  'entities.items.conjured_water4.name': 'Agua de Manantial Invocada',
+  'entities.items.conjured_bread4.name': 'Hogaza de Festín Invocada',
   'entities.delves.collapsed_reliquary.leaveText':
     'Trepas de vuelta hasta el Hermano Halven, en la ruina del relicario.',
   'entities.mobs.reliquary_bonewalker.name': 'Caminahuesos alzado',
   'entities.mobs.reliquary_gravecall_acolyte.name': 'Acólito invocasepulcros',
+  'entities.mobs.water_elemental.name': 'Elemental acuático',
   'entities.npcs.brother_halven.greeting': 'El relicario de abajo ha vuelto a moverse.',
   'sim.delve.alreadyInDelve': 'Ya estás en una Profundidad.',
   'sim.delve.bossChest':
@@ -222,4 +260,96 @@ export const es_ES: Partial<Record<TranslationKey, string>> = {
   'sim.lockpick.noAttempt': 'No hay ningún intento de forzar la cerradura en curso.',
   'sim.lockpick.tierPremium': 'Premium',
   'sim.lockpick.toolSlips': 'Esa herramienta resbala en esta cerradura.',
+  // Aura effect tooltip summaries.
+  'hudChrome.auraEffect.dot': 'Provoca {value} de daño de {school} cada {interval} s',
+  'hudChrome.auraEffect.hot': 'Recupera {value} de salud cada {interval} s',
+  'hudChrome.auraEffect.absorb': 'Bloquea {value} de daño',
+  'hudChrome.auraEffect.healAbsorb': 'Bloquea {value} de sanación recibida',
+  'hudChrome.auraEffect.thorns': 'Provoca {value} de daño de {school} a los atacantes',
+  'hudChrome.auraEffect.slow': 'Disminuye la velocidad de movimiento un {pct}%',
+  'hudChrome.auraEffect.speed': 'Incrementa la velocidad de movimiento un {pct}%',
+  'hudChrome.auraEffect.attackSpeedSlow': 'Disminuye la velocidad de ataque un {pct}%',
+  'hudChrome.auraEffect.attackSpeedFast': 'Incrementa la velocidad de ataque un {pct}%',
+  'hudChrome.auraEffect.haste': 'Incrementa la velocidad de ataque y lanzamiento un {pct}%',
+  'hudChrome.auraEffect.tongues': 'Incrementa el tiempo de lanzamiento un {pct}%',
+  'hudChrome.auraEffect.increase.ap': 'Incrementa el poder de ataque en {value}',
+  'hudChrome.auraEffect.increase.armor': 'Incrementa la armadura en {value}',
+  'hudChrome.auraEffect.increase.int': 'Incrementa el intelecto en {value}',
+  'hudChrome.auraEffect.increase.agi': 'Incrementa la agilidad en {value}',
+  'hudChrome.auraEffect.increase.sta': 'Incrementa el aguante en {value}',
+  'hudChrome.auraEffect.increase.spi': 'Incrementa el espíritu en {value}',
+  'hudChrome.auraEffect.increase.allStats': 'Incrementa todos los atributos en {value}',
+  'hudChrome.auraEffect.reduce.ap': 'Disminuye el poder de ataque en {value}',
+  'hudChrome.auraEffect.reduce.armor': 'Disminuye la armadura en {value}',
+  'hudChrome.auraEffect.reduce.int': 'Disminuye el intelecto en {value}',
+  'hudChrome.auraEffect.reduce.agi': 'Disminuye la agilidad en {value}',
+  'hudChrome.auraEffect.reduce.sta': 'Disminuye el aguante en {value}',
+  'hudChrome.auraEffect.reduce.spi': 'Disminuye el espíritu en {value}',
+  'hudChrome.auraEffect.reduce.allStats': 'Disminuye todos los atributos en {value}',
+  'hudChrome.auraEffect.dodge': 'Incrementa la probabilidad de esquivar un {pct}%',
+  'hudChrome.auraEffect.dodgeReduce': 'Disminuye la probabilidad de esquivar un {pct}%',
+  'hudChrome.auraEffect.armorFlat': 'Disminuye la armadura en {value}',
+  'hudChrome.auraEffect.armorFlatStacks':
+    'Disminuye la armadura en {value} ({stacks} acumulaciones)',
+  'hudChrome.auraEffect.mortalWound': 'Disminuye la sanación recibida un {pct}%',
+  'hudChrome.auraEffect.vulnerability': 'Incrementa el daño recibido un {pct}%',
+  'hudChrome.auraEffect.physVuln': 'Incrementa el daño físico recibido un {pct}%',
+  'hudChrome.auraEffect.spellVuln': 'Incrementa el daño mágico recibido un {pct}%',
+  'hudChrome.auraEffect.critVuln':
+    'Incrementa la probabilidad de recibir golpes críticos un {pct}%',
+  'hudChrome.auraEffect.costTax': 'Incrementa los costes de habilidades un {pct}%',
+  'hudChrome.auraEffect.stun': 'Aturdimiento: no puede actuar',
+  'hudChrome.auraEffect.root': 'Inmovilizado: no puede moverse',
+  'hudChrome.auraEffect.incapacitate': 'Incapacitación: no puede actuar',
+  'hudChrome.auraEffect.polymorph': 'Polimorfia: no puede actuar',
+  'hudChrome.auraEffect.hex': 'Disminuye el daño y la sanación realizados un {pct}%',
+  'hudChrome.auraEffect.blind': 'Ceguera: no puede actuar',
+  'hudChrome.auraEffect.silence': 'Silencio: no puede lanzar hechizos',
+  'hudChrome.auraEffect.disarm': 'Desarme: no puede usar ataques con arma',
+  'hudChrome.auraEffect.lockout': 'Escuela mágica bloqueada',
+  'hudChrome.auraEffect.imbue': 'Arma encantada con efectos adicionales',
+  'hudChrome.auraEffect.imbueRange': 'Arma imbuida: {min} a {max} de daño extra con Verdict',
+  'hudChrome.auraEffect.stealth': 'Encubierto; velocidad de movimiento reducida un {pct}%',
+  'hudChrome.auraEffect.formBear': 'Forma de Bruin: mayor salud y armadura',
+  'hudChrome.auraEffect.formCat': 'Forma felina, daño cuerpo a cuerpo y energía',
+  'hudChrome.auraEffect.formTravel': 'Forma Fleet: velocidad de desplazamiento aumentada un {pct}%',
+  'hudChrome.auraEffect.defensiveStance': 'Guarded Stance: menos daño recibido, más amenaza',
+  'hudChrome.auraEffect.righteousFury':
+    'Burning Oath: amenaza por daño Sagrado enormemente aumentada',
+  'hudChrome.auraEffect.scale': 'Talla aumentado un {pct}%',
+  'hudChrome.auraEffect.jump': 'Salto aumentada un {pct}%',
+  'hudChrome.auraEffect.school.physical': 'Daño físico',
+  'hudChrome.auraEffect.school.fire': 'Ígneo',
+  'hudChrome.auraEffect.school.frost': 'Hielo',
+  'hudChrome.auraEffect.school.arcane': 'Arcana',
+  'hudChrome.auraEffect.school.shadow': 'Sombra',
+  'hudChrome.auraEffect.school.holy': 'Sagrada',
+  'hudChrome.auraEffect.school.nature': 'Natural',
+  // Corpse-harvest window + mobile hotbar page toggle.
+  'hudChrome.corpseHarvest.title': 'Recolección',
+  'hudChrome.corpseHarvest.components.gills': 'Branquias',
+  'hudChrome.deeds.collapseHint': 'Contraer el seguimiento de gestas',
+  'hudChrome.deeds.expandHint': 'Expandir el seguimiento de gestas',
+  'hudChrome.deeds.watchAria': 'Seguir {name} en el seguimiento en pantalla',
+  'guide.deedsPage.cat.delve': 'Profundidades',
+  'hudChrome.deeds.catDelve': 'Profundidades',
+  'hudChrome.auraEffect.battleStance': 'Actitud de Combate: un 10% más de generación de ira',
+  'hudChrome.auraEffect.crit': 'Incrementa la probabilidad de golpe crítico un {pct}%',
+  'hudChrome.auraEffect.rageGen': 'Incrementa la generación de ira un {pct}%',
+  'hudChrome.auraEffect.reckless':
+    'Incrementa la probabilidad de golpe crítico un {pct}% y la generación de ira un {ragePct}%',
+  'hudChrome.auraEffect.avatar': 'Coloso: daño infligido incrementado un {pct}%',
+  'hudChrome.auraEffect.bloodbath':
+    'Incrementa la probabilidad de golpe crítico y el daño infligido un {pct}%',
+  'hudChrome.auraEffect.dieBySword': 'Disminuye el daño recibido un {pct}%',
+  'hudChrome.auraEffect.sanguine':
+    'Incrementa la velocidad de ataque un {hastePct}% y el daño infligido un {dmgPct}%',
+  'hudChrome.auraEffect.maxHpPct': 'Incrementa la salud máxima un {pct}%',
+  'hudChrome.statInfo.names.parry': 'Rechazo',
+  'hudChrome.statInfo.desc.parry':
+    'Tu probabilidad de rechazar por completo un ataque cuerpo a cuerpo frontal, sin recibir daño. Un golpe por la espalda no se puede rechazar.',
+  'hud.combat.floatingParry': 'Rechazo',
+  'hud.combat.parried': '{target} rechaza tu {ability}.',
+  'hudChrome.options.mouseoverCast': 'Lanzar al pasar el ratón sobre los marcos de grupo',
+  'hudChrome.options.showTargetOfTarget': 'Mostrar objetivo del objetivo',
 };

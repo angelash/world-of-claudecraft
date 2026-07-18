@@ -47,9 +47,10 @@ const DEFAULT_SINGULARITY_THRESHOLD = 0.93;
 const FAMILY_TRAITS: Record<MobFamily, IndividualTrait[]> = {
   beast: ['foodFixated', 'territorial', 'cowardly', 'stargazer'],
   humanoid: ['collector', 'cowardly', 'vengeful', 'omenSensitive'],
-  murloc: ['collector', 'foodFixated', 'cowardly', 'stargazer'],
+  mudfin: ['collector', 'foodFixated', 'cowardly', 'stargazer'],
   spider: ['territorial', 'cowardly', 'omenSensitive'],
-  kobold: ['collector', 'cowardly', 'territorial'],
+  burrower: ['collector', 'cowardly', 'territorial'],
+  reptile: ['foodFixated', 'territorial', 'cowardly', 'stargazer'],
   undead: ['omenSensitive', 'territorial', 'vengeful', 'stargazer'],
   troll: ['foodFixated', 'vengeful', 'collector'],
   ogre: ['foodFixated', 'territorial', 'vengeful'],

@@ -1,6 +1,6 @@
 <div align="center">
 
-[English](../../CONTRIBUTING.md) · [Español](CONTRIBUTING.es.md) · [Español (España)](CONTRIBUTING.es_ES.md) · [Français](CONTRIBUTING.fr_FR.md) · [Français (Canada)](CONTRIBUTING.fr_CA.md) · [Italiano](CONTRIBUTING.it_IT.md) · [Deutsch](CONTRIBUTING.de_DE.md) · [简体中文](CONTRIBUTING.zh_CN.md) · [繁體中文](CONTRIBUTING.zh_TW.md) · [한국어](CONTRIBUTING.ko_KR.md) · **日本語** · [Português (Brasil)](CONTRIBUTING.pt_BR.md) · [Русский](CONTRIBUTING.ru_RU.md)
+[English](../../CONTRIBUTING.md) · [Español](CONTRIBUTING.es.md) · [Español (España)](CONTRIBUTING.es_ES.md) · [Français](CONTRIBUTING.fr_FR.md) · [Français (Canada)](CONTRIBUTING.fr_CA.md) · [Italiano](CONTRIBUTING.it_IT.md) · [Deutsch](CONTRIBUTING.de_DE.md) · [简体中文](CONTRIBUTING.zh_CN.md) · [繁體中文](CONTRIBUTING.zh_TW.md) · [한국어](CONTRIBUTING.ko_KR.md) · **日本語** · [Português (Brasil)](CONTRIBUTING.pt_BR.md) · [Русский](CONTRIBUTING.ru_RU.md) · [Nederlands](CONTRIBUTING.nl_NL.md) · [Polski](CONTRIBUTING.pl_PL.md) · [Bahasa Indonesia](CONTRIBUTING.id_ID.md) · [Türkçe](CONTRIBUTING.tr_TR.md) · [Svenska](CONTRIBUTING.sv_SE.md) · [Tiếng Việt](CONTRIBUTING.vi_VN.md) · [Dansk](CONTRIBUTING.da_DK.md)
 
 </div>
 
@@ -8,7 +8,7 @@
 
 まずは、ここに来てくれてありがとうございます。World of ClaudeCraft は、クラシックな MMO を愛する人々のコミュニティによって作られています。そして、大きなものでも小さなものでも、すべての貢献がこのゲームをより良くしてくれます。誤字の修正、ゲームの翻訳、バグの報告、まったく新しいダンジョンの構築。そのどれもが大切な貢献であり、あなたを心から歓迎します。
 
-このガイドは、開発環境のセットアップと、最初の貢献をスムーズに進めるためのものです。専門家である必要はありません。わからないことがあれば、[Discord](https://discord.gg/GjhnUsBtw) で気軽に聞いてください。誰かが喜んで力になってくれます。
+このガイドは、開発環境のセットアップと、最初の貢献をスムーズに進めるためのものです。専門家である必要はありません。わからないことがあれば、[Discord](https://discord.com/invite/worldofclaudecraft) で気軽に聞いてください。誰かが喜んで力になってくれます。
 
 参加にあたっては、[行動規範](../../CODE_OF_CONDUCT.md)に従うことに同意したものとみなされます。
 
@@ -117,7 +117,7 @@ World of ClaudeCraft は多くの言語で提供されており、ゲームが�
 2. 既存の翻訳を改善したり、ぎこちなく感じる箇所を埋めたりします。
 3. `npx tsc --noEmit` を実行して、漏れがないことを確認してから PR を開きます。
 
-まったく新しいロケールを提案したい場合や、トーンや用語について相談したい場合は、[Discord](https://discord.gg/GjhnUsBtw) でスレッドを立ててください。設定のつなぎ込みをお手伝いします。ネイティブの方や流暢に話せる方は、とりわけ歓迎します。良い翻訳は、世界中のプレイヤーにとって、このゲームを我が家のように感じさせてくれます。
+まったく新しいロケールを提案したい場合や、トーンや用語について相談したい場合は、[Discord](https://discord.com/invite/worldofclaudecraft) でスレッドを立ててください。設定のつなぎ込みをお手伝いします。ネイティブの方や流暢に話せる方は、とりわけ歓迎します。良い翻訳は、世界中のプレイヤーにとって、このゲームを我が家のように感じさせてくれます。
 
 ## バグの報告と機能のリクエスト
 
@@ -128,7 +128,7 @@ World of ClaudeCraft は多くの言語で提供されており、ゲームが�
 
 ## 助けが必要なとき
 
-行き詰まったとき、あるいはただ挨拶したいときは、[コミュニティの Discord](https://discord.gg/GjhnUsBtw) に参加してください。どんなに小さな質問でも構いませんし、新しい貢献者はいつでも歓迎です。
+行き詰まったとき、あるいはただ挨拶したいときは、[コミュニティの Discord](https://discord.com/invite/worldofclaudecraft) に参加してください。どんなに小さな質問でも構いませんし、新しい貢献者はいつでも歓迎です。
 
 ## ライセンス
 

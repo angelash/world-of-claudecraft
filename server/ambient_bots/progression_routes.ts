@@ -21,9 +21,13 @@ interface AmbientBotQuestRouteBase {
   questObjectiveIndex?: number;
   acceptBeforeActiveQuestIds?: readonly string[];
   deferReadyWhileQuestIdsActive?: readonly string[];
+  skipAfterQuestIdsDone?: readonly string[];
   dungeonId?: string;
   suggestedPartySize?: number;
   allowPartyLevelBonus?: boolean;
+  fullPartyLevelBonusOnly?: boolean;
+  deferWhilePartyMemberBelowLevel?: number;
+  deferActiveWhilePartyMemberBelowLevel?: number;
 }
 
 export const EASTBROOK_SAFE_BOAR_CAMPS: readonly AmbientBotPoint2d[] = [
@@ -32,6 +36,13 @@ export const EASTBROOK_SAFE_BOAR_CAMPS: readonly AmbientBotPoint2d[] = [
 
 export const EASTBROOK_SAFE_BOAR_TARGET_RADIUS = 28;
 
+const EASTBROOK_SAFE_SUPPLY_CRATE_CAMPS: readonly AmbientBotPoint2d[] = [
+  { x: 58, z: -58 },
+  { x: 73, z: -70 },
+];
+
+const EASTBROOK_SAFE_SUPPLY_CRATE_TARGET_RADIUS = 8;
+
 const FENBRIDGE_MUSTER_ROUTE_CAMPS: readonly AmbientBotPoint2d[] = [
   { x: 0, z: 80 },
   { x: 0, z: 180 },
@@ -39,6 +50,19 @@ const FENBRIDGE_MUSTER_ROUTE_CAMPS: readonly AmbientBotPoint2d[] = [
   { x: 1, z: 294 },
   { x: -2, z: 297 },
 ];
+
+const FENBRIDGE_SAFE_CARAVAN_GOODS_CAMPS: readonly AmbientBotPoint2d[] = [
+  { x: -3, z: 268 },
+  { x: 2, z: 283 },
+];
+
+const FENBRIDGE_SAFE_CARAVAN_GOODS_TARGET_RADIUS = 8;
+
+export const FENBRIDGE_SAFE_DEEPFEN_CAMPS: readonly AmbientBotPoint2d[] = [
+  { x: -58, z: 286 },
+];
+
+export const FENBRIDGE_SAFE_DEEPFEN_TARGET_RADIUS = 36;
 
 export interface AmbientBotKillQuestRoute extends AmbientBotQuestRouteBase {
   kind: 'kill';
@@ -61,9 +85,13 @@ interface AmbientBotQuestRouteConfig {
   alternateMobIds?: readonly string[];
   acceptBeforeActiveQuestIds?: readonly string[];
   deferReadyWhileQuestIdsActive?: readonly string[];
+  skipAfterQuestIdsDone?: readonly string[];
   dungeonId?: string;
   suggestedPartySize?: number;
   allowPartyLevelBonus?: boolean;
+  fullPartyLevelBonusOnly?: boolean;
+  deferWhilePartyMemberBelowLevel?: number;
+  deferActiveWhilePartyMemberBelowLevel?: number;
   camps?: readonly AmbientBotPoint2d[];
   targetCampRadius?: number;
 }
@@ -139,9 +167,19 @@ function killRoute(
     ...(config.deferReadyWhileQuestIdsActive
       ? { deferReadyWhileQuestIdsActive: config.deferReadyWhileQuestIdsActive }
       : {}),
+    ...(config.skipAfterQuestIdsDone
+      ? { skipAfterQuestIdsDone: config.skipAfterQuestIdsDone }
+      : {}),
     ...(dungeonId ? { dungeonId } : {}),
     ...(suggestedPartySize ? { suggestedPartySize } : {}),
     ...(config.allowPartyLevelBonus === false ? { allowPartyLevelBonus: false } : {}),
+    ...(config.fullPartyLevelBonusOnly ? { fullPartyLevelBonusOnly: true } : {}),
+    ...(config.deferWhilePartyMemberBelowLevel !== undefined
+      ? { deferWhilePartyMemberBelowLevel: config.deferWhilePartyMemberBelowLevel }
+      : {}),
+    ...(config.deferActiveWhilePartyMemberBelowLevel !== undefined
+      ? { deferActiveWhilePartyMemberBelowLevel: config.deferActiveWhilePartyMemberBelowLevel }
+      : {}),
   };
 }
 
@@ -169,6 +207,7 @@ function collectRoute(
     turnInNpcTemplateId: config.turnInNpcTemplateId ?? giverNpcTemplateId,
     objectItemId,
     camps: config.camps ?? objectPointsFor(objectItemId),
+    ...(config.targetCampRadius !== undefined ? { targetCampRadius: config.targetCampRadius } : {}),
     pursueAtLevel,
     questObjectiveIndex: config.questObjectiveIndex,
     ...(config.acceptBeforeActiveQuestIds
@@ -177,9 +216,19 @@ function collectRoute(
     ...(config.deferReadyWhileQuestIdsActive
       ? { deferReadyWhileQuestIdsActive: config.deferReadyWhileQuestIdsActive }
       : {}),
+    ...(config.skipAfterQuestIdsDone
+      ? { skipAfterQuestIdsDone: config.skipAfterQuestIdsDone }
+      : {}),
     ...(config.dungeonId ? { dungeonId: config.dungeonId } : {}),
     ...(suggestedPartySize ? { suggestedPartySize } : {}),
     ...(config.allowPartyLevelBonus === false ? { allowPartyLevelBonus: false } : {}),
+    ...(config.fullPartyLevelBonusOnly ? { fullPartyLevelBonusOnly: true } : {}),
+    ...(config.deferWhilePartyMemberBelowLevel !== undefined
+      ? { deferWhilePartyMemberBelowLevel: config.deferWhilePartyMemberBelowLevel }
+      : {}),
+    ...(config.deferActiveWhilePartyMemberBelowLevel !== undefined
+      ? { deferActiveWhilePartyMemberBelowLevel: config.deferActiveWhilePartyMemberBelowLevel }
+      : {}),
   };
 }
 
@@ -192,20 +241,24 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
   }),
   killRoute('q_spiders', 'apothecary_lin', 'webwood_spider', 4, 'Collecting Webwood Silk'),
   killRoute('q_murlocs', 'fisherman_brandt', 'mudfin_murloc', 6, 'Driving back the Mudfin'),
-  collectRoute('q_supplies', 'trader_wilkes', 'supply_crate', 6, 'Recovering Stolen Supplies', { allowPartyLevelBonus: false }),
+  collectRoute('q_supplies', 'trader_wilkes', 'supply_crate', 6, 'Recovering Stolen Supplies', {
+    allowPartyLevelBonus: false,
+    camps: EASTBROOK_SAFE_SUPPLY_CRATE_CAMPS,
+    targetCampRadius: EASTBROOK_SAFE_SUPPLY_CRATE_TARGET_RADIUS,
+  }),
   killRoute('q_mine', 'foreman_odell', 'tunnel_rat', 6, 'Clearing Tunnel Rats', { allowPartyLevelBonus: false }),
   killRoute('q_greyjaw', 'marshal_redbrook', 'old_greyjaw', 5, 'Hunting Old Greyjaw', { allowPartyLevelBonus: false }),
   killRoute('q_bandits', 'marshal_redbrook', 'vale_bandit', 6, 'Breaking the Vale Bandits', { allowPartyLevelBonus: false }),
   killRoute('q_ringleader', 'marshal_redbrook', 'gorrak', 7, 'Hunting Gorrak the Ruthless', { allowPartyLevelBonus: false }),
   killRoute('q_bones', 'brother_aldric', 'restless_bones', 6, 'Laying Restless Bones to Rest', { allowPartyLevelBonus: false }),
-  collectRoute('q_whispers', 'brother_aldric', 'gravecaller_sigil', 6, "Searching for the Gravecaller's Sigil", { allowPartyLevelBonus: false }),
-  collectRoute('q_names_of_the_dead', 'brother_aldric', 'weathered_ledger_page', 6, 'Gathering Weathered Ledger Pages', { allowPartyLevelBonus: false }),
-  killRoute('q_silence_the_call', 'brother_aldric', 'restless_bones', 6, 'Silencing the Chapel Dead', { allowPartyLevelBonus: false }),
+  collectRoute('q_whispers', 'brother_aldric', 'gravecaller_sigil', 10, "Searching for the Gravecaller's Sigil", { allowPartyLevelBonus: false }),
+  collectRoute('q_names_of_the_dead', 'brother_aldric', 'weathered_ledger_page', 10, 'Gathering Weathered Ledger Pages', { allowPartyLevelBonus: false }),
+  killRoute('q_silence_the_call', 'brother_aldric', 'restless_bones', 10, 'Silencing the Chapel Dead', { allowPartyLevelBonus: false }),
   killRoute(
     'q_rite',
     'brother_aldric',
     'tunnel_rat',
-    6,
+    10,
     'Collecting Blessed Tallow',
     { activeObjectiveId: 'hunt_rite_blessed_wax', questObjectiveIndex: 0, allowPartyLevelBonus: false },
   ),
@@ -213,7 +266,7 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'q_rite',
     'brother_aldric',
     'restless_bones',
-    6,
+    10,
     'Collecting Ghostly Essence',
     { activeObjectiveId: 'hunt_rite_ghostly_essence', questObjectiveIndex: 1, allowPartyLevelBonus: false },
   ),
@@ -246,35 +299,56 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'lost_caravan_goods',
     7,
     'Salvaging the lost caravan',
+    {
+      camps: FENBRIDGE_SAFE_CARAVAN_GOODS_CAMPS,
+      targetCampRadius: FENBRIDGE_SAFE_CARAVAN_GOODS_TARGET_RADIUS,
+    },
   ),
   killRoute(
     'q_deepfen',
     'warden_fenwick',
     'deepfen_murloc',
-    7,
+    9,
     'Driving back the Deepfen snappers',
+    {
+      allowPartyLevelBonus: false,
+      camps: FENBRIDGE_SAFE_DEEPFEN_CAMPS,
+      targetCampRadius: FENBRIDGE_SAFE_DEEPFEN_TARGET_RADIUS,
+    },
   ),
   killRoute(
     'q_idols',
     'brother_aldric_fen',
     'deepfen_murloc',
-    7,
+    9,
     'Recovering Waterlogged Idols',
-    { activeObjectiveId: 'hunt_idols', questObjectiveIndex: 0 },
+    {
+      activeObjectiveId: 'hunt_idols',
+      questObjectiveIndex: 0,
+      allowPartyLevelBonus: false,
+      camps: FENBRIDGE_SAFE_DEEPFEN_CAMPS,
+      targetCampRadius: FENBRIDGE_SAFE_DEEPFEN_TARGET_RADIUS,
+    },
   ),
   killRoute(
     'q_deepfen_purge',
     'warden_fenwick',
     'deepfen_murloc',
-    7,
+    9,
     'Breaking the Deepfen dredge',
+    {
+      allowPartyLevelBonus: false,
+      camps: FENBRIDGE_SAFE_DEEPFEN_CAMPS,
+      targetCampRadius: FENBRIDGE_SAFE_DEEPFEN_TARGET_RADIUS,
+    },
   ),
   killRoute(
     'q_widows',
     'herbalist_yara',
     'mire_widow',
-    8,
+    9,
     'Clearing the Widow Thicket',
+    { allowPartyLevelBonus: false },
   ),
   killRoute(
     'q_broodmother',
@@ -298,7 +372,7 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'drowned_dead',
     13,
     'Laying the drowned dead to rest',
-    { allowPartyLevelBonus: false },
+    { allowPartyLevelBonus: false, skipAfterQuestIdsDone: ['q_highwatch_summons'] },
   ),
   collectRoute(
     'q_drowned_censers',
@@ -306,7 +380,7 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'rusted_censer',
     13,
     'Recovering Rusted Censers',
-    { allowPartyLevelBonus: false },
+    { allowPartyLevelBonus: false, skipAfterQuestIdsDone: ['q_highwatch_summons'] },
   ),
   killRoute(
     'q_no_rest',
@@ -314,7 +388,7 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'drowned_dead',
     13,
     'Driving the drowned from the reeds',
-    { allowPartyLevelBonus: false },
+    { allowPartyLevelBonus: false, skipAfterQuestIdsDone: ['q_highwatch_summons'] },
   ),
   killRoute(
     'q_trolls',
@@ -343,7 +417,7 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'gravecaller_cultist',
     12,
     'Breaking the cult camp in the reeds',
-    { allowPartyLevelBonus: false },
+    { fullPartyLevelBonusOnly: true },
   ),
   killRoute(
     'q_summoners',
@@ -384,24 +458,30 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'q_olen',
     'scout_maren',
     'knight_commander_olen',
-    12,
+    15,
     'Laying Knight-Commander Olen to rest',
     {
       dungeonId: 'sunken_bastion',
       suggestedPartySize: 5,
       acceptBeforeActiveQuestIds: ['q_mistcaller'],
       deferReadyWhileQuestIdsActive: ['q_mistcaller'],
+      allowPartyLevelBonus: false,
+      skipAfterQuestIdsDone: ['q_highwatch_summons'],
+      deferActiveWhilePartyMemberBelowLevel: 16,
     },
   ),
   killRoute(
     'q_mistcaller',
     'brother_aldric_fen',
     'vael_the_mistcaller',
-    12,
+    15,
     'Hunting Vael the Mistcaller',
     {
       dungeonId: 'sunken_bastion',
       suggestedPartySize: 5,
+      allowPartyLevelBonus: false,
+      skipAfterQuestIdsDone: ['q_highwatch_summons'],
+      deferActiveWhilePartyMemberBelowLevel: 16,
     },
   ),
   collectRoute(
@@ -410,7 +490,7 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'highwatch_summons',
     13,
     'Carrying Aldric\'s summons to Highwatch',
-    { turnInNpcTemplateId: 'captain_thessaly', allowPartyLevelBonus: false },
+    { turnInNpcTemplateId: 'captain_thessaly', fullPartyLevelBonusOnly: true },
   ),
   killRoute(
     'q_stalkers',
@@ -438,6 +518,7 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'deeprock_kobold',
     14,
     'Clearing Deeprock Tunnelers',
+    { allowPartyLevelBonus: false, deferWhilePartyMemberBelowLevel: 15 },
   ),
   killRoute(
     'q_glowing_wax',
@@ -445,7 +526,7 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'deeprock_kobold',
     14,
     'Collecting Glowing Wax',
-    { questObjectiveIndex: 0 },
+    { questObjectiveIndex: 0, allowPartyLevelBonus: false, deferWhilePartyMemberBelowLevel: 15 },
   ),
   killRoute(
     'q_ogre_edges',
@@ -493,7 +574,7 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'shardlord_kazzix',
     17,
     'Hunting Shardlord Kazzix',
-    { questObjectiveIndex: 0 },
+    { questObjectiveIndex: 0, deferActiveWhilePartyMemberBelowLevel: 18 },
   ),
   killRoute(
     'q_zealots',

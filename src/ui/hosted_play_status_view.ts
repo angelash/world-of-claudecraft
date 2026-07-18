@@ -1,6 +1,13 @@
-import type { HostedPlayStatus } from '../net/online';
 import { isHostedPlayAutoInviteTargetPartySize } from '../hosted_play_settings';
 import type { HostedPlayStatusView } from './hosted_play_panel';
+
+export type HostedPlayStatusInput = Omit<
+  HostedPlayStatusView,
+  'autoInviteNearbyPlayers' | 'autoInviteNearbyTargetPartySize'
+> & {
+  autoInviteNearbyPlayers?: unknown;
+  autoInviteNearbyTargetPartySize?: unknown;
+};
 
 export class HostedPlayCompatibilityError extends Error {
   constructor() {
@@ -9,19 +16,19 @@ export class HostedPlayCompatibilityError extends Error {
   }
 }
 
-function requireHostedPlayAutoInviteSetting(status: HostedPlayStatus): boolean {
+function requireHostedPlayAutoInviteSetting(status: HostedPlayStatusInput): boolean {
   if (typeof status.autoInviteNearbyPlayers === 'boolean') return status.autoInviteNearbyPlayers;
   throw new HostedPlayCompatibilityError();
 }
 
-function requireHostedPlayAutoInviteTargetPartySize(status: HostedPlayStatus): number {
+function requireHostedPlayAutoInviteTargetPartySize(status: HostedPlayStatusInput): number {
   if (isHostedPlayAutoInviteTargetPartySize(status.autoInviteNearbyTargetPartySize)) {
     return status.autoInviteNearbyTargetPartySize;
   }
   throw new HostedPlayCompatibilityError();
 }
 
-export function hostedPlayStatusView(status: HostedPlayStatus): HostedPlayStatusView {
+export function hostedPlayStatusView(status: HostedPlayStatusInput): HostedPlayStatusView {
   return {
     online: status.online,
     enabled: status.enabled,

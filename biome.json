@@ -3,7 +3,8 @@
   "vcs": {
     "enabled": true,
     "clientKind": "git",
-    "useIgnoreFile": true
+    "useIgnoreFile": true,
+    "defaultBranch": "origin/main"
   },
   "files": {
     "includes": [
@@ -15,8 +16,13 @@
       "!**/*.generated.ts",
       "!src/ui/i18n.resolved.generated",
       "!src/admin/i18n.resolved.generated",
-      "!src/ui/i18n.status.summary.json",
-      "!**/*.min.js"
+      "!tests/parity/golden",
+      "!tests/server/fixtures",
+      "!**/*.svelte",
+      "!**/*.min.js",
+      "!docs/design/professions-system",
+      "!docs/design/professions-system.html",
+      "!ip-refactor"
     ]
   },
   "formatter": {
@@ -42,12 +48,34 @@
   },
   "overrides": [
     {
-      "includes": ["index.html", "play.html"],
+      "includes": ["index.html", "play.html", "guide.html"],
       "formatter": {
         "enabled": false
       },
       "linter": {
         "enabled": false
+      }
+    },
+    {
+      "includes": ["src/sim/content/talents_warrior.ts"],
+      "formatter": {
+        "enabled": false
+      },
+      "assist": {
+        "enabled": false
+      }
+    },
+    {
+      "includes": ["src/styles/**"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noImportantStyles": "off"
+          },
+          "style": {
+            "noDescendingSpecificity": "off"
+          }
+        }
       }
     },
     {

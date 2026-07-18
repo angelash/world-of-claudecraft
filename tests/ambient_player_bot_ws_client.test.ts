@@ -96,10 +96,14 @@ describe('ambient player bot ws client helpers', () => {
     const previous = new Map<number, Record<string, unknown>>([
       [5, { id: 5, k: 'player', nm: 'Alice', lv: 2, c: 'warrior' }],
       [8, { id: 8, nm: 'QuestGiver', k: 'npc' }],
+      [9, { id: 9, k: 'object', obj: 'supply_crate', loot: 0 }],
     ]);
 
     const next = mergeEntities(previous, {
-      ents: [{ id: 5, x: 10, z: 12 }],
+      ents: [
+        { id: 5, x: 10, z: 12 },
+        { id: 9, x: 4, z: 6, loot: 1 },
+      ],
       keep: [8],
     });
 
@@ -113,6 +117,14 @@ describe('ambient player bot ws client helpers', () => {
       z: 12,
     });
     expect(next.get(8)).toEqual({ id: 8, nm: 'QuestGiver', k: 'npc' });
+    expect(next.get(9)).toEqual({
+      id: 9,
+      k: 'object',
+      obj: 'supply_crate',
+      x: 4,
+      z: 6,
+      loot: 1,
+    });
   });
 
   it('tracks social snapshots, social position deltas, and queued events from the live ws stream', async () => {

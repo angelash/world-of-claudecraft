@@ -1244,7 +1244,7 @@ describe('AI active trigger service', () => {
         speech: expect.objectContaining({
           mode: 'dynamicText',
           language: 'en',
-          text: 'Sniffs once.',
+          text: 'Sniffs once. Fire.',
         }),
         source: 'codex',
         pid,

@@ -10,9 +10,10 @@ import {
 const expectedFamilies: MobFamily[] = [
   'beast',
   'humanoid',
-  'murloc',
+  'mudfin',
   'spider',
-  'kobold',
+  'burrower',
+  'reptile',
   'undead',
   'troll',
   'ogre',

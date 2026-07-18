@@ -42,9 +42,10 @@ export interface CompactFamilySemantics {
 export const MOB_FAMILIES: readonly MobFamily[] = [
   'beast',
   'humanoid',
-  'murloc',
+  'mudfin',
   'spider',
-  'kobold',
+  'burrower',
+  'reptile',
   'undead',
   'troll',
   'ogre',
@@ -82,9 +83,9 @@ export const FAMILY_SEMANTICS: Record<MobFamily, FamilySemantics> = {
     speechStyle: 'Judge value, danger, status, and social consequence.',
     moodBias: { fear: 0.45, curiosity: 0.55, hunger: 0.25, territory: 0.4, reverence: 0.25, disgust: 0.35, fatigue: 0.35 },
   },
-  murloc: {
-    family: 'murloc',
-    familyName: 'Murloc',
+  mudfin: {
+    family: 'mudfin',
+    familyName: 'Mudfin',
     baseInstincts: ['shallowWaterSafety', 'fishSmell', 'tribeAlarm', 'wetMud'],
     sceneAmplifiers: ['lake', 'rain', 'moonlitWater', 'shore', 'fish'],
     sceneSuppressors: ['dryHighland', 'fire', 'forge', 'brightLight', 'isolation'],
@@ -108,9 +109,9 @@ export const FAMILY_SEMANTICS: Record<MobFamily, FamilySemantics> = {
     speechStyle: 'Predatory stillness and small movements matter more than words.',
     moodBias: { fear: 0.25, curiosity: 0.5, hunger: 0.6, territory: 0.65, reverence: 0.05, disgust: 0.2, fatigue: 0.1 },
   },
-  kobold: {
-    family: 'kobold',
-    familyName: 'Kobold',
+  burrower: {
+    family: 'burrower',
+    familyName: 'Burrower',
     baseInstincts: ['darkness', 'candle', 'smallGreed', 'mining', 'cowardice'],
     sceneAmplifiers: ['mine', 'candle', 'narrowTunnel', 'metal', 'stone'],
     sceneSuppressors: ['openField', 'lostCandle', 'guardPost', 'floodedTunnel'],
@@ -120,6 +121,19 @@ export const FAMILY_SEMANTICS: Record<MobFamily, FamilySemantics> = {
     visibleBehaviors: ['clutchCandle', 'snatchSmallObject', 'squeal', 'hideBehindAlly'],
     speechStyle: 'Nervous, acquisitive, and quick to blame the dark.',
     moodBias: { fear: 0.7, curiosity: 0.55, hunger: 0.2, territory: 0.35, reverence: 0.2, disgust: 0.25, fatigue: 0.3 },
+  },
+  reptile: {
+    family: 'reptile',
+    familyName: 'Reptile',
+    baseInstincts: ['warmth', 'stillness', 'territory', 'hunger'],
+    sceneAmplifiers: ['sunlitStone', 'marsh', 'shallowWater', 'preyScent'],
+    sceneSuppressors: ['cold', 'strongWind', 'deepShadow', 'undeadPressure'],
+    attractedItemTags: ['food', 'meat', 'fish', 'warm', 'water'],
+    avoidedItemTags: ['cold', 'undead', 'cursed', 'heavyTremor'],
+    likelyIntents: ['lookAt', 'approachObject', 'avoidObject', 'inspectObject', 'pause'],
+    visibleBehaviors: ['holdStill', 'tasteAir', 'bask', 'lunge', 'backAway'],
+    speechStyle: 'Use watchful stillness, heat, scent, and sudden movement more than explanation.',
+    moodBias: { fear: 0.3, curiosity: 0.45, hunger: 0.65, territory: 0.65, reverence: 0.05, disgust: 0.15, fatigue: 0.2 },
   },
   undead: {
     family: 'undead',
@@ -216,7 +230,7 @@ const FAMILY_SPEECH_FINGERPRINTS = {
     sensoryBias: ['coin sound', 'camp smoke', 'boot mud', 'watchful eyes'],
     avoidedPhrases: ['to summarize', 'in conclusion', 'my recommendation'],
   },
-  murloc: {
+  mudfin: {
     sentenceRhythm: 'wet alarm burst, repeated sound, sudden body movement',
     addressStyle: 'rarely addresses directly; reacts as a small tribe around water',
     favoriteStarts: ['Grrlgl', 'Splashes closer', 'Tilts its head'],
@@ -230,12 +244,19 @@ const FAMILY_SPEECH_FINGERPRINTS = {
     sensoryBias: ['thread tension', 'warm blood', 'footfall tremor', 'shadow'],
     avoidedPhrases: ['I would recommend', 'this means', 'from this we can see'],
   },
-  kobold: {
+  burrower: {
     sentenceRhythm: 'nervous grabby speech, candle panic, short blame or bargaining phrase',
     addressStyle: 'uses you, mine, or no address; fear and possession dominate',
     favoriteStarts: ['No take candle', 'Mine first', 'Too bright'],
     sensoryBias: ['candle smoke', 'stone dust', 'shiny metal', 'dark corners'],
     avoidedPhrases: ['overall', 'clearly indicates', 'my recommendation'],
+  },
+  reptile: {
+    sentenceRhythm: 'long watchful pause, a scent or heat cue, then sudden movement',
+    addressStyle: 'does not address politely; measures warmth, prey, and territorial pressure',
+    favoriteStarts: ['Tastes the air', 'Basks without blinking', 'The scales tighten'],
+    sensoryBias: ['warm stone', 'prey scent', 'shallow water', 'ground vibration'],
+    avoidedPhrases: ['I would suggest', 'overall', 'this indicates'],
   },
   undead: {
     sentenceRhythm: 'cold fragments, unfinished memory, one pull toward life or grave',

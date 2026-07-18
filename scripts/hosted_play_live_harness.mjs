@@ -218,7 +218,11 @@ class Client {
     this.username = `hosted_${runId}_${this.label.toLowerCase()}`;
     const registered = await api('/api/register', {
       method: 'POST',
-      body: JSON.stringify({ username: this.username, password: DEFAULT_PASSWORD }),
+      body: JSON.stringify({
+        username: this.username,
+        password: DEFAULT_PASSWORD,
+        email: `${this.username}@hosted.invalid`,
+      }),
     });
     if (registered.status !== 200 || !registered.body.token) {
       throw new Error(`register failed for ${this.label}: ${registered.status} ${registered.body.error ?? ''}`);
@@ -652,6 +656,7 @@ function summarizeStatus(client, status) {
     partySize: partySize(client),
     partyMembers: partyMembers(client).map((member) => member.name ?? String(member.pid ?? 'unknown')),
     qlog: client.self?.qlog?.length ?? 0,
+    qlogDetails: summarizeQuestLog(client.self?.qlog),
     qdone: client.self?.qdone?.length ?? 0,
     hosted: {
       mode: status.mode,
@@ -684,6 +689,17 @@ function summarizeSupplies(inventory) {
     else if (POTION_ITEM_IDS.has(itemId)) counts.potion += count;
   }
   return counts;
+}
+
+function summarizeQuestLog(questLog) {
+  if (!Array.isArray(questLog)) return [];
+  return questLog.map((quest) => ({
+    questId: typeof quest?.questId === 'string' ? quest.questId : '',
+    state: typeof quest?.state === 'string' ? quest.state : '',
+    counts: Array.isArray(quest?.counts)
+      ? quest.counts.map((count) => Number.isFinite(count) ? count : 0)
+      : [],
+  }));
 }
 
 function countPartyThreats(client) {

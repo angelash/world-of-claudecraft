@@ -11,6 +11,10 @@ vi.mock('../server/db', () => ({
   grantAccountMechChroma: vi.fn(async () => ({ completedQuestIds: [], mechChromaIds: [] })),
   revokeAccountMechChroma: vi.fn(async () => ({ completedQuestIds: [], mechChromaIds: [] })),
   walletForAccount: vi.fn(async () => null),
+  touchCharacterLogin: vi.fn(async () => {}),
+  heartbeatCharacterLeases: vi.fn(async () => {}),
+  saveMailState: vi.fn(async () => {}),
+  loadAccountFlair: vi.fn(async () => ({ ai: false, streamer: false, links: {} })),
 }));
 
 import { GameServer, type ClientSession } from '../server/game';

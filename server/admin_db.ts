@@ -1,5 +1,13 @@
-import { pool } from './db';
+import type { QueryResult } from 'pg';
+import { normalizeAccountFlair, type StreamerLinks } from '../src/sim/account_flair';
+import { DB_HEAVY_STATEMENT_TIMEOUT_MS, pool, runWithStatementTimeout } from './db';
 import { REALM } from './realm';
+
+// The bound query runWithStatementTimeout hands its callback: one client, one
+// transaction, the raised statement timeout in force. Threading it into a private
+// read helper lets that helper run under the raised allowance without opening its
+// own transaction.
+type BoundQuery = (text: string, values?: unknown[]) => Promise<QueryResult>;
 
 // Read-side queries for the admin dashboard. All inputs are parameterized;
 // sort columns are whitelisted before they reach SQL.
@@ -22,8 +30,13 @@ export interface OverviewCounts {
 }
 
 export async function overviewCounts(): Promise<OverviewCounts> {
-  const res = await pool.query(
-    `
+  // A big multi-subquery aggregate over accounts / characters / play_sessions,
+  // driven on an interval by the business-metrics PeriodicCollector: run it on the
+  // raised allowance so a growing play_sessions table cannot trip the default
+  // statement timeout.
+  const res = await runWithStatementTimeout(DB_HEAVY_STATEMENT_TIMEOUT_MS, (query) =>
+    query(
+      `
     SELECT
       (SELECT count(*) FROM accounts)::int                                               AS accounts,
       (SELECT count(*) FROM characters)::int                                             AS characters,
@@ -53,7 +66,8 @@ export async function overviewCounts(): Promise<OverviewCounts> {
       (SELECT count(*) FROM site_presence_sessions
         WHERE last_seen_at > now() - interval '2 minutes')::int AS site_users_now
   `,
-    [REALM],
+      [REALM],
+    ),
   );
   const r = res.rows[0];
   return {
@@ -98,16 +112,21 @@ export interface SessionDayPoint {
 }
 
 export async function sessionsByDay(days: number): Promise<SessionDayPoint[]> {
-  const res = await pool.query(
-    `SELECT
-       to_char(date_trunc('day', started_at), 'YYYY-MM-DD') AS day,
-       count(*)::int AS sessions,
-       count(DISTINCT account_id)::int AS unique_accounts,
-       COALESCE(sum(EXTRACT(EPOCH FROM (COALESCE(ended_at, now()) - started_at))), 0)::bigint AS playtime_seconds
-     FROM play_sessions
-     WHERE started_at > now() - ($1 || ' days')::interval
-     GROUP BY 1 ORDER BY 1`,
-    [String(days)],
+  // A grouped scan over play_sessions on an admin-triggered read; run it on the
+  // raised allowance so a growing play_sessions table cannot trip the default
+  // statement timeout.
+  const res = await runWithStatementTimeout(DB_HEAVY_STATEMENT_TIMEOUT_MS, (query) =>
+    query(
+      `SELECT
+         to_char(date_trunc('day', started_at), 'YYYY-MM-DD') AS day,
+         count(*)::int AS sessions,
+         count(DISTINCT account_id)::int AS unique_accounts,
+         COALESCE(sum(EXTRACT(EPOCH FROM (COALESCE(ended_at, now()) - started_at))), 0)::bigint AS playtime_seconds
+       FROM play_sessions
+       WHERE started_at > now() - ($1 || ' days')::interval
+       GROUP BY 1 ORDER BY 1`,
+      [String(days)],
+    ),
   );
   return res.rows.map((r) => ({
     day: r.day,
@@ -361,8 +380,8 @@ function perfAggregateFromRow(r: Record<string, unknown>): PerfAggregate {
   };
 }
 
-async function perfAggregate(hours: number): Promise<PerfAggregate> {
-  const res = await pool.query(
+async function perfAggregate(query: BoundQuery, hours: number): Promise<PerfAggregate> {
+  const res = await query(
     `SELECT
        count(*)::int AS sample_count,
        COALESCE(percentile_cont(0.5) WITHIN GROUP (ORDER BY fps_avg), 0)::real AS median_fps,
@@ -379,13 +398,14 @@ async function perfAggregate(hours: number): Promise<PerfAggregate> {
 }
 
 async function perfBuckets(
+  query: BoundQuery,
   column: string,
   hours: number,
   limit: number,
   worstFirst = false,
 ): Promise<PerfBucket[]> {
   const order = worstFirst ? 'p95_frame_ms DESC, sample_count DESC' : 'sample_count DESC, key ASC';
-  const res = await pool.query(
+  const res = await query(
     `SELECT
        ${column} AS key,
        count(*)::int AS sample_count,
@@ -407,17 +427,22 @@ async function perfBuckets(
 
 export async function clientPerfSummary(hoursInput = 24): Promise<PerfSummary> {
   const hours = cleanHours(hoursInput);
-  const [totals, byPreset, byGpu, byBrowser, byOs, byScenario, worstGpuBuckets] = await Promise.all(
-    [
-      perfAggregate(hours),
-      perfBuckets('graphics_preset', hours, 20),
-      perfBuckets('gl_renderer_bucket', hours, 50),
-      perfBuckets('browser_family', hours, 20),
-      perfBuckets('os_family', hours, 20),
-      perfBuckets('zone_or_scenario', hours, 30),
-      perfBuckets('gl_renderer_bucket', hours, 20, true),
-    ],
-  );
+  // Seven aggregate scans over client_perf_reports on an admin-triggered read; run
+  // them in ONE raised-timeout transaction (threading the bound query through the
+  // helpers) so a large table cannot trip the default statement timeout on any of
+  // them and the whole read holds a single pooled client instead of seven.
+  const [totals, byPreset, byGpu, byBrowser, byOs, byScenario, worstGpuBuckets] =
+    await runWithStatementTimeout(DB_HEAVY_STATEMENT_TIMEOUT_MS, (query) =>
+      Promise.all([
+        perfAggregate(query, hours),
+        perfBuckets(query, 'graphics_preset', hours, 20),
+        perfBuckets(query, 'gl_renderer_bucket', hours, 50),
+        perfBuckets(query, 'browser_family', hours, 20),
+        perfBuckets(query, 'os_family', hours, 20),
+        perfBuckets(query, 'zone_or_scenario', hours, 30),
+        perfBuckets(query, 'gl_renderer_bucket', hours, 20, true),
+      ]),
+    );
   return {
     hours,
     generatedAt: new Date().toISOString(),
@@ -515,6 +540,10 @@ export interface AdminAccountRow {
   characterCount: number;
   maxLevel: number;
   playtimeSeconds: number;
+  // Operator-set account flair. The list carries only the two flags (the links
+  // themselves ride the detail response, where the edit form reads them).
+  isAi: boolean;
+  isStreamer: boolean;
 }
 
 export interface Paginated<T> {
@@ -522,6 +551,195 @@ export interface Paginated<T> {
   total: number;
   page: number;
   limit: number;
+}
+
+export interface IpAssociationCharacter {
+  characterId: number | null;
+  characterName: string;
+  realm: string | null;
+  lastSeenAt: string;
+  sessionCount: number;
+}
+
+export interface IpAssociationAccount {
+  accountId: number;
+  username: string;
+  isAdmin: boolean;
+  status: 'active' | 'suspended' | 'banned';
+  suspendedUntil: string | null;
+  createdAt: string;
+  createdWithIp: boolean;
+  lastLoginWithIp: boolean;
+  hasSession: boolean;
+  lastSeenAt: string;
+  characters: IpAssociationCharacter[];
+}
+
+export interface IpAssociations {
+  ip: string;
+  accounts: IpAssociationAccount[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface SharedIpRow {
+  ip: string;
+  accountCount: number;
+  lastSeenAt: string;
+}
+
+export type SharedIpSort = 'accounts' | 'last_seen';
+export type SharedIpSortDirection = 'asc' | 'desc';
+
+export async function listSharedIps(
+  page: number,
+  limit: number,
+  sort: SharedIpSort = 'accounts',
+  dir: SharedIpSortDirection = 'desc',
+): Promise<Paginated<SharedIpRow>> {
+  const offset = (page - 1) * limit;
+  const result = await pool.query(
+    `WITH account_ip_events AS (
+       SELECT id AS account_id, created_ip AS ip, created_at AS seen_at
+       FROM accounts
+       WHERE created_ip IS NOT NULL AND created_ip <> ''
+       UNION ALL
+       SELECT id AS account_id, last_login_ip AS ip,
+              COALESCE(last_login, created_at) AS seen_at
+       FROM accounts
+       WHERE last_login_ip IS NOT NULL AND last_login_ip <> ''
+       UNION ALL
+       SELECT account_id, ip_address AS ip, max(started_at) AS seen_at
+       FROM play_sessions
+       WHERE ip_address IS NOT NULL AND ip_address <> ''
+       GROUP BY account_id, ip_address
+     ),
+     shared AS (
+       SELECT ip,
+              count(DISTINCT account_id)::int AS account_count,
+              max(seen_at) AS last_seen_at
+       FROM account_ip_events
+       GROUP BY ip
+       HAVING count(DISTINCT account_id) > 1
+     )
+     SELECT *, count(*) OVER ()::int AS total
+     FROM shared
+     ORDER BY
+       CASE WHEN $3 = 'last_seen' AND $4 = 'asc' THEN last_seen_at END ASC,
+       CASE WHEN $3 = 'last_seen' AND $4 = 'desc' THEN last_seen_at END DESC,
+       CASE WHEN $3 = 'accounts' AND $4 = 'asc' THEN account_count END ASC,
+       CASE WHEN $3 = 'accounts' AND $4 = 'desc' THEN account_count END DESC,
+       CASE WHEN $3 = 'last_seen' THEN account_count END DESC,
+       last_seen_at DESC,
+       ip
+     LIMIT $1 OFFSET $2`,
+    [limit, offset, sort, dir],
+  );
+  return {
+    rows: result.rows.map((row) => ({
+      ip: row.ip,
+      accountCount: Number(row.account_count),
+      lastSeenAt: row.last_seen_at,
+    })),
+    total: Number(result.rows[0]?.total ?? 0),
+    page,
+    limit,
+  };
+}
+
+export async function associationsForIp(
+  ip: string,
+  page: number,
+  limit: number,
+): Promise<IpAssociations> {
+  const offset = (page - 1) * limit;
+  const accounts = await pool.query(
+    `WITH session_matches AS (
+       SELECT account_id, max(started_at) AS latest_session_at
+       FROM play_sessions
+       WHERE ip_address = $1
+       GROUP BY account_id
+     ),
+     matched AS (
+       SELECT a.id, a.username, a.is_admin, a.created_at, a.suspended_until,
+              CASE
+                WHEN a.banned_at IS NOT NULL THEN 'banned'
+                WHEN a.suspended_until > now() THEN 'suspended'
+                ELSE 'active'
+              END AS status,
+              COALESCE(a.created_ip = $1, false) AS created_with_ip,
+              COALESCE(a.last_login_ip = $1, false) AS last_login_with_ip,
+              sm.latest_session_at,
+              GREATEST(
+                CASE WHEN a.created_ip = $1 THEN a.created_at ELSE '-infinity'::timestamptz END,
+                CASE WHEN a.last_login_ip = $1
+                  THEN COALESCE(a.last_login, a.created_at)
+                  ELSE '-infinity'::timestamptz
+                END,
+                COALESCE(sm.latest_session_at, '-infinity'::timestamptz)
+              ) AS last_seen_at
+       FROM accounts a
+       LEFT JOIN session_matches sm ON sm.account_id = a.id
+       WHERE a.created_ip = $1 OR a.last_login_ip = $1 OR sm.account_id IS NOT NULL
+     )
+     SELECT *, count(*) OVER ()::int AS total
+     FROM matched
+     ORDER BY last_seen_at DESC, id DESC
+     LIMIT $2 OFFSET $3`,
+    [ip, limit, offset],
+  );
+
+  const accountIds = accounts.rows.map((row) => Number(row.id));
+  const characters =
+    accountIds.length === 0
+      ? { rows: [] }
+      : await pool.query(
+          `SELECT ps.account_id, ps.character_id,
+                  COALESCE(c.name, ps.character_name) AS character_name, c.realm,
+                  max(ps.started_at) AS last_seen_at,
+                  count(*)::int AS session_count
+           FROM play_sessions ps
+           LEFT JOIN characters c ON c.id = ps.character_id
+           WHERE ps.ip_address = $1 AND ps.account_id = ANY($2::int[])
+           GROUP BY ps.account_id, ps.character_id, COALESCE(c.name, ps.character_name), c.realm
+           ORDER BY ps.account_id, last_seen_at DESC, character_name`,
+          [ip, accountIds],
+        );
+
+  const charactersByAccount = new Map<number, IpAssociationCharacter[]>();
+  for (const row of characters.rows) {
+    const accountId = Number(row.account_id);
+    const list = charactersByAccount.get(accountId) ?? [];
+    list.push({
+      characterId: row.character_id === null ? null : Number(row.character_id),
+      characterName: row.character_name,
+      realm: row.realm ?? null,
+      lastSeenAt: row.last_seen_at,
+      sessionCount: Number(row.session_count),
+    });
+    charactersByAccount.set(accountId, list);
+  }
+
+  return {
+    ip,
+    accounts: accounts.rows.map((row) => ({
+      accountId: Number(row.id),
+      username: row.username,
+      isAdmin: row.is_admin,
+      status: row.status,
+      suspendedUntil: row.suspended_until ?? null,
+      createdAt: row.created_at,
+      createdWithIp: row.created_with_ip,
+      lastLoginWithIp: row.last_login_with_ip,
+      hasSession: row.latest_session_at !== null,
+      lastSeenAt: row.last_seen_at,
+      characters: charactersByAccount.get(Number(row.id)) ?? [],
+    })),
+    total: Number(accounts.rows[0]?.total ?? 0),
+    page,
+    limit,
+  };
 }
 
 export async function listAccounts(
@@ -534,7 +752,7 @@ export async function listAccounts(
   const [rows, total] = await Promise.all([
     pool.query(
       `SELECT a.id, a.username, a.created_at, a.last_login, a.is_admin,
-              a.banned_at, a.suspended_until,
+              a.banned_at, a.suspended_until, a.is_ai, a.is_streamer,
               count(c.id)::int AS character_count,
               COALESCE(max(c.level), 0)::int AS max_level,
               COALESCE((SELECT sum(EXTRACT(EPOCH FROM (COALESCE(s.ended_at, now()) - s.started_at)))
@@ -561,6 +779,8 @@ export async function listAccounts(
       characterCount: r.character_count,
       maxLevel: r.max_level,
       playtimeSeconds: Number(r.playtime_seconds),
+      isAi: r.is_ai === true,
+      isStreamer: r.is_streamer === true,
     })),
     total: total.rows[0].total,
     page,
@@ -591,11 +811,13 @@ const CHARACTER_SORT_COLUMNS: Record<string, string> = {
 };
 
 export async function listCharacters(
+  search: string,
   sort: string,
   dir: 'asc' | 'desc',
   page: number,
   limit: number,
 ): Promise<Paginated<AdminCharacterRow>> {
+  const pattern = search ? `%${escapeLike(search)}%` : '%';
   const column = CHARACTER_SORT_COLUMNS[sort] ?? 'c.level';
   const direction = dir === 'asc' ? 'ASC' : 'DESC';
   const offset = (page - 1) * limit;
@@ -607,11 +829,17 @@ export async function listCharacters(
               c.created_at, c.updated_at
        FROM characters c
        JOIN accounts a ON a.id = c.account_id
+       WHERE c.name ILIKE $1
        ORDER BY ${column} ${direction}, c.id
-       LIMIT $1 OFFSET $2`,
-      [limit, offset],
+       LIMIT $2 OFFSET $3`,
+      [pattern, limit, offset],
     ),
-    pool.query(`SELECT count(*)::int AS total FROM characters`),
+    pool.query(
+      `SELECT count(*)::int AS total
+       FROM characters c
+       WHERE c.name ILIKE $1`,
+      [pattern],
+    ),
   ]);
   return {
     rows: rows.rows.map((r) => ({
@@ -644,6 +872,15 @@ export interface AccountDetail {
   chatMutedUntil: string | null;
   chatMuteReason: string;
   chatStrikes: number;
+  // Operator-set account flair, as the dashboard's edit form needs to read it back:
+  // the two flags plus the stored links. The links are re-normalized on the way out
+  // (normalizeAccountFlair), so a value that could not survive the write gate is not
+  // echoed to the dashboard either.
+  isAi: boolean;
+  isStreamer: boolean;
+  streamerLinks: StreamerLinks;
+  dailyRewardsBan?: { reason: string; createdAt: string; expiresAt: string | null } | null;
+  dailyRewardsIpBans?: { ip: string; reason: string; createdAt: string }[];
   lastLoginIp: string | null;
   playtimeSeconds: number;
   characters: {
@@ -665,21 +902,256 @@ export interface AccountDetail {
     seconds: number;
     ip: string | null;
   }[];
+  moderationHistory: {
+    id: number;
+    action: string;
+    reason: string;
+    createdAt: string;
+    expiresAt: string | null;
+    adminAccountId: number | null;
+    adminUsername: string | null;
+  }[];
+}
+
+export interface DailyRewardPointEventRow {
+  id: number;
+  createdAt: string;
+  kind: string;
+  points: number;
+  totalPoints: number;
+  meta: Record<string, unknown>;
+}
+
+export interface DailyRewardPointEventLog {
+  day: string;
+  rows: DailyRewardPointEventRow[];
+  total: number;
+  truncated: boolean;
+}
+
+const DAILY_REWARD_POINT_EVENT_LIMIT_MAX = 250;
+
+const DAILY_REWARD_EVENT_META_KEYS = [
+  'baseClearPoints',
+  'basePoints',
+  'bonusType',
+  'bountifulMultiplier',
+  'bracket',
+  'chestBasePoints',
+  'chestTier',
+  'delveId',
+  'format',
+  'matchType',
+  'multiplier',
+  'onlineMinutes',
+  'outcome',
+  'questId',
+  'repeatIndex',
+  'taskId',
+  'taskType',
+  'tierId',
+  'tierMultiplier',
+  'won',
+] as const;
+
+function eventMeta(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const source = value as Record<string, unknown>;
+  const safe: Record<string, unknown> = {};
+  for (const key of DAILY_REWARD_EVENT_META_KEYS) {
+    const entry = source[key];
+    if (typeof entry === 'string' || typeof entry === 'number' || typeof entry === 'boolean') {
+      safe[key] = entry;
+    }
+  }
+  return safe;
+}
+
+export async function dailyRewardPointEvents(
+  accountId: number,
+  day: string,
+  limit = 100,
+): Promise<DailyRewardPointEventLog> {
+  const requestedLimit = Number.isFinite(limit) ? Math.floor(limit) : 100;
+  const safeLimit = Math.max(1, Math.min(DAILY_REWARD_POINT_EVENT_LIMIT_MAX, requestedLimit));
+  const result = await pool.query(
+    `SELECT id, created_at, kind, points, meta, total_points, total_events
+       FROM (
+         SELECT id, created_at, kind, points, meta,
+                SUM(points) OVER (
+                  ORDER BY created_at DESC, id DESC
+                  ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
+                ) AS total_points,
+                COUNT(*) OVER () AS total_events
+           FROM daily_reward_events
+          WHERE account_id = $1
+            AND day = $2
+            AND realm = $3
+            AND points > 0
+       ) events
+      ORDER BY created_at DESC, id DESC
+      LIMIT $4`,
+    [accountId, day, REALM, safeLimit],
+  );
+  const total = Number(result.rows[0]?.total_events ?? 0);
+  return {
+    day,
+    rows: result.rows.map((row) => ({
+      id: Number(row.id),
+      createdAt: row.created_at,
+      kind: String(row.kind),
+      points: Number(row.points),
+      totalPoints: Number(row.total_points),
+      meta: eventMeta(row.meta),
+    })),
+    total,
+    truncated: total > result.rows.length,
+  };
+}
+
+export type ModerationHistoryTab = 'all' | 'mine' | 'notes';
+
+export interface ModerationActionHistoryEntry {
+  source: 'account' | 'ip';
+  id: number;
+  accountId: number | null;
+  username: string | null;
+  ip: string | null;
+  action: string;
+  reason: string;
+  createdAt: string;
+  expiresAt: string | null;
+  adminAccountId: number | null;
+  adminUsername: string | null;
+}
+
+export interface ModerationActionHistoryPage {
+  rows: ModerationActionHistoryEntry[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export async function listModerationActions(
+  tab: ModerationHistoryTab,
+  adminAccountId: number,
+  page: number,
+  limit: number,
+): Promise<ModerationActionHistoryPage> {
+  const offset = (page - 1) * limit;
+  const params: unknown[] = [];
+  let accountWhereSql = '';
+  let ipWhereSql = '';
+  if (tab === 'mine') {
+    params.push(adminAccountId);
+    accountWhereSql = 'WHERE action_log.admin_account_id = $1';
+    ipWhereSql = 'WHERE ip_action.admin_account_id = $1';
+  } else if (tab === 'notes') {
+    params.push(adminAccountId);
+    accountWhereSql = "WHERE action_log.admin_account_id = $1 AND action_log.action = 'note'";
+    ipWhereSql = 'WHERE false';
+  }
+  const pageParams = [...params, limit, offset];
+  const limitParam = params.length + 1;
+  const offsetParam = params.length + 2;
+  const auditSql = `SELECT *
+       FROM (
+         SELECT 'account' AS source,
+                action_log.id,
+                action_log.account_id,
+                target.username,
+                NULL::text AS ip,
+                action_log.action,
+                action_log.reason,
+                action_log.created_at,
+                action_log.expires_at,
+                action_log.admin_account_id,
+                admin.username AS admin_username
+         FROM account_moderation_actions action_log
+         JOIN accounts target ON target.id = action_log.account_id
+         LEFT JOIN accounts admin ON admin.id = action_log.admin_account_id
+         ${accountWhereSql}
+         UNION ALL
+         SELECT 'ip' AS source,
+                ip_action.id,
+                NULL::int AS account_id,
+                NULL::text AS username,
+                ip_action.ip,
+                ip_action.action,
+                ip_action.reason,
+                ip_action.created_at,
+                NULL::timestamptz AS expires_at,
+                ip_action.admin_account_id,
+                admin.username AS admin_username
+         FROM blocked_ip_actions ip_action
+         LEFT JOIN accounts admin ON admin.id = ip_action.admin_account_id
+         ${ipWhereSql}
+       ) audit_log`;
+  const [rows, total] = await Promise.all([
+    pool.query(
+      `${auditSql}
+       ORDER BY created_at DESC, id DESC, source
+       LIMIT $${limitParam} OFFSET $${offsetParam}`,
+      pageParams,
+    ),
+    pool.query(
+      `SELECT count(*)::int AS total
+       FROM (${auditSql}) count_log`,
+      params,
+    ),
+  ]);
+  return {
+    rows: rows.rows.map((entry) => ({
+      source: entry.source,
+      id: Number(entry.id),
+      accountId: entry.account_id === null ? null : Number(entry.account_id),
+      username: entry.username ?? null,
+      ip: entry.ip ?? null,
+      action: entry.action,
+      reason: entry.reason,
+      createdAt: entry.created_at,
+      expiresAt: entry.expires_at ?? null,
+      adminAccountId: entry.admin_account_id === null ? null : Number(entry.admin_account_id),
+      adminUsername: entry.admin_username ?? null,
+    })),
+    total: Number(total.rows[0]?.total ?? 0),
+    page,
+    limit,
+  };
 }
 
 export async function accountDetail(accountId: number): Promise<AccountDetail | null> {
-  const [account, characters, sessions] = await Promise.all([
-    pool.query(
-      `SELECT id, username, created_at, last_login, is_admin, banned_at, suspended_until,
-              COALESCE(moderation_reason, '') AS moderation_reason,
-              chat_muted_until,
-              COALESCE(chat_mute_reason, '') AS chat_mute_reason,
-              COALESCE(chat_strikes, 0) AS chat_strikes,
-              last_login_ip,
-              COALESCE((SELECT sum(EXTRACT(EPOCH FROM (COALESCE(s.ended_at, now()) - s.started_at)))
-                        FROM play_sessions s WHERE s.account_id = accounts.id), 0)::bigint AS playtime_seconds
-       FROM accounts WHERE id = $1`,
-      [accountId],
+  const [account, characters, sessions, moderationHistory, dailyRewardsIpBans] = await Promise.all([
+    // The account row carries a correlated sum over ALL of this account's
+    // play_sessions, the one scan here that grows without bound, so run it on the
+    // raised allowance; the remaining reads stay bounded (LIMIT-capped or indexed
+    // lookups) on the default timeout.
+    runWithStatementTimeout(DB_HEAVY_STATEMENT_TIMEOUT_MS, (query) =>
+      query(
+        `SELECT id, username, created_at, last_login, is_admin, banned_at, suspended_until,
+                COALESCE(moderation_reason, '') AS moderation_reason,
+                chat_muted_until,
+                COALESCE(chat_mute_reason, '') AS chat_mute_reason,
+                COALESCE(chat_strikes, 0) AS chat_strikes,
+                is_ai, is_streamer, streamer_links,
+                active_daily_rewards_ban.daily_rewards_ban_reason,
+                active_daily_rewards_ban.daily_rewards_banned_at,
+                active_daily_rewards_ban.daily_rewards_ban_expires_at,
+                last_login_ip,
+                COALESCE((SELECT sum(EXTRACT(EPOCH FROM (COALESCE(s.ended_at, now()) - s.started_at)))
+                          FROM play_sessions s WHERE s.account_id = accounts.id), 0)::bigint AS playtime_seconds
+         FROM accounts
+         LEFT JOIN LATERAL (
+           SELECT reason AS daily_rewards_ban_reason,
+                  created_at AS daily_rewards_banned_at,
+                  expires_at AS daily_rewards_ban_expires_at
+             FROM daily_reward_bans
+            WHERE account_id = accounts.id
+              AND (expires_at IS NULL OR expires_at > now())
+         ) active_daily_rewards_ban ON true
+         WHERE id = $1`,
+        [accountId],
+      ),
     ),
     pool.query(
       `SELECT id, name, class, level,
@@ -695,9 +1167,36 @@ export async function accountDetail(accountId: number): Promise<AccountDetail | 
        FROM play_sessions WHERE account_id = $1 ORDER BY started_at DESC LIMIT 20`,
       [accountId],
     ),
+    pool.query(
+      `SELECT action_log.id, action_log.action, action_log.reason,
+              action_log.created_at, action_log.expires_at,
+              action_log.admin_account_id, admin.username AS admin_username
+       FROM account_moderation_actions action_log
+       LEFT JOIN accounts admin ON admin.id = action_log.admin_account_id
+       WHERE action_log.account_id = $1
+       ORDER BY action_log.created_at DESC, action_log.id DESC
+       LIMIT 50`,
+      [accountId],
+    ),
+    pool.query(
+      `SELECT ib.ip_address, ib.reason, ib.created_at
+         FROM daily_reward_ip_bans ib
+        WHERE ib.ip_address = (SELECT last_login_ip FROM accounts WHERE id = $1)
+           OR EXISTS (
+             SELECT 1 FROM play_sessions ps
+              WHERE ps.account_id = $1 AND ps.ip_address = ib.ip_address
+           )
+        ORDER BY ib.created_at DESC`,
+      [accountId],
+    ),
   ]);
   const a = account.rows[0];
   if (!a) return null;
+  const flair = normalizeAccountFlair({
+    ai: a.is_ai,
+    streamer: a.is_streamer,
+    links: a.streamer_links,
+  });
   return {
     id: a.id,
     username: a.username,
@@ -710,6 +1209,22 @@ export async function accountDetail(accountId: number): Promise<AccountDetail | 
     chatMutedUntil: a.chat_muted_until,
     chatMuteReason: a.chat_mute_reason,
     chatStrikes: Number(a.chat_strikes ?? 0),
+    isAi: flair.ai,
+    isStreamer: flair.streamer,
+    streamerLinks: flair.links,
+    dailyRewardsBan:
+      a.daily_rewards_ban_reason == null
+        ? null
+        : {
+            reason: String(a.daily_rewards_ban_reason),
+            createdAt: a.daily_rewards_banned_at,
+            expiresAt: a.daily_rewards_ban_expires_at ?? null,
+          },
+    dailyRewardsIpBans: (dailyRewardsIpBans?.rows ?? []).map((row) => ({
+      ip: String(row.ip_address),
+      reason: String(row.reason),
+      createdAt: row.created_at,
+    })),
     lastLoginIp: a.last_login_ip ?? null,
     playtimeSeconds: Number(a.playtime_seconds),
     characters: characters.rows.map((c) => ({
@@ -733,6 +1248,15 @@ export async function accountDetail(accountId: number): Promise<AccountDetail | 
       endedAt: s.ended_at,
       seconds: Number(s.seconds),
       ip: s.ip_address ?? null,
+    })),
+    moderationHistory: moderationHistory.rows.map((entry) => ({
+      id: Number(entry.id),
+      action: entry.action,
+      reason: entry.reason,
+      createdAt: entry.created_at,
+      expiresAt: entry.expires_at ?? null,
+      adminAccountId: entry.admin_account_id === null ? null : Number(entry.admin_account_id),
+      adminUsername: entry.admin_username ?? null,
     })),
   };
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { resolveMovement } from '../src/sim/colliders';
+import { DUNGEONS } from '../src/sim/data';
 import { DT, INTERACT_RANGE, RUN_SPEED } from '../src/sim/types';
 import {
   continueAmbientPlayerBotTravel,
@@ -43,11 +44,13 @@ function bot(overrides: Partial<AmbientPlayerBotRecord> = {}): AmbientPlayerBotR
   };
 }
 
-function liveState(input: {
-  self?: Record<string, unknown>;
-  entities?: Array<Record<string, unknown>>;
-  seed?: number;
-} = {}): AmbientPlayerBotLiveState {
+function liveState(
+  input: {
+    self?: Record<string, unknown>;
+    entities?: Array<Record<string, unknown>>;
+    seed?: number;
+  } = {},
+): AmbientPlayerBotLiveState {
   const self = {
     id: 101,
     x: 0,
@@ -71,7 +74,14 @@ function liveState(input: {
     const id = Number(entity.id ?? NaN);
     if (Number.isFinite(id)) entities.set(id, entity);
   }
-  entities.set(Number(self.id), { id: self.id, k: 'player', tid: 'warrior', x: self.x, z: self.z, lv: self.lv });
+  entities.set(Number(self.id), {
+    id: self.id,
+    k: 'player',
+    tid: 'warrior',
+    x: self.x,
+    z: self.z,
+    lv: self.lv,
+  });
   return {
     pid: 77,
     seed: input.seed ?? 20_061,
@@ -157,41 +167,59 @@ const thornpeakThroughWarCampGroups = [
 const thornpeakThroughKorgath = [...thornpeakThroughWarCampGroups, 'q_korgath'] as const;
 const thornpeakThroughVelkhar = [...thornpeakThroughKorgath, 'q_velkhar'] as const;
 const bastionSlot0Origin = { x: 1500, z: -1250 } as const;
+const sunkenBastionDoor = DUNGEONS.sunken_bastion.doorPos;
 const sanctumSlot0Origin = { x: 2100, z: -1250 } as const;
+const hollowCryptDoor = { x: 80, z: 90 } as const;
+
+function pointToSegmentDistance(
+  point: { x: number; z: number },
+  from: { x: number; z: number },
+  to: { x: number; z: number },
+): number {
+  const dx = to.x - from.x;
+  const dz = to.z - from.z;
+  const len2 = dx * dx + dz * dz;
+  if (len2 < 1e-9) return Math.hypot(point.x - from.x, point.z - from.z);
+  const t = Math.max(0, Math.min(1, ((point.x - from.x) * dx + (point.z - from.z) * dz) / len2));
+  const x = from.x + dx * t;
+  const z = from.z + dz * t;
+  return Math.hypot(point.x - x, point.z - z);
+}
 
 describe('ambient player bot brain', () => {
   it('targets the starter marshal and interacts to pick up the wolves quest', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: { x: 4, z: 6 },
-        entities: [
-          { id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: { x: 4, z: 6 },
+          entities: [{ id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_wolves');
     expect(result.moveInput).toEqual({});
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 7001 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 7001 }, { cmd: 'interact' }]);
   });
 
   it('walks toward the wolf camps when the starter quest is active but no wolf is nearby', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_wolves');
     expect(result.moveInput).toEqual({ f: 1 });
@@ -207,20 +235,23 @@ describe('ambient player bot brain', () => {
       lv: 4,
       qdone: ['q_wolves'],
     };
-    const initial = tickAmbientPlayerBotBrain({
-      bot: bot({
-        lastKnownLevel: 4,
-      }),
-      liveState: liveState({
-        seed,
-        self: {
-          ...baseSelf,
-          x: pos.x,
-          z: pos.z,
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const initial = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          lastKnownLevel: 4,
+        }),
+        liveState: liveState({
+          seed,
+          self: {
+            ...baseSelf,
+            x: pos.x,
+            z: pos.z,
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(initial.objectiveId).toBe('accept_boars');
     expect(initial.travelGoal).toMatchObject({
@@ -244,6 +275,7 @@ describe('ambient player bot brain', () => {
         initial.objectiveId,
         initial.objectiveLabel,
         goal,
+        1_000 + i * 50,
       );
       expect(drive).not.toBeNull();
       if (!drive!.moveInput.f) {
@@ -261,97 +293,96 @@ describe('ambient player bot brain', () => {
     }
 
     expect(zeroMoveTicks).toBe(0);
-    expect(reached || Math.hypot(pos.x - goal.target.x, pos.z - goal.target.z) <= goal.arrivalRange).toBe(true);
+    expect(
+      reached || Math.hypot(pos.x - goal.target.x, pos.z - goal.target.z) <= goal.arrivalRange,
+    ).toBe(true);
   });
 
   it('picks up the boar route at level 3 instead of grinding wolves to 4', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 3,
-          x: -7,
-          z: 3,
-          qdone: ['q_wolves'],
-        },
-        entities: [
-          { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 3,
+            x: -7,
+            z: 3,
+            qdone: ['q_wolves'],
+          },
+          entities: [{ id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_boars');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 7100 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 7100 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('picks up a nearby eligible quest before leaving for an active route', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 3,
-          x: -7,
-          z: 3,
-          inv: [
-            { itemId: 'baked_bread', count: 4 },
-            { itemId: 'minor_healing_potion', count: 3 },
-          ],
-          qdone: ['q_wolves'],
-          qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 3,
+            x: -7,
+            z: 3,
+            inv: [
+              { itemId: 'baked_bread', count: 4 },
+              { itemId: 'minor_healing_potion', count: 3 },
+            ],
+            qdone: ['q_wolves'],
+            qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
+          },
+          entities: [{ id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_supplies');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 7100 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 7100 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('helps party members backfill an earlier active quest before pushing ahead', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 4,
-          inv: [
-            { itemId: 'baked_bread', count: 4 },
-            { itemId: 'minor_healing_potion', count: 3 },
-          ],
-          qdone: ['q_wolves', 'q_boars'],
-          qlog: [{ questId: 'q_spiders', counts: [0, 0], state: 'active' }],
-          party: {
-            members: [
-              { pid: 101, dead: false, qdone: ['q_wolves', 'q_boars'], qlog: [] },
-              {
-                pid: 202,
-                dead: false,
-                qdone: ['q_wolves'],
-                qlog: [{ questId: 'q_boars', counts: [2], state: 'active' }],
-              },
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 4,
+            inv: [
+              { itemId: 'baked_bread', count: 4 },
+              { itemId: 'minor_healing_potion', count: 3 },
             ],
+            qdone: ['q_wolves', 'q_boars'],
+            qlog: [{ questId: 'q_spiders', counts: [0, 0], state: 'active' }],
+            party: {
+              members: [
+                { pid: 101, dead: false, qdone: ['q_wolves', 'q_boars'], qlog: [] },
+                {
+                  pid: 202,
+                  dead: false,
+                  qdone: ['q_wolves'],
+                  qlog: [{ questId: 'q_boars', counts: [2], state: 'active' }],
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 202, k: 'player', tid: 'mage', x: 1, z: 1, lv: 4 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [{ id: 202, k: 'player', tid: 'mage', x: 1, z: 1, lv: 4 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_boars');
     expect(result.travelGoal?.target).toEqual({ x: 55, z: 12 });
@@ -362,38 +393,41 @@ describe('ambient player bot brain', () => {
   it('keeps boar backfill on the safe camp when Mogger-side boars are visible', () => {
     const state = createAmbientPlayerBotBrainState();
     state.noTargetSinceMs = 1_000;
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 4,
-          x: 55,
-          z: 12,
-          inv: [
-            { itemId: 'baked_bread', count: 4 },
-            { itemId: 'minor_healing_potion', count: 3 },
-          ],
-          qdone: ['q_wolves', 'q_boars'],
-          qlog: [{ questId: 'q_spiders', counts: [0, 0], state: 'active' }],
-          party: {
-            members: [
-              { pid: 101, dead: false, qdone: ['q_wolves', 'q_boars'], qlog: [] },
-              {
-                pid: 202,
-                dead: false,
-                qdone: ['q_wolves'],
-                qlog: [{ questId: 'q_boars', counts: [2], state: 'active' }],
-              },
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 4,
+            x: 55,
+            z: 12,
+            inv: [
+              { itemId: 'baked_bread', count: 4 },
+              { itemId: 'minor_healing_potion', count: 3 },
             ],
+            qdone: ['q_wolves', 'q_boars'],
+            qlog: [{ questId: 'q_spiders', counts: [0, 0], state: 'active' }],
+            party: {
+              members: [
+                { pid: 101, dead: false, qdone: ['q_wolves', 'q_boars'], qlog: [] },
+                {
+                  pid: 202,
+                  dead: false,
+                  qdone: ['q_wolves'],
+                  qlog: [{ questId: 'q_boars', counts: [2], state: 'active' }],
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 202, k: 'player', tid: 'mage', x: 56, z: 13, lv: 4 },
-          { id: 8102, k: 'mob', tid: 'wild_boar', x: 80, z: -15, lv: 3, h: true },
-        ],
-      }),
-      nowMs: 7_000,
-    }, state);
+          entities: [
+            { id: 202, k: 'player', tid: 'mage', x: 56, z: 13, lv: 4 },
+            { id: 8102, k: 'mob', tid: 'wild_boar', x: 80, z: -15, lv: 3, h: true },
+          ],
+        }),
+        nowMs: 7_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_boars');
     expect(result.travelGoal).toBeUndefined();
@@ -403,68 +437,70 @@ describe('ambient player bot brain', () => {
 
   it('helps party members turn in an earlier ready quest before pushing ahead', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 4,
-          x: 37,
-          z: 7,
-          inv: [
-            { itemId: 'baked_bread', count: 4 },
-            { itemId: 'minor_healing_potion', count: 3 },
-          ],
-          qdone: ['q_wolves', 'q_boars'],
-          qlog: [{ questId: 'q_spiders', counts: [0, 0], state: 'active' }],
-          party: {
-            members: [
-              { pid: 101, dead: false, qdone: ['q_wolves', 'q_boars'], qlog: [] },
-              {
-                pid: 202,
-                dead: false,
-                qdone: ['q_wolves'],
-                qlog: [{ questId: 'q_boars', counts: [5], state: 'ready' }],
-              },
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 4,
+            x: 37,
+            z: 7,
+            inv: [
+              { itemId: 'baked_bread', count: 4 },
+              { itemId: 'minor_healing_potion', count: 3 },
             ],
+            qdone: ['q_wolves', 'q_boars'],
+            qlog: [{ questId: 'q_spiders', counts: [0, 0], state: 'active' }],
+            party: {
+              members: [
+                { pid: 101, dead: false, qdone: ['q_wolves', 'q_boars'], qlog: [] },
+                {
+                  pid: 202,
+                  dead: false,
+                  qdone: ['q_wolves'],
+                  qlog: [{ questId: 'q_boars', counts: [5], state: 'ready' }],
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 202, k: 'player', tid: 'mage', x: 36, z: 7, lv: 4 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [{ id: 202, k: 'player', tid: 'mage', x: 36, z: 7, lv: 4 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
-    expect(result.objectiveId).toBe('turnin_boars');
-    expect(result.travelGoal?.goalKey).toBe('npc:trader_wilkes');
+    expect(result.objectiveId).toBe('assist_turnin_boars');
+    expect(result.travelGoal?.goalKey).toBe('camp:assist_turnin_boars:0');
     expect(result.commands).toEqual([]);
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
   it('casts a ranged damage spell when a mage sees a wolf in quest range', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot({
-        class: 'mage',
-        profileId: 'eastbrook_vale_mage_newcomer',
-      }),
-      liveState: liveState({
-        self: {
-          res: 100,
-          mres: 100,
-          rtype: 'mana',
-          auras: [
-            { id: 'frost_armor', kind: 'buff_armor', rem: 1_700, dur: 1_800 },
-            { id: 'arcane_intellect', kind: 'buff_int', rem: 1_700, dur: 1_800 },
-          ],
-          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 9001, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          class: 'mage',
+          profileId: 'eastbrook_vale_mage_newcomer',
+        }),
+        liveState: liveState({
+          self: {
+            res: 100,
+            mres: 100,
+            rtype: 'mana',
+            auras: [
+              { id: 'frost_armor', kind: 'buff_armor', rem: 1_700, dur: 1_800 },
+              { id: 'arcane_intellect', kind: 'buff_int', rem: 1_700, dur: 1_800 },
+            ],
+            qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+          },
+          entities: [{ id: 9001, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('combat');
     expect(result.commands).toEqual([
@@ -476,55 +512,60 @@ describe('ambient player bot brain', () => {
 
   it('prepares mage armor before pulling a quest wolf', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot({
-        class: 'mage',
-        profileId: 'eastbrook_vale_mage_newcomer',
-      }),
-      liveState: liveState({
-        self: {
-          res: 100,
-          mres: 100,
-          rtype: 'mana',
-          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 9003, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          class: 'mage',
+          profileId: 'eastbrook_vale_mage_newcomer',
+        }),
+        liveState: liveState({
+          self: {
+            res: 100,
+            mres: 100,
+            rtype: 'mana',
+            qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+          },
+          entities: [{ id: 9003, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('prepare_combat');
-    expect(result.commands).toEqual([{ cmd: 'cast', ability: 'frost_armor' }]);
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9003 },
+      { cmd: 'cast', ability: 'frost_armor' },
+    ]);
     expect(result.moveInput).toEqual({});
   });
 
   it('drinks before a pull when a prepared mage is low on mana', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot({
-        class: 'mage',
-        profileId: 'eastbrook_vale_mage_newcomer',
-      }),
-      liveState: liveState({
-        self: {
-          res: 20,
-          mres: 100,
-          rtype: 'mana',
-          inv: [{ itemId: 'spring_water', count: 1 }],
-          auras: [
-            { id: 'frost_armor', kind: 'buff_armor', rem: 1_700, dur: 1_800 },
-            { id: 'arcane_intellect', kind: 'buff_int', rem: 1_700, dur: 1_800 },
-          ],
-          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 9004, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          class: 'mage',
+          profileId: 'eastbrook_vale_mage_newcomer',
+        }),
+        liveState: liveState({
+          self: {
+            res: 20,
+            mres: 100,
+            rtype: 'mana',
+            inv: [{ itemId: 'spring_water', count: 1 }],
+            auras: [
+              { id: 'frost_armor', kind: 'buff_armor', rem: 1_700, dur: 1_800 },
+              { id: 'arcane_intellect', kind: 'buff_int', rem: 1_700, dur: 1_800 },
+            ],
+            qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+          },
+          entities: [{ id: 9004, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('recover');
     expect(result.commands).toEqual([{ cmd: 'use', item: 'spring_water' }]);
@@ -533,28 +574,29 @@ describe('ambient player bot brain', () => {
 
   it('keeps pulling when a prepared caster has pull-ready mana but no drink', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot({
-        class: 'mage',
-        profileId: 'eastbrook_vale_mage_newcomer',
-      }),
-      liveState: liveState({
-        self: {
-          res: 40,
-          mres: 100,
-          rtype: 'mana',
-          auras: [
-            { id: 'frost_armor', kind: 'buff_armor', rem: 1_700, dur: 1_800 },
-            { id: 'arcane_intellect', kind: 'buff_int', rem: 1_700, dur: 1_800 },
-          ],
-          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 9004, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          class: 'mage',
+          profileId: 'eastbrook_vale_mage_newcomer',
+        }),
+        liveState: liveState({
+          self: {
+            res: 40,
+            mres: 100,
+            rtype: 'mana',
+            auras: [
+              { id: 'frost_armor', kind: 'buff_armor', rem: 1_700, dur: 1_800 },
+              { id: 'arcane_intellect', kind: 'buff_int', rem: 1_700, dur: 1_800 },
+            ],
+            qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+          },
+          entities: [{ id: 9004, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('combat');
     expect(result.commands).toContainEqual({ cmd: 'target', id: 9004 });
@@ -565,52 +607,59 @@ describe('ambient player bot brain', () => {
 
   it('summons a warlock demon before pulling when no owned pet is present', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot({
-        class: 'warlock',
-        profileId: 'eastbrook_vale_warlock_newcomer',
-      }),
-      liveState: liveState({
-        self: {
-          res: 100,
-          mres: 100,
-          rtype: 'mana',
-          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 9005, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          class: 'warlock',
+          profileId: 'eastbrook_vale_warlock_newcomer',
+        }),
+        liveState: liveState({
+          self: {
+            res: 100,
+            mres: 100,
+            rtype: 'mana',
+            qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+          },
+          entities: [{ id: 9005, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('prepare_combat');
-    expect(result.commands).toEqual([{ cmd: 'cast', ability: 'summon_imp' }]);
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9005 },
+      { cmd: 'cast', ability: 'summon_imp' },
+    ]);
     expect(result.moveInput).toEqual({});
   });
 
   it('does not recast a warlock summon when an owned pet is already active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot({
-        class: 'warlock',
-        profileId: 'eastbrook_vale_warlock_newcomer',
-      }),
-      liveState: liveState({
-        self: {
-          res: 100,
-          mres: 100,
-          rtype: 'mana',
-          auras: [{ id: 'demon_skin', kind: 'buff_armor', rem: 1_700, dur: 1_800 }],
-          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 9101, k: 'mob', tid: 'imp', x: 1, z: 1, own: 101, lv: 1 },
-          { id: 9006, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          class: 'warlock',
+          profileId: 'eastbrook_vale_warlock_newcomer',
+        }),
+        liveState: liveState({
+          self: {
+            res: 100,
+            mres: 100,
+            rtype: 'mana',
+            auras: [{ id: 'demon_skin', kind: 'buff_armor', rem: 1_700, dur: 1_800 }],
+            qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+          },
+          entities: [
+            { id: 9101, k: 'mob', tid: 'imp', x: 1, z: 1, own: 101, lv: 1 },
+            { id: 9006, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('combat');
     expect(result.commands).toEqual([
@@ -622,24 +671,27 @@ describe('ambient player bot brain', () => {
 
   it('fights immediately instead of preparing when the mob is already threatening the bot', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot({
-        class: 'mage',
-        profileId: 'eastbrook_vale_mage_newcomer',
-      }),
-      liveState: liveState({
-        self: {
-          res: 100,
-          mres: 100,
-          rtype: 'mana',
-          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 9007, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1, aggro: 101 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          class: 'mage',
+          profileId: 'eastbrook_vale_mage_newcomer',
+        }),
+        liveState: liveState({
+          self: {
+            res: 100,
+            mres: 100,
+            rtype: 'mana',
+            qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+          },
+          entities: [
+            { id: 9007, k: 'mob', tid: 'forest_wolf', x: 0, z: 20, h: 1, lv: 1, aggro: 101 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('combat');
     expect(result.commands).toEqual([
@@ -650,23 +702,26 @@ describe('ambient player bot brain', () => {
 
   it('does not choose bear-form attacks for a druid that is not in bear form', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot({ class: 'druid' }),
-      liveState: liveState({
-        self: {
-          lv: 11,
-          hp: 425,
-          mhp: 425,
-          res: 725,
-          mres: 725,
-          rtype: 'mana',
-        },
-        entities: [
-          { id: 9008, k: 'mob', tid: 'fen_troll', x: 2, z: 0, h: 1, lv: 11, aggro: 101 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({ class: 'druid' }),
+        liveState: liveState({
+          self: {
+            lv: 11,
+            hp: 425,
+            mhp: 425,
+            res: 725,
+            mres: 725,
+            rtype: 'mana',
+          },
+          entities: [
+            { id: 9008, k: 'mob', tid: 'fen_troll', x: 2, z: 0, h: 1, lv: 11, aggro: 101 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('combat');
     expect(result.commands).toEqual([
@@ -679,18 +734,21 @@ describe('ambient player bot brain', () => {
 
   it('loots a nearby corpse before resuming the quest route', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          qlog: [{ questId: 'q_wolves', counts: [3], state: 'active' }],
-        },
-        entities: [
-          { id: 9002, k: 'mob', tid: 'forest_wolf', x: 0, z: 3, h: 1, lv: 1, dead: 1, loot: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            qlog: [{ questId: 'q_wolves', counts: [3], state: 'active' }],
+          },
+          entities: [
+            { id: 9002, k: 'mob', tid: 'forest_wolf', x: 0, z: 3, h: 1, lv: 1, dead: 1, loot: 1 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('loot');
     expect(result.commands).toEqual([
@@ -702,65 +760,68 @@ describe('ambient player bot brain', () => {
 
   it('fights an active threat before looting a nearby corpse', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          qlog: [{ questId: 'q_wolves', counts: [3], state: 'active' }],
-        },
-        entities: [
-          { id: 9002, k: 'mob', tid: 'forest_wolf', x: 0, z: 2, h: 1, lv: 1, dead: 1, loot: 1 },
-          { id: 9003, k: 'mob', tid: 'forest_wolf', x: 0, z: 3, h: 1, lv: 1, aggro: 101 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            qlog: [{ questId: 'q_wolves', counts: [3], state: 'active' }],
+          },
+          entities: [
+            { id: 9002, k: 'mob', tid: 'forest_wolf', x: 0, z: 2, h: 1, lv: 1, dead: 1, loot: 1 },
+            { id: 9003, k: 'mob', tid: 'forest_wolf', x: 0, z: 3, h: 1, lv: 1, aggro: 101 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('combat');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9003 },
-      { cmd: 'attack' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9003 }, { cmd: 'attack' }]);
     expect(result.commands).not.toContainEqual({ cmd: 'loot', id: 9002 });
   });
 
   it('skips nearby corpses tapped by another solo player', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          qlog: [{ questId: 'q_wolves', counts: [3], state: 'active' }],
-        },
-        entities: [
-          {
-            id: 9010,
-            k: 'mob',
-            tid: 'forest_wolf',
-            x: 1,
-            z: 0,
-            h: 1,
-            dead: 1,
-            loot: 1,
-            tap: 202,
-            lootList: { copper: 8, items: [{ itemId: 'wolf_fang', count: 1 }] },
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            qlog: [{ questId: 'q_wolves', counts: [3], state: 'active' }],
           },
-          {
-            id: 9011,
-            k: 'mob',
-            tid: 'forest_wolf',
-            x: 1.5,
-            z: 0,
-            h: 1,
-            dead: 1,
-            loot: 1,
-            tap: 101,
-            lootList: { copper: 7, items: [{ itemId: 'wolf_fang', count: 1 }] },
-          },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [
+            {
+              id: 9010,
+              k: 'mob',
+              tid: 'forest_wolf',
+              x: 1,
+              z: 0,
+              h: 1,
+              dead: 1,
+              loot: 1,
+              tap: 202,
+              lootList: { copper: 8, items: [{ itemId: 'wolf_fang', count: 1 }] },
+            },
+            {
+              id: 9011,
+              k: 'mob',
+              tid: 'forest_wolf',
+              x: 1.5,
+              z: 0,
+              h: 1,
+              dead: 1,
+              loot: 1,
+              tap: 101,
+              lootList: { copper: 7, items: [{ itemId: 'wolf_fang', count: 1 }] },
+            },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('loot');
     expect(result.commands).toEqual([
@@ -771,32 +832,35 @@ describe('ambient player bot brain', () => {
 
   it('loots personal corpse drops even when another player tapped the mob', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          qlog: [{ questId: 'q_wolves', counts: [3], state: 'active' }],
-        },
-        entities: [
-          {
-            id: 9012,
-            k: 'mob',
-            tid: 'forest_wolf',
-            x: 1,
-            z: 0,
-            h: 1,
-            dead: 1,
-            loot: 1,
-            tap: 202,
-            lootList: {
-              copper: 0,
-              items: [{ itemId: 'wolf_fang', count: 1, personalFor: [101] }],
-            },
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            qlog: [{ questId: 'q_wolves', counts: [3], state: 'active' }],
           },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [
+            {
+              id: 9012,
+              k: 'mob',
+              tid: 'forest_wolf',
+              x: 1,
+              z: 0,
+              h: 1,
+              dead: 1,
+              loot: 1,
+              tap: 202,
+              lootList: {
+                copper: 0,
+                items: [{ itemId: 'wolf_fang', count: 1, personalFor: [101] }],
+              },
+            },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('loot');
     expect(result.commands).toEqual([
@@ -805,75 +869,114 @@ describe('ambient player bot brain', () => {
     ]);
   });
 
+  it('walks to nearby personal corpse drops before resuming the route', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            qlog: [{ questId: 'q_wolves', counts: [3], state: 'active' }],
+          },
+          entities: [
+            {
+              id: 9013,
+              k: 'mob',
+              tid: 'forest_wolf',
+              x: 0,
+              z: INTERACT_RANGE + 4,
+              h: 1,
+              dead: 1,
+              loot: 1,
+              tap: 202,
+              lootList: {
+                copper: 0,
+                items: [{ itemId: 'wolf_fang', count: 1, personalFor: [101] }],
+              },
+            },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('loot');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal).toEqual({
+      target: { x: 0, z: INTERACT_RANGE + 4 },
+      arrivalRange: INTERACT_RANGE,
+      goalKey: 'loot:9013',
+    });
+  });
+
   it('returns to Marshal Redbrook and interacts when the wolves quest is ready to turn in', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          x: 4,
-          z: 6,
-          qlog: [{ questId: 'q_wolves', counts: [8], state: 'ready' }],
-        },
-        entities: [
-          { id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            x: 4,
+            z: 6,
+            qlog: [{ questId: 'q_wolves', counts: [8], state: 'ready' }],
+          },
+          entities: [{ id: 7001, k: 'npc', tid: 'marshal_redbrook', x: 4, z: 6 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('turnin_wolves');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 7001 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 7001 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('uses the vendor stop to sell junk before buying fresh food after the starter quest', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          x: -7,
-          z: 3,
-          inv: [{ itemId: 'wolf_fang', count: 3 }],
-          qdone: ['q_wolves'],
-        },
-        entities: [
-          { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            x: -7,
+            z: 3,
+            inv: [{ itemId: 'wolf_fang', count: 3 }],
+            qdone: ['q_wolves'],
+          },
+          entities: [{ id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('restock_food_and_drink');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 7100 },
-      { cmd: 'sell_all_junk' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 7100 }, { cmd: 'sell_all_junk' }]);
   });
 
   it('restsocks food from Trader Wilkes before leaving town for an active combat quest', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 2,
-          x: -7,
-          z: 3,
-          copper: 150,
-          qdone: ['q_wolves'],
-          qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 2,
+            x: -7,
+            z: 3,
+            copper: 150,
+            qdone: ['q_wolves'],
+            qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
+          },
+          entities: [{ id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('restock_food_and_drink');
     expect(result.commands).toEqual([
@@ -885,23 +988,24 @@ describe('ambient player bot brain', () => {
 
   it('waits to recover instead of pulling another mob while low health and unthreatened', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 2,
-          hp: 70,
-          mhp: 128,
-          inv: [{ itemId: 'baked_bread', count: 1 }],
-          qdone: ['q_wolves'],
-          qlog: [{ questId: 'q_boars', counts: [2], state: 'active' }],
-        },
-        entities: [
-          { id: 8101, k: 'mob', tid: 'wild_boar', x: 2, z: 0, h: true },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 2,
+            hp: 70,
+            mhp: 128,
+            inv: [{ itemId: 'baked_bread', count: 1 }],
+            qdone: ['q_wolves'],
+            qlog: [{ questId: 'q_boars', counts: [2], state: 'active' }],
+          },
+          entities: [{ id: 8101, k: 'mob', tid: 'wild_boar', x: 2, z: 0, h: true }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('recover');
     expect(result.objectiveLabel).toBe('Recovering between pulls');
@@ -911,23 +1015,24 @@ describe('ambient player bot brain', () => {
 
   it('uses a healing potion while threatened at dangerous health', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 3,
-          hp: 60,
-          mhp: 214,
-          inv: [{ itemId: 'minor_healing_potion', count: 1 }],
-          qdone: ['q_wolves'],
-          qlog: [{ questId: 'q_boars', counts: [4], state: 'active' }],
-        },
-        entities: [
-          { id: 8101, k: 'mob', tid: 'wild_boar', x: 2, z: 0, h: true, aggro: 101 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 3,
+            hp: 60,
+            mhp: 214,
+            inv: [{ itemId: 'minor_healing_potion', count: 1 }],
+            qdone: ['q_wolves'],
+            qlog: [{ questId: 'q_boars', counts: [4], state: 'active' }],
+          },
+          entities: [{ id: 8101, k: 'mob', tid: 'wild_boar', x: 2, z: 0, h: true, aggro: 101 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('recover');
     expect(result.commands).toEqual([{ cmd: 'use', item: 'minor_healing_potion' }]);
@@ -936,105 +1041,272 @@ describe('ambient player bot brain', () => {
 
   it('retreats from a single threat at emergency health before continuing a restock objective', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 4,
-          x: -75,
-          z: 58,
-          hp: 38,
-          mhp: 90,
-          target: 9101,
-          auto: true,
-          copper: 100,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders'],
-          qlog: [{ questId: 'q_murlocs', counts: [3], state: 'active' }],
-        },
-        entities: [
-          { id: 9101, k: 'mob', tid: 'mudfin_murloc', x: -74, z: 59, h: true, aggro: 101 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 4,
+            x: -75,
+            z: 58,
+            hp: 38,
+            mhp: 90,
+            target: 9101,
+            auto: true,
+            copper: 100,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders'],
+            qlog: [{ questId: 'q_murlocs', counts: [3], state: 'active' }],
+          },
+          entities: [
+            { id: 9101, k: 'mob', tid: 'mudfin_murloc', x: -74, z: 59, h: true, aggro: 101 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('recover');
     expect(result.objectiveLabel).toBe('Retreating from a dangerous pull');
     expect(result.travelGoal?.goalKey).toBe('retreat:trader_wilkes');
-    expect(result.commands).toEqual([
-      { cmd: 'stopattack' },
-      { cmd: 'target', id: null },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'stopattack' }, { cmd: 'target', id: null }]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('fights a single Highwatch threat at the hub instead of retreating in place', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 13,
+            x: 2,
+            z: 660,
+            hp: 93,
+            mhp: 686,
+            res: 55,
+            mres: 100,
+            copper: 5000,
+            inv: [],
+            qdone: [
+              ...mirefenThroughMistcaller,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+            ],
+          },
+          entities: [
+            { id: 223, k: 'mob', tid: 'deeprock_kobold', x: 3, z: 660, h: true, aggro: 101 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('combat');
+    expect(result.objectiveLabel).not.toBe('Retreating from a dangerous pull');
+    expect(result.travelGoal).toBeUndefined();
+    expect(result.commands).toContainEqual({ cmd: 'target', id: 223 });
+    expect(result.commands).toContainEqual({ cmd: 'attack' });
+    expect(result.commands).not.toContainEqual({ cmd: 'target', id: null });
+  });
+
+  it('retreats a dangerous Highwatch multi-mob pull away from the quartermaster', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 13,
+            x: 2,
+            z: 660,
+            hp: 300,
+            mhp: 686,
+            target: 223,
+            auto: true,
+            copper: 5000,
+            inv: [],
+            qdone: [
+              ...mirefenThroughMistcaller,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+            ],
+          },
+          entities: [
+            { id: 223, k: 'mob', tid: 'deeprock_kobold', x: 3, z: 660, h: true, aggro: 101 },
+            { id: 224, k: 'mob', tid: 'deeprock_kobold', x: 4, z: 661, h: true, aggro: 101 },
+            { id: 225, k: 'mob', tid: 'deeprock_kobold', x: 5, z: 659, h: true, aggro: 101 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('recover');
+    expect(result.objectiveLabel).toBe('Retreating from a dangerous pull');
+    expect(result.travelGoal?.goalKey).toBe('retreat:quartermaster_bree');
+    expect(result.travelGoal?.target).toEqual({ x: -22, z: 664 });
+    expect(result.commands).toEqual([{ cmd: 'stopattack' }, { cmd: 'target', id: null }]);
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
   it('retreats from a multi-mob pull instead of standing in the murloc camp', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          x: -75,
-          z: 50,
-          hp: 220,
-          mhp: 290,
-          target: 9101,
-          auto: true,
-          inv: [
-            { itemId: 'baked_bread', count: 4 },
-            { itemId: 'minor_healing_potion', count: 3 },
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            x: -75,
+            z: 50,
+            hp: 220,
+            mhp: 290,
+            target: 9101,
+            auto: true,
+            inv: [
+              { itemId: 'baked_bread', count: 4 },
+              { itemId: 'minor_healing_potion', count: 3 },
+            ],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+            qlog: [{ questId: 'q_murlocs', counts: [7], state: 'active' }],
+          },
+          entities: [
+            { id: 9101, k: 'mob', tid: 'mudfin_murloc', x: -73, z: 49, h: true, aggro: 101 },
+            { id: 9102, k: 'mob', tid: 'mudfin_murloc', x: -77, z: 52, h: true, aggro: 101 },
+            { id: 9103, k: 'mob', tid: 'mudfin_murloc', x: -80, z: 54, h: true, aggro: 101 },
           ],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
-          qlog: [{ questId: 'q_murlocs', counts: [7], state: 'active' }],
-        },
-        entities: [
-          { id: 9101, k: 'mob', tid: 'mudfin_murloc', x: -73, z: 49, h: true, aggro: 101 },
-          { id: 9102, k: 'mob', tid: 'mudfin_murloc', x: -77, z: 52, h: true, aggro: 101 },
-          { id: 9103, k: 'mob', tid: 'mudfin_murloc', x: -80, z: 54, h: true, aggro: 101 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('recover');
     expect(result.objectiveLabel).toBe('Retreating from a dangerous pull');
     expect(result.travelGoal?.goalKey).toBe('retreat:trader_wilkes');
-    expect(result.commands).toEqual([
-      { cmd: 'stopattack' },
-      { cmd: 'target', id: null },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'stopattack' }, { cmd: 'target', id: null }]);
     expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('retreats from a dangerous Fenbridge prowler pull toward the hub approach', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 7,
+            x: -26,
+            z: 227,
+            hp: 96,
+            mhp: 263,
+            target: 9101,
+            auto: true,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_fenbridge_muster',
+            ],
+            qlog: [{ questId: 'q_prowlers', counts: [5], state: 'active' }],
+          },
+          entities: [
+            { id: 9101, k: 'mob', tid: 'mire_prowler', x: -25, z: 228, h: true, aggro: 101 },
+            { id: 9102, k: 'mob', tid: 'mire_prowler', x: -29, z: 229, h: true, aggro: 101 },
+            { id: 9103, k: 'mob', tid: 'mire_prowler', x: -31, z: 225, h: true, aggro: 101 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('recover');
+    expect(result.objectiveLabel).toBe('Retreating from a dangerous pull');
+    expect(result.travelGoal?.goalKey).toBe('retreat:provisioner_hale');
+    expect(result.travelGoal?.target).toEqual({ x: -18, z: 286 });
+    expect(result.travelGoal?.arrivalRange).toBe(2.5);
+    expect(result.commands).toEqual([{ cmd: 'stopattack' }, { cmd: 'target', id: null }]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('defers the gravecaller sigil route at level 6', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 6,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+            ],
+            qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
+          },
+          entities: [{ id: 9501, k: 'object', obj: 'gravecaller_sigil', x: 3, z: 1, loot: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).not.toBe('collect_whispers');
+    expect(result.commands).toEqual([]);
   });
 
   it('uses a potion while retreating from a low-health multi-mob pull', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          x: -75,
-          z: 50,
-          hp: 150,
-          mhp: 290,
-          target: 9101,
-          auto: true,
-          inv: [
-            { itemId: 'baked_bread', count: 4 },
-            { itemId: 'minor_healing_potion', count: 1 },
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 6,
+            x: -75,
+            z: 50,
+            hp: 150,
+            mhp: 290,
+            target: 9101,
+            auto: true,
+            inv: [
+              { itemId: 'baked_bread', count: 4 },
+              { itemId: 'minor_healing_potion', count: 1 },
+            ],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+            qlog: [{ questId: 'q_murlocs', counts: [7], state: 'active' }],
+          },
+          entities: [
+            { id: 9101, k: 'mob', tid: 'mudfin_murloc', x: -73, z: 49, h: true, aggro: 101 },
+            { id: 9102, k: 'mob', tid: 'mudfin_murloc', x: -77, z: 52, h: true, aggro: 101 },
           ],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
-          qlog: [{ questId: 'q_murlocs', counts: [7], state: 'active' }],
-        },
-        entities: [
-          { id: 9101, k: 'mob', tid: 'mudfin_murloc', x: -73, z: 49, h: true, aggro: 101 },
-          { id: 9102, k: 'mob', tid: 'mudfin_murloc', x: -77, z: 52, h: true, aggro: 101 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('recover');
     expect(result.commands).toEqual([
@@ -1048,31 +1320,34 @@ describe('ambient player bot brain', () => {
 
   it('does not use the dangerous-pull retreat for early wolf grinding', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 2,
-          x: -6,
-          z: 35,
-          hp: 122,
-          mhp: 138,
-          target: 8101,
-          auto: true,
-          inv: [
-            { itemId: 'baked_bread', count: 4 },
-            { itemId: 'minor_healing_potion', count: 3 },
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 2,
+            x: -6,
+            z: 35,
+            hp: 122,
+            mhp: 138,
+            target: 8101,
+            auto: true,
+            inv: [
+              { itemId: 'baked_bread', count: 4 },
+              { itemId: 'minor_healing_potion', count: 3 },
+            ],
+            qdone: ['q_wolves'],
+          },
+          entities: [
+            { id: 8101, k: 'mob', tid: 'forest_wolf', x: -5, z: 36, h: true, aggro: 101 },
+            { id: 8102, k: 'mob', tid: 'forest_wolf', x: -7, z: 37, h: true, aggro: 101 },
+            { id: 8103, k: 'mob', tid: 'forest_wolf', x: -9, z: 38, h: true, aggro: 101 },
           ],
-          qdone: ['q_wolves'],
-        },
-        entities: [
-          { id: 8101, k: 'mob', tid: 'forest_wolf', x: -5, z: 36, h: true, aggro: 101 },
-          { id: 8102, k: 'mob', tid: 'forest_wolf', x: -7, z: 37, h: true, aggro: 101 },
-          { id: 8103, k: 'mob', tid: 'forest_wolf', x: -9, z: 38, h: true, aggro: 101 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('combat');
     expect(result.objectiveLabel).toBe('Grinding Forest Wolf');
@@ -1081,31 +1356,34 @@ describe('ambient player bot brain', () => {
 
   it('uses dangerous-pull retreat for level 3 Webwood threats', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 3,
-          x: -50,
-          z: 3,
-          hp: 90,
-          mhp: 166,
-          target: 8101,
-          auto: true,
-          inv: [
-            { itemId: 'baked_bread', count: 4 },
-            { itemId: 'minor_healing_potion', count: 3 },
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 3,
+            x: -50,
+            z: 3,
+            hp: 90,
+            mhp: 166,
+            target: 8101,
+            auto: true,
+            inv: [
+              { itemId: 'baked_bread', count: 4 },
+              { itemId: 'minor_healing_potion', count: 3 },
+            ],
+            qdone: ['q_wolves', 'q_boars'],
+            qlog: [{ questId: 'q_spiders', counts: [3, 2], state: 'active' }],
+          },
+          entities: [
+            { id: 8101, k: 'mob', tid: 'webwood_spider', x: -49, z: 3, h: true, aggro: 101 },
+            { id: 8102, k: 'mob', tid: 'webwood_spider', x: -52, z: 5, h: true, aggro: 101 },
           ],
-          qdone: ['q_wolves', 'q_boars'],
-          qlog: [{ questId: 'q_spiders', counts: [3, 2], state: 'active' }],
-        },
-        entities: [
-          { id: 8101, k: 'mob', tid: 'webwood_spider', x: -49, z: 3, h: true, aggro: 101 },
-          { id: 8102, k: 'mob', tid: 'webwood_spider', x: -52, z: 5, h: true, aggro: 101 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('recover');
     expect(result.objectiveLabel).toBe('Retreating from a dangerous pull');
@@ -1120,24 +1398,25 @@ describe('ambient player bot brain', () => {
 
   it('restocks healing potions before resuming an outdoor combat quest', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 4,
-          x: -7,
-          z: 3,
-          copper: 100,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves'],
-          qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 4,
+            x: -7,
+            z: 3,
+            copper: 100,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves'],
+            qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
+          },
+          entities: [{ id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('restock_minor_healing_potion');
     expect(result.commands).toEqual([
@@ -1149,30 +1428,31 @@ describe('ambient player bot brain', () => {
 
   it('restocks spring water for mana classes before resuming an active quest route', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot({
-        class: 'mage',
-        profileId: 'eastbrook_vale_mage_newcomer',
-      }),
-      liveState: liveState({
-        self: {
-          lv: 4,
-          x: -7,
-          z: 3,
-          copper: 200,
-          res: 100,
-          mres: 100,
-          rtype: 'mana',
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
-          qlog: [{ questId: 'q_murlocs', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          class: 'mage',
+          profileId: 'eastbrook_vale_mage_newcomer',
+        }),
+        liveState: liveState({
+          self: {
+            lv: 4,
+            x: -7,
+            z: 3,
+            copper: 200,
+            res: 100,
+            mres: 100,
+            rtype: 'mana',
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+            qlog: [{ questId: 'q_murlocs', counts: [0], state: 'active' }],
+          },
+          entities: [{ id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('restock_food_and_drink');
     expect(result.commands).toEqual([
@@ -1184,55 +1464,106 @@ describe('ambient player bot brain', () => {
 
   it('grinds instead of forcing an accepted murloc quest below the safe route level', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 4,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
-          qlog: [{ questId: 'q_murlocs', counts: [5], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 4,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+            qlog: [{ questId: 'q_murlocs', counts: [5], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
-    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.objectiveLabel).toBe('Grinding Sableweb Lurker');
     expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
   it('uses nearby party strength to pursue an accepted quest one level below the solo safe level', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          id: 101,
-          lv: 5,
-          x: 100,
-          z: 100,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw', 'q_supplies'],
-          qlog: [{ questId: 'q_murlocs', counts: [5], state: 'active' }],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 90, mhp: 90, res: 0, mres: 0, rtype: 'rage', x: 100, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'priest', level: 5, hp: 75, mhp: 75, res: 90, mres: 90, rtype: 'mana', x: 102, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 103, name: 'Branoracc', cls: 'mage', level: 5, hp: 70, mhp: 70, res: 100, mres: 100, rtype: 'mana', x: 103, z: 100, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 5,
+            x: 100,
+            z: 100,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw', 'q_supplies'],
+            qlog: [{ questId: 'q_murlocs', counts: [5], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 5,
+                  hp: 90,
+                  mhp: 90,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 100,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'priest',
+                  level: 5,
+                  hp: 75,
+                  mhp: 75,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 102,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Branoracc',
+                  cls: 'mage',
+                  level: 5,
+                  hp: 70,
+                  mhp: 70,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: 103,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 102, k: 'player', tid: 'priest', lv: 5, x: 102, z: 100, dead: 0 },
-          { id: 103, k: 'player', tid: 'mage', lv: 5, x: 103, z: 100, dead: 0 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', lv: 5, x: 102, z: 100, dead: 0 },
+            { id: 103, k: 'player', tid: 'mage', lv: 5, x: 103, z: 100, dead: 0 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_murlocs');
     expect(result.objectiveLabel).toBe('Driving back the Mudfin');
@@ -1242,85 +1573,241 @@ describe('ambient player bot brain', () => {
 
   it('does not use a nearby full party to pursue a route two levels below the solo gate', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          id: 101,
-          lv: 4,
-          x: 100,
-          z: 100,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
-          qlog: [{ questId: 'q_murlocs', counts: [2], state: 'active' }],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 4, hp: 100, mhp: 100, res: 0, mres: 0, rtype: 'rage', x: 100, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'priest', level: 4, hp: 75, mhp: 75, res: 90, mres: 90, rtype: 'mana', x: 102, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 103, name: 'Branoracc', cls: 'mage', level: 4, hp: 70, mhp: 70, res: 100, mres: 100, rtype: 'mana', x: 103, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 104, name: 'Branoradd', cls: 'paladin', level: 4, hp: 95, mhp: 95, res: 90, mres: 90, rtype: 'mana', x: 104, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 105, name: 'Branoraee', cls: 'druid', level: 4, hp: 80, mhp: 80, res: 95, mres: 95, rtype: 'mana', x: 105, z: 100, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 4,
+            x: 100,
+            z: 100,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+            qlog: [{ questId: 'q_murlocs', counts: [2], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 4,
+                  hp: 100,
+                  mhp: 100,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 100,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'priest',
+                  level: 4,
+                  hp: 75,
+                  mhp: 75,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 102,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Branoracc',
+                  cls: 'mage',
+                  level: 4,
+                  hp: 70,
+                  mhp: 70,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: 103,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 104,
+                  name: 'Branoradd',
+                  cls: 'paladin',
+                  level: 4,
+                  hp: 95,
+                  mhp: 95,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 104,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 105,
+                  name: 'Branoraee',
+                  cls: 'druid',
+                  level: 4,
+                  hp: 80,
+                  mhp: 80,
+                  res: 95,
+                  mres: 95,
+                  rtype: 'mana',
+                  x: 105,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 102, k: 'player', tid: 'priest', lv: 4, x: 102, z: 100, dead: 0 },
-          { id: 103, k: 'player', tid: 'mage', lv: 4, x: 103, z: 100, dead: 0 },
-          { id: 104, k: 'player', tid: 'paladin', lv: 4, x: 104, z: 100, dead: 0 },
-          { id: 105, k: 'player', tid: 'druid', lv: 4, x: 105, z: 100, dead: 0 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', lv: 4, x: 102, z: 100, dead: 0 },
+            { id: 103, k: 'player', tid: 'mage', lv: 4, x: 103, z: 100, dead: 0 },
+            { id: 104, k: 'player', tid: 'paladin', lv: 4, x: 104, z: 100, dead: 0 },
+            { id: 105, k: 'player', tid: 'druid', lv: 4, x: 105, z: 100, dead: 0 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
-    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.objectiveLabel).toBe('Grinding Sableweb Lurker');
     expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
   it('uses Webwood edge camps for level 4 full-party grind after spider turn-in', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          id: 101,
-          lv: 4,
-          x: 0,
-          z: 0,
-          inv: [
-            { itemId: 'baked_bread', count: 4 },
-            { itemId: 'minor_healing_potion', count: 3 },
-          ],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders'],
-          qlog: [{ questId: 'q_murlocs', counts: [0], state: 'active' }],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 4, hp: 204, mhp: 204, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'priest', level: 4, hp: 90, mhp: 90, res: 120, mres: 120, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 103, name: 'Branoracc', cls: 'mage', level: 4, hp: 93, mhp: 93, res: 120, mres: 120, rtype: 'mana', x: 3, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 104, name: 'Branoradd', cls: 'paladin', level: 4, hp: 216, mhp: 216, res: 100, mres: 100, rtype: 'mana', x: 4, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 105, name: 'Branoraee', cls: 'druid', level: 4, hp: 144, mhp: 144, res: 100, mres: 100, rtype: 'mana', x: 5, z: 0, dead: 0, inCombat: 0, group: 1 },
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 4,
+            x: 0,
+            z: 0,
+            inv: [
+              { itemId: 'baked_bread', count: 4 },
+              { itemId: 'minor_healing_potion', count: 3 },
             ],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders'],
+            qlog: [{ questId: 'q_murlocs', counts: [0], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 4,
+                  hp: 204,
+                  mhp: 204,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'priest',
+                  level: 4,
+                  hp: 90,
+                  mhp: 90,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'mana',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Branoracc',
+                  cls: 'mage',
+                  level: 4,
+                  hp: 93,
+                  mhp: 93,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'mana',
+                  x: 3,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 104,
+                  name: 'Branoradd',
+                  cls: 'paladin',
+                  level: 4,
+                  hp: 216,
+                  mhp: 216,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: 4,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 105,
+                  name: 'Branoraee',
+                  cls: 'druid',
+                  level: 4,
+                  hp: 144,
+                  mhp: 144,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: 5,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 102, k: 'player', tid: 'priest', lv: 4, x: 2, z: 0, dead: 0 },
-          { id: 103, k: 'player', tid: 'mage', lv: 4, x: 3, z: 0, dead: 0 },
-          { id: 104, k: 'player', tid: 'paladin', lv: 4, x: 4, z: 0, dead: 0 },
-          { id: 105, k: 'player', tid: 'druid', lv: 4, x: 5, z: 0, dead: 0 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', lv: 4, x: 2, z: 0, dead: 0 },
+            { id: 103, k: 'player', tid: 'mage', lv: 4, x: 3, z: 0, dead: 0 },
+            { id: 104, k: 'player', tid: 'paladin', lv: 4, x: 4, z: 0, dead: 0 },
+            { id: 105, k: 'player', tid: 'druid', lv: 4, x: 5, z: 0, dead: 0 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
-    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.objectiveLabel).toBe('Grinding Sableweb Lurker');
     expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
     expect(result.travelGoal?.target).toEqual({ x: -43, z: -2 });
     expect(result.moveInput).toEqual({ f: 1 });
@@ -1329,45 +1816,123 @@ describe('ambient player bot brain', () => {
   it('keeps Webwood edge grinding from chasing deep spiders', () => {
     const state = createAmbientPlayerBotBrainState();
     state.campIndex = 1;
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          id: 101,
-          lv: 4,
-          x: -52,
-          z: -6,
-          inv: [
-            { itemId: 'baked_bread', count: 4 },
-            { itemId: 'minor_healing_potion', count: 3 },
-          ],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders'],
-          qlog: [{ questId: 'q_murlocs', counts: [0], state: 'active' }],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 4, hp: 204, mhp: 204, res: 0, mres: 0, rtype: 'rage', x: -52, z: -6, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'priest', level: 4, hp: 90, mhp: 90, res: 120, mres: 120, rtype: 'mana', x: -50, z: -5, dead: 0, inCombat: 0, group: 1 },
-              { pid: 103, name: 'Branoracc', cls: 'mage', level: 4, hp: 93, mhp: 93, res: 120, mres: 120, rtype: 'mana', x: -49, z: -5, dead: 0, inCombat: 0, group: 1 },
-              { pid: 104, name: 'Branoradd', cls: 'paladin', level: 4, hp: 216, mhp: 216, res: 100, mres: 100, rtype: 'mana', x: -48, z: -4, dead: 0, inCombat: 0, group: 1 },
-              { pid: 105, name: 'Branoraee', cls: 'druid', level: 4, hp: 144, mhp: 144, res: 100, mres: 100, rtype: 'mana', x: -47, z: -4, dead: 0, inCombat: 0, group: 1 },
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 4,
+            x: -52,
+            z: -6,
+            inv: [
+              { itemId: 'baked_bread', count: 4 },
+              { itemId: 'minor_healing_potion', count: 3 },
             ],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders'],
+            qlog: [{ questId: 'q_murlocs', counts: [0], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 4,
+                  hp: 204,
+                  mhp: 204,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: -52,
+                  z: -6,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'priest',
+                  level: 4,
+                  hp: 90,
+                  mhp: 90,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'mana',
+                  x: -50,
+                  z: -5,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Branoracc',
+                  cls: 'mage',
+                  level: 4,
+                  hp: 93,
+                  mhp: 93,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'mana',
+                  x: -49,
+                  z: -5,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 104,
+                  name: 'Branoradd',
+                  cls: 'paladin',
+                  level: 4,
+                  hp: 216,
+                  mhp: 216,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: -48,
+                  z: -4,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 105,
+                  name: 'Branoraee',
+                  cls: 'druid',
+                  level: 4,
+                  hp: 144,
+                  mhp: 144,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: -47,
+                  z: -4,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 102, k: 'player', tid: 'priest', lv: 4, x: -50, z: -5, dead: 0 },
-          { id: 103, k: 'player', tid: 'mage', lv: 4, x: -49, z: -5, dead: 0 },
-          { id: 104, k: 'player', tid: 'paladin', lv: 4, x: -48, z: -4, dead: 0 },
-          { id: 105, k: 'player', tid: 'druid', lv: 4, x: -47, z: -4, dead: 0 },
-          { id: 8201, k: 'mob', tid: 'webwood_spider', x: -75, z: -6, lv: 3, h: true },
-        ],
-      }),
-      nowMs: 7_000,
-    }, state);
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', lv: 4, x: -50, z: -5, dead: 0 },
+            { id: 103, k: 'player', tid: 'mage', lv: 4, x: -49, z: -5, dead: 0 },
+            { id: 104, k: 'player', tid: 'paladin', lv: 4, x: -48, z: -4, dead: 0 },
+            { id: 105, k: 'player', tid: 'druid', lv: 4, x: -47, z: -4, dead: 0 },
+            { id: 8201, k: 'mob', tid: 'webwood_spider', x: -75, z: -6, lv: 3, h: true },
+          ],
+        }),
+        nowMs: 7_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
-    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.objectiveLabel).toBe('Grinding Sableweb Lurker');
     expect(result.travelGoal).toBeUndefined();
     expect(result.commands).toEqual([]);
     expect(result.moveInput).toEqual({});
@@ -1375,26 +1940,27 @@ describe('ambient player bot brain', () => {
 
   it('keeps early boar grinding on the safe camp when Mogger-side boars are visible', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 4,
-          x: 55,
-          z: 12,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves'],
-          qlog: [
-            { questId: 'q_boars', counts: [5], state: 'done' },
-            { questId: 'q_spiders', counts: [6, 4], state: 'done' },
-          ],
-        },
-        entities: [
-          { id: 8102, k: 'mob', tid: 'wild_boar', x: 80, z: -15, lv: 3, h: true },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 4,
+            x: 55,
+            z: 12,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves'],
+            qlog: [
+              { questId: 'q_boars', counts: [5], state: 'done' },
+              { questId: 'q_spiders', counts: [6, 4], state: 'done' },
+            ],
+          },
+          entities: [{ id: 8102, k: 'mob', tid: 'wild_boar', x: 80, z: -15, lv: 3, h: true }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
     expect(result.objectiveLabel).toBe('Grinding Wild Boar');
@@ -1405,38 +1971,116 @@ describe('ambient player bot brain', () => {
 
   it('does not lower the Bristly Boar Hides route below level 3 for a full party', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          id: 101,
-          lv: 2,
-          x: 0,
-          z: 0,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves'],
-          qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 2, hp: 100, mhp: 100, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'priest', level: 2, hp: 75, mhp: 75, res: 90, mres: 90, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 103, name: 'Branoracc', cls: 'mage', level: 2, hp: 70, mhp: 70, res: 100, mres: 100, rtype: 'mana', x: 3, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 104, name: 'Branoradd', cls: 'paladin', level: 2, hp: 90, mhp: 90, res: 80, mres: 80, rtype: 'mana', x: 4, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 105, name: 'Branoraee', cls: 'druid', level: 2, hp: 80, mhp: 80, res: 90, mres: 90, rtype: 'mana', x: 5, z: 0, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 2,
+            x: 0,
+            z: 0,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves'],
+            qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 2,
+                  hp: 100,
+                  mhp: 100,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'priest',
+                  level: 2,
+                  hp: 75,
+                  mhp: 75,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Branoracc',
+                  cls: 'mage',
+                  level: 2,
+                  hp: 70,
+                  mhp: 70,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: 3,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 104,
+                  name: 'Branoradd',
+                  cls: 'paladin',
+                  level: 2,
+                  hp: 90,
+                  mhp: 90,
+                  res: 80,
+                  mres: 80,
+                  rtype: 'mana',
+                  x: 4,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 105,
+                  name: 'Branoraee',
+                  cls: 'druid',
+                  level: 2,
+                  hp: 80,
+                  mhp: 80,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 5,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 102, k: 'player', tid: 'priest', lv: 2, x: 2, z: 0, dead: 0 },
-          { id: 103, k: 'player', tid: 'mage', lv: 2, x: 3, z: 0, dead: 0 },
-          { id: 104, k: 'player', tid: 'paladin', lv: 2, x: 4, z: 0, dead: 0 },
-          { id: 105, k: 'player', tid: 'druid', lv: 2, x: 5, z: 0, dead: 0 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', lv: 2, x: 2, z: 0, dead: 0 },
+            { id: 103, k: 'player', tid: 'mage', lv: 2, x: 3, z: 0, dead: 0 },
+            { id: 104, k: 'player', tid: 'paladin', lv: 2, x: 4, z: 0, dead: 0 },
+            { id: 105, k: 'player', tid: 'druid', lv: 2, x: 5, z: 0, dead: 0 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
     expect(result.objectiveLabel).toBe('Grinding Forest Wolf');
@@ -1445,186 +2089,682 @@ describe('ambient player bot brain', () => {
 
   it('does not use full-party strength to pursue Old Greyjaw at level 4', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          id: 101,
-          lv: 4,
-          x: 100,
-          z: 100,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_mine'],
-          qlog: [{ questId: 'q_greyjaw', counts: [0], state: 'active' }],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 4, hp: 100, mhp: 100, res: 0, mres: 0, rtype: 'rage', x: 100, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'priest', level: 4, hp: 75, mhp: 75, res: 90, mres: 90, rtype: 'mana', x: 102, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 103, name: 'Branoracc', cls: 'mage', level: 4, hp: 70, mhp: 70, res: 100, mres: 100, rtype: 'mana', x: 103, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 104, name: 'Branoradd', cls: 'paladin', level: 4, hp: 95, mhp: 95, res: 90, mres: 90, rtype: 'mana', x: 104, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 105, name: 'Branoraee', cls: 'druid', level: 4, hp: 80, mhp: 80, res: 95, mres: 95, rtype: 'mana', x: 105, z: 100, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 4,
+            x: 100,
+            z: 100,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_mine'],
+            qlog: [{ questId: 'q_greyjaw', counts: [0], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 4,
+                  hp: 100,
+                  mhp: 100,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 100,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'priest',
+                  level: 4,
+                  hp: 75,
+                  mhp: 75,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 102,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Branoracc',
+                  cls: 'mage',
+                  level: 4,
+                  hp: 70,
+                  mhp: 70,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: 103,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 104,
+                  name: 'Branoradd',
+                  cls: 'paladin',
+                  level: 4,
+                  hp: 95,
+                  mhp: 95,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 104,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 105,
+                  name: 'Branoraee',
+                  cls: 'druid',
+                  level: 4,
+                  hp: 80,
+                  mhp: 80,
+                  res: 95,
+                  mres: 95,
+                  rtype: 'mana',
+                  x: 105,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 102, k: 'player', tid: 'priest', lv: 4, x: 102, z: 100, dead: 0 },
-          { id: 103, k: 'player', tid: 'mage', lv: 4, x: 103, z: 100, dead: 0 },
-          { id: 104, k: 'player', tid: 'paladin', lv: 4, x: 104, z: 100, dead: 0 },
-          { id: 105, k: 'player', tid: 'druid', lv: 4, x: 105, z: 100, dead: 0 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', lv: 4, x: 102, z: 100, dead: 0 },
+            { id: 103, k: 'player', tid: 'mage', lv: 4, x: 103, z: 100, dead: 0 },
+            { id: 104, k: 'player', tid: 'paladin', lv: 4, x: 104, z: 100, dead: 0 },
+            { id: 105, k: 'player', tid: 'druid', lv: 4, x: 105, z: 100, dead: 0 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
-    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.objectiveLabel).toBe('Grinding Sableweb Lurker');
     expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
   it('does not use full-party strength to travel early for a distant Fenbridge pickup', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          id: 101,
-          lv: 5,
-          x: 0,
-          z: 0,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-          ],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 4, hp: 100, mhp: 100, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'priest', level: 4, hp: 75, mhp: 75, res: 90, mres: 90, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 103, name: 'Branoracc', cls: 'mage', level: 4, hp: 70, mhp: 70, res: 100, mres: 100, rtype: 'mana', x: 3, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 104, name: 'Branoradd', cls: 'paladin', level: 4, hp: 95, mhp: 95, res: 90, mres: 90, rtype: 'mana', x: 4, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 105, name: 'Branoraee', cls: 'druid', level: 4, hp: 80, mhp: 80, res: 95, mres: 95, rtype: 'mana', x: 5, z: 0, dead: 0, inCombat: 0, group: 1 },
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 5,
+            x: 0,
+            z: 0,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
             ],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 4,
+                  hp: 100,
+                  mhp: 100,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'priest',
+                  level: 4,
+                  hp: 75,
+                  mhp: 75,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Branoracc',
+                  cls: 'mage',
+                  level: 4,
+                  hp: 70,
+                  mhp: 70,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: 3,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 104,
+                  name: 'Branoradd',
+                  cls: 'paladin',
+                  level: 4,
+                  hp: 95,
+                  mhp: 95,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 4,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 105,
+                  name: 'Branoraee',
+                  cls: 'druid',
+                  level: 4,
+                  hp: 80,
+                  mhp: 80,
+                  res: 95,
+                  mres: 95,
+                  rtype: 'mana',
+                  x: 5,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 102, k: 'player', tid: 'priest', lv: 4, x: 2, z: 0, dead: 0 },
-          { id: 103, k: 'player', tid: 'mage', lv: 4, x: 3, z: 0, dead: 0 },
-          { id: 104, k: 'player', tid: 'paladin', lv: 4, x: 4, z: 0, dead: 0 },
-          { id: 105, k: 'player', tid: 'druid', lv: 4, x: 5, z: 0, dead: 0 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', lv: 4, x: 2, z: 0, dead: 0 },
+            { id: 103, k: 'player', tid: 'mage', lv: 4, x: 3, z: 0, dead: 0 },
+            { id: 104, k: 'player', tid: 'paladin', lv: 4, x: 4, z: 0, dead: 0 },
+            { id: 105, k: 'player', tid: 'druid', lv: 4, x: 5, z: 0, dead: 0 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
-    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.objectiveLabel).toBe('Grinding Sableweb Lurker');
     expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
   it('does not use party strength to enter the dense supplies camp early', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          id: 101,
-          lv: 5,
-          x: 100,
-          z: 100,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_greyjaw'],
-          qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 100, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'priest', level: 5, hp: 75, mhp: 75, res: 90, mres: 90, rtype: 'mana', x: 102, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 103, name: 'Branoracc', cls: 'mage', level: 5, hp: 70, mhp: 70, res: 100, mres: 100, rtype: 'mana', x: 103, z: 100, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 5,
+            x: 100,
+            z: 100,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_greyjaw'],
+            qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 5,
+                  hp: 120,
+                  mhp: 120,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 100,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'priest',
+                  level: 5,
+                  hp: 75,
+                  mhp: 75,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 102,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Branoracc',
+                  cls: 'mage',
+                  level: 5,
+                  hp: 70,
+                  mhp: 70,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: 103,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 102, k: 'player', tid: 'priest', lv: 5, x: 102, z: 100, dead: 0 },
-          { id: 103, k: 'player', tid: 'mage', lv: 5, x: 103, z: 100, dead: 0 },
-          { id: 9401, k: 'object', obj: 'supply_crate', x: 102, z: 100, loot: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', lv: 5, x: 102, z: 100, dead: 0 },
+            { id: 103, k: 'player', tid: 'mage', lv: 5, x: 103, z: 100, dead: 0 },
+            { id: 9401, k: 'object', obj: 'supply_crate', x: 102, z: 100, loot: 1 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).not.toBe('collect_supplies');
     expect(result.objectiveLabel).not.toBe('Recovering Stolen Supplies');
   });
 
-  it('does not rush a higher route when nearby party members are below the grouped safe level', () => {
+  it('keeps a level 5 full party out of the dense supplies camp', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          id: 101,
-          lv: 5,
-          x: 100,
-          z: 100,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_greyjaw'],
-          qlog: [{ questId: 'q_mine', counts: [0], state: 'active' }],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 100, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'priest', level: 4, hp: 75, mhp: 75, res: 90, mres: 90, rtype: 'mana', x: 102, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 103, name: 'Branoracc', cls: 'mage', level: 4, hp: 70, mhp: 70, res: 100, mres: 100, rtype: 'mana', x: 103, z: 100, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 5,
+            x: 100,
+            z: 100,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_greyjaw'],
+            qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 5,
+                  hp: 120,
+                  mhp: 120,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 100,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'priest',
+                  level: 5,
+                  hp: 75,
+                  mhp: 75,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 102,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Branoracc',
+                  cls: 'mage',
+                  level: 5,
+                  hp: 70,
+                  mhp: 70,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: 103,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 104,
+                  name: 'Branoradd',
+                  cls: 'paladin',
+                  level: 5,
+                  hp: 95,
+                  mhp: 95,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 104,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 105,
+                  name: 'Branoraee',
+                  cls: 'druid',
+                  level: 5,
+                  hp: 80,
+                  mhp: 80,
+                  res: 95,
+                  mres: 95,
+                  rtype: 'mana',
+                  x: 105,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 102, k: 'player', tid: 'priest', lv: 4, x: 102, z: 100, dead: 0 },
-          { id: 103, k: 'player', tid: 'mage', lv: 4, x: 103, z: 100, dead: 0 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', lv: 5, x: 102, z: 100, dead: 0 },
+            { id: 103, k: 'player', tid: 'mage', lv: 5, x: 103, z: 100, dead: 0 },
+            { id: 104, k: 'player', tid: 'paladin', lv: 5, x: 104, z: 100, dead: 0 },
+            { id: 105, k: 'player', tid: 'druid', lv: 5, x: 105, z: 100, dead: 0 },
+            { id: 9401, k: 'object', obj: 'supply_crate', x: 102, z: 100, loot: 1 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
-    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.objectiveLabel).toBe('Grinding Sableweb Lurker');
     expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
+    expect(result.travelGoal?.target).toEqual({ x: -43, z: -2 });
+    expect(result.commands).toEqual([]);
+  });
+
+  it('does not rush a higher route when nearby party members are below the grouped safe level', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 5,
+            x: 100,
+            z: 100,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_greyjaw'],
+            qlog: [{ questId: 'q_mine', counts: [0], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 5,
+                  hp: 120,
+                  mhp: 120,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 100,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'priest',
+                  level: 4,
+                  hp: 75,
+                  mhp: 75,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 102,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Branoracc',
+                  cls: 'mage',
+                  level: 4,
+                  hp: 70,
+                  mhp: 70,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: 103,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
+          },
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', lv: 4, x: 102, z: 100, dead: 0 },
+            { id: 103, k: 'player', tid: 'mage', lv: 4, x: 103, z: 100, dead: 0 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Sableweb Lurker');
+    expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
+  });
+
+  it('keeps a level 5 full party grinding safely when the mine quest is deferred', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 5,
+            x: 100,
+            z: 100,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_greyjaw'],
+            qlog: [{ questId: 'q_mine', counts: [0], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 5,
+                  hp: 120,
+                  mhp: 120,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 100,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'priest',
+                  level: 5,
+                  hp: 75,
+                  mhp: 75,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 102,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Branoracc',
+                  cls: 'mage',
+                  level: 5,
+                  hp: 70,
+                  mhp: 70,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: 103,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 104,
+                  name: 'Branoradd',
+                  cls: 'paladin',
+                  level: 5,
+                  hp: 95,
+                  mhp: 95,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 104,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 105,
+                  name: 'Branoraee',
+                  cls: 'druid',
+                  level: 5,
+                  hp: 80,
+                  mhp: 80,
+                  res: 95,
+                  mres: 95,
+                  rtype: 'mana',
+                  x: 105,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
+          },
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', lv: 5, x: 102, z: 100, dead: 0 },
+            { id: 103, k: 'player', tid: 'mage', lv: 5, x: 103, z: 100, dead: 0 },
+            { id: 104, k: 'player', tid: 'paladin', lv: 5, x: 104, z: 100, dead: 0 },
+            { id: 105, k: 'player', tid: 'druid', lv: 5, x: 105, z: 100, dead: 0 },
+            { id: 9201, k: 'mob', tid: 'tunnel_rat', x: 102, z: 100, lv: 5, h: true },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Sableweb Lurker');
+    expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
+    expect(result.commands).toEqual([]);
   });
 
   it('resumes the murloc quest once the bot reaches the safe route level', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders'],
-          qlog: [{ questId: 'q_murlocs', counts: [5], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 6,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders'],
+            qlog: [{ questId: 'q_murlocs', counts: [5], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_murlocs');
     expect(result.objectiveLabel).toBe('Driving back the Mudfin');
@@ -1634,84 +2774,170 @@ describe('ambient player bot brain', () => {
 
   it('keeps grinding spiders at level 5 instead of rushing an accepted murloc quest', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 5,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
-          qlog: [{ questId: 'q_murlocs', counts: [3], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 5,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+            qlog: [{ questId: 'q_murlocs', counts: [3], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
-    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.objectiveLabel).toBe('Grinding Sableweb Lurker');
     expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
-  it('uses murlocs as the level 5 full-party grind after the murloc quest is done', () => {
+  it('uses boar camps in the level 5 full-party safe grind rotation', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          id: 101,
-          lv: 5,
-          x: 100,
-          z: 100,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_greyjaw'],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 100, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'priest', level: 5, hp: 75, mhp: 75, res: 90, mres: 90, rtype: 'mana', x: 102, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 103, name: 'Branoracc', cls: 'mage', level: 5, hp: 70, mhp: 70, res: 100, mres: 100, rtype: 'mana', x: 103, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 104, name: 'Branoradd', cls: 'paladin', level: 5, hp: 95, mhp: 95, res: 90, mres: 90, rtype: 'mana', x: 104, z: 100, dead: 0, inCombat: 0, group: 1 },
-              { pid: 105, name: 'Branoraee', cls: 'druid', level: 5, hp: 80, mhp: 80, res: 95, mres: 95, rtype: 'mana', x: 105, z: 100, dead: 0, inCombat: 0, group: 1 },
-            ],
+    state.campIndex = 2;
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 5,
+            x: 100,
+            z: 100,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_greyjaw'],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 5,
+                  hp: 120,
+                  mhp: 120,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 100,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'priest',
+                  level: 5,
+                  hp: 75,
+                  mhp: 75,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 102,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Branoracc',
+                  cls: 'mage',
+                  level: 5,
+                  hp: 70,
+                  mhp: 70,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: 103,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 104,
+                  name: 'Branoradd',
+                  cls: 'paladin',
+                  level: 5,
+                  hp: 95,
+                  mhp: 95,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 104,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 105,
+                  name: 'Branoraee',
+                  cls: 'druid',
+                  level: 5,
+                  hp: 80,
+                  mhp: 80,
+                  res: 95,
+                  mres: 95,
+                  rtype: 'mana',
+                  x: 105,
+                  z: 100,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 102, k: 'player', tid: 'priest', lv: 5, x: 102, z: 100, dead: 0 },
-          { id: 103, k: 'player', tid: 'mage', lv: 5, x: 103, z: 100, dead: 0 },
-          { id: 104, k: 'player', tid: 'paladin', lv: 5, x: 104, z: 100, dead: 0 },
-          { id: 105, k: 'player', tid: 'druid', lv: 5, x: 105, z: 100, dead: 0 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', lv: 5, x: 102, z: 100, dead: 0 },
+            { id: 103, k: 'player', tid: 'mage', lv: 5, x: 103, z: 100, dead: 0 },
+            { id: 104, k: 'player', tid: 'paladin', lv: 5, x: 104, z: 100, dead: 0 },
+            { id: 105, k: 'player', tid: 'druid', lv: 5, x: 105, z: 100, dead: 0 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
-    expect(result.objectiveLabel).toBe('Grinding Mudfin Skulker');
-    expect(result.travelGoal?.goalKey).toBe('camp:mudfin_murloc:0');
+    expect(result.objectiveLabel).toBe('Grinding Sableweb Lurker');
+    expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:2');
+    expect(result.travelGoal?.target).toEqual({ x: 55, z: 12 });
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
   it('keeps pursuing Greyjaw when later level-6 routes are active but still deferred', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 5,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
-          qlog: [
-            { questId: 'q_supplies', counts: [0], state: 'active' },
-            { questId: 'q_greyjaw', counts: [0], state: 'active' },
-            { questId: 'q_bandits', counts: [0], state: 'active' },
-            { questId: 'q_mine', counts: [0], state: 'active' },
-          ],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 5,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
+            qlog: [
+              { questId: 'q_supplies', counts: [0], state: 'active' },
+              { questId: 'q_greyjaw', counts: [0], state: 'active' },
+              { questId: 'q_bandits', counts: [0], state: 'active' },
+              { questId: 'q_mine', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_greyjaw');
     expect(result.objectiveLabel).toBe('Hunting Old Greyjaw');
@@ -1721,95 +2947,132 @@ describe('ambient player bot brain', () => {
 
   it('picks up the bandit quest at level 5 before deciding when to enter the camp', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 5,
-          copper: 200,
-          inv: [
-            { itemId: 'baked_bread', count: 4 },
-            { itemId: 'minor_healing_potion', count: 2 },
-          ],
-          equip: { mainhand: 'vale_carving_knife' },
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
-        },
-        entities: [
-          { id: 7300, k: 'npc', tid: 'marshal_redbrook', x: 0, z: 0 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 5,
+            copper: 200,
+            inv: [
+              { itemId: 'baked_bread', count: 4 },
+              { itemId: 'minor_healing_potion', count: 2 },
+            ],
+            equip: { mainhand: 'vale_carving_knife' },
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+          },
+          entities: [{ id: 7300, k: 'npc', tid: 'marshal_redbrook', x: 0, z: 0 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_bandits');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 7300 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 7300 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('uses pathing while chasing a distant combat target after the Greyjaw turn-in', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 4,
-          x: 7.35,
-          z: 7.99,
-          hp: 214,
-          mhp: 214,
-          copper: 0,
-          inv: [
-            { itemId: 'baked_bread', count: 4 },
-            { itemId: 'minor_healing_potion', count: 3 },
-          ],
-          equip: { mainhand: 'vale_carving_knife' },
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
-        },
-        entities: [
-          { id: 39, k: 'mob', tid: 'webwood_spider', x: -45, z: 12, h: true },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 4,
+            x: 7.35,
+            z: 7.99,
+            hp: 214,
+            mhp: 214,
+            copper: 0,
+            inv: [
+              { itemId: 'baked_bread', count: 4 },
+              { itemId: 'minor_healing_potion', count: 3 },
+            ],
+            equip: { mainhand: 'vale_carving_knife' },
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+          },
+          entities: [{ id: 39, k: 'mob', tid: 'webwood_spider', x: -45, z: 12, h: true }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
-    expect(result.objectiveId).toBe('combat');
-    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.objectiveId).toBe('prepare_combat');
+    expect(result.objectiveLabel).toBe('Preparing for combat');
     expect(result.travelGoal?.goalKey).toBe('target:39:-45:12');
-    expect(result.commands).toEqual([{ cmd: 'target', id: 39 }]);
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 39 },
+      { cmd: 'cast', ability: 'battle_shout' },
+    ]);
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
   it('stages a grouped melee pull at range instead of running into the pack', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 4,
-          hp: 214,
-          mhp: 214,
-          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 4, hp: 214, mhp: 214, res: 0, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'mage', level: 4, hp: 80, mhp: 80, res: 100, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 4,
+            hp: 214,
+            mhp: 214,
+            qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 4,
+                  hp: 214,
+                  mhp: 214,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'mage',
+                  level: 4,
+                  hp: 80,
+                  mhp: 80,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 9008, k: 'mob', tid: 'forest_wolf', x: 0, z: 24, h: 1, lv: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [{ id: 9008, k: 'mob', tid: 'forest_wolf', x: 0, z: 24, h: 1, lv: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
-    expect(result.objectiveId).toBe('combat');
-    expect(result.commands).toEqual([{ cmd: 'target', id: 9008 }]);
+    expect(result.objectiveId).toBe('prepare_combat');
+    expect(result.objectiveLabel).toBe('Preparing for combat');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9008 },
+      { cmd: 'cast', ability: 'battle_shout' },
+    ]);
     expect(result.travelGoal).toMatchObject({
       target: { x: 0, z: 24 },
       arrivalRange: 18,
@@ -1818,68 +3081,208 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
-  it('stages dense high-aggro group pulls farther out', () => {
+  it('advances grouped melee from staging to release range when nobody opens the pull', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 10,
-          hp: 502,
-          mhp: 502,
-          qdone: ['q_deepfen'],
-          qlog: [{ questId: 'q_idols', counts: [0], state: 'active' }],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 10, hp: 502, mhp: 502, res: 0, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'mage', level: 10, hp: 258, mhp: 258, res: 240, mres: 240, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 4,
+            hp: 214,
+            mhp: 214,
+            z: 6,
+            target: 9008,
+            auras: [{ id: 'battle_shout', kind: 'buff_ap_pct', rem: 1700, dur: 1800 }],
+            qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 4,
+                  hp: 214,
+                  mhp: 214,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 6,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'mage',
+                  level: 4,
+                  hp: 80,
+                  mhp: 80,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: 1,
+                  z: 4,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 9010, k: 'mob', tid: 'deepfen_murloc', x: 0, z: 30, h: 1, lv: 9 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [{ id: 9008, k: 'mob', tid: 'forest_wolf', x: 0, z: 24, h: 1, lv: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('combat');
-    expect(result.commands).toEqual([{ cmd: 'target', id: 9010 }]);
+    expect(result.commands).toEqual([]);
     expect(result.travelGoal).toMatchObject({
-      target: { x: 0, z: 30 },
+      target: { x: 0, z: 24 },
+      arrivalRange: 10,
+      goalKey: 'party-pull:9008:0:24',
+    });
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('stages dense high-aggro group pulls farther out', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            x: -58,
+            z: 286,
+            hp: 502,
+            mhp: 502,
+            qdone: ['q_deepfen'],
+            qlog: [{ questId: 'q_idols', counts: [0], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 10,
+                  hp: 502,
+                  mhp: 502,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'mage',
+                  level: 10,
+                  hp: 258,
+                  mhp: 258,
+                  res: 240,
+                  mres: 240,
+                  rtype: 'mana',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
+          },
+          entities: [{ id: 9010, k: 'mob', tid: 'deepfen_murloc', x: -82, z: 273, h: 1, lv: 9 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('prepare_combat');
+    expect(result.objectiveLabel).toBe('Preparing for combat');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9010 },
+      { cmd: 'cast', ability: 'battle_shout' },
+    ]);
+    expect(result.travelGoal).toMatchObject({
+      target: { x: -82, z: 273 },
       arrivalRange: 24,
-      goalKey: 'party-pull:9010:0:30',
+      goalKey: 'party-pull:9010:-82:273',
     });
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
   it('holds grouped melee while an incoming pull is still far away', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 4,
-          hp: 214,
-          mhp: 214,
-          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 4, hp: 214, mhp: 214, res: 0, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'mage', level: 4, hp: 80, mhp: 80, res: 100, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 1, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 4,
+            hp: 214,
+            mhp: 214,
+            qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 4,
+                  hp: 214,
+                  mhp: 214,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'mage',
+                  level: 4,
+                  hp: 80,
+                  mhp: 80,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 9009, k: 'mob', tid: 'forest_wolf', x: 0, z: 16, h: 1, lv: 1, aggro: 101 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [
+            { id: 9009, k: 'mob', tid: 'forest_wolf', x: 0, z: 16, h: 1, lv: 1, aggro: 101 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('combat');
     expect(result.commands).toEqual([{ cmd: 'target', id: 9009 }]);
@@ -1889,30 +3292,63 @@ describe('ambient player bot brain', () => {
 
   it('holds grouped melee longer for dense high-aggro incoming pulls', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 10,
-          hp: 502,
-          mhp: 502,
-          qdone: ['q_deepfen'],
-          qlog: [{ questId: 'q_idols', counts: [0], state: 'active' }],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 10, hp: 502, mhp: 502, res: 0, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'mage', level: 10, hp: 258, mhp: 258, res: 240, mres: 240, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 1, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            hp: 502,
+            mhp: 502,
+            qdone: ['q_deepfen'],
+            qlog: [{ questId: 'q_idols', counts: [0], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 10,
+                  hp: 502,
+                  mhp: 502,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'mage',
+                  level: 10,
+                  hp: 258,
+                  mhp: 258,
+                  res: 240,
+                  mres: 240,
+                  rtype: 'mana',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 9011, k: 'mob', tid: 'deepfen_murloc', x: 8, z: 0, h: 1, lv: 9, aggro: 101 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [
+            { id: 9011, k: 'mob', tid: 'deepfen_murloc', x: 8, z: 0, h: 1, lv: 9, aggro: 101 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('combat');
     expect(result.commands).toEqual([{ cmd: 'target', id: 9011 }]);
@@ -1922,24 +3358,25 @@ describe('ambient player bot brain', () => {
 
   it('buys an affordable weapon upgrade before accepting the murloc quest', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          x: 7,
-          z: 16.5,
-          copper: 1_500,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          equip: { mainhand: 'worn_sword', chest: 'recruit_tunic' },
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
-        },
-        entities: [
-          { id: 7200, k: 'npc', tid: 'smith_haldren', x: 7, z: 16.5 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 6,
+            x: 7,
+            z: 16.5,
+            copper: 1_500,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            equip: { mainhand: 'worn_sword', chest: 'recruit_tunic' },
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+          },
+          entities: [{ id: 7200, k: 'npc', tid: 'smith_haldren', x: 7, z: 16.5 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('buy_eastbrook_arming_sword');
     expect(result.commands).toEqual([
@@ -1951,27 +3388,28 @@ describe('ambient player bot brain', () => {
 
   it('sells redundant gear at the smith when that funds a weapon upgrade', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          x: 7,
-          z: 16.5,
-          copper: 1_290,
-          inv: [
-            { itemId: 'baked_bread', count: 4 },
-            { itemId: 'milepost_boots', count: 2 },
-          ],
-          equip: { mainhand: 'worn_sword', chest: 'recruit_tunic', feet: 'milepost_boots' },
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
-        },
-        entities: [
-          { id: 7200, k: 'npc', tid: 'smith_haldren', x: 7, z: 16.5 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 6,
+            x: 7,
+            z: 16.5,
+            copper: 1_290,
+            inv: [
+              { itemId: 'baked_bread', count: 4 },
+              { itemId: 'milepost_boots', count: 2 },
+            ],
+            equip: { mainhand: 'worn_sword', chest: 'recruit_tunic', feet: 'milepost_boots' },
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+          },
+          entities: [{ id: 7200, k: 'npc', tid: 'smith_haldren', x: 7, z: 16.5 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('buy_eastbrook_arming_sword');
     expect(result.commands).toEqual([
@@ -1983,49 +3421,52 @@ describe('ambient player bot brain', () => {
 
   it('turns in a ready quest instead of detouring to buy a weapon', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          x: 11,
-          z: -3,
-          copper: 1_500,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          equip: { mainhand: 'worn_sword', chest: 'recruit_tunic' },
-          qdone: ['q_wolves', 'q_boars'],
-          qlog: [{ questId: 'q_spiders', counts: [6, 4], state: 'ready' }],
-        },
-        entities: [
-          { id: 7101, k: 'npc', tid: 'apothecary_lin', x: 11, z: -3 },
-          { id: 7200, k: 'npc', tid: 'smith_haldren', x: 7, z: 16.5 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 6,
+            x: 11,
+            z: -3,
+            copper: 1_500,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            equip: { mainhand: 'worn_sword', chest: 'recruit_tunic' },
+            qdone: ['q_wolves', 'q_boars'],
+            qlog: [{ questId: 'q_spiders', counts: [6, 4], state: 'ready' }],
+          },
+          entities: [
+            { id: 7101, k: 'npc', tid: 'apothecary_lin', x: 11, z: -3 },
+            { id: 7200, k: 'npc', tid: 'smith_haldren', x: 7, z: 16.5 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('turnin_spiders');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 7101 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 7101 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('equips a backpack armor upgrade before pulling the next target', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 4,
-          inv: [{ itemId: 'trail_leggings', count: 1 }],
-          equip: { mainhand: 'worn_sword', chest: 'recruit_tunic' },
-          qdone: ['q_wolves', 'q_boars', 'q_spiders'],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 4,
+            inv: [{ itemId: 'trail_leggings', count: 1 }],
+            equip: { mainhand: 'worn_sword', chest: 'recruit_tunic' },
+            qdone: ['q_wolves', 'q_boars', 'q_spiders'],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('equip_upgrade');
     expect(result.objectiveLabel).toBe('Equipping gear upgrade');
@@ -2035,18 +3476,21 @@ describe('ambient player bot brain', () => {
 
   it('equips a backpack weapon upgrade before pulling the next target', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 5,
-          inv: [{ itemId: 'redbrook_blade', count: 1 }],
-          equip: { mainhand: 'worn_sword', chest: 'recruit_tunic' },
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 5,
+            inv: [{ itemId: 'redbrook_blade', count: 1 }],
+            equip: { mainhand: 'worn_sword', chest: 'recruit_tunic' },
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('equip_upgrade');
     expect(result.commands).toEqual([{ cmd: 'equip', item: 'redbrook_blade' }]);
@@ -2055,51 +3499,52 @@ describe('ambient player bot brain', () => {
 
   it('uses Provisioner Hale for north-zone food and drink restocking once the bot is questing in Mirefen', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot({
-        class: 'mage',
-        profileId: 'eastbrook_vale_mage_newcomer',
-      }),
-      liveState: liveState({
-        self: {
-          lv: 8,
-          x: -4,
-          z: 308,
-          copper: 900,
-          res: 100,
-          mres: 100,
-          rtype: 'mana',
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-            'q_idols',
-            'q_deepfen_purge',
-          ],
-          qlog: [{ questId: 'q_widows', counts: [0, 0], state: 'active' }],
-        },
-        entities: [
-          { id: 9800, k: 'npc', tid: 'provisioner_hale', x: -4, z: 308 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          class: 'mage',
+          profileId: 'eastbrook_vale_mage_newcomer',
+        }),
+        liveState: liveState({
+          self: {
+            lv: 8,
+            x: -4,
+            z: 308,
+            copper: 900,
+            res: 100,
+            mres: 100,
+            rtype: 'mana',
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+              'q_idols',
+              'q_deepfen_purge',
+            ],
+            qlog: [{ questId: 'q_widows', counts: [0, 0], state: 'active' }],
+          },
+          entities: [{ id: 9800, k: 'npc', tid: 'provisioner_hale', x: -4, z: 308 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('restock_food_and_drink');
     expect(result.commands).toEqual([
@@ -2109,73 +3554,123 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
+  it('routes Fenbridge restocking through the safe hub approach from the prowler belt', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          class: 'mage',
+          profileId: 'mirefen_marsh_mage_quester',
+        }),
+        liveState: liveState({
+          self: {
+            lv: 7,
+            x: -26,
+            z: 227,
+            hp: 140,
+            mhp: 140,
+            copper: 900,
+            res: 100,
+            mres: 100,
+            rtype: 'mana',
+            inv: [],
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_fenbridge_muster',
+            ],
+            qlog: [{ questId: 'q_prowlers', counts: [4], state: 'active' }],
+          },
+          entities: [{ id: 9800, k: 'npc', tid: 'provisioner_hale', x: -4, z: 308 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('restock_food_and_drink');
+    expect(result.travelGoal?.goalKey).toBe('vendor-approach:provisioner_hale');
+    expect(result.travelGoal?.target).toEqual({ x: 0, z: 308 });
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('picks up a nearby Fenbridge route quest before restocking at the hub', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot({
-        class: 'mage',
-        profileId: 'mirefen_marsh_mage_quester',
-      }),
-      liveState: liveState({
-        self: {
-          lv: 8,
-          x: -4,
-          z: 308,
-          copper: 900,
-          res: 100,
-          mres: 100,
-          rtype: 'mana',
-          inv: [],
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_fenbridge_muster',
-          ],
-          qlog: [
-            { questId: 'q_prowlers', counts: [1], state: 'active' },
-            { questId: 'q_prowler_pelts', counts: [0], state: 'active' },
-            { questId: 'q_rite', counts: [0, 6], state: 'active' },
-          ],
-        },
-        entities: [
-          { id: 9800, k: 'npc', tid: 'provisioner_hale', x: -4, z: 308 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          class: 'mage',
+          profileId: 'mirefen_marsh_mage_quester',
+        }),
+        liveState: liveState({
+          self: {
+            lv: 8,
+            x: -4,
+            z: 308,
+            copper: 900,
+            res: 100,
+            mres: 100,
+            rtype: 'mana',
+            inv: [],
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_fenbridge_muster',
+            ],
+            qlog: [
+              { questId: 'q_prowlers', counts: [1], state: 'active' },
+              { questId: 'q_prowler_pelts', counts: [0], state: 'active' },
+              { questId: 'q_rite', counts: [0, 6], state: 'active' },
+            ],
+          },
+          entities: [{ id: 9800, k: 'npc', tid: 'provisioner_hale', x: -4, z: 308 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_fen_supplies');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9800 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9800 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('takes the boar route once the bot reaches level 3', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 3,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves'],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 3,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves'],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_boars');
     expect(result.travelGoal?.goalKey).toBe('npc:trader_wilkes');
@@ -2184,52 +3679,51 @@ describe('ambient player bot brain', () => {
 
   it('picks up the boar-hide quest once the bot outlevels the starter wolf loop', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 4,
-          x: -7,
-          z: 3,
-          copper: 200,
-          qdone: ['q_wolves'],
-        },
-        entities: [
-          { id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 4,
+            x: -7,
+            z: 3,
+            copper: 200,
+            qdone: ['q_wolves'],
+          },
+          entities: [{ id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_boars');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 7100 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 7100 }, { cmd: 'interact' }]);
   });
 
   it('turns in a ready quest instead of fighting a stale non-aggro target', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 4,
-          x: 37,
-          z: 7,
-          hp: 176,
-          mhp: 176,
-          target: 8101,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves'],
-          qlog: [{ questId: 'q_boars', counts: [5], state: 'ready' }],
-        },
-        entities: [
-          { id: 8101, k: 'mob', tid: 'wild_boar', x: 38, z: 7, h: true },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 4,
+            x: 37,
+            z: 7,
+            hp: 176,
+            mhp: 176,
+            target: 8101,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves'],
+            qlog: [{ questId: 'q_boars', counts: [5], state: 'ready' }],
+          },
+          entities: [{ id: 8101, k: 'mob', tid: 'wild_boar', x: 38, z: 7, h: true }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('turnin_boars');
     expect(result.travelGoal?.goalKey).toBe('npc:trader_wilkes');
@@ -2239,74 +3733,73 @@ describe('ambient player bot brain', () => {
 
   it('turns in the spider quest at Apothecary Lin once the silk run is ready', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 3,
-          x: 11,
-          z: -3,
-          qdone: ['q_wolves', 'q_boars'],
-          qlog: [{ questId: 'q_spiders', counts: [6, 4], state: 'ready' }],
-        },
-        entities: [
-          { id: 7200, k: 'npc', tid: 'apothecary_lin', x: 11, z: -3 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 3,
+            x: 11,
+            z: -3,
+            qdone: ['q_wolves', 'q_boars'],
+            qlog: [{ questId: 'q_spiders', counts: [6, 4], state: 'ready' }],
+          },
+          entities: [{ id: 7200, k: 'npc', tid: 'apothecary_lin', x: 11, z: -3 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('turnin_spiders');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 7200 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 7200 }, { cmd: 'interact' }]);
   });
 
   it('targets and interacts with a nearby supply crate when the supplies quest is active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
-          qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
-        },
-        entities: [
-          { id: 9401, k: 'object', obj: 'supply_crate', x: 2, z: 2, loot: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 6,
+            x: 58,
+            z: -58,
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
+            qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
+          },
+          entities: [{ id: 9401, k: 'object', obj: 'supply_crate', x: 58, z: -58, loot: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('collect_supplies');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9401 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9401 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('does not keep interacting with supply crates once the local collect count is full', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
-          qlog: [
-            { questId: 'q_supplies', counts: [4], state: 'active' },
-            { questId: 'q_mine', counts: [0], state: 'active' },
-          ],
-        },
-        entities: [
-          { id: 9401, k: 'object', obj: 'supply_crate', x: 2, z: 2, loot: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 6,
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
+            qlog: [
+              { questId: 'q_supplies', counts: [4], state: 'active' },
+              { questId: 'q_mine', counts: [0], state: 'active' },
+            ],
+          },
+          entities: [{ id: 9401, k: 'object', obj: 'supply_crate', x: 2, z: 2, loot: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_mine');
     expect(result.objectiveLabel).toBe('Clearing Tunnel Rats');
@@ -2315,64 +3808,67 @@ describe('ambient player bot brain', () => {
 
   it('escorts party members on collect backfill without clicking completed supply crates', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          id: 101,
-          lv: 6,
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies'],
-          qlog: [{ questId: 'q_mine', counts: [0], state: 'active' }],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              {
-                pid: 101,
-                name: 'Branoraaa',
-                cls: 'warrior',
-                level: 6,
-                hp: 120,
-                mhp: 120,
-                res: 0,
-                mres: 0,
-                rtype: 'rage',
-                x: 0,
-                z: 0,
-                dead: 0,
-                inCombat: 0,
-                group: 1,
-                qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies'],
-                qlog: [{ questId: 'q_mine', counts: [0], state: 'active' }],
-              },
-              {
-                pid: 102,
-                name: 'Branorabb',
-                cls: 'priest',
-                level: 6,
-                hp: 75,
-                mhp: 75,
-                res: 90,
-                mres: 90,
-                rtype: 'mana',
-                x: 2,
-                z: 0,
-                dead: 0,
-                inCombat: 0,
-                group: 1,
-                qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
-                qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
-              },
-            ],
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 6,
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies'],
+            qlog: [{ questId: 'q_mine', counts: [0], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 6,
+                  hp: 120,
+                  mhp: 120,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies'],
+                  qlog: [{ questId: 'q_mine', counts: [0], state: 'active' }],
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'priest',
+                  level: 6,
+                  hp: 75,
+                  mhp: 75,
+                  res: 90,
+                  mres: 90,
+                  rtype: 'mana',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
+                  qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 102, k: 'player', tid: 'priest', lv: 6, x: 2, z: 0, dead: 0 },
-          { id: 9401, k: 'object', obj: 'supply_crate', x: 2, z: 2, loot: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', lv: 6, x: 2, z: 0, dead: 0 },
+            { id: 9401, k: 'object', obj: 'supply_crate', x: 2, z: 2, loot: 1 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('assist_collect_supplies');
     expect(result.objectiveLabel).toBe('Recovering Stolen Supplies');
@@ -2381,126 +3877,199 @@ describe('ambient player bot brain', () => {
 
   it('grinds instead of forcing an accepted supplies quest below the safe route level', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 4,
-          inv: [{ itemId: 'baked_bread', count: 4 }],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_greyjaw'],
-          qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
-        },
-        entities: [
-          { id: 9401, k: 'object', obj: 'supply_crate', x: 2, z: 2, loot: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 4,
+            inv: [{ itemId: 'baked_bread', count: 4 }],
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_greyjaw'],
+            qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
+          },
+          entities: [{ id: 9401, k: 'object', obj: 'supply_crate', x: 2, z: 2, loot: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
-    expect(result.objectiveLabel).toBe('Grinding Webwood Lurker');
+    expect(result.objectiveLabel).toBe('Grinding Sableweb Lurker');
     expect(result.travelGoal?.goalKey).toBe('camp:webwood_spider:0');
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
   it('keeps walking to a supply crate until it is inside pickup range', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
-          qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
-        },
-        entities: [
-          { id: 9401, k: 'object', obj: 'supply_crate', x: INTERACT_RANGE + 0.75, z: 0, loot: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 6,
+            x: 58,
+            z: -58,
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
+            qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
+          },
+          entities: [
+            {
+              id: 9401,
+              k: 'object',
+              obj: 'supply_crate',
+              x: 58 + INTERACT_RANGE + 0.75,
+              z: -58,
+              loot: 1,
+            },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('collect_supplies');
     expect(result.commands).toEqual([]);
     expect(result.moveInput).toEqual({ f: 1 });
     expect(result.travelGoal).toMatchObject({
-      target: { x: INTERACT_RANGE + 0.75, z: 0 },
+      target: { x: 58 + INTERACT_RANGE + 0.75, z: -58 },
       arrivalRange: INTERACT_RANGE,
     });
   });
 
+  it('ignores deep supply crates outside the safe route camps', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 6,
+            x: 86,
+            z: -82,
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
+            qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
+          },
+          entities: [{ id: 9401, k: 'object', obj: 'supply_crate', x: 86, z: -82, loot: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('collect_supplies');
+    expect(result.commands).toEqual([]);
+    expect(result.travelGoal?.goalKey).toBe('objectcamp:supply_crate:0');
+    expect(result.travelGoal?.target).toEqual({ x: 58, z: -58 });
+  });
+
   it('targets and interacts with the gravecaller sigil when the Aldric clue quest is active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_mine', 'q_greyjaw', 'q_bandits', 'q_ringleader', 'q_bones'],
-          qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 9501, k: 'object', obj: 'gravecaller_sigil', x: 3, z: 1, loot: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+            ],
+            qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
+          },
+          entities: [{ id: 9501, k: 'object', obj: 'gravecaller_sigil', x: 3, z: 1, loot: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('collect_whispers');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9501 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9501 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('picks up an in-range quest object before retreating from a dangerous pull', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 7,
-          hp: 30,
-          mhp: 100,
-          target: 9602,
-          auto: true,
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_mine', 'q_greyjaw', 'q_bandits', 'q_ringleader', 'q_bones'],
-          qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 9601, k: 'object', obj: 'gravecaller_sigil', x: 1, z: 0, loot: 1 },
-          { id: 9602, k: 'mob', tid: 'restless_bones', x: 1.5, z: 0, h: true, aggro: 101 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            hp: 30,
+            mhp: 100,
+            target: 9602,
+            auto: true,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+            ],
+            qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
+          },
+          entities: [
+            { id: 9601, k: 'object', obj: 'gravecaller_sigil', x: 1, z: 0, loot: 1 },
+            { id: 9602, k: 'mob', tid: 'restless_bones', x: 1.5, z: 0, h: true, aggro: 101 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('collect_whispers');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9601 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9601 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('continues a nearby collect objective instead of restocking at the object camp', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 8,
-          x: 80,
-          z: 88,
-          copper: 100,
-          inv: [],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_mine', 'q_greyjaw', 'q_bandits', 'q_ringleader', 'q_bones'],
-          qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            x: 80,
+            z: 88,
+            copper: 100,
+            inv: [],
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+            ],
+            qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('collect_whispers');
     expect(result.objectiveLabel).toBe("Searching for the Gravecaller's Sigil");
@@ -2509,61 +4078,149 @@ describe('ambient player bot brain', () => {
 
   it('keeps traveling to the sigil camp instead of restocking from the chapel approach', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 8,
-          x: 43.6,
-          z: 55.4,
-          copper: 100,
-          inv: [],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_mine', 'q_greyjaw', 'q_bandits', 'q_ringleader', 'q_bones'],
-          qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            x: 43.6,
+            z: 55.4,
+            copper: 100,
+            inv: [],
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+            ],
+            qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('collect_whispers');
     expect(result.objectiveLabel).toBe("Searching for the Gravecaller's Sigil");
     expect(result.moveInput).toEqual({ f: 1 });
-    expect([{ x: 84, z: 88 }, { x: 76, z: 92 }]).toContainEqual(result.travelGoal?.target);
+    expect([
+      { x: 84, z: 88 },
+      { x: 76, z: 92 },
+    ]).toContainEqual(result.travelGoal?.target);
     expect(result.travelGoal?.arrivalRange).toBeGreaterThan(INTERACT_RANGE);
+  });
+
+  it('routes around the Hollow Crypt door trigger while collecting the chapel sigil', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const start = { x: 64.82, z: 100.43 };
+
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            ...start,
+            copper: 100,
+            inv: [],
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+            ],
+            qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('collect_whispers');
+    expect(result.travelGoal?.target).toEqual({ x: 84, z: 88 });
+    expect(state.path.length).toBeGreaterThanOrEqual(2);
+    let previous = start;
+    for (const point of state.path) {
+      expect(pointToSegmentDistance(hollowCryptDoor, previous, point)).toBeGreaterThan(2.5);
+      previous = point;
+    }
   });
 
   it('prioritizes its own active sigil collect over party supply backfill', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          id: 101,
-          lv: 8,
-          x: 71,
-          z: 68,
-          copper: 100,
-          inv: [],
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_mine', 'q_greyjaw', 'q_bandits', 'q_ringleader', 'q_bones'],
-          qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
-          party: {
-            members: [
-              { pid: 101, dead: false, qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_supplies', 'q_mine', 'q_greyjaw', 'q_bandits', 'q_ringleader', 'q_bones'], qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }] },
-              {
-                pid: 102,
-                dead: false,
-                qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
-                qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
-              },
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 10,
+            x: 71,
+            z: 68,
+            copper: 100,
+            inv: [],
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
             ],
+            qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
+            party: {
+              members: [
+                {
+                  pid: 101,
+                  dead: false,
+                  qdone: [
+                    'q_wolves',
+                    'q_boars',
+                    'q_spiders',
+                    'q_murlocs',
+                    'q_supplies',
+                    'q_mine',
+                    'q_greyjaw',
+                    'q_bandits',
+                    'q_ringleader',
+                    'q_bones',
+                  ],
+                  qlog: [{ questId: 'q_whispers', counts: [0], state: 'active' }],
+                },
+                {
+                  pid: 102,
+                  dead: false,
+                  qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs'],
+                  qlog: [{ questId: 'q_supplies', counts: [1], state: 'active' }],
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 102, k: 'player', tid: 'priest', lv: 8, x: 63, z: 64, dead: 0 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [{ id: 102, k: 'player', tid: 'priest', lv: 10, x: 63, z: 64, dead: 0 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('collect_whispers');
     expect(result.objectiveLabel).toBe("Searching for the Gravecaller's Sigil");
@@ -2573,113 +4230,112 @@ describe('ambient player bot brain', () => {
 
   it('picks up q_rite from Brother Aldric after the earlier chapel chain is complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          x: 6,
-          z: 6,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-          ],
-        },
-        entities: [
-          { id: 9600, k: 'npc', tid: 'brother_aldric', x: 6, z: 6 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            x: 6,
+            z: 6,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+            ],
+          },
+          entities: [{ id: 9600, k: 'npc', tid: 'brother_aldric', x: 6, z: 6 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_rite');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9600 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9600 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('picks up the Fenbridge muster handoff from Brother Aldric after q_rite is complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          x: 6,
-          z: 6,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-          ],
-        },
-        entities: [
-          { id: 9700, k: 'npc', tid: 'brother_aldric', x: 6, z: 6 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 6,
+            x: 6,
+            z: 6,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+            ],
+          },
+          entities: [{ id: 9700, k: 'npc', tid: 'brother_aldric', x: 6, z: 6 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_fenbridge_muster');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9700 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9700 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('heads north along the causeway when the Fenbridge muster order is active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-          ],
-          qlog: [{ questId: 'q_fenbridge_muster', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 6,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+            ],
+            qlog: [{ questId: 'q_fenbridge_muster', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('collect_fenbridge_muster');
     expect(result.commands).toEqual([]);
@@ -2711,18 +4367,21 @@ describe('ambient player bot brain', () => {
       ],
       qlog: [{ questId: 'q_fenbridge_muster', counts: [0], state: 'active' }],
     };
-    const initial = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        seed,
-        self: {
-          ...baseSelf,
-          x: pos.x,
-          z: pos.z,
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const initial = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          seed,
+          self: {
+            ...baseSelf,
+            x: pos.x,
+            z: pos.z,
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(initial.objectiveId).toBe('collect_fenbridge_muster');
     expect(initial.travelGoal).toMatchObject({
@@ -2745,6 +4404,7 @@ describe('ambient player bot brain', () => {
         initial.objectiveId,
         initial.objectiveLabel,
         goal,
+        1_000 + i * 50,
       );
       expect(drive).not.toBeNull();
       expect(drive!.moveInput).toEqual({ f: 1 });
@@ -2773,18 +4433,21 @@ describe('ambient player bot brain', () => {
       qdone: ['q_wolves'],
       qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
     };
-    const initial = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        seed,
-        self: {
-          ...baseSelf,
-          x: pos.x,
-          z: pos.z,
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const initial = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          seed,
+          self: {
+            ...baseSelf,
+            x: pos.x,
+            z: pos.z,
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(initial.objectiveId).toBe('restock_minor_healing_potion');
     expect(initial.travelGoal).toMatchObject({
@@ -2808,6 +4471,7 @@ describe('ambient player bot brain', () => {
         initial.objectiveId,
         initial.objectiveLabel,
         goal,
+        1_000 + i * 50,
       );
       expect(drive).not.toBeNull();
       if (!drive!.moveInput.f) {
@@ -2825,80 +4489,83 @@ describe('ambient player bot brain', () => {
     }
 
     expect(zeroMoveTicks).toBe(0);
-    expect(reached || Math.hypot(pos.x - goal.target.x, pos.z - goal.target.z) <= goal.arrivalRange).toBe(true);
+    expect(
+      reached || Math.hypot(pos.x - goal.target.x, pos.z - goal.target.z) <= goal.arrivalRange,
+    ).toBe(true);
   });
 
   it('turns in the Fenbridge muster quest at Warden Fenwick after the gatepost pickup', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          x: 3,
-          z: 304,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-          ],
-          qlog: [{ questId: 'q_fenbridge_muster', counts: [1], state: 'ready' }],
-        },
-        entities: [
-          { id: 9701, k: 'npc', tid: 'warden_fenwick', x: 3, z: 304 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 6,
+            x: 3,
+            z: 304,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+            ],
+            qlog: [{ questId: 'q_fenbridge_muster', counts: [1], state: 'ready' }],
+          },
+          entities: [{ id: 9701, k: 'npc', tid: 'warden_fenwick', x: 3, z: 304 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('turnin_fenbridge_muster');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9701 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9701 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('hunts mire prowlers after the Fenbridge handoff is complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-          ],
-          qlog: [{ questId: 'q_prowlers', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 6,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+            ],
+            qlog: [{ questId: 'q_prowlers', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_prowlers');
     expect(result.commands).toEqual([]);
@@ -2907,216 +4574,348 @@ describe('ambient player bot brain', () => {
 
   it('targets and interacts with lost caravan goods when the Fenbridge supply quest is active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 7,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-          ],
-          qlog: [{ questId: 'q_fen_supplies', counts: [1], state: 'active' }],
-        },
-        entities: [
-          { id: 9702, k: 'object', obj: 'lost_caravan_goods', x: 2, z: 2, loot: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            x: 2,
+            z: 282,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+            ],
+            qlog: [{ questId: 'q_fen_supplies', counts: [1], state: 'active' }],
+          },
+          entities: [{ id: 9702, k: 'object', obj: 'lost_caravan_goods', x: 2, z: 283, loot: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('collect_fen_supplies');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9702 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9702 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
+  });
+
+  it('ignores unsafe lost caravan goods outside the Fenbridge route camps', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            x: -6,
+            z: 221,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+            ],
+            qlog: [{ questId: 'q_fen_supplies', counts: [1], state: 'active' }],
+          },
+          entities: [{ id: 9702, k: 'object', obj: 'lost_caravan_goods', x: -6, z: 221, loot: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('collect_fen_supplies');
+    expect(result.commands).toEqual([]);
+    expect(result.travelGoal?.goalKey).toBe('objectcamp:lost_caravan_goods:0');
+    expect(result.travelGoal?.target).toEqual({ x: -3, z: 268 });
+    expect(result.moveInput).toEqual({ f: 1 });
   });
 
   it('routes toward Deepfen snappers to recover Aldrics idols once the first cull is done', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 7,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-          ],
-          qlog: [{ questId: 'q_idols', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+            ],
+            qlog: [{ questId: 'q_idols', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_idols');
     expect(result.commands).toEqual([]);
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
+  it('grinds prowlers instead of entering Deepfen at level 8', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 8,
+            x: 0,
+            z: 300,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+            ],
+            qlog: [{ questId: 'q_deepfen', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Mire Prowler');
+    expect(result.travelGoal?.goalKey).toBe('camp:mire_prowler:0');
+  });
+
+  it('uses the safe Deepfen edge camp once the party reaches level 9', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 9,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+            ],
+            qlog: [{ questId: 'q_deepfen', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('hunt_deepfen');
+    expect(result.travelGoal?.goalKey).toBe('camp:deepfen_murloc:0');
+    expect(result.travelGoal?.target).toEqual({ x: -58, z: 286 });
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('picks up the Deepfen purge follow-up from Warden Fenwick after the idols are turned in', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 7,
-          x: 3,
-          z: 304,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-            'q_idols',
-          ],
-        },
-        entities: [
-          { id: 9703, k: 'npc', tid: 'warden_fenwick', x: 3, z: 304 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 9,
+            x: 3,
+            z: 304,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+              'q_idols',
+            ],
+          },
+          entities: [{ id: 9703, k: 'npc', tid: 'warden_fenwick', x: 3, z: 304 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_deepfen_purge');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9703 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9703 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('picks up the widow-thicket quest from Herbalist Yara after the Deepfen purge chain is complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 8,
-          x: 10,
-          z: 295,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-            'q_idols',
-            'q_deepfen_purge',
-          ],
-        },
-        entities: [
-          { id: 9801, k: 'npc', tid: 'herbalist_yara', x: 10, z: 295 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 9,
+            x: 10,
+            z: 295,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+              'q_idols',
+              'q_deepfen_purge',
+            ],
+          },
+          entities: [{ id: 9801, k: 'npc', tid: 'herbalist_yara', x: 10, z: 295 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_widows');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9801 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9801 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('keeps hunting Mirefen widows while the mixed kill-and-drop widow quest is active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 8,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-            'q_idols',
-            'q_deepfen_purge',
-          ],
-          qlog: [{ questId: 'q_widows', counts: [7, 4], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 9,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+              'q_idols',
+              'q_deepfen_purge',
+            ],
+            qlog: [{ questId: 'q_widows', counts: [7, 4], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_widows');
     expect(result.commands).toEqual([]);
@@ -3125,241 +4924,234 @@ describe('ambient player bot brain', () => {
 
   it('picks up the drowned-dead quest from Brother Aldric in Fenbridge after the widow chain', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 9,
-          x: -8,
-          z: 296,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-            'q_idols',
-            'q_deepfen_purge',
-            'q_widows',
-          ],
-        },
-        entities: [
-          { id: 9802, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 9,
+            x: -8,
+            z: 296,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+              'q_idols',
+              'q_deepfen_purge',
+              'q_widows',
+            ],
+          },
+          entities: [{ id: 9802, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_drowned');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9802 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9802 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('targets and interacts with a rusted censer when the drowned chapel collect quest is active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 13,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-            'q_idols',
-            'q_deepfen_purge',
-            'q_widows',
-            'q_drowned',
-          ],
-          qlog: [{ questId: 'q_drowned_censers', counts: [1], state: 'active' }],
-        },
-        entities: [
-          { id: 9803, k: 'object', obj: 'rusted_censer', x: 3, z: 1, loot: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 13,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+              'q_idols',
+              'q_deepfen_purge',
+              'q_widows',
+              'q_drowned',
+            ],
+            qlog: [{ questId: 'q_drowned_censers', counts: [1], state: 'active' }],
+          },
+          entities: [{ id: 9803, k: 'object', obj: 'rusted_censer', x: 3, z: 1, loot: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('collect_drowned_censers');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9803 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9803 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('picks up the no-rest follow-up from Brother Aldric after the chapel censers are secured', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 9,
-          x: -8,
-          z: 296,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-            'q_idols',
-            'q_deepfen_purge',
-            'q_widows',
-            'q_drowned',
-            'q_drowned_censers',
-          ],
-        },
-        entities: [
-          { id: 9804, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 9,
+            x: -8,
+            z: 296,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+              'q_idols',
+              'q_deepfen_purge',
+              'q_widows',
+              'q_drowned',
+              'q_drowned_censers',
+            ],
+          },
+          entities: [{ id: 9804, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_no_rest');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9804 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9804 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('picks up the Broodmother follow-up from Herbalist Yara after the widow thicket is cleared', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 10,
-          x: 10,
-          z: 295,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-            'q_idols',
-            'q_deepfen_purge',
-            'q_widows',
-          ],
-        },
-        entities: [
-          { id: 9805, k: 'npc', tid: 'herbalist_yara', x: 10, z: 295 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            x: 10,
+            z: 295,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+              'q_idols',
+              'q_deepfen_purge',
+              'q_widows',
+            ],
+          },
+          entities: [{ id: 9805, k: 'npc', tid: 'herbalist_yara', x: 10, z: 295 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_broodmother');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9805 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9805 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('switches from widow clearing to the Broodmother once the hatchling count is complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 10,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-            'q_idols',
-            'q_deepfen_purge',
-            'q_widows',
-          ],
-          qlog: [{ questId: 'q_broodmother', counts: [8, 0], state: 'active' }],
-        },
-        entities: [
-          { id: 9806, k: 'mob', tid: 'mire_widow', x: 2, z: 2, h: 1, lv: 9 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+              'q_idols',
+              'q_deepfen_purge',
+              'q_widows',
+            ],
+            qlog: [{ questId: 'q_broodmother', counts: [8, 0], state: 'active' }],
+          },
+          entities: [{ id: 9806, k: 'mob', tid: 'mire_widow', x: 2, z: 2, h: 1, lv: 9 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_broodmother_matriarch');
     expect(result.commands).toEqual([]);
@@ -3368,98 +5160,99 @@ describe('ambient player bot brain', () => {
 
   it('picks up the troll-barrow quest from Warden Fenwick after the drowned chain', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 10,
-          x: 3,
-          z: 304,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-            'q_idols',
-            'q_deepfen_purge',
-            'q_widows',
-            'q_broodmother',
-            'q_drowned',
-            'q_drowned_censers',
-            'q_no_rest',
-          ],
-        },
-        entities: [
-          { id: 9807, k: 'npc', tid: 'warden_fenwick', x: 3, z: 304 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            x: 3,
+            z: 304,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+              'q_idols',
+              'q_deepfen_purge',
+              'q_widows',
+              'q_broodmother',
+              'q_drowned',
+              'q_drowned_censers',
+              'q_no_rest',
+            ],
+          },
+          entities: [{ id: 9807, k: 'npc', tid: 'warden_fenwick', x: 3, z: 304 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_trolls');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9807 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9807 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('keeps hunting Mirefen trolls while the fetish quest is active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 10,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-            'q_idols',
-            'q_deepfen_purge',
-            'q_widows',
-            'q_broodmother',
-            'q_drowned',
-            'q_drowned_censers',
-            'q_no_rest',
-            'q_trolls',
-          ],
-          qlog: [{ questId: 'q_troll_fetishes', counts: [3], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+              'q_idols',
+              'q_deepfen_purge',
+              'q_widows',
+              'q_broodmother',
+              'q_drowned',
+              'q_drowned_censers',
+              'q_no_rest',
+              'q_trolls',
+            ],
+            qlog: [{ questId: 'q_troll_fetishes', counts: [3], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_troll_fetishes');
     expect(result.commands).toEqual([]);
@@ -3468,268 +5261,354 @@ describe('ambient player bot brain', () => {
 
   it('picks up Grubjaw from Provisioner Hale once the troll fetishes are done', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          x: -4,
-          z: 308,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-            'q_idols',
-            'q_deepfen_purge',
-            'q_widows',
-            'q_broodmother',
-            'q_drowned',
-            'q_drowned_censers',
-            'q_no_rest',
-            'q_trolls',
-            'q_troll_fetishes',
-          ],
-        },
-        entities: [
-          { id: 9808, k: 'npc', tid: 'provisioner_hale', x: -4, z: 308 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            x: -4,
+            z: 308,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+              'q_idols',
+              'q_deepfen_purge',
+              'q_widows',
+              'q_broodmother',
+              'q_drowned',
+              'q_drowned_censers',
+              'q_no_rest',
+              'q_trolls',
+              'q_troll_fetishes',
+            ],
+          },
+          entities: [{ id: 9808, k: 'npc', tid: 'provisioner_hale', x: -4, z: 308 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_grubjaw');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9808 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9808 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('picks up the cult-camp assault from Scout Maren after Grubjaw is finished', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          x: 6,
-          z: 312,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-            'q_idols',
-            'q_deepfen_purge',
-            'q_widows',
-            'q_broodmother',
-            'q_drowned',
-            'q_drowned_censers',
-            'q_no_rest',
-            'q_trolls',
-            'q_troll_fetishes',
-            'q_grubjaw',
-          ],
-        },
-        entities: [
-          { id: 9809, k: 'npc', tid: 'scout_maren', x: 6, z: 312 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            x: 6,
+            z: 312,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+              'q_idols',
+              'q_deepfen_purge',
+              'q_widows',
+              'q_broodmother',
+              'q_drowned',
+              'q_drowned_censers',
+              'q_no_rest',
+              'q_trolls',
+              'q_troll_fetishes',
+              'q_grubjaw',
+            ],
+          },
+          entities: [{ id: 9809, k: 'npc', tid: 'scout_maren', x: 6, z: 312 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_cult_camp');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9809 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9809 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('grinds instead of entering the cult camp at level 11', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 11,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-            'q_idols',
-            'q_deepfen_purge',
-            'q_widows',
-            'q_broodmother',
-            'q_drowned',
-            'q_drowned_censers',
-            'q_no_rest',
-            'q_trolls',
-            'q_troll_fetishes',
-            'q_grubjaw',
-          ],
-          qlog: [{ questId: 'q_cult_camp', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 11,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+              'q_idols',
+              'q_deepfen_purge',
+              'q_widows',
+              'q_broodmother',
+              'q_drowned',
+              'q_drowned_censers',
+              'q_no_rest',
+              'q_trolls',
+              'q_troll_fetishes',
+              'q_grubjaw',
+            ],
+            qlog: [{ questId: 'q_cult_camp', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
     expect(result.commands).toEqual([]);
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
-  it('does not use full-party strength to enter the cult camp at level 11', () => {
+  it('uses full-party strength to enter the cult camp at level 11', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          id: 101,
-          lv: 11,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-            'q_idols',
-            'q_deepfen_purge',
-            'q_widows',
-            'q_broodmother',
-            'q_drowned',
-            'q_drowned_censers',
-            'q_no_rest',
-            'q_trolls',
-            'q_troll_fetishes',
-            'q_grubjaw',
-          ],
-          qlog: [{ questId: 'q_cult_camp', counts: [0], state: 'active' }],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 11, hp: 570, mhp: 570, res: 0, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'priest', level: 11, hp: 288, mhp: 288, res: 810, mres: 810, rtype: 'mana', x: 1, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 103, name: 'Branoracc', cls: 'mage', level: 11, hp: 310, mhp: 310, res: 990, mres: 990, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 104, name: 'Branoradd', cls: 'paladin', level: 11, hp: 565, mhp: 565, res: 420, mres: 420, rtype: 'mana', x: 3, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 105, name: 'Branoraee', cls: 'druid', level: 11, hp: 455, mhp: 455, res: 725, mres: 725, rtype: 'mana', x: 4, z: 0, dead: 0, inCombat: 0, group: 1 },
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 11,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+              'q_idols',
+              'q_deepfen_purge',
+              'q_widows',
+              'q_broodmother',
+              'q_drowned',
+              'q_drowned_censers',
+              'q_no_rest',
+              'q_trolls',
+              'q_troll_fetishes',
+              'q_grubjaw',
             ],
+            qlog: [{ questId: 'q_cult_camp', counts: [0], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 11,
+                  hp: 570,
+                  mhp: 570,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'priest',
+                  level: 11,
+                  hp: 288,
+                  mhp: 288,
+                  res: 810,
+                  mres: 810,
+                  rtype: 'mana',
+                  x: 1,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Branoracc',
+                  cls: 'mage',
+                  level: 11,
+                  hp: 310,
+                  mhp: 310,
+                  res: 990,
+                  mres: 990,
+                  rtype: 'mana',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 104,
+                  name: 'Branoradd',
+                  cls: 'paladin',
+                  level: 11,
+                  hp: 565,
+                  mhp: 565,
+                  res: 420,
+                  mres: 420,
+                  rtype: 'mana',
+                  x: 3,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 105,
+                  name: 'Branoraee',
+                  cls: 'druid',
+                  level: 11,
+                  hp: 455,
+                  mhp: 455,
+                  res: 725,
+                  mres: 725,
+                  rtype: 'mana',
+                  x: 4,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', x: 1, z: 0, lv: 11 },
+            { id: 103, k: 'player', tid: 'mage', x: 2, z: 0, lv: 11 },
+            { id: 104, k: 'player', tid: 'paladin', x: 3, z: 0, lv: 11 },
+            { id: 105, k: 'player', tid: 'druid', x: 4, z: 0, lv: 11 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
-    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveId).toBe('hunt_cult_camp');
     expect(result.commands).toEqual([]);
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
   it('heads for Gravecaller cultists once the reeds camp quest is active at level 12', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          qdone: [
-            'q_wolves',
-            'q_boars',
-            'q_spiders',
-            'q_murlocs',
-            'q_supplies',
-            'q_mine',
-            'q_greyjaw',
-            'q_bandits',
-            'q_ringleader',
-            'q_bones',
-            'q_whispers',
-            'q_names_of_the_dead',
-            'q_silence_the_call',
-            'q_rite',
-            'q_fenbridge_muster',
-            'q_prowlers',
-            'q_prowler_pelts',
-            'q_fen_supplies',
-            'q_deepfen',
-            'q_idols',
-            'q_deepfen_purge',
-            'q_widows',
-            'q_broodmother',
-            'q_drowned',
-            'q_drowned_censers',
-            'q_no_rest',
-            'q_trolls',
-            'q_troll_fetishes',
-            'q_grubjaw',
-          ],
-          qlog: [{ questId: 'q_cult_camp', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+              'q_rite',
+              'q_fenbridge_muster',
+              'q_prowlers',
+              'q_prowler_pelts',
+              'q_fen_supplies',
+              'q_deepfen',
+              'q_idols',
+              'q_deepfen_purge',
+              'q_widows',
+              'q_broodmother',
+              'q_drowned',
+              'q_drowned_censers',
+              'q_no_rest',
+              'q_trolls',
+              'q_troll_fetishes',
+              'q_grubjaw',
+            ],
+            qlog: [{ questId: 'q_cult_camp', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_cult_camp');
     expect(result.commands).toEqual([]);
@@ -3738,112 +5617,114 @@ describe('ambient player bot brain', () => {
 
   it('picks up the summoner quest from Brother Aldric in Fenbridge after the cult-camp assault is done', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          x: -8,
-          z: 296,
-          qdone: [...mirefenThroughCultCamp],
-        },
-        entities: [
-          { id: 9810, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            x: -8,
+            z: 296,
+            qdone: [...mirefenThroughCultCamp],
+          },
+          entities: [{ id: 9810, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_summoners');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9810 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9810 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('keeps fighting Gravecaller summoners while the kill objective of q_summoners is still incomplete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          qdone: [...mirefenThroughCultCamp],
-          qlog: [{ questId: 'q_summoners', counts: [3, 1], state: 'active' }],
-        },
-        entities: [
-          { id: 9811, k: 'mob', tid: 'gravecaller_summoner', x: 2, z: 2, h: 1, lv: 11 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            qdone: [...mirefenThroughCultCamp],
+            qlog: [{ questId: 'q_summoners', counts: [3, 1], state: 'active' }],
+          },
+          entities: [{ id: 9811, k: 'mob', tid: 'gravecaller_summoner', x: 2, z: 2, h: 1, lv: 11 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
-    expect(result.objectiveId).toBe('combat');
-    expect(result.objectiveLabel).toBe('Silencing Gravecaller Summoners');
+    expect(result.objectiveId).toBe('prepare_combat');
+    expect(result.objectiveLabel).toBe('Preparing for combat');
     expect(result.commands[0]).toEqual({ cmd: 'target', id: 9811 });
   });
 
   it('keeps using nearby summoners for q_summoners ciphers after the kill count is done', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          qdone: [...mirefenThroughCultCamp],
-          qlog: [{ questId: 'q_summoners', counts: [8, 0], state: 'active' }],
-        },
-        entities: [
-          { id: 9812, k: 'mob', tid: 'gravecaller_summoner', x: 2, z: 2, h: 1, lv: 11 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            qdone: [...mirefenThroughCultCamp],
+            qlog: [{ questId: 'q_summoners', counts: [8, 0], state: 'active' }],
+          },
+          entities: [{ id: 9812, k: 'mob', tid: 'gravecaller_summoner', x: 2, z: 2, h: 1, lv: 11 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
-    expect(result.objectiveId).toBe('combat');
-    expect(result.objectiveLabel).toBe('Recovering Gravecaller Ciphers');
+    expect(result.objectiveId).toBe('prepare_combat');
+    expect(result.objectiveLabel).toBe('Preparing for combat');
     expect(result.commands[0]).toEqual({ cmd: 'target', id: 9812 });
   });
 
   it('falls back to Gravecaller menders for q_summoners ciphers when no summoner is in reach', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          qdone: [...mirefenThroughCultCamp],
-          qlog: [{ questId: 'q_summoners', counts: [8, 0], state: 'active' }],
-        },
-        entities: [
-          { id: 9813, k: 'mob', tid: 'gravecaller_mender', x: 2, z: 2, h: 1, lv: 11 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            qdone: [...mirefenThroughCultCamp],
+            qlog: [{ questId: 'q_summoners', counts: [8, 0], state: 'active' }],
+          },
+          entities: [{ id: 9813, k: 'mob', tid: 'gravecaller_mender', x: 2, z: 2, h: 1, lv: 11 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
-    expect(result.objectiveId).toBe('combat');
-    expect(result.objectiveLabel).toBe('Recovering Gravecaller Ciphers');
+    expect(result.objectiveId).toBe('prepare_combat');
+    expect(result.objectiveLabel).toBe('Preparing for combat');
     expect(result.commands[0]).toEqual({ cmd: 'target', id: 9813 });
   });
 
   it('does not drift onto Gravecaller cultists during the q_summoners cipher stage', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          qdone: [...mirefenThroughCultCamp],
-          qlog: [{ questId: 'q_summoners', counts: [8, 0], state: 'active' }],
-        },
-        entities: [
-          { id: 9817, k: 'mob', tid: 'gravecaller_cultist', x: 2, z: 2, h: 1, lv: 11 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            qdone: [...mirefenThroughCultCamp],
+            qlog: [{ questId: 'q_summoners', counts: [8, 0], state: 'active' }],
+          },
+          entities: [{ id: 9817, k: 'mob', tid: 'gravecaller_cultist', x: 2, z: 2, h: 1, lv: 11 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_summoner_ciphers');
     expect(result.objectiveLabel).toBe('Recovering Gravecaller Ciphers');
@@ -3853,43 +5734,44 @@ describe('ambient player bot brain', () => {
 
   it('picks up Deacon Voss from Warden Fenwick after q_summoners is complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          x: 3,
-          z: 304,
-          qdone: [...mirefenThroughSummoners],
-        },
-        entities: [
-          { id: 9814, k: 'npc', tid: 'warden_fenwick', x: 3, z: 304 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            x: 3,
+            z: 304,
+            qdone: [...mirefenThroughSummoners],
+          },
+          entities: [{ id: 9814, k: 'npc', tid: 'warden_fenwick', x: 3, z: 304 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_deacon');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9814 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9814 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('heads for Deacon Voss once the deacon quest is active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          qdone: [...mirefenThroughSummoners],
-          qlog: [{ questId: 'q_deacon', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            qdone: [...mirefenThroughSummoners],
+            qlog: [{ questId: 'q_deacon', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_deacon');
     expect(result.commands).toEqual([]);
@@ -3898,151 +5780,889 @@ describe('ambient player bot brain', () => {
 
   it('picks up the Bastion ward-stone quest from Brother Aldric after Deacon Voss is dead', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          x: -8,
-          z: 296,
-          qdone: [...mirefenThroughDeacon],
-        },
-        entities: [
-          { id: 9815, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            x: -8,
+            z: 296,
+            qdone: [...mirefenThroughDeacon],
+          },
+          entities: [{ id: 9815, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_bastion_door');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9815 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9815 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('targets and interacts with a Bastion ward stone once q_bastion_door is active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          qdone: [...mirefenThroughDeacon],
-          qlog: [{ questId: 'q_bastion_door', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 9816, k: 'object', obj: 'bastion_ward_stone', x: 2, z: 2, loot: 1 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            qdone: [...mirefenThroughDeacon],
+            qlog: [{ questId: 'q_bastion_door', counts: [0], state: 'active' }],
+          },
+          entities: [{ id: 9816, k: 'object', obj: 'bastion_ward_stone', x: 2, z: 2, loot: 1 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('collect_bastion_door');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9816 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9816 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('picks up Knight-Commander Olen from Scout Maren after q_bastion_door is complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          x: 6,
-          z: 312,
-          qdone: [...mirefenThroughBastionDoor],
-        },
-        entities: [
-          { id: 9818, k: 'npc', tid: 'scout_maren', x: 6, z: 312 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            x: 6,
+            z: 312,
+            qdone: [...mirefenThroughBastionDoor],
+          },
+          entities: [{ id: 9818, k: 'npc', tid: 'scout_maren', x: 6, z: 312 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_olen');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9818 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9818 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('picks up q_mistcaller before entering Bastion once q_olen is already active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          x: -8,
-          z: 296,
-          qdone: [...mirefenThroughBastionDoor],
-          qlog: [{ questId: 'q_olen', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 9819, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            x: -8,
+            z: 296,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [{ questId: 'q_olen', counts: [0], state: 'active' }],
+          },
+          entities: [{ id: 9819, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_mistcaller');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9819 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9819 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
-  it('heads for the Sunken Bastion door once the Bastion group quests are active outdoors', () => {
+  it('defers the Sunken Bastion door and keeps grinding while the Bastion party is underleveled', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          qdone: [...mirefenThroughBastionDoor],
-          qlog: [
-            { questId: 'q_olen', counts: [0], state: 'active' },
-            { questId: 'q_mistcaller', counts: [0], state: 'active' },
-          ],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            x: -8,
+            z: 296,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveDungeonId).toBeUndefined();
+    expect(result.objectiveSuggestedPartySize).toBeUndefined();
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('defers entering Sunken Bastion while any party member is below level 16', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 102,
+            lv: 16,
+            x: 20,
+            z: 265,
+            inv: [
+              { itemId: 'fenbridge_rye', count: 4 },
+              { itemId: 'lesser_healing_potion', count: 3 },
+            ],
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Alden',
+                  cls: 'warrior',
+                  level: 15,
+                  hp: 654,
+                  mhp: 654,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 18,
+                  z: 265,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Mira',
+                  cls: 'priest',
+                  level: 16,
+                  hp: 332,
+                  mhp: 332,
+                  res: 1079,
+                  mres: 1079,
+                  rtype: 'mana',
+                  x: 20,
+                  z: 265,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).not.toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBeUndefined();
+    expect(result.objectiveSuggestedPartySize).toBeUndefined();
+  });
+
+  it('leaves Sunken Bastion before trying to restock at an overworld vendor', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          class: 'priest',
+          profileId: 'eastbrook_vale_priest_newcomer',
+        }),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: bastionSlot0Origin.x - 21,
+            z: bastionSlot0Origin.z + 107,
+            dgn: 'sunken_bastion',
+            copper: 10000,
+            res: 900,
+            mres: 1079,
+            rtype: 'mana',
+            inv: [],
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('leave_sunken_bastion_resupply');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.travelGoal?.goalKey).toBe('leave:sunken_bastion');
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('does not let a non-leader leave Sunken Bastion alone for personal restocking', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          class: 'priest',
+          profileId: 'eastbrook_vale_priest_newcomer',
+        }),
+        liveState: liveState({
+          self: {
+            id: 102,
+            lv: 16,
+            x: bastionSlot0Origin.x - 21,
+            z: bastionSlot0Origin.z + 107,
+            dgn: 'sunken_bastion',
+            copper: 10000,
+            res: 900,
+            mres: 1079,
+            rtype: 'mana',
+            inv: [],
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Alden',
+                  cls: 'warrior',
+                  level: 16,
+                  hp: 692,
+                  mhp: 692,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: bastionSlot0Origin.x,
+                  z: bastionSlot0Origin.z + 4,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Mira',
+                  cls: 'priest',
+                  level: 16,
+                  hp: 402,
+                  mhp: 402,
+                  res: 900,
+                  mres: 1079,
+                  rtype: 'mana',
+                  x: bastionSlot0Origin.x - 21,
+                  z: bastionSlot0Origin.z + 107,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).not.toBe('leave_sunken_bastion_resupply');
+    expect(result.objectiveId).not.toContain('restock');
+  });
+
+  it('heads for the Sunken Bastion door once the Bastion group quests are active at level 16', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('enter_olen');
     expect(result.objectiveDungeonId).toBe('sunken_bastion');
     expect(result.objectiveSuggestedPartySize).toBe(5);
     expect(result.commands).toEqual([]);
     expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal?.target).toEqual({ x: 20, z: 265 });
+    expect(result.travelGoal?.goalKey).toBe('enter:sunken_bastion:staging:20:265');
+  });
+
+  it('routes through the eastern Sunken Bastion staging lane', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: 20,
+            z: 265,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal?.target).toEqual({ x: 140, z: 265 });
+    expect(result.travelGoal?.goalKey).toBe('enter:sunken_bastion:staging:140:265');
+  });
+
+  it('continues east when the Sunken Bastion train is close to the first staging point', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: 29,
+            z: 265,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal?.target).toEqual({ x: 140, z: 265 });
+    expect(result.travelGoal?.goalKey).toBe('enter:sunken_bastion:staging:140:265');
+  });
+
+  it('continues east when the Sunken Bastion train has passed the first staging point', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: 36,
+            z: 265,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal?.target).toEqual({ x: 140, z: 265 });
+    expect(result.travelGoal?.goalKey).toBe('enter:sunken_bastion:staging:140:265');
+  });
+
+  it('keeps the Sunken Bastion train moving east from the live second-staging drift point', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: 120,
+            z: 304,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal?.target).toEqual({ x: 140, z: 265 });
+    expect(result.travelGoal?.goalKey).toBe('enter:sunken_bastion:staging:140:265');
+  });
+
+  it('commits north once the Sunken Bastion train reaches the eastern staging edge', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: 144,
+            z: 276,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal?.target).toEqual({ x: 180, z: 375 });
+    expect(result.travelGoal?.goalKey).toBe('enter:sunken_bastion:staging:180:375');
+  });
+
+  it('keeps committing north from the live Sunken Bastion eastern-edge boundary', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: 147,
+            z: 285,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal?.target).toEqual({ x: 180, z: 375 });
+    expect(result.travelGoal?.goalKey).toBe('enter:sunken_bastion:staging:180:375');
+  });
+
+  it('keeps committing north after regroup drifts above the eastern staging edge', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: 144,
+            z: 308,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal?.target).toEqual({ x: 180, z: 375 });
+    expect(result.travelGoal?.goalKey).toBe('enter:sunken_bastion:staging:180:375');
+  });
+
+  it('does not restart the Sunken Bastion lane from the live regroup loop edge', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: 121,
+            z: 314,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal?.target).toEqual({ x: 180, z: 375 });
+    expect(result.travelGoal?.goalKey).toBe('enter:sunken_bastion:staging:180:375');
+  });
+
+  it('keeps the live eastern lane boundary from flipping back south', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: 159,
+            z: 321,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal?.target).toEqual({ x: 180, z: 375 });
+    expect(result.travelGoal?.goalKey).toBe('enter:sunken_bastion:staging:180:375');
+  });
+
+  it('resets unsafe Sunken Bastion center approaches back to Fenbridge', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: 25,
+            z: 382,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal?.target).toEqual({ x: -18, z: 286 });
+    expect(result.travelGoal?.goalKey).toBe('enter:sunken_bastion:staging:-18:286');
+  });
+
+  it('does not skip the southern Sunken Bastion staging lane after Fenbridge recovery', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: -8,
+            z: 303,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal?.target).toEqual({ x: 20, z: 265 });
+    expect(result.travelGoal?.goalKey).toBe('enter:sunken_bastion:staging:20:265');
+  });
+
+  it('resets Widow edge drifts before continuing the Sunken Bastion approach', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: 96,
+            z: 340,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal?.target).toEqual({ x: -18, z: 286 });
+    expect(result.travelGoal?.goalKey).toBe('enter:sunken_bastion:staging:-18:286');
+  });
+
+  it('approaches the Sunken Bastion door from the north staging point', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: 60,
+            z: 540,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal?.target).toEqual(sunkenBastionDoor);
+    expect(result.travelGoal?.goalKey).toBe('enter:sunken_bastion');
+  });
+
+  it('enters Sunken Bastion once the full Bastion party reaches the door', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: sunkenBastionDoor.x,
+            z: sunkenBastionDoor.z,
+            copper: 100,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                { pid: 101, dead: 0 },
+                { pid: 102, dead: 0 },
+                { pid: 103, dead: 0 },
+                { pid: 104, dead: 0 },
+                { pid: 105, dead: 0 },
+              ],
+            },
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.objectiveSuggestedPartySize).toBe(5);
+    expect(result.commands).toEqual([{ cmd: 'enter_dungeon', dungeon: 'sunken_bastion' }]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('keeps the Bastion dungeon metadata while recovering at the door', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: sunkenBastionDoor.x,
+            z: sunkenBastionDoor.z,
+            hp: 40,
+            mhp: 120,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('recover');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.objectiveSuggestedPartySize).toBe(5);
+  });
+
+  it('waits at the Sunken Bastion door when the Bastion party is still short', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: sunkenBastionDoor.x,
+            z: sunkenBastionDoor.z,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                { pid: 101, dead: 0 },
+                { pid: 102, dead: 0 },
+                { pid: 103, dead: 0 },
+                { pid: 104, dead: 0 },
+              ],
+            },
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('enter_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.objectiveSuggestedPartySize).toBe(5);
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('leaves Sunken Bastion when active Bastion quests are deferred below level 16', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 15,
+            x: bastionSlot0Origin.x,
+            z: bastionSlot0Origin.z - 6,
+            dgn: 'sunken_bastion',
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('leave_olen');
+    expect(result.objectiveDungeonId).toBe('sunken_bastion');
+    expect(result.commands).toEqual([{ cmd: 'leave_dungeon' }]);
+    expect(result.moveInput).toEqual({});
   });
 
   it('routes toward Knight-Commander Olen once the party is inside Sunken Bastion', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          x: bastionSlot0Origin.x,
-          z: bastionSlot0Origin.z + 4,
-          dgn: 'sunken_bastion',
-          qdone: [...mirefenThroughBastionDoor],
-          qlog: [
-            { questId: 'q_olen', counts: [0], state: 'active' },
-            { questId: 'q_mistcaller', counts: [0], state: 'active' },
-          ],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: bastionSlot0Origin.x,
+            z: bastionSlot0Origin.z + 4,
+            dgn: 'sunken_bastion',
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_olen');
     expect(result.objectiveDungeonId).toBe('sunken_bastion');
@@ -4052,23 +6672,26 @@ describe('ambient player bot brain', () => {
 
   it('keeps pushing to Vael once q_olen is ready but q_mistcaller is still active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          x: bastionSlot0Origin.x - 4,
-          z: bastionSlot0Origin.z + 82,
-          dgn: 'sunken_bastion',
-          qdone: [...mirefenThroughBastionDoor],
-          qlog: [
-            { questId: 'q_olen', counts: [1], state: 'ready' },
-            { questId: 'q_mistcaller', counts: [0], state: 'active' },
-          ],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: bastionSlot0Origin.x - 4,
+            z: bastionSlot0Origin.z + 82,
+            dgn: 'sunken_bastion',
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [1], state: 'ready' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_mistcaller');
     expect(result.objectiveDungeonId).toBe('sunken_bastion');
@@ -4076,25 +6699,129 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
+  it('turns in ready q_olen after Highwatch summons is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 19,
+            x: 6,
+            z: 312,
+            qdone: [...mirefenThroughBastionDoor, 'q_mistcaller', 'q_highwatch_summons'],
+            qlog: [{ questId: 'q_olen', counts: [1], state: 'ready' }],
+          },
+          entities: [{ id: 9820, k: 'npc', tid: 'scout_maren', x: 6, z: 312 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('turnin_olen');
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9820 }, { cmd: 'interact' }]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('escorts party members to turn in ready q_olen after Highwatch summons is complete', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 19,
+            x: 24,
+            z: 777,
+            qdone: [...mirefenThroughBastionDoor, 'q_olen', 'q_mistcaller', 'q_highwatch_summons'],
+            qlog: [{ questId: 'q_revenant_vanguard', counts: [0], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Aldenpplbms',
+                  cls: 'warrior',
+                  level: 19,
+                  hp: 974,
+                  mhp: 974,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 24,
+                  z: 777,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qdone: [
+                    ...mirefenThroughBastionDoor,
+                    'q_olen',
+                    'q_mistcaller',
+                    'q_highwatch_summons',
+                  ],
+                  qlog: [{ questId: 'q_revenant_vanguard', counts: [0], state: 'active' }],
+                },
+                {
+                  pid: 103,
+                  name: 'Corinpplbms',
+                  cls: 'mage',
+                  level: 19,
+                  hp: 516,
+                  mhp: 516,
+                  res: 1200,
+                  mres: 1767,
+                  rtype: 'mana',
+                  x: 24,
+                  z: 776,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qdone: [...mirefenThroughBastionDoor, 'q_highwatch_summons'],
+                  qlog: [
+                    { questId: 'q_olen', counts: [1], state: 'ready' },
+                    { questId: 'q_mistcaller', counts: [0], state: 'active' },
+                  ],
+                },
+              ],
+            },
+          },
+          entities: [{ id: 103, k: 'player', tid: 'mage', lv: 19, x: 24, z: 776, dead: 0 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('assist_turnin_olen');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('walks back to the dungeon exit and leaves once the Bastion boss quests are ready', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          x: bastionSlot0Origin.x,
-          z: bastionSlot0Origin.z - 6,
-          dgn: 'sunken_bastion',
-          qdone: [...mirefenThroughBastionDoor],
-          qlog: [
-            { questId: 'q_olen', counts: [1], state: 'ready' },
-            { questId: 'q_mistcaller', counts: [1], state: 'ready' },
-          ],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: bastionSlot0Origin.x,
+            z: bastionSlot0Origin.z - 6,
+            dgn: 'sunken_bastion',
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_olen', counts: [1], state: 'ready' },
+              { questId: 'q_mistcaller', counts: [1], state: 'ready' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('leave_olen');
     expect(result.objectiveDungeonId).toBe('sunken_bastion');
@@ -4104,138 +6831,486 @@ describe('ambient player bot brain', () => {
 
   it('picks up the Highwatch summons from Brother Aldric after reaching level 13', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 13,
-          x: -8,
-          z: 296,
-          qdone: [...mirefenThroughMistcaller],
-        },
-        entities: [
-          { id: 9820, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 13,
+            x: -8,
+            z: 296,
+            qdone: [...mirefenThroughMistcaller],
+          },
+          entities: [{ id: 9820, k: 'npc', tid: 'brother_aldric_fen', x: -8, z: 296 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_highwatch_summons');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9820 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9820 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('grinds instead of heading up the Highwatch road at level 12', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          qdone: [...mirefenThroughMistcaller],
-          qlog: [{ questId: 'q_highwatch_summons', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            qdone: [...mirefenThroughMistcaller],
+            qlog: [{ questId: 'q_highwatch_summons', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
     expect(result.commands).toEqual([]);
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
+  it('lets a full level 12 party start the Highwatch handoff before grinding more', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 12,
+            x: -8,
+            z: 296,
+            qdone: [...mirefenThroughBastionDoor],
+            qlog: [
+              { questId: 'q_highwatch_summons', counts: [0], state: 'active' },
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 120,
+                  mhp: 120,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: -8,
+                  z: 296,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'priest',
+                  level: 12,
+                  hp: 100,
+                  mhp: 100,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'mana',
+                  x: -6,
+                  z: 296,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Branoracc',
+                  cls: 'mage',
+                  level: 12,
+                  hp: 100,
+                  mhp: 100,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'mana',
+                  x: -4,
+                  z: 296,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 104,
+                  name: 'Branoradd',
+                  cls: 'paladin',
+                  level: 12,
+                  hp: 110,
+                  mhp: 110,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'mana',
+                  x: -2,
+                  z: 296,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 105,
+                  name: 'Branoraee',
+                  cls: 'druid',
+                  level: 12,
+                  hp: 105,
+                  mhp: 105,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'mana',
+                  x: 0,
+                  z: 296,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
+          },
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', lv: 12, x: -6, z: 296, dead: 0 },
+            { id: 103, k: 'player', tid: 'mage', lv: 12, x: -4, z: 296, dead: 0 },
+            { id: 104, k: 'player', tid: 'paladin', lv: 12, x: -2, z: 296, dead: 0 },
+            { id: 105, k: 'player', tid: 'druid', lv: 12, x: 0, z: 296, dead: 0 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('collect_highwatch_summons');
+    expect(result.objectiveDungeonId).toBeUndefined();
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal?.target).toEqual({ x: 20, z: 265 });
+    expect(result.travelGoal?.goalKey).toBe('objectroute:highwatch_summons:staging:20:265');
+  });
+
   it('heads north to the Highwatch gate when the summons handoff is active at level 13', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 13,
-          qdone: [...mirefenThroughMistcaller],
-          qlog: [{ questId: 'q_highwatch_summons', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 13,
+            qdone: [...mirefenThroughMistcaller],
+            qlog: [{ questId: 'q_highwatch_summons', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('collect_highwatch_summons');
     expect(result.commands).toEqual([]);
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
+  it('resets unsafe Highwatch summons handoff drift back to Fenbridge before routing north', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 13,
+            x: 4,
+            z: 442,
+            qdone: [...mirefenThroughMistcaller],
+            qlog: [{ questId: 'q_highwatch_summons', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('collect_highwatch_summons');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+    expect(result.travelGoal?.target).toEqual({ x: -18, z: 286 });
+    expect(result.travelGoal?.goalKey).toBe('objectroute:highwatch_summons:staging:-18:286');
+  });
+
+  it('stays in Highwatch progression instead of backtracking to unfinished Mirefen drowned quests', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 13,
+            x: 5,
+            z: 648,
+            qdone: [
+              ...mirefenThroughBastionDoor,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+            ],
+            qlog: [
+              { questId: 'q_drowned', counts: [5], state: 'active' },
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Ridge Stalker');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('escorts a party member turn-in without trying to turn in a quest the leader already completed', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 13,
+            x: 4,
+            z: 660,
+            qdone: [
+              ...mirefenThroughBastionDoor,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+            ],
+            qlog: [
+              { questId: 'q_drowned', counts: [5], state: 'active' },
+              { questId: 'q_olen', counts: [0], state: 'active' },
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+            ],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 13,
+                  hp: 686,
+                  mhp: 686,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 4,
+                  z: 660,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qdone: [
+                    ...mirefenThroughBastionDoor,
+                    'q_highwatch_summons',
+                    'q_stalkers',
+                    'q_stalker_pelts',
+                  ],
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'mage',
+                  level: 13,
+                  hp: 360,
+                  mhp: 360,
+                  res: 900,
+                  mres: 900,
+                  rtype: 'mana',
+                  x: 2,
+                  z: 662,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qdone: [...mirefenThroughBastionDoor, 'q_highwatch_summons'],
+                  qlog: [{ questId: 'q_stalkers', counts: [12], state: 'ready' }],
+                },
+              ],
+            },
+          },
+          entities: [{ id: 102, k: 'player', tid: 'mage', lv: 13, x: 2, z: 662, dead: 0 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('assist_turnin_stalkers');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('keeps helping with stalker pelts before escorting a deferred stalker turn-in', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 13,
+            x: 4,
+            z: 660,
+            qdone: [
+              ...mirefenThroughBastionDoor,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+            ],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 13,
+                  hp: 686,
+                  mhp: 686,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 4,
+                  z: 660,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qdone: [
+                    ...mirefenThroughBastionDoor,
+                    'q_highwatch_summons',
+                    'q_stalkers',
+                    'q_stalker_pelts',
+                  ],
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'mage',
+                  level: 13,
+                  hp: 360,
+                  mhp: 360,
+                  res: 900,
+                  mres: 900,
+                  rtype: 'mana',
+                  x: 2,
+                  z: 662,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qdone: [...mirefenThroughBastionDoor, 'q_highwatch_summons'],
+                  qlog: [
+                    { questId: 'q_stalkers', counts: [12], state: 'ready' },
+                    { questId: 'q_stalker_pelts', counts: [3], state: 'active' },
+                  ],
+                },
+              ],
+            },
+          },
+          entities: [{ id: 102, k: 'player', tid: 'mage', lv: 13, x: 2, z: 662, dead: 0 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('hunt_stalker_pelts');
+    expect(result.objectiveLabel).toBe('Collecting Ridge Stalker Pelts');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('turns in the Highwatch summons at Captain Thessaly after the posted summons is collected', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          x: 4,
-          z: 664,
-          qdone: [...mirefenThroughMistcaller],
-          qlog: [{ questId: 'q_highwatch_summons', counts: [1], state: 'ready' }],
-        },
-        entities: [
-          { id: 9821, k: 'npc', tid: 'captain_thessaly', x: 4, z: 664 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            x: 4,
+            z: 664,
+            qdone: [...mirefenThroughMistcaller],
+            qlog: [{ questId: 'q_highwatch_summons', counts: [1], state: 'ready' }],
+          },
+          entities: [{ id: 9821, k: 'npc', tid: 'captain_thessaly', x: 4, z: 664 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('turnin_highwatch_summons');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9821 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9821 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('picks up stalker pelts before leaving Highwatch once the ridge-stalker kill quest is already active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 12,
-          x: -5,
-          z: 668,
-          qdone: [...mirefenThroughMistcaller, 'q_highwatch_summons'],
-          qlog: [{ questId: 'q_stalkers', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 9822, k: 'npc', tid: 'quartermaster_bree', x: -5, z: 668 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 12,
+            x: -5,
+            z: 668,
+            qdone: [...mirefenThroughMistcaller, 'q_highwatch_summons'],
+            qlog: [{ questId: 'q_stalkers', counts: [0], state: 'active' }],
+          },
+          entities: [{ id: 9822, k: 'npc', tid: 'quartermaster_bree', x: -5, z: 668 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_stalker_pelts');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9822 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9822 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('keeps hunting ridge stalkers while q_stalkers is ready but q_stalker_pelts is still active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 13,
-          qdone: [...mirefenThroughMistcaller, 'q_highwatch_summons'],
-          qlog: [
-            { questId: 'q_stalkers', counts: [12], state: 'ready' },
-            { questId: 'q_stalker_pelts', counts: [3], state: 'active' },
-          ],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 13,
+            qdone: [...mirefenThroughMistcaller, 'q_highwatch_summons'],
+            qlog: [
+              { questId: 'q_stalkers', counts: [12], state: 'ready' },
+              { questId: 'q_stalker_pelts', counts: [3], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_stalker_pelts');
     expect(result.objectiveLabel).toBe('Collecting Ridge Stalker Pelts');
@@ -4245,43 +7320,323 @@ describe('ambient player bot brain', () => {
 
   it('picks up glowing wax from Quartermaster Bree after q_kobold_tunnels is complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 14,
-          x: -5,
-          z: 668,
-          qdone: [...mirefenThroughMistcaller, 'q_highwatch_summons', 'q_stalkers', 'q_stalker_pelts', 'q_kobold_tunnels'],
-        },
-        entities: [
-          { id: 9823, k: 'npc', tid: 'quartermaster_bree', x: -5, z: 668 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 15,
+            x: -5,
+            z: 668,
+            qdone: [
+              ...mirefenThroughMistcaller,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+              'q_kobold_tunnels',
+            ],
+          },
+          entities: [{ id: 9823, k: 'npc', tid: 'quartermaster_bree', x: -5, z: 668 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_glowing_wax');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9823 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9823 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
-  it('keeps hunting kobolds while q_glowing_wax is active', () => {
+  it('does not accept Deeprock kobold quests early at level 13 even with a full party nearby', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 14,
-          qdone: [...mirefenThroughMistcaller, 'q_highwatch_summons', 'q_stalkers', 'q_stalker_pelts', 'q_kobold_tunnels'],
-          qlog: [{ questId: 'q_glowing_wax', counts: [2], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 13,
+            x: 12,
+            z: 655,
+            qdone: [
+              ...mirefenThroughMistcaller,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+            ],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Alden',
+                  cls: 'warrior',
+                  level: 13,
+                  hp: 686,
+                  mhp: 686,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 12,
+                  z: 655,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Mira',
+                  cls: 'priest',
+                  level: 13,
+                  hp: 360,
+                  mhp: 360,
+                  res: 900,
+                  mres: 900,
+                  rtype: 'mana',
+                  x: 12,
+                  z: 655,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Corin',
+                  cls: 'mage',
+                  level: 13,
+                  hp: 384,
+                  mhp: 384,
+                  res: 900,
+                  mres: 900,
+                  rtype: 'mana',
+                  x: 12,
+                  z: 655,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 104,
+                  name: 'Tovin',
+                  cls: 'paladin',
+                  level: 13,
+                  hp: 609,
+                  mhp: 609,
+                  res: 400,
+                  mres: 400,
+                  rtype: 'mana',
+                  x: 12,
+                  z: 655,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 105,
+                  name: 'Liora',
+                  cls: 'druid',
+                  level: 13,
+                  hp: 551,
+                  mhp: 551,
+                  res: 800,
+                  mres: 800,
+                  rtype: 'mana',
+                  x: 12,
+                  z: 655,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
+          },
+          entities: [
+            { id: 9826, k: 'npc', tid: 'loremaster_caddis', x: 12, z: 655 },
+            { id: 102, k: 'player', tid: 'priest', x: 12, z: 655, lv: 13 },
+            { id: 103, k: 'player', tid: 'mage', x: 12, z: 655, lv: 13 },
+            { id: 104, k: 'player', tid: 'paladin', x: 12, z: 655, lv: 13 },
+            { id: 105, k: 'player', tid: 'druid', x: 12, z: 655, lv: 13 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).not.toBe('accept_kobold_tunnels');
+    expect(result.objectiveLabel).toBe('Grinding Ridge Stalker');
+  });
+
+  it('keeps a level 14 follower on ridge stalkers while the party leader is still level 13', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({ characterId: 104, class: 'paladin' }),
+        liveState: liveState({
+          self: {
+            id: 104,
+            lv: 14,
+            x: 12,
+            z: 655,
+            qdone: [
+              ...mirefenThroughMistcaller,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+            ],
+            qlog: [{ questId: 'q_kobold_tunnels', counts: [3], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Alden',
+                  cls: 'warrior',
+                  level: 13,
+                  hp: 686,
+                  mhp: 686,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 12,
+                  z: 655,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Mira',
+                  cls: 'priest',
+                  level: 14,
+                  hp: 360,
+                  mhp: 360,
+                  res: 900,
+                  mres: 900,
+                  rtype: 'mana',
+                  x: 12,
+                  z: 655,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Corin',
+                  cls: 'mage',
+                  level: 13,
+                  hp: 384,
+                  mhp: 384,
+                  res: 900,
+                  mres: 900,
+                  rtype: 'mana',
+                  x: 12,
+                  z: 655,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 104,
+                  name: 'Tovin',
+                  cls: 'paladin',
+                  level: 14,
+                  hp: 609,
+                  mhp: 609,
+                  res: 400,
+                  mres: 400,
+                  rtype: 'mana',
+                  x: 12,
+                  z: 655,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 105,
+                  name: 'Liora',
+                  cls: 'druid',
+                  level: 14,
+                  hp: 551,
+                  mhp: 551,
+                  res: 800,
+                  mres: 800,
+                  rtype: 'mana',
+                  x: 12,
+                  z: 655,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Ridge Stalker');
+  });
+
+  it('defers glowing wax and keeps grinding ridge stalkers at level 14', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 14,
+            x: 12,
+            z: 655,
+            qdone: [
+              ...mirefenThroughMistcaller,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+              'q_kobold_tunnels',
+            ],
+            qlog: [{ questId: 'q_glowing_wax', counts: [2], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Ridge Stalker');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('keeps hunting kobolds while q_glowing_wax is active at level 15', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 15,
+            qdone: [
+              ...mirefenThroughMistcaller,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+              'q_kobold_tunnels',
+            ],
+            qlog: [{ questId: 'q_glowing_wax', counts: [2], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_glowing_wax');
     expect(result.objectiveLabel).toBe('Collecting Glowing Wax');
@@ -4291,28 +7646,34 @@ describe('ambient player bot brain', () => {
 
   it('restsocks from Quartermaster Bree when the bot is operating in Thornpeak with low supplies', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot({
-        class: 'mage',
-        profileId: 'eastbrook_vale_mage_newcomer',
-      }),
-      liveState: liveState({
-        self: {
-          lv: 13,
-          x: -5,
-          z: 668,
-          copper: 2500,
-          res: 100,
-          mres: 100,
-          rtype: 'mana',
-          qdone: [...mirefenThroughMistcaller, 'q_highwatch_summons', 'q_stalkers', 'q_stalker_pelts'],
-        },
-        entities: [
-          { id: 9824, k: 'npc', tid: 'quartermaster_bree', x: -5, z: 668 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          class: 'mage',
+          profileId: 'eastbrook_vale_mage_newcomer',
+        }),
+        liveState: liveState({
+          self: {
+            lv: 13,
+            x: -5,
+            z: 668,
+            copper: 2500,
+            res: 100,
+            mres: 100,
+            rtype: 'mana',
+            qdone: [
+              ...mirefenThroughMistcaller,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+            ],
+          },
+          entities: [{ id: 9824, k: 'npc', tid: 'quartermaster_bree', x: -5, z: 668 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('restock_food_and_drink');
     expect(result.commands).toEqual([
@@ -4322,20 +7683,264 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
+  it('keeps using Quartermaster Bree for Highwatch-stage restocking near the Mirefen border', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          class: 'mage',
+          profileId: 'eastbrook_vale_mage_newcomer',
+        }),
+        liveState: liveState({
+          self: {
+            lv: 14,
+            x: 8,
+            z: 433,
+            copper: 10000,
+            res: 100,
+            mres: 100,
+            rtype: 'mana',
+            qdone: [
+              ...mirefenThroughMistcaller,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('restock_food_and_drink');
+    expect(result.travelGoal?.goalKey).toBe('vendor:quartermaster_bree');
+    expect(result.objectiveLabel).toContain('Highwatch Trail Hardtack');
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('sells safe old gear to afford Highwatch drink restocking', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({
+          class: 'mage',
+          profileId: 'eastbrook_vale_mage_newcomer',
+        }),
+        liveState: liveState({
+          self: {
+            lv: 13,
+            x: -5,
+            z: 668,
+            copper: 1080,
+            res: 40,
+            mres: 967,
+            rtype: 'mana',
+            inv: [
+              { itemId: 'trail_hardtack', count: 2 },
+              { itemId: 'lesser_healing_potion', count: 2 },
+              { itemId: 'apprentice_staff', count: 1 },
+            ],
+            equip: { mainhand: 'vaels_mist_staff' },
+            qdone: [
+              ...mirefenThroughMistcaller,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+            ],
+          },
+          entities: [{ id: 9824, k: 'npc', tid: 'quartermaster_bree', x: -5, z: 668 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('restock_meltwater_flask');
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 9824 },
+      { cmd: 'sell', item: 'apprentice_staff', count: 1 },
+    ]);
+    expect(result.moveInput).toEqual({});
+  });
+
   it('stays on a local Thornpeak grind route instead of walking back to low-level zones when the next quest is level-gated', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 13,
-          x: 0,
-          z: 660,
-          qdone: [...mirefenThroughMistcaller, 'q_highwatch_summons', 'q_stalkers', 'q_stalker_pelts'],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 13,
+            x: 0,
+            z: 660,
+            qdone: [
+              ...mirefenThroughMistcaller,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Ridge Stalker');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('keeps Highwatch-stage border grinding on ridge stalkers instead of returning to Gravecaller cultists', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 14,
+            x: 26,
+            z: 540,
+            inv: [
+              { itemId: 'trail_hardtack', count: 4 },
+              { itemId: 'healing_potion', count: 3 },
+            ],
+            qdone: [
+              ...mirefenThroughMistcaller,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('grind');
+    expect(result.objectiveLabel).toBe('Grinding Ridge Stalker');
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('keeps the level 13 full-party Thornpeak grind on ridge stalkers after stalker quests', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 13,
+            x: 0,
+            z: 660,
+            qdone: [
+              ...mirefenThroughMistcaller,
+              'q_highwatch_summons',
+              'q_stalkers',
+              'q_stalker_pelts',
+            ],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Alden',
+                  cls: 'warrior',
+                  level: 13,
+                  hp: 686,
+                  mhp: 686,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 660,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Mira',
+                  cls: 'priest',
+                  level: 13,
+                  hp: 360,
+                  mhp: 360,
+                  res: 900,
+                  mres: 900,
+                  rtype: 'mana',
+                  x: 1,
+                  z: 660,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Corin',
+                  cls: 'mage',
+                  level: 13,
+                  hp: 384,
+                  mhp: 384,
+                  res: 900,
+                  mres: 900,
+                  rtype: 'mana',
+                  x: 2,
+                  z: 660,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 104,
+                  name: 'Tovin',
+                  cls: 'paladin',
+                  level: 13,
+                  hp: 609,
+                  mhp: 609,
+                  res: 400,
+                  mres: 400,
+                  rtype: 'mana',
+                  x: 3,
+                  z: 660,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 105,
+                  name: 'Liora',
+                  cls: 'druid',
+                  level: 13,
+                  hp: 551,
+                  mhp: 551,
+                  res: 800,
+                  mres: 800,
+                  rtype: 'mana',
+                  x: 4,
+                  z: 660,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
+          },
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', x: 1, z: 660, lv: 13 },
+            { id: 103, k: 'player', tid: 'mage', x: 2, z: 660, lv: 13 },
+            { id: 104, k: 'player', tid: 'paladin', x: 3, z: 660, lv: 13 },
+            { id: 105, k: 'player', tid: 'druid', x: 4, z: 660, lv: 13 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
     expect(result.objectiveLabel).toBe('Grinding Ridge Stalker');
@@ -4345,43 +7950,44 @@ describe('ambient player bot brain', () => {
 
   it('picks up ogre war totems from Scout Maren after q_ogre_edges is complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 15,
-          x: 7,
-          z: 670,
-          qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
-        },
-        entities: [
-          { id: 9825, k: 'npc', tid: 'scout_maren_highwatch', x: 7, z: 670 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 15,
+            x: 7,
+            z: 670,
+            qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+          },
+          entities: [{ id: 9825, k: 'npc', tid: 'scout_maren_highwatch', x: 7, z: 670 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_ogre_totems');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9825 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9825 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('routes toward ogre war totems while q_ogre_totems is active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 15,
-          qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
-          qlog: [{ questId: 'q_ogre_totems', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 15,
+            qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+            qlog: [{ questId: 'q_ogre_totems', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('collect_ogre_totems');
     expect(result.objectiveLabel).toBe('Recovering Ogre War Totems');
@@ -4389,49 +7995,768 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
+  it('escorts active party ogre totem collectors before turning in ready totems', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 15,
+            x: -94.89,
+            z: 710.41,
+            qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+            qlog: [{ questId: 'q_ogre_totems', counts: [6], state: 'ready' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Aldenpplbms',
+                  cls: 'warrior',
+                  level: 15,
+                  hp: 762,
+                  mhp: 762,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: -94.89,
+                  z: 710.41,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qlog: [{ questId: 'q_ogre_totems', counts: [6], state: 'ready' }],
+                  qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+                },
+                {
+                  pid: 102,
+                  name: 'Mirapplbms',
+                  cls: 'priest',
+                  level: 15,
+                  hp: 402,
+                  mhp: 402,
+                  res: 985,
+                  mres: 1079,
+                  rtype: 'mana',
+                  x: -93,
+                  z: 710,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qlog: [{ questId: 'q_ogre_totems', counts: [6], state: 'ready' }],
+                  qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+                },
+                {
+                  pid: 103,
+                  name: 'Corinpplbms',
+                  cls: 'mage',
+                  level: 15,
+                  hp: 428,
+                  mhp: 428,
+                  res: 900,
+                  mres: 1371,
+                  rtype: 'mana',
+                  x: -92,
+                  z: 709,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qlog: [{ questId: 'q_ogre_totems', counts: [2], state: 'active' }],
+                  qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+                },
+              ],
+            },
+          },
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', x: -93, z: 710, lv: 15 },
+            { id: 103, k: 'player', tid: 'mage', x: -92, z: 709, lv: 15 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('assist_collect_ogre_totems');
+    expect(result.travelGoal).toEqual({
+      target: { x: -112, z: 724 },
+      arrivalRange: 4,
+      goalKey: 'escort-objectroute:ogre_war_totem:staging:-112:724',
+    });
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('does not return to Mistcaller while party members still need Highwatch ogre totems', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 16,
+            x: 37.37,
+            z: 373.17,
+            qdone: [...thornpeakThroughStarters, 'q_ogre_edges', 'q_ogre_totems'],
+            qlog: [
+              { questId: 'q_mistcaller', counts: [0], state: 'active' },
+              { questId: 'q_ogre_bounty', counts: [0], state: 'active' },
+            ],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Aldenpplbms',
+                  cls: 'warrior',
+                  level: 16,
+                  hp: 800,
+                  mhp: 800,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 37.37,
+                  z: 373.17,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qlog: [{ questId: 'q_mistcaller', counts: [0], state: 'active' }],
+                  qdone: [...thornpeakThroughStarters, 'q_ogre_edges', 'q_ogre_totems'],
+                },
+                {
+                  pid: 102,
+                  name: 'Mirapplbms',
+                  cls: 'priest',
+                  level: 16,
+                  hp: 423,
+                  mhp: 423,
+                  res: 894,
+                  mres: 1135,
+                  rtype: 'mana',
+                  x: 35,
+                  z: 370,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qlog: [{ questId: 'q_mistcaller', counts: [0], state: 'active' }],
+                  qdone: [...thornpeakThroughStarters, 'q_ogre_edges', 'q_ogre_totems'],
+                },
+                {
+                  pid: 103,
+                  name: 'Corinpplbms',
+                  cls: 'mage',
+                  level: 16,
+                  hp: 450,
+                  mhp: 450,
+                  res: 1440,
+                  mres: 1440,
+                  rtype: 'mana',
+                  x: 34,
+                  z: 368,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qlog: [
+                    { questId: 'q_mistcaller', counts: [0], state: 'active' },
+                    { questId: 'q_ogre_totems', counts: [2], state: 'active' },
+                  ],
+                  qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+                },
+              ],
+            },
+          },
+          entities: [
+            { id: 102, k: 'player', tid: 'priest', x: 35, z: 370, lv: 16 },
+            { id: 103, k: 'player', tid: 'mage', x: 34, z: 368, lv: 16 },
+          ],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('assist_collect_ogre_totems');
+    expect(result.travelGoal).toEqual({
+      target: { x: -70, z: 698 },
+      arrivalRange: 8,
+      goalKey: 'escort-objectroute:ogre_war_totem:staging:-70:698',
+    });
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('turns in ready ogre totems before assisting later ogre bounty progress', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({ class: 'mage' }),
+        liveState: liveState({
+          self: {
+            id: 103,
+            lv: 16,
+            x: 0,
+            z: 670,
+            res: 1440,
+            mres: 1440,
+            rtype: 'mana',
+            qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+            qlog: [{ questId: 'q_ogre_totems', counts: [6], state: 'ready' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Aldenpplbms',
+                  cls: 'warrior',
+                  level: 16,
+                  hp: 800,
+                  mhp: 800,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 670,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qlog: [{ questId: 'q_ogre_bounty', counts: [0], state: 'active' }],
+                  qdone: [...thornpeakThroughStarters, 'q_ogre_edges', 'q_ogre_totems'],
+                },
+                {
+                  pid: 102,
+                  name: 'Mirapplbms',
+                  cls: 'priest',
+                  level: 16,
+                  hp: 423,
+                  mhp: 423,
+                  res: 1135,
+                  mres: 1135,
+                  rtype: 'mana',
+                  x: 0,
+                  z: 670,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qlog: [{ questId: 'q_ogre_bounty', counts: [0], state: 'active' }],
+                  qdone: [...thornpeakThroughStarters, 'q_ogre_edges', 'q_ogre_totems'],
+                },
+                {
+                  pid: 103,
+                  name: 'Corinpplbms',
+                  cls: 'mage',
+                  level: 16,
+                  hp: 450,
+                  mhp: 450,
+                  res: 1440,
+                  mres: 1440,
+                  rtype: 'mana',
+                  x: 0,
+                  z: 670,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qlog: [{ questId: 'q_ogre_totems', counts: [6], state: 'ready' }],
+                  qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+                },
+              ],
+            },
+          },
+          entities: [{ id: 9825, k: 'npc', tid: 'scout_maren_highwatch', x: 0, z: 670 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('turnin_ogre_totems');
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9825 }, { cmd: 'interact' }]);
+    expect(result.moveInput).toEqual({});
+  });
+
+  it('keeps pressing from the ogre edge toward the war totem pickup lip', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 15,
+            x: -94.89,
+            z: 710.41,
+            qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+            qlog: [{ questId: 'q_ogre_totems', counts: [5], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('collect_ogre_totems');
+    expect(result.travelGoal).toEqual({
+      target: { x: -112, z: 724 },
+      arrivalRange: 4,
+      goalKey: 'objectroute:ogre_war_totem:staging:-112:724',
+    });
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('holds the ogre totem push at the Highwatch safe point while the healer is low on mana', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 15,
+            x: -94.89,
+            z: 710.41,
+            qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+            qlog: [{ questId: 'q_ogre_totems', counts: [5], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Aldenpplbms',
+                  cls: 'warrior',
+                  level: 15,
+                  hp: 762,
+                  mhp: 762,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: -94.89,
+                  z: 710.41,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Mirapplbms',
+                  cls: 'priest',
+                  level: 15,
+                  hp: 402,
+                  mhp: 402,
+                  res: 120,
+                  mres: 1079,
+                  rtype: 'mana',
+                  x: -93,
+                  z: 710,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('collect_ogre_totems');
+    expect(result.travelGoal).toEqual({
+      target: { x: -22, z: 664 },
+      arrivalRange: 3,
+      goalKey: 'objectroute:ogre_war_totem:staging:-22:664',
+    });
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('continues the ogre totem push when the priest has about a third mana', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 15,
+            x: -94.89,
+            z: 710.41,
+            qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+            qlog: [{ questId: 'q_ogre_totems', counts: [5], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Aldenpplbms',
+                  cls: 'warrior',
+                  level: 15,
+                  hp: 762,
+                  mhp: 762,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: -94.89,
+                  z: 710.41,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Mirapplbms',
+                  cls: 'priest',
+                  level: 15,
+                  hp: 402,
+                  mhp: 402,
+                  res: 360,
+                  mres: 1079,
+                  rtype: 'mana',
+                  x: -93,
+                  z: 710,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('collect_ogre_totems');
+    expect(result.travelGoal).toEqual({
+      target: { x: -112, z: 724 },
+      arrivalRange: 4,
+      goalKey: 'objectroute:ogre_war_totem:staging:-112:724',
+    });
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('keeps a dry low-mana caster moving for ogre totems when the priest is ready', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({ class: 'mage' }),
+        liveState: liveState({
+          self: {
+            id: 103,
+            lv: 16,
+            x: -94.89,
+            z: 710.41,
+            res: 79,
+            mres: 1440,
+            rtype: 'mana',
+            inv: [],
+            qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+            qlog: [{ questId: 'q_ogre_totems', counts: [2], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Aldenpplbms',
+                  cls: 'warrior',
+                  level: 16,
+                  hp: 800,
+                  mhp: 800,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: -94.89,
+                  z: 710.41,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Mirapplbms',
+                  cls: 'priest',
+                  level: 16,
+                  hp: 423,
+                  mhp: 423,
+                  res: 530,
+                  mres: 1135,
+                  rtype: 'mana',
+                  x: -93,
+                  z: 710,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Corinpplbms',
+                  cls: 'mage',
+                  level: 16,
+                  hp: 450,
+                  mhp: 450,
+                  res: 79,
+                  mres: 1440,
+                  rtype: 'mana',
+                  x: -94.89,
+                  z: 710.41,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('collect_ogre_totems');
+    expect(result.travelGoal).toEqual({
+      target: { x: -112, z: 724 },
+      arrivalRange: 4,
+      goalKey: 'objectroute:ogre_war_totem:staging:-112:724',
+    });
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('finishes the last ogre totem before restocking drinks', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot({ class: 'mage' }),
+        liveState: liveState({
+          self: {
+            id: 103,
+            lv: 16,
+            x: -46.02,
+            z: 683.52,
+            res: 487,
+            mres: 1440,
+            rtype: 'mana',
+            copper: 5000,
+            inv: [],
+            qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+            qlog: [{ questId: 'q_ogre_totems', counts: [5], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Aldenpplbms',
+                  cls: 'warrior',
+                  level: 16,
+                  hp: 800,
+                  mhp: 800,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: -47,
+                  z: 682,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Mirapplbms',
+                  cls: 'priest',
+                  level: 16,
+                  hp: 423,
+                  mhp: 423,
+                  res: 532,
+                  mres: 1135,
+                  rtype: 'mana',
+                  x: -54,
+                  z: 686,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Corinpplbms',
+                  cls: 'mage',
+                  level: 16,
+                  hp: 450,
+                  mhp: 450,
+                  res: 487,
+                  mres: 1440,
+                  rtype: 'mana',
+                  x: -46.02,
+                  z: 683.52,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('collect_ogre_totems');
+    expect(result.objectiveLabel).toBe('Recovering Ogre War Totems');
+    expect(result.travelGoal).toEqual({
+      target: { x: -70, z: 698 },
+      arrivalRange: 8,
+      goalKey: 'objectroute:ogre_war_totem:staging:-70:698',
+    });
+    expect(result.commands).toEqual([]);
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
+  it('continues the ogre totem push when the priest is ready even if an off-healer is low on mana', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 15,
+            x: -94.89,
+            z: 710.41,
+            qdone: [...thornpeakThroughStarters, 'q_ogre_edges'],
+            qlog: [{ questId: 'q_ogre_totems', counts: [5], state: 'active' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Aldenpplbms',
+                  cls: 'warrior',
+                  level: 15,
+                  hp: 762,
+                  mhp: 762,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: -94.89,
+                  z: 710.41,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Mirapplbms',
+                  cls: 'priest',
+                  level: 15,
+                  hp: 402,
+                  mhp: 402,
+                  res: 985,
+                  mres: 1079,
+                  rtype: 'mana',
+                  x: -93,
+                  z: 710,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 105,
+                  name: 'Liorapplbms',
+                  cls: 'druid',
+                  level: 15,
+                  hp: 547,
+                  mhp: 547,
+                  res: 108,
+                  mres: 963,
+                  rtype: 'mana',
+                  x: -92,
+                  z: 709,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('collect_ogre_totems');
+    expect(result.travelGoal).toEqual({
+      target: { x: -112, z: 724 },
+      arrivalRange: 4,
+      goalKey: 'objectroute:ogre_war_totem:staging:-112:724',
+    });
+    expect(result.moveInput).toEqual({ f: 1 });
+  });
+
   it('picks up Kazzix before leaving Highwatch once q_shard_cores is already active at level 17', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 17,
-          x: 12,
-          z: 655,
-          qdone: [...thornpeakThroughStarters, 'q_ogre_edges', 'q_ogre_totems', 'q_ogre_bounty', 'q_elementals'],
-          qlog: [{ questId: 'q_shard_cores', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 9826, k: 'npc', tid: 'loremaster_caddis', x: 12, z: 655 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 17,
+            x: 12,
+            z: 655,
+            qdone: [
+              ...thornpeakThroughStarters,
+              'q_ogre_edges',
+              'q_ogre_totems',
+              'q_ogre_bounty',
+              'q_elementals',
+            ],
+            qlog: [{ questId: 'q_shard_cores', counts: [0], state: 'active' }],
+          },
+          entities: [{ id: 9826, k: 'npc', tid: 'loremaster_caddis', x: 12, z: 655 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_kazzix');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9826 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9826 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('keeps hunting Kazzix while q_shard_cores is ready but q_kazzix is still active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 17,
-          qdone: [...thornpeakThroughStarters, 'q_ogre_edges', 'q_ogre_totems', 'q_ogre_bounty', 'q_elementals'],
-          qlog: [
-            { questId: 'q_shard_cores', counts: [6], state: 'ready' },
-            { questId: 'q_kazzix', counts: [0], state: 'active' },
-          ],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            qdone: [
+              ...thornpeakThroughStarters,
+              'q_ogre_edges',
+              'q_ogre_totems',
+              'q_ogre_bounty',
+              'q_elementals',
+            ],
+            qlog: [
+              { questId: 'q_shard_cores', counts: [6], state: 'ready' },
+              { questId: 'q_kazzix', counts: [0], state: 'active' },
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_kazzix');
     expect(result.objectiveLabel).toBe('Hunting Shardlord Kazzix');
@@ -4439,20 +8764,57 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
+  it('turns in shard cores before hunting Kazzix when the party is below level 18', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 17,
+            x: 12,
+            z: 655,
+            qdone: [
+              ...thornpeakThroughStarters,
+              'q_ogre_edges',
+              'q_ogre_totems',
+              'q_ogre_bounty',
+              'q_elementals',
+            ],
+            qlog: [
+              { questId: 'q_shard_cores', counts: [6], state: 'ready' },
+              { questId: 'q_kazzix', counts: [0], state: 'active' },
+            ],
+          },
+          entities: [{ id: 9826, k: 'npc', tid: 'loremaster_caddis', x: 12, z: 655 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('turnin_shard_cores');
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9826 }, { cmd: 'interact' }]);
+    expect(result.moveInput).toEqual({});
+  });
+
   it('stays on a local Thornpeak ogre grind route when q_elementals is still level-gated', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 15,
-          x: 0,
-          z: 660,
-          qdone: [...thornpeakThroughStarters, 'q_ogre_edges', 'q_ogre_totems', 'q_ogre_bounty'],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 15,
+            x: 0,
+            z: 660,
+            qdone: [...thornpeakThroughStarters, 'q_ogre_edges', 'q_ogre_totems', 'q_ogre_bounty'],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
     expect(result.objectiveLabel).toBe('Grinding Thornpeak Ogre');
@@ -4462,18 +8824,28 @@ describe('ambient player bot brain', () => {
 
   it('stays on a local Stormcrag grind route when q_kazzix is still level-gated after shard cores', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 16,
-          x: 0,
-          z: 660,
-          qdone: [...thornpeakThroughStarters, 'q_ogre_edges', 'q_ogre_totems', 'q_ogre_bounty', 'q_elementals', 'q_shard_cores'],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 16,
+            x: 0,
+            z: 660,
+            qdone: [
+              ...thornpeakThroughStarters,
+              'q_ogre_edges',
+              'q_ogre_totems',
+              'q_ogre_bounty',
+              'q_elementals',
+              'q_shard_cores',
+            ],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('grind');
     expect(result.objectiveLabel).toBe('Grinding Stormcrag Elemental');
@@ -4483,43 +8855,44 @@ describe('ambient player bot brain', () => {
 
   it('picks up Wyrmcult orders from Brother Aldric after q_zealots is complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 17,
-          x: -10,
-          z: 646,
-          qdone: [...thornpeakThroughWarfront, 'q_zealots'],
-        },
-        entities: [
-          { id: 9827, k: 'npc', tid: 'brother_aldric_highwatch', x: -10, z: 646 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 17,
+            x: -10,
+            z: 646,
+            qdone: [...thornpeakThroughWarfront, 'q_zealots'],
+          },
+          entities: [{ id: 9827, k: 'npc', tid: 'brother_aldric_highwatch', x: -10, z: 646 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_cult_orders');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9827 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9827 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('keeps hunting zealots while q_cult_orders is active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 17,
-          qdone: [...thornpeakThroughWarfront, 'q_zealots'],
-          qlog: [{ questId: 'q_cult_orders', counts: [4, 1], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 17,
+            qdone: [...thornpeakThroughWarfront, 'q_zealots'],
+            qlog: [{ questId: 'q_cult_orders', counts: [4, 1], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_cult_orders');
     expect(result.objectiveLabel).toBe('Recovering Wyrmcult Orders');
@@ -4529,17 +8902,20 @@ describe('ambient player bot brain', () => {
 
   it('keeps hunting necromancers while q_necromancers is active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          qdone: [...thornpeakThroughWarfront, 'q_zealots', 'q_cult_orders'],
-          qlog: [{ questId: 'q_necromancers', counts: [3, 1], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            qdone: [...thornpeakThroughWarfront, 'q_zealots', 'q_cult_orders'],
+            qlog: [{ questId: 'q_necromancers', counts: [3, 1], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_necromancers');
     expect(result.objectiveLabel).toBe('Recovering Ritual Phylacteries');
@@ -4549,43 +8925,56 @@ describe('ambient player bot brain', () => {
 
   it('picks up the revenant vanguard follow-up from Captain Thessaly after q_revenants is complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          x: 4,
-          z: 664,
-          qdone: [...thornpeakThroughWarfront, 'q_zealots', 'q_cult_orders', 'q_necromancers', 'q_revenants'],
-        },
-        entities: [
-          { id: 9828, k: 'npc', tid: 'captain_thessaly', x: 4, z: 664 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            x: 4,
+            z: 664,
+            qdone: [
+              ...thornpeakThroughWarfront,
+              'q_zealots',
+              'q_cult_orders',
+              'q_necromancers',
+              'q_revenants',
+            ],
+          },
+          entities: [{ id: 9828, k: 'npc', tid: 'captain_thessaly', x: 4, z: 664 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_revenant_vanguard');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9828 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9828 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('keeps hunting boneclad revenants while q_revenant_vanguard is active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          qdone: [...thornpeakThroughWarfront, 'q_zealots', 'q_cult_orders', 'q_necromancers', 'q_revenants'],
-          qlog: [{ questId: 'q_revenant_vanguard', counts: [6], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            qdone: [
+              ...thornpeakThroughWarfront,
+              'q_zealots',
+              'q_cult_orders',
+              'q_necromancers',
+              'q_revenants',
+            ],
+            qlog: [{ questId: 'q_revenant_vanguard', counts: [6], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_revenant_vanguard');
     expect(result.objectiveLabel).toBe('Breaking the revenant vanguard');
@@ -4595,43 +8984,44 @@ describe('ambient player bot brain', () => {
 
   it('picks up Gravewyrm sigils from Brother Aldric after the cult and revenant outdoor ladders are complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          x: -10,
-          z: 646,
-          qdone: [...thornpeakThroughLateOutdoors],
-        },
-        entities: [
-          { id: 9829, k: 'npc', tid: 'brother_aldric_highwatch', x: -10, z: 646 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            x: -10,
+            z: 646,
+            qdone: [...thornpeakThroughLateOutdoors],
+          },
+          entities: [{ id: 9829, k: 'npc', tid: 'brother_aldric_highwatch', x: -10, z: 646 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_wyrm_sigils');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9829 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9829 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('routes toward Gravewyrm sigils while q_wyrm_sigils is active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          qdone: [...thornpeakThroughLateOutdoors],
-          qlog: [{ questId: 'q_wyrm_sigils', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            qdone: [...thornpeakThroughLateOutdoors],
+            qlog: [{ questId: 'q_wyrm_sigils', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('collect_wyrm_sigils');
     expect(result.objectiveLabel).toBe('Recovering Gravewyrm Sigils');
@@ -4641,17 +9031,20 @@ describe('ambient player bot brain', () => {
 
   it('keeps hunting stormcrag elementals while q_breaking_the_seal is active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          qdone: [...thornpeakThroughLateOutdoors, 'q_wyrm_sigils'],
-          qlog: [{ questId: 'q_breaking_the_seal', counts: [2], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            qdone: [...thornpeakThroughLateOutdoors, 'q_wyrm_sigils'],
+            qlog: [{ questId: 'q_breaking_the_seal', counts: [2], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_breaking_the_seal');
     expect(result.objectiveLabel).toBe('Collecting Blessed Embers');
@@ -4661,17 +9054,20 @@ describe('ambient player bot brain', () => {
 
   it('switches q_voice_below from zealots to necromancers after the zealot count is complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          qdone: [...thornpeakThroughLateOutdoors, 'q_wyrm_sigils', 'q_breaking_the_seal'],
-          qlog: [{ questId: 'q_voice_below', counts: [10, 0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            qdone: [...thornpeakThroughLateOutdoors, 'q_wyrm_sigils', 'q_breaking_the_seal'],
+            qlog: [{ questId: 'q_voice_below', counts: [10, 0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_voice_below_necromancers');
     expect(result.objectiveLabel).toBe('Silencing the kneeling necromancers');
@@ -4681,17 +9077,25 @@ describe('ambient player bot brain', () => {
 
   it('routes toward Sanctum Key Shards while q_sanctum_gate is active', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          qdone: [...thornpeakThroughLateOutdoors, 'q_wyrm_sigils', 'q_breaking_the_seal', 'q_voice_below'],
-          qlog: [{ questId: 'q_sanctum_gate', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            qdone: [
+              ...thornpeakThroughLateOutdoors,
+              'q_wyrm_sigils',
+              'q_breaking_the_seal',
+              'q_voice_below',
+            ],
+            qlog: [{ questId: 'q_sanctum_gate', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('collect_sanctum_gate');
     expect(result.objectiveLabel).toBe('Recovering Sanctum Key Shards');
@@ -4701,43 +9105,44 @@ describe('ambient player bot brain', () => {
 
   it('picks up q_crushers from Captain Thessaly after the Sanctum gate prep chain is complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          x: 4,
-          z: 664,
-          qdone: [...thornpeakThroughSanctumGate],
-        },
-        entities: [
-          { id: 9827, k: 'npc', tid: 'captain_thessaly', x: 4, z: 664 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            x: 4,
+            z: 664,
+            qdone: [...thornpeakThroughSanctumGate],
+          },
+          entities: [{ id: 9827, k: 'npc', tid: 'captain_thessaly', x: 4, z: 664 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_crushers');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9827 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9827 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('routes toward ogre crushers as a 3-player outdoor group objective', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          qdone: [...thornpeakThroughSanctumGate],
-          qlog: [{ questId: 'q_crushers', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            qdone: [...thornpeakThroughSanctumGate],
+            qlog: [{ questId: 'q_crushers', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_crushers');
     expect(result.objectiveLabel).toBe('Breaking the Thornpeak ogre war-camp crushers');
@@ -4747,19 +9152,108 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({ f: 1 });
   });
 
+  it('turns in ready crushers before assisting a different active party quest', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 104,
+            lv: 18,
+            x: 4,
+            z: 664,
+            qdone: [...thornpeakThroughSanctumGate],
+            qlog: [{ questId: 'q_crushers', counts: [10], state: 'ready' }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Aldenpplbms',
+                  cls: 'warrior',
+                  level: 18,
+                  hp: 900,
+                  mhp: 900,
+                  res: 0,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 4,
+                  z: 664,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qlog: [{ questId: 'q_kazzix', counts: [0], state: 'active' }],
+                  qdone: [...thornpeakThroughWarfront],
+                },
+                {
+                  pid: 102,
+                  name: 'Mirapplbms',
+                  cls: 'priest',
+                  level: 18,
+                  hp: 500,
+                  mhp: 500,
+                  res: 1100,
+                  mres: 1100,
+                  rtype: 'mana',
+                  x: 4,
+                  z: 664,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qlog: [{ questId: 'q_kazzix', counts: [0], state: 'active' }],
+                  qdone: [...thornpeakThroughWarfront],
+                },
+                {
+                  pid: 104,
+                  name: 'Tovinpplbms',
+                  cls: 'paladin',
+                  level: 18,
+                  hp: 830,
+                  mhp: 830,
+                  res: 550,
+                  mres: 550,
+                  rtype: 'mana',
+                  x: 4,
+                  z: 664,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                  qlog: [{ questId: 'q_crushers', counts: [10], state: 'ready' }],
+                  qdone: [...thornpeakThroughSanctumGate],
+                },
+              ],
+            },
+          },
+          entities: [{ id: 9827, k: 'npc', tid: 'captain_thessaly', x: 4, z: 664 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('turnin_crushers');
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9827 }, { cmd: 'interact' }]);
+    expect(result.moveInput).toEqual({});
+  });
+
   it('routes toward Warlord Drogmar as a 3-player outdoor boss objective', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          qdone: [...thornpeakThroughSanctumGate, 'q_crushers'],
-          qlog: [{ questId: 'q_drogmar', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            qdone: [...thornpeakThroughSanctumGate, 'q_crushers'],
+            qlog: [{ questId: 'q_drogmar', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_drogmar');
     expect(result.objectiveLabel).toBe('Hunting Warlord Drogmar');
@@ -4771,43 +9265,44 @@ describe('ambient player bot brain', () => {
 
   it('picks up q_korgath from Scout Maren after the grouped ogre war-camp chain is complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          x: 7,
-          z: 670,
-          qdone: [...thornpeakThroughWarCampGroups],
-        },
-        entities: [
-          { id: 9828, k: 'npc', tid: 'scout_maren_highwatch', x: 7, z: 670 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            x: 7,
+            z: 670,
+            qdone: [...thornpeakThroughWarCampGroups],
+          },
+          entities: [{ id: 9828, k: 'npc', tid: 'scout_maren_highwatch', x: 7, z: 670 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_korgath');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9828 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9828 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('heads for the Gravewyrm Sanctum door once q_korgath is active outdoors', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          qdone: [...thornpeakThroughWarCampGroups],
-          qlog: [{ questId: 'q_korgath', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            qdone: [...thornpeakThroughWarCampGroups],
+            qlog: [{ questId: 'q_korgath', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('enter_korgath');
     expect(result.objectiveDungeonId).toBe('gravewyrm_sanctum');
@@ -4818,20 +9313,23 @@ describe('ambient player bot brain', () => {
 
   it('routes toward Korgath once the party is inside Gravewyrm Sanctum', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          x: sanctumSlot0Origin.x,
-          z: sanctumSlot0Origin.z + 4,
-          dgn: 'gravewyrm_sanctum',
-          qdone: [...thornpeakThroughWarCampGroups],
-          qlog: [{ questId: 'q_korgath', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            x: sanctumSlot0Origin.x,
+            z: sanctumSlot0Origin.z + 4,
+            dgn: 'gravewyrm_sanctum',
+            qdone: [...thornpeakThroughWarCampGroups],
+            qlog: [{ questId: 'q_korgath', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_korgath');
     expect(result.objectiveDungeonId).toBe('gravewyrm_sanctum');
@@ -4841,20 +9339,23 @@ describe('ambient player bot brain', () => {
 
   it('walks back to the Sanctum exit and leaves once q_korgath is ready', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          x: sanctumSlot0Origin.x,
-          z: sanctumSlot0Origin.z - 6,
-          dgn: 'gravewyrm_sanctum',
-          qdone: [...thornpeakThroughWarCampGroups],
-          qlog: [{ questId: 'q_korgath', counts: [1], state: 'ready' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            x: sanctumSlot0Origin.x,
+            z: sanctumSlot0Origin.z - 6,
+            dgn: 'gravewyrm_sanctum',
+            qdone: [...thornpeakThroughWarCampGroups],
+            qlog: [{ questId: 'q_korgath', counts: [1], state: 'ready' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('leave_korgath');
     expect(result.objectiveDungeonId).toBe('gravewyrm_sanctum');
@@ -4864,43 +9365,44 @@ describe('ambient player bot brain', () => {
 
   it('picks up q_velkhar from Brother Aldric after Korgath is complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          x: -10,
-          z: 646,
-          qdone: [...thornpeakThroughKorgath],
-        },
-        entities: [
-          { id: 9831, k: 'npc', tid: 'brother_aldric_highwatch', x: -10, z: 646 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            x: -10,
+            z: 646,
+            qdone: [...thornpeakThroughKorgath],
+          },
+          entities: [{ id: 9831, k: 'npc', tid: 'brother_aldric_highwatch', x: -10, z: 646 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_velkhar');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9831 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9831 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('heads for the Gravewyrm Sanctum door once q_velkhar is active outdoors', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          qdone: [...thornpeakThroughKorgath],
-          qlog: [{ questId: 'q_velkhar', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            qdone: [...thornpeakThroughKorgath],
+            qlog: [{ questId: 'q_velkhar', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('enter_velkhar');
     expect(result.objectiveDungeonId).toBe('gravewyrm_sanctum');
@@ -4911,20 +9413,23 @@ describe('ambient player bot brain', () => {
 
   it('routes toward Velkhar once the party is inside Gravewyrm Sanctum', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          x: sanctumSlot0Origin.x,
-          z: sanctumSlot0Origin.z + 4,
-          dgn: 'gravewyrm_sanctum',
-          qdone: [...thornpeakThroughKorgath],
-          qlog: [{ questId: 'q_velkhar', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            x: sanctumSlot0Origin.x,
+            z: sanctumSlot0Origin.z + 4,
+            dgn: 'gravewyrm_sanctum',
+            qdone: [...thornpeakThroughKorgath],
+            qlog: [{ questId: 'q_velkhar', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_velkhar');
     expect(result.objectiveDungeonId).toBe('gravewyrm_sanctum');
@@ -4934,20 +9439,23 @@ describe('ambient player bot brain', () => {
 
   it('walks back to the Sanctum exit and leaves once q_velkhar is ready', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          x: sanctumSlot0Origin.x,
-          z: sanctumSlot0Origin.z - 6,
-          dgn: 'gravewyrm_sanctum',
-          qdone: [...thornpeakThroughKorgath],
-          qlog: [{ questId: 'q_velkhar', counts: [1], state: 'ready' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            x: sanctumSlot0Origin.x,
+            z: sanctumSlot0Origin.z - 6,
+            dgn: 'gravewyrm_sanctum',
+            qdone: [...thornpeakThroughKorgath],
+            qlog: [{ questId: 'q_velkhar', counts: [1], state: 'ready' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('leave_velkhar');
     expect(result.objectiveDungeonId).toBe('gravewyrm_sanctum');
@@ -4957,43 +9465,44 @@ describe('ambient player bot brain', () => {
 
   it('picks up q_gravewyrm from Brother Aldric after Velkhar is complete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          x: -10,
-          z: 646,
-          qdone: [...thornpeakThroughVelkhar],
-        },
-        entities: [
-          { id: 9832, k: 'npc', tid: 'brother_aldric_highwatch', x: -10, z: 646 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            x: -10,
+            z: 646,
+            qdone: [...thornpeakThroughVelkhar],
+          },
+          entities: [{ id: 9832, k: 'npc', tid: 'brother_aldric_highwatch', x: -10, z: 646 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('accept_gravewyrm');
-    expect(result.commands).toEqual([
-      { cmd: 'target', id: 9832 },
-      { cmd: 'interact' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'target', id: 9832 }, { cmd: 'interact' }]);
     expect(result.moveInput).toEqual({});
   });
 
   it('heads for the Gravewyrm Sanctum door once q_gravewyrm is active outdoors', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          qdone: [...thornpeakThroughVelkhar],
-          qlog: [{ questId: 'q_gravewyrm', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            qdone: [...thornpeakThroughVelkhar],
+            qlog: [{ questId: 'q_gravewyrm', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('enter_gravewyrm');
     expect(result.objectiveDungeonId).toBe('gravewyrm_sanctum');
@@ -5004,20 +9513,23 @@ describe('ambient player bot brain', () => {
 
   it('routes toward Korzul once the party is inside Gravewyrm Sanctum', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          x: sanctumSlot0Origin.x,
-          z: sanctumSlot0Origin.z + 4,
-          dgn: 'gravewyrm_sanctum',
-          qdone: [...thornpeakThroughVelkhar],
-          qlog: [{ questId: 'q_gravewyrm', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            x: sanctumSlot0Origin.x,
+            z: sanctumSlot0Origin.z + 4,
+            dgn: 'gravewyrm_sanctum',
+            qdone: [...thornpeakThroughVelkhar],
+            qlog: [{ questId: 'q_gravewyrm', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_gravewyrm');
     expect(result.objectiveDungeonId).toBe('gravewyrm_sanctum');
@@ -5027,20 +9539,23 @@ describe('ambient player bot brain', () => {
 
   it('walks back to the Sanctum exit and leaves once q_gravewyrm is ready', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 18,
-          x: sanctumSlot0Origin.x,
-          z: sanctumSlot0Origin.z - 6,
-          dgn: 'gravewyrm_sanctum',
-          qdone: [...thornpeakThroughVelkhar],
-          qlog: [{ questId: 'q_gravewyrm', counts: [1], state: 'ready' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 18,
+            x: sanctumSlot0Origin.x,
+            z: sanctumSlot0Origin.z - 6,
+            dgn: 'gravewyrm_sanctum',
+            qdone: [...thornpeakThroughVelkhar],
+            qlog: [{ questId: 'q_gravewyrm', counts: [1], state: 'ready' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('leave_gravewyrm');
     expect(result.objectiveDungeonId).toBe('gravewyrm_sanctum');
@@ -5050,16 +9565,34 @@ describe('ambient player bot brain', () => {
 
   it('routes toward tunnel rats while the blessed tallow objective for q_rite is still incomplete', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          qlog: [{ questId: 'q_rite', counts: [0, 0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+            ],
+            qlog: [{ questId: 'q_rite', counts: [0, 0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_rite_blessed_wax');
     expect(result.commands).toEqual([]);
@@ -5068,19 +9601,35 @@ describe('ambient player bot brain', () => {
 
   it('leaves tunnel rats alone and switches to restless bones once blessed tallow is complete for q_rite', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 6,
-          qlog: [{ questId: 'q_rite', counts: [4, 0], state: 'active' }],
-        },
-        entities: [
-          { id: 9601, k: 'mob', tid: 'tunnel_rat', x: 2, z: 2, h: 1, lv: 4 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 10,
+            qdone: [
+              'q_wolves',
+              'q_boars',
+              'q_spiders',
+              'q_murlocs',
+              'q_supplies',
+              'q_mine',
+              'q_greyjaw',
+              'q_bandits',
+              'q_ringleader',
+              'q_bones',
+              'q_whispers',
+              'q_names_of_the_dead',
+              'q_silence_the_call',
+            ],
+            qlog: [{ questId: 'q_rite', counts: [4, 0], state: 'active' }],
+          },
+          entities: [{ id: 9601, k: 'mob', tid: 'tunnel_rat', x: 2, z: 2, h: 1, lv: 4 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_rite_ghostly_essence');
     expect(result.commands).toEqual([]);
@@ -5089,20 +9638,21 @@ describe('ambient player bot brain', () => {
 
   it('stays on the Old Greyjaw route instead of chasing unrelated wolves', () => {
     const state = createAmbientPlayerBotBrainState();
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          lv: 5,
-          qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_mine'],
-          qlog: [{ questId: 'q_greyjaw', counts: [0], state: 'active' }],
-        },
-        entities: [
-          { id: 9301, k: 'mob', tid: 'forest_wolf', x: 120, z: 120, h: 1, lv: 2 },
-        ],
-      }),
-      nowMs: 1_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 5,
+            qdone: ['q_wolves', 'q_boars', 'q_spiders', 'q_murlocs', 'q_mine'],
+            qlog: [{ questId: 'q_greyjaw', counts: [0], state: 'active' }],
+          },
+          entities: [{ id: 9301, k: 'mob', tid: 'forest_wolf', x: 120, z: 120, h: 1, lv: 2 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(result.objectiveId).toBe('hunt_greyjaw');
     expect(result.commands).toEqual([]);
@@ -5111,32 +9661,35 @@ describe('ambient player bot brain', () => {
 
   it('resets movement when the bot has been stuck on the same path too long', () => {
     const state = createAmbientPlayerBotBrainState();
-    tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 1_000,
-    }, state);
+    tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
-        },
-      }),
-      nowMs: 6_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
+          },
+        }),
+        nowMs: 6_000,
+      },
+      state,
+    );
 
     expect(state.stuckResets).toBe(1);
     expect(result.moveInput).toEqual({});
-    expect(result.commands).toEqual([
-      { cmd: 'stopattack' },
-      { cmd: 'target', id: null },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'stopattack' }, { cmd: 'target', id: null }]);
   });
 
   it('does not count externally controlled party waiting as stuck pathing', () => {
@@ -5148,18 +9701,24 @@ describe('ambient player bot brain', () => {
         qlog: [{ questId: 'q_wolves', counts: [0], state: 'active' }],
       },
     });
-    tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: firstLiveState,
-      nowMs: 1_000,
-    }, state);
+    tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: firstLiveState,
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     markAmbientPlayerBotBrainExternalProgress(state, firstLiveState, 5_900);
-    const result = tickAmbientPlayerBotBrain({
-      bot: bot(),
-      liveState: firstLiveState,
-      nowMs: 6_000,
-    }, state);
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: firstLiveState,
+        nowMs: 6_000,
+      },
+      state,
+    );
 
     expect(state.stuckResets).toBe(0);
     expect(result.moveInput).toEqual({ f: 1 });

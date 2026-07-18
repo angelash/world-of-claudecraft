@@ -5,7 +5,7 @@
 // therefore carries ONLY the keys whose value differs from en; every other key is
 // intentionally omitted. A key must NOT be re-added with a value equal to en
 // (redundant duplication). Every key here must be a real `en` leaf
-// path (tests/i18n_overlay_key_membership.test.ts + the byte gate). Keys are in `en`'s
+// path (the flat TranslationKey union type + the byte gate). Keys are in `en`'s
 // leaf order.
 
 import type { TranslationKey } from '../i18n.catalog';
@@ -17,7 +17,7 @@ export const en_CA: Partial<Record<TranslationKey, string>> = {
   'hudChrome.perf.thresholds': 'Colour-Coded Warnings',
   'classDetails.labels.armor': 'Armour',
   'classDetails.lore.paladin':
-    'Paladins are holy crusaders who support allies with blessings, heal wounds with Holy Light, and protect the weak in heavy armour.',
+    'Paladins are holy crusaders who support allies with blessings, heal wounds with Mending Light, and protect the weak in heavy armour.',
   'classDetails.lore.druid':
     'Druids channel nature, healing wounds, entangling foes, and shifting into animal forms for defence or damage.',
   'fiesta.category.offense': 'Offence',

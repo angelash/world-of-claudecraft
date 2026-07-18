@@ -46,7 +46,10 @@ export function buildForkAiProfilePack(
     }),
     withBasicNpcIntents({
       id: 'npc.the_merchant.living_world',
-      appliesTo: [{ kind: 'npc', templateId: 'the_merchant' }],
+      appliesTo: [
+        { kind: 'npc', templateId: 'the_merchant' },
+        { kind: 'npc', templateId: 'auctioneer_voss' },
+      ],
       persona: 'A market keeper who treats rumors, risk, and coin as the same weather system.',
       allowedLineIds: ['hudChrome.aiSpeech.merchantMarketPulse'],
       fallbackLineId: 'hudChrome.aiSpeech.merchantMarketPulse',
@@ -69,6 +72,32 @@ export function buildForkAiProfilePack(
         avoidsTags: ['cursed', 'undead'],
       },
       timeWeatherSensitivity: { dayEnergy: 0.55, nightFatigue: 0.4, clearNightAwe: 0.15, rainIrritation: 0.45, fogFear: 0.25 },
+    }),
+    withBasicNpcIntents({
+      id: 'npc.fury.living_world',
+      appliesTo: [{ kind: 'npc', templateId: 'fury' }],
+      persona: 'An honor quartermaster who weighs every victory against discipline, scars, and the gear needed for the next fight.',
+      allowedLineIds: ['hudChrome.aiSpeech.genericNpcAwake'],
+      fallbackLineId: 'hudChrome.aiSpeech.genericNpcAwake',
+      canonSensitive: false,
+      knowledgeScope: ['honor standings', 'warfare equipment', 'arena victories', 'battle discipline', 'earned rewards'],
+      tabooTopics: ['free honor', 'fixed match outcomes', 'private account facts'],
+      socialMemory: {
+        style: 'Remembers players as battle records: victories earned, defeats survived, and discipline shown under pressure.',
+        recognitionLineId: 'hudChrome.aiSpeech.memoryCommanderRecognizesPlayer',
+        rumorLineId: 'hudChrome.aiSpeech.memoryCommanderRumorEcho',
+        questRumorLineId: 'hudChrome.aiSpeech.memoryCommanderQuestRumorEcho',
+      },
+      sceneAffinities: {
+        likesTags: ['safeTown', 'militaryOrder', 'market', 'warmLight'],
+        avoidsTags: ['cursed', 'deathPressure', 'oldBlood'],
+        commentsOnTags: ['weapon', 'armor', 'crowd', 'hostileDensity'],
+      },
+      itemInterest: {
+        attractedToTags: ['weapon', 'armor', 'gear', 'valuable', 'threat'],
+        avoidsTags: ['cursed', 'undead', 'unknownPower'],
+      },
+      timeWeatherSensitivity: { dayEnergy: 0.6, nightFatigue: 0.3, clearNightAwe: 0.1, rainIrritation: 0.25, fogFear: 0.35 },
     }),
     withBasicNpcIntents({
       id: 'npc.marshal_redbrook.living_world',

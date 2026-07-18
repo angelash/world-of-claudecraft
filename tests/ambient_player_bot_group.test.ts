@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { DUNGEONS } from '../src/sim/data';
 import {
   createAmbientPlayerBotGroupRuntimeState,
   tickAmbientPlayerBotGroupCoordinator,
 } from '../server/ambient_bots/group';
 import type { AmbientPlayerBotRecord } from '../server/ambient_bots/types';
 import type { AmbientPlayerBotLiveState } from '../server/ambient_bots/ws_client';
+import type { PartyMemberInfo } from '../src/world_api';
 
 function bot(overrides: Partial<AmbientPlayerBotRecord> = {}): AmbientPlayerBotRecord {
   return {
@@ -56,6 +58,31 @@ function liveState(input: {
   };
 }
 
+function partyMember(
+  pid: number,
+  name: string,
+  cls: PartyMemberInfo['cls'],
+  x: number,
+  z: number,
+): PartyMemberInfo {
+  return {
+    pid,
+    name,
+    cls,
+    level: 12,
+    hp: 120,
+    mhp: 120,
+    res: cls === 'warrior' ? 0 : 120,
+    mres: cls === 'warrior' ? 0 : 120,
+    rtype: cls === 'warrior' ? 'rage' : 'mana',
+    x,
+    z,
+    dead: 0,
+    inCombat: 0,
+    group: 1,
+  };
+}
+
 describe('ambient player bot group coordinator', () => {
   it('has a trailing Bastion follower use the real /follow chat path and pause the brain drive', () => {
     const leader = bot();
@@ -104,6 +131,220 @@ describe('ambient player bot group coordinator', () => {
       groupMode: 'follow_leader',
       groupLeaderName: 'Branoraaa',
       groupLeaderDistance: 18,
+    }));
+  });
+
+  it('holds the Bastion leader at the door until the outdoor party is stacked', () => {
+    const door = DUNGEONS.sunken_bastion.doorPos;
+    const leader = bot();
+    const members = [
+      leader,
+      bot({ botId: 'bot-2', accountId: 12, characterId: 102, characterName: 'Branorabb', accountUsername: 'bot_user_2', authToken: 'token-2', class: 'mage' }),
+      bot({ botId: 'bot-3', accountId: 13, characterId: 103, characterName: 'Branoracc', accountUsername: 'bot_user_3', authToken: 'token-3', class: 'priest' }),
+      bot({ botId: 'bot-4', accountId: 14, characterId: 104, characterName: 'Branoradd', accountUsername: 'bot_user_4', authToken: 'token-4', class: 'rogue' }),
+      bot({ botId: 'bot-5', accountId: 15, characterId: 105, characterName: 'Branoraee', accountUsername: 'bot_user_5', authToken: 'token-5', class: 'mage' }),
+    ];
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: leader,
+      liveState: liveState({
+        self: {
+          id: 101,
+          x: door.x - 1,
+          z: door.z - 6,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              partyMember(101, 'Branoraaa', 'warrior', door.x - 1, door.z - 6),
+              partyMember(102, 'Branorabb', 'mage', door.x - 2, door.z - 6),
+              partyMember(103, 'Branoracc', 'priest', door.x - 3, door.z - 9),
+              partyMember(104, 'Branoradd', 'rogue', door.x - 4, door.z - 18),
+              partyMember(105, 'Branoraee', 'mage', door.x - 5, door.z - 28),
+            ],
+          },
+        },
+      }),
+      recentEvents: [],
+      objectiveId: 'enter_olen',
+      objectiveQuestId: 'q_olen',
+      objectiveDungeonId: 'sunken_bastion',
+      objectiveSuggestedPartySize: 5,
+      directory: members,
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'hold_regroup',
+      groupNeedsRegroup: true,
+      groupLaggingMembers: 2,
+    }));
+  });
+
+  it('enters Bastion when the outdoor party is stacked at the door', () => {
+    const door = DUNGEONS.sunken_bastion.doorPos;
+    const leader = bot();
+    const members = [
+      leader,
+      bot({ botId: 'bot-2', accountId: 12, characterId: 102, characterName: 'Branorabb', accountUsername: 'bot_user_2', authToken: 'token-2', class: 'mage' }),
+      bot({ botId: 'bot-3', accountId: 13, characterId: 103, characterName: 'Branoracc', accountUsername: 'bot_user_3', authToken: 'token-3', class: 'priest' }),
+      bot({ botId: 'bot-4', accountId: 14, characterId: 104, characterName: 'Branoradd', accountUsername: 'bot_user_4', authToken: 'token-4', class: 'rogue' }),
+      bot({ botId: 'bot-5', accountId: 15, characterId: 105, characterName: 'Branoraee', accountUsername: 'bot_user_5', authToken: 'token-5', class: 'mage' }),
+    ];
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: leader,
+      liveState: liveState({
+        self: {
+          id: 101,
+          x: door.x - 1,
+          z: door.z - 6,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              partyMember(101, 'Branoraaa', 'warrior', door.x - 1, door.z - 6),
+              partyMember(102, 'Branorabb', 'mage', door.x - 2, door.z - 6),
+              partyMember(103, 'Branoracc', 'priest', door.x - 3, door.z - 6),
+              partyMember(104, 'Branoradd', 'rogue', door.x - 4, door.z - 6),
+              partyMember(105, 'Branoraee', 'mage', door.x - 5, door.z - 6),
+            ],
+          },
+        },
+      }),
+      recentEvents: [],
+      objectiveId: 'enter_olen',
+      objectiveQuestId: 'q_olen',
+      objectiveDungeonId: 'sunken_bastion',
+      objectiveSuggestedPartySize: 5,
+      directory: members,
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([
+      { cmd: 'enter_dungeon', dungeon: 'sunken_bastion' },
+    ]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'brain',
+      groupNeedsRegroup: false,
+    }));
+  });
+
+  it('keeps an outdoor Bastion follower at the door until the leader enters first', () => {
+    const door = DUNGEONS.sunken_bastion.doorPos;
+    const leader = bot();
+    const follower = bot({
+      botId: 'bot-2',
+      accountId: 12,
+      characterId: 102,
+      characterName: 'Branorabb',
+      accountUsername: 'bot_user_2',
+      authToken: 'token-2',
+      class: 'mage',
+    });
+    const members = [
+      leader,
+      follower,
+      bot({ botId: 'bot-3', accountId: 13, characterId: 103, characterName: 'Branoracc', accountUsername: 'bot_user_3', authToken: 'token-3', class: 'priest' }),
+      bot({ botId: 'bot-4', accountId: 14, characterId: 104, characterName: 'Branoradd', accountUsername: 'bot_user_4', authToken: 'token-4', class: 'rogue' }),
+      bot({ botId: 'bot-5', accountId: 15, characterId: 105, characterName: 'Branoraee', accountUsername: 'bot_user_5', authToken: 'token-5', class: 'mage' }),
+    ];
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: follower,
+      liveState: liveState({
+        self: {
+          id: 102,
+          x: door.x - 2,
+          z: door.z - 6,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              partyMember(101, 'Branoraaa', 'warrior', door.x - 1, door.z - 6),
+              partyMember(102, 'Branorabb', 'mage', door.x - 2, door.z - 6),
+              partyMember(103, 'Branoracc', 'priest', door.x - 3, door.z - 6),
+              partyMember(104, 'Branoradd', 'rogue', door.x - 4, door.z - 6),
+              partyMember(105, 'Branoraee', 'mage', door.x - 5, door.z - 6),
+            ],
+          },
+        },
+      }),
+      recentEvents: [],
+      objectiveId: 'enter_olen',
+      objectiveQuestId: 'q_olen',
+      objectiveDungeonId: 'sunken_bastion',
+      objectiveSuggestedPartySize: 5,
+      directory: members,
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'follow_leader',
+      groupLeaderName: 'Branoraaa',
+    }));
+  });
+
+  it('has an outdoor Bastion follower enter instead of following an inside leader coordinate', () => {
+    const door = DUNGEONS.sunken_bastion.doorPos;
+    const leader = bot();
+    const follower = bot({
+      botId: 'bot-2',
+      accountId: 12,
+      characterId: 102,
+      characterName: 'Branorabb',
+      accountUsername: 'bot_user_2',
+      authToken: 'token-2',
+      class: 'mage',
+    });
+    const members = [
+      leader,
+      follower,
+      bot({ botId: 'bot-3', accountId: 13, characterId: 103, characterName: 'Branoracc', accountUsername: 'bot_user_3', authToken: 'token-3', class: 'priest' }),
+      bot({ botId: 'bot-4', accountId: 14, characterId: 104, characterName: 'Branoradd', accountUsername: 'bot_user_4', authToken: 'token-4', class: 'rogue' }),
+      bot({ botId: 'bot-5', accountId: 15, characterId: 105, characterName: 'Branoraee', accountUsername: 'bot_user_5', authToken: 'token-5', class: 'mage' }),
+    ];
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: follower,
+      liveState: liveState({
+        self: {
+          id: 102,
+          x: door.x - 2,
+          z: door.z - 6,
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              partyMember(101, 'Branoraaa', 'warrior', 1500, -246),
+              partyMember(102, 'Branorabb', 'mage', door.x - 2, door.z - 6),
+              partyMember(103, 'Branoracc', 'priest', door.x - 3, door.z - 6),
+              partyMember(104, 'Branoradd', 'rogue', door.x - 4, door.z - 6),
+              partyMember(105, 'Branoraee', 'mage', door.x - 5, door.z - 6),
+            ],
+          },
+        },
+      }),
+      recentEvents: [],
+      objectiveId: 'enter_olen',
+      objectiveQuestId: 'q_olen',
+      objectiveDungeonId: 'sunken_bastion',
+      objectiveSuggestedPartySize: 5,
+      directory: members,
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([
+      { cmd: 'enter_dungeon', dungeon: 'sunken_bastion' },
+    ]);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'brain',
+      groupLeaderDistance: expect.any(Number),
     }));
   });
 
@@ -681,6 +922,135 @@ describe('ambient player bot group coordinator', () => {
     expect(result.runnerStatePatch).toEqual(expect.objectContaining({
       groupMode: 'heal_party',
       groupLeaderName: 'Branoraaa',
+      groupLeaderDistance: 2,
+    }));
+  });
+
+  it('lets a stable off-healer heal the tank instead of empty self-preserving', () => {
+    const druid = bot({
+      botId: 'bot-2',
+      accountId: 12,
+      characterId: 102,
+      characterName: 'Liora',
+      accountUsername: 'bot_user_2',
+      authToken: 'token-2',
+      class: 'druid',
+    });
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: druid,
+      liveState: liveState({
+        self: {
+          id: 102,
+          lv: 15,
+          x: 0,
+          z: 0,
+          hp: 68,
+          mhp: 100,
+          res: 500,
+          mres: 900,
+          rtype: 'mana',
+          gcd: 0,
+          target: null,
+          auto: false,
+          cast: null,
+          cds: {},
+          auras: [],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Alden', cls: 'warrior', level: 15, hp: 44, mhp: 120, res: 10, mres: 100, rtype: 'rage', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+              { pid: 102, name: 'Liora', cls: 'druid', level: 15, hp: 68, mhp: 100, res: 500, mres: 900, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 101, k: 'player', nm: 'Alden', x: 2, z: 0, auras: [] },
+          { id: 501, k: 'mob', h: 80, x: 2, z: 1, aggro: 101, auras: [] },
+          { id: 502, k: 'mob', h: 80, x: 0, z: 1, aggro: 102, auras: [] },
+        ],
+      }),
+      recentEvents: [],
+      objectiveId: 'hunt_boars',
+      objectiveQuestId: 'q_boars',
+      objectiveSuggestedPartySize: 1,
+      directory: [druid],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 101 },
+      expect.objectContaining({ cmd: 'cast' }),
+    ]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'heal_party',
+      groupLeaderName: 'Alden',
+      groupLeaderDistance: 2,
+    }));
+  });
+
+  it('lets a threatened healer shield itself when it is the lowest-health member', () => {
+    const priest = bot({
+      botId: 'bot-2',
+      accountId: 12,
+      characterId: 102,
+      characterName: 'Mira',
+      accountUsername: 'bot_user_2',
+      authToken: 'token-2',
+      class: 'priest',
+    });
+    const state = createAmbientPlayerBotGroupRuntimeState();
+    const result = tickAmbientPlayerBotGroupCoordinator({
+      bot: priest,
+      liveState: liveState({
+        self: {
+          id: 102,
+          lv: 15,
+          x: 0,
+          z: 0,
+          hp: 40,
+          mhp: 100,
+          res: 500,
+          mres: 900,
+          rtype: 'mana',
+          gcd: 0,
+          target: 501,
+          auto: true,
+          cast: null,
+          cds: {},
+          auras: [],
+          party: {
+            leader: 101,
+            raid: false,
+            members: [
+              { pid: 101, name: 'Alden', cls: 'warrior', level: 15, hp: 100, mhp: 120, res: 10, mres: 100, rtype: 'rage', x: 2, z: 0, dead: 0, inCombat: 1, group: 1 },
+              { pid: 102, name: 'Mira', cls: 'priest', level: 15, hp: 40, mhp: 100, res: 500, mres: 900, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
+            ],
+          },
+        },
+        entities: [
+          { id: 101, k: 'player', nm: 'Alden', x: 2, z: 0, auras: [] },
+          { id: 501, k: 'mob', h: 80, x: 1, z: 0, aggro: 102, auras: [] },
+        ],
+      }),
+      recentEvents: [],
+      objectiveId: 'hunt_boars',
+      objectiveQuestId: 'q_boars',
+      objectiveSuggestedPartySize: 1,
+      directory: [priest],
+      nowMs: 5_000,
+    }, state);
+
+    expect(result.commands).toEqual([
+      { cmd: 'target', id: 102 },
+      { cmd: 'cast', ability: 'power_word_shield' },
+    ]);
+    expect(result.pauseBrainDrive).toBe(true);
+    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
+      groupMode: 'shield_party',
+      groupLeaderName: 'Alden',
       groupLeaderDistance: 2,
     }));
   });

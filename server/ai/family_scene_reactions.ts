@@ -105,7 +105,7 @@ const FAMILY_OBJECT_CUES: Record<MobFamily, FamilyObjectCueRules> = {
     avoidTags: ['fleeFromDark', 'avoidObject', 'avoidDesecration', 'feelWatched', 'avoidAmbush', 'boneDust', 'uneasyAura'],
     inspectTags: ['inspectOfferings', 'listenForEcho', 'readOldMarks', 'watchCrowd', 'watchSmoke'],
   },
-  murloc: {
+  mudfin: {
     approachTags: ['sniffFish', 'drinkWater', 'peerBelow', 'borrowBait', 'watchReflection', 'wetWood', 'fishScales', 'softRipples'],
     avoidTags: ['avoidHeat', 'avoidDeepWater', 'hotIron', 'sparks', 'dryHighland'],
     inspectTags: ['paceCarefully', 'trackRipples', 'listenAtDoor'],
@@ -115,10 +115,15 @@ const FAMILY_OBJECT_CUES: Record<MobFamily, FamilyObjectCueRules> = {
     avoidTags: ['avoidHeat', 'strongWind', 'warmHands', 'signalDanger', 'sparks'],
     inspectTags: ['feelWatched', 'trackRipples', 'listenForDead'],
   },
-  kobold: {
+  burrower: {
     approachTags: ['collectObject', 'glintingSurface', 'readNotice', 'hideBehindStone', 'takeCover', 'repairGear', 'workedMetal'],
     avoidTags: ['avoidDeepWater', 'avoidAmbush', 'fleeFromDark', 'avoidObject', 'uneasyAura', 'coldDraft'],
     inspectTags: ['listenForEcho', 'listenForSteps', 'readOldMarks'],
+  },
+  reptile: {
+    approachTags: ['sniffObject', 'sniffFish', 'drinkWater', 'strongScent', 'softRipples', 'muddyBank', 'warmHands'],
+    avoidTags: ['avoidObject', 'fleeFromDark', 'avoidDesecration', 'uneasyAura', 'boneDust', 'coldDraft'],
+    inspectTags: ['trackRipples', 'listenForSteps', 'paceCarefully', 'watchReflection'],
   },
   undead: {
     approachTags: ['guardEntrance', 'listenForDead', 'feelWatched', 'readOldMarks', 'hesitateAtThreshold', 'graveSoil', 'boneDust'],
@@ -215,7 +220,7 @@ export function scoreFamilySceneReaction(
     curiosity += family === 'elemental' || family === 'dragonkin' ? 0.7 : individual.traits.includes('stargazer') ? 0.36 : 0.22;
   }
   if (scene.weather.kind === 'fog') fear += rules.moodBias.fear * 0.12 + (family === 'spider' || family === 'undead' ? -0.08 : 0.1);
-  if (scene.weather.kind === 'rain' && (family === 'murloc' || family === 'elemental')) curiosity += 0.18;
+  if (scene.weather.kind === 'rain' && (family === 'mudfin' || family === 'elemental')) curiosity += 0.18;
   if (scene.locationTags.includes('safeTown') && entity.hostile) fear += 0.12;
   if (scene.locationTags.includes('camp') || scene.structureTags.includes('camp')) curiosity += rules.moodBias.territory * 0.18;
 
@@ -306,14 +311,15 @@ export function familyRoutinePlanKind(
 ): FamilyRoutinePlanKind {
   switch (family) {
     case 'beast':
+    case 'reptile':
       return reaction === 'approach' ? 'forageScent' : reaction === 'avoid' ? 'keepDistanceFromFire' : 'guardScent';
     case 'humanoid':
       return reaction === 'approach' ? 'campClaim' : reaction === 'avoid' ? 'fallBackFromThreat' : 'campMutter';
-    case 'murloc':
+    case 'mudfin':
       return reaction === 'approach' ? 'shoalForage' : reaction === 'avoid' ? 'splashBack' : 'shoalAlarm';
     case 'spider':
       return reaction === 'approach' ? 'webStalk' : reaction === 'avoid' ? 'retreatToWeb' : 'webVigil';
-    case 'kobold':
+    case 'burrower':
       return reaction === 'approach' ? 'snatchShiny' : reaction === 'avoid' ? 'hideWithCandle' : 'candleGuard';
     case 'undead':
       return reaction === 'approach' ? 'graveDrift' : reaction === 'avoid' ? 'shunLivingWarmth' : 'graveListen';
@@ -333,7 +339,8 @@ export function familyRoutinePlanKind(
 function lineIdForFamilyScene(family: MobFamily, reaction: FamilySceneReactionKind): string {
   switch (family) {
     case 'beast':
-    case 'murloc':
+    case 'mudfin':
+    case 'reptile':
     case 'spider':
       return 'hudChrome.aiSpeech.familySceneBeastUneasy';
     case 'undead':
@@ -547,7 +554,7 @@ function timeWeatherReactionBias(
     reasonTags.push('clearNightAwe');
   }
   if (scene.mood.rainIrritation >= 0.5) {
-    if (family === 'murloc' || family === 'elemental') {
+    if (family === 'mudfin' || family === 'elemental') {
       curiosity += 0.08;
       reasonTags.push('waterComfort');
     } else {

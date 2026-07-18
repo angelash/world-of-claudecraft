@@ -1,6 +1,6 @@
 <div align="center">
 
-[English](../../CONTRIBUTING.md) · [Español](CONTRIBUTING.es.md) · [Español (España)](CONTRIBUTING.es_ES.md) · [Français](CONTRIBUTING.fr_FR.md) · **Français (Canada)** · [Italiano](CONTRIBUTING.it_IT.md) · [Deutsch](CONTRIBUTING.de_DE.md) · [简体中文](CONTRIBUTING.zh_CN.md) · [繁體中文](CONTRIBUTING.zh_TW.md) · [한국어](CONTRIBUTING.ko_KR.md) · [日本語](CONTRIBUTING.ja_JP.md) · [Português (Brasil)](CONTRIBUTING.pt_BR.md) · [Русский](CONTRIBUTING.ru_RU.md)
+[English](../../CONTRIBUTING.md) · [Español](CONTRIBUTING.es.md) · [Español (España)](CONTRIBUTING.es_ES.md) · [Français](CONTRIBUTING.fr_FR.md) · **Français (Canada)** · [Italiano](CONTRIBUTING.it_IT.md) · [Deutsch](CONTRIBUTING.de_DE.md) · [简体中文](CONTRIBUTING.zh_CN.md) · [繁體中文](CONTRIBUTING.zh_TW.md) · [한국어](CONTRIBUTING.ko_KR.md) · [日本語](CONTRIBUTING.ja_JP.md) · [Português (Brasil)](CONTRIBUTING.pt_BR.md) · [Русский](CONTRIBUTING.ru_RU.md) · [Nederlands](CONTRIBUTING.nl_NL.md) · [Polski](CONTRIBUTING.pl_PL.md) · [Bahasa Indonesia](CONTRIBUTING.id_ID.md) · [Türkçe](CONTRIBUTING.tr_TR.md) · [Svenska](CONTRIBUTING.sv_SE.md) · [Tiếng Việt](CONTRIBUTING.vi_VN.md) · [Dansk](CONTRIBUTING.da_DK.md)
 
 </div>
 
@@ -13,7 +13,7 @@ bâtir un tout nouveau donjon : tout compte, et vous êtes le bienvenu ici.
 
 Ce guide vous aidera à tout configurer et à rendre votre première contribution
 facile. Pas besoin d'être un expert. Si quelque chose vous semble flou,
-demandez sur [Discord](https://discord.gg/GjhnUsBtw) et quelqu'un se fera un
+demandez sur [Discord](https://discord.com/invite/worldofclaudecraft) et quelqu'un se fera un
 plaisir de vous aider.
 
 En participant, vous acceptez de respecter notre [code de conduite](../../CODE_OF_CONDUCT.md).
@@ -189,7 +189,7 @@ Pas besoin d'écrire du code de jeu pour ça :
    PR.
 
 Pour proposer une toute nouvelle locale, ou pour discuter du ton et de la
-terminologie, lancez un fil sur [Discord](https://discord.gg/GjhnUsBtw) et nous
+terminologie, lancez un fil sur [Discord](https://discord.com/invite/worldofclaudecraft) et nous
 vous aiderons à tout brancher. Les personnes de langue maternelle et celles qui
 parlent couramment sont particulièrement les bienvenues. De bonnes traductions
 donnent aux joueurs de partout l'impression d'être chez eux.
@@ -209,7 +209,7 @@ Veuillez utiliser les [gabarits de tickets](https://github.com/levy-street/world
 ## Obtenir de l'aide
 
 Vous êtes coincé, ou vous voulez simplement dire bonjour ? Rejoignez le
-[Discord de la communauté](https://discord.gg/GjhnUsBtw). Aucune question n'est
+[Discord de la communauté](https://discord.com/invite/worldofclaudecraft). Aucune question n'est
 trop petite, et les nouvelles personnes qui contribuent sont toujours les
 bienvenues.
 

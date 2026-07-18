@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { renderAiAuditRecordDetail, renderAiLifeLayerMetrics } from '../src/admin/tables';
 import { setAdminLanguage } from '../src/admin/i18n';
+import { renderAiAuditRecordDetail, renderAiLifeLayerMetrics } from '../src/admin/tables';
 import type {
   AiActiveTriggerAdminSnapshot,
   AiAuditSnapshot,
-  AiContentCoverageReport, AiContentReviewChecklist, AiLifeLayerDiagnosticsSnapshot, AiLifeLayerMetricsSnapshot,
+  AiContentCoverageReport,
+  AiContentReviewChecklist,
+  AiLifeLayerDiagnosticsSnapshot,
+  AiLifeLayerMetricsSnapshot,
   AiProfilePreviewReport,
 } from '../src/admin/types';
 
@@ -114,94 +117,108 @@ function coverage(overrides: CoverageOverrides = {}): AiContentCoverageReport {
   };
 }
 
-function diagnostics(overrides: Partial<AiLifeLayerDiagnosticsSnapshot> = {}): AiLifeLayerDiagnosticsSnapshot {
+function diagnostics(
+  overrides: Partial<AiLifeLayerDiagnosticsSnapshot> = {},
+): AiLifeLayerDiagnosticsSnapshot {
   return {
-    recentDecisions: [{
-      sequence: 3,
-      jobId: 'job-3',
-      trigger: 'npc_question',
-      entityId: 12,
-      templateId: 'brother_aldric',
-      playerEntityId: 1,
-      status: 'provider_error',
-      reason: 'codex <offline>',
-      lineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
-      intents: ['commentOnScene'],
-      sceneId: 'fallen_chapel',
-      memoryWrites: [{
-        kind: 'npcInteraction',
-        refId: 'npc:12:brother_aldric',
-        scope: 'entity',
-        sourcePlayerEntityId: 1,
-        lineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
-        salience: 0.7,
-        reason: 'opened gossip',
-      }],
-    }],
-    worldDirectorStates: [{
-      stateId: 'director-1',
-      sceneId: 'fallen_chapel',
-      zoneId: 'eastbrook_vale',
-      mood: 'haunted',
-      proposalType: 'campAlert',
-      sourcePlayerEntityId: 1,
-      sourceRef: 'trace-1',
-      itemId: 'gravecaller_sigil<script>',
-      subjectKind: 'item',
-      lineId: 'hudChrome.aiSpeech.worldDirectorHaunted',
-      heat: 0.75,
-      createdAt: 10,
-      updatedAt: 12,
-      expiresAt: 120,
-      evidence: ['trace:cursed<script>'],
-    }],
-    worldDirectorProposalJournal: [{
-      auditId: 'director-audit-1',
-      lifecycle: 'created',
-      observedAt: 12,
-      stateId: 'director-1',
-      proposalId: 'director-1:proposal',
-      sourcePlayerEntityId: 1,
-      sourceRef: 'trace-1',
-      mood: 'haunted',
-      proposalType: 'campAlert',
-      subjectKind: 'item',
-      targetRef: 'gravecaller_sigil<script>',
-      sceneId: 'fallen_chapel<script>',
-      zoneId: 'eastbrook_vale<script>',
-      intent: 'raiseCampCaution<script>',
-      status: 'preview',
-      risk: 'low',
-      intensity: 0.75,
-      suggestedLineId: 'hudChrome.aiSpeech.worldDirectorHaunted',
-      expiresAt: 120,
-      reasonTags: ['mood:haunted<script>'],
-      safetyNotes: ['presentationOnly<script>'],
-    }],
-    socialMemory: {
-      npcMemories: [{
+    recentDecisions: [
+      {
+        sequence: 3,
+        jobId: 'job-3',
+        trigger: 'npc_question',
+        entityId: 12,
+        templateId: 'brother_aldric',
         playerEntityId: 1,
-        playerName: 'Alice<script>',
-        templateId: 'brother_aldric<script>',
-        interactionCount: 3,
-        affinity: 0.24,
-        lastInteractionAt: 12,
-        sceneIds: ['fallen_chapel<script>'],
-      }],
-      rumors: [{
-        rumorId: 'rumor-1',
-        sceneId: 'fallen_chapel<script>',
-        originSceneId: 'fallen_chapel<script>',
-        zoneId: 'eastbrook_vale<script>',
+        status: 'provider_error',
+        reason: 'codex <offline>',
+        lineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
+        intents: ['commentOnScene'],
+        sceneId: 'fallen_chapel',
+        memoryWrites: [
+          {
+            kind: 'npcInteraction',
+            refId: 'npc:12:brother_aldric',
+            scope: 'entity',
+            sourcePlayerEntityId: 1,
+            lineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
+            salience: 0.7,
+            reason: 'opened gossip',
+          },
+        ],
+      },
+    ],
+    worldDirectorStates: [
+      {
+        stateId: 'director-1',
+        sceneId: 'fallen_chapel',
+        zoneId: 'eastbrook_vale',
+        mood: 'haunted',
+        proposalType: 'campAlert',
+        sourcePlayerEntityId: 1,
+        sourceRef: 'trace-1',
         itemId: 'gravecaller_sigil<script>',
         subjectKind: 'item',
-        sourcePlayerEntityId: 1,
-        lineIds: ['hudChrome.aiSpeech.itemInterestAvoid<script>'],
-        strength: 0.8,
-        scope: 'scene<script>',
+        lineId: 'hudChrome.aiSpeech.worldDirectorHaunted',
+        heat: 0.75,
         createdAt: 10,
-        expiresAt: 100,
-      }],
+        updatedAt: 12,
+        expiresAt: 120,
+        evidence: ['trace:cursed<script>'],
+      },
+    ],
+    worldDirectorProposalJournal: [
+      {
+        auditId: 'director-audit-1',
+        lifecycle: 'created',
+        observedAt: 12,
+        stateId: 'director-1',
+        proposalId: 'director-1:proposal',
+        sourcePlayerEntityId: 1,
+        sourceRef: 'trace-1',
+        mood: 'haunted',
+        proposalType: 'campAlert',
+        subjectKind: 'item',
+        targetRef: 'gravecaller_sigil<script>',
+        sceneId: 'fallen_chapel<script>',
+        zoneId: 'eastbrook_vale<script>',
+        intent: 'raiseCampCaution<script>',
+        status: 'preview',
+        risk: 'low',
+        intensity: 0.75,
+        suggestedLineId: 'hudChrome.aiSpeech.worldDirectorHaunted',
+        expiresAt: 120,
+        reasonTags: ['mood:haunted<script>'],
+        safetyNotes: ['presentationOnly<script>'],
+      },
+    ],
+    socialMemory: {
+      npcMemories: [
+        {
+          playerEntityId: 1,
+          playerName: 'Alice<script>',
+          templateId: 'brother_aldric<script>',
+          interactionCount: 3,
+          affinity: 0.24,
+          lastInteractionAt: 12,
+          sceneIds: ['fallen_chapel<script>'],
+        },
+      ],
+      rumors: [
+        {
+          rumorId: 'rumor-1',
+          sceneId: 'fallen_chapel<script>',
+          originSceneId: 'fallen_chapel<script>',
+          zoneId: 'eastbrook_vale<script>',
+          itemId: 'gravecaller_sigil<script>',
+          subjectKind: 'item',
+          sourcePlayerEntityId: 1,
+          lineIds: ['hudChrome.aiSpeech.itemInterestAvoid<script>'],
+          strength: 0.8,
+          scope: 'scene<script>',
+          createdAt: 10,
+          expiresAt: 100,
+        },
+      ],
     },
     memoryPersistence: {
       pending: 2,
@@ -222,19 +239,27 @@ function diagnostics(overrides: Partial<AiLifeLayerDiagnosticsSnapshot> = {}): A
   };
 }
 
-function coverageChecklist(overrides: Partial<AiContentReviewChecklist> = {}): AiContentReviewChecklist {
+function coverageChecklist(
+  overrides: Partial<AiContentReviewChecklist> = {},
+): AiContentReviewChecklist {
   const base: AiContentReviewChecklist = {
     status: 'needs_attention',
     generatedFrom: 'aiContentCoverageReport',
-    items: [{
-      id: 'scene-semantic-anchors',
-      label: 'Scene semantic anchors',
-      status: 'needs_attention',
-      issueCount: 2,
-      examples: ['thinFeatureTags:fallen_chapel:grave_brazier', 'thinAffordanceTags:fallen_chapel:grave_brazier'],
-      reviewPrompt: 'Verify tags, featureTags, affordanceTags, anchor overlap, danger cues, and time or weather readability.',
-      validationCommand: 'npx vitest run tests/ai_content_coverage.test.ts',
-    }],
+    items: [
+      {
+        id: 'scene-semantic-anchors',
+        label: 'Scene semantic anchors',
+        status: 'needs_attention',
+        issueCount: 2,
+        examples: [
+          'thinFeatureTags:fallen_chapel:grave_brazier',
+          'thinAffordanceTags:fallen_chapel:grave_brazier',
+        ],
+        reviewPrompt:
+          'Verify tags, featureTags, affordanceTags, anchor overlap, danger cues, and time or weather readability.',
+        validationCommand: 'npx vitest run tests/ai_content_coverage.test.ts',
+      },
+    ],
     validationCommands: ['npx vitest run tests/ai_content_coverage.test.ts'],
   };
   return {
@@ -245,7 +270,9 @@ function coverageChecklist(overrides: Partial<AiContentReviewChecklist> = {}): A
   };
 }
 
-function activeTriggers(overrides: Partial<AiActiveTriggerAdminSnapshot> = {}): AiActiveTriggerAdminSnapshot {
+function activeTriggers(
+  overrides: Partial<AiActiveTriggerAdminSnapshot> = {},
+): AiActiveTriggerAdminSnapshot {
   const base: AiActiveTriggerAdminSnapshot = {
     metrics: {
       activePollDue: 4,
@@ -336,59 +363,67 @@ function activeTriggers(overrides: Partial<AiActiveTriggerAdminSnapshot> = {}): 
         nextQueuedEventAtMs: Date.now() + 5_000,
         oldestQueuedEventAgeMs: 9_000,
       },
-      rules: [{
-        ruleId: 'scene_ambient_awareness',
-        title: 'Scene ambient awareness',
-        enabled: true,
-        category: 'sceneAmbient',
-        periodSeconds: 300,
-        jitterSeconds: 60,
-        priority: 50,
-        scope: 'playerVicinity',
-        providerPolicy: 'codexPreferred',
-        outputMode: 'mixedLivingWorld',
-        cooldown: { perPlayerSeconds: 90, perEntitySeconds: 180, perRuleSeconds: 30 },
-      }],
-      eventQueue: [{
-        eventId: 'evt-1',
-        kind: 'item_discarded',
-        playerEntityId: 1,
-        itemId: 'apple',
-        priority: 84,
-        attempts: 0,
-        createdAtMs: 1_000,
-        expiresAtMs: 91_000,
-        nextAttemptAtMs: 1_000,
-        observations: ['event:item_discarded', 'item:apple'],
-      }],
-      activeSequences: [{
-        sequenceId: 'seq-1<script>',
-        kind: 'creature',
-        family: 'murloc',
-        ruleId: 'npc_social_sequence',
-        playerEntityId: 1,
-        speakerEntityIds: [22, 23],
-        speakerNames: ['Mudfin Oracle<script>', 'Mudfin Scout'],
-        speakerTemplateIds: ['mudfin_murloc<script>', 'mudfin_murloc'],
-        sceneId: 'mirror_lake',
-        focusObjectId: 'eastbrook_market_stall<script>',
-        focusObjectTemplateId: 'scene_anchor:eastbrook_market_stall',
-        focusDisplayName: 'Market stall <danger>',
-        lineIds: ['hudChrome.aiSpeech.familySceneBeastUneasy<script>'],
-        startedAtMs: 1_000,
-        nextBeatAtMs: 1_800,
-        remainingBeats: 3,
-      }],
+      rules: [
+        {
+          ruleId: 'scene_ambient_awareness',
+          title: 'Scene ambient awareness',
+          enabled: true,
+          category: 'sceneAmbient',
+          periodSeconds: 300,
+          jitterSeconds: 60,
+          priority: 50,
+          scope: 'playerVicinity',
+          providerPolicy: 'codexPreferred',
+          outputMode: 'mixedLivingWorld',
+          cooldown: { perPlayerSeconds: 90, perEntitySeconds: 180, perRuleSeconds: 30 },
+        },
+      ],
+      eventQueue: [
+        {
+          eventId: 'evt-1',
+          kind: 'item_discarded',
+          playerEntityId: 1,
+          itemId: 'apple',
+          priority: 84,
+          attempts: 0,
+          createdAtMs: 1_000,
+          expiresAtMs: 91_000,
+          nextAttemptAtMs: 1_000,
+          observations: ['event:item_discarded', 'item:apple'],
+        },
+      ],
+      activeSequences: [
+        {
+          sequenceId: 'seq-1<script>',
+          kind: 'creature',
+          family: 'murloc',
+          ruleId: 'npc_social_sequence',
+          playerEntityId: 1,
+          speakerEntityIds: [22, 23],
+          speakerNames: ['Mudfin Oracle<script>', 'Mudfin Scout'],
+          speakerTemplateIds: ['mudfin_murloc<script>', 'mudfin_murloc'],
+          sceneId: 'mirror_lake',
+          focusObjectId: 'eastbrook_market_stall<script>',
+          focusObjectTemplateId: 'scene_anchor:eastbrook_market_stall',
+          focusDisplayName: 'Market stall <danger>',
+          lineIds: ['hudChrome.aiSpeech.familySceneBeastUneasy<script>'],
+          startedAtMs: 1_000,
+          nextBeatAtMs: 1_800,
+          remainingBeats: 3,
+        },
+      ],
       cursors: [],
-      recentDecisions: [{
-        ruleId: 'scene_ambient_awareness',
-        playerEntityId: 1,
-        speakerEntityId: 12,
-        speakerTemplateId: 'brother_aldric',
-        sceneId: 'fallen_chapel',
-        lineId: 'hudChrome.aiSpeech.sceneRainWeariness',
-        createdAtMs: 1_000,
-      }],
+      recentDecisions: [
+        {
+          ruleId: 'scene_ambient_awareness',
+          playerEntityId: 1,
+          speakerEntityId: 12,
+          speakerTemplateId: 'brother_aldric',
+          sceneId: 'fallen_chapel',
+          lineId: 'hudChrome.aiSpeech.sceneRainWeariness',
+          createdAtMs: 1_000,
+        },
+      ],
     },
   };
   return {
@@ -413,23 +448,25 @@ function profiles(overrides: Partial<AiProfilePreviewReport> = {}): AiProfilePre
       truncated: false,
       issues: [],
     },
-    rows: [{
-      id: 'npc.brother_aldric.living_world',
-      appliesTo: [{ kind: 'npc', templateId: 'brother_aldric' }],
-      personaExcerpt: 'A worried priest who reads weather, graves, and player choices as omens.',
-      canonSensitive: true,
-      fallbackLineId: 'hudChrome.aiSpeech.brotherAldricAwake',
-      allowedIntentTypes: ['commentOnScene', 'questHint'],
-      allowedLineIdCount: 1,
-      knowledgeScopeCount: 5,
-      tabooTopicCount: 3,
-      socialMemoryLineIds: ['hudChrome.aiSpeech.memoryPriestRecognizesPlayer'],
-      sceneAffinities: { likes: 4, avoids: 2, comments: 4 },
-      itemInterest: { attracted: 5, avoids: 2 },
-      hasTimeWeatherSensitivity: true,
-      companionReactionCount: 1,
-      missingAuthoringFields: [],
-    }],
+    rows: [
+      {
+        id: 'npc.brother_aldric.living_world',
+        appliesTo: [{ kind: 'npc', templateId: 'brother_aldric' }],
+        personaExcerpt: 'A worried priest who reads weather, graves, and player choices as omens.',
+        canonSensitive: true,
+        fallbackLineId: 'hudChrome.aiSpeech.brotherAldricAwake',
+        allowedIntentTypes: ['commentOnScene', 'questHint'],
+        allowedLineIdCount: 1,
+        knowledgeScopeCount: 5,
+        tabooTopicCount: 3,
+        socialMemoryLineIds: ['hudChrome.aiSpeech.memoryPriestRecognizesPlayer'],
+        sceneAffinities: { likes: 4, avoids: 2, comments: 4 },
+        itemInterest: { attracted: 5, avoids: 2 },
+        hasTimeWeatherSensitivity: true,
+        companionReactionCount: 1,
+        missingAuthoringFields: [],
+      },
+    ],
   };
   return { ...base, ...overrides };
 }
@@ -486,40 +523,42 @@ function audit(overrides: Partial<AiAuditSnapshot> = {}): AiAuditSnapshot {
         estimatedTokens: true,
       },
     },
-    recent: [{
-      auditId: 'audit-1',
-      realm: 'default',
-      jobId: 'job-1',
-      trigger: 'npc_question',
-      entityKind: 'npc',
-      entityId: 22,
-      templateId: 'brother_aldric<script>',
-      playerEntityId: 1,
-      sceneId: 'fallen_chapel<script>',
-      zoneId: 'eastbrook_vale<script>',
-      providerSource: 'codex<script>',
-      status: 'provider_error',
-      latencyMs: 42,
-      inputTokens: 80,
-      outputTokens: 20,
-      totalTokens: 100,
-      tokenEstimate: true,
-      promptChars: 0,
-      rawOutputChars: 0,
-      outputMode: 'line_id_only',
-      allowedIntentCount: 3,
-      allowedLineIdCount: 8,
-      memorySignalCount: 2,
-      directorProposalCount: 1,
-      sceneObjectCount: 4,
-      companionCount: 1,
-      lineIds: ['hudChrome.aiSpeech.brotherAldricAwake<script>'],
-      intents: ['commentOnScene<script>'],
-      memoryWriteRefs: ['npcInteraction:npc:1:brother_aldric<script>'],
-      reason: 'fallback reason <script>',
-      error: 'provider <offline>',
-      createdAt: '2026-06-22T00:00:00.000Z',
-    }],
+    recent: [
+      {
+        auditId: 'audit-1',
+        realm: 'default',
+        jobId: 'job-1',
+        trigger: 'npc_question',
+        entityKind: 'npc',
+        entityId: 22,
+        templateId: 'brother_aldric<script>',
+        playerEntityId: 1,
+        sceneId: 'fallen_chapel<script>',
+        zoneId: 'eastbrook_vale<script>',
+        providerSource: 'codex<script>',
+        status: 'provider_error',
+        latencyMs: 42,
+        inputTokens: 80,
+        outputTokens: 20,
+        totalTokens: 100,
+        tokenEstimate: true,
+        promptChars: 0,
+        rawOutputChars: 0,
+        outputMode: 'line_id_only',
+        allowedIntentCount: 3,
+        allowedLineIdCount: 8,
+        memorySignalCount: 2,
+        directorProposalCount: 1,
+        sceneObjectCount: 4,
+        companionCount: 1,
+        lineIds: ['hudChrome.aiSpeech.brotherAldricAwake<script>'],
+        intents: ['commentOnScene<script>'],
+        memoryWriteRefs: ['npcInteraction:npc:1:brother_aldric<script>'],
+        reason: 'fallback reason <script>',
+        error: 'provider <offline>',
+        createdAt: '2026-06-22T00:00:00.000Z',
+      },
+    ],
   };
   return {
     ...base,
@@ -532,39 +571,41 @@ function audit(overrides: Partial<AiAuditSnapshot> = {}): AiAuditSnapshot {
 describe('admin AI life layer metrics renderer', () => {
   it('shows a healthy status when provider and memory errors are clear', () => {
     setAdminLanguage('en');
-    const html = renderAiLifeLayerMetrics(metrics({
-      providerCalls: 4,
-      providerSuccesses: 4,
-      acceptedDecisions: 3,
-      generatedEvents: 6,
-      averageProviderLatencyMs: 12.4,
-      providerLatencySampleCount: 7,
-      providerLatencyP50Ms: 10,
-      providerLatencyP90Ms: 25,
-      providerLatencyP95Ms: 31,
-      lastPromptChars: 4321,
-      lastRawOutputChars: 678,
-      speechPolish: {
-        processed: 5,
-        changed: 3,
-        charsTrimmed: 29,
-        lastChanged: true,
-        lastLocale: 'zh_CN',
-        lastFingerprintSource: 'profile',
-        lastBefore: '不过，码头那边刚转了风，而且水面碎得不太自然。',
-        lastAfter: '码头那边刚转了风，水面碎得不太自然。',
-        lastBeforeChars: 24,
-        lastAfterChars: 20,
-      },
-      lastProviderTimings: {
-        provider: 'codex-app-server',
-        totalMs: 1456,
-        steps: [
-          { key: 'startupWaitMs', label: 'wait <unsafe>', ms: 8 },
-          { key: 'turnCompleteMs', label: 'model turn', ms: 1410 },
-        ],
-      },
-    }));
+    const html = renderAiLifeLayerMetrics(
+      metrics({
+        providerCalls: 4,
+        providerSuccesses: 4,
+        acceptedDecisions: 3,
+        generatedEvents: 6,
+        averageProviderLatencyMs: 12.4,
+        providerLatencySampleCount: 7,
+        providerLatencyP50Ms: 10,
+        providerLatencyP90Ms: 25,
+        providerLatencyP95Ms: 31,
+        lastPromptChars: 4321,
+        lastRawOutputChars: 678,
+        speechPolish: {
+          processed: 5,
+          changed: 3,
+          charsTrimmed: 29,
+          lastChanged: true,
+          lastLocale: 'zh_CN',
+          lastFingerprintSource: 'profile',
+          lastBefore: '不过，码头那边刚转了风，而且水面碎得不太自然。',
+          lastAfter: '码头那边刚转了风，水面碎得不太自然。',
+          lastBeforeChars: 24,
+          lastAfterChars: 20,
+        },
+        lastProviderTimings: {
+          provider: 'codex-app-server',
+          totalMs: 1456,
+          steps: [
+            { key: 'startupWaitMs', label: 'wait <unsafe>', ms: 8 },
+            { key: 'turnCompleteMs', label: 'model turn', ms: 1410 },
+          ],
+        },
+      }),
+    );
 
     expect(html).toContain('healthy');
     expect(html).toContain('Provider calls');
@@ -596,18 +637,20 @@ describe('admin AI life layer metrics renderer', () => {
 
   it('surfaces provider and memory failures without exposing raw HTML', () => {
     setAdminLanguage('en');
-    const html = renderAiLifeLayerMetrics(metrics({
-      providerCalls: 3,
-      providerErrors: 1,
-      providerFallbacks: 1,
-      memoryFlushFailures: 1,
-      memoryPruneFailures: 1,
-      memoryBudgetFailures: 1,
-      lastProviderError: '<script>alert(1)</script>',
-      lastMemoryPersistenceError: 'db <offline>',
-      lastMemoryPruneError: 'prune <offline>',
-      lastMemoryBudgetError: 'budget <offline>',
-    }));
+    const html = renderAiLifeLayerMetrics(
+      metrics({
+        providerCalls: 3,
+        providerErrors: 1,
+        providerFallbacks: 1,
+        memoryFlushFailures: 1,
+        memoryPruneFailures: 1,
+        memoryBudgetFailures: 1,
+        lastProviderError: '<script>alert(1)</script>',
+        lastMemoryPersistenceError: 'db <offline>',
+        lastMemoryPruneError: 'prune <offline>',
+        lastMemoryBudgetError: 'budget <offline>',
+      }),
+    );
 
     expect(html).toContain('needs attention');
     expect(html).toContain('Legacy fallback decisions');
@@ -622,15 +665,28 @@ describe('admin AI life layer metrics renderer', () => {
 
   it('shows AI content coverage gaps and escapes authored ids', () => {
     setAdminLanguage('en');
-    const html = renderAiLifeLayerMetrics(metrics(), coverage({
-      families: { missingSemantics: ['void<script>'], semanticsWithoutContent: ['astral<orphan>'] },
-      npcs: { missingInteractiveProfiles: ['aldric<bad>'] },
-      scenes: {
-        semanticObjectsMissingFeatureTags: ['fallen_chapel:grave_brazier<script>'],
-        semanticObjectsMissingAffordanceTags: ['fallen_chapel:grave_brazier<move>'],
-      },
-      items: { importantItemsMissingSignals: ['gravecaller_sigil'] },
-    }), undefined, undefined, undefined, undefined, 'coverage', null, coverageChecklist());
+    const html = renderAiLifeLayerMetrics(
+      metrics(),
+      coverage({
+        families: {
+          missingSemantics: ['void<script>'],
+          semanticsWithoutContent: ['astral<orphan>'],
+        },
+        npcs: { missingInteractiveProfiles: ['aldric<bad>'] },
+        scenes: {
+          semanticObjectsMissingFeatureTags: ['fallen_chapel:grave_brazier<script>'],
+          semanticObjectsMissingAffordanceTags: ['fallen_chapel:grave_brazier<move>'],
+        },
+        items: { importantItemsMissingSignals: ['gravecaller_sigil'] },
+      }),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'coverage',
+      null,
+      coverageChecklist(),
+    );
 
     expect(html).toContain('AI content coverage');
     expect(html).toContain('gaps');
@@ -654,12 +710,22 @@ describe('admin AI life layer metrics renderer', () => {
 
   it('localizes the coverage checklist in Simplified Chinese', () => {
     setAdminLanguage('zh_CN');
-    const html = renderAiLifeLayerMetrics(metrics(), coverage({
-      scenes: {
-        semanticObjectsMissingFeatureTags: ['fallen_chapel:grave_brazier'],
-        semanticObjectsMissingAffordanceTags: ['fallen_chapel:grave_brazier'],
-      },
-    }), undefined, undefined, undefined, undefined, 'coverage', null, coverageChecklist());
+    const html = renderAiLifeLayerMetrics(
+      metrics(),
+      coverage({
+        scenes: {
+          semanticObjectsMissingFeatureTags: ['fallen_chapel:grave_brazier'],
+          semanticObjectsMissingAffordanceTags: ['fallen_chapel:grave_brazier'],
+        },
+      }),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'coverage',
+      null,
+      coverageChecklist(),
+    );
 
     expect(html).toContain('AI 内容覆盖');
     expect(html).toContain('缺少特征标签的语义物件');
@@ -674,13 +740,19 @@ describe('admin AI life layer metrics renderer', () => {
 
   it('shows AI decision diagnostics and escapes audit values', () => {
     setAdminLanguage('en');
-    const html = renderAiLifeLayerMetrics(metrics(), coverage(), diagnostics({
-      recentDecisions: [{
-        ...diagnostics().recentDecisions[0],
-        templateId: 'npc<script>',
-        lineIds: ['hudChrome.aiSpeech.line<script>'],
-      }],
-    }));
+    const html = renderAiLifeLayerMetrics(
+      metrics(),
+      coverage(),
+      diagnostics({
+        recentDecisions: [
+          {
+            ...diagnostics().recentDecisions[0],
+            templateId: 'npc<script>',
+            lineIds: ['hudChrome.aiSpeech.line<script>'],
+          },
+        ],
+      }),
+    );
 
     expect(html).toContain('AI decision diagnostics');
     expect(html).toContain('Memory prune');
@@ -700,7 +772,9 @@ describe('admin AI life layer metrics renderer', () => {
     expect(html).toContain('mood:haunted&lt;script&gt;');
     expect(html).toContain('presentationOnly&lt;script&gt;');
     expect(html).toContain('Clear AI memory');
-    expect(html).toContain('Clears volatile AI overlay and persisted AI memory audit for this realm only.');
+    expect(html).toContain(
+      'Clears volatile AI overlay and persisted AI memory audit for this realm only.',
+    );
     expect(html).toContain('NPC memories');
     expect(html).toContain('Rumors');
     expect(html).toContain('Alice&lt;script&gt;');
@@ -720,12 +794,22 @@ describe('admin AI life layer metrics renderer', () => {
   it('shows editable active AI trigger controls and escapes rule values', () => {
     setAdminLanguage('en');
     const active = activeTriggers();
-    active.diagnostics.rules = [{
-      ...active.diagnostics.rules[0],
-      title: 'Scene <ambient>',
-      ruleId: 'scene_ambient_awareness<script>',
-    }];
-    const html = renderAiLifeLayerMetrics(metrics(), coverage(), diagnostics(), profiles(), audit(), active, 'active');
+    active.diagnostics.rules = [
+      {
+        ...active.diagnostics.rules[0],
+        title: 'Scene <ambient>',
+        ruleId: 'scene_ambient_awareness<script>',
+      },
+    ];
+    const html = renderAiLifeLayerMetrics(
+      metrics(),
+      coverage(),
+      diagnostics(),
+      profiles(),
+      audit(),
+      active,
+      'active',
+    );
 
     expect(html).toContain('Active AI');
     expect(html).toContain('Provider yielded to player activity');
@@ -779,7 +863,15 @@ describe('admin AI life layer metrics renderer', () => {
 
   it('localizes active AI trigger controls in Simplified Chinese', () => {
     setAdminLanguage('zh_CN');
-    const html = renderAiLifeLayerMetrics(metrics(), coverage(), diagnostics(), profiles(), audit(), activeTriggers(), 'active');
+    const html = renderAiLifeLayerMetrics(
+      metrics(),
+      coverage(),
+      diagnostics(),
+      profiles(),
+      audit(),
+      activeTriggers(),
+      'active',
+    );
 
     expect(html).toContain('主动 AI');
     expect(html).toContain('大模型已给玩家操作让路');
@@ -816,16 +908,23 @@ describe('admin AI life layer metrics renderer', () => {
 
   it('shows AI profile previews and escapes authored profile values', () => {
     setAdminLanguage('en');
-    const html = renderAiLifeLayerMetrics(metrics(), coverage(), diagnostics(), profiles({
-      rows: [{
-        ...profiles().rows[0],
-        id: 'npc.<script>.living_world',
-        appliesTo: [{ kind: 'npc', templateId: 'aldric<script>' }],
-        personaExcerpt: 'Persona with <danger>',
-        fallbackLineId: 'hudChrome.aiSpeech.bad<script>',
-        missingAuthoringFields: ['sceneAffinities<script>'],
-      }],
-    }));
+    const html = renderAiLifeLayerMetrics(
+      metrics(),
+      coverage(),
+      diagnostics(),
+      profiles({
+        rows: [
+          {
+            ...profiles().rows[0],
+            id: 'npc.<script>.living_world',
+            appliesTo: [{ kind: 'npc', templateId: 'aldric<script>' }],
+            personaExcerpt: 'Persona with <danger>',
+            fallbackLineId: 'hudChrome.aiSpeech.bad<script>',
+            missingAuthoringFields: ['sceneAffinities<script>'],
+          },
+        ],
+      }),
+    );
 
     expect(html).toContain('AI profile preview');
     expect(html).toContain('Profile authoring validation passed.');
@@ -868,7 +967,9 @@ describe('admin AI life layer metrics renderer', () => {
           providerSource: 'codex',
           status: 'accepted',
           latencyMs: 27_765,
-          deliveredSummary: ['Line-id-only response using the single allowed Foreman Odell line; acknowledges the mine rumor.'],
+          deliveredSummary: [
+            'Line-id-only response using the single allowed Foreman Odell line; acknowledges the mine rumor.',
+          ],
           playerAction: {
             kind: 'npc_question',
             topic: 'rumor',
@@ -925,23 +1026,30 @@ describe('admin AI life layer metrics renderer', () => {
 
   it('shows AI profile validation issues and escapes issue values', () => {
     setAdminLanguage('en');
-    const html = renderAiLifeLayerMetrics(metrics(), coverage(), diagnostics(), profiles({
-      validation: {
-        totalIssues: 1,
-        errorCount: 1,
-        warningCount: 0,
-        limit: 48,
-        truncated: false,
-        issues: [{
-          severity: 'error',
-          code: 'fallback<script>',
-          profileId: 'npc.bad<script>',
-          detail: 'bad detail <script>',
-          targetKind: 'npc',
-          targetTemplateId: 'target<script>',
-        }],
-      },
-    }));
+    const html = renderAiLifeLayerMetrics(
+      metrics(),
+      coverage(),
+      diagnostics(),
+      profiles({
+        validation: {
+          totalIssues: 1,
+          errorCount: 1,
+          warningCount: 0,
+          limit: 48,
+          truncated: false,
+          issues: [
+            {
+              severity: 'error',
+              code: 'fallback<script>',
+              profileId: 'npc.bad<script>',
+              detail: 'bad detail <script>',
+              targetKind: 'npc',
+              targetTemplateId: 'target<script>',
+            },
+          ],
+        },
+      }),
+    );
 
     expect(html).toContain('errors');
     expect(html).toContain('fallback&lt;script&gt;');
@@ -954,7 +1062,13 @@ describe('admin AI life layer metrics renderer', () => {
 
   it('shows AI audit token windows and escapes recent audit records', () => {
     setAdminLanguage('en');
-    const html = renderAiLifeLayerMetrics(metrics(), coverage(), diagnostics(), profiles(), audit());
+    const html = renderAiLifeLayerMetrics(
+      metrics(),
+      coverage(),
+      diagnostics(),
+      profiles(),
+      audit(),
+    );
 
     expect(html).toContain('AI usage and tokens');
     expect(html).toContain('Token values are estimated');
@@ -1038,45 +1152,49 @@ describe('admin AI life layer metrics renderer', () => {
         validation: {
           ok: true,
           reason: 'validator <ok>',
-          events: [{
-            type: 'aiSpeech',
-            pid: 1,
-            speakerId: 22,
-            speakerName: 'Aldric<script>',
-            source: 'codex',
-            text: '',
-            speechMode: 'dynamicText',
-            lineId: '',
-            language: 'en',
-            speechText: 'Validated <script>',
-            targetEntityId: null,
-            targetObjectId: null,
-            targetItemId: '',
-            reactionKind: '',
-            raw: { type: 'aiSpeech', speech: { text: 'Validated <script>' } },
-            rawTruncated: false,
-          }],
+          events: [
+            {
+              type: 'aiSpeech',
+              pid: 1,
+              speakerId: 22,
+              speakerName: 'Aldric<script>',
+              source: 'codex',
+              text: '',
+              speechMode: 'dynamicText',
+              lineId: '',
+              language: 'en',
+              speechText: 'Validated <script>',
+              targetEntityId: null,
+              targetObjectId: null,
+              targetItemId: '',
+              reactionKind: '',
+              raw: { type: 'aiSpeech', speech: { text: 'Validated <script>' } },
+              rawTruncated: false,
+            },
+          ],
         },
         delivered: {
           textSummary: ['Delivered <script>'],
-          events: [{
-            type: 'aiSpeech',
-            pid: 1,
-            speakerId: 22,
-            speakerName: 'Aldric<script>',
-            source: 'codex',
-            text: '',
-            speechMode: 'dynamicText',
-            lineId: '',
-            language: 'en',
-            speechText: 'Delivered <script>',
-            targetEntityId: null,
-            targetObjectId: null,
-            targetItemId: '',
-            reactionKind: '',
-            raw: { type: 'aiSpeech', speech: { text: 'Delivered <script>' } },
-            rawTruncated: false,
-          }],
+          events: [
+            {
+              type: 'aiSpeech',
+              pid: 1,
+              speakerId: 22,
+              speakerName: 'Aldric<script>',
+              source: 'codex',
+              text: '',
+              speechMode: 'dynamicText',
+              lineId: '',
+              language: 'en',
+              speechText: 'Delivered <script>',
+              targetEntityId: null,
+              targetObjectId: null,
+              targetItemId: '',
+              reactionKind: '',
+              raw: { type: 'aiSpeech', speech: { text: 'Delivered <script>' } },
+              rawTruncated: false,
+            },
+          ],
         },
       },
     };

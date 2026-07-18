@@ -11,6 +11,8 @@ vi.mock('../server/db', () => ({
   grantAccountMechChroma: vi.fn(async () => ({ completedQuestIds: [], mechChromaIds: [] })),
   revokeAccountMechChroma: vi.fn(async () => ({ completedQuestIds: [], mechChromaIds: [] })),
   walletForAccount: vi.fn(async () => null),
+  touchCharacterLogin: vi.fn(async () => {}),
+  loadAccountFlair: vi.fn(async () => ({ ai: false, streamer: false, links: {} })),
 }));
 
 import { GameServer, type ClientSession } from '../server/game';
@@ -162,6 +164,7 @@ describe('GameServer hosted play seams', () => {
         zone: 'Eastbrook Vale',
       }],
       blocks: [{ id: 301, name: 'Blocked' }],
+      ignores: [],
       guild: null,
     });
     (server as any).send(session, {
@@ -188,6 +191,7 @@ describe('GameServer hosted play seams', () => {
         zone: 'Eastbrook Vale',
       }],
       blocks: [{ id: 301, name: 'Blocked' }],
+      ignores: [],
       guild: null,
     });
     expect(server.drainHostedPlayRecentEvents(101)).toEqual([{

@@ -1132,6 +1132,7 @@ export class AiActiveTriggerService {
     nowMs: number;
     deliver?: (pid: number, events: SimEvent[]) => void;
     deferProvider?: boolean;
+    auditDeliveryEvents?: (events: readonly SimEvent[]) => readonly SimEvent[];
   }): boolean {
     const provider = this.provider;
     if (!provider || !input.deliver) return false;
@@ -1843,8 +1844,23 @@ export class AiActiveTriggerService {
     scene: ReturnType<typeof sceneFrameFor>,
     nowMs: number,
   ): SocialSequenceResult | null {
-    const speakers = this.npcCandidates(sim, player.pos, nowMs)
-      .sort((a, b) => b.score - a.score || a.distance - b.distance || a.entity.id - b.entity.id)
+    const candidates = this.npcCandidates(sim, player.pos, nowMs)
+      .sort((a, b) => b.score - a.score || a.distance - b.distance || a.entity.id - b.entity.id);
+    const preliminaryFocus = socialSequenceFocusObject(
+      scene,
+      candidates.slice(0, 3).map((candidate) => candidate.entity),
+    );
+    const focusSpeaker = preliminaryFocus
+      ? [...candidates].sort((a, b) => {
+        const relevanceDelta = socialSequenceObjectScoreForSpeaker(preliminaryFocus, b.entity)
+          - socialSequenceObjectScoreForSpeaker(preliminaryFocus, a.entity);
+        return relevanceDelta || b.score - a.score || a.distance - b.distance || a.entity.id - b.entity.id;
+      })[0]
+      : undefined;
+    const speakers = [
+      ...(focusSpeaker ? [focusSpeaker] : []),
+      ...candidates.filter((candidate) => candidate !== focusSpeaker),
+    ]
       .slice(0, 3)
       .map((candidate) => candidate.entity);
     if (speakers.length < 2) return null;
@@ -3300,9 +3316,9 @@ function creatureSequencePlanKind(family: MobFamily, step: number): string {
   if (step === 0) {
     switch (family) {
       case 'beast': return 'packScentStart';
-      case 'murloc': return 'murlocAlarmStart';
+      case 'mudfin': return 'murlocAlarmStart';
       case 'spider': return 'webStillnessStart';
-      case 'kobold': return 'candleSquabbleStart';
+      case 'burrower': return 'candleSquabbleStart';
       case 'humanoid': return 'campMutterStart';
       case 'undead': return 'deathEchoStart';
       case 'elemental': return 'resonanceStart';
@@ -3334,8 +3350,8 @@ function activeMobActionIntentForRoutine(result: CreatureRoutineResult): AiActiv
   if (reaction.kind === 'approach') {
     return family === 'beast'
       || family === 'humanoid'
-      || family === 'kobold'
-      || family === 'murloc'
+      || family === 'burrower'
+      || family === 'mudfin'
       || family === 'undead'
       || family === 'troll'
       || family === 'ogre'
@@ -3358,7 +3374,7 @@ function activeMobActionIntentForRoutine(result: CreatureRoutineResult): AiActiv
       || planKind === 'guardPlace') {
       return 'callForHelp';
     }
-    return family === 'humanoid' || family === 'kobold' || family === 'murloc' || family === 'troll' || family === 'ogre'
+    return family === 'humanoid' || family === 'burrower' || family === 'mudfin' || family === 'troll' || family === 'ogre'
       ? 'callForHelp'
       : null;
   }

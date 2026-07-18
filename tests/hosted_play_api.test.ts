@@ -1,8 +1,14 @@
 import { readFileSync } from 'node:fs';
+import type * as http from 'node:http';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Api } from '../src/net/online';
+import {
+  HOSTED_PLAY_CONTROL_MAX_PER_MINUTE,
+  hostedPlayControlRateLimited,
+  resetHostedPlayControlRateLimits,
+} from '../server/ratelimit';
 
 const MAIN = readFileSync(join(__dirname, '..', 'server', 'main.ts'), 'utf8');
 
@@ -17,6 +23,36 @@ describe('hosted-play route auth', () => {
     const idx = MAIN.indexOf('if (hostedPlaySettingsMatch) {');
     expect(idx).toBeGreaterThanOrEqual(0);
     expect(MAIN.slice(idx, idx + 800)).toContain('bearerActiveAccount(req, res)');
+  });
+
+  it('rate-limits provider-backed enable and disable after owner authentication', () => {
+    const idx = MAIN.indexOf('if (hostedPlayMatch) {');
+    expect(idx).toBeGreaterThanOrEqual(0);
+    const route = MAIN.slice(idx, idx + 1_900);
+    const auth = route.indexOf('bearerActiveAccount(req, res)');
+    const limiter = route.indexOf('hostedPlayControlRateLimited(req, accountId)');
+    expect(auth).toBeGreaterThanOrEqual(0);
+    expect(limiter).toBeGreaterThan(auth);
+    expect(route.match(/hostedPlayControlRateLimited\(req, accountId\)/g)).toHaveLength(2);
+  });
+});
+
+describe('hosted-play control rate limit', () => {
+  const request = (remoteAddress: string) =>
+    ({ socket: { remoteAddress }, headers: {} }) as http.IncomingMessage;
+
+  afterEach(() => {
+    resetHostedPlayControlRateLimits();
+  });
+
+  it('shares one fused account bucket across control requests and IPs', () => {
+    for (let attempt = 0; attempt < HOSTED_PLAY_CONTROL_MAX_PER_MINUTE; attempt++) {
+      expect(hostedPlayControlRateLimited(request(`198.51.100.${attempt + 1}`), 7).allowed).toBe(
+        true,
+      );
+    }
+    expect(hostedPlayControlRateLimited(request('203.0.113.1'), 7).allowed).toBe(false);
+    expect(hostedPlayControlRateLimited(request('203.0.113.1'), 8).allowed).toBe(true);
   });
 });
 

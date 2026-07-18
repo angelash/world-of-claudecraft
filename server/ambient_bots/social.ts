@@ -407,7 +407,7 @@ function incomingFriendAdd(
   event: SimEvent,
   ambientBotNames: ReadonlySet<string>,
 ): AmbientIncomingFriendAdd | null {
-  const row = event as SimEvent & { type?: unknown; fromName?: unknown };
+  const row = event as unknown as { type?: unknown; fromName?: unknown };
   if (row.type !== 'friendAddedBy') return null;
   if (typeof row.fromName !== 'string' || ambientBotNames.has(row.fromName)) return null;
   return { from: row.fromName };

@@ -1,4 +1,4 @@
-import type { PartyAuraInfo } from '../world_api';
+import type { PartyMemberAura } from '../world_api';
 
 export type AuraRenderMode = 'all' | 'debuffs';
 
@@ -36,7 +36,9 @@ const DEBUFF_AURA_KINDS = new Set([
 ]);
 
 export function isDebuffAura(aura: Pick<AuraLike, 'kind' | 'value'>): boolean {
-  return DEBUFF_AURA_KINDS.has(aura.kind) || (aura.kind.startsWith('buff_') && (aura.value ?? 0) < 0);
+  return (
+    DEBUFF_AURA_KINDS.has(aura.kind) || (aura.kind.startsWith('buff_') && (aura.value ?? 0) < 0)
+  );
 }
 
 export function auraRenderSignature(
@@ -48,9 +50,9 @@ export function auraRenderSignature(
 }
 
 export function visiblePartyFrameAuras(
-  auras: readonly PartyAuraInfo[] | undefined,
+  auras: readonly PartyMemberAura[] | undefined,
   limit = 5,
-): PartyAuraInfo[] {
+): PartyMemberAura[] {
   if (!auras || limit <= 0) return [];
   return auras.slice(0, limit);
 }

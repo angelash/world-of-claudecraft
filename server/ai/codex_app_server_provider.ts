@@ -13,6 +13,12 @@ import {
   parseCodexDecisionOutput,
   resolveCodexBinary,
 } from './codex_worker';
+import {
+  codexLockdownArgs,
+  createCodexIsolation,
+  type CodexIsolation,
+  removeCodexIsolation,
+} from './codex_isolation';
 import { buildCodexDecisionPrompt } from './prompt_builder';
 
 export interface CodexAppServerProviderOptions {
@@ -21,7 +27,8 @@ export interface CodexAppServerProviderOptions {
   startupTimeoutMs?: number;
   requestTimeoutMs?: number;
   poolSize?: number;
-  repoRoot?: string;
+  codexArgsPrefix?: readonly string[];
+  sourceEnv?: NodeJS.ProcessEnv;
   model?: string | null;
   effort?: string | null;
   startImmediately?: boolean;
@@ -77,7 +84,8 @@ export class CodexAppServerProvider implements AiProvider {
   private readonly startupTimeoutMs: number;
   private readonly requestTimeoutMs: number;
   private readonly poolSize: number;
-  private readonly repoRoot: string;
+  private readonly codexArgsPrefix: readonly string[];
+  private readonly sourceEnv: NodeJS.ProcessEnv;
   private readonly model: string | null;
   private readonly effort: string | null;
   private child: ChildProcessWithoutNullStreams | null = null;
@@ -91,6 +99,7 @@ export class CodexAppServerProvider implements AiProvider {
   private stderr = '';
   private stderrTruncated = false;
   private closed = false;
+  private isolation: CodexIsolation | null = null;
 
   constructor(options: CodexAppServerProviderOptions = {}) {
     this.codexBin = options.codexBin ?? process.env.CODEX_BIN ?? resolveCodexBinary();
@@ -98,7 +107,8 @@ export class CodexAppServerProvider implements AiProvider {
     this.startupTimeoutMs = options.startupTimeoutMs ?? envPositiveInt('AI_CODEX_APP_SERVER_STARTUP_TIMEOUT_MS', DEFAULT_STARTUP_TIMEOUT_MS);
     this.requestTimeoutMs = options.requestTimeoutMs ?? envPositiveInt('AI_CODEX_APP_SERVER_REQUEST_TIMEOUT_MS', DEFAULT_REQUEST_TIMEOUT_MS);
     this.poolSize = Math.max(1, Math.min(8, Math.floor(options.poolSize ?? envPositiveInt('AI_CODEX_APP_SERVER_POOL_SIZE', DEFAULT_POOL_SIZE))));
-    this.repoRoot = options.repoRoot ?? process.cwd();
+    this.codexArgsPrefix = options.codexArgsPrefix ?? [];
+    this.sourceEnv = options.sourceEnv ?? process.env;
     this.model = options.model ?? optionalEnv('AI_CODEX_MODEL');
     this.effort = options.effort ?? optionalEnv('AI_CODEX_APP_SERVER_EFFORT') ?? DEFAULT_EFFORT;
     if (options.startImmediately ?? true) this.warmup();
@@ -119,6 +129,11 @@ export class CodexAppServerProvider implements AiProvider {
     this.child = null;
     this.workers = [];
     this.startPromise = null;
+    const isolation = this.isolation;
+    this.isolation = null;
+    void removeCodexIsolation(isolation).catch((err) => {
+      console.warn(`Codex app-server isolation cleanup failed: ${errorMessage(err)}`);
+    });
   }
 
   async decide(context: AiJobContextV1): Promise<AiProviderDecisionResult> {
@@ -176,9 +191,19 @@ export class CodexAppServerProvider implements AiProvider {
     this.stderr = '';
     this.stderrTruncated = false;
 
-    const args = ['app-server', '--listen', 'stdio://', '--disable', 'plugins'];
+    await removeCodexIsolation(this.isolation);
+    const isolation = await createCodexIsolation('woc-ai-app-server-', this.sourceEnv);
+    this.isolation = isolation;
+    const args = [
+      ...this.codexArgsPrefix,
+      ...codexLockdownArgs(),
+      'app-server',
+      '--listen',
+      'stdio://',
+    ];
     const child = spawn(this.codexBin, args, {
-      cwd: this.repoRoot,
+      cwd: isolation.workspaceDir,
+      env: isolation.env,
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
     });
@@ -228,7 +253,7 @@ export class CodexAppServerProvider implements AiProvider {
 
   private async createThread(): Promise<string> {
     const params: Record<string, unknown> = {
-      cwd: this.repoRoot,
+      cwd: this.requireWorkspaceDir(),
       ephemeral: true,
       approvalPolicy: 'never',
       sandbox: 'read-only',
@@ -265,7 +290,7 @@ export class CodexAppServerProvider implements AiProvider {
     let stepStartedAt = performance.now();
     const params: Record<string, unknown> = {
       threadId: worker.threadId,
-      cwd: this.repoRoot,
+      cwd: this.requireWorkspaceDir(),
       approvalPolicy: 'never',
       sandboxPolicy: { type: 'readOnly', networkAccess: false },
       input: [{ type: 'text', text: promptText }],
@@ -460,6 +485,11 @@ export class CodexAppServerProvider implements AiProvider {
       this.stderrTruncated ? 'Codex app-server stderr truncated' : '',
     ].filter((entry) => entry.length > 0);
     return details.length > 0 ? `: ${details.join('\n')}` : '';
+  }
+
+  private requireWorkspaceDir(): string {
+    if (!this.isolation) throw new Error('Codex app-server isolation is not ready');
+    return this.isolation.workspaceDir;
   }
 }
 

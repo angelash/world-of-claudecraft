@@ -5,18 +5,20 @@
 // therefore carries ONLY the keys whose value differs from fr_FR; every other key is
 // intentionally omitted. A key must NOT be re-added with a value equal to fr_FR
 // (redundant duplication). Every key here must be a real `en` leaf
-// path (tests/i18n_overlay_key_membership.test.ts + the byte gate). Keys are in `en`'s
+// path (the flat TranslationKey union type + the byte gate). Keys are in `en`'s
 // leaf order.
 
 import type { TranslationKey } from '../i18n.catalog';
 
 export const fr_CA: Partial<Record<TranslationKey, string>> = {
+  'download.macCta': 'Telecharger la version macOS',
+  'download.windowsPending': 'Version Windows a venir.',
   // Stat tooltips inherit the fr_FR base: none of these strings has a genuine
   // Quebec-specific form, so per the divergence-only policy fr_CA carries no
   // hudChrome.statInfo.* overrides.
   'seo.title': 'World of ClaudeCraft: MMO Web de style classique',
   'seo.description':
-    "Partez à l'aventure dans World of ClaudeCraft, un micro-MMO de style classique jouable directement dans votre navigateur. Rejoignez un royaume partagé, faites progresser vos classes et terrassez des ennemis.",
+    'Lancez-vous dans une aventure épique dans World of ClaudeCraft, un micro-MMO de style classique jouable directement dans votre navigateur. Rejoignez un monde partagé et persistant, faites monter vos classes en niveau et terrassez vos ennemis.',
   'seo.operatingSystem': 'Navigateur Web',
   'a11y.toggleMenu': 'Ouvrir ou fermer le menu',
   'loading.assetsFailed': 'Le chargement des ressources a échoué: rechargez la page. {error}',
@@ -43,15 +45,15 @@ export const fr_CA: Partial<Record<TranslationKey, string>> = {
   'classDetails.lore.warrior':
     'Les guerriers sont des combattants endurcis qui gagnent de la rage en infligeant ou subissant des dégâts. Ils encaissent ou écrasent leurs ennemis.',
   'classDetails.lore.paladin':
-    'Les paladins sont des croisés sacrés qui aident par des bénédictions, soignent avec la Lumière sacrée et protègent les plus faibles.',
+    'Les paladins sont de saints croisés qui épaulent leurs alliés par des bénédictions, soignent les blessures avec la Lumière guérisseuse et protègent les faibles sous une armure lourde.',
   'classDetails.lore.hunter':
-    'Les chasseurs maîtrisent la nature sauvage, traquent de loin avec arcs ou armes à feu et contrôlent le terrain avec des pièges.',
+    "Les chasseurs sont des spécialistes à distance qui combattent aux côtés d'une bête apprivoisée, criblant leurs ennemis de tirs précis et rapides, les ralentissant de morsures et de traits de choc, et changeant d'aspect selon le moment.",
   'classDetails.lore.shaman':
     'Les chamans commandent les éléments, imprègnent leurs armes, frappent avec la foudre et restaurent leurs alliés.',
   'classDetails.lore.mage':
-    "Les mages manipulent Feu, Givre et Arcane pour détruire, conjurer de l'eau et figer les menaces.",
+    "Les mages manient le Feu, le Givre et la force des Arcanes pour détruire leurs ennemis, conjurer de l'eau et figer les menaces sur place.",
   'classDetails.lore.warlock':
-    'Les démonistes invoquent des démons, posent malédictions et dégâts prolongés, puis drainent la vie pour survivre.',
+    'Les démonistes invoquent des démons, jettent des malédictions et des dégâts prolongés, puis drainent la vie de leurs ennemis pour tenir bon.',
   'classDetails.lore.druid':
     'Les druides canalisent la nature, guérissent, entravent les ennemis et prennent des formes animales pour défendre ou attaquer.',
   'classDetails.aria':
@@ -130,7 +132,46 @@ export const fr_CA: Partial<Record<TranslationKey, string>> = {
   'delveUi.summary.title': 'Excavation terminée',
   'delveUi.tracker.marks': "Marques d'excavation : {count}",
   'delveUi.tracker.title': 'Excavation',
+  'entities.abilities.blazing_barrier.name': 'Bouclier ardent',
+  'entities.abilities.blazing_barrier.description':
+    'Entoure-toi de feu et absorbe 130 points de dégâts pendant 60 s. (Feu)',
+  'entities.abilities.cold_snap.name': 'Rappel hivernal',
+  'entities.abilities.cold_snap.description':
+    'Réinitialise la recharge de Pas scintillant, Voile de givre et Invisibilité accrue. (Talent de mage)',
+  'entities.abilities.greater_invisibility.name': 'Invisibilité accrue',
+  'entities.abilities.greater_invisibility.description':
+    'Disparais pendant 20 s : enlève 2 effets de dégâts périodiques et réduit de 90% les dégâts que tu subis tant que tu es invisible et pour un court moment après. (Talent de mage)',
+  'entities.abilities.hot_streak.name': 'Suite flamboyante',
+  'entities.abilities.hot_streak.description':
+    "Passif : deux coups critiques de suite avec tes sorts de Feu (Boule de feu, Trait de feu, Brûlure, Explosion pyrotechnique ou Choc de flammes) rendent ta prochaine Explosion pyrotechnique ou ton prochain Choc de flammes instantané et gratuit. Les sorts qui dépensent cet effet comptent pour la suite SUIVANTE, même les incantations gratuites; Choc de flammes ne compte qu'une fois, peu importe le nombre d'ennemis touchés, et seul le premier impact peut compter. (Feu)",
+  'entities.abilities.ice_floes.name': 'Glaces flottantes',
+  'entities.abilities.ice_floes.description':
+    "Tes deux prochains sorts qui ont un temps d'incantation peuvent être lancés en mouvement. Dure 15 s. (Talent de mage)",
+  'entities.abilities.ignition.name': 'Embrasement',
+  'entities.abilities.ignition.description':
+    'Passif : les coups critiques de tes sorts enflamment la cible et lui infligent 40% des dégâts causés sur 6 s; cet effet se cumule. (Maîtrise du Feu)',
+  'entities.abilities.mass_barrier.name': 'Bouclier collectif',
+  'entities.abilities.mass_barrier.description':
+    'Pose un bouclier sur toi et sur un maximum de 4 alliés proches dans un rayon de 30 m; chacun absorbe 130 points de dégâts pendant 60 s. (Talent de mage)',
+  'entities.abilities.overload.name': 'Surpuissance',
+  'entities.abilities.overload.description':
+    'Ton prochain sort gagne 40% de puissance, mais coûte 50% de mana de plus. Dure 10 s. (Talent de mage)',
+  'entities.abilities.power_echo.name': 'Écho de pouvoir',
+  'entities.abilities.power_echo.description':
+    'Ton prochain sort direct se produit de nouveau à 50% de sa puissance sur la même cible. Dure 10 s. (Talent de mage)',
+  'entities.abilities.rings_of_frost.name': 'Cercle de givre',
+  'entities.abilities.rings_of_frost.description':
+    'Fait apparaître un cercle pendant 10 s. Les ennemis qui traversent son contour sont gelés pendant 4 s. (Talent de mage)',
+  'entities.abilities.rune_of_power.name': 'Rune de pouvoir',
+  'entities.abilities.rune_of_power.description':
+    'Trace une rune de pouvoir sous tes pieds pendant 15 s : les alliés qui restent à moins de 8 m infligent 10% plus de dégâts. (Talent de mage)',
+  'entities.abilities.summon_water_elemental.name': "Invoquer un élémentaire d'eau",
+  'entities.abilities.summon_water_elemental.description':
+    "Invoque un élémentaire d'eau qui se bat à tes côtés, lance des Éclairs d'eau sur ta cible et canalise Jet d'eau. (Givre)",
+  'entities.items.conjured_water4.name': 'Eau de source conjurée',
+  'entities.items.conjured_bread4.name': 'Miche de festin conjurée',
   'entities.mobs.reliquary_gravecall_acolyte.name': "Acolyte de l'appel des tombes",
+  'entities.mobs.water_elemental.name': 'Élémentaire des eaux',
   'entities.npcs.brother_halven.greeting': "Le reliquaire en bas s'est encore déplacé.",
   'sim.delve.alreadyInDelve': 'Vous êtes déjà dans une excavation.',
   'sim.delve.bossChest':
@@ -167,4 +208,89 @@ export const fr_CA: Partial<Record<TranslationKey, string>> = {
   'sim.lockpick.lockJammed':
     "La serrure est bloquée, impossible à crocheter : terminez l'excavation de nouveau pour une autre tentative.",
   'sim.lockpick.lockYields': 'La serrure cède! Butin {tier}.',
+  // Mobile touch controls: the hotbar page-flip button and its accessible name.
+  'hudChrome.mobile.hotbarPageAria': 'Afficher la prochaine série de techniques',
+  // Corpse-harvest focus picker (window title, confirm button, component labels).
+  // Aura effect tooltip summaries.
+  'hudChrome.auraEffect.dot': 'Cause {value} points de dégâts de {school} toutes les {interval} s',
+  'hudChrome.auraEffect.hot': 'Redonne {value} points de vie toutes les {interval} s',
+  'hudChrome.auraEffect.absorb': 'Bloque {value} points de dégâts',
+  'hudChrome.auraEffect.healAbsorb': 'Bloque {value} points de soins reçus',
+  'hudChrome.auraEffect.thorns': 'Cause {value} points de dégâts de {school} aux attaquants',
+  'hudChrome.auraEffect.slow': 'Diminue la vitesse de déplacement de {pct}%',
+  'hudChrome.auraEffect.speed': 'Accroît la vitesse de déplacement de {pct}%',
+  'hudChrome.auraEffect.attackSpeedSlow': "Diminue la vitesse d'attaque de {pct}%",
+  'hudChrome.auraEffect.attackSpeedFast': "Accroît la vitesse d'attaque de {pct}%",
+  'hudChrome.auraEffect.haste': "Accroît la vitesse d'attaque et d'incantation de {pct}%",
+  'hudChrome.auraEffect.tongues': "Accroît le temps d'incantation de {pct}%",
+  'hudChrome.auraEffect.increase.ap': "Accroît la puissance d'attaque de {value}",
+  'hudChrome.auraEffect.increase.armor': "Accroît l'armure de {value}",
+  'hudChrome.auraEffect.increase.int': "Accroît l'intelligence de {value}",
+  'hudChrome.auraEffect.increase.agi': "Accroît l'agilité de {value}",
+  'hudChrome.auraEffect.increase.sta': "Accroît l'endurance de {value}",
+  'hudChrome.auraEffect.increase.spi': "Accroît l'esprit de {value}",
+  'hudChrome.auraEffect.increase.allStats': 'Accroît tous les attributs de {value}',
+  'hudChrome.auraEffect.reduce.ap': "Diminue la puissance d'attaque de {value}",
+  'hudChrome.auraEffect.reduce.armor': "Diminue l'armure de {value}",
+  'hudChrome.auraEffect.reduce.int': "Diminue l'intelligence de {value}",
+  'hudChrome.auraEffect.reduce.agi': "Diminue l'agilité de {value}",
+  'hudChrome.auraEffect.reduce.sta': "Diminue l'endurance de {value}",
+  'hudChrome.auraEffect.reduce.spi': "Diminue l'esprit de {value}",
+  'hudChrome.auraEffect.reduce.allStats': 'Diminue tous les attributs de {value}',
+  'hudChrome.auraEffect.dodge': "Accroît les chances d'esquive de {pct}%",
+  'hudChrome.auraEffect.dodgeReduce': "Diminue les chances d'esquive de {pct}%",
+  'hudChrome.auraEffect.armorFlat': "Diminue l'armure de {value}",
+  'hudChrome.auraEffect.armorFlatStacks': "Diminue l'armure de {value} ({stacks} charges)",
+  'hudChrome.auraEffect.mortalWound': 'Diminue les soins reçus de {pct}%',
+  'hudChrome.auraEffect.vulnerability': 'Accroît les dégâts subis de {pct}%',
+  'hudChrome.auraEffect.physVuln': 'Accroît les dégâts physiques subis de {pct}%',
+  'hudChrome.auraEffect.spellVuln': 'Accroît les dégâts magiques subis de {pct}%',
+  'hudChrome.auraEffect.critVuln': 'Accroît les chances de subir un coup critique de {pct}%',
+  'hudChrome.auraEffect.costTax': 'Accroît le coût des techniques de {pct}%',
+  'hudChrome.auraEffect.stun': "Sonné : impossible d'agir",
+  'hudChrome.auraEffect.root': 'Immobilisé : impossible de bouger',
+  'hudChrome.auraEffect.incapacitate': "Neutralisé, impossible d'agir",
+  'hudChrome.auraEffect.polymorph': "Transformé : impossible d'agir",
+  'hudChrome.auraEffect.hex': 'Diminue les dégâts et soins prodigués de {pct}%',
+  'hudChrome.auraEffect.blind': "Aveuglé, impossible d'agir",
+  'hudChrome.auraEffect.silence': 'Diminue au silence : impossible de lancer des sorts',
+  'hudChrome.auraEffect.disarm': "Désarmé, impossible d'utiliser des attaques d'arme",
+  'hudChrome.auraEffect.lockout': 'École de magie verrouillée',
+  'hudChrome.auraEffect.imbue': 'Arme enchantée avec effets bonus',
+  'hudChrome.auraEffect.imbueRange': 'Arme enchantée : {min} à {max} dégâts bonus au Verdict',
+  'hudChrome.auraEffect.stealth': 'Dissimulé ; vitesse de déplacement réduite de {pct}%',
+  'hudChrome.auraEffect.formBear': 'Forme de Bruin : points de vie et armure accrus',
+  'hudChrome.auraEffect.formCat': 'Forme féline : dégâts de mêlée et énergie',
+  'hudChrome.auraEffect.formTravel': 'Forme de Fleet : vitesse de déplacement accrue de {pct}%',
+  'hudChrome.auraEffect.defensiveStance':
+    'Guarded Stance : dégâts encaissés réduits, menace accrue',
+  'hudChrome.auraEffect.righteousFury':
+    'Burning Oath : menace générée par les dégâts Sacrés fortement accrue',
+  'hudChrome.auraEffect.scale': 'Gabarit augmentée de {pct}%',
+  'hudChrome.auraEffect.jump': 'Saut augmentée de {pct}%',
+  'hudChrome.auraEffect.school.physical': 'physique',
+  'hudChrome.auraEffect.school.fire': 'feu',
+  'hudChrome.auraEffect.school.frost': 'froid',
+  'hudChrome.auraEffect.school.arcane': 'arcane',
+  'hudChrome.auraEffect.school.shadow': 'ombre',
+  'hudChrome.auraEffect.school.holy': 'sacré',
+  'hudChrome.auraEffect.school.nature': 'nature',
+  'guide.deedsPage.cat.delve': 'Excavations',
+  'hudChrome.deeds.catDelve': 'Excavations',
+  'hudChrome.auraEffect.battleStance': 'Posture de combat : génération de rage accrue de 10%',
+  'hudChrome.auraEffect.berserkerStance':
+    'Posture de berserker : coups critiques 3% plus fréquents et 3% plus puissants',
+  'hudChrome.auraEffect.crit': 'Accroît les chances de coup critique de {pct}%',
+  'hudChrome.auraEffect.rageGen': 'Accroît la génération de rage de {pct}%',
+  'hudChrome.auraEffect.reckless':
+    'Accroît les chances de coup critique de {pct}% et la génération de rage de {ragePct}%',
+  'hudChrome.auraEffect.avatar': 'Colosse : dégâts infligés accrus de {pct}%',
+  'hudChrome.auraEffect.bloodbath':
+    'Accroît les chances de coup critique et les dégâts infligés de {pct}%',
+  'hudChrome.auraEffect.dieBySword': 'Diminue les dégâts subis de {pct}%',
+  'hudChrome.auraEffect.victoryRush': 'Élan de victoire est prêt',
+  'hudChrome.auraEffect.maxHpPct': 'Accroît les points de vie maximum de {pct}%',
+  'hudChrome.statInfo.desc.parry':
+    'Vos chances de parer entièrement une attaque de mêlée de front, sans subir de dégâts. Un coup porté dans le dos ne peut pas être paré.',
+  'hudChrome.options.mouseoverCast': 'Lancement au survol sur les cadres de groupe',
 };

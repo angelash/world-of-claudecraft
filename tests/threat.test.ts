@@ -6,10 +6,11 @@ import { Sim } from '../src/sim/sim';
 import {
   BEAR_FORM_THREAT_MULT,
   DEFENSIVE_STANCE_THREAT_MULT,
+  dropThreat,
   RIGHTEOUS_FURY_THREAT_MULT,
 } from '../src/sim/threat';
 import type { Entity } from '../src/sim/types';
-import { dist2d } from '../src/sim/types';
+import { dist2d, SUNDER_ARMOR_PCT_PER_STACK } from '../src/sim/types';
 import { terrainHeight } from '../src/sim/world';
 
 function makeSim(cls: Parameters<typeof simClass>[0] = 'warrior', seed = 42) {
@@ -73,6 +74,38 @@ function beefUp(mob: Entity) {
   mob.hp = 5000;
 }
 
+describe('dropThreat (single-attacker removal)', () => {
+  it('removes only that attacker and releases a taunt lock pointing at them', () => {
+    const mob = {
+      threat: new Map([
+        [1, 50],
+        [2, 80],
+      ]),
+      forcedTargetId: 1,
+      forcedTargetTimer: 2,
+    } as unknown as Entity;
+    dropThreat(mob, 1);
+    expect(mob.threat.has(1)).toBe(false);
+    expect(mob.threat.get(2)).toBe(80);
+    expect(mob.forcedTargetId).toBeNull();
+    expect(mob.forcedTargetTimer).toBe(0);
+  });
+
+  it('leaves a taunt lock held by a DIFFERENT attacker in place', () => {
+    const mob = {
+      threat: new Map([
+        [1, 50],
+        [2, 80],
+      ]),
+      forcedTargetId: 2,
+      forcedTargetTimer: 2,
+    } as unknown as Entity;
+    dropThreat(mob, 1);
+    expect(mob.forcedTargetId).toBe(2);
+    expect(mob.forcedTargetTimer).toBe(2);
+  });
+});
+
 describe('threat from damage', () => {
   it('damage lands on the hate table 1:1 without modifiers (plus the aggro seed)', () => {
     const sim = makeSim('warrior');
@@ -86,6 +119,7 @@ describe('threat from damage', () => {
   it('defensive stance: -10% damage dealt, x1.3 threat on what lands', () => {
     const sim = makeSim('warrior');
     sim.setPlayerLevel(10);
+    expect(sim.setSpec('arms')).toBe(true);
     sim.castAbility('defensive_stance');
     sim.tick();
     expect(sim.player.auras.some((a) => a.kind === 'defensive_stance')).toBe(true);
@@ -141,7 +175,7 @@ describe('threat from damage', () => {
       for (const event of sim.tick()) {
         if (
           event.type === 'damage' &&
-          event.ability === 'Consecration' &&
+          event.ability === 'Holy Ground' &&
           event.targetId === wolf.id &&
           event.amount > 0
         ) {
@@ -161,6 +195,7 @@ describe('threat from damage', () => {
     sim.setPlayerLevel(8);
     expect(sim.resolvedAbility('heroic_strike')!.threatFlat).toBe(39);
     sim.setPlayerLevel(10);
+    expect(sim.setSpec('prot')).toBe(true);
     expect(sim.resolvedAbility('sunder_armor')!.threatFlat).toBe(100);
   });
 });
@@ -181,7 +216,7 @@ describe('healing threat', () => {
     beefUp(wolf);
     hit(sim, tank, wolf, 50); // social aggro: nearby packmates join in too
     tank.hp = 1;
-    (sim as any).applyHeal(healer, tank, 50, 'Heal');
+    (sim as any).applyHeal(healer, tank, 50, 'Solemn Prayer');
     // the healer's threat across ALL aware mobs sums to healed * 0.5
     // (the heal may crit for x1.5, and is capped by the tank's missing hp)
     let total = 0;
@@ -212,7 +247,7 @@ describe('healing threat', () => {
     beefUp(wolfB!);
     hit(sim, tank, wolfB!, 50);
     tank.hp = Math.max(1, tank.hp - 200);
-    (sim as any).applyHeal(healer, tank, 100, 'Heal');
+    (sim as any).applyHeal(healer, tank, 100, 'Solemn Prayer');
     const a = wolfA.threat.get(healer.id) ?? 0;
     const b = wolfB!.threat.get(healer.id) ?? 0;
     expect(a).toBeGreaterThan(0);
@@ -228,7 +263,7 @@ describe('healing threat', () => {
     hit(sim, tank, wolf, 50);
     tank.hp = Math.max(1, tank.hp - 100);
 
-    (sim as any).applyHeal(healer, tank, 80, 'Heal');
+    (sim as any).applyHeal(healer, tank, 80, 'Solemn Prayer');
 
     expect(wolf.threat.get(healer.id)).toBeGreaterThan(0);
   });
@@ -237,7 +272,7 @@ describe('healing threat', () => {
     const { sim, tank, healer } = partyOfTwo();
     const wolf = nearestMob(sim, 'forest_wolf', tank);
     tank.hp = Math.max(1, tank.hp - 100);
-    (sim as any).applyHeal(healer, tank, 100, 'Heal');
+    (sim as any).applyHeal(healer, tank, 100, 'Solemn Prayer');
     expect(wolf.threat.get(healer.id)).toBeUndefined();
   });
 });
@@ -276,6 +311,65 @@ describe('classic pull-over rules (110% melee / 130% ranged)', () => {
     wolf.threat.set(b.id, 135);
     sim.tick();
     expect(wolf.aggroTargetId).toBe(b.id); // 135 > 130
+  });
+
+  it('a large mob treats a challenger within its big reach as melee (110%, not 130%)', () => {
+    // Regression: the melee/ranged boundary used a flat MELEE_RANGE * 1.2 (6yd),
+    // so a challenger standing at a big creature's feet (well within its
+    // size-scaled reach) was misclassified as ranged and forced to clear 130%.
+    const { sim, a, b, wolf } = aggroSetup();
+    wolf.scale = 3; // a boss-sized creature
+    const reach = (sim as any).mobMeleeRange(wolf);
+    expect(reach).toBeGreaterThan(6); // scaled reach exceeds the old flat 6yd gate
+    // 8yd is inside the big reach (~11yd) but beyond the old flat 6yd check
+    teleport(sim, b, wolf.pos.x - 8, wolf.pos.z);
+    expect(dist2d(wolf.pos, b.pos)).toBeGreaterThan(6);
+    expect(dist2d(wolf.pos, b.pos)).toBeLessThanOrEqual(reach);
+    // just under 110% does not switch
+    wolf.threat.set(b.id, 109);
+    sim.tick();
+    expect(wolf.aggroTargetId).toBe(a.id);
+    // 115 is over 110% but under 130%: the old flat check would have kept a (ranged),
+    // the fix counts b as melee and rips aggro
+    wolf.threat.set(b.id, 115);
+    sim.tick();
+    expect(wolf.aggroTargetId).toBe(b.id);
+  });
+
+  it('a normal-sized mob keeps the classic 6yd melee boundary (challenger at 5.5yd is melee)', () => {
+    // The size-scaled reach for a scale-1 mob is only MELEE_RANGE (5yd), but the
+    // melee/ranged pull-over boundary is floored at the classic MELEE_RANGE * 1.2
+    // (6yd), so a challenger at 5.5yd (past 5, inside 6) still counts as melee and
+    // needs only 110% (not 130%) to pull.
+    const { sim, a, b, wolf } = aggroSetup();
+    wolf.scale = 1; // a normal-sized creature
+    teleport(sim, b, wolf.pos.x - 5.5, wolf.pos.z);
+    const d = dist2d(wolf.pos, b.pos);
+    expect(d).toBeGreaterThan(5); // beyond the raw scale-1 reach
+    expect(d).toBeLessThanOrEqual(6); // within the classic 6yd floor
+    // just under 110% does not switch
+    wolf.threat.set(b.id, 109);
+    sim.tick();
+    expect(wolf.aggroTargetId).toBe(a.id);
+    // 115 is over 110% but under 130%: the 6yd floor counts b as melee and rips
+    // aggro (a size-scaled-only reach of 5yd would misclassify b as ranged).
+    wolf.threat.set(b.id, 115);
+    sim.tick();
+    expect(wolf.aggroTargetId).toBe(b.id);
+  });
+
+  it('identical setup yields an identical target choice (determinism)', () => {
+    function run(): number | null {
+      const { sim, b, wolf } = aggroSetup();
+      teleport(sim, b, wolf.pos.x - 8, wolf.pos.z);
+      wolf.scale = 3;
+      wolf.threat.set(b.id, 115);
+      sim.tick();
+      return wolf.aggroTargetId;
+    }
+    const first = run();
+    const second = run();
+    expect(first).toBe(second);
   });
 
   it('when the target dies the mob swings to the next-highest threat, not the nearest', () => {
@@ -330,6 +424,65 @@ describe('taunt and growl', () => {
     expect(wolf.aggroTargetId).toBe(tank.id);
   });
 
+  it('level 10 paladins know Sacred Goad and taunt at 30 yards', () => {
+    expect(abilitiesKnownAt('paladin', 10).some((a) => a.def.id === 'holy_taunt')).toBe(true);
+
+    const sim = new Sim({ seed: 42, playerClass: 'paladin', noPlayer: true });
+    const tank = sim.entities.get(sim.addPlayer('paladin', 'Tank'))!;
+    const dps = sim.entities.get(sim.addPlayer('mage', 'Dps'))!;
+    sim.setPlayerLevel(10, tank.id);
+    const wolf = nearestMob(sim, 'forest_wolf', tank);
+    teleport(sim, tank, wolf.pos.x + 25, wolf.pos.z);
+    teleport(sim, dps, wolf.pos.x - 2, wolf.pos.z);
+    wolf.threat.set(dps.id, 1000);
+    wolf.aggroTargetId = dps.id;
+    wolf.aiState = 'chase';
+    wolf.inCombat = true;
+    sim.targetEntity(wolf.id, tank.id);
+    tank.facing = Math.atan2(wolf.pos.x - tank.pos.x, wolf.pos.z - tank.pos.z);
+
+    sim.castAbility('holy_taunt', tank.id);
+    for (let i = 0; i < 25; i++) sim.tick();
+
+    expect(wolf.threat.get(tank.id)).toBe(1000);
+    expect(wolf.aggroTargetId).toBe(tank.id);
+    expect(wolf.forcedTargetTimer).toBeGreaterThan(0);
+  });
+
+  it('Sacred Goad always lands (never resists), even against a higher-level mob', () => {
+    // The paladin taunt is holy-school (a spell), so on impact it used to roll a full
+    // resist. A resisted taunt silently breaks tanking, so taunts now skip the roll.
+    // Against a +3 mob the old roll would resist a large fraction of the time; across
+    // many seeds the taunt must now land every time and never emit a 'resist'.
+    for (let seed = 1; seed <= 40; seed++) {
+      const sim = new Sim({ seed, playerClass: 'paladin', noPlayer: true });
+      const tank = sim.entities.get(sim.addPlayer('paladin', 'Tank'))!;
+      const dps = sim.entities.get(sim.addPlayer('mage', 'Dps'))!;
+      sim.setPlayerLevel(10, tank.id);
+      const wolf = nearestMob(sim, 'forest_wolf', tank);
+      wolf.level = tank.level + 3; // a wide level gap: a spell would often fully resist
+      teleport(sim, tank, wolf.pos.x + 25, wolf.pos.z);
+      teleport(sim, dps, wolf.pos.x - 2, wolf.pos.z);
+      wolf.threat.set(dps.id, 1000);
+      wolf.aggroTargetId = dps.id;
+      wolf.aiState = 'chase';
+      wolf.inCombat = true;
+      sim.targetEntity(wolf.id, tank.id);
+      tank.facing = Math.atan2(wolf.pos.x - tank.pos.x, wolf.pos.z - tank.pos.z);
+
+      sim.castAbility('holy_taunt', tank.id);
+      let resisted = false;
+      for (let i = 0; i < 25; i++) {
+        for (const ev of sim.tick()) {
+          if (ev.type === 'damage' && ev.kind === 'resist' && ev.ability === 'Sacred Goad')
+            resisted = true;
+        }
+      }
+      expect(resisted, `seed ${seed}`).toBe(false);
+      expect(wolf.aggroTargetId, `seed ${seed}`).toBe(tank.id);
+    }
+  });
+
   it('growl requires bear form', () => {
     const sim = makeSim('druid');
     sim.setPlayerLevel(10);
@@ -350,6 +503,7 @@ describe('sunder armor', () => {
   it('stacks an armor debuff and generates stance-scaled flat threat', () => {
     const sim = makeSim('warrior');
     sim.setPlayerLevel(10);
+    expect(sim.setSpec('prot')).toBe(true);
     const wolf = nearestMob(sim, 'forest_wolf');
     teleport(sim, sim.player, wolf.pos.x + 2, wolf.pos.z);
     sim.targetEntity(wolf.id);
@@ -366,7 +520,10 @@ describe('sunder armor', () => {
       applications = aura?.stacks ?? 0;
     }
     expect(applications).toBeGreaterThanOrEqual(2);
-    expect((sim as any).effectiveArmor(wolf)).toBe(armorBefore - 25 * applications);
+    // Sunder is now a PERCENT armor reduction: 2% of base armor per stack.
+    expect((sim as any).effectiveArmor(wolf)).toBe(
+      armorBefore * (1 - SUNDER_ARMOR_PCT_PER_STACK * applications),
+    );
     // 100 flat threat per landed sunder (no stance up) + auto-attack noise is
     // excluded because auto-attack never started
     expect(wolf.threat.get(sim.playerId)).toBeGreaterThanOrEqual(100 * applications);
@@ -521,27 +678,33 @@ describe('hunter pets', () => {
     const druid = sim.entities.get(druidId)!;
     teleport(sim, druid, pet.pos.x + 5, pet.pos.z);
     druid.resource = druid.maxResource;
-    const armorBefore = (sim as any).effectiveArmor(pet);
+    const maxHpBefore = pet.maxHp;
 
+    // Mark of the Wild is now a percent all-attributes raid buff; on a pet its
+    // Stamina share scales the HP pool (pets derive no armor/AP from attributes).
     sim.targetEntity(pet.id, druidId);
     sim.castAbility('mark_of_the_wild', druidId);
     expect(pet.auras.some((a) => a.id === 'mark_of_the_wild')).toBe(true);
-    expect((sim as any).effectiveArmor(pet)).toBeGreaterThan(armorBefore);
+    expect(pet.maxHp).toBeGreaterThan(maxHpBefore);
 
     const priestId = sim.addPlayer('priest', 'Priest');
     const priest = sim.entities.get(priestId)!;
     teleport(sim, priest, pet.pos.x + 6, pet.pos.z);
     priest.resource = priest.maxResource;
-    const maxHpBefore = pet.maxHp;
+    const maxHpAfterMotW = pet.maxHp;
     sim.targetEntity(pet.id, priestId);
     sim.castAbility('power_word_fortitude', priestId);
-    expect(pet.maxHp).toBeGreaterThan(maxHpBefore);
+    expect(pet.maxHp).toBeGreaterThan(maxHpAfterMotW);
 
     const paladinId = sim.addPlayer('paladin', 'Paladin');
     const paladin = sim.entities.get(paladinId)!;
     sim.setPlayerLevel(4, paladinId);
     teleport(sim, paladin, pet.pos.x + 7, pet.pos.z);
     paladin.resource = paladin.maxResource;
+    // Blessing of Might is now a percent attack-power raid buff. Give the pet a base
+    // AP so the percent has something to scale (tamed pets otherwise deal template
+    // damage with 0 attack power, leaving a percent buff inert).
+    pet.attackPower = 50;
     const attackPowerBefore = (sim as any).effectiveAttackPower(pet);
     sim.targetEntity(pet.id, paladinId);
     sim.castAbility('blessing_of_might', paladinId);
@@ -559,7 +722,7 @@ describe('hunter pets', () => {
     expect(pet.dead).toBe(true);
     expect(pet.auras).toHaveLength(0);
     expect(pet.maxHp).toBe(maxHpBefore);
-    (sim as any).respawnMob(pet);
+    (sim as any).ctx.respawnMob(pet); // respawnMob moved to mob/lifecycle.ts (M4); reach it via the seam
     expect(sim.entities.has(pet.id)).toBe(false);
     expect(sim.petOf(sim.playerId, true)).toBe(null);
   });
@@ -586,6 +749,9 @@ describe('hunter pets', () => {
   it('right-click autocast state lets a pet Growl whenever the cooldown is ready', () => {
     const { sim, wolf: pet } = tamedSetup();
     const boar = nearestMob(sim, 'wild_boar');
+    // The pet kills a stock boar inside the fixed 5s pre-phase since the #1325
+    // locomotion change (a dead mob cannot be Growl-forced), so keep it alive.
+    beefUp(boar);
     teleport(sim, sim.player, boar.pos.x + 4, boar.pos.z);
     teleport(sim, pet, boar.pos.x + 5, boar.pos.z);
     hit(sim, sim.player, boar, 5);
@@ -681,7 +847,7 @@ describe('hunter pets', () => {
     sim.targetEntity(boar.id);
     sim.player.facing = Math.atan2(boar.pos.x - sim.player.pos.x, boar.pos.z - sim.player.pos.z);
     sim.castAbility('tame_beast');
-    let events = sim.tick();
+    const events = sim.tick();
     expect(events.some((e) => e.type === 'error' && /already have a pet/.test(e.text))).toBe(true);
 
     sim.player.resource = sim.player.maxResource;
@@ -826,8 +992,9 @@ describe('hunter pets', () => {
     expect(sim.tick().some((e) => e.type === 'error' && /only eat food/.test(e.text))).toBe(true);
     expect(sim.countItem('minor_healing_potion')).toBe(1);
 
+    const breadBefore = sim.countItem('baked_bread');
     sim.feedPet('baked_bread');
-    expect(sim.countItem('baked_bread')).toBe(0);
+    expect(sim.countItem('baked_bread')).toBe(breadBefore - 1);
     expect(pet.auras.some((a) => a.id === 'feed_pet' && a.kind === 'hot')).toBe(true);
     const hpAfterFeed = pet.hp;
     for (let i = 0; i < 20 * 5; i++) sim.tick();
@@ -943,7 +1110,7 @@ describe('druid forms', () => {
     expect(sim.player.resource).toBeCloseTo(1, 5);
   });
 
-  it('bear charge is learned with Bear Form and only works while shifted', () => {
+  it('bear charge is learned with Bruin Form and only works while shifted', () => {
     const sim = makeSim('druid');
     sim.setPlayerLevel(10);
     expect(abilitiesKnownAt('druid', 10).some((a) => a.def.id === 'bear_charge')).toBe(true);
@@ -953,7 +1120,7 @@ describe('druid forms', () => {
     sim.targetEntity(wolf.id);
 
     sim.castAbility('bear_charge');
-    expect(sim.tick().some((e) => e.type === 'error' && /Bear Form/.test(e.text))).toBe(true);
+    expect(sim.tick().some((e) => e.type === 'error' && /Bruin Form/.test(e.text))).toBe(true);
     expect(sim.player.chargeTargetId).toBe(null);
 
     sim.castAbility('bear_form');
@@ -978,7 +1145,7 @@ describe('druid forms', () => {
     sim.targetEntity(wolf.id);
     sim.player.facing = Math.atan2(wolf.pos.x - sim.player.pos.x, wolf.pos.z - sim.player.pos.z);
     sim.castAbility('claw');
-    let events = sim.tick();
+    const events = sim.tick();
     expect(events.some((e) => e.type === 'error' && /Wolf Form/.test(e.text))).toBe(true);
     sim.castAbility('cat_form');
     sim.tick();
@@ -1033,7 +1200,7 @@ describe('druid forms', () => {
     expect(events.some((e) => e.type === 'error' && /shapeshifted/.test(e.text))).toBe(true);
     sim.castAbility('maul');
     events = sim.tick();
-    expect(events.some((e) => e.type === 'error' && /Bear Form/.test(e.text))).toBe(true);
+    expect(events.some((e) => e.type === 'error' && /Bruin Form/.test(e.text))).toBe(true);
 
     sim.castAbility('bear_form');
     for (let i = 0; i < 32; i++) sim.tick();
@@ -1078,7 +1245,7 @@ describe('druid forms', () => {
     for (let i = 0; i < 32; i++) sim.tick();
     sim.player.resource = 100;
     sim.castAbility('rake');
-    let events = sim.tick();
+    const events = sim.tick();
     expect(events.some((e) => e.type === 'error' && /stealthed/.test(e.text))).toBe(true);
     for (let i = 0; i < 32; i++) sim.tick();
     sim.castAbility('prowl');
@@ -1238,7 +1405,7 @@ describe('caster wand auto-attack (#94)', () => {
 });
 
 describe('on-next-swing cooldowns (#56)', () => {
-  it('Raptor Strike applies its 6s cooldown when the queued swing resolves', () => {
+  it('Gutting Strike applies its 6s cooldown when the queued swing resolves', () => {
     const sim = makeSim('hunter');
     sim.setPlayerLevel(10);
     const wolf = nearestMob(sim, 'forest_wolf');
@@ -1283,7 +1450,7 @@ describe('shaman travel and shock mechanics', () => {
     });
   });
 
-  it('Ghost Wolf toggles speed and survives damage events', () => {
+  it('Shadewolf toggles speed and survives damage events', () => {
     const sim = makeSim('shaman');
     sim.setPlayerLevel(16);
     sim.player.resource = sim.player.maxResource;
@@ -1312,7 +1479,7 @@ describe('shaman travel and shock mechanics', () => {
     expect(sim.player.auras.some((a) => a.id === 'ghost_wolf')).toBe(true);
   });
 
-  it('Ghost Wolf does not drop when auto-attack cannot swing yet', () => {
+  it('Shadewolf does not drop when auto-attack cannot swing yet', () => {
     const sim = makeSim('shaman');
     sim.setPlayerLevel(16);
     const wolf = nearestMob(sim, 'forest_wolf');
@@ -1335,7 +1502,7 @@ describe('shaman travel and shock mechanics', () => {
     expect(sim.player.auras.some((a) => a.id === 'ghost_wolf')).toBe(true);
   });
 
-  it('Ghost Wolf drops when auto-attack actually swings', () => {
+  it('Shadewolf drops when auto-attack actually swings', () => {
     const sim = makeSim('shaman');
     sim.setPlayerLevel(16);
     const wolf = nearestMob(sim, 'forest_wolf');
@@ -1354,7 +1521,7 @@ describe('shaman travel and shock mechanics', () => {
     expect(sim.player.auras.some((a) => a.id === 'ghost_wolf')).toBe(false);
   });
 
-  it('Ghost Wolf stays active while running and jumping', () => {
+  it('Shadewolf stays active while running and jumping', () => {
     const sim = makeSim('shaman');
     sim.setPlayerLevel(16);
     sim.player.resource = sim.player.maxResource;
@@ -1371,7 +1538,7 @@ describe('shaman travel and shock mechanics', () => {
     }
   });
 
-  it('Ghost Wolf stays active through Lightning Shield contact, jump, and respawn cleanup', () => {
+  it('Shadewolf stays active through Thunder Ward contact, jump, and respawn cleanup', () => {
     const sim = makeSim('shaman');
     sim.setPlayerLevel(16);
     const wolf = nearestMob(sim, 'forest_wolf');
@@ -1408,7 +1575,9 @@ describe('shaman travel and shock mechanics', () => {
 
     (sim as any).dealDamage(wolf, sim.player, sim.player.hp, false, 'physical', null, 'hit', true);
     expect(sim.player.dead).toBe(true);
+    // release rises as a ghost at a graveyard; the angel there resurrects to life
     sim.releaseSpirit();
+    sim.resurrectAtSpiritHealer();
     expect(sim.player.dead).toBe(false);
     expect(sim.player.autoAttack).toBe(false);
 
@@ -1423,7 +1592,7 @@ describe('shaman travel and shock mechanics', () => {
     expect(sim.player.auras.some((a) => a.id === 'ghost_wolf')).toBe(true);
   });
 
-  it('Ghost Wolf casting is not delayed by incoming damage or standalone jump input', () => {
+  it('Shadewolf casting is not delayed by incoming damage or standalone jump input', () => {
     const sim = makeSim('shaman');
     sim.setPlayerLevel(16);
     sim.player.resource = sim.player.maxResource;
@@ -1446,10 +1615,10 @@ describe('shaman travel and shock mechanics', () => {
     expect(sim.player.auras.some((a) => a.id === 'ghost_wolf')).toBe(true);
   });
 
-  it('Ghost Wolf drops before casting shaman spells from the same button press', () => {
+  it('Shadewolf drops before casting shaman spells from the same button press', () => {
     const sim = makeSim('shaman');
     sim.setPlayerLevel(16);
-    // This test checks that *casting a spell* auto-cancels Ghost Wolf form.
+    // This test checks that *casting a spell* auto-cancels Shadewolf form.
     // Taking any damage also breaks the form, so a stray wolf swing landing
     // mid-window would drop it incidentally and make the assertions sensitive
     // to world RNG. Make the shaman invulnerable to isolate the cast-driven
@@ -1457,7 +1626,7 @@ describe('shaman travel and shock mechanics', () => {
     sim.player.gm = true;
     const wolf = nearestMob(sim, 'forest_wolf');
     beefUp(wolf);
-    // This test is about Ghost Wolf's toggle/recast semantics, not the wolf's
+    // This test is about Shadewolf's toggle/recast semantics, not the wolf's
     // auto-attacks. A landed melee swing breaks the form (damage cancels Ghost
     // Wolf), so root the wolf in place (it can never close the 12yd gap) to keep
     // the form-checks independent of hit-table RNG. It stays alive and in range
@@ -1487,17 +1656,20 @@ describe('shaman travel and shock mechanics', () => {
     sim.player.gcdRemaining = 0;
     sim.castAbility('flame_shock');
     expect(sim.player.auras.some((a) => a.id === 'ghost_wolf')).toBe(false);
+    // Cinder Jolt is a projectile now: its damage lands when the bolt reaches the
+    // wolf (projectile_travel), a few ticks after the cast.
+    for (let i = 0; i < 20 && wolf.hp >= beforeHp; i++) sim.tick();
     expect(wolf.hp).toBeLessThan(beforeHp);
   });
 });
 
 describe('warlock demon summons', () => {
-  it('Summon Imp creates a ranged demon that casts Firebolt', () => {
+  it('Summon Emberkin creates a ranged demon that casts Firebolt', () => {
     const sim = makeSim('warlock');
 
     const imp = summonImp(sim);
-    expect(imp.templateId).toBe('imp');
-    expect(imp.name).toBe('Imp');
+    expect(imp.templateId).toBe('emberkin');
+    expect(imp.name).toBe('Emberkin');
     expect(imp.ownerId).toBe(sim.playerId);
     expect(imp.hostile).toBe(false);
 
@@ -1528,10 +1700,11 @@ describe('warlock demon summons', () => {
     const demon = summonImp(sim);
     demon.hp = Math.max(1, demon.maxHp - 50);
     sim.addItem('baked_bread', 1);
+    const breadBefore = sim.countItem('baked_bread');
 
     sim.feedPet('baked_bread');
     expect(sim.tick().some((e) => e.type === 'error' && /Only hunters/.test(e.text))).toBe(true);
-    expect(sim.countItem('baked_bread')).toBe(1);
+    expect(sim.countItem('baked_bread')).toBe(breadBefore);
 
     const manaBefore = sim.player.resource;
     sim.healPet();
@@ -1552,7 +1725,7 @@ describe('warlock demon summons', () => {
     expect(sim.entities.has(demon.id)).toBe(true);
   });
 
-  it('Summon Voidwalker replaces the imp with a tank demon that Growls', () => {
+  it('Summon Gloomshade replaces the emberkin with a tank demon that Growls', () => {
     const sim = makeSim('warlock');
     sim.setPlayerLevel(10);
     const imp = summonImp(sim);
@@ -1561,8 +1734,8 @@ describe('warlock demon summons', () => {
     sim.castAbility('summon_voidwalker');
     for (let i = 0; i < 20 * 6; i++) sim.tick();
     const voidwalker = sim.petOf(sim.playerId)!;
-    expect(voidwalker.templateId).toBe('voidwalker');
-    expect(voidwalker.name).toBe('Voidwalker');
+    expect(voidwalker.templateId).toBe('gloomshade');
+    expect(voidwalker.name).toBe('Gloomshade');
     expect(voidwalker.id).not.toBe(imp.id);
     expect(sim.entities.has(imp.id)).toBe(false);
     expect(voidwalker.maxHp).toBeGreaterThan(imp.maxHp);
@@ -1585,17 +1758,21 @@ describe('warlock demon summons', () => {
     expect(voidwalker.petTauntTimer).toBeGreaterThan(0);
   });
 
-  it('recasting the same demon unsummons it', () => {
+  it('recasting the same demon dismisses it and summons a fresh one', () => {
     const sim = makeSim('warlock');
     const demon = summonImp(sim);
-    expect(demon.templateId).toBe('imp');
+    expect(demon.templateId).toBe('emberkin');
 
     sim.player.resource = sim.player.maxResource;
     sim.castAbility('summon_imp');
     for (let i = 0; i < 20 * 5; i++) sim.tick();
 
     expect(sim.entities.has(demon.id)).toBe(false);
-    expect(sim.petOf(sim.playerId, true)).toBe(null);
+    const fresh = sim.petOf(sim.playerId, true);
+    expect(fresh).not.toBe(null);
+    expect(fresh?.templateId).toBe('emberkin');
+    expect(fresh?.id).not.toBe(demon.id);
+    expect(fresh?.hp).toBe(fresh?.maxHp);
   });
 
   it('recasting a dead demon resummons it instead of dismissing', () => {
@@ -1613,7 +1790,7 @@ describe('warlock demon summons', () => {
     expect(sim.entities.has(deadDemon.id)).toBe(false);
     expect(freshDemon).toBeTruthy();
     expect(freshDemon!.id).not.toBe(deadDemon.id);
-    expect(freshDemon!.templateId).toBe('imp');
+    expect(freshDemon!.templateId).toBe('emberkin');
     expect(freshDemon!.dead).toBe(false);
     expect(freshDemon!.hp).toBe(freshDemon!.maxHp);
   });

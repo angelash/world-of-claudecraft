@@ -1,7 +1,6 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { createInterface } from 'node:readline';
@@ -15,13 +14,19 @@ import type {
   AiProviderTimingStep,
   AiSpeech,
 } from './ai_types';
+import {
+  codexLockdownArgs,
+  createCodexIsolation,
+  removeCodexIsolation,
+} from './codex_isolation';
 import { buildCodexDecisionPrompt } from './prompt_builder';
 
 export interface CodexCliProviderOptions {
   codexBin?: string;
   timeoutMs?: number;
   maxStderrBytes?: number;
-  repoRoot?: string;
+  codexArgsPrefix?: readonly string[];
+  sourceEnv?: NodeJS.ProcessEnv;
 }
 
 export const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
@@ -153,13 +158,15 @@ export class CodexCliProvider implements AiProvider {
   private readonly codexBin: string;
   private readonly timeoutMs: number;
   private readonly maxStderrBytes: number;
-  private readonly repoRoot: string;
+  private readonly codexArgsPrefix: readonly string[];
+  private readonly sourceEnv: NodeJS.ProcessEnv;
 
   constructor(options: CodexCliProviderOptions = {}) {
     this.codexBin = options.codexBin ?? process.env.CODEX_BIN ?? resolveCodexBinary();
     this.timeoutMs = options.timeoutMs ?? envPositiveInt('AI_CODEX_TIMEOUT_MS', DEFAULT_TIMEOUT_MS);
     this.maxStderrBytes = Math.max(0, Math.floor(options.maxStderrBytes ?? DEFAULT_MAX_STDERR_BYTES));
-    this.repoRoot = options.repoRoot ?? process.cwd();
+    this.codexArgsPrefix = options.codexArgsPrefix ?? [];
+    this.sourceEnv = options.sourceEnv ?? process.env;
   }
 
   async decide(context: AiJobContextV1): Promise<AiProviderDecisionResult> {
@@ -169,11 +176,11 @@ export class CodexCliProvider implements AiProvider {
       steps.push({ key, label, ms: performance.now() - startedAt });
     };
     let stepStartedAt = performance.now();
-    const dir = await mkdtemp(join(tmpdir(), 'woc-ai-'));
+    const isolation = await createCodexIsolation('woc-ai-', this.sourceEnv);
     recordStep('tempDirMs', 'create temp dir', stepStartedAt);
-    const inputPath = join(dir, 'job.json');
-    const outputPath = join(dir, 'decision.json');
-    const schemaPath = join(dir, 'decision.schema.json');
+    const inputPath = join(isolation.artifactsDir, 'job.json');
+    const outputPath = join(isolation.artifactsDir, 'decision.json');
+    const schemaPath = join(isolation.artifactsDir, 'decision.schema.json');
     stepStartedAt = performance.now();
     const promptText = buildCodexDecisionPrompt(context);
     recordStep('buildPromptMs', 'build prompt', stepStartedAt);
@@ -183,7 +190,13 @@ export class CodexCliProvider implements AiProvider {
     recordStep('writeFilesMs', 'write job and schema files', stepStartedAt);
     try {
       stepStartedAt = performance.now();
-      const result = await this.execCodex(promptText, schemaPath, outputPath);
+      const result = await this.execCodex(
+        promptText,
+        schemaPath,
+        outputPath,
+        isolation.workspaceDir,
+        isolation.env,
+      );
       recordStep('codexExecMs', 'codex exec subprocess', stepStartedAt);
       let raw: string;
       try {
@@ -208,7 +221,7 @@ export class CodexCliProvider implements AiProvider {
         },
       };
     } finally {
-      await rm(dir, { recursive: true, force: true });
+      await removeCodexIsolation(isolation);
     }
   }
 
@@ -216,21 +229,26 @@ export class CodexCliProvider implements AiProvider {
     prompt: string,
     schemaPath: string,
     outputPath: string,
+    workspaceDir: string,
+    env: NodeJS.ProcessEnv,
   ): Promise<{ lastAgentMessage: string | null }> {
     const args = [
+      ...this.codexArgsPrefix,
+      ...codexLockdownArgs(),
       '--ask-for-approval',
       'never',
+      '-C',
+      workspaceDir,
       'exec',
-      '--disable',
-      'plugins',
+      '--ignore-user-config',
+      '--ignore-rules',
+      '--skip-git-repo-check',
       '--ephemeral',
       '--json',
       '--color',
       'never',
       '--sandbox',
       'read-only',
-      '-C',
-      this.repoRoot,
       '--output-schema',
       schemaPath,
       '-o',
@@ -239,7 +257,8 @@ export class CodexCliProvider implements AiProvider {
     ];
     return new Promise((resolve, reject) => {
       const child = spawn(this.codexBin, args, {
-        cwd: this.repoRoot,
+        cwd: workspaceDir,
+        env,
         stdio: ['pipe', 'pipe', 'pipe'],
         windowsHide: true,
       });

@@ -3,8 +3,11 @@
 // (Leaves, EnTranslations, TranslationKey, ...). This file was src/ui/i18n.en.ts before
 // the i18n.catalog domain split; importers resolve './i18n.catalog' to this index.
 
+import { ITEM_SETS } from '../../sim/data';
 import { worldEntityText as worldNames } from '../world_entity_i18n';
 import { abilityStrings, classAbilityNames } from './abilities';
+import { apiErrorStrings } from './api_error';
+import { editorStrings } from './editor';
 import { gameStrings } from './game';
 import { guideStrings } from './guide';
 import { hudStrings } from './hud';
@@ -15,6 +18,8 @@ import { questStrings } from './quests';
 import { shellStrings } from './shell';
 
 export { abilityStrings, classAbilityNames } from './abilities';
+export { apiErrorStrings } from './api_error';
+export { editorStrings } from './editor';
 export {
   gameStrings,
   gameStringsDeDE,
@@ -40,6 +45,32 @@ export { questStrings } from './quests';
 // Re-export the catalog public surface (every name the old i18n.en.ts exported).
 export { shellStrings } from './shell';
 
+type ItemSetEntityText = Record<
+  string,
+  { name: string; bonus2?: string; bonus3?: string; bonus4?: string }
+>;
+
+const itemSetEntityText: ItemSetEntityText = Object.fromEntries(
+  Object.values(ITEM_SETS)
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((set) => {
+      // Only tiers the set actually has: the leveling haste kits carry a single
+      // 3-piece tier, so emitting a bonus2 row would bake in an id-fallback string.
+      const bonus2 = set.bonuses.find((bonus) => bonus.pieces === 2)?.text;
+      const bonus3 = set.bonuses.find((bonus) => bonus.pieces === 3)?.text;
+      const bonus4 = set.bonuses.find((bonus) => bonus.pieces === 4)?.text;
+      return [
+        set.id,
+        {
+          name: set.name,
+          ...(bonus2 ? { bonus2 } : {}),
+          ...(bonus3 ? { bonus3 } : {}),
+          ...(bonus4 ? { bonus4 } : {}),
+        },
+      ];
+    }),
+);
+
 type Prev = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 type Join<K, P> = K extends string | number
   ? P extends string | number
@@ -56,9 +87,123 @@ export type Leaves<T, D extends number = 5> = [D] extends [never]
 export const en = {
   meta: { builtOn: 'Built {date}' },
   realmTypes: { normal: 'Normal', pvp: 'PvP', rp: 'RP', rpPvp: 'RP-PvP' },
+  devCommand: {
+    dialogLabel: 'Developer Command Center',
+    kicker: 'Development tools',
+    title: 'Command Center',
+    subtitle: 'Authoritative test controls for the active world.',
+    closeAria: 'Close developer commands',
+    categoryNavAria: 'Developer command categories',
+    categories: {
+      player: 'Player',
+      spawns: 'Spawns',
+      inventory: 'Inventory',
+      progress: 'Progress',
+      travel: 'Travel',
+      scenarios: 'Scenarios',
+    },
+    filterLabel: 'Filter commands',
+    filterPlaceholder: 'Search this category',
+    noMatches: 'No matching commands.',
+    serverRequirement: 'Server cheats still require ALLOW_DEV_COMMANDS=1.',
+    invalidValues: 'Choose valid values before running this command.',
+    sent: 'Sent: {command}',
+    run: 'Run',
+    fields: {
+      level: 'Level',
+      mob: 'Mob',
+      count: 'Count',
+      item: 'Item',
+      gold: 'Gold',
+      quest: 'Quest',
+      profession: 'Profession',
+      amount: 'Amount',
+      x: 'X',
+      z: 'Z',
+      dungeon: 'Dungeon',
+      difficulty: 'Difficulty',
+      name: 'Name',
+    },
+    difficulty: { normal: 'Normal', heroic: 'Heroic' },
+    actions: {
+      heal: { label: 'Restore health', description: 'Fill the health pool.' },
+      resource: {
+        label: 'Restore resource',
+        description: 'Fill mana, rage, or energy.',
+      },
+      cooldowns: {
+        label: 'Clear cooldowns',
+        description: 'Reset ability, GCD, and potion timers.',
+      },
+      god: {
+        label: 'Toggle god mode',
+        description: 'Toggle invulnerability and boosted damage.',
+      },
+      revive: {
+        label: 'Revive',
+        description: 'Revive through the normal resurrection path.',
+      },
+      kill: { label: 'Kill player', description: 'Test death, ghost, and corpse flows.' },
+      combatreset: {
+        label: 'Reset combat',
+        description: 'Clear combat state and hostile threat.',
+      },
+      level: { label: 'Set level', description: 'Set the current character level.' },
+      spawn: { label: 'Spawn mob', description: 'Create a concrete mob near the player.' },
+      killtarget: { label: 'Kill target', description: 'Kill the selected living mob.' },
+      despawntarget: {
+        label: 'Despawn target',
+        description: 'Remove a selected mob created by this tool.',
+      },
+      despawnall: {
+        label: 'Clear my spawns',
+        description: 'Remove every mob spawned by this developer.',
+      },
+      give: { label: 'Give item', description: 'Add an item to the player inventory.' },
+      gold: { label: 'Add gold', description: 'Add gold to the current purse.' },
+      quest: { label: 'Complete quest', description: 'Complete a specific quest by id.' },
+      quests: {
+        label: 'Complete active quests',
+        description: 'Complete every quest in the current log.',
+      },
+      attune: {
+        label: 'Unlock attunements',
+        description: 'Mark all attunement requirements complete.',
+      },
+      gather: {
+        label: 'Grant gathering skill',
+        description: 'Increase a gathering profession.',
+      },
+      teleport: { label: 'Teleport', description: 'Move to exact world coordinates.' },
+      dungeon: {
+        label: 'Enter dungeon',
+        description: 'Enter a dungeon with dev gate bypass.',
+      },
+      raid: { label: 'Enter raid', description: 'Enter the Nythraxis arena directly.' },
+      raidreset: {
+        label: 'Reset raid lockout',
+        description: 'Clear the current raid lockouts.',
+      },
+      bot: {
+        label: 'Spawn social bot',
+        description: 'Create a whisperable stationary player.',
+      },
+      lfgqueue: {
+        label: 'Seed finder queue',
+        description: 'Create a Dungeon Finder queue scenario.',
+      },
+      lfgraid: { label: 'Seed raid finder', description: 'Create a raid finder scenario.' },
+      lfgboard: {
+        label: 'Seed listing board',
+        description: 'Create a premade listing scenario.',
+      },
+    },
+  },
   game: gameStrings,
   hudChrome: hudChromeStrings,
+  apiError: apiErrorStrings,
   guide: guideStrings,
+  editor: editorStrings,
   // Cosmetic skin-select event overlay. Rarity names reuse itemUi.quality.*.
   skinEvent: {
     title: 'Cosmetic Cache',
@@ -108,15 +253,16 @@ export const en = {
     donate: 'Donate',
   },
   stats: {
-    title: 'Realm Status',
+    title: 'World Status',
     accountsCreated: 'Players',
     playersOnline: 'Players Online',
-    realmName: 'Realm Name',
+    realmName: 'World Name',
   },
   footer: {
     copyright: '2026 World of ClaudeCraft',
     githubLink: 'https://github.com/levy-street/world-of-claudecraft',
     githubLabel: 'Open Source Project',
+    whitepaper: 'Whitepaper',
     terms: 'Terms of Service',
     privacy: 'Privacy Policy',
     discordLabel: 'Join the Discord',
@@ -128,7 +274,7 @@ export const en = {
   },
   highscores: {
     title: 'High Scores Leaderboard',
-    desc: "Track the realm's greatest champions and compare your progress.",
+    desc: "Track the world's greatest champions and compare your progress.",
   },
   wiki: {
     title: 'Game Wiki & Guide',
@@ -147,16 +293,21 @@ export const en = {
   download: {
     title: 'Download Desktop Launcher',
     desc: 'Get the standalone launcher for optimized performance and full-screen play.',
+    macCta: 'Download for macOS',
+    windowsCta: 'Download for Windows',
+    linuxCta: 'Download for Linux',
+    linuxHint: 'AppImage: make it executable, then run it. No install needed.',
+    windowsPending: 'Windows build pending.',
   },
   comingSoon: {
     placeholder: 'Coming Soon...',
-    featureComingSoon: 'This feature is coming soon to the realm.',
+    featureComingSoon: 'This feature is coming soon to the world.',
   },
   mode: {
     onlineTitle: 'Play Online',
     onlineDesc:
-      "Log in to the realm. Your characters live on the server and you share the world with everyone else who's on.",
-    onlineAria: 'Play Online: log in to the persistent shared realm',
+      "Log in to the world. Your characters live on the server and you share the world with everyone else who's on.",
+    onlineAria: 'Play Online: log in to the persistent shared world',
     offlineTitle: 'Play Offline',
     offlineDesc:
       'Instant single-player world in your browser. Nothing is saved: perfect for a quick brawl or testing.',
@@ -168,8 +319,8 @@ export const en = {
     serverOffline: 'Offline',
     play: 'Play',
     playAria: 'Play World of ClaudeCraft',
-    serverLabel: 'Choose your realm',
-    serverAria: 'Select realm: Online or Offline',
+    serverLabel: 'Choose your world',
+    serverAria: 'Select world: Online or Offline',
     serverOfflineSub: 'Instant local world',
     caLabel: '$WOC Contract Address',
     caCopyAria: 'Copy contract address',
@@ -177,13 +328,16 @@ export const en = {
       'WOC is our community token. It is not needed to play. Join Discord to discuss the WOC utility and flywheel.',
   },
   auth: {
-    enterRealm: 'Enter the Realm',
+    enterRealm: 'Enter the World',
     username: 'Username',
     usernameError: 'Please enter your username.',
     usernamePlaceholder: 'Enter username',
     password: 'Password',
     passwordError: 'Please enter your password.',
     passwordPlaceholder: 'Enter password',
+    email: 'Email',
+    emailPlaceholder: 'you@example.com',
+    emailError: 'Please enter a valid email address.',
     showPassword: 'Show password',
     hidePassword: 'Hide password',
     rememberOptions: 'Remember sign-in options',
@@ -192,16 +346,16 @@ export const en = {
     logIn: 'Log In',
     createAccount: 'Create Account',
     back: 'Back',
-    realmList: 'Realm List',
-    loadingRealms: 'Loading realms...',
-    changeRealm: 'Change Realm',
-    realm: 'Realm',
+    realmList: 'World List',
+    loadingRealms: 'Loading worlds...',
+    changeRealm: 'Change World',
+    realm: 'World',
     newCharacter: 'New Character',
     appearance: 'Appearance',
     class: 'Class',
     name: 'Name',
     chromaOption: 'Chroma {n}',
-    noAccountPrompt: 'New to the realm?',
+    noAccountPrompt: 'New to the world?',
     haveAccountPrompt: 'Already have an account?',
     characters: 'Characters:',
     createCharacter: 'Create Character',
@@ -213,12 +367,20 @@ export const en = {
     twoFactorLabel: 'Authentication code',
     twoFactorPlaceholder: '6-digit or recovery code',
     twoFactorHint: 'Enter the code from your authenticator app, or one of your recovery codes.',
+    recovery: {
+      title: 'Add a recovery email',
+      body: 'Set an email address so you can recover your account. We only use it to confirm you own this account if you ever need to reset your password.',
+      save: 'Save email',
+      logOut: 'Log out',
+      invalid: 'Please enter a valid email address.',
+      failed: 'Could not save your email. Please try again.',
+    },
   },
   wallet: {
     label: '$WOC Wallet',
     connect: 'Verify Wallet',
-    connectTitle: 'Verify your Solana wallet',
-    connectAria: 'Verify your Solana wallet',
+    connectTitle: 'Connect a Solana wallet',
+    connectAria: 'Connect a Solana wallet',
     verify: 'Verify Wallet',
     verifyNew: 'Verify New Wallet',
     verifyTitle: 'Choose a wallet and sign once to verify ownership.',
@@ -256,6 +418,9 @@ export const en = {
     balancePreviewAria:
       'Connected wallet balance preview: {balance}. Link the wallet to verify holder flair.',
     balanceAmount: '{amount} $WOC',
+    bagConnect: 'Link wallet',
+    bagLink: 'Verify wallet',
+    bagReconnect: 'Reconnect wallet',
     connected: 'Connected: {address}',
     connectedWithBalance: 'Connected: {balance} - {address}',
     connectedLinked: 'Verified: {address}',
@@ -275,12 +440,47 @@ export const en = {
       'Holder perks are active. Connect the app when you need to sign or spend.',
     helpLinkedDisconnectedWithBalance:
       'Holder perks are active. Connect the app when you need to sign or spend.',
+    extensionHelp:
+      'Choose an installed browser wallet, or open Reown AppKit for Phantom, Solflare, Backpack, and more.',
+    mobileAppHelp:
+      'Choose Phantom or Solflare. Your wallet app will ask for approval. Keep this game open and return to it when finished.',
+    standaloneAppHelp:
+      'Wallet connections are not available in the Home Screen app yet. Open World of ClaudeCraft in Safari or Chrome to use Phantom or Solflare.',
+    openAppTitle: 'Continue in {wallet}',
+    openAppHelp:
+      'Open {wallet} to review this request. Keep this game tab open while the wallet app is active.',
+    openAppButton: 'Open {wallet}',
+    manualReturnBrowserHelp:
+      'After approval, return to this game tab. If iOS opens another browser, close it and return to the original browser manually.',
+    manualReturnStandaloneHelp:
+      'After approval, return to World of ClaudeCraft from your Home Screen. If iOS opens a browser, close it and reopen the Home Screen app manually.',
+    preparingAppButton: 'Preparing {wallet}...',
+    walletAppUnavailable: '{wallet} could not be prepared. Close this window and try again.',
     flowConnect: 'Choose a wallet. Verification continues automatically.',
     flowSign: 'Sign the verification message in your wallet app. No transaction or SOL required.',
     flowVerify: 'Verifying wallet ownership...',
     linkFailed: 'Wallet verification failed.',
     verifyFailed: 'Wallet verification failed.',
     unlinkFailed: 'Could not unlink wallet.',
+    browser: {
+      eyebrow: 'Desktop wallet authorization',
+      title: 'Connect a Solana Wallet',
+      linkBody:
+        'Choose a wallet extension in this browser. You will sign a verification message, then return to the desktop app.',
+      paymentBody:
+        'Choose the wallet linked to your account and approve the transaction in this browser.',
+      extensionHelp:
+        'No compatible wallet extension was found. Install or unlock Phantom, Solflare, or another Solana browser wallet, then retry.',
+      safety: 'World of ClaudeCraft never asks for your recovery phrase or private key.',
+      continueWith: 'Continue with {wallet}',
+      reviewTitle: 'Review in your wallet',
+      reviewBody: 'Follow the prompt from {wallet}. Keep this browser page open.',
+      completeTitle: 'Wallet authorization complete',
+      completeBody: 'You can return to the World of ClaudeCraft desktop app.',
+      returnButton: 'Return to desktop app',
+      failed: 'Wallet authorization failed or expired. Return to the desktop app and try again.',
+      retry: 'Retry',
+    },
     holder: '$WOC holder',
     holderTierTitle: '{tier} $WOC holder',
     holderTiers: {
@@ -322,7 +522,7 @@ export const en = {
     renderFailedStatus: 'Card render failed.',
     levelClass: 'Level {level} - {className}',
     topPercent: 'TOP {percent}%',
-    realmSubtitle: '{realm} Realm',
+    realmSubtitle: '{realm} World',
     defaultRealm: 'World of ClaudeCraft',
     brandWordmark: 'WORLD OF CLAUDECRAFT',
     recruited: '{count} recruited',
@@ -332,7 +532,7 @@ export const en = {
     arenaStat: 'Arena',
     shareTierBit: ', {tier}-rank $WOC holder',
     shareText:
-      "I'm forging my legend in World of ClaudeCraft: Level {level} {className}{tierBit}. Join my realm:",
+      "I'm forging my legend in World of ClaudeCraft: Level {level} {className}{tierBit}. Join my world:",
     nativeShareTitle: 'World of ClaudeCraft',
     fileNameFallback: 'player',
     actionShareX: 'Share to X',
@@ -415,6 +615,8 @@ export const en = {
       unknownTier: 'Unknown delve tier.',
       levelRequired: 'You must be level {level} to enter {name}.',
       levelRequiredTier: 'You must be level {level} to enter {name} on {tier}.',
+      partyTooLarge:
+        '{name} is meant for solo or duo delves. Parties of {max} or more may not enter.',
       instancesBusy: 'All instances of {name} are busy. Try again soon.',
       runFailed: '{name} run failed.',
       complete: '{name} complete.',
@@ -426,6 +628,15 @@ export const en = {
       companionRankUp: '{name} reaches rank {rank}.',
       bossChest:
         'The boss falls. A warded reliquary chest rises on the dais. Pick its lock to claim your spoils.',
+      drownedLitanyReliquaryRise:
+        'Sister Nhalia falls silent. The Drowned Reliquary rises from the blackwater. Approach it to begin the rite.',
+      riteSequenceReady: 'The shrines fall dark. Repeat the sequence.',
+      riteSequencePlaying: 'The shrines replay the rite. Wait.',
+      riteCorrect: 'A soft chime answers your touch.',
+      riteWrong: 'A harsh bell crack. Black water splashes at your feet.',
+      riteReliquaryOpen: 'The Drowned Reliquary opens.',
+      riteReliquaryLocked: 'Complete the shrine rite to open the reliquary.',
+      riteReliquaryEmpty: 'The reliquary is empty.',
       surfaceStairs: 'A stairway to the surface opens. Press F at the stairs to leave.',
       moduleEnter: '{name}: {objective}',
       objectiveClearRoom: 'Clear the room.',
@@ -434,6 +645,13 @@ export const en = {
       tombstoneOpen:
         'A sealed tombstone passage grinds open to the north. Walk into it to continue.',
       tombstoneInto: 'You pass through the tombstone into {name}.',
+      bellRopeShock: 'The bell rope snaps taut. Drowned Cantors reel from the shock.',
+      eggSacBurst: 'The egg-sac bursts. Spiderlings skitter free across the baptistry rim.',
+      baptistryEggs: 'The baptistry falls quiet. Spider egg-sacs cling wetly to the rim.',
+      baptistrySpidersSealed: 'You should try to destroy the spider sacs.',
+      puzzleSealed: 'You need to open the seal by applying pressure somewhere in the room.',
+      ropesSealed: 'You should try pulling the bell ropes.',
+      baptistryWave: 'Something stirs in the black baptistry water.',
       chestEmpty: 'The chest is empty.',
       notInDelve: 'You are not in a delve.',
       cannotInteract: 'You cannot interact with that.',
@@ -453,9 +671,12 @@ export const en = {
       passageSealed: 'The passage is sealed.',
       moveCloserPassage: 'Move closer to the passage.',
       moveCloserChest: 'Move closer to the chest.',
+      moveCloserReliquary: 'Move closer to the reliquary.',
       nothingToTake: 'There is nothing left to take.',
       wayOutNotOpen: 'The way out is not yet open.',
       moveCloserStairs: 'Move closer to the stairs.',
+      nhaliaCantorShield: 'Cantors, hold the note!',
+      nhaliaBlackwaterMark: '{name} marks {player} with Blackwater!',
     },
     lockpick: {
       lockYields: 'The lock yields! {tier} spoils.',
@@ -524,9 +745,60 @@ export const en = {
       abandoned: 'You ease the picks back out. The lock waits.',
     },
   },
+  // The Drowned Reliquary Rite difficulty popup (rite_window.ts), shown when a
+  // player approaches the risen reliquary. Rendered through t() keys.
+  delveRiteUi: {
+    title: 'The Drowned Reliquary Rite',
+    blurb:
+      'The shrines will light in order. Repeat the sequence by activating each shrine in turn. A wrong touch fails the attempt and replays the sequence, a flawless attempt earns the richest spoils, and running out of tries opens the reliquary on its meanest. Choose how the rite tests you.',
+    easy: 'Easy',
+    medium: 'Medium',
+    hard: 'Hard',
+    guideWatch: 'After you choose, the four shrines light up one at a time. Memorize the order.',
+    guideRepeat:
+      'When the shrines fall dark, walk to each shrine and press F (Interact) in that same order.',
+    guideStakes:
+      'A wrong shrine splashes you with blackwater and costs a try. Complete the sequence to open the reliquary.',
+    showsTimes: 'Sequence shown {count} times',
+    showsOnce: 'Sequence shown once',
+    symbols: '{count} symbols',
+    tries: '{count} tries',
+    reward: {
+      easy: 'Modest spoils',
+      medium: 'Rich spoils',
+      hard: 'Premium spoils',
+    },
+    closeAria: 'Close',
+  },
   // Delve UI chrome + companion/boss/lore flavor (board, run tracker, completion
   // summary, affixes, module/objective labels). Rendered through t() from hud.ts.
   // {playerName} / {className} interpolate at render time.
+  heroicShop: {
+    // The Heroic Quartermaster window: title/price/buy reuse the vendor and
+    // delve-shop keys; only the marks-specific strings live here.
+    balance: 'Heroic Marks: {count}',
+    buyAria: 'Buy {item} for {marks} Heroic Marks',
+  },
+  // The Card Master window (Card Duel minigame): queue join/leave affordance
+  // plus the in-match hand strip + round-score panel.
+  cardDuel: {
+    title: 'Card Duel',
+    close: 'Close',
+    join: 'Join Queue',
+    joinAria: 'Join the Card Duel queue',
+    leave: 'Leave Queue',
+    leaveAria: 'Leave the Card Duel queue',
+    forfeit: 'Forfeit',
+    forfeitAria: 'Forfeit the Card Duel',
+    queued: 'Waiting for an opponent...',
+    unavailable: 'Card Duel requires another player online.',
+    vsOpponent: 'vs {name}',
+    round: 'Round score: {mine} - {theirs}',
+    counts: 'Deck: {deck} · Discard: {discard}',
+    playCardAria: 'Play the {value} card',
+    waitingOnOpponent: "Waiting on your opponent's card...",
+    yourTurn: 'Play a card',
+  },
   delveUi: {
     board: {
       title: 'Delve Board',
@@ -536,6 +808,7 @@ export const en = {
       openDelveAria: 'Open Delve Board from {name}',
       marks: 'Delve Marks: {count}',
       minLevel: 'Requires Level {level}',
+      partyTooLarge: 'Solo or duo only ({max} players max)',
       tier: {
         normal: 'Normal',
         heroic: 'Heroic',
@@ -543,6 +816,7 @@ export const en = {
       companion: {
         pick: 'Choose a companion',
         tessa: 'Acolyte Tessa',
+        edda: 'Edda Reedhand',
         rank: 'Rank {rank}',
         boon: 'Heals the party between fights. Rank 3 revives a fallen ally once per run.',
         upgrade: 'Upgrade to Rank {rank} ({marks} Marks)',
@@ -569,6 +843,10 @@ export const en = {
       marks: 'Delve Marks: {count}',
       exitHintOpen: 'Walk into the tombstone passage (north)',
       exitHintLocked: 'Clear trash mobs to open the passage north',
+      riteChoose: 'Approach the Drowned Reliquary and press F to begin the rite',
+      ritePlayback: 'Watch the shrines: memorize the order they light up',
+      riteInput: 'Press F at each shrine in the order they lit ({current}/{total})',
+      riteOpen: 'The reliquary is open: press F on it to claim your spoils',
     },
     objective: {
       kill_boss: 'Slay {boss}',
@@ -591,12 +869,20 @@ export const en = {
         greeting:
           'The reliquary below has shifted again. We hear chanting through the floor after midnight, and Acolyte Tessa swears the burial ledgers are changing their own ink. If you have courage enough, {playerName}, take a candle and go below. Do not trust every voice you hear down there. Some of them knew your name before you were born.',
       },
+      halvenMarsh: {
+        greeting:
+          'The trail led north to the marsh, {playerName}. Another reliquary sings under the black water, and the drowned dead answer the bells. Acolyte Edda knows these reeds better than I do, stay close to her lantern. Choose your tier, and I will hold the rope until you return.',
+      },
     },
     intro: {
       normal:
         'The stairwell is cold and dark. Broken saint-stones litter the descent, and a soft bell note hangs in the damp air. Acolyte Tessa whispers, "The reliquary should not be open this far. Stay close, {playerName}."',
       heroic:
         'The doors groan shut behind you. Names scrape across the stone like fingernails. Tessa\'s candle burns blue. "They are not calling the dead now, {playerName}. They are answering something."',
+      litanyNormal:
+        'Reed-choked stairs drop beneath Fenbridge. Edda Reedhand lifts her lantern. "The marsh remembers every name they drowned, {playerName}. Stay in the light."',
+      litanyHeroic:
+        'Blackwater laps the causeway stones. Edda\'s flame gutters green. "They are singing again below, {playerName}. Do not answer the choir."',
     },
     module: {
       reliquary_sunken_ossuary:
@@ -604,16 +890,38 @@ export const en = {
       reliquary_bell_niche: 'Dozens of handbells hang in silence, each tied with funeral cloth.',
       reliquary_saintless_hall: 'Statues with faces chiseled away with careful hatred.',
       reliquary_finale: 'The buried bell tolls once beneath your boots.',
+      litany_sluice: 'Moss-choked sluice gates drip blackwater into the old choir crypt.',
+      litany_ledger: 'Ledger islands rise from flooded channels, ink bleeding into the marsh.',
+      litany_ring: 'A reliquary ring loops around a sealed central font of black water.',
+      litany_baptistry: 'A sinkhole baptistry yawns beneath cracked saint-stones and egg-sacs.',
+      litany_choir_loft: 'Fanning choir lofts echo with rope-hung bells that never quite stop.',
+      litany_causeway: 'A Y-split causeway forks over waist-deep fen water.',
+      litany_apse: "The drowned apse opens onto Sister Nhalia's altar island.",
     },
     moduleName: {
       reliquary_sunken_ossuary: 'The Sunken Ossuary',
       reliquary_bell_niche: 'The Bell Niche',
       reliquary_saintless_hall: 'The Saintless Hall',
       reliquary_finale: 'The Bell-Buried Chamber',
+      litany_sluice: 'The Crescent Sluice',
+      litany_ledger: 'The Island Ledger',
+      litany_ring: 'The Ring Reliquary',
+      litany_baptistry: 'The Sinkhole Baptistry',
+      litany_choir_loft: 'The Reedsong Gallery',
+      litany_causeway: 'The Y-Split Causeway',
+      litany_apse: 'The Drowned Apse',
+    },
+    object: {
+      sluice_valve: 'Sluice Valve',
+      grave_tablet: 'Grave Tablet',
+      corpse_candle: 'Corpse-Candle',
+      bell_rope: 'Bell Rope',
     },
     companion: {
       barkLine: '{name}: {line}',
       tessa: {
+        run_start: 'I have my candle and my ledger, {playerName}. Lead on.',
+        ally_revive: "Up now. Tonight's ledger does not carry your name.",
         combat_start: 'Keep your footing, {playerName}. The dead are restless here.',
         low_hp: 'Breathe. I still have prayers left for you.',
         trap_spotted: 'Hold. Something in the floor remembers footsteps.',
@@ -625,6 +933,20 @@ export const en = {
           3: 'Reliquary Acolyte',
           4: 'Gravecall Witness',
           5: 'Chapel Warden',
+        },
+      },
+      edda: {
+        run_start: 'Keep to the plank-line, {playerName}. The silt takes the proud-footed.',
+        ally_revive: 'Up, now. The marsh does not get you today.',
+        combat_start: 'Mind the blackwater, {playerName}. The marsh listens.',
+        low_hp: 'Steady. My lantern is not out yet.',
+        trap_spotted: 'Wait. The reeds are wrong here.',
+        boss_pull: 'That canticle knows your name, {playerName}. Do not sing back.',
+        completion: 'The fen can swallow its secrets for one more night.',
+        rank: {
+          1: 'Lantern-Bearer',
+          2: 'Reed-Watcher',
+          3: 'Fenbridge Acolyte',
         },
       },
     },
@@ -674,12 +996,54 @@ export const en = {
       grave_tax: 'Grave Tax',
       unstable_roof: 'Unstable Roof',
       cult_remnants: 'Cult Remnants',
+      high_water: 'High Water',
+      lively_choir: 'Lively Choir',
+      belligerent_dead: 'Belligerent Dead',
     },
     blessing: {
       chapel_candle: 'Chapel Candle: safer run, one fewer Mark on completion.',
     },
     chest: {
       flavor: 'The dead have surrendered what they can spare.',
+    },
+  },
+  yumi: {
+    bracket3: 'Yumi 3v3',
+    bracket5: 'Yumi 5v5',
+    enterQueue: 'Join Protect Yumi!',
+    queue: {
+      join: 'You join the Protect Yumi queue. Guard your familiar…',
+      leave: 'You leave the Protect Yumi queue.',
+      teamLeave: 'Your team leaves the Protect Yumi queue.',
+    },
+    error: {
+      partyTooBig3: 'Protect Yumi 3v3 allows a party of up to three.',
+      partyTooBig5: 'Protect Yumi 5v5 allows a party of up to five.',
+    },
+    log: {
+      start: 'Protect Yumi! Defend your familiar and hunt theirs.',
+    },
+    hud: {
+      title: 'PROTECT YUMI',
+      getReady: 'Get ready…',
+      teleportIn: 'Yumis move in {s}',
+      suddenDeath: 'SUDDEN DEATH',
+      yourYumi: 'Your Yumi',
+      enemyYumi: 'Enemy Yumi',
+      aria: 'Your Yumi at {mine} of {max} health, enemy Yumi at {theirs}.',
+      collapse: 'Collapse the Protect Yumi bars',
+      expand: 'Expand the Protect Yumi bars',
+    },
+    respawn: {
+      title: 'DOWNED!',
+    },
+    banner: {
+      sudden: 'SUDDEN DEATH! The Yumis hold their ground!',
+      teleport: 'The Yumis teleport!',
+    },
+    end: {
+      win: 'VICTORY! Yumi is safe!',
+      loss: 'DEFEAT! Your Yumi has fallen.',
     },
   },
   fiesta: {
@@ -745,7 +1109,7 @@ export const en = {
     augment: {
       choose: 'Choose an Augment',
       aug_brutality: { name: 'Brutality', desc: 'Your physical strikes hit 15% harder.' },
-      aug_spellfire: { name: 'Spellfire', desc: 'Your spells deal 15% more damage.' },
+      aug_spellfire: { name: 'Grimfire', desc: 'Your spells deal 15% more damage.' },
       aug_toughness: { name: 'Toughness', desc: 'Gain 12% maximum health.' },
       aug_keen_eye: { name: 'Keen Eye', desc: 'Gain 8% critical strike chance.' },
       aug_fleetfoot: { name: 'Fleetfoot', desc: 'Move 15% faster. Run them down — or run away.' },
@@ -772,7 +1136,7 @@ export const en = {
         desc: '+18% damage of all kinds and +12% move speed.',
       },
       aug_lightwell: {
-        name: 'Lightwell',
+        name: 'Gravelight',
         desc: '+30% healing and +15% maximum health. Anchor your team.',
       },
       aug_bounty_hunter: {
@@ -848,6 +1212,27 @@ export const en = {
       reliquary_gloves_rog: { name: 'Bonewarden Grips' },
       deacon_reliquary_helm: { name: "Deacon's Reliquary Helm" },
       varric_shadow_cowl: { name: "Varric's Shadow Cowl" },
+      siltguard_helm: { name: 'Siltguard Helm' },
+      bulwark_rusted_pauldrons: { name: 'Bulwark-Rusted Pauldrons' },
+      nhalias_bell_maul: { name: "Nhalia's Bell-Maul" },
+      reedstalker_jerkin: { name: 'Reedstalker Jerkin' },
+      mirejaw_fang_knife: { name: 'Mirejaw Fang-Knife' },
+      widow_silk_hood: { name: 'Widow-Silk Hood' },
+      cantors_drowned_sash: { name: "Cantor's Drowned Sash" },
+      corpse_candle_focus: { name: 'Corpse-Candle Focus' },
+      nhalias_litany_rod: { name: "Nhalia's Litany Rod" },
+      blackwater_vanguard_chest: { name: 'Blackwater Vanguard Chestguard' },
+      siltstep_leggings: { name: 'Siltstep Leggings' },
+      sunken_reliquary_hood: { name: 'Sunken Reliquary Hood' },
+      litany_legs: { name: 'Silt-Walker Greaves' },
+      litany_shoulder: { name: 'Blackwater Drift Mantle' },
+      litany_gloves_rog: { name: 'Reed-Bound Handwraps' },
+      litany_plate_chest: { name: 'Sump-Warden Cuirass' },
+      litany_leather_chest: { name: 'Silt-Deep Vestment' },
+      litany_cloth_chest: { name: 'Choir-Drowned Raiment' },
+      litany_helm: { name: "Reliquant's Drowned Cowl" },
+      sister_nhalia_choir_plate: { name: "Sister Nhalia's Choir-Forged Plate" },
+      drowned_choir_fang: { name: 'Drowned Choir-Fang' },
       the_codfather: { name: 'The Codfather' },
       runed_bone_shard: { name: 'Runed Bone Shard' },
       grave_sir_aldren: { name: 'Grave of Captain Aldren' },
@@ -861,16 +1246,67 @@ export const en = {
       crypt_ritual_circle: { name: 'Ritual Circle' },
       kings_signet: { name: "King's Signet" },
       event_skin_token: { name: 'Mysterious Cosmetic Cache' },
+      heroic_mark: { name: 'Heroic Mark' },
+      eastbrook_buckler: { name: 'Eastbrook Buckler' },
+      eastbrook_greatsword: { name: 'Eastbrook Greatsword' },
+      highwatch_greatsword: { name: 'Highwatch Greatsword' },
+      highwatch_wallshield: { name: 'Highwatch Wallshield' },
+      morthens_cryptforged_hauberk: { name: "Morthen's Cryptforged Hauberk" },
+      shadowpulse_handwraps: { name: 'Shadowpulse Handwraps' },
+      bonechill_striders: { name: 'Bonechill Striders' },
+      mistcallers_fang: { name: "Mistcaller's Fang" },
+      tidebound_spaulders: { name: 'Tidebound Spaulders' },
+      sash_of_the_sunken_court: { name: 'Sash of the Sunken Court' },
+      lunar_tide_greatstaff: { name: 'Lunar Tide Greatstaff' },
+      tidewoven_trousers: { name: 'Tidewoven Trousers' },
+      choirmothers_casque: { name: "Choirmother's Casque" },
+      gravewyrm_cleaver: { name: 'Gravewyrm Cleaver' },
+      shroud_of_the_gravewyrm: { name: 'Shroud of the Gravewyrm' },
+      sanctum_prowlers_grips: { name: "Sanctum Prowler's Grips" },
+      scepter_of_the_deathless_court: { name: 'Scepter of the Deathless Court' },
+      deathless_warguard_legmail: { name: 'Deathless Warguard Legmail' },
+      soulrend_diadem: { name: 'Soulrend Diadem' },
+      scourgehide_carapace: { name: 'Scourgehide Carapace' },
+      cryptplate_helm: { name: 'Cryptplate Helm' },
+      shadowpulse_slippers: { name: 'Shadowpulse Slippers' },
+      bonechill_cord: { name: 'Bonechill Cord' },
+      mistforged_pauldrons: { name: 'Mistforged Pauldrons' },
+      tideguard_faceguard: { name: 'Tideguard Faceguard' },
+      sunken_court_mantle: { name: 'Sunken Court Mantle' },
+      lunar_choir_leggings: { name: 'Lunar Choir Leggings' },
+      choir_blessed_spaulders: { name: 'Choir-Blessed Spaulders' },
+      tideworn_warboots: { name: 'Tideworn Warboots' },
+      gravewyrm_claws: { name: 'Gravewyrm Claws' },
+      gravescale_girdle: { name: 'Gravescale Girdle' },
+      wyrmchoir_handwraps: { name: 'Wyrmchoir Handwraps' },
+      deathless_greatblade: { name: 'Deathless Greatblade' },
+      soulforged_warplate: { name: 'Soulforged Warplate' },
+      stormcallers_focus: { name: "Stormcaller's Focus" },
+      seal_of_the_nine_oaths: { name: 'Seal of the Nine Oaths' },
+      nielas_coldlight_band: { name: "Niela's Coldlight Band" },
+      sutils_gambit: { name: "Sutil's Gambit" },
+      oath_of_the_round_table: { name: 'Oath of the Round Table' },
+      zyzzs_deathless_signet: { name: "Zyzz's Deathless Signet" },
+      architects_cornerstone: { name: "The Architect's Cornerstone" },
+      swiftfang_talisman: { name: 'Swiftfang Talisman' },
+      yumis_keepsake_locket: { name: "Yumi's Keepsake Locket" },
+      zense_meridian: { name: 'Zense Meridian' },
+      medallion_of_endless_profit: { name: 'Medallion of Endless Profit' },
       deathless_heartwood: { name: 'Heartwood of the Deathless Crown' },
-      kingsbane_last_oath: { name: 'Kingsbane, Last Oath of Thornpeak' },
-      crownforged_dreadhelm: { name: 'Crownforged Dreadhelm' },
-      crownforged_warspaulders: { name: 'Crownforged Warspaulders' },
-      nighttalon_crown: { name: 'Nighttalon Crown' },
-      nighttalon_shoulderguards: { name: 'Nighttalon Shoulderguards' },
-      soulflame_cowl: { name: 'Soulflame Cowl' },
-      soulflame_mantle: { name: 'Soulflame Mantle' },
-      stormcallers_crown: { name: "Stormcaller's Crown" },
-      stormcallers_spaulders: { name: "Stormcaller's Spaulders" },
+      kingsbane_last_oath: { name: 'Thronebane, Last Oath of Thornpeak' },
+      crownforged_dreadhelm: { name: 'Bonewrought Dreadhelm' },
+      crownforged_warspaulders: { name: 'Bonewrought Warspaulders' },
+      nighttalon_crown: { name: 'Direfang Crown' },
+      nighttalon_shoulderguards: { name: 'Direfang Shoulderguards' },
+      soulflame_cowl: { name: 'Wraithfire Cowl' },
+      soulflame_mantle: { name: 'Wraithfire Mantle' },
+      stormcallers_crown: { name: 'Galecall Crown' },
+      stormcallers_spaulders: { name: 'Galecall Spaulders' },
+      // Nythraxis raid (normal): the offhand-slot + two-hander epics.
+      bonewrought_greatsword: { name: 'Bonewrought Greatsword' },
+      direfang_greatblade: { name: 'Direfang Greatblade' },
+      bonewrought_bulwark: { name: 'Bonewrought Bulwark' },
+      wraithfire_orb: { name: 'Wraithfire Orb' },
       unknown_alien_weaponry: { name: 'Unknown Alien Weaponry' },
       alien_armor_plate: { name: 'Alien Armor Plate' },
       amber_crimson_armor_plate: { name: 'Amber Crimson' },
@@ -888,8 +1324,23 @@ export const en = {
       imperial_gold_armor_plate: { name: 'Imperial Gold' },
       vanguard_azure_armor_plate: { name: 'Vanguard Azure' },
       vanguard_chrome_armor_plate: { name: 'Vanguard Chrome' },
+      // Thunzharr, the Waking Peak (world boss): epic Tier-2 set gloves and belts
+      crownforged_gauntlets: { name: 'Bonewrought Gauntlets' },
+      nighttalon_grips: { name: 'Direfang Grips' },
+      soulflame_gloves: { name: 'Wraithfire Gloves' },
+      stormcallers_handguards: { name: 'Galecall Handguards' },
+      crownforged_girdle: { name: 'Bonewrought Girdle' },
+      nighttalon_waistband: { name: 'Direfang Waistband' },
+      soulflame_cord: { name: 'Wraithfire Cord' },
+      stormcallers_waistguard: { name: 'Galecall Waistguard' },
     },
-    mobs: { ...worldNames.en.entities.mobs, ...mergeEntities.en.mobs, ...mergeExtra.en.mobs },
+    itemSets: itemSetEntityText,
+    mobs: {
+      ...worldNames.en.entities.mobs,
+      ...mergeEntities.en.mobs,
+      ...mergeExtra.en.mobs,
+      water_elemental: { name: 'Water Elemental' },
+    },
     npcs: { ...worldNames.en.entities.npcs, ...mergeExtra.en.npcs },
     quests: {
       ...worldNames.en.entities.quests,
@@ -898,6 +1349,7 @@ export const en = {
     },
     dungeons: { ...worldNames.en.entities.dungeons, ...mergeExtra.en.dungeons },
     delves: { ...worldNames.en.entities.delves },
+    letters: { ...worldNames.en.entities.letters },
   },
 };
 
@@ -906,11 +1358,21 @@ export const en = {
 // ": EnTranslations" so tsc still red-fails any missing or renamed key.
 export type EnTranslations = typeof en;
 
-// Depth 6 so the deepest real leaves (entities.quests.<id>.objectives.<n>.label,
-// entities.zones.<id>.pois.<n>.label) are members. The sparse overlays are typed
-// `Partial<Record<TranslationKey, string>>`, so TranslationKey must reach
-// every overlay key; depth 5 stopped one segment short. (Measured: no tsc cost.)
-export type TranslationKey = Leaves<typeof en, 6>;
+// TranslationKey is the build-generated flat literal union of every dotted leaf
+// path in `en` (./translation_keys.generated.ts, emitted by scripts/i18n_build.mjs;
+// regenerate with `npm run i18n:gen`). It replaced the recursive computation
+// `Leaves<typeof en, 6>`: the recursive union normalized to thousands of string
+// literals plus 85 template-literal patterns (from the four Record-over-id entity
+// subtrees: abilities, item sets, quest objectives, zone POIs), whose
+// literal-times-pattern subsumption checks exceed TypeScript 7's native-compiler
+// work budget (TS2590; issue #1868 is the durable evidence trail), and the
+// patterns accepted ANY entity id, so a typo'd id type-checked. The generated
+// union keeps every legal key, rejects typo'd entity ids (strictly stronger
+// checking), and roughly halves tsc wall time. The sparse overlays stay typed
+// `Partial<Record<TranslationKey, string>>`, so TranslationKey still reaches
+// every overlay key. Leaves above stays exported for compatibility; it has no
+// other instantiations repo-wide.
+export type TranslationKey = import('./translation_keys.generated').TranslationKeyFlat;
 export type InterpolationValue = string | number;
 export type InterpolationValues = Record<string, InterpolationValue>;
 

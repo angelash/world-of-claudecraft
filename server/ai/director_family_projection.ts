@@ -20,9 +20,10 @@ export function mobFamilyFromValue(value: string | null | undefined): MobFamily 
   switch (value) {
     case 'beast':
     case 'humanoid':
-    case 'murloc':
+    case 'mudfin':
     case 'spider':
-    case 'kobold':
+    case 'burrower':
+    case 'reptile':
     case 'undead':
     case 'troll':
     case 'ogre':
@@ -30,6 +31,10 @@ export function mobFamilyFromValue(value: string | null | undefined): MobFamily 
     case 'dragonkin':
     case 'demon':
       return value;
+    case 'murloc':
+      return 'mudfin';
+    case 'kobold':
+      return 'burrower';
     default:
       return null;
   }
@@ -66,15 +71,15 @@ export function familyDirectorProjectionFor(
       add('directorProjection:mortalFear', 0.02, 0.3 + intensity * 0.18);
     }
   } else if (isFoodTrace(proposal, tags, mood)) {
-    if (family === 'beast' || family === 'murloc' || family === 'troll' || family === 'ogre') {
+    if (family === 'beast' || family === 'mudfin' || family === 'reptile' || family === 'troll' || family === 'ogre') {
       add('directorProjection:scavengerScent', 0.32 + intensity * 0.16, family === 'beast' ? 0.04 : 0.01);
     } else if (family === 'spider') {
       add('directorProjection:preyPattern', 0.2 + intensity * 0.1, 0.02);
-    } else if (family === 'humanoid' || family === 'kobold') {
+    } else if (family === 'humanoid' || family === 'burrower') {
       add('directorProjection:campScrap', 0.12 + intensity * 0.05, 0.03);
     }
   } else if (isValueRumor(proposal, tags, mood)) {
-    if (family === 'kobold') {
+    if (family === 'burrower') {
       add('directorProjection:smallGreed', 0.34 + intensity * 0.16, 0.03);
     } else if (isMortalSocial(family)) {
       add('directorProjection:civilRumor', 0.26 + intensity * 0.12, 0.03);
@@ -184,7 +189,7 @@ function isValueRumor(proposal: AiWorldDirectorProposal, tags: ReadonlySet<strin
 }
 
 function isMortalSocial(family: MobFamily): boolean {
-  return family === 'humanoid' || family === 'kobold' || family === 'troll' || family === 'ogre';
+  return family === 'humanoid' || family === 'burrower' || family === 'troll' || family === 'ogre';
 }
 
 function clamp01(value: number): number {

@@ -1,6 +1,6 @@
 <div align="center">
 
-[English](../../CONTRIBUTING.md) · [Español](CONTRIBUTING.es.md) · [Español (España)](CONTRIBUTING.es_ES.md) · [Français](CONTRIBUTING.fr_FR.md) · [Français (Canada)](CONTRIBUTING.fr_CA.md) · [Italiano](CONTRIBUTING.it_IT.md) · **Deutsch** · [简体中文](CONTRIBUTING.zh_CN.md) · [繁體中文](CONTRIBUTING.zh_TW.md) · [한국어](CONTRIBUTING.ko_KR.md) · [日本語](CONTRIBUTING.ja_JP.md) · [Português (Brasil)](CONTRIBUTING.pt_BR.md) · [Русский](CONTRIBUTING.ru_RU.md)
+[English](../../CONTRIBUTING.md) · [Español](CONTRIBUTING.es.md) · [Español (España)](CONTRIBUTING.es_ES.md) · [Français](CONTRIBUTING.fr_FR.md) · [Français (Canada)](CONTRIBUTING.fr_CA.md) · [Italiano](CONTRIBUTING.it_IT.md) · **Deutsch** · [简体中文](CONTRIBUTING.zh_CN.md) · [繁體中文](CONTRIBUTING.zh_TW.md) · [한국어](CONTRIBUTING.ko_KR.md) · [日本語](CONTRIBUTING.ja_JP.md) · [Português (Brasil)](CONTRIBUTING.pt_BR.md) · [Русский](CONTRIBUTING.ru_RU.md) · [Nederlands](CONTRIBUTING.nl_NL.md) · [Polski](CONTRIBUTING.pl_PL.md) · [Bahasa Indonesia](CONTRIBUTING.id_ID.md) · [Türkçe](CONTRIBUTING.tr_TR.md) · [Svenska](CONTRIBUTING.sv_SE.md) · [Tiếng Việt](CONTRIBUTING.vi_VN.md) · [Dansk](CONTRIBUTING.da_DK.md)
 
 </div>
 
@@ -14,7 +14,7 @@ du bist hier herzlich willkommen.
 
 Dieser Leitfaden hilft dir bei der Einrichtung und macht deinen ersten Beitrag
 ganz unkompliziert. Du musst kein Profi sein. Falls etwas unklar ist, frag einfach
-auf [Discord](https://discord.gg/GjhnUsBtw) nach, und jemand hilft dir gerne weiter.
+auf [Discord](https://discord.com/invite/worldofclaudecraft) nach, und jemand hilft dir gerne weiter.
 
 Mit deiner Teilnahme erklärst du dich damit einverstanden, unseren
 [Verhaltenskodex](../../CODE_OF_CONDUCT.md) einzuhalten.
@@ -190,7 +190,7 @@ bringen? Dafür musst du keinen Spielcode schreiben:
    eröffne dann einen PR.
 
 Um eine ganz neue Sprache vorzuschlagen oder über Tonfall und Terminologie zu
-sprechen, starte einen Thread auf [Discord](https://discord.gg/GjhnUsBtw), und wir
+sprechen, starte einen Thread auf [Discord](https://discord.com/invite/worldofclaudecraft), und wir
 helfen dir bei der Einrichtung. Muttersprachlerinnen und fließend sprechende
 Personen sind besonders willkommen. Gute Übersetzungen lassen das Spiel sich für
 Spieler überall wie zu Hause anfühlen.
@@ -211,7 +211,7 @@ Bitte verwende die
 ## Hilfe bekommen
 
 Steckst du fest oder möchtest einfach Hallo sagen? Komm in den
-[Community-Discord](https://discord.gg/GjhnUsBtw). Keine Frage ist zu klein, und
+[Community-Discord](https://discord.com/invite/worldofclaudecraft). Keine Frage ist zu klein, und
 neue Mitwirkende sind immer willkommen.
 
 ## Lizenz

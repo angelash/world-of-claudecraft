@@ -1,6 +1,6 @@
 <div align="center">
 
-[English](../../CONTRIBUTING.md) · [Español](CONTRIBUTING.es.md) · [Español (España)](CONTRIBUTING.es_ES.md) · [Français](CONTRIBUTING.fr_FR.md) · [Français (Canada)](CONTRIBUTING.fr_CA.md) · [Italiano](CONTRIBUTING.it_IT.md) · [Deutsch](CONTRIBUTING.de_DE.md) · [简体中文](CONTRIBUTING.zh_CN.md) · [繁體中文](CONTRIBUTING.zh_TW.md) · [한국어](CONTRIBUTING.ko_KR.md) · [日本語](CONTRIBUTING.ja_JP.md) · [Português (Brasil)](CONTRIBUTING.pt_BR.md) · **Русский**
+[English](../../CONTRIBUTING.md) · [Español](CONTRIBUTING.es.md) · [Español (España)](CONTRIBUTING.es_ES.md) · [Français](CONTRIBUTING.fr_FR.md) · [Français (Canada)](CONTRIBUTING.fr_CA.md) · [Italiano](CONTRIBUTING.it_IT.md) · [Deutsch](CONTRIBUTING.de_DE.md) · [简体中文](CONTRIBUTING.zh_CN.md) · [繁體中文](CONTRIBUTING.zh_TW.md) · [한국어](CONTRIBUTING.ko_KR.md) · [日本語](CONTRIBUTING.ja_JP.md) · [Português (Brasil)](CONTRIBUTING.pt_BR.md) · **Русский** · [Nederlands](CONTRIBUTING.nl_NL.md) · [Polski](CONTRIBUTING.pl_PL.md) · [Bahasa Indonesia](CONTRIBUTING.id_ID.md) · [Türkçe](CONTRIBUTING.tr_TR.md) · [Svenska](CONTRIBUTING.sv_SE.md) · [Tiếng Việt](CONTRIBUTING.vi_VN.md) · [Dansk](CONTRIBUTING.da_DK.md)
 
 </div>
 
@@ -13,7 +13,7 @@
 
 Это руководство поможет вам всё настроить и сделать первый вклад лёгким и
 приятным. Быть экспертом не обязательно. Если что-то непонятно, спросите в
-[Discord](https://discord.gg/GjhnUsBtw), и кто-нибудь с радостью поможет.
+[Discord](https://discord.com/invite/worldofclaudecraft), и кто-нибудь с радостью поможет.
 
 Участвуя, вы соглашаетесь соблюдать наш [Кодекс поведения](../../CODE_OF_CONDUCT.md).
 
@@ -176,7 +176,7 @@ World of ClaudeCraft выходит на множестве языков, и м�
    откройте PR.
 
 Чтобы предложить совершенно новую локаль или обсудить тон и терминологию, начните
-обсуждение в [Discord](https://discord.gg/GjhnUsBtw), и мы поможем всё подключить.
+обсуждение в [Discord](https://discord.com/invite/worldofclaudecraft), и мы поможем всё подключить.
 Носителям языка и свободно говорящим мы рады особенно. Хорошие переводы делают
 игру родной для игроков повсюду.
 
@@ -194,7 +194,7 @@ World of ClaudeCraft выходит на множестве языков, и м�
 ## Где получить помощь
 
 Застряли или просто хотите поздороваться? Заходите в
-[Discord сообщества](https://discord.gg/GjhnUsBtw). Не бывает слишком мелких
+[Discord сообщества](https://discord.com/invite/worldofclaudecraft). Не бывает слишком мелких
 вопросов, и новым участникам мы всегда рады.
 
 ## Лицензия

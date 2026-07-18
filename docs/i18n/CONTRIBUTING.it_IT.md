@@ -1,6 +1,6 @@
 <div align="center">
 
-[English](../../CONTRIBUTING.md) · [Español](CONTRIBUTING.es.md) · [Español (España)](CONTRIBUTING.es_ES.md) · [Français](CONTRIBUTING.fr_FR.md) · [Français (Canada)](CONTRIBUTING.fr_CA.md) · **Italiano** · [Deutsch](CONTRIBUTING.de_DE.md) · [简体中文](CONTRIBUTING.zh_CN.md) · [繁體中文](CONTRIBUTING.zh_TW.md) · [한국어](CONTRIBUTING.ko_KR.md) · [日本語](CONTRIBUTING.ja_JP.md) · [Português (Brasil)](CONTRIBUTING.pt_BR.md) · [Русский](CONTRIBUTING.ru_RU.md)
+[English](../../CONTRIBUTING.md) · [Español](CONTRIBUTING.es.md) · [Español (España)](CONTRIBUTING.es_ES.md) · [Français](CONTRIBUTING.fr_FR.md) · [Français (Canada)](CONTRIBUTING.fr_CA.md) · **Italiano** · [Deutsch](CONTRIBUTING.de_DE.md) · [简体中文](CONTRIBUTING.zh_CN.md) · [繁體中文](CONTRIBUTING.zh_TW.md) · [한국어](CONTRIBUTING.ko_KR.md) · [日本語](CONTRIBUTING.ja_JP.md) · [Português (Brasil)](CONTRIBUTING.pt_BR.md) · [Русский](CONTRIBUTING.ru_RU.md) · [Nederlands](CONTRIBUTING.nl_NL.md) · [Polski](CONTRIBUTING.pl_PL.md) · [Bahasa Indonesia](CONTRIBUTING.id_ID.md) · [Türkçe](CONTRIBUTING.tr_TR.md) · [Svenska](CONTRIBUTING.sv_SE.md) · [Tiếng Việt](CONTRIBUTING.vi_VN.md) · [Dansk](CONTRIBUTING.da_DK.md)
 
 </div>
 
@@ -13,7 +13,7 @@ bug, creare un dungeon completamente nuovo: tutto conta, e qui sei il benvenuto.
 
 Questa guida ti aiuterà a configurare l'ambiente e a rendere semplice il tuo primo
 contributo. Non devi essere un esperto. Se qualcosa non è chiaro, chiedi su
-[Discord](https://discord.gg/GjhnUsBtw) e qualcuno sarà felice di darti una mano.
+[Discord](https://discord.com/invite/worldofclaudecraft) e qualcuno sarà felice di darti una mano.
 
 Partecipando, accetti di seguire il nostro [Codice di Condotta](../../CODE_OF_CONDUCT.md).
 
@@ -179,7 +179,7 @@ scrivere alcun codice di gioco per farlo:
 3. Esegui `npx tsc --noEmit` per confermare che non manchi nulla, poi apri una PR.
 
 Per proporre una lingua completamente nuova, o per discutere di tono e
-terminologia, avvia una discussione su [Discord](https://discord.gg/GjhnUsBtw) e ti
+terminologia, avvia una discussione su [Discord](https://discord.com/invite/worldofclaudecraft) e ti
 aiuteremo a impostarla. I madrelingua e chi parla fluentemente sono particolarmente
 benvenuti. Buone traduzioni fanno sentire il gioco come a casa per i giocatori di
 ogni parte del mondo.
@@ -200,7 +200,7 @@ Per favore usa i [modelli di issue](https://github.com/levy-street/world-of-clau
 ## Ottenere aiuto
 
 Bloccato, o hai solo voglia di salutare? Unisciti al
-[Discord della comunità](https://discord.gg/GjhnUsBtw). Nessuna domanda è troppo
+[Discord della comunità](https://discord.com/invite/worldofclaudecraft). Nessuna domanda è troppo
 piccola, e i nuovi contributori sono sempre benvenuti.
 
 ## Licenza

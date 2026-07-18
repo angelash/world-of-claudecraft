@@ -1,10 +1,14 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { createInterface } from 'node:readline';
 import type { AiProviderTimingStep } from '../ai/ai_types';
+import {
+  codexLockdownArgs,
+  createCodexIsolation,
+  removeCodexIsolation,
+} from '../ai/codex_isolation';
 import { envPositiveInt, resolveCodexBinary } from '../ai/codex_worker';
 import type { AmbientBotLlmProvider, AmbientBotLlmProviderResult } from './llm_types';
 
@@ -15,20 +19,23 @@ export interface AmbientBotCodexCliProviderOptions {
   codexBin?: string;
   timeoutMs?: number;
   maxStderrBytes?: number;
-  repoRoot?: string;
+  codexArgsPrefix?: readonly string[];
+  sourceEnv?: NodeJS.ProcessEnv;
 }
 
 export class AmbientBotCodexCliProvider implements AmbientBotLlmProvider {
   private readonly codexBin: string;
   private readonly timeoutMs: number;
   private readonly maxStderrBytes: number;
-  private readonly repoRoot: string;
+  private readonly codexArgsPrefix: readonly string[];
+  private readonly sourceEnv: NodeJS.ProcessEnv;
 
   constructor(options: AmbientBotCodexCliProviderOptions = {}) {
     this.codexBin = options.codexBin ?? process.env.CODEX_BIN ?? resolveCodexBinary();
     this.timeoutMs = options.timeoutMs ?? envPositiveInt('AMBIENT_PLAYER_BOTS_LLM_TIMEOUT_MS', envPositiveInt('AI_CODEX_TIMEOUT_MS', DEFAULT_TIMEOUT_MS));
     this.maxStderrBytes = Math.max(0, Math.floor(options.maxStderrBytes ?? DEFAULT_MAX_STDERR_BYTES));
-    this.repoRoot = options.repoRoot ?? process.cwd();
+    this.codexArgsPrefix = options.codexArgsPrefix ?? [];
+    this.sourceEnv = options.sourceEnv ?? process.env;
   }
 
   async decide(input: {
@@ -42,17 +49,23 @@ export class AmbientBotCodexCliProvider implements AmbientBotLlmProvider {
     };
 
     let stepStartedAt = performance.now();
-    const dir = await mkdtemp(join(tmpdir(), 'woc-ambient-bot-'));
+    const isolation = await createCodexIsolation('woc-ambient-bot-', this.sourceEnv);
     recordStep('tempDirMs', 'create temp dir', stepStartedAt);
-    const schemaPath = join(dir, 'decision.schema.json');
-    const outputPath = join(dir, 'decision.json');
+    const schemaPath = join(isolation.artifactsDir, 'decision.schema.json');
+    const outputPath = join(isolation.artifactsDir, 'decision.json');
     try {
       stepStartedAt = performance.now();
       await writeFile(schemaPath, JSON.stringify(input.outputSchema, null, 2), 'utf8');
       recordStep('writeSchemaMs', 'write output schema', stepStartedAt);
 
       stepStartedAt = performance.now();
-      const result = await this.execCodex(input.promptText, schemaPath, outputPath);
+      const result = await this.execCodex(
+        input.promptText,
+        schemaPath,
+        outputPath,
+        isolation.workspaceDir,
+        isolation.env,
+      );
       recordStep('codexExecMs', 'codex exec subprocess', stepStartedAt);
 
       let rawOutput = '';
@@ -79,7 +92,7 @@ export class AmbientBotCodexCliProvider implements AmbientBotLlmProvider {
         },
       };
     } finally {
-      await rm(dir, { recursive: true, force: true });
+      await removeCodexIsolation(isolation);
     }
   }
 
@@ -87,21 +100,26 @@ export class AmbientBotCodexCliProvider implements AmbientBotLlmProvider {
     promptText: string,
     schemaPath: string,
     outputPath: string,
+    workspaceDir: string,
+    env: NodeJS.ProcessEnv,
   ): Promise<{ lastAgentMessage: string | null }> {
     const args = [
+      ...this.codexArgsPrefix,
+      ...codexLockdownArgs(),
       '--ask-for-approval',
       'never',
+      '-C',
+      workspaceDir,
       'exec',
-      '--disable',
-      'plugins',
+      '--ignore-user-config',
+      '--ignore-rules',
+      '--skip-git-repo-check',
       '--ephemeral',
       '--json',
       '--color',
       'never',
       '--sandbox',
       'read-only',
-      '-C',
-      this.repoRoot,
       '--output-schema',
       schemaPath,
       '-o',
@@ -110,7 +128,8 @@ export class AmbientBotCodexCliProvider implements AmbientBotLlmProvider {
     ];
     return new Promise((resolve, reject) => {
       const child = spawn(this.codexBin, args, {
-        cwd: this.repoRoot,
+        cwd: workspaceDir,
+        env,
         stdio: ['pipe', 'pipe', 'pipe'],
         windowsHide: true,
       });

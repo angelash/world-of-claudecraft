@@ -2,6 +2,7 @@ import type { KnownAbility } from '../../src/sim/content/classes';
 import { computeTalentModifiers } from '../../src/sim/content/talents';
 import type { TalentAllocation } from '../../src/sim/content/talents';
 import { abilitiesKnownAt, ITEMS } from '../../src/sim/data';
+import { parseTalentAllocation } from '../../src/sim/talent_allocation_input';
 import type { InvSlot } from '../../src/sim/types';
 import type { AmbientPlayerBotRecord } from './types';
 
@@ -66,6 +67,7 @@ const PREP_LONG_CAST_COOLDOWN_MS = 1_600;
 const PREP_USE_COOLDOWN_MS = 3_000;
 const PRE_PULL_MANA_RATIO = 0.45;
 const MIN_SAFE_LIFE_TAP_HP_RATIO = 0.55;
+const PREP_NON_EMERGENCY_MANA_RESERVE_RATIO = 0.25;
 
 const WARLOCK_SUMMON_PRIORITY = [
   'summon_doomguard',
@@ -211,11 +213,20 @@ function castPreparedAbility(
     if (requiredSetup && self.resourceType === 'mana' && self.maxResource >= ability.cost) return waitToRestoreMana();
     return null;
   }
+  if (!requiredSetup && !preparedCastKeepsManaReserve(self, ability)) return null;
   const cooldownMs = ability.castTime > 0 ? PREP_LONG_CAST_COOLDOWN_MS : PREP_CAST_COOLDOWN_MS;
   if (input.issueCommand(`cast:${ability.def.id}`, cooldownMs)) {
     return prepareStep([{ cmd: 'cast', ability: ability.def.id }]);
   }
   return waitToPrepare();
+}
+
+function preparedCastKeepsManaReserve(
+  self: PreCombatSelfView,
+  ability: KnownAbility,
+): boolean {
+  if (self.resourceType !== 'mana' || self.maxResource <= 0 || ability.cost <= 0) return true;
+  return (self.resource - ability.cost) / self.maxResource >= PREP_NON_EMERGENCY_MANA_RESERVE_RATIO;
 }
 
 function canAttemptAbility(self: PreCombatSelfView, ability: KnownAbility): boolean {
@@ -367,16 +378,7 @@ function parsePreCombatEntity(raw: Record<string, unknown>): PreCombatEntityView
 
 function readTalentAllocation(raw: unknown): TalentAllocation | null {
   const record = readRecord(raw);
-  const alloc = record ? readRecord(record.alloc) : null;
-  const ranks = alloc ? readRecord(alloc.ranks) : null;
-  const choices = alloc ? readRecord(alloc.choices) : null;
-  return alloc
-    ? {
-      spec: readString(alloc.spec),
-      ranks: ranks ? Object.fromEntries(Object.entries(ranks).map(([key, value]) => [key, readNumber(value) ?? 0])) : {},
-      choices: choices ? Object.fromEntries(Object.entries(choices).map(([key, value]) => [key, readString(value) ?? ''])) : {},
-    }
-    : null;
+  return parseTalentAllocation(record?.alloc);
 }
 
 function readAuras(raw: unknown): PreCombatAuraView[] {

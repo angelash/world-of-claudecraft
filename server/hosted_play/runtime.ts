@@ -24,7 +24,7 @@ import type { AmbientPlayerBotLlmConfig, AmbientPlayerBotRecord } from '../ambie
 import type { AmbientPlayerBotLiveState } from '../ambient_bots/ws_client';
 import { normalizeHostedPlayAutoInviteTargetPartySize } from '../../src/hosted_play_settings';
 import { zoneAt } from '../../src/sim/data';
-import type { SimEvent } from '../../src/sim/types';
+import { INTERACT_RANGE, type SimEvent } from '../../src/sim/types';
 import {
   createHostedPlayPartyState,
   tickHostedPlayPartyCoordinator,
@@ -64,6 +64,15 @@ const HOSTED_PLAY_LOCAL_QUEST_OVERRIDE_RANGE = 24;
 const HOSTED_PLAY_LOCAL_ACTIVE_QUEST_MAX_LEADER_DISTANCE = 18;
 const HOSTED_PLAY_RECOVERY_LOCAL_QUEST_MIN_HEALTH_RATIO = 0.9;
 const HOSTED_PLAY_RECOVERY_RESTOCK_STABLE_HEALTH_RATIO = 0.9;
+const HOSTED_PLAY_SIDE_WORK_TRAIN_LINK_RANGE = 10;
+const HOSTED_PLAY_SIDE_WORK_MAX_LEADER_RANGE = 24;
+const HOSTED_PLAY_OBJECT_PICKUP_RANGE = INTERACT_RANGE + 0.75;
+const HOSTED_PLAY_OBJECT_PICKUP_MIN_SELF_HEALTH_RATIO = 0.72;
+const HOSTED_PLAY_OBJECT_PICKUP_MIN_PARTY_HEALTH_RATIO = 0.65;
+const HOSTED_PLAY_OBJECT_PICKUP_TRAIN_LINK_RANGE = 14;
+const HOSTED_PLAY_OBJECT_PICKUP_MAX_LEADER_RANGE = 30;
+const HOSTED_PLAY_RECOVERY_COMBAT_MIN_HEALTH_RATIO = 0.72;
+const HOSTED_PLAY_RECOVERY_COMBAT_MIN_RESOURCE_RATIO = 0.25;
 
 interface HostedPlayEntry {
   characterId: number;
@@ -87,6 +96,7 @@ interface HostedPlayEntry {
   brainState: AmbientPlayerBotBrainState;
   lastBrainAtMs: number | null;
   lastBrainResult: AmbientPlayerBotBrainTickResult | null;
+  lastPartyTravelGoal: AmbientPlayerBotBrainTickResult['travelGoal'] | null;
   lastEffectiveCommands: readonly Record<string, unknown>[];
   brainDrivePaused: boolean;
   partyState: HostedPlayPartyState;
@@ -94,6 +104,43 @@ interface HostedPlayEntry {
   partyChatRunnerState: Record<string, unknown>;
   llmState: HostedPlayLlmState;
   actionLogAtMs: Record<string, number>;
+}
+
+interface HostedBrainDriveProgressSnapshot {
+  lastProgressAtMs: number | null;
+  lastX: number | null;
+  lastZ: number | null;
+  pathGoalKey: string | null;
+  path: AmbientPlayerBotBrainState['path'];
+  campIndex: number;
+  stuckResets: number;
+}
+
+function hostedBrainDriveProgressSnapshot(
+  state: AmbientPlayerBotBrainState,
+): HostedBrainDriveProgressSnapshot {
+  return {
+    lastProgressAtMs: state.lastProgressAtMs,
+    lastX: state.lastX,
+    lastZ: state.lastZ,
+    pathGoalKey: state.pathGoalKey,
+    path: state.path.map((point) => ({ x: point.x, z: point.z })),
+    campIndex: state.campIndex,
+    stuckResets: state.stuckResets,
+  };
+}
+
+function restoreHostedBrainDriveProgress(
+  state: AmbientPlayerBotBrainState,
+  snapshot: HostedBrainDriveProgressSnapshot,
+): void {
+  state.lastProgressAtMs = snapshot.lastProgressAtMs;
+  state.lastX = snapshot.lastX;
+  state.lastZ = snapshot.lastZ;
+  state.pathGoalKey = snapshot.pathGoalKey;
+  state.path = snapshot.path.map((point) => ({ x: point.x, z: point.z }));
+  state.campIndex = snapshot.campIndex;
+  state.stuckResets = snapshot.stuckResets;
 }
 
 export interface HostedPlayRuntimeGame {
@@ -246,6 +293,7 @@ export class HostedPlayRuntime {
           lastError: '',
           lastBrainAtMs: null,
           lastBrainResult: null,
+          lastPartyTravelGoal: null,
           lastEffectiveCommands: [],
           brainDrivePaused: false,
           partyChatState: createAmbientPlayerBotPartyChatRuntimeState(),
@@ -274,6 +322,7 @@ export class HostedPlayRuntime {
           brainState: createAmbientPlayerBotBrainState(),
           lastBrainAtMs: null,
           lastBrainResult: null,
+          lastPartyTravelGoal: null,
           lastEffectiveCommands: [],
           brainDrivePaused: false,
           partyState: createHostedPlayPartyState(),
@@ -354,11 +403,24 @@ export class HostedPlayRuntime {
       || entry.lastBrainAtMs === null
       || runtimeAtMs - entry.lastBrainAtMs >= this.brainDecisionIntervalMs;
     if (!decisionDue) {
-      this.driveHostedEntry(characterId, entry, liveState);
+      if (entry.brainDrivePaused) {
+        this.driveHostedPartyTravel(
+          characterId,
+          entry,
+          liveState,
+          entry.lastPartyTravelGoal,
+          entry.objectiveId,
+          entry.objectiveLabel,
+          nowMs,
+        );
+      } else {
+        this.driveHostedEntry(characterId, entry, liveState, entry.lastBrainResult, nowMs);
+      }
       return;
     }
     const recentEvents = this.game.drainHostedPlayRecentEvents(characterId);
 
+    const brainDriveProgressBeforeBrain = hostedBrainDriveProgressSnapshot(entry.brainState);
     const stuckResetsBeforeBrain = entry.brainState.stuckResets;
     const result = tickAmbientPlayerBotBrain(
       {
@@ -384,6 +446,7 @@ export class HostedPlayRuntime {
         partyMode: entry.preferences.partyMode,
         autoInviteNearbyPlayers: entry.preferences.autoInviteNearbyPlayers,
         autoInviteNearbyTargetPartySize: entry.preferences.autoInviteNearbyTargetPartySize,
+        objectiveDungeonId: result.objectiveDungeonId,
         objectiveSuggestedPartySize: result.objectiveSuggestedPartySize ?? 0,
         partyIntent: ambientPartyCoordinationIntentFromRunnerState(entry.partyChatRunnerState),
         ambientDirectory: this.game.ambientPlayerBotDirectory(),
@@ -401,6 +464,7 @@ export class HostedPlayRuntime {
     );
     const allowAmbientSelfMaintenanceBrain = partyResult.pauseBrainDrive
       && !hostedLeaderMustHoldRegroup(partyResult.groupMode, liveState)
+      && hostedPartyCohesionStableForSideWork(liveState)
       && ambientBrainSelfMaintenanceAllowedWhilePartyPaused({
         result,
         groupMode: partyResult.groupMode,
@@ -417,15 +481,35 @@ export class HostedPlayRuntime {
       );
     const allowSelfMaintenanceBrain = partyResult.pauseBrainDrive
       && (allowAmbientSelfMaintenanceBrain || allowRecoverySelfMaintenanceBrain);
-    const partyControlActive = partyResult.pauseBrainDrive && partyResult.groupMode !== 'brain';
-    entry.brainDrivePaused = partyResult.pauseBrainDrive && !allowLocalQuestBrain && !allowSelfMaintenanceBrain;
+    const allowCombatBrain = partyResult.pauseBrainDrive
+      && hostedCombatBrainAllowedWhilePartyPaused(
+        result,
+        partyResult.groupMode,
+        liveState,
+        partyResult.travelGoal ?? null,
+      );
+    const partyControlActive =
+      partyResult.pauseBrainDrive
+      && partyResult.groupMode !== 'brain'
+      && !allowCombatBrain;
+    entry.brainDrivePaused =
+      partyResult.pauseBrainDrive
+      && !allowLocalQuestBrain
+      && !allowSelfMaintenanceBrain
+      && !allowCombatBrain;
+    entry.lastPartyTravelGoal = entry.brainDrivePaused ? partyResult.travelGoal ?? null : null;
+    const partyTravelDriveActive = entry.brainDrivePaused && !!partyResult.travelGoal;
     if (partyControlActive) {
-      if (entry.brainState.stuckResets > stuckResetsBeforeBrain) {
+      if (entry.brainDrivePaused) {
+        restoreHostedBrainDriveProgress(entry.brainState, brainDriveProgressBeforeBrain);
+      } else if (entry.brainState.stuckResets > stuckResetsBeforeBrain) {
         entry.brainState.stuckResets = stuckResetsBeforeBrain;
       }
-      markAmbientPlayerBotBrainExternalProgress(entry.brainState, liveState, nowMs, {
-        preservePath: !!partyResult.travelGoal || allowLocalQuestBrain || allowSelfMaintenanceBrain,
-      });
+      if (!partyTravelDriveActive) {
+        markAmbientPlayerBotBrainExternalProgress(entry.brainState, liveState, nowMs, {
+          preservePath: allowLocalQuestBrain || allowSelfMaintenanceBrain,
+        });
+      }
     }
 
     const socialResult = tickAmbientPlayerBotSocialShell(
@@ -465,33 +549,34 @@ export class HostedPlayRuntime {
     entry.partyChatRunnerState = { ...partyChatResult.runnerStatePatch };
 
     const effectiveCommands: Record<string, unknown>[] = [];
-    if (!allowLocalQuestBrain) {
+    if (
+      !allowLocalQuestBrain
+      && !allowCombatBrain
+      && partyResult.facing !== undefined
+      && Number.isFinite(partyResult.facing)
+    ) {
+      this.game.applyHostedPlayMoveInput(characterId, {}, partyResult.facing);
+    }
+    if (!allowLocalQuestBrain && !allowCombatBrain) {
       for (const command of partyResult.commands) {
         this.game.applyHostedPlayCommand(characterId, command);
         effectiveCommands.push(command);
       }
     }
-    if (partyResult.pauseBrainDrive && !allowLocalQuestBrain && !allowSelfMaintenanceBrain) {
-      if (partyResult.travelGoal) {
-        const groupDrive = continueAmbientPlayerBotTravel(
-          liveState,
-          entry.brainState,
-          result.objectiveId,
-          result.objectiveLabel,
-          partyResult.travelGoal,
-        );
-        if (groupDrive && hasHostedDrive(groupDrive.moveInput, groupDrive.facing)) {
-          this.game.applyHostedPlayMoveInput(characterId, groupDrive.moveInput, groupDrive.facing);
-        } else {
-          this.game.clearHostedPlayControl(characterId);
-        }
-      } else {
-        this.game.clearHostedPlayControl(characterId);
-      }
+    if (partyResult.pauseBrainDrive && !allowLocalQuestBrain && !allowSelfMaintenanceBrain && !allowCombatBrain) {
+      this.driveHostedPartyTravel(
+        characterId,
+        entry,
+        liveState,
+        partyResult.travelGoal ?? null,
+        result.objectiveId,
+        result.objectiveLabel,
+        nowMs,
+      );
     } else {
-      this.driveHostedEntry(characterId, entry, liveState, result);
+      this.driveHostedEntry(characterId, entry, liveState, result, nowMs);
     }
-    if (!partyResult.pauseBrainDrive || allowLocalQuestBrain || allowSelfMaintenanceBrain) {
+    if (!partyResult.pauseBrainDrive || allowLocalQuestBrain || allowSelfMaintenanceBrain || allowCombatBrain) {
       for (const command of result.commands) {
         this.game.applyHostedPlayCommand(characterId, command);
         effectiveCommands.push(command);
@@ -500,7 +585,6 @@ export class HostedPlayRuntime {
       for (const command of hostedBrainCommandsAllowedWhilePartyPaused(
         result,
         partyResult.groupMode,
-        liveState,
       )) {
         this.game.applyHostedPlayCommand(characterId, command);
         effectiveCommands.push(command);
@@ -539,6 +623,7 @@ export class HostedPlayRuntime {
     entry: HostedPlayEntry,
     liveState: AmbientPlayerBotLiveState,
     result: AmbientPlayerBotBrainTickResult | null = entry.lastBrainResult,
+    nowMs: number = this.nowMs(),
   ): void {
     if (!result || entry.brainDrivePaused) {
       this.game.clearHostedPlayControl(characterId);
@@ -551,6 +636,7 @@ export class HostedPlayRuntime {
           result.objectiveId,
           result.objectiveLabel,
           result.travelGoal,
+          nowMs,
         ) ?? result
       : result;
     if (hasHostedDrive(driveResult.moveInput, driveResult.facing)) {
@@ -724,6 +810,34 @@ export class HostedPlayRuntime {
     entry.actionLogAtMs[actionLog.key] = nowMs;
     this.game.sendHostedPlayActionLog(characterId, actionLog.text);
   }
+
+  private driveHostedPartyTravel(
+    characterId: number,
+    entry: HostedPlayEntry,
+    liveState: AmbientPlayerBotLiveState,
+    travelGoal: AmbientPlayerBotBrainTickResult['travelGoal'] | null,
+    objectiveId: string,
+    objectiveLabel: string,
+    nowMs: number,
+  ): void {
+    if (!travelGoal) {
+      this.game.clearHostedPlayControl(characterId);
+      return;
+    }
+    const groupDrive = continueAmbientPlayerBotTravel(
+      liveState,
+      entry.brainState,
+      objectiveId,
+      objectiveLabel,
+      travelGoal,
+      nowMs,
+    );
+    if (groupDrive && hasHostedDrive(groupDrive.moveInput, groupDrive.facing)) {
+      this.game.applyHostedPlayMoveInput(characterId, groupDrive.moveInput, groupDrive.facing);
+    } else {
+      this.game.clearHostedPlayControl(characterId);
+    }
+  }
 }
 
 function hostedPlayDebugSnapshot(
@@ -823,11 +937,7 @@ function hostedPlayDebugSnapshot(
 function hostedBrainCommandsAllowedWhilePartyPaused(
   result: AmbientPlayerBotBrainTickResult,
   groupMode: string,
-  liveState: AmbientPlayerBotLiveState,
 ): readonly Record<string, unknown>[] {
-  if (hostedLocalQuestBrainAllowedWhilePartyPaused(result, groupMode, liveState)) {
-    return result.commands.filter(isHostedLocalQuestCommand);
-  }
   if (hostedRecoveryBrainAllowedWhilePartyPaused(result, groupMode)) {
     return result.commands.filter(isHostedRecoveryCommand);
   }
@@ -850,7 +960,11 @@ function hostedLocalQuestBrainAllowedWhilePartyPaused(
   const recoveryQuestIntakeMode = groupMode === 'assist_party'
     || groupMode === 'recover_party';
   if (!localGroupMode && !recoveryQuestIntakeMode) return false;
+  if (hostedObjectPickupBrainAllowedWhilePartyPaused(result, groupMode, liveState)) {
+    return true;
+  }
   if (isHostedLocalQuestObjective(result.objectiveId)) {
+    if (!hostedPartyCohesionStableForSideWork(liveState)) return false;
     if (
       localGroupMode
       && hostedLeaderDistance(liveState) > HOSTED_PLAY_LOCAL_ACTIVE_QUEST_MAX_LEADER_DISTANCE
@@ -871,6 +985,7 @@ function hostedLocalQuestBrainAllowedWhilePartyPaused(
     return hostedLocalQuestTravelIsNearby(result, liveState);
   }
   if (result.objectiveId === 'loot') {
+    if (!hostedPartyCohesionStableForSideWork(liveState)) return false;
     if (recoveryQuestIntakeMode) {
       if (hostedPartyHasCombatSignal(liveState)) return false;
       if (!hostedPartyHealthStableForRecoverySideWork(liveState)) return false;
@@ -881,8 +996,95 @@ function hostedLocalQuestBrainAllowedWhilePartyPaused(
   }
   if (recoveryQuestIntakeMode) return false;
   if (!isHostedActiveQuestObjective(result)) return false;
+  if (!hostedPartyCohesionStableForSideWork(liveState)) return false;
   if (hostedLeaderDistance(liveState) > HOSTED_PLAY_LOCAL_ACTIVE_QUEST_MAX_LEADER_DISTANCE) return false;
   return hostedLocalQuestTravelIsNearby(result, liveState);
+}
+
+function hostedObjectPickupBrainAllowedWhilePartyPaused(
+  result: AmbientPlayerBotBrainTickResult,
+  groupMode: string,
+  liveState: AmbientPlayerBotLiveState,
+): boolean {
+  if (!result.objectiveId.startsWith('collect_')) return false;
+  if (hostedLeaderMustHoldRegroup(groupMode, liveState)) return false;
+  if (
+    groupMode !== 'assist_party'
+    && groupMode !== 'recover_party'
+    && groupMode !== 'follow_leader'
+    && groupMode !== 'hold_regroup'
+    && groupMode !== 'prepare_party'
+  ) {
+    return false;
+  }
+  if (!hostedSelfHealthyForObjectPickup(liveState)) return false;
+  if (hostedPartyHasObjectPickupHealthRisk(liveState)) return false;
+  if (!hostedPartyCohesionStableForObjectPickup(liveState)) return false;
+  return hostedLootableObjectNearSelf(liveState, HOSTED_PLAY_OBJECT_PICKUP_RANGE);
+}
+
+function hostedSelfHealthyForObjectPickup(liveState: AmbientPlayerBotLiveState): boolean {
+  const self = liveState.self;
+  if (!self) return false;
+  if (self.dead === 1 || self.dead === true) return false;
+  const hp = typeof self.hp === 'number' ? self.hp : 1;
+  const maxHp = typeof self.mhp === 'number' ? self.mhp : 1;
+  return maxHp <= 0 || hp / maxHp >= HOSTED_PLAY_OBJECT_PICKUP_MIN_SELF_HEALTH_RATIO;
+}
+
+function hostedPartyHasObjectPickupHealthRisk(liveState: AmbientPlayerBotLiveState): boolean {
+  const self = liveState.self;
+  if (!self) return true;
+  const party = hostedRuntimePartyFromLiveState(liveState);
+  const members = party?.members ?? [hostedRuntimeMemberFromLive(self)].filter(
+    (member): member is HostedRuntimePartyMember => member !== null,
+  );
+  if (members.length === 0) return true;
+  return members.some((member) => {
+    if (member.dead) return true;
+    return member.mhp > 0 && member.hp / member.mhp < HOSTED_PLAY_OBJECT_PICKUP_MIN_PARTY_HEALTH_RATIO;
+  });
+}
+
+function hostedPartyCohesionStableForObjectPickup(liveState: AmbientPlayerBotLiveState): boolean {
+  const party = hostedRuntimePartyFromLiveState(liveState);
+  if (!party) return true;
+  const leader = party.members.find((member) => member.pid === party.leader) ?? null;
+  if (!leader || leader.dead) return false;
+  const trainMembers = [
+    leader,
+    ...party.members.filter((member) => member.pid !== leader.pid),
+  ];
+  let previous = trainMembers[0] ?? null;
+  if (!previous) return false;
+  for (const member of trainMembers.slice(1)) {
+    if (member.dead) return false;
+    if (hostedRuntimeMemberDistance(previous, member) > HOSTED_PLAY_OBJECT_PICKUP_TRAIN_LINK_RANGE) {
+      return false;
+    }
+    if (hostedRuntimeMemberDistance(leader, member) > HOSTED_PLAY_OBJECT_PICKUP_MAX_LEADER_RANGE) {
+      return false;
+    }
+    previous = member;
+  }
+  return true;
+}
+
+function hostedLootableObjectNearSelf(
+  liveState: AmbientPlayerBotLiveState,
+  range: number,
+): boolean {
+  const selfX = typeof liveState.self?.x === 'number' ? liveState.self.x : null;
+  const selfZ = typeof liveState.self?.z === 'number' ? liveState.self.z : null;
+  if (selfX === null || selfZ === null) return false;
+  for (const entity of liveState.entities.values()) {
+    if (entity.k !== 'object' || (entity.loot !== 1 && entity.loot !== true)) continue;
+    const x = readHostedRuntimeNumber(entity.x);
+    const z = readHostedRuntimeNumber(entity.z);
+    if (x === null || z === null) continue;
+    if (Math.hypot(selfX - x, selfZ - z) <= range) return true;
+  }
+  return false;
 }
 
 function hostedSelfCanAcceptQuestDuringRecovery(liveState: AmbientPlayerBotLiveState): boolean {
@@ -922,6 +1124,48 @@ function hostedRecoveryBrainAllowedWhilePartyPaused(
       || groupMode === 'recover_party');
 }
 
+function hostedCombatBrainAllowedWhilePartyPaused(
+  result: AmbientPlayerBotBrainTickResult,
+  groupMode: string,
+  liveState: AmbientPlayerBotLiveState,
+  partyTravelGoal: AmbientPlayerBotBrainTickResult['travelGoal'] | null,
+): boolean {
+  if (result.objectiveId !== 'combat') return false;
+  if (groupMode !== 'recover_party' && groupMode !== 'assist_party') return false;
+  if (partyTravelGoal && hostedPartyTravelGoalShouldKeepBrainPaused(partyTravelGoal, liveState)) {
+    return false;
+  }
+  return hostedPartyHasCombatSignal(liveState)
+    && !hostedPartyRecoveryCombatUnsafe(liveState);
+}
+
+function hostedPartyTravelGoalShouldKeepBrainPaused(
+  travelGoal: NonNullable<AmbientPlayerBotBrainTickResult['travelGoal']>,
+  liveState: AmbientPlayerBotLiveState,
+): boolean {
+  if (
+    !travelGoal.goalKey.startsWith('hosted-party-safe-retreat:')
+    && !travelGoal.goalKey.startsWith('hosted-party-safe-leash:')
+    && !travelGoal.goalKey.startsWith('hosted-party-retreat:')
+    && !travelGoal.goalKey.startsWith('hosted-party-density-retreat:')
+    && !travelGoal.goalKey.startsWith('hosted-party-recover:')
+  ) {
+    return false;
+  }
+  return !hostedSelfAtPartyTravelGoal(liveState, travelGoal);
+}
+
+function hostedSelfAtPartyTravelGoal(
+  liveState: AmbientPlayerBotLiveState,
+  travelGoal: NonNullable<AmbientPlayerBotBrainTickResult['travelGoal']>,
+): boolean {
+  const selfX = readHostedRuntimeNumber(liveState.self?.x);
+  const selfZ = readHostedRuntimeNumber(liveState.self?.z);
+  if (selfX === null || selfZ === null) return false;
+  return Math.hypot(travelGoal.target.x - selfX, travelGoal.target.z - selfZ)
+    <= Math.max(0.5, travelGoal.arrivalRange);
+}
+
 function isHostedRecoveryCommand(command: Record<string, unknown>): boolean {
   return command.cmd === 'use';
 }
@@ -933,6 +1177,7 @@ function hostedRecoverySelfMaintenanceAllowedWhilePartyPaused(
 ): boolean {
   if (groupMode !== 'recover_party' && groupMode !== 'assist_party') return false;
   if (!result.objectiveId.startsWith('restock_')) return false;
+  if (!hostedPartyCohesionStableForSideWork(liveState)) return false;
   if (hostedPartyHasCombatSignal(liveState)) return false;
   if (hostedTravelGoalIsNearby(result, liveState, HOSTED_PLAY_LOCAL_QUEST_OVERRIDE_RANGE)) return true;
   return hostedSelfIsPartyLeader(liveState) && hostedPartyHealthStableForRecoverySideWork(liveState);
@@ -968,7 +1213,7 @@ function hostedTravelGoalIsNearby(
 function hostedPartyHasCombatSignal(liveState: AmbientPlayerBotLiveState): boolean {
   const self = liveState.self;
   const selfId = typeof self?.id === 'number' ? self.id : null;
-  const party = parseHostedRuntimeParty(self?.party);
+  const party = hostedRuntimePartyFromLiveState(liveState);
   const partyIds = new Set<number>(party ? party.members.map((member) => member.pid) : []);
   if (selfId !== null) partyIds.add(selfId);
   if (hostedCombatFlag(self?.cmb) || hostedCombatFlag(self?.inCombat)) return true;
@@ -992,25 +1237,45 @@ function hostedCombatFlag(value: unknown): boolean {
 function hostedPartyHealthStableForRecoverySideWork(liveState: AmbientPlayerBotLiveState): boolean {
   const self = liveState.self;
   if (!self) return false;
-  const party = parseHostedRuntimeParty(self.party);
+  const party = hostedRuntimePartyFromLiveState(liveState);
   const members = party?.members ?? [hostedRuntimeMemberFromLive(self)].filter(
     (member): member is HostedRuntimePartyMember => member !== null,
   );
   if (members.length === 0) return false;
-  const liveById = new Map<number, Record<string, unknown>>();
-  for (const entity of liveState.entities.values()) {
-    const id = typeof entity.id === 'number' ? entity.id : null;
-    if (id !== null) liveById.set(id, entity);
-  }
-  const selfId = typeof self.id === 'number' ? self.id : null;
   return members.every((member) => {
-    const liveMember = member.pid === selfId ? self : liveById.get(member.pid);
-    const hp = readHostedRuntimeNumber(liveMember?.hp) ?? member.hp;
-    const maxHp = readHostedRuntimeNumber(liveMember?.mhp) ?? member.mhp;
-    const dead = hostedCombatFlag(liveMember?.dead) || member.dead;
-    if (dead) return false;
+    if (member.dead) return false;
+    const hp = member.hp;
+    const maxHp = member.mhp;
     return maxHp <= 0 || hp / maxHp >= HOSTED_PLAY_RECOVERY_RESTOCK_STABLE_HEALTH_RATIO;
   });
+}
+
+function hostedPartyCohesionStableForSideWork(liveState: AmbientPlayerBotLiveState): boolean {
+  const party = hostedRuntimePartyFromLiveState(liveState);
+  if (!party) return true;
+  const leader = party.members.find((member) => member.pid === party.leader) ?? null;
+  if (!leader || leader.dead) return false;
+  const trainMembers = [
+    leader,
+    ...party.members.filter((member) => member.pid !== leader.pid),
+  ];
+  let previous = trainMembers[0] ?? null;
+  if (!previous) return false;
+  for (const member of trainMembers.slice(1)) {
+    if (member.dead) return false;
+    if (hostedRuntimeMemberDistance(previous, member) > HOSTED_PLAY_SIDE_WORK_TRAIN_LINK_RANGE) {
+      return false;
+    }
+    if (hostedRuntimeMemberDistance(leader, member) > HOSTED_PLAY_SIDE_WORK_MAX_LEADER_RANGE) {
+      return false;
+    }
+    previous = member;
+  }
+  return true;
+}
+
+function hostedRuntimeMemberDistance(a: HostedRuntimePartyMember, b: HostedRuntimePartyMember): number {
+  return Math.hypot(a.x - b.x, a.z - b.z);
 }
 
 function hostedLocalQuestTravelIsNearby(
@@ -1027,7 +1292,7 @@ function hostedLocalQuestTravelIsNearby(
 
 function hostedLeaderDistance(liveState: AmbientPlayerBotLiveState): number {
   const self = liveState.self;
-  const party = parseHostedRuntimeParty(self?.party);
+  const party = hostedRuntimePartyFromLiveState(liveState);
   if (!self || !party) return 0;
   const selfId = typeof self.id === 'number' ? self.id : null;
   if (selfId === null || party.leader === selfId) return 0;
@@ -1046,18 +1311,67 @@ function hostedLeaderMustHoldRegroup(
 
 function hostedSelfIsPartyLeader(liveState: AmbientPlayerBotLiveState): boolean {
   const self = liveState.self;
-  const party = parseHostedRuntimeParty(self?.party);
+  const party = hostedRuntimePartyFromLiveState(liveState);
   return typeof self?.id === 'number' && !!party && party.leader === self.id;
 }
 
 interface HostedRuntimePartyMember {
   pid: number;
+  cls: string | null;
   x: number;
   z: number;
   hp: number;
   mhp: number;
+  res: number;
+  mres: number;
+  rtype: string | null;
   dead: boolean;
   inCombat: boolean;
+}
+
+function hostedPartyRecoveryCombatUnsafe(liveState: AmbientPlayerBotLiveState): boolean {
+  const self = liveState.self;
+  const party = hostedRuntimePartyFromLiveState(liveState);
+  const members = party?.members ?? [hostedRuntimeMemberFromLive(self)].filter(
+    (member): member is HostedRuntimePartyMember => member !== null,
+  );
+  if (members.length === 0) return true;
+  if (members.some((member) =>
+    member.dead || hostedRuntimeHealthRatio(member) <= HOSTED_PLAY_RECOVERY_COMBAT_MIN_HEALTH_RATIO)) {
+    return true;
+  }
+  const primaryResourceMember = hostedRuntimePrimaryResourceRecoveryMember(members);
+  return primaryResourceMember
+    ? hostedRuntimeMemberNeedsResourceRecovery(
+      primaryResourceMember,
+      HOSTED_PLAY_RECOVERY_COMBAT_MIN_RESOURCE_RATIO,
+    )
+    : false;
+}
+
+function hostedRuntimePrimaryResourceRecoveryMember(
+  members: readonly HostedRuntimePartyMember[],
+): HostedRuntimePartyMember | null {
+  const healers = members.filter((member) =>
+    !member.dead && hostedRuntimeClassCanHeal(member.cls) && member.rtype === 'mana');
+  return healers.find((member) => member.cls === 'priest') ?? healers[0] ?? null;
+}
+
+function hostedRuntimeClassCanHeal(cls: string | null): boolean {
+  return cls === 'priest' || cls === 'paladin' || cls === 'shaman' || cls === 'druid';
+}
+
+function hostedRuntimeMemberNeedsResourceRecovery(
+  member: HostedRuntimePartyMember,
+  threshold: number,
+): boolean {
+  if (member.rtype !== 'mana') return false;
+  if (member.mres <= 0) return false;
+  return member.res / member.mres <= threshold;
+}
+
+function hostedRuntimeHealthRatio(member: HostedRuntimePartyMember): number {
+  return member.mhp > 0 ? member.hp / member.mhp : 1;
 }
 
 function parseHostedRuntimeParty(value: unknown): { leader: number; members: HostedRuntimePartyMember[] } | null {
@@ -1070,6 +1384,54 @@ function parseHostedRuntimeParty(value: unknown): { leader: number; members: Hos
   return { leader: record.leader, members };
 }
 
+function hostedRuntimePartyFromLiveState(liveState: AmbientPlayerBotLiveState): { leader: number; members: HostedRuntimePartyMember[] } | null {
+  const party = parseHostedRuntimeParty(liveState.self?.party);
+  if (!party) return null;
+  const liveMembers = hostedRuntimeLiveMembersById(liveState);
+  return {
+    leader: party.leader,
+    members: party.members.map((member) =>
+      mergeHostedRuntimeMemberFromLive(member, liveMembers.get(member.pid))),
+  };
+}
+
+function hostedRuntimeLiveMembersById(liveState: AmbientPlayerBotLiveState): Map<number, Record<string, unknown>> {
+  const members = new Map<number, Record<string, unknown>>();
+  if (liveState.self && typeof liveState.self.id === 'number') {
+    members.set(liveState.self.id, liveState.self);
+  }
+  for (const entity of liveState.entities.values()) {
+    if (!entity || typeof entity !== 'object' || Array.isArray(entity)) continue;
+    if (entity.k !== 'player') continue;
+    const id = readHostedRuntimeNumber(entity.id);
+    if (id !== null) members.set(id, entity);
+  }
+  return members;
+}
+
+function mergeHostedRuntimeMemberFromLive(
+  member: HostedRuntimePartyMember,
+  liveMember: Record<string, unknown> | undefined,
+): HostedRuntimePartyMember {
+  if (!liveMember) return member;
+  return {
+    ...member,
+    cls: readHostedRuntimeString(liveMember.cls) ?? member.cls,
+    x: readHostedRuntimeNumber(liveMember.x) ?? member.x,
+    z: readHostedRuntimeNumber(liveMember.z) ?? member.z,
+    hp: readHostedRuntimeNumber(liveMember.hp) ?? member.hp,
+    mhp: readHostedRuntimeNumber(liveMember.mhp) ?? member.mhp,
+    res: readHostedRuntimeNumber(liveMember.res) ?? member.res,
+    mres: readHostedRuntimeNumber(liveMember.mres) ?? member.mres,
+    rtype: readHostedRuntimeString(liveMember.rtype) ?? member.rtype,
+    dead: 'dead' in liveMember ? hostedCombatFlag(liveMember.dead) : member.dead,
+    inCombat:
+      ('inCombat' in liveMember || 'cmb' in liveMember)
+        ? hostedCombatFlag(liveMember.inCombat) || hostedCombatFlag(liveMember.cmb)
+        : member.inCombat,
+  };
+}
+
 function hostedRuntimeMemberFromLive(value: unknown): HostedRuntimePartyMember | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const member = value as Record<string, unknown>;
@@ -1079,10 +1441,14 @@ function hostedRuntimeMemberFromLive(value: unknown): HostedRuntimePartyMember |
   if (pid === null || x === null || z === null) return null;
   return {
     pid,
+    cls: readHostedRuntimeString(member.cls),
     x,
     z,
     hp: readHostedRuntimeNumber(member.hp) ?? 1,
     mhp: readHostedRuntimeNumber(member.mhp) ?? 1,
+    res: readHostedRuntimeNumber(member.res) ?? 0,
+    mres: readHostedRuntimeNumber(member.mres) ?? 0,
+    rtype: readHostedRuntimeString(member.rtype),
     dead: hostedCombatFlag(member.dead),
     inCombat: hostedCombatFlag(member.inCombat) || hostedCombatFlag(member.cmb),
   };
@@ -1092,9 +1458,8 @@ function readHostedRuntimeNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-function isHostedLocalQuestCommand(command: Record<string, unknown>): boolean {
-  const kind = command.cmd;
-  return kind === 'target' || kind === 'interact';
+function readHostedRuntimeString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
 }
 
 function hostedPlayDebugTravelGoal(
