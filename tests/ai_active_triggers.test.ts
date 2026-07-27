@@ -7,6 +7,7 @@ import {
 import { AiWorldDirectorStore } from '../server/ai/world_director';
 import type { AiJobContextV1, AiProvider } from '../server/ai/ai_types';
 import { individualProfileFor, type IndividualTrait } from '../server/ai/singularity';
+import { EASTBROOK_NPC_PLACEMENTS_BY_ID } from '../src/sim/eastbrook_layout';
 import { Sim } from '../src/sim/sim';
 import { dist2d, type SimEvent } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
@@ -1061,7 +1062,9 @@ describe('AI active trigger service', () => {
         kind: 'shortMove',
         npcId,
         playerId: pid,
-        targetPos: expect.objectContaining({ x: 11, z: -3 }),
+        targetPos: expect.objectContaining(
+          EASTBROOK_NPC_PLACEMENTS_BY_ID.apothecary_lin.position,
+        ),
       }),
     ]);
     expect(service.runtimeMetrics()).toMatchObject({

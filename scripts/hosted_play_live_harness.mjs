@@ -6,6 +6,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import WebSocket from 'ws';
+import { worldAuthMessage } from './lib/world_auth.mjs';
 
 const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 const BASE = (process.env.SERVER_URL ?? 'http://localhost:8787').replace(/\/$/, '');
@@ -263,7 +264,7 @@ class Client {
       this.ws = ws;
       const timeout = setTimeout(() => reject(new Error(`connect timeout for ${this.label}`)), 8_000);
       ws.on('open', () => {
-        this.send({ t: 'auth', token: this.token, character: this.characterId });
+        this.send(worldAuthMessage(this.token, this.characterId));
       });
       ws.on('message', (data) => {
         const msg = JSON.parse(String(data));

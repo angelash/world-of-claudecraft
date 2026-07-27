@@ -18,13 +18,14 @@ vi.mock('../server/db', () => ({
   loadAccountFlair: vi.fn(async () => ({ ai: false, streamer: false, links: {} })),
 }));
 
-import { AI_ACTIVE_TRIGGER_INTERVAL_MS, GameServer, type ClientSession } from '../server/game';
 import {
-  AiActiveTriggerService,
   type AiActivePollRuleV1,
+  AiActiveTriggerService,
 } from '../server/ai/active_triggers';
-import type { AiAuditRecord, AiAuditSink } from '../server/ai_audit';
 import type { AiDecisionV1, AiJobContextV1, AiProvider, AiProviderOutput, AiProviderTimingSnapshot } from '../server/ai/ai_types';
+import type { AiAuditRecord, AiAuditSink } from '../server/ai_audit';
+import { AI_ACTIVE_TRIGGER_INTERVAL_MS, type ClientSession, GameServer } from '../server/game';
+import { EASTBROOK_NPC_PLACEMENTS_BY_ID } from '../src/sim/eastbrook_layout';
 import { dist2d } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
 
@@ -568,7 +569,10 @@ describe('server AI active triggers', () => {
       pid: session.pid,
     }));
     expect(npc.aiActiveMoveTarget).not.toBeNull();
-    expect(dist2d(npc.aiActiveMoveTarget!, { x: 11, y: npc.pos.y, z: -3 })).toBeLessThanOrEqual(2.1);
+    expect(dist2d(npc.aiActiveMoveTarget!, {
+      ...EASTBROOK_NPC_PLACEMENTS_BY_ID.apothecary_lin.position,
+      y: npc.pos.y,
+    })).toBeLessThanOrEqual(2.1);
     expect(mainlineSnapshot(server, session.pid)).toEqual(before);
   });
 

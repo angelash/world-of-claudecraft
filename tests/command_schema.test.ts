@@ -28,12 +28,12 @@ const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 // Water Jet commands, on top of Season 1 Armory skin, ignore_add/ignore_remove,
 // stow_weapon, Dungeon Finder, inv_move, the release's Card Duel minigame
 // (card_queue_join/leave, play_card, card_forfeit), and Professions 2.0's
-// place_mobile_station, train_recipe, the three enchanting actions
-// (disenchant_item, apply_enchant, salvage_item), and unbind_item (the
-// Maker's Bond unbind service), plus the fork's three AI interaction and
-// inspection commands and its dispatch-only AI pet command.
-const EXPECTED_SEND_COUNT = 166;
-const EXPECTED_DISPATCH_COUNT = 176;
+// place_mobile_station, train_recipe, the enchanting and replacement-confirm
+// actions, and unbind_item (the Maker's Bond unbind service), plus the fork's
+// three AI interaction and inspection commands and its dispatch-only AI pet
+// command. v0.30 also adds the guild_set_motd client/server command pair.
+const EXPECTED_SEND_COUNT = 167;
+const EXPECTED_DISPATCH_COUNT = 177;
 const EXPECTED_DISPATCH_ONLY_COUNT = 10;
 
 // The chat sub-channel routing switch (server/game.ts `switch

@@ -32,6 +32,7 @@ import { formatMoney } from './format_money';
 import { moveStackToCell } from './inventory_order';
 import { meetsLevelRequirement, requiredLevelFor } from './item_level_req';
 import { battlefieldExperienceTrickle } from './professions/battlefield_xp';
+import { useGatherToolItem } from './professions/gathering';
 import type { ItemUseResult, PlayerMeta } from './sim';
 import type { SimContext } from './sim_context';
 import {
@@ -367,10 +368,14 @@ export function useItem(ctx: SimContext, itemId: string, pid?: number): ItemUseR
   // the catch band, professions/fishing.ts) but must still CAST like the
   // simple pole, so a fishing-profession gatherTool use routes to the same
   // startFishing (which owns the dead/combat/busy/water gates, exactly as the
-  // arm above). Every OTHER gatherTool use (picks, axes, sickles) stays a safe
-  // no-op exactly as today: node gating scans bags, never an item use.
-  if (def.use?.type === 'gatherTool' && def.use.professionId === 'fishing') {
-    ctx.startFishing(p, meta);
+  // arm above). Every OTHER gatherTool use (picks, axes, sickles) starts
+  // gathering the nearest matching node in range (#2343): useGatherToolItem
+  // routes through harvestNode, which owns the dead/busy/range/respawn/tool/
+  // capacity gates, and a click with nothing in reach gets the text-free
+  // gatherToolNoNode event, never a silent no-op.
+  if (def.use?.type === 'gatherTool') {
+    if (def.use.professionId === 'fishing') ctx.startFishing(p, meta);
+    else useGatherToolItem(ctx, def.use.professionId, meta.entityId);
     return;
   }
   if (def.use?.type === 'mechChroma') {
@@ -407,7 +412,14 @@ export function useItem(ctx: SimContext, itemId: string, pid?: number): ItemUseR
       hpPer2s: def.foodHp ? Math.round(def.foodHp / CONSUME_TICKS) : 0,
       manaPer2s: def.drinkMana ? Math.round(def.drinkMana / CONSUME_TICKS) : 0,
       remaining: CONSUME_DURATION,
+      ticksElapsed: 0,
     };
+    // A one-shot bite/gulp the instant you sit down, on top of the regular
+    // every-3rd-tick cadence (updateRegen, combat/auras.ts): otherwise the
+    // first sound doesn't land until ~6s in and using the item reads silent.
+    // amount:0 + sfxTick:true is sound-only (see consumeHealCue), same
+    // convention as the regen tick's own sfx-only ticks.
+    ctx.emit({ type: 'heal', targetId: p.id, amount: 0, source: def.kind, sfxTick: true });
     ctx.emit({
       type: 'log',
       text: def.kind === 'food' ? 'You sit down to eat.' : 'You sit down to drink.',
@@ -456,23 +468,36 @@ export function useItem(ctx: SimContext, itemId: string, pid?: number): ItemUseR
     }
     p.potionCooldownUntil = ctx.time + POTION_COOLDOWN;
     p.potionCdRemaining = POTION_COOLDOWN; // materialized remaining for the action-bar swipe
+    let potionHeal = 0;
     if (restoresHp) {
-      const heal = Math.min(Math.round(def.potionHp! * ctx.healingTakenMult(p)), p.maxHp - p.hp);
-      p.hp += heal;
-      ctx.emit({ type: 'heal', targetId: p.id, amount: heal });
+      potionHeal = Math.min(Math.round(def.potionHp! * ctx.healingTakenMult(p)), p.maxHp - p.hp);
+      p.hp += potionHeal;
     }
     if (restoresMana) {
       p.resource = Math.min(p.maxResource, p.resource + def.potionMana!);
     }
+    // Always emit, even a pure-mana potion (potionHeal 0): this is what plays
+    // the dedicated quaff sound (hud.ts), distinct from a real heal's
+    // heal_impact. amount:0 keeps a mana-only potion from spawning a bogus
+    // "+0" floating heal number (the FCT/log arms both gate on amount > 0).
+    ctx.emit({ type: 'heal', targetId: p.id, amount: potionHeal, source: 'potion' });
     ctx.emit({ type: 'log', text: `You quaff ${def.name}.`, color: '#c9f', pid: meta.entityId });
   } else if (def.kind === 'elixir') {
     // Battle elixir: grant a temporary stat-buff aura. Usable in combat (classic),
     // no shared potion cooldown; re-quaffing refreshes the buff via applyAura.
+    // The aura id is keyed on the elixir's EFFECT kind, not the item, so every
+    // elixir of one stat shares one id and the same-id replacement in applyAura
+    // makes same-stat elixirs exclusive: last drunk wins (classic overwrite,
+    // weaker included). Different-kind elixirs coexist; class buffs
+    // (buff_sta_pct) and negative buff_sta debuffs ride their own ids. This
+    // assumes one stat kind equals one exclusivity slot: if a guardian elixir
+    // family that should stack with battle elixirs ever lands, the id needs a
+    // family component (elixir_battle_...), not just the kind.
     const elx = def.elixir;
     if (!elx) return;
     ctx.removeItem(itemId, 1, meta.entityId);
     ctx.applyAura(p, {
-      id: `elixir_${itemId}`,
+      id: `elixir_${elx.kind}`,
       name: elx.aura,
       kind: elx.kind,
       remaining: elx.duration,

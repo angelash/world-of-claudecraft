@@ -1,8 +1,9 @@
 import { zoneAt } from '../../src/sim/data';
+import { EASTBROOK_NPC_PLACEMENTS_BY_ID } from '../../src/sim/eastbrook_layout';
 import type { Vec3 } from '../../src/sim/types';
 import { dist2d } from '../../src/sim/types';
-import { lightSemanticFor, timeSemanticAt, weatherSemanticAt } from './time_weather_model';
 import type { LightSemantic, TimeSemantic, WeatherSemantic } from './time_weather_model';
+import { lightSemanticFor, timeSemanticAt, weatherSemanticAt } from './time_weather_model';
 
 export interface SceneAnchor {
   id: string;
@@ -40,12 +41,16 @@ export interface SceneSemantics {
   light: LightSemantic;
 }
 
+const EASTBROOK_SCENE_CENTER = { x: 8, z: 17 } as const;
+const EASTBROOK_APOTHECARY_POINT =
+  EASTBROOK_NPC_PLACEMENTS_BY_ID.apothecary_lin.position;
+
 export const SCENE_ANCHORS: readonly SceneAnchor[] = [
   {
     id: 'eastbrook_forge',
     label: 'Eastbrook Forge',
-    x: 8,
-    z: 17,
+    x: EASTBROOK_SCENE_CENTER.x,
+    z: EASTBROOK_SCENE_CENTER.z,
     radius: 36,
     biomeTags: ['vale', 'town'],
     locationTags: ['town', 'marketEdge', 'safeTown'],
@@ -55,7 +60,18 @@ export const SCENE_ANCHORS: readonly SceneAnchor[] = [
       { id: 'eastbrook_forge_hearth', label: 'Forge Hearth', tags: ['forge', 'hotIron', 'sparks', 'workNoise'], featureTags: ['orangeCoals', 'hammerMarks', 'sootBlackenedStone'], affordanceTags: ['warmHands', 'repairGear', 'avoidHeat'], dx: 0, dz: 0, radius: 10 },
       { id: 'eastbrook_smithy_house', label: 'Smithy House', tags: ['house', 'warmLight', 'safeTown', 'livedIn'], featureTags: ['litWindows', 'smokeCurl', 'stackedFirewood'], affordanceTags: ['seekShelter', 'askForHelp', 'restNearDoor'], dx: -5, dz: 4, radius: 12 },
       { id: 'eastbrook_market_stall', label: 'Market Stall', tags: ['stall', 'marketEdge', 'coin', 'footTraffic'], featureTags: ['hangingCloth', 'countingTray', 'scuffedCounter'], affordanceTags: ['haggle', 'sniffGoods', 'watchCrowd'], dx: 7, dz: -3, radius: 11 },
-      { id: 'eastbrook_apothecary_bench', label: 'Apothecary Bench', tags: ['alchemy', 'herb', 'safeTown', 'quiet'], featureTags: ['dryingBundles', 'glassVials', 'mortarDust'], affordanceTags: ['sniffHerbs', 'askRemedy', 'handleCarefully'], dx: 3, dz: -20, radius: 12 },
+      {
+        id: 'eastbrook_apothecary_bench',
+        label: 'Apothecary Bench',
+        tags: ['alchemy', 'herb', 'safeTown', 'quiet'],
+        featureTags: ['dryingBundles', 'glassVials', 'mortarDust'],
+        affordanceTags: ['sniffHerbs', 'askRemedy', 'handleCarefully'],
+        // Keep the fork's semantic work point aligned with Lin's canonical
+        // v0.30 placement instead of the removed legacy drying-rack location.
+        dx: EASTBROOK_APOTHECARY_POINT.x - EASTBROOK_SCENE_CENTER.x,
+        dz: EASTBROOK_APOTHECARY_POINT.z - EASTBROOK_SCENE_CENTER.z,
+        radius: 12,
+      },
       { id: 'eastbrook_wayside_shrine', label: 'Wayside Shrine', tags: ['shrine', 'prayerMemory', 'quiet', 'safeTown'], featureTags: ['waxDrips', 'prayerRibbons', 'weatheredIcon'], affordanceTags: ['offerPrayer', 'lowerVoice', 'readInscription'], dx: -22, dz: -27, radius: 12 },
     ],
   },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { resolveMovement } from '../src/sim/colliders';
-import { DUNGEONS } from '../src/sim/data';
+import { DUNGEONS, NPCS } from '../src/sim/data';
 import { DT, INTERACT_RANGE, RUN_SPEED } from '../src/sim/types';
 import {
   continueAmbientPlayerBotTravel,
@@ -255,7 +255,10 @@ describe('ambient player bot brain', () => {
 
     expect(initial.objectiveId).toBe('accept_boars');
     expect(initial.travelGoal).toMatchObject({
-      target: { x: -7, z: 3 },
+      target: {
+        x: NPCS.trader_wilkes.pos.x,
+        z: NPCS.trader_wilkes.pos.z,
+      },
     });
 
     const goal = initial.travelGoal!;

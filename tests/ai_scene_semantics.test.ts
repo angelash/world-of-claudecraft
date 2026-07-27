@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { EASTBROOK_NPC_PLACEMENTS_BY_ID } from '../src/sim/eastbrook_layout';
 import { Sim } from '../src/sim/sim';
 import { groundHeight } from '../src/sim/world';
 import { sceneFrameFor } from '../server/ai/scene_frame';
@@ -40,9 +41,10 @@ describe('AI scene semantics', () => {
     ]));
   });
 
-  it('extends Eastbrook town semantics down to the apothecary corner', () => {
+  it('extends Eastbrook town semantics to the canonical apothecary position', () => {
     const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
-    const frame = sceneFrameFor(sim, pos(11, -3, sim.cfg.seed));
+    const apothecary = EASTBROOK_NPC_PLACEMENTS_BY_ID.apothecary_lin.position;
+    const frame = sceneFrameFor(sim, pos(apothecary.x, apothecary.z, sim.cfg.seed));
 
     expect(frame.subsceneId).toBe('eastbrook_forge');
     expect(frame.locationTags).toContain('safeTown');
@@ -117,14 +119,22 @@ describe('AI scene semantics', () => {
     apothecary!.vendorItems = [];
     apothecary!.hp = Math.floor(apothecary!.maxHp * 0.4);
 
-    const included = sceneFrameFor(sim, pos(11, -3, sim.cfg.seed));
+    const apothecaryPos = EASTBROOK_NPC_PLACEMENTS_BY_ID.apothecary_lin.position;
+    const included = sceneFrameFor(
+      sim,
+      pos(apothecaryPos.x, apothecaryPos.z, sim.cfg.seed),
+    );
     expect(included.companions).toContainEqual(expect.objectContaining({
       templateId: 'apothecary_lin',
       family: 'humanoid',
       tags: expect.arrayContaining(['npc', 'humanoid', 'injured']),
     }));
 
-    const excluded = sceneFrameFor(sim, pos(11, -3, sim.cfg.seed), { excludeEntityIds: [apothecary!.id] });
+    const excluded = sceneFrameFor(
+      sim,
+      pos(apothecaryPos.x, apothecaryPos.z, sim.cfg.seed),
+      { excludeEntityIds: [apothecary!.id] },
+    );
     expect(excluded.companions.some((companion) => companion.entityId === apothecary!.id)).toBe(false);
   });
 

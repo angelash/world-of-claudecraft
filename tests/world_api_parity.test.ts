@@ -189,6 +189,7 @@ export const IWORLD_MEMBERS = [
   { name: 'forfeitCardDuel', kind: 'method' },
   { name: 'cupInfo', kind: 'data' },
   { name: 'marketInfo', kind: 'data' },
+  { name: 'marketCollectPending', kind: 'data' },
   // --- party / raid commands + marker read ---
   { name: 'partyInvite', kind: 'method' },
   { name: 'partyAccept', kind: 'method' },
@@ -234,6 +235,7 @@ export const IWORLD_MEMBERS = [
   { name: 'guildDisband', kind: 'method' },
   { name: 'guildEventCreate', kind: 'method' },
   { name: 'guildEventRemove', kind: 'method' },
+  { name: 'guildSetMotd', kind: 'method' },
   { name: 'searchCharacters', kind: 'method' }, // async (1/2)
   { name: 'characterProfile', kind: 'method' }, // async
   // Operator-set account flair, by name. A pure LOCAL read (the flair rides the entity
@@ -289,6 +291,7 @@ export const IWORLD_MEMBERS = [
   { name: 'companionUpgrades', kind: 'data' },
   { name: 'delveDaily', kind: 'data' },
   { name: 'professionsState', kind: 'data' },
+  { name: 'stationPlacements', kind: 'data' },
   { name: 'craftingIdentity', kind: 'data' },
   { name: 'nodeHarvestableByMe', kind: 'method' }, // read-returning
   { name: 'harvestNode', kind: 'method' },
@@ -467,10 +470,11 @@ describe('IWORLD_MEMBERS is the pinned IWorld contract (anti-loosening)', () => 
     // plus the release's Card Duel facet, the Professions 2.0 identity
     // surface, the mobile-station pair (placeMobileStation +
     // activeMobileStationCraft), the commissions unbindItem command, and the
-    // fork's three AI interaction methods.
-    expect(IWORLD_MEMBERS.length).toBe(256);
-    expect(DATA_MEMBERS.length).toBe(67);
-    expect(METHOD_MEMBERS.length).toBe(189);
+    // fork's three AI interaction methods. The v0.30 surface contributes its
+    // own new data members on top of that fork union.
+    expect(IWORLD_MEMBERS.length).toBe(259);
+    expect(DATA_MEMBERS.length).toBe(69);
+    expect(METHOD_MEMBERS.length).toBe(190);
   });
   it('has no duplicate member names', () => {
     const names = IWORLD_MEMBERS.map((m) => m.name);
@@ -599,6 +603,7 @@ describe('IWORLD_MEMBERS is the pinned IWorld contract (anti-loosening)', () => 
       'guildLeaderboard',
       'guildLeave',
       'guildPromote',
+      'guildSetMotd',
       'guildTransfer',
       'harvestCorpse',
       'harvestNode',
@@ -639,6 +644,7 @@ describe('IWORLD_MEMBERS is the pinned IWorld contract (anti-loosening)', () => 
       'marketBuy',
       'marketCancel',
       'marketCollect',
+      'marketCollectPending',
       'marketInfo',
       'marketList',
       'marketSearch',
@@ -702,6 +708,7 @@ describe('IWORLD_MEMBERS is the pinned IWorld contract (anti-loosening)', () => 
       'socialInfo',
       'spinDailyReward',
       'startAutoAttack',
+      'stationPlacements',
       'stopAutoAttack',
       'submitLootRoll',
       'switchLoadout',
@@ -787,6 +794,7 @@ describe('IWORLD_MEMBERS is the pinned IWorld contract (anti-loosening)', () => 
       'lockpickState',
       'mailInfo',
       'mailUnread',
+      'marketCollectPending',
       'marketInfo',
       'moveInput',
       'partyInfo',
@@ -801,6 +809,7 @@ describe('IWORLD_MEMBERS is the pinned IWorld contract (anti-loosening)', () => 
       'renown',
       'restedXp',
       'socialInfo',
+      'stationPlacements',
       'talentRole',
       'talentSpec',
       'talents',
@@ -902,6 +911,7 @@ describe('IWORLD_MEMBERS is the pinned IWorld contract (anti-loosening)', () => 
       'guildLeaderboard',
       'guildLeave',
       'guildPromote',
+      'guildSetMotd',
       'guildTransfer',
       'harvestCorpse',
       'harvestNode',
@@ -1050,7 +1060,7 @@ describe('membership, not equality: world extras do not fail the gate', () => {
 //       a MISSING name (if the array omits a key, Exclude<> is a non-never union and tsc
 //       fails) -- (1)+(2) together make each array EXACTLY its facet key-set;
 //   (3) the 28 arrays are pairwise DISJOINT (a member filed in two facets reddens);
-//   (4) their union, sorted, equals the pinned 256-name IWORLD_MEMBERS set (a member
+//   (4) their union, sorted, equals the pinned 259-name IWORLD_MEMBERS set (a member
 //       dropped from the split reddens).
 // This is the rigorous form, NOT the tautological `keyof IWorld === keyof (A & B & ...)`
 // (IWorld extends them, so that self-equality proves nothing): it asserts against the
@@ -1301,6 +1311,7 @@ const FACET_SOCIAL_GRAPH = [
   'guildDisband',
   'guildEventCreate',
   'guildEventRemove',
+  'guildSetMotd',
   'searchCharacters',
   'characterProfile',
   'accountFlair',
@@ -1311,6 +1322,7 @@ type _ExhaustSocialGraph = AssertNever<
 
 const FACET_MARKET = [
   'marketInfo',
+  'marketCollectPending',
   'marketSearch',
   'marketList',
   'marketBuy',
@@ -1413,6 +1425,7 @@ type _ExhaustDungeonFinder = AssertNever<
 
 const FACET_PROFESSIONS = [
   'professionsState',
+  'stationPlacements',
   'craftingIdentity',
   'nodeHarvestableByMe',
   'harvestNode',
@@ -1519,8 +1532,8 @@ describe('W1: aggregate IWorld member set equals the disjoint union of the 28 fa
 
   it('the union of the facets equals the pinned IWORLD_MEMBERS set', () => {
     const union = Object.values(FACET_MEMBER_ARRAYS).flatMap((arr) => [...arr]);
-    expect(union.length, 'union size before dedup (catches a duplicated member)').toBe(256);
-    expect(new Set(union).size, 'union size after dedup (catches a duplicated member)').toBe(256);
+    expect(union.length, 'union size before dedup (catches a duplicated member)').toBe(259);
+    expect(new Set(union).size, 'union size after dedup (catches a duplicated member)').toBe(259);
     const sortedUnion = [...union].sort();
     const pinned = IWORLD_MEMBERS.map((m) => m.name).sort();
     expect(sortedUnion).toEqual(pinned);

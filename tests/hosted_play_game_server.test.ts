@@ -15,7 +15,7 @@ vi.mock('../server/db', () => ({
   loadAccountFlair: vi.fn(async () => ({ ai: false, streamer: false, links: {} })),
 }));
 
-import { GameServer, type ClientSession } from '../server/game';
+import { type ClientSession, GameServer } from '../server/game';
 
 function fakeWs() {
   return {
@@ -111,6 +111,31 @@ describe('GameServer hosted play seams', () => {
     observer.mockClear();
     server.applyHostedPlayMoveInput(101, { forward: 1 });
     expect(observer).not.toHaveBeenCalled();
+  });
+
+  it('keeps trusted hosted input outside client bot detection and inbound lanes', () => {
+    const server = new GameServer();
+    const session = expectJoined(server.join(fakeWs(), 1, 101, 'Hero', 'warrior', null));
+    const meta = server.sim.meta(session.pid);
+    if (!meta) throw new Error('missing player meta');
+    const detector = (server as any).botDetector;
+    const inputObserved = vi.spyOn(detector, 'observeInput');
+    const commandObserved = vi.spyOn(detector, 'observeCommand');
+    const targetNearest = vi.spyOn(server.sim, 'targetNearestEnemy');
+
+    session.msgLanes.movementTokens = 0;
+    session.msgLanes.commandTokens = 0;
+
+    expect(server.applyHostedPlayMoveInput(101, { f: 1 })).toBe(true);
+    expect(server.applyHostedPlayCommand(101, { cmd: 'targetNearest' })).toBe(true);
+
+    expect(meta.moveInput.forward).toBe(true);
+    expect(targetNearest).toHaveBeenCalledWith(session.pid);
+    expect(inputObserved).not.toHaveBeenCalled();
+    expect(commandObserved).not.toHaveBeenCalled();
+    expect(session.msgLanes.movementTokens).toBe(0);
+    expect(session.msgLanes.commandTokens).toBe(0);
+    expect(session.msgRate.dropsThisSecond).toBe(0);
   });
 
   it('keeps hosted movement control when the observing client sends idle input', () => {

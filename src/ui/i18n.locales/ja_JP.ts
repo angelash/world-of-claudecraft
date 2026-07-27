@@ -711,6 +711,15 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'hudChrome.social.offlineHeader': 'オフライン ({n})',
   'hudChrome.social.hideOffline': 'オフラインを非表示',
   'hudChrome.social.hideOfflineTitle': 'オフラインのギルドメンバーを非表示',
+  'hudChrome.social.billboard.label': 'ギルド掲示板',
+  'hudChrome.social.billboard.empty': '掲示板にはまだ何もありません。',
+  'hudChrome.social.billboard.setBy': '{name}が設定',
+  'hudChrome.social.billboard.save': '保存',
+  'hudChrome.social.billboard.placeholder': 'ギルドへのメッセージを書く',
+  'hudChrome.social.billboard.inputLabel': 'ギルド掲示板メッセージ',
+  'hudChrome.social.billboard.result.set': 'ギルド掲示板を更新しました。',
+  'hudChrome.social.billboard.result.notOfficer':
+    '掲示板を編集できるのは幹部とギルドマスターだけです。',
   'hudChrome.party.promoteLeader': 'パーティリーダーに指定',
   'hudChrome.party.inviteUsage': '誰を招待しますか？使用法：/invite <名前>。',
   'hudChrome.masterLoot.thresholdLabel': '品質しきい値',
@@ -778,6 +787,7 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'hudChrome.corpseHarvest.components.claw': '爪',
   'hudChrome.corpseHarvest.components.horn': '角',
   'hudChrome.corpseHarvest.components.tusk': '牙',
+  'hudChrome.corpseHarvest.components.cloth': '布',
   'hudChrome.townFocus.title': '町のフォーカス',
   'hudChrome.townFocus.hint':
     'フォーカスポイントは各素材の基本産出量にボーナスを加算します。フォーカスしていない素材は基本産出量のままです。',
@@ -1484,9 +1494,13 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'loading.slowConnection':
     '読み込みに時間がかかっています。インターネット接続を確認してください。',
   'loading.connectionRejected': 'サーバーが接続を閉じました。',
+  'loading.incompatibleWorldVersion':
+    'ゲームとサーバーのバージョンに互換性がありません。再読み込みまたはアップデートしてから、もう一度お試しください。',
   'loading.realmFull': 'このワールドは現在満員です。数分後にもう一度お試しください。',
   'loading.tooManyConnections':
     'お使いのネットワークからこのワールドへの接続が多すぎます。余分なゲームウィンドウを閉じるか、数分後にもう一度お試しください。',
+  'loading.messageRateExceeded':
+    '操作の送信が速すぎたため、切断されました。しばらく待ってから再度ログインしてください。',
   'errors.nothingInteract': '操作できるものがありません。',
   'errors.noEnemyNearby': '近くに敵がいません。',
   'errors.characterNameRequired': 'キャラクター名を入力してください。',
@@ -1886,6 +1900,7 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'hud.combat.auraGain': '{name}を得ました。',
   'hud.combat.auraFade': '{name}が自分から消えました。',
   'hud.combat.auraAfflicted': '{target}は{name}を受けています。',
+  'hud.combat.auraGainOther': '{target}は{name}を得ました。',
   'hud.system.playerDeath': '死亡しました。',
   'hud.system.respawn': '再び休まり、完全な状態になりました。',
   'hud.system.ignoringChat': '{name}のチャットを無視します。',
@@ -1986,6 +2001,7 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'hud.logs.arenaJoin': '灰の闘技場のキューに入りました。ふさわしい相手を待ちます...',
   'hud.logs.arenaLeave': '灰の闘技場のキューを離れました。',
   'hud.logs.arenaSands': '灰の闘技場の砂地に足を踏み入れました。',
+  'hud.logs.arenaSandsDrowned': '水没の宮廷の水に沈んだ石畳に足を踏み入れた。',
   'hud.logs.tradeRequestSent': '{name}に取引を申し込みました。',
   'hud.logs.tradeOpened': '取引ウィンドウが開きました。',
   'hud.logs.tradeComplete': '取引完了。',
@@ -2103,6 +2119,9 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'hud.trade.accept': '取引承認',
   'hud.trade.waiting': '待機中...',
   'hud.trade.cancel': 'キャンセル',
+  'hud.arena.mapName': 'マップ: {name}',
+  'hud.arena.map.coliseum': '灰の闘技場',
+  'hud.arena.map.drownedCourt': '水没の宮廷',
   'hud.arena.title': '灰の闘技場',
   'hud.arena.subtitle': '1対1レート戦',
   'hud.arena.close': 'アリーナを閉じる',
@@ -2363,6 +2382,7 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'itemUi.market.pageNextAria': 'マーケットの次のページ',
   'itemUi.market.pageStatus': '{total} ページ中 {current} ページ',
   'itemUi.market.filters': '市場フィルター',
+  'itemUi.market.filterValueAria': '{label}: {value}',
   'itemUi.market.filterType': '種類',
   'itemUi.market.filterTypeAll': 'すべての種類',
   'itemUi.market.filterTypeWeapon': '武器',
@@ -2373,6 +2393,13 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'itemUi.market.filterTypeOther': 'その他',
   'itemUi.market.filterArmorType': '防具の種類',
   'itemUi.market.filterArmorAll': 'すべての防具',
+  'itemUi.market.filterArmorSlot': '防具スロット',
+  'itemUi.market.filterArmorClassAll': 'すべての防具タイプ',
+  'itemUi.market.armorCloth': '布防具',
+  'itemUi.market.armorLeather': '革防具',
+  'itemUi.market.armorMail': '鎖防具',
+  'itemUi.market.filterPrimaryStat': 'メイン能力値',
+  'itemUi.market.filterPrimaryStatAll': 'すべてのメイン能力値',
   'itemUi.market.filterWeaponType': '武器の種類',
   'itemUi.market.filterWeaponAll': 'すべての武器',
   'itemUi.market.filterRarity': 'レア度',
@@ -6418,6 +6445,13 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'gpuNotice.bodyWeb':
     'ゲームがGPUアクセラレーションなしで動作しているため、非常に重くなります。ブラウザーの設定でハードウェアアクセラレーションを有効にし、グラフィックドライバーを更新してから、ブラウザーを再起動してください。',
   'gpuNotice.dismiss': '閉じる',
+  'perfNudge.integratedGpu':
+    'ゲームは内蔵（省電力）GPUで動作しています。このパソコンにゲーミングGPUも搭載されている場合は、Windowsの 設定 > システム > ディスプレイ > グラフィック でブラウザーを「高パフォーマンス」に設定し、ブラウザーを再起動してください。デスクトップ版は自動的にゲーミングGPUを選択します。',
+  'perfNudge.hardwareAccelerationDesktop':
+    'ゲームがGPUアクセラレーションなしで動作しているため、非常に重くなっています。グラフィックドライバーを更新してから、ゲームを再起動してください。Windowsでは、設定 > システム > ディスプレイ > グラフィック でこのゲームを「高パフォーマンス」に設定してください。',
+  'perfNudge.hardwareAccelerationWeb':
+    'ゲームがGPUアクセラレーションなしで動作しているため、非常に重くなっています。ブラウザーの設定でハードウェアアクセラレーションを有効にし、グラフィックドライバーを更新してから、ブラウザーを再起動してください。',
+  'perfNudge.dismiss': '閉じる',
   'editor.appTitle': 'マップエディター',
   'editor.docTitle': 'マップエディター - World of ClaudeCraft',
   'editor.untitledMap': '無題のマップ',
@@ -7029,6 +7063,7 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'apiError.discord.swag_tier': 'これを受け取るにはより高いランクが必要です。',
   'apiError.discord.swag_points': 'ポイントが足りません。',
   'hudChrome.mailbox.title': 'メールボックス',
+  'hudChrome.noticeboard.empty': '何も貼られていないようだ。',
   'hudChrome.mailbox.subtitle': 'レイヴンポスト',
   'hudChrome.mailbox.close': 'メールボックスを閉じる',
   'hudChrome.mailbox.tabInbox': '受信箱',
@@ -7058,6 +7093,8 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'hudChrome.mailbox.arrivedLog': '{name}から新しい手紙が届きました。',
   'hudChrome.mailbox.indicatorAria': '未読の手紙：{count}',
   'hudChrome.mailbox.indicatorTip': '未読の手紙が{count}通あります。メールボックスで読めます。',
+  'hudChrome.marketIndicator.aria': '世界市場の受け取り待ち',
+  'hudChrome.marketIndicator.tip': 'ゴールドやアイテムが商人のもとで受け取りを待っています。',
   'hudChrome.mailbox.clickAttach': 'クリックで手紙に添付します。',
   'hudChrome.mailbox.cannotMail': 'これは郵送できません。',
   'hudChrome.mailbox.result.sent':
@@ -7074,6 +7111,7 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'hudChrome.mailbox.result.letterGone': 'その手紙はもうメールボックスにありません。',
   'hudChrome.mailbox.result.takeParcelsFirst': '手紙を捨てる前に小包を取り出してください。',
   'worldContent.mailboxName': 'メールボックス',
+  'worldContent.noticeboardName': '掲示板',
   'entities.letters.ravenpost_welcome.sender': 'レイヴンポスト',
   'entities.letters.ravenpost_welcome.subject': 'ワタリガラスはあなたのために飛ぶ',
   'entities.letters.ravenpost_welcome.body':
@@ -7209,6 +7247,34 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
     'この群生地を採取するにはティア{tier}の薬草鎌が必要です。',
   'hudChrome.gathering.toolTierUnmetCorpse':
     '最高の素材を回収するにはティア{tier}の採集道具が必要です。',
+  'hudChrome.gathering.requiresTool.mining': '採掘ピッケルが必要',
+  'hudChrome.gathering.requiresTool.logging': '伐採斧が必要',
+  'hudChrome.gathering.requiresTool.herbalism': '薬草鎌が必要',
+  'hudChrome.gathering.toolRequired.mining': 'この鉱脈を採掘するには採掘ピッケルが必要です。',
+  'hudChrome.gathering.toolRequired.logging': 'この立木を伐り倒すには伐採斧が必要です。',
+  'hudChrome.gathering.toolRequired.herbalism': 'この群生地を採取するには薬草鎌が必要です。',
+  'hudChrome.gathering.toolRequired.fishing': '釣り糸を垂らすには釣り竿が必要です。',
+  'hudChrome.gathering.noNodeNearby.mining': '手の届く範囲に鉱脈がありません。',
+  'hudChrome.gathering.noNodeNearby.logging': '手の届く範囲に立木がありません。',
+  'hudChrome.gathering.noNodeNearby.herbalism': '手の届く範囲に薬草の群生地がありません。',
+  'hudChrome.gathering.toolTooltip.kind.mining': '採掘道具（ティア{tier}）',
+  'hudChrome.gathering.toolTooltip.kind.logging': '伐採道具（ティア{tier}）',
+  'hudChrome.gathering.toolTooltip.kind.herbalism': '薬草道具（ティア{tier}）',
+  'hudChrome.gathering.toolTooltip.kind.fishing': '釣り竿（ティア{tier}）',
+  'hudChrome.gathering.toolTooltip.unlocks.mining': 'ティア{tier}までの鉱脈の採掘に必要です。',
+  'hudChrome.gathering.toolTooltip.unlocks.logging': 'ティア{tier}までの立木の伐採に必要です。',
+  'hudChrome.gathering.toolTooltip.unlocks.herbalism':
+    'ティア{tier}までの薬草の群生地の採取に必要です。',
+  'hudChrome.gathering.toolTooltip.use.mining': '使用：近くの鉱脈を採掘する。',
+  'hudChrome.gathering.toolTooltip.use.logging': '使用：近くの立木を伐り倒す。',
+  'hudChrome.gathering.toolTooltip.use.herbalism': '使用：近くの薬草の群生地から採取する。',
+  'hudChrome.gathering.toolTooltip.speed': 'ティア{tier}未満のノードでの採集が速くなります。',
+  'hudChrome.gathering.toolTooltip.rodRequired': '釣りに必要です。',
+  'hudChrome.gathering.toolTooltip.rodBite':
+    '魚が食いつくまでの時間が最大{seconds}秒短くなります。',
+  'hudChrome.gathering.toolTooltip.rodReel': 'リールの猶予時間が{seconds}秒延びます。',
+  'hudChrome.gathering.toolTooltip.rodBand':
+    '釣りスキル{skill}以上でより豊かな釣果が解放されます。',
   'hudChrome.gathering.downgradeMark': 'バッグが満杯です：収穫は採集者の印なしで収納されました。',
   'hudChrome.gathering.downgradeFind': 'バッグが満杯です：極上の獲物を逃してしまいました。',
   'hudChrome.gathering.stateReady': '採集可能',
@@ -7275,6 +7341,7 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
     'その組み合わせレシピに必要な両方の生産スキルの熟練度に達していません。',
   'hudChrome.crafting.throttled': '製作が速すぎます。少し待ってからもう一度お試しください。',
   'hudChrome.crafting.recipeNotLearned': 'そのレシピはまだ習得していません。',
+  'hudChrome.crafting.noBagSpace': 'バッグに製作したアイテムを入れる空きがありません。',
   // Professions 2.0 (M16 non-Latin fills).
   'hudChrome.crafting.attunementReturnCost':
     'この組み合わせを離れると、後で戻るには償いの任務が {cost} 回必要になります。',
@@ -7308,7 +7375,6 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'hudChrome.bags.itemAriaMasterwork': '{item}、数量 {count}、傑作',
   'hudChrome.crafting.gatheredBy': '採集者：{name}',
   'hudChrome.crafting.masterworkSeal': '傑作',
-  'hudChrome.crafting.enchantedLine': 'エンチャント済み',
   'hudChrome.crafting.stationRequired': 'それを製作するには{station}にいる必要があります。',
   'hudChrome.crafting.stationOutOfRangeNamed': '{station}に移動して製作してください。',
   'hudChrome.crafting.stationName.forge': '鍛冶場',
@@ -8219,6 +8285,7 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'hud.combat.parried': '{target}は{ability}を受け流しました。',
   'hudChrome.options.mouseoverCast': 'パーティフレームでマウスオーバーキャスト',
   'hudChrome.options.showTargetOfTarget': 'ターゲットのターゲットを表示',
+  'hudChrome.options.stickyTarget': '地面クリックでターゲットを維持',
   'hudChrome.unitFrame.targetOfTargetLabel': 'ターゲットのターゲット',
 
   'auth.rememberOptions': 'サインイン記憶オプション',
@@ -8293,8 +8360,10 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'hudChrome.training.stateKnown': '習得済み',
   'hudChrome.training.stateTeachable': '習得可能',
   'hudChrome.training.stateLocked': '未開放',
+  'hudChrome.training.statePending': '習得中',
   'hudChrome.training.requirement': '{craft} {skill} で伝授',
   'hudChrome.training.trainAria': '{fee}で{name}を習得',
+  'hudChrome.training.pendingAria': '{name}を習得中',
   'hudChrome.training.dialogOption': '訓練',
   'hudChrome.training.dialogOptionAria': '{name}から訓練を受ける',
   'hudChrome.training.learned': 'レシピを習得しました：{recipe}',
@@ -8480,6 +8549,10 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'hudChrome.enchanting.enchantWrongSlot': 'そのエンチャントはそのアイテムには付与できません。',
   'hudChrome.enchanting.enchantUnknown': 'そのエンチャントは存在しません。',
   'hudChrome.enchanting.enchantInsufficient': 'そのエンチャントに必要な素材がありません。',
+  'hudChrome.enchanting.disenchantNoSpace': 'バッグに秘術の素材を入れる空きがありません。',
+  'hudChrome.enchanting.salvageNoSpace': 'バッグに解体した素材を入れる空きがありません。',
+  'hudChrome.enchanting.enchantNoSpace':
+    'バッグにエンチャントしたアイテムを入れる空きがありません。',
   'hudChrome.enchanting.disenchantConfirmTitle': '{item}を魔力分解しますか？',
   'hudChrome.enchanting.disenchantConfirmBody':
     '{item}を破壊し、秘術素材を得ます。この操作は元に戻せません。',
@@ -8683,6 +8756,7 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
   'hudChrome.unbind.notBound': 'そのアイテムはバインドされていません。',
   'hudChrome.unbind.cannotAfford': 'バインド解除の手数料を支払えません。',
   'hudChrome.unbind.outOfRange': 'バインド解除するには作業台のそばにいる必要があります。',
+  'hudChrome.unbind.noSpace': 'バッグにバインド解除したアイテムを入れる空きがありません。',
   // Professions 2.0 wiki arm: the professions hub rewrite and the
   // /wiki/professions detail pages (M16 non-Latin fills, added with the keys).
   'guide.professions.ringHeading': '製作の輪',
@@ -8778,7 +8852,7 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
     'スキルが{at}に達するとこの職に特化し、レシピの素材コストが{pct}%減ります。',
   'guide.profPages.ench.disenchantHeading': '分解',
   'guide.profPages.ench.disenchantNote':
-    '分解は、コモン品質以上の武器や防具を一個消費し、素材へと砕く作業です。既に付呪された品は対象外です。コモンとアンコモンの品は、まとまった量の鈴音の粉塵へと砕けます。レアや高品質な品ほど多く出ます。レア以上になると収量の形が変わり、レア品からは鈴音の精髄が一個、エピックや伝説品からは鈴音のかけらが一個、そして素材の種別に応じた副産物が一つ追加されます。',
+    '分解は、コモン品質以上の武器や防具を一個消費し、素材へと砕く作業です。未付呪の品が先に消費され、付呪済みの品しか残っていない場合は、その一個が付呪ごと砕かれます。コモンとアンコモンの品は、まとまった量の鈴音の粉塵へと砕けます。レアや高品質な品ほど多く出ます。レア以上になると収量の形が変わり、レア品からは鈴音の精髄が一個、エピックや伝説品からは鈴音のかけらが一個、そして素材の種別に応じた副産物が一つ追加されます。',
   'guide.profPages.ench.typedHeading': '種別副産物',
   'guide.profPages.ench.typedNote':
     'レア以上の装備は、種別ごとのトレードバインド副産物も産出します。レア装備からは{rare}個、エピックか伝説からは{epicMin}から{epicMax}個です。',
@@ -8800,11 +8874,11 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
     '誰でも武器や防具を品質に応じた普通の素材へ回収できます。エンチャントのスキルは不要です。',
   'guide.profPages.ench.bonusFmt': '+{value} {stat}',
   'guide.profPages.gatherIntro.mining':
-    '採掘は三つのゾーンの鉱脈から鉱石を掘り出し、鍛冶系の職に素材を供給します。銅鉱石はEastbrook Vale、鉄鉱石はMirefen Marsh、オスミウム鉱石はThornpeak Heightsから。上限は100です。',
+    '採掘は三つのゾーンの鉱脈から鉱石を掘り出し、鍛冶系の職に素材を供給します。銅鉱石はイーストブルック渓谷、鉄鉱石はマイアフェン湿地、オスミウム鉱石はソーンピーク高地から。レベル1から誰でも始められ、必要なのはバッグに入れた採掘ピッケルだけです。どのゾーンの拠点でも銅貨20枚で手に入ります。専用のカウンターで記録され、上限は100です。',
   'guide.profPages.gatherIntro.logging':
-    '伐採は三つのゾーンの林から木材を切り出し、武器の柄や道具に素材を供給します。ironbarkはEastbrook Vale、ashwoodはMirefen Marsh、高嶺松はThornpeak Heightsから。上限は100です。',
+    '伐採は三つのゾーンの林から木材を切り出し、武器の柄や杖、そして工作の作業台の素材を供給します。鉄樹皮はイーストブルック渓谷、トネリコ材はマイアフェン湿地、高嶺松はソーンピーク高地から。レベル1から誰でも始められ、バッグに伐採斧（どのゾーンの拠点でも銅貨20枚）があれば伐り出せます。専用のカウンターで記録され、上限は100です。',
   'guide.profPages.gatherIntro.herbalism':
-    '薬草学は三つのゾーンで薬草を摘み、錬金術と料理に素材を供給します。艶葉草はEastbrook Vale、goldleafはMirefen Marsh、sunpetalはThornpeak Heightsに育ちます。上限は100です。',
+    '薬草学は三つのゾーンで薬草を摘み、調合系の職に素材を供給します。艶葉草はイーストブルック渓谷、金葉草はマイアフェン湿地、陽花草はソーンピーク高地に育ちます。レベル1から誰でも始められ、バッグに薬草鎌（どのゾーンの拠点でも銅貨20枚）があれば摘み取れます。専用のカウンターで記録され、上限は100です。',
   'guide.profPages.gatherIntro.fishing':
     '釣りはアタリとリールの呼吸で各ゾーンの開けた水辺から獲物を釣り上げます。上限は200です。',
   'guide.profPages.rhythmHeading': '採集のリズム',
@@ -8817,13 +8891,12 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
     'ノードの場所・ティア・必要な道具・産出の一覧です。各ノードはあなたの採集から{respawn}秒後に、あなた専用に再出現します。',
   'guide.profPages.toolsHeading': '道具',
   'guide.profPages.toolsNote':
-    '道具の段階と正確な商人価格の一覧です。ティア4と5の道具は製作のみで、販売されません。',
+    'どのノードにも、その職の道具をバッグに入れておくことが必要です。ティア1も例外ではありません。ピッケルがなければ鉱石は掘れず、竿がなければ魚も釣れません。商人が扱うのはティア1から3までで、どのゾーンの拠点にも並んでいます。道具はバッグにあればよく、装備枠も耐久度もないため、購入は一度きりです。採集の可否を決めるのはティアだけで、道具のレアリティの色は見た目だけのものです。\n\n商人の品揃えの上には、製作でしか手に入らない道具がティア4と5の二つあります。工作場で工作の職人が作るもので、NPCは決して売りません。今のところティア3を超える道具を求めるノードはないため、その価値は速さにあります。最上位の道具は低いティアのノードでの採集詠唱を最短の秒数に固定し、より高いティアの土地が現れたときには入場券にもなります。',
   'guide.profPages.toolCrafted': '製作品（{craft}）',
   'guide.profPages.toolVendor': '{name}（{hub}）',
   'guide.profPages.toolUnavailable': '非売品',
   'guide.profPages.priceNone': '非売品',
   'guide.profPages.toolTierReq': 'ティア{tier}の道具',
-  'guide.profPages.bareHands': '素手で可',
   'guide.profPages.bandsHeading': '熟練度バンド',
   'guide.profPages.bandsBody': '熟練度バンドは採集の詠唱を速め、釣りでは釣果表も左右します。',
   'guide.profPages.bandFmt': 'バンド{band}：熟練度{at}から',
@@ -9042,5 +9115,55 @@ export const ja_JP: Partial<Record<TranslationKey, string>> = {
     'スキルを動かす行動は二つ、分解とエンチャント付与です。成功ごとに最大1ポイント、仕事の重さで換算されます。コモンの分解と粉だけのエンチャントはコモンの仕事、良質の分解とエッセンスのエンチャントは良質、レアの分解とRunedやGreaterのエンチャントはレア、エピックと伝説の分解はさらに上です。お馴染みの熟達の薄れが25ポイント刻みで効き、コモンの仕事はスキル75で、良質は100で、レアの仕事はちょうど上限の125で灰色になります。エンチャントだけの情けもひとつ。天井を超える入力はゼロではなく天井へ丸められるため、誓う前でもエピックの分解はレアとして数えられ、無駄になりません。エンチャントが休眠に落ちればすべてコモン扱いで登りは75で止まり、趣味に据えればレアの仕事はまだ実り、75以降が遅くなるだけです。',
   'guide.profPages.craftProse.enchanting.marketHeading': '付与済みの品と来歴と市場',
   'guide.profPages.craftProse.enchanting.marketBody':
-    '付与は鞄の中の未装備の一品と素材を消費し、別個の付与済みの品を返します。装備すれば効果は永遠にその品に付き従います。一品にひとつ。付与済みの品は再付与も分解もできず、売却、破棄、分解はどれも無印の品を先に選ぶので、完成品がうっかり食われることはありません。同一の付与品同士は重ねられます。傑作とエンチャントは友人です。傑作は問題なく付与でき、効果は傑作ボーナスにも署名にも触れず上乗せされます。全部を積んだ署名入り傑作のGreater付与が工芸品の頂点で、それでも設計上レイド戦利品の下に座ります。世界市場は無印の品しか扱わないため、付与済みや署名入りは取引ウィンドウで直接手渡し。市場に出せる半分は素材の方です。粉、エッセンス、シャードは自由に出品でき、出品無料、手数料は成立時の5%だけです。',
+    '付与は素材を消費し、特定の一品に印を付けます。鞄の中の品に使えば別個の付与済みの品が返り、装備中の品に使えばその場で付与され、外して着け直す必要はありません。どちらでも効果は永遠にその品に付き従います。一品にひとつ。付与済みの品に別の付与を使うと確認のうえ古い付与をそのまま置き換え、古い付与は素材の返却なしに破棄されます。売却、破棄、分解はどれも無印の品を先に選ぶので、完成品がうっかり食われることはありません。同一の付与品同士は重ねられます。傑作とエンチャントは友人です。傑作は問題なく付与でき、効果は傑作ボーナスにも署名にも触れず上乗せされます。全部を積んだ署名入り傑作のGreater付与が工芸品の頂点で、それでも設計上レイド戦利品の下に座ります。世界市場は無印の品しか扱わないため、付与済みや署名入りは取引ウィンドウで直接手渡し。市場に出せる半分は素材の方です。粉、エッセンス、シャードは自由に出品でき、出品無料、手数料は成立時の5%だけです。',
+  'hudChrome.corpseHarvest.components.meat': '肉',
+  'hudChrome.itemTooltip.statEnchanted': '+{value} {stat}（エンチャント）',
+  'hudChrome.materialHint.arcaneDust':
+    'エンチャントの材料。一般と良質の装備を魔力分解して得られる。',
+  'hudChrome.materialHint.arcaneEssence': 'エンチャントの材料。レアの装備を魔力分解して得られる。',
+  'hudChrome.materialHint.arcaneShard':
+    'エンチャントの材料。エピックと伝説の装備を魔力分解して得られる。',
+  'hudChrome.materialHint.resonantThread':
+    'エンチャントの材料。レア以上の布防具を魔力分解して得られる。',
+  'hudChrome.materialHint.resonantHide':
+    'エンチャントの材料。レア以上の革防具を魔力分解して得られる。',
+  'hudChrome.materialHint.resonantLinks':
+    'エンチャントの材料。レア以上の鎖防具を魔力分解して得られる。',
+  'hudChrome.materialHint.resonantSteel':
+    'エンチャントの材料。レア以上の近接武器を魔力分解して得られる。',
+  'hudChrome.materialHint.resonantTimber':
+    'エンチャントの材料。レア以上の杖、ワンド、弓、クロスボウを魔力分解して得られる。',
+  'hudChrome.enchanting.tier.base': '基本エンチャント',
+  'hudChrome.enchanting.tier.runed': 'ルーンエンチャント',
+  'hudChrome.enchanting.tier.greater': '上級エンチャント',
+  'hudChrome.enchanting.yieldHeader': '獲得予定の材料:',
+  'hudChrome.enchanting.yieldLineExact': '{item} {count}個',
+  'hudChrome.enchanting.yieldLineRange': '{item} {min}から{max}個',
+  'hudChrome.enchanting.alreadyEnchanted': 'そのアイテムにはすでにエンチャントが付与されています。',
+  'hudChrome.enchanting.sameEnchant': 'そのアイテムにはすでに同じエンチャントが付与されています。',
+  'hudChrome.enchanting.replaceTag': '{enchant}を置き換え',
+  'hudChrome.enchanting.sameEnchantTag': '付与済み',
+  'hudChrome.enchanting.replaceConfirmTitle': '{item}のエンチャントを置き換えますか？',
+  'hudChrome.enchanting.replaceConfirmBody': '{item}の{old}を{new}に置き換えます。',
+  'hudChrome.enchanting.replaceConfirmNoRefund':
+    '古いエンチャントは破棄され、素材は返却されません。この操作は取り消せません。',
+  'hudChrome.enchanting.replaceConfirmCost': '費用: {cost}',
+  'hudChrome.enchanting.replaceConfirmCostItem': '{name} {count}個',
+  'hudChrome.enchanting.replaceConfirmAccept': '置き換える',
+  'hudChrome.bags.itemAriaEnchanted': '{item}、数量 {count}、エンチャント済みの品',
+  'hudChrome.bags.itemAriaBound': '{item}、数量 {count}、バインド済みの品',
+  'hudChrome.itemTooltip.enchantedFallback': 'エンチャント済み',
+  'devCommand.actions.kit.description':
+    '指定したスペック向けのSanctum以前レベル20プリセットを装備します (バッグを先に)。装備品のみです。',
+  'devCommand.actions.kit.label': '新規20キットを装備',
+  'devCommand.fields.spec': 'スペック',
+  'devCommand.itemChosen': '選択中: {name}',
+  'devCommand.itemHeroicTag': 'ヒロイック',
+  'devCommand.itemMore': '{total}件中{shown}件を表示。続けて入力すると絞り込まれます。',
+  'devCommand.itemNoMatches': '一致するアイテムはありません。',
+  'devCommand.itemResultsAria': '一致するアイテム',
+  'devCommand.itemSearchPlaceholder': '名前またはIDで検索',
+  'devCommand.itemUnknown': 'そのIDのアイテムはありません。',
+  'devCommand.kitCurrentSpec': '現在のスペック',
+  'hudChrome.enchanting.wornTag': '装備中 ({slot})',
 };

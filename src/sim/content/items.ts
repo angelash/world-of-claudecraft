@@ -20,6 +20,14 @@ export const CASTER_ALL: PlayerClass[] = [
   'paladin',
   'druid',
 ];
+const CASTER_WEAPON_CLASSES: PlayerClass[] = [
+  'mage',
+  'priest',
+  'warlock',
+  'shaman',
+  'paladin',
+  'druid',
+];
 
 // ---------------------------------------------------------------------------
 // Items
@@ -124,7 +132,7 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
     weapon: { min: 7, max: 12, speed: 3.0 },
     stats: { int: 3, sta: 1 },
     sellValue: 120,
-    requiredClass: MAG,
+    requiredClass: CASTER_WEAPON_CLASSES,
   },
   keen_dirk: {
     id: 'keen_dirk',
@@ -1197,7 +1205,13 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
     slot: 'shoulder',
     quality: 'rare',
     stats: { armor: 78, int: 6, spi: 4 },
-    sellValue: 470,
+    // Economy invariant, discount-aware arm: both reagents are vendor-stocked
+    // at the forge, and a specialized crafter holding a self-signed ore
+    // consumes as little as 4 ore + 3 flux = 300c, so the old 470 vendor-back
+    // sat gold-positive. Re-priced below that cheapest achievable
+    // input (the v0.29.0 output-re-price precedent); the vendor-loop bound is
+    // pinned by tests/recipe_economy.test.ts.
+    sellValue: 280,
   },
   // --- Hollow Crypt rewards (rare/blue) ---
   // Item-level showcase: these rares are NORMALIZED to the stat budget their item
@@ -1357,7 +1371,7 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
     weapon: { min: 11, max: 18, speed: 3.0 },
     stats: { int: 5, spi: 2 },
     sellValue: 880,
-    requiredClass: MAG,
+    requiredClass: CASTER_WEAPON_CLASSES,
   },
   gravewardens_shiv: {
     id: 'gravewardens_shiv',
@@ -1895,7 +1909,7 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
     weapon: { min: 9, max: 15, speed: 3.0 },
     stats: { int: 3, spi: 2 },
     sellValue: 175,
-    requiredClass: MAG,
+    requiredClass: CASTER_WEAPON_CLASSES,
   },
   caravan_warden_dirk: {
     id: 'caravan_warden_dirk',

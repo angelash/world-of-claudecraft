@@ -41,12 +41,18 @@ import {
   xpForLevel,
 } from '../../src/sim/types';
 import { terrainHeight } from '../../src/sim/world';
+import { OPEN_FIELD } from '../helpers/open_field';
 import type { Recorder, Scenario } from './record';
 
 // ----- shared helpers ---------------------------------------------------------
 
 type AnySim = Sim & Record<string, any>;
 type AnyEntity = Entity & Record<string, any>;
+
+// Combat-only fixtures need a deterministic patch that does not overlap a town
+// landmark. This south-field anchor keeps their authored relative spacing while
+// decoupling the scenarios from Eastbrook's southeast civic lot.
+const EASTBROOK_PARITY_OPEN_FIELD = { x: 2, z: -21 } as const;
 
 // Move an entity to (x,z) on the terrain and keep the spatial grid consistent —
 // the same idiom every existing scenario test uses.
@@ -162,6 +168,7 @@ function soloMage(): Scenario {
       sim.setPlayerLevel(10);
       const p = sim.player as AnyEntity;
       beef(p);
+      teleport(sim, p, OPEN_FIELD.x, OPEN_FIELD.z);
       const mob = spawnMob(sim, 'forest_wolf', 5, p.pos.x, p.pos.y, p.pos.z + 18);
       beef(mob, 9000);
       rec.track(mob.id);
@@ -344,6 +351,7 @@ function mobSwingAffixes(): Scenario {
       const sim = rec.sim as AnySim;
       sim.setPlayerLevel(16);
       const p = sim.player as AnyEntity;
+      teleport(sim, p, EASTBROOK_PARITY_OPEN_FIELD.x, EASTBROOK_PARITY_OPEN_FIELD.z);
       // beef() does not stick on a player (applyAura -> recalcPlayerStats resets maxHp,
       // and several affixes ride negative buff_* drains); top the player up right before
       // each swing so it survives every draw, mirroring mob_locomotion's reviveTarget.
@@ -547,6 +555,7 @@ function petAi(): Scenario {
       const sim = rec.sim as AnySim;
       sim.setPlayerLevel(12);
       const p = sim.player as AnyEntity;
+      teleport(sim, p, OPEN_FIELD.x, OPEN_FIELD.z);
       beef(p);
 
       // Emberkin (petRanged demon): pre-targeted on a beefed wolf inside bolt range so
@@ -3119,13 +3128,21 @@ function c3AuraRunner(): Scenario {
       p.fiveSecondRule = 99;
       p.hp = Math.max(1, p.maxHp - 600);
       p.resource = Math.max(0, p.maxResource - 300);
-      p.eating = { itemId: 'parity_food', kind: 'food', hpPer2s: 90, manaPer2s: 0, remaining: 6 };
+      p.eating = {
+        itemId: 'parity_food',
+        kind: 'food',
+        hpPer2s: 90,
+        manaPer2s: 0,
+        remaining: 6,
+        ticksElapsed: 0,
+      };
       p.drinking = {
         itemId: 'parity_drink',
         kind: 'drink',
         hpPer2s: 0,
         manaPer2s: 50,
         remaining: 6,
+        ticksElapsed: 0,
       };
       p.auras.push(
         aura({
@@ -3866,12 +3883,28 @@ function marketRoundTrip(): Scenario {
 
       // 2) browse filter narrows to the wolf_fang listing, then clears.
       sim.marketSearch(
-        { search: 'wolf', itemType: 'all', subtype: 'all', rarity: 'all', page: 0 },
+        {
+          search: 'wolf',
+          itemType: 'all',
+          subtype: 'all',
+          armorClass: 'all',
+          primaryStat: 'all',
+          rarity: 'all',
+          page: 0,
+        },
         seller,
       );
       rec.snapshot('searched');
       sim.marketSearch(
-        { search: '', itemType: 'all', subtype: 'all', rarity: 'all', page: 0 },
+        {
+          search: '',
+          itemType: 'all',
+          subtype: 'all',
+          armorClass: 'all',
+          primaryStat: 'all',
+          rarity: 'all',
+          page: 0,
+        },
         seller,
       );
       rec.snapshot('search-cleared');
@@ -3972,6 +4005,12 @@ function inventoryVendor(): Scenario {
       sim.addItem('elixir_of_the_bear', 1, buyer);
       sim.useItem('elixir_of_the_bear', buyer);
       rec.snapshot('quaffed-elixir');
+      // A second same-stat elixir pins the per-kind exclusivity path (the
+      // shared elixir_buff_sta id replaces the Bear aura, last drunk wins,
+      // plus the fade event for the displaced different-name aura).
+      sim.addItem('elixir_of_the_serpent', 1, buyer);
+      sim.useItem('elixir_of_the_serpent', buyer);
+      rec.snapshot('quaffed-second-elixir');
 
       // 5) discard one of a gray stack.
       sim.addItem('wolf_fang', 3, buyer);
@@ -4381,14 +4420,17 @@ function professionsCraft(seed = 21): Scenario {
 // the recorded run with all 102 casts resolving: no bags-full denial and no
 // cast-cancelling interference; only the found literal is pinned here.
 function professionsGather(seed = 1): Scenario {
-  // Worst-case gather cast: tier-1 node, bare hands, band 0. Shorter casts
-  // (band reductions as proficiency accrues) still complete inside this
-  // fixed window; surplus ticks are plain world ticks.
+  // Worst-case gather cast: tier-1 node, tier-1 tool, band 0 (#2343: every
+  // harvest needs the matching tool; a tier-1 tool at a tier-1 node keeps
+  // the full base duration). Shorter casts (band reductions as proficiency
+  // accrues) still complete inside this fixed window; surplus ticks are
+  // plain world ticks.
   const castTicks = Math.ceil(gatherCastDurationSec(1, 1, 0) / DT) + 1;
   return {
     name: 'professions_gather',
     coverage: [
       'class:warrior (gatherer)',
+      'tier-1 tools in bags satisfy the #2343 always-require-tool gate',
       'gather cast start: harvestNode begins the cast draw-free',
       'granted harvest at cast completion: exactly two rng draws (rarity roll then rare-event roll)',
       'cooldown denial: zero rng draws, no cast',
@@ -4417,6 +4459,13 @@ function professionsGather(seed = 1): Scenario {
         e.corpseTimer = 9999;
         e.inCombat = false;
       }
+
+      // The three tier-1 tools (#2343: every node harvest needs its
+      // profession's tool in bags). addItem draws no rng, so the grant is
+      // digest-invisible beyond the sampled inventory contents.
+      sim.addItem('copper_mining_pick', 1, pid);
+      sim.addItem('handaxe', 1, pid);
+      sim.addItem('gathering_sickle', 1, pid);
 
       // Step 1: proficiency-0 ore harvest (common, fungible grant, resolved
       // at cast completion on the tick path) plus a post-completion second
@@ -4454,9 +4503,14 @@ function professionsGather(seed = 1): Scenario {
       teleport(sim, p, -86, 90); // herb_eastbrook_1
       for (let i = 0; i < 100; i++) {
         meta.gatheringProficiency.herbalism = 0;
-        meta.inventory = meta.inventory
-          .filter((s: any) => s.instance?.signer !== undefined)
-          .slice(-8);
+        // The retention filter keeps the three tools (ahead of the gate,
+        // #2343) plus the newest eight signed instances, shedding the
+        // accumulating common stacks exactly as before.
+        const TOOL_IDS = ['copper_mining_pick', 'handaxe', 'gathering_sickle'];
+        meta.inventory = [
+          ...meta.inventory.filter((s: any) => TOOL_IDS.includes(s.itemId)),
+          ...meta.inventory.filter((s: any) => s.instance?.signer !== undefined).slice(-8),
+        ];
         delete meta.nodeHarvestReadyAt.herb_eastbrook_1;
         sim.harvestNode('herb_eastbrook_1', pid);
         rec.tick(castTicks);

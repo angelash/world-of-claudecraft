@@ -2,6 +2,7 @@
 // Verifies: status, register/login, character create, WS join,
 // nearby NPC discovery, live aiThinking, and live aiSpeech delivery.
 import WebSocket from 'ws';
+import { worldAuthMessage } from './lib/world_auth.mjs';
 
 const BASE = process.env.SERVER_URL ?? 'http://localhost:8787';
 const WS_BASE = BASE.replace(/^http/, 'ws');
@@ -76,6 +77,7 @@ class Client {
     this.entities = new Map();
     this.events = [];
     this.errors = [];
+    this.inputSeq = 0;
   }
 
   connect(token, characterId) {
@@ -83,7 +85,7 @@ class Client {
       this.ws = new WebSocket(`${WS_BASE}/ws`);
       const timeout = setTimeout(() => reject(new Error('connect timeout')), 8000);
       this.ws.on('open', () => {
-        this.send({ t: 'auth', token, character: characterId });
+        this.send(worldAuthMessage(token, characterId));
       });
       this.ws.on('message', (data) => {
         const msg = JSON.parse(String(data));
@@ -147,15 +149,40 @@ class Client {
     let bestDistance = Infinity;
     for (const entity of this.entities.values()) {
       if (entity.id === this.self.id || entity.k !== 'npc') continue;
-      const dx = Number(entity.x ?? 0) - Number(this.self.x ?? 0);
-      const dz = Number(entity.z ?? 0) - Number(this.self.z ?? 0);
-      const distance = Math.hypot(dx, dz);
+      const distance = this.distanceTo(entity);
       if (distance < bestDistance) {
         bestDistance = distance;
         best = { id: entity.id, tid: entity.tid ?? '?', name: entity.nm ?? '?', distance };
       }
     }
     return best && best.distance <= maxDistance ? best : null;
+  }
+
+  distanceTo(entity) {
+    if (!this.self || !entity) return Infinity;
+    const dx = Number(entity.x ?? 0) - Number(this.self.x ?? 0);
+    const dz = Number(entity.z ?? 0) - Number(this.self.z ?? 0);
+    return Math.hypot(dx, dz);
+  }
+
+  async moveWithinInteractionRange(entityId, targetDistance = 5.5) {
+    const deadline = Date.now() + 4_000;
+    let facing = 0;
+    try {
+      while (Date.now() < deadline) {
+        const entity = this.entities.get(entityId);
+        if (!this.self || !entity) break;
+        const dx = Number(entity.x ?? 0) - Number(this.self.x ?? 0);
+        const dz = Number(entity.z ?? 0) - Number(this.self.z ?? 0);
+        if (Math.hypot(dx, dz) <= targetDistance) break;
+        facing = Math.atan2(dx, dz);
+        this.send({ t: 'input', mi: { f: true }, facing, seq: ++this.inputSeq });
+        await sleep(120);
+      }
+    } finally {
+      this.send({ t: 'input', mi: {}, facing, seq: ++this.inputSeq });
+    }
+    return this.distanceTo(this.entities.get(entityId));
   }
 
   close() {
@@ -202,7 +229,11 @@ async function main() {
     ok('join websocket', `pid=${client.pid}`);
     await sleep(1200);
 
-    const npc = client.nearestNpc();
+    let npc = client.nearestNpc();
+    if (npc && npc.distance > 6.5) {
+      const distance = await client.moveWithinInteractionRange(npc.id);
+      npc = { ...npc, distance };
+    }
     if (npc) ok('find nearby npc', `${npc.tid} #${npc.id} dist=${npc.distance.toFixed(1)}`);
     else no('find nearby npc', `visible entities=${client.entities.size}`);
     if (!npc) throw new Error('no nearby npc visible from the spawn area');
@@ -224,7 +255,11 @@ async function main() {
     else no('manual aiThinking', `npc=${npc.id}`);
 
     const speech = await client.waitForEvent(
-      (event) => event.type === 'aiSpeech' && event.speakerId === npc.id && event.pid === client.pid,
+      (event) =>
+        event.type === 'aiSpeech'
+        && event.speakerId === npc.id
+        && event.pid === client.pid
+        && event.interactionId === thinking?.interactionId,
       60_000,
     );
     if (speech && speech.speech) {

@@ -18,11 +18,11 @@ vi.mock('../server/db', () => ({
   loadAccountFlair: vi.fn(async () => ({ ai: false, streamer: false, links: {} })),
 }));
 
-import { AI_MEMORY_PRUNE_INTERVAL_MS, GameServer, type ClientSession } from '../server/game';
-import { pool } from '../server/db';
-import { AiLifeLayer } from '../server/ai/life_layer';
 import type { AiDecisionV1, AiJobContextV1, AiMemoryAuditRecord, AiProvider } from '../server/ai/ai_types';
+import { AiLifeLayer } from '../server/ai/life_layer';
 import { individualProfileFor } from '../server/ai/singularity';
+import { pool } from '../server/db';
+import { AI_MEMORY_PRUNE_INTERVAL_MS, type ClientSession, GameServer } from '../server/game';
 import type { Entity } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
 

@@ -459,17 +459,17 @@ describe('bank_window: mobile pairing (hud.mobile.css)', () => {
     // uiScale 1 (halves gap above 1, overlap below 1; the 2026-07-07 QA finding).
     // The split must divide the shared --app-vw box by the live scale.
     const split = 'calc(var(--app-vw) / var(--ui-scale, 1) / 2)';
-    const bankStart = mobileCss.indexOf('body.mobile-touch.bank-open #bank-window {');
-    const bankBlock = mobileCss.slice(bankStart, mobileCss.indexOf('}', bankStart));
-    expect(bankStart).toBeGreaterThan(0);
-    expect(bankBlock).toContain('left: max(10px, env(safe-area-inset-left));');
-    expect(bankBlock).toContain(`right: ${split};`);
-
-    const bagsStart = mobileCss.lastIndexOf('body.mobile-touch.bank-open #bags {');
-    const bagsBlock = mobileCss.slice(bagsStart, mobileCss.indexOf('}', bagsStart));
-    expect(bagsStart).toBeGreaterThan(0);
-    expect(bagsBlock).toContain(`left: ${split};`);
-    expect(bagsBlock).toContain('right: max(10px, env(safe-area-inset-right));');
+    const normalized = mobileCss.replace(/\s+/g, ' ');
+    expect(normalized).toContain(
+      `body.mobile-touch.bank-open #bank-window { left: max(10px, env(safe-area-inset-left)); right: ${split};`,
+    );
+    // The bags RIGHT half is shared with the market cluster (the market docks
+    // #bags the same way on touch, see market_window.test.ts). Pin against a
+    // whitespace-normalized view: biome re-wraps multi-selector lists, so a
+    // raw multi-line source pin here would rot on a reformat.
+    expect(normalized).toContain(
+      `body.mobile-touch.bank-open #bags, body.mobile-touch.market-open #bags { left: ${split}; right: max(10px, env(safe-area-inset-right));`,
+    );
   });
 
   it('standalone mobile block neutralizes the desktop dock (transform:none, max-height:none, safe-area)', () => {
@@ -550,14 +550,14 @@ describe('bank_window: mobile pairing (hud.mobile.css)', () => {
   it('keeps the bank-cluster chips one scrollable row (no two-row wrap eating the grid)', () => {
     // At 360px-tall landscape phones a wrapped chip row squeezes the paired grid to a
     // sub-row sliver; the cluster-scoped rule keeps ONE horizontally scrollable row
-    // (bank chips docked AND undocked, bags chips only inside the bank cluster; the
-    // vendor cluster and standalone bags keep the family two-row wrap). Reverting
-    // flex-wrap to wrap, or dropping the scoped rule, reds this.
+    // (bank chips docked AND undocked, bags chips inside the bank and market
+    // clusters; the vendor cluster and standalone bags keep the family two-row
+    // wrap). Reverting flex-wrap to wrap, or dropping the scoped rule, reds this.
     expect(mobileCss).toMatch(
-      /body\.mobile-touch #bank-window \.bag-chips,\s*body\.mobile-touch\.bank-open #bags \.bag-chips \{[^}]*flex-wrap: nowrap;[^}]*overflow-x: auto;/,
+      /body\.mobile-touch #bank-window \.bag-chips,\s*body\.mobile-touch\.bank-open #bags \.bag-chips,\s*body\.mobile-touch\.market-open #bags \.bag-chips \{[^}]*flex-wrap: nowrap;[^}]*overflow-x: auto;/,
     );
     expect(mobileCss).toMatch(
-      /body\.mobile-touch #bank-window \.bag-chip,\s*body\.mobile-touch\.bank-open #bags \.bag-chip \{\s*flex: 0 0 auto;/,
+      /body\.mobile-touch #bank-window \.bag-chip,\s*body\.mobile-touch\.bank-open #bags \.bag-chip,\s*body\.mobile-touch\.market-open #bags \.bag-chip \{\s*flex: 0 0 auto;/,
     );
   });
 });

@@ -709,6 +709,15 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
   'hudChrome.social.offlineHeader': '오프라인 ({n})',
   'hudChrome.social.hideOffline': '오프라인 숨기기',
   'hudChrome.social.hideOfflineTitle': '오프라인 길드원 숨기기',
+  'hudChrome.social.billboard.label': '길드 게시판',
+  'hudChrome.social.billboard.empty': '게시판에 아직 아무 내용도 없습니다.',
+  'hudChrome.social.billboard.setBy': '{name} 설정',
+  'hudChrome.social.billboard.save': '저장',
+  'hudChrome.social.billboard.placeholder': '길드에 전할 메시지를 작성하세요',
+  'hudChrome.social.billboard.inputLabel': '길드 게시판 메시지',
+  'hudChrome.social.billboard.result.set': '길드 게시판이 업데이트되었습니다.',
+  'hudChrome.social.billboard.result.notOfficer':
+    '게시판은 임원과 길드 마스터만 수정할 수 있습니다.',
   'hudChrome.party.promoteLeader': '파티장으로 지정',
   'hudChrome.party.inviteUsage': '누구를 초대하시겠습니까? 사용법: /invite <이름>.',
   'hudChrome.masterLoot.thresholdLabel': '품질 기준',
@@ -777,6 +786,7 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
   'hudChrome.corpseHarvest.components.claw': '발톱',
   'hudChrome.corpseHarvest.components.horn': '뿔',
   'hudChrome.corpseHarvest.components.tusk': '엄니',
+  'hudChrome.corpseHarvest.components.cloth': '천',
   'hudChrome.townFocus.title': '마을 집중',
   'hudChrome.townFocus.hint':
     '집중 포인트는 각 재료의 기본 산출량에 보너스를 더합니다. 집중하지 않은 재료는 기본 산출량 그대로 유지됩니다.',
@@ -1476,9 +1486,13 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
     '연결이 끊어졌습니다. 지금 다시 연결하는 중...(시도 {attempt}/{maxAttempts})',
   'loading.slowConnection': '로딩이 평소보다 오래 걸리고 있습니다. 인터넷 연결을 확인하세요.',
   'loading.connectionRejected': '서버가 연결을 종료했습니다.',
+  'loading.incompatibleWorldVersion':
+    '게임과 서버 버전이 호환되지 않습니다. 새로고침하거나 업데이트한 후 다시 시도하세요.',
   'loading.realmFull': '이 월드는 현재 포화 상태입니다. 몇 분 후에 다시 시도해 주세요.',
   'loading.tooManyConnections':
     '사용 중인 네트워크에서 이 월드로 연결이 너무 많습니다. 추가 게임 창을 닫거나 몇 분 후에 다시 시도해 주세요.',
+  'loading.messageRateExceeded':
+    '행동을 너무 빠르게 전송하여 연결이 끊어졌습니다. 잠시 기다렸다가 다시 로그인해 주세요.',
   'errors.nothingInteract': '상호작용할 대상이 없습니다.',
   'errors.noEnemyNearby': '근처에 적이 없습니다.',
   'errors.characterNameRequired': '캐릭터 이름을 입력하세요.',
@@ -1872,6 +1886,7 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
   'hud.combat.auraGain': '{name} 효과를 얻었습니다.',
   'hud.combat.auraFade': '{name} 효과가 사라졌습니다.',
   'hud.combat.auraAfflicted': '{target}이 {name} 효과에 걸렸습니다.',
+  'hud.combat.auraGainOther': '{target}이 {name} 효과를 얻었습니다.',
   'hud.system.playerDeath': '사망했습니다.',
   'hud.system.respawn': '다시 온전하고 편안한 상태가 되었습니다.',
   'hud.system.ignoringChat': '{name}의 채팅을 차단합니다.',
@@ -1971,6 +1986,7 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
   'hud.logs.arenaJoin': '잿빛 원형경기장 대기열에 들어갔습니다. 훌륭한 상대를 기다리세요...',
   'hud.logs.arenaLeave': '잿빛 원형경기장 대기열에서 나왔습니다.',
   'hud.logs.arenaSands': '잿빛 원형경기장의 모래 위에 섰습니다.',
+  'hud.logs.arenaSandsDrowned': '수몰된 궁정의 물에 잠긴 돌바닥에 들어섰습니다.',
   'hud.logs.tradeRequestSent': '{name}님에게 거래를 요청했습니다.',
   'hud.logs.tradeOpened': '거래 창이 열렸습니다.',
   'hud.logs.tradeComplete': '거래 완료.',
@@ -2087,6 +2103,9 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
   'hud.trade.accept': '거래 수락',
   'hud.trade.waiting': '대기 중...',
   'hud.trade.cancel': '취소',
+  'hud.arena.mapName': '맵: {name}',
+  'hud.arena.map.coliseum': '잿빛 원형경기장',
+  'hud.arena.map.drownedCourt': '수몰된 궁정',
   'hud.arena.title': '잿빛 원형경기장',
   'hud.arena.subtitle': '1대1 평점전',
   'hud.arena.close': '투기장 닫기',
@@ -2345,6 +2364,7 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
   'itemUi.market.pageNextAria': '다음 시장 페이지',
   'itemUi.market.pageStatus': '{total}쪽 중 {current}쪽',
   'itemUi.market.filters': '시장 필터',
+  'itemUi.market.filterValueAria': '{label}: {value}',
   'itemUi.market.filterType': '유형',
   'itemUi.market.filterTypeAll': '모든 유형',
   'itemUi.market.filterTypeWeapon': '무기',
@@ -2355,6 +2375,13 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
   'itemUi.market.filterTypeOther': '기타',
   'itemUi.market.filterArmorType': '방어구 유형',
   'itemUi.market.filterArmorAll': '모든 방어구',
+  'itemUi.market.filterArmorSlot': '방어구 부위',
+  'itemUi.market.filterArmorClassAll': '모든 방어구 유형',
+  'itemUi.market.armorCloth': '천 방어구',
+  'itemUi.market.armorLeather': '가죽 방어구',
+  'itemUi.market.armorMail': '사슬 방어구',
+  'itemUi.market.filterPrimaryStat': '주 능력치',
+  'itemUi.market.filterPrimaryStatAll': '모든 주 능력치',
   'itemUi.market.filterWeaponType': '무기 유형',
   'itemUi.market.filterWeaponAll': '모든 무기',
   'itemUi.market.filterRarity': '희귀도',
@@ -6415,6 +6442,13 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
   'gpuNotice.bodyWeb':
     '게임이 GPU 가속 없이 실행되고 있어 매우 느립니다. 브라우저 설정에서 하드웨어 가속을 켜고 그래픽 드라이버를 업데이트한 뒤 브라우저를 다시 시작하세요.',
   'gpuNotice.dismiss': '닫기',
+  'perfNudge.integratedGpu':
+    '게임이 내장(절전형) GPU에서 실행되고 있습니다. 이 컴퓨터에 게이밍 GPU도 있다면, Windows의 설정 > 시스템 > 디스플레이 > 그래픽에서 브라우저를 "고성능"으로 설정한 뒤 브라우저를 다시 시작하세요. 데스크톱 앱은 게이밍 GPU를 자동으로 선택합니다.',
+  'perfNudge.hardwareAccelerationDesktop':
+    '게임이 GPU 가속 없이 실행되고 있어 매우 느립니다. 그래픽 드라이버를 업데이트한 뒤 게임을 다시 시작하세요. Windows에서는 설정 > 시스템 > 디스플레이 > 그래픽에서 이 게임을 "고성능"으로 설정하세요.',
+  'perfNudge.hardwareAccelerationWeb':
+    '게임이 GPU 가속 없이 실행되고 있어 매우 느립니다. 브라우저 설정에서 하드웨어 가속을 켜고 그래픽 드라이버를 업데이트한 뒤 브라우저를 다시 시작하세요.',
+  'perfNudge.dismiss': '닫기',
   'editor.appTitle': '맵 편집기',
   'editor.docTitle': '맵 편집기 - World of ClaudeCraft',
   'editor.untitledMap': '제목 없는 맵',
@@ -7007,6 +7041,7 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
   'apiError.discord.swag_tier': '이 보상을 받으려면 더 높은 등급에 도달하세요.',
   'apiError.discord.swag_points': '포인트가 부족합니다.',
   'hudChrome.mailbox.title': '우편함',
+  'hudChrome.noticeboard.empty': '게시된 내용이 없는 것 같습니다.',
   'hudChrome.mailbox.subtitle': '레이븐포스트',
   'hudChrome.mailbox.close': '우편함 닫기',
   'hudChrome.mailbox.tabInbox': '받은 편지함',
@@ -7036,6 +7071,8 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
   'hudChrome.mailbox.arrivedLog': '{name}에게서 새 우편이 도착했습니다.',
   'hudChrome.mailbox.indicatorAria': '읽지 않은 우편: {count}',
   'hudChrome.mailbox.indicatorTip': '읽지 않은 편지가 {count}통 있습니다. 우편함에서 확인하세요.',
+  'hudChrome.marketIndicator.aria': '세계 시장 수령 대기',
+  'hudChrome.marketIndicator.tip': '골드나 아이템이 상인에게서 수령을 기다리고 있습니다.',
   'hudChrome.mailbox.clickAttach': '클릭하면 편지에 첨부됩니다.',
   'hudChrome.mailbox.cannotMail': '이 아이템은 우편으로 보낼 수 없습니다.',
   'hudChrome.mailbox.result.sent':
@@ -7053,6 +7090,7 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
   'hudChrome.mailbox.result.letterGone': '그 편지는 더 이상 우편함에 없습니다.',
   'hudChrome.mailbox.result.takeParcelsFirst': '편지를 버리기 전에 소포를 먼저 꺼내세요.',
   'worldContent.mailboxName': '우편함',
+  'worldContent.noticeboardName': '게시판',
   'entities.letters.ravenpost_welcome.sender': '레이븐포스트',
   'entities.letters.ravenpost_welcome.subject': '이제 까마귀가 당신을 위해 날아갑니다',
   'entities.letters.ravenpost_welcome.body':
@@ -7190,6 +7228,34 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
     '이 군락을 채집하려면 {tier}티어 약초 낫이 필요합니다.',
   'hudChrome.gathering.toolTierUnmetCorpse':
     '최상급 재료를 회수하려면 {tier}티어 채집 도구가 필요합니다.',
+  'hudChrome.gathering.requiresTool.mining': '채광 곡괭이 필요',
+  'hudChrome.gathering.requiresTool.logging': '벌목 도끼 필요',
+  'hudChrome.gathering.requiresTool.herbalism': '약초 낫 필요',
+  'hudChrome.gathering.toolRequired.mining': '이 광맥을 캐려면 채광 곡괭이가 필요합니다.',
+  'hudChrome.gathering.toolRequired.logging': '이 나무를 베려면 벌목 도끼가 필요합니다.',
+  'hudChrome.gathering.toolRequired.herbalism': '이 군락을 채집하려면 약초 낫이 필요합니다.',
+  'hudChrome.gathering.toolRequired.fishing': '낚싯대가 있어야 낚싯줄을 드리울 수 있습니다.',
+  'hudChrome.gathering.noNodeNearby.mining': '손이 닿는 곳에 광맥이 없습니다.',
+  'hudChrome.gathering.noNodeNearby.logging': '손이 닿는 곳에 벌목 나무가 없습니다.',
+  'hudChrome.gathering.noNodeNearby.herbalism': '손이 닿는 곳에 약초 군락이 없습니다.',
+  'hudChrome.gathering.toolTooltip.kind.mining': '채광 도구 ({tier}티어)',
+  'hudChrome.gathering.toolTooltip.kind.logging': '벌목 도구 ({tier}티어)',
+  'hudChrome.gathering.toolTooltip.kind.herbalism': '약초 도구 ({tier}티어)',
+  'hudChrome.gathering.toolTooltip.kind.fishing': '낚싯대 ({tier}티어)',
+  'hudChrome.gathering.toolTooltip.unlocks.mining': '{tier}티어까지의 광맥을 캐는 데 필요합니다.',
+  'hudChrome.gathering.toolTooltip.unlocks.logging':
+    '{tier}티어까지의 벌목 나무를 베는 데 필요합니다.',
+  'hudChrome.gathering.toolTooltip.unlocks.herbalism':
+    '{tier}티어까지의 약초 군락을 채집하는 데 필요합니다.',
+  'hudChrome.gathering.toolTooltip.use.mining': '사용: 근처의 광맥을 캡니다.',
+  'hudChrome.gathering.toolTooltip.use.logging': '사용: 근처의 벌목 나무를 벱니다.',
+  'hudChrome.gathering.toolTooltip.use.herbalism': '사용: 근처의 약초 군락에서 채집합니다.',
+  'hudChrome.gathering.toolTooltip.speed': '{tier}티어 미만 채집지에서 더 빠르게 채집합니다.',
+  'hudChrome.gathering.toolTooltip.rodRequired': '낚시에 필요합니다.',
+  'hudChrome.gathering.toolTooltip.rodBite': '물고기가 최대 {seconds}초 더 빨리 입질합니다.',
+  'hudChrome.gathering.toolTooltip.rodReel': '릴 감기 시간이 {seconds}초 늘어납니다.',
+  'hudChrome.gathering.toolTooltip.rodBand':
+    '낚시 기술 {skill} 이상에서 더 풍성한 어획 목록이 해금됩니다.',
   'hudChrome.gathering.downgradeMark':
     '가방이 가득 찼습니다: 수확물이 채집자의 표식 없이 보관되었습니다.',
   'hudChrome.gathering.downgradeFind': '가방이 가득 찼습니다: 최상급 수확물을 놓쳐 버렸습니다.',
@@ -7257,6 +7323,7 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
     '이 조합 제작법에 필요한 두 제작 기술의 숙련도에 도달하지 못했습니다.',
   'hudChrome.crafting.throttled': '너무 빨리 제작하고 있습니다. 잠시 후 다시 시도하세요.',
   'hudChrome.crafting.recipeNotLearned': '아직 그 제작법을 배우지 않았습니다.',
+  'hudChrome.crafting.noBagSpace': '가방에 제작한 아이템을 넣을 공간이 없습니다.',
   // Professions 2.0 (M16 non-Latin fills).
   'hudChrome.crafting.attunementReturnCost':
     '이 조합을 떠나면 나중에 다시 돌아올 때 속죄 과제 {cost}개가 필요합니다.',
@@ -7290,7 +7357,6 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
   'hudChrome.bags.itemAriaMasterwork': '{item}, 수량 {count}, 걸작',
   'hudChrome.crafting.gatheredBy': '채집자: {name}',
   'hudChrome.crafting.masterworkSeal': '걸작',
-  'hudChrome.crafting.enchantedLine': '마법부여됨',
   'hudChrome.crafting.stationRequired': '그것을 제작하려면 {station}에 있어야 합니다.',
   'hudChrome.crafting.stationOutOfRangeNamed': '{station}(으)로 이동하여 제작하세요.',
   'hudChrome.crafting.stationName.forge': '대장간',
@@ -8204,6 +8270,7 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
   'hud.combat.parried': '{target}이 당신의 {ability}을 무기로 막았습니다.',
   'hudChrome.options.mouseoverCast': '파티 창에서 마우스오버 시전',
   'hudChrome.options.showTargetOfTarget': '대상의 대상 표시',
+  'hudChrome.options.stickyTarget': '지면 클릭 시 대상 유지',
   'hudChrome.unitFrame.targetOfTargetLabel': '대상의 대상',
 
   'auth.rememberOptions': '로그인 기억 옵션',
@@ -8281,8 +8348,10 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
   'hudChrome.training.stateKnown': '습득함',
   'hudChrome.training.stateTeachable': '습득 가능',
   'hudChrome.training.stateLocked': '잠김',
+  'hudChrome.training.statePending': '습득 중',
   'hudChrome.training.requirement': '{craft} {skill}에서 전수',
   'hudChrome.training.trainAria': '{fee}(으)로 {name} 습득',
+  'hudChrome.training.pendingAria': '{name} 습득 중',
   'hudChrome.training.dialogOption': '훈련',
   'hudChrome.training.dialogOptionAria': '{name}에게 훈련 받기',
   'hudChrome.training.learned': '제조법을 습득했습니다: {recipe}',
@@ -8468,6 +8537,9 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
   'hudChrome.enchanting.enchantWrongSlot': '그 마법부여는 해당 아이템에 적용할 수 없습니다.',
   'hudChrome.enchanting.enchantUnknown': '해당 마법부여가 존재하지 않습니다.',
   'hudChrome.enchanting.enchantInsufficient': '해당 마법부여에 필요한 재료가 없습니다.',
+  'hudChrome.enchanting.disenchantNoSpace': '가방에 비전 재료를 넣을 공간이 없습니다.',
+  'hudChrome.enchanting.salvageNoSpace': '가방에 분해한 재료를 넣을 공간이 없습니다.',
+  'hudChrome.enchanting.enchantNoSpace': '가방에 마법부여한 아이템을 넣을 공간이 없습니다.',
   'hudChrome.enchanting.disenchantConfirmTitle': '{item}의 마력을 추출하시겠습니까?',
   'hudChrome.enchanting.disenchantConfirmBody':
     '{item}을(를) 파괴하고 비전 재료를 얻습니다. 되돌릴 수 없습니다.',
@@ -8672,6 +8744,7 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
   'hudChrome.unbind.notBound': '그 아이템은 귀속되어 있지 않습니다.',
   'hudChrome.unbind.cannotAfford': '귀속 해제 수수료를 지불할 수 없습니다.',
   'hudChrome.unbind.outOfRange': '귀속을 해제하려면 작업대 옆에 있어야 합니다.',
+  'hudChrome.unbind.noSpace': '가방에 귀속 해제한 아이템을 넣을 공간이 없습니다.',
   // Professions 2.0 wiki arm: the professions hub rewrite and the
   // /wiki/professions detail pages (M16 non-Latin fills, added with the keys).
   'guide.professions.ringHeading': '제작의 원환',
@@ -8767,7 +8840,7 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
     '기술이 {at}에 이르면 이 전문직에 전문화되어 제조법 재료 비용이 {pct}% 줄어든다.',
   'guide.profPages.ench.disenchantHeading': '마력 추출',
   'guide.profPages.ench.disenchantNote':
-    '마력 추출은 일반 품질 이상의 무기나 방어구를 하나 소모해 마법 재료로 분해한다. 이미 마법이 부여된 물건은 분해할 수 없다. 일반과 고급 품질은 울림 가루 한 줌으로 변하며, 희귀하거나 레벨이 높을수록 조금 더 나온다. 희귀 이상은 결과물의 형태가 달라져, 희귀 품질은 울림 정수 하나, 영웅이나 전설 품질은 울림 파편 하나가 나오고, 재료의 종류에 따른 보조 재료도 함께 나온다.',
+    '마력 추출은 일반 품질 이상의 무기나 방어구를 하나 소모해 마법 재료로 분해한다. 마법이 부여되지 않은 물건을 먼저 소모하며, 마법이 부여된 물건만 남아 있으면 그중 하나를 마법 부여째 분해한다. 일반과 고급 품질은 울림 가루 한 줌으로 변하며, 희귀하거나 레벨이 높을수록 조금 더 나온다. 희귀 이상은 결과물의 형태가 달라져, 희귀 품질은 울림 정수 하나, 영웅이나 전설 품질은 울림 파편 하나가 나오고, 재료의 종류에 따른 보조 재료도 함께 나온다.',
   'guide.profPages.ench.typedHeading': '계열 부산물',
   'guide.profPages.ench.typedNote':
     '희귀 이상의 장비는 계열별 거래 귀속 부산물도 내놓는다. 희귀 장비는 {rare}개, 영웅이나 전설은 {epicMin}에서 {epicMax}개다.',
@@ -8789,11 +8862,11 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
     '누구나 무기나 방어구를 품질에 따라 일반 재료로 해체할 수 있다. 마법부여 기술은 필요 없다.',
   'guide.profPages.ench.bonusFmt': '+{value} {stat}',
   'guide.profPages.gatherIntro.mining':
-    '채광은 세 지역의 광맥에서 광석을 캐어 대장간 계열 전문직에 공급하며, 상한은 100이다.',
+    '채광은 세상의 바위에서 광석을 곧바로 캐낸다. 이스트브룩 골짜기의 구리, 마이어펜 습지의 철, 쏜피크 고지의 오스뮴이 대장간 계열 전문직에 공급된다. 레벨 1부터 누구나 할 수 있고, 필요한 것은 가방 속 채광 곡괭이 하나뿐이다. 어느 거점 마을에서나 20동이면 산다. 자체 수치로 기록되며 상한은 100이다.',
   'guide.profPages.gatherIntro.logging':
-    '벌목은 세 지역의 숲에서 목재를 베어 무기 자루와 도구에 공급하며, 상한은 100이다.',
+    '벌목은 세 지역의 나무숲에서 목재를 베어 낸다. 이스트브룩 골짜기의 무쇠껍질나무, 마이어펜 습지의 물푸레나무, 쏜피크 고지의 고산소나무가 무기 자루와 지팡이, 그리고 기술자의 작업대에 들어가는 원자재다. 레벨 1부터 누구나 할 수 있고, 가방에 벌목 도끼(어느 거점 마을에서나 20동)만 있으면 된다. 자체 수치로 기록되며 상한은 100이다.',
   'guide.profPages.gatherIntro.herbalism':
-    '약초학은 세 지역에서 약초를 캐어 연금술과 요리에 공급하며, 상한은 100이다.',
+    '약초학은 야생에서 자라는 것을 캔다. 이스트브룩 골짜기의 윤기잎, 마이어펜 습지의 금빛잎, 쏜피크 고지의 태양꽃잎, 연금술 계열 전문직의 조제를 이어 주는 잎과 줄기다. 레벨 1부터 누구나 할 수 있고, 가방에 약초 낫(어느 거점 마을에서나 20동)만 있으면 된다. 자체 수치로 기록되며 상한은 100이다.',
   'guide.profPages.gatherIntro.fishing':
     '낚시는 입질과 릴 감기의 흐름으로 모든 지역의 트인 물가에서 어획물을 낚으며, 상한은 200이다.',
   'guide.profPages.rhythmHeading': '채집의 리듬',
@@ -8806,13 +8879,12 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
     '채집물의 위치, 티어, 필요한 도구, 산출물. 각 채집물은 내가 채집한 뒤 {respawn}초가 지나야 나에게 다시 생겨난다.',
   'guide.profPages.toolsHeading': '도구',
   'guide.profPages.toolsNote':
-    '정확한 상인 가격이 담긴 도구 사다리. 4티어와 5티어 도구는 제작으로만 얻고 팔지 않는다.',
+    '모든 채집지에는 그 전문직의 도구가 가방에 있어야 하며, 1티어도 예외가 아니다. 곡괭이가 없으면 광석도 없고, 낚싯대가 없으면 물고기도 없다. 상인 사다리는 1티어부터 3티어까지를 다루며 모든 거점 마을에 재고가 있다. 도구는 가방에 들어 있기만 하면 되고, 장착 칸도 내구도도 없어서 한 번만 사면 된다. 조건을 가르는 것은 티어뿐이며, 도구의 희귀도 색은 겉모습일 뿐이다.\n\n상인 사다리 위에는 제작 도구 두 가지, 4티어와 5티어가 있다. 기술자가 도구 공방에서 만들며 어떤 NPC도 팔지 않는다. 현재 3티어를 넘는 채집지는 없으므로 지금 이들의 가치는 속도다. 최상급 도구는 낮은 등급 채집지에서 시전 시간을 최소치로 고정하며, 더 높은 티어의 땅이 열리면 그때의 입장권이 된다.',
   'guide.profPages.toolCrafted': '제작({craft})',
   'guide.profPages.toolVendor': '{name}({hub})',
   'guide.profPages.toolUnavailable': '판매 없음',
   'guide.profPages.priceNone': '판매 없음',
   'guide.profPages.toolTierReq': '{tier}티어 도구',
-  'guide.profPages.bareHands': '맨손 가능',
   'guide.profPages.bandsHeading': '숙련도 구간',
   'guide.profPages.bandsBody':
     '숙련도 구간은 채집 시전을 빠르게 하고, 낚시에서는 어획표까지 가른다.',
@@ -9031,5 +9103,53 @@ export const ko_KR: Partial<Record<TranslationKey, string>> = {
     '기술을 움직이는 행동은 둘이다. 분해와 마법부여 시전. 성공마다 최대 1점이고, 일의 무게로 환산된다. 일반 분해와 가루만 드는 마법부여는 일반 일, 고급 분해와 정수 마법부여는 고급, 희귀 분해와 모든 Runed나 Greater 마법부여는 희귀, 영웅과 전설 분해는 그보다 높다. 익숙한 숙달 감쇠가 25점 단위로 걸려 일반 일은 기술 75에, 고급 일은 100에, 희귀 일은 정확히 상한 125에 회색이 된다. 마법부여만의 자비도 하나 있다. 천장을 넘는 입력은 0이 아니라 천장으로 내림되니, 맹세 전의 영웅 분해는 아무것도 못 배우는 대신 희귀로 계산된다. 마법부여가 다른 정체성 뒤에서 휴면하면 모든 것이 일반 일로 계산되어 오름세가 75에 멎고, 취미로 두면 희귀 일이 여전히 값을 하되 75 이후 느려질 뿐이다.',
   'guide.profPages.craftProse.enchanting.marketHeading': '부여된 사본, 출처, 시장',
   'guide.profPages.craftProse.enchanting.marketBody':
-    '마법부여는 가방 속 장착하지 않은 사본 하나와 재료를 소모하고, 별개의 부여된 사본을 돌려준다. 입으면 보너스가 영원히 그 물건을 따른다. 한 물건에 하나. 부여된 사본은 다시 부여할 수도 분해할 수도 없고, 판매와 폐기와 분해 모두 무표식 사본을 먼저 집으니 완성품이 실수로 갈리지 않는다. 똑같이 부여된 사본끼리는 겹쳐진다. 걸작과 마법부여는 친구다. 걸작은 온전히 부여 가능하고, 부여는 걸작 보너스와 서명을 건드리지 않고 얹힌다. 모든 것을 쌓은 서명된 걸작의 Greater 부여가 공예품의 정점이며, 그래도 설계상 공격대 전리품 아래에 있다. 세계 시장은 무표식 일반품만 다루므로 부여품과 서명품은 거래 창에서 직접 오간다. 시장에 올릴 수 있는 절반은 재료 쪽이다. 가루, 정수, 조각은 자유로이 등록되고, 등록은 무료, 수수료는 성사 시 5%뿐이다.',
+    '마법부여는 재료를 소모하고 특정 사본 하나에 표시를 남긴다. 가방 속 사본에 쓰면 별개의 부여된 사본을 돌려받고, 이미 착용 중인 물건에 쓰면 벗었다 다시 입을 필요 없이 그 자리에서 부여된다. 어느 쪽이든 보너스가 영원히 그 물건을 따른다. 한 물건에 하나. 부여된 사본에 다른 마법부여를 쓰면 먼저 확인을 거친 뒤 옛 부여를 그대로 대체하며, 옛 부여는 재료 환불 없이 파괴된다. 판매와 폐기와 분해 모두 무표식 사본을 먼저 집으니 완성품이 실수로 갈리지 않는다. 똑같이 부여된 사본끼리는 겹쳐진다. 걸작과 마법부여는 친구다. 걸작은 온전히 부여 가능하고, 부여는 걸작 보너스와 서명을 건드리지 않고 얹힌다. 모든 것을 쌓은 서명된 걸작의 Greater 부여가 공예품의 정점이며, 그래도 설계상 공격대 전리품 아래에 있다. 세계 시장은 무표식 일반품만 다루므로 부여품과 서명품은 거래 창에서 직접 오간다. 시장에 올릴 수 있는 절반은 재료 쪽이다. 가루, 정수, 조각은 자유로이 등록되고, 등록은 무료, 수수료는 성사 시 5%뿐이다.',
+  'hudChrome.corpseHarvest.components.meat': '고기',
+  'hudChrome.itemTooltip.statEnchanted': '+{value} {stat} (마법부여)',
+  'hudChrome.materialHint.arcaneDust': '마법부여 재료. 일반과 고급 장비의 마력을 추출해 얻습니다.',
+  'hudChrome.materialHint.arcaneEssence': '마법부여 재료. 희귀 장비의 마력을 추출해 얻습니다.',
+  'hudChrome.materialHint.arcaneShard': '마법부여 재료. 영웅과 전설 장비의 마력을 추출해 얻습니다.',
+  'hudChrome.materialHint.resonantThread':
+    '마법부여 재료. 희귀 이상 천 방어구의 마력을 추출해 얻습니다.',
+  'hudChrome.materialHint.resonantHide':
+    '마법부여 재료. 희귀 이상 가죽 방어구의 마력을 추출해 얻습니다.',
+  'hudChrome.materialHint.resonantLinks':
+    '마법부여 재료. 희귀 이상 사슬 방어구의 마력을 추출해 얻습니다.',
+  'hudChrome.materialHint.resonantSteel':
+    '마법부여 재료. 희귀 이상 근접 무기의 마력을 추출해 얻습니다.',
+  'hudChrome.materialHint.resonantTimber':
+    '마법부여 재료. 희귀 이상 지팡이, 마법봉, 활, 석궁의 마력을 추출해 얻습니다.',
+  'hudChrome.enchanting.tier.base': '기본 마법부여',
+  'hudChrome.enchanting.tier.runed': '룬 마법부여',
+  'hudChrome.enchanting.tier.greater': '상급 마법부여',
+  'hudChrome.enchanting.yieldHeader': '예상 재료:',
+  'hudChrome.enchanting.yieldLineExact': '{item} {count}개',
+  'hudChrome.enchanting.yieldLineRange': '{item} {min}~{max}개',
+  'hudChrome.enchanting.alreadyEnchanted': '해당 아이템에는 이미 마법부여가 되어 있습니다.',
+  'hudChrome.enchanting.sameEnchant': '해당 아이템에는 이미 같은 마법부여가 되어 있습니다.',
+  'hudChrome.enchanting.replaceTag': '{enchant} 대체',
+  'hudChrome.enchanting.sameEnchantTag': '이미 적용됨',
+  'hudChrome.enchanting.replaceConfirmTitle': '{item}의 마법부여를 대체하시겠습니까?',
+  'hudChrome.enchanting.replaceConfirmBody': '{item}의 {old}을(를) {new}(으)로 대체합니다.',
+  'hudChrome.enchanting.replaceConfirmNoRefund':
+    '기존 마법부여는 파괴되며 재료는 환불되지 않습니다. 되돌릴 수 없습니다.',
+  'hudChrome.enchanting.replaceConfirmCost': '비용: {cost}',
+  'hudChrome.enchanting.replaceConfirmCostItem': '{name} {count}개',
+  'hudChrome.enchanting.replaceConfirmAccept': '대체',
+  'hudChrome.bags.itemAriaEnchanted': '{item}, 수량 {count}, 마법부여된 사본',
+  'hudChrome.bags.itemAriaBound': '{item}, 수량 {count}, 귀속된 사본',
+  'hudChrome.itemTooltip.enchantedFallback': '마법부여됨',
+  'devCommand.actions.kit.description':
+    '특성에 맞는 성소 입장 전 20레벨 사전 설정 장비를 가방부터 착용합니다. 장비만 해당됩니다.',
+  'devCommand.actions.kit.label': '20레벨 초기 장비 세트 착용',
+  'devCommand.fields.spec': '전문화',
+  'devCommand.itemChosen': '선택됨: {name}',
+  'devCommand.itemHeroicTag': '영웅',
+  'devCommand.itemMore': '{total}개 중 {shown}개 표시 중입니다. 계속 입력해 범위를 좁히세요.',
+  'devCommand.itemNoMatches': '일치하는 아이템이 없습니다.',
+  'devCommand.itemResultsAria': '일치하는 아이템',
+  'devCommand.itemSearchPlaceholder': '이름 또는 ID로 검색',
+  'devCommand.itemUnknown': '해당 ID를 가진 아이템이 없습니다.',
+  'devCommand.kitCurrentSpec': '현재 전문화',
+  'hudChrome.enchanting.wornTag': '착용 중 ({slot})',
 };

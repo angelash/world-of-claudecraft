@@ -65,7 +65,9 @@ function validDecision(overrides: Partial<AiDecisionV1> = {}): AiDecisionV1 {
 
 async function makeFakeCodexAppServer(): Promise<{ capturePath: string; dir: string; entry: string }> {
   const dir = await mkdtemp(join(tmpdir(), 'woc-fake-codex-app-server-'));
-  const entry = join(dir, 'app-server');
+  // Keep the fake's CommonJS mode explicit across Node versions and Windows
+  // launchers; an extensionless temp script can otherwise inherit ESM mode.
+  const entry = join(dir, 'app-server.cjs');
   const capturePath = join(dir, 'launch.json');
   await writeFile(entry, `
 const fs = require('node:fs');

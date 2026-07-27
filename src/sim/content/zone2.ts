@@ -664,6 +664,15 @@ export const ZONE2_NPCS: Record<string, NpcDef> = {
       'reedwoven_jerkin',
       'fenwalker_boots',
       'reedwoven_trousers',
+      // Gathering tools (#2343: every node harvest needs a matching tool, so
+      // each zone hub stocks the tiers its own nodes use; Mirefen has tier-1
+      // and tier-2 nodes). Tiered rods stay a Trader Wilkes exclusive.
+      'copper_mining_pick',
+      'iron_mining_pick',
+      'handaxe',
+      'felling_axe',
+      'gathering_sickle',
+      'bronze_sickle',
       'simple_fishing_pole',
     ],
     greeting:
@@ -1318,6 +1327,14 @@ export const ZONE2_OBJECTS: GroundObjectDef[] = [
 const WAR: PlayerClass[] = ['warrior', 'paladin', 'shaman'];
 const MAG: PlayerClass[] = ['mage', 'priest', 'warlock', 'druid'];
 const ROG: PlayerClass[] = ['rogue', 'hunter'];
+const CASTER_WEAPON_CLASSES: PlayerClass[] = [
+  'mage',
+  'priest',
+  'warlock',
+  'shaman',
+  'paladin',
+  'druid',
+];
 
 export const ZONE2_ITEMS: Record<string, ItemDef> = {
   // --- quest items ---
@@ -1603,7 +1620,7 @@ export const ZONE2_ITEMS: Record<string, ItemDef> = {
     weapon: { min: 12, max: 20, speed: 3.0 },
     stats: { int: 5, spi: 2 },
     sellValue: 300,
-    requiredClass: MAG,
+    requiredClass: CASTER_WEAPON_CLASSES,
   },
   mistbinder_kris: {
     id: 'mistbinder_kris',
@@ -1789,7 +1806,7 @@ export const ZONE2_ITEMS: Record<string, ItemDef> = {
     weapon: { min: 16, max: 27, speed: 3.0 },
     stats: { int: 6, spi: 3 },
     sellValue: 1400,
-    requiredClass: MAG,
+    requiredClass: CASTER_WEAPON_CLASSES,
   },
   // --- Sunken Bastion blues (rare) ---
   mistcallers_edge: {
@@ -1812,7 +1829,7 @@ export const ZONE2_ITEMS: Record<string, ItemDef> = {
     weapon: { min: 15, max: 26, speed: 3.0 },
     stats: { int: 6, spi: 3 },
     sellValue: 1200,
-    requiredClass: MAG,
+    requiredClass: CASTER_WEAPON_CLASSES,
   },
   riptide_dirk: {
     id: 'riptide_dirk',

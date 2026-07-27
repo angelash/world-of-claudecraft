@@ -68,6 +68,7 @@
 // game/net imports, no Math.random/Date.now, host-agnostic so it runs
 // offline, on the server, and in the headless RL env unchanged.
 
+import { bagCapacity, fitsAll, removeStacked } from '../bags';
 import { CRAFT_GOLD_SINK_COPPER_PER_BUDGET } from '../content/professions';
 import { recipeById } from '../content/recipes';
 import { ITEMS } from '../data';
@@ -138,7 +139,8 @@ export interface CraftResult {
     | 'combo_requirement_unmet'
     | 'recipe_not_learned'
     | 'throttled'
-    | 'station_required';
+    | 'station_required'
+    | 'no_bag_space';
 }
 
 /** Whether `meta` currently knows `recipe` (issue #1299): a recipe with no
@@ -359,7 +361,10 @@ export function resolveCraftForRecipe(
       !!meta?.mobileStation &&
       isStationActive(meta.mobileStation, ctx.tickCount) &&
       stationTypeForCraft(meta.mobileStation.craftId) === recipe.stationType;
-    if (!entity || (!isAtStation(entity.pos, recipe.stationType) && !mobileSatisfies)) {
+    if (
+      !entity ||
+      (!isAtStation(ctx.stationPlacements, entity.pos, recipe.stationType) && !mobileSatisfies)
+    ) {
       return { ok: false, recipeId: recipe.id, reason: 'station_required' };
     }
   }
@@ -388,46 +393,22 @@ export function resolveCraftForRecipe(
   if (meta && !withinActionThrottle(meta, ctx.time)) {
     return { ok: false, recipeId: recipe.id, reason: 'throttled' };
   }
-  // #1301 gold sink: a fee proportional to the recipe's item-level budget,
-  // charged on every successful craft, common tier included (the free-floor
-  // rule from #1126/#1127 only ever meant free of a HARD gate; a gold fee on
-  // a common-tier craft was already implicit once #1301 landed a sink on
-  // every craft, TOOL_RECIPES' skillReq 75/150 included). Never blocks a
-  // craft the player would otherwise be able to perform: floored at 0 copper
-  // rather than denied, so a broke player still crafts, just contributes
-  // nothing to the sink that trip. Content-driven via
-  // CRAFT_GOLD_SINK_COPPER_PER_BUDGET.
-  if (meta) {
-    const goldFee = Math.ceil(recipe.itemLevelBudget * CRAFT_GOLD_SINK_COPPER_PER_BUDGET);
-    meta.copper = Math.max(0, meta.copper - goldFee);
-  }
   const craftSkills = meta ? meta.craftSkills : {};
-  let selfSignedBonusApplied = false;
-  // The masterwork signed-reagent input: a holding check over the recipe's
-  // reagents BEFORE consumption (removeItem consumes end-backward, so the
-  // signed copy itself may be what gets consumed), any signer counting.
-  let signedReagentUsed = false;
-  for (const reagent of recipe.reagents) {
-    const required = requiredReagentCount(meta, reagent, craftSkills, recipe.professionId);
-    if (required.selfSignedBonusApplied) selfSignedBonusApplied = true;
-    if (meta && hasSignedInstance(meta, reagent.itemId)) signedReagentUsed = true;
-    ctx.removeItem(reagent.itemId, required.count, pid);
-  }
-  // Masterwork proc draw: the single output-side rng draw, at the
-  // exact position the retired quality roll occupied so the world's draw
-  // order and the one-draw-per-successful-craft contract are preserved. The
-  // draw is UNCONDITIONAL on the success path: it happens even when the
-  // effect is gated off below, so the draw count per successful craft is
-  // always exactly 1 regardless of archetype state or output type. Every
-  // denial path above draws nothing, unchanged.
-  const procRoll = ctx.rng.next();
+  // The output's deterministic facts, hoisted above the #2350 capacity gate
+  // so it can model the exact grant arms below. Every one of these is a pure
+  // read (content lookups plus archetype state; none reads the inventory and
+  // none draws rng), so computing them before the reagents are consumed
+  // changes no behavior and the one-draw-per-successful-craft contract is
+  // untouched: the single masterwork proc draw stays exactly where it was, on
+  // the success path after consumption.
   const def: ItemDef | undefined = ITEMS[recipe.resultItemId];
+  const outputQuality = defOutputQuality(def);
   // #1129/#1148: the archetype empowerment ceiling. With deterministic
   // outputs, the only remaining quality-EXCEEDING mechanism is the masterwork
-  // bump, so the ceiling now gates the masterwork effect (below) and the
-  // skill-gain curve (further below): a dormant craft (common ceiling) can
-  // never masterwork at all, and a hobby craft (rare ceiling) cannot
-  // masterwork a rare-def recipe past its ceiling.
+  // bump, so the ceiling now gates the masterwork effect (the proc arm
+  // below) and the skill-gain curve (further below): a dormant craft (common
+  // ceiling) can never masterwork at all, and a hobby craft (rare ceiling)
+  // cannot masterwork a rare-def recipe past its ceiling.
   const ceilingTier = meta
     ? archetypeCeilingFor(
         meta.archetype.activeArchetype,
@@ -447,6 +428,100 @@ export function resolveCraftForRecipe(
         stats: def.stats,
       })
     : null;
+  // Commissions (Professions 2.0): the opt-in flag arms every
+  // granted copy with the bind-on-trade primitive, but ONLY for the
+  // ruled-in equipment kinds (commission.ts isCommissionEligible). For any
+  // other output kind the flag is silently ignored (server authority: a
+  // tampered flag can never arm a potion), and a non-commission craft is
+  // byte-identical to the pre-phase behavior below.
+  const commissioned = commission && !!meta && isCommissionEligible(def);
+  // #2350 capacity gate: the output must fit AFTER the reagents leave, so
+  // simulate the consumption on a scratch copy (removeStacked mirrors the
+  // removeItem walk; the required counts recompute identically in the real
+  // consumption loop below) and require EVERY possible grant shape to fit:
+  // the deterministic no-proc arm, and, whenever the masterwork effect gates
+  // pass, the proc arm's instanced shape too (the proc chance always has a
+  // positive base, and a denial must not depend on a draw it never makes, so
+  // the gate treats a gates-open proc as possible rather than reading the
+  // chance). Denies with no side effect and draws nothing, like every arm
+  // above; placed before the gold sink so a denial never charges the fee.
+  if (meta) {
+    const scratch = meta.inventory.map((s) => ({ ...s }));
+    for (const reagent of recipe.reagents) {
+      const required = requiredReagentCount(meta, reagent, craftSkills, recipe.professionId);
+      removeStacked(scratch, reagent.itemId, required.count);
+    }
+    // The grant shapes, mirroring the grant arms below field for field so the
+    // modeled payloads merge exactly like the minted ones.
+    const shapes: InvSlot[][] = [];
+    if (recipe.resultCount === 1 && isSignableMaterialRarity(outputQuality)) {
+      const payload: ItemInstancePayload = { signer: meta.name };
+      if (commissioned) payload.bindOnTrade = true;
+      shapes.push([{ itemId: recipe.resultItemId, count: 1, instance: payload }]);
+    } else if (commissioned) {
+      shapes.push([
+        { itemId: recipe.resultItemId, count: recipe.resultCount, instance: { bindOnTrade: true } },
+      ]);
+    } else {
+      shapes.push([{ itemId: recipe.resultItemId, count: recipe.resultCount }]);
+    }
+    if (bonusStats !== null && bumped !== null && bumped.tier <= ceilingTier) {
+      const payload: ItemInstancePayload = {
+        signer: meta.name,
+        rolled: { masterwork: true, stats: bonusStats },
+      };
+      if (commissioned) payload.bindOnTrade = true;
+      const adds: InvSlot[] = [{ itemId: recipe.resultItemId, count: 1, instance: payload }];
+      if (recipe.resultCount > 1) {
+        adds.push(
+          commissioned
+            ? {
+                itemId: recipe.resultItemId,
+                count: recipe.resultCount - 1,
+                instance: { bindOnTrade: true },
+              }
+            : { itemId: recipe.resultItemId, count: recipe.resultCount - 1 },
+        );
+      }
+      shapes.push(adds);
+    }
+    const capacity = bagCapacity(meta.bags);
+    if (!shapes.every((adds) => fitsAll(scratch, capacity, adds))) {
+      return { ok: false, recipeId: recipe.id, reason: 'no_bag_space' };
+    }
+  }
+  // #1301 gold sink: a fee proportional to the recipe's item-level budget,
+  // charged on every successful craft, common tier included (the free-floor
+  // rule from #1126/#1127 only ever meant free of a HARD gate; a gold fee on
+  // a common-tier craft was already implicit once #1301 landed a sink on
+  // every craft, TOOL_RECIPES' skillReq 75/150 included). Never blocks a
+  // craft the player would otherwise be able to perform: floored at 0 copper
+  // rather than denied, so a broke player still crafts, just contributes
+  // nothing to the sink that trip. Content-driven via
+  // CRAFT_GOLD_SINK_COPPER_PER_BUDGET.
+  if (meta) {
+    const goldFee = Math.ceil(recipe.itemLevelBudget * CRAFT_GOLD_SINK_COPPER_PER_BUDGET);
+    meta.copper = Math.max(0, meta.copper - goldFee);
+  }
+  let selfSignedBonusApplied = false;
+  // The masterwork signed-reagent input: a holding check over the recipe's
+  // reagents BEFORE consumption (removeItem consumes end-backward, so the
+  // signed copy itself may be what gets consumed), any signer counting.
+  let signedReagentUsed = false;
+  for (const reagent of recipe.reagents) {
+    const required = requiredReagentCount(meta, reagent, craftSkills, recipe.professionId);
+    if (required.selfSignedBonusApplied) selfSignedBonusApplied = true;
+    if (meta && hasSignedInstance(meta, reagent.itemId)) signedReagentUsed = true;
+    ctx.removeItem(reagent.itemId, required.count, pid);
+  }
+  // Masterwork proc draw: the single output-side rng draw, at the
+  // exact position the retired quality roll occupied so the world's draw
+  // order and the one-draw-per-successful-craft contract are preserved. The
+  // draw is UNCONDITIONAL on the success path: it happens even when the
+  // effect is gated off below, so the draw count per successful craft is
+  // always exactly 1 regardless of archetype state or output type. Every
+  // denial path above draws nothing, unchanged.
+  const procRoll = ctx.rng.next();
   const procChance = masterworkProcChance({
     tiersAboveRecipe:
       tierCapability(craftSkills, recipe.professionId) - tierForSkill(recipe.skillReq),
@@ -468,14 +543,6 @@ export function resolveCraftForRecipe(
     bonusStats !== null &&
     bumped !== null &&
     bumped.tier <= ceilingTier;
-  const outputQuality = defOutputQuality(def);
-  // Commissions (Professions 2.0): the opt-in flag arms every
-  // granted copy with the bind-on-trade primitive, but ONLY for the
-  // ruled-in equipment kinds (commission.ts isCommissionEligible). For any
-  // other output kind the flag is silently ignored (server authority: a
-  // tampered flag can never arm a potion), and a non-commission craft is
-  // byte-identical to the pre-phase behavior below.
-  const commissioned = commission && !!meta && isCommissionEligible(def);
   // Deterministic grant: every successful craft yields recipe.resultItemId.
   // #1149 signing rule preserved on the DEF quality: a single-copy output
   // whose def is rare-or-better is a signed instance so it carries an
@@ -491,33 +558,36 @@ export function resolveCraftForRecipe(
   // commissioned sub-rare output forces the instance path a plain grant
   // would skip. Commission never adds signer: the #1149 signing rule is
   // untouched (the bond composes with the maker's mark, it does not extend
-  // it).
+  // it). silent on every grant below: the craftResult event fires its own
+  // per-family cue (audio.craftSuccess, plus audio.masterwork layered on top
+  // for a proc) in src/game/audio.ts; the generic loot ding would otherwise
+  // stack on top of it for every single craft.
   if (meta && masterwork && bonusStats) {
     const payload: ItemInstancePayload = {
       signer: meta.name,
       rolled: { masterwork: true, stats: bonusStats },
     };
     if (commissioned) payload.bindOnTrade = true;
-    ctx.addItemInstance(recipe.resultItemId, payload, pid);
+    ctx.addItemInstance(recipe.resultItemId, payload, pid, 1, { silent: true });
     if (recipe.resultCount > 1) {
       if (commissioned) {
         for (let i = 1; i < recipe.resultCount; i++) {
-          ctx.addItemInstance(recipe.resultItemId, { bindOnTrade: true }, pid);
+          ctx.addItemInstance(recipe.resultItemId, { bindOnTrade: true }, pid, 1, { silent: true });
         }
       } else {
-        ctx.addItem(recipe.resultItemId, recipe.resultCount - 1, pid);
+        ctx.addItem(recipe.resultItemId, recipe.resultCount - 1, pid, { silent: true });
       }
     }
   } else if (meta && recipe.resultCount === 1 && isSignableMaterialRarity(outputQuality)) {
     const payload: ItemInstancePayload = { signer: meta.name };
     if (commissioned) payload.bindOnTrade = true;
-    ctx.addItemInstance(recipe.resultItemId, payload, pid);
+    ctx.addItemInstance(recipe.resultItemId, payload, pid, 1, { silent: true });
   } else if (commissioned) {
     for (let i = 0; i < recipe.resultCount; i++) {
-      ctx.addItemInstance(recipe.resultItemId, { bindOnTrade: true }, pid);
+      ctx.addItemInstance(recipe.resultItemId, { bindOnTrade: true }, pid, 1, { silent: true });
     }
   } else {
-    ctx.addItem(recipe.resultItemId, recipe.resultCount, pid);
+    ctx.addItem(recipe.resultItemId, recipe.resultCount, pid, { silent: true });
   }
   if (meta) {
     // The #1129/#1148 gain doctrine (archetype ceiling alone zeroes, ordinary
@@ -532,13 +602,26 @@ export function resolveCraftForRecipe(
       meta.archetype.hobbyCraft,
       recipe.skillReq,
     );
+    const skillBefore = meta.craftSkills[recipe.professionId] ?? 0;
     gainCraftSkill(meta.craftSkills, recipe.professionId, CRAFT_SKILL_GAIN * multiplier);
+    const skillLearned = (meta.craftSkills[recipe.professionId] ?? 0) - skillBefore;
     recordAction(meta);
-    // Character XP for the craft (profession_xp.ts), tier-scaled and
-    // level-gated the same way gathering/kill XP are: a max-level player
-    // spamming a trivial (gray) recipe gets zero.
+    // Character XP for the craft is LEARNING XP: the level-banded curve
+    // (profession_xp.ts) scaled by the skill this craft actually taught (the
+    // applied post-clamp delta, 0..CRAFT_SKILL_GAIN). A craft that teaches
+    // nothing, gray by tier, above the archetype ceiling, or at the craft's
+    // 125 content cap, pays nothing. The character-level green/gray falloff
+    // alone cannot bound a level-20 recipe at the level-20 character cap, so
+    // the skill journey is the dimension that keeps total craft XP finite
+    // (craft skill is additive-only and hard-capped, so every recipe's
+    // lifetime XP contribution per character is a closed sum).
     const entity = ctx.entities.get(pid);
-    if (entity) ctx.grantXp(craftActionXp(recipe.level, entity.level), meta);
+    if (entity) {
+      const xp = Math.round(
+        craftActionXp(recipe.level, entity.level) * (skillLearned / CRAFT_SKILL_GAIN),
+      );
+      if (xp > 0) ctx.grantXp(xp, meta);
+    }
   }
   const result: CraftResult = {
     ok: true,
