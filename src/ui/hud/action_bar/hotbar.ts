@@ -12,6 +12,34 @@ export interface HotbarStorage {
 
 export const HOTBAR_ACTION_MIME = 'application/x-woc-hotbar-action';
 
+// The basic Attack is not a HotbarAction (it has no ability/item id): it is the
+// fixed slot-0 button gated by the Interface showAttackButton setting. So a drag of
+// the spellbook Attack row carries its OWN marker MIME rather than an encoded action,
+// and dropping it anywhere on the action bar just turns showAttackButton back on
+// (which restores Attack to slot 0). Kept distinct from HOTBAR_ACTION_MIME so the
+// normal ability/item drop path never mistakes it for an assignable action.
+export const HOTBAR_ATTACK_MIME = 'application/x-woc-hotbar-attack';
+
+// True when an in-progress drag carries the Attack marker. Reads DataTransfer.types
+// (available during dragover, unlike getData) so the action bar can accept the drop.
+export function dragCarriesAttack(types: readonly string[] | undefined): boolean {
+  return types?.includes(HOTBAR_ATTACK_MIME) ?? false;
+}
+
+export type AttackDragDisposition = 'ignore' | 'highlight' | 'restore';
+
+// Only the fixed slot-0 destination accepts the drag. Other slots keep the browser's
+// not-allowed cursor instead of promising a drop whose result would land elsewhere.
+export function attackDragDisposition(
+  types: readonly string[] | undefined,
+  slot: number,
+  phase: 'over' | 'drop',
+): AttackDragDisposition {
+  if (!dragCarriesAttack(types) || slot !== 0) return 'ignore';
+  if (phase === 'drop') return 'restore';
+  return 'highlight';
+}
+
 /** One rule for every action-bar entry point: passive abilities are informational only. */
 export function isAbilityActionBarEligible(
   ability: Pick<AbilityDef, 'passive'> | null | undefined,
@@ -315,6 +343,11 @@ export function applyLoadoutBar(
   abilityExists: (id: string) => boolean,
 ): HotbarAction[] {
   return Array.from({ length: slots }, (_, i) => {
+    // A pre-third-row loadout contains only 22 entries. Missing tail entries
+    // mean the row did not exist when it was saved, not that the player chose
+    // to clear it, so preserve the current action there. An explicit null
+    // inside the saved span still clears an ability while retaining items.
+    if (i >= bar.length) return current[i] ?? null;
     const v = bar[i];
     if (typeof v === 'string' && abilityExists(v)) return { type: 'ability' as const, id: v };
     const existing = current[i];

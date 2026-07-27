@@ -191,6 +191,7 @@ const CALLBACK_KEYS = [
   'startAutoAttack',
   'revivePet',
   'completeFishing',
+  'completeGatherCast',
   'applyDemonHealTick',
   'awardCombo',
   'meleeSwing',
@@ -224,6 +225,7 @@ const CALLBACK_KEYS = [
   // Ravenpost mail: the quest turn-in letter hook.
   'queueQuestLetter',
   'mailHeroicMarks',
+  'mailAuthoredLetter',
   // Set proc firing.
   'applySetProcs',
   // The Vale Cup sport-move arms (social/vale_cup.ts).
@@ -482,6 +484,7 @@ function makeFakeHost() {
     startAutoAttack: vi.fn(),
     revivePet: vi.fn(),
     completeFishing: vi.fn(),
+    completeGatherCast: vi.fn(),
     applyDemonHealTick: vi.fn(),
     awardCombo: vi.fn(),
     meleeSwing: vi.fn(() => false),
@@ -515,6 +518,7 @@ function makeFakeHost() {
     // Ravenpost mail: the quest turn-in letter hook.
     queueQuestLetter: vi.fn(),
     mailHeroicMarks: vi.fn(),
+    mailAuthoredLetter: vi.fn(),
     applySetProcs: vi.fn(),
     // The Vale Cup sport-move arms.
     vcupBallKick: vi.fn(),

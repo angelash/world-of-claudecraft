@@ -37,6 +37,12 @@ async function bootOffline(page) {
     hasTouch: false,
   });
   await page.goto(gameUrl(), { waitUntil: 'domcontentloaded', timeout: 30000 });
+  // This smoke owns an isolated browser profile and exercises movement rather
+  // than the one-shot camera-mode onboarding. Mark that prompt as answered
+  // before world entry so it cannot suspend every sampled input.
+  await page.evaluate(() => {
+    localStorage.setItem('woc.cameraModePrompt.shown', '1');
+  });
   await page.waitForSelector('#btn-offline', { timeout: 30000 });
   await page.$eval('#btn-offline', (el) => el.click());
   await page.waitForSelector('#char-name', { timeout: 30000 });
@@ -50,6 +56,10 @@ async function bootOffline(page) {
   await page.waitForFunction(
     () => Boolean(window.__game?.sim?.player && window.__game?.perf?.report),
     { timeout: BOOT_TIMEOUT_MS },
+  );
+  await page.waitForFunction(
+    () => window.__game?.input?.suspendMovement === false,
+    { timeout: 15000, polling: 100 },
   );
   await page.evaluate(() => {
     const start = window.__game?.perf?.report?.().frames ?? 0;

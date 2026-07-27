@@ -1,6 +1,6 @@
 import { performance } from 'node:perf_hooks';
 import { zoneAt } from '../../src/sim/data';
-import { accountForToken } from '../db';
+import { accountAndScopeForToken } from '../db';
 import { writeAssignedPlayerName } from './assignment';
 import {
   ambientBrainSelfMaintenanceAllowedWhilePartyPaused,
@@ -209,7 +209,12 @@ export class AmbientPlayerBotRuntime {
     this.brainLoopIntervalMs = Math.min(this.brainDecisionIntervalMs, AMBIENT_BOT_DRIVE_INTERVAL_MS);
     this.webSocketFactory = options.webSocketFactory;
     this.nowMs = options.nowMs ?? (() => Date.now());
-    this.resolveAccountIdForToken = options.resolveAccountIdForToken ?? accountForToken;
+    this.resolveAccountIdForToken =
+      options.resolveAccountIdForToken ??
+      (async (token) => {
+        const auth = await accountAndScopeForToken(token);
+        return auth?.scope === 'full' ? auth.accountId : null;
+      });
     this.provisionReservationMs = options.provisionReservationMs ?? 90_000;
     this.authTokenTtlMs = options.authTokenTtlMs ?? 7 * 24 * 3600 * 1000;
   }

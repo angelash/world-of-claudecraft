@@ -72,6 +72,21 @@ export function itemSemanticFor(itemId: string): ItemSemantic {
     itemTags.add('quest');
     valueSignals.add('story');
   }
+  // Profession materials introduced by the official professions pass are
+  // ordinary inventory items, so their broad `material` kind alone is not
+  // expressive enough for living-world reactions.
+  if (/meat|salt/.test(lower)) {
+    itemTags.add('food');
+    smellTags.add(lower.includes('meat') ? 'meat' : 'seasoning');
+  }
+  if (/vial|flux|thread|tanning agent/.test(lower)) {
+    itemTags.add('tool');
+    valueSignals.add('useful');
+  }
+  if (/vial/.test(lower)) itemTags.add('alchemy');
+  if (/flux/.test(lower)) itemTags.add('metal');
+  if (/thread/.test(lower)) itemTags.add('cloth');
+  if (/tanning agent/.test(lower)) itemTags.add('beast');
   if (/fish|trout|perch|pike|eel|cod|koi/.test(lower)) {
     itemTags.add('fish');
     itemTags.add('water');

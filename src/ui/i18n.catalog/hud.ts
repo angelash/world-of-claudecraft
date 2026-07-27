@@ -374,6 +374,7 @@ const hudStringsEn = {
       tradeTooFar: 'Target is too far away to trade.',
       tradeExpired: 'The trade request has expired.',
       tradeFailed: 'Trade failed: items or money no longer available.',
+      tradeBound: 'That item is bound and cannot be traded.',
     },
     logs: {
       standUp: 'You stand up.',
@@ -399,6 +400,8 @@ const hudStringsEn = {
       soldItem: 'Sold {item} for {money}.',
       soldJunkOne: 'Sold {count} junk item for {money}.',
       soldJunkMany: 'Sold {count} junk items for {money}.',
+      keptBoundOne: 'Kept {count} bound copy.',
+      keptBoundMany: 'Kept {count} bound copies.',
       friendOnline: '{name} has come online.',
       friendOffline: '{name} has gone offline.',
     },

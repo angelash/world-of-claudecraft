@@ -57,6 +57,7 @@
 //                                          union of the facets.
 // ---------------------------------------------------------------------------
 
+import type { IWorldActionBar } from './world_api/action_bar';
 import type { IWorldBank } from './world_api/bank';
 import type { IWorldCardMinigame } from './world_api/card_minigame';
 import type { IWorldChat } from './world_api/chat';
@@ -104,7 +105,27 @@ export type {
   DeedStats,
   OverheadEmoteId,
 } from './sim/types';
+
+// Snapshot timer wire capability shared by the browser mirror and authoritative
+// server. Keep the version exact so rolling deploys can negotiate fail-closed.
+export const STABLE_TIMER_WIRE_VERSION = 2 as const;
+export type StableTimerWireVersion = typeof STABLE_TIMER_WIRE_VERSION;
+
+// Absolute cooldown schedule in server simulation seconds. A number is the
+// expiry for 1x recovery. The tuple adds a temporary recovery-rate segment;
+// after acceleratedUntil, recovery continues at 1x until expiresAt.
+export type StableCooldownWire =
+  | number
+  | readonly [expiresAt: number, recoveryRate: number, acceleratedUntil: number];
+
 // --- facet aux-type + value re-exports (each travels with its facet file) ---
+export type {
+  ActionBarFormLayout,
+  ActionBarLayout,
+  ActionBarLayoutForm,
+  ActionBarLayoutRestore,
+  ActionBarSlotAction,
+} from './world_api/action_bar';
 export type { BankBonusSource, BankInfo } from './world_api/bank';
 export type { CardMinigameInfo } from './world_api/card_minigame';
 export { isOverheadEmoteId, OVERHEAD_EMOTES } from './world_api/chat';
@@ -188,7 +209,9 @@ export type {
   VcMatchInfo,
   VcPhase,
   VcRosterPlayer,
+  VcSharedCupInfo,
   VcStanding,
+  VcViewerReadout,
 } from './world_api/vale_cup';
 
 // The aggregate seam. Empty body: every member lives on exactly one facet above,
@@ -222,6 +245,7 @@ export interface IWorld
     IWorldBank,
     IWorldValeCup,
     IWorldDungeonFinder,
+    IWorldActionBar,
     IWorldDeeds {}
 
 // ---------------------------------------------------------------------------
@@ -274,6 +298,7 @@ export const COMMAND_NAMES = [
   'sell_all_junk',
   'harvest_node',
   'craft_item',
+  'place_mobile_station',
   'change_skin',
   'unequip_mech_chroma',
   'claim_event_skin',
@@ -416,6 +441,24 @@ export const COMMAND_NAMES = [
   'ai_inspect_object',
   'ai_inspect_scene',
   'ai_command_pet',
+  // Recipe training (Professions 2.0): learn a trainer-taught recipe
+  // at its craft's station (Sim.trainRecipe via professions/training.ts).
+  'train_recipe',
+  // Per-character action-bar layout persistence: the owning client uploads its
+  // full arranged layout (debounced) so it restores at login on any device.
+  'save_hotbar_layout',
+  // Enchanting profession actions (Professions 2.0): disenchant a held
+  // piece into arcane materials, apply an enchant to a held copy, or salvage a
+  // held piece into generic materials (Sim.disenchantItem/applyEnchant/salvageItem
+  // via src/sim/professions/enchanting.ts and salvage.ts).
+  'disenchant_item',
+  'apply_enchant',
+  'salvage_item',
+  // Maker's Bond unbind service (Professions 2.0): clear the
+  // boundTo trade lock on one held bound commission piece for the
+  // tier-scaled gold fee (Sim.unbindItem via src/sim/professions/
+  // commission.ts).
+  'unbind_item',
 ] as const;
 
 // The union both the send path (`online.ts`) and the dispatch switch
@@ -485,6 +528,7 @@ export type WorldFacet =
   | 'IWorldBank'
   | 'IWorldValeCup'
   | 'IWorldDungeonFinder'
+  | 'IWorldActionBar'
   | 'IWorldDeeds';
 
 export const COMMAND_FACETS = {
@@ -680,4 +724,7 @@ export const COMMAND_FACETS = {
   // design). deedsEarned/deedStats/renown/activeTitle are snapshot reads (no
   // send, untagged).
   deed_set_title: 'IWorldDeeds',
+  // IWorldActionBar: the debounced action-bar layout upload. takeActionBarLayoutRestore
+  // is a login-time read (no send, untagged).
+  save_hotbar_layout: 'IWorldActionBar',
 } as const satisfies Partial<Record<ClientCommand, WorldFacet>>;

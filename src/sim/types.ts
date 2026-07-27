@@ -92,7 +92,25 @@ export const CAST_COMPLETE_EPS = 1e-9;
 export const CAST_QUEUE_WINDOW_SEC = 0.4;
 export const FISHING_CAST_ID = 'fishing';
 export const FISHING_CAST_NAME = 'Fishing';
-export const FISHING_CAST_TIME = 5;
+// The constant castTotal/castRemaining of a fishing session (Professions 2.0,
+// retiring the fixed FISHING_CAST_TIME cast): a generous cap that
+// carries ZERO information about the hidden bite (max bite delay plus max
+// reel window end every real session well before it), so the broadcast cast
+// fields can never leak the bite timing to a modified client.
+export const FISHING_SESSION_CAP_SEC = 15;
+// The gather-cast sentinel riding castingAbility (Professions 2.0),
+// beside FISHING_CAST_ID above: an activity marker, never an ability id.
+export const GATHER_CAST_ID = 'gathering';
+// The non-spell casts: castingAbility sentinels that are activities, not
+// abilities. They share one semantics bundle at the casting choke points:
+// exempt from silence and school lockouts, no blink-through, no spell queue,
+// immune to interrupt effects, damage cancels instead of pushing back, and
+// item use is blocked while one runs. DEMON_HEAL_CAST_ID is deliberately NOT
+// a member: its channel keeps its own per-site behavior, folded in explicitly
+// only where that behavior is already byte-identical (see the call sites).
+export function isNonSpellCast(castId: string | null): boolean {
+  return castId === FISHING_CAST_ID || castId === GATHER_CAST_ID;
+}
 // Seconds an empty instance idles before it resets. Shared by the dungeon instance
 // reaper (instances/dungeons.ts) and the delve reaper (sim.ts). NYTHRAXIS_BOSS_ID
 // (the dungeon raid-door seal also keys off it) lives lower in this file (C1 relocation).
@@ -293,7 +311,7 @@ export type AuraKind =
   // `fingers_of_frost`: self buff, up to 2 stacks; an Ice Lance spends one to
   // treat its target as frozen (Shatter + its 3x frozen damage).
   // `brain_freeze`: self buff, single; the next Flurry goes instant, skips its
-  // cooldown and hits 30% harder (consumed in castAbility's override).
+  // cooldown, and keeps its base damage (consumed in castAbility's override).
   // `winters_chill`: TARGET debuff with 2 charges; each compatible spell
   // impact spends one to count the target as frozen.
   // `icicles`: self buff, up to 5 stacks, built by Rimelance impacts and Frozen
@@ -446,6 +464,9 @@ export interface Aura {
   tickTimer?: number;
   sourceId: number;
   school: 'physical' | 'fire' | 'frost' | 'arcane' | 'shadow' | 'holy' | 'nature';
+  // Encounter-authored control that must land through immunity and cannot be
+  // removed by player counters. Natural expiry and encounter cleanup still own it.
+  unbreakableControl?: true;
   breaksOnDamage?: boolean;
   // Lingering Dread lets a break-on-damage fear absorb this much damage before
   // breaking. Undefined retains the normal break-on-any-damage behavior.
@@ -481,6 +502,12 @@ export interface Aura {
   // ticks. These fields are simulation-only and need not ride the wire.
   temporalHealRemaining?: number;
   temporalHealTicksRemaining?: number;
+}
+
+export interface DamageBreakBudget {
+  maxHpPct: number;
+  min: number;
+  max: number;
 }
 
 export type CrowdControlDrCategory =
@@ -873,7 +900,7 @@ export interface ItemInstancePayload {
   /** Remaining charges for a per-effect-limited item, keyed by effect id. */
   charges?: Record<string, number>;
   /** Quality/stat values baked into this specific copy at creation time.
-   *  `quality` is legacy-only under the Phase 2 masterwork model: crafted
+   *  `quality` is legacy-only under the masterwork model: crafted
    *  outputs are deterministic and new crafts never write it (persisted
    *  payloads that carry it keep loading and reading as before). `masterwork`
    *  marks a masterwork proc copy (professions/masterwork.ts) whose `stats`
@@ -887,6 +914,14 @@ export interface ItemInstancePayload {
   enchant?: string;
   /** Player id (Entity id) this specific copy is bound to. */
   boundTo?: number;
+  /** Arms the bind-on-trade lock: a copy carrying this binds to the recipient
+   *  (boundTo set) the first time it changes hands in a player trade
+   *  (social/trade.ts grantOffer), after which it can never be traded again.
+   *  Generic (disenchant secondaries are its first consumer; commissioned
+   *  gear reuses it); the trade arm keys only on this flag and
+   *  boundTo, nothing item-specific. Additive and JSONB-safe: an absent flag is
+   *  an ordinary freely-tradeable instance. */
+  bindOnTrade?: boolean;
 }
 
 export interface InvSlot {
@@ -1163,6 +1198,21 @@ export interface MobTemplate {
     school?: string;
     fx?: 'nova' | 'projectile';
   };
+  // Boss mechanic: a Geddon-style stationary channel. Every `every` seconds
+  // the boss roots in place, stops meleeing, and channels for `duration`,
+  // firing `pulses` evenly-spaced unmitigated AoE pulses whose damage
+  // ESCALATES per pulse (pulse k rolls range(min, max) x k, then the
+  // per-entity mechanicDamageMult). Uninterruptible: pair with ccImmune.
+  infernoChannel?: {
+    every: number;
+    duration: number;
+    pulses: number;
+    min: number;
+    max: number;
+    radius: number;
+    name: string;
+    school?: string;
+  };
   // Boss mechanic: a periodic telegraphed HARDCAST. Unlike the instant aoePulse,
   // the mob shows a real cast bar (the entity casting fields carry castId) for
   // `castTime` seconds, then the spell lands as an AoE nova on every living player
@@ -1292,6 +1342,22 @@ export interface MobTemplate {
     duration: number;
     min?: number;
     max?: number;
+    name: string;
+    school?: string;
+  };
+  // Anti-kite gap closer ("Charge"): an Onrush-style dash, the melee analogue of
+  // the aoeSlow snare. HEROIC-ONLY at runtime: the template field is inert until
+  // applyDungeonMobTuning stamps Entity.chargeEnabled on a heroic spawn, so a
+  // normal spawn of the same template never charges. When the mob is engaged and
+  // its aggro target sits between minRange and maxRange, it stuns the target for
+  // stunDuration (immediately, same tick, like the player Onrush; no diminishing
+  // returns, matching stomp) and dashes to melee at 3x move speed (mob/charge.ts).
+  // Draws no rng in any branch, so it cannot perturb the parity gate.
+  charge?: {
+    minRange: number;
+    maxRange: number;
+    cooldown: number;
+    stunDuration: number;
     name: string;
     school?: string;
   };
@@ -1744,6 +1810,44 @@ export interface MobTemplate {
   purgeOnHit?: { chance: number; name: string };
 }
 
+interface AoeRootBase {
+  type: 'aoeRoot';
+  duration: number;
+  radius: number;
+  min: number;
+  max: number;
+}
+
+type AoeRootEffect =
+  | (AoeRootBase & {
+      breakOnDamage?: DamageBreakBudget;
+      stun?: false;
+      ring?: never;
+      trap?: never;
+    })
+  | (AoeRootBase & {
+      breakOnDamage?: never;
+      stun: true;
+      ring?: never;
+      trap?: never;
+    })
+  | (AoeRootBase & {
+      breakOnDamage?: never;
+      stun?: boolean;
+      // Persistent annular root. `duration` remains the root duration; the
+      // nested duration is how long the ring can catch new enemies.
+      ring: { duration: number; innerRadius: number };
+      trap?: never;
+    })
+  | (AoeRootBase & {
+      breakOnDamage?: never;
+      ring?: never;
+      stun?: boolean;
+      // Armed trap at the caster's feet. It freezes the first enemy contact
+      // after armTime and expires after lifetime.
+      trap: { armTime: number; lifetime: number };
+    });
+
 export type AbilityEffect =
   | { type: 'weaponDamage'; bonus: number } // on-next-swing bonus (heroic strike)
   | {
@@ -1787,9 +1891,10 @@ export type AbilityEffect =
   // feared; absent = fear every hostile in radius (the warlock-style AoE fear).
   | { type: 'aoeFear'; duration: number; radius: number; maxTargets?: number }
   | { type: 'clearCooldowns'; abilities: string[] }
+  | { type: 'breakRoots' }
   | { type: 'breakControl' }
-  // Ice Block: strip EVERY debuff (control, DoTs, stat saps, ...) off the caster.
-  // Broader than breakControl (which covers control auras only). See effect_dispatch.
+  // Ice Block: strip every player-removable debuff (control, DoTs, stat saps, ...)
+  // Broader than breakRoots and breakControl. See effect_dispatch.
   | { type: 'cleanseSelf' }
   | {
       type: 'repositionToAim';
@@ -1867,7 +1972,7 @@ export type AbilityEffect =
       radius: number;
     }
   | { type: 'hot'; total: number; duration: number; interval: number } // renew, rejuvenation
-  | { type: 'absorb'; amount: number; duration: number } // power word: shield
+  | { type: 'absorb'; amount: number; duration: number; spellPowerCoeff?: number } // power word: shield
   | { type: 'imbue'; bonus: number; duration: number; judgeMin?: number; judgeMax?: number } // seals / rockbiter: extra damage per swing
   | { type: 'judgement'; dmgMult?: number; flat?: number } // consume your imbue, deal its judgement damage to the target
   | { type: 'lifeTap'; hp: number; mana: number }
@@ -1984,21 +2089,7 @@ export type AbilityEffect =
   | { type: 'aoeAllyDamage'; pct: number; duration: number; radius: number }
   | { type: 'aoeAllySureCrit'; charges: number; duration: number; radius: number }
   | { type: 'aoeSlow'; mult: number; duration: number; radius: number }
-  | {
-      type: 'aoeRoot';
-      duration: number;
-      radius: number;
-      min: number;
-      max: number;
-      stun?: boolean;
-      // Optional persistent annular trap. `duration` remains the root duration;
-      // the nested duration is how long the ring can catch new enemies.
-      ring?: { duration: number; innerRadius: number };
-      // Optional armed trap at the caster's feet (combat/hunter_trap.ts):
-      // arms after armTime, freezes the first enemy contact for `duration`,
-      // expires after lifetime. One per owner.
-      trap?: { armTime: number; lifetime: number };
-    }
+  | AoeRootEffect
   | {
       type: 'empoweredCone';
       angle: number;
@@ -2018,7 +2109,7 @@ export type AbilityEffect =
     }
   // Frozen Orb (combat/frozen_orb.ts): releases a slow-drifting orb from the
   // caster that pulses frost damage + a snare every `interval` for `duration`
-  // seconds and feeds Fingers of Frost (frost mage spec kit).
+  // seconds and banks Icicles (frost mage spec kit).
   | {
       type: 'frozenOrb';
       min: number;
@@ -2325,6 +2416,11 @@ export interface GroundObjectDef {
 // issue is content plus visibility only, no harvest logic (see G3).
 export type GatherNodeType = 'ore' | 'wood' | 'herb';
 
+// Rare gather event flavors (Professions 2.0), one per node family:
+// ore rolls pristine_vein, wood rolls ancient_heartwood, herb rolls
+// moonlit_bloom (professions/gather_events.ts gatherRareEventFlavor).
+export type GatherRareEventFlavor = 'pristine_vein' | 'ancient_heartwood' | 'moonlit_bloom';
+
 export interface GatherNodeDef {
   id: string;
   zoneId: string;
@@ -2334,6 +2430,11 @@ export interface GatherNodeDef {
   // (professions/profession_xp.ts gatherActionXp), snapshotted at authoring
   // time from the node's zone levelRange midpoint rather than looked up live.
   level: number;
+  // Access tier (Professions 2.0), 1 = bare-hands: gated via
+  // canGatherTier against the player's best owned matching tool
+  // (professions/tools.ts bestOwnedGatherToolTier). Pure access gating, never
+  // a speed mechanic; every pre-phase node is tier 1.
+  tier: number;
 }
 
 export interface DungeonSpawn {
@@ -2487,9 +2588,21 @@ export interface QuestDef {
   // Repeatable quests remain in questsDone as history but become available
   // again when they are not active.
   repeatable?: boolean;
+  // Repeatable-quest cooldown window in TICKS (Professions 2.0): after a
+  // successful turn-in the quest is unavailable for this many ticks (work orders
+  // use professions/cadence.ts WORK_ORDER_CADENCE_TICKS). Only meaningful with
+  // `repeatable`; absent means no cooldown (available again immediately).
+  repeatCadenceTicks?: number;
   // Typed, server-authoritative profession transition applied only by the
   // validated turn-in path. The selected target is persisted on QuestProgress.
-  completionEffect?: { type: 'attunePair'; mode: 'new' | 'return' } | { type: 'switchHobby' };
+  // `pairId` (Professions 2.0): a per-pair attune quest pins its ONE
+  // canonical pair id (archetype.ts archetypePairId / ARCHETYPE_PAIR_TARGETS), so
+  // the quest offers and validates only that pair; absent means the quest offers
+  // every mode-legal pair (the legacy single-quest behavior). Typed `string`
+  // (the pair id vocabulary is CRAFT_RING-derived at runtime, not a literal union).
+  completionEffect?:
+    | { type: 'attunePair'; mode: 'new' | 'return'; pairId?: string }
+    | { type: 'switchHobby' };
   // Resolve the first objective's count from the character's return history at
   // acceptance time. The snapshotted value stays stable while the quest is active.
   resolvedObjectiveCounts?: 'archetypeAmends';
@@ -2740,6 +2853,20 @@ export interface Entity {
   // aimed at, captured (server-clamped to range) when the cast begins and read by
   // its area effects when it resolves. null for normal entity/self casts.
   castAim: Vec3 | null;
+  // Hidden per-cast state (Professions 2.0). All three are
+  // transient: initialized inert ('' / 0) at entity creation, nonzero ONLY
+  // between a real cast start and its end, and cleared on EVERY end path
+  // (completion, reel, miss, cancelCast). Parity contract: while inert they
+  // canonicalize away (omitDefaults), so existing goldens stay byte-identical;
+  // a future scenario sampling mid-cast regenerates. Anti-cheat contract:
+  // never written to any wire snapshot field (wireEntity emits explicit
+  // fields only), so the bite timing stays server-hidden.
+  /** Node id a running gather cast resolves against at completion ('' = none). */
+  gatherCastNodeId: string;
+  /** Hidden seeded sim tick the fishing bite fires on (0 = no pending bite). */
+  fishBiteAtTick: number;
+  /** Sim-tick deadline for the fishing reel re-press (0 = window not armed). */
+  fishReelDeadlineTick: number;
   channeling: boolean;
   channelTickTimer: number;
   channelTickEvery: number;
@@ -2784,6 +2911,12 @@ export interface Entity {
   // Z-key cosmetic toggle: held weapons render sheathed on the back. Cleared by
   // any deliberate combat action (auto-attack engage, ability cast), WoW-style.
   weaponStowed: boolean;
+  // /afk display mirror: true while this player's PlayerMeta.away is in `afk`
+  // mode. Kept in lockstep with meta.away by src/sim/social/away.ts so the flag
+  // rides the entity (wire `ak` bit) to other clients' nameplates and the social
+  // presence dot. Transient, session-only, never persisted; always false for
+  // non-players and for the `dnd` away mode.
+  afk: boolean;
   // mob AI
   aiState: AiState;
   tappedById: number | null; // first player to damage this mob owns loot/xp/quest credit
@@ -2811,6 +2944,9 @@ export interface Entity {
   pulseTimer: number; // boss aoe pulse countdown
   stompTimer: number; // boss War Stomp stun-pulse countdown
   bigCastTimer: number; // boss telegraphed-hardcast (bigCast) cadence countdown
+  infernoTimer: number; // infernoChannel cadence countdown
+  infernoRemaining: number; // seconds left in a live inferno channel (0 = not channeling)
+  infernoPulsesFired: number; // pulses already fired this channel
   yelledEngage: boolean; // engage bark fired this pull (reset on evade/respawn)
   stoneskinTimer: number; // periodic self-absorb barrier countdown
   terrifyTimer: number; // Banshee's Wail fear-pulse countdown
@@ -2828,7 +2964,7 @@ export interface Entity {
   firedSummons: number; // summonAdds thresholds already triggered
   summonedIds: number[]; // live adds this boss summoned; despawned on reset
   enraged: boolean; // enrage mechanic active
-  // Heroic-instance mechanic scaling (instances/difficulty.ts applyHeroicMobTuning).
+  // Heroic-instance mechanic scaling (instances/difficulty.ts applyDungeonMobTuning).
   // Mechanic numbers (aoePulse/bigCast/stomp damage; mendAlly/wardAllies/stoneskin
   // amounts) are read from the base MOBS table at fire time, so the fire sites
   // multiply by these AFTER the rng draw. undefined = 1 (normal difficulty).
@@ -2837,10 +2973,19 @@ export interface Entity {
   // Entity-level CC/snare immunity, the per-spawn twin of the MobTemplate
   // ccImmune/slowImmune flags (which are read from the base MOBS table, so a
   // spawn-time template transform cannot grant them). Heroic instances set
-  // both on boss-flagged mobs (applyHeroicMobTuning); the applyAura gates and
+  // both on boss-flagged mobs (applyDungeonMobTuning); the applyAura gates and
   // the polymorph cast gate check template OR entity.
   ccImmune?: boolean;
   slowImmune?: boolean;
+  // Heroic anti-kite charge (mob/charge.ts). chargeEnabled is stamped by
+  // applyDungeonMobTuning on heroic spawns of charge-bearing templates only;
+  // normal spawns of the same template never charge. The cooldown deliberately
+  // starts absent/0 (ready), unlike the telegraphed pulse timers: a heroic
+  // warrior mob opens the pull with its charge, that is the anti-kite design.
+  chargeEnabled?: boolean;
+  mobChargeCooldown?: number; // seconds until the next charge may fire (undefined = ready)
+  mobChargeTimeLeft?: number; // seconds left in the in-flight dash (undefined/0 = not dashing)
+  mobChargeTargetId?: number | null; // dash victim; null/undefined = not dashing
   healedThisPull: boolean; // desperation self-heal already used this pull
   nythraxis?: NythraxisEncounterState; // sim-only state for the Nythraxis raid encounter
   spawnPos: Vec3;
@@ -2939,8 +3084,11 @@ export interface Entity {
   // ItemInstancePayload of whichever equipped piece carries one (an enchanted
   // item's `rolled.stats`), keyed the same as equippedItems. Sparse: a slot with
   // a plain (unenchanted) piece, or nothing equipped, has no entry. Recomputed in
-  // recalcPlayerStats alongside equippedItems; the sim reads the SOURCE
-  // (PlayerMeta.equipmentInstance) for the actual stat bonus, never this mirror.
+  // recalcPlayerStats alongside equippedItems and synced in identity fields
+  // (terse `eqi`, players only, only when non-empty, like `eq`) so the inspect
+  // window shows another player's masterwork/enchant payloads; the sim
+  // reads the SOURCE (PlayerMeta.equipmentInstance) for the actual stat bonus,
+  // never this mirror.
   equippedInstances: Partial<Record<EquipSlot, ItemInstancePayload>>;
   // $WOC holder-tier flair (cosmetic): 0/undefined = none, 1-10 = Ember…Sovereign.
   // Set server-side from the player's connected-wallet balance and synced in
@@ -3004,6 +3152,10 @@ export interface NythraxisEncounterState {
   dialogueToken?: number;
   gravebreakerTimer: number;
   gravebreakerCasts?: number;
+  // Gravebreaker is a charged auto-attack: the cadence timer sets this flag,
+  // and the boss's next LANDED melee swing releases the frontal-arc splash
+  // (encounters/nythraxis.ts nythraxisGravebreakerOnMobSwing via mob_swing.ts).
+  gravebreakerCharged?: boolean;
   raiseFallenTimer: number;
   soulRendTimer: number;
   soulRendMarks: NythraxisSoulRendMark[];
@@ -3244,6 +3396,14 @@ export type SimEvent = { pid?: number } & (
       // from players far outside your ~120yd interest scope, where no entity
       // record exists locally.
       flair?: ChatSenderFlair;
+      // The SENDER's class, for the same reason and by the same rule as `flair`
+      // above: it rides the event rather than being read off the sender's
+      // entity because general/world/lfg/guild chat reaches you from players
+      // far outside your ~120yd interest scope, where `IWorld.entities` (world-
+      // complete offline, interest-scoped online) has no record for them. Set
+      // for every player-sourced chat line (mob/boss yells omit it, same as
+      // fromTitle).
+      classId?: PlayerClass;
     }
   | { type: 'partyInvite'; fromPid: number; fromName: string }
   // The party/raid leader started a ready check: the recipient's client plays a
@@ -3382,6 +3542,22 @@ export type SimEvent = { pid?: number } & (
     }
   // personal outcome line for each fighter (rides beside the anchored vcupEnd)
   | { type: 'vcupResult'; won: boolean; draw: boolean }
+  // Card Duel minigame (src/sim/social/card_duel.ts). Personal (pid), text-free
+  // on purpose (the client picks its own audio/copy off the structured
+  // fields, same as gatherResult/craftResult above).
+  | { type: 'cardDuelMatchStart'; pid?: number }
+  | { type: 'cardPlayed'; pid?: number }
+  | {
+      type: 'cardRoundResolved';
+      mine: number;
+      theirs: number;
+      outcome: 'win' | 'lose' | 'push';
+      // True when this side's post-round draw emptied the deck and had to
+      // reshuffle the discard pile back in (see card_hand.ts drawOne).
+      reshuffled: boolean;
+      pid?: number;
+    }
+  | { type: 'cardDuelMatchEnd'; won: boolean; pid?: number }
   | {
       type: 'heal2';
       sourceId: number;
@@ -3569,7 +3745,7 @@ export type SimEvent = { pid?: number } & (
       recipeId: string;
       itemId?: string;
       count?: number;
-      // Phase 2: the OUTPUT DEF quality (outputs are deterministic; the
+      // The OUTPUT DEF quality (outputs are deterministic; the
       // quality roll is retired). `masterwork` mirrors CraftResult.masterwork
       // so the online client's lastCraftResult mirror stays field-complete.
       quality?: ItemDef['quality'];
@@ -3580,14 +3756,117 @@ export type SimEvent = { pid?: number } & (
         | 'combo_requirement_unmet'
         | 'recipe_not_learned'
         | 'throttled'
-        | 'not_at_hub';
+        | 'station_required';
     }
-  // Masterwork proc (Professions 2.0 Phase 2): a successful craft's single
+  // Enchanting profession outcomes (Professions 2.0): mirror
+  // src/sim/professions/enchanting.ts DisenchantResult / ApplyEnchantResult and
+  // src/sim/professions/salvage.ts SalvageResult so the online client can reflect
+  // the local result of a disenchant_item / apply_enchant / salvage_item command
+  // without deciding it itself. Personal (emitted with pid = the actor's entity
+  // id, exactly like craftResult/trainResult above, which carry pid via the
+  // base `{ pid?: number }` on SimEvent rather than a re-declared field). Text-free
+  // on purpose (like craftResult above): the client renders its own localized copy
+  // off the structured fields, so no sim/server i18n matcher rule is needed.
+  // `reason` is absent on success. The typed bind-on-trade secondary a rare+
+  // disenchant yields rides secondaryItemId/secondaryCount (both absent on every
+  // sub-rare success and on a rare+ piece with no typed material).
+  | {
+      type: 'disenchantResult';
+      ok: boolean;
+      itemId: string;
+      materialItemId?: string;
+      count?: number;
+      secondaryItemId?: string;
+      secondaryCount?: number;
+      reason?: 'unknown_item' | 'not_disenchantable' | 'not_held' | 'throttled';
+    }
+  | {
+      type: 'enchantResult';
+      ok: boolean;
+      itemId: string;
+      enchantId: string;
+      reason?:
+        | 'unknown_item'
+        | 'unknown_enchant'
+        | 'wrong_slot'
+        | 'not_held'
+        | 'insufficient_materials'
+        | 'throttled';
+    }
+  | {
+      type: 'salvageResult';
+      ok: boolean;
+      itemId: string;
+      materialItemId?: string;
+      count?: number;
+      reason?: 'unknown_item' | 'not_salvageable' | 'not_held' | 'throttled';
+    }
+  // Recipe-training outcome (Professions 2.0): mirrors
+  // professions/training.ts TrainResult so the online client can reflect the
+  // local result of a train_recipe command without deciding it itself.
+  // Personal (emitted with pid = the trainee's entity id). Text-free on
+  // purpose (like craftResult above): the client derives the recipe name,
+  // craft, and tier threshold from recipeId plus static content, so the
+  // event carries NO display text. `reason` is absent on success AND on a
+  // malformed/unknown recipe id (the silent-deny arm).
+  | {
+      type: 'trainResult';
+      ok: boolean;
+      recipeId: string;
+      reason?:
+        | 'train_already_known'
+        | 'train_not_taught_here'
+        | 'train_out_of_range'
+        | 'train_tier_unmet'
+        | 'train_cannot_afford';
+    }
+  // Maker's Bond unbind outcome (Professions 2.0): mirrors
+  // professions/commission.ts UnbindResult so the online client can reflect
+  // the local result of an unbind_item command without deciding it itself.
+  // Personal (emitted with pid = the holder's entity id). Text-free on
+  // purpose (like trainResult above): the client derives the item name from
+  // itemId plus static content and formats `fee` itself, so the event
+  // carries NO display text. `reason` is absent on success AND on a
+  // malformed/unknown item id (the silent-deny arm); `fee` is the copper
+  // charged on ok, or the fee that WOULD apply on a deny (0 for the silent
+  // arm).
+  | {
+      type: 'unbindResult';
+      ok: boolean;
+      itemId: string;
+      reason?:
+        | 'unbind_not_eligible'
+        | 'unbind_not_bound'
+        | 'unbind_out_of_range'
+        | 'unbind_cannot_afford';
+      fee: number;
+    }
+  // Masterwork proc (Professions 2.0): a successful craft's single
   // output-side rng draw procced, minting a masterwork instance with baked
   // bonus stats. Personal (emitted with pid = the crafter's entity id, which
   // `crafter` repeats as payload). Ids only, text-free on purpose (like
   // craftResult above): the client renders its own localized copy.
   | { type: 'masterwork'; recipeId: string; itemId: string; crafter: number }
+  // Masterwork zone broadcast (Professions 2.0): the soft zone-wide
+  // copy of a masterwork proc, one per overworld player currently in the
+  // crafter's zone INCLUDING the crafter, `pid` being the RECIPIENT (the
+  // gatherRareEvent/chat fanout idiom); crafterPid/crafterName identify the
+  // crafter. Deliberately a SEPARATE type from the personal `masterwork`
+  // event above: the online client rebuilds lastMasterwork from ANY
+  // 'masterwork' event, so a bystander copy under that type would corrupt
+  // their own-proc mirror. Skipped entirely for instanced crafters (the
+  // personal event alone fires there). Ids plus values only, text-free on
+  // purpose: the client renders its own localized line
+  // (hudChrome.crafting.masterworkZoneLine).
+  | {
+      type: 'masterworkZone';
+      pid: number;
+      crafterPid: number;
+      crafterName: string;
+      itemId: string;
+      recipeId: string;
+      zoneId: string;
+    }
   // Gather-node harvest outcome (#1729): a successful resource harvest emits
   // this so the client can play a gathering audio cue for the acting player.
   // Personal (carries pid), delivered only to the harvester. Emitted only on a
@@ -3603,6 +3882,122 @@ export type SimEvent = { pid?: number } & (
       professionId: GatheringProfessionId;
       itemId: string;
       rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+      // Units actually granted (Professions 2.0): the qtyByRarity
+      // yield, multiplied by GATHER_RARE_EVENT_YIELD_MULT on a rare event.
+      qty: number;
+      // The rare event this harvest rolled (resolveHarvest draw #2), or null.
+      rareEvent: GatherRareEventFlavor | null;
+    }
+  // Gathering tool-gate denial (Professions 2.0): the player lacks a
+  // matching tool of at least `requiredTier` for a node harvest, or for a
+  // corpse harvest's premium (signed/specimen) arm. Personal (pid = the
+  // gatherer) and text-free on purpose (like gatherResult above): the client
+  // composes its own localized copy off the structured fields. `professionId`
+  // is present exactly when surface === 'node' (a corpse harvest is gated by
+  // the best tool tier across ALL gathering professions, so no single
+  // profession applies).
+  | {
+      type: 'gatherDenied';
+      pid: number;
+      surface: 'node' | 'corpse';
+      requiredTier: number;
+      professionId?: GatheringProfessionId;
+    }
+  // Full-bag signed-grant downgrade (Professions 2.0): a signed
+  // yield could not land in its signed form, so either the units arrived as a
+  // plain unsigned top-up (lost 'mark': the yield survived, the gatherer's
+  // mark did not) or a pure-extra specimen jackpot was dropped outright (lost
+  // 'find'). Personal (pid = the gatherer) and text-free on purpose (like
+  // gatherDenied above): the client composes its own localized copy off the
+  // structured fields. Emitted at most ONCE per harvest command (the
+  // gatherDenied dedupe idiom), even when several yields downgrade.
+  | {
+      type: 'gatherDowngrade';
+      pid: number;
+      surface: 'node' | 'corpse';
+      lost: 'mark' | 'find';
+    }
+  // Fishing catch outcome (Professions 2.0): a landed catch emits
+  // this so the client can log the reel-in feedback line for the acting
+  // player. Personal (carries pid = the angler), emitted only on the
+  // landed-catch path (never on the no-bite, bags-full, or codfather quest
+  // branches), so every field is always present. Text-free on purpose (like
+  // gatherResult above): the client renders its own localized copy off the
+  // structured fields, so no sim/server i18n matcher rule is needed.
+  // `quality` is the caught ItemDef's quality (poor for junk catches,
+  // uncommon for the rare koi) so the line colors like an item name.
+  | {
+      type: 'fishingResult';
+      pid: number;
+      itemId: string;
+      quality: NonNullable<ItemDef['quality']>;
+    }
+  // Fishing bite (Professions 2.0): the hidden seeded bite fired
+  // for this angler's running fishing session. Personal (pid = the angler)
+  // and text-free on purpose (the fishingResult idiom): the client drives
+  // the bobber bite state and the always-audible cue off it, so no
+  // sim/server i18n matcher rule is needed. Emitted at most once per
+  // session, at the seeded bite tick; carries no timing payload, so the
+  // wire never reveals the delay distribution.
+  | { type: 'fishingBite'; pid: number }
+  // Fishing miss (Professions 2.0): the reel window closed with no
+  // re-press ("it got away"), or a session defensively timed out. Personal
+  // and text-free like fishingBite: the client renders its own localized
+  // got-away line. Costs nothing but the ended cast; recast immediately.
+  | { type: 'fishingGotAway'; pid: number }
+  // Rare gather event (Professions 2.0): a harvest struck a pristine
+  // vein / ancient heartwood / moonlit bloom. Soft zone broadcast: one copy is
+  // emitted per player currently in the node's zone, `pid` being the RECIPIENT
+  // (the chat fanout idiom); finderPid/finderName identify the harvester. Ids
+  // plus values only, text-free on purpose: the client renders its own
+  // localized line off `flavor` (the gatherEvent.* keys). The HUD reads only
+  // flavor/finderName/finderPid today; zoneId/nodeType/itemId are forward
+  // payload for the per-family deeds/tuning consumers (asserted by the
+  // gather rare-event tests so the shape is already load-bearing on the wire).
+  | {
+      type: 'gatherRareEvent';
+      pid: number;
+      flavor: GatherRareEventFlavor;
+      finderName: string;
+      finderPid: number;
+      zoneId: string;
+      nodeType: GatherNodeType;
+      itemId: string;
+    }
+  // Trend nudge (Professions 2.0): a soft, at-most-once-per-window
+  // reminder that an unattuned crafter's skills are leaning toward an adjacent
+  // pair (professions/prof_nudges.ts). Personal (pid = the crafter) and
+  // text-free on purpose (the gatherDenied idiom): the client renders its own
+  // localized line off `pairId` (the archetypePair.* name table). The letter-
+  // voice follow-up at the crossing threshold stays the Guild trend letter; this
+  // is the lighter in-world hint that can fire below that threshold.
+  | { type: 'profTrendNudge'; pid: number; pairId: string }
+  // First-tier tutorial (Professions 2.0): fired exactly once per
+  // character, the first time ANY craft skill crosses tier 1
+  // (professions/prof_nudges.ts). Personal (pid = the crafter) and text-free:
+  // the client renders its own one-shot tier-up explainer. Carries no ids beyond
+  // the recipient; the persisted one-shot flag guarantees it never re-fires.
+  | { type: 'profTierTutorial'; pid: number }
+  // Attunement celebration, personal copy (Professions 2.0): a
+  // quest-validated pair attunement (new OR return) landed for this player
+  // (professions/attunement_events.ts). Personal (pid = the celebrant) and
+  // text-free: the client renders its own localized line off `pairId`.
+  | { type: 'attuned'; pid: number; pairId: string }
+  // Attunement celebration, zone broadcast (Professions 2.0): the soft
+  // zone-wide copy of an attunement, one per overworld player currently in the
+  // celebrant's zone INCLUDING the celebrant, `pid` being the RECIPIENT (the
+  // masterworkZone/gatherRareEvent fanout idiom); celebrantPid/celebrantName
+  // identify the newly attuned player. Skipped entirely for an instanced
+  // celebrant (the personal `attuned` event alone fires there). Ids plus names
+  // only, text-free on purpose (celebrantName mirrors masterworkZone's
+  // crafterName precedent): the client renders its own localized line.
+  | {
+      type: 'attunedZone';
+      pid: number;
+      celebrantPid: number;
+      celebrantName: string;
+      pairId: string;
+      zoneId: string;
     }
 );
 
@@ -3954,7 +4349,10 @@ export type DeedStatKey =
   | 'dungeonFinalBossKills'
   | 'thunzharrKills'
   | 'bloatCleanKills'
-  | 'hubCraftsPerformed';
+  | 'hubCraftsPerformed'
+  | 'attunementsCompleted'
+  | 'masterworksCrafted'
+  | 'salvagesPerformed';
 
 // The canonical counter key list (init/serialize iterate it in this fixed
 // order so equal states always serialize byte-equal).
@@ -3980,6 +4378,9 @@ export const DEED_STAT_KEYS: readonly DeedStatKey[] = [
   'thunzharrKills',
   'bloatCleanKills',
   'hubCraftsPerformed',
+  'attunementsCompleted',
+  'masterworksCrafted',
+  'salvagesPerformed',
 ];
 
 // Numeric readings computed from already-persisted PlayerMeta state (never new

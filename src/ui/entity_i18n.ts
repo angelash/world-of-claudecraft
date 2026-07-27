@@ -1,6 +1,9 @@
 import {
+  GUILD_TREND_LETTERS,
   HEROIC_MARK_LETTER,
   type LetterDef,
+  MASTER_TIER_LETTERS,
+  MASTERY_RESET_LETTER,
   QUEST_LETTERS,
   WELCOME_LETTER,
 } from '../sim/content/letters';
@@ -158,13 +161,18 @@ const CLASS_DESCRIPTION_KEYS: Record<PlayerClass, string> = {
 const fallbackLog = new Map<string, EntityTranslationFallback>();
 
 // Ravenpost authored letters by letterId (the welcome letter, the Heroic Marks
-// reward letter, and the quest thank-you letters), the canonical English source
-// the 'letter' kind reads.
+// reward letter, the quest thank-you letters, and the Guild trend letters), the
+// canonical English source the 'letter' kind reads.
 const LETTERS_BY_ID: Record<string, LetterDef> = {
   [WELCOME_LETTER.letterId]: WELCOME_LETTER,
   [HEROIC_MARK_LETTER.letterId]: HEROIC_MARK_LETTER,
+  [MASTERY_RESET_LETTER.letterId]: MASTERY_RESET_LETTER,
 };
 for (const letter of Object.values(QUEST_LETTERS)) LETTERS_BY_ID[letter.letterId] = letter;
+for (const letter of Object.values(GUILD_TREND_LETTERS)) LETTERS_BY_ID[letter.letterId] = letter;
+for (const byTier of Object.values(MASTER_TIER_LETTERS)) {
+  for (const letter of Object.values(byTier)) LETTERS_BY_ID[letter.letterId] = letter;
+}
 
 function entityPathSegment(value: string): string {
   return value.replace(/[^A-Za-z0-9_]/g, '_');

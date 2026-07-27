@@ -38,6 +38,30 @@ describe('AI item interest', () => {
     expect(itemSemanticFor('gravecaller_sigil').dangerTags).toContain('undead');
   });
 
+  it('gives official profession materials useful living-world signals', () => {
+    for (const itemId of [
+      'cooking_salt',
+      'game_meat',
+      'glass_vial',
+      'smithing_flux',
+      'spool_of_thread',
+      'tanning_agent',
+    ]) {
+      const semantic = itemSemanticFor(itemId);
+      expect(
+        semantic.itemTags.length +
+          semantic.smellTags.length +
+          semantic.dangerTags.length +
+          semantic.valueSignals.length,
+      ).toBeGreaterThanOrEqual(2);
+    }
+    expect(itemSemanticFor('game_meat').smellTags).toContain('meat');
+    expect(itemSemanticFor('glass_vial').itemTags).toContain('alchemy');
+    expect(itemSemanticFor('smithing_flux').itemTags).toContain('metal');
+    expect(itemSemanticFor('spool_of_thread').itemTags).toContain('cloth');
+    expect(itemSemanticFor('tanning_agent').itemTags).toContain('beast');
+  });
+
   it('gives ordinary loot, documents, ritual items, and magic scraps inspectable living-world semantics', () => {
     expect(itemSemanticFor('wolf_fang').itemTags).toEqual(expect.arrayContaining(['beast', 'trophy']));
     expect(itemSemanticFor('raw_bog_eel').itemTags).toEqual(expect.arrayContaining(['fish', 'water']));

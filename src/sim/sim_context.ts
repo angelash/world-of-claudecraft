@@ -13,6 +13,7 @@
 // the browser, and the headless RL env (enforced by tests/architecture.test.ts).
 
 import type { FrozenOrbState } from './combat/frozen_orb';
+import type { LetterDef } from './content/letters';
 import type { TalentModifiers } from './content/talents';
 import type { DeedRuntime } from './deeds';
 import type { DelayedEvent, GroundAoE } from './entity_roster';
@@ -392,6 +393,7 @@ export interface SimContextCallbacks {
     id: string,
     duration: number,
     school: Aura['school'],
+    breakThreshold?: number,
   ): void;
   applyKnockback(source: Entity, target: Entity, distance: number): number;
   diminishedCrowdControlDuration(
@@ -629,7 +631,12 @@ export interface SimContextCallbacks {
   // instance payload (signer/charges/rolled/boundTo, #1165), never merged into a
   // plain fungible stack. Used by corpse harvest to stamp a rare+ monster
   // material with the harvester's name.
-  addItemInstance(itemId: string, instance: ItemInstancePayload, pid?: number): void;
+  addItemInstance(
+    itemId: string,
+    instance: ItemInstancePayload,
+    pid?: number,
+    count?: number,
+  ): void;
   // L2 World Market escrow (marketList) also consumes removeItem; it is declared once
   // above (P1b inventory-hub helper, points-at Sim) - deduped, not re-added here.
   spawnBossAdds(boss: Entity, mobId: string, count: number): void;
@@ -663,6 +670,9 @@ export interface SimContextCallbacks {
   startAutoAttack(pid?: number): void;
   revivePet(pid?: number): void;
   completeFishing(p: Entity, meta: PlayerMeta): void;
+  // Gather cast completion (Professions 2.0): updateCasting routes a
+  // finished GATHER_CAST_ID cast here, exactly like completeFishing above.
+  completeGatherCast(p: Entity, meta: PlayerMeta): void;
   applyDemonHealTick(owner: Entity): void;
 
   // C4b effect dispatch (src/sim/combat/effect_dispatch.ts) consumes these; all stay
@@ -743,12 +753,14 @@ export interface SimContextCallbacks {
   ): { spawned: number; note: 'ok' | 'needRoles' | 'noneEligible' };
 
   // L2 inventory/vendor (src/sim/items.ts): the four helpers the moved useItem
-  // dispatches to that STAY on Sim (their owning facets are decided later). W2 owns
-  // these declarations; each is a thin late-bound delegate to the still-on-Sim method.
-  // startFishing's body stays on Sim (fishing facet TBD); unlockMechChromaFromItem /
-  // openSkinSelect are cosmetics internals (facet W7); isSwimming is a shared terrain
-  // predicate. unlockMechChromaFromItem's return value flows out through useItem to the
-  // server `use` case (result?.type === 'mechChroma').
+  // dispatches to. W2 owns these declarations; each is a thin late-bound delegate,
+  // to a still-on-Sim method or (for fishing) to the professions module.
+  // startFishing now routes to the fishing module (src/sim/professions/fishing.ts,
+  // Professions 2.0), called with the live ctx the same way runEffects is;
+  // its body no longer lives on Sim (completeFishing, declared above, moved with it).
+  // unlockMechChromaFromItem / openSkinSelect are cosmetics internals (facet W7);
+  // isSwimming is a shared terrain predicate. unlockMechChromaFromItem's return value
+  // flows out through useItem to the server `use` case (result?.type === 'mechChroma').
   startFishing(p: Entity, meta: PlayerMeta): void;
   unlockMechChromaFromItem(
     meta: PlayerMeta,
@@ -789,6 +801,12 @@ export interface SimContextCallbacks {
   // the daily lockout but was not at the corpse to loot them (awardHeroicMarks in
   // instances/dungeons.ts). Binding points at the PostOffice instance on Sim.
   mailHeroicMarks(pid: number, itemId: string, count: number): void;
+
+  // Ravenpost mail: books an authored letter to a character through the standard
+  // system-mail path (mailKeyFor recipient key, 'system' kind, the letter's own
+  // delivery delay). The Guild trend letter sweep (professions/guild_letter.ts)
+  // consumes it. Binding points at the PostOffice instance on Sim.
+  mailAuthoredLetter(meta: PlayerMeta, letter: LetterDef): void;
 
   // Set proc firing is owned by combat/set_procs.ts.
   applySetProcs(source: Entity, target: Entity | null, trigger: SetProc['trigger']): void;
@@ -1211,6 +1229,7 @@ export function createSimContext(host: SimContextHost): SimContext {
     startAutoAttack: host.startAutoAttack,
     revivePet: host.revivePet,
     completeFishing: host.completeFishing,
+    completeGatherCast: host.completeGatherCast,
     applyDemonHealTick: host.applyDemonHealTick,
     awardCombo: host.awardCombo,
     meleeSwing: host.meleeSwing,
@@ -1246,6 +1265,7 @@ export function createSimContext(host: SimContextHost): SimContext {
     // Ravenpost mail: the quest turn-in letter hook (points at the PostOffice on Sim).
     queueQuestLetter: host.queueQuestLetter,
     mailHeroicMarks: host.mailHeroicMarks,
+    mailAuthoredLetter: host.mailAuthoredLetter,
     applySetProcs: host.applySetProcs,
     // Book of Deeds seam (points at deeds.ts via the Sim-bound arrows).
     bumpDeedStat: host.bumpDeedStat,

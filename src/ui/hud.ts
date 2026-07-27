@@ -18,7 +18,7 @@ import {
 import { voice, voiceDistanceGain } from '../game/voice';
 import type { ClaudiumStoreItem } from '../net/economy_sdk';
 import { castBarState, consumeBarState } from '../render/cast_bar';
-import { CharacterPreview } from '../render/characters';
+import { CharacterPreview, type PreviewFramingName } from '../render/characters';
 import { preloadMechAssets } from '../render/characters/assets';
 import { mechHeldWeaponOverride } from '../render/characters/manifest';
 import { onPortraitsReady } from '../render/characters/portrait';
@@ -33,7 +33,9 @@ import { warriorParryChance } from '../sim/combat/warrior_hit_table';
 import { DEED_ORDER, DEEDS } from '../sim/content/deeds';
 import { HEROIC_MARK_ITEM_ID } from '../sim/content/dungeon_difficulty';
 import { HEROIC_VENDOR_STOCK } from '../sim/content/heroic_vendor';
+import { recipeById } from '../sim/content/recipes';
 import { FIRST_TALENT_LEVEL, type TalentAllocation, talentsFor } from '../sim/content/talents';
+import { resolveActiveWeaponSkin } from '../sim/content/weapon_skin_rules';
 import type { ZoneDef } from '../sim/data';
 import { formatAuraDuration } from './aura_duration';
 import { auraRenderSignature, isDebuffAura, visiblePartyFrameAuras } from './aura_view';
@@ -63,8 +65,11 @@ import { specialRoleColor } from '../sim/discord_roles';
 import { canEquipItem, weaponHand } from '../sim/equipment_rules';
 import { isItemLevelEligible, itemLevel, itemScore } from '../sim/item_level';
 import { requiredLevelFor } from '../sim/item_level_req';
+import { junkSellableSlot } from '../sim/items';
 import type { Ante, PickAction } from '../sim/lockpick';
 import { FOCUS_POINT_BUDGET, isInTownZone } from '../sim/professions/focus';
+import { inRangeStationTypes, stationTypesSignature } from '../sim/professions/stations';
+import { TIER_SKILL_STEP, tierForSkill } from '../sim/professions/wheel';
 import { type QuestObjectiveRef, questObjectivesForMob } from '../sim/quest_targets';
 import type { ResolvedAbility } from '../sim/sim';
 import type {
@@ -73,12 +78,13 @@ import type {
   EquipSlot,
   HonorReason,
   InvSlot,
+  ItemInstancePayload,
   ItemSlot,
   MailResultCode,
   PetMode,
   PlayerClass,
   ResourceType,
-  Stats,
+  SkinCatalog,
 } from '../sim/types';
 import {
   type AbilityEffect,
@@ -89,6 +95,7 @@ import {
   type Entity,
   FAERIE_FIRE_ARMOR_PCT,
   FISHING_CAST_ID,
+  GATHER_CAST_ID,
   type ItemDef,
   isQuestTurnInNpc,
   INTERACT_RANGE,
@@ -131,6 +138,7 @@ import { type AuraEffectInput, auraEffectDescriptor } from './aura_effect';
 import { AurasPainter, type AurasPainterDeps } from './auras_painter';
 import { type AurasDeps, createAurasView } from './auras_view';
 import { attachAvatarFallback } from './avatar_fallback';
+import { BagItemActionMenu, CTX_MENU_PICKER_CLASS } from './bag_item_action_menu';
 import { bagsWindowShown } from './bags_view';
 import { BagsWindow, dismissBagPrompts } from './bags_window';
 import { BankWindow } from './bank_window';
@@ -139,8 +147,7 @@ import { CardDuelWindow } from './card_duel_window';
 import { CastBarPainter } from './cast_bar_painter';
 import { charBagsPaired } from './char_bags_pairing_core';
 import { type CharSkinPainterHost, paintCharSkinPicker } from './char_skin_window';
-import { buildPaperdollView, type PaperdollSlot } from './char_view';
-import { CharWindow } from './char_window';
+import { archetypeTitleText, CharWindow, craftNameText } from './char_window';
 import { activeCharacterAppearancePreview } from './character_appearance';
 import {
   ignoreKey,
@@ -169,9 +176,17 @@ import {
 } from './combat_sfx';
 import { type CardinalId, compassView } from './compass';
 import { formatMinimapCoords } from './coords';
-import { buildCraftingView } from './crafting_view';
-import { renderCraftingWindow } from './crafting_window';
+import {
+  buildCraftCelebrationPlan,
+  CRAFT_TIER_UP_DRAIN_WINDOW,
+  type CraftTierUp,
+  observeCraftSkillsForTierUps,
+} from './craft_celebration_view';
+import { buildCraftingView, craftLearnHints } from './crafting_view';
+import { renderCraftingWindow, stationNameText } from './crafting_window';
+import { shouldRefreshDailyRewardsLauncher } from './daily_rewards_launcher_core';
 import { DailyRewardsWindow } from './daily_rewards_window';
+import { decorativeArtImg } from './decorative_art';
 import {
   deedBroadcastLine,
   deedName,
@@ -189,13 +204,19 @@ import {
 } from './deeds_view';
 import { DeedsWindow } from './deeds_window';
 import { DevCommandWindow } from './dev_command_window';
-import { devTierBadgeDataUrl, devTierByIndex, devTierDisplayName } from './dev_tier';
+import { devTierByIndex, devTierDisplayName } from './dev_tier';
+import { bindDialogKeyActivation } from './dialog_key_activation';
 import { discordRoleTagLabel } from './discord_role_tag';
-import { discordStatusBadgeDataUrl, discordStatusDisplayName } from './discord_tier';
+import { discordStatusDisplayName } from './discord_tier';
 import { dropdownKeyNav } from './dropdown_nav';
 import { DungeonFinderProposalPopup } from './dungeon_finder_proposal_popup';
 import { DungeonFinderWindow } from './dungeon_finder_window';
 import { emoteIconUrl } from './emote_icons';
+import {
+  applyEnchantResultToast,
+  disenchantResultToast,
+  salvageResultToast,
+} from './enchanting_view';
 import {
   classDisplayName,
   dungeonDisplayName,
@@ -215,12 +236,23 @@ import {
   resetFramePositionsOnce,
   TARGET_FRAME_POS_KEY,
 } from './frame_pos_reset';
-import { holderTierBadgeDataUrl, holderTierByIndex, holderTierDisplayName } from './holder_tier';
+import {
+  buildGatheringProficiencyRows,
+  gatherDeniedLineKey,
+  gatherDowngradeLineKey,
+} from './gathering_view';
 import { isSelfOnlyAbility } from './hud/action_bar/ability_self_only';
+import { ActionBarController } from './hud/action_bar/action_bar_controller';
 import {
   ACTION_BAR_ABILITY_SLOTS,
-  ActionBarController,
-} from './hud/action_bar/action_bar_controller';
+  ACTION_BAR_ABILITY_SLOTS_PER_ROW,
+  actionBarRowForSlot,
+} from './hud/action_bar/action_bar_layout_core';
+import {
+  applyActionBarLayout,
+  captureActionBarLayout,
+  planActionBarRestore,
+} from './hud/action_bar/action_bar_layout_sync';
 import { ActionBarPainter, type ActionBarSlotElements } from './hud/action_bar/action_bar_painter';
 import {
   ABILITY_ICON_PREFIX,
@@ -250,6 +282,7 @@ import {
 import {
   applyLoadoutBar as applyLoadoutBarActions,
   assignAttackSlotAction,
+  attackDragDisposition,
   clearHotbarSlot,
   encodeHotbarAction,
   HOTBAR_ACTION_MIME,
@@ -279,6 +312,8 @@ import {
   CHAT_MESSAGE_TOKEN,
   CHAT_NAME_TOKEN,
   chatAiTagEl,
+  chatRoleTagEl,
+  chatStreamerBadgeEl,
 } from './hud/chat/chat_line';
 import { type ChatClock, clampChatClock, formatChatTimestamp } from './hud/chat/chat_timestamp';
 import { ChatWindowController } from './hud/chat/chat_window_controller';
@@ -301,6 +336,10 @@ import { QuestTrackerController } from './hud/quest/quest_tracker_controller';
 import { QuestLogWindow } from './hud/quest/questlog_window';
 import { buildHeroicVendorView } from './hud/vendor/heroic_vendor_view';
 import { renderHeroicVendorWindow } from './hud/vendor/heroic_vendor_window';
+import { buildTrainView, isRecipeKnownForViewer } from './hud/vendor/train_view';
+import { renderTrainWindow } from './hud/vendor/train_window';
+import { buildUnbindView } from './hud/vendor/unbind_view';
+import { renderUnbindWindow } from './hud/vendor/unbind_window';
 import { buildVendorView } from './hud/vendor/vendor_view';
 import { renderVendorWindow } from './hud/vendor/vendor_window';
 import {
@@ -315,10 +354,19 @@ import {
   tPlural,
 } from './i18n';
 import { iconDataUrl, QUALITY_COLOR, raidMarkerDataUrl } from './icons';
+import { InspectWindow } from './inspect_window';
 import { itemArmorTypeLabelKey } from './item_armor_type';
 import { requiredClassesForTooltip } from './item_class_restriction';
 import { itemStatDeltas } from './item_compare';
 import { ItemDragState } from './item_drag_state';
+import {
+  instanceBadgeLines,
+  instanceBindingLines,
+  instanceBonusStatLines,
+  instanceMakersMarkLine,
+  itemNumber,
+  itemStatName,
+} from './item_instance_tooltip';
 import { itemSetMemberCounts, itemSetTooltipModel } from './item_set_tooltip_view';
 import { LeaderboardWindow } from './leaderboard_window';
 import { ReannounceMarker } from './live_region_reannounce';
@@ -359,9 +407,12 @@ import {
   pickIdleBarkCandidates,
 } from './mob_idle_sfx';
 import { type MobTooltipI18n, type MobTooltipModel, mobTooltipHtml } from './mob_tooltip_view';
+import { isMobileFullscreenWindowOpen } from './mobile_fullscreen_window_core';
+import { MobileMoreDialogController } from './mobile_more_dialog';
 import { MovableFrame } from './movable_frame';
 import { OptionsWindow } from './options_window';
 import { makeWriterFacet, type PainterHostPresentation } from './painter_host';
+import { PartyBelowTargetPainter } from './party_below_target_painter';
 import { loadPartyCollapsed, savePartyCollapsed } from './party_collapse';
 import type { PartyRowAuraDeps } from './party_frame_row';
 import { partyFrameSignature, selectPartyFrameMembers } from './party_frames';
@@ -376,6 +427,11 @@ import {
   streamerActionPlatform,
   streamerMenuActions,
 } from './player_context_menu';
+import {
+  type PlayerTooltipI18n,
+  type PlayerTooltipModel,
+  playerTooltipHtml,
+} from './player_tooltip_view';
 import { hydratePortraits, portraitChipHtml } from './portrait_chip';
 import { procAuraConsumeSelfNoteText, procAuraGainSelfNoteText } from './proc_fct_notes';
 import { buildProcOverlay } from './proc_overlay_dom';
@@ -388,7 +444,15 @@ import {
   procOverlayState,
 } from './proc_overlay_view';
 import { maskProfanity } from './profanity';
-import { buildProfessionIdentityView } from './profession_identity_view';
+import { MASTERWORK_SEAL_IMAGE_URL } from './profession_art';
+import { type ProfessionEventInput, planProfessionEvent } from './profession_event_lines_core';
+import {
+  buildProfessionIdentityView,
+  professionSurfaceRefreshSig,
+} from './profession_identity_view';
+import { buildProfessionTutorialModel } from './profession_tutorial_view';
+import { renderProfessionTutorial } from './profession_tutorial_window';
+import { ProfessionsWindow } from './professions_window';
 import { questProgressEventText } from './quest_progress_text';
 import { questGuideMarkers, type QuestGuideMarker } from './quest_guide';
 import { lockoutParts, lockoutShape } from './raid_lockout';
@@ -460,6 +524,7 @@ import {
   wocBalanceVerified,
 } from './wallet_balance';
 import { type WeaponProcEffectDesc, weaponProcLines } from './weapon_proc_view';
+import { weaponTypeLabelKey } from './weapon_type_label';
 import {
   installWindowDrag,
   isWindowDragPreviewMutation,
@@ -562,6 +627,7 @@ export interface ClaudiumHooks {
 export interface HudFeatures {
   dailyRewardsEnabled: boolean;
   devCommandsEnabled?: boolean;
+  constrainedMemory?: boolean;
 }
 
 export interface BugReportPayload {
@@ -667,8 +733,13 @@ const MOB_TOOLTIP_VIEW_DEPS: MobTooltipI18n = {
   t: (key, params) => t(key as TranslationKey, params),
   fmt: (value, opts) => formatNumber(value, opts),
 };
+const PLAYER_TOOLTIP_VIEW_DEPS: PlayerTooltipI18n = {
+  t: (key, params) => t(key as TranslationKey, params),
+  fmt: (value, opts) => formatNumber(value, opts),
+};
 const castDisplayName = (id: string): string => {
   if (id === FISHING_CAST_ID) return t('abilityUi.cast.fishing');
+  if (id === GATHER_CAST_ID) return t('abilityUi.cast.gathering');
   if (id === 'demon_heal') return t('abilityUi.cast.demonHeal');
   if (id === 'thunzharr_stormcall') return t('abilityUi.cast.thunzharrStormcall');
   const ability = ABILITIES[id];
@@ -777,15 +848,6 @@ const ITEM_KIND_LABEL_KEYS: Record<ItemDef['kind'], TranslationKey> = {
   elixir: 'itemUi.kind.elixir',
   bag: 'itemUi.kind.bag',
 };
-const ITEM_STAT_LABEL_KEYS: Partial<Record<keyof Stats, TranslationKey>> = {
-  armor: 'itemUi.stats.armor',
-  str: 'itemUi.stats.str',
-  agi: 'itemUi.stats.agi',
-  sta: 'itemUi.stats.sta',
-  int: 'itemUi.stats.int',
-  spi: 'itemUi.stats.spi',
-};
-
 // Classic class colors (CLASSES[cls].color is a 0xRRGGBB number) as a CSS
 // string, used to color-code party members on the minimap and in the frames.
 const classCss = (cls: string): string =>
@@ -885,11 +947,10 @@ function yellVoiceKey(text: string): string {
 const CHEAT_DEATH_SAVE_TEXT = 'Cheat Death saves you!';
 
 export class Hud {
-  // Ability slots across both rows: 1..11 on the primary bar, 12..22 on the
-  // secondary bar (slot 0 is the fixed Attack toggle on the primary bar). The
-  // two rows share one hotbarActions array, so drag/drop, persistence, and the
-  // keybind dispatch all work across both with no per-bar bookkeeping.
-  private static readonly PRIMARY_BAR_ABILITY_SLOTS = 11;
+  // Ability slots across three rows: 1..11 primary, 12..22 secondary, and
+  // 23..33 third (slot 0 is the Attack toggle on the primary row). Every row
+  // shares one hotbarActions array, so drag/drop, persistence, and keybind
+  // dispatch work across them with no per-row bookkeeping.
   private static readonly BAR_ABILITY_SLOTS = ACTION_BAR_ABILITY_SLOTS;
   private static readonly PET_AUTOCAST_TOUCH_HOLD_MS = 2000;
   private static ddSeq = 0; // monotonic id source for buildDropdown listbox/option ARIA wiring
@@ -900,11 +961,12 @@ export class Hud {
     keybindEl: HTMLSpanElement;
     cdOverlay: HTMLDivElement;
     cdText: HTMLDivElement;
+    rechargeOverlay: HTMLDivElement;
   }[] = [];
   // The action bar's pure core + thin painter. Built in buildActionBar once
   // the slot buttons exist; tick(world) -> ActionBarState, painted via the shared
-  // elided writer facet. The descriptor parameterizes the single existing bar so a
-  // second/third bar is another descriptor, not a code fork.
+  // elided writer facet. The descriptor parameterizes the shared slot family so
+  // every desktop row and mobile variant reuse the same derivation.
   private actionBarView!: ActionBarView;
   private actionBarPainter!: ActionBarPainter;
   // The mobile action ring: a SECOND createActionBarView instance over a 6-slot
@@ -938,11 +1000,14 @@ export class Hud {
   // that helper lives behind the game-layer seam). Null until wired; the
   // attack handler then falls back to the fixed attack control.
   onMobileAttackNearest: (() => void) | null = null;
+  onQuestDialogStateChange: ((open: boolean) => void) | null = null;
   // The healer button lives in the non-blocking ghost overlay, but successful
   // resurrection must still flow through main.ts so authoritative outcomes can
   // stop autorun without making Hud own Input or MobileControls.
   onResurrectAtSpiritHealer: (() => void) | null = null;
   private readonly actionBarController: ActionBarController;
+  // One-shot latch for the login-time action-bar layout reconciliation.
+  private actionBarLayoutRestored = false;
   private get hotbarActions(): HotbarAction[] {
     return this.actionBarController.actions;
   }
@@ -1043,6 +1108,10 @@ export class Hud {
   // ./focus_manager. Escape is NOT handled here: it stays with the existing unified
   // dispatcher (main.ts game input -> hud.closeAll()), so there is one Escape path.
   private readonly focusManager = new FocusManager();
+  private readonly mobileMoreDialog = new MobileMoreDialogController(this.focusManager, {
+    trigger: () => document.getElementById('mobile-more'),
+    dialog: () => document.getElementById('mobile-extra-controls'),
+  });
   // The control that opened the shared #ctx-menu (the chat "+" button), so the
   // outside-click closer can defer to that opener's own toggle click. Cleared on
   // every close path (closeContextMenu + item activation).
@@ -1062,13 +1131,9 @@ export class Hud {
   private readonly tooltipOwner = new SharedTooltipOwner<HTMLElement>();
   // Distinguishes a touch long-press "peek" (inspect, no action) from a tap.
   private peekGuard = new TouchPeekGuard();
-  // The mob whose world-hover tooltip is currently shown (showMobHoverTooltip),
-  // so main.ts's per-frame updateHoverCursor can call it every frame while the
-  // same mob stays hovered without rebuilding the tooltip HTML each time.
-  // A small composite key (id:level:hostile:playerLevel), not just the mob id, so
-  // the hover tooltip repaints when a mid-hover change moves its model. See
-  // showMobHoverTooltip.
-  private lastMobTooltipId: string | null = null;
+  // The world entity whose hover tooltip is currently shown, so main.ts can call
+  // its show method every frame without rebuilding unchanged HTML.
+  private lastHoverTooltipId: string | null = null;
   private errorTimer: number | undefined;
   private lastMirroredErrorText: string | undefined;
   private bannerTimer: number | undefined;
@@ -1234,6 +1299,46 @@ export class Hud {
   private readonly lootRolls: LootRollController;
   private openVendorNpcId: number | null = null;
   private openHeroicVendorNpcId: number | null = null;
+  private openTrainNpcId: number | null = null;
+  // Standalone trapping window (the professions/mailbox shape, NOT the
+  // vendor's docked bags pairing): capture the opener + install the Tab trap
+  // at open, return focus on close (src/ui/CLAUDE.md focus contract).
+  private readonly trainWindowFocus = this.windowFocus('#train-window');
+  private trainOpenerFocus: HTMLElement | null = null;
+  // Maker's Bond unbind window (Professions 2.0): the same
+  // standalone trapping-window shape as the train window above.
+  private openUnbindNpcId: number | null = null;
+  private readonly unbindWindowFocus = this.windowFocus('#unbind-window');
+  private unbindOpenerFocus: HTMLElement | null = null;
+  // Craft tier-up snapshot (Professions 2.0): the last SYNCED
+  // craftSkills observation handleEvents diffs for tier crossings. null until
+  // the first synced observation, which initializes silently (no toasts for
+  // history on login/join).
+  private prevCraftSkills: Record<string, number> | null = null;
+  // Drains left in the post-craftResult window during which the tier-up diff
+  // runs (0 = disarmed; see the handleEvents tail).
+  private craftTierUpDrains = 0;
+  // Signature of the in-range station-type set as of the last crafting-window
+  // paint (stations.ts stationTypesSignature): the slow band compares the live
+  // set against this to keep an OPEN window fresh without per-frame repaints
+  // (walking into/out of a station, or the own mobile station expiring); the
+  // server re-validates the gate on every craft anyway.
+  private lastCraftingStationSig = '';
+  // Character and Crafting are cold painters. Diff the local crafting
+  // identity plus the gathering proficiency rows on the slow band so a late
+  // online cprof or professions snapshot replaces stale archetype art/title
+  // and Gathering numbers without repainting for attunedZone bystanders.
+  private lastProfessionSurfaceSig = '';
+  // Commission opt-in state (Professions 2.0): recipe ids whose
+  // NEXT craft goes out with the commission flag. Held here (not in the
+  // painter) so the crafting window's staleness repaints never untick a
+  // checked box; consumed on craft, cleared on window close.
+  private readonly craftCommissionOptIn = new Set<string>();
+  // The crafting window's selected craft tab. Held here (the commission-set
+  // precedent) so staleness repaints keep the player's tab; null means "no
+  // pick yet" and the painter falls back to the first tab. Cleared on close
+  // so reopening always starts at the front of the book.
+  private selectedCraftTab: string | null = null;
   private readonly delveBoard: DelveBoardController;
   private readonly delveTracker: DelveTrackerController;
   private readonly lockpickController: LockpickController;
@@ -1365,6 +1470,8 @@ export class Hud {
   private readonly playerCard: PlayerCardController;
   // Shared by the confirm + input modals (one #confirm-dialog id; they never coexist).
   private confirmTrap: FocusTrapHandle | null = null;
+  // The first-tier tutorial modal's focus trap (#profession-tutorial).
+  private professionTutorialTrap: FocusTrapHandle | null = null;
   private meters: Meters;
   private tutorial = new TutorialOverlay();
   private lastPetBarSig = '';
@@ -1401,6 +1508,10 @@ export class Hud {
         return !!match && match.team !== null;
       },
       showAttackButton: () => this.optionsHooks?.settings.get('showAttackButton') ?? true,
+      // Persistence seam: online, the ClientWorld debounces a per-character wire
+      // save; offline, Sim.saveActionBarLayout is a no-op (localStorage is the
+      // store). The controller always writes the localStorage mirror itself.
+      persistLayout: (layout) => this.sim.saveActionBarLayout(layout),
     });
     this.delveTracker = new DelveTrackerController({
       element: $('#delve-tracker'),
@@ -1418,9 +1529,11 @@ export class Hud {
       hideTooltip: () => this.hideTooltip(),
       attachTooltip: (element, html) => this.attachTooltip(element, html),
       itemIcon: (item) => this.itemIcon(item),
-      itemTooltip: (item) => this.itemTooltip(item),
+      itemTooltip: (item, instance?: ItemInstancePayload) => this.itemTooltip(item, true, instance),
       delveName: delveDisplayName,
       preloadInterior: (event) => this.renderer.handleEvent(event),
+      confirmDialog: (title, body, okText, cancelText, onOk) =>
+        this.confirmDialog(title, body, okText, cancelText, onOk),
     });
     this.riteController = new RiteController({
       panel: $('#delve-rite-panel'),
@@ -1497,16 +1610,19 @@ export class Hud {
       closeTransient: () => this.closeOtherWindows('#quest-dialog'),
       hideTooltip: () => this.hideTooltip(),
       itemIcon: (item) => this.itemIcon(item),
-      itemTooltip: (item) => this.itemTooltip(item),
+      itemTooltip: (item, instance?: ItemInstancePayload) => this.itemTooltip(item, true, instance),
       attachTooltip: (element, html) => this.attachTooltip(element, html),
       openChronicles: () => this.openDeeds('chronicle'),
       openVendor: (npcId) => this.openVendor(npcId),
       openHeroicVendor: (npcId) => this.openHeroicVendor(npcId),
+      openTrain: (npcId) => this.openTrain(npcId),
+      openUnbind: (npcId) => this.openUnbind(npcId),
       openMarket: () => this.openMarket(),
       openDelveBoard: (npcId) => this.openDelveBoard(npcId),
       openValeCup: () => this.toggleValeCup(),
       openCardDuel: () => this.toggleCardDuel(),
       askAiNpcTopic: (npcId, topic) => this.sim.aiInteractNpc(npcId, getLanguage(), topic),
+      onOpenChange: (open) => this.onQuestDialogStateChange?.(open),
       voice: {
         play: (key) => voice.play(key),
         isPlaying: () => voice.isPlaying(),
@@ -1525,7 +1641,7 @@ export class Hud {
       money: (copper) => this.moneyHtml(copper),
       coinIconUrl: () => iconDataUrl('item', 'coin_gold'),
       itemIcon: (item) => this.itemIcon(item),
-      itemTooltip: (item) => this.itemTooltip(item),
+      itemTooltip: (item, instance?: ItemInstancePayload) => this.itemTooltip(item, true, instance),
       attachTooltip: (element, html) => this.attachTooltip(element, html),
       centerPopup: (element) => this.centerPopupInViewport(element),
       placePopup: (element, x, y, reserveRight, reserveBottom, minLeft, minTop) =>
@@ -1537,7 +1653,7 @@ export class Hud {
       now: () => performance.now(),
       isMobileLayout: () => this.isMobileLayout(),
       itemIcon: (item) => this.itemIcon(item),
-      itemTooltip: (item) => this.itemTooltip(item),
+      itemTooltip: (item, instance?: ItemInstancePayload) => this.itemTooltip(item, true, instance),
       attachTooltip: (element, html) => this.attachTooltip(element, html),
       writers: this.writerFacet,
     });
@@ -1587,7 +1703,7 @@ export class Hud {
         bagOpen: () => audio.bagOpen(),
         bagClose: () => audio.bagClose(),
         click: () => audio.click(),
-        levelUp: () => audio.levelUp(),
+        cosmeticUnlock: () => audio.cosmeticUnlock(),
       },
     });
     this.chatGeometry = new ChatGeometryController({
@@ -1693,7 +1809,7 @@ export class Hud {
       this.sim.releaseSpirit();
     });
     bindTouchTap(this.resurrectCorpseBtnEl, () => this.sim.resurrectAtCorpse());
-    bindTouchTap(this.resurrectHealerBtnEl, () => this.onResurrectAtSpiritHealer?.());
+    bindTouchTap(this.resurrectHealerBtnEl, () => this.requestSpiritHealerResurrect());
     document.addEventListener('pointerdown', (ev) => {
       const target = ev.target as Node | null;
       if (!target) return;
@@ -1847,6 +1963,7 @@ export class Hud {
     $('#mm-town-focus')?.addEventListener('click', () => this.toggleTownFocus());
     $('#mm-quest').addEventListener('click', () => this.toggleQuestLog());
     $('#mm-deeds').addEventListener('click', () => this.toggleDeeds());
+    $('#mm-professions').addEventListener('click', () => this.toggleProfessions());
     // Collapse/expand the on-screen quest tracker by clicking its header. The
     // overlay is click-through (pointer-events:none) except the header button, so
     // delegate on the stable container (the header is rebuilt on each render).
@@ -1923,6 +2040,7 @@ export class Hud {
       '#bank-window',
       '#bags',
       '#deeds-window',
+      '#professions-window',
     ]) {
       $(panelId).addEventListener('keydown', (e) => {
         if ((e.target as HTMLElement).tagName !== 'BUTTON') return;
@@ -2294,6 +2412,18 @@ export class Hud {
       .filter((win) => win.id !== 'mobile-extra-controls')
       .some((win) => this.isWindowVisible(win));
     document.body.classList.toggle('mobile-window-open', anyOpen);
+    const bagsWindow = document.getElementById('bags');
+    const charWindow = document.getElementById('char-window');
+    document.body.classList.toggle(
+      'mobile-fullscreen-window-open',
+      isMobileFullscreenWindowOpen(
+        !!bagsWindow && this.isWindowVisible(bagsWindow),
+        !!charWindow && this.isWindowVisible(charWindow),
+        document.body.classList.contains('vendor-open'),
+        document.body.classList.contains('bank-open'),
+        document.body.classList.contains('char-bags-paired'),
+      ),
+    );
     const storeWindow = document.getElementById('daily-rewards-window') as HTMLElement | null;
     const claudiumWindow = document.getElementById('claudium-window') as HTMLElement | null;
     const storeVisible = !!storeWindow && this.isWindowVisible(storeWindow);
@@ -2338,6 +2468,15 @@ export class Hud {
     if (
       document.body.classList.contains('bank-open') &&
       (el.id === 'bank-window' || el.id === 'bags')
+    )
+      return;
+    // The market docks its bags companion the same way (body.market-open, see
+    // components.css): skip the cascade for that cluster too, or the inline
+    // position the cascade bakes onto #bags beats the docking CSS the moment a
+    // second window is already open (PR #2107 review round 5).
+    if (
+      document.body.classList.contains('market-open') &&
+      (el.id === 'market-window' || el.id === 'bags')
     )
       return;
     const openCount = [...document.querySelectorAll<HTMLElement>('.window.panel')].filter(
@@ -2499,6 +2638,12 @@ export class Hud {
         this.confirmTrap = null;
         el.remove();
         break;
+      case 'profession-tutorial':
+        // Route through closeProfessionTutorial so the focus trap is released
+        // (focus returns to the opener, WCAG 2.2 AA) and the modal is removed,
+        // never left hidden with a live trap (the confirm-dialog precedent).
+        this.closeProfessionTutorial();
+        break;
       case 'options-menu':
         this.closeOptions();
         break;
@@ -2514,6 +2659,10 @@ export class Hud {
         // Route through the painter so focus returns to the opener (WCAG 2.2 AA).
         this.charWindow.close();
         this.syncCharBagsPairing();
+        break;
+      case 'inspect-window':
+        // Route through the painter so focus returns to the opener (WCAG 2.2 AA).
+        this.inspectWindow.close();
         break;
       case 'trade-window':
         this.sim.tradeCancel();
@@ -2538,6 +2687,10 @@ export class Hud {
         // Route through the painter so focus returns to the opener (WCAG 2.2 AA).
         this.deedsWindow.close();
         break;
+      case 'professions-window':
+        // Route through the painter so focus returns to the opener (WCAG 2.2 AA).
+        this.professionsWindow.close();
+        break;
       case 'arena-window':
         // Route through the painter so focus returns to the opener (WCAG 2.2 AA),
         // consistent with the toggle / X close path.
@@ -2558,6 +2711,12 @@ export class Hud {
       case 'vendor-window':
         this.closeVendor();
         this.closeHeroicVendor();
+        break;
+      case 'train-window':
+        this.closeTrain();
+        break;
+      case 'unbind-window':
+        this.closeUnbind();
         break;
       case 'town-focus-window':
         this.closeTownFocus();
@@ -3299,6 +3458,22 @@ export class Hud {
       partyAuras: this.partyAurasDeps,
     },
   );
+  // The below-target offset painter: measures the target frame plus its
+  // #tf-debuffs strip (only when its cheap invalidation key changes) and keeps
+  // --party-below-target-bottom on #party-frames current, so the below-target
+  // CSS offset tracks the strip's real rendered bottom at any buff count, UI
+  // scale, or dragged frame position (see party_below_target_core.ts).
+  private readonly partyBelowTargetPainter = new PartyBelowTargetPainter(this.writerFacet, {
+    container: this.partyFramesEl,
+    frame: this.targetFrameEl,
+    debuffs: this.targetDebuffsEl,
+    // Lazy lookups, resolved only inside the painter's key-gated measure: the
+    // rows wrapper is pool-built on the first member sync, and the movement
+    // pad elements live outside #ui in the mobile controls section.
+    rows: () => this.partyFramesEl?.querySelector('.party-rows') ?? null,
+    moveWheel: () => document.querySelector('#mobile-move-joystick'),
+    moveZone: () => document.querySelector('#mobile-move-zone'),
+  });
   // Overworld world-map painter (the delve branch stays with delvePainter). Owns
   // the cached whole-world decorations; redraws from the mediumHud band while open.
   private readonly mapPainter = new MapWindowPainter();
@@ -3400,7 +3575,7 @@ export class Hud {
   private readonly presentationBag: PainterHostPresentation = {
     itemIcon: (item) => this.itemIcon(item),
     moneyHtml: (copper) => this.moneyHtml(copper),
-    itemTooltip: (item) => this.itemTooltip(item),
+    itemTooltip: (item, instance?: ItemInstancePayload) => this.itemTooltip(item, true, instance),
     attachTooltip: (el, html) => this.attachTooltip(el, html),
   };
   // The interactive talents window. All allocation reads and mutations cross the
@@ -3504,6 +3679,31 @@ export class Hud {
     isTouchHud: () => document.body.classList.contains('mobile-touch'),
     markEquipDropTargets: (itemId) => this.charWindow.markDropTargets(itemId),
     dropOnEquipSlot: (itemId, slot) => this.charWindow.dropOnEquipSlot(itemId, slot),
+    openItemActionMenu: (def, itemId, x, y, runDefault) =>
+      this.bagItemActionMenu.open(def, itemId, x, y, runDefault),
+  });
+  // Bag-item action menu (Professions 2.0): the right-click / touch
+  // menu that surfaces Disenchant / Salvage / Apply Enchant on a bag stack.
+  // Composes the shared #ctx-menu popup family (placePopupAt + keepPopupOnScreen,
+  // bindContextMenuActions) and the one confirm-dialog family; the bags window
+  // opens it via the openItemActionMenu dep above.
+  private readonly bagItemActionMenu = new BagItemActionMenu({
+    world: () => this.sim,
+    ctxMenu: {
+      element: () => $('#ctx-menu'),
+      place: (element, x, y, reserveRight, reserveBottom) => {
+        this.placePopupAt(element, x, y, reserveRight, reserveBottom);
+        this.keepPopupOnScreen(element);
+      },
+      bind: (onActivate) => this.bindContextMenuActions(onActivate),
+    },
+    confirmDialog: (title, body, okText, cancelText, onOk) =>
+      this.confirmDialog(title, body, okText, cancelText, onOk),
+    slotName: (slot) => itemSlotName(slot),
+    isMobileLayout: () => this.isMobileLayout(),
+    afterAction: () => {
+      if ($('#bags').style.display !== 'none') this.renderBags();
+    },
   });
   // World Market window painter (market_view.ts core + market_window.ts painter).
   // It composes the shared presentation bag (icon/money/tooltip) and owns the
@@ -3587,6 +3787,19 @@ export class Hud {
     consumePeek: () => this.peekGuard.consume(),
     ...this.windowFocus('#deeds-window'),
     onWatchChanged: () => this.updateDeedTracker(),
+  });
+  // Professions window painter (professions_view.ts core + the composed
+  // profession_identity_view model + professions_window.ts painter): the
+  // read-only craft-wheel identity browser over IWorldProfessions. A
+  // standalone trapping window (windowFocus), the deeds shape exactly.
+  private readonly professionsWindow = new ProfessionsWindow({
+    ...this.presentationBag,
+    root: () => $('#professions-window'),
+    world: () => this.sim,
+    closeOthers: () => this.closeOtherWindows('#professions-window'),
+    hideTooltip: () => this.hideTooltip(),
+    consumePeek: () => this.peekGuard.consume(),
+    ...this.windowFocus('#professions-window'),
   });
   // Watchlist HUD tracker (#deed-tracker): slow-band painter over the one
   // reused tracker-view container (allocation-light by contract).
@@ -3713,7 +3926,7 @@ export class Hud {
     hideTooltip: () => this.hideTooltip(),
     ...this.windowFocus('#char-window'),
     slotName: (slot) => itemSlotName(slot),
-    statCellHtml: (stat) => statCellHtml(this.statModel(stat), STAT_VIEW_DEPS),
+    statCellHtml: (stat) => statCellHtml(this.statModel(stat), STAT_VIEW_DEPS, { colon: false }),
     statTooltipHtml: (stat) => statTooltipHtml(this.statModel(stat), STAT_VIEW_DEPS),
     talentSummaryHtml: () => this.talentSummaryHtml(),
     progressionHtml: (level) => this.progressionHtml(level),
@@ -3752,6 +3965,21 @@ export class Hud {
     dragState: this.itemDragState,
     renderBags: () => this.renderBags(),
     showError: (text) => this.showError(text),
+  });
+  // Inspect ("Profile") window painter (inspect_view.ts pure core + inspect_window.ts
+  // painter). It paints #inspect-window for both the rich in-range card (live
+  // class-colored turntable of the inspected player + their worn paperdoll) and the
+  // thin out-of-range remote card. The shared turntable is HUD-owned (single WebGL
+  // context), so the painter mounts it through mountInspectPreview.
+  private readonly inspectWindow = new InspectWindow({
+    ...this.presentationBag,
+    root: () => $('#inspect-window'),
+    closeOthers: () => this.closeOtherWindows('#inspect-window'),
+    hideTooltip: () => this.hideTooltip(),
+    ...this.windowFocus('#inspect-window'),
+    slotName: (slot) => itemSlotName(slot),
+    showDevBadges: () => this.optionsHooks?.settings.get('showDevBadges') ?? true,
+    mountPreview: (container, params) => this.mountInspectPreview(container, params),
   });
   // Options window painter (options_view.ts core + options_window.ts painter). The
   // window renders no item rows, so it composes no PainterHostPresentation bag; it
@@ -3812,7 +4040,16 @@ export class Hud {
     root: () => $('#daily-rewards-window'),
     world: () => this.sim,
     closeOthers: () => this.closeOtherWindows('#daily-rewards-window'),
-    onStatus: (status) => this.applyDailyRewardsLauncherStatus(status),
+    // A status delivered by the window's render or spin is as fresh as a launcher
+    // fetch: invalidate any in-flight launcher fetch (seq bump) so a slower older
+    // response cannot overwrite it, and stamp the throttle so the next slowHud
+    // tick does not redundantly re-fetch.
+    onStatus: (status) => {
+      this.dailyRewardsLauncherSeq++;
+      this.lastDailyRewardsLauncherRefreshAt = performance.now();
+      this.applyDailyRewardsLauncherStatus(status);
+    },
+    onClose: () => this.refreshDailyRewardsLauncher(true),
     onWalletConnect: () => {
       window.dispatchEvent(new CustomEvent('woc:wallet-verify'));
     },
@@ -4355,9 +4592,9 @@ export class Hud {
     const questKey = mobQuests
       .map((q) => `${q.questId}#${q.objectiveIndex}:${q.current}/${q.total}`)
       .join(',');
-    const key = `${entity.id}:${entity.level}:${entity.hostile ? 1 : 0}:${this.sim.player.level}:${questKey}`;
-    if (key === this.lastMobTooltipId) return;
-    this.lastMobTooltipId = key;
+    const key = `mob:${entity.id}:${entity.level}:${entity.hostile ? 1 : 0}:${this.sim.player.level}:${questKey}`;
+    if (key === this.lastHoverTooltipId) return;
+    this.lastHoverTooltipId = key;
     const template = MOBS[entity.templateId];
     if (!template) {
       this.hideTooltip();
@@ -4387,11 +4624,27 @@ export class Hud {
     this.paintMobTooltipBottomRight(mobTooltipHtml(model, MOB_TOOLTIP_VIEW_DEPS));
   }
 
-  // Clears the world-hover mob tooltip; a no-op if none is showing, so main.ts
-  // can call it unconditionally every frame nothing (or a non-mob) is hovered.
-  clearMobHoverTooltip(): void {
-    if (this.lastMobTooltipId === null) return;
-    this.lastMobTooltipId = null;
+  showPlayerHoverTooltip(entity: Entity): void {
+    const playerClass = entity.templateId as PlayerClass;
+    const classLabel = CLASSES[playerClass] ? classDisplayName(playerClass) : entity.templateId;
+    const key = `player:${entity.id}:${entity.name}:${entity.level}:${entity.templateId}:${entity.guild}`;
+    if (key === this.lastHoverTooltipId) return;
+    this.lastHoverTooltipId = key;
+    const model: PlayerTooltipModel = {
+      name: entity.name,
+      classLabel,
+      classColor: classCss(playerClass),
+      level: entity.level,
+      guild: entity.guild,
+    };
+    this.paintMobTooltipBottomRight(playerTooltipHtml(model, PLAYER_TOOLTIP_VIEW_DEPS));
+  }
+
+  // Clears a world-hover tooltip; a no-op if none is showing, so main.ts can
+  // call it unconditionally every frame nothing eligible is hovered.
+  clearHoverTooltip(): void {
+    if (this.lastHoverTooltipId === null) return;
+    this.lastHoverTooltipId = null;
     this.hideTooltip();
   }
 
@@ -4406,13 +4659,22 @@ export class Hud {
     this.tooltipEl.style.top = `${Math.max(8, y / z - th - 10)}px`;
   }
 
-  private itemTooltip(item: ItemDef, compare = true, extraHtml = ''): string {
-    const details = this.itemTooltipDetails(item);
+  // `instance` is the optional per-copy payload (#1165): a masterwork seal, a
+  // maker's mark, or baked bonus stats specific to THIS copy. Absent for
+  // fungible stacks and def-only surfaces (the crafting window's result rows),
+  // so those render exactly as before.
+  private itemTooltip(
+    item: ItemDef,
+    compare = true,
+    instance?: ItemInstancePayload,
+    extraHtml = '',
+  ): string {
+    const details = this.itemTooltipDetails(item, instance);
     if (!compare) return details + extraHtml;
     return details + this.itemCompareBlock(item) + extraHtml;
   }
 
-  private itemTooltipDetails(item: ItemDef): string {
+  private itemTooltipDetails(item: ItemDef, instance?: ItemInstancePayload): string {
     const qColor = QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff';
     let html = `<div class="tt-title" style="color:${qColor}">${esc(itemDisplayName(item))}</div>`;
     // Quality/kind line, e.g. "Epic Armor". Heroic items (dungeon upgraded variants
@@ -4428,6 +4690,19 @@ export class Hud {
       qualityKindHtml += ` <span style="color:#e5cc80">${esc(t('hudChrome.itemHeroicTag'))}</span>`;
     }
     html += `<div class="tt-sub">${qualityKindHtml}</div>`;
+    // Weapon type (Sword/Dagger/Mace/...) as its own plain line under the
+    // quality/kind line and above the slot/handedness line, classic-style, so a
+    // player can tell a dagger from a sword at a glance (rogues need daggers). It
+    // is NOT colored by class the way armor weight is: any class can equip most
+    // weapon types and the class/weapon rules are archetype-based, not type-based,
+    // so a red type label would mislead. Null only for a non-weapon or
+    // unclassified id (the map is guarded), which simply shows no type line.
+    if (item.kind === 'weapon') {
+      const weaponTypeKey = weaponTypeLabelKey(item.id);
+      if (weaponTypeKey) {
+        html += `<div class="tt-sub tt-weapon-type">${esc(t(weaponTypeKey))}</div>`;
+      }
+    }
     if (item.slot) {
       // Classic layout: slot name on the left, armor subtype (Cloth/Leather/Mail)
       // right-aligned on the same line so it is clear which classes the gear suits.
@@ -4454,7 +4729,7 @@ export class Hud {
     if (isItemLevelEligible(item) && this.optionsHooks?.settings.get('showItemLevel')) {
       const level = itemLevel(item);
       if (level !== undefined) {
-        html += `<div class="tt-stat" style="color:#ffd100">${esc(
+        html += `<div class="tt-stat" style="color:var(--gold)">${esc(
           t('hudChrome.options.itemLevelLine', { level: itemNumber(level) }),
         )}</div>`;
         html += `<div class="tt-sub">${esc(
@@ -4465,8 +4740,17 @@ export class Hud {
     // Bound-to-owner marker (marks and other soulbound tokens): shown like the
     // classic "Soulbound" line so a player can see it cannot be traded or destroyed.
     if (item.soulbound) {
-      html += `<div class="tt-sub" style="color:#ffd100">${esc(t('hudChrome.itemSoulbound'))}</div>`;
+      html += `<div class="tt-sub" style="color:var(--gold)">${esc(t('hudChrome.itemSoulbound'))}</div>`;
     }
+    // Maker's Bond lines (Professions 2.0): the commission
+    // binds-on-first-trade warning or the bound lock, beside the def-level
+    // soulbound line it parallels (item_instance_tooltip.ts owns the copy
+    // rules, incl. the equipment-kind scope and the no-name doctrine).
+    html += instanceBindingLines(instance, item.kind);
+    // Per-copy instance badges (Professions 2.0): the masterwork
+    // seal and the enchanted marker (item_instance_tooltip.ts owns the copy
+    // rules, incl. never claiming a quality-rank upgrade).
+    html += instanceBadgeLines(instance);
     if (item.weapon) {
       const dps = (item.weapon.min + item.weapon.max) / 2 / item.weapon.speed;
       html += `<div class="tt-stat">${esc(
@@ -4477,8 +4761,9 @@ export class Hud {
         }),
       )}</div>`;
       html += `<div class="tt-stat">${esc(t('itemUi.tooltip.dps', { dps: itemNumber(dps, 1) }))}</div>`;
-      if (item.weapon.dagger)
-        html += `<div class="tt-sub">${esc(t('itemUi.tooltip.dagger'))}</div>`;
+      // The weapon type (incl. Dagger) now appears on the slot line above like
+      // every other weapon, so the old standalone "Dagger" sub-line is gone. The
+      // item.weapon.dagger DATA field still drives Backstab; only this line went.
     }
     if (item.stats) {
       for (const [k, v] of Object.entries(item.stats)) {
@@ -4495,6 +4780,7 @@ export class Hud {
         }
       }
     }
+    html += instanceBonusStatLines(instance);
     const warfareRating = Math.min(item.pvpOffenseRating ?? 0, item.pvpDefenseRating ?? 0);
     if (warfareRating > 0) {
       html += `<div class="tt-green">${esc(
@@ -4545,6 +4831,7 @@ export class Hud {
     }
     html += this.itemProcBlock(item);
     html += this.itemSetBlock(item);
+    html += instanceMakersMarkLine(instance, item.kind);
     if (item.sellValue > 0)
       html += `<div class="tt-sub">${esc(t('itemUi.tooltip.sellPrice', { money: formatLocalizedMoney(item.sellValue) }))}</div>`;
     return html;
@@ -4775,9 +5062,14 @@ export class Hud {
       this.renderVendor();
     if (this.openHeroicVendorNpcId !== null && $('#vendor-window').style.display === 'block')
       this.renderHeroicVendor();
+    if (this.openTrainNpcId !== null && $('#train-window').style.display === 'block')
+      this.renderTrain();
+    if (this.openUnbindNpcId !== null && $('#unbind-window').style.display === 'block')
+      this.renderUnbind();
     if (this.marketWindow.isOpen) this.marketWindow.render();
     if (this.bankWindow.isOpen) this.bankWindow.render();
     if (this.deedsWindow.isOpen) this.deedsWindow.render();
+    if (this.professionsWindow.isOpen) this.professionsWindow.render();
     // The deed tracker's texts re-localize on its next elided paint; run one
     // now so the strip never shows a stale language for up to a slow tick.
     this.updateDeedTracker();
@@ -4902,6 +5194,30 @@ export class Hud {
     this.actionBarController.saveActions();
   }
 
+  // Runs once at world entry (polled each frame until the world resolves the
+  // decision): reconcile the device's local action-bar layout with the server
+  // copy. Offline resolves immediately to 'noop'. Online waits for the login
+  // self-payload, then either the server copy WINS (overwrite the local mirror
+  // and re-seed the controller) or the local layout seeds the first server copy.
+  private maybeRestoreActionBarLayout(): void {
+    if (this.actionBarLayoutRestored) return;
+    const restore = this.sim.takeActionBarLayoutRestore();
+    if (restore === undefined) return; // still pending (online, pre-login-payload)
+    this.actionBarLayoutRestored = true;
+    const playerClass = this.sim.cfg.playerClass;
+    const playerName = this.sim.player.name;
+    const plan = planActionBarRestore(restore, () =>
+      captureActionBarLayout(localStorage, playerClass, playerName),
+    );
+    if (plan.action === 'apply-server') {
+      applyActionBarLayout(localStorage, playerClass, playerName, plan.layout);
+      this.actionBarController.reload();
+      this.spellbookWindow.refreshHotbarControls();
+    } else if (plan.action === 'seed-local') {
+      this.sim.saveActionBarLayout(plan.layout);
+    }
+  }
+
   private addAbilityToHotbar(abilityId: string): boolean {
     return this.actionBarController.addAbility(abilityId);
   }
@@ -4940,7 +5256,7 @@ export class Hud {
   }
 
   abilityForSlot(barSlot: number): ResolvedAbility | null {
-    // barSlot 1..22 (1..11 primary bar, 12..22 secondary bar)
+    // barSlot 1..33 (three desktop rows of eleven configurable slots)
     const action = this.actionForSlot(barSlot);
     return action?.type === 'ability'
       ? (this.sim.known.find((k) => k.def.id === action.id) ?? null)
@@ -5372,16 +5688,41 @@ export class Hud {
     );
   }
 
+  // Attack is accepted only by slot 0, its fixed destination. The pure disposition
+  // keeps that behavior testable and lets every other slot reject the drag truthfully.
+  private tryAcceptAttackDrag(
+    e: DragEvent,
+    btn: HTMLButtonElement,
+    slot: number,
+    phase: 'over' | 'drop',
+  ): boolean {
+    const disposition = attackDragDisposition(e.dataTransfer?.types, slot, phase);
+    if (disposition === 'ignore') return false;
+    e.preventDefault();
+    if (phase === 'over') {
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      btn.classList.toggle('drop-target', disposition === 'highlight');
+    } else {
+      btn.classList.remove('drop-target');
+      this.optionsHooks?.settings.set('showAttackButton', true);
+      this.hideTooltip();
+    }
+    return true;
+  }
+
   private buildActionBar(): void {
     const bar = $('#actionbar');
     const bar2 = $('#actionbar2');
-    // slot 0 (Attack) + slots 1..11 render on the primary bar; slots 12..22 on
-    // the secondary bar. One button list (this.abilityButtons), indexed by slot.
-    // An entry whose template omits #actionbar2 leaves those buttons detached
-    // rather than crashing on appendChild (keybind dispatch by slot still works).
+    const bar3 = $('#actionbar3');
+    const bars = [bar, bar2, bar3];
+    // Slot 0 (Attack) plus slots 1..11 render on the primary bar, slots 12..22
+    // on the secondary bar, and slots 23..33 on the third. One button list
+    // (this.abilityButtons) stays indexed by slot across all rows. An entry whose
+    // template omits an optional row leaves those buttons detached rather than
+    // crashing; keybind dispatch by slot still works.
     const totalButtons = 1 + Hud.BAR_ABILITY_SLOTS;
     for (let i = 0; i < totalButtons; i++) {
-      const container = i <= Hud.PRIMARY_BAR_ABILITY_SLOTS ? bar : bar2;
+      const container = bars[actionBarRowForSlot(i) - 1];
       const btn = document.createElement('button');
       btn.className = 'action-btn empty';
       const label = document.createElement('span');
@@ -5390,12 +5731,14 @@ export class Hud {
       countEl.className = 'item-count';
       const kb = document.createElement('span');
       kb.className = 'keybind';
-      kb.textContent = this.keybinds.primaryLabel(`slot${i}`); // initial keycap; the ActionBarPainter keeps it current each frame
+      kb.textContent = keyCapLabel(this.keybinds.primaryLabel(`slot${i}`)); // initial keycap; the ActionBarPainter keeps it current each frame
       const cdOverlay = document.createElement('div');
       cdOverlay.className = 'cd-overlay';
       const cdText = document.createElement('div');
       cdText.className = 'cdtext';
-      btn.append(label, countEl, kb, cdOverlay, cdText);
+      const rechargeOverlay = document.createElement('div');
+      rechargeOverlay.className = 'recharge-overlay';
+      btn.append(label, countEl, kb, cdOverlay, rechargeOverlay, cdText);
       const slot = i;
       btn.dataset.hotbarSlot = String(slot);
       // slot 0 is Attack for every class (auto-attack toggle — players
@@ -5436,6 +5779,7 @@ export class Hud {
           return this.itemTooltip(
             item,
             true,
+            undefined,
             `<div class="tt-sub">${esc(
               count > 0
                 ? t('abilityUi.actionBar.itemInBags', {
@@ -5481,6 +5825,7 @@ export class Hud {
           this.hideTooltip();
         });
         btn.addEventListener('dragover', (e) => {
+          if (this.tryAcceptAttackDrag(e, btn, slot, 'over')) return;
           const dragged = this.dragAction?.action ?? this.readDraggedAction(e.dataTransfer);
           if (!dragged) return;
           if (!this.actionBarController.isAssignableAction(dragged)) return;
@@ -5497,6 +5842,7 @@ export class Hud {
         });
         btn.addEventListener('dragleave', () => btn.classList.remove('drop-target'));
         btn.addEventListener('drop', (e) => {
+          if (this.tryAcceptAttackDrag(e, btn, slot, 'drop')) return;
           e.preventDefault();
           btn.classList.remove('drop-target');
           const dragged = this.dragAction ?? {
@@ -5571,6 +5917,7 @@ export class Hud {
         });
         // With Attack removed, the freed slot accepts a drag like any other slot.
         btn.addEventListener('dragover', (e) => {
+          if (this.tryAcceptAttackDrag(e, btn, slot, 'over')) return;
           if (this.attackSlotIsAttack()) return;
           if (this.dragAction?.sourceAttackSlot) return;
           const dragged = this.dragAction?.action ?? this.readDraggedAction(e.dataTransfer);
@@ -5581,6 +5928,7 @@ export class Hud {
         });
         btn.addEventListener('dragleave', () => btn.classList.remove('drop-target'));
         btn.addEventListener('drop', (e) => {
+          if (this.tryAcceptAttackDrag(e, btn, slot, 'drop')) return;
           e.preventDefault();
           btn.classList.remove('drop-target');
           if (this.attackSlotIsAttack()) return;
@@ -5616,6 +5964,7 @@ export class Hud {
         keybindEl: kb,
         cdOverlay,
         cdText,
+        rechargeOverlay,
       });
     }
 
@@ -5625,7 +5974,7 @@ export class Hud {
     // elements (multiplicity is a constructor arg, not a hardcoded id).
     this.actionBarView = createActionBarView(
       {
-        manySpellsSlotMax: Hud.PRIMARY_BAR_ABILITY_SLOTS,
+        manySpellsSlotMax: ACTION_BAR_ABILITY_SLOTS_PER_ROW,
         slots: this.abilityButtons.map((_, i) => {
           // Precompute the keybind lookup key once per slot (not per frame).
           const slotKey = `slot${i}`;
@@ -5640,7 +5989,7 @@ export class Hud {
             hasAction: () => this.actionForSlot(i) !== null,
             ability: () => this.abilityForSlot(i),
             item: () => this.itemForSlot(i),
-            keybindLabel: () => this.keybinds.primaryLabel(slotKey),
+            keybindLabel: () => keyCapLabel(this.keybinds.primaryLabel(slotKey)),
           };
         }),
       },
@@ -5663,6 +6012,7 @@ export class Hud {
           keybindEl: ab.keybindEl,
           cdOverlay: ab.cdOverlay,
           cdText: ab.cdText,
+          rechargeOverlay: ab.rechargeOverlay,
         })),
       },
       (iconKey) => this.actionBarIconBg(iconKey),
@@ -5677,7 +6027,7 @@ export class Hud {
   // buttons) plus a MobileActionRingPainter reusing ActionBarPainter for the
   // per-slot writes. The static container/buttons live in index.html/play.html
   // (#mobile-action-ring); on a build that omits them (neither game entry does,
-  // but this stays defensive like the #actionbar2-less template case above) the
+  // but this stays defensive like an optional-row-less template case above) the
   // ring silently stays unbuilt and update() skips painting it.
   private buildMobileActionRing(): void {
     const attackBtn = document.getElementById('mobile-action-attack') as HTMLButtonElement | null;
@@ -5702,8 +6052,10 @@ export class Hud {
       cdOverlay.className = 'cd-overlay';
       const cdText = document.createElement('div');
       cdText.className = 'cdtext';
-      btn.append(label, countEl, keybindEl, cdOverlay, cdText);
-      return { btn, label, countEl, keybindEl, cdOverlay, cdText };
+      const rechargeOverlay = document.createElement('div');
+      rechargeOverlay.className = 'recharge-overlay';
+      btn.append(label, countEl, keybindEl, cdOverlay, rechargeOverlay, cdText);
+      return { btn, label, countEl, keybindEl, cdOverlay, cdText, rechargeOverlay };
     });
 
     // Wire clicks: attack -> the classic fixed control while the
@@ -5853,8 +6205,10 @@ export class Hud {
       cdOverlay.className = 'cd-overlay';
       const cdText = document.createElement('div');
       cdText.className = 'cdtext';
-      btn.append(label, countEl, keybindEl, cdOverlay, cdText);
-      return { btn, label, countEl, keybindEl, cdOverlay, cdText };
+      const rechargeOverlay = document.createElement('div');
+      rechargeOverlay.className = 'recharge-overlay';
+      btn.append(label, countEl, keybindEl, cdOverlay, rechargeOverlay, cdText);
+      return { btn, label, countEl, keybindEl, cdOverlay, cdText, rechargeOverlay };
     });
 
     // bindTouchTap, not 'click', for the same reason as the ring: the browser
@@ -5960,7 +6314,7 @@ export class Hud {
   }
 
   private clearActionDropTargets(): void {
-    // Both action rows (#actionbar and #actionbar2) hold .action-btn slots; the
+    // All desktop rows (#actionbar, #actionbar2, and #actionbar3) hold .action-btn slots; the
     // mobile action ring's paged slots are .mobile-action-slot instead.
     document
       .querySelectorAll('.action-btn.drop-target, .mobile-action-slot.drop-target')
@@ -6088,7 +6442,7 @@ export class Hud {
   }
 
   // Touch swap for the mobile action ring, the one bar actually visible on a
-  // touch device (the desktop #actionbar/#actionbar2 rows bindMobileActionDrag
+  // touch device (the desktop #actionbar/#actionbar2/#actionbar3 rows bindMobileActionDrag
   // wires above are display:none under body.mobile-touch, so without this the
   // ring had no rearrange path at all). Same long-press-then-drag gesture as
   // bindMobileActionDrag, sharing the one mobileHotbarDrag field (only one
@@ -6191,6 +6545,7 @@ export class Hud {
       ['#mm-talents', 'talents', 'game.talents.title'],
       ['#mm-quest', 'questlog', 'questUi.log.title'],
       ['#mm-deeds', 'deeds', 'hudChrome.deeds.title'],
+      ['#mm-professions', 'professions', 'hudChrome.professions.title'],
       ['#mm-map', 'map', 'hud.core.mobileMap'],
       ['#mm-bag', 'bags', 'itemUi.bags.title'],
       ['#mm-crafting', 'crafting', 'hudChrome.crafting.title'],
@@ -6717,7 +7072,8 @@ export class Hud {
   private applyDailyRewardsLauncherStatus(status: DailyRewardStatus): void {
     if (!this.dailyRewardsEnabled()) return;
     const button = this.dailyRewardsButtonEl;
-    const spinReady = !status.eligibility.eligible || !status.spin.claimed;
+    const spinReady =
+      status.enabled !== false && (!status.eligibility.eligible || !status.spin.claimed);
     this.mobileDailyRewardsButtonEl?.classList.toggle('spin-ready', spinReady);
     if (!button) return;
     if (!this.showDailyRewardsChestButton()) {
@@ -6732,11 +7088,14 @@ export class Hud {
   private refreshDailyRewardsLauncher(force = false): void {
     if (!this.dailyRewardsEnabled()) return;
     const button = this.dailyRewardsButtonEl;
-    if (!button) return;
+    const mobileButton = this.mobileDailyRewardsButtonEl;
+    if (!button && !mobileButton) return;
     this.applyDailyRewardsChestButtonVisibility();
-    if (!this.showDailyRewardsChestButton()) return;
     const now = performance.now();
-    if (!force && now - this.lastDailyRewardsLauncherRefreshAt < 60_000) return;
+    // Slow closed-window poll; the why and the arithmetic live in the core.
+    if (!shouldRefreshDailyRewardsLauncher(force, now, this.lastDailyRewardsLauncherRefreshAt)) {
+      return;
+    }
     this.lastDailyRewardsLauncherRefreshAt = now;
     const seq = ++this.dailyRewardsLauncherSeq;
     void this.sim
@@ -6747,7 +7106,8 @@ export class Hud {
       })
       .catch(() => {
         if (seq !== this.dailyRewardsLauncherSeq) return;
-        button.classList.remove('spin-ready');
+        button?.classList.remove('spin-ready');
+        mobileButton?.classList.remove('spin-ready');
       });
   }
 
@@ -6784,6 +7144,7 @@ export class Hud {
     this.lootRolls.update(now);
     if (slowHud) this.updateRaidLockoutBadge();
     if (slowHud) this.refreshDailyRewardsLauncher();
+    this.maybeRestoreActionBarLayout();
     this.syncActiveHotbarForm();
     this.syncSlotMap(); // picks up newly learned abilities mid-session
 
@@ -6801,6 +7162,18 @@ export class Hud {
       const townFocusBtn = document.getElementById('mm-town-focus');
       if (townFocusBtn) townFocusBtn.style.display = inTown ? '' : 'none';
       if (this.townFocusOpen) this.renderTownFocus();
+      // Crafting window staleness: the
+      // window is a cold painter, so an open window repaints only when the
+      // in-range station-type set changes (walking in/out of a station's
+      // range, or the own mobile station appearing/expiring). Cheap distance
+      // checks on the slow band; the server re-validates the gate on every
+      // craft regardless.
+      if (
+        $('#crafting-window').style.display === 'flex' &&
+        stationTypesSignature(inRangeStationTypes(sim.player.pos, sim.activeMobileStationCraft)) !==
+          this.lastCraftingStationSig
+      )
+        this.renderCrafting();
     }
 
     // player frame: the first instance of the unit_frame family. Build a
@@ -7241,6 +7614,14 @@ export class Hud {
             this.showBanner(currentZoneName);
             this.log(t('hud.core.enteringZone', { zone: currentZoneName }), '#ffd100');
             this.logZoneWelcome(currentZone);
+            // Zone-entry vista: a slow up-and-out camera sweep over the new
+            // zone alongside the banner. Display-only, cancelled by any
+            // camera input, skipped in combat/while dead and under reduced
+            // motion (the renderer gates the latter). Online mirrors never
+            // set p.inCombat, so the recent-personal-combat-event window (the
+            // same signal the combat music rides) carries that gate there.
+            const recentCombat = performance.now() - this.lastCombatEventAt < 6000;
+            if (!p.dead && !p.inCombat && !recentCombat) this.renderer.vistaPan();
           }
           this.lastZoneId = currentZone.id;
           this.prewarmMapBg(currentZone.id); // get the new zone's map bg ready before the player opens it
@@ -7334,6 +7715,14 @@ export class Hud {
         const npc = sim.entities.get(this.openHeroicVendorNpcId);
         if (!npc || dist2d(p.pos, npc.pos) > 8) this.closeHeroicVendor();
       }
+      if (this.openTrainNpcId !== null) {
+        const npc = sim.entities.get(this.openTrainNpcId);
+        if (!npc || dist2d(p.pos, npc.pos) > 8) this.closeTrain();
+      }
+      if (this.openUnbindNpcId !== null) {
+        const npc = sim.entities.get(this.openUnbindNpcId);
+        if (!npc || dist2d(p.pos, npc.pos) > 8) this.closeUnbind();
+      }
       this.questDialog.updateProximity();
     }
 
@@ -7376,6 +7765,11 @@ export class Hud {
     // The bank closes itself when the bank mirror goes null (left the banker).
     if (slowHud && this.bankWindow.isOpen) this.bankWindow.refreshIfChanged();
     if (slowHud && this.deedsWindow.isOpen) this.deedsWindow.refreshIfChanged();
+    if (slowHud) this.refreshOpenProfessionSurfacesIfChanged();
+    if (slowHud && this.professionsWindow.isOpen) this.professionsWindow.refreshIfChanged();
+    // The gossip dialog's intro hint row watches the same online cprof edge:
+    // attunement retires it, and no quest event fires for that flip.
+    if (slowHud) this.questDialog.refreshIfChanged();
     // The deed tracker is always-on chrome (not gated on a window): watched
     // progress climbs from normal play, and earned deeds drop off.
     if (slowHud) this.updateDeedTracker();
@@ -8574,11 +8968,12 @@ export class Hud {
       presentation.text,
       presentation.templateKey,
       presentation.channel,
-      undefined,
-      { ai: true },
-      undefined,
-      presentation.logMode,
-    );
+    undefined,
+    { ai: true },
+    undefined,
+    undefined,
+    presentation.logMode,
+  );
     const speaker = this.sim.entities.get(ev.speakerId);
     if (!speaker) return;
     const reactionBadge = aiReactionBadgeView(ev.reaction);
@@ -8639,6 +9034,9 @@ export class Hud {
     // banners coalesce to the last unlock, retro back-credits collapse into
     // one summary line, and the celebration sound plays once.
     const deedUnlocks: { deedId: string; retro?: boolean }[] = [];
+    // Personal masterwork procs batch the same way (handleCraftCelebrations):
+    // coalesced to the drain's last proc, planned purely alongside tier-ups.
+    let masterworkItemId: string | null = null;
     // One spawn clock for the whole batch: FCT floaters spawned from this event burst
     // share a bornAt, and the pooled painter's step() evicts each once now - bornAt >= ttl.
     const now = performance.now();
@@ -8805,8 +9203,14 @@ export class Hud {
               }),
               '#ff8877',
             );
-            // player-hit SFX is spatial now (see playEventSfx). Keep the Fiesta kick.
+            // player-hit SFX is spatial now (see playEventSfx). Keep the Fiesta kick;
+            // in the open world only a HEAVY hit kicks the camera (a tenth of
+            // max HP in one blow, or any crit), so routine chip damage stays
+            // still. addShake is a reduced-motion no-op.
             if (this.inFiesta()) this.renderer.addShake(ev.crit ? 0.34 : 0.14);
+            else if (tgt && (ev.crit || ev.amount >= tgt.maxHp * 0.1)) {
+              this.renderer.addShake(ev.crit ? 0.26 : 0.16);
+            }
           }
           break;
         }
@@ -8956,30 +9360,310 @@ export class Hud {
           break;
         }
         case 'craftResult': {
+          // Arm the tier-up state check below: skills only ever change on a
+          // craft, and online the cprof mirror can land a few snapshots after
+          // this event, so the diff stays armed for a bounded drain window
+          // instead of polling every frame.
+          this.craftTierUpDrains = CRAFT_TIER_UP_DRAIN_WINDOW;
           if (ev.ok && ev.itemId) {
             const item = ITEMS[ev.itemId];
             const name = item ? itemDisplayName(item) : ev.itemId;
             this.log(t('hudChrome.crafting.craftedToast', { name }), '#7fdc4f');
             audio.lootItem();
           } else if (!ev.ok) {
+            // station_required names WHICH station: no station field
+            // rides the event, the type resolves from the recipe content
+            // (identical in both worlds). An unresolvable recipe id (cannot
+            // happen from a well-formed server) falls through to the generic
+            // materials line rather than rendering a broken name.
+            const deniedStationType =
+              ev.reason === 'station_required' ? recipeById(ev.recipeId)?.stationType : undefined;
+            this.log(
+              deniedStationType
+                ? t('hudChrome.crafting.stationRequired', {
+                    station: stationNameText(deniedStationType),
+                  })
+                : t(
+                    ev.reason === 'unknown_recipe'
+                      ? 'hudChrome.crafting.unknownRecipe'
+                      : ev.reason === 'combo_requirement_unmet'
+                        ? 'hudChrome.crafting.comboRequirementUnmet'
+                        : ev.reason === 'throttled'
+                          ? 'hudChrome.crafting.throttled'
+                          : ev.reason === 'recipe_not_learned'
+                            ? 'hudChrome.crafting.recipeNotLearned'
+                            : 'hudChrome.crafting.insufficientMaterials',
+                  ),
+              '#ff6b6b',
+            );
+          }
+          if ($('#crafting-window').style.display === 'flex') this.renderCrafting();
+          break;
+        }
+        case 'trainResult': {
+          // Recipe training outcome (Professions 2.0). The event is
+          // text-free: the recipe name, craft, and tier threshold all derive
+          // from recipeId plus static content, identical in both worlds. ONE
+          // chat line either way: no toast and no sound cue on success (the
+          // grant-hub double-log trap; the fee/grant surfaces stay single).
+          const trainedRecipe = recipeById(ev.recipeId);
+          if (ev.ok) {
+            const item = trainedRecipe ? ITEMS[trainedRecipe.resultItemId] : undefined;
+            this.log(
+              t('hudChrome.training.learned', {
+                recipe: item ? itemDisplayName(item) : ev.recipeId,
+              }),
+              '#7fdc4f',
+            );
+          } else if (ev.reason) {
+            // A reason-less deny is the malformed-recipe-id probe arm
+            // (resolveTrain's silent arm): nothing legible to tell the player,
+            // so render nothing (the event still lands for probes).
+            this.log(
+              ev.reason === 'train_tier_unmet'
+                ? t('hudChrome.training.tierUnmet', {
+                    craft: craftNameText(trainedRecipe?.professionId ?? null),
+                    skill: formatNumber(
+                      tierForSkill(trainedRecipe?.skillReq ?? 0) * TIER_SKILL_STEP,
+                      { maximumFractionDigits: 0 },
+                    ),
+                  })
+                : t(
+                    ev.reason === 'train_cannot_afford'
+                      ? 'hudChrome.training.cannotAfford'
+                      : ev.reason === 'train_not_taught_here'
+                        ? 'hudChrome.training.notTaughtHere'
+                        : ev.reason === 'train_already_known'
+                          ? 'hudChrome.training.alreadyKnown'
+                          : 'hudChrome.training.outOfRange',
+                  ),
+              '#ff6b6b',
+            );
+          }
+          // Flip the trained row (and the crafting list, which filters to
+          // known recipes) without waiting for a manual reopen.
+          if (this.openTrainNpcId !== null && $('#train-window').style.display === 'block')
+            this.renderTrain();
+          if ($('#crafting-window').style.display === 'flex') this.renderCrafting();
+          break;
+        }
+        case 'unbindResult': {
+          // Maker's Bond unbind outcome (Professions 2.0). The
+          // event is text-free: the item name derives from itemId plus static
+          // content and the fee formats locally, identical in both worlds.
+          // ONE chat line either way (the trainResult single-surface rule:
+          // no toast, no extra sound cue).
+          const unboundItem = ITEMS[ev.itemId];
+          const unboundName = unboundItem ? itemDisplayName(unboundItem) : ev.itemId;
+          if (ev.ok) {
+            this.log(
+              t('hudChrome.unbind.unbound', {
+                name: unboundName,
+                fee: formatLocalizedMoney(ev.fee),
+              }),
+              '#7fdc4f',
+            );
+          } else if (ev.reason) {
+            // A reason-less deny is the malformed-item-id probe arm
+            // (resolveUnbind's silent arm): nothing legible to render.
             this.log(
               t(
-                ev.reason === 'unknown_recipe'
-                  ? 'hudChrome.crafting.unknownRecipe'
-                  : ev.reason === 'combo_requirement_unmet'
-                    ? 'hudChrome.crafting.comboRequirementUnmet'
-                    : ev.reason === 'not_at_hub'
-                      ? 'hudChrome.crafting.notAtHub'
-                      : ev.reason === 'throttled'
-                        ? 'hudChrome.crafting.throttled'
-                        : ev.reason === 'recipe_not_learned'
-                          ? 'hudChrome.crafting.recipeNotLearned'
-                          : 'hudChrome.crafting.insufficientMaterials',
+                ev.reason === 'unbind_not_eligible'
+                  ? 'hudChrome.unbind.notEligible'
+                  : ev.reason === 'unbind_not_bound'
+                    ? 'hudChrome.unbind.notBound'
+                    : ev.reason === 'unbind_cannot_afford'
+                      ? 'hudChrome.unbind.cannotAfford'
+                      : 'hudChrome.unbind.outOfRange',
               ),
               '#ff6b6b',
             );
           }
-          if ($('#crafting-window').style.display === 'block') this.renderCrafting();
+          // Refresh the service rows and the bags (the single-copy unbind
+          // clears boundTo in place, so no loot event repaints them for us).
+          if (this.openUnbindNpcId !== null && $('#unbind-window').style.display === 'block')
+            this.renderUnbind();
+          if ($('#bags').style.display !== 'none') this.renderBags();
+          break;
+        }
+        case 'masterwork': {
+          // Personal masterwork proc (Professions 2.0). The grant hub
+          // already printed the loot line + cue and the craftResult arm above
+          // already logged craftedToast + lootItem, so this arm re-logs no
+          // grant and re-cues no lootItem: it only feeds the drain-end
+          // celebration plan (banner + toast + ONE audio.achievement).
+          masterworkItemId = ev.itemId;
+          break;
+        }
+        case 'masterworkZone': {
+          // Soft zone broadcast: every recipient in the crafter's zone,
+          // INCLUDING the crafter, logs the localized line; NO audio cue for
+          // anyone (the crafter's own celebration sound rides the personal
+          // 'masterwork' plan above). The gatherRareEvent render pattern.
+          const item = ITEMS[ev.itemId];
+          this.log(
+            t('hudChrome.crafting.masterworkZoneLine', {
+              crafter: ev.crafterName,
+              name: item ? itemDisplayName(item) : ev.itemId,
+            }),
+            QUALITY_COLOR.epic,
+            MASTERWORK_SEAL_IMAGE_URL,
+          );
+          break;
+        }
+        case 'profTrendNudge':
+        case 'profTierTutorial':
+        case 'attuned':
+        case 'attunedZone':
+          // The four Professions 2.0 text-free events, rendered
+          // through the profession_event_lines plan (chat line / banner /
+          // tutorial panel). Thin: the plan owns every decision, this arm only
+          // executes it.
+          this.handleProfessionEvent(ev);
+          break;
+        case 'gatherResult': {
+          // Harvest feedback line (Professions 2.0), colored by rolled
+          // material rarity. Identical on every graphics tier (player feedback
+          // is never profile-gated). The grant hub's own 'loot' event already
+          // prints the "You receive:" line and plays the loot cue, so this
+          // line uses distinct gather wording; the strike cue is
+          // the physical pick/axe/sickle impact of the completed gather cast,
+          // not a second loot notification, with a rare variant for a rare+
+          // material or a rare-event roll.
+          const item = ITEMS[ev.itemId];
+          const name = item ? itemDisplayName(item) : ev.itemId;
+          this.log(
+            ev.qty > 1
+              ? t('hudChrome.gathering.gatherLineQty', {
+                  name,
+                  qty: formatNumber(ev.qty, { maximumFractionDigits: 0 }),
+                })
+              : t('hudChrome.gathering.gatherLine', { name }),
+            QUALITY_COLOR[ev.rarity],
+          );
+          if (
+            ev.rareEvent !== null ||
+            ev.rarity === 'rare' ||
+            ev.rarity === 'epic' ||
+            ev.rarity === 'legendary'
+          )
+            audio.gatherRare();
+          else audio.gatherStrike();
+          break;
+        }
+        case 'gatherDenied': {
+          // Tool-tier denial (Professions 2.0): an error toast ONLY.
+          // No loot line, no cue, no other state (the grant-hub double-log
+          // trap); the sim event is text-free, so the pure core resolves the
+          // key off surface + professionId and requiredTier interpolates.
+          this.showError(
+            t(gatherDeniedLineKey(ev.surface, ev.professionId), {
+              tier: formatNumber(ev.requiredTier, { maximumFractionDigits: 0 }),
+            }),
+          );
+          break;
+        }
+        case 'gatherDowngrade': {
+          // Full-bag signed-grant downgrade (Professions 2.0): a
+          // toast ONLY, the gatherDenied pattern above. No loot line, no cue,
+          // no other state (the grant-hub double-log trap); the sim event is
+          // text-free, so the pure core resolves the key off the lost arm.
+          this.showError(t(gatherDowngradeLineKey(ev.lost)));
+          break;
+        }
+        case 'disenchantResult': {
+          // Enchanting disenchant outcome (Professions 2.0): text-free,
+          // so enchanting_view.ts maps the event to its key + sink and the item
+          // name interpolates. The grant hub's own 'loot' events already print
+          // the material yield lines, so success is a distinct action line (the
+          // gatherResult pattern), never a second receive notification.
+          const toast = disenchantResultToast(ev);
+          const item = ITEMS[ev.itemId];
+          const params = { item: item ? itemDisplayName(item) : ev.itemId };
+          if (toast.sink === 'log') this.log(t(toast.key, params), '#7fdc4f');
+          else this.showError(t(toast.key));
+          break;
+        }
+        case 'salvageResult': {
+          // Enchanting salvage outcome (Professions 2.0): same shape as
+          // disenchantResult above.
+          const toast = salvageResultToast(ev);
+          const item = ITEMS[ev.itemId];
+          const params = { item: item ? itemDisplayName(item) : ev.itemId };
+          if (toast.sink === 'log') this.log(t(toast.key, params), '#7fdc4f');
+          else this.showError(t(toast.key));
+          break;
+        }
+        case 'enchantResult': {
+          // Apply-enchant outcome (Professions 2.0): the success line
+          // names the item AND the enchant (enchantName.<id>, its first render
+          // sink); every deny is an error toast.
+          const toast = applyEnchantResultToast(ev);
+          const item = ITEMS[ev.itemId];
+          if (toast.sink === 'log') {
+            this.log(
+              t(toast.key, {
+                item: item ? itemDisplayName(item) : ev.itemId,
+                enchant: t(`hudChrome.enchantName.${ev.enchantId}` as TranslationKey),
+              }),
+              '#7fdc4f',
+            );
+          } else {
+            this.showError(t(toast.key));
+          }
+          break;
+        }
+        case 'fishingResult': {
+          // Reel-in feedback line (Professions 2.0), colored by the
+          // caught item's quality. Identical on every graphics tier (player
+          // feedback is never profile-gated). The grant hub's own 'loot' event
+          // already prints the "You receive:" line and plays the loot cue, so
+          // this line uses distinct reel-in wording; the reel cue
+          // is the splash-and-crank of the landed reel itself, not a second
+          // loot notification.
+          const item = ITEMS[ev.itemId];
+          this.log(
+            t('hudChrome.gathering.catchLine', { name: item ? itemDisplayName(item) : ev.itemId }),
+            QUALITY_COLOR[ev.quality],
+          );
+          audio.fishReel();
+          break;
+        }
+        case 'fishingBite': {
+          // The hidden seeded bite fired (Professions 2.0). The cue
+          // rides the ALWAYS-AUDIBLE play() arm (timing/affordance: the reel
+          // window is running, so it must never be silenced by the feedback
+          // toggle), the bobber flips into its bite state via the renderer's
+          // own handleEvent arm, and this localized line keeps the moment
+          // visible in the log so it is never sound-only (accessibility).
+          this.log(t('hudChrome.gathering.biteLine'), '#9adcff');
+          audio.fishBite();
+          break;
+        }
+        case 'fishingGotAway': {
+          // The reel window closed unanswered (Professions 2.0): a
+          // localized line only, NO cue (a miss costs nothing and a cue every
+          // missed bite would spam an AFK-adjacent moment); the bobber sinks
+          // out on its own as the cast ends.
+          this.log(t('hudChrome.gathering.gotAwayLine'), '#a8a8a8');
+          break;
+        }
+        case 'gatherRareEvent': {
+          // Soft zone broadcast (Professions 2.0): every recipient in
+          // the zone logs the localized flavor line; only the finder also gets
+          // the celebratory cue. The finder name splices verbatim.
+          this.log(
+            t(
+              ev.flavor === 'pristine_vein'
+                ? 'gatherEvent.pristineVein'
+                : ev.flavor === 'ancient_heartwood'
+                  ? 'gatherEvent.ancientHeartwood'
+                  : 'gatherEvent.moonlitBloom',
+              { finder: ev.finderName },
+            ),
+            QUALITY_COLOR.epic,
+          );
+          if (ev.finderPid === sim.playerId) audio.achievement();
           break;
         }
         case 'lootRoll': {
@@ -9115,6 +9799,7 @@ export class Hud {
                 ev.fromPid,
                 ev.flair,
                 ev.fromTitle,
+                ev.classId,
               );
               break;
             case 'yell':
@@ -9126,20 +9811,15 @@ export class Hud {
                 ev.fromPid,
                 ev.flair,
                 ev.fromTitle,
+                ev.classId,
               );
               break;
             case 'whisper':
-              // The "To {name}" echo DISPLAYS the recipient, so the sender's
-              // fromTitle must never decorate it (untitled beats mislabeled).
-              if (ev.to)
-                this.chatLogFrom(
-                  ev.to,
-                  ev.text,
-                  CHAT_TEMPLATE_KEYS.toWhisper,
-                  'whisper',
-                  ev.fromPid,
-                  ev.flair,
-                );
+              // The "To {name}" echo DISPLAYS the recipient, so none of the
+              // SENDER's per-sender marks (fromTitle, flair, fromPid, classId)
+              // may decorate it: an untitled/uncolored/unbadged line beats one
+              // mislabeled with the sender's own title, class color, or badge.
+              if (ev.to) this.chatLogFrom(ev.to, ev.text, CHAT_TEMPLATE_KEYS.toWhisper, 'whisper');
               else {
                 this.chatLogFrom(
                   ev.from,
@@ -9149,6 +9829,7 @@ export class Hud {
                   ev.fromPid,
                   ev.flair,
                   ev.fromTitle,
+                  ev.classId,
                 );
                 audio.whisper();
               }
@@ -9162,6 +9843,7 @@ export class Hud {
                 ev.fromPid,
                 ev.flair,
                 ev.fromTitle,
+                ev.classId,
               );
               break;
             case 'world':
@@ -9173,6 +9855,7 @@ export class Hud {
                 ev.fromPid,
                 ev.flair,
                 ev.fromTitle,
+                ev.classId,
               );
               break;
             case 'lfg':
@@ -9184,6 +9867,7 @@ export class Hud {
                 ev.fromPid,
                 ev.flair,
                 ev.fromTitle,
+                ev.classId,
               );
               break;
             case 'guild':
@@ -9195,6 +9879,7 @@ export class Hud {
                 ev.fromPid,
                 ev.flair,
                 ev.fromTitle,
+                ev.classId,
               );
               break;
             case 'officer':
@@ -9206,6 +9891,7 @@ export class Hud {
                 ev.fromPid,
                 ev.flair,
                 ev.fromTitle,
+                ev.classId,
               );
               break;
             case 'emote':
@@ -9217,6 +9903,7 @@ export class Hud {
                 ev.fromPid,
                 ev.flair,
                 ev.fromTitle,
+                ev.classId,
               );
               break;
             case 'roll':
@@ -9228,6 +9915,7 @@ export class Hud {
                 ev.fromPid,
                 ev.flair,
                 ev.fromTitle,
+                ev.classId,
               );
               break;
             default:
@@ -9239,6 +9927,7 @@ export class Hud {
                 ev.fromPid,
                 ev.flair,
                 ev.fromTitle,
+                ev.classId,
               );
               break;
           }
@@ -9309,7 +9998,7 @@ export class Hud {
           break;
         }
         case 'partyInvite':
-          audio.questAccept();
+          audio.invitePrompt();
           this.showPrompt(
             t('hud.prompts.partyInvite', { name: `<b>${esc(ev.fromName)}</b>` }),
             t('hud.prompts.joinParty'),
@@ -9331,7 +10020,9 @@ export class Hud {
           );
           break;
         case 'resurrectionOffer':
-          audio.questAccept();
+          // Same "someone is asking you to respond to a prompt" vocabulary as
+          // party/guild invite; questAccept() was retired, see invitePrompt().
+          audio.invitePrompt();
           // The sim keeps one authoritative latest offer per dead player. Mirror
           // that singleton in the HUD so an older prompt can never answer a newer
           // Chronomancer's offer.
@@ -9356,7 +10047,7 @@ export class Hud {
           );
           break;
         case 'guildInvite':
-          audio.questAccept();
+          audio.invitePrompt();
           this.showPrompt(
             t('hud.prompts.guildInvite', {
               name: `<b>${esc(ev.fromName)}</b>`,
@@ -9526,7 +10217,7 @@ export class Hud {
               delta: ratingDelta,
             });
             arenaResultColor = '#ff7a6a';
-            audio.death();
+            audio.arenaLoss();
           }
           this.log(arenaResultLine, arenaResultColor);
           // Combat-pane mirror without the announcer (log() above already announces the
@@ -9604,7 +10295,7 @@ export class Hud {
           break;
         case 'vcupKickoff':
           this.showBanner(t('hudChrome.vcup.bannerKickoff'));
-          audio.duelStart();
+          audio.vcupKickoff();
           break;
         case 'vcupGoal': {
           const scoringNation = vcupNationName(ev.team === 'A' ? ev.nationA : ev.nationB);
@@ -9678,6 +10369,21 @@ export class Hud {
             this.combatLog(t('hudChrome.vcup.logLoss'), '#ff7a6a');
             audio.death();
           }
+          break;
+        case 'cardDuelMatchStart':
+          audio.cardShuffle();
+          break;
+        case 'cardPlayed':
+          audio.cardPlay();
+          break;
+        case 'cardRoundResolved':
+          audio.cardReveal();
+          if (ev.outcome === 'push') audio.cardRoundPush();
+          if (ev.reshuffled) audio.cardShuffle();
+          break;
+        case 'cardDuelMatchEnd':
+          if (ev.won) audio.duelEnd();
+          else audio.arenaLoss();
           break;
         case 'fiestaWord': {
           const { text, tier, color } = this.fiestaWordParts(ev.flavor, ev.n);
@@ -9878,7 +10584,14 @@ export class Hud {
           this.log(t('hud.system.respawn'), '#7fdc4f');
           break;
         case 'castStart':
-          break; // cast-loop SFX is spatial now (see playEventSfx)
+          // cast-loop SFX is spatial now (see playEventSfx); the profession
+          // casts (Professions 2.0) add a personal placeholder cue
+          // at cast start, feedback-gated like other notification cues.
+          if (ev.entityId === sim.playerId) {
+            if (ev.ability === GATHER_CAST_ID) audio.gatherCast();
+            else if (ev.ability === FISHING_CAST_ID) audio.fishCast();
+          }
+          break;
         case 'castStop':
           // Deferred "Auto-Attack on Ability Use" (timed casts): engage only when
           // the player's own cast COMPLETES, so the aggro happens as the damage
@@ -9920,6 +10633,146 @@ export class Hud {
       }
     }
     if (deedUnlocks.length > 0) this.handleDeedUnlocks(deedUnlocks);
+    // Craft tier crossings are STATE-driven, not event-driven: online the
+    // cprof mirror can land a snapshot after (or without) this drain's
+    // events, so the observation reads the live craftSkills rather than an
+    // event payload. The armed-window rules (bounded post-craftResult drains,
+    // the synced guard, the silent first init, disarm-on-change) live in the
+    // pure step observeCraftSkillsForTierUps (craft_celebration_view.ts).
+    const obs = observeCraftSkillsForTierUps(
+      sim.craftingIdentity.synced,
+      this.prevCraftSkills,
+      sim.craftSkills,
+      this.craftTierUpDrains,
+    );
+    this.prevCraftSkills = obs.prev;
+    this.craftTierUpDrains = obs.drains;
+    if (masterworkItemId !== null || obs.tierUps.length > 0)
+      this.handleCraftCelebrations(masterworkItemId, obs.tierUps);
+  }
+
+  // The crafted earned moment, planned purely (craft_celebration_view) so the
+  // batching rules stay unit-pinned: the durable log copy for the masterwork
+  // proc and each tier crossing, the single banner slot coalesced (masterwork
+  // outranks tier-up), and at most ONE celebration sound per drain. The
+  // reduced-motion probe (the skin controller precedent) trims motion only,
+  // never information.
+  private handleCraftCelebrations(masterworkItemId: string | null, tierUps: CraftTierUp[]): void {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const plan = buildCraftCelebrationPlan({
+      masterwork: masterworkItemId !== null ? { itemId: masterworkItemId } : null,
+      tierUps,
+      reducedMotion,
+    });
+    const masterworkText = (itemId: string) => {
+      const item = ITEMS[itemId];
+      return t('hudChrome.crafting.masterworkToast', {
+        name: item ? itemDisplayName(item) : itemId,
+      });
+    };
+    const tierUpText = (up: CraftTierUp) =>
+      t('hudChrome.crafting.tierUpToast', {
+        craft: craftNameText(up.craftId),
+        tier: formatNumber(up.toTier, { maximumFractionDigits: 0 }),
+      });
+    if (plan.masterworkLogItemId !== null)
+      this.log(masterworkText(plan.masterworkLogItemId), '#ffd100');
+    for (const up of plan.tierUpLogs) this.log(tierUpText(up), '#ffd100');
+    if (plan.banner !== null) {
+      const text =
+        plan.banner.kind === 'masterwork'
+          ? masterworkText(plan.banner.itemId)
+          : tierUpText(plan.banner);
+      // plan.motion trims the banner fade only; the announcer push below is
+      // the polite #combat-live ARIA region (accessibility, never gated).
+      this.showBanner(
+        text,
+        plan.motion,
+        plan.banner.kind === 'masterwork' ? MASTERWORK_SEAL_IMAGE_URL : undefined,
+      );
+      // The banner div carries no live semantics (the handleDeedUnlocks
+      // precedent), so the polite #combat-live region carries the copy.
+      this.combatAnnouncer.push(text, performance.now());
+    }
+    if (plan.playSound) audio.achievement();
+  }
+
+  // The four Professions 2.0 text-free events, rendered through the
+  // pure plan (profession_event_lines.ts). Thin consumer: the plan decides which
+  // chat line / banner / panel; this only resolves the localized archetype title
+  // and master/celebrant names and paints. The banner arm reuses the
+  // craft-celebration render family (showBanner + polite announcer + one
+  // achievement cue, motion trimmed under reduced motion).
+  private handleProfessionEvent(ev: ProfessionEventInput): void {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const plan = planProfessionEvent(ev, reducedMotion);
+    switch (plan.kind) {
+      case 'trendNudge': {
+        const archetype = archetypeTitleText(plan.pairId);
+        this.log(
+          plan.masterNpcId !== null
+            ? t('hudChrome.crafting.trendNudge', {
+                archetype,
+                master: tEntity({ kind: 'npc', id: plan.masterNpcId, field: 'name' }),
+              })
+            : t('hudChrome.crafting.trendNudgeNoMaster', { archetype }),
+          '#c8b888',
+        );
+        break;
+      }
+      case 'tierTutorial':
+        this.openProfessionTutorial();
+        break;
+      case 'attunedZone':
+        this.log(
+          t('hudChrome.crafting.attunedZoneLine', {
+            name: plan.celebrantName,
+            archetype: archetypeTitleText(plan.pairId),
+          }),
+          QUALITY_COLOR.epic,
+        );
+        break;
+      case 'attunement': {
+        const text = t('hudChrome.crafting.attunedBanner', {
+          title: archetypeTitleText(plan.pairId),
+        });
+        // Deed hook: a per-archetype deed unlock will fire from this
+        // same attunement moment; today it is a pure celebration banner.
+        this.showBanner(text, plan.motion);
+        this.combatAnnouncer.push(text, performance.now());
+        if (plan.playSound) audio.achievement();
+        // Offline identity is already mutated when this personal event drains,
+        // so refresh immediately. If online cprof lands later, the slow-band
+        // signature above catches that second edge and converges then.
+        this.refreshOpenProfessionSurfacesIfChanged();
+        this.questDialog.refreshIfChanged();
+        break;
+      }
+    }
+  }
+
+  // The one-time first-tier tutorial modal: fired by profTierTutorial
+  // (the sim guarantees once-ever). Reuses the confirm-dialog modal family via
+  // the profession_tutorial_window painter; the Hud owns the focus trap and the
+  // z-index floor above the mobile sheet, the confirmDialog precedent.
+  private openProfessionTutorial(): void {
+    this.professionTutorialTrap?.release(false);
+    this.professionTutorialTrap = null;
+    const el = renderProfessionTutorial(buildProfessionTutorialModel(), {
+      onClose: () => this.closeProfessionTutorial(),
+    });
+    this.bringWindowToFront(el);
+    // Above the mobile sheet (z-95) and the armory inspect overlay (z-90): the
+    // scoped-popup floor, so the one-shot never opens buried.
+    el.style.zIndex = String(Math.max(Number(el.style.zIndex) || 0, 96));
+    this.professionTutorialTrap = this.focusManager.open({ root: () => el });
+    el.querySelector<HTMLElement>('.cd-ok')?.focus();
+  }
+
+  private closeProfessionTutorial(): void {
+    this.professionTutorialTrap?.release();
+    this.professionTutorialTrap = null;
+    document.getElementById('profession-tutorial')?.remove();
   }
 
   // The earned moment, planned purely (deeds_view buildDeedUnlockPlan) so the
@@ -9954,8 +10807,8 @@ export class Hud {
     }
   }
 
-  log(text: string, color = '#ccc'): void {
-    this.appendLog(this.chatLogEl, text, color, true, 'system');
+  log(text: string, color = '#ccc', decorativeIconUrl?: string): void {
+    this.appendLog(this.chatLogEl, text, color, true, 'system', decorativeIconUrl);
   }
 
   private noteProcAuraGain(name: string): void {
@@ -10009,6 +10862,7 @@ export class Hud {
     fromPid?: number,
     flair?: ChatSenderFlair,
     fromTitle?: string,
+    classId?: PlayerClass,
     layout: 'template' | 'inlineNarration' = 'template',
   ): void {
     const wasNearBottom =
@@ -10030,6 +10884,16 @@ export class Hud {
     sender.setAttribute('role', 'button');
     sender.setAttribute('aria-label', t('hudChrome.playerMenu.openFor', { name }));
     sender.tabIndex = 0;
+    // The class rides the event (`classId`), not a lookup off `fromPid` into
+    // `this.sim.entities`: that map is world-complete offline but interest-scoped
+    // online, so a lookup would silently drop the color for general/world/guild/
+    // lfg/whisper senders outside ~120yd, exactly the channels it matters most in,
+    // and flicker as a nearby sender crosses the boundary. `classId` is stamped at
+    // the sim emit site (mirrors `fromTitle`/`flair`) so it survives both hosts.
+    // Stamp the custom property and let CSS (.chat-player-name) own the paint,
+    // rather than an inline color: that leaves the door open for a forced-colors
+    // override or a future "disable class colors" toggle to win the cascade back.
+    if (classId) sender.style.setProperty('--class-color', classCss(classId));
     // Anchor the menu under the name itself for a click/tap/keyboard open, and at
     // the cursor for a right-click.
     const openUnderName = () => {
@@ -10052,16 +10916,20 @@ export class Hud {
       ev.preventDefault();
       openUnderName();
     });
-    // The [AI] tag rides the {name} slot, not the head of the line: the localized
-    // templates read '[General] {name}: {message}', so it must sit beside the name
-    // and not look like part of the channel prefix (see ./chat_line).
+    // The account and staff marks ride the {name} slot, not the head of the line:
+    // localized templates read '[General] {name}: {message}', so the marks must sit
+    // beside the name and not look like part of the channel prefix.
+    const roleTag = chatRoleTagEl(document, flair?.role);
     const aiTag = flair?.ai ? chatAiTagEl(document) : null;
+    const streamerBadge = chatStreamerBadgeEl(document, flair?.links);
     if (layout === 'inlineNarration') {
       this.appendInlineNarrationChat(div, sender, this.maskChat(text), name, aiTag);
     } else {
       const rendered = t(templateKey, { name: CHAT_NAME_TOKEN, message: CHAT_MESSAGE_TOKEN });
       appendChatLineParts(div, rendered, {
+        roleTag,
         aiTag,
+        streamerBadge,
         sender,
         appendBody: (parent) => this.appendChatMessageBody(parent, text, fromPid),
       });
@@ -10503,6 +11371,7 @@ export class Hud {
       'Target is too far away to trade.': 'hud.errors.tradeTooFar',
       'The trade request has expired.': 'hud.errors.tradeExpired',
       'Trade failed: items or money no longer available.': 'hud.errors.tradeFailed',
+      'That item is bound and cannot be traded.': 'hud.errors.tradeBound',
       'That quest is not available.': 'questUi.errors.unavailable',
       'That quest is not in your log.': 'questUi.errors.notInLog',
       'That quest is not complete.': 'questUi.errors.incomplete',
@@ -10747,8 +11616,13 @@ export class Hud {
   }
 
   private localizeLootText(text: string): string {
-    let match = /^You receive: (.+)\.$/.exec(text);
-    if (match) return t('hud.logs.lootReceiveItem', { item: itemDisplayNameFromSource(match[1]) });
+    // The optional xN suffix (multi-unit grants, both grant hubs emit it)
+    // routes through itemStackDisplayName so the item NAME still localizes;
+    // a greedy single capture would feed "Copper Ore x3" to the exact-name
+    // lookup and silently degrade to raw English.
+    let match = /^You receive: (.+?)( x\d+)?\.$/.exec(text);
+    if (match)
+      return t('hud.logs.lootReceiveItem', { item: itemStackDisplayName(match[1], match[2]) });
     match = /^You receive (.+)\.$/.exec(text);
     if (match) return t('hud.logs.lootReceiveMoney', { money: this.localizeSimMoney(match[1]) });
     match = /^You loot (.+)\.$/.exec(text);
@@ -10763,6 +11637,13 @@ export class Hud {
       return t(n === 1 ? 'hud.logs.soldJunkOne' : 'hud.logs.soldJunkMany', {
         count: formatNumber(n, { maximumFractionDigits: 0 }),
         money: this.localizeSimMoney(match[2]),
+      });
+    }
+    match = /^Kept (\d+) bound cop(?:y|ies)\.$/.exec(text);
+    if (match) {
+      const n = Number(match[1]);
+      return t(n === 1 ? 'hud.logs.keptBoundOne' : 'hud.logs.keptBoundMany', {
+        count: formatNumber(n, { maximumFractionDigits: 0 }),
       });
     }
     match = /^(.+) assigned (.+) to (.+)\.$/.exec(text);
@@ -10855,6 +11736,7 @@ export class Hud {
     color: string,
     timestamp = false,
     chan = 'system',
+    decorativeIconUrl?: string,
   ): void {
     const wasNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
     const div = document.createElement('div');
@@ -10864,6 +11746,9 @@ export class Hud {
     if (el === this.chatLogEl) {
       div.dataset.chan = chan;
       this.hideIfFiltered(div, chan);
+    }
+    if (decorativeIconUrl) {
+      div.append(decorativeArtImg(document, 'chat-masterwork-seal', decorativeIconUrl));
     }
     // Loot lines carry name-free item tokens ([[i:id]]); render those as clickable
     // links via the shared chat item-link renderer. Plain system/combat lines keep
@@ -10929,8 +11814,23 @@ export class Hud {
     }
   }
 
-  showBanner(text: string): void {
-    this.bannerEl.textContent = text;
+  showBanner(text: string, motion = true, decorativeIconUrl?: string): void {
+    const copy = document.createElement('span');
+    copy.className = 'banner-copy';
+    copy.textContent = text;
+    if (decorativeIconUrl) {
+      this.bannerEl.replaceChildren(
+        decorativeArtImg(document, 'banner-art', decorativeIconUrl),
+        copy,
+      );
+    } else {
+      this.bannerEl.replaceChildren(copy);
+    }
+    this.bannerEl.classList.toggle('banner-with-art', Boolean(decorativeIconUrl));
+    // Reduced-motion celebrations (craft plan.motion) show and hide the
+    // banner without the fade transition: identical text and duration, no
+    // animation. Motion-trimming only; information always survives.
+    this.bannerEl.classList.toggle('banner-no-motion', !motion);
     this.bannerEl.style.opacity = '1';
     clearTimeout(this.bannerTimer);
     this.bannerTimer = window.setTimeout(() => {
@@ -11039,16 +11939,10 @@ export class Hud {
     if (this.openVendorNpcId === null) return;
     const npc = this.sim.entities.get(this.openVendorNpcId);
     if (!npc) return;
-    const junk = this.sim.inventory.filter((slot) => {
-      const item = ITEMS[slot.itemId];
-      return (
-        !!item &&
-        item.quality === 'poor' &&
-        item.kind !== 'quest' &&
-        !item.noVendorSell &&
-        slot.count > 0
-      );
-    });
+    // The ONE sweep-eligibility rule, shared with the sim's sellAllJunk: the
+    // preview and the sweep must agree on soulbound defs and bound copies or
+    // the button can promise coin the sweep will not pay.
+    const junk = this.sim.inventory.filter((slot) => junkSellableSlot(ITEMS[slot.itemId], slot));
     const junkProceeds = junk.reduce(
       (sum, slot) => sum + (ITEMS[slot.itemId]?.sellValue ?? 0) * slot.count,
       0,
@@ -11105,7 +11999,7 @@ export class Hud {
       {
         ...this.presentationBag,
         hideTooltip: () => this.hideTooltip(),
-        onBuy: (itemId) => this.sim.buyHeroicVendorItem(itemId),
+        onBuy: (itemId) => this.requestHeroicVendorPurchase(itemId),
         onClose: () => this.closeHeroicVendor(),
       },
     );
@@ -11144,6 +12038,109 @@ export class Hud {
 
   get vendorOpen(): boolean {
     return this.openVendorNpcId !== null;
+  }
+
+  // -------------------------------------------------------------------------
+  // Recipe training (Professions 2.0): a station master teaches
+  // trainer-acquisition recipes for a tier-priced copper fee. Opens ONLY from
+  // the master's gossip dialog (no side-rail button; the rail is at
+  // capacity). The window is advisory: the server re-validates every gate on
+  // the train_recipe command and answers with the text-free trainResult event.
+  // -------------------------------------------------------------------------
+
+  openTrain(npcId: number): void {
+    this.closeOtherWindows('#train-window');
+    this.openTrainNpcId = npcId;
+    this.renderTrain();
+    this.trainOpenerFocus = this.trainWindowFocus.captureFocus();
+  }
+
+  private renderTrain(): void {
+    if (this.openTrainNpcId === null) return;
+    const npc = this.sim.entities.get(this.openTrainNpcId);
+    if (!npc) return;
+    const identity = this.sim.craftingIdentity;
+    renderTrainWindow(
+      $('#train-window'),
+      entityDisplayName(npc),
+      buildTrainView(npc.templateId, {
+        knownRecipes: identity.knownRecipes,
+        craftSkills: identity.craftSkills,
+        copper: this.sim.copper,
+        items: ITEMS,
+      }),
+      {
+        ...this.presentationBag,
+        hideTooltip: () => this.hideTooltip(),
+        onTrain: (recipeId) => this.sim.trainRecipe(recipeId),
+        onClose: () => this.closeTrain(),
+      },
+    );
+  }
+
+  closeTrain(): void {
+    if (this.openTrainNpcId === null) return;
+    $('#train-window').style.display = 'none';
+    this.openTrainNpcId = null;
+    this.hideTooltip();
+    this.trainWindowFocus.restoreFocus(this.trainOpenerFocus);
+    this.trainOpenerFocus = null;
+  }
+
+  // -------------------------------------------------------------------------
+  // Maker's Bond unbind service (Professions 2.0): the station
+  // master's second gossip service beside training, same standalone
+  // trapping-window family. The fee confirm rides the ONE confirmDialog
+  // family (keyboard activation included); the sim re-validates everything.
+  // -------------------------------------------------------------------------
+
+  openUnbind(npcId: number): void {
+    this.closeOtherWindows('#unbind-window');
+    this.openUnbindNpcId = npcId;
+    this.renderUnbind();
+    this.unbindOpenerFocus = this.unbindWindowFocus.captureFocus();
+  }
+
+  private renderUnbind(): void {
+    if (this.openUnbindNpcId === null) return;
+    const npc = this.sim.entities.get(this.openUnbindNpcId);
+    if (!npc) return;
+    renderUnbindWindow(
+      $('#unbind-window'),
+      entityDisplayName(npc),
+      buildUnbindView({
+        inventory: this.sim.inventory,
+        copper: this.sim.copper,
+        items: ITEMS,
+      }),
+      {
+        ...this.presentationBag,
+        hideTooltip: () => this.hideTooltip(),
+        onUnbind: (itemId, feeCopper) => {
+          const item = ITEMS[itemId];
+          this.confirmDialog(
+            t('hudChrome.unbind.confirmTitle'),
+            t('hudChrome.unbind.confirmBody', {
+              name: item ? itemDisplayName(item) : itemId,
+              fee: formatLocalizedMoney(feeCopper),
+            }),
+            t('hudChrome.unbind.confirmOk'),
+            t('hudChrome.unbind.confirmCancel'),
+            () => this.sim.unbindItem(itemId),
+          );
+        },
+        onClose: () => this.closeUnbind(),
+      },
+    );
+  }
+
+  closeUnbind(): void {
+    if (this.openUnbindNpcId === null) return;
+    $('#unbind-window').style.display = 'none';
+    this.openUnbindNpcId = null;
+    this.hideTooltip();
+    this.unbindWindowFocus.restoreFocus(this.unbindOpenerFocus);
+    this.unbindOpenerFocus = null;
   }
 
   // -------------------------------------------------------------------------
@@ -11216,7 +12213,7 @@ export class Hud {
   // -------------------------------------------------------------------------
 
   toggleCrafting(): void {
-    if ($('#crafting-window').style.display === 'block') {
+    if ($('#crafting-window').style.display === 'flex') {
       this.closeCrafting();
       return;
     }
@@ -11229,32 +12226,83 @@ export class Hud {
   }
 
   private renderCrafting(): void {
+    // Station range for station-bound rows: the same pure in-range
+    // set the sim's station_required deny composes (physical stations plus
+    // the own active mobile station), computed once per repaint, so the row
+    // disable mirrors the deny exactly. The server re-validates on craft.
+    const inRangeStations = inRangeStationTypes(
+      this.sim.player.pos,
+      this.sim.activeMobileStationCraft,
+    );
+    this.lastCraftingStationSig = stationTypesSignature(inRangeStations);
+    // The window lists only KNOWN recipes, so an unlearned trainer
+    // recipe never renders as a craftable row (it surfaces in the Train
+    // ladder instead). The SAME viewer-side predicate the ladder's known
+    // state uses (train_view.ts isRecipeKnownForViewer), so the two windows
+    // cannot disagree. The server still re-validates recipe_not_learned.
+    const knownRecipeIds = new Set(this.sim.craftingIdentity.knownRecipes);
+    const knownRecipes = this.sim.recipeList.filter((recipe) =>
+      isRecipeKnownForViewer(recipe, knownRecipeIds),
+    );
     renderCraftingWindow(
       $('#crafting-window'),
       buildCraftingView(
-        this.sim.recipeList,
+        knownRecipes,
         this.sim.inventory,
         ITEMS,
         this.sim.craftSkills,
         this.sim.craftingIdentity,
+        inRangeStations,
+        this.sim.player.name,
       ),
       {
         ...this.presentationBag,
         hideTooltip: () => this.hideTooltip(),
         onCraft: (recipeId) => {
-          this.sim.craftItem(recipeId);
+          // Commission opt-in: per-craft semantics, the checkbox
+          // arms exactly ONE craft. Consume the opt-in before sending so the
+          // repaint below renders it cleared; the server re-validates
+          // eligibility either way.
+          const commission = this.craftCommissionOptIn.delete(recipeId);
+          this.sim.craftItem(recipeId, commission);
           this.renderCrafting();
           if ($('#bags').style.display !== 'none') this.renderBags();
         },
         onClose: () => this.closeCrafting(),
+        commissionChecked: (recipeId) => this.craftCommissionOptIn.has(recipeId),
+        onToggleCommission: (recipeId, on) => {
+          if (on) this.craftCommissionOptIn.add(recipeId);
+          else this.craftCommissionOptIn.delete(recipeId);
+        },
+        selectedCraft: () => this.selectedCraftTab,
+        onSelectCraft: (professionId) => {
+          this.selectedCraftTab = professionId;
+          this.renderCrafting();
+          // A fresh tab starts at the top of its recipe list, not wherever
+          // the previous craft's scroll happened to rest.
+          const scroller = $('#crafting-window').querySelector('.crafting-body');
+          if (scroller) scroller.scrollTop = 0;
+          // The repaint destroyed the tab button the keyboard just activated;
+          // refocus its successor so focus never falls out of the window onto
+          // body (where the next Tab would hit the game's target key).
+          ($('#crafting-window').querySelector('.crafting-tab.sel') as HTMLElement | null)?.focus();
+        },
       },
       buildProfessionIdentityView(this.sim.craftingIdentity),
+      // Per-section "learnable at a master" hints: crafts with unlearned
+      // trainer recipes, off the same mirrored knownRecipes set (both hosts).
+      craftLearnHints(this.sim.craftingIdentity.knownRecipes),
     );
   }
 
   closeCrafting(): void {
     $('#crafting-window').style.display = 'none';
     this.hideTooltip();
+    // Commission opt-ins are per-session-of-the-window: closing it drops any
+    // armed-but-uncrafted checkboxes, so reopening always starts clean (the
+    // off-by-default rule). The selected tab resets with them.
+    this.craftCommissionOptIn.clear();
+    this.selectedCraftTab = null;
   }
   // -------------------------------------------------------------------------
   // The World Market — the Merchant's auction house
@@ -11364,6 +12412,13 @@ export class Hud {
 
   get deedsWindowOpen(): boolean {
     return this.deedsWindow.isOpen;
+  }
+
+  // The Professions window entry point (keybind, minimap, and More-tray all
+  // toggle; Esc closes via the managed-window case directly). Open/close/isOpen
+  // wrappers land only when a consumer lands with them.
+  toggleProfessions(): void {
+    this.professionsWindow.toggle();
   }
 
   // Repaint the deed tracker from the live facet: the slow band, a watch
@@ -11490,6 +12545,22 @@ export class Hud {
     this.charWindow.renderIfOpen();
   }
 
+  private refreshOpenProfessionSurfacesIfChanged(): void {
+    // Unlike the isOpen-gated siblings on the slow band, the signature is
+    // computed even with both surfaces closed: at the 2 Hz slow cadence the
+    // stringify is negligible, and keeping the signature warm means reopening
+    // a surface (which always paints fresh) is not followed by a redundant
+    // signature-diff repaint on the next slow tick.
+    const sig = professionSurfaceRefreshSig(
+      this.sim.craftingIdentity,
+      buildGatheringProficiencyRows(this.sim),
+    );
+    if (sig === this.lastProfessionSurfaceSig) return;
+    this.lastProfessionSurfaceSig = sig;
+    this.charWindow.renderIfOpen();
+    if ($('#crafting-window').style.display === 'flex') this.renderCrafting();
+  }
+
   renderBags(): void {
     this.bagsWindow.render();
   }
@@ -11553,35 +12624,116 @@ export class Hud {
       .catch((err) => console.error('failed to load mech cosmetic preview:', err));
   }
 
-  /** Mount the shared character turntable into `container` showing `cls`/`skin`.
-   *  The single CharacterPreview canvas is moved between hosts (char sheet, the
-   *  skin-select overlay) via setContainer, so only one WebGL context exists. */
+  /** Mount the shared character turntable into `container`. The single
+   *  CharacterPreview canvas is moved between hosts (char sheet, the skin-select
+   *  overlay, the inspect stage) via setContainer, so only one WebGL context
+   *  exists; every mount re-asserts its own framing, so the sheet and the inspect
+   *  stage can trade the camera without inheriting each other's framing. */
+  private mountSharedPreview(
+    container: HTMLElement,
+    opts: {
+      cls: PlayerClass;
+      skin: number;
+      previewKey?: string;
+      mainhand: string | null;
+      offhand: string | null;
+      /** The active Armory weapon-skin cosmetic (null = the item's own model). */
+      weaponSkinId: string | null;
+      framing: PreviewFramingName;
+    },
+  ): void {
+    if (!this.charPreviewCanvas) this.charPreviewCanvas = document.createElement('canvas');
+    if (!this.charPreview) {
+      container.appendChild(this.charPreviewCanvas);
+      this.charPreview = new CharacterPreview(container, this.charPreviewCanvas, {
+        constrainedMemory: this.features.constrainedMemory === true,
+      });
+    } else {
+      this.charPreview.setContainer(container);
+    }
+    if (opts.previewKey) {
+      // Mech is class-agnostic; mirror the wearer class's hand layout so the
+      // paperdoll matches the in-world render.
+      const override = opts.previewKey === 'player_mech' ? mechHeldWeaponOverride(opts.cls) : null;
+      this.charPreview.setVisualKey(opts.previewKey, opts.mainhand, override, opts.offhand);
+    } else {
+      this.charPreview.setClass(opts.cls, opts.mainhand, opts.offhand);
+    }
+    this.charPreview.setSkin(opts.skin);
+    this.charPreview.setWeaponSkin(opts.weaponSkinId);
+    this.charPreview.setFraming(opts.framing);
+  }
+
+  /** Char-sheet / skin-picker mount: the SELF character with both currently
+   *  equipped hands (so the 3D model reflects shields and dual wield as well as
+   *  mainhand gear changes), in the close self-sheet framing. */
   private mountCharPreview(
     container: HTMLElement,
     cls: PlayerClass,
     skin: number,
     previewKey?: string,
   ): void {
-    if (!this.charPreviewCanvas) this.charPreviewCanvas = document.createElement('canvas');
-    if (!this.charPreview) {
-      container.appendChild(this.charPreviewCanvas);
-      this.charPreview = new CharacterPreview(container, this.charPreviewCanvas);
-    } else {
-      this.charPreview.setContainer(container);
+    const mainhand = this.sim.equipment.mainhand ?? null;
+    this.mountSharedPreview(container, {
+      cls,
+      skin,
+      previewKey,
+      mainhand,
+      offhand: this.sim.equipment.offhand ?? null,
+      // The paperdoll wears the same Armory skin the world renders: resolved
+      // through the one shared rule (class + equipped mainhand + loadout).
+      weaponSkinId: resolveActiveWeaponSkin(
+        cls,
+        mainhand,
+        this.sim.accountCosmetics.weaponSkinLoadout,
+      ),
+      framing: 'sheet',
+    });
+  }
+
+  /** Mount the shared turntable into the inspect stage showing the INSPECTED
+   *  player's appearance and worn hands, with the pulled-back inspect framing.
+   *  The skin CATALOG picks the rig exactly as renderCharPreview does for self:
+   *  a mech-cosmetic player mounts after the lazy mech-asset preload resolves,
+   *  and only while this stage is still the live inspect target. */
+  private mountInspectPreview(
+    container: HTMLElement,
+    params: {
+      cls: PlayerClass;
+      skin: number;
+      skinCatalog: SkinCatalog;
+      mainhand: string | null;
+      offhand: string | null;
+      /** The inspected player's server-resolved active weapon skin (wire wsk). */
+      weaponSkinId: string | null;
+    },
+  ): void {
+    const preview = activeCharacterAppearancePreview(params.cls, params.skin, params.skinCatalog);
+    const mount = (): void =>
+      this.mountSharedPreview(container, {
+        cls: params.cls,
+        skin: preview.skin,
+        previewKey: preview.visualKey === 'player_mech' ? preview.visualKey : undefined,
+        mainhand: params.mainhand,
+        offhand: params.offhand,
+        weaponSkinId: params.weaponSkinId,
+        framing: 'inspect',
+      });
+    if (preview.visualKey !== 'player_mech') {
+      mount();
+      return;
     }
-    // Show both currently equipped hands on the character sheet, so the 3D model
-    // reflects shields and dual wield as well as mainhand gear changes.
-    const weapon = this.sim.equipment.mainhand ?? null;
-    const offhand = this.sim.equipment.offhand ?? null;
-    if (previewKey) {
-      // Mech is class-agnostic; mirror the wearer class's hand layout so the
-      // paperdoll matches the in-world render.
-      const override = previewKey === 'player_mech' ? mechHeldWeaponOverride(cls) : null;
-      this.charPreview.setVisualKey(previewKey, weapon, override, offhand);
-    } else {
-      this.charPreview.setClass(cls, weapon, offhand);
-    }
-    this.charPreview.setSkin(skin);
+    if (!this.mechAssetsPromise) this.mechAssetsPromise = preloadMechAssets();
+    void this.mechAssetsPromise
+      .then(() => {
+        // Mount only while the inspect window is still open AND this stage is still
+        // the painted one (a reopen replaces the innerHTML, disconnecting it), so a
+        // late resolve can never steal the canvas from the character sheet.
+        const inspectWindow = $('#inspect-window') as HTMLElement | null;
+        if (inspectWindow?.style.display !== 'block' || !container.isConnected) return;
+        mount();
+      })
+      .catch((err) => console.error('failed to load mech cosmetic preview:', err));
   }
 
   private renderCharSkinPicker(): void {
@@ -11713,6 +12865,42 @@ export class Hud {
     );
   }
 
+  // The Pale Keeper revive is irreversible and applies The Keeper's Toll (all
+  // attributes -75%, level-scaled up to 10 minutes), so it confirms first; the
+  // penalty-free corpse run stays one tap. OK sends the exact pre-existing
+  // command; cancel/Escape sends nothing. Public because every entry point to
+  // the revive routes through this one gate: the ghost-prompt button, the
+  // world-click on the Pale Keeper (game/interactions.ts), and the interact
+  // key (game/nearby_interaction.ts).
+  requestSpiritHealerResurrect(): void {
+    this.confirmDialog(
+      t('hudChrome.death.healerConfirmTitle'),
+      t('hudChrome.death.healerConfirmBody'),
+      t('hudChrome.death.healerConfirmAccept'),
+      t('hudChrome.death.healerConfirmCancel'),
+      () => this.onResurrectAtSpiritHealer?.(),
+    );
+  }
+
+  // Heroic Quartermaster purchases debit Heroic Marks with no buyback recorded
+  // (gold vendors are the only buyback source), so a mis-tap is unrefundable:
+  // confirm before sending the exact pre-existing buy command.
+  private requestHeroicVendorPurchase(itemId: string): void {
+    const offer = HEROIC_VENDOR_STOCK.find((candidate) => candidate.itemId === itemId);
+    const item = ITEMS[itemId];
+    if (!offer || !item) return;
+    this.confirmDialog(
+      t('heroicShop.buyConfirmTitle'),
+      t('heroicShop.buyConfirmBody', {
+        item: itemDisplayName(item),
+        marks: formatNumber(offer.marks, { maximumFractionDigits: 0 }),
+      }),
+      t('heroicShop.buyConfirmAccept'),
+      t('heroicShop.buyConfirmCancel'),
+      () => this.sim.buyHeroicVendorItem(itemId),
+    );
+  }
+
   // Minimal modal confirm dialog (reuses the .window/.panel chrome). Built on
   // demand and removed on dismiss.
   private confirmDialog(
@@ -11746,6 +12934,7 @@ export class Hud {
     // both or a purchase confirmation opens invisibly underneath.
     el.style.zIndex = String(Math.max(Number(el.style.zIndex) || 0, 95));
     this.confirmTrap = this.focusManager.open({ root: () => el });
+    bindDialogKeyActivation(el);
     el.querySelector<HTMLElement>('[data-ok]')?.focus();
     const close = () => {
       this.confirmTrap?.release();
@@ -11807,6 +12996,7 @@ export class Hud {
       `</div>`;
     document.body.appendChild(el);
     this.confirmTrap = this.focusManager.open({ root: () => el });
+    bindDialogKeyActivation(el);
     const input = el.querySelector('.cd-input') as HTMLInputElement | HTMLTextAreaElement;
     const close = () => {
       this.confirmTrap?.release();
@@ -11986,7 +13176,10 @@ export class Hud {
   toggleDailyRewards(): void {
     if (!this.dailyRewardsEnabled()) return;
     this.dailyRewardsWindow.toggle();
-    this.refreshDailyRewardsLauncher(true);
+    // Close refreshes via onClose; force only the open direction here. The open
+    // force stays as the fallback for tabs that render without a status fetch
+    // (the store tab), where no onStatus push would arrive.
+    if (this.dailyRewardsWindow.isOpen) this.refreshDailyRewardsLauncher(true);
   }
 
   openWocStore(): void {
@@ -12138,8 +13331,19 @@ export class Hud {
   private updatePartyFrames(): void {
     const target =
       this.sim.player.targetId !== null ? this.sim.entities.get(this.sim.player.targetId) : null;
-    this.partyFramesPainter.setBelowTarget(!!target && target.kind !== 'object');
     const info = this.sim.partyInfo;
+    // Drop the frames below the target frame only when the measured target
+    // stack (frame + #tf-debuffs strip) actually overlaps their column: the
+    // painter keeps --party-below-target-bottom current (measuring only when
+    // its cheap key changes), and a null bottom (no target, no overlap, e.g. a
+    // dragged-away target frame) keeps the frames at their base anchor.
+    const targetShown = !!target && target.kind !== 'object';
+    const stackBottom = this.partyBelowTargetPainter.update(
+      targetShown,
+      info?.members.length ?? 0,
+      this.isMobileLayout(),
+    );
+    this.partyFramesPainter.setBelowTarget(targetShown && stackBottom !== null);
     if (!info) {
       // Clear only on the transition out of a party (matching the inline `innerHTML
       // !== ''` guard), so a persistently party-less HUD does no per-frame work.
@@ -12234,6 +13438,7 @@ export class Hud {
 
   private openSelfContextMenu(x: number, y: number, opener: HTMLElement | null = null): void {
     const el = $('#ctx-menu');
+    el.classList.remove(CTX_MENU_PICKER_CLASS);
     this.ctxMenuOpener = opener;
     const party = this.sim.partyInfo;
     let html = `<div class="ctx-title ctx-title-player">${portraitChipHtml({ cls: this.sim.cfg.playerClass, skin: this.sim.player.skin ?? 0, name: this.sim.player.name, variant: 'sm' })}<span class="ctx-title-name">${esc(this.sim.player.name)}</span></div>`;
@@ -12386,6 +13591,7 @@ export class Hud {
 
   openContextMenu(pid: number, name: string, x: number, y: number): void {
     const el = $('#ctx-menu');
+    el.classList.remove(CTX_MENU_PICKER_CLASS);
     const party = this.sim.partyInfo;
     const isLeader = party?.leader === this.sim.playerId;
     const isMember = !!party?.members.some((m) => m.pid === pid);
@@ -12537,147 +13743,19 @@ export class Hud {
    * strictly more than looking their name up from chat.
    */
   private openRemoteProfile(profile: CharacterProfile): void {
-    const cls = profile.cls as PlayerClass;
-    const el = $('#inspect-window');
-    this.closeOtherWindows('#inspect-window');
-    const guildHtml = profile.guild ? `<div class="inspect-meta">${esc(profile.guild)}</div>` : '';
-    el.innerHTML =
-      `<div class="panel-title"><span>${esc(t('character.profile'))}</span>` +
-      `<button type="button" class="x-btn" data-close aria-label="${esc(t('character.closeProfile'))}">${svgIcon('close')}</button></div>` +
-      `<div class="inspect-card">` +
-      portraitChipHtml({ cls, skin: profile.skin, name: profile.name, variant: 'lg' }) +
-      `<div class="inspect-name">${esc(profile.name)}</div>` +
-      `<div class="inspect-meta">${esc(
-        t('itemUi.equipment.levelClass', {
-          level: formatNumber(profile.level, { maximumFractionDigits: 0 }),
-          className: classDisplayName(cls),
-        }),
-      )}</div>` +
-      guildHtml +
-      `</div>`;
-    hydratePortraits(el);
-    el.querySelector('[data-close]')?.addEventListener('click', () => {
-      el.style.display = 'none';
+    this.inspectWindow.openRemote({
+      name: profile.name,
+      level: profile.level,
+      cls: profile.cls as PlayerClass,
+      skin: profile.skin,
+      guild: profile.guild,
     });
-    el.style.display = 'block';
   }
 
   openInspect(pid: number): void {
     const e = this.sim.entities.get(pid);
     if (e?.kind !== 'player') return;
-    const cls = e.templateId as PlayerClass;
-    const className = classDisplayName(cls);
-    const el = $('#inspect-window');
-    this.closeOtherWindows('#inspect-window');
-    // $WOC holder-tier flair: cosmetic badge for a connected/holder wallet,
-    // broadcast per-entity via the `ht`/`hb` identity fields (server-set). Shown
-    // only when the inspected player has a tier (> 0); the exact balance rides
-    // along in `hb` and reads out beneath the rung name when present.
-    const tierDef = holderTierByIndex(e.holderTier ?? 0);
-    const holderHtml = tierDef
-      ? `<div class="inspect-holder">` +
-        `<img class="inspect-holder-badge" src="${holderTierBadgeDataUrl(tierDef)}" alt="" draggable="false">` +
-        `<div class="inspect-holder-text">` +
-        `<div class="inspect-holder-name">${esc(holderTierDisplayName(tierDef))}</div>` +
-        `<div class="inspect-holder-sub">${e.holderBalance ? esc(t('wallet.balanceAmount', { amount: formatNumber(e.holderBalance, { maximumFractionDigits: 0 }) })) : esc(t('wallet.holder'))}</div>` +
-        `</div></div>`
-      : '';
-    // Linked-Discord flair: avatar/badge, nickname, rank, "member since", role.
-    const discordTierIdx = e.discordTier ?? 0;
-    const discordImg = e.discordAvatar
-      ? `<img class="inspect-holder-badge inspect-discord-pfp" src="${esc(e.discordAvatar)}" referrerpolicy="no-referrer" alt="" draggable="false">`
-      : `<img class="inspect-holder-badge" src="${discordStatusBadgeDataUrl(discordTierIdx)}" alt="" draggable="false">`;
-    const memberDays =
-      typeof e.discordJoined === 'number'
-        ? Math.max(0, Math.floor((Date.now() - e.discordJoined) / 86_400_000))
-        : null;
-    const memberSinceHtml =
-      memberDays !== null
-        ? `<div class="inspect-holder-sub">${esc(t('hudChrome.discord.memberSince'))}: ${esc(t('hudChrome.discord.memberSinceDays', { days: formatNumber(memberDays, { maximumFractionDigits: 0 }) }))}</div>`
-        : '';
-    const roleLabel = discordRoleTagLabel(e.discordRole);
-    const roleHtml = roleLabel
-      ? `<div class="inspect-holder-sub inspect-discord-role">${esc(roleLabel)}</div>`
-      : '';
-    const discordHtml =
-      discordTierIdx > 0
-        ? `<div class="inspect-holder">` +
-          discordImg +
-          `<div class="inspect-holder-text">` +
-          `<div class="inspect-holder-name">${esc(e.discordName ? e.discordName : discordStatusDisplayName(discordTierIdx))}</div>` +
-          `<div class="inspect-holder-sub">${esc(t('hudChrome.discord.title'))} · ${esc(discordStatusDisplayName(discordTierIdx))}</div>` +
-          memberSinceHtml +
-          roleHtml +
-          `</div></div>`
-        : '';
-    // Developer badge: the cosmetic contributor tier, broadcast per-entity via the
-    // `dvt`/`dvc`/`dgl` identity fields. Shown only for an actual contributor
-    // (tier > 0), with the merged-PR count and the @login under the rung name,
-    // and only while the viewer's own showDevBadges display preference is on.
-    const showDevBadges = this.optionsHooks?.settings.get('showDevBadges') ?? true;
-    const devTierDef = showDevBadges ? devTierByIndex(e.devTier ?? 0) : undefined;
-    const devSub = e.devMergedPrs
-      ? t('hudChrome.devBadge.prsLanded', {
-          count: formatNumber(e.devMergedPrs, { maximumFractionDigits: 0 }),
-        })
-      : t('hudChrome.devBadge.contributor');
-    const devLoginHtml = e.githubLogin
-      ? `<div class="inspect-holder-sub inspect-dev-login">@${esc(e.githubLogin)}</div>`
-      : '';
-    const devHtml = devTierDef
-      ? `<div class="inspect-holder">` +
-        `<img class="inspect-holder-badge" src="${devTierBadgeDataUrl(devTierDef)}" alt="" draggable="false">` +
-        `<div class="inspect-holder-text">` +
-        `<div class="inspect-holder-name">${esc(devTierDisplayName(devTierDef))}</div>` +
-        `<div class="inspect-holder-sub">${esc(devSub)}</div>` +
-        devLoginHtml +
-        `</div></div>`
-      : '';
-    el.innerHTML =
-      `<div class="panel-title"><span>${esc(t('character.profile'))}</span>` +
-      `<button type="button" class="x-btn" data-close aria-label="${esc(t('character.closeProfile'))}">${svgIcon('close')}</button></div>` +
-      `<div class="inspect-card">` +
-      portraitChipHtml({ cls, skin: e.skin ?? 0, name: e.name, variant: 'lg', framing: 'body' }) +
-      `<div class="inspect-name">${esc(e.name)}</div>` +
-      // The active Book of Deeds title (the entity `title` wire field, a deed
-      // id): a subtitle line under the name, exactly the nameplate surface.
-      (e.title && deedTitleText(e.title) !== ''
-        ? `<div class="inspect-title">${esc(deedTitleText(e.title))}</div>`
-        : '') +
-      `<div class="inspect-meta">${esc(t('itemUi.equipment.levelClass', { level: formatNumber(e.level, { maximumFractionDigits: 0 }), className }))}</div>` +
-      holderHtml +
-      discordHtml +
-      devHtml +
-      `</div>` +
-      // Worn gear, mirrored from the entity's render-only `equippedItems` (the
-      // `eq` identity field). Item names/icons/tooltips resolve fully client-side
-      // from the static ITEMS table, so only the slot->id map crosses the wire.
-      `<div class="inspect-equip">` +
-      `<div class="inspect-equip-title">${esc(t('classDetails.sections.equipment'))}</div>` +
-      `<div class="paperdoll inspect-paperdoll">` +
-      `<div class="equip-col" id="inspect-equip-left"></div>` +
-      `<div class="equip-col equip-col-right" id="inspect-equip-right"></div>` +
-      `</div></div>`;
-    hydratePortraits(el);
-    // If the linked-Discord avatar fails to load from the CDN, degrade to exactly the
-    // no-avatar rendering (the plain status-tier badge, without the pfp's blue ring)
-    // instead of the browser's broken-image placeholder.
-    const inspectPfp = el.querySelector<HTMLImageElement>('.inspect-discord-pfp');
-    if (inspectPfp) {
-      attachAvatarFallback(inspectPfp, (img) => {
-        img.classList.remove('inspect-discord-pfp');
-        img.src = discordStatusBadgeDataUrl(discordTierIdx);
-      });
-    }
-    const view = buildPaperdollView(e.equippedItems, ITEMS);
-    const leftCol = el.querySelector('#inspect-equip-left');
-    const rightCol = el.querySelector('#inspect-equip-right');
-    for (const cell of view.left) leftCol?.appendChild(this.buildInspectSlotRow(cell));
-    for (const cell of view.right) rightCol?.appendChild(this.buildInspectSlotRow(cell));
-    el.querySelector('[data-close]')?.addEventListener('click', () => {
-      el.style.display = 'none';
-    });
-    el.style.display = 'block';
+    this.inspectWindow.openInspect(e, Date.now());
   }
 
   /** Open the Loot Settings window: the leader gets the editable master-loot
@@ -12752,29 +13830,13 @@ export class Hud {
     );
   }
 
-  // One read-only equipment row for the inspect window: icon, slot name, and the
-  // equipped item (quality-tinted) with its tooltip. Unlike the character window's
-  // own paperdoll row, there are no unequip / drag affordances (another player's
-  // gear is view-only); the quality color comes from the shared QUALITY_COLOR map.
-  private buildInspectSlotRow(cell: PaperdollSlot): HTMLElement {
-    const { slot, item } = cell;
-    const row = document.createElement('div');
-    row.className = 'equip-slot';
-    const qColor = item ? (QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff') : '';
-    const icon = item
-      ? this.itemIcon(item)
-      : `<img class="item-icon" src="${iconDataUrl('item', 'slot_empty')}" alt="" draggable="false">`;
-    row.innerHTML = `${icon}<div><div class="slot-name">${esc(itemSlotName(slot))}</div><div class="slot-item"${item ? ` style="color:${qColor}"` : ''}>${item ? esc(itemDisplayName(item)) : esc(t('itemUi.equipment.empty'))}</div></div>`;
-    if (item) this.attachTooltip(row, () => this.itemTooltip(item));
-    return row;
-  }
-
   // Raid/target marker picker for an enemy, opened from its target unit frame.
   // Party-only (markers are a coordination feature); shows the 8 symbols with a
   // check on the one currently on this mob, plus localized clear and cancel actions.
   openMarkerMenu(entityId: number, name: string, x: number, y: number): void {
     if (!this.sim.partyInfo) return;
     const el = $('#ctx-menu');
+    el.classList.remove(CTX_MENU_PICKER_CLASS);
     const current = this.sim.markerFor(entityId);
     let html = `<div class="ctx-title">${esc(name)}</div>`;
     for (let i = 0; i < RAID_MARKER_LABEL_KEYS.length; i++) {
@@ -12809,6 +13871,7 @@ export class Hud {
 
   openPetMenu(_entityId: number, name: string, dead: boolean, x: number, y: number): void {
     const el = $('#ctx-menu');
+    el.classList.remove(CTX_MENU_PICKER_CLASS);
     const isWarlock = this.sim.cfg.playerClass === 'warlock';
     let html = `<div class="ctx-title">${esc(name)}</div>`;
     html += `<div class="ctx-item" data-act="rename">${esc(t('hud.pet.rename'))}</div>`;
@@ -12855,6 +13918,7 @@ export class Hud {
     opener?: HTMLElement,
   ): void {
     const el = $('#ctx-menu');
+    el.classList.remove(CTX_MENU_PICKER_CLASS);
     // Clicking the same name twice closes the menu. Without this branch, the
     // outside-click dismiss refuses to close a menu whose opener was clicked
     // (it treats the opener as "inside"), so the second click would silently
@@ -13095,7 +14159,9 @@ export class Hud {
   }
 
   closeContextMenu(): void {
-    $('#ctx-menu').style.display = 'none';
+    const el = $('#ctx-menu');
+    el.style.display = 'none';
+    el.classList.remove(CTX_MENU_PICKER_CLASS);
     this.ctxMenuOpener = null;
   }
 
@@ -13318,6 +14384,10 @@ export class Hud {
     this.optionsHooks = hooks;
     const hostedPlayBtn = document.getElementById('mm-hosted-play') as HTMLButtonElement | null;
     if (hostedPlayBtn) hostedPlayBtn.hidden = !hooks.hostedPlay;
+    const mobileHostedPlayBtn = document.getElementById(
+      'mobile-hosted-play',
+    ) as HTMLButtonElement | null;
+    if (mobileHostedPlayBtn) mobileHostedPlayBtn.hidden = !hooks.hostedPlay;
     if (!hooks.hostedPlay) this.closeHostedPlayWindow();
   }
 
@@ -13358,14 +14428,32 @@ export class Hud {
     return this.optionsWindow.isOpen;
   }
 
+  get characterOpen(): boolean {
+    return this.charWindow.isOpen;
+  }
+
+  get questDialogOpen(): boolean {
+    return this.questDialog.isOpen;
+  }
+
   // True while a menu that should pause character movement is up.
   isModalOpen(): boolean {
     return (
       this.optionsOpen ||
       this.emoteWheelOpen ||
       $('#emote-editor').style.display === 'block' ||
-      this.playerCard.isOpen
+      this.playerCard.isOpen ||
+      document.body.classList.contains('mobile-more-open')
     );
+  }
+
+  /** Keep the class-driven mobile More tray on the shared modal-focus lifecycle. */
+  syncMobileMoreDialog(open: boolean, restoreFocus = true): void {
+    this.mobileMoreDialog.sync(open, restoreFocus);
+    if (!open && !restoreFocus) {
+      const destination = this.topmostOpenWindow();
+      if (destination) this.focusManager.focusFirst(destination);
+    }
   }
 
   // True while an aria-modal quantity/confirm prompt (the bank/bags
@@ -13410,10 +14498,11 @@ export class Hud {
     const wasOpen = this.isWindowVisible(el);
     this.renderHostedPlayWindow();
     el.style.display = 'flex';
+    el.focus();
     if (wasOpen) this.bringWindowToFront(el);
   }
 
-  private toggleHostedPlayWindow(): void {
+  toggleHostedPlayWindow(): void {
     const el = $('#hosted-play-window');
     if (this.isWindowVisible(el)) {
       this.closeHostedPlayWindow();
@@ -13663,18 +14752,6 @@ function itemKindLabel(kind: ItemDef['kind']): string {
   return t(ITEM_KIND_LABEL_KEYS[kind]);
 }
 
-function itemStatName(stat: string): string {
-  const key = ITEM_STAT_LABEL_KEYS[stat as keyof Stats];
-  return key ? t(key) : cap(stat);
-}
-
-function itemNumber(value: number, fractionDigits = 0): string {
-  return formatNumber(value, {
-    minimumFractionDigits: fractionDigits,
-    maximumFractionDigits: fractionDigits,
-  });
-}
-
 function parseSimMoney(text: string): number | null {
   let copper = 0;
   let matched = false;
@@ -13761,7 +14838,7 @@ export function abilityRequirementLines(def: AbilityDef): string[] {
 // shown with the scaling contribution called out as a "(+N)" suffix, e.g.
 // "66 to 74 (+29)", so a caster sees both the base and exactly what their Spell
 // Power adds, and watches it climb as gear changes.
-function abilityEffectText(res: ResolvedAbility, scaling?: AbilityScaling): string {
+export function abilityEffectText(res: ResolvedAbility, scaling?: AbilityScaling): string {
   // " (+N)" callout for the scaling contribution (Spell Power / Attack Power),
   // omitted when there is none. Punctuation + formatted number only (no words).
   const suffix = (eff: AbilityEffect) => {
@@ -13824,7 +14901,7 @@ function abilityEffectText(res: ResolvedAbility, scaling?: AbilityScaling): stri
     case 'hot':
       return formatAbilityNumber(secondary.total) + suffix(secondary);
     case 'absorb':
-      return formatAbilityNumber(secondary.amount);
+      return formatAbilityNumber(secondary.amount) + suffix(secondary);
     case 'imbue':
       return formatAbilityNumber(secondary.bonus);
     default:
@@ -13850,10 +14927,6 @@ function abilityAmountRange(min: number, max: number): string {
     min: formatAbilityNumber(min),
     max: formatAbilityNumber(max),
   });
-}
-
-function cap(s: string): string {
-  return s ? s[0].toUpperCase() + s.slice(1) : s;
 }
 
 // A 2D canvas context is non-null for any attached canvas in this app; centralize

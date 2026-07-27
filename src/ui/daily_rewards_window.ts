@@ -90,6 +90,8 @@ export interface DailyRewardsWindowDeps {
   captureFocus(): HTMLElement | null;
   restoreFocus(target: HTMLElement | null): void;
   onVisibilityChange?(): void;
+  /** Fired once per actual close (not when already closed). */
+  onClose?(): void;
   onStatus?(status: DailyRewardStatus): void;
   onWalletConnect?(): void;
   storeEnabled?(): boolean;
@@ -141,6 +143,7 @@ export class DailyRewardsWindow {
 
   constructor(private readonly deps: DailyRewardsWindowDeps) {}
 
+  /** Whether the window is currently shown; lets the opener distinguish the toggle direction. */
   get isOpen(): boolean {
     return this.deps.root().style.display === 'block';
   }
@@ -196,6 +199,7 @@ export class DailyRewardsWindow {
     this.deps.restoreFocus(this.openerFocus);
     this.openerFocus = null;
     this.deps.onVisibilityChange?.();
+    this.deps.onClose?.();
   }
 
   async render(focus: 'open' | null = null): Promise<void> {
@@ -207,6 +211,12 @@ export class DailyRewardsWindow {
     let history: DailyRewardHistory = { payouts: [] };
     try {
       status = await this.deps.world().dailyRewards();
+      if (status.enabled === false) {
+        if (!this.isOpen || seq !== this.renderSeq) return;
+        this.deps.onStatus?.(status);
+        this.paint(buildDailyRewardsView({ kind: 'status', status, history }));
+        return;
+      }
       history = await this.deps.world().dailyRewardHistory();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'daily rewards unavailable';
@@ -608,6 +618,10 @@ export class DailyRewardsWindow {
     }
     if (view.kind === 'error') {
       body.innerHTML = `<div class="dr-empty dr-error" role="alert">${esc(t('hudChrome.dailyRewards.error'))}</div>`;
+      return;
+    }
+    if (view.kind === 'disabled') {
+      body.innerHTML = `<div class="dr-empty" role="status">${esc(t('hudChrome.dailyRewards.disabled'))}</div>`;
       return;
     }
     body.innerHTML =

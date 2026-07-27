@@ -38,8 +38,9 @@ describe('v0.26 Talents V2 production save migration', () => {
       fixtureBytes.toString('utf8').replace(/\r\n/g, '\n'),
       'utf8',
     );
+    // Re-pinned after unknown active quest ids were normalized to q_spiders/q_wolves.
     expect(createHash('sha256').update(canonicalFixtureBytes).digest('hex')).toBe(
-      '99847185f18fd13c110e13c6fa2e5e1c71c38a8d9fee9dcf725a62fbc7323e0b',
+      'dccd7e77b53c5c271e87d95ddee334384b32f6590e9602417c4b20f32f4cf637',
     );
   });
 
@@ -113,6 +114,10 @@ describe('v0.26 Talents V2 production save migration', () => {
     expect(first.bags).toEqual(fixture.state.bags);
     expect(first.bank).toEqual(fixture.state.bank);
     expect(first.equipment).toEqual(fixture.state.equipment);
+    // The fixture's active questLog ids are REAL quests (q_spiders, q_wolves):
+    // the load arm prunes unknown active quest ids
+    // (tests/quest_log_normalization.test.ts), while questsDone keeps its
+    // synthetic q_fixture_done, pinning that done-history survives unknown ids.
     expect(first.questLog).toEqual(fixture.state.questLog);
     expect(first.questsDone).toEqual(fixture.state.questsDone);
     expect(first.skin).toBe(3);

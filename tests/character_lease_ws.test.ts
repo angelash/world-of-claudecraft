@@ -119,8 +119,8 @@ describe('ws auth character load lease', () => {
   });
 
   it('acquires with the AUTHENTICATED account id, never the client-sent character id', async () => {
-    // Distinct fixtures: getCharacter yields character 7, accountForToken yields
-    // account 1, so a positional swap of the two args cannot pass unnoticed.
+    // Distinct fixtures: getCharacter yields character 7, the scoped token lookup
+    // yields account 1, so a positional swap of the two args cannot pass unnoticed.
     const { deps, acquireSpy, joinSpy } = makeDeps();
     const { ws } = fakeWs();
 
@@ -167,6 +167,10 @@ describe('ws auth character load lease', () => {
       state: { marker: 'S0' },
       is_gm: false,
       force_rename: false,
+      hotbar_layout: {
+        v: 1,
+        forms: { normal: { bar: [{ type: 'ability', id: 'before' }] } },
+      },
     };
     const afterAcquire = {
       ...beforeAcquire,
@@ -174,6 +178,10 @@ describe('ws auth character load lease', () => {
       level: 11,
       state: { marker: 'S1' },
       is_gm: true,
+      hotbar_layout: {
+        v: 1,
+        forms: { normal: { bar: [{ type: 'ability', id: 'after' }] } },
+      },
     };
     deps.getCharacter = vi
       .fn()
@@ -195,7 +203,10 @@ describe('ws auth character load lease', () => {
       'warrior',
       { marker: 'S1' },
       true,
-      expect.objectContaining({ leaseNonce: expect.stringMatching(UUID_RE) }),
+      expect.objectContaining({
+        leaseNonce: expect.stringMatching(UUID_RE),
+        hotbarLayout: afterAcquire.hotbar_layout,
+      }),
     );
   });
 

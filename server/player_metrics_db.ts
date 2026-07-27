@@ -74,6 +74,80 @@ SELECT 1
 export const PLAYER_METRICS_INVALID_INDEX_DROP_SQL =
   'DROP INDEX CONCURRENTLY IF EXISTS play_sessions_account_started_id';
 
+export const PLAYER_ACTIVITY_RETENTION_INDEX_SQL = `
+CREATE INDEX CONCURRENTLY IF NOT EXISTS player_activity_daily_retention
+  ON player_activity_daily(day, realm, account_id);
+`;
+
+export const PLAYER_ACTIVITY_RETENTION_INVALID_INDEX_CHECK_SQL = `
+SELECT 1
+  FROM pg_index i
+ WHERE i.indexrelid = to_regclass('player_activity_daily_retention')
+   AND NOT i.indisvalid
+`;
+
+export const PLAYER_ACTIVITY_RETENTION_INVALID_INDEX_DROP_SQL =
+  'DROP INDEX CONCURRENTLY IF EXISTS player_activity_daily_retention';
+
+// PostgreSQL does not automatically index referencing foreign keys. These
+// account-leading indexes keep accounts(id) CASCADE checks from scanning the
+// analytics tables; neither composite primary key can serve an account-only
+// lookup because both lead on realm (and activity also leads on day).
+export const PLAYER_ACCOUNT_FACTS_ACCOUNT_INDEX_SQL = `
+CREATE INDEX CONCURRENTLY IF NOT EXISTS player_account_facts_account_id
+  ON player_account_facts(account_id);
+`;
+
+export const PLAYER_ACCOUNT_FACTS_ACCOUNT_INVALID_INDEX_CHECK_SQL = `
+SELECT 1
+  FROM pg_index i
+ WHERE i.indexrelid = to_regclass('player_account_facts_account_id')
+   AND NOT i.indisvalid
+`;
+
+export const PLAYER_ACCOUNT_FACTS_ACCOUNT_INVALID_INDEX_DROP_SQL =
+  'DROP INDEX CONCURRENTLY IF EXISTS player_account_facts_account_id';
+
+export const PLAYER_ACTIVITY_ACCOUNT_INDEX_SQL = `
+CREATE INDEX CONCURRENTLY IF NOT EXISTS player_activity_daily_account_id
+  ON player_activity_daily(account_id);
+`;
+
+export const PLAYER_ACTIVITY_ACCOUNT_INVALID_INDEX_CHECK_SQL = `
+SELECT 1
+  FROM pg_index i
+ WHERE i.indexrelid = to_regclass('player_activity_daily_account_id')
+   AND NOT i.indisvalid
+`;
+
+export const PLAYER_ACTIVITY_ACCOUNT_INVALID_INDEX_DROP_SQL =
+  'DROP INDEX CONCURRENTLY IF EXISTS player_activity_daily_account_id';
+
+// closeOrphanPlayerSessions scans WHERE ended_at IS NULL joined to characters
+// on character_id at every boot; open sessions are a tiny fraction of a large
+// table, so a partial index on the join key keeps the boot scan off the heap.
+// EXPLAIN against a copy-shaped schema (enable_seqscan off) confirms the
+// planner serves the orphan UPDATE's play_sessions side from this index: a
+// bitmap scan rides the partial predicate to pick out just the open rows,
+// then probes characters by primary key on the indexed join column. Built
+// concurrently for the same large-table reason as the composite above.
+export const PLAY_SESSIONS_OPEN_INDEX_SQL = `
+CREATE INDEX CONCURRENTLY IF NOT EXISTS play_sessions_open_character
+  ON play_sessions(character_id) WHERE ended_at IS NULL;
+`;
+
+// Same interrupted-build carcass repair as the composite index above: an
+// INVALID leftover must be dropped (CONCURRENTLY) before the create re-runs.
+export const PLAY_SESSIONS_OPEN_INVALID_INDEX_CHECK_SQL = `
+SELECT 1
+  FROM pg_index i
+ WHERE i.indexrelid = to_regclass('play_sessions_open_character')
+   AND NOT i.indisvalid
+`;
+
+export const PLAY_SESSIONS_OPEN_INVALID_INDEX_DROP_SQL =
+  'DROP INDEX CONCURRENTLY IF EXISTS play_sessions_open_character';
+
 /** Fixed first-day playtime buckets; a bounded label set, never per-player data. */
 export const FIRST_DAY_PLAYTIME_BUCKETS = [
   'lt_10m',
@@ -138,7 +212,10 @@ export interface PlayerFunnelSnapshot {
 }
 
 interface Queryable {
-  query(text: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+  query(
+    text: string,
+    values?: unknown[],
+  ): Promise<{ rows: Record<string, unknown>[]; rowCount?: number | null }>;
 }
 
 /** Whole-refresh deadline, including waiting for a pooled client. */
@@ -423,6 +500,39 @@ export async function closeOrphanPlayerSessions(db: Queryable, realm: string): P
     [realm],
   );
   return Number(res.rows[0]?.closed_count ?? 0);
+}
+
+/**
+ * One bounded delete batch of expired player_activity_daily rows; returns the
+ * deleted count. The activity day is the UTC calendar day the writers stamp
+ * ((... AT TIME ZONE 'UTC')::date above), so the cutoff is the same plain UTC
+ * date arithmetic, NEVER the daily-reward clock (that day rolls at a configured
+ * offset, not UTC midnight). The strict `<` keeps a row whose day is exactly
+ * retentionDays old: the kept window is [today - retentionDays, today]. The
+ * batch subquery selects the composite primary key (the table has no id
+ * column). The concurrent day-leading retention index lets oldest-first batches
+ * and caught-up nightly probes stop without scanning the whole table. The
+ * business snapshot reads touch only today and yesterday, so any positive
+ * window is read-invisible to them. retentionDays <= 0 means keep forever.
+ */
+export async function prunePlayerActivityDailyBatch(
+  db: Queryable,
+  retentionDays: number,
+  batchSize: number,
+): Promise<number> {
+  if (!Number.isFinite(retentionDays) || retentionDays <= 0) return 0;
+  // A fractional value must clamp to at least one day, never floor to day zero.
+  const days = Math.max(1, Math.floor(retentionDays));
+  const res = await db.query(
+    `DELETE FROM player_activity_daily
+      WHERE (realm, day, account_id) IN (
+        SELECT realm, day, account_id FROM player_activity_daily
+         WHERE day < (now() AT TIME ZONE 'UTC')::date - $1::int
+         ORDER BY day, realm, account_id
+         LIMIT $2)`,
+    [days, Math.max(1, Math.floor(batchSize))],
+  );
+  return res.rowCount ?? 0;
 }
 
 export const PLAYER_BUSINESS_SNAPSHOT_SQL = `

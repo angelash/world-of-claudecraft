@@ -8,7 +8,7 @@
 // handleApi/serveStatic arms are exercised only via the OPTIONS short-circuit,
 // which returns before reaching them.
 import type * as http from 'node:http';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../server/admin', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../server/admin')>();
@@ -69,12 +69,30 @@ function fakeRes() {
 }
 
 let mainMod: typeof import('../../server/main') | undefined;
+let routeModules:
+  | Promise<{
+      main: typeof import('../../server/main');
+      admin: typeof import('../../server/admin');
+      internal: typeof import('../../server/internal');
+      dailyRewards: typeof import('../../server/daily_rewards');
+    }>
+  | undefined;
 
 async function loadRoute() {
   // db.ts reads DATABASE_URL at module scope (throws if unset); a dummy URL lets
   // the bare import resolve without binding a socket or opening a connection.
   process.env.DATABASE_URL ||= 'postgres://test:test@127.0.0.1:5433/wocc_phase1_test';
-  const main = await import('../../server/main');
+  routeModules ??= (async () => {
+    // Keep main first: it binds the vi.mock replacements while loading its
+    // graph. Importing the mocked modules concurrently can expose separate
+    // in-flight module wrappers to the assertions below.
+    const main = await import('../../server/main');
+    const admin = await import('../../server/admin');
+    const internal = await import('../../server/internal');
+    const dailyRewards = await import('../../server/daily_rewards');
+    return { main, admin, internal, dailyRewards };
+  })();
+  const { main, admin, internal, dailyRewards } = await routeModules;
   mainMod = main;
   // These tests pin the LEGACY prefix-ladder delegation: the four sub-dispatchers
   // are observed via the mocked handleAdminApi / handleInternalApi /
@@ -83,9 +101,6 @@ async function loadRoute() {
   // (/internal/restart-countdown, /internal/daily-rewards/*) runs the onion instead
   // of the delegate, so pin the mode to 'legacy' EXPLICITLY here.
   main.setApiDispatchModeForTests('legacy');
-  const admin = await import('../../server/admin');
-  const internal = await import('../../server/internal');
-  const dailyRewards = await import('../../server/daily_rewards');
   return {
     routeHttpRequest: main.routeHttpRequest,
     handleAdminApi: vi.mocked(admin.handleAdminApi),
@@ -93,6 +108,14 @@ async function loadRoute() {
     handleDailyRewardInternalApi: vi.mocked(dailyRewards.handleDailyRewardInternalApi),
   };
 }
+
+// The v0.29 server graph is large enough that its first transform/import can
+// exceed Vitest's per-test 5s budget on Windows. Warm it once under an explicit
+// hook budget; individual behavior assertions retain the normal timeout.
+beforeAll(async () => {
+  await loadRoute();
+  mainMod?.resetApiDispatchModeForTests();
+}, 30_000);
 
 // Restore the boot-default dispatch mode after each test (loadRoute pins 'legacy').
 afterEach(() => {

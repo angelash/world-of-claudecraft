@@ -5,6 +5,7 @@ import {
   HOSTED_PLAY_AUTO_INVITE_TARGET_PARTY_SIZES,
 } from '../hosted_play_settings';
 import { esc } from './esc';
+import { markDialogRoot } from './dialog_root';
 import { HostedPlayCompatibilityError } from './hosted_play_status_view';
 import { formatDateTime, formatNumber, t } from './i18n';
 import { svgIcon } from './ui_icons';
@@ -209,6 +210,7 @@ export function renderHostedPlayPanel(
   hooks: HostedPlayHooks,
   options: RenderHostedPlayPanelOptions,
 ): void {
+  markDialogRoot(el, { label: t('hudChrome.hostedPlay.title') });
   const body = panelViewShell(el, t('hudChrome.hostedPlay.title'));
   body.classList.add('hosted-play-body');
 

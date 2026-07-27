@@ -132,7 +132,10 @@ describe('Codex project configuration', () => {
         await removeFixture(fixture);
       }
     },
-    process.platform === 'win32' ? 15_000 : 5_000,
+    // This integration arm launches Git Bash and Git several times. On a busy
+    // Windows merge-validation run those child processes can exceed 15s even
+    // though the same fixture completes in ~7s in isolation.
+    process.platform === 'win32' ? 30_000 : 10_000,
   );
 
   it('tracks shared Codex files while leaving local state ignored', () => {

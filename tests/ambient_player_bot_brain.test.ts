@@ -934,7 +934,7 @@ describe('ambient player bot brain', () => {
     expect(result.moveInput).toEqual({});
   });
 
-  it('uses the vendor stop to sell junk before buying fresh food after the starter quest', () => {
+  it('preserves the wolf fang crafting reagent when accepting the next quest', () => {
     const state = createAmbientPlayerBotBrainState();
     const result = tickAmbientPlayerBotBrain(
       {
@@ -945,6 +945,31 @@ describe('ambient player bot brain', () => {
             z: 3,
             inv: [{ itemId: 'wolf_fang', count: 3 }],
             qdone: ['q_wolves'],
+          },
+          entities: [{ id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 }],
+        }),
+        nowMs: 1_000,
+      },
+      state,
+    );
+
+    expect(result.objectiveId).toBe('accept_boars');
+    expect(result.commands).toEqual([{ cmd: 'target', id: 7100 }, { cmd: 'interact' }]);
+  });
+
+  it('uses the vendor stop to sell poor junk before buying fresh food', () => {
+    const state = createAmbientPlayerBotBrainState();
+    const result = tickAmbientPlayerBotBrain(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            lv: 2,
+            x: -7,
+            z: 3,
+            inv: [{ itemId: 'bandit_bandana', count: 3 }],
+            qdone: ['q_wolves'],
+            qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
           },
           entities: [{ id: 7100, k: 'npc', tid: 'trader_wilkes', x: -7, z: 3 }],
         }),

@@ -45,6 +45,22 @@ function makeWorld(templateId = 'brother_aldric'): { sim: Sim; pid: number; npcI
   player.prevPos = { ...player.pos };
   sim.grid.update(player);
   sim.playerGrid.update(player);
+  // Official v0.29 added profession masters beside existing hub NPCs. Move
+  // only those new candidates out of range so the pre-existing social layouts
+  // (including their deliberate three-speaker sequences) stay intact.
+  for (const templateId of [
+    'alchemist_verane',
+    'cook_marlow',
+    'forgemistress_darva',
+    'tanner_hesk',
+    'tinker_gizzel',
+    'weaver_ottilie',
+  ]) {
+    const candidate = [...sim.entities.values()].find((entity) => entity.templateId === templateId);
+    if (candidate && candidate.id !== npc.id) {
+      moveEntity(sim, candidate.id, npc.pos.x + 80 + candidate.id, npc.pos.z + 80 + candidate.id);
+    }
+  }
   return { sim, pid, npcId: npc.id };
 }
 

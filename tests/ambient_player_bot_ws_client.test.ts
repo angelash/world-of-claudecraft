@@ -74,6 +74,8 @@ describe('ambient player bot ws client helpers', () => {
         x: 0,
         z: 0,
         inv: ['axe'],
+        hbl: { v: 1, forms: {} },
+        prof: [{ id: 'mining', skill: 3 }],
         qlog: [{ questId: 'q_wolves', counts: [2], state: 'active' }],
         tal: { alloc: { spec: null, ranks: {}, choices: {} } },
         stats: { hp: 10 },
@@ -86,6 +88,8 @@ describe('ambient player bot ws client helpers', () => {
       x: 5,
       z: 7,
       inv: ['axe'],
+      hbl: { v: 1, forms: {} },
+      prof: [{ id: 'mining', skill: 3 }],
       qlog: [{ questId: 'q_wolves', counts: [2], state: 'active' }],
       tal: { alloc: { spec: null, ranks: {}, choices: {} } },
       stats: { hp: 10 },
@@ -156,7 +160,7 @@ describe('ambient player bot ws client helpers', () => {
     });
     liveSocket.emitJson({
       t: 'socialpos',
-      list: [{ id: 11, x: 44, z: 55, zone: 'Eastbrook Vale', status: 'combat' }],
+      list: [{ id: 11, x: 44, z: 55, zone: 'Eastbrook Vale', status: 'afk' }],
     });
     liveSocket.emitJson({
       t: 'events',
@@ -174,7 +178,7 @@ describe('ambient player bot ws client helpers', () => {
           x: 44,
           z: 55,
           zone: 'Eastbrook Vale',
-          status: 'combat',
+          status: 'afk',
         })],
         blocks: [{ id: 12, name: 'Bet' }],
       }),

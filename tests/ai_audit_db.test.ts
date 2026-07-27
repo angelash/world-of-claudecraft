@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import type { AiAuditRecord } from '../server/ai_audit';
-import { AI_AUDIT_SCHEMA, PgAiAuditDb, normalizeAiAuditRecord } from '../server/ai_audit_db';
+import {
+  AI_AUDIT_RETENTION_INDEX_SQL,
+  AI_AUDIT_SCHEMA,
+  PgAiAuditDb,
+  normalizeAiAuditRecord,
+  pruneAiAuditRecordsBatch,
+} from '../server/ai_audit_db';
 import { REALM } from '../server/realm';
 
 class FakePool {
@@ -71,6 +77,27 @@ describe('AI audit DB', () => {
     expect(AI_AUDIT_SCHEMA).toContain('CREATE INDEX IF NOT EXISTS ai_audit_records_created');
     expect(AI_AUDIT_SCHEMA).toContain('CREATE INDEX IF NOT EXISTS ai_audit_records_status_created');
     expect(AI_AUDIT_SCHEMA).toContain('CREATE INDEX IF NOT EXISTS ai_audit_records_player_created');
+    expect(AI_AUDIT_RETENTION_INDEX_SQL).toContain(
+      'CREATE INDEX CONCURRENTLY IF NOT EXISTS ai_audit_records_retention',
+    );
+    expect(AI_AUDIT_RETENTION_INDEX_SQL).toContain('ON ai_audit_records(created_at, id)');
+  });
+
+  it('prunes one bounded oldest-first batch and supports keep-forever', async () => {
+    const pool = new FakePool();
+    pool.payloadRows.push({ payload: record });
+
+    await expect(pruneAiAuditRecordsBatch(pool, 90, 500)).resolves.toBe(1);
+    const call = pool.calls[0];
+    expect(call.sql).toContain('DELETE FROM ai_audit_records');
+    expect(call.sql).toContain("created_at < now() - make_interval(days => $1::int)");
+    expect(call.sql).toContain('ORDER BY created_at, id');
+    expect(call.sql).toContain('LIMIT $2');
+    expect(call.values).toEqual([90, 500]);
+
+    const disabled = new FakePool();
+    await expect(pruneAiAuditRecordsBatch(disabled, 0, 500)).resolves.toBe(0);
+    expect(disabled.calls).toHaveLength(0);
   });
 
   it('is included in the boot-time schema setup', () => {

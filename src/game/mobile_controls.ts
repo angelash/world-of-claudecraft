@@ -133,6 +133,8 @@ export interface MobileControlCallbacks {
   onDungeonFinder(): void;
   /** Open the Vale Cup window (queue/roster board for the boarball minigame). */
   onValeCup(): void;
+  /** Open the fork Hosted Play automation panel when the online host exposes it. */
+  onHostedPlay?(): void;
   onQuestLog(): void;
   onCharacter(): void;
   onBags(): void;
@@ -146,6 +148,8 @@ export interface MobileControlCallbacks {
   onDailyRewards(): void;
   /** Open the Book of Deeds window, folded into the More tray on mobile. */
   onDeeds(): void;
+  /** Open the Professions window, folded into the More tray on mobile. */
+  onProfessions(): void;
   /** Toggle world nameplates; returns the new on/off state to sync the button glow. */
   onNameplates(): boolean;
   /** Toggle background music; returns whether music is now enabled. */
@@ -482,6 +486,7 @@ export class MobileControls {
     this.bindButton('mobile-arena', () => this.callbacks.onArena());
     this.bindButton('mobile-dfinder', () => this.callbacks.onDungeonFinder());
     this.bindButton('mobile-valecup', () => this.callbacks.onValeCup());
+    this.bindButton('mobile-hosted-play', () => this.callbacks.onHostedPlay?.());
     this.bindButton('mobile-quest', () => this.callbacks.onQuestLog());
     this.bindButton('mobile-char', () => this.callbacks.onCharacter());
     this.bindButton('mobile-bags', () => this.callbacks.onBags());
@@ -492,6 +497,7 @@ export class MobileControls {
     this.bindButton('mobile-leaderboard', () => this.callbacks.onLeaderboard());
     this.bindButton('mobile-daily-rewards', () => this.callbacks.onDailyRewards());
     this.bindButton('mobile-deeds', () => this.callbacks.onDeeds());
+    this.bindButton('mobile-professions', () => this.callbacks.onProfessions());
     const nameplatesBtn = document.getElementById('mobile-nameplates');
     this.bindButton('mobile-nameplates', () => {
       const on = this.callbacks.onNameplates();
@@ -507,8 +513,12 @@ export class MobileControls {
     this.bindHapticsToggle('mobile-haptics');
     this.bindButton('mobile-more', () => {
       const open = !document.body.classList.contains('mobile-more-open');
-      this.root?.classList.toggle('expanded', open);
-      document.body.classList.toggle('mobile-more-open', open);
+      if (!open) {
+        this.closeMoreModal();
+        return;
+      }
+      this.root?.classList.add('expanded');
+      document.body.classList.add('mobile-more-open');
       if (open) {
         const modal = document.getElementById('mobile-extra-controls');
         if (modal) {
@@ -577,6 +587,12 @@ export class MobileControls {
       triggerHaptic(HAPTIC_TAP, this.hapticsOn);
       if (button.closest('#mobile-extra-controls')) {
         this.closeMoreModal();
+        // Establish the More trigger as the destination window's return target
+        // before its synchronous callback captures focus. The body-class
+        // observer then releases the old More trap without restoring it and
+        // focuses the newly opened window, avoiding focus inside aria-hidden
+        // More content during the modal-to-modal handoff.
+        document.getElementById('mobile-more')?.focus();
       }
       cb();
     };

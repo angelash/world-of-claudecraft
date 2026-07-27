@@ -24,9 +24,11 @@ import {
   releaseCharacterLease,
   saveCharacterAndMarketState,
   saveCharacterState,
+  setCharacterHotbarLayout,
 } from '../server/db';
 import { REALM } from '../server/realm';
 import type { CharacterState, MailSave, MarketSave } from '../src/sim/sim';
+import type { ActionBarLayout } from '../src/world_api/action_bar';
 
 // The load-bearing values are pinned as bare literals below, never as the same
 // constant re-derived from itself. The TTL is 90 seconds (three missed 30s
@@ -182,7 +184,7 @@ describe('shutdown wiring (source pin)', () => {
   });
 });
 
-// A checked-out-client stub for the two save fns that run their write on a
+// A checked-out-client stub for the save fns that run their write on a
 // pool.connect() client (saveCharacterState via runWithStatementTimeout, and
 // saveCharacterAndMarketState directly). A lease SELECT can match or miss, and
 // the character UPDATE reports the given rowCount; every other statement
@@ -210,6 +212,10 @@ const STATE = {
 } as unknown as CharacterState;
 const MARKET = { listings: [], collections: {} } as unknown as MarketSave;
 const MAIL = { mail: [], nextMailId: 1 } as unknown as MailSave;
+const HOTBAR_LAYOUT: ActionBarLayout = {
+  v: 1,
+  forms: { normal: { bar: [{ type: 'ability', id: 'heroic_strike' }] } },
+};
 
 describe('acquireCharacterLease fail-closed form', () => {
   it('never permits a same-account foreign-holder reclaim before expiry', async () => {
@@ -281,6 +287,46 @@ describe('saveCharacterState lease fence', () => {
     // No lease fence, and the params stop at the JSON state (no holder / nonce).
     expect(String(updateCall?.[0])).not.toContain('EXISTS');
     expect(updateCall?.[1]).toEqual([42, 7, expect.any(String)]);
+  });
+});
+
+describe('setCharacterHotbarLayout lease fence', () => {
+  beforeEach(() => {
+    dbMock.connect.mockReset();
+  });
+
+  it('locks the live holder and nonce before writing the layout', async () => {
+    const client = checkedOutClient();
+    dbMock.connect.mockResolvedValueOnce(client as any);
+
+    const ok = await setCharacterHotbarLayout(42, HOTBAR_LAYOUT, 'nonce-1');
+    expect(ok).toBe(true);
+    const stmts = client.query.mock.calls.map((call) => String(call[0]));
+    const leaseLockIndex = stmts.findIndex((sql) => /FROM character_leases/i.test(sql));
+    const characterUpdateIndex = stmts.findIndex((sql) => /UPDATE characters/i.test(sql));
+    expect(leaseLockIndex).toBeGreaterThan(-1);
+    expect(characterUpdateIndex).toBeGreaterThan(leaseLockIndex);
+    expect(String(client.query.mock.calls[leaseLockIndex][0])).toContain('FOR UPDATE');
+    expect(client.query.mock.calls[leaseLockIndex][1]).toEqual([
+      42,
+      PROCESS_LEASE_HOLDER,
+      'nonce-1',
+    ]);
+    expect(client.query.mock.calls[characterUpdateIndex][1]).toEqual([
+      42,
+      JSON.stringify(HOTBAR_LAYOUT),
+    ]);
+    expect(dbMock.query).not.toHaveBeenCalled();
+  });
+
+  it('returns false and skips the layout update when the lease no longer matches', async () => {
+    const client = checkedOutClient({ leaseMatch: false });
+    dbMock.connect.mockResolvedValueOnce(client as any);
+
+    await expect(setCharacterHotbarLayout(42, HOTBAR_LAYOUT, 'stale-nonce')).resolves.toBe(false);
+    expect(client.query.mock.calls.some((call) => /UPDATE characters/i.test(String(call[0])))).toBe(
+      false,
+    );
   });
 });
 

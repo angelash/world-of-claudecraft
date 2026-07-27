@@ -1,6 +1,8 @@
 /* Fork-local index overrides preserved across upstream CSS extraction.
  * Keep this file as the single CSS integration point for fork shell and hosted play behavior. */
 
+@layer components {
+
 .ai-reaction-badge { position: absolute; left: 0; top: 0; max-width: 150px; pointer-events: none;
     border: 1px solid #6f8a55; border-radius: 999px; padding: 3px 9px; color: #f3ffe6;
     background: rgba(17, 28, 16, 0.92); font: 800 10px/1.2 var(--title-font); text-align: center;
@@ -256,6 +258,11 @@ body.mobile-touch #hosted-play-window {
     overflow: hidden;
     z-index: 95;
   }
+
+/* The remaining portrait/landscape rules came from the pre-v0.29 mobile HUD.
+ * Keep them inert as merge history while the official hud-mobile layer owns
+ * actionable layout, safe areas, and the quest tracker on both entry pages. */
+@media not all {
 
 @media (orientation: portrait) {
   body.mobile-touch .mobile-joystick {
@@ -572,4 +579,7 @@ body.mobile-touch #hosted-play-window {
   body.mobile-touch #party-frames .pfm-aura-stacks {
         font-size: 6px;
       }
+}
+
+}
 }

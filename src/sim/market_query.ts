@@ -20,13 +20,16 @@ export const MARKET_ITEM_TYPE_FILTERS = [
 ] as const;
 export const MARKET_ARMOR_TYPE_FILTERS = [
   'all',
+  'offhand',
   'helmet',
+  'neck',
   'shoulder',
   'chest',
   'waist',
   'legs',
   'gloves',
   'feet',
+  'ring',
 ] as const;
 export const MARKET_WEAPON_TYPE_FILTERS = [
   'all',
@@ -37,7 +40,15 @@ export const MARKET_WEAPON_TYPE_FILTERS = [
   'axe',
   'other',
 ] as const;
-export const MARKET_RARITY_FILTERS = ['all', 'poor', 'common', 'uncommon', 'rare', 'epic'] as const;
+export const MARKET_RARITY_FILTERS = [
+  'all',
+  'poor',
+  'common',
+  'uncommon',
+  'rare',
+  'epic',
+  'legendary',
+] as const;
 
 // Listings per browse page (the count of OTHER sellers' listings shown at a time;
 // the player's own listings are always wired on top for quick reclaim).

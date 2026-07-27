@@ -149,7 +149,11 @@ describe('prepare_ai_review: event and prompt validation', () => {
     } finally {
       fs.rmSync(fixture, { recursive: true, force: true });
     }
-  }, 30_000);
+  // The nested Git checkout and static-harness copy take ~24s on Windows in
+  // isolation and can cross 30s while the full suite is transforming in
+  // parallel. Keep a bounded integration budget without making fast unit arms
+  // inherit it.
+  }, 60_000);
 });
 
 describe('post_ai_review: structured output', () => {

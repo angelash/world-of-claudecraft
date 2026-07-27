@@ -2,31 +2,61 @@ import type { SimEvent } from '../../src/sim/types';
 import WebSocket from 'ws';
 
 const DELTA_SELF_KEYS = [
-  'inv',
-  'buyback',
-  'equip',
-  'cosmetics',
-  'qlog',
-  'qdone',
-  'lockouts',
-  'milestones',
-  'cds',
-  'stats',
-  'weapon',
-  'party',
-  'marks',
-  'trade',
-  'duel',
+  'achg',
+  'achr',
   'arena',
-  'market',
-  'lroll',
-  'drun',
-  'dcompanion',
-  'dmarks',
-  'dcomp',
+  'atitle',
+  'bags',
+  'bank',
+  'buyback',
+  'cardDuel',
+  'cds',
+  'corpse',
+  'cosmetics',
+  'cprof',
   'dclears',
+  'dcomp',
+  'dcompanion',
+  'deeds',
   'delveDaily',
+  'denc',
+  'df',
+  'dfb',
+  'dmarks',
+  'drun',
+  'dstats',
+  'duel',
+  'ench',
+  'equip',
+  'gprof',
+  'hbl',
+  'honor',
+  'inv',
+  'lhonor',
+  'lockouts',
+  'lroll',
+  'lrollg',
+  'mail',
+  'mailU',
+  'market',
+  'marks',
+  'milestones',
+  'mst',
+  'ncd',
+  'party',
+  'prof',
+  'qdone',
+  'qlog',
+  'renown',
+  'salv',
+  'sport',
+  'stats',
   'tal',
+  'tfocus',
+  'trade',
+  'vcup',
+  'vcupb',
+  'weapon',
 ];
 const ENTITY_IDENTITY_KEYS = ['k', 'tid', 'nm', 'lv', 'sc', 'c', 'dgn', 'obj'];
 
@@ -38,7 +68,7 @@ export interface AmbientPlayerBotWireSelf {
   [key: string]: unknown;
 }
 
-export type AmbientPlayerBotPresenceStatus = 'online' | 'combat' | 'dungeon' | 'dead';
+export type AmbientPlayerBotPresenceStatus = 'online' | 'combat' | 'dungeon' | 'dead' | 'afk';
 
 export interface AmbientPlayerBotFriendInfo {
   id: number;
@@ -394,7 +424,13 @@ function cloneSocialInfo(value: AmbientPlayerBotSocialInfo | null): AmbientPlaye
 }
 
 function presenceStatusValue(value: unknown): value is AmbientPlayerBotPresenceStatus {
-  return value === 'online' || value === 'combat' || value === 'dungeon' || value === 'dead';
+  return (
+    value === 'online' ||
+    value === 'combat' ||
+    value === 'dungeon' ||
+    value === 'dead' ||
+    value === 'afk'
+  );
 }
 
 function finiteNumber(value: unknown): number | null {

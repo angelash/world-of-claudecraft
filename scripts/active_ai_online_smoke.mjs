@@ -176,10 +176,11 @@ async function main() {
   const username = `active_ai_${uniq}`;
   const charName = `Aivox${alpha}`;
   const password = 'hunter22';
+  const email = `${username}@example.com`;
 
   const registered = await api('/api/register', {
     method: 'POST',
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, email }),
   });
   if (registered.status === 200 && registered.body.token) ok('register account');
   else no('register account', `status=${registered.status} error=${registered.body.error ?? 'unknown'}`);

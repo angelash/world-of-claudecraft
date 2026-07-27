@@ -654,11 +654,11 @@ describe('server AI interact command', () => {
         expect(context.entity.kind).toBe('object');
         expect(context.recentObservations).toContain('suggestedLineId:hudChrome.aiSpeech.objectInspectGrave');
         expect(context.recentObservations.some((observation) =>
-          observation.startsWith('worldDirector:covetous:redbrook_blade:'))).toBe(true);
+          observation.startsWith('worldDirector:uncanny:redbrook_blade:'))).toBe(true);
         expect(context.directorProposals).toContainEqual(expect.objectContaining({
-          intent: 'nudgeNpcRumor',
+          intent: 'raiseCampCaution',
           targetRef: 'redbrook_blade',
-          suggestedLineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+          suggestedLineId: 'hudChrome.aiSpeech.worldDirectorUncanny',
         }));
         expect(context.memorySignals?.some((record) =>
           record.kind === 'worldDirectorState' && record.itemId === 'redbrook_blade')).toBe(true);
@@ -691,6 +691,7 @@ describe('server AI interact command', () => {
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'redbrook_blade', count: 1 }));
     await flushAi();
     fc.sent.length = 0;
+    const metricsBeforeInspection = (server as any).aiLifeLayer.runtimeMetrics();
     (server as any).aiLifeLayer.provider = provider;
     server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'ai_inspect_object', object: object.id, locale: 'en' }));
     await flushAi();
@@ -721,10 +722,10 @@ describe('server AI interact command', () => {
       pid: session.pid,
     }));
     expect((server as any).aiLifeLayer.runtimeMetrics()).toMatchObject({
-      providerCalls: 1,
-      providerSuccesses: 1,
-      acceptedDecisions: 1,
-      providerErrors: 0,
+      providerCalls: metricsBeforeInspection.providerCalls + 1,
+      providerSuccesses: metricsBeforeInspection.providerSuccesses + 1,
+      acceptedDecisions: metricsBeforeInspection.acceptedDecisions + 1,
+      providerErrors: metricsBeforeInspection.providerErrors,
     });
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questLog])).toBe(beforeQuestLog);
     expect(JSON.stringify([...server.sim.meta(session.pid)!.questsDone])).toBe(beforeDone);

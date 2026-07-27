@@ -62,8 +62,42 @@ CREATE INDEX IF NOT EXISTS ai_audit_records_player_created
   ON ai_audit_records (realm, player_entity_id, created_at DESC);
 `;
 
+export const AI_AUDIT_RETENTION_INDEX_SQL = `
+CREATE INDEX CONCURRENTLY IF NOT EXISTS ai_audit_records_retention
+  ON ai_audit_records(created_at, id);
+`;
+
+export const AI_AUDIT_RETENTION_INVALID_INDEX_CHECK_SQL = `
+SELECT 1
+  FROM pg_index i
+ WHERE i.indexrelid = to_regclass('ai_audit_records_retention')
+   AND NOT i.indisvalid
+`;
+
+export const AI_AUDIT_RETENTION_INVALID_INDEX_DROP_SQL =
+  'DROP INDEX CONCURRENTLY IF EXISTS ai_audit_records_retention';
+
 interface QueryablePool {
   query(sql: string, values?: readonly unknown[]): Promise<{ rows: Array<Record<string, unknown>>; rowCount?: number | null }>;
+}
+
+export async function pruneAiAuditRecordsBatch(
+  db: QueryablePool | Pool,
+  retentionDays: number,
+  batchSize: number,
+): Promise<number> {
+  if (!Number.isFinite(retentionDays) || retentionDays <= 0) return 0;
+  const days = Math.max(1, Math.floor(retentionDays));
+  const res = await db.query(
+    `DELETE FROM ai_audit_records
+      WHERE id IN (
+        SELECT id FROM ai_audit_records
+         WHERE created_at < now() - make_interval(days => $1::int)
+         ORDER BY created_at, id
+         LIMIT $2)`,
+    [days, Math.max(1, Math.floor(batchSize))],
+  );
+  return Math.max(0, Math.floor(res.rowCount ?? 0));
 }
 
 export interface AiAuditRecentRecordOptions {

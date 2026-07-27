@@ -320,6 +320,7 @@ function makeCtx() {
     startAutoAttack: vi.fn(),
     revivePet: vi.fn(),
     completeFishing: vi.fn(),
+    completeGatherCast: vi.fn(),
     applyDemonHealTick: vi.fn(),
     awardCombo: vi.fn(),
     meleeSwing: vi.fn(() => false),
@@ -353,6 +354,7 @@ function makeCtx() {
     // Ravenpost mail: the quest turn-in letter hook.
     queueQuestLetter: vi.fn(),
     mailHeroicMarks: vi.fn(),
+    mailAuthoredLetter: vi.fn(),
     applySetProcs: vi.fn(),
     // The Vale Cup sport-move arms.
     vcupBallKick: vi.fn(),

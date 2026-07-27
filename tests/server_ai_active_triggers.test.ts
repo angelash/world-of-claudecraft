@@ -188,6 +188,40 @@ function moveServerEntity(server: GameServer, entityId: number, x: number, z: nu
   if (entity.kind === 'player') server.sim.playerGrid.update(entity);
 }
 
+function isolateCandidate(
+  server: GameServer,
+  targetId: number,
+  kind: 'npc' | 'mob',
+): void {
+  const target = server.sim.entities.get(targetId);
+  if (!target) throw new Error('missing isolation target');
+  for (const entity of [...server.sim.entities.values()]) {
+    if (entity.kind !== kind || entity.id === targetId) continue;
+    moveServerEntity(
+      server,
+      entity.id,
+      target.pos.x + 80 + entity.id,
+      target.pos.z + 80 + entity.id,
+    );
+  }
+}
+
+function isolateOfficialProfessionMasters(server: GameServer, x: number, z: number): void {
+  const professionMasters = new Set([
+    'alchemist_verane',
+    'cook_marlow',
+    'forgemistress_darva',
+    'tanner_hesk',
+    'tinker_gizzel',
+    'weaver_ottilie',
+  ]);
+  for (const entity of [...server.sim.entities.values()]) {
+    if (entity.kind === 'npc' && professionMasters.has(entity.templateId)) {
+      moveServerEntity(server, entity.id, x + 80 + entity.id, z + 80 + entity.id);
+    }
+  }
+}
+
 function eventsOf(fc: FakeClient, type: string): any[] {
   return fc.sent
     .flatMap((msg: any) => (msg.t === 'events' ? msg.list : []))
@@ -227,6 +261,7 @@ describe('server AI active triggers', () => {
     const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
     if (!npc) throw new Error('missing Brother Aldric');
     teleportNear(server, session.pid, npc.id);
+    isolateCandidate(server, npc.id, 'npc');
     const before = mainlineSnapshot(server, session.pid);
     fc.sent.length = 0;
     let runtimeBeforeStop: ReturnType<GameServer['aiActiveTriggerDiagnostics']>['runtime'] | null = null;
@@ -280,6 +315,7 @@ describe('server AI active triggers', () => {
     const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
     if (!npc) throw new Error('missing Brother Aldric');
     teleportNear(server, session.pid, npc.id);
+    isolateCandidate(server, npc.id, 'npc');
     session.lastActivityAt = -60_000;
     fc.sent.length = 0;
 
@@ -308,6 +344,7 @@ describe('server AI active triggers', () => {
     const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
     if (!npc) throw new Error('missing Brother Aldric');
     teleportNear(server, session.pid, npc.id);
+    isolateCandidate(server, npc.id, 'npc');
     session.lastActivityAt = -60_000;
     server.sim.addItem('roasted_boar', 1, session.pid);
     fc.sent.length = 0;
@@ -360,6 +397,7 @@ describe('server AI active triggers', () => {
     const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
     if (!npc) throw new Error('missing Brother Aldric');
     teleportNear(server, session.pid, npc.id);
+    isolateCandidate(server, npc.id, 'npc');
     const before = mainlineSnapshot(server, session.pid);
     fc.sent.length = 0;
 
@@ -442,6 +480,7 @@ describe('server AI active triggers', () => {
     if (!wolf) throw new Error('missing forest wolf');
     moveServerEntity(server, wolf.id, 80, 86);
     teleportNear(server, session.pid, wolf.id);
+    isolateCandidate(server, wolf.id, 'mob');
     const before = mainlineSnapshot(server, session.pid);
     fc.sent.length = 0;
 
@@ -476,6 +515,7 @@ describe('server AI active triggers', () => {
     if (!npc) throw new Error('missing Brother Aldric');
     server.sim.time = 8 * 60;
     teleportNear(server, session.pid, npc.id);
+    isolateCandidate(server, npc.id, 'npc');
     const home = { ...npc.spawnPos };
     const before = mainlineSnapshot(server, session.pid);
     fc.sent.length = 0;
@@ -511,6 +551,7 @@ describe('server AI active triggers', () => {
     if (!npc) throw new Error('missing Apothecary Lin');
     server.sim.time = 8 * 60;
     teleportNear(server, session.pid, npc.id);
+    isolateCandidate(server, npc.id, 'npc');
     const before = mainlineSnapshot(server, session.pid);
     fc.sent.length = 0;
 
@@ -548,6 +589,7 @@ describe('server AI active triggers', () => {
     moveServerEntity(server, merchant.id, 9, 17);
     moveServerEntity(server, marshal.id, 12, 17);
     moveServerEntity(server, session.pid, 9, 18);
+    isolateOfficialProfessionMasters(server, 9, 17);
     const before = mainlineSnapshot(server, session.pid);
     fc.sent.length = 0;
 
@@ -622,6 +664,7 @@ describe('server AI active triggers', () => {
     const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
     if (!npc) throw new Error('missing Brother Aldric');
     teleportNear(server, session.pid, npc.id);
+    isolateCandidate(server, npc.id, 'npc');
     session.lastActivityAt = -60_000;
     fc.sent.length = 0;
 
@@ -690,6 +733,7 @@ describe('server AI active triggers', () => {
     const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
     if (!npc) throw new Error('missing Brother Aldric');
     teleportNear(server, session.pid, npc.id);
+    isolateCandidate(server, npc.id, 'npc');
     session.lastActivityAt = -60_000;
     server.sim.addItem('roasted_boar', 1, session.pid);
     fc.sent.length = 0;
