@@ -221,6 +221,7 @@ import { emoteIconUrl } from './emote_icons';
 import {
   applyEnchantResultToast,
   disenchantResultToast,
+  disenchantSecondaryLineKey,
   salvageResultToast,
 } from './enchanting_view';
 import {
@@ -250,6 +251,13 @@ import {
   gatherRareTierFor,
   gatherToolNoNodeKey,
 } from './gathering_view';
+import {
+  craftedLineKey,
+  gatherLineKey,
+  grantItemToken,
+  grantQtyText,
+  harvestLineKey,
+} from './grant_line_view';
 import { isSelfOnlyAbility } from './hud/action_bar/ability_self_only';
 import {
   handleShiftClearContextMenu,
@@ -301,7 +309,6 @@ import {
   HOTBAR_ACTION_MIME,
   type HotbarAction,
   handleMobileAttackTap,
-  loadAttackSlotAction,
   loadoutKnownAbilityIds,
   parseHotbarAction,
   placeAbilityOnSlot,
@@ -311,6 +318,7 @@ import {
 } from './hud/action_bar/hotbar';
 import {
   clampMobilePage,
+  mobileActionSourceSlotCount,
   mobilePageCount,
   nextMobilePage,
   sourceSlotForMobileButton,
@@ -509,7 +517,7 @@ import type { PresetId, ThemeKnob, ThemeState } from './theme';
 import { SharedTooltipOwner } from './tooltip_owner';
 import { TOOLTIP_PEEK_MS, TouchPeekGuard } from './touch_peek';
 import { bindTouchDoubleTap, bindTouchTap, CLICK_SUPPRESS_MS, TAP_SLOP_PX } from './touch_tap';
-import { buildTownFocusView, stepTownFocus } from './town_focus_view';
+import { buildTownFocusView, stepTownFocus, townFocusRenderSig } from './town_focus_view';
 import { renderTownFocusWindow } from './town_focus_window';
 import { TutorialOverlay } from './tutorial';
 import { svgIcon } from './ui_icons';
@@ -532,9 +540,7 @@ import { ValeCupWindow, vcupNationName } from './vale_cup_window';
 import { nextVoicedYell, type VoicedYellState, voicedYellGain } from './voice_events';
 import {
   onWalletUiChange,
-  verifiedWocBalance,
   walletConnectionView,
-  walletDisplayAvailable,
   walletUiEnabled,
   wocBalance,
   wocBalanceVerified,
@@ -3734,8 +3740,8 @@ export class Hud {
     isTouchHud: () => document.body.classList.contains('mobile-touch'),
     markEquipDropTargets: (itemId) => this.charWindow.markDropTargets(itemId),
     dropOnEquipSlot: (itemId, slot) => this.charWindow.dropOnEquipSlot(itemId, slot),
-    openItemActionMenu: (def, itemId, x, y, runDefault) =>
-      this.bagItemActionMenu.open(def, itemId, x, y, runDefault),
+    openItemActionMenu: (def, itemId, slotIndex, x, y, runDefault) =>
+      this.bagItemActionMenu.open(def, itemId, slotIndex, x, y, runDefault),
   });
   // Bag-item action menu (Professions 2.0): the right-click / touch
   // menu that surfaces Disenchant / Salvage / Apply Enchant on a bag stack.
@@ -5094,6 +5100,10 @@ export class Hud {
     // The keyed-pool party rows reuse their DOM, so a rebuild never re-runs t() on
     // their badge tooltips / leave label; re-localize them in place on a switch.
     this.partyFramesPainter.relocalize();
+    // The world map rasterizes its labels into sprites keyed on the RESOLVED
+    // string, so a switch can never draw the old language; clearing is about not
+    // carrying dead rasters in the sprite budget.
+    this.mapPainter.relocalize();
     // The unit-frame move/lock buttons' labels are set once at construction + on
     // toggle, so re-localize them in place on a language switch (same reason as
     // the party rows above).
@@ -5110,6 +5120,12 @@ export class Hud {
       this.renderTrain();
     if (this.openUnbindNpcId !== null && $('#unbind-window').style.display === 'block')
       this.renderUnbind();
+    // The Town Focus signature is text-independent (the allocation, the budget
+    // and the in-town flag), so a language switch alone never moves it and the
+    // slow-band probe would leave the panel in the old locale until the player
+    // edited it. Force one rebuild with fresh t(), the arena / Vale Cup
+    // relocalize arm (#2500).
+    if (this.townFocusOpen) this.renderTownFocus();
     if (this.marketWindow.isOpen) this.marketWindow.render();
     if (this.bankWindow.isOpen) this.bankWindow.render();
     if (this.deedsWindow.isOpen) this.deedsWindow.render();
@@ -5279,12 +5295,12 @@ export class Hud {
     if (!this.actionBarController.syncActiveForm()) return;
     this.dragAction = null;
     this.clearMobileHotbarDrag();
-    this.mobileActionPage = clampMobilePage(this.mobileActionPage);
+    this.mobileActionPage = this.currentMobileActionPage();
   }
 
   private syncSlotMap(): void {
     this.actionBarController.syncKnownAbilities();
-    this.mobileActionPage = clampMobilePage(this.mobileActionPage);
+    this.mobileActionPage = this.currentMobileActionPage();
   }
 
   private attackSlotIsAttack(): boolean {
@@ -5676,6 +5692,27 @@ export class Hud {
     }
   }
 
+  private mobileActionSourceSlotCount(): number {
+    return mobileActionSourceSlotCount({
+      secondary: Boolean(this.optionsHooks?.settings.get('showSecondaryActionBar')),
+      third: Boolean(this.optionsHooks?.settings.get('showThirdActionBar')),
+    });
+  }
+
+  private mobileActionPageCount(): number {
+    return mobilePageCount(this.mobileActionSourceSlotCount());
+  }
+
+  private currentMobileActionPage(): number {
+    const page = clampMobilePage(this.mobileActionPage, this.mobileActionPageCount());
+    this.mobileActionPage = page;
+    return page;
+  }
+
+  private mobileSourceSlotForButton(buttonIndex: number): number {
+    return sourceSlotForMobileButton(this.currentMobileActionPage(), buttonIndex);
+  }
+
   // Advance the mobile action ring to its next page. Mutates mobileActionPage
   // ONLY: the ring descriptor's per-slot closures (built once in buildActionBar)
   // resolve sourceSlotForMobileButton(mobileActionPage, i) fresh every tick, so no
@@ -5683,7 +5720,7 @@ export class Hud {
   // state lives on hotbarActions + sim, not on the view). The next update() call
   // repaints the ring from the new page.
   private cycleMobileActionPage(): void {
-    this.mobileActionPage = nextMobilePage(this.mobileActionPage);
+    this.mobileActionPage = nextMobilePage(this.mobileActionPage, this.mobileActionPageCount());
   }
 
   private flashActionSlot(barSlot: number): void {
@@ -5698,7 +5735,7 @@ export class Hud {
       return;
     }
     for (let i = 0; i < this.mobileRingSlotBtns.length; i++) {
-      if (sourceSlotForMobileButton(this.mobileActionPage, i) === barSlot) {
+      if (this.mobileSourceSlotForButton(i) === barSlot) {
         this.flashActionButton(this.mobileRingSlotBtns[i]);
         return;
       }
@@ -6132,7 +6169,7 @@ export class Hud {
       attackBtn.blur();
     });
     slotBtns.forEach((btn, i) => {
-      this.bindEmpoweredActionHold(btn, () => sourceSlotForMobileButton(this.mobileActionPage, i));
+      this.bindEmpoweredActionHold(btn, () => this.mobileSourceSlotForButton(i));
       bindTouchTap(btn, () => {
         // A tap that ends a long-press drag (even one released back on its own
         // slot, a cancel) must not also cast: bindMobileRingDrag arms this flag
@@ -6145,7 +6182,7 @@ export class Hud {
         this.peekGuard.consume();
         this.hideTooltip();
         audio.click();
-        this.castSlot(sourceSlotForMobileButton(this.mobileActionPage, i));
+        this.castSlot(this.mobileSourceSlotForButton(i));
         btn.blur();
       });
       this.bindMobileRingDrag(btn, i);
@@ -6180,10 +6217,9 @@ export class Hud {
           ...Array.from({ length: 5 }, (_, i) => ({
             slotIndex: i + 1,
             isAttack: () => false,
-            hasAction: () =>
-              this.actionForSlot(sourceSlotForMobileButton(this.mobileActionPage, i)) !== null,
-            ability: () => this.abilityForSlot(sourceSlotForMobileButton(this.mobileActionPage, i)),
-            item: () => this.itemForSlot(sourceSlotForMobileButton(this.mobileActionPage, i)),
+            hasAction: () => this.actionForSlot(this.mobileSourceSlotForButton(i)) !== null,
+            ability: () => this.abilityForSlot(this.mobileSourceSlotForButton(i)),
+            item: () => this.itemForSlot(this.mobileSourceSlotForButton(i)),
             keybindLabel: () => '',
           })),
         ],
@@ -6495,7 +6531,7 @@ export class Hud {
   private bindMobileRingDrag(btn: HTMLButtonElement, ringIndex: number): void {
     btn.addEventListener('pointerdown', (e) => {
       if (!document.body.classList.contains('mobile-touch') || e.pointerType !== 'touch') return;
-      const sourceSlot = sourceSlotForMobileButton(this.mobileActionPage, ringIndex);
+      const sourceSlot = this.mobileSourceSlotForButton(ringIndex);
       if (this.empoweredAbilityIdForSlot(sourceSlot)) return;
       if (!this.actionForSlot(sourceSlot)) return;
       this.clearMobileHotbarDrag();
@@ -6538,9 +6574,7 @@ export class Hud {
       e.preventDefault();
       const targetRingIndex = this.mobileRingSlotFromPoint(e.clientX, e.clientY);
       const targetIndex =
-        targetRingIndex !== null
-          ? sourceSlotForMobileButton(this.mobileActionPage, targetRingIndex) - 1
-          : null;
+        targetRingIndex !== null ? this.mobileSourceSlotForButton(targetRingIndex) - 1 : null;
       drag.targetIndex = targetIndex;
       this.clearActionDropTargets();
       const targetBtn = targetRingIndex !== null ? this.mobileRingSlotBtns[targetRingIndex] : null;
@@ -7098,17 +7132,14 @@ export class Hud {
       this.mobileDailyRewardsButtonEl?.classList.remove('spin-ready');
   }
 
-  private setDailyRewardsChestButtonPreference(show: boolean): void {
-    if (this.optionsHooks) {
-      this.optionsHooks.onSettingChange('showDailyRewardsChest', show);
-      return;
-    }
-    this.setDailyRewardsChestButtonVisible(show);
-  }
-
   setDailyRewardsChestButtonVisible(show: boolean): void {
     this.applyDailyRewardsChestButtonVisibility(show);
     if (show) this.refreshDailyRewardsLauncher(true);
+  }
+
+  setDailyRewardsChestButtonPreference(show: boolean): void {
+    this.optionsHooks?.onSettingChange('showDailyRewardsChest', show);
+    this.setDailyRewardsChestButtonVisible(show);
   }
 
   private applyDailyRewardsLauncherStatus(status: DailyRewardStatus): void {
@@ -7203,7 +7234,11 @@ export class Hud {
       const inTown = this.isInTown();
       const townFocusBtn = document.getElementById('mm-town-focus');
       if (townFocusBtn) townFocusBtn.style.display = inTown ? '' : 'none';
-      if (this.townFocusOpen) this.renderTownFocus();
+      // An open panel converges on the same band, behind its own invalidation
+      // signature (#2500): the probe reads cheaply and rebuilds only when what
+      // the panel shows moves. Walking in or out of town is one of the inputs
+      // it carries, so the panel's disabled state follows the button above.
+      this.refreshOpenTownFocusIfChanged();
       // Crafting window staleness: the
       // window is a cold painter, so an open window repaints only when the
       // in-range station-type set changes (walking in/out of a station's
@@ -7559,14 +7594,17 @@ export class Hud {
     // stay undefined when the ring DOM never got built, e.g. an older cached
     // template). Reuses the exact same world snapshot as the desktop bar.
     if (this.isMobileLayout() && this.mobileActionRingView && this.mobileActionRingPainter) {
+      const mobileActionPage = this.currentMobileActionPage();
+      const mobileActionSourceSlotCount = this.mobileActionSourceSlotCount();
       this.mobileActionRingPainter.paint(
         this.mobileActionRingView.tick({
           player: abPlayer,
           target: target ?? null,
           inventory: sim.inventory,
         }),
-        this.mobileActionPage,
-        mobilePageCount(),
+        mobileActionPage,
+        mobilePageCount(mobileActionSourceSlotCount),
+        mobileActionSourceSlotCount,
         this.attackSlotIsAttack(),
       );
     }
@@ -7873,6 +7911,10 @@ export class Hud {
     const el = $('#market-indicator') as HTMLButtonElement | null;
     if (!el) return;
     this.marketIndicatorEl = el;
+    this.attachTooltip(
+      el,
+      () => `<div class="tt-sub">${esc(t('hudChrome.marketIndicator.tip'))}</div>`,
+    );
     const activate = () => {
       // At the Merchant the coin opens the World Market (the same gate the
       // market window itself lives behind); anywhere else it is informational
@@ -8772,7 +8814,8 @@ export class Hud {
         if (swing && src) {
           this.combat(swing, src.pos.x, src.pos.y, src.pos.z, 1.0, { cooldown: 0.08 });
         }
-        if ((ev.absorbed ?? 0) > 0) this.combat('combat_block', tp.x, tp.y, tp.z, 0.55);
+        if ((ev.absorbed ?? 0) > 0 || ev.kind === 'block')
+          this.combat('combat_block', tp.x, tp.y, tp.z, 0.55);
         // The miss/dodge/resist/parry "avoid" cues are interface feedback (they report
         // an outcome, not a world impact), so the Interface & Feedback Sounds toggle
         // silences them. The early return stays either way, so a muted avoid never
@@ -9468,7 +9511,15 @@ export class Hud {
         case 'comboPoint':
           break;
         case 'loot': {
-          this.log(this.localizeLootText(ev.text), '#7fdc4f');
+          // callerLogs: a professions grant whose own result event (gatherResult
+          // / fishingResult / craftResult / disenchantResult / salvageResult /
+          // enchantResult) renders the player-visible line for this same grant,
+          // richer than this one (rolled quality color, quantity, a clickable
+          // item link). The hub line stands down so one action prints one line
+          // (#2430). Everything else in this arm still runs for those grants:
+          // the loot-roll close below, the bag refresh, and the independent
+          // audio guard.
+          if (!ev.callerLogs) this.log(this.localizeLootText(ev.text), '#7fdc4f');
           if (
             / wins .+ \(\d+\)$/.test(ev.text) ||
             /^Everyone passed on .+\.$/.test(ev.text) ||
@@ -9476,9 +9527,14 @@ export class Hud {
             /^.+ was not assigned and is free for all\.$/.test(ev.text)
           )
             this.lootRolls.closeForItem(ev.text);
-          // silent: a professions grant (gather/craft/enchant) with its own
-          // dedicated cue for this same grant sets this so the generic ding
-          // doesn't stack on top of it; the text line above still prints.
+          // silent: the audio half of the same idea, and independent of it (a
+          // caller can own the cue without owning the line). A professions
+          // grant sets this when it owns the cue for the same grant: it has a
+          // dedicated one and the generic ding would stack on top, or it
+          // replays that same ding itself exactly once for a whole multi-item
+          // command (the harvestResult arm below), or its result event is
+          // cue-free by contract and the ding would be the only sound at all
+          // (the Maker's Bond unbind, #2458).
           if (!ev.silent) {
             if (
               ev.text.includes('loot') ||
@@ -9498,9 +9554,20 @@ export class Hud {
           // instead of polling every frame.
           this.craftTierUpDrains = CRAFT_TIER_UP_DRAIN_WINDOW;
           if (ev.ok && ev.itemId) {
-            const item = ITEMS[ev.itemId];
-            const name = item ? itemDisplayName(item) : ev.itemId;
-            this.log(t('hudChrome.crafting.craftedToast', { name }), '#7fdc4f');
+            // The ONLY line for the craft grant: the hub's 'loot' events are
+            // emitted both silent and callerLogs for every craft-output grant
+            // (see crafting.ts), so this line has to carry what they used to,
+            // the output count of a resultCount > 1 recipe included (#2430).
+            // The line keeps its loot-family green; the output's quality now
+            // rides the item link's own color, which is where a player reads
+            // it everywhere else in chat.
+            this.log(
+              t(craftedLineKey(ev.count), {
+                name: grantItemToken(ev.itemId),
+                qty: grantQtyText(ev.count),
+              }),
+              '#7fdc4f',
+            );
             const recipe = ALL_RECIPES.find((r) => r.id === ev.recipeId);
             audio.craftSuccess(recipe?.professionId ?? '');
             // Masterwork layers alongside the family cue above, never replaces
@@ -9632,11 +9699,12 @@ export class Hud {
           break;
         }
         case 'masterwork': {
-          // Personal masterwork proc (Professions 2.0). The grant hub
-          // already printed the loot line + cue and the craftResult arm above
-          // already logged craftedToast + lootItem, so this arm re-logs no
-          // grant and re-cues no lootItem: it only feeds the drain-end
-          // celebration plan (banner + toast + ONE audio.achievement).
+          // Personal masterwork proc (Professions 2.0). The craftResult arm
+          // above already logged the crafted line and played the craft cue,
+          // and since #2430 that line is the only one for the craft grant (the
+          // grant hub's own line and ding stand down for it), so this arm
+          // re-logs no grant and re-cues no lootItem: it only feeds the
+          // drain-end celebration plan (banner + toast + ONE audio.achievement).
           masterworkItemId = ev.itemId;
           break;
         }
@@ -9669,28 +9737,63 @@ export class Hud {
         case 'gatherResult': {
           // Harvest feedback line (Professions 2.0), colored by rolled
           // material rarity. Identical on every graphics tier (player feedback
-          // is never profile-gated). The grant hub's own 'loot' event still
-          // prints the "You receive:" line (distinct gather wording here so
-          // the two lines never look like a duplicate), but the loot event is
-          // emitted silent for a gather grant (see gathering.ts harvestNode)
-          // specifically so it doesn't stack with the dedicated node-type cue
-          // below. The node-type impact always plays; a rare-or-better
-          // material roll (or any rare-event roll) layers one additional
-          // tiered stinger on top, never a replacement for the impact.
-          const item = ITEMS[ev.itemId];
-          const name = item ? itemDisplayName(item) : ev.itemId;
+          // is never profile-gated). This is the ONLY line for the harvest
+          // grant: the grant hub's own 'loot' event is emitted both silent and
+          // callerLogs for a gather grant (see gathering.ts harvestNode), so
+          // neither the generic ding nor the "You receive:" line stacks on top
+          // of this line and its dedicated node-type cue (#2430). The
+          // node-type impact always plays; a rare-or-better material roll (or
+          // any rare-event roll) layers one additional tiered stinger on top,
+          // never a replacement for the impact.
+          // The LINE color is the rolled rarity (the yield roll), while the
+          // item link inside it paints from the item's own def quality: the
+          // same Copper Ore is granted at every roll, only the qty scales, so
+          // the link must not claim the ore itself got rarer.
           this.log(
-            ev.qty > 1
-              ? t('hudChrome.gathering.gatherLineQty', {
-                  name,
-                  qty: formatNumber(ev.qty, { maximumFractionDigits: 0 }),
-                })
-              : t('hudChrome.gathering.gatherLine', { name }),
+            t(gatherLineKey(ev.qty), {
+              name: grantItemToken(ev.itemId),
+              qty: grantQtyText(ev.qty),
+            }),
             QUALITY_COLOR[ev.rarity],
           );
           audio.gather(ev.nodeType);
           const gatherRareTier = gatherRareTierFor(ev.rarity, ev.rareEvent);
           if (gatherRareTier) audio.gatherRareTier(gatherRareTier);
+          break;
+        }
+        case 'harvestResult': {
+          // Corpse-harvest feedback (#2457): ONE line per distinct granted
+          // item and exactly ONE cue for the whole command. Corpse harvest is
+          // the only profession flow whose single command grants several
+          // distinct items, so the sim sends a LIST and this arm walks it;
+          // before the event existed each of the six internal grants printed
+          // its own hub "You receive:" line and its own generic ding, so a
+          // two-component harvest burst two of each and a specimen proc four.
+          // Every grant behind this event is emitted silent + callerLogs
+          // (src/sim/interaction.ts harvestCorpse), so these lines and the one
+          // cue below are the whole of the harvest's feedback. The list is
+          // never empty (the sim skips the emit on a harvest that landed
+          // nothing), so the cue never fires for a no-op.
+          //
+          // Line color is the ROLLED material rarity, the gatherResult rule:
+          // the item link inside paints from the item's own def quality,
+          // because the same Rough Hide is granted at every roll and the link
+          // must not claim the hide itself got rarer.
+          for (const y of ev.yields) {
+            this.log(
+              t(harvestLineKey(y), {
+                name: grantItemToken(y.itemId),
+                qty: grantQtyText(y.qty),
+              }),
+              QUALITY_COLOR[y.rarity],
+            );
+          }
+          // The generic pickup ding, played ONCE for the command rather than
+          // once per component. A node harvest has a dedicated per-node-type
+          // recording (audio.gather above); a corpse harvest has never had one
+          // of its own, so it keeps the sound it has always made and the fix
+          // here is purely that it stops stacking.
+          audio.lootItem();
           break;
         }
         case 'gatherDenied': {
@@ -9723,27 +9826,53 @@ export class Hud {
         }
         case 'disenchantResult': {
           // Enchanting disenchant outcome (Professions 2.0): text-free,
-          // so enchanting_view.ts maps the event to its key + sink and the item
-          // name interpolates. The grant hub's own 'loot' events already print
-          // the material yield lines, so success is a distinct action line (the
-          // gatherResult pattern), never a second receive notification.
+          // so enchanting_view.ts maps the event to its key + sink and the
+          // names interpolate. The success line is the ONLY line for the whole
+          // action now that the hub's 'loot' events stand down for it
+          // (callerLogs, see enchanting.ts resolveDisenchant), so it names both
+          // the piece that was consumed and the material that came back; a
+          // rare+ yield's typed secondary is a different item, so it takes one
+          // extra line rather than being folded into this one (#2430).
+          // Item-link tokens only expand on the chat log, never in showError,
+          // so the deny arm stays name-free.
           const toast = disenchantResultToast(ev);
-          const item = ITEMS[ev.itemId];
-          const params = { item: item ? itemDisplayName(item) : ev.itemId };
           if (toast.sink === 'log') {
-            this.log(t(toast.key, params), '#7fdc4f');
+            this.log(
+              t(toast.key, {
+                item: grantItemToken(ev.itemId),
+                material: ev.materialItemId ? grantItemToken(ev.materialItemId) : '',
+                qty: grantQtyText(ev.count),
+              }),
+              '#7fdc4f',
+            );
+            const secondary = disenchantSecondaryLineKey(ev);
+            if (secondary && ev.secondaryItemId)
+              this.log(
+                t(secondary, {
+                  material: grantItemToken(ev.secondaryItemId),
+                  qty: grantQtyText(ev.secondaryCount),
+                }),
+                '#7fdc4f',
+              );
             audio.disenchant();
           } else this.showError(t(toast.key));
           break;
         }
         case 'salvageResult': {
           // Enchanting salvage outcome (Professions 2.0): same shape as
-          // disenchantResult above.
+          // disenchantResult above, minus the secondary (salvage yields one
+          // material). Its success line names the consumed piece and the
+          // reclaimed material for the same reason.
           const toast = salvageResultToast(ev);
-          const item = ITEMS[ev.itemId];
-          const params = { item: item ? itemDisplayName(item) : ev.itemId };
           if (toast.sink === 'log') {
-            this.log(t(toast.key, params), '#7fdc4f');
+            this.log(
+              t(toast.key, {
+                item: grantItemToken(ev.itemId),
+                material: ev.materialItemId ? grantItemToken(ev.materialItemId) : '',
+                qty: grantQtyText(ev.count),
+              }),
+              '#7fdc4f',
+            );
             audio.salvage();
           } else this.showError(t(toast.key));
           break;
@@ -9751,13 +9880,16 @@ export class Hud {
         case 'enchantResult': {
           // Apply-enchant outcome (Professions 2.0): the success line
           // names the item AND the enchant (enchantName.<id>, its first render
-          // sink); every deny is an error toast.
+          // sink); every deny is an error toast. The ONLY line for the action:
+          // the bagged arms re-mint the player's own copy through the grant
+          // hub, whose "You receive:" line claimed they had received an item
+          // that never left their bags, and now stands down (#2430). The WORN
+          // arm never reaches the hub at all, so both arms print exactly this.
           const toast = applyEnchantResultToast(ev);
-          const item = ITEMS[ev.itemId];
           if (toast.sink === 'log') {
             this.log(
               t(toast.key, {
-                item: item ? itemDisplayName(item) : ev.itemId,
+                item: grantItemToken(ev.itemId),
                 enchant: t(`hudChrome.enchantName.${ev.enchantId}` as TranslationKey),
               }),
               '#7fdc4f',
@@ -9771,14 +9903,14 @@ export class Hud {
         case 'fishingResult': {
           // Reel-in feedback line (Professions 2.0), colored by the
           // caught item's quality. Identical on every graphics tier (player
-          // feedback is never profile-gated). The grant hub's own 'loot' event
-          // already prints the "You receive:" line and plays the loot cue, so
-          // this line uses distinct reel-in wording; the reel cue
-          // is the splash-and-crank of the landed reel itself, not a second
-          // loot notification.
-          const item = ITEMS[ev.itemId];
+          // feedback is never profile-gated). This is the ONLY line for the
+          // catch grant, and the reel cue (the splash-and-crank of the landed
+          // reel) its only cue: the grant hub's 'loot' event is emitted both
+          // silent and callerLogs for a landed catch (see fishing.ts
+          // completeFishing), which is what stopped a catch printing three
+          // lines and playing two cues (#2430).
           this.log(
-            t('hudChrome.gathering.catchLine', { name: item ? itemDisplayName(item) : ev.itemId }),
+            t('hudChrome.gathering.catchLine', { name: grantItemToken(ev.itemId) }),
             QUALITY_COLOR[ev.quality],
           );
           audio.fishReel();
@@ -12178,7 +12310,8 @@ export class Hud {
         ...this.presentationBag,
         hideTooltip: () => this.hideTooltip(),
         onBuy: (itemId) => buyAndRefresh(() => this.sim.buyItem(npc.id, itemId)),
-        onBuyBack: (itemId) => buyAndRefresh(() => this.sim.buyBackItem(itemId)),
+        onBuyBack: (itemId, index, instance, craftedRecipeId) =>
+          buyAndRefresh(() => this.sim.buyBackItem(itemId, index, instance, craftedRecipeId)),
         onSellJunk: () => buyAndRefresh(() => this.sim.sellAllJunk()),
         onClose: () => this.closeVendor(),
         sellJunk: {
@@ -12384,6 +12517,11 @@ export class Hud {
 
   private townFocusDraft: Record<string, number> | null = null;
 
+  /** The signature of what the panel currently shows (#2500). `''` until the
+   *  first paint arms it, which no real signature can spell (every one carries
+   *  the in-town flag, the budget and a row per component). */
+  private lastTownFocusSig = '';
+
   private isInTown(): boolean {
     const pos = this.sim.player.pos;
     return isInTownZone(pos, zoneAt(pos.z));
@@ -12403,27 +12541,49 @@ export class Hud {
   private renderTownFocus(): void {
     const inTown = this.isInTown();
     const allocation = this.townFocusDraft ?? this.sim.townFocus;
-    renderTownFocusWindow(
-      $('#town-focus-window'),
-      buildTownFocusView(allocation, FOCUS_POINT_BUDGET, inTown),
-      {
-        onStep: (component, delta) => {
-          this.townFocusDraft = stepTownFocus(
-            this.townFocusDraft ?? this.sim.townFocus,
-            component,
-            delta,
-            FOCUS_POINT_BUDGET,
-          );
-          this.renderTownFocus();
-        },
-        onSave: () => {
-          this.sim.setTownFocus(this.townFocusDraft ?? {});
-          this.townFocusDraft = null;
-          this.closeTownFocus();
-        },
-        onClose: () => this.closeTownFocus(),
+    const view = buildTownFocusView(allocation, FOCUS_POINT_BUDGET, inTown);
+    // Re-arm the latch on EVERY paint, whatever caused it (the open, a step, a
+    // language switch), so the slow-band probe below elides against the state
+    // actually on screen rather than against the last thing the probe itself
+    // painted.
+    this.lastTownFocusSig = townFocusRenderSig(view);
+    renderTownFocusWindow($('#town-focus-window'), view, {
+      onStep: (component, delta) => {
+        this.townFocusDraft = stepTownFocus(
+          this.townFocusDraft ?? this.sim.townFocus,
+          component,
+          delta,
+          FOCUS_POINT_BUDGET,
+        );
+        this.renderTownFocus();
       },
+      onSave: () => {
+        this.sim.setTownFocus(this.townFocusDraft ?? {});
+        this.townFocusDraft = null;
+        this.closeTownFocus();
+      },
+      onClose: () => this.closeTownFocus(),
+    });
+  }
+
+  /** Slow-band staleness check for an OPEN panel (#2500). The panel used to
+   *  repaint on the open check alone, so an idle one discarded and rebuilt its
+   *  entire subtree twice a second: wasted work, and it destroyed the keyboard
+   *  user's focused control on a timer. Rebuild only when what the panel shows
+   *  actually moves (an edit to the draft, or walking in or out of town). The
+   *  open check comes FIRST so a closed panel costs nothing at all, and
+   *  renderTownFocus() owns the re-arm so every other paint cause arms it too. */
+  private refreshOpenTownFocusIfChanged(): void {
+    if (!this.townFocusOpen) return;
+    const sig = townFocusRenderSig(
+      buildTownFocusView(
+        this.townFocusDraft ?? this.sim.townFocus,
+        FOCUS_POINT_BUDGET,
+        this.isInTown(),
+      ),
     );
+    if (sig === this.lastTownFocusSig) return;
+    this.renderTownFocus();
   }
 
   closeTownFocus(): void {
@@ -13560,11 +13720,9 @@ export class Hud {
   // applyLoadoutBar back to back).
   private applyLoadoutBar(bar: (string | null)[], alloc: TalentAllocation): void {
     const known = loadoutKnownAbilityIds(this.sim.cfg.playerClass, alloc, this.sim.player.level);
-    this.hotbarActions = applyLoadoutBarActions(
-      this.hotbarActions,
-      bar,
-      Hud.BAR_ABILITY_SLOTS,
-      (id) => known.has(id),
+    this.actionBarController.replaceActionsForLoadout(
+      applyLoadoutBarActions(this.hotbarActions, bar, Hud.BAR_ABILITY_SLOTS, (id) => known.has(id)),
+      known,
     );
     this.saveSlotMap();
   }

@@ -666,7 +666,7 @@ export const zh_TW: EnTranslations = {
       "railSol": "SOL",
       "railUsdc": "USDC",
       "railWoc": "WOC",
-      "railWocDiscount": "優惠 20%",
+      "railWocDiscount": "優惠 {percent}%",
       "railWocUnavailable": "WOC 定價目前無法使用。",
       "railNativeUnavailable": "SOL/WOC 無法使用",
       "amountLabel": "數量",
@@ -1465,6 +1465,7 @@ export const zh_TW: EnTranslations = {
       "harvestButton": "採集",
       "harvestTooltip": "採集勾選的部位。每具屍體只能被採集一次，先到先得。不會拾取戰利品。",
       "concentrateHint": "選擇的部位越少，每個部位的品質越高。",
+      "nothingSelectedYields": "你選擇的部位都無法從這具屍體上採集。",
       "alreadyHarvested": "這具屍體已經被採集過了。",
       "componentAria": "採集{component}",
       "components": {
@@ -2024,8 +2025,8 @@ export const zh_TW: EnTranslations = {
       }
     },
     "marketIndicator": {
-      "aria": "世界市場待領取物品",
-      "tip": "有金幣或物品正在商人處等待你領取。"
+      "aria": "世界市場收益或物品待領取",
+      "tip": "銷售收益或退回物品正在商人處等待你領取。"
     },
     "noticeboard": {
       "empty": "看起來沒有張貼任何內容。"
@@ -2169,6 +2170,9 @@ export const zh_TW: EnTranslations = {
       "notReady": "這個資源節點尚未為你重新生成。",
       "gatherLine": "你採集了：{name}。",
       "gatherLineQty": "你採集了：{name} x{qty}。",
+      "harvestLine": "你剝取了：{name}。",
+      "harvestLineQty": "你剝取了：{name} x{qty}。",
+      "harvestSpecimenLine": "你還獲得了 {name}。",
       "catchLine": "你釣上了：{name}",
       "biteLine": "有東西上鉤了！",
       "gotAwayLine": "牠跑掉了。",
@@ -2350,6 +2354,7 @@ export const zh_TW: EnTranslations = {
       "empty": "尚無已知配方。",
       "resultAria": "製作{name}",
       "craftedToast": "已製作:{name}",
+      "craftedToastQty": "已製作:{name} x{qty}",
       "insufficientMaterials": "你沒有足夠的材料。",
       "unknownRecipe": "該配方不存在。",
       "comboRequirementUnmet": "你尚未達到該配方所需組合的兩項製造技能等級。",
@@ -2442,7 +2447,13 @@ export const zh_TW: EnTranslations = {
     },
     "enchanting": {
       "disenchantedLine": "你分解了 {item}。",
+      "disenchantedYield": "你將 {item} 分解為 {material}。",
+      "disenchantedYieldQty": "你將 {item} 分解為 {material} x{qty}。",
+      "disenchantedAlso": "你還獲得了 {material}。",
+      "disenchantedAlsoQty": "你還獲得了 {material} x{qty}。",
       "salvagedLine": "你拆解了 {item}。",
+      "salvagedYield": "你將 {item} 拆解為 {material}。",
+      "salvagedYieldQty": "你將 {item} 拆解為 {material} x{qty}。",
       "enchantAppliedLine": "你為 {item} 施加了 {enchant}。",
       "notHeld": "你沒有那件物品。",
       "notDisenchantable": "你無法分解那件物品。",
@@ -2479,9 +2490,14 @@ export const zh_TW: EnTranslations = {
       "sameEnchant": "那件物品已經擁有該附魔。",
       "replaceTag": "替換{enchant}",
       "sameEnchantTag": "已施加",
+      "plainTag": "未附魔",
       "replaceConfirmTitle": "替換 {item} 上的附魔？",
       "replaceConfirmBody": "這會將 {item} 上的 {old} 替換為 {new}。",
       "replaceConfirmNoRefund": "舊附魔將被摧毀，材料不予退還。此操作無法復原。",
+      "replaceConfirmKeeps": "保留：{kept}",
+      "replaceConfirmKeepsSigner": "製作者印記",
+      "replaceConfirmKeepsMasterwork": "傑作加成",
+      "replaceConfirmKeepsBond": "委託綁定",
       "replaceConfirmCost": "費用：{cost}",
       "replaceConfirmCostItem": "{name} {count} 個",
       "replaceConfirmAccept": "替換"
@@ -7075,6 +7091,7 @@ export const zh_TW: EnTranslations = {
       "filterTypeAll": "全部類型",
       "filterTypeWeapon": "武器",
       "filterTypeArmor": "護甲",
+      "filterTypeBag": "背包",
       "filterTypeConsumable": "消耗品",
       "filterTypeMaterial": "材料",
       "filterTypeCosmetic": "外觀",
@@ -7088,6 +7105,8 @@ export const zh_TW: EnTranslations = {
       "armorMail": "鎖甲",
       "filterWeaponType": "武器類型",
       "filterWeaponAll": "全部武器",
+      "filterBagSize": "背包容量",
+      "filterBagAll": "全部背包",
       "filterPrimaryStat": "主要屬性",
       "filterPrimaryStatAll": "任意主要屬性",
       "filterRarity": "稀有度",

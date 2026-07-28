@@ -666,7 +666,7 @@ export const es: EnTranslations = {
       "railSol": "SOL",
       "railUsdc": "USDC",
       "railWoc": "WOC",
-      "railWocDiscount": "20 % de descuento",
+      "railWocDiscount": "{percent} % de descuento",
       "railWocUnavailable": "Los precios en WOC no están disponibles en este momento.",
       "railNativeUnavailable": "SOL/WOC no disponible.",
       "amountLabel": "Cantidad",
@@ -1465,6 +1465,7 @@ export const es: EnTranslations = {
       "harvestButton": "Recolectar",
       "harvestTooltip": "Recoge los componentes marcados. Cada cadáver puede recolectarse una vez, el primero en llegar.",
       "concentrateHint": "Cuantos menos componentes elijas, mayor será la calidad de cada uno.",
+      "nothingSelectedYields": "Nada de lo que has seleccionado se puede recolectar de este cadáver.",
       "alreadyHarvested": "Este cadáver ya ha sido recolectado.",
       "componentAria": "Recolectar {component}",
       "components": {
@@ -2024,8 +2025,8 @@ export const es: EnTranslations = {
       }
     },
     "marketIndicator": {
-      "aria": "Recogida pendiente en el Mercado Mundial",
-      "tip": "Oro u objetos te esperan en el Mercader."
+      "aria": "Ganancias u objetos del Mercado Mundial en espera",
+      "tip": "Las ganancias de venta u objetos devueltos te esperan en el Mercader."
     },
     "noticeboard": {
       "empty": "Parece que no hay nada publicado."
@@ -2169,6 +2170,9 @@ export const es: EnTranslations = {
       "notReady": "Este nodo de recursos aun no ha reaparecido para ti.",
       "gatherLine": "Reúnes: {name}.",
       "gatherLineQty": "Reúnes: {name} x{qty}.",
+      "harvestLine": "Despiezas: {name}.",
+      "harvestLineQty": "Despiezas: {name} x{qty}.",
+      "harvestSpecimenLine": "También recuperas {name}.",
       "catchLine": "Recoges: {name}",
       "biteLine": "¡Algo muerde el anzuelo!",
       "gotAwayLine": "Se escapó.",
@@ -2350,6 +2354,7 @@ export const es: EnTranslations = {
       "empty": "Aún no se conocen recetas.",
       "resultAria": "Elaboración {name}",
       "craftedToast": "Elaborado: {name}",
+      "craftedToastQty": "Elaborado: {name} x{qty}",
       "insufficientMaterials": "No tienes los materiales para eso.",
       "unknownRecipe": "Esa receta no existe.",
       "comboRequirementUnmet": "No tienes las dos profesiones requeridas al nivel necesario para esa receta.",
@@ -2442,7 +2447,13 @@ export const es: EnTranslations = {
     },
     "enchanting": {
       "disenchantedLine": "Desencatas {item}.",
+      "disenchantedYield": "Desencantas {item} en {material}.",
+      "disenchantedYieldQty": "Desencantas {item} en {material} x{qty}.",
+      "disenchantedAlso": "También recuperas {material}.",
+      "disenchantedAlsoQty": "También recuperas {material} x{qty}.",
       "salvagedLine": "Desguazas {item}.",
+      "salvagedYield": "Desguazas {item} en {material}.",
+      "salvagedYieldQty": "Desguazas {item} en {material} x{qty}.",
       "enchantAppliedLine": "Encantas {item} con {enchant}.",
       "notHeld": "No tienes ese objeto.",
       "notDisenchantable": "No puedes desencatar eso.",
@@ -2479,9 +2490,14 @@ export const es: EnTranslations = {
       "sameEnchant": "Ese objeto ya tiene ese encantamiento.",
       "replaceTag": "Reemplaza {enchant}",
       "sameEnchantTag": "Ya aplicado",
+      "plainTag": "Sin encantar",
       "replaceConfirmTitle": "¿Reemplazar el encantamiento de {item}?",
       "replaceConfirmBody": "Esto reemplaza {old} en {item} por {new}.",
       "replaceConfirmNoRefund": "El encantamiento antiguo se destruye. Sus materiales no se reembolsan. No se puede deshacer.",
+      "replaceConfirmKeeps": "Conserva: {kept}",
+      "replaceConfirmKeepsSigner": "Marca del artesano",
+      "replaceConfirmKeepsMasterwork": "Bonificación de obra maestra",
+      "replaceConfirmKeepsBond": "Vínculo de encargo",
       "replaceConfirmCost": "Coste: {cost}",
       "replaceConfirmCostItem": "{name} x{count}",
       "replaceConfirmAccept": "Reemplazar"
@@ -7075,6 +7091,7 @@ export const es: EnTranslations = {
       "filterTypeAll": "Todos los tipos",
       "filterTypeWeapon": "Armas",
       "filterTypeArmor": "Armadura",
+      "filterTypeBag": "Bolsas",
       "filterTypeConsumable": "Consumibles",
       "filterTypeMaterial": "Materiales",
       "filterTypeCosmetic": "Cosméticos",
@@ -7088,6 +7105,8 @@ export const es: EnTranslations = {
       "armorMail": "Malla",
       "filterWeaponType": "Tipo de arma",
       "filterWeaponAll": "Todas las armas",
+      "filterBagSize": "Tamaño de bolsa",
+      "filterBagAll": "Todas las bolsas",
       "filterPrimaryStat": "Estadística principal",
       "filterPrimaryStatAll": "Cualquier estadística principal",
       "filterRarity": "Rareza",

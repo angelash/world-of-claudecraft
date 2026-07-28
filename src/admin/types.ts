@@ -1059,6 +1059,7 @@ export interface Paginated<T> {
 export interface IpAssociationsData {
   ip: string;
   blocked: boolean;
+  blockable: boolean;
   accounts: {
     accountId: number;
     username: string;

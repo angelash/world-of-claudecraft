@@ -666,7 +666,7 @@ export const sv_SE: EnTranslations = {
       "railSol": "SOL",
       "railUsdc": "USDC",
       "railWoc": "WOC",
-      "railWocDiscount": "20% rabatt",
+      "railWocDiscount": "{percent}% rabatt",
       "railWocUnavailable": "WOC-priser är inte tillgängliga just nu.",
       "railNativeUnavailable": "SOL/WOC är avstängt.",
       "amountLabel": "Belopp",
@@ -1465,6 +1465,7 @@ export const sv_SE: EnTranslations = {
       "harvestButton": "Skörda",
       "harvestTooltip": "Samlar de markerade komponenterna. Varje kadaver kan skördas en gång, den som är först. Tar inte bytet.",
       "concentrateHint": "Ju färre delar du väljer, desto högre kvalitetsnivå får var och en.",
+      "nothingSelectedYields": "Inget du valt kan skördas från det här kadavret.",
       "alreadyHarvested": "Det här kadavret har redan skördats.",
       "componentAria": "Skörda {component}",
       "components": {
@@ -2024,8 +2025,8 @@ export const sv_SE: EnTranslations = {
       }
     },
     "marketIndicator": {
-      "aria": "Hämtning väntar vid Världsmarknaden",
-      "tip": "Guld eller föremål väntar på dig hos Köpmannen."
+      "aria": "Världsmarknadsintäkter eller föremål väntar",
+      "tip": "Försäljningsintäkter eller returnerade föremål väntar på dig hos Köpmannen."
     },
     "noticeboard": {
       "empty": "Inget verkar vara uppsatt."
@@ -2169,6 +2170,9 @@ export const sv_SE: EnTranslations = {
       "notReady": "Den här resursnoden har inte återspawnats för dig ännu.",
       "gatherLine": "Du samlar: {name}.",
       "gatherLineQty": "Du samlar in: {name} x{qty}.",
+      "harvestLine": "Du skördar: {name}.",
+      "harvestLineQty": "Du skördar: {name} x{qty}.",
+      "harvestSpecimenLine": "Du får också {name}.",
       "catchLine": "Du drar in: {name}",
       "biteLine": "Något nappar på betet!",
       "gotAwayLine": "Det kom undan.",
@@ -2350,6 +2354,7 @@ export const sv_SE: EnTranslations = {
       "empty": "Inga recept kända än.",
       "resultAria": "Hantverk {name}",
       "craftedToast": "Tillverkad: {name}",
+      "craftedToastQty": "Tillverkad: {name} x{qty}",
       "insufficientMaterials": "Du har inte materialet för det.",
       "unknownRecipe": "Det receptet finns inte.",
       "comboRequirementUnmet": "Du har inte båda de hantverk som krävs på den nivå receptet kräver.",
@@ -2442,7 +2447,13 @@ export const sv_SE: EnTranslations = {
     },
     "enchanting": {
       "disenchantedLine": "Du avförtrollar {item}.",
+      "disenchantedYield": "Du avförtrollar {item} till {material}.",
+      "disenchantedYieldQty": "Du avförtrollar {item} till {material} x{qty}.",
+      "disenchantedAlso": "Du återvinner också {material}.",
+      "disenchantedAlsoQty": "Du återvinner också {material} x{qty}.",
       "salvagedLine": "Du bärgar {item}.",
+      "salvagedYield": "Du bärgar {item} till {material}.",
+      "salvagedYieldQty": "Du bärgar {item} till {material} x{qty}.",
       "enchantAppliedLine": "Du förtrollar {item} med {enchant}.",
       "notHeld": "Du har inte det föremålet.",
       "notDisenchantable": "Du kan inte avförtrylla det.",
@@ -2479,9 +2490,14 @@ export const sv_SE: EnTranslations = {
       "sameEnchant": "Det föremålet har redan den förtrollningen.",
       "replaceTag": "Ersätter {enchant}",
       "sameEnchantTag": "Redan applicerad",
+      "plainTag": "Inte förtrollad",
       "replaceConfirmTitle": "Ersätt förtrollningen på {item}?",
       "replaceConfirmBody": "Detta ersätter {old} på {item} med {new}.",
       "replaceConfirmNoRefund": "Den gamla förtrollningen förstörs. Dess material återbetalas inte. Det kan inte ångras.",
+      "replaceConfirmKeeps": "Behålls: {kept}",
+      "replaceConfirmKeepsSigner": "Tillverkarens märke",
+      "replaceConfirmKeepsMasterwork": "Mästerverksbonus",
+      "replaceConfirmKeepsBond": "Uppdragsbindning",
       "replaceConfirmCost": "Kostnad: {cost}",
       "replaceConfirmCostItem": "{name} x{count}",
       "replaceConfirmAccept": "Ersätt"
@@ -7075,6 +7091,7 @@ export const sv_SE: EnTranslations = {
       "filterTypeAll": "Alla typer",
       "filterTypeWeapon": "Vapen",
       "filterTypeArmor": "Rustning",
+      "filterTypeBag": "Väskor",
       "filterTypeConsumable": "Förbrukningsvaror",
       "filterTypeMaterial": "Material",
       "filterTypeCosmetic": "Kosmetika",
@@ -7088,6 +7105,8 @@ export const sv_SE: EnTranslations = {
       "armorMail": "Ringbrynja",
       "filterWeaponType": "Vapentyp",
       "filterWeaponAll": "Alla vapen",
+      "filterBagSize": "Väskstorlek",
+      "filterBagAll": "Alla väskor",
       "filterPrimaryStat": "Primärt attribut",
       "filterPrimaryStatAll": "Alla primära attribut",
       "filterRarity": "Sällsynthet",
