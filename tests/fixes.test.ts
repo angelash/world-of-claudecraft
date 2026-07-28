@@ -1900,10 +1900,10 @@ describe('pet heel warp', () => {
   it('keeps the spatial grid exact when a pet warps to its owner', () => {
     const sim = makeSim();
     const p = sim.player;
-    // park the owner behind the spawn building, far enough that no heel route
-    // exists: the gap (87yd) exceeds the pet's A* search window and the building
-    // breaks line of sight, so the pet can only fall back to the last-resort warp.
-    teleportTo(sim, 0, 82);
+    // Park the owner beyond the bounded recovery window. The fork's road graph
+    // can route ordinary long-distance heel travel around the spawn building,
+    // so the grid contract must use the explicit forced-recovery case instead.
+    teleportTo(sim, 0, 120);
 
     // adopt a wild beast as a heeling pet and strand it on the far side of the wall
     const pet = [...sim.entities.values()].find((e) => e.kind === 'mob' && !e.dead)!;
@@ -1916,7 +1916,7 @@ describe('pet heel warp', () => {
     pet.prevPos = { ...pet.pos };
     (sim as any).grid.update(pet); // grid now buckets the pet at its far cell
 
-    // unreachable owner with nothing to fight: the pet warps back to heel
+    // Improbably distant owner with nothing to fight: the pet warps back to heel.
     (sim as any).ctx.updatePet(pet);
     expect(dist2d(pet.pos, p.pos)).toBeLessThan(1);
 

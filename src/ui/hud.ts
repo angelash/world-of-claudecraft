@@ -37,8 +37,6 @@ import { recipeById } from '../sim/content/recipes';
 import { FIRST_TALENT_LEVEL, type TalentAllocation, talentsFor } from '../sim/content/talents';
 import { resolveActiveWeaponSkin } from '../sim/content/weapon_skin_rules';
 import type { ZoneDef } from '../sim/data';
-import { formatAuraDuration } from './aura_duration';
-import { auraRenderSignature, isDebuffAura, visiblePartyFrameAuras } from './aura_view';
 import {
   ABILITIES,
   ALL_RECIPES,
@@ -98,9 +96,9 @@ import {
   FAERIE_FIRE_ARMOR_PCT,
   FISHING_CAST_ID,
   GATHER_CAST_ID,
+  INTERACT_RANGE,
   type ItemDef,
   isQuestTurnInNpc,
-  INTERACT_RANGE,
   MAX_LEVEL,
   MELEE_RANGE,
   MILESTONES,
@@ -122,8 +120,6 @@ import {
   type OverheadEmoteId,
   type PartyInfo,
 } from '../world_api';
-import { aiReactionBadgeView, aiSpeechPresentationView, splitAiNarrationText } from './ai_reaction';
-import { singularityAliasTranslationKey } from './ai_speech_name';
 import {
   type AbilityScaling,
   abilityBuffValue,
@@ -134,6 +130,8 @@ import {
   abilitySecondaryEffect,
   abilityTemporalHourglassValues,
 } from './ability_damage';
+import { aiReactionBadgeView, aiSpeechPresentationView, splitAiNarrationText } from './ai_reaction';
+import { singularityAliasTranslationKey } from './ai_speech_name';
 import { ArenaWindow } from './arena_window';
 import { auraDisplayNameFromSource } from './aura_display_name';
 import { type AuraEffectInput, auraEffectDescriptor } from './aura_effect';
@@ -258,6 +256,7 @@ import {
   grantQtyText,
   harvestLineKey,
 } from './grant_line_view';
+import { type HostedPlayHooks, renderHostedPlayPanel } from './hosted_play_panel';
 import { isSelfOnlyAbility } from './hud/action_bar/ability_self_only';
 import {
   handleShiftClearContextMenu,
@@ -478,14 +477,12 @@ import { buildProfessionTutorialModel } from './profession_tutorial_view';
 import { renderProfessionTutorial } from './profession_tutorial_window';
 import { ProfessionsWindow } from './professions_window';
 import { questProgressEventText } from './quest_progress_text';
-import { questGuideMarkers, type QuestGuideMarker } from './quest_guide';
 import { lockoutParts, lockoutShape } from './raid_lockout';
 import { type RaidLockoutI18n, raidLockoutPanelHtml } from './raid_lockout_view';
 import { restView } from './rest_indicator';
 import { isTalentRowUnlockLevel } from './row_unlock_toast';
 import { localizeServerText } from './server_i18n';
 import { localizeSimAuraName, localizeSimText } from './sim_i18n';
-import { renderHostedPlayPanel, type HostedPlayHooks } from './hosted_play_panel';
 import { SocialWindow } from './social_window';
 import { SpellbookWindow } from './spellbook_window';
 import { stanceBarView, WARRIOR_STANCE_GROUP } from './stance_bar_view';
@@ -1321,8 +1318,6 @@ export class Hud {
   private mapPrewarmVia: 'idle' | 'timeout' | null = null;
   // Delve schematic caches: static background (floor/pillars/tombs/dais/exit)
   // keyed by module id, redrawn only when the module changes.
-  private openLootMobId: number | null = null;
-  private onLootManualClose: ((mobId: number) => void) | null = null;
   private readonly lootWindow: LootWindowController;
   private readonly lootRolls: LootRollController;
   private openVendorNpcId: number | null = null;
@@ -4696,10 +4691,8 @@ export class Hud {
     const z = getUiScale();
     const tw = this.tooltipEl.offsetWidth;
     const th = this.tooltipEl.offsetHeight;
-    const anchor = this.tooltipEl.querySelector<HTMLElement>('.tt-compare-candidate');
-    const anchorOffset = anchor?.offsetLeft ?? 0;
     const maxLeft = window.innerWidth / z - tw - 8;
-    this.tooltipEl.style.left = `${Math.max(8, Math.min(maxLeft, x / z + 14 - anchorOffset))}px`;
+    this.tooltipEl.style.left = `${Math.max(8, Math.min(maxLeft, x / z + 14))}px`;
     this.tooltipEl.style.top = `${Math.max(8, y / z - th - 10)}px`;
   }
 
@@ -8083,7 +8076,6 @@ export class Hud {
 
   private openDelveLoot(chestId: number, items: { itemId: string; count: number }[]): void {
     this.closeLockpick();
-    this.openLootMobId = null;
     this.lootWindow.openChest(chestId, items);
   }
 
@@ -8402,98 +8394,6 @@ export class Hud {
       this.minimapBg,
       this.minimapZoom,
     );
-  }
-
-  private drawQuestGuideMarkers(
-    ctx: CanvasRenderingContext2D,
-    size: number,
-    pxPerYard: number,
-  ): void {
-    const player = this.sim.player;
-    const markers = questGuideMarkers({
-      player: player.pos,
-      questLog: this.sim.questLog.values(),
-      quests: QUESTS,
-      entities: this.sim.entities.values(),
-      npcs: NPCS,
-      camps: CAMPS,
-      groundObjects: GROUND_OBJECTS,
-      mobs: MOBS,
-      maxMarkers: 8,
-    });
-    for (const marker of markers) this.drawQuestGuideMarker(ctx, marker, size, pxPerYard);
-  }
-
-  private drawQuestGuideMarker(
-    ctx: CanvasRenderingContext2D,
-    marker: QuestGuideMarker,
-    size: number,
-    pxPerYard: number,
-  ): void {
-    const player = this.sim.player;
-    const center = size / 2;
-    const dx = -(marker.x - player.pos.x) * pxPerYard; // +X is map-left
-    const dz = -(marker.z - player.pos.z) * pxPerYard;
-    const rim = center - 11;
-    const dist = Math.hypot(dx, dz);
-    const offMap = dist > rim;
-    const color = marker.kind === 'turnIn' ? '#fff16a' : '#ffd100';
-    const stroke = '#1a1200';
-
-    ctx.save();
-    if (offMap) {
-      const angle = Math.atan2(dz, dx);
-      ctx.translate(center + Math.cos(angle) * rim, center + Math.sin(angle) * rim);
-      ctx.rotate(angle);
-      ctx.fillStyle = color;
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(8, 0);
-      ctx.lineTo(-5, 6);
-      ctx.lineTo(-3, 0);
-      ctx.lineTo(-5, -6);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      if (marker.kind === 'turnIn') {
-        ctx.rotate(-angle);
-        ctx.font = 'bold 10px Georgia';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.lineWidth = 3;
-        ctx.strokeText('?', 0, -10);
-        ctx.fillText('?', 0, -10);
-      }
-      ctx.restore();
-      return;
-    }
-
-    ctx.translate(center + dx, center + dz);
-    ctx.fillStyle = color;
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = 2;
-    if (marker.kind === 'turnIn') {
-      ctx.font = 'bold 15px Georgia';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.strokeText('?', 0, 0);
-      ctx.fillText('?', 0, 0);
-    } else {
-      ctx.beginPath();
-      ctx.moveTo(0, -6);
-      ctx.lineTo(5, 0);
-      ctx.lineTo(0, 6);
-      ctx.lineTo(-5, 0);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = '#fff7a8';
-      ctx.beginPath();
-      ctx.arc(0, 0, 1.5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
   }
 
   toggleMeters(): void {
@@ -9125,12 +9025,12 @@ export class Hud {
       presentation.text,
       presentation.templateKey,
       presentation.channel,
-    undefined,
-    { ai: true },
-    undefined,
-    undefined,
-    presentation.logMode,
-  );
+      undefined,
+      { ai: true },
+      undefined,
+      undefined,
+      presentation.logMode,
+    );
     const speaker = this.sim.entities.get(ev.speakerId);
     if (!speaker) return;
     const reactionBadge = aiReactionBadgeView(ev.reaction);
@@ -12247,17 +12147,11 @@ export class Hud {
   openLoot(mobId: number, screenX: number, screenY: number): void {
     const mob = this.sim.entities.get(mobId);
     if (!mob || !corpseLootAvailability(mob, this.sim.playerId).canOpen) return;
-    this.openLootMobId = mobId;
     this.lootWindow.openCorpse(mobId, screenX, screenY);
   }
 
   closeLoot(): void {
-    this.openLootMobId = null;
     this.lootWindow.close();
-  }
-
-  currentLootMobId(): number | null {
-    return this.openLootMobId;
   }
 
   // -------------------------------------------------------------------------
@@ -14843,23 +14737,6 @@ export class Hud {
 
   attachReporting(hooks: ReportHooks): void {
     this.reportHooks = hooks;
-  }
-
-  attachLootManualClose(handler: (mobId: number) => void): void {
-    this.onLootManualClose = handler;
-    const lootWindow = $('#loot-window');
-    if (lootWindow.dataset.manualCloseBound === '1') return;
-    lootWindow.dataset.manualCloseBound = '1';
-    lootWindow.addEventListener(
-      'click',
-      (event) => {
-        if (!(event.target as Element | null)?.closest('[data-close]')) return;
-        const mobId = this.openLootMobId;
-        this.openLootMobId = null;
-        if (mobId !== null) this.onLootManualClose?.(mobId);
-      },
-      true,
-    );
   }
 
   // Only wired online (main.ts), so its presence is what gates the "Report a Bug"

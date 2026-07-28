@@ -139,10 +139,7 @@ describe('ambient player bot registry schema', () => {
 
     await expect(repo.listBots()).resolves.toEqual([latestBot]);
     const backfill = queries.find((entry) => entry.sql.includes('UPDATE ambient_player_bots'));
-    expect(backfill?.values?.slice(6, 8)).toEqual([
-      latestBot.accountPassword,
-      latestBot.authToken,
-    ]);
+    expect(backfill?.values?.slice(6, 8)).toEqual([latestBot.accountPassword, latestBot.authToken]);
     expect(backfill?.values?.slice(2, 6)).not.toContain(latestBot.accountPassword);
     expect(backfill?.values?.slice(2, 6)).not.toContain(latestBot.authToken);
   });
@@ -357,7 +354,7 @@ describe('ambient player bot registry schema', () => {
       queries.push({ sql, values });
       return sql.includes('SELECT') ? { rows: [row] } : { rows: [] };
     });
-    const repo = new PgAmbientPlayerBotDb({ query });
+    const repo = new PgAmbientPlayerBotDb({ query }, { env: {} });
 
     await repo.saveBot(bot());
     const listed = await repo.listBots();

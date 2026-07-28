@@ -25,6 +25,7 @@ import { ITEM_WEAPON_VARIANTS } from '../src/ui/weapon_variants';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const publicDir = path.join(repoRoot, 'public');
 const itemsDir = path.join(publicDir, 'ui/items');
+const decodeTimeoutMs = process.platform === 'win32' ? 15_000 : 5_000;
 
 const isDotfile = (p: string): boolean => path.basename(p).startsWith('.');
 const isMapping = (p: string): boolean => path.basename(p) === 'mapping.json';
@@ -160,24 +161,28 @@ describe('item webp icons', () => {
     expect(ITEM_IMAGE_IDS.size).toBeGreaterThan(0);
   });
 
-  it('A) every image-backed item id resolves to a committed, decodable .webp', async () => {
-    const broken: string[] = [];
-    for (const id of [...ITEM_IMAGE_IDS, ...UI_ITEM_IMAGE_IDS]) {
-      const url = itemImageUrl(id);
-      expect(url, `${id} must resolve to a webp url`).toMatch(/^\/ui\/items\/.+\.webp$/);
-      const file = path.join(publicDir, (url as string).replace(/^\//, ''));
-      if (!existsSync(file)) broken.push(`${id} -> ${url} (missing file)`);
-      else if (!isValidWebp(file)) broken.push(`${id} -> ${url} (not a valid webp)`);
-      else {
-        try {
-          await sharp(file).raw().toBuffer();
-        } catch {
-          broken.push(`${id} -> ${url} (webp payload cannot be decoded)`);
+  it(
+    'A) every image-backed item id resolves to a committed, decodable .webp',
+    async () => {
+      const broken: string[] = [];
+      for (const id of [...ITEM_IMAGE_IDS, ...UI_ITEM_IMAGE_IDS]) {
+        const url = itemImageUrl(id);
+        expect(url, `${id} must resolve to a webp url`).toMatch(/^\/ui\/items\/.+\.webp$/);
+        const file = path.join(publicDir, (url as string).replace(/^\//, ''));
+        if (!existsSync(file)) broken.push(`${id} -> ${url} (missing file)`);
+        else if (!isValidWebp(file)) broken.push(`${id} -> ${url} (not a valid webp)`);
+        else {
+          try {
+            await sharp(file).raw().toBuffer();
+          } catch {
+            broken.push(`${id} -> ${url} (webp payload cannot be decoded)`);
+          }
         }
       }
-    }
-    expect(broken).toEqual([]);
-  });
+      expect(broken).toEqual([]);
+    },
+    decodeTimeoutMs,
+  );
 
   it('B) commits only webp art (+ mapping.json) under public/ui/items', () => {
     const stray = walk(itemsDir)

@@ -23,3 +23,16 @@ tests/fixtures/v025_warrior_character.json text eol=lf
 # Vite's script transform only recognizes a shebang on an LF first line.
 # Keep importable Node tools stable on Windows checkouts.
 scripts/*.mjs text eol=lf
+
+# Eastbrook asset fingerprints and capture provenance hash exact checkout bytes.
+# Keep their text inputs stable when core.autocrlf=true on Windows.
+scripts/assets/** text eol=lf
+package-lock.json text eol=lf
+src/sim/eastbrook_layout.ts text eol=lf
+src/render/eastbrook_civic_beacon.ts text eol=lf
+src/render/eastbrook_town.ts text eol=lf
+src/render/mailbox.ts text eol=lf
+src/render/noticeboard.ts text eol=lf
+src/render/renderer.ts text eol=lf
+src/render/prewarm_policy.ts text eol=lf
+docs/screenshots/eastbrook-vale-rebuild/**/*.json text eol=lf

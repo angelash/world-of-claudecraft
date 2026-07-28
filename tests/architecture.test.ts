@@ -125,7 +125,6 @@ const simFiles = walk(simRoot);
 // import), so it is registered here even though it lives in src/game. Paths are
 // repo-relative for the failure messages.
 const UI_PURE_CORES = [
-  'src/ui/aura_view.ts',
   'src/ui/proc_overlay_view.ts',
   'src/ui/camera_prompt_core.ts',
   'src/ui/chat_ignore_core.ts',
@@ -1021,6 +1020,7 @@ const UI_PAINTER_HELPERS = ['src/ui/text_sprite_cache.ts'].map((rel) => join(rep
 const UI_DOM_MODULES = [
   'src/ui/arena_window.ts',
   'src/ui/armory_inspect.ts',
+  'src/ui/auth_utils.ts',
   'src/ui/bag_item_action_menu.ts',
   'src/ui/bags_window.ts',
   'src/ui/bank_window.ts',
@@ -1042,6 +1042,7 @@ const UI_DOM_MODULES = [
   'src/ui/focus_manager.ts',
   'src/ui/gather_node_tooltip.ts',
   'src/ui/gpu_notice_toast.ts',
+  'src/ui/hosted_play_panel.ts',
   'src/ui/hud.ts',
   'src/ui/hud/chat/chat_geometry_controller.ts',
   'src/ui/hud/chat/chat_window_controller.ts',

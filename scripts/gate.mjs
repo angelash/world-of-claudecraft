@@ -16,7 +16,11 @@ import { spawnSync } from 'node:child_process';
 import os from 'node:os';
 import { FFMPEG_PATH, FFPROBE_PATH } from './sfx/ffmpeg_paths.mjs';
 
-const workers = Math.max(1, Math.floor(os.cpus().length / 2));
+const halfCoreWorkers = Math.max(1, Math.floor(os.cpus().length / 2));
+// Windows file locking and the bundled FFmpeg suites become I/O-bound well
+// before half of a high-core-count workstation. Keep the local gate bounded
+// there while Linux CI continues to use its existing sharded worker policy.
+const workers = process.platform === 'win32' ? Math.min(4, halfCoreWorkers) : halfCoreWorkers;
 // npm/npx resolve to .cmd files on Windows, which spawnSync only finds via a shell.
 const shell = process.platform === 'win32';
 

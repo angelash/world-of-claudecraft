@@ -21,6 +21,7 @@ import * as audioIo from '../scripts/sfx_studio/audio_io.mjs';
 // @ts-expect-error untyped zero-dependency authoring tool (scripts/*.mjs convention)
 import { startSfxStudio } from '../scripts/sfx_studio/server.mjs';
 import { SFX_CLIPS } from '../src/game/sfx_manifest.generated';
+import { supportsFileSymlinks } from './helpers/symlink_support';
 
 const {
   listVersions,
@@ -30,23 +31,6 @@ const {
   restoreVersion,
   STUDIO_ROOT,
 } = audioIo;
-
-function supportsFileSymlinks(): boolean {
-  const root = mkdtempSync(join(tmpdir(), 'woc-sfx-symlink-probe-'));
-  const target = join(root, 'target.txt');
-  const link = join(root, 'link.txt');
-  try {
-    writeFileSync(target, 'probe');
-    symlinkSync(target, link, 'file');
-    return true;
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code === 'EPERM' || code === 'EACCES') return false;
-    throw error;
-  } finally {
-    rmSync(root, { recursive: true, force: true });
-  }
-}
 
 const FILE_SYMLINKS_AVAILABLE = supportsFileSymlinks();
 const fileSymlinkIt = FILE_SYMLINKS_AVAILABLE ? it : it.skip;

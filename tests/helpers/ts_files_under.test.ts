@@ -2,7 +2,10 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { supportsFileSymlinks } from './symlink_support';
 import { tsFilesUnder } from './ts_files_under';
+
+const fileSymlinkIt = supportsFileSymlinks() ? it : it.skip;
 
 // The paired test for the shared source walk. It matters more than a helper
 // test usually would: every scan root in the repo is FLAT today, so a
@@ -89,7 +92,11 @@ describe('tsFilesUnder', () => {
     // drops an entire linked subtree rather than a single file, silently.
     write('real/inside.ts');
     write('real/deeper/lower.ts');
-    symlinkSync(path.join(root, 'real'), path.join(root, 'linked_dir'));
+    symlinkSync(
+      path.join(root, 'real'),
+      path.join(root, 'linked_dir'),
+      process.platform === 'win32' ? 'junction' : 'dir',
+    );
     expect(tsFilesUnder(root).map((f) => f.file)).toEqual([
       'linked_dir/deeper/lower.ts',
       'linked_dir/inside.ts',
@@ -107,7 +114,7 @@ describe('tsFilesUnder', () => {
     expect(tsFilesUnder(root).map((f) => f.file)).toEqual(['namespace.ts/child.ts']);
   });
 
-  it('follows a symlinked .ts file (a Dirent reads false for one)', () => {
+  fileSymlinkIt('follows a symlinked .ts file (a Dirent reads false for one)', () => {
     // The arm no consumer fixture can reach, and the reason there is no
     // `entry.isFile()` gate: Dirent is lstat-based, so gating on it drops a
     // symlinked module that the flat `readdirSync().filter()` this replaces

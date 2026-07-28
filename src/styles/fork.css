@@ -2,41 +2,107 @@
  * Keep this file as the single CSS integration point for fork shell and hosted play behavior. */
 
 @layer components {
+  .ai-reaction-badge {
+    position: absolute;
+    left: 0;
+    top: 0;
+    max-width: 150px;
+    pointer-events: none;
+    border: 1px solid #6f8a55;
+    border-radius: 999px;
+    padding: 3px 9px;
+    color: #f3ffe6;
+    background: rgba(17, 28, 16, 0.92);
+    font: 800 10px / 1.2 var(--title-font);
+    text-align: center;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+    text-shadow: 0 1px 1px #000;
+    will-change: transform, opacity;
+    box-shadow:
+      0 2px 0 #050301,
+      0 0 10px #0008;
+    z-index: 22;
+    animation: ai-reaction-pop 220ms ease-out;
+  }
 
-.ai-reaction-badge { position: absolute; left: 0; top: 0; max-width: 150px; pointer-events: none;
-    border: 1px solid #6f8a55; border-radius: 999px; padding: 3px 9px; color: #f3ffe6;
-    background: rgba(17, 28, 16, 0.92); font: 800 10px/1.2 var(--title-font); text-align: center;
-    letter-spacing: 0; overflow-wrap: anywhere; text-shadow: 0 1px 1px #000; will-change: transform, opacity;
-    box-shadow: 0 2px 0 #050301, 0 0 10px #0008; z-index: 22; animation: ai-reaction-pop 220ms ease-out; }
+  .ai-reaction-badge.approach {
+    border-color: #6fcd78;
+    color: #dbffdc;
+    background: rgba(14, 48, 22, 0.92);
+  }
 
-.ai-reaction-badge.approach { border-color: #6fcd78; color: #dbffdc; background: rgba(14, 48, 22, 0.92); }
+  .ai-reaction-badge.avoid {
+    border-color: #d68a5a;
+    color: #ffe0ca;
+    background: rgba(56, 24, 13, 0.92);
+  }
 
-.ai-reaction-badge.avoid { border-color: #d68a5a; color: #ffe0ca; background: rgba(56, 24, 13, 0.92); }
+  .ai-reaction-badge.inspect {
+    border-color: #79b7d9;
+    color: #d6efff;
+    background: rgba(14, 34, 50, 0.92);
+  }
 
-.ai-reaction-badge.inspect { border-color: #79b7d9; color: #d6efff; background: rgba(14, 34, 50, 0.92); }
+  .ai-reaction-badge.planned {
+    border-width: 2px;
+    box-shadow:
+      0 2px 0 #050301,
+      0 0 14px #d8f2ff66,
+      inset 0 0 8px #ffffff1a;
+  }
 
-.ai-reaction-badge.planned { border-width: 2px; box-shadow: 0 2px 0 #050301, 0 0 14px #d8f2ff66, inset 0 0 8px #ffffff1a; }
+  @keyframes ai-reaction-pop {
+    from {
+      transform: translateY(6px) scale(0.94);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
 
-@keyframes ai-reaction-pop { from { transform: translateY(6px) scale(0.94); opacity: 0; } to { transform: none; opacity: 1; } }
-
-.ai-attention-link { position: absolute; left: 0; top: 0; height: 2px; pointer-events: none;
-    transform-origin: 0 50%; border-radius: 999px; opacity: 0.78; z-index: 20;
+  .ai-attention-link {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 2px;
+    pointer-events: none;
+    transform-origin: 0 50%;
+    border-radius: 999px;
+    opacity: 0.78;
+    z-index: 20;
     background: linear-gradient(90deg, transparent, #d9f7ff 18%, #ffffff 50%, transparent 100%);
-    box-shadow: 0 0 7px #9ad7ff99; animation: ai-attention-shimmer 620ms ease-in-out infinite alternate; }
+    box-shadow: 0 0 7px #9ad7ff99;
+    animation: ai-attention-shimmer 620ms ease-in-out infinite alternate;
+  }
 
-.ai-attention-link.approach { background: linear-gradient(90deg, transparent, #75e381 20%, #e6ffe8 52%, transparent 100%); box-shadow: 0 0 7px #78ff8b99; }
+  .ai-attention-link.approach {
+    background: linear-gradient(90deg, transparent, #75e381 20%, #e6ffe8 52%, transparent 100%);
+    box-shadow: 0 0 7px #78ff8b99;
+  }
 
-.ai-attention-link.avoid { background: linear-gradient(90deg, transparent, #e09a65 20%, #fff0da 52%, transparent 100%); box-shadow: 0 0 7px #ff9f5d88; }
+  .ai-attention-link.avoid {
+    background: linear-gradient(90deg, transparent, #e09a65 20%, #fff0da 52%, transparent 100%);
+    box-shadow: 0 0 7px #ff9f5d88;
+  }
 
-.ai-attention-link.inspect { background: linear-gradient(90deg, transparent, #79b7d9 20%, #e4f6ff 52%, transparent 100%); box-shadow: 0 0 7px #8bd6ff88; }
+  .ai-attention-link.inspect {
+    background: linear-gradient(90deg, transparent, #79b7d9 20%, #e4f6ff 52%, transparent 100%);
+    box-shadow: 0 0 7px #8bd6ff88;
+  }
 
-@keyframes ai-attention-shimmer { from { opacity: 0.42; } to { opacity: 0.84; } }
+  @keyframes ai-attention-shimmer {
+    from {
+      opacity: 0.42;
+    }
+    to {
+      opacity: 0.84;
+    }
+  }
 
-#buff-bar { position: absolute; right: 196px; top: 14px; display: flex; flex-direction: row-reverse; flex-wrap: wrap; column-gap: 4px; row-gap: 15px; max-width: 320px; pointer-events: auto; align-items: flex-start; padding-bottom: 13px; }
-
-.buff .dur { position: absolute; top: calc(100% + 2px); left: 50%; width: 44px; transform: translateX(-50%); text-align: center; font-size: 9px; line-height: 10px; color: #f4f7ff; text-shadow: 0 1px 2px #000, 1px 1px 1px #000; font-variant-numeric: tabular-nums; pointer-events: none; }
-
-body[data-fork-hide-donate="1"] .donate-cta,
+  body[data-fork-hide-donate="1"] .donate-cta,
   body[data-fork-hide-donate="1"] .community-link.donate,
   body[data-fork-hide-donate="1"] .social-link.donate,
   body[data-fork-hide-donate="1"] #mobile-donate,
@@ -44,7 +110,7 @@ body[data-fork-hide-donate="1"] .donate-cta,
     display: none !important;
   }
 
-#hosted-play-window {
+  #hosted-play-window {
     right: 58px;
     left: auto;
     bottom: 6px;
@@ -55,9 +121,11 @@ body[data-fork-hide-donate="1"] .donate-cta,
     flex-direction: column;
   }
 
-#hosted-play-window .panel-title { flex: none; }
+  #hosted-play-window .panel-title {
+    flex: none;
+  }
 
-#hosted-play-window .hosted-play-body {
+  #hosted-play-window .hosted-play-body {
     display: flex;
     flex: 1 1 auto;
     min-height: 0;
@@ -69,11 +137,11 @@ body[data-fork-hide-donate="1"] .donate-cta,
     overscroll-behavior: contain;
   }
 
-#hosted-play-window .hosted-play-details-toggle {
+  #hosted-play-window .hosted-play-details-toggle {
     flex: 1 1 auto;
   }
 
-#hosted-play-window .hosted-play-details {
+  #hosted-play-window .hosted-play-details {
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -82,24 +150,24 @@ body[data-fork-hide-donate="1"] .donate-cta,
     border-top: 1px solid #4a3d1d;
   }
 
-#hosted-play-window .hosted-play-debug-group {
+  #hosted-play-window .hosted-play-debug-group {
     display: flex;
     flex-direction: column;
     gap: 4px;
   }
 
-#hosted-play-window .hosted-play-debug-heading {
+  #hosted-play-window .hosted-play-debug-heading {
     color: var(--color-accent);
     font-size: 12px;
     letter-spacing: 0.04em;
     text-transform: uppercase;
   }
 
-#hosted-play-window .hosted-play-debug-rows {
+  #hosted-play-window .hosted-play-debug-rows {
     margin-bottom: 0;
   }
 
-#hosted-play-window .hosted-play-debug-block {
+  #hosted-play-window .hosted-play-debug-block {
     max-height: 210px;
     margin: 0;
     padding: 8px;
@@ -115,54 +183,18 @@ body[data-fork-hide-donate="1"] .donate-cta,
     line-height: 1.35;
   }
 
-#hosted-play-window .hosted-play-debug-note {
+  #hosted-play-window .hosted-play-debug-note {
     margin: 0;
   }
 
-@media (prefers-reduced-motion: reduce) {
-  .np-emote, .ai-reaction-badge, .ai-attention-link, #emote-wheel { animation: none; }
-}
-
-#tooltip .tt-cmp-head-first { margin-top: 0; }
-
-#tooltip.tt-has-compare {
-    width: max-content; max-width: min(590px, calc(100vw - 16px)); padding: 0;
-    background: transparent; border: 0; outline: 0; box-shadow: none;
+  @media (prefers-reduced-motion: reduce) {
+    .ai-reaction-badge,
+    .ai-attention-link {
+      animation: none;
+    }
   }
 
-#tooltip .tt-compare-layout {
-    display: flex; align-items: flex-start; gap: 6px;
-    width: max-content; max-width: min(590px, calc(100vw - 16px));
-  }
-
-#tooltip .tt-compare-panel {
-    box-sizing: border-box; width: max-content; min-width: 178px; max-width: 280px;
-    padding: 8px 10px; overflow-wrap: break-word; color: #e8d8a8;
-    background: var(--panel-bg); border: 2px solid var(--border); outline: 1px solid #000;
-    border-radius: 6px; box-shadow: 0 2px 16px #000c, inset 0 0 24px #0006, inset 0 1px 0 #ffffff14;
-  }
-
-#tooltip .tt-compare-current { max-width: 260px; }
-
-#tooltip .tt-compare-candidate { max-width: 280px; }
-
-@media (max-width: 620px), (pointer: coarse) {
-  #tooltip.tt-has-compare { width: min(280px, calc(100vw - 16px)); max-width: min(280px, calc(100vw - 16px)); }
-}
-
-@media (max-width: 620px), (pointer: coarse) {
-  #tooltip.tt-has-compare .tt-compare-layout { flex-direction: column; width: 100%; max-width: 100%; gap: 4px; }
-}
-
-@media (max-width: 620px), (pointer: coarse) {
-  #tooltip.tt-has-compare .tt-compare-panel { width: 100%; min-width: 0; max-width: 100%; }
-}
-
-#tooltip .tt-desc, #tooltip .tt-stat, #tooltip .tt-green, #tooltip .tt-red, #tooltip .tt-body { font-size: calc(11.5px * var(--tooltip-scale, 1)); }
-
-#tooltip .tt-bd-head, #tooltip .tt-cmp-head { font-size: calc(10px * var(--tooltip-scale, 1)); }
-
-.auth-memory {
+  .auth-memory {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 8px;
@@ -171,7 +203,7 @@ body[data-fork-hide-donate="1"] .donate-cta,
     margin: 0 0 var(--spacing-sm);
   }
 
-.auth-memory-option {
+  .auth-memory-option {
     min-height: 40px;
     display: flex;
     align-items: center;
@@ -185,23 +217,24 @@ body[data-fork-hide-donate="1"] .donate-cta,
     font-size: 12px;
     line-height: 1.25;
     cursor: var(--cursor-point);
-    transition: border-color var(--transition-speed) var(--transition-ease),
-                color var(--transition-speed) var(--transition-ease),
-                background-color var(--transition-speed) var(--transition-ease);
+    transition:
+      border-color var(--transition-speed) var(--transition-ease),
+      color var(--transition-speed) var(--transition-ease),
+      background-color var(--transition-speed) var(--transition-ease);
   }
 
-.auth-memory-option:hover {
+  .auth-memory-option:hover {
     border-color: rgba(255, 209, 0, 0.58);
     color: var(--color-text-light);
     background: rgba(24, 22, 29, 0.86);
   }
 
-.auth-memory-option.is-disabled {
+  .auth-memory-option.is-disabled {
     cursor: default;
     opacity: 0.58;
   }
 
-.auth-panel-premium .auth-memory input {
+  .auth-panel-premium .auth-memory input {
     width: 18px;
     height: 18px;
     flex: 0 0 auto;
@@ -212,40 +245,13 @@ body[data-fork-hide-donate="1"] .donate-cta,
     cursor: inherit;
   }
 
-.auth-panel-premium .auth-memory input:focus-visible {
+  .auth-panel-premium .auth-memory input:focus-visible {
     outline: 2px solid var(--color-border-focus);
     outline-offset: 2px;
     box-shadow: none;
   }
 
-.party-frame .pfm-auras { display: flex; flex-wrap: nowrap; gap: 2px; margin-top: 3px; min-height: 14px; }
-
-.party-frame .pfm-aura { position: relative; width: 14px; height: 14px; flex: 0 0 auto; border: 1px solid rgba(113, 86, 32, 0.95);
-    border-radius: 3px; background-position: center; background-repeat: no-repeat; background-size: cover;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55), 0 0 4px rgba(0, 0, 0, 0.35); }
-
-.party-frame .pfm-aura-stacks { position: absolute; right: -2px; bottom: -4px; color: var(--gold); font-size: 8px;
-    font-family: var(--title-font); line-height: 1; text-shadow: 1px 1px 2px #000; }
-
-body.mobile-touch #party-frames .pfm-auras {
-    gap: 1px;
-    margin-top: 2px;
-    min-height: 10px;
-  }
-
-body.mobile-touch #party-frames .pfm-aura {
-    width: 10px;
-    height: 10px;
-    border-radius: 2px;
-  }
-
-body.mobile-touch #party-frames .pfm-aura-stacks {
-    right: -1px;
-    bottom: -5px;
-    font-size: 7px;
-  }
-
-body.mobile-touch #hosted-play-window {
+  body.mobile-touch #hosted-play-window {
     position: fixed;
     left: max(10px, env(safe-area-inset-left));
     right: max(10px, env(safe-area-inset-right));
@@ -258,328 +264,4 @@ body.mobile-touch #hosted-play-window {
     overflow: hidden;
     z-index: 95;
   }
-
-/* The remaining portrait/landscape rules came from the pre-v0.29 mobile HUD.
- * Keep them inert as merge history while the official hud-mobile layer owns
- * actionable layout, safe areas, and the quest tracker on both entry pages. */
-@media not all {
-
-@media (orientation: portrait) {
-  body.mobile-touch .mobile-joystick {
-        width: 108px;
-        height: 108px;
-        bottom: calc(204px + env(safe-area-inset-bottom));
-        opacity: 0.58;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #mobile-move-zone {
-        width: min(45vw, 180px);
-        min-width: 140px;
-        max-width: 180px;
-        height: 220px;
-        bottom: calc(142px + env(safe-area-inset-bottom));
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch .mobile-joystick::before { inset: 24px; }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch .mobile-stick {
-        width: 46px;
-        height: 46px;
-        margin: -23px 0 0 -23px;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch .mobile-joy-label {
-        bottom: -16px;
-        font-size: 8px;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #mobile-camera-joystick {
-        right: max(12px, env(safe-area-inset-right));
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #mobile-move-joystick {
-        left: max(12px, env(safe-area-inset-left));
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #mobile-combat-controls {
-        left: max(8px, env(safe-area-inset-left));
-        right: max(8px, env(safe-area-inset-right));
-        bottom: calc(8px + env(safe-area-inset-bottom));
-        width: auto;
-        transform: none;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        grid-auto-rows: 48px;
-        gap: 6px;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch .mobile-btn {
-        width: 100%;
-        min-width: 0;
-        height: 48px;
-        font-size: 18px;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch .mobile-btn .ui-icon {
-        width: 20px;
-        height: 20px;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #mobile-attack-nearest {
-        width: 100%;
-        grid-column: span 2;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #bottom-bar {
-        left: max(10px, env(safe-area-inset-left));
-        right: max(10px, env(safe-area-inset-right));
-        bottom: calc(122px + env(safe-area-inset-bottom));
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #actionbar {
-        min-height: 48px;
-        padding: 4px;
-        gap: 4px;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch .action-btn {
-        width: 40px;
-        height: 40px;
-        flex-basis: 40px;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #castbar {
-        left: 50%;
-        bottom: calc(178px + env(safe-area-inset-bottom));
-        width: min(160px, calc(100vw - 160px));
-        min-width: 120px;
-        transform: translateX(-50%);
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #player-frame {
-        left: max(6px, env(safe-area-inset-left));
-        top: max(6px, env(safe-area-inset-top));
-        width: 300px;
-        transform: scale(0.58);
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #target-frame {
-        left: max(6px, env(safe-area-inset-left));
-        top: calc(max(6px, env(safe-area-inset-top)) + 54px);
-        transform: scale(0.58);
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #party-frames {
-        left: max(6px, env(safe-area-inset-left));
-        top: calc(max(6px, env(safe-area-inset-top)) + 56px);
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #party-frames.below-target {
-        top: calc(max(6px, env(safe-area-inset-top)) + 98px);
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #party-frames .party-frame {
-        width: 116px;
-        min-height: 25px;
-        padding: 2px 5px;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #party-frames #party-leave {
-        width: 116px;
-        min-height: 28px;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #minimap-wrap {
-        right: max(4px, env(safe-area-inset-right));
-        top: max(4px, env(safe-area-inset-top));
-        transform: scale(0.48);
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #buff-bar {
-        right: calc(94px + env(safe-area-inset-right));
-        top: max(8px, env(safe-area-inset-top));
-        max-width: 124px;
-        transform: scale(0.82);
-        transform-origin: right top;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #quest-tracker,
-      body.mobile-touch #meters-window {
-        display: none;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #petbar {
-        top: calc(max(6px, env(safe-area-inset-top)) + 88px);
-        transform: translateX(-50%) scale(0.84);
-        transform-origin: center top;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #community-hud {
-        top: clamp(
-          calc(max(8px, env(safe-area-inset-top)) + 210px),
-          44dvh,
-          calc(100dvh - 230px)
-        );
-        right: max(8px, env(safe-area-inset-right));
-        bottom: auto;
-        width: 70px;
-        padding: 3px;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch .community-toggle {
-        width: 40px;
-        height: 40px;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #chatlog-wrap {
-        left: max(10px, env(safe-area-inset-left));
-        bottom: calc(232px + env(safe-area-inset-bottom));
-        width: min(360px, calc(100vw - 20px));
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #chatlog-frame { height: 124px; }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #chat-input {
-        left: max(10px, env(safe-area-inset-left));
-        bottom: calc(368px + env(safe-area-inset-bottom));
-        width: min(360px, calc(100vw - 20px));
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #mobile-extra-controls {
-        width: calc(100vw - 20px - env(safe-area-inset-left) - env(safe-area-inset-right));
-        max-width: calc(100vw - 20px - env(safe-area-inset-left) - env(safe-area-inset-right));
-        max-height: calc(100dvh - 144px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-        padding: 8px;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #mobile-extra-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        grid-auto-rows: 44px;
-        gap: 6px;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #mobile-extra-controls .mobile-btn {
-        height: 44px;
-        font-size: 16px;
-        padding: 0 8px;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #spellbook,
-      body.mobile-touch #options-menu,
-      body.mobile-touch #options-menu.kb-wide,
-      body.mobile-touch #quest-log-window,
-      body.mobile-touch #vendor-window,
-      body.mobile-touch #market-window,
-      body.mobile-touch #quest-dialog,
-      body.mobile-touch #social-window,
-      body.mobile-touch #trade-window,
-      body.mobile-touch #talents-window,
-      body.mobile-touch #char-window,
-      body.mobile-touch #map-window {
-        left: max(10px, env(safe-area-inset-left));
-        right: max(10px, env(safe-area-inset-right));
-        top: max(10px, env(safe-area-inset-top));
-        bottom: calc(122px + env(safe-area-inset-bottom));
-        width: auto;
-        max-width: none;
-        max-height: none;
-        height: auto;
-        transform: none;
-        box-sizing: border-box;
-      }
-}
-
-@media (orientation: portrait) {
-  body.mobile-touch #map-window {
-        padding: 8px;
-      body.mobile-touch .mobile-btn { width: 42px; height: 44px; font-size: 16px; }
-      body.mobile-touch #mobile-attack-nearest { width: 96px; }
-      }
-}
-
-@media (orientation: landscape) {
-  body.mobile-touch #party-frames .pfm-auras {
-        min-height: 9px;
-      }
-}
-
-@media (orientation: landscape) {
-  body.mobile-touch #party-frames .pfm-aura {
-        width: 9px;
-        height: 9px;
-      }
-}
-
-@media (orientation: landscape) {
-  body.mobile-touch #party-frames .pfm-aura-stacks {
-        font-size: 6px;
-      }
-}
-
-}
 }

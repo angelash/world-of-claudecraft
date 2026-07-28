@@ -3,6 +3,7 @@
 // styles both game entries; admin/guide use their own entries and inline CSS.
 import './styles/index.css';
 import { startDiscordLogin } from './discord_login_start';
+import { collapseForkHeaderMenu, mountForkShell, syncForkShellMode } from './fork/bootstrap';
 import { syncAppViewport as syncAppViewportShared } from './game/app_viewport';
 import { audio } from './game/audio';
 import { AutoLoot } from './game/autoloot';
@@ -49,7 +50,6 @@ import { handleGatherNodeInteract } from './game/gather_node_interact';
 import { gatherToolProfessionFor, nearestGatherNodeForProfession } from './game/gather_tool_use';
 import { Input } from './game/input';
 import { InputActivityMeter, installInputActivityTracking } from './game/input_activity';
-import { corpseHasVisibleLoot, createAutoLootState, nearestAutoLootCorpse } from './game/auto_loot';
 import { stopAutorunForInteraction } from './game/interaction_autorun';
 import {
   activePvpOpponentIds,
@@ -165,7 +165,6 @@ import { assetsReady } from './render/assets/preload';
 import { CharacterPreview, type PreviewAppearance } from './render/characters';
 import { charactersReady, preloadMechAssets } from './render/characters/assets';
 import { skinCount } from './render/characters/manifest';
-import { collapseForkHeaderMenu, mountForkShell, syncForkShellMode } from './fork/bootstrap';
 import { onPortraitsReady, playerPortraitDataUrl } from './render/characters/portrait';
 import { installWebGLContextRelease } from './render/context_release';
 import { firstRunGraphicsPreset, GFX, graphicsPresetLabel } from './render/gfx';
@@ -243,6 +242,7 @@ import { showEntryGuardBanner } from './ui/entry_guard_banner';
 import { FocusManager, type FocusTrapHandle } from './ui/focus_manager';
 import { attachGatherNodeHoverTooltip, gatherNodeToolGateFor } from './ui/gather_node_tooltip';
 import { gatherToolNoNodeKey } from './ui/gathering_view';
+import { hostedPlayStatusView } from './ui/hosted_play_status_view';
 import { type ClaudiumHooks, Hud } from './ui/hud';
 import { resolveActionBarVisibility } from './ui/hud/action_bar/action_bar_visibility_core';
 import { autosizeChatInput } from './ui/hud/chat/chat_input_autosize';
@@ -269,7 +269,6 @@ import {
 } from './ui/i18n';
 import { defaultIconPrewarmEntries, prewarmIconCache } from './ui/icon_prewarm';
 import { iconDataUrl } from './ui/icons';
-import { hostedPlayStatusView } from './ui/hosted_play_status_view';
 import {
   noteLoadingProgress,
   startSlowConnectionWatch,
@@ -1221,10 +1220,6 @@ async function startGame(
 
   // Offline only: expose the dev "2v2 Fiesta vs Bots" practice toggle to the HUD.
   if (offlineSim) hud.setFiestaPracticeHook(() => offlineSim.startFiestaPractice());
-  const autoLootState = createAutoLootState();
-  hud.attachLootManualClose((mobId) => {
-    autoLootState.suppressedCorpseId = mobId;
-  });
   // The Vale Cup practice-vs-bots button (the window calls world.vcupPracticeStart
   // through IWorld). Private instanced practice works online AND offline, so the
   // button is always available.
@@ -2504,28 +2499,6 @@ async function startGame(
       }
     }
   }
-  function lootPopupPoint(e: { pos: { x: number; y: number; z: number }; scale: number }): {
-    x: number;
-    y: number;
-  } {
-    const screen = renderer.worldToScreen(e.pos.x, e.pos.y + 1.2 * e.scale, e.pos.z);
-    if (screen.behind) return { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
-    return { x: screen.x, y: screen.y };
-  }
-
-  function openLootAtCorpse(mobId: number): void {
-    const mob = world.entities.get(mobId);
-    if (!mob) return;
-    const p = lootPopupPoint(mob);
-    hud.openLoot(mobId, p.x, p.y);
-  }
-
-  function autoLootTick(): void {
-    if (world.player.dead || hud.isModalOpen() || hud.currentLootMobId() !== null) return;
-    const mobId = nearestAutoLootCorpse(world, autoLootState);
-    if (mobId !== null) openLootAtCorpse(mobId);
-  }
-
   function interactKey(): void {
     stopAutorunForInteraction(
       tryNearbyInteraction(
@@ -3332,7 +3305,6 @@ async function startGame(
         ),
       );
       perf.trace('ui.clickMoveMarker', () => updateClickMoveMarker());
-      perf.trace('ui.autoLoot', () => autoLootTick());
       perf.markInputVisible(performance.now());
       if (settings.get('walkByAutoloot')) autoLoot.run(world, now);
       perf.time('hud', () => perf.trace('hud.update', () => hud.update(), { mode: 'offline' }));
@@ -3499,7 +3471,6 @@ async function startGame(
       ),
     );
     perf.trace('ui.clickMoveMarker', () => updateClickMoveMarker());
-    perf.trace('ui.autoLoot', () => autoLootTick());
     maybeShowImmobileNote(now);
     perf.markInputVisible(performance.now());
     if (settings.get('walkByAutoloot')) autoLoot.run(world, now);
