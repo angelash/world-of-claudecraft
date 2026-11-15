@@ -2440,7 +2440,7 @@ narrator：然后，一切都暗了下去。
 - **自由输入的归类**：`输入` 行可加 `｜归类 <节点>：<选项…>｜兜底 <选项>`，对应数据层 `SceneInput.classify`（序章已用）。紧跟在 `输入` 行之前的 `即兴` 行，是该输入的模型应答约束；其后的台词行是写定应答（无模型版）。
 - **凡人词表（D-030）**：玩家从夜羽口中听到"澱"（`term.dian_known`，由 S14 或本节的 `cut_a1_yeyu_memory` 写入）之前，所有台词都不出现"澱"；凡人始终说灰气、灰病（荒原病）、灰晶、灰狼、灰鬼、灰巨像，夜羽在听过之后说"澱"。旁白不替魔物命名，只写"灰色的东西"。
 - **门的数值**：开门时的 `doors_opened`、`seal_looseness`、`seal_unrest`、`danger_doors_opened` 一律由门系统结算，过场只演出，不重复写入。
-- **对已有变量采用的枚举字面量**：`rumor.tide_attribution` 取 `player`、`marsha`、`light`、`collapse`（对应第一幕 8.7 的玩家、玛莎、光、自溃）；`moss.fate` 取 `in_power`、`puppet`、`arrested`、`fled`、`dead`；`borderstone.survival` 取 `intact`、`damaged`、`ravaged`（完好、受创、重创）；`children.toby` 取 `sick`、`recovered`、`dead`；`children.lin` 取 `healthy`、`sick`、`recovered`、`dead`；`count_letter.variant` 取 `'甲'`、`'乙'`、`'丙'`、`'丁'`；`janu.first_dream_answer` 存玩家原话（选项时存选项原文），第六幕原样引用。
+- **对已有变量采用的枚举字面量**：`rumor.tide_attribution` 取 `player`、`martha`、`light`、`self_collapse`（对应第一幕 8.7 的玩家、玛莎、光、自溃）；`moss.fate` 取 `in_power`、`puppet`、`arrested`、`fled`、`dead`；`borderstone.survival` 取 `intact`、`damaged`、`ravaged`（完好、受创、重创）；`children.toby` 取 `recovered`、`dead`（病中为未写入）；`children.lin` 取 `healthy`、`recovered`、`dead`；`count_letter.variant` 取 `a`、`b`、`c`、`d`（甲乙丙丁）；以第一幕第 12 节为准；`janu.first_dream_answer` 存玩家原话（选项时存选项原文），第六幕原样引用。
 
 第一幕的写定节拍里，下列几项不在本节的 14 个 ID 之内，由任务目录的事件（`ev_`）与台词目录承载，本节只给出归属，避免重复制作：
 
@@ -4228,13 +4228,13 @@ shiya［rumor.tide_attribution == player］：我看见了。巨像是这个人�
 isa［rumor.tide_attribution == player］：孩子们都看见了。是这个人把那个大东西从孤儿院引开的。
 greta［rumor.tide_attribution == player］：孩子不会认错。
 ron［rumor.tide_attribution == player］：……好吧。可能。
-dora［rumor.tide_attribution == marsha］：我亲眼看见的！老板娘一刀，把那个大家伙劈成了两半！
-townsfolk［rumor.tide_attribution == marsha］：一刀！就一刀！
-martha［rumor.tide_attribution == marsha］：……先吃饭。
+dora［rumor.tide_attribution == martha］：我亲眼看见的！老板娘一刀，把那个大家伙劈成了两半！
+townsfolk［rumor.tide_attribution == martha］：一刀！就一刀！
+martha［rumor.tide_attribution == martha］：……先吃饭。
 bertha［rumor.tide_attribution == light］：是光。神父说了，是光。
 townsfolk［rumor.tide_attribution == light］：光庇佑了边石镇。
-simon［rumor.tide_attribution == collapse］：哪有什么人打倒它。那种东西，灰一散，自己就塌了。
-ron［rumor.tide_attribution == collapse］：对、对，自己塌的。
+simon［rumor.tide_attribution == self_collapse］：哪有什么人打倒它。那种东西，灰一散，自己就塌了。
+ron［rumor.tide_attribution == self_collapse］：对、对，自己塌的。
 → drink
 【drink】
 分支［marsha.revealed AND marsha.assessment >= 5］→ free_drink
@@ -4672,7 +4672,7 @@ narrator：那天夜里，公会二楼的灯亮到很晚。
 | 地点 | `borderstone` 的 `post_station` → `guild` |
 | 时长 | 约 2 分 30 秒 |
 | 现有数据 | `a1_count_letter` 的 `letter` 节点（1 节点、4 行）。沿用：驿卒送信一行（拆为驿站与公会两镜）、信的正文（数据只写了玛莎一版，本场写全四种归功与五种莫斯结局）、"伯爵要见那个打退兽潮的 F 级。""你说，我该带谁去？"；场景末的 `act act2` 保留。扩写量见索引 |
-| 写入旗标 | `count_letter.variant`（'甲'、'乙'、'丙'、'丁'）；道具 `count_letter`；`act` 进入第二幕 |
+| 写入旗标 | `count_letter.variant`（`a`、`b`、`c`、`d`，即甲乙丙丁）；道具 `count_letter`；`act` 进入第二幕 |
 | 揭示 | 无台账线索；第二幕入口（"那个 F 级"：瓦伦堡总有人想见一见传闻里那个被小看的人） |
 | 音乐与音效 | 镜 1 `mus_cue_zoomout` 入（第一变奏完整版）；镜 3 读信时压低；镜 4 布伦问话后停一拍；镜 7 字幕卡时收尾淡出。`sfx_cin_a1_post_horse`、`sfx_cin_a1_letter_unfold` |
 | 所需美术 | 特写 `art_prop_cut_count_letter`；立绘 `art_bust_bron`（`neutral`、`thinking`）、`art_bust_ron`（`special`、`surprised`）、`art_bust_yeyu`（`cold`）；头像 `art_por_ulf_lange` |
@@ -4714,9 +4714,9 @@ narrator：驿卒把那封盖着火漆的信送进了公会。布伦拆开，读
 letter：致边石镇冒险者公会分部长布伦阁下：
 letter：据报，暗月之夜，贵镇遭兽潮侵袭。
 letter［rumor.tide_attribution == player］：赖一名登记为 F 级之冒险者力战，镇得保全。
-letter［rumor.tide_attribution == marsha］：有酒馆女主人一人及一名登记为 F 级之冒险者出力，镇得保全，其中详情众说纷纭。
+letter［rumor.tide_attribution == martha］：有酒馆女主人一人及一名登记为 F 级之冒险者出力，镇得保全，其中详情众说纷纭。
 letter［rumor.tide_attribution == light］：据贵镇神父所报，此乃光之庇佑；然亦有人言，一名登记为 F 级之冒险者曾独当巨物。
-letter［rumor.tide_attribution == collapse］：据报魔物自溃；然亦有人言，一名登记为 F 级之冒险者当夜在场。
+letter［rumor.tide_attribution == self_collapse］：据报魔物自溃；然亦有人言，一名登记为 F 级之冒险者当夜在场。
 letter：伯爵府欲见此人。请于本月内携其至瓦伦堡。
 letter［moss.fate == arrested］：另，代官莫斯一事，本府已知，届时一并处置。
 letter［moss.fate == fled］：另，代官莫斯擅离职守，本府已发文缉拿。
@@ -4724,7 +4724,7 @@ letter［moss.fate == in_power］：另，代官莫斯呈报，防御事宜皆�
 letter［moss.fate == puppet］：另，代官莫斯呈报，当夜守御多赖贵镇冒险者协力，此节亦请分部长届时一并说明。
 letter［moss.fate == dead］：另，代官莫斯殒命一事，本府已知，届时一并查明。
 letter：瓦伦边境伯爵府 书记处 谨启
-效果 flag count_letter.variant = '甲'［rumor.tide_attribution == player］；flag count_letter.variant = '乙'［rumor.tide_attribution == marsha］；flag count_letter.variant = '丙'［rumor.tide_attribution == light］；flag count_letter.variant = '丁'［rumor.tide_attribution == collapse］；item count_letter
+效果 flag count_letter.variant = a［rumor.tide_attribution == player］；flag count_letter.variant = b［rumor.tide_attribution == martha］；flag count_letter.variant = c［rumor.tide_attribution == light］；flag count_letter.variant = d［rumor.tide_attribution == self_collapse］；item count_letter
 @镜 4
 @立绘 bron thinking 右
 narrator：布伦看完，哼了一声。
@@ -4842,7 +4842,7 @@ yeyu：这个印……不认识。送信的倒是跑得挺快。
 
 本节还使用两个已在数据层出现、尚未进台账的旗标：`term.dian_known`（玩家第一次从夜羽口中听到"澱"，D-030 的界面切换点，由 S14 或 `cut_a1_yeyu_memory` 写入）、`a1_ash_page`（灰里飘来的那页纸）。
 新的计算函数一个：`tide_attribution`，按第一幕 8.7 写 `rumor.tide_attribution`，判定顺序为：巨像战的具名目击者中信任 60 以上者至少四人取 `player`；
-否则玛莎出手取 `marsha`；否则 `church_suspicion` 40 以上（卡西安在晨祷中宣讲"光庇佑"）取 `light`；其余取 `collapse`。
+否则玛莎出手取 `martha`；否则 `church_suspicion` 40 以上（卡西安在晨祷中宣讲"光庇佑"）取 `light`；其余取 `self_collapse`。
 
 ### 5.4 本节音效与环境声
 
@@ -5025,7 +5025,7 @@ yeyu：这个印……不认识。送信的倒是跑得挺快。
 | 地点 | 字幕段在 `reedbridge` 南大路；`wallenburg` 的 `north_gate`；觐见在 `castle`（鹰丘堡卧室外厅） |
 | 时长 | 约 4 分钟（入口一约 2.5 分钟，入口二约 1.5 分钟）；卡尔的盘问有模型时另计 |
 | 现有数据 | `act2_intro`（1 节点、3 行）与 `a2_count_audience`（1 节点、4 行）合并；扩写到 19 节点、41 行。导入时不保留 `act2_intro` 的 `add seal_looseness 5`（松动度只由开门与写定事件写入，`goddess_gm.md` 12.2） |
-| 写入旗标 | `a2_arrive_valen = true`；`a2_selene_met = true`（变体）；`a2_count_request`（accepted、deferred）；`a2_count_audience_done = true`；物品 `eagle_hill_pass` |
+| 写入旗标 | `a2_arrive_valen = true`；`a2_selene_met = true`（变体）；`a2_count_request`（accepted、deferred）；`a2_count_audience_done = true`；`a2_access_eagle_hill = true`（鹰丘通行，任务目录不另设物品） |
 | 揭示 | 赛琳变体推进 S06-C01（她对"规格外者"的执着）与 M01-C06（神谕的存在，只有存在）。埋下：帘缝里的那杯药与夜羽闻到的"灰味"是 S05 伯爵之死的感官伏笔，不解释。伯爵对应造主只属设计内部，台词不点破 |
 | 音乐与音效 | 入 `mus_city_wallenburg_day`（镜 1）；镜 7 乐停，只留 `amb_int_palace` 与 `sfx_cin_arrival_cough`；镜 9 淡入 `mus_city_wallenburg_day` 并延续到游戏。专用音效 `sfx_cin_arrival_bells`、`sfx_cin_arrival_cough`、`sfx_cin_arrival_curtain` |
 | 所需美术 | 立绘 `art_bust_yeyu`（neutral、thinking）、`art_bust_selene`（cold）、`art_por_adalbert`（neutral 帘影、special 帘动）；头像 `art_por_karl`、`art_por_rudolf`、`art_por_shiya`、`art_por_ron`；实景运镜 |
@@ -5171,7 +5171,7 @@ count_voice：不必。看了，你就要替我担心。听就够了。
 count_voice：先去公会，把等级考上去。F 级的话，在这座城里，连门都进不去。
 rudolf：伯爵大人累了。
 narrator：鲁道夫把一块铜牌放进你手里。牌上刻着一只鹰。
-效果 item eagle_hill_pass；flag a2_count_audience_done = true
+效果 flag a2_access_eagle_hill = true；flag a2_count_audience_done = true
 yeyu［companion.yeyu.recruited］：帘子后面有股灰味。很淡。
 yeyu［companion.yeyu.recruited］：……也可能是炭盆。走了，门把手。
 @乐 mus_city_wallenburg_day 入
@@ -5366,7 +5366,7 @@ selene：我叫赛琳。我们以后会再见的。
 | 触发 | `act_week >= 4 AND a2_arrive_valen AND NOT a2_heroes_met`，请求方 A2-M04 阶段"光之奇迹祭" |
 | 时机 | 第 4 周第 1 日：上午勇者团入城，正午祭典，黄昏请柬。必经；玩家不在城里时，跳时到正午把玩家移到 `cathedral_square` |
 | 出场 | `luchen` 陆辰、`yui` 白石结衣、`marcus` 马库斯·罗查、`aiden` 艾登·霍尔、`anselm` 主教安瑟姆、`ferryman` 老船夫（插镜，无台词）、`selene` 赛琳（变体）、`yeyu` 夜羽 |
-| 地点 | `wallenburg`：`north_gate` 到 `cathedral_square` 的大街；插镜 `ferry`；祭典在 `cathedral_square` |
+| 地点 | `wallenburg`：北门 `to_north_gate` 到 `cathedral_square` 的大街；插镜 `ferry`；祭典在 `cathedral_square` |
 | 时长 | 约 5 分钟；陆辰、马库斯有模型时另计 |
 | 现有数据 | 新建；`a2_exam_done` 中勇者团的 6 行（陆辰、结衣、马库斯、艾登各一行，旁白两行）移入本场 `meet` 与 `others` 节点。扩写到 14 节点、31 行 |
 | 写入旗标 | `a2_heroes_met = true`；`a2_yui_saw_light_bend = true`（玩家站着不动时）；`a2_luchen_question`（admit、deny、deflect、silent）；`hero_rel_luchen`、`hero_rel_yui`、`hero_rel_marcus` 初值加成；`eluen_awareness`（结衣察觉 +2，向陆辰承认 +3）；`a2_selene_met = true`（变体） |
@@ -7765,7 +7765,6 @@ narrator：千军之门。
 | --- | --- | --- |
 | 说话者 | `rudolf`、`krause`、`emil`、`dietrich`、`anselm`、`agnes`、`edric`、`cecilia`、`lucas`、`pia`、`karl`、`fynn`、`dela`、`fiona`、`gregor`、`dris`、`heralda`、`hagen`、`benno_herten`、`baishan` | 人物 ID 取自 `data/npc/personas.json` 与 `catalog_characters_lotha.md`；`data/scenes/speakers.json` 尚未收录，导入前补登 |
 | 说话者 | `janu`、`moira` | 神的 ID；`janu` 在 `a6_name_spoken` 之前显示"门口的女人" |
-| 物品 | `eagle_hill_pass` | 鹰丘通行牌（伯爵府铜牌，刻鹰），A2-M01 奖励 |
 | 物品 | `ferryman_old_oar` | 老船夫的旧船桨（纪念品，替皮娅收着） |
 | 物品 | `b_rank_card`、`barony_writ` | 已有 |
 | 物品 | `ky_deadframe_splinter` | 断门厅木屑（`catalog_doors.md` 已列为隔扉之门的辅钥） |
@@ -7848,7 +7847,7 @@ narrator：千军之门。
 | `art_prop_cut_trial_mirror` | 特写 | 照规镜：银框，镜背刻经文 | 1 帧 | selene_trial |
 | `art_prop_cut_trial_dossier` | 特写 | 卷宗里比别的页都新的那一页 | 1 帧 | selene_trial |
 | `art_prop_cut_funeral_poison` | 特写 | 慢性毒药证物：药渣碗底一层灰晶粉，旁边是账本上"特殊药材"那一行 | 1 帧 | funeral |
-| `art_prop_cut_funeral_signet` | 特写 | 伯爵印戒：鹰纹，内圈一道齿，像钥匙 | 1 帧 | funeral、siege |
+| `art_prop_cut_funeral_signet` | 特写 | 伯爵印戒（鹰丘印戒）：深蓝宝石戒面阴刻城塔上展翅的鹰（鹰丘伯爵家徽，与伯爵来信的蜡封同纹），内圈一道齿，像钥匙 | 1 帧 | funeral、siege |
 | `art_prop_cut_arrest_warrant` | 特写 | 逮捕告示：主教区朱红封蜡，下半张是宗教戒严令 | 1 帧 | arrest |
 | `art_prop_cut_siege_signet_lock` | 特写 | 断门厅铁闸上印戒形状的锁孔（与被炸开的版本两帧） | 2 帧 | siege |
 | `art_prop_cut_siege_charter` | 特写 | 《瓦伦堡市民自治特许状》草稿，伯爵亲笔，末尾空着盖印处；盖印后一帧 | 2 帧 | siege |
@@ -7903,7 +7902,7 @@ narrator：千军之门。
 本幕六场带"段落"（domain、massacre、warning、crown_falls、ashen_line、map）：同一个 `SceneDef` 被请求方在不同时刻请求多次，入口节点按段落旗标 `<名>_beat` 分支（运行器允许同一场景重复播放，
 `scene.<cut_id>.seen` 在第一次播完时就写入，所以条件一律读段落旗标，不读 `seen`）。请求方在请求前写入段落旗标；过场在末节点把它写成 `done`
 或下一段的值。凡是"推开一扇门"，过场只写推门请求 `push_door.<门 ID> = true`，由千门系统在下一个安全时刻按开门结算（`thousand_doors.md` 第 3.5 节）
-处理并清除；玩家始终可以选"现在不推"（同文第 3.4 节第 3 条）。
+处理并清除；玩家始终可以选"现在不推"（同文第 3.4 节第 4 条）。
 
 本节的说话者：`narrator`、`player`（只在夜羽不在场时作内心字幕）、`letter`、神的 ID（`eluen`、`valda` 只作序章录音的回声，`janu` 只在梦里，界面名"门口的女人"），
 其余为人物目录 ID。大主教塞维林·莫兰德的人物 ID 是 `severin`，台词沿用 `data/scenes/speakers.json` 已有的说话者 `archbishop`；
@@ -10600,7 +10599,7 @@ narrator：门楣上没有图案。只刻着一块界碑，碑面是空白的。
 | `art_bust_oswald` | 半身立绘 | 老王奥斯瓦尔德四世：枯瘦，白须铺在被上，卧床，背景床头挂骑士剑；褪色王室蓝、象牙白 | pained、neutral | crown_falls |
 | `art_bust_philip` | 半身立绘 | 王太子腓力：清秀，衣着整洁而不合身，咬指甲；浅蓝与银 | surprised、thinking、sad、smile、special（双手扶着有点大的王冠） | audience、crown_falls、map |
 | `art_bust_drake` | 半身立绘 | 宰相冯·德雷克：圆润体面，银灰背头，单片眼镜，指间同盟商会印戒；深紫与金 | neutral、smile、cold | audience、crown_falls、map |
-| `art_por_severin` | 半身立绘 | 大主教塞维林·莫兰德：白金祭袍，花白鬓发，眼神量人 | neutral、cold、grin（举柱时的狂热）、special（光附身：眼白浮起白金光，合音） | audience、crown_falls、ashen_line、eluen_speaks |
+| `art_por_severin` | 半身立绘 | 大主教塞维林·莫兰德：六十岁上下，瘦高挺直，白发剪得很短，神情笃定；白底金纹的主教长袍、高主教冠、金色光环纹的圣带、顶端是光环的金色长权杖（与首领三视图 `art_boss_archbishop_dawnpillar_ref` 同一套辨识特征） | neutral、cold、grin（举柱时的狂热）、special（光附身：眼白浮起白金光，合音） | audience、crown_falls、ashen_line、eluen_speaks |
 | `art_bust_sasha` | 半身立绘 | 萨莎：深红短发后梳，断眉疤，染红的獠牙耳坠，黑红轻甲，拳击绷带与一对铁拳套 | grin、special（仰天大笑：头后仰，铁拳套举过头） | ashen_line、eluen_speaks |
 | `art_bust_luchen` | 半身立绘 | 陆辰（与第二幕共用） | pained、cold、special（放下剑：空手，红披风已解） | massacre、ashen_line |
 | `art_bust_yui` | 半身立绘 | 白石结衣（与第二幕共用） | tender、sad、special（愣住：双手还按在刚治好的伤口上，光从指缝漏出） | massacre |
@@ -10665,7 +10664,7 @@ narrator：门楣上没有图案。只刻着一块界碑，碑面是空白的。
 
 | 文件 | 位置 | 建议原文 | 理由 |
 | --- | --- | --- | --- |
-| `docs/30_story/arcs/act3_lothar_crisis.md` | 第 7.4 节战役 0"AI 将领"行末句 | "阵线将破时他举起旗，千军之门可开：战斗插演中由玩家推开，战斗从小队规模升为连队规模；不推则按小队规模打完，战后仍可推开" | `thousand_doors.md` 第 3.4 节第 3 条：除剧情必开门外，门一律由玩家推开，玩家必须能选择不开；`cut_a3_domain` 按此写 |
+| `docs/30_story/arcs/act3_lothar_crisis.md` | 第 7.4 节战役 0"AI 将领"行末句 | "阵线将破时他举起旗，千军之门可开：战斗插演中由玩家推开，战斗从小队规模升为连队规模；不推则按小队规模打完，战后仍可推开" | `thousand_doors.md` 第 3.4 节第 4 条：除剧情必开门外，门一律由玩家推开，玩家必须能选择不开；`cut_a3_domain` 按此写 |
 | `docs/30_story/arcs/act3_lothar_crisis.md` | 第 7.4 节战役 4"誓光之门"行 | "玩家守住苇桥（任一胜利路线），即满足……的钥，誓光之门可开（终局插演中由玩家推开）" | 同上；`cut_a3_ashen_line` 的 `vow` 节点 |
 | `docs/30_story/reveal_ledger.md` | 第 7 节表 E08 行"取得条件"列 | "`a3_defaced_stele_found` 之后，第五幕进入凿碑台时拓印（第三幕只能远望）" | `act3_lothar_crisis.md` 第 2.2 节：千门都核心本幕只能远望；现有数据在第三幕发放 E08 与此冲突 |
 | `docs/40_design/systems/thousand_doors.md` | 第 3.4 节第 2 条之后加一条 | "过场里的推门以请求旗标 `push_door.<门 ID> = true` 提交；千门系统把过场结束的那一刻（含战斗插演）视为安全时刻，按 3.5 节结算开门并清除该键；开门演出在过场之后接着播放" | 本节三扇门（千军、残响、誓光）都在过场里给出"推开它／现在不推" |
@@ -13372,7 +13371,7 @@ ash：上面那位，也在看。
 | `art_por_league_clerk` | 头像 | 同盟书记：瘦，袖口套着防墨的袖套，手里一本厚账册 | neutral、cold | founding、conclave |
 | `art_por_bobby_lind` | 头像 | 波比·林德：半身人契约书记，圆脸，抱着一摞比他还高的契约，耳后夹一支笔 | neutral、thinking | feast |
 | `art_por_herda_scaleheart` | 头像 | 大司祭赫尔达·秤心：一百四十多岁的赤砧矮人，白须编成两股，金秤神殿的司祭袍，腰间挂一串库钥 | neutral、pained | key_theft |
-| `art_por_mute_bell` | 头像 | 哑钟：遗民，瘦削，嘴角有旧疤，门徒会的灰兜帽，双手缠着敲钟磨出的布条 | neutral、special（跪下以额触钥） | key_theft |
+| `art_por_mute_bell` | 头像 | 哑钟：被割了舌头的遗民敲钟人，瘦高，三十来岁，灰褐的旧斗篷打满补丁，围巾裹住下半张脸，左手套边露出拱门形的胎记，腰间一口青铜手钟，胸前皮绳挂着一把没有纹样的古钥（与首领三视图 `art_boss_mute_bell_chase_ref` 同一套辨识特征） | neutral、special（跪下以额触钥） | key_theft |
 | `art_por_ivo_rada` | 头像 | 第三军团长伊沃·拉达："高沼狼"，四十八岁，风吹裂的脸，铁蹄重骑的半身甲 | neutral、cold、sad | valda_offer |
 | `art_por_dying_soldier` | 头像 | 垂死的帝国士兵：年轻，满脸灰土，嘴唇干裂 | neutral、pained、special（眼里亮着不属于他的光，咧嘴露牙；瓦尔妲借他开口时用） | valda_offer |
 | `art_por_deacon` | 头像 | 难民礼拜堂的新执事：三十来岁，洗得发白的执事袍，手里捧着诏书抄本 | neutral、cold | edict |
@@ -13450,7 +13449,7 @@ ash：上面那位，也在看。
 
 **说话者与立绘**：神用 `eluen`、`valda`、`merca`、`sylvie`、`moira`、`janu`；`janu` 在本幕界面名一律"门口的女人"，`@立绘 janu` 取 `art_bust_door_woman`。
 无貌者有两个说话者 ID：`faceless`（界面名"无貌者"，`a5_faceless_named` 之后"沈望"）用于梦里、灰中对谈与救赎之后；`faceless_king`（界面名"无貌之王"）用于戴冠之后他以王的身份在现实里说话。
-两者的对话框都只显示一个空的头像框（角色设定集 4.8 节"像素要点"），不出立绘。原龙用 `eska`（`a5_eska_descends` 之前界面名"银色的龙"），头像 `art_por_eska`，只出剪影与局部。
+两者的对话框都只显示一个空的头像框（角色设定集 4.8 节"像素要点"），本幕不出立绘：第二幕的投影立绘 `art_bust_faceless` 只用于第二幕，本幕他只以立牌、首领立牌与全屏静帧出现；救赎之后脸回来，立牌换成状态变体 `art_chr_faceless_redeemed`，对话框仍只显示空框。原龙用 `eska`（`a5_eska_descends` 之前界面名"银色的龙"），头像 `art_por_eska`，只出剪影与局部。
 立绘表情键只用美术管线已有的七种：`neutral` 与差分表的 `smile`、`angry`、`sad`、`surprised`、`thinking`、`special`。状态变体立绘用"档名"占表情键的位置，
 取美术管线已有的变体档：`@立绘 yui descent` 取 `art_bust_yui_descent`，`@立绘 luchen unarmored` 取 `art_bust_luchen_unarmored`。没有半身立绘的人物只出对话框头像 `art_por_<ID>`。
 信、诏书、碑面与铭录页的文字说话者是 `letter`；`player` 只在玩家作出选择之后复述，或在同伴不在场时作内心字幕。
@@ -19438,7 +19437,7 @@ narrator：再抬头的时候，她已经扑回了崩塌的光里，去接下一
 | 写入旗标 | `ep_guest.<人>`（客人去留）、`a6_returned_doors`（`all`、`some`）、`ep_yeyu_stayed`、`ep_player_returned`、`ep_earth_message_replied`、`ep_cat_name`、`ep_old_chair_taken`、`ep_hidden_ending`、`ep_shown` |
 | 揭示 | 台账 A09 第一层（"上面从来不看过程"被推翻）、M10 的终局（审的是放手，碑显「可」）、A11 的终局（地球是已离手之庭：玩家回去时亲眼看见"没有神也长成了的地方"）；谜团 12 不回答 |
 | 音乐与音效 | `mus_act6_verdict`（冬至与交接）；交接时依次叠 `mus_stg_motif_eluen`、`mus_stg_motif_valda`、`mus_stg_motif_merca`、`mus_stg_motif_sylvie`、`mus_stg_motif_moira`、`mus_stg_motif_door`（各 -3 dB）；离手之门 `mus_boss_door_corridor` 只开 L1；碑显「可」时 `mus_end_release` 入，三层依次开；记录 `mus_epilogue_record`；地球结尾 `mus_pro_earth` 只开 L1；留下结尾 `mus_inner_court_day`；片尾 `mus_credits`。音效 `sfx_god_maker_seven`、`sfx_cin_hall_flicker`、`sfx_cin_one_way_door`、`sfx_door_corridor_open`、`sfx_door_close`、`sfx_cin_final_quill`、`sfx_cin_phone_buzz`、`sfx_cin_msg_sending`、`sfx_cin_cat_mew`、`sfx_cin_call_bell`、`sfx_cin_truck_horn`；环境 `amb_divine_court`、`amb_earth_last_train`、`amb_earth_store_rain`、`amb_earth_hospital`、`amb_earth_old_house`、`amb_inner_court` |
-| 所需美术 | 全屏静帧 `art_bg_cut_a6_verdicts`（冬至一闪）、`art_bg_cut_end_release`（七碑显「可」）；立绘 `art_bust_eluen`（neutral、tender、special 光环停转）、`art_bust_valda`（grin、tender）、`art_bust_merca`（smile、sad、thinking）、`art_bust_sylvie`（special 睁眼、tender）、`art_bust_moira`（smile、thinking、tender）、`art_bust_door_woman_unveiled`（smile、tender、sad）、`art_bust_yeyu`（special 嘴硬、sad、tender）；头像 `art_por_historian`；特写 `art_prop_cut_sword_joined`（接好的断剑）、`art_prop_cut_debt_ledgers`（账册）、`art_prop_cut_spring_memory`（灵泉记忆的一团光）、`art_prop_cut_last_record`（最后的记录与两种字迹）、`art_prop_cut_phone_message`（"周末回家吃饭吗？"）；特效 `art_vfx_cut_one_way_door`（只开一次的门与门外的早晨）、`art_vfx_cut_halo_stop`、`art_vfx_cut_door_hand_over`（门被交出时化成一枚光钥飞向执钥人） |
+| 所需美术 | 全屏静帧 `art_bg_cut_a6_verdicts`（冬至一闪）、`art_bg_cut_end_release`（七碑显「可」）；立绘 `art_bust_eluen`（neutral、tender、special 光环停转）、`art_bust_valda`（grin、tender）、`art_bust_merca`（smile、sad、thinking）、`art_bust_sylvie`（special 睁眼、tender）、`art_bust_moira`（smile、thinking、tender）、`art_bust_door_woman_unveiled`（smile、tender、sad）、`art_bust_yeyu`（special 嘴硬、sad、tender）；头像 `art_por_historian`；特写 `art_prop_cut_sword_joined`（接好的断剑）、`art_prop_cut_debt_ledgers`（账册）、`art_prop_cut_spring_memory`（灵泉记忆的一团光）、`art_prop_cut_last_record`（最后的记录与两种字迹）、`art_prop_cut_phone_message`（"周末回家吃饭吗？"）；特效 `art_vfx_cut_one_way_door`（只开一次的门与门外的早晨）、`art_vfx_cut_halo_stop`、`art_vfx_cut_door_hand_over`（门被交出时化成一枚光钥飞向执钥人）；人物帧 `art_chr_faceless_redeemed`（客人一段，救赎·生时） |
 | 里程碑 | M3 |
 
 **1. 镜头脚本**
@@ -19639,10 +19638,10 @@ narrator：他用骨节敲了敲门框，像在给一本新书敲第一下书脊
 分支［a5_faceless_end == redeemed AND NOT npc.faceless.dead］→ faceless_choice
 → janu_asks
 【faceless_choice】
-@立绘 faceless neutral 右
-narrator：最后走上来的是他。脸没有回来，但有了轮廓。
+@立绘撤
+narrator：最后走上来的是他。一张普通的、疲惫的脸，和照片上的一样。
 faceless：门外是一个站台。我想不起来，是哪一站了。
-faceless：老布伦在人簿上给我写了一个名字。我还没用过几次。
+faceless：你在人簿上替我写的那个名字，我还没用过几次。
 narrator：他看着你，像在等你替他说出口。
 选 go_back「回去吧。那一站会等你。」→ faceless_go｜效果 flag ep_guest.faceless = return
 选 stay_name「留下来，用那个名字。」→ faceless_stay｜效果 flag ep_guest.faceless = stay
@@ -21401,7 +21400,7 @@ narrator：有一颗星，稍微偏离了它该在的位置。
 | `rel_comp_ash_rest` | 同伴 | 阿什 | `NOT npc.ash.dead AND ep_guest.ash != stay` | 1 | 权重 9 | 她放手的那天，守门人阿什在灰烬墙上写下了最后一行，然后让冷火熄灭。他说：这一行写完了。后来去荒原的人，在墙下捡到一支芦苇笔，没有人舍得用。 |
 | `rel_comp_ash_dead` | 同伴 | 阿什 | `npc.ash.dead` | 10 | 权重 8 | 灰烬荒原深处那面写满字的墙还立着，没有人再往上添字。遗民的执钥人路过时，会在墙下放一捧灰，说一声：门的孩子来过了。 |
 | `rel_comp_faceless_return` | 同伴 | 无貌者 | `a5_faceless_end == redeemed AND NOT npc.faceless.dead AND ep_guest.faceless == return` | 1 | 权重 9 | 无貌者走进了那扇只开一次的门。门外是他想不起来的那个站台，有一盏灯，灯下有一张长椅。他坐下来，等车。 |
-| `rel_comp_faceless_stay` | 同伴 | 无貌者 | `a5_faceless_end == redeemed AND NOT npc.faceless.dead AND ep_guest.faceless != return` | 10 | 权重 9 | 无貌者的脸没有回来，但有了轮廓。他去了灰烬荒原，用最熟悉澱的那副身体清理残留的古澱。每年他回边石镇一次，只为在人簿上找到写着他名字的那一行，确认它还在。 |
+| `rel_comp_faceless_stay` | 同伴 | 无貌者 | `a5_faceless_end == redeemed AND NOT npc.faceless.dead AND ep_guest.faceless != return` | 10 | 权重 9 | 无貌者的脸回来了，名字没有回来，人簿上那一行是玩家替他写的。他去了灰烬荒原，用最熟悉澱的那副身体清理残留的古澱。每年他回边石镇一次，只为在人簿上找到写着他名字的那一行，确认它还在。 |
 | `rel_comp_faceless_gone` | 同伴 | 无貌者 | `a5_faceless_end == redeemed AND npc.faceless.dead` | 1 | 权重 9 | 无貌者被叫出名字以后，澱散去，他也跟着散了。最后一句是：……原来她记得。人簿上留着他的名字，去向一栏写着：到站了。 |
 | `rel_comp_faceless_slain` | 同伴 | 无貌者 | `a5_faceless_end IN (destroyed, final_light)` | 10 | 权重 7 | 无貌之王倒下以后，灰烬荒原上再也没有出现过没有脸的人。门徒会留下的门纹拓片被遗民一张一张收回来烧了，烧之前，有人把拓片上的名字念了一遍。 |
 | `rel_comp_eska_laugh` | 同伴 | 艾斯卡 | `a5_eska_consent` | 1 | 权重 5 | 七座碑显现「可」的时候，原龙艾斯卡第一次笑出了声。眠鳞山下的村子以为要打雷，收了一院子的衣服，那天一滴雨也没下。 |
@@ -22975,7 +22974,7 @@ narrator：有一颗星，稍微偏离了它该在的位置。
 
 | 类 | 数量 | 说明 |
 | --- | --- | --- |
-| 半身立绘 `art_bust_` | 2 | `art_bust_faceless`（无貌者：第二幕投影、第五幕本体与无貌之王两态；规格里现在没有他的立绘与头像，第五幕的镜像对白需要）、`art_bust_door_woman_unveiled_expr`（揭面的表情表，含追加的 tender） |
+| 半身立绘 `art_bust_` | 2 | `art_bust_faceless`（无貌者：第二幕葬礼与城下潮的投影；对话框只显示空框，第五幕不出立绘）、`art_bust_door_woman_unveiled_expr`（揭面的表情表，含追加的 tender） |
 | 头像 `art_por_` | 12 加 1 | 无名角色的头像：`art_por_adventurer`、`art_por_deacon`、`art_por_dian_watcher`、`art_por_dying_soldier`、`art_por_guild_registrar`、`art_por_herald`、`art_por_historian`、`art_por_keybearer`、`art_por_league_clerk`、`art_por_lotha_noble`、`art_por_peddler`、`art_por_soldier`；另加 `art_por_faceless` |
 | 特写道具卡 `art_prop_cut_` | 119 | 每张 256 乘 256 的像素特写卡，放大两倍显示；清单见表下 |
 | 特效 `art_vfx_cut_` | 73 | 过场专用序列帧；清单见表下 |

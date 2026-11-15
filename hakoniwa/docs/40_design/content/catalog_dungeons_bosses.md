@@ -1285,6 +1285,7 @@
 | 难度 | 不适用活性期与深相掉落；难度由世界状态决定（`cult_door_keys`、`gate_ring`、各战线结果，已设计） |
 | 处置 | 不是养毁净，而是三条路线：终光（澱化为光雨，信仰流向两位女神，渊晶 `crystal_abyss` 由教会管控）；众生（`gate_ring` 不少于 5，古澱经众门环分流，古澱湖在此后数年里慢慢退去）；溃决（灰暴，荒原澱散，大片深澱乃至渊澱）。救赎路线不产生渊晶 |
 | 交接 | 决战后的残澱是第六幕"残澱之潮"的来源：各地澱涌之主在审期内照常涌起（第 4.5 节） |
+| 过场接口 | 首领战 `faceless_king` 在 100%、70%、约 50%（第三回合）、35%（南线失守时）、25%、5% 请求过场（`cut_a5_final_war` 与 `cut_a5_mirror_c`）；停手插演的冻结与 2 秒起势规则见过场目录第五幕一节；70% 撕门的门石全部引导完成写 `a5_tear_stopped`；5% 之后首领战不再解冻 |
 
 
 ### 3.6 城下迷宫（各城与领地的生成实例）
@@ -1441,7 +1442,7 @@
 | `rogo_breakchain_duel` | 罗戈（"断枷"） | 三，霜脊堡之战的佯攻与回援 | `humanoid`，44 | `zone3.ts`·`brutok_skullsmasher`（`aoePulse`、`enrage`） | 冲锋型；冰面上击破冰层可让他与随行魔狼骑落水（诱上冰河，已设计） | `sasha_result` 的 repelled 条件之一 | `war`、`bond` |
 | `hedwig_seal_ritual` | 海德薇·诺特 | 三，A3-S14，封门遗迹神纹大厅 | `humanoid`，30 | `zone2.ts`·`gravecaller_summoner` | 她押着一名门纹持有者（活钥）叩封门：引导读条，打断才能救人；被强用的门纹会受损、持有者会受伤（[力量 11.6][pow]）；`yieldAtPct` 0.2 | `hedwig_fate`（擒获、死亡、逃脱） | `key`、`story` |
 | `keyfed_crystal_queen` | 钥饲晶母 | 四，旧水道回访 | `beast`，46 | 见第 3.2.1 节 | 见第 3.2.1 节 | 无名之钥一枚 | `key`、`sed` |
-| `mute_bell_chase` | 哑钟 | 四，门站残墟（东北站） | `humanoid`，38（门钥借力） | `zone3.ts`·`deathstalker_voss` 加 `silence` | 被割舌的遗民敲钟人，带一枚无名之钥：以门钥在已复原的门站之间闪身（个人版 `afx_door_gaps`）；钟声 `silence`。追上比打倒难 | **不战**：以遗民的门歌或在东北站敲响一口钟回应他，他交出门钥；他是受害者，杀他会让遗民的信任下降 | `key`、`bond` |
+| `mute_bell_chase` | 哑钟 | 四，门站残墟（东北站） | `humanoid`，38（门钥借力） | `zone3.ts`·`deathstalker_voss` 加 `silence` | 被割舌的遗民敲钟人，带一枚无名之钥：以门钥在已复原的门站之间闪身（个人版 `afx_door_gaps`）；钟声 `silence`。追上比打倒难 | **不战**：以遗民的门歌或在东北站敲响一口钟回应他，他交出门钥；他是受害者，杀他会让遗民的信任下降。写 `a4_mute_bell_fate`（`yielded`：以门歌或钟声回应，他交出门钥；`killed`；`escaped`）；`yielded` 与 `killed` 时写 `a4_key_pending = k3` 并请求 `cut_a4_key_theft` 段三、段四 | `key`、`bond` |
 | `black_market_keybroker` | 夜境黑市的钥贩 | 四，夜境黑市（需夜境渠道） | `humanoid`，50 | `zone1.ts`·`vale_bandit` 精英化放大 | 谈判优先：付钱、以月下之约的渠道施压、或强取（他的保镖是三名契役魔）；`yieldAtPct` 0.5 | 无名之钥一枚；强取会让夜境黑市对玩家关门 | `key`、`econ` |
 | `tiger_warchief_bloodduel` | 岩掌部战首乌尔萨（血战；人物 `ursa_stonebreaker`，熊族） | 四，风牙兽王之争的部族大会（[第四幕 8.4][a4]） | `humanoid`，52 | `zone3.ts`·`warlord_drogmar` 加 `frenzyOnHit` | 他带着瓦尔妲的狂战加护，以瓦尔妲的"决斗挑战"点名玩家（[女神 GM 5.4][gm]）；揭穿加护可让他不带加护再打（萨莎会大怒："那是假赛"） | 接受并以认输收场：调停仍可能；当众打死：兽王之争走向分裂；拒绝：战首派气势上升 | `war`、`divine`、`cog` |
 | `eluen_avatar` | 光之化身 | 六，终战（[第六幕 9][a6]） | 化身，60 以上 | 标记与集合、钟声弹幕、`summonAdds` | 已设计（规格审定、齿轮光环、光之奇迹生成澱影） | 自愿离手或被判离手 | `divine`、`story` |

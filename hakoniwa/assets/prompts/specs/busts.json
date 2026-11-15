@@ -37,8 +37,8 @@
         "en": "The goddess of light as a tall woman: immaculate platinum hair falling straight to the waist, platinum eyes with a measuring gaze. Perfectly symmetrical white and gold robes with geometric gold trim at collar and cuffs, white #f4f2ea, gold #d8b860, a precise geometric halo floating behind her like slowly turning gears. Composed, cool expression. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
       },
       "extra": {
-        "zh": "第 6 格的角色专属表情：居高临下的审视：下巴微抬，眼神冷淡。",
-        "en": "Panel 6 is the character's signature expression: looking down in appraisal: chin slightly raised, cold eyes."
+        "zh": "第 6 格的角色专属表情：光环停转：背后齿轮状的光环停住不转，眼神失焦一瞬，嘴唇微启。",
+        "en": "Panel 6 is the character's signature expression: the halo stops: the gear-like halo behind her freezes mid-turn, her gaze loses focus for an instant, lips slightly parted."
       },
       "ref": "eluen",
       "deps": ["art_chr_eluen_ref", "art_bust_eluen"],
@@ -71,8 +71,8 @@
         "en": "The goddess of strife as a towering, muscular woman warrior: bronze skin covered in old scars, wild dark red long hair, red-gold eyes, a fanged grin. A pair of curved horns, the right one broken halfway. Red and black battle armor #8a1c1c, #1e1a1a, pauldrons covered in blade nicks, a broken sword resting on her shoulder. Boisterous and eager for a fight. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
       },
       "extra": {
-        "zh": "第 6 格的角色专属表情：露出尖牙的开怀大笑。",
-        "en": "Panel 6 is the character's signature expression: a wide laugh showing her fangs."
+        "zh": "第 6 格的角色专属表情：望向空处：笑意收住，视线越过观者，看向画面外的一处空位。",
+        "en": "Panel 6 is the character's signature expression: looking at the empty place: the grin fades and her gaze goes past the viewer to an empty spot off-frame."
       },
       "ref": "valda",
       "deps": ["art_chr_valda_ref", "art_bust_valda"],
@@ -105,8 +105,8 @@
         "en": "The goddess of trade as a halfling-sized woman who reaches an adult's chest: round face with a few freckles, honey-gold curls in two small buns, golden eyes curved in a smile. A vermilion merchant coat full of pockets with gold trim #b8402a, #e0b040, a thick ledger under one arm, a pastry in her hand, a few gold coins spinning in the air around her. Chibi about 1.6 heads tall; portraits and busts use normal proportions."
       },
       "extra": {
-        "zh": "第 6 格的角色专属表情：两眼放光的贪吃笑，嘴角沾着点心屑。",
-        "en": "Panel 6 is the character's signature expression: a greedy delighted grin with crumbs at the corner of her mouth."
+        "zh": "第 6 格的角色专属表情：估价眼：金色的眼睛眯起，瞳孔里映着旋转的硬币。",
+        "en": "Panel 6 is the character's signature expression: the appraising eye: her golden eyes narrow, a spinning coin reflected in each pupil."
       },
       "ref": "merca",
       "deps": ["art_chr_merca_ref", "art_bust_merca"],
@@ -139,8 +139,8 @@
         "en": "The goddess of life as a slender, weightless woman: pale skin, knee-length pale green hair woven with both withered and freshly opened flowers, eyes usually closed, a quiet expression. Layered thin garments in moss green and dead-leaf brown like fallen leaves #6a8a5a, #8a6a42, barefoot. Moves lightly and slowly. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
       },
       "extra": {
-        "zh": "第 6 格的角色专属表情：闭着眼的淡淡微笑。",
-        "en": "Panel 6 is the character's signature expression: a faint smile with closed eyes."
+        "zh": "第 6 格的角色专属表情：睁眼：第一次睁开眼睛，平静地直视观者。其余各格都闭着眼。",
+        "en": "Panel 6 is the character's signature expression: opening her eyes: her eyes open for the first time, looking calmly at the viewer. Every other panel keeps her eyes closed."
       },
       "ref": "sylvie",
       "deps": ["art_chr_sylvie_ref", "art_bust_sylvie"],
@@ -173,8 +173,8 @@
         "en": "The goddess of record as a tall hooded scribe: ink-blue hooded robe #2a3450, chestnut short hair and a ready smile under the hood, a round lens etched with fine lines hovering before her left eye, ink-stained fingertips. A parchment-colored scroll #e8dcc0 trails from her waist down to the ground, an open book floats beside her. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
       },
       "extra": {
-        "zh": "第 6 格的角色专属表情：看穿一切的狡黠笑，挑起一边眉毛。",
-        "en": "Panel 6 is the character's signature expression: a knowing sly smile with one eyebrow raised."
+        "zh": "第 6 格的角色专属表情：镜片反光：一根手指推着左眼前的镜片，镜片上一闪白光，看不见那只眼睛，嘴角带笑。",
+        "en": "Panel 6 is the character's signature expression: the lens glints: one finger pushing up the lens before her left eye, a flash of white light on the lens hiding that eye, a smile at the corner of her mouth."
       },
       "ref": "moira",
       "deps": ["art_chr_moira_ref", "art_bust_moira"],
@@ -1420,7 +1420,7 @@
       "ref": "faceless",
       "deps": ["art_chr_faceless_ref"],
       "milestone": "M2",
-      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 对话框只显示空的头像框（角色设定集第 4.8 节），本立绘只用于过场的立绘演出：第二幕葬礼与城下潮的投影（cut_a2_funeral、cut_a2_siege；渲染层把整张压成半透明的黑色剪影，只保留门形裂缝的暗紫光，不另出图），第五幕本体现身的场景，终章片尾的客人一段；戴冠之后的无貌之王用 art_bust_faceless_king。 脸上绝对不画五官；纸片上没有字。"
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 对话框只显示空的头像框（角色设定集第 4.8 节）；本立绘只用于第二幕的投影演出（cut_a2_funeral、cut_a2_siege；渲染层把整张压成半透明的黑色剪影，只保留门形裂缝的暗紫光，不另出图）。第五幕他不出立绘，只用立牌、首领立牌与全屏静帧；救赎之后脸回来，用状态变体立牌 art_chr_faceless_redeemed。 脸上绝对不画五官；纸片上没有字。"
     },
     {
       "id": "art_bust_faceless_expr",
@@ -1438,23 +1438,6 @@
       "deps": ["art_chr_faceless_ref", "art_bust_faceless"],
       "milestone": "M2",
       "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 第二幕葬礼用第 6 格的抬手（投影档同样由渲染层压成剪影）。立牌里手背的门纹由渲染层画；立绘尺寸够大，第 6 格的门纹画进素材，形状与主角的门纹相同、明暗相反。 脸上绝对不画五官；纸片上没有字。"
-    },
-    {
-      "id": "art_bust_faceless_king",
-      "template": "bust_base",
-      "style": "ash_waste",
-      "subject": {
-        "zh": "巨大的无貌之形，约六米高，修长的身形裹在层层黑灰的旧斗篷里，下摆像墨一样往下滴澱（#0e0e12、#2a2a34），脸是一片光滑的空白平面，正中一道门形细缝透出暗紫的光（#6a2a8a）；双手缠着绷带，身后悬着由澱构成、倒置扭曲的层层门扉。",
-        "en": "A huge faceless shape about six meters tall, a long slender body wrapped in layer on layer of old black-gray cloaks whose hems drip dian like ink (#0e0e12, #2a2a34), a face that is a smooth blank plane split down the middle by a thin door-shaped crack leaking dark purple light (#6a2a8a); bandaged hands, and behind it hang layered doors made of dian, inverted and twisted."
-      },
-      "extra": {
-        "zh": "巨大的身形只入画到腰；身后由澱构成、倒置扭曲的层层门扉从肩后探出一角，空白的脸正对画面，门形细缝透出暗紫的光。",
-        "en": "The huge figure is framed only to the waist; a corner of the inverted, twisted layered doors made of sediment rises behind his shoulders, the blank face turned to the viewer with dark purple light in the door-shaped crack."
-      },
-      "ref": "faceless_king",
-      "deps": ["art_boss_faceless_king_ref", "art_bust_faceless"],
-      "milestone": "M3",
-      "notes": "附无貌之王三视图 art_boss_faceless_king_ref 与基础立绘 art_bust_faceless 作参照，取景、角度与基础立绘一致，只改形态。 绝对不画五官；门扉用炭黑与澱紫，不用门扉金；对话框只显示空的头像框，本立绘只用于第五幕戴冠之后的立绘演出（cut_a5_final_war、cut_a5_mirror_c）。"
     },
     {
       "id": "art_bust_door_woman_unveiled_expr",

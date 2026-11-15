@@ -845,12 +845,12 @@
 | 我方 | 民兵 60（`unit_militia` 两个兵团各 30，罗恩）；猎手 10（`unit_hunters`，希雅）；玩家 |
 | 敌方（约 150） | 开场：`unit_skeleton` 80（两个兵团）、`unit_bone_hound` 15。第 60 秒：`unit_skeleton` 20、`unit_bone_hound` 10。第 300 秒：千骨行者幼体（A 层）与骨卫 `unit_skeleton` 25 |
 | 目标 | 胜：守住村子到天亮，烧毁的房屋不超过两栋。负：村子区域被敌方占据 60 秒以上，或两个民兵兵团同时溃退 |
-| 阶段 | 0 秒：亡灵过溪试探。第 90 秒：罗恩的小错暴露（左翼留空：左翼民兵起始站位偏右 4 格，骨犬从左翼绕入）；玩家可以补位，也可以等：罗恩在第 150 秒自己发现并调整。第 180 秒或任一民兵兵团士气低于 25 时：罗恩举旗，千军之门开启，战场由小队规模升为连队规模（界面切到指挥模式，玩家可框选全部兵团）。第 300 秒：千骨行者幼体现身。第 600 秒：天亮，骷髅兵按"夜行"每分钟士气 -10 撤回骨原 |
+| 阶段 | 0 秒：亡灵过溪试探。第 90 秒：罗恩的小错暴露（左翼留空：左翼民兵起始站位偏右 4 格，骨犬从左翼绕入）；玩家可以补位，也可以等：罗恩在第 150 秒自己发现并调整。第 180 秒或任一民兵兵团士气低于 25 时：罗恩举旗，剧本写 `a3_domain_beat = flag` 并请求 `cut_a3_domain` 段二（停手插演），千军之门可开：插演中由玩家推开（`push_door.door_thousand_legions`），战场由小队规模升为连队规模（界面切到指挥模式，玩家可框选全部兵团）；不推则按小队规模打完，战后仍可推开。第 300 秒：千骨行者幼体现身。第 600 秒：天亮，骷髅兵按"夜行"每分钟士气 -10 撤回骨原 |
 | 英雄与同伴 | 玩家：单兵或指挥。罗恩：AI 将领，稳健。希雅：猎手队长 |
 | 敌方计划（无模型） | 千骨行者（勇猛）：正面推进，骨犬取"绕侧"攻左翼；幼体现身后中央突破，目标瞭望塔；天亮前不撤 |
 | 可选打法 | 罗恩全权，玩家只作单兵（罗恩将领经验 +3，`territory_autonomy` +3）；全程微操（稳赢，罗恩经验 +1）；引亡灵过溪再夹击 |
-| 失败后果 | 村民退入边石镇，旧哨村损毁（`cty_oldwatch` 人口 -50%、要塞归零），领地建设推迟一周；千军之门仍开启，罗恩成长减半 |
-| 写回 | `a3_bonefield_result`（won、lost）、千军之门成形、民兵士气、罗恩将领经验 |
+| 失败后果 | 村民退入边石镇，旧哨村损毁（`cty_oldwatch` 人口 -50%、要塞归零），领地建设推迟一周；千军之门仍可推开，罗恩成长减半 |
+| 写回 | `a3_bonefield_result`（won、lost）、`a3_domain_beat = flag`（左翼缺口事件，请求 `cut_a3_domain`）、千军之门成形、民兵士气、罗恩将领经验 |
 
 ### 5.5 `bat_a3_salvage_raid` 拾遗营夜袭
 
@@ -913,6 +913,7 @@
 | 项 | 内容 |
 | --- | --- |
 | 出处 | [第三幕 7.4](../../30_story/arcs/act3_lothar_crisis.md) 战役 3 |
+| 数据剧本 | 新增 `act3_sunrise_gate`（`data/world/atlas_maps.json` 的 `sunrise_gate_battle` 由此得到剧本字段）；小队战，目标与胜负按[第三幕 7.4](../../30_story/arcs/act3_lothar_crisis.md)战役 3 |
 | 时间与时长 | 第 16 周夜（债券在玩家手里时第 15 周）；上限 1,500 秒 |
 | 前提 | 玩家在王都，或已在王都安放门标，或信使之门让夜羽提前传来消息 |
 | 地形 | 南岸新城：朝阳门与车辙区（街巷与建筑格，车辙区地下的旧沟渠是只容小队通行的撤离道）；两座石桥通王岛；王岛上的冠石宫与起火的档案馆旧翼；北岸旧城的主座堂与宰相府；瓦伦河（水格，码头有小船） |
@@ -923,6 +924,7 @@
 | 敌方计划（无模型） | 使团护卫长（无名将领，统帅 60、战术 55、谨慎）："保护目标"守宰相府与朝阳门，同时"正面推进"向冠石宫；宫廷禁卫"坚守"冠石宫，被突破后护送宰相撤往北岸 |
 | 失败后果 | 腓力被俘（默认结局）；主线照常推进 |
 | 写回 | `philip_fate`（获救、被俘、死亡：强攻冠石宫且约阿希姆阵亡时）；冠石印去向；档案馆碎片是否保住；艾登的去留 |
+| 过场接口 | 抵达帘幕寝殿时写 `a3_king_bedside = true`、`a3_crown_beat = deathbed_mid` 并请求 `cut_a3_crown_falls`（停手插演，战斗暂停）；参战但未抵达寝殿时，战斗结束后写 `a3_crown_beat = deathbed` 并请求；战斗结束时写 `philip_fate`、`a3_crown_beat = morning` 并请求次晨段 |
 
 ### 5.9 `bat_a3_reedbridge` 灰烬防线之战（战役 4）
 
@@ -939,10 +941,11 @@
 | 胜利路线 | 击溃：敌方战力降到 40% 以下且士气连锁崩溃；`church_verdict_3` 升到 heretic，敌方阵亡超过 2,500 时升到 demon_precursor；勇者团敌意上升。说服：持苇塘村证据（幸存者、奥丽芙的记录、结衣的证词）与真实神谕（赛琳的信），在阶段二或三派一个兵团抵达乌尔里希 4 格内并打开交涉窗口；成功后征召兵成队回乡（约尔格领头，每 60 秒一个 `unit_levy` 兵团离场），乌尔里希以骑士守则为由撤军，大主教孤立。不杀而胜：断粮（第一日夜袭粮道两次以上，或塞西莉亚拖延补给：敌方第二日士气基线 -15）；夜擒大主教（行路之门或裂隙之门深入，俘获目标 `severin`）；以防御为主撑到圣战军士气崩溃 |
 | 英雄与同伴 | 玩家（`minLevel` 45）；罗恩（灰烬防线前向玩家坦白当年逃跑的事，只在玩家留在领地的夜里）；希雅；玛莎（防线被突破时在镇门前出手一次） |
 | 敌方计划（无模型） | 乌尔里希（守约）：第一日"正面推进"试探浅滩；第二日"中央突破"石桥加两翼涉水；不追击溃兵。贝尔托德：大主教的"保护目标"，照纹灯搜寻遗民。大主教：阶段四固定举圣柱（剧情神迹）。勇者团：陆辰找玩家，结衣救护（可能动摇），艾登观察召唤阵，马库斯保平民 |
-| 誓光之门 | 任一胜利路线即满足"在无人为你祈祷的地方以自己的名义立誓守护，并且守住" |
+| 誓光之门 | 任一胜利路线即满足"在无人为你祈祷的地方以自己的名义立誓守护，并且守住"的钥，门在终局插演中由玩家推开 |
 | 失败后果 | 防线被突破（北岸桥头区被敌占据 300 秒以上，且我方战力低于 30%）：圣战军北上三十公里抵达边石镇，玛莎拖住一刻钟，阿什在封门遗迹前以灰埋掉先锋（过场）；`church_verdict_3` 为 demon_precursor；领地焚毁大半，进入 `ash_exile`；游戏继续 |
 | 余波 | 净化之光之后数日，荒原澱值上升：`cty_bonefield`、`cty_ashwood` 澱度临时 +1（一季），骨原魔物潮翻倍（`mtide_waste_boneplain`） |
 | 写回 | `archbishop_fate`、`hero_state_*`、`church_verdict_3`、`lothar_ending`、领地人口与里程碑损失、`eluen_violation_evidence`、`a3_eluen_speaks`、`a3_sasha_retreat_line` |
+| 过场接口 | 按 `cut_a3_ashen_line` 的触发写段落旗标 `a3_ashline_beat` 并请求：第三阶段陆辰出阵 `duel`、对决分出结果 `duel_end`、阶段四写定神行 `div_beat_a3_pillar` 执行时 `pillar`、终局 `end`（先写 `a3_ashline_route` 为 rout、persuade、bloodless 之一，以及 `archbishop_fate`、`hero_state_*`、`church_verdict_3`、`eluen_violation_evidence`）、防线被突破 `fallen`（写 `a3_ashline_route = fallen`）；光柱致死兽人信徒时写 `a3_pillar_breach`，断粮成立写 `a3_supply_cut`，夜擒大主教写 `a3_archbishop_seized`；战前夜段由 `A3-M11` 请求；誓光之门在终局插演中由玩家推开 |
 
 ### 5.10 `bat_a3_second_front` 第二战线
 
@@ -1048,6 +1051,7 @@
 | 结算 | 战线回合方程（第 6 节）；玩家不能离开主门坑，只能经号令石下急令 |
 | 英雄下限 | 55（D-060） |
 | 写回 | `front_north`、`front_east`、`front_south`、`front_ring`、`front_rear`、`held_unaided`、`urgent_orders`、`gate_ring`、`continent`；E28 灰烬决战战报 |
+| 过场接口 | 战线回合系统每回合结算后写 `a5_fw_round`（1 到 4）与 `a5_fw_beat = report`，请求 `cut_a5_final_war` 的战报段；号令石引导完成写 `a5_fw_urgent_front`（north、east、south、ring、rear）与 `a5_fw_beat = urgent`，请求急令段；某线本回合进入待令时写族 `front_wait.<线>`（第五幕 7.3）；剑帝倒戈读 `a5_emperor_turned`（`cut_a5_route` 段三写入，他的兵在第二回合转入东线我方） |
 
 以下六个条目各写一条战线。敌方"基准编成"是回合零的兵力，修正写在后面；我方"参考编成"是按第四幕结果默认会到场的盟军，玩家自己的兵团在部署屏分配。
 
@@ -1163,15 +1167,15 @@
 
 每个 `bat_` 都有地图，每张战场地图都有 `bat_`；地图编号与网格以[地图简报](../world/map_briefs.md)为准（第 9、10 节），1 战场格 = 8 米。
 
-| `bat_` | 地图 | 地图简报编号 | 任务目录（前）的写法（别名） |
+| `bat_` | 地图 | 地图简报编号 | 任务目录（前）的写法 |
 | --- | --- | --- | --- |
-| `bat_a2_undertide` | `wallenburg_harbor_battle` | B3-1 | `bat_a2_city_tide` |
-| `bat_a3_bonefield` | `bonefield_battle` | C1-2 | `bat_a3_bonefield_night` |
+| `bat_a2_undertide` | `wallenburg_harbor_battle` | B3-1 | 同名 |
+| `bat_a3_bonefield` | `bonefield_battle` | C1-2 | 同名 |
 | `bat_a3_salvage_raid` | `bonefield_battle`（北部变体） | C1-2 | |
 | `bat_a3_deer_ford` | `deer_ford_battle` | C6-1 | 同名 |
 | `bat_a3_frostridge` | `frostridge_battle` | C5-1 | 同名 |
 | `bat_a3_sunrise_gate` | `sunrise_gate_battle` | C3-1 | 同名 |
-| `bat_a3_reedbridge` | `reedbridge_battle` | C11 | `bat_a3_ash_line` |
+| `bat_a3_reedbridge` | `reedbridge_battle` | C11 | 同名 |
 | `bat_a3_second_front` | `valen_fields_battle` | 第 9.1 节补登 | |
 | `bat_a4_boundary_war` | `boundary_cairn_battle` | A1-1 | |
 | `bat_a4_rootcourt_night` | `rootcourt_battle` | 第 9.1 节补登 | |
@@ -1261,6 +1265,8 @@
 | 五 | 最终段（5%） | 决定性回合：各线最终状态锁定；`held_unaided` = 状态为守住或僵持、且整场未收到急令的非核心战线数 |
 
 玩家在主门坑阵亡退回门内庭院时，战略层立即多结算一回合（第五幕 7.2）；多出的回合照常结算，锁定仍在首领战的最终段。
+
+每回合结算后战线回合系统写 `a5_fw_round` 并请求 `cut_a5_final_war` 的战报段（不停手插演）；急令完成时写 `a5_fw_urgent_front` 并请求急令段；某线在本回合进入待令时写族 `front_wait.<线>`（`autonomy` 低于 40 时的待令，第五幕 7.3）；第二回合的剑帝倒戈读 `a5_emperor_turned`。
 
 ### 6.6 与首领战的联动
 

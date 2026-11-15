@@ -134,7 +134,7 @@
 
 ### 1.7 条件变量
 
-句子的 `when` 只用 [world_state_registry.md](../world_state_registry.md) 第 8 节已登记的变量与第 5 节的文法。本文另用一个尚未登记的信号 `order.moral_tag`（同伴拒绝命令时玩家命令的道德标签，枚举 `kill_surrender`、`rob_civilians`、`break_pact`、`desecrate`、`harm_children`，写入者为队伍命令处理器，读后即清），登记请求见本文汇报，登记前同伴包里的这一类句子按"无标签"处理为不可选。
+句子的 `when` 只用 [world_state_registry.md](../world_state_registry.md) 第 8 节已登记的变量与第 5 节的文法。同伴拒绝命令的句子读信号 `order.moral_tag`（玩家命令的道德标签，枚举 `kill_surrender`、`rob_civilians`、`break_pact`、`desecrate`、`harm_children`，写入者为队伍命令处理器，读后即清；登记在注册表第 8.9 节）。
 
 ## 2. 写作规范
 
@@ -276,7 +276,7 @@
 
 ### 3.3 序章与第一幕的话题
 
-**序章（女神包；`act == prologue`）**
+**序章（女神包；`act == 0`）**
 
 | 编号 | 类别 | 范围 | 首次可谈 | 版本 | 信任下限 | 台账 | 能答者与要点 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -500,8 +500,8 @@
 | `secret_jed_debt` | 秘密 | 个人：杰德 | `a1_jed_exposed` | knowledge：K0 | | 无 | 赌债；之前把话头引到别人身上 |
 | `self_vick_chapter` | 自我 | 个人：维克 | | knowledge：K1 | | 无 | 章程 |
 | `secret_vick_ledger` | 秘密 | 个人：维克 | `a1_vick_informant` | knowledge：K1 | | M04-C03 | 第二本账的誊本 |
-| `self_seg_oldwatch` | 自我 | 个人：瑟格 | | knowledge：K1 | | 无 | 旧哨村的账 |
-| `secret_seg_letters` | 秘密 | 个人：瑟格 | `a1_seg_duel_won` | knowledge：K1 | | M04-C03 | 留着与代官的往来信件 |
+| `self_seg_oneeye_oldwatch` | 自我 | 个人：瑟格 | | knowledge：K1 | | 无 | 旧哨村的账 |
+| `secret_seg_oneeye_letters` | 秘密 | 个人：瑟格 | `a1_seg_duel_won` | knowledge：K1 | | M04-C03 | 留着与代官的往来信件 |
 | `self_viro_dice` | 自我 | 个人：薇罗 | | knowledge：K1 | | 无 | 骰子与押注 |
 | `secret_viro_pact` | 秘密 | 个人：薇罗 | `a1_viro_status IN (captured, recruited)` | knowledge：K1 | | 无 | 与代官的密约 |
 | `self_popo_prices` | 自我 | 个人：波波 | | knowledge：K0 | | 无 | 给一切标价 |
@@ -513,12 +513,12 @@
 | `self_lisa_bundle` | 自我 | 个人：莉莎 | | knowledge：K0 | 50 | 无 | 收拾好的小包袱 |
 | `self_simon_wheat` | 自我 | 个人：西蒙 | | knowledge：K0 | | 无 | 今年的麦子 |
 | `self_marg_laundry` | 自我 | 个人：玛格 | | knowledge：K0 | | 无 | 衣裳上的细节（细节往往是真的） |
-| `self_ulf_horses` | 自我 | 个人：乌尔夫 | | knowledge：K0 | | 无 | 驿马与燕麦 |
-| `secret_ulf_letters` | 秘密 | 个人：乌尔夫 | | knowledge：K0 | 60 | M04-C03 旁证 | 私拆过代官寄往瓦伦堡的信 |
-| `self_knut_repair` | 自我 | 个人：克努特 | | knowledge：K1 | | 无 | 修补与冷锻 |
-| `secret_knut_greystone` | 秘密 | 个人：克努特 | | knowledge：K1 | 40 | 真相第三幕，不入台词 | 他把灰石掺进铁里，只当是运气好 |
-| `self_kas_count` | 自我 | 个人：卡斯 | | knowledge：K0 | | 无 | 数过桥的人 |
-| `secret_kas_father` | 秘密 | 个人：卡斯 | | knowledge：K0 | 60 | 无 | 父亲是被独眼团杀的 |
+| `self_ulf_lange_horses` | 自我 | 个人：乌尔夫 | | knowledge：K0 | | 无 | 驿马与燕麦 |
+| `secret_ulf_lange_letters` | 秘密 | 个人：乌尔夫 | | knowledge：K0 | 60 | M04-C03 旁证 | 私拆过代官寄往瓦伦堡的信 |
+| `self_knut_naumann_repair` | 自我 | 个人：克努特 | | knowledge：K1 | | 无 | 修补与冷锻 |
+| `secret_knut_naumann_greystone` | 秘密 | 个人：克努特 | | knowledge：K1 | 40 | 真相第三幕，不入台词 | 他把灰石掺进铁里，只当是运气好 |
+| `self_kas_ropebridge_count` | 自我 | 个人：卡斯 | | knowledge：K0 | | 无 | 数过桥的人 |
+| `secret_kas_ropebridge_father` | 秘密 | 个人：卡斯 | | knowledge：K0 | 60 | 无 | 父亲是被独眼团杀的 |
 | `self_dris_rank` | 自我 | 个人：德里斯 | | knowledge：K1 | | 无 | 升 B 级、离开乡下 |
 | `secret_dris_ron_plan` | 秘密 | 个人：德里斯 | `a1_dris_duel_won` | knowledge：K1 | 50 | 无 | 他升 C 级那次的主意是罗恩出的 |
 
@@ -538,7 +538,7 @@
 | `event_promotion_exam` | 事件 | 地区 | `a2_promotion_exam` | knowledge：K0 | | M03-C04 | B 级晋升考核里水晶又没亮 |
 | `event_heroes_arrive` | 事件 | 地区 | `a2_heroes_arrived` | knowledge：K0、K1 | | M11-C02 | 圣教勇者团进城 |
 | `event_light_trial` | 事件 | 地区 | `a2_trial_outcome` | knowledge：K0；按 `a2_trial_outcome` 分句 | | MIS-19 的延续 | 光之审 |
-| `event_city_tide` | 事件 | 地区 | `quest.q_a2_m12_defense` | knowledge：K0；按 `a2_wb_damage` 分句 | | 无 | 城下潮 |
+| `event_city_tide` | 事件 | 地区 | `quest.q_a2_m12_tide_under_city` | knowledge：K0；按 `a2_wb_damage` 分句 | | 无 | 城下潮 |
 | `event_door_company` | 事件 | 地区 | `a2_company_partner` | knowledge：K0 | | 无 | 门扉商会开张 |
 | `event_faceless_projection` | 事件 | 个人：玛莎、布伦、无貌者在场者 | `a2_faceless_projection` | knowledge：K2 | | M09-C03、S07-C02 | 投影事件；"没有脸的人"在此之后可称"无貌者" |
 | `lore_blank_years` | 世界 | 个人：学院史官、约纳斯、希尔德加德 | `a2_archivist_met` | knowledge：K1、K2、mis | 50 | M06-C01、MIS-03 | 学院年表圣历元年前五十年空白；`mis` 为"蒙昧时代" |
@@ -560,7 +560,7 @@
 | `event_holy_war` | 事件 | 地区 | `act >= 3` | knowledge：K0、mis | | MIS-07 雏形 | 圣战号召；教会说"异端引来了灾祸" |
 | `event_dawn_pillar` | 事件 | 地区 | `a3_holy_war_miracle` | knowledge：K0、K1 | | M04-C07 | 曙光圣柱与之后荒原的变化 |
 | `event_reedpond` | 事件 | 个人：在场者、遗民、结衣、马库斯 | `a3_massacre_witnessed` | knowledge：K1；按 `a3_reedpond_outcome` 分句 | | S06-C02、S04-C03 | 苇塘村事件 |
-| `event_ashline` | 事件 | 地区 | `quest.q_a3_m11_ashline` | knowledge：K0 | | 无 | 灰烬防线之战 |
+| `event_ashline` | 事件 | 地区 | `quest.q_a3_m11_ash_line` | knowledge：K0 | | 无 | 灰烬防线之战 |
 | `event_sasha_duel` | 事件 | 地区 | `a3_sasha_result` | knowledge：K0 | | M05-C08 | 与萨莎的决斗、撤军时那句话 |
 | `event_eluen_voice` | 事件 | 个人：在场者 | `a3_eluen_speaks` | knowledge：K1、K4 | | M01-C07 | 大主教口中艾琉恩的那句话（锚点 A02 的回扣） |
 | `event_capital_coup` | 事件 | 地区 | `a3_drake_fate` | knowledge：K0 | | 无 | 宰相投敌前后；事前只有宰相本人知道 |
@@ -573,6 +573,7 @@
 | `faith_crusade` | 信仰 | 地区 | `act >= 3` | knowledge：K0、K1 | | MIS-07 | 圣战军的信条与"净化之光" |
 | `danger_ash_storm`、`danger_waste_wyrm` | 危险 | 地区 | `act >= 3` | knowledge：K0、K1 | | M05-C11 | 灰暴；荒原深处的灰化亚龙 |
 | `quest_territory_build`、`quest_thousand_gate`、`quest_ashline_prep` | 任务 | 地区 | 按任务目录 | knowledge：K0 | | 无 | 领地建设、千军之门、防线准备的入口 |
+| `secret_ron_first_squad` | 秘密 | 个人：罗恩 | `quest.q_a3_s45_ron_ran_once.stage == confess` | knowledge：K0 | 70 | 无 | 罗恩的夜谈（`A3-S45` 的 `confess`，灰烬防线开战前、玩家留在领地的夜里）：第一支冒险小队全灭时他是唯一逃走的人（角色设定集 3.3；第一幕 `secret_ron_wolf` 的后半）；一次性；夜谈结束时写 `a3_ron_confessed = true`（`cut_a3_ashen_line` 战前夜引用） |
 
 **第四幕（大陆；M3）**
 
@@ -2282,7 +2283,7 @@ builtin_ai 第 6.4 节的 52 种意图，每种在通用层至少有 4 句可答
 | `ln_yeyu` | 夜羽 | 一 | C | 短句、命令式，每三句一句吐槽；"门把手。""信要送到。""啧。"；千年前的旧词 | `self_yeyu_wait`、`self_yeyu_bag`、`self_yeyu_old_words`、`self_yeyu_shinies`、`self_yeyu_door`、`person_yeyu` | C 200 | act1 到 act6 | 角色设定集 3.1；人物（一）2.1 | M1 |
 | `ln_ash` | 守门人阿什 | 一 | K | 慢、长停顿、抄写员比喻；"还不是时候。""门的孩子。"；称女神们"她们" | `self_ash_writing`、`self_ash_name`、`person_ash` | K 80 | act1 到 act6 | 角色设定集 3.9；人物（一）2.1 | M1 |
 | `ln_shiya` | 希雅 | 一 | C | 短而直接，不会拐弯，偶尔夹部族说法，比如'祖灵在上'；"我闻得出来。" | `self_shiya_family`、`self_shiya_nose`、`secret_shiya_reading`、`person_shiya` | C 200 | act1 到 act5 | 角色设定集 3.2；人物（一）2.1 | M1 |
-| `ln_ron` | 罗恩 | 一 | C | 平时碎碎念，长句吐槽，紧张时语速极快；"不可能。" | `self_ron_mother`、`self_ron_amulets`、`secret_ron_wolf`、`person_ron` | C 200 | act1 到 act5 | 角色设定集 3.3；人物（一）2.1 | M1 |
+| `ln_ron` | 罗恩 | 一 | C | 平时碎碎念，长句吐槽，紧张时语速极快；"不可能。" | `self_ron_mother`、`self_ron_amulets`、`secret_ron_wolf`、`secret_ron_first_squad`（第三幕）、`person_ron` | C 200 | act1 到 act5 | 角色设定集 3.3；人物（一）2.1 | M1 |
 | `ln_nera` | 奈拉 | 一 | C（第一幕按 K） | 甜而快，爱反问，谈价时放慢；"这得算算。" | `self_nera_ledger`、`self_nera_coin`、`person_nera` | 第一幕 K 80；入队那一幕起补足 C 200 | act1 到 act5 | 角色设定集 3.4；人物（一）2.1 | M1 |
 | `ln_oola` | 欧拉婆婆 | 一 | C | 说话慢，带俚语和草药比喻，常骂人'小崽子'；"草不会骗人。人会。" | `self_oola_herbs`、`secret_oola_children`、`secret_oola_leafroad`、`person_oola` | C 200 | act1 到 act4、act6 | 角色设定集 3.5；人物（一）2.1 | M1 |
 | `ln_cassian` | 卡西安神父 | 一 | C（第一幕按 K） | 句式工整，爱引经文，紧张时反复确认：是这样的，对吧？；"光会看见的。" | `self_cassian_reports`、`self_cassian_scripture`、`person_cassian` | 第一幕 K 80；入队那一幕起补足 C 200 | act1 到 act6 | 角色设定集 3.6；人物（一）2.1 | M1 |
@@ -2306,7 +2307,7 @@ builtin_ai 第 6.4 节的 52 种意图，每种在通用层至少有 4 句可答
 | `ln_barto` | 巴托 | 一 | N | 说话简短，带着疲惫，只在有退路时站出来；"别惹事。" | `self_barto_militia`、`secret_barto_tax`、`person_barto` | N 30 | 无（状态差异用 when） | 人物（一）2.1 | M1 |
 | `ln_jed` | 杰德 | 一 | N | 嘴甜，爱奉承，被问到失窃就把话头引到别人身上；"哎呀，好说好说。" | `secret_jed_debt`、`person_jed` | N 30 | 无（状态差异用 when） | 人物（一）2.1 | M1 |
 | `ln_vick` | 维克 | 一 | N | 说话斯文，爱用公文腔，自保第一，被吓住就会出卖别人；"按章程办。" | `self_vick_chapter`、`secret_vick_ledger`、`person_vick` | N 30 | 无（状态差异用 when） | 人物（一）2.1 | M1 |
-| `ln_seg_oneeye` | 瑟格"独眼" | 一 | N | 狠、讲规矩、恨领主、护手下；强者为尊，团规不杀平民 | `self_seg_oldwatch`、`secret_seg_letters`、`person_seg_oneeye` | N 30 | 无（状态差异用 when） | 人物（一）2.1 | M1 |
+| `ln_seg_oneeye` | 瑟格"独眼" | 一 | N | 狠、讲规矩、恨领主、护手下；强者为尊，团规不杀平民 | `self_seg_oneeye_oldwatch`、`secret_seg_oneeye_letters`、`person_seg_oneeye` | N 30 | 无（状态差异用 when） | 人物（一）2.1 | M1 |
 | `ln_viro` | 薇罗 | 一 | N | 冷淡，话里有话，向出价最高者靠拢；"押多少？" | `self_viro_dice`、`secret_viro_pact`、`person_viro` | N 30 | 无（状态差异用 when） | 人物（一）2.1 | M1 |
 | `ln_popo` | 波波 | 一 | N | 话多，给一切标价；"这个我出六个铜板！" | `self_popo_prices`、`person_popo` | N 30 | 无（状态差异用 when） | 人物（一）2.1 | M1 |
 | `ln_owen` | 欧文 | 一 | N | 说话直，满肚子怨气；"这世道！" | `self_owen_caravan`、`secret_owen_seal`、`person_owen` | N 30 | 无（状态差异用 when） | 人物（一）2.1 | M1 |
@@ -2317,9 +2318,9 @@ builtin_ai 第 6.4 节的 52 种意图，每种在通用层至少有 4 句可答
 | `ln_dris` | 德里斯 | 一 | F | 一切都解释为'我们打残了''运气'，输了也不认，只会别扭地尊敬；"那是我们打残的。" | `self_dris_rank`、`secret_dris_ron_plan`、`person_dris` | F 70 | act1 到 act3 | 人物（一）2.1 | M1 |
 | `ln_simon` | 西蒙 | 一 | N | 用常识把一切磨平；"哪有那种人。" | `self_simon_wheat`、`person_simon` | N 30 | 无（状态差异用 when） | 人物（一）2.1 | M1 |
 | `ln_marg` | 玛格 | 一 | N | 健谈，爱加真细节：衣裳、气味、时辰；"我跟你讲，那衣裳上……" | `self_marg_laundry`、`person_marg` | N 30 | 无（状态差异用 when） | 人物（一）2.1 | M1 |
-| `ln_ulf_lange` | 乌尔夫·兰格 | 一 | N | 指纹句：马不认得你是几级，它只认得你给不给燕麦。 | `self_ulf_horses`、`secret_ulf_letters`、`person_ulf_lange` | N 30 | 无（状态差异用 when） | 人物（一）3.1 | M1 |
-| `ln_knut_naumann` | 克努特·瑙曼 | 一 | N | 指纹句：刀钝了别怪铁，怪你砍了不该砍的东西。 | `self_knut_repair`、`secret_knut_greystone`、`person_knut_naumann` | N 30 | 无（状态差异用 when） | 人物（一）3.1 | M1 |
-| `ln_kas_ropebridge` | 卡斯 | 一 | N | 指纹句：今天过去九个，回来七个。你是第十个。 | `self_kas_count`、`secret_kas_father`、`person_kas_ropebridge` | N 30 | 无（状态差异用 when） | 人物（一）3.4 | M1 |
+| `ln_ulf_lange` | 乌尔夫·兰格 | 一 | N | 指纹句：马不认得你是几级，它只认得你给不给燕麦。 | `self_ulf_lange_horses`、`secret_ulf_lange_letters`、`person_ulf_lange` | N 30 | 无（状态差异用 when） | 人物（一）3.1 | M1 |
+| `ln_knut_naumann` | 克努特·瑙曼 | 一 | N | 指纹句：刀钝了别怪铁，怪你砍了不该砍的东西。 | `self_knut_naumann_repair`、`secret_knut_naumann_greystone`、`person_knut_naumann` | N 30 | 无（状态差异用 when） | 人物（一）3.1 | M1 |
+| `ln_kas_ropebridge` | 卡斯 | 一 | N | 指纹句：今天过去九个，回来七个。你是第十个。 | `self_kas_ropebridge_count`、`secret_kas_ropebridge_father`、`person_kas_ropebridge` | N 30 | 无（状态差异用 when） | 人物（一）3.4 | M1 |
 
 ### 9.4 第二幕首登（M2，101 包）
 

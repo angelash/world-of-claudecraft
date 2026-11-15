@@ -662,15 +662,15 @@ T 高于上限持续 12000 tick，开放喘息。每项顺势，澱当量 0.01 �
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | DB-A4-01 | `div_beat_a4_merca_pitch` | 梅尔卡 | 降影（硬币） | 立国后；默认顺序第一 | 是 | 独白稿与真伪标注以[第四幕][a4] 6.3 为准；`a4_goddess_versions_heard` 加一 | [第四幕][a4] 6.3 |
 | DB-A4-02 | `div_beat_a4_eluen_pitch` | 艾琉恩 | 降影（礼拜堂光像），或光之诏 | 立国后；默认第二 | 是 | 6.1 独白稿；国内没有她的礼拜堂时由教国圣使带来"光之诏" | [第四幕][a4] 6.1 |
-| DB-A4-03 | `div_beat_a4_valda_pitch` | 瓦尔妲 | 降影（帝国军营祭坛） | 强者之宴后；默认第三 | 是 | 6.2 独白稿；祭坛本身是 E23 | [第四幕][a4] 6.2 |
+| DB-A4-03 | `div_beat_a4_valda_pitch` | 瓦尔妲 | 降影（帝国第三军团营地地下的祭坛，借濒死战士之口） | 强者之宴之后，`A4-M07` 第二阶段；默认第三 | 是 | 与 DB-A4-11 合为一次演出（过场 `cut_a4_valda_offer`）：先讲版本（6.2 独白稿），后提结盟；祭坛本身是 E23 | [第四幕][a4] 6.2 |
 | DB-A4-04 | `div_beat_a4_sylvie_pitch` | 希尔薇 | 托梦（欧拉）、兽引、降影（灵泉） | 默认第四 | 是 | 6.4 独白稿；欧拉托梦后半鹿半狼的兽领路到春天才醒的草地 | [第四幕][a4] 6.4 |
 | DB-A4-05 | `div_beat_a4_moira_pitch` | 莫伊拉 | 化身（无尽书库，书梯顶端） | 默认第五 | 是 | 6.5 独白稿；借书卡写着书库最底层的层号 | [第四幕][a4] 6.5 |
 | DB-A4-06 | `div_beat_a4_heresy_edict` | 艾琉恩 | 异端之国诏 | 按 `church_verdict_3`：lost_lamb 时招安被拒后，heretic 时立国即颁，demon_precursor 时以"先驱"定性 | 是 | 诏书全文按[第四幕][a4] 8.2 | [第四幕][a4] 8.2 |
 | DB-A4-07 | `div_beat_a4_countersign_talks` | 艾琉恩、莫伊拉 | 约定、副署 | 玩家答应招安 | 条件成立即必达 | 莫伊拉开价，其余女神可阻挠或加价；成立则 `div_eluen_write_page` | [第四幕][a4] 6.1，D-037 |
-| DB-A4-08 | `div_beat_a4_isomorphism` | 莫伊拉 | 化身 | `deed_god_five_offers` 后 | 是 | 点破同构："你在边石镇做的事，和我们在神庭做的事，一模一样。"；置 `a4_moira_isomorphism` | [第四幕][a4] 7 |
+| DB-A4-08 | `div_beat_a4_isomorphism` | 莫伊拉 | 化身 | `deed.deed_god_five_offers` 之后，且 `director.a4_disputes_midway >= 2`（至少两条纷争进入中段，[第四幕][a4] 7.1） | 是 | 点破同构："你在边石镇做的事，和我们在神庭做的事，一模一样。"；置 `a4_moira_isomorphism` | [第四幕][a4] 7 |
 | DB-A4-09 | `div_beat_a4_trade_records` | 莫伊拉 | 情报交易 | 同构之后 | 是 | 空白纪副本按页交易；置 `a4_moira_trade_records`；之后"神之记录"页解锁第一档（第 12.5 节） | [第四幕][a4] 7.3 |
 | DB-A4-10 | `div_beat_a4_key_theft_plea` | 梅尔卡 | 降影（硬币） | 深账库之夜后 | 是 | 第一次不笑，不算账："……这件事，能不能先不记在账上？"；置 `a4_key_theft_exposed` | [第四幕][a4] 8.5 |
-| DB-A4-11 | `div_beat_a4_valda_alliance` | 瓦尔妲 | 借口传话 | 第四幕战场 | 是 | 借濒死战士之口提议结盟："跟我联手。揍完那个装模作样的，我们俩再打一场。"；置 `a4_valda_alliance_offer` | [人物][chr] 1.1 |
+| DB-A4-11 | `div_beat_a4_valda_alliance` | 瓦尔妲 | 借口传话 | 同 DB-A4-03（强者之宴之后，`A4-M07` 第二阶段，帝国第三军团营地地下的祭坛） | 是 | 与 DB-A4-03 是同一次演出（过场 `cut_a4_valda_offer`）：讲完版本后借濒死战士之口提议结盟："跟我联手。揍完那个装模作样的，我们俩再打一场。"；置 `a4_valda_alliance_offer` | [人物][chr] 1.1；[第四幕][a4] 6.2 |
 | DB-A4-12 | `div_beat_a4_sasha_assist` | 瓦尔妲 | 遣客 | 兽王之争 | 是 | 派萨莎为岩掌部战首助阵；萨莎可能临阵撤走 | [第四幕][a4] 8.4 |
 | DB-A4-13 | `div_beat_a4_beast_touch` | 希尔薇 | 兽引 | 根下庭收场，未被毁 | 条件成立即必达 | 兽来到玩家面前，用头碰了碰玩家的手，然后离开 | [第四幕][a4] 8.3 |
 | DB-A4-14 | `div_beat_a4_ashfull_eluen` | 艾琉恩 | 神谕（对教皇） | 天启「荒原之澱满」之后 1 日内 | 是 | "规格外者，就是魔王的先驱。"；教国颁第二道诏书 | [第四幕][a4] 10.2 |
@@ -689,14 +689,14 @@ T 高于上限持续 12000 tick，开放喘息。每项顺势，澱当量 0.01 �
 | DB-A5-02 | `div_beat_a5_valda_confession` | 瓦尔妲 | 群谕 | 第二道诏书之后的第一个黄昏 | 是 | [第五幕][a5] 4.2 三句原文；E12 进入可用状态的前置 | [第五幕][a5] 4.2 |
 | DB-A5-03 | `div_beat_a5_pig_line` | 瓦尔妲 | 降影（帝国军营祭坛） | 玩家在祭坛前质问她 | 否 | "你吃肉的时候，会给猪道歉吗？"；玩家答"猪也是你造的"时她沉默一下后大笑断开 | [第五幕][a5] 4.2 |
 | DB-A5-04 | `div_beat_a5_holy_war_league` | 艾琉恩 | 圣战号召 | `summit_result` 为圣战联军 | 条件成立即必达 | 南线出现圣战联军；加入国家受加护修正项 | [大战略][slg] 8 |
-| DB-A5-05 | `div_beat_a5_descent` | 艾琉恩 | 神降 | `a5_yui_descent` 的条件（结衣留任或接过勇者加护）成立后的第一场决战 | 条件成立即必达 | 越约窗口（`div_breach_eluen_descent`）；瓦尔妲的对撞窗口随之打开 | [人物][chr] 1.1 |
+| DB-A5-05 | `div_beat_a5_descent` | 艾琉恩 | 神降 | `a5_yui_descent` 的条件（结衣留任或接过勇者加护）成立后的第一场决战 | 条件成立即必达 | 越约窗口（`div_breach_eluen_descent`）；瓦尔妲的对撞窗口随之打开：神降请求前写 `a5_valda_ashclash`（对撞窗口是否开启） | [人物][chr] 1.1 |
 | DB-A5-06 | `div_beat_a5_full_record` | 莫伊拉 | 全录之日 | `div_moira_full_record` 的条件 | 条件成立即必达 | 四司收到同一张纸条："我已告知。"；她在书页上写"这一章，是我写过最好的。" | [第五幕][a5] 4.4 |
 | DB-A5-07 | `div_beat_a5_merca_quotes` | 梅尔卡 | 物价修正、借贷担保、约定 | 决战筹备期 | 是 | 向双方报价；灰铁 `price_demand` +30%；可借出门钥（"两头下注"，开价视关系） | [第五幕][a5] 6.2 |
 | DB-A5-08 | `div_beat_a5_sylvie_branch` | 希尔薇 | 托梦、森林（吸澱） | 世界树的枝被选作众门环节点 | 是 | 托梦劝阻精灵；`goddess.sylvie >= 50` 时则暗中护住根下（森林吸澱） | [第五幕][a5] 6.2 |
 | DB-A5-09 | `div_beat_a5_spring_murky` | 希尔薇 | 降影（灵泉） | 玩家在灵泉边与她说话 | 否 | "灵泉很浑。我看不清了。" | [人物][chr] 1.2 |
 | DB-A5-10 | `div_beat_a5_catalyze_test` | 瓦尔妲 | 魔王催化、魔物潮（推压） | 众门环工程推进到不少于 3 个节点 | 条件成立即必达 | "看看你们的办法扛不扛得住。" | [迷宫目录][dgn] 4.1 |
 | DB-A5-11 | `div_beat_a5_janu_act` | 雅努 | 现实出手 | 无貌之王首领战"归无" | 是 | 规模按 `janu_act`；"接住你了。"（序章伸过手时多半句："你又伸手了。"） | [第五幕][a5] 8 |
-| DB-A5-12 | `div_beat_a5_faceless_named` | 雅努 | 降影（现实） | 救赎条件满足 | 条件成立即必达 | 叫出"沈望"；"……对不起。那一次，我没有接住你。"；置 `a5_faceless_named` | [第五幕][a5] 8 |
+| DB-A5-12 | `div_beat_a5_faceless_named` | 雅努 | 降影（现实） | 救赎条件齐（[第五幕][a5] 2.5，过场目录第五幕一节的定义）且玩家选择递出照片 | 条件成立即必达 | 叫出"沈望"；"……对不起。那一次，我没有接住你。"；置 `a5_faceless_named` | [第五幕][a5] 8 |
 | DB-A5-13 | `div_beat_a5_trial_called` | 五司 | 天启解读 | 天启「审期至。六司归庭。」 | 是 | 五司反应以[第五幕][a5] 9.1 与 `revelations.json` 为准；之后神权菜单停用 | [第五幕][a5] 9 |
 | DB-A5-14 | `div_beat_a5_buy_slot` | 艾琉恩、希尔薇 | 约定（求购召唤名额） | 陆辰卸光或死去（勇者缺位） | 条件成立即必达 | 希尔薇拒绝；拒绝写入神迹账旁注 | 本文 2.1 |
 
@@ -763,7 +763,7 @@ T 高于上限持续 12000 tick，开放喘息。每项顺势，澱当量 0.01 �
 | `div_plan_valda_night_affairs` | 夜境内务 | `act <= 2` | 内务（1）：夜境军令·试探（边境）→ 授予加护（夜境将领）→ 战梦（诸侯） | 无 |
 | `div_plan_valda_test_goods` | 试货 | `act >= 3 AND goddess.valda.gaze >= 40` | 下帖（1）：决斗挑战 → 观战 → 玩家胜则遣客（萨莎）；军势（2）：夜境军令·突袭（北境）→ 遣客（萨莎率军）→ 借口传话（濒死战士） | `a3_sasha_retreat_line` |
 | `div_plan_valda_whetstone` | 磨刀石 | `act >= 3` | 挑唆（1）：战争挑唆（帝国元帅）→ 魔物潮·中（北境冬季，预兆） | 冬季结束 |
-| `div_plan_valda_alliance` | 结盟 | `act == 4 AND a4_feast_of_strong` | 祭坛（1）：降影（帝国军营祭坛）→ 借口传话（结盟）→ 约定（不以玩家为目标；在异端之国案中作证）→ 遣客（萨莎助阵风牙，或撤走） | 玩家拒绝两次：她改称"对手"，不报复 |
+| `div_plan_valda_alliance` | 结盟 | `act == 4 AND a4_feast_of_strong` | 祭坛（1）：降影（帝国军营地下的祭坛，借濒死战士之口）与借口传话（结盟）为同一次演出 → 约定（不以玩家为目标；在异端之国案中作证）→ 遣客（萨莎助阵风牙，或撤走） | 玩家拒绝两次：她改称"对手"，不报复 |
 | `div_plan_valda_watch_waste` | 只是看着 | `a4_revelation_ash_full` | 观望（1）：战梦（夜境诸侯）→ 凝视（灰烬荒原） | 无 |
 | `div_plan_valda_honest_war` | 坦白与大战 | `act == 5` | 坦白（1）：群谕（节点）→ 魔物潮·推压（众门环节点附近，预兆）→ 魔王催化（条件）→ 化身（神降出现时，越约窗口） | `a5_final_battle_done` |
 
@@ -829,7 +829,7 @@ T 高于上限持续 12000 tick，开放喘息。每项顺势，澱当量 0.01 �
 | `div_plan_moira_outline` | 描出轮廓 | `act == 2` | 描摹（1）：史料揭示（约纳斯）→ 预言（蕾娜塔）→ 出借铭录（对艾琉恩：延迟）→ 情报交易（向梅尔卡买"硬币在哪里响过"） | 无 |
 | `div_plan_moira_offer` | 递交易 | `act == 3` | 交易（1）：史料揭示（档案馆）→ 情报交易（经奥丽芙：交易意向）→ 情报交易（定金页）→ 情报交易（卖借阅回执给艾琉恩） | `a3_moira_offer` 完成 |
 | `div_plan_moira_keep_chapter` | 护书 | `moira_keep` 的条件成立 | 部分交付（1）：出借铭录（部分）；抹页（3，越约候选 B05）：出借铭录（延迟）→ 改页（删去"所在不明"，不告知） | 借阅请求撤回 |
-| `div_plan_moira_isomorphism` | 同构 | `act == 4 AND deed_god_five_offers` | 现身（1）：化身（无尽书库）→ 情报交易（同构）→ 情报交易（空白纪页，逐页）→ 副署（招安时开价） | 无 |
+| `div_plan_moira_isomorphism` | 同构 | `act == 4 AND deed.deed_god_five_offers AND director.a4_disputes_midway >= 2` | 现身（1）：化身（无尽书库）→ 情报交易（同构）→ 情报交易（空白纪页，逐页）→ 副署（招安时开价） | 无 |
 | `div_plan_moira_publish` | 公开或私藏 | `act == 5` | 私下（1）：情报交易（把记录只给玩家看）；公开（2，全录之日的条件）：全录之日 | `a5_revelation_trial` |
 
 ### 5.6 雅努

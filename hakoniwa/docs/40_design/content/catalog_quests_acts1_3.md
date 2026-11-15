@@ -226,8 +226,8 @@
 1. **台词槽。** 给予者、交付者与关键配角的台词包 `ln_<npcId>` 各有本条任务的槽位 `quest.<q_id>.<阶段>`，阶段取 [内置 AI 7.2][bai] 的封闭集合：
    `offer`、`accept`、`decline`、`progress`、`complete`、`fail`、`after`。多阶段任务的 `progress` 槽按 `quest_stage.<q_id>` 分版本（台词的 `when` 条件）。
    条目里写"`ln_owen`：offer、progress×3、complete"表示该包需要这些槽与版本数。
-2. **话题。** 每条任务在给予者处有一个任务话题，编号规则 `quest_<数据编号去掉 q_>`（例 `topic.quest_a1_s01_owen_wagon`），由 [台词目录][dlg] 登记话题实例；
-   话题的 `requires` 等于本条的前置，`unlocks` 写"接出本任务"。线索类话题（"问对问题"）写作 `topic.secret_<短名>`，条目里写明解锁条件。
+2. **话题。** 任务在给予者处经任务话题接出；话题编号的主人是 [台词目录][dlg]，以其第 3 节登记的为准（例 `topic.quest_owen_cart` 接出 `q_a1_s01_owen_wagon`），台词目录没有单列话题的条目由给予者包的 `quest.<q_id>.offer` 槽直接接出；
+   话题的 `requires` 等于本条的前置，`unlocks` 写"接出本任务"。线索类话题（"问对问题"）用台词目录登记的秘密话题（`secret_<人物 ID>_<词>`），条目里写明解锁条件。
 3. **决策点。** 纷争链上点名 NPC 的选择按效用权重兜底（[AI 架构 3.3][aia]，[内置 AI 3][bai]），权重来自人格卡与本条"条件"栏。
 4. **说服与审判。** 说服目标按"证据加关系"的规则评分，不看口才（[认知 3.5][rep]）；公开辩论、审判的胜负由证据件数、证人信任与拆穿事件决定，阈值写在条目里。
 5. **写定场景。** 拉远场景、锚点台词、阿什的讲述等写定段落使用分幕文档的原句或预写版本，按台账解锁条件分版本；过场编号由 [过场目录][cut] 按分幕文档的节拍号对应。
@@ -688,7 +688,7 @@
 | 奖励 | 经验 1,350；金钱 270 铜；认识玛莎、欧拉、卡西安、奈拉；玛莎测试 T1"落杯"在第一次进醉月亭时发生（`npc.martha.assessment`，A1-D05） |
 | 失败与超时 | 第 2 周末仍未完成时，布伦把剩下的委托改派德里斯的跟班，本条以 `by_other` 结算剩余阶段（已完成阶段的经验照发），镇民印象推迟一周成形 |
 | 揭示 | 置 `a1_cassian_appraise`；可解锁 M03-C02、S03-C01 |
-| 无模型 | `ln_lina`：offer、progress×3、complete；`ln_martha`、`ln_oola`、`ln_cassian`：各自阶段的 `progress` 与 `complete`；话题 `topic.quest_a1_m04_f_rank_rules` |
+| 无模型 | `ln_lina`：offer、progress×3、complete；`ln_martha`、`ln_oola`、`ln_cassian`：各自阶段的 `progress` 与 `complete`；话题 `topic.quest_board`（"F 级的规矩"，接出本条） |
 | 时长 | 40 分钟 |
 
 | 阶段 | 目标类型 | 参数（实际 ID） | 完成与分支 | 结算点经验（预计等级） |
@@ -753,11 +753,11 @@
 | 前置 | `act_week >= 3 AND (trust.oola >= 50 OR p_past_life_door == whitecoat OR act_week >= 6)` |
 | 窗口 | 第 3 周起；第 12 周末未完成按过期结算 |
 | 预计等级 | 8 到 10 |
-| 分支与写入 | 置 `a1_spring_source_found`（魔女审判的物证，A1-D02 节点 a）；`culvert` 之后可选 `seal`：用遗迹落石堵住暗渠口，`a1_town_dian` -20、`seal_unrest` -5，此后镇内澱度每周增量由 +8 降到 +3（[第一幕 7.2][a1]）；`act_week >= 8` 时夜羽第一次看见暗渠即触发暗面节拍 D6（"那扇门，是不该被打开的。可我等了好久好久。"），玩家第一次从夜羽口中听到"澱"，界面上的魔物与物品名切换为正式名（[D-030][dlog]） |
+| 分支与写入 | 置 `a1_spring_source_found`（魔女审判的物证，A1-D02 节点 a）；`culvert` 之后可选 `seal`：用遗迹落石堵住暗渠口，`a1_town_dian` -20、`seal_unrest` -5，此后镇内澱度每周增量由 +8 降到 +3（[第一幕 7.2][a1]）；`act_week >= 8` 时夜羽第一次看见暗渠即触发暗面节拍 D6（"那扇门，是不该被打开的。可我等了好久好久。"），玩家第一次从夜羽口中听到"澱"，界面上的魔物与物品名切换为正式名（[D-030][dlog]）；`spring` 阶段在病房里看见发灰的灯时置 `a1_grey_lamp_seen`（暗面节拍 D2，`cut_a1_trial` 读）；`a1_spring_source_found` 在过场目录里写作 `a1_seep_channel_found`（注册表别名） |
 | 奖励 | 经验 2,800；金钱 0；物品 `north_spring_water`（证物）；`trust.oola >= 60` 时欧拉交出草方 `lb_greybane_remedies`（《祛灰方》，借形之门 `door_vocation_druid` 的缘钥落点）；`trust.oola` +10 |
 | 失败与超时 | 过期：暗渠不堵，`a1_town_dian` 照常增长；审判少一件物证 |
 | 揭示 | 置 `a1_spring_source_found`；可解锁 S08-C02（`trust.oola >= 40`）、M04-C02（`a1_witch_trial_started` 之后） |
-| 无模型 | `ln_oola`：offer（按信任三个版本）、progress×3、complete；`ln_yeyu`：progress（"这里有不该有的味道"）；`ln_noi`：写定的沉默与一句"你身上有一扇门。"（只在 `A1-S19` 未完成时第一次见面说）；欧拉的古方是话题 `topic.secret_wasteland_sickness`（`trust.oola >= 50`） |
+| 无模型 | `ln_oola`：offer（按信任三个版本）、progress×3、complete；`ln_yeyu`：progress（"这里有不该有的味道"）；`ln_noi`：写定的沉默与一句"你身上有一扇门。"（只在 `A1-S19` 未完成时第一次见面说）；欧拉的古方是话题 `topic.lore_grey_sickness` 的 K2 版（德鲁伊旧学的说法，`trust.oola >= 50`） |
 | 时长 | 70 分钟 |
 
 | 阶段 | 目标类型 | 参数（实际 ID） | 完成与分支 | 结算点经验（预计等级） |
@@ -964,9 +964,9 @@
 | `A1-D02.c` 托马的目击 | 第 5 周起 | 托马装聋 | `A1-S15` | 证词：谁真正进出过孤儿院；附带莫斯后门见客（`a1_moss_evidence` +1） |
 | `A1-D02.d` 拆穿光之鉴 | 审判当场 | 灯焰发灰，有罪 | `A1-M09` 的 `verdict` | `a1_lamp_exposed` |
 | `A1-D02.e` 救治托比 | 第 6 到 8 周 | 第 8 周结束前未获有效救治则进入三期，兽潮之夜后死去 | `q_a1_d02e_save_toby`（700） | `a1_toby_state = recovered`；贝莎动摇 |
-| `A1-D02.f` 劫狱 | 第 7 周起 | 欧拉关在代官宅邸拘留室 | `A1-M09` 的劫狱解法（夜里从 L10 拘留室带出欧拉与孩子） | `a1_oola_fate = fled`；`church_suspicion` +25 |
+| `A1-D02.f` 劫狱 | 第 7 周起 | 欧拉关在代官宅邸拘留室 | `A1-M09` 的劫狱解法（夜里从 L10 拘留室带出欧拉与孩子） | `a1_oola_fate = fled`；`church_suspicion` +25；置 `a1_oola_jailbroken`（定罪后到押送前劫狱同样写入） |
 | `A1-D02.g` 公开辩论 | 审判当场 | 无 | `A1-M09`（讲台前世或 `trust.cassian >= 60`） | 平反计数 +1 |
-| `A1-D02.h` 贿赂莫斯 | 第 7 周起 | 无 | `A1-M09` 的 `bribed` 路线（金钱 3 银起，按莫斯的风险分） | 欧拉获释；莫斯握有把柄 |
+| `A1-D02.h` 贿赂莫斯 | 第 7 周起 | 无 | `A1-M09` 的 `bribed` 路线（金钱 3 银起，按莫斯的风险分） | 欧拉以"证据不足"获释，`a1_oola_fate = cleared`，另置 `a1_oola_bribed`；`cassian.doubt` 不变；莫斯握有把柄 |
 
 | 结局 | 条件（台账语法） | 写入 |
 | - | - | - |
@@ -1065,7 +1065,7 @@
 | 当事 | `bron`、`hock`；巢里的公会旧铜牌属于他死去的队友 |
 | 不介入时 | `npc.bron.story_level` 停在玩家走到的那一格；第 11 周看见门纹后按 `trust.bron` 决定 `npc.bron.secret_kept` |
 | 链结算经验 | 250（14 级）：`npc.bron.story_level == 3` |
-| 无模型 | 布伦清醒时什么都不说，醉了说一半（`A1-S18` 的多次夜饮）；侯克只回答"问对了"的问题（话题 `topic.secret_report_978`，问"二十年前探索队的报告还在吗"） |
+| 无模型 | 布伦清醒时什么都不说，醉了说一半（`A1-S18` 的多次夜饮）；侯克只回答"问对了"的问题（话题 `topic.secret_hock_box`，问"二十年前探索队的报告还在吗"） |
 
 | 节点 | 窗口 | 情境 | 介入（挂接条目） | 产出与写入 |
 | - | - | - | - | - |
@@ -1113,7 +1113,7 @@
 | 当事 | `greta` 与孤儿院、`vick`、`hock`、`moss`、`nera`（磨坊被抵押时） |
 | 不介入时 | 维克保住磨坊，第 7 周抵押给商会；孤儿院仍喝北泉，第 9 周第三个孩子发病的风险升到最高 |
 | 链结算经验 | 200（10 级）：孤儿院得磨坊 |
-| 无模型 | 侯克只回答问对的问题（话题 `topic.secret_otto_will`："奥托有没有在公会立过遗嘱？"）；奈拉契约至上，得知被骗即主动作废抵押 |
+| 无模型 | 侯克只回答问对的问题（话题 `topic.secret_hock_box`："奥托有没有在公会立过遗嘱？"）；奈拉契约至上，得知被骗即主动作废抵押 |
 
 | 节点 | 窗口 | 默认发展 | 介入（挂接条目） | 产出与写入 |
 | - | - | - | - | - |
@@ -1135,7 +1135,7 @@
 | 当事 | `jed`（真凶）、`ako`（被诬）、各摊贩、`viro` 的骰子屋、`yeyu`（第二波"失窃"） |
 | 不介入时 | 第 6 周阿柯被关一夜，第 8 周卫队搜查东坡，`a1_ako_framed = true` |
 | 链结算经验 | 200（10 级）：杰德被揭发 |
-| 无模型 | 杰德被抓立刻求饶并供出骰子屋；阿柯被冤枉会逃跑；阿柯的目击只在被问到时说（话题 `topic.secret_jed_dice`） |
+| 无模型 | 杰德被抓立刻求饶并供出骰子屋；阿柯被冤枉会逃跑；阿柯的目击只在被问到时说（话题 `topic.secret_ako_witness`） |
 
 | 节点 | 窗口 | 默认发展 | 介入（挂接条目） | 产出与写入 |
 | - | - | - | - | - |
@@ -1158,32 +1158,32 @@
 | 编号 | 数据编号 | 类型 | 标题 | 给予者与地点 | 前置与窗口 | 阶段（目标类型：参数） | 分支与写入 | 奖励 | 失败与超时 | 揭示 | 无模型 | 时长 |
 | - | - | - | - | - | - | - | - | - | - | - | - | - |
 | A1-S01 | `q_a1_s01_owen_wagon` | 支线 | 欧文的货车 | `owen`；`borderstone`·L11 盐巷集市（集日），南路林段（王道门 L14 外） | `act_week >= 4 AND quest.q_a1_m03_unrecorded == done`；隐性期限第 6 周末（欧文亲口说后才显示） | `accept` 交谈；`escort` 护送：欧文的货车（二十袋盐）；`ambush` 击败：`oneeye_bandit` ×5（团规不杀平民）；`capture` 可选：活捉 2 人 | `quest_path`：`direct` 正面、`side_road` 小路、`decoy` 空车作诱饵；活捉置 `a1_lair_located`（口供指向旧哨村据点）；`a1_owen_left = stayed`；桥段 5、7 | 经验 625；金钱 125 铜；`trust.owen` +20；欧文的摊位此后上架 `eq_owen_saltlane_ring` | 第 6 周末未护送：欧文离开，`a1_owen_left = left`，独立商路中断 | 无 | `ln_owen`：progress×2；`ln_barto`：`unbelief.explain`（"一定是喝醉了"） | 30 |
-| A1-S02 | `q_a1_s02_blade_mark` | 支线 | 刀上的暗记 | `barga`；`borderstone`·L06 巴尔加铁匠铺 | `a1_blade_mark_seen`（在 `A1-D01.a` 或 `A1-S01` 的匪徒刀上看见暗记）；第 4 周起 | `show` 交互：出示刻暗记的刀；`persuade` 说服：替他还煤钱（2 银）、挡住莫斯的执照威胁（`a1_moss_evidence >= 1` 或布伦以公会担保）、或给他一份新契约（在梅尔卡神龛以硬币立约，或请奈拉作保）；`forge` 交付：`crystal_carapace` | `a1_moss_evidence` +1（刀上暗记）；`trust.barga` +20；巴尔加说出夜里的订单 | 经验 600；金钱 120 铜；`eq_barga_crystalback_sword`；钥：刃之门 `door_vocation_warrior` 物钥、锻兵之门 `door_craft_weaponcrafting` 历钥；称号 `title_tribe_dwarf_cross_section` | 甲壳未到手时 `forge` 等待，跨入第二幕仍可交付 | 无 | `ln_barga`：progress×2 与 `unbelief.deny`（"刃角不对，你是蛮力"）；话题 `topic.secret_blade_mark` | 25 |
+| A1-S02 | `q_a1_s02_blade_mark` | 支线 | 刀上的暗记 | `barga`；`borderstone`·L06 巴尔加铁匠铺 | `a1_blade_mark_seen`（在 `A1-D01.a` 或 `A1-S01` 的匪徒刀上看见暗记）；第 4 周起 | `show` 交互：出示刻暗记的刀；`persuade` 说服：替他还煤钱（2 银）、挡住莫斯的执照威胁（`a1_moss_evidence >= 1` 或布伦以公会担保）、或给他一份新契约（在梅尔卡神龛以硬币立约，或请奈拉作保）；`forge` 交付：`crystal_carapace` | `a1_moss_evidence` +1（刀上暗记）；`trust.barga` +20；巴尔加说出夜里的订单 | 经验 600；金钱 120 铜；`eq_barga_crystalback_sword`；钥：刃之门 `door_vocation_warrior` 物钥、锻兵之门 `door_craft_weaponcrafting` 历钥；称号 `title_tribe_dwarf_cross_section` | 甲壳未到手时 `forge` 等待，跨入第二幕仍可交付 | 无 | `ln_barga`：progress×2 与 `unbelief.deny`（"刃角不对，你是蛮力"）；话题 `topic.secret_barga_marks` | 25 |
 | A1-S03 | `q_a1_s03_dice_house` | 支线 | 骰子屋 | `ako` 的线索或 `jed`；`borderstone`·L22 骰子屋 | `act_week >= 5` | `find` 调查：阿柯的目击或跟踪杰德；`in` 三选一：赢一局（骰子小游戏，`popo` 在旁时判定略有加成）、夜里搜查（潜入）、逼杰德自首（需 `A1-S12` 的证据）；`pact` 收集：薇罗与莫斯的密约线索 | 置 `a1_viro_pact_known`（`A1-D01.f` 反咬的前置）；`a1_jed_debt_known` | 经验 500；金钱 100 铜；`trust.ako` +10 | 第 8 周后骰子屋关门，线索改在 `A1-D01.f` 的据点里拿 | 无 | `ln_viro`：progress；骰局是确定性小游戏 | 25 |
-| A1-S04 | `q_a1_s04_pact_oak` | 支线 | 约树的刻痕 | `gorn`；`forest_edge`·约树 `pact_oak`，`borderstone`·L02 档案室 | `act_week >= 4` | `oak` 调查：约树上的林约刻痕；`hock` 交谈：向侯克问对问题（"百年前有没有人在公会立过林地的约？"）取得林约抄本；`show` 交付：抄本与刻痕给葛恩（与加斯帕）看 | 置 `a1_forest_pact_proof`；`trust.gorn` +15 | 经验 450；金钱 90 铜；`eq_gorn_skinning_knife`（东坡人只给"自己人"）；钥：猎之门地钥（`forest_edge`·`pact_oak`） | 无 | 无 | 话题 `topic.secret_forest_pact`（侯克，只回答问对的问题） | 20 |
+| A1-S04 | `q_a1_s04_pact_oak` | 支线 | 约树的刻痕 | `gorn`；`forest_edge`·约树 `pact_oak`，`borderstone`·L02 档案室 | `act_week >= 4` | `oak` 调查：约树上的林约刻痕；`hock` 交谈：向侯克问对问题（"百年前有没有人在公会立过林地的约？"）取得林约抄本；`show` 交付：抄本与刻痕给葛恩（与加斯帕）看 | 置 `a1_forest_pact_proof`；`trust.gorn` +15 | 经验 450；金钱 90 铜；`eq_gorn_skinning_knife`（东坡人只给"自己人"）；钥：猎之门地钥（`forest_edge`·`pact_oak`） | 无 | 无 | 话题 `topic.secret_hock_box`（侯克，只回答问对的问题：林约的抄本） | 20 |
 | A1-S05 | `q_a1_s05_burned_shed` | 支线 | 烧掉的猎棚 | `shiya`；`borderstone`·L15 东坡，`forest_edge`·伐区 | 第 4 周猎棚被烧之后 | `ash` 调查：灰烬里的斧痕与火油；`culprit` 调查：两名放火的伐木工；`resolve` 抉择 | `quest_path`：`revenge` 报复（`a1_forest_accord` 升级风险）、`report` 揭发给加斯帕（`trust.gaspar` +5）、`reconcile` 当面和解（`trust.gaspar >= 45`）、`expel` 站加斯帕一边驱逐兽人；`report` 与 `reconcile` 路线的夜追里希雅一箭定住逃跑的人（猎王时刻） | 经验 450；金钱 90 铜；`trust.shiya` +15（`expel` 时 -30）；钥：识才之门缘钥（猎王时刻） | 无 | 无 | `ln_shiya`：progress×2；`ln_gaspar`：progress | 25 |
 | A1-S06 | `q_a1_s06_arm_wrestle` | 支线 | 扳手腕 | `boro`；`borderstone`·L15 东坡 | `act_week >= 3` | `challenge` 比试：扳手腕（非致死对决，按力量判定）；`result` 抉择：赢或故意输 | 置 `a1_boro_calmed`（冲突升级概率下降）；桥段 9 | 经验 200；金钱 0；赢：`trust.boro` +25，博罗无条件尊重玩家；故意输：+10，他得意但友善 | 无 | 无 | `ln_boro`：complete 两个版本；`ln_shiya`：写定"他没用诈。我一直看着。" | 10 |
 | A1-S07 | `q_a1_s07_hurt_logger` | 支线 | 受伤的伐木工 | `gaspar`；`borderstone`·L16 伐木场，`forest_edge`·伐区北 | `act_week >= 2` | `find` 到达：被咬伤的伐木工；`fight` 击败：`grey_wolf` ×3；`treat` 救援：包扎（白衣前世）、背回来、或请欧拉；`return` 护送回伐木场 | `trust.gaspar` +15（他第一次欠"外人"的情） | 经验 225；金钱 45 铜 | 2 游戏日内未救：伐木工被同伴背回，伤重（`by_other`），加斯帕更认定"兽人引狼" | 无 | `ln_gaspar`：complete 两个版本（白衣前世、普通） | 15 |
 | A1-S08 | `q_a1_s08_salt_price` | 支线 | 盐价 | `simon`；`borderstone`·L11、L04 商会分号 | `act_week >= 5` | `ask` 交谈；`approach` 抉择：谈判、揭露、帮欧文回来、站莫斯一边、收分成；`settle` 交易：盐价回落一档 | `quest_path`：`negotiate`（`trade_count.nera` +1；算盘前世多一项"看穿利润率"）、`expose`（需波波的清单）、`owen`（需 `A1-S01`）、`side_moss`、`take_cut`；`town_trust.commoners` +10（前三条）或 -10（收分成） | 经验 500；金钱 100 铜 | 第 9 周后关闭，按 A1-D03 默认 | 可解锁 S03-C01 的公共说法 | `ln_nera`：progress 五个版本；奈拉"一切谈话都换算成价格"的选项菜单 | 25 |
 | A1-S09 | `q_a1_s09_coin_origin` | 支线 | 硬币的来历 | `nera`；`borderstone`·L04 | `inventory HAS merca_coin`，第一次在商会出示 | `show` 交易：出示硬币；`answer` 抉择：说实话（"女神给的"）、编故事、不说 | `trust.nera` 按 `p_coin_terms` +10 到 +20；梅尔卡兴趣 +1（奈拉当晚在神龛前报了这笔账） | 经验 150；金钱 0；解锁神龛的高级兑换 | 无 | 可解锁 S03-C01 | `ln_nera`：写定"客人真会开玩笑。"；当晚的神龛场景是无对白的小过场 | 10 |
 | A1-S10 | `q_a1_s10_lisa_bundle` | 支线 | 莉莎的包袱 | `lisa`；`borderstone`·L19 面包房、L20 洗衣溪 | `act_week >= 5 AND trust.lisa >= 50`；第 8 周婚礼前 | `plea` 交谈（她只求助一次）；`way` 抉择；`act` 交付或护送：账本给佩德看、驿站搭车（`ulf_lange` 安排驿车，30 铜到苇桥）、拿遗嘱把柄逼维克 | `quest_path`：`ledger`、`elope`、`pressure`、`leave`；写 `a1_lisa_nick`、`a1_vick_informant`（A1-D07） | 经验 600；金钱 120 铜；`trust.lisa` +20 | 婚礼前未行动：`a1_lisa_nick = married_vick` | 无 | `ln_lisa`：offer 只出现一次；`ln_ped`：被说服的阈值写在 A1-D07 | 30 |
-| A1-S11 | `q_a1_s11_otto_will` | 支线 | 奥托的遗嘱 | `greta`；`borderstone`·L08 孤儿院、L02 档案室、L01 广场 | `act_week >= 3` | `plea` 交谈；`hock` 交谈：问对问题取得公会见证遗嘱的原件；`publish` 抉择：请布伦当众宣读（`trust.bron >= 40`），或磨坊已抵押时告诉奈拉 | `quest_path`：`read_public`、`tell_nera`；写 `a1_mill_owner`（A1-D08） | 经验 600；金钱 120 铜；`trust.greta` +25 | 第 9 周后未宣读：维克保住磨坊或商会持有 | 无 | 话题 `topic.secret_otto_will` | 25 |
-| A1-S12 | `q_a1_s12_copper_bell` | 支线 | 谁拿了铜铃 | 集市摊贩（具名化居民 `tpl_peddler`）；`borderstone`·L11 | `act_week >= 4` | `report` 交谈；`clues` 调查：问阿柯、查骰子屋、设局放一只假银扣；`catch` 抉择：交卫队或私下了结 | `quest_path`：`asked_ako`、`bait`、`dice`；写 `a1_jed_exposed`、`a1_ako_framed`（A1-D09） | 经验 500；金钱 100 铜（摊贩凑的谢礼）；`trust.ako` +15 | 第 8 周后卫队搜查东坡，本条以 `by_other` 结算 | 无 | 话题 `topic.secret_jed_dice`（阿柯只在被问到时说） | 25 |
+| A1-S11 | `q_a1_s11_otto_will` | 支线 | 奥托的遗嘱 | `greta`；`borderstone`·L08 孤儿院、L02 档案室、L01 广场 | `act_week >= 3` | `plea` 交谈；`hock` 交谈：问对问题取得公会见证遗嘱的原件；`publish` 抉择：请布伦当众宣读（`trust.bron >= 40`），或磨坊已抵押时告诉奈拉 | `quest_path`：`read_public`、`tell_nera`；写 `a1_mill_owner`（A1-D08） | 经验 600；金钱 120 铜；`trust.greta` +25 | 第 9 周后未宣读：维克保住磨坊或商会持有 | 无 | 话题 `topic.secret_hock_box`（问侯克："奥托有没有在公会立过遗嘱？"） | 25 |
+| A1-S12 | `q_a1_s12_copper_bell` | 支线 | 谁拿了铜铃 | 集市摊贩（具名化居民 `tpl_peddler`）；`borderstone`·L11 | `act_week >= 4` | `report` 交谈；`clues` 调查：问阿柯、查骰子屋、设局放一只假银扣；`catch` 抉择：交卫队或私下了结 | `quest_path`：`asked_ako`、`bait`、`dice`；写 `a1_jed_exposed`、`a1_ako_framed`（A1-D09） | 经验 500；金钱 100 铜（摊贩凑的谢礼）；`trust.ako` +15 | 第 8 周后卫队搜查东坡，本条以 `by_other` 结算 | 无 | 话题 `topic.secret_ako_witness`（阿柯只在被问到时说） | 25 |
 | A1-S13 | `q_a1_s13_yeyu_hoard` | 同伴个人线 | 夜羽的收藏 | 自发（发现客房窗台上的闪亮物）；`borderstone`·L05 客房 | `act_week >= 7 AND a1_yeyu_bound` | `notice` 交互：窗台上的一小堆闪亮东西；`return` 抉择：夜里偷偷放回、带夜羽挨家道歉（六户，喜剧）、装不知道；`key` 收集：收藏里的锈钥匙 | `npc.yeyu.memory_shards` +1（"钥匙……要交给开门的人。"）；道歉路线 `trust.yeyu` +10；传闻"会偷东西的乌鸦精" | 经验 450；金钱 90 铜（失主的谢礼，道歉与放回路线）；物品 `ky_rusty_key`（信使之门物钥）；收藏 `col_yeyu_shinies` 起步，集满时事迹 `deed_col_yeyu_shinies` | 无 | 记忆碎片属 S01 线（不解锁新线索） | `ln_yeyu`：progress 三个版本（她否认那是收藏）；六户失主的 `react.gift_liked` | 20 |
 | A1-S14 | `q_a1_s14_grave_lights` | 支线 | 米洛坟上的鬼火 | `ed`；`borderstone`·L17 墓地 | `act_week >= 3`，夜里 | `night` 到达；`lights` 击败：`gravefield_wisp` ×3；`purify` 抉择：借形之门净化、按民俗撒盐（`tg_blessed_salt`，向礼拜堂或奈拉买）、让夜羽靠近 | 置 `a1_graveyard_purified`（兽潮第二拍墓地不冒澱渣）；夜羽路线说出"这是澱"，界面名称切换（[D-030][dlog]） | 经验 400；金钱 80 铜（埃德的谢礼）；澱病线索"死者身上带着灰" | 第 10 周前未做：兽潮第二拍墓地冒出 `dian_dreg` ×2 | 无 | `ln_ed`：鬼故事版本的 progress；撒盐路线对澱无效（`tg_blessed_salt` 的真相，K1），只安抚人心，鬼火三日后复燃 | 20 |
-| A1-S15 | `q_a1_s15_bell_tower` | 支线 | 钟楼上的人 | `toma`；`borderstone`·L03 钟楼 | `act_week >= 5` | `approach` 说服：醉月亭最好的一瓶酒（玛莎问"给谁的"），或陪他敲一次钟；`testimony` 交谈 | 证词：谁真正进出过孤儿院（A1-D02 节点 c）；`a1_moss_evidence` +1（莫斯后门的访客） | 经验 400；金钱 0；`trust.toma` +20 | 审判后证词仍可作 A1-D01 的证据 | 无 | `ln_toma`：默认不说话，`trust.toma >= 50` 才开口；他的目击是内核里真实发生过的事件 | 15 |
+| A1-S15 | `q_a1_s15_bell_tower` | 支线 | 钟楼上的人 | `toma`；`borderstone`·L03 钟楼 | `act_week >= 5` | `approach` 说服：醉月亭最好的一瓶酒（玛莎问"给谁的"），或陪他敲一次钟；`testimony` 交谈 | 证词：谁真正进出过孤儿院（A1-D02 节点 c）；`a1_moss_evidence` +1（莫斯后门的访客）；完成时置 `a1_toma_will_testify`（`cut_a1_trial` 读） | 经验 400；金钱 0；`trust.toma` +20 | 审判后证词仍可作 A1-D01 的证据 | 无 | `ln_toma`：默认不说话，`trust.toma >= 50` 才开口；他的目击是内核里真实发生过的事件 | 15 |
 | A1-S16 | `q_a1_s16_c_rank_face` | 支线 | C 级的面子 | `dris`；`borderstone`·L02 后院训练场 | `act_week >= 3` | `duel` 比试：木桩旁的比试（非致死，德里斯 Lv16，比试规则限力）；`result` 抉择：赢（三十年的木桩断了，桥段 6）、让他赢、拒绝 | `a1_dris_face`：`won`、`yielded`、`refused`（影响兽潮中他的生死判定，[第一幕 8.4][a1]） | 经验 300；金钱 0；钥：刃之门历钥（第一场被凡人认真对待的比试）；赢：兽潮后他服气时赠 `eq_dris_dueling_sword`（"拿着，省得我再丢人。"） | 无 | 无 | `ln_dris`：`unbelief.*` 三档；`ln_bron`：写定"这木桩用了三十年，早就朽了。" | 15 |
 | A1-S17 | `q_a1_s17_moon_cellar` | 迷宫 | 醉月亭的地窖 | `martha`；迷宫 `dg_moon_cellar`（楼梯口、酒桶廊、旧钱箱角、长木匣） | `quest.q_a1_m03_unrecorded == done`；第 1 到 4 周 | `stairs` 到达（玛莎在楼梯口看步法，测试 T3）；`barrels` 击败：`coinmouth_rat` ×6；`nest` 击败：巢主 `tally_rat_crone`（Lv8 精英）；`choice` 抉择：养、毁、净；`box` 抉择：长木匣只看不碰或撬开 | `npc.martha.assessment`（只看 +1，撬 -2）；`dg_state.dg_moon_cellar`；选"净"时露出"晚钟"的预付酒账（置 `a1_bell_tab_seen`，副谜团 S02 的道具） | 经验 250；金钱 50 铜（衔铜鼠衔走的铜钱）；免费住宿；事迹 `deed_dg_moon_cellar_untouched`（只看不碰） | 第 4 周后玛莎自己清了，本条关闭 | 选"净"可为 S02-C04 预备道具（不解锁） | `ln_martha`：写定"旧货。"（问起长木匣时） | 25 |
-| A1-S18 | `q_a1_s18_bron_drinks` | 支线 | 布伦的酒 | `bron`；`borderstone`·L05 醉月亭（夜） | `act_week >= 1`，夜里；每游戏周至多一次 | `drink` 陪伴：陪布伦喝到打烊（酒钱玩家付，每夜 20 铜）；`story` 交谈：按 `npc.bron.story_level` 推进（A1-D06 节点 b、c、d）；`report` 收集：完整讲述后侯克交出报告抄本 | 置 `a1_bron_drunk_tale`；写 `npc.bron.story_level`、`has.lb_report_978_copy` | 经验 550；金钱 0 | 无 | 可解锁 S02-C01 | `ln_bron`：progress 按醉、半醉、清醒三档；侯克的话题 `topic.secret_report_978` | 30 |
+| A1-S18 | `q_a1_s18_bron_drinks` | 支线 | 布伦的酒 | `bron`；`borderstone`·L05 醉月亭（夜） | `act_week >= 1`，夜里；每游戏周至多一次 | `drink` 陪伴：陪布伦喝到打烊（酒钱玩家付，每夜 20 铜）；`story` 交谈：按 `npc.bron.story_level` 推进（A1-D06 节点 b、c、d）；`report` 收集：完整讲述后侯克交出报告抄本 | 置 `a1_bron_drunk_tale`；写 `npc.bron.story_level`、`has.lb_report_978_copy` | 经验 550；金钱 0 | 无 | 可解锁 S02-C01 | `ln_bron`：progress 按醉、半醉、清醒三档；侯克的话题 `topic.secret_hock_box`（问报告抄本） | 30 |
 | A1-S19 | `q_a1_s19_door_in_you` | 支线 | 你身上有一扇门 | `noi`；`borderstone`·L08 孤儿院、L09 北泉 | `act_week >= 3` | `meet` 见证：诺伊的写定首句"你身上有一扇门。"；`trust` 陪伴：三次探访（带点心、陪他站在北泉边、陪苔丝唱完童谣）；`mark` 见证：诺伊后颈的门纹；`secret` 抉择：守住秘密或告诉卡西安 | 置 `a1_orphan_mark_seen`；`quest_path`：`kept`、`betrayed`（孩子暴露，`a1_children_exposed = true`） | 经验 450；金钱 0；守密：`trust.oola` +20、`trust.noi` +20；钥：瑕之门识钥（`a1_orphan_mark_seen`）；事迹 `deed_hid_orphan_mark` | 无 | 置 `a1_orphan_mark_seen`；可解锁 M02-C03，与梦合起来 M01-C05 | `ln_noi`：只有写定句与沉默；`ln_tess`：童谣"门开了，门开了，妈妈在门后" | 20 |
-| A1-S20 | `q_a1_s20_nun_testimony` | 支线 | 修女的证词 | `isa`；`borderstone`·L03、L08 | `act_week >= 6`；审判当日截止 | `talk` 交谈；`trust` 说服：`trust.isa >= 60`，或带她亲眼看孩子的危险（北泉的灰水、托比的病房）；`testify` 见证：审判中作证 | 证词：欧拉是在救人（A1-D02 节点 b） | 经验 550；金钱 0；`trust.isa` +10 | 审判结束即关闭 | 无 | `ln_isa`：progress 两个版本；作证的条件是规则，不看口才 | 20 |
+| A1-S20 | `q_a1_s20_nun_testimony` | 支线 | 修女的证词 | `isa`；`borderstone`·L03、L08 | `act_week >= 6`；审判当日截止 | `talk` 交谈；`trust` 说服：`trust.isa >= 60`，或带她亲眼看孩子的危险（北泉的灰水、托比的病房）；`testify` 见证：审判中作证 | 证词：欧拉是在救人（A1-D02 节点 b）；完成时置 `a1_isa_will_testify`（`cut_a1_trial`、`cut_a1_tide` 读；伊莎亲眼看见孩子有危险时由 A1-D02 兜底置真） | 经验 550；金钱 0；`trust.isa` +10 | 审判结束即关闭 | 无 | `ln_isa`：progress 两个版本；作证的条件是规则，不看口才 | 20 |
 | A1-S21 | `q_a1_s21_captain_home` | 支线 | 卫队长的家 | `barto`；`borderstone`·L12 哨所，L05 醉月亭或 L02 公会石屋 | `act_week >= 8` | `ask` 交谈；`move` 护送：巴托的妻女安顿到醉月亭或公会石屋；`shield` 说服：替他顶住莫斯的压力（`a1_moss_evidence >= 1` 或布伦担保） | 置 `a1_barto_family_safe`；`a1_tide_prep.barto_seg` 的巴托部分 | 经验 600；金钱 120 铜；`trust.barto` +20；钥：刃之门缘钥（向持职战士巴托求教，`trust.barto >= 40`）；兽潮之后赠 `eq_barto_watch_spear` | 暗月夜前未安顿：巴托第一波后撤离（[第一幕 8.4][a1]） | 无 | `ln_barto`：progress×2 | 20 |
 | A1-S22 | `q_a1_s22_broken_door_slope` | 探索 | 碎门坡 | 自发；`ash_waste`·碎门坡 | `act_week >= 6` | `slope` 探索：白天走遍碎门坡；`arch` 交互：一块还立着的门形拱石；`night` 击败（可选夜探）：`waste_wraith` ×3、`wandering_bones` ×4；`remains` 收集（夜探）：拱石下的遗骸旁 | `seal_unrest` +3；术式之门 `door_vocation_mage` 的门缝显影；夜探得 `expedition_badge`（二十年前探索队的第二名死者，交给布伦即 `A1-S31`）；桥段 12"不死的人" | 经验 750；金钱 0；史料簿：真相碎片"这里曾经有很多门" | 无 | 谜团 5 的第一处物证（M05-C01、M05-C02 的现象） | 史料簿条目写定；夜探的亡灵是规则刷新 | 35 |
 | A1-S23 | `q_a1_s23_deer_spring` | 支线 | 鹿泉 | 一只鹿（`goddess.sylvie.impression >= 2` 时出现，`ev_a1_sylvie_deer`）或 `oola` 指路；`forest_edge`·鹿泉 `deer_spring` | `act_week >= 4` | `follow` 跟随：跟着鹿走（或按欧拉画的图找）；`spring` 采集：`spring_herb` ×3 | `trust.oola` +10；跟随路线使 `pet_spring_fawn` 可以自己跟来（A1-S29） | 经验 400；金钱 0；物品 `spring_herb`；钥：借形之门物钥与地钥（`forest_edge`·`deer_spring`） | 无 | 无 | 鹿不说话；欧拉画的图是一张手绘地图道具 | 20 |
 | A1-S24 | `q_a1_s24_red_sock` | 支线 | 红袜子回家 | 西田的一户佃农（具名化居民 `tpl_tenant_farmer`，住在奥托磨坊下游），他家孩子的红袜子挂在一头野猪的獠牙上；`borderstone`·L21 西田 | `act_week >= 3` | `hear` 交谈；`hunt` 击败：异名者 `red_sock`（`dian_boar` 老魔物，Lv7）；`return` 交付：`nm_faded_red_sock` 还给那个孩子 | 异名落地（传闻收束，[魔物图鉴 2.7][bes]）；`town_trust.commoners` +5 | 经验 300；金钱 60 铜（农户凑的）；事迹 `deed_rare_red_sock` | 无 | 无 | `ln_tpl_tenant_farmer` 的共用 quest 槽；孩子的一句话写定 | 20 |
 | A1-S25 | `q_a1_s25_furrow_queen` | 支线 | 垄沟里的鼠后 | `simon`；`borderstone`·L21 西田旧谷仓（澱巢） | `act_week >= 4` | `barn` 到达；`rats` 击败：`dian_rat` ×8；`queen` 击败：巢主 `furrow_rat_queen`（Lv8）；`choice` 抉择：养、毁、净 | `dg_state.furrow_nest`：`nurture`（留巢，满巢时鼠群加入兽潮第一波）、`destroy`（出现采集点 `node_lotha_rim_nest`，采三次后消失）、`purify`（借形之门或 `cs_greybane_wash` ×3，该地段澱度降一档）；计入 `deed_dg_three_ways` 的进度 | 经验 450；金钱 90 铜；部件 `rat_queen_heart`；`trust.simon` +15 | 无 | 无 | 养毁净是三项菜单，后果由内核结算 | 25 |
 | A1-S26 | `q_a1_s26_toll_taker` | 支线 | 收路钱的 | 盐巷卖货的寡妇（具名化居民 `tpl_peddler`；丈夫是走灰路的小贩，三年前死在晶沟到折桥驿的路上）；`borderstone`·L11，`ash_waste`·晶沟到 `brokenspan_post` 的灰路 | `act_week >= 6`；第一幕到第二幕第 6 周 | `story` 交谈；`road` 到达：灰路；`hunt` 击败：异名者 `toll_taker`（`waste_jackal`，Lv14）与 `waste_jackal` ×4；`tag` 交付：`nm_brass_dog_tag` | 灰路走私者对玩家转中立（`faction_rep.greyroad = 0`） | 经验 800；金钱 160 铜；事迹 `deed_rare_toll_taker` | 第二幕第 6 周后寡妇随女儿搬去瓦伦堡，本条关闭（铜狗牌仍可在第二幕交到下城的她手上，经验不变） | 无 | 寡妇的台词用 `ln_tpl_peddler` 的共用 quest 槽 | 30 |
-| A1-S27 | `q_a1_s27_old_louse` | 探索 | 晶沟老虱 | 折桥驿的拾荒者（具名化居民 `tpl_scavenger`）；`ash_waste`·晶沟深处 | `act_week >= 8` | `rumor` 交谈；`gully` 探索：晶沟深处（私采违法，`gully_digger` ×3 可避开）；`louse` 击败：异名者 `old_louse`（Lv13）；`belly` 收集：`nm_louse_belly_crystal`，交欧拉或夜羽辨认 | 辨认结论写定：它不是渊契之门要的那种大澱晶 | 经验 700；金钱 140 铜；事迹 `deed_rare_old_louse` | 无 | 无 | 辨认台词：`ln_oola`、`ln_yeyu` 的 `topic.secret_louse_crystal` | 30 |
+| A1-S27 | `q_a1_s27_old_louse` | 探索 | 晶沟老虱 | 折桥驿的拾荒者（具名化居民 `tpl_scavenger`）；`ash_waste`·晶沟深处 | `act_week >= 8` | `rumor` 交谈；`gully` 探索：晶沟深处（私采违法，`gully_digger` ×3 可避开）；`louse` 击败：异名者 `old_louse`（Lv13）；`belly` 收集：`nm_louse_belly_crystal`，交欧拉或夜羽辨认 | 辨认结论写定：它不是渊契之门要的那种大澱晶 | 经验 700；金钱 140 铜；事迹 `deed_rare_old_louse` | 无 | 无 | 辨认台词：`ln_oola`、`ln_yeyu` 的 `quest.q_a1_s27_old_louse.complete` 槽 | 30 |
 | A1-S28 | `q_a1_s28_three_toes` | 支线 | 三趾 | `shiya`；`ironhemlock_deep`·铁杉林北部与界石线 | `act_week >= 6 AND trust.shiya >= 50`；第一幕到第二幕 | `track` 调查：三趾的蹄印（它的逃跑路线经过澱巢）；`chase` 追逐：别把它逼进澱巢；`purify` 抉择：净化（借形之门或 `cs_greybane_wash` ×5，希雅接住它的角）或击杀 | `a1_three_toes_fate`：`purified`、`slain`；净化后可驯为坐骑 `mnt_cleanhorn_stag`（需猎之门）或放归；逼进澱巢则只剩击杀 | 经验 600；金钱 120 铜；物品 `nm_three_toes_antler`；事迹 `deed_rare_three_toes`（净化）；钥：兽群之门 `door_school_hunter_beast_mastery` 的历钥候选（第二幕起计） | 无 | 无 | `ln_shiya`：complete 两个版本 | 30 |
 | A1-S29 | `q_a1_s29_first_beast` | 同伴个人线 | 第一只兽伴 | `gorn`；`forest_edge`、`borderstone`·L15 | `door.door_vocation_hunter` | `choose` 抉择：第一只兽伴（`pet_ashgrey_wolf`、`pet_splitear_pup`、`pet_eastslope_hound`、`pet_weald_spider`、`pet_cleanmane_boar`、`pet_tunnel_grub`、`pet_mine_finch`；`pet_spring_fawn` 不驯，`A1-S23` 跟随路线后自己跟来）；`tame` 交互：按 [生灵 3.3][crt] 的驯服条件；`feed` 交付：第一份食物 | 兽伴入队；羁绊事件开始计数（第 8.3 节） | 经验 250；金钱 0 | 无 | 公会登记兽伴后可解锁 M03-C10 | `ln_gorn`：progress；驯服是规则判定 | 20 |
 | A1-S30 | `q_a1_s30_donkey_road` | 支线 | 驴之路（第一幕段） | `ulf_lange`；`borderstone`·L14 驿站 | `quest.q_a1_m03_unrecorded == done`；跨幕（`carryOver`，第 8.2 节） | `buy` 交易：买驴 `mnt_donkey`（15 银）或按周租（1 银）；`load` 护送：驮第一批货（任一送货委托，或给东坡送一驮盐） | `donkey_road = 1` | 经验 200；金钱 0；驴不怕灵压，是第一幕唯一不躲玩家的牲口 | 无 | 无 | `ln_ulf_lange`：写定"马不认得你是几级，它只认得你给不给燕麦。" | 15 |
@@ -1264,7 +1264,7 @@
 | `ev_a1_market_day` | 喘息 | 叙事导演、世界规则 | 一；`borderstone`·L11 | 每周集日；张力计高于目标区间时导演可把它选为喘息 | 无 | 摊位、欧文（若在）、物价、传闻扩散 +50% | 买卖、听传闻 | 传闻传播加速；张力 -5 | 规则 |
 | `ev_a1_eastslope_curfew` | 聚落 | NPC 社会（林地之争默认格） | 一；`borderstone`·L15 | 第 5 周，`a1_forest_accord` 未恢复时 | 博罗打断伐木工胳膊的传闻 | 莫斯下令兽人日落后不得入栅 | 收回许可（`A1-D01.g`）可撤销宵禁 | 东坡怨气 +；兽潮之夜东栅的判定 | 规则 |
 | `ev_a1_eastslope_search` | 聚落 | NPC 社会（失窃案默认格） | 一；`borderstone`·L15 | 第 8 周，`a1_jed_exposed != exposed` 时 | 卫队在哨所集合 | 卫队搜查东坡 | 当场揭发杰德（需证据）可中止 | `a1_ako_framed`；东坡对人族信任 -10 | 规则 |
-| `ev_a1_tax_protest` | 聚落 | NPC 社会（税与匪默认格） | 一；`borderstone`·L01 | 第 7 周 | 西蒙等农户连日聚在广场 | 农户聚集抗税，巴托奉命驱散 | 劝散、站在农户一边、站在巴托一边 | `town_trust.commoners` 与 `town_trust.guard` 此消彼长；`trust.simon` | 规则 |
+| `ev_a1_tax_protest` | 聚落 | NPC 社会（税与匪默认格） | 一；`borderstone`·L01 | 第 7 周 | 西蒙等农户连日聚在广场 | 农户聚集抗税，巴托奉命驱散 | 劝散、站在农户一边、站在巴托一边 | `town_trust.commoners` 与 `town_trust.watch`（卫队）此消彼长；`trust.simon` | 规则 |
 | `ev_a1_gather_rare` | 稀有采集 | 采集（`gather_events.ts` 的稀有事件） | 一到三；洛萨与荒原外缘的采集点 | 每次采集约 1/90 | 无 | 露头（矿）、老心开口（林）、并蒂（草）、鱼汛与大鱼（第二幕起的水域）、余晶涌（`node_lotha_rim_nest`，引出巢的残影，一场小战斗）、门鸣（`node_lotha_gate37`，第二幕起）、涌露（`node_lotha_oldwatch_ley`，第二幕起）；效果按 [采集 6.11][gth] | 采集 | 五倍署名材等 | 规则 |
 
 **传闻事件**（第一幕"凡人不信"桥段的落地，[第一幕 6.2][a1]；同地区同类桥段每日至多 1 次）
@@ -1417,7 +1417,7 @@
 | 奖励 | 经验 4,000（见阶段表）；金钱 1,600 铜；鹰丘通行；事迹 `deed_bond_brun_first_line`（布伦推荐信"实绩如下"，`a2_arrive_valen` 触发）、`deed_mortal_blond_knight`（U2-1） |
 | 失败与超时 | 不可失败；第 1 周末仍未觐见时伯爵经鲁道夫再召一次，第 2 周开始时执行者兜底带玩家入堡 |
 | 揭示 | 置 `a2_arrive_valen`；可解锁 M10-C14 的现象、S02-C03（`trust.bron >= 50` 时） |
-| 无模型 | 话题 `topic.quest_a2_m01_voice_behind_curtain`；`ln_rudolf`：offer、progress、complete；`ln_adalbert`：complete（帘后的托付写定："城底下有声音，替我听听。"）；`ln_karl`：`unbelief.deny`（U2-1 的冒名税） |
+| 无模型 | 无任务话题（主线写定，由第一幕末的伯爵来信接出）；`ln_rudolf`：offer、progress、complete；`ln_adalbert`：complete（帘后的托付写定："城底下有声音，替我听听。"）；`ln_karl`：`unbelief.deny`（U2-1 的冒名税） |
 | 时长 | 30 分钟 |
 
 | 阶段 | 目标类型 | 参数（实际 ID） | 完成与分支 | 结算点经验（预计等级） |
@@ -1435,7 +1435,7 @@
 | 前置 | `a2_arrive_valen` |
 | 窗口 | 第 1 到 2 周；拒考路线到第 8 周 |
 | 预计等级 | 15 到 16（拒考路线 22） |
-| 分支与写入 | 考核路线：`guild_rank = B`（公会卡"B（实），Lv1，无职能"，[社会 3.2][soc] 的实绩认定）；拒考路线：以委托积分在第 8 周自动升到 C（`guild_rank = C`）。对练三解：碾压（`trust.reynard` -10，雷纳德先找借口再私下请教）、体面（+15）、故意输（-5，雷纳德反而起疑）。置 `a2_promotion_exam`；首次进入旧水道时置 `a2_dungeon_first` |
+| 分支与写入 | 考核路线：`guild_rank = B`（公会卡"B（实），Lv1，无职能"，[社会 3.2][soc] 的实绩认定）；拒考路线：以委托积分在第 8 周自动升到 C（`guild_rank = C`）。对练三解：碾压（`trust.reynard` -10，雷纳德先找借口再私下请教）、体面（+15）、故意输（-5，雷纳德反而起疑）。置 `a2_promotion_exam`；首次进入旧水道时置 `a2_dungeon_first`；对练遭遇 `reynard_walter_duel` 的结果写 `a2_reynard_duel`（`crush`、`grace`、`lost`，`cut_a2_exam` 读） |
 | 奖励 | 经验 8,000；金钱 3,200 铜；物品 `b_rank_card`；钥：伪录之门 `door_false_record` 的历钥（鉴定接连失败）；事迹 `deed_mortal_second_crystal`（鉴定阶段，同时得 `title_guild_crystal_debt`）、`deed_hunt_rat_king`（击杀阶段，授 `title_guild_b_real`）；传闻 U2-2 带出 `title_wrong_bribed_b` |
 | 失败与超时 | 无失败；拒考即进入积分路线 |
 | 揭示 | 置 `a2_promotion_exam`、`a2_dungeon_first`；可解锁 M03-C04、M03-C05（从者登记读出"残页"）、M04-C05 |
@@ -1484,7 +1484,7 @@
 | 前置 | `act_week >= 4 AND quest.q_a2_m02_country_f_rank != inactive` |
 | 窗口 | 第 4 到 5 周；联合攻略最晚第 6 周，之后勇者团来找玩家，执行者兜底开场 |
 | 预计等级 | 18 到 19 |
-| 分支与写入 | `a2_heroes_met`；`a2_dungeon_first`（若未置）。显露度 `a2_heroes_reveal`（0 到 100，隐藏）：藏拙 +0 到 10、部分显露 +20 到 40、全部显露 +60，第 13 周再结算为 `a2_heroes_saw_power`（低于 30 为 hidden，30 到 69 为 partial，70 以上为 full）。陆辰问"你也是穿越来的？"时承认置 `a2_told_heroes_earth`（新增）。玩家在结衣 3 格内时置 `a2_yui_saw_light`（新增，"光绕开了他"），`goddess.eluen.gaze` +10，否则 +5。勇者关系起始值 `hero_rel.luchen` 20、`hero_rel.yui` 20、`hero_rel.marcus` 30、`hero_rel.aiden` 0，按对话加减 |
+| 分支与写入 | `a2_heroes_met`；`a2_dungeon_first`（若未置）。显露度 `a2_heroes_reveal`（0 到 100，隐藏）：藏拙 +0 到 10、部分显露 +20 到 40、全部显露 +60，第 13 周再结算为 `a2_heroes_saw_power`（低于 30 为 hidden，30 到 69 为 partial，70 以上为 full）。陆辰问"你也是穿越来的？"时承认置 `a2_told_heroes_earth`（新增）。玩家在结衣 3 格内时置 `a2_yui_saw_light`（新增，"光绕开了他"），`goddess.eluen.gaze` +10，否则 +5。勇者关系起始值 `hero_rel.luchen` 20、`hero_rel.yui` 20、`hero_rel.marcus` 30、`hero_rel.aiden` 0，按对话加减；联合攻略中陆辰亲眼见过被告（欧拉、希雅或罗恩）做好事时置 `a2_luchen_saw_defendant_good`（光之审"勇者作证"的条件之一） |
 | 奖励 | 经验 10,800；金钱 4,320 铜；焚书者的残页 `lb_burner_leaf`（隔扉之门残响的补全物，[遗物 5.10][rel]）；钥：伪录之门历钥（圣光照不出玩家）、收放之门 `door_restraint` 的历钥（`a2_dungeon_first` 后一次灵压外泄被看穿，单次显露度 +20 以上）、同行之门 `door_fellowship` 的并肩计数（每位不同同伴 +1）；事迹 `deed_mortal_heroes_glory`（U2-3）、`deed_grow_leak_and_hold`（收放之门） |
 | 失败与超时 | 不参加光之奇迹祭时，与勇者团的初见移到联合攻略开场 |
 | 揭示 | 置 `a2_heroes_met`、`a2_dungeon_first`；可解锁 M11-C02、M04-C05 |
@@ -1553,7 +1553,7 @@
 | 前置 | `act_week == 7`（当周的夜晚） |
 | 窗口 | 第 7 周的一夜；不可补做 |
 | 预计等级 | 21 |
-| 分支与写入 | 追法三选一：沿岸追（无前置，至多救回 1 人）、借老船夫的船（`trust.ferryman >= 20`，至多 2 人）、走灰鼠通道截在下游（`a2_greyrat_deal`，至多 3 人）；实际救回人数再按战斗中驳船受损与孩子落水的判定扣减。写 `a2_rescued_children` +0 到 3（其余计入 `cult_keys`）、`a2_ferryman_reveal`、`trust.ferryman` +10 |
+| 分支与写入 | 追法三选一：沿岸追（无前置，至多救回 1 人）、借老船夫的船（`trust.ferryman >= 20`，至多 2 人）、走灰鼠通道截在下游（`a2_greyrat_deal`，至多 3 人）；实际救回人数再按战斗中驳船受损与孩子落水的判定扣减。写 `a2_rescued_children` +0 到 3（其余计入 `cult_keys`）、`a2_ferryman_reveal`、`trust.ferryman` +10；`cut` 阶段在驳船上撑过沉河鲶王 `river_catfish_king` 三轮扑击时置 `a2_chase_survived`（`cut_a2_ferryman` 读） |
 | 奖励 | 经验 8,200；金钱 3,280 铜；事迹 `deed_truth_ferryman`；信任 `trust.ferryman` +10、`trust.pia` +10 |
 | 失败与超时 | 玩家不在场：一刀照样发生，3 名孩子转往下游计入 `cult_keys`；次日下城船歌多一句"一刀下去河开了，三天三夜合不拢"（`ev_a2_rumor_ferry_song`），玩家听到时置 `a2_ferryman_reveal`，本条以"错过"结束，不给经验 |
 | 揭示 | 置 `a2_ferryman_reveal`；可解锁 M08-C02、M08-C03，`trust.ferryman >= 30` 时 M05-C06 |
@@ -1576,7 +1576,7 @@
 | 前置 | `act_week >= 8 AND quest.q_a2_m04_pilgrimage_and_waterway == done` |
 | 窗口 | 第 8 到 12 周；第 12 周末未完成时门徒会把笼中孩子移入断门厅（并入 A2-M12 的救援目标），本条按已完成的阶段结算后完成 |
 | 预计等级 | 22 到 23 |
-| 分支与写入 | 引路三选一：菲奥娜（需玩家显露门纹，或希雅、梅芙出面说服）、黛拉（`a2_greyrat_deal` 且已得知鼠道运的是孩子，灰鼠规矩"不碰孩子"）、勇者团（`hero_rel.luchen >= 0`）。勇者团同去时置 `a2_heroes_saw_cages`（新增，结衣动摇的第一粒种子，开放 A2-S13 的第二段）。写 `a2_disciples_lair`、`a2_rescued_children` +（笼中现有人数）、`npc.yeyu.memory_shards` +1（老信徒跪称夜羽"信使大人"）、`faction_rep.greyrats` +1（黛拉路线） |
+| 分支与写入 | 引路三选一：菲奥娜（需玩家显露门纹，或希雅、梅芙出面说服）、黛拉（`a2_greyrat_deal` 且已得知鼠道运的是孩子，灰鼠规矩"不碰孩子"）、勇者团（`hero_rel.luchen >= 0`）。勇者团同去时置 `a2_heroes_saw_cages`（新增，结衣动摇的第一粒种子，开放 A2-S13 的第二段）。写 `a2_disciples_lair`、`a2_rescued_children` +（笼中现有人数）、`npc.yeyu.memory_shards` +1（老信徒跪称夜羽"信使大人"）、`faction_rep.greyrats` +1（黛拉路线）；`cages` 阶段取得笼子的证据置 `a2_cage_evidence`；菲奥娜引路并愿作证时置 `a2_fiona_turned`（两者 `cut_a2_selene_trial` 读） |
 | 奖励 | 经验 13,800；金钱 5,520 铜；物品 `gate_stone`；门徒会经文 `lb_disciple_scripture`（[遗物 5.1][rel]）；钥：行路之门（初阶）`door_wayfaring` 的物钥 `gate_stone` 与地钥 `gate_37`（另一处地钥为 `seal_ruins` 的 `sigil_hall`）、同行之门并肩计数；事迹 `deed_exp_gatesite_pair`（持 `gate_stone` 访过两处门址）；史料 H09（第三十七门铭牌"第三十七门 · 瓦伦渡 · 往来者请勿携兵"） |
 | 失败与超时 | 见窗口 |
 | 揭示 | 置 `a2_disciples_lair`；可解锁 M02-C04、S01-C03、S07-C01 |
@@ -1621,7 +1621,7 @@
 | 前置 | `act_week >= 10`；`a2_mirror_fooled` 时 `act_week >= 9` |
 | 窗口 | 第 9 到 10 周；行刑定于葬礼后第三日 |
 | 预计等级 | 25 |
-| 分支与写入 | 被告按 A2-D02 的被告规则确定；六解法与结果见 A2-D02 结局表。写 `a2_trial_outcome`、`church_verdict`、`npc.selene.stance`、`npc.selene.evidence`、`goddess.eluen.gaze`；被告为欧拉时写 `a1_oola_fate`（获释 cleared、行刑 executed） |
+| 分支与写入 | 被告按 A2-D02 的被告规则确定；六解法与结果见 A2-D02 结局表。写 `a2_trial_outcome`、`church_verdict`、`npc.selene.stance`、`npc.selene.evidence`、`goddess.eluen.gaze`；被告为欧拉时写 `a1_oola_fate`（获释 cleared、行刑 executed）；当庭由过场 `cut_a2_selene_trial` 演出，劫法场是其中的战斗插演遭遇 `a2_scaffold_raid`（刑台前的小规模突袭） |
 | 奖励 | 经验 10,000；金钱 4,000 铜（公会"实绩认定"条款下的作证酬金，由大区总部支付）；被告获释时同伴归队（希雅或罗恩），或欧拉随玩家去旧哨村当医者；事迹 `deed_bond_oola_cleared`（被告为欧拉且改写为 cleared）；`church_verdict` 到 wanted 时得称号 `title_church_heretic` |
 | 失败与超时 | 不介入：按 A2-D02 的默认发展（第 11 周改判流放并烙印或行刑），本条以"后来发生了什么"结束，不给 `verdict` 结算点 |
 | 揭示 | `trust.selene >= 50` 时神谕原文可说（M01-C06 的原文部分） |
@@ -1665,7 +1665,7 @@
 | 前置 | `act_week >= 13`（`a2_ritual_early` 时提前一天） |
 | 窗口 | 第 13 周一夜，以黎明钟为界（实时约 25 到 35 分钟） |
 | 预计等级 | 28 到 29 |
-| 分支与写入 | 下与不下（全作第一次"把一条战线交给别人"）；打法：屋顶线、弃点保人（弃河港，`econ.house_scale` -1，卢卡斯民心上升）、竞价（给赤鬃加价）、勇者协同（`hero_rel.luchen >= 60` 时陆辰"这一次听你的"，勇者团接受调度一次）；玩家被捕变体（`a2_player_arrested`：从静室开局，赛琳放人并跟随）。胜利：黎明钟敲响，且仪式已终止或至少三个出口守住。城破：三个以上出口失守且鹰丘堡陷落，或平民伤亡超过下城人口的 8%，本条 `failed`，A2-D01 进入军管。写 `a2_wb_damage`、`a2_rescued_children`、`cult_keys`、`a2_emil_fate`、`a2_signet_now`、`a2_heroes_reveal`（城下潮后再结算 `a2_heroes_saw_power`）、`goddess.eluen.gaze`（在大教堂前大开杀戒 +20）、`faction_rep.commoners.<街区>`（谁守了谁）、`a2_tide_exits_held`（新增，守住的出口数 0 到 5） |
+| 分支与写入 | 下与不下（全作第一次"把一条战线交给别人"）；打法：屋顶线、弃点保人（弃河港，`econ.house_scale` -1，卢卡斯民心上升）、竞价（给赤鬃加价）、勇者协同（`hero_rel.luchen >= 60` 时陆辰"这一次听你的"，勇者团接受调度一次）；玩家被捕变体（`a2_player_arrested`：从静室开局，赛琳放人并跟随）。胜利：黎明钟敲响，且仪式已终止或至少三个出口守住。城破：三个以上出口失守且鹰丘堡陷落，或平民伤亡超过下城人口的 8%，本条 `failed`，A2-D01 进入军管。写 `a2_wb_damage`、`a2_rescued_children`、`cult_keys`、`a2_emil_fate`、`a2_signet_now`、`a2_heroes_reveal`（城下潮后再结算 `a2_heroes_saw_power`）、`goddess.eluen.gaze`（在大教堂前大开杀戒 +20）、`faction_rep.commoners.<街区>`（谁守了谁）、`a2_tide_exits_held`（新增，守住的出口数 0 到 5）；`deploy` 选赤鬃小队时置 `a2_heralda_hired`（`cut_a2_siege` 读） |
 | 奖励 | 经验 18,000；金钱 7,200 铜；物品 `ky_deadframe_splinter`；钥：隔扉之门 `door_beyond_door` 的历钥（在断门厅触碰古门框）与地钥（`wallenburg_sewers` 的 `gate_37`）、铁卫之门 `door_school_warrior_prot` 的历钥（整夜守住泥巷的一个门口）；事迹 `deed_war_castle_tide`、`deed_dg_waterway_none_missing`（断门厅救出全部孩子）；信任：与玩家同守一个出口的 NPC +15 |
 | 失败与超时 | 城破：`a2_wb_ruler = martial_chaos`（A2-D01），第三幕难民潮加倍；游戏不结束 |
 | 揭示 | 断门厅里雅努的一句"这扇门，我记得。"（无标记，C2-8 的"更大的东西"不解释）；C2-7（奥托会长一人一斧） |
@@ -1676,7 +1676,7 @@
 | - | - | - | - | - |
 | `deploy` | 抉择 | 四支小队（罗恩小队、猎手队、门扉护卫、城防小队或赤鬃小队）与常备指令；夜羽随玩家 | | 0 |
 | `hold` | 指挥战役（必经战斗） | `mtide_lotha_city` 写定版：第一波 `dian_rat`、`sewer_sludge`（五处）；第二波 `mud_fiend`、`drowned`（泥巷、鱼市、河港）；第三波 `crystal_centipede_young` 与携澱晶爆罐的 `disciple_cultist`、`disciple_bomber`（鹰丘旧井、主教区地窖）；第四波精英 `mudlane_maw`（泥巷） | 守住至少三个出口直到黎明，或先终止仪式 | 6,000（28） |
-| `core` | 击败（必经战斗） | 下：断门厅三阶段，钥司 `emil_keywarden_fight`（Lv28）与 `disciple_zealot`；缄门者 `doorsealer_construct`（Lv30，每击碎一块，门框上松脱一个孩子）；无貌者借门框投来目光（对话，以门纹合上门框）。不下：黎明前 `doorsealer_construct` 在鱼市破地而出（全城首领战） | 下则仪式终止，此后没有增援 | 6,000（28） |
+| `core` | 击败（必经战斗） | 下：断门厅三阶段（首领战遭遇 `a2_hall_keywarden`），钥司 `emil_keywarden_fight`（Lv28）与 `disciple_zealot`；缄门者 `doorsealer_construct`（Lv30，每击碎一块，门框上松脱一个孩子）；无貌者借门框投来目光（对话，以门纹合上门框）。不下：黎明前 `doorsealer_construct` 在鱼市破地而出（全城首领战） | 下则仪式终止，此后没有增援 | 6,000（28） |
 | `dawn` | 守卫 | 钟楼不倒，黎明钟敲响 | 次要目标：救出断门厅的孩子、至少两位继承人存活、夺回印戒、擒获或揭穿埃米尔、守住渡口水门截下撤离的门徒会 | 6,000（29） |
 
 #### A2-M13 没有那一页（`q_a2_m13_no_such_page`）
@@ -1803,7 +1803,7 @@
 | A2-D03.e | 第 7 周 | 驳船转移 3 名孩子 | A2-M07 瓦伦河的一刀 | 0 到 3 |
 | A2-D03.f | 第 8 周 | 慈济院手腕缠布条的孩子被绑 | A2-S10 慈济院的胎记（提前保护）；A2-M08 解救 | 保护成功时不计入被绑数 |
 | A2-D03.g | 第 9 周 | 伯爵死于埃米尔的毒 | A2-M09（揭发让他提前发动仪式） | `a2_ritual_early` |
-| A2-D03.h | 第 10 周 | 墙外营地再失踪一人 | 本节点任务 `q_a2_d03h_camp_again`：同 A2-D03.b；第 10 周起营地的饥民与难民也会举报"夜里的抬棺人"（`ev_a2_kidnap_camp` 的传闻），追踪提前一日；经验 1,700（25 级） | +1 |
+| A2-D03.h | 第 10 周 | 墙外营地再失踪一人 | 本节点任务 `q_a2_d03h_camp_again`：同 A2-D03.b；第 10 周起营地的饥民与难民也会举报"夜里的抬棺人"（`ev_a2_kidnap_camp` 的传闻），追踪提前一日；经验 1,700（25 级） | +1；查出"夜里的抬棺人"出自安眠葬仪社（`A2-M11` 之前）时置 `a2_undertaker_exposed`（`cut_a2_funeral` 读） |
 | A2-D03.i | 第 11 周 | 葬礼袭击，抢印戒 | A2-M11 | `a2_signet_now` |
 | A2-D03.j | 第 13 周 | 断门厅仪式 | A2-M12 的 `core` | 孩子、`a2_emil_fate` |
 | A2-D03.k | 第 13 周之后 | 残余门徒会带剩下的孩子从渡口水门撤离 | A2-M12 的次要目标"守住渡口水门" | 截住时剩余孩子全部计入救回 |
@@ -1830,7 +1830,7 @@
 | 节点 | 窗口 | 默认发展 | 介入（挂接条目） | 产出与写入 |
 | - | - | - | - | - |
 | A2-D04.a | 第 1 周 | 玩家第一次过河，他收了钱（只不收穷人的），骂河；船工唱"门前渡船歌"（史料 H08） | 皮娅拉客（`pia`） | `trust.ferryman` 起点 10 |
-| A2-D04.b | 第 2 到 10 周 | 他每天黄昏喝酒，哼一支玩家听得出是地球的船歌；北门外阵亡碑前站一会儿 | 本节点任务 `q_a2_d04b_ferryman_wine`：带酒来坐坐（陪伴，每次 `trust.ferryman` +5，第 7 周前至多到 30）；第 8 到 10 周追问（`trust.ferryman >= 30` 时说"荒原那边，以前有过一座城，比金湾还大"，M05-C06；50 以上说魔王约每一百一十到一百三十年一轮、总出现在最脏的地方，M08-C05，另加"按理说还要二三十年。可我闻得到，这次来得早"）；经验 1,000（19 级） | `a2_ferryman_talks`（新增，交谈次数）；陆辰若想见他，他拒绝；玩家硬把陆辰带来时他只说"等你打完了，再来问我值不值"，写 `ferryman_met_luchen`（新增） |
+| A2-D04.b | 第 2 到 10 周 | 他每天黄昏喝酒，哼一支玩家听得出是地球的船歌；北门外阵亡碑前站一会儿 | 本节点任务 `q_a2_d04b_ferryman_wine`：带酒来坐坐（陪伴，每次 `trust.ferryman` +5，第 7 周前至多到 30）；第 8 到 10 周追问（`trust.ferryman >= 30` 时说"荒原那边，以前有过一座城，比金湾还大"，M05-C06；50 以上说魔王约每一百一十到一百三十年一轮、总出现在最脏的地方，M08-C05，另加"按理说还要二三十年。可我闻得到，这次来得早"）；经验 1,000（19 级） | `a2_ferryman_talks`（新增，交谈次数）；陆辰若想见他，他拒绝；玩家硬把陆辰带来时他只说"等你打完了，再来问我值不值"，写 `a2_ferryman_met_luchen`（新增） |
 | A2-D04.c | 第 7 周 | 夜追，一刀 | A2-M07 | `a2_ferryman_reveal` |
 | A2-D04.d | 第 12 周 | 逮捕令 | `trust.ferryman >= 50` 时让玩家藏进他的船（A2-M11 的"逃"） | 逃跑路线 |
 | A2-D04.e | 第 13 周 | 城下潮里他只划船运人，默认救三十人 | `trust.ferryman >= 80` 时替玩家守河港闸门一波："就这一次。"（A2-M12） | 河港出口的防御值 |
@@ -1945,7 +1945,7 @@
 | A2-D03.c | `q_a2_d03c_mudlane_well` | 纷争节点 | 泥巷井口 | 门纹共鸣；`wallenburg`·泥巷 | 第 5 周 | 同 A2-D03.b；`dela` 知道是哪条通道（`a2_greyrat_deal` 时直接给出位置） | `a2_rescued_children` 至多 +2 | 经验 1,350；金钱 0 | 同上 | 无 | `ln_dela`：通道的位置 | 25 |
 | A2-D03.d | `q_a2_d03d_village_watch` | 纷争节点 | 村防 | 遗民接头人 `maeve`（预警）；`old_outpost` 或边石镇孤儿院 | 第 6 周 | `watch` 守卫：守住一夜（`disciple_initiate` 4 到 6）；条件 `village_defense >= 1` 或 `trust.maeve >= 50` | 守住：无人被带走；失败：2 名孩子被带走 | 经验 1,350；金钱 0 | 未到场：按村防等级结算 | 无 | `ln_maeve`：预警一句 | 25 |
 | A2-D03.h | `q_a2_d03h_camp_again` | 纷争节点 | 又少了一个 | 门纹共鸣；墙外营地 | 第 10 周 | 同 A2-D03.b；营地的饥民与难民举报"夜里的抬棺人"（`ev_a2_kidnap_camp` 的传闻），追踪提前一日 | `a2_rescued_children` +1 | 经验 1,700；金钱 0 | 同上 | 无 | 举报者用居民模板的共用 quest 槽 | 20 |
-| A2-D04.b | `q_a2_d04b_ferryman_wine` | 纷争节点 | 老船夫的酒 | `ferryman`；`gatefront_south`·芦苇丛里的小屋 | 第 2 到 10 周 | `drink` 陪伴：带酒来坐坐（每次 `trust.ferryman` +5，第 7 周前至多到 30）；`ask` 交谈：第 8 到 10 周追问（30 以上与 50 以上各有一段） | `a2_ferryman_talks`；陆辰被硬带来时写 `ferryman_met_luchen` | 经验 1,000；金钱 0 | 第 14 周他顺流而去 | 30 以上可解锁 M05-C06；50 以上可解锁 M08-C05 | `ln_ferryman`：按信任档的写定句（"等你打完了，再来问我值不值"） | 20 |
+| A2-D04.b | `q_a2_d04b_ferryman_wine` | 纷争节点 | 老船夫的酒 | `ferryman`；`gatefront_south`·芦苇丛里的小屋 | 第 2 到 10 周 | `drink` 陪伴：带酒来坐坐（每次 `trust.ferryman` +5，第 7 周前至多到 30）；`ask` 交谈：第 8 到 10 周追问（30 以上与 50 以上各有一段） | `a2_ferryman_talks`；陆辰被硬带来时写 `a2_ferryman_met_luchen` | 经验 1,000；金钱 0 | 第 14 周他顺流而去 | 30 以上可解锁 M05-C06；50 以上可解锁 M08-C05 | `ln_ferryman`：按信任档的写定句（"等你打完了，再来问我值不值"） | 20 |
 | A2-D05.e | `q_a2_d05e_winter_grain` | 纷争节点 | 饥民的冬粮 | 墙外营地的饥民；`wallenburg_outskirts` | 第 9 到 12 周 | `grain` 交易：两周内向营地售出或赊出 500 单位粮（庭院产出或商会存粮），或说服布鲁娜以商会联合的名义赊粮（`faction_rep.merchant_union >= 2`） | `a2_camp_riot = averted`；`merca_favor` +1；平民声望 +1 | 经验 2,000；金钱 0 | 第 12 周末未放粮：营地暴动，有伤亡 | 无 | `ln_bruna`：契约至上的条款 | 30 |
 | A2-D06.c | `q_a2_d06c_hunters_tanners` | 纷争节点 | 猎人与皮匠 | 鹿角会 `gregor` 与炉灰街皮革坊；`wallenburg`·炉灰街 | 第 6 周 | `mediate` 说服（需 A2-S06 的证据或 `faction_rep.antler >= 1`），或分开两方后赔偿皮匠的损失（交易 2 银） | 斗殴平息：`faction_rep.antler` +1、`faction_rep.crafters` +1 | 经验 1,000；金钱 400 铜 | 第 6 周末未介入：鹿角会与城里断交一档 | 无 | `ln_gregor`：沉默、可靠的口吻 | 20 |
 
@@ -1965,14 +1965,14 @@ A2-S01 到 A2-S20 按 [第二幕 5.2][a2] 原号转写，A2-S21 起落地第二�
 | A2-S07 | `q_a2_s07_blank_years` | 支线（A2-D07） | 史官的空白 | 见习史官 `jonas`，`wallenburg`·学塔区史官署 | `act_week >= 4`；第 4 到 10 周 | 1 交谈：在星笔塔结识约纳斯或院长 `hildegard`（置 `a2_archivist_met`）；2 调查（第 6 周起）：城志的装订线；3 抉择：保手稿（护送手稿出学塔）、藏进门内庭院、交给院长；4 可选：用焚书者的残页对上年表 | `a2_blank_chronicle`：saved、in_garden（交给院长计 saved）；默认 burned；`faction_rep.academy` +1 | 经验 2,350；金钱 940 铜；《瓦伦堡城志》抄本 `lb_wallenburg_chronicle`（[遗物 5.10][rel]）；隔扉之门残响的补全物之一 | 第 8 周迪特里希没收、第 10 周约纳斯禁足 | 置 `a2_archivist_met`；可解锁 M06-C01、M05-C05、M10-C04 | `ln_jonas`、`ln_hildegard`、`ln_dietrich`；莫伊拉的巧合：玩家第一次去星笔塔那天正好是约纳斯发现空白的那天（`ev_a2_moira_coincidence`） | 35 |
 | A2-S08 | `q_a2_s08_wick_price` | 支线 | 灯芯的价码 | 灰鼠巢主 `dela`，`wallenburg`·泥巷漏灯酒窖 | `act_week >= 4`；第 4 到 12 周 | 1 交谈；2 抉择：付钱（20 银）、以货抵（庭院产出等价）、替灰鼠办事（潜入 `wallenburg`·主教区静室偷审判庭卷宗；无流血时为刃术之门 `door_school_rogue_assassination` 的历钥） | 置 `a2_greyrat_deal`；`faction_rep.greyrats` +1；得到伪证来源（A2-D02.d 的一条来源）与门徒会租用的那条鼠道位置；偷卷宗时另得主教的批注（成立 `a2_oracle_edit_proof`） | 经验 2,000；金钱 800 铜；物品 `burnt_page`（一页烧焦的残页，上有"千门"二字与庭历纪年，黛拉也不知其意；空白之门物钥，`col_blank_era_proofs`） | 无 | 置 `a2_greyrat_deal`；可解锁 M06-C02 | `ln_dela`：情报按价码表报价（风险越高越贵）；她得知鼠道运的是孩子时翻脸的台词写定 | 25 |
 | A2-S09 | `q_a2_s09_red_sand` | 支线（A2-D08） | 红沙场 | 赤鬃佣兵团团长 `heralda`，`wallenburg_outskirts`·红沙场 | `act_week >= 5`；战书第 5 周，决斗第 7 周 | 1 交谈：战书；2 比试与决斗：`herada_duel`（赫拉妲 Lv34，越受伤越强，公开场合），或拒绝 | 见 A2-D08 结局；应战即 `a2_valda_seed = 1` | 经验 3,100；金钱 1,240 铜 | 拒绝：A2-D08 默认 | 无 | `ln_heralda`：after（C2-5，萨莎的传闻："她越打越强。打到最后她在笑，我们在逃。"） | 30 |
-| A2-S10 | `q_a2_s10_mercy_birthmark` | 支线（A2-D03.f） | 慈济院的胎记 | 修女 `agnes`，`wallenburg`·主教区慈济院 | `act_week >= 6`；第 6 到 8 周（第 8 周绑架之前） | 1 交谈：手腕缠布条的孩子；2 抉择：送去旧哨村（护送到 `old_outpost`，`maeve` 接收）、送去鹿角林（护送到 `gregor`）、留院加强看守（守夜：第 8 周的一夜，`disciple_initiate` 3 到 4） | 孩子安全时第 8 周的绑架不发生；`trust.agnes` +20；光之审中艾格尼丝作证 | 经验 2,350 | 不介入：第 8 周孩子被绑，艾格尼丝第一个来找玩家而不是去找审判庭 | 无 | `ln_agnes` | 30 |
+| A2-S10 | `q_a2_s10_mercy_birthmark` | 支线（A2-D03.f） | 慈济院的胎记 | 修女 `agnes`，`wallenburg`·主教区慈济院 | `act_week >= 6`；第 6 到 8 周（第 8 周绑架之前） | 1 交谈：手腕缠布条的孩子；2 抉择：送去旧哨村（护送到 `old_outpost`，`maeve` 接收）、送去鹿角林（护送到 `gregor`）、留院加强看守（守夜：第 8 周的一夜，`disciple_initiate` 3 到 4） | 孩子安全时第 8 周的绑架不发生；`trust.agnes` +20；光之审中艾格尼丝作证；艾格尼丝愿作证时置 `a2_agnes_witness`（`cut_a2_selene_trial` 读） | 经验 2,350 | 不介入：第 8 周孩子被绑，艾格尼丝第一个来找玩家而不是去找审判庭 | 无 | `ln_agnes` | 30 |
 | A2-S11 | `q_a2_s11_moss_ledger` | 支线 | 莫斯的账本 | 按第一幕 `a1_moss_fate`：arrested 为鹰丘堡地牢的 `moss`；puppet 为玩家手里的把柄；in_power 为仍任边石镇代官的 `moss`（`borderstone`）；fled 为躲在下城的 `moss`（经 `dela` 找到）；莫斯线不成立时为 `haber` | `act_week >= 5`；第 5 到 9 周 | 1 调查：追澱晶的买家；2 抉择：审问（说服，需第一幕的证据 `a1_dian_evidence >= 1`）、交易（赦免或钱）、偷账本（潜入） | 置 `a2_buyer_traced`（新增，买家指向药师埃米尔）；A2-M09 的 `ledger` 线索提前成立，提前两周识破毒杀；第一幕 `a1_dian_trade == stopped` 时难度下降 | 经验 2,350；金钱 940 铜 | 第 9 周末未完成：线索并入 A2-M09 | `a1_moss_exposed` 时 M04-C03 | `ln_moss`（按 `a1_moss_fate` 分四版）、`ln_haber` | 35 |
 | A2-S12 | `q_a2_s12_marcus_roast` | 支线 | 马库斯想吃烤肉 | 勇者 `marcus`，`wallenburg`·公会街 | `quest.q_a2_m04_pilgrimage_and_waterway == done`；第 5 到 12 周 | 1 交谈；2 制作（庖厨）：一顿"家乡的烤肉"，材料三选一：庭院产出、去鹿角林打猎（狩猎：`greyelm_deer` 2 头）、去炉灰街打一副烤架（交易）；3 陪伴：一起吃 | `hero_rel.marcus` +15；希雅在场时置 `a2_marcus_shiya_friends`（新增，他把她当平等的战友） | 经验 1,700；马库斯讲起自己为什么"想保护所有人" | 无 | 无 | `ln_marcus`、`ln_shiya`：after | 25 |
-| A2-S13 | `q_a2_s13_yui_ward` | 支线 | 结衣的病房 | 勇者 `yui`，`wallenburg`·慈济院与墙外营地 | `act_week >= 8`；第 8 到 13 周 | 1 陪伴：陪结衣施治；2 抉择：帮她、提醒她有些病圣光治不好（澱病）、欧拉在旧哨村时带结衣去认草药（护送到 `old_outpost`）；`a2_heroes_saw_cages` 时多一段：她问"为什么圣光治不好这个" | `hero_rel.yui` +10 到 +20；认草药时置 `a2_yui_herbs`（新增，第三幕战地可用） | 经验 2,000 | 无 | 神迹与澱的伏笔，不解释，不置标记 | `ln_yui`；她的问题无人回答（台词包不给任何角色这句的回答槽） | 30 |
+| A2-S13 | `q_a2_s13_yui_ward` | 支线 | 结衣的病房 | 勇者 `yui`，`wallenburg`·慈济院与墙外营地 | `act_week >= 8`；第 8 到 13 周 | 1 陪伴：陪结衣施治；2 抉择：帮她、提醒她有些病圣光治不好（澱病）、欧拉在旧哨村时带结衣去认草药（护送到 `old_outpost`）；`a2_heroes_saw_cages` 时多一段：她问"为什么圣光治不好这个" | `hero_rel.yui` +10 到 +20；认草药时置 `a2_yui_herbs`（新增，第三幕战地可用）；同行中陆辰见过被告做好事时置 `a2_luchen_saw_defendant_good` | 经验 2,000 | 无 | 神迹与澱的伏笔，不解释，不置标记 | `ln_yui`；她的问题无人回答（台词包不给任何角色这句的回答槽） | 30 |
 | A2-S14 | `q_a2_s14_luchen_wooden_sword` | 支线 | 陆辰的木剑 | 勇者 `luchen`，`wallenburg_outskirts`·练兵场 | `quest.q_a2_m04_pilgrimage_and_waterway == done`；第 5 到 13 周 | 1 比试：每天清晨对练，累计 5 次（认真打、放水、拒绝） | 每次认真 `hero_rel.luchen` +3，放水 +2（他会察觉一次，-5）；C2-4 的演出在第 12 周（他已能接玩家五成力） | 经验 2,000（第 5 次对练时结算）；陆辰说起"我想成为配得上这个称号的人" | 无 | 无 | `ln_luchen`：progress×5（每次对练一句） | 30 |
 | A2-S15 | `q_a2_s15_too_neat_stars` | 支线 | 太整齐的星星 | 勇者 `aiden`，`wallenburg`·星笔塔观星台 | `act_week >= 6`；第 6 到 13 周 | 1 陪伴：三夜观星，记录星辰运行（调查）；2 交谈：认真帮、敷衍、聊地球的天文 | `hero_rel.aiden` +10 到 +20；置 `a2_aiden_stars`（新增，"这里的星星走得太整齐了"，学院说是禁学） | 经验 2,000 | 无 | M12-C03（禁学的存在，`a2_archivist_met`） | `ln_aiden`、`ln_hildegard`（"禁学"一句） | 25 |
 | A2-S16 | `q_a2_s16_yeyu_feather` | 同伴个人线 | 夜羽的羽毛 | 从者 `yeyu` | 第 8 周（澱晶窟或门站前厅）与第 13 周（断门厅） | 1 陪伴：夜羽面对第一段记忆"信使走过的路"；2 收集：`ky_messenger_plume`；3 陪伴：断门厅里第二段记忆"这扇门以前是活的" | 追问或等她自己说：`trust.yeyu` +5 或 +10；`npc.yeyu.memory_shards` +2 | 经验 3,400；钥：信使之门 `door_messenger` 的主物钥 `ky_messenger_plume`（消耗）与缘钥 `trust.yeyu >= 40`；隔扉之门的残响更完整 | 第 13 周没有下断门厅：第二段在受封那一夜补完 | `a2_disciples_lair` 后 S01-C03 | `ln_yeyu`：progress 分"追问""等待"两版 | 30 |
-| A2-S17 | `q_a2_s17_ron_first_squad` | 同伴个人线 | 罗恩的第一次带队 | 同伴 `ron`，`old_outpost` 或 `wallenburg` | `act_week >= 6`；第 6 到 8 周 | 1 交谈；2 放手：罗恩带四人小队完成一件 D 到 C 级委托（从第 6.6 节的模板中抽一件），玩家只在旁边看（内核检查玩家未下达直接命令）；3 交谈："我跟你走" | 放手 `ron.command_growth`（新增，0 到 3）+2，暗中帮 +1（被发现时罗恩沮丧），亲自上 +0；`trust.ron` +10 | 经验 3,050；钥：`door.door_talent_sight` 已开且 `trust.ron >= 60` 时为启才之门 `door_awaken_talent` 的缘钥（"我跟你走"）；识才之门中罗恩"统帅"潜质成长 | 第 8 周末未做：罗恩在城下潮中补一次带队，成长减半 | 无 | `ln_ron`；放手检测由内核 | 35 |
+| A2-S17 | `q_a2_s17_ron_first_squad` | 同伴个人线 | 罗恩的第一次带队 | 同伴 `ron`，`old_outpost` 或 `wallenburg` | `act_week >= 6`；第 6 到 8 周 | 1 交谈；2 放手：罗恩带四人小队完成一件 D 到 C 级委托（从第 6.6 节的模板中抽一件），玩家只在旁边看（内核检查玩家未下达直接命令）；3 交谈："我跟你走" | 放手 `npc.ron.command_growth`（新增，0 到 3）+2，暗中帮 +1（被发现时罗恩沮丧），亲自上 +0；`trust.ron` +10 | 经验 3,050；钥：`door.door_talent_sight` 已开且 `trust.ron >= 60` 时为启才之门 `door_awaken_talent` 的缘钥（"我跟你走"）；识才之门中罗恩"统帅"潜质成长 | 第 8 周末未做：罗恩在城下潮中补一次带队，成长减半 | 无 | `ln_ron`；放手检测由内核 | 35 |
 | A2-S18 | `q_a2_s18_tax_visit` | 支线 | 税吏来访 | 伯爵府税务官 `irma`，`old_outpost` | `act_week >= 5 AND village_pop >= 30`；第 5 周 | 1 交谈；2 抉择：照章纳税（按"翻新"征税）、讨价还价（说服）、拿出商会账本请她看（交易）；可选：请她住一晚看建造速度（U2-6） | 住一晚：她把税率改成"新建"，临走留下"药师那笔账也不对"（A2-M09 的 `ledger` 线索成立）；`trust.irma` +15 | 经验 1,700（纳税另计） | 无 | 无 | `ln_irma`：`unbelief.explain`（"那就是草翻新的。"） | 20 |
 | A2-S19 | `q_a2_s19_remnant_house` | 支线（建造） | 遗民之屋 | 遗民接头人 `maeve`，`old_outpost` | `village_pop >= 60 AND a2_remnant_trust >= 1`；第 6 到 14 周 | 1 交谈；2 抉择：公开建、伪装成谷仓、建在溪谷暗处；3 建造：遗民之屋（城建目录的遗民建筑，里程碑 V5） | `a2_remnant_trust` +1；遗民入村 `village_pop` +15 到 +30；公开建时审判庭巡查风险上升（`ev_a2_remnant_exposure` 概率翻倍） | 经验 3,050；物品 `ky_knot_morning_market`（歌结·晨市，梅芙口传的祷词，共鸣之门的祷词来源） | 无 | 遗民口传为片段，不点名（S08 相关线索不在本幕） | `ln_maeve`、`ln_werner` | 40 |
 | A2-S20 | `q_a2_s20_blind_woman_word` | 支线 | 盲婆的一句话 | 盲眼占卜婆 `renata`，`wallenburg`·大市集占卜摊 | 每周；第 1 到 14 周 | 1 交谈：付钱（5 铜）或不付，听这周的一句 | 莫伊拉经她递出的提示，真假混杂（导演在规则内选句） | 经验每周 65（付钱时），至多 10 周 650 | 无 | 无 | `ln_renata`：预写 14 句，按周分版本（例第 9 周"钟停的那天，药比刀快"） | 10 |
@@ -2005,7 +2005,7 @@ A2-S01 到 A2-S20 按 [第二幕 5.2][a2] 原号转写，A2-S21 起落地第二�
 | - | - | - | - | - | - | - | - | - | - | - | - | - |
 | A2-G01 | `q_a2_g01_merca_trial` | 女神试炼 | 梅尔卡的考题 | 梅尔卡（经硬币或秤街神龛） | `inventory HAS merca_coin AND merca_offerings >= 1`；第 4 周起，`carryOver` 到第三幕 | 1 供奉与祈祷：在神龛求题或念诵尊名；2 试炼三场：交易试炼（限期盈利、契约谜题），规则块按 [女神 GM 10.8][gm] 组合 | 每胜 `trial_wins.merca` +1；三胜加 `merca_offerings >= 1` 开契眼之门 `door_trial_merca`；`merca_favor` +1（三胜时） | 经验 3,050（三胜合计：1,000、1,000、1,050） | 败：可重试，冷却 7 日，不给经验 | 无 | 规则块用预写组合；`ln_merca`：quest 槽按场次三版 | 45 |
 | A2-G02 | `q_a2_g02_sylvie_trial` | 女神试炼 | 希尔薇的四季 | 希尔薇（经鹿角林的祭石，或经德鲁伊 `baishan` 转达的梦） | `act_week >= 6 AND (faction_rep.antler >= 1 OR trust.baishan >= 50)`；`carryOver` 到第三幕 | 1 供奉与祈祷：在祭石前不献名地祈求一次；2 试炼三场：循环试炼（熬过一个季节的变化、不杀某物），其中至少一场全程不杀 | 每胜 `trial_wins.sylvie` +1；三胜且有一场不杀开四季之门 `door_trial_sylvie`（与渡魂之门互斥，X9） | 经验 3,050（1,000、1,000、1,050） | 败：可重试，冷却 7 日 | 无 | 规则块用预写组合；希尔薇不说话，回应以风声与动物（[女神 GM 5.2][gm] 的人格化无言回应） | 45 |
-| A2-G03 | `q_a2_g03_bishopric_soup` | 女神请托（艾琉恩经主教区） | 主教区的施粥护送 | 主教区（布告署名 `anselm`），大区总部委托板 | `act_week >= 3`；限 7 日 | 1 护送：慈济院的施粥车往返墙外营地三次；2 驱赶（不杀）：抢粮的饥民，或击败途中的 `disciple_initiate` 2 到 3 | `faction_rep.bishopric` +1；主教区的记录里多了"那位 B 级"（`goddess.eluen.gaze` +3） | 经验 1,700；金钱 680 铜 | 超时：违约金为报酬的两成 | 无 | 委托板文书预写；`ln_agnes`：after | 25 |
+| A2-G03 | `q_a2_g03_bishopric_soup` | 女神请托（艾琉恩经主教区） | 主教区的施粥护送 | 主教区（布告署名 `anselm`），大区总部委托板 | `act_week >= 3`；限 7 日 | 1 护送：慈济院的施粥车往返墙外营地三次；2 驱赶（不杀）：抢粮的饥民，或击败途中的 `disciple_initiate` 2 到 3 | `faction_rep.church` +1（主教区）；主教区的记录里多了"那位 B 级"（`goddess.eluen.gaze` +3） | 经验 1,700；金钱 680 铜 | 超时：违约金为报酬的两成 | 无 | 委托板文书预写；`ln_agnes`：after | 25 |
 | A2-G04 | `q_a2_g04_merchant_urgent` | 女神请托（梅尔卡经商会联合） | 金秤会馆的急单 | `bruna`，`wallenburg`·秤街金秤会馆 | `act_week >= 9`（伯爵死后粮价涨四成）；限 5 日 | 1 护送：把一批药与盐送到 `reedbridge` 与 `borderstone`；2 交易：按会馆定价卖出 | `merca_favor` +1；`faction_rep.merchant_union` +1；苇桥与边石镇的粮盐价格修正 -10%（一周） | 经验 2,000；金钱 800 铜 | 超时：违约金两成，`merca_favor` 不变 | 无 | `ln_bruna` | 25 |
 | A2-G05 | `q_a2_g05_antler_patrol` | 女神请托（希尔薇经鹿角会） | 鹿角会的巡林 | `gregor`，`wallenburg_outskirts`·鹿角林营地 | `faction_rep.antler >= 0 AND act_week >= 4`；限 5 日 | 1 驱赶（不杀）：闯进鹿角林的盗猎者（`tpl_bandit` 具名化 3 到 4 人），或把穗蛾 `ear_moth` 群赶出河谷麦田 | `faction_rep.antler` +1；希尔薇经鹿角会的祈祷记下玩家（`god_rel.sylvie` 的关注 +1） | 经验 1,700；金钱 680 铜 | 杀人：鹿角会拒付报酬，`faction_rep.antler` -1 | 无 | `ln_gregor` | 25 |
 | A2-G06 | `q_a2_g06_academy_copy` | 女神请托（莫伊拉经学院） | 学院的旧档誊录 | 院长 `hildegard`（学院分院署名） | `a2_archivist_met`；限 10 日 | 1 调查：在学塔区档案室誊录一卷《北境舆图》`lb_north_survey`；2 交付：抄本交院长 | `faction_rep.academy` +1；誊录时撞见一页"被裁掉的年份"（导演巧合，只作现象，不交付真相） | 经验 1,700；金钱 680 铜；`lb_north_survey` 抄本 | 超时：违约金两成 | M06-C01 已解锁时院长多一句"翻译问题，不便多谈" | `ln_hildegard` | 20 |
@@ -2156,7 +2156,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | A3-D01.d | `q_a3_d01d_wenzel_copy` | 纷争节点 | 文策尔的抄本 | 34 | 4,700 | 3,760 铜 | 30 | 无 |
 | A3-D01.e | `q_a3_d01e_recall_brigitte` | 纷争节点 | 回援王都 | 36 | 4,700 | 0 | 25 | 无 |
 | A3-D02.b | `q_a3_d02b_scout_saints_camp` | 纷争节点 | 侦察圣徒营 | 34 | 3,900 | 3,120 铜 | 25 | 无 |
-| A3-D02.c | `q_a3_d02c_sister_over_there` | 纷争节点 | 我妹妹在那边 | 35 | 3,900 | 0 | 20 | 无 |
+| A3-D02.c | `q_a3_d02c_sister_over_there` | 纷争节点 | 我妹妹在那边 | 35 | 3,900 | 0 | 20（过场目录读作 `a3_jorg_spared`，注册表别名） | 无 |
 | A3-D02.f | `q_a3_d02f_every_day_of_delay` | 纷争节点 | 过境的每一天 | 42 | 5,500 | 4,400 铜 | 30 | 无 |
 | A3-D03.h | `q_a3_d03h_redfang_on_hill` | 纷争节点 | 丘陵上的红牙 | 42 | 4,700 | 0 | 20 | 无 |
 | A3-D04.b | `q_a3_d04b_night_in_ruins` | 纷争节点 | 封门遗迹的一夜 | 33 | 3,900 | 0 | 15 | 无 |
@@ -2214,7 +2214,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | 前置 | `act == 3 AND a2_barony_granted` |
 | 窗口 | 第 1 周；必达 |
 | 预计等级 | 30 |
-| 分支与写入 | 领主府 `a3_seat`：`borderstone`（稳）或 `old_outpost`（新）；第一位官员加入 `city.officials`（候选 `clara`、`bodric`、`regis`、`romaine`、`werner`、`maeve`、`nera`、`bron`、`oola`、`martha`，第二幕落败的继承人可来投）；`territory_pop` 起点 = 边石镇人口 + `village_pop` + 瓦伦堡来的难民（约 900 到 1,800）；`territory_autonomy` 起点 = 10 + `village_autonomy` × 0.4（市民议会结局再加 10）；里程碑 T1 立旗（`territory_scale` = 1）；`a1_moss_fate == in_power` 时莫斯来请见：留用、罢免或交给瓦伦堡（写 `a1_moss_fate`：`retained`、`dismissed`、`handed_over`）；桥段 U3-5"我是不是该跪" |
+| 分支与写入 | 领主府 `a3_seat`：`borderstone`（稳）或 `old_outpost`（新）；第一位官员加入 `city.officials`（候选 `clara`、`bodric`、`regis`、`romaine`、`werner`、`maeve`、`nera`、`bron`、`oola`、`martha`，第二幕落败的继承人可来投）；`territory_pop` 起点 = 边石镇人口 + `village_pop` + 瓦伦堡来的难民（约 900 到 1,800）；`territory_autonomy` 起点 = 10 + `village_autonomy` × 0.4（市民议会结局再加 10）；里程碑 T1 立旗（`territory_scale` = 1）；`a1_moss_fate == in_power` 时莫斯来请见：留用、罢免或交给瓦伦堡（写 `a1_moss_fate`：`retained`、`dismissed`、`handed_over`）；桥段 U3-5"我是不是该跪"；抵达边石镇南门时写 `a3_domain_beat = arrival` 并请求 `cut_a3_domain` 段一 |
 | 奖励 | 经验 23,000；金钱 18,400 铜（封书附带的开府赏金）；钥：治所之门 `door_governance` 的进度（任命官员 1/3）；称号 `title_guild_baronet_line`（接待员在"F 级、Lv1、无职能"后加的一行"准男爵"） |
 | 失败与超时 | 第 1 周末未选领主府：默认边石镇 |
 | 揭示 | 无 |
@@ -2223,7 +2223,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 
 | 阶段 | 目标类型 | 参数（实际 ID） | 完成与分支 | 结算点经验（预计等级） |
 | - | - | - | - | - |
-| `arrive` | 到达 | `borderstone`：受封抵领，立旗；边石镇的熟人改口叫"大人" | 称呼选择影响领地气氛（亲近或敬畏） | 7,000（30） |
+| `arrive` | 到达 | `borderstone`：受封抵领，立旗；边石镇的熟人改口叫"大人" | 称呼选择影响领地气氛（亲近或敬畏）；写 `a3_domain_beat = arrival` 后请求 `cut_a3_domain` | 7,000（30） |
 | `seat` | 抉择 | 领主府：`borderstone` 或 `old_outpost` | 写 `a3_seat`；领地界面、税、至多三条法令 | 9,000（30） |
 | `officer` | 抉择 | 第一位官员 | 加入 `city.officials` | 7,000（30） |
 | `moss` | 抉择（条件） | `a1_moss_fate == in_power` 时莫斯请见 | 留用、罢免、交给瓦伦堡 | 0 |
@@ -2237,9 +2237,9 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | 前置 | `quest.q_a3_m01_unwanted_fief == done AND act_week >= 2` |
 | 窗口 | 第 2 周夜 |
 | 预计等级 | 30 到 31 |
-| 分支与写入 | 指挥方式写 `quest_path`：`delegated`（让罗恩全权指挥，玩家只作单兵：`ron.command_growth` +2，`territory_autonomy` +3）、`micro`（玩家全程微操：稳赢，`ron.command_growth` +1）、`ford_trap`（引亡灵过溪再夹击）；罗恩第一次指挥六十人，会犯一个小错（左翼留空），玩家可补位也可等他自己发现；胜利置 `war.first_battle_won`，罗恩加入 `war.generals` |
+| 分支与写入 | 指挥方式写 `quest_path`：`delegated`（让罗恩全权指挥，玩家只作单兵：`npc.ron.command_growth` +2，`territory_autonomy` +3）、`micro`（玩家全程微操：稳赢，`npc.ron.command_growth` +1）、`ford_trap`（引亡灵过溪再夹击）；罗恩第一次指挥六十人，会犯一个小错（左翼留空），玩家可补位也可等他自己发现；胜利置 `war.first_battle_won`，罗恩加入 `war.generals`；北坡阵线将破时由战场剧本 `act3_bone_field` 写 `a3_domain_beat = flag` 并请求 `cut_a3_domain` 段二（千军之门在插演里由玩家推开，`push_door.door_thousand_legions`） |
 | 奖励 | 经验 23,000；金钱 18,400 铜（战利与领地防务拨款）；钥：千军之门 `door_thousand_legions`（`companion.ron.recruited`、`feature.city`、`war.first_battle_won`，并需同行之门 `door_fellowship`）；事迹 `deed_war_first_defense` |
-| 失败与超时 | 向前失败：村民退入边石镇，旧哨村损毁，建设进度推迟一周；千军之门仍开启（钥已满足），`ron.command_growth` 减半 |
+| 失败与超时 | 向前失败：村民退入边石镇，旧哨村损毁，建设进度推迟一周；千军之门仍可推开（钥已满足），`npc.ron.command_growth` 减半 |
 | 揭示 | 无 |
 | 无模型 | 罗恩的 AI 将领行为树（稳健，左翼留空的小错写定）；阵线将破时举旗是写定节点；`ln_ron`：progress 两个版本（被补位、自己发现） |
 | 时长 | 55 分钟 |
@@ -2248,7 +2248,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | - | - | - | - | - |
 | `prepare` | 建造、抉择 | 布防：民兵 60（罗恩）、猎手 10（希雅）、玩家；残墙、瞭望塔、浅溪（亡灵渡流水变慢） | 全权交给罗恩或微操 | 6,000（30） |
 | `bonefield` | 指挥战役（必经战斗） | 战役 0：骨原亡灵约 150（`boneplain_skeleton`、`bone_hound`，精英 `thousandbone_whelp`）；守住村子到天亮，烧毁的房屋不超过两栋 | 胜或向前失败 | 11,000（31） |
-| `banner` | 见证 | 阵线将破时罗恩举旗 | 千军之门开启，战斗从小队规模升为连队规模 | 6,000（31） |
+| `banner` | 见证 | 阵线将破时罗恩举旗 | 千军之门可开：插演中由玩家推开，战斗从小队规模升为连队规模；不推则按小队规模打完，战后仍可推开 | 6,000（31） |
 
 #### A3-M03 帘后的王（`q_a3_m03_king_behind_curtain`）
 
@@ -2269,7 +2269,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | 阶段 | 目标类型 | 参数（实际 ID） | 完成与分支 | 结算点经验（预计等级） |
 | - | - | - | - | - |
 | `journey` | 到达 | 瓦伦河顺流到 `orien_isle`；途中雷吉斯投奔（桥段 U3-7 的伏笔） | | 6,000（31） |
-| `audience` | 见证、抉择 | 帘幕寝殿：老王抬手又放下；宰相"陛下准了"、大主教"陛下在赐福"、腓力"父王在叫我" | 上前或不上前；纹章（`A3-S01`） | 10,000（32） |
+| `audience` | 见证、抉择 | 帘幕寝殿：老王抬手又放下；宰相"陛下准了"、大主教"陛下在赐福"、腓力"父王在叫我" | 上前或不上前；纹章（`A3-S01`）；请求 `cut_a3_audience` | 10,000（32） |
 | `chips` | 交谈 | 初见 `philip`、`drake`、帕尔维（同盟债务专员）、卡西米尔（帝国密使）；晨光主座堂的宣讲 | 写 `court_chip.*` 起始值 | 6,000（32） |
 
 #### A3-M04 长桌与账本（`q_a3_m04_long_table_ledger`）
@@ -2347,7 +2347,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | 前置 | `act_week >= 11` |
 | 窗口 | 第 11 到 12 周；屠村在第 12 周之夜，无论玩家在不在场都会发生 |
 | 预计等级 | 36 到 37 |
-| 分支与写入 | `a3_reedpond_outcome`：`saved`（先遣队到达前全村撤离）、`partial`、`massacred`；屠杀事件发生即置 `a3_massacre_witnessed`、`a3_marcus_shield_dark`；玩家把马库斯从刀下救出时 `hero_state.marcus = defected`；赛琳拦下多少人由 `a3_selene_stance` 与 `trust.selene` 决定，玩家在场时可与她、陆辰、马库斯一起截住处刑；记录证据写 `a3_massacre_evidence`（0 到 3：幸存者、奥丽芙的记录、结衣的证词）；海德薇的人趁乱带走有门纹的人（`cult_keys` +1 到 +3，玩家截住则不加）；那一夜起大雾，幸存者顺着鹿群的足迹逃进芦苇深处（希尔薇） |
+| 分支与写入 | `a3_reedpond_outcome`：`saved`（先遣队到达前全村撤离）、`partial`、`massacred`；屠杀事件发生即置 `a3_massacre_witnessed`、`a3_marcus_shield_dark`；玩家把马库斯从刀下救出时 `hero_state.marcus = defected`；赛琳拦下多少人由 `a3_selene_stance` 与 `trust.selene` 决定，玩家在场时可与她、陆辰、马库斯一起截住处刑；记录证据写 `a3_massacre_evidence`（0 到 3：幸存者、奥丽芙的记录、结衣的证词）；海德薇的人趁乱带走有门纹的人（`cult_keys` +1 到 +3，玩家截住则不加）；那一夜起大雾，幸存者顺着鹿群的足迹逃进芦苇深处（希尔薇）；第 12 周夜玩家身在苇塘村时写 `a3_reedpond_present = true`，先遣队抵达前疏散完成时写 `a3_reedpond_evacuated = true`；写段落旗标 `a3_reedpond_beat` 后请求 `cut_a3_massacre`：现场版夜段 `night`（与 `a3_reedpond_present` 同时写），截击战 `a3_reedpond_inquisition` 结束后 `dawn`，玩家不在场时第 13 周幸存者抵达领地时 `told` |
 | 奖励 | 经验 28,000；金钱 0；钥：共鸣之门 `door_resonance` 的缘钥（救回苇塘村的幸存者）；物品 `ky_knot_ash_night`（歌结·灰夜，幸存者 `maeve` 或 `hanna` 所授，E04 的核心）；遗民入领（`a2_remnant_trust` +1） |
 | 失败与超时 | 未能在屠村前赶到（例如人在北境）：`a3_reedpond_outcome = massacred`，幸存者 0 到约 30 人（鹿群与雾带出的人）；第 13 周前赶到时 `warning` 与 `confront` 转为善后 `aftermath`（收殓、记录证据、带幸存者回领地，`quest_path = aftermath`），两个结算点经验照发；第 14 周末仍未去过苇塘才以 `expired` 结算 |
 | 揭示 | 置 `a3_massacre_witnessed`、`a3_marcus_shield_dark`；可解锁 S04-C03、S06-C02 |
@@ -2357,7 +2357,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | 阶段 | 目标类型 | 参数（实际 ID） | 完成与分支 | 结算点经验（预计等级） |
 | - | - | - | - | - |
 | `warning` | 调查、护送 | 找到苇塘村（门纹共鸣，或 `rosa_oldwatch`、`jakob_schilf` 认得沼里的路）；疏散：灰鼠"老鼠洞"的鼠道（经 `dela` 联络）、雅各的平底船、芦苇深处 | 时间够时全村撤离 | 12,000（36） |
-| `confront` | 救援、击败 | 贝尔托德的先遣队约 200（审判庭随军 `crusader_inquisitor`、圣誓志愿军 `crusader_soldier`、圣骑士 20），照规灯在芦苇沼里照出门纹；与赛琳、陆辰、马库斯协作；记录证据 | 写 `a3_reedpond_outcome`、`a3_massacre_evidence` | 16,000（37） |
+| `confront` | 救援、击败 | 贝尔托德的先遣队约 200（审判庭随军 `crusader_inquisitor`、圣誓志愿军 `crusader_soldier`、圣骑士 20），照规灯在芦苇沼里照出门纹；与赛琳、陆辰、马库斯协作；记录证据；截击战为遭遇 `a3_reedpond_inquisition`：审判庭执行官约二十名与贝尔托德·克兰 `berthold_klan`，精英阶，夜、芦苇沼，目标为击退而非全歼 | 写 `a3_reedpond_outcome`、`a3_massacre_evidence` | 16,000（37） |
 
 #### A3-M08 灰烬深处（`q_a3_m08_ash_depths`）
 
@@ -2368,7 +2368,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | 前置 | `act_week >= 13` |
 | 窗口 | 第 13 到 14 周（静灰夜在第 14 周）；最晚第 19 周；外环澱度四，停留有时限 |
 | 预计等级 | 38 到 39 |
-| 分支与写入 | 路线写 `quest_path`：`glass`（穿玻璃原，快、无遮挡）、`ash_sea`（绕灰海，慢、稳）；门站：`peaceful`（独行以门纹为凭证和平通过，同伴由玩家担保）、`armed`（带兵则开战，残门卫长可被击败，得 `eq_ash_gatecaptain_halberd`，但这座门站不能以和平方式复原）；复原一座门站即第三处门址，行路之门进阶开启；阿什的讲述置 `a3_ash_tells_sundering`；屋顶远望置 `a3_defaced_stele_found`；`a3_ash_relation`：`entrusted`（认真听完，问"我该怎么做"：阿什交出空白纪碎片五，此后可随时进书库）、`warned`（默认）、`distant`（嘲讽、威胁或攻击：他让玩家动弹不得一息后消失）；夜羽被认出（"信使。你回来了。"），`npc.yeyu.memory_shards` +1；讲述之后阿什给出警告（`A3-M09` 的 `warning` 阶段可在此同场完成） |
+| 分支与写入 | 路线写 `quest_path`：`glass`（穿玻璃原，快、无遮挡）、`ash_sea`（绕灰海，慢、稳）；门站：`peaceful`（独行以门纹为凭证和平通过，同伴由玩家担保）、`armed`（带兵则开战，残门卫长可被击败，得 `eq_ash_gatecaptain_halberd`，但这座门站不能以和平方式复原）；复原一座门站即第三处门址，行路之门进阶开启；阿什的讲述置 `a3_ash_tells_sundering`；屋顶远望置 `a3_defaced_stele_found`；`a3_ash_relation`：`entrusted`（认真听完，问"我该怎么做"：阿什交出空白纪碎片五，此后可随时进书库）、`warned`（默认）、`distant`（嘲讽、威胁或攻击：他让玩家动弹不得一息后消失）；夜羽被认出（"信使。你回来了。"），`npc.yeyu.memory_shards` +1；讲述之后阿什给出警告（`A3-M09` 的 `warning` 阶段可在此同场完成）；第一次走进 `thousand_gates_archive` 正厅时写 `a3_archive_reached = true`（这一夜是第 14 周的静灰夜时先写 `a3_static_ash_night = true`），随后请求 `cut_a3_sundering` |
 | 奖励 | 经验 38,000；金钱 30,400 铜（拾遗所得）；物品 `ky_gatestone_sw`、`ky_gatestone_se`、`ky_gatestone_w`、`ky_gatestone_ne`（复原哪座得哪块）、`ky_archive_ring`（书库铭环）、`ky_scorched_quill`（焦翎，残响之门的替钥）、`rl_main_gate_shard`（外环边缘，裂隙之门与残影之门的物钥）、`lb_blank_era_fragments` 的第五页（受托时）；钥：行路之门 `door_wayfaring` 进阶、残响之门 `door_echoes`；事迹 `deed_truth_ash_sundering`、`deed_truth_defaced_stele`、`deed_exp_gatesite_third`、`deed_dg_stations_all_lit`（复原全部四座门站）、`deed_exp_pit_gaze`（C3-3 再看一眼） |
 | 失败与超时 | 第 15 周仍未远征：玩家经过封门遗迹时阿什出现，只说警告与"想知道，就去书库"；讲述与残响之门须远征，最晚第 19 周 |
 | 揭示 | 置 `a3_ash_tells_sundering`、`a3_defaced_stele_found`；可解锁 M05-C07、M02-C06、M02-C07、M02-C08、M06-C05、M11-C03、S01-C05、M01-C08（与 `a3_eluen_speaks` 同真时） |
@@ -2379,7 +2379,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | - | - | - | - | - |
 | `glass` | 探索、击败（必经战斗） | 玻璃原：`ashfolk` 群、`dianshard_golem`，千骨行者 `thousand_bone_walker`（Lv36，每碎一次吸附更多骨头，须引到灰海边的沙丘里拆散）；或灰海：`dian_aggregate`，沉灰巨蠕 `sunken_ash_wyrm`（可绕行） | 选路 | 12,000（38） |
 | `station` | 交互、抉择 | 门站残墟：残门卫长 `gate_warden_captain` 只问一句"凭证"；拾门者营地两处（可选，`gatepicker_dead`，接 `A3-S32`） | 以门纹复原一座门站 | 13,000（38） |
-| `archive` | 到达、见证 | 静灰夜的千门书库：阿什从倒塌的书架之间走出来；七段讲述；屋顶远望万门广场、主门坑与凿碑台 | 写 `a3_ash_relation` | 13,000（39） |
+| `archive` | 到达、见证 | 静灰夜的千门书库：阿什从倒塌的书架之间走出来；七段讲述；屋顶远望万门广场、主门坑与凿碑台 | 写 `a3_ash_relation`；写 `a3_archive_reached`（静灰夜另写 `a3_static_ash_night`）后请求 `cut_a3_sundering` | 13,000（39） |
 
 #### A3-M09 门缝里的风（`q_a3_m09_wind_in_door_crack`）
 
@@ -2390,7 +2390,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | 前置 | `a3_ash_tells_sundering OR act_week >= 15` |
 | 窗口 | 第 14 到 15 周（警告是主线必经） |
 | 预计等级 | 39 到 40 |
-| 分支与写入 | 置 `a3_ash_warning_doors`；千门回廊里每扇门旁多一道"门缝里有风"的标记，风越大松动越多；`a3_ash_warning_doors AND seal_looseness >= 30` 时置 `a3_seal_aware`（梦变清晰、门纹发热、遗民孩子共鸣）；梦中质问：已察觉时她对"开门会放你出来吗"只答"是的。"，未察觉时她笑着说"门总会开的。"；可选立誓写 `a3_door_restraint_vow`（发誓此后不开危险之门）；此后的开门选择照常计入 `seal_looseness` 与 `danger_doors_opened` |
+| 分支与写入 | 置 `a3_ash_warning_doors`；千门回廊里每扇门旁多一道"门缝里有风"的标记，风越大松动越多；`a3_ash_warning_doors AND seal_looseness >= 30` 时置 `a3_seal_aware`（梦变清晰、门纹发热、遗民孩子共鸣）；梦中质问：已察觉时她对"开门会放你出来吗"只答"是的。"，未察觉时她笑着说"门总会开的。"；可选立誓写 `a3_door_restraint_vow`（发誓此后不开危险之门）；此后的开门选择照常计入 `seal_looseness` 与 `danger_doors_opened`；第 15 周起第一次经过 `seal_ruins_depths` 灰烬之厅时写 `a3_warning_beat = ruins` 并请求 `cut_a3_warning`（遗迹段）；`dream` 阶段写 `a3_warning_beat = dream` 并请求同一过场（第 15 周之梦） |
 | 奖励 | 经验 19,000；金钱 0；事迹 `deed_grow_closed_door`（立誓后到本幕结束未再开危险之门）、`deed_god_danger_door`（隐藏：开过至少一扇危险之门） |
 | 失败与超时 | 无；未远征时警告在封门遗迹给出 |
 | 揭示 | 置 `a3_ash_warning_doors`，条件满足时 `a3_seal_aware`；可解锁 M09-C04、M09-C05 |
@@ -2412,7 +2412,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | 前置 | `act_week >= 16`（债券在玩家手里时第 15 周） |
 | 窗口 | 朝阳门之夜一夜 |
 | 预计等级 | 41 |
-| 分支与写入 | 玩家在王都、已在王都安放门标，或 `door.door_messenger`（夜羽提前传来消息）时走 `capital` 路线；否则走 `downriver` 路线：在瓦伦河下游接应逃出来的人（约阿希姆能否带出腓力按默认结算，经验照发）；写 `a3_philip_fate`：`exile_with_player`（获救，流亡王廷设在瓦伦堡或领地）、`captive`（默认）、`dead`（强攻冠石宫且约阿希姆阵亡时）；冠石印的去向 `a3_crown_seal_holder`：`player`、`drake`、`lost`；抢救档案馆写 `a3_archive_saved`（七锁库未开时一半文书免于焚毁）；艾登在王都且关系不低时可护他出城（置 `a3_aiden_escorted`，`hero_state.aiden = with_player` 的条件之一）；老王驾崩，最后一个字"留"由奥丽芙记下 |
+| 分支与写入 | 玩家在王都、已在王都安放门标，或 `door.door_messenger`（夜羽提前传来消息）时走 `capital` 路线；否则走 `downriver` 路线：在瓦伦河下游接应逃出来的人（约阿希姆能否带出腓力按默认结算，经验照发）；写 `a3_philip_fate`：`exile_with_player`（获救，流亡王廷设在瓦伦堡或领地）、`captive`（默认）、`dead`（强攻冠石宫且约阿希姆阵亡时）；冠石印的去向 `a3_crown_seal_holder`：`player`、`drake`、`lost`；抢救档案馆写 `a3_archive_saved`（七锁库未开时一半文书免于焚毁）；艾登在王都且关系不低时可护他出城（置 `a3_aiden_escorted`，`hero_state.aiden = with_player` 的条件之一）；老王驾崩，最后一个字"留"由奥丽芙记下；`capital` 路线按途径写 `a3_sunrise_route`（`in_capital`、`waystone`、`messenger`），`downriver` 路线写 `none`；当夜写 `a3_crown_beat = gate` 并请求 `cut_a3_crown_falls`（临终段与次晨段由战场剧本 `act3_sunrise_gate` 请求） |
 | 奖励 | 经验 22,000；金钱 17,600 铜（王党金库的谢礼）；`philip_rel` +1（获救时 +2） |
 | 失败与超时 | 不会失败；腓力被俘是默认的向前失败 |
 | 揭示 | 无（宰相开城在此刻发生，事前无人知道） |
@@ -2433,7 +2433,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | 前置 | `act_week >= 17` |
 | 窗口 | 第 17 到 21 周（战役在第 20 到 21 周，早春融雪） |
 | 预计等级 | 42 到 43 |
-| 分支与写入 | 修筑：里程碑 T9 灰烬防线（苇桥东岸的桥头堡、两处浅滩的壕沟与木栅、箭塔、陷坑；`A3-S20` 完成时桥头段为石垒）；合纵：瓦伦堡援军按 `a2_wb_ruler`（[第三幕 10.1][a3]）、百帐营、北境援军 300（`a3_north_status` 的前提成立且北境已安）、赤鬃佣兵团 120（`A3-S12` 收服时）、遗民斥候与门守 30（共鸣之门开启时）；第二战线：指派一名将领（`ursak`、`konrad`、`lucas`、`ron` 或 `shiya`）带分队去瓦伦堡东面，玩家本人不在那里（本幕最大的一次放手测验）；胜利路线写 `a3_ashline_route`：`rout`（击溃）、`persuade`（说服）、`bloodless`（不杀而胜：断粮、夜擒大主教、或撑到圣战军士气崩溃）、`failed`；写 `a3_archbishop_fate`、`hero_state.*`、`a3_church_verdict`（`lost_lamb`、`heretic`、`demon_precursor`）、`a3_eluen_violation`（`witnessed`：净化之光被看见；`recorded`：另有奥丽芙的记录或玩家持有 `rl_dawnpillar`）；置 `a3_holy_war_miracle`；守住苇桥时置 `a3_vow_kept_reed_bridge`（誓光之门的立誓标记，不是危险之门） |
+| 分支与写入 | 修筑：里程碑 T9 灰烬防线（苇桥东岸的桥头堡、两处浅滩的壕沟与木栅、箭塔、陷坑；`A3-S20` 完成时桥头段为石垒）；合纵：瓦伦堡援军按 `a2_wb_ruler`（[第三幕 10.1][a3]）、百帐营、北境援军 300（`a3_north_status` 的前提成立且北境已安）、赤鬃佣兵团 120（`A3-S12` 收服时）、遗民斥候与门守 30（共鸣之门开启时）；第二战线：指派一名将领（`ursak`、`konrad`、`lucas`、`ron` 或 `shiya`）带分队去瓦伦堡东面，玩家本人不在那里（本幕最大的一次放手测验）；胜利路线写 `a3_ashline_route`：`rout`（击溃）、`persuade`（说服）、`bloodless`（不杀而胜：断粮、夜擒大主教、或撑到圣战军士气崩溃）、`failed`；写 `a3_archbishop_fate`、`hero_state.*`、`a3_church_verdict`（`lost_lamb`、`heretic`、`demon_precursor`）、`a3_eluen_violation`（`witnessed`：净化之光被看见；`recorded`：另有奥丽芙的记录或玩家持有 `rl_dawnpillar`）；置 `a3_holy_war_miracle`；守住苇桥时置 `a3_vow_kept_reed_bridge`（誓光之门的立誓标记，不是危险之门）；圣战军主力抵苇桥对岸、玩家人在苇桥时写 `a3_ashline_beat = eve` 并请求 `cut_a3_ashen_line` 战前夜（其余各段由战场剧本 `act3_ash_line` 请求）；`A3-S20` 的石垒在过场里读作 `a3_bodric_wall`（派生自 `a3_bridgehead == stone`） |
 | 奖励 | 经验 50,000；金钱 40,000 铜（战利与诸方谢礼）；物品 `rl_dawnpillar`（擒住举柱者时）；钥：誓光之门 `door_vocation_paladin`（择钥加历钥：在无人为你祈祷的地方以自己的名义立誓守护，并且守住）；事迹 `deed_war_reed_bridge`（喂出 `title_crown_reed_medal`）、`deed_hunt_dawnpillar`（打断曙光）、`deed_grow_kept_vow` |
 | 失败与超时 | 向前失败：防线被突破，圣战军北上三十公里抵达边石镇，玛莎在镇门前出手一次拖住一刻钟，之后阿什在封门遗迹前现身："还不是时候。"灰烬把先锋连人带马埋进灰里；`a3_ash_exile = true`，`a3_church_verdict = demon_precursor`，领地焚毁大半，游戏不结束 |
 | 揭示 | 置 `a3_holy_war_miracle`；可解锁 M04-C07（余波：荒原的澱肉眼可见地暴涨，教会说是"邪神的反扑"） |
@@ -2445,7 +2445,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | `fortify` | 建造 | 里程碑 T9：博德里克 `bodric` + 劳力 400 + 木石（即现有数据 `a3_m02_build` 的建造目标） | 有灰石时桥头段为石垒 | 12,000（42） |
 | `alliance` | 外交、抉择 | 合纵与第二战线的将领指派；东北丘陵上的红牙残部（`A3-D03.h`） | 写援军清单与第二战线将领 | 12,000（42） |
 | `battle` | 指挥战役（必经战斗） | 战役 4：圣战军约 6,200（圣骑士 500 乌尔里希、审判庭随军 80 贝尔托德、圣誓志愿军 1,200、征召农兵 4,000、战地神官 200、投石机 6）；勇者团按 A3-D05；大主教 `severin` 与曙光圣柱；五阶段：前哨、攻坚、勇者（`lu_chen_duel`）、净化之光（`archbishop_dawnpillar`）、终局 | 写 `a3_ashline_route` 等 | 22,000（43） |
-| `vow` | 见证 | 守住苇桥 | 誓光之门开启 | 4,000（43） |
+| `vow` | 见证 | 守住苇桥 | 誓光之门可开（终局插演中由玩家推开） | 4,000（43） |
 
 #### A3-M12 规格外的东西（`q_a3_m12_out_of_spec`）
 
@@ -2456,7 +2456,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | 前置 | `act_week >= 22 AND quest.q_a3_m11_ash_line IN (done, failed)` |
 | 窗口 | 第 22 到 23 周；必达 |
 | 预计等级 | 44 |
-| 分支与写入 | 置 `a3_eluen_speaks`、`a3_sasha_retreat_line`；`yeyu_letters` 变为 2（信囊里第二封信，给梅尔卡）；`a3_ash_exile` 为真时用失败分支的变体（[第三幕 9.2][a3]）；卡西安看见光借大主教之口说话（接 `A3-S11`） |
+| 分支与写入 | 置 `a3_eluen_speaks`、`a3_sasha_retreat_line`；`yeyu_letters` 变为 2（信囊里第二封信，给梅尔卡）；`a3_ash_exile` 为真时用失败分支的变体（[第三幕 9.2][a3]）；卡西安看见光借大主教之口说话（接 `A3-S11`）；`light` 阶段的 `cut_a3_eluen_speaks` 由 `cut_a3_ashen_line` 末节点直接请求；`ash` 阶段在第 23 周玩家第一次走到灰烬之厅前时写 `a3_map_beat = ash` 并请求 `cut_a3_map` 段一 |
 | 奖励 | 经验 14,300；金钱 0；千门回廊里出现立国之门的门影 |
 | 失败与超时 | 无 |
 | 揭示 | 置 `a3_eluen_speaks`、`a3_sasha_retreat_line`；可解锁 M01-C07、M01-C08、M05-C08、S01-C06、M03-C08 的推理、S04-C01；回扣锚点 A02、A03，尾声再回扣 A00 与 A01 的第一层 |
@@ -2477,7 +2477,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | 前置 | `quest.q_a3_m12_out_of_spec == done AND act_week >= 24` |
 | 窗口 | 第 24 周 |
 | 预计等级 | 44 |
-| 分支与写入 | 写 `a3_lothar_ending`（`rump_kingdom`、`partitioned`、`imperial_vassal`，按 [第三幕 4.8][a3] 的条件，见 A3-D01 的结局表）、`a3_wb_status`、`a3_north_status`、`philip_rel`；腓力加冕时问"你说我该不该戴"，回答只影响他的自信与 `philip_rel`，不提供玩家称王的分支；`a3_ash_exile` 叠加 |
+| 分支与写入 | 写 `a3_lothar_ending`（`rump_kingdom`、`partitioned`、`imperial_vassal`，按 [第三幕 4.8][a3] 的条件，见 A3-D01 的结局表）、`a3_wb_status`、`a3_north_status`、`philip_rel`；腓力加冕时问"你说我该不该戴"，回答只影响他的自信与 `philip_rel`，不提供玩家称王的分支；`a3_ash_exile` 叠加；谈判结束、写入 `a3_lothar_ending` 之后写 `a3_map_beat = map` 并请求 `cut_a3_map` 段二 |
 | 奖励 | 经验 14,000；金钱 11,200 铜（结局的赏赐或补偿：残存弱国时腓力的"永久自治特许"附赠，其他结局为谈判中争到的赔偿）；残存弱国且腓力在位时称号 `title_crown_border_baron`（腓力晋封） |
 | 失败与超时 | 无 |
 | 揭示 | 无新标记；莫伊拉的预言"三顶王冠落在一张桌上"在此落地 |
@@ -2711,7 +2711,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | - | - | - | - | - | - | - | - | - | - | - | - | - |
 | A3-S01 | `q_a3_s01_bone_crest` | 支线 | 骨头纹章 | 宫廷司礼官 `ernst`；`orien_isle`·冠石宫 | 觐见时（`quest.q_a3_m03_king_behind_curtain.stage == audience`） | `crest` 抉择：骨头、门、乌鸦、麦穗、自由设计（纹章编辑界面）；`poem` 交谈（第 9 周后）：司礼官为纹章写了一首诗 | 写 `a3_crest`（第四幕国徽候选）；`trust.ernst` +20；夜羽回嘴"至少乌鸦认得路。"时得街头称号 `title_street_crow_bones` | 经验 2,100；金钱 0；事迹 `deed_mortal_bone_crest` | 无 | 无 | `ln_ernst`：从 `unbelief.deny`（"一根骨头？"）到写诗的版本 | 15 |
 | A3-S02 | `q_a3_s02_philip_sword` | 支线 | 腓力的剑课 | 侍从骑士 `joachim`；`orien_isle` | `act_week >= 4` | `lessons` 陪伴：三次剑课，各选一种教法（严、宽、带他去东线见血、改教他管粮）；`talent` 见证：识才之门显示他第一流的内政之才 | `philip_rel`：宽与管粮 +1；`a3_philip_courage`：严与见血 +1（见血时他会吐，然后站稳）；`potential.seen` 加入腓力 | 经验 4,900；金钱 3,920 铜 | 第 16 周后关闭 | 无 | `ln_philip`、`ln_joachim`：progress×3；`a3_philip_courage >= 1` 时朝阳门之夜他能自己走出来 | 35 |
-| A3-S03 | `q_a3_s03_physician_silence` | 支线 | 御医的沉默 | 王室御医 `sigrid`；`orien_isle` | `act_week >= 5` | `ask` 交谈；`way` 抉择：拿证据换（文策尔的抄本）、保护她的家人（护送到领地）、用门内庭院的药替老王延命；`testimony` 收集：证词与国王那把七锁库钥匙的下落 | 置 `a3_physician_testimony`；延命路线写 `a3_sunrise_delay = 2`（老王多活两周，朝阳门之夜与 `A3-D01` 的第 16 周节点顺延到第 18 周） | 经验 4,200；金钱 3,360 铜 | 第 15 周后御医被禁止入殿，本条关闭 | 无 | `ln_sigrid`：只对证据与病人负责的三个版本 | 30 |
+| A3-S03 | `q_a3_s03_physician_silence` | 支线 | 御医的沉默 | 王室御医 `sigrid`；`orien_isle` | `act_week >= 5` | `ask` 交谈；`way` 抉择：拿证据换（文策尔的抄本）、保护她的家人（护送到领地）、用门内庭院的药替老王延命；`testimony` 收集：证词与国王那把七锁库钥匙的下落 | 置 `a3_physician_testimony`；延命路线写 `a3_sunrise_delay = 2`（老王多活两周，朝阳门之夜与 `A3-D01` 的第 16 周节点顺延到第 18 周）（过场目录读作 `a3_sigrid_witness`，注册表别名） | 经验 4,200；金钱 3,360 铜 | 第 15 周后御医被禁止入殿，本条关闭 | 无 | `ln_sigrid`：只对证据与病人负责的三个版本 | 30 |
 | A3-S04 | `q_a3_s04_seven_locks` | 支线 | 七锁库与无字碑林 | 档案馆馆长 `eberhard`；`orien_isle`·档案馆旧翼与七锁库，`blank_steles` | `act_week >= 5`（即现有数据 `a3_s01_sealed_room`） | `keys` 收集：七把 `ky_seven_lock_key`（馆长三把：信任或"真想读书"；宰相两把：偷或换；大主教一把：换或趁乱；国王一把：御医知道放在帘幕寝殿）；`vault` 到达、调查：封存室；`steles` 探索：带懂古庭语的人（`eberhard`、`olive`，或第二幕手稿保住时的 `jonas`）去无字碑林拓碑；`king_name` 交付（可选）：老王病危时带封存室里的东西去帘幕寝殿 | 置 `a3_archive_sealed_room`、`a3_blank_era_ruin`；`a3_blank_era_fragments` +4（碎片一到四）；老王叫出那位学者的名字（模型生成并记录；无模型时取预写名单之一），然后再也不开口 | 经验 9,150；金钱 0；物品 `lb_blank_era_fragments`（第一到四页）、`lb_summoning_notes`、`rl_brand_register`；钥：空白之门 `door_truth_blank_era` 的地钥；事迹 `deed_truth_sealed_room`；还钥匙给馆长 `trust.eberhard` +20 | 第 16 周朝阳门之夜后封存室一半被烧、一半被帝国封存（`a3_archive_saved` 时可补救） | 置 `a3_archive_sealed_room`、`a3_blank_era_ruin`；可解锁 M06-C03、M06-C04、M02-C09、M10-C04 | 残文"……封于其门……其名勿书，勿诵，勿刻……"写定；`ln_eberhard`：progress×3 | 60 |
 | A3-S05 | `q_a3_s05_page_for_passage` | 支线 | 一页换一段 | 宫廷史官 `olive`（莫伊拉的代言载体）；`orien_isle` | `act_week >= 15` | `offer` 见证："我的主人想做一笔交易：你的故事，换一段被锁起来的历史。"；`answer` 抉择：应下（大交易留到第四幕）、拒绝、讨价还价；`deposit` 交易（可选）：定金小交易，一段地球的记忆换一条眼下的消息 | 置 `a3_moira_offer`；`a3_moira_trade`：`accepted`、`declined`、`deceived`；她同时声称"空白纪的记录全部被封存、销毁了"（误导 MIS-14）；代价：她得到的关于玩家的东西可能转手卖给别的女神 | 经验 4,200；金钱 0；一条消息；事迹 `deed_god_moira_story`（授 `title_court_guest_scroll`） | 无 | 置 `a3_moira_offer`；可解锁 M06-C06 的意向 | `ln_olive`：她只当那是"灵感"；交易条款是写定菜单 | 20 |
 | A3-S06 | `q_a3_s06_royal_bonds` | 支线 | 债券 | 同盟债务专员帕尔维；`orien_banks`·同盟银行分号 | `act_week >= 6`；第 14 周截止 | `auction` 交易：竞买洛萨王室债券（出价上限按 `econ.house_scale`）；可与 `cyril` 合买，或让给金冠 | `a3_debt_holder`：`player`、`hart`、`alliance`、`empire`；玩家买下时 `court_chip.credit` +2，宰相的密约筹码失效（朝阳门之夜提前到第 15 周，入城兵力减半）；梅尔卡："这笔买卖划算。" | 经验 4,900；金钱 3,920 铜（债券首期利息） | 第 14 周后由出价最高者得 | 无 | 竞价是规则拍卖（对手出价按资金与意图） | 30 |
@@ -2727,8 +2727,8 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | A3-S16 | `q_a3_s16_marcus_shield` | 同伴个人线 | 马库斯的盾 | `marcus`；霜脊堡（养伤） | `act_week >= 11` | `question` 交谈："盾该对着谁"；`answer` 抉择：真心话、让他自己想、带他去看幸存者 | `hero_rel.marcus` | 经验 4,200；金钱 0 | 第 19 周后关闭 | 无 | `ln_marcus`：豪爽与沉默两个版本 | 25 |
 | A3-S17 | `q_a3_s17_luchen_letters` | 同伴个人线 | 陆辰的信 | `luchen`；信使（驿站或信使之门） | `act_week >= 6 AND hero_rel.luchen >= 0` | `letter1`、`letter2`、`letter3` 交谈（书信三封，各选说真话、安慰、挑衅） | `hero_rel.luchen` 按三封信累计 | 经验 3,700；金钱 0 | 第 9 周后关闭 | 无 | 三封信是写定书信，回信为选项 | 20 |
 | A3-S18 | `q_a3_s18_aiden_circle` | 同伴个人线 | 艾登的召唤阵 | `aiden`；`orien_isle`·档案馆 | `act_week >= 15` | `ask` 交谈；`help` 抉择：帮他进七锁库（需 `A3-S04` 的钥匙进度）、拒绝、交换（他告诉玩家圣柱的原理）；`notes` 交付：`lb_summoning_notes` | `hero_rel.aiden`；交换路线置 `a3_aiden_pillar_hint`；他读到"名额"二字反复出现，推出召唤是单程的 | 经验 6,400；金钱 5,120 铜 | 第 16 周后他随教会档案撤往南方 | 无 | `ln_aiden`：只想回家的三个版本 | 35 |
-| A3-S19 | `q_a3_s19_selene_letter` | 支线 | 赛琳的密信 | `selene`；信使 | `act_week >= 15 AND (trust.selene >= 50 OR a3_selene_stance IN (waver, covert_ally))` | `receive` 收集：神谕原文抄本，与她第一次写下的事："光说'那扇门不能再开'的时候，声音在发抖。"；`choice` 抉择：公开、保密、回信 | 置 `a3_selene_tremble_told`（E15 的证词条件）；回信时 `a3_selene_stance = covert_ally`；公开时说服路线的证据 +1 | 经验 4,900；金钱 0 | 无 | 置 `a3_selene_tremble_told`；可解锁 M01-C06 原文、M01-C09、S06-C03 | 密信全文写定 | 20 |
-| A3-S20 | `q_a3_s20_bodric_wall` | 支线 | 博德里克的城墙 | 工程官 `bodric`；`reedbridge` 桥头 | `act_week >= 17` | `stone` 收集：骨原的灰石 `grey_stone` ×200（拾遗营，里程碑 T5）；`build` 建造：桥头段（全力支持、折中、按木栅凑合） | `a3_bridgehead`：`stone`、`mixed`、`timber`（防线强度） | 经验 7,100；金钱 5,680 铜 | 第 20 周开战时按已完成的部分结算 | 无 | `ln_bodric`：爱抱怨的 progress | 35 |
+| A3-S19 | `q_a3_s19_selene_letter` | 支线 | 赛琳的密信 | `selene`；信使 | `act_week >= 15 AND (trust.selene >= 50 OR a3_selene_stance IN (waver, covert_ally))` | `receive` 收集：神谕原文抄本，与她第一次写下的事："光说'那扇门不能再开'的时候，声音在发抖。"；`choice` 抉择：公开、保密、回信 | 置 `a3_selene_tremble_told`（E15 的证词条件）；回信时 `a3_selene_stance = covert_ally`；公开时说服路线的证据 +1；公开时另写 `a3_oracle_public = true`（`cut_a3_ashen_line` 读） | 经验 4,900；金钱 0 | 无 | 置 `a3_selene_tremble_told`；可解锁 M01-C06 原文、M01-C09、S06-C03 | 密信全文写定 | 20 |
+| A3-S20 | `q_a3_s20_bodric_wall` | 支线 | 博德里克的城墙 | 工程官 `bodric`；`reedbridge` 桥头 | `act_week >= 17` | `stone` 收集：骨原的灰石 `grey_stone` ×200（拾遗营，里程碑 T5）；`build` 建造：桥头段（全力支持、折中、按木栅凑合） | `a3_bridgehead`：`stone`、`mixed`、`timber`（防线强度）（`a3_bridgehead == stone` 即过场目录的 `a3_bodric_wall`） | 经验 7,100；金钱 5,680 铜 | 第 20 周开战时按已完成的部分结算 | 无 | `ln_bodric`：爱抱怨的 progress | 35 |
 | A3-S21 | `q_a3_s21_frostbone_crypt` | 迷宫 | 霜骨墓窟 | 北境军团长 `brigitte` 的通行令，或石栏村老兵（`a3_regis_redeemed` 时）教的旧地道；`frostbone_catacombs`（迷宫 `dg_frostbone_crypt`） | `act_week >= 9 AND (a3_brigitte_impression != cold OR a3_regis_redeemed)` | `pit` 交谈：坑口营的老兵讲 909 年（K1）；`hall` 击败：`frostbone_soldier` 群、`frozen_banner_bearer`（Lv29 精英）、`frost_pike_captain`（Lv27）；`throat` 击败：`winter_throat`（Lv29）；`icon` 击败：守核 `rimelight_icon`（Lv32，强制 `afx_stigmata`）；`names` 交互（可选）：以北门阵亡碑（史料 H11）之名为全部霜骨兵送魂 | `dg_state.dg_frostbone_crypt`（养、毁、净）；整夜点名守灵满足祷之门 `door_vocation_priest` 的历钥与晚祷之门 `door_school_priest_shadow` 的历钥（`aegidius_crypt` 为师） | 经验 7,400；金钱 5,920 铜；物品 `rl_oakhold_shield`、`rl_lagoon_bead`（还给老船夫，信任大增）；事迹 `deed_dg_frostbone_names`（三百个名字） | 无 | 无 | 老兵的 909 年故事写定；送魂按名册逐一结算 | 70 |
 | A3-S22 | `q_a3_s22_rustridge_deep` | 迷宫 | 锈岭矿深层 | `barga`（黑铁线）或领地矿务；`rustridge_mine` 深层（迷宫 `dg_rustridge_deep`） | `act_week >= 5 AND (a3_territory_mining >= 2 OR quest.q_a1_m06_one_night_mine == done)`（从旧矿裂缝下去） | `descend` 到达；`miners` 击败：`hollow_miner`、`geode_crab`、`vein_lantern`、`lamp_foreman_ghost`（Lv38 精英）；`maw` 击败：`blackiron_maw`（Lv37）；`heart` 击败：守核 `geode_heart`（Lv40）；`roll` 交互（可选）：为旧矿难一班人送魂；`hollow_stone` 交互（可选，隐藏）：找到罗恩说过的空心石 | `dg_state.dg_rustridge_deep`；采集点 `node_lotha_rustridge_deep` 开放；`a3_barga_blackiron`（巴尔加的黑铁成长线） | 经验 6,600；金钱 5,280 铜；物品 `mat_blackiron_ore`（第一批）、`crystal_large_raw`（晶洞之心所出，渊契之门第三幕版的物钥）；事迹 `deed_dg_rustridge_hollow_stone`（罗恩说对了一次） | 无 | 无 | `ln_ron`：空心石被找到时的写定一句 | 60 |
 | A3-S23 | `q_a3_s23_myriad_doors` | 迷宫 | 万户街的门 | `yeyu`（她坚持信要送到）；`myriad_doors_ward`（迷宫 `dg_myriad_street`，外环澱度四，限时） | `act_week >= 14 AND quest.q_a3_m08_ash_depths == done` | `knock` 交互（隐藏）：二十扇门先敲门；`floors` 击败：`threshold_ghost`、`ashfall_doll`、`hollow_doorframe`（Lv44 精英）；`letters` 收集：每层的 `rl_ash_night_letters`（灰夜家书）；`yard` 收集（可选）：一户人家的晾衣绳、门牌、涂鸦；`stone` 收集：`ky_gatestone_myriad_street` | `letters_found`；家书接 `A3-S26`；"十二封信"（活性期把十二封家书送到对应的门，`deed_dg_myriad_twelve_letters`）在第四幕末的天启之后才可达，属 [任务（后）][qb] | 经验 10,200；金钱 8,160 铜；钥：户门之门 `door_site_myriad` 的物钥 | 外环停留超时即染澱病，被迫退回门内庭院（外环澱度四的限时规则，[第三幕 2.3][a3]） | 无 | 敲门不影响数值，只影响门后是否回应一声 | 60 |
@@ -3006,7 +3006,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | `bron_reference_letter` | 布伦的推荐信 | A2-M01 `register` | 交付（大区总部登记） |
 | `reynard_reference_letter` | 金狮的推荐信 | A2-S02 金狮的面子 | 交付 |
 | `wallenburg_charter_draft` | 未盖印的特许状草稿 | A2-D01.f 书房里的草稿 | 证物；交付（分支） |
-| `count_signet_ring` | 伯爵印戒 | A2-M11 静钟之下（葬礼护印、夺回印戒） | 交付（继承人）；`a2_signet_holder` |
+| `count_signet_ring` | 伯爵印戒（鹰丘印戒：戒面阴刻城塔上展翅的鹰，内圈一道齿兼作断门厅封闸的钥匙） | A2-M11 静钟之下（葬礼护印、夺回印戒） | 交付（继承人）；`a2_signet_holder` |
 | `tribunal_dossier` | 审判庭卷宗 | A2-D02.d 伪证的来源 | 证物 |
 | `village_bell_clapper` | 村钟的钟锤 | A2-S21 哭钟 | 交付（村祠复钟） |
 | `recovered_grave_goods` | 追回的陪葬品 | A2-S37 掘墓贼 | 交付（归葬） |

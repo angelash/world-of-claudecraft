@@ -285,6 +285,8 @@
 | `number_board` | 号码板 | 帘幕南侧中段 | 序章号码 | 无 |
 | `curtain` | 帘幕 | 中线 | 偷听"中""近"档的参照 | 无 |
 | `interview_hall` | 面试厅（审庭） | 北半 | 序章面试；第六幕开庭 | 无 |
+| `long_table` | 长桌 | 北半，帘幕以北 | 序章五位女神的面试席；第六幕五司的座席 | 无 |
+| `sixth_chair` | 第六把椅子 | 长桌尽头 | 序章只作画面与声响；第六幕仍空着（只有透过门才看得见） | 无 |
 | `court_seat` | 庭之席 | 北半中轴 | 第六幕 | 无 |
 | `court_mirror` | 庭镜 | 北半正中 | 证据展示；下庭门 | 无 |
 | `witness_stand`、`evidence_stand` | 证人台、证物台 | 北半两侧 | 第六幕质证 | 无 |
@@ -585,6 +587,7 @@
 | `dice_house` | 骰子屋 | 盐巷尽头 | 独眼团耳目 | 无 |
 | `guard_post`、`north_gate` | 卫队哨所与荒原门 | 北门 | 兽潮防线 | 无 |
 | `south_gate`、`post_station`、`post_yard` | 王道门、驿站与马厩院 | 南门外 | 伯爵来信、驿马、坐骑寄存 | 无 |
+| `east_gate` | 东门（东栅的门） | 东侧 | 兽潮东栅防线、东坡入栅 | 无 |
 | `east_slope`、`herb_hut` | 东坡与欧拉的药草小屋 | 东门外 | 林地之争、借形之门 | 标 |
 | `lumberyard` | 伐木场 | 东北溪边 | 林地之争 | 无 |
 | `graveyard`、`gravekeeper_hut` | 墓地与守墓人小屋 | 西南小坡 | 米洛的坟、夜里的坟火 | 标 |
@@ -2928,7 +2931,7 @@ WWWWWWWWWWWWWW~~~~WWWWWWWWWWWWWWWWWWWWWWWWWW~~~~WWWWWWWWWWWWWWWW
 | 9 | `borderstone` | 驿站东墙 (38, 41) 开门，(39 到 49, 39 到 43) 登记为地点 `post_yard`（驿站马厩院，驿马与坐骑寄存），放推车与草垛 | 空间层 | 无围死的可走区 |
 | 10 | `wallenburg` | 大教堂北墙 (30, 5) 开后门；第 4 行登记为地点 `clergy_lane`；`anselm`、`agnes`、`selene`、`krause` 与勇者团四人的日程改走后巷 | 空间层与逻辑层 | 前庭的 NPC 人流下降；后巷两端都通 |
 | 11 | `old_outpost` | 干井 (25, 26) 与村祠 (16, 29) 的岩石格换为土路格，放 `dry_well` 与 `shrine_ruin` 装饰；`previewPlacement` 的占用集合加入 `kind` 为 `ruin` 的地点 | 逻辑层与空间层 | 废墟地标上不能建房；两处看得出是井与祠 |
-| 12 | `divine_court` | 灵镜移到东墙中段，地点 `spirit_mirror` 为 (21, 11, 2, 1)；偷听三档按到帘幕中段 (12, 8) 的距离：近 2 格以内、中 2 到 5 格、远 5 格以上 | 空间层 | 长椅与灵镜都落在"远"档 |
+| 12 | `divine_court` | 灵镜在东墙中段，地点 `spirit_mirror` 为 (21, 11, 2, 1)；偷听档由争吵开始前的姿态选择决定，不按到帘幕的距离计算（`prologue_antechamber.md` 第 3.1 节） | 空间层 | 灵镜的位置不影响偷听档 |
 | 13 | 多张 | `DECOR_KINDS` 加 `standing_stone`、`doorframe`、`ground_mark`、`dry_well`、`shrine_ruin`、`landmark_tree`、`mine_lamp`，`src/client/render/decor_art.ts` 补模板；摆放：边石镇边石 (29.5, 21.5)、封门遗迹禁碑（替换借用的墓碑立牌）、门内庭院门框 (11.5, 17.5)、荒原外缘碎门坡倒伏门框 6 件、旧水道粉笔记号替换路牌立牌。`landmark_tree` 是唯一允许站在树格上的装饰：它替换该格的树形 | 外观层 | `lookProblems` 与外观层测试通过；`landmark_tree` 只能落在树格 |
 | 14 | `borderstone` | `looks`：`mill` 的 `sign` 为 `wheel`，`bakery` 为 `bread`，`post_station` 为 `horseshoe` | 外观层 | 招牌与功能一致 |
 | 15 | `forest_edge` | 约树：`landmark_tree` 放在 (19.5, 10.5)（`pact_oak` 正北的树格）；猎户：`gorn`、`shiya`、`boro` 的日程 5 到 11 点写 `forest_edge:hunter_camp`（跨图日程），玩家在林缘时于营地生成 | 外观层与逻辑层 | 约树一眼认得出；清晨营地有人 |

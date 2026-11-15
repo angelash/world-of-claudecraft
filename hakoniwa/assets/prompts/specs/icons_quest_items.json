@@ -76,7 +76,7 @@
       },
       "ref": "guild_letter",
       "milestone": "M1",
-      "notes": "公会送信的通用信件（A1-M04 送到礼拜堂的那封与各幕送信委托共用）。纸面不画字与地址。与 count_letter（深蓝蜡、城塔纹）、bron_reference_letter（长信封、双蜡封）区分：本条小而方，有麻绳十字捆。"
+      "notes": "公会送信的通用信件（A1-M04 送到礼拜堂的那封与各幕送信委托共用）。纸面不画字与地址。与 count_letter（深蓝蜡、城塔上的鹰纹）、bron_reference_letter（长信封、双蜡封）区分：本条小而方，有麻绳十字捆。"
     },
     {
       "id": "art_ico_item_bounty_voucher",
@@ -280,12 +280,12 @@
       "id": "art_ico_item_count_signet_ring",
       "template": "ico_item",
       "subject": {
-        "zh": "一枚伯爵印戒：粗厚的金戒圈，戒面是一块平整的椭圆形深蓝宝石，宝石上阴刻着一座城塔纹章，戒圈两肩各雕着一片橡叶，金色厚重温润。",
-        "en": "A count's signet ring: a heavy gold band with a flat oval face of deep blue stone, a city-tower crest cut into the stone, an oak leaf carved on each shoulder of the band, the gold thick and warm."
+        "zh": "一枚伯爵印戒：粗厚的金戒圈，戒面是一块平整的椭圆形深蓝宝石，宝石上阴刻着城塔上展翅的鹰，戒圈两肩各雕着一片橡叶，戒圈内侧凸起一道小齿，像钥匙的齿，金色厚重温润。",
+        "en": "A count's signet ring: a heavy gold band with a flat oval face of deep blue stone, a spread-winged eagle on a city tower cut into the stone, an oak leaf carved on each shoulder of the band, a small raised tooth on the inside of the band like the bit of a key, the gold thick and warm."
       },
       "ref": "count_signet_ring",
       "milestone": "M2",
-      "notes": "城塔纹章与 count_letter 的深蓝蜡封是同一个家族纹章。只画戒指，不画手；金色用暖金黄，不用门扉金。"
+      "notes": "鹰丘印戒（第二幕）：城塔上展翅的鹰是鹰丘伯爵家的家徽，与 count_letter 的深蓝蜡封、过场特写 art_prop_cut_funeral_signet 同纹；内侧的小齿让它兼作断门厅封闸的钥匙。只画戒指，不画手；金色用暖金黄，不用门扉金。"
     },
     {
       "id": "art_ico_item_tribunal_dossier",

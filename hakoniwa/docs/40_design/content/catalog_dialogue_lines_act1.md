@@ -74,13 +74,13 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 
 | 槽位 | 句 |
 | --- | --- |
-| greet.cold.avatar | 1. 〔when: act == prologue〕站好，样本。／2. 〔when: act >= 4〕你又站到光面前了。说吧，简短。／3. 〔when: act >= 4〕规格外的东西，也懂得来朝见？ |
-| greet.neutral.avatar | 1. 〔when: act == prologue〕第五号。请站在光里。／2. 〔when: act >= 4〕孩子，你来了。／3. 〔when: act >= 4〕光在等你开口。 |
+| greet.cold.avatar | 1. 〔when: act == 0〕站好，样本。／2. 〔when: act >= 4〕你又站到光面前了。说吧，简短。／3. 〔when: act >= 4〕规格外的东西，也懂得来朝见？ |
+| greet.neutral.avatar | 1. 〔when: act == 0〕第五号。请站在光里。／2. 〔when: act >= 4〕孩子，你来了。／3. 〔when: act >= 4〕光在等你开口。 |
 | greet.warm.avatar | 1. 〔when: act >= 4〕回到光里来，孩子。／2. 〔when: act >= 4〕你终于肯来了。很好，非常合乎规格。／3. 〔when: act >= 4〕光记得每一个回来的人。 |
 | greet.cold.shrine | 1. 〔when: act >= 3〕你不该在这里。／2. 〔when: act >= 3〕光看见你了。退下。／3. 〔when: act >= 4〕在我的祭坛前，你要说什么？ |
 | greet.neutral.shrine | 1. 〔when: act >= 4〕光听着。简洁一些。／2. 〔when: act >= 4〕祈祷要合乎规格，孩子。／3. 〔when: act >= 4〕说吧，我在。 |
 | greet.warm.shrine | 1. 〔when: act >= 4〕孩子，你肯跪下，这很好。／2. 〔when: act >= 4〕光记下了你的虔诚。／3. 〔when: act >= 4〕愿秩序与你同在。 |
-| farewell | 1. 退下吧。／2. 〔when: act == prologue〕下一个。／3. 〔when: act >= 4〕去吧，记住光的话。 |
+| farewell | 1. 退下吧。／2. 〔when: act == 0〕下一个。／3. 〔when: act >= 4〕去吧，记住光的话。 |
 | topic.gen_self.prologue | 1. 光与秩序之司。你只需要知道这个。／2. 我照看这座庭园，让它合乎规格。 |
 | topic.gen_you.prologue | 1. 你是一个登记错误。我正在确认这一点。／2. 一份多出来的样本。合格与否，光会量。 |
 | topic.place_antechamber.prologue | 1. 神庭的候见厅。我们是照看你将要去的那座庭园的人。／2. 你站的地方，本该只有四个人站过。 |
@@ -118,13 +118,13 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 
 | 槽位 | 句 |
 | --- | --- |
-| greet.cold.avatar | 1. 〔when: act == prologue〕哟，这块肉还挺硬。／2. 〔when: act >= 3〕又是你，{player}。皮痒了？／3. 〔when: act >= 3〕站直了说话，别缩着。 |
-| greet.neutral.avatar | 1. 〔when: act == prologue〕新肉，过来让我瞧瞧。／2. 〔when: act >= 3〕来了，{player}。／3. 〔when: act >= 3〕哈，还活着呢？ |
+| greet.cold.avatar | 1. 〔when: act == 0〕哟，这块肉还挺硬。／2. 〔when: act >= 3〕又是你，{player}。皮痒了？／3. 〔when: act >= 3〕站直了说话，别缩着。 |
+| greet.neutral.avatar | 1. 〔when: act == 0〕新肉，过来让我瞧瞧。／2. 〔when: act >= 3〕来了，{player}。／3. 〔when: act >= 3〕哈，还活着呢？ |
 | greet.warm.avatar | 1. 〔when: act >= 3〕哈！我就知道你会来。／2. 〔when: act >= 4〕对手，打一场再说话？／3. 〔when: act >= 4〕你身上的伤又多了，好看。 |
 | greet.cold.shrine | 1. 〔when: act >= 3〕跪着求我的，我不看。／2. 〔when: act >= 3〕要打就打，要求就滚。／3. 〔when: act >= 3〕声音太小，听不见。 |
 | greet.neutral.shrine | 1. 〔when: act >= 3〕要上场了？说吧。／2. 〔when: act >= 3〕刀磨好了没有？／3. 〔when: act >= 3〕喊我，就得有架打。 |
 | greet.warm.shrine | 1. 〔when: act >= 3〕哈！是你在喊我？好！／2. 〔when: act >= 4〕今天打谁？我来见证。／3. 〔when: act >= 4〕痛快，就这股劲。 |
-| farewell | 1. 滚吧，别死得太快。／2. 下回带点硬的来。／3. 〔when: act == prologue〕哈，看戏去了。 |
+| farewell | 1. 滚吧，别死得太快。／2. 下回带点硬的来。／3. 〔when: act == 0〕哈，看戏去了。 |
 | topic.gen_self.prologue | 1. 争斗与淬炼之司。打架的都归我管。／2. 我？我就是那个看你们打架会笑的。 |
 | topic.gen_you.prologue | 1. 一块还没被打过的肉。看着软，说不定硬。／2. 你不合她的规格？那你合我的口味。 |
 | topic.place_antechamber.prologue | 1. 候见厅，等着挨挑的地方。 |
@@ -162,8 +162,8 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | greet.cold.shrine | 1. 投币口在下面，客人。／2. 光看神龛不投币，那叫参观。／3. 嗯？是你啊。 |
 | greet.neutral.shrine | 1. 神龛前站着的，都是我的客人。／2. 客人，要供点什么？／3. 欢迎光临，今天的行情不错。 |
 | greet.warm.shrine | 1. 亲爱的客人！快，让我看看你带了什么。／2. 你一来，这神龛都亮堂了。／3. 老主顾，给你算熟人价。 |
-| greet.cold.avatar | 1. 〔when: act == prologue〕空手的客人，我也接待。／2. 〔when: act >= 1〕坐吧，账我们慢慢对。／3. 〔when: act >= 1〕今天没点心，你的账不太好看。 |
-| greet.neutral.avatar | 1. 〔when: act == prologue〕亲爱的客人，我们来谈谈正事。／2. 〔when: act >= 1〕坐，茶我请，点心你请。／3. 〔when: act >= 1〕哎呀，客人，又见面了。 |
+| greet.cold.avatar | 1. 〔when: act == 0〕空手的客人，我也接待。／2. 〔when: act >= 1〕坐吧，账我们慢慢对。／3. 〔when: act >= 1〕今天没点心，你的账不太好看。 |
+| greet.neutral.avatar | 1. 〔when: act == 0〕亲爱的客人，我们来谈谈正事。／2. 〔when: act >= 1〕坐，茶我请，点心你请。／3. 〔when: act >= 1〕哎呀，客人，又见面了。 |
 | greet.warm.avatar | 1. 〔when: act >= 1〕我的好客人！这块点心分你一半。／2. 〔when: act >= 1〕你来得巧，我刚算完一笔好账。／3. 〔when: act >= 1〕客人，你最近可是我的好投资。 |
 | farewell | 1. 慢走，客人，下次带点好东西。／2. 账记上了，回头见。／3. 生意要做长久嘛。／4. 〔mood: 喜〕今天赚了，客人也赚了。 |
 | topic.gen_self.prologue | 1. 交易与丰饶之司。园丁，客人，我们都是园丁。／2. 我？做买卖的。什么都能谈。 |
@@ -219,8 +219,8 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 
 | 槽位 | 句 |
 | --- | --- |
-| greet.cold.avatar | 1. 〔when: act == prologue〕……／2. 〔when: act >= 4〕……你来了。站远些。／3. 〔when: act >= 4〕风不想见你。 |
-| greet.neutral.avatar | 1. 〔when: act == prologue〕……嗯。／2. 〔when: act >= 4〕远来的人。／3. 〔when: act >= 4〕……坐吧。草是软的。 |
+| greet.cold.avatar | 1. 〔when: act == 0〕……／2. 〔when: act >= 4〕……你来了。站远些。／3. 〔when: act >= 4〕风不想见你。 |
+| greet.neutral.avatar | 1. 〔when: act == 0〕……嗯。／2. 〔when: act >= 4〕远来的人。／3. 〔when: act >= 4〕……坐吧。草是软的。 |
 | greet.warm.avatar | 1. 〔when: act >= 4〕远来的人，春天跟着你来了。／2. 〔when: act >= 4〕……又见面了。／3. 〔when: act >= 4〕你身上有林子的味道。 |
 | greet.cold.shrine | 1. 〔when: act >= 4〕……水很浑。／2. 〔when: act >= 4〕今天，不听。／3. 〔when: act >= 4〕……走吧。 |
 | greet.neutral.shrine | 1. 〔when: act >= 4〕……风停了一下。我在听。慢慢说。／2. 〔when: act >= 4〕说吧。／3. 〔when: act >= 4〕泉边很静。 |
@@ -258,13 +258,13 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 
 | 槽位 | 句 |
 | --- | --- |
-| greet.cold.avatar | 1. 〔when: act == prologue〕你的故事还没开始，就想跳页？／2. 〔when: act >= 4〕主角今天心情不好？／3. 〔when: act >= 4〕你来得不是时候。这一页我还没写完。 |
-| greet.neutral.avatar | 1. 〔when: act == prologue〕第五号。名字。／2. 〔when: act >= 4〕有趣，你又翻到我这一页了。／3. 〔when: act >= 4〕坐，这一章刚好写到你。 |
+| greet.cold.avatar | 1. 〔when: act == 0〕你的故事还没开始，就想跳页？／2. 〔when: act >= 4〕主角今天心情不好？／3. 〔when: act >= 4〕你来得不是时候。这一页我还没写完。 |
+| greet.neutral.avatar | 1. 〔when: act == 0〕第五号。名字。／2. 〔when: act >= 4〕有趣，你又翻到我这一页了。／3. 〔when: act >= 4〕坐，这一章刚好写到你。 |
 | greet.warm.avatar | 1. 〔when: act >= 4〕主角来了。伏笔可以收一收了。／2. 〔when: act >= 4〕我喜欢你今天的开场。／3. 〔when: act >= 4〕你来了，我就知道这一章不会无聊。 |
 | greet.cold.shrine | 1. 〔when: act >= 3〕书库不借给没带借书证的人。／2. 〔when: act >= 3〕安静，这里在记录。／3. 〔when: act >= 3〕你要的那一页，不在架上。 |
 | greet.neutral.shrine | 1. 〔when: act >= 3〕我的主人说：有趣，你来了。／2. 〔when: act >= 3〕要读，还是要写？／3. 〔when: act >= 3〕这一架书，等你很久了。 |
 | greet.warm.shrine | 1. 〔when: act >= 3〕那位没有页的客人。欢迎。／2. 〔when: act >= 4〕我替你留了一张椅子。／3. 〔when: act >= 4〕今天想交换哪一段故事？ |
-| farewell | 1. 下一章见。／2. 去吧，我还在记。／3. 〔when: act == prologue〕放心，这一章才刚开始。 |
+| farewell | 1. 下一章见。／2. 去吧，我还在记。／3. 〔when: act == 0〕放心，这一章才刚开始。 |
 | topic.gen_self.prologue | 1. 记录与命运之司。我负责把你们写下来。／2. 一个读者，偶尔也是编辑。 |
 | topic.gen_you.prologue | 1. 一个空白页。我非常喜欢空白页。／2. 有人在读你。我是其中一个。 |
 | topic.place_antechamber.prologue | 1. 序章的第一页。你站的是书的门口。 |
@@ -1678,8 +1678,8 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | react.insult | 1. 你找死。／2. 出来，单挑。 |
 | topic.gen_self.neutral | 1. 瑟格。独眼团的头。／2. 我的人，我护着。别人的命，我不随便拿。 |
 | topic.gen_work.K1 | 1. 讨生活。从那些老爷手里讨。／2. 团规：不杀平民。谁坏规矩，我砍谁。 |
-| topic.self_seg_oldwatch.K1 | 1. 旧哨村被烧那年，领主的援兵没来。／2. 我这只眼，也是在魔物季丢的。援兵也没来。 |
-| topic.secret_seg_letters.K1 | 1. 〔when: a1_seg_duel_won〕代官的信，我都留着。当保险。／2. 〔when: a1_seg_duel_won〕你赢了。拿去吧。 |
+| topic.self_seg_oneeye_oldwatch.K1 | 1. 旧哨村被烧那年，领主的援兵没来。／2. 我这只眼，也是在魔物季丢的。援兵也没来。 |
+| topic.secret_seg_oneeye_letters.K1 | 1. 〔when: a1_seg_duel_won〕代官的信，我都留着。当保险。／2. 〔when: a1_seg_duel_won〕你赢了。拿去吧。 |
 | topic.event_old_watch_908.K1 | 1. 九百零八年。村子烧了一夜。我祖上就在里面。 |
 | quest.q_a1_d01_tax_and_bandits.progress | 1. 〔when: act_week >= 6〕想跟我谈？先打赢我。／2. 〔when: a1_seg_duel_won〕你赢了。说吧，你要什么。 |
 | quest.q_a1_d01_tax_and_bandits.after | 1. 〔when: a1_oneeye_fate == absorbed〕镇外巡队。哼，名字难听，活还行。／2. 〔when: a1_oneeye_fate == destroyed〕……（他没再说话） |
@@ -1937,8 +1937,8 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | react.insult | 1. 年轻人，马都比你懂礼貌。／2. 嗯。 |
 | topic.gen_self.neutral | 1. 乌尔夫，南门驿站的驿卒。／2. 我在这条路上跑了四十年。 |
 | topic.gen_work.K0 | 1. 收信、送信、租马。／2. 王国的驿务，不分贵贱。 |
-| topic.self_ulf_horses.K0 | 1. 这匹老马跟了我十二年。／2. 马不认得你是几级，它只认得你给不给燕麦。 |
-| topic.secret_ulf_letters.K0 | 1. 〔when: trust.ulf_lange >= 60〕……代官寄往瓦伦堡的信，我拆过一封。写的是"矿石"，收件仓是哈伯的。／2. 〔when: trust.ulf_lange >= 60〕驿卒不该拆信。我就拆过那一回。 |
+| topic.self_ulf_lange_horses.K0 | 1. 这匹老马跟了我十二年。／2. 马不认得你是几级，它只认得你给不给燕麦。 |
+| topic.secret_ulf_lange_letters.K0 | 1. 〔when: trust.ulf_lange >= 60〕……代官寄往瓦伦堡的信，我拆过一封。写的是"矿石"，收件仓是哈伯的。／2. 〔when: trust.ulf_lange >= 60〕驿卒不该拆信。我就拆过那一回。 |
 | quest.q_a1_m13_woman_at_door.progress | 1. 〔when: a1_count_letter IN (a, b, c, d)〕伯爵府的火漆。给公会的布伦。年轻人，你帮我送过去？ |
 | bark.work | 1. 吁……慢点。／2. 这袋信是北边来的。 |
 
@@ -1960,8 +1960,8 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | react.insult | 1. 再说一遍，我用锤子跟你说。／2. 滚。 |
 | topic.gen_self.neutral | 1. 克努特。修刀的。／2. 以前给人修军械。现在修什么都行。 |
 | topic.gen_work.K1 | 1. 修补、冷锻。长枪、刀、农具。／2. 刀钝了别怪铁，怪你砍了不该砍的东西。 |
-| topic.self_knut_repair.K1 | 1. 冷锻比热锻慢，可是结实。／2. 我的矛头，对灰鬼格外利。运气好吧。 |
-| topic.secret_knut_greystone.K1 | 1. 〔when: trust.knut_naumann >= 40〕我往铁里掺一点荒原捡的灰石。打出来的东西好使。……别问为什么，我也不知道。 |
+| topic.self_knut_naumann_repair.K1 | 1. 冷锻比热锻慢，可是结实。／2. 我的矛头，对灰鬼格外利。运气好吧。 |
+| topic.secret_knut_naumann_greystone.K1 | 1. 〔when: trust.knut_naumann >= 40〕我往铁里掺一点荒原捡的灰石。打出来的东西好使。……别问为什么，我也不知道。 |
 | bark.work | 1. 叮。叮。／2. 再淬一回。 |
 | bark.camp | 1. 刀擦干净再睡。 |
 
@@ -1983,15 +1983,15 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | react.insult | 1. 过桥加钱。／2. 走开。 |
 | topic.gen_self.neutral | 1. 卡斯。守绳桥的。／2. 我记得每个过桥的人，还有他们背的东西。 |
 | topic.gen_work.K0 | 1. 守桥，收钱，数人。／2. 灰溪的水，冬天也不结冰。 |
-| topic.self_kas_count.K0 | 1. 今天过去九个，回来七个。你是第十个。／2. 少了的那两个，我也记着。 |
-| topic.secret_kas_father.K0 | 1. 〔when: trust.kas_ropebridge >= 60〕我爹是被独眼团杀的。我守桥，是为了数清他们还剩几个人。 |
+| topic.self_kas_ropebridge_count.K0 | 1. 今天过去九个，回来七个。你是第十个。／2. 少了的那两个，我也记着。 |
+| topic.secret_kas_ropebridge_father.K0 | 1. 〔when: trust.kas_ropebridge >= 60〕我爹是被独眼团杀的。我守桥，是为了数清他们还剩几个人。 |
 | topic.place_ropebridge.K0 | 1. 断桥。绳桥是我爹搭的。／2. 灰溪对面就是荒原。 |
 | bark.work | 1. 一个，两个……／2. 绳子要松了。 |
 | bark.night | 1. 夜里没人过桥。……有的话，更要数清楚。 |
 
 ## 6. 居民模板
 
-模板台词由回退链第 5 层读取（台词目录第 1.2 节），用于 L3 居民与具名化的人。模板跨幕、跨地区使用，所以句子不带人名地名，靠 `{place}`、`{who}` 等填充槽贴地；第一幕专属的句子加 `when: act == act1`。解释顺序与反应倾向依据 [catalog_characters_lotha.md](catalog_characters_lotha.md) 第 6 节的乙表。第一幕用到下列 17 个，其余 15 个在第二幕文件。
+模板台词由回退链第 5 层读取（台词目录第 1.2 节），用于 L3 居民与具名化的人。模板跨幕、跨地区使用，所以句子不带人名地名，靠 `{place}`、`{who}` 等填充槽贴地；第一幕专属的句子加 `when: act == 1`。解释顺序与反应倾向依据 [catalog_characters_lotha.md](catalog_characters_lotha.md) 第 6 节的乙表。第一幕用到下列 17 个，其余 15 个在第二幕文件。
 
 #### `ln_tpl_tenant_farmer` 佃农（模板；本批 23 句）
 
@@ -2087,8 +2087,8 @@ A1-M01（落门）与 A1-M10（识才）没有发布者，不设任务对话槽�
 | topic.gen_work.K0 | 1. 跟着集日跑，这个镇子卖完去下一个。／2. 卖杂货，也卖消息。 |
 | bark.vendor_call | 1. 针线盐巴！／2. 外地的好货！ |
 | bark.travel | 1. 下个镇子还有多远。 |
-| quest.q_a1_s12_copper_bell.offer | 1. 〔when: act == act1；place: market；strict〕我的铜铃被偷了！集上卖的，就那一个！谁看见了？ |
-| quest.q_a1_s12_copper_bell.complete | 1. 〔when: act == act1；place: market；strict〕铜铃找回来了！不是那个兽人小孩？……我错怪他了。 |
+| quest.q_a1_s12_copper_bell.offer | 1. 〔when: act == 1；place: market；strict〕我的铜铃被偷了！集上卖的，就那一个！谁看见了？ |
+| quest.q_a1_s12_copper_bell.complete | 1. 〔when: act == 1；place: market；strict〕铜铃找回来了！不是那个兽人小孩？……我错怪他了。 |
 
 #### `ln_tpl_caravan_guard` 商队护卫（模板；本批 23 句）
 

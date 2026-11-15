@@ -248,7 +248,7 @@ NPC 的具体言行由 AI 在知识层级与人格内即兴，结果由内核结
 | 11     | 葬礼。按家规，伯爵印戒随棺入土。操办丧仪的"安眠葬仪社"是门徒会的门面，抬棺人里混着信徒；袭击时他们直接从棺中取走印戒                                                                                   | 提前查出葬仪社的底细；护住印戒，或追回                       |
 | 12     | 主教以"异端作乱"为由宣布宗教戒严，艾德里克实际掌权；卢卡斯拒绝交出城防；塞西莉亚准备出城                                                                                                               | 三方之间的最后斡旋                                           |
 | 13     | 城下潮。三方各守自己在乎的出口：艾德里克守主教区，塞西莉亚守秤街与河港，卢卡斯守泥巷与城墙。战后民心按"谁守了谁"结算                                                                                   | 玩家守哪里、救了谁                                           |
-| 14     | 城议（在中城市政厅召开）：印戒持有者、民心、证据、玩家的表态，共同结算掌权者                                                                                                                           | 把印戒交给谁                                                 |
+| 14     | 城议（城下潮后第三日清晨，在中城市政厅召开）：印戒持有者、民心、证据、玩家的表态，共同结算掌权者                                                                                                                           | 把印戒交给谁                                                 |
 
 - 印戒的两重用途（只有伯爵家与埃米尔知道）：它是继承的信物，也是迷宫底层门站内厅那道铁闸的钥匙（埃尔茨家世代暗中看守这道闸）。
   门徒会的据点在门站前厅，进不去内厅；他们抢印戒不是为了继承，而是为了打开断门厅。若玩家在葬礼上护住印戒，它会落到离棺最近、
@@ -343,6 +343,8 @@ NPC 的具体言行由 AI 在知识层级与人格内即兴，结果由内核结
 | 马库斯 | "我的盾不对着朋友。"拒绝                                                                                   | 站在中间，谁先动手他挡谁               | 不情愿地服从                                                                             |
 | 艾登   | 不论关系，他都想单独见玩家，借逮捕的名义安排一次密谈；关系决定他把铭录检索的结果只告诉玩家，还是也报给教会 | 同左                                   | 同左                                                                                     |
 
+- 四人的选择写入 `hero_arrest_choice_*`：陆辰 refused、delayed、complied；结衣 warned、abstained、complied；马库斯 refused、abstained、complied；
+  艾登恒为 delayed（他借逮捕之名单独见玩家）。劫法场后各降一档。
 - 若玩家被捕：城下潮爆发时玩家在静室的牢里。赛琳必须决定是否放人去守城（她会放，但会跟着）。这一变体让城下潮的开局更紧张。
 - 逮捕令在城下潮后自动搁置（"待城安定再议"），战后的公众舆论与勇者团的态度决定它是撤销还是转为报告。
 
@@ -769,9 +771,9 @@ NPC 的具体言行由 AI 在知识层级与人格内即兴，结果由内核结
 | `hero_arrest_choice_*`                                                 | 四人对逮捕令的选择                                                             | refused、delayed、abstained、complied、warned                          | 第 12 周                                                                            |
 | `heroes_saw_power`                                                     | 勇者团所见的玩家实力                                                           | hidden、partial、full                                                  | 显露度                                                                              |
 | `aiden_report`                                                         | 艾登是否把检索结果报给教会                                                     | kept、reported                                                         | 拉远场景                                                                            |
-| `selene_stance`                                                        | 赛琳的态度                                                                     | hunt、enforce、waver、covert_ally                                      | 4.2                                                                                 |
+| `selene_stance`                                                        | 赛琳的态度                                                                     | hunt、enforce、waver、covert_ally                                      | 4.2；第二幕开幕时初始化：`church_suspicion >= 60` 为 hunt，否则 enforce |
 | `selene_evidence`                                                      | 赛琳手里的证据                                                                 | 0 到 5                                                                 | 问话、伪录、以身代之、劫法场                                                        |
-| `trial_outcome`                                                        | 光之审结果                                                                     | acquitted、penance、exiled、rescued_by_force、exiled_branded、executed | A2-M10                                                                              |
+| `trial_outcome`                                                        | 光之审结果                                                                     | acquitted、penance、exiled、rescued_by_force、exiled_branded、executed | A2-M10：acquitted、penance、rescued_by_force 在光之审当场写入；exiled_branded、executed 在第 11 周葬礼后结算；伪证揭穿而延期的案件在葬礼后撤销，记为 acquitted。罚赎（penance）为向慈济院缴纳赎罪金并在主教区服役至伯爵下葬，被告不离队 |
 | `church_verdict`                                                       | 教会对玩家的定性                                                               | clear、suspect、heresy_suspect、wanted                                 | 全幕综合                                                                            |
 | `eluen_awareness`                                                      | 艾琉恩知晓度（隐藏）                                                           | 0 到 100                                                               | 光之奇迹祭、结衣的祈祷、葬礼、城下潮                                                |
 | `rescued_children`                                                     | 救回的遗民孩子                                                                 | 0 到 9                                                                 | 4.3                                                                                 |

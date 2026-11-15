@@ -7825,7 +7825,7 @@
       "ref": "faceless",
       "deps": ["art_chr_faceless_redeemed_ref"],
       "milestone": "M3",
-      "notes": "附本状态三视图 art_chr_faceless_redeemed_ref 作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a5_mirror_c 与 cut_a5_trial_called；行走见 art_chr_faceless_redeemed_walk，左向由右向镜像，合起来是目录要求的坐、站、走各四向。 手背上只剩一道淡痕的门纹由渲染层画；纸片上没有字。"
+      "notes": "附本状态三视图 art_chr_faceless_redeemed_ref 作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a5_mirror_c、cut_a5_trial_called 与 cut_end_release 的客人一段；行走见 art_chr_faceless_redeemed_walk，左向由右向镜像，合起来是目录要求的坐、站、走各四向。 手背上只剩一道淡痕的门纹由渲染层画；纸片上没有字。"
     },
     {
       "id": "art_chr_faceless_redeemed_walk",

@@ -25,8 +25,8 @@
         "en": "The goddess of light as a tall woman: immaculate platinum hair falling straight to the waist, platinum eyes with a measuring gaze. Perfectly symmetrical white and gold robes with geometric gold trim at collar and cuffs, white #f4f2ea, gold #d8b860, a precise geometric halo floating behind her like slowly turning gears. Composed, cool expression. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
       },
       "extra": {
-        "zh": "第 8 格的角色专属表情：居高临下的审视：下巴微抬，眼神冷淡。",
-        "en": "Panel 8 is the character's signature expression: looking down in appraisal: chin slightly raised, cold eyes."
+        "zh": "第 8 格的角色专属表情：光环停转：背后齿轮状的光环停住不转，眼神失焦一瞬，嘴唇微启。",
+        "en": "Panel 8 is the character's signature expression: the halo stops: the gear-like halo behind her freezes mid-turn, her gaze loses focus for an instant, lips slightly parted."
       },
       "ref": "eluen",
       "deps": ["art_chr_eluen_ref"],
@@ -42,8 +42,8 @@
         "en": "The goddess of strife as a towering, muscular woman warrior: bronze skin covered in old scars, wild dark red long hair, red-gold eyes, a fanged grin. A pair of curved horns, the right one broken halfway. Red and black battle armor #8a1c1c, #1e1a1a, pauldrons covered in blade nicks, a broken sword resting on her shoulder. Boisterous and eager for a fight. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
       },
       "extra": {
-        "zh": "第 8 格的角色专属表情：露出尖牙的开怀大笑。",
-        "en": "Panel 8 is the character's signature expression: a wide laugh showing her fangs."
+        "zh": "第 8 格的角色专属表情：望向空处：笑意收住，视线越过观者，看向画面外的一处空位。",
+        "en": "Panel 8 is the character's signature expression: looking at the empty place: the grin fades and her gaze goes past the viewer to an empty spot off-frame."
       },
       "ref": "valda",
       "deps": ["art_chr_valda_ref"],
@@ -59,8 +59,8 @@
         "en": "The goddess of trade as a halfling-sized woman who reaches an adult's chest: round face with a few freckles, honey-gold curls in two small buns, golden eyes curved in a smile. A vermilion merchant coat full of pockets with gold trim #b8402a, #e0b040, a thick ledger under one arm, a pastry in her hand, a few gold coins spinning in the air around her. Chibi about 1.6 heads tall; portraits and busts use normal proportions."
       },
       "extra": {
-        "zh": "第 8 格的角色专属表情：两眼放光的贪吃笑，嘴角沾着点心屑。",
-        "en": "Panel 8 is the character's signature expression: a greedy delighted grin with crumbs at the corner of her mouth."
+        "zh": "第 8 格的角色专属表情：估价眼：金色的眼睛眯起，瞳孔里映着旋转的硬币。",
+        "en": "Panel 8 is the character's signature expression: the appraising eye: her golden eyes narrow, a spinning coin reflected in each pupil."
       },
       "ref": "merca",
       "deps": ["art_chr_merca_ref"],
@@ -76,8 +76,8 @@
         "en": "The goddess of life as a slender, weightless woman: pale skin, knee-length pale green hair woven with both withered and freshly opened flowers, eyes usually closed, a quiet expression. Layered thin garments in moss green and dead-leaf brown like fallen leaves #6a8a5a, #8a6a42, barefoot. Moves lightly and slowly. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
       },
       "extra": {
-        "zh": "第 8 格的角色专属表情：闭着眼的淡淡微笑。",
-        "en": "Panel 8 is the character's signature expression: a faint smile with closed eyes."
+        "zh": "第 8 格的角色专属表情：睁眼：第一次睁开眼睛，平静地直视观者。其余各格都闭着眼。",
+        "en": "Panel 8 is the character's signature expression: opening her eyes: her eyes open for the first time, looking calmly at the viewer. Every other panel keeps her eyes closed."
       },
       "ref": "sylvie",
       "deps": ["art_chr_sylvie_ref"],
@@ -93,8 +93,8 @@
         "en": "The goddess of record as a tall hooded scribe: ink-blue hooded robe #2a3450, chestnut short hair and a ready smile under the hood, a round lens etched with fine lines hovering before her left eye, ink-stained fingertips. A parchment-colored scroll #e8dcc0 trails from her waist down to the ground, an open book floats beside her. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
       },
       "extra": {
-        "zh": "第 8 格的角色专属表情：看穿一切的狡黠笑，挑起一边眉毛。",
-        "en": "Panel 8 is the character's signature expression: a knowing sly smile with one eyebrow raised."
+        "zh": "第 8 格的角色专属表情：镜片反光：一根手指推着左眼前的镜片，镜片上一闪白光，看不见那只眼睛，嘴角带笑。",
+        "en": "Panel 8 is the character's signature expression: the lens glints: one finger pushing up the lens before her left eye, a flash of white light on the lens hiding that eye, a smile at the corner of her mouth."
       },
       "ref": "moira",
       "deps": ["art_chr_moira_ref"],
@@ -2284,15 +2284,15 @@
     {
       "id": "art_por_severin",
       "template": "por_npc",
-      "style": "valen_city",
+      "style": "lothar_plain",
       "subject": {
-        "zh": "六十岁上下的人族大主教，高瘦，面容严峻，鹰钩鼻，薄唇，眼神灼热而坚决。银白头发剪得很短，灰色眼睛。纯白镶金的大主教长袍 #f2efe6、#c8a040，肩披绣光环纹的红色披带 #a82a2a，头戴高耸的白色主教冠，手握光环权杖。",
-        "en": "A human archbishop around sixty, tall and thin with a severe face, a hooked nose, thin lips, a burning resolute gaze. Very short silver-white hair, grey eyes. A pure white archbishop's robe with gold trim #f2efe6, #c8a040, a red stole embroidered with halos #a82a2a, a tall white mitre, a halo scepter in hand."
+        "zh": "六十岁上下的人族大主教，瘦高挺直，白发剪得很短，神情笃定；穿白底金纹的主教长袍，头戴高主教冠（#f2efe6、#c9a646），胸前垂着金色光环纹的圣带，双手握着一柄顶端是光环的金色长权杖。",
+        "en": "A human archbishop of about sixty, tall, thin and upright, white hair cut very short, a certain and settled expression; a white archbishop robe with gold patterns and a tall miter (#f2efe6, #c9a646), a gold halo-patterned stole down his chest, a long gold crozier topped with a halo held in both hands."
       },
       "ref": "severin",
-      "deps": [],
+      "deps": ["art_boss_archbishop_dawnpillar_ref"],
       "milestone": "M2",
-      "notes": "附该 NPC 的纸娃娃组装预览图（游戏导出的正面放大图）作参照；四格只有表情变化，头像按正常比例画。 比瓦伦堡主教更高阶：披带是红色；权杖顶端是几何光环。"
+      "notes": "附首领三视图 art_boss_archbishop_dawnpillar_ref（重点看第 4 格胸像）作参照，他在场景里用首领立牌；四格只有表情变化，头像按正常比例画；辨识特征按固定描述块，一字不改。 圣带是金色光环纹，权杖顶端是光环；狂热只在眼神里，衣饰不加别的颜色。"
     },
     {
       "id": "art_por_brigitte",
@@ -3415,15 +3415,15 @@
     {
       "id": "art_por_mute_bell",
       "template": "por_npc",
-      "style": "mercato_coast",
+      "style": "ash_waste",
       "subject": {
-        "zh": "三十来岁的男子，瘦长，脸色灰白，嘴被一块灰布严严蒙住，只露出一双冷淡的灰眼睛。黑发剪得极短。贴身的深灰暗行者装束 #2e3036，外罩无纹的黑斗篷，腰间挂一只用布条缠死的小铜钟与一副细长的开锁工具。",
-        "en": "A man around thirty, long and thin with an ashen face, his mouth tightly covered by a grey cloth, only a pair of cold grey eyes showing. Black hair cropped very short. A fitted dark grey stalker's outfit #2e3036 under a plain black cloak, a small copper bell bound shut with cloth strips and a set of slender lockpicks at his belt."
+        "zh": "被割了舌头的遗民敲钟人，瘦高，三十来岁，灰褐的旧斗篷打满补丁，围巾裹住下半张脸，左手套边露出一块拱门形的胎记；腰间挂着一口青铜手钟，右手握着敲钟的短锤，胸前用皮绳挂着一把没有纹样的古旧钥匙。",
+        "en": "A tongueless bell ringer of the remnant folk, tall and thin, about thirty, a patched gray-brown old cloak, a scarf wrapped over the lower half of his face, an arch-shaped birthmark peeking out from the edge of his left glove; a bronze hand bell at his waist, a short striking hammer in his right hand, an old key with no markings hung on a leather cord at his chest."
       },
       "ref": "mute_bell",
-      "deps": [],
+      "deps": ["art_boss_mute_bell_chase_ref"],
       "milestone": "M3",
-      "notes": "附该 NPC 的纸娃娃组装预览图（游戏导出的正面放大图）作参照；四格只有表情变化，头像按正常比例画。 外号哑钟：缠死的小铜钟是标志；不画任何组织标志。"
+      "notes": "附首领三视图 art_boss_mute_bell_chase_ref（重点看第 4 格胸像）作参照，他在场景里用首领立牌；四格只有表情变化，头像按正常比例画；辨识特征按固定描述块，一字不改。 外号哑钟：青铜手钟与围巾上方的眼睛是辨识点；钥匙不画纹样；不画任何组织标志。"
     },
     {
       "id": "art_por_aurelius_vent",

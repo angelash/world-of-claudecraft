@@ -2678,8 +2678,8 @@
       "id": "art_ico_item_count_letter",
       "template": "ico_item",
       "subject": {
-        "zh": "一封信：厚实的米白信封，封口压着一枚深蓝色的蜡封，蜡封上是一座城塔的纹章，信封一角有一道折痕。",
-        "en": "A letter: a thick cream envelope sealed with dark blue wax bearing a city-tower emblem, a fold crease across one corner."
+        "zh": "一封信：厚实的米白信封，封口压着一枚深蓝色的蜡封，蜡封上是城塔上展翅的鹰的纹章，信封一角有一道折痕。",
+        "en": "A letter: a thick cream envelope sealed with dark blue wax bearing an emblem of a spread-winged eagle on a city tower, a fold crease across one corner."
       },
       "ref": "count_letter",
       "milestone": "M1",
