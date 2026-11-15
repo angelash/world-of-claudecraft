@@ -289,7 +289,8 @@
     "quality": 1,
     "value": 30,
     "desc": "鹿泉边长的草，嚼碎了能驱散身上的灰气。",
-    "use": { "effect": "cleanse", "amount": 2 }
+    "use": { "effect": "cleanse", "amount": 2 },
+    "tags": ["herb", "material"]
   },
   {
     "id": "ash_spirits",

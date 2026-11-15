@@ -111,7 +111,7 @@
   },
   {
     "id": "wool",
-    "name": "毛麻",
+    "name": "羊毛",
     "kind": "material",
     "quality": 1,
     "value": 8,

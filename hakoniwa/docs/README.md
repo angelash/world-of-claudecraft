@@ -88,6 +88,20 @@
 | [systems/grand_strategy_slg.md](40_design/systems/grand_strategy_slg.md)             | 大战略                                                                                                                                                                                                     |
 | [systems/economy_and_trade.md](40_design/systems/economy_and_trade.md)               | 经济与贸易                                                                                                                                                                                                 |
 | [content/content_outline.md](40_design/content/content_outline.md)                   | 内容总清单与体量对照                                                                                                                                                                                       |
+| [content/content_bible.md](40_design/content/content_bible.md)                       | 内容设计总纲：价值通道与去处、统一阶梯 T0 到 T7、区域与澱度矩阵、迷宫名册、魔物三元组与澱源材性、物品骨架与价格公式、共享材料注册表、条目格式、目录分工与命名空间 |
+| [content/catalog_characters_lotha.md](40_design/content/catalog_characters_lotha.md) | 人物（一）：洛萨王国与灰烬荒原的有名 NPC、各聚落功能名册（师傅、商人、工匠、医者）、可招募人才池、无名居民模板 `tpl_` |
+| [content/catalog_characters_continent.md](40_design/content/catalog_characters_continent.md) | 人物（二）：大陆诸国与跨国组织的有名 NPC、将领、名匠、流派与合技导师、隐藏强者、古龙、第六幕证人、招募与外交视图 |
+| [content/catalog_bestiary.md](40_design/content/catalog_bestiary.md)                 | 魔物图鉴：野兽、异兽、澱生体、澱像、亡灵、龙种、契约魔与人形敌人；澱化阶梯、异名者与异名物 `nm_`、巢主、魔物潮编成 `mtide_`、魔物即证据 |
+| [content/catalog_dungeons_bosses.md](40_design/content/catalog_dungeons_bosses.md)   | 迷宫与首领：23 处迷宫的结构与养毁净、迷宫专属魔物、首领机制与非战斗解法、澱涌之主、强者挑战段 `trial_`、活性期词缀 `afx_` |
+| [content/catalog_equipment.md](40_design/content/catalog_equipment.md)               | 装备：地域工艺流派、澱纹与净纹、规则生成的阶梯、单列精品、同炉套组 `set_`、附纹 `ench_`、名器与传器、军需批量装备 |
+| [content/catalog_consumables_magitools.md](40_design/content/catalog_consumables_magitools.md) | 消耗品 `cs_` 与魔道具 `mt_`：药剂、澱病线、过关辅助、料理与酒、符、弹药、工具、供品；魔道具的余澱与城市成本 |
+| [content/catalog_gathering_crafting.md](40_design/content/catalog_gathering_crafting.md) | 采集与生业：十四种生业、材料注册表的细化与新材料 `mat_`、采集点 `node_`、配方族 `rcp_`、净化链、材料价值迁移 |
+| [content/catalog_trade_goods.md](40_design/content/catalog_trade_goods.md)           | 商品与特产 `tg_`：价格形成与流通限制、各国特产、战略物资、文书与货币、贡品、各城市场与商路 |
+| [content/catalog_relics_lore.md](40_design/content/catalog_relics_lore.md)           | 神器、遗物、钥物、书籍与收藏（`rl_`、`ky_`、`lb_`、`col_`）：视线锚、门铜熔炼、外缘关的外来之力、分幕可见文本与真相 |
+| [content/catalog_creatures_mounts.md](40_design/content/catalog_creatures_mounts.md) | 兽伴 `pet_`、坐骑 `mnt_`、契约魔 `fiend_`、家畜 `stock_`、庭院生灵、借形形态与夜羽原形 |
+| [content/catalog_doors.md](40_design/content/catalog_doors.md)                       | 千门回廊门清单：155 扇门的翼区、钥、效果、松动预算与互斥；流派、合技、羁绊、真相、试炼、碑与门址、生业之门；钥源对账 |
+| [content/catalog_deeds_titles.md](40_design/content/catalog_deeds_titles.md)         | 事迹 `deed_` 与称号 `title_`：三种记录、讲述数与立名关、异名者落名、错名与恶名、联动表与价值审计 |
+| [content/content_review.md](40_design/content/content_review.md)                     | 内容设计审校台账：正典冲突（需用户决定、设计层可自决、已解决）、新增真相的台账登记、目录间不一致、覆盖审计、跨目录待补、引擎与系统待办 |
 | [world/world_map.md](40_design/world/world_map.md)                                   | 世界地图构建：四层地图与编号、世界图与 SLG 省份、各幕区域图与行程、全部已建与规划地图的总表（图集数据与校验）、连通图、缺口与制作顺序                                                                    |
 | [world/scene_flow.md](40_design/world/scene_flow.md)                                 | 游戏场景动线：HD-2D 斜俯视下的动线原则、跨幕宏观动线与快速移动、十张已建图逐图动线（实测距离、遮挡、照明、梯度与动线图）、外观层装饰落地、规划场景的五种动线模板、下一轮修改汇总 |
 | 待撰写                                                                               | `systems/combat_and_classes.md`、`systems/thousand_doors.md`、`systems/companions_and_party.md`、`progression_and_pacing.md`（本轮撰写被中止，待重新安排；相关正典规则已在 `20_world/power_system.md` 中） |

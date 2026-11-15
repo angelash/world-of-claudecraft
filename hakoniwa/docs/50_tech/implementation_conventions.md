@@ -56,7 +56,20 @@
 | `moss`    | 代官莫斯   |                                                   |
 | `ash`     | 守门人阿什 | 封门遗迹深处，战斗方生成为不可攻击的存在          |
 
-其他 NPC 由社会方自定 ID（小写英文加下划线）。
+其他 NPC 由社会方自定 ID（小写英文加下划线）。全作人物的 ID 以人物目录（`../40_design/content/catalog_characters_lotha.md`、
+`catalog_characters_continent.md`）为准。
+
+**人物 ID 别名表**：台账变量与分幕文档里仍有几处不同的拼法，变量名不改，导入时按下表解析到同一个人物 ID。
+
+| 人物 ID | 别名（只在变量或分幕文字里出现） | 人物 |
+| --- | --- | --- |
+| `night_queen` | `vespera`（`trust.vespera`） | 夜后维丝佩拉 |
+| `oola` | `ola`（`trust.ola`） | 欧拉婆婆 |
+| `bron` | `brun`（`brun.secret_kept`） | 老布伦 |
+| `viro` | `vero`（战斗数据的首领 ID） | 薇罗 |
+
+**战斗模板 ID**：与人物同名的对手战、挑战段与首领模板一律写作 `<人物 ID>_<场面>`（例：`rogo_breakchain_duel`、`mute_bell_chase`、`lu_chen_duel`），
+不与人物 ID 重名；挑战段另用 `trial_<人物>_<场面>`。
 
 招募约定：同伴被招募时，设置旗标 `companion.<id>.recruited = true`；NPC 系统看到这个旗标后，隐藏它自己生成的同名 NPC 实体，
 同伴系统生成同伴实体。同伴实体的 `ref` 等于同伴 ID。

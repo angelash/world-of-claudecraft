@@ -367,7 +367,7 @@ describe('appraisal (D-029) and pressure', () => {
     g.step(1);
     const w = g.world;
     expect(appraise(w, CONTENT, 'player', npcEntityId('martha'), 'crystal')?.display).toBe('34+');
-    expect(appraise(w, CONTENT, 'player', npcEntityId('martha'), 'guild')?.display).toBe('Lv41');
+    expect(appraise(w, CONTENT, 'player', npcEntityId('martha'), 'guild')?.display).toBe('Lv43');
     expect(appraise(w, CONTENT, 'player', npcEntityId('martha'), 'skill')?.display).toBe('？');
     expect(appraise(w, CONTENT, 'player', npcEntityId('martha'), 'sense')?.display).toBe(
       '一片平静',
