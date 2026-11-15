@@ -1,0 +1,92 @@
+{
+  "loreScale": 30,
+  "maxKernelRegiment": 300,
+  "truceDays": 28,
+  "rulerEveryDays": 28,
+  "playerProvinces": ["ash_border", "ash_rim"],
+  "playerNation": {
+    "id": "player",
+    "name": "庭外之国",
+    "short": "庭外",
+    "capital": "ash_border",
+    "color": "#d8d0c0",
+    "ruler": {
+      "name": "你",
+      "persona": "庭外之国的建国者。",
+      "aggression": 0,
+      "greed": 0,
+      "piety": 0,
+      "caution": 0
+    },
+    "treasury": 500,
+    "stability": 50,
+    "legitimacy": 15,
+    "autonomy": 40,
+    "divineReliance": 0,
+    "relations": {
+      "lothar": 0,
+      "empire": 0,
+      "holy_see": -3,
+      "league": 0,
+      "silva": -1,
+      "windfang": 0,
+      "nightrealm": 0
+    },
+    "armies": [
+      {
+        "id": "player_guard",
+        "province": "ash_border",
+        "name": "灰烬边境军",
+        "general": "罗恩",
+        "regiments": [
+          {
+            "typeId": "militia",
+            "count": 600
+          },
+          {
+            "typeId": "hunters",
+            "count": 100
+          },
+          {
+            "typeId": "company_guard",
+            "count": 200
+          }
+        ]
+      }
+    ],
+    "recruits": [
+      "militia",
+      "spear_militia",
+      "longbow_militia",
+      "hunters",
+      "company_guard",
+      "adventurers"
+    ],
+    "adminBase": 4
+  },
+  "evidenceFlags": [
+    "evidence.oracle_text",
+    "evidence.great_severance",
+    "evidence.demon_cycle",
+    "evidence.remnant_truth",
+    "eluen_violation_evidence"
+  ],
+  "conclaveStages": [
+    {
+      "stage": "invite",
+      "days": 3
+    },
+    {
+      "stage": "talks",
+      "days": 5
+    },
+    {
+      "stage": "summit",
+      "days": 2
+    },
+    {
+      "stage": "signing",
+      "days": 1
+    }
+  ]
+}

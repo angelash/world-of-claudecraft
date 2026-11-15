@@ -1,0 +1,942 @@
+[
+  {
+    "id": "awaken",
+    "name": "初门·醒",
+    "code": "door_awaken",
+    "category": "origin",
+    "act": 1,
+    "hint": "回廊尽头有一扇门，门缝里漏出一点光。",
+    "desc": "基础战斗能力：拾起武器、闪身；门镜让你照见自己。千门回廊显形。",
+    "keys": [
+      {
+        "type": "count",
+        "event": "combat.kill",
+        "where": { "mapId": "seal_ruins", "killerSide": "ally" },
+        "count": 1,
+        "label": "在神纹大厅的回廊里打赢第一场战斗"
+      }
+    ],
+    "effects": [
+      { "type": "abilities", "abilities": ["door_step"] },
+      { "type": "passive", "aura": "door_mirror" },
+      { "type": "item", "itemId": "rusty_shortsword", "equip": true },
+      { "type": "feature", "feature": "door_corridor" }
+    ],
+    "auto": true,
+    "sealLooseness": 0,
+    "sealUnrest": 0
+  },
+  {
+    "id": "past_life_abacus",
+    "name": "前世之门·算盘",
+    "code": "door_past_life",
+    "category": "origin",
+    "act": 0,
+    "hint": "门上挂着一把算盘，珠子还在响。",
+    "desc": "前世的案头功夫：算得清账，也算得准出手的时机。智力、精神与命中略升。",
+    "keys": [
+      {
+        "type": "flag",
+        "key": "prologue.past_life_door",
+        "equals": "abacus",
+        "label": "那一页上，你做案头工作"
+      }
+    ],
+    "effects": [{ "type": "stats", "stats": { "int": 3, "spi": 2, "hit": 1 } }],
+    "exclusive": ["past_life"],
+    "auto": true,
+    "sealLooseness": 1,
+    "sealUnrest": 0
+  },
+  {
+    "id": "past_life_nightlight",
+    "name": "前世之门·夜灯",
+    "code": "door_past_life",
+    "category": "origin",
+    "act": 0,
+    "hint": "门边亮着一盏夜灯。",
+    "desc": "前世的夜班：惯于黑夜的眼睛与反应。敏捷与闪避略升。",
+    "keys": [
+      {
+        "type": "flag",
+        "key": "prologue.past_life_door",
+        "equals": "nightlight",
+        "label": "那一页上，你上夜班"
+      }
+    ],
+    "effects": [{ "type": "stats", "stats": { "agi": 3, "dodge": 2 } }],
+    "exclusive": ["past_life"],
+    "auto": true,
+    "sealLooseness": 1,
+    "sealUnrest": 0
+  },
+  {
+    "id": "past_life_whitecoat",
+    "name": "前世之门·白衣",
+    "code": "door_past_life",
+    "category": "origin",
+    "act": 0,
+    "hint": "门把手上缠着一卷绷带。",
+    "desc": "前世医者的急救手法：习得急救。",
+    "keys": [
+      {
+        "type": "flag",
+        "key": "prologue.past_life_door",
+        "equals": "whitecoat",
+        "label": "那一页上，你照顾病人"
+      }
+    ],
+    "effects": [{ "type": "abilities", "abilities": ["first_aid"] }],
+    "exclusive": ["past_life"],
+    "auto": true,
+    "sealLooseness": 1,
+    "sealUnrest": 0
+  },
+  {
+    "id": "past_life_wrench",
+    "name": "前世之门·扳手",
+    "code": "door_past_life",
+    "category": "origin",
+    "act": 0,
+    "hint": "门轴上插着一把扳手。",
+    "desc": "前世匠人的修补手艺：习得修补。",
+    "keys": [
+      {
+        "type": "flag",
+        "key": "prologue.past_life_door",
+        "equals": "wrench",
+        "label": "那一页上，你动手修东西"
+      }
+    ],
+    "effects": [{ "type": "abilities", "abilities": ["field_mend"] }],
+    "exclusive": ["past_life"],
+    "auto": true,
+    "sealLooseness": 1,
+    "sealUnrest": 0
+  },
+  {
+    "id": "past_life_notes",
+    "name": "前世之门·笔记",
+    "code": "door_past_life",
+    "category": "origin",
+    "act": 0,
+    "hint": "门缝里塞着一页写满字的纸。",
+    "desc": "前世读书写字的人：灵海更宽。智力略升。",
+    "keys": [
+      {
+        "type": "flag",
+        "key": "prologue.past_life_door",
+        "equals": "notes",
+        "label": "那一页上，你读书写字"
+      }
+    ],
+    "effects": [{ "type": "stats", "stats": { "int": 4, "spi": 1 } }],
+    "exclusive": ["past_life"],
+    "auto": true,
+    "sealLooseness": 1,
+    "sealUnrest": 0
+  },
+  {
+    "id": "past_life_hearth",
+    "name": "前世之门·灶火",
+    "code": "door_past_life",
+    "category": "origin",
+    "act": 0,
+    "hint": "门后飘出饭菜的香味。",
+    "desc": "前世厨者的手艺：习得热饭。",
+    "keys": [
+      {
+        "type": "flag",
+        "key": "prologue.past_life_door",
+        "equals": "hearth",
+        "label": "那一页上，你做饭"
+      }
+    ],
+    "effects": [{ "type": "abilities", "abilities": ["hearty_meal"] }],
+    "exclusive": ["past_life"],
+    "auto": true,
+    "sealLooseness": 1,
+    "sealUnrest": 0
+  },
+  {
+    "id": "past_life_signpost",
+    "name": "前世之门·路标",
+    "code": "door_past_life",
+    "category": "origin",
+    "act": 0,
+    "hint": "门前立着一块路标，箭头指向门里。",
+    "desc": "前世一直在路上的人：步子更快，耐力略升。",
+    "keys": [
+      {
+        "type": "flag",
+        "key": "prologue.past_life_door",
+        "equals": "signpost",
+        "label": "那一页上，你一直在路上"
+      }
+    ],
+    "effects": [
+      { "type": "passive", "aura": "runners_stride" },
+      { "type": "stats", "stats": { "sta": 2 } }
+    ],
+    "exclusive": ["past_life"],
+    "auto": true,
+    "sealLooseness": 1,
+    "sealUnrest": 0
+  },
+  {
+    "id": "past_life_podium",
+    "name": "前世之门·讲台",
+    "code": "door_past_life",
+    "category": "origin",
+    "act": 0,
+    "hint": "门前摆着一张讲台。",
+    "desc": "前世站在人前说话的人：心定，声稳。精神与耐力略升。",
+    "keys": [
+      {
+        "type": "flag",
+        "key": "prologue.past_life_door",
+        "equals": "podium",
+        "label": "那一页上，你站在人前说话"
+      }
+    ],
+    "effects": [{ "type": "stats", "stats": { "spi": 3, "sta": 2 } }],
+    "exclusive": ["past_life"],
+    "auto": true,
+    "sealLooseness": 1,
+    "sealUnrest": 0
+  },
+  {
+    "id": "tide_sight",
+    "name": "观澜之门",
+    "code": "door_tide_sight",
+    "category": "insight",
+    "act": 1,
+    "hint": "门板上的纹理像水面，看久了会晃。",
+    "desc": "看见他人的灵压，以等级区间加可信度评估强弱。",
+    "keys": [
+      {
+        "type": "count",
+        "event": "combat.presence_felt",
+        "where": { "entityId": "player" },
+        "atLeast": { "gap": 3 },
+        "count": 1,
+        "label": "在远高于自己的威压下保持清醒"
+      }
+    ],
+    "effects": [{ "type": "feature", "feature": "tide_sight" }],
+    "sealLooseness": 1,
+    "sealUnrest": 3
+  },
+  {
+    "id": "pact",
+    "name": "契约之门",
+    "code": "door_pact",
+    "category": "bond",
+    "act": 1,
+    "hint": "门上落着一根黑羽，底下是银色的羽根。",
+    "desc": "净化一个被澱侵蚀的存在，与它缔结从者契约。",
+    "keys": [
+      {
+        "type": "flag",
+        "key": "boss.guardian_raven.defeated",
+        "label": "让守护巨鸦力竭，然后伸出手"
+      }
+    ],
+    "effects": [
+      { "type": "flag", "key": "companion.yeyu.recruited", "value": true },
+      { "type": "feature", "feature": "servant" }
+    ],
+    "autoAfter": 20,
+    "sealLooseness": 1,
+    "sealUnrest": 3
+  },
+  {
+    "id": "talent_sight",
+    "name": "识才之门",
+    "code": "door_talent_sight",
+    "category": "insight",
+    "act": 1,
+    "hint": "门上开着许多小窗，每扇窗里都有一个人影。",
+    "desc": "读取他人底页上的潜质。",
+    "keys": [
+      {
+        "type": "any",
+        "need": 2,
+        "label": "亲眼看见被低估者的决定性一刻（三取二）",
+        "of": [
+          {
+            "type": "flag",
+            "key": "boss.crystal_mother.defeated",
+            "label": "矿道二次塌方里，有人下意识地指挥众人躲避"
+          },
+          { "type": "flag", "key": "bond.shiya.40", "label": "看见希雅的猎王时刻" },
+          { "type": "flag", "key": "a1_beast_tide_cleared", "label": "兽潮之夜过后，全镇替你担保" }
+        ]
+      }
+    ],
+    "effects": [{ "type": "feature", "feature": "appraise_talent" }],
+    "sealLooseness": 1,
+    "sealUnrest": 3
+  },
+  {
+    "id": "inner_garden",
+    "name": "门内庭院",
+    "code": "door_inner_garden",
+    "category": "origin",
+    "act": 1,
+    "hint": "门那边有风，有泥土的味道。",
+    "desc": "私人空间与复苏点：死后退回门内，在庭院里重塑肉身。",
+    "keys": [
+      { "type": "flag", "key": "a1_beast_tide_cleared", "label": "兽潮之夜，击败澱巨像" },
+      { "type": "flag", "key": "a1_dream_door_woman", "label": "梦见门口的女人" }
+    ],
+    "effects": [{ "type": "feature", "feature": "inner_court" }],
+    "auto": true,
+    "sealLooseness": 0,
+    "sealUnrest": 0
+  },
+  {
+    "id": "vocation_warrior",
+    "name": "刃之门",
+    "code": "door_vocation_warrior",
+    "category": "vocation",
+    "act": 1,
+    "hint": "刃。",
+    "desc": "战士技能族的基础部分与战意。",
+    "keys": [
+      {
+        "type": "any",
+        "need": 2,
+        "label": "学到的架势，在真刀真枪里赢下来（三取二）",
+        "of": [
+          {
+            "type": "item",
+            "itemId": "crystal_carapace",
+            "label": "晶背之母的甲壳（巴尔加能打一把好剑）"
+          },
+          { "type": "flag", "key": "boss.split_ear.defeated", "label": "与裂耳的一对一" },
+          { "type": "flag", "key": "boss.seg_oneeye.defeated", "label": "单挑独眼团的瑟格" }
+        ]
+      }
+    ],
+    "effects": [
+      { "type": "pool", "resource": "rage", "base": 100 },
+      {
+        "type": "abilities",
+        "abilities": ["heroic_strike", "battle_shout", "charge", "rend", "thunder_clap", "taunt"]
+      },
+      { "type": "stats", "stats": { "str": 3, "sta": 2 } }
+    ],
+    "sealLooseness": 1,
+    "sealUnrest": 3
+  },
+  {
+    "id": "vocation_hunter",
+    "name": "猎之门",
+    "code": "door_vocation_hunter",
+    "category": "vocation",
+    "act": 1,
+    "hint": "兽。",
+    "desc": "猎人技能族的基础部分：追踪与射术。",
+    "keys": [
+      { "type": "flag", "key": "bond.shiya.20", "label": "与希雅同猎" },
+      { "type": "item", "itemId": "split_ear_fang", "label": "裂耳的獠牙" },
+      { "type": "visit", "mapId": "forest_edge", "location": "pact_oak", "label": "站到约树下" }
+    ],
+    "effects": [
+      { "type": "pool", "resource": "mana", "base": 80 },
+      {
+        "type": "abilities",
+        "abilities": [
+          "raptor_strike",
+          "arcane_shot",
+          "serpent_sting",
+          "hunters_mark",
+          "aspect_of_the_hawk"
+        ]
+      },
+      { "type": "stats", "stats": { "agi": 3 } }
+    ],
+    "sealLooseness": 1,
+    "sealUnrest": 3
+  },
+  {
+    "id": "vocation_druid",
+    "name": "借形之门",
+    "code": "door_vocation_druid",
+    "category": "vocation",
+    "act": 1,
+    "hint": "息。",
+    "desc": "德鲁伊技能族的基础部分：不来自圣光的治愈与少量净澱。",
+    "keys": [
+      { "type": "flag", "key": "trust.oola", "min": 60, "label": "欧拉婆婆肯把草方告诉你" },
+      { "type": "item", "itemId": "spring_herb", "label": "鹿泉的净泉草" },
+      { "type": "visit", "mapId": "forest_edge", "location": "deer_spring", "label": "到过鹿泉" },
+      { "type": "flag", "key": "a1_north_spring_found", "label": "找到病童的病根（北泉的灰）" }
+    ],
+    "effects": [
+      { "type": "pool", "resource": "mana", "base": 80 },
+      {
+        "type": "abilities",
+        "abilities": ["wrath", "healing_touch", "rejuvenation", "moonfire", "entangling_roots"]
+      },
+      { "type": "stats", "stats": { "int": 2, "spi": 2 } }
+    ],
+    "exclusive": ["druid_or_abyss"],
+    "sealLooseness": 1,
+    "sealUnrest": 3
+  },
+  {
+    "id": "vocation_warlock",
+    "name": "渊契之门",
+    "code": "door_vocation_warlock",
+    "category": "forbidden",
+    "act": 1,
+    "hint": "门在发烫。",
+    "desc": "汲取澱化为力量：暗火与汲取。代价是加速淤塞。",
+    "keys": [{ "type": "item", "itemId": "dian_core", "consume": true, "label": "握住澱核" }],
+    "effects": [
+      { "type": "pool", "resource": "mana", "base": 80 },
+      {
+        "type": "abilities",
+        "abilities": ["shadow_bolt", "immolate", "corruption", "life_tap", "curse_of_agony"]
+      },
+      { "type": "stats", "stats": { "int": 2, "sta": 2 } }
+    ],
+    "exclusive": ["druid_or_abyss", "abyss_or_clear"],
+    "danger": true,
+    "sealLooseness": 3,
+    "sealUnrest": 18
+  },
+  {
+    "id": "restraint",
+    "name": "收放之门",
+    "code": "door_restraint",
+    "category": "insight",
+    "act": 2,
+    "hint": "门半掩着，推一下，又自己合上一半。",
+    "desc": "控制自身灵压：战斗中不外泄，或主动释放威压。",
+    "keys": [
+      { "type": "flag", "key": "a2_dungeon_first", "label": "灵压外泄，被人看穿" },
+      { "type": "flag", "key": "a2_heroes_met", "label": "一次刻意的隐忍" }
+    ],
+    "effects": [
+      { "type": "abilities", "abilities": ["release_presence"] },
+      { "type": "feature", "feature": "restraint" }
+    ],
+    "sealLooseness": 1,
+    "sealUnrest": 3
+  },
+  {
+    "id": "false_record",
+    "name": "伪录之门",
+    "code": "door_false_record",
+    "category": "insight",
+    "act": 2,
+    "hint": "影。门上贴着一张写错了名字的卡片。",
+    "desc": "向鉴定投影一页伪造的页（骗不过与铭录本体的对照）。",
+    "keys": [
+      { "type": "flag", "key": "a2_promotion_exam", "label": "鉴定接连失败" },
+      {
+        "type": "flag",
+        "key": "a2_dungeon_first",
+        "label": "接触伪造的公会卡（B 级卡面写着 Lv1）"
+      },
+      { "type": "flag", "key": "a2_selene_met", "label": "经历一次审判官的盘查" }
+    ],
+    "effects": [{ "type": "feature", "feature": "false_record" }],
+    "sealLooseness": 1,
+    "sealUnrest": 3
+  },
+  {
+    "id": "beyond_door",
+    "name": "隔扉之门",
+    "code": "door_beyond_door",
+    "category": "insight",
+    "act": 2,
+    "hint": "门后有人在说话，听不清。",
+    "desc": "在亲手触碰过的门后倾听。",
+    "keys": [
+      {
+        "type": "visit",
+        "mapId": "wallenburg_sewers",
+        "location": "gate_37",
+        "label": "到第三十七门的门址"
+      },
+      { "type": "flag", "key": "a2_disciples_lair", "label": "触碰那副古门框，听见残响" }
+    ],
+    "effects": [{ "type": "feature", "feature": "beyond_door" }],
+    "sealLooseness": 1,
+    "sealUnrest": 3
+  },
+  {
+    "id": "vocation_rogue",
+    "name": "影之门",
+    "code": "door_vocation_rogue",
+    "category": "vocation",
+    "act": 2,
+    "hint": "门的影子比门本身更清楚。",
+    "desc": "盗贼技能族的基础部分：气息与破绽。",
+    "keys": [
+      {
+        "type": "any",
+        "label": "潜入戒备之地全身而退，或得到灰鼠的认可",
+        "of": [
+          { "type": "flag", "key": "a2_disciples_lair", "label": "潜入一处戒备之地全身而退" },
+          { "type": "flag", "key": "a2_ferryman_reveal", "label": "得到渡口老人的认可" }
+        ]
+      }
+    ],
+    "effects": [
+      { "type": "pool", "resource": "energy", "base": 100 },
+      {
+        "type": "abilities",
+        "abilities": ["sinister_strike", "eviscerate", "backstab", "evasion", "kick", "sprint"]
+      },
+      { "type": "stats", "stats": { "agi": 3 } }
+    ],
+    "sealLooseness": 1,
+    "sealUnrest": 3
+  },
+  {
+    "id": "vocation_mage",
+    "name": "术式之门",
+    "code": "door_vocation_mage",
+    "category": "vocation",
+    "act": 2,
+    "hint": "灵。",
+    "desc": "法师技能族的基础部分（以门代替借录）。",
+    "keys": [
+      { "type": "flag", "key": "a2_archivist_met", "label": "读懂一册学院术式书" },
+      {
+        "type": "visit",
+        "mapId": "wallenburg",
+        "location": "academy",
+        "label": "在学院分院完成一次演算"
+      }
+    ],
+    "effects": [
+      { "type": "pool", "resource": "mana", "base": 100 },
+      {
+        "type": "abilities",
+        "abilities": [
+          "fireball",
+          "frost_armor",
+          "frostbolt",
+          "fire_blast",
+          "frost_nova",
+          "arcane_explosion"
+        ]
+      },
+      { "type": "stats", "stats": { "int": 3 } }
+    ],
+    "sealLooseness": 1,
+    "sealUnrest": 3
+  },
+  {
+    "id": "vocation_priest",
+    "name": "祷之门",
+    "code": "door_vocation_priest",
+    "category": "vocation",
+    "act": 2,
+    "hint": "门前跪着一个看不清的人影，没有朝向任何神龛。",
+    "desc": "不经神恩的治愈与幽祷。",
+    "keys": [
+      {
+        "type": "flag",
+        "key": "a1_oola_fate",
+        "label": "在神殿之外为他人真心祈求，不向任何一司献名"
+      }
+    ],
+    "effects": [
+      { "type": "pool", "resource": "mana", "base": 100 },
+      {
+        "type": "abilities",
+        "abilities": [
+          "lesser_heal",
+          "renew",
+          "power_word_shield",
+          "smite",
+          "shadow_word_pain",
+          "heal"
+        ]
+      },
+      { "type": "stats", "stats": { "spi": 3 } }
+    ],
+    "sealLooseness": 1,
+    "sealUnrest": 3
+  },
+  {
+    "id": "settlement",
+    "name": "筑庐之门",
+    "code": "door_settlement",
+    "category": "domain",
+    "act": 2,
+    "hint": "门后有灶，灶里还没有火。",
+    "desc": "村落建设（城建入门）。",
+    "keys": [
+      { "type": "visit", "mapId": "old_outpost", "label": "到旧哨村" },
+      { "type": "flag", "key": "a2_remnants_settled", "label": "收容难民与遗民，点燃第一口公灶" }
+    ],
+    "effects": [{ "type": "feature", "feature": "city" }],
+    "sealLooseness": 1,
+    "sealUnrest": 3
+  },
+  {
+    "id": "trade_pact",
+    "name": "商契之门",
+    "code": "door_trade_pact",
+    "category": "domain",
+    "act": 2,
+    "hint": "门环是一枚硬币。",
+    "desc": "商会经营；庭院产出可以入市。",
+    "keys": [
+      { "type": "flag", "key": "a2_company_partner", "label": "与奈拉合伙" },
+      { "type": "flag", "key": "a1_coin_story", "label": "以梅尔卡的硬币立约" }
+    ],
+    "effects": [{ "type": "feature", "feature": "company" }],
+    "sealLooseness": 1,
+    "sealUnrest": 3
+  },
+  {
+    "id": "messenger",
+    "name": "信使之门",
+    "code": "door_messenger",
+    "category": "bond",
+    "act": 2,
+    "hint": "门缝里塞着一封火漆完好的信。",
+    "desc": "夜羽恢复信使之力的一部分：远距传讯、感知门址。",
+    "keys": [
+      { "type": "flag", "key": "yeyu_letters", "min": 1, "label": "寻回夜羽的记忆碎片" },
+      { "type": "flag", "key": "bond.yeyu.40", "label": "与夜羽的羁绊足够深" }
+    ],
+    "effects": [{ "type": "feature", "feature": "messenger" }],
+    "sealLooseness": 1,
+    "sealUnrest": 3
+  },
+  {
+    "id": "awaken_talent",
+    "name": "启才之门",
+    "code": "door_awaken_talent",
+    "category": "bond",
+    "act": 2,
+    "hint": "门的另一边也有一个门把手。",
+    "desc": "为他人开门：把底页的潜质写进其录侧（罗恩的统帅）。",
+    "keys": [
+      { "type": "door", "doorId": "talent_sight", "label": "识才之门已开" },
+      { "type": "flag", "key": "bond.ron.60", "label": "与罗恩的羁绊足够深" }
+    ],
+    "effects": [
+      { "type": "feature", "feature": "awaken_talent" },
+      { "type": "flag", "key": "ron.commander_awakened", "value": true }
+    ],
+    "sealLooseness": 3,
+    "sealUnrest": 3
+  },
+  {
+    "id": "wayfaring",
+    "name": "行路之门（初阶）",
+    "code": "door_wayfaring",
+    "category": "passage",
+    "act": 2,
+    "hint": "门框上刻着一串地名，大多已经磨平。",
+    "desc": "在亲手安放的门标之间传送，门标至多三处。",
+    "keys": [
+      { "type": "item", "itemId": "gate_stone", "label": "一块门址石" },
+      {
+        "type": "visit",
+        "mapId": "seal_ruins",
+        "location": "sigil_hall",
+        "label": "寻访门址：封门遗迹"
+      },
+      {
+        "type": "visit",
+        "mapId": "wallenburg_sewers",
+        "location": "gate_37",
+        "label": "寻访门址：瓦伦堡第三十七门"
+      }
+    ],
+    "effects": [{ "type": "feature", "feature": "travel_gate" }],
+    "sealLooseness": 3,
+    "sealUnrest": 3
+  },
+  {
+    "id": "wayfaring_advanced",
+    "name": "行路之门（进阶）",
+    "code": "door_wayfaring",
+    "category": "passage",
+    "act": 3,
+    "hint": "门框上的地名多了一个。",
+    "desc": "在寻访过的门址之间传送。",
+    "keys": [
+      { "type": "door", "doorId": "wayfaring", "label": "行路之门初阶已开" },
+      {
+        "type": "visit",
+        "mapId": "ash_waste",
+        "location": "waste_gate_site",
+        "label": "寻访第三处门址：荒原中层"
+      }
+    ],
+    "effects": [{ "type": "feature", "feature": "travel_gate_advanced" }],
+    "sealLooseness": 3,
+    "sealUnrest": 0
+  },
+  {
+    "id": "vocation_paladin",
+    "name": "誓光之门",
+    "code": "door_vocation_paladin",
+    "category": "vocation",
+    "act": 3,
+    "hint": "门上没有神纹，却在发光。",
+    "desc": "不借圣誓的光相武技与治愈。",
+    "keys": [
+      {
+        "type": "flag",
+        "key": "a3_danger_door_vow",
+        "label": "在无人为你祈祷的地方以自己的名义立誓守护，并且守住"
+      }
+    ],
+    "effects": [
+      { "type": "pool", "resource": "mana", "base": 80 },
+      {
+        "type": "abilities",
+        "abilities": [
+          "crusader_strike",
+          "holy_light",
+          "judgement",
+          "devotion_aura",
+          "hammer_of_justice",
+          "flash_of_light"
+        ]
+      },
+      { "type": "stats", "stats": { "str": 2, "sta": 2 } }
+    ],
+    "sealLooseness": 1,
+    "sealUnrest": 0
+  },
+  {
+    "id": "thousand_legions",
+    "name": "千军之门",
+    "code": "door_thousand_legions",
+    "category": "domain",
+    "act": 3,
+    "hint": "门后传来整齐的脚步声。",
+    "desc": "统率军队（RTS）。",
+    "keys": [
+      { "type": "flag", "key": "companion.ron.recruited", "label": "第一位将领" },
+      { "type": "flag", "key": "feature.city", "label": "拥有领地" },
+      { "type": "flag", "key": "war.first_battle_won", "label": "经历第一次守土之战" }
+    ],
+    "effects": [{ "type": "feature", "feature": "rts" }],
+    "sealLooseness": 6,
+    "sealUnrest": 0
+  },
+  {
+    "id": "echoes",
+    "name": "残响之门",
+    "code": "door_echoes",
+    "category": "truth",
+    "act": 3,
+    "hint": "门后是一片灰，灰里有很多声音。",
+    "desc": "看见大断绝的记忆残片。",
+    "keys": [
+      { "type": "flag", "key": "a3_ash_tells_sundering", "label": "在千门都遗址听守门人讲述大断绝" }
+    ],
+    "effects": [{ "type": "feature", "feature": "echoes" }],
+    "sealLooseness": 3,
+    "sealUnrest": 0
+  },
+  {
+    "id": "clear_flow",
+    "name": "澄流之门",
+    "code": "door_clear_flow",
+    "category": "craft",
+    "act": 3,
+    "hint": "门下渗出一线清水。",
+    "desc": "在小范围内把澱解开、还为灵素；清除自身淤塞。",
+    "keys": [
+      { "type": "flag", "key": "a1_yeyu_bound", "label": "净化一处澱巢（巨鸦的巢）" },
+      { "type": "flag", "key": "trust.oola", "min": 60, "label": "得到欧拉婆婆的引导" }
+    ],
+    "effects": [
+      { "type": "abilities", "abilities": ["clear_flow"] },
+      { "type": "feature", "feature": "clear_flow" }
+    ],
+    "exclusive": ["abyss_or_clear"],
+    "sealLooseness": 3,
+    "sealUnrest": 0
+  },
+  {
+    "id": "resonance",
+    "name": "共鸣之门",
+    "code": "door_resonance",
+    "category": "bond",
+    "act": 3,
+    "hint": "门纹在你手背上一下一下地跳，和门上的纹一个节拍。",
+    "desc": "唤醒遗民门纹：感知门、担任门守。",
+    "keys": [
+      { "type": "flag", "key": "remnants", "min": 15, "label": "救回若干遗民孩子" },
+      {
+        "type": "visit",
+        "mapId": "seal_ruins",
+        "location": "sigil_hall",
+        "label": "在封门遗迹与门纹共鸣"
+      }
+    ],
+    "effects": [{ "type": "feature", "feature": "resonance" }],
+    "sealLooseness": 6,
+    "sealUnrest": 0
+  },
+  {
+    "id": "vocation_shaman",
+    "name": "聆灵之门",
+    "code": "door_vocation_shaman",
+    "category": "vocation",
+    "act": 4,
+    "hint": "门后有风，风里有人在唱。",
+    "desc": "萨满技能族的基础部分（不需灵语加护）。",
+    "keys": [
+      { "type": "flag", "key": "a4_sanctuary_found", "label": "在祖灵之地得到元素灵的回应" },
+      { "type": "flag", "key": "a4_feast_of_strong", "label": "在强者之宴上得到兽人部族的认可" }
+    ],
+    "effects": [
+      { "type": "pool", "resource": "mana", "base": 80 },
+      {
+        "type": "abilities",
+        "abilities": [
+          "lightning_bolt",
+          "healing_wave",
+          "earth_shock",
+          "lightning_shield",
+          "flame_shock"
+        ]
+      },
+      { "type": "stats", "stats": { "int": 2, "sta": 2 } }
+    ],
+    "sealLooseness": 1,
+    "sealUnrest": 0
+  },
+  {
+    "id": "founding",
+    "name": "立国之门",
+    "code": "door_founding",
+    "category": "domain",
+    "act": 4,
+    "hint": "门是一块界石。",
+    "desc": "建国（SLG 大地图）。",
+    "keys": [
+      { "type": "flag", "key": "a3_eluen_speaks", "label": "无主之地（王国崩解，边境领无人认领）" },
+      { "type": "flag", "key": "a2_remnants_settled", "label": "众愿（遗民与难民立下同住誓）" },
+      { "type": "flag", "key": "act_index", "min": 4, "label": "界石（第四幕开篇垒成）" },
+      { "type": "flag", "key": "territory_autonomy", "min": 40, "label": "领地自治度不低于 40" }
+    ],
+    "effects": [{ "type": "feature", "feature": "slg" }],
+    "sealLooseness": 6,
+    "sealUnrest": 0
+  },
+  {
+    "id": "soul_ferry",
+    "name": "渡魂之门",
+    "code": "door_soul_ferry",
+    "category": "forbidden",
+    "act": 4,
+    "hint": "门那边是泉畔。",
+    "desc": "越过希尔薇的许可，把逝者从泉畔拉回。与希尔薇交恶。",
+    "keys": [
+      { "type": "flag", "key": "a4.refused_to_let_go", "label": "在泉畔失去一位同伴，并拒绝放手" }
+    ],
+    "effects": [{ "type": "feature", "feature": "soul_ferry" }],
+    "danger": true,
+    "sealLooseness": 6,
+    "sealUnrest": 0
+  },
+  {
+    "id": "thousand_paths",
+    "name": "千径之门",
+    "code": "door_thousand_paths",
+    "category": "passage",
+    "act": 5,
+    "hint": "门后不是一条路，是许多条。",
+    "desc": "重建一张小型门网，分散并净化古澱。",
+    "keys": [
+      { "type": "door", "doorId": "wayfaring_advanced", "label": "行路之门进阶已开" },
+      { "type": "door", "doorId": "resonance", "label": "遗民的门纹已被唤醒" },
+      { "type": "flag", "key": "a4_alliance", "equals": "broad", "label": "诸族的协力" }
+    ],
+    "effects": [{ "type": "feature", "feature": "thousand_paths" }],
+    "sealLooseness": 12,
+    "sealUnrest": 0
+  },
+  {
+    "id": "breach",
+    "name": "破门之门",
+    "code": "door_breach",
+    "category": "forbidden",
+    "act": 5,
+    "hint": "这扇门没有锁孔。",
+    "desc": "无钥强开其他门。淤塞急剧加重，通向无貌者的路。",
+    "keys": [{ "type": "flag", "key": "a5.blood_for_key", "label": "以澱或血代替钥匙" }],
+    "effects": [{ "type": "feature", "feature": "breach" }],
+    "danger": true,
+    "closable": true,
+    "sealLooseness": 12,
+    "sealUnrest": 0
+  },
+  {
+    "id": "ascent",
+    "name": "登庭之门",
+    "code": "door_ascent",
+    "category": "passage",
+    "act": 5,
+    "hint": "门是向上开的。",
+    "desc": "穿门进入神庭。",
+    "keys": [{ "type": "flag", "key": "a5_revelation_trial", "label": "天启：审期至。六司归庭。" }],
+    "effects": [{ "type": "feature", "feature": "ascent" }],
+    "auto": true,
+    "sealLooseness": 12,
+    "sealUnrest": 0
+  },
+  {
+    "id": "true_name",
+    "name": "名讳之门",
+    "code": "door_true_name",
+    "category": "truth",
+    "act": 6,
+    "hint": "门上写着一个名字，你一看就忘。",
+    "desc": "说出被禁之名，令雅努的力量显化。",
+    "keys": [{ "type": "flag", "key": "a6_name_spoken", "label": "得知第六位女神的名字" }],
+    "effects": [{ "type": "feature", "feature": "true_name" }],
+    "danger": true,
+    "sealLooseness": 12,
+    "sealUnrest": 0
+  },
+  {
+    "id": "dominion",
+    "name": "司掌之门",
+    "code": "door_dominion",
+    "category": "forbidden",
+    "act": 6,
+    "hint": "门后是一把空椅子。",
+    "desc": "吸收雅努的权能，成为唯一司掌者。",
+    "keys": [{ "type": "flag", "key": "a6_janu_intent_revealed", "label": "雅努的权能摆在面前" }],
+    "effects": [{ "type": "feature", "feature": "dominion" }],
+    "exclusive": ["dominion_or_last"],
+    "danger": true,
+    "sealLooseness": 12,
+    "sealUnrest": 0
+  },
+  {
+    "id": "last",
+    "name": "终门",
+    "code": "door_last",
+    "category": "last",
+    "act": 7,
+    "hint": "只有一扇。",
+    "desc": "造主的房间。",
+    "keys": [{ "type": "flag", "key": "ending", "equals": "release", "label": "真结局之后" }],
+    "effects": [{ "type": "feature", "feature": "last_door" }],
+    "exclusive": ["dominion_or_last"],
+    "sealLooseness": 0,
+    "sealUnrest": 0
+  }
+]

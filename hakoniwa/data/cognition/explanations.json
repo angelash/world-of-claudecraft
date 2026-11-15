@@ -1,0 +1,90 @@
+[
+  {
+    "id": "luck",
+    "label": "运气",
+    "identity": "运气好的新人",
+    "refutedBy": ["repeat", "physical"],
+    "discount": 0.6,
+    "category": "luck"
+  },
+  {
+    "id": "wounded",
+    "label": "前人打残",
+    "identity": "捡漏的新人",
+    "refutedBy": ["physical", "repeat"],
+    "discount": 0.6,
+    "category": "luck"
+  },
+  {
+    "id": "gadget",
+    "label": "机关或道具",
+    "identity": "带着怪道具的人",
+    "refutedBy": ["repeat_close"],
+    "discount": 0.7,
+    "category": "gadget"
+  },
+  {
+    "id": "cheat",
+    "label": "作弊或骗局",
+    "identity": "耍诈的家伙",
+    "refutedBy": ["repeat_close", "authority"],
+    "discount": 0.5,
+    "category": "cheat"
+  },
+  {
+    "id": "misreport",
+    "label": "误报",
+    "identity": "被吹过头的新人",
+    "refutedBy": ["seen", "seen_close", "multi"],
+    "discount": 0.5,
+    "category": "luck"
+  },
+  {
+    "id": "miracle",
+    "label": "神迹或加护",
+    "identity": "受光眷顾的人",
+    "refutedBy": ["authority"],
+    "discount": 0.5,
+    "category": "miracle"
+  },
+  {
+    "id": "sorcery",
+    "label": "魔物作祟或邪术",
+    "identity": "异端之兆",
+    "refutedBy": ["authority", "benefit"],
+    "discount": 0.9,
+    "category": "monster"
+  },
+  {
+    "id": "conspiracy",
+    "label": "阴谋",
+    "identity": "谁家安排的棋子",
+    "refutedBy": ["multi", "benefit"],
+    "discount": 0.6,
+    "category": "conspiracy"
+  },
+  {
+    "id": "hidden_identity",
+    "label": "隐藏身份",
+    "identity": "微服出巡的少爷",
+    "refutedBy": ["repeat_close"],
+    "discount": 0.9,
+    "category": "conspiracy"
+  },
+  {
+    "id": "bloodline",
+    "label": "血统与天才",
+    "identity": "勇者的私生子",
+    "refutedBy": ["authority"],
+    "discount": 1.0,
+    "category": "conspiracy"
+  },
+  {
+    "id": "useful",
+    "label": "可用之人",
+    "identity": "可用的怪人",
+    "refutedBy": ["repeat_close", "authority"],
+    "discount": 1.0,
+    "category": "conspiracy"
+  }
+]

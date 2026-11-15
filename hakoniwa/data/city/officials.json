@@ -1,0 +1,134 @@
+[
+  {
+    "id": "werner",
+    "name": "维尔纳·布克",
+    "desc": "旧哨村的村长，老实、怕麻烦，被事事过问时会说那你来当村长。",
+    "competence": { "food": 65, "works": 55, "civil": 70, "security": 40 },
+    "loyalty": 70,
+    "ambition": 20,
+    "integrity": 80,
+    "initiative": 50,
+    "creed": "生命"
+  },
+  {
+    "id": "maeve",
+    "name": "梅芙",
+    "desc": "遗民的长者，谨慎，只信任守约的人。",
+    "competence": { "civil": 75, "research": 60, "culture": 55 },
+    "loyalty": 60,
+    "ambition": 15,
+    "integrity": 85,
+    "initiative": 40,
+    "creed": "门"
+  },
+  {
+    "id": "ron",
+    "name": "罗恩",
+    "desc": "沉稳的剑士，擅长带兵与守土。",
+    "competence": { "military": 80, "security": 70 },
+    "loyalty": 85,
+    "ambition": 30,
+    "integrity": 80,
+    "initiative": 55,
+    "creed": "秩序"
+  },
+  {
+    "id": "nera",
+    "name": "奈拉",
+    "desc": "狐族商人，精于算账与谈价，同时向两边汇报。",
+    "competence": { "commerce": 85, "food": 50 },
+    "loyalty": 50,
+    "ambition": 60,
+    "integrity": 55,
+    "initiative": 75,
+    "creed": "交易"
+  },
+  {
+    "id": "oola",
+    "name": "欧拉婆婆",
+    "desc": "药草婆婆，懂得照顾病人。",
+    "competence": { "civil": 70, "research": 50 },
+    "loyalty": 65,
+    "ambition": 10,
+    "integrity": 85,
+    "initiative": 45,
+    "creed": "生命"
+  },
+  {
+    "id": "bron",
+    "name": "老布伦",
+    "desc": "公会分部长，消息灵通，管人有一套。",
+    "competence": { "security": 60, "civil": 55, "military": 55 },
+    "loyalty": 60,
+    "ambition": 30,
+    "integrity": 70,
+    "initiative": 50,
+    "creed": "记录"
+  },
+  {
+    "id": "cassian",
+    "name": "卡西安神父",
+    "desc": "温和的神父，主持礼拜与教化。",
+    "competence": { "culture": 75, "civil": 55 },
+    "loyalty": 55,
+    "ambition": 20,
+    "integrity": 80,
+    "initiative": 40,
+    "creed": "秩序"
+  },
+  {
+    "id": "martha",
+    "name": "玛莎",
+    "desc": "醉月亭老板娘，镇得住场子，懂防务。",
+    "competence": { "security": 75, "military": 65, "commerce": 50 },
+    "loyalty": 70,
+    "ambition": 25,
+    "integrity": 75,
+    "initiative": 60,
+    "creed": "争斗"
+  },
+  {
+    "id": "clara",
+    "name": "克拉拉·韦伯",
+    "desc": "能干的内政好手，有时会做玩家不会做的选择。",
+    "competence": { "civil": 80, "commerce": 70, "food": 60 },
+    "loyalty": 55,
+    "ambition": 55,
+    "integrity": 50,
+    "initiative": 70,
+    "creed": "交易"
+  },
+  {
+    "id": "bodric",
+    "name": "博德里克·石缝",
+    "desc": "矮人工匠，修路筑墙一把好手。",
+    "competence": { "works": 85, "military": 40 },
+    "loyalty": 65,
+    "ambition": 25,
+    "integrity": 75,
+    "initiative": 55,
+    "creed": "交易"
+  },
+  {
+    "id": "regis",
+    "name": "雷吉斯·达尔",
+    "desc": "退伍老兵，带民兵很有一手。",
+    "competence": { "military": 75, "security": 65 },
+    "loyalty": 70,
+    "ambition": 30,
+    "integrity": 70,
+    "initiative": 50,
+    "creed": "秩序"
+  },
+  {
+    "id": "romaine",
+    "name": "萝蔓·麦穗",
+    "desc": "老农，懂得什么时候播种、什么时候收割。",
+    "competence": { "food": 85, "works": 40 },
+    "loyalty": 70,
+    "ambition": 15,
+    "integrity": 80,
+    "initiative": 45,
+    "creed": "生命"
+  }
+]

@@ -1,0 +1,280 @@
+{
+  "id": "wallenburg_sewers",
+  "name": "旧水道迷宫",
+  "region": "wallenburg",
+  "width": 40,
+  "height": 30,
+  "sediment": 2,
+  "indoor": true,
+  "rows": [
+    "########################################",
+    "##o##oooooo#############################",
+    "#oooooooooo#ooooooWWooooooo##oo#########",
+    "#oooooooooo#o#ooooWWo#####o#oo,o^#######",
+    "#oooooooooo#oooooo__o#...#o#ooo,########",
+    "#oooooooooo#ooooooWWoo...#o+ooo,########",
+    "###++#######o#ooooWWo##o##o+oo,o########",
+    "##...~~...##ooooooWWooooooo##oooo#######",
+    "###..~~..###ooooooWW#oooooo###ooo#######",
+    "##...__...##ooooooWWo####oo#^,,oo#######",
+    "##...~~...##~~__~~WWo#..ooo#,oo,,#######",
+    "##...~~...##~~__~~WWo#..#oo#o,ooo#######",
+    "###..~~..###ooooooWWo#o##oo#o,ooo^######",
+    "##...~~...##ooooooWWooooooo##ooo########",
+    "##...__...###oooooWWooooooo##^ooo#######",
+    "##...~~...##ooooooWWoooooo###o,oo#######",
+    "###..~~..###oooo##WWooooooo##o~~o#o...o#",
+    "##...~~...++oooo..WWoo####o#,o~~##ooooo#",
+    "##...~~...++oooo..__oo#..oo#,oo,^#o#o#o#",
+    "##...__...##oooo..__ooo..#o#,oo,##ooooo#",
+    "###..~~..###oooo..WWoo####o#ooo,##ooooo#",
+    "##...~~...##oooo##WW#oooooo##,o,o+ooooo#",
+    "###+#WW#+###ooooooWWooooooo#^oooo+ooooo#",
+    "##,,,WW,,^##o#ooooWWo##o#oo##o,o##ooooo#",
+    "##,,,,,,,,##...oooWWo#..#oo#,oooo#ooooo#",
+    "##,^,,,,,,##...oooWWoo..#oo#,oooo^o#o#o#",
+    "##,,,,,,,,##...#ooWWo####oo#oo,,o#ooooo#",
+    "##,,,,,,^,##...oooWWooooooo##o^o##ooooo#",
+    "##^,,,,,,,##############################",
+    "########################################"
+  ],
+  "legend": {
+    "#": "wall",
+    ".": "floor",
+    ",": "dirt",
+    "^": "rock",
+    "~": "water",
+    "W": "deep_water",
+    "+": "door",
+    "_": "bridge",
+    "o": "stone"
+  },
+  "locations": [
+    { "id": "gate_wallenburg", "name": "泥巷井口", "kind": "gate", "x": 2, "y": 2, "w": 3, "h": 3 },
+    { "id": "sewer_landing", "name": "井下平台", "kind": "safe", "x": 6, "y": 1, "w": 5, "h": 5 },
+    { "id": "drain_hall", "name": "排水廊", "kind": "dungeon", "x": 2, "y": 7, "w": 8, "h": 15 },
+    { "id": "rat_nest", "name": "鼠巢", "kind": "lair", "x": 2, "y": 23, "w": 7, "h": 5 },
+    { "id": "sluice_gate", "name": "沉锁闸", "kind": "dungeon", "x": 12, "y": 14, "w": 7, "h": 9 },
+    {
+      "id": "old_foundation",
+      "name": "旧城基",
+      "kind": "dungeon",
+      "x": 20,
+      "y": 3,
+      "w": 7,
+      "h": 21
+    },
+    { "id": "crystal_grotto", "name": "澱晶窟", "kind": "lair", "x": 28, "y": 8, "w": 7, "h": 13 },
+    {
+      "id": "gate_37",
+      "name": "第三十七门前厅",
+      "kind": "gate_site",
+      "x": 34,
+      "y": 16,
+      "w": 5,
+      "h": 11
+    }
+  ],
+  "spawns": [
+    {
+      "id": "ws_rat_hall_n",
+      "kind": "monster",
+      "ref": "dian_rat",
+      "x": 3.5,
+      "y": 11.5,
+      "count": 3,
+      "radius": 2,
+      "respawnMinutes": 200
+    },
+    {
+      "id": "ws_rat_hall_s",
+      "kind": "monster",
+      "ref": "dian_rat",
+      "x": 8.5,
+      "y": 19.5,
+      "count": 3,
+      "radius": 2,
+      "respawnMinutes": 200
+    },
+    {
+      "id": "ws_sludge_e",
+      "kind": "monster",
+      "ref": "sewer_sludge",
+      "x": 8.5,
+      "y": 11.5,
+      "count": 1,
+      "radius": 1.5,
+      "respawnMinutes": 240
+    },
+    {
+      "id": "ws_sludge_w",
+      "kind": "monster",
+      "ref": "sewer_sludge",
+      "x": 3.5,
+      "y": 16.5,
+      "count": 1,
+      "radius": 1.5,
+      "respawnMinutes": 240
+    },
+    {
+      "id": "ws_sludge_s",
+      "kind": "monster",
+      "ref": "sewer_sludge",
+      "x": 3.5,
+      "y": 20.5,
+      "count": 1,
+      "radius": 1.5,
+      "respawnMinutes": 240
+    },
+    {
+      "id": "ws_rat_king",
+      "kind": "monster",
+      "ref": "rat_king",
+      "x": 5.5,
+      "y": 25.5,
+      "count": 1,
+      "radius": 2
+    },
+    {
+      "id": "ws_drowned_n",
+      "kind": "monster",
+      "ref": "drowned",
+      "x": 17.5,
+      "y": 7.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 320
+    },
+    {
+      "id": "ws_drowned_e",
+      "kind": "monster",
+      "ref": "drowned",
+      "x": 20.5,
+      "y": 15.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 320
+    },
+    {
+      "id": "ws_drowned_s",
+      "kind": "monster",
+      "ref": "drowned",
+      "x": 17.5,
+      "y": 24.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 320
+    },
+    {
+      "id": "ws_leech_feeder",
+      "kind": "monster",
+      "ref": "dian_leech",
+      "x": 13.5,
+      "y": 12.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 320
+    },
+    {
+      "id": "ws_leech_south",
+      "kind": "monster",
+      "ref": "dian_leech",
+      "x": 20.5,
+      "y": 26.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 320
+    },
+    {
+      "id": "ws_bookwraith_n",
+      "kind": "monster",
+      "ref": "ash_bookwraith",
+      "x": 22.5,
+      "y": 4.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 320
+    },
+    {
+      "id": "ws_bookwraith_s",
+      "kind": "monster",
+      "ref": "ash_bookwraith",
+      "x": 23.5,
+      "y": 18.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 320
+    },
+    {
+      "id": "ws_centipede_young_n",
+      "kind": "monster",
+      "ref": "crystal_centipede_young",
+      "x": 30.5,
+      "y": 4.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 400
+    },
+    {
+      "id": "ws_centipede_young_c",
+      "kind": "monster",
+      "ref": "crystal_centipede_young",
+      "x": 29.5,
+      "y": 19.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 400
+    },
+    {
+      "id": "ws_centipede_young_s",
+      "kind": "monster",
+      "ref": "crystal_centipede_young",
+      "x": 31.5,
+      "y": 25.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 400
+    },
+    {
+      "id": "ws_cultist_aisle_n",
+      "kind": "monster",
+      "ref": "disciple_cultist",
+      "x": 36.5,
+      "y": 19.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 400
+    },
+    {
+      "id": "ws_cultist_aisle_s",
+      "kind": "monster",
+      "ref": "disciple_cultist",
+      "x": 36.5,
+      "y": 24.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 400
+    },
+    {
+      "id": "ws_crystal_centipede",
+      "kind": "monster",
+      "ref": "crystal_centipede",
+      "x": 31.5,
+      "y": 14.5,
+      "count": 1,
+      "radius": 2
+    }
+  ],
+  "exits": [
+    {
+      "id": "to_wallenburg",
+      "x": 2,
+      "y": 1,
+      "toMap": "wallenburg",
+      "toX": 1,
+      "toY": 1,
+      "toLocation": "gate_wallenburg_sewers",
+      "label": "回到泥巷"
+    }
+  ]
+}

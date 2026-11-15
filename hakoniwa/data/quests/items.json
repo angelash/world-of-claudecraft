@@ -1,0 +1,532 @@
+[
+  {
+    "id": "relic_badge",
+    "name": "工牌",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "带照片与姓名的门禁卡。地球上的东西，在这里刷不开任何一扇门。",
+    "stack": 1,
+    "tags": ["earth"]
+  },
+  {
+    "id": "relic_receipt",
+    "name": "小票与糖",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "一张便利店的小票，和一颗没拆封的糖。",
+    "stack": 1,
+    "tags": ["earth"]
+  },
+  {
+    "id": "relic_mint",
+    "name": "探视证与薄荷糖",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "医院的探视证，半盒薄荷糖。",
+    "stack": 1,
+    "tags": ["earth"]
+  },
+  {
+    "id": "relic_key",
+    "name": "老钥匙",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "祖辈老房子的钥匙。那栋房子明天就要拆了。",
+    "stack": 1,
+    "tags": ["earth"]
+  },
+  {
+    "id": "number_tag_five",
+    "name": "号码牌「伍」",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "候见厅里发的号码牌。墙上的号码板原本只有四格。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "merca_coin",
+    "name": "梅尔卡的硬币",
+    "kind": "key",
+    "quality": 4,
+    "value": 0,
+    "desc": "交易之司赊给你的硬币。在市场或她的神龛使用它，可以联系她。",
+    "stack": 1,
+    "tags": ["token:merca"]
+  },
+  {
+    "id": "guild_card",
+    "name": "公会卡",
+    "kind": "key",
+    "quality": 1,
+    "value": 0,
+    "desc": "F 级，Lv1，无职能。读数栏：无记载。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "old_guild_badge",
+    "name": "公会旧铜牌",
+    "kind": "lore",
+    "quality": 2,
+    "value": 50,
+    "desc": "巨鸦巢里找到的旧铜牌，上面的名字被磨掉了。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "raven_black_feather",
+    "name": "巨鸦黑羽",
+    "kind": "material",
+    "quality": 2,
+    "value": 80,
+    "desc": "一根比手臂还长的黑羽，边缘泛着灰。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "north_spring_water",
+    "name": "北泉的灰水",
+    "kind": "key",
+    "quality": 2,
+    "value": 0,
+    "desc": "一瓶从北泉打来的水，沉淀下来是一层灰。孩子们的病，源头在这里。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "smuggling_manifest",
+    "name": "运货单",
+    "kind": "key",
+    "quality": 2,
+    "value": 0,
+    "desc": "旧矿下层走私营地的运货单，收货人的印章是代官府的。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "colossus_core",
+    "name": "澱巨像的核心",
+    "kind": "material",
+    "quality": 3,
+    "value": 300,
+    "desc": "兽潮之夜那尊巨像的心，摸上去还是温的。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "brun_glove",
+    "name": "布伦的旧手套",
+    "kind": "key",
+    "quality": 2,
+    "value": 0,
+    "desc": "左手的旧皮手套。戴上它，手背上的纹就不那么显眼。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "count_letter",
+    "name": "伯爵的来信",
+    "kind": "lore",
+    "quality": 1,
+    "value": 0,
+    "desc": "瓦伦边境伯爵府书记处的信：伯爵欲见此人。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "b_rank_card",
+    "name": "B 级公会卡",
+    "kind": "key",
+    "quality": 2,
+    "value": 0,
+    "desc": "鉴定依旧失败，考官在等级栏里签下了「B」。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "barony_writ",
+    "name": "灰烬边境封书",
+    "kind": "key",
+    "quality": 3,
+    "value": 0,
+    "desc": "把谁都不要的灰烬边境封给你的文书。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "charter_rubbing",
+    "name": "原始规约拓本",
+    "kind": "lore",
+    "quality": 3,
+    "value": 0,
+    "desc": "七座天启碑上的古庭语原文：此庭为吾所植……千年一审，审其可离手否。",
+    "stack": 1,
+    "tags": []
+  },
+  {
+    "id": "evidence_e01",
+    "name": "证物：守门人阿什的证言",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：守门人阿什的证言。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e02",
+    "name": "证物：主门剑尖与光蚀纹",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：主门剑尖与光蚀纹。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e03",
+    "name": "证物：长老艾尔温的证言",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：长老艾尔温的证言。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e04",
+    "name": "证物：遗民门歌",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：遗民门歌。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e05",
+    "name": "证物：深账库抵押账册",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：深账库抵押账册。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e06",
+    "name": "证物：商路专营契",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：商路专营契。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e07",
+    "name": "证物：空白纪副本",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：空白纪副本。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e08",
+    "name": "证物：第六碑凿痕拓片",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：第六碑凿痕拓片。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e09",
+    "name": "证物：渡口老船夫的证言",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：渡口老船夫的证言。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e10",
+    "name": "证物：历代魔王诞生图",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：历代魔王诞生图。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e11",
+    "name": "证物：勇者加护结构图",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：勇者加护结构图。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e12",
+    "name": "证物：瓦尔妲的坦白",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：瓦尔妲的坦白。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e13",
+    "name": "证物：堕勇遗言",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：堕勇遗言。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e14",
+    "name": "证物：赫尔加星表",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：赫尔加星表。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e15",
+    "name": "证物：神谕原文",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：神谕原文。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e16",
+    "name": "证物：候见厅记录",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：候见厅记录。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e17",
+    "name": "证物：无貌者的旧物",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：无貌者的旧物。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e18",
+    "name": "证物：无貌者的证言",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：无貌者的证言。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e19",
+    "name": "证物：灵泉中的记忆",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：灵泉中的记忆。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e20",
+    "name": "证物：铭录后门",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：铭录后门。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e21",
+    "name": "证物：命运丝",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：命运丝。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e22",
+    "name": "证物：哈特的魂契",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：哈特的魂契。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e23",
+    "name": "证物：帝国军中祭坛",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：帝国军中祭坛。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e24",
+    "name": "证物：门徒会供词",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：门徒会供词。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e25",
+    "name": "证物：欧拉托梦记录",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：欧拉托梦记录。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e26",
+    "name": "证物：庭外之国人簿",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：庭外之国人簿。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e27",
+    "name": "证物：审期记录",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：审期记录。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e28",
+    "name": "证物：灰烬决战战报",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：灰烬决战战报。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e29",
+    "name": "证物：众门环净澱记录",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：众门环净澱记录。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e30",
+    "name": "证物：原龙艾斯卡的证言",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：原龙艾斯卡的证言。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e31",
+    "name": "证物：「未」字拓片与莫伊拉批注",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：「未」字拓片与莫伊拉批注。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e32",
+    "name": "证物：门口那位的出手",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：门口那位的出手。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e33",
+    "name": "证物：前世记忆（地球）",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：前世记忆（地球）。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e34",
+    "name": "证物：神迹账与箱庭离手指数",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：神迹账与箱庭离手指数。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e35",
+    "name": "证物：勇者团证词",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：勇者团证词。",
+    "stack": 1,
+    "tags": ["evidence"]
+  },
+  {
+    "id": "evidence_e36",
+    "name": "证物：曙光圣柱违约证据",
+    "kind": "evidence",
+    "quality": 3,
+    "value": 0,
+    "desc": "第六幕神庭审理可以出示的证据：曙光圣柱违约证据。",
+    "stack": 1,
+    "tags": ["evidence"]
+  }
+]

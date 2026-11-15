@@ -1,0 +1,1365 @@
+[
+  {
+    "id": "a6_court",
+    "title": "诸神审定",
+    "act": "act6",
+    "mapId": "divine_court",
+    "location": "court_seat",
+    "start": "open",
+    "nodes": [
+      {
+        "id": "open",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a6_court_open",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "a6_letter7_delivered",
+            "value": true,
+            "when": "companion.yeyu.recruited AND yeyu_letters >= 4"
+          },
+          {
+            "type": "item",
+            "item": "evidence_e16"
+          },
+          {
+            "type": "item",
+            "item": "evidence_e33"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "你和夜羽一同落在候见厅。灰尘、纯白、远处那片亮。一切都和那一天一样，只是这一次，隔壁没有人在面试。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "长桌后摆着七把椅子。长桌与你当初站着的位置之间，多了一口浅池：庭镜。水面上映着箱庭，可以拉近到任何一条街。"
+          },
+          {
+            "speaker": "valda",
+            "text": "这椅子还是这么硬。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "梅尔卡带了点心，被一道目光瞪了一眼，又收了起来。书记官兴奋得像终于等到大结局的读者。"
+          },
+          {
+            "speaker": "yeyu",
+            "text": "（小声）光的那位，今天的衣服又是左右一样。",
+            "when": "companion.yeyu.recruited"
+          }
+        ],
+        "next": "name"
+      },
+      {
+        "id": "name",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a6_name_spoken",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "第六把椅子上，第一次有人坐了。她半边身体仍是门框，另一半的脸，第一次完全在光里。"
+          },
+          {
+            "speaker": "moira",
+            "text": "审期点名。门扉与可能之司，雅努·珀尔塔。"
+          },
+          {
+            "speaker": "valda",
+            "text": "……好久不见。"
+          },
+          {
+            "speaker": "janu",
+            "text": "你的剑还断着。"
+          }
+        ],
+        "next": "seat"
+      },
+      {
+        "id": "seat",
+        "branch": [
+          {
+            "when": "purge_route == people OR gate_ring >= 4",
+            "to": "seat_grows"
+          },
+          {
+            "when": "gate_ring < 4",
+            "to": "seat_witness"
+          }
+        ],
+        "next": "seat_witness"
+      },
+      {
+        "id": "seat_grows",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "court_seat",
+            "value": "seated"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "你当初站着受面试的地方，地板里长出了一把门木的椅子。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "庭之席认的不是你，是你身后那个被众生自己连起来的庭。你只是代它说话的人。"
+          }
+        ],
+        "next": "record"
+      },
+      {
+        "id": "seat_witness",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "court_seat",
+            "value": "witness"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "你当初站着的地方，仍然只是一块空地。你走上证人台。"
+          }
+        ],
+        "next": "record"
+      },
+      {
+        "id": "record",
+        "lines": [
+          {
+            "speaker": "moira",
+            "text": "审期记录，第一页。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她翻开的书里，写着候见厅里发生过的一切，包括你当时的每一句回答。"
+          },
+          {
+            "speaker": "moira",
+            "text": "你最后说的是：{flag:prologue.last_words}",
+            "when": "prologue.last_words"
+          },
+          {
+            "speaker": "moira",
+            "text": "按惯例，审定前，诸司各陈其绩。……不过这一次，好像多了一位。"
+          }
+        ],
+        "next": "accuse"
+      },
+      {
+        "id": "accuse",
+        "lines": [
+          {
+            "speaker": "eluen",
+            "text": "我指控门扉之司：门带来混乱，她想独掌全庭。这个规格外的东西，是她的工具，是魔王的先驱。"
+          },
+          {
+            "speaker": "valda",
+            "text": "我指控光：伪善，主谋那件事，却管排澱叫光的胜利。"
+          },
+          {
+            "speaker": "merca",
+            "text": "（翻开账本）谁欠谁，谁买过什么，都在这里。谁出价，我就替谁作证。"
+          },
+          {
+            "speaker": "sylvie",
+            "text": "……我们。"
+          },
+          {
+            "speaker": "moira",
+            "text": "书记官不指控。（她摊开的记录，指控了所有人。）"
+          },
+          {
+            "speaker": "janu",
+            "text": "五司合谋毁门，封印我，禁我的名，误读规约两千年。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "审期开始了。箱庭里，第一次没有任何一位照看者。"
+          }
+        ],
+        "next": "crisis_no_light"
+      },
+      {
+        "id": "crisis_no_light",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "庭镜里，无光之祷："
+          },
+          {
+            "speaker": "narrator",
+            "text": "祈祷无人应答，圣骑士的加护在变弱，末日教派在街上煽动。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "descend",
+            "label": "（下庭：穿过庭镜里的门，回去亲手解决）",
+            "to": "crisis_residue_tide",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "review.no_light.descend",
+                "value": true
+              }
+            ]
+          },
+          {
+            "id": "stay",
+            "label": "（留在审庭，相信他们）",
+            "to": "crisis_residue_tide"
+          }
+        ]
+      },
+      {
+        "id": "crisis_residue_tide",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "庭镜里，残澱之潮："
+          },
+          {
+            "speaker": "narrator",
+            "text": "决战后的残澱在各地化为魔物潮。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "descend",
+            "label": "（下庭：穿过庭镜里的门，回去亲手解决）",
+            "to": "crisis_contract_halt",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "review.residue_tide.descend",
+                "value": true
+              }
+            ]
+          },
+          {
+            "id": "stay",
+            "label": "（留在审庭，相信他们）",
+            "to": "crisis_contract_halt"
+          }
+        ]
+      },
+      {
+        "id": "crisis_contract_halt",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "庭镜里，契约停摆："
+          },
+          {
+            "speaker": "narrator",
+            "text": "契约加护冻结了，金湾的借据失去了神力担保。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "descend",
+            "label": "（下庭：穿过庭镜里的门，回去亲手解决）",
+            "to": "crisis_winter_famine",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "review.contract_halt.descend",
+                "value": true
+              }
+            ]
+          },
+          {
+            "id": "stay",
+            "label": "（留在审庭，相信他们）",
+            "to": "crisis_winter_famine"
+          }
+        ]
+      },
+      {
+        "id": "crisis_winter_famine",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "庭镜里，冬前之荒："
+          },
+          {
+            "speaker": "narrator",
+            "text": "没有人调节天气，秋收不稳，灵泉无人看护。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "descend",
+            "label": "（下庭：穿过庭镜里的门，回去亲手解决）",
+            "to": "crisis_record_silence",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "review.winter_famine.descend",
+                "value": true
+              }
+            ]
+          },
+          {
+            "id": "stay",
+            "label": "（留在审庭，相信他们）",
+            "to": "crisis_record_silence"
+          }
+        ]
+      },
+      {
+        "id": "crisis_record_silence",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "庭镜里，铭录静默："
+          },
+          {
+            "speaker": "narrator",
+            "text": "铭录只读不写，公会无法给新人定级。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "descend",
+            "label": "（下庭：穿过庭镜里的门，回去亲手解决）",
+            "to": "review_settle",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "review.record_silence.descend",
+                "value": true
+              }
+            ]
+          },
+          {
+            "id": "stay",
+            "label": "（留在审庭，相信他们）",
+            "to": "review_settle"
+          }
+        ]
+      },
+      {
+        "id": "review_settle",
+        "effects": [
+          {
+            "type": "compute",
+            "fn": "review_score"
+          },
+          {
+            "type": "item",
+            "item": "evidence_e27"
+          },
+          {
+            "type": "item",
+            "item": "evidence_e34"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "五场危机过去了。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "灵泉没有停。它本来就会自己转。",
+            "when": "review.winter_famine IN (self, barely)"
+          },
+          {
+            "speaker": "narrator",
+            "text": "人族的小城里，神不应了，人们自己点起了灯。",
+            "when": "review.no_light IN (self, barely)"
+          },
+          {
+            "speaker": "moira",
+            "text": "审期记录与神迹账，我都誊好了。这一次，每一笔都摆在证物台上。"
+          }
+        ],
+        "next": "x_eluen"
+      },
+      {
+        "id": "x_eluen",
+        "lines": [
+          {
+            "speaker": "eluen",
+            "text": "那件事是众议。我只是执行。"
+          },
+          {
+            "speaker": "eluen",
+            "text": "为了秩序，为了孩子们。没有我，人族会互相吞食。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "（出示你手里的证据。击破她的事实、正当、必要三道防线。）"
+          }
+        ],
+        "court": {
+          "goddess": "eluen",
+          "to": "x_valda",
+          "limit": 12
+        }
+      },
+      {
+        "id": "x_valda",
+        "lines": [
+          {
+            "speaker": "valda",
+            "text": "我砸的，我设计的，怎么了？争斗让世界变强。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "（出示你手里的证据。击破她的事实、正当、必要三道防线。）"
+          }
+        ],
+        "court": {
+          "goddess": "valda",
+          "to": "after_valda",
+          "limit": 12
+        }
+      },
+      {
+        "id": "after_valda",
+        "lines": [
+          {
+            "speaker": "valda",
+            "text": "嘴上的东西说够了。要不要，用拳头说一句？"
+          }
+        ],
+        "choices": [
+          {
+            "id": "duel",
+            "label": "（接受断剑之约）",
+            "to": "duel",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "court.valda.duel",
+                "value": true
+              }
+            ]
+          },
+          {
+            "id": "no_duel",
+            "label": "不必了。",
+            "to": "x_merca"
+          }
+        ]
+      },
+      {
+        "id": "duel",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "她每命中一次就更强。你打断她的连击，一次，又一次。"
+          },
+          {
+            "speaker": "valda",
+            "text": "……哈。打得好。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她认可了你。"
+          }
+        ],
+        "next": "x_merca"
+      },
+      {
+        "id": "x_merca",
+        "lines": [
+          {
+            "speaker": "merca",
+            "text": "一切都是买卖，客人。而且我救的人，比谁都多。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "（出示你手里的证据。击破她的事实、正当、必要三道防线。）"
+          }
+        ],
+        "court": {
+          "goddess": "merca",
+          "to": "after_merca",
+          "limit": 12
+        }
+      },
+      {
+        "id": "after_merca",
+        "choices": [
+          {
+            "id": "outlet",
+            "label": "提出一笔更好的买卖：让市场自己运转，你去当个凡人商人。",
+            "to": "x_sylvie",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "court.merca.outlet",
+                "value": true
+              }
+            ]
+          },
+          {
+            "id": "no_outlet",
+            "label": "（不给出路）",
+            "to": "x_sylvie"
+          }
+        ]
+      },
+      {
+        "id": "x_sylvie",
+        "lines": [
+          {
+            "speaker": "sylvie",
+            "text": "……孩子们还小。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "（出示你手里的证据。击破她的事实、正当、必要三道防线。）"
+          }
+        ],
+        "court": {
+          "goddess": "sylvie",
+          "to": "x_moira",
+          "limit": 12
+        }
+      },
+      {
+        "id": "x_moira",
+        "lines": [
+          {
+            "speaker": "moira",
+            "text": "我只记录。……好吧，我让这个故事更好看了。这难道不算繁茂？"
+          },
+          {
+            "speaker": "narrator",
+            "text": "（出示你手里的证据。击破她的事实、正当、必要三道防线。）"
+          }
+        ],
+        "court": {
+          "goddess": "moira",
+          "to": "interim",
+          "limit": 12
+        }
+      },
+      {
+        "id": "interim",
+        "effects": [
+          {
+            "type": "compute",
+            "fn": "court_verdicts"
+          }
+        ],
+        "next": "spring"
+      },
+      {
+        "id": "spring",
+        "branch": [
+          {
+            "when": "a6_spring_memory",
+            "to": "spring_given"
+          }
+        ],
+        "next": "hibernate"
+      },
+      {
+        "id": "hibernate",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "希尔薇闭上了眼。她退进了灵泉，再也不出来。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "dive",
+            "label": "（潜入灵泉，在她孩子们的记忆里找到她）",
+            "to": "spring_found",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a6_spring_memory",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "spring_found",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "你在一个兽人孩子的记忆里找到了她。她坐在一棵没开花的树下，看着那个孩子长大。"
+          },
+          {
+            "speaker": "sylvie",
+            "text": "……你找到我了。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她把灵泉里沉着的那段记忆，交到你手里。"
+          }
+        ],
+        "next": "spring_given"
+      },
+      {
+        "id": "spring_given",
+        "effects": [
+          {
+            "type": "item",
+            "item": "evidence_e19"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "灵泉里沉着的那段记忆，现在在你手里。"
+          }
+        ],
+        "next": "janu_intent"
+      },
+      {
+        "id": "janu_intent",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a6_janu_intent_revealed",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "雅努起身。"
+          },
+          {
+            "speaker": "janu",
+            "text": "那么，就让我回来吧。"
+          },
+          {
+            "speaker": "janu",
+            "text": "千门回廊的尽头，有一扇你一直打不开的门。复原之门。你已经替我开了那么多扇，只差这最后一扇。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她让你看门后：一张新的门网图，覆盖整个大陆，每一条线都经过同一个中心。中心是一扇门的形状。"
+          },
+          {
+            "speaker": "janu",
+            "text": "我只想让这个世界重新连起来。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "why",
+            "label": "为什么每一条线都要经过你？",
+            "to": "janu_why"
+          }
+        ]
+      },
+      {
+        "id": "janu_why",
+        "lines": [
+          {
+            "speaker": "janu",
+            "text": "因为上一次，我放手了。我以为他们自己能守住门。然后，他们就把门砸了。"
+          },
+          {
+            "speaker": "janu",
+            "text": "这一次，我想守着。只守一阵子。等他们真的准备好了……"
+          },
+          {
+            "speaker": "janu",
+            "text": "……我会放手的。"
+          },
+          {
+            "speaker": "moira",
+            "text": "你看，又一位想当作者的。"
+          },
+          {
+            "speaker": "eluen",
+            "text": "我说过，她也想独掌！"
+          }
+        ],
+        "next": "coread"
+      },
+      {
+        "id": "coread",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a6_charter_read",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "莫伊拉把空白纪的第零页放在庭镜旁。上面是原始规约的古庭语原文，和开园那一天她写下的第一行笔记：园成。那一位未留。"
+          },
+          {
+            "speaker": "moira",
+            "text": "护其生，导其长，勿使枯，勿使乱。这四个其，两千年来没有人争过：护的是庭的生，导的是庭的长。"
+          },
+          {
+            "speaker": "moira",
+            "text": "同一段话里，同一个字。到了最后一句审其可离手否，我们五个，忽然都把它读成了汝。"
+          },
+          {
+            "speaker": "moira",
+            "text": "……因为我们想。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "灵泉的记忆在庭镜里重现：开园之日，那一位把箱庭放下，手覆在新种下的庭上。五位司掌者都低头看着自己的那一隅，只有雅努站在门口，回头看着来处。"
+          },
+          {
+            "speaker": "janu",
+            "text": "那一天，你们都低头看着庭。只有我，回头看着门。"
+          },
+          {
+            "speaker": "janu",
+            "text": "祂不是把庭交给我们。祂是松开了手，然后叫我们看着，等有一天，我们也能松开。"
+          },
+          {
+            "speaker": "eska",
+            "text": "我是被放下的。那一位种下之后，就松开了手。我们，是那只手松开时落下的东西。",
+            "when": "eska_consent"
+          },
+          {
+            "speaker": "narrator",
+            "text": "莫伊拉与雅努一同念出那一句：千年一审，审其可离手否。"
+          },
+          {
+            "speaker": "moira",
+            "text": "审的是这座庭，能不能像那一天一样，被松开手。"
+          },
+          {
+            "speaker": "valda",
+            "text": "……原来我当年吵输的，是这个。"
+          },
+          {
+            "speaker": "moira",
+            "text": "未，即尚未。尚未什么？……尚未学会放手的，是我们。"
+          }
+        ],
+        "next": "earth"
+      },
+      {
+        "id": "earth",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a6_earth_truth",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "moira",
+            "text": "那么……有没有哪一座庭，真的被放手过？"
+          },
+          {
+            "speaker": "janu",
+            "text": "你一直都知道它的名字。你只是从来没往那边想过。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她在庭镜旁开了一扇门。门外是庭间之隙，隙中远远悬着一座庭：没有终雾，没有天穹的墙，星辰不整齐地散在四面八方。"
+          },
+          {
+            "speaker": "ash",
+            "text": "我来的地方。我抄写的那些书里，有许多神。可我从没见过一位。",
+            "when": "a3_ash_tells_sundering"
+          },
+          {
+            "speaker": "janu",
+            "text": "你的世界早就没有神了。不是因为神死了，是因为神放手了。"
+          },
+          {
+            "speaker": "eluen",
+            "text": "……原来那不是荒地。是没有我们，也长成了的地方。"
+          }
+        ],
+        "next": "final_verdicts"
+      },
+      {
+        "id": "final_verdicts",
+        "effects": [
+          {
+            "type": "compute",
+            "fn": "court_verdicts"
+          }
+        ],
+        "next": "askback"
+      },
+      {
+        "id": "askback",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "庭陈述的最后，你把候见厅里她们问过你的问题，原样问了回去。"
+          },
+          {
+            "speaker": "player",
+            "text": "你凭什么值得被选中？"
+          },
+          {
+            "speaker": "eluen",
+            "text": "……我不必被选中。",
+            "when": "verdict_eluen == voluntary"
+          },
+          {
+            "speaker": "eluen",
+            "text": "因为我是光。",
+            "when": "verdict_eluen != voluntary"
+          },
+          {
+            "speaker": "player",
+            "text": "你打过架吗？输过吗？"
+          },
+          {
+            "speaker": "valda",
+            "text": "输过。输给她，也输给你们。……输了还能站起来，这才叫打架。",
+            "when": "verdict_valda == voluntary"
+          },
+          {
+            "speaker": "valda",
+            "text": "我没输过。",
+            "when": "verdict_valda != voluntary"
+          },
+          {
+            "speaker": "player",
+            "text": "你能带来什么？"
+          },
+          {
+            "speaker": "merca",
+            "text": "……我能把我自己带走。这笔买卖，我认。",
+            "when": "verdict_merca == voluntary"
+          },
+          {
+            "speaker": "merca",
+            "text": "一切。",
+            "when": "verdict_merca != voluntary"
+          },
+          {
+            "speaker": "player",
+            "text": "你想念什么？"
+          },
+          {
+            "speaker": "sylvie",
+            "text": "想念他们小时候。……可他们已经长大了。",
+            "when": "verdict_sylvie == voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "text": "（她没有回答。）",
+            "when": "verdict_sylvie != voluntary"
+          },
+          {
+            "speaker": "player",
+            "text": "你的故事，是从哪一页开始的？"
+          },
+          {
+            "speaker": "moira",
+            "text": "从我把笔放下的那一页。",
+            "when": "verdict_moira == voluntary"
+          },
+          {
+            "speaker": "moira",
+            "text": "从第一页。我一直在第一页。",
+            "when": "verdict_moira != voluntary"
+          }
+        ],
+        "next": "janu_ask"
+      },
+      {
+        "id": "janu_ask",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "court.janu.e32",
+            "value": true,
+            "when": "janu_act == seal"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "player",
+            "text": "你为什么开门？"
+          }
+        ],
+        "choices": [
+          {
+            "id": "tavi",
+            "label": "（传唤门歌者塔维）",
+            "once": true,
+            "to": "tavi",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "court.tavi_called",
+                "value": true
+              }
+            ]
+          },
+          {
+            "id": "ash",
+            "label": "（传唤守门人阿什）",
+            "once": true,
+            "when": "a3_ash_tells_sundering",
+            "to": "ash"
+          },
+          {
+            "id": "let_go",
+            "label": "你读对了。所以，你也得放手。……我也放手。我会归还千门。",
+            "to": "janu_answer",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "court.player_lets_go",
+                "value": true
+              }
+            ]
+          },
+          {
+            "id": "hold",
+            "label": "（什么也不说）",
+            "to": "janu_answer"
+          }
+        ]
+      },
+      {
+        "id": "tavi",
+        "lines": [
+          {
+            "speaker": "tavi",
+            "text": "开门的母亲。我们会自己开门了。"
+          }
+        ],
+        "next": "janu_ask"
+      },
+      {
+        "id": "ash",
+        "lines": [
+          {
+            "speaker": "ash",
+            "text": "我守了一千年的门。让我也休息吧。"
+          }
+        ],
+        "next": "janu_ask"
+      },
+      {
+        "id": "janu_answer",
+        "effects": [
+          {
+            "type": "compute",
+            "fn": "janu_release"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "sylvie",
+            "text": "放手不是丢弃。丢弃，是因为你怕它；放手，是因为你信它。"
+          }
+        ],
+        "branch": [
+          {
+            "when": "janu_release",
+            "to": "janu_lets_go"
+          }
+        ],
+        "next": "janu_refuses"
+      },
+      {
+        "id": "janu_lets_go",
+        "lines": [
+          {
+            "speaker": "janu",
+            "text": "为了有一天，不用再开。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她笑了一下，很久没有说话。"
+          }
+        ],
+        "next": "patron"
+      },
+      {
+        "id": "janu_refuses",
+        "lines": [
+          {
+            "speaker": "janu",
+            "text": "为了让门一直开着。"
+          },
+          {
+            "speaker": "janu",
+            "text": "开启复原之门吧。或者……把我的全部，拿去。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "restore",
+            "label": "（开启复原之门）",
+            "to": "patron",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "janu_restore_chosen",
+                "value": true
+              }
+            ]
+          },
+          {
+            "id": "fight",
+            "label": "（拒绝，在千门回廊里迎战她）",
+            "to": "corridor"
+          },
+          {
+            "id": "absorb",
+            "label": "（接受她递来的权能）",
+            "to": "absorb",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "player_absorb",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "corridor",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "她打开你的门，用你的能力对付你。你唯一能伤到她的办法，是关门：永远放弃门后的东西。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "你关上了一扇，又一扇。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "close_all",
+            "label": "（把门一扇一扇全部关上）",
+            "to": "corridor_end",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "janu_release",
+                "value": true
+              },
+              {
+                "type": "flag",
+                "key": "returned_doors_pre",
+                "value": "all"
+              }
+            ]
+          },
+          {
+            "id": "take_power",
+            "label": "（濒死时，接过她递来的权能）",
+            "to": "absorb",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "player_absorb",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "corridor_end",
+        "lines": [
+          {
+            "speaker": "janu",
+            "text": "你把门都关上了……"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她停下了手。"
+          }
+        ],
+        "next": "patron"
+      },
+      {
+        "id": "absorb",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "她的权能流进了你的身体。门，全部在你身上了。"
+          }
+        ],
+        "next": "patron"
+      },
+      {
+        "id": "patron",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "终审之前，你还可以做一件事。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "none",
+            "label": "不支持任何一位独掌全庭。",
+            "to": "verdicts"
+          },
+          {
+            "id": "eluen",
+            "label": "（支持光与秩序之司独掌全庭）",
+            "to": "verdicts",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "patron",
+                "value": "eluen"
+              }
+            ]
+          },
+          {
+            "id": "valda",
+            "label": "（支持争斗与淬炼之司独掌全庭）",
+            "to": "verdicts",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "patron",
+                "value": "valda"
+              }
+            ]
+          },
+          {
+            "id": "merca",
+            "label": "（支持交易与丰饶之司独掌全庭）",
+            "to": "verdicts",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "patron",
+                "value": "merca"
+              }
+            ]
+          },
+          {
+            "id": "sylvie",
+            "label": "（支持生命与循环之司独掌全庭）",
+            "to": "verdicts",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "patron",
+                "value": "sylvie"
+              }
+            ]
+          },
+          {
+            "id": "moira",
+            "label": "（支持记录与命运之司独掌全庭）",
+            "to": "verdicts",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "patron",
+                "value": "moira"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "verdicts",
+        "effects": [
+          {
+            "type": "compute",
+            "fn": "court_verdicts"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "终审。"
+          },
+          {
+            "speaker": "eluen",
+            "text": "我不必被选中。……让我以无名者的身份，在他们中间走一年。然后我离开。",
+            "when": "verdict_eluen == voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "text": "艾琉恩被判离手。她最后一个起身，在门槛上回头看了一眼庭镜里的城市。",
+            "when": "verdict_eluen == judged"
+          },
+          {
+            "speaker": "eluen",
+            "text": "规格就是规格。这座庭离不开光。",
+            "when": "verdict_eluen == refuse"
+          },
+          {
+            "speaker": "eluen",
+            "text": "唯一之光，只能有一道。",
+            "when": "verdict_eluen == contend"
+          },
+          {
+            "speaker": "valda",
+            "text": "外面总有更硬的。",
+            "when": "verdict_valda == voluntary"
+          },
+          {
+            "speaker": "valda",
+            "text": "打得好。",
+            "when": "verdict_valda == judged"
+          },
+          {
+            "speaker": "valda",
+            "text": "我哪儿也不去。",
+            "when": "verdict_valda == refuse"
+          },
+          {
+            "speaker": "valda",
+            "text": "这座庭要的是最强的那个。",
+            "when": "verdict_valda == contend"
+          },
+          {
+            "speaker": "merca",
+            "text": "给我在金湾留个小摊位。",
+            "when": "verdict_merca == voluntary"
+          },
+          {
+            "speaker": "merca",
+            "text": "我宣布破产。（她眨眨眼）",
+            "when": "verdict_merca == judged"
+          },
+          {
+            "speaker": "merca",
+            "text": "生意还没做完呢，客人。",
+            "when": "verdict_merca == refuse"
+          },
+          {
+            "speaker": "merca",
+            "text": "这座庭，我出最高价。",
+            "when": "verdict_merca == contend"
+          },
+          {
+            "speaker": "sylvie",
+            "text": "……他们长大了。我先走。",
+            "when": "verdict_sylvie == voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "text": "希尔薇没有说话，像一阵季风那样，化入了四季。",
+            "when": "verdict_sylvie == judged"
+          },
+          {
+            "speaker": "sylvie",
+            "text": "……孩子们还小。",
+            "when": "verdict_sylvie == refuse"
+          },
+          {
+            "speaker": "sylvie",
+            "text": "……让他们慢一点长大吧。",
+            "when": "verdict_sylvie == contend"
+          },
+          {
+            "speaker": "moira",
+            "text": "让我写完最后的记录，再把笔交给一个凡人。",
+            "when": "verdict_moira == voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "text": "莫伊拉合上了书。",
+            "when": "verdict_moira == judged"
+          },
+          {
+            "speaker": "moira",
+            "text": "从第一页。我一直在第一页。",
+            "when": "verdict_moira == refuse"
+          },
+          {
+            "speaker": "moira",
+            "text": "这个故事需要一位作者。我来写。",
+            "when": "verdict_moira == contend"
+          },
+          {
+            "speaker": "narrator",
+            "text": "冬至到了。大陆上七座天启碑同时亮起；同一时刻，神庭上方那片亮闪了一下，和那一天一模一样。"
+          }
+        ]
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "compute",
+        "fn": "ending"
+      },
+      {
+        "type": "scene",
+        "scene": "ending_release",
+        "when": "ending == release"
+      },
+      {
+        "type": "scene",
+        "scene": "ending_release_unfinished",
+        "when": "ending == release_unfinished"
+      },
+      {
+        "type": "scene",
+        "scene": "ending_new_god",
+        "when": "ending == new_god"
+      },
+      {
+        "type": "scene",
+        "scene": "ending_rule_eluen",
+        "when": "ending == rule_eluen"
+      },
+      {
+        "type": "scene",
+        "scene": "ending_rule_valda",
+        "when": "ending == rule_valda"
+      },
+      {
+        "type": "scene",
+        "scene": "ending_rule_merca",
+        "when": "ending == rule_merca"
+      },
+      {
+        "type": "scene",
+        "scene": "ending_rule_sylvie",
+        "when": "ending == rule_sylvie"
+      },
+      {
+        "type": "scene",
+        "scene": "ending_rule_moira",
+        "when": "ending == rule_moira"
+      },
+      {
+        "type": "scene",
+        "scene": "ending_janu_restored",
+        "when": "ending == janu_restored"
+      },
+      {
+        "type": "scene",
+        "scene": "ending_reclaim",
+        "when": "ending == reclaim"
+      }
+    ]
+  }
+]

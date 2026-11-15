@@ -1,0 +1,32 @@
+[
+  { "id": "prologue", "index": 0, "title": "序章：候见厅" },
+  {
+    "id": "act1",
+    "index": 1,
+    "title": "第一幕：边石镇",
+    "entry": { "mapId": "seal_ruins", "location": "wake_point" },
+    "introScene": "act1_intro",
+    "onEnter": [
+      { "type": "flag", "key": "a1_wake_ruins", "value": true },
+      { "type": "flag", "key": "seal_looseness", "value": 5 },
+      { "type": "flag", "key": "continent", "value": 70 }
+    ]
+  },
+  { "id": "act2", "index": 2, "title": "第二幕：瓦伦堡", "introScene": "act2_intro" },
+  { "id": "act3", "index": 3, "title": "第三幕：王国之乱", "introScene": "act3_intro" },
+  {
+    "id": "act4",
+    "index": 4,
+    "title": "第四幕：诸国棋局",
+    "introScene": "act4_intro",
+    "onEnter": [{ "type": "feature", "feature": "slg" }]
+  },
+  { "id": "act5", "index": 5, "title": "第五幕：诸族之战", "introScene": "act5_intro" },
+  {
+    "id": "act6",
+    "index": 6,
+    "title": "第六幕：诸神审定",
+    "entry": { "mapId": "divine_court", "location": "antechamber" }
+  },
+  { "id": "epilogue", "index": 7, "title": "终章：离手" }
+]

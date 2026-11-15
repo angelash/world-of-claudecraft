@@ -1,0 +1,3231 @@
+[
+  {
+    "id": "ending_release",
+    "title": "终章：离手",
+    "act": "epilogue",
+    "start": "open",
+    "nodes": [
+      {
+        "id": "open",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "冬至。庭镜里，大陆上七座天启碑同时亮了起来。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "同一时刻，神庭上方那片亮闪了一下。和你第一次站在这里时，一模一样。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "这一次，没有人问「上面在看吗」。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉翻开审期记录的第一页。光闪的那一行，不在鉴定的时候，也不在面试的时候。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "在她们把你判作瑕疵品、而艾琉恩说出「我没有慌」的那一刻。"
+          }
+        ],
+        "next": "open_2"
+      },
+      {
+        "id": "open_2",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "梅尔卡开口了，声音很轻。"
+          },
+          {
+            "speaker": "merca",
+            "kind": "divine",
+            "text": "……祂在看。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "很久以后，艾琉恩才开口。"
+          },
+          {
+            "speaker": "eluen",
+            "kind": "divine",
+            "text": "……我说错了。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "祂看的不是我们选谁。祂看的是我们怎么对待一个不合规格的人，还有我们怎么对自己说谎。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "那场面试，被面试的，是我们。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "雅努转向你，声音放得很轻。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "题是我借她们的嘴出的。我想知道，一个被所有人否定的人，能不能自己站起来。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "你站起来了。"
+          }
+        ],
+        "next": "handover_intro"
+      },
+      {
+        "id": "handover_intro",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "碑面上还没有字。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "在碑开口之前，诸司还有最后一件事要做。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "交接。放手和丢弃，差的就是这一步。"
+          }
+        ],
+        "next": "handover_eluen"
+      },
+      {
+        "id": "handover_eluen",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "艾琉恩第一个开口。她背后的光环已经停了，齿轮一格也没有再动。",
+            "when": "verdict_eluen == voluntary"
+          },
+          {
+            "speaker": "eluen",
+            "kind": "divine",
+            "text": "加护会在一个季节里退去。慢慢地，不是一下子。孩子们要有时间学会自己点灯。",
+            "when": "verdict_eluen == voluntary"
+          },
+          {
+            "speaker": "eluen",
+            "kind": "divine",
+            "text": "召唤大阵，今日封闭。名额制度，作废。",
+            "when": "verdict_eluen == voluntary"
+          },
+          {
+            "speaker": "eluen",
+            "kind": "divine",
+            "text": "光不会说谎。……可我会。剩下的这一年，我想去学怎么不说。",
+            "when": "verdict_eluen == voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉念出交接令，艾琉恩才站起来。她没有看你。",
+            "when": "verdict_eluen != voluntary"
+          },
+          {
+            "speaker": "eluen",
+            "kind": "divine",
+            "text": "加护在一个季节内退去。召唤大阵封闭，名额作废。",
+            "when": "verdict_eluen != voluntary"
+          },
+          {
+            "speaker": "eluen",
+            "kind": "divine",
+            "text": "……如庭所令。",
+            "when": "verdict_eluen != voluntary"
+          }
+        ],
+        "next": "handover_valda"
+      },
+      {
+        "id": "handover_valda",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "瓦尔妲把断剑横在长桌上，用指节敲了敲断口。"
+          },
+          {
+            "speaker": "valda",
+            "kind": "divine",
+            "text": "剑尖还插在主门坑的断面上。我去把它接回来，剑就插在那儿，不拔了。"
+          },
+          {
+            "speaker": "valda",
+            "kind": "divine",
+            "text": "还有那个罐子。莫伊拉，排澱那一条，替我从铭录里划掉。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "依神约，告知诸司：争斗与淬炼之司，删去排澱之约。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "……诸位，这大概是神约最后一次被遵守。"
+          },
+          {
+            "speaker": "valda",
+            "kind": "divine",
+            "text": "送行之战打完了，痛快。外面总有更硬的。",
+            "when": "verdict_valda == voluntary"
+          },
+          {
+            "speaker": "valda",
+            "kind": "divine",
+            "text": "打得好。我输得服气。",
+            "when": "verdict_valda != voluntary"
+          }
+        ],
+        "next": "handover_merca"
+      },
+      {
+        "id": "handover_merca",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "梅尔卡把剩下的门钥一枚一枚排在桌上，又把一摞账册推了过来。"
+          },
+          {
+            "speaker": "merca",
+            "kind": "divine",
+            "text": "剩下的门钥，全部的债权账册。哈特那几位客人的魂契，从这一刻起作废。"
+          },
+          {
+            "speaker": "merca",
+            "kind": "divine",
+            "text": "这笔买卖，我认。",
+            "when": "verdict_merca == voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "她的手指在账册封面上多停了一下，才松开。",
+            "when": "verdict_merca == voluntary"
+          },
+          {
+            "speaker": "merca",
+            "kind": "divine",
+            "text": "……对了，金湾的摊位要押金。谁能先借我一点？我按凡人的利息算。",
+            "when": "verdict_merca == voluntary"
+          },
+          {
+            "speaker": "merca",
+            "kind": "divine",
+            "text": "我宣布，破产。",
+            "when": "verdict_merca != voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "她眨了眨眼，起身就走，什么也没有留下。",
+            "when": "verdict_merca != voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你摸了摸口袋。她留在这座庭里的唯一一枚硬币，是候见厅里赊给你的那一枚。",
+            "when": "verdict_merca != voluntary"
+          }
+        ],
+        "next": "handover_sylvie"
+      },
+      {
+        "id": "handover_sylvie",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "希尔薇把手伸进庭镜的水里。再拿出来时，她手心里捧着一小团光，像一段很旧的记忆。",
+            "when": "verdict_sylvie == voluntary"
+          },
+          {
+            "speaker": "sylvie",
+            "kind": "divine",
+            "text": "灵泉的记忆。……交给你们。",
+            "when": "verdict_sylvie == voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "希尔薇没有说话。她把手伸进庭镜的水里，再拿出来时，手里什么也没有了。",
+            "when": "verdict_sylvie != voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，灵泉还在转。从今天起，它自己转，无人看护。"
+          },
+          {
+            "speaker": "sylvie",
+            "kind": "divine",
+            "text": "……他们长大了。",
+            "when": "verdict_sylvie == voluntary"
+          }
+        ],
+        "next": "handover_moira"
+      },
+      {
+        "id": "handover_moira",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉把书摊开在书记桌上，蘸了墨。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "最后的记录，我来写。写到倒数第二行。",
+            "when": "verdict_moira == voluntary"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "铭录从今天起无主。它会接着自己记，鉴定照常能用，只是不再承载神赐。也再没有谁能改它一页，包括我。",
+            "when": "verdict_moira == voluntary"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "铭录交出。从今天起，它是无主之录，谁都能读，谁也改不了。",
+            "when": "verdict_moira != voluntary"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "……如庭所令。",
+            "when": "verdict_moira != voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜之门里走出来一个凡人，抱着一卷纸，有点手足无措。是从学院请来的一位史官。"
+          },
+          {
+            "speaker": "historian",
+            "name": "凡人史官",
+            "kind": "say",
+            "text": "我……我的字写得不好看。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "正好。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉把另一支笔放在书记桌的那一头，还没有递过去。",
+            "when": "verdict_moira == voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉把笔放在书记桌上，没有递给任何人。",
+            "when": "verdict_moira != voluntary"
+          }
+        ],
+        "next": "handover_janu"
+      },
+      {
+        "id": "handover_janu",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "最后是雅努。她腰间的钥匙，比你第一次梦见她时少了很多。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "众门环，交给遗民的执钥人。七枚门钥，分到七个节点去。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "以后开门，不用再问我了。"
+          }
+        ],
+        "next": "last_door"
+      },
+      {
+        "id": "last_door",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "雅努走到候见厅的墙边，抬手，开了一扇门。这是她作为司掌者开的最后一扇门。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "门外是一条很长的走廊。走廊尽头很亮，亮得像一个很普通的早晨。你认得那种亮。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "这一扇，通往客人们来的地方。它只开一次。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "回去，还是留下，每一位客人自己选。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "客人们一个接一个走到门前。有人站了很久，有人没有回头。"
+          },
+          {
+            "speaker": "faceless",
+            "name": "无貌者",
+            "kind": "say",
+            "text": "门外是一个站台。我想不起来，是哪一站了。",
+            "when": "faceless_end == redeemed"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "雅努看着你。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "你呢？"
+          }
+        ],
+        "choices": [
+          {
+            "id": "go_home",
+            "label": "回去",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "player_returned",
+                "value": true
+              }
+            ],
+            "to": "doors_walk"
+          },
+          {
+            "id": "stay",
+            "label": "留下",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "player_returned",
+                "value": false
+              }
+            ],
+            "to": "doors_walk"
+          }
+        ]
+      },
+      {
+        "id": "doors_walk",
+        "lines": [
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "走之前，还有你的门。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你们倒着走过千门回廊。每一扇门后面，都映着当初打开它的那一刻。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "初门·醒：封门遗迹里，你第一次睁开眼睛，石头上落着一层灰。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "识才之门：边石镇的街上，你第一次看见一个人身上，没有被写出来的那一页。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "行路之门：你第一次一步跨过一整片荒原，落地的时候差点摔倒。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "立国之门：一本空白的人簿，第一页是布伦的字。",
+            "when": "a4_nation_founded"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "还有很多扇。有的门后是一场仗，有的门后只是一顿饭。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "关上，或者交出去。交给遗民，交给你的国家，交给哪一个同伴，都行。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "give_all",
+            "label": "把每一扇门都交出去",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "returned_doors",
+                "value": "all"
+              }
+            ],
+            "to": "doors_all"
+          },
+          {
+            "id": "keep_some",
+            "label": "留下几扇",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "returned_doors",
+                "value": "some"
+              }
+            ],
+            "to": "doors_some"
+          }
+        ]
+      },
+      {
+        "id": "doors_all",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你一扇一扇地交出去。有的交给了遗民的执钥人，有的交给了你的国家。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "有一扇交给了罗恩。他接过去的时候说：「不可能。」过了一会儿，又说：「……好吧，可能。」",
+            "when": "companion.ron.recruited"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "门内庭院一点一点变了样子。围墙矮了下去，门槛不见了，它成了一处谁都能来的园子。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "园门口，{flag:courtyard.first_object}还在原处。"
+          }
+        ],
+        "next": "last_push"
+      },
+      {
+        "id": "doors_some",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你交出了大半的门，关上了一些。还有几扇，你留了下来。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "门内庭院的大半成了谁都能来的园子。剩下一个小小的角落，仍然只有你进得去。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "没关系。放手，不一定要一次放完。"
+          }
+        ],
+        "next": "last_push"
+      },
+      {
+        "id": "last_push",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "回廊的尽头，是你打开的第一扇门。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "雅努握住你的手。很暖，和坠落的那一次一样。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你们一起，把最后一扇门向外推开。"
+          }
+        ],
+        "next": "stele"
+      },
+      {
+        "id": "stele",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，七座天启碑同时显现出一个字。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "「可」。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "碑上的光一层一层亮开，神约随之解除。神庭里很安静，安静到能听见莫伊拉的笔在纸上停住。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，边石镇有个孩子先看见了碑，喊了一声。很多人跟着抬起了头。",
+            "when": "release_tone == gentle"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "真好看的一章。",
+            "when": "release_tone == gentle"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，大陆还在冒烟。碑亮起来的时候，有人在废墟上停下手里的活，看了一眼，又接着搬砖。",
+            "when": "release_tone != gentle"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "不好看。可是是真的。",
+            "when": "release_tone != gentle"
+          }
+        ],
+        "next": "departures"
+      },
+      {
+        "id": "departures",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "然后，她们一个接一个，走出候见厅的门。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "希尔薇第一个起身。经过你身边时，她的眼睛是睁着的。门外吹进来一阵风，分不清是哪个季节的。",
+            "when": "verdict_sylvie == voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "希尔薇无声地走了。门外吹进来一阵风，有枯花的气味，也有新花的。",
+            "when": "verdict_sylvie != voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "艾琉恩走的是通往箱庭的那扇门。她换了一身很普通的衣服，还是穿得过分整齐。",
+            "when": "verdict_eluen == voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "艾琉恩最后看了一眼庭镜里的城市，没有说话。天穹上，一道光熄灭了。",
+            "when": "verdict_eluen != voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "瓦尔妲扛着接好的剑，在门口回头，咧嘴一笑。",
+            "when": "verdict_valda == voluntary"
+          },
+          {
+            "speaker": "valda",
+            "kind": "divine",
+            "text": "下次见面，记得变硬一点，新肉。",
+            "when": "verdict_valda == voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "瓦尔妲扛着接好的剑走了，没有回头。",
+            "when": "verdict_valda != voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "梅尔卡蹦下椅子，朝通往箱庭的那扇门走去，边走边数口袋里的零钱。数到一半，她叹了口气。",
+            "when": "verdict_merca == voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "梅尔卡的椅子早就空了。",
+            "when": "verdict_merca != voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉合上书，夹在腋下，又抽出一本空白的书。她说，这一本她要自己慢慢读。",
+            "when": "verdict_moira == voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉空着手走了。笔还留在书记桌上。",
+            "when": "verdict_moira != voluntary"
+          }
+        ],
+        "next": "janu_leaves"
+      },
+      {
+        "id": "janu_leaves",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "最后离开的是雅努。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "她走到门口，回过头来。她的半边身子不再是门框了，整张脸都在光里。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "门总会开的。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "她说过很多次这句话。这一次，意思变了：不再需要她来开了。"
+          }
+        ],
+        "next": "yeyu"
+      },
+      {
+        "id": "yeyu",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "yeyu_stayed",
+            "value": false
+          }
+        ],
+        "branch": [
+          {
+            "when": "companion.yeyu.recruited AND (a6_letter7_delivered OR yeyu_letters >= 5)",
+            "to": "yeyu_stays"
+          },
+          {
+            "when": "companion.yeyu.recruited",
+            "to": "yeyu_goes"
+          }
+        ],
+        "next": "farewell"
+      },
+      {
+        "id": "yeyu_stays",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "yeyu_stayed",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "夜羽站在门槛前，没有跟上去。"
+          },
+          {
+            "speaker": "yeyu",
+            "kind": "say",
+            "text": "我不跟你走了。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "我知道。"
+          },
+          {
+            "speaker": "yeyu",
+            "kind": "say",
+            "text": "信要送到。以后，我送活人的信。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "雅努笑了一下，走进门里。夜羽在门口站了很久，然后转过身，飞快地抹了一下眼睛。"
+          },
+          {
+            "speaker": "yeyu",
+            "kind": "say",
+            "text": "啧。看什么看。{player_name}，走了。"
+          }
+        ],
+        "next": "farewell"
+      },
+      {
+        "id": "yeyu_goes",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "夜羽在门槛前停了一下，回头看你。"
+          },
+          {
+            "speaker": "yeyu",
+            "kind": "say",
+            "text": "{player_name}。"
+          },
+          {
+            "speaker": "yeyu",
+            "kind": "say",
+            "text": "我跟她走。她一个人，拎不动那么多钥匙。"
+          },
+          {
+            "speaker": "yeyu",
+            "kind": "say",
+            "text": "第六封信还没有送到。也许走得够远，就能送到。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "她变回一只小鸦，落在雅努的肩上。门关上了。"
+          }
+        ],
+        "next": "farewell"
+      },
+      {
+        "id": "farewell",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "候见厅里只剩你一个人。墙边那扇只开一次的门还开着，门外是很亮的早晨。",
+            "when": "player_returned"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你走了进去。",
+            "when": "player_returned"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "候见厅里只剩你一个人。墙边那扇只开一次的门慢慢合上，不见了。",
+            "when": "NOT player_returned"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你转过身，看向庭镜。庭镜里，天快亮了。",
+            "when": "NOT player_returned"
+          }
+        ],
+        "next": "record_intro"
+      },
+      {
+        "id": "record_intro",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "后来，莫伊拉的最后记录被抄了很多份。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "它写到倒数第二行就停了。最后一行的字迹不一样，笔画有点抖，写得很慢。",
+            "when": "verdict_moira == voluntary"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "它没有写完。后面的部分换了一种字迹，笔画有点抖，写得很慢。",
+            "when": "verdict_moira != voluntary"
+          }
+        ],
+        "next": "epilogue"
+      },
+      {
+        "id": "epilogue",
+        "epilogue": true,
+        "next": "after_record"
+      },
+      {
+        "id": "after_record",
+        "branch": [
+          {
+            "when": "player_returned AND prologue.earth_opening == A",
+            "to": "earth_a"
+          },
+          {
+            "when": "player_returned AND prologue.earth_opening == B",
+            "to": "earth_b"
+          },
+          {
+            "when": "player_returned AND prologue.earth_opening == C",
+            "to": "earth_c"
+          },
+          {
+            "when": "player_returned AND prologue.earth_opening == D",
+            "to": "earth_d"
+          }
+        ],
+        "next": "final"
+      },
+      {
+        "id": "earth_a",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "末班车的车厢。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "车门正在合上。对面那个醉汉还睡着，嘴里嘟囔着别关门。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你低下头。胸前的工牌还在，照片上的人笑得很精神。好像没有过去多久。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "手机亮了一下。那条消息还在：「周末回家吃饭吗？」还没有回。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "reply",
+            "label": "回复",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "earth_message_replied",
+                "value": true
+              },
+              {
+                "type": "line",
+                "speaker": "narrator",
+                "text": "你打了几个字。这一次，你没有删掉，按下了发送。",
+                "kind": "narrate"
+              }
+            ],
+            "to": "final"
+          },
+          {
+            "id": "later",
+            "label": "（先把手机收起来）",
+            "effects": [
+              {
+                "type": "line",
+                "speaker": "narrator",
+                "text": "你把手机放回口袋。列车开动了，窗外的灯一盏一盏往后退。",
+                "kind": "narrate"
+              }
+            ],
+            "to": "final"
+          }
+        ]
+      },
+      {
+        "id": "earth_b",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "雨夜的便利店。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "雨还在下。冰柜的玻璃门上，只映着货架，和你自己。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "口袋里那张小票还在，那颗糖也还在。好像没有过去多久。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "门口那只躲雨的猫抬头看了你一眼。你忽然觉得，可以给它起个名字了。"
+          }
+        ],
+        "next": "final"
+      },
+      {
+        "id": "earth_c",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "凌晨的医院走廊。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "塑料椅还是凉的。你手里攥着探视证，口袋里还有那半盒薄荷糖。好像没有过去多久。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "走廊尽头，安全出口的绿灯底下，只有一面墙。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "护士站那边，有脚步声朝你走过来了。"
+          }
+        ],
+        "next": "final"
+      },
+      {
+        "id": "earth_d",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "老宅的最后一个房间。"
+          },
+          {
+            "speaker": "worker",
+            "name": "搬家工人",
+            "kind": "say",
+            "text": "还有没有要搬的？车要走啦！"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你手心里攥着老房子的钥匙，齿口硌得发疼。好像没有过去多久。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "衣柜的门开着一条缝。门后面，只是衣柜。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "那把旧椅子还在原处。你在上面又坐了一会儿。"
+          }
+        ],
+        "next": "final"
+      },
+      {
+        "id": "final",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉的最后记录，到这里就结束了。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "后来，你又回到了千门回廊。回廊已经空了，每一扇门都交了出去。",
+            "when": "returned_doors == all AND mysteries_all AND NOT player_returned"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "可是尽头，多了一扇门。",
+            "when": "returned_doors == all AND mysteries_all AND NOT player_returned"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "它的样子，是末班车到站时打开的那扇车门。",
+            "when": "returned_doors == all AND mysteries_all AND NOT player_returned AND prologue.earth_opening == A"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "它的样子，是便利店冰柜玻璃里映出来的那扇门。",
+            "when": "returned_doors == all AND mysteries_all AND NOT player_returned AND prologue.earth_opening == B"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "它的样子，是医院走廊尽头，安全出口绿灯底下的那扇门。",
+            "when": "returned_doors == all AND mysteries_all AND NOT player_returned AND prologue.earth_opening == C"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "它的样子，是老宅衣柜里的那扇门。",
+            "when": "returned_doors == all AND mysteries_all AND NOT player_returned AND prologue.earth_opening == D"
+          },
+          {
+            "speaker": "yeyu",
+            "kind": "say",
+            "text": "……这扇不是她的。",
+            "when": "returned_doors == all AND mysteries_all AND NOT player_returned AND yeyu_stayed"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "那天夜里，你在自己的房间里醒来。",
+            "when": "returned_doors == all AND mysteries_all AND player_returned"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "墙上多了一扇门。一扇本不该在这里的门。",
+            "when": "returned_doors == all AND mysteries_all AND player_returned"
+          }
+        ],
+        "choices": [
+          {
+            "id": "maker_door",
+            "label": "推开回廊尽头的那扇门",
+            "when": "returned_doors == all AND mysteries_all AND NOT player_returned",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "hidden_ending",
+                "value": true
+              },
+              {
+                "type": "scene",
+                "scene": "ending_maker"
+              }
+            ],
+            "to": "close"
+          },
+          {
+            "id": "maker_door_home",
+            "label": "推开墙上那扇门",
+            "when": "returned_doors == all AND mysteries_all AND player_returned",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "hidden_ending",
+                "value": true
+              },
+              {
+                "type": "scene",
+                "scene": "ending_maker"
+              }
+            ],
+            "to": "close"
+          },
+          {
+            "id": "close_book",
+            "label": "（合上书）",
+            "to": "close"
+          }
+        ]
+      },
+      {
+        "id": "close",
+        "end": true
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "act",
+        "act": "epilogue"
+      }
+    ]
+  },
+  {
+    "id": "ending_release_unfinished",
+    "title": "终章：离手·未竟",
+    "act": "epilogue",
+    "start": "open",
+    "nodes": [
+      {
+        "id": "open",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "冬至。庭镜里，大陆上七座天启碑同时亮了起来。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "同一时刻，神庭上方那片亮闪了一下。和你第一次站在这里时，一模一样。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "这一次，没有人问「上面在看吗」。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉翻开审期记录的第一页。光闪的那一行，不在鉴定的时候，也不在面试的时候。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "在她们把你判作瑕疵品、而艾琉恩说出「我没有慌」的那一刻。"
+          }
+        ],
+        "next": "open_2"
+      },
+      {
+        "id": "open_2",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "梅尔卡开口了，声音很轻。"
+          },
+          {
+            "speaker": "merca",
+            "kind": "divine",
+            "text": "……祂在看。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "很久以后，艾琉恩才开口。"
+          },
+          {
+            "speaker": "eluen",
+            "kind": "divine",
+            "text": "……我说错了。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "祂看的不是我们选谁。祂看的是我们怎么对待一个不合规格的人，还有我们怎么对自己说谎。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "那场面试，被面试的，是我们。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "雅努转向你，声音放得很轻。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "题是我借她们的嘴出的。我想知道，一个被所有人否定的人，能不能自己站起来。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "你站起来了。"
+          }
+        ],
+        "next": "stele"
+      },
+      {
+        "id": "stele",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，七座天启碑同时显现出一个字。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "「未」。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "神庭里没有人说话。这一次，她们都愿意放手了。可是碑说，未。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉把审期记录翻到最后几页，一行一行地对。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "我们都愿意放手了。可庭还没有证明，它能自己站住。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "澱还是靠诸神的办法消化的。众生自己，还没有学会。",
+            "when": "purge_route != people"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "众门环还没有连够。离了我们，澱就无处可去。",
+            "when": "gate_ring < 5"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "灰烬决战里，没有你在场的战线，守住的还太少。",
+            "when": "held_unaided < 3"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "决战那天，雅努替他们封了隙。那一下，是我们替他们做完的。",
+            "when": "janu_act != receive"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "审期那半年，我们不在，庭没有撑住。",
+            "when": "review_score < 0.6"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "庭外之国还站不稳。没有我们，它会晃。",
+            "when": "autonomy < 60"
+          }
+        ],
+        "next": "covenant"
+      },
+      {
+        "id": "covenant",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你站起来，提了一个案：诸司都留下，但谁也不许伸手。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "守望之约。此后一千年，除非庭面临回收级的灾难，诸司不得干预。"
+          },
+          {
+            "speaker": "eluen",
+            "kind": "divine",
+            "text": "一千年。……我等得起。"
+          },
+          {
+            "speaker": "valda",
+            "kind": "divine",
+            "text": "一千年不许动手？行吧。我数着。"
+          },
+          {
+            "speaker": "merca",
+            "kind": "divine",
+            "text": "不干预，也不收利息？……成交。这是我这辈子最长的一笔买卖，零收益。"
+          },
+          {
+            "speaker": "sylvie",
+            "kind": "divine",
+            "text": "……看着就好。我会的。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "这一次，我们一起等。"
+          }
+        ],
+        "next": "moira_writes"
+      },
+      {
+        "id": "moira_writes",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉在书上写下一行字。写完，她看了很久。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "未，即尚未。这一次，我们知道尚未什么了。"
+          }
+        ],
+        "next": "keeper"
+      },
+      {
+        "id": "keeper",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭之席还在你当初站着的地方。门木的椅背上，新长出了一圈年轮。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "这一千年，庭需要一个守席的人。也可以不需要。你选。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "keep_seat",
+            "label": "留在神庭，做庭之席的守席人",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "court_keeper",
+                "value": true
+              }
+            ],
+            "to": "keeper_stay"
+          },
+          {
+            "id": "go_down",
+            "label": "回到箱庭",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "court_keeper",
+                "value": false
+              }
+            ],
+            "to": "keeper_return"
+          }
+        ]
+      },
+      {
+        "id": "keeper_stay",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你在庭之席上坐下。椅子很硬。"
+          },
+          {
+            "speaker": "valda",
+            "kind": "divine",
+            "text": "硬吧？我坐了两千年，也没坐软。"
+          },
+          {
+            "speaker": "yeyu",
+            "kind": "say",
+            "text": "啧。那我也不走了。总得有人替你把信送下去。",
+            "when": "companion.yeyu.recruited"
+          }
+        ],
+        "next": "record_intro"
+      },
+      {
+        "id": "keeper_return",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你从庭镜之门走了下去。落地的地方，是边石镇外的封门遗迹。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "石头上落着一层灰，和你第一次醒来时一样。"
+          },
+          {
+            "speaker": "yeyu",
+            "kind": "say",
+            "text": "走吧，{player_name}。",
+            "when": "companion.yeyu.recruited"
+          }
+        ],
+        "next": "record_intro"
+      },
+      {
+        "id": "record_intro",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉的记录，从守望之约的第一年写起。这一次，她写得很慢。"
+          }
+        ],
+        "next": "epilogue"
+      },
+      {
+        "id": "epilogue",
+        "epilogue": true,
+        "next": "close"
+      },
+      {
+        "id": "close",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，天亮了。诸神都看着，谁也没有伸手。"
+          }
+        ],
+        "end": true
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "act",
+        "act": "epilogue"
+      }
+    ]
+  },
+  {
+    "id": "ending_new_god",
+    "title": "终章：新神",
+    "act": "epilogue",
+    "start": "open",
+    "nodes": [
+      {
+        "id": "open",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "五司围庭的最后一道光格，碎在你的脚下。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "五位女神两千年来第一次真正合作。然后，输给了你。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "雅努的门、钥匙和门框，都已经在你的身体里了。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "冬至。庭镜里，七座天启碑同时亮起，神庭上方那片亮闪了一下。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "这一次，没有人问「上面在看吗」。"
+          }
+        ],
+        "next": "disposal"
+      },
+      {
+        "id": "disposal",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "五位女神站在长桌的另一头，等你开口。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "按惯例，由唯一的司掌者量处诸司。……这一次，是你。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "exile",
+            "label": "放逐",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "new_god_disposal",
+                "value": "exile"
+              }
+            ],
+            "to": "disposal_exile"
+          },
+          {
+            "id": "seal",
+            "label": "封印",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "new_god_disposal",
+                "value": "seal"
+              }
+            ],
+            "to": "disposal_seal"
+          },
+          {
+            "id": "vassal",
+            "label": "留作臣属",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "new_god_disposal",
+                "value": "vassal"
+              }
+            ],
+            "to": "disposal_vassal"
+          }
+        ]
+      },
+      {
+        "id": "disposal_exile",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你抬起手。她们一个接一个被推出候见厅的门，推进了庭间之隙。"
+          },
+          {
+            "speaker": "eluen",
+            "kind": "divine",
+            "text": "……原来是这种感觉。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你没有接住任何一个。"
+          }
+        ],
+        "next": "stele"
+      },
+      {
+        "id": "disposal_seal",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你抬起手。光格从地板里升起来，把她们一位一位封进各自的神殿。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你认得这个动作。庭历九百五十一年的那一夜，她们就是这样封住雅努的。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "你看，又一位想当作者的。"
+          }
+        ],
+        "next": "stele"
+      },
+      {
+        "id": "disposal_vassal",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你让她们留下，坐回长桌后面。只是座位换了方向：朝着你。"
+          },
+          {
+            "speaker": "merca",
+            "kind": "divine",
+            "text": "臣属啊……抽成怎么算？"
+          },
+          {
+            "speaker": "valda",
+            "kind": "divine",
+            "text": "啧。"
+          }
+        ],
+        "next": "stele"
+      },
+      {
+        "id": "stele",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，碑面显现出一个字：「未」。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你看着那个字，等着自己有什么感觉。"
+          }
+        ],
+        "next": "sight"
+      },
+      {
+        "id": "sight",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你第一次用神的方式看箱庭。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你只能借信徒的眼睛去看。你只看得见祈祷的人。不祈祷的人，在你眼里是一片空白。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你去找你的同伴。你看见了他们，却看不清他们的脸。"
+          },
+          {
+            "speaker": "ron",
+            "name": "罗恩",
+            "kind": "say",
+            "text": "不可能……",
+            "when": "companion.ron.recruited"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "这一次，他说的是对的。",
+            "when": "companion.ron.recruited"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "夜羽的祈祷很短，每天一次。她叫你主上。她再也不叫你门把手了。",
+            "when": "companion.yeyu.recruited"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "希雅只祈祷过一次。那一次只有一句：你闻起来，越来越像她们了。",
+            "when": "companion.shiya.recruited"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "然后，你再也看不见她了。",
+            "when": "companion.shiya.recruited"
+          }
+        ],
+        "next": "interview"
+      },
+      {
+        "id": "interview",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "隔壁房间，传来召唤大阵的光。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "号码板上亮起了四个格子。新的客人到了，需要有人面试他们。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你走向长桌，在面试官的位置上坐下。"
+          }
+        ],
+        "next": "record_intro"
+      },
+      {
+        "id": "record_intro",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "这一次的记录，不是莫伊拉写的。是你自己的账本。"
+          }
+        ],
+        "next": "epilogue"
+      },
+      {
+        "id": "epilogue",
+        "epilogue": true,
+        "next": "close"
+      },
+      {
+        "id": "close",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你合上账本。门外，有人在等你叫号。"
+          }
+        ],
+        "end": true
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "act",
+        "act": "epilogue"
+      }
+    ]
+  },
+  {
+    "id": "ending_rule_eluen",
+    "title": "终章：艾琉恩之治",
+    "act": "epilogue",
+    "start": "open",
+    "nodes": [
+      {
+        "id": "open",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "epilogue.ruler",
+            "value": "艾琉恩"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "代理之战结束了。萨莎的刀插在地上，门徒会的残部散了，雅努留下的最后一点残光，也熄了。",
+            "when": "patron == eluen"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "其余诸司都愿意离开了。只有她不肯，也没有人拦得住她。",
+            "when": "patron != eluen"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "冬至。七座天启碑同时亮起，神庭上方那片亮闪了一下。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "这一次，没有人问「上面在看吗」。"
+          }
+        ],
+        "next": "others"
+      },
+      {
+        "id": "others",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "艾琉恩站在长桌前。她背后的光环转得前所未有地快。"
+          },
+          {
+            "speaker": "eluen",
+            "kind": "divine",
+            "text": "其余诸司，封印。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "光格从地板里升起来，一圈一圈，把她们封进各自的神殿。和大断绝那一夜一模一样。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉在光格合上之前，飞快地写完了几页，撕下来，塞进了你的手里。"
+          }
+        ],
+        "next": "world"
+      },
+      {
+        "id": "world",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，完美的庭园铺展开来。秩序，规格，圣教无处不在。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "门被禁了，遗民也是。手背有纹的孩子，入城时要摊开手。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "循环还在继续。下一代魔王总会来的，勇者也总会有。"
+          },
+          {
+            "speaker": "eluen",
+            "kind": "divine",
+            "text": "你是第五位勇者。永远。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "take_sword",
+            "label": "接过勇者的剑",
+            "effects": [
+              {
+                "type": "line",
+                "speaker": "eluen",
+                "text": "很好。这合规格。",
+                "kind": "divine"
+              }
+            ],
+            "to": "stele"
+          },
+          {
+            "id": "silent",
+            "label": "（沉默）",
+            "effects": [
+              {
+                "type": "line",
+                "speaker": "eluen",
+                "text": "沉默，也合规格。",
+                "kind": "divine"
+              }
+            ],
+            "to": "stele"
+          }
+        ]
+      },
+      {
+        "id": "stele",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，碑面显现出一个字：「未」。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "艾琉恩的光环停了。"
+          },
+          {
+            "speaker": "eluen",
+            "kind": "divine",
+            "text": "……为什么？"
+          },
+          {
+            "speaker": "eluen",
+            "kind": "divine",
+            "text": "我已经是唯一了。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "没有人回答她。上面那片亮，一直亮着。"
+          }
+        ],
+        "next": "record_intro"
+      },
+      {
+        "id": "record_intro",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉塞给你的那几页，写得很克制。每一条，都从同一句话开始。"
+          }
+        ],
+        "next": "epilogue"
+      },
+      {
+        "id": "epilogue",
+        "epilogue": true,
+        "next": "close"
+      },
+      {
+        "id": "close",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你把那几页折好，收进勇者的铠甲里。光很亮，亮得看不见影子。"
+          }
+        ],
+        "end": true
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "act",
+        "act": "epilogue"
+      }
+    ]
+  },
+  {
+    "id": "ending_rule_valda",
+    "title": "终章：瓦尔妲之治",
+    "act": "epilogue",
+    "start": "open",
+    "nodes": [
+      {
+        "id": "open",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "epilogue.ruler",
+            "value": "瓦尔妲"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "代理之战结束了。艾琉恩的勇者倒在场边，哈特的佣兵军团卷着旗子撤了。你站在瓦尔妲身边，不是对面。",
+            "when": "patron == valda"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "其余诸司都愿意离开了。只有她不肯，扛着断剑，站在长桌上。",
+            "when": "patron != valda"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "冬至。七座天启碑同时亮起，神庭上方那片亮闪了一下。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "这一次，没有人问「上面在看吗」。"
+          }
+        ],
+        "next": "others"
+      },
+      {
+        "id": "others",
+        "lines": [
+          {
+            "speaker": "valda",
+            "kind": "divine",
+            "text": "其余几位？让她们打。打不过的，走。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "她们打了。打不过的，都走了。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉没有打。她在场边把这一场记完，撕下最后几页塞给你，自己走出了门。"
+          }
+        ],
+        "next": "world"
+      },
+      {
+        "id": "world",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，世界成了一座永恒的竞技场。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "强者为王，战争是常态。人人都在变强，也人人都在流血。"
+          },
+          {
+            "speaker": "valda",
+            "kind": "divine",
+            "text": "你，我的首席将军。别让我失望，新肉。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "salute",
+            "label": "领命",
+            "effects": [
+              {
+                "type": "line",
+                "speaker": "valda",
+                "text": "好！",
+                "kind": "divine"
+              }
+            ],
+            "to": "stele"
+          },
+          {
+            "id": "until_when",
+            "label": "打到什么时候？",
+            "effects": [
+              {
+                "type": "line",
+                "speaker": "valda",
+                "text": "打到有人能赢我。",
+                "kind": "divine"
+              }
+            ],
+            "to": "stele"
+          }
+        ]
+      },
+      {
+        "id": "stele",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，碑面显现出一个字：「未」。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "瓦尔妲先是大笑，笑得肩上的断剑都在抖。然后，她皱起了眉。"
+          },
+          {
+            "speaker": "valda",
+            "kind": "divine",
+            "text": "还不够？"
+          }
+        ],
+        "next": "record_intro"
+      },
+      {
+        "id": "record_intro",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉留下的那几页，每一条都从同一句话开始。"
+          }
+        ],
+        "next": "epilogue"
+      },
+      {
+        "id": "epilogue",
+        "epilogue": true,
+        "next": "close"
+      },
+      {
+        "id": "close",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "竞技场的号角响了。今天也有人要变强，也有人要流血。"
+          }
+        ],
+        "end": true
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "act",
+        "act": "epilogue"
+      }
+    ]
+  },
+  {
+    "id": "ending_rule_merca",
+    "title": "终章：梅尔卡之治",
+    "act": "epilogue",
+    "start": "open",
+    "nodes": [
+      {
+        "id": "open",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "epilogue.ruler",
+            "value": "梅尔卡"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "代理之战结束了。帝国拒绝被收购，夜境也是。现在，两边都签了字。",
+            "when": "patron == merca"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "其余诸司都愿意离开了。只有她不肯，账本摊在长桌上，一页也没合。",
+            "when": "patron != merca"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "冬至。七座天启碑同时亮起，神庭上方那片亮闪了一下。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "这一次，没有人问「上面在看吗」。"
+          }
+        ],
+        "next": "others"
+      },
+      {
+        "id": "others",
+        "lines": [
+          {
+            "speaker": "merca",
+            "kind": "divine",
+            "text": "其余诸司，收购。从今天起，各位都是股东了。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "艾琉恩拿到的股份最多，分红最少。瓦尔妲把股票折成了纸飞机。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉给自己估了价，估得很低。她把最后几页写完，撕下来，夹进了你的担保书里。"
+          }
+        ],
+        "next": "world"
+      },
+      {
+        "id": "world",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，一切都有了价，包括祈祷。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "富足，而不平等。金湾的灯一夜也不熄。"
+          },
+          {
+            "speaker": "merca",
+            "kind": "divine",
+            "text": "至于你，亲爱的客人，你是担保人。整座庭的信用，都挂在你的名字上。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "sign",
+            "label": "签字",
+            "effects": [
+              {
+                "type": "line",
+                "speaker": "merca",
+                "text": "这笔买卖划算。",
+                "kind": "divine"
+              }
+            ],
+            "to": "stele"
+          },
+          {
+            "id": "read_terms",
+            "label": "先看条款",
+            "effects": [
+              {
+                "type": "line",
+                "speaker": "merca",
+                "text": "条款？客人，条款是给不信任我的人看的。……在第十七页。",
+                "kind": "divine"
+              }
+            ],
+            "to": "stele"
+          }
+        ]
+      },
+      {
+        "id": "stele",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，碑面显现出一个字：「未」。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "梅尔卡翻开账本，从头算了一遍，又算了一遍。"
+          },
+          {
+            "speaker": "merca",
+            "kind": "divine",
+            "text": "账是平的啊……"
+          }
+        ],
+        "next": "record_intro"
+      },
+      {
+        "id": "record_intro",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "夹在担保书里的那几页，每一条都从同一句话开始。"
+          }
+        ],
+        "next": "epilogue"
+      },
+      {
+        "id": "epilogue",
+        "epilogue": true,
+        "next": "close"
+      },
+      {
+        "id": "close",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "金湾的钟敲了十二下。每一下，都有人付了钱。"
+          }
+        ],
+        "end": true
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "act",
+        "act": "epilogue"
+      }
+    ]
+  },
+  {
+    "id": "ending_rule_sylvie",
+    "title": "终章：希尔薇之治",
+    "act": "epilogue",
+    "start": "open",
+    "nodes": [
+      {
+        "id": "open",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "epilogue.ruler",
+            "value": "希尔薇"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "代理之战结束了。帝国和教国的扩张派，退回了各自的城墙里。",
+            "when": "patron == sylvie"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "其余诸司都愿意离开了。只有她不肯。她闭着眼睛，抓着什么不肯松手。",
+            "when": "patron != sylvie"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "冬至。七座天启碑同时亮起，神庭上方那片亮闪了一下。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "这一次，没有人问「上面在看吗」。"
+          }
+        ],
+        "next": "others"
+      },
+      {
+        "id": "others",
+        "lines": [
+          {
+            "speaker": "sylvie",
+            "kind": "divine",
+            "text": "她们……累了。让她们在灵泉里睡。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "其余诸司一位一位沉进灵泉，像落叶沉进水里。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉最后一个下去。入水之前，她把写好的几页递给了你。"
+          }
+        ],
+        "next": "world"
+      },
+      {
+        "id": "world",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，世界被放慢成了四季。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "森林在扩张，城市在缩小。人们温和地活着，但不再改变。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "那只半鹿半狼的兽走到你身边，挨着你站下。"
+          },
+          {
+            "speaker": "sylvie",
+            "kind": "divine",
+            "text": "你，和它一起。守着。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "guard",
+            "label": "守着",
+            "effects": [
+              {
+                "type": "line",
+                "speaker": "sylvie",
+                "text": "……嗯。",
+                "kind": "divine"
+              }
+            ],
+            "to": "stele"
+          },
+          {
+            "id": "until_when",
+            "label": "守到什么时候？",
+            "effects": [
+              {
+                "type": "line",
+                "speaker": "sylvie",
+                "text": "到下一个春天。……然后，再下一个。",
+                "kind": "divine"
+              }
+            ],
+            "to": "stele"
+          }
+        ]
+      },
+      {
+        "id": "stele",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，碑面显现出一个字：「未」。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "希尔薇睁开眼睛，看着那个字，没有一点意外。"
+          },
+          {
+            "speaker": "sylvie",
+            "kind": "divine",
+            "text": "……我知道。我一直都知道。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "她早就猜到会是「未」。她还是选择了抓紧。"
+          }
+        ],
+        "next": "record_intro"
+      },
+      {
+        "id": "record_intro",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉递给你的那几页，每一条都从同一句话开始。"
+          }
+        ],
+        "next": "epilogue"
+      },
+      {
+        "id": "epilogue",
+        "epilogue": true,
+        "next": "close"
+      },
+      {
+        "id": "close",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里下雪了。雪下得很慢，像永远不会停。"
+          }
+        ],
+        "end": true
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "act",
+        "act": "epilogue"
+      }
+    ]
+  },
+  {
+    "id": "ending_rule_moira",
+    "title": "终章：莫伊拉之治",
+    "act": "epilogue",
+    "start": "open",
+    "nodes": [
+      {
+        "id": "open",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "epilogue.ruler",
+            "value": "莫伊拉"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "代理之战结束了。雅努到最后都想要那扇后门。现在，后门是莫伊拉的了。",
+            "when": "patron == moira"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "其余诸司都愿意离开了。只有她不肯。她的笔，一直没有放下。",
+            "when": "patron != moira"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "冬至。七座天启碑同时亮起，神庭上方那片亮闪了一下。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "这一次，没有人问「上面在看吗」。"
+          }
+        ],
+        "next": "others"
+      },
+      {
+        "id": "others",
+        "lines": [
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "其余诸司，归档。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉合上书。其余诸司一位一位，成了书里的角色。台词写得很好，好得有点不像她们。"
+          }
+        ],
+        "next": "world"
+      },
+      {
+        "id": "world",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，命运丝遍布了世界。每个人都有精心安排的巧合。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "一个讲得很好的故事。没有一页是多余的。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "而你，是永远的主角。永远有续章。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "next_chapter",
+            "label": "翻到下一章",
+            "effects": [
+              {
+                "type": "line",
+                "speaker": "moira",
+                "text": "有趣。我也想知道。",
+                "kind": "divine"
+              }
+            ],
+            "to": "stele"
+          },
+          {
+            "id": "shut_book",
+            "label": "（把书合上）",
+            "effects": [
+              {
+                "type": "line",
+                "speaker": "moira",
+                "text": "合上也没有用。这一章，才刚开始。",
+                "kind": "divine"
+              }
+            ],
+            "to": "stele"
+          }
+        ]
+      },
+      {
+        "id": "stele",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，碑面显现出一个字：「未」。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉看着那个字，看了很久。然后她抬起头，朝你身后很远很远的地方，看了一眼。"
+          },
+          {
+            "speaker": "moira",
+            "kind": "divine",
+            "text": "……原来读者不喜欢这个结局。"
+          }
+        ],
+        "next": "record_intro"
+      },
+      {
+        "id": "record_intro",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "这一次的记录，莫伊拉亲自写完了。每一条，都从同一句话开始。"
+          }
+        ],
+        "next": "epilogue"
+      },
+      {
+        "id": "epilogue",
+        "epilogue": true,
+        "next": "close"
+      },
+      {
+        "id": "close",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "书合上了。最后一页的页脚，印着一行小字：未完待续。"
+          }
+        ],
+        "end": true
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "act",
+        "act": "epilogue"
+      }
+    ]
+  },
+  {
+    "id": "ending_janu_restored",
+    "title": "终章：门之复辟",
+    "act": "epilogue",
+    "start": "open",
+    "nodes": [
+      {
+        "id": "open",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "门开了。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "先是一扇，然后是十扇，然后是一千扇。门遍布了大陆。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "所有的路，都经过她。"
+          }
+        ],
+        "next": "sealed"
+      },
+      {
+        "id": "sealed",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "五司被封进了各自的神殿。神殿的门是雅努亲手关上的，关得很轻。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭历九百五十一年，她们也是这样关上她的门。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "只守一阵子。等他们真的准备好了……"
+          }
+        ],
+        "next": "stele"
+      },
+      {
+        "id": "stele",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "冬至。七座天启碑同时亮起，神庭上方那片亮闪了一下。没有人问「上面在看吗」。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "碑面显现出一个字：「未」。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "雅努愣在门口。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "我读对了……"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "可碑还是说未。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "她没有放手。"
+          }
+        ],
+        "next": "world"
+      },
+      {
+        "id": "world",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，世界重新连起来了，繁荣得像千门时代。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "遗民被奉为开门者的子民。你是她的第一把钥。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "夜羽回到了她身边，做回了信使。你们的契约，被收了回去。",
+            "when": "companion.yeyu.recruited"
+          },
+          {
+            "speaker": "yeyu",
+            "kind": "say",
+            "text": "门把手。……最后一次这么叫你了。",
+            "when": "companion.yeyu.recruited"
+          }
+        ],
+        "next": "years"
+      },
+      {
+        "id": "years",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "数年之后，你注意到一件事。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "哪一扇门为谁开，为谁不开，她在一点一点地调。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "remind",
+            "label": "你说过，你会放手的。",
+            "effects": [
+              {
+                "type": "line",
+                "speaker": "janu",
+                "text": "……我会的。再等一阵子。",
+                "kind": "divine"
+              }
+            ],
+            "to": "record_intro"
+          },
+          {
+            "id": "silent",
+            "label": "（什么也不说）",
+            "effects": [
+              {
+                "type": "line",
+                "speaker": "narrator",
+                "text": "她看见了你的沉默。她笑了一下，又把一扇门轻轻关上了。",
+                "kind": "narrate"
+              }
+            ],
+            "to": "record_intro"
+          }
+        ]
+      },
+      {
+        "id": "record_intro",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "后来，你常常梦见她。每一个梦，都从同一句话开始。"
+          }
+        ],
+        "next": "epilogue"
+      },
+      {
+        "id": "epilogue",
+        "epilogue": true,
+        "next": "close"
+      },
+      {
+        "id": "close",
+        "lines": [
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "门总会开的。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "这一次，你听出了这句话的另一种意思。"
+          }
+        ],
+        "end": true
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "act",
+        "act": "epilogue"
+      }
+    ]
+  },
+  {
+    "id": "ending_reclaim",
+    "title": "终章：回收",
+    "act": "epilogue",
+    "start": "open",
+    "nodes": [
+      {
+        "id": "open",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "诸神违约了。神庭在你脚下裂开，庭镜里的大陆跟着碎了。",
+            "when": "god_war"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "庭镜里，大陆已经撑不住了。",
+            "when": "NOT god_war"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "一块，又一块，暗了下去。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你能救的人，都送进了门内庭院。你救不了的，比那多得多。"
+          }
+        ],
+        "next": "catch"
+      },
+      {
+        "id": "catch",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你听见了雅努的声音。很近，像那一次坠落时一样。"
+          },
+          {
+            "speaker": "janu",
+            "kind": "divine",
+            "text": "接住你了。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你伸出手，像那一次一样。",
+            "when": "prologue.reached_out"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "这一次，没有手握住你的手腕。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "她什么也没有接住。"
+          }
+        ],
+        "next": "steles"
+      },
+      {
+        "id": "steles",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "七座天启碑的碑面，同时熄灭了。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "不是「未」。什么字也没有。"
+          }
+        ],
+        "next": "epilogue"
+      },
+      {
+        "id": "epilogue",
+        "epilogue": true,
+        "next": "black"
+      },
+      {
+        "id": "black",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "黑。"
+          }
+        ],
+        "next": "door"
+      },
+      {
+        "id": "door",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "next_cycle",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "然后，一扇门。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "门外是候见厅。纯白的大厅，没有窗，也没有影子。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "隔壁房间里，有四个人正在面试。墙上的号码板亮着四个格子：一、二、三、四。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你手里多了一张号码牌。上面写着一个字：伍。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "圣历九百九十八年，春。"
+          }
+        ],
+        "end": true
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "act",
+        "act": "epilogue"
+      }
+    ]
+  },
+  {
+    "id": "ending_maker",
+    "title": "终章：一间小屋",
+    "act": "epilogue",
+    "start": "room",
+    "nodes": [
+      {
+        "id": "room",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你推开了回廊尽头的那扇门。",
+            "when": "NOT player_returned"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你推开了墙上的那扇门。",
+            "when": "player_returned"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "门后是一间小屋。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "很小，像一间书房。比候见厅小得多，比门内庭院最初的那间小屋，大不了多少。"
+          }
+        ],
+        "next": "table"
+      },
+      {
+        "id": "table",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "屋里有一张木桌，桌面上全是用了很多年的划痕。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "一把椅子被推开着，像刚有人起身。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "桌上有一封信，一只杯子，和一叠草稿纸。杯子里的东西已经放凉了。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "信封上写着一个名字：{player_name}。是你在候见厅里，给自己起的那个名字。"
+          }
+        ],
+        "next": "hub"
+      },
+      {
+        "id": "hub",
+        "choices": [
+          {
+            "id": "read_letter",
+            "label": "读信",
+            "once": true,
+            "to": "letter"
+          },
+          {
+            "id": "drafts",
+            "label": "翻草稿",
+            "once": true,
+            "to": "drafts"
+          },
+          {
+            "id": "tablet",
+            "label": "看墙上的石板",
+            "once": true,
+            "to": "tablet"
+          },
+          {
+            "id": "second_door",
+            "label": "推那扇关着的门",
+            "once": true,
+            "to": "second_door"
+          },
+          {
+            "id": "leave",
+            "label": "离开",
+            "to": "leave"
+          }
+        ]
+      },
+      {
+        "id": "letter",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你拆开信封。信纸是很普通的纸，字是手写的。"
+          },
+          {
+            "speaker": "letter",
+            "name": "信",
+            "kind": "narrate",
+            "text": "（占位文字，发布前必须由开发者本人整段替换，任何人不得代写，要求见 docs/30_story/arcs/act6_review_and_epilogue.md 第 14.4 节：致 {player_name}。谢谢你走完这一程……）"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你把信折好，放回了信封里。"
+          }
+        ],
+        "next": "hub"
+      },
+      {
+        "id": "drafts",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "最上面几张，是箱庭的草图。大陆的轮廓画了很多遍，海岸线改来改去。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "下面是六位女神的速写。画风和你见过的她们不太一样，像是更早的样子：梅尔卡手里没有拿吃的，艾琉恩的光环只是一个简单的圆。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "第六张画的是一个站在门口的人，脸的一半还没有画完。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "最底下是一张结局表，划掉了很多遍。有几行旁边写着小字，字太小，看不清。"
+          }
+        ],
+        "next": "hub"
+      },
+      {
+        "id": "tablet",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "墙上挂着一块小小的石板。上面只有一个字，你不认识。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "千门回廊留在你身上的那一点感知告诉你：这个字，和天启碑上的「未」很像。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "但不是同一种文字。"
+          }
+        ],
+        "next": "hub"
+      },
+      {
+        "id": "second_door",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "房间的另一侧，有一扇关着的门。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "门缝下透出一线光。门后隐约有人声，听不清在说什么。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你想起来了。很久以前，你也是这样在一扇门外面等着，听隔壁的人被叫进去。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你伸手去碰那扇门。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "房间里的光闪了一下。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "和候见厅里的那一次，一模一样。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "门没有开。"
+          }
+        ],
+        "next": "hub"
+      },
+      {
+        "id": "leave",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你走出小屋。门在你身后关上了。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "千门回廊也跟着不见了。",
+            "when": "NOT player_returned"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "墙上，只剩下一面墙。",
+            "when": "player_returned"
+          }
+        ],
+        "next": "sky"
+      },
+      {
+        "id": "sky",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "箱庭的夜空很干净。终雾退得很远，星星散得不太整齐。",
+            "when": "NOT player_returned"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "窗外是地球的夜空。城市的光，把星星冲得很淡。",
+            "when": "player_returned"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "有一颗星，稍微偏离了它该在的位置。"
+          }
+        ],
+        "end": true
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "flag",
+        "key": "maker_room_seen",
+        "value": true
+      }
+    ]
+  }
+]

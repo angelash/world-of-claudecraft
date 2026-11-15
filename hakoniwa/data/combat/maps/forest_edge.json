@@ -1,0 +1,246 @@
+{
+  "id": "forest_edge",
+  "name": "林缘（东林）",
+  "region": "borderstone_wilds",
+  "width": 48,
+  "height": 32,
+  "sediment": 2,
+  "rows": [
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "TTTTTTTTTTTTTTTTTTT\"\"TTTTTT\"TTTTTTTTT\"\"\"\"\"\"\"\"TTT",
+    "TTTTTTTTT\"\"T\"TTTTTT\"TTTTTTT\"\"\"\"\"\"\"\"\"\"\",,,,,\"\"\"\"T",
+    "TTTTTTTTTT\"\"\"TTTT\"\"\"\"TTTT\"\"\",,,,,,,,,,,\"\"\",,,\"TT",
+    "TTTTTTTTT\"\"\"TTTTTT\"\"\"\"\"\"\"\",,,\"\"\"\"\"\"\"\"\"\"\"T\"\"\"\"\"TT",
+    "TTTTTTTT\"\"\"\"\"TTTT\"\",,,,,,,,\"\"\"TTTTTTTTTTTTTTTTTT",
+    "TT\"\"\"TT\"\"\"\"\"\"TTTT\",,\"\"\"\",,\"\"\"TTTTTTTT,,,,,,TTTTT",
+    "TT\"\"\"\"\"\"\"\"\"\"TTTT\"\",\"\"TT\"\",,\"\"TTTTTTT,,,,,,,,TTTT",
+    "TT\"\"\"\"\"\"\"\"\"\"\"TTT\",,\"\"\"TT\"\",,\"TTTTTTT,,,,,,,,TTTT",
+    "TT\"\"\",##,,#,\"TTT\",,\"\"\"TTT\"\",\"\"TTTTT,,,,,,,,,,TTT",
+    "T\"\"\"\",,,,,,,\"\"TT\"\",T\"\"\"\"\"T\",,\"TTTTTT,,,,,,,,TTTT",
+    "T\"T\"\",,,o,,,\"\"\"\"\"\",,\"\"\"\"TT\"\",\"\"\"TTTT,,,,,,,,TTTT",
+    "T\"T\"\",,,,,,,\"\"\"\"\"\",,\"\"\"\"TTT\",,\"\"\"\"\"T,,,,,,,TTTTT",
+    "TT\"\"\",,,,,,,\"\"\"\",,,\"\"\"\"\"TT\"\"\",,,,,,,,TTTTTTTTTTT",
+    "TT\"\"\"\"\"\"\"\"\"\"\"\"\",,\"\"\"TTTTT\"\"\",,\"\"\"\"\"\"\"\"\"\"\"\"TTTTTT",
+    "T\"\"\"\"\"\"\"\"\"\"\"\"\",,\"\"TTTTTTTT\"\",\"\"\"TTTTT\"\"\"\"TTTTTTT",
+    "=============,,\"\"\"\"\"\"\"\"\"\"\"\",,\"TT\"\"\"\"\"\"\"\"\"\"TTTTTT",
+    "T\"\"\"\"\"\"\"\",\"\"================\"\"\"\"\"\"\"\"\"\"\"^^^^^^TTT",
+    "TT\"\"\"\"\"\"\",\"\"\"\"\"\"\"\"\"\"\"\"\"=\"\"\"======\"\"\"\"\"^^,,,,^^TT",
+    "TT\"\"TT\"\"\",\"\"\"TTTT\"TTTT\"=\"\"\"\"\"\"\"\"====\"\"\"\",,,,,^^T",
+    "T\"\"TTTT\"\",\"\"TTTT\"\"\"\"\"\"\"=\"\"\"~~~~~\"\"\"==\"\"\",,,,,,^T",
+    "T\"\"\"\"\",\"\",,,\"\",\"\"\"\"\"\"\"\"=\"\"\"~~~~~\"\"\"\"\"\"\"\",,,,,,^T",
+    "TT\",\",\"\",,,,\"\"\"\"\"\"\"\"\"\"\"=\"\"\"~~~~~\"\"\"\"\"^^,,,,,,^^T",
+    "T\"\"\"\"\"\"\",,\"\",\",\"\"\"\"\"\"\"\"=\"\"\"\"\"\"\"\"\"\"\"\"\"\"^^^,,,^^TT",
+    "TT\"\"\"\"\"\",\",\"\",,\"\"\"\"\"\"\"\"=\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"^^^^^^TTT",
+    "T\"\"\",\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"=\"\"\"\"\"\"\"\"\"\"\"TT\"\"\"\"\"TTTTTT",
+    "TT\"\",\"\"\"\"\",\"\"\",\"\"\"\"##,,=,,##\"\"\"\"\"\"\"\"\"\"\"T\"\"TTTTTT",
+    "TT\",\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"#,,,=,,,#\"\"\"TTTT\"\"\"TTT\"\"TTTTT",
+    "TT\"\",\",\"\"\"\"\"\"\"\"\"\"T\",,,,,,,,,\"\"\"TTTT\"\"\"\"TTT\"TTTTT",
+    "TT\"\"\"\"T\"\"T\"\"\"T\"\"\"T\",,,,#,,,,\"\"\"\"\"TT\"\"\"\"TTT\"TTTTT",
+    "TT\"T\"T\"\"TTTT\"TT\"\"T\",,,,,,,,,\"\"TTTTTTTTTTTT\"\"\"\"TT",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"
+  ],
+  "legend": {
+    "#": "wall",
+    ",": "dirt",
+    "\"": "grass",
+    "T": "tree",
+    "^": "rock",
+    "~": "water",
+    "=": "road",
+    "o": "stone"
+  },
+  "locations": [
+    {
+      "id": "gate_borderstone",
+      "name": "林缘入口",
+      "kind": "gate",
+      "x": 3,
+      "y": 15,
+      "w": 3,
+      "h": 3
+    },
+    { "id": "hunter_camp", "name": "猎人营地", "kind": "safe", "x": 5, "y": 9, "w": 7, "h": 5 },
+    { "id": "hunter_trail", "name": "猎径", "kind": "road", "x": 6, "y": 15, "w": 25, "h": 3 },
+    { "id": "pact_oak", "name": "约树", "kind": "landmark", "x": 18, "y": 11, "w": 3, "h": 1 },
+    { "id": "spider_vale", "name": "蛛谷", "kind": "lair", "x": 36, "y": 7, "w": 9, "h": 5 },
+    { "id": "wolf_den", "name": "狼穴", "kind": "lair", "x": 38, "y": 18, "w": 9, "h": 7 },
+    { "id": "deer_spring", "name": "鹿泉", "kind": "spring", "x": 26, "y": 20, "w": 7, "h": 7 },
+    { "id": "logging_site", "name": "伐区", "kind": "field", "x": 3, "y": 21, "w": 11, "h": 7 },
+    { "id": "deep_woods", "name": "老林深处", "kind": "wild", "x": 12, "y": 1, "w": 23, "h": 9 },
+    { "id": "bandit_lookout", "name": "南路哨", "kind": "camp", "x": 19, "y": 26, "w": 9, "h": 5 }
+  ],
+  "spawns": [
+    {
+      "id": "fe_grey_wolf_trail_n",
+      "kind": "monster",
+      "ref": "grey_wolf",
+      "x": 28.5,
+      "y": 14.5,
+      "count": 2,
+      "radius": 2.5,
+      "respawnMinutes": 160
+    },
+    {
+      "id": "fe_grey_wolf_trail_s",
+      "kind": "monster",
+      "ref": "grey_wolf",
+      "x": 17.5,
+      "y": 21.5,
+      "count": 2,
+      "radius": 2.5,
+      "respawnMinutes": 160
+    },
+    {
+      "id": "fe_grey_wolf_den",
+      "kind": "monster",
+      "ref": "grey_wolf",
+      "x": 36.5,
+      "y": 23.5,
+      "count": 2,
+      "radius": 2.5,
+      "respawnMinutes": 160
+    },
+    {
+      "id": "fe_split_ear",
+      "kind": "monster",
+      "ref": "split_ear",
+      "x": 42.5,
+      "y": 21.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 2400
+    },
+    {
+      "id": "fe_boar_logging_w",
+      "kind": "monster",
+      "ref": "dian_boar",
+      "x": 6.5,
+      "y": 25.5,
+      "count": 2,
+      "radius": 3,
+      "respawnMinutes": 160
+    },
+    {
+      "id": "fe_boar_logging_e",
+      "kind": "monster",
+      "ref": "dian_boar",
+      "x": 11.5,
+      "y": 23.5,
+      "count": 2,
+      "radius": 3,
+      "respawnMinutes": 160
+    },
+    {
+      "id": "fe_boar_south",
+      "kind": "monster",
+      "ref": "dian_boar",
+      "x": 15.5,
+      "y": 28.5,
+      "count": 2,
+      "radius": 3,
+      "respawnMinutes": 160
+    },
+    {
+      "id": "fe_spider_w",
+      "kind": "monster",
+      "ref": "edge_spider",
+      "x": 37.5,
+      "y": 9.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 160
+    },
+    {
+      "id": "fe_spider_n",
+      "kind": "monster",
+      "ref": "edge_spider",
+      "x": 41.5,
+      "y": 7.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 160
+    },
+    {
+      "id": "fe_spider_e",
+      "kind": "monster",
+      "ref": "edge_spider",
+      "x": 42.5,
+      "y": 11.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 160
+    },
+    {
+      "id": "fe_dian_wolf_w",
+      "kind": "monster",
+      "ref": "dian_wolf",
+      "x": 17.5,
+      "y": 5.5,
+      "count": 2,
+      "radius": 2.5,
+      "respawnMinutes": 200
+    },
+    {
+      "id": "fe_dian_wolf_c",
+      "kind": "monster",
+      "ref": "dian_wolf",
+      "x": 24.5,
+      "y": 4.5,
+      "count": 2,
+      "radius": 2.5,
+      "respawnMinutes": 200
+    },
+    {
+      "id": "fe_dian_wolf_e",
+      "kind": "monster",
+      "ref": "dian_wolf",
+      "x": 32.5,
+      "y": 3.5,
+      "count": 2,
+      "radius": 2.5,
+      "respawnMinutes": 200
+    },
+    {
+      "id": "fe_black_ridge",
+      "kind": "monster",
+      "ref": "black_ridge",
+      "x": 43.5,
+      "y": 2.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 4800
+    },
+    {
+      "id": "fe_bandit_w",
+      "kind": "monster",
+      "ref": "oneeye_bandit",
+      "x": 21.5,
+      "y": 28.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 240
+    },
+    {
+      "id": "fe_bandit_e",
+      "kind": "monster",
+      "ref": "oneeye_bandit",
+      "x": 25.5,
+      "y": 28.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 240
+    }
+  ],
+  "exits": [
+    {
+      "id": "to_borderstone",
+      "x": 0,
+      "y": 16,
+      "toMap": "borderstone",
+      "toX": 1,
+      "toY": 1,
+      "toLocation": "gate_forest_edge",
+      "label": "回边石镇"
+    }
+  ]
+}

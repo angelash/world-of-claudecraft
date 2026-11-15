@@ -1,0 +1,111 @@
+[
+  {
+    "id": "old_friend_passing",
+    "kind": "coincidence",
+    "label": "旧识路过",
+    "requires": "companion.shiya.recruited OR companion.ron.recruited",
+    "narration": "远处传来一声熟悉的招呼，好像有人恰好路过这里。",
+    "flag": { "key": "director.old_friend", "value": true },
+    "cooldownHours": 48,
+    "power": 2,
+    "weight": 1.2
+  },
+  {
+    "id": "rumor_arrives",
+    "kind": "coincidence",
+    "label": "传闻抵达",
+    "narration": "邻桌的人压低声音，说起一件你还没听过的事。",
+    "flag": { "key": "director.rumor_hint", "value": true },
+    "cooldownHours": 24,
+    "power": 1,
+    "weight": 1
+  },
+  {
+    "id": "lost_and_found",
+    "kind": "coincidence",
+    "label": "失物与线索",
+    "narration": "路边的草里有东西在反光。像是谁掉下的，又像是专门放在那里等你。",
+    "flag": { "key": "director.lost_item", "value": true },
+    "cooldownHours": 72,
+    "power": 3,
+    "weight": 0.9
+  },
+  {
+    "id": "weather_turn",
+    "kind": "coincidence",
+    "label": "天气转折",
+    "weather": "rain",
+    "hours": 4,
+    "narration": "一阵急雨落下来，路上的人纷纷躲进最近的屋檐。",
+    "cooldownHours": 72,
+    "power": 2,
+    "weight": 0.8
+  },
+  {
+    "id": "stirring_woods",
+    "kind": "coincidence",
+    "label": "林子里的动静",
+    "maps": ["forest_edge", "ash_waste", "seal_ruins"],
+    "monsterFactor": 1.2,
+    "hours": 6,
+    "narration": "风停了一瞬。远处有什么东西被惊动了。",
+    "cooldownHours": 48,
+    "power": 2,
+    "weight": 1
+  },
+  {
+    "id": "enemy_slip",
+    "kind": "coincidence",
+    "label": "敌方的疏漏",
+    "requires": "act_index >= 2",
+    "narration": "有人说漏了嘴。一个不该被知道的计划，露出了一角。",
+    "flag": { "key": "director.enemy_slip", "value": true },
+    "cooldownHours": 96,
+    "power": 3,
+    "weight": 0.8
+  },
+  {
+    "id": "safe_camp",
+    "kind": "respite",
+    "label": "安全的宿营地",
+    "monsterFactor": 0.5,
+    "hours": 6,
+    "narration": "前面有一处背风的空地，篝火的痕迹还是温的。追赶你的声音远了。",
+    "cooldownHours": 24,
+    "power": 2,
+    "weight": 1.2
+  },
+  {
+    "id": "passing_merchant",
+    "kind": "respite",
+    "label": "过路商人",
+    "narration": "一个背着大包的行商在路边歇脚，价钱公道得让人意外。",
+    "flag": { "key": "director.passing_merchant", "value": true },
+    "cooldownHours": 48,
+    "power": 1,
+    "weight": 1
+  },
+  {
+    "id": "campfire_talk",
+    "kind": "respite",
+    "label": "同伴闲谈",
+    "requires": "companion.yeyu.recruited OR companion.shiya.recruited OR companion.ron.recruited",
+    "monsterFactor": 0.7,
+    "hours": 4,
+    "narration": "篝火噼啪作响。同伴难得地聊起了从前的事。",
+    "cooldownHours": 36,
+    "power": 1,
+    "weight": 1.1
+  },
+  {
+    "id": "healer_passing",
+    "kind": "respite",
+    "label": "医者路过",
+    "monsterFactor": 0.8,
+    "hours": 3,
+    "narration": "一位背着药箱的旅人停下脚步：「伤得不轻啊，先坐下。」",
+    "cooldownHours": 48,
+    "power": 2,
+    "weight": 0.9
+  }
+]

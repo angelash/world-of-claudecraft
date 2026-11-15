@@ -1,0 +1,4178 @@
+[
+  {
+    "id": "prologue",
+    "title": "序章：候见厅",
+    "act": "prologue",
+    "start": "n1_opening",
+    "nodes": [
+      {
+        "id": "n1_opening",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "prologue.door_attempts_refused",
+            "value": 0
+          },
+          {
+            "type": "flag",
+            "key": "prologue.heard_neighbors",
+            "value": false
+          },
+          {
+            "type": "flag",
+            "key": "prologue.mirror_done",
+            "value": false
+          },
+          {
+            "type": "flag",
+            "key": "prologue.asked_sixth_chair",
+            "value": false
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "在一切开始之前，是一个很普通的夜晚。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你记得的最后一个地方，是哪里？"
+          }
+        ],
+        "choices": [
+          {
+            "id": "a",
+            "label": "末班车：加班到深夜，地铁末班车的车厢",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.earth_opening",
+                "value": "A"
+              },
+              {
+                "type": "flag",
+                "key": "prologue.earth_relic",
+                "value": "relic_badge"
+              },
+              {
+                "type": "item",
+                "item": "relic_badge"
+              },
+              {
+                "type": "hint",
+                "door": "pact"
+              },
+              {
+                "type": "flag",
+                "key": "courtyard.first_object",
+                "value": "一盏台灯"
+              },
+              {
+                "type": "flag",
+                "key": "prologue.default_past_life",
+                "value": "abacus"
+              }
+            ],
+            "to": "n1_a"
+          },
+          {
+            "id": "b",
+            "label": "雨夜便利店：深夜的便利店，外面下着大雨",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.earth_opening",
+                "value": "B"
+              },
+              {
+                "type": "flag",
+                "key": "prologue.earth_relic",
+                "value": "relic_receipt"
+              },
+              {
+                "type": "item",
+                "item": "relic_receipt"
+              },
+              {
+                "type": "hint",
+                "door": "breath"
+              },
+              {
+                "type": "flag",
+                "key": "courtyard.first_object",
+                "value": "一只空食盆"
+              },
+              {
+                "type": "flag",
+                "key": "prologue.default_past_life",
+                "value": "nightlight"
+              }
+            ],
+            "to": "n1_b"
+          },
+          {
+            "id": "c",
+            "label": "医院走廊：凌晨，在走廊里等一个结果",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.earth_opening",
+                "value": "C"
+              },
+              {
+                "type": "flag",
+                "key": "prologue.earth_relic",
+                "value": "relic_mint"
+              },
+              {
+                "type": "item",
+                "item": "relic_mint"
+              },
+              {
+                "type": "hint",
+                "door": "breath"
+              },
+              {
+                "type": "flag",
+                "key": "courtyard.first_object",
+                "value": "一把等候椅"
+              },
+              {
+                "type": "flag",
+                "key": "prologue.default_past_life",
+                "value": "whitecoat"
+              }
+            ],
+            "to": "n1_c"
+          },
+          {
+            "id": "d",
+            "label": "老宅清空日：明天就要拆的老房子，最后一个房间",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.earth_opening",
+                "value": "D"
+              },
+              {
+                "type": "flag",
+                "key": "prologue.earth_relic",
+                "value": "relic_key"
+              },
+              {
+                "type": "item",
+                "item": "relic_key"
+              },
+              {
+                "type": "hint",
+                "door": "blade"
+              },
+              {
+                "type": "flag",
+                "key": "courtyard.first_object",
+                "value": "那把旧椅子"
+              },
+              {
+                "type": "flag",
+                "key": "prologue.default_past_life",
+                "value": "wrench"
+              }
+            ],
+            "to": "n1_d"
+          }
+        ]
+      },
+      {
+        "id": "n1_a",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "加班到深夜。地铁末班车的车厢里，只剩你和对面一个睡着的醉汉。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "车窗映出你的脸，比你记得的要憔悴一点。胸前的工牌还没摘，照片上的人笑得很精神。"
+          },
+          {
+            "speaker": "stranger",
+            "name": "醉汉",
+            "kind": "say",
+            "text": "……别关门……我还没到站呢……"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "手机亮了一下，是那条一直没回的消息：「周末回家吃饭吗？」你打了两个字，又删掉了。"
+          },
+          {
+            "speaker": "player",
+            "kind": "think",
+            "text": "（明天再回吧。）"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "列车减速，车门打开。门外不是站台，是一扇门。一扇本不该在这里的门。"
+          }
+        ],
+        "next": "n2_door"
+      },
+      {
+        "id": "n1_b",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "深夜的便利店，雨下得很大。你站在收银台前，困得眼皮直打架。"
+          },
+          {
+            "speaker": "manager",
+            "name": "店长（电话留言）",
+            "kind": "say",
+            "text": "明早的货记得点一下，别又忘了。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "门口那只躲雨的猫又来了。它每天都来，你一直想给它起个名字，一直没想好。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "收银台上留着一张小票和一颗糖，不知道是谁的找零。你把它们塞进了口袋。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "冰柜的玻璃门上，映出另一扇门。你回头，身后只有货架；再看玻璃，那扇门还在，而且更近了。"
+          }
+        ],
+        "next": "n2_door"
+      },
+      {
+        "id": "n1_c",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "凌晨的医院走廊。你坐在冰凉的塑料椅上，等一个结果。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "护士站的脚步声来了又走。病房里有人在咳嗽，咳得很轻，像怕吵醒谁。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你手里攥着探视证，口袋里还有半盒薄荷糖，已经吃掉了一大半。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "那个结果，还没有人来告诉你。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "走廊尽头，安全出口的绿灯底下，多了一扇门。你在这里等过很多个晚上，那里从来没有门。"
+          }
+        ],
+        "next": "n2_door"
+      },
+      {
+        "id": "n1_d",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "祖辈的老房子明天就要拆了。最后一个房间，只剩你一个人在收拾。"
+          },
+          {
+            "speaker": "worker",
+            "name": "搬家工人",
+            "kind": "say",
+            "text": "还有没有要搬的？车要走啦！"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "房间里那把旧椅子，新家没地方放。你在上面坐了很久，最后还是决定把它留下。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你把老房子的钥匙攥在手心，齿口硌得掌心发疼。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "衣柜的门开着一条缝。门后面不是衣柜，是另一扇门。"
+          }
+        ],
+        "next": "n2_door"
+      },
+      {
+        "id": "n2_door",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "那扇门就在那里。木头的，很旧，门把手被谁摸得发亮。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "门缝里没有光，也没有声音。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "photo",
+            "label": "拿手机拍下来",
+            "once": true,
+            "effects": [
+              {
+                "type": "line",
+                "speaker": "narrator",
+                "text": "你按下快门。照片里只有一面空墙。",
+                "kind": "narrate"
+              }
+            ]
+          },
+          {
+            "id": "push",
+            "label": "伸手推门",
+            "to": "n2_push"
+          },
+          {
+            "id": "turn",
+            "label": "转身离开",
+            "effects": [
+              {
+                "type": "add",
+                "key": "prologue.door_attempts_refused",
+                "amount": 1
+              }
+            ],
+            "to": "n2_turn1"
+          }
+        ]
+      },
+      {
+        "id": "n2_turn1",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你转身走开。拐过下一个转角，那扇门又在那里，像一直在等你。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "push",
+            "label": "伸手推门",
+            "to": "n2_push"
+          },
+          {
+            "id": "turn",
+            "label": "转身离开",
+            "effects": [
+              {
+                "type": "add",
+                "key": "prologue.door_attempts_refused",
+                "amount": 1
+              }
+            ],
+            "to": "n2_turn2"
+          }
+        ]
+      },
+      {
+        "id": "n2_turn2",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你又一次走开。这一次门出现得更近，近得伸手就能碰到。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "push",
+            "label": "伸手推门",
+            "to": "n2_push"
+          },
+          {
+            "id": "turn",
+            "label": "转身离开",
+            "effects": [
+              {
+                "type": "add",
+                "key": "prologue.door_attempts_refused",
+                "amount": 1
+              }
+            ],
+            "to": "n2_turn3"
+          }
+        ]
+      },
+      {
+        "id": "n2_turn3",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "第三次。门已经开了一条缝，门后有风，很轻，像有人在那边呼吸。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你从它旁边走过。门自己开了。"
+          }
+        ],
+        "next": "n3_white"
+      },
+      {
+        "id": "n2_push",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你推开了门。门后没有风，也没有光。你走了进去。"
+          }
+        ],
+        "next": "n3_white"
+      },
+      {
+        "id": "n3_white",
+        "effects": [
+          {
+            "type": "item",
+            "item": "number_tag_five"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "白。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "身后的门合上了，然后不见了。四周是一个纯白的房间，没有窗，也没有影子。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你手里多了一张号码牌，上面写着一个字：伍。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "墙上挂着一块号码板，只有四个格子：一、二、三、四。没有伍。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "房间里还有一条长椅、一面嵌在墙里的镜子，和一道垂到地上的白色帘幕。"
+          }
+        ],
+        "next": "n3_hub"
+      },
+      {
+        "id": "n3_hub",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "隔壁隐约有人在说话。",
+            "when": "NOT prologue.heard_neighbors"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "候见厅里很安静。",
+            "when": "prologue.heard_neighbors"
+          }
+        ],
+        "choices": [
+          {
+            "id": "mirror",
+            "label": "照一照墙上的镜子",
+            "once": true,
+            "when": "NOT prologue.mirror_done",
+            "to": "n3_mirror"
+          },
+          {
+            "id": "listen",
+            "label": "贴着墙，听隔壁",
+            "once": true,
+            "when": "NOT prologue.heard_neighbors",
+            "to": "n3_listen"
+          },
+          {
+            "id": "curtain",
+            "label": "走近帘幕",
+            "once": true,
+            "to": "n3_curtain"
+          },
+          {
+            "id": "bench",
+            "label": "在长椅上坐一会儿",
+            "once": true,
+            "to": "n3_bench"
+          },
+          {
+            "id": "tag",
+            "label": "看看手里的号码牌",
+            "once": true,
+            "effects": [
+              {
+                "type": "line",
+                "speaker": "narrator",
+                "text": "号码牌是硬纸做的，边角还很新。「伍」字写得端端正正，像有人一笔一画认真写上去的。",
+                "kind": "narrate"
+              }
+            ]
+          },
+          {
+            "id": "back",
+            "label": "回到来时的门那里",
+            "once": true,
+            "effects": [
+              {
+                "type": "line",
+                "speaker": "narrator",
+                "text": "门已经不在了。墙上只剩一个门形的浅痕。",
+                "kind": "narrate"
+              }
+            ]
+          },
+          {
+            "id": "wait",
+            "label": "（坐下来，等着叫号）",
+            "when": "prologue.mirror_done",
+            "to": "n3_check"
+          }
+        ]
+      },
+      {
+        "id": "n3_mirror",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "镜子里的人影一开始是模糊的，像隔着一层水汽。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "镜面泛起一圈涟漪。镜子里的人在等你决定：在这里，你该是什么模样。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "look_1",
+            "label": "深灰外套，黑色短发",
+            "effects": [
+              {
+                "type": "appearance",
+                "base": "human",
+                "colors": ["#3a3f4b", "#6b7280", "#f1c9a5", "#1f1b18"]
+              },
+              {
+                "type": "flag",
+                "key": "prologue.mirror_done",
+                "value": true
+              }
+            ],
+            "to": "n3_mirror_done"
+          },
+          {
+            "id": "look_2",
+            "label": "米色风衣，栗色长发",
+            "effects": [
+              {
+                "type": "appearance",
+                "base": "human",
+                "colors": ["#c9b38c", "#6b4f3a", "#eac4a0", "#5b3a24"]
+              },
+              {
+                "type": "flag",
+                "key": "prologue.mirror_done",
+                "value": true
+              }
+            ],
+            "to": "n3_mirror_done"
+          },
+          {
+            "id": "look_3",
+            "label": "灰色卫衣，浅金色的头发",
+            "effects": [
+              {
+                "type": "appearance",
+                "base": "human",
+                "colors": ["#8a8f96", "#2f3b4c", "#f6d7bd", "#d6b25e"]
+              },
+              {
+                "type": "flag",
+                "key": "prologue.mirror_done",
+                "value": true
+              }
+            ],
+            "to": "n3_mirror_done"
+          },
+          {
+            "id": "look_4",
+            "label": "墨绿毛衣，乱糟糟的棕发",
+            "effects": [
+              {
+                "type": "appearance",
+                "base": "human",
+                "colors": ["#2f5d50", "#a47c52", "#c99169", "#4a2f1d"]
+              },
+              {
+                "type": "flag",
+                "key": "prologue.mirror_done",
+                "value": true
+              }
+            ],
+            "to": "n3_mirror_done"
+          },
+          {
+            "id": "look_5",
+            "label": "白衬衫，深蓝长裤，银灰色的头发",
+            "effects": [
+              {
+                "type": "appearance",
+                "base": "human",
+                "colors": ["#e9edf0", "#2c3e57", "#f3d2b8", "#a3abb2"]
+              },
+              {
+                "type": "flag",
+                "key": "prologue.mirror_done",
+                "value": true
+              }
+            ],
+            "to": "n3_mirror_done"
+          },
+          {
+            "id": "look_6",
+            "label": "酒红外套，黑色卷发，肤色偏深",
+            "effects": [
+              {
+                "type": "appearance",
+                "base": "human",
+                "colors": ["#7a2e3b", "#3a3236", "#8d5a3b", "#151214"]
+              },
+              {
+                "type": "flag",
+                "key": "prologue.mirror_done",
+                "value": true
+              }
+            ],
+            "to": "n3_mirror_done"
+          }
+        ]
+      },
+      {
+        "id": "n3_mirror_done",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "镜子里的人眨了眨眼。是你。大概是你。"
+          }
+        ],
+        "next": "n3_hub"
+      },
+      {
+        "id": "n3_listen",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "prologue.heard_neighbors",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你把耳朵贴上墙。墙是温的。"
+          },
+          {
+            "speaker": "voice_neighbor",
+            "name": "隔壁的声音",
+            "kind": "say",
+            "text": "谢谢您，我会尽力。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "有人笑得很大声，笑声撞在墙上，震得你耳朵发麻。"
+          },
+          {
+            "speaker": "voice_young",
+            "name": "年轻的男声",
+            "kind": "say",
+            "text": "那个……外面候见厅里还有一个人，也是跟我们一起来的吗？"
+          },
+          {
+            "speaker": "voice_elegant",
+            "name": "优雅的女声",
+            "kind": "say",
+            "text": "名单上只有四位，孩子。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "隔壁的声音渐渐远去，像一群人被领着，走过一条很长的走廊。"
+          }
+        ],
+        "next": "n3_hub"
+      },
+      {
+        "id": "n3_curtain",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你走到帘幕前。帘幕很厚，白得发亮，垂在地上纹丝不动。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "后面没有人。你听了一会儿，只听见风，从很远很远的地方吹过来。"
+          }
+        ],
+        "next": "n3_hub"
+      },
+      {
+        "id": "n3_bench",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你在长椅上坐下。长椅很硬，有点凉，像车站或医院里的那种。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你等了一会儿，没有人来。号码板上的四个格子安安静静，一个都没有亮。"
+          }
+        ],
+        "next": "n3_hub"
+      },
+      {
+        "id": "n3_check",
+        "branch": [
+          {
+            "when": "NOT prologue.heard_neighbors",
+            "to": "n3_faint"
+          }
+        ],
+        "next": "n4_stance"
+      },
+      {
+        "id": "n3_faint",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "prologue.heard_neighbors",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "隔壁的墙后，隐约传来几句话，很轻，断断续续。"
+          },
+          {
+            "speaker": "voice_neighbor",
+            "name": "隔壁的声音",
+            "kind": "say",
+            "text": "……谢谢您，我会尽力。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "有人大声笑了起来。"
+          },
+          {
+            "speaker": "voice_young",
+            "name": "年轻的男声",
+            "kind": "say",
+            "text": "……外面……还有一个人，也是跟我们一起来的吗？"
+          },
+          {
+            "speaker": "voice_elegant",
+            "name": "优雅的女声",
+            "kind": "say",
+            "text": "名单上只有四位，孩子。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "然后，声音远去了。"
+          }
+        ],
+        "next": "n4_stance"
+      },
+      {
+        "id": "n4_stance",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "帘幕后面忽然有了动静：椅子被拉开，有人落座，衣料窸窣，还有一枚硬币在桌面上转动的声音。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "有人开口说话了。隔着帘幕，听不太真切。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "bench",
+            "label": "留在长椅上，不去管它",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.eavesdrop_level",
+                "value": 0
+              }
+            ],
+            "to": "n4_s1"
+          },
+          {
+            "id": "step",
+            "label": "走到帘幕前三步的地方听",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.eavesdrop_level",
+                "value": 2
+              }
+            ],
+            "to": "n4_s1"
+          },
+          {
+            "id": "press",
+            "label": "贴着帘幕听",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.eavesdrop_level",
+                "value": 3
+              }
+            ],
+            "to": "n4_s1"
+          },
+          {
+            "id": "cough",
+            "label": "走到帘幕前，故意咳嗽一声",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.eavesdrop_level",
+                "value": 1
+              }
+            ],
+            "to": "n4_s1"
+          }
+        ]
+      },
+      {
+        "id": "n4_s1",
+        "lines": [
+          {
+            "speaker": "merca",
+            "name": "甜甜的女声",
+            "text": "四个。亲爱的，你一口气要了四个名额。按信仰份额算，你这次可是把账做得满满的。",
+            "when": "prologue.eavesdrop_level >= 1"
+          },
+          {
+            "speaker": "eluen",
+            "name": "冷静的女声",
+            "text": "份额就是份额。四个，合规格，每一个都经过挑选。",
+            "when": "prologue.eavesdrop_level >= 1"
+          },
+          {
+            "speaker": "valda",
+            "name": "粗豪的女声",
+            "text": "挑选？你挑的是哪种？听话的那种吧。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "eluen",
+            "name": "冷静的女声",
+            "text": "勇者需要的是秩序，不是你那种只会咬人的野狗。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "valda",
+            "name": "粗豪的女声",
+            "text": "哈！我那一个，一个人顶你四个。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "moira",
+            "name": "慢悠悠的女声",
+            "text": "两位，请注意措辞。我在记。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "valda",
+            "name": "粗豪的女声",
+            "text": "你什么时候不在记？",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "curtain_voices",
+            "name": "帘幕后的声音",
+            "kind": "say",
+            "text": "四个……（听不清）……名额……按份额……（笑声）……野狗……",
+            "when": "prologue.eavesdrop_level == 0"
+          }
+        ],
+        "next": "n4_s1_check"
+      },
+      {
+        "id": "n4_s1_check",
+        "branch": [
+          {
+            "when": "prologue.eavesdrop_level == 1",
+            "to": "n4_cough"
+          }
+        ],
+        "next": "n4_s2"
+      },
+      {
+        "id": "n4_cough",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你故意咳嗽了一声。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "帘幕后的声音戛然而止。一秒，两秒，三秒。"
+          },
+          {
+            "speaker": "merca",
+            "name": "甜甜的女声",
+            "text": "……风吧？"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "过了一会儿，声音压低了，又继续说了下去。你只能听清零星几个词。"
+          }
+        ],
+        "next": "n4_s2"
+      },
+      {
+        "id": "n4_s2",
+        "lines": [
+          {
+            "speaker": "merca",
+            "name": "甜甜的女声",
+            "text": "话说回来，外面候见厅坐着的那位，是第几号？",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（停顿）",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "eluen",
+            "name": "冷静的女声",
+            "text": "名单上只有四个。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "merca",
+            "name": "甜甜的女声",
+            "text": "可号码牌发出去五张。我对数字很敏感的，亲爱的，尤其是多出来的数字。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "eluen",
+            "name": "冷静的女声",
+            "text": "召唤网偶尔会带进杂质。处理掉就是了。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "sylvie",
+            "name": "很轻的女声",
+            "text": "……杂质，也是一条命。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "eluen",
+            "name": "冷静的女声",
+            "text": "那就请生命之司亲自照顾它？",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（那个很轻的声音没有回答。）",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "merca",
+            "name": "甜甜的女声",
+            "text": "先别急着处理嘛。多出来的东西，有时候比账上的还值钱。那它算谁的名额？",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "eluen",
+            "name": "冷静的女声",
+            "text": "不算任何人的。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（翻书声）",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "moira",
+            "name": "慢悠悠的女声",
+            "text": "不算任何人的……嗯，这一行我先空着。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "curtain_voices",
+            "name": "帘幕后的声音",
+            "kind": "say",
+            "text": "……第几号……名单上只有四个……杂质……处理掉……算谁的名额？",
+            "when": "prologue.eavesdrop_level < 2"
+          }
+        ],
+        "next": "n4_s3"
+      },
+      {
+        "id": "n4_s3",
+        "lines": [
+          {
+            "speaker": "eluen",
+            "name": "冷静的女声",
+            "text": "审定之前，名单上不能留来路不明的东西。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "valda",
+            "name": "粗豪的女声",
+            "text": "急什么，两年而已。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "eluen",
+            "name": "冷静的女声",
+            "text": "两年。只剩两年。你们没有一个人觉得这很短吗？",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "merca",
+            "name": "甜甜的女声",
+            "text": "觉得呀，所以我才要把每一笔都算清楚。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "valda",
+            "name": "粗豪的女声",
+            "text": "一千年前那块碑上写了个「未」，你到现在还没睡好吧？",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "eluen",
+            "name": "冷静的女声",
+            "text": "这一次不会是「未」。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "moira",
+            "name": "慢悠悠的女声",
+            "text": "说得真笃定。上一次，你也是这么说的。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（翻书声）",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "moira",
+            "name": "慢悠悠的女声",
+            "text": "「未」，就是「尚未」。我一直想知道，尚未什么。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "valda",
+            "name": "粗豪的女声",
+            "text": "尚未有人把你们几个都揍趴下。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "sylvie",
+            "name": "很轻的女声",
+            "text": "……也许是，尚未学会。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（短暂的沉默）",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "eluen",
+            "name": "冷静的女声",
+            "text": "生命之司今天的话，真多。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "curtain_voices",
+            "name": "帘幕后的声音",
+            "kind": "say",
+            "text": "……审定……两年……只剩两年……碑上……「未」……尚未什么……",
+            "when": "prologue.eavesdrop_level < 2"
+          }
+        ],
+        "next": "n4_s4"
+      },
+      {
+        "id": "n4_s4",
+        "lines": [
+          {
+            "speaker": "merca",
+            "name": "甜甜的女声",
+            "text": "说起来，上一次咱们五个这么整整齐齐坐在一张桌子边上，是什么时候来着？",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "valda",
+            "name": "粗豪的女声",
+            "text": "那件事之后。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（有人很快地接了一句）",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "eluen",
+            "name": "冷静的女声",
+            "text": "神约。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "valda",
+            "name": "粗豪的女声",
+            "text": "神约哪一条不许提「那件事」了？我又没说名字。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "eluen",
+            "name": "冷静的女声",
+            "text": "我们说好了，不提。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "moira",
+            "name": "慢悠悠的女声",
+            "text": "说好的是不提名字。至于那件事，我的书里写得清清楚楚，只是一直没人来借阅。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "sylvie",
+            "name": "很轻的女声",
+            "text": "……别说了。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（很长的沉默。帘幕后很远的一角，有什么东西轻轻响了一下，像钥匙碰到钥匙。没有人走过去看。）",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "帘幕的缝隙里透出一线光。你看见两道影子：一本悬在半空、自己翻动的书，和一枚不停旋转的硬币。",
+            "when": "prologue.eavesdrop_level == 3"
+          },
+          {
+            "speaker": "curtain_voices",
+            "name": "帘幕后的声音",
+            "kind": "say",
+            "text": "……那件事之后……神约……没说名字……（沉默）",
+            "when": "prologue.eavesdrop_level < 2"
+          }
+        ],
+        "next": "n4_s5"
+      },
+      {
+        "id": "n4_s5",
+        "lines": [
+          {
+            "speaker": "merca",
+            "name": "甜甜的女声",
+            "text": "你们说，上面那位这一千年，到底在看什么？",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "eluen",
+            "name": "冷静的女声",
+            "text": "上面不会看我们吵架。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "valda",
+            "name": "粗豪的女声",
+            "text": "一千年一句话都没有，说不定早睡着了。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "moira",
+            "name": "慢悠悠的女声",
+            "text": "或者在等一个好结尾。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "sylvie",
+            "name": "很轻的女声",
+            "text": "……或者在等我们自己停下来。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "eluen",
+            "name": "冷静的女声",
+            "text": "够了。把那个「杂质」叫进来，看一眼，结束。",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（铃响。候见厅墙上的号码板凭空多出一个格子，「伍」亮起。）",
+            "when": "prologue.eavesdrop_level >= 2"
+          },
+          {
+            "speaker": "curtain_voices",
+            "name": "帘幕后的声音",
+            "kind": "say",
+            "text": "……上面那位……在看什么……睡着了……（铃声）",
+            "when": "prologue.eavesdrop_level < 2"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "墙上的号码板凭空多出一个格子，「伍」亮了起来。",
+            "when": "prologue.eavesdrop_level < 2"
+          }
+        ],
+        "next": "n5_call"
+      },
+      {
+        "id": "n5_call",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "帘幕上映出一个身影：兜帽，一只眼前悬着镜片，长长的卷轴一直拖到地上。"
+          },
+          {
+            "speaker": "moira",
+            "name": "兜帽的身影",
+            "text": "偷听是个好习惯，我也有。",
+            "when": "prologue.eavesdrop_level == 3"
+          },
+          {
+            "speaker": "moira",
+            "name": "兜帽的身影",
+            "text": "第五号。名字。"
+          }
+        ],
+        "next": "n5_name"
+      },
+      {
+        "id": "n5_name",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "她的笔尖悬在卷轴上，等着。"
+          }
+        ],
+        "input": {
+          "prompt": "报上你的名字",
+          "storeAs": "prologue.player_name",
+          "maxLength": 12,
+          "empty": "无名氏",
+          "to": "n5_named"
+        }
+      },
+      {
+        "id": "n5_named",
+        "effects": [
+          {
+            "type": "name",
+            "from": "prologue.player_name"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你没有回答。",
+            "when": "prologue.player_name == '无名氏'"
+          },
+          {
+            "speaker": "moira",
+            "name": "兜帽的身影",
+            "text": "那我先这么写。",
+            "when": "prologue.player_name == '无名氏'"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "她在卷轴上写下三个字：无名氏。",
+            "when": "prologue.player_name == '无名氏'"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "她把你的名字写在卷轴上，笔画落得很慢。",
+            "when": "prologue.player_name != '无名氏'"
+          },
+          {
+            "speaker": "moira",
+            "name": "兜帽的身影",
+            "text": "记下了。",
+            "when": "prologue.player_name != '无名氏'"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "帘幕向两边拉开了。"
+          }
+        ],
+        "next": "n5_reveal"
+      },
+      {
+        "id": "n5_reveal",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "帘幕后面是一张长桌，几把椅子，和一片没有边际的白光。除此之外，什么也没有。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "长桌后坐着五位女性。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "一位白金长发一丝不乱，背后的光环像齿轮一样缓缓转动。她看你的眼神，像在量尺寸。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "一位扛着一把断剑，一只角断了，笑起来露出尖牙。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "一位个子小小的，身边漂浮着旋转的硬币，手里还在吃东西。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "一位闭着眼，发间同时开着新花，也挂着枯花。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "还有刚才那位兜帽书记官，正把卷轴在桌上铺开。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "长桌尽头还有第六把椅子，空着。没有人看它一眼。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你可以先问点什么，也可以等她们开始。"
+          }
+        ],
+        "next": "n5_questions"
+      },
+      {
+        "id": "n5_questions",
+        "choices": [
+          {
+            "id": "where",
+            "label": "这是哪里？你们是谁？",
+            "once": true,
+            "to": "n5_q_where"
+          },
+          {
+            "id": "world",
+            "label": "那个世界叫什么？",
+            "once": true,
+            "to": "n5_q_world"
+          },
+          {
+            "id": "review",
+            "label": "审定是什么？",
+            "once": true,
+            "to": "n5_q_review"
+          },
+          {
+            "id": "thing",
+            "label": "「那件事」是什么？",
+            "once": true,
+            "to": "n5_q_thing"
+          },
+          {
+            "id": "above",
+            "label": "「上面」是谁？",
+            "once": true,
+            "to": "n5_q_above"
+          },
+          {
+            "id": "five",
+            "label": "我为什么是五号？",
+            "once": true,
+            "to": "n5_q_five"
+          },
+          {
+            "id": "neighbors",
+            "label": "隔壁那四个人是谁？",
+            "once": true,
+            "to": "n5_q_neighbors"
+          },
+          {
+            "id": "home",
+            "label": "我能回家吗？我死了吗？",
+            "once": true,
+            "to": "n5_q_home"
+          },
+          {
+            "id": "chair",
+            "label": "那把空椅子是谁的？",
+            "once": true,
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.asked_sixth_chair",
+                "value": true
+              }
+            ],
+            "to": "n5_q_chair"
+          },
+          {
+            "id": "begin",
+            "label": "（不再提问，等她们开始）",
+            "to": "n5_begin"
+          }
+        ]
+      },
+      {
+        "id": "n5_q_where",
+        "lines": [
+          {
+            "speaker": "eluen",
+            "text": "神庭的候见厅。我们是照看你将要去的那座庭园的人。"
+          },
+          {
+            "speaker": "merca",
+            "text": "园丁，客人，我们都是园丁。"
+          }
+        ],
+        "next": "n5_questions"
+      },
+      {
+        "id": "n5_q_world",
+        "lines": [
+          {
+            "speaker": "moira",
+            "text": "霍尔图斯。一座庭园。地图我就不给你了，自己去走比较有意思。"
+          }
+        ],
+        "next": "n5_questions"
+      },
+      {
+        "id": "n5_q_review",
+        "lines": [
+          {
+            "speaker": "merca",
+            "text": "一场考核，两年后放榜。"
+          },
+          {
+            "speaker": "valda",
+            "text": "看谁最厉害的那种。"
+          },
+          {
+            "speaker": "moira",
+            "text": "一场考试。题目只有一句，我们读了一千年。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（希尔薇没有回答。）"
+          },
+          {
+            "speaker": "eluen",
+            "text": "与你无关。"
+          }
+        ],
+        "next": "n5_questions"
+      },
+      {
+        "id": "n5_q_thing",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（瓦尔妲咧嘴一笑）"
+          },
+          {
+            "speaker": "valda",
+            "text": "等你活得够久，自己去挖。"
+          },
+          {
+            "speaker": "eluen",
+            "text": "下一个问题。"
+          }
+        ],
+        "next": "n5_questions"
+      },
+      {
+        "id": "n5_q_above",
+        "lines": [
+          {
+            "speaker": "merca",
+            "text": "种这座园子的那位。我们是园丁，那位是……东家。"
+          },
+          {
+            "speaker": "eluen",
+            "text": "不要用你的嘴提那一位。"
+          }
+        ],
+        "next": "n5_questions"
+      },
+      {
+        "id": "n5_q_five",
+        "lines": [
+          {
+            "speaker": "merca",
+            "text": "问得好，我也想知道。"
+          },
+          {
+            "speaker": "eluen",
+            "text": "登记错误。"
+          }
+        ],
+        "next": "n5_questions"
+      },
+      {
+        "id": "n5_q_neighbors",
+        "lines": [
+          {
+            "speaker": "eluen",
+            "text": "勇者。合规格的那种。"
+          }
+        ],
+        "next": "n5_questions"
+      },
+      {
+        "id": "n5_q_home",
+        "lines": [
+          {
+            "speaker": "merca",
+            "text": "这趟车只卖单程票，客人。至少今天是。"
+          },
+          {
+            "speaker": "moira",
+            "text": "你那边的结局，不在我的书里。"
+          }
+        ],
+        "next": "n5_questions"
+      },
+      {
+        "id": "n5_q_chair",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "五位女神的脸上，同时闪过一瞬间的困惑。"
+          },
+          {
+            "speaker": "valda",
+            "text": "什么椅子？"
+          },
+          {
+            "speaker": "eluen",
+            "text": "那里从来没有椅子。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（莫伊拉推了推镜片）"
+          },
+          {
+            "speaker": "moira",
+            "text": "……你看得见的东西，我的镜片看不见。这一句我记下来了。"
+          }
+        ],
+        "next": "n5_questions"
+      },
+      {
+        "id": "n5_begin",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（莫伊拉用笔杆轻轻敲了敲桌面）"
+          },
+          {
+            "speaker": "moira",
+            "text": "那么，开始吧。按顺序来。"
+          }
+        ],
+        "next": "n6_eluen"
+      },
+      {
+        "id": "n6_eluen",
+        "lines": [
+          {
+            "speaker": "eluen",
+            "text": "第五号。我只问一个问题，你也只需要答一次：你凭什么值得被选中？"
+          }
+        ],
+        "choices": [
+          {
+            "id": "e1",
+            "label": "我不确定我值得。但只要给我机会，我会学。",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "eluen",
+                "amount": 1
+              },
+              {
+                "type": "hint",
+                "door": "pact"
+              },
+              {
+                "type": "memory",
+                "goddess": "eluen",
+                "tag": "知礼的样本"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "E1"
+              }
+            ],
+            "to": "n6_eluen_e1"
+          },
+          {
+            "id": "e2",
+            "label": "因为我比他们四个都强。",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "eluen",
+                "amount": -1
+              },
+              {
+                "type": "interest",
+                "goddess": "valda",
+                "amount": 1
+              },
+              {
+                "type": "hint",
+                "door": "blade"
+              },
+              {
+                "type": "memory",
+                "goddess": "eluen",
+                "tag": "自负"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "E2"
+              }
+            ],
+            "to": "n6_eluen_e2"
+          },
+          {
+            "id": "e3",
+            "label": "我没求着被你们选。",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "eluen",
+                "amount": -2
+              },
+              {
+                "type": "impression",
+                "goddess": "valda",
+                "amount": 1
+              },
+              {
+                "type": "interest",
+                "goddess": "sylvie",
+                "amount": 1
+              },
+              {
+                "type": "hint",
+                "door": "shadow"
+              },
+              {
+                "type": "memory",
+                "goddess": "eluen",
+                "tag": "不驯"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "E3"
+              }
+            ],
+            "to": "n6_eluen_e3"
+          },
+          {
+            "id": "e4",
+            "label": "……我不知道。",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "sylvie",
+                "amount": 1
+              },
+              {
+                "type": "hint",
+                "door": "breath"
+              },
+              {
+                "type": "memory",
+                "goddess": "eluen",
+                "tag": "空白"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "E4"
+              }
+            ],
+            "to": "n6_eluen_e4"
+          },
+          {
+            "id": "e5",
+            "label": "能见到您，已经是我的荣幸。",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "eluen",
+                "amount": 1
+              },
+              {
+                "type": "interest",
+                "goddess": "moira",
+                "amount": -1
+              },
+              {
+                "type": "interest",
+                "goddess": "merca",
+                "amount": 1
+              },
+              {
+                "type": "hint",
+                "door": "pact"
+              },
+              {
+                "type": "memory",
+                "goddess": "eluen",
+                "tag": "顺从"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "E5"
+              }
+            ],
+            "to": "n6_eluen_e5"
+          },
+          {
+            "id": "e6",
+            "label": "在我们地球，面试官一般会先自我介绍。",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "eluen",
+                "amount": -1
+              },
+              {
+                "type": "interest",
+                "goddess": "moira",
+                "amount": 1
+              },
+              {
+                "type": "hint",
+                "door": "spirit"
+              },
+              {
+                "type": "memory",
+                "goddess": "eluen",
+                "tag": "轻浮"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "E6"
+              },
+              {
+                "type": "flag",
+                "key": "prologue.earth_anchor_trigger",
+                "value": "player"
+              }
+            ],
+            "to": "n6_eluen_e6"
+          },
+          {
+            "id": "free",
+            "label": "（自由回答）",
+            "when": "ai_enabled",
+            "to": "n6_eluen_free"
+          }
+        ]
+      },
+      {
+        "id": "n6_eluen_e1",
+        "lines": [
+          {
+            "speaker": "eluen",
+            "text": "谦逊是合格的第一步。只是第一步。"
+          }
+        ],
+        "next": "n7_intro"
+      },
+      {
+        "id": "n6_eluen_e2",
+        "lines": [
+          {
+            "speaker": "eluen",
+            "text": "光还没量过你，你倒先替自己量好了。"
+          },
+          {
+            "speaker": "valda",
+            "text": "哈，我喜欢这个。"
+          }
+        ],
+        "next": "n7_intro"
+      },
+      {
+        "id": "n6_eluen_e3",
+        "lines": [
+          {
+            "speaker": "eluen",
+            "text": "没有人求，光也会照下来。这正是光的仁慈。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（瓦尔妲吹了声口哨。）"
+          }
+        ],
+        "next": "n7_intro"
+      },
+      {
+        "id": "n6_eluen_e4",
+        "lines": [
+          {
+            "speaker": "eluen",
+            "text": "至少诚实。诚实不是能力，但可以记一笔。"
+          }
+        ],
+        "next": "n7_intro"
+      },
+      {
+        "id": "n6_eluen_e5",
+        "lines": [
+          {
+            "speaker": "eluen",
+            "text": "嗯，礼仪合格。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（莫伊拉打了个哈欠。）"
+          }
+        ],
+        "next": "n7_intro"
+      },
+      {
+        "id": "n6_eluen_e6",
+        "lines": [
+          {
+            "speaker": "eluen",
+            "text": "地球？那种连神都没有的荒地？……难怪。"
+          }
+        ],
+        "next": "n7_intro"
+      },
+      {
+        "id": "n6_eluen_free",
+        "input": {
+          "prompt": "回答艾琉恩：你凭什么值得被选中？",
+          "storeAs": "prologue.free.eluen",
+          "maxLength": 200,
+          "agentId": "eluen",
+          "role": "goddess.dialogue",
+          "reply": [
+            {
+              "speaker": "eluen",
+              "text": "我听见了。光会替我判断。"
+            }
+          ],
+          "classify": {
+            "node": "n6_eluen",
+            "choices": ["e1", "e2", "e3", "e4", "e5", "e6"],
+            "fallback": "e4"
+          },
+          "to": "n6_eluen"
+        }
+      },
+      {
+        "id": "n7_intro",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（瓦尔妲把断剑往桌上一搁，震得长桌嗡的一声。）"
+          }
+        ],
+        "next": "n7_valda"
+      },
+      {
+        "id": "n7_valda",
+        "lines": [
+          {
+            "speaker": "valda",
+            "text": "轮到我了。你打过架吗？输过吗？"
+          }
+        ],
+        "choices": [
+          {
+            "id": "v1",
+            "label": "输过。被打趴下过，后来又站起来了。",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "valda",
+                "amount": 2
+              },
+              {
+                "type": "interest",
+                "goddess": "valda",
+                "amount": 1
+              },
+              {
+                "type": "hint",
+                "door": "blade"
+              },
+              {
+                "type": "memory",
+                "goddess": "valda",
+                "tag": "爬起来的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "V1"
+              }
+            ],
+            "to": "n7_valda_v1"
+          },
+          {
+            "id": "v2",
+            "label": "我从来没输过。",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "valda",
+                "amount": -1
+              },
+              {
+                "type": "hint",
+                "door": "shadow"
+              },
+              {
+                "type": "memory",
+                "goddess": "valda",
+                "tag": "撒谎的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "V2"
+              }
+            ],
+            "to": "n7_valda_v2"
+          },
+          {
+            "id": "v3",
+            "label": "我不喜欢打架。真要打，我会想别的办法赢。",
+            "effects": [
+              {
+                "type": "interest",
+                "goddess": "valda",
+                "amount": 1
+              },
+              {
+                "type": "impression",
+                "goddess": "sylvie",
+                "amount": 1
+              },
+              {
+                "type": "hint",
+                "door": "breath"
+              },
+              {
+                "type": "memory",
+                "goddess": "valda",
+                "tag": "不出拳的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "V3"
+              }
+            ],
+            "to": "n7_valda_v3"
+          },
+          {
+            "id": "v4",
+            "label": "……不想说。",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "valda",
+                "amount": -1
+              },
+              {
+                "type": "hint",
+                "door": "shadow"
+              },
+              {
+                "type": "memory",
+                "goddess": "valda",
+                "tag": "躲开的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "V4"
+              }
+            ],
+            "to": "n7_valda_v4"
+          },
+          {
+            "id": "v5",
+            "label": "你呢？你输过吗？",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "valda",
+                "amount": 1
+              },
+              {
+                "type": "interest",
+                "goddess": "valda",
+                "amount": 2
+              },
+              {
+                "type": "impression",
+                "goddess": "eluen",
+                "amount": -1
+              },
+              {
+                "type": "hint",
+                "door": "blade"
+              },
+              {
+                "type": "memory",
+                "goddess": "valda",
+                "tag": "敢问的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "V5"
+              }
+            ],
+            "to": "n7_valda_v5"
+          },
+          {
+            "id": "v6",
+            "label": "（沉默）",
+            "effects": [
+              {
+                "type": "memory",
+                "goddess": "valda",
+                "tag": "哑巴"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "V6"
+              }
+            ],
+            "to": "n7_valda_v6"
+          },
+          {
+            "id": "free",
+            "label": "（自由回答）",
+            "when": "ai_enabled",
+            "to": "n7_valda_free"
+          }
+        ]
+      },
+      {
+        "id": "n7_valda_v1",
+        "lines": [
+          {
+            "speaker": "valda",
+            "text": "哈！躺了多久？算了，站起来就行。"
+          }
+        ],
+        "next": "n8_intro"
+      },
+      {
+        "id": "n7_valda_v2",
+        "lines": [
+          {
+            "speaker": "valda",
+            "text": "撒谎的味道我闻得出来。下一个。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（艾琉恩轻轻笑了一声。）"
+          }
+        ],
+        "next": "n8_intro"
+      },
+      {
+        "id": "n7_valda_v3",
+        "lines": [
+          {
+            "speaker": "valda",
+            "text": "别的办法？行，我等着看。"
+          }
+        ],
+        "next": "n8_intro"
+      },
+      {
+        "id": "n7_valda_v4",
+        "lines": [
+          {
+            "speaker": "valda",
+            "text": "躲着的输，最难看。"
+          }
+        ],
+        "next": "n8_intro"
+      },
+      {
+        "id": "n7_valda_v5",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（瓦尔妲愣了一下，随即大笑。）"
+          },
+          {
+            "speaker": "valda",
+            "text": "输过。一次。不是用拳头输的。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（她朝长桌尽头空着的地方看了一眼，又移开了。）"
+          },
+          {
+            "speaker": "eluen",
+            "text": "瓦尔妲。"
+          }
+        ],
+        "next": "n8_intro"
+      },
+      {
+        "id": "n7_valda_v6",
+        "lines": [
+          {
+            "speaker": "valda",
+            "text": "哑巴也行，哑巴打起来不废话。"
+          }
+        ],
+        "next": "n8_intro"
+      },
+      {
+        "id": "n7_valda_free",
+        "input": {
+          "prompt": "回答瓦尔妲：你打过架吗？输过吗？",
+          "storeAs": "prologue.free.valda",
+          "maxLength": 200,
+          "agentId": "valda",
+          "role": "goddess.dialogue",
+          "reply": [
+            {
+              "speaker": "valda",
+              "text": "行，我听着呢。"
+            }
+          ],
+          "classify": {
+            "node": "n7_valda",
+            "choices": ["v1", "v2", "v3", "v4", "v5", "v6"],
+            "fallback": "v6"
+          },
+          "to": "n7_valda"
+        }
+      },
+      {
+        "id": "n8_intro",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（梅尔卡舔了舔指尖上的糖霜，翻开账本）"
+          },
+          {
+            "speaker": "merca",
+            "text": "交易与丰饶之司，梅尔卡。叫我梅尔卡就好。"
+          }
+        ],
+        "next": "n8_merca"
+      },
+      {
+        "id": "n8_merca",
+        "lines": [
+          {
+            "speaker": "merca",
+            "text": "亲爱的客人，我们来谈谈正事：你能带来什么？"
+          }
+        ],
+        "choices": [
+          {
+            "id": "m1",
+            "label": "我会做饭，也懂一些我们那边的手艺和做法。",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "merca",
+                "amount": 2
+              },
+              {
+                "type": "interest",
+                "goddess": "moira",
+                "amount": 1
+              },
+              {
+                "type": "hint",
+                "door": "pact"
+              },
+              {
+                "type": "memory",
+                "goddess": "merca",
+                "tag": "有货的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "M1"
+              },
+              {
+                "type": "flag",
+                "key": "prologue.merca_valuation",
+                "value": "high"
+              }
+            ],
+            "to": "n8_merca_m1"
+          },
+          {
+            "id": "m2",
+            "label": "你先说你出什么价。",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "merca",
+                "amount": 1
+              },
+              {
+                "type": "interest",
+                "goddess": "merca",
+                "amount": 2
+              },
+              {
+                "type": "hint",
+                "door": "pact"
+              },
+              {
+                "type": "hint",
+                "door": "shadow"
+              },
+              {
+                "type": "memory",
+                "goddess": "merca",
+                "tag": "会还价的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "M2"
+              },
+              {
+                "type": "flag",
+                "key": "prologue.merca_valuation",
+                "value": "high"
+              }
+            ],
+            "to": "n8_merca_m2"
+          },
+          {
+            "id": "m3",
+            "label": "（拿出从地球带来的东西）",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "merca",
+                "amount": 1
+              },
+              {
+                "type": "hint",
+                "door": "pact"
+              },
+              {
+                "type": "memory",
+                "goddess": "merca",
+                "tag": "带着念想的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "M3"
+              },
+              {
+                "type": "flag",
+                "key": "prologue.merca_valuation",
+                "value": "mid"
+              }
+            ],
+            "to": "n8_merca_m3"
+          },
+          {
+            "id": "m4",
+            "label": "我什么都没有。",
+            "effects": [
+              {
+                "type": "interest",
+                "goddess": "sylvie",
+                "amount": 1
+              },
+              {
+                "type": "memory",
+                "goddess": "merca",
+                "tag": "空手的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "M4"
+              },
+              {
+                "type": "flag",
+                "key": "prologue.merca_valuation",
+                "value": "low"
+              }
+            ],
+            "to": "n8_merca_m4"
+          },
+          {
+            "id": "m5",
+            "label": "我能带来的，是我这个人的信用。",
+            "effects": [
+              {
+                "type": "hint",
+                "door": "breath"
+              },
+              {
+                "type": "memory",
+                "goddess": "merca",
+                "tag": "讲情怀的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "M5"
+              },
+              {
+                "type": "flag",
+                "key": "prologue.merca_valuation",
+                "value": "mid"
+              }
+            ],
+            "to": "n8_merca_m5"
+          },
+          {
+            "id": "m6",
+            "label": "那你们能给我什么？",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "merca",
+                "amount": 1
+              },
+              {
+                "type": "impression",
+                "goddess": "eluen",
+                "amount": -1
+              },
+              {
+                "type": "hint",
+                "door": "pact"
+              },
+              {
+                "type": "memory",
+                "goddess": "merca",
+                "tag": "反向报价的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "M6"
+              },
+              {
+                "type": "flag",
+                "key": "prologue.merca_valuation",
+                "value": "high"
+              }
+            ],
+            "to": "n8_merca_m6"
+          },
+          {
+            "id": "free",
+            "label": "（自由回答）",
+            "when": "ai_enabled",
+            "to": "n8_merca_free"
+          }
+        ]
+      },
+      {
+        "id": "n8_merca_m1",
+        "lines": [
+          {
+            "speaker": "merca",
+            "text": "哎呀，好货。新东西最值钱了。"
+          }
+        ],
+        "next": "n9_intro"
+      },
+      {
+        "id": "n8_merca_m2",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（梅尔卡眼睛一亮）"
+          },
+          {
+            "speaker": "merca",
+            "text": "会还价！我就知道今天不会白来。"
+          }
+        ],
+        "next": "n9_intro"
+      },
+      {
+        "id": "n8_merca_m3",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你把胸前的工牌摘下来，递了过去。",
+            "when": "prologue.earth_relic == relic_badge"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你从口袋里掏出那张小票和那颗糖，递了过去。",
+            "when": "prologue.earth_relic == relic_receipt"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你把探视证和那半盒薄荷糖递了过去。",
+            "when": "prologue.earth_relic == relic_mint"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你摊开手心，把那把老钥匙递了过去。",
+            "when": "prologue.earth_relic == relic_key"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（梅尔卡接过去，翻来覆去地看）"
+          },
+          {
+            "speaker": "merca",
+            "text": "好东西。不过好东西要放在会升值的地方，你先拿着。"
+          }
+        ],
+        "next": "n9_intro"
+      },
+      {
+        "id": "n8_merca_m4",
+        "lines": [
+          {
+            "speaker": "merca",
+            "text": "零也好，零最容易翻倍。"
+          }
+        ],
+        "next": "n9_intro"
+      },
+      {
+        "id": "n8_merca_m5",
+        "lines": [
+          {
+            "speaker": "merca",
+            "text": "信用？不好标价，但也不是不能标。"
+          }
+        ],
+        "next": "n9_intro"
+      },
+      {
+        "id": "n8_merca_m6",
+        "lines": [
+          {
+            "speaker": "merca",
+            "text": "反向报价？客人你真坏，我喜欢。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（艾琉恩冷哼一声。）"
+          }
+        ],
+        "next": "n9_intro"
+      },
+      {
+        "id": "n8_merca_free",
+        "input": {
+          "prompt": "回答梅尔卡：你能带来什么？",
+          "storeAs": "prologue.free.merca",
+          "maxLength": 200,
+          "agentId": "merca",
+          "role": "goddess.dialogue",
+          "reply": [
+            {
+              "speaker": "merca",
+              "text": "嗯哼，让我算算。"
+            }
+          ],
+          "classify": {
+            "node": "n8_merca",
+            "choices": ["m1", "m2", "m3", "m4", "m5", "m6"],
+            "fallback": "m4"
+          },
+          "to": "n8_merca"
+        }
+      },
+      {
+        "id": "n9_intro",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（希尔薇闭着眼。另外几位女神，不知不觉都安静了下来。）"
+          },
+          {
+            "speaker": "sylvie",
+            "text": "……生命……与循环。"
+          }
+        ],
+        "next": "n9_sylvie"
+      },
+      {
+        "id": "n9_sylvie",
+        "lines": [
+          {
+            "speaker": "sylvie",
+            "text": "……你想念什么？"
+          }
+        ],
+        "choices": [
+          {
+            "id": "s1",
+            "label": "一个人。",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "sylvie",
+                "amount": 1
+              },
+              {
+                "type": "hint",
+                "door": "breath"
+              },
+              {
+                "type": "memory",
+                "goddess": "sylvie",
+                "tag": "有牵挂的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "S1"
+              }
+            ],
+            "to": "n9_sylvie_s1"
+          },
+          {
+            "id": "s2",
+            "label": "一个地方，或者一样东西。",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "sylvie",
+                "amount": 1
+              },
+              {
+                "type": "hint",
+                "door": "beast"
+              },
+              {
+                "type": "memory",
+                "goddess": "sylvie",
+                "tag": "恋旧的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "S2"
+              }
+            ],
+            "to": "n9_sylvie_s2"
+          },
+          {
+            "id": "s3",
+            "label": "什么都不想。",
+            "effects": [
+              {
+                "type": "interest",
+                "goddess": "sylvie",
+                "amount": 1
+              },
+              {
+                "type": "hint",
+                "door": "shadow"
+              },
+              {
+                "type": "memory",
+                "goddess": "sylvie",
+                "tag": "无根的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "S3"
+              },
+              {
+                "type": "flag",
+                "key": "courtyard.first_object",
+                "value": "空院，只有一棵没开花的树"
+              }
+            ],
+            "to": "n9_sylvie_s3"
+          },
+          {
+            "id": "s4",
+            "label": "想念没有神管的日子。",
+            "effects": [
+              {
+                "type": "interest",
+                "goddess": "sylvie",
+                "amount": 1
+              },
+              {
+                "type": "impression",
+                "goddess": "eluen",
+                "amount": -1
+              },
+              {
+                "type": "hint",
+                "door": "spirit"
+              },
+              {
+                "type": "memory",
+                "goddess": "sylvie",
+                "tag": "想要自由的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "S4"
+              },
+              {
+                "type": "flag",
+                "key": "courtyard.first_object",
+                "value": "一扇开着的窗"
+              }
+            ],
+            "to": "n9_sylvie_s4"
+          },
+          {
+            "id": "s5",
+            "label": "你呢？你想念什么？",
+            "effects": [
+              {
+                "type": "interest",
+                "goddess": "moira",
+                "amount": 1
+              },
+              {
+                "type": "memory",
+                "goddess": "sylvie",
+                "tag": "藏起来的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "S5"
+              }
+            ],
+            "to": "n9_sylvie_s5"
+          },
+          {
+            "id": "s6",
+            "label": "（很久不说话）",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "sylvie",
+                "amount": 2
+              },
+              {
+                "type": "hint",
+                "door": "breath"
+              },
+              {
+                "type": "memory",
+                "goddess": "sylvie",
+                "tag": "会痛的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "S6"
+              }
+            ],
+            "to": "n9_sylvie_s6"
+          },
+          {
+            "id": "free",
+            "label": "（自由回答）",
+            "when": "ai_enabled",
+            "to": "n9_sylvie_free"
+          }
+        ]
+      },
+      {
+        "id": "n9_sylvie_s1",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "希尔薇没有追问。可你心里，已经浮出了那个人的样子。"
+          }
+        ],
+        "next": "n9_s1_who"
+      },
+      {
+        "id": "n9_sylvie_s2",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（希尔薇沉默了两三秒，没有评价。）"
+          }
+        ],
+        "next": "n10_intro"
+      },
+      {
+        "id": "n9_sylvie_s3",
+        "lines": [
+          {
+            "speaker": "sylvie",
+            "text": "……会想的。以后。"
+          }
+        ],
+        "next": "n10_intro"
+      },
+      {
+        "id": "n9_sylvie_s4",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（希尔薇沉默。艾琉恩的光环亮了一下。）"
+          }
+        ],
+        "next": "n10_intro"
+      },
+      {
+        "id": "n9_sylvie_s5",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（希尔薇轻轻摇头，没有回答。）"
+          }
+        ],
+        "next": "n10_intro"
+      },
+      {
+        "id": "n9_sylvie_s6",
+        "lines": [
+          {
+            "speaker": "sylvie",
+            "text": "……嗯。"
+          }
+        ],
+        "next": "n10_intro"
+      },
+      {
+        "id": "n9_sylvie_free",
+        "input": {
+          "prompt": "回答希尔薇：你想念什么？",
+          "storeAs": "prologue.free.sylvie",
+          "maxLength": 200,
+          "agentId": "sylvie",
+          "role": "goddess.dialogue",
+          "reply": [
+            {
+              "speaker": "narrator",
+              "kind": "narrate",
+              "text": "（希尔薇静静地听着，没有睁眼。）"
+            }
+          ],
+          "classify": {
+            "node": "n9_sylvie",
+            "choices": ["s1", "s2", "s3", "s4", "s5", "s6"],
+            "fallback": "s3"
+          },
+          "to": "n9_sylvie"
+        }
+      },
+      {
+        "id": "n9_s1_who",
+        "choices": [
+          {
+            "id": "family",
+            "label": "家人",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "courtyard.first_object",
+                "value": "一只旧茶杯"
+              }
+            ],
+            "to": "n9_s1_done"
+          },
+          {
+            "id": "friend",
+            "label": "朋友",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "courtyard.first_object",
+                "value": "一条旧围巾"
+              }
+            ],
+            "to": "n9_s1_done"
+          },
+          {
+            "id": "beloved",
+            "label": "喜欢的人",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "courtyard.first_object",
+                "value": "一封没寄出的信"
+              }
+            ],
+            "to": "n9_s1_done"
+          },
+          {
+            "id": "unsaid",
+            "label": "不说",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "courtyard.first_object",
+                "value": "一张空白信纸"
+              }
+            ],
+            "to": "n9_s1_done"
+          }
+        ]
+      },
+      {
+        "id": "n9_s1_done",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（希尔薇沉默了两三秒，没有评价。）"
+          }
+        ],
+        "next": "n10_intro"
+      },
+      {
+        "id": "n10_intro",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（一滴墨水落在卷轴上，慢慢洇开。）"
+          },
+          {
+            "speaker": "moira",
+            "text": "记录与命运之司，莫伊拉。"
+          }
+        ],
+        "next": "n10_moira"
+      },
+      {
+        "id": "n10_moira",
+        "lines": [
+          {
+            "speaker": "moira",
+            "text": "最后一个问题，也是我最喜欢的：你的故事，是从哪一页开始的？"
+          }
+        ],
+        "choices": [
+          {
+            "id": "o1",
+            "label": "从我出生那天。",
+            "effects": [
+              {
+                "type": "hint",
+                "door": "spirit"
+              },
+              {
+                "type": "memory",
+                "goddess": "moira",
+                "tag": "经典开头"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "O1"
+              }
+            ],
+            "to": "n10_moira_o1"
+          },
+          {
+            "id": "o2",
+            "label": "从我推开那扇门。",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "moira",
+                "amount": 1
+              },
+              {
+                "type": "interest",
+                "goddess": "moira",
+                "amount": 2
+              },
+              {
+                "type": "hint",
+                "door": "pact"
+              },
+              {
+                "type": "memory",
+                "goddess": "moira",
+                "tag": "推门的人"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "O2"
+              }
+            ],
+            "to": "n10_moira_o2"
+          },
+          {
+            "id": "o3",
+            "label": "从我失去某样东西的那天。",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "moira",
+                "amount": 1
+              },
+              {
+                "type": "interest",
+                "goddess": "moira",
+                "amount": 1
+              },
+              {
+                "type": "hint",
+                "door": "breath"
+              },
+              {
+                "type": "memory",
+                "goddess": "moira",
+                "tag": "从失去开始"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "O3"
+              }
+            ],
+            "to": "n10_moira_o3"
+          },
+          {
+            "id": "o4",
+            "label": "普通地上班上学，没什么好讲的。",
+            "effects": [
+              {
+                "type": "memory",
+                "goddess": "moira",
+                "tag": "平凡的人"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "O4"
+              }
+            ],
+            "to": "n10_moira_o4"
+          },
+          {
+            "id": "o5",
+            "label": "还没开始。就从这一页开始。",
+            "effects": [
+              {
+                "type": "impression",
+                "goddess": "moira",
+                "amount": 2
+              },
+              {
+                "type": "interest",
+                "goddess": "moira",
+                "amount": 1
+              },
+              {
+                "type": "hint",
+                "door": "spirit"
+              },
+              {
+                "type": "memory",
+                "goddess": "moira",
+                "tag": "空白页"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "O5"
+              }
+            ],
+            "to": "n10_moira_o5"
+          },
+          {
+            "id": "o6",
+            "label": "我不想被你写进去。",
+            "effects": [
+              {
+                "type": "interest",
+                "goddess": "moira",
+                "amount": 1
+              },
+              {
+                "type": "hint",
+                "door": "shadow"
+              },
+              {
+                "type": "memory",
+                "goddess": "moira",
+                "tag": "不肯被写的"
+              },
+              {
+                "type": "append",
+                "key": "prologue.answers",
+                "value": "O6"
+              }
+            ],
+            "to": "n10_moira_o6"
+          },
+          {
+            "id": "free",
+            "label": "（自由回答）",
+            "when": "ai_enabled",
+            "to": "n10_moira_free"
+          }
+        ]
+      },
+      {
+        "id": "n10_moira_o1",
+        "lines": [
+          {
+            "speaker": "moira",
+            "text": "经典开头。经典开头的故事，结尾通常不经典。"
+          }
+        ],
+        "next": "n10_past"
+      },
+      {
+        "id": "n10_moira_o2",
+        "lines": [
+          {
+            "speaker": "moira",
+            "text": "哦？你这就是在写序章了。"
+          }
+        ],
+        "next": "n10_past"
+      },
+      {
+        "id": "n10_moira_o3",
+        "lines": [
+          {
+            "speaker": "moira",
+            "text": "好故事都从缺了一块开始。"
+          }
+        ],
+        "next": "n10_past"
+      },
+      {
+        "id": "n10_moira_o4",
+        "lines": [
+          {
+            "speaker": "moira",
+            "text": "平凡的人。我的书里平凡的人最多，也最难写。"
+          }
+        ],
+        "next": "n10_past"
+      },
+      {
+        "id": "n10_moira_o5",
+        "lines": [
+          {
+            "speaker": "moira",
+            "text": "我喜欢空白页。非常喜欢。"
+          }
+        ],
+        "next": "n10_past"
+      },
+      {
+        "id": "n10_moira_o6",
+        "lines": [
+          {
+            "speaker": "moira",
+            "text": "拒绝被写，也是一种开头。"
+          }
+        ],
+        "next": "n10_past"
+      },
+      {
+        "id": "n10_moira_free",
+        "input": {
+          "prompt": "回答莫伊拉：你的故事，是从哪一页开始的？",
+          "storeAs": "prologue.free.moira",
+          "maxLength": 200,
+          "agentId": "moira",
+          "role": "goddess.dialogue",
+          "reply": [
+            {
+              "speaker": "moira",
+              "text": "我记下了。让我看看，这该归进哪一章。"
+            }
+          ],
+          "classify": {
+            "node": "n10_moira",
+            "choices": ["o1", "o2", "o3", "o4", "o5", "o6"],
+            "fallback": "o4"
+          },
+          "to": "n10_moira"
+        }
+      },
+      {
+        "id": "n10_past",
+        "lines": [
+          {
+            "speaker": "moira",
+            "text": "那一页上，你是做什么的？"
+          }
+        ],
+        "choices": [
+          {
+            "id": "abacus",
+            "label": "做案头工作：职员、会计、销售、程序员之类（算盘）",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.past_life_door",
+                "value": "abacus"
+              }
+            ],
+            "to": "n10_past_noted"
+          },
+          {
+            "id": "nightlight",
+            "label": "上夜班：店员、保安，或者总在熬夜的学生（夜灯）",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.past_life_door",
+                "value": "nightlight"
+              }
+            ],
+            "to": "n10_past_noted"
+          },
+          {
+            "id": "whitecoat",
+            "label": "照顾病人：医护、护工，或者照顾过病人的家属（白衣）",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.past_life_door",
+                "value": "whitecoat"
+              }
+            ],
+            "to": "n10_past_noted"
+          },
+          {
+            "id": "wrench",
+            "label": "动手修东西：工匠、维修工，做工程的（扳手）",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.past_life_door",
+                "value": "wrench"
+              }
+            ],
+            "to": "n10_past_noted"
+          },
+          {
+            "id": "notes",
+            "label": "读书写字：学生、研究者、写作者（笔记）",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.past_life_door",
+                "value": "notes"
+              }
+            ],
+            "to": "n10_past_noted"
+          },
+          {
+            "id": "hearth",
+            "label": "做饭：厨师、做餐饮的，或者只是爱下厨（灶火）",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.past_life_door",
+                "value": "hearth"
+              }
+            ],
+            "to": "n10_past_noted"
+          },
+          {
+            "id": "signpost",
+            "label": "一直在路上：司机、快递员、导游（路标）",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.past_life_door",
+                "value": "signpost"
+              }
+            ],
+            "to": "n10_past_noted"
+          },
+          {
+            "id": "podium",
+            "label": "站在人前说话：教师、讲师、主持（讲台）",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.past_life_door",
+                "value": "podium"
+              }
+            ],
+            "to": "n10_past_noted"
+          },
+          {
+            "id": "ghost",
+            "label": "你替我写吧。",
+            "effects": [
+              {
+                "type": "copy",
+                "key": "prologue.past_life_door",
+                "from": "prologue.default_past_life"
+              },
+              {
+                "type": "memory",
+                "goddess": "moira",
+                "tag": "被代笔的"
+              }
+            ],
+            "to": "n10_past_ghost"
+          },
+          {
+            "id": "free",
+            "label": "（自由回答）",
+            "when": "ai_enabled",
+            "to": "n10_past_free"
+          }
+        ]
+      },
+      {
+        "id": "n10_past_free",
+        "input": {
+          "prompt": "回答莫伊拉：那一页上，你是做什么的？",
+          "storeAs": "prologue.free.past_life",
+          "maxLength": 200,
+          "agentId": "moira",
+          "role": "goddess.dialogue",
+          "reply": [
+            {
+              "speaker": "moira",
+              "text": "嗯……让我想想，这一行该怎么写。"
+            }
+          ],
+          "classify": {
+            "node": "n10_past",
+            "choices": [
+              "abacus",
+              "nightlight",
+              "whitecoat",
+              "wrench",
+              "notes",
+              "hearth",
+              "signpost",
+              "podium",
+              "ghost"
+            ],
+            "fallback": "ghost"
+          },
+          "to": "n10_past"
+        }
+      },
+      {
+        "id": "n10_past_ghost",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（莫伊拉笑了）"
+          },
+          {
+            "speaker": "moira",
+            "text": "那我替你写一个。"
+          }
+        ],
+        "next": "n10_past_noted"
+      },
+      {
+        "id": "n10_past_noted",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "莫伊拉在卷轴上写下一行，又在旁边画了一个小小的记号。"
+          }
+        ],
+        "next": "n10_earth_check"
+      },
+      {
+        "id": "n10_earth_check",
+        "branch": [
+          {
+            "when": "NOT prologue.earth_anchor_trigger",
+            "to": "n10_where"
+          }
+        ],
+        "next": "n10_end"
+      },
+      {
+        "id": "n10_where",
+        "lines": [
+          {
+            "speaker": "moira",
+            "text": "那一页上，是什么地方？"
+          }
+        ],
+        "choices": [
+          {
+            "id": "earth",
+            "label": "地球。",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.earth_anchor_trigger",
+                "value": "moira"
+              }
+            ],
+            "to": "n10_earth_anchor"
+          },
+          {
+            "id": "secret",
+            "label": "不告诉你。",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.earth_anchor_trigger",
+                "value": "relic"
+              }
+            ],
+            "to": "n10_relic"
+          }
+        ]
+      },
+      {
+        "id": "n10_relic",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "梅尔卡探过身，从你胸前勾起那张工牌，眯着眼看上面印的字。",
+            "when": "prologue.earth_relic == relic_badge"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "梅尔卡探过身，从你口袋里抽出那张小票，眯着眼看上面印的字。",
+            "when": "prologue.earth_relic == relic_receipt"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "梅尔卡探过身，捏起你手里那张探视证，眯着眼看上面印的字。",
+            "when": "prologue.earth_relic == relic_mint"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "梅尔卡探过身，勾起那把老钥匙上挂着的旧塑料牌，眯着眼看上面写的字。",
+            "when": "prologue.earth_relic == relic_key"
+          },
+          {
+            "speaker": "merca",
+            "text": "这上面的字……地球？"
+          }
+        ],
+        "next": "n10_earth_anchor"
+      },
+      {
+        "id": "n10_earth_anchor",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（艾琉恩轻轻挑了一下眉）"
+          },
+          {
+            "speaker": "eluen",
+            "text": "那种连神都没有的荒地？"
+          },
+          {
+            "speaker": "eluen",
+            "text": "……难怪。"
+          }
+        ],
+        "next": "n10_end"
+      },
+      {
+        "id": "n10_end",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "p_interview_done",
+            "value": true
+          }
+        ],
+        "next": "n11_appraise"
+      },
+      {
+        "id": "n11_appraise",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "moira.page_anomaly_noted",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "eluen",
+            "text": "最后一道手续。站好，孩子，光要看一看你。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "光从她指尖落下，像一把尺。光扫过你的头、肩、手，然后在胸口停住了。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "光照进去，没有照到底。那里有一个空洞，轮廓像一扇门。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（艾琉恩背后的光环，齿轮停转了半拍。）"
+          },
+          {
+            "speaker": "eluen",
+            "text": "……"
+          },
+          {
+            "speaker": "valda",
+            "text": "怎么了？光卡住了？"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（艾琉恩的声音恢复了平稳，比之前更冷）"
+          },
+          {
+            "speaker": "eluen",
+            "text": "这不合规格。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（莫伊拉翻书，翻得很快，停住，又往回翻。然后她抬起头，笑了。）"
+          },
+          {
+            "speaker": "moira",
+            "text": "规格外……我的书里，没有你那一页。有意思。"
+          }
+        ],
+        "next": "n11_verdict"
+      },
+      {
+        "id": "n11_verdict",
+        "lines": [
+          {
+            "speaker": "eluen",
+            "text": "样本有瑕疵。规格不明，无法登记。"
+          },
+          {
+            "speaker": "merca",
+            "text": "哎呀，别这么急着下结论嘛，说不定是……"
+          },
+          {
+            "speaker": "eluen",
+            "text": "距离审定只剩两年，我没有时间浪费在瑕疵品上。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（瓦尔妲拍桌大笑）"
+          },
+          {
+            "speaker": "valda",
+            "text": "哈！你也有看走眼的时候？上一次你这么慌，还是那件事的时候吧？"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（艾琉恩的光环骤然变亮）"
+          },
+          {
+            "speaker": "eluen",
+            "text": "我没有慌。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "大厅的光闪了一下。五位女神同时抬头，望向没有天花板的上方。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "很长的沉默。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（梅尔卡压低了声音）"
+          },
+          {
+            "speaker": "merca",
+            "text": "……上面在看吗？"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（很久以后）"
+          },
+          {
+            "speaker": "eluen",
+            "text": "上面从来不看过程。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "光恢复了。瓦尔妲没有再笑。希尔薇睁开了眼睛。"
+          }
+        ],
+        "next": "n11_response"
+      },
+      {
+        "id": "n11_response",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "她们都在看你。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "r1",
+            "label": "凭什么！",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.rejection_response",
+                "value": "R1"
+              },
+              {
+                "type": "interest",
+                "goddess": "valda",
+                "amount": 1
+              },
+              {
+                "type": "memory",
+                "goddess": "all",
+                "tag": "会咬人的"
+              }
+            ],
+            "to": "n11_r1"
+          },
+          {
+            "id": "r2",
+            "label": "我到底哪里不合规格？",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.rejection_response",
+                "value": "R2"
+              },
+              {
+                "type": "interest",
+                "goddess": "moira",
+                "amount": 1
+              },
+              {
+                "type": "memory",
+                "goddess": "all",
+                "tag": "问为什么的"
+              }
+            ],
+            "to": "n11_r2"
+          },
+          {
+            "id": "r3",
+            "label": "等等，求你们再看一次。",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.rejection_response",
+                "value": "R3"
+              },
+              {
+                "type": "interest",
+                "goddess": "sylvie",
+                "amount": 1
+              },
+              {
+                "type": "memory",
+                "goddess": "all",
+                "tag": "求过情的"
+              }
+            ],
+            "to": "n11_r3"
+          },
+          {
+            "id": "r4",
+            "label": "原来神也会怕。",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.rejection_response",
+                "value": "R4"
+              },
+              {
+                "type": "impression",
+                "goddess": "eluen",
+                "amount": -2
+              },
+              {
+                "type": "impression",
+                "goddess": "valda",
+                "amount": 1
+              },
+              {
+                "type": "memory",
+                "goddess": "all",
+                "tag": "看穿的"
+              }
+            ],
+            "to": "n11_r4"
+          },
+          {
+            "id": "r5",
+            "label": "（沉默）",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.rejection_response",
+                "value": "R5"
+              },
+              {
+                "type": "interest",
+                "goddess": "sylvie",
+                "amount": 1
+              },
+              {
+                "type": "memory",
+                "goddess": "all",
+                "tag": "不出声的"
+              }
+            ],
+            "to": "n11_r5"
+          },
+          {
+            "id": "free",
+            "label": "（自由回应）",
+            "when": "ai_enabled",
+            "to": "n11_free"
+          }
+        ]
+      },
+      {
+        "id": "n11_r1",
+        "lines": [
+          {
+            "speaker": "valda",
+            "text": "对，就这样，咬回去！"
+          }
+        ],
+        "next": "n11_coin"
+      },
+      {
+        "id": "n11_r2",
+        "lines": [
+          {
+            "speaker": "eluen",
+            "text": "光不会说谎。光说你不合规格。"
+          }
+        ],
+        "next": "n11_coin"
+      },
+      {
+        "id": "n11_r3",
+        "lines": [
+          {
+            "speaker": "merca",
+            "text": "求人不如求财，客人。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（希尔薇移开了视线。）"
+          }
+        ],
+        "next": "n11_coin"
+      },
+      {
+        "id": "n11_r4",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（艾琉恩的光环停了一拍）"
+          },
+          {
+            "speaker": "eluen",
+            "text": "……带下去。"
+          }
+        ],
+        "next": "n11_coin"
+      },
+      {
+        "id": "n11_r5",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（希尔薇看了你一眼。）"
+          }
+        ],
+        "next": "n11_coin"
+      },
+      {
+        "id": "n11_free",
+        "input": {
+          "prompt": "回应她们的判决",
+          "storeAs": "prologue.free.rejection",
+          "maxLength": 200,
+          "classify": {
+            "node": "n11_response",
+            "choices": ["r1", "r2", "r3", "r4", "r5"],
+            "fallback": "r5"
+          },
+          "to": "n11_response"
+        }
+      },
+      {
+        "id": "n11_coin",
+        "effects": [
+          {
+            "type": "item",
+            "item": "merca_coin"
+          },
+          {
+            "type": "flag",
+            "key": "merca_coin.terms",
+            "value": "interest_free",
+            "when": "prologue.merca_valuation == high"
+          },
+          {
+            "type": "flag",
+            "key": "merca_coin.terms",
+            "value": "three_percent",
+            "when": "prologue.merca_valuation == mid"
+          },
+          {
+            "type": "flag",
+            "key": "merca_coin.terms",
+            "value": "first_free",
+            "when": "NOT prologue.merca_valuation IN (high, mid)"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（梅尔卡跳下椅子，走到你面前，一枚硬币在她指间转着）"
+          },
+          {
+            "speaker": "merca",
+            "text": "好啦好啦。客人，你今天运气不太好。"
+          },
+          {
+            "speaker": "merca",
+            "text": "不过嘛……"
+          },
+          {
+            "speaker": "merca",
+            "text": "这枚硬币先赊给你。客人，生意要做长久。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（她把硬币按进你的掌心，凑近了，带着笑）"
+          },
+          {
+            "speaker": "merca",
+            "text": "反正上面那位只看结果。"
+          },
+          {
+            "speaker": "merca",
+            "text": "过程嘛，赊账也行。"
+          },
+          {
+            "speaker": "merca",
+            "text": "不要利息，什么时候还都行，我信你。",
+            "when": "prologue.merca_valuation == high"
+          },
+          {
+            "speaker": "merca",
+            "text": "三分利，下次见面再算。",
+            "when": "prologue.merca_valuation == mid"
+          },
+          {
+            "speaker": "merca",
+            "text": "利息照算，不过第一次见面免息，算我请客。",
+            "when": "NOT prologue.merca_valuation IN (high, mid)"
+          }
+        ],
+        "next": "n12_last"
+      },
+      {
+        "id": "n12_last",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "女神们已经不再看你了。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你还能说最后一句话。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "back",
+            "label": "我会回来的。",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.last_words",
+                "value": "我会回来的。"
+              }
+            ],
+            "to": "n12_drop"
+          },
+          {
+            "id": "regret",
+            "label": "你们会后悔的。",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.last_words",
+                "value": "你们会后悔的。"
+              }
+            ],
+            "to": "n12_drop"
+          },
+          {
+            "id": "thanks",
+            "label": "……谢谢你的硬币。",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.last_words",
+                "value": "……谢谢你的硬币。"
+              }
+            ],
+            "to": "n12_drop"
+          },
+          {
+            "id": "silent",
+            "label": "（什么都不说）",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.last_words",
+                "value": "（什么都不说）"
+              }
+            ],
+            "to": "n12_drop"
+          },
+          {
+            "id": "free",
+            "label": "（自由说一句）",
+            "when": "ai_enabled",
+            "to": "n12_free"
+          }
+        ]
+      },
+      {
+        "id": "n12_free",
+        "input": {
+          "prompt": "最后一句话",
+          "storeAs": "prologue.last_words",
+          "maxLength": 60,
+          "empty": "（什么都不说）",
+          "to": "n12_drop"
+        }
+      },
+      {
+        "id": "n12_drop",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "p_discarded",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（莫伊拉合上了书）"
+          },
+          {
+            "speaker": "moira",
+            "text": "放心，这一章才刚开始。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（艾琉恩抬起手）"
+          },
+          {
+            "speaker": "eluen",
+            "text": "去吧，庭间之隙会替我处理你。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你脚下的地板化作一个门形的洞，没有底。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "（坠落开始的瞬间，一个极轻的声音贴着你的耳边响起，只有你听得见）"
+          },
+          {
+            "speaker": "sylvie",
+            "text": "……别相信我们任何一个。包括我。"
+          }
+        ],
+        "next": "n13_fall"
+      },
+      {
+        "id": "n13_fall",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "纯黑。只有风声，没有上下。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "你在下坠，或者在漂浮，分不清。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "reach",
+            "label": "伸手",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.reached_out",
+                "value": true
+              }
+            ],
+            "to": "n13_caught"
+          },
+          {
+            "id": "still",
+            "label": "（什么也不做）",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "prologue.reached_out",
+                "value": false
+              }
+            ],
+            "to": "n13_caught"
+          }
+        ]
+      },
+      {
+        "id": "n13_caught",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "很久，很久以后。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "一只手握住了你的手腕。很暖。"
+          },
+          {
+            "speaker": "door_voice",
+            "kind": "divine",
+            "text": "接住你了。"
+          }
+        ],
+        "next": "n13_end"
+      },
+      {
+        "id": "n13_end",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "p_caught",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "eluen.believes_player_dead",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "seal_unrest",
+            "value": 10
+          },
+          {
+            "type": "compute",
+            "fn": "prologue_door_hints"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "然后，一切都暗了下去。"
+          },
+          {
+            "speaker": "narrator",
+            "kind": "narrate",
+            "text": "圣历九百九十八年，春。"
+          }
+        ],
+        "end": true
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "act",
+        "act": "act1"
+      }
+    ]
+  }
+]

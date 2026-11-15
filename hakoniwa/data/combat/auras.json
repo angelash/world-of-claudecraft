@@ -1,0 +1,593 @@
+[
+  {
+    "id": "door_step",
+    "name": "门之闪身",
+    "kind": "buff",
+    "duration": 6,
+    "stats": { "dodge": 40 }
+  },
+  {
+    "id": "first_aid",
+    "name": "急救",
+    "kind": "buff",
+    "duration": 8,
+    "periodic": { "every": 1, "heal": { "base": 4, "perLevel": 1.5 } }
+  },
+  {
+    "id": "well_fed",
+    "name": "吃饱了",
+    "kind": "buff",
+    "duration": 1800,
+    "stats": { "sta": 4, "spi": 4 },
+    "statsPerLevel": { "sta": 0.3, "spi": 0.3 }
+  },
+  {
+    "id": "field_mend",
+    "name": "修补过的甲胄",
+    "kind": "buff",
+    "duration": 600,
+    "stats": { "armor": 40 },
+    "statsPerLevel": { "armor": 10 }
+  },
+  {
+    "id": "runners_stride",
+    "name": "跑者的步子",
+    "desc": "前世跑者的呼吸与步幅：移动稍快。",
+    "kind": "buff",
+    "duration": 0,
+    "mods": { "speed": 0.08 },
+    "dispellable": false
+  },
+  {
+    "id": "door_mirror",
+    "name": "门镜",
+    "desc": "初门·醒附带的门镜：照见自己，闪避与命中略有提高。",
+    "kind": "buff",
+    "duration": 0,
+    "stats": { "dodge": 2, "hit": 1 },
+    "dispellable": false
+  },
+  {
+    "id": "overawed",
+    "name": "震慑",
+    "kind": "debuff",
+    "duration": 6,
+    "slow": 0.5,
+    "mods": { "damageDealt": -0.2 }
+  },
+  {
+    "id": "presence_pressure",
+    "name": "威压",
+    "desc": "高两阶的灵压压在身上：动作迟缓，出手无力。",
+    "kind": "debuff",
+    "duration": 2,
+    "slow": 0.3,
+    "mods": { "damageDealt": -0.1 },
+    "dispellable": false
+  },
+  {
+    "id": "presence_paralysis",
+    "name": "动弹不得",
+    "desc": "远高于自己的灵压：手抬不起来，呼吸变浅。",
+    "kind": "debuff",
+    "duration": 3,
+    "cc": "stun",
+    "dispellable": false
+  },
+  {
+    "id": "door_fatigue",
+    "name": "门疲",
+    "desc": "刚从门内重塑的身体：造成的伤害与治疗降低，受到的伤害提高。",
+    "kind": "debuff",
+    "duration": 600,
+    "mods": { "damageDealt": -0.25, "healingDone": -0.25, "damageTaken": 0.15 },
+    "dispellable": false
+  },
+  {
+    "id": "spring_weakness",
+    "name": "泉畔之代价",
+    "desc": "从泉畔被拉回来的虚弱：造成的伤害降低。",
+    "kind": "debuff",
+    "duration": 120,
+    "mods": { "damageDealt": -0.2 },
+    "dispellable": false
+  },
+  {
+    "id": "interrupted",
+    "name": "封咒",
+    "kind": "debuff",
+    "duration": 4,
+    "cc": "silence",
+    "dispellable": false
+  },
+
+  {
+    "id": "battle_shout",
+    "name": "战斗怒吼",
+    "kind": "buff",
+    "duration": 120,
+    "stats": { "ap": 15 },
+    "statsPerLevel": { "ap": 3 }
+  },
+  { "id": "charge_stun", "name": "冲撞昏迷", "kind": "debuff", "duration": 1, "cc": "stun" },
+  {
+    "id": "rend",
+    "name": "撕裂",
+    "kind": "debuff",
+    "duration": 9,
+    "periodic": { "every": 3, "damage": { "base": 5, "perLevel": 1.2, "coef": 0.02 } }
+  },
+  {
+    "id": "thunder_clap_slow",
+    "name": "雷霆一击",
+    "kind": "debuff",
+    "duration": 10,
+    "slow": 0.3,
+    "mods": { "haste": -0.1 }
+  },
+  {
+    "id": "sunder_armor",
+    "name": "破甲",
+    "kind": "debuff",
+    "duration": 30,
+    "maxStacks": 5,
+    "mods": { "armorPct": -0.04 }
+  },
+  {
+    "id": "shield_wall",
+    "name": "盾墙",
+    "kind": "buff",
+    "duration": 10,
+    "mods": { "damageTaken": -0.5 }
+  },
+  {
+    "id": "devotion_aura",
+    "name": "虔诚光环",
+    "kind": "buff",
+    "duration": 600,
+    "stats": { "armor": 30 },
+    "statsPerLevel": { "armor": 12 }
+  },
+  {
+    "id": "divine_protection",
+    "name": "圣佑术",
+    "kind": "buff",
+    "duration": 8,
+    "mods": { "damageTaken": -0.5 }
+  },
+  { "id": "hoj_stun", "name": "制裁之锤", "kind": "debuff", "duration": 3, "cc": "stun" },
+  {
+    "id": "consecration",
+    "name": "奉献",
+    "kind": "buff",
+    "duration": 8,
+    "pulse": {
+      "every": 1,
+      "radius": 2.5,
+      "damage": { "base": 8, "perLevel": 1.5, "coef": 0.04 },
+      "school": "holy"
+    }
+  },
+  {
+    "id": "serpent_sting",
+    "name": "毒蛇钉刺",
+    "kind": "debuff",
+    "duration": 15,
+    "periodic": {
+      "every": 3,
+      "damage": { "base": 4, "perLevel": 1.4, "coef": 0.02 },
+      "school": "nature"
+    }
+  },
+  {
+    "id": "hunters_mark",
+    "name": "猎人印记",
+    "kind": "debuff",
+    "duration": 120,
+    "mods": { "damageTaken": 0.05 }
+  },
+  { "id": "concussive", "name": "震荡", "kind": "debuff", "duration": 4, "slow": 0.5 },
+  {
+    "id": "aspect_of_the_hawk",
+    "name": "雄鹰守护",
+    "kind": "buff",
+    "duration": 1800,
+    "stats": { "ap": 20 },
+    "statsPerLevel": { "ap": 4 }
+  },
+  { "id": "wing_clip", "name": "摔绊", "kind": "debuff", "duration": 10, "slow": 0.5 },
+  {
+    "id": "gouge",
+    "name": "凿击",
+    "kind": "debuff",
+    "duration": 4,
+    "cc": "incapacitate",
+    "breakOnDamage": true
+  },
+  { "id": "evasion", "name": "闪避", "kind": "buff", "duration": 15, "stats": { "dodge": 50 } },
+  {
+    "id": "slice_and_dice",
+    "name": "切割",
+    "kind": "buff",
+    "duration": 15,
+    "mods": { "haste": 0.3 }
+  },
+  { "id": "sprint", "name": "疾跑", "kind": "buff", "duration": 8, "mods": { "speed": 0.7 } },
+  {
+    "id": "rupture",
+    "name": "割裂",
+    "kind": "debuff",
+    "duration": 8,
+    "periodic": { "every": 2, "damage": { "base": 10, "perLevel": 2, "coef": 0.03 } }
+  },
+
+  {
+    "id": "power_word_fortitude",
+    "name": "真言术：韧",
+    "kind": "buff",
+    "duration": 1800,
+    "stats": { "sta": 3 },
+    "statsPerLevel": { "sta": 0.9 }
+  },
+  {
+    "id": "shadow_word_pain",
+    "name": "暗言术：痛",
+    "kind": "debuff",
+    "duration": 18,
+    "periodic": {
+      "every": 3,
+      "damage": { "base": 5, "perLevel": 2.2, "coef": 0.1 },
+      "school": "shadow"
+    }
+  },
+  {
+    "id": "power_word_shield",
+    "name": "真言术：盾",
+    "kind": "buff",
+    "duration": 30,
+    "absorb": { "base": 44, "perLevel": 15, "coef": 0.1 }
+  },
+  {
+    "id": "weakened_soul",
+    "name": "虚弱灵魂",
+    "kind": "debuff",
+    "duration": 15,
+    "dispellable": false
+  },
+  {
+    "id": "renew",
+    "name": "恢复",
+    "kind": "buff",
+    "duration": 15,
+    "periodic": { "every": 3, "heal": { "base": 9, "perLevel": 4, "coef": 0.2 } }
+  },
+  { "id": "feared", "name": "恐惧", "kind": "debuff", "duration": 6, "cc": "fear" },
+  { "id": "terrified", "name": "惊恐", "kind": "debuff", "duration": 4, "cc": "fear" },
+
+  {
+    "id": "rockbiter",
+    "name": "石化武器",
+    "kind": "buff",
+    "duration": 300,
+    "stats": { "ap": 10 },
+    "statsPerLevel": { "ap": 4 }
+  },
+  {
+    "id": "lightning_shield",
+    "name": "闪电之盾",
+    "kind": "buff",
+    "duration": 600,
+    "thorns": { "base": 13, "perLevel": 4 }
+  },
+  {
+    "id": "flame_shock",
+    "name": "烈焰震击",
+    "kind": "debuff",
+    "duration": 12,
+    "periodic": {
+      "every": 3,
+      "damage": { "base": 4, "perLevel": 1.5, "coef": 0.05 },
+      "school": "fire"
+    }
+  },
+  { "id": "frost_shock_slow", "name": "冰霜震击", "kind": "debuff", "duration": 8, "slow": 0.5 },
+  {
+    "id": "stormstrike",
+    "name": "风暴打击",
+    "kind": "debuff",
+    "duration": 12,
+    "mods": { "damageTaken": 0.1 }
+  },
+
+  {
+    "id": "frost_armor",
+    "name": "霜甲术",
+    "kind": "buff",
+    "duration": 1800,
+    "stats": { "armor": 30 },
+    "statsPerLevel": { "armor": 8 }
+  },
+  { "id": "frostbolt_chill", "name": "冰寒", "kind": "debuff", "duration": 5, "slow": 0.4 },
+  {
+    "id": "polymorph",
+    "name": "变形术",
+    "kind": "debuff",
+    "duration": 20,
+    "cc": "incapacitate",
+    "breakOnDamage": true
+  },
+  { "id": "frost_nova_root", "name": "冰霜新星", "kind": "debuff", "duration": 6, "cc": "root" },
+  {
+    "id": "blizzard",
+    "name": "暴风雪",
+    "kind": "debuff",
+    "duration": 6,
+    "slow": 0.3,
+    "periodic": {
+      "every": 1,
+      "damage": { "base": 6, "perLevel": 2.2, "coef": 0.04 },
+      "school": "frost"
+    }
+  },
+
+  {
+    "id": "demon_skin",
+    "name": "恶魔皮肤",
+    "kind": "buff",
+    "duration": 1800,
+    "stats": { "armor": 40 },
+    "statsPerLevel": { "armor": 8 }
+  },
+  {
+    "id": "immolate",
+    "name": "献祭",
+    "kind": "debuff",
+    "duration": 15,
+    "periodic": {
+      "every": 3,
+      "damage": { "base": 4, "perLevel": 2, "coef": 0.13 },
+      "school": "fire"
+    }
+  },
+  {
+    "id": "corruption",
+    "name": "腐蚀术",
+    "kind": "debuff",
+    "duration": 18,
+    "periodic": {
+      "every": 3,
+      "damage": { "base": 6, "perLevel": 2.2, "coef": 0.15 },
+      "school": "shadow"
+    }
+  },
+  {
+    "id": "curse_of_agony",
+    "name": "痛苦诅咒",
+    "kind": "debuff",
+    "duration": 24,
+    "periodic": {
+      "every": 2,
+      "damage": { "base": 3, "perLevel": 1.5, "coef": 0.08 },
+      "school": "shadow"
+    }
+  },
+  {
+    "id": "rain_of_fire",
+    "name": "火焰之雨",
+    "kind": "debuff",
+    "duration": 6,
+    "periodic": {
+      "every": 1,
+      "damage": { "base": 8, "perLevel": 2.5, "coef": 0.05 },
+      "school": "fire"
+    }
+  },
+
+  {
+    "id": "mark_of_the_wild",
+    "name": "野性印记",
+    "kind": "buff",
+    "duration": 1800,
+    "stats": { "armor": 25, "str": 1, "agi": 1, "sta": 1, "int": 1, "spi": 1 },
+    "statsPerLevel": { "armor": 5, "str": 0.2, "agi": 0.2, "sta": 0.2, "int": 0.2, "spi": 0.2 }
+  },
+  {
+    "id": "moonfire",
+    "name": "月火术",
+    "kind": "debuff",
+    "duration": 12,
+    "periodic": {
+      "every": 3,
+      "damage": { "base": 2, "perLevel": 1.2, "coef": 0.1 },
+      "school": "arcane"
+    }
+  },
+  {
+    "id": "rejuvenation",
+    "name": "回春术",
+    "kind": "buff",
+    "duration": 12,
+    "periodic": { "every": 3, "heal": { "base": 8, "perLevel": 4, "coef": 0.2 } }
+  },
+  {
+    "id": "thorns",
+    "name": "荆棘术",
+    "kind": "buff",
+    "duration": 600,
+    "thorns": { "base": 3, "perLevel": 1.2 }
+  },
+  {
+    "id": "entangling_roots",
+    "name": "纠缠根须",
+    "kind": "debuff",
+    "duration": 12,
+    "cc": "root",
+    "periodic": { "every": 3, "damage": { "base": 2, "perLevel": 0.6 }, "school": "nature" }
+  },
+  {
+    "id": "regrowth",
+    "name": "愈合",
+    "kind": "buff",
+    "duration": 12,
+    "periodic": { "every": 3, "heal": { "base": 6, "perLevel": 2.5, "coef": 0.1 } }
+  },
+  {
+    "id": "barkskin",
+    "name": "树皮术",
+    "kind": "buff",
+    "duration": 12,
+    "mods": { "damageTaken": -0.2 }
+  },
+  {
+    "id": "insect_swarm",
+    "name": "虫群",
+    "kind": "debuff",
+    "duration": 12,
+    "periodic": {
+      "every": 2,
+      "damage": { "base": 5, "perLevel": 2, "coef": 0.1 },
+      "school": "nature"
+    }
+  },
+
+  {
+    "id": "blinded",
+    "name": "失明",
+    "kind": "debuff",
+    "duration": 3,
+    "cc": "incapacitate",
+    "breakOnDamage": true
+  },
+  {
+    "id": "dian_rot",
+    "name": "澱蚀",
+    "kind": "debuff",
+    "duration": 12,
+    "periodic": { "every": 3, "damage": { "base": 2, "perLevel": 1 }, "school": "shadow" }
+  },
+  { "id": "webbed", "name": "灰丝缠身", "kind": "debuff", "duration": 4, "cc": "root" },
+  {
+    "id": "blood_rage",
+    "name": "血怒",
+    "kind": "buff",
+    "duration": 8,
+    "mods": { "haste": 0.3, "damageDealt": 0.1 }
+  },
+  {
+    "id": "demoralized",
+    "name": "士气低落",
+    "kind": "debuff",
+    "duration": 15,
+    "mods": { "damageDealt": -0.1 }
+  },
+  {
+    "id": "mortal_wound",
+    "name": "致命伤",
+    "kind": "debuff",
+    "duration": 10,
+    "mods": { "healingTaken": -0.5 }
+  },
+  { "id": "stomp_stun", "name": "站立不稳", "kind": "debuff", "duration": 1.5, "cc": "stun" },
+  { "id": "ash_tide_slow", "name": "灰潮", "kind": "debuff", "duration": 6, "slow": 0.5 },
+  {
+    "id": "ash_shell",
+    "name": "灰壳",
+    "kind": "buff",
+    "duration": 15,
+    "absorb": { "base": 60, "perLevel": 20 }
+  },
+  {
+    "id": "dian_mark",
+    "name": "澱痕",
+    "kind": "debuff",
+    "duration": 6,
+    "periodic": { "every": 1, "damage": { "base": 5, "perLevel": 3 }, "school": "shadow" }
+  },
+  {
+    "id": "thousand_pain",
+    "name": "千貌之痛",
+    "kind": "debuff",
+    "duration": 30,
+    "maxStacks": 10,
+    "mods": { "damageTaken": 0.05 }
+  },
+  { "id": "dazed", "name": "发懵", "kind": "debuff", "duration": 1, "cc": "stun" },
+  {
+    "id": "crystal_pillars",
+    "name": "晶柱",
+    "desc": "墙里的晶柱越多，它越硬。",
+    "kind": "buff",
+    "duration": 60,
+    "maxStacks": 8,
+    "mods": { "armorPct": 0.1, "damageTaken": -0.04 }
+  },
+  { "id": "sludge_slow", "name": "腐泥", "kind": "debuff", "duration": 6, "slow": 0.4 },
+  {
+    "id": "burning_pages",
+    "name": "燃烧的书页",
+    "kind": "debuff",
+    "duration": 9,
+    "periodic": { "every": 3, "damage": { "base": 3, "perLevel": 1.2 }, "school": "fire" }
+  },
+  {
+    "id": "ash_mane",
+    "name": "灰鬃",
+    "desc": "鬃毛里夹着灰刺，近身攻击者会被扎伤。",
+    "kind": "buff",
+    "duration": 0,
+    "thorns": { "base": 2, "perLevel": 0.8 },
+    "dispellable": false
+  },
+  {
+    "id": "crystal_hide",
+    "name": "晶背",
+    "desc": "背甲上长满澱晶。",
+    "kind": "buff",
+    "duration": 0,
+    "mods": { "armorPct": 0.3 },
+    "dispellable": false
+  },
+  {
+    "id": "enrage",
+    "name": "狂暴",
+    "kind": "buff",
+    "duration": 0,
+    "mods": { "damageDealt": 0.5, "haste": 0.25 },
+    "dispellable": false
+  },
+  {
+    "id": "tempering",
+    "name": "淬炼",
+    "desc": "瓦尔妲写进骨头里的东西：每一合都在变强。",
+    "kind": "buff",
+    "duration": 120,
+    "maxStacks": 20,
+    "mods": { "damageDealt": 0.05, "haste": 0.03 },
+    "dispellable": false
+  },
+  {
+    "id": "faceless_veil",
+    "name": "千貌",
+    "desc": "看不清它的脸，也看不清它的伤。",
+    "kind": "buff",
+    "duration": 0,
+    "mods": { "damageTaken": -0.15 },
+    "dispellable": false
+  },
+  {
+    "id": "ash_spirits",
+    "name": "灰烬烈酒",
+    "kind": "buff",
+    "duration": 600,
+    "stats": { "str": 8, "sta": 4 },
+    "statsPerLevel": { "str": 0.3, "sta": 0.2 }
+  },
+  {
+    "id": "stoneskin_draught",
+    "name": "石肤药剂",
+    "kind": "buff",
+    "duration": 600,
+    "stats": { "armor": 150 },
+    "statsPerLevel": { "armor": 20 }
+  }
+]

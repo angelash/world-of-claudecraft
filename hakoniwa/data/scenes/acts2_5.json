@@ -1,0 +1,1800 @@
+[
+  {
+    "id": "act2_intro",
+    "title": "第二幕：瓦伦堡",
+    "act": "act2",
+    "start": "road",
+    "nodes": [
+      {
+        "id": "road",
+        "effects": [
+          {
+            "type": "add",
+            "key": "seal_looseness",
+            "amount": 5,
+            "max": 100
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "第二幕：瓦伦堡。圣历九百九十八年，夏。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "往南的路比来时宽。驿站的马车上，有人在讲兽潮之夜的故事，讲的人每一次讲得都不一样。"
+          },
+          {
+            "speaker": "yeyu",
+            "text": "城里人多，吵，还有更多吃的。还有……很多教堂。你的手，藏好。",
+            "when": "companion.yeyu.recruited"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a2_count_audience",
+    "title": "帘后之声",
+    "act": "act2",
+    "start": "hall",
+    "nodes": [
+      {
+        "id": "hall",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "伯爵府的大厅里挂着一道厚帘。帘后有人咳嗽，咳得很久。"
+          },
+          {
+            "speaker": "count_voice",
+            "text": "你就是那个打退兽潮的 F 级？"
+          },
+          {
+            "speaker": "count_voice",
+            "text": "……好。城底下有声音，夜里一直响。公会的人说，要一个不怕死的。"
+          },
+          {
+            "speaker": "count_voice",
+            "text": "先去公会，把等级考上去。F 级的话，在这座城里，连门都进不去。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a2_exam_done",
+    "title": "乡下来的 F 级",
+    "act": "act2",
+    "start": "exam",
+    "nodes": [
+      {
+        "id": "exam",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a2_heroes_met",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "a2_selene_met",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "百尾鼠王的尾巴还在抽动。考官雷纳德站在水道口，脸色很难看。"
+          },
+          {
+            "speaker": "reynard",
+            "text": "……鉴定水晶对你没反应，我本来想看你的笑话。"
+          },
+          {
+            "speaker": "liese",
+            "text": "实战合格。等级栏，我签 B。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "一个被抓住的门徒跪在水边，招认了他们在水道深处收集手背有纹的孩子。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "水道口外，四个穿着白金色披风的年轻人正好路过。人群在欢呼：勇者团。"
+          },
+          {
+            "speaker": "luchen",
+            "text": "你就是那个打退兽潮的人？了不起！"
+          },
+          {
+            "speaker": "yui",
+            "text": "你受伤了吗？……我可以帮你看看。"
+          },
+          {
+            "speaker": "marcus",
+            "text": "哈哈！下次叫上我们！"
+          },
+          {
+            "speaker": "aiden",
+            "text": "……"
+          },
+          {
+            "speaker": "narrator",
+            "text": "那个叫艾登的人一直盯着你看，一句话也没说。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "人群后面，一个穿灰袍的女人也在看你。她胸前别着异端审判庭的徽记。"
+          },
+          {
+            "speaker": "selene",
+            "text": "我叫赛琳。我们以后会再见的。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a2_funeral",
+    "title": "静钟之下",
+    "act": "act2",
+    "start": "bell",
+    "nodes": [
+      {
+        "id": "bell",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "伯爵死了。药渣里查出的是慢性毒药。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "葬礼的钟声停了。灵柩上方的空气裂开一道缝，一个没有脸的人影浮在那里。"
+          },
+          {
+            "speaker": "faceless",
+            "text": "你就是她新挑的那个？"
+          },
+          {
+            "speaker": "faceless",
+            "text": "她会像扔掉我一样扔掉你。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "人影散了。人群乱成一团。城下的水道里，传来潮水一样的声音。"
+          }
+        ]
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "flag",
+        "key": "a2_faceless_projection",
+        "value": true
+      },
+      {
+        "type": "flag",
+        "key": "a2_count_poison_found",
+        "value": true
+      },
+      {
+        "type": "flag",
+        "key": "a2_disciples_lair",
+        "value": true
+      }
+    ]
+  },
+  {
+    "id": "a2_no_page",
+    "title": "没有那一页",
+    "act": "act2",
+    "start": "dawn",
+    "nodes": [
+      {
+        "id": "dawn",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "黎明钟响了。城下潮退了。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "城墙上，艾登找到了你。他的手里拿着一叠抄满符号的纸。"
+          },
+          {
+            "speaker": "aiden",
+            "text": "铭录里没有你。我查过了。"
+          },
+          {
+            "speaker": "aiden",
+            "text": "按这个世界的规则，你不存在。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "你想起候见厅里那个翻书的身影，和她那句话：我的书里，没有你那一页。"
+          }
+        ],
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a2_aiden_no_page",
+            "value": true
+          }
+        ],
+        "next": "ferry"
+      },
+      {
+        "id": "ferry",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a2_ferryman_reveal",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "a2_ferryman_ninth",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "渡口那个总是喝醉的老船夫，昨夜一刀劈开了河面。今天，他要走了。"
+          },
+          {
+            "speaker": "ferryman",
+            "text": "勇者打完魔王，就没用了。我是被用完的那个。"
+          },
+          {
+            "speaker": "ferryman",
+            "text": "第九个要来了。"
+          }
+        ],
+        "next": "barony"
+      },
+      {
+        "id": "barony",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a2_barony_granted",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "yeyu_letters",
+            "value": 1
+          },
+          {
+            "type": "item",
+            "item": "barony_writ"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "herald",
+            "text": "老王病危，帝国大军压境。新任的掌权者有令：把灰烬边境，封给这位冒险者。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "谁都不要的地方。现在是你的了。"
+          },
+          {
+            "speaker": "yeyu",
+            "text": "……我的信囊里，有一封信自己开了。上面写着：给开门的人。",
+            "when": "companion.yeyu.recruited"
+          }
+        ]
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "act",
+        "act": "act3"
+      }
+    ]
+  },
+  {
+    "id": "act3_intro",
+    "title": "第三幕：王国之乱",
+    "act": "act3",
+    "start": "title",
+    "nodes": [
+      {
+        "id": "title",
+        "effects": [
+          {
+            "type": "add",
+            "key": "seal_looseness",
+            "amount": 10,
+            "max": 100
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "第三幕：王国之乱。圣历九百九十八年，秋。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "王都的钟一天响三次，每一次都是坏消息。北边是夜境的红牙，东边是帝国的旗，而教会在说：要去荒原，净化一切。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a3_thousand_armies",
+    "title": "千军",
+    "act": "act3",
+    "start": "flag",
+    "nodes": [
+      {
+        "id": "flag",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a3_thousand_gate",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "骨原的夜里，北坡的阵线就要破了。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "罗恩举起了旗。"
+          },
+          {
+            "speaker": "ron",
+            "text": "……不可能守住的。……所以，守住它！"
+          },
+          {
+            "speaker": "narrator",
+            "text": "民兵们没有退。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "那一刻，千门回廊里有一扇门亮了：千军之门。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a3_ash_sundering",
+    "title": "灰烬深处",
+    "act": "act3",
+    "start": "name",
+    "nodes": [
+      {
+        "id": "name",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a3_ash_tells_sundering",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "灰烬室里，冷光第一次没有转开。"
+          },
+          {
+            "speaker": "ash",
+            "text": "你又来了。这一次，你带着一面旗。"
+          },
+          {
+            "speaker": "ash",
+            "text": "我叫阿什。很久以前，在另一个地方，我是抄书的。"
+          },
+          {
+            "speaker": "ash",
+            "text": "这片荒原底下，曾经有一座城。千门都。一千扇门，连着整个大陆。"
+          },
+          {
+            "speaker": "ash",
+            "text": "一千年前的那一夜，五位司掌者联手，把主门破开了。用光，和剑。"
+          },
+          {
+            "speaker": "ash",
+            "text": "那就是大断绝。凡人管它叫邪神之乱。"
+          },
+          {
+            "speaker": "ash",
+            "text": "遗迹里那第六个神纹，是第六司的。她们封住了她，禁了她的名字。"
+          }
+        ],
+        "next": "warning"
+      },
+      {
+        "id": "warning",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a3_ash_warning_doors",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "a3_seal_aware",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "ash",
+            "text": "你每开一扇门，她就离出来更近一步。"
+          },
+          {
+            "speaker": "ash",
+            "text": "你确定要放她出来吗？"
+          }
+        ],
+        "choices": [
+          {
+            "id": "who",
+            "label": "她是谁？",
+            "once": true,
+            "to": "who"
+          },
+          {
+            "id": "vow",
+            "label": "我不会再开危险的门。",
+            "to": "stele",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a3_danger_door_vow",
+                "value": true
+              }
+            ]
+          },
+          {
+            "id": "go_on",
+            "label": "门是我的。我会继续开。",
+            "to": "stele",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a3_danger_door_vow",
+                "value": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "who",
+        "lines": [
+          {
+            "speaker": "ash",
+            "text": "现在还不能说她的名字。说了，会有人听见。"
+          }
+        ],
+        "next": "warning"
+      },
+      {
+        "id": "stele",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a3_defaced_stele_found",
+            "value": true
+          },
+          {
+            "type": "item",
+            "item": "evidence_e01"
+          },
+          {
+            "type": "item",
+            "item": "evidence_e08"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "ash",
+            "text": "……随你。门总是这样，开了就关不上。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "阿什指给你看荒原深处的一座碑。碑面被凿毁了，凿痕里残留着日轮的印。你把它拓了下来。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a3_eluen_speaks",
+    "title": "规格外的东西",
+    "act": "act3",
+    "start": "light",
+    "nodes": [
+      {
+        "id": "light",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a3_eluen_speaks",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "a3_holy_war_miracle",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "苇桥守住了。圣战军的阵列里，大主教举起权杖，一道光落在他身上。"
+          },
+          {
+            "speaker": "archbishop",
+            "text": "原来你还活着。"
+          },
+          {
+            "speaker": "archbishop",
+            "text": "规格外的东西，就该待在规格外。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "那不是大主教的声音。是候见厅里，那道光的声音。"
+          },
+          {
+            "speaker": "player",
+            "text": "（去吧，庭间之隙会替我处理你。……原来那时候，她就想让我死。）",
+            "kind": "think"
+          }
+        ],
+        "next": "sasha"
+      },
+      {
+        "id": "sasha",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a3_sasha_retreat_line",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "yeyu_letters",
+            "value": 2
+          },
+          {
+            "type": "item",
+            "item": "evidence_e36"
+          },
+          {
+            "type": "item",
+            "item": "evidence_e35"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "北边的山丘上，红牙将军萨莎扛着刀，看着撤退的圣战军，笑得前仰后合。"
+          },
+          {
+            "speaker": "sasha",
+            "text": "老太婆，你又看走眼了。哈哈哈！"
+          },
+          {
+            "speaker": "narrator",
+            "text": "看走眼。你想起候见厅里那阵大笑：上一次你这么慌，还是那件事的时候吧？"
+          },
+          {
+            "speaker": "narrator",
+            "text": "那件事，就是大断绝。"
+          },
+          {
+            "speaker": "yeyu",
+            "text": "……第二封信，自己开了。",
+            "when": "companion.yeyu.recruited"
+          }
+        ]
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "act",
+        "act": "act4"
+      }
+    ]
+  },
+  {
+    "id": "act4_intro",
+    "title": "第四幕：诸国棋局",
+    "act": "act4",
+    "start": "map",
+    "nodes": [
+      {
+        "id": "map",
+        "effects": [
+          {
+            "type": "add",
+            "key": "seal_looseness",
+            "amount": 10,
+            "max": 100
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "第四幕：诸国棋局。圣历九百九十九年，春。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "大陆的地图在你面前展开。你的领地，在地图的最北边，一片灰色里。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a4_feast",
+    "title": "强者之宴",
+    "act": "act4",
+    "start": "hall",
+    "nodes": [
+      {
+        "id": "hall",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a4_feast_of_strong",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "帝都的宴会厅里只摆了一张桌子。剑帝坐在主位，夜后坐在他对面，一千二百岁的精灵长老闭着眼，金冠哈特在数自己的戒指。"
+          },
+          {
+            "speaker": "emperor",
+            "text": "听说你是凡人眼里的 F 级。让我看看你的剑。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "take",
+            "label": "（接下他的剑）",
+            "to": "elwin",
+            "effects": [
+              {
+                "type": "add",
+                "key": "emperor_respect",
+                "amount": 2
+              }
+            ]
+          },
+          {
+            "id": "yield",
+            "label": "（让他三招）",
+            "to": "elwin",
+            "effects": [
+              {
+                "type": "add",
+                "key": "emperor_respect",
+                "amount": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "elwin",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a4_elwin_testimony",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "a4_sanctuary_found",
+            "value": true
+          },
+          {
+            "type": "item",
+            "item": "evidence_e03"
+          },
+          {
+            "type": "item",
+            "item": "evidence_e23"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "宴席散后，长老艾尔温叫住了你。"
+          },
+          {
+            "speaker": "elwin",
+            "text": "我活过那件事。"
+          },
+          {
+            "speaker": "elwin",
+            "text": "串联的是光。有人投了反对，却什么也没做。商队在前一夜，已经整装了。"
+          },
+          {
+            "speaker": "elwin",
+            "text": "森林深处有一处地方，藏着门民的后人。你该去看看。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "回去的路上，你经过帝国军营。营地深处有一座祭坛，供的不是光。"
+          }
+        ],
+        "next": "hart"
+      },
+      {
+        "id": "hart",
+        "lines": [
+          {
+            "speaker": "hart",
+            "text": "一纸契约，你的国家百年富足。签吗？"
+          }
+        ],
+        "choices": [
+          {
+            "id": "refuse",
+            "label": "不签。",
+            "to": "scholars",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "hart_state",
+                "value": "rival"
+              }
+            ]
+          },
+          {
+            "id": "later",
+            "label": "以后再说。",
+            "to": "scholars",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "hart_state",
+                "value": "pending"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scholars",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a4_star_records",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "a4_aiden_reads_charter",
+            "value": true
+          },
+          {
+            "type": "item",
+            "item": "evidence_e14"
+          },
+          {
+            "type": "item",
+            "item": "evidence_e20"
+          },
+          {
+            "type": "item",
+            "item": "charter_rubbing"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "你的国家来了一位天文学家。她把一卷星表摊在桌上：星辰的运行，整齐得不像天然。"
+          },
+          {
+            "speaker": "aiden",
+            "text": "我读了天启碑的古庭语原文。官方译本写的是授汝诸司。原文是，授汝六司。"
+          },
+          {
+            "speaker": "aiden",
+            "text": "还有一件事。铭录里，有一个被预留的空位。像是有人故意留了一个口子。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a4_goddess_versions",
+    "title": "诸神的版本",
+    "act": "act4",
+    "start": "eluen",
+    "nodes": [
+      {
+        "id": "eluen",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a4_goddess_versions_heard",
+            "value": 1
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "一道光落在你的书桌上。"
+          },
+          {
+            "speaker": "eluen",
+            "text": "孩子。那件事，是为了制止门带来的混乱。是必要之恶。"
+          },
+          {
+            "speaker": "eluen",
+            "text": "成为第五位勇者，回到光里来。我会让书里有你的一页。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "decline",
+            "label": "我不需要那一页。",
+            "to": "valda",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "eluen_page",
+                "value": false
+              }
+            ]
+          },
+          {
+            "id": "think",
+            "label": "……让我想想。",
+            "to": "valda",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "eluen_page_considered",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "valda",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a4_valda_alliance_offer",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "a4_goddess_versions_heard",
+            "value": 2
+          },
+          {
+            "type": "flag",
+            "key": "yeyu_letters",
+            "value": 3
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "一个濒死的夜境战士抓住你的手，眼睛里亮着不属于他的光。"
+          },
+          {
+            "speaker": "valda",
+            "text": "新肉，长大了嘛。魔王是我孩子里最强的那个。"
+          },
+          {
+            "speaker": "valda",
+            "text": "帮我揍那个装模作样的。怎么样？"
+          }
+        ],
+        "next": "merca"
+      },
+      {
+        "id": "merca",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a4_key_theft_exposed",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "a4_nera_exposed",
+            "value": true,
+            "when": "econ.company_founded"
+          },
+          {
+            "type": "flag",
+            "key": "a4_goddess_versions_heard",
+            "value": 3
+          },
+          {
+            "type": "item",
+            "item": "evidence_e05"
+          },
+          {
+            "type": "item",
+            "item": "evidence_e06"
+          },
+          {
+            "type": "item",
+            "item": "evidence_e22"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "硬币在你口袋里发烫。梅尔卡的声音第一次说得很慢。"
+          },
+          {
+            "speaker": "merca",
+            "text": "……客人。有一把钥匙，被偷了。"
+          },
+          {
+            "speaker": "merca",
+            "text": "那是……一把没有名字的钥匙。我一直替人收着。帮我找回来，账本给你看。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她把深账库的账册、商路的专营契、金冠的魂契，一样一样摊在你面前。她第一次没有算账。"
+          }
+        ],
+        "next": "sylvie"
+      },
+      {
+        "id": "sylvie",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a4_goddess_versions_heard",
+            "value": 4
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "灵泉边，一头半鹿半狼的兽看着你。泉水里，有个人睁开了眼。"
+          },
+          {
+            "speaker": "sylvie",
+            "text": "……我反对过。"
+          },
+          {
+            "speaker": "sylvie",
+            "text": "……别再开了。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "你想起候见厅里那句很轻的话：别相信我们任何一个。包括我。"
+          }
+        ],
+        "next": "moira"
+      },
+      {
+        "id": "moira",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a4_moira_isomorphism",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "a4_goddess_versions_heard",
+            "value": 5
+          },
+          {
+            "type": "flag",
+            "key": "yeyu_letters",
+            "value": 4
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "最后来的是一个兜帽书记官。她坐在你的椅子上，翻着一本你没见过的书。"
+          },
+          {
+            "speaker": "moira",
+            "text": "你在边石镇做的事，和我们在神庭做的事，一模一样。"
+          },
+          {
+            "speaker": "moira",
+            "text": "那些巧合，是我写的。放心，这一章才刚开始，我早就说过。"
+          },
+          {
+            "speaker": "moira",
+            "text": "我们来做个交易吧：用你的故事，换一段被封存的历史。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "trade",
+            "label": "成交。",
+            "to": "lies",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a4_moira_trade_records",
+                "value": true
+              },
+              {
+                "type": "flag",
+                "key": "moira_pages",
+                "value": 11
+              },
+              {
+                "type": "item",
+                "item": "evidence_e07"
+              },
+              {
+                "type": "item",
+                "item": "evidence_e31"
+              },
+              {
+                "type": "item",
+                "item": "evidence_e21"
+              },
+              {
+                "type": "add",
+                "key": "goddess.moira.trade",
+                "amount": 1
+              }
+            ]
+          },
+          {
+            "id": "no_trade",
+            "label": "我的故事不卖。",
+            "to": "lies",
+            "effects": [
+              {
+                "type": "item",
+                "item": "evidence_e21"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "lies",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a4_lies_exposed",
+            "value": 5
+          },
+          {
+            "type": "flag",
+            "key": "lie_exposed.eluen",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "lie_exposed.valda",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "lie_exposed.merca",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "lie_exposed.sylvie",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "lie_exposed.moira",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "五个版本摊在一起，彼此咬不上。每一位都只说了对自己有利的那一半。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "你想起那句话：反正上面那位只看结果。她们每一个，都在抢那个结果。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a4_conclave",
+    "title": "七国会盟",
+    "act": "act4",
+    "start": "open",
+    "nodes": [
+      {
+        "id": "open",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a4_conclave_scene_done",
+            "value": true
+          }
+        ],
+        "branch": [
+          {
+            "when": "slg.conclave_done",
+            "to": "already"
+          }
+        ],
+        "next": "table"
+      },
+      {
+        "id": "table",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "七国的使者坐在同一张圆桌边。教国的位置空着。"
+          },
+          {
+            "speaker": "night_queen",
+            "text": "说吧，规格外的人。你要我们站在哪一边？"
+          }
+        ],
+        "choices": [
+          {
+            "id": "broad",
+            "label": "不站在任何一位神那边。站在我们自己这边。",
+            "to": "selene",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a4_alliance",
+                "value": "broad"
+              },
+              {
+                "type": "add",
+                "key": "autonomy",
+                "amount": 5,
+                "max": 100
+              }
+            ]
+          },
+          {
+            "id": "narrow",
+            "label": "先分化圣战联军，各个击破。",
+            "to": "selene",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a4_alliance",
+                "value": "narrow"
+              }
+            ]
+          },
+          {
+            "id": "blade",
+            "label": "（在龙脊碑下拔刀）谁站错了边，今天就别走了。",
+            "to": "selene",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "slg.summit_bloodshed",
+                "value": true
+              },
+              {
+                "type": "flag",
+                "key": "a4_alliance",
+                "value": "broken"
+              },
+              {
+                "type": "add",
+                "key": "continent",
+                "amount": -5,
+                "min": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "already",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "会盟已经落定。各国的旗，按会上的约定插在了地图上。"
+          }
+        ],
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a4_alliance",
+            "value": "broad",
+            "when": "slg.summit_result"
+          }
+        ],
+        "next": "selene"
+      },
+      {
+        "id": "selene",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "散会后，审判官赛琳把一张纸塞进你手里。"
+          },
+          {
+            "speaker": "selene",
+            "text": "神谕的原文。……那一道，光在发抖。"
+          }
+        ],
+        "effects": [
+          {
+            "type": "item",
+            "item": "evidence_e15"
+          },
+          {
+            "type": "flag",
+            "key": "a3_selene_tremble_told",
+            "value": true
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a4_revelation",
+    "title": "荒原之澱满",
+    "act": "act4",
+    "start": "church",
+    "nodes": [
+      {
+        "id": "church",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "第二天，教国的诏书传遍了大陆：规格外者，就是魔王的先驱。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "女神们争先恐后地去抢那个结果。"
+          },
+          {
+            "speaker": "yeyu",
+            "text": "……荒原那边，灰在往上涌。",
+            "when": "companion.yeyu.recruited"
+          }
+        ]
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "act",
+        "act": "act5"
+      }
+    ]
+  },
+  {
+    "id": "act5_intro",
+    "title": "第五幕：诸族之战",
+    "act": "act5",
+    "start": "title",
+    "nodes": [
+      {
+        "id": "title",
+        "effects": [
+          {
+            "type": "add",
+            "key": "seal_looseness",
+            "amount": 15,
+            "max": 100
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "第五幕：诸族之战。圣历九百九十九年，冬。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "所有种族都被卷了进来。战线在大陆上烧成一圈，圈的中心，是灰烬荒原。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a5_demon_king_born",
+    "title": "无貌之王",
+    "act": "act5",
+    "start": "born",
+    "nodes": [
+      {
+        "id": "born",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a5_demon_king_born",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "荒原中心的灰塌了下去。那个没有脸的人站在坑底，把偷来的钥匙插进了封印的一角。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "他吞下了荒原的古澱。"
+          },
+          {
+            "speaker": "faceless",
+            "text": "如果当年她接住的是我，今天站在这里的就是你。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "第九代魔王：无貌之王。"
+          }
+        ],
+        "next": "eska"
+      },
+      {
+        "id": "eska",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a5_eska_descends",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "龙脊山脉的方向，一道银色落了下来。"
+          },
+          {
+            "speaker": "eska",
+            "text": "他们又在用同样的办法清洗。"
+          },
+          {
+            "speaker": "eska",
+            "text": "小家伙。我问你一句：你要用神的办法，还是你们自己的办法？"
+          }
+        ],
+        "choices": [
+          {
+            "id": "ours",
+            "label": "我们自己的办法。",
+            "to": "truth",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "eska_consent",
+                "value": true
+              },
+              {
+                "type": "item",
+                "item": "evidence_e30"
+              }
+            ]
+          },
+          {
+            "id": "unsure",
+            "label": "我还不知道。",
+            "to": "truth"
+          }
+        ]
+      },
+      {
+        "id": "truth",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a5_truth_purge_cycle",
+            "value": true
+          },
+          {
+            "type": "item",
+            "item": "evidence_e12"
+          },
+          {
+            "type": "item",
+            "item": "evidence_e09"
+          },
+          {
+            "type": "item",
+            "item": "evidence_e10"
+          },
+          {
+            "type": "item",
+            "item": "evidence_e11"
+          },
+          {
+            "type": "item",
+            "item": "evidence_e13"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "那一天，所有战士都听见了同一道神谕。"
+          },
+          {
+            "speaker": "valda",
+            "text": "魔王就是澱。是我们排出去的东西。我和那个装模作样的，一起设计的。"
+          },
+          {
+            "speaker": "valda",
+            "text": "你吃肉的时候会给猪道歉吗？"
+          },
+          {
+            "speaker": "ferryman",
+            "text": "我作证。勇者打完魔王，就没用了。魔王倒下的时候，灰化成烟，飘向两座神殿。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a5_route_choice",
+    "title": "神的办法与众生的办法",
+    "act": "act5",
+    "start": "choose",
+    "nodes": [
+      {
+        "id": "choose",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "作战室里摊着两份方案。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "一份写着：勇者一击，终光斩王。循环继续。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "另一份写着：众门环。各族各守一个节点，把澱分出去，慢慢净化。需要所有人，也需要门。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "ash_drawer",
+            "label": "（先去问阿什：二十二年前从这里爬出去的人，留下了什么？）",
+            "once": true,
+            "when": "a3_ash_tells_sundering",
+            "to": "drawer"
+          },
+          {
+            "id": "god",
+            "label": "神的办法。",
+            "to": "god",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "purge_route",
+                "value": "god"
+              },
+              {
+                "type": "flag",
+                "key": "gate_ring",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "id": "people",
+            "label": "众生的办法。",
+            "to": "people",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "purge_route",
+                "value": "people"
+              },
+              {
+                "type": "flag",
+                "key": "gate_ring",
+                "value": 3
+              },
+              {
+                "type": "add",
+                "key": "gate_ring",
+                "amount": 1,
+                "max": 7,
+                "when": "a4_alliance == broad"
+              },
+              {
+                "type": "add",
+                "key": "gate_ring",
+                "amount": 1,
+                "max": 7,
+                "when": "a4_sanctuary_found"
+              },
+              {
+                "type": "add",
+                "key": "gate_ring",
+                "amount": 1,
+                "max": 7,
+                "when": "city.village_founded"
+              },
+              {
+                "type": "add",
+                "key": "gate_ring",
+                "amount": 1,
+                "max": 7,
+                "when": "a4_nation_founded"
+              },
+              {
+                "type": "add",
+                "key": "gate_ring",
+                "amount": 1,
+                "max": 7,
+                "when": "eska_consent"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "drawer",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a5_ash_drawer",
+            "value": true
+          },
+          {
+            "type": "item",
+            "item": "evidence_e17"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "阿什拉开一只积满灰的抽屉：一张褪色的车票，一只停了的表。"
+          },
+          {
+            "speaker": "ash",
+            "text": "他爬出去的时候，手里攥着这两样。他说，他要回家。"
+          }
+        ],
+        "next": "choose"
+      },
+      {
+        "id": "god",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "勇者团接到了命令。陆辰握紧了剑，很久没有说话。"
+          }
+        ]
+      },
+      {
+        "id": "people",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "你在地图上画下了众门环：{flag:gate_ring} 个节点。"
+          },
+          {
+            "speaker": "ron",
+            "text": "……不可能。……那就干吧。",
+            "when": "companion.ron.recruited"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a5_final",
+    "title": "灰烬决战",
+    "act": "act5",
+    "start": "face",
+    "nodes": [
+      {
+        "id": "face",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "无貌之王跪在主门坑边。他身上的灰在往外散，剩下的部分，越来越像一个人。"
+          }
+        ],
+        "branch": [
+          {
+            "when": "purge_route == god",
+            "to": "final_light"
+          }
+        ],
+        "choices": [
+          {
+            "id": "redeem",
+            "label": "（伸出手）你叫什么名字？",
+            "when": "gate_ring >= 4 AND seal_looseness >= 40 AND a5_ash_drawer",
+            "to": "redeemed",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "faceless_end",
+                "value": "redeemed"
+              },
+              {
+                "type": "item",
+                "item": "evidence_e18"
+              }
+            ]
+          },
+          {
+            "id": "destroy",
+            "label": "（结束他）",
+            "to": "destroyed",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "faceless_end",
+                "value": "destroyed"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "final_light",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "faceless_end",
+            "value": "final_light"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "陆辰的剑亮了。终光一闪，容器碎了。"
+          }
+        ],
+        "next": "janu"
+      },
+      {
+        "id": "redeemed",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "他的脸回来了。名字没有。"
+          },
+          {
+            "speaker": "faceless",
+            "text": "……替我写一个吧。写在你们那本人簿上。"
+          }
+        ],
+        "next": "janu"
+      },
+      {
+        "id": "destroyed",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "他倒下了。容器碎裂，残余的古澱四散开去。"
+          }
+        ],
+        "next": "janu"
+      },
+      {
+        "id": "janu",
+        "effects": [
+          {
+            "type": "compute",
+            "fn": "act5_outcome"
+          },
+          {
+            "type": "flag",
+            "key": "a5_final_battle_done",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "a5_faceless_named",
+            "value": true
+          },
+          {
+            "type": "flag",
+            "key": "yeyu_letters",
+            "value": 5
+          },
+          {
+            "type": "item",
+            "item": "evidence_e28"
+          },
+          {
+            "type": "item",
+            "item": "evidence_e32"
+          },
+          {
+            "type": "item",
+            "item": "evidence_e29",
+            "when": "a5_purify_success"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "裂口在扩大。门口的那个女人，第一次出现在了现实里。"
+          },
+          {
+            "speaker": "janu",
+            "text": "沈望。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她叫出了那个没有脸的人的名字。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她只接住了你。裂口，由执钥人和众门环一起合拢了。",
+            "when": "janu_act == receive"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她的脚边留下了一小滩澱。一千年来，她产生的第一滩澱。她低头看着它，脸上有一种你说不清的表情。",
+            "when": "janu_act == receive"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她半身显形，以门框之躯堵住了裂口。所有人都看见了：无名之神，救了世界。",
+            "when": "janu_act == seal"
+          },
+          {
+            "speaker": "narrator",
+            "text": "（守住的战线：{flag:held_unaided}。大陆存续：{flag:continent}。）"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a5_trial_called",
+    "title": "审期至",
+    "act": "act5",
+    "start": "stele",
+    "nodes": [
+      {
+        "id": "stele",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "你想起候见厅里那句话：距离审定只剩两年。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "时钟，走到了尽头。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "封门遗迹里，那扇缠着光链的巨门，链子一根一根断了。门后的路，是往上的。"
+          },
+          {
+            "speaker": "yeyu",
+            "text": "门开了。这一次，是往上的。",
+            "when": "companion.yeyu.recruited"
+          }
+        ]
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "act",
+        "act": "act6"
+      }
+    ]
+  }
+]

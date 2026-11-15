@@ -1,0 +1,83 @@
+[
+  {
+    "id": "peasant",
+    "ceiling": 20,
+    "base": 8,
+    "order": ["luck", "miracle", "sorcery"],
+    "instrumentTrust": 1
+  },
+  {
+    "id": "artisan",
+    "ceiling": 20,
+    "base": 10,
+    "order": ["gadget", "cheat", "luck"],
+    "instrumentTrust": 1.5
+  },
+  {
+    "id": "adventurer",
+    "ceiling": 32,
+    "base": 10,
+    "order": ["wounded", "cheat", "hidden_identity"],
+    "instrumentTrust": 1.2
+  },
+  {
+    "id": "knight",
+    "ceiling": 42,
+    "base": 8,
+    "order": ["misreport", "hidden_identity"],
+    "instrumentTrust": 1
+  },
+  {
+    "id": "merchant",
+    "ceiling": 30,
+    "base": 9,
+    "order": ["misreport", "conspiracy"],
+    "instrumentTrust": 1.5
+  },
+  {
+    "id": "clergy",
+    "ceiling": 22,
+    "base": 13,
+    "order": ["miracle", "sorcery", "conspiracy"],
+    "instrumentTrust": 1
+  },
+  {
+    "id": "scholar",
+    "ceiling": 60,
+    "base": 12,
+    "order": ["misreport", "gadget", "bloodline"],
+    "instrumentTrust": 1.2
+  },
+  {
+    "id": "noble",
+    "ceiling": 42,
+    "base": 12,
+    "order": ["conspiracy", "hidden_identity", "useful"],
+    "instrumentTrust": 1
+  },
+  {
+    "id": "royal",
+    "ceiling": 55,
+    "base": 12,
+    "order": ["conspiracy", "hidden_identity", "useful"],
+    "instrumentTrust": 1
+  },
+  {
+    "id": "remnant",
+    "ceiling": 60,
+    "base": 4,
+    "order": [],
+    "direct": true,
+    "instrumentTrust": 0.5
+  },
+  { "id": "child", "ceiling": 60, "base": 4, "order": [], "direct": true, "instrumentTrust": 0.5 },
+  {
+    "id": "beastkin",
+    "ceiling": 30,
+    "base": 5,
+    "order": [],
+    "direct": true,
+    "ignoreRumor": true,
+    "instrumentTrust": 0.5
+  }
+]

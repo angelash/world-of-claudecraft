@@ -1,0 +1,358 @@
+[
+  {
+    "id": "M01-C01",
+    "mystery": "M01",
+    "text": "艾琉恩鉴定玩家灵魂时一瞬失态，随即判定「这不合规格」：她是认出了玩家灵魂上那个门形的印记。",
+    "tier": "K4",
+    "unlock": "a1_dream_door_woman",
+    "keywords": ["门形的印记", "门的印记"]
+  },
+  {
+    "id": "M01-C02",
+    "mystery": "M01",
+    "text": "夜羽初见玩家时说：你身上有门的味道；她说不出那是谁的门。",
+    "tier": "P",
+    "knowers": ["yeyu"],
+    "unlock": "a1_yeyu_bound",
+    "keywords": ["门的味道"]
+  },
+  {
+    "id": "M01-C05",
+    "mystery": "M01",
+    "text": "玩家手背的门纹与遗民孩子的胎记、遗迹里第六个神纹同形；「规格外」指的就是这个印记。",
+    "tier": "K2",
+    "unlock": "a1_dream_door_woman AND a1_orphan_mark_seen",
+    "keywords": ["门纹同形", "胎记同形"]
+  },
+  {
+    "id": "M01-C08",
+    "mystery": "M01",
+    "text": "她不是嫌弃你，她是怕你：艾琉恩认出了第六司留下的印记，害怕那一位回来。",
+    "tier": "K4",
+    "knowers": ["ash"],
+    "unlock": "a3_ash_tells_sundering AND a3_eluen_speaks",
+    "keywords": ["她是怕你", "她怕你"]
+  },
+  {
+    "id": "M02-C01",
+    "mystery": "M02",
+    "text": "封门遗迹里刻着五个熟知的神纹，还有第六个不属于任何教会的门形神纹。",
+    "tier": "K0",
+    "unlock": "a1_wake_ruins",
+    "keywords": ["第六个神纹", "门形神纹"]
+  },
+  {
+    "id": "M02-C02",
+    "mystery": "M02",
+    "text": "边境老人把那个门形神纹叫作「无名之神」，叮嘱别在神父面前提。",
+    "tier": "K1",
+    "unlock": "act>=1 AND a1_wake_ruins",
+    "keywords": ["无名之神"]
+  },
+  {
+    "id": "M02-C04",
+    "mystery": "M02",
+    "text": "门徒会的经文写着：开门的母亲，被五个姊妹锁在门后。",
+    "tier": "K2",
+    "unlock": "a2_disciples_lair",
+    "keywords": ["五个姊妹", "锁在门后"]
+  },
+  {
+    "id": "M02-C08",
+    "mystery": "M02",
+    "text": "第六司是门扉与可能之司，千门都的门网是她的。",
+    "tier": "K3",
+    "unlock": "a3_ash_tells_sundering",
+    "keywords": ["第六司", "门扉与可能之司"]
+  },
+  {
+    "id": "M02-C11",
+    "mystery": "M02",
+    "text": "她的名字是雅努。",
+    "tier": "K4",
+    "unlock": "a6_name_spoken",
+    "keywords": ["雅努"]
+  },
+  {
+    "id": "M03-C01",
+    "mystery": "M03",
+    "text": "公会的鉴定水晶对玩家没有反应，显示「无记载」；玩家被登记为 F 级、Lv1、无职能。",
+    "tier": "K0",
+    "unlock": "a1_guild_registered",
+    "keywords": ["无记载"]
+  },
+  {
+    "id": "M03-C06",
+    "mystery": "M03",
+    "text": "艾登说：铭录里没有你，我查过了；按这个世界的规则，你不存在。",
+    "tier": "K2",
+    "unlock": "a2_aiden_no_page",
+    "keywords": ["铭录里没有你", "你不存在"]
+  },
+  {
+    "id": "M03-C09",
+    "mystery": "M03",
+    "text": "铭录是莫伊拉与第六司共创的，门负责接入、录负责记载；两人在铭录里留了门的接口，无页之身因此才可能存在。",
+    "tier": "K4",
+    "unlock": "a6_court_open",
+    "keywords": ["门的接口", "后门"]
+  },
+  {
+    "id": "M04-C02",
+    "mystery": "M04",
+    "text": "病童死于遗迹渗出的澱（凡人叫它灰气），不是巫术。",
+    "tier": "K1",
+    "knowers": ["oola"],
+    "unlock": "a1_witch_trial_started",
+    "keywords": ["遗迹渗出", "不是巫术"]
+  },
+  {
+    "id": "M04-C04",
+    "mystery": "M04",
+    "text": "兽潮是被惊动的封印涌出的澱引发的，兽潮的首领是澱聚成的巨像。",
+    "tier": "K1",
+    "unlock": "a1_beast_tide_cleared",
+    "keywords": ["澱聚成的巨像", "封印涌出"]
+  },
+  {
+    "id": "M04-C06",
+    "mystery": "M04",
+    "text": "大型圣迹之后，周边的魔物与迷宫都会增长；学院禁止公开这份统计。",
+    "tier": "K2",
+    "unlock": "trust.archivist>=50 OR a3_holy_war_miracle",
+    "keywords": ["圣迹之后", "禁止公开的统计"]
+  },
+  {
+    "id": "M04-C10",
+    "mystery": "M04",
+    "text": "所有女神的干预都会产生澱，艾琉恩的大型神迹产生得最多。",
+    "tier": "K4",
+    "unlock": "a5_truth_purge_cycle",
+    "keywords": ["干预都会产生澱", "神迹产生的澱"]
+  },
+  {
+    "id": "M05-C02",
+    "mystery": "M05",
+    "text": "封门遗迹的壁画上，无数扇门连成了一座城。",
+    "tier": "K0",
+    "unlock": "a1_wake_ruins",
+    "keywords": ["连成了一座城", "门连成一座城"]
+  },
+  {
+    "id": "M05-C07",
+    "mystery": "M05",
+    "text": "阿什讲述：千门都与门网曾把大陆连在一起；大断绝那一夜，「她们」毁掉了门之都，死者数以百万计。",
+    "tier": "K3",
+    "unlock": "a3_ash_tells_sundering",
+    "keywords": ["大断绝", "千门都", "门之都"]
+  },
+  {
+    "id": "M05-C09",
+    "mystery": "M05",
+    "text": "大断绝的主谋是艾琉恩，动手的是艾琉恩与瓦尔妲。",
+    "tier": "K3",
+    "unlock": "a4_elwin_testimony",
+    "keywords": ["大断绝的主谋", "动手的是艾琉恩"]
+  },
+  {
+    "id": "M06-C01",
+    "mystery": "M06",
+    "text": "学院的年表在圣历元年之前有五十年的空白。",
+    "tier": "K1",
+    "unlock": "a2_archivist_met",
+    "keywords": ["五十年的空白", "五十年空白"]
+  },
+  {
+    "id": "M06-C03",
+    "mystery": "M06",
+    "text": "王国档案馆有一间封存室；「空白纪」这个名称只在宫廷学者之间流传。",
+    "tier": "K2",
+    "unlock": "a3_archive_sealed_room",
+    "keywords": ["空白纪", "封存室"]
+  },
+  {
+    "id": "M06-C06",
+    "mystery": "M06",
+    "text": "莫伊拉私藏了空白纪记录的副本，用它牵制艾琉恩，并拿它交换玩家的故事。",
+    "tier": "K4",
+    "unlock": "a4_moira_trade_records",
+    "keywords": ["私藏了副本", "空白纪的副本"]
+  },
+  {
+    "id": "M07-C01",
+    "mystery": "M07",
+    "text": "序章的五问里，女神们各自对审定的说法彼此不一。",
+    "tier": "K4",
+    "unlock": "p_interview_done",
+    "keywords": ["五问"]
+  },
+  {
+    "id": "M07-C05",
+    "mystery": "M07",
+    "text": "莫伊拉点破同构：你在边石镇做的事，和我们在神庭做的事，一模一样。",
+    "tier": "K4",
+    "unlock": "a4_moira_isomorphism",
+    "keywords": ["同构", "一模一样"]
+  },
+  {
+    "id": "M07-C06",
+    "mystery": "M07",
+    "text": "五位女神的谎言逐一被拆穿：每一位都只说了对自己有利的那一半。",
+    "tier": "K4",
+    "unlock": "a4_lies_exposed>=5",
+    "keywords": ["有利的那一半", "谎言逐一被拆穿"]
+  },
+  {
+    "id": "M08-C02",
+    "mystery": "M08",
+    "text": "第八代勇者没有升入光之国度，他在瓦伦堡撑船。",
+    "tier": "K2",
+    "unlock": "a2_ferryman_reveal",
+    "keywords": ["在瓦伦堡撑船", "老船夫是勇者"]
+  },
+  {
+    "id": "M08-C04",
+    "mystery": "M08",
+    "text": "老船夫留下一句：第九个要来了。",
+    "tier": "K3",
+    "unlock": "a2_ferryman_ninth",
+    "keywords": ["第九个要来了"]
+  },
+  {
+    "id": "M08-C10",
+    "mystery": "M08",
+    "text": "魔王是排澱机制的容器，勇者是用完即弃的清洁工；艾琉恩与瓦尔妲合作设计了它，双方都收割信仰。",
+    "tier": "K4",
+    "unlock": "a5_truth_purge_cycle",
+    "keywords": ["排澱", "清洁工"]
+  },
+  {
+    "id": "M09-C01",
+    "mystery": "M09",
+    "text": "梦中门口的女人说：你来了；门总会开的。",
+    "tier": "P",
+    "knowers": ["player", "janu"],
+    "unlock": "a1_dream_door_woman",
+    "keywords": ["门口的女人"]
+  },
+  {
+    "id": "M09-C04",
+    "mystery": "M09",
+    "text": "阿什警告：你每开一扇门，她就离出来更近一步；你确定要放她出来吗？",
+    "tier": "K3",
+    "unlock": "a3_ash_warning_doors",
+    "keywords": ["离出来更近一步", "放她出来"]
+  },
+  {
+    "id": "M09-C06",
+    "mystery": "M09",
+    "text": "梅尔卡私藏着第六司的一部分权能作为抵押（无名之钥），如今它已被门徒会偷走。",
+    "tier": "K4",
+    "unlock": "a4_key_theft_exposed",
+    "keywords": ["无名之钥", "私藏的钥匙"]
+  },
+  {
+    "id": "M09-C08",
+    "mystery": "M09",
+    "text": "圣历 978 年，她拉来过另一个地球人，没能接住，放弃了他：那人就是无貌者。",
+    "tier": "K4",
+    "unlock": "a5_demon_king_born",
+    "keywords": ["没能接住", "放弃了他"]
+  },
+  {
+    "id": "M09-C11",
+    "mystery": "M09",
+    "text": "她既想让箱庭离手，也想复原自己；若她以强大司掌者的身份回归，世界会回到被管理的状态。",
+    "tier": "K4",
+    "unlock": "a6_janu_intent_revealed",
+    "keywords": ["复原自己", "想复原"]
+  },
+  {
+    "id": "M10-C01",
+    "mystery": "M10",
+    "text": "艾琉恩说过：距离审定只剩两年。",
+    "tier": "K4",
+    "unlock": "p_discarded",
+    "keywords": []
+  },
+  {
+    "id": "M10-C04",
+    "mystery": "M10",
+    "text": "第一次审定时，七座碑同时显现了一个字：「未」。",
+    "tier": "K2",
+    "unlock": "a2_archivist_met OR a3_archive_sealed_room",
+    "keywords": ["第一次审定", "七座碑"]
+  },
+  {
+    "id": "M10-C10",
+    "mystery": "M10",
+    "text": "审定审的是箱庭能否在无人照看下自行繁茂；「未」的意思是尚须照看。",
+    "tier": "K4",
+    "unlock": "a6_charter_read",
+    "keywords": ["无人照看", "尚须照看", "自行繁茂"]
+  },
+  {
+    "id": "M11-C02",
+    "mystery": "M11",
+    "text": "地球没有灵素，也没有魔法；艾登猜想：也许那边被关掉了。",
+    "tier": "K1",
+    "unlock": "a2_heroes_met",
+    "keywords": ["被关掉了"]
+  },
+  {
+    "id": "M11-C06",
+    "mystery": "M11",
+    "text": "地球是很早就通过审定的已离手之庭：不是因为神死了，是因为神放手了。",
+    "tier": "K4",
+    "unlock": "a6_earth_truth",
+    "keywords": ["已离手之庭", "神放手了"]
+  },
+  {
+    "id": "M12-C01",
+    "mystery": "M12",
+    "text": "候见厅的光闪了一下，女神们同时抬头；有人问：上面在看吗？另一人答：上面从来不看过程。",
+    "tier": "K4",
+    "unlock": "p_interview_done",
+    "keywords": ["上面从来不看过程"]
+  },
+  {
+    "id": "M12-C04",
+    "mystery": "M12",
+    "text": "剑帝说：我摸到了天花板，有人在上面钉了钉子；铭录的等级上限是 60。",
+    "tier": "K3",
+    "unlock": "a4_feast_of_strong",
+    "keywords": ["钉了钉子"]
+  },
+  {
+    "id": "S01-C05",
+    "mystery": "S01",
+    "text": "夜羽是开门的母亲的信使，大断绝之夜送信途中被光击落。",
+    "tier": "K3",
+    "unlock": "a3_ash_tells_sundering",
+    "keywords": ["被光击落", "开门的母亲的信使"]
+  },
+  {
+    "id": "S02-C02",
+    "mystery": "S02",
+    "text": "兽潮之夜，玛莎一刀斩断了第二波兽潮，然后回去擦杯子。",
+    "tier": "K0",
+    "unlock": "a1_martha_strike",
+    "keywords": ["斩断了第二波", "一刀斩断"]
+  },
+  {
+    "id": "S03-C06",
+    "mystery": "S03",
+    "text": "奈拉是梅尔卡的眼睛。",
+    "tier": "K4",
+    "unlock": "a4_nera_exposed",
+    "keywords": ["梅尔卡的眼睛"]
+  },
+  {
+    "id": "S07-C05",
+    "mystery": "S07",
+    "text": "无貌者的本名是沈望；他自己忘了，门后的她还记得。",
+    "tier": "K4",
+    "unlock": "a5_faceless_named",
+    "keywords": ["沈望"]
+  }
+]

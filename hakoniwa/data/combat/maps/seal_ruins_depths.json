@@ -1,0 +1,140 @@
+{
+  "id": "seal_ruins_depths",
+  "name": "封门遗迹深处",
+  "region": "borderstone_wilds",
+  "width": 30,
+  "height": 24,
+  "sediment": 3,
+  "indoor": true,
+  "rows": [
+    "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+    "^^^^^^^^^^^^^^^^^^^^xx^,,,^xx^",
+    "^^^^^^^^^^^^^^^^^^^^xx,,,,,xx^",
+    "^^####^^^^^^^^^^^^^^xx,,,,,xx^",
+    "^^#oo#^^^^^^^^^^^^^^xxxx,,xxx^",
+    "^^#::#^^^^^^^^^^^^^^xooooooxx^",
+    "###oo###^^^^^^^^^^^^xooooooxx^",
+    "##oooo##^^^^^^^^^^^^xooooooxx^",
+    "#oooooo#,,:,,^^^^^^^xooooooxx^",
+    "#oooo:o,,,,,:,^^^^^^xooooooxx^",
+    "#oooooo#^^^^^^^^^^^^xxx__xxxx^",
+    "#ooo:oo#^##########^xxx__xxxx^",
+    "#o:oooo#^##::::::##^^,:,,,,,,^",
+    "#oooooo#^#::::::::#^:,,::,,,^^",
+    "###,,###^#::::::::#^,,,,,,:,,^",
+    "^^^,,,,,,+::::::::+,,,::,,,,:^",
+    "^^^,,,,,,+::::::::+,,,^:,::,,^",
+    "^^^^^^^^^#::::::::#^^:,,,,,,^^",
+    "^^^^^^^^^##oooooo##^^^^^^,,,^^",
+    "^^^^^^^^^##########^,ooooooo,^",
+    "^^^^^^^^^^^^^^^^^^^^ooooooooo^",
+    "^^^^^^^^^^^^^^^^^^^~~~~~~~~WW^",
+    "^^^^^^^^^^^^^^^^^^^~~~~~~~~WW^",
+    "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+  ],
+  "legend": {
+    "#": "wall",
+    ",": "dirt",
+    "^": "rock",
+    "~": "water",
+    "W": "deep_water",
+    ":": "ash",
+    "+": "door",
+    "_": "bridge",
+    "o": "stone",
+    "x": "void"
+  },
+  "locations": [
+    { "id": "gate_seal_ruins", "name": "落灰阶底", "kind": "gate", "x": 2, "y": 8, "w": 3, "h": 3 },
+    { "id": "ash_chamber", "name": "灰烬室", "kind": "ruin", "x": 10, "y": 12, "w": 8, "h": 7 },
+    { "id": "sealed_door", "name": "封门", "kind": "landmark", "x": 12, "y": 12, "w": 4, "h": 1 },
+    { "id": "nest_shaft", "name": "巢井", "kind": "ruin", "x": 20, "y": 1, "w": 9, "h": 17 },
+    { "id": "raven_nest", "name": "巨鸦之巢", "kind": "lair", "x": 21, "y": 5, "w": 6, "h": 5 },
+    { "id": "seep_channel", "name": "渗泉暗渠", "kind": "ruin", "x": 20, "y": 19, "w": 9, "h": 3 }
+  ],
+  "spawns": [
+    {
+      "id": "sd_rat_landing",
+      "kind": "monster",
+      "ref": "dian_rat",
+      "x": 5.5,
+      "y": 15.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 120
+    },
+    {
+      "id": "sd_flock_sw",
+      "kind": "monster",
+      "ref": "raven_flock",
+      "x": 21.5,
+      "y": 14.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 200
+    },
+    {
+      "id": "sd_flock_se",
+      "kind": "monster",
+      "ref": "raven_flock",
+      "x": 26.5,
+      "y": 15.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 200
+    },
+    {
+      "id": "sd_flock_top",
+      "kind": "monster",
+      "ref": "raven_flock",
+      "x": 24.5,
+      "y": 2.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 200
+    },
+    {
+      "id": "sd_guardian_raven",
+      "kind": "monster",
+      "ref": "guardian_raven",
+      "x": 24,
+      "y": 7.5,
+      "count": 1,
+      "radius": 1
+    },
+    {
+      "id": "sd_spirit_seep",
+      "kind": "monster",
+      "ref": "dian_spirit",
+      "x": 23.5,
+      "y": 19.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 400,
+      "requiresFlags": ["boss.guardian_raven.defeated"]
+    }
+  ],
+  "exits": [
+    {
+      "id": "to_ruins",
+      "x": 3,
+      "y": 4,
+      "toMap": "seal_ruins",
+      "toX": 1,
+      "toY": 1,
+      "toLocation": "gate_seal_ruins_depths",
+      "label": "回到落灰阶"
+    },
+    {
+      "id": "to_shaft_top",
+      "x": 24,
+      "y": 1,
+      "toMap": "seal_ruins",
+      "toX": 1,
+      "toY": 1,
+      "toLocation": "shaft_top",
+      "label": "攀上巢井",
+      "requiresFlags": ["boss.guardian_raven.defeated"]
+    }
+  ]
+}

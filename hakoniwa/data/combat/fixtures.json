@@ -1,0 +1,19 @@
+[
+  {
+    "id": "ash",
+    "mapId": "seal_ruins_depths",
+    "location": "ash_chamber",
+    "kind": "npc",
+    "ref": "ash",
+    "name": "守门人阿什",
+    "level": 60,
+    "tier": 6,
+    "tags": ["npc", "gatekeeper"],
+    "presence": 2.5,
+    "appearance": {
+      "base": "undead",
+      "colors": ["#2a2826", "#4a4642", "#9fd8ff", "#d8d0bc"],
+      "scale": 1.1
+    }
+  }
+]
