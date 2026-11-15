@@ -88,6 +88,8 @@
 | [systems/grand_strategy_slg.md](40_design/systems/grand_strategy_slg.md)             | 大战略                                                                                                                                                                                                     |
 | [systems/economy_and_trade.md](40_design/systems/economy_and_trade.md)               | 经济与贸易                                                                                                                                                                                                 |
 | [content/content_outline.md](40_design/content/content_outline.md)                   | 内容总清单与体量对照                                                                                                                                                                                       |
+| [world/world_map.md](40_design/world/world_map.md)                                   | 世界地图构建：四层地图与编号、世界图与 SLG 省份、各幕区域图与行程、全部已建与规划地图的总表（图集数据与校验）、连通图、缺口与制作顺序                                                                    |
+| [world/scene_flow.md](40_design/world/scene_flow.md)                                 | 游戏场景动线：HD-2D 斜俯视下的动线原则、跨幕宏观动线与快速移动、十张已建图逐图动线（实测距离、遮挡、照明、梯度与动线图）、外观层装饰落地、规划场景的五种动线模板、下一轮修改汇总 |
 | 待撰写                                                                               | `systems/combat_and_classes.md`、`systems/thousand_doors.md`、`systems/companions_and_party.md`、`progression_and_pacing.md`（本轮撰写被中止，待重新安排；相关正典规则已在 `20_world/power_system.md` 中） |
 
 ## 50 技术方案

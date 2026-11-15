@@ -335,6 +335,22 @@ export function shopSignSprite(kind: SignKind): DecorSprite | null {
       fillRect(g, 4, 5, 6, 4, glyph);
       fillTriangle(g, 4, 9, 10, 9, 7, 12, glyph);
       break;
+    case 'bread':
+      fillEllipse(g, 7, 8, 4, 2.5, glyph);
+      drawLine(g, 5, 7, 6, 9, 1, SLOT.PRIMARY);
+      drawLine(g, 8, 7, 9, 9, 1, SLOT.PRIMARY);
+      break;
+    case 'wheel':
+      fillEllipse(g, 7, 8, 4, 4, glyph);
+      fillEllipse(g, 7, 8, 2, 2, SLOT.PRIMARY);
+      fillRect(g, 7, 4, 1, 9, glyph);
+      fillRect(g, 3, 8, 9, 1, glyph);
+      break;
+    case 'horseshoe':
+      fillRect(g, 4, 5, 2, 6, glyph);
+      fillRect(g, 9, 5, 2, 6, glyph);
+      fillRect(g, 5, 10, 5, 2, glyph);
+      break;
   }
   const s = finish(
     g,

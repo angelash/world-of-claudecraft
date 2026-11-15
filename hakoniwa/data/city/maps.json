@@ -226,7 +226,19 @@
         "label": "北小道：往荒原外缘"
       }
     ],
-    "sediment": 1
+    "sediment": 1,
+    "decor": [
+      { "kind": "sign", "x": 0.5, "y": 21.5 },
+      { "kind": "cart", "x": 7.5, "y": 23.5 },
+      { "kind": "grave", "x": 1.5, "y": 12.5, "variant": 1 },
+      { "kind": "grave", "x": 3.5, "y": 14.5, "variant": 0 },
+      { "kind": "grave", "x": 4.5, "y": 16.5, "variant": 1 },
+      { "kind": "crate", "x": 12.5, "y": 14.5, "variant": 1 },
+      { "kind": "barrel", "x": 11.5, "y": 14.5 },
+      { "kind": "brazier", "x": 22.5, "y": 19.5 },
+      { "kind": "sign", "x": 31.5, "y": 10.5 },
+      { "kind": "sign", "x": 31.5, "y": 2.5 }
+    ]
   },
   {
     "id": "inner_court",
@@ -329,6 +341,14 @@
     ],
     "spawns": [],
     "exits": [],
-    "sediment": 0
+    "sediment": 0,
+    "decor": [
+      { "kind": "lamp", "x": 8.5, "y": 8.5 },
+      { "kind": "bench", "x": 7.5, "y": 7.5 },
+      { "kind": "barrel", "x": 3.5, "y": 7.5 },
+      { "kind": "fence", "x": 12.5, "y": 6.5 },
+      { "kind": "fence", "x": 19.5, "y": 6.5 },
+      { "kind": "haystack", "x": 21.5, "y": 4.5 }
+    ]
   }
 ]

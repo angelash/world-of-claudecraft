@@ -276,5 +276,15 @@
       "toLocation": "gate_wallenburg_sewers",
       "label": "回到泥巷"
     }
+  ],
+  "style": "sealed_ruins",
+  "decor": [
+    { "kind": "brazier", "x": 8.5, "y": 3.5 },
+    { "kind": "crate", "x": 9.5, "y": 1.5, "variant": 0 },
+    { "kind": "brazier", "x": 8.5, "y": 16.5 },
+    { "kind": "sign", "x": 4.5, "y": 21.5 },
+    { "kind": "brazier", "x": 23.5, "y": 5.5 },
+    { "kind": "brazier", "x": 34.5, "y": 19.5 },
+    { "kind": "brazier", "x": 38.5, "y": 19.5 }
   ]
 }

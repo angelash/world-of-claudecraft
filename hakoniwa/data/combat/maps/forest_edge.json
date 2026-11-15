@@ -242,5 +242,19 @@
       "toLocation": "gate_forest_edge",
       "label": "回边石镇"
     }
+  ],
+  "decor": [
+    { "kind": "lamp", "x": 1.5, "y": 15.5 },
+    { "kind": "sign", "x": 5.5, "y": 17.5 },
+    { "kind": "brazier", "x": 8.5, "y": 11.5 },
+    { "kind": "crate", "x": 6.5, "y": 12.5, "variant": 0 },
+    { "kind": "barrel", "x": 10.5, "y": 12.5 },
+    { "kind": "sign", "x": 22.5, "y": 16.5 },
+    { "kind": "cart", "x": 8.5, "y": 24.5 },
+    { "kind": "crate", "x": 5.5, "y": 22.5, "variant": 0 },
+    { "kind": "crate", "x": 11.5, "y": 22.5, "variant": 1 },
+    { "kind": "brazier", "x": 21.5, "y": 28.5 },
+    { "kind": "crate", "x": 25.5, "y": 29.5, "variant": 1 },
+    { "kind": "barrel", "x": 26.5, "y": 28.5 }
   ]
 }

@@ -225,5 +225,14 @@
       "toLocation": "gate_seal_ruins",
       "label": "落灰阶"
     }
+  ],
+  "style": "sealed_ruins",
+  "decor": [
+    { "kind": "brazier", "x": 16.5, "y": 5.5 },
+    { "kind": "brazier", "x": 19.5, "y": 5.5 },
+    { "kind": "brazier", "x": 22.5, "y": 8.5 },
+    { "kind": "brazier", "x": 33.5, "y": 9.5 },
+    { "kind": "grave", "x": 23.5, "y": 25.5, "variant": 0 },
+    { "kind": "sign", "x": 18.5, "y": 25.5 }
   ]
 }

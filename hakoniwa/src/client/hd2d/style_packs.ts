@@ -159,6 +159,9 @@ const SIGN_OF: Readonly<Record<string, SignKind>> = {
   barracks: 'shield',
   academy: 'book',
   school: 'book',
+  bakery: 'bread',
+  mill: 'wheel',
+  station: 'horseshoe',
 };
 
 // Shared light keys: a temperate sky. Packs that differ override whole states.

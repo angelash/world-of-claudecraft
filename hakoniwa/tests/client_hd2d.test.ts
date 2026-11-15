@@ -52,7 +52,13 @@ import { decorSprite, shopSignSprite } from '../src/client/render/decor_art';
 import { dirFromFacing } from '../src/client/sprites/anim_spec';
 import { getAlpha, getPixel, matrixHash, opaqueCount } from '../src/client/sprites/pixels';
 import { calendarAt, tickAtDay } from '../src/core/time';
-import { DECOR_KINDS, lookProblems, STYLE_IDS, styleOf } from '../src/systems/world/look';
+import {
+  DECOR_KINDS,
+  lookProblems,
+  SIGN_KINDS,
+  STYLE_IDS,
+  styleOf,
+} from '../src/systems/world/look';
 import type { MapDef } from '../src/systems/world/types';
 
 const TOWN: MapDef = {
@@ -452,6 +458,19 @@ describe('quality tiers and decor sprites', () => {
     expect(
       opaqueCount(shopSignSprite('anvil')?.matrix ?? decorSprite('sign').matrix),
     ).toBeGreaterThan(50);
+    // every trade sign draws its own glyph
+    const hashes = SIGN_KINDS.filter((k) => k !== 'none').map((k) =>
+      matrixHash(shopSignSprite(k)?.matrix ?? decorSprite('sign').matrix),
+    );
+    expect(new Set(hashes).size).toBe(hashes.length);
+  });
+
+  it('gives bakeries, mills and post stations their own trade signs', () => {
+    const pack = STYLE_PACKS.lothar_plain;
+    expect(resolveLook(pack, { id: 'b', kind: 'bakery' }, undefined).sign).toBe('bread');
+    expect(resolveLook(pack, { id: 'm', kind: 'mill' }, undefined).sign).toBe('wheel');
+    expect(resolveLook(pack, { id: 's', kind: 'station' }, undefined).sign).toBe('horseshoe');
+    expect(resolveLook(pack, { id: 'f', kind: 'smithy' }, undefined).sign).toBe('anvil');
   });
 });
 

@@ -136,5 +136,13 @@
       "label": "攀上巢井",
       "requiresFlags": ["boss.guardian_raven.defeated"]
     }
+  ],
+  "style": "sealed_ruins",
+  "decor": [
+    { "kind": "brazier", "x": 5.5, "y": 7.5 },
+    { "kind": "crate", "x": 12.5, "y": 9.5, "variant": 1 },
+    { "kind": "brazier", "x": 7.5, "y": 15.5 },
+    { "kind": "brazier", "x": 22.5, "y": 12.5 },
+    { "kind": "brazier", "x": 25.5, "y": 12.5 }
   ]
 }

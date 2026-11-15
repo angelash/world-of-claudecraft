@@ -3,6 +3,8 @@
 // never reads these fields; they exist here so content validation and the renderer share
 // one vocabulary. Changing a look never changes gameplay.
 
+import { BLOCKING_TILES, type TileKind } from './types';
+
 /** Style packs (art_pipeline.md 1.4): one per landscape family. */
 export const STYLE_IDS = [
   'lothar_plain',
@@ -57,6 +59,9 @@ export const SIGN_KINDS = [
   'cross',
   'herb',
   'shield',
+  'bread',
+  'wheel',
+  'horseshoe',
 ] as const;
 export type SignKind = (typeof SIGN_KINDS)[number];
 
@@ -122,11 +127,20 @@ export function styleOf(map: { style?: string; region?: string; indoor?: boolean
   return map.indoor ? 'sealed_ruins' : 'lothar_plain';
 }
 
-/** Problems in a map's look layer (content validation). Pure. */
+/**
+ * Problems in a map's look layer (content validation). Pure. Decor is drawn but never
+ * blocks, so it must stand where a person could stand: its foot tile is walkable, and it
+ * is neither a door (it would sit in the doorway) nor an exit (it would hide the way out).
+ * The spatial layer (rows, legend) and the exits are read for that; a character missing
+ * from the legend counts as void, as in the walkability grid.
+ */
 export function lookProblems(map: {
   id: string;
   width: number;
   height: number;
+  rows: readonly string[];
+  legend: Readonly<Record<string, TileKind>>;
+  exits: readonly { id: string; x: number; y: number }[];
   locations: { id: string }[];
   style?: string;
   looks?: Record<string, BuildingLookOverride>;
@@ -152,11 +166,26 @@ export function lookProblems(map: {
     for (const c of look.roofColors ?? [])
       if (!/^#[0-9a-fA-F]{6}$/.test(c)) out.push(`map ${map.id}: look ${id} bad colour '${c}'`);
   }
+  const exitAt = new Map<string, string>();
+  for (const e of map.exits) exitAt.set(`${Math.floor(e.x)},${Math.floor(e.y)}`, e.id);
   (map.decor ?? []).forEach((d, i) => {
     if (!(DECOR_KINDS as readonly string[]).includes(d.kind))
       out.push(`map ${map.id}: decor ${i} unknown kind '${d.kind}'`);
-    if (!(d.x >= 0 && d.x < map.width && d.y >= 0 && d.y < map.height))
+    if (!(d.x >= 0 && d.x < map.width && d.y >= 0 && d.y < map.height)) {
       out.push(`map ${map.id}: decor ${i} (${d.x},${d.y}) outside the map`);
+      return;
+    }
+    const tx = Math.floor(d.x);
+    const ty = Math.floor(d.y);
+    const ch = map.rows[ty]?.[tx];
+    const tile: TileKind =
+      ch !== undefined && Object.hasOwn(map.legend, ch) ? (map.legend[ch] as TileKind) : 'void';
+    if (BLOCKING_TILES.has(tile))
+      out.push(`map ${map.id}: decor ${i} (${d.x},${d.y}) on a blocking ${tile} tile`);
+    else if (tile === 'door') out.push(`map ${map.id}: decor ${i} (${d.x},${d.y}) on a door tile`);
+    const exit = exitAt.get(`${tx},${ty}`);
+    if (exit !== undefined)
+      out.push(`map ${map.id}: decor ${i} (${d.x},${d.y}) on the tile of exit '${exit}'`);
   });
   return out;
 }

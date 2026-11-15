@@ -1,0 +1,160 @@
+[
+  {
+    "id": "medius",
+    "name": "梅迪乌斯大陆（世界图）",
+    "tier": "continent",
+    "geo": "梅迪乌斯大陆",
+    "acts": [4, 5],
+    "note": "世界图即大陆 SLG 地图，省份与连线在 data/strategy/map.json；第三幕末拉远时展开，第四幕起可操作。"
+  },
+  {
+    "id": "divine_realm",
+    "name": "神域",
+    "tier": "realm",
+    "acts": [0, 6, 7],
+    "style": "divine_court",
+    "sediment": [0, 0],
+    "note": "不在箱庭的地理范围内：序章候见厅、第六幕审庭、终章造主的房间。"
+  },
+  {
+    "id": "court_gap",
+    "name": "庭间之隙（门内庭院）",
+    "tier": "realm",
+    "acts": [1, 2, 3, 4, 5],
+    "style": "divine_court",
+    "sediment": [0, 0],
+    "note": "门内庭院是庭间之隙的一角，在箱庭之外，由门的能力进出（power_system.md 9.6）。"
+  },
+  {
+    "id": "edgestone_area",
+    "name": "边石镇区域",
+    "tier": "region",
+    "parent": "medius",
+    "geo": "洛萨王国",
+    "slgRegion": "lotha",
+    "acts": [1, 2, 3, 4, 5],
+    "style": "lothar_plain",
+    "sediment": [1, 2],
+    "note": "地理志 7.4 第一幕 A 系列的界石线以南部分：边石镇、林缘、锈岭、旧巡逻道。"
+  },
+  {
+    "id": "valen_valley",
+    "name": "瓦伦河谷区域（北段）",
+    "tier": "region",
+    "parent": "medius",
+    "geo": "洛萨王国",
+    "slgRegion": "lotha",
+    "acts": [2, 3, 4, 5],
+    "style": "valen_city",
+    "sediment": [1, 3],
+    "note": "地理志 7.4 第二幕 B 系列：瓦伦堡全城与地下、门前渡、苇桥村与南大路。"
+  },
+  {
+    "id": "lotha_realm",
+    "name": "洛萨王国区域",
+    "tier": "region",
+    "parent": "medius",
+    "geo": "洛萨王国",
+    "slgRegion": "lotha",
+    "acts": [3, 4, 5],
+    "style": "lothar_plain",
+    "sediment": [1, 3],
+    "note": "地理志 7.4 第三幕 C 系列的王国部分：奥瑞恩、黑橡堡与夜风走廊、银鞍堡与苍榆林地、无字碑林。"
+  },
+  {
+    "id": "ashen_waste",
+    "name": "灰烬荒原",
+    "tier": "region",
+    "parent": "medius",
+    "geo": "灰烬荒原",
+    "slgRegion": "ashen_waste",
+    "acts": [1, 2, 3, 4, 5],
+    "style": "ash_waste",
+    "sediment": [2, 5],
+    "note": "界石线以北：南沿的封门遗迹与折桥驿、外缘、中层、千门都外环与核心（geography.md 4.5）。"
+  },
+  {
+    "id": "holy_see",
+    "name": "圣艾琉恩教国",
+    "tier": "region",
+    "parent": "medius",
+    "geo": "圣艾琉恩教国",
+    "slgRegion": "holy_see",
+    "acts": [4, 5],
+    "stylePlan": "holy_see_white",
+    "sediment": [1, 4],
+    "note": "第二、三幕只以使者、圣战军与传闻出现；第四幕起可潜入。风格包为提案。"
+  },
+  {
+    "id": "grantia",
+    "name": "格兰提亚帝国",
+    "tier": "region",
+    "parent": "medius",
+    "geo": "格兰提亚帝国",
+    "slgRegion": "grantia",
+    "acts": [4, 5],
+    "stylePlan": "grantia_ochre",
+    "sediment": [1, 3],
+    "note": "风格包为提案（赭红、钢灰、麦黄，geography.md 7.5）。"
+  },
+  {
+    "id": "mercato",
+    "name": "梅尔卡托同盟与赤砧山",
+    "tier": "region",
+    "parent": "medius",
+    "geo": "梅尔卡托同盟与赤砧山",
+    "slgRegion": "mercato",
+    "acts": [4, 5],
+    "stylePlan": "mercato_coast",
+    "sediment": [1, 3],
+    "note": "风格包为提案（海蓝、金、赤陶，geography.md 7.5）。"
+  },
+  {
+    "id": "silva",
+    "name": "希尔瓦大森林",
+    "tier": "region",
+    "parent": "medius",
+    "geo": "希尔瓦大森林",
+    "slgRegion": "silva",
+    "acts": [4, 5],
+    "stylePlan": "silva_canopy",
+    "sediment": [0, 3],
+    "note": "林中无路，靠精灵向导（geography.md 3.6）。风格包为提案。"
+  },
+  {
+    "id": "windfang",
+    "name": "风牙草原",
+    "tier": "region",
+    "parent": "medius",
+    "geo": "风牙草原",
+    "slgRegion": "windfang",
+    "acts": [4, 5],
+    "stylePlan": "windfang_steppe",
+    "sediment": [1, 3],
+    "note": "风格包为提案（草黄、天蓝、毡红）。"
+  },
+  {
+    "id": "nightrealm",
+    "name": "夜境",
+    "tier": "region",
+    "parent": "medius",
+    "geo": "夜境",
+    "slgRegion": "nightrealm",
+    "acts": [4, 5],
+    "stylePlan": "night_basalt",
+    "sediment": [2, 5],
+    "note": "第三幕只以红牙军出现；第四幕起可入。风格包为提案（黑、暗红、温泉的青白）。"
+  },
+  {
+    "id": "dragonspine",
+    "name": "龙脊山脉",
+    "tier": "region",
+    "parent": "medius",
+    "geo": "龙脊山脉",
+    "slgRegion": "dragonspine",
+    "acts": [4, 5],
+    "stylePlan": "dragonspine_snow",
+    "sediment": [1, 1],
+    "note": "原龙所在之处几乎不积澱。风格包为提案（冰蓝、雪白）。"
+  }
+]
