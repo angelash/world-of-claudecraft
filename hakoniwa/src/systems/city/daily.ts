@@ -160,6 +160,20 @@ function updateNation(ctx: SystemContext, site: SiteState, day: number): void {
   stepLedger(nation.core, terms);
 }
 
+/**
+ * Flags the city recomputes from its ledgers on every settlement. Scene and quest effects
+ * must not write them (they would be overwritten the next day); a story bonus to the
+ * nation's autonomy goes into `autonomy_bonus`, which the settlement adds back in.
+ */
+export const DAILY_CITY_FLAGS: readonly string[] = [
+  'autonomy',
+  'territory_autonomy',
+  'territory_pop',
+  'village_autonomy',
+  'village_pop',
+  'village_defense',
+];
+
 /** Publish the story variables (reveal_ledger 0.4 and the act 2 to 4 arc variables). */
 export function writeFlags(ctx: SystemContext): void {
   const city = ctx.world.slices.city;
@@ -178,9 +192,11 @@ export function writeFlags(ctx: SystemContext): void {
   if (pop > 0 || site.stage !== 'outpost')
     ctx.setFlag('village_defense', defenseLevel(site, ctx.content));
   if (city.nation.founded && city.nation.core) {
+    const bonus = Number(ctx.flag('autonomy_bonus') ?? 0);
+    const story = Number.isFinite(bonus) ? bonus : 0;
     ctx.setFlag(
       'autonomy',
-      Math.round(clamp(0.6 * site.autonomy.value + 0.4 * city.nation.core.value, 0, 100)),
+      Math.round(clamp(0.6 * site.autonomy.value + 0.4 * city.nation.core.value + story, 0, 100)),
     );
   }
 }
