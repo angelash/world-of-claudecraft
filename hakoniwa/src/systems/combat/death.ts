@@ -7,11 +7,10 @@
 import type { SystemContext } from '../../core/system';
 import { TICKS_PER_GAME_DAY, TICKS_PER_GAME_MINUTE } from '../../core/time';
 import { holdingOf, spendMoney } from '../inventory';
-import { getEntity, mapById, teleportEntity } from '../world';
+import { getEntity, haltEntity, mapById, setLife, teleportEntity } from '../world';
 import type { Entity, LocationDef, MapDef } from '../world/types';
 import { applyAura, removeAurasWhere } from './auras';
 import { CORPSE_TICKS, monsterDef, secs } from './defs';
-import { halt, setAlive } from './entity_ops';
 import { DEATH_MONEY_LOSS, doorFatigueMinutes } from './formulas';
 import { award } from './rewards';
 import { deriveStats } from './stats';
@@ -41,8 +40,8 @@ export function maybeYield(ctx: SystemContext, u: Unit, source: Unit | null): bo
   forgetAttacker(ctx.world, u.id);
   removeAurasWhere(ctx, u, (a) => a.expires !== 0);
   const e = getEntity(ctx.world, u.id);
-  if (e) halt(e);
-  refreshTags(ctx.world, u);
+  haltEntity(ctx, u.id);
+  refreshTags(ctx, u);
   if (mon?.mechanics?.yieldSay && e) {
     ctx.emit('dialogue.line', {
       speakerId: u.id,
@@ -98,10 +97,10 @@ export function killUnit(ctx: SystemContext, u: Unit, killer: Unit | null): void
   forgetAttacker(ctx.world, u.id);
   if (e.kind === 'companion') {
     u.downed = true;
-    setAlive(e, false);
+    setLife(ctx, e.id, false);
     return;
   }
-  setAlive(e, false);
+  setLife(ctx, e.id, false);
   if (mon) {
     award(ctx, u, killer, false);
     ctx.world.slices.combat.corpses[u.id] = ctx.tick + CORPSE_TICKS;
@@ -112,7 +111,7 @@ export function killUnit(ctx: SystemContext, u: Unit, killer: Unit | null): void
 export function reviveUnit(ctx: SystemContext, u: Unit, hpPct: number): void {
   const e = getEntity(ctx.world, u.id);
   if (!e) return;
-  setAlive(e, true);
+  setLife(ctx, e.id, true);
   u.downed = false;
   fillUp(ctx.world, ctx.content, u);
   const max = deriveStats(ctx.world, ctx.content, u).maxHp;

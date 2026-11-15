@@ -4,10 +4,9 @@
 import type { ContentMap } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
 import type { World } from '../../core/world';
-import { getEntity } from '../world';
+import { getEntity, setMoveSpeed, setTag, setTagValue } from '../world';
 import type { Entity } from '../world/types';
 import { classDef, monsterDef } from './defs';
-import { setSpeed, setTag, setValueTag } from './entity_ops';
 import { MAX_LEVEL, tierForLevel } from './formulas';
 import { deriveStats } from './stats';
 import type { CombatSlice, ResourceKind, Side, Unit } from './types';
@@ -84,7 +83,7 @@ export function createUnit(ctx: SystemContext, entityId: string, spec: UnitSpec)
   };
   ctx.world.slices.combat.units[entityId] = u;
   fillUp(ctx.world, ctx.content, u);
-  refreshTags(ctx.world, u);
+  refreshTags(ctx, u);
   return u;
 }
 
@@ -113,12 +112,10 @@ export function clampPools(world: World, content: ContentMap, u: Unit): void {
   }
 }
 
-export function refreshTags(world: World, u: Unit): void {
-  const e = getEntity(world, u.id);
-  if (!e) return;
-  setValueTag(e, 'lvl', u.level);
-  setValueTag(e, 'tier', u.tier);
-  setTag(e, 'hostile', u.side === 'enemy');
+export function refreshTags(ctx: SystemContext, u: Unit): void {
+  setTagValue(ctx, u.id, 'lvl', u.level);
+  setTagValue(ctx, u.id, 'tier', u.tier);
+  setTag(ctx, u.id, 'hostile', u.side === 'enemy');
 }
 
 /** Change level (level ups, companion scaling, set_class) keeping the health fraction. */
@@ -130,7 +127,7 @@ export function setLevel(ctx: SystemContext, u: Unit, level: number): void {
   const after = deriveStats(ctx.world, ctx.content, u);
   u.hp = Math.max(1, Math.round(after.maxHp * frac));
   clampPools(ctx.world, ctx.content, u);
-  refreshTags(ctx.world, u);
+  refreshTags(ctx, u);
 }
 
 /** Abilities a unit can use now: boss phase list, monster list, class list by level, grants. */
@@ -165,12 +162,12 @@ export function inCombat(world: World, u: Unit): boolean {
 }
 
 /** Apply the speed multiplier of the current auras to the entity. */
-export function syncSpeed(world: World, content: ContentMap, u: Unit): void {
-  const e = getEntity(world, u.id);
+export function syncSpeed(ctx: SystemContext, u: Unit): void {
+  const e = getEntity(ctx.world, u.id);
   if (!e) return;
-  const d = deriveStats(world, content, u);
+  const d = deriveStats(ctx.world, ctx.content, u);
   const want = u.baseSpeed * d.speedMult;
-  if (Math.abs(e.speed - want) > 1e-6) setSpeed(e, want);
+  if (Math.abs(e.speed - want) > 1e-6) setMoveSpeed(ctx, u.id, want);
 }
 
 /** Sorted unit ids for deterministic iteration. */

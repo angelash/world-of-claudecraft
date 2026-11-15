@@ -5,10 +5,9 @@
 // door key for the Tide-sight door (staying conscious under overwhelming pressure).
 
 import type { SystemContext } from '../../core/system';
-import { entitiesNear, getEntity } from '../world';
+import { entitiesNear, getEntity, haltEntity } from '../world';
 import { applyAura } from './auras';
 import { secs } from './defs';
-import { halt } from './entity_ops';
 import { liveUnit, unitOf } from './units';
 
 const REARM = secs(30);
@@ -32,7 +31,7 @@ export function tickPresence(ctx: SystemContext): void {
       if (gap >= 3) {
         if (!fresh) continue;
         applyAura(ctx, u, 'presence_paralysis', bearer, { durationTicks: secs(3) });
-        halt(near);
+        haltEntity(ctx, near.id);
       } else {
         applyAura(ctx, u, 'presence_pressure', bearer, { durationTicks: secs(2) });
         if (!fresh) continue;

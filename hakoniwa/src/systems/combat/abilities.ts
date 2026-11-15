@@ -6,11 +6,10 @@
 import type { ContentMap } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
 import type { World } from '../../core/world';
-import { entitiesNear, getEntity, isWalkable, mapById, teleportEntity } from '../world';
+import { entitiesNear, getEntity, haltEntity, isWalkable, mapById, teleportEntity } from '../world';
 import { applyAura, dispel, hasAura } from './auras';
 import { healUnit, resolveHit } from './damage';
 import { abilityDef, ENERGY_GCD_TICKS, GCD_TICKS, MELEE_RANGE, scaled, secs } from './defs';
-import { halt } from './entity_ops';
 import { meleeMissChance, spellHitChance } from './formulas';
 import { spawnMonster } from './spawning';
 import { type Derived, deriveStats, isDisabled } from './stats';
@@ -136,7 +135,7 @@ export function useAbility(
   if ((def.castTime ?? 0) > 0 && e) {
     const d = deriveStats(ctx.world, ctx.content, caster);
     const haste = 1 + Math.max(-0.5, d.stats.haste / 100);
-    if (caster.side !== 'ally' || e.kind !== 'player') halt(e);
+    if (caster.side !== 'ally' || e.kind !== 'player') haltEntity(ctx, e.id);
     caster.cast = {
       abilityId,
       targetId: target.id,

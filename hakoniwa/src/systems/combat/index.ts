@@ -6,12 +6,11 @@
 import { ok, reject } from '../../core';
 import type { CommandSource } from '../../core/contracts';
 import type { GameSystem, SystemContext } from '../../core/system';
-import { getEntity, playerEntity } from '../world';
+import { getEntity, haltEntity, playerEntity, tagValue } from '../world';
 import { interruptCast, tickCast, useAbility } from './abilities';
 import { tickAuras } from './aura_tick';
 import { tickAutoAttack, tickRegen } from './auto_attack';
 import { classDef, monsterDef, REGEN_EVERY } from './defs';
-import { halt, tagValue } from './entity_ops';
 import { onItemUsed } from './items_use';
 import { tickGuard, tickMonster } from './monster_ai';
 import { tickPresence } from './presence';
@@ -132,7 +131,7 @@ export const system: GameSystem = {
       } else if (e.kind === 'npc') {
         tickGuard(ctx, u);
       } else if ((e.move || e.intent) && deriveStats(ctx.world, ctx.content, u).speedMult === 0) {
-        halt(e);
+        haltEntity(ctx, e.id);
       }
       if (!liveUnit(ctx.world, id)) continue;
       tickAutoAttack(ctx, u);

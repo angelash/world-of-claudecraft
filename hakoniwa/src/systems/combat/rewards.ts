@@ -41,7 +41,7 @@ export function gainXp(ctx: SystemContext, u: Unit, amount: number, reason: stri
   if (u.level >= MAX_LEVEL) u.xp = 0;
   if (leveled) {
     fillUp(ctx.world, ctx.content, u);
-    refreshTags(ctx.world, u);
+    refreshTags(ctx, u);
   }
   ctx.emit('combat.xp', {
     entityId: u.id,

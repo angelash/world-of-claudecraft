@@ -3,9 +3,8 @@
 // Periodic effects and pulses tick in aura_tick.ts.
 
 import type { SystemContext } from '../../core/system';
-import { getEntity } from '../world';
+import { haltEntity } from '../world';
 import { auraDef, monsterDef, scaled, secs } from './defs';
-import { halt } from './entity_ops';
 import { deriveStats } from './stats';
 import type { Aura, AuraDef, CcKind, Unit } from './types';
 import { clampPools, syncSpeed } from './units';
@@ -107,8 +106,7 @@ export function applyAura(
     });
   }
   if (def.cc && HARD_CC.has(def.cc)) {
-    const e = getEntity(ctx.world, target.id);
-    if (e) halt(e);
+    haltEntity(ctx, target.id);
     if (def.cc !== 'root') target.cast = null;
   }
   afterChange(ctx, target);
@@ -116,7 +114,7 @@ export function applyAura(
 }
 
 function afterChange(ctx: SystemContext, u: Unit): void {
-  syncSpeed(ctx.world, ctx.content, u);
+  syncSpeed(ctx, u);
   clampPools(ctx.world, ctx.content, u);
 }
 

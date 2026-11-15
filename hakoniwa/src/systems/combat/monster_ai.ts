@@ -6,14 +6,13 @@
 // placed by other systems) engage hostiles near them and fight in place.
 
 import type { SystemContext } from '../../core/system';
-import { entitiesNear, getEntity, orderMove, teleportEntity } from '../world';
+import { entitiesNear, getEntity, haltEntity, orderMove, teleportEntity } from '../world';
 import type { Entity } from '../world/types';
 import { gap, useAbility } from './abilities';
 import { pickAbility } from './ai_common';
 import { removeAurasWhere } from './auras';
 import { resetBoss, tickBoss } from './boss';
 import { MELEE_RANGE, monsterDef, secs } from './defs';
-import { halt } from './entity_ops';
 import { grayLevel } from './formulas';
 import { despawn } from './spawning';
 import { deriveStats, isDisabled } from './stats';
@@ -113,7 +112,7 @@ function fight(ctx: SystemContext, u: Unit, e: Entity, target: Unit): void {
   u.target = target.id;
   u.autoAttack = true;
   if (u.cast) {
-    halt(e);
+    haltEntity(ctx, e.id);
     return;
   }
   const brain = u.ai;
@@ -126,7 +125,7 @@ function fight(ctx: SystemContext, u: Unit, e: Entity, target: Unit): void {
     if (pick) {
       const res = useAbility(ctx, u, pick.abilityId, pick.targetId);
       if (res.ok && u.cast) {
-        halt(e);
+        haltEntity(ctx, e.id);
         return;
       }
     }
@@ -140,7 +139,7 @@ function fight(ctx: SystemContext, u: Unit, e: Entity, target: Unit): void {
     const arrive = d.weapon.range > 0 ? reach * 0.7 : e.radius + te.radius + MELEE_RANGE * 0.6;
     walkTo(ctx, u, e, te.x, te.y, arrive);
   } else if (e.move) {
-    halt(e);
+    haltEntity(ctx, e.id);
   }
 }
 
@@ -178,7 +177,7 @@ export function tickMonster(ctx: SystemContext, u: Unit): void {
   // Crowd control only comes from auras, so an aura-free unit skips the stat derivation
   // (this runs every tick for every monster near the party).
   if (u.auras.length > 0 && isDisabled(deriveStats(ctx.world, ctx.content, u))) {
-    if (e.move) halt(e);
+    if (e.move) haltEntity(ctx, e.id);
     return;
   }
   if (u.summonerId && u.side === 'ally') {

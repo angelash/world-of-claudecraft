@@ -7,11 +7,17 @@
 import type { SystemContext } from '../../core/system';
 import { TICKS_PER_GAME_MINUTE } from '../../core/time';
 import { applyModifiers } from '../modifiers';
-import { getEntity, mapById, nearestWalkable, removeEntity, spawnEntity } from '../world';
+import {
+  getEntity,
+  haltEntity,
+  mapById,
+  nearestWalkable,
+  removeEntity,
+  spawnEntity,
+} from '../world';
 import type { MapDef, SpawnDef } from '../world/types';
 import { applyAura } from './auras';
 import { DEFAULT_SPEED, fixtures, monsterDef, waveDef } from './defs';
-import { halt } from './entity_ops';
 import { forgetAttacker } from './threat';
 import type { MonsterBrain, Side, Unit } from './types';
 import { createUnit, refreshTags, unitOf } from './units';
@@ -319,9 +325,8 @@ export function onFlag(ctx: SystemContext, key: string, value: unknown): void {
         u.cast = null;
         if (u.ai) u.ai.state = 'idle';
         forgetAttacker(ctx.world, u.id);
-        const e = getEntity(ctx.world, u.id);
-        if (e) halt(e);
-        refreshTags(ctx.world, u);
+        haltEntity(ctx, u.id);
+        refreshTags(ctx, u);
       }
     }
   }
