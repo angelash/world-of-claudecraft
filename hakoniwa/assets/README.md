@@ -143,7 +143,21 @@ assets/
 - `npm run assets:import` 从原文件生成：`processed/<类>/<编号>.png`（量化、描边、对齐后的结果）与 `processed/<类>/<编号>.json`（帧矩形、锚点、动作时长、色样、导入版本、隐式标识与处理记录）。
 - 处理是确定性的：同一原文件与同一导入版本得到同一结果；不手改处理结果，要改就调整导入参数或重新生成原文件。
 - 图集在构建时由 `npm run assets:atlas` 生成，不入库；未通过审核的美术编号不进图集，游戏里显示程序化占位；未通过审核的音频编号静音。
-- 音频的处理（响度归一、重采样、编码、循环点、分轨与变体拆分）由 `tools/audio/pack.ts` 完成，结果在 `processed/audio/<类>/`，规格见 `../docs/40_design/audio_direction.md` 第 8、9 节。
+- 音频的处理（重采样到 48 kHz、声道、去直流与 30 Hz 高通、变体拆分与裁切、按节拍网格切循环并烘焙接缝、响度归一与真峰值、Ogg 编码与编码后复测）是 `npm run assets:import` 的音频分支，结果在 `processed/audio/<类>/`，规格见 `../docs/40_design/audio_direction.md` 第 8、9 节；分轨分离（Demucs）不在工具内，多层曲目暂按单层处理并在元数据里注明。
+
+### 4.1 命令
+
+命令在 `hakoniwa/` 下运行（实现在 `tools/assets/`，纯逻辑核心在 `tools/assets/core/`）；都接受 `--root <素材目录>`（默认本目录）与 `--prompts <提示词库目录>`（默认 `prompts/`）。
+
+| 命令 | 做什么 | 常用参数 |
+| --- | --- | --- |
+| `npm run assets:register` | 导入管线第 1 步：扫描 `art/` 与 `audio/` 里没有记录或内容变了的文件，按文件名与目录匹配提示词条目，写入状态为 `review` 的记录（提示词指纹、文件哈希、隐式标识）；`audio/<outDir>/<编号>/` 文件夹里的分段按文件名顺序拼成一个原文件（段间 1 秒静音），分段移到 `_rejected/segments/`。文件名对不上条目时拒收并列出最接近的编号；用别名主体命名的文件（例如 `art_mon_dian_wolf_d`，澱狼共用灰毛狼的图）拒收并给出正确文件名 | `-- --tool xiaojiu --tool-version <版本> [--date YYYY-MM-DD] [--seed <种子>] [--refs a,b] [--lang en] [--converted] [--notes "..."] [--dry-run]`；终端里缺工具或版本时会询问 |
+| `npm run assets:import` | 第 2 到 10、12、13 步与音频分支：写 `processed/`，没过自动校验的 `review` 记录改为 `rework` 并写原因码，导入自己判的返工修好后回到 `review`；联系表与索引写到 `../.local/contact/`。同一原文件、同一导入版本的结果已存在时跳过 | `-- [--all] [--id a,b] [--no-contact] [--contact <目录>]` |
+| `npm run assets:atlas` | 第 11 步：把通过审核的处理结果按组（人物与生灵、图标、特效、界面、头像、各风格包的场景）打进 2048（图标 1024）图集页，写页面 PNG 与 `atlas.json`；默认输出 `../.local/atlas/`，不入库 | `-- [--out <目录>] [--include-review]` |
+| `npm run assets:check` | 全部自动校验：清单与工具登记字段、记录与文件双向对应和哈希、处理结果是否最新、美术第 12 步复检、音频的采样率、声道、时长、循环点、响度与真峰值；列出提示词已变更的复审清单。不合格打印 `fail [原因码] 编号: 说明` 并以 1 退出 | `-- [--mark]`（把不合格的 `review` 记录改为 `rework`）`[--no-hash] [--measure]`（重新解码测量响度，需要 ffmpeg） |
+
+- 音频的解码与编码用仓库根目录已有的 `ffmpeg-static`（或环境变量 `HAKONIWA_FFMPEG` 指向的 ffmpeg）；找不到时音频分支跳过并报错，美术不受影响。
+- 覆盖闸门：`ART_GATE=M0 npm test` 让 `tests/art_coverage.test.ts` 检查该里程碑及之前的全部条目已登记、通过并有最新的处理结果（默认关闭）。
 
 ## 5. 许可与合规
 

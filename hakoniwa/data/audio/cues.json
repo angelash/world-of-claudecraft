@@ -1,0 +1,769 @@
+{
+  "version": 1,
+  "fields": {
+    "outcome": [
+      "hit",
+      "crit",
+      "miss",
+      "dodge",
+      "parry",
+      "block",
+      "resist",
+      "immune",
+      "absorb",
+      "reflect"
+    ],
+    "attack": ["melee", "ranged", "spell"],
+    "tick": [true, false],
+    "weapon": [
+      "unarmed",
+      "dagger",
+      "sword",
+      "greatsword",
+      "axe",
+      "greataxe",
+      "mace",
+      "maul",
+      "spear",
+      "staff",
+      "shield"
+    ],
+    "weight": ["light", "heavy"],
+    "damage": ["slash", "pierce", "blunt"],
+    "material": [
+      "flesh",
+      "leather",
+      "mail",
+      "plate",
+      "wood",
+      "stone",
+      "bone",
+      "crystal",
+      "ash",
+      "spirit"
+    ],
+    "arrowMaterial": ["flesh", "metal", "wood", "stone", "ground"],
+    "shield": ["wood", "metal"],
+    "parry": ["blade", "heavy"],
+    "school": ["physical", "holy", "fire", "frost", "nature", "shadow", "arcane"],
+    "castOp": ["start", "finish", "interrupted"],
+    "auraOp": ["applied", "refreshed", "removed"],
+    "control": ["stun", "slow", "root", "silence", "fear"],
+    "dot": ["poison", "bleed", "burn", "chill"],
+    "healSchool": ["holy", "nature"],
+    "healSize": ["small", "big"],
+    "crit": [true, false],
+    "voice": [
+      "canine",
+      "ursine",
+      "boar",
+      "rodent",
+      "avian",
+      "spider",
+      "insect",
+      "serpent",
+      "aquatic",
+      "swarm",
+      "plant",
+      "ash_elemental",
+      "crystal_elemental",
+      "construct_stone",
+      "construct_porcelain",
+      "undead_bone",
+      "undead_spirit",
+      "dragonkin",
+      "demon",
+      "human_m",
+      "human_f",
+      "beastkin",
+      "demonkin"
+    ],
+    "dissolves": [true, false],
+    "isMonster": [true, false],
+    "isPlayer": [true, false],
+    "isCompanion": [true, false],
+    "involvesPlayer": [true, false],
+    "fall": ["light", "heavy", "armored"],
+    "presence": ["low", "high"],
+    "door": ["major", "minor"],
+    "bossVoice": [
+      "great_beast",
+      "great_bird",
+      "colossus",
+      "crystal_queen",
+      "undead_lord",
+      "spirit_choir",
+      "champion",
+      "storm_elemental",
+      "dragon",
+      "demon_lord"
+    ],
+    "surface": [
+      "dirt",
+      "grass",
+      "gravel",
+      "stone",
+      "wood",
+      "bridge",
+      "sand",
+      "ash",
+      "snow",
+      "ice",
+      "mud",
+      "water",
+      "metal",
+      "glass",
+      "carpet",
+      "leaves",
+      "bone"
+    ],
+    "gait": ["walk", "run"]
+  },
+  "cues": [
+    {
+      "id": "weapon_swing",
+      "event": "anim.swing",
+      "when": {
+        "isMonster": false
+      },
+      "select": {
+        "pattern": "sfx_wpn_{weapon}_{weight}",
+        "vars": {
+          "weapon": "weapon",
+          "weight": "weight"
+        },
+        "fallback": "sfx_wpn_unarmed_light"
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3,
+      "boost": [
+        {
+          "when": {
+            "involvesPlayer": true
+          },
+          "priority": 1
+        }
+      ],
+      "syncOffsetMs": 80,
+      "note": "Swing layer, started before the strike frame (7.16 sync)."
+    },
+    {
+      "id": "monster_attack",
+      "event": "anim.swing",
+      "when": {
+        "isMonster": true
+      },
+      "select": {
+        "pattern": "sfx_mon_{voice}_attack",
+        "vars": {
+          "voice": "voice"
+        }
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3,
+      "boost": [
+        {
+          "when": {
+            "involvesPlayer": true
+          },
+          "priority": 2
+        }
+      ],
+      "note": "Monster voice family by form and kernel family (7.16 table); humanoid enemies use human_m, human_f, beastkin or demonkin."
+    },
+    {
+      "id": "melee_hit",
+      "event": "combat.damage",
+      "when": {
+        "attack": "melee",
+        "outcome": ["hit", "crit"]
+      },
+      "unless": {
+        "tick": true
+      },
+      "select": {
+        "pattern": "sfx_hit_{damage}_{material}",
+        "vars": {
+          "damage": "damage",
+          "material": "material"
+        },
+        "fallback": "sfx_hit_blunt_flesh"
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3,
+      "boost": [
+        {
+          "when": {
+            "involvesPlayer": true
+          },
+          "priority": 1
+        }
+      ],
+      "note": "Damage type from the weapon, material from the target (7.16 tables)."
+    },
+    {
+      "id": "ranged_hit",
+      "event": "combat.damage",
+      "when": {
+        "attack": "ranged",
+        "outcome": ["hit", "crit"]
+      },
+      "unless": {
+        "tick": true
+      },
+      "select": {
+        "pattern": "sfx_hit_arrow_{arrowMaterial}",
+        "vars": {
+          "arrowMaterial": "arrowMaterial"
+        },
+        "fallback": "sfx_hit_arrow_flesh"
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3,
+      "boost": [
+        {
+          "when": {
+            "involvesPlayer": true
+          },
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "id": "ranged_miss",
+      "event": "combat.damage",
+      "when": {
+        "attack": "ranged",
+        "outcome": ["miss", "dodge"]
+      },
+      "sound": "sfx_hit_arrow_ground",
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 4
+    },
+    {
+      "id": "spell_impact",
+      "event": "combat.damage",
+      "when": {
+        "attack": "spell",
+        "outcome": ["hit", "crit"]
+      },
+      "unless": {
+        "tick": true
+      },
+      "select": {
+        "pattern": "sfx_sch_{school}_impact",
+        "vars": {
+          "school": "school"
+        },
+        "fallback": "sfx_sch_physical_impact"
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3,
+      "boost": [
+        {
+          "when": {
+            "involvesPlayer": true
+          },
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "id": "crit_physical",
+      "event": "combat.damage",
+      "when": {
+        "outcome": "crit",
+        "attack": ["melee", "ranged"]
+      },
+      "sound": "sfx_feel_crit_physical",
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3,
+      "boost": [
+        {
+          "when": {
+            "involvesPlayer": true
+          },
+          "priority": 1
+        }
+      ],
+      "note": "Layered on top of the hit."
+    },
+    {
+      "id": "crit_spell",
+      "event": "combat.damage",
+      "when": {
+        "outcome": "crit",
+        "attack": "spell"
+      },
+      "sound": "sfx_feel_crit_spell",
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3,
+      "boost": [
+        {
+          "when": {
+            "involvesPlayer": true
+          },
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "id": "defense",
+      "event": "combat.damage",
+      "when": {
+        "outcome": ["miss", "dodge", "resist", "immune", "absorb", "reflect"]
+      },
+      "unless": {
+        "attack": "ranged"
+      },
+      "pick": {
+        "field": "outcome",
+        "map": {
+          "miss": "sfx_def_miss",
+          "dodge": "sfx_def_dodge",
+          "resist": "sfx_def_resist",
+          "immune": "sfx_def_resist",
+          "absorb": "sfx_def_absorb",
+          "reflect": "sfx_def_reflect"
+        }
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3,
+      "boost": [
+        {
+          "when": {
+            "involvesPlayer": true
+          },
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "id": "block",
+      "event": "combat.damage",
+      "when": {
+        "outcome": "block"
+      },
+      "pick": {
+        "field": "shield",
+        "map": {
+          "wood": "sfx_def_block_wood",
+          "metal": "sfx_def_block_metal"
+        },
+        "default": "sfx_def_block_wood"
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3,
+      "boost": [
+        {
+          "when": {
+            "involvesPlayer": true
+          },
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "id": "parry",
+      "event": "combat.damage",
+      "when": {
+        "outcome": "parry"
+      },
+      "pick": {
+        "field": "parry",
+        "map": {
+          "blade": "sfx_def_parry_blade",
+          "heavy": "sfx_def_parry_heavy"
+        },
+        "default": "sfx_def_parry_blade"
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3,
+      "boost": [
+        {
+          "when": {
+            "involvesPlayer": true
+          },
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "id": "dot_tick",
+      "event": "combat.damage",
+      "when": {
+        "tick": true
+      },
+      "pick": {
+        "field": "dot",
+        "map": {
+          "poison": "sfx_st_poison_tick",
+          "bleed": "sfx_st_bleed_tick",
+          "burn": "sfx_st_burn_tick",
+          "chill": "sfx_st_chill_tick"
+        }
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 4
+    },
+    {
+      "id": "cast_start",
+      "event": "combat.cast",
+      "when": {
+        "castOp": "start"
+      },
+      "select": {
+        "pattern": "sfx_sch_{school}_cast_start",
+        "vars": {
+          "school": "school"
+        },
+        "fallback": "sfx_sch_physical_cast_start"
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3,
+      "boost": [
+        {
+          "when": {
+            "involvesPlayer": true
+          },
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "id": "cast_release",
+      "event": "combat.cast",
+      "when": {
+        "castOp": "finish"
+      },
+      "select": {
+        "pattern": "sfx_sch_{school}_release",
+        "vars": {
+          "school": "school"
+        },
+        "fallback": "sfx_sch_physical_release"
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3,
+      "boost": [
+        {
+          "when": {
+            "involvesPlayer": true
+          },
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "id": "cast_interrupted",
+      "event": "combat.cast",
+      "when": {
+        "castOp": "interrupted"
+      },
+      "sound": "sfx_st_interrupt",
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 2
+    },
+    {
+      "id": "heal",
+      "event": "combat.heal",
+      "select": {
+        "pattern": "sfx_heal_{healSchool}_{healSize}",
+        "vars": {
+          "healSchool": "healSchool",
+          "healSize": "healSize"
+        },
+        "fallback": "sfx_heal_holy_small"
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3,
+      "boost": [
+        {
+          "when": {
+            "involvesPlayer": true
+          },
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "id": "heal_crit",
+      "event": "combat.heal",
+      "when": {
+        "crit": true
+      },
+      "sound": "sfx_feel_crit_heal",
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3
+    },
+    {
+      "id": "control_applied",
+      "event": "combat.aura",
+      "when": {
+        "auraOp": "applied"
+      },
+      "pick": {
+        "field": "control",
+        "map": {
+          "stun": "sfx_st_stun_apply",
+          "slow": "sfx_st_slow_apply",
+          "root": "sfx_st_root_apply",
+          "silence": "sfx_st_silence_apply",
+          "fear": "sfx_st_fear_apply"
+        }
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3,
+      "boost": [
+        {
+          "when": {
+            "involvesPlayer": true
+          },
+          "priority": 2
+        }
+      ]
+    },
+    {
+      "id": "monster_aggro",
+      "event": "combat.aggro",
+      "sound": "sfx_mon_aggro",
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 2,
+      "caption": "audio.cap.sfx_mon_aggro",
+      "captionLevel": "important",
+      "note": "Client trigger: a hostile notices the player (10.4 important caption)."
+    },
+    {
+      "id": "monster_death",
+      "event": "combat.kill",
+      "when": {
+        "isMonster": true
+      },
+      "select": {
+        "pattern": "sfx_mon_{voice}_death",
+        "vars": {
+          "voice": "voice"
+        }
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 3
+    },
+    {
+      "id": "monster_dissolve",
+      "event": "combat.kill",
+      "when": {
+        "isMonster": true,
+        "dissolves": true
+      },
+      "sound": "sfx_mon_dissolve",
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 4,
+      "note": "Dian-born, dian constructs and undead dissolve on death (7.16)."
+    },
+    {
+      "id": "body_fall",
+      "event": "entity.died",
+      "when": {
+        "isMonster": false,
+        "isPlayer": false
+      },
+      "pick": {
+        "field": "fall",
+        "map": {
+          "light": "sfx_down_fall_light",
+          "heavy": "sfx_down_fall_heavy",
+          "armored": "sfx_down_fall_armored"
+        },
+        "default": "sfx_down_fall_light"
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 4
+    },
+    {
+      "id": "player_down",
+      "event": "entity.died",
+      "when": {
+        "isPlayer": true
+      },
+      "sound": "sfx_down_player_down",
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 0,
+      "caption": "audio.cap.sfx_down_player_down",
+      "captionLevel": "important"
+    },
+    {
+      "id": "ally_down",
+      "event": "entity.died",
+      "when": {
+        "isCompanion": true
+      },
+      "sound": "sfx_down_ally_down",
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 2,
+      "caption": "audio.cap.sfx_down_ally_down",
+      "captionLevel": "important"
+    },
+    {
+      "id": "revive",
+      "event": "combat.revived",
+      "sound": "sfx_down_revive",
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 2
+    },
+    {
+      "id": "presence_heartbeat",
+      "event": "combat.presence_felt",
+      "pick": {
+        "field": "presence",
+        "map": {
+          "low": "sfx_pres_heartbeat_low",
+          "high": "sfx_pres_heartbeat_high"
+        },
+        "default": "sfx_pres_heartbeat_low"
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 0,
+      "caption": "audio.cap.sfx_pres_heartbeat",
+      "captionLevel": "important",
+      "note": "Played in step with mus_cmb_presence; the visual equivalent is the desaturated vignette (10.4)."
+    },
+    {
+      "id": "boss_roar",
+      "event": "combat.boss_engaged",
+      "select": {
+        "pattern": "sfx_boss_{bossVoice}_roar",
+        "vars": {
+          "bossVoice": "bossVoice"
+        }
+      },
+      "bus": "sfx",
+      "group": "combat",
+      "priority": 0,
+      "caption": "audio.cap.sfx_boss_roar",
+      "captionLevel": "important",
+      "note": "The boss track enters when the roar ends (5.3)."
+    },
+    {
+      "id": "door_opened",
+      "event": "door.opened",
+      "pick": {
+        "field": "door",
+        "map": {
+          "major": "sfx_door_open_major",
+          "minor": "sfx_door_open_minor"
+        },
+        "default": "sfx_door_open_minor"
+      },
+      "bus": "sfx",
+      "group": "world",
+      "priority": 2,
+      "caption": "audio.cap.sfx_door_open",
+      "captionLevel": "important"
+    },
+    {
+      "id": "level_up",
+      "event": "player.level_up",
+      "sound": "mus_stg_level_up",
+      "bus": "music",
+      "priority": 3,
+      "stinger": true,
+      "note": "Deferred until combat ends (5.7)."
+    },
+    {
+      "id": "quest_done",
+      "event": "quest.completed",
+      "sound": "mus_stg_quest_done",
+      "bus": "music",
+      "priority": 4,
+      "stinger": true
+    },
+    {
+      "id": "quest_new",
+      "event": "quest.started",
+      "sound": "mus_stg_quest_new",
+      "bus": "music",
+      "priority": 4,
+      "stinger": true
+    },
+    {
+      "id": "quest_update",
+      "event": "quest.progress",
+      "sound": "sfx_ui_quest_update",
+      "bus": "ui",
+      "priority": 4
+    },
+    {
+      "id": "footstep",
+      "event": "anim.footstep",
+      "select": {
+        "pattern": "sfx_ft_{surface}_{gait}",
+        "vars": {
+          "surface": "surface",
+          "gait": "gait"
+        },
+        "fallback": "sfx_ft_dirt_walk"
+      },
+      "bus": "sfx",
+      "group": "world",
+      "priority": 4,
+      "note": "Contact frames 1 and 4 of walk and run (art_pipeline.md 3.4); one per entity, none beyond 20 m (8.3)."
+    },
+    {
+      "id": "threat_offscreen",
+      "event": "ui.threat_offscreen",
+      "sound": "sfx_ui_threat_offscreen",
+      "bus": "ui",
+      "priority": 2,
+      "caption": "audio.cap.sfx_ui_threat_offscreen",
+      "captionLevel": "important"
+    },
+    {
+      "id": "llm_thinking",
+      "event": "ui.llm_waiting",
+      "sound": "sfx_ui_llm_thinking",
+      "bus": "ui",
+      "priority": 4,
+      "note": "Only after 600 ms without a reply; never in the no-model tier (5.10)."
+    },
+    {
+      "id": "llm_reply",
+      "event": "ui.llm_reply",
+      "sound": "sfx_ui_llm_reply",
+      "bus": "ui",
+      "priority": 4
+    },
+    {
+      "id": "llm_error",
+      "event": "ui.llm_error",
+      "sound": "sfx_ui_llm_error",
+      "bus": "ui",
+      "priority": 0
+    }
+  ]
+}
