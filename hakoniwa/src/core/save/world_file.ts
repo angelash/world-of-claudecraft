@@ -1,7 +1,8 @@
-// Save and load. The world is plain data, so a save is its JSON plus a version check.
-// Version migrations land here as the world shape evolves (architecture.md 4.7).
+// The world file: the world is plain data, so a snapshot is its JSON plus a version check.
+// It is the payload of a container snapshot (./container.ts) and of the editor's world
+// export. The migration chain of release_engineering.md 5.5 plugs into run_saver.ts.
 
-import { WORLD_VERSION, type World } from './world';
+import { WORLD_VERSION, type World } from '../world';
 
 export interface SaveFile {
   format: 'hakoniwa-save';
@@ -32,6 +33,35 @@ export function deserializeWorld(text: string): World {
     throw new Error(`unsupported save version ${file.version} (expected ${WORLD_VERSION})`);
   }
   return file.world;
+}
+
+/**
+ * Stable 32-bit hash of the whole simulation state between ticks: meta, slices, random
+ * streams, id counters, the system command queue and the AI requests. Stricter than
+ * worldHash; a replay must match it too. Leaves out the inbox (a replay takes queued
+ * commands from the log), the log and the recent-event ring.
+ */
+export function stateHash(world: World): number {
+  return fnv(
+    JSON.stringify([
+      world.meta,
+      world.slices,
+      world.rng,
+      world.ids,
+      world.queue,
+      world.ai.nextId,
+      world.ai.pending,
+    ]),
+  );
+}
+
+function fnv(text: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
 }
 
 /** Stable 32-bit hash of the world JSON, used by determinism tests. */

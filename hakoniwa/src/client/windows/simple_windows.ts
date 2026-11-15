@@ -3,7 +3,7 @@
 
 import { clear, el } from '../../shared_ui/dom';
 import { fmt, T } from '../../shared_ui/text';
-import { SLOT_IDS, type SlotId, slotLabel } from '../hud/save_slots';
+import { LOAD_SLOTS, SLOT_IDS, type SlotId, slotLabel } from '../hud/save_slots';
 import type { WindowContext } from './window_context';
 import type { WindowContent } from './window_manager';
 
@@ -16,8 +16,11 @@ export function savesWindow(ctx: WindowContext): WindowContent {
     if (next === sig) return;
     sig = next;
     clear(root);
-    for (const slot of SLOT_IDS) {
+    for (const slot of LOAD_SLOTS) {
       const meta = list[slot as SlotId];
+      // Autosave slots are written by the game only; they appear once they hold a save.
+      const writable = SLOT_IDS.includes(slot);
+      if (!writable && !meta) continue;
       const btn = (text: string, onClick: () => void, disabled = false) =>
         el('button', {
           className: 'hk-btn hk-btn-small',
@@ -36,12 +39,16 @@ export function savesWindow(ctx: WindowContext): WindowContent {
                 : T.saves.empty,
             }),
           ]),
-          btn(T.saves.save, () => {
-            if (meta && !window.confirm(T.saves.confirmOverwrite)) return;
-            ctx.actions.saveTo(slot);
-            sig = '';
-            render();
-          }),
+          btn(
+            T.saves.save,
+            () => {
+              if (meta && !window.confirm(T.saves.confirmOverwrite)) return;
+              ctx.actions.saveTo(slot);
+              sig = '';
+              render();
+            },
+            !writable,
+          ),
           btn(
             T.saves.load,
             () => {
@@ -54,9 +61,14 @@ export function savesWindow(ctx: WindowContext): WindowContent {
             T.saves.remove,
             () => {
               if (!window.confirm(T.saves.confirmRemove)) return;
-              ctx.saves.remove(slot);
-              sig = '';
-              render();
+              const redraw = () => {
+                sig = '';
+                render();
+              };
+              ctx.saves.remove(slot).then(redraw, (err) => {
+                console.warn('[saves] delete failed', err);
+                redraw();
+              });
             },
             !meta,
           ),

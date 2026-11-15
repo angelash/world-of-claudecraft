@@ -2,7 +2,7 @@
 
 import { clear, el } from '../../shared_ui/dom';
 import { fmt, T } from '../../shared_ui/text';
-import { type SaveStore, SLOT_IDS, type SlotId, slotLabel } from '../hud/save_slots';
+import { type ClientSaves, LOAD_SLOTS, type SlotId, slotLabel } from '../hud/save_slots';
 
 export interface BootActions {
   newGame(seed?: number): void;
@@ -16,7 +16,7 @@ export class BootScreen {
 
   constructor(
     parent: HTMLElement,
-    private readonly saves: SaveStore,
+    private readonly saves: ClientSaves,
     private readonly actions: BootActions,
     private readonly devMode: boolean,
     private readonly devSeed?: number,
@@ -79,7 +79,7 @@ export class BootScreen {
     clear(this.body);
     const list = this.saves.list();
     let any = false;
-    for (const slot of SLOT_IDS) {
+    for (const slot of LOAD_SLOTS) {
       const meta = list[slot];
       if (!meta) continue;
       any = true;

@@ -6,7 +6,7 @@ import { buildLayout } from '../src/client/hd2d/layout';
 import { STYLE_PACKS } from '../src/client/hd2d/style_packs';
 import { belongsInBox, DialogueQueue } from '../src/client/hud/dialogue_queue';
 import { minimapMatrix, minimapScale } from '../src/client/hud/minimap_model';
-import { isQuotaError, MemoryStore, SaveStore, slotLabel } from '../src/client/hud/save_slots';
+import { ClientSaves, isQuotaError, slotLabel } from '../src/client/hud/save_slots';
 import { type Action, bindingFor, intentFromHeld, sameIntent } from '../src/client/input/keymap';
 import { exitOpen, nearestExit, nextTarget, pickEntity } from '../src/client/input/picking';
 import { AnimTracker } from '../src/client/render/anim_state';
@@ -34,7 +34,13 @@ import { lookFromAppearance } from '../src/client/sprites/look';
 import { getPixel, matrixHash, opaqueCount } from '../src/client/sprites/pixels';
 import { createGameView } from '../src/client/view/game_view';
 import { parseFlagValue } from '../src/client/windows/debug_window';
-import { serializeWorld, worldHash } from '../src/core/save';
+import {
+  ContainerBackend,
+  MemoryStorage,
+  SaveLoadError,
+  serializeWorld,
+  worldHash,
+} from '../src/core/save';
 import { calendarAt, TICK_HZ, tickAtDay } from '../src/core/time';
 import type { MapDef } from '../src/systems/world/types';
 
@@ -456,23 +462,39 @@ describe('client roofs and scene', () => {
 });
 
 describe('client save slots and sandbox world', () => {
-  it('saves, lists, loads and removes slots in a key-value store', () => {
+  it('saves, lists, loads and removes slots in the save container', async () => {
     const engine = createSandboxGame(7);
     engine.step(40);
-    const saves = new SaveStore(new MemoryStore());
-    const meta = saves.save('2', engine.world, '客户端沙盒', '2026-11-15T00:00:00.000Z');
+    const saves = new ClientSaves({
+      backend: new ContainerBackend(new MemoryStorage(), {
+        now: () => 0,
+        writer: { id: 'w-test', name: 'test' },
+      }),
+      now: () => Date.UTC(2026, 10, 15),
+      newRunId: () => 'r-0000aaaa',
+      versions: { gameVersion: '0.1.0', renameVersion: 0, build: 'test' },
+    });
+    await saves.open();
+    saves.attach(engine);
+    const meta = await saves.save('manual_02', { mapId: 'client_sandbox', mapName: '客户端沙盒' });
     expect(meta.date).toMatch(/^圣历 998 年 春 第 1 日 06:0\d$/);
-    expect(meta.bytes).toBe(serializeWorld(engine.world).length);
-    expect(Object.keys(saves.list())).toEqual(['2']);
-    expect(slotLabel('2')).toBe('存档 2');
+    expect(meta.mapName).toBe('客户端沙盒');
+    expect(meta.savedAt).toBe('2026-11-15T00:00:00.000Z');
+    expect(meta.bytes).toBeGreaterThan(0);
+    expect(Object.keys(saves.list())).toEqual(['manual_02']);
+    expect(slotLabel('manual_02')).toBe('存档 2');
+    expect(slotLabel('manual_20')).toBe('存档 20');
+    expect(slotLabel('auto_3')).toBe('自动存档 3');
     expect(slotLabel('quick')).toBe('快速存档');
-    const loaded = saves.load('2');
-    expect(loaded && worldHash(loaded)).toBe(worldHash(engine.world));
-    expect(saves.load('3')).toBeNull();
-    saves.remove('2');
+    const loaded = await saves.load('manual_02');
+    expect(worldHash(loaded.world)).toBe(worldHash(engine.world));
+    expect(loaded.level).toBe(0);
+    await expect(saves.load('manual_03')).rejects.toBeInstanceOf(SaveLoadError);
+    await saves.remove('manual_02');
     expect(saves.list()).toEqual({});
-    expect(saves.has('2')).toBe(false);
+    expect(saves.has('manual_02')).toBe(false);
     expect(isQuotaError({ name: 'QuotaExceededError' })).toBe(true);
+    expect(isQuotaError({ code: 'quota' })).toBe(true);
     expect(isQuotaError(new Error('x'))).toBe(false);
   });
 

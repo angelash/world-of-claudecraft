@@ -1,16 +1,24 @@
 // Client entry: title screen, then one GameSession per running world. Loading a save
 // replaces the session with one built on the resumed world. The game factory is loaded
 // dynamically so a broken system module shows an error on the title screen instead of a
-// blank page.
+// blank page. Saves live in the save container over IndexedDB (release_engineering.md 5.2),
+// in memory when the browser has none.
 
 import '../client.css';
+import { version as gameVersion } from '../../../package.json';
 import type { Engine } from '../../core/engine';
+import { ContainerBackend, MemoryStorage, runIdFromBytes, type SaveStorage } from '../../core/save';
+import { IdbStorage } from '../../core/save/idb_storage';
 import type { World } from '../../core/world';
 import { fmt, T } from '../../shared_ui/text';
 import {
+  CLIENT_LOG_LIMIT,
+  ClientSaves,
   type KeyValueStore,
+  type LoadedSave,
+  loadErrorText,
+  loadNote,
   MemoryStore,
-  SaveStore,
   type SlotId,
   slotLabel,
 } from '../hud/save_slots';
@@ -32,10 +40,67 @@ function storage(): KeyValueStore {
   }
 }
 
+const WRITER_KEY = 'hakoniwa.saves.writer';
+
+function randomHex(bytes: number): string {
+  return [...crypto.getRandomValues(new Uint8Array(bytes))]
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/** This browser's writer id for slot headers (5.3), kept across visits. */
+function writerId(kv: KeyValueStore): string {
+  const known = kv.getItem(WRITER_KEY);
+  if (known && /^w-[0-9a-f]{8,32}$/.test(known)) return known;
+  const id = `w-${randomHex(8)}`;
+  try {
+    kv.setItem(WRITER_KEY, id);
+  } catch {
+    // Not kept: the next visit picks another id, which only shows in the slot list.
+  }
+  return id;
+}
+
+async function saveStorage(): Promise<{ storage: SaveStorage; durable: boolean }> {
+  try {
+    if (typeof indexedDB !== 'undefined') {
+      const storage = await IdbStorage.open(indexedDB, { now: () => Date.now() });
+      return { storage, durable: true };
+    }
+  } catch (err) {
+    console.warn('[saves] IndexedDB unavailable; saves last until the page closes', err);
+  }
+  return { storage: new MemoryStorage({ now: () => Date.now() }), durable: false };
+}
+
+async function openSaves(kv: KeyValueStore): Promise<ClientSaves> {
+  const now = () => Date.now();
+  // renameVersion stays 0 until the rename table exists (PK-M0-18).
+  const versions = { gameVersion, renameVersion: 0, build: import.meta.env.DEV ? 'dev' : 'web' };
+  const { storage, durable } = await saveStorage();
+  const backend = new ContainerBackend(storage, {
+    now,
+    writer: { id: writerId(kv), name: T.saves.writerBrowser },
+    versions,
+    // Another tab of the game may share the database: never share its temp files.
+    tmpTag: randomHex(4),
+  });
+  const opened = new ClientSaves({
+    backend,
+    now,
+    newRunId: () => runIdFromBytes(crypto.getRandomValues(new Uint8Array(8))),
+    versions,
+    legacy: kv,
+    durable,
+  });
+  await opened.open();
+  return opened;
+}
+
 const config = parseConfig(window.location.search, import.meta.env.DEV);
 const root = document.getElementById('app') ?? document.body;
 const store = storage();
-const saves = new SaveStore(store);
+let saves: ClientSaves;
 const ai = new AiBridge(store);
 void ai.probe();
 document.title = T.app.title;
@@ -50,6 +115,7 @@ function errorText(err: unknown): string {
 function showTitle(): void {
   session?.dispose();
   session = null;
+  saves.detach();
   boot?.dispose();
   boot = new BootScreen(
     root,
@@ -63,17 +129,28 @@ function showTitle(): void {
           }
           const { createGame } = await import('../../game/create');
           await ai.probe();
-          return createGame({ seed: seed ?? config.seed, aiMode: ai.mode() });
+          return createGame({
+            seed: seed ?? config.seed,
+            aiMode: ai.mode(),
+            logLimit: CLIENT_LOG_LIMIT,
+          });
         }),
       load: (slot: SlotId) =>
-        startWith(
-          async () => {
-            const world = saves.load(slot);
-            if (!world) throw new Error(T.app.noSaves);
-            return resume(world);
-          },
-          fmt(T.log.loaded, { slot: slotLabel(slot) }),
-        ),
+        void (async () => {
+          let loaded: LoadedSave;
+          try {
+            loaded = await saves.load(slot);
+          } catch (err) {
+            console.error(err);
+            boot?.setStatus(fmt(T.saves.loadFailed, { reason: loadErrorText(err) }));
+            return;
+          }
+          await startWith(
+            () => resume(loaded.world),
+            loadedLine(fmt(T.log.loaded, { slot: slotLabel(slot) }), loaded),
+            loaded,
+          );
+        })(),
     },
     config.devMode,
     config.seed,
@@ -87,10 +164,20 @@ async function resume(world: World): Promise<Engine> {
   }
   const { resumeGame } = await import('../../game/create');
   await ai.probe();
-  return resumeGame(world, { aiMode: ai.mode() });
+  return resumeGame(world, { aiMode: ai.mode(), logLimit: CLIENT_LOG_LIMIT });
 }
 
-async function startWith(make: () => Promise<Engine>, greeting?: string): Promise<void> {
+/** The "loaded" line, with a note when the load fell back to an older generation. */
+function loadedLine(line: string, loaded: LoadedSave): string {
+  const note = loadNote(loaded);
+  return note ? fmt(T.saves.withNote, { line, note }) : line;
+}
+
+async function startWith(
+  make: () => Promise<Engine>,
+  greeting?: string,
+  from?: LoadedSave,
+): Promise<void> {
   let engine: Engine;
   try {
     engine = await make();
@@ -102,6 +189,7 @@ async function startWith(make: () => Promise<Engine>, greeting?: string): Promis
   boot?.dispose();
   boot = null;
   session?.dispose();
+  saves.attach(engine, from ?? null);
   session = new GameSession({
     engine,
     root,
@@ -110,7 +198,8 @@ async function startWith(make: () => Promise<Engine>, greeting?: string): Promis
     saves,
     settings: ai,
     greeting,
-    loadWorld: (world: World, line: string) => void startWith(() => resume(world), line),
+    loadWorld: (loaded: LoadedSave, line: string) =>
+      void startWith(() => resume(loaded.world), loadedLine(line, loaded), loaded),
     toTitle: () => showTitle(),
   });
   ai.attach(engine);
@@ -121,4 +210,8 @@ async function startWith(make: () => Promise<Engine>, greeting?: string): Promis
   }
 }
 
-showTitle();
+void openSaves(store).then((opened) => {
+  saves = opened;
+  showTitle();
+  if (!saves.durable) boot?.setStatus(T.saves.memoryOnly);
+});

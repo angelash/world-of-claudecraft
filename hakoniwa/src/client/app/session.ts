@@ -7,7 +7,6 @@
 // frame whether the renderer runs (release_engineering.md 6.3).
 
 import type { Engine } from '../../core/engine';
-import type { World } from '../../core/world';
 import { fmt, T } from '../../shared_ui/text';
 import type { Appearance } from '../../systems/world/types';
 import { createWorldRenderer, hasWebGL2, type QualityId, resolveQuality } from '../hd2d';
@@ -24,7 +23,15 @@ import {
 } from '../hd2d/view';
 import { DialogueQueue } from '../hud/dialogue_queue';
 import { Hud } from '../hud/hud';
-import { isQuotaError, type SaveStore, type SlotId, slotLabel } from '../hud/save_slots';
+import {
+  atSafePoint,
+  type ClientSaves,
+  type LoadedSave,
+  loadErrorText,
+  type SlotId,
+  saveErrorText,
+  slotLabel,
+} from '../hud/save_slots';
 import { scenePanelModel } from '../hud/scene_model';
 import { InputController } from '../input/input_controller';
 import { exitOpen, nearestExit, pickEntity } from '../input/picking';
@@ -72,13 +79,13 @@ export interface SessionOptions {
   root: HTMLElement;
   devMode: boolean;
   adapters: ClientAdapters;
-  saves: SaveStore;
+  saves: ClientSaves;
   settings: ClientSettings;
   hooks?: SessionHooks;
   /** first message-log line (for example "loaded slot 2") */
   greeting?: string;
-  /** replace this session with a loaded world */
-  loadWorld(world: World, greeting: string): void;
+  /** replace this session with a loaded save */
+  loadWorld(loaded: LoadedSave, greeting: string): void;
   toTitle(): void;
 }
 
@@ -492,6 +499,7 @@ export class GameSession implements PlayerInputHost {
       this.opts.hooks?.afterStep?.(this.engine);
     }
     if (steps > 0) this.actions.afterSteps();
+    if (this.engine.logFull) this.autosaveAtSafePoint();
     this.alpha = alpha;
     this.present(now, dt);
     this.windows.frame(now);
@@ -689,26 +697,53 @@ export class GameSession implements PlayerInputHost {
   // Save and load
 
   saveTo(slot: SlotId): void {
-    const map = this.view.currentMap();
-    try {
-      this.opts.saves.save(slot, this.engine.world, map?.name ?? '', new Date().toISOString());
-      this.logLine(fmt(T.log.saved, { slot: slotLabel(slot) }));
-    } catch (err) {
-      const reason = isQuotaError(err) ? T.saves.quota : String((err as Error)?.message ?? err);
-      this.logLine(fmt(T.saves.failed, { reason }), 'warning');
-    }
+    this.opts.saves.save(slot, this.saveInfo()).then(
+      () => this.saveLine(fmt(T.log.saved, { slot: slotLabel(slot) })),
+      (err) => this.saveFailed(err),
+    );
   }
 
   loadFrom(slot: SlotId): void {
-    try {
-      const world = this.opts.saves.load(slot);
-      if (!world) return;
-      this.opts.loadWorld(world, fmt(T.log.loaded, { slot: slotLabel(slot) }));
-    } catch (err) {
-      this.logLine(
-        fmt(T.saves.loadFailed, { reason: String((err as Error)?.message ?? err) }),
-        'warning',
-      );
-    }
+    this.opts.saves.load(slot).then(
+      (loaded) => {
+        if (!this.disposed)
+          this.opts.loadWorld(loaded, fmt(T.log.loaded, { slot: slotLabel(slot) }));
+      },
+      (err) => {
+        console.warn('[saves] load failed', err);
+        this.saveLine(fmt(T.saves.loadFailed, { reason: loadErrorText(err) }), 'warning');
+      },
+    );
+  }
+
+  /**
+   * The replay log reached its limit (Engine.logFull): autosave at the next safe point,
+   * which drains the log into a commands segment (release_engineering.md 13.6).
+   */
+  private autosaveAtSafePoint(): void {
+    const safe = atSafePoint(this.engine.world, {
+      inScene: this.inScene(),
+      writing: this.opts.saves.writing,
+    });
+    if (!safe) return;
+    this.opts.saves.autosave(this.saveInfo()).then(
+      (meta) => this.saveLine(fmt(T.log.saved, { slot: slotLabel(meta.slot) })),
+      (err) => this.saveFailed(err),
+    );
+  }
+
+  private saveInfo(): { mapId: string; mapName: string } {
+    const map = this.view.currentMap();
+    return { mapId: map?.id ?? '', mapName: map?.name ?? '' };
+  }
+
+  private saveFailed(err: unknown): void {
+    console.warn('[saves] save failed', err);
+    this.saveLine(fmt(T.saves.failed, { reason: saveErrorText(err) }), 'warning');
+  }
+
+  /** A save finishes after its frame; the session may be gone by then. */
+  private saveLine(text: string, category = 'system'): void {
+    if (!this.disposed) this.logLine(text, category);
   }
 }

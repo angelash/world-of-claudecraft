@@ -2,7 +2,7 @@
 // adapters, save storage, client settings and a few session actions.
 
 import type { QualityId } from '../hd2d/quality';
-import type { SaveStore, SlotId } from '../hud/save_slots';
+import type { ClientSaves, SlotId } from '../hud/save_slots';
 import type { ClientAdapters } from '../view/adapters';
 import type { GameCommands, GameView } from '../view/game_view';
 import type { WindowId } from './window_registry';
@@ -53,7 +53,7 @@ export interface WindowContext {
   commands: GameCommands;
   adapters: ClientAdapters;
   devMode: boolean;
-  saves: SaveStore;
+  saves: ClientSaves;
   actions: SessionActions;
   settings: ClientSettings;
 }

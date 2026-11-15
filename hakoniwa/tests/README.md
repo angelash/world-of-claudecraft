@@ -5,4 +5,4 @@
 - 测试文件按系统命名（`<系统>.test.ts`、`client_*.test.ts`、`editor_*.test.ts`、`ai*.test.ts`、`llm_*.test.ts`）。
 - 大模型适配器的夹具在 `fixtures/llm/`（规格与模型档案）、`fixtures/llm_golden/`（请求体金样，`HK_WRITE_LLM_GOLDEN=1` 重写后逐行审阅）、`fixtures/llm_cassettes/`（各提供方的应答样例）。
 - 存档容器的夹具在 `fixtures/save_container/`：`act6_release.hks` 是离手路线进入第六幕时的世界快照（gzip JSON，约 130 KB），由 `node tools/replay/run.ts record --dir <临时目录> --until act6 --fixture tests/fixtures/save_container/act6_release.hks` 生成；它只用于容器读写与体积预算，不随内容批次重生成，世界结构变化后的迁移样本归 `fixtures/saves/`（PK-M0-18）。
-- `save_container.test.ts`（容器、断电注入、云冲突、回退）与 `replay_segments.test.ts`（短路线 40 次存档与锚点回放）在默认套件；完整路线上的同一检查是 `playthrough/replay_segments.playthrough.test.ts`（约 25 分钟，经 `tools/replay/run.ts` 多进程回放）。
+- `save_container.test.ts`（容器、断电注入、云冲突、回退、旧存档迁入）与 `replay_segments.test.ts`（短路线 40 次存档与锚点回放、回放工具命令行）在默认套件；完整路线上的同一检查是 `playthrough/replay_segments.playthrough.test.ts`（离手路线中途存档 40 次以上，进程内逐段回放加一次中间锚点到终点，单文件约 35 分钟）。
