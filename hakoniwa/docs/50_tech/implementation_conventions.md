@@ -121,6 +121,10 @@
 6. 地图出口用 `toLocation`（第 2 节）。
 7. 不要导入别的业务系统的模块（除了 world、inventory、modifiers 与 core）。需要别人的数据时，优先用事件、旗标、实体标签；
    确实需要查询时，在回复中提出，由总负责人在整合阶段接线。
+8. 实体字段 `alive`、`tags`、`speed`、`move`、`intent` 只由世界系统写；其他系统调 `src/systems/world/ports.ts` 的端口（`setLife`、`setTagValue`、`setTag`、`haltEntity`、`setMoveSpeed`），
+   读标签值用同一文件的 `tagValue`；守卫在 `tests/architecture.test.ts`（[`release_engineering.md`](release_engineering.md) 第 13.1 节）。
+9. 系统代码不写内容 ID（地图、地点、市场、人物、女神、国家等）：按数据声明的职能或字段去查，例如地点的 `roles`、地图的 `respawn` 与 `storyActs`、女神人格卡的 `courtSeat`
+   （[`release_engineering.md`](release_engineering.md) 第 13.2 节；守卫 `tests/content_id_guard.test.ts`）。
 
 ## 7. AI 请求约定
 
@@ -137,8 +141,13 @@
   模型生成的文本是 `{ raw, lang }`，按生成时的界面语言打标签。内核里现有的中文字面量在 M0 迁移批次里全部换成键（[`release_engineering.md`](release_engineering.md) 第 8.4 节）。
 - **中文是源语言。** 系统的模板句与拒绝原因放 `locales/zh-Hans/sys_<系统>.json`；界面文本放 `locales/zh-Hans/ui.json`（由 `src/shared_ui/text*.ts` 迁出）；
   内容数据与台词包的文本由工具从 `data/` 抽取为 `content.generated.json`、`lines.generated.json`，不手改。客户端查表用 `t(ref)`（`src/shared_ui/i18n.ts`）。
-- **键名** `<域>.<子域>.<名>`，小写加下划线与点（例：`ui.saves.slot`、`sys.combat.reject.out_of_range`）；内容以内容 ID 作键（例：`eq_ash_blade.name`）。键的联合类型由
+- **键名** `<域>.<子域>.<名>`，小写加下划线与点（例：`ui.saves.slot`、`sys.combat.reject.out_of_range`）；内容文本的键由工具生成，形如 `c.<表>.<内容 ID>.<字段>`（例：`c.items.eq_ash_blade.name`），作者不手写。键的联合类型由
   `tools/i18n/gen_keys.ts` 生成，拼错键在类型检查时失败。布局与流程的完整规则见 [`release_engineering.md`](release_engineering.md) 第 8 节、[`../40_design/ux_and_onboarding.md`](../40_design/ux_and_onboarding.md) 第 20 节。
+- **内容文本经 `tc` 取。** 运行时取内容的显示文字一律经 `tc(表, ID, 字段)`，先查当前语言、再回退源语言；作者照常在 `data/` 里写中文，不手写键（[`release_engineering.md`](release_engineering.md) 第 8.3 节）。
+- **占位与格式。** 占位符写作 `{名}`；数字、货币、日期、时刻走格式化函数，不在模板句里拼接。缺键时开发构建报错并显示键名，发布构建回退到源语言（[`release_engineering.md`](release_engineering.md) 第 8.2 节）。
+- **测试断言键，不断言句子。** 系统测试断言 `TextRef` 的键与参数；棘轮守卫 `tests/i18n_kernel_guard.test.ts` 统计 `src/core`、`src/systems`、`src/game`（题面模板目录除外）的中文字面量，
+  数量不得超过 `tests/fixtures/i18n_ceiling.json` 的上限，每个迁移批次下调，M0 退出时为 0（PK-M0-14）。
+- **不迁的文字。** 角色包的题面模板保持中文（大模型题面用中文），放 `src/game/ai_roles/templates/`；编辑器与内容 pack 的字段标签不本地化（[`release_engineering.md`](release_engineering.md) 第 8.4 节）。
 - **开发者文字用英文。** 日志、断言、内部错误与开发工具的输出用英文，不进字符串表；同一句话既进日志又进界面时拆成两条。
 - **发行语言**：1.0 简体中文；繁体中文与英文在 1.x 更新加入。大模型题面用中文，输出跟随界面语言。
 - 禁用字符同仓库规则（无破折号、无 emoji、无 U+2600 到 U+27BF 符号）。

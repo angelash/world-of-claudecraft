@@ -978,13 +978,13 @@ Steam 内容问卷把 AI 内容分为"预先生成"与"实时生成"两类；实
 // src/core/text.ts（内核只认这个类型，不查表）
 export type TextParam = string | number | TextRef;
 export type TextRef =
-  | { k: string; p?: Record<string, TextParam> } // 文本键加参数
+  | { key: string; params?: Record<string, TextParam> } // 文本键加参数
   | { raw: string; lang: string }; // 模型生成的原文，带语言标签
-export function tr(k: string, p?: Record<string, TextParam>): TextRef;
+export function tr(key: string, params?: Record<string, TextParam>): TextRef;
 ```
 
 - 内核、系统与游戏编排里所有玩家可见的文字都是 `TextRef`：命令拒绝原因（`CommandResult` 的可读原因）、事件里的文字字段、日记与心声的模板句、默认名。
-- 参数里的实体、物品、地点用 ID 或嵌套的 `TextRef` 传，客户端渲染时再取显示名，例如 `{ k: 'sys.city.reject.blocked', p: { site: { k: 'c.sites.old_outpost.name' } } }`。
+- 参数里的实体、物品、地点用 ID 或嵌套的 `TextRef` 传，客户端渲染时再取显示名，例如 `{ key: 'sys.city.reject.blocked', params: { site: { key: 'c.sites.old_outpost.name' } } }`。
 - 模型生成的文本是 `{ raw, lang }`，按生成时的界面语言打标签；切换语言后，历史里的模型原文保持原样。
 - 开发者文字（日志、断言、内部错误）用英文，不进字符串表。
 

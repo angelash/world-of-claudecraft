@@ -16,7 +16,8 @@
 4. **数据驱动**：内容是可被编辑器读写的数据，带校验；新增内容不改代码。
 5. **纯逻辑可测**：内核、系统、AI 编排、游戏流程不依赖 DOM，可在 Node 中由测试直接运行。
 6. **依赖极少**：沿用主工程工具链（TypeScript strict、Vite、Vitest、Biome）；运行时依赖只有 HD-2D 场景渲染用的 `three`
-   （与主工程同版本，D-058）与开发服务侧的官方 Claude SDK（D-059），不随意新增。
+   （与主工程同版本，D-058）；官方 Claude SDK 只在开发服务的 Node 侧使用，不进发布包（D-059）；桌面壳复用仓库根目录的 `electron` 与 `electron-builder`，
+   `steamworks.js` 只打进 Steam 构建（`release_engineering.md` 第 2.2 节）；不随意新增。
 7. **模块优先**：每个系统是自己的目录与接口，协调器保持薄（沿用主工程"不让协调器长胖"的原则）。
 
 ## 2. 分层
@@ -46,7 +47,8 @@
 由架构守卫测试扫描保证（仿照主工程 `tests/architecture.test.ts` 的做法）。
 
 发布版（桌面壳）在客户端之外还有主进程与大模型网关（utility 进程）：客户端经 `src/platform/` 的 `PlatformHost` 访问存档、设置与大模型；
-开发服务中间件只在开发期存在，发布版不带（第 9 节；进程分工见 `release_engineering.md` 第 2 节）。
+开发服务中间件只在开发期存在，发布版不带（第 9 节；进程分工见 `release_engineering.md` 第 2 节）。`src/platform/` 只被 `src/client/` 引用，
+`core/`、`systems/`、`game/`、`ai/` 不得引用它（桌面壳骨架 PK-M0-21 把这条并入架构守卫的分层检查）。
 
 ## 3. 目录（实现阶段）
 
@@ -57,6 +59,9 @@ hakoniwa/
   index.html          游戏
   editor.html         编辑器与审核工作台
   data/               JSON 内容
+  locales/            字符串表，zh-Hans 为源语言（release_engineering.md 第 8.2 节）
+  assets/             AI 生成素材的原文件、处理结果与清单；提示词库在 assets/prompts/（art_pipeline.md）
+  desktop/            桌面壳：主进程、预载桥、大模型网关、密钥、文件存档、Steam（release_engineering.md 第 2.2 节）
   src/
     core/             确定性内核
     content/          内容模式、校验、加载
@@ -64,10 +69,11 @@ hakoniwa/
     ai/               AI 层（系统只能引用 ai/contracts 中的契约类型）
     game/             编排与流程；game/ai_roles/ 存放各角色的题面模板与角色包
     content/knowledge/  世界知识条目与按知识层级、揭示台账的过滤
-    client/           客户端：hd2d/（HD-2D 场景）、render/（渲染接口与平面降级）、sprites/（纸娃娃）
+    client/           客户端：hd2d/（HD-2D 场景）、render/（渲染接口、帧调度与平面降级）、sprites/（纸娃娃）
+    platform/         渲染进程侧的平台接口 PlatformHost（桌面、网页、测试三种实现）
     editor/           编辑器与工作台
     shared_ui/        客户端与编辑器共用的 DOM 小工具与文本表
-  tools/              开发服务中间件、无头运行脚本、素材校验
+  tools/              开发服务中间件、全量门（gate.ts）、提示词库与素材工具、无头运行脚本
   tests/
 ```
 
@@ -96,6 +102,8 @@ hakoniwa/
 - 各系统用 TypeScript 模块扩充（module augmentation）在 `core` 声明的 `WorldSlices`、`EventMap`、`CommandMap`、`ContentMap`
   接口上登记自己的类型。这样核心不需要认识每个系统，系统之间也能获得完整类型检查。
 - 规则：一个系统只写自己的切片；读别的系统用该系统导出的查询函数；跨系统的写操作走事件或该系统导出的"端口函数"。
+- 实体字段 `alive`、`tags`、`speed`、`move`、`intent` 只由世界系统写，其他系统调 `src/systems/world/ports.ts` 的端口（`setLife`、`setTagValue`、`setTag`、`haltEntity`、`setMoveSpeed`）；
+  架构守卫扫描 `src/systems/`（世界系统除外）里对这些字段的赋值（`release_engineering.md` 第 13.1 节）。
 
 ### 4.4 事件
 
@@ -106,7 +114,8 @@ hakoniwa/
 ### 4.5 命令
 
 - 玩家输入与 AI 提议都转为命令，排队到下一个 tick 开始时按序执行。
-- 每个命令由所属系统的处理器校验并执行，结果是"成功"或"拒绝 + 原因码 + 可读原因"。可读原因写回提议者（AI 会话据此自我修正，沿用 my_ai_town 的做法）。
+- 每个命令由所属系统的处理器校验并执行，结果是"成功"或"拒绝 + 原因码 + 可读原因"。可读原因写回提议者（AI 会话据此自我修正，沿用 my_ai_town 的做法）；
+  可读原因是 `TextRef`（文本键加参数，`implementation_conventions.md` 第 8 节）。
 - 需要即时反馈的界面（例如建筑摆放预览）调用系统导出的纯查询函数，不经命令队列。
 
 ### 4.6 系统接口与相位顺序
@@ -156,6 +165,7 @@ AI 层（异步）-> 题面清洗与预算检查 -> 调用提供方 -> 解析与
 - 内容类型（首批）：职能与技能、怪物、物品、门与钥、NPC 人设卡、势力、地点与地图、建筑、兵种、国家与省份、女神人格卡、任务与事件链、对话树（序章降级版等）、世界知识条目（带知识层级与揭示阶段标签）、传闻模板。
 - 每条世界知识带两个标签：知识层级（凡人常识到神知）与揭示条件（揭示台账的条件表达式），AI 题面组装时按此过滤。
 - 编辑器通过开发服务写回 JSON；内容校验测试保证所有数据合法、引用完整、ID 唯一。
+- 系统代码不写内容 ID：要用到某张图、某个地点、某位女神、某个国家时，按数据声明的职能或字段去查（`release_engineering.md` 第 13.2 节，内容 ID 守卫）。
 
 ## 7. 客户端
 
@@ -168,6 +178,8 @@ AI 层（异步）-> 题面清洗与预算检查 -> 调用提供方 -> 解析与
   - `src/client/render/renderer.ts` 定义 `WorldRenderer` 接口（`setMap`、`render`、`hitBoxes`、`screenToGround`、`setQuality`）；
     `src/client/render/flat_renderer.ts` 是 Canvas2D 俯视平面渲染，作为降级档（无 WebGL 或玩家选"平面"画质时使用）。
     两种渲染器读同一份 `GameView`，切换不影响逻辑。
+  - 帧调度：`src/client/render/frame_scheduler.ts`（纯逻辑核心）按脏原因与场景各部分的变化签名决定每帧画不画；`requestAnimationFrame` 循环照常推进内核与输入，
+    只在需要时调用渲染器，暂停时一帧不画（`release_engineering.md` 第 6.3 节）。
   - 画质档：超高、高、中、低、平面（D-078）；首次启动按微基准与显卡名选初始档，按 GPU 计时的自动降档在 Beta 上线、每局至多两次（`release_engineering.md` 第 6.7 节）。
     画质档只减观感，不减玩家据以行动的信息（`art_pipeline.md` 第 2.11、2.12 节）。
 - 地图外观层：地图文档在逻辑层与空间层之外有外观层（`style` 风格包、`looks` 逐地点建筑外观、`decor` 装饰），
@@ -200,6 +212,9 @@ AI 层（异步）-> 题面清洗与预算检查 -> 调用提供方 -> 解析与
 - `/api/data`：编辑器写回 `data/` 下的 JSON。
 - `/api/audit`：追加 AI 审计记录到本地日志。
 
+运行时代码经 `src/ai/` 的 `LlmTransport` 发请求，三种实现：`IpcTransport`（桌面，经 `PlatformHost.llm`）、`LocalHttpTransport`（网页试玩，只连本机服务）、
+`DevProxyTransport`（开发服务 `/api/llm`，只在 `import.meta.env.DEV` 下引入，生产构建摇树去掉）；发布包扫描不得出现 `/api/llm`（`release_engineering.md` 第 13.9 节，RE-02）。
+
 发布版没有模型代理，也不设官方代理（D-067）：
 
 - **桌面版**：大模型请求经桌面壳主进程转交网关（utility 进程）；网关在本次请求的作用域里解密玩家存于系统钥匙串的密钥，经 `src/ai/providers/` 的适配器调用玩家配置的提供方，
@@ -227,7 +242,9 @@ AI 层（异步）-> 题面清洗与预算检查 -> 调用提供方 -> 解析与
 4. 内容校验：全部 JSON 合法、引用完整。
 5. 无模型通关：无头运行规则自动玩家（`src/game/autoplay/`，D-071）从序章走到结局，作为垂直切片与每次大改动的硬性验收（D-010、D-068）；多种子矩阵见 `release_engineering.md` 第 10.2 节。
 6. 揭示台账：给定幕次，AI 题面中不得出现未解锁知识。
-7. 客户端纯逻辑：HD-2D 的纯逻辑模块（相机、风格包、光照、建筑布局、立牌深度、画质档）与地图外观层的引用校验在 Node 中测试。
+7. 客户端纯逻辑：HD-2D 的纯逻辑模块（相机、风格包、光照、建筑布局、立牌深度、画质档）、帧调度器与地图外观层的引用校验在 Node 中测试。
+8. 完整的套件总表（存档迁移与损坏、浏览器与桌面端到端、截图回归、性能回归、模型路径的模拟与回放、11 个结局的自动验证）与流水线见 `release_engineering.md` 第 10、11 节；
+   本地全量门 `npm run gate`（`tools/gate.ts`）依次运行全部步骤并如实汇总退出码。
 
 ## 12. 工程规范
 

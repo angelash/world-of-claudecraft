@@ -145,6 +145,14 @@
 | [first_playable.md](60_production/first_playable.md) | 第一轮可玩版本交付说明：运行方式、已实现内容、验证结果、待确认与缺口 |
 | [development_plan.md](60_production/development_plan.md) | 全作开发计划：实施包 `PK-` 清单、素材生成批次、关键路径与甘特、总量矩阵、各里程碑退出清单 |
 | [project_state.md](60_production/project_state.md) | 项目现状：各层完成度、已有实现、缺口、进行中的包、待用户决定 |
+| [progress_log.md](60_production/progress_log.md) | 进度日志：按日期记录完成的实施包与已提交的部分交付，带提交号，只追加 |
+| [reviewers/README.md](60_production/reviewers/README.md) | 审查角色清单：八个领域角色与两个通用角色的审查范围、检查清单、何时必须派出，报告格式与派发矩阵 |
+
+## 70 实施包
+
+| 文档 | 内容 |
+| --- | --- |
+| [70_packets/README.md](70_packets/README.md) | 实施包目录约定：包目录命名、包内文件与模板（`_template/` 的 `brief.md`、`acceptance.md`、`report.md`）、状态流转、与开发计划状态列的关系；各包目录不单列 |
 
 ## 素材
 

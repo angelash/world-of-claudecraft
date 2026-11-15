@@ -2074,7 +2074,7 @@ View 切换指挥模式与亲身模式；R3 兵团视图；按住 RB 加 A 交�
 | `ui` | `ui.<元件类>.<元件名>.<条目>`，元件类与编号前缀对应（`scr`、`set`、`hud`、`ovl`、`win`、`mode`、`pop`），另有 `ui.glossary.*`、`ui.loading.tip.*`、`ui.common.*` | `ui.win.quests.empty`、`ui.set.llm.err.key_invalid`、`ui.glossary.dian.name` |
 | `sys` | `sys.<系统>.<条目>`：内核与系统产生的文字（拒绝原因、日志、事件） | `sys.combat.reject.out_of_range`、`sys.log.item_gain` |
 | `tut` | `tut.<步骤编号去掉前缀>.<字段>` | `tut.a1_first_fight.body` |
-| 内容 | `<内容 ID>.<字段>`：内容 ID 全作唯一（[content_bible.md](content/content_bible.md) 第 12 节），直接作键 | `eq_ash_blade.name`、`q_a1_m01.title`、`door_messenger.desc`、`ln_yeyu_greet_01.text`、`cut_a1_ash_glimpse.summary`、`ron.name` |
+| 内容 | `c.<表>.<内容 ID>.<字段>[.<序号>]`：由 `tools/i18n/extract_content.ts` 从 `data/` 自动生成，作者不手写；带表名是因为人物、魔物、地图等无前缀的编号可能跨表同名（[`release_engineering.md`](../50_tech/release_engineering.md) 第 8.3 节） | `c.items.eq_ash_blade.name`、`c.quests.q_a1_m01.title`、`c.doors.door_messenger.desc`、`c.lines.ln_yeyu.greet.1`、`c.cutscenes.cut_a1_ash_glimpse.summary`、`c.npcs.ron.name` |
 
 - 内容字段固定集：`name`、`short`、`title`、`desc`、`body`、`text`、`summary`、`hint`、`tooltip`、`flavor`。
 - 内容 ID 不得含点，也不得等于 `ui`、`sys`、`tut`（内容校验检查）。
@@ -2094,7 +2094,7 @@ View 切换指挥模式与亲身模式；R3 兵团视图；按住 RB 加 A 交�
 | `{key:<动作>}` | 按当前设备与绑定换成键帽或手柄字形（第 16.6 节） |
 | `{icon:<名>}` | 行内图标（金、银、铜、品质点等），读屏读其名字 |
 
-- 内核事件带 `{ key, params }`；指向实体的参数带 ID（`{ who: { ref: 'ron.name' } }`），由客户端渲染，从而跟随语言与揭示阶段。
+- 内核事件带 `{ key, params }`；指向实体的参数是嵌套的文本引用（`{ who: { key: 'c.npcs.ron.name' } }`），由客户端渲染，从而跟随语言与揭示阶段。
 - 缺参数时原样留下占位（沿用 `fmt` 的行为），开发构建标红。
 
 ### 20.4 按揭示阶段取值的文本
