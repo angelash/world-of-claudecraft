@@ -245,7 +245,7 @@ wallet 上限 kRoadMaxWallet = 2.5 * 600
 
 **我们现在怎么做、差在哪**
 
-- `hakoniwa/src/systems/city/production.ts` 的 `runProduction`：按 `LABOR_SHARE` 把劳力按建筑列表顺序填岗（`foodFirst` 政策时食物优先），原料直接从 `stockOf(owner)` 的聚落总库存扣，产出直接入库；仓库满时原料照扣，放不下的产出直接丢弃（只保留小数进位），同时给相关建筑写备注"仓库已满，停产"、给聚落写状态行，并不会停产。**没有在途量、没有搬运时间、没有逐栋的输入储备与优先级、没有"经济不缺就不产"的判断**。设计文档城建 6.4 要求"搬运时间计入生产周期"，目前没落地。
+- `hakoniwa/src/systems/city/production.ts` 的 `runProduction`：按 `LABOR_SHARE` 把劳力按建筑列表顺序填岗（`foodFirst` 政策时食物优先），原料直接从 `stockOf(owner)` 的聚落总库存扣，产出直接入库；按剩余库容预算，放不下产出的建筑不开工也不扣原料，溢出部分留在进位缓冲里次日入库。**没有在途量、没有搬运时间、没有逐栋的输入储备与优先级、没有"经济不缺就不产"的判断**。设计文档城建 6.4 要求"搬运时间计入生产周期"，目前没落地。
 - 委托：城建第 9 节的常设命令（"粮仓低于 15 天自动减酒"）目前只有两类近似物：政策卡（`setPolicy` 写入 `site.policies`，经 `policyFlag`、`policyFactor`、`policyEffectSum` 读取），以及官员 `utilityAction` 里写死的阈值规则（`SURPLUS_KEEP` 按货给出写死的留存量）；没有可调的"每种货一个目标数"的通用委托对象。
 
 **可直接借的方法**
@@ -587,7 +587,7 @@ camp_influence(指挥官) = 统率技能 * 2 / 3
 **我们现在怎么做、差在哪**
 
 - 忠诚：只有官员的平均忠诚进入自治度（`hakoniwa/src/systems/city/autonomy.ts` 的输入 `loyalty`，`city/daily.ts` 的 `loyaltyOf`）；**人口池没有按种族分的忠诚、目标忠诚与抵抗**，也没有叛乱与和平归附。
-- 外交：`hakoniwa/src/systems/strategy/diplomacy.ts` 的 `refusal` 用若干阈值返回拒绝理由（如通商 `rel >= -10`），没有"评分减接受线"的分项结构，也没有消息队列、回复与重试间隔。
+- 外交：`hakoniwa/src/systems/strategy/diplomacy.ts` 的 `refusal` 用若干阈值判定，拒绝理由逐项写出当前值与所需值（如"关系 -15，需要 -10"），但还没有"评分减接受线"的加权结构，也没有消息队列、回复与重试间隔。
 - 通商条约：`'trade'` 条约在 `strategy/ai.ts` 里是一个意图，在 `strategy/conclave.ts` 给投票加 15，但**对经济没有任何效果**（商路开放、关税、商队停靠都不看条约）。
 - 谍报：大战略 6.3 的行动表还没有实现。
 - 竞争者：`hakoniwa/src/systems/economy/competitor.ts` 的 `runCompetitor` 是固定规则（仿制、倾销、囤积、收购报价），没有人格参数。

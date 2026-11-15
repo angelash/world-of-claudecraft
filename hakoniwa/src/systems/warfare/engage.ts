@@ -45,22 +45,36 @@ interface Hit {
   aspect: 'front' | 'flank' | 'rear';
 }
 
-function auraSums(
-  state: BattleState,
+/** Total aura bonus on one channel (damage, defense) is capped here (warfare_rts 2.5). */
+export const AURA_CAP = 0.3;
+
+/**
+ * Aura bonus at a point: auras of the same kind do not stack (the strongest counts), different
+ * kinds add up, and each channel is capped at AURA_CAP.
+ */
+export function auraSums(
+  state: Pick<BattleState, 'heroes'>,
   team: Team,
   x: number,
   y: number,
 ): { dmg: number; def: number } {
-  let dmg = 0;
-  let def = 0;
+  const best = new Map<string, { dmg: number; def: number }>();
   for (const h of state.heroes) {
     if (h.down || h.team !== team) continue;
-    if (Math.hypot(h.x - x, h.y - y) <= h.auraRadius) {
-      dmg += h.aura.damage;
-      def += h.aura.defense;
-    }
+    if (Math.hypot(h.x - x, h.y - y) > h.auraRadius) continue;
+    const cur = best.get(h.aura.kind);
+    best.set(h.aura.kind, {
+      dmg: Math.max(cur?.dmg ?? 0, h.aura.damage),
+      def: Math.max(cur?.def ?? 0, h.aura.defense),
+    });
   }
-  return { dmg: Math.min(0.3, dmg), def: Math.min(0.3, def) };
+  let dmg = 0;
+  let def = 0;
+  for (const v of best.values()) {
+    dmg += v.dmg;
+    def += v.def;
+  }
+  return { dmg: Math.min(AURA_CAP, dmg), def: Math.min(AURA_CAP, def) };
 }
 
 const HERO_UNIT_BASE: Omit<UnitTypeDef, 'armor' | 'level'> = {

@@ -88,6 +88,15 @@ export function runProduction(ctx: SystemContext, site: SiteState, sdef: SiteDef
     production: {},
   };
   const producersOf: Record<string, BuildingInstance[]> = {};
+  // Storage budget (city_building 6.4): a building whose output has nowhere to go does not
+  // run, so no input is consumed and nothing is discarded. Output still waiting in the
+  // carry buffers from an earlier full day counts against the space.
+  let budget = storageCap(site, sdef, ctx.content) - storageUsed(ctx.world, owner) - backlog(site);
+  const scale = {
+    harvest: modifierScale(ctx, sdef, 'harvest', site.id),
+    production: modifierScale(ctx, sdef, 'production', site.id),
+  };
+  let full = false;
   let assigned = 0;
   for (const b of working) {
     const def = buildingDef(ctx.content, b.defId);
@@ -124,11 +133,27 @@ export function runProduction(ctx: SystemContext, site: SiteState, sdef: SiteDef
     }
     if (lacking.length > 0) b.note = `缺少原料：${lacking.join('、')}`;
     if (ratio <= 0) continue;
+    const channel = def.channel ?? 'production';
+    // Net change in stored units if the building runs at `ratio`: projected output (after
+    // the site's modifier factor) minus the inputs it takes out of the same storage.
+    let net = 0;
+    for (const n of Object.values(def.produces)) net += n * eff * ratio * scale[channel];
+    for (const n of Object.values(def.consumes ?? {})) net -= n * eff * ratio;
+    if (net > 0 && net > budget) {
+      full = true;
+      if (budget <= 0) {
+        b.note = FULL_NOTE;
+        continue;
+      }
+      ratio *= budget / net;
+      b.note = '仓库将满，减产';
+      net = budget;
+    }
+    budget -= net;
     for (const [id, n] of Object.entries(def.consumes ?? {})) {
       const take = Math.min(carry(site, `in:${b.id}:${id}`, n * eff * ratio), stock[id] ?? 0);
       if (take > 0) removeItem(ctx, owner, id, take, 'production');
     }
-    const channel = def.channel ?? 'production';
     for (const [id, n] of Object.entries(def.produces)) {
       totals[channel][id] = (totals[channel][id] ?? 0) + n * eff * ratio;
       const list = producersOf[id] ?? [];
@@ -150,21 +175,51 @@ export function runProduction(ctx: SystemContext, site: SiteState, sdef: SiteDef
     }
   }
 
+  // Stored output, including yesterday's waiting backlog. What still does not fit (the
+  // additive part of a modifier, rounding) stays in the carry buffer for the next day.
   const cap = storageCap(site, sdef, ctx.content);
   let free = cap - storageUsed(ctx.world, owner);
-  let full = false;
-  for (const id of Object.keys(out).sort()) {
-    const whole = carry(site, `out:${id}`, out[id] as number);
+  const ids = new Set([...Object.keys(out), ...backlogIds(site)]);
+  for (const id of [...ids].sort()) {
+    const whole = carry(site, `out:${id}`, out[id] ?? 0);
     if (whole <= 0) continue;
     const put = Math.max(0, Math.min(whole, free));
     if (put > 0) addItem(ctx, owner, id, put, 'production');
     free -= put;
     if (put < whole) {
       full = true;
-      for (const b of producersOf[id] ?? []) b.note = '仓库已满，停产';
+      site.spoil[`out:${id}`] = (site.spoil[`out:${id}`] ?? 0) + (whole - put);
+      for (const b of producersOf[id] ?? []) b.note = FULL_NOTE;
     }
   }
-  if (full) site.status.push('仓库已满：部分产出无处存放，生产停下了');
+  if (full) site.status.push('仓库已满：放不下的产出不再开工，腾出地方后恢复生产');
+}
+
+const FULL_NOTE = '仓库已满，停产';
+
+/** Whole units of output already produced but still waiting for storage space. */
+function backlog(site: SiteState): number {
+  let n = 0;
+  for (const [k, v] of Object.entries(site.spoil)) if (k.startsWith('out:')) n += Math.floor(v);
+  return n;
+}
+
+function backlogIds(site: SiteState): string[] {
+  return Object.entries(site.spoil)
+    .filter(([k, v]) => k.startsWith('out:') && v >= 1)
+    .map(([k]) => k.slice(4));
+}
+
+/** The site's combined multiplicative modifier on a channel (1 when immune or none). */
+function modifierScale(
+  ctx: SystemContext,
+  sdef: SiteDef,
+  channel: 'harvest' | 'production',
+  siteId: string,
+): number {
+  if (sdef.immuneToModifiers) return 1;
+  const base = applyModifiers(ctx.world, channel, siteId, 0);
+  return Math.max(0, applyModifiers(ctx.world, channel, siteId, 1) - base);
 }
 
 /** Spoilage of food and herbs (0.3 to 1 percent per day; a granary halves food loss). */

@@ -33,6 +33,11 @@ export interface ModifierSpec {
   visibility: 'public' | 'hidden';
   /** short Chinese explanation shown in UI and the miracle ledger */
   note: string;
+  /**
+   * stacking group (economy_and_trade 7.3 "同源"): a new modifier with the same source,
+   * target, key and group refreshes the existing one instead of stacking
+   */
+  stackGroup?: string;
 }
 
 export interface Modifier extends ModifierSpec {
@@ -40,9 +45,40 @@ export interface Modifier extends ModifierSpec {
   createdTick: number;
 }
 
+/** One append-only history row (economy_and_trade 7.4): what was registered or refreshed, when. */
+export interface ModifierHistoryEntry {
+  id: string;
+  tick: number;
+  kind: 'registered' | 'refreshed';
+  target: ModifierTarget;
+  key: string;
+  source: string;
+  factor?: number;
+  add?: number;
+  untilTick: number;
+}
+
 export interface ModifiersSlice {
   active: Modifier[];
+  /** append-only, newest last; trimmed to MODIFIER_HISTORY_KEEP rows */
+  history?: ModifierHistoryEntry[];
 }
+
+/** History rows kept in the save (the event stream carries the full record). */
+export const MODIFIER_HISTORY_KEEP = 500;
+
+/**
+ * Channel totals are clamped after combining (economy_and_trade 7.3 "通道总上限"): prices
+ * 0.5 to 2.0, production and harvest 0.3 to 1.5, morale plus or minus 30.
+ */
+export const CHANNEL_BOUNDS: Partial<
+  Record<ModifierTarget, { factor?: [number, number]; add?: [number, number] }>
+> = {
+  price: { factor: [0.5, 2] },
+  harvest: { factor: [0.3, 1.5] },
+  production: { factor: [0.3, 1.5] },
+  morale: { add: [-30, 30] },
+};
 
 declare module '../../core/contracts' {
   interface WorldSlices {
@@ -51,6 +87,7 @@ declare module '../../core/contracts' {
   interface EventMap {
     'modifier.registered': Modifier;
     'modifier.expired': { id: string; target: ModifierTarget; key: string; source: string };
+    'modifier.refreshed': Modifier;
   }
   interface CommandMap {
     /** for scripts, the editor workbench and the Maker's revelations */
@@ -59,21 +96,116 @@ declare module '../../core/contracts' {
 }
 
 export function registerModifier(ctx: SystemContext, spec: ModifierSpec): Modifier {
+  const slice = ctx.world.slices.modifiers;
+  const same = spec.stackGroup
+    ? slice.active.find(
+        (m) =>
+          m.stackGroup === spec.stackGroup &&
+          m.source === spec.source &&
+          m.target === spec.target &&
+          m.key === spec.key,
+      )
+    : undefined;
+  if (same) {
+    // Same source, same group: refresh the duration and take the new magnitude.
+    same.factor = spec.factor;
+    same.add = spec.add;
+    same.note = spec.note;
+    same.visibility = spec.visibility;
+    same.untilTick = Math.max(same.untilTick, spec.untilTick);
+    pushHistory(slice, same, ctx.tick, 'refreshed');
+    ctx.emit('modifier.refreshed', same);
+    return same;
+  }
   const mod: Modifier = { ...spec, id: ctx.newId('mod'), createdTick: ctx.tick };
-  ctx.world.slices.modifiers.active.push(mod);
+  slice.active.push(mod);
+  pushHistory(slice, mod, ctx.tick, 'registered');
   ctx.emit('modifier.registered', mod);
   return mod;
 }
 
-/** Active modifiers for a target and key (key '*' modifiers always apply). */
+function pushHistory(
+  slice: ModifiersSlice,
+  m: Modifier,
+  tick: number,
+  kind: ModifierHistoryEntry['kind'],
+): void {
+  const history = slice.history ?? [];
+  history.push({
+    id: m.id,
+    tick,
+    kind,
+    target: m.target,
+    key: m.key,
+    source: m.source,
+    factor: m.factor,
+    add: m.add,
+    untilTick: m.untilTick,
+  });
+  if (history.length > MODIFIER_HISTORY_KEEP)
+    history.splice(0, history.length - MODIFIER_HISTORY_KEEP);
+  slice.history = history;
+}
+
+/**
+ * Active modifiers for a target and key (key '*' modifiers always apply), in a stable order:
+ * by source, then instance id (economy_and_trade 7.3 "顺序").
+ */
 export function activeModifiers(
   world: { slices: { modifiers: ModifiersSlice } },
   target: ModifierTarget,
   key: string,
 ): Modifier[] {
-  return world.slices.modifiers.active.filter(
-    (m) => m.target === target && (m.key === key || m.key === '*'),
-  );
+  return world.slices.modifiers.active
+    .filter((m) => m.target === target && (m.key === key || m.key === '*'))
+    .sort((a, b) =>
+      a.source < b.source ? -1 : a.source > b.source ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
+    );
+}
+
+function clampTo(v: number, range: [number, number] | undefined): number {
+  return range ? Math.min(range[1], Math.max(range[0], v)) : v;
+}
+
+export interface ModifierLine {
+  id: string;
+  source: string;
+  note: string;
+  visibility: ModifierSpec['visibility'];
+  /** change to the running value this modifier made, before the channel cap */
+  delta: number;
+}
+
+/**
+ * Per-modifier accounting for (target, key) on a base value: every line's delta in the
+ * stable order, and how much the channel cap took off (economy_and_trade 7.4 "追溯").
+ */
+export function modifierBreakdown(
+  world: { slices: { modifiers: ModifiersSlice } },
+  target: ModifierTarget,
+  key: string,
+  base: number,
+): { total: number; lines: ModifierLine[]; capDelta: number } {
+  const mods = activeModifiers(world, target, key);
+  const bounds = CHANNEL_BOUNDS[target];
+  let factor = 1;
+  let add = 0;
+  const lines: ModifierLine[] = [];
+  for (const m of mods) {
+    const before = base * factor + add;
+    factor *= m.factor ?? 1;
+    add += m.add ?? 0;
+    lines.push({
+      id: m.id,
+      source: m.source,
+      note: m.note,
+      visibility: m.visibility,
+      delta: base * factor + add - before,
+    });
+  }
+  const raw = base * factor + add;
+  const total = base * clampTo(factor, bounds?.factor) + clampTo(add, bounds?.add);
+  return { total, lines, capDelta: total - raw };
 }
 
 /** Apply all active modifiers for (target, key) to a base value. */
@@ -83,20 +215,14 @@ export function applyModifiers(
   key: string,
   base: number,
 ): number {
-  let factor = 1;
-  let add = 0;
-  for (const m of activeModifiers(world, target, key)) {
-    factor *= m.factor ?? 1;
-    add += m.add ?? 0;
-  }
-  return base * factor + add;
+  return modifierBreakdown(world, target, key, base).total;
 }
 
 export const system: GameSystem = {
   id: 'modifiers',
   order: 5,
   init(ctx) {
-    ctx.world.slices.modifiers = { active: [] };
+    ctx.world.slices.modifiers = { active: [], history: [] };
   },
   tick(ctx) {
     const slice = ctx.world.slices.modifiers;

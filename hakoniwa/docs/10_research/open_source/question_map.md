@@ -12,7 +12,7 @@ RTS = [rts.md](rts.md)，SLG = [slg_4x.md](slg_4x.md)，殖民 = [colony_base_ma
 
 | 本作条目 | 先读 | 再读 | 要点（分析） | 分册 |
 | --- | --- | --- | --- | --- |
-| 3.4 摆放规则与可走性校验 | CorsixTH `CorsixTH/Lua/dialogs/edit_room.lua` 的 `UIEditRoom:checkReachability` | OpenXcom `BaseView::isPlaceable`、`Base::getDisconnectedFacilities` | 只检查新建物外圈可通行格是否两两连通，替代 `placement.ts` `findSpot` 对每个通过前置校验的候选格做的两次全图 BFS；物件占地的"操作位"标志就是缺的 `slot` 码；庭院格要求连通到门 | 城建第 6 节；殖民第 2 节 |
+| 3.4 摆放规则与可走性校验 | CorsixTH `CorsixTH/Lua/dialogs/edit_room.lua` 的 `UIEditRoom:checkReachability` | OpenXcom `BaseView::isPlaceable`、`Base::getDisconnectedFacilities` | 只检查新建物外圈可通行格是否两两连通，替代 `placement.ts` `findSpot` 对每个通过前置校验的候选格仍要做的一次放置后全图 BFS；物件占地的"操作位"标志就是缺的 `slot` 码；庭院格要求连通到门 | 城建第 6 节；殖民第 2 节 |
 | 3.5 道路与拥堵 | Micropolis `MicropolisCore/src/MicropolisEngine/src/traffic.cpp` 的 `makeTraffic`、`tryDrive` | Lincity-NG `src/lincity/lintypes.cpp` 的 `Construction::trade`（路段流量即拥堵读数） | 出行是"从地块出发随机走到目标区划"，走过的路格累加交通密度场；不必模拟车辆 | 城建第 1、3 节 |
 | 3.6 区划、覆盖与邻接 | Julius `src/figure/service.c`（`MAX_COVERAGE`）与 `src/building/house_service.c` | Micropolis 分块场与平滑（`pollutionTerrainLandValueScan`、`crimeScan`） | 覆盖用"到达即拉满、每日减一"的计数器，到达方式可换成拓扑分钟数可达集；地价、澱、污染放在低分辨率地段场上 | 城建第 2、1 节 |
 | 5.2 人口来源、人才招募 | KeeperRL `immigration.cpp` 的 `Immigration`、`getMissingRequirements`、`occupyAttraction` | OpenDungeons `source/spawnconditions/`（首次满足条件必来一个）；CDDA `recruit_return` | 候选人模板加权，接受时校验并给出可读的缺失原因；吸引物按人占用；同类递增成本；候选人有寿命 | 殖民第 1、5、3 节 |
@@ -39,7 +39,7 @@ RTS = [rts.md](rts.md)，SLG = [slg_4x.md](slg_4x.md)，殖民 = [colony_base_ma
 | 2.5 层间换算、5.5 自动结算与胜算 | Wesnoth `src/attack_prediction.cpp` 的 `combatant::fight` 与 `src/actions/attack.cpp` 的 `battle_context_unit_stats` | VCMI `lib/bonuses/` 的 `BonusList::totalValue`；FreeOrion 战力平方根合成 | 预测与实战用同一数值构造，输出完整分布；复杂度超阈值（`fight_complexity`）改蒙特卡洛 | SLG 第 4、3、2 节 |
 | 3.2 克制与伤害 | 0 A.D. `simulation/helpers/Attack.js`（每点抗性乘 0.9、按类别的加成） | OpenRA 弹头 Versus 表；Warzone 2100 `weaponmodifier` 表 | 倍率乘积加抗性指数衰减两段式；克制以按类别匹配的乘数表达 | RTS 第 1、2、4 节 |
 | 3.4 士气与疲劳 | 0 A.D. `BattleDetection.js` | Zero-K `cmd_retreat` 撤退滞回 | 用伤害速率加警觉度滞回区分"小摩擦"与"会战"；撤退阈值带滞回 | RTS 第 1、5 节 |
-| 4 英雄是乘数（光环封顶） | 0 A.D. `Auras.prototype.GetModifierIdentifier`（同名光环不叠加） | VCMI 攻防差封顶、"增益相加、减益相乘"（`scripts/damage/damageCalculator.lua`）；Wesnoth `leadership` | 同类取最高、增益先求和再乘一次，防止多个系数连乘指数放大；本作现有 `engage.ts` `auraSums` 把所有友方英雄光环相加后伤害、防御各自封顶 0.3，光环没有 id 或类别，要按类去重须先加 id | RTS 第 1 节；SLG 第 3、4 节 |
+| 4 英雄是乘数（光环封顶） | 0 A.D. `Auras.prototype.GetModifierIdentifier`（同名光环不叠加） | VCMI 攻防差封顶、"增益相加、减益相乘"（`scripts/damage/damageCalculator.lua`）；Wesnoth `leadership` | 同类取最高、增益先求和再乘一次，防止多个系数连乘指数放大；本作 `engage.ts` `auraSums` 已按光环类别去重（同类取最强）并各自封顶 0.3 | RTS 第 1 节；SLG 第 3、4 节 |
 | 4.4 将领成长与忠诚 | Wesnoth 经验与 AMLA | 7KAA `src/OUNIT.cpp` 的 `Unit::update_loyalty`、`commander_power`；Wyrmsun 持久英雄 | 经验来源分击杀与参战两类；士兵忠诚随将领统率与同族加成趋近目标值 | SLG 第 4、6 节；物流第 2 节 |
 | 5.3 阵型 | 0 A.D. `Formation.js` 的 `ComputeFormationOffsets` 与 `UnitAI.js` 的 `FORMATIONCONTROLLER` | KaM 匈牙利算法编队；Zero-K `cmd_customformations` | 阵型是带自己寻路的控制器实体，成员追槽位；但兵团接敌不散，槽位只用于画面 | RTS 第 1、5 节；物流第 4 节 |
 | 5.4 寻路与大量单位 | 0 A.D. `HierarchicalPathfinder`、`MakeGoalReachable` | Recoil `rts/Sim/Path/QTPFS/`（同目标路径共享、脏块重建）；OpenRA `HierarchicalPathFinder` | 二叉堆 A* 加区块连通判可达，同目标共享路径，可破坏地形用脏块增量重建；索敌用网格分桶加查询差分（`CCmpRangeManager`） | RTS 第 1、5、2 节 |

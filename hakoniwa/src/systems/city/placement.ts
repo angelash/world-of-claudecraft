@@ -168,6 +168,16 @@ function fail(
 }
 
 /**
+ * Per-site work shared by every candidate of one search: the occupied tiles and what is
+ * reachable from the centre before anything new is placed. findSpot builds it once instead
+ * of repeating a full-map flood fill for each candidate tile.
+ */
+interface PlacementCache {
+  occ: Set<number>;
+  reachBefore: Uint8Array;
+}
+
+/**
  * Validate placing building defId with its top-left tile at (x, y). Pure: safe for the
  * client to call every frame for the placement preview.
  */
@@ -178,6 +188,18 @@ export function previewPlacement(
   defId: string,
   x: number,
   y: number,
+): PlacementResult {
+  return validatePlacement(world, content, siteId, defId, x, y);
+}
+
+function validatePlacement(
+  world: CityWorld,
+  content: Pick<ContentMap, 'city_sites' | 'city_buildings' | 'maps'>,
+  siteId: string,
+  defId: string,
+  x: number,
+  y: number,
+  cache?: PlacementCache,
 ): PlacementResult {
   const sdef = siteDef(content, siteId);
   const site = world.slices.city.sites[siteId];
@@ -221,7 +243,7 @@ export function previewPlacement(
   });
   if (onRoad.length > 0) return fail('road', '不能压在道路上', tiles, onRoad);
 
-  const occ = occupiedTiles(site, map);
+  const occ = cache?.occ ?? occupiedTiles(site, map);
   const overlap = tiles.filter((t) => occ.has(t.y * map.width + t.x));
   if (overlap.length > 0) return fail('overlap', '和别的建筑重叠了', tiles, overlap);
 
@@ -239,7 +261,7 @@ export function previewPlacement(
   if (!reachAfter[ei]) return fail('reach', '门口和聚落中心走不通', tiles, [entrance]);
 
   // keep_reach: nothing that was reachable before may become cut off.
-  const reachBefore = reachable(map, center, occ);
+  const reachBefore = cache?.reachBefore ?? reachable(map, center, occ);
   for (const b of site.buildings) {
     const e = entranceOf(b.x, b.y, b.w, b.h);
     const i = e.y * map.width + e.x;
@@ -271,10 +293,12 @@ export function findSpot(
   const site = world.slices.city.sites[siteId];
   const map = sdef ? mapById(content, sdef.mapId) : undefined;
   if (!sdef || !site || !map) return null;
+  const occ = occupiedTiles(site, map);
+  const cache: PlacementCache = { occ, reachBefore: reachable(map, centerTile(map, sdef), occ) };
   for (const z of unlockedZones(map, site.stage)) {
     for (let y = z.y; y < z.y + z.h; y++) {
       for (let x = z.x; x < z.x + z.w; x++) {
-        if (previewPlacement(world, content, siteId, defId, x, y).ok) return { x, y };
+        if (validatePlacement(world, content, siteId, defId, x, y, cache).ok) return { x, y };
       }
     }
   }

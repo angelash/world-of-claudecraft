@@ -21,9 +21,17 @@ import {
   latestResult,
   system as warfare,
 } from '../src/systems/warfare';
+import { chaseStalled, MAX_FOCUS, runTeamAi, STUCK_ROUNDS } from '../src/systems/warfare/ai';
 import { kernelData } from '../src/systems/warfare/data';
-import { CAST_KILL_CAP, castAbility } from '../src/systems/warfare/heroes';
+import { AURA_CAP, auraSums } from '../src/systems/warfare/engage';
+import { CAST_KILL_CAP, castAbility, heroFromSpec } from '../src/systems/warfare/heroes';
 import { createBattleState, stepBattle } from '../src/systems/warfare/kernel';
+import {
+  battleHash,
+  firstDivergence,
+  HASH_EVERY,
+  HASH_KEEP,
+} from '../src/systems/warfare/sync_hash';
 import { system as world } from '../src/systems/world';
 
 const PACKS = [inventoryPack, warfarePack, worldPack];
@@ -368,5 +376,195 @@ describe('kernel', () => {
     expect(setup.teams.player.regiments.every((r) => r.x < setup.width / 2)).toBe(true);
     expect(setup.teams.enemy.regiments.every((r) => r.x > setup.width / 2)).toBe(true);
     expect(Object.values(setup.legend)).toEqual(['forest']);
+  });
+});
+
+describe('hero auras', () => {
+  const hero = (id: string, x: number, aura: { kind?: string; damage: number; defense: number }) =>
+    heroFromSpec({ id, name: id, x, y: 0, abilities: [], auraRadius: 5, aura }, 'player', 10);
+
+  it('counts each aura kind once, taking the strongest', () => {
+    const banner = { kind: 'war_banner', damage: 0.1, defense: 0.05 };
+    const two = auraSums({ heroes: [hero('a', 0, banner), hero('b', 1, banner)] }, 'player', 0, 0);
+    expect(two).toEqual({ dmg: 0.1, def: 0.05 });
+    const mixed = auraSums(
+      {
+        heroes: [
+          hero('a', 0, banner),
+          hero('b', 1, { kind: 'war_banner', damage: 0.15, defense: 0 }),
+          hero('c', 2, { kind: 'holy_light', damage: 0.05, defense: 0.1 }),
+        ],
+      },
+      'player',
+      0,
+      0,
+    );
+    expect(mixed.dmg).toBeCloseTo(0.2);
+    expect(mixed.def).toBeCloseTo(0.15);
+  });
+
+  it('treats each hero without a declared kind as its own kind and caps the total', () => {
+    const plain = { damage: 0.2, defense: 0.2 };
+    const r = auraSums(
+      { heroes: [hero('a', 0, plain), hero('b', 0, plain), hero('c', 9, plain)] },
+      'player',
+      0,
+      0,
+    );
+    // a and b both reach the point and stack up to the cap; c is out of range.
+    expect(r).toEqual({ dmg: AURA_CAP, def: AURA_CAP });
+    const one = auraSums(
+      { heroes: [hero('a', 0, { damage: 0.1, defense: 0.05 })] },
+      'player',
+      0,
+      0,
+    );
+    expect(one).toEqual({ dmg: 0.1, def: 0.05 });
+  });
+
+  it('ignores fallen heroes and the other team', () => {
+    const down = hero('a', 0, { damage: 0.2, defense: 0.2 });
+    down.down = true;
+    const enemy = heroFromSpec(
+      { id: 'e', name: 'e', x: 0, y: 0, abilities: [], aura: { damage: 0.2, defense: 0.2 } },
+      'enemy',
+      10,
+    );
+    expect(auraSums({ heroes: [down, enemy] }, 'player', 0, 0)).toEqual({ dmg: 0, def: 0 });
+  });
+});
+
+describe('general AI squads', () => {
+  const data = kernelData(content.regiment_types, content.hero_abilities);
+  const field = (mine: number, foes: number) => {
+    const setup = buildFieldSetup({
+      name: 'squad test',
+      teams: {
+        player: { regiments: Array.from({ length: foes }, () => ({ typeId: 'levy', count: 60 })) },
+        enemy: {
+          regiments: Array.from({ length: mine }, () => ({ typeId: 'militia', count: 60 })),
+        },
+      },
+    });
+    const state = createBattleState(setup, {
+      id: 'b',
+      scenarioId: 's',
+      seed: 1,
+      data,
+      mode: 'auto',
+    });
+    state.plans.enemy = { planId: 'advance', at: 0, source: 'rule' };
+    return state;
+  };
+  const targets = (state: ReturnType<typeof field>) => {
+    const n = new Map<string, number>();
+    for (const r of state.regiments) {
+      if (r.team !== 'enemy' || r.order?.kind !== 'attack') continue;
+      n.set(r.order.targetId, (n.get(r.order.targetId) ?? 0) + 1);
+    }
+    return n;
+  };
+
+  it('sends no more than MAX_FOCUS regiments at one target while others are free', () => {
+    const state = field(6, 2);
+    const foes = state.regiments.filter((r) => r.team === 'player');
+    // Put both player regiments together so distance alone would pull everyone to one.
+    for (const [i, r] of foes.entries()) {
+      r.x = 10;
+      r.y = 10 + i * 0.1;
+    }
+    for (const [i, r] of state.regiments.filter((x) => x.team === 'enemy').entries()) {
+      r.x = 14 + (i % 2) * 0.2;
+      r.y = 10;
+    }
+    runTeamAi(state, 'enemy', data, true);
+    const counts = [...targets(state).values()];
+    expect(counts.reduce((a, b) => a + b, 0)).toBe(6);
+    expect(Math.max(...counts)).toBeLessThanOrEqual(MAX_FOCUS);
+  });
+
+  it('still attacks a lone target with everyone (the cap only spreads when it can)', () => {
+    const state = field(5, 1);
+    for (const r of state.regiments) r.y = 10;
+    runTeamAi(state, 'enemy', data, true);
+    expect([...targets(state).values()]).toEqual([5]);
+  });
+
+  // Read through a function so narrowing from the earlier undefined assignment does not stick.
+  const chase = (r: { aiChase?: { targetId: string; rounds: number } }) => r.aiChase;
+
+  it('gives up a chase that makes no progress for STUCK_ROUNDS rounds', () => {
+    const state = field(1, 1);
+    const r = state.regiments.find((x) => x.team === 'enemy');
+    if (!r) throw new Error('setup');
+    expect(chaseStalled(r, 't', 10)).toBe(false);
+    for (let i = 1; i < STUCK_ROUNDS; i++) expect(chaseStalled(r, 't', 10)).toBe(false);
+    expect(chaseStalled(r, 't', 10)).toBe(true);
+    // getting closer, fighting, or switching target resets the count
+    r.aiChase = undefined;
+    chaseStalled(r, 't', 10);
+    chaseStalled(r, 't', 10);
+    expect(chaseStalled(r, 't', 9)).toBe(false);
+    expect(chase(r)?.rounds).toBe(0);
+    r.busy = true;
+    expect(chaseStalled(r, 't', 9)).toBe(false);
+    expect(chaseStalled(r, 'u', 9)).toBe(false);
+    expect(chase(r)?.targetId).toBe('u');
+  });
+});
+
+describe('battle sync hash', () => {
+  const data = kernelData(content.regiment_types, content.hero_abilities);
+  const make = (seed: number) => {
+    const setup = buildFieldSetup({
+      name: 'hash test',
+      teams: {
+        player: {
+          regiments: [
+            { typeId: 'militia', count: 80 },
+            { typeId: 'levy', count: 80 },
+          ],
+        },
+        enemy: { regiments: [{ typeId: 'levy', count: 120 }] },
+      },
+    });
+    return createBattleState(setup, { id: 'b', scenarioId: 'h', seed, data, mode: 'auto' });
+  };
+
+  it('records the same hashes for the same seed and keeps only the recent ones', () => {
+    const a = make(7);
+    const b = make(7);
+    for (let i = 0; i < HASH_EVERY * (HASH_KEEP + 3); i++) {
+      stepBattle(a, data);
+      stepBattle(b, data);
+    }
+    expect(a.syncHashes?.length).toBe(HASH_KEEP);
+    expect(a.syncHashes).toEqual(b.syncHashes);
+    expect(a.syncHashes?.every((h) => h.step % HASH_EVERY === 0)).toBe(true);
+    expect(firstDivergence(a, b)).toBeNull();
+    expect(battleHash(a)).toBe(battleHash(b));
+  });
+
+  it('names the first field two runs disagree on', () => {
+    const a = make(7);
+    const b = make(7);
+    const r = b.regiments[1];
+    if (!r) throw new Error('setup');
+    r.count -= 1;
+    expect(battleHash(a)).not.toBe(battleHash(b));
+    expect(firstDivergence(a, b)).toEqual({
+      field: `regiment.${r.id}.count`,
+      a: r.count + 1,
+      b: r.count,
+    });
+  });
+
+  it('ignores render-only position jitter below a thousandth of a cell', () => {
+    const a = make(3);
+    const b = make(3);
+    const r = b.regiments[0];
+    if (!r) throw new Error('setup');
+    r.x += 0.0001;
+    expect(battleHash(a)).toBe(battleHash(b));
   });
 });

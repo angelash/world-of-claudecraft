@@ -131,7 +131,11 @@ export interface HeroSpec {
   hp?: number;
   attack?: number;
   auraRadius?: number;
-  aura?: { damage?: number; defense?: number; morale?: number };
+  /**
+   * kind: auras of the same kind do not stack, the strongest one counts (warfare_rts 2.5);
+   * omitted, each hero's aura is its own kind
+   */
+  aura?: { kind?: string; damage?: number; defense?: number; morale?: number };
   abilities: string[];
   requiresFlags?: string[];
   controller?: 'player' | 'ai';
@@ -247,6 +251,10 @@ export interface RegimentState {
   busy?: boolean;
   /** set once the general-killed morale shock has been applied */
   leaderLost?: boolean;
+  /** AI chase memory: closest distance reached to the current target and AI rounds without progress */
+  aiChase?: { targetId: string; best: number; rounds: number };
+  /** AI gave up on this target until the given step (no progress) */
+  aiAvoid?: { targetId: string; untilStep: number };
 }
 
 export interface HeroState {
@@ -261,7 +269,7 @@ export interface HeroState {
   maxHp: number;
   attack: number;
   auraRadius: number;
-  aura: { damage: number; defense: number; morale: number };
+  aura: { kind: string; damage: number; defense: number; morale: number };
   abilities: { id: string; readyAt: number }[];
   down: boolean;
   order: { kind: 'move'; x: number; y: number } | null;
@@ -313,6 +321,8 @@ export interface BattleState {
   zones?: { id: string; name: string; rect: Rect }[];
   /** additive morale baseline per team from registered morale modifiers */
   moraleBonus?: Partial<Record<Team, number>>;
+  /** recent battle state hashes (sync_hash.ts), newest last */
+  syncHashes?: { step: number; hash: number }[];
   /** transient notices produced by the last kernel step (routs, heroes down, casts) */
   flashes?: {
     kind: 'rout' | 'hero_down' | 'ability';

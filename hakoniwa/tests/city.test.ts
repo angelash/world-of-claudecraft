@@ -14,6 +14,7 @@ import { allSystems } from '../src/game/registry';
 import {
   type BuildingDef,
   computeTerms,
+  findSpot,
   previewPlacement,
   type SiteDef,
   settlementView,
@@ -288,6 +289,40 @@ describe('placement validator', () => {
     });
     expect(code(1, 1)).toBe('reach:门口和聚落中心走不通');
     expect(code(1, 6)).toBe('ok');
+    // findSpot reuses one "before" flood fill for every candidate; its answer must match
+    // the first spot the plain validator accepts, scanning the same zones row by row.
+    const firstValid = () => {
+      for (let y = 1; y < 8; y++) {
+        for (let x = 1; x < 4; x++) if (code(x, y) === 'ok') return { x, y };
+      }
+      return null;
+    };
+    expect(findSpot(world, content, 's', 'block')).toEqual(firstValid());
+  });
+
+  it('finds the same first spot as the validator on the real outpost', () => {
+    const engine = createGame({ seed: 1 });
+    const w = engine.world;
+    const c = engine.content;
+    const map = c.maps.find((m) => m.id === 'old_outpost');
+    const site = w.slices.city.sites[SITE];
+    if (!map || !site) throw new Error('setup');
+    const zones = map.locations.filter(
+      (l) => l.kind === 'build_zone' && (l.tags ?? []).includes('stage:outpost'),
+    );
+    let expected: { x: number; y: number } | null = null;
+    outer: for (const z of zones) {
+      for (let y = z.y; y < z.y + z.h; y++) {
+        for (let x = z.x; x < z.x + z.w; x++) {
+          if (previewPlacement(w, c, SITE, 'shack', x, y).ok) {
+            expected = { x, y };
+            break outer;
+          }
+        }
+      }
+    }
+    expect(expected).not.toBeNull();
+    expect(findSpot(w, c, SITE, 'shack')).toEqual(expected);
   });
 });
 
@@ -372,9 +407,12 @@ describe('settlement chain', () => {
       return (stock(engine).grain ?? 0) - before;
     };
     const normal = grainAfter(1);
-    const blessed = grainAfter(3);
-    // farm: 12 grain x 4/4 workers x E(autonomy) per day; tripled by the modifier
-    expect(blessed - normal).toBeGreaterThanOrEqual(16);
+    const blessed = grainAfter(1.5);
+    // farm: 12 grain x 4/4 workers x E(autonomy) per day; half again with the modifier
+    expect(blessed - normal).toBeGreaterThanOrEqual(4);
+    // the production channel is capped at 1.5 (economy_and_trade 7.3): a 3x blessing yields
+    // exactly what a 1.5x one does
+    expect(grainAfter(3)).toBe(blessed);
   });
 
   it('stops production when storage is full and says so', () => {
@@ -385,6 +423,73 @@ describe('settlement chain', () => {
     expect(site?.status.some((s) => s.includes('仓库已满'))).toBe(true);
     const farm = site?.buildings.find((b) => b.defId === 'farm');
     expect(farm?.note).toBe('仓库已满，停产');
+  });
+
+  it('takes no input and discards no output while storage is full, then resumes', () => {
+    // A blessed mill turns 10 grain into 15 bread: with no room for the extra bread it must
+    // not run at all, so no grain is taken out of stock (city_building 6.4).
+    const { engine, events } = foundedVillage(13);
+    const site = engine.world.slices.city.sites[SITE];
+    if (!site) throw new Error('no site');
+    site.buildings.push({
+      id: 'mill_test',
+      defId: 'mill_bakery',
+      x: 30,
+      y: 30,
+      w: 3,
+      h: 3,
+      status: 'active',
+      progress: 1,
+      condition: 100,
+      workers: 0,
+      placedDay: 0,
+      placedBy: 'player',
+    });
+    const r = run(
+      engine,
+      'modifier.register',
+      {
+        target: 'production',
+        key: SITE,
+        factor: 1.5,
+        untilTick: engine.tick + 999999,
+        source: 'test',
+        visibility: 'public',
+        note: '测试加产',
+      },
+      events,
+    );
+    expect(r.ok).toBe(true);
+    give(engine, OWNER, { grain: 200, stone: 2000 });
+    // The shared collect() helper drops inventory events, so record production moves here.
+    const moves: { itemId: string; delta: number }[] = [];
+    engine.onEvents((evs) => {
+      for (const e of evs) {
+        if (e.kind !== 'inventory.changed') continue;
+        if (e.data.ownerId === OWNER && e.data.reason === 'production') moves.push(e.data);
+      }
+    });
+    const moved = (from: number, item: string, sign: 1 | -1) =>
+      moves.slice(from).filter((m) => m.itemId === item && Math.sign(m.delta) === sign).length;
+    let mark = moves.length;
+    stepDays(engine, 1);
+    const mill = site.buildings.find((x) => x.id === 'mill_test');
+    expect(mill?.note).toBe('仓库已满，停产');
+    // Only the mill takes grain for production, and only the mill makes bread.
+    expect(moved(mark, 'grain', -1)).toBe(0);
+    expect(moved(mark, 'bread', 1)).toBe(0);
+    // Free the storage (the village also holds about 500 grain, so trim that too): the mill
+    // takes grain and bakes bread again the next day.
+    const holding = engine.world.slices.inventory.owners[OWNER];
+    if (holding) {
+      holding.items.stone = 0;
+      holding.items.grain = 80;
+    }
+    mark = moves.length;
+    stepDays(engine, 1);
+    expect(mill?.note).toBeUndefined();
+    expect(moved(mark, 'grain', -1)).toBeGreaterThan(0);
+    expect(moved(mark, 'bread', 1)).toBeGreaterThan(0);
   });
 });
 

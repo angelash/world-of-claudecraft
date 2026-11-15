@@ -62,6 +62,57 @@ export function nearestWalkable(map: MapDef, x: number, y: number, maxRing = 12)
 }
 
 /**
+ * Binary min-heap of open nodes ordered by f, then by insertion order. The tie-break is the
+ * same one a linear "first lowest f" scan makes, so paths match the scan exactly.
+ */
+class OpenHeap {
+  private readonly items: { i: number; f: number; seq: number }[] = [];
+  private seq = 0;
+  get size(): number {
+    return this.items.length;
+  }
+  private less(a: number, b: number): boolean {
+    const x = this.items[a] as { f: number; seq: number };
+    const y = this.items[b] as { f: number; seq: number };
+    return x.f < y.f || (x.f === y.f && x.seq < y.seq);
+  }
+  private swap(a: number, b: number): void {
+    const t = this.items[a] as { i: number; f: number; seq: number };
+    this.items[a] = this.items[b] as { i: number; f: number; seq: number };
+    this.items[b] = t;
+  }
+  push(i: number, f: number): void {
+    this.items.push({ i, f, seq: this.seq++ });
+    let k = this.items.length - 1;
+    while (k > 0) {
+      const p = (k - 1) >> 1;
+      if (!this.less(k, p)) break;
+      this.swap(k, p);
+      k = p;
+    }
+  }
+  pop(): { i: number; f: number } {
+    const top = this.items[0] as { i: number; f: number };
+    const last = this.items.pop() as { i: number; f: number; seq: number };
+    if (this.items.length > 0) {
+      this.items[0] = last;
+      let k = 0;
+      for (;;) {
+        const l = 2 * k + 1;
+        const r = l + 1;
+        let m = k;
+        if (l < this.items.length && this.less(l, m)) m = l;
+        if (r < this.items.length && this.less(r, m)) m = r;
+        if (m === k) break;
+        this.swap(k, m);
+        k = m;
+      }
+    }
+    return top;
+  }
+}
+
+/**
  * A* over tiles with 8-way movement (no corner cutting). Returns tile-centre waypoints
  * excluding the start tile, or null when unreachable. Bounded by maxNodes.
  */
@@ -85,10 +136,10 @@ export function findPath(
   const idx = (x: number, y: number) => y * w + x;
   const gScore = new Map<number, number>();
   const came = new Map<number, number>();
-  const open: { i: number; f: number }[] = [];
+  const open = new OpenHeap();
   const startI = idx(sx, sy);
   gScore.set(startI, 0);
-  open.push({ i: startI, f: 0 });
+  open.push(startI, 0);
   const closed = new Set<number>();
   const h = (x: number, y: number) => {
     const dx = Math.abs(x - goal.x);
@@ -96,13 +147,8 @@ export function findPath(
     return Math.max(dx, dy) + (Math.SQRT2 - 1) * Math.min(dx, dy);
   };
   let expanded = 0;
-  while (open.length > 0) {
-    // small binary-heap substitute: pick min f (maps are small; keeps code simple)
-    let best = 0;
-    for (let k = 1; k < open.length; k++) {
-      if ((open[k] as { f: number }).f < (open[best] as { f: number }).f) best = k;
-    }
-    const cur = open.splice(best, 1)[0] as { i: number; f: number };
+  while (open.size > 0) {
+    const cur = open.pop();
     if (closed.has(cur.i)) continue;
     closed.add(cur.i);
     const cx = cur.i % w;
@@ -133,7 +179,7 @@ export function findPath(
         if (cost < (gScore.get(ni) ?? Number.POSITIVE_INFINITY)) {
           gScore.set(ni, cost);
           came.set(ni, cur.i);
-          open.push({ i: ni, f: cost + h(nx, ny) });
+          open.push(ni, cost + h(nx, ny));
         }
       }
     }

@@ -57,27 +57,67 @@ function holdZoneCenter(
   return best;
 }
 
+/** At most this many regiments of a team are sent at one enemy regiment while others are free. */
+export const MAX_FOCUS = 3;
+/** AI rounds (two battle seconds each) a chase may go without getting closer. */
+export const STUCK_ROUNDS = 3;
+/** How long a regiment leaves a target it could not reach, in kernel steps. */
+export const AVOID_STEPS = 60;
+
 function pickTarget(
   state: BattleState,
   r: RegimentState,
   claims: Map<string, number>,
   filter?: (t: RegimentState) => boolean,
 ): RegimentState | undefined {
-  let best: RegimentState | undefined;
-  let bs = Number.POSITIVE_INFINITY;
-  for (const t of state.regiments) {
-    if (t.team === r.team || !onField(t) || t.state === 'rout') continue;
-    if (filter && !filter(t)) continue;
-    const s = dist(r, t) + 3 * (claims.get(t.id) ?? 0);
-    if (s < bs) {
-      bs = s;
-      best = t;
+  const avoid = r.aiAvoid && r.aiAvoid.untilStep > state.step ? r.aiAvoid.targetId : undefined;
+  // First pass honours the focus cap and the avoid memory; the second drops both so a
+  // regiment always finds something to fight while enemies remain.
+  for (const strict of [true, false]) {
+    let best: RegimentState | undefined;
+    let bs = Number.POSITIVE_INFINITY;
+    for (const t of state.regiments) {
+      if (t.team === r.team || !onField(t) || t.state === 'rout') continue;
+      if (filter && !filter(t)) continue;
+      const claimed = claims.get(t.id) ?? 0;
+      if (strict && (claimed >= MAX_FOCUS || t.id === avoid)) continue;
+      const s = dist(r, t) + 3 * claimed;
+      if (s < bs) {
+        bs = s;
+        best = t;
+      }
     }
+    if (best) return best;
   }
-  return best;
+  return undefined;
 }
 
-function attack(r: RegimentState, t: RegimentState, claims: Map<string, number>): void {
+/**
+ * Chase memory for one AI round: true when the regiment has gone STUCK_ROUNDS rounds without
+ * getting at least half a cell closer to the same target while not fighting.
+ */
+export function chaseStalled(r: RegimentState, targetId: string, d: number): boolean {
+  const c = r.aiChase;
+  if (!c || c.targetId !== targetId || r.busy || d < c.best - 0.5) {
+    r.aiChase = { targetId, best: c?.targetId === targetId ? Math.min(c.best, d) : d, rounds: 0 };
+    return false;
+  }
+  c.rounds += 1;
+  return c.rounds >= STUCK_ROUNDS;
+}
+
+function attack(
+  state: BattleState,
+  r: RegimentState,
+  t: RegimentState,
+  claims: Map<string, number>,
+): void {
+  if (chaseStalled(r, t.id, dist(r, t))) {
+    r.aiAvoid = { targetId: t.id, untilStep: state.step + AVOID_STEPS };
+    r.aiChase = undefined;
+    const other = pickTarget(state, r, claims, (x) => x.id !== t.id);
+    if (other) t = other;
+  }
   if (r.order?.kind !== 'attack' || r.order.targetId !== t.id) {
     r.order = { kind: 'attack', targetId: t.id };
     r.path = [];
@@ -112,7 +152,7 @@ export function runTeamAi(state: BattleState, team: Team, data: KernelData, all:
       const threat = nearestEnemyRegiment(state, { x: hx, y: hy }, team, (t) => t.state !== 'rout');
       const react = ranged ? u.range + 1 : plan === 'hold' ? 4 : 5;
       if (threat && dist(threat, { x: hx, y: hy }) <= react + regimentRadius(threat.count)) {
-        attack(r, threat, claims);
+        attack(state, r, threat, claims);
       } else if (fast && plan === 'hold' && threat && !center) {
         holdAt(r, r.x, r.y);
       } else {
@@ -141,7 +181,7 @@ export function runTeamAi(state: BattleState, team: Team, data: KernelData, all:
       }
     }
     t = t ?? pickTarget(state, r, claims);
-    if (t) attack(r, t, claims);
+    if (t) attack(state, r, t, claims);
     else holdAt(r, r.x, r.y);
   });
 }

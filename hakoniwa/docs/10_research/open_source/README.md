@@ -181,22 +181,22 @@ AI 游戏与生成框架（`#ai-001` 到 `#ai-012`）不属于本主题；AI NPC
 
 ## 7. 对第一轮实现的直接发现（分析，待设计确认后排期）
 
-以下各条都已逐条对照 `hakoniwa/src/` 的源码核实，细节见对应分册：
+以下各条都已逐条对照 `hakoniwa/src/` 的源码核实，细节见对应分册。已按调研落地的部分：仓库满时不开工也不扣原料（`city/production.ts`）、
+光环按类别去重（`warfare/engage.ts` `auraSums`）、将领 AI 的盯防上限与追击超时（`warfare/ai.ts`）、
+战斗哈希与分歧字段报告（`warfare/sync_hash.ts`）、修正项的通道上限、同源刷新、逐条差值与历史（`modifiers/index.ts`）、
+外交拒绝理由逐项写出当前值与所需值（`strategy/diplomacy.ts` `refusal`）、`findSpot` 复用放置前可达图、寻路开放表改为二叉堆（`world/grid.ts`）。仍待处理的：
 
 | 发现 | 位置 | 参考 | 分册 |
 | --- | --- | --- | --- |
-| 英雄光环把覆盖该点的所有友方英雄直接相加，伤害与防御各自封顶 0.3（数值同即时战术第 2.5 节的 0.30）；光环没有 id 或类别（`HeroState.aura` 只有三个数，`morale` 未被读取），同类异类一律相加，要按类去重须先给光环加 id | `src/systems/warfare/engage.ts` `auraSums` | 0 A.D. `Auras.prototype.GetModifierIdentifier` | RTS 第 0.3、1 节 |
-| 兵团期望值公式各系数全部连乘，多个增益同时生效时有指数放大风险 | `src/systems/warfare/combat_math.ts` `expectedDamage` | VCMI 与 Wesnoth 的"增益先求和再乘" | SLG 第 3、8 节 |
-| 修正项有 `source` 与 `note` 可溯源，但没有叠加组、阶段顺序，也没有逐次写入的差值记账（全部因子连乘、加项相加）；`applyModifiers` 本身不设通道上限，只有物价在 `economy/market.ts` `priceModifierLines` 里按 `modifierBounds` 钳在 0.5 到 2.0 | `src/systems/modifiers/index.ts` 的 `ModifierSpec` 与合成函数 | FreeOrion 效果流水线、VCMI Bonus 系统 | SLG 第 0.2、2、3 节 |
-| `'trade'` 条约只影响会盟投票与 AI 意图，经济系统不读它，签了没有经济效果 | `src/systems/strategy/diplomacy.ts` | 7KAA `trade_treaty` 与进口付款 | 物流第 2 节 |
-| 外交关系是一个数，拒绝理由是阈值判定，只回一句按动作写死的理由，说不出是哪些分项、差多少 | `src/systems/strategy/diplomacy.ts` `refusal` | Unciv 账本、Freeciv `dai_goldequiv_clause` | SLG 第 0.2、1、5 节 |
-| 摆放自动选址对每个通过前置校验的候选格做两次全图 BFS，地块变大、空地少时成本高；`slot`、`defense`、`taboo` 校验码未实现 | `src/systems/city/placement.ts` `findSpot`、`PlacementCode` | CorsixTH 周界连通检查 | 城建第 0.3、6 节 |
+| 兵团期望值公式各系数全部连乘（设计 RTS 第 2.2 节如此规定），多个增益同时生效时有指数放大风险；是否改为"增益先求和再乘"需设计决定 | `src/systems/warfare/combat_math.ts` `expectedDamage` | VCMI 与 Wesnoth 的"增益先求和再乘" | SLG 第 3、8 节 |
+| 将领 AI 接敌前不集结：先到的兵团会零散撞上守方。加上集结后第三幕灰线之战（`act3_ash_line`）无模型自动通关会连败，须先按新 AI 重调剧情战役数值（与待确认的 D-060 一起） | `src/systems/warfare/ai.ts` `runTeamAi`、`data/warfare/scenarios.json` | OpenRA `GroundUnitsAttackMoveState` 的集结 | RTS 第 0.3、2 节 |
+| 修正项还没有模板与实例分离、阶段顺序（因子全部连乘、加项相加）、按目标对象的叠加组与可见性分档 | `src/systems/modifiers/index.ts` | FreeOrion 效果流水线、VCMI Bonus 系统 | SLG 第 0.2、2、3 节 |
+| "小神迹"的士气修正项不起作用：它用 `factor` 作用在基数 0 上，键是所在地区，而战斗只按 `player` 与战役 id 读士气修正项 | `data/goddess/actions.json` 的 `miracle`、`src/systems/warfare/session.ts` | 无 | 无 |
+| `'trade'` 条约只影响会盟投票与 AI 意图，经济系统不读它；设计写"关税减免"但没有给数值，商路也还没有与郡关联 | `src/systems/strategy/diplomacy.ts`、`data/economy/routes.json` | 7KAA `trade_treaty` 与进口付款 | 物流第 2 节 |
+| 外交关系是一个数，没有带来源的好感账本与条款级估值 | `src/systems/strategy/diplomacy.ts` `refusal` | Unciv 账本、Freeciv `dai_goldequiv_clause` | SLG 第 0.2、1、5 节 |
+| 摆放校验缺 `slot`、`defense`、`taboo` 三个码：建筑数据还没有操作位锚点、城墙线与逐地段澱值 | `src/systems/city/placement.ts` `PlacementCode` | CorsixTH 周界连通检查与物件占地标志 | 城建第 0.3、6 节 |
 | 需求按聚落整体判定（生存层为连续比值，上三层为布尔条件的满足比例），服务没有空间覆盖，迁移是阈值加随机 | `src/systems/city/population.ts` `runPopulation`、`common.ts` `sumEffect` | Julius 住房进化与覆盖、Micropolis 需求阀 | 城建第 0.3、1、2 节 |
-| 仓库满时原料照扣、放不下的产出直接丢弃，聚落状态却写"生产停下了"，结果与说明不一致 | `src/systems/city/production.ts` `runProduction` | Widelands 生产程序的"经济不缺就跳过"（跳过时不扣原料） | 城建第 0.3 节；物流第 1 节 |
-| 将领 AI 没有小队凝聚度检查与超时回退；同一目标只有软性的认领惩罚（每次认领距离加 3），没有硬性盯防上限 | `src/systems/warfare/ai.ts` | OpenRA 小队状态、Petra `AttackPlan` | RTS 第 0.3、1、2 节 |
-| 战斗内没有周期哈希与逐字段差异报告 | `src/core/save.ts` `worldHash` 只用于整局 | 0 A.D. `TurnNeedsFullHash`、OpenRA `SyncReport` | RTS 第 0.3、1、2 节 |
-| 大地图寻路的开放表是线性扫描 | `src/systems/world/grid.ts` `findPath` | 0 A.D. 分层寻路、OpenRA 抽象图启发式 | RTS 第 0.3、1 节 |
-| 补给整块缺失 | `src/systems/strategy/military.ts` | FreeOrion `SupplyManager::Update`（覆盖层；运力层需自建） | SLG 第 0.2、2 节 |
+| 补给整块缺失（设计第 1.3 节已有容量、补给线、就地征发、断粮规则） | `src/systems/strategy/military.ts` | FreeOrion `SupplyManager::Update`（覆盖层；运力层需自建） | SLG 第 0.2、2 节 |
 
 ## 8. 已知缺口与待核实
 

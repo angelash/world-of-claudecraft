@@ -40,6 +40,7 @@ export function heroFromSpec(spec: HeroSpec, team: Team, playerLevel: number): H
     attack: spec.attack ?? 8 + 2.5 * level,
     auraRadius: spec.auraRadius ?? 5,
     aura: {
+      kind: spec.aura?.kind ?? spec.id,
       damage: spec.aura?.damage ?? 0.1,
       defense: spec.aura?.defense ?? 0.05,
       morale: spec.aura?.morale ?? 5,

@@ -23,6 +23,7 @@ import {
   releaseIndex,
   system as strategy,
 } from '../src/systems/strategy';
+import { setRelation } from '../src/systems/strategy/state';
 import { system as warfare } from '../src/systems/warfare';
 import { system as world } from '../src/systems/world';
 
@@ -188,6 +189,23 @@ describe('founding and diplomacy', () => {
     g.queue('slg.found_nation', {});
     g.step(1);
     expect(lastResult(g, 'slg.found_nation')).toMatchObject({ ok: false, code: 'already' });
+  });
+
+  it('says which term failed and by how much when an AI power refuses', () => {
+    const g = founded();
+    // refusal reads the receiver's view of the sender (holy_see toward player)
+    setRelation(g.world.slices.strategy, 'holy_see', 'player', 12);
+    g.queue('slg.diplomacy', { to: 'holy_see', action: 'alliance' });
+    g.step(1);
+    const r = lastResult(g, 'slg.diplomacy');
+    expect(r).toMatchObject({ ok: false, code: 'refused' });
+    // the reason carries the relation it has and the one it needs
+    expect(r?.reason).toContain('关系 12，需要 50');
+    expect(r?.reason).toContain('30');
+    g.queue('slg.diplomacy', { to: 'holy_see', action: 'passage' });
+    g.step(1);
+    // each refusal costs the asker 2 points of the receiver's regard
+    expect(lastResult(g, 'slg.diplomacy')?.reason).toContain('关系 10，需要 20');
   });
 
   it('lets AI powers accept or refuse by utility', () => {

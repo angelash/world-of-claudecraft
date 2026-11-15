@@ -129,7 +129,16 @@ function sharedThreat(s: StrategySlice, a: NationId, b: NationId): boolean {
   );
 }
 
-/** Utility acceptance by the receiving AI nation; returns a refusal reason or null. */
+/** Whole-number display of a relation or score. */
+const num = (v: number) => String(Math.round(v));
+/** Power ratio with one decimal. */
+const times = (v: number) => (Math.round(v * 10) / 10).toFixed(1);
+
+/**
+ * Utility acceptance by the receiving AI nation; returns a refusal reason or null. Every
+ * reason names the deciding terms with their current and required values
+ * (grand_strategy_slg 4.3), so the player can see what is missing and by how much.
+ */
 export function refusal(
   ctx: SystemContext,
   from: NationId,
@@ -140,29 +149,36 @@ export function refusal(
   const rel = relation(s, to, from);
   const def = ctx.content.slg_nations?.find((n) => n.id === to);
   const caution = def?.ruler.caution ?? 0.5;
+  const relNeed = (need: number) => `关系 ${num(rel)}，需要 ${need}`;
   switch (action) {
-    case 'alliance':
+    case 'alliance': {
       if (atWar(s, from, to)) return '双方仍在交战';
-      if (
-        rel >= 50 ||
-        (rel >= 30 && commonEnemy(s, from, to)) ||
-        (rel >= 0 && sharedThreat(s, from, to))
-      )
-        return null;
-      return '对方认为结盟的时机未到';
+      const enemy = commonEnemy(s, from, to);
+      const threat = sharedThreat(s, from, to);
+      if (rel >= 50 || (rel >= 30 && enemy) || (rel >= 0 && threat)) return null;
+      const alt = [
+        enemy ? '有共同敌人时需要 30' : '有共同敌人可降到 30',
+        threat ? '同受第三国威胁时需要 0' : '同受第三国威胁可降到 0',
+      ];
+      return `对方认为结盟的时机未到（${relNeed(50)}；${alt.join('；')}）`;
+    }
     case 'trade':
       if (atWar(s, from, to)) return '双方仍在交战';
-      return rel >= -10 ? null : '对方不愿与你通商';
+      return rel >= -10 ? null : `对方不愿与你通商（${relNeed(-10)}）`;
     case 'non_aggression': {
       if (atWar(s, from, to)) return '双方仍在交战';
-      const fear = nationPower(ctx.content, s, from) > 1.3 * nationPower(ctx.content, s, to);
-      return rel >= 0 || fear ? null : '对方不信任你的承诺';
+      const ratio =
+        nationPower(ctx.content, s, from) / Math.max(1e-9, nationPower(ctx.content, s, to));
+      const fear = ratio > 1.3;
+      return rel >= 0 || fear
+        ? null
+        : `对方不信任你的承诺（${relNeed(0)}；或你的国力达到对方的 1.3 倍，现为 ${times(ratio)} 倍）`;
     }
     case 'passage':
       if (atWar(s, from, to)) return '双方仍在交战';
-      return rel >= 20 ? null : '对方不允许你的军队过境';
+      return rel >= 20 ? null : `对方不允许你的军队过境（${relNeed(20)}）`;
     case 'recognize':
-      return rel >= -10 ? null : '对方拒绝承认你的主权';
+      return rel >= -10 ? null : `对方拒绝承认你的主权（${relNeed(-10)}）`;
     case 'truce':
     case 'peace': {
       const war = warBetween(s, from, to);
@@ -170,15 +186,18 @@ export function refusal(
       const weariness = s.nations[to]?.warWeariness ?? 0;
       const toAttacks = war.attackers.includes(to);
       const toScore = toAttacks ? war.score : -war.score;
-      const weaker = nationPower(ctx.content, s, to) < 0.8 * nationPower(ctx.content, s, from);
-      if (
-        weariness >= 40 ||
-        toScore <= -20 ||
-        weaker ||
-        (caution >= 0.7 && s.day - war.startDay >= 28)
-      )
-        return null;
-      return '对方认为仗还没有打完';
+      const ratio =
+        nationPower(ctx.content, s, to) / Math.max(1e-9, nationPower(ctx.content, s, from));
+      const days = s.day - war.startDay;
+      const patient = caution >= 0.7;
+      if (weariness >= 40 || toScore <= -20 || ratio < 0.8 || (patient && days >= 28)) return null;
+      const terms = [
+        `厌战 ${num(weariness)}，需要 40`,
+        `对方战争分数 ${num(toScore)}，需要 -20 以下`,
+        `对方国力为你的 ${times(ratio)} 倍，需要低于 0.8 倍`,
+      ];
+      if (patient) terms.push(`已交战 ${days} 天，谨慎的统治者 28 天后愿意谈`);
+      return `对方认为仗还没有打完（${terms.join('；')}）`;
     }
     default:
       return null;

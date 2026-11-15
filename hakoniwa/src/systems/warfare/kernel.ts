@@ -11,6 +11,7 @@ import { contactRange, HERO_RADIUS, meleeContact, resolveContacts, shootRange } 
 import { heroFromSpec } from './heroes';
 import { updateMorale } from './morale';
 import { updateObjectives } from './objectives';
+import { recordSyncHash } from './sync_hash';
 import {
   findBattlePath,
   lineClear,
@@ -369,6 +370,7 @@ export function stepBattle(state: BattleState, data: KernelData): void {
   resolveContacts(state, data, dt);
   updateMorale(state, data, dt, moved);
   updateObjectives(state, data, dt);
+  recordSyncHash(state);
 }
 
 /** Apply a new plan to a team (AI proposal, fallback or player delegation). */
