@@ -1,0 +1,34 @@
+{
+  "name": "openai_compat_json_mode",
+  "method": "POST",
+  "url": "https://api.example-llm.com/v1/chat/completions",
+  "read": "json",
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body": {
+    "model": "example-chat",
+    "messages": [
+      {
+        "role": "system",
+        "content": "【规则】\n规则段：只按菜单行动。\n\n【人设】\n人设段：你是旅店老板。\n\n【私密】\n私密段：你记得昨天的客人。\n\n【输出格式】\n只输出一个 JSON 对象，不要输出任何其他文字，不要使用代码围栏。\n字段：\n- commands（数组，必填，至多 3 条）：本次提出的命令\n  每条：\n  - kind（字符串，必填，只能取：npc.say、npc.move）：命令种类\n  - data（字符串，必填）：命令数据\n- speech（字符串，必填）：说出口的话\n- mood（值，可省略）\n- note（字符串，可省略）\n示例：{\"commands\":[{\"kind\":\"npc.say\",\"data\":\"\"}],\"speech\":\"\",\"mood\":null,\"note\":\"\"}"
+      },
+      {
+        "role": "user",
+        "content": "上一轮：客人进门。"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"commands\":[],\"speech\":\"欢迎。\"}"
+      },
+      {
+        "role": "user",
+        "content": "玩家原话：有空房吗？\n\n本轮：回答客人。\n\n【内核通知】\n内核通知：天色已晚。"
+      }
+    ],
+    "max_tokens": 1000,
+    "response_format": {
+      "type": "json_object"
+    }
+  }
+}

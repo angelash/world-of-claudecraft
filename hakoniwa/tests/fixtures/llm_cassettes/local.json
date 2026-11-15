@@ -1,0 +1,468 @@
+{
+  "provider": "local",
+  "note": "Answers in the shapes of local services: Ollama native /api/chat and /api/tags, LM Studio and llama.cpp compatible endpoints, written from their public API documents; the user re-records them against real services per docs/50_tech/llm_providers.md 16.1.",
+  "samples": [
+    {
+      "name": "ollama answer with eval counts and durations",
+      "profile": "ollama",
+      "flavor": "ollama",
+      "status": 200,
+      "body": {
+        "model": "qwen3:14b",
+        "created_at": "2026-11-16T00:00:00Z",
+        "message": {
+          "role": "assistant",
+          "content": "{\"commands\":[],\"speech\":\"嗯\"}"
+        },
+        "done": true,
+        "done_reason": "stop",
+        "total_duration": 2000000000,
+        "load_duration": 1000000,
+        "prompt_eval_count": 812,
+        "prompt_eval_duration": 406000000,
+        "eval_count": 48,
+        "eval_duration": 1200000000
+      },
+      "expect": {
+        "text": "{\"commands\":[],\"speech\":\"嗯\"}",
+        "json": {
+          "commands": [],
+          "speech": "嗯"
+        },
+        "stopReason": "end",
+        "usage": {
+          "inputTokens": 812,
+          "outputTokens": 48,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "servedModel": "qwen3:14b",
+        "channel": "json_schema",
+        "timings": {
+          "promptTokensPerSec": 2000,
+          "genTokensPerSec": 40
+        }
+      }
+    },
+    {
+      "name": "ollama thinking text is stripped",
+      "profile": "ollama",
+      "flavor": "ollama",
+      "status": 200,
+      "body": {
+        "model": "qwen3:14b",
+        "message": {
+          "role": "assistant",
+          "content": "<think>\n想一想\n</think>\n\n{\"commands\":[]}"
+        },
+        "done": true,
+        "done_reason": "length",
+        "prompt_eval_count": 10,
+        "eval_count": 1000
+      },
+      "expect": {
+        "text": "{\"commands\":[]}",
+        "json": {
+          "commands": []
+        },
+        "stopReason": "max_tokens"
+      }
+    },
+    {
+      "name": "lm studio compatible answer with llama.cpp style timings",
+      "profile": "lmstudio",
+      "flavor": "lmstudio",
+      "status": 200,
+      "body": {
+        "id": "chatcmpl-local-1",
+        "object": "chat.completion",
+        "model": "qwen2.5-7b-instruct",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"commands\":[],\"speech\":\"好\"}"
+            },
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 500,
+          "completion_tokens": 20,
+          "total_tokens": 520
+        },
+        "timings": {
+          "prompt_n": 500,
+          "prompt_ms": 250,
+          "prompt_per_second": 2000,
+          "predicted_n": 20,
+          "predicted_ms": 500,
+          "predicted_per_second": 40
+        }
+      },
+      "expect": {
+        "json": {
+          "commands": [],
+          "speech": "好"
+        },
+        "usage": {
+          "inputTokens": 500,
+          "outputTokens": 20,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "timings": {
+          "promptTokensPerSec": 2000,
+          "genTokensPerSec": 40
+        },
+        "channel": "json_schema"
+      }
+    },
+    {
+      "name": "ollama JSON mode answer",
+      "profile": "ollama_json",
+      "flavor": "ollama",
+      "status": 200,
+      "body": {
+        "model": "qwen3:14b",
+        "message": {
+          "role": "assistant",
+          "content": "{\"commands\":[],\"speech\":\"在\"}"
+        },
+        "done": true,
+        "done_reason": "stop",
+        "prompt_eval_count": 60,
+        "eval_count": 9
+      },
+      "expect": {
+        "text": "{\"commands\":[],\"speech\":\"在\"}",
+        "json": {
+          "commands": [],
+          "speech": "在"
+        },
+        "stopReason": "end",
+        "channel": "json_mode",
+        "usage": {
+          "inputTokens": 60,
+          "outputTokens": 9,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        }
+      }
+    },
+    {
+      "name": "ollama prompt-only answer with a code fence",
+      "profile": "ollama_prompt",
+      "flavor": "ollama",
+      "status": 200,
+      "body": {
+        "model": "qwen3:14b",
+        "message": {
+          "role": "assistant",
+          "content": "```json\n{\"commands\":[]}\n```"
+        },
+        "done": true,
+        "done_reason": "stop",
+        "prompt_eval_count": 60,
+        "eval_count": 9
+      },
+      "expect": {
+        "json": {
+          "commands": []
+        },
+        "stopReason": "end",
+        "channel": "prompt_only",
+        "usage": {
+          "inputTokens": 60,
+          "outputTokens": 9,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        }
+      }
+    },
+    {
+      "name": "ollama model not pulled",
+      "profile": "ollama",
+      "flavor": "ollama",
+      "status": 404,
+      "body": {
+        "error": "model 'qwen3:32b' not found, try pulling it first"
+      },
+      "expect": {
+        "problem": "model_not_found",
+        "cls": "model_unavailable"
+      }
+    },
+    {
+      "name": "ollama wrong path",
+      "profile": "ollama",
+      "flavor": "ollama",
+      "status": 404,
+      "headers": {
+        "content-type": "text/plain"
+      },
+      "body": "404 page not found",
+      "expect": {
+        "problem": "endpoint_wrong"
+      }
+    },
+    {
+      "name": "llama.cpp still loading the model",
+      "profile": "llamacpp_json",
+      "flavor": "llamacpp",
+      "status": 503,
+      "body": {
+        "error": {
+          "code": 503,
+          "message": "Loading model",
+          "type": "unavailable_error"
+        }
+      },
+      "expect": {
+        "problem": "model_not_loaded",
+        "cls": "model_unavailable"
+      }
+    },
+    {
+      "name": "lm studio with no model loaded",
+      "profile": "lmstudio",
+      "flavor": "lmstudio",
+      "status": 400,
+      "body": {
+        "error": "No models loaded. Please load a model in the developer page or use the `lms load` command."
+      },
+      "expect": {
+        "problem": "model_not_loaded"
+      }
+    },
+    {
+      "name": "llama.cpp context size exceeded",
+      "profile": "llamacpp_json",
+      "flavor": "llamacpp",
+      "status": 400,
+      "body": {
+        "error": {
+          "code": 400,
+          "message": "the request exceeds the available context size, try increasing it",
+          "type": "exceed_context_size_error"
+        }
+      },
+      "expect": {
+        "problem": "context_too_long",
+        "cls": "context_too_long"
+      }
+    },
+    {
+      "name": "token required by the service",
+      "profile": "lmstudio",
+      "flavor": "lmstudio",
+      "status": 401,
+      "body": {
+        "error": {
+          "message": "Unauthorized",
+          "type": "invalid_request_error"
+        }
+      },
+      "expect": {
+        "problem": "key_invalid"
+      }
+    },
+    {
+      "name": "token without permission",
+      "profile": "lmstudio",
+      "flavor": "lmstudio",
+      "status": 403,
+      "body": {
+        "error": "forbidden"
+      },
+      "expect": {
+        "problem": "permission_denied"
+      }
+    },
+    {
+      "name": "busy server",
+      "profile": "ollama",
+      "flavor": "ollama",
+      "status": 503,
+      "body": {
+        "error": "server busy, please try again.  maximum pending requests exceeded"
+      },
+      "expect": {
+        "problem": "overloaded"
+      }
+    },
+    {
+      "name": "server error",
+      "profile": "ollama",
+      "flavor": "ollama",
+      "status": 500,
+      "body": {
+        "error": "llama runner process has terminated: exit status 2"
+      },
+      "expect": {
+        "problem": "server_error"
+      }
+    },
+    {
+      "name": "rate limited by a proxy in front of the service",
+      "profile": "lmstudio",
+      "flavor": "lmstudio",
+      "status": 429,
+      "body": {
+        "error": {
+          "message": "Too many requests"
+        }
+      },
+      "expect": {
+        "problem": "rate_limited"
+      }
+    },
+    {
+      "name": "json_schema response_format not supported",
+      "profile": "llamacpp_json",
+      "flavor": "llamacpp",
+      "status": 400,
+      "body": {
+        "error": {
+          "code": 400,
+          "message": "response_format type json_schema is not supported",
+          "type": "invalid_request_error"
+        }
+      },
+      "expect": {
+        "problem": null,
+        "cls": "bad_request",
+        "unsupportedParam": "response_format"
+      }
+    },
+    {
+      "name": "web page at the address",
+      "profile": "ollama",
+      "flavor": "ollama",
+      "status": 200,
+      "headers": {
+        "content-type": "text/html"
+      },
+      "body": "<html><body>router login</body></html>",
+      "expect": {
+        "problem": "endpoint_wrong"
+      }
+    },
+    {
+      "name": "service not started",
+      "profile": "ollama",
+      "flavor": "ollama",
+      "netError": "refused",
+      "expect": {
+        "problem": "network",
+        "message": "local service not running"
+      }
+    },
+    {
+      "name": "browser blocked the request",
+      "profile": "ollama",
+      "flavor": "ollama",
+      "netError": "cors",
+      "expect": {
+        "problem": "cors_blocked",
+        "cls": "network"
+      }
+    },
+    {
+      "name": "timeout",
+      "profile": "ollama",
+      "flavor": "ollama",
+      "netError": "timeout",
+      "expect": {
+        "problem": "timeout"
+      }
+    },
+    {
+      "name": "ollama stream of JSON lines",
+      "profile": "ollama",
+      "flavor": "ollama",
+      "chunks": [
+        "{\"model\":\"qwen3:14b\",\"message\":{\"role\":\"assistant\",\"content\":\"<think>\"},\"done\":false}\n{\"model\":\"qwen3:14b\",\"message\":{\"role\":\"assistant\",\"content\":\"想\"},\"done\":false}\n",
+        "{\"model\":\"qwen3:14b\",\"message\":{\"role\":\"assistant\",\"content\":\"</think>{\\\"commands\\\":[],\"},\"done\":false}\n{\"model\":\"qwen3:14b\",\"message\":{\"role\":\"assistant\",\"content\":\"\\\"speech\\\":\\\"来\\\"}\"},\"done\":fal",
+        "se}\n{\"model\":\"qwen3:14b\",\"message\":{\"role\":\"assistant\",\"content\":\"\"},\"done\":true,\"done_reason\":\"stop\",\"prompt_eval_count\":300,\"prompt_eval_duration\":150000000,\"eval_count\":30,\"eval_duration\":600000000}\n"
+      ],
+      "expect": {
+        "text": "{\"commands\":[],\"speech\":\"来\"}",
+        "json": {
+          "commands": [],
+          "speech": "来"
+        },
+        "stopReason": "end",
+        "usage": {
+          "inputTokens": 300,
+          "outputTokens": 30,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "timings": {
+          "promptTokensPerSec": 2000,
+          "genTokensPerSec": 50
+        }
+      },
+      "expectText": "{\"commands\":[],\"speech\":\"来\"}"
+    },
+    {
+      "name": "llama.cpp server-sent events",
+      "profile": "llamacpp_json",
+      "flavor": "llamacpp",
+      "chunks": [
+        "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"{\\\"commands\\\":[]}\"},\"finish_reason\":null}]}\n\n",
+        "data: {\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}],\"timings\":{\"prompt_per_second\":900,\"predicted_per_second\":30}}\n\ndata: [DONE]\n\n"
+      ],
+      "expect": {
+        "text": "{\"commands\":[]}",
+        "usageEstimated": true,
+        "timings": {
+          "promptTokensPerSec": 900,
+          "genTokensPerSec": 30
+        }
+      },
+      "expectText": "{\"commands\":[]}"
+    },
+    {
+      "name": "ollama stream error line",
+      "profile": "ollama",
+      "flavor": "ollama",
+      "chunks": ["{\"error\":\"model 'qwen3:32b' not found, try pulling it first\"}\n"],
+      "expect": {
+        "problem": "model_not_found"
+      }
+    },
+    {
+      "name": "ollama final line without a newline is flushed",
+      "profile": "ollama",
+      "flavor": "ollama",
+      "chunks": [
+        "{\"model\":\"qwen3:14b\",\"message\":{\"role\":\"assistant\",\"content\":\"{\\\"commands\\\":[]}\"},\"done\":false}\n",
+        "{\"model\":\"qwen3:14b\",\"message\":{\"role\":\"assistant\",\"content\":\"\"},\"done\":true,\"done_reason\":\"stop\",\"prompt_eval_count\":12,\"eval_count\":5}"
+      ],
+      "expect": {
+        "text": "{\"commands\":[]}",
+        "stopReason": "end",
+        "usage": {
+          "inputTokens": 12,
+          "outputTokens": 5,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        }
+      }
+    },
+    {
+      "name": "ollama stream cut before done",
+      "profile": "ollama",
+      "flavor": "ollama",
+      "chunks": [
+        "{\"model\":\"qwen3:14b\",\"message\":{\"role\":\"assistant\",\"content\":\"{\\\"com\"},\"done\":false}\n"
+      ],
+      "expect": {
+        "problem": "network"
+      }
+    }
+  ]
+}

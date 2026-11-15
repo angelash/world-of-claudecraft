@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "asOf": "2026-11",
+  "note": "Prices in currency units per million tokens. Anthropic rows are the first-party list prices as of 2026-11 (docs/50_tech/ai_architecture.md 10.2); the official price list is authoritative, recheck before every content release. Players may override any row in the model slot settings.",
+  "fx": {
+    "cnyPerUsd": 7.1,
+    "asOf": "2026-11",
+    "note": "Reference rate for display only; the player may override it (llm_providers.md 5.8)."
+  },
+  "providers": {
+    "anthropic": {
+      "currency": "USD",
+      "consoleUrl": "https://console.anthropic.com/",
+      "dataPolicyUrl": "https://www.anthropic.com/legal/privacy",
+      "models": {
+        "claude-opus-5-5": {
+          "input": 4,
+          "cacheRead": 0.2,
+          "cacheWrite5m": 5,
+          "cacheWrite1h": 8,
+          "output": 20
+        },
+        "claude-sonnet-5-5": {
+          "input": 2,
+          "cacheRead": 0.1,
+          "cacheWrite5m": 2.5,
+          "cacheWrite1h": 4,
+          "output": 10
+        },
+        "claude-haiku-5-5": {
+          "input": 0.1,
+          "cacheRead": 0.01,
+          "cacheWrite5m": 0.125,
+          "cacheWrite1h": 0.2,
+          "output": 0.5,
+          "longPromptThreshold": 100000,
+          "longPrompt": {
+            "input": 0.5,
+            "cacheRead": 0.05,
+            "cacheWrite5m": 0.625,
+            "cacheWrite1h": 1,
+            "output": 2.5
+          }
+        },
+        "claude-opus-5": {
+          "input": 5,
+          "cacheRead": 0.5,
+          "cacheWrite5m": 6.25,
+          "cacheWrite1h": 10,
+          "output": 25,
+          "fallbackTarget": true
+        },
+        "claude-sonnet-5": {
+          "input": 2,
+          "cacheRead": 0.2,
+          "cacheWrite5m": 2.5,
+          "cacheWrite1h": 4,
+          "output": 10,
+          "fallbackTarget": true
+        }
+      }
+    },
+    "openai_compat": {
+      "currency": "player",
+      "note": "No shipped prices: the player enters input, cache-hit input and output prices and the currency per model slot. Until then only tokens are counted and money caps do not apply to that model (llm_providers.md 3.3).",
+      "models": {}
+    },
+    "local": {
+      "currency": "USD",
+      "note": "Local services have no API cost; GPU time is bounded by token caps and concurrency.",
+      "default": {
+        "input": 0,
+        "cacheRead": 0,
+        "output": 0
+      },
+      "models": {}
+    }
+  }
+}

@@ -1,6 +1,11 @@
 // Development service as a Vite plugin (dev server only, `apply: 'serve'`):
-//   GET  /api/llm/status   whether a model is reachable and which model serves each tier
-//   POST /api/llm          neutral LlmRequest in, { ok, json, text, usage, model, stopReason, costUsd } out
+//   GET  /api/llm/status   whether a model is reachable, which model serves each tier, and
+//                          the served connections with their capability records
+//   POST /api/llm          legacy LlmRequest in, { ok, json, text, usage, model, stopReason,
+//                          costUsd } out; or an LlmCallSpec in, an LlmCallResult (with a problem
+//                          code on failure) out (docs/50_tech/llm_providers.md 3.1, 10, 12)
+//   POST /api/llm/test     { connectionId, depth, models? } in, ConnectionTestReport out
+//   GET  /api/llm/models   ?connectionId= (default dev_proxy), ModelListing out
 //   GET  /api/data?file=   read a JSON file under hakoniwa/data/
 //   PUT  /api/data?file=   write a JSON file under hakoniwa/data/ (the editor's formatJson:
 //                          2-space indent, short values kept on one line, trailing newline)
@@ -16,9 +21,17 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
+import { parseCallSpec } from '../src/ai/providers/call_spec';
 import { formatJson } from '../src/editor/util/json';
 import { resolveDataPath } from './data_paths';
-import { LlmService, type LlmServiceOptions, MAX_BODY_BYTES, parseLlmBody } from './llm_proxy';
+import {
+  DEV_PROXY_CONNECTION_ID,
+  LlmService,
+  type LlmServiceOptions,
+  MAX_BODY_BYTES,
+  parseLlmBody,
+  parseTestBody,
+} from './llm_proxy';
 
 /** hakoniwa/ (this file lives in hakoniwa/tools/). */
 export const HAKONIWA_ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -190,6 +203,28 @@ async function insideRealRoot(root: string, full: string): Promise<boolean> {
   }
 }
 
+/** A POST /api/llm body in the LlmCallSpec shape (the legacy body has no segments). */
+function isSpecBody(raw: unknown): boolean {
+  return (
+    typeof raw === 'object' &&
+    raw !== null &&
+    Array.isArray((raw as { segments?: unknown }).segments)
+  );
+}
+
+const PROBE_LIMITED = {
+  ok: false,
+  error: 'rate_limited',
+  problem: 'rate_limited',
+  message: 'at most 10 test or listing calls per minute',
+};
+const NO_CONNECTION = {
+  ok: false,
+  error: 'not_configured',
+  problem: 'not_configured',
+  message: 'unknown connection',
+};
+
 export function createDevApiMiddleware(opts: DevApiOptions = {}): Middleware {
   const root = resolve(opts.root ?? HAKONIWA_ROOT);
   const dataRoot = join(root, 'data');
@@ -197,7 +232,7 @@ export function createDevApiMiddleware(opts: DevApiOptions = {}): Middleware {
   const allowRemote = opts.allowRemote ?? process.env.HAKONIWA_DEV_API_REMOTE === '1';
   let llm = opts.llmService;
   const llmService = (): LlmService => {
-    llm ??= new LlmService(opts.llm);
+    llm ??= new LlmService({ connectionsFile: join(root, '.local', 'llm_dev.json'), ...opts.llm });
     return llm;
   };
 
@@ -211,15 +246,52 @@ export function createDevApiMiddleware(opts: DevApiOptions = {}): Middleware {
 
     'POST /api/llm': async (req, res) => {
       const svc = llmService();
-      const parsed = parseLlmBody(await readJsonBody(req, MAX_BODY_BYTES), svc.maxTokensCap);
-      if (!parsed.ok)
-        return send(res, 400, { ok: false, error: 'bad_request', message: parsed.error });
+      const raw = await readJsonBody(req, MAX_BODY_BYTES);
       const ctrl = new AbortController();
       res.on('close', () => {
         if (!res.writableFinished) ctrl.abort();
       });
+      if (isSpecBody(raw)) {
+        // The LlmCallSpec contract: a malformed spec is a defect (no player problem code).
+        const spec = parseCallSpec(raw);
+        if (!spec.ok) {
+          return send(res, 400, {
+            ok: false,
+            error: { cls: 'bad_request', message: spec.error },
+            latencyMs: 0,
+          });
+        }
+        const result = await svc.completeSpec(spec.value, ctrl.signal);
+        if (!res.writableEnded && !res.destroyed) send(res, 200, result);
+        return;
+      }
+      const parsed = parseLlmBody(raw, svc.maxTokensCap);
+      if (!parsed.ok)
+        return send(res, 400, { ok: false, error: 'bad_request', message: parsed.error });
       const out = await svc.complete(parsed.value, ctrl.signal);
       if (!res.writableEnded && !res.destroyed) send(res, out.status, out.payload);
+    },
+
+    'POST /api/llm/test': async (req, res) => {
+      const svc = llmService();
+      const body = parseTestBody(await readJsonBody(req, 16 * 1024));
+      if (!body.ok) return send(res, 400, { ok: false, error: 'bad_request', message: body.error });
+      if (!svc.allowProbe()) return send(res, 429, PROBE_LIMITED);
+      const report = await svc.testConnection(body.value);
+      if (!report) return send(res, 404, NO_CONNECTION);
+      send(res, 200, report);
+    },
+
+    'GET /api/llm/models': async (_req, res, url) => {
+      const svc = llmService();
+      const id = url.searchParams.get('connectionId') ?? DEV_PROXY_CONNECTION_ID;
+      if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) {
+        return send(res, 400, { ok: false, error: 'bad_request', message: 'bad connectionId' });
+      }
+      if (!svc.allowProbe()) return send(res, 429, PROBE_LIMITED);
+      const listing = await svc.listModels(id);
+      if (!listing) return send(res, 404, NO_CONNECTION);
+      send(res, 200, listing);
     },
 
     'GET /api/data': async (_req, res, url) => {

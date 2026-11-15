@@ -1,0 +1,667 @@
+{
+  "provider": "anthropic",
+  "note": "Answers in the shapes of the Anthropic Messages API (2026-11), written from the public API reference; the user re-records them with a real key per docs/50_tech/llm_providers.md 16.1. No credentials, request ids are fake.",
+  "samples": [
+    {
+      "name": "json_schema answer with a thinking block and cache usage",
+      "profile": "opus",
+      "status": 200,
+      "headers": {
+        "request-id": "req_fixture_0001",
+        "content-type": "application/json"
+      },
+      "body": {
+        "id": "msg_fixture_0001",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-opus-5-5",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "",
+            "signature": "c2lnLWZpeHR1cmUtMQ=="
+          },
+          {
+            "type": "text",
+            "text": "{\"commands\":[{\"kind\":\"npc.say\",\"data\":\"{}\"}],"
+          },
+          {
+            "type": "text",
+            "text": "\"speech\":\"客人，请坐。\"}"
+          }
+        ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 812,
+          "output_tokens": 96,
+          "cache_read_input_tokens": 12000,
+          "cache_creation_input_tokens": 1500,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 500,
+            "ephemeral_1h_input_tokens": 1000
+          }
+        }
+      },
+      "expect": {
+        "text": "{\"commands\":[{\"kind\":\"npc.say\",\"data\":\"{}\"}],\"speech\":\"客人，请坐。\"}",
+        "json": {
+          "commands": [
+            {
+              "kind": "npc.say",
+              "data": "{}"
+            }
+          ],
+          "speech": "客人，请坐。"
+        },
+        "stopReason": "end",
+        "rawStopReason": "end_turn",
+        "usage": {
+          "inputTokens": 812,
+          "outputTokens": 96,
+          "cacheReadInputTokens": 12000,
+          "cacheCreationInputTokens": 1500,
+          "cacheCreation1hInputTokens": 1000
+        },
+        "servedModel": "claude-opus-5-5",
+        "fallbackUsed": false,
+        "providerRequestId": "req_fixture_0001",
+        "channel": "json_schema",
+        "opaqueBlocks": 1
+      }
+    },
+    {
+      "name": "server-side fallback answered by the fallback model",
+      "profile": "opus",
+      "status": 200,
+      "body": {
+        "id": "msg_fixture_0002",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-opus-5-5",
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"commands\":[],\"speech\":\"嗯。\"}"
+          }
+        ],
+        "stop_reason": "end_turn",
+        "usage": {
+          "input_tokens": 40,
+          "output_tokens": 12,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0,
+          "iterations": [
+            {
+              "type": "message",
+              "model": "claude-opus-5-5",
+              "input_tokens": 20,
+              "output_tokens": 2,
+              "cache_read_input_tokens": 0,
+              "cache_creation_input_tokens": 0
+            },
+            {
+              "type": "fallback_message",
+              "model": "claude-opus-5",
+              "input_tokens": 20,
+              "output_tokens": 10,
+              "cache_read_input_tokens": 0,
+              "cache_creation_input_tokens": 0
+            }
+          ]
+        }
+      },
+      "expect": {
+        "text": "{\"commands\":[],\"speech\":\"嗯。\"}",
+        "servedModel": "claude-opus-5",
+        "fallbackUsed": true,
+        "stopReason": "end",
+        "usage": {
+          "inputTokens": 40,
+          "outputTokens": 12,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "cacheCreation1hInputTokens": 0
+        }
+      }
+    },
+    {
+      "name": "truncated at max_tokens",
+      "profile": "opus",
+      "status": 200,
+      "body": {
+        "id": "msg_fixture_0003",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-opus-5-5",
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"commands\":["
+          }
+        ],
+        "stop_reason": "max_tokens",
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 1000
+        }
+      },
+      "expect": {
+        "stopReason": "max_tokens",
+        "json": null,
+        "text": "{\"commands\":["
+      }
+    },
+    {
+      "name": "refusal is read before content",
+      "profile": "opus",
+      "status": 200,
+      "body": {
+        "id": "msg_fixture_0004",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-opus-5-5",
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"commands\":[]}"
+          }
+        ],
+        "stop_reason": "refusal",
+        "stop_details": {
+          "type": "refusal",
+          "category": "unspecified",
+          "explanation": null
+        },
+        "usage": {
+          "input_tokens": 30,
+          "output_tokens": 4
+        }
+      },
+      "expect": {
+        "problem": "refusal",
+        "cls": "refusal",
+        "stopReason": "refusal",
+        "text": null
+      }
+    },
+    {
+      "name": "forced submit tool carries the answer",
+      "profile": "opus_tool",
+      "status": 200,
+      "body": {
+        "id": "msg_fixture_0005",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-opus-5-5",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_fixture_1",
+            "name": "submit",
+            "input": {
+              "commands": [],
+              "speech": "好。"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "usage": {
+          "input_tokens": 50,
+          "output_tokens": 20
+        }
+      },
+      "expect": {
+        "text": "{\"commands\":[],\"speech\":\"好。\"}",
+        "json": {
+          "commands": [],
+          "speech": "好。"
+        },
+        "stopReason": "end",
+        "channel": "tool_carrier"
+      }
+    },
+    {
+      "name": "prompt-only answer inside a code fence",
+      "profile": "opus_prompt",
+      "status": 200,
+      "body": {
+        "id": "msg_fixture_0006",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-opus-5-5",
+        "content": [
+          {
+            "type": "text",
+            "text": "```json\n{\"commands\":[],\"speech\":\"嗯\"}\n```"
+          }
+        ],
+        "stop_reason": "end_turn",
+        "usage": {
+          "input_tokens": 50,
+          "output_tokens": 20
+        }
+      },
+      "expect": {
+        "text": "```json\n{\"commands\":[],\"speech\":\"嗯\"}\n```",
+        "json": {
+          "commands": [],
+          "speech": "嗯"
+        },
+        "stopReason": "end",
+        "channel": "prompt_only",
+        "usage": {
+          "inputTokens": 50,
+          "outputTokens": 20,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "cacheCreation1hInputTokens": 0
+        }
+      }
+    },
+    {
+      "name": "401 invalid key",
+      "profile": "opus",
+      "status": 401,
+      "headers": {
+        "request-id": "req_fixture_0007"
+      },
+      "body": {
+        "type": "error",
+        "error": {
+          "type": "authentication_error",
+          "message": "invalid x-api-key"
+        }
+      },
+      "expect": {
+        "problem": "key_invalid",
+        "cls": "auth",
+        "httpStatus": 401,
+        "providerRequestId": "req_fixture_0007"
+      }
+    },
+    {
+      "name": "403 permission",
+      "profile": "opus",
+      "status": 403,
+      "body": {
+        "type": "error",
+        "error": {
+          "type": "permission_error",
+          "message": "Your API key does not have permission to use the specified resource."
+        }
+      },
+      "expect": {
+        "problem": "permission_denied",
+        "cls": "auth"
+      }
+    },
+    {
+      "name": "400 credit balance too low",
+      "profile": "opus",
+      "status": 400,
+      "body": {
+        "type": "error",
+        "error": {
+          "type": "invalid_request_error",
+          "message": "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."
+        }
+      },
+      "expect": {
+        "problem": "insufficient_balance",
+        "cls": "quota"
+      }
+    },
+    {
+      "name": "404 unknown model",
+      "profile": "opus",
+      "status": 404,
+      "body": {
+        "type": "error",
+        "error": {
+          "type": "not_found_error",
+          "message": "model: claude-opus-9"
+        }
+      },
+      "expect": {
+        "problem": "model_not_found",
+        "cls": "model_unavailable"
+      }
+    },
+    {
+      "name": "404 wrong path",
+      "profile": "opus",
+      "status": 404,
+      "body": {
+        "type": "error",
+        "error": {
+          "type": "not_found_error",
+          "message": "Not Found"
+        }
+      },
+      "expect": {
+        "problem": "endpoint_wrong",
+        "cls": "network"
+      }
+    },
+    {
+      "name": "400 prompt too long",
+      "profile": "opus",
+      "status": 400,
+      "body": {
+        "type": "error",
+        "error": {
+          "type": "invalid_request_error",
+          "message": "prompt is too long: 212000 tokens > 200000 maximum"
+        }
+      },
+      "expect": {
+        "problem": "context_too_long",
+        "cls": "context_too_long"
+      }
+    },
+    {
+      "name": "413 request too large",
+      "profile": "opus",
+      "status": 413,
+      "body": {
+        "type": "error",
+        "error": {
+          "type": "request_too_large",
+          "message": "Request exceeds the maximum allowed number of bytes."
+        }
+      },
+      "expect": {
+        "problem": "context_too_long"
+      }
+    },
+    {
+      "name": "429 rate limit with retry-after",
+      "profile": "opus",
+      "status": 429,
+      "headers": {
+        "retry-after": "7"
+      },
+      "body": {
+        "type": "error",
+        "error": {
+          "type": "rate_limit_error",
+          "message": "Number of request tokens has exceeded your per-minute rate limit."
+        }
+      },
+      "expect": {
+        "problem": "rate_limited",
+        "cls": "rate_limited",
+        "retryAfterMs": 7000
+      }
+    },
+    {
+      "name": "529 overloaded",
+      "profile": "opus",
+      "status": 529,
+      "body": {
+        "type": "error",
+        "error": {
+          "type": "overloaded_error",
+          "message": "Overloaded"
+        }
+      },
+      "expect": {
+        "problem": "overloaded",
+        "cls": "overloaded"
+      }
+    },
+    {
+      "name": "500 api error",
+      "profile": "opus",
+      "status": 500,
+      "body": {
+        "type": "error",
+        "error": {
+          "type": "api_error",
+          "message": "Internal server error"
+        }
+      },
+      "expect": {
+        "problem": "server_error",
+        "cls": "server"
+      }
+    },
+    {
+      "name": "502 gateway page",
+      "profile": "opus",
+      "status": 502,
+      "headers": {
+        "content-type": "text/html"
+      },
+      "body": "<html><body>502 Bad Gateway</body></html>",
+      "expect": {
+        "problem": "server_error"
+      }
+    },
+    {
+      "name": "200 web page instead of JSON",
+      "profile": "opus",
+      "status": 200,
+      "headers": {
+        "content-type": "text/html; charset=utf-8"
+      },
+      "body": "<!DOCTYPE html><html><head><title>Welcome</title></head></html>",
+      "expect": {
+        "problem": "endpoint_wrong",
+        "cls": "network"
+      }
+    },
+    {
+      "name": "301 redirect is not followed",
+      "profile": "opus",
+      "status": 301,
+      "headers": {
+        "location": "https://elsewhere.example/v1/messages"
+      },
+      "body": "",
+      "expect": {
+        "problem": "endpoint_wrong",
+        "httpStatus": 301
+      }
+    },
+    {
+      "name": "400 structured output not supported",
+      "profile": "opus",
+      "status": 400,
+      "body": {
+        "type": "error",
+        "error": {
+          "type": "invalid_request_error",
+          "message": "output_config.format: json_schema output is not supported for this model"
+        }
+      },
+      "expect": {
+        "problem": null,
+        "cls": "bad_request",
+        "unsupportedParam": "output_config"
+      }
+    },
+    {
+      "name": "400 sampling parameter is a defect, not a player problem",
+      "profile": "opus",
+      "status": 400,
+      "body": {
+        "type": "error",
+        "error": {
+          "type": "invalid_request_error",
+          "message": "temperature: Extra inputs are not permitted"
+        }
+      },
+      "expect": {
+        "problem": null,
+        "cls": "bad_request",
+        "unsupportedParam": "temperature"
+      }
+    },
+    {
+      "name": "temperature named first, output_config later: the first named parameter wins",
+      "profile": "opus",
+      "status": 400,
+      "body": {
+        "type": "error",
+        "error": {
+          "type": "invalid_request_error",
+          "message": "temperature is not supported when output_config.effort is set"
+        }
+      },
+      "expect": {
+        "problem": null,
+        "cls": "bad_request",
+        "unsupportedParam": "temperature"
+      }
+    },
+    {
+      "name": "529 with retry-after",
+      "profile": "opus",
+      "status": 529,
+      "headers": {
+        "retry-after": "12"
+      },
+      "body": {
+        "type": "error",
+        "error": {
+          "type": "overloaded_error",
+          "message": "Overloaded"
+        }
+      },
+      "expect": {
+        "problem": "overloaded",
+        "retryAfterMs": 12000
+      }
+    },
+    {
+      "name": "401 answered by a gateway page is still a key problem",
+      "profile": "opus",
+      "status": 401,
+      "headers": {
+        "content-type": "text/html"
+      },
+      "body": "<html><body>401 Authorization Required</body></html>",
+      "expect": {
+        "problem": "key_invalid",
+        "cls": "auth"
+      }
+    },
+    {
+      "name": "429 answered by a gateway page is still a rate limit",
+      "profile": "opus",
+      "status": 429,
+      "headers": {
+        "content-type": "text/html",
+        "retry-after": "3"
+      },
+      "body": "<html><body>Too Many Requests</body></html>",
+      "expect": {
+        "problem": "rate_limited",
+        "retryAfterMs": 3000
+      }
+    },
+    {
+      "name": "timeout",
+      "profile": "opus",
+      "netError": "timeout",
+      "expect": {
+        "problem": "timeout",
+        "cls": "timeout"
+      }
+    },
+    {
+      "name": "connection refused",
+      "profile": "opus",
+      "netError": "refused",
+      "expect": {
+        "problem": "network",
+        "cls": "network"
+      }
+    },
+    {
+      "name": "dns failure",
+      "profile": "opus",
+      "netError": "dns",
+      "expect": {
+        "problem": "network"
+      }
+    },
+    {
+      "name": "certificate failure",
+      "profile": "opus",
+      "netError": "tls",
+      "expect": {
+        "problem": "tls_error",
+        "cls": "network"
+      }
+    },
+    {
+      "name": "stream with thinking, split lines and usage",
+      "profile": "opus",
+      "chunks": [
+        "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_fixture_0010\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-opus-5-5\",\"content\":[],\"stop_reason\":null,\"usage\":{\"input_tokens\":812,\"output_tokens\":1,\"cache_read_input_tokens\":12000,\"cache_creation_input_tokens\":0}}}\n\n",
+        "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"thinking\",\"thinking\":\"\",\"signature\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"thinking_delta\",\"thinking\":\"先看菜单\"}}\n\n",
+        "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"signature_delta\",\"signature\":\"c2lnLWZpeHR1cmUtMg==\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\n",
+        "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"text_delta\",\"text\":\"{\\\"commands\\\":[],\"}}\n\nevent: content_block_del",
+        "ta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"text_delta\",\"text\":\"\\\"speech\\\":\\\"请进。\\\"}\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1}\n\n",
+        "event: ping\ndata: {\"type\":\"ping\"}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null},\"usage\":{\"output_tokens\":96}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+      ],
+      "expect": {
+        "text": "{\"commands\":[],\"speech\":\"请进。\"}",
+        "json": {
+          "commands": [],
+          "speech": "请进。"
+        },
+        "stopReason": "end",
+        "usage": {
+          "inputTokens": 812,
+          "outputTokens": 96,
+          "cacheReadInputTokens": 12000,
+          "cacheCreationInputTokens": 0,
+          "cacheCreation1hInputTokens": 0
+        },
+        "servedModel": "claude-opus-5-5",
+        "opaqueBlocks": 1
+      },
+      "expectText": "{\"commands\":[],\"speech\":\"请进。\"}"
+    },
+    {
+      "name": "stream error event is classified like the HTTP error",
+      "profile": "opus",
+      "chunks": [
+        "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_fixture_0011\",\"model\":\"claude-opus-5-5\",\"usage\":{\"input_tokens\":5,\"output_tokens\":1}}}\n\n",
+        "event: error\ndata: {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"}}\n\n"
+      ],
+      "expect": {
+        "problem": "overloaded",
+        "cls": "overloaded"
+      }
+    },
+    {
+      "name": "stream cut before message_stop is a network failure",
+      "profile": "opus",
+      "chunks": [
+        "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_fixture_0012\",\"model\":\"claude-opus-5-5\",\"usage\":{\"input_tokens\":5,\"output_tokens\":1}}}\n\n",
+        "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"{\\\"commands\\\":[\"}}\n\n"
+      ],
+      "expect": {
+        "problem": "network",
+        "cls": "network"
+      }
+    },
+    {
+      "name": "last event without a trailing newline is still read",
+      "profile": "opus",
+      "chunks": [
+        "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_fixture_0013\",\"model\":\"claude-opus-5-5\",\"usage\":{\"input_tokens\":5,\"output_tokens\":1}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"{\\\"commands\\\":[]}\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":7}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}"
+      ],
+      "expect": {
+        "text": "{\"commands\":[]}",
+        "stopReason": "end",
+        "usageEstimated": null
+      }
+    }
+  ]
+}

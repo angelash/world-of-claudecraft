@@ -1,0 +1,660 @@
+{
+  "provider": "openai_compat",
+  "note": "Answers in the shapes of OpenAI-compatible /chat/completions services (OpenAI, DeepSeek, OpenRouter style usage and errors), written from the public API references; the user re-records them with a real service per docs/50_tech/llm_providers.md 16.1. No credentials.",
+  "samples": [
+    {
+      "name": "json_schema answer with cached_tokens usage",
+      "profile": "compat_schema",
+      "status": 200,
+      "headers": {
+        "x-request-id": "req-fixture-c1"
+      },
+      "body": {
+        "id": "chatcmpl-fixture-1",
+        "object": "chat.completion",
+        "model": "example-chat",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"commands\":[],\"speech\":\"嗯。\"}"
+            },
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 900,
+          "completion_tokens": 40,
+          "total_tokens": 940,
+          "prompt_tokens_details": {
+            "cached_tokens": 600
+          }
+        }
+      },
+      "expect": {
+        "text": "{\"commands\":[],\"speech\":\"嗯。\"}",
+        "json": {
+          "commands": [],
+          "speech": "嗯。"
+        },
+        "stopReason": "end",
+        "rawStopReason": "stop",
+        "usage": {
+          "inputTokens": 300,
+          "outputTokens": 40,
+          "cacheReadInputTokens": 600,
+          "cacheCreationInputTokens": 0
+        },
+        "servedModel": "example-chat",
+        "providerRequestId": "req-fixture-c1",
+        "channel": "json_schema"
+      }
+    },
+    {
+      "name": "cache hit and miss usage fields",
+      "profile": "compat_schema",
+      "status": 200,
+      "body": {
+        "id": "chatcmpl-fixture-2",
+        "model": "example-chat",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"commands\":[]}"
+            },
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 900,
+          "completion_tokens": 40,
+          "prompt_cache_hit_tokens": 700,
+          "prompt_cache_miss_tokens": 200
+        }
+      },
+      "expect": {
+        "usage": {
+          "inputTokens": 200,
+          "outputTokens": 40,
+          "cacheReadInputTokens": 700,
+          "cacheCreationInputTokens": 0
+        }
+      }
+    },
+    {
+      "name": "submit function call carries the answer",
+      "profile": "compat_tool",
+      "status": 200,
+      "body": {
+        "id": "chatcmpl-fixture-3",
+        "model": "example-chat",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": null,
+              "tool_calls": [
+                {
+                  "id": "call_fixture_1",
+                  "type": "function",
+                  "function": {
+                    "name": "submit",
+                    "arguments": "{\"commands\":[],\"speech\":\"好\"}"
+                  }
+                }
+              ]
+            },
+            "finish_reason": "tool_calls"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 100,
+          "completion_tokens": 10
+        }
+      },
+      "expect": {
+        "text": "{\"commands\":[],\"speech\":\"好\"}",
+        "json": {
+          "commands": [],
+          "speech": "好"
+        },
+        "stopReason": "end",
+        "channel": "tool_carrier"
+      }
+    },
+    {
+      "name": "JSON mode answer wrapped in thinking tags",
+      "profile": "compat_json",
+      "status": 200,
+      "body": {
+        "id": "chatcmpl-fixture-4",
+        "model": "example-reasoner",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "<think>先想想菜单</think>\n{\"commands\":[],\"speech\":\"行\"}",
+              "reasoning_content": "内部推理"
+            },
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 100,
+          "completion_tokens": 30,
+          "completion_tokens_details": {
+            "reasoning_tokens": 20
+          }
+        }
+      },
+      "expect": {
+        "text": "{\"commands\":[],\"speech\":\"行\"}",
+        "json": {
+          "commands": [],
+          "speech": "行"
+        },
+        "usage": {
+          "inputTokens": 100,
+          "outputTokens": 30,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "servedModel": "example-reasoner"
+      }
+    },
+    {
+      "name": "finish_reason length is a truncation",
+      "profile": "compat_schema",
+      "status": 200,
+      "body": {
+        "id": "chatcmpl-fixture-5",
+        "model": "example-chat",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"commands\":["
+            },
+            "finish_reason": "length"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 100,
+          "completion_tokens": 1000
+        }
+      },
+      "expect": {
+        "stopReason": "max_tokens",
+        "json": null
+      }
+    },
+    {
+      "name": "refusal field",
+      "profile": "compat_schema",
+      "status": 200,
+      "body": {
+        "id": "chatcmpl-fixture-6",
+        "model": "example-chat",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": null,
+              "refusal": "I can not help with that."
+            },
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 100,
+          "completion_tokens": 8
+        }
+      },
+      "expect": {
+        "problem": "refusal",
+        "cls": "refusal",
+        "stopReason": "refusal"
+      }
+    },
+    {
+      "name": "content filter is a refusal",
+      "profile": "compat_schema",
+      "status": 200,
+      "body": {
+        "id": "chatcmpl-fixture-7",
+        "model": "example-chat",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": ""
+            },
+            "finish_reason": "content_filter"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 100,
+          "completion_tokens": 0
+        }
+      },
+      "expect": {
+        "problem": "refusal",
+        "stopReason": "refusal"
+      }
+    },
+    {
+      "name": "answer without usage is marked as estimated",
+      "profile": "compat_schema",
+      "status": 200,
+      "body": {
+        "id": "chatcmpl-fixture-8",
+        "model": "example-chat",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"commands\":[]}"
+            },
+            "finish_reason": "stop"
+          }
+        ]
+      },
+      "expect": {
+        "usageEstimated": true
+      }
+    },
+    {
+      "name": "prompt-only answer with prose around the object",
+      "profile": "compat_prompt",
+      "status": 200,
+      "body": {
+        "id": "chatcmpl-fixture-9",
+        "model": "example-chat",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "好的，结果如下：{\"commands\":[],\"speech\":\"嗯\"} 以上。"
+            },
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 80,
+          "completion_tokens": 20
+        }
+      },
+      "expect": {
+        "json": {
+          "commands": [],
+          "speech": "嗯"
+        },
+        "stopReason": "end",
+        "channel": "prompt_only",
+        "usage": {
+          "inputTokens": 80,
+          "outputTokens": 20,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        }
+      }
+    },
+    {
+      "name": "error object inside a 200 answer is classified by its code",
+      "profile": "compat_schema",
+      "status": 200,
+      "body": {
+        "error": {
+          "message": "Upstream provider error",
+          "code": 502
+        }
+      },
+      "expect": {
+        "problem": "server_error",
+        "cls": "server"
+      }
+    },
+    {
+      "name": "JSON without choices is not a chat completions endpoint",
+      "profile": "compat_schema",
+      "status": 200,
+      "body": {
+        "object": "list",
+        "data": []
+      },
+      "expect": {
+        "problem": "endpoint_wrong",
+        "cls": "network"
+      }
+    },
+    {
+      "name": "401 invalid key",
+      "profile": "compat_schema",
+      "status": 401,
+      "headers": {
+        "x-request-id": "req-fixture-c9"
+      },
+      "body": {
+        "error": {
+          "message": "Incorrect API key provided.",
+          "type": "invalid_request_error",
+          "param": null,
+          "code": "invalid_api_key"
+        }
+      },
+      "expect": {
+        "problem": "key_invalid",
+        "cls": "auth",
+        "providerRequestId": "req-fixture-c9"
+      }
+    },
+    {
+      "name": "403 permission",
+      "profile": "compat_schema",
+      "status": 403,
+      "body": {
+        "error": {
+          "message": "You are not allowed to use this model.",
+          "type": "permission_error"
+        }
+      },
+      "expect": {
+        "problem": "permission_denied"
+      }
+    },
+    {
+      "name": "402 insufficient balance",
+      "profile": "compat_schema",
+      "status": 402,
+      "body": {
+        "error": {
+          "message": "Insufficient Balance",
+          "type": "unknown_error",
+          "param": null,
+          "code": "invalid_request_error"
+        }
+      },
+      "expect": {
+        "problem": "insufficient_balance",
+        "cls": "quota"
+      }
+    },
+    {
+      "name": "429 quota exhausted",
+      "profile": "compat_schema",
+      "status": 429,
+      "body": {
+        "error": {
+          "message": "You exceeded your current quota, please check your plan and billing details.",
+          "type": "insufficient_quota",
+          "param": null,
+          "code": "insufficient_quota"
+        }
+      },
+      "expect": {
+        "problem": "insufficient_balance",
+        "cls": "quota"
+      }
+    },
+    {
+      "name": "429 rate limit",
+      "profile": "compat_schema",
+      "status": 429,
+      "headers": {
+        "retry-after-ms": "1500"
+      },
+      "body": {
+        "error": {
+          "message": "Rate limit reached for requests",
+          "type": "requests",
+          "code": "rate_limit_exceeded"
+        }
+      },
+      "expect": {
+        "problem": "rate_limited",
+        "retryAfterMs": 1500
+      }
+    },
+    {
+      "name": "404 model does not exist",
+      "profile": "compat_schema",
+      "status": 404,
+      "body": {
+        "error": {
+          "message": "The model `example-x` does not exist or you do not have access to it.",
+          "type": "invalid_request_error",
+          "code": "model_not_found"
+        }
+      },
+      "expect": {
+        "problem": "model_not_found",
+        "cls": "model_unavailable"
+      }
+    },
+    {
+      "name": "404 path without /v1",
+      "profile": "compat_schema",
+      "status": 404,
+      "headers": {
+        "content-type": "text/plain"
+      },
+      "body": "404 page not found",
+      "expect": {
+        "problem": "endpoint_wrong"
+      }
+    },
+    {
+      "name": "400 context length exceeded",
+      "profile": "compat_schema",
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "This model's maximum context length is 65536 tokens. However, you requested 70000 tokens.",
+          "type": "invalid_request_error",
+          "param": "messages",
+          "code": "context_length_exceeded"
+        }
+      },
+      "expect": {
+        "problem": "context_too_long",
+        "cls": "context_too_long"
+      }
+    },
+    {
+      "name": "400 response_format not supported",
+      "profile": "compat_schema",
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "Unsupported parameter: 'response_format' is not supported with this model.",
+          "type": "invalid_request_error",
+          "param": "response_format",
+          "code": "unsupported_parameter"
+        }
+      },
+      "expect": {
+        "problem": null,
+        "cls": "bad_request",
+        "unsupportedParam": "response_format"
+      }
+    },
+    {
+      "name": "400 max_tokens replaced by max_completion_tokens",
+      "profile": "compat_schema",
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.",
+          "type": "invalid_request_error",
+          "code": "unsupported_parameter"
+        }
+      },
+      "expect": {
+        "problem": null,
+        "cls": "bad_request",
+        "unsupportedParam": "max_tokens"
+      }
+    },
+    {
+      "name": "503 overloaded",
+      "profile": "compat_schema",
+      "status": 503,
+      "body": {
+        "error": {
+          "message": "The engine is currently overloaded, please try again later.",
+          "type": "server_error"
+        }
+      },
+      "expect": {
+        "problem": "overloaded",
+        "cls": "overloaded"
+      }
+    },
+    {
+      "name": "503 with retry-after",
+      "profile": "compat_schema",
+      "status": 503,
+      "headers": {
+        "retry-after": "2"
+      },
+      "body": {
+        "error": {
+          "message": "busy"
+        }
+      },
+      "expect": {
+        "problem": "overloaded",
+        "retryAfterMs": 2000
+      }
+    },
+    {
+      "name": "500 server error",
+      "profile": "compat_schema",
+      "status": 500,
+      "body": {
+        "error": {
+          "message": "The server had an error while processing your request.",
+          "type": "server_error"
+        }
+      },
+      "expect": {
+        "problem": "server_error"
+      }
+    },
+    {
+      "name": "302 redirect",
+      "profile": "compat_schema",
+      "status": 302,
+      "headers": {
+        "location": "https://login.example.com/"
+      },
+      "body": "",
+      "expect": {
+        "problem": "endpoint_wrong"
+      }
+    },
+    {
+      "name": "timeout",
+      "profile": "compat_schema",
+      "netError": "timeout",
+      "expect": {
+        "problem": "timeout"
+      }
+    },
+    {
+      "name": "dns failure",
+      "profile": "compat_schema",
+      "netError": "dns",
+      "expect": {
+        "problem": "network"
+      }
+    },
+    {
+      "name": "certificate failure",
+      "profile": "compat_schema",
+      "netError": "tls",
+      "expect": {
+        "problem": "tls_error"
+      }
+    },
+    {
+      "name": "stream with a final usage chunk",
+      "profile": "compat_schema",
+      "chunks": [
+        "data: {\"id\":\"chatcmpl-fixture-s1\",\"model\":\"example-chat\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"\"},\"finish_reason\":null}]}\n\n",
+        "data: {\"id\":\"chatcmpl-fixture-s1\",\"model\":\"example-chat\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"{\\\"commands\\\":[],\"},\"finish_reason\":null}]}\n\ndata: {\"id\":\"chatcmpl-fixture-s1\",\"model\":\"example-chat\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"\\\"speech\\\":\\\"好的\\\"}\"},\"finish_reason\":null}]}\n",
+        "\ndata: {\"id\":\"chatcmpl-fixture-s1\",\"model\":\"example-chat\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\ndata: {\"id\":\"chatcmpl-fixture-s1\",\"model\":\"example-chat\",\"choices\":[],\"usage\":{\"prompt_tokens\":120,\"completion_tokens\":12,\"prompt_tokens_details\":{\"cached_tokens\":100}}}\n\ndata: [DONE]\n\n"
+      ],
+      "expect": {
+        "text": "{\"commands\":[],\"speech\":\"好的\"}",
+        "stopReason": "end",
+        "usage": {
+          "inputTokens": 20,
+          "outputTokens": 12,
+          "cacheReadInputTokens": 100,
+          "cacheCreationInputTokens": 0
+        },
+        "usageEstimated": null
+      },
+      "expectText": "{\"commands\":[],\"speech\":\"好的\"}"
+    },
+    {
+      "name": "stream without usage is estimated",
+      "profile": "compat_schema",
+      "chunks": [
+        "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"{\\\"commands\\\":[]}\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"
+      ],
+      "expect": {
+        "text": "{\"commands\":[]}",
+        "usageEstimated": true
+      }
+    },
+    {
+      "name": "stream of tool call arguments",
+      "profile": "compat_tool",
+      "chunks": [
+        "data: {\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_fixture_2\",\"type\":\"function\",\"function\":{\"name\":\"submit\",\"arguments\":\"\"}}]}}]}\n\n",
+        "data: {\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{\\\"commands\\\":[],\"}}]}}]}\n\ndata: {\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"\\\"speech\\\":\\\"行\\\"}\"}}]},\"finish_reason\":\"tool_calls\"}]}\n\ndata: [DONE]\n\n"
+      ],
+      "expect": {
+        "json": {
+          "commands": [],
+          "speech": "行"
+        },
+        "channel": "tool_carrier",
+        "stopReason": "end"
+      },
+      "expectText": "{\"commands\":[],\"speech\":\"行\"}"
+    },
+    {
+      "name": "stream error chunk",
+      "profile": "compat_schema",
+      "chunks": [
+        "data: {\"error\":{\"message\":\"Rate limit reached\",\"type\":\"requests\",\"code\":429}}\n\n"
+      ],
+      "expect": {
+        "problem": "rate_limited"
+      }
+    },
+    {
+      "name": "stream cut before [DONE] or a finish reason",
+      "profile": "compat_schema",
+      "chunks": [
+        "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"{\\\"commands\\\":[\"},\"finish_reason\":null}]}\n\n"
+      ],
+      "expect": {
+        "problem": "network"
+      }
+    }
+  ]
+}

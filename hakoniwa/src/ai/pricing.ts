@@ -1,10 +1,13 @@
-// Model ids, tier defaults and the price table (US dollars per million tokens), shared by
-// the runner's budget (estimates) and the dev proxy (settlement). Prices follow
-// docs/50_tech/ai_architecture.md 10.2 and Anthropic's published rates for 2026-11;
-// recheck against the official price list before shipping. The proxy only calls models
-// listed here (model whitelist, docs/50_tech/ai_architecture.md 11.1).
+// Model ids, tier defaults and the price table (currency units per million tokens), shared
+// by the runner's budget (estimates) and the dev proxy (settlement). Prices come from the
+// price book data/llm/price_book.json (docs/50_tech/ai_architecture.md 10.2 and
+// docs/50_tech/llm_providers.md 3.8); the official price list is authoritative. The proxy
+// only calls models listed here (model whitelist, docs/50_tech/ai_architecture.md 11.1).
 
-import type { LlmUsage, ModelTier } from './contracts';
+import knownModels from '../../data/llm/known_models.json';
+import priceBook from '../../data/llm/price_book.json';
+import type { LlmUsage, ModelTier, ProviderId } from './contracts';
+import type { PriceCard } from './providers/types';
 
 export interface ModelPrice {
   input: number;
@@ -19,51 +22,112 @@ export interface ModelPrice {
   serverFallback: boolean;
 }
 
-export const MODEL_PRICES: Readonly<Record<string, ModelPrice>> = {
-  'claude-opus-5-5': {
-    input: 4,
-    output: 20,
-    cacheRead: 0.2,
-    cacheWrite5m: 5,
-    cacheWrite1h: 8,
-    serverFallback: true,
-  },
-  'claude-sonnet-5-5': {
-    input: 2,
-    output: 10,
-    cacheRead: 0.1,
-    cacheWrite5m: 2.5,
-    cacheWrite1h: 4,
-    serverFallback: true,
-  },
-  'claude-haiku-5-5': {
-    input: 0.1,
-    output: 0.5,
-    cacheRead: 0.01,
-    cacheWrite5m: 0.125,
-    cacheWrite1h: 0.2,
-    longPromptThreshold: 100_000,
-    longPrompt: { input: 0.5, output: 2.5, cacheRead: 0.05, cacheWrite5m: 0.625, cacheWrite1h: 1 },
-    serverFallback: false,
-  },
-  // Documented server-side fallback targets; priced so a fallback answer settles correctly.
-  'claude-opus-5': {
-    input: 5,
-    output: 25,
-    cacheRead: 0.5,
-    cacheWrite5m: 6.25,
-    cacheWrite1h: 10,
-    serverFallback: false,
-  },
-  'claude-sonnet-5': {
-    input: 2,
-    output: 10,
-    cacheRead: 0.2,
-    cacheWrite5m: 2.5,
-    cacheWrite1h: 4,
-    serverFallback: false,
+interface RawPrice {
+  input: number;
+  cacheRead: number;
+  cacheWrite5m?: number;
+  cacheWrite1h?: number;
+  output: number;
+  longPromptThreshold?: number;
+  longPrompt?: Omit<RawPrice, 'longPromptThreshold' | 'longPrompt' | 'fallbackTarget'>;
+  /** Server-side fallback targets: priced so a fallback answer settles, never callable. */
+  fallbackTarget?: boolean;
+}
+
+interface PriceBook {
+  fx: { cnyPerUsd: number };
+  providers: {
+    anthropic: {
+      currency: 'USD';
+      consoleUrl: string;
+      dataPolicyUrl: string;
+      models: Record<string, RawPrice>;
+    };
+    openai_compat: { models: Record<string, RawPrice> };
+    local: { currency: 'USD'; default: RawPrice; models: Record<string, RawPrice> };
+  };
+}
+
+const BOOK = priceBook as unknown as PriceBook;
+
+/** Anthropic models whose server-side refusal fallback is requested (D-079 AQ-16). */
+const SERVER_FALLBACK_MODELS: ReadonlySet<string> = new Set(
+  Object.entries(
+    (
+      knownModels as {
+        anthropic: { models: Record<string, { capability: { serverFallback: boolean } }> };
+      }
+    ).anthropic.models,
+  )
+    .filter(([, m]) => m.capability.serverFallback)
+    .map(([id]) => id),
+);
+
+function toModelPrice(model: string, p: RawPrice): ModelPrice {
+  const out: ModelPrice = {
+    input: p.input,
+    output: p.output,
+    cacheRead: p.cacheRead,
+    cacheWrite5m: p.cacheWrite5m ?? p.input,
+    cacheWrite1h: p.cacheWrite1h ?? p.input,
+    serverFallback: SERVER_FALLBACK_MODELS.has(model),
+  };
+  if (p.longPromptThreshold !== undefined && p.longPrompt) {
+    out.longPromptThreshold = p.longPromptThreshold;
+    out.longPrompt = {
+      input: p.longPrompt.input,
+      output: p.longPrompt.output,
+      cacheRead: p.longPrompt.cacheRead,
+      cacheWrite5m: p.longPrompt.cacheWrite5m ?? p.longPrompt.input,
+      cacheWrite1h: p.longPrompt.cacheWrite1h ?? p.longPrompt.input,
+    };
+  }
+  return out;
+}
+
+export const MODEL_PRICES: Readonly<Record<string, ModelPrice>> = Object.fromEntries(
+  Object.entries(BOOK.providers.anthropic.models).map(([m, p]) => [m, toModelPrice(m, p)]),
+);
+
+/** Reference exchange rate shipped with the price book (the player may override it). */
+export const FX_CNY_PER_USD: number = BOOK.fx.cnyPerUsd;
+
+/** Provider console and data policy links: the only addresses a fix button may open. */
+export const PROVIDER_LINKS: Readonly<
+  Partial<Record<ProviderId, { console: string; dataPolicy: string }>>
+> = {
+  anthropic: {
+    console: BOOK.providers.anthropic.consoleUrl,
+    dataPolicy: BOOK.providers.anthropic.dataPolicyUrl,
   },
 };
+
+/**
+ * The shipped price card of a model: Anthropic rows from the price book, zero for local
+ * services, none for compatible services (the player enters those prices).
+ */
+export function priceCardOf(kind: ProviderId, model: string): PriceCard | undefined {
+  if (kind === 'local') {
+    const p = BOOK.providers.local.models[model] ?? BOOK.providers.local.default;
+    return { currency: 'USD', input: p.input, cacheRead: p.cacheRead, output: p.output };
+  }
+  if (kind !== 'anthropic') return undefined;
+  const p = BOOK.providers.anthropic.models[model];
+  if (!p || p.fallbackTarget) return undefined;
+  const card: PriceCard = {
+    currency: 'USD',
+    input: p.input,
+    cacheRead: p.cacheRead,
+    output: p.output,
+  };
+  if (p.cacheWrite5m !== undefined) card.cacheWrite5m = p.cacheWrite5m;
+  if (p.cacheWrite1h !== undefined) card.cacheWrite1h = p.cacheWrite1h;
+  if (p.longPromptThreshold !== undefined && p.longPrompt) {
+    card.longPromptThreshold = p.longPromptThreshold;
+    card.longPrompt = { ...p.longPrompt };
+  }
+  return card;
+}
 
 /** Models the proxy may be configured to call (fallback targets are not callable directly). */
 export const CALLABLE_MODELS: readonly string[] = [
@@ -105,6 +169,30 @@ export function costUsd(model: string, u: LlmUsage): number {
     write5m * card.cacheWrite5m +
     write1h * card.cacheWrite1h;
   return usd / 1_000_000;
+}
+
+/**
+ * Cost in US dollars of one call under a connection's price card (llm_providers.md 3.8):
+ * long-prompt card above its threshold, one-hour cache writes at their own price, missing
+ * write prices at the input price; CNY cards convert at `cnyPerUsd`.
+ */
+export function costWithCard(card: PriceCard, u: LlmUsage, cnyPerUsd = FX_CNY_PER_USD): number {
+  const use =
+    card.longPrompt &&
+    card.longPromptThreshold !== undefined &&
+    promptTokens(u) > card.longPromptThreshold
+      ? card.longPrompt
+      : card;
+  const write1h = Math.min(u.cacheCreation1hInputTokens ?? 0, u.cacheCreationInputTokens);
+  const write5m = u.cacheCreationInputTokens - write1h;
+  const amount =
+    u.inputTokens * use.input +
+    u.outputTokens * use.output +
+    u.cacheReadInputTokens * use.cacheRead +
+    write5m * (use.cacheWrite5m ?? use.input) +
+    write1h * (use.cacheWrite1h ?? use.input);
+  const usd = amount / 1_000_000;
+  return card.currency === 'CNY' ? usd / cnyPerUsd : usd;
 }
 
 /** Rough token estimate for budgeting: CJK characters count about 1.3, other characters 0.3. */

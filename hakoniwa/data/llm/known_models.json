@@ -1,0 +1,264 @@
+{
+  "version": 1,
+  "asOf": "2026-11",
+  "note": "Known model capabilities, recommended tiers and role labels (docs/50_tech/llm_providers.md 3.7, 4.5, 4.6). Context and output limits of the Anthropic rows are conservative values to confirm against the official model documentation; a model listing that reports limits overrides them. Compatible and local services carry generic per-kind records instead of model names; the connection test probes refine them.",
+  "roleRequirements": {
+    "goddess": {
+      "minContext": 49152,
+      "minSizeClass": "30b",
+      "minChannel": "json_mode",
+      "cloudAdvised": true
+    },
+    "core_npc": {
+      "minContext": 24576,
+      "minSizeClass": "14b",
+      "minChannel": "json_mode",
+      "cloudAdvised": false
+    },
+    "present_npc": {
+      "minContext": 16384,
+      "minSizeClass": "7b",
+      "minChannel": "json_mode",
+      "cloudAdvised": false
+    },
+    "offstage_batch": {
+      "minContext": 32768,
+      "minSizeClass": "7b",
+      "minChannel": "json_mode",
+      "cloudAdvised": false
+    },
+    "ruler_general": {
+      "minContext": 24576,
+      "minSizeClass": "14b",
+      "minChannel": "json_mode",
+      "cloudAdvised": false
+    },
+    "court_reviewer": {
+      "minContext": 16384,
+      "minSizeClass": "30b",
+      "minChannel": "tool_carrier",
+      "cloudAdvised": true
+    }
+  },
+  "anthropic": {
+    "defaultBaseUrl": "https://api.anthropic.com",
+    "defaults": {
+      "channels": ["prompt_only"],
+      "toolChoice": "named",
+      "streaming": "yes",
+      "streamUsage": "yes",
+      "promptCache": "explicit",
+      "cacheUsageField": "anthropic",
+      "thinking": "none",
+      "effort": false,
+      "maxTokensParam": "max_tokens",
+      "samplingParams": false,
+      "contextTokens": 200000,
+      "maxOutputTokens": 8192,
+      "serverFallback": false,
+      "forcedTool": false,
+      "dialect": { "oneOfToAnyOf": true, "stripConstraints": true }
+    },
+    "models": {
+      "claude-opus-5-5": {
+        "displayName": "Claude Opus 5.5",
+        "tier": "top",
+        "capability": {
+          "channels": ["json_schema", "prompt_only"],
+          "toolChoice": "named",
+          "streaming": "yes",
+          "streamUsage": "yes",
+          "promptCache": "explicit",
+          "cacheUsageField": "anthropic",
+          "thinking": "adaptive",
+          "effort": true,
+          "maxTokensParam": "max_tokens",
+          "samplingParams": false,
+          "contextTokens": 200000,
+          "maxOutputTokens": 32000,
+          "serverFallback": true,
+          "forcedTool": false,
+          "dialect": { "oneOfToAnyOf": true, "stripConstraints": true }
+        },
+        "labels": {
+          "goddess": "ok",
+          "core_npc": "ok",
+          "present_npc": "ok",
+          "offstage_batch": "ok",
+          "ruler_general": "ok",
+          "court_reviewer": "ok"
+        }
+      },
+      "claude-sonnet-5-5": {
+        "displayName": "Claude Sonnet 5.5",
+        "tier": "mid",
+        "capability": {
+          "channels": ["json_schema", "prompt_only"],
+          "toolChoice": "named",
+          "streaming": "yes",
+          "streamUsage": "yes",
+          "promptCache": "explicit",
+          "cacheUsageField": "anthropic",
+          "thinking": "adaptive",
+          "effort": true,
+          "maxTokensParam": "max_tokens",
+          "samplingParams": false,
+          "contextTokens": 200000,
+          "maxOutputTokens": 32000,
+          "serverFallback": true,
+          "forcedTool": false,
+          "dialect": { "oneOfToAnyOf": true, "stripConstraints": true }
+        },
+        "labels": {
+          "goddess": "ok",
+          "core_npc": "ok",
+          "present_npc": "ok",
+          "offstage_batch": "ok",
+          "ruler_general": "ok",
+          "court_reviewer": "ok"
+        }
+      },
+      "claude-haiku-5-5": {
+        "displayName": "Claude Haiku 5.5",
+        "tier": "low",
+        "capability": {
+          "channels": ["json_schema", "prompt_only"],
+          "toolChoice": "named",
+          "streaming": "yes",
+          "streamUsage": "yes",
+          "promptCache": "explicit",
+          "cacheUsageField": "anthropic",
+          "thinking": "adaptive",
+          "effort": true,
+          "maxTokensParam": "max_tokens",
+          "samplingParams": false,
+          "contextTokens": 200000,
+          "maxOutputTokens": 32000,
+          "serverFallback": false,
+          "forcedTool": false,
+          "dialect": { "oneOfToAnyOf": true, "stripConstraints": true }
+        },
+        "labels": {
+          "goddess": "marginal",
+          "core_npc": "ok",
+          "present_npc": "ok",
+          "offstage_batch": "ok",
+          "ruler_general": "ok",
+          "court_reviewer": "ok"
+        }
+      }
+    }
+  },
+  "openai_compat": {
+    "defaults": {
+      "channels": ["prompt_only"],
+      "toolChoice": "named",
+      "streaming": "yes",
+      "streamUsage": "no",
+      "promptCache": "automatic",
+      "cacheUsageField": "cached_tokens",
+      "thinking": "none",
+      "effort": false,
+      "maxTokensParam": "max_tokens",
+      "samplingParams": true,
+      "contextTokens": 32768,
+      "maxOutputTokens": 8192,
+      "serverFallback": false,
+      "forcedTool": false,
+      "dialect": { "oneOfToAnyOf": true, "stripConstraints": true }
+    },
+    "tiers": {
+      "top": { "minContext": 65536, "minChannel": "tool_carrier" },
+      "mid": { "minContext": 32768, "minChannel": "tool_carrier" },
+      "low": { "minContext": 32768, "minChannel": "json_mode" }
+    }
+  },
+  "local": {
+    "defaultBaseUrls": {
+      "ollama": "http://127.0.0.1:11434",
+      "lmstudio": "http://127.0.0.1:1234/v1",
+      "llamacpp": "http://127.0.0.1:8080/v1",
+      "generic": ""
+    },
+    "helpUrls": {
+      "ollama": "https://github.com/ollama/ollama/blob/main/docs/api.md",
+      "lmstudio": "https://lmstudio.ai/docs",
+      "llamacpp": "https://github.com/ggml-org/llama.cpp/tree/master/tools/server"
+    },
+    "defaults": {
+      "ollama": {
+        "channels": ["json_schema", "json_mode", "prompt_only"],
+        "toolChoice": "named",
+        "streaming": "yes",
+        "streamUsage": "yes",
+        "promptCache": "server_slot",
+        "cacheUsageField": "none",
+        "thinking": "think_flag",
+        "effort": false,
+        "maxTokensParam": "num_predict",
+        "samplingParams": true,
+        "contextTokens": 8192,
+        "maxOutputTokens": 8192,
+        "serverFallback": false,
+        "forcedTool": false,
+        "dialect": { "oneOfToAnyOf": true, "stripConstraints": true }
+      },
+      "lmstudio": {
+        "channels": ["json_schema", "prompt_only"],
+        "toolChoice": "named",
+        "streaming": "yes",
+        "streamUsage": "no",
+        "promptCache": "server_slot",
+        "cacheUsageField": "none",
+        "thinking": "tag_strip",
+        "effort": false,
+        "maxTokensParam": "max_tokens",
+        "samplingParams": true,
+        "contextTokens": 8192,
+        "maxOutputTokens": 8192,
+        "serverFallback": false,
+        "forcedTool": false,
+        "dialect": { "oneOfToAnyOf": true, "stripConstraints": true }
+      },
+      "llamacpp": {
+        "channels": ["json_schema", "json_mode", "prompt_only"],
+        "toolChoice": "named",
+        "streaming": "yes",
+        "streamUsage": "no",
+        "promptCache": "server_slot",
+        "cacheUsageField": "none",
+        "thinking": "tag_strip",
+        "effort": false,
+        "maxTokensParam": "max_tokens",
+        "samplingParams": true,
+        "contextTokens": 8192,
+        "maxOutputTokens": 8192,
+        "serverFallback": false,
+        "forcedTool": false,
+        "dialect": { "oneOfToAnyOf": true, "stripConstraints": true }
+      },
+      "generic": {
+        "channels": ["prompt_only"],
+        "toolChoice": "named",
+        "streaming": "yes",
+        "streamUsage": "no",
+        "promptCache": "server_slot",
+        "cacheUsageField": "none",
+        "thinking": "tag_strip",
+        "effort": false,
+        "maxTokensParam": "max_tokens",
+        "samplingParams": true,
+        "contextTokens": 8192,
+        "maxOutputTokens": 8192,
+        "serverFallback": false,
+        "forcedTool": false,
+        "dialect": { "oneOfToAnyOf": true, "stripConstraints": true }
+      }
+    },
+    "tiers": {
+      "top": { "minContext": 32768, "minSizeClass": "14b" },
+      "mid": { "minContext": 32768, "minSizeClass": "14b" },
+      "low": { "minContext": 16384, "minSizeClass": "7b" }
+    }
+  }
+}

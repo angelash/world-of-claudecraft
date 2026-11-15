@@ -153,3 +153,215 @@ export const EMPTY_USAGE: LlmUsage = Object.freeze({
   cacheReadInputTokens: 0,
   cacheCreationInputTokens: 0,
 });
+
+// ---------------------------------------------------------------------------
+// Player-configured model contract (docs/50_tech/llm_providers.md 3.1, 10.1 and
+// docs/50_tech/ai_architecture.md 2.3.1). The AI layer emits one LlmCallSpec per call; a
+// pure provider adapter (src/ai/providers/) turns it into a provider request and turns the
+// provider answer back into an LlmCallResult. LlmRequest above stays the runner's legacy
+// shape until routing lands (callSpecFromRequest in src/ai/providers/call_spec.ts bridges).
+
+/** Provider kinds a connection can have; 'none' is the no-model provider. */
+export type ProviderId = 'none' | 'anthropic' | 'openai_compat' | 'local';
+
+export const PROVIDER_IDS: readonly ProviderId[] = ['none', 'anthropic', 'openai_compat', 'local'];
+
+/** Model slot (high, mid, low); the slot names are the legacy tier names. */
+export type Slot = ModelTier;
+
+/** The six roles a player binds models to (D-067; llm_providers.md 4.1). */
+export type BindingRole =
+  | 'goddess'
+  | 'core_npc'
+  | 'present_npc'
+  | 'offstage_batch'
+  | 'ruler_general'
+  | 'court_reviewer';
+
+export const BINDING_ROLES: readonly BindingRole[] = [
+  'goddess',
+  'core_npc',
+  'present_npc',
+  'offstage_batch',
+  'ruler_general',
+  'court_reviewer',
+];
+
+/** Structured output channels in fallback order (llm_providers.md 3.5). */
+export type OutputChannel = 'json_schema' | 'tool_carrier' | 'json_mode' | 'prompt_only';
+
+export const OUTPUT_CHANNELS: readonly OutputChannel[] = [
+  'json_schema',
+  'tool_carrier',
+  'json_mode',
+  'prompt_only',
+];
+
+/** Neutral prompt segment roles (ai_architecture.md 7.1); a spec lists them in sending order. */
+export type SegmentRole =
+  | 'rules'
+  | 'persona'
+  | 'private'
+  | 'history_user'
+  | 'history_assistant'
+  | 'operator'
+  | 'player_data'
+  | 'turn';
+
+/** Cache hint: short is about 5 minutes, long about 1 hour; adapters honour it by capability. */
+export type SegmentCache = 'none' | 'short' | 'long';
+
+/**
+ * Provider-specific opaque blocks kept with a session segment, for example Anthropic
+ * thinking blocks with their signatures (AQ-11). Sent back verbatim within the same
+ * segment to the same provider; never shown, never parsed.
+ */
+export interface ProviderBlocks {
+  provider: ProviderId;
+  model?: string;
+  blocks: readonly unknown[];
+}
+
+export interface PromptSegment {
+  role: SegmentRole;
+  text: string;
+  cache?: SegmentCache;
+  /** Only on history_assistant segments: the provider blocks returned with that answer. */
+  opaque?: ProviderBlocks;
+}
+
+/** One model call in neutral form (ai_architecture.md 2.3.1 plus llm_providers.md 3.1). */
+export interface LlmCallSpec {
+  /** Same as the kernel request id, with an attempt suffix. */
+  requestId: string;
+  provider: ProviderId;
+  /** The player's connection (never an address or a header). */
+  connectionId: string;
+  slot: Slot;
+  bindingRole: BindingRole;
+  model: string;
+  /** Neutral segments; their order is the sending order. */
+  segments: PromptSegment[];
+  output: {
+    schemaId: string;
+    schemaVersion?: string;
+    schema: JsonSchema;
+    maxTokens: number;
+    /**
+     * Context values the local variant writes into its schema as constants (llm_providers.md
+     * 3.4 item 3), by dot path ('commands.[].data' style); other dialects ignore them.
+     */
+    constants?: Record<string, string | number | boolean>;
+  };
+  effort?: Effort;
+  /** Only interactive kinds stream, and only where the capability allows it. */
+  stream?: boolean;
+  timeoutMs: number;
+  /** What the budgeter reserved for this call; the gateway guard re-checks caps with it. */
+  reserve: { usd: number; tokens: number };
+  /** Decision kind and purpose, for logs and the ledger only (never part of the prompt). */
+  purpose?: string;
+}
+
+/** Scheduling and health side of an error (ai_architecture.md 2.3.1). */
+export type ProviderErrorClass =
+  | 'timeout'
+  | 'rate_limited'
+  | 'overloaded'
+  | 'server'
+  | 'bad_request'
+  | 'context_too_long'
+  | 'auth'
+  | 'quota'
+  | 'model_unavailable'
+  | 'network'
+  | 'refusal';
+
+/** Player-facing problem codes (llm_providers.md 10.1); see src/ai/providers/problems.ts. */
+export type ProblemCode =
+  | 'key_invalid'
+  | 'permission_denied'
+  | 'insufficient_balance'
+  | 'model_not_found'
+  | 'model_not_loaded'
+  | 'timeout'
+  | 'context_too_long'
+  | 'rate_limited'
+  | 'overloaded'
+  | 'server_error'
+  | 'network'
+  | 'tls_error'
+  | 'endpoint_wrong'
+  | 'cors_blocked'
+  | 'refusal'
+  | 'unsupported_output'
+  | 'bad_output'
+  | 'keychain_unavailable'
+  | 'not_configured'
+  | 'cap_reached';
+
+export type LlmStopReason = 'end' | 'max_tokens' | 'refusal' | 'other';
+
+export interface LlmCallError {
+  cls: ProviderErrorClass;
+  httpStatus?: number;
+  retryAfterMs?: number;
+  /** The request parameter the service rejected as unsupported, when it names one. */
+  param?: string;
+  /** Developer text (English), scrubbed of credentials and bounded; never shown to players. */
+  message: string;
+}
+
+/** Throughput a local service reported with the answer (llm_providers.md 3.4 item 6). */
+export interface LlmTimings {
+  promptTokensPerSec?: number;
+  genTokensPerSec?: number;
+}
+
+/** The neutral answer every adapter parses into (ai_architecture.md 2.3.1, llm_providers.md 7.3). */
+export interface LlmCallResult {
+  ok: boolean;
+  /** Raw structured text (the JSON object text, thinking and code fences removed). */
+  text?: string;
+  /** Parsed JSON, or null when the text is not valid JSON. */
+  json?: unknown;
+  stopReason?: LlmStopReason;
+  /** The provider's own stop reason, for the ledger. */
+  rawStopReason?: string;
+  usage?: LlmUsage;
+  /** True when usage was estimated (a stream that ended without usage). */
+  usageEstimated?: boolean;
+  /** The model that actually answered (server-side fallback may change it). */
+  servedModel?: string;
+  fallbackUsed?: boolean;
+  providerRequestId?: string;
+  /** The output channel the request used. */
+  channel?: OutputChannel;
+  /** Opaque provider blocks to keep with the session segment (thinking with signatures). */
+  opaque?: ProviderBlocks;
+  /** Settled by the spend book from the connection's price card; adapters never set it. */
+  costUsd?: number;
+  timings?: LlmTimings;
+  error?: LlmCallError;
+  problem?: ProblemCode;
+  latencyMs: number;
+  firstByteMs?: number;
+}
+
+/** One message on the call port (llm_providers.md 7.3). */
+export type LlmPortMessage =
+  | { t: 'delta'; text: string }
+  | { t: 'done'; result: LlmCallResult }
+  | { t: 'error'; result: LlmCallResult };
+
+/**
+ * Sends a call spec and returns the receipt; streams body deltas (no thinking) to onDelta.
+ * Implementations: desktop IPC, the dev proxy, local HTTP for the web demo (llm_providers.md
+ * 2.2). Should resolve, not reject, with ok false and a problem code on failure.
+ */
+export interface LlmTransport {
+  send(
+    spec: LlmCallSpec,
+    opts?: { signal?: AbortSignalLike; onDelta?: (text: string) => void },
+  ): Promise<LlmCallResult>;
+}

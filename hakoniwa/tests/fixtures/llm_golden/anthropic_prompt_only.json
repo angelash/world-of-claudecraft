@@ -1,0 +1,85 @@
+{
+  "name": "anthropic_prompt_only",
+  "method": "POST",
+  "url": "https://api.anthropic.com/v1/messages",
+  "read": "json",
+  "headers": {
+    "content-type": "application/json",
+    "anthropic-version": "2026-10-21",
+    "anthropic-beta": "server-side-fallback-2026-07-01"
+  },
+  "body": {
+    "model": "claude-opus-5-5",
+    "max_tokens": 1000,
+    "system": [
+      {
+        "type": "text",
+        "text": "规则段：只按菜单行动。",
+        "cache_control": {
+          "type": "ephemeral",
+          "ttl": "1h"
+        }
+      },
+      {
+        "type": "text",
+        "text": "人设段：你是旅店老板。",
+        "cache_control": {
+          "type": "ephemeral",
+          "ttl": "1h"
+        }
+      },
+      {
+        "type": "text",
+        "text": "私密段：你记得昨天的客人。",
+        "cache_control": {
+          "type": "ephemeral"
+        }
+      },
+      {
+        "type": "text",
+        "text": "【输出格式】\n只输出一个 JSON 对象，不要输出任何其他文字，不要使用代码围栏。\n字段：\n- commands（数组，必填，至多 3 条）：本次提出的命令\n  每条：\n  - kind（字符串，必填，只能取：npc.say、npc.move）：命令种类\n  - data（字符串，必填）：命令数据\n- speech（字符串，必填）：说出口的话\n- mood（值，可省略）\n- note（字符串，可省略）\n示例：{\"commands\":[{\"kind\":\"npc.say\",\"data\":\"\"}],\"speech\":\"\",\"mood\":null,\"note\":\"\"}"
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "上一轮：客人进门。"
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "",
+            "signature": "c2lnbmF0dXJlLWZpeHR1cmU="
+          },
+          {
+            "type": "text",
+            "text": "{\"commands\":[],\"speech\":\"欢迎。\"}"
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "玩家原话：有空房吗？"
+          },
+          {
+            "type": "text",
+            "text": "本轮：回答客人。"
+          }
+        ]
+      },
+      {
+        "role": "system",
+        "content": "内核通知：天色已晚。"
+      }
+    ],
+    "output_config": {
+      "effort": "high"
+    },
+    "fallbacks": "default"
+  }
+}
