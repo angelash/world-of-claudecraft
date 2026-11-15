@@ -101,3 +101,11 @@ export function topMarker(kinds: readonly MarkerKind[]): MarkerKind | null {
   for (const k of kinds) if (!best || MARKER_PRIORITY[k] > MARKER_PRIORITY[best]) best = k;
   return best;
 }
+
+/**
+ * Vertical bob of an overhead marker in device pixels at an overlay scale (device pixels
+ * per sprite pixel). Whole pixels, so the frame scheduler can tell when it moves.
+ */
+export function markerBob(timeMs: number, scale: number): number {
+  return Math.round(Math.sin(timeMs / 300) * Math.max(1, scale));
+}

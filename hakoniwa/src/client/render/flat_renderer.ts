@@ -23,6 +23,7 @@ import {
 } from './camera';
 import { ctx2d, ensureSize, makeCanvas, matrixToCanvas } from './canvas_util';
 import { decorSprite, shopSignSprite } from './decor_art';
+import { MOVE_PULSE_MS } from './frame_signals';
 import type { MapContext } from './map_context';
 import { markerMatrix } from './markers';
 import { paintOverlays } from './overlay_painter';
@@ -129,6 +130,10 @@ export class FlatWorldRenderer implements WorldRenderer {
     this.canvas.remove();
   }
 
+  /**
+   * One canvas holds every layer, so a frame the scheduler marks dirty for either layer
+   * repaints the whole picture; between dirty frames the canvas keeps the last one.
+   */
   render(scene: Scene): void {
     const map = scene.map;
     const zoom = clampZoom(scene.view.step);
@@ -168,7 +173,7 @@ export class FlatWorldRenderer implements WorldRenderer {
     if (scene.moveTarget) {
       const lx = Math.round(scene.moveTarget.x * TILE_PX) - ix;
       const ly = Math.round(scene.moveTarget.y * TILE_PX) - iy;
-      const k = Math.max(0, 1 - scene.moveTarget.ageMs / 700);
+      const k = Math.max(0, 1 - scene.moveTarget.ageMs / MOVE_PULSE_MS);
       if (k > 0) {
         w.globalAlpha = k;
         w.fillStyle = '#f0e6c8';

@@ -5,6 +5,7 @@
 // per frame size.
 
 import * as THREE from 'three';
+import { MOVE_PULSE_MS } from '../render/frame_signals';
 import type { PlacementOverlay, SceneEntity } from '../render/scene';
 import { generateFrame, type SpriteFrame, spriteKey } from '../sprites/generate';
 import { groundQuad, type MeshData, standeeMesh } from './geometry';
@@ -174,8 +175,8 @@ export class EntityLayer {
       this.views.delete(id);
     }
 
-    if (moveTarget && moveTarget.ageMs < 700) {
-      const k = 1 - moveTarget.ageMs / 700;
+    if (moveTarget && moveTarget.ageMs < MOVE_PULSE_MS) {
+      const k = 1 - moveTarget.ageMs / MOVE_PULSE_MS;
       this.target.visible = true;
       this.target.position.set(moveTarget.x, 0.025, moveTarget.y);
       const s = 1 + (1 - k) * 1.6;

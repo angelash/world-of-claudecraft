@@ -7,7 +7,7 @@
 import type { SpriteFrame } from '../sprites/generate';
 import { layoutBoxes, wrapText } from './bubbles';
 import { FLOAT_COLORS } from './floating_text';
-import type { MarkerKind } from './markers';
+import { type MarkerKind, markerBob } from './markers';
 import type { Scene, SceneEntity } from './scene';
 
 export interface OverlayFrame {
@@ -67,7 +67,7 @@ export function paintOverlays(c: CanvasRenderingContext2D, scene: Scene, f: Over
       const scale = Math.max(1, z);
       const mw = m.width * scale;
       const mh = m.height * scale;
-      const bob = Math.round(Math.sin(scene.timeMs / 300) * scale);
+      const bob = markerBob(scene.timeMs, z);
       c.imageSmoothingEnabled = false;
       c.drawImage(m, Math.round(head.x - mw / 2), Math.round(top - mh - 2 * dpr + bob), mw, mh);
       top -= mh + 2 * dpr;

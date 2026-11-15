@@ -3,10 +3,12 @@
 // the entity layer, sun and sky from the style pack, the static light map and dynamic
 // lights, the post chain, and a 2D overlay canvas on top for names, bubbles, floating
 // text, hints and weather particles. All rules live in the pure hd2d modules; this class
-// only drives three.js and the overlay each frame.
+// only drives three.js and the overlay, and only for the layers the frame scheduler marks
+// dirty (release_engineering.md 6.3).
 
 import * as THREE from 'three';
 import { ctx2d, ensureSize, matrixToCanvas } from '../render/canvas_util';
+import { ALL_LAYERS, type FrameLayers } from '../render/frame_scheduler';
 import { lampLit } from '../render/lighting';
 import type { MapContext } from '../render/map_context';
 import { type MarkerKind, markerMatrix } from '../render/markers';
@@ -27,6 +29,7 @@ import {
   projectToScreen,
   screenToGround,
   snapFocus,
+  type ViewBasis,
   type ViewRequest,
   viewBasis,
 } from './view';
@@ -201,19 +204,59 @@ export class Hd2dRenderer implements WorldRenderer {
     return screenToGround(this.lastView, { w: this.deviceW, h: this.deviceH }, sx, sy);
   }
 
-  render(scene: Scene): void {
+  /**
+   * Draw the layers the frame scheduler marked dirty. The world pass (camera, sun and sky,
+   * lights, buildings, figures, post chain) and the overlay pass (weather, names, markers,
+   * bubbles, floating text) are independent: a skipped pass keeps its last picture on its
+   * own canvas. Hit boxes are rebuilt on every drawn frame.
+   */
+  render(scene: Scene, layers: Readonly<FrameLayers> = ALL_LAYERS): void {
     const ctx = this.ctx;
     if (!ctx || ctx.map.id !== scene.map.id) return;
-    const { map, pack } = ctx;
     // One rendered pixel spans dpr / pixelRatio device pixels (a whole number, quality.ts).
     const grid = this.dpr / tierPixelRatio(this.quality, this.dpr);
     const snapped = snapFocus(scene.view, { w: this.deviceW, h: this.deviceH }, grid);
     const view: ViewRequest = { ...scene.view, focusX: snapped.x, focusY: snapped.y };
     this.lastView = view;
     const vp = { w: this.deviceW, h: this.deviceH };
+    const b = viewBasis(view.pitch, view.yaw);
+    const ents = scene.items.filter((i): i is SceneEntity => i.type === 'entity');
+    if (layers.world) this.renderWorld(scene, ctx, view, b, ents);
+    const project = (x: number, h: number, y: number) => projectToScreen(view, vp, x, h, y);
+    if (layers.overlay) {
+      const o = this.overlay;
+      o.setTransform(1, 0, 0, 1, 0, 0);
+      o.clearRect(0, 0, this.deviceW, this.deviceH);
+      paintWeatherOverlay(o, scene, view, this.deviceW, this.deviceH, this.reducedMotion);
+      paintOverlays(o, scene, {
+        dpr: this.dpr,
+        scale: view.step,
+        project,
+        frameOf: (e) => this.entities.frameOf(e),
+        marker: (k) => this.marker(k),
+      });
+    }
+    const boxes: HitBox[] = [];
+    for (const e of ents) {
+      const fr = this.entities.frameOf(e);
+      const foot = project(e.x, 0, e.y);
+      const bw = Math.max(10, Math.round(14 * e.look.scale));
+      const box = standeeHitBox(foot, bw, fr.height, view.step);
+      boxes.push({ id: e.id, ...box, sortY: e.x * b.toCamera[0] + e.y * b.toCamera[2] });
+    }
+    this.boxes = boxes;
+  }
+
+  private renderWorld(
+    scene: Scene,
+    ctx: MapContext,
+    view: ViewRequest,
+    b: ViewBasis,
+    ents: readonly SceneEntity[],
+  ): void {
+    const { map, pack } = ctx;
 
     // Camera.
-    const b = viewBasis(view.pitch, view.yaw);
     const ppu = pixelsPerUnit(view.step);
     const hw = this.deviceW / 2 / ppu;
     const hh = this.deviceH / 2 / ppu;
@@ -296,7 +339,6 @@ export class Hd2dRenderer implements WorldRenderer {
     }
 
     // Entities.
-    const ents = scene.items.filter((i): i is SceneEntity => i.type === 'entity');
     this.entities.update(ents, scene.moveTarget, scene.placement);
 
     // Grade.
@@ -323,29 +365,6 @@ export class Hd2dRenderer implements WorldRenderer {
       snow: sky.snow,
     });
     this.post.render();
-
-    // Overlay: weather, labels, hit boxes.
-    const o = this.overlay;
-    o.setTransform(1, 0, 0, 1, 0, 0);
-    o.clearRect(0, 0, this.deviceW, this.deviceH);
-    paintWeatherOverlay(o, scene, view, this.deviceW, this.deviceH, this.reducedMotion);
-    const project = (x: number, h: number, y: number) => projectToScreen(view, vp, x, h, y);
-    paintOverlays(o, scene, {
-      dpr: this.dpr,
-      scale: view.step,
-      project,
-      frameOf: (e) => this.entities.frameOf(e),
-      marker: (k) => this.marker(k),
-    });
-    const boxes: HitBox[] = [];
-    for (const e of ents) {
-      const fr = this.entities.frameOf(e);
-      const foot = project(e.x, 0, e.y);
-      const bw = Math.max(10, Math.round(14 * e.look.scale));
-      const box = standeeHitBox(foot, bw, fr.height, view.step);
-      boxes.push({ id: e.id, ...box, sortY: e.x * b.toCamera[0] + e.y * b.toCamera[2] });
-    }
-    this.boxes = boxes;
   }
 
   private marker(kind: MarkerKind): HTMLCanvasElement {

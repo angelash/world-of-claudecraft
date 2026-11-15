@@ -1,9 +1,9 @@
 // Guards the client's pure cores: modules that hold the client's rules (HD-2D view math,
 // style packs, scene layout, procedural textures, light map, camera, sprite generation,
-// ground and decor art, lighting, weather, roofs, scene, input rules, formatting, window
-// availability, save slots) must not touch the DOM, three.js or real randomness, so they
-// stay Node-testable and deterministic. DOM and GPU work lives in the thin painters, the
-// renderers and the windows.
+// ground and decor art, lighting, weather, roofs, scene, frame scheduling, input rules,
+// formatting, window availability, save slots) must not touch the DOM, three.js or real
+// randomness, so they stay Node-testable and deterministic. DOM and GPU work lives in the
+// thin painters, the renderers and the windows.
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -43,6 +43,8 @@ export const CLIENT_PURE_CORES = [
   'render/camera.ts',
   'render/decor_art.ts',
   'render/floating_text.ts',
+  'render/frame_scheduler.ts',
+  'render/frame_signals.ts',
   'render/interp.ts',
   'render/lighting.ts',
   'render/map_context.ts',

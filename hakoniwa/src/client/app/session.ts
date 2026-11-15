@@ -2,7 +2,9 @@
 // 4x and pause), render interpolation, the renderer (HD-2D scene or flat fallback), input,
 // HUD and windows. It wires modules together and keeps per-session state (selection, the
 // camera view and quality tier, map caches, placement mode); the rules live in the pure
-// modules and adapters it calls. Player input is translated in ./player_input.ts.
+// modules and adapters it calls. Player input is translated in ./player_input.ts. The
+// world is redrawn on demand: the frame scheduler (render/frame_scheduler.ts) decides each
+// frame whether the renderer runs (release_engineering.md 6.3).
 
 import type { Engine } from '../../core/engine';
 import type { World } from '../../core/world';
@@ -30,6 +32,8 @@ import { AnimTracker } from '../render/anim_state';
 import { BubbleBoard } from '../render/bubbles';
 import { MAX_ZOOM as FLAT_MAX_ZOOM } from '../render/camera';
 import { FloatingBoard } from '../render/floating_text';
+import { DecorClock, FrameScheduler } from '../render/frame_scheduler';
+import { frameSignals } from '../render/frame_signals';
 import { InterpBuffer } from '../render/interp';
 import { buildMapContext, type MapContext } from '../render/map_context';
 import { topMarker } from '../render/markers';
@@ -124,6 +128,12 @@ export class GameSession implements PlayerInputHost {
   private readonly bubbles = new BubbleBoard();
   private readonly floats = new FloatingBoard();
   private readonly roofs = new RoofFader();
+  /** on-demand redraw: decides each frame whether and what the renderer draws */
+  readonly frames = new FrameScheduler();
+  /** time for water, weather, motes and grain: holds still while paused or in a scene */
+  private readonly decor = new DecorClock();
+  /** the HD-2D tier animates film grain */
+  private grain = false;
   readonly loose = new DialogueQueue();
   private readonly sprites = new SpriteCache(400);
   private readonly looks = new WeakMap<Appearance, SpriteLook>();
@@ -148,6 +158,12 @@ export class GameSession implements PlayerInputHost {
   private alpha = 0;
   private disposed = false;
   private readonly onResize = () => this.resize();
+  // A tab brought back, or a WebGL context restored after a loss, may have lost the last
+  // picture; draw once more even if nothing in the world changed.
+  private readonly onVisibility = () => {
+    if (document.visibilityState === 'visible') this.frames.invalidate('resize');
+  };
+  private readonly onContextRestored = () => this.frames.invalidate('resize');
 
   constructor(private readonly opts: SessionOptions) {
     this.engine = opts.engine;
@@ -156,9 +172,9 @@ export class GameSession implements PlayerInputHost {
     this.commands = createGameCommands(opts.engine);
     const q = readPref(QUALITY_KEY);
     this.quality = isQualityId(q) ? q : 'auto';
-    this.renderer = createWorldRenderer(
-      resolveQuality(this.quality, { touch: isTouch(), webgl: this.webgl }),
-    );
+    const quality = resolveQuality(this.quality, { touch: isTouch(), webgl: this.webgl });
+    this.grain = quality.grain;
+    this.renderer = createWorldRenderer(quality);
     this.renderer.mount(opts.root);
     this.actions = new PlayerInput(this);
     const a = opts.adapters;
@@ -244,6 +260,9 @@ export class GameSession implements PlayerInputHost {
     this.input = this.bindInput();
 
     window.addEventListener('resize', this.onResize);
+    document.addEventListener('visibilitychange', this.onVisibility);
+    // Context events do not bubble; a capture listener on the document still sees them.
+    document.addEventListener('webglcontextrestored', this.onContextRestored, true);
     this.resize();
     this.enterMap();
     if (opts.greeting) this.hud.log.push({ text: opts.greeting, category: 'system' });
@@ -277,6 +296,11 @@ export class GameSession implements PlayerInputHost {
     );
   }
 
+  /**
+   * Run the loop. Every animation frame advances the simulation clock, runs due ticks,
+   * refreshes the HUD and canvas windows, and builds the scene; the renderer runs only on
+   * frames the scheduler finds dirty, so input and simulation never wait on drawing.
+   */
   start(): void {
     this.last = performance.now();
     const loop = (now: number) => {
@@ -293,6 +317,8 @@ export class GameSession implements PlayerInputHost {
     clearTimeout(this.prefsTimer);
     if (this.viewPrefs) writePref(VIEW_KEY, this.viewPrefs);
     window.removeEventListener('resize', this.onResize);
+    document.removeEventListener('visibilitychange', this.onVisibility);
+    document.removeEventListener('webglcontextrestored', this.onContextRestored, true);
     this.unsubscribe();
     this.input.dispose();
     this.windows.dispose();
@@ -376,9 +402,11 @@ export class GameSession implements PlayerInputHost {
     this.quality = id;
     writePref(QUALITY_KEY, id);
     const q = resolveQuality(id, { touch: isTouch(), webgl: this.webgl });
+    this.grain = q.grain;
     const want = q.tier === 'flat' ? 'flat' : 'hd2d';
     if (want === this.renderer.kind) {
       this.renderer.setQuality(q);
+      this.frames.invalidate('quality');
       return;
     }
     this.input.dispose();
@@ -388,6 +416,7 @@ export class GameSession implements PlayerInputHost {
     this.input = this.bindInput();
     this.resize();
     if (this.mapCtx) this.renderer.setMap(this.mapCtx);
+    this.frames.invalidate('quality');
   }
 
   togglePause(): void {
@@ -464,7 +493,7 @@ export class GameSession implements PlayerInputHost {
     }
     if (steps > 0) this.actions.afterSteps();
     this.alpha = alpha;
-    this.draw(now, dt);
+    this.present(now, dt);
     this.windows.frame(now);
     if (now - this.lastHud >= HUD_INTERVAL_MS) this.refreshHud(false, now);
   }
@@ -484,7 +513,8 @@ export class GameSession implements PlayerInputHost {
     return l;
   }
 
-  private draw(now: number, dt: number): void {
+  /** Build this frame's scene and draw it when the frame scheduler finds it dirty. */
+  private present(now: number, dt: number): void {
     const player = this.view.player();
     if (player && this.mapCtx?.map.id !== player.mapId) this.enterMap();
     const ctx = this.mapCtx;
@@ -541,6 +571,9 @@ export class GameSession implements PlayerInputHost {
     }
     this.roofs.update(dt, roofsToOpen(ctx.roofs, playerPos, extraOpen), ctx.roofs);
 
+    const inScene = this.inScene();
+    // Paused, or a scene panel over the world: idle animation, weather and water hold still.
+    const quiet = this.clock.paused || inScene;
     let exitHint: { x: number; y: number; text: string } | null = null;
     const exit = nearestExit(map, playerPos);
     if (exit) {
@@ -559,7 +592,7 @@ export class GameSession implements PlayerInputHost {
     const scene = buildScene({
       map,
       view,
-      timeMs: now,
+      timeMs: this.decor.advance(now, quiet),
       playerId: player.id,
       calendar: this.view.calendar(),
       weather: this.view.weather(),
@@ -579,10 +612,19 @@ export class GameSession implements PlayerInputHost {
       moveTarget: this.moveTarget
         ? { x: this.moveTarget.x, y: this.moveTarget.y, ageMs: now - this.moveTarget.at }
         : null,
-      exitHint: this.inScene() ? null : exitHint,
+      exitHint: inScene ? null : exitHint,
       placement: this.placing?.preview ?? null,
     });
-    this.renderer.render(scene);
+    const r = this.renderer;
+    const { signature, activity } = frameSignals(scene, {
+      flat: r.kind === 'flat',
+      deviceW: r.deviceW,
+      deviceH: r.deviceH,
+      dpr: r.dpr,
+      grain: this.grain,
+    });
+    const decision = this.frames.decide({ nowMs: now, signature, activity, quiet });
+    if (decision.draw) r.render(scene, decision.layers);
   }
 
   private enterMap(): void {
@@ -591,6 +633,7 @@ export class GameSession implements PlayerInputHost {
     if (this.mapCtx?.map.id === map.id) return;
     this.mapCtx = buildMapContext(map);
     this.renderer.setMap(this.mapCtx);
+    this.frames.invalidate('map');
     this.interp.clear();
     this.roofs.reset();
     this.bubbles.clear();
@@ -604,6 +647,7 @@ export class GameSession implements PlayerInputHost {
   private resize(): void {
     const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
     this.renderer.resize(window.innerWidth, window.innerHeight, dpr);
+    this.frames.invalidate('resize');
   }
 
   refreshHud(force: boolean, now = performance.now()): void {
