@@ -70,6 +70,12 @@ export const pack: ContentPack = {
         { key: 'armies', label: '开局军队', type: 'json' },
         { key: 'recruits', label: '可征兵种', type: 'list' },
         { key: 'adminBase', label: '行政容量基数', type: 'number', min: 1 },
+        {
+          key: 'roles',
+          label: '会盟职能',
+          type: 'list',
+          help: 'church：证据越多越敌视、发动圣战；summit_key：会盟结盟必须有它支持；每种全作唯一',
+        },
       ],
     },
   ],
@@ -79,6 +85,18 @@ export const pack: ContentPack = {
     const pids = new Set(provinces.map((p) => p.id));
     const nids = new Set((content.slg_nations ?? []).map((n) => n.id));
     const units = new Set((content.regiment_types ?? []).map((u) => u.id));
+    const nations = content.slg_nations ?? [];
+    if (nations.length > 0) {
+      for (const role of ['church', 'summit_key'] as const) {
+        const n = nations.filter((x) => x.roles?.includes(role)).length;
+        if (n !== 1)
+          problems.push(`slg_nations: role ${role} held by ${n} nations (want exactly 1)`);
+      }
+      for (const x of nations)
+        for (const r of x.roles ?? [])
+          if (r !== 'church' && r !== 'summit_key')
+            problems.push(`slg_nation ${x.id}: unknown role ${r}`);
+    }
     for (const p of provinces) {
       if (!TERRAINS.includes(p.terrain))
         problems.push(`slg_province ${p.id}: unknown terrain ${p.terrain}`);

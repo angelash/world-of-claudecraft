@@ -139,7 +139,7 @@ export interface PersonaCard {
   core?: boolean;
   /** story relevance 0..1 for the tier score */
   plot?: number;
-  /** acts (act flag values) in which plot counts; default by map (borderstone act1, wallenburg act2) */
+  /** acts (act flag values) in which plot counts; default: the home map's storyActs */
   acts?: string[];
   /** hidden potential, only readable through the talent door */
   potential?: string;

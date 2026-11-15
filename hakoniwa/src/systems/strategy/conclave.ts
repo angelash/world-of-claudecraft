@@ -14,7 +14,12 @@ import {
   shiftRelation,
   strat,
 } from './state';
-import type { ConclaveStage, NationId, SummitResult } from './types';
+import type { ConclaveStage, NationId, NationRole, SummitResult } from './types';
+
+/** The nation that holds a conclave role (NationDef.roles); undefined when none does. */
+export function nationByRole(ctx: SystemContext, role: NationRole): NationId | undefined {
+  return ctx.content.slg_nations?.find((n) => n.roles?.includes(role))?.id;
+}
 
 const DEFAULT_STAGES: { stage: ConclaveStage; days: number }[] = [
   { stage: 'invite', days: 3 },
@@ -67,7 +72,7 @@ export function stanceToward(ctx: SystemContext, id: NationId): number {
   const evidence = (ctx.content.slg_config?.evidenceFlags ?? []).filter(
     (f) => !!ctx.flag(f),
   ).length;
-  v += id === 'holy_see' ? -5 * evidence - 30 : 10 * evidence;
+  v += id === nationByRole(ctx, 'church') ? -5 * evidence - 30 : 10 * evidence;
   const def = ctx.content.slg_nations?.find((n) => n.id === id);
   if (def?.ruler.piety && def.ruler.piety >= 0.9) v -= 10;
   return Math.max(-100, Math.min(100, Math.round(v)));
@@ -79,7 +84,8 @@ function decide(ctx: SystemContext, stances: Record<NationId, number>): SummitRe
   const forCrusade = ids.filter((k) => (stances[k] ?? 0) < -20).length;
   if (forCrusade >= 4) return 'crusade';
   const supporters = ids.filter((k) => (stances[k] ?? 0) >= 30);
-  if (supporters.length >= 4 && supporters.includes('empire')) return 'alliance';
+  const key = nationByRole(ctx, 'summit_key');
+  if (supporters.length >= 4 && key !== undefined && supporters.includes(key)) return 'alliance';
   return 'divided';
 }
 
@@ -107,7 +113,8 @@ function resolve(ctx: SystemContext): void {
       for (const k of Object.keys(stances)) addTreaty(s, k, PLAYER, 'pact', '眠鳞公约');
     } else if (result === 'crusade') {
       for (const [k, v] of Object.entries(stances)) if (v < -20) shiftRelation(s, k, PLAYER, -10);
-      if (s.nations.holy_see?.alive) declareWar(ctx, 'holy_see', PLAYER, { force: true });
+      const church = nationByRole(ctx, 'church');
+      if (church && s.nations[church]?.alive) declareWar(ctx, church, PLAYER, { force: true });
     } else {
       for (const k of Object.keys(stances)) shiftRelation(s, k, PLAYER, -20);
     }

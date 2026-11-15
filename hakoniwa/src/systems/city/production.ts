@@ -26,14 +26,6 @@ import {
 } from './common';
 import type { BuildingInstance, SiteDef, SiteState } from './types';
 
-const SPOIL_RATE: Record<string, number> = {
-  grain: 0.003,
-  meat: 0.005,
-  fish: 0.005,
-  bread: 0.01,
-  herb: 0.01,
-};
-
 function carry(site: SiteState, key: string, amount: number): number {
   const total = (site.spoil[key] ?? 0) + amount;
   const whole = Math.floor(total + 1e-9);
@@ -227,10 +219,10 @@ export function runSpoilage(ctx: SystemContext, site: SiteState, sdef: SiteDef):
   if (sdef.kind === 'court') return;
   const stock = stockOf(ctx.world, sdef.stockOwner);
   const granary = hasActive(site, 'granary');
-  for (const [id, rate] of Object.entries(SPOIL_RATE)) {
+  for (const { itemId: id, rate, granaryHalves } of ctx.content.city_config.spoilage) {
     const have = stock[id] ?? 0;
     if (have <= 0) continue;
-    const r = granary && id !== 'herb' ? rate / 2 : rate;
+    const r = granary && granaryHalves ? rate / 2 : rate;
     const lost = Math.min(have, carry(site, `spoil:${id}`, have * r));
     if (lost > 0) removeItem(ctx, sdef.stockOwner, id, lost, 'spoilage');
   }

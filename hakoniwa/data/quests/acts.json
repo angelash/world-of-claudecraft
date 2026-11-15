@@ -1,5 +1,5 @@
 [
-  { "id": "prologue", "index": 0, "title": "序章：候见厅" },
+  { "id": "prologue", "index": 0, "title": "序章：候见厅", "introScene": "prologue" },
   {
     "id": "act1",
     "index": 1,

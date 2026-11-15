@@ -2,27 +2,28 @@
 // ownership, the goddess and defense-line tags and the strength; a line breaks when the
 // accumulated strength reaches its thickness; one piece counts once per line. The model
 // (when present) only performs how a goddess takes the blow. Verdicts and Janu's
-// release are computed here and written back as flags.
+// release are computed here and written back as flags. Who sits at the court, in which
+// order, her review crisis and how each one yields are her courtSeat in
+// data/goddess/goddesses.json (release_engineering.md 13.2).
 
 import type { FlagValue } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
+import { seatedGoddesses, seatOf } from '../goddess/roster';
 import { ledgerTotals } from '../goddess/state';
+import type { CourtSeat, GoddessDef, VoluntaryCue } from '../goddess/types';
 import { countItem } from '../inventory';
-import { truthy } from '../quests/conditions';
+import { evaluate, flagResolver, truthy } from '../quests/conditions';
 import { registerCompute } from '../quests/effects';
 import type { CourtDefenseDef, CourtState, DefenseLine, EvidenceDef, Verdict } from './types';
 
-export const SITTING = ['eluen', 'valda', 'merca', 'sylvie', 'moira'] as const;
 export const LINES: readonly DefenseLine[] = ['fact', 'just', 'need'];
 
-/** Review crisis per goddess domain (act6 2.4, E27). */
-const CRISIS_OF: Record<string, string> = {
-  eluen: 'no_light',
-  valda: 'residue_tide',
-  merca: 'contract_halt',
-  sylvie: 'winter_famine',
-  moira: 'record_silence',
-};
+type Roster = { goddesses: readonly GoddessDef[] };
+
+/** The review-crisis flag of a seat (act6 2.4, E27): review.<crisis id>. */
+function crisisKey(seat: CourtSeat | undefined): string {
+  return `review.${seat?.crisis.id ?? ''}`;
+}
 
 export function emptyCourt(): CourtState {
   return { strength: {}, presented: {}, mitigated: {} };
@@ -35,6 +36,7 @@ export function targetStrength(
   t: EvidenceDef['targets'][number],
   flags: Flags,
   ledger: ReturnType<typeof ledgerTotals>,
+  roster: Roster,
 ): number {
   if (t.dynamic === 'miracle_ledger') {
     const tot = ledger[t.goddess];
@@ -44,7 +46,7 @@ export function targetStrength(
     return Math.min(3, s);
   }
   if (t.dynamic === 'review') {
-    const r = String(flags[`review.${CRISIS_OF[t.goddess] ?? ''}`] ?? 'fail');
+    const r = String(flags[crisisKey(seatOf(roster, t.goddess))] ?? 'fail');
     return r === 'self' ? 3 : r === 'barely' ? 2 : r === 'descend' ? 1 : 0;
   }
   if (t.dynamic === 'held_unaided') {
@@ -53,23 +55,33 @@ export function targetStrength(
   return t.strength;
 }
 
-/** Thickness of a line, including the +1 a failed review crisis adds to the need line. */
-export function thickness(def: CourtDefenseDef, line: DefenseLine, flags: Flags): number {
+/**
+ * Thickness of a line, including the +1 a failed review crisis adds to the need line and
+ * the seat's own thickening while its condition holds (the god purge route).
+ */
+export function thickness(
+  def: CourtDefenseDef,
+  line: DefenseLine,
+  flags: Flags,
+  roster: Roster,
+): number {
   let t = def.thickness[line];
-  if (line === 'need' && flags[`review.${CRISIS_OF[def.goddess] ?? ''}`] === 'fail') t += 1;
-  if (
-    flags.purge_route === 'god' &&
-    line === 'need' &&
-    (def.goddess === 'eluen' || def.goddess === 'valda')
-  )
-    t += 2;
+  const seat = seatOf(roster, def.goddess);
+  if (line === 'need' && flags[crisisKey(seat)] === 'fail') t += 1;
+  for (const x of seat?.thicken ?? [])
+    if (x.line === line && evaluate(x.when, flagResolver(flags))) t += x.add;
   return t;
 }
 
-export function brokenLines(court: CourtState, def: CourtDefenseDef, flags: Flags): DefenseLine[] {
+export function brokenLines(
+  court: CourtState,
+  def: CourtDefenseDef,
+  flags: Flags,
+  roster: Roster,
+): DefenseLine[] {
   const s = court.strength[def.goddess];
   if (!s) return [];
-  return LINES.filter((l) => (s[l] ?? 0) >= thickness(def, l, flags));
+  return LINES.filter((l) => (s[l] ?? 0) >= thickness(def, l, flags, roster));
 }
 
 /** Evidence the player holds that has not been shown to this goddess yet. */
@@ -104,7 +116,7 @@ export function presentEvidence(
   court.presented[goddess] = [...shown, ev.id];
   const res: PresentResult = { hit: false, newlyBroken: [], mitigated: false };
   if (!def) return res;
-  const before = brokenLines(court, def, flags);
+  const before = brokenLines(court, def, flags, ctx.content);
   const ledger = ledgerTotals(ctx.world);
   const s = court.strength[goddess] ?? { fact: 0, just: 0, need: 0 };
   for (const t of ev.targets) {
@@ -115,76 +127,67 @@ export function presentEvidence(
       res.mitigated = true;
       continue;
     }
-    s[t.line] = (s[t.line] ?? 0) + targetStrength(t, flags, ledger);
+    s[t.line] = (s[t.line] ?? 0) + targetStrength(t, flags, ledger, ctx.content);
   }
   court.strength[goddess] = s;
-  const after = brokenLines(court, def, flags);
+  const after = brokenLines(court, def, flags, ctx.content);
   res.newlyBroken = after.filter((l) => !before.includes(l));
   for (const l of res.newlyBroken) ctx.setFlag(`court.${goddess}.${l}`, 'broken');
   ctx.setFlag(`evidence.${ev.id}.shown`, true);
   return res;
 }
 
-/** Verdict of one goddess from the broken lines and the outlets (act6 3.5 and 5). */
+function cueHolds(
+  cue: VoluntaryCue,
+  broken: DefenseLine[],
+  shown: string[],
+  flags: Flags,
+): boolean {
+  if ('lines' in cue) return cue.lines.every((l) => broken.includes(l));
+  if ('shown' in cue) return cue.shown.some((e) => shown.includes(e));
+  return evaluate(cue.when, flagResolver(flags));
+}
+
+/**
+ * Verdict of one goddess from the broken lines and the outlets (act6 3.5 and 5), by her
+ * seat's verdict rule: judged once enough lines broke (or a confession, when the rule
+ * says so), voluntary when a cue holds (only once judged unless the rule says alone).
+ */
 export function verdictFor(
   goddess: string,
   broken: DefenseLine[],
   court: CourtState,
   flags: Flags,
+  roster: Roster,
 ): Verdict {
   if (flags.patron === goddess) return 'contend';
-  const all = broken.length === 3;
+  const rule = seatOf(roster, goddess)?.verdict;
+  if (!rule) return 'refuse';
   const shown = court.presented[goddess] ?? [];
-  switch (goddess) {
-    case 'eluen': {
-      const sawTheLamps = shown.includes('E27') || shown.includes('E28');
-      if (all && sawTheLamps) return 'voluntary';
-      return all ? 'judged' : 'refuse';
-    }
-    case 'valda': {
-      const persuaded =
-        (broken.includes('just') && broken.includes('need')) || truthy(flags['court.valda.duel']);
-      if (persuaded) return 'voluntary';
-      return broken.length >= 2 ? 'judged' : 'refuse';
-    }
-    case 'merca': {
-      if (all && truthy(flags['court.merca.outlet'])) return 'voluntary';
-      return all ? 'judged' : 'refuse';
-    }
-    case 'sylvie': {
-      const confessed = (court.mitigated.sylvie ?? []).length > 0;
-      const springTurns =
-        flags['review.winter_famine'] === 'self' ||
-        flags['review.winter_famine'] === 'barely' ||
-        shown.includes('E27');
-      if ((broken.length >= 2 || confessed) && springTurns) return 'voluntary';
-      return broken.length >= 2 || confessed ? 'judged' : 'refuse';
-    }
-    case 'moira': {
-      if (all && truthy(flags.a6_charter_read)) return 'voluntary';
-      return all ? 'judged' : 'refuse';
-    }
-    default:
-      return 'refuse';
-  }
+  const confessed = (court.mitigated[goddess] ?? []).length > 0;
+  const judged = broken.length >= rule.judgedAt || (!!rule.mitigationJudges && confessed);
+  const yields = rule.voluntary.any.some((c) => cueHolds(c, broken, shown, flags));
+  if (yields && (rule.voluntary.alone || judged)) return 'voluntary';
+  return judged ? 'judged' : 'refuse';
 }
 
 export function computeVerdicts(ctx: SystemContext): Record<string, Verdict> {
   const out: Record<string, Verdict> = {};
   const flags = ctx.world.meta.flags;
   const court = ctx.world.slices.scenes.court;
+  const seated = seatedGoddesses(ctx.content).map((g) => g.id as string);
   let collapsed = 0;
-  for (const g of SITTING) {
+  for (const g of seated) {
     const def = ctx.content.courtDefenses.find((d) => d.goddess === g);
-    const broken = def ? brokenLines(court, def, flags) : [];
+    const broken = def ? brokenLines(court, def, flags, ctx.content) : [];
     if (broken.length === 3) collapsed++;
-    out[g] = verdictFor(g, broken, court, flags);
+    out[g] = verdictFor(g, broken, court, flags, ctx.content);
   }
-  for (const g of SITTING) ctx.setFlag(`verdict_${g}`, out[g] as Verdict);
+  for (const g of seated) ctx.setFlag(`verdict_${g}`, out[g] as Verdict);
   ctx.setFlag('court.collapsed', collapsed);
   // Two seated goddesses both claiming the garden is a breach of the covenant: the gods' war.
-  if (SITTING.filter((g) => out[g] === 'contend').length >= 2) ctx.setFlag('god_war', true);
-  const exposed = SITTING.filter((g) => out[g] === 'voluntary' || out[g] === 'judged').length;
+  if (seated.filter((g) => out[g] === 'contend').length >= 2) ctx.setFlag('god_war', true);
+  const exposed = seated.filter((g) => out[g] === 'voluntary' || out[g] === 'judged').length;
   ctx.setFlag('a4_lies_exposed', Math.max(Number(flags.a4_lies_exposed ?? 0), exposed));
   return out;
 }
@@ -209,13 +212,18 @@ export function januReleases(flags: Flags): { release: boolean; supports: number
 
 registerCompute('court_verdicts', (ctx) => {
   const v = computeVerdicts(ctx);
-  // Sylvie hands over the spring memory once her stance gives way (E19, act6 7.1).
-  if ((v.sylvie === 'voluntary' || v.sylvie === 'judged') && !ctx.flag('a6_spring_memory')) {
-    ctx.setFlag('a6_spring_memory', true);
+  const seated = seatedGoddesses(ctx.content);
+  // A seat's yield flag once her stance gives way: Sylvie hands over the spring memory
+  // (E19, act6 7.1).
+  for (const g of seated) {
+    const flag = g.courtSeat.yieldFlag;
+    if (flag && (v[g.id] === 'voluntary' || v[g.id] === 'judged') && !ctx.flag(flag)) {
+      ctx.setFlag(flag, true);
+    }
   }
-  for (const g of SITTING) {
-    const s = ctx.world.slices.goddess.goddesses[g];
-    if (s) s.departed = v[g] === 'voluntary' || v[g] === 'judged';
+  for (const g of seated) {
+    const s = ctx.world.slices.goddess.goddesses[g.id];
+    if (s) s.departed = v[g.id] === 'voluntary' || v[g.id] === 'judged';
   }
 });
 

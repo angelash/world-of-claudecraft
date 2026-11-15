@@ -32,6 +32,7 @@
     "hoardBelow": 0.5,
     "hoardShare": 0.2,
     "cooldownDays": 7,
-    "offerAtScale": 2
+    "offerAtScale": 2,
+    "marketId": "wallenburg"
   }
 }

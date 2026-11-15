@@ -29,6 +29,7 @@ interface Fixture {
     width: number;
     height: number;
     exits: { id: string; toMap: string }[];
+    atlasExempt?: boolean;
   }[];
   provinces?: { id: string; region: string }[];
   links?: { a: string; b: string }[];
@@ -153,7 +154,7 @@ function fixture(): Fixture {
       { id: 'town', width: 10, height: 8, exits: [{ id: 'down', toMap: 'cave' }] },
       { id: 'cave', width: 6, height: 6, exits: [{ id: 'up', toMap: 'town' }] },
       { id: 'hall', width: 4, height: 4, exits: [] },
-      { id: 'testfield', width: 20, height: 12, exits: [] },
+      { id: 'testfield', width: 20, height: 12, exits: [], atlasExempt: true },
     ],
     provinces: [
       { id: 'p1', region: 'r1' },

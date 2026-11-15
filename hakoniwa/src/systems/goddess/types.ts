@@ -1,18 +1,67 @@
 // Goddess GM types: persona cards (content), the divine action menu, revelations, and
 // the goddess slice (power, faith, gaze, relation, covenant ledger, miracle ledger).
 // See docs/40_design/systems/goddess_gm.md and docs/20_world/pantheon.md.
+// Which goddesses exist, who sits at the court and who plays which part all come from
+// data/goddess/goddesses.json (release_engineering.md 13.2); code never names one.
 
 import type { ModifierTarget } from '../modifiers';
+import type { DefenseLine } from '../scenes/types';
 
-export type GoddessId = 'eluen' | 'valda' | 'merca' | 'sylvie' | 'moira' | 'janu';
+/**
+ * A goddess id: a string checked against the persona cards when the content loads (the
+ * goddess pack validator), never a closed union in code. Narrow a raw string with
+ * `goddessIdOf` (./roster) before using it as one.
+ */
+export type GoddessId = string & { readonly __goddessId: true };
 
-export const SITTING_GODDESSES: readonly GoddessId[] = [
-  'eluen',
-  'valda',
-  'merca',
-  'sylvie',
-  'moira',
-];
+/**
+ * Story roles a persona card may hold (each by at most one goddess): 'fate_director' runs
+ * the narrative director's coincidences and respites (Moira's fate channel, goddess_gm.md 8),
+ * 'offering' receives offerings through her token (prologue 4.9).
+ */
+export type GoddessRole = 'fate_director' | 'offering';
+
+/** How a goddess reaches the garden: through her believers' faith, or bound to the player. */
+export type GoddessReach = 'faith' | 'player';
+
+/** A cue that makes a seated goddess yield of her own will at the court (act6 3.5 and 5). */
+export type VoluntaryCue =
+  /** these defense lines are all broken */
+  | { lines: DefenseLine[] }
+  /** any of these evidence ids was shown to her */
+  | { shown: string[] }
+  /** a reveal-ledger condition over the flags */
+  | { when: string };
+
+/** How the court's verdict on a seated goddess is reached (act6 3.5 and 5). */
+export interface CourtVerdictRule {
+  /** broken defense lines that bring her to judgment (3 = all of them) */
+  judgedAt: number;
+  /** a mitigating piece shown to her also brings her to judgment (a confession) */
+  mitigationJudges?: boolean;
+  /** she yields of her own will when any cue holds; only once judged unless `alone` */
+  voluntary: { alone?: boolean; any: VoluntaryCue[] };
+}
+
+/** A seat at the divine court (the prologue antechamber and the act 6 review). */
+export interface CourtSeat {
+  /** seating order: verdicts, review crises and 'all' effects run in this order */
+  seat: number;
+  /** her review crisis (act6 2.4): flag review.<id>, and the condition that adds 10 strength */
+  crisis: { id: string; bonus: string };
+  /** extra thickness on a defense line while a condition holds (the god purge route) */
+  thicken?: { line: DefenseLine; when: string; add: number }[];
+  verdict: CourtVerdictRule;
+  /** flag set to true once she yields (voluntary or judged): Sylvie's spring memory */
+  yieldFlag?: string;
+}
+
+/** Who writes the epilogue record (act6 12.4 rule 6) and in which voice. */
+export interface RecordWriter {
+  kind: 'narrate' | 'divine';
+  /** endings whose record she writes; absent: the default writer of every other ending */
+  endings?: string[];
+}
 
 /** Persona card (goddess_gm.md 14). Hard constraints feed every prompt. */
 export interface GoddessDef {
@@ -53,6 +102,21 @@ export interface GoddessDef {
   /** first act index in which she plans (valda is absent in acts 1 and 2) */
   activeFromAct: number;
   breachTendency: 'none' | 'low' | 'mid' | 'high';
+  /** her seat at the court; absent for a goddess outside it (Janu) */
+  courtSeat?: CourtSeat;
+  /** how she reaches the garden (default 'faith') */
+  reach?: GoddessReach;
+  /** condition beyond the act gate before she can act at all (Janu: the seal stage) */
+  actsWhen?: string;
+  /** condition before she shows in the goddess window and plans (Janu: the first dream) */
+  appearsWhen?: string;
+  /** token item through which she blesses the pageless player and receives offerings */
+  token?: string;
+  roles?: GoddessRole[];
+  /** ledger alias flag that mirrors her gaze (goddess_gm.md 3.4) */
+  gazeFlag?: string;
+  /** she writes the epilogue record (act6 12.4 rule 6) */
+  record?: RecordWriter;
   /** written replies for the no-model mode */
   replies: {
     /** answer when the player speaks her honorific */

@@ -97,7 +97,16 @@ export interface NationDef {
   recruits: string[];
   /** admin capacity base (provinces) */
   adminBase: number;
+  /** what the nation stands for in the conclave (release_engineering.md 13.2), see NationRole */
+  roles?: NationRole[];
 }
+
+/**
+ * Nation roles in the conclave (grand_strategy_slg.md 8.1): 'church' turns against the
+ * player as the evidence mounts and leads the crusade; 'summit_key' must back the player
+ * for the summit to end in an alliance.
+ */
+export type NationRole = 'church' | 'summit_key';
 
 export interface StrategyConfig {
   /** relation score per lore step */

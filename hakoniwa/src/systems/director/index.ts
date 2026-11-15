@@ -1,4 +1,5 @@
-// Narrative director (phase 75): Moira's fate channel (goddess_gm.md 8, D-035). An
+// Narrative director (phase 75): Moira's fate channel (goddess_gm.md 8, D-035); the
+// goddess is the one with the fate_director role in data/goddess/goddesses.json. An
 // hourly tension reading decides between a coincidence (when things are too quiet)
 // and a respite (when they are too hard). Moves come from a written menu, serve only
 // the player's experience, never change combat results, never deliver locked lore,
@@ -6,8 +7,10 @@
 
 import type { GameSystem, SystemContext } from '../../core/system';
 import { TICKS_PER_GAME_HOUR } from '../../core/time';
+import { goddessByRole } from '../goddess/roster';
 import { recordIntervention } from '../goddess/state';
 import { registerModifier } from '../modifiers';
+import { currentActId } from '../quests/act_order';
 import { actIndex } from '../quests/conditions';
 import { conditionHolds } from '../quests/effects';
 import { forceWeather, playerEntity, type Weather } from '../world';
@@ -125,22 +128,23 @@ export function applyMove(
   } else slice.lastRespiteTick = ctx.tick;
   slice.history.push({ tick: ctx.tick, move, item: item.id });
   if (slice.history.length > HISTORY_LIMIT) slice.history.shift();
+  const fate = goddessByRole(ctx.content, 'fate_director');
   recordIntervention(ctx, {
-    goddess: 'moira',
+    goddess: fate?.id ?? '',
     action: move,
     mapId,
     power: item.power,
     sediment: Math.round(item.power * 0.01 * 100) / 100,
     public: false,
     breach: false,
-    note: `莫伊拉安排的${move === 'coincidence' ? '巧合' : '喘息'}：${item.label}`,
+    note: `${fate?.name ?? ''}安排的${move === 'coincidence' ? '巧合' : '喘息'}：${item.label}`,
   });
   ctx.emit('director.move', { move, itemId: item.id, tension: slice.tension });
 }
 
 function hourly(ctx: SystemContext): void {
   const slice = ctx.world.slices.director;
-  const act = String(ctx.flag('act') ?? 'prologue');
+  const act = currentActId(ctx);
   const idx = actIndex(act);
   const gaze = Math.max(
     0,
@@ -164,7 +168,10 @@ function hourly(ctx: SystemContext): void {
   slice.hoursLow = slice.tension < band.low ? slice.hoursLow + 1 : 0;
   slice.hoursHigh = slice.tension > band.high ? slice.hoursHigh + 1 : 0;
   if (ctx.world.slices.scenes?.current) return;
-  const extra = Number(ctx.flag('goddess.moira.interest') ?? 0) >= 2 && act === 'act1' ? 1 : 0;
+  // the fate director's prologue interest in the player buys an extra coincidence in act 1
+  const fate = goddessByRole(ctx.content, 'fate_director');
+  const interest = fate ? ctx.flag(`goddess.${fate.id}.interest`) : undefined;
+  const extra = Number(interest ?? 0) >= 2 && act === 'act1' ? 1 : 0;
   const move = decide(
     slice.hoursLow,
     slice.hoursHigh,

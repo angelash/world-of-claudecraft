@@ -2,13 +2,23 @@
 // candidates and policy cards, with editor schemas and cross-reference validation.
 
 import buildings from '../../../data/city/buildings.json';
+import config from '../../../data/city/config.json';
 import maps from '../../../data/city/maps.json';
 import officials from '../../../data/city/officials.json';
 import policies from '../../../data/city/policies.json';
 import sites from '../../../data/city/sites.json';
-import type { BuildingDef, OfficialDef, PolicyDef, SiteDef } from '../../systems/city/types';
+import type {
+  BuildingDef,
+  CityConfig,
+  OfficialDef,
+  PolicyDef,
+  SiteDef,
+  SiteRole,
+} from '../../systems/city/types';
 import type { MapDef } from '../../systems/world/types';
 import type { ContentPack } from '../pack';
+
+const SITE_ROLES: SiteRole[] = ['village_core'];
 
 const DOMAINS = [
   'food',
@@ -40,6 +50,7 @@ export const pack: ContentPack = {
     city_sites: sites as unknown as SiteDef[],
     city_officials: officials as unknown as OfficialDef[],
     city_policies: policies as unknown as PolicyDef[],
+    city_config: config as CityConfig,
   },
   schemas: [
     {
@@ -96,6 +107,13 @@ export const pack: ContentPack = {
         { key: 'outsideDivineSight', label: '神之视线之外', type: 'boolean' },
         { key: 'immuneToModifiers', label: '不受修正项影响', type: 'boolean' },
         { key: 'caps', label: '各阶段上限', type: 'json' },
+        {
+          key: 'roles',
+          label: '剧情职能',
+          type: 'list',
+          help: 'village_core：门内庭院的门在无处可回时通往的村落核心（全作唯一）',
+        },
+        { key: 'arrivalLocation', label: '庭院：门开向的地点', type: 'string' },
       ],
     },
     {
@@ -199,6 +217,39 @@ export const pack: ContentPack = {
         problems.push(`site ${s.id}: court map needs a safe location`);
       for (const id of Object.keys(s.initialStock))
         if (!items.has(id)) problems.push(`site ${s.id}: unknown item ${id}`);
+      for (const r of s.roles ?? [])
+        if (!SITE_ROLES.includes(r)) problems.push(`site ${s.id}: unknown role ${r}`);
+      if (s.arrivalLocation && !map.locations.some((l) => l.id === s.arrivalLocation))
+        problems.push(`site ${s.id}: map has no location ${s.arrivalLocation}`);
+    }
+    const sites = content.city_sites ?? [];
+    if (sites.length > 0) {
+      for (const role of SITE_ROLES) {
+        const n = sites.filter((s) => s.roles?.includes(role)).length;
+        if (n !== 1) problems.push(`city: role ${role} held by ${n} sites (want exactly 1)`);
+      }
+      if (sites.filter((s) => s.kind === 'court').length > 1)
+        problems.push('city: more than one court site');
+    }
+    const cfg = content.city_config;
+    if (cfg) {
+      const cfgItems = [
+        ...cfg.food.map((f) => f.itemId),
+        ...cfg.spoilage.map((f) => f.itemId),
+        ...cfg.slowUse.map((f) => f.itemId),
+        cfg.staple,
+        ...cfg.needGoods.clothing,
+        ...cfg.needGoods.care,
+        ...cfg.needGoods.drink,
+        ...cfg.needGoods.healing,
+        ...cfg.surplusKeep.map((k) => k.itemId),
+      ];
+      for (const id of cfgItems)
+        if (!items.has(id)) problems.push(`city config: unknown item ${id}`);
+      if (!cfg.food.some((f) => f.itemId === cfg.staple))
+        problems.push(`city config: staple ${cfg.staple} is not a food`);
+      for (const f of cfg.food)
+        if (f.value <= 0) problems.push(`city config: food ${f.itemId} feeds nobody`);
     }
     const pIds = new Set((content.city_policies ?? []).map((p) => p.id));
     for (const p of content.city_policies ?? []) {

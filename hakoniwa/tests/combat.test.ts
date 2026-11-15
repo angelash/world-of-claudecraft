@@ -68,6 +68,7 @@ const COURT: MapDef = {
   locations: [{ id: 'court_respawn', name: '复苏处', kind: 'safe', x: 2, y: 2, w: 2, h: 2 }],
   spawns: [],
   exits: [],
+  respawn: 'door',
 };
 
 function makeGame(seed = 7, extraMaps: MapDef[] = []): Engine {

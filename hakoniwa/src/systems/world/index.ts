@@ -20,6 +20,7 @@ import type {
 
 export * from './grid';
 export * from './look';
+export * from './map_roles';
 export * from './ports';
 export * from './types';
 

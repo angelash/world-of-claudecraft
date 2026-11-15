@@ -1393,18 +1393,32 @@ hakoniwa/locales/
 
 ### 13.2 内容 ID 解耦
 
-| 位置 | 目标 |
-| --- | --- |
-| `MAP_ACTS`（`npc/tiers.ts`） | 读图集地图表的 `acts` 字段（`data/world/atlas_maps.json` 已有该字段），经世界系统的查询函数 `mapActs(content, mapId)` 取得 |
-| `'wallenburg'`（`economy/competitor.ts`） | `data/economy/config.json` 增字段 `competitor.marketId` |
-| `'old_outpost'`（`city/court.ts`） | `data/city/sites.json` 的地点增 `roles` 字段，村落核心标 `village_core`，用 `siteByRole(content, 'village_core')` 查 |
-| `SITTING` 与按女神 ID 分支（`scenes/court.ts`） | `data/goddess/goddesses.json` 每位女神增 `courtSeat`（是否列席、席次）与审庭行为参数；按女神 ID 写的特例改成按数据声明的行为类别分派 |
-| `GoddessId` 联合类型（`goddess/types.ts`） | 定义成品牌字符串类型，内容载入时校验；需要穷举的地方遍历数据 |
+系统代码不写内容 ID：要用到某张图、某个地点、某位女神时，按数据声明的职能或字段去查。
 
-- **守卫**：`tests/content_id_guard.test.ts` 收集 `data/` 里的实体类 ID（地图、地点、市场、人物、女神、物品、魔物、门、任务、场景），扫描 `src/systems/**` 与 `src/core/**` 中与之完全相等的字符串字面量；
-  命中且不在 `tests/fixtures/content_id_allowlist.json` 中即失败。1.0 时系统目录的允许名单为空。
-- **自动玩家**：`src/game/autoplay/` 是测试用玩家，路线决策表天然引用内容 ID；它有自己的允许名单，路线决策表逐步移到 `data/autoplay/routes.json`，随内容批次维护。
-- 旗标与变量名（例如 `seal_looseness`）不是实体 ID，由变量注册表管（V4），不在本守卫范围内。
+| 位置 | 数据与查询 |
+| --- | --- |
+| 人设卡的默认剧情幕（`npc/tiers.ts`） | 地图文档的 `storyActs`（幕 ID，边石镇 `act1`、瓦伦堡 `act2`），世界系统的 `mapStoryActs(content, mapId)`。不用图集的 `acts`：那是"可游玩的幕"，含回访，语义不同 |
+| 收购报价的市场（`economy/competitor.ts`） | `data/economy/config.json` 的 `competitor.marketId` |
+| 庭院的门回到哪里（`city/court.ts`） | `data/city/sites.json` 的地点 `roles`，村落核心标 `village_core`，用 `siteByRole(content, 'village_core')`；庭院是类型 `court` 的地点（`courtSite`），门开向的地点是 `arrivalLocation` |
+| 城建的物品职能（`city/*.ts`） | `data/city/config.json`（`city_config`）：口粮与饱食值及进食顺序、腐坏率（粮仓是否减半）、慢耗品、主粮（遭袭先损、官员缺粮时购入）、各需求层的物资、官员卖余货的保留量 |
+| 复活点（`combat/death.ts`） | 地图文档的 `respawn`：`door`（门内庭院开放后）与 `wake`（最后的醒来处），各至多一张图；`respawnMap(content, role)` |
+| 测试图不入图集（`world/atlas.ts`） | 地图文档的 `atlasExempt` |
+| 会盟里的教国与帝国（`strategy/conclave.ts`） | `data/strategy/nations.json` 的 `roles`：`church`（证据越多越敌视、发动圣战）、`summit_key`（结盟必须有它支持），各全作唯一 |
+| 开局的幕与序章场景（`quests`、`scenes`、`director`、`goddess`、`doors`） | `data/quests/acts.json`：序号最小的幕是开局幕（`openingAct`），它的 `introScene` 在第 1 个 tick 播放；幕旗标未写时取开局幕 |
+| `SITTING` 与按女神 ID 分支（`scenes/court.ts`、`quests/endings.ts`） | `data/goddess/goddesses.json` 每位列席女神的 `courtSeat`：席次 `seat`（裁决、审定危机与"全体"效果按它排序）、审定危机 `crisis`（ID 与加成条件）、防线加厚 `thicken`、裁决规则 `verdict`（几条防线破即受审、坦白是否算受审、自愿让位的线索：防线组合、出示过的证据、条件式）、让位时写的旗标 `yieldFlag` |
+| 其余按女神 ID 的特例（`goddess/*.ts`、`director`、`scenes/epilogue.ts`、`quests/speakers.ts`） | 人格卡字段：触及方式 `reach`（`player` 跟着那个人，不看信仰份额）、出手条件 `actsWhen`、现身条件 `appearsWhen`、信物 `token`、剧情职能 `roles`（`fate_director` 导演、`offering` 收供品）、注视度别名旗标 `gazeFlag`、后日谈执笔 `record`；未列席（无 `courtSeat`）的女神不读天启、不算"全体" |
+| `GoddessId` 联合类型（`goddess/types.ts`） | 品牌字符串类型；女神包载入时校验 ID 格式、席次与危机不重复、职能各一位、条件式可解析、信物存在、默认执笔唯一（`rosterProblems`）；需要穷举的地方遍历 `seatedGoddesses(content)` |
+
+- **守卫**：`tests/content_id_guard.test.ts` 用 TypeScript 语法树收集 `src/systems/**` 与 `src/core/**` 的全部字符串字面量（去掉注释与模块路径），对照内容里的实体 ID：
+  地图（含图集地图）、图集区域、大陆省份、物品、魔物、门、地点、市场、人物（人设卡与同伴）、女神、任务、场景、国家、第六幕证据。完全相等即命中；命中且不在
+  `tests/fixtures/content_id_allowlist.json` 中即失败。系统目录的允许名单固定为空（测试钉住）。
+- **词汇例外**：在内容命名空间（内容总纲第 12 节的前缀）落地之前，少数裸 ID 同时是代码里的封闭词汇（门 `settlement` 与地点类型、物品 `stone` 与地块类型）。
+  一个字面量若是本系统目录里某个封闭词汇（字符串字面量的联合类型，或 `as const` 数组）的成员，且该词汇里至少有一个词不是 ID，就按词汇处理；
+  人物、女神、地点、市场、任务、场景、国家、证据的 ID 永远不能当词汇；只由 ID 组成的联合类型或数组（例如旧的 `GoddessId`）本身就是命中。
+  命名空间迁移（PK-M0-27、PK-M0-30）给 ID 加上前缀后，这条例外自然失效。
+- **自动玩家**：`src/game/autoplay/` 是测试用玩家，用同一扫描与自己的允许名单（当前为空）；它的路线决策表（各结局路线的场景选择、猎场、商店、保留物资、城建与政策计划）
+  在 `data/autoplay/routes.json`，随内容批次维护，`routeProblems` 对照内容校验每个 ID。
+- 旗标与变量名（例如 `seal_looseness`、`merca_offerings`）不是实体 ID，由变量注册表管（V4），不在本守卫范围内；建筑、政策、兵种、技能、神权动作等规则词汇的 ID 也不在本守卫范围内。
 
 ### 13.3 到 13.5
 

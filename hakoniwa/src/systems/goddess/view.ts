@@ -37,14 +37,14 @@ export function relationBandLabel(r: number): string {
   return '敌视';
 }
 
-/** The goddesses as the player knows them. Janu appears once the first dream happened. */
+/** The goddesses as the player knows them; one with appearsWhen (Janu: the first dream) shows once it holds. */
 export function goddessView(world: ViewWorld, content: { goddesses: GoddessDef[] }): GoddessView[] {
   const resolve = flagResolver(world.meta.flags);
   const out: GoddessView[] = [];
   for (const def of content.goddesses) {
     const s = world.slices.goddess.goddesses[def.id];
     if (!s) continue;
-    if (def.id === 'janu' && !world.meta.flags.a1_dream_door_woman) continue;
+    if (def.appearsWhen && !evaluate(def.appearsWhen, resolve)) continue;
     const named = !def.revealWhen || evaluate(def.revealWhen, resolve);
     out.push({
       id: def.id,

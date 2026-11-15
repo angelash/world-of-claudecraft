@@ -3,16 +3,24 @@
 // (8.3). The court is private storage, a small build site and the respawn point; it lies
 // outside every goddess's sight (data flag outsideDivineSight). enter_court / leave_court
 // teleport the player in and back so the court works before the doors ability is wired.
+// The court is the site of kind 'court'; the way back from nowhere leads to the site with
+// the village_core role (data/city/sites.json).
 
 import { type CommandResult, ok, reject } from '../../core';
 import type { SystemContext } from '../../core/system';
 import { addItem, addMoney, countItem, holdingOf, removeItem, spendMoney } from '../inventory';
 import { mapById, playerEntity, teleportEntity } from '../world';
 import { addDependency } from './autonomy';
-import { siteDef, storageCap, storageUsed, sumEffect, today } from './common';
+import {
+  courtSite,
+  siteByRole,
+  siteDef,
+  storageCap,
+  storageUsed,
+  sumEffect,
+  today,
+} from './common';
 import type { SiteDef, SiteState } from './types';
-
-export const COURT_ID = 'inner_court';
 
 export type Presence = { ok: true; remote: boolean } | { ok: false; code: string; reason: string };
 
@@ -99,14 +107,15 @@ export function enterCourt(ctx: SystemContext): CommandResult {
   if (!ctx.flag('feature.inner_court')) return reject('locked', '还没有通往门内庭院的门');
   const p = playerEntity(ctx.world);
   if (!p) return reject('no_player', '找不到玩家');
-  if (p.mapId === COURT_ID) return reject('already', '已经在庭院里了');
-  const map = mapById(ctx.content, COURT_ID);
+  const court = courtSite(ctx.content);
+  if (court && p.mapId === court.mapId) return reject('already', '已经在庭院里了');
+  const map = court ? mapById(ctx.content, court.mapId) : undefined;
   const arrival =
-    map?.locations.find((l) => l.id === 'court_arrival') ??
+    map?.locations.find((l) => l.id === court?.arrivalLocation) ??
     map?.locations.find((l) => l.kind === 'safe');
   if (!map || !arrival) return reject('no_court', '庭院不存在');
   ctx.world.slices.city.court.returnTo = { mapId: p.mapId, x: p.x, y: p.y };
-  return teleportEntity(ctx, p.id, COURT_ID, arrival.x + arrival.w / 2, arrival.y + arrival.h / 2)
+  return teleportEntity(ctx, p.id, map.id, arrival.x + arrival.w / 2, arrival.y + arrival.h / 2)
     ? ok('穿过门扉，回到了庭院')
     : reject('blocked', '门打不开');
 }
@@ -114,11 +123,12 @@ export function enterCourt(ctx: SystemContext): CommandResult {
 export function leaveCourt(ctx: SystemContext): CommandResult {
   const p = playerEntity(ctx.world);
   if (!p) return reject('no_player', '找不到玩家');
-  if (p.mapId !== COURT_ID) return reject('not_in_court', '你不在庭院里');
+  const courtDef = courtSite(ctx.content);
+  if (!courtDef || p.mapId !== courtDef.mapId) return reject('not_in_court', '你不在庭院里');
   const court = ctx.world.slices.city.court;
   let target = court.returnTo;
   if (!target || !mapById(ctx.content, target.mapId)) {
-    const sdef = siteDef(ctx.content, 'old_outpost');
+    const sdef = siteByRole(ctx.content, 'village_core');
     const map = sdef ? mapById(ctx.content, sdef.mapId) : undefined;
     const c = map?.locations.find((l) => l.id === sdef?.centerLocation);
     if (!map || !c) return reject('nowhere', '门的另一头无处可去');

@@ -1511,5 +1511,5 @@ DoorsSlice {
 - 提示导演按规则选目标、模型只润色措辞：[`comparison_and_plan.md`](../../10_research/ai_npc/comparison_and_plan.md) 第 6 节（模型提议、内核裁决）。
 
 代码锚点：`src/systems/doors/`（`openDoor`、`refreshDoors`、`evalKey`、`countEvent`、`applyDoorEffects`、`revertDoorEffects`、`corridorView`、`sealState`）；
-`src/systems/combat/queries.ts`（`strengthReading`、`targetInfo`）；`src/systems/cognition/appraise.ts`；`src/systems/city/court.ts`（`COURT_ID`）；
+`src/systems/combat/queries.ts`（`strengthReading`、`targetInfo`）；`src/systems/cognition/appraise.ts`；`src/systems/city/court.ts`（`enterCourt`、`leaveCourt`；庭院是 `courtSite` 查到的地点）；
 `src/client/windows/window_registry.ts`；主工程复活虚弱 `src/sim/resurrection.ts`（`RESURRECTION_SICKNESS_ID`、`resSicknessDuration`）。

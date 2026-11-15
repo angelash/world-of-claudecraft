@@ -3,6 +3,7 @@
     "id": "testfield",
     "name": "测试原野",
     "region": "test",
+    "atlasExempt": true,
     "width": 20,
     "height": 12,
     "rows": [

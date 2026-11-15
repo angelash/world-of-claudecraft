@@ -122,6 +122,8 @@ export const pack: ContentPack = {
       if (r.days <= 0) problems.push(`route ${r.id}: bad days`);
     }
     if (!itemIds.has('grey_crystal')) problems.push('economy: grey_crystal item missing');
+    if (!marketIds.has(cfg.competitor.marketId))
+      problems.push(`economy: competitor market ${cfg.competitor.marketId} unknown`);
     if (cfg.modifierBounds[0] > cfg.modifierBounds[1])
       problems.push('economy: bad modifier bounds');
     return problems;

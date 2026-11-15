@@ -14,6 +14,7 @@ import { evaluate, flagResolver } from '../quests/conditions';
 import { sanitizeText } from '../quests/lore';
 import { believersNear, displayName, toolsActive } from './actions';
 import { goddessContext } from './planning';
+import { goddessByRole } from './roster';
 import { addSight, adjustRelation, goddessDef, recordIntervention } from './state';
 import type { GoddessDef, RevelationDef } from './types';
 
@@ -158,7 +159,7 @@ export function issueRevelation(ctx: SystemContext, rev: RevelationDef): void {
   });
   ctx.emit('goddess.revelation', { id: rev.id, text: rev.text, literal: rev.literal });
   for (const def of [...ctx.content.goddesses].sort((a, b) => a.id.localeCompare(b.id))) {
-    if (def.id === 'janu') continue;
+    if (!def.courtSeat) continue;
     const s = slice.goddesses[def.id];
     if (!s || s.departed) continue;
     requestSpeech(
@@ -202,19 +203,23 @@ export function offeringRate(terms: FlagValue | undefined, offeringsSoFar: numbe
   return offeringsSoFar === 0 ? 1 : 0.7;
 }
 
-/** Validate and run an offering to Merca through her coin; returns an error or null. */
+/**
+ * Validate and run an offering to the goddess with the 'offering' role (Merca) through her
+ * token coin; returns an error or null.
+ */
 export function makeOffering(
   ctx: SystemContext,
   d: { itemId: string; want: 'blessing' | 'intel' },
 ): { code: string; reason: string } | null {
   const playerId = ctx.world.slices.world.playerId;
-  const merca = goddessDef(ctx.content, 'merca');
-  const s = ctx.world.slices.goddess.goddesses.merca;
+  const merca = goddessByRole(ctx.content, 'offering');
+  const s = merca ? ctx.world.slices.goddess.goddesses[merca.id] : undefined;
   if (!merca || !s) return { code: 'no_goddess', reason: '交易之司不在' };
   if (!toolsActive(ctx, merca, s)) return { code: 'inactive', reason: '此刻硬币那头没有回音' };
-  if (countItem(ctx.world, playerId, 'merca_coin') <= 0)
+  const coin = merca.token ?? '';
+  if (countItem(ctx.world, playerId, coin) <= 0)
     return { code: 'no_coin', reason: '没有梅尔卡的硬币，联系不上她' };
-  if (d.itemId === 'merca_coin') return { code: 'coin', reason: '硬币是她的，不能拿来供奉她自己' };
+  if (d.itemId === coin) return { code: 'coin', reason: '硬币是她的，不能拿来供奉她自己' };
   const item = itemDef(ctx.content, d.itemId);
   if (!item) return { code: 'no_item', reason: '没有这件物品' };
   if (countItem(ctx.world, playerId, d.itemId) <= 0)
@@ -226,10 +231,10 @@ export function makeOffering(
   );
   removeItem(ctx, playerId, d.itemId, 1, 'offering');
   ctx.setFlag('merca_offerings', done + 1);
-  adjustRelation(ctx, 'merca', earth ? 6 : 2);
+  adjustRelation(ctx, merca.id, earth ? 6 : 2);
   const speak = (text: string) =>
     ctx.emit('dialogue.line', {
-      speakerId: 'merca',
+      speakerId: merca.id,
       speakerName: displayName(ctx, merca),
       text: sanitizeText(text, ctx.world, ctx.content),
       listenerId: playerId,
@@ -243,7 +248,7 @@ export function makeOffering(
       key: 'player',
       factor: 1.1,
       untilTick: ctx.tick + daysN * TICKS_PER_GAME_DAY,
-      source: 'merca',
+      source: merca.id,
       visibility: 'public',
       note: '梅尔卡的附物加护（硬币）',
     });
@@ -252,22 +257,22 @@ export function makeOffering(
       key: 'player',
       factor: 0.9,
       untilTick: ctx.tick + daysN * TICKS_PER_GAME_DAY,
-      source: 'merca',
+      source: merca.id,
       visibility: 'public',
       note: '梅尔卡的附物加护（硬币）',
     });
   } else {
     const resolve = flagResolver(ctx.world.meta.flags);
     const intel = (ctx.content.mercaIntel ?? []).find(
-      (i) => !ctx.flag(`intel.merca.${i.id}`) && evaluate(i.when, resolve),
+      (i) => !ctx.flag(`intel.${merca.id}.${i.id}`) && evaluate(i.when, resolve),
     );
     if (intel) {
-      ctx.setFlag(`intel.merca.${intel.id}`, true);
+      ctx.setFlag(`intel.${merca.id}.${intel.id}`, true);
       speak(intel.text);
     } else speak('今天没什么新鲜消息，先记你一笔。');
   }
   recordIntervention(ctx, {
-    goddess: 'merca',
+    goddess: merca.id,
     action: 'offering',
     mapId: ctx.world.slices.world.entities[playerId]?.mapId ?? '',
     power: 1,

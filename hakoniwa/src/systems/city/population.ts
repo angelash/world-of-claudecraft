@@ -8,8 +8,6 @@ import { removeItem } from '../inventory';
 import {
   buildingDef,
   clamp,
-  FOOD_ORDER,
-  FOOD_VALUE,
   foodValue,
   hasActive,
   isWorking,
@@ -19,6 +17,7 @@ import {
   stageAtLeast,
   stageCaps,
   stockOf,
+  stocksAny,
   sumEffect,
   tempSum,
   totalPop,
@@ -82,21 +81,17 @@ function eat(ctx: SystemContext, site: SiteState, sdef: SiteDef, pop: number): n
   const need = pop * Math.max(0.5, 1 - tempSum(site, 'ration'));
   let remaining = need;
   const stock = stockOf(ctx.world, sdef.stockOwner);
-  for (const id of FOOD_ORDER) {
+  const config = ctx.content.city_config;
+  for (const { itemId: id, value } of config.food) {
     if (remaining <= 0) break;
     const have = stock[id] ?? 0;
     if (have <= 0) continue;
-    const value = FOOD_VALUE[id] ?? 1;
     const units = Math.min(have, Math.ceil(remaining / value));
     removeItem(ctx, sdef.stockOwner, id, units, 'food');
     remaining -= units * value;
   }
   // Clothes, ale and medicine are used up slowly (need tiers 2 and 3).
-  for (const [id, per] of [
-    ['cloth', 0.02],
-    ['ale', 0.03],
-    ['medicine', 0.005],
-  ] as const) {
+  for (const { itemId: id, perHead: per } of config.slowUse) {
     const have = stock[id] ?? 0;
     if (have <= 0) continue;
     const key = `use:${id}`;
@@ -119,7 +114,8 @@ export function runPopulation(ctx: SystemContext, site: SiteState, sdef: SiteDef
   let pop = totalPop(site);
   const shortage = eat(ctx, site, sdef, pop);
   const stock = stockOf(ctx.world, sdef.stockOwner);
-  const food = foodValue(stock);
+  const food = foodValue(stock, content.city_config);
+  const goods = content.city_config.needGoods;
   site.foodDays = pop > 0 ? Math.floor((food / pop) * 10) / 10 : food;
 
   let housing = 0;
@@ -155,7 +151,7 @@ export function runPopulation(ctx: SystemContext, site: SiteState, sdef: SiteDef
   site.health = clamp(
     60 +
       sumEffect(site, content, 'health') +
-      ((stock.medicine ?? 0) > 0 ? 5 : 0) +
+      (stocksAny(stock, goods.healing) ? 5 : 0) +
       tempSum(site, 'health') -
       (shortage > 0 ? 15 : 0) -
       (crowd > 0 ? 10 : 0) -
@@ -177,17 +173,17 @@ export function runPopulation(ctx: SystemContext, site: SiteState, sdef: SiteDef
   const stability =
     survival >= 0.75
       ? quarter([
-          (stock.cloth ?? 0) > 0 || hasActive(site, 'weaving'),
-          (stock.medicine ?? 0) > 0 || (stock.herb ?? 0) > 0 || hasActive(site, 'clinic'),
+          stocksAny(stock, goods.clothing) || hasActive(site, 'weaving'),
+          stocksAny(stock, goods.care) || hasActive(site, 'clinic'),
           site.security >= 40,
           sumEffect(site, content, 'faith') > 0,
         ])
       : 0;
-  const foodKinds = FOOD_ORDER.filter((id) => (stock[id] ?? 0) > 0).length;
+  const foodKinds = content.city_config.food.filter((f) => (stock[f.itemId] ?? 0) > 0).length;
   const prosperity =
     stability >= 0.75
       ? quarter([
-          (stock.ale ?? 0) > 0 || hasActive(site, 'tavern'),
+          stocksAny(stock, goods.drink) || hasActive(site, 'tavern'),
           hasActive(site, 'market'),
           foodKinds >= 2,
           hasActive(site, 'plaza') || hasActive(site, 'tavern'),

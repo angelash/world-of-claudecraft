@@ -6,6 +6,7 @@
 // from the built maps, their exits, the style packs and the continent provinces.
 
 import { isStyleId, type StyleId } from './look';
+import { isAtlasExempt } from './map_roles';
 
 /** Region tiers: the continent (world map), a region with its region map, a realm outside the world. */
 export const ATLAS_REGION_TIERS = ['continent', 'region', 'realm'] as const;
@@ -77,9 +78,6 @@ export const ATLAS_LAST_ACT = 7;
 
 /** Sediment grade of power_system.md 7.2: 0 (clear) to 5 (abyssal). */
 export const ATLAS_MAX_SEDIMENT = 5;
-
-/** Content maps that are not part of the world and need no atlas entry. */
-export const ATLAS_EXEMPT_MAPS: ReadonlySet<string> = new Set(['testfield']);
 
 /**
  * Map codes: P (prologue and the divine realm), X (private realm), A to F by act series
@@ -191,6 +189,8 @@ export interface AtlasInput {
     width: number;
     height: number;
     exits: readonly { id: string; toMap: string }[];
+    /** a test or tooling map outside the world (MapDef.atlasExempt): no entry needed */
+    atlasExempt?: boolean;
   }[];
   /** continent provinces (slg_provinces) */
   provinces?: readonly { id: string; region: string }[];
@@ -328,7 +328,7 @@ export function atlasProblems(input: AtlasInput): string[] {
   if (input.contentMaps) {
     const content = new Map(input.contentMaps.map((c) => [c.id, c]));
     for (const c of input.contentMaps) {
-      if (ATLAS_EXEMPT_MAPS.has(c.id)) continue;
+      if (isAtlasExempt(c)) continue;
       const m = maps.get(c.id);
       if (!m) out.push(`atlas: content map ${c.id} has no atlas entry`);
       else if (m.status !== 'built')
@@ -343,7 +343,7 @@ export function atlasProblems(input: AtlasInput): string[] {
     }
     // Every exit of every built map is cited by a route.
     for (const c of input.contentMaps) {
-      if (ATLAS_EXEMPT_MAPS.has(c.id)) continue;
+      if (isAtlasExempt(c)) continue;
       for (const x of c.exits) {
         const cited = input.routes.some(
           (r) =>

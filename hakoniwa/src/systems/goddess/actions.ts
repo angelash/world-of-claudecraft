@@ -9,14 +9,16 @@ import type { SystemContext } from '../../core/system';
 import { calendarAt, isNight, TICKS_PER_GAME_DAY, TICKS_PER_GAME_HOUR } from '../../core/time';
 import { countItem } from '../inventory';
 import { registerModifier } from '../modifiers';
-import { actIndex } from '../quests/conditions';
+import { currentActId } from '../quests/act_order';
+import { actIndex, evaluate, flagResolver } from '../quests/conditions';
 import { sanitizeText } from '../quests/lore';
+import type { ActDef } from '../quests/types';
 import { entitiesOnMap, forceWeather, mapById, playerEntity, type Weather } from '../world';
-import { goddessDef, playerMap, recordIntervention } from './state';
+import { goddessDef, playerMap, recordId, recordIntervention } from './state';
 import type { DivineActionDef, GoddessDef, GoddessState } from './types';
 
 export interface GoddessActParams {
-  /** scope map (defaults to the player's map for janu, her strongest map otherwise) */
+  /** scope map (defaults to the player's map for a goddess bound to the player, her strongest map otherwise) */
   mapId?: string;
   /** target entity id (oracle recipient) */
   targetId?: string;
@@ -49,9 +51,6 @@ export interface GoddessActCommand {
 
 const WEATHERS: readonly Weather[] = ['clear', 'cloudy', 'rain', 'storm', 'fog', 'snow', 'ashfall'];
 
-/** Token items through which a goddess may bless the pageless player (goddess_gm.md 10.10). */
-export const TOKENS: Record<string, string> = { merca: 'merca_coin' };
-
 export function actionDef(
   content: { divineActions: DivineActionDef[] },
   id: string,
@@ -59,8 +58,13 @@ export function actionDef(
   return content.divineActions.find((a) => a.id === id);
 }
 
-export function currentAct(ctx: { flag(key: string): FlagValue | undefined }): string {
-  return String(ctx.flag('act') ?? 'prologue');
+type ActCtx = {
+  flag(key: string): FlagValue | undefined;
+  content: { acts?: readonly ActDef[] };
+};
+
+export function currentAct(ctx: ActCtx): string {
+  return currentActId(ctx);
 }
 
 /** The name the player may see for a goddess right now (janu stays 门口的女人 until named). */
@@ -73,20 +77,21 @@ export function displayName(
 }
 
 /** Act gate: goddess tools work in acts 1 to 5 (the review in act 6 suspends them, act6 2.4). */
-export function toolsActive(
-  ctx: { flag(key: string): FlagValue | undefined },
-  def: GoddessDef,
-  s: GoddessState,
-): boolean {
+export function toolsActive(ctx: ActCtx, def: GoddessDef, s: GoddessState): boolean {
   const idx = actIndex(currentAct(ctx));
   if (Number.isNaN(idx) || idx < 1 || idx > 5) return false;
   if (s.departed) return false;
   return idx >= def.activeFromAct;
 }
 
-/** Janu acts by seal stage (goddess_gm.md 12.3): dreams from stage 1 (looseness 10). */
-function januStageOk(ctx: SystemContext): boolean {
-  return Number(ctx.flag('seal_looseness') ?? 0) >= 10 && !!ctx.flag('a1_dream_door_woman');
+/** Her own gate beyond the act (GoddessDef.actsWhen; Janu: the seal stage, goddess_gm.md 12.3). */
+function mayAct(ctx: SystemContext, def: GoddessDef): boolean {
+  return !def.actsWhen || evaluate(def.actsWhen, flagResolver(ctx.world.meta.flags));
+}
+
+/** Default scope map: the player's map for a goddess bound to the player, else her strongest. */
+function defaultMap(ctx: SystemContext, def: GoddessDef, s: GoddessState): string {
+  return def.reach === 'player' ? playerMap(ctx.world) : strongestMap(s, ctx.content);
 }
 
 /** Faith share of a goddess on a map (0 when unknown). */
@@ -133,14 +138,13 @@ export function validateAct(
   if (source.type === 'ai' && d.revision !== s.revision) {
     return { code: 'stale', reason: '局势已经变了，请重新观察后再提议' };
   }
-  if (d.goddessId === 'janu' && !januStageOk(ctx)) {
+  if (!mayAct(ctx, def)) {
     return { code: 'sealed', reason: '封印还太紧，她够不着' };
   }
   const p = d.params ?? {};
-  const mapId =
-    p.mapId ?? (d.goddessId === 'janu' ? playerMap(ctx.world) : strongestMap(s, ctx.content));
+  const mapId = p.mapId ?? defaultMap(ctx, def, s);
   if (!mapById(ctx.content, mapId)) return { code: 'no_map', reason: '那片土地不在箱庭里' };
-  if (d.goddessId !== 'janu' && d.action !== 'request' && reach(s, mapId) < 0.05) {
+  if (def.reach !== 'player' && d.action !== 'request' && reach(s, mapId) < 0.05) {
     return { code: 'out_of_reach', reason: '那里没有足够的信徒，她看不清也够不着' };
   }
   const breach = !!d.breach;
@@ -163,7 +167,7 @@ export function validateAct(
     return { code: 'not_night', reason: '托梦只能在夜里' };
   }
   if (a.id === 'blessing') {
-    const token = p.item ?? TOKENS[d.goddessId];
+    const token = p.item ?? def.token;
     if (!token || countItem(ctx.world, ctx.world.slices.world.playerId, token) <= 0) {
       return { code: 'no_token', reason: '那个人身上没有她的信物，加护无处可附' };
     }
@@ -207,8 +211,7 @@ export function executeAct(
   const s = ctx.world.slices.goddess.goddesses[d.goddessId] as GoddessState;
   const a = actionDef(ctx.content, d.action) as DivineActionDef;
   const p = d.params ?? {};
-  const mapId =
-    p.mapId ?? (d.goddessId === 'janu' ? playerMap(ctx.world) : strongestMap(s, ctx.content));
+  const mapId = p.mapId ?? defaultMap(ctx, def, s);
   const breach = !!d.breach;
   const cost = actionCost(a, breach);
   const playerId = ctx.world.slices.world.playerId;
@@ -328,7 +331,7 @@ export function executeAct(
     s.breachActs.push(act);
     const trace = `${mapById(ctx.content, mapId)?.name ?? mapId}留下一道带着${def.name}气息的蚀痕`;
     ctx.world.slices.goddess.breaches.push({
-      id: ctx.newId('breach'),
+      id: recordId(ctx, 'breach'),
       goddess: def.id,
       act,
       tick: ctx.tick,

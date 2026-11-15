@@ -2,7 +2,7 @@
 // the battlefield and the continent. Pure functions of GameView plus the economy, city,
 // warfare and strategy queries.
 
-import { buildMenu, COURT_ID, previewPlacement, settlementView } from '../../systems/city';
+import { buildMenu, previewPlacement, settlementView } from '../../systems/city';
 import { companyView } from '../../systems/economy';
 import { formatMoney } from '../../systems/inventory';
 import { continentView, diplomacyView, nationView } from '../../systems/strategy';
@@ -44,7 +44,7 @@ export function siteSummaries(view: GameView): SiteSummary[] {
     id: d.id,
     name: d.name,
     mapId: d.mapId,
-    founded: !!sites[d.id]?.active || d.id === COURT_ID,
+    founded: !!sites[d.id]?.active || d.kind === 'court',
     usable: !(d.requiresFlags ?? []).some((f) => !flagOn(view.flag(f))),
   }));
 }

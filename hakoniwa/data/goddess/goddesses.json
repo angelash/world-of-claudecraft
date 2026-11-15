@@ -125,6 +125,13 @@
     },
     "activeFromAct": 1,
     "breachTendency": "mid",
+    "courtSeat": {
+      "seat": 1,
+      "crisis": { "id": "no_light", "bonus": "a1_oola_fate == cleared" },
+      "thicken": [{ "line": "need", "when": "purge_route == god", "add": 2 }],
+      "verdict": { "judgedAt": 3, "voluntary": { "any": [{ "shown": ["E27", "E28"] }] } }
+    },
+    "gazeFlag": "eluen_awareness",
     "replies": {
       "honorific": "光听见了，孩子。说吧，简洁一些，并且合乎规格。",
       "revelation": "上面降下了新的字句。光只有一种正确的解读，孩子们静候教会宣读即可。"
@@ -242,6 +249,18 @@
     },
     "activeFromAct": 3,
     "breachTendency": "high",
+    "courtSeat": {
+      "seat": 2,
+      "crisis": { "id": "residue_tide", "bonus": "held_unaided >= 3" },
+      "thicken": [{ "line": "need", "when": "purge_route == god", "add": 2 }],
+      "verdict": {
+        "judgedAt": 2,
+        "voluntary": {
+          "alone": true,
+          "any": [{ "lines": ["just", "need"] }, { "when": "court.valda.duel" }]
+        }
+      }
+    },
     "replies": {
       "honorific": "哈！谁在喊我的全名？报上来：是要打一架，还是要我来见证？",
       "revelation": "上面又出题了？管它写的什么，打起来就知道答案。"
@@ -365,6 +384,13 @@
     },
     "activeFromAct": 1,
     "breachTendency": "mid",
+    "courtSeat": {
+      "seat": 3,
+      "crisis": { "id": "contract_halt", "bonus": "econ.company_founded" },
+      "verdict": { "judgedAt": 3, "voluntary": { "any": [{ "when": "court.merca.outlet" }] } }
+    },
+    "token": "merca_coin",
+    "roles": ["offering"],
     "replies": {
       "honorific": "叮，听见啦！亲爱的客人，开门做生意：你想买点什么，还是想卖点什么？",
       "revelation": "新碑文？行情要变了。先别急着解读，先看看是谁在囤货。",
@@ -487,6 +513,18 @@
     },
     "activeFromAct": 1,
     "breachTendency": "none",
+    "courtSeat": {
+      "seat": 4,
+      "crisis": { "id": "winter_famine", "bonus": "city.village_founded" },
+      "verdict": {
+        "judgedAt": 2,
+        "mitigationJudges": true,
+        "voluntary": {
+          "any": [{ "when": "review.winter_famine IN (self, barely)" }, { "shown": ["E27"] }]
+        }
+      },
+      "yieldFlag": "a6_spring_memory"
+    },
     "replies": {
       "honorific": "……风停了一下。我在听。慢慢说。",
       "revelation": "……碑亮了。季节要换了。别急着读懂它。"
@@ -607,6 +645,14 @@
     },
     "activeFromAct": 1,
     "breachTendency": "low",
+    "courtSeat": {
+      "seat": 5,
+      "crisis": { "id": "record_silence", "bonus": "a4_nation_founded" },
+      "verdict": { "judgedAt": 3, "voluntary": { "any": [{ "when": "a6_charter_read" }] } }
+    },
+    "gazeFlag": "moira_sight",
+    "roles": ["fate_director"],
+    "record": { "kind": "narrate" },
     "replies": {
       "honorific": "有人翻到了我这一页。有趣。你想写下什么，还是想读到什么？",
       "revelation": "新的一行。字越少，伏笔越多。我们来猜猜看吧。"
@@ -731,6 +777,10 @@
     },
     "activeFromAct": 1,
     "breachTendency": "none",
+    "reach": "player",
+    "actsWhen": "seal_looseness >= 10 AND a1_dream_door_woman",
+    "appearsWhen": "a1_dream_door_woman",
+    "record": { "kind": "divine", "endings": ["janu_restored"] },
     "replies": {
       "honorific": "……你叫出来了。门开了，我就在这里。",
       "revelation": "碑上的字，从来不止一种读法。别急，你会明白的。"

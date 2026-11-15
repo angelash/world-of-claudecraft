@@ -15,6 +15,7 @@ import { adHocRevelation, issueRevelation, makeOffering, onFeat, onPlayerSaid } 
 
 export * from './actions';
 export * from './planning';
+export * from './roster';
 export * from './state';
 export * from './types';
 export * from './view';

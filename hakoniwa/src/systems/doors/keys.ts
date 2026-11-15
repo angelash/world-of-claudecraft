@@ -6,6 +6,7 @@ import type { ContentMap, FlagValue } from '../../core/contracts';
 import type { World } from '../../core/world';
 import { xpProgress } from '../combat';
 import { countItem } from '../inventory';
+import { actIndex } from '../quests/conditions';
 import type { DoorDef, KeyCond } from './types';
 
 export interface KeyProgress {
@@ -68,9 +69,8 @@ export function keysMet(world: World, door: DoorDef): boolean {
 
 /** Story act as a number: prologue 0, act1 to act6, epilogue 7 (default act 1). */
 export function actNumber(v: FlagValue | undefined): number {
-  if (typeof v === 'number') return v;
-  if (v === 'prologue') return 0;
-  if (v === 'epilogue') return 7;
+  const idx = actIndex(v);
+  if (!Number.isNaN(idx)) return idx;
   const m = typeof v === 'string' ? /^act(\d)$/.exec(v) : null;
   return m ? Number(m[1]) : 1;
 }

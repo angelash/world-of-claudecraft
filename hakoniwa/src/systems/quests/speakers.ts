@@ -1,14 +1,13 @@
 // Display names for dialogue lines emitted by quests and scenes. Goddesses come from
-// the persona cards (janu keeps her hidden name until it is spoken); everything else
-// from the scenes speaker table; the player is shown with the chosen name.
+// the persona cards (janu keeps her hidden name until it is spoken; any id with a persona
+// card speaks divinely); everything else from the scenes speaker table; the player is
+// shown with the chosen name.
 
 import type { FlagValue } from '../../core/contracts';
 import type { GoddessDef } from '../goddess/types';
 import type { SpeakerDef } from '../scenes/types';
 import { evaluate, flagResolver } from './conditions';
 import type { LineKind } from './effect_types';
-
-const GODDESS_IDS = new Set(['eluen', 'valda', 'merca', 'sylvie', 'moira', 'janu']);
 
 type SpeakerContent = { goddesses: GoddessDef[]; sceneSpeakers: SpeakerDef[] };
 
@@ -38,7 +37,7 @@ export function speakerName(
 
 export function defaultKind(content: SpeakerContent, id: string): LineKind {
   if (id === 'narrator') return 'narrate';
-  if (GODDESS_IDS.has(id) || id === 'door_voice') return 'divine';
+  if ((content.goddesses ?? []).some((g) => g.id === id) || id === 'door_voice') return 'divine';
   const s = (content.sceneSpeakers ?? []).find((x) => x.id === id);
   return s?.kind ?? 'say';
 }

@@ -11,58 +11,26 @@ import {
   type SettlementView,
   settlementView,
 } from '../../systems/city';
-import { ALL_DOMAINS } from '../../systems/city/common';
-import type { Domain } from '../../systems/city/types';
+import { ALL_DOMAINS, siteByRole } from '../../systems/city/common';
+import type { CityFoodDef, Domain, SiteDef } from '../../systems/city/types';
 import { holdingOf } from '../../systems/inventory';
 import { battleView } from '../../systems/warfare';
 import { mapById } from '../../systems/world';
 import { keptItems, sellable } from './goods';
 import { locationPoint } from './nav';
 import type { Autoplayer } from './player';
+import { type PlanStep, ROUTES } from './routes';
 import { WarCommander } from './war';
 
-export const SETTLEMENT = 'old_outpost';
+/** The settlement plans of the route table (data/autoplay/routes.json). */
+const PLAN = ROUTES.settlement;
 
-/** The final battle of act 5; the true-ending route lets the nation mature before it. */
-const CLIMAX = 'act5_final_war';
-
-/** Buildings the bot places itself before the officials take over (outpost stage). */
-const OUTPOST_PLAN: { defId: string; count: number }[] = [
-  { defId: 'communal_stove', count: 1 },
-  { defId: 'farm', count: 3 },
-  { defId: 'shack', count: 5 },
-  { defId: 'shed', count: 2 },
-  { defId: 'lumber_camp', count: 1 },
-  { defId: 'quarry', count: 1 },
-];
-
-/** Copper kept back for grain while the outpost still has to swear its oath. */
-const GRAIN_RESERVE = 1200;
-
-/** Food the village oath needs: ten days for thirty sworn residents (city 1.2). */
-const FOUNDING_FOOD = 330;
-
-const FOODS = ['bread', 'fish', 'meat', 'grain'];
-
-/** Later buildings that raise autonomy (policy slots, talent) or keep people fed. */
-const GROWTH_PLAN: { defId: string; count: number }[] = [
-  { defId: 'village_hall', count: 1 },
-  { defId: 'farm', count: 3 },
-  { defId: 'school', count: 1 },
-  { defId: 'market', count: 1 },
-  { defId: 'watchtower', count: 1 },
-];
-
-/** Policies per domain in order of preference (one per domain, while slots last). */
-const POLICIES: Partial<Record<Domain, string[]>> = {
-  civil: ['open_refugees'],
-  food: ['fields_first'],
-  security: ['night_gate_closed'],
-  works: ['auto_repair'],
-  commerce: ['tax_low'],
-  military: ['militia_rotation'],
-  culture: ['festival_days'],
-};
+/** The bot's settlement: the village core site (data/city/sites.json roles). */
+function homeSite(bot: Autoplayer): SiteDef {
+  const site = siteByRole(bot.content, 'village_core');
+  if (!site) throw new Error('autoplay: no site holds the village_core role');
+  return site;
+}
 
 export class DomainPlanner {
   private readonly war: WarCommander;
@@ -72,10 +40,16 @@ export class DomainPlanner {
   private lastNationCheck = -1;
   private shortCache: { tick: number; value: Record<string, number> } | null = null;
   private readonly kept: Set<string>;
+  /** the settlement site the bot tends (site id, its map and its stock owner) */
+  private readonly home: SiteDef;
+  /** the residents' foods with their feeding values (city_config.food) */
+  private readonly foods: readonly CityFoodDef[];
 
   constructor(private readonly bot: Autoplayer) {
     this.war = new WarCommander(bot);
     this.kept = keptItems(bot.content);
+    this.home = homeSite(bot);
+    this.foods = bot.content.city_config.food;
   }
 
   /** Things that must happen before anything else (a battle in progress or waiting). */
@@ -95,7 +69,7 @@ export class DomainPlanner {
    */
   holdingBack(scenarioId: string): boolean {
     const bot = this.bot;
-    if (scenarioId !== CLIMAX || bot.autonomyGoal <= 0) return false;
+    if (scenarioId !== PLAN.climax || bot.autonomyGoal <= 0) return false;
     return Number(bot.flags.autonomy ?? 0) < bot.autonomyGoal;
   }
 
@@ -147,7 +121,7 @@ export class DomainPlanner {
     const v = this.settlementOpen();
     if (!v) return null;
     const day = this.today();
-    const here = bot.player()?.mapId === SETTLEMENT;
+    const here = bot.player()?.mapId === this.home.mapId;
     const supply = this.supply(v);
     if (supply !== null) return supply;
     if (!here && this.needsVisit(v, day)) return this.goToSettlement('tend the settlement');
@@ -190,7 +164,8 @@ export class DomainPlanner {
       if (loot.length === 0 || bot.recentlyRejected('economy.sell', 2400)) return null;
       return this.sell(loot);
     }
-    const partner = bot.content.economy_config?.company.partnerNpc ?? 'nera';
+    const partner = bot.content.economy_config?.company.partnerNpc;
+    if (!partner) return null;
     return bot.talk(partner, 'economy:found_company', 'found the trading company');
   }
 
@@ -204,24 +179,25 @@ export class DomainPlanner {
     const pid = bot.world.slices.world.playerId;
     const pack = holdingOf(bot.world, pid);
     const room = Math.max(0, v.storage.cap - v.storage.used);
+    const staple = bot.content.city_config.staple;
     const grainNeed =
       v.stage === 'outpost' && v.population.total >= 12
-        ? Math.max(0, FOUNDING_FOOD + 40 - foodIn(v))
+        ? Math.max(0, PLAN.foundingFood + 40 - foodIn(v, this.foods))
         : 0;
-    const carried = pack.items.grain ?? 0;
+    const carried = pack.items[staple] ?? 0;
     if (carried > 0 && (carried >= Math.min(grainNeed, 50) || grainNeed === 0)) {
-      if (bot.player()?.mapId !== SETTLEMENT)
+      if (bot.player()?.mapId !== this.home.mapId)
         return this.goToSettlement('bring grain to the outpost');
       const count = Math.min(carried, room);
       if (count > 0 && !bot.recentlyRejected('city.deposit', 600)) {
-        bot.intent = { what: `deposit ${count} grain` };
-        bot.send({ kind: 'city.deposit', data: { siteId: SETTLEMENT, itemId: 'grain', count } });
+        bot.intent = { what: `deposit ${count} ${staple}` };
+        bot.send({ kind: 'city.deposit', data: { siteId: this.home.id, itemId: staple, count } });
         return 2;
       }
     }
     const want: Record<string, number> = {};
-    if (grainNeed - carried > 0 && room >= 20) want.grain = Math.min(grainNeed - carried, room);
-    const reserve = v.stage === 'outpost' && !want.grain ? GRAIN_RESERVE : 0;
+    if (grainNeed - carried > 0 && room >= 20) want[staple] = Math.min(grainNeed - carried, room);
+    const reserve = v.stage === 'outpost' && !want[staple] ? PLAN.grainReserve : 0;
     if (pack.money > reserve + 300) {
       for (const [id, n] of Object.entries(this.materialsShort(v))) want[id] = n;
     }
@@ -244,7 +220,7 @@ export class DomainPlanner {
       bot.send({ kind: 'economy.close_trade', data: {} });
       return 2;
     }
-    const merchant = bot.nearestMerchant('borderstone');
+    const merchant = bot.nearestMerchant(ROUTES.shopMap);
     if (!merchant) return null;
     return bot.talk(merchant, 'economy:trade', 'shop for the settlement');
   }
@@ -261,23 +237,23 @@ export class DomainPlanner {
 
   private computeShort(v: SettlementView): Record<string, number> {
     const bot = this.bot;
-    const plan = v.stage === 'outpost' ? OUTPOST_PLAN : GROWTH_PLAN;
+    const plan = v.stage === 'outpost' ? PLAN.outpostPlan : PLAN.growthPlan;
     const need: Record<string, number> = {};
     let planned = 0;
     for (const step of plan) {
       const have = v.buildings.filter((b) => b.defId === step.defId).length;
       if (have >= step.count || planned >= 2) continue;
-      if (!findSpot(bot.world, bot.content, SETTLEMENT, step.defId)) continue;
+      if (!findSpot(bot.world, bot.content, this.home.id, step.defId)) continue;
       const def = bot.content.city_buildings.find((b) => b.id === step.defId);
       if (!def) continue;
       for (const [id, n] of Object.entries(def.cost.items)) need[id] = (need[id] ?? 0) + n;
       planned++;
     }
-    const site = holdingOf(bot.world, `site:${SETTLEMENT}`);
+    const site = holdingOf(bot.world, this.home.stockOwner);
     const pack = holdingOf(bot.world, bot.world.slices.world.playerId);
     const out: Record<string, number> = {};
     for (const [id, n] of Object.entries(need)) {
-      if (id !== 'wood' && id !== 'stone') continue;
+      if (!ROUTES.buildMaterials.includes(id)) continue;
       const short = n - (site.items[id] ?? 0) - (pack.items[id] ?? 0);
       if (short > 0) out[id] = short + 10;
     }
@@ -293,7 +269,7 @@ export class DomainPlanner {
       bot.send({ kind: 'economy.close_trade', data: {} });
       return 2;
     }
-    const merchant = bot.nearestMerchant('borderstone');
+    const merchant = bot.nearestMerchant(ROUTES.shopMap);
     if (!merchant) return null;
     return bot.talk(merchant, 'economy:trade', 'sell loot');
   }
@@ -302,7 +278,7 @@ export class DomainPlanner {
   // city: the old outpost
 
   view(): SettlementView | null {
-    return settlementView(this.bot.world, this.bot.content, SETTLEMENT);
+    return settlementView(this.bot.world, this.bot.content, this.home.id);
   }
 
   private settlementOpen(): SettlementView | null {
@@ -316,10 +292,10 @@ export class DomainPlanner {
   private settlementOrders(): number | null {
     const bot = this.bot;
     const v = this.settlementOpen();
-    if (!v || bot.player()?.mapId !== SETTLEMENT) return null;
+    if (!v || bot.player()?.mapId !== this.home.mapId) return null;
     const day = this.today();
     if (v.stage === 'outpost') {
-      const build = this.buildNext(v, OUTPOST_PLAN, day);
+      const build = this.buildNext(v, PLAN.outpostPlan, day);
       if (build !== null) return build;
     }
     const office = this.staffOffices(v, day);
@@ -332,19 +308,19 @@ export class DomainPlanner {
       bot.intent = { what: 'fund the treasury' };
       bot.send({
         kind: 'city.deposit',
-        data: { siteId: SETTLEMENT, itemId: 'money', count: Math.floor(purse / 2) },
+        data: { siteId: this.home.id, itemId: 'money', count: Math.floor(purse / 2) },
       });
       return 2;
     }
     if (v.stage === 'outpost') {
       if (this.canFound(v)) {
         bot.intent = { what: 'found the village' };
-        bot.send({ kind: 'city.found', data: { siteId: SETTLEMENT } });
+        bot.send({ kind: 'city.found', data: { siteId: this.home.id } });
         return 2;
       }
       return null;
     }
-    return this.buildNext(v, GROWTH_PLAN, day);
+    return this.buildNext(v, PLAN.growthPlan, day);
   }
 
   private canFound(v: SettlementView): boolean {
@@ -352,7 +328,7 @@ export class DomainPlanner {
     if (!v.buildings.some((b) => b.defId === 'communal_stove' && b.status === 'active')) {
       return false;
     }
-    return foodIn(v) >= v.population.total * 10;
+    return foodIn(v, this.foods) >= v.population.total * 10;
   }
 
   /** Does the settlement need the lord in person (an empty office, a free policy slot)? */
@@ -361,18 +337,18 @@ export class DomainPlanner {
     if (v.policies.filter((p) => p.enabled).length < v.policySlots && this.policyCandidate(v)) {
       return true;
     }
-    return this.lastBuildDay !== day && this.nextBuild(v, GROWTH_PLAN) !== null;
+    return this.lastBuildDay !== day && this.nextBuild(v, PLAN.growthPlan) !== null;
   }
 
   private goToSettlement(why: string): number {
     const bot = this.bot;
-    const map = mapById(bot.content, SETTLEMENT);
-    const pt = map ? locationPoint(map, 'village_center') : { x: 22, y: 19 };
+    const map = mapById(bot.content, this.home.mapId);
+    const pt = map ? locationPoint(map, this.home.centerLocation) : { x: 22, y: 19 };
     bot.intent = { what: why };
-    return bot.walkTo(SETTLEMENT, pt.x, pt.y - 3, 2) === 'blocked' ? 60 : 4;
+    return bot.walkTo(this.home.mapId, pt.x, pt.y - 3, 2) === 'blocked' ? 60 : 4;
   }
 
-  private nextBuild(v: SettlementView, plan: { defId: string; count: number }[]): string | null {
+  private nextBuild(v: SettlementView, plan: readonly PlanStep[]): string | null {
     for (const step of plan) {
       const have = v.buildings.filter((b) => b.defId === step.defId).length;
       if (have >= step.count) continue;
@@ -381,23 +357,19 @@ export class DomainPlanner {
     return null;
   }
 
-  private buildNext(
-    v: SettlementView,
-    plan: { defId: string; count: number }[],
-    day: number,
-  ): number | null {
+  private buildNext(v: SettlementView, plan: readonly PlanStep[], day: number): number | null {
     const bot = this.bot;
     if (this.lastBuildDay === day && v.stage !== 'outpost') return null;
     for (const step of plan) {
       const have = v.buildings.filter((b) => b.defId === step.defId).length;
       if (have >= step.count) continue;
       if (!this.affordable(step.defId)) continue;
-      const spot = findSpot(bot.world, bot.content, SETTLEMENT, step.defId);
+      const spot = findSpot(bot.world, bot.content, this.home.id, step.defId);
       if (!spot) continue;
       bot.intent = { what: `build ${step.defId}` };
       bot.send({
         kind: 'city.place',
-        data: { siteId: SETTLEMENT, defId: step.defId, x: spot.x, y: spot.y },
+        data: { siteId: this.home.id, defId: step.defId, x: spot.x, y: spot.y },
       });
       return 2;
     }
@@ -409,7 +381,7 @@ export class DomainPlanner {
     const bot = this.bot;
     const def = bot.content.city_buildings.find((b) => b.id === defId);
     if (!def) return false;
-    const site = holdingOf(bot.world, `site:${SETTLEMENT}`);
+    const site = holdingOf(bot.world, this.home.stockOwner);
     const pack = holdingOf(bot.world, bot.world.slices.world.playerId);
     for (const [id, n] of Object.entries(def.cost.items)) {
       if ((site.items[id] ?? 0) + (pack.items[id] ?? 0) < n) return false;
@@ -439,7 +411,7 @@ export class DomainPlanner {
       bot.intent = { what: `appoint ${pick.id} to ${o.domain}` };
       bot.send({
         kind: 'city.assign',
-        data: { siteId: SETTLEMENT, domain: o.domain, npcId: pick.id, rank: 'head' },
+        data: { siteId: this.home.id, domain: o.domain, npcId: pick.id, rank: 'head' },
       });
       return 2;
     }
@@ -450,7 +422,7 @@ export class DomainPlanner {
       bot.intent = { what: `appoint ${pick.id} as ${o.domain} deputy` };
       bot.send({
         kind: 'city.assign',
-        data: { siteId: SETTLEMENT, domain: o.domain, npcId: pick.id, rank: 'deputy' },
+        data: { siteId: this.home.id, domain: o.domain, npcId: pick.id, rank: 'deputy' },
       });
       return 2;
     }
@@ -466,7 +438,7 @@ export class DomainPlanner {
     const domains: Domain[] = ['civil', ...v.offices.map((o) => o.domain)];
     for (const domain of domains) {
       if (covered.has(domain)) continue;
-      for (const id of POLICIES[domain] ?? []) {
+      for (const id of PLAN.policies[domain] ?? []) {
         const def = rows.find((r) => r.id === id);
         if (!def || enabled.has(id)) continue;
         if (!stageAtLeast(v.stage, def.minStage)) continue;
@@ -478,7 +450,7 @@ export class DomainPlanner {
   }
 
   private setPolicies(v: SettlementView): number | null {
-    const site = this.bot.world.slices.city.sites[SETTLEMENT];
+    const site = this.bot.world.slices.city.sites[this.home.id];
     if (!site) return null;
     const enabled = v.policies.filter((p) => p.enabled).length;
     if (enabled >= v.policySlots) return null;
@@ -487,7 +459,7 @@ export class DomainPlanner {
     this.bot.intent = { what: `enact policy ${id}` };
     this.bot.send({
       kind: 'city.policy',
-      data: { siteId: SETTLEMENT, policyId: id, enabled: true },
+      data: { siteId: this.home.id, policyId: id, enabled: true },
     });
     return 2;
   }
@@ -529,9 +501,12 @@ function stageAtLeast(stage: string, min: string | undefined): boolean {
 }
 
 /** Food in the settlement's store (bread counts a little more, as the city counts it). */
-function foodIn(v: SettlementView): number {
+/** Residents fed for a day by the settlement's stock, at the foods' feeding values. */
+function foodIn(v: SettlementView, foods: readonly CityFoodDef[]): number {
   let n = 0;
-  for (const row of v.stock)
-    if (FOODS.includes(row.itemId)) n += row.count * (row.itemId === 'bread' ? 1.3 : 1);
+  for (const row of v.stock) {
+    const food = foods.find((f) => f.itemId === row.itemId);
+    if (food) n += row.count * food.value;
+  }
   return n;
 }

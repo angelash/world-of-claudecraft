@@ -199,8 +199,9 @@ function rollRaid(ctx: SystemContext, site: SiteState, sdef: SiteDef, rng: Rng):
     return;
   }
   const stock = stockOf(ctx.world, sdef.stockOwner);
-  const grainLost = Math.floor((stock.grain ?? 0) * 0.2);
-  if (grainLost > 0) removeItem(ctx, sdef.stockOwner, 'grain', grainLost, 'raid');
+  const staple = ctx.content.city_config.staple;
+  const grainLost = Math.floor((stock[staple] ?? 0) * 0.2);
+  if (grainLost > 0) removeItem(ctx, sdef.stockOwner, staple, grainLost, 'raid');
   const working = site.buildings.filter(isWorking);
   const hit = working[Math.floor(rng.next() * working.length)];
   if (hit) hit.condition = Math.max(0, hit.condition - 40);

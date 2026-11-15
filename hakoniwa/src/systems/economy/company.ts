@@ -21,7 +21,14 @@ import { applyModifiers } from '../modifiers';
 import { playerEntity } from '../world';
 import { quote } from './market';
 import { settleTrade } from './ports';
-import type { CaravanState, CompanyState, EconomyConfig, RecipeDef, RouteDef } from './types';
+import type {
+  CaravanState,
+  CompanyLedgerReason,
+  CompanyState,
+  EconomyConfig,
+  RecipeDef,
+  RouteDef,
+} from './types';
 
 export function emptyCompany(): CompanyState {
   return {
@@ -44,7 +51,7 @@ function today(ctx: SystemContext): number {
   return calendarAt(ctx.tick).dayIndex;
 }
 
-function log(ctx: SystemContext, delta: number, reason: string): void {
+function log(ctx: SystemContext, delta: number, reason: CompanyLedgerReason): void {
   const c = ctx.world.slices.economy.company;
   c.ledger.push({ day: today(ctx), delta, reason });
   if (c.ledger.length > 60) c.ledger.splice(0, c.ledger.length - 60);

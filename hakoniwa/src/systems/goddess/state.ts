@@ -5,6 +5,7 @@
 import type { FlagValue } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
 import { registerModifier } from '../modifiers';
+import { currentActId } from '../quests/act_order';
 import { playerEntity } from '../world';
 import type { GoddessDef, GoddessSlice, GoddessState, MiracleEntry } from './types';
 
@@ -61,9 +62,20 @@ function mirror(ctx: SystemContext, id: string, key: string, value: FlagValue): 
   ctx.setFlag(`goddess.${id}.${key}`, value);
 }
 
+/** Prefixes of the goddess slice's record ids: the miracle ledger and covenant breaches. */
+export type GoddessRecordKind = 'miracle' | 'breach';
+
+export function recordId(ctx: SystemContext, kind: GoddessRecordKind): string {
+  return ctx.newId(kind);
+}
+
+/** 'all' means every goddess seated at the court (GoddessDef.courtSeat), in slice order. */
 function each(ctx: SystemContext, goddess: string, fn: (s: GoddessState) => void): void {
   const all = ctx.world.slices.goddess.goddesses;
-  const ids = goddess === 'all' ? Object.keys(all).filter((k) => k !== 'janu') : [goddess];
+  const ids =
+    goddess === 'all'
+      ? Object.keys(all).filter((k) => goddessDef(ctx.content, k)?.courtSeat !== undefined)
+      : [goddess];
   for (const id of ids) {
     const s = all[id];
     if (s) fn(s);
@@ -115,16 +127,15 @@ export function refreshGaze(
   const s = ctx.world.slices.goddess.goddesses[goddess];
   const def = goddessDef(content, goddess);
   if (!s || !def) return;
-  const act = String(ctx.flag('act') ?? 'prologue');
+  const act = currentActId(ctx);
   const cap = def.gazeCap[act] ?? 100;
   const gaze = Math.round(Math.min(cap, 100 * (1 - Math.exp(-0.3 * s.sightWeight))));
   if (gaze === s.gaze) return;
   s.gaze = gaze;
   s.revision++;
   mirror(ctx, goddess, 'gaze', gaze);
-  // Ledger aliases (goddess_gm.md 3.4): eluen_awareness, moira_sight.
-  if (goddess === 'eluen') ctx.setFlag('eluen_awareness', gaze);
-  if (goddess === 'moira') ctx.setFlag('moira_sight', gaze);
+  // Ledger alias of her gaze (goddess_gm.md 3.4: eluen_awareness, moira_sight).
+  if (def.gazeFlag) ctx.setFlag(def.gazeFlag, gaze);
 }
 
 /** Raise a goddess's sight of the player by a witness sample weight. */
@@ -167,9 +178,9 @@ export function recordIntervention(
   const slice = ctx.world.slices.goddess;
   const full: MiracleEntry = {
     ...entry,
-    id: ctx.newId('miracle'),
+    id: recordId(ctx, 'miracle'),
     tick: ctx.tick,
-    act: String(ctx.flag('act') ?? 'prologue'),
+    act: currentActId(ctx),
   };
   slice.ledger.push(full);
   if (entry.sediment > 0 && entry.mapId) {

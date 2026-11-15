@@ -240,6 +240,7 @@ describe('reveal ledger', () => {
 });
 
 describe('endings and settlements', () => {
+  const roster = narrativeContent();
   const left = {
     verdict_eluen: 'voluntary',
     verdict_valda: 'judged',
@@ -258,33 +259,40 @@ describe('endings and settlements', () => {
   };
 
   it('judges endings in the order of act6 11.0', () => {
-    expect(judgeEnding({ ...left, ...world, janu_release: true })).toBe('release');
-    expect(judgeEnding({ ...left, ...world, autonomy: 50, janu_release: true })).toBe(
+    expect(judgeEnding({ ...left, ...world, janu_release: true }, roster)).toBe('release');
+    expect(judgeEnding({ ...left, ...world, autonomy: 50, janu_release: true }, roster)).toBe(
       'release_unfinished',
     );
-    expect(judgeEnding({ ...left, ...world, janu_release: true, player_absorb: true })).toBe(
-      'new_god',
+    expect(
+      judgeEnding({ ...left, ...world, janu_release: true, player_absorb: true }, roster),
+    ).toBe('new_god');
+    expect(judgeEnding({ ...left, ...world, janu_release: true, continent: 10 }, roster)).toBe(
+      'reclaim',
     );
-    expect(judgeEnding({ ...left, ...world, janu_release: true, continent: 10 })).toBe('reclaim');
-    expect(judgeEnding({ ...left, ...world, janu_release: true, god_war: true })).toBe('reclaim');
-    expect(judgeEnding({ ...left, ...world, janu_release: false, janu_restore_chosen: true })).toBe(
-      'janu_restored',
-    );
-    expect(judgeEnding({ ...left, ...world, janu_release: false })).toBe('janu_restored');
-    expect(judgeEnding({ ...left, ...world, janu_release: true, patron: 'moira' })).toBe(
-      'rule_moira',
-    );
-    expect(judgeEnding({ ...left, ...world, janu_release: true, verdict_valda: 'refuse' })).toBe(
-      'rule_valda',
+    expect(judgeEnding({ ...left, ...world, janu_release: true, god_war: true }, roster)).toBe(
+      'reclaim',
     );
     expect(
-      judgeEnding({
-        ...left,
-        ...world,
-        janu_release: true,
-        verdict_valda: 'contend',
-        verdict_eluen: 'contend',
-      }),
+      judgeEnding({ ...left, ...world, janu_release: false, janu_restore_chosen: true }, roster),
+    ).toBe('janu_restored');
+    expect(judgeEnding({ ...left, ...world, janu_release: false }, roster)).toBe('janu_restored');
+    expect(judgeEnding({ ...left, ...world, janu_release: true, patron: 'moira' }, roster)).toBe(
+      'rule_moira',
+    );
+    expect(
+      judgeEnding({ ...left, ...world, janu_release: true, verdict_valda: 'refuse' }, roster),
+    ).toBe('rule_valda');
+    expect(
+      judgeEnding(
+        {
+          ...left,
+          ...world,
+          janu_release: true,
+          verdict_valda: 'contend',
+          verdict_eluen: 'contend',
+        },
+        roster,
+      ),
     ).toBe('reclaim');
   });
 
@@ -310,12 +318,12 @@ describe('endings and settlements', () => {
   });
 
   it('scores the review crises and counts descents', () => {
-    const r = reviewOutcome({ autonomy: 70, 'review.no_light.descend': true });
+    const r = reviewOutcome({ autonomy: 70, 'review.no_light.descend': true }, roster);
     expect(r['review.no_light']).toBe('descend');
     expect(r['review.residue_tide']).toBe('self');
     expect(r.descents).toBe(1);
     expect(r.review_score).toBe(0.9);
-    expect(reviewOutcome({ autonomy: 0 }).review_score).toBe(0);
+    expect(reviewOutcome({ autonomy: 0 }, roster).review_score).toBe(0);
   });
 
   it('ranks prologue door hints with the fixed tie order', () => {

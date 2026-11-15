@@ -71,6 +71,7 @@
   {
     "id": "empire",
     "name": "格兰提亚帝国",
+    "roles": ["summit_key"],
     "short": "帝国",
     "capital": "grantis",
     "color": "#9c2f2f",
@@ -140,6 +141,7 @@
   {
     "id": "holy_see",
     "name": "圣艾琉恩教国",
+    "roles": ["church"],
     "short": "教国",
     "capital": "seran",
     "color": "#e0d27a",

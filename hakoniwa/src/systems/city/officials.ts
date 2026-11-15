@@ -102,18 +102,6 @@ export const OFFICIAL_ACTIONS: Record<OfficialActionId, OfficialActionDef> = {
   study: { domains: ['research', 'culture'], level: 1, name: '钻研', desc: '整理记录，培养后进' },
 };
 
-const SURPLUS_KEEP: Record<string, number> = {
-  wood: 200,
-  stone: 200,
-  hide: 30,
-  leather: 30,
-  wool: 30,
-  cloth: 60,
-  monster_material: 10,
-  iron_ore: 100,
-  tools: 20,
-};
-
 export function officialDef(
   ctx: { content: { city_officials: OfficialDef[] } },
   id: string,
@@ -217,7 +205,7 @@ export function utilityAction(
       if (site.happiness < 5 && treasury > 1000) return 'festival';
       return 'idle';
     case 'commerce':
-      if (Object.entries(SURPLUS_KEEP).some(([id, keep]) => (stock[id] ?? 0) > keep + 20))
+      if (ctx.content.city_config.surplusKeep.some((k) => (stock[k.itemId] ?? 0) > k.keep + 20))
         return 'sell_surplus';
       if (pop > 0 && site.foodDays < 5 && treasury >= 200) return 'buy_food';
       return 'idle';
@@ -265,12 +253,13 @@ export function executeAction(
     case 'buy_food': {
       const market = sdef.tradeMarket;
       if (!market) return { ok: false, note: '附近没有能买粮的集市' };
-      const price = marketPrice(ctx.world, ctx.content, market, 'grain');
+      const staple = ctx.content.city_config.staple;
+      const price = marketPrice(ctx.world, ctx.content, market, staple);
       if (!price || price <= 0) return { ok: false, note: '集市上买不到粮' };
       const budget = Math.floor(treasuryOf(ctx.world, owner) * 0.5);
       const qty = Math.min(totalPop(site) * 7, Math.floor(budget / (price * 1.2)));
       if (qty <= 0) return { ok: false, note: '金库没钱买粮' };
-      const res = buyFromMarket(ctx, market, owner, 'grain', qty, 'city.buy_food');
+      const res = buyFromMarket(ctx, market, owner, staple, qty, 'city.buy_food');
       if (!res.ok) return { ok: false, note: res.reason };
       const lost = Math.floor(res.total * leak);
       if (lost > 0) spendMoney(ctx, owner, Math.min(lost, treasuryOf(ctx.world, owner)), 'graft');
@@ -332,7 +321,7 @@ export function executeAction(
       const stock = stockOf(ctx.world, owner);
       let total = 0;
       const sold: string[] = [];
-      for (const [id, keep] of Object.entries(SURPLUS_KEEP)) {
+      for (const { itemId: id, keep } of ctx.content.city_config.surplusKeep) {
         const extra = (stock[id] ?? 0) - keep;
         if (extra <= 20) continue;
         const res = sellToMarket(ctx, market, owner, id, extra, 'city.sell_surplus');

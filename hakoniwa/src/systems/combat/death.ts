@@ -1,13 +1,14 @@
 // Death and its alternatives. Enemies die (entity.died, combat.kill, rewards, corpse and
 // respawn bookkeeping) or yield at a health threshold (Sasha retreats, the raven falls
 // without dying). The player returns through the door (power_system.md 9.8): wakes in
-// the inner court when feature.inner_court is set, otherwise at the nearest safe point,
+// the inner court (the map with respawn role 'door') when feature.inner_court is set,
+// otherwise at the nearest safe point, else at the wake point (respawn role 'wake'),
 // pays with door fatigue and a share of carried money. Companions go down until revived.
 
 import type { SystemContext } from '../../core/system';
 import { TICKS_PER_GAME_DAY, TICKS_PER_GAME_MINUTE } from '../../core/time';
 import { holdingOf, spendMoney } from '../inventory';
-import { getEntity, haltEntity, mapById, setLife, teleportEntity } from '../world';
+import { getEntity, haltEntity, mapById, respawnMap, setLife, teleportEntity } from '../world';
 import type { Entity, LocationDef, MapDef } from '../world/types';
 import { applyAura, removeAurasWhere } from './auras';
 import { CORPSE_TICKS, monsterDef, secs } from './defs';
@@ -135,7 +136,7 @@ export function returnPoint(
   e: Entity,
 ): { mapId: string; x: number; y: number; innerCourt: boolean } {
   if (ctx.flag('feature.inner_court')) {
-    const court = mapById(ctx.content, 'inner_court');
+    const court = respawnMap(ctx.content, 'door');
     if (court) {
       const spot = safeLocations(court)[0];
       const p = spot ? centre(spot) : { x: court.width / 2, y: court.height / 2 };
@@ -154,7 +155,7 @@ export function returnPoint(
       if (next && spot) return { mapId: next.id, ...centre(spot), innerCourt: false };
     }
   }
-  const ruins = mapById(ctx.content, 'seal_ruins');
+  const ruins = respawnMap(ctx.content, 'wake');
   const wake = ruins ? safeLocations(ruins)[0] : undefined;
   if (ruins && wake) return { mapId: ruins.id, ...centre(wake), innerCourt: false };
   return { mapId: e.mapId, x: e.x, y: e.y, innerCourt: false };

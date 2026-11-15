@@ -2,7 +2,7 @@
 // and the L1 to L4 assignment with the L1 cap and the temporary dialogue slots.
 
 import type { SystemContext } from '../../core/system';
-import { distance, getEntity, mapById, playerEntity } from '../world';
+import { distance, getEntity, mapById, mapStoryActs, playerEntity } from '../world';
 import { CORE_RADIUS, L1_CAP, L1_DIALOGUE_SLOTS, L1_SCORE, L2_SCORE } from './constants';
 import { personaById } from './personas';
 import type { NpcState, Tier } from './types';
@@ -14,16 +14,16 @@ function adjacent(ctx: SystemContext, a: string, b: string): boolean {
   return !!(ma?.exits.some((x) => x.toMap === b) || mb?.exits.some((x) => x.toMap === a));
 }
 
-/** The act a persona's story weight belongs to when the card does not say (act flag values). */
-const MAP_ACTS: Record<string, string[]> = { borderstone: ['act1'], wallenburg: ['act2'] };
-
-/** Story weight counts in its own act; with no act flag set, only on the player's map. */
+/**
+ * Story weight counts in its own act (the card's acts, else the story acts its home map
+ * declares, MapDef.storyActs); with no act flag set, only on the player's map.
+ */
 function plotWeight(ctx: SystemContext, st: NpcState, playerMap: string): number {
   const p = personaById(ctx.content, st.id);
   if (!p) return 0;
   const weight = p.plot ?? (p.core ? 1 : 0);
   const act = ctx.flag('act');
-  const acts = p.acts ?? MAP_ACTS[p.map] ?? [];
+  const acts = p.acts ?? mapStoryActs(ctx.content, p.map);
   const active = typeof act === 'string' && act ? acts.includes(act) : st.mapId === playerMap;
   return active ? weight : 0;
 }

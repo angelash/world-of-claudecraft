@@ -1,16 +1,21 @@
 // Named computations over world flags: the prologue door hints (prologue 4.9), the
 // act 5 settlement of the fronts (act5 7.3, 8), the review crises (act6 2.4) and the
-// ending judgement (act6 11.0 to 11.6). Pure functions over a flag map, plus thin
-// registrations that write the results back as flags.
+// ending judgement (act6 11.0 to 11.6). Pure functions over a flag map and the goddess
+// roster (the seated goddesses and their review crises come from their courtSeat in
+// data/goddess/goddesses.json), plus thin registrations that write the results back as flags.
 
 import type { FlagValue } from '../../core/contracts';
 import type { SystemContext } from '../../core/system';
+import { seatedGoddesses } from '../goddess/roster';
+import type { GoddessDef } from '../goddess/types';
 import type { EndingId, Verdict } from '../scenes/types';
-import { truthy } from './conditions';
+import { evaluate, flagResolver, truthy } from './conditions';
 import { DOOR_HINTS } from './effect_types';
 import { registerCompute } from './effects';
 
 type Flags = Record<string, FlagValue>;
+
+type Roster = { goddesses: readonly GoddessDef[] };
 
 function n(flags: Flags, key: string, dflt = 0): number {
   const v = Number(flags[key] ?? dflt);
@@ -75,46 +80,37 @@ export function act5Outcome(flags: Flags): Flags {
   return out;
 }
 
-export const CRISES = [
-  { id: 'no_light', goddess: 'eluen', bonus: (f: Flags) => f.a1_oola_fate === 'cleared' },
-  { id: 'residue_tide', goddess: 'valda', bonus: (f: Flags) => n(f, 'held_unaided') >= 3 },
-  { id: 'contract_halt', goddess: 'merca', bonus: (f: Flags) => truthy(f['econ.company_founded']) },
-  {
-    id: 'winter_famine',
-    goddess: 'sylvie',
-    bonus: (f: Flags) => truthy(f['city.village_founded']),
-  },
-  { id: 'record_silence', goddess: 'moira', bonus: (f: Flags) => truthy(f.a4_nation_founded) },
-] as const;
-
 export type CrisisResult = 'self' | 'barely' | 'descend' | 'fail';
 
 const CRISIS_SCORE: Record<CrisisResult, number> = { self: 1, barely: 0.6, descend: 0.5, fail: 0 };
 
-/** The five review crises (act6 2.4): descended, held by the garden itself, barely, or failed. */
-export function reviewOutcome(flags: Flags): Flags {
+/**
+ * The review crises (act6 2.4), one per seated goddess in seat order: descended, held by
+ * the garden itself, barely, or failed. A crisis's bonus condition adds 10 strength.
+ */
+export function reviewOutcome(flags: Flags, roster: Roster): Flags {
   const out: Flags = {};
   let sum = 0;
   let descents = 0;
   const autonomy = Math.max(n(flags, 'autonomy'), n(flags, 'territory_autonomy'));
-  for (const c of CRISES) {
+  const crises = seatedGoddesses(roster).map((g) => g.courtSeat.crisis);
+  const resolve = flagResolver(flags);
+  for (const c of crises) {
     let r: CrisisResult;
     if (truthy(flags[`review.${c.id}.descend`])) {
       r = 'descend';
       descents++;
     } else {
-      const strength = autonomy + (c.bonus(flags) ? 10 : 0);
+      const strength = autonomy + (evaluate(c.bonus, resolve) ? 10 : 0);
       r = strength >= 60 ? 'self' : strength >= 40 ? 'barely' : 'fail';
     }
     out[`review.${c.id}`] = r;
     sum += CRISIS_SCORE[r];
   }
-  out.review_score = Math.round((sum / CRISES.length) * 100) / 100;
+  out.review_score = Math.round((sum / Math.max(1, crises.length)) * 100) / 100;
   out.descents = descents;
   return out;
 }
-
-const SITTING = ['eluen', 'valda', 'merca', 'sylvie', 'moira'] as const;
 
 const MYSTERY_FLAGS = [
   'a1_dream_door_woman',
@@ -146,16 +142,17 @@ export function releaseConditions(flags: Flags): boolean {
 }
 
 /** The ending, by the judgement order of act6 11.0 (first match wins). */
-export function judgeEnding(flags: Flags): EndingId {
+export function judgeEnding(flags: Flags, roster: Roster): EndingId {
+  const seated: string[] = seatedGoddesses(roster).map((g) => g.id);
   if (n(flags, 'continent', 70) < 20 || truthy(flags.god_war)) return 'reclaim';
   if (truthy(flags.player_absorb)) return 'new_god';
   if (!truthy(flags.janu_release) && truthy(flags.janu_restore_chosen)) return 'janu_restored';
-  const verdicts = SITTING.map((g) => ({
+  const verdicts = seated.map((g) => ({
     g,
     v: String(flags[`verdict_${g}`] ?? 'refuse') as Verdict,
   }));
   const patron = String(flags.patron ?? '');
-  if ((SITTING as readonly string[]).includes(patron)) return `rule_${patron}` as EndingId;
+  if (seated.includes(patron)) return `rule_${patron}` as EndingId;
   const contenders = verdicts.filter((x) => x.v === 'contend');
   if (contenders.length >= 2) return 'reclaim';
   const staying = verdicts.filter((x) => x.v === 'refuse' || x.v === 'contend');
@@ -180,13 +177,17 @@ registerCompute('prologue_door_hints', (ctx) => {
 
 registerCompute('act5_outcome', (ctx) => write(ctx, act5Outcome(ctx.world.meta.flags)));
 
-registerCompute('review_score', (ctx) => write(ctx, reviewOutcome(ctx.world.meta.flags)));
+registerCompute('review_score', (ctx) =>
+  write(ctx, reviewOutcome(ctx.world.meta.flags, ctx.content)),
+);
 
 registerCompute('ending', (ctx) => {
   const flags = ctx.world.meta.flags;
-  const voluntary = SITTING.filter((g) => flags[`verdict_${g}`] === 'voluntary').length;
+  const voluntary = seatedGoddesses(ctx.content).filter(
+    (g) => flags[`verdict_${g.id}`] === 'voluntary',
+  ).length;
   ctx.setFlag('release_tone', voluntary >= 4 ? 'gentle' : 'hard');
   ctx.setFlag('mysteries_all', mysteriesAll(flags));
-  ctx.setFlag('ending', judgeEnding(ctx.world.meta.flags));
+  ctx.setFlag('ending', judgeEnding(ctx.world.meta.flags, ctx.content));
   ctx.setFlag('a6_judgment', true);
 });

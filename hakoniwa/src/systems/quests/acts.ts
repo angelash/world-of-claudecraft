@@ -3,6 +3,7 @@
 // entry (teleport, intro scene, entry effects). Quests own the act.
 
 import type { SystemContext } from '../../core/system';
+import { currentActId } from './act_order';
 import { actIndex } from './conditions';
 import { applyEffects, teleportPlayer } from './effects';
 import type { ActDef } from './types';
@@ -11,9 +12,7 @@ export function actDef(content: { acts: ActDef[] }, id: string): ActDef | undefi
   return content.acts.find((a) => a.id === id);
 }
 
-export function currentActId(ctx: { flag(key: string): unknown }): string {
-  return String(ctx.flag('act') ?? 'prologue');
-}
+export { currentActId, openingAct, openingActId } from './act_order';
 
 /** Change the act. Re-entering the current act is a no-op. */
 export function setAct(ctx: SystemContext, to: string): void {

@@ -129,6 +129,53 @@ export interface SiteDef {
   /** court: output ignores season, disaster and goddess modifiers (city_building 2.2) */
   immuneToModifiers?: boolean;
   caps: Partial<Record<Stage, StageCaps>>;
+  /** what the site stands for in the story (release_engineering.md 13.2), see SiteRole */
+  roles?: SiteRole[];
+  /** court: the location the door opens onto (else the first safe location) */
+  arrivalLocation?: string;
+}
+
+/**
+ * Site roles: 'village_core' is the settlement the inner court's door leads back to when
+ * the player entered the court from nowhere (and that later grows into the territory).
+ */
+export type SiteRole = 'village_core';
+
+/** One food the residents eat, in eating order (processed and perishable first). */
+export interface CityFoodDef {
+  itemId: string;
+  /** residents fed for a day by one unit (city_building P9: bread 1.3) */
+  value: number;
+}
+
+/** Daily spoilage of a stocked good (0.3 to 1 percent a day). */
+export interface CitySpoilDef {
+  itemId: string;
+  rate: number;
+  /** a granary halves the loss (food yes, herbs no) */
+  granaryHalves: boolean;
+}
+
+/** A good used up slowly by every resident (need tiers 2 and 3). */
+export interface CitySlowUseDef {
+  itemId: string;
+  perHead: number;
+}
+
+/** Item roles of the settlement rules (data/city/config.json). */
+export interface CityConfig {
+  food: CityFoodDef[];
+  spoilage: CitySpoilDef[];
+  slowUse: CitySlowUseDef[];
+  /** the staple grain: lost first in a raid, bought by officials when food runs short */
+  staple: string;
+  /**
+   * Goods that meet a need (city_building 5.4), any one in stock counts: clothing and care
+   * (stability), drink (prosperity), healing (the health bonus).
+   */
+  needGoods: { clothing: string[]; care: string[]; drink: string[]; healing: string[] };
+  /** what officials keep back before selling the rest (sell_surplus), in selling order */
+  surplusKeep: { itemId: string; keep: number }[];
 }
 
 export interface OfficialDef {
@@ -351,6 +398,7 @@ declare module '../../core/contracts' {
     city_sites: SiteDef[];
     city_officials: OfficialDef[];
     city_policies: PolicyDef[];
+    city_config: CityConfig;
   }
   interface EventMap {
     'city.building_placed': { siteId: string; buildingId: string; defId: string; by: string };

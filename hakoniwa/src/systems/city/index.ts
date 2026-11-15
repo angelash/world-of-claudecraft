@@ -15,8 +15,17 @@ import { settlerSchedule } from './settlers';
 import { POP_GROUP_LABELS } from './types';
 
 export { actingLevel, autonomyEfficiency, computeTerms } from './autonomy';
-export { defenseLevel, militiaCount, siteState, totalPop } from './common';
-export { COURT_ID, presence } from './court';
+export {
+  courtSite,
+  defenseLevel,
+  foodValue,
+  militiaCount,
+  siteByRole,
+  siteState,
+  stocksAny,
+  totalPop,
+} from './common';
+export { presence } from './court';
 export { OFFICIAL_ACTIONS, utilityAction } from './officials';
 export { FOUND_FOOD_DAYS, FOUND_MIN_POP, policySlots } from './orders';
 export {

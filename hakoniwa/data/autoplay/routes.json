@@ -1,0 +1,59 @@
+{
+  "scenes": {
+    "prefer": {
+      "choose": ["evidence"],
+      "after_valda": ["duel"],
+      "after_merca": ["outlet"],
+      "janu_ask": ["tavi", "ash", "let_go"],
+      "patron": ["none"],
+      "face": ["redeem", "destroy"],
+      "eska": ["ours"],
+      "table": ["broad"],
+      "eluen": ["decline"],
+      "moira": ["trade"]
+    },
+    "routes": {
+      "release": {},
+      "rule_merca": { "patron": ["merca"] }
+    },
+    "rules": [
+      { "scene": "a6_court", "nodePrefix": "crisis_", "pick": ["stay"] },
+      { "scene": "a6_court", "nodePrefix": "x_", "court": true },
+      { "scene": "a5_route_choice", "pick": ["ash_drawer", "people"] },
+      { "scene": "ending_release", "pick": ["stay", "give_all", "maker_door", "maker_door_home"] }
+    ]
+  },
+  "huntingMaps": ["forest_edge", "seal_ruins", "wallenburg_sewers", "ash_waste"],
+  "shopMap": "borderstone",
+  "keptItems": ["grain", "wood", "stone", "bread", "fish", "meat"],
+  "buildMaterials": ["wood", "stone"],
+  "settlement": {
+    "climax": "act5_final_war",
+    "grainReserve": 1200,
+    "foundingFood": 330,
+    "outpostPlan": [
+      { "defId": "communal_stove", "count": 1 },
+      { "defId": "farm", "count": 3 },
+      { "defId": "shack", "count": 5 },
+      { "defId": "shed", "count": 2 },
+      { "defId": "lumber_camp", "count": 1 },
+      { "defId": "quarry", "count": 1 }
+    ],
+    "growthPlan": [
+      { "defId": "village_hall", "count": 1 },
+      { "defId": "farm", "count": 3 },
+      { "defId": "school", "count": 1 },
+      { "defId": "market", "count": 1 },
+      { "defId": "watchtower", "count": 1 }
+    ],
+    "policies": {
+      "civil": ["open_refugees"],
+      "food": ["fields_first"],
+      "security": ["night_gate_closed"],
+      "works": ["auto_repair"],
+      "commerce": ["tax_low"],
+      "military": ["militia_rotation"],
+      "culture": ["festival_days"]
+    }
+  }
+}

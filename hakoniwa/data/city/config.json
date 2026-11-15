@@ -1,0 +1,38 @@
+{
+  "food": [
+    { "itemId": "bread", "value": 1.3 },
+    { "itemId": "fish", "value": 1 },
+    { "itemId": "meat", "value": 1 },
+    { "itemId": "grain", "value": 1 }
+  ],
+  "spoilage": [
+    { "itemId": "grain", "rate": 0.003, "granaryHalves": true },
+    { "itemId": "meat", "rate": 0.005, "granaryHalves": true },
+    { "itemId": "fish", "rate": 0.005, "granaryHalves": true },
+    { "itemId": "bread", "rate": 0.01, "granaryHalves": true },
+    { "itemId": "herb", "rate": 0.01, "granaryHalves": false }
+  ],
+  "slowUse": [
+    { "itemId": "cloth", "perHead": 0.02 },
+    { "itemId": "ale", "perHead": 0.03 },
+    { "itemId": "medicine", "perHead": 0.005 }
+  ],
+  "staple": "grain",
+  "needGoods": {
+    "clothing": ["cloth"],
+    "care": ["medicine", "herb"],
+    "drink": ["ale"],
+    "healing": ["medicine"]
+  },
+  "surplusKeep": [
+    { "itemId": "wood", "keep": 200 },
+    { "itemId": "stone", "keep": 200 },
+    { "itemId": "hide", "keep": 30 },
+    { "itemId": "leather", "keep": 30 },
+    { "itemId": "wool", "keep": 30 },
+    { "itemId": "cloth", "keep": 60 },
+    { "itemId": "monster_material", "keep": 10 },
+    { "itemId": "iron_ore", "keep": 100 },
+    { "itemId": "tools", "keep": 20 }
+  ]
+}

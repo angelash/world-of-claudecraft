@@ -9,6 +9,7 @@ import mercaIntel from '../../../data/goddess/merca_intel.json';
 import revelations from '../../../data/goddess/revelations.json';
 import type { DirectorItemDef } from '../../systems/director';
 import type { MercaIntelDef } from '../../systems/goddess';
+import { rosterProblems } from '../../systems/goddess/roster';
 import type {
   DivineActionDef,
   GoddessDef,
@@ -63,6 +64,25 @@ export const pack: ContentPack = {
           type: 'enum',
           options: ['none', 'low', 'mid', 'high'],
         },
+        { key: 'courtSeat', label: '神庭席位与审庭行为（无则不列席）', type: 'json' },
+        {
+          key: 'reach',
+          label: '触及方式',
+          type: 'enum',
+          options: ['faith', 'player'],
+          help: 'faith：经信徒的信仰；player：跟着那个人（不看信仰份额）',
+        },
+        { key: 'actsWhen', label: '能出手的条件', type: 'string' },
+        { key: 'appearsWhen', label: '现身于女神窗与规划的条件', type: 'string' },
+        { key: 'token', label: '信物（加护与供奉）', type: 'ref', refTable: 'items' },
+        {
+          key: 'roles',
+          label: '剧情职能',
+          type: 'list',
+          help: 'fate_director：导演的巧合与喘息；offering：经信物收供品；每种全作唯一',
+        },
+        { key: 'gazeFlag', label: '注视度别名旗标', type: 'string' },
+        { key: 'record', label: '后日谈执笔（语气与结局）', type: 'json' },
         { key: 'replies', label: '写定回应', type: 'json' },
       ],
     },
@@ -156,8 +176,15 @@ export const pack: ContentPack = {
     },
   ],
   validate(content) {
-    const problems: string[] = [];
+    const problems: string[] = [...rosterProblems(content)];
     const actionIds = new Set(content.divineActions.map((a) => a.id));
+    const goddessIds = new Set(content.goddesses.map((g) => g.id as string));
+    for (const r of content.revelations)
+      for (const k of Object.keys(r.responses))
+        if (!goddessIds.has(k))
+          problems.push(`revelation ${r.id}: response for unknown goddess ${k}`);
+    for (const d of content.courtDefenses ?? [])
+      if (!goddessIds.has(d.goddess)) problems.push(`courtDefense: unknown goddess ${d.goddess}`);
     for (const g of content.goddesses) {
       for (const a of g.menu)
         if (!actionIds.has(a)) problems.push(`goddess ${g.id}: unknown action ${a}`);

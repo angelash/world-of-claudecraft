@@ -34,7 +34,14 @@ export const CONDITION_FIELDS = new Set([
   'requires',
   'revealWhen',
   'condition',
+  // goddess persona cards: her gates and her court seat's crisis bonus
+  'actsWhen',
+  'appearsWhen',
+  'bonus',
 ]);
+
+/** Data fields that name a flag the kernel writes (goddess gaze alias, a court seat's yield). */
+export const WRITE_FIELDS = new Set(['gazeFlag', 'yieldFlag']);
 
 /** Keys written by an effect object, per systems/quests/effect_types.ts. */
 export function effectWrites(e: Record<string, unknown>): { key: string; value?: FlagValue }[] {
@@ -167,6 +174,8 @@ export function indexData(file: string, data: unknown): FlagRef[] {
         }
       } else if (k === 'flag' && typeof x === 'string' && o.type === undefined) {
         out.push({ key: x, kind: 'read', origin: 'data', file, where: `${where}.${k}`, via: k });
+      } else if (WRITE_FIELDS.has(k) && typeof x === 'string' && x) {
+        out.push({ key: x, kind: 'write', origin: 'data', file, where: `${where}.${k}`, via: k });
       } else if (k === 'storeAs' && typeof x === 'string' && x) {
         // scene input and choice nodes store the answer in a flag (scenes/runner.ts)
         out.push({ key: x, kind: 'write', origin: 'data', file, where: `${where}.${k}`, via: k });

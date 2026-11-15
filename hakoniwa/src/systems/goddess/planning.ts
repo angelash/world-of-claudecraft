@@ -143,7 +143,7 @@ export function fallbackPlan(
 ): GoddessActCommand | null {
   const rng = ctx.rng('goddess.plan');
   const mapId =
-    def.id === 'janu'
+    def.reach === 'player'
       ? (ctx.world.slices.world.entities[ctx.world.slices.world.playerId]?.mapId ?? '')
       : strongestMap(s, ctx.content);
   let best: { cmd: GoddessActCommand; u: number } | null = null;
@@ -196,7 +196,7 @@ export function dailyPlans(ctx: SystemContext): void {
   for (const def of [...ctx.content.goddesses].sort((a, b) => a.id.localeCompare(b.id))) {
     const s = ctx.world.slices.goddess.goddesses[def.id];
     if (!s || !toolsActive(ctx, def, s)) continue;
-    if (def.id === 'janu' && !ctx.flag('a1_dream_door_woman')) continue;
+    if (def.appearsWhen && !evaluate(def.appearsWhen, flagResolver(ctx.world.meta.flags))) continue;
     const cmd = fallbackPlan(ctx, def, s);
     const fallback: AnyCommand[] = cmd ? [{ kind: 'goddess.act', data: cmd, source: SRC }] : [];
     ctx.ai.request({

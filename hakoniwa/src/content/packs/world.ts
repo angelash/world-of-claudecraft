@@ -8,7 +8,6 @@ import atlasRoutes from '../../../data/world/atlas_routes.json';
 import testMaps from '../../../data/world/maps_test.json';
 import { lookProblems, STYLE_IDS, type WorldStart } from '../../systems/world';
 import {
-  ATLAS_EXEMPT_MAPS,
   ATLAS_REGION_TIERS,
   ATLAS_ROLES,
   ATLAS_STATUSES,
@@ -20,6 +19,7 @@ import {
   ROUTE_KINDS,
   ROUTE_LAYERS,
 } from '../../systems/world/atlas';
+import { isAtlasExempt, mapRoleProblems } from '../../systems/world/map_roles';
 import type { MapDef } from '../../systems/world/types';
 import type { ContentPack } from '../pack';
 
@@ -56,6 +56,15 @@ export const pack: ContentPack = {
         { key: 'style', label: '风格包', type: 'string' },
         { key: 'looks', label: '建筑外观', type: 'json' },
         { key: 'decor', label: '装饰', type: 'json' },
+        {
+          key: 'respawn',
+          label: '复活职能',
+          type: 'enum',
+          options: ['door', 'wake'],
+          help: 'door：门内庭院开放后的复活点；wake：最后的醒来处；每种至多一张图',
+        },
+        { key: 'storyActs', label: '承载剧情的幕', type: 'list' },
+        { key: 'atlasExempt', label: '不入图集（测试图）', type: 'boolean' },
       ],
     },
     {
@@ -169,9 +178,10 @@ export const pack: ContentPack = {
     }
     for (const s of content.worldStarts)
       if (!ids.has(s.mapId)) problems.push(`worldStart -> unknown map ${s.mapId}`);
+    problems.push(...mapRoleProblems(content));
     // Partial content builds (tests that load a few packs) carry no story maps: the atlas
     // then only checks itself and whatever province and battle tables are present.
-    const story = content.maps.some((m) => !ATLAS_EXEMPT_MAPS.has(m.id));
+    const story = content.maps.some((m) => !isAtlasExempt(m));
     problems.push(
       ...atlasProblems({
         regions: content.atlas_regions ?? [],

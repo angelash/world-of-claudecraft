@@ -112,6 +112,8 @@ export interface EconomyConfig {
     cooldownDays: number;
     /** company scale that triggers a buyout offer */
     offerAtScale: number;
+    /** market whose house makes the buyout offer (A2-S04) */
+    marketId: string;
   };
 }
 
@@ -158,6 +160,15 @@ export interface ProductionJob {
   runs: number;
   doneTick: number;
 }
+
+/** Why the company's books moved: the closed vocabulary of ledger reasons. */
+export type CompanyLedgerReason =
+  | 'founding'
+  | 'deposit'
+  | 'withdraw'
+  | 'caravan_cost'
+  | `${'buy' | 'sell'}:${string}`
+  | `caravan:${string}`;
 
 export interface CompanyLedgerEntry {
   day: number;

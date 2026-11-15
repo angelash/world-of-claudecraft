@@ -2,6 +2,7 @@
 // objective progress, and the current act.
 
 import type { FlagValue } from '../../core/contracts';
+import { openingActId } from './act_order';
 import type { ActDef, Objective, QuestDef, QuestStatus, QuestsSlice } from './types';
 
 export interface ObjectiveView {
@@ -81,7 +82,7 @@ export function questLog(
   world: LogWorld,
   content: { quests: QuestDef[]; acts: ActDef[] },
 ): QuestLogView {
-  const act = String(world.meta.flags.act ?? 'prologue');
+  const act = String(world.meta.flags.act ?? openingActId(content));
   const views = world.slices.quests.order
     .map((id) => questView(world, content, id))
     .filter((v): v is QuestView => !!v);
@@ -98,6 +99,6 @@ export function currentAct(
   world: { meta: { flags: Record<string, FlagValue> } },
   content: { acts: ActDef[] },
 ): ActDef | null {
-  const act = String(world.meta.flags.act ?? 'prologue');
+  const act = String(world.meta.flags.act ?? openingActId(content));
   return content.acts.find((a) => a.id === act) ?? null;
 }

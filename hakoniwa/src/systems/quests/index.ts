@@ -6,7 +6,7 @@
 import { ok, reject } from '../../core';
 import type { GameSystem, SystemContext } from '../../core/system';
 import { getEntity } from '../world';
-import { setAct } from './acts';
+import { openingAct, setAct } from './acts';
 import { applyEffects } from './effects';
 import './endings';
 import type { LoreDef, TermDef } from '../goddess/types';
@@ -138,9 +138,10 @@ export const system: GameSystem = {
       scenesSeen: [],
       lastBeatTick: 0,
     };
-    if (ctx.flag('act') === undefined) {
-      ctx.setFlag('act', 'prologue');
-      ctx.setFlag('act_index', 0);
+    const opening = openingAct(ctx.content);
+    if (ctx.flag('act') === undefined && opening) {
+      ctx.setFlag('act', opening.id);
+      ctx.setFlag('act_index', opening.index);
     }
   },
 

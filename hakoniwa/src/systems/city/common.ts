@@ -6,10 +6,12 @@ import type { InventorySlice } from '../inventory';
 import {
   type BuildingDef,
   type BuildingInstance,
+  type CityConfig,
   type CitySlice,
   type Domain,
   type PolicyDef,
   type SiteDef,
+  type SiteRole,
   type SiteState,
   STAGE_ORDER,
   type Stage,
@@ -21,10 +23,6 @@ export interface CityWorld {
   slices: { city: CitySlice; inventory: InventorySlice };
 }
 
-/** Food value per unit: bread feeds 1.3 people for a day (city_building P9). */
-export const FOOD_VALUE: Record<string, number> = { bread: 1.3, fish: 1, meat: 1, grain: 1 };
-/** Consumption order: processed and perishable food first. */
-export const FOOD_ORDER = ['bread', 'fish', 'meat', 'grain'];
 /** Copper of head tax per resident per day at the normal rate. */
 export const HEAD_TAX = 3;
 /** Share of residents who can work. */
@@ -36,6 +34,19 @@ export function today(tick: number): number {
 
 export function siteDef(content: Pick<ContentMap, 'city_sites'>, id: string): SiteDef | undefined {
   return content.city_sites.find((s) => s.id === id);
+}
+
+/** The site that holds a story role (SiteDef.roles), e.g. the village core. */
+export function siteByRole(
+  content: Pick<ContentMap, 'city_sites'>,
+  role: SiteRole,
+): SiteDef | undefined {
+  return content.city_sites.find((s) => s.roles?.includes(role));
+}
+
+/** The inner court (the one site of kind 'court'). */
+export function courtSite(content: Pick<ContentMap, 'city_sites'>): SiteDef | undefined {
+  return content.city_sites.find((s) => s.kind === 'court');
 }
 
 export function buildingDef(
@@ -179,10 +190,16 @@ export function storageCap(
   return cap;
 }
 
-export function foodValue(stock: Record<string, number>): number {
+/** Residents fed for a day by the food in a stock (eating order of city_config.food). */
+export function foodValue(stock: Record<string, number>, config: CityConfig): number {
   let v = 0;
-  for (const id of FOOD_ORDER) v += (stock[id] ?? 0) * (FOOD_VALUE[id] ?? 1);
+  for (const f of config.food) v += (stock[f.itemId] ?? 0) * f.value;
   return v;
+}
+
+/** Does the stock hold any of these goods (a need tier met by goods, city_building 5.4)? */
+export function stocksAny(stock: Record<string, number>, ids: readonly string[]): boolean {
+  return ids.some((id) => (stock[id] ?? 0) > 0);
 }
 
 export function policyEffectSum(

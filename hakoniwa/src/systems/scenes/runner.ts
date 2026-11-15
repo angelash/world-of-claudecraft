@@ -261,7 +261,7 @@ function showEpilogue(ctx: SystemContext, run: SceneRun): void {
     layer: l.layer,
   }));
   lines.forEach((l, i) => {
-    const who = recordSpeaker(ending, i === lines.length - 1);
+    const who = recordSpeaker(ctx.content, ending, i === lines.length - 1);
     say(ctx, run, {
       speaker: who.id,
       name: who.name,

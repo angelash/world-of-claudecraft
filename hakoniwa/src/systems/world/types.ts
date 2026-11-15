@@ -98,7 +98,18 @@ export interface MapDef extends MapLook {
   /** 0..7, the sediment (澱) level scale of power_system.md */
   sediment?: number;
   indoor?: boolean;
+  /**
+   * Respawn role (thousand_doors.md 6.3): 'door' is where the door puts a fallen player once
+   * the inner court is open, 'wake' the last-resort wake point; at most one map per role.
+   */
+  respawn?: MapRespawnRole;
+  /** act ids (act flag values) whose story this map carries, for persona cards without acts */
+  storyActs?: string[];
+  /** a test or tooling map that is not part of the world and needs no atlas entry */
+  atlasExempt?: boolean;
 }
+
+export type MapRespawnRole = 'door' | 'wake';
 
 export type EntityKind = 'player' | 'npc' | 'monster' | 'companion' | 'object' | 'unit';
 

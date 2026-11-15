@@ -4,6 +4,7 @@
 import type { ContentMap } from '../../core/contracts';
 import type { DoorDef, KeyCond } from '../../systems/doors/types';
 import type { Holding, ItemDef } from '../../systems/inventory';
+import { ROUTES } from './routes';
 
 /** A rough worth of a piece of equipment for an outsider who swings what they hold. */
 export function gearScore(def: ItemDef): number {
@@ -41,7 +42,7 @@ function keyItems(keys: KeyCond[], out: Set<string>): void {
 
 /** Items the story or the door corridor still asks for: never sell these. */
 export function keptItems(content: ContentMap): Set<string> {
-  const out = new Set<string>(['grain', 'wood', 'stone', 'bread', 'fish', 'meat']);
+  const out = new Set<string>(ROUTES.keptItems);
   for (const door of (content.doors ?? []) as DoorDef[]) keyItems(door.keys, out);
   for (const q of content.quests ?? []) {
     for (const st of q.stages) {

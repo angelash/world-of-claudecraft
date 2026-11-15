@@ -4,6 +4,8 @@
 // This is the no-model version; a model may only polish within the template meaning.
 
 import type { FlagValue } from '../../core/contracts';
+import { recordWriterFor } from '../goddess/roster';
+import type { GoddessDef } from '../goddess/types';
 import { evaluate, flagResolver } from '../quests/conditions';
 import { fillSlots } from '../quests/speakers';
 import type { EpilogueEntry, EpilogueLayer } from './types';
@@ -80,13 +82,19 @@ export function recordHeading(line: EpilogueLine, ending: string): string {
   return `【${line.subject}】审定后第${line.year}年：`;
 }
 
-/** Who writes the record (act6 12.4 rule 6). */
+/**
+ * Who writes the record (act6 12.4 rule 6): the mortal historian closes the true ending,
+ * the ledger writes the new god's; otherwise the goddess whose persona card claims the
+ * ending's record (GoddessDef.record: Janu her restoration, Moira every other ending).
+ */
 export function recordSpeaker(
+  content: { goddesses: readonly GoddessDef[] },
   ending: string,
   isLast: boolean,
 ): { id: string; name: string; kind: 'narrate' | 'divine' } {
   if (ending === 'release' && isLast) return { id: 'historian', name: '凡人史官', kind: 'narrate' };
   if (ending === 'new_god') return { id: 'ledger', name: '神之账本', kind: 'narrate' };
-  if (ending === 'janu_restored') return { id: 'janu', name: '雅努', kind: 'divine' };
-  return { id: 'moira', name: '莫伊拉', kind: 'narrate' };
+  const writer = recordWriterFor(content, ending);
+  if (writer?.record) return { id: writer.id, name: writer.name, kind: writer.record.kind };
+  return { id: 'historian', name: '凡人史官', kind: 'narrate' };
 }

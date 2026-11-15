@@ -4,6 +4,7 @@
 // See docs/30_story/arcs/prologue_antechamber.md and act6_review_and_epilogue.md.
 
 import type { GameSystem } from '../../core/system';
+import { openingAct } from '../quests/act_order';
 import { emptyCourt } from './court';
 import {
   cmdAdvance,
@@ -49,9 +50,6 @@ declare module '../../core/contracts' {
   }
 }
 
-/** The scene that opens a new game. */
-export const OPENING_SCENE = 'prologue';
-
 export const system: GameSystem = {
   id: 'scenes',
   order: 85,
@@ -69,13 +67,18 @@ export const system: GameSystem = {
 
   tick(ctx) {
     resolveTimeouts(ctx);
-    // The prologue starts on the first tick (listeners attach after creation).
-    if (
-      ctx.tick === 1 &&
-      ctx.flag('act') === 'prologue' &&
-      !ctx.world.slices.scenes.seen.includes(OPENING_SCENE)
-    ) {
-      requestScene(ctx, OPENING_SCENE);
+    // The opening act's intro scene (the prologue) starts on the first tick (listeners
+    // attach after creation).
+    if (ctx.tick === 1) {
+      const opening = openingAct(ctx.content);
+      const scene = opening?.introScene;
+      if (
+        scene &&
+        ctx.flag('act') === opening.id &&
+        !ctx.world.slices.scenes.seen.includes(scene)
+      ) {
+        requestScene(ctx, scene);
+      }
     }
   },
 

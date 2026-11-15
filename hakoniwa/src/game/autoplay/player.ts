@@ -7,10 +7,12 @@
 import type { CommandKind, CommandMap, FlagValue } from '../../core/contracts';
 import type { Engine } from '../../core/engine';
 import { TICKS_PER_GAME_HOUR } from '../../core/time';
+import { courtSite } from '../../systems/city/common';
 import { unitView, xpProgress } from '../../systems/combat';
 import { currentConversation } from '../../systems/dialogue';
 import { corridorView } from '../../systems/doors';
 import { holdingOf } from '../../systems/inventory';
+import { openingActId } from '../../systems/quests/act_order';
 import { evaluate, flagResolver } from '../../systems/quests/conditions';
 import type { Objective, QuestDef } from '../../systems/quests/types';
 import { sceneView } from '../../systems/scenes';
@@ -34,6 +36,7 @@ import {
 } from './fight';
 import { gearUpgrade } from './goods';
 import { insideLocation, locationPoint, nextLeg } from './nav';
+import { ROUTES } from './routes';
 import { type ChoicePolicy, type EndingRoute, scenePolicy } from './scene_policy';
 
 export interface AutoplayOptions {
@@ -166,7 +169,7 @@ export class Autoplayer {
         }
       }
     });
-    const act = String(engine.world.meta.flags.act ?? 'prologue');
+    const act = String(engine.world.meta.flags.act ?? openingActId(engine.content));
     this.acts.push({ act, startTick: engine.tick });
   }
 
@@ -270,7 +273,7 @@ export class Autoplayer {
     if (domain !== null) return domain;
     const p = this.player();
     if (!p) return IDLE_STEP;
-    if (p.mapId === 'inner_court') {
+    if (p.mapId === courtSite(this.content)?.mapId) {
       this.intent = { what: 'leave the inner court' };
       this.send({ kind: 'city.leave_court', data: {} });
       return THINK;
@@ -569,8 +572,7 @@ export class Autoplayer {
     }
     const here = mapById(this.content, p.mapId);
     if (here?.spawns.some((s) => s.kind === 'monster')) return p.mapId;
-    const order = ['forest_edge', 'seal_ruins', 'wallenburg_sewers', 'ash_waste'];
-    for (const id of order) {
+    for (const id of ROUTES.huntingMaps) {
       if (nextLeg(this.content.maps, this.flags, p.mapId, id)) return id;
     }
     return null;

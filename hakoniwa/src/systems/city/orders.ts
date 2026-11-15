@@ -44,7 +44,7 @@ export function foundVillage(ctx: SystemContext, siteId: string): CommandResult 
   if (pop < FOUND_MIN_POP)
     return reject('population', `立村需要 ${FOUND_MIN_POP} 位立誓的居民，现在只有 ${pop} 位`);
   if (!hasActive(site, 'communal_stove')) return reject('stove', '要先建好公灶');
-  const food = foodValue(stockOf(ctx.world, sdef.stockOwner));
+  const food = foodValue(stockOf(ctx.world, sdef.stockOwner), ctx.content.city_config);
   if (food < pop * FOUND_FOOD_DAYS)
     return reject(
       'food',

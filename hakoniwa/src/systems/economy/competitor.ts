@@ -99,7 +99,7 @@ export function runCompetitor(ctx: SystemContext, day: number): void {
     act(ctx, {
       day,
       kind: 'offer',
-      marketId: 'wallenburg',
+      marketId: rules.marketId,
       note: '西里尔带着金契上门，报价收购门扉商会三成股份',
     });
   }
