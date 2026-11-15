@@ -1,8 +1,9 @@
 // The tracked-item history model (src/ui/item_history_view.ts): origin
 // wording keyed by the record's source, one line per later hand, the
 // never-changed-hands note, the rolled-off count, and never the item ID.
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { ItemProvenance } from '../src/sim/types';
+import { getLanguage, setLanguage } from '../src/ui/i18n';
 import { itemHistoryModel, provenanceOriginKey } from '../src/ui/item_history_view';
 
 const AT = Date.UTC(2026, 8, 30, 12, 0, 0);
@@ -23,6 +24,13 @@ describe('provenanceOriginKey', () => {
 });
 
 describe('itemHistoryModel', () => {
+  let savedLanguage: ReturnType<typeof getLanguage>;
+  beforeEach(() => {
+    savedLanguage = getLanguage();
+    setLanguage('en');
+  });
+  afterEach(() => setLanguage(savedLanguage));
+
   it('renders the origin and the never-changed-hands note for a fresh copy', () => {
     const model = itemHistoryModel(origin());
     expect(model.origin.startsWith('Looted by Alice on ')).toBe(true);

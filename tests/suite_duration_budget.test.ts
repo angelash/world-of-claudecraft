@@ -169,6 +169,9 @@ const FILE_ALLOWANCE_LEDGER: ReadonlyMap<string, number> = new Map([
   // intake allowance as the NPC body suite, without changing their assertions.
   ['tests/unarmed_empty_hand.test.ts', 1_200_000],
   ['tests/woc_hunter_aim_release.test.ts', 540_000],
+  // Two independent head-store imports: 240s cold Windows intake and 120s
+  // for the speculative path, with both POSIX allowances left at 20s.
+  ['tests/woc_head_body_prefetch.test.ts', 360_000],
   // The shared PostgreSQL escrow fixture carries a 30s setup hook plus ten
   // independently bounded 30s cases. The exact row records that existing
   // parallelizable shape without promoting the suite into the measured lane.

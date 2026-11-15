@@ -43,14 +43,18 @@ afterEach(() => {
 });
 
 describe('primeNativeDeviceMemoryHint', () => {
-  it('caches the measured GB through the plugin bridge', async () => {
-    vi.stubEnv('VITE_NATIVE_APP', '1');
-    const backing = stubStorage();
-    stubBridge(async () => ({ physicalMemoryBytes: 3.9 * 1024 ** 3 }));
-    const { primeNativeDeviceMemoryHint } = await importFresh();
-    await primeNativeDeviceMemoryHint();
-    expect(backing.get(DEVICE_MEMORY_GB_KEY)).toBe('3.9');
-  });
+  it(
+    'caches the measured GB through the plugin bridge',
+    async () => {
+      vi.stubEnv('VITE_NATIVE_APP', '1');
+      const backing = stubStorage();
+      stubBridge(async () => ({ physicalMemoryBytes: 3.9 * 1024 ** 3 }));
+      const { primeNativeDeviceMemoryHint } = await importFresh();
+      await primeNativeDeviceMemoryHint();
+      expect(backing.get(DEVICE_MEMORY_GB_KEY)).toBe('3.9');
+    },
+    process.platform === 'win32' ? 120_000 : 20_000,
+  );
 
   it('stores nothing when the bridge reports garbage', async () => {
     vi.stubEnv('VITE_NATIVE_APP', '1');

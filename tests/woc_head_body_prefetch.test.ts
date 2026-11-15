@@ -39,43 +39,61 @@ const headCalls = (calls: string[]): string[] =>
   [...new Set(calls.filter((u) => u.includes('/head_type_')))].sort();
 
 describe('a WOC player fetches its own head files beside its streaming body', () => {
-  it('kicks exactly the look it wears: the core, its hairstyle and its facial hair', async () => {
-    vi.resetModules();
-    const calls: string[] = [];
-    mockLoader(calls);
-    const { createCharacterVisual } = await import('../src/render/characters/index');
-    const { DEFAULT_APPEARANCE } = await import('../src/render/characters/modular');
-    const app = { ...DEFAULT_APPEARANCE, headHair: 'mohawk', headBeard: 'handlebar' };
-    // nothing lands in this case, so the build is the logged miss of a body with no base;
-    // what is pinned here is what it asked for on the way
-    const miss = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    expect(createCharacterVisual(player(app))).toBeNull();
-    expect(headCalls(calls)).toEqual(
-      [
-        `${DIR}/head_type_a_core.glb`,
-        `${DIR}/head_type_a_hair_mohawk.glb`,
-        `${DIR}/head_type_a_beard_handlebar.glb`,
-      ].sort(),
-    );
-    // a Type B player: its own core and style, clean shaven needing no beard file
-    const female = { ...DEFAULT_APPEARANCE, gender: 'female', headHair: 'bob', headBeard: 'none' };
-    calls.length = 0;
-    expect(createCharacterVisual(player(female))).toBeNull();
-    expect(headCalls(calls)).toEqual(
-      [`${DIR}/head_type_b_core.glb`, `${DIR}/head_type_b_hair_bob.glb`].sort(),
-    );
-    miss.mockRestore();
-  });
+  it(
+    'kicks exactly the look it wears: the core, its hairstyle and its facial hair',
+    async () => {
+      vi.resetModules();
+      const calls: string[] = [];
+      mockLoader(calls);
+      const { createCharacterVisual } = await import('../src/render/characters/index');
+      const { DEFAULT_APPEARANCE } = await import('../src/render/characters/modular');
+      const app = { ...DEFAULT_APPEARANCE, headHair: 'mohawk', headBeard: 'handlebar' };
+      // nothing lands in this case, so the build is the logged miss of a body with no base;
+      // what is pinned here is what it asked for on the way
+      const miss = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      try {
+        expect(createCharacterVisual(player(app))).toBeNull();
+        expect(headCalls(calls)).toEqual(
+          [
+            `${DIR}/head_type_a_core.glb`,
+            `${DIR}/head_type_a_hair_mohawk.glb`,
+            `${DIR}/head_type_a_beard_handlebar.glb`,
+          ].sort(),
+        );
+        // a Type B player: its own core and style, clean shaven needing no beard file
+        const female = {
+          ...DEFAULT_APPEARANCE,
+          gender: 'female',
+          headHair: 'bob',
+          headBeard: 'none',
+        };
+        calls.length = 0;
+        expect(createCharacterVisual(player(female))).toBeNull();
+        expect(headCalls(calls)).toEqual(
+          [`${DIR}/head_type_b_core.glb`, `${DIR}/head_type_b_hair_bob.glb`].sort(),
+        );
+      } finally {
+        miss.mockRestore();
+      }
+    },
+    // The cold Windows import continued for 158s across the previous deadline.
+    // Let it settle before the next case installs its independent loader mock.
+    process.platform === 'win32' ? 240_000 : 20_000,
+  );
 
-  it('a speculative request for a streaming body fetches no head file', async () => {
-    vi.resetModules();
-    const calls: string[] = [];
-    mockLoader(calls);
-    const { createCharacterVisual } = await import('../src/render/characters/index');
-    const { DEFAULT_APPEARANCE } = await import('../src/render/characters/modular');
-    createCharacterVisual(player({ ...DEFAULT_APPEARANCE, headHair: 'quiff' }), undefined, {
-      fetchStreamed: false,
-    });
-    expect(headCalls(calls)).toEqual([]);
-  });
+  it(
+    'a speculative request for a streaming body fetches no head file',
+    async () => {
+      vi.resetModules();
+      const calls: string[] = [];
+      mockLoader(calls);
+      const { createCharacterVisual } = await import('../src/render/characters/index');
+      const { DEFAULT_APPEARANCE } = await import('../src/render/characters/modular');
+      createCharacterVisual(player({ ...DEFAULT_APPEARANCE, headHair: 'quiff' }), undefined, {
+        fetchStreamed: false,
+      });
+      expect(headCalls(calls)).toEqual([]);
+    },
+    process.platform === 'win32' ? 120_000 : 20_000,
+  );
 });

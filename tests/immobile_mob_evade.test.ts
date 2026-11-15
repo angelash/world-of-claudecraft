@@ -39,27 +39,31 @@ function spawnEgg(sim: Sim, p: Entity): Entity {
 }
 
 describe('immobile mob evade (the invincible Broodmother Egg)', () => {
-  it('an egg shoved off its spawn point recovers from evade and takes damage again', () => {
-    const { sim, p } = questerSim();
-    const egg = spawnEgg(sim, p);
-    expect(MOBS.spider_egg.moveSpeed).toBe(0);
-    // A quester's hit pulls the egg into combat; a shove (aoeKnockback) leaves
-    // it a yard off its spawn point.
-    dealDamage(sim.ctx, p, egg, 10, false, 'physical', 'Heroic Strike', 'hit');
-    expect(egg.aiState).toBe('chase');
-    egg.pos.x += 1;
-    // The quester runs off: the egg's hate table empties and it evades home.
-    p.pos.x += 300;
-    for (let i = 0; i < 20 * 30; i++) sim.tick();
-    expect(egg.aiState).toBe('idle');
-    expect(egg.pos.x).toBe(egg.spawnPos.x);
-    expect(egg.pos.z).toBe(egg.spawnPos.z);
-    expect(egg.hp).toBe(egg.maxHp);
-    // Back on the quest: the clutch takes damage again instead of an Evade.
-    p.pos.x -= 300;
-    expect(dealDamage(sim.ctx, p, egg, 10, false, 'physical', 'Heroic Strike', 'hit')).toBe(10);
-    expect(egg.hp).toBe(egg.maxHp - 10);
-  });
+  it(
+    'an egg shoved off its spawn point recovers from evade and takes damage again',
+    () => {
+      const { sim, p } = questerSim();
+      const egg = spawnEgg(sim, p);
+      expect(MOBS.spider_egg.moveSpeed).toBe(0);
+      // A quester's hit pulls the egg into combat; a shove (aoeKnockback) leaves
+      // it a yard off its spawn point.
+      dealDamage(sim.ctx, p, egg, 10, false, 'physical', 'Heroic Strike', 'hit');
+      expect(egg.aiState).toBe('chase');
+      egg.pos.x += 1;
+      // The quester runs off: the egg's hate table empties and it evades home.
+      p.pos.x += 300;
+      for (let i = 0; i < 20 * 30; i++) sim.tick();
+      expect(egg.aiState).toBe('idle');
+      expect(egg.pos.x).toBe(egg.spawnPos.x);
+      expect(egg.pos.z).toBe(egg.spawnPos.z);
+      expect(egg.hp).toBe(egg.maxHp);
+      // Back on the quest: the clutch takes damage again instead of an Evade.
+      p.pos.x -= 300;
+      expect(dealDamage(sim.ctx, p, egg, 10, false, 'physical', 'Heroic Strike', 'hit')).toBe(10);
+      expect(egg.hp).toBe(egg.maxHp - 10);
+    },
+    process.platform === 'win32' ? 120_000 : 20_000,
+  );
 
   it('an evading egg that is exactly on its spawn point still resets (unchanged)', () => {
     const { sim, p } = questerSim();

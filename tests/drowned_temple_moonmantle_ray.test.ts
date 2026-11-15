@@ -9,6 +9,7 @@ import { CANTOR_GUIDE } from '../src/sim/content/drowned_temple_cantor';
 import { MOBS } from '../src/sim/data';
 import { TEMPLE_PEARL_SLAM } from '../src/sim/mob/trash_kit/temple_cast_ids';
 import { TEMPLE_CARAPACE_AURA } from '../src/sim/mob/trash_kit/temple_kit';
+import { getLanguage, setLanguage } from '../src/ui/i18n';
 import { en } from '../src/ui/i18n.resolved.generated/en';
 import { localizeSimAuraName } from '../src/ui/sim_i18n';
 
@@ -73,8 +74,14 @@ describe('the Moonmantle Ray keeps the Pearlguard Sentinel underneath', () => {
   });
 
   it('its moves localize through the client matcher', () => {
-    for (const name of ['Lunar Glide', 'Tidal Wingbeat', 'Nacre Cocoon'])
-      expect(localizeSimAuraName(name)).toBe(name);
+    const savedLanguage = getLanguage();
+    setLanguage('en');
+    try {
+      for (const name of ['Lunar Glide', 'Tidal Wingbeat', 'Nacre Cocoon'])
+        expect(localizeSimAuraName(name)).toBe(name);
+    } finally {
+      setLanguage(savedLanguage);
+    }
   });
 
   it('Laverock speaks of moon rays, not clams', () => {

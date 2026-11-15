@@ -2,8 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { sceneFrameFor } from '../server/ai/scene_frame';
 import { sceneInspectionEvent, sceneInspectionLineId } from '../server/ai/scene_inspection';
 import type { AiWorldTrace } from '../server/ai/world_traces';
+import { EASTBROOK_LAYOUT } from '../src/sim/eastbrook_layout';
 import { Sim } from '../src/sim/sim';
 import type { Entity } from '../src/sim/types';
+
+const FORGE = EASTBROOK_LAYOUT.buildings
+  .find((building) => building.id === 'eastbrook_smithy')!
+  .annexes.find((annex) => annex.id === 'eastbrook_smithy:forge_shelter')!.center;
 
 function playerAt(x: number, z: number): { sim: Sim; player: Entity } {
   const sim = new Sim({ seed: 20061, playerClass: 'warrior' });
@@ -18,7 +23,8 @@ function playerAt(x: number, z: number): { sim: Sim; player: Entity } {
 
 describe('AI scene inspection', () => {
   it('maps major scene anchors to distinct inspection lineIds', () => {
-    expect(sceneInspectionLineId(sceneFrameFor(playerAt(8, 17).sim, { x: 8, y: 0, z: 17 }))).toBe(
+    const { sim, player } = playerAt(FORGE.x, FORGE.z);
+    expect(sceneInspectionLineId(sceneFrameFor(sim, player.pos))).toBe(
       'hudChrome.aiSpeech.sceneInspectForge',
     );
     expect(sceneInspectionLineId(sceneFrameFor(playerAt(80, 86).sim, { x: 80, y: 0, z: 86 }))).toBe(
@@ -36,7 +42,7 @@ describe('AI scene inspection', () => {
   });
 
   it('emits a personal inspect event without mutating the scene', () => {
-    const { sim, player } = playerAt(8, 17);
+    const { sim, player } = playerAt(FORGE.x, FORGE.z);
     const scene = sceneFrameFor(sim, player.pos);
     const beforeEntities = sim.entities.size;
     const event = sceneInspectionEvent(scene, player);
@@ -52,7 +58,7 @@ describe('AI scene inspection', () => {
   });
 
   it('prioritizes active world traces over static scene anchors', () => {
-    const { sim, player } = playerAt(8, 17);
+    const { sim, player } = playerAt(FORGE.x, FORGE.z);
     const scene = sceneFrameFor(sim, player.pos);
     const trace: AiWorldTrace = {
       traceId: 'trace-1',

@@ -5,8 +5,10 @@
 // silently dropping from build:bundle fails loudly), that a step's real
 // output surfaces through runPregenStep, that a failing step rejects with
 // its exit code and stderr, and that runPregen genuinely overlaps the steps
-// in wall time rather than just fanning out the spawn calls and awaiting
-// them one at a time.
+// before any one step can finish, rather than awaiting each one serially.
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { PREGEN_STEPS, runPregen, runPregenStep } from '../scripts/build_bundle_pregen.mjs';
 
@@ -40,18 +42,43 @@ describe('runPregenStep', () => {
 });
 
 describe('runPregen', () => {
-  it('runs every step concurrently rather than one after another', async () => {
-    // Three steps that each sleep before exiting 0. Serial execution takes at
-    // least 3 * SLEEP_MS; concurrent execution takes roughly one SLEEP_MS
-    // plus node-startup overhead. The threshold sits well under the serial
-    // floor so this only goes green if the steps genuinely overlapped.
-    const SLEEP_MS = 250;
-    const sleepStep = ['-e', `setTimeout(() => process.exit(0), ${SLEEP_MS})`];
-    const started = Date.now();
-    await runPregen([sleepStep, sleepStep, sleepStep]);
-    const elapsedMs = Date.now() - started;
-    expect(elapsedMs).toBeLessThan(SLEEP_MS * 2);
-  });
+  it(
+    'runs every step concurrently rather than one after another',
+    async () => {
+      // Every real child must arrive before any can exit. A serial runner
+      // cannot release the first child, regardless of process startup cost.
+      const root = mkdtempSync(join(tmpdir(), 'woc-pregen-overlap-'));
+      const script = join(root, 'barrier.mjs');
+      try {
+        writeFileSync(
+          script,
+          `import { existsSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+const [root, id] = process.argv.slice(2);
+writeFileSync(join(root, id + '.ready'), 'ready');
+const deadline = setTimeout(() => {
+  console.error('pregen peers did not start concurrently');
+  process.exit(7);
+}, 20000);
+const poll = setInterval(() => {
+  if (![0, 1, 2].every(peer => existsSync(join(root, peer + '.ready')))) return;
+  clearTimeout(deadline);
+  clearInterval(poll);
+}, 10);
+`,
+        );
+        await runPregen([0, 1, 2].map((id) => [script, root, String(id)]));
+        expect(
+          readdirSync(root)
+            .filter((name) => name.endsWith('.ready'))
+            .sort(),
+        ).toEqual(['0.ready', '1.ready', '2.ready']);
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    },
+    process.platform === 'win32' ? 120_000 : 30_000,
+  );
 
   it('surfaces every step output in step order once all succeed', async () => {
     const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
