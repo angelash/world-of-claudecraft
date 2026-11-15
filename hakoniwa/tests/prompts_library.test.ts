@@ -13,6 +13,7 @@ import {
   fill,
   manifestOf,
   orderByDeps,
+  promptHashOf,
   renderCsv,
   type SpecFile,
   type TemplateFile,
@@ -217,9 +218,22 @@ describe('expansion and rendering', () => {
         file: 'art/monsters/art_mon_ash_rat.png',
         milestone: 'M1',
         template: 'mon',
+        promptHash: e.promptHash,
         ref: 'ash_rat',
       },
     ]);
+  });
+
+  it('fingerprints the exact prompt text so a stored asset can be traced to it', () => {
+    const a = expand(library, spec([rat]), rat);
+    const b = expand(library, spec([rat]), { ...rat, notes: 'notes do not change the prompt' });
+    const c = expand(library, spec([rat]), { ...rat, subject: { zh: '灰色小鼠', en: 'grey rat' } });
+    expect(a.promptHash).toMatch(/^[0-9a-f]{12}$/);
+    expect(b.promptHash).toBe(a.promptHash);
+    expect(c.promptHash).not.toBe(a.promptHash);
+    expect(promptHashOf({ zh: 'x', en: 'y', negativeZh: '', negativeEn: '' })).toBe(
+      promptHashOf({ zh: 'x', en: 'y', negativeZh: '', negativeEn: '' }),
+    );
   });
 });
 

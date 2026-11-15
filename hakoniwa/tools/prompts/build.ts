@@ -11,6 +11,7 @@
 // The pure parts (validation, expansion, rendering) are unit tested in
 // tests/prompts_library.test.ts.
 
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -107,6 +108,8 @@ export interface Entry {
   en: string;
   negativeZh: string;
   negativeEn: string;
+  /** First 12 hex digits of sha256 over the prompts; the asset manifest records it per file. */
+  promptHash: string;
 }
 
 export const MILESTONES = ['M0', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6'] as const;
@@ -221,6 +224,11 @@ export function fill(template: string, vars: Record<string, string>): string {
     .trim();
 }
 
+export function promptHashOf(e: Pick<Entry, 'zh' | 'en' | 'negativeZh' | 'negativeEn'>): string {
+  const text = [e.zh, e.en, e.negativeZh, e.negativeEn].join(String.fromCharCode(10));
+  return createHash('sha256').update(text, 'utf8').digest('hex').slice(0, 12);
+}
+
 export function expand(library: Library, spec: SpecFile, item: SpecItem): Entry {
   const t = library.templates[item.template];
   if (!t) throw new Error(`unknown template ${item.template}`);
@@ -235,6 +243,8 @@ export function expand(library: Library, spec: SpecFile, item: SpecItem): Entry 
     style: style?.en ?? '',
     extra: item.extra?.en ?? '',
   });
+  const negativeZh = t.negativeText?.zh ?? '';
+  const negativeEn = t.negativeText?.en ?? '';
   return {
     id: item.id,
     category: spec.category,
@@ -259,8 +269,9 @@ export function expand(library: Library, spec: SpecFile, item: SpecItem): Entry 
     notes: item.notes,
     zh,
     en,
-    negativeZh: t.negativeText?.zh ?? '',
-    negativeEn: t.negativeText?.en ?? '',
+    negativeZh,
+    negativeEn,
+    promptHash: promptHashOf({ zh, en, negativeZh, negativeEn }),
   };
 }
 
@@ -312,7 +323,7 @@ export function renderMarkdown(
     lines.push(`## ${e.id}`, '');
     lines.push(`- 文件：\`${e.file}\``);
     lines.push(`- 模板：${e.template}（${t?.title ?? ''}）；${specLine(e)}`);
-    const meta = [`里程碑 ${e.milestone}`];
+    const meta = [`里程碑 ${e.milestone}`, `提示词指纹 ${e.promptHash}`];
     if (e.style) meta.push(`风格 ${e.style}`);
     if (e.ref) meta.push(`对应内容 \`${e.ref}\``);
     if (e.deps.length) meta.push(`先生成 ${e.deps.map((d) => `\`${d}\``).join('、')}`);
@@ -368,6 +379,7 @@ export function renderCsv(entries: Entry[]): string {
     'negative_en',
     'deps',
     'notes',
+    'prompt_hash',
   ];
   const rows = entries.map((e) =>
     [
@@ -385,6 +397,7 @@ export function renderCsv(entries: Entry[]): string {
       e.negativeEn,
       e.deps.join(' '),
       e.notes,
+      e.promptHash,
     ]
       .map(csvCell)
       .join(','),
@@ -400,6 +413,7 @@ export interface ManifestRow {
   file: string;
   milestone: string;
   template: string;
+  promptHash: string;
   ref?: string;
 }
 
@@ -411,6 +425,7 @@ export function manifestOf(entries: Entry[]): ManifestRow[] {
     file: e.file,
     milestone: e.milestone,
     template: e.template,
+    promptHash: e.promptHash,
     ...(e.ref ? { ref: e.ref } : {}),
   }));
 }
