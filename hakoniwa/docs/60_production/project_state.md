@@ -22,7 +22,7 @@
 
 ## 1. 当前里程碑
 
-**M0 基线与管线**（[roadmap.md](roadmap.md) 第 3.1 节）：进行中。已完成 PK-M0-06、PK-M0-12、PK-M0-13、PK-M0-19、PK-M0-22、PK-M0-23、PK-M0-32；进行中的包见第 4 节；逐日进度见 [progress_log.md](progress_log.md)。
+**M0 基线与管线**（[roadmap.md](roadmap.md) 第 3.1 节）：进行中。已完成 PK-M0-06、PK-M0-08、PK-M0-09、PK-M0-12、PK-M0-13、PK-M0-19、PK-M0-22、PK-M0-23、PK-M0-32；进行中的包见第 4 节；逐日进度见 [progress_log.md](progress_log.md)。
 
 | 验收（M0 列） | 状态 | 说明 |
 | --- | --- | --- |
@@ -36,7 +36,7 @@
 | MA-08 性能 | PASS | 帧调度器已上线，暂停画面一帧不画，静止画面约四分之一的帧重画（PK-M0-19）；基准 BM-01 起随 M1 建 |
 | MA-09 存档迁移 | 未开始 | localStorage 整局 JSON，只校验版本号（PK-M0-16、PK-M0-18） |
 | MA-10 节奏与平衡 | 未开始 | 任务经验与首领倍率未按成长文档重标（PK-M0-29） |
-| MA-11 素材闸门 | 未开始 | 导入管线与 PT-07 未做（PK-M0-08、PK-M0-11） |
+| MA-11 素材闸门 | 部分 | 导入管线已建（`npm run assets:*`，PK-M0-08、PK-M0-09）；PT-07 样板未生成（PK-M0-11），`ART_GATE=M0` 列出 51 条缺失 |
 | MA-12 界面与输入 | 未开始 | 文本键与字符串表未建（PK-M0-14、PK-M0-15） |
 | MA-14 质量门 | PASS | `npm run gate`（`tools/gate.ts`）依次运行禁用字符扫描、改动文件的 Biome、类型检查、默认测试、提示词库检查、构建，`--full` 加无模型通关；仓库根 `.github/workflows/hakoniwa-ci.yml` 在推送时运行（PK-M0-22） |
 
@@ -81,8 +81,8 @@
 | 编辑器与审核工作台 | 60% | `src/editor/`：内容编辑器、地图编辑器、世界检视器、内容检查台、AI 审计台、角色检视、任务与剧情图、平衡实验室 | 批次视图、注册表视图、台词包编辑、HD-2D 内嵌预览、素材浏览、行为树与意图试句台 | PK-M0-28、PK-M1-25、PK-M2-18 |
 | 自动玩家与测试 | 35% | `src/game/autoplay/`；50 个测试文件；`tests/playthrough/` 三项（两条结局路线与回放） | 11 条结局路线；20 种子乘三种条件矩阵；节奏三条路线；基准、端到端、截图、性能回归；存档与模型路径测试 | PK-M1-05、PK-M1-08、PK-M1-10、PK-M3-05 |
 | 本地化 | 5% | 界面文本集中在 `src/shared_ui/text*.ts` | `TextRef`、字符串表、伪本地化、文本检查 | PK-M0-14、PK-M0-15 |
-| 音频 | 0% | 无 | 音频引擎、事件表、五总线 | PK-M0-09、PK-M1-06 |
-| 工具链 | 20% | `tools/prompts/build.ts`（`prompts`、`prompts:check`、`--validate`，条目带 `promptHash`）、`tools/gate.ts`（`npm run gate`）、`tools/refs/`、`tools/dev_api.ts` | 美术与音频导入、图集打包、内容抽取与校验、注册表生成、回放工具 | PK-M0-08、PK-M0-09、PK-M0-17、PK-M0-27、PK-M0-28 |
+| 音频 | 15% | 导入分支（`tools/assets/core/audio/`：响度、真峰值、循环接缝、Ogg 编码）；事件表 `data/audio/cues.json` 首版；`src/client/audio/` 的音乐导演、事件映射与总线模型纯逻辑骨架 | 播放引擎、五总线实装、环境层、声部池、空间化、分轨 | PK-M1-06 |
+| 工具链 | 20% | `tools/prompts/build.ts`（`prompts`、`prompts:check`、`--validate`，条目带 `promptHash`）、`tools/gate.ts`（`npm run gate`）、`tools/assets/`（`npm run assets:register`、`assets:import`、`assets:atlas`、`assets:check`，美术与音频两个分支）、`tools/refs/`、`tools/dev_api.ts` | 正式图集清单与按图预取、内容抽取与校验、注册表生成、回放工具 | PK-M0-17、PK-M0-27、PK-M0-28、PK-M1-04 |
 | 发行 | 20% | Vite 构建（游戏与编辑器两个入口）；提交流水线 `.github/workflows/hakoniwa-ci.yml`；桌面壳骨架 `desktop/`（`app://` 协议、安全设置、通道白名单、日志脱敏、`npm run build:desktop`、`npm run desktop:dev`） | `PlatformHost`、`npm run pack:win`、打包签名、Steam、崩溃与遥测、夜间流水线 | PK-M0-21，后续见发行工程第 17 节 |
 
 ### 2.3 内容与素材层
@@ -124,9 +124,9 @@
 | --- | --- | --- |
 | PK-M0-01 战斗与职能设计续写 | 第 0 到 7 节已写，第 8 到 21 节待续 | 无 |
 | PK-M0-03 任务目录（后）续写 | 第 0 到 1.6 节已写 | 无 |
-| PK-M0-04 设计对账与回写收尾 | 过场目录的回写已提交；其余文档与目录的回写待做 | 无 |
+| PK-M0-04 设计对账与回写收尾 | 过场目录与各文档、目录的回写及五处美术裁定已提交；决策日志第 3 节的 B 项待关闭 | PK-M0-01 到 PK-M0-03 |
 | PK-M0-07 提示词库收尾 | 生成脚本、规格文件与 `promptHash` 已建；技能类图标与规格后处理未做 | 技能类图标依赖 PK-M0-02 |
-| PK-M0-08、PK-M0-09 美术导入管线、音频导入分支与事件表 | 代理实施中 | 无 |
+| PK-M0-10 素材解析器与外观数据 | 代理实施中 | 无 |
 | PK-M0-16、PK-M0-17 存档容器、命令日志分段与回放工具 | 代理实施中 | 无 |
 | PK-M0-21 桌面壳骨架 | 骨架已提交；`PlatformHost` 三种实现与 `npm run pack:win` 实施中 | 无 |
 | PK-M0-24 路由、预算与模型替身 | 代理实施中 | 无 |
