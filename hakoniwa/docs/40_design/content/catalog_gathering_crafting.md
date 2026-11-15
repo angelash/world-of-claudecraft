@@ -310,7 +310,7 @@
 | --- | --- |
 | 范围 | 钓、网、叉、拾贝、捞虾；初加工：腌鱼、熬鱼油、熬鱼胶、取墨囊 |
 | 社会 | 渔户低；瓦伦堡鱼市与落日港咸鱼行有行会；灰帆团负责河海护航与走私 |
-| 族与地 | 港半身人、潮民（诸岛，只作背景）、蛇人（温泽）、落日港渔户、龙脊冰湖的山民 |
+| 族与地 | 港半身人、潮民（诸岛，只作背景）、蛇人（温泽）、落日港渔户、眠鳞冰湖的山民 |
 | 工站 | 腌槽、熏房一档；鱼胶锅二档；冰窖三档（地球知识） |
 | 阶段 | T1 瓦伦鲤、灰溪鳟、落日鲱、季河鲇、盐镜虾；T2 灰鳞鱼、金鲷、乌贼墨；T3 盲水鱼、格兰鲟、雾湖鲑、长夜鳕、温泽鳗、珍珠（进口）；T4 冰湖银鱼、灯鳍鱼、沉湾幽鱼 |
 | 出师之作 | 一条"大鱼"（署名的整鱼） |
@@ -523,7 +523,7 @@
 | `mat_nightiron_ore` | 夜铁矿石 | T4 | 夜境北方山地（`node_night_nightiron`） | 掘脉，工具档 4；多由隶民开采 | `rcp_smelt_nightiron` | craft、war、econ | 15 银 | 无 | 夜境以外几乎没有（[国家 1.7][nat]）；买夜铁就是在养隶民经济，这是第四幕的一道外交题 |
 | `mat_nightiron_ingot` | 夜铁锭 | T4 | 加工 | `rcp_smelt_nightiron`（夜铁淬池） | 夜铁刃、夜铁甲、红牙军兵器 | craft、war、power | 50 银 | 无 | 黑、冷、暗处不反光；夜战方向的灵纹由装备目录定 |
 | `mat_moonsilver` | 月银 | T4 | 加工（精灵炼法） | `rcp_moonsilver`，满月之夜在月炉 | 精灵弓饰件、信物、法器、对亡灵与澱生体的兵器 | craft、power、divine | 80 银 | 无 | 只有晨露氏与根环氏会，要精灵师傅的缘钥；女神触点：希尔薇 |
-| `mat_vaultiron_chunk` | 穹铁块（凡人称"天铁""落铁"）| T5 | 龙脊观穹台一带的落铁坡（`node_dragonspine_vaultfall`） | 掘脉，工具档 5；只在落铁夜 | `rcp_vaultiron` | craft、collect、story | 8 金 | 无 | 稀缺锁见 6.12。【真相】天穹边界上剥落的东西，"箱庭有边"的物证之一（[台账 M12-C07][rl]，最早第五幕）；凡人可见文本只说"从天上掉下来的铁"|
+| `mat_vaultiron_chunk` | 穹铁块（凡人称"天铁""落铁"）| T5 | 眠鳞观穹台一带的落铁坡（`node_sleepscale_vaultfall`） | 掘脉，工具档 5；只在落铁夜 | `rcp_vaultiron` | craft、collect、story | 8 金 | 无 | 稀缺锁见 6.12。【真相】天穹边界上剥落的东西，"箱庭有边"的物证之一（[台账 M12-C07][rl]，最早第五幕）；凡人可见文本只说"从天上掉下来的铁"|
 | `mat_vaultiron_ingot` | 穹铁锭 | T5 | 加工 | `rcp_vaultiron`（落铁炉或深炉） | 传器级兵甲、终器、门标的精密座 | power、craft、collect | 20 金 | 无 | 设计方向：穹铁附不上纹，却能削弱附在敌方身上的纹（待装备目录确认）|
 | `mat_forgeheart_gold` | 炉心金 | T5 | 赤砧深炉，矮人秘传 | `rcp_forgeheart_gold` | 信物、仪剑、契约之器、终器；供品 | divine、craft、econ | 15 金 | 无 | 稀缺锁：炉主会议。女神触点：梅尔卡（矮人每年以最好的作品与她续约，[种族 4][race]）|
 | `mat_gatebronze` | 门铜 | T6 | 只能熔遗物：门框残片（待补 `rl_`） | `rcp_gatebronze` | 外缘之作；门相关器物（待补） | key、power、story | 有价无市 | 中（古澱残留） | 熔一件少一件，熔掉的残片再也当不了钥（总纲 7.1）；每熔一次，回廊里某扇未见之门少一份物钥（与门目录对接）|
@@ -596,7 +596,7 @@
 | `mat_amber` | 琥珀 | T2 | 洛萨北境林；区域变体见 3.10 | 掘脉（琥珀坡） | `rcp_trinket` 护身符、附纹媒 | craft、bond | 60 铜 | 无 | |
 | `mat_obsidian` | 黑曜石 | T3 | 夜境黑曜熔流 | 掘脉 | 刃饰、法器镜面、`rcp_staff_focus` | craft、power | 4 银 | 无 | 夜境特产（[国家 1.7][nat]）|
 | `mat_fire_jade` | 火玉 | T4 | 赤砧山火山脉 | 掘脉；炉区许可 | 焰相信物、`rcp_forgeheart_gold`、晶炮药室 | craft、power、econ | 40 银 | 无 | |
-| `mat_star_eye` | 星眼石 | T5 | 龙脊星眼石穴 | 掘脉；观穹台许可 | 千里之眼信物、观星台（R7）的镜 | power、story | 12 金 | 无 | "能看见很远的东西"；观星台研究的钥之一；稀缺锁 6.12 |
+| `mat_star_eye` | 星眼石 | T5 | 眠鳞星眼石穴 | 掘脉；观穹台许可 | 千里之眼信物、观星台（R7）的镜 | power、story | 12 金 | 无 | "能看见很远的东西"；观星台研究的钥之一；稀缺锁 6.12 |
 | `mat_gate_crystal` | 门晶 | T6 | 主门坑沿，门址石深处的结晶 | 第五幕；掘脉；每取一枚封印松动增加 | 门相关的一切、外缘之作 | key、story | 有价无市 | 重 | 与门有关的一切都认得它（总纲 7.6）|
 
 ### 3.7 澱晶与魔晶
@@ -679,7 +679,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `iron_ore_waste` | 荒原古铁 | T2 | 灰村、拾门者营地、骨原拾遗场 | 千年前的锁、门牌、铁环；冶炼燃料 ×1.5；熔前偶尔能读出一个门牌号（叙事碎片） | `rcp_smelt_iron` | craft、story | 25 铜 | 无 |
 | `mat_copper_ore_mercato` | 赤砧铜 | T1 | 赤砧铜脉 | 冶炼时多出一份铜绿；夹砧榴石碎粒 | `rcp_smelt_copper` | craft | 18 铜 | 无 |
-| `mat_silver_ore_dragonspine` | 霜镐银 | T3 | 霜镐营 | 纯度高，可直接代银锭进 `rcp_moonsilver`；圣器订单首选 | `rcp_smelt_silver`、`rcp_moonsilver` | craft、divine | 1.5 银 | 无 |
+| `mat_silver_ore_sleepscale` | 霜镐银 | T3 | 霜镐营 | 纯度高，可直接代银锭进 `rcp_moonsilver`；圣器订单首选 | `rcp_smelt_silver`、`rcp_moonsilver` | craft、divine | 1.5 银 | 无 |
 | `mat_steel_ingot_grantia` | 帝国制式钢 | T2 | 帝国军需工坊 | 便宜、一致，杰作 -1%：帝国要一万把一样的枪 | `rcp_polearm`、`rcp_mail` 批量件 | war | 2 银 | 无 |
 | `mat_steel_ingot_mercato` | 赤砧钢 | T2 | 赤砧 | 杰作 +1%；第四幕炉道禁运的主货 | `rcp_blade`、`rcp_plate` 精品支 | craft | 3.5 银 | 无 |
 | `wood_silva` | 精灵倒木 | T1 到 T2 | 希尔瓦林缘集市 | 精灵视为合法的木；精灵同伴只用它 | 同 `wood` | craft、cog | 15 铜 | 无 |
@@ -708,7 +708,7 @@
 | `mat_steppe_millet` | 草原黍 | T1 | 风牙疾耳部的耕地 | 黍饼（轻便行军粮） | war | 3 铜 | 无 | 骑兵带得走、不怕颠的粮 |
 | `mat_bread_nut` | 面果 | T2 | 希尔瓦林间老树 | 林行粮（一块顶三天） | war、bond | 20 铜 | 无 | 精灵不卖只送；收到面果，是被当成了客人 |
 | `mat_tundra_tuber` | 冻原薯 | T1 | 夜境冻原 | 夜境主粮、薯酒 | manage | 2 铜 | 无 | 隶民的口粮，夜境的人口靠它撑着 |
-| `mat_cloud_barley` | 云麦 | T1 | 龙脊高地 | 炒云麦（高山口粮，御寒） | war | 4 铜 | 无 | 霜镐营与观穹台的口粮 |
+| `mat_cloud_barley` | 云麦 | T1 | 眠鳞高地 | 炒云麦（高山口粮，御寒） | war | 4 铜 | 无 | 霜镐营与观穹台的口粮 |
 
 ### 4.2 肉、乳与蛋
 
@@ -717,7 +717,7 @@
 | `mat_venison` | 鹿肉 | T1 | 苍榆林地、东林的野兽 | 烤鹿肉、`rcp_regional_dish` | bond、craft | 10 铜 | 无 | 猎户的体面菜 |
 | `mat_salt_pork` | 咸猪肉 | T1 | 加工（`meat` 加 `salt`） | `rcp_field_ration`、远行 | war | 12 铜 | 无 | 魔物季前家家腌肉，盐价因此上涨（[社会 9.3][soc]）|
 | `mat_steppe_mutton` | 草原羊肉 | T1 | 风牙 | 炖羊、军粮 | manage、war | 8 铜 | 无 | 草原人一年到头的肉，会盟大宴的主菜 |
-| `mat_snow_ox_meat` | 雪牛肉 | T2 | 龙脊山民的雪牛 | 御寒料理 | craft、bond | 25 铜 | 无 | 山民招待客人的最好一块肉，吃了上雪线不打颤 |
+| `mat_snow_ox_meat` | 雪牛肉 | T2 | 眠鳞山民的雪牛 | 御寒料理 | craft、bond | 25 铜 | 无 | 山民招待客人的最好一块肉，吃了上雪线不打颤 |
 | `mat_mare_milk` | 马奶 | T1 | 风牙 | `rcp_brew` 马奶酒、奶干（军粮） | war、bond | 4 铜 | 无 | 会盟时第一碗马奶敬兽王 |
 | `mat_hornbeast_butter` | 角兽酥油 | T2 | 长角部 | 御寒饮食、灯、供奉祖灵 | divine、craft | 30 铜 | 无 | 萨满在祖灵圈（R3）点的灯用它 |
 | `mat_hard_cheese` | 硬奶酪 | T1 | 洛萨南部牧场 | 远行粮（三个月不坏） | war | 15 铜 | 无 | 骑士远征与冒险者的干粮，硬得能当锤子 |
@@ -742,9 +742,9 @@
 | `mat_season_catfish` | 季河鲇 | T1 | 风牙季河 | 料理 | manage | 6 铜 | 无 | 季河一年只流半年 |
 | `mat_longnight_cod` | 长夜鳕 | T3 | 长夜海岸 | `rcp_fish_render` 鳕肝油（灯、夜视）、干鳕（军粮） | war、craft | 1 银 | 无 | 夜境的冬天靠它点灯 |
 | `mat_warmfen_eel` | 温泽鳗 | T3 | 夜境温泽 | 蛇人料理、强身药 | craft | 1.5 银 | 无 | 蛇人说一条温泽鳗顶三天的力气 |
-| `mat_glacier_whitefish` | 冰湖银鱼 | T4 | 龙脊冰湖 | 御寒料理；鳔熬冰鱼胶（林紫杉弓的胶） | craft、power | 12 银 | 无 | 冰鱼胶是最好的弓胶，林紫杉弓要它才不裂 |
+| `mat_glacier_whitefish` | 冰湖银鱼 | T4 | 眠鳞冰湖 | 御寒料理；鳔熬冰鱼胶（林紫杉弓的胶） | craft、power | 12 银 | 无 | 冰鱼胶是最好的弓胶，林紫杉弓要它才不裂 |
 | `mat_wreck_ghostfish` | 沉湾幽鱼 | T4 | 沉船湾退潮池 | `mat_veil_ink`、隐形药 | craft、key | 20 银 | 中 | 【真相】沉船湾是千门时代的门港（[地理 3.5][geo]，第四幕）；幽鱼只在门址附近长得出来 |
-| `mat_lanternfin` | 灯鳍鱼 | T4 | 龙脊冰湖、长夜海岸深水 | `mat_luminous_ink`；不烧晶的灯 | craft、manage | 15 银 | 无 | 它的光不留余澱：第四幕以后，"不烧晶的光"是城市减少余澱的小办法 |
+| `mat_lanternfin` | 灯鳍鱼 | T4 | 眠鳞冰湖、长夜海岸深水 | `mat_luminous_ink`；不烧晶的灯 | craft、manage | 15 银 | 无 | 它的光不留余澱：第四幕以后，"不烧晶的光"是城市减少余澱的小办法 |
 | `mat_pearl` | 珍珠 | T3 | 珠链群岛，经金潮航线进口 | `rcp_trinket`、供奉 | econ、divine | 5 银 | 无 | 诸岛只作背景，珍珠只能买；禁运时断供 |
 
 ### 4.4 香料、果与糖
@@ -770,7 +770,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `mat_woad` | 菘蓝 | T1 | 洛萨草甸边 | 蓝染（`rcp_dye_cloth`） | craft、cog | 6 铜 | 无 | 北境的蓝斗篷 |
 | `mat_madder_root` | 茜根 | T1 | 千穗田埂 | 红染 | craft、cog | 8 铜 | 无 | 帝国军服的深红 |
-| `mat_rock_lichen` | 岩衣 | T3 | 龙脊与夜境的崖壁 | 紫染（王侯色） | cog、econ | 2 银 | 无 | 一匹紫布抵一户人家半年的收入 |
+| `mat_rock_lichen` | 岩衣 | T3 | 眠鳞与夜境的崖壁 | 紫染（王侯色） | cog、econ | 2 银 | 无 | 一匹紫布抵一户人家半年的收入 |
 | `mat_ochre` | 赭土 | T1 | 风牙盐碱洼、赤砧 | 颜料；灰鬃部的猎纹彩绘 | cog、bond | 3 铜 | 无 | 最古老的颜料，猎纹与壁画都用它 |
 | `mat_lapis` | 学青石 | T3 | 斯克里瓦近郊（学院许可） | 群青颜料（学院书籍彩绘、录纹标记色）；宝石 | craft、cog | 3 银 | 无 | 学院用群青标出"可录"的字 |
 | `mat_verdigris` | 铜绿 | T1 | 加工（铜加醋） | 绿色颜料、防腐 | craft | 20 铜 | 无 | 铜器旧了自己就长；绿色颜料与防腐 |
@@ -835,8 +835,8 @@
 | `mat_nightcap` | 夜帽菇 | T3 | 夜境夜帽谷 | 安眠药、麻药、毒 | craft、power | 1.5 银 | 无 | 蛇人毒师的看家货；配合卫生法可做外科麻药 |
 | `mat_stonebloom` | 石花 | T3 | 赤砧石花窟 | 石肤药剂（`stoneskin_draught`，已有）、`rcp_temper_draught` | power、craft | 2 银 | 无 | 石肤药剂的主料，矿工的护身药 |
 | `mat_wind_poppy` | 风罂 | T3 | 风牙风罂沟 | 镇痛（军医）、萨满的幻视 | war、craft | 2 银 | 无 | 会上瘾；在城里卖它会被当作毒贩（`cog`）|
-| `mat_snow_lotus` | 雪莲 | T4 | 龙脊雪线 | 御寒、高阶淬体药、体相药剂 | power、craft | 20 银 | 无 | 只在雪线长，草药圃种不活 |
-| `mat_frost_lichen` | 霜苔 | T3 | 龙脊、夜境 | `rcp_resist_tonic` 抗寒、霜相附纹的相媒 | craft | 1 银 | 无 | 霜相附纹的相媒，抗寒药的底 |
+| `mat_snow_lotus` | 雪莲 | T4 | 眠鳞雪线 | 御寒、高阶淬体药、体相药剂 | power、craft | 20 银 | 无 | 只在雪线长，草药圃种不活 |
+| `mat_frost_lichen` | 霜苔 | T3 | 眠鳞、夜境 | `rcp_resist_tonic` 抗寒、霜相附纹的相媒 | craft | 1 银 | 无 | 霜相附纹的相媒，抗寒药的底 |
 | `mat_ember_salt` | 余烬盐 | T3 | 夜境温泽硫磺口的盐壳 | 抗火药、焰相附纹的相媒、`rcp_smelt_nightiron` | craft | 1.2 银 | 无 | 焰相附纹的相媒，夜铁冷淬要它 |
 | `mat_bitterwort` | 苦艾 | T2 | 长垒、洛萨荒坡 | 驱虫、战地消毒、苦艾酒 | war、craft | 25 铜 | 无 | 军营里驱虫、消毒、泡酒，样样用得上 |
 | `mat_saltpeter` | 硝石 | T2 | 长垒旧仓墙根、夜境洞穴 | `rcp_earth_saltpeter_ice`、腌肉、肥料 | manage、craft | 30 铜 | 无 | 本作不开放火药（第 10 节）|
@@ -1001,7 +1001,7 @@
 
 | ID | 名 | 类 | 阶 | 产出 | 位置与幕 | 规则 | 澱染 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `node_grantia_eastfoot_iron` | 山前铁矿 | ore | T1 到 T2 | `iron_ore`；`mat_coal`、`mat_tin_ore` | 龙脊山前丘陵；三到四 | 帝国矿区，外国人须矿照 | 无 |
+| `node_grantia_eastfoot_iron` | 山前铁矿 | ore | T1 到 T2 | `iron_ore`；`mat_coal`、`mat_tin_ore` | 眠鳞山前丘陵；三到四 | 帝国矿区，外国人须矿照 | 无 |
 | `node_grantia_highmoor_blackiron` | 高沼黑铁 | ore | T3 | `mat_blackiron_ore` | 北部高沼，长垒以南；四 | | 无 |
 | `node_grantia_highmoor_peat` | 高沼泥炭地 | ore | T1 | `mat_peat` | 北部高沼；四 | | 无 |
 | `node_grantia_gran_goldbar` | 格兰河金砂滩 | ore | T2 | `mat_gold_flake` | 格兰河上游；四 | 淘洗；帝国抽两成 | 无 |
@@ -1076,24 +1076,24 @@
 | `node_night_edgetrial_scrap` | 试锋谷断刃冢 | special | T4 | 断刃（作钢料）；`mat_will_shard`（稀）、`src_war_2` | 试锋谷；四 | 拿走断刃是盗；在碑前决斗胜出才可取（钥：决斗）；女神触点：瓦尔妲 | 中 |
 | `node_night_womb_rim` | 王胎渊外缘 | special | T5 到 T6 | `src_war_3`；`crystal_king_raw` 碎片 | 王胎渊；五 | 澱度四到五；夜境禁地，须夜后或鳞母放行 | 重 |
 
-### 6.10 龙脊山脉（`dragonspine`）与门内庭院（`garden`）
+### 6.10 眠鳞山脉（`sleepscale`）与门内庭院（`garden`）
 
 | ID | 名 | 类 | 阶 | 产出 | 位置与幕 | 规则 | 澱染 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `node_dragonspine_cloud_pine` | 云海松林 | wood | T1 | `wood`；`mat_resin` | 云阶隘；四 | | 无 |
-| `node_dragonspine_frostpick` | 霜镐营银脉 | ore | T3 | `mat_silver_ore_dragonspine`；`mat_tin_ore` | 霜镐营；四 | 冬季封山 | 无 |
-| `node_dragonspine_frost_lichen` | 霜苔坡 | herb | T3 | `mat_frost_lichen`；`mat_rock_lichen` | 龙脊；四 | | 无 |
-| `node_dragonspine_snow_lotus` | 雪莲崖 | herb | T4 | `mat_snow_lotus`；`mat_rock_lichen` | 雪线；四 | 只在夏季 | 无 |
-| `node_dragonspine_glacier_lake` | 冰湖 | water | T4 | `mat_glacier_whitefish`；`mat_lanternfin` | 龙脊冰湖；四 | 冰手专攻产量 +50% | 无 |
-| `node_dragonspine_star_eye` | 星眼石穴 | ore | T5 | `mat_star_eye` | 观穹台下；四到五 | 稀缺锁 | 无 |
-| `node_dragonspine_vaultfall` | 落铁坡 | special | T5 | `mat_vaultiron_chunk` | 观穹台一带；四到五 | 只在落铁夜；稀缺锁 | 无 |
-| `node_dragonspine_molt_field` | 银巢外蜕场 | special | T5 | `mat_dragon_molt` | 银巢外；五 | 稀缺锁 | 无 |
-| `node_dragonspine_ley_vent` | 云阶灵穴 | special | T4 | `mat_ley_dew`（多） | 云阶隘上方（龙脊"纯净的灵素"，[地理 3.9][geo]）；四 | 无人看守，但离原龙近；淬体之作的理想工站地 | 无 |
-| `node_dragonspine_vaultpeak` | 触穹峰顶 | special | T6 | `mat_vault_gauze` | 触穹峰；五到六 | 稀缺锁；只一次 | 无 |
+| `node_sleepscale_cloud_pine` | 云海松林 | wood | T1 | `wood`；`mat_resin` | 云阶隘；四 | | 无 |
+| `node_sleepscale_frostpick` | 霜镐营银脉 | ore | T3 | `mat_silver_ore_sleepscale`；`mat_tin_ore` | 霜镐营；四 | 冬季封山 | 无 |
+| `node_sleepscale_frost_lichen` | 霜苔坡 | herb | T3 | `mat_frost_lichen`；`mat_rock_lichen` | 眠鳞；四 | | 无 |
+| `node_sleepscale_snow_lotus` | 雪莲崖 | herb | T4 | `mat_snow_lotus`；`mat_rock_lichen` | 雪线；四 | 只在夏季 | 无 |
+| `node_sleepscale_glacier_lake` | 冰湖 | water | T4 | `mat_glacier_whitefish`；`mat_lanternfin` | 眠鳞冰湖；四 | 冰手专攻产量 +50% | 无 |
+| `node_sleepscale_star_eye` | 星眼石穴 | ore | T5 | `mat_star_eye` | 观穹台下；四到五 | 稀缺锁 | 无 |
+| `node_sleepscale_vaultfall` | 落铁坡 | special | T5 | `mat_vaultiron_chunk` | 观穹台一带；四到五 | 只在落铁夜；稀缺锁 | 无 |
+| `node_sleepscale_molt_field` | 银巢外蜕场 | special | T5 | `mat_dragon_molt` | 银巢外；五 | 稀缺锁 | 无 |
+| `node_sleepscale_ley_vent` | 云阶灵穴 | special | T4 | `mat_ley_dew`（多） | 云阶隘上方（眠鳞"纯净的灵素"，[地理 3.9][geo]）；四 | 无人看守，但离原龙近；淬体之作的理想工站地 | 无 |
+| `node_sleepscale_vaultpeak` | 触穹峰顶 | special | T6 | `mat_vault_gauze` | 触穹峰；五到六 | 稀缺锁；只一次 | 无 |
 | `node_garden_plot` | 庭园药畦 | herb | T0 | `herb_garden`；`mat_garden_greens` | 门内庭院的园子；一末起 | 3 到 9 圃（城建 2.2）；不受季节与天灾修正 | 无 |
 | `node_garden_well` | 庭井 | water | T0 | `mat_garden_well_water` | 门内庭院；一末起 | 每日限量，耗门息 | 无 |
 
-合计：洛萨 22、荒原 12、教国 5、帝国 10、同盟 11、希尔瓦 13、风牙 8、夜境 12、龙脊 10、庭院 2，共 105 处。
+合计：洛萨 22、荒原 12、教国 5、帝国 10、同盟 11、希尔瓦 13、风牙 8、夜境 12、眠鳞 10、庭院 2，共 105 处。
 
 ### 6.11 稀有采集事件与世界事件
 
@@ -1117,7 +1117,7 @@
 | 灰年 | 洛萨北境，荒原刮北风的年份 | 庄稼减产；北境采集物一季带轻澱染；祛灰草需求翻倍 | [地理 3.1][geo] |
 | 魔物季 | 北境，春末与秋末 | 部件与澱晶供给增加，采集风险上升；药与盐涨价 | [地理 3.1][geo]、[社会 9.5][soc] |
 | 鱼汛 | 瓦伦河、长夜海岸，春 | 鱼价跌 | 本文 |
-| 雪封 | 龙脊、夜境、洛萨北境，冬 | 霜镐营与北山停采；北方商路断 | [社会 4.2][soc] |
+| 雪封 | 眠鳞、夜境、洛萨北境，冬 | 霜镐营与北山停采；北方商路断 | [社会 4.2][soc] |
 | 灰暴 | 荒原，每月数次 | 采集中断、迷路；灰暴后玻璃原露出新熔石 | [地理 3.2][geo] |
 | 祭斗季 | 试锋谷 | 断刃冢产出 ×2 | [地理 3.8][geo] |
 | 会盟 | 风牙岩 | 毡市大集：角兽皮、风鬃草、马奶供给增加 | [地理 3.7][geo] |
@@ -1187,7 +1187,7 @@
 | `rcp_smelt_blackiron` | 炼黑铁 | 掘脉 T3 | 熔炉二档 | `mat_blackiron_ore` ×3、`mat_coke` ×2（或 `charcoal` ×5）| `mat_blackiron_ingot` ×1 | craft、war | P10 | |
 | `rcp_diansteel` | 澱钢 | 掘脉或锻兵 T3 | 澱钢炉 | `mat_steel_ingot` ×4、`crystal_medium` ×1 | `mat_diansteel_ingot` ×4 | craft、power | Z3 | 余澱 +；投灰晶得"灰澱钢"（澱纹，人族之地违法）|
 | `rcp_smelt_nightiron` | 夜铁冷淬 | 掘脉 T4 | 夜铁淬池 | `mat_nightiron_ore` ×3、`mat_coke` ×2（或 `mat_ember_moss` ×2）、`mat_ember_salt` ×1 | `mat_nightiron_ingot` ×1 | craft、war | 无 | 只在黯冠城；外人要夜境匠人的缘钥 |
-| `rcp_moonsilver` | 月下炼银 | 掘脉 T4 | 月炉 | `mat_silver_ingot` ×2（或 `mat_silver_ore_dragonspine` ×3）、`mat_moonmoss` ×2、`cs_spring_water_vial` ×1 | `mat_moonsilver` ×1 | craft、divine | 无 | 满月之夜；精灵师傅的缘钥 |
+| `rcp_moonsilver` | 月下炼银 | 掘脉 T4 | 月炉 | `mat_silver_ingot` ×2（或 `mat_silver_ore_sleepscale` ×3）、`mat_moonmoss` ×2、`cs_spring_water_vial` ×1 | `mat_moonsilver` ×1 | craft、divine | 无 | 满月之夜；精灵师傅的缘钥 |
 | `rcp_vaultiron` | 熔穹铁 | 掘脉 T5 | 落铁炉、深炉 | `mat_vaultiron_chunk` ×2、`mat_coke` ×4（或 `charcoal` ×10）、`crystal_large` ×1 | `mat_vaultiron_ingot` ×1 | craft、collect | 无 | |
 | `rcp_forgeheart_gold` | 炉心金 | 掘脉 T5（矮人秘传）| 深炉 | `mat_gold_flake` ×10、`mat_fire_jade` ×2、`crystal_large` ×2 | `mat_forgeheart_gold` ×1 | divine、econ | 无 | 炉主会议许可 |
 | `rcp_gatebronze` | 熔门铜 | 掘脉 T6 | 深炉或庭院工坊位 | 门框残片（待补 `rl_`）×1 | `mat_gatebronze` ×2 | key | 无 | 不可逆；关:外缘 |
@@ -1249,7 +1249,7 @@
 | `rcp_temper_draught` | 淬体药 | 炼剂 T3 | 学院炼金室 | `crystal_medium` ×1（或 `mat_ley_dew` ×2）、`mat_stonebloom` ×2、`part_heart_t2` ×1、烈酒 ×1 | 淬体药（待补 `cs_`；关:淬体）| power | 无 | 模拟"长期浓灵"，时机不对会灵素反冲 |
 | `rcp_battle_elixir` | 战意药族 | 炼剂 T2 到 T4 | 药釜间 | `src_war_1` 或 `src_war_2`、`mat_redhorn_chili`、`mat_steppe_sage` | 狂怒、士气药（待补 `cs_`）| power、war | 无 | 不净化的战意药让人记不住打过谁 |
 | `rcp_poison` | 毒族 | 炼剂 T1 到 T4 | 药釜间 | `part_gland`、`mat_nightcap`、`mat_ashlily`、`src_bloom_1` | 毒与解毒（待补 `cs_`）| power | 无 | 人族城市非法；夜境合法 |
-| `rcp_resist_tonic` | 抗性药 | 炼剂 T2 到 T4 | 药釜间 | `mat_frost_lichen`；`mat_ember_salt` 或 `mat_ember_moss`；`mat_snow_lotus` | 抗寒、抗火、体相药（待补 `cs_`）| power、war | P15 | 第五幕北线与龙脊行军的必需 |
+| `rcp_resist_tonic` | 抗性药 | 炼剂 T2 到 T4 | 药釜间 | `mat_frost_lichen`；`mat_ember_salt` 或 `mat_ember_moss`；`mat_snow_lotus` | 抗寒、抗火、体相药（待补 `cs_`）| power、war | P15 | 第五幕北线与眠鳞行军的必需 |
 
 已有配方与消耗品：`soap`（炼剂，口传）；石肤药剂 `stoneskin_draught` 由 `mat_stonebloom` 入 `rcp_healing_draught` 的护体支制作；灰烬烈酒 `ash_spirits` 归 `rcp_brew`（醉月亭的配方，缘钥）。
 
@@ -1447,7 +1447,7 @@
 | 8 | 数据层地球配方的 `tier` 只有 `oral` 与 `study`；总纲要求三档 | 口传 `oral`、文书 `study`、学堂 `school`（新增）；透镜按数据归文书 | 实现批次 |
 | 9 | 经济 3.2 用"口述、书斋、书斋进阶"，总纲用"口传、文书、学堂" | 本目录以总纲为名，经济文档的说法作前置条件 | 两份文档统一措辞 |
 | 10 | 总纲 7.2 说灰皮木带澱染，但灰烬林在外缘（澱度二） | 灰皮木只长在灰烬林中局部澱度三的"灰心"斑块（与晶沟局部三同理）| 地理 4.5 可补一句 |
-| 11 | 地理 3.9 说龙脊产"龙蜕（原龙褪下的鳞，极贵）"，总纲 7.4 说原龙鳞只能由原龙赠予 | 两物分开：`mat_dragon_molt` 是蜕场里的蜕屑（T5，可拾，须艾斯卡许可），也是全作唯一的龙蜕 ID：古龙歌菈的鳞同 ID、带 `molt_source: gola`；冰谷与蜕鳞窝的老蜕不可采；整片原龙鳞仍只能受赠 | 地理与总纲互相加注 |
+| 11 | 地理 3.9 说眠鳞产"龙蜕（原龙褪下的鳞，极贵）"，总纲 7.4 说原龙鳞只能由原龙赠予 | 两物分开：`mat_dragon_molt` 是蜕场里的蜕屑（T5，可拾，须艾斯卡许可），也是全作唯一的龙蜕 ID：古龙歌菈的鳞同 ID、带 `molt_source: gola`；冰谷与蜕鳞窝的老蜕不可采；整片原龙鳞仍只能受赠 | 地理与总纲互相加注 |
 | 12 | 总纲把角兽皮列 T4，而风牙生态只到 19 级 | 角兽皮是长角部"送皮礼"后的老角兽皮，四层厚、要部族信任；阶由材料与到访幕定，不由生态定 | 无 |
 | 13 | 总纲 8 只说澱源材来自剥取与掉落 | 本目录让澱巢残迹、门站、殉光墓渗口等特殊采集点产出低档澱源材 | 总纲 8 补一句 |
 | 14 | "刻深"的【真相】（莫伊拉的可读规矩）没有单独的台账条目 | 随[力量 2.8][pow]"一页一职"的真相一同揭示 | 台账补登 |

@@ -1,4 +1,4 @@
-// The seven-nation conclave at the Dragonspine (grand_strategy_slg.md 8.1, act 4 section 9):
+// The seven-nation conclave at the Sleepscale (grand_strategy_slg.md 8.1, act 4 section 9):
 // a staged state machine with deadlines (invite, talks, summit, signing). At signing each
 // power's stance toward the player decides the summit result, which is written as flags.
 
@@ -32,8 +32,8 @@ export const STAGE_NAME: Record<ConclaveStage, string> = {
 };
 
 export const RESULT_NAME: Record<SummitResult, string> = {
-  alliance: '龙脊同盟',
-  divided: '分化（龙脊公约）',
+  alliance: '眠鳞同盟',
+  divided: '分化（眠鳞公约）',
   crusade: '圣战联军',
   broken: '破裂',
 };
@@ -99,12 +99,12 @@ function resolve(ctx: SystemContext): void {
     if (result === 'alliance') {
       for (const [k, v] of Object.entries(stances)) {
         if (v >= 30) {
-          addTreaty(s, k, PLAYER, 'alliance', '龙脊同盟');
+          addTreaty(s, k, PLAYER, 'alliance', '眠鳞同盟');
           ctx.emit('slg.treaty', { a: k, b: PLAYER, type: 'alliance', signed: true });
         }
       }
     } else if (result === 'divided') {
-      for (const k of Object.keys(stances)) addTreaty(s, k, PLAYER, 'pact', '龙脊公约');
+      for (const k of Object.keys(stances)) addTreaty(s, k, PLAYER, 'pact', '眠鳞公约');
     } else if (result === 'crusade') {
       for (const [k, v] of Object.entries(stances)) if (v < -20) shiftRelation(s, k, PLAYER, -10);
       if (s.nations.holy_see?.alive) declareWar(ctx, 'holy_see', PLAYER, { force: true });

@@ -520,9 +520,9 @@ describe('strategy window: summary texts', () => {
     expect(
       conferenceText({
         conference: { stage: 'done', stageName: '结束', endsDay: 20 },
-        summit: { result: 'divided', name: '分化（龙脊公约）' },
+        summit: { result: 'divided', name: '分化（眠鳞公约）' },
       }),
-    ).toBe('会盟结果：分化（龙脊公约）');
+    ).toBe('会盟结果：分化（眠鳞公约）');
     expect(pendingText(v, names)).toBeNull();
     expect(pendingText({ pendingBattle: { scenarioId: 's', province: 'east' } }, names)).toBe(
       '瓦伦堡爆发会战，等待你亲自指挥',

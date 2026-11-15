@@ -146,7 +146,7 @@
 | 澱生 | `elemental` | 精华、澱源材 | 打散即消，不留尸 | 不能净化 | 无 |
 | 澱像 | `construct` | 碎石、金属残件、核 | 留残骸，可拆 | 不能净化 | 门站守卫一类的澱像本身是文物，拆了就是毁文物（学院与遗民会记账） |
 | 亡灵 | `undead` | 残灰、骨、遗物 | 倒下成灰与骨 | 可送魂：清除澱后魂归灵泉，得遗物，不得骨 | 送魂不算杀生；挖坟取骨在洛萨是重罪 |
-| 龙种 | `dragonkin` | 鳞、角、心 | 留尸，可剥 | 不能净化 | 龙族视之为亵渎；在龙脊卖龙种鳞是"贩尸"，龙族好感下降 |
+| 龙种 | `dragonkin` | 鳞、角、心 | 留尸，可剥 | 不能净化 | 龙族视之为亵渎；在眠鳞卖龙种鳞是"贩尸"，龙族好感下降 |
 | 契约魔 | `demon` | 精华、契约残片 | 契约解除即消 | 术士可驯用（兽伴坐骑目录） | 教会视为异端证物 |
 | 人 | `humanoid`（带 `race`） | 不剥取，掉随身物 | 留尸 | 不适用 | 杀人涉及灵泉与人间的法（第 2.9 节） |
 
@@ -575,7 +575,7 @@
 
 另有生态指标动物 `longnight_owl`（第 2.3 节）。
 
-### 4.9 龙脊山脉（`dragonspine`）
+### 4.9 眠鳞山脉（`sleepscale`）
 
 生态带 1 到 12；澱度一，原龙所在之处几乎不积澱，雪原上的野兽强大而少异变（[地理 3.9][geo]）。魔物主要是龙种魔物：由龙族的遗骸、鳞片、血滴凝成，与龙族本身无关，龙族视之为亵渎（[力量 7.3][pow]）。
 热点 52 到 60。本文新增野外地点：**古龙骸谷**（Elder Bone Vale，银巢外围一条横着古龙遗骨的冰谷）、**落铁坡**（Fallen Iron Slope，观穹台下拾穹铁的碎石坡）。
@@ -583,8 +583,8 @@
 
 | ID | 名（俗称） | 三元组 | 族·层 | Lv | 地点（幕） | 机制 | 掉落 | 价值 | 凡人误读 | 真相线索 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `snow_ibex` | 雪岩羊 | 0·无·野兽 | beast N | 3到8 | 云阶隘、霜镐营周边（四） | `knockback`；攀岩 | `hide` 60%、`part_meat_t1` 70%、`part_horn_t1` 40% | `manage`：山民的肉与皮 | "闻得到雪崩" | 龙脊的野兽强而少异变 |
-| `glacier_bear` | 冰川熊 | 0·无·野兽 | beast N | 9到12 | 冰川与雪原（四到五） | `frostbite`（掌）、`knockback` | `mat_thick_hide` 70%、`part_meat_t2` 70%、`part_fang_t2` 40% | `craft`：最好的御寒皮 | "冬天不睡的熊" | 熊阶梯第 0 级（龙脊） |
+| `snow_ibex` | 雪岩羊 | 0·无·野兽 | beast N | 3到8 | 云阶隘、霜镐营周边（四） | `knockback`；攀岩 | `hide` 60%、`part_meat_t1` 70%、`part_horn_t1` 40% | `manage`：山民的肉与皮 | "闻得到雪崩" | 眠鳞的野兽强而少异变 |
+| `glacier_bear` | 冰川熊 | 0·无·野兽 | beast N | 9到12 | 冰川与雪原（四到五） | `frostbite`（掌）、`knockback` | `mat_thick_hide` 70%、`part_meat_t2` 70%、`part_fang_t2` 40% | `craft`：最好的御寒皮 | "冬天不睡的熊" | 熊阶梯第 0 级（眠鳞） |
 | `wild_yak` | 野牦牛 | 0·无·野兽 | beast N | 6到10 | 高山草甸（四） | `charge`（野外启用，新增口径） | `hide` 70%、`part_meat_t2` 80%、`part_horn_t2` 50% | `manage`、`war`：驯化即高山驮兽（待补：兽伴坐骑目录 `stock_`）；霜镐营的补给全靠它 | "山神的牛" | 无 |
 | `vault_vulture` | 穹鹫 | 0·无·野兽 | beast N | 8到12 | 触穹峰下的云海（四到六） | `flee`；俯冲 `knockback` | `part_feather_t2` 70% | `war`、`craft`：最大的猛禽，训作侦察 | "飞得到天上" | 它们在某个高度一律折返：天穹（[地理 1.2][geo]） |
 | `vaultfall_beetle` | 穹屑甲虫 | 0·无·野兽 | spider N | 6到10 | 落铁坡（四） | `stoneskin` | `part_carapace_t2` 50%、`mat_vaultiron_chunk` 3%（甲里的穹铁屑） | `craft`、`story`：甲壳带星样的闪点 | "背上是星星" | 它吃从天上落下的铁。【真相·四】穹铁是天穹边界剥落之物（[总纲 7.1][bible]） |
@@ -625,7 +625,7 @@
 | `old_legate` | 老营长（`rampart_ward_ghost`，2·战·亡灵） | 18·`grantia` 长垒一座废弃的棱堡（四） | 戍边的兵起的：天亮前有个亡灵军官在空棱堡上点名，逃兵最怕他 | "点到谁的名，谁就过不了冬" | `rally`、`warcry`、`battleYells`、`summonAdds`（长垒戍魂） | `nm_rollcall_board` 点名板：信物，良品 T2；RTS 中一支连队士气加（`war`） | 用帝国军籍册替他点完名即送魂；事迹候选：替长垒点完名 |
 | `first_page` | 第一页（`page_ghost`，2·录·亡灵） | 19·`grantia` 斯克里瓦学城旧讲堂（四） | 学生起的：每到午夜它念一本禁书的第一句，念到一半就停 | "听完第一页的人会被学院开除" | `silence`、`pageScramble`（新增）、"复句" | `nm_first_page_draft` 第一页残稿：史料；那句话出自星禁时被禁的论述（`story`） | 第 8 节 BE-15，E14 赫尔加星表一线的旁证；门候选：学识类门 |
 | `crowd_favorite` | 欢呼（`pit_lizard`，2·战·异兽） | 19·`grantia` 红砾城外的红砾丘陵（四） | 斗场看客起的：它赢了四十场，看客每场都喊同一个词；去年斗场暴乱时它逃了 | "斗场老板悬赏一千金要活的" | `charge`、`frenzyOnHit`、`captureAt`（新增）；只攻击持兵器的人 | `nm_champion_horn` 冠军之角：做战号，RTS 冲锋时士气加（`war`）；活捕卖回斗场，角鞘在笼中脱落，是同一件物 | 卖回斗场得斗场主人的人情（`cog`），放生得 `bond`；事迹候选 |
-| `hiltless` | 断柄（`blade_wisp`，3·混（光、战）·澱生） | 50·`grantia` 折剑原（四到五） | 帝国巡逻队起的：一道没有柄的白刃悬在原上，刃上一道红口，刃尖永远指着北方 | "统一皇帝那把剑的魂" | `cleave`、`bleed`、`spellReflect`、`summonAdds`（剑冢锋灵） | `nm_hiltless_shard` 无柄的白刃片：名器级锋纹料（T5，`power`）；持有时它总指向龙脊北麓（`key`） | 第 8 节 BE-21；指向堕勇之墓（E13 的取得途径之一，[台账 7][rl]） |
+| `hiltless` | 断柄（`blade_wisp`，3·混（光、战）·澱生） | 50·`grantia` 折剑原（四到五） | 帝国巡逻队起的：一道没有柄的白刃悬在原上，刃上一道红口，刃尖永远指着北方 | "统一皇帝那把剑的魂" | `cleave`、`bleed`、`spellReflect`、`summonAdds`（剑冢锋灵） | `nm_hiltless_shard` 无柄的白刃片：名器级锋纹料（T5，`power`）；持有时它总指向眠鳞北麓（`key`） | 第 8 节 BE-21；指向堕勇之墓（E13 的取得途径之一，[台账 7][rl]） |
 | `old_scale` | 老秤（`purse_mouse`，2·契·异兽） | 12·`mercato` 金湾旧交易所的地下（四） | 账房伙计起的：地窖里的铜钱每天早上都按轻重摞得整整齐齐 | "老秤称过的钱一个子儿都不会少"（商人故意放钱进去"过秤"） | `pilfer`（`take: coin`）、`coinLure`（新增）、`summonAdds`（钱袋鼠） | `nm_old_scale_pan` 老秤的秤盘：信物，良品 T2；交易时显示货物真值，识破伪币与掺假（`econ`） | 门候选：商眼类门 |
 | `fat_goldbay` | 金湾胖子（`goldgulp_toad`，3·契·异兽） | 19·`mercato` 金湾盐沼的排水口（四） | 渔民起的：997 年它吞了一位行会掌柜的印戒，掌柜贴了悬赏，从此人人认得它 | "它肚子里有半个商会" | `coinLure`、`stunOnHit`、`stackPoison` | `nm_swallowed_signet` 被吞下的印戒：钥物；第四幕经济战里可开那家商行的一个账柜（失主待人物目录） | 交还失主得人情，留下得把柄（`key`、`story`） |
 | `the_clerk` | 账房先生（`chest_mimic`，3·契·澱像） | 18·`mercato` 秤桥城外废弃的税馆（四） | 借宿的行商起的：睡在税馆的人醒来，钱袋被数过、零钱被找好，直到有一个人没醒来 | "只吃欠账的人"（是真的） | `mimicry`、`coinLure`（新增）、`stunOnHit`；只攻击带着违约契约的人 | `nm_abacus_bead` 账房的算盘珠：信物，良品 T2；买卖差价收窄（`econ`） | 它认违约契：拟财类与契约的关系（第 8 节 BE-19）；事迹候选 |
@@ -639,11 +639,11 @@
 | `frosthorn_steed` | 霜角的坐骑（`warg`，3·战·异兽） | 19·`night` 獠牙关外的冻原（四） | 鬼人老人起的：一头断了鞍环的老魔狼，说是第八代魔王"霜角"那个孩子骑过的，910 年后再没人骑得上它 | "它在等它的小主人" | `packFrenzy`、`frostbite`、`captureAt`（新增） | `nm_frosthorn_saddle_ring` 霜角的鞍环：证物与钥物；驯服魔狼的钥物候选（待补：兽伴坐骑目录） | 第 8 节 BE-23：第八代魔王是个孩子 |
 | `half_face` | 半张（`womb_spawn`，4·战·澱生） | 47·`night` 王胎渊外围（四到五） | 魔族朝圣者起的：一只渊胎长出了半张像人的脸，就停在那里不再变 | "没长成的魔王" | `unstableForm`（新增）、`rampage`、`terrify` | `nm_half_mask` 半张面：信物，精品 T4；同伴佩戴时，凡人鉴定只读出残页（遮页，`power`）；对女神视线无效 | 第 8 节 BE-22 |
 | `ninety_nine` | 九十九（`edge_duelist_ghost`，3·战·亡灵） | 19·`night` 试锋谷外的古斗场（四） | 祭斗的朝圣者起的：一个死在第一百场决斗里的斗士，赢过九十九场，至今向过路人下战书 | "打赢他的人会被瓦尔妲记住"（是真的） | `duelOnly`（新增）、`frenzyOnHit`、`yieldAtPct` 0.1 | `nm_hundredth_ribbon` 第一百条绶带：信物，良品 T2；一对一决斗伤害加（`power`）；魔族认可（`cog`） | 瓦尔妲注意（`divine`）；事迹候选：第一百场 |
-| `tomb_keeper_wolf` | 守冢狼（狼系，1·混（光、战）·异兽） | 12·`dragonspine` 龙脊北麓的无名石冢（四到五） | 北麓山民起的：一头老灰狼趴在一座石冢上，赶也赶不走，几代人都见过；它的毛淡得发白，眼角却是红的 | "它守的是一个不能说名字的人" | 不主动攻击，有人动石冢才敌对；`frostbite`；喂食三次可驯 | `nm_shieldbearer_collar` 盾卫的旧项圈：证物；项圈上的盾徽指向石冢里葬的人（`story`、`key`） | 第 8 节 BE-21；E13（堕勇之墓）的引子；杀它的话，山民从此不再开口（`cog`） |
-| `red_freckle` | 红雀斑（`bloodspot_drake`，2·龙·龙种） | 12·`dragonspine` 云阶隘（四） | 商队头子起的：它鳞上的血斑像姑娘脸上的雀斑，偏偏专抢运酒的车 | "车上放一桶酒，它就不咬人"（半真：它被发酵的气味引来，吐息会点着酒） | `smolder`、`cleave`、`pilfer`（新增，`take: item`：叼走酒桶）；飞行 | `nm_freckled_scale` 雀斑鳞：信物，良品 T2，火抗；交给龙族得信任（`cog`） | 云阶隘商路的风险（`econ`）；事迹候选 |
-| `scale_orphan` | 鳞孤（`bonescale_drake`，5·混（龙、古）·龙种） | 56·`dragonspine` 古龙骸谷（五） | 山民起的：一头骸鳞亚龙绕着一具古龙骨架飞，不肯离开，像在守母亲 | "鳞孤哭的时候山上下红雪" | `aoePulse`、`terrify`、`enrage`；飞行 | `nm_orphan_reverse_scale` 鳞孤的逆鳞：名器盾面料（`power`）；或赠予原龙艾斯卡（龙族信任，`cog`），赠了就不能做盾 | 龙族视它为亵渎；事迹候选 |
+| `tomb_keeper_wolf` | 守冢狼（狼系，1·混（光、战）·异兽） | 12·`sleepscale` 眠鳞北麓的无名石冢（四到五） | 北麓山民起的：一头老灰狼趴在一座石冢上，赶也赶不走，几代人都见过；它的毛淡得发白，眼角却是红的 | "它守的是一个不能说名字的人" | 不主动攻击，有人动石冢才敌对；`frostbite`；喂食三次可驯 | `nm_shieldbearer_collar` 盾卫的旧项圈：证物；项圈上的盾徽指向石冢里葬的人（`story`、`key`） | 第 8 节 BE-21；E13（堕勇之墓）的引子；杀它的话，山民从此不再开口（`cog`） |
+| `red_freckle` | 红雀斑（`bloodspot_drake`，2·龙·龙种） | 12·`sleepscale` 云阶隘（四） | 商队头子起的：它鳞上的血斑像姑娘脸上的雀斑，偏偏专抢运酒的车 | "车上放一桶酒，它就不咬人"（半真：它被发酵的气味引来，吐息会点着酒） | `smolder`、`cleave`、`pilfer`（新增，`take: item`：叼走酒桶）；飞行 | `nm_freckled_scale` 雀斑鳞：信物，良品 T2，火抗；交给龙族得信任（`cog`） | 云阶隘商路的风险（`econ`）；事迹候选 |
+| `scale_orphan` | 鳞孤（`bonescale_drake`，5·混（龙、古）·龙种） | 56·`sleepscale` 古龙骸谷（五） | 山民起的：一头骸鳞亚龙绕着一具古龙骨架飞，不肯离开，像在守母亲 | "鳞孤哭的时候山上下红雪" | `aoePulse`、`terrify`、`enrage`；飞行 | `nm_orphan_reverse_scale` 鳞孤的逆鳞：名器盾面料（`power`）；或赠予原龙艾斯卡（龙族信任，`cog`），赠了就不能做盾 | 龙族视它为亵渎；事迹候选 |
 
-**异名者分布**：`lotha` 9（含已有 2）、`waste` 8、`holysee` 3、`grantia` 4、`mercato` 4、`silva` 3、`windfang` 3、`night` 3、`dragonspine` 3。其中 12 只可以不靠击杀拿到异名物：送魂 6 只（哭钟、迟到的信使、玻璃新娘、黑橡守夜人、守冢婆、停锤者），净化 2 只（三趾、苔背老爷），驯服或活捕 4 只（守冢狼、白角、霜角的坐骑、欢呼）。这是"谨慎的强者"在图鉴里的出口：杀与不杀给同一件异名物，给的认知与关系不同。
+**异名者分布**：`lotha` 9（含已有 2）、`waste` 8、`holysee` 3、`grantia` 4、`mercato` 4、`silva` 3、`windfang` 3、`night` 3、`sleepscale` 3。其中 12 只可以不靠击杀拿到异名物：送魂 6 只（哭钟、迟到的信使、玻璃新娘、黑橡守夜人、守冢婆、停锤者），净化 2 只（三趾、苔背老爷），驯服或活捕 4 只（守冢狼、白角、霜角的坐骑、欢呼）。这是"谨慎的强者"在图鉴里的出口：杀与不杀给同一件异名物，给的认知与关系不同。
 
 ## 6. 巢主（15）
 
@@ -665,7 +665,7 @@
 | `spore_grotto_mother` | 孢窟之母（菌傀的巢，3·生·澱生） | elemental B | 14·`silva` 霜林南缘的菌窟（Spore Grotto）（四） | `plague`、`deathThroes`、`summonAdds`（菌傀、腐冠菇） | 中晶 1、`grotto_sporecap` 孢窟菌冠（替 `part_gland_t2`）、本阶精品 | 月露谷药圃被孢子污染；林约收紧 | 养：精灵不许；毁：孢子炸散，周边一季腐冠化；净：森之祭司的仪式，精灵好感大升 | `bond`、`sed` |
 | `locust_egg_mound` | 蝗卵坡（蝗群的巢，2到3·生·异兽） | spider B | 18·`windfang` 草原南部的蝗卵坡（Locust Egg Mound）（四） | `swarmBody`、`cropBlight`、`summonAdds`（蝗群） | 中晶 1、`locust_brood_sac` 蝗卵囊（替 `part_gland_t2`）、本阶精品 | 不清则下一季蝗潮；希尔薇若再降虫灾，规模翻倍 | 养：不可；毁：卵炸散，来年蝗更多；净：萨满的火祭加森之祭司，诸部记住玩家 | `manage`、`cog` |
 | `womb_brood` | 胎渊巢母（渊胎的巢，4·战·澱生） | elemental B | 46·`night` 王胎渊外围的一处裂口（四到五） | `unstableForm`、`rampage`、`summonAdds`（渊胎、无主之角） | 中晶 1（10% 升大晶）、`brood_horn_core` 巢母角核（替 `part_horn_t4`）、本阶精品 | 夜境渊口潮；迎王派的宣传"渊在催王" | 养：迎王派想养；毁：王胎渊外围更深；净：几乎不可能，要等第五幕的门网 | `story`、`war` |
-| `sloughed_scale_nest` | 蜕鳞窝（一片大龙蜕凝成的巢，2·龙·龙种） | dragonkin B | 12·`dragonspine` 云阶隘北的冰谷（四） | `smolder`、`cleave`、`summonAdds`（鳞生蜥） | 中晶 1、`slough_scale_plate` 蜕鳞板（替 `part_scale_t2`）、本阶精品 | 云阶隘商队遇袭；鳞生蜥在关城附近筑巢 | 养：卖龙种鳞是"贩尸"，龙族好感降；毁：可；净：把龙蜕还给龙族，艾斯卡收下时会说一句话 | `cog`：龙族 |
+| `sloughed_scale_nest` | 蜕鳞窝（一片大龙蜕凝成的巢，2·龙·龙种） | dragonkin B | 12·`sleepscale` 云阶隘北的冰谷（四） | `smolder`、`cleave`、`summonAdds`（鳞生蜥） | 中晶 1、`slough_scale_plate` 蜕鳞板（替 `part_scale_t2`）、本阶精品 | 云阶隘商队遇袭；鳞生蜥在关城附近筑巢 | 养：卖龙种鳞是"贩尸"，龙族好感降；毁：可；净：把龙蜕还给龙族，艾斯卡收下时会说一句话 | `cog`：龙族 |
 
 **澱巢的位置原则**：每个澱巢都压在一条经济线上（田、矿、商路、药圃、关隘），所以"清不清、怎么清"永远是领地或当地人的事，而不只是玩家的刷怪点。巢主的等级落在本区生态带的上沿或局部热点，符合"世界不缩放"。
 
@@ -707,7 +707,7 @@
 | `mtide_windfang_boneplain` | `windfang` T4 | 溢出或魔物潮 | 蝗骨原的骨堆发出振翅声 | 骨蝗群；蝗骨骸、被惊动的冢间游魂；蝗骨骸（老魔物） | 冲进祖灵冢 | 祖灵冢被扰，希尔薇派诸部震怒（`cog`） |
 | `mtide_night_warg` | `night` T2 | 魔物潮（瓦尔妲最常用的一种） | 长夜雪鸮三夜不叫 | 赤角鸦；魔狼群；霜角的坐骑或狼窟头狼；趁乱的魔狼骑盗 | 冲下夜风走廊，接北境冬潮 | 驯鹿群损失；隶民村焚毁；獠牙关补给降 |
 | `mtide_night_womb` | `night` T4 到 T5 | 溢出（胎渊巢母）或空位期澱升 | 王胎渊上空落红雪 | 无主之角；渊胎、旧王军骸；胎渊巢母或半张 | 第五幕时并入夜境诸侯派军团 | 黯冠城士气；迎王派声势大涨 |
-| `mtide_dragonspine_slough` | `dragonspine` T2 | 溢出（蜕鳞窝），多在原龙蜕鳞的年份 | 冰谷里的龙蜕夜里发热；雪岩羊下山 | 鳞生蜥；鳞生蜥群、血斑亚龙；蜕鳞窝或红雀斑 | 鳞生蜥在云阶城附近筑新巢 | 云阶隘商路中断；龙族不悦（`cog`） |
+| `mtide_sleepscale_slough` | `sleepscale` T2 | 溢出（蜕鳞窝），多在原龙蜕鳞的年份 | 冰谷里的龙蜕夜里发热；雪岩羊下山 | 鳞生蜥；鳞生蜥群、血斑亚龙；蜕鳞窝或红雀斑 | 鳞生蜥在云阶城附近筑新巢 | 云阶隘商路中断；龙族不悦（`cog`） |
 | `mtide_residual` | 全区域，取本区最高阶 | 写定：第六幕质证一，决战后的残澱在各地化为魔物潮（[六幕][a6]） | 澱哨网同时报警 | 按本区表最高澱度一档抽取，混澱加一成 | 按第六幕质证进程 | 计入第六幕的质证材料 |
 
 ### 7.3 与女神 GM 的接口
@@ -751,7 +751,7 @@
 | BE-08 | 灰民、守炉灰妇、叩门童、迟到的信使 | 家常衣服、空锅、敲自家门的孩子、没送到的家书 | 这里曾经住满了普通人，而且在同一夜死去 | 三 | [台账 M05-C07][rl] | 三（阿什讲述之后） |
 | BE-09 | 玻璃新娘、玻璃蝎 | 玻璃里封着戴花环的人与夹着地面的蝎甲；戒指上刻着日子 | 地面是一夜熔成的；那一夜有人在办婚礼 | 三 | [地理 4.5][geo] 门火 | 三 |
 | BE-10 | 残门卫 | 独行有门纹的人可以和平通过，带兵不行 | 门纹是凭证；荒原有过一套"门不渡兵"的规矩 | 三 | [台账 M02][rl]；[三幕 7.5][a3] | 三 |
-| BE-11 | 澱化亚龙 | 一头龙种魔物长在荒原深处，核是一片龙蜕 | 古城曾经和龙脊有往来（龙蜕是龙脊的特产） | 三（发现）；四（到龙脊对照） | [地理 3.9][geo] 龙蜕 | 四 |
+| BE-11 | 澱化亚龙 | 一头龙种魔物长在荒原深处，核是一片龙蜕 | 古城曾经和眠鳞有往来（龙蜕是眠鳞的特产） | 三（发现）；四（到眠鳞对照） | [地理 3.9][geo] 龙蜕 | 四 |
 | BE-12 | 骷髅兵 | 骨原上的兵器跨越几百年 | 骨原是一张战争年表，从没被收拾过 | 三 | [历史][hist] 各代魔王战争 | 三 |
 | BE-13 | 墨蛾 | 无字碑林里有啃字的蛾子 | 碑被"动过"的不止凿子 | 三 | [台账 M05-C10][rl]（莫伊拉被迫封存） | 四 |
 | BE-14 | 错录灵 | 鉴定它读出一个人名，档案里查无此人 | 档案被删改过 | 四 | [台账 M06][rl] | 四 |
@@ -816,7 +816,7 @@
 | `silva` | 5 | 7 | 0 | 1 | 13 | 3 | 1 | 2 |
 | `windfang` | 3 | 4 | 1 | 1 | 9 | 3 | 1 | 2 |
 | `night` | 2 | 6 | 3 | 1 | 12 | 3 | 1 | 2 |
-| `dragonspine` | 5 | 4 | 1 | 0 | 10 | 3 | 1 | 1 |
+| `sleepscale` | 5 | 4 | 1 | 0 | 10 | 3 | 1 | 1 |
 | 全区域 | 无 | 无 | 无 | 无 | 无 | 无 | 无 | 1（残澱之潮） |
 | 合计 | 24 | 82 | 25 | 10 | 141 | 40 | 15 | 22 |
 
@@ -859,7 +859,7 @@ ID 本身即英文代号；地点与术语另附英文。正典已有的名称�
 蝗骨骸 `locustbone_husk`、冢间游魂 `barrow_wanderer`、草原马贼 `steppe_raider`。
 `night`：冻原驯鹿 `tundra_reindeer`、黑岩羱羊 `blackrock_ibex`、长夜雪鸮 `longnight_owl`、赤角鸦 `redhorn_crow`、试锋亡斗士 `edge_duelist_ghost`、渊胎 `womb_spawn`、
 无主之角 `orphan_horn`、旧王军骸 `oldking_warrior`、夜境逃兵 `night_deserter`、隶贩 `thrall_trader`、魔狼骑盗 `warg_rider_outlaw`；另以正典名立 ID：魔狼 `warg`。
-`dragonspine`：雪岩羊 `snow_ibex`、冰川熊 `glacier_bear`、野牦牛 `wild_yak`、穹鹫 `vault_vulture`、穹屑甲虫 `vaultfall_beetle`、鳞生蜥 `scaleborn_lizard`、血斑亚龙 `bloodspot_drake`、
+`sleepscale`：雪岩羊 `snow_ibex`、冰川熊 `glacier_bear`、野牦牛 `wild_yak`、穹鹫 `vault_vulture`、穹屑甲虫 `vaultfall_beetle`、鳞生蜥 `scaleborn_lizard`、血斑亚龙 `bloodspot_drake`、
 骨脊幼龙种 `boneridge_wyrmling`、骸鳞亚龙 `bonescale_drake`、霜镐矿匪 `frostpick_claimjumper`。
 
 **异名者（新增 38）**：红袜子 `red_sock`、三趾 `three_toes`、哭钟 `bell_weeper`、铁胃 `ironbelly`、霜胡子 `frostbeard`、黑橡守夜人 `oakwall_warden`、白主教 `pale_bishop`、
@@ -884,9 +884,9 @@ ID 本身即英文代号；地点与术语另附英文。正典已有的名称�
 
 **魔物潮编成（22，前缀 `mtide_`）**：`mtide_lotha_rim`、`mtide_lotha_winter`、`mtide_lotha_city`、`mtide_waste_road`、`mtide_waste_boneplain`、`mtide_waste_ring`、`mtide_waste_ashtide`、
 `mtide_holysee_ossuary`、`mtide_holysee_procession`、`mtide_grantia_rampart`、`mtide_grantia_scriva`、`mtide_mercato_mimic`、`mtide_mercato_slag`、`mtide_mercato_lowtide`、
-`mtide_silva_bloom`、`mtide_silva_ring`、`mtide_windfang_locust`、`mtide_windfang_boneplain`、`mtide_night_warg`、`mtide_night_womb`、`mtide_dragonspine_slough`、`mtide_residual`。
+`mtide_silva_bloom`、`mtide_silva_ring`、`mtide_windfang_locust`、`mtide_windfang_boneplain`、`mtide_night_warg`、`mtide_night_womb`、`mtide_sleepscale_slough`、`mtide_residual`。
 
-**地点**：巡礼坑（Procession Pits，`holysee`）、古龙骸谷（Elder Bone Vale，`dragonspine`）、落铁坡（Fallen Iron Slope，`dragonspine`）、魔狼窟（Warg Den，`lotha`）、
+**地点**：巡礼坑（Procession Pits，`holysee`）、古龙骸谷（Elder Bone Vale，`sleepscale`）、落铁坡（Fallen Iron Slope，`sleepscale`）、魔狼窟（Warg Den，`lotha`）、
 豺窟（Jackal Den，`waste`）、菌窟（Spore Grotto，`silva`）、蝗卵坡（Locust Egg Mound，`windfang`）、西田旧谷仓（Old Granary，`lotha`）、红砾丘陵（Redgravel Hills，`grantia`）。
 
 **术语**：澱化阶梯（Sediment Ladder）、凝形龄（Congealing Age）、生态指标动物（Indicator Fauna）、生态普查（Fauna Census）、干预回声（Intervention Echo）、
@@ -922,7 +922,7 @@ ID 本身即英文代号；地点与术语另附英文。正典已有的名称�
 | --- | --- | --- | --- |
 | 1 | `dg_frostbone_crypt` 的澱源：[总纲 4.4][bible]为战澱与光澱（坑底光澱，第五幕点破），与[地理 4.4][geo]【真相】909 年"光之奇迹"留下的澱一致 | 霜骨兵为光战混澱 | 无 |
 | 2 | 澱化亚龙（龙种）出现在荒原，而龙种魔物的核是龙族遗骸（[力量 7.3][pow]） | 设定其核为古城货栈里的龙蜕（交易品），并作 BE-11 线索 | 需 `20_world` 确认这条新细节 |
-| 3 | [总纲 4.1][bible]说龙脊有"少量古澱"，[地理 3.9][geo]没有来源 | 只在新增的古龙骸谷放古澱，来源不写（候选：那头古龙死在大断绝那一夜） | 待世界观文档定 |
+| 3 | [总纲 4.1][bible]说眠鳞有"少量古澱"，[地理 3.9][geo]没有来源 | 只在新增的古龙骸谷放古澱，来源不写（候选：那头古龙死在大断绝那一夜） | 待世界观文档定 |
 | 4 | 洛萨生态带 1 到 19，本文有霜骨兵 22 到 28、圣战军溃兵 30 到 36、猎异端者 35 到 45 | 霜骨兵属局部浓澱热点；人形敌人随剧情流动，不受生态带约束 | 无 |
 | 5 | 千骨行者、沉灰巨蠕、残门卫长的归属 | 三者是迷宫与首领目录 `dg_gate_stations` 的首领（`thousand_bone_walker`、`sunken_ash_wyrm`、`gate_warden_captain`）；本文只收千骨行者幼体 `thousandbone_whelp` | 无 |
 | 6 | [历史 8.3][hist]说第二代魔王之澱的源头是希尔薇的蝗灾与教会的饥荒神迹 | 蝗骨原与蝗骨骸为生澱、战澱与少量光澱，与[总纲 4.4][bible]的祖灵冢一致 | 无 |

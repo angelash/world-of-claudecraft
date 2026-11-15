@@ -856,18 +856,18 @@
   {
     "id": "seven_seats",
     "code": "D6",
-    "name": "七席石（龙脊会盟）",
+    "name": "七席石（眠鳞会盟）",
     "tier": "tile",
     "role": "stage",
     "status": "planned",
-    "region": "dragonspine",
+    "region": "sleepscale",
     "province": "vaulttouch",
     "acts": [4, 5],
     "sediment": 1,
     "levels": [53, 55],
     "size": [96, 96],
     "source": "四幕 9.1；地理 3.9、5；五幕 6.2 节点七",
-    "note": "触穹峰顶第七碑下的千门时代议事石座；第五幕龙脊碑下节点。"
+    "note": "触穹峰顶第七碑下的千门时代议事石座；第五幕眠鳞碑下节点。"
   },
   {
     "id": "seran",

@@ -385,7 +385,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_rare_old_legate` | 替长垒点完名 | `manual`：用帝国军籍册替老营长 `old_legate` 点完名 | 10 | 无 | 军需：`nm_rollcall_board`；认知：长垒戍兵 | war、cog | | 四 |
 | `deed_rare_first_page` | 没被开除 | `manual`：在斯克里瓦旧讲堂听完第一页 `first_page` 念的那一句 | 10 | 无 | 认知：BE-15，E14 星表一线的旁证；门：空白之门 `door_truth_blank_era` 的物证线（门目录口径） | story、key | | 四 |
 | `deed_rare_crowd_favorite` | 放生欢呼 | `manual`：活捕欢呼 `crowd_favorite` 后放生，不卖回斗场 | 10 | 无 | 羁绊；认知：斗场主 `taddeo_val` 不悦，但从此知道你不卖 | bond、cog | | 四 |
-| `deed_rare_hiltless` | 刃尖指北 | `manual`：持 `nm_hiltless_shard` 抵达龙脊北麓的无名石冢 | 25 | 无 | 认知：BE-21；E13（堕勇之墓）的取得途径之一 | story、key | | 四到五 |
+| `deed_rare_hiltless` | 刃尖指北 | `manual`：持 `nm_hiltless_shard` 抵达眠鳞北麓的无名石冢 | 25 | 无 | 认知：BE-21；E13（堕勇之墓）的取得途径之一 | story、key | | 四到五 |
 | `deed_rare_old_scale` | 过秤 | `manual`：用老秤的秤盘 `nm_old_scale_pan` 当众识破一枚伪币 | 10 | 无 | 门：契眼之门 `door_trial_merca` 的同向（门目录不为它单立门）；认知：金湾账房伙计 | key、econ | | 四 |
 | `deed_rare_fat_goldbay` | 印戒还主 | `manual`：把 `nm_swallowed_signet` 交还失主（人物待补） | 10 | 无 | 认知：失主的人情（经济战）；收藏：`col_restitution_ledger` 一笔 | econ、cog | | 四 |
 | `deed_rare_the_clerk` | 不欠账的客人 | `manual`：身上没有任何违约契约时击败账房先生 `the_clerk` | 10 | 无 | 认知：BE-19 | cog | | 四 |
@@ -457,7 +457,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_exp_stele_mute` | 透光的哑碑 | `collectItems:[ky_rubbing_hollow]`（只在天启之夜可拓） | 25 | 无 | 认知：碑上原本有字；收藏：`col_seven_steles` | story、collect | | 四到五 |
 | `deed_exp_stele_sky` | 天碑 | `collectItems:[ky_rubbing_seventh]`（`eska_consent` 之后） | 25 | 无 | 收藏：`col_seven_steles`、`col_dragon_traces` | collect、story | | 五 |
 | `deed_exp_pit_gaze` | 再看一眼 | `manual`：在书库屋顶远望主门坑时选择"再看一眼"（C3-3），被迫退回庭院休整一日 | 0 | 无 | 认知：观澜之门隔着几里地也只读出"？"；夜羽拽你的那一下 | story | 隐 | 三 |
-| `deed_exp_falling_iron` | 天上掉下来的铁 | `visit:poi:dragonspine:vault_terrace` 时恰逢落铁，拾起 `mat_vaultiron_chunk` | 10 | 无 | 认知：BE-16；收藏：`col_boundary_proofs` | collect、story | | 四 |
+| `deed_exp_falling_iron` | 天上掉下来的铁 | `visit:poi:sleepscale:vault_terrace` 时恰逢落铁，拾起 `mat_vaultiron_chunk` | 10 | 无 | 认知：BE-16；收藏：`col_boundary_proofs` | collect、story | | 四 |
 | `deed_exp_garden_guest` | 庭院的客人 | `manual`：第一次带一位有页同伴进门内庭院 | 5 | 无 | 认知：同伴第一次见到箱庭之外；诸神：他的页显示"所在不明"，引来莫伊拉的书签（[力量 8.6][pow]） | bond、divine | | 一末到二 |
 | `deed_exp_nine_lands` | 九地的路 | `visits`：九个可游玩区域各至少一处地标 | 25 | 称号 `title_late_known_abroad`（另需 新·`rumorReach`：七个地区） | 认知：各国的传闻画像里都有你 | cog | | 五 |
 
@@ -830,7 +830,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `silva`（3） | `mossback` → `deed_rare_mossback`（`nm_moss_mantle`，可不杀）；`the_gardener` → `deed_rare_the_gardener`（`nm_gardener_pod`）；`ring_whisperer` → `deed_rare_ring_whisperer`（`nm_first_molt`） |
 | `windfang`（3） | `whitehorn` → `deed_rare_whitehorn`（`nm_whitehorn_sheath`，可不杀）；`thousand_mouths` → `deed_rare_thousand_mouths`（`nm_swarm_queen_wing`）；`barrow_grandmother` → `deed_rare_barrow_grandmother`（`nm_ancestor_beads`，可不杀） |
 | `night`（3） | `frosthorn_steed` → `deed_rare_frosthorn_steed`（`nm_frosthorn_saddle_ring`，可不杀）；`half_face` → `deed_rare_half_face`（`nm_half_mask`）；`ninety_nine` → `deed_rare_ninety_nine`（`nm_hundredth_ribbon`） |
-| `dragonspine`（3） | `tomb_keeper_wolf` → `deed_rare_tomb_keeper_wolf`（`nm_shieldbearer_collar`，可不杀）；`red_freckle` → `deed_rare_red_freckle`（`nm_freckled_scale`）；`scale_orphan` → `deed_rare_scale_orphan`（`nm_orphan_reverse_scale`） |
+| `sleepscale`（3） | `tomb_keeper_wolf` → `deed_rare_tomb_keeper_wolf`（`nm_shieldbearer_collar`，可不杀）；`red_freckle` → `deed_rare_red_freckle`（`nm_freckled_scale`）；`scale_orphan` → `deed_rare_scale_orphan`（`nm_orphan_reverse_scale`） |
 | 跨区 | 全部异名物 → `deed_col_named_trophies`（零名望）与 `title_col_trophy_wall`；继名者 → `deed_rare_inherited`；辟谣 → `deed_rare_hushed` |
 
 ### 5.2 迷宫 23

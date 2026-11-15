@@ -96,7 +96,7 @@
 | `silva` | 希尔瓦大森林 | 区域 | 希尔瓦大森林 | `silva` | 四到五 | `silva_canopy`（提案） | 零到三 |
 | `windfang` | 风牙草原 | 区域 | 风牙草原 | `windfang` | 四到五 | `windfang_steppe`（提案） | 一到三 |
 | `nightrealm` | 夜境 | 区域 | 夜境 | `nightrealm` | 四到五 | `night_basalt`（提案） | 二到五 |
-| `dragonspine` | 龙脊山脉 | 区域 | 龙脊山脉 | `dragonspine` | 四到五 | `dragonspine_snow`（提案） | 一 |
+| `sleepscale` | 眠鳞山脉 | 区域 | 眠鳞山脉 | `sleepscale` | 四到五 | `sleepscale_snow`（提案） | 一 |
 
 - 洛萨王国在图集里拆成三个区域，对应地理志 7.4 的三组地块：边石镇区域（A）、瓦伦河谷区域（B）、洛萨王国区域（C）。
   三者都落在大陆图的 `lotha` 区域里。
@@ -134,13 +134,13 @@
 | `thornhedge` | 棘篱哨 | `silva` | 无 |
 | `ringwood` | 环木议庭 | `silva` | D4 `ringwood_court`、D4-1 `deeproot_vale`、E4 `world_tree` |
 | `frostwood` | 霜林 | `silva` | 无 |
-| `fangmouth` | 牙口隘 | `dragonspine` | 无 |
+| `fangmouth` | 牙口隘 | `sleepscale` | 无 |
 | `feltmarket` | 毡市 | `windfang` | 无 |
 | `windfang_rock` | 风牙岩 | `windfang` | D5 `windfang_rock` |
 | `tuskgate` | 獠牙关 | `nightrealm` | 无 |
 | `duskcrown` | 黯冠城 | `nightrealm` | D8 `duskcrown` |
 | `edgetrial` | 试锋谷 | `nightrealm` | 无 |
-| `vaulttouch` | 触穹峰 | `dragonspine` | D6 `seven_seats` |
+| `vaulttouch` | 触穹峰 | `sleepscale` | D6 `seven_seats` |
 
 ### 2.3 世界图与区域图的关系
 
@@ -314,7 +314,7 @@
 | 四 祖灵石 | `windfang_rock`（坐落为提案） | `ring_ancestor_stone` | 兽王之争的结果允许 |
 | 五 月井 | `duskcrown`（坐落为提案） | `ring_moonwell` | 月下之约，或夜后已倒向联盟 |
 | 六 旧水道 | `broken_door_hall` | `ring_old_waterways` | 瓦伦堡的掌权者友好 |
-| 七 龙脊碑下 | `seven_seats` | `ring_dragonspine_foot` | 艾斯卡同意 |
+| 七 眠鳞碑下 | `seven_seats` | `ring_sleepscale_foot` | 艾斯卡同意 |
 
 | id | 起点 | 终点 | 层 | 路名 | 公里 | 步行 | 骑马 | 其他 | 开放 | 途中事件 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -326,7 +326,7 @@
 | `ring_ancestor_stone` | `main_gate_crater` | `windfang_rock` | 门 | 众门环：祖灵石 |  |  |  |  | 同上，且兽王之争的结果允许 |  | 规划 |
 | `ring_moonwell` | `main_gate_crater` | `duskcrown` | 门 | 众门环：月井 |  |  |  |  | 同上，且有月下之约或夜后已倒向联盟 |  | 规划 |
 | `ring_old_waterways` | `main_gate_crater` | `broken_door_hall` | 门 | 众门环：旧水道 |  |  |  |  | 同上，且瓦伦堡的掌权者友好 |  | 规划 |
-| `ring_dragonspine_foot` | `main_gate_crater` | `seven_seats` | 门 | 众门环：龙脊碑下 |  |  |  |  | 同上，且艾斯卡同意 |  | 规划 |
+| `ring_sleepscale_foot` | `main_gate_crater` | `seven_seats` | 门 | 众门环：眠鳞碑下 |  |  |  |  | 同上，且艾斯卡同意 |  | 规划 |
 
 ### 3.7 第六幕与终章
 
@@ -414,7 +414,7 @@
 | D4 | `ringwood_court` | 环木议庭 | 地块 | 四到五 | `silva_canopy`（提案） | 一 薄澱 | 45 到 55 | 160×160（建议） | 枢纽 | 规划 | 区 world_tree 40；世 ringwood |
 | D4-1 | `deeproot_vale` | 深根谷（根下庭） | 场景 | 四到五 | `silva_canopy`（提案） | 一 薄澱 | 48 到 52 | 96×96（建议） | 舞台 | 规划 | 步 world_tree |
 | D5 | `windfang_rock` | 风牙岩（兽王台） | 地块 | 四到五 | `windfang_steppe`（提案） | 一 薄澱 | 48 到 53 | 160×160（建议） | 枢纽 | 规划 | 门 main_gate_crater；世 windfang_rock |
-| D6 | `seven_seats` | 七席石（龙脊会盟） | 地块 | 四到五 | `dragonspine_snow`（提案） | 一 薄澱 | 53 到 55 | 96×96（建议） | 舞台 | 规划 | 门 main_gate_crater；世 vaulttouch |
+| D6 | `seven_seats` | 七席石（眠鳞会盟） | 地块 | 四到五 | `sleepscale_snow`（提案） | 一 薄澱 | 53 到 55 | 96×96（建议） | 舞台 | 规划 | 门 main_gate_crater；世 vaulttouch |
 | D7 | `seran` | 瑟兰（白冕大圣堂与碑庭）（可选） | 地块 | 四到五 | `holy_see_white`（提案） | 一 薄澱 | 50 到 55 | 192×160（建议） | 枢纽 | 规划 | 步 martyrlight_catacombs；世 seran |
 | D7-1 | `martyrlight_catacombs` | 殉光地下墓（可选） | 场景 | 四到五 | `sealed_ruins` | 四 深澱 | 50 到 55 | 96×96（建议） | 迷宫 | 规划 | 步 seran |
 | D8 | `duskcrown` | 黯冠城 | 地块 | 四到五 | `night_basalt`（提案） | 二 积澱 | 45 到 55 | 192×160（建议） | 枢纽 | 规划 | 门 main_gate_crater；世 duskcrown |
@@ -564,13 +564,13 @@
                   \                                  |   \              |
                    \                                 |     \            |
                     \                                |       \          |
-                     \----------(sea)------------ mercato --- dragonspine
+                     \----------(sea)------------ mercato --- sleepscale
 ```
 
 区域之间的连线来自省份连线：lotha 与 ashen_waste（ash_border、ash_rim）、holy_see（orien、firstlight；海路 sunset_haven、seran）、
 grantia（silversaddle、westpoise；blackoak、wallheart）、nightrealm（blackoak、tuskgate）、mercato（海路 sunset_haven、goldbay）；
 ashen_waste 与 nightrealm（ash_rim、tuskgate；thousand_gates、tuskgate）；grantia 与 mercato（grantis、scalebridge；redgravel、scalebridge）、
-nightrealm（wallheart、duskcrown）、silva（cloudstair、thornhedge）、dragonspine（cloudstair、vaulttouch）；mercato 与 dragonspine（fangmouth）；dragonspine 与 windfang（fangmouth、feltmarket）；
+nightrealm（wallheart、duskcrown）、silva（cloudstair、thornhedge）、sleepscale（cloudstair、vaulttouch）；mercato 与 sleepscale（fangmouth）；sleepscale 与 windfang（fangmouth、feltmarket）；
 windfang 与 silva（windfang_rock、ringwood）；silva 与 nightrealm（frostwood、edgetrial）。各区域里的地图见第 2.2 节；区域内的路线：
 
 ```
@@ -638,7 +638,7 @@ windfang 与 silva（windfang_rock、ringwood）；silva 与 nightrealm（frostw
 ### 8.1 本文的提案
 
 1. D、E、F 编号系列与 `<父编号>-<序号>` 的子条目写法。
-2. 第四幕起各国风格包的编号：`holy_see_white`、`grantia_ochre`、`mercato_coast`、`silva_canopy`、`windfang_steppe`、`night_basalt`、`dragonspine_snow`。
+2. 第四幕起各国风格包的编号：`holy_see_white`、`grantia_ochre`、`mercato_coast`、`silva_canopy`、`windfang_steppe`、`night_basalt`、`sleepscale_snow`。
 3. 正典没有给出的距离与相邻关系：旧哨村到荒原外缘约 8 公里；镇北到折桥驿约 12 公里（由边石镇到折桥驿 15 公里折算）；折桥驿到晶沟约 5 公里；
    旧哨村到骨原约 6 公里，骨原与外缘相邻；玻璃原到灰海约 25 公里（灰海陷足，按每日约 12 公里）；环木议庭到世界树约 40 公里。
 4. 庭外之国的国都默认在边石镇（第四、五幕的枢纽），立国剧情可改。

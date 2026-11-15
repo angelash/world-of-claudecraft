@@ -135,7 +135,7 @@
 | 加护（神选） | 勇者圣剑（陆辰的正典路径）、两季花冠（大萨满）、自书笔（史官）、七秤砣（七秤会席主） | 关前一刻持器，以器中神力代替神选级加护 | **器契**：该女神对此人获得永久锚三（类似视线之契，不随信仰衰减）；离手时随加护消退 |
 | 澱 | 渊晶 `crystal_abyss`、未净炼王晶 `crystal_king_raw`、带余澱的魔王遗物（角冠铁冠、血月杯、渊主之眼） | 以澱灌注过关 | 澱染骤升、可能澱病；过关者此后若信念崩塌，即成魔王候选容器（[力量 7.8][pow]）。第五幕门徒会会主动把这条路递给人 |
 | 门 | 门铜环加玩家的启才之门（`door_awaken_talent`） | 玩家为他开门 | `seal_looseness` 上升（中）；此人页上留下"门侧注记"，莫伊拉立刻察觉；离手后注记作为公共记录保留 |
-| 龙血 | 原龙艾斯卡的血（只能由她给，条件 `eska_consent`） | 饮下 | **龙约**：此生不得伤龙脊一草一石；第六幕原龙会把他列为见证者（不额外加证据强度） |
+| 龙血 | 原龙艾斯卡的血（只能由她给，条件 `eska_consent`） | 饮下 | **龙约**：此生不得伤眠鳞一草一石；第六幕原龙会把他列为见证者（不额外加证据强度） |
 
 - 玩家本人不过关（[力量 9.2][pow]），这张表只对同伴与 NPC 生效。剑帝雷欧哈特三世能否独力跨过外缘，正典不预设；本目录只提供媒介。
 - 每件神器一生只能作为一人的外缘之力（器中多一行"器契"记录）；其余媒介用即消耗。
@@ -284,7 +284,7 @@
 | `rl_nameless_key_4` | 无名之钥·其四（主钥） | 没有齿，只有一个门形的孔 | 主门本身 | 在无貌者手里，不可追回；第五幕撕开封印一角 | 主门坑核心节点 |
 | `rl_nameless_key_5` | 无名之钥·其五 | 黑铁，月牙形的柄 | 北干线：夜境的门 | 流入夜境黑市（需夜境渠道，可追回） | 月井节点 |
 | `rl_nameless_key_6` | 无名之钥·其六 | 青铜，柄上刻着"卅七" | 西干线：瓦伦渡（第三十七门） | 藏在瓦伦堡旧水道门徒会旧巢（第二幕回扣，可追回） | 旧水道节点 |
-| `rl_nameless_key_7` | 无名之钥·其七 | 银白，冷得像雪 | 天线：龙脊山前的门（原龙从不使用） | 留在梅尔卡手里 | 龙脊碑下节点 |
+| `rl_nameless_key_7` | 无名之钥·其七 | 银白，冷得像雪 | 天线：眠鳞山前的门（原龙从不使用） | 留在梅尔卡手里 | 眠鳞碑下节点 |
 
 - 与[第四幕 8.5][a4]一致：被盗四枚，玩家最多追回三枚（其三、其五、其六），主钥必在无貌者手里；`merca_door_keys` 起始为三。
 - 每追回一枚的去向（还梅尔卡、自留、交遗民、交希尔薇）照第四幕文档结算；交给希尔薇的钥沉入灵泉，终局交接时由她交出。
@@ -363,7 +363,7 @@
 
 | ID | 名（代号） | 来历 | 开局所在与谁想要 | 价值、去处、交易 | 可见（按幕） | 【真相】 |
 | --- | --- | --- | --- | --- | --- | --- |
-| `rl_elder_eggshell` | 古龙卵壳（Elder Dragon Eggshell） | 古龙是在箱庭中出生的原龙后裔；银巢外围偶尔能拾到孵化后留下的卵壳，银白，比盾还大 | 龙脊银巢外围；药铺说研成粉能壮骨（龙族视之为亵渎） | `story`、`cog`、`collect`；陈列（柜）、交付；不可交易（拾取须经龙族默许，否则在银之问里被问到） | 四到五：「一片银白的蛋壳，比盾还大。」 | 龙族不属于任何一司，没有神照看也一代一代活得很好（M10-C09 的物证）。六（K4） |
+| `rl_elder_eggshell` | 古龙卵壳（Elder Dragon Eggshell） | 古龙是在箱庭中出生的原龙后裔；银巢外围偶尔能拾到孵化后留下的卵壳，银白，比盾还大 | 眠鳞银巢外围；药铺说研成粉能壮骨（龙族视之为亵渎） | `story`、`cog`、`collect`；陈列（柜）、交付；不可交易（拾取须经龙族默许，否则在银之问里被问到） | 四到五：「一片银白的蛋壳，比盾还大。」 | 龙族不属于任何一司，没有神照看也一代一代活得很好（M10-C09 的物证）。六（K4） |
 | `rl_dragon_tally_stone` | 龙计石（Dragon Tally Stone） | 触穹峰脚下的一块石板，上面是龙爪划的竖痕，一年一道，每一道一样长；第一千道旁有一个「未」形的刻痕 | 观穹台的隐修者收着它 | `story`、`cog`、`collect`；陈列（书斋）、交付（学院）；登记 | 五：「一块满是爪痕的石板，每一道都一样长。」 | 庭历从开园数起，是龙一年一年记下的；它与《光典》的"太初无形"相反，也记下了第一次审定（与 E31 同向）。五（K3） |
 
 ### 3.7 首批客人
@@ -417,7 +417,7 @@
 | `ky_gatestone_main_gate` | 主门石（Main Gate Stone） | 主门坑（核心） | 五：灰烬决战之后（之前去采要冒澱度五的险） | 众门环核心节点；离手交接后交遗民执钥人保管 | 五：「主门坑底一块发黑的基石。」【真相】主门的基石。五（K3） |
 | `ky_gatestone_first_array` | 初阵残石（Stone of the First Array） | 瑟兰附近那座熄灭的门站（初阵取材之处，今在勇者院后院） | 四到六：潜入瑟兰，或勇者团成员带出 | 进阶门址；持石进瑟兰，召唤大阵会低鸣（被察觉的风险极高） | 四：「勇者院后院被当作花坛边石的一块旧石。」【真相】召唤阵是改造过的门（[力量 10.1][pow]）。四到六（K4） |
 
-**推定门址**（不立 ID）：第五幕众门环的世界树根下、炉心、祖灵石、月井、龙脊碑下五处，正典没有写明它们原是门站。
+**推定门址**（不立 ID）：第五幕众门环的世界树根下、炉心、祖灵石、月井、眠鳞碑下五处，正典没有写明它们原是门站。
 本目录在 2.4 让无名之钥的干线与之对应，作为伏笔；是否把它们登记为门址、给出门址石，待门目录与地理文档确认。
 
 ### 4.2 夜羽的记忆碎片
@@ -447,7 +447,7 @@
 | `ky_rubbing_sylvie` | 根碑拓（Rubbing of the Root Stele） | 希尔瓦灵泉之畔；外族不得近前，要灵泉守纳茜娅或长老艾尔温许可（`a4_sanctuary_found` 之后） | 碑座被世界树的根包住，拓下的是根纹与碑文交错 | 认知：希尔薇之碑与其他碑同文 | 记住 | 四：「根碑的拓片，字缝里全是根。」 |
 | `ky_rubbing_moira` | 录碑拓（Rubbing of the Record Stele） | 斯克里瓦学城中庭；学城自治会批准即可 | 历代学者层层叠刻的批注；角落一行极小的"未，即尚未" | 与 E31（「未」字拓片与莫伊拉批注）同源，可作第六幕共读的辅助（建议，待第六幕文档确认） | 记住 | 四：「录碑的拓片，批注比碑文还多。」【真相】那一行批注出自莫伊拉的记录。四（K4） |
 | `ky_rubbing_hollow` | 哑碑透光拓（Light-Through Rubbing of the Mute Stele） | 灰烬荒原凿碑台；只有天启之夜（`a4_revelation_ash_full` 那一夜，或之后任何一次天启）字从凿痕里透出光时才拓得出 | 规约全文从凿痕里显出；名框是空的，只看得出里面原来有几个字，读不出 | M02-C10 的物证；名讳之门（`door_true_name`）的钥是"得知名字"，本拓不提供名字，只让玩家知道"那里有一个名字" | 记住 | 四：「哑碑在天启夜透出光来，拓下的是一个空着的名字。」【真相】造主仍把她算在六司之内。四（K3），名字六 |
-| `ky_rubbing_seventh` | 天碑拓（Rubbing of the Seventh Stele） | 龙脊触穹峰顶；原龙守护，`eska_consent` 之后 | 碑座的龙文（S24） | S24 的取得途径之一；七拓齐全见 `col_seven_steles` | 记住 | 五：「天碑的拓片，碑座的字像爪痕。」【真相】S24"那是示范"。五到六（K4） |
+| `ky_rubbing_seventh` | 天碑拓（Rubbing of the Seventh Stele） | 眠鳞触穹峰顶；原龙守护，`eska_consent` 之后 | 碑座的龙文（S24） | S24 的取得途径之一；七拓齐全见 `col_seven_steles` | 记住 | 五：「天碑的拓片，碑座的字像爪痕。」【真相】S24"那是示范"。五到六（K4） |
 
 ### 4.4 门歌歌结
 
@@ -494,7 +494,7 @@
 
 | ID | 书名（代号） | 类与 K | 文字与读者 | 持有与副本 | 读后解锁 | 去处、交易 | 可见与【真相】 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `lb_unsung_name` | 北境禁歌《不诵之名》（The Unsung Name） | 民间，K2 | 通用语北境口音，手抄 | 北境老兵、下城酒馆；北境军团长布丽吉特年轻时会唱 | "他只拆光的庙，没碰一个孩子"；给 M08-C06 一个早一幕的民间版本（是传说，不是真相陈述，不越解锁）；指向龙脊北麓（堕勇之墓的方向） | 赠予、陈列；登记（教会禁唱，抄本被查到算异端） | 三（`act>=3`，与 M08-C06 同步）：「北境的禁歌，唱到一半大家都不唱了。」【真相】堕勇拒杀容器。四（K3，S18、E13） |
+| `lb_unsung_name` | 北境禁歌《不诵之名》（The Unsung Name） | 民间，K2 | 通用语北境口音，手抄 | 北境老兵、下城酒馆；北境军团长布丽吉特年轻时会唱 | "他只拆光的庙，没碰一个孩子"；给 M08-C06 一个早一幕的民间版本（是传说，不是真相陈述，不越解锁）；指向眠鳞北麓（堕勇之墓的方向） | 赠予、陈列；登记（教会禁唱，抄本被查到算异端） | 三（`act>=3`，与 M08-C06 同步）：「北境的禁歌，唱到一半大家都不唱了。」【真相】堕勇拒杀容器。四（K3，S18、E13） |
 | `lb_wolfclan_oral` | 狼族口传《一扇门的距离》（One Door Apart） | 民间，K1 | 口述与结绳；要希雅或葛恩讲 | 苍榆林地与东坡的狼族家庭 | M05-C04 的整段口传；"海那边的门口有沉船"一句指向沉船湾（`ky_gatestone_wreck_bay` 的线索） | 陈列（记录稿）；不可交易 | 一到二：「很久以前，草原和海之间只隔一扇门。」【真相】门网连着草原与海港。三（K3） |
 | `lb_ledger_unsettled` | 矮人账谣《账未清》（The Ledger Is Not Settled） | 民间，K2 | 矮人刻符歌板 | 赤砧山酒窖；矮人商队 | 矮人对第一次审定的歌；第三段"天灰的那一夜，路归了我们"，是梅尔卡之约在凡人口中的回声（推断级） | 陈列、出售；自由（2 银） | 四：「矮人的酒歌，越唱越像算账。」【真相】商路专营契（E06）。四（K4，`lie_exposed.merca` 之后可被说出） |
 | `lb_hundred_posts_song` | 半身人路歌《百驿歌》（Song of a Hundred Posts） | 民间，K1 | 通用语 | 铃路会商队、各地驿站 | 一首数驿站的歌，每座老驿站都"修在一圈旧石头旁边"：门址的方位被编进了路歌，可揭开三到五处门址的大致方位 | 赠予、陈列；自由（5 铜） | 二：「数驿站的路歌，一共一百零七站。」【真相】门网崩溃后陆路驿站接替了门站。三（K3） |
@@ -624,7 +624,7 @@
 | 类别 | 名称（代号） |
 | --- | --- |
 | 神器 | 断角号（Brokenhorn Bugle）、七秤砣（Weights of the Golden Scale）、金秤（the Golden Scale）、两季花冠（Two-Season Wreath）、归泉瓮（Ewer of Return）、自书笔（Self-Writing Pen）、记录之笔（Quill of the Record）、无名之钥·其一到其七（Nameless Key, First to Seventh）、剑心（Sword-Heart）、剑身（Sword-Body） |
-| 千门干线 | 主门与六条干线（Main Gate and the Six Trunk Lines）：东干线林门（Wood Gate）、南干线炉门（Forge Gate）、东南干线草原门（Steppe Gate）、北干线夜境门（Night Gate）、西干线瓦伦渡、天线龙脊门（Sky Line） |
+| 千门干线 | 主门与六条干线（Main Gate and the Six Trunk Lines）：东干线林门（Wood Gate）、南干线炉门（Forge Gate）、东南干线草原门（Steppe Gate）、北干线夜境门（Night Gate）、西干线瓦伦渡、天线眠鳞门（Sky Line） |
 | 遗物 | 铭录第一页（First Page of the Record）、初形骨（First-Form Bones）、门资（Door-Fee Coin）、封站印（Station Quarantine Seal）、门灯（Gatewarden's Lantern）、门市语对照板（Gate-Market Concordance Tablet）、玻璃原门把（Glassed Door-Handle）、隙落物（Gap-Fallen Things）、停摆的时刻牌（Stopped Timeboard）、灰夜家书（Letters of the Night of Ash）、日轮凿（Sunwheel Chisel）、烙印者名录（Register of the Branded）、哑碑碑屑（Mute Stele Chip）、余烬钱（Ember-Year Token）、藏纹摇篮（Cradle of the Hidden Mark） |
 | 循环遗物 | 初光鞘（Scabbard of the First Light）、角冠铁冠（Iron Crown of Horncrown）、灰斑手甲（Ash-Spotted Gauntlet）、蝗骨鼓（Locust-Bone Drum）、双子半镜（Twin's Half-Mirror）、灰袍契环（Greyrobe's Pact Ring）、殉光铃（Martyr's Bell）、血月杯（Bloodmoon Chalice）、雾归船钟（Bell of the Mist-Returned Ship）、渊主之眼（Eye of the Abyss Lord）、木雀（Wooden Sparrow）、光雨图（Sketch of the Light Rain）、天裂翎（Skyrender's Pinion）、潟湖玻璃珠（Lagoon Glass Bead）、黑橡堡盾（Shield of Blackoak Hold）、霜角的葡萄藤（Frosthorn's Vine）、门纹拓片串（String of Mark-Rubbings） |
 | 龙迹与客人 | 古龙卵壳（Elder Dragon Eggshell）、龙计石（Dragon Tally Stone）、客人的陶片（Guest's Ostracon）、阿什的芦苇笔（Ash's Reed Pen）、抄写官墨壶（Scribe's Inkwell of the Archive）、灰墨（Ash Ink） |

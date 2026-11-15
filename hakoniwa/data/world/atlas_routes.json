@@ -710,12 +710,12 @@
     "opens": "同上，且瓦伦堡的掌权者友好"
   },
   {
-    "id": "ring_dragonspine_foot",
+    "id": "ring_sleepscale_foot",
     "from": "main_gate_crater",
     "to": "seven_seats",
     "layer": "door",
     "kind": "gate",
-    "road": "众门环：龙脊碑下",
+    "road": "众门环：眠鳞碑下",
     "acts": [5],
     "status": "planned",
     "opens": "同上，且艾斯卡同意"

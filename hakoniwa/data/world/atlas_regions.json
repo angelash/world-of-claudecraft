@@ -146,14 +146,14 @@
     "note": "第三幕只以红牙军出现；第四幕起可入。风格包为提案（黑、暗红、温泉的青白）。"
   },
   {
-    "id": "dragonspine",
-    "name": "龙脊山脉",
+    "id": "sleepscale",
+    "name": "眠鳞山脉",
     "tier": "region",
     "parent": "medius",
-    "geo": "龙脊山脉",
-    "slgRegion": "dragonspine",
+    "geo": "眠鳞山脉",
+    "slgRegion": "sleepscale",
     "acts": [4, 5],
-    "stylePlan": "dragonspine_snow",
+    "stylePlan": "sleepscale_snow",
     "sediment": [1, 1],
     "note": "原龙所在之处几乎不积澱。风格包为提案（冰蓝、雪白）。"
   }

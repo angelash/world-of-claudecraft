@@ -368,7 +368,7 @@
     {
       "id": "fangmouth",
       "name": "牙口隘",
-      "region": "dragonspine",
+      "region": "sleepscale",
       "owner": null,
       "terrain": "mountain",
       "population": 500,
@@ -378,7 +378,7 @@
       "dian": 1,
       "x": 74,
       "y": 64,
-      "desc": "毡路穿过龙脊南尾的隘口。"
+      "desc": "毡路穿过眠鳞南尾的隘口。"
     },
     {
       "id": "feltmarket",
@@ -460,7 +460,7 @@
     {
       "id": "vaulttouch",
       "name": "触穹峰",
-      "region": "dragonspine",
+      "region": "sleepscale",
       "owner": null,
       "terrain": "mountain",
       "population": 50000,
@@ -471,7 +471,7 @@
       "x": 74,
       "y": 54,
       "impassable": true,
-      "desc": "龙脊之巅，第七座天启碑与七席石座，会盟之地。"
+      "desc": "眠鳞之巅，第七座天启碑与七席石座，会盟之地。"
     }
   ],
   "links": [
