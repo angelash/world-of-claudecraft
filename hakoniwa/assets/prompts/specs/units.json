@@ -1,0 +1,1971 @@
+{
+  "category": "units",
+  "title": "兵团立牌：非人形兵种与攻城器械的三视图与朝向动作表",
+  "sources": [
+    "docs/40_design/content/catalog_warfare_strategy.md",
+    "docs/50_tech/art_pipeline.md",
+    "docs/20_world/races.md",
+    "docs/20_world/nations_and_factions.md",
+    "docs/40_design/content/catalog_creatures_mounts.md",
+    "docs/40_design/content/catalog_bestiary.md"
+  ],
+  "items": [
+    {
+      "id": "art_unit_border_riders_ref",
+      "template": "mon_turnaround",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "洛萨北境的轻骑兵：骑手戴硬革圆帽，穿褐色硬皮甲 #6B4A32，外披褪色的苔绿短斗篷 #3D6B3A，右手握一柄骑兵斧，鞍侧横挂一张上好弦的劲弩；坐骑是河谷产的栗色中型马 #8A5A3A，鬃毛剪短，马具简朴，不披马铠。辨识：鞍侧横挂的劲弩与随风扬起的短斗篷。",
+        "en": "A light cavalryman of Lothar's northern marches: the rider wears a round hardened-leather cap and brown hardened leather armor #6B4A32 under a faded moss-green short cloak #3D6B3A, a cavalry axe in the right hand and a strung crossbow slung across the saddle; the mount is a chestnut mid-sized valley horse #8A5A3A with a cropped mane and plain, unarmored tack. Identifying marks: the crossbow slung across the saddle and the short cloak lifting in the wind."
+      },
+      "extra": {
+        "zh": "三视图画骑手与坐骑一体，骑手坐在鞍上。第 4 格特写：骑手的硬革圆帽与鞍侧横挂的劲弩。",
+        "en": "Draw rider and mount together as one figure in every view, the rider seated in the saddle. Panel 4 close-up: the rider's hardened-leather cap and the crossbow slung at the saddle."
+      },
+      "ref": "unit_border_riders",
+      "milestone": "M2",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。"
+    },
+    {
+      "id": "art_unit_border_riders_d",
+      "template": "unit_sheet_large",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "洛萨北境的轻骑兵：骑手戴硬革圆帽，穿褐色硬皮甲 #6B4A32，外披褪色的苔绿短斗篷 #3D6B3A，右手握一柄骑兵斧，鞍侧横挂一张上好弦的劲弩；坐骑是河谷产的栗色中型马 #8A5A3A，鬃毛剪短，马具简朴，不披马铠。辨识：鞍侧横挂的劲弩与随风扬起的短斗篷。",
+        "en": "A light cavalryman of Lothar's northern marches: the rider wears a round hardened-leather cap and brown hardened leather armor #6B4A32 under a faded moss-green short cloak #3D6B3A, a cavalry axe in the right hand and a strung crossbow slung across the saddle; the mount is a chestnut mid-sized valley horse #8A5A3A with a cropped mane and plain, unarmored tack. Identifying marks: the crossbow slung across the saddle and the short cloak lifting in the wind."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。攻击行画成骑手在马上挥斧劈下，列 2 是斧刃落下的一帧。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the attack row as the rider chopping down with the axe from the saddle, column 2 being the frame where the blade lands."
+      },
+      "ref": "unit_border_riders",
+      "deps": ["art_unit_border_riders_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_border_riders_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。"
+    },
+    {
+      "id": "art_unit_border_riders_r",
+      "template": "unit_sheet_large",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "洛萨北境的轻骑兵：骑手戴硬革圆帽，穿褐色硬皮甲 #6B4A32，外披褪色的苔绿短斗篷 #3D6B3A，右手握一柄骑兵斧，鞍侧横挂一张上好弦的劲弩；坐骑是河谷产的栗色中型马 #8A5A3A，鬃毛剪短，马具简朴，不披马铠。辨识：鞍侧横挂的劲弩与随风扬起的短斗篷。",
+        "en": "A light cavalryman of Lothar's northern marches: the rider wears a round hardened-leather cap and brown hardened leather armor #6B4A32 under a faded moss-green short cloak #3D6B3A, a cavalry axe in the right hand and a strung crossbow slung across the saddle; the mount is a chestnut mid-sized valley horse #8A5A3A with a cropped mane and plain, unarmored tack. Identifying marks: the crossbow slung across the saddle and the short cloak lifting in the wind."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。攻击行画成骑手在马上挥斧劈下，列 2 是斧刃落下的一帧。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the attack row as the rider chopping down with the axe from the saddle, column 2 being the frame where the blade lands."
+      },
+      "ref": "unit_border_riders",
+      "deps": ["art_unit_border_riders_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_border_riders_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。"
+    },
+    {
+      "id": "art_unit_border_riders_u",
+      "template": "unit_sheet_large",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "洛萨北境的轻骑兵：骑手戴硬革圆帽，穿褐色硬皮甲 #6B4A32，外披褪色的苔绿短斗篷 #3D6B3A，右手握一柄骑兵斧，鞍侧横挂一张上好弦的劲弩；坐骑是河谷产的栗色中型马 #8A5A3A，鬃毛剪短，马具简朴，不披马铠。辨识：鞍侧横挂的劲弩与随风扬起的短斗篷。",
+        "en": "A light cavalryman of Lothar's northern marches: the rider wears a round hardened-leather cap and brown hardened leather armor #6B4A32 under a faded moss-green short cloak #3D6B3A, a cavalry axe in the right hand and a strung crossbow slung across the saddle; the mount is a chestnut mid-sized valley horse #8A5A3A with a cropped mane and plain, unarmored tack. Identifying marks: the crossbow slung across the saddle and the short cloak lifting in the wind."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。攻击行画成骑手在马上挥斧劈下，列 2 是斧刃落下的一帧。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the attack row as the rider chopping down with the axe from the saddle, column 2 being the frame where the blade lands."
+      },
+      "ref": "unit_border_riders",
+      "deps": ["art_unit_border_riders_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_border_riders_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。"
+    },
+    {
+      "id": "art_unit_royal_knight_ref",
+      "template": "mon_turnaround",
+      "style": "valen_city",
+      "subject": {
+        "zh": "洛萨王室的重骑士：全身钢板甲 #8A8780，外罩蓝白两色竖分的罩袍（王室蓝 #2E4A7A、象牙白 #E6DCC4），左臂一面鸢形盾，盾面绘金色王冠纹 #C8A04A，右手平端骑枪，枪尖下挂一面蓝白长旗；坐骑是高大的高沼骑士战马，披蓝白马衣。辨识：骑枪上的蓝白长旗与盾上的王冠纹。",
+        "en": "A heavy knight of Lothar's royal house: full steel plate #8A8780 under a surcoat split vertically in blue and white (royal blue #2E4A7A, ivory #E6DCC4), a kite shield on the left arm painted with a gold crown emblem #C8A04A, a couched lance in the right hand with a long blue-and-white pennant hanging below the tip; the mount is a tall highmoor charger in a blue-and-white caparison. Identifying marks: the blue-and-white pennant on the lance and the crown on the shield."
+      },
+      "extra": {
+        "zh": "三视图画骑手与坐骑一体，骑手坐在鞍上。第 4 格特写：鸢形盾上的金色王冠纹与骑枪上的蓝白长旗。",
+        "en": "Draw rider and mount together as one figure in every view, the rider seated in the saddle. Panel 4 close-up: the gold crown on the kite shield and the blue-and-white pennant on the lance."
+      },
+      "ref": "unit_royal_knight",
+      "deps": ["art_pet_mnt_highmoor_charger_ref"],
+      "milestone": "M2",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。坐骑或本体以 art_pet_mnt_highmoor_charger_ref 为参照，体型与配色保持一致。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。"
+    },
+    {
+      "id": "art_unit_royal_knight_d",
+      "template": "unit_sheet_large",
+      "style": "valen_city",
+      "subject": {
+        "zh": "洛萨王室的重骑士：全身钢板甲 #8A8780，外罩蓝白两色竖分的罩袍（王室蓝 #2E4A7A、象牙白 #E6DCC4），左臂一面鸢形盾，盾面绘金色王冠纹 #C8A04A，右手平端骑枪，枪尖下挂一面蓝白长旗；坐骑是高大的高沼骑士战马，披蓝白马衣。辨识：骑枪上的蓝白长旗与盾上的王冠纹。",
+        "en": "A heavy knight of Lothar's royal house: full steel plate #8A8780 under a surcoat split vertically in blue and white (royal blue #2E4A7A, ivory #E6DCC4), a kite shield on the left arm painted with a gold crown emblem #C8A04A, a couched lance in the right hand with a long blue-and-white pennant hanging below the tip; the mount is a tall highmoor charger in a blue-and-white caparison. Identifying marks: the blue-and-white pennant on the lance and the crown on the shield."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。攻击行画成平端骑枪向前冲刺，列 2 是枪尖刺中的一帧。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the attack row as a charge with the lance couched, column 2 being the frame where the tip strikes."
+      },
+      "ref": "unit_royal_knight",
+      "deps": ["art_unit_royal_knight_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_royal_knight_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。"
+    },
+    {
+      "id": "art_unit_royal_knight_r",
+      "template": "unit_sheet_large",
+      "style": "valen_city",
+      "subject": {
+        "zh": "洛萨王室的重骑士：全身钢板甲 #8A8780，外罩蓝白两色竖分的罩袍（王室蓝 #2E4A7A、象牙白 #E6DCC4），左臂一面鸢形盾，盾面绘金色王冠纹 #C8A04A，右手平端骑枪，枪尖下挂一面蓝白长旗；坐骑是高大的高沼骑士战马，披蓝白马衣。辨识：骑枪上的蓝白长旗与盾上的王冠纹。",
+        "en": "A heavy knight of Lothar's royal house: full steel plate #8A8780 under a surcoat split vertically in blue and white (royal blue #2E4A7A, ivory #E6DCC4), a kite shield on the left arm painted with a gold crown emblem #C8A04A, a couched lance in the right hand with a long blue-and-white pennant hanging below the tip; the mount is a tall highmoor charger in a blue-and-white caparison. Identifying marks: the blue-and-white pennant on the lance and the crown on the shield."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。攻击行画成平端骑枪向前冲刺，列 2 是枪尖刺中的一帧。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the attack row as a charge with the lance couched, column 2 being the frame where the tip strikes."
+      },
+      "ref": "unit_royal_knight",
+      "deps": ["art_unit_royal_knight_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_royal_knight_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。"
+    },
+    {
+      "id": "art_unit_royal_knight_u",
+      "template": "unit_sheet_large",
+      "style": "valen_city",
+      "subject": {
+        "zh": "洛萨王室的重骑士：全身钢板甲 #8A8780，外罩蓝白两色竖分的罩袍（王室蓝 #2E4A7A、象牙白 #E6DCC4），左臂一面鸢形盾，盾面绘金色王冠纹 #C8A04A，右手平端骑枪，枪尖下挂一面蓝白长旗；坐骑是高大的高沼骑士战马，披蓝白马衣。辨识：骑枪上的蓝白长旗与盾上的王冠纹。",
+        "en": "A heavy knight of Lothar's royal house: full steel plate #8A8780 under a surcoat split vertically in blue and white (royal blue #2E4A7A, ivory #E6DCC4), a kite shield on the left arm painted with a gold crown emblem #C8A04A, a couched lance in the right hand with a long blue-and-white pennant hanging below the tip; the mount is a tall highmoor charger in a blue-and-white caparison. Identifying marks: the blue-and-white pennant on the lance and the crown on the shield."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。攻击行画成平端骑枪向前冲刺，列 2 是枪尖刺中的一帧。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the attack row as a charge with the lance couched, column 2 being the frame where the tip strikes."
+      },
+      "ref": "unit_royal_knight",
+      "deps": ["art_unit_royal_knight_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_royal_knight_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。"
+    },
+    {
+      "id": "art_unit_imperial_light_horse_ref",
+      "template": "mon_turnaround",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "格兰提亚帝国的轻骑兵：骑手戴开面钢盔，穿赭红短上衣 #A85A3A 外罩轻锁甲 #6A6E74，披及腰的短斗篷，右手一柄弯马刀，背后斜插一支细旗枪，枪头挂一面剑冠小旗（赭红底上一柄竖剑穿过王冠的简纹）；坐骑是身形修长的高沼马，毛色暗褐 #5A4632。辨识：背后的剑冠小旗与弯马刀。",
+        "en": "A light cavalryman of the Grantian Empire: open-faced steel helmet, ochre-red short tunic #A85A3A over light mail #6A6E74, a waist-length short cloak, a curved saber in the right hand and a slim pennon lance slanting across the back with a small sword-crown pennant (a simple emblem of an upright sword through a crown on ochre-red); the mount is a long-limbed highmoor horse in dark brown #5A4632. Identifying marks: the sword-crown pennant at the back and the curved saber."
+      },
+      "extra": {
+        "zh": "三视图画骑手与坐骑一体，骑手坐在鞍上。第 4 格特写：背后旗枪上的剑冠小旗与弯马刀。",
+        "en": "Draw rider and mount together as one figure in every view, the rider seated in the saddle. Panel 4 close-up: the sword-crown pennant on the lance at the back and the curved saber."
+      },
+      "ref": "unit_imperial_light_horse",
+      "milestone": "M2",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。"
+    },
+    {
+      "id": "art_unit_imperial_light_horse_d",
+      "template": "unit_sheet_large",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "格兰提亚帝国的轻骑兵：骑手戴开面钢盔，穿赭红短上衣 #A85A3A 外罩轻锁甲 #6A6E74，披及腰的短斗篷，右手一柄弯马刀，背后斜插一支细旗枪，枪头挂一面剑冠小旗（赭红底上一柄竖剑穿过王冠的简纹）；坐骑是身形修长的高沼马，毛色暗褐 #5A4632。辨识：背后的剑冠小旗与弯马刀。",
+        "en": "A light cavalryman of the Grantian Empire: open-faced steel helmet, ochre-red short tunic #A85A3A over light mail #6A6E74, a waist-length short cloak, a curved saber in the right hand and a slim pennon lance slanting across the back with a small sword-crown pennant (a simple emblem of an upright sword through a crown on ochre-red); the mount is a long-limbed highmoor horse in dark brown #5A4632. Identifying marks: the sword-crown pennant at the back and the curved saber."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。攻击行画成在马上横挥弯刀。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the attack row as a sweeping saber cut from the saddle."
+      },
+      "ref": "unit_imperial_light_horse",
+      "deps": ["art_unit_imperial_light_horse_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_imperial_light_horse_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。"
+    },
+    {
+      "id": "art_unit_imperial_light_horse_r",
+      "template": "unit_sheet_large",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "格兰提亚帝国的轻骑兵：骑手戴开面钢盔，穿赭红短上衣 #A85A3A 外罩轻锁甲 #6A6E74，披及腰的短斗篷，右手一柄弯马刀，背后斜插一支细旗枪，枪头挂一面剑冠小旗（赭红底上一柄竖剑穿过王冠的简纹）；坐骑是身形修长的高沼马，毛色暗褐 #5A4632。辨识：背后的剑冠小旗与弯马刀。",
+        "en": "A light cavalryman of the Grantian Empire: open-faced steel helmet, ochre-red short tunic #A85A3A over light mail #6A6E74, a waist-length short cloak, a curved saber in the right hand and a slim pennon lance slanting across the back with a small sword-crown pennant (a simple emblem of an upright sword through a crown on ochre-red); the mount is a long-limbed highmoor horse in dark brown #5A4632. Identifying marks: the sword-crown pennant at the back and the curved saber."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。攻击行画成在马上横挥弯刀。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the attack row as a sweeping saber cut from the saddle."
+      },
+      "ref": "unit_imperial_light_horse",
+      "deps": ["art_unit_imperial_light_horse_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_imperial_light_horse_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。"
+    },
+    {
+      "id": "art_unit_imperial_light_horse_u",
+      "template": "unit_sheet_large",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "格兰提亚帝国的轻骑兵：骑手戴开面钢盔，穿赭红短上衣 #A85A3A 外罩轻锁甲 #6A6E74，披及腰的短斗篷，右手一柄弯马刀，背后斜插一支细旗枪，枪头挂一面剑冠小旗（赭红底上一柄竖剑穿过王冠的简纹）；坐骑是身形修长的高沼马，毛色暗褐 #5A4632。辨识：背后的剑冠小旗与弯马刀。",
+        "en": "A light cavalryman of the Grantian Empire: open-faced steel helmet, ochre-red short tunic #A85A3A over light mail #6A6E74, a waist-length short cloak, a curved saber in the right hand and a slim pennon lance slanting across the back with a small sword-crown pennant (a simple emblem of an upright sword through a crown on ochre-red); the mount is a long-limbed highmoor horse in dark brown #5A4632. Identifying marks: the sword-crown pennant at the back and the curved saber."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。攻击行画成在马上横挥弯刀。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the attack row as a sweeping saber cut from the saddle."
+      },
+      "ref": "unit_imperial_light_horse",
+      "deps": ["art_unit_imperial_light_horse_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_imperial_light_horse_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。"
+    },
+    {
+      "id": "art_unit_ironhoof_cavalry_ref",
+      "template": "mon_turnaround",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "帝国的铁蹄重骑：人与马都裹在黑铁板甲里 #3A3E44，骑手头盔顶一簇赭红短缨 #8A3A26，右手一柄钉头重锤；坐骑是高沼战马，全身马铠只露出眼洞与小腿，马铠下沿镶一道赭红边。辨识：人马一体的黑铁剪影，奔驰时蹄下扬起一团尘土。",
+        "en": "The Empire's ironhoof heavy cavalry: rider and horse both encased in black iron plate #3A3E44, a short ochre-red plume #8A3A26 on the rider's helmet, a flanged mace in the right hand; the mount is a highmoor charger in full barding that leaves only the eye holes and lower legs bare, the barding's lower edge trimmed in ochre-red. Identifying marks: the single black iron silhouette of horse and rider, a puff of dust kicked up under the hooves at the gallop."
+      },
+      "extra": {
+        "zh": "三视图画骑手与坐骑一体，骑手坐在鞍上。第 4 格特写：马面甲与马铠下沿的赭红镶边。",
+        "en": "Draw rider and mount together as one figure in every view, the rider seated in the saddle. Panel 4 close-up: the horse's chanfron and the ochre-red trim on the barding's lower edge."
+      },
+      "ref": "unit_ironhoof_cavalry",
+      "deps": ["art_pet_mnt_highmoor_charger_ref"],
+      "milestone": "M2",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。坐骑或本体以 art_pet_mnt_highmoor_charger_ref 为参照，体型与配色保持一致。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。"
+    },
+    {
+      "id": "art_unit_ironhoof_cavalry_d",
+      "template": "unit_sheet_large",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "帝国的铁蹄重骑：人与马都裹在黑铁板甲里 #3A3E44，骑手头盔顶一簇赭红短缨 #8A3A26，右手一柄钉头重锤；坐骑是高沼战马，全身马铠只露出眼洞与小腿，马铠下沿镶一道赭红边。辨识：人马一体的黑铁剪影，奔驰时蹄下扬起一团尘土。",
+        "en": "The Empire's ironhoof heavy cavalry: rider and horse both encased in black iron plate #3A3E44, a short ochre-red plume #8A3A26 on the rider's helmet, a flanged mace in the right hand; the mount is a highmoor charger in full barding that leaves only the eye holes and lower legs bare, the barding's lower edge trimmed in ochre-red. Identifying marks: the single black iron silhouette of horse and rider, a puff of dust kicked up under the hooves at the gallop."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。行军行画成小跑；攻击行画成冲锋中抡锤砸下；蹄下扬尘只画两三小团。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the march row as a trot and the attack row as a mace blow swung down mid-charge; draw the hoof dust as only two or three small puffs."
+      },
+      "ref": "unit_ironhoof_cavalry",
+      "deps": ["art_unit_ironhoof_cavalry_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_ironhoof_cavalry_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。"
+    },
+    {
+      "id": "art_unit_ironhoof_cavalry_r",
+      "template": "unit_sheet_large",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "帝国的铁蹄重骑：人与马都裹在黑铁板甲里 #3A3E44，骑手头盔顶一簇赭红短缨 #8A3A26，右手一柄钉头重锤；坐骑是高沼战马，全身马铠只露出眼洞与小腿，马铠下沿镶一道赭红边。辨识：人马一体的黑铁剪影，奔驰时蹄下扬起一团尘土。",
+        "en": "The Empire's ironhoof heavy cavalry: rider and horse both encased in black iron plate #3A3E44, a short ochre-red plume #8A3A26 on the rider's helmet, a flanged mace in the right hand; the mount is a highmoor charger in full barding that leaves only the eye holes and lower legs bare, the barding's lower edge trimmed in ochre-red. Identifying marks: the single black iron silhouette of horse and rider, a puff of dust kicked up under the hooves at the gallop."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。行军行画成小跑；攻击行画成冲锋中抡锤砸下；蹄下扬尘只画两三小团。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the march row as a trot and the attack row as a mace blow swung down mid-charge; draw the hoof dust as only two or three small puffs."
+      },
+      "ref": "unit_ironhoof_cavalry",
+      "deps": ["art_unit_ironhoof_cavalry_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_ironhoof_cavalry_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。"
+    },
+    {
+      "id": "art_unit_ironhoof_cavalry_u",
+      "template": "unit_sheet_large",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "帝国的铁蹄重骑：人与马都裹在黑铁板甲里 #3A3E44，骑手头盔顶一簇赭红短缨 #8A3A26，右手一柄钉头重锤；坐骑是高沼战马，全身马铠只露出眼洞与小腿，马铠下沿镶一道赭红边。辨识：人马一体的黑铁剪影，奔驰时蹄下扬起一团尘土。",
+        "en": "The Empire's ironhoof heavy cavalry: rider and horse both encased in black iron plate #3A3E44, a short ochre-red plume #8A3A26 on the rider's helmet, a flanged mace in the right hand; the mount is a highmoor charger in full barding that leaves only the eye holes and lower legs bare, the barding's lower edge trimmed in ochre-red. Identifying marks: the single black iron silhouette of horse and rider, a puff of dust kicked up under the hooves at the gallop."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。行军行画成小跑；攻击行画成冲锋中抡锤砸下；蹄下扬尘只画两三小团。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the march row as a trot and the attack row as a mace blow swung down mid-charge; draw the hoof dust as only two or three small puffs."
+      },
+      "ref": "unit_ironhoof_cavalry",
+      "deps": ["art_unit_ironhoof_cavalry_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_ironhoof_cavalry_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。"
+    },
+    {
+      "id": "art_unit_paladin_ref",
+      "template": "mon_turnaround",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "圣艾琉恩教国的圣骑士重骑：银白板甲 #DDD8CC，外罩白色罩袍 #F2EFE6，胸前用金线绣一圈光轮纹 #C9A646，右手一柄法冠锤（锤头形如高耸的主教冠），左臂白底鸢盾绘金色光轮；坐骑是白灰战马 #B9B3A6，披白底金边马衣。辨识：胸前的金线光轮与法冠形锤头。",
+        "en": "A paladin lancer of the Holy See of Eluen: silver-white plate #DDD8CC under a white surcoat #F2EFE6 with a halo ring embroidered in gold thread #C9A646 on the chest, a mitre mace in the right hand (its head shaped like a tall bishop's mitre), a white kite shield painted with a gold halo on the left arm; the mount is a white-gray warhorse #B9B3A6 in a white caparison with gold edging. Identifying marks: the gold-thread halo on the chest and the mitre-shaped mace head."
+      },
+      "extra": {
+        "zh": "三视图画骑手与坐骑一体，骑手坐在鞍上。第 4 格特写：罩袍胸前的金线光轮与法冠形锤头。",
+        "en": "Draw rider and mount together as one figure in every view, the rider seated in the saddle. Panel 4 close-up: the gold-thread halo on the surcoat and the mitre-shaped mace head."
+      },
+      "ref": "unit_paladin",
+      "milestone": "M2",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。治愈光环由特效层画，本图不画光晕；金线只是刺绣色，不发光。"
+    },
+    {
+      "id": "art_unit_paladin_d",
+      "template": "unit_sheet_large",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "圣艾琉恩教国的圣骑士重骑：银白板甲 #DDD8CC，外罩白色罩袍 #F2EFE6，胸前用金线绣一圈光轮纹 #C9A646，右手一柄法冠锤（锤头形如高耸的主教冠），左臂白底鸢盾绘金色光轮；坐骑是白灰战马 #B9B3A6，披白底金边马衣。辨识：胸前的金线光轮与法冠形锤头。",
+        "en": "A paladin lancer of the Holy See of Eluen: silver-white plate #DDD8CC under a white surcoat #F2EFE6 with a halo ring embroidered in gold thread #C9A646 on the chest, a mitre mace in the right hand (its head shaped like a tall bishop's mitre), a white kite shield painted with a gold halo on the left arm; the mount is a white-gray warhorse #B9B3A6 in a white caparison with gold edging. Identifying marks: the gold-thread halo on the chest and the mitre-shaped mace head."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。攻击行画成冲锋中挥锤砸下。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the attack row as a mace blow swung down mid-charge."
+      },
+      "ref": "unit_paladin",
+      "deps": ["art_unit_paladin_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_paladin_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。治愈光环由特效层画，本图不画光晕；金线只是刺绣色，不发光。"
+    },
+    {
+      "id": "art_unit_paladin_r",
+      "template": "unit_sheet_large",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "圣艾琉恩教国的圣骑士重骑：银白板甲 #DDD8CC，外罩白色罩袍 #F2EFE6，胸前用金线绣一圈光轮纹 #C9A646，右手一柄法冠锤（锤头形如高耸的主教冠），左臂白底鸢盾绘金色光轮；坐骑是白灰战马 #B9B3A6，披白底金边马衣。辨识：胸前的金线光轮与法冠形锤头。",
+        "en": "A paladin lancer of the Holy See of Eluen: silver-white plate #DDD8CC under a white surcoat #F2EFE6 with a halo ring embroidered in gold thread #C9A646 on the chest, a mitre mace in the right hand (its head shaped like a tall bishop's mitre), a white kite shield painted with a gold halo on the left arm; the mount is a white-gray warhorse #B9B3A6 in a white caparison with gold edging. Identifying marks: the gold-thread halo on the chest and the mitre-shaped mace head."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。攻击行画成冲锋中挥锤砸下。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the attack row as a mace blow swung down mid-charge."
+      },
+      "ref": "unit_paladin",
+      "deps": ["art_unit_paladin_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_paladin_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。治愈光环由特效层画，本图不画光晕；金线只是刺绣色，不发光。"
+    },
+    {
+      "id": "art_unit_paladin_u",
+      "template": "unit_sheet_large",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "圣艾琉恩教国的圣骑士重骑：银白板甲 #DDD8CC，外罩白色罩袍 #F2EFE6，胸前用金线绣一圈光轮纹 #C9A646，右手一柄法冠锤（锤头形如高耸的主教冠），左臂白底鸢盾绘金色光轮；坐骑是白灰战马 #B9B3A6，披白底金边马衣。辨识：胸前的金线光轮与法冠形锤头。",
+        "en": "A paladin lancer of the Holy See of Eluen: silver-white plate #DDD8CC under a white surcoat #F2EFE6 with a halo ring embroidered in gold thread #C9A646 on the chest, a mitre mace in the right hand (its head shaped like a tall bishop's mitre), a white kite shield painted with a gold halo on the left arm; the mount is a white-gray warhorse #B9B3A6 in a white caparison with gold edging. Identifying marks: the gold-thread halo on the chest and the mitre-shaped mace head."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。攻击行画成冲锋中挥锤砸下。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the attack row as a mace blow swung down mid-charge."
+      },
+      "ref": "unit_paladin",
+      "deps": ["art_unit_paladin_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_paladin_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。治愈光环由特效层画，本图不画光晕；金线只是刺绣色，不发光。"
+    },
+    {
+      "id": "art_unit_horse_archer_ref",
+      "template": "mon_turnaround",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "风牙的兽人弓骑：骑手是灰鬃部的狼族兽人，浅相人脸，头顶一对灰狼耳，身后一条蓬松灰尾 #8A8580，穿毡红短袍 #B83A2A 外罩皮甲，手持一张短角弓；坐骑是腿长结实的风牙马，浅黄褐色 #C8A46A，背上一道深色背线，黑色的长鬃长尾在风里飘。辨识：马上回身拉弓的姿势与飘起的狼尾。",
+        "en": "A beastfolk horse archer of Windfang: the rider is a wolf-kin of the Greymane tribe with a light-featured human face, a pair of gray wolf ears on top and a bushy gray tail #8A8580 behind, a felt-red short robe #B83A2A under leather armor, a short horn bow in hand; the mount is a sturdy long-legged Windfang horse in pale yellow-brown #C8A46A with a dark dorsal stripe, its long black mane and tail streaming in the wind. Identifying marks: the turn-in-the-saddle shooting pose and the wolf tail lifting in the wind."
+      },
+      "extra": {
+        "zh": "三视图画骑手与坐骑一体，骑手坐在鞍上。第 4 格特写：骑手头顶的灰狼耳与手里的短角弓。",
+        "en": "Draw rider and mount together as one figure in every view, the rider seated in the saddle. Panel 4 close-up: the rider's gray wolf ears and the short horn bow."
+      },
+      "ref": "unit_horse_archer",
+      "milestone": "M2",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。狼耳与狼尾是种族剪影，任何朝向都要看得见。",
+      "deps": ["art_pet_mnt_steppe_horse_ref"]
+    },
+    {
+      "id": "art_unit_horse_archer_d",
+      "template": "unit_sheet_large",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "风牙的兽人弓骑：骑手是灰鬃部的狼族兽人，浅相人脸，头顶一对灰狼耳，身后一条蓬松灰尾 #8A8580，穿毡红短袍 #B83A2A 外罩皮甲，手持一张短角弓；坐骑是腿长结实的风牙马，浅黄褐色 #C8A46A，背上一道深色背线，黑色的长鬃长尾在风里飘。辨识：马上回身拉弓的姿势与飘起的狼尾。",
+        "en": "A beastfolk horse archer of Windfang: the rider is a wolf-kin of the Greymane tribe with a light-featured human face, a pair of gray wolf ears on top and a bushy gray tail #8A8580 behind, a felt-red short robe #B83A2A under leather armor, a short horn bow in hand; the mount is a sturdy long-legged Windfang horse in pale yellow-brown #C8A46A with a dark dorsal stripe, its long black mane and tail streaming in the wind. Identifying marks: the turn-in-the-saddle shooting pose and the wolf tail lifting in the wind."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。攻击行画成在马上回身向后开弓放箭，列 2 是放箭的一帧。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the attack row as the rider turning back in the saddle to draw and loose, column 2 being the release frame."
+      },
+      "ref": "unit_horse_archer",
+      "deps": ["art_unit_horse_archer_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_horse_archer_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。狼耳与狼尾是种族剪影，任何朝向都要看得见。"
+    },
+    {
+      "id": "art_unit_horse_archer_r",
+      "template": "unit_sheet_large",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "风牙的兽人弓骑：骑手是灰鬃部的狼族兽人，浅相人脸，头顶一对灰狼耳，身后一条蓬松灰尾 #8A8580，穿毡红短袍 #B83A2A 外罩皮甲，手持一张短角弓；坐骑是腿长结实的风牙马，浅黄褐色 #C8A46A，背上一道深色背线，黑色的长鬃长尾在风里飘。辨识：马上回身拉弓的姿势与飘起的狼尾。",
+        "en": "A beastfolk horse archer of Windfang: the rider is a wolf-kin of the Greymane tribe with a light-featured human face, a pair of gray wolf ears on top and a bushy gray tail #8A8580 behind, a felt-red short robe #B83A2A under leather armor, a short horn bow in hand; the mount is a sturdy long-legged Windfang horse in pale yellow-brown #C8A46A with a dark dorsal stripe, its long black mane and tail streaming in the wind. Identifying marks: the turn-in-the-saddle shooting pose and the wolf tail lifting in the wind."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。攻击行画成在马上回身向后开弓放箭，列 2 是放箭的一帧。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the attack row as the rider turning back in the saddle to draw and loose, column 2 being the release frame."
+      },
+      "ref": "unit_horse_archer",
+      "deps": ["art_unit_horse_archer_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_horse_archer_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。狼耳与狼尾是种族剪影，任何朝向都要看得见。"
+    },
+    {
+      "id": "art_unit_horse_archer_u",
+      "template": "unit_sheet_large",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "风牙的兽人弓骑：骑手是灰鬃部的狼族兽人，浅相人脸，头顶一对灰狼耳，身后一条蓬松灰尾 #8A8580，穿毡红短袍 #B83A2A 外罩皮甲，手持一张短角弓；坐骑是腿长结实的风牙马，浅黄褐色 #C8A46A，背上一道深色背线，黑色的长鬃长尾在风里飘。辨识：马上回身拉弓的姿势与飘起的狼尾。",
+        "en": "A beastfolk horse archer of Windfang: the rider is a wolf-kin of the Greymane tribe with a light-featured human face, a pair of gray wolf ears on top and a bushy gray tail #8A8580 behind, a felt-red short robe #B83A2A under leather armor, a short horn bow in hand; the mount is a sturdy long-legged Windfang horse in pale yellow-brown #C8A46A with a dark dorsal stripe, its long black mane and tail streaming in the wind. Identifying marks: the turn-in-the-saddle shooting pose and the wolf tail lifting in the wind."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。攻击行画成在马上回身向后开弓放箭，列 2 是放箭的一帧。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the attack row as the rider turning back in the saddle to draw and loose, column 2 being the release frame."
+      },
+      "ref": "unit_horse_archer",
+      "deps": ["art_unit_horse_archer_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_horse_archer_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。狼耳与狼尾是种族剪影，任何朝向都要看得见。"
+    },
+    {
+      "id": "art_unit_warg_rider_ref",
+      "template": "mon_turnaround",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "夜境的魔狼骑：骑手是灰魔，灰色皮肤 #8A8580，额前一对小角，穿黑铁轻甲 #2E2A2C，伏低身子平端一支黑铁长枪；坐骑是比灰狼魁梧的魔狼，黑灰毛 #2A2828，背脊一道赤黑硬鬃 #5A1A16，额上短角，身上缠着几道灰黑澱纹，眼睛发灰光。辨识：伏在狼背上的骑手与狼身上的灰黑澱纹。",
+        "en": "A fiendwolf rider of the Night Realm: the rider is a gray demonkin with gray skin #8A8580 and a pair of small horns on the brow, light black iron armor #2E2A2C, crouched low with a black iron lance leveled; the mount is a fiendwolf burlier than a gray wolf, black-gray fur #2A2828, a crest of stiff red-black bristles #5A1A16 down the spine, short horns on the brow, several bands of gray-black sediment veins wound around its body and eyes glowing gray. Identifying marks: the rider crouched on the wolf's back and the gray-black sediment veins on the wolf."
+      },
+      "extra": {
+        "zh": "三视图画骑手与坐骑一体，骑手坐在鞍上。第 4 格特写：灰魔骑手额前的小角与魔狼身上的灰黑澱纹。",
+        "en": "Draw rider and mount together as one figure in every view, the rider seated in the saddle. Panel 4 close-up: the gray demonkin rider's small brow horns and the gray-black sediment veins on the wolf."
+      },
+      "ref": "unit_warg_rider",
+      "deps": ["art_mon_warg_ref"],
+      "milestone": "M2",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。坐骑或本体以 art_mon_warg_ref 为参照，体型与配色保持一致。坐骑以图鉴魔狼为准：狼眼改为灰光，加鞍与澱纹；澱纹用暗灰加少量澱紫，不要大面积紫色。"
+    },
+    {
+      "id": "art_unit_warg_rider_d",
+      "template": "unit_sheet_large",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "夜境的魔狼骑：骑手是灰魔，灰色皮肤 #8A8580，额前一对小角，穿黑铁轻甲 #2E2A2C，伏低身子平端一支黑铁长枪；坐骑是比灰狼魁梧的魔狼，黑灰毛 #2A2828，背脊一道赤黑硬鬃 #5A1A16，额上短角，身上缠着几道灰黑澱纹，眼睛发灰光。辨识：伏在狼背上的骑手与狼身上的灰黑澱纹。",
+        "en": "A fiendwolf rider of the Night Realm: the rider is a gray demonkin with gray skin #8A8580 and a pair of small horns on the brow, light black iron armor #2E2A2C, crouched low with a black iron lance leveled; the mount is a fiendwolf burlier than a gray wolf, black-gray fur #2A2828, a crest of stiff red-black bristles #5A1A16 down the spine, short horns on the brow, several bands of gray-black sediment veins wound around its body and eyes glowing gray. Identifying marks: the rider crouched on the wolf's back and the gray-black sediment veins on the wolf."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。攻击行画成魔狼扑咬、骑手同时向前刺枪。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the attack row as the wolf lunging to bite while the rider thrusts the lance forward."
+      },
+      "ref": "unit_warg_rider",
+      "deps": ["art_unit_warg_rider_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_warg_rider_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。坐骑以图鉴魔狼为准：狼眼改为灰光，加鞍与澱纹；澱纹用暗灰加少量澱紫，不要大面积紫色。"
+    },
+    {
+      "id": "art_unit_warg_rider_r",
+      "template": "unit_sheet_large",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "夜境的魔狼骑：骑手是灰魔，灰色皮肤 #8A8580，额前一对小角，穿黑铁轻甲 #2E2A2C，伏低身子平端一支黑铁长枪；坐骑是比灰狼魁梧的魔狼，黑灰毛 #2A2828，背脊一道赤黑硬鬃 #5A1A16，额上短角，身上缠着几道灰黑澱纹，眼睛发灰光。辨识：伏在狼背上的骑手与狼身上的灰黑澱纹。",
+        "en": "A fiendwolf rider of the Night Realm: the rider is a gray demonkin with gray skin #8A8580 and a pair of small horns on the brow, light black iron armor #2E2A2C, crouched low with a black iron lance leveled; the mount is a fiendwolf burlier than a gray wolf, black-gray fur #2A2828, a crest of stiff red-black bristles #5A1A16 down the spine, short horns on the brow, several bands of gray-black sediment veins wound around its body and eyes glowing gray. Identifying marks: the rider crouched on the wolf's back and the gray-black sediment veins on the wolf."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。攻击行画成魔狼扑咬、骑手同时向前刺枪。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the attack row as the wolf lunging to bite while the rider thrusts the lance forward."
+      },
+      "ref": "unit_warg_rider",
+      "deps": ["art_unit_warg_rider_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_warg_rider_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。坐骑以图鉴魔狼为准：狼眼改为灰光，加鞍与澱纹；澱纹用暗灰加少量澱紫，不要大面积紫色。"
+    },
+    {
+      "id": "art_unit_warg_rider_u",
+      "template": "unit_sheet_large",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "夜境的魔狼骑：骑手是灰魔，灰色皮肤 #8A8580，额前一对小角，穿黑铁轻甲 #2E2A2C，伏低身子平端一支黑铁长枪；坐骑是比灰狼魁梧的魔狼，黑灰毛 #2A2828，背脊一道赤黑硬鬃 #5A1A16，额上短角，身上缠着几道灰黑澱纹，眼睛发灰光。辨识：伏在狼背上的骑手与狼身上的灰黑澱纹。",
+        "en": "A fiendwolf rider of the Night Realm: the rider is a gray demonkin with gray skin #8A8580 and a pair of small horns on the brow, light black iron armor #2E2A2C, crouched low with a black iron lance leveled; the mount is a fiendwolf burlier than a gray wolf, black-gray fur #2A2828, a crest of stiff red-black bristles #5A1A16 down the spine, short horns on the brow, several bands of gray-black sediment veins wound around its body and eyes glowing gray. Identifying marks: the rider crouched on the wolf's back and the gray-black sediment veins on the wolf."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。攻击行画成魔狼扑咬、骑手同时向前刺枪。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the attack row as the wolf lunging to bite while the rider thrusts the lance forward."
+      },
+      "ref": "unit_warg_rider",
+      "deps": ["art_unit_warg_rider_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_warg_rider_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。坐骑以图鉴魔狼为准：狼眼改为灰光，加鞍与澱纹；澱纹用暗灰加少量澱紫，不要大面积紫色。"
+    },
+    {
+      "id": "art_unit_ballista_ref",
+      "template": "mon_turnaround",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "帝国的攻城弩车：一架双臂巨弩架在两轮木车上，弩臂黑铁包角 #3A3E44，弩槽里搭着一支长铁弩矢，车前挡板漆赭红并画剑冠纹 #8A3A26；车后一名穿赭红上衣的弩手正转动绞盘。辨识：横展的双弩臂与车后的绞盘。",
+        "en": "An imperial siege ballista: a two-armed giant crossbow mounted on a two-wheeled wooden cart, black iron caps on the bow arms #3A3E44, a long iron bolt in the track, the cart's front mantlet painted ochre-red with a sword-crown emblem #8A3A26; one crossbowman in an ochre-red tunic turns the winch at the back. Identifying marks: the wide-spread twin bow arms and the winch at the back."
+      },
+      "extra": {
+        "zh": "本条主体是一台器械连同操作它的一名炮手，不是生物：三视图画同一台器械的正面、右侧面与背面。第 4 格特写：双弩臂的黑铁包角与车后的绞盘。",
+        "en": "The subject is a war machine together with the one crewman working it, not a creature: the three views show the same machine from the front, right side and back. Panel 4 close-up: the black iron caps of the twin bow arms and the winch at the back."
+      },
+      "ref": "unit_ballista",
+      "milestone": "M2",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。炮组其余成员由纸娃娃立牌在外围排成一圈，本图只画器械与一名弩手。"
+    },
+    {
+      "id": "art_unit_ballista_d",
+      "template": "unit_sheet_large",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "帝国的攻城弩车：一架双臂巨弩架在两轮木车上，弩臂黑铁包角 #3A3E44，弩槽里搭着一支长铁弩矢，车前挡板漆赭红并画剑冠纹 #8A3A26；车后一名穿赭红上衣的弩手正转动绞盘。辨识：横展的双弩臂与车后的绞盘。",
+        "en": "An imperial siege ballista: a two-armed giant crossbow mounted on a two-wheeled wooden cart, black iron caps on the bow arms #3A3E44, a long iron bolt in the track, the cart's front mantlet painted ochre-red with a sword-crown emblem #8A3A26; one crossbowman in an ochre-red tunic turns the winch at the back. Identifying marks: the wide-spread twin bow arms and the winch at the back."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。行军行画成弩车被推着前进、车轮转动；攻击行是绞紧、放矢、弩臂回弹、重新上弦，列 2 是放矢的一帧；倒地行画成弩臂断裂、车身塌倒。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the march row as the cart being pushed forward with turning wheels; the attack row as winding, loosing, the arms snapping back and reloading, column 2 being the loosing frame; the death row as the arms breaking and the cart collapsing."
+      },
+      "ref": "unit_ballista",
+      "deps": ["art_unit_ballista_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_ballista_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。炮组其余成员由纸娃娃立牌在外围排成一圈，本图只画器械与一名弩手。"
+    },
+    {
+      "id": "art_unit_ballista_r",
+      "template": "unit_sheet_large",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "帝国的攻城弩车：一架双臂巨弩架在两轮木车上，弩臂黑铁包角 #3A3E44，弩槽里搭着一支长铁弩矢，车前挡板漆赭红并画剑冠纹 #8A3A26；车后一名穿赭红上衣的弩手正转动绞盘。辨识：横展的双弩臂与车后的绞盘。",
+        "en": "An imperial siege ballista: a two-armed giant crossbow mounted on a two-wheeled wooden cart, black iron caps on the bow arms #3A3E44, a long iron bolt in the track, the cart's front mantlet painted ochre-red with a sword-crown emblem #8A3A26; one crossbowman in an ochre-red tunic turns the winch at the back. Identifying marks: the wide-spread twin bow arms and the winch at the back."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。行军行画成弩车被推着前进、车轮转动；攻击行是绞紧、放矢、弩臂回弹、重新上弦，列 2 是放矢的一帧；倒地行画成弩臂断裂、车身塌倒。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the march row as the cart being pushed forward with turning wheels; the attack row as winding, loosing, the arms snapping back and reloading, column 2 being the loosing frame; the death row as the arms breaking and the cart collapsing."
+      },
+      "ref": "unit_ballista",
+      "deps": ["art_unit_ballista_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_ballista_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。炮组其余成员由纸娃娃立牌在外围排成一圈，本图只画器械与一名弩手。"
+    },
+    {
+      "id": "art_unit_ballista_u",
+      "template": "unit_sheet_large",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "帝国的攻城弩车：一架双臂巨弩架在两轮木车上，弩臂黑铁包角 #3A3E44，弩槽里搭着一支长铁弩矢，车前挡板漆赭红并画剑冠纹 #8A3A26；车后一名穿赭红上衣的弩手正转动绞盘。辨识：横展的双弩臂与车后的绞盘。",
+        "en": "An imperial siege ballista: a two-armed giant crossbow mounted on a two-wheeled wooden cart, black iron caps on the bow arms #3A3E44, a long iron bolt in the track, the cart's front mantlet painted ochre-red with a sword-crown emblem #8A3A26; one crossbowman in an ochre-red tunic turns the winch at the back. Identifying marks: the wide-spread twin bow arms and the winch at the back."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。行军行画成弩车被推着前进、车轮转动；攻击行是绞紧、放矢、弩臂回弹、重新上弦，列 2 是放矢的一帧；倒地行画成弩臂断裂、车身塌倒。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the march row as the cart being pushed forward with turning wheels; the attack row as winding, loosing, the arms snapping back and reloading, column 2 being the loosing frame; the death row as the arms breaking and the cart collapsing."
+      },
+      "ref": "unit_ballista",
+      "deps": ["art_unit_ballista_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_ballista_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。炮组其余成员由纸娃娃立牌在外围排成一圈，本图只画器械与一名弩手。"
+    },
+    {
+      "id": "art_unit_trebuchet_ref",
+      "template": "mon_turnaround",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "配重投石机：高大的 A 字木架 #8A7458，一根长抛臂斜架其上，短端挂着铁箍配重箱，长端拖着投索与一颗圆石弹，底座四只木轮；一名炮手在架旁推石。辨识：抛臂高过炮手两倍以上的高瘦剪影与吊着的配重箱。",
+        "en": "A counterweight trebuchet: a tall A-frame of wood #8A7458 carrying a long throwing arm, an iron-banded counterweight box on the short end and a sling with a round stone on the long end, four wooden wheels on the base; one gunner pushes a stone beside the frame. Identifying marks: the tall narrow silhouette with the arm more than twice the gunner's height, and the hanging counterweight box."
+      },
+      "extra": {
+        "zh": "本条主体是一台器械连同操作它的一名炮手，不是生物：三视图画同一台器械的正面、右侧面与背面。第 4 格特写：铁箍配重箱与投索里的石弹。",
+        "en": "The subject is a war machine together with the one crewman working it, not a creature: the three views show the same machine from the front, right side and back. Panel 4 close-up: the iron-banded counterweight box and the stone in the sling."
+      },
+      "ref": "unit_trebuchet",
+      "milestone": "M2",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。64 像素格里按微缩比例画，抛臂仍要明显高过炮手；炮组其余成员由纸娃娃立牌另排。"
+    },
+    {
+      "id": "art_unit_trebuchet_d",
+      "template": "unit_sheet_large",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "配重投石机：高大的 A 字木架 #8A7458，一根长抛臂斜架其上，短端挂着铁箍配重箱，长端拖着投索与一颗圆石弹，底座四只木轮；一名炮手在架旁推石。辨识：抛臂高过炮手两倍以上的高瘦剪影与吊着的配重箱。",
+        "en": "A counterweight trebuchet: a tall A-frame of wood #8A7458 carrying a long throwing arm, an iron-banded counterweight box on the short end and a sling with a round stone on the long end, four wooden wheels on the base; one gunner pushes a stone beside the frame. Identifying marks: the tall narrow silhouette with the arm more than twice the gunner's height, and the hanging counterweight box."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。行军行画成木轮缓缓滚动；攻击行画成配重落下、抛臂甩起、石弹出手、抛臂回落，列 2 是石弹出手的一帧；倒地行画成木架折断倒塌。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the march row as the wheels slowly rolling; the attack row as the counterweight dropping, the arm swinging up, the stone flying off and the arm settling, column 2 being the release frame; the death row as the frame snapping and collapsing."
+      },
+      "ref": "unit_trebuchet",
+      "deps": ["art_unit_trebuchet_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_trebuchet_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。64 像素格里按微缩比例画，抛臂仍要明显高过炮手；炮组其余成员由纸娃娃立牌另排。"
+    },
+    {
+      "id": "art_unit_trebuchet_r",
+      "template": "unit_sheet_large",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "配重投石机：高大的 A 字木架 #8A7458，一根长抛臂斜架其上，短端挂着铁箍配重箱，长端拖着投索与一颗圆石弹，底座四只木轮；一名炮手在架旁推石。辨识：抛臂高过炮手两倍以上的高瘦剪影与吊着的配重箱。",
+        "en": "A counterweight trebuchet: a tall A-frame of wood #8A7458 carrying a long throwing arm, an iron-banded counterweight box on the short end and a sling with a round stone on the long end, four wooden wheels on the base; one gunner pushes a stone beside the frame. Identifying marks: the tall narrow silhouette with the arm more than twice the gunner's height, and the hanging counterweight box."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。行军行画成木轮缓缓滚动；攻击行画成配重落下、抛臂甩起、石弹出手、抛臂回落，列 2 是石弹出手的一帧；倒地行画成木架折断倒塌。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the march row as the wheels slowly rolling; the attack row as the counterweight dropping, the arm swinging up, the stone flying off and the arm settling, column 2 being the release frame; the death row as the frame snapping and collapsing."
+      },
+      "ref": "unit_trebuchet",
+      "deps": ["art_unit_trebuchet_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_trebuchet_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。64 像素格里按微缩比例画，抛臂仍要明显高过炮手；炮组其余成员由纸娃娃立牌另排。"
+    },
+    {
+      "id": "art_unit_trebuchet_u",
+      "template": "unit_sheet_large",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "配重投石机：高大的 A 字木架 #8A7458，一根长抛臂斜架其上，短端挂着铁箍配重箱，长端拖着投索与一颗圆石弹，底座四只木轮；一名炮手在架旁推石。辨识：抛臂高过炮手两倍以上的高瘦剪影与吊着的配重箱。",
+        "en": "A counterweight trebuchet: a tall A-frame of wood #8A7458 carrying a long throwing arm, an iron-banded counterweight box on the short end and a sling with a round stone on the long end, four wooden wheels on the base; one gunner pushes a stone beside the frame. Identifying marks: the tall narrow silhouette with the arm more than twice the gunner's height, and the hanging counterweight box."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。行军行画成木轮缓缓滚动；攻击行画成配重落下、抛臂甩起、石弹出手、抛臂回落，列 2 是石弹出手的一帧；倒地行画成木架折断倒塌。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the march row as the wheels slowly rolling; the attack row as the counterweight dropping, the arm swinging up, the stone flying off and the arm settling, column 2 being the release frame; the death row as the frame snapping and collapsing."
+      },
+      "ref": "unit_trebuchet",
+      "deps": ["art_unit_trebuchet_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_trebuchet_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。64 像素格里按微缩比例画，抛臂仍要明显高过炮手；炮组其余成员由纸娃娃立牌另排。"
+    },
+    {
+      "id": "art_unit_wing_fiend_ref",
+      "template": "mon_turnaround",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "夜境翼魔的空中游骑：身形瘦削、比人略矮，灰褐皮肤 #5E5652，头上一圈角质耳冠代替角，背上一对展开的蝠翼，翼膜暗红褐 #5A1A16，双脚是能抓握的爪，穿黑铁胸甲 #2E2A2C，双手握一支黑铁长枪。辨识：展开的蝠翼与向下刺的长枪。",
+        "en": "A wingfiend sky rider of the Night Realm: lean and slightly shorter than a human, gray-brown skin #5E5652, a crown of horny ear crests in place of horns, a pair of spread bat wings with dark red-brown membranes #5A1A16, grasping talons for feet, a black iron breastplate #2E2A2C, a black iron lance held in both hands. Identifying marks: the spread bat wings and the downward-stabbing lance."
+      },
+      "extra": {
+        "zh": "三视图里双翼展开，脚爪离地。第 4 格特写：角质耳冠与蝠翼的翼骨。",
+        "en": "In every view the wings are spread and the talons are off the ground. Panel 4 close-up: the horny ear crest and the bones of the bat wing."
+      },
+      "ref": "unit_wing_fiend",
+      "milestone": "M2",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。格子下方留空，地面阴影由渲染层画。"
+    },
+    {
+      "id": "art_unit_wing_fiend_d",
+      "template": "unit_sheet_large",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "夜境翼魔的空中游骑：身形瘦削、比人略矮，灰褐皮肤 #5E5652，头上一圈角质耳冠代替角，背上一对展开的蝠翼，翼膜暗红褐 #5A1A16，双脚是能抓握的爪，穿黑铁胸甲 #2E2A2C，双手握一支黑铁长枪。辨识：展开的蝠翼与向下刺的长枪。",
+        "en": "A wingfiend sky rider of the Night Realm: lean and slightly shorter than a human, gray-brown skin #5E5652, a crown of horny ear crests in place of horns, a pair of spread bat wings with dark red-brown membranes #5A1A16, grasping talons for feet, a black iron breastplate #2E2A2C, a black iron lance held in both hands. Identifying marks: the spread bat wings and the downward-stabbing lance."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。这是飞行兵：本体画在每格上半部，翅膀拍动清楚；攻击行画成俯冲时长枪向下刺；倒地行画成收翼坠落。",
+        "en": "Every frame in this sheet faces the viewer (down). This is a flying troop: draw the body in the upper half of each cell with clear wingbeats; the attack row as a diving downward lance thrust; the death row as wings folding and falling."
+      },
+      "ref": "unit_wing_fiend",
+      "deps": ["art_unit_wing_fiend_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_wing_fiend_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。格子下方留空，地面阴影由渲染层画。"
+    },
+    {
+      "id": "art_unit_wing_fiend_r",
+      "template": "unit_sheet_large",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "夜境翼魔的空中游骑：身形瘦削、比人略矮，灰褐皮肤 #5E5652，头上一圈角质耳冠代替角，背上一对展开的蝠翼，翼膜暗红褐 #5A1A16，双脚是能抓握的爪，穿黑铁胸甲 #2E2A2C，双手握一支黑铁长枪。辨识：展开的蝠翼与向下刺的长枪。",
+        "en": "A wingfiend sky rider of the Night Realm: lean and slightly shorter than a human, gray-brown skin #5E5652, a crown of horny ear crests in place of horns, a pair of spread bat wings with dark red-brown membranes #5A1A16, grasping talons for feet, a black iron breastplate #2E2A2C, a black iron lance held in both hands. Identifying marks: the spread bat wings and the downward-stabbing lance."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。这是飞行兵：本体画在每格上半部，翅膀拍动清楚；攻击行画成俯冲时长枪向下刺；倒地行画成收翼坠落。",
+        "en": "Every frame in this sheet faces screen right (side view). This is a flying troop: draw the body in the upper half of each cell with clear wingbeats; the attack row as a diving downward lance thrust; the death row as wings folding and falling."
+      },
+      "ref": "unit_wing_fiend",
+      "deps": ["art_unit_wing_fiend_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_wing_fiend_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。格子下方留空，地面阴影由渲染层画。"
+    },
+    {
+      "id": "art_unit_wing_fiend_u",
+      "template": "unit_sheet_large",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "夜境翼魔的空中游骑：身形瘦削、比人略矮，灰褐皮肤 #5E5652，头上一圈角质耳冠代替角，背上一对展开的蝠翼，翼膜暗红褐 #5A1A16，双脚是能抓握的爪，穿黑铁胸甲 #2E2A2C，双手握一支黑铁长枪。辨识：展开的蝠翼与向下刺的长枪。",
+        "en": "A wingfiend sky rider of the Night Realm: lean and slightly shorter than a human, gray-brown skin #5E5652, a crown of horny ear crests in place of horns, a pair of spread bat wings with dark red-brown membranes #5A1A16, grasping talons for feet, a black iron breastplate #2E2A2C, a black iron lance held in both hands. Identifying marks: the spread bat wings and the downward-stabbing lance."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。这是飞行兵：本体画在每格上半部，翅膀拍动清楚；攻击行画成俯冲时长枪向下刺；倒地行画成收翼坠落。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. This is a flying troop: draw the body in the upper half of each cell with clear wingbeats; the attack row as a diving downward lance thrust; the death row as wings folding and falling."
+      },
+      "ref": "unit_wing_fiend",
+      "deps": ["art_unit_wing_fiend_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_wing_fiend_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。格子下方留空，地面阴影由渲染层画。"
+    },
+    {
+      "id": "art_unit_dian_beast_ref",
+      "template": "mon_turnaround",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "被契约驯服的澱缚巨犬：肩高约 1.1 米，体格粗壮，黑褐短毛 #2E2A2C，全身缠着藤蔓一样的灰黑澱纹，纹缝里透出暗紫 #4A3A62，口鼻不停冒出灰烟，颈上套着一圈铁质契约锁，锁环上挂一块灰晶。辨识：颈上的契约锁与口鼻冒出的灰烟。",
+        "en": "A sediment-bound giant hound tamed by contract: about 1.1 m at the shoulder and heavily built, short black-brown fur #2E2A2C, gray-black sediment veins wound over its whole body like vines with dark purple #4A3A62 showing in the seams, gray smoke constantly puffing from its muzzle, an iron contract lock collar round its neck with a gray crystal hanging from the ring. Identifying marks: the contract lock on its neck and the gray smoke from its muzzle."
+      },
+      "extra": {
+        "zh": "第 4 格特写：颈上的铁契约锁与挂着的灰晶。",
+        "en": "Panel 4 close-up: the iron contract lock collar and the gray crystal hanging from it."
+      },
+      "ref": "unit_dian_beast",
+      "milestone": "M2",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。目录写驯澱魔兽为巨犬与野猪混编；一种兵种只出一套形状，本条画巨犬。灰烟只画两三小团。"
+    },
+    {
+      "id": "art_unit_dian_beast_d",
+      "template": "unit_sheet_large",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "被契约驯服的澱缚巨犬：肩高约 1.1 米，体格粗壮，黑褐短毛 #2E2A2C，全身缠着藤蔓一样的灰黑澱纹，纹缝里透出暗紫 #4A3A62，口鼻不停冒出灰烟，颈上套着一圈铁质契约锁，锁环上挂一块灰晶。辨识：颈上的契约锁与口鼻冒出的灰烟。",
+        "en": "A sediment-bound giant hound tamed by contract: about 1.1 m at the shoulder and heavily built, short black-brown fur #2E2A2C, gray-black sediment veins wound over its whole body like vines with dark purple #4A3A62 showing in the seams, gray smoke constantly puffing from its muzzle, an iron contract lock collar round its neck with a gray crystal hanging from the ring. Identifying marks: the contract lock on its neck and the gray smoke from its muzzle."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。攻击行画成前扑撕咬，列 2 是咬中的一帧。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the attack row as a lunging bite, column 2 being the frame where it bites."
+      },
+      "ref": "unit_dian_beast",
+      "deps": ["art_unit_dian_beast_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_dian_beast_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。目录写驯澱魔兽为巨犬与野猪混编；一种兵种只出一套形状，本条画巨犬。灰烟只画两三小团。"
+    },
+    {
+      "id": "art_unit_dian_beast_r",
+      "template": "unit_sheet_large",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "被契约驯服的澱缚巨犬：肩高约 1.1 米，体格粗壮，黑褐短毛 #2E2A2C，全身缠着藤蔓一样的灰黑澱纹，纹缝里透出暗紫 #4A3A62，口鼻不停冒出灰烟，颈上套着一圈铁质契约锁，锁环上挂一块灰晶。辨识：颈上的契约锁与口鼻冒出的灰烟。",
+        "en": "A sediment-bound giant hound tamed by contract: about 1.1 m at the shoulder and heavily built, short black-brown fur #2E2A2C, gray-black sediment veins wound over its whole body like vines with dark purple #4A3A62 showing in the seams, gray smoke constantly puffing from its muzzle, an iron contract lock collar round its neck with a gray crystal hanging from the ring. Identifying marks: the contract lock on its neck and the gray smoke from its muzzle."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。攻击行画成前扑撕咬，列 2 是咬中的一帧。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the attack row as a lunging bite, column 2 being the frame where it bites."
+      },
+      "ref": "unit_dian_beast",
+      "deps": ["art_unit_dian_beast_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_dian_beast_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。目录写驯澱魔兽为巨犬与野猪混编；一种兵种只出一套形状，本条画巨犬。灰烟只画两三小团。"
+    },
+    {
+      "id": "art_unit_dian_beast_u",
+      "template": "unit_sheet_large",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "被契约驯服的澱缚巨犬：肩高约 1.1 米，体格粗壮，黑褐短毛 #2E2A2C，全身缠着藤蔓一样的灰黑澱纹，纹缝里透出暗紫 #4A3A62，口鼻不停冒出灰烟，颈上套着一圈铁质契约锁，锁环上挂一块灰晶。辨识：颈上的契约锁与口鼻冒出的灰烟。",
+        "en": "A sediment-bound giant hound tamed by contract: about 1.1 m at the shoulder and heavily built, short black-brown fur #2E2A2C, gray-black sediment veins wound over its whole body like vines with dark purple #4A3A62 showing in the seams, gray smoke constantly puffing from its muzzle, an iron contract lock collar round its neck with a gray crystal hanging from the ring. Identifying marks: the contract lock on its neck and the gray smoke from its muzzle."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。攻击行画成前扑撕咬，列 2 是咬中的一帧。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the attack row as a lunging bite, column 2 being the frame where it bites."
+      },
+      "ref": "unit_dian_beast",
+      "deps": ["art_unit_dian_beast_ref"],
+      "milestone": "M2",
+      "notes": "附 art_unit_dian_beast_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。目录写驯澱魔兽为巨犬与野猪混编；一种兵种只出一套形状，本条画巨犬。灰烟只画两三小团。"
+    },
+    {
+      "id": "art_unit_lightless_knight_ref",
+      "template": "mon_turnaround",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "穿旧圣骑士甲的重骑：银白板甲已经发灰 #9A9A92，胸甲正中的光轮被刮去，只剩一圈粗糙的刮痕，罩袍换成没有任何纹样的素灰布 #8A8780，右手一柄朴素钉锤，左臂鸢盾的盾面同样刮得斑驳；坐骑是灰斑马，灰白底上满布深灰圆斑。辨识：胸甲与盾面的圆形刮痕，素灰罩袍。",
+        "en": "A heavy cavalryman in old paladin armor: the silver-white plate has gone gray #9A9A92, the halo has been scraped off the middle of the breastplate leaving only a rough ring of scratches, the surcoat replaced by plain gray cloth #8A8780 with no device, a plain flanged mace in the right hand, the kite shield on the left arm scraped just as patchy; the mount is a dapple-gray horse, pale gray covered in dark gray round dapples. Identifying marks: the round scrape marks on breastplate and shield, the plain gray surcoat."
+      },
+      "extra": {
+        "zh": "三视图画骑手与坐骑一体，骑手坐在鞍上。第 4 格特写：胸甲正中被刮去光轮后的圆形刮痕。",
+        "en": "Draw rider and mount together as one figure in every view, the rider seated in the saddle. Panel 4 close-up: the round ring of scratches where the halo was scraped off the breastplate."
+      },
+      "ref": "unit_lightless_knight",
+      "milestone": "M3",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。不要画任何光轮、金线或光晕；它与圣骑士重骑的区别就在这里。"
+    },
+    {
+      "id": "art_unit_lightless_knight_d",
+      "template": "unit_sheet_large",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "穿旧圣骑士甲的重骑：银白板甲已经发灰 #9A9A92，胸甲正中的光轮被刮去，只剩一圈粗糙的刮痕，罩袍换成没有任何纹样的素灰布 #8A8780，右手一柄朴素钉锤，左臂鸢盾的盾面同样刮得斑驳；坐骑是灰斑马，灰白底上满布深灰圆斑。辨识：胸甲与盾面的圆形刮痕，素灰罩袍。",
+        "en": "A heavy cavalryman in old paladin armor: the silver-white plate has gone gray #9A9A92, the halo has been scraped off the middle of the breastplate leaving only a rough ring of scratches, the surcoat replaced by plain gray cloth #8A8780 with no device, a plain flanged mace in the right hand, the kite shield on the left arm scraped just as patchy; the mount is a dapple-gray horse, pale gray covered in dark gray round dapples. Identifying marks: the round scrape marks on breastplate and shield, the plain gray surcoat."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。攻击行画成冲锋中挥锤砸下。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the attack row as a mace blow swung down mid-charge."
+      },
+      "ref": "unit_lightless_knight",
+      "deps": ["art_unit_lightless_knight_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_lightless_knight_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。不要画任何光轮、金线或光晕；它与圣骑士重骑的区别就在这里。"
+    },
+    {
+      "id": "art_unit_lightless_knight_r",
+      "template": "unit_sheet_large",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "穿旧圣骑士甲的重骑：银白板甲已经发灰 #9A9A92，胸甲正中的光轮被刮去，只剩一圈粗糙的刮痕，罩袍换成没有任何纹样的素灰布 #8A8780，右手一柄朴素钉锤，左臂鸢盾的盾面同样刮得斑驳；坐骑是灰斑马，灰白底上满布深灰圆斑。辨识：胸甲与盾面的圆形刮痕，素灰罩袍。",
+        "en": "A heavy cavalryman in old paladin armor: the silver-white plate has gone gray #9A9A92, the halo has been scraped off the middle of the breastplate leaving only a rough ring of scratches, the surcoat replaced by plain gray cloth #8A8780 with no device, a plain flanged mace in the right hand, the kite shield on the left arm scraped just as patchy; the mount is a dapple-gray horse, pale gray covered in dark gray round dapples. Identifying marks: the round scrape marks on breastplate and shield, the plain gray surcoat."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。攻击行画成冲锋中挥锤砸下。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the attack row as a mace blow swung down mid-charge."
+      },
+      "ref": "unit_lightless_knight",
+      "deps": ["art_unit_lightless_knight_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_lightless_knight_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。不要画任何光轮、金线或光晕；它与圣骑士重骑的区别就在这里。"
+    },
+    {
+      "id": "art_unit_lightless_knight_u",
+      "template": "unit_sheet_large",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "穿旧圣骑士甲的重骑：银白板甲已经发灰 #9A9A92，胸甲正中的光轮被刮去，只剩一圈粗糙的刮痕，罩袍换成没有任何纹样的素灰布 #8A8780，右手一柄朴素钉锤，左臂鸢盾的盾面同样刮得斑驳；坐骑是灰斑马，灰白底上满布深灰圆斑。辨识：胸甲与盾面的圆形刮痕，素灰罩袍。",
+        "en": "A heavy cavalryman in old paladin armor: the silver-white plate has gone gray #9A9A92, the halo has been scraped off the middle of the breastplate leaving only a rough ring of scratches, the surcoat replaced by plain gray cloth #8A8780 with no device, a plain flanged mace in the right hand, the kite shield on the left arm scraped just as patchy; the mount is a dapple-gray horse, pale gray covered in dark gray round dapples. Identifying marks: the round scrape marks on breastplate and shield, the plain gray surcoat."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。攻击行画成冲锋中挥锤砸下。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the attack row as a mace blow swung down mid-charge."
+      },
+      "ref": "unit_lightless_knight",
+      "deps": ["art_unit_lightless_knight_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_lightless_knight_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。不要画任何光轮、金线或光晕；它与圣骑士重骑的区别就在这里。"
+    },
+    {
+      "id": "art_unit_hornbeast_rider_ref",
+      "template": "mon_turnaround",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "风牙长角部的角兽骑兵：骑手是牛角兽相的兽人，头上一对弯角，穿毡红短袍 #B83A2A 与厚皮甲，双手平举一支长枪；坐骑是肩高约两米的角兽，蓬松的暗棕长毛 #5A4632，肩峰隆起，一对向前弯的粗角 #D8C8A8 上缠着红、蓝、黄三色彩绳，背上一副宽大的毡鞍。辨识：缠彩绳的粗角与平举的长枪。",
+        "en": "A hornbeast rider of the Longhorn tribe of Windfang: the rider is a bovine-featured beastfolk with a pair of curved horns, wearing a felt-red short robe #B83A2A over thick hide armor, a long spear leveled in both hands; the mount is a hornbeast about two meters at the shoulder with shaggy long dark brown fur #5A4632, a raised shoulder hump, and a pair of thick forward-curving horns #D8C8A8 wound with red, blue and yellow cords, a broad felt saddle on its back. Identifying marks: the cord-wound horns and the leveled spear."
+      },
+      "extra": {
+        "zh": "三视图画骑手与坐骑一体，骑手坐在鞍上。第 4 格特写：角兽缠着三色彩绳的粗角。",
+        "en": "Draw rider and mount together as one figure in every view, the rider seated in the saddle. Panel 4 close-up: the hornbeast's thick horns wound with three-colored cords."
+      },
+      "ref": "unit_hornbeast_rider",
+      "deps": ["art_pet_mnt_hornbeast_ref"],
+      "milestone": "M3",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。坐骑或本体以 art_pet_mnt_hornbeast_ref 为参照，体型与配色保持一致。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。坐骑以生灵目录的坐骑角兽为准，体型与毛色不变。"
+    },
+    {
+      "id": "art_unit_hornbeast_rider_d",
+      "template": "unit_sheet_large",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "风牙长角部的角兽骑兵：骑手是牛角兽相的兽人，头上一对弯角，穿毡红短袍 #B83A2A 与厚皮甲，双手平举一支长枪；坐骑是肩高约两米的角兽，蓬松的暗棕长毛 #5A4632，肩峰隆起，一对向前弯的粗角 #D8C8A8 上缠着红、蓝、黄三色彩绳，背上一副宽大的毡鞍。辨识：缠彩绳的粗角与平举的长枪。",
+        "en": "A hornbeast rider of the Longhorn tribe of Windfang: the rider is a bovine-featured beastfolk with a pair of curved horns, wearing a felt-red short robe #B83A2A over thick hide armor, a long spear leveled in both hands; the mount is a hornbeast about two meters at the shoulder with shaggy long dark brown fur #5A4632, a raised shoulder hump, and a pair of thick forward-curving horns #D8C8A8 wound with red, blue and yellow cords, a broad felt saddle on its back. Identifying marks: the cord-wound horns and the leveled spear."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。攻击行画成角兽低头冲撞、骑手同时刺枪。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the attack row as the hornbeast lowering its head to ram while the rider thrusts the spear."
+      },
+      "ref": "unit_hornbeast_rider",
+      "deps": ["art_unit_hornbeast_rider_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_hornbeast_rider_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。坐骑以生灵目录的坐骑角兽为准，体型与毛色不变。"
+    },
+    {
+      "id": "art_unit_hornbeast_rider_r",
+      "template": "unit_sheet_large",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "风牙长角部的角兽骑兵：骑手是牛角兽相的兽人，头上一对弯角，穿毡红短袍 #B83A2A 与厚皮甲，双手平举一支长枪；坐骑是肩高约两米的角兽，蓬松的暗棕长毛 #5A4632，肩峰隆起，一对向前弯的粗角 #D8C8A8 上缠着红、蓝、黄三色彩绳，背上一副宽大的毡鞍。辨识：缠彩绳的粗角与平举的长枪。",
+        "en": "A hornbeast rider of the Longhorn tribe of Windfang: the rider is a bovine-featured beastfolk with a pair of curved horns, wearing a felt-red short robe #B83A2A over thick hide armor, a long spear leveled in both hands; the mount is a hornbeast about two meters at the shoulder with shaggy long dark brown fur #5A4632, a raised shoulder hump, and a pair of thick forward-curving horns #D8C8A8 wound with red, blue and yellow cords, a broad felt saddle on its back. Identifying marks: the cord-wound horns and the leveled spear."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。攻击行画成角兽低头冲撞、骑手同时刺枪。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the attack row as the hornbeast lowering its head to ram while the rider thrusts the spear."
+      },
+      "ref": "unit_hornbeast_rider",
+      "deps": ["art_unit_hornbeast_rider_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_hornbeast_rider_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。坐骑以生灵目录的坐骑角兽为准，体型与毛色不变。"
+    },
+    {
+      "id": "art_unit_hornbeast_rider_u",
+      "template": "unit_sheet_large",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "风牙长角部的角兽骑兵：骑手是牛角兽相的兽人，头上一对弯角，穿毡红短袍 #B83A2A 与厚皮甲，双手平举一支长枪；坐骑是肩高约两米的角兽，蓬松的暗棕长毛 #5A4632，肩峰隆起，一对向前弯的粗角 #D8C8A8 上缠着红、蓝、黄三色彩绳，背上一副宽大的毡鞍。辨识：缠彩绳的粗角与平举的长枪。",
+        "en": "A hornbeast rider of the Longhorn tribe of Windfang: the rider is a bovine-featured beastfolk with a pair of curved horns, wearing a felt-red short robe #B83A2A over thick hide armor, a long spear leveled in both hands; the mount is a hornbeast about two meters at the shoulder with shaggy long dark brown fur #5A4632, a raised shoulder hump, and a pair of thick forward-curving horns #D8C8A8 wound with red, blue and yellow cords, a broad felt saddle on its back. Identifying marks: the cord-wound horns and the leveled spear."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。攻击行画成角兽低头冲撞、骑手同时刺枪。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the attack row as the hornbeast lowering its head to ram while the rider thrusts the spear."
+      },
+      "ref": "unit_hornbeast_rider",
+      "deps": ["art_unit_hornbeast_rider_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_hornbeast_rider_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。坐骑以生灵目录的坐骑角兽为准，体型与毛色不变。"
+    },
+    {
+      "id": "art_unit_swiftear_courier_ref",
+      "template": "mon_turnaround",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "风牙疾耳部的兔族信使：骑手头顶一对长而直立的兔耳，耳尖系着红绳 #B83A2A，穿轻便的麻布短衣 #C8B46A，背一只长圆的皮革信筒 #8A6A4A，只带一根短刺；坐骑是一匹矮小的草原小马，灰褐色，毛蓬松。辨识：竖起的长耳与红绳、背上的信筒。",
+        "en": "A rabbit-kin courier of Windfang's Swiftear tribe: the rider has a pair of long upright rabbit ears tied with red cord at the tips #B83A2A, a light linen short tunic #C8B46A and a long round leather message tube #8A6A4A on the back, armed only with a short spike; the mount is a small shaggy steppe pony in gray-brown. Identifying marks: the upright long ears with red cord and the message tube on the back."
+      },
+      "extra": {
+        "zh": "三视图画骑手与坐骑一体，骑手坐在鞍上。第 4 格特写：系红绳的兔耳尖与皮革信筒。",
+        "en": "Draw rider and mount together as one figure in every view, the rider seated in the saddle. Panel 4 close-up: the red-corded rabbit ear tips and the leather message tube."
+      },
+      "ref": "unit_swiftear_courier",
+      "milestone": "M3",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。"
+    },
+    {
+      "id": "art_unit_swiftear_courier_d",
+      "template": "unit_sheet_large",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "风牙疾耳部的兔族信使：骑手头顶一对长而直立的兔耳，耳尖系着红绳 #B83A2A，穿轻便的麻布短衣 #C8B46A，背一只长圆的皮革信筒 #8A6A4A，只带一根短刺；坐骑是一匹矮小的草原小马，灰褐色，毛蓬松。辨识：竖起的长耳与红绳、背上的信筒。",
+        "en": "A rabbit-kin courier of Windfang's Swiftear tribe: the rider has a pair of long upright rabbit ears tied with red cord at the tips #B83A2A, a light linen short tunic #C8B46A and a long round leather message tube #8A6A4A on the back, armed only with a short spike; the mount is a small shaggy steppe pony in gray-brown. Identifying marks: the upright long ears with red cord and the message tube on the back."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。行军行画成小马快步；攻击行只是用短刺自卫地戳一下，动作幅度小。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the march row as the pony at a brisk trot; the attack row is only a small defensive jab with the spike."
+      },
+      "ref": "unit_swiftear_courier",
+      "deps": ["art_unit_swiftear_courier_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_swiftear_courier_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。"
+    },
+    {
+      "id": "art_unit_swiftear_courier_r",
+      "template": "unit_sheet_large",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "风牙疾耳部的兔族信使：骑手头顶一对长而直立的兔耳，耳尖系着红绳 #B83A2A，穿轻便的麻布短衣 #C8B46A，背一只长圆的皮革信筒 #8A6A4A，只带一根短刺；坐骑是一匹矮小的草原小马，灰褐色，毛蓬松。辨识：竖起的长耳与红绳、背上的信筒。",
+        "en": "A rabbit-kin courier of Windfang's Swiftear tribe: the rider has a pair of long upright rabbit ears tied with red cord at the tips #B83A2A, a light linen short tunic #C8B46A and a long round leather message tube #8A6A4A on the back, armed only with a short spike; the mount is a small shaggy steppe pony in gray-brown. Identifying marks: the upright long ears with red cord and the message tube on the back."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。行军行画成小马快步；攻击行只是用短刺自卫地戳一下，动作幅度小。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the march row as the pony at a brisk trot; the attack row is only a small defensive jab with the spike."
+      },
+      "ref": "unit_swiftear_courier",
+      "deps": ["art_unit_swiftear_courier_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_swiftear_courier_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。"
+    },
+    {
+      "id": "art_unit_swiftear_courier_u",
+      "template": "unit_sheet_large",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "风牙疾耳部的兔族信使：骑手头顶一对长而直立的兔耳，耳尖系着红绳 #B83A2A，穿轻便的麻布短衣 #C8B46A，背一只长圆的皮革信筒 #8A6A4A，只带一根短刺；坐骑是一匹矮小的草原小马，灰褐色，毛蓬松。辨识：竖起的长耳与红绳、背上的信筒。",
+        "en": "A rabbit-kin courier of Windfang's Swiftear tribe: the rider has a pair of long upright rabbit ears tied with red cord at the tips #B83A2A, a light linen short tunic #C8B46A and a long round leather message tube #8A6A4A on the back, armed only with a short spike; the mount is a small shaggy steppe pony in gray-brown. Identifying marks: the upright long ears with red cord and the message tube on the back."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。行军行画成小马快步；攻击行只是用短刺自卫地戳一下，动作幅度小。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the march row as the pony at a brisk trot; the attack row is only a small defensive jab with the spike."
+      },
+      "ref": "unit_swiftear_courier",
+      "deps": ["art_unit_swiftear_courier_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_swiftear_courier_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。"
+    },
+    {
+      "id": "art_unit_beastbond_ranger_ref",
+      "template": "mon_turnaround",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "希尔瓦的兽伴游猎者：一名精灵与一头林狼同在一张立牌里。精灵的长耳向后上斜伸，太阳穴有浅浅的年轮纹，穿苔绿短斗篷 #4A7A4A 与鳞纹革甲，长弓背在身后；林狼站在精灵右侧，灰褐毛 #6E6A5E 夹苔绿斑，耳尖发黑。辨识：人与狼并肩的组合剪影，背在身后的弓。",
+        "en": "A beastbond ranger of Silva: an elf and a forest wolf together on one standee. The elf has long ears slanting up and back and faint growth-ring marks at the temples, a moss-green short cloak #4A7A4A and scale-patterned leather armor, a longbow slung across the back; the forest wolf stands at the elf's right, gray-brown fur #6E6A5E flecked with moss green, dark ear tips. Identifying marks: the side-by-side silhouette of elf and wolf, the bow slung across the back."
+      },
+      "extra": {
+        "zh": "三视图画同一个组合，组合里各成员的相对位置每格一致。第 4 格特写：精灵太阳穴的年轮纹与林狼的头。",
+        "en": "Every view shows the same group, its members keeping the same positions relative to each other. Panel 4 close-up: the growth-ring marks at the elf's temple and the forest wolf's head."
+      },
+      "ref": "unit_beastbond_ranger",
+      "milestone": "M3",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。人和狼始终同在一格里，狼的位置每帧一致；三视图里狼也在精灵右侧。"
+    },
+    {
+      "id": "art_unit_beastbond_ranger_d",
+      "template": "unit_sheet_large",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "希尔瓦的兽伴游猎者：一名精灵与一头林狼同在一张立牌里。精灵的长耳向后上斜伸，太阳穴有浅浅的年轮纹，穿苔绿短斗篷 #4A7A4A 与鳞纹革甲，长弓背在身后；林狼站在精灵右侧，灰褐毛 #6E6A5E 夹苔绿斑，耳尖发黑。辨识：人与狼并肩的组合剪影，背在身后的弓。",
+        "en": "A beastbond ranger of Silva: an elf and a forest wolf together on one standee. The elf has long ears slanting up and back and faint growth-ring marks at the temples, a moss-green short cloak #4A7A4A and scale-patterned leather armor, a longbow slung across the back; the forest wolf stands at the elf's right, gray-brown fur #6E6A5E flecked with moss green, dark ear tips. Identifying marks: the side-by-side silhouette of elf and wolf, the bow slung across the back."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。攻击行画成精灵取弓放箭、林狼同时向前扑咬，列 2 是放箭与咬中的一帧。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the attack row as the elf drawing and loosing while the wolf lunges to bite, column 2 being the frame of release and bite."
+      },
+      "ref": "unit_beastbond_ranger",
+      "deps": ["art_unit_beastbond_ranger_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_beastbond_ranger_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。人和狼始终同在一格里，狼的位置每帧一致；三视图里狼也在精灵右侧。"
+    },
+    {
+      "id": "art_unit_beastbond_ranger_r",
+      "template": "unit_sheet_large",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "希尔瓦的兽伴游猎者：一名精灵与一头林狼同在一张立牌里。精灵的长耳向后上斜伸，太阳穴有浅浅的年轮纹，穿苔绿短斗篷 #4A7A4A 与鳞纹革甲，长弓背在身后；林狼站在精灵右侧，灰褐毛 #6E6A5E 夹苔绿斑，耳尖发黑。辨识：人与狼并肩的组合剪影，背在身后的弓。",
+        "en": "A beastbond ranger of Silva: an elf and a forest wolf together on one standee. The elf has long ears slanting up and back and faint growth-ring marks at the temples, a moss-green short cloak #4A7A4A and scale-patterned leather armor, a longbow slung across the back; the forest wolf stands at the elf's right, gray-brown fur #6E6A5E flecked with moss green, dark ear tips. Identifying marks: the side-by-side silhouette of elf and wolf, the bow slung across the back."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。攻击行画成精灵取弓放箭、林狼同时向前扑咬，列 2 是放箭与咬中的一帧。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the attack row as the elf drawing and loosing while the wolf lunges to bite, column 2 being the frame of release and bite."
+      },
+      "ref": "unit_beastbond_ranger",
+      "deps": ["art_unit_beastbond_ranger_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_beastbond_ranger_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。人和狼始终同在一格里，狼的位置每帧一致；三视图里狼也在精灵右侧。"
+    },
+    {
+      "id": "art_unit_beastbond_ranger_u",
+      "template": "unit_sheet_large",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "希尔瓦的兽伴游猎者：一名精灵与一头林狼同在一张立牌里。精灵的长耳向后上斜伸，太阳穴有浅浅的年轮纹，穿苔绿短斗篷 #4A7A4A 与鳞纹革甲，长弓背在身后；林狼站在精灵右侧，灰褐毛 #6E6A5E 夹苔绿斑，耳尖发黑。辨识：人与狼并肩的组合剪影，背在身后的弓。",
+        "en": "A beastbond ranger of Silva: an elf and a forest wolf together on one standee. The elf has long ears slanting up and back and faint growth-ring marks at the temples, a moss-green short cloak #4A7A4A and scale-patterned leather armor, a longbow slung across the back; the forest wolf stands at the elf's right, gray-brown fur #6E6A5E flecked with moss green, dark ear tips. Identifying marks: the side-by-side silhouette of elf and wolf, the bow slung across the back."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。攻击行画成精灵取弓放箭、林狼同时向前扑咬，列 2 是放箭与咬中的一帧。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the attack row as the elf drawing and loosing while the wolf lunges to bite, column 2 being the frame of release and bite."
+      },
+      "ref": "unit_beastbond_ranger",
+      "deps": ["art_unit_beastbond_ranger_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_beastbond_ranger_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。人和狼始终同在一格里，狼的位置每帧一致；三视图里狼也在精灵右侧。"
+    },
+    {
+      "id": "art_unit_crystal_cannon_ref",
+      "template": "mon_turnaround",
+      "style": "forge_deep",
+      "subject": {
+        "zh": "赤砧山矮人的晶炮：一门短粗的铜炮身 #B0603A 架在铁箍木炮架上，炮身箍着三道黑铁环，炮尾嵌一颗发青白微光的魔晶 #A8E0E0；一名矮人炮手戴护目镜、胡须编辫，蹲在炮旁拉火绳。辨识：短粗的铜炮身与炮尾那颗发光的魔晶。",
+        "en": "A crystal cannon of the Redanvil dwarves: a short stubby bronze barrel #B0603A on an iron-banded wooden carriage, three black iron hoops round the barrel, a magic crystal glowing faint blue-white #A8E0E0 set into the breech; a dwarf gunner with goggles and a braided beard crouches beside it pulling the firing cord. Identifying marks: the short stubby bronze barrel and the glowing crystal in its breech."
+      },
+      "extra": {
+        "zh": "本条主体是一台器械连同操作它的一名炮手，不是生物：三视图画同一台器械的正面、右侧面与背面。第 4 格特写：炮尾嵌着的发光魔晶。",
+        "en": "The subject is a war machine together with the one crewman working it, not a creature: the three views show the same machine from the front, right side and back. Panel 4 close-up: the glowing crystal set into the breech."
+      },
+      "ref": "unit_crystal_cannon",
+      "milestone": "M3",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。火舌与魔晶只用青白色，不用门扉金与澱紫；炮组其余成员由纸娃娃立牌另排。"
+    },
+    {
+      "id": "art_unit_crystal_cannon_d",
+      "template": "unit_sheet_large",
+      "style": "forge_deep",
+      "subject": {
+        "zh": "赤砧山矮人的晶炮：一门短粗的铜炮身 #B0603A 架在铁箍木炮架上，炮身箍着三道黑铁环，炮尾嵌一颗发青白微光的魔晶 #A8E0E0；一名矮人炮手戴护目镜、胡须编辫，蹲在炮旁拉火绳。辨识：短粗的铜炮身与炮尾那颗发光的魔晶。",
+        "en": "A crystal cannon of the Redanvil dwarves: a short stubby bronze barrel #B0603A on an iron-banded wooden carriage, three black iron hoops round the barrel, a magic crystal glowing faint blue-white #A8E0E0 set into the breech; a dwarf gunner with goggles and a braided beard crouches beside it pulling the firing cord. Identifying marks: the short stubby bronze barrel and the glowing crystal in its breech."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。行军行画成炮车被推着前进；攻击行画成魔晶亮起、炮口喷出青白火舌、炮身后坐、复位，列 2 是开炮的一帧；倒地行画成炮架散开、魔晶熄灭。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the march row as the gun being pushed forward; the attack row as the crystal lighting up, a blue-white tongue of flame from the muzzle, recoil and reset, column 2 being the firing frame; the death row as the carriage falling apart and the crystal going dark."
+      },
+      "ref": "unit_crystal_cannon",
+      "deps": ["art_unit_crystal_cannon_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_crystal_cannon_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。火舌与魔晶只用青白色，不用门扉金与澱紫；炮组其余成员由纸娃娃立牌另排。"
+    },
+    {
+      "id": "art_unit_crystal_cannon_r",
+      "template": "unit_sheet_large",
+      "style": "forge_deep",
+      "subject": {
+        "zh": "赤砧山矮人的晶炮：一门短粗的铜炮身 #B0603A 架在铁箍木炮架上，炮身箍着三道黑铁环，炮尾嵌一颗发青白微光的魔晶 #A8E0E0；一名矮人炮手戴护目镜、胡须编辫，蹲在炮旁拉火绳。辨识：短粗的铜炮身与炮尾那颗发光的魔晶。",
+        "en": "A crystal cannon of the Redanvil dwarves: a short stubby bronze barrel #B0603A on an iron-banded wooden carriage, three black iron hoops round the barrel, a magic crystal glowing faint blue-white #A8E0E0 set into the breech; a dwarf gunner with goggles and a braided beard crouches beside it pulling the firing cord. Identifying marks: the short stubby bronze barrel and the glowing crystal in its breech."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。行军行画成炮车被推着前进；攻击行画成魔晶亮起、炮口喷出青白火舌、炮身后坐、复位，列 2 是开炮的一帧；倒地行画成炮架散开、魔晶熄灭。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the march row as the gun being pushed forward; the attack row as the crystal lighting up, a blue-white tongue of flame from the muzzle, recoil and reset, column 2 being the firing frame; the death row as the carriage falling apart and the crystal going dark."
+      },
+      "ref": "unit_crystal_cannon",
+      "deps": ["art_unit_crystal_cannon_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_crystal_cannon_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。火舌与魔晶只用青白色，不用门扉金与澱紫；炮组其余成员由纸娃娃立牌另排。"
+    },
+    {
+      "id": "art_unit_crystal_cannon_u",
+      "template": "unit_sheet_large",
+      "style": "forge_deep",
+      "subject": {
+        "zh": "赤砧山矮人的晶炮：一门短粗的铜炮身 #B0603A 架在铁箍木炮架上，炮身箍着三道黑铁环，炮尾嵌一颗发青白微光的魔晶 #A8E0E0；一名矮人炮手戴护目镜、胡须编辫，蹲在炮旁拉火绳。辨识：短粗的铜炮身与炮尾那颗发光的魔晶。",
+        "en": "A crystal cannon of the Redanvil dwarves: a short stubby bronze barrel #B0603A on an iron-banded wooden carriage, three black iron hoops round the barrel, a magic crystal glowing faint blue-white #A8E0E0 set into the breech; a dwarf gunner with goggles and a braided beard crouches beside it pulling the firing cord. Identifying marks: the short stubby bronze barrel and the glowing crystal in its breech."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。行军行画成炮车被推着前进；攻击行画成魔晶亮起、炮口喷出青白火舌、炮身后坐、复位，列 2 是开炮的一帧；倒地行画成炮架散开、魔晶熄灭。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the march row as the gun being pushed forward; the attack row as the crystal lighting up, a blue-white tongue of flame from the muzzle, recoil and reset, column 2 being the firing frame; the death row as the carriage falling apart and the crystal going dark."
+      },
+      "ref": "unit_crystal_cannon",
+      "deps": ["art_unit_crystal_cannon_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_crystal_cannon_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。火舌与魔晶只用青白色，不用门扉金与澱紫；炮组其余成员由纸娃娃立牌另排。"
+    },
+    {
+      "id": "art_unit_light_array_ref",
+      "template": "mon_turnaround",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "嵌在地面的圣光法阵：一块直径约 3 米的圆形白石盘 #F2EFE6，盘面刻着同心环与放射纹，纹路里嵌着金线 #C9A646，盘心立一根细长的白石柱，柱顶托一颗透亮的白晶。辨识：圆盘加细柱的剪影，发射时柱顶射出一道光束。",
+        "en": "A ground-set array of holy light: a round white stone disc about 3 m across #F2EFE6, its face carved with concentric rings and radiating lines inlaid with gold wire #C9A646, a slim white stone pillar rising from the center with a clear white crystal on top. Identifying marks: the disc-and-pillar silhouette, a beam shooting from the pillar top when it fires."
+      },
+      "extra": {
+        "zh": "本条主体是嵌在地面的静态法阵，不是生物：三视图画同一座法阵的正面、右侧面与背面。第 4 格特写：白石盘面的同心环、放射纹与柱顶白晶。",
+        "en": "The subject is a static array set into the ground, not a creature: the three views show the same array from the front, right side and back. Panel 4 close-up: the concentric rings and radiating lines of the disc and the crystal atop the pillar."
+      },
+      "ref": "unit_light_array",
+      "milestone": "M3",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。光束与白晶的光属于神光白金语义，可以使用；其余部分不发光。它在战场上占 3×3 格，显示尺寸由导入时按占地确定。"
+    },
+    {
+      "id": "art_unit_light_array_d",
+      "template": "unit_sheet_large",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "嵌在地面的圣光法阵：一块直径约 3 米的圆形白石盘 #F2EFE6，盘面刻着同心环与放射纹，纹路里嵌着金线 #C9A646，盘心立一根细长的白石柱，柱顶托一颗透亮的白晶。辨识：圆盘加细柱的剪影，发射时柱顶射出一道光束。",
+        "en": "A ground-set array of holy light: a round white stone disc about 3 m across #F2EFE6, its face carved with concentric rings and radiating lines inlaid with gold wire #C9A646, a slim white stone pillar rising from the center with a clear white crystal on top. Identifying marks: the disc-and-pillar silhouette, a beam shooting from the pillar top when it fires."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。它是嵌在地面的静态法阵，没有朝向：只出这一张图，游戏里各朝向共用。第 1 行画成原地的光轮缓缓亮暗（不位移），第 2 行画成柱顶白晶蓄光、射出光束、光束扫过、收光，第 3 行待机 2 帧接受击 2 帧，第 4 行画成白石盘开裂、白晶碎落、光熄灭。",
+        "en": "Every frame in this sheet faces the viewer (down). It is a static array set into the ground with no facing: make only this one sheet, shared by every facing in game. Draw row 1 as the ring slowly brightening and dimming in place (no travel), row 2 as the crystal gathering light, firing a beam, sweeping it and dimming, row 3 as 2 idle frames followed by 2 hit frames, row 4 as the disc cracking, the crystal shattering and the light going out."
+      },
+      "ref": "unit_light_array",
+      "deps": ["art_unit_light_array_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_light_array_ref 作参照，保持外形与配色，允许姿势变化。它没有明显朝向：只出这一张图，游戏里各朝向共用。细节比主要角色少，成百上千同屏时也要一眼认出兵种。光束与白晶的光属于神光白金语义，可以使用；其余部分不发光。它在战场上占 3×3 格，显示尺寸由导入时按占地确定。"
+    },
+    {
+      "id": "art_unit_wing_scout_ref",
+      "template": "mon_turnaround",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "年轻的翼魔侦察兵：比翼魔游骑更瘦小，角质耳冠还短，灰褐皮肤 #5E5652，蝠翼翼膜上缝着几块浅色补丁 #C8B898，背上斜挎一只皮制侦察筒，腰间垂着红白两色信号布条，只带一柄短刺。辨识：翼膜上的补丁与飘动的信号布条。",
+        "en": "A young wingfiend scout: thinner and smaller than the sky riders, short horny ear crests, gray-brown skin #5E5652, a few pale patches #C8B898 sewn onto the bat-wing membranes, a leather scouting tube slung across the back, red and white signal ribbons hanging from the belt, armed only with a short spike. Identifying marks: the patches on the wing membranes and the fluttering signal ribbons."
+      },
+      "extra": {
+        "zh": "三视图里双翼展开，脚爪离地。第 4 格特写：翼膜上的补丁与红白信号布条。",
+        "en": "In every view the wings are spread and the talons are off the ground. Panel 4 close-up: the patches on the wing membrane and the red and white signal ribbons."
+      },
+      "ref": "unit_wing_scout",
+      "milestone": "M3",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。格子下方留空，地面阴影由渲染层画；与翼魔游骑并排时要看得出它更瘦小。"
+    },
+    {
+      "id": "art_unit_wing_scout_d",
+      "template": "unit_sheet_large",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "年轻的翼魔侦察兵：比翼魔游骑更瘦小，角质耳冠还短，灰褐皮肤 #5E5652，蝠翼翼膜上缝着几块浅色补丁 #C8B898，背上斜挎一只皮制侦察筒，腰间垂着红白两色信号布条，只带一柄短刺。辨识：翼膜上的补丁与飘动的信号布条。",
+        "en": "A young wingfiend scout: thinner and smaller than the sky riders, short horny ear crests, gray-brown skin #5E5652, a few pale patches #C8B898 sewn onto the bat-wing membranes, a leather scouting tube slung across the back, red and white signal ribbons hanging from the belt, armed only with a short spike. Identifying marks: the patches on the wing membranes and the fluttering signal ribbons."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。这是飞行兵：本体画在每格上半部，翅膀拍动清楚；攻击行只是用短刺轻戳，它不擅近战；倒地行画成收翼坠落。",
+        "en": "Every frame in this sheet faces the viewer (down). This is a flying troop: draw the body in the upper half of each cell with clear wingbeats; the attack row is only a light jab with the spike, it is no melee fighter; the death row as wings folding and falling."
+      },
+      "ref": "unit_wing_scout",
+      "deps": ["art_unit_wing_scout_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_wing_scout_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。格子下方留空，地面阴影由渲染层画；与翼魔游骑并排时要看得出它更瘦小。"
+    },
+    {
+      "id": "art_unit_wing_scout_r",
+      "template": "unit_sheet_large",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "年轻的翼魔侦察兵：比翼魔游骑更瘦小，角质耳冠还短，灰褐皮肤 #5E5652，蝠翼翼膜上缝着几块浅色补丁 #C8B898，背上斜挎一只皮制侦察筒，腰间垂着红白两色信号布条，只带一柄短刺。辨识：翼膜上的补丁与飘动的信号布条。",
+        "en": "A young wingfiend scout: thinner and smaller than the sky riders, short horny ear crests, gray-brown skin #5E5652, a few pale patches #C8B898 sewn onto the bat-wing membranes, a leather scouting tube slung across the back, red and white signal ribbons hanging from the belt, armed only with a short spike. Identifying marks: the patches on the wing membranes and the fluttering signal ribbons."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。这是飞行兵：本体画在每格上半部，翅膀拍动清楚；攻击行只是用短刺轻戳，它不擅近战；倒地行画成收翼坠落。",
+        "en": "Every frame in this sheet faces screen right (side view). This is a flying troop: draw the body in the upper half of each cell with clear wingbeats; the attack row is only a light jab with the spike, it is no melee fighter; the death row as wings folding and falling."
+      },
+      "ref": "unit_wing_scout",
+      "deps": ["art_unit_wing_scout_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_wing_scout_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。格子下方留空，地面阴影由渲染层画；与翼魔游骑并排时要看得出它更瘦小。"
+    },
+    {
+      "id": "art_unit_wing_scout_u",
+      "template": "unit_sheet_large",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "年轻的翼魔侦察兵：比翼魔游骑更瘦小，角质耳冠还短，灰褐皮肤 #5E5652，蝠翼翼膜上缝着几块浅色补丁 #C8B898，背上斜挎一只皮制侦察筒，腰间垂着红白两色信号布条，只带一柄短刺。辨识：翼膜上的补丁与飘动的信号布条。",
+        "en": "A young wingfiend scout: thinner and smaller than the sky riders, short horny ear crests, gray-brown skin #5E5652, a few pale patches #C8B898 sewn onto the bat-wing membranes, a leather scouting tube slung across the back, red and white signal ribbons hanging from the belt, armed only with a short spike. Identifying marks: the patches on the wing membranes and the fluttering signal ribbons."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。这是飞行兵：本体画在每格上半部，翅膀拍动清楚；攻击行只是用短刺轻戳，它不擅近战；倒地行画成收翼坠落。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. This is a flying troop: draw the body in the upper half of each cell with clear wingbeats; the attack row is only a light jab with the spike, it is no melee fighter; the death row as wings folding and falling."
+      },
+      "ref": "unit_wing_scout",
+      "deps": ["art_unit_wing_scout_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_wing_scout_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。格子下方留空，地面阴影由渲染层画；与翼魔游骑并排时要看得出它更瘦小。"
+    },
+    {
+      "id": "art_unit_treeguard_ref",
+      "template": "mon_turnaround",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "会行走的灵素古树：高约 3.5 米，粗壮的树干就是身躯，两根粗枝当臂，根须拖在地上当脚；树皮银灰 #A8B4BC，裂缝里透出嫩绿的光 #C8E0A0，树冠稀疏，挂着苔与藤。辨识：树皮裂缝里的绿光与拖地的根须。",
+        "en": "A walking ancient spirit tree: about 3.5 m tall, the thick trunk is its body, two heavy boughs serve as arms and trailing roots serve as feet; silver-gray bark #A8B4BC with fresh green light #C8E0A0 glowing through the cracks, a sparse crown hung with moss and vines. Identifying marks: the green light in the bark cracks and the roots dragging on the ground."
+      },
+      "extra": {
+        "zh": "第 4 格特写：树皮裂缝里透出的绿光。",
+        "en": "Panel 4 close-up: the green light glowing through the bark cracks."
+      },
+      "ref": "unit_treeguard",
+      "milestone": "M3",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。它不是动物也不是人形：没有脸，裂缝里的绿光是唯一的\"眼\"。"
+    },
+    {
+      "id": "art_unit_treeguard_d",
+      "template": "unit_sheet_large",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "会行走的灵素古树：高约 3.5 米，粗壮的树干就是身躯，两根粗枝当臂，根须拖在地上当脚；树皮银灰 #A8B4BC，裂缝里透出嫩绿的光 #C8E0A0，树冠稀疏，挂着苔与藤。辨识：树皮裂缝里的绿光与拖地的根须。",
+        "en": "A walking ancient spirit tree: about 3.5 m tall, the thick trunk is its body, two heavy boughs serve as arms and trailing roots serve as feet; silver-gray bark #A8B4BC with fresh green light #C8E0A0 glowing through the cracks, a sparse crown hung with moss and vines. Identifying marks: the green light in the bark cracks and the roots dragging on the ground."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。行军行画成根须交替拖动、身躯缓慢前倾；攻击行画成粗枝横扫或砸地；倒地行画成整棵树向后倒下、绿光熄灭。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the march row as the roots dragging in turn while the body leans slowly forward; the attack row as a bough sweeping or slamming the ground; the death row as the whole tree toppling backward and the green light going out."
+      },
+      "ref": "unit_treeguard",
+      "deps": ["art_unit_treeguard_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_treeguard_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。它不是动物也不是人形：没有脸，裂缝里的绿光是唯一的\"眼\"。"
+    },
+    {
+      "id": "art_unit_treeguard_r",
+      "template": "unit_sheet_large",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "会行走的灵素古树：高约 3.5 米，粗壮的树干就是身躯，两根粗枝当臂，根须拖在地上当脚；树皮银灰 #A8B4BC，裂缝里透出嫩绿的光 #C8E0A0，树冠稀疏，挂着苔与藤。辨识：树皮裂缝里的绿光与拖地的根须。",
+        "en": "A walking ancient spirit tree: about 3.5 m tall, the thick trunk is its body, two heavy boughs serve as arms and trailing roots serve as feet; silver-gray bark #A8B4BC with fresh green light #C8E0A0 glowing through the cracks, a sparse crown hung with moss and vines. Identifying marks: the green light in the bark cracks and the roots dragging on the ground."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。行军行画成根须交替拖动、身躯缓慢前倾；攻击行画成粗枝横扫或砸地；倒地行画成整棵树向后倒下、绿光熄灭。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the march row as the roots dragging in turn while the body leans slowly forward; the attack row as a bough sweeping or slamming the ground; the death row as the whole tree toppling backward and the green light going out."
+      },
+      "ref": "unit_treeguard",
+      "deps": ["art_unit_treeguard_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_treeguard_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。它不是动物也不是人形：没有脸，裂缝里的绿光是唯一的\"眼\"。"
+    },
+    {
+      "id": "art_unit_treeguard_u",
+      "template": "unit_sheet_large",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "会行走的灵素古树：高约 3.5 米，粗壮的树干就是身躯，两根粗枝当臂，根须拖在地上当脚；树皮银灰 #A8B4BC，裂缝里透出嫩绿的光 #C8E0A0，树冠稀疏，挂着苔与藤。辨识：树皮裂缝里的绿光与拖地的根须。",
+        "en": "A walking ancient spirit tree: about 3.5 m tall, the thick trunk is its body, two heavy boughs serve as arms and trailing roots serve as feet; silver-gray bark #A8B4BC with fresh green light #C8E0A0 glowing through the cracks, a sparse crown hung with moss and vines. Identifying marks: the green light in the bark cracks and the roots dragging on the ground."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。行军行画成根须交替拖动、身躯缓慢前倾；攻击行画成粗枝横扫或砸地；倒地行画成整棵树向后倒下、绿光熄灭。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the march row as the roots dragging in turn while the body leans slowly forward; the attack row as a bough sweeping or slamming the ground; the death row as the whole tree toppling backward and the green light going out."
+      },
+      "ref": "unit_treeguard",
+      "deps": ["art_unit_treeguard_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_treeguard_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。它不是动物也不是人形：没有脸，裂缝里的绿光是唯一的\"眼\"。"
+    },
+    {
+      "id": "art_unit_supply_train_ref",
+      "template": "mon_turnaround",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "半身人的后勤车：一头浅褐色的长耳铃骡 #9A8A6A 拉着一辆两轮小货车，车辕上挂着三只黄铜铃 #C9A227，车上捆着麻袋与木箱，盖一块褐色油布 #6B4F1D；车后一名卷发圆脸的半身人弯腰推车，穿多口袋的背心。辨识：车辕上的三只铃与弯腰推车的小个子。",
+        "en": "A halfling supply cart: a long-eared light brown bell mule #9A8A6A pulls a small two-wheeled cart with three brass bells #C9A227 hanging from the shafts, sacks and crates lashed on the bed under a brown oilcloth #6B4F1D; behind it a curly-haired, round-faced halfling in a many-pocketed vest bends to push. Identifying marks: the three bells on the shafts and the little figure bent over pushing."
+      },
+      "extra": {
+        "zh": "三视图画同一个组合，组合里各成员的相对位置每格一致。第 4 格特写：车辕上的三只黄铜铃。",
+        "en": "Every view shows the same group, its members keeping the same positions relative to each other. Panel 4 close-up: the three brass bells on the shafts."
+      },
+      "ref": "unit_supply_train",
+      "deps": ["art_pet_mnt_bell_mule_ref"],
+      "milestone": "M3",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。坐骑或本体以 art_pet_mnt_bell_mule_ref 为参照，体型与配色保持一致。"
+    },
+    {
+      "id": "art_unit_supply_train_d",
+      "template": "unit_sheet_large",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "半身人的后勤车：一头浅褐色的长耳铃骡 #9A8A6A 拉着一辆两轮小货车，车辕上挂着三只黄铜铃 #C9A227，车上捆着麻袋与木箱，盖一块褐色油布 #6B4F1D；车后一名卷发圆脸的半身人弯腰推车，穿多口袋的背心。辨识：车辕上的三只铃与弯腰推车的小个子。",
+        "en": "A halfling supply cart: a long-eared light brown bell mule #9A8A6A pulls a small two-wheeled cart with three brass bells #C9A227 hanging from the shafts, sacks and crates lashed on the bed under a brown oilcloth #6B4F1D; behind it a curly-haired, round-faced halfling in a many-pocketed vest bends to push. Identifying marks: the three bells on the shafts and the little figure bent over pushing."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。行军行画成骡子拉车、车轮转动；攻击行只是车夫举起短棍自卫地挥一下；倒地行画成车翻倒、货物散落。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the march row as the mule pulling with turning wheels; the attack row is only the carter raising a short stick and swinging it in self-defense; the death row as the cart tipping over and the goods spilling."
+      },
+      "ref": "unit_supply_train",
+      "deps": ["art_unit_supply_train_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_supply_train_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。"
+    },
+    {
+      "id": "art_unit_supply_train_r",
+      "template": "unit_sheet_large",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "半身人的后勤车：一头浅褐色的长耳铃骡 #9A8A6A 拉着一辆两轮小货车，车辕上挂着三只黄铜铃 #C9A227，车上捆着麻袋与木箱，盖一块褐色油布 #6B4F1D；车后一名卷发圆脸的半身人弯腰推车，穿多口袋的背心。辨识：车辕上的三只铃与弯腰推车的小个子。",
+        "en": "A halfling supply cart: a long-eared light brown bell mule #9A8A6A pulls a small two-wheeled cart with three brass bells #C9A227 hanging from the shafts, sacks and crates lashed on the bed under a brown oilcloth #6B4F1D; behind it a curly-haired, round-faced halfling in a many-pocketed vest bends to push. Identifying marks: the three bells on the shafts and the little figure bent over pushing."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。行军行画成骡子拉车、车轮转动；攻击行只是车夫举起短棍自卫地挥一下；倒地行画成车翻倒、货物散落。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the march row as the mule pulling with turning wheels; the attack row is only the carter raising a short stick and swinging it in self-defense; the death row as the cart tipping over and the goods spilling."
+      },
+      "ref": "unit_supply_train",
+      "deps": ["art_unit_supply_train_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_supply_train_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。"
+    },
+    {
+      "id": "art_unit_supply_train_u",
+      "template": "unit_sheet_large",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "半身人的后勤车：一头浅褐色的长耳铃骡 #9A8A6A 拉着一辆两轮小货车，车辕上挂着三只黄铜铃 #C9A227，车上捆着麻袋与木箱，盖一块褐色油布 #6B4F1D；车后一名卷发圆脸的半身人弯腰推车，穿多口袋的背心。辨识：车辕上的三只铃与弯腰推车的小个子。",
+        "en": "A halfling supply cart: a long-eared light brown bell mule #9A8A6A pulls a small two-wheeled cart with three brass bells #C9A227 hanging from the shafts, sacks and crates lashed on the bed under a brown oilcloth #6B4F1D; behind it a curly-haired, round-faced halfling in a many-pocketed vest bends to push. Identifying marks: the three bells on the shafts and the little figure bent over pushing."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。行军行画成骡子拉车、车轮转动；攻击行只是车夫举起短棍自卫地挥一下；倒地行画成车翻倒、货物散落。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the march row as the mule pulling with turning wheels; the attack row is only the carter raising a short stick and swinging it in self-defense; the death row as the cart tipping over and the goods spilling."
+      },
+      "ref": "unit_supply_train",
+      "deps": ["art_unit_supply_train_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_supply_train_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。"
+    },
+    {
+      "id": "art_unit_wagon_guard_ref",
+      "template": "mon_turnaround",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "半身人的车阵：一辆四轮小货车，车厢侧板包铁，外侧钉着一排削尖的木桩，两名半身人护卫戴圆皮帽、穿中甲 #6A6E74，各持一支长枪守在车边。辨识：钉着尖木桩的车厢侧板，与从车边探出的长枪。",
+        "en": "A halfling wagon fort: a small four-wheeled wagon with iron-plated side boards and a row of sharpened stakes nailed along the outside, two halfling guards in round leather caps and medium armor #6A6E74 each holding a long spear beside it. Identifying marks: the stake-studded side boards and the spears poking out beside the wagon."
+      },
+      "extra": {
+        "zh": "三视图画同一个组合，组合里各成员的相对位置每格一致。第 4 格特写：车厢侧板上的尖木桩与护卫的圆皮帽。",
+        "en": "Every view shows the same group, its members keeping the same positions relative to each other. Panel 4 close-up: the stakes on the side boards and the guards' round leather caps."
+      },
+      "ref": "unit_wagon_guard",
+      "milestone": "M3",
+      "notes": "先做本条：主审通过后它是本兵种全部动作表的参照图。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。半身人身高只到人族的六成，长枪要明显长过他们的身高。"
+    },
+    {
+      "id": "art_unit_wagon_guard_d",
+      "template": "unit_sheet_large",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "半身人的车阵：一辆四轮小货车，车厢侧板包铁，外侧钉着一排削尖的木桩，两名半身人护卫戴圆皮帽、穿中甲 #6A6E74，各持一支长枪守在车边。辨识：钉着尖木桩的车厢侧板，与从车边探出的长枪。",
+        "en": "A halfling wagon fort: a small four-wheeled wagon with iron-plated side boards and a row of sharpened stakes nailed along the outside, two halfling guards in round leather caps and medium armor #6A6E74 each holding a long spear beside it. Identifying marks: the stake-studded side boards and the spears poking out beside the wagon."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。行军行画成两名护卫推着货车前进；攻击行画成货车已翻侧成墙、长枪从车缝里向前刺出，列 2 是刺中的一帧；倒地行画成车厢破裂塌下。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the march row as the two guards pushing the wagon forward; the attack row as the wagon already tipped on its side as a wall with spears thrusting out through the gaps, column 2 being the frame where they strike; the death row as the wagon body splitting and collapsing."
+      },
+      "ref": "unit_wagon_guard",
+      "deps": ["art_unit_wagon_guard_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_wagon_guard_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。半身人身高只到人族的六成，长枪要明显长过他们的身高。"
+    },
+    {
+      "id": "art_unit_wagon_guard_r",
+      "template": "unit_sheet_large",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "半身人的车阵：一辆四轮小货车，车厢侧板包铁，外侧钉着一排削尖的木桩，两名半身人护卫戴圆皮帽、穿中甲 #6A6E74，各持一支长枪守在车边。辨识：钉着尖木桩的车厢侧板，与从车边探出的长枪。",
+        "en": "A halfling wagon fort: a small four-wheeled wagon with iron-plated side boards and a row of sharpened stakes nailed along the outside, two halfling guards in round leather caps and medium armor #6A6E74 each holding a long spear beside it. Identifying marks: the stake-studded side boards and the spears poking out beside the wagon."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。行军行画成两名护卫推着货车前进；攻击行画成货车已翻侧成墙、长枪从车缝里向前刺出，列 2 是刺中的一帧；倒地行画成车厢破裂塌下。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the march row as the two guards pushing the wagon forward; the attack row as the wagon already tipped on its side as a wall with spears thrusting out through the gaps, column 2 being the frame where they strike; the death row as the wagon body splitting and collapsing."
+      },
+      "ref": "unit_wagon_guard",
+      "deps": ["art_unit_wagon_guard_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_wagon_guard_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。半身人身高只到人族的六成，长枪要明显长过他们的身高。"
+    },
+    {
+      "id": "art_unit_wagon_guard_u",
+      "template": "unit_sheet_large",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "半身人的车阵：一辆四轮小货车，车厢侧板包铁，外侧钉着一排削尖的木桩，两名半身人护卫戴圆皮帽、穿中甲 #6A6E74，各持一支长枪守在车边。辨识：钉着尖木桩的车厢侧板，与从车边探出的长枪。",
+        "en": "A halfling wagon fort: a small four-wheeled wagon with iron-plated side boards and a row of sharpened stakes nailed along the outside, two halfling guards in round leather caps and medium armor #6A6E74 each holding a long spear beside it. Identifying marks: the stake-studded side boards and the spears poking out beside the wagon."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。行军行画成两名护卫推着货车前进；攻击行画成货车已翻侧成墙、长枪从车缝里向前刺出，列 2 是刺中的一帧；倒地行画成车厢破裂塌下。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the march row as the two guards pushing the wagon forward; the attack row as the wagon already tipped on its side as a wall with spears thrusting out through the gaps, column 2 being the frame where they strike; the death row as the wagon body splitting and collapsing."
+      },
+      "ref": "unit_wagon_guard",
+      "deps": ["art_unit_wagon_guard_ref"],
+      "milestone": "M3",
+      "notes": "附 art_unit_wagon_guard_ref 作参照，保持外形与配色，允许姿势变化。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。按描述的默认配色画，阵营换色由渲染层按每实例的色样行完成。半身人身高只到人族的六成，长枪要明显长过他们的身高。"
+    },
+    {
+      "id": "art_unit_sediment_rat_d",
+      "template": "unit_sheet",
+      "style": "sealed_ruins",
+      "subject": {
+        "zh": "三只澱鼠挤成一团同进同退：每只连尾约半米长，四足贴地、弓背，灰褐粗毛 #6B6359，背上带暗灰斑 #4A443D，粉灰色长尾 #C9A9A0 拖在后面，眼睛是两点灰晶小光。辨识：三只鼠叠成的团块剪影与身后几条长尾。",
+        "en": "Three sediment rats huddled into one clump that moves as one: each about half a meter long including the tail, four legs low to the ground and back arched, coarse gray-brown fur #6B6359 with dark gray blotches #4A443D on the back, long pinkish-gray tails #C9A9A0 trailing behind, eyes two small points of gray crystal light. Identifying marks: the clumped silhouette of three rats and the long tails trailing behind."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。攻击行画成三只鼠一起扑咬。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the attack row as all three rats lunging to bite together."
+      },
+      "ref": "unit_sediment_rat",
+      "deps": ["art_mon_dian_rat_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴澱鼠（dian_rat）的兵团形态：附 art_mon_dian_rat_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。一个立牌画三只鼠，兵团人数按每立牌三只换算；灰斑只比底色暗一级，不画成发光或紫色。"
+    },
+    {
+      "id": "art_unit_sediment_rat_r",
+      "template": "unit_sheet",
+      "style": "sealed_ruins",
+      "subject": {
+        "zh": "三只澱鼠挤成一团同进同退：每只连尾约半米长，四足贴地、弓背，灰褐粗毛 #6B6359，背上带暗灰斑 #4A443D，粉灰色长尾 #C9A9A0 拖在后面，眼睛是两点灰晶小光。辨识：三只鼠叠成的团块剪影与身后几条长尾。",
+        "en": "Three sediment rats huddled into one clump that moves as one: each about half a meter long including the tail, four legs low to the ground and back arched, coarse gray-brown fur #6B6359 with dark gray blotches #4A443D on the back, long pinkish-gray tails #C9A9A0 trailing behind, eyes two small points of gray crystal light. Identifying marks: the clumped silhouette of three rats and the long tails trailing behind."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。攻击行画成三只鼠一起扑咬。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the attack row as all three rats lunging to bite together."
+      },
+      "ref": "unit_sediment_rat",
+      "deps": ["art_mon_dian_rat_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴澱鼠（dian_rat）的兵团形态：附 art_mon_dian_rat_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。一个立牌画三只鼠，兵团人数按每立牌三只换算；灰斑只比底色暗一级，不画成发光或紫色。"
+    },
+    {
+      "id": "art_unit_sediment_rat_u",
+      "template": "unit_sheet",
+      "style": "sealed_ruins",
+      "subject": {
+        "zh": "三只澱鼠挤成一团同进同退：每只连尾约半米长，四足贴地、弓背，灰褐粗毛 #6B6359，背上带暗灰斑 #4A443D，粉灰色长尾 #C9A9A0 拖在后面，眼睛是两点灰晶小光。辨识：三只鼠叠成的团块剪影与身后几条长尾。",
+        "en": "Three sediment rats huddled into one clump that moves as one: each about half a meter long including the tail, four legs low to the ground and back arched, coarse gray-brown fur #6B6359 with dark gray blotches #4A443D on the back, long pinkish-gray tails #C9A9A0 trailing behind, eyes two small points of gray crystal light. Identifying marks: the clumped silhouette of three rats and the long tails trailing behind."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。攻击行画成三只鼠一起扑咬。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the attack row as all three rats lunging to bite together."
+      },
+      "ref": "unit_sediment_rat",
+      "deps": ["art_mon_dian_rat_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴澱鼠（dian_rat）的兵团形态：附 art_mon_dian_rat_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。一个立牌画三只鼠，兵团人数按每立牌三只换算；灰斑只比底色暗一级，不画成发光或紫色。"
+    },
+    {
+      "id": "art_unit_sewer_sludge_d",
+      "template": "unit_sheet",
+      "style": "sealed_ruins",
+      "subject": {
+        "zh": "从排水沟里爬出的一团腐泥：高约 1 米，没有骨骼与四肢，下沉上鼓；泥身暗橄榄绿 #4F5A34，表面浮着浅绿泡沫 #8C9A5C，泥里夹着几块瓷白方形晶片 #EDE8DC，左右对称排成两列。辨识：鼓起的顶部不停冒泡，晶片在泥面露出白点。",
+        "en": "A blob of foul sludge crawled out of a drain: about 1 m tall, no skeleton or limbs, sagging at the base and swelling on top; dark olive-green mud #4F5A34 with pale green froth #8C9A5C on the surface and a few square porcelain-white crystal chips #EDE8DC inside, lined up symmetrically in two columns. Identifying marks: bubbles constantly rising from its swollen top, the chips showing as white points at the surface."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。第 1 行画成原地蠕动着向前涌（身体前倾再收回），攻击行画成整团扑压。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw row 1 as an in-place surge forward (leaning out and pulling back), and the attack row as the whole blob flopping down on its target."
+      },
+      "ref": "unit_sewer_sludge",
+      "deps": ["art_mon_sewer_sludge_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴腐泥团（sewer_sludge）的兵团形态：附 art_mon_sewer_sludge_ref 作参照，配色与辨识特征与图鉴一致，细节更少。它没有明显朝向：只出这一张图，游戏里各朝向共用。细节比主要角色少，成百上千同屏时也要一眼认出兵种。泥是不透明实色；晶片必须左右对称排列。"
+    },
+    {
+      "id": "art_unit_mud_fiend_d",
+      "template": "unit_sheet",
+      "style": "valen_city",
+      "subject": {
+        "zh": "一坨人形澱泥：高约 1.6 米，没有腿，下身与泥浆连成一小摊，上身隆起两条粗泥臂；泥身灰褐 #6E6250，淌着灰白黏液 #B9B4A8，夹着碎瓦与瓷白小晶片 #EDE8DC，胸前一张横裂的大口里嵌着一块灰晶。辨识：胸前的横口与灰晶，身下拖着的一小摊泥。",
+        "en": "A humanoid lump of sediment mud: about 1.6 m tall with no legs, its lower body merging into a small puddle of mud, two thick mud arms heaving up from its upper body; gray-brown mud #6E6250 running with gray-white slime #B9B4A8, studded with broken tiles and small porcelain-white crystal chips #EDE8DC, a gray crystal lodged in the wide horizontal mouth across its chest. Identifying marks: the chest mouth with its crystal and the small puddle of mud it drags beneath it."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。行军行画成泥身向前滑涌；攻击行画成泥臂抡下缠抓。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the march row as the mud body sliding and surging forward; the attack row as a mud arm swinging down to grab."
+      },
+      "ref": "unit_mud_fiend",
+      "deps": ["art_mon_mud_fiend_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴泥魔（mud_fiend）的兵团形态：附 art_mon_mud_fiend_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。泥是不透明实色；底部泥浆只画与身体相连的一小摊，不画地面。"
+    },
+    {
+      "id": "art_unit_mud_fiend_r",
+      "template": "unit_sheet",
+      "style": "valen_city",
+      "subject": {
+        "zh": "一坨人形澱泥：高约 1.6 米，没有腿，下身与泥浆连成一小摊，上身隆起两条粗泥臂；泥身灰褐 #6E6250，淌着灰白黏液 #B9B4A8，夹着碎瓦与瓷白小晶片 #EDE8DC，胸前一张横裂的大口里嵌着一块灰晶。辨识：胸前的横口与灰晶，身下拖着的一小摊泥。",
+        "en": "A humanoid lump of sediment mud: about 1.6 m tall with no legs, its lower body merging into a small puddle of mud, two thick mud arms heaving up from its upper body; gray-brown mud #6E6250 running with gray-white slime #B9B4A8, studded with broken tiles and small porcelain-white crystal chips #EDE8DC, a gray crystal lodged in the wide horizontal mouth across its chest. Identifying marks: the chest mouth with its crystal and the small puddle of mud it drags beneath it."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。行军行画成泥身向前滑涌；攻击行画成泥臂抡下缠抓。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the march row as the mud body sliding and surging forward; the attack row as a mud arm swinging down to grab."
+      },
+      "ref": "unit_mud_fiend",
+      "deps": ["art_mon_mud_fiend_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴泥魔（mud_fiend）的兵团形态：附 art_mon_mud_fiend_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。泥是不透明实色；底部泥浆只画与身体相连的一小摊，不画地面。"
+    },
+    {
+      "id": "art_unit_mud_fiend_u",
+      "template": "unit_sheet",
+      "style": "valen_city",
+      "subject": {
+        "zh": "一坨人形澱泥：高约 1.6 米，没有腿，下身与泥浆连成一小摊，上身隆起两条粗泥臂；泥身灰褐 #6E6250，淌着灰白黏液 #B9B4A8，夹着碎瓦与瓷白小晶片 #EDE8DC，胸前一张横裂的大口里嵌着一块灰晶。辨识：胸前的横口与灰晶，身下拖着的一小摊泥。",
+        "en": "A humanoid lump of sediment mud: about 1.6 m tall with no legs, its lower body merging into a small puddle of mud, two thick mud arms heaving up from its upper body; gray-brown mud #6E6250 running with gray-white slime #B9B4A8, studded with broken tiles and small porcelain-white crystal chips #EDE8DC, a gray crystal lodged in the wide horizontal mouth across its chest. Identifying marks: the chest mouth with its crystal and the small puddle of mud it drags beneath it."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。行军行画成泥身向前滑涌；攻击行画成泥臂抡下缠抓。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the march row as the mud body sliding and surging forward; the attack row as a mud arm swinging down to grab."
+      },
+      "ref": "unit_mud_fiend",
+      "deps": ["art_mon_mud_fiend_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴泥魔（mud_fiend）的兵团形态：附 art_mon_mud_fiend_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。泥是不透明实色；底部泥浆只画与身体相连的一小摊，不画地面。"
+    },
+    {
+      "id": "art_unit_drowned_d",
+      "template": "unit_sheet",
+      "style": "sealed_ruins",
+      "subject": {
+        "zh": "溺死的水手：身高约 1.7 米，两足拖行，皮肉泡得发胀，青灰色 #5A6B6E，湿发贴脸，穿滴水的旧粗布水手衣 #34403F，身上缠着几缕暗绿水草，腰间一段断缆绳；脸像瓷器一样平滑，双眼是白瓷珠 #EDE8DC。辨识：缠身的水草、断缆绳与不停滴水的衣角。",
+        "en": "A drowned sailor: about 1.7 m tall, dragging itself on two legs, bloated blue-gray waterlogged flesh #5A6B6E, wet hair plastered to its head, dripping old coarse sailor's clothes #34403F, strands of dark green waterweed wound round its body and a length of broken mooring rope at its waist; its face is smooth like porcelain, with eyes of white porcelain beads #EDE8DC. Identifying marks: the waterweed wrapped round it, the broken rope and the hems that never stop dripping."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。行军行画成拖着脚蹒跚前行；攻击行画成伸出湿冷的双手掐抓。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the march row as a dragging, shambling walk; the attack row as cold wet hands reaching out to strangle."
+      },
+      "ref": "unit_drowned",
+      "deps": ["art_mon_drowned_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴溺亡者（drowned）的兵团形态：附 art_mon_drowned_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。Q 版人形比例；水滴画成几个小像素，不画水面。"
+    },
+    {
+      "id": "art_unit_drowned_r",
+      "template": "unit_sheet",
+      "style": "sealed_ruins",
+      "subject": {
+        "zh": "溺死的水手：身高约 1.7 米，两足拖行，皮肉泡得发胀，青灰色 #5A6B6E，湿发贴脸，穿滴水的旧粗布水手衣 #34403F，身上缠着几缕暗绿水草，腰间一段断缆绳；脸像瓷器一样平滑，双眼是白瓷珠 #EDE8DC。辨识：缠身的水草、断缆绳与不停滴水的衣角。",
+        "en": "A drowned sailor: about 1.7 m tall, dragging itself on two legs, bloated blue-gray waterlogged flesh #5A6B6E, wet hair plastered to its head, dripping old coarse sailor's clothes #34403F, strands of dark green waterweed wound round its body and a length of broken mooring rope at its waist; its face is smooth like porcelain, with eyes of white porcelain beads #EDE8DC. Identifying marks: the waterweed wrapped round it, the broken rope and the hems that never stop dripping."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。行军行画成拖着脚蹒跚前行；攻击行画成伸出湿冷的双手掐抓。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the march row as a dragging, shambling walk; the attack row as cold wet hands reaching out to strangle."
+      },
+      "ref": "unit_drowned",
+      "deps": ["art_mon_drowned_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴溺亡者（drowned）的兵团形态：附 art_mon_drowned_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。Q 版人形比例；水滴画成几个小像素，不画水面。"
+    },
+    {
+      "id": "art_unit_drowned_u",
+      "template": "unit_sheet",
+      "style": "sealed_ruins",
+      "subject": {
+        "zh": "溺死的水手：身高约 1.7 米，两足拖行，皮肉泡得发胀，青灰色 #5A6B6E，湿发贴脸，穿滴水的旧粗布水手衣 #34403F，身上缠着几缕暗绿水草，腰间一段断缆绳；脸像瓷器一样平滑，双眼是白瓷珠 #EDE8DC。辨识：缠身的水草、断缆绳与不停滴水的衣角。",
+        "en": "A drowned sailor: about 1.7 m tall, dragging itself on two legs, bloated blue-gray waterlogged flesh #5A6B6E, wet hair plastered to its head, dripping old coarse sailor's clothes #34403F, strands of dark green waterweed wound round its body and a length of broken mooring rope at its waist; its face is smooth like porcelain, with eyes of white porcelain beads #EDE8DC. Identifying marks: the waterweed wrapped round it, the broken rope and the hems that never stop dripping."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。行军行画成拖着脚蹒跚前行；攻击行画成伸出湿冷的双手掐抓。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the march row as a dragging, shambling walk; the attack row as cold wet hands reaching out to strangle."
+      },
+      "ref": "unit_drowned",
+      "deps": ["art_mon_drowned_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴溺亡者（drowned）的兵团形态：附 art_mon_drowned_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。Q 版人形比例；水滴画成几个小像素，不画水面。"
+    },
+    {
+      "id": "art_unit_crystal_centipede_d",
+      "template": "unit_sheet_large",
+      "style": "sealed_ruins",
+      "subject": {
+        "zh": "长成的晶甲蜈：长约 2.6 米，约二十节身体，每节一对节腿，甲壳暗灰蓝 #4A5866，节缝深一级 #2B333C；幼体背上的单枚晶刺长成了密集的灰白晶簇 #C8D0D8，夹着冰蓝晶尖 #A8C4DC，头部一对弯钳毒颚。辨识：从头到尾越长越高的背上晶簇，爬行时腿按波浪起落。",
+        "en": "A grown crystal centipede: about 2.6 m long with about twenty body segments and a pair of jointed legs on each, dark gray-blue shell #4A5866 with seams one step darker #2B333C; the single spikes of the young have grown into dense gray-white crystal clusters #C8D0D8 tipped with ice blue #A8C4DC, a pair of curved venom pincers at the head. Identifying marks: the back clusters growing taller from head to tail, legs rising and falling in a wave as it crawls."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。这是多足生物：身体贴地，腿数每帧一致，爬行时腿按波浪交替起落，绝不画成四足兽；攻击行画成昂起前段、毒颚夹下。",
+        "en": "Every frame in this sheet faces the viewer (down). This is a many-legged creature: body low to the ground, the same number of legs in every frame, legs rising and falling in a wave while crawling, never drawn as a four-legged beast; draw the attack row as the front segments rearing up and the pincers snapping down."
+      },
+      "ref": "unit_crystal_centipede",
+      "deps": ["art_mon_crystal_centipede_young_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴晶甲蜈幼体（crystal_centipede_young）的兵团形态：附 art_mon_crystal_centipede_young_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。它是图鉴晶甲蜈幼体的成年体：身体更长、晶簇更密，配色不变。"
+    },
+    {
+      "id": "art_unit_crystal_centipede_r",
+      "template": "unit_sheet_large",
+      "style": "sealed_ruins",
+      "subject": {
+        "zh": "长成的晶甲蜈：长约 2.6 米，约二十节身体，每节一对节腿，甲壳暗灰蓝 #4A5866，节缝深一级 #2B333C；幼体背上的单枚晶刺长成了密集的灰白晶簇 #C8D0D8，夹着冰蓝晶尖 #A8C4DC，头部一对弯钳毒颚。辨识：从头到尾越长越高的背上晶簇，爬行时腿按波浪起落。",
+        "en": "A grown crystal centipede: about 2.6 m long with about twenty body segments and a pair of jointed legs on each, dark gray-blue shell #4A5866 with seams one step darker #2B333C; the single spikes of the young have grown into dense gray-white crystal clusters #C8D0D8 tipped with ice blue #A8C4DC, a pair of curved venom pincers at the head. Identifying marks: the back clusters growing taller from head to tail, legs rising and falling in a wave as it crawls."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。这是多足生物：身体贴地，腿数每帧一致，爬行时腿按波浪交替起落，绝不画成四足兽；攻击行画成昂起前段、毒颚夹下。",
+        "en": "Every frame in this sheet faces screen right (side view). This is a many-legged creature: body low to the ground, the same number of legs in every frame, legs rising and falling in a wave while crawling, never drawn as a four-legged beast; draw the attack row as the front segments rearing up and the pincers snapping down."
+      },
+      "ref": "unit_crystal_centipede",
+      "deps": ["art_mon_crystal_centipede_young_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴晶甲蜈幼体（crystal_centipede_young）的兵团形态：附 art_mon_crystal_centipede_young_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。它是图鉴晶甲蜈幼体的成年体：身体更长、晶簇更密，配色不变。"
+    },
+    {
+      "id": "art_unit_crystal_centipede_u",
+      "template": "unit_sheet_large",
+      "style": "sealed_ruins",
+      "subject": {
+        "zh": "长成的晶甲蜈：长约 2.6 米，约二十节身体，每节一对节腿，甲壳暗灰蓝 #4A5866，节缝深一级 #2B333C；幼体背上的单枚晶刺长成了密集的灰白晶簇 #C8D0D8，夹着冰蓝晶尖 #A8C4DC，头部一对弯钳毒颚。辨识：从头到尾越长越高的背上晶簇，爬行时腿按波浪起落。",
+        "en": "A grown crystal centipede: about 2.6 m long with about twenty body segments and a pair of jointed legs on each, dark gray-blue shell #4A5866 with seams one step darker #2B333C; the single spikes of the young have grown into dense gray-white crystal clusters #C8D0D8 tipped with ice blue #A8C4DC, a pair of curved venom pincers at the head. Identifying marks: the back clusters growing taller from head to tail, legs rising and falling in a wave as it crawls."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。这是多足生物：身体贴地，腿数每帧一致，爬行时腿按波浪交替起落，绝不画成四足兽；攻击行画成昂起前段、毒颚夹下。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. This is a many-legged creature: body low to the ground, the same number of legs in every frame, legs rising and falling in a wave while crawling, never drawn as a four-legged beast; draw the attack row as the front segments rearing up and the pincers snapping down."
+      },
+      "ref": "unit_crystal_centipede",
+      "deps": ["art_mon_crystal_centipede_young_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴晶甲蜈幼体（crystal_centipede_young）的兵团形态：附 art_mon_crystal_centipede_young_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。它是图鉴晶甲蜈幼体的成年体：身体更长、晶簇更密，配色不变。"
+    },
+    {
+      "id": "art_unit_skeleton_d",
+      "template": "unit_sheet",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "骨原上列队的骷髅兵：身高约 1.7 米，骨色灰黄 #C8BFA8，关节积灰，眼窝一点暗红 #B33A2A；身上挂着不同年代的残甲，一侧锈鳞甲、一侧皮护肩 #6A5A48，右手一柄缺口的锈剑，左臂一面朽烂开裂的木圆盾。辨识：朽烂的圆盾与肋间一支断箭。",
+        "en": "A boneplain skeleton marching in ranks: about 1.7 m tall, grayish-yellow bones #C8BFA8 with ash in the joints and a dark red spark #B33A2A in each eye socket; scraps of armor from different eras hang on it, rusted scale on one side and a leather pauldron #6A5A48 on the other, a notched rusty sword in the right hand and a rotten, split wooden round shield on the left arm. Identifying marks: the rotten round shield and a broken arrow lodged between its ribs."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。行军行画成整齐但僵硬的列队步伐；攻击行画成锈剑劈砍；倒地行画成骨架散落成一堆。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the march row as an orderly but stiff marching step; the attack row as a hacking cut with the rusty sword; the death row as the skeleton collapsing into a heap of bones."
+      },
+      "ref": "unit_skeleton",
+      "deps": ["art_mon_boneplain_skeleton_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴骷髅兵（boneplain_skeleton）的兵团形态：附 art_mon_boneplain_skeleton_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。Q 版人形比例；肋骨间的空处透出背景色。"
+    },
+    {
+      "id": "art_unit_skeleton_r",
+      "template": "unit_sheet",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "骨原上列队的骷髅兵：身高约 1.7 米，骨色灰黄 #C8BFA8，关节积灰，眼窝一点暗红 #B33A2A；身上挂着不同年代的残甲，一侧锈鳞甲、一侧皮护肩 #6A5A48，右手一柄缺口的锈剑，左臂一面朽烂开裂的木圆盾。辨识：朽烂的圆盾与肋间一支断箭。",
+        "en": "A boneplain skeleton marching in ranks: about 1.7 m tall, grayish-yellow bones #C8BFA8 with ash in the joints and a dark red spark #B33A2A in each eye socket; scraps of armor from different eras hang on it, rusted scale on one side and a leather pauldron #6A5A48 on the other, a notched rusty sword in the right hand and a rotten, split wooden round shield on the left arm. Identifying marks: the rotten round shield and a broken arrow lodged between its ribs."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。行军行画成整齐但僵硬的列队步伐；攻击行画成锈剑劈砍；倒地行画成骨架散落成一堆。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the march row as an orderly but stiff marching step; the attack row as a hacking cut with the rusty sword; the death row as the skeleton collapsing into a heap of bones."
+      },
+      "ref": "unit_skeleton",
+      "deps": ["art_mon_boneplain_skeleton_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴骷髅兵（boneplain_skeleton）的兵团形态：附 art_mon_boneplain_skeleton_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。Q 版人形比例；肋骨间的空处透出背景色。"
+    },
+    {
+      "id": "art_unit_skeleton_u",
+      "template": "unit_sheet",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "骨原上列队的骷髅兵：身高约 1.7 米，骨色灰黄 #C8BFA8，关节积灰，眼窝一点暗红 #B33A2A；身上挂着不同年代的残甲，一侧锈鳞甲、一侧皮护肩 #6A5A48，右手一柄缺口的锈剑，左臂一面朽烂开裂的木圆盾。辨识：朽烂的圆盾与肋间一支断箭。",
+        "en": "A boneplain skeleton marching in ranks: about 1.7 m tall, grayish-yellow bones #C8BFA8 with ash in the joints and a dark red spark #B33A2A in each eye socket; scraps of armor from different eras hang on it, rusted scale on one side and a leather pauldron #6A5A48 on the other, a notched rusty sword in the right hand and a rotten, split wooden round shield on the left arm. Identifying marks: the rotten round shield and a broken arrow lodged between its ribs."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。行军行画成整齐但僵硬的列队步伐；攻击行画成锈剑劈砍；倒地行画成骨架散落成一堆。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the march row as an orderly but stiff marching step; the attack row as a hacking cut with the rusty sword; the death row as the skeleton collapsing into a heap of bones."
+      },
+      "ref": "unit_skeleton",
+      "deps": ["art_mon_boneplain_skeleton_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴骷髅兵（boneplain_skeleton）的兵团形态：附 art_mon_boneplain_skeleton_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。Q 版人形比例；肋骨间的空处透出背景色。"
+    },
+    {
+      "id": "art_unit_bone_hound_d",
+      "template": "unit_sheet",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "只剩骨架的猎犬：体长约 1.4 米，四足，骨架灰白 #C8C0B0，肋间挂着几缕干枯的灰色残毛 #8A8580，眼窝里两点淡紫灰火 #C6B5E0，颈上一只发绿的旧铜项圈 #6A8A6A。辨识：绿锈铜项圈与空荡荡的胸腔。",
+        "en": "A hound reduced to its skeleton: about 1.4 m long, four legs, gray-white bones #C8C0B0 with a few strands of dry gray fur #8A8580 hanging between the ribs, two pale lavender-gray embers #C6B5E0 in the eye sockets, an old green-tarnished copper collar #6A8A6A round its neck. Identifying marks: the verdigris copper collar and the empty ribcage."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。行军行画成低伏快跑；攻击行画成跃起扑咬。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the march row as a low fast run; the attack row as a leaping bite."
+      },
+      "ref": "unit_bone_hound",
+      "deps": ["art_mon_bone_hound_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴骨犬（bone_hound）的兵团形态：附 art_mon_bone_hound_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。肋间的空处透出背景色。"
+    },
+    {
+      "id": "art_unit_bone_hound_r",
+      "template": "unit_sheet",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "只剩骨架的猎犬：体长约 1.4 米，四足，骨架灰白 #C8C0B0，肋间挂着几缕干枯的灰色残毛 #8A8580，眼窝里两点淡紫灰火 #C6B5E0，颈上一只发绿的旧铜项圈 #6A8A6A。辨识：绿锈铜项圈与空荡荡的胸腔。",
+        "en": "A hound reduced to its skeleton: about 1.4 m long, four legs, gray-white bones #C8C0B0 with a few strands of dry gray fur #8A8580 hanging between the ribs, two pale lavender-gray embers #C6B5E0 in the eye sockets, an old green-tarnished copper collar #6A8A6A round its neck. Identifying marks: the verdigris copper collar and the empty ribcage."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。行军行画成低伏快跑；攻击行画成跃起扑咬。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the march row as a low fast run; the attack row as a leaping bite."
+      },
+      "ref": "unit_bone_hound",
+      "deps": ["art_mon_bone_hound_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴骨犬（bone_hound）的兵团形态：附 art_mon_bone_hound_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。肋间的空处透出背景色。"
+    },
+    {
+      "id": "art_unit_bone_hound_u",
+      "template": "unit_sheet",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "只剩骨架的猎犬：体长约 1.4 米，四足，骨架灰白 #C8C0B0，肋间挂着几缕干枯的灰色残毛 #8A8580，眼窝里两点淡紫灰火 #C6B5E0，颈上一只发绿的旧铜项圈 #6A8A6A。辨识：绿锈铜项圈与空荡荡的胸腔。",
+        "en": "A hound reduced to its skeleton: about 1.4 m long, four legs, gray-white bones #C8C0B0 with a few strands of dry gray fur #8A8580 hanging between the ribs, two pale lavender-gray embers #C6B5E0 in the eye sockets, an old green-tarnished copper collar #6A8A6A round its neck. Identifying marks: the verdigris copper collar and the empty ribcage."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。行军行画成低伏快跑；攻击行画成跃起扑咬。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the march row as a low fast run; the attack row as a leaping bite."
+      },
+      "ref": "unit_bone_hound",
+      "deps": ["art_mon_bone_hound_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴骨犬（bone_hound）的兵团形态：附 art_mon_bone_hound_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。肋间的空处透出背景色。"
+    },
+    {
+      "id": "art_unit_ashfolk_d",
+      "template": "unit_sheet",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "穿家常衣服的灰色人影：身高约 1.6 米，两足拖行，全身像被灰烬糊住 #8A8580，看得出生前的轮廓，穿旧式家常衣裳与围裙 #6A6258，手里还拿着一口锅或一块门牌；灰壳下只剩模糊的五官，胸口一个门形空洞。辨识：手里的家什与胸口的门形空洞。",
+        "en": "A gray figure in everyday clothes: about 1.6 m tall, shuffling on two legs, its whole body as if plastered in ash #8A8580 with the living shape still visible, wearing old-style everyday clothes and an apron #6A6258, still holding a pot or a door plaque; only blurred features remain under the ash crust, and there is a door-shaped hole in its chest. Identifying marks: the household thing in its hands and the door-shaped hole in its chest."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。行军行画成慢慢拖步；攻击行画成灰手向前抓扑。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the march row as a slow shuffle; the attack row as ashen hands grabbing forward."
+      },
+      "ref": "unit_ashfolk",
+      "deps": ["art_mon_ashfolk_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴灰民（ashfolk）的兵团形态：附 art_mon_ashfolk_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。Q 版人形比例；门形空洞透出背景色，不涂门扉金；门牌上不写字。"
+    },
+    {
+      "id": "art_unit_ashfolk_r",
+      "template": "unit_sheet",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "穿家常衣服的灰色人影：身高约 1.6 米，两足拖行，全身像被灰烬糊住 #8A8580，看得出生前的轮廓，穿旧式家常衣裳与围裙 #6A6258，手里还拿着一口锅或一块门牌；灰壳下只剩模糊的五官，胸口一个门形空洞。辨识：手里的家什与胸口的门形空洞。",
+        "en": "A gray figure in everyday clothes: about 1.6 m tall, shuffling on two legs, its whole body as if plastered in ash #8A8580 with the living shape still visible, wearing old-style everyday clothes and an apron #6A6258, still holding a pot or a door plaque; only blurred features remain under the ash crust, and there is a door-shaped hole in its chest. Identifying marks: the household thing in its hands and the door-shaped hole in its chest."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。行军行画成慢慢拖步；攻击行画成灰手向前抓扑。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the march row as a slow shuffle; the attack row as ashen hands grabbing forward."
+      },
+      "ref": "unit_ashfolk",
+      "deps": ["art_mon_ashfolk_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴灰民（ashfolk）的兵团形态：附 art_mon_ashfolk_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。Q 版人形比例；门形空洞透出背景色，不涂门扉金；门牌上不写字。"
+    },
+    {
+      "id": "art_unit_ashfolk_u",
+      "template": "unit_sheet",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "穿家常衣服的灰色人影：身高约 1.6 米，两足拖行，全身像被灰烬糊住 #8A8580，看得出生前的轮廓，穿旧式家常衣裳与围裙 #6A6258，手里还拿着一口锅或一块门牌；灰壳下只剩模糊的五官，胸口一个门形空洞。辨识：手里的家什与胸口的门形空洞。",
+        "en": "A gray figure in everyday clothes: about 1.6 m tall, shuffling on two legs, its whole body as if plastered in ash #8A8580 with the living shape still visible, wearing old-style everyday clothes and an apron #6A6258, still holding a pot or a door plaque; only blurred features remain under the ash crust, and there is a door-shaped hole in its chest. Identifying marks: the household thing in its hands and the door-shaped hole in its chest."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。行军行画成慢慢拖步；攻击行画成灰手向前抓扑。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the march row as a slow shuffle; the attack row as ashen hands grabbing forward."
+      },
+      "ref": "unit_ashfolk",
+      "deps": ["art_mon_ashfolk_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴灰民（ashfolk）的兵团形态：附 art_mon_ashfolk_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。Q 版人形比例；门形空洞透出背景色，不涂门扉金；门牌上不写字。"
+    },
+    {
+      "id": "art_unit_warg_pack_d",
+      "template": "unit_sheet_large",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "北境冬潮里的魔狼：体长约 2.1 米，比灰狼魁梧，黑灰毛 #2A2828，冬毛蓬厚，颈毛与腹毛上结着白色冰碴 #D8E8F4，背脊一道赤黑硬鬃 #5A1A16，额上一对短角与一道赤色角纹，眼睛赤红 #B33A2A。辨识：额上短角、背脊赤鬃与毛上的冰碴，低伏前冲的姿态。",
+        "en": "A fiendwolf of the northern winter tide: about 2.1 m long and burlier than a gray wolf, black-gray fur #2A2828 in a thick winter coat with white ice crusts #D8E8F4 clinging to the neck ruff and belly, a crest of stiff red-black bristles #5A1A16 down the spine, a pair of short horns and a red horn-mark on the brow, red eyes #B33A2A. Identifying marks: the brow horns, the red crest on its back and the ice on its fur, a low crouching charge."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。行军行画成低伏小跑；攻击行画成扑起撕咬。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the march row as a low crouching lope; the attack row as a leaping, tearing bite."
+      },
+      "ref": "unit_warg_pack",
+      "deps": ["art_mon_warg_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴魔狼（warg）的兵团形态：附 art_mon_warg_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。它是图鉴魔狼的冬毛形态：只多了冰碴与赤色角纹，不画鞍具。"
+    },
+    {
+      "id": "art_unit_warg_pack_r",
+      "template": "unit_sheet_large",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "北境冬潮里的魔狼：体长约 2.1 米，比灰狼魁梧，黑灰毛 #2A2828，冬毛蓬厚，颈毛与腹毛上结着白色冰碴 #D8E8F4，背脊一道赤黑硬鬃 #5A1A16，额上一对短角与一道赤色角纹，眼睛赤红 #B33A2A。辨识：额上短角、背脊赤鬃与毛上的冰碴，低伏前冲的姿态。",
+        "en": "A fiendwolf of the northern winter tide: about 2.1 m long and burlier than a gray wolf, black-gray fur #2A2828 in a thick winter coat with white ice crusts #D8E8F4 clinging to the neck ruff and belly, a crest of stiff red-black bristles #5A1A16 down the spine, a pair of short horns and a red horn-mark on the brow, red eyes #B33A2A. Identifying marks: the brow horns, the red crest on its back and the ice on its fur, a low crouching charge."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。行军行画成低伏小跑；攻击行画成扑起撕咬。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the march row as a low crouching lope; the attack row as a leaping, tearing bite."
+      },
+      "ref": "unit_warg_pack",
+      "deps": ["art_mon_warg_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴魔狼（warg）的兵团形态：附 art_mon_warg_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。它是图鉴魔狼的冬毛形态：只多了冰碴与赤色角纹，不画鞍具。"
+    },
+    {
+      "id": "art_unit_warg_pack_u",
+      "template": "unit_sheet_large",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "北境冬潮里的魔狼：体长约 2.1 米，比灰狼魁梧，黑灰毛 #2A2828，冬毛蓬厚，颈毛与腹毛上结着白色冰碴 #D8E8F4，背脊一道赤黑硬鬃 #5A1A16，额上一对短角与一道赤色角纹，眼睛赤红 #B33A2A。辨识：额上短角、背脊赤鬃与毛上的冰碴，低伏前冲的姿态。",
+        "en": "A fiendwolf of the northern winter tide: about 2.1 m long and burlier than a gray wolf, black-gray fur #2A2828 in a thick winter coat with white ice crusts #D8E8F4 clinging to the neck ruff and belly, a crest of stiff red-black bristles #5A1A16 down the spine, a pair of short horns and a red horn-mark on the brow, red eyes #B33A2A. Identifying marks: the brow horns, the red crest on its back and the ice on its fur, a low crouching charge."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。行军行画成低伏小跑；攻击行画成扑起撕咬。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the march row as a low crouching lope; the attack row as a leaping, tearing bite."
+      },
+      "ref": "unit_warg_pack",
+      "deps": ["art_mon_warg_ref"],
+      "milestone": "M2",
+      "notes": "这是图鉴魔狼（warg）的兵团形态：附 art_mon_warg_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。它是图鉴魔狼的冬毛形态：只多了冰碴与赤色角纹，不画鞍具。"
+    },
+    {
+      "id": "art_unit_womb_spawn_d",
+      "template": "unit_sheet",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "没长完的澱生体：高约 1.8 米，形体不全，它自己的右侧是一条粗壮的臂，左侧只是一团鼓动的块；表皮暗红 #5A1A16 与黑 #1C1A1A，像未凝固的黑蜡一样微微流淌，裂纹里透出赤红 #B33A2A，头上几只零乱的角芽。辨识：左右不对称的身体与蜡一样流淌的表皮。",
+        "en": "An unfinished sediment creature: about 1.8 m tall with an incomplete form, a thick arm on its own right side and only a pulsing lump on its left; dark red #5A1A16 and black #1C1A1A skin that slowly runs like unset black wax, red #B33A2A showing through the cracks, a few scattered horn buds on its head. Identifying marks: the lopsided body and the skin running like wax."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。行军行画成摇晃着前挪；攻击行画成粗臂横扫。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the march row as a lurching shuffle forward; the attack row as a sweep of the thick arm."
+      },
+      "ref": "unit_womb_spawn",
+      "deps": ["art_mon_womb_spawn_ref"],
+      "milestone": "M3",
+      "notes": "这是图鉴渊胎（womb_spawn）的兵团形态：附 art_mon_womb_spawn_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。不对称是关键：粗臂固定在它自己的右侧，三张朝向图保持一致。"
+    },
+    {
+      "id": "art_unit_womb_spawn_r",
+      "template": "unit_sheet",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "没长完的澱生体：高约 1.8 米，形体不全，它自己的右侧是一条粗壮的臂，左侧只是一团鼓动的块；表皮暗红 #5A1A16 与黑 #1C1A1A，像未凝固的黑蜡一样微微流淌，裂纹里透出赤红 #B33A2A，头上几只零乱的角芽。辨识：左右不对称的身体与蜡一样流淌的表皮。",
+        "en": "An unfinished sediment creature: about 1.8 m tall with an incomplete form, a thick arm on its own right side and only a pulsing lump on its left; dark red #5A1A16 and black #1C1A1A skin that slowly runs like unset black wax, red #B33A2A showing through the cracks, a few scattered horn buds on its head. Identifying marks: the lopsided body and the skin running like wax."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。行军行画成摇晃着前挪；攻击行画成粗臂横扫。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the march row as a lurching shuffle forward; the attack row as a sweep of the thick arm."
+      },
+      "ref": "unit_womb_spawn",
+      "deps": ["art_mon_womb_spawn_ref"],
+      "milestone": "M3",
+      "notes": "这是图鉴渊胎（womb_spawn）的兵团形态：附 art_mon_womb_spawn_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。不对称是关键：粗臂固定在它自己的右侧，三张朝向图保持一致。"
+    },
+    {
+      "id": "art_unit_womb_spawn_u",
+      "template": "unit_sheet",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "没长完的澱生体：高约 1.8 米，形体不全，它自己的右侧是一条粗壮的臂，左侧只是一团鼓动的块；表皮暗红 #5A1A16 与黑 #1C1A1A，像未凝固的黑蜡一样微微流淌，裂纹里透出赤红 #B33A2A，头上几只零乱的角芽。辨识：左右不对称的身体与蜡一样流淌的表皮。",
+        "en": "An unfinished sediment creature: about 1.8 m tall with an incomplete form, a thick arm on its own right side and only a pulsing lump on its left; dark red #5A1A16 and black #1C1A1A skin that slowly runs like unset black wax, red #B33A2A showing through the cracks, a few scattered horn buds on its head. Identifying marks: the lopsided body and the skin running like wax."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。行军行画成摇晃着前挪；攻击行画成粗臂横扫。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the march row as a lurching shuffle forward; the attack row as a sweep of the thick arm."
+      },
+      "ref": "unit_womb_spawn",
+      "deps": ["art_mon_womb_spawn_ref"],
+      "milestone": "M3",
+      "notes": "这是图鉴渊胎（womb_spawn）的兵团形态：附 art_mon_womb_spawn_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。不对称是关键：粗臂固定在它自己的右侧，三张朝向图保持一致。"
+    },
+    {
+      "id": "art_unit_faceless_d",
+      "template": "unit_sheet",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "灰影战士：身高约 1.9 米，两足直立，全身是浓黑的澱 #1C1C22，边缘像墨在水里化开，胸背与手臂上浮着许多大小不一的灰白人脸 #5A5A6A，表情各不相同，手握一柄澱凝成的长矛；头部没有自己的脸，只有一圈别人的脸围着空处。辨识：浮满面孔的黑影身体与空着的头部。",
+        "en": "A gray shadow warrior: about 1.9 m tall on two legs, its whole body thick black sediment #1C1C22 with edges bleeding like ink in water, many gray-white human faces #5A5A6A of different sizes and expressions surfacing across its chest, back and arms, holding a spear congealed from sediment; its head has no face of its own, only a ring of other faces around an empty space. Identifying marks: the face-covered black body and the empty head."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。行军行画成整齐的步伐；攻击行画成长矛直刺。",
+        "en": "Every frame in this sheet faces the viewer (down). Draw the march row as an orderly step; the attack row as a straight spear thrust."
+      },
+      "ref": "unit_faceless",
+      "deps": ["art_mon_faceless_soldier_ref"],
+      "milestone": "M3",
+      "notes": "这是图鉴千貌兵（faceless_soldier）的兵团形态：附 art_mon_faceless_soldier_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。Q 版人形比例；面孔只画轮廓与表情，不画成血腥；立牌之间的脸部差异由渲染层做，本图只画一套。"
+    },
+    {
+      "id": "art_unit_faceless_r",
+      "template": "unit_sheet",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "灰影战士：身高约 1.9 米，两足直立，全身是浓黑的澱 #1C1C22，边缘像墨在水里化开，胸背与手臂上浮着许多大小不一的灰白人脸 #5A5A6A，表情各不相同，手握一柄澱凝成的长矛；头部没有自己的脸，只有一圈别人的脸围着空处。辨识：浮满面孔的黑影身体与空着的头部。",
+        "en": "A gray shadow warrior: about 1.9 m tall on two legs, its whole body thick black sediment #1C1C22 with edges bleeding like ink in water, many gray-white human faces #5A5A6A of different sizes and expressions surfacing across its chest, back and arms, holding a spear congealed from sediment; its head has no face of its own, only a ring of other faces around an empty space. Identifying marks: the face-covered black body and the empty head."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。行军行画成整齐的步伐；攻击行画成长矛直刺。",
+        "en": "Every frame in this sheet faces screen right (side view). Draw the march row as an orderly step; the attack row as a straight spear thrust."
+      },
+      "ref": "unit_faceless",
+      "deps": ["art_mon_faceless_soldier_ref"],
+      "milestone": "M3",
+      "notes": "这是图鉴千貌兵（faceless_soldier）的兵团形态：附 art_mon_faceless_soldier_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。Q 版人形比例；面孔只画轮廓与表情，不画成血腥；立牌之间的脸部差异由渲染层做，本图只画一套。"
+    },
+    {
+      "id": "art_unit_faceless_u",
+      "template": "unit_sheet",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "灰影战士：身高约 1.9 米，两足直立，全身是浓黑的澱 #1C1C22，边缘像墨在水里化开，胸背与手臂上浮着许多大小不一的灰白人脸 #5A5A6A，表情各不相同，手握一柄澱凝成的长矛；头部没有自己的脸，只有一圈别人的脸围着空处。辨识：浮满面孔的黑影身体与空着的头部。",
+        "en": "A gray shadow warrior: about 1.9 m tall on two legs, its whole body thick black sediment #1C1C22 with edges bleeding like ink in water, many gray-white human faces #5A5A6A of different sizes and expressions surfacing across its chest, back and arms, holding a spear congealed from sediment; its head has no face of its own, only a ring of other faces around an empty space. Identifying marks: the face-covered black body and the empty head."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。行军行画成整齐的步伐；攻击行画成长矛直刺。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. Draw the march row as an orderly step; the attack row as a straight spear thrust."
+      },
+      "ref": "unit_faceless",
+      "deps": ["art_mon_faceless_soldier_ref"],
+      "milestone": "M3",
+      "notes": "这是图鉴千貌兵（faceless_soldier）的兵团形态：附 art_mon_faceless_soldier_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。Q 版人形比例；面孔只画轮廓与表情，不画成血腥；立牌之间的脸部差异由渲染层做，本图只画一套。"
+    },
+    {
+      "id": "art_unit_ash_tide_d",
+      "template": "unit_sheet_large",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "一道向前翻涌的灰浪：齐胸高、约 2.2 米宽，前缘是楔形的浪头，浪头上半成形地冒出人的上身与兽的前肢，越往后越散成灰尘；浪身是翻滚的灰黑澱 #2E2C34 夹着灰烬碎屑 #8A8580，身后拖着长长的灰烟。辨识：浪头上成形、后半截还是灰尘的剪影。",
+        "en": "A gray wave surging forward: chest high and about 2.2 m wide, its front a wedge-shaped crest from which half-formed human torsos and beast forelegs rise, breaking down into dust toward the back; the body is churning gray-black sediment #2E2C34 mixed with ash flakes #8A8580, trailing long gray smoke behind. Identifying marks: the silhouette that takes shape at the crest while its rear is still dust."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。它没有头与腿：行军行画成浪头翻卷着向前涌，攻击行画成浪头扑下拍击，倒地行画成整道浪散成灰尘落下。",
+        "en": "Every frame in this sheet faces the viewer (down). It has no head or legs: draw the march row as the crest rolling forward, the attack row as the crest crashing down, and the death row as the whole wave falling apart into dust."
+      },
+      "ref": "unit_ash_tide",
+      "deps": ["art_mon_ashtide_vanguard_ref"],
+      "milestone": "M3",
+      "notes": "这是图鉴灰潮先锋（ashtide_vanguard）的兵团形态：附 art_mon_ashtide_vanguard_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。配色与灰烟与图鉴灰潮先锋一致；兵团形态是更宽的一道浪，浪头上的人形与兽形只是半成形的轮廓。"
+    },
+    {
+      "id": "art_unit_ash_tide_r",
+      "template": "unit_sheet_large",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "一道向前翻涌的灰浪：齐胸高、约 2.2 米宽，前缘是楔形的浪头，浪头上半成形地冒出人的上身与兽的前肢，越往后越散成灰尘；浪身是翻滚的灰黑澱 #2E2C34 夹着灰烬碎屑 #8A8580，身后拖着长长的灰烟。辨识：浪头上成形、后半截还是灰尘的剪影。",
+        "en": "A gray wave surging forward: chest high and about 2.2 m wide, its front a wedge-shaped crest from which half-formed human torsos and beast forelegs rise, breaking down into dust toward the back; the body is churning gray-black sediment #2E2C34 mixed with ash flakes #8A8580, trailing long gray smoke behind. Identifying marks: the silhouette that takes shape at the crest while its rear is still dust."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都朝画面右方（侧面）。它没有头与腿：行军行画成浪头翻卷着向前涌，攻击行画成浪头扑下拍击，倒地行画成整道浪散成灰尘落下。",
+        "en": "Every frame in this sheet faces screen right (side view). It has no head or legs: draw the march row as the crest rolling forward, the attack row as the crest crashing down, and the death row as the whole wave falling apart into dust."
+      },
+      "ref": "unit_ash_tide",
+      "deps": ["art_mon_ashtide_vanguard_ref"],
+      "milestone": "M3",
+      "notes": "这是图鉴灰潮先锋（ashtide_vanguard）的兵团形态：附 art_mon_ashtide_vanguard_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。配色与灰烟与图鉴灰潮先锋一致；兵团形态是更宽的一道浪，浪头上的人形与兽形只是半成形的轮廓。"
+    },
+    {
+      "id": "art_unit_ash_tide_u",
+      "template": "unit_sheet_large",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "一道向前翻涌的灰浪：齐胸高、约 2.2 米宽，前缘是楔形的浪头，浪头上半成形地冒出人的上身与兽的前肢，越往后越散成灰尘；浪身是翻滚的灰黑澱 #2E2C34 夹着灰烬碎屑 #8A8580，身后拖着长长的灰烟。辨识：浪头上成形、后半截还是灰尘的剪影。",
+        "en": "A gray wave surging forward: chest high and about 2.2 m wide, its front a wedge-shaped crest from which half-formed human torsos and beast forelegs rise, breaking down into dust toward the back; the body is churning gray-black sediment #2E2C34 mixed with ash flakes #8A8580, trailing long gray smoke behind. Identifying marks: the silhouette that takes shape at the crest while its rear is still dust."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都背向镜头（朝上），看到的是背面。它没有头与腿：行军行画成浪头翻卷着向前涌，攻击行画成浪头扑下拍击，倒地行画成整道浪散成灰尘落下。",
+        "en": "Every frame in this sheet faces away from the viewer (up), showing the back. It has no head or legs: draw the march row as the crest rolling forward, the attack row as the crest crashing down, and the death row as the whole wave falling apart into dust."
+      },
+      "ref": "unit_ash_tide",
+      "deps": ["art_mon_ashtide_vanguard_ref"],
+      "milestone": "M3",
+      "notes": "这是图鉴灰潮先锋（ashtide_vanguard）的兵团形态：附 art_mon_ashtide_vanguard_ref 作参照，配色与辨识特征与图鉴一致，细节更少。整张只画补充说明指定的一个朝向，左向由右向镜像，不另画。细节比主要角色少，成百上千同屏时也要一眼认出兵种。配色与灰烟与图鉴灰潮先锋一致；兵团形态是更宽的一道浪，浪头上的人形与兽形只是半成形的轮廓。"
+    }
+  ]
+}

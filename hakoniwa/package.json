@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "playthrough": "vitest run --config vitest.playthrough.config.ts",
     "format": "node ../node_modules/@biomejs/biome/bin/biome check --write",
-    "refs": "node tools/refs/fetch_refs.ts"
+    "refs": "node tools/refs/fetch_refs.ts",
+    "prompts": "node tools/prompts/build.ts",
+    "prompts:check": "node tools/prompts/build.ts --check"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

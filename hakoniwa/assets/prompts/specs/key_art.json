@@ -1,0 +1,259 @@
+{
+  "category": "key_art",
+  "title": "宣传主视觉、纹章与商店页及游戏库素材",
+  "sources": [
+    "docs/50_tech/art_pipeline.md",
+    "docs/50_tech/release_engineering.md",
+    "docs/30_story/characters.md"
+  ],
+  "items": [
+    {
+      "id": "art_key_wide_main",
+      "template": "key_art_wide",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "主视觉：黄昏的小丘上，一个披深色旅行斗篷、兜帽半掩的旅人背对镜头，面前草地上立着一座巨大的石门框，门缝透出暖金光；身旁是黑发羽梢的少女与银灰狼耳的女猎手，远处是边陲小镇与荒原的灰雾。",
+        "en": "Main key art: on a small hill at dusk a traveler in a dark hooded cloak stands with their back to the viewer before a huge stone door frame rising from the grass, warm gold light spilling from its gap; beside them a girl with feather-tipped black hair and a silver wolf-eared huntress, a frontier town and the grey haze of the waste in the distance."
+      },
+      "extra": {
+        "zh": "画面左侧三分之一是安静的黄昏天空，留给标题；门与人物在右侧三分之二。",
+        "en": "The left third is quiet dusk sky left for the title; the door and the figures occupy the right two thirds."
+      },
+      "deps": ["art_style_lothar_plain"],
+      "milestone": "M1",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；人物按主要角色的固定特征画（夜羽：黑发及肩、发梢化羽、深灰信使斗篷、腰间暗红火漆信囊；希雅：银灰短发、银灰狼耳狼尾、长弓；罗恩：棕色乱发、褪色蓝围巾、坑洼圆盾；奈拉：橙红长发、赤狐耳与白尖大尾、墨绿商人外套），主角是看不清脸的兜帽旅人；这是全作的第一张宣传图（垂直切片与公布用），也是后续商店素材的参照。"
+    },
+    {
+      "id": "art_key_emblem",
+      "template": "key_emblem",
+      "subject": {
+        "zh": "游戏纹章：一座拱门形的门框居中，门框里是一座小小的微缩箱庭（一棵树、一座小屋、一条小路），门楣上方横着一把钥匙，左右两侧各一根对称的藤枝，庄重简洁。",
+        "en": "Game emblem: an arch-shaped door frame at the center containing a tiny miniature boxed garden (one tree, one cottage, one little path), a key lying across above the lintel, a symmetrical vine sprig on each side, solemn and simple."
+      },
+      "milestone": "M1",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；门框与钥匙允许用门扉金 #f0d890；配色门扉金、深墨绿、石灰白；缩到很小时门形仍可辨。"
+    },
+    {
+      "id": "art_key_icon_community",
+      "template": "key_emblem",
+      "subject": {
+        "zh": "社区图标：一座拱门形的门框，门缝里透出一道竖直的暖金光，门框下方是一块小小的草地，图形饱满地占满画面，只有三四种颜色。",
+        "en": "Community icon: an arch-shaped door frame with a vertical line of warm gold light shining from its gap, a small patch of meadow beneath it, the shape filling the frame boldly, only three or four colors."
+      },
+      "deps": ["art_key_emblem"],
+      "milestone": "M2",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；商店平台的社区图标，成品 184x184；以纹章为参照简化；导入后补一块深墨绿底色。"
+    },
+    {
+      "id": "art_key_icon_client",
+      "template": "key_emblem",
+      "subject": {
+        "zh": "客户端图标：一个极简的拱门剪影，门缝一道竖直的暖金光，外轮廓粗而清楚，只有两种颜色，缩到十六像素仍能认出是一扇门。",
+        "en": "Client icon: an extremely simple arch silhouette with one vertical line of warm gold light at its gap, a thick clear outline, only two colors, still recognizable as a door when shrunk to sixteen pixels."
+      },
+      "deps": ["art_key_emblem"],
+      "milestone": "M2",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；桌面客户端图标（ico、icns 与 256 PNG）；透明底由洋红抠出；比社区图标更简。"
+    },
+    {
+      "id": "art_key_capsule_header",
+      "template": "key_capsule",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "页眉胶囊图：右侧是兜帽旅人与黑发羽梢的少女站在发光的石门框前，门缝的暖金光照亮两人的侧脸轮廓，左侧是平静的暮色天空与远处的小镇剪影。",
+        "en": "Header capsule: on the right the hooded traveler and the girl with feather-tipped black hair stand before a glowing stone door frame, its warm gold light outlining their profiles; on the left a calm evening sky and the silhouette of a distant town."
+      },
+      "extra": {
+        "zh": "主体集中在右侧，左侧约三分之一保持安静、低对比，留给标题。",
+        "en": "Gather the subject on the right; keep about a third on the left quiet and low in contrast for the title."
+      },
+      "deps": ["art_key_wide_main"],
+      "milestone": "M3",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；人物按主要角色的固定特征画（夜羽：黑发及肩、发梢化羽、深灰信使斗篷、腰间暗红火漆信囊；希雅：银灰短发、银灰狼耳狼尾、长弓；罗恩：棕色乱发、褪色蓝围巾、坑洼圆盾；奈拉：橙红长发、赤狐耳与白尖大尾、墨绿商人外套），主角是看不清脸的兜帽旅人；商店平台的页眉胶囊图 920x430，同时用作库页眉 920x430；小胶囊图另有一张。"
+    },
+    {
+      "id": "art_key_capsule_small",
+      "template": "key_capsule",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "小胶囊图底：一扇门缝透光的石门框剪影立在右端，门光是画面唯一的亮点，其余是平静的暮色天空色块与低矮的地平线，极简。",
+        "en": "Small capsule background: the silhouette of a stone door frame with light at its gap standing at the far right, its glow the only bright spot, the rest calm blocks of evening sky and a low horizon, minimal."
+      },
+      "extra": {
+        "zh": "门光放在右端六分之一以内，其余五分之四留给标识。",
+        "en": "Keep the door glow within the rightmost sixth; leave the other four fifths for the logo."
+      },
+      "deps": ["art_key_wide_main"],
+      "milestone": "M3",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；商店平台的小胶囊图 462x174：标识几乎占满，所以底图只要一个极简的门光；成品从画面中部裁成更窄的横条。"
+    },
+    {
+      "id": "art_key_capsule_main",
+      "template": "key_art_wide",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "主胶囊图：发光的石门框立在小丘上，兜帽旅人与四名同伴（黑发羽梢的少女、狼耳女猎手、举圆盾的棕发青年、狐耳的商人）在门前排开，远处是小镇与荒原。",
+        "en": "Main capsule: a glowing stone door frame standing on a hill, the hooded traveler and four companions (the girl with feather-tipped black hair, the wolf-eared huntress, the brown-haired youth with a round shield and the fox-eared merchant) lined up before it, a town and the waste beyond."
+      },
+      "extra": {
+        "zh": "左侧三分之一留给标题；人物与门在右侧，裁掉上下各一小条后仍完整。",
+        "en": "Leave the left third for the title; keep the figures and door on the right, intact after a thin strip is cropped from top and bottom."
+      },
+      "deps": ["art_key_wide_main"],
+      "milestone": "M3",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；人物按主要角色的固定特征画（夜羽：黑发及肩、发梢化羽、深灰信使斗篷、腰间暗红火漆信囊；希雅：银灰短发、银灰狼耳狼尾、长弓；罗恩：棕色乱发、褪色蓝围巾、坑洼圆盾；奈拉：橙红长发、赤狐耳与白尖大尾、墨绿商人外套），主角是看不清脸的兜帽旅人；商店平台的主胶囊图 1232x706：成品从画布裁成略窄的横幅。"
+    },
+    {
+      "id": "art_key_store_vertical",
+      "template": "key_art_tall",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "竖版胶囊图：画面中下部是兜帽旅人仰头望着一座高大的石门框，门缝的暖金光从上往下照，黑发羽梢的少女坐在门框边上，脚下是开着小花的草地。",
+        "en": "Vertical capsule: in the lower middle the hooded traveler looks up at a tall stone door frame, warm gold light from its gap shining down, the girl with feather-tipped black hair sitting on the edge of the frame, flowering grass underfoot."
+      },
+      "deps": ["art_key_wide_main"],
+      "milestone": "M3",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；人物按主要角色的固定特征画（夜羽：黑发及肩、发梢化羽、深灰信使斗篷、腰间暗红火漆信囊；希雅：银灰短发、银灰狼耳狼尾、长弓；罗恩：棕色乱发、褪色蓝围巾、坑洼圆盾；奈拉：橙红长发、赤狐耳与白尖大尾、墨绿商人外套），主角是看不清脸的兜帽旅人；商店平台的竖版胶囊图 748x896：成品从画布中部裁成更方的比例，所以主体与标题空位都放在中间约八成高度内。"
+    },
+    {
+      "id": "art_key_store_bg",
+      "template": "key_art_wide",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "商店页背景：夜色里的微缩箱庭全景，小镇的窗灯星星点点，森林与远山是深色剪影，天空里有淡淡的星，整体低对比，没有明确的主体。",
+        "en": "Store page background: a panorama of the miniature boxed garden at night, town windows scattered with small lights, forests and distant mountains as dark silhouettes, faint stars in the sky, low in contrast overall with no clear focal subject."
+      },
+      "extra": {
+        "zh": "整幅保持低对比，中间不放醒目的主体。",
+        "en": "Keep the whole image low in contrast with no bold subject in the middle."
+      },
+      "deps": ["art_key_wide_main"],
+      "milestone": "M3",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；商店平台的页面背景 1438x810：商店的文字与截图会叠在上面，所以要暗、要静、要低对比。"
+    },
+    {
+      "id": "art_key_library_capsule",
+      "template": "key_art_tall",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "库胶囊图：画面下部是五人小队站在一座发光的石门框前的背影，门缝的暖金光把他们的影子拉得很长，门的上方是层层叠叠的淡淡门框剪影一直延伸到天空。",
+        "en": "Library capsule: at the bottom the five-person party stand with their backs to us before a glowing stone door frame, its warm gold light stretching their shadows long, faint layered door-frame silhouettes rising above it all the way into the sky."
+      },
+      "deps": ["art_key_wide_main", "art_style_door_corridor"],
+      "milestone": "M3",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；人物按主要角色的固定特征画（夜羽：黑发及肩、发梢化羽、深灰信使斗篷、腰间暗红火漆信囊；希雅：银灰短发、银灰狼耳狼尾、长弓；罗恩：棕色乱发、褪色蓝围巾、坑洼圆盾；奈拉：橙红长发、赤狐耳与白尖大尾、墨绿商人外套），主角是看不清脸的兜帽旅人；商店平台的库胶囊图 600x900。"
+    },
+    {
+      "id": "art_key_library_hero",
+      "template": "key_art_wide",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "库主视觉：极宽的全景，左边是边陲小镇与森林，中间是一条通向远方的土路，路的尽头立着一座发光的石门框，右边是灰烬荒原与远处的山脉，五人小队小小地走在路上。",
+        "en": "Library hero: a very wide panorama, the frontier town and forest on the left, a dirt road leading into the distance in the middle ending at a glowing stone door frame, the ashen waste and far mountains on the right, the five-person party walking small along the road."
+      },
+      "extra": {
+        "zh": "上下各留出可裁掉的天空与地面，门与小队在正中。",
+        "en": "Leave sky and ground at top and bottom that can be cropped away; keep the door and party dead center."
+      },
+      "deps": ["art_key_wide_main"],
+      "milestone": "M3",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；人物按主要角色的固定特征画（夜羽：黑发及肩、发梢化羽、深灰信使斗篷、腰间暗红火漆信囊；希雅：银灰短发、银灰狼耳狼尾、长弓；罗恩：棕色乱发、褪色蓝围巾、坑洼圆盾；奈拉：橙红长发、赤狐耳与白尖大尾、墨绿商人外套），主角是看不清脸的兜帽旅人；商店平台的库主视觉 3840x1240：成品从画面中部裁成宽幅横带，关键内容（门与小队）放在正中的安全区（约画面正中四分之一宽、三分之一高）；不得有任何文字，库标识由商店平台叠加。"
+    },
+    {
+      "id": "art_key_wide_continent",
+      "template": "key_art_wide",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "大陆主视觉：像摆在桌上的微缩模型一样的整片大陆，白石穹顶、赭红长垒、白帆港城、参天巨树、獠牙岩柱、黑岩尖塔与雪岭龙骸各占一角，中央一条路上走着五人小队。",
+        "en": "Continent key art: the whole continent like a miniature model laid on a table, white domes, ochre long walls, a white-sailed harbor, towering giant trees, fang-like rock pillars, black basalt spires and a snowy ridge with dragon bones each filling a corner, the five-person party walking a road at the center."
+      },
+      "extra": {
+        "zh": "画面上方四分之一是安静的天空，留给标题。",
+        "en": "The top quarter is quiet sky left for the title."
+      },
+      "deps": ["art_key_wide_main", "art_style_holy_see_white"],
+      "milestone": "M4",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；人物按主要角色的固定特征画（夜羽：黑发及肩、发梢化羽、深灰信使斗篷、腰间暗红火漆信囊；希雅：银灰短发、银灰狼耳狼尾、长弓；罗恩：棕色乱发、褪色蓝围巾、坑洼圆盾；奈拉：橙红长发、赤狐耳与白尖大尾、墨绿商人外套），主角是看不清脸的兜帽旅人；第四幕以后的宣传图；各国只画风格剪影。"
+    },
+    {
+      "id": "art_key_wide_war",
+      "template": "key_art_wide",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "战争主视觉：红灰天光下的焦黑荒原上，各族的军旗与阵列向远处的巨坑推进，前景是举着坑洼圆盾、披着将领披风的棕发青年，身后是成排的盾兵与弓手。",
+        "en": "War key art: on scorched black waste under a red-grey sky, the banners and ranks of many peoples advancing toward a vast crater in the distance, in the foreground the brown-haired youth with his battered round shield and a commander's cloak, rows of shield-bearers and archers behind him."
+      },
+      "extra": {
+        "zh": "画面右侧三分之一是安静的红灰天空，留给标题。",
+        "en": "The right third is quiet red-grey sky left for the title."
+      },
+      "deps": ["art_key_wide_main", "art_style_ash_waste"],
+      "milestone": "M4",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；人物按主要角色的固定特征画（夜羽：黑发及肩、发梢化羽、深灰信使斗篷、腰间暗红火漆信囊；希雅：银灰短发、银灰狼耳狼尾、长弓；罗恩：棕色乱发、褪色蓝围巾、坑洼圆盾；奈拉：橙红长发、赤狐耳与白尖大尾、墨绿商人外套），主角是看不清脸的兜帽旅人；旗面只有纯色与几何徽；巨坑只画暗淡的微光，不用澱紫。"
+    },
+    {
+      "id": "art_key_wide_doors",
+      "template": "key_art_wide",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "千门主视觉：无边的幽暗里层层叠叠悬浮着上百扇门，每道门缝都漏出暖金的光，兜帽旅人站在镜子一样的暗面上，伸手推开最近的一扇门，一只黑鸦落在门框上。",
+        "en": "Thousand doors key art: hundreds of doors floating in layers in a boundless dark, warm gold light leaking from every gap, the hooded traveler standing on a mirror-like dark floor reaching out to push open the nearest door, a black crow perched on its frame."
+      },
+      "extra": {
+        "zh": "画面左侧三分之一是安静的幽暗，留给标题。",
+        "en": "The left third is quiet darkness left for the title."
+      },
+      "deps": ["art_key_wide_main", "art_style_door_corridor"],
+      "milestone": "M4",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；门扉金是这张图的主色，允许大量使用。"
+    },
+    {
+      "id": "art_key_trailer_cover",
+      "template": "key_art_wide",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "宣传片封面：微缩箱庭的小镇广场上，五人小队围着一张摊开的地图，远处的小丘上立着那座发光的石门框，广场上的居民各自忙碌，阳光明快。",
+        "en": "Trailer cover: in the square of a miniature town, the five-person party gathered around an unrolled map, the glowing stone door frame standing on a hill in the distance, townsfolk busy about their day, bright cheerful sunlight."
+      },
+      "extra": {
+        "zh": "画面上方三分之一是安静的天空，留给标题。",
+        "en": "The top third is quiet sky left for the title."
+      },
+      "deps": ["art_key_wide_main"],
+      "milestone": "M4",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；人物按主要角色的固定特征画（夜羽：黑发及肩、发梢化羽、深灰信使斗篷、腰间暗红火漆信囊；希雅：银灰短发、银灰狼耳狼尾、长弓；罗恩：棕色乱发、褪色蓝围巾、坑洼圆盾；奈拉：橙红长发、赤狐耳与白尖大尾、墨绿商人外套），主角是看不清脸的兜帽旅人；地图上不写地名。"
+    },
+    {
+      "id": "art_key_event_cover",
+      "template": "key_art_wide",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "活动封面：发光的石门框敞开着，门里是另一片阳光明媚的风景，五人小队正从门里走出来，门外的草地上落满花瓣，喜庆而明亮。",
+        "en": "Event cover: the glowing stone door frame standing open onto a different sunny landscape inside, the five-person party stepping out of it, petals scattered across the meadow outside, festive and bright."
+      },
+      "extra": {
+        "zh": "画面右侧三分之一保持安静，留给活动标题。",
+        "en": "Keep the right third quiet for the event title."
+      },
+      "deps": ["art_key_wide_main"],
+      "milestone": "M4",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；人物按主要角色的固定特征画（夜羽：黑发及肩、发梢化羽、深灰信使斗篷、腰间暗红火漆信囊；希雅：银灰短发、银灰狼耳狼尾、长弓；罗恩：棕色乱发、褪色蓝围巾、坑洼圆盾；奈拉：橙红长发、赤狐耳与白尖大尾、墨绿商人外套），主角是看不清脸的兜帽旅人；商店平台的活动图 800x450；按活动换题时复用这一张的构图。"
+    },
+    {
+      "id": "art_key_event_header",
+      "template": "key_art_wide",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "活动横幅：一排发光的石门框沿着一条长长的土路排开，每扇门里是不同的风景（森林、港城、雪岭、草原），五人小队走在路的中段。",
+        "en": "Event banner: a row of glowing stone door frames lined along a long dirt road, each opening onto a different landscape (forest, harbor, snowy ridge, steppe), the five-person party walking the middle of the road."
+      },
+      "extra": {
+        "zh": "上下各留出可裁掉的天空与地面，门与人物在中间横带。",
+        "en": "Leave sky and ground at top and bottom that can be cropped; keep the doors and figures in the middle band."
+      },
+      "deps": ["art_key_wide_main"],
+      "milestone": "M4",
+      "notes": "画面里不得有任何文字、字母、数字与标志，标题由排版另加；人物按主要角色的固定特征画（夜羽：黑发及肩、发梢化羽、深灰信使斗篷、腰间暗红火漆信囊；希雅：银灰短发、银灰狼耳狼尾、长弓；罗恩：棕色乱发、褪色蓝围巾、坑洼圆盾；奈拉：橙红长发、赤狐耳与白尖大尾、墨绿商人外套），主角是看不清脸的兜帽旅人；商店平台的活动横幅 1920x622：成品从画面中部裁成宽幅横带，关键内容放在中间横带里。"
+    }
+  ]
+}

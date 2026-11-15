@@ -1,0 +1,1933 @@
+{
+  "category": "audio_music",
+  "title": "音乐：主曲、动机种子与短乐句",
+  "sources": [
+    "docs/40_design/audio_direction.md",
+    "docs/00_vision/vision.md",
+    "docs/20_world/pantheon.md",
+    "docs/20_world/geography.md",
+    "docs/40_design/world/world_map.md",
+    "docs/40_design/content/catalog_dungeons_bosses.md",
+    "docs/30_story/story_outline.md"
+  ],
+  "items": [
+    {
+      "id": "mus_title_main",
+      "template": "music_loop",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "全作主题。开阔而温柔的序曲感乐段：竖琴分解和弦与弦乐长音铺底，鲁特琴领奏一条向上而未落定的短旋律（参考主角动机），第二遍时八音盒在高音区奏出另一条短旋律与之对位；明亮、好奇，乐句停在不完全的和弦上，带一丝说不清的暗意",
+        "en": "Main theme. An open, gentle overture-like section: harp arpeggios and sustained strings underneath, a lute leads a rising short melody that never fully resolves (see the hero motif), and on the repeat a music box answers high above with a second short melody in counterpoint; bright and curious, phrases end on unresolved chords with a faint hidden shadow"
+      },
+      "extra": {
+        "zh": "速度 76 BPM，4/4 拍，D 大调；循环体 40 小节，约 126 秒；分层 3：L1 竖琴与弦乐底，L2 鲁特琴与木吉他律动，L3 主旋律与八音盒对位",
+        "en": "76 BPM, four-four time, D major; loop body 40 bars, about 126 seconds; 3 layers: L1 harp and string bed, L2 lute and guitar pulse, L3 lead melody with music-box counterpoint"
+      },
+      "ref": "ui_title",
+      "deps": ["mus_stg_motif_hero", "mus_stg_motif_door"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_title_next_cycle",
+      "template": "music_loop",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "全作主题的回忆变奏：小调，八音盒略微走音，像被重新上过发条；弦乐稀薄，鲁特琴只弹出旋律的前半句便留下空白；熟悉又陌生，似曾相识的不安",
+        "en": "A remembered variation of the main theme: minor key, the music box slightly out of tune as if rewound, thin strings, the lute plays only the first half of the melody then leaves silence; familiar yet strange, an uneasy deja vu"
+      },
+      "extra": {
+        "zh": "速度 70 BPM，4/4 拍，D 小调；循环体 32 小节，约 110 秒；分层 2：L1 稀薄弦乐，L2 走音的八音盒与鲁特琴",
+        "en": "70 BPM, four-four time, D minor; loop body 32 bars, about 110 seconds; 2 layers: L1 thin strings, L2 detuned music box and lute"
+      },
+      "ref": "ending_recovery",
+      "deps": ["mus_title_main"],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_pro_earth",
+      "template": "music_loop",
+      "style": "m_earth_modern",
+      "subject": {
+        "zh": "深夜疲惫的城市日常：温暖但略带磨损感的电钢琴和弦，柔和的合成器铺底，轻轻的低保真鼓点与贝斯；旋律断断续续，偶尔浮出一个向上未完的短句；安静、孤单、平凡，一点点想家",
+        "en": "Late-night weary city life: warm, slightly worn electric piano chords, soft synth pad, gentle lo-fi drums and bass; the melody comes and goes, now and then a short rising phrase that never finishes; quiet, lonely, ordinary, a little homesick"
+      },
+      "extra": {
+        "zh": "速度 72 BPM，4/4 拍，F 大调；循环体 32 小节，约 107 秒；分层 2：L1 电钢琴与合成器铺底，L2 低保真鼓点与贝斯",
+        "en": "72 BPM, four-four time, F major; loop body 32 bars, about 107 seconds; 2 layers: L1 electric piano and synth pad, L2 lo-fi drums and bass"
+      },
+      "ref": "prologue_p1",
+      "deps": ["mus_stg_motif_hero"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_pro_antechamber",
+      "template": "music_loop",
+      "style": "m_divine_court",
+      "subject": {
+        "zh": "一间纯白、高得望不到顶的等候大厅：极高的弦乐泛音与玻璃般的持续长音，几乎静止，偶尔一声竖琴单音像空房间里的回声；干净、礼貌、空旷，越听越让人不安，仿佛在被看着",
+        "en": "A pure white waiting hall of impossible height: very high string harmonics and glassy sustained tones, nearly motionless, an occasional single harp note like an echo in an empty room; clean, polite, vast, and the longer it plays the more unsettling, as if being watched"
+      },
+      "extra": {
+        "zh": "速度 60 BPM，4/4 拍，以 E 为中心，调性模糊；循环体 24 小节，约 96 秒；分层 2：L1 高音弦乐泛音与玻璃质长音，L2 低音弦乐的轻微脉动与竖琴单音",
+        "en": "60 BPM, four-four time, centered on E, tonally ambiguous; loop body 24 bars, about 96 seconds; 2 layers: L1 high string harmonics and glassy sustains, L2 faint low-string pulse and single harp notes"
+      },
+      "ref": "divine_court",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 24 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_pro_interview",
+      "template": "music_loop",
+      "style": "m_divine_court",
+      "subject": {
+        "zh": "神前面试的候场音乐：竖琴与弦乐的中性和声底，轻巧的拨奏像有人用笔尖敲桌面，木管时不时提出一个上扬的短句；端庄、略带幽默的紧张，像一场决定命运却又有点滑稽的考试",
+        "en": "Waiting music for an interview before gods: neutral harp and string harmony, light pizzicato like a pen tapping on a desk, woodwinds now and then pose a rising questioning phrase; dignified with faintly humorous tension, like a fateful yet slightly absurd exam"
+      },
+      "extra": {
+        "zh": "速度 84 BPM，4/4 拍，D 大调；循环体 32 小节，约 91 秒；分层 3：L1 竖琴与弦乐的中性底，L2 轻拨奏的步进节奏，L3 木管的疑问短句",
+        "en": "84 BPM, four-four time, D major; loop body 32 bars, about 91 seconds; 3 layers: L1 neutral harp and strings, L2 light pizzicato stepping rhythm, L3 questioning woodwind phrases"
+      },
+      "ref": "divine_court",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_pro_judgment",
+      "template": "music_cue",
+      "style": "m_divine_court",
+      "subject": {
+        "zh": "庄严的管风琴与铜管众赞缓缓升起，四平八稳、左右对称的旋律（参考光之动机）逐渐变冷；中段突然收束成一个刺耳的不协和长音，然后完全静止两秒；静默之后只剩一口低沉的钟与弦乐低音下行，像地板在脚下化开",
+        "en": "Solemn organ and brass chorale rise slowly, a perfectly even, symmetrical melody (see the light motif) turning colder; mid-way it tightens into a piercing dissonant sustain, then total stillness for two seconds; after the silence only a deep bell and descending low strings remain, like a floor dissolving underfoot"
+      },
+      "extra": {
+        "zh": "B 小调，速度约 66 BPM；时长约 75 秒，有完整的开头与结尾，结尾自然收束；第 40 秒前后留出 2 秒完全静音的段落",
+        "en": "B minor, about 66 BPM; about 75 seconds with a complete beginning and ending, ending naturally; leave a fully silent 2-second gap around 40 seconds in"
+      },
+      "ref": "prologue_p12",
+      "deps": ["mus_stg_motif_eluen"],
+      "milestone": "M1",
+      "notes": "生成 3 版候选"
+    },
+    {
+      "id": "mus_pro_fall",
+      "template": "music_cue",
+      "style": "m_dream",
+      "subject": {
+        "zh": "无边黑暗中的下坠：低沉的弦乐与合成长音缓慢下行，风一样的噪声层，很长时间没有旋律；接近结尾时一切骤然安静，八音盒在高处温柔地奏出一条完整的短旋律（参考门扉动机），弦乐托住它，停在一个温暖但悬而未决的和弦上",
+        "en": "Falling through endless dark: low strings and synthetic drones descending slowly, a wind-like noise layer, no melody for a long time; near the end everything suddenly hushes and a music box high above gently plays one complete short melody (see the door motif), strings catch it, ending on a warm but suspended chord"
+      },
+      "extra": {
+        "zh": "结尾落在 D 大调，速度约 50 BPM；时长约 85 秒，有完整的开头与结尾，结尾自然收束；第 62 秒前后进入八音盒段",
+        "en": "ending in D major, about 50 BPM; about 85 seconds with a complete beginning and ending, ending naturally; the music-box section begins around 62 seconds in"
+      },
+      "ref": "prologue_p15",
+      "deps": ["mus_stg_motif_door"],
+      "milestone": "M1",
+      "notes": "生成 3 版候选"
+    },
+    {
+      "id": "mus_town_borderstone_day",
+      "template": "music_loop",
+      "style": "m_lotha_folk",
+      "subject": {
+        "zh": "北境边地小镇的白天：手摇弦琴的持续低音，鲁特琴与小提琴的轻快民谣旋律，手鼓与木勺般的节奏，木笛吹出上扬的短句；表面热闹朴实，低音里却有一条缓慢的半音来回，像镇子底下有什么在动",
+        "en": "Daytime in a northern frontier town: hurdy-gurdy drone, lute and fiddle playing a lively folk tune, frame drum and wooden-spoon rhythm, a recorder adds rising phrases; cheerful and homely on the surface, yet in the bass a slow half-step back-and-forth, as if something shifts beneath the town"
+      },
+      "extra": {
+        "zh": "速度 104 BPM，4/4 拍，G 大调；循环体 32 小节，约 74 秒；分层 3：L1 手摇弦琴持续音与鲁特琴，L2 手鼓与拨奏律动，L3 木笛旋律与低音半音暗流",
+        "en": "104 BPM, four-four time, G major; loop body 32 bars, about 74 seconds; 3 layers: L1 hurdy-gurdy drone and lute, L2 frame drum and pizzicato pulse, L3 recorder melody with the low half-step undercurrent"
+      },
+      "ref": "borderstone",
+      "deps": ["mus_stg_motif_dian"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_town_borderstone_night",
+      "template": "music_loop",
+      "style": "m_lotha_folk",
+      "subject": {
+        "zh": "同一个小镇的夜：鲁特琴慢慢分解和弦，木笛在低音区吹着白天那支民谣的慢板，远处一把小提琴拉着长音；温暖、安静、略带疲倦，屋檐下的灯一盏盏熄灭，低音的半音暗流仍若隐若现",
+        "en": "The same town at night in half-time feel: lute slowly arpeggiates, a low recorder plays a slow version of the daytime folk tune, a distant fiddle holds long notes; warm, quiet, a little tired, lamps going out one by one, the half-step undercurrent still faintly present"
+      },
+      "extra": {
+        "zh": "速度 104 BPM，4/4 拍，G 大调（半速感）；循环体 32 小节，约 74 秒；分层 2：L1 鲁特琴分解和弦，L2 低音木笛与远处小提琴",
+        "en": "104 BPM, four-four time, G major, half-time feel; loop body 32 bars, about 74 seconds; 2 layers: L1 lute arpeggios, L2 low recorder and distant fiddle"
+      },
+      "ref": "borderstone",
+      "deps": ["mus_town_borderstone_day"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_city_wallenburg_day",
+      "template": "music_loop",
+      "style": "m_valen_city",
+      "subject": {
+        "zh": "繁华的河港城邦白天：羽管键琴与弦乐的明快和声，铃鼓和小军鼓的行进节奏，小号与长笛轮流唱出自信的城市主题；商贩、船帆与钟楼的活力，带一点体面的骄傲与算计",
+        "en": "A busy river-port city by day: brisk harpsichord and string harmony, tambourine and snare marching rhythm, trumpet and flute trading a confident civic theme; the energy of merchants, sails and bell towers, with a hint of respectable pride and calculation"
+      },
+      "extra": {
+        "zh": "速度 112 BPM，4/4 拍，D 大调；循环体 40 小节，约 86 秒；分层 3：L1 弦乐与羽管键琴，L2 铃鼓与小军鼓行进律动，L3 小号与长笛主旋律",
+        "en": "112 BPM, four-four time, D major; loop body 40 bars, about 86 seconds; 3 layers: L1 strings and harpsichord, L2 tambourine and snare march, L3 trumpet and flute lead"
+      },
+      "ref": "wallenburg",
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_city_wallenburg_night",
+      "template": "music_loop",
+      "style": "m_valen_city",
+      "subject": {
+        "zh": "夜里的城邦：羽管键琴在低音区弹着白天城市主题的小调变奏，弦乐压着嗓子，拨奏像在巷子里踮脚走路；阴谋、灯影、河面的冷光",
+        "en": "The city at night in half-time feel: harpsichord plays a minor-key variation of the civic theme low in its range, muted strings, pizzicato like tiptoeing through alleys; intrigue, lamplight, cold glints on the river"
+      },
+      "extra": {
+        "zh": "速度 112 BPM，4/4 拍，D 小调（半速感）；循环体 40 小节，约 86 秒；分层 2：L1 低音弦乐与羽管键琴，L2 拨奏与轻打击的潜行律动",
+        "en": "112 BPM, four-four time, D minor, half-time feel; loop body 40 bars, about 86 seconds; 2 layers: L1 low strings and harpsichord, L2 sneaking pizzicato and light percussion"
+      },
+      "ref": "wallenburg",
+      "deps": ["mus_city_wallenburg_day"],
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_village_lotha",
+      "template": "music_loop",
+      "style": "m_lotha_folk",
+      "subject": {
+        "zh": "河谷平原上的小村：三拍子的木吉他与手风琴，木笛吹着朴素的田园旋律，偶尔有俏皮的装饰音；悠闲、开阔、带一点麦田的阳光",
+        "en": "A small village in the river plains: guitar and accordion in three-four time, recorder playing a plain pastoral tune, occasional playful grace notes; relaxed, open, sunlit like wheat fields"
+      },
+      "extra": {
+        "zh": "速度 92 BPM，3/4 拍，F 大调；循环体 48 小节，约 94 秒；分层 2：L1 木吉他与手风琴持续和弦，L2 木笛旋律",
+        "en": "92 BPM, three-four time, F major; loop body 48 bars, about 94 seconds; 2 layers: L1 guitar and accordion chords, L2 recorder melody"
+      },
+      "ref": "reedbridge",
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 48 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_settlement_growing",
+      "template": "music_loop",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "从一个人到一座城：一把木吉他弹出朴素而坚定的旋律（参考主角动机的大调形态），随后弦乐与手鼓加入，再有木管与铜管，最后弦乐全奏推高；每一层单独成立，叠加后越来越宽阔、温暖、充满希望",
+        "en": "From one person to a town: a lone acoustic guitar plays a plain, determined melody (major form of the hero motif), then strings and frame drum join, then woodwinds and brass, finally full strings lift it; each layer stands on its own and together they grow wider, warmer, more hopeful"
+      },
+      "extra": {
+        "zh": "速度 96 BPM，4/4 拍，C 大调；循环体 40 小节，约 100 秒；分层 4：L1 独奏木吉他，L2 弦乐与手鼓，L3 木管与铜管，L4 弦乐全奏",
+        "en": "96 BPM, four-four time, C major; loop body 40 bars, about 100 seconds; 4 layers: L1 solo acoustic guitar, L2 strings and frame drum, L3 woodwinds and brass, L4 full strings"
+      },
+      "ref": "old_outpost",
+      "deps": ["mus_stg_motif_hero"],
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 4 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_city_orien",
+      "template": "music_loop",
+      "style": "m_valen_city",
+      "subject": {
+        "zh": "日渐衰败的王都：庄重的弦乐与羽管键琴，慢步的定音鼓，号角吹着本应辉煌的宫廷花腔，却总有一个音略低；华丽外表下的疲惫与暗斗",
+        "en": "A royal capital in quiet decline: stately strings and harpsichord, slow-stepping timpani, horns playing a fanfare meant to be glorious yet always one note slightly flat; weariness and hidden struggles beneath a splendid surface"
+      },
+      "extra": {
+        "zh": "速度 88 BPM，4/4 拍，降 B 大调；循环体 32 小节，约 87 秒；分层 3：L1 弦乐低音与羽管键琴，L2 定音鼓慢步，L3 略低一音的号角花腔",
+        "en": "88 BPM, four-four time, B-flat major; loop body 32 bars, about 87 seconds; 3 layers: L1 low strings and harpsichord, L2 slow timpani steps, L3 slightly flat horn fanfare"
+      },
+      "ref": "orien_banks",
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_inner_court_day",
+      "template": "music_loop",
+      "style": "m_inner_court",
+      "subject": {
+        "zh": "只属于自己的小庭院：八音盒奏出一条温柔的短旋律（参考门扉动机），木吉他轻轻伴奏，弦乐与钢片琴慢慢加入；安全、温暖、私密，像回到了家，又有一点说不出来的思念",
+        "en": "A small courtyard that belongs only to you: a music box plays a gentle short melody (see the door motif), soft guitar accompaniment, strings and celesta join slowly; safe, warm, private, like coming home, with an inexpressible longing"
+      },
+      "extra": {
+        "zh": "速度 80 BPM，4/4 拍，D 大调；循环体 32 小节，约 96 秒；分层 3：L1 八音盒与木吉他，L2 弦乐，L3 钢片琴与长笛",
+        "en": "80 BPM, four-four time, D major; loop body 32 bars, about 96 seconds; 3 layers: L1 music box and guitar, L2 strings, L3 celesta and flute"
+      },
+      "ref": "inner_court",
+      "deps": ["mus_stg_motif_door"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_inner_court_night",
+      "template": "music_loop",
+      "style": "m_inner_court",
+      "subject": {
+        "zh": "夜里的门内庭院：八音盒放慢一半，竖琴代替吉他，弦乐低声托着，偶尔一声门轴般的轻响融进音乐；宁静、安心、带点孤独",
+        "en": "The inner court at night in half-time feel: the music box at half speed, harp replacing guitar, strings murmuring low, now and then a hinge-like creak blending into the music; peaceful, reassuring, a little lonely"
+      },
+      "extra": {
+        "zh": "速度 80 BPM，4/4 拍，D 大调（半速感）；循环体 32 小节，约 96 秒；分层 2：L1 慢速八音盒与竖琴，L2 低声弦乐",
+        "en": "80 BPM, four-four time, D major, half-time feel; loop body 32 bars, about 96 seconds; 2 layers: L1 slow music box and harp, L2 murmuring strings"
+      },
+      "ref": "inner_court",
+      "deps": ["mus_inner_court_day"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_nation_capital_day",
+      "template": "music_loop",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "由许多种族一起建起来的新都：一条向上的坚定旋律（参考主角动机的完整大调形态）由各地乐器轮流接力，曼陀林、木笛、双弦拉弦乐器、扬琴，最后铜管与弦乐全奏；热闹、多元、自豪，结尾仍留着一个没有落定的音",
+        "en": "A new capital built by many peoples together: a rising, determined melody (full major form of the hero motif) passed between instruments of many lands, mandolin, wooden flute, two-string bowed fiddle, hammered dulcimer, finally brass and full strings; lively, diverse, proud, still ending on an unresolved note"
+      },
+      "extra": {
+        "zh": "速度 100 BPM，4/4 拍，D 大调；循环体 40 小节，约 96 秒；分层 3：L1 弦乐与竖琴，L2 定音鼓与行进小鼓，L3 各地乐器接力的主旋律",
+        "en": "100 BPM, four-four time, D major; loop body 40 bars, about 96 seconds; 3 layers: L1 strings and harp, L2 timpani and marching snare, L3 lead passed between instruments of many lands"
+      },
+      "ref": "nation_capital",
+      "deps": ["mus_stg_motif_hero"],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_nation_capital_night",
+      "template": "music_loop",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "新都的夜：钢琴与竖琴低声复述白天的主题，远处一支木笛和一把拉弦乐器对答，像不同种族的居民隔着街道道晚安；宽厚、安宁、带着责任感",
+        "en": "The new capital at night in half-time feel: piano and harp quietly retell the daytime theme, a distant wooden flute and a bowed fiddle answer each other like neighbors of different peoples saying goodnight across the street; generous, peaceful, carrying responsibility"
+      },
+      "extra": {
+        "zh": "速度 100 BPM，4/4 拍，D 大调（半速感）；循环体 40 小节，约 96 秒；分层 2：L1 钢琴与竖琴，L2 木笛与拉弦乐器对答",
+        "en": "100 BPM, four-four time, D major, half-time feel; loop body 40 bars, about 96 seconds; 2 layers: L1 piano and harp, L2 wooden flute and bowed fiddle in dialogue"
+      },
+      "ref": "nation_capital",
+      "deps": ["mus_nation_capital_day"],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_reg_lotha_north",
+      "template": "music_loop",
+      "style": "m_lotha_folk",
+      "subject": {
+        "zh": "寒冷的北境林地：铁杉林间的弦乐长音，低音木笛，手鼓像在林间行走，小提琴拉出带多利亚色彩的旷野旋律；清冷、辽远、带着冒险的好奇，低音里偶尔出现缓慢的半音暗流",
+        "en": "Cold northern woodland: sustained strings among hemlocks, low recorder, frame drum like footsteps through the trees, fiddle playing a wild melody with Dorian color; crisp, distant, curious about adventure, with a slow half-step undercurrent now and then in the bass"
+      },
+      "extra": {
+        "zh": "速度 84 BPM，4/4 拍，E 多利亚调式；循环体 32 小节，约 91 秒；分层 3：L1 弦乐长音与低音木笛，L2 手鼓步行律动，L3 小提琴旋律",
+        "en": "84 BPM, four-four time, E Dorian; loop body 32 bars, about 91 seconds; 3 layers: L1 string sustains and low recorder, L2 walking frame drum, L3 fiddle melody"
+      },
+      "ref": "forest_edge",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_reg_lotha_vale",
+      "template": "music_loop",
+      "style": "m_lotha_folk",
+      "subject": {
+        "zh": "王国腹地的河谷与道路：木吉他与竖琴的流动琶音，小提琴与长笛唱出开阔的旅途旋律，弦乐铺底，轻快的手鼓；阳光、河水、麦浪与远方的城堡",
+        "en": "River valley and roads in the kingdom heartland: flowing guitar and harp arpeggios, fiddle and flute singing an open traveling melody, string bed, light frame drum; sunlight, river water, waves of wheat and distant castles"
+      },
+      "extra": {
+        "zh": "速度 96 BPM，4/4 拍，A 大调；循环体 32 小节，约 80 秒；分层 3：L1 和声与低音，L2 节奏与打击，L3 旋律与点缀",
+        "en": "96 BPM, four-four time, A major; loop body 32 bars, about 80 seconds; 3 layers: L1 harmony and bass, L2 rhythm and percussion, L3 melody and ornaments"
+      },
+      "ref": "wallenburg_outskirts",
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_reg_ash_rim",
+      "template": "music_loop",
+      "style": "m_ash_waste",
+      "subject": {
+        "zh": "灰覆盆地的边缘：拉弓的金属片发出长长的哀鸣，低音长音像远方的风，稀疏的木块敲击，笛子吹出断续的空旷短句，玻璃泛音一闪即逝；荒凉、干燥、寂静，美丽又危险",
+        "en": "The edge of an ash-covered basin: bowed metal sheets sing long laments, low drones like distant wind, sparse wooden knocks, a flute breathes broken desolate phrases, glass harmonics flicker and vanish; barren, dry, silent, beautiful and dangerous"
+      },
+      "extra": {
+        "zh": "速度 70 BPM，4/4 拍，升 C 小调；循环体 24 小节，约 82 秒；分层 3：L1 拉弓金属与低音长音，L2 稀疏木质打击，L3 风声般的笛与玻璃泛音",
+        "en": "70 BPM, four-four time, C-sharp minor; loop body 24 bars, about 82 seconds; 3 layers: L1 bowed metal and low drones, L2 sparse wooden knocks, L3 breathy flute and glass harmonics"
+      },
+      "ref": "ash_waste",
+      "deps": ["mus_stg_motif_dian"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 24 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_reg_ash_middle",
+      "template": "music_loop",
+      "style": "m_ash_waste",
+      "subject": {
+        "zh": "望不到边的玻璃原与灰海：持续的低频嗡鸣，晶体摩擦与玻璃琴的冷光音色，偶尔像风铃一样的碎片撞击，极慢的弦乐长音在不协和中缓慢移动；空旷到让人失去方向，危险藏在静默里",
+        "en": "Endless glass plains and ash seas: a constant low hum, crystal friction and cold glass-harmonica tones, occasional wind-chime-like shard collisions, very slow string drones moving through dissonance; so empty it erases direction, danger hiding in silence"
+      },
+      "extra": {
+        "zh": "速度 64 BPM，4/4 拍，以 F 为中心，近无调性；循环体 24 小节，约 90 秒；分层 3：L1 低频嗡鸣，L2 晶体摩擦与碎片撞击，L3 慢速不协和弦乐",
+        "en": "64 BPM, four-four time, centered on F, nearly atonal; loop body 24 bars, about 90 seconds; 3 layers: L1 low hum, L2 crystal friction and shard collisions, L3 slow dissonant strings"
+      },
+      "ref": "glass_plain",
+      "deps": ["mus_stg_motif_dian"],
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 24 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_reg_thousand_gates",
+      "template": "music_loop",
+      "style": "m_sealed_ruins",
+      "subject": {
+        "zh": "成千上万扇空门框的古城废墟：风穿过门框发出不同音高的低哨，深沉的钟声隔很久响一次，无词的低声合唱像远古的回忆，八音盒般的旋律碎片时隐时现又被风吹散；宏大、肃穆、悲伤，像一个文明曾经在这里呼吸",
+        "en": "Ruins of an ancient city of countless empty door frames: wind whistles through frames at different pitches, a deep bell tolls only rarely, a wordless low choir like an ancient memory, music-box fragments appear and are blown away; vast, solemn, sorrowful, as if a civilization once breathed here"
+      },
+      "extra": {
+        "zh": "速度 60 BPM，4/4 拍，D 小调；循环体 24 小节，约 96 秒；分层 3：L1 门框风哨与远钟，L2 无词低声合唱，L3 八音盒碎片",
+        "en": "60 BPM, four-four time, D minor; loop body 24 bars, about 96 seconds; 3 layers: L1 door-frame wind whistles and distant bells, L2 wordless low choir, L3 music-box fragments"
+      },
+      "ref": "thousand_gates_ring",
+      "deps": ["mus_stg_motif_door"],
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 24 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_reg_holysee",
+      "template": "music_loop",
+      "style": "m_holy_see",
+      "subject": {
+        "zh": "白石穹顶与钟楼的圣都：明亮的管风琴与弦乐，带利底亚调式升四级的光辉色彩，钟声，规整对称的旋律，无词的童声合唱如光柱般纯净；圣洁、秩序、完美得近乎冰冷",
+        "en": "A holy city of white domes and bell towers: bright organ and strings with the radiant raised fourth of Lydian mode, bells, a perfectly symmetrical melody, a wordless children choir pure as a pillar of light; holy, orderly, so perfect it is almost cold"
+      },
+      "extra": {
+        "zh": "速度 72 BPM，4/4 拍，E 利底亚调式；循环体 32 小节，约 107 秒；分层 3：L1 管风琴与弦乐，L2 定音鼓与钟，L3 无词童声合唱",
+        "en": "72 BPM, four-four time, E Lydian; loop body 32 bars, about 107 seconds; 3 layers: L1 organ and strings, L2 timpani and bells, L3 wordless children choir"
+      },
+      "ref": "seran",
+      "deps": ["mus_stg_motif_eluen"],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_reg_grantia",
+      "template": "music_loop",
+      "style": "m_grantia",
+      "subject": {
+        "zh": "钢与麦的帝国：低音弦乐有力的进行，军鼓与铁砧敲出整齐的步伐，圆号唱出宽广而严厉的帝国主题；强盛、纪律、骄傲，背后隐隐有对战争的渴望",
+        "en": "An empire of steel and wheat: strong low-string progressions, snare drum and anvil marking disciplined steps, French horns sing a broad stern imperial theme; mighty, disciplined, proud, with a hidden hunger for war"
+      },
+      "extra": {
+        "zh": "速度 104 BPM，4/4 拍，G 多利亚调式；循环体 32 小节，约 74 秒；分层 3：L1 低音弦乐与大提琴，L2 军鼓与铁砧，L3 圆号主旋律",
+        "en": "104 BPM, four-four time, G Dorian; loop body 32 bars, about 74 seconds; 3 layers: L1 low strings and cellos, L2 snare and anvil, L3 French horn lead"
+      },
+      "ref": "grantis",
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_reg_mercato",
+      "template": "music_loop",
+      "style": "m_mercato",
+      "subject": {
+        "zh": "海湾商都：曼陀林与吉他的快速拨奏，响板与手鼓的摇摆节奏，手风琴与钟琴吹奏俏皮的旋律，像硬币在柜台上叮当作响；热闹、精明、富足，带着海风与讨价还价般的笑意",
+        "en": "A bay-side merchant city: quick mandolin and guitar plucking, swinging castanets and frame drum, accordion and glockenspiel play a cheeky melody like coins ringing on a counter; lively, shrewd, prosperous, with sea wind and the good humor of haggling"
+      },
+      "extra": {
+        "zh": "速度 116 BPM，4/4 拍，A 混合利底亚调式；循环体 40 小节，约 83 秒；分层 3：L1 曼陀林与吉他，L2 响板与手鼓摇摆律动，L3 手风琴与钟琴旋律",
+        "en": "116 BPM, four-four time, A Mixolydian; loop body 40 bars, about 83 seconds; 3 layers: L1 mandolin and guitar, L2 swinging castanets and frame drum, L3 accordion and glockenspiel melody"
+      },
+      "ref": "goldbay",
+      "deps": ["mus_stg_motif_merca"],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_reg_silva",
+      "template": "music_loop",
+      "style": "m_silva",
+      "subject": {
+        "zh": "原始巨木林深处：竖琴与弦乐泛音像光穿过树冠，拇指琴般的轻拨与木鼓，带气声的木笛和无词女声唱着五声音阶的长句，句与句之间有很长的停顿；古老、宁静、神秘，美而疏离",
+        "en": "Deep in a primeval forest of giant trees: harp and string harmonics like light through the canopy, thumb-piano plucks and soft wooden drums, breathy wooden flute and a wordless female voice singing long pentatonic lines with long pauses between phrases; ancient, serene, mysterious, beautiful yet aloof"
+      },
+      "extra": {
+        "zh": "速度 76 BPM，4/4 拍，D 多利亚调式；循环体 32 小节，约 101 秒；分层 3：L1 竖琴与弦乐泛音，L2 拇指琴般的拨奏与木鼓，L3 木笛与无词女声",
+        "en": "76 BPM, four-four time, D Dorian; loop body 32 bars, about 101 seconds; 3 layers: L1 harp and string harmonics, L2 thumb-piano plucks and wooden drums, L3 wooden flute and wordless female voice"
+      },
+      "ref": "ringwood_court",
+      "deps": ["mus_stg_motif_sylvie"],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_reg_windfang",
+      "template": "music_loop",
+      "style": "m_windfang",
+      "subject": {
+        "zh": "起伏的大草原：低沉的泛音吟唱式无词长音，双弦拉弦乐器奏出辽阔悠长的五声旋律，框鼓模仿奔马的蹄声；自由、彪悍、风很大，天空很高",
+        "en": "Rolling grassland: low wordless overtone-style drones, a two-string bowed fiddle plays a vast pentatonic melody, frame drums imitate galloping hooves; free, fierce, windswept, under a high sky"
+      },
+      "extra": {
+        "zh": "速度 120 BPM，4/4 拍，E 小调五声；循环体 40 小节，约 80 秒；分层 3：L1 低沉泛音吟唱式人声长音（无词），L2 奔马节奏框鼓，L3 双弦拉弦乐器旋律",
+        "en": "120 BPM, four-four time, E minor pentatonic; loop body 40 bars, about 80 seconds; 3 layers: L1 low wordless overtone drones, L2 galloping frame drums, L3 two-string bowed fiddle melody"
+      },
+      "ref": "windfang_rock",
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_reg_night",
+      "template": "music_loop",
+      "style": "m_night_realm",
+      "subject": {
+        "zh": "黑岩与火山烟的北方王国：低沉的无词男声合唱与低音弦，巨大的鼓缓慢敲击，弗里吉亚调式的降二级带来压迫感，扬琴与玻璃铃像温泉冒出的青白热气；肃杀、骄傲，又意外地温暖",
+        "en": "A northern realm of black rock and volcanic smoke: low wordless male choir and low strings, huge drums struck slowly, the lowered second of Phrygian mode gives a heavy pressure, hammered dulcimer and glass bells like pale steam from hot springs; stern, proud, and unexpectedly warm"
+      },
+      "extra": {
+        "zh": "速度 80 BPM，4/4 拍，F 弗里吉亚调式；循环体 32 小节，约 96 秒；分层 3：L1 低音男声无词合唱与低音弦，L2 大鼓，L3 扬琴与玻璃铃",
+        "en": "80 BPM, four-four time, F Phrygian; loop body 32 bars, about 96 seconds; 3 layers: L1 low wordless male choir and low strings, L2 big drums, L3 hammered dulcimer and glass bells"
+      },
+      "ref": "duskcrown",
+      "deps": ["mus_stg_motif_valda"],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_reg_sleepscale",
+      "template": "music_loop",
+      "style": "m_sleepscale",
+      "subject": {
+        "zh": "触到天穹的雪峰：号角般的长音在山谷间回荡，稀疏的钢琴与钟片像冰晶落下，极远处的低频像巨大生物的呼吸；壮阔、寒冷、孤高，人在这里显得很小",
+        "en": "Snow peaks touching the sky: long horn-like tones echoing across valleys, sparse piano and bell plates falling like ice crystals, a far-away low rumble like the breath of an enormous creature; majestic, cold, solitary, making a person feel very small"
+      },
+      "extra": {
+        "zh": "速度 56 BPM，4/4 拍，A 大调悬留和弦；循环体 20 小节，约 86 秒；分层 2：L1 号角般的长音与风，L2 钢琴与钟片的稀疏旋律",
+        "en": "56 BPM, four-four time, A major with suspended chords; loop body 20 bars, about 86 seconds; 2 layers: L1 horn-like sustains and wind, L2 sparse piano and bell plates"
+      },
+      "ref": "seven_seats",
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 20 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_travel_region",
+      "template": "music_loop",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "在地图上赶路：吉他与拨奏弦乐稳定的行进律动，长笛与小提琴轮流吹出旅途旋律，偶尔转到小调暗示前方的未知；轻快、有目标、风尘仆仆",
+        "en": "Traveling across the map: steady marching rhythm of guitar and pizzicato strings, flute and fiddle take turns with a journey melody, occasionally turning minor to hint at the unknown ahead; brisk, purposeful, dusty from the road"
+      },
+      "extra": {
+        "zh": "速度 108 BPM，4/4 拍，G 大调；循环体 32 小节，约 71 秒；分层 2：L1 吉他与拨奏弦乐行进律动，L2 长笛与小提琴旋律",
+        "en": "108 BPM, four-four time, G major; loop body 32 bars, about 71 seconds; 2 layers: L1 marching guitar and pizzicato, L2 flute and fiddle melody"
+      },
+      "ref": "region_map",
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_dg_ancient",
+      "template": "music_loop",
+      "style": "m_sealed_ruins",
+      "subject": {
+        "zh": "半埋在灰里的古老石构深处：低沉的长音，很远的钟声，石块与木头的缓慢敲击像心跳，偶尔有八音盒般的旋律碎片被拉长、倒放、走音（参考门扉动机的碎片）；神秘、压抑、古老，像被封住的东西在门后呼吸",
+        "en": "Deep inside an ancient stone structure half-buried in ash: low drones, very distant bells, slow knocks of stone and wood like a heartbeat, occasional music-box fragments stretched, reversed and detuned (fragments of the door motif); mysterious, oppressive, ancient, like something sealed breathing behind a door"
+      },
+      "extra": {
+        "zh": "速度 60 BPM，4/4 拍，D 小调；循环体 24 小节，约 96 秒；分层 3：L1 低音长音与远钟，L2 石与木的缓慢脉动，L3 无词合唱与八音盒碎片",
+        "en": "60 BPM, four-four time, D minor; loop body 24 bars, about 96 seconds; 3 layers: L1 low drones and distant bells, L2 slow stone and wood pulse, L3 wordless choir and music-box fragments"
+      },
+      "ref": "dg_seal_ruins",
+      "deps": ["mus_stg_motif_door"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 24 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_dg_pale",
+      "template": "music_loop",
+      "style": "m_dian",
+      "subject": {
+        "zh": "苍白、对称、过于整齐的地下：高音弦乐冰冷的长音，像钟表一样精确的拨奏滴答，一支管风琴众赞缓缓奏出完美对称的短句，但其中的纯五度被换成刺耳的增四度（参考光之动机的变形）；圣洁与腐坏同时存在，美得让人发毛",
+        "en": "A pale, symmetrical, overly tidy underground: icy high string sustains, clockwork-precise pizzicato ticks, an organ chorale slowly plays a perfectly symmetrical phrase but its perfect fifths are replaced by grating tritones (distorted light motif); holiness and decay at once, beautiful in a way that makes your skin crawl"
+      },
+      "extra": {
+        "zh": "速度 66 BPM，4/4 拍，E 利底亚调式（走形）；循环体 24 小节，约 87 秒；分层 3：L1 高音弦乐冷长音，L2 钟表般的拨奏滴答，L3 走形的管风琴众赞",
+        "en": "66 BPM, four-four time, E Lydian, warped; loop body 24 bars, about 87 seconds; 3 layers: L1 icy high string sustains, L2 clockwork pizzicato ticks, L3 warped organ chorale"
+      },
+      "ref": "dg_old_waterway",
+      "deps": ["mus_stg_motif_eluen"],
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 24 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_dg_war",
+      "template": "music_loop",
+      "style": "m_dian",
+      "subject": {
+        "zh": "赤黑、多角、闻战而聚的深处：低音长号与低音弦乐的沉重进行，金属互相砍击般的打击与战鼓，弗里吉亚调式的短短长节奏不断重复（参考淬炼动机的变形），铜管偶尔发出嘶吼般的上滑；凶猛、压迫、躁动",
+        "en": "Red-black, horned depths that gather wherever there is battle: heavy low trombone and low strings, percussion like blades hacking metal and war drums, a Phrygian short-short-long rhythm repeating (distorted tempering motif), brass now and then rips upward like a roar; fierce, oppressive, restless"
+      },
+      "extra": {
+        "zh": "速度 92 BPM，4/4 拍，F 弗里吉亚调式；循环体 32 小节，约 83 秒；分层 3：L1 低音铜管与低音弦，L2 金属撞击与战鼓，L3 嘶吼般的铜管上滑",
+        "en": "92 BPM, four-four time, F Phrygian; loop body 32 bars, about 83 seconds; 3 layers: L1 low brass and low strings, L2 metal clashes and war drums, L3 roaring brass rips"
+      },
+      "ref": "dg_womb_abyss",
+      "deps": ["mus_stg_motif_valda"],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_dg_pact",
+      "template": "music_loop",
+      "style": "m_dian",
+      "subject": {
+        "zh": "贪食、在暗处数钱的小东西们的巢：低音拨奏和低音单簧管鬼鬼祟祟地走着摇摆步，硬币与小金属片滚落般的打击，钟琴与手风琴奏着一支俏皮的旋律，却明显走音，像假币（参考生意经动机的变形）；滑稽又阴森",
+        "en": "A nest of greedy little things that count coins in the dark: low pizzicato and bass clarinet creep in a swinging step, percussion like rolling coins and small metal pieces, glockenspiel and accordion play a cheeky tune that is clearly out of tune, like counterfeit money (distorted bargain motif); comic yet creepy"
+      },
+      "extra": {
+        "zh": "速度 100 BPM，4/4 拍，A 混合利底亚调式（走音）；循环体 32 小节，约 77 秒；分层 3：L1 低音拨奏与低音单簧管，L2 硬币与小金属滚落的打击，L3 走音的钟琴与手风琴",
+        "en": "100 BPM, four-four time, A Mixolydian, detuned; loop body 32 bars, about 77 seconds; 3 layers: L1 low pizzicato and bass clarinet, L2 rolling coin and small metal percussion, L3 out-of-tune glockenspiel and accordion"
+      },
+      "ref": "dg_moon_cellar",
+      "deps": ["mus_stg_motif_merca"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_dg_bloom",
+      "template": "music_loop",
+      "style": "m_dian",
+      "subject": {
+        "zh": "疯长与腐烂同时发生的根与菌的世界：木管与低音弦乐的潮湿长音，弦乐用弓杆敲击与密集颤音模拟虫群，一条下行的五声旋律（参考轮回动机的变形）每次停顿都被窸窣的颤音填满，无词女声在远处时而温柔时而哀号；生机与死亡纠缠，闷热、窒息",
+        "en": "A world of roots and fungi where wild growth and rot happen at once: damp sustained woodwinds and low strings, strings struck with the wood of the bow and dense tremolo like insect swarms, a falling pentatonic line (distorted cycle motif) whose every pause gets filled with rustling tremolo, a distant wordless female voice now tender, now wailing; life and death entangled, humid and suffocating"
+      },
+      "extra": {
+        "zh": "速度 70 BPM，4/4 拍，D 多利亚转 D 小调；循环体 28 小节，约 96 秒；分层 3：L1 木管与低音弦潮湿长音，L2 弓杆击弦与虫鸣般颤音，L3 远处的无词女声",
+        "en": "70 BPM, four-four time, D Dorian moving to D minor; loop body 28 bars, about 96 seconds; 3 layers: L1 damp woodwind and low-string sustains, L2 col legno strikes and insect-like tremolo, L3 distant wordless female voice"
+      },
+      "ref": "dg_root_abyss",
+      "deps": ["mus_stg_motif_sylvie"],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 28 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_dg_script",
+      "template": "music_loop",
+      "style": "m_dian",
+      "subject": {
+        "zh": "文字会自己翻动的书库深处：羽管键琴的循环琶音不断重复同一句（参考下一页动机的变形），像唱片卡住，弦乐跳弓像纸页翻动，木质的轻敲像笔尖；安静、诡异、令人头晕，像在一句话里永远走不出去",
+        "en": "Deep in a library where writing turns its own pages: a harpsichord arpeggio repeats the same phrase over and over (distorted next-page motif) like a stuck record, string ricochet like pages flipping, light wooden taps like pen nibs; quiet, eerie, dizzying, like being trapped inside one sentence forever"
+      },
+      "extra": {
+        "zh": "速度 76 BPM，4/4 拍，A 小调；循环体 28 小节，约 88 秒；分层 3：L1 弦乐长音与羽管键琴低音，L2 木质轻敲与翻页般的跳弓，L3 卡住般重复的琶音",
+        "en": "76 BPM, four-four time, A minor; loop body 28 bars, about 88 seconds; 3 layers: L1 string sustains and low harpsichord, L2 wooden taps and page-like ricochet, L3 stuck repeating arpeggio"
+      },
+      "ref": "dg_thousand_archive",
+      "deps": ["mus_stg_motif_moira"],
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 28 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_dg_mixed",
+      "template": "music_loop",
+      "style": "m_sealed_ruins",
+      "subject": {
+        "zh": "塌了一半的旧矿坑：低音长音与滴水般的零星拨奏，远处镐头敲矿石般的金属节奏，低音铜管偶尔像坑道深处的回响；阴冷、狭窄，带着劳作的痕迹和被掩盖的秘密",
+        "en": "A half-collapsed old mine: low drones and sparse pizzicato like dripping water, a metallic rhythm like distant picks striking ore, low brass now and then like echoes from deep tunnels; cold, cramped, marked by labor and buried secrets"
+      },
+      "extra": {
+        "zh": "速度 84 BPM，4/4 拍，E 小调；循环体 28 小节，约 80 秒；分层 3：L1 低音长音与滴水般的拨奏，L2 镐与铁的金属节奏，L3 低音铜管回响",
+        "en": "84 BPM, four-four time, E minor; loop body 28 bars, about 80 seconds; 3 layers: L1 low drones and dripping pizzicato, L2 pick-and-iron metallic rhythm, L3 echoing low brass"
+      },
+      "ref": "dg_old_mine",
+      "deps": ["mus_stg_motif_dian"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 28 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_dg_main_gate_pit",
+      "template": "music_loop",
+      "style": "m_sealed_ruins",
+      "subject": {
+        "zh": "一切开始与结束的巨坑：几乎听不见的极低嗡鸣，缓慢的巨鼓，无词合唱在不协和中堆积，两条熟悉的旋律碎片（参考门扉动机与主角动机）在远处交错又被低音吞没；终局将至，沉重、宏大、不祥",
+        "en": "The great pit where everything began and will end: an almost subsonic hum, slow giant drums, a wordless choir piling into dissonance, fragments of two familiar melodies (door motif and hero motif) crossing in the distance and swallowed by the low end; the end approaches, heavy, vast, ominous"
+      },
+      "extra": {
+        "zh": "速度 58 BPM，4/4 拍，D 小调；循环体 24 小节，约 99 秒；分层 3：L1 极低嗡鸣，L2 慢速巨鼓，L3 合唱与两条动机碎片",
+        "en": "58 BPM, four-four time, D minor; loop body 24 bars, about 99 seconds; 3 layers: L1 near-subsonic hum, L2 slow giant drums, L3 choir with two motif fragments"
+      },
+      "ref": "dg_main_gate_pit",
+      "deps": ["mus_stg_motif_door", "mus_stg_motif_hero"],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 24 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_cmb_skirmish",
+      "template": "music_loop",
+      "style": "m_battle",
+      "subject": {
+        "zh": "节奏紧凑的冒险战斗：弦乐快速跑动的固定音型，鼓组有力，铜管在关键处吹出短促的号角，偶尔闪过一句向上的英雄短句（参考主角动机）；紧张而爽快，不压抑",
+        "en": "Tight adventure battle music: fast running string ostinato, strong drums, brass punctuating with short calls, a rising heroic phrase flashing by now and then (hero motif fragment); tense yet exhilarating, never oppressive"
+      },
+      "extra": {
+        "zh": "速度 140 BPM，4/4 拍，D 小调；循环体 32 小节，约 55 秒；分层 3：L1 弦乐跑动固定音型与鼓，L2 铜管号角，L3 合唱与急促打击",
+        "en": "140 BPM, four-four time, D minor; loop body 32 bars, about 55 seconds; 3 layers: L1 running string ostinato and drums, L2 brass calls, L3 choir and urgent percussion"
+      },
+      "ref": "combat_t1",
+      "deps": ["mus_stg_motif_hero"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_cmb_elite",
+      "template": "music_loop",
+      "style": "m_battle",
+      "subject": {
+        "zh": "更强对手的战斗：低音弦乐与低音铜管的沉重重音，太鼓般的大鼓，急促的弦乐颤音，合唱突然切入短促的无词呼喊；更危险、更厚重，依旧有冲劲",
+        "en": "Battle against a stronger foe: heavy accents from low strings and low brass, taiko-like big drums, urgent string tremolo, a choir cutting in with short shout-like wordless syllables; more dangerous, heavier, still driving forward"
+      },
+      "extra": {
+        "zh": "速度 150 BPM，4/4 拍，C 小调；循环体 32 小节，约 51 秒；分层 3：L1 低音弦与低音铜管重音，L2 大鼓，L3 合唱短促呼喊（无词）",
+        "en": "150 BPM, four-four time, C minor; loop body 32 bars, about 51 seconds; 3 layers: L1 low string and low brass accents, L2 big drums, L3 short shouted wordless choir"
+      },
+      "ref": "combat_t2",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_cmb_presence",
+      "template": "music_loop",
+      "style": "m_battle",
+      "subject": {
+        "zh": "面对远比自己强大的存在：音乐几乎退到只剩低频的心跳般脉动，极低的弦乐长音，偶尔高音弦乐尖锐地拉起又断掉；空间很大，安静得可怕，每一声都像在提醒你小心",
+        "en": "Facing a being far stronger than you: the music drops away to a low heartbeat-like pulse, extremely low string drones, high strings now and then shrieking up and breaking off; a huge sense of space, frighteningly quiet, every sound a warning to be careful"
+      },
+      "extra": {
+        "zh": "速度 60 BPM，4/4 拍，无调性；循环体 16 小节，约 64 秒；分层 2：L1 低频心跳脉动与极低弦乐，L2 高音弦乐的刺耳长音",
+        "en": "60 BPM, four-four time, atonal; loop body 16 bars, about 64 seconds; 2 layers: L1 low heartbeat pulse and very low strings, L2 shrieking high strings"
+      },
+      "ref": "combat_t3",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 16 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_cmb_tide",
+      "template": "music_loop",
+      "style": "m_battle",
+      "subject": {
+        "zh": "守住防线的长战斗：坚定的行进鼓与弦乐固定音型像不断压上来的潮水，铜管吹出鼓舞人心的号召，合唱在第三层加入；持久、群体、悲壮里带着希望",
+        "en": "A long fight to hold the line: steady marching drums and string ostinato like waves pressing in, brass sounding a rousing call, choir joining in the third layer; enduring, communal, heroic with hope"
+      },
+      "extra": {
+        "zh": "速度 132 BPM，4/4 拍，G 小调；循环体 32 小节，约 58 秒；分层 3：L1 行进鼓与弦乐固定音型，L2 铜管号召，L3 合唱",
+        "en": "132 BPM, four-four time, G minor; loop body 32 bars, about 58 seconds; 3 layers: L1 marching drums and string ostinato, L2 brass call, L3 choir"
+      },
+      "ref": "mtide",
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_boss_standard",
+      "template": "music_loop",
+      "style": "m_battle",
+      "subject": {
+        "zh": "迷宫深处的首领战：管弦乐全奏的强烈开场动机，低音弦与大鼓推进，铜管与合唱交替呐喊般的无词乐句，弦乐快速音阶如漩涡；宏大、危险、让人热血",
+        "en": "A boss battle deep in a dungeon: a powerful full-orchestra opening motif, low strings and big drums driving, brass and choir trading shout-like wordless phrases, fast string scales swirling; grand, dangerous, thrilling"
+      },
+      "extra": {
+        "zh": "速度 156 BPM，4/4 拍，E 小调；循环体 40 小节，约 62 秒；分层 3：L1 低音弦与大鼓推进，L2 铜管与合唱交替，L3 弦乐快速音阶漩涡",
+        "en": "156 BPM, four-four time, E minor; loop body 40 bars, about 62 seconds; 3 layers: L1 low strings and big drums, L2 brass and choir trading, L3 swirling fast string scales"
+      },
+      "ref": "boss_generic",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_boss_rival",
+      "template": "music_loop",
+      "style": "m_battle",
+      "subject": {
+        "zh": "一对一的较量：激烈的弦乐与吉他拨奏，像步法与刀刃一样精确的打击，小号与小提琴像两名剑客互相试探、对答、交锋；锋利、热烈，带着竞技场的豪气与互相尊重",
+        "en": "A one-on-one contest: fierce plucked strings and guitar, percussion precise as footwork and blades, trumpet and violin like two duelists probing, answering and clashing; sharp, fiery, with the bravado of an arena and mutual respect"
+      },
+      "extra": {
+        "zh": "速度 168 BPM，4/4 拍，A 小调；循环体 40 小节，约 57 秒；分层 3：L1 吉他与弦乐激烈拨奏，L2 精确的打击，L3 小号与小提琴对决旋律",
+        "en": "168 BPM, four-four time, A minor; loop body 40 bars, about 57 seconds; 3 layers: L1 fierce guitar and plucked strings, L2 precise percussion, L3 trumpet and violin dueling lines"
+      },
+      "ref": "seg_oneeye",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_boss_tide_lord",
+      "template": "music_loop",
+      "style": "m_battle",
+      "subject": {
+        "zh": "从大地里涌出的灾厄：极低的嗡鸣与大鼓，弦乐成群的上下滑奏像潮水，低音铜管反复吹出由两个半音构成的沉重动机（参考澱的动机），合唱在不协和中堆高；天灾级、压倒性、震撼",
+        "en": "A calamity surging out of the earth: extremely low hum and big drums, swarms of string glissandi rising and falling like a tide, low brass repeating a heavy two-note half-step motif (sediment motif), choir piling into dissonance; disaster-scale, overwhelming, awe-inspiring"
+      },
+      "extra": {
+        "zh": "速度 120 BPM，4/4 拍，C 小调；循环体 32 小节，约 64 秒；分层 3：L1 极低嗡鸣与大鼓，L2 成群弦乐滑奏，L3 不协和合唱",
+        "en": "120 BPM, four-four time, C minor; loop body 32 bars, about 64 seconds; 3 layers: L1 very low hum and big drums, L2 swarming string glissandi, L3 dissonant choir"
+      },
+      "ref": "frostbell_dirge",
+      "deps": ["mus_stg_motif_dian"],
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_boss_legend",
+      "template": "music_loop",
+      "style": "m_battle",
+      "subject": {
+        "zh": "与深藏不露的强者交手：开场只有一把大提琴与竖琴的克制旋律，像在观察彼此，随后低音打击与铜管有节制地加入；不是狂暴而是高手过招的沉静与压迫，敬畏、专注、心跳很快",
+        "en": "Facing a master who hides their strength: it opens with only a restrained cello and harp melody, as if each side is studying the other, then low percussion and brass join with control; not frenzy but the calm pressure of experts crossing blades, awe, focus, a racing heart"
+      },
+      "extra": {
+        "zh": "速度 96 BPM，4/4 拍，B 小调；循环体 32 小节，约 80 秒；分层 2：L1 大提琴与竖琴的克制旋律，L2 低音打击与铜管",
+        "en": "96 BPM, four-four time, B minor; loop body 32 bars, about 80 seconds; 2 layers: L1 restrained cello and harp line, L2 low percussion and brass"
+      },
+      "ref": "trial_martha_evening_bell",
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_boss_faceless",
+      "template": "music_loop",
+      "style": "m_battle",
+      "subject": {
+        "zh": "与自己的黑暗倒影一战：一架微微走音的电钢琴在交响乐中格格不入地弹着一条熟悉旋律的倒影（参考无页之影动机），低音弦与大鼓沉重推进，合唱嘶哑而悲伤；愤怒、孤独、令人心碎的宏大对决",
+        "en": "A battle against your own dark reflection: a slightly detuned electric piano, out of place inside the orchestra, plays the mirror image of a familiar melody (see the shadow motif), low strings and big drums push heavily, the choir hoarse and grieving; anger, loneliness, a heartbreaking epic duel"
+      },
+      "extra": {
+        "zh": "速度 128 BPM，4/4 拍，D 小调；循环体 40 小节，约 75 秒；分层 3：L1 走音电钢琴与低音弦，L2 合唱与大鼓，L3 全体铜管的倒影旋律",
+        "en": "128 BPM, four-four time, D minor; loop body 40 bars, about 75 seconds; 3 layers: L1 detuned electric piano and low strings, L2 choir and big drums, L3 full brass playing the mirrored melody"
+      },
+      "ref": "faceless_king",
+      "deps": ["mus_stg_motif_faceless", "mus_stg_motif_hero"],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_boss_finale_court",
+      "template": "music_loop",
+      "style": "m_battle",
+      "subject": {
+        "zh": "在神的庭上与神交战：管弦乐、管风琴与无词合唱全开，节奏宏伟而急促，留出明确的空拍与段落，让五段鲜明的短旋律（参考五位女神的动机）可以轮流叠在上方；神圣、壮烈、终局感",
+        "en": "Battling gods in their own court: full orchestra with organ and wordless choir, grand and urgent rhythm, leaving clear rests and sections so five distinct short melodies (the five goddess motifs) can be layered on top in turn; sacred, heroic, final"
+      },
+      "extra": {
+        "zh": "速度 144 BPM，4/4 拍，D 小调；循环体 40 小节，约 67 秒；分层 3：L1 管弦乐与管风琴，L2 无词合唱，L3 宏伟打击与铜管",
+        "en": "144 BPM, four-four time, D minor; loop body 40 bars, about 67 seconds; 3 layers: L1 orchestra and organ, L2 wordless choir, L3 grand percussion and brass"
+      },
+      "ref": "eluen_avatar",
+      "deps": [
+        "mus_stg_motif_eluen",
+        "mus_stg_motif_valda",
+        "mus_stg_motif_merca",
+        "mus_stg_motif_sylvie",
+        "mus_stg_motif_moira"
+      ],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_boss_door_corridor",
+      "template": "music_loop",
+      "style": "m_divine_court",
+      "subject": {
+        "zh": "在无数扇门组成的回廊中与最亲近的存在相对：八音盒与竖琴奏出温柔的短旋律（参考门扉动机），弦乐与合唱、大鼓把它推成宏大而悲伤的战斗，主角动机在下方与之对抗又交织；爱与离别、拒绝与理解同时存在",
+        "en": "Facing the closest being of all in a corridor made of countless doors: music box and harp play a tender short melody (door motif), strings, choir and big drums push it into a vast and sorrowful battle, the hero motif below both fights it and intertwines; love and parting, refusal and understanding at once"
+      },
+      "extra": {
+        "zh": "速度 108 BPM，4/4 拍，D 大调转 B 小调；循环体 32 小节，约 71 秒；分层 3：L1 八音盒与竖琴，L2 弦乐，L3 合唱与大鼓",
+        "en": "108 BPM, four-four time, D major moving to B minor; loop body 32 bars, about 71 seconds; 3 layers: L1 music box and harp, L2 strings, L3 choir and big drums"
+      },
+      "ref": "janu_corridor",
+      "deps": ["mus_stg_motif_door", "mus_stg_motif_hero"],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_rts_skirmish",
+      "template": "music_loop",
+      "style": "m_battle",
+      "subject": {
+        "zh": "指挥一支小队在街巷与村落间作战：军鼓与小鼓的清晰节奏，弦乐断奏像命令一样短促，长笛与小号吹出战术性的短号角，紧张时加入合唱；精干、机敏、带着责任感",
+        "en": "Commanding a small force through streets and villages: crisp military and snare drum rhythms, string staccato short as orders, flute and trumpet sound tactical calls, choir joins when tension peaks; lean, alert, carrying responsibility"
+      },
+      "extra": {
+        "zh": "速度 126 BPM，4/4 拍，E 小调；循环体 32 小节，约 61 秒；分层 3：L1 军鼓与小鼓，L2 弦乐断奏与号角，L3 合唱",
+        "en": "126 BPM, four-four time, E minor; loop body 32 bars, about 61 seconds; 3 layers: L1 military and snare drums, L2 string staccato and calls, L3 choir"
+      },
+      "ref": "battle_squad",
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_rts_legion",
+      "template": "music_loop",
+      "style": "m_battle",
+      "subject": {
+        "zh": "两支大军在原野上相撞：成排的大鼓与军鼓，低音铜管宽厚的长音，弦乐大规模的固定音型像军阵移动，号角远近呼应，合唱在高潮时堆满；史诗、沉重、千军万马",
+        "en": "Two great armies colliding on open ground: rows of big drums and snares, broad low brass sustains, massive string ostinato like formations moving, horn calls near and far, choir filling the climax; epic, heavy, thousands of soldiers"
+      },
+      "extra": {
+        "zh": "速度 112 BPM，4/4 拍，C 小调；循环体 40 小节，约 86 秒；分层 3：L1 成排大鼓与低音铜管，L2 大规模弦乐固定音型与号角，L3 合唱",
+        "en": "112 BPM, four-four time, C minor; loop body 40 bars, about 86 seconds; 3 layers: L1 rows of big drums and low brass, L2 massive string ostinato and horns, L3 choir"
+      },
+      "ref": "battle_legion",
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_slg_peace",
+      "template": "music_loop",
+      "style": "m_strategy",
+      "subject": {
+        "zh": "俯瞰整片大陆的沙盘：羽管键琴与室内弦乐优雅的三拍子，拨奏像棋子轻轻落在桌面，木管在各声部之间交谈；从容、睿智，带一点下棋般的谋算",
+        "en": "A sand table overlooking the whole continent: elegant harpsichord and chamber strings in three-four time, pizzicato like pieces placed softly on a table, woodwinds conversing between voices; composed, wise, with the calculation of a board game"
+      },
+      "extra": {
+        "zh": "速度 96 BPM，3/4 拍，F 大调；循环体 48 小节，约 90 秒；分层 3：L1 室内弦乐与羽管键琴，L2 拨奏律动，L3 木管对话",
+        "en": "96 BPM, three-four time, F major; loop body 48 bars, about 90 seconds; 3 layers: L1 chamber strings and harpsichord, L2 pizzicato pulse, L3 woodwind conversation"
+      },
+      "ref": "strategy_map",
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 48 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_slg_war",
+      "template": "music_loop",
+      "style": "m_strategy",
+      "subject": {
+        "zh": "战火蔓延的沙盘：低音弦乐不安的固定音型，远处的军鼓与号角，羽管键琴弹着紧张的小调琶音，木管像信使匆匆来去；运筹的压力，一步错满盘皆输",
+        "en": "A sand table with war spreading across it: uneasy low-string ostinato, distant war drums and horns, harpsichord tense minor arpeggios, woodwinds hurrying like messengers; the pressure of strategy, one wrong move loses everything"
+      },
+      "extra": {
+        "zh": "速度 104 BPM，4/4 拍，D 小调；循环体 40 小节，约 92 秒；分层 3：L1 低音弦乐不安的固定音型，L2 远处军鼓与号角，L3 羽管键琴与木管",
+        "en": "104 BPM, four-four time, D minor; loop body 40 bars, about 92 seconds; 3 layers: L1 uneasy low-string ostinato, L2 distant war drums and horns, L3 harpsichord and woodwinds"
+      },
+      "ref": "strategy_map",
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_city_build",
+      "template": "music_loop",
+      "style": "m_strategy",
+      "subject": {
+        "zh": "规划与建造的时光：木吉他与拨奏弦乐轻快地踱步，木槌与手鼓像工地上有条不紊的劳作，木管吹出明朗的旋律；勤劳、积极、安心，适合长时间思考",
+        "en": "Time for planning and building: guitar and pizzicato strings stepping lightly, mallets and frame drum like orderly work on a construction site, woodwinds play a clear bright melody; industrious, positive, reassuring, good for long thinking"
+      },
+      "extra": {
+        "zh": "速度 100 BPM，4/4 拍，G 大调；循环体 40 小节，约 96 秒；分层 3：L1 木吉他与拨奏，L2 木槌与手鼓，L3 木管与弦乐",
+        "en": "100 BPM, four-four time, G major; loop body 40 bars, about 96 seconds; 3 layers: L1 guitar and pizzicato, L2 mallets and frame drum, L3 woodwinds and strings"
+      },
+      "ref": "lord_view",
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_god_eluen",
+      "template": "music_loop",
+      "style": "m_holy_see",
+      "subject": {
+        "zh": "光与秩序的女神：一条完全对称、每个音等长的庄严旋律（参考光之动机）由管风琴与铜管众赞奏出，背景里有像精密齿轮一样缓慢转动的拨奏与钟琴，利底亚调式明亮的升四级；高贵、完美、礼貌而冰冷，不容瑕疵",
+        "en": "The goddess of light and order: a perfectly symmetrical, evenly timed solemn melody (light motif) played by organ and brass chorale, in the background pizzicato and glockenspiel turning slowly like precision gears, the bright raised fourth of Lydian; noble, perfect, polite yet cold, intolerant of flaws"
+      },
+      "extra": {
+        "zh": "速度 72 BPM，4/4 拍，E 利底亚调式；循环体 24 小节，约 80 秒；分层 2：L1 管风琴与弦乐，L2 铜管与钟",
+        "en": "72 BPM, four-four time, E Lydian; loop body 24 bars, about 80 seconds; 2 layers: L1 organ and strings, L2 brass and bells"
+      },
+      "ref": "eluen",
+      "deps": ["mus_stg_motif_eluen"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 24 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_god_valda",
+      "template": "music_loop",
+      "style": "m_night_realm",
+      "subject": {
+        "zh": "争斗与淬炼的女神：大鼓与低音弦乐的豪迈律动，长号吹出短短长的粗犷动机（参考淬炼动机），圆号像大笑一样向上滑奏，弗里吉亚调式；野性、爽朗、好战，带着伤痕与骄傲",
+        "en": "The goddess of strife and tempering: bold rhythm of big drums and low strings, trombones blast a rugged short-short-long motif (tempering motif), horns rip upward like laughter, Phrygian mode; wild, hearty, warlike, scarred and proud"
+      },
+      "extra": {
+        "zh": "速度 96 BPM，4/4 拍，F 弗里吉亚调式；循环体 32 小节，约 80 秒；分层 2：L1 低音弦乐与大鼓，L2 长号与圆号",
+        "en": "96 BPM, four-four time, F Phrygian; loop body 32 bars, about 80 seconds; 2 layers: L1 low strings and big drums, L2 trombones and horns"
+      },
+      "ref": "valda",
+      "deps": ["mus_stg_motif_valda"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_god_merca",
+      "template": "music_loop",
+      "style": "m_mercato",
+      "subject": {
+        "zh": "交易与丰饶的女神：轻快俏皮的三拍子，曼陀林和拨奏弦乐跳着小碎步，钟琴叮当像硬币在空中翻转，手风琴吹出甜美又精明的旋律（参考生意经动机）；可爱、热情、算盘打得飞快",
+        "en": "The goddess of trade and plenty: a light, playful waltz, mandolin and pizzicato strings skipping in small steps, glockenspiel chiming like coins flipping in the air, accordion playing a sweet yet shrewd melody (bargain motif); cute, warm-hearted, calculating at lightning speed"
+      },
+      "extra": {
+        "zh": "速度 132 BPM，3/4 拍，A 混合利底亚调式；循环体 48 小节，约 65 秒；分层 2：L1 曼陀林与拨奏，L2 钟琴与手风琴",
+        "en": "132 BPM, three-four time, A Mixolydian; loop body 48 bars, about 65 seconds; 2 layers: L1 mandolin and pizzicato, L2 glockenspiel and accordion"
+      },
+      "ref": "merca",
+      "deps": ["mus_stg_motif_merca"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 48 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_god_sylvie",
+      "template": "music_loop",
+      "style": "m_silva",
+      "subject": {
+        "zh": "生命与循环的女神：几乎静止的竖琴与弦乐泛音，一支带气声的木笛缓缓吹出下行的五声短句（参考轮回动机），句子之间长长的停顿，三度音在大小调之间摇摆，像同时开着新花与枯花；轻、慢、温柔又悲伤，带着警告",
+        "en": "The goddess of life and cycles: nearly still harp and string harmonics, a breathy wooden flute slowly plays a falling pentatonic phrase (cycle motif), long pauses between phrases, the third wavering between major and minor like new and withered flowers blooming together; light, slow, tender and sad, carrying a warning"
+      },
+      "extra": {
+        "zh": "速度 60 BPM，4/4 拍，D 多利亚调式；循环体 20 小节，约 80 秒；分层 2：L1 竖琴与弦乐泛音，L2 木笛与无词女声",
+        "en": "60 BPM, four-four time, D Dorian; loop body 20 bars, about 80 seconds; 2 layers: L1 harp and string harmonics, L2 wooden flute and wordless female voice"
+      },
+      "ref": "sylvie",
+      "deps": ["mus_stg_motif_sylvie"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 20 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_god_moira",
+      "template": "music_loop",
+      "style": "m_divine_court",
+      "subject": {
+        "zh": "记录与命运的女神：羽管键琴弹着一条循环往复、像翻书一样的琶音（参考下一页动机），拨奏与木琴像羽毛笔点在纸上，六八拍的轻快摇摆，每句结尾都上扬成一个问号；优雅、调皮，像旁白在说这一章才刚开始",
+        "en": "The goddess of records and fate: harpsichord plays a circular arpeggio like turning pages (next-page motif), pizzicato and xylophone like a quill dotting paper, a light swaying six-eight, every phrase ending with a rising question; elegant, mischievous, like a narrator saying the chapter has only just begun"
+      },
+      "extra": {
+        "zh": "速度 72 BPM，6/8 拍，A 小调；循环体 48 小节，约 80 秒；分层 2：L1 羽管键琴，L2 拨奏与木琴",
+        "en": "72 BPM, six-eight time, A minor; loop body 48 bars, about 80 seconds; 2 layers: L1 harpsichord, L2 pizzicato and xylophone"
+      },
+      "ref": "moira",
+      "deps": ["mus_stg_motif_moira"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 48 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_god_door_woman",
+      "template": "music_loop",
+      "style": "m_divine_court",
+      "subject": {
+        "zh": "一位守门的女神完整显现：那条一直藏在八音盒里的温柔短旋律（参考门扉动机）第一次由弦乐、竖琴、无词合唱与钟完整地奏出，宽广、温暖，带着漫长的孤独与等待；结尾它与主角动机相互缠绕",
+        "en": "A goddess who keeps the doors, fully revealed: the tender short melody long hidden in the music box (door motif) played in full for the first time by strings, harp, wordless choir and bells, wide and warm, carrying long loneliness and waiting; at the end it intertwines with the hero motif"
+      },
+      "extra": {
+        "zh": "速度 66 BPM，4/4 拍，D 大调；循环体 24 小节，约 87 秒；分层 2：L1 八音盒、竖琴与弦乐，L2 无词合唱与钟",
+        "en": "66 BPM, four-four time, D major; loop body 24 bars, about 87 seconds; 2 layers: L1 music box, harp and strings, L2 wordless choir and bells"
+      },
+      "ref": "door_woman",
+      "deps": ["mus_stg_motif_door", "mus_stg_motif_hero"],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 24 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_god_maker",
+      "template": "music_cue",
+      "style": "m_divine_court",
+      "subject": {
+        "zh": "从不开口的造主：一个纯净的纯五度长音像从极高处落下，无词合唱与玻璃琴轻轻托住它，没有旋律也没有节拍，长音慢慢变亮、变宽，然后在一瞬间完全收掉，只留下空房间般的寂静；超越、绝对、不可解读",
+        "en": "The Maker who never speaks: a pure perfect-fifth sustain as if falling from a great height, a wordless choir and glass harmonica gently holding it, no melody and no meter, the tone slowly brightens and widens, then is cut off completely in an instant leaving only empty-room silence; transcendent, absolute, unreadable"
+      },
+      "extra": {
+        "zh": "D 与 A 的纯五度，自由节拍；时长约 60 秒，有完整的开头与结尾，结尾自然收束；最后 5 秒为绝对静音",
+        "en": "a perfect fifth of D and A, free meter; about 60 seconds with a complete beginning and ending, ending naturally; the final 5 seconds are absolute silence"
+      },
+      "ref": "maker",
+      "deps": ["mus_stg_revelation"],
+      "milestone": "M3",
+      "notes": "生成 3 版候选"
+    },
+    {
+      "id": "mus_act1_beast_tide",
+      "template": "music_loop",
+      "style": "m_battle",
+      "subject": {
+        "zh": "暗月之夜，小镇被兽潮包围：低音弦乐与大鼓像四面八方压来的脚步，手摇弦琴与小提琴被卷入交响乐中拼命演奏小镇的旋律，铜管与合唱在最高层推到绝境；悲壮、混乱、咬紧牙关的守护",
+        "en": "A moonless night, the town surrounded by a beast tide: low strings and big drums like footsteps closing in from every side, hurdy-gurdy and fiddle swept into the orchestra desperately playing the town melody, brass and choir in the top layer pushing to the brink; tragic, chaotic, defending with gritted teeth"
+      },
+      "extra": {
+        "zh": "速度 138 BPM，4/4 拍，G 小调；循环体 40 小节，约 70 秒；分层 3：L1 低音弦与大鼓，L2 卷入交响乐的民谣乐器，L3 铜管与合唱",
+        "en": "138 BPM, four-four time, G minor; loop body 40 bars, about 70 seconds; 3 layers: L1 low strings and big drums, L2 folk instruments swept into the orchestra, L3 brass and choir"
+      },
+      "ref": "a1_beast_tide",
+      "deps": ["mus_town_borderstone_day"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_act2_city_tide",
+      "template": "music_loop",
+      "style": "m_battle",
+      "subject": {
+        "zh": "河港城邦的保卫战：城市主题（羽管键琴与小号）被改写成急迫的小调战歌，弦乐固定音型像从井口与下水道涌出的潮水，军鼓与钟楼钟声交织，合唱在最高层；紧张、复杂、全城动员",
+        "en": "Defense of the river-port city: the civic theme (harpsichord and trumpet) rewritten as an urgent minor war song, string ostinato like a tide surging out of wells and sewers, snares interwoven with bell-tower chimes, choir in the top layer; tense, complex, the whole city mobilized"
+      },
+      "extra": {
+        "zh": "速度 132 BPM，4/4 拍，D 小调；循环体 40 小节，约 73 秒；分层 3：L1 弦乐固定音型与军鼓，L2 羽管键琴与小号的城市主题小调化，L3 钟楼钟声与合唱",
+        "en": "132 BPM, four-four time, D minor; loop body 40 bars, about 73 seconds; 3 layers: L1 string ostinato and snares, L2 civic theme in minor on harpsichord and trumpet, L3 bell-tower chimes and choir"
+      },
+      "ref": "wallenburg_harbor_battle",
+      "deps": ["mus_city_wallenburg_day"],
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_act3_ash_line",
+      "template": "music_loop",
+      "style": "m_battle",
+      "subject": {
+        "zh": "守护领地的最大会战：沉重的军阵节奏，低音铜管，圣咏般的合唱从敌方一侧压来（参考光之动机），主角动机在铜管与弦乐中一次次站起来回应；壮烈，信念与信念的对撞",
+        "en": "The greatest battle to defend your land: heavy marching rhythm of armies, low brass, a hymn-like choir pressing from the enemy side (light motif), the hero motif rising again and again in brass and strings to answer; heroic, belief clashing against belief"
+      },
+      "extra": {
+        "zh": "速度 120 BPM，4/4 拍，C 小调；循环体 40 小节，约 80 秒；分层 3：L1 军阵节奏与低音铜管，L2 主角动机的铜管与弦乐，L3 敌方的圣咏合唱",
+        "en": "120 BPM, four-four time, C minor; loop body 40 bars, about 80 seconds; 3 layers: L1 army rhythm and low brass, L2 hero motif in brass and strings, L3 the enemy hymn choir"
+      },
+      "ref": "reedbridge_battle",
+      "deps": ["mus_stg_motif_hero", "mus_stg_motif_eluen"],
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑一版；导入时按 40 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_act4_conclave",
+      "template": "music_loop",
+      "style": "m_strategy",
+      "subject": {
+        "zh": "七国首脑围坐在雪山下的石席旁：室内弦乐与羽管键琴的克制对话，来自各地的乐器（管风琴、军号、曼陀林、木笛、拉弦乐器、大鼓）轮流插话又互相打断，定音鼓在决断时刻落下；紧绷、权谋，历史在这一桌上被写下",
+        "en": "Leaders of seven nations seated around stone seats beneath snow peaks: restrained conversation of chamber strings and harpsichord, instruments from every land (organ, bugle, mandolin, wooden flute, bowed fiddle, big drum) cut in and interrupt each other, timpani falling at the moment of decision; taut, political, history being written at one table"
+      },
+      "extra": {
+        "zh": "速度 84 BPM，4/4 拍，B 小调；循环体 32 小节，约 91 秒；分层 3：L1 室内弦乐与羽管键琴，L2 各国乐器轮流插话，L3 定音鼓与铜管",
+        "en": "84 BPM, four-four time, B minor; loop body 32 bars, about 91 seconds; 3 layers: L1 chamber strings and harpsichord, L2 instruments of each nation interjecting, L3 timpani and brass"
+      },
+      "ref": "seven_seats",
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_act5_ashen_final",
+      "template": "music_loop",
+      "style": "m_battle",
+      "subject": {
+        "zh": "所有种族为同一个世界而战：各地的乐器与大合唱、全体管弦乐交织成一张巨大的声浪网，澱的沉重动机在低音翻滚，主角动机在最高处越来越完整；史诗、悲壮、团结，终局之战",
+        "en": "Every people fighting for the same world: instruments from every land, a massive choir and full orchestra weave a vast web of sound, the heavy sediment motif rolling in the bass, the hero motif growing more complete at the very top; epic, tragic, united, the final war"
+      },
+      "extra": {
+        "zh": "速度 136 BPM，4/4 拍，D 小调；循环体 48 小节，约 85 秒；分层 3：L1 全体管弦与澱动机低音，L2 各地乐器与大合唱，L3 最高处的主角动机",
+        "en": "136 BPM, four-four time, D minor; loop body 48 bars, about 85 seconds; 3 layers: L1 full orchestra with the sediment motif in the bass, L2 instruments of every land and massive choir, L3 the hero motif at the very top"
+      },
+      "ref": "ashen_final_battle",
+      "deps": ["mus_stg_motif_hero", "mus_stg_motif_dian"],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 48 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_act6_trial",
+      "template": "music_loop",
+      "style": "m_divine_court",
+      "subject": {
+        "zh": "诸神受审的法庭：竖琴与弦乐稳定而紧张的固定音型像钟摆，低音木管像在沉思，定音鼓与无词合唱在逼问时压上来；庄重、紧绷、理性的激辩，留出空间叠加各位女神的短旋律",
+        "en": "A courtroom where gods stand trial: steady, tense harp and string ostinato like a pendulum, low woodwinds as if pondering, timpani and wordless choir pressing in during cross-examination; solemn, taut, a rational fierce debate, leaving room to layer each goddess short melody"
+      },
+      "extra": {
+        "zh": "速度 92 BPM，4/4 拍，D 小调；循环体 32 小节，约 83 秒；分层 3：L1 竖琴与弦乐钟摆般的固定音型，L2 低音木管，L3 定音鼓与无词合唱",
+        "en": "92 BPM, four-four time, D minor; loop body 32 bars, about 83 seconds; 3 layers: L1 pendulum-like harp and string ostinato, L2 low woodwinds, L3 timpani and wordless choir"
+      },
+      "ref": "divine_court",
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 3 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_act6_verdict",
+      "template": "music_cue",
+      "style": "m_divine_court",
+      "subject": {
+        "zh": "冬至，审定落下：纯五度的长音从高处降临，弦乐与合唱缓慢地展开一条宽阔的上行，门扉动机与主角动机相继出现，最后停在一个巨大而开放的和弦上等待答案；宏大、静穆、屏息",
+        "en": "Winter solstice, the verdict descends: a perfect-fifth sustain from on high, strings and choir slowly unfold a broad ascending line, the door motif and the hero motif appear in turn, ending on a huge open chord waiting for an answer; vast, hushed, breath held"
+      },
+      "extra": {
+        "zh": "D 大调，速度约 60 BPM；时长约 150 秒，有完整的开头与结尾，结尾自然收束",
+        "en": "D major, about 60 BPM; about 150 seconds with a complete beginning and ending, ending naturally"
+      },
+      "ref": "a6_verdict",
+      "deps": ["mus_god_maker", "mus_stg_motif_door", "mus_stg_motif_hero"],
+      "milestone": "M3",
+      "notes": "生成 3 版候选"
+    },
+    {
+      "id": "mus_cue_zoomout",
+      "template": "music_cue",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "镜头从一个人拉远到整个世界：钢琴先独自弹出向上的旋律（参考主角动机），随后依次加入木吉他、低音、轻柔的鼓、无词合唱与弦乐，每加一层视野就更宽一些；回望、领悟、略带苦涩的壮阔",
+        "en": "The camera pulls back from one person to the whole world: piano alone first plays a rising melody (hero motif), then acoustic guitar, bass, soft drums, wordless choir and strings join one by one, each layer widening the view; looking back, realization, a slightly bittersweet grandeur"
+      },
+      "extra": {
+        "zh": "D 大调，速度约 72 BPM；时长约 100 秒，有完整的开头与结尾，结尾自然收束；严格只用六组乐器：钢琴、木吉他、低音、鼓、无词合唱、弦乐，各组音域尽量不重叠，便于分轨；分层 6：L1 钢琴，L2 木吉他，L3 低音，L4 鼓，L5 无词合唱，L6 弦乐",
+        "en": "D major, about 72 BPM; about 100 seconds with a complete beginning and ending, ending naturally; use exactly six instrument groups: piano, acoustic guitar, bass, drums, wordless choir, strings, with minimal register overlap so they can be separated into stems; 6 layers: L1 piano, L2 acoustic guitar, L3 bass, L4 drums, L5 wordless choir, L6 strings"
+      },
+      "ref": "zoomout",
+      "deps": ["mus_stg_motif_hero"],
+      "milestone": "M1",
+      "notes": "生成 3 版候选；用分轨分离得到 6 层"
+    },
+    {
+      "id": "mus_cue_dream_door",
+      "template": "music_loop",
+      "style": "m_dream",
+      "subject": {
+        "zh": "梦里一扇半开的门：深远混响里的钢片琴和缓慢呼吸般的长音，层层叠叠的回声，八音盒在远处若有若无地奏着一条温柔的短旋律（参考门扉动机）；朦胧、温暖、恍惚，有人在门口等你",
+        "en": "A half-open door in a dream: celesta in deep reverb and slow breathing sustains, layer upon layer of echoes, a music box faintly playing a tender short melody far away (door motif); hazy, warm, entranced, someone waiting at the door"
+      },
+      "extra": {
+        "zh": "速度 54 BPM，4/4 拍，D 大调；循环体 20 小节，约 89 秒；分层 2：L1 深混响钢片琴与长音，L2 八音盒旋律",
+        "en": "54 BPM, four-four time, D major; loop body 20 bars, about 89 seconds; 2 layers: L1 celesta in deep reverb with sustains, L2 music-box melody"
+      },
+      "ref": "dream_door",
+      "deps": ["mus_stg_motif_door"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 20 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_cue_comedy",
+      "template": "music_loop",
+      "style": "m_lotha_folk",
+      "subject": {
+        "zh": "轻松的误会喜剧：巴松管一本正经地踱步，拨奏弦乐像窃窃私语，木琴与长笛时不时插进滑稽的装饰音，停顿恰到好处；俏皮、幽默、有点得意",
+        "en": "A light comedy of misunderstanding: a bassoon strolls with a straight face, pizzicato strings like whispering gossip, xylophone and flute cutting in with comic grace notes, pauses timed just right; playful, humorous, a bit smug"
+      },
+      "extra": {
+        "zh": "速度 112 BPM，4/4 拍，F 大调；循环体 24 小节，约 51 秒；分层 2：L1 巴松与拨奏，L2 木琴与长笛",
+        "en": "112 BPM, four-four time, F major; loop body 24 bars, about 51 seconds; 2 layers: L1 bassoon and pizzicato, L2 xylophone and flute"
+      },
+      "ref": "disbelief_bits",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 24 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_cue_intrigue",
+      "template": "music_loop",
+      "style": "m_valen_city",
+      "subject": {
+        "zh": "表面平静下的暗流：低音弦乐与低音单簧管悄悄行进，羽管键琴弹出不安的半音，偶尔一下低沉的鼓像心跳漏了一拍；猜疑、密谋、步步为营",
+        "en": "An undercurrent beneath a calm surface: low strings and bass clarinet creep forward, harpsichord picks out uneasy chromatic notes, an occasional low drum like a skipped heartbeat; suspicion, conspiracy, careful steps"
+      },
+      "extra": {
+        "zh": "速度 80 BPM，4/4 拍，E 小调；循环体 24 小节，约 72 秒；分层 2：L1 低音弦乐与低音单簧管，L2 羽管键琴与心跳般的鼓",
+        "en": "80 BPM, four-four time, E minor; loop body 24 bars, about 72 seconds; 2 layers: L1 low strings and bass clarinet, L2 harpsichord and heartbeat drum"
+      },
+      "ref": "witch_trial",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 24 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_cue_sorrow",
+      "template": "music_loop",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "失去之后的安静：钢琴单音缓慢落下，弦乐低声托着，一把大提琴唱出一条简单而沉重的旋律，没有煽情的高潮；哀伤、克制、温柔地告别",
+        "en": "The quiet after a loss: single piano notes falling slowly, strings murmuring underneath, a cello sings a simple heavy melody, no sentimental climax; grief, restraint, a gentle farewell"
+      },
+      "extra": {
+        "zh": "速度 60 BPM，4/4 拍，B 小调；循环体 20 小节，约 80 秒；分层 2：L1 钢琴与弦乐，L2 大提琴独奏",
+        "en": "60 BPM, four-four time, B minor; loop body 20 bars, about 80 seconds; 2 layers: L1 piano and strings, L2 solo cello"
+      },
+      "ref": "loss",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 20 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_cue_warmth",
+      "template": "music_loop",
+      "style": "m_lotha_folk",
+      "subject": {
+        "zh": "围着篝火的夜晚：木吉他与竖琴温暖的三拍子，小提琴和木笛像两个朋友聊天一样轮流说话，偶尔一句轻轻的笑意；亲密、安心、有一点点感伤",
+        "en": "An evening around a campfire: warm guitar and harp in three-four, fiddle and wooden flute taking turns like two friends talking, an occasional soft smiling phrase; intimate, reassuring, a little wistful"
+      },
+      "extra": {
+        "zh": "速度 88 BPM，3/4 拍，G 大调；循环体 48 小节，约 98 秒；分层 2：L1 木吉他与竖琴，L2 小提琴与木笛",
+        "en": "88 BPM, three-four time, G major; loop body 48 bars, about 98 seconds; 2 layers: L1 guitar and harp, L2 fiddle and wooden flute"
+      },
+      "ref": "bond_events",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑一版；导入时按 48 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_end_release",
+      "template": "music_cue",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "放手之后的世界：钢琴与竖琴从门扉动机与主角动机开始，弦乐慢慢展开，合唱与全体管弦乐升起，长长的上行之后，那条一直没有落定的主角旋律终于落在主音上；释然、宽广、温暖、泪中带笑",
+        "en": "The world after letting go: piano and harp begin with the door motif and the hero motif, strings slowly unfold, choir and full orchestra rise, and after a long ascent the hero melody that never resolved finally lands on the tonic; release, breadth, warmth, smiling through tears"
+      },
+      "extra": {
+        "zh": "D 大调，速度约 66 BPM；时长约 240 秒，有完整的开头与结尾，结尾自然收束；最后的主音只由 L3 奏出；分层 3：L1 钢琴与竖琴，L2 弦乐，L3 合唱与全奏",
+        "en": "D major, about 66 BPM; about 240 seconds with a complete beginning and ending, ending naturally; the final tonic is played only by the choir and tutti group; 3 layers: L1 piano and harp, L2 strings, L3 choir and tutti"
+      },
+      "ref": "ending_release",
+      "deps": ["mus_stg_motif_hero", "mus_stg_motif_door"],
+      "milestone": "M3",
+      "notes": "生成 3 版候选；用分轨分离得到 3 层"
+    },
+    {
+      "id": "mus_end_godrule",
+      "template": "music_cue",
+      "style": "m_divine_court",
+      "subject": {
+        "zh": "一位神留下来照看世界：庄严而美丽的弦乐与竖琴，旋律完整却带着淡淡的遗憾，主角动机在结尾停在一个不完全的和弦上；安定、有序，却好像少了点什么",
+        "en": "One god stays to watch over the world: solemn and beautiful strings and harp, the melody complete yet tinged with regret, the hero motif ending on an incomplete chord; settled and orderly, yet something seems missing"
+      },
+      "extra": {
+        "zh": "D 大调，速度约 72 BPM；时长约 180 秒，有完整的开头与结尾，结尾自然收束；分层 2：L1 弦乐与竖琴，L2 木管与钟琴",
+        "en": "D major, about 72 BPM; about 180 seconds with a complete beginning and ending, ending naturally; 2 layers: L1 strings and harp, L2 woodwinds and glockenspiel"
+      },
+      "ref": "ending_godrule",
+      "deps": ["mus_stg_motif_hero"],
+      "milestone": "M3",
+      "notes": "生成 3 版候选；用分轨分离得到 2 层"
+    },
+    {
+      "id": "mus_end_new_order",
+      "template": "music_cue",
+      "style": "m_divine_court",
+      "subject": {
+        "zh": "新的主宰登上神座：辉煌的管风琴与铜管，合唱宏大地宣告，但和声在大调与小调之间不安地游移，最后一个和弦明亮得刺眼；胜利与失去并存，壮丽而令人不安",
+        "en": "A new sovereign ascends the divine seat: brilliant organ and brass, choir proclaiming grandly, yet the harmony wanders uneasily between major and minor, the final chord dazzlingly bright; triumph and loss together, magnificent and disquieting"
+      },
+      "extra": {
+        "zh": "D 小调与 D 大调之间，速度约 76 BPM；时长约 180 秒，有完整的开头与结尾，结尾自然收束；分层 2：L1 管风琴与铜管，L2 合唱",
+        "en": "between D minor and D major, about 76 BPM; about 180 seconds with a complete beginning and ending, ending naturally; 2 layers: L1 organ and brass, L2 choir"
+      },
+      "ref": "ending_new_god",
+      "milestone": "M3",
+      "notes": "生成 3 版候选；用分轨分离得到 2 层"
+    },
+    {
+      "id": "mus_end_maker_room",
+      "template": "music_cue",
+      "style": "m_divine_court",
+      "subject": {
+        "zh": "一张桌子、一封信的小房间：只有一架普通的钢琴，弹着简单、真诚、近乎练习曲的旋律，背景里一个纯五度长音若有若无；朴素、亲切，像有人在灯下写信",
+        "en": "A small room with one table and one letter: just an ordinary piano playing a simple, sincere, almost etude-like melody, a perfect-fifth sustain barely present in the background; plain, intimate, like someone writing a letter by lamplight"
+      },
+      "extra": {
+        "zh": "D 大调，速度约 64 BPM；时长约 120 秒，有完整的开头与结尾，结尾自然收束",
+        "en": "D major, about 64 BPM; about 120 seconds with a complete beginning and ending, ending naturally"
+      },
+      "ref": "maker_room",
+      "milestone": "M3",
+      "notes": "生成 3 版候选"
+    },
+    {
+      "id": "mus_epilogue_record",
+      "template": "music_loop",
+      "style": "m_divine_court",
+      "subject": {
+        "zh": "翻阅最后的记录：羽管键琴与竖琴的温柔琶音像缓缓翻过的书页，弦乐低声叙述，主角动机与下一页动机轻轻交替；怀念、平和，每一页都是一段人生",
+        "en": "Leafing through the final record: gentle harpsichord and harp arpeggios like pages turning slowly, strings narrating softly, the hero motif and the next-page motif alternating lightly; nostalgic, peaceful, every page a life"
+      },
+      "extra": {
+        "zh": "速度 76 BPM，4/4 拍，G 大调；循环体 32 小节，约 101 秒；分层 2：L1 羽管键琴与竖琴琶音，L2 弦乐",
+        "en": "76 BPM, four-four time, G major; loop body 32 bars, about 101 seconds; 2 layers: L1 harpsichord and harp arpeggios, L2 strings"
+      },
+      "ref": "epilogue",
+      "deps": ["mus_stg_motif_moira", "mus_stg_motif_hero"],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑一版；导入时按 32 小节切出循环体（音频方案第 11.2 节）；用分轨分离得到 2 层（第 11.3 节）"
+    },
+    {
+      "id": "mus_credits",
+      "template": "music_long",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "片尾组曲：从夜里城市的电钢琴开始，依次回顾小镇民谣、城邦、荒原、各国的音色与六段女神旋律，最后全体管弦乐与无词合唱奏出全作主题，八音盒收尾；回顾、感恩、余韵悠长",
+        "en": "End-credits suite: starting with the electric piano of a night city, it revisits the town folk tune, the river city, the wasteland, the colors of each nation and six goddess melodies, then full orchestra and wordless choir play the main theme, closing with a music box; retrospective, grateful, a long afterglow"
+      },
+      "extra": {
+        "zh": "D 大调，速度约 80 BPM；时长约 330 秒，有完整的开头与结尾，结尾自然收束",
+        "en": "D major, about 80 BPM; about 330 seconds with a complete beginning and ending, ending naturally"
+      },
+      "ref": "credits",
+      "deps": ["mus_title_main"],
+      "milestone": "M3",
+      "notes": "生成 3 版候选"
+    },
+    {
+      "id": "mus_stg_motif_hero",
+      "template": "music_motif",
+      "style": "m_motif",
+      "subject": {
+        "zh": "主角动机：一把鲁特琴独奏，向上、朴素、坚定，最后停在不稳定的二级音上，像一句没说完的话。乐句：D 大调 D、E、A，B、A、E，前三音为八分、八分、四分，后三音为四分、八分、二分，结尾停在 E 不解决。单件乐器清楚地奏两遍，第一遍原速，第二遍稍慢且更轻；无伴奏或只有极简的持续音",
+        "en": "Hero motif: a solo lute, rising, plain and determined, ending on the unstable second degree like an unfinished sentence. Phrase: in D major: D E A, then B A E, rhythm eighth eighth quarter, then quarter eighth half, ending on E without resolving. Played twice clearly by a single instrument, the second time slightly slower and softer; unaccompanied or with only a minimal drone"
+      },
+      "extra": {
+        "zh": "时长约 14 秒，D 调，速度约 80 BPM，干声为主，结尾留 1 秒自然衰减",
+        "en": "about 14 seconds, in D, about 80 BPM, mostly dry, leave a 1-second natural decay at the end"
+      },
+      "ref": "motif_hero",
+      "milestone": "M1",
+      "notes": "动机种子：同一乐句的音高与节奏以中文与英文描述为准，生成后人工核对音高，不符合就重生成；通过后作为其他曲目的参考音频"
+    },
+    {
+      "id": "mus_stg_motif_door",
+      "template": "music_motif",
+      "style": "m_motif",
+      "subject": {
+        "zh": "门扉动机：一只八音盒，温柔、带笑、像钥匙在锁里轻轻转动后门被推开。乐句：D 大调升 F、E、升 F 来回，再向上跳到高八度的 D，落到升 C、A，四分音符为主，最后一音延长。单件乐器清楚地奏两遍，第一遍原速，第二遍稍慢且更轻；无伴奏或只有极简的持续音",
+        "en": "Door motif: a music box, tender and smiling, like a key turning softly in a lock and a door swinging open. Phrase: in D major: F-sharp E F-sharp rocking, a leap up to high D, falling to C-sharp and A, mostly quarter notes, last note held. Played twice clearly by a single instrument, the second time slightly slower and softer; unaccompanied or with only a minimal drone"
+      },
+      "extra": {
+        "zh": "时长约 14 秒，D 调，速度约 80 BPM，干声为主，结尾留 1 秒自然衰减",
+        "en": "about 14 seconds, in D, about 80 BPM, mostly dry, leave a 1-second natural decay at the end"
+      },
+      "ref": "motif_door",
+      "milestone": "M1",
+      "notes": "动机种子：同一乐句的音高与节奏以中文与英文描述为准，生成后人工核对音高，不符合就重生成；通过后作为其他曲目的参考音频"
+    },
+    {
+      "id": "mus_stg_motif_eluen",
+      "template": "music_motif",
+      "style": "m_motif",
+      "subject": {
+        "zh": "光之动机：管风琴加一口小钟，左右完全对称、每个音等长，像在测量。乐句：D、A、高八度 D、A、D，五个等长的四分音符，回文结构。单件乐器清楚地奏两遍，第一遍原速，第二遍稍慢且更轻；无伴奏或只有极简的持续音",
+        "en": "Light motif: organ with a small bell, perfectly symmetrical, every note the same length, as if measuring. Phrase: D A high-D A D, five equal quarter notes in a palindrome. Played twice clearly by a single instrument, the second time slightly slower and softer; unaccompanied or with only a minimal drone"
+      },
+      "extra": {
+        "zh": "时长约 14 秒，D 调，速度约 80 BPM，干声为主，结尾留 1 秒自然衰减",
+        "en": "about 14 seconds, in D, about 80 BPM, mostly dry, leave a 1-second natural decay at the end"
+      },
+      "ref": "motif_eluen",
+      "milestone": "M1",
+      "notes": "动机种子：同一乐句的音高与节奏以中文与英文描述为准，生成后人工核对音高，不符合就重生成；通过后作为其他曲目的参考音频"
+    },
+    {
+      "id": "mus_stg_motif_valda",
+      "template": "music_motif",
+      "style": "m_motif",
+      "subject": {
+        "zh": "淬炼动机：长号与战鼓，粗犷的短短长节奏，结尾圆号向上滑奏像一声大笑。乐句：D、D、降 E、D，然后 C、D，弗里吉亚调式，短短长加短长。单件乐器清楚地奏两遍，第一遍原速，第二遍稍慢且更轻；无伴奏或只有极简的持续音",
+        "en": "Tempering motif: trombone and war drum, a rugged short-short-long rhythm, ending with a horn ripping upward like a laugh. Phrase: D D E-flat D, then C D, Phrygian, short-short-long then short-long. Played twice clearly by a single instrument, the second time slightly slower and softer; unaccompanied or with only a minimal drone"
+      },
+      "extra": {
+        "zh": "时长约 14 秒，D 调，速度约 80 BPM，干声为主，结尾留 1 秒自然衰减",
+        "en": "about 14 seconds, in D, about 80 BPM, mostly dry, leave a 1-second natural decay at the end"
+      },
+      "ref": "motif_valda",
+      "milestone": "M1",
+      "notes": "动机种子：同一乐句的音高与节奏以中文与英文描述为准，生成后人工核对音高，不符合就重生成；通过后作为其他曲目的参考音频"
+    },
+    {
+      "id": "mus_stg_motif_merca",
+      "template": "music_motif",
+      "style": "m_motif",
+      "subject": {
+        "zh": "生意经动机：曼陀林断奏加钟琴，三拍子，跳跃、俏皮，像拨算盘。乐句：A、D、升 F、A，B、A、升 F、D，全部断奏的八分音符。单件乐器清楚地奏两遍，第一遍原速，第二遍稍慢且更轻；无伴奏或只有极简的持续音",
+        "en": "Bargain motif: staccato mandolin with glockenspiel, three-four, bouncy and cheeky, like flicking abacus beads. Phrase: A D F-sharp A, B A F-sharp D, all staccato eighth notes. Played twice clearly by a single instrument, the second time slightly slower and softer; unaccompanied or with only a minimal drone"
+      },
+      "extra": {
+        "zh": "时长约 14 秒，D 调，速度约 80 BPM，干声为主，结尾留 1 秒自然衰减",
+        "en": "about 14 seconds, in D, about 80 BPM, mostly dry, leave a 1-second natural decay at the end"
+      },
+      "ref": "motif_merca",
+      "milestone": "M1",
+      "notes": "动机种子：同一乐句的音高与节奏以中文与英文描述为准，生成后人工核对音高，不符合就重生成；通过后作为其他曲目的参考音频"
+    },
+    {
+      "id": "mus_stg_motif_sylvie",
+      "template": "music_motif",
+      "style": "m_motif",
+      "subject": {
+        "zh": "轮回动机：带气声的木笛，下行四音后长长停顿，再上行三音，三度音一次大调一次小调。乐句：A、升 F、E、D，停顿两拍，D、E、F（第二遍用升 F）。单件乐器清楚地奏两遍，第一遍原速，第二遍稍慢且更轻；无伴奏或只有极简的持续音",
+        "en": "Cycle motif: breathy wooden flute, four falling notes then a long pause, then three rising notes, the third once major, once minor. Phrase: A F-sharp E D, two beats of rest, D E F (F-sharp on the repeat). Played twice clearly by a single instrument, the second time slightly slower and softer; unaccompanied or with only a minimal drone"
+      },
+      "extra": {
+        "zh": "时长约 14 秒，D 调，速度约 80 BPM，干声为主，结尾留 1 秒自然衰减",
+        "en": "about 14 seconds, in D, about 80 BPM, mostly dry, leave a 1-second natural decay at the end"
+      },
+      "ref": "motif_sylvie",
+      "milestone": "M1",
+      "notes": "动机种子：同一乐句的音高与节奏以中文与英文描述为准，生成后人工核对音高，不符合就重生成；通过后作为其他曲目的参考音频"
+    },
+    {
+      "id": "mus_stg_motif_moira",
+      "template": "music_motif",
+      "style": "m_motif",
+      "subject": {
+        "zh": "下一页动机：羽管键琴，六八拍的环形琶音，最后向上一个二度像问号。乐句：D、F、A、G、F、E，然后由 E 上行到 F 收住。单件乐器清楚地奏两遍，第一遍原速，第二遍稍慢且更轻；无伴奏或只有极简的持续音",
+        "en": "Next-page motif: harpsichord, a circular six-eight arpeggio, ending one step up like a question mark. Phrase: D F A G F E, then rising from E to F to close. Played twice clearly by a single instrument, the second time slightly slower and softer; unaccompanied or with only a minimal drone"
+      },
+      "extra": {
+        "zh": "时长约 14 秒，D 调，速度约 80 BPM，干声为主，结尾留 1 秒自然衰减",
+        "en": "about 14 seconds, in D, about 80 BPM, mostly dry, leave a 1-second natural decay at the end"
+      },
+      "ref": "motif_moira",
+      "milestone": "M1",
+      "notes": "动机种子：同一乐句的音高与节奏以中文与英文描述为准，生成后人工核对音高，不符合就重生成；通过后作为其他曲目的参考音频"
+    },
+    {
+      "id": "mus_stg_motif_dian",
+      "template": "music_motif",
+      "style": "m_motif",
+      "subject": {
+        "zh": "暗流动机：极低音区的两个相邻半音缓慢来回，次低音与拉弓金属片。乐句：D 与降 E 每两拍交替四次，音量起伏像呼吸。单件乐器清楚地奏两遍，第一遍原速，第二遍稍慢且更轻；无伴奏或只有极简的持续音",
+        "en": "Undercurrent motif: two adjacent half-steps slowly alternating in the extreme low register, sub-bass and bowed metal sheet. Phrase: D and E-flat alternating every two beats four times, swelling like breath. Played twice clearly by a single instrument, the second time slightly slower and softer; unaccompanied or with only a minimal drone"
+      },
+      "extra": {
+        "zh": "时长约 14 秒，D 调，速度约 80 BPM，干声为主，结尾留 1 秒自然衰减",
+        "en": "about 14 seconds, in D, about 80 BPM, mostly dry, leave a 1-second natural decay at the end"
+      },
+      "ref": "motif_dian",
+      "milestone": "M1",
+      "notes": "动机种子：同一乐句的音高与节奏以中文与英文描述为准，生成后人工核对音高，不符合就重生成；通过后作为其他曲目的参考音频"
+    },
+    {
+      "id": "mus_stg_motif_faceless",
+      "template": "music_motif",
+      "style": "m_motif",
+      "subject": {
+        "zh": "无页之影动机：一架微微走音的电钢琴，旋律是主角动机上下颠倒的小调倒影。乐句：D 小调 D、C、G，F、G、C，节奏与主角动机相同，结尾停在 C。单件乐器清楚地奏两遍，第一遍原速，第二遍稍慢且更轻；无伴奏或只有极简的持续音",
+        "en": "Shadow motif: a slightly detuned electric piano, the melody an upside-down minor mirror of the hero motif. Phrase: in D minor: D C G, F G C, same rhythm as the hero motif, ending on C. Played twice clearly by a single instrument, the second time slightly slower and softer; unaccompanied or with only a minimal drone"
+      },
+      "extra": {
+        "zh": "时长约 14 秒，D 调，速度约 80 BPM，干声为主，结尾留 1 秒自然衰减",
+        "en": "about 14 seconds, in D, about 80 BPM, mostly dry, leave a 1-second natural decay at the end"
+      },
+      "ref": "motif_faceless",
+      "milestone": "M3",
+      "notes": "动机种子：同一乐句的音高与节奏以中文与英文描述为准，生成后人工核对音高，不符合就重生成；通过后作为其他曲目的参考音频"
+    },
+    {
+      "id": "mus_stg_door_open",
+      "template": "music_stinger",
+      "style": "m_inner_court",
+      "subject": {
+        "zh": "八音盒与钢片琴奏出三个音（门扉动机的前三音），然后竖琴上行琶音与弦乐泛音打开一个明亮的和弦",
+        "en": "Music box and celesta play three notes (the first three of the door motif), then a rising harp arpeggio and string harmonics open into a bright chord"
+      },
+      "extra": {
+        "zh": "时长约 6 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 6 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "door_open",
+      "deps": ["mus_stg_motif_door"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_door_glimpse",
+      "template": "music_stinger",
+      "style": "m_inner_court",
+      "subject": {
+        "zh": "钢片琴一个单音与倒放的弦乐泛音，像雾里浮出轮廓",
+        "en": "A single celesta note with reversed string harmonics, like an outline emerging from mist"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 3 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "door_glimpse",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_level_up",
+      "template": "music_stinger",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "鲁特琴与弦乐短促的上行，钟琴闪光，结束在明亮的大三和弦",
+        "en": "A short rising figure on lute and strings, glockenspiel sparkle, ending on a bright major chord"
+      },
+      "extra": {
+        "zh": "时长约 4 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 4 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "level_up",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_quest_new",
+      "template": "music_stinger",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "羽管键琴与拨奏两小节的轻快提示，结尾上扬",
+        "en": "A brisk two-bar cue on harpsichord and pizzicato, ending upward"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 3 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "quest_new",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_quest_done",
+      "template": "music_stinger",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "鲁特琴、弦乐与小号短小的完成乐句，结束于主和弦",
+        "en": "A short completion phrase on lute, strings and trumpet, ending on the tonic chord"
+      },
+      "extra": {
+        "zh": "时长约 5 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 5 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "quest_done",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_quest_fail",
+      "template": "music_stinger",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "低音单簧管与大提琴缓慢下行，结束于小三和弦",
+        "en": "Bass clarinet and cello descending slowly, ending on a minor chord"
+      },
+      "extra": {
+        "zh": "时长约 4 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 4 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "quest_fail",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_discover",
+      "template": "music_stinger",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "竖琴琶音与长笛开阔的四音乐句，像视野打开",
+        "en": "Harp arpeggio and an open four-note flute phrase, like a view opening up"
+      },
+      "extra": {
+        "zh": "时长约 6 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 6 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "discover",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_victory",
+      "template": "music_stinger",
+      "style": "m_battle",
+      "subject": {
+        "zh": "管弦乐短促的胜利号角，结束在大三和弦，不过分夸张",
+        "en": "A short orchestral victory fanfare ending on a major chord, not overblown"
+      },
+      "extra": {
+        "zh": "时长约 6 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 6 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "victory",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_defeat",
+      "template": "music_stinger",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "弦乐与钢琴向下坠落后，八音盒轻轻奏出门扉动机的前三音",
+        "en": "Strings and piano fall away, then a music box softly plays the first three notes of the door motif"
+      },
+      "extra": {
+        "zh": "时长约 7 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 7 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "player_down",
+      "deps": ["mus_stg_motif_door"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_rts_victory",
+      "template": "music_stinger",
+      "style": "m_battle",
+      "subject": {
+        "zh": "大鼓、铜管与合唱的凯旋短句",
+        "en": "A triumphant short phrase for big drums, brass and choir"
+      },
+      "extra": {
+        "zh": "时长约 8 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 8 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "battle_win",
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_rts_defeat",
+      "template": "music_stinger",
+      "style": "m_battle",
+      "subject": {
+        "zh": "号角拖长的退却音，鼓声渐弱",
+        "en": "A long drawn-out retreat call on horns, drums fading"
+      },
+      "extra": {
+        "zh": "时长约 8 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 8 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "battle_lose",
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_act_card",
+      "template": "music_stinger",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "一声低沉的钟，弦乐长音，钢琴奏出主角动机的前三音",
+        "en": "One deep bell, a string sustain, piano plays the first three notes of the hero motif"
+      },
+      "extra": {
+        "zh": "时长约 8 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 8 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "act_card",
+      "deps": ["mus_stg_motif_hero"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_dawn",
+      "template": "music_stinger",
+      "style": "m_lotha_folk",
+      "subject": {
+        "zh": "长夜之后的黎明：弦乐与木笛缓缓升起，温暖的大调和弦",
+        "en": "Dawn after a long night: strings and wooden flute rising slowly into a warm major chord"
+      },
+      "extra": {
+        "zh": "时长约 12 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 12 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "dawn",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_rank_up",
+      "template": "music_stinger",
+      "style": "m_valen_city",
+      "subject": {
+        "zh": "小号与小军鼓体面的小号角",
+        "en": "A respectable little fanfare for trumpet and snare"
+      },
+      "extra": {
+        "zh": "时长约 5 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 5 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "guild_rank",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_deed",
+      "template": "music_stinger",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "钟琴、竖琴与弦乐的闪光乐句",
+        "en": "A glittering phrase for glockenspiel, harp and strings"
+      },
+      "extra": {
+        "zh": "时长约 5 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 5 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "deed",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_rumor_twist",
+      "template": "music_stinger",
+      "style": "m_lotha_folk",
+      "subject": {
+        "zh": "巴松与长号滑稽地向下滑，接一声清脆的木琴",
+        "en": "A comic downward slide on bassoon and trombone, then one crisp xylophone note"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 3 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "rumor_twist",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_dian_surge",
+      "template": "music_stinger",
+      "style": "m_dian",
+      "subject": {
+        "zh": "极低音区的两个半音来回，弦乐向上堆积成不协和长音",
+        "en": "Two half-steps alternating in the extreme low register, strings piling upward into a dissonant sustain"
+      },
+      "extra": {
+        "zh": "时长约 8 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 8 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "dian_surge",
+      "deps": ["mus_stg_motif_dian"],
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_companion_join",
+      "template": "music_stinger",
+      "style": "m_lotha_folk",
+      "subject": {
+        "zh": "木吉他与小提琴温暖的上行",
+        "en": "A warm rising line on guitar and fiddle"
+      },
+      "extra": {
+        "zh": "时长约 5 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 5 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "companion_join",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_rest",
+      "template": "music_stinger",
+      "style": "m_inner_court",
+      "subject": {
+        "zh": "竖琴琶音与钢片琴，像日光在墙上移动",
+        "en": "Harp arpeggios and celesta, like sunlight moving across a wall"
+      },
+      "extra": {
+        "zh": "时长约 6 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 6 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "rest",
+      "milestone": "M1",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_seal_loosen",
+      "template": "music_stinger",
+      "style": "m_sealed_ruins",
+      "subject": {
+        "zh": "低音的门轴嘎吱融入大鼓与低音铜管，最后八音盒一个高音",
+        "en": "A low hinge creak melting into big drum and low brass, ending with one high music-box note"
+      },
+      "extra": {
+        "zh": "时长约 8 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 8 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "seal_loosen",
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_settlement_up",
+      "template": "music_stinger",
+      "style": "m_hero_core",
+      "subject": {
+        "zh": "手鼓、吉他与弦乐欢快的上行",
+        "en": "A cheerful rising phrase for frame drum, guitar and strings"
+      },
+      "extra": {
+        "zh": "时长约 6 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 6 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "settlement_up",
+      "milestone": "M2",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_nation_founded",
+      "template": "music_stinger",
+      "style": "m_battle",
+      "subject": {
+        "zh": "全体铜管与合唱宣告主角动机的完整大调形态",
+        "en": "Full brass and choir proclaim the complete major form of the hero motif"
+      },
+      "extra": {
+        "zh": "时长约 12 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 12 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "nation_founded",
+      "deps": ["mus_stg_motif_hero"],
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_treaty",
+      "template": "music_stinger",
+      "style": "m_strategy",
+      "subject": {
+        "zh": "羽管键琴与圆号庄重的终止式",
+        "en": "A dignified cadence for harpsichord and horns"
+      },
+      "extra": {
+        "zh": "时长约 5 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 5 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "treaty",
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_war_declared",
+      "template": "music_stinger",
+      "style": "m_strategy",
+      "subject": {
+        "zh": "战鼓与低音铜管沉重的宣告",
+        "en": "A heavy proclamation of war drums and low brass"
+      },
+      "extra": {
+        "zh": "时长约 6 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 6 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "war_declared",
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_revelation",
+      "template": "music_stinger",
+      "style": "m_divine_court",
+      "subject": {
+        "zh": "纯五度长音降临，玻璃琴与无词合唱托起，最后完全静默",
+        "en": "A perfect-fifth sustain descends, held up by glass harmonica and wordless choir, ending in total silence"
+      },
+      "extra": {
+        "zh": "时长约 15 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 15 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "revelation",
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    },
+    {
+      "id": "mus_stg_evidence",
+      "template": "music_stinger",
+      "style": "m_divine_court",
+      "subject": {
+        "zh": "定音鼓一击与弦乐强奏的短和弦",
+        "en": "One timpani strike and a short forceful string chord"
+      },
+      "extra": {
+        "zh": "时长约 4 秒，起音干脆，结尾留 1 秒自然衰减，以 D 调为主以便与动机和区域曲衔接",
+        "en": "about 4 seconds, crisp start, leave a 1-second natural decay, mainly in D so it sits with the motifs and area music"
+      },
+      "ref": "evidence",
+      "milestone": "M3",
+      "notes": "生成 4 版候选，挑选后裁到时长"
+    }
+  ]
+}

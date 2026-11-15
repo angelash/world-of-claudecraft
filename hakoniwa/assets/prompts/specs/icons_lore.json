@@ -1,0 +1,4134 @@
+{
+  "category": "icons_lore",
+  "title": "物品图标（二）：遗物、书籍、钥物、收藏、异名物、任务与史料道具",
+  "sources": [
+    "docs/50_tech/art_pipeline.md",
+    "docs/40_design/content/catalog_relics_lore.md",
+    "docs/40_design/content/catalog_bestiary.md",
+    "data/quests/items.json",
+    "data/combat/items.json",
+    "docs/20_world/history.md",
+    "docs/30_story/reveal_ledger.md",
+    "docs/30_story/arcs/act6_review_and_epilogue.md",
+    "docs/30_story/arcs/act5_war_of_races.md"
+  ],
+  "items": [
+    {
+      "id": "art_ico_item_rl_hero_sword",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把笔直的骑士长剑：剑身银白修长，中线一道细细的金纹，护手是展开的圆光轮形金饰，剑柄缠白色皮革，柄头嵌一颗淡金色圆石；整把剑洁净明亮，没有一点锈与缺口。",
+        "en": "A straight knightly longsword: a long silver-white blade with a thin gold line down its center, a crossguard shaped like an open gold halo wheel, a grip wrapped in white leather, and a pale gold round stone set in the pommel; spotless and bright, with no rust or nicks."
+      },
+      "ref": "rl_hero_sword",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；剑身的铭只画成一道细金纹，不画字。与史料 S18 堕勇的佩剑（同款但暗旧、无光）必须一眼区分：这把是亮的、新的。"
+    },
+    {
+      "id": "art_ico_item_rl_crown_of_light",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一顶王冠：金色冠圈上立着七道细长的光芒形尖饰，正面中央是一枚圆形的白水晶光轮，冠圈下沿镶一圈小珍珠；金色偏暖，水晶里有一点柔和的白光。",
+        "en": "A royal crown: a gold circlet rising into seven slender ray-shaped points, a round white crystal halo at the front center, a row of small pearls along the lower rim; warm gold, with a soft white glow inside the crystal."
+      },
+      "ref": "rl_crown_of_light",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；王冠是神器，发光只在水晶里一点，不要整顶发光。不画宝座与头。"
+    },
+    {
+      "id": "art_ico_item_rl_dawnpillar",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一根双手举持的短圣柱：白石柱身刻着螺旋上升的光纹，顶端托着一个镂空的金色光轮，柱底包金箍；柱身一侧有一道烧黑的细长裂纹，从光轮下一直裂到中段。",
+        "en": "A short holy pillar held in both hands: a white stone shaft carved with spiraling light lines, an openwork gold halo wheel on top, a gold band at the base; a long thin scorched black crack runs down one side from under the halo to mid-shaft."
+      },
+      "ref": "rl_dawnpillar",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；裂纹是战后外观，所有版本都画；只画柱子本身，不画举柱的人与光束。"
+    },
+    {
+      "id": "art_ico_item_rl_measure_mirror",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一面带柄的圆形手镜：银框上刻着规整的直线与刻度纹，像一把尺子绕成了圆，柄是黑檀木包银；镜面冷白微亮，镜背中央一枚小小的金色光轮。",
+        "en": "A round hand mirror with a handle: a silver frame engraved with neat straight lines and graduation marks, like a ruler bent into a circle, an ebony handle sheathed in silver; the mirror face is cool white and faintly bright, a small gold halo wheel at the center of the back."
+      },
+      "ref": "rl_measure_mirror",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；镜面里不画任何倒影或人形。刻度只是等距短线，不画数字。"
+    },
+    {
+      "id": "art_ico_item_rl_valda_broken_sword",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一截巨大的断剑剑尖：宽厚的黑铁刃，断口参差，刃面上满是旧战痕，断口附近缠着一段褪色的暗红布条；比普通剑宽一倍，看得出原本是一把双手大剑。",
+        "en": "A huge broken sword tip: a broad, thick blackened iron blade with a jagged break, its faces covered in old battle scars, a faded dark red cloth strip wrapped near the break; twice as wide as an ordinary blade, clearly from a great two-handed sword."
+      },
+      "ref": "rl_valda_broken_sword",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；只画剑尖这一截，不画剑柄。与证据 E02（剑尖连着一块带烫痕的门石）区分：本条只有剑尖和红布，没有石块。"
+    },
+    {
+      "id": "art_ico_item_rl_brokenhorn_bugle",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只用巨大兽角做的号角：角色乌黑带暗红纹，角尖一端断过，用黑铁箍接起来做吹口，号身缠着两道铁环与一根皮挂绳；粗犷厚重。",
+        "en": "A bugle made from a huge beast horn: jet black with dark red streaks, the tip snapped off once and rejoined with a blackened iron band as the mouthpiece, two iron rings and a leather strap around its body; rugged and heavy."
+      },
+      "ref": "rl_brokenhorn_bugle",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；断口与铁箍是辨识点，必须清楚。不画吹号的人。"
+    },
+    {
+      "id": "art_ico_item_merca_coin",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚厚实的金币：边缘有一圈细密的齿纹，正面压着一架小天平的图样，背面是一只半张的手掌托着一枚小圆；金色温润，边上有一处小小的磨亮处，像被人常常摩挲。",
+        "en": "A thick gold coin: a fine milled edge, a small balance scale stamped on the face, an open half-raised palm holding a tiny disc on the back; a warm mellow gold with one small polished spot on the rim, as if often rubbed."
+      },
+      "ref": "merca_coin",
+      "milestone": "M0",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；M0 样板之一。币面只有图形，不画字与数字；画成略带俯视的四分之三角度，能看到厚度。"
+    },
+    {
+      "id": "art_ico_item_rl_scale_weights",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一组七枚黄铜秤砣排成一列：从大到小，都是带提环的钟形，每枚顶面嵌一点不同颜色的珐琅；黄铜被摸得发亮，底面平整。",
+        "en": "A row of seven brass scale weights: from largest to smallest, each bell-shaped with a lifting loop, a dot of different colored enamel set into each top; the brass rubbed shiny, flat bottoms."
+      },
+      "ref": "rl_scale_weights",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；七枚要数得清。只画秤砣，不画秤。"
+    },
+    {
+      "id": "art_ico_item_rl_two_season_wreath",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一顶草叶编成的花冠：左半边开满白色与浅黄的小花，叶子鲜绿；右半边花已枯萎，叶子枯黄卷曲；左右分界处正好在冠的正前方。",
+        "en": "A wreath woven from grass and leaves: the left half full of small white and pale yellow flowers with fresh green leaves, the right half withered with dry curled yellow leaves; the divide falls exactly at the front of the wreath."
+      },
+      "ref": "rl_two_season_wreath",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；一半开一半枯是唯一的辨识点，必须左右分明。"
+    },
+    {
+      "id": "art_ico_item_rl_spring_ewer",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只灰白石瓮：圆腹细颈，单耳，瓮身刻着环绕的根须纹，瓮口满着一汪清澈的水，水面微微泛出淡青的光，却一滴也不往外溢。",
+        "en": "A pale gray stone ewer: a round belly and narrow neck with one handle, the body carved with encircling root patterns, the mouth brimming with clear water that glows faintly pale cyan yet never spills a drop."
+      },
+      "ref": "rl_spring_ewer",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；水面是满的但没有水滴外溢。不要画成金属壶。"
+    },
+    {
+      "id": "art_ico_item_rl_selfwriting_pen",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一支细长的白鹅毛笔：笔管是磨光的象牙色，笔尖是一枚小小的银尖，笔尖上挂着一滴未干的墨；羽毛边缘微微泛着淡紫灰的光泽。",
+        "en": "A slender white goose quill pen: a polished ivory shaft, a tiny silver nib with a single drop of wet ink on it; the feather edges carry a faint lilac-gray sheen."
+      },
+      "ref": "rl_selfwriting_pen",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；与 rl_moira_quill 区分：这支是普通大小的鹅毛笔，有墨滴。"
+    },
+    {
+      "id": "art_ico_item_rl_moira_quill",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一支修长的羽笔：羽毛是近乎透明的珍珠白，羽枝细得像丝线，笔管是素净的银，没有任何装饰；整支笔轻得像要飘起来，笔尖干净无墨。",
+        "en": "A long, graceful quill: a nearly translucent pearl-white feather with barbs as fine as silk thread, a plain silver shaft with no ornament; the whole pen looks light enough to float, its nib clean and inkless."
+      },
+      "ref": "rl_moira_quill",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；与 rl_selfwriting_pen 区分：这支更长、更透、没有墨滴。只画笔，不画手。"
+    },
+    {
+      "id": "art_ico_item_rl_nameless_keys",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只粗铁钥匙环上挂着七把形状各不相同的古钥：木柄、黑铜柄、骨柄、无齿的、月牙柄、青铜柄、银白的；钥匙互相错开，环上有一处空着的挂扣。",
+        "en": "A thick iron key ring hung with seven ancient keys of different shapes: wooden-handled, blackened copper, bone-handled, toothless, crescent-handled, bronze, and silver-white; the keys fan apart, with one empty hook on the ring."
+      },
+      "ref": "rl_nameless_keys",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；七把要数得清且各不相同；钥匙本身不发门扉金的光（保留色只给门）。"
+    },
+    {
+      "id": "art_ico_item_rl_yeyu_satchel",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只小巧的旧皮信囊：深棕色软皮，翻盖上压着一枚暗红色的圆形火漆封印，封印上是一根羽毛的图形，囊口露出几封信的边角，挂带是细皮绳。",
+        "en": "A small old leather letter satchel: soft dark brown leather, the flap sealed with a round dark red wax seal bearing a feather emblem, the corners of several letters peeking out, hung on a thin leather cord."
+      },
+      "ref": "rl_yeyu_satchel",
+      "milestone": "M1",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；火漆印面只画羽毛图形，不画字。信封上不写字。"
+    },
+    {
+      "id": "art_ico_item_rl_nameless_key_1",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把古钥：钥柄是一截磨光的浅褐木头，钥杆细长，钥齿分叉弯曲，像一簇向下伸的根须；木柄上还留着一点树皮的纹路。",
+        "en": "An ancient key: a handle of polished pale brown wood, a long thin shaft, and branching curled teeth like a cluster of roots reaching down; a trace of bark texture remains on the handle."
+      },
+      "ref": "rl_nameless_key_1",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；七把无名之钥里的木柄那一把；不发门扉金光。"
+    },
+    {
+      "id": "art_ico_item_rl_nameless_key_2",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把古钥：钥柄是发黑的铜，表面有被火烧过的斑驳与起泡，钥杆粗短，钥齿方正厚实；黑铜的缝里透出一点暗橙色的旧火痕。",
+        "en": "An ancient key: a blackened copper handle mottled and blistered as if burned in a forge, a short thick shaft, square heavy teeth; a hint of dull orange fire-scar shows in the cracks of the dark copper."
+      },
+      "ref": "rl_nameless_key_2",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；七把无名之钥里的炉火那一把；不画火焰。"
+    },
+    {
+      "id": "art_ico_item_rl_nameless_key_3",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把古钥：钥柄是一段白骨，骨上紧紧缠着几圈枯黄的草绳，钥杆是灰铁，钥齿像三根短短的獠牙。",
+        "en": "An ancient key: a handle of white bone tightly wound with several turns of dry yellow straw cord, a gray iron shaft, and teeth like three short fangs."
+      },
+      "ref": "rl_nameless_key_3",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；七把无名之钥里的骨柄那一把。"
+    },
+    {
+      "id": "art_ico_item_rl_nameless_key_4",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把没有齿的古钥：钥柄是一圈光滑的暗金属环，钥杆的末端不是齿，而是一块扁平的方片，方片中央镂空出一个小小的门形孔洞。",
+        "en": "A toothless ancient key: a smooth ring of dark metal for a handle, and instead of teeth the shaft ends in a flat square plate with a small door-shaped hole cut through its center."
+      },
+      "ref": "rl_nameless_key_4",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；没有齿、只有门形孔是唯一辨识点。孔洞透出背景，不要填色。"
+    },
+    {
+      "id": "art_ico_item_rl_nameless_key_5",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把古钥：通体黑铁，钥柄弯成一弯细细的月牙形，钥杆修长，钥齿是两道锐利的小钩；黑铁表面泛着冷冷的青灰光。",
+        "en": "An ancient key: all blackened iron, the handle bent into a thin crescent moon, a long slender shaft, and teeth of two sharp little hooks; the dark iron has a cold blue-gray sheen."
+      },
+      "ref": "rl_nameless_key_5",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；七把无名之钥里的月牙柄那一把。"
+    },
+    {
+      "id": "art_ico_item_rl_nameless_key_6",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把古钥：青铜铸成，长了一层淡绿的铜锈，钥柄是扁平的圆片，圆片上刻着几道看不懂的花纹，钥齿整齐细密。",
+        "en": "An ancient key: cast bronze with a thin pale green patina, the handle a flat round disc carved with a few unreadable flourishes, neat fine teeth."
+      },
+      "ref": "rl_nameless_key_6",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；柄上的刻痕只是花纹，不能画成可读的数字或字。"
+    },
+    {
+      "id": "art_ico_item_rl_nameless_key_7",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把古钥：通体银白，表面覆着一层细霜般的白晶，钥柄是简洁的长环，钥齿像冰凌一样尖细；整把钥匙看着就冷。",
+        "en": "An ancient key: all silver-white, coated with fine frost-like white crystals, a simple elongated loop handle, teeth as sharp and thin as icicles; it looks cold."
+      },
+      "ref": "rl_nameless_key_7",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；七把无名之钥里的银白那一把；霜晶是白色，不要偏蓝成冰块。"
+    },
+    {
+      "id": "art_ico_item_rl_record_first_page",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一页极旧的厚纸：纸色焦黄，四边磨损起毛，页面上排着几行看不清的墨痕，右下角并排压着两枚小印，一枚是书卷图形，一枚是门的图形。",
+        "en": "A single very old thick page: scorched yellow paper with frayed, worn edges, a few lines of illegible ink marks, and two small seals pressed side by side in the lower right corner, one a book-scroll emblem, one a door emblem."
+      },
+      "ref": "rl_record_first_page",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；墨痕必须是看不清的痕迹，不画可读文字。门形小印可用很淡的门扉金。"
+    },
+    {
+      "id": "art_ico_item_rl_first_forms_fossil",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块灰褐色的怪骨化石：石块里嵌着一副小小的骨架，头上同时冒出短角，背上有半张未长成的翼骨，身侧还覆着几片鳞形的印痕。",
+        "en": "A gray-brown fossil of strange bones: a small skeleton embedded in stone, short horns sprouting from its skull, a half-formed wing bone on its back, and a few scale-shaped impressions along its side."
+      },
+      "ref": "rl_first_forms_fossil",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；角、翼、鳞三样都要看得出，但整体是一块石头里的化石，不是活物。"
+    },
+    {
+      "id": "art_ico_item_rl_gateframe_shard",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一片剥落的古青铜碎片：弧形，像门框的一角，表面布满铜绿，断面露出暖金色的金属，边上刻着半截规整的几何边纹。",
+        "en": "A flaked-off ancient bronze fragment: curved like the corner of a door frame, its surface crusted with verdigris, the broken edge showing warm golden metal, half of a neat geometric border carved along its edge."
+      },
+      "ref": "rl_gateframe_shard",
+      "milestone": "M1",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；断面的暖金可用门扉金 #f0d890，表面以铜绿为主。"
+    },
+    {
+      "id": "art_ico_item_rl_door_fee_coin",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚古铜钱：圆形，中间开着一个门形的方孔（上圆下方），铜面发暗带铜绿，边缘一圈简单的连珠纹，背面刻着一个小小的图形印记。",
+        "en": "An ancient bronze coin: round, with a door-shaped hole through its center (arched top, square bottom), dark bronze with patches of verdigris, a simple ring of beads around the edge, a small pictorial mark on the back."
+      },
+      "ref": "rl_door_fee_coin",
+      "milestone": "M0",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；M0 样板之一。门形孔是辨识点，孔洞透出背景。钱面不画字。"
+    },
+    {
+      "id": "art_ico_item_rl_quarantine_seal",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚铜印：方形印台上立着一个小小的门形印钮，钮上横挂一把小锁；印面朝上翻起一角，看得到印面刻着一扇门与一把锁的图形，铜色暗沉。",
+        "en": "A bronze seal: a square seal base topped with a small door-shaped knob with a tiny padlock hanging across it; one corner tipped up so the face shows a carved door and lock emblem; dull dark bronze."
+      },
+      "ref": "rl_quarantine_seal",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；印面只有门与锁的图形，不画印文。"
+    },
+    {
+      "id": "art_ico_item_rl_gate_lantern",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一盏旧提灯：黑铁框架，四面是磨砂玻璃，顶上有提环，灯里没有灯芯与火，玻璃里却透出一团柔和的门扉金色光。",
+        "en": "An old hand lantern: a blackened iron frame with four frosted glass panes and a carrying ring on top; there is no wick or flame inside, yet a soft door-gold glow shines through the glass."
+      },
+      "ref": "rl_gate_lantern",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；光是门扉金 #f0d890，灯里不画火焰与灯芯。"
+    },
+    {
+      "id": "art_ico_item_rl_tongue_tablet",
+      "template": "ico_item",
+      "subject": {
+        "zh": "半块断开的石板：灰白石面上分成五条横带，上下四条刻着四种不同风格的符号纹样，中间一条刻着另一种更规整的纹样，断口粗糙。",
+        "en": "Half of a broken stone tablet: a pale gray face divided into five horizontal bands, the outer four carved with four different styles of glyph-like patterns, the middle band with another, more regular pattern; a rough broken edge."
+      },
+      "ref": "rl_tongue_tablet",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；符号必须是纹样感，不能是任何真实文字或可读字母。"
+    },
+    {
+      "id": "art_ico_item_rl_main_gate_shard",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块灰色碎石：棱角分明，石质细密，一面嵌着一条暖金色的金属脉，石块四周画两三道细小的震动短线，表示它在微微颤动。",
+        "en": "A gray stone shard: sharp-edged and fine-grained, one face veined with a strip of warm golden metal, two or three tiny vibration lines around it to show it trembling faintly."
+      },
+      "ref": "rl_main_gate_shard",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；金属脉用门扉金；震动线要很小，不要画成特效。"
+    },
+    {
+      "id": "art_ico_item_rl_glassed_handle",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块熔融的透明玻璃块：玻璃里封着一只普通的铜门把手，门把四周的玻璃上印着一个摊开的手掌印子，玻璃边缘焦黑起泡。",
+        "en": "A lump of melted clear glass: an ordinary brass door handle sealed inside, the print of an open hand pressed into the glass around the handle, the glass edges charred and bubbled."
+      },
+      "ref": "rl_glassed_handle",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；手印是玻璃上的凹痕，不画真的手。"
+    },
+    {
+      "id": "art_ico_item_rl_gapfall_relics",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一小堆旧物：一只破了口的小竹篮里，放着一只褪色的童鞋、一只木头小马，篮沿搭着半封折起的信；所有东西都蒙着一层灰白的灰。",
+        "en": "A small heap of old things: a little split bamboo basket holding a faded child's shoe and a wooden toy horse, half a folded letter draped over the rim; everything dusted with pale gray ash."
+      },
+      "ref": "rl_gapfall_relics",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；可叠放的一类物，图标画成这一小篮，不画人。"
+    },
+    {
+      "id": "art_ico_item_rl_stopped_timeboard",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块青铜时刻牌：长方形，牌面竖着几道滑槽，槽里的青铜滑片停在不同高度，底部钉着一张卷了角的小纸片；铜色发绿。",
+        "en": "A bronze timetable board: rectangular, its face with several vertical slots whose bronze sliders are stopped at different heights, a small curled slip of paper nailed at the bottom; greenish bronze."
+      },
+      "ref": "rl_stopped_timeboard",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；牌面与纸片只有刻痕与色块，不画数字与字。"
+    },
+    {
+      "id": "art_ico_item_rl_ash_night_letters",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只灰黑色的小石匣，匣盖半开，里面躺着一封泛黄的折信，信封用细绳十字捆着，封口处有一块褪成褐色的火漆。",
+        "en": "A small gray-black stone casket with its lid half open, holding a yellowed folded letter tied crosswise with thin string, sealed with a blob of wax faded to brown."
+      },
+      "ref": "rl_ash_night_letters",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；与史料 S15（同类石匣，信已拆开摊平）区分：本条信是封着的、捆着绳的。信封不写字。"
+    },
+    {
+      "id": "art_ico_item_rl_sunwheel_chisel",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把石凿：铁刃磨得发亮，木柄被手握得发黑，柄头嵌着一枚小小的铜质日轮印（圆盘周围一圈短芒），刃口沾着一点灰白的石粉。",
+        "en": "A stone chisel: a polished iron blade, a wooden handle darkened by gripping hands, a small bronze sun-wheel badge (a disc ringed with short rays) set into the butt, the edge dusted with pale stone powder."
+      },
+      "ref": "rl_sunwheel_chisel",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；日轮印要清楚，它是唯一的辨识点。"
+    },
+    {
+      "id": "art_ico_item_rl_brand_register",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一叠用麻绳捆着的旧名单纸：纸边发黄卷起，最上面一页排着一列列短短的墨痕，每一行末尾都画着一个小小的门形符号。",
+        "en": "A stack of old roster pages tied with twine: yellowed curling edges, the top page lined with columns of short ink marks, each line ending with a tiny door-shaped symbol."
+      },
+      "ref": "rl_brand_register",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；墨痕不能读，门形符号是辨识点。"
+    },
+    {
+      "id": "art_ico_item_rl_stele_chip",
+      "template": "ico_item",
+      "subject": {
+        "zh": "几片尖棱的灰白碎石屑，聚成一小撮：其中最大的一片表面有一道深深的凿痕，凿痕的缝里透出一线细细的暖白色微光。",
+        "en": "A small pile of sharp pale gray stone chips: the largest bears a deep chisel gouge, and a thin line of warm white light glows faintly from inside the gouge."
+      },
+      "ref": "rl_stele_chip",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；微光很细很淡，像缝里漏出的光，不要画成发光的宝石。"
+    },
+    {
+      "id": "art_ico_item_rl_ember_year_token",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块铅灰色的小牌：长方形，四角磨圆，上端打了一个穿绳的小孔，正面浅浅压着一只冒着热气的碗的图形，背面一道横线刻痕。",
+        "en": "A small lead-gray token: rectangular with rounded corners, a small hole punched at the top for a cord, a shallow stamped image of a steaming bowl on the front, a single horizontal score on the back."
+      },
+      "ref": "rl_ember_year_token",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；原物上的字一律画成碗的图形与刻痕，不画字。"
+    },
+    {
+      "id": "art_ico_item_rl_hidden_cradle",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只旧木摇篮：浅色木料，两侧弯弯的摇脚，篮身有简单的雕花；画面略带俯视，看得到篮底木板上浅浅刻着一扇小小的门。",
+        "en": "An old wooden cradle: pale wood, curved rockers on both sides, simple carving on its sides; seen slightly from above so a small door shape lightly carved into the bottom board is visible."
+      },
+      "ref": "rl_hidden_cradle",
+      "milestone": "M1",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；底板上的门刻得很浅，用比木色稍暗的线条，不发光。"
+    },
+    {
+      "id": "art_ico_item_rl_first_light_scabbard",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只空剑鞘：长而直，外覆褪色的白皮，包着磨旧的金色铜箍，鞘口与鞘尾都有光轮形的小饰；鞘里没有剑，鞘身有许多细小的划痕。",
+        "en": "An empty sword scabbard: long and straight, covered in faded white leather, bound with worn gold-colored brass fittings, small halo-shaped ornaments at the throat and the tip; no sword inside, many fine scratches along its body."
+      },
+      "ref": "rl_first_light_scabbard",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；鞘里刻的日子在外面看不见，不画字。必须是空鞘。"
+    },
+    {
+      "id": "art_ico_item_rl_horncrown_iron_crown",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一顶粗犷的铁冠：由两支弯曲的黑色兽角锻接成一圈，角根处用粗铆钉固定，冠圈内侧积着一层暗紫色的阴影，冠身冷硬无光。",
+        "en": "A rugged iron crown: two curved black beast horns forged together into a ring, fixed with heavy rivets at the roots, a layer of dark purple shadow pooled on the inner side; cold, hard and lusterless."
+      },
+      "ref": "rl_horncrown_iron_crown",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；内侧的暗紫用澱紫 #4a3a62，只占一小块。"
+    },
+    {
+      "id": "art_ico_item_rl_ashspotted_gauntlet",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只右手的旧铁手甲：指节分段，手背上一枚光轮形的铜饰，铁面上布满洗不掉的灰白斑点，像落了灰又渗进铁里。",
+        "en": "An old iron gauntlet for the right hand: segmented fingers, a halo-shaped brass ornament on the back of the hand, the iron covered in pale gray spots that look like ash soaked into the metal."
+      },
+      "ref": "rl_ashspotted_gauntlet",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；灰斑是辨识点，铁面不要画成锈红。"
+    },
+    {
+      "id": "art_ico_item_rl_locust_bone_drum",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一面手鼓：鼓框由几段弯骨拼成，用皮绳绑紧，鼓面是一张半透明的巨大蝗虫翅膀，翅脉清楚，鼓框上画着褪色的绿色藤叶纹。",
+        "en": "A hand drum: a frame of curved bone pieces lashed tight with leather cord, the drumhead a single huge translucent locust wing with clear veins, faded green vine patterns painted on the frame."
+      },
+      "ref": "rl_locust_bone_drum",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；翅膀鼓面的翅脉要清楚，是辨识点。"
+    },
+    {
+      "id": "art_ico_item_rl_twin_mirror",
+      "template": "ico_item",
+      "subject": {
+        "zh": "半面折叠小镜：圆形的半块，金属背壳上压着半幅精细的花草纹，断边是笔直的铰链折痕，镜面小而亮，做工明显不是这个世界的手艺。",
+        "en": "Half of a folding pocket mirror: one half of a round compact, the metal back stamped with half of a fine floral pattern, the broken side a straight hinge line, the small mirror face bright; the craftsmanship is clearly not of this world."
+      },
+      "ref": "rl_twin_mirror",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；只画半面；背壳纹样是半幅，不画刻字。"
+    },
+    {
+      "id": "art_ico_item_rl_greyrobe_ring",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚灰铁戒指：粗环上缠着细细的银丝，戒面托着一颗不透光的暗紫色圆石，圆石四周刻着一圈像锁链一样相扣的细纹。",
+        "en": "A gray iron ring: a thick band wound with fine silver wire, its bezel holding an opaque dark purple round stone, ringed by fine interlocking chain-like engravings."
+      },
+      "ref": "rl_greyrobe_ring",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；暗紫石头用澱紫 #4a3a62，不发光。"
+    },
+    {
+      "id": "art_ico_item_rl_martyr_bell",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只铜手铃：钟形铃身发暗，木柄缠着褪色的蓝布，铃身上并排刻着四条短短的竖向刻痕，其中三条被刮得模糊，第四条清晰而形状陌生。",
+        "en": "A bronze hand bell: a darkened bell-shaped body, a wooden handle wrapped in faded blue cloth, four short vertical engravings side by side on the bell, three scraped blurry and the fourth crisp and strange in shape."
+      },
+      "ref": "rl_martyr_bell",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；刻痕只是痕迹，不画可读的名字。"
+    },
+    {
+      "id": "art_ico_item_rl_bloodmoon_chalice",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只高脚杯：黑银杯身，杯脚细长，杯沿镶一圈细小的暗红宝石，杯身刻着一轮被遮了一半的圆月图形，杯里盛着半杯暗红的液体。",
+        "en": "A tall-stemmed chalice: a black-silver cup on a long slender stem, the rim set with a ring of tiny dark red gems, a half-eclipsed full moon engraved on the bowl, half full of a dark red liquid."
+      },
+      "ref": "rl_bloodmoon_chalice",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；月蚀的圆月图形是辨识点。"
+    },
+    {
+      "id": "art_ico_item_rl_mistreturned_bell",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一口小船钟：铜钟挂在一截弯木支架上，钟身发绿，整口钟上缠满了一缕缕灰白色的细丝，细丝像蛛网又像雾，垂下来拖在支架边。",
+        "en": "A small ship's bell: a bronze bell hung from a curved wooden bracket, its body greenish, the whole bell wrapped in wisps of pale gray-white threads like cobweb or mist, trailing down past the bracket."
+      },
+      "ref": "rl_mistreturned_bell",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；灰白细丝是辨识点，要多，但钟的轮廓仍要看得清。"
+    },
+    {
+      "id": "art_ico_item_rl_abyss_lord_eye",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一颗巨大的球形结晶：深海般的墨蓝色晶体里有一圈竖立的瞳孔状暗纹，表面粗糙带着珊瑚与藤壶的残迹，晶体深处透着一点暗紫色。",
+        "en": "A huge spherical crystal: deep-sea ink-blue crystal with a vertical pupil-like dark band inside, its rough surface bearing remnants of coral and barnacles, a hint of dark purple deep within."
+      },
+      "ref": "rl_abyss_lord_eye",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；图标里看不出比例，用藤壶与珊瑚暗示它沉在海底很久。暗紫只在深处一点。"
+    },
+    {
+      "id": "art_ico_item_rl_wooden_sparrow",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只手刻的小木雀：浅木色，圆圆的身子，小小的尖嘴，两只翅膀刻得一边大一边小，表面被摸得光滑发亮，底部系着一根旧麻绳。",
+        "en": "A small hand-carved wooden sparrow: pale wood, a round little body and a tiny pointed beak, its two wings carved one large and one small, the surface rubbed smooth and glossy, an old hemp cord tied to its base."
+      },
+      "ref": "rl_wooden_sparrow",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；一大一小的翅膀是唯一辨识点，必须明显不对称。"
+    },
+    {
+      "id": "art_ico_item_rl_light_rain_sketch",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张从速写本上撕下的纸：纸边一侧留着整齐的撕孔，纸上用炭笔画着漫天落下的细线，画面两侧各飘起一缕烟，纸张泛黄。",
+        "en": "A page torn from a sketchbook: one edge with a neat row of perforation holes, charcoal drawing of countless fine lines falling from the sky, a wisp of smoke rising at each side of the drawing; yellowed paper."
+      },
+      "ref": "rl_light_rain_sketch",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；画中只有落线与两缕烟，不画神殿细节，不画字。"
+    },
+    {
+      "id": "art_ico_item_rl_skyrender_pinion",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一根巨大的黑色飞羽：羽干粗如手指，羽片乌黑中泛着暗红的金属光，边缘参差，根部用一圈铁环与红绳扎着，像被当作权杖。",
+        "en": "A huge black flight feather: a shaft as thick as a finger, jet-black vanes with a dark red metallic sheen, ragged edges, its base bound with an iron ring and red cord as if used as a scepter."
+      },
+      "ref": "rl_skyrender_pinion",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；要读得出是一根羽毛而不是叶子：羽干与羽片分明。"
+    },
+    {
+      "id": "art_ico_item_rl_lagoon_bead",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一颗小小的玻璃珠：蓝绿色，半透明，里面有细细的螺旋白纹与几粒小气泡，穿着一根细皮绳；做工精巧，不像本地的手艺。",
+        "en": "A small glass bead: blue-green and translucent, with fine white spiral streaks and a few tiny bubbles inside, strung on a thin leather cord; finely made, unlike local craft."
+      },
+      "ref": "rl_lagoon_bead",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；珠子很小，图标里放大画，皮绳只露一小段。"
+    },
+    {
+      "id": "art_ico_item_rl_oakhold_shield",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一面裂开的大塔盾：长方形，深色橡木包铁边，盾面中央是一个已经褪成灰白的光轮浮纹，一道裂缝从上缘斜斜劈到盾心。",
+        "en": "A large cracked tower shield: rectangular, dark oak bound with iron edges, a raised halo emblem at the center faded to ashen white, a crack slanting from the top edge down to the center."
+      },
+      "ref": "rl_oakhold_shield",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；光纹是熄灭的灰白，不发光。"
+    },
+    {
+      "id": "art_ico_item_rl_frosthorn_vine",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一截枯葡萄藤：几段弯弯曲曲的褐色老藤，缠着一两片卷起的干叶，藤上还挂着一粒干瘪的小葡萄，用一块旧油布松松地裹着一半。",
+        "en": "A length of dry grapevine: a few twisting brown old vine segments with one or two curled dry leaves, one shriveled little grape still hanging on, half loosely wrapped in a piece of old oilcloth."
+      },
+      "ref": "rl_frosthorn_vine",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；干瘪的葡萄与油布是辨识点。"
+    },
+    {
+      "id": "art_ico_item_rl_faceless_rubbings",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一串用细绳穿起的小拓片：七八张巴掌大的灰纸片叠挂在一起，每张纸上都拓着一个小小的门形印痕，纸边被摸得发毛。",
+        "en": "A string of small rubbings threaded on a cord: seven or eight palm-sized gray paper slips hanging together, each bearing the rubbed impression of a small door shape, their edges worn fuzzy from handling."
+      },
+      "ref": "rl_faceless_rubbings",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；门形印痕用深灰，不用门扉金。不画任何人。"
+    },
+    {
+      "id": "art_ico_item_rl_elder_eggshell",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一片巨大的弧形蛋壳：银白色，内侧有珍珠般的光泽，外侧有细密的鳞片状纹理，边缘是不规则的破口。",
+        "en": "A huge curved piece of eggshell: silver-white, pearly luster on the inside, fine scale-like texture on the outside, irregularly broken edges."
+      },
+      "ref": "rl_elder_eggshell",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；要读得出是蛋壳碎片，不是盾牌：弧形、薄、内侧有光泽。"
+    },
+    {
+      "id": "art_ico_item_rl_dragon_tally_stone",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块灰色石板：长方形，表面密密地排着一道道长短完全一样的竖直爪痕，排列整齐得出奇，其中一处爪痕旁另有一个形状不同的小刻痕。",
+        "en": "A gray stone slab: rectangular, its face densely covered with vertical claw marks all exactly the same length, uncannily neat, with one small differently shaped mark beside one of them."
+      },
+      "ref": "rl_dragon_tally_stone",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；竖痕要整齐等长；那个小刻痕只是形状不同的痕迹，不画成可读的字。"
+    },
+    {
+      "id": "art_ico_item_rl_guest_ostracon",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一片赭红色的陶片：不规则的三角形，边缘粗糙，表面刻着几行细小的楔形与弧形刻痕，陶色带着火烧的暗斑。",
+        "en": "A red-ochre potsherd: an irregular triangle with rough edges, its surface incised with a few rows of small wedge and arc marks, the clay bearing dark fire spots."
+      },
+      "ref": "rl_guest_ostracon",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；刻痕是看不懂的痕迹，不画任何真实的古文字。"
+    },
+    {
+      "id": "art_ico_item_rl_ash_reed_pen",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一支芦苇笔：一截黄褐色的芦苇杆，一端削成斜尖，尖头染着灰黑色的墨，杆身有几道细细的裂纹，看起来非常古老。",
+        "en": "A reed pen: a length of tan reed stalk, one end cut to a slanted point stained with gray-black ink, a few fine cracks along the stalk; it looks very old."
+      },
+      "ref": "rl_ash_reed_pen",
+      "milestone": "M1",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；只画笔，不画骨手。"
+    },
+    {
+      "id": "art_ico_item_rl_archive_inkwell",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只青铜墨壶：矮胖圆身，带一个可以翻起的小盖，壶身刻着一圈卷草纹，口沿结着一圈灰色的干墨，铜色发暗带绿。",
+        "en": "A bronze inkwell: squat and round with a small hinged lid, a ring of scrolling leaf pattern around its body, a crust of gray dried ink around the mouth, dark bronze with green patina."
+      },
+      "ref": "rl_archive_inkwell",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；干墨是灰色，不是黑色。"
+    },
+    {
+      "id": "art_ico_item_rl_governor_silver",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚旧银币：比普通银币略大，颜色发灰，边缘磨平，背面清楚地压着两柄交叉的剑，正面是一个模糊的侧脸轮廓。",
+        "en": "An old silver coin: slightly larger than usual, grayish, its rim worn smooth, two crossed swords clearly stamped on the reverse, a blurred profile on the obverse."
+      },
+      "ref": "rl_governor_silver",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；原物上的字不画，只画交叉双剑与侧脸。"
+    },
+    {
+      "id": "art_ico_item_rl_first_wheat_silver",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚厚重的老银币：银色饱满洁白，边缘一圈麦穗纹，正面压着一顶带七道尖芒的王冠图样；比今天的银币明显更厚。",
+        "en": "A thick, heavy old silver coin: full bright white silver, a ring of wheat ears around the rim, a crown with seven pointed rays stamped on the face; noticeably thicker than present-day coins."
+      },
+      "ref": "rl_first_wheat_silver",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；画成略带俯视的四分之三角度，让厚度看得出来。"
+    },
+    {
+      "id": "art_ico_item_gate_stone",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块巴掌大的灰白基石碎块：一面平整，平面上刻着一个由门形与弧线组成的纹样，纹路里嵌着一线暖金色，其余各面是粗糙的断口。",
+        "en": "A palm-sized pale gray foundation stone fragment: one flat face carved with a pattern of a door shape and curved lines, a thread of warm gold set into the grooves, the other sides rough broken faces."
+      },
+      "ref": "gate_stone",
+      "milestone": "M2",
+      "notes": "钥物；门址石系列的第一块，系列共用\"灰白石块加一面门形纹\"的造型；本块是标准样，纹路用门扉金。"
+    },
+    {
+      "id": "art_ico_item_ky_gatestone_first_gate",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一粒圆润的小石子：灰白色，被磨得光滑，表面一圈极细的门形刻纹，刻纹里有一点暖金色，旁边落着几粒细砂。",
+        "en": "A small rounded pebble: pale gray, worn smooth, a very fine door-shaped engraving around it with a touch of warm gold in the groove, a few grains of sand beside it."
+      },
+      "ref": "ky_gatestone_first_gate",
+      "milestone": "M2",
+      "notes": "钥物；门址石系列里最小的一块，是石子不是石块。"
+    },
+    {
+      "id": "art_ico_item_ky_gatestone_sw",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块门址石：灰白方石，平面刻着门形纹，纹路嵌一线暖金，石块左下角斜斜缺了一块，缺口上沾着红灰色的荒原尘土。",
+        "en": "A gatestone: a pale gray square stone, its flat face carved with the door pattern, a thread of warm gold in the grooves, the lower left corner broken off at a slant with reddish-gray wasteland dust on the break."
+      },
+      "ref": "ky_gatestone_sw",
+      "milestone": "M2",
+      "notes": "钥物；荒原四门站石共用造型，靠缺角的位置区分：本块缺左下角。"
+    },
+    {
+      "id": "art_ico_item_ky_gatestone_se",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块门址石：灰白方石，平面刻着门形纹，纹路嵌一线暖金，石块右下角斜斜缺了一块，缺口上沾着红灰色的荒原尘土。",
+        "en": "A gatestone: a pale gray square stone, its flat face carved with the door pattern, a thread of warm gold in the grooves, the lower right corner broken off at a slant with reddish-gray wasteland dust on the break."
+      },
+      "ref": "ky_gatestone_se",
+      "milestone": "M2",
+      "notes": "钥物；荒原四门站石共用造型，靠缺角的位置区分：本块缺右下角。"
+    },
+    {
+      "id": "art_ico_item_ky_gatestone_w",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块门址石：灰白方石，平面刻着门形纹，纹路嵌一线暖金，石块左上角缺了一块，表面落着一层细细的灰白色灰烬。",
+        "en": "A gatestone: a pale gray square stone, its flat face carved with the door pattern, a thread of warm gold in the grooves, the upper left corner broken off, its surface dusted with fine pale ash."
+      },
+      "ref": "ky_gatestone_w",
+      "milestone": "M2",
+      "notes": "钥物；荒原四门站石共用造型：本块缺左上角，并且落着灰。"
+    },
+    {
+      "id": "art_ico_item_ky_gatestone_ne",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块门址石：灰白方石，平面刻着门形纹，纹路嵌一线暖金，石块右上角缺了一块，侧面留着一道青铜锈染出的绿痕。",
+        "en": "A gatestone: a pale gray square stone, its flat face carved with the door pattern, a thread of warm gold in the grooves, the upper right corner broken off, a green streak of bronze stain down one side."
+      },
+      "ref": "ky_gatestone_ne",
+      "milestone": "M2",
+      "notes": "钥物；荒原四门站石共用造型：本块缺右上角，带绿色铜锈痕。"
+    },
+    {
+      "id": "art_ico_item_ky_gatestone_wreck_bay",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块拱形的门址石：灰白石块的上缘是一段拱弧，平面刻着门形纹，石面上长满了白色藤壶和几缕深绿的海草。",
+        "en": "An arch-shaped gatestone: a pale gray block whose top edge is a section of an arch, its face carved with the door pattern, covered in white barnacles and a few strands of dark green seaweed."
+      },
+      "ref": "ky_gatestone_wreck_bay",
+      "milestone": "M3",
+      "notes": "钥物；藤壶与海草是辨识点，门形纹仍要露出来。"
+    },
+    {
+      "id": "art_ico_item_ky_gatestone_stone_circle",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块圆石：扁圆的灰白石头，平面刻着门形纹，纹路嵌一线暖金，石面上沾着黑褐色的田土，还挂着一根干麦秆。",
+        "en": "A round stone: a flat, round pale gray stone, its face carved with the door pattern, a thread of warm gold in the grooves, smeared with dark brown field soil, a dry wheat straw caught on it."
+      },
+      "ref": "ky_gatestone_stone_circle",
+      "milestone": "M3",
+      "notes": "钥物；形状是扁圆，与方形的门站石区分。"
+    },
+    {
+      "id": "art_ico_item_ky_gatestone_southcanal",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块门址石：灰白石块，平面刻着门形纹，石面的一半像被烫过，发黑发亮，带着细细的放射状裂纹。",
+        "en": "A gatestone: a pale gray block, its face carved with the door pattern, half of the surface looking scorched, blackened and glossy, with fine radiating cracks."
+      },
+      "ref": "ky_gatestone_southcanal",
+      "milestone": "M3",
+      "notes": "钥物；烫痕只占一半，门形纹在未烫的那一半上更清楚。"
+    },
+    {
+      "id": "art_ico_item_ky_gatestone_stele_market",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块长方形的铺路石：灰白石面被踩得光滑，一角凿着一个门形纹，旁边凿着几道排列整齐的短刻痕。",
+        "en": "A rectangular paving stone: a pale gray face worn smooth by feet, a door pattern chiseled into one corner, a few neatly aligned short notches beside it."
+      },
+      "ref": "ky_gatestone_stele_market",
+      "milestone": "M2",
+      "notes": "钥物；短刻痕代表编号，只画刻痕，不画数字。"
+    },
+    {
+      "id": "art_ico_item_ky_gatestone_myriad_street",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块门槛石：长条形，正面磨出两道浅浅的脚踩凹痕，侧面钉着一块小小的铜门牌，门牌上只有一个门形图样。",
+        "en": "A doorstep stone: a long slab with two shallow foot-worn hollows on top, a small brass house plate nailed to its side bearing only a door-shaped emblem."
+      },
+      "ref": "ky_gatestone_myriad_street",
+      "milestone": "M2",
+      "notes": "钥物；门牌上不画字。"
+    },
+    {
+      "id": "art_ico_item_ky_gatestone_main_gate",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块发黑的大基石：方正厚重，表面被熏得乌黑，裂缝里透出一线暖金色，门形纹几乎被黑垢盖住，只露出半边。",
+        "en": "A large blackened foundation stone: square and heavy, its surface smoked jet black, a line of warm gold showing through its cracks, the door pattern almost buried under black grime with only half showing."
+      },
+      "ref": "ky_gatestone_main_gate",
+      "milestone": "M3",
+      "notes": "钥物；门址石系列里最大最黑的一块。"
+    },
+    {
+      "id": "art_ico_item_ky_gatestone_first_array",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块被当作花坛边石的旧石：长方形，灰白石面上长着青苔，边上挤着两朵小白花，苔下隐约露出门形纹的一角。",
+        "en": "An old stone used as a flowerbed edging: rectangular, a pale gray face grown with moss, two little white flowers squeezed against its edge, a corner of the door pattern faintly showing under the moss."
+      },
+      "ref": "ky_gatestone_first_array",
+      "milestone": "M3",
+      "notes": "钥物；小白花与青苔是辨识点。"
+    },
+    {
+      "id": "art_ico_item_ky_rusty_key",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把锈钥匙：普通的铁钥匙，钥柄是简单的圆环，整把锈成红褐色，环上系着一小截褪色的蓝线。",
+        "en": "A rusty key: an ordinary iron key with a simple ring handle, rusted reddish-brown all over, a short bit of faded blue thread tied to the ring."
+      },
+      "ref": "ky_rusty_key",
+      "milestone": "M1",
+      "notes": "钥物；平凡的钥匙，不要画得华丽，也不发光。"
+    },
+    {
+      "id": "art_ico_item_ky_messenger_plume",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一根很旧的黑鸦羽：长而完整，羽片乌黑带一点暗蓝光泽，羽根处缠着一圈褪色的细红线，羽尖微微发白。",
+        "en": "A very old black crow feather: long and whole, jet-black vanes with a slight dark blue sheen, a loop of faded thin red thread at the quill, the tip slightly whitened."
+      },
+      "ref": "ky_messenger_plume",
+      "milestone": "M2",
+      "notes": "钥物；与 ky_scorched_quill（烧焦的羽毛）区分：这根是完整的。"
+    },
+    {
+      "id": "art_ico_item_ky_deadframe_splinter",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一片古木屑：细长弯曲的一片暗褐色木头，一面还留着一点剥落的金漆，另一面布满虫蛀的小孔。",
+        "en": "A splinter of ancient wood: a long, thin, curved sliver of dark brown wood, one side keeping a trace of flaking gold paint, the other riddled with tiny wormholes."
+      },
+      "ref": "ky_deadframe_splinter",
+      "milestone": "M2",
+      "notes": "钥物；金漆残迹可用门扉金，只是一点点。"
+    },
+    {
+      "id": "art_ico_item_ky_scorched_quill",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一根烧焦的羽毛：羽片前半截烧成焦黑卷曲，后半截仍是乌黑的鸦羽，焦黑处带着灰白的灰。",
+        "en": "A scorched feather: the front half of the vane burned black and curled, the back half still a jet-black crow feather, pale ash on the burned part."
+      },
+      "ref": "ky_scorched_quill",
+      "milestone": "M2",
+      "notes": "钥物；与 ky_messenger_plume 区分：前半截一定是烧焦卷曲的。"
+    },
+    {
+      "id": "art_ico_item_ky_unclasped_talon",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一片断爪：一只鸟爪的末节，弯钩形，灰黑色，从中间断开，断口参差，用一根细皮绳系着。",
+        "en": "A broken talon: the last segment of a bird's claw, hooked, gray-black, snapped in the middle with a jagged break, tied with a thin leather cord."
+      },
+      "ref": "ky_unclasped_talon",
+      "milestone": "M3",
+      "notes": "钥物；只画断爪，不画鸟。"
+    },
+    {
+      "id": "art_ico_item_ky_last_wax",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一小片火漆屑：暗红色，边缘碎裂，上面留着半个羽毛图形的压印，背面粘着一点纸的纤维。",
+        "en": "A small flake of sealing wax: dark red with crumbled edges, half a feather emblem pressed into it, a bit of paper fiber stuck to the back."
+      },
+      "ref": "ky_last_wax",
+      "milestone": "M3",
+      "notes": "钥物；与 rl_yeyu_satchel 的火漆同色同纹，只是半片。"
+    },
+    {
+      "id": "art_ico_item_ky_rubbing_eluen",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张卷起一半的拓片：白纸上拓满深灰的碑面纹理，纸面分成上下两块，两块是两种不同的纹样，纸卷用一根白绳系着。",
+        "en": "A half-rolled rubbing: white paper covered with dark gray stele texture, the sheet divided into upper and lower blocks of two different patterns, the roll tied with a white string."
+      },
+      "ref": "ky_rubbing_eluen",
+      "milestone": "M2",
+      "notes": "钥物；七碑拓共用\"半卷拓片\"造型，靠纸色、系绳与纹理区分；不画可读文字。本张系白绳。"
+    },
+    {
+      "id": "art_ico_item_ky_rubbing_valda",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张卷起一半的拓片：厚纸上拓满杂乱交错的划痕，最底下是一道又深又长的剑痕，纸卷用一根暗红的皮绳系着。",
+        "en": "A half-rolled rubbing: thick paper covered with a chaos of crisscrossing scratches, one long deep sword cut at the very bottom, the roll tied with a dark red leather cord."
+      },
+      "ref": "ky_rubbing_valda",
+      "milestone": "M3",
+      "notes": "钥物；七碑拓之一：暗红皮绳，底部长剑痕。"
+    },
+    {
+      "id": "art_ico_item_ky_rubbing_merca",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张卷起一半的拓片：纸面拓满大大小小、互相叠压的圆形印痕，纸边有一点金粉，纸卷用一根金色细绳系着。",
+        "en": "A half-rolled rubbing: the sheet crowded with round seal impressions of all sizes overlapping each other, a little gold dust along the edge, the roll tied with a thin gold cord."
+      },
+      "ref": "ky_rubbing_merca",
+      "milestone": "M3",
+      "notes": "钥物；七碑拓之一：金绳，满纸圆印。"
+    },
+    {
+      "id": "art_ico_item_ky_rubbing_sylvie",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张卷起一半的拓片：纸面上碑纹与弯曲的根须纹路交错，纸色带一点淡绿，纸卷用一根草茎系着。",
+        "en": "A half-rolled rubbing: stele texture interwoven with curving root patterns, the paper faintly greenish, the roll tied with a grass stem."
+      },
+      "ref": "ky_rubbing_sylvie",
+      "milestone": "M3",
+      "notes": "钥物；七碑拓之一：草茎系绳，根须纹。"
+    },
+    {
+      "id": "art_ico_item_ky_rubbing_moira",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张卷起一半的拓片：纸面密密麻麻拓着一层叠一层的细小刻痕，像批注叠着批注，纸卷用一根蓝色丝带系着。",
+        "en": "A half-rolled rubbing: the sheet densely covered with layer upon layer of tiny engraved marks, like notes upon notes, the roll tied with a blue silk ribbon."
+      },
+      "ref": "ky_rubbing_moira",
+      "milestone": "M3",
+      "notes": "钥物；七碑拓之一：蓝丝带，细密小刻痕；刻痕不可读。"
+    },
+    {
+      "id": "art_ico_item_ky_rubbing_hollow",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张卷起一半的拓片：深灰的纸面上布满凿痕，凿痕的缝隙里透出一线一线暖白色的微光，中央有一个空着的长方框。",
+        "en": "A half-rolled rubbing: a dark gray sheet covered with chisel gouges, thin lines of warm white light showing through the gouges, an empty rectangular frame at the center."
+      },
+      "ref": "ky_rubbing_hollow",
+      "milestone": "M3",
+      "notes": "钥物；七碑拓之一：微光是暖白色，不是门扉金；中央方框是空的，什么也不画。"
+    },
+    {
+      "id": "art_ico_item_ky_rubbing_seventh",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张卷起一半的拓片：纸面是银灰色，拓着几行像爪痕一样的长刻纹，纸边沾着一点雪粒，纸卷用一根银线系着。",
+        "en": "A half-rolled rubbing: silver-gray paper bearing a few rows of long claw-like carved marks, a few snow grains on the edge, the roll tied with a silver thread."
+      },
+      "ref": "ky_rubbing_seventh",
+      "milestone": "M3",
+      "notes": "钥物；七碑拓之一：银线，爪痕纹。"
+    },
+    {
+      "id": "art_ico_item_ky_knot_morning_market",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一根打满结的旧麻绳：绳上的结有疏有密，排得很匀，一端系着一枚小小的蓝色陶珠，绳色是浅黄。",
+        "en": "An old hemp cord full of knots: the knots spaced loose and tight in an even rhythm, a small blue ceramic bead tied to one end, pale yellow cord."
+      },
+      "ref": "ky_knot_morning_market",
+      "milestone": "M2",
+      "notes": "钥物；门歌歌结共用\"打结麻绳\"造型，靠结的疏密与末端小物区分。本根挂蓝陶珠。"
+    },
+    {
+      "id": "art_ico_item_ky_knot_ferry",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一根打满结的旧麻绳：结打得像波浪一样一高一低，一端系着一小截船桨形的木片，绳色是灰褐。",
+        "en": "An old hemp cord full of knots: the knots rising and falling like waves, a tiny oar-shaped wooden chip tied to one end, gray-brown cord."
+      },
+      "ref": "ky_knot_ferry",
+      "milestone": "M2",
+      "notes": "钥物；门歌歌结之一：末端小木桨。"
+    },
+    {
+      "id": "art_ico_item_ky_knot_ash_night",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一根打满结的旧麻绳：结打得又乱又紧，有的挤成一团，有的松散歪斜，绳子被灰染成灰黑色，一端烧焦了。",
+        "en": "An old hemp cord full of knots: the knots messy and tight, some crowded into clumps, some loose and crooked, the cord stained gray-black with ash, one end burned."
+      },
+      "ref": "ky_knot_ash_night",
+      "milestone": "M2",
+      "notes": "钥物；门歌歌结之一：乱结，烧焦的绳头。"
+    },
+    {
+      "id": "art_ico_item_ky_knot_leaf_fall",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一根打满结的旧麻绳：结排得像一条弯弯的小路，绳上夹着两片小小的黄落叶，绳色是浅棕。",
+        "en": "An old hemp cord full of knots: the knots laid out like a winding little path, two small yellow fallen leaves tucked into the cord, light brown cord."
+      },
+      "ref": "ky_knot_leaf_fall",
+      "milestone": "M2",
+      "notes": "钥物；门歌歌结之一：夹着落叶。"
+    },
+    {
+      "id": "art_ico_item_ky_knot_mother",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一根很短的旧麻绳：整根绳上只有一个结，结打得又大又圆，绳的两端都散开成细丝，绳色发白。",
+        "en": "A very short old hemp cord: only a single knot on the whole length, big and round, both ends frayed into fine strands, the cord bleached pale."
+      },
+      "ref": "ky_knot_mother",
+      "milestone": "M3",
+      "notes": "钥物；门歌歌结之一：只有一个大结，必须只有一个。"
+    },
+    {
+      "id": "art_ico_item_ky_seven_lock_key",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把沉甸甸的铁钥匙：钥柄是带七个小缺口的圆盘，钥杆粗长，钥齿方正，柄上系着一块小小的铅封牌。",
+        "en": "A heavy iron key: a round disc handle with seven small notches around it, a long thick shaft, square teeth, a small lead seal tag tied to the handle."
+      },
+      "ref": "ky_seven_lock_key",
+      "milestone": "M2",
+      "notes": "钥物；可叠至 7 把，图标只画一把。铅封牌上不画字。"
+    },
+    {
+      "id": "art_ico_item_ky_archive_ring",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只青铜环：手掌大小，环身厚实，外圈刻着卷草纹，内侧刻着一行细小的痕迹，铜色发绿，环上沾着灰。",
+        "en": "A bronze ring: palm-sized with a thick band, scrolling leaf pattern around the outside, a line of tiny marks engraved on the inside, greenish bronze dusted with ash."
+      },
+      "ref": "ky_archive_ring",
+      "milestone": "M2",
+      "notes": "钥物；内侧的一行刻痕只画痕迹，不画可读的字。"
+    },
+    {
+      "id": "art_ico_item_ky_shieldbearer_seal",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把很沉的大铁钥匙：钥柄做成一面小塔盾的形状，盾面浮着简单的十字带纹，钥杆粗壮，钥齿是三级台阶形。",
+        "en": "A very heavy large iron key: its handle shaped like a small tower shield with a simple raised cross-band on its face, a thick shaft, and step-shaped teeth in three tiers."
+      },
+      "ref": "ky_shieldbearer_seal",
+      "milestone": "M3",
+      "notes": "钥物；盾形钥柄是唯一辨识点。"
+    },
+    {
+      "id": "art_ico_item_ky_home_stone",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块普通的石头：拳头大小，形状不规则，颜色是带着土黄与红褐斑纹的杂色，用一块洗旧的方布兜着，布角打了个结。",
+        "en": "An ordinary stone: fist-sized and irregular, a mottled mix of earthy yellow and reddish-brown, carried in a worn square of cloth knotted at the corners."
+      },
+      "ref": "ky_home_stone",
+      "milestone": "M3",
+      "notes": "钥物；必须普通，不发光，不刻纹；方布兜是辨识点。"
+    },
+    {
+      "id": "art_ico_item_lb_codex_of_light",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本厚重的经书：白色皮面，四角包金，封面正中压着一枚凸起的金色光轮，书脊上有三道金箍，书页边缘刷成金色。",
+        "en": "A thick heavy scripture: white leather cover with gold-capped corners, a raised gold halo wheel at the center of the front, three gold bands across the spine, gilded page edges."
+      },
+      "ref": "lb_codex_of_light",
+      "milestone": "M1",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；教典类以白与金为主；封面只有光轮，不画书名。"
+    },
+    {
+      "id": "art_ico_item_lb_codex_first_draft",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本发旧的经书：白皮封面已经泛黄起皱，封面的光轮浮纹磨损了一半，书页里夹着许多翘起的纸条，侧边看得到页面上满是涂改的墨团。",
+        "en": "A worn old scripture: a white leather cover yellowed and creased, its halo emboss half worn away, many slips of paper sticking out between the pages, ink blots of heavy corrections visible on the page edges."
+      },
+      "ref": "lb_codex_first_draft",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；与 lb_codex_of_light 区分：旧、皱、夹满纸条。"
+    },
+    {
+      "id": "art_ico_item_lb_annals_holy_years",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本高窄的编年史：深蓝布面，烫金的光轮小纹排成一列沿书脊往下，书微微翻开，露出中间几页完全空白的纸。",
+        "en": "A tall narrow chronicle: dark blue cloth binding, a column of small gilt halo marks running down the spine, the book slightly open to show a few completely blank pages in the middle."
+      },
+      "ref": "lb_annals_holy_years",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；翻开处的空白页是辨识点，其余页面只有淡灰线条。"
+    },
+    {
+      "id": "art_ico_item_lb_codex_of_heroes",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本典章：白皮红脊，封面上是一柄竖立的长剑压在光轮上，书角包银，侧面垂着一根红色书签绳。",
+        "en": "A book of statutes: white leather with a red spine, a vertical longsword over a halo wheel on the front, silver-capped corners, a red bookmark cord hanging from the side."
+      },
+      "ref": "lb_codex_of_heroes",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；剑加光轮的封面纹是辨识点。"
+    },
+    {
+      "id": "art_ico_item_lb_brand_discernment",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本小开本的手册：黑皮封面，铁扣锁着，封面压着一只睁开的眼睛，眼睛下方是一盏小提灯的图形。",
+        "en": "A small-format manual: black leather cover with an iron clasp, an open eye stamped on the front with a small lantern emblem beneath it."
+      },
+      "ref": "lb_brand_discernment",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；审判官的手册，黑皮铁扣。"
+    },
+    {
+      "id": "art_ico_item_lb_hymnal_eight_lights",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本薄歌本：米白封面，封面上八颗小光点排成弧形，书页边能看到一行行五线般的细横线，一角夹着一根白色缎带。",
+        "en": "A thin hymnal: cream cover with eight small points of light arranged in an arc, fine staff-like horizontal lines visible on the page edges, a white satin ribbon tucked in one corner."
+      },
+      "ref": "lb_hymnal_eight_lights",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；八颗光点要数得清。不画音符符号与字。"
+    },
+    {
+      "id": "art_ico_item_lb_unsung_name",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张折了好几折的旧歌纸：纸色灰黄，纸上的细横线只画到一半，后半张空着，折痕处磨得发白，用一根细麻线捆着。",
+        "en": "An old song sheet folded several times: grayish-yellow paper, its fine ruled lines running only halfway across, the rest left blank, the folds worn white, tied with a thin hemp thread."
+      },
+      "ref": "lb_unsung_name",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；民谣类多为歌纸或口传信物；只画到一半的横线是辨识点。"
+    },
+    {
+      "id": "art_ico_item_lb_wolfclan_oral",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块狼牙挂坠：一枚弯弯的白狼牙穿在皮绳上，皮绳上串着三颗小木珠，狼牙上刻着一扇小门的线条。",
+        "en": "A wolf-fang pendant: a curved white wolf fang strung on a leather cord with three small wooden beads, the outline of a small door carved into the fang."
+      },
+      "ref": "lb_wolfclan_oral",
+      "milestone": "M1",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；口传故事画成说书人随身的信物（象征）；门的线条用深色，不发光。"
+    },
+    {
+      "id": "art_ico_item_lb_ledger_unsettled",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只矮人的厚陶酒杯：杯身一圈刻着一道道整齐的记账刻痕，杯把是粗粗的铁环，杯里盛着冒泡的琥珀色麦酒。",
+        "en": "A thick dwarven ceramic tankard: rows of neat tally marks scored around its body, a heavy iron ring for a handle, foaming amber ale inside."
+      },
+      "ref": "lb_ledger_unsettled",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；酒歌画成酒杯（象征）；刻痕是计数短线，不画数字。"
+    },
+    {
+      "id": "art_ico_item_lb_hundred_posts_song",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一卷细长的路歌纸卷：浅棕色纸条卷成筒，展开的一段上画着一串小小的驿站房子与连起来的虚线，纸卷用一根草绳绑着。",
+        "en": "A long thin roll of road song: a tan paper strip rolled into a tube, the unrolled part showing a chain of tiny waystation houses joined by a dotted line, tied with a straw cord."
+      },
+      "ref": "lb_hundred_posts_song",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；小房子画几座即可，不需要一百零七座；不画字。"
+    },
+    {
+      "id": "art_ico_item_lb_full_then_empty",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一面小小的行军鼓：鼓框是黑铁，鼓面是深红兽皮，鼓边挂着两根骨制鼓槌，鼓身画着一张空着的王座剪影。",
+        "en": "A small marching drum: a black iron frame, a dark red hide head, two bone drumsticks hanging at the rim, the silhouette of an empty throne painted on the side."
+      },
+      "ref": "lb_full_then_empty",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；战歌画成行军鼓（象征）；王座是空的剪影。"
+    },
+    {
+      "id": "art_ico_item_lb_border_ghost_tales",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本小小的破旧故事书：暗绿布面，封面画着一扇半开的门，门缝后露出两点小小的眼睛，书角卷起。",
+        "en": "A small tattered storybook: dark green cloth cover with a half-open door drawn on it, two tiny eyes peeking from the gap, curled corners."
+      },
+      "ref": "lb_border_ghost_tales",
+      "milestone": "M1",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；吓小孩的书，可爱多于可怕；门缝里只有两点眼睛，不画怪物。"
+    },
+    {
+      "id": "art_ico_item_lb_wall_walkers",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本童话书：浅蓝封面，封面画着一个小人一脚跨进墙上的一扇门里，半个身子已经不见了，书脊是红色。",
+        "en": "A fairy-tale book: a pale blue cover showing a little figure stepping into a door in a wall, half of the body already gone, a red spine."
+      },
+      "ref": "lb_wall_walkers",
+      "milestone": "M1",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；封面小人是简笔剪影。"
+    },
+    {
+      "id": "art_ico_item_lb_seven_aspects_primer",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本学院课本：灰蓝色硬皮，封面上七个小圆点围成一圈，每个圆点一种颜色，书脊印着学院的书塔纹章。",
+        "en": "An academy textbook: gray-blue hardcover, seven small dots in a ring on the front, each a different color, the academy's book-tower emblem on the spine."
+      },
+      "ref": "lb_seven_aspects_primer",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；七个圆点依次为白、红、浅蓝、绿、金、银灰、灰紫；幽相用灰紫，不用澱紫。"
+    },
+    {
+      "id": "art_ico_item_lb_formula_workbook",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本被翻烂的习题本：灰蓝封面，书页卷边，从侧面看得到夹着好几张画满圆圈与线条的草稿纸，还插着一支短铅笔。",
+        "en": "A dog-eared workbook: gray-blue cover, curled pages, several scrap sheets full of circles and lines sticking out the side, a short pencil tucked in."
+      },
+      "ref": "lb_formula_workbook",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；学院课本同用灰蓝封面，本条靠草稿纸与短笔区分。"
+    },
+    {
+      "id": "art_ico_item_lb_record_studies",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本学术书：深褐硬皮，封面压着一块水晶片的图形，水晶下面是一页翻开的书，书页之间夹着长长的脚注纸条。",
+        "en": "A scholarly book: dark brown hardcover, the image of a crystal plate stamped on the front above an open book, long footnote slips tucked between the pages."
+      },
+      "ref": "lb_record_studies",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；鉴定水晶加书页是辨识点。"
+    },
+    {
+      "id": "art_ico_item_lb_bestiary_of_nations",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本厚厚的图志：墨绿皮面，封面压着一只盘绕的兽的剪影，书后半部分明显变薄，看得出附表被撕掉了一叠。",
+        "en": "A thick illustrated bestiary: dark green leather, the silhouette of a coiled beast stamped on the front, the back section noticeably thinner where a stack of appended pages was torn out."
+      },
+      "ref": "lb_bestiary_of_nations",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；后半部分缺页的撕痕要看得出。"
+    },
+    {
+      "id": "art_ico_item_lb_dungeon_growth",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本学术书：石灰色硬皮封面，封面画着一个由小方格层层向外扩开的迷宫图形，书角包铜，书脊有两道凸棱。",
+        "en": "A scholarly book: stone-gray cover with a maze pattern of small squares spreading outward in layers, brass-capped corners."
+      },
+      "ref": "lb_dungeon_growth",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；迷宫图形是辨识点。"
+    },
+    {
+      "id": "art_ico_item_lb_star_law",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本禁书：深靛封面，封面上银色小点连成整齐的星图，星图外框是一个完美的圆，书用一条黑带缠了两圈。",
+        "en": "A forbidden book: deep indigo cover, small silver dots joined into a neat star chart framed by a perfect circle, the book wrapped twice with a black strap."
+      },
+      "ref": "lb_star_law",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；黑带缠绕表示禁书。"
+    },
+    {
+      "id": "art_ico_item_lb_gate_lexicon",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本古旧的辞书：青铜色封面，封面刻着排列整齐的小方格，每格一个不同的几何符号，书页厚而发脆。",
+        "en": "An ancient lexicon: bronze-colored cover engraved with a neat grid of small squares, each holding a different geometric symbol, thick brittle pages."
+      },
+      "ref": "lb_gate_lexicon",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；符号是几何纹样，不能是可读文字。"
+    },
+    {
+      "id": "art_ico_item_lb_farmers_almanac",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本农历：麦黄色软皮，封面画着一圈十二格的圆盘，每格一个小小的农具或作物图形，书角被翻得起毛。",
+        "en": "A farmer's almanac: wheat-yellow soft cover, a circular dial of twelve segments on the front, each with a tiny farm tool or crop, corners fuzzy from use."
+      },
+      "ref": "lb_farmers_almanac",
+      "milestone": "M1",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；十二格圆盘只画图形，不画数字。"
+    },
+    {
+      "id": "art_ico_item_lb_tide_tables",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本航海用书：海蓝色封面，封面上是一条起伏的波浪线压在一弯月亮下面，书角被海水泡得发白起皱。",
+        "en": "A navigation book: sea-blue cover with a wavy line beneath a crescent moon, its corners bleached and wrinkled by seawater."
+      },
+      "ref": "lb_tide_tables",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；月亮加波浪线是辨识点。"
+    },
+    {
+      "id": "art_ico_item_lb_north_survey",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一卷地图：米黄色厚纸卷成筒，露出的一角上画着连绵的山形与弯曲的河流线条，卷筒用一条旧皮带扣着。",
+        "en": "A rolled map: thick cream paper rolled into a tube, the visible corner showing lines of mountains and rivers, buckled with a leather strap."
+      },
+      "ref": "lb_north_survey",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；舆图类画成卷轴或折图，地图上不画地名。"
+    },
+    {
+      "id": "art_ico_item_lb_ash_road_notes",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本走私者的小路书：巴掌大的黑皮本子，用皮绳缠着，封面被灰染成灰白，书页里夹着一根干枯的荒草。",
+        "en": "A smuggler's little road book: a palm-sized black leather notebook bound with a leather thong, the cover stained ashy white, a dry wasteland grass stem tucked between its pages."
+      },
+      "ref": "lb_ash_road_notes",
+      "milestone": "M1",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；小本子，不是地图卷。"
+    },
+    {
+      "id": "art_ico_item_lb_gate_network_chart",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张展开的旧图：泛黄的方纸上画满大大小小的圆圈，圆圈之间用直线连成一张网，纸的四角卷起。",
+        "en": "An unfolded old chart: a yellowed square sheet covered with circles of many sizes linked by straight lines into a web, its four corners curling."
+      },
+      "ref": "lb_gate_network_chart",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；圆圈加连线是辨识点；线条用深褐，不用门扉金。"
+    },
+    {
+      "id": "art_ico_item_lb_mist_edge_chart",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一卷海图：浅蓝灰的纸卷，展开的一半画着海岸线，海图的外缘被一层灰白的雾状涂抹整齐地封住。",
+        "en": "A rolled sea chart: pale blue-gray paper, the unrolled half showing a coastline, the outer margin uniformly sealed off by a smear of pale gray mist."
+      },
+      "ref": "lb_mist_edge_chart",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；雾边要整齐，像一条边界。"
+    },
+    {
+      "id": "art_ico_item_lb_lotha_law",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本律书：深红皮面，封面压着一枚麦穗环绕的王冠纹章，书很厚，书口用两根铜扣扣着，书角磨圆。",
+        "en": "A law book: dark red leather, a crown encircled by wheat ears stamped on the front, very thick, fastened with two brass clasps."
+      },
+      "ref": "lb_lotha_law",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；诸国律书以纹章区分：洛萨为麦穗王冠。"
+    },
+    {
+      "id": "art_ico_item_lb_sword_crown_law",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本律书：赭红皮面，封面压着一柄竖剑穿过一顶王冠的纹章，书角包铁，书脊方正，像一块砖。",
+        "en": "A law book: ochre-red leather, an emblem of an upright sword through a crown on the front, iron-capped corners, a square spine."
+      },
+      "ref": "lb_sword_crown_law",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；诸国律书之一：剑穿王冠。"
+    },
+    {
+      "id": "art_ico_item_lb_heresy_code",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本律书：黑皮面，封面压着一枚金色光轮，光轮下方横着一把小铁锁，书脊上钉着挂铁链用的环。",
+        "en": "A law book: black leather, a halo wheel stamped on the front with a lock lying beneath it, an iron chain loop on the spine."
+      },
+      "ref": "lb_heresy_code",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；诸国律书之一：光轮加锁，黑皮。"
+    },
+    {
+      "id": "art_ico_item_lb_goldbay_charter",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一卷宪章：两卷羊皮纸叠在一起，大卷系着金色缎带，缎带上挂着一枚天平图形的蜡封，小卷压在下面。",
+        "en": "A charter: two parchment rolls stacked together, the larger tied with a gold ribbon hung with a wax seal showing a balance scale, the smaller roll beneath it."
+      },
+      "ref": "lb_goldbay_charter",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；诸国律书之一：天平蜡封。"
+    },
+    {
+      "id": "art_ico_item_lb_root_law",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本律书：封面是一整块浅色树皮，用银线缝在木板上，封面中央长出一片小小的嫩叶纹样。",
+        "en": "A law book: its cover a single piece of pale tree bark stitched to a wooden board with silver thread, a small young-leaf motif at the center."
+      },
+      "ref": "lb_root_law",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；诸国律书之一：树皮封面。"
+    },
+    {
+      "id": "art_ico_item_lb_steppe_knotlaw",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一捆结绳：许多根粗细不一的彩色毛绳并排挂在一根短木杆上，每根绳上都打着结，颜色以草黄、毡红、天蓝为主。",
+        "en": "A bundle of knotted cords: many woolen cords of different thicknesses hanging side by side from a short wooden rod, each tied with knots, mostly straw yellow, felt red and sky blue."
+      },
+      "ref": "lb_steppe_knotlaw",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；诸国律书之一，但形态是结绳；与门歌歌结（单根麻绳）区分：这是一排彩色毛绳。"
+    },
+    {
+      "id": "art_ico_item_lb_guild_charter",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本宪章：结实的棕色皮面，封面压着交叉的剑与羽笔纹章，书角包铜，侧面挂着一枚小铜牌。",
+        "en": "A charter book: sturdy brown leather, a crossed sword and quill emblem on the front, brass-capped corners, a small brass tag hanging from the side."
+      },
+      "ref": "lb_guild_charter",
+      "milestone": "M1",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；诸国律书之一：公会的剑与羽笔纹章。"
+    },
+    {
+      "id": "art_ico_item_lb_throne_law",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本律书：黑色玄武岩般的石板封面，嵌着暗红的宝石，封面刻着一张高背王座的剪影，书页是深灰色。",
+        "en": "A law book: a cover like a slab of black basalt set with dark red gems, a tall-backed throne silhouette carved on it, dark gray pages."
+      },
+      "ref": "lb_throne_law",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；诸国律书之一：石板封面，王座剪影。"
+    },
+    {
+      "id": "art_ico_item_lb_moonlit_kitchen",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本菜谱：被油渍染得发亮的棕色软皮本，封面画着一弯月亮和一只酒杯，书页里夹着一根干香草。",
+        "en": "A recipe book: a brown soft-cover notebook glossy with grease stains, a crescent moon and a wine cup drawn on the front, a dried herb sprig tucked between the pages."
+      },
+      "ref": "lb_moonlit_kitchen",
+      "milestone": "M1",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；食谱类都带油渍或食材；本条是月亮加酒杯。"
+    },
+    {
+      "id": "art_ico_item_lb_greybane_remedies",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一叠用细绳捆着的药方纸：纸片大小不一，夹着压干的小草叶，最上面一张画着一株开小白花的草。",
+        "en": "A bundle of remedy slips tied with string: papers of different sizes with pressed little leaves between them, the top slip drawn with a herb bearing tiny white flowers."
+      },
+      "ref": "lb_greybane_remedies",
+      "milestone": "M1",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；不画字，只画草与叶。"
+    },
+    {
+      "id": "art_ico_item_lb_forgehearth_fare",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本矮人菜谱：厚铁皮封面，被熏得乌黑，封面压着一口大锅架在火焰上的图形，书脊用铆钉钉着。",
+        "en": "A dwarven recipe book: a thick sheet-iron cover blackened by smoke, an image of a big pot over flames pressed into the front, its spine riveted."
+      },
+      "ref": "lb_forgehearth_fare",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；食谱类之一：铁皮封面。"
+    },
+    {
+      "id": "art_ico_item_lb_moonwell_broths",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本汤谱：深紫红色的软皮，封面画着一口圆井，井口上方悬着一弯月亮，书页边染着淡淡的汤渍。",
+        "en": "A broth recipe book: deep plum-red soft leather, a round well drawn on the front with a crescent moon above its mouth, faint soup stains on the page edges."
+      },
+      "ref": "lb_moonwell_broths",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；紫红不要用澱紫；圆井加月亮是辨识点。"
+    },
+    {
+      "id": "art_ico_item_lb_otherworld_menu",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本小小的手写菜单本：白色方格纸的线圈本，封面画着一碗冒热气的面和一双筷子，页角卷起。",
+        "en": "A small handwritten menu notebook: a spiral-bound pad of white grid paper, a steaming bowl of noodles with a pair of chopsticks drawn on the cover, curled page corners."
+      },
+      "ref": "lb_otherworld_menu",
+      "milestone": "M1",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；线圈本与方格纸是地球的样子，但不画任何文字与商标。"
+    },
+    {
+      "id": "art_ico_item_lb_moss_second_ledger",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本账簿：深棕色皮面，又窄又厚，封面没有任何纹样，书口夹着一把小小的铜钥匙，书页边沾着几点褐色污渍。",
+        "en": "An account ledger: dark brown leather, narrow and thick, a plain cover with no emblem, a small brass key tucked in the fore-edge, a few brown stains on the page edges."
+      },
+      "ref": "lb_moss_second_ledger",
+      "milestone": "M1",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；商账类；本条的辨识点是夹在书口的小钥匙。"
+    },
+    {
+      "id": "art_ico_item_lb_scale_ratings",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本评级簿：金黄色布面，封面压着一架天平，天平两侧的盘里各叠着高低不同的小圆片。",
+        "en": "A rating register: golden yellow cloth binding, a balance scale stamped on the front with stacks of small discs of different heights in each pan."
+      },
+      "ref": "lb_scale_ratings",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；天平是辨识点，不画数字。"
+    },
+    {
+      "id": "art_ico_item_lb_reconstruction_ledger",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本厚得像砖头的总账：灰绿布面，四角包铁，书脊上并排三道皮带，书页厚厚一摞，侧面看得到密密的分隔签。",
+        "en": "A ledger as thick as a brick: gray-green cloth with iron-capped corners, three leather straps side by side across the spine, a massive block of pages with dense index tabs on the side."
+      },
+      "ref": "lb_reconstruction_ledger",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；要显得特别厚重。"
+    },
+    {
+      "id": "art_ico_item_lb_tithe_rolls",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一卷收税册：长长的羊皮纸卷，展开的一段排着一列列短横线，卷轴两端是白木轴头，轴头上套着光轮形的小铜帽。",
+        "en": "A tithe roll: a long parchment scroll, the unrolled section lined with columns of short dashes, white wooden roller ends capped with small halo-shaped brass caps."
+      },
+      "ref": "lb_tithe_rolls",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；短横线代表账目，不画数字。"
+    },
+    {
+      "id": "art_ico_item_lb_greyrobe_notes",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本灰色的笔记：灰色粗布封面，用一根细铁链缠着，封面上一个用银线绣的锁链圆环，书页里透出一点暗紫色的污迹。",
+        "en": "A gray notebook: rough gray cloth cover wrapped with a thin iron chain, a chain-link circle embroidered in silver thread on the front, a faint dark purple stain seeping through the pages."
+      },
+      "ref": "lb_greyrobe_notes",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；暗紫污迹很小，用澱紫。"
+    },
+    {
+      "id": "art_ico_item_lb_godless_land",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本旧故事书：天蓝色布面，封面画着一片开阔的原野和一座小房子，天上只有太阳和几朵云，什么都没有，书角磨圆。",
+        "en": "An old storybook: sky-blue cloth cover showing an open field and a small house beneath a sky with only the sun and a few clouds, nothing else, rounded worn corners."
+      },
+      "ref": "lb_godless_land",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；天空里不画神殿、光轮、神像，只有日与云。"
+    },
+    {
+      "id": "art_ico_item_lb_scale_codex",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本鳞片封面的书：封面由一片片暗绿色的蛇鳞叠成，在光下泛着油亮的光泽，书脊用细骨片串起来，书扣是一枚小小的蛇头。",
+        "en": "A book bound in scales: the cover made of overlapping dark green serpent scales with an oily sheen, the spine threaded with small bone pieces, a tiny snake-head clasp."
+      },
+      "ref": "lb_scale_codex",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；鳞片封面是辨识点。"
+    },
+    {
+      "id": "art_ico_item_lb_ash_wall_transcript",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本抄录本：灰白色的粗纸本，封面被灰污得斑驳，书页边缘全是灰黑色的指印，书里夹着一支芦苇笔。",
+        "en": "A transcription notebook: a pale gray coarse-paper book, its cover blotched with ash, gray-black fingerprints all along the page edges, a reed pen tucked inside."
+      },
+      "ref": "lb_ash_wall_transcript",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；与 rl_ash_reed_pen 呼应：书里夹芦苇笔。不画字。"
+    },
+    {
+      "id": "art_ico_item_lb_gatelore_fragments",
+      "template": "ico_item",
+      "subject": {
+        "zh": "几页残卷：三四张大小不一的旧羊皮纸叠在一起，边缘破碎，最上面一页画着一扇门的剖面图与几条弧线。",
+        "en": "A few fragmentary leaves: three or four old parchment sheets of different sizes stacked together with tattered edges, the top one bearing a cross-section drawing of a door and a few arcs."
+      },
+      "ref": "lb_gatelore_fragments",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；门的剖面线条用深褐，不发光。"
+    },
+    {
+      "id": "art_ico_item_lb_blank_era_fragments",
+      "template": "ico_item",
+      "subject": {
+        "zh": "五张残纸：焦黄的碎纸片铺开成扇形，每张都只剩一部分，边缘有火烧的焦痕，纸上的墨痕断断续续。",
+        "en": "Five scraps of paper: scorched yellow fragments fanned out, each only partly remaining, burned edges, broken trails of ink marks on them."
+      },
+      "ref": "lb_blank_era_fragments",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；五张要数得清；墨痕不可读。"
+    },
+    {
+      "id": "art_ico_item_lb_reliquary_register",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本圣骨堂的账：白皮封面，封面中央压着一只小小的圣物匣图形，匣上有光轮，书口夹着一根褪色的金穗。",
+        "en": "A reliquary register: white leather cover with a small reliquary casket stamped at the center, a halo on the casket, a faded gold tassel tucked into the fore-edge."
+      },
+      "ref": "lb_reliquary_register",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；教典类白金配色，靠圣物匣图形区分。"
+    },
+    {
+      "id": "art_ico_item_lb_summoning_notes",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本满是阵图的旧笔记：牛皮纸封面，书微微翻开，露出一页画着同心圆与放射线组成的法阵图，纸页发黄。",
+        "en": "An old notebook full of array diagrams: kraft paper cover, slightly open to show a page drawn with a magic circle of concentric rings and radiating lines, yellowed paper."
+      },
+      "ref": "lb_summoning_notes",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；法阵是几何线条，不画文字与符咒字。"
+    },
+    {
+      "id": "art_ico_item_lb_night_shift_log",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本受潮的小记事本：硬纸封面被灰污成一团灰黑，纸页波浪般鼓起，封面上原本写名字的方框被几道粗线划掉。",
+        "en": "A small water-damaged notebook: a cardboard cover smeared gray-black with ash, pages swollen into waves, the name box on the cover struck through with a few heavy lines."
+      },
+      "ref": "lb_night_shift_log",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；地球的记事本外观，但不画任何文字与商标；划掉的方框里只有粗线。"
+    },
+    {
+      "id": "art_ico_item_col_earth_keepsakes",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只浅木托盘上整齐摆着五件小物：一张带夹子的卡片、一张小票压着一颗糖、半盒薄荷糖、一把老钥匙、一块小小的号码牌。",
+        "en": "A pale wooden tray neatly holding five small things: a clip-on card, a receipt weighed down by a wrapped candy, half a box of mints, an old key, and a small number tag."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_earth_keepsakes",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；卡片、小票、号码牌上都不画字与数字。"
+    },
+    {
+      "id": "art_ico_item_col_guest_relics",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只铺着深蓝绒布的木匣：匣里分格放着一片陶片、一支芦苇笔、半面小镜、一颗蓝绿玻璃珠和一张卷起的速写纸。",
+        "en": "A wooden case lined with dark blue velvet: compartments holding a potsherd, a reed pen, half a pocket mirror, a blue-green glass bead and a rolled sketch sheet."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_guest_relics",
+      "milestone": "M2",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；六幕前名为\"远方的东西\"，图标不暗示来处。"
+    },
+    {
+      "id": "art_ico_item_col_named_trophies",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一面挂在墙上的木板战利墙：深色木板上钉着一枚獠牙、一片甲壳、一根长羽和一只角，每件下面挂着一枚小铜牌。",
+        "en": "A wooden trophy board hung on a wall: a dark plank with a fang, a piece of carapace, a long feather and a horn pinned to it, a small brass tag hanging beneath each."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_named_trophies",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；铜牌上不画字。"
+    },
+    {
+      "id": "art_ico_item_col_coins_of_the_age",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只深色木钱匣，匣盖打开：里面一排七个圆槽，放着金、银、白、铜、黑铁几种不同颜色与大小的钱币，最后一格立着一张折起的票据。",
+        "en": "A dark wooden coin case with its lid open: a row of seven round slots holding coins of gold, silver, white, copper and black iron in different sizes, the last slot holding a folded paper note."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_coins_of_the_age",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；七格要数得清；钱面与票据不画字。"
+    },
+    {
+      "id": "art_ico_item_col_ancient_coins",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块旧绒布上摆着四枚古钱：一枚中间有门形孔的铜钱、一块铅灰小牌、一枚刻着交叉双剑的旧银币、一枚厚重的麦穗银币。",
+        "en": "Four ancient coins laid on an old velvet cloth: a bronze coin with a door-shaped hole, a small lead-gray token, an old silver coin stamped with crossed swords, and a heavy wheat-ear silver coin."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_ancient_coins",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；与 col_coins_of_the_age 区分：这里是四枚旧钱放在绒布上，没有匣。"
+    },
+    {
+      "id": "art_ico_item_col_seven_aspect_herbarium",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本摊开的标本册：两页上各压着几株干燥的小草，银叶、苔、带白花的草、红叶、霜白叶、金叶与灰紫叶各一株，每株用小纸条固定。",
+        "en": "An open herbarium album: pressed dried plants on both pages, one each of a silver leaf, a moss, a white-flowered herb, a red leaf, a frost-white leaf, a gold leaf and a gray-violet leaf, each held down by a small paper strip."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_seven_aspect_herbarium",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；七株要分得清；灰紫叶不用澱紫。"
+    },
+    {
+      "id": "art_ico_item_col_gatestones",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只分格的浅木盒：盒里整齐排着许多块灰白小石块，每块的平面都刻着门形纹，纹路里有一线暖金。",
+        "en": "A shallow compartmented wooden box: rows of small pale gray stones, each with the door pattern carved on its flat face and a thread of warm gold in the grooves."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_gatestones",
+      "milestone": "M2",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；门形纹用门扉金；石块数量不必精确，排满盒子即可。"
+    },
+    {
+      "id": "art_ico_item_col_seven_steles",
+      "template": "ico_item",
+      "subject": {
+        "zh": "七卷半卷的拓片插在一只圆木筒里，卷口朝上散开，系着白、暗红、金、草绿、蓝、灰、银七种颜色的绳。",
+        "en": "Seven half-rolled rubbings standing in a round wooden holder, their tops fanned out, tied with cords of seven colors: white, dark red, gold, grass green, blue, gray and silver."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_seven_steles",
+      "milestone": "M2",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；七卷要数得清，绳色与单张拓片一致。"
+    },
+    {
+      "id": "art_ico_item_col_doorsong",
+      "template": "ico_item",
+      "subject": {
+        "zh": "五根打着结的旧麻绳并排挂在一根短木杆上：一根挂蓝陶珠、一根挂小木桨、一根烧焦了、一根夹着落叶、一根只有一个大结。",
+        "en": "Five old knotted hemp cords hanging side by side from a short wooden rod: one with a blue ceramic bead, one with a tiny oar, one burned, one holding fallen leaves, one with a single big knot."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_doorsong",
+      "milestone": "M2",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；与 lb_steppe_knotlaw（彩色毛绳）区分：这是五根素色麻绳。"
+    },
+    {
+      "id": "art_ico_item_col_yeyu_memories",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一根细皮绳上依次串着六样小东西：一把锈钥匙、一根鸦羽、一片木屑、一根烧焦的羽毛、一片断爪、一小片暗红火漆。",
+        "en": "A thin leather cord threaded in order with six small things: a rusty key, a crow feather, a wood splinter, a scorched feather, a broken talon and a small flake of dark red wax."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_yeyu_memories",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；六样要分得清，串成一条路一样的弧线。"
+    },
+    {
+      "id": "art_ico_item_col_yeyu_shinies",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一个用枝条和碎布搭的小鸟窝：窝里堆着亮闪闪的小东西，纽扣、铜环、碎镜片、一枚小铃，最上面压着一把锈钥匙。",
+        "en": "A little bird's nest built of twigs and cloth scraps: piled with shiny trinkets, buttons, brass rings, mirror shards and a small bell, a rusty key resting on top."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_yeyu_shinies",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；窝要小巧，亮物要有小高光。"
+    },
+    {
+      "id": "art_ico_item_col_eight_heroes",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只长条形的白木陈列匣：八个小格里分别放着剑鞘、手甲、半面小镜、铜铃、船钟、木雀、速写纸和玻璃珠的缩小样，匣盖内侧有一个金色光轮。",
+        "en": "A long white wooden display case: eight small compartments holding miniatures of a scabbard, a gauntlet, half a mirror, a hand bell, a ship's bell, a wooden sparrow, a sketch sheet and a glass bead, a gold halo on the inside of the lid."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_eight_heroes",
+      "milestone": "M2",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；八格要数得清；与 col_eight_kings（黑匣）成对。"
+    },
+    {
+      "id": "art_ico_item_col_eight_kings",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只长条形的黑铁陈列匣：八个小格里分别放着铁冠、骨鼓、灰戒指、高脚杯、墨蓝晶球、一截剑身、黑羽和枯藤的缩小样，匣角包着暗红铜。",
+        "en": "A long blackened iron display case: eight small compartments holding miniatures of an iron crown, a bone drum, a gray ring, a chalice, an ink-blue crystal orb, a sword blade, a black feather and a dry vine, its corners capped in dark red copper."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_eight_kings",
+      "milestone": "M3",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；八格要数得清；与 col_eight_heroes（白匣）成对。"
+    },
+    {
+      "id": "art_ico_item_col_unsent_letters",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只旧木信箱：箱口塞满了泛黄的信封，有几封用细绳捆着，一封斜斜地探出箱口，箱子上没有任何标记。",
+        "en": "An old wooden letterbox: its slot stuffed with yellowed envelopes, some tied with string, one sticking out at a slant, no markings on the box."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_unsent_letters",
+      "milestone": "M2",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；信封上不画字与地址。"
+    },
+    {
+      "id": "art_ico_item_col_fallen_badges",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一排挂在铁钩上的旧铜牌：五六枚磨损的公会铜牌，大小一样，有的名字处被磨平，有的带着裂纹，用一条黑布带串着。",
+        "en": "A row of old brass badges hanging on iron hooks: five or six worn guild badges of the same size, some with the name area rubbed flat, some cracked, strung on a black cloth band."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_fallen_badges",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；铜牌上不画字；黑布带表示阵亡者。"
+    },
+    {
+      "id": "art_ico_item_col_six_fingerprints",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只小黑匣里排着六个玻璃小瓶，每瓶装着一撮不同色调的灰：灰白、铁灰、金灰、绿灰、蓝灰与近黑的灰。",
+        "en": "A small black case holding six little glass vials, each with a pinch of ash in a different tone: pale gray, iron gray, golden gray, greenish gray, bluish gray and a near-black gray."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_six_fingerprints",
+      "milestone": "M3",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；六瓶要分得清；不要用澱紫。"
+    },
+    {
+      "id": "art_ico_item_col_boundary_proofs",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张小桌面上摆着一本农历、一卷海图、一块爪痕石板和一口缠着灰白细丝的小船钟，几样东西排得过分整齐。",
+        "en": "A small tabletop with an almanac, a rolled sea chart, a claw-marked stone slab and a little ship's bell wrapped in pale gray threads, all arranged a little too neatly."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_boundary_proofs",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；五幕前名为\"太整齐的东西\"；\"整齐\"就是辨识点。"
+    },
+    {
+      "id": "art_ico_item_col_dragon_traces",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块银白色的大鳞片斜靠在一片弧形蛋壳上，旁边是一块爪痕石板和一卷银线系着的拓片，整体是银白与冰蓝。",
+        "en": "A large silver-white scale leaning against a curved piece of eggshell, beside a claw-marked stone slab and a rubbing tied with silver thread, all in silver-white and ice blue."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_dragon_traces",
+      "milestone": "M3",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；不画龙本身。"
+    },
+    {
+      "id": "art_ico_item_col_gate_era_daily",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只敞开的旧木柜格：格里摆着一枚门形孔铜钱、一盏小提灯、一枚铜印、一块半截石板和一片青铜碎片，都带着铜绿与灰。",
+        "en": "An open old wooden cabinet shelf: a door-holed bronze coin, a small lantern, a bronze seal, half of a stone tablet and a bronze fragment, all touched with verdigris and dust."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_gate_era_daily",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；提灯的光可用门扉金，只占一点。"
+    },
+    {
+      "id": "art_ico_item_col_blank_era_proofs",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只上锁的铁皮匣，匣盖半开：里面露出一把石凿、一叠捆着的名单纸、几片烧焦的残纸和一块铅灰小牌。",
+        "en": "A locked sheet-iron box with its lid half open: inside are a stone chisel, a tied stack of roster pages, a few scorched paper scraps and a small lead-gray token."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_blank_era_proofs",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；封存室打开前名为\"蒙昧时代的东西\"，图标不暗示内容的意义。"
+    },
+    {
+      "id": "art_ico_item_col_pale_reliquary",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只白石圣物匣：匣盖上立着一个金色小光轮，匣门开着，里面躺着几块苍白发灰的骨片与晶屑，旁边挂着一只小铜铃。",
+        "en": "A white stone reliquary casket: a small gold halo on its lid, its door open to reveal a few pale grayish bone chips and crystal flakes, a little bronze bell hanging beside it."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_pale_reliquary",
+      "milestone": "M2",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；苍白的骨片与晶屑不发光。"
+    },
+    {
+      "id": "art_ico_item_col_duel_tokens",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一串用铁环穿起的斗证：几枚大小不同的铁牌与骨牌，每枚刻着一道剑痕，另有一卷暗红皮绳系着的拓片挂在一旁。",
+        "en": "A string of duel tokens on an iron ring: several iron and bone tags of different sizes, each scored with a single sword cut, a rubbing tied with dark red leather cord hanging beside them."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_duel_tokens",
+      "milestone": "M3",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；牌上只有剑痕，不画字。"
+    },
+    {
+      "id": "art_ico_item_col_war_banners",
+      "template": "ico_item",
+      "subject": {
+        "zh": "三面叠挂的缴获军旗：旗杆斜插在一个木架上，旗面颜色各不相同，边缘破损带焦痕，旗面只有简单的几何纹章。",
+        "en": "Three captured war banners hung overlapping: poles slanted in a wooden rack, each banner a different color, edges torn and scorched, only simple geometric emblems on them."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_war_banners",
+      "milestone": "M2",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；旗面纹章用简单几何形，不用任何真实国家或作品的纹章。"
+    },
+    {
+      "id": "art_ico_item_col_thousand_archive",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一段小书架：架上竖着几本青铜色与灰白色的旧书，横放着几页残卷，架角摆着一只青铜墨壶和一只青铜环。",
+        "en": "A short bookshelf: a few bronze-colored and pale gray old books standing upright, some fragmentary leaves lying flat, a bronze inkwell and a bronze ring at the shelf's corner."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_thousand_archive",
+      "milestone": "M2",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；书脊不画字。"
+    },
+    {
+      "id": "art_ico_item_col_laws_of_nations",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一排八本竖立的厚律书：书脊颜色各不相同（深红、赭红、黑、金、树皮色、彩绳捆、棕、黑石），每本书脊上有一个小纹章。",
+        "en": "A row of eight upright thick law books: spines in different colors (dark red, ochre red, black, gold, bark, a bundle of colored cords, brown and black stone), each with a small emblem on the spine."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_laws_of_nations",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；八本要数得清；书脊不画字。"
+    },
+    {
+      "id": "art_ico_item_col_hearth_books",
+      "template": "ico_item",
+      "subject": {
+        "zh": "五本菜谱叠成一摞，放在一块砧板上：书皮带着油渍，最上面一本夹着一根干香草，旁边放着一只小木勺。",
+        "en": "Five recipe books stacked on a cutting board: greasy covers, a dried herb sprig tucked into the top one, a small wooden spoon beside the stack."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_hearth_books",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；五本要数得清。"
+    },
+    {
+      "id": "art_ico_item_col_songs_and_tales",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只敞口的旧布袋：袋里露出歌纸、一枚狼牙挂坠、一面小鼓、一只陶酒杯和两本小故事书，袋口系着一根彩绳。",
+        "en": "An old open cloth sack showing song sheets, a wolf-fang pendant, a small drum, a ceramic tankard and two little storybooks, its mouth tied with a colored cord."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_songs_and_tales",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；各物件都缩小，挤在袋口。"
+    },
+    {
+      "id": "art_ico_item_col_church_texts",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一段白木书架：架上竖着几本白皮金角的经书，书脊都压着光轮纹，最边上一本发黄起皱，另有一本歪靠着。",
+        "en": "A section of white wooden shelf: several white-leather, gold-cornered scriptures standing upright with halo emblems on their spines, the end one yellowed and creased, another leaning crookedly."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_church_texts",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；书脊不画字。"
+    },
+    {
+      "id": "art_ico_item_col_map_chest",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只敞开的木柜：柜里横放着几卷用皮带扣着的地图与海图，卷口露出山形与波浪的线条，柜角包铜。",
+        "en": "An open wooden chest: several map and sea-chart rolls lying inside, buckled with leather straps, their ends showing lines of mountains and waves, brass-capped corners."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_map_chest",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；地图上不画地名。"
+    },
+    {
+      "id": "art_ico_item_col_restitution_ledger",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本摊开的账簿：浅色布面，左页列着一行行小小的物件图形，右页每一行旁边画着一只伸出去的空手，书页之间夹着一根红线。",
+        "en": "An open ledger: light cloth binding, the left page listing rows of tiny object pictograms, the right page with an outstretched open hand drawn beside each row, a red thread laid between the pages."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_restitution_ledger",
+      "milestone": "M2",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；不画字；伸出的空手表示归还。"
+    },
+    {
+      "id": "art_ico_item_split_ear_fang",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚弯曲的大狼牙：牙身灰白，牙尖锋利发黄，牙根处有一道旧裂，裂口被一圈细皮绳缠住，像猎户系着带在身上。",
+        "en": "A large curved wolf fang: grayish white with a sharp yellowed tip, an old crack at the root bound with a loop of thin leather cord, as a hunter would carry it."
+      },
+      "ref": "split_ear_fang",
+      "milestone": "M1",
+      "notes": "异名物，每只异名者独有一件；与普通狼牙材料区分：更大，带裂口和缠绳。"
+    },
+    {
+      "id": "art_ico_item_black_ridge_mantle",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张厚重的熊皮披肩：深棕色的熊毛又硬又密，背脊正中一道乌黑发亮的长鬃，像被火燎过，边缘用粗皮绳缝着肩扣。",
+        "en": "A heavy bearskin mantle: dense, stiff dark brown fur, a glossy jet-black ridge of long hair down the middle of the back as if singed by fire, its edge stitched with coarse leather cord into a shoulder clasp."
+      },
+      "ref": "black_ridge_mantle",
+      "milestone": "M1",
+      "notes": "异名物，每只异名者独有一件；胸甲类异名物（已有 ID）；背脊的黑鬃是唯一辨识点，与 nm_moss_mantle（长满苔藓）区分。"
+    },
+    {
+      "id": "art_ico_item_nm_faded_red_sock",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只褪色的小红袜子：孩子穿的毛线短袜，红色洗得发粉，袜口松垮，脚跟处被獠牙戳了两个小洞，沾着一点泥。",
+        "en": "A faded little red sock: a child's short wool sock, its red washed out to pink, a slack cuff, two small holes poked through the heel by tusks, a bit of mud on it."
+      },
+      "ref": "nm_faded_red_sock",
+      "milestone": "M1",
+      "notes": "异名物，每只异名者独有一件；是一只袜子，不是手套；颜色是洗旧的红。"
+    },
+    {
+      "id": "art_ico_item_nm_three_toes_antler",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一支灰白色的鹿角：只有三个分叉，角面有一道道灰色的斑纹，像落了一层灰，根部是整齐的脱落断口。",
+        "en": "A grayish-white deer antler: three tines, its surface streaked with gray as if dusted with ash, a clean break at the base."
+      },
+      "ref": "nm_three_toes_antler",
+      "milestone": "M1",
+      "notes": "异名物，每只异名者独有一件；三个分叉要清楚。"
+    },
+    {
+      "id": "art_ico_item_nm_oldwatch_clapper",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一根铁钟舌：长长的铁杆末端是一颗沉重的圆锤，铁色发黑生锈，杆顶的挂环断了一半，上面缠着一缕蛛网。",
+        "en": "An iron bell clapper: a long iron rod ending in a heavy round knob, blackened and rusty, the hanging loop at its top half broken, a wisp of cobweb wound on it."
+      },
+      "ref": "nm_oldwatch_clapper",
+      "milestone": "M1",
+      "notes": "异名物，每只异名者独有一件；只画钟舌，不画钟。"
+    },
+    {
+      "id": "art_ico_item_nm_ironbelly_gizzard",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块拳头大的砂囊石：灰黑色的圆块，表面嵌满亮晶晶的铁屑和几枚弯铁钉，像被胃磨圆的一团矿。",
+        "en": "A fist-sized gizzard stone: a rounded gray-black lump studded all over with glittering iron filings and a few bent iron nails, like a clump of ore ground round in a stomach."
+      },
+      "ref": "nm_ironbelly_gizzard",
+      "milestone": "M1",
+      "notes": "异名物，每只异名者独有一件；铁钉是辨识点。"
+    },
+    {
+      "id": "art_ico_item_nm_frostbeard_ruff",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一圈厚厚的狼颈毛：灰白的长毛，末梢结着细碎的白霜，内侧缝着一圈皮边，可以围在头颈上。",
+        "en": "A thick ruff of wolf neck fur: long grayish-white hair with fine white frost on the tips, a leather band stitched along the inner edge so it can be worn around the head and neck."
+      },
+      "ref": "nm_frostbeard_ruff",
+      "milestone": "M2",
+      "notes": "异名物，每只异名者独有一件；霜是白色细点，毛色灰白，不要画成雪球。"
+    },
+    {
+      "id": "art_ico_item_nm_warden_lantern",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一盏骑士用的旧马灯：黑铁灯框，灯罩是冷白的磨砂玻璃，挂钩上缠着一条褪色的蓝布，灯里亮着一团冷白偏青的光。",
+        "en": "An old knight's saddle lantern: a black iron frame, a cool white frosted glass shade, a faded blue cloth wound on the hook, a cool white-cyan light glowing inside."
+      },
+      "ref": "nm_warden_lantern",
+      "milestone": "M2",
+      "notes": "异名物，每只异名者独有一件；光是冷白偏青，不用门扉金，与 rl_gate_lantern 区分。"
+    },
+    {
+      "id": "art_ico_item_nm_porcelain_incisor",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚瓷白的长门牙：像白瓷一样光亮，牙面上有细细的冰裂纹，根部带着一点金色的残渍。",
+        "en": "A long porcelain-white incisor: glossy like white china, fine crackle lines across its surface, a trace of gold stain at the root."
+      },
+      "ref": "nm_porcelain_incisor",
+      "milestone": "M2",
+      "notes": "异名物，每只异名者独有一件；要读得出是一颗牙，不是瓷片。"
+    },
+    {
+      "id": "art_ico_item_nm_brass_dog_tag",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚旧铜狗牌：圆角方牌，挂在一截磨破的皮项圈上，铜面刻着几道看不清的划痕，边缘发绿。",
+        "en": "An old brass dog tag: a round-cornered square tag hanging from a worn scrap of leather collar, a few illegible scratches on the brass, greenish edges."
+      },
+      "ref": "nm_brass_dog_tag",
+      "milestone": "M1",
+      "notes": "异名物，每只异名者独有一件；牌上不画字。"
+    },
+    {
+      "id": "art_ico_item_nm_louse_belly_crystal",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块和甲壳长在一起的灰晶：灰褐色的硬甲片上冒出一簇半透明的灰色晶体，晶体里有一点淡紫的光。",
+        "en": "A gray crystal grown into a shell: a cluster of translucent gray crystals bursting from a gray-brown carapace plate, a faint violet light inside the crystals."
+      },
+      "ref": "nm_louse_belly_crystal",
+      "milestone": "M1",
+      "notes": "异名物，每只异名者独有一件；淡紫很淡，不用澱紫大面积。"
+    },
+    {
+      "id": "art_ico_item_nm_bone_whistle",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一支骨哨：一截磨光的细白骨，开着三个小孔，一端削成斜口，另一端系着一根褪色的红绳，骨面沾着灰。",
+        "en": "A bone whistle: a short polished white bone with three small holes, a faded red string tied at one end, ash smudged on the bone."
+      },
+      "ref": "nm_bone_whistle",
+      "milestone": "M2",
+      "notes": "异名物，每只异名者独有一件；三个孔要看得出。"
+    },
+    {
+      "id": "art_ico_item_nm_glass_sealed_ring",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块透明的玻璃小块：玻璃里封着一枚细细的金戒指，戒圈内侧隐约有一行刻痕，玻璃边缘有烧熔的气泡。",
+        "en": "A small block of clear glass: a slender gold ring sealed inside, a faint line of engraving on the inner band, melt bubbles along the glass edges."
+      },
+      "ref": "nm_glass_sealed_ring",
+      "milestone": "M2",
+      "notes": "异名物，每只异名者独有一件；与 rl_glassed_handle（封着门把）区分：这里封的是戒指。刻痕不画字。"
+    },
+    {
+      "id": "art_ico_item_nm_undelivered_letter",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一封没送出的旧信：折成长方形的泛黄信纸，用一根褪色的蓝绳捆着，信角挂着一块小小的铜门牌，信纸被灰染黄。",
+        "en": "An undelivered old letter: yellowed paper folded into a rectangle, tied with a faded blue string, a tiny brass door plate hanging from one corner, the paper stained yellow by ash."
+      },
+      "ref": "nm_undelivered_letter",
+      "milestone": "M2",
+      "notes": "异名物，每只异名者独有一件；与 rl_ash_night_letters（石匣装信）区分：没有匣，挂着门牌。不画地址与字。"
+    },
+    {
+      "id": "art_ico_item_nm_sealed_shovel",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把旧铁铲：铲面有缺口，木柄被手磨得发亮，柄上烙着一个圆形的日轮印，铲面沾着灰白色的碎石屑。",
+        "en": "An old iron shovel: a notched blade, a wooden handle polished by hands, a round sun-wheel brand burned into the handle, pale gray stone grit on the blade."
+      },
+      "ref": "nm_sealed_shovel",
+      "milestone": "M2",
+      "notes": "异名物，每只异名者独有一件；日轮烙印是辨识点。"
+    },
+    {
+      "id": "art_ico_item_nm_last_gate_lamp",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一盏小小的古门灯：青铜灯座，灯罩是带门形窗格的铜笼，里面亮着一点暖金色的光，灯座上沾着厚厚的灰。",
+        "en": "A small ancient gate lamp: a bronze base, a bronze cage shade with door-shaped window panes, a small warm golden light glowing inside, thick ash caked on the base."
+      },
+      "ref": "nm_last_gate_lamp",
+      "milestone": "M2",
+      "notes": "异名物，每只异名者独有一件；光用门扉金；与 rl_gate_lantern（黑铁框玻璃灯）区分：这是青铜笼灯。"
+    },
+    {
+      "id": "art_ico_item_nm_unstruck_chisel",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把石凿：铁刃干净锋利，从没沾过石粉，木柄上缠着一圈褪色的白布，柄头的日轮小印被刮花了。",
+        "en": "A stone chisel: a clean, sharp iron blade that has never touched stone dust, a wooden handle wound with faded white cloth, the small sun-wheel badge on the butt scratched out."
+      },
+      "ref": "nm_unstruck_chisel",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；与 rl_sunwheel_chisel 区分：刃口干净无粉，日轮印被刮花。"
+    },
+    {
+      "id": "art_ico_item_nm_silent_bell_tongue",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚小铃舌：银白的细杆末端是一颗光滑的小球，整根用一圈白丝线紧紧缠住，像被故意缠哑。",
+        "en": "A small bell clapper: a slender silver-white rod ending in a smooth little ball, the whole thing bound tightly with white silk thread as if deliberately muffled."
+      },
+      "ref": "nm_silent_bell_tongue",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；与 nm_oldwatch_clapper（大铁钟舌）区分：小、银白、缠着丝线。"
+    },
+    {
+      "id": "art_ico_item_nm_shadowless_fang",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚瓷白的犬牙：细长而尖，表面像上了釉一样光滑，没有任何暗面，整颗牙看起来几乎是平的、亮的。",
+        "en": "A porcelain-white canine fang: long, thin and pointed, glazed-smooth with no shaded side at all, the whole tooth looking almost flat and bright."
+      },
+      "ref": "nm_shadowless_fang",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；故意弱化暗面但仍保留 1 像素深色描边，不要画成没有轮廓的白块。"
+    },
+    {
+      "id": "art_ico_item_nm_procession_seal",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一条撕下的封条：长条白布上压着一枚金色光轮的蜡印，布条两端被撕开起毛，沾着一点黄褐色的泥。",
+        "en": "A torn-off seal strip: a long strip of white cloth stamped with a gold halo wax seal, both ends torn and frayed, a bit of yellow-brown mud on it."
+      },
+      "ref": "nm_procession_seal",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；布条上不画字。"
+    },
+    {
+      "id": "art_ico_item_nm_rollcall_board",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块木点名板：长方形旧木板，上面钉着一排排小木钉，有的钉上挂着小木牌，有的空着，板角包着铁。",
+        "en": "A wooden roll-call board: an old rectangular plank set with rows of little wooden pegs, some with small wooden tags hanging from them, some empty, iron-capped corners."
+      },
+      "ref": "nm_rollcall_board",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；小木牌上不画字。"
+    },
+    {
+      "id": "art_ico_item_nm_first_page_draft",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张残稿：半张焦黄的纸，上缘被撕掉，纸上只剩开头的几行墨痕，墨痕里有一处被反复涂黑。",
+        "en": "A fragment of a draft: half a sheet of scorched yellow paper with its top torn away, only the first few lines of ink marks left, one spot inked over again and again."
+      },
+      "ref": "nm_first_page_draft",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；墨痕不可读。"
+    },
+    {
+      "id": "art_ico_item_nm_champion_horn",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一支红褐色的蜥角：弯弯的短角，角面一圈圈环纹，角尖套着一个小铜帽，角根系着一条彩色布带。",
+        "en": "A reddish-brown lizard horn: a short curved horn ringed with growth bands, a small brass cap on its tip, a colorful cloth band tied at its base."
+      },
+      "ref": "nm_champion_horn",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；彩色布带是斗场的标志。"
+    },
+    {
+      "id": "art_ico_item_nm_hiltless_shard",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一片没有剑柄的白刃：一截雪白的剑刃，两头都是断口，刃面极亮，像一片冰，刃上浮着一点淡白的微光。",
+        "en": "A hiltless white blade shard: a snow-white section of sword blade broken at both ends, its face extremely bright like a sheet of ice, a faint pale glow floating on the edge."
+      },
+      "ref": "nm_hiltless_shard",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；只有刃片，两头断口；微光很淡。"
+    },
+    {
+      "id": "art_ico_item_nm_old_scale_pan",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只黄铜秤盘：浅浅的圆盘，边上有三个挂链的小孔，盘面被磨得发亮，盘底有几道刻度似的短线。",
+        "en": "A brass scale pan: a shallow round dish with three small holes for chains along the rim, its face rubbed bright, a few short graduation-like lines on the bottom."
+      },
+      "ref": "nm_old_scale_pan",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；只画秤盘，不画整架秤；刻线不画数字。"
+    },
+    {
+      "id": "art_ico_item_nm_swallowed_signet",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚印戒：粗金戒圈，印面是一块方形的深绿石，石上刻着一个商行的图形纹章，戒指上还沾着一点湿泥和水草。",
+        "en": "A signet ring: a thick gold band, its face a square dark green stone carved with a merchant house's pictorial emblem, a little wet mud and pondweed still clinging to it."
+      },
+      "ref": "nm_swallowed_signet",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；纹章只用图形。"
+    },
+    {
+      "id": "art_ico_item_nm_abacus_bead",
+      "template": "ico_item",
+      "subject": {
+        "zh": "几颗算盘珠：深褐色的木珠，被摸得油亮，中间穿孔，用一根短铜丝串着，其中一颗裂了一道缝。",
+        "en": "A few abacus beads: dark brown wooden beads polished glossy by fingers, threaded on a short brass wire, one of them cracked."
+      },
+      "ref": "nm_abacus_bead",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；算盘珠是扁的双锥形，不是圆珠。"
+    },
+    {
+      "id": "art_ico_item_nm_harbor_master_chain",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一条金链：粗金链节串着一块椭圆金牌，金牌上刻着船锚与一扇门的图形，链子上缠着几缕海草与藤壶。",
+        "en": "A gold chain: heavy gold links holding an oval gold badge engraved with an anchor and a door, a few strands of seaweed and barnacles caught on the chain."
+      },
+      "ref": "nm_harbor_master_chain",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；门形可用一点门扉金；牌上不画编号。"
+    },
+    {
+      "id": "art_ico_item_nm_moss_mantle",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张厚厚的苔衣：一块深棕色的熊皮背面长满鲜绿的苔藓与几朵小白花，像一块会呼吸的地毯，边缘垂着苔丝。",
+        "en": "A thick moss mantle: a dark brown bearskin whose back is overgrown with bright green moss and a few small white flowers, like a breathing rug, moss strands hanging from the edges."
+      },
+      "ref": "nm_moss_mantle",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；是一件披在胸背的皮，不要画成草地。"
+    },
+    {
+      "id": "art_ico_item_nm_gardener_pod",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚大种荚：纺锤形，青绿色，表面有一道道竖纹，荚尖微微裂开，露出几粒饱满发亮的种子，荚柄缠着一圈细藤。",
+        "en": "A large seed pod: spindle-shaped and green, vertical ridges along its surface, its tip slightly split to show a few plump glossy seeds, a thin tendril wound around its stalk."
+      },
+      "ref": "nm_gardener_pod",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；饱满的种子是辨识点。"
+    },
+    {
+      "id": "art_ico_item_nm_first_molt",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张完整的蝗虫蜕壳：半透明的琥珀色空壳，保持着蝗虫的形状，背上有一圈圈像年轮一样的层纹。",
+        "en": "A complete locust molt: a translucent amber empty shell keeping the locust's shape, its back marked with ring-like layers like tree rings."
+      },
+      "ref": "nm_first_molt",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；是空壳，半透明，不是活虫。"
+    },
+    {
+      "id": "art_ico_item_nm_whitehorn_sheath",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只雪白的角鞘：弯弯的长角形空壳，外面光滑，根部的开口参差，角面上系着一条红毡布带。",
+        "en": "A snow-white horn sheath: a long curved hollow horn shell, smooth outside, a ragged opening at the base, a strip of red felt tied around it."
+      },
+      "ref": "nm_whitehorn_sheath",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；红毡布带是草原的标志。"
+    },
+    {
+      "id": "art_ico_item_nm_swarm_queen_wing",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一片巨大的蝗翅：半透明的淡褐色翅膜上布满细密的网状翅脉，翅根处有一块暗色的斑，翅缘略有破损。",
+        "en": "A huge locust wing: a translucent pale brown membrane covered in fine net-like veins, a dark patch at the root, the edge slightly torn."
+      },
+      "ref": "nm_swarm_queen_wing",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；与 rl_locust_bone_drum（翅膀绷成鼓面）区分：这里只有一片翅。"
+    },
+    {
+      "id": "art_ico_item_nm_ancestor_beads",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一串祖灵念珠：骨珠与绿松石珠交替串在皮绳上，中间垂着一枚小小的兽牙，珠子被摸得发亮。",
+        "en": "A string of ancestor beads: bone beads alternating with turquoise beads on a leather cord, a tiny animal tooth hanging at the center, all rubbed glossy."
+      },
+      "ref": "nm_ancestor_beads",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；骨与绿松石交替是辨识点。"
+    },
+    {
+      "id": "art_ico_item_nm_frosthorn_saddle_ring",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚粗铁鞍环：大铁环上挂着一截磨断的皮带，环身刻着一圈葡萄藤的花纹，铁面带着霜白的斑点。",
+        "en": "A heavy iron saddle ring: a large iron ring with a snapped stub of leather strap, a band of grapevine pattern engraved around it, the iron spotted with frost-white flecks."
+      },
+      "ref": "nm_frosthorn_saddle_ring",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；葡萄藤花纹是辨识点。"
+    },
+    {
+      "id": "art_ico_item_nm_half_mask",
+      "template": "ico_item",
+      "subject": {
+        "zh": "半张面具：只有左半边脸的黑色硬面具，眼孔细长，面具边缘镶着一条暗红的细边，右侧是整齐的切口。",
+        "en": "Half a mask: a rigid black mask covering only the left half of a face, a long narrow eyehole, a thin dark red trim along its edge, a clean cut on the right side."
+      },
+      "ref": "nm_half_mask",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；只有半张，不画脸。"
+    },
+    {
+      "id": "art_ico_item_nm_hundredth_ribbon",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一条绶带：长长的暗红色缎带，末端剪成燕尾，缎带上并排缝着一排小铁扣，最末一个扣子是新的、亮的。",
+        "en": "A ribbon of honor: a long dark red satin ribbon cut into a swallowtail at the end, a row of small iron studs sewn along it, the last stud new and shining."
+      },
+      "ref": "nm_hundredth_ribbon",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；小铁扣不必数到九十九，排成一长排即可；最后一颗亮。"
+    },
+    {
+      "id": "art_ico_item_nm_shieldbearer_collar",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只旧项圈：宽皮项圈磨得发白，正中钉着一枚小小的铜盾徽，盾面有一道斜带，项圈的扣环已经锈了。",
+        "en": "An old collar: a wide leather collar worn pale, a small brass shield badge riveted at its center with a diagonal band across it, the buckle rusted."
+      },
+      "ref": "nm_shieldbearer_collar",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；与 nm_brass_dog_tag（方铜牌）区分：这里是盾形徽。"
+    },
+    {
+      "id": "art_ico_item_nm_freckled_scale",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一片龙鳞：巴掌大的椭圆鳞片，底色赭红，上面点缀着一颗颗更深的红色小斑点，边缘有一点金色的光泽。",
+        "en": "A dragon scale: a palm-sized oval scale, ochre-red base color dotted with darker red freckles, a slight golden sheen along its edge."
+      },
+      "ref": "nm_freckled_scale",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；红色雀斑是辨识点。"
+    },
+    {
+      "id": "art_ico_item_nm_orphan_reverse_scale",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一片逆鳞：比手掌大的倒置鳞片，骨白色，边缘锋利，鳞面的纹路是逆着长的，中心有一圈古旧的灰色裂纹。",
+        "en": "A reversed scale: a bone-white scale larger than a hand, set upside down, sharp-edged, its grain growing the wrong way, a ring of old gray cracks at its center."
+      },
+      "ref": "nm_orphan_reverse_scale",
+      "milestone": "M3",
+      "notes": "异名物，每只异名者独有一件；鳞片尖端朝上（与普通鳞片相反）。"
+    },
+    {
+      "id": "art_ico_item_relic_badge",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张门禁工牌：白色塑料卡片，左边一块照片位只是浅灰的人形剪影，挂在一条深蓝色的挂绳上，卡角有一道划痕。",
+        "en": "An access badge: a white plastic card with a photo area showing only a pale gray silhouette, hanging from a dark blue lanyard, a scratch on one corner."
+      },
+      "ref": "relic_badge",
+      "milestone": "M1",
+      "notes": "地球之物。卡上不画字、不画真实的脸、不画任何标志。"
+    },
+    {
+      "id": "art_ico_item_relic_receipt",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张卷起的白色小票，上面压着一颗用彩色糖纸包着、两端拧起的糖果；小票上只有一行行浅灰的细横线。",
+        "en": "A curled white receipt with a wrapped candy resting on it, its colorful wrapper twisted at both ends; the receipt shows only rows of faint gray lines."
+      },
+      "ref": "relic_receipt",
+      "milestone": "M1",
+      "notes": "地球之物。小票上不画字与数字。"
+    },
+    {
+      "id": "art_ico_item_relic_mint",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张夹着别针的浅绿探视证，旁边是半盒打开的扁铁皮薄荷糖盒，盒里还剩几颗白色小糖。",
+        "en": "A pale green visitor pass with a safety pin, beside a half-open flat tin of mints with a few small white candies left inside."
+      },
+      "ref": "relic_mint",
+      "milestone": "M1",
+      "notes": "地球之物。证件与铁盒上不画字与标志。"
+    },
+    {
+      "id": "art_ico_item_relic_key",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把老式黄铜钥匙：齿形简单，钥柄是带花边的圆片，挂在一个旧钥匙圈上，铜色发暗，柄上有一块磨亮的地方。",
+        "en": "An old-fashioned brass key: simple teeth, a round scalloped bow, hanging on an old key ring, the brass dulled with one spot rubbed bright on the bow."
+      },
+      "ref": "relic_key",
+      "milestone": "M1",
+      "notes": "地球之物。与本世界的古钥区分：做工是普通的现代老钥匙。"
+    },
+    {
+      "id": "art_ico_item_number_tag_five",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块小小的号码牌：白色的长方形硬牌，上端打着挂孔，挂着一根细金链，牌面正中是五个排成梅花形的圆点。",
+        "en": "A small number tag: a white rectangular hard card with a hanging hole at the top on a thin gold chain, five dots arranged like the five on a die at the center."
+      },
+      "ref": "number_tag_five",
+      "milestone": "M1",
+      "notes": "用五个圆点表示\"五\"，不画任何数字与字。"
+    },
+    {
+      "id": "art_ico_item_guild_card",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张公会卡：手掌大小的铜边硬卡，卡面嵌着一小块透明水晶，水晶下面是空白的格子，卡角压着交叉的剑与羽笔纹章。",
+        "en": "A guild card: a palm-sized brass-edged hard card, a small clear crystal inset in its face above a row of empty boxes, a crossed sword and quill emblem pressed into one corner."
+      },
+      "ref": "guild_card",
+      "milestone": "M1",
+      "notes": "格子是空的，不画字与等级。"
+    },
+    {
+      "id": "art_ico_item_old_guild_badge",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚公会旧铜牌：椭圆形，铜色发暗，牌面压着交叉的剑与羽笔纹章，纹章下方本该刻名字的地方被磨成一片光滑的平面。",
+        "en": "An old guild badge: oval, dulled bronze, a crossed sword and quill emblem stamped on it, the space below where a name should be rubbed flat and smooth."
+      },
+      "ref": "old_guild_badge",
+      "milestone": "M1",
+      "notes": "与 expedition_badge 区分：本条是椭圆形，名字处被磨平。"
+    },
+    {
+      "id": "art_ico_item_raven_black_feather",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一根巨大的黑羽：比手臂还长，羽片乌黑，边缘泛着一圈灰白，羽干粗壮，根部有一点撕扯的痕迹。",
+        "en": "A huge black feather: longer than an arm, jet-black vanes edged with a grayish-white fringe, a stout shaft, signs of tearing at the root."
+      },
+      "ref": "raven_black_feather",
+      "milestone": "M1",
+      "notes": "与 ky_messenger_plume（普通鸦羽）区分：本条特别大，边缘泛灰。"
+    },
+    {
+      "id": "art_ico_item_north_spring_water",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只小玻璃瓶：软木塞封口，瓶里是清水，瓶底沉着一层厚厚的灰色沉淀，瓶颈系着一根草绳。",
+        "en": "A small glass bottle: corked, clear water inside with a thick layer of gray sediment settled at the bottom, a straw cord tied around the neck."
+      },
+      "ref": "north_spring_water",
+      "milestone": "M1",
+      "notes": "灰色沉淀是辨识点，水本身是清的。"
+    },
+    {
+      "id": "art_ico_item_smuggling_manifest",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张折了两折的运货单：粗糙的黄纸，纸上画着整齐的表格线，右下角盖着一枚鲜红的方形官印，印面只有图形。",
+        "en": "A manifest folded in half twice: rough yellow paper ruled with neat table lines, a bright red square official seal in the lower right corner bearing only a pictorial emblem."
+      },
+      "ref": "smuggling_manifest",
+      "milestone": "M1",
+      "notes": "表格与印面都不画字。"
+    },
+    {
+      "id": "art_ico_item_colossus_core",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一颗拳头大的石心：灰黑色，形状像一颗粗糙的心脏，表面布满裂纹，裂纹深处透出一点暗橙色的余温。",
+        "en": "A fist-sized stone heart: gray-black, shaped like a rough heart, its surface covered in cracks with a dull orange warmth glowing deep inside them."
+      },
+      "ref": "colossus_core",
+      "milestone": "M1",
+      "notes": "与 dian_core（悬浮的晶核）区分：这是裂开的石心，透暖光。"
+    },
+    {
+      "id": "art_ico_item_brun_glove",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只左手的旧皮手套：深棕色，皮面磨得发白起皱，指尖处有几道修补的针脚，手腕处系着一根皮绳。",
+        "en": "An old leather glove for the left hand: dark brown, its leather worn pale and wrinkled, a few patched stitches at the fingertips, a leather thong tied at the wrist."
+      },
+      "ref": "brun_glove",
+      "milestone": "M1",
+      "notes": "必须是左手。"
+    },
+    {
+      "id": "art_ico_item_count_letter",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一封信：厚实的米白信封，封口压着一枚深蓝色的蜡封，蜡封上是一座城塔的纹章，信封一角有一道折痕。",
+        "en": "A letter: a thick cream envelope sealed with dark blue wax bearing a city-tower emblem, a fold crease across one corner."
+      },
+      "ref": "count_letter",
+      "milestone": "M1",
+      "notes": "信封上不画地址与字。"
+    },
+    {
+      "id": "art_ico_item_b_rank_card",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张公会卡：铜边硬卡上嵌着一小块水晶，水晶下的格子里有一格被画上了一道粗粗的签名墨痕，卡角压着交叉的剑与羽笔纹章。",
+        "en": "A guild card: a brass-edged hard card with a small crystal inset, one of the boxes beneath it marked with a thick stroke of signature ink, a crossed sword and quill emblem in the corner."
+      },
+      "ref": "b_rank_card",
+      "milestone": "M2",
+      "notes": "与 guild_card 区分：有一格被签上了墨痕；墨痕不能是可读的字母。"
+    },
+    {
+      "id": "art_ico_item_barony_writ",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一卷文书：厚羊皮纸卷，系着一条灰褐色的丝带，丝带上挂着一枚大大的深红蜡封，蜡封上是一座小城堡的纹章。",
+        "en": "A writ: a thick parchment roll tied with a gray-brown ribbon hung with a large dark red wax seal bearing a small castle emblem."
+      },
+      "ref": "barony_writ",
+      "milestone": "M2",
+      "notes": "不画字。"
+    },
+    {
+      "id": "art_ico_item_charter_rubbing",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张誊本：白纸上用深墨工整地抄着一大段古老的纹样文字，纸边压着一枚小小的碑形印，纸张平整，像被精心保存。",
+        "en": "A fair copy: white paper with a long passage of ancient glyph-like script copied neatly in dark ink, a small stele-shaped stamp at the margin, the sheet flat and carefully kept."
+      },
+      "ref": "charter_rubbing",
+      "milestone": "M2",
+      "notes": "与七碑拓（卷起的拓片）区分：本条是平整的誊本，不是拓印。纹样不可读。"
+    },
+    {
+      "id": "art_ico_item_crystal_carapace",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块大甲壳：弧形的灰褐色硬甲，边缘厚实，背上长着一排半透明的灰白晶刺，晶刺尖端微微发亮。",
+        "en": "A large carapace plate: a curved gray-brown hard shell with a row of translucent pale gray crystal spikes along its back, the spike tips faintly shining."
+      },
+      "ref": "crystal_carapace",
+      "milestone": "M1",
+      "notes": "与 nm_louse_belly_crystal（一簇晶体）区分：本条是一排晶刺。"
+    },
+    {
+      "id": "art_ico_item_dian_core",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一颗多面的晶核：拳头大小，灰紫色，切面像天然水晶，内部有一团缓缓转动的暗紫微光，周围画两三点细小的浮尘。",
+        "en": "A faceted crystal core: fist-sized and gray-violet, its faces like natural crystal, a dim slowly swirling purple light inside, two or three tiny motes floating around it."
+      },
+      "ref": "dian_core",
+      "milestone": "M1",
+      "notes": "暗紫用澱紫 #4a3a62；与 colossus_core（裂开的石心）区分。"
+    },
+    {
+      "id": "art_ico_item_expedition_badge",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚探索队铜牌：圆形，铜色发绿，牌面压着一只指南针般的四角星纹，牌上有一道深深的刮痕，挂孔上还连着一小段断链。",
+        "en": "An expedition badge: round and greenish bronze, a compass-like four-pointed star stamped on its face, a deep scratch across it, a short length of broken chain still hanging from its loop."
+      },
+      "ref": "expedition_badge",
+      "milestone": "M1",
+      "notes": "与 old_guild_badge 区分：圆形、四角星纹、断链。"
+    },
+    {
+      "id": "art_ico_item_evidence_e01",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一卷证言：灰白色粗纸卷，用一条发黄的旧亚麻布条捆着，布条的结上沾着一撮灰，纸卷边缘有几个灰黑色的指印。",
+        "en": "A testimony roll: a pale gray coarse paper roll tied with a yellowed old linen strip, a pinch of ash on the knot, a few gray-black fingerprints along the edge."
+      },
+      "ref": "evidence_e01",
+      "milestone": "M2",
+      "notes": "证据统一画成呈堂的载体，每件靠捆扎、封印与附物区分；不画字。"
+    },
+    {
+      "id": "art_ico_item_evidence_e02",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一截宽大的黑铁剑尖嵌在一块灰白门石里：门石的断面上有一片放射状的焦白烫痕，剑尖与石块用一条麻绳捆在一起。",
+        "en": "A broad blackened iron sword tip embedded in a pale gray gate-stone block: the stone's broken face bears a radiating scorched white burn mark, tip and stone bound together with hemp rope."
+      },
+      "ref": "evidence_e02",
+      "milestone": "M3",
+      "notes": "与 rl_valda_broken_sword（只有剑尖和红布）区分：本条带石块与烫痕。"
+    },
+    {
+      "id": "art_ico_item_evidence_e03",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一卷证言：淡绿色的叶纸卷成筒，纸上透着细细的叶脉，用一根银线系着，封口压着一枚叶片形的白蜡。",
+        "en": "A testimony roll: pale green leaf-paper rolled into a tube, tied with a silver thread, sealed with a leaf-shaped white wax seal."
+      },
+      "ref": "evidence_e03",
+      "milestone": "M3",
+      "notes": "叶片形蜡封是辨识点。"
+    },
+    {
+      "id": "art_ico_item_evidence_e04",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一根长长的辫绳：五股打满结的旧麻绳编在一起，盘成一圈，盘绳中央压着一枚小小的木牌，木牌上刻着一扇门。",
+        "en": "A long braided cord: five old knotted hemp cords plaited together and coiled into a ring, a small wooden tag carved with a door resting at the center of the coil."
+      },
+      "ref": "evidence_e04",
+      "milestone": "M2",
+      "notes": "与 col_doorsong（五根并排挂着）区分：这里五股编成一根，盘成一圈。"
+    },
+    {
+      "id": "art_ico_item_evidence_e05",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本厚重的黑皮账册：封面四角包金，正中一把金色小锁锁着书扣，书脊上嵌着一排七个钥匙形的金色小凹槽。",
+        "en": "A heavy black leather ledger: gold-capped corners, a small gold lock fastening its clasp at the center, a row of seven little key-shaped gold notches set into the spine."
+      },
+      "ref": "evidence_e05",
+      "milestone": "M3",
+      "notes": "七个钥匙形凹槽要数得清。"
+    },
+    {
+      "id": "art_ico_item_evidence_e06",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张契书：长条羊皮纸，底部一排并列着五枚颜色不同的蜡封，用五根彩绳垂挂着，纸面只有整齐的线条。",
+        "en": "A charter: a long strip of parchment with a row of five wax seals of different colors at its foot, each hanging on its own colored cord, only neat ruled lines on the sheet."
+      },
+      "ref": "evidence_e06",
+      "milestone": "M3",
+      "notes": "五枚蜡封要数得清；不画字。"
+    },
+    {
+      "id": "art_ico_item_evidence_e07",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只旧皮夹：深褐色皮夹半开，夹着几张散开的焦黄旧纸页，纸页之间插着几枚不同颜色的小分页签。",
+        "en": "An old leather folder: dark brown and half open, holding several loose scorched yellow pages with small colored divider tabs between them."
+      },
+      "ref": "evidence_e07",
+      "milestone": "M3",
+      "notes": "与 lb_blank_era_fragments（五张散纸）区分：本条有皮夹与分页签。"
+    },
+    {
+      "id": "art_ico_item_evidence_e08",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张深灰的拓片：拓着一道道又深又乱的凿痕，凿痕最深处拓出一个小小的圆形日轮印，拓片四角压着小石子。",
+        "en": "A dark gray rubbing showing deep, chaotic chisel gouges, a small round sun-wheel mark printed at the bottom of the deepest gouge, small pebbles weighting its four corners."
+      },
+      "ref": "evidence_e08",
+      "milestone": "M2",
+      "notes": "与 ky_rubbing_hollow（凿痕透光）区分：本条不透光，有日轮小印。"
+    },
+    {
+      "id": "art_ico_item_evidence_e09",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一个油布包：发黑的旧油布叠成方包，用粗麻绳十字捆着，绳结上挂着一只小小的木桨坠子。",
+        "en": "An oilcloth packet: old oilcloth folded into a square bundle, tied crosswise with coarse hemp rope, a tiny wooden oar charm hanging from the knot."
+      },
+      "ref": "evidence_e09",
+      "milestone": "M3",
+      "notes": "与 ky_knot_ferry（绳上挂木桨）区分：本条是油布包。"
+    },
+    {
+      "id": "art_ico_item_evidence_e10",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张折起一半的大图：泛黄的纸上画着几条弯曲的河线，八个暗红色的圆点沿着河线的下游一个个排开。",
+        "en": "A large chart folded halfway: yellowed paper drawn with a few winding river lines, eight dark red dots spaced one by one along their lower reaches."
+      },
+      "ref": "evidence_e10",
+      "milestone": "M3",
+      "notes": "八个圆点要数得清；图上不画地名。"
+    },
+    {
+      "id": "art_ico_item_evidence_e11",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张结构图：白纸上画着几圈同心圆，圆心向外伸出许多分叉的细线，最外圈有一段线条被醒目地圈了出来，纸边夹着一只铜夹。",
+        "en": "A structure diagram: white paper drawn with concentric circles, many branching fine lines reaching outward from the center, one segment of the outer ring circled conspicuously, a brass clip on the edge."
+      },
+      "ref": "evidence_e11",
+      "milestone": "M3",
+      "notes": "线条用金与深灰，不画字。"
+    },
+    {
+      "id": "art_ico_item_evidence_e12",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块粗麻军旗布：叠成方块，布面上满是用炭条匆匆划下的痕迹，布角绣着一个断剑形的小标记。",
+        "en": "A piece of coarse hemp war-banner cloth folded into a square, covered with marks hastily scratched in charcoal, a small broken-sword emblem embroidered in one corner."
+      },
+      "ref": "evidence_e12",
+      "milestone": "M3",
+      "notes": "炭痕不可读。"
+    },
+    {
+      "id": "art_ico_item_evidence_e13",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本小手记：黑皮封面磨破了边，封面上用刀尖刻着一道歪斜的长痕，书页发黄卷曲，用一根旧皮绳捆着。",
+        "en": "A small journal: a black leather cover worn through at the edges, one long crooked line scratched into it with a knife point, yellowed curled pages, tied with an old leather thong."
+      },
+      "ref": "evidence_e13",
+      "milestone": "M2",
+      "notes": "与史料 S16（灰色手抄本）区分：本条黑皮、刀痕。"
+    },
+    {
+      "id": "art_ico_item_evidence_e14",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一叠星表纸：几张厚纸用铜夹夹在一起，纸上画着整齐的格线，格里排满大小一样的小点，排列整齐得出奇。",
+        "en": "A sheaf of star tables: several thick sheets held together with a brass clip, ruled with a neat grid filled with small dots all the same size, uncannily orderly."
+      },
+      "ref": "evidence_e14",
+      "milestone": "M3",
+      "notes": "与 lb_star_law（星图书）区分：本条是夹着的表格纸。不画数字。"
+    },
+    {
+      "id": "art_ico_item_evidence_e15",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一卷白绢：两边描着金线，封口压着一枚金色光轮蜡封，绢卷的一角被撕下一小块，撕口参差。",
+        "en": "A white silk scroll: gold-edged, sealed with a gold halo wax seal, a small piece torn off one corner leaving a ragged edge."
+      },
+      "ref": "evidence_e15",
+      "milestone": "M3",
+      "notes": "撕角是辨识点；不画字。"
+    },
+    {
+      "id": "art_ico_item_evidence_e16",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一页纯白的厚纸：纸边整齐得像刀切，纸面空白而洁净，右上角压着一枚小小的金色号码牌形印痕。",
+        "en": "A single sheet of pure white thick paper: edges as clean as if knife-cut, its face blank and spotless, a small gold number-tag-shaped impression in the upper right corner."
+      },
+      "ref": "evidence_e16",
+      "milestone": "M3",
+      "notes": "号码牌形印痕只有外形，不画数字。"
+    },
+    {
+      "id": "art_ico_item_evidence_e17",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只旧皮夹：深褐色，被灰紫色的污渍浸透，边角卷起，夹口露出一张褪色照片的边和一张小小车票的一角。",
+        "en": "An old leather wallet: dark brown, soaked with gray-violet stains, curled corners, the edge of a faded photograph and the corner of a small ticket peeking from its opening."
+      },
+      "ref": "evidence_e17",
+      "milestone": "M3",
+      "notes": "地球之物。照片只露边，不画人脸；车票不画字。污渍用澱紫偏灰。"
+    },
+    {
+      "id": "art_ico_item_evidence_e18",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一卷素白的证言纸：没有捆绳，只用纸本身折成一个结，封口没有任何印章，只留着一个空白的圆。",
+        "en": "A plain white testimony roll: no cord, the paper itself folded into a knot, no seal of any kind on it, only an empty blank circle where a seal would go."
+      },
+      "ref": "evidence_e18",
+      "milestone": "M3",
+      "notes": "空白的圆是辨识点。"
+    },
+    {
+      "id": "art_ico_item_evidence_e19",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只细颈水晶小瓶：瓶里是清澈的泉水，水中有一缕缓缓旋转的淡金白色微光，瓶口用银丝缠着软塞。",
+        "en": "A slender-necked crystal vial: clear spring water inside with a wisp of pale gold-white light slowly swirling in it, the stopper bound with silver wire."
+      },
+      "ref": "evidence_e19",
+      "milestone": "M3",
+      "notes": "与 north_spring_water（灰沉淀）区分：本条水清且有微光。不画人影。"
+    },
+    {
+      "id": "art_ico_item_evidence_e20",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一叠分析稿：几张纸用细绳穿在一起，最上面一张画着一页书与一扇小门叠在一起的示意图，旁边满是细小的箭头。",
+        "en": "A stack of analysis notes: several sheets threaded together on a string, the top one showing a diagram of a book page overlapping a small door, surrounded by tiny arrows."
+      },
+      "ref": "evidence_e20",
+      "milestone": "M3",
+      "notes": "示意图只用线条，门不用门扉金；不画字。"
+    },
+    {
+      "id": "art_ico_item_evidence_e21",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一缕极细的丝线：金白色，在一个小小的木纺锤上绕了几圈，线头垂下来，在光下几乎看不见。",
+        "en": "A wisp of extremely fine thread: gold-white, wound a few turns around a tiny wooden spindle, its loose end hanging down and nearly invisible in the light."
+      },
+      "ref": "evidence_e21",
+      "milestone": "M3",
+      "notes": "丝线要细但在 32 像素下仍要看得出；纺锤是辨识点。"
+    },
+    {
+      "id": "art_ico_item_evidence_e22",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张契纸：深色厚纸，边缘描着金线，纸面下方按着一枚冷光闪闪的硬币形金印，金印旁有一道撕开又粘上的口子。",
+        "en": "A contract sheet: thick dark paper edged with gold line, a coin-shaped gold seal pressed near its foot glinting coldly, a tear beside the seal that has been glued back together."
+      },
+      "ref": "evidence_e22",
+      "milestone": "M3",
+      "notes": "与 evidence_e06（五枚蜡封）区分：本条只有一枚硬币形金印。"
+    },
+    {
+      "id": "art_ico_item_evidence_e23",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一座手提的小铁祭坛：方形铁座，顶上立着一柄断剑形的小像，座身刻着简单的军团纹章，提环上挂着一段烧剩的香。",
+        "en": "A small portable iron altar: a square iron base topped by a small broken-sword idol, a simple legion emblem carved on its side, a burned-down stick of incense hanging from the carrying ring."
+      },
+      "ref": "evidence_e23",
+      "milestone": "M3",
+      "notes": "只画祭坛，不画人。"
+    },
+    {
+      "id": "art_ico_item_evidence_e24",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一卷供词：粗纸卷用一根灰绳系着，封口压着一枚灰色蜡印，蜡印上是一个缺了一角的门形纹。",
+        "en": "A confession roll: a coarse paper roll tied with a gray cord, sealed with gray wax bearing a door emblem with one corner missing."
+      },
+      "ref": "evidence_e24",
+      "milestone": "M2",
+      "notes": "残缺门纹用灰色，不用门扉金。"
+    },
+    {
+      "id": "art_ico_item_evidence_e25",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本药草婆婆的小册子：软皮封面画着一片叶子和一弯月亮，书页间夹着几朵压干的小白花，书角被翻得起毛。",
+        "en": "A herb-woman's little booklet: a soft cover drawn with a leaf and a crescent moon, a few pressed small white flowers between the pages, corners fuzzy from use."
+      },
+      "ref": "evidence_e25",
+      "milestone": "M1",
+      "notes": "与 lb_greybane_remedies（一叠药方）区分：本条是装订的小册子。"
+    },
+    {
+      "id": "art_ico_item_evidence_e26",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本新装订的厚名册：素色亚麻布面，没有任何纹章，书页边上整齐地排着许多细小的分隔线，夹着一支短短的炭笔。",
+        "en": "A freshly bound thick register: plain linen cover with no emblem at all, the page edges neatly lined with many fine divider marks, a short charcoal pencil tucked in."
+      },
+      "ref": "evidence_e26",
+      "milestone": "M3",
+      "notes": "没有任何纹章正是辨识点；不画字。"
+    },
+    {
+      "id": "art_ico_item_evidence_e27",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一面椭圆小镜片：镜框是磨光的白石，镜面里映着五个颜色不同的小光斑，光斑排成一个圈。",
+        "en": "A small oval mirror pane: a white stone frame, its glass reflecting five small spots of light in different colors arranged in a ring."
+      },
+      "ref": "evidence_e27",
+      "milestone": "M3",
+      "notes": "镜里只有光斑，不画人与景。"
+    },
+    {
+      "id": "art_ico_item_evidence_e28",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一卷军报：粗纸卷用一根烧焦了一半的红绳系着，卷边沾着灰与泥，卷上斜插着一根断箭杆。",
+        "en": "A war dispatch: a coarse paper roll tied with a half-burned red cord, ash on its edges, a broken arrow shaft thrust through the roll."
+      },
+      "ref": "evidence_e28",
+      "milestone": "M3",
+      "notes": "断箭杆是辨识点。"
+    },
+    {
+      "id": "art_ico_item_evidence_e29",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只小铜筒：筒身刻着一圈首尾相连的小门，筒口塞着卷起的纸，筒底沾着一点灰白色的灰。",
+        "en": "A small bronze tube: a ring of little doors joined end to end engraved around it, a rolled paper stuffed in its mouth, a little pale gray ash on its base."
+      },
+      "ref": "evidence_e29",
+      "milestone": "M3",
+      "notes": "小门一圈首尾相连，可用一点门扉金。"
+    },
+    {
+      "id": "art_ico_item_evidence_e30",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一卷冰蓝色的绢布：系着一根银线，封口压着一枚雪花形的白色冰晶，绢面上浮着一层细细的霜。",
+        "en": "A roll of ice-blue silk: tied with a silver thread, sealed with a white snowflake-shaped ice crystal, a fine layer of frost on its surface."
+      },
+      "ref": "evidence_e30",
+      "milestone": "M3",
+      "notes": "不画龙。"
+    },
+    {
+      "id": "art_ico_item_evidence_e31",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张拓片：纸面大部分空白，正中拓着一个模糊的刻痕形状，拓片旁边用别针别着一张写满细小批注痕迹的窄纸条。",
+        "en": "A rubbing: mostly blank paper with a single blurred engraved shape at its center, a narrow slip covered in tiny note marks pinned beside it."
+      },
+      "ref": "evidence_e31",
+      "milestone": "M2",
+      "notes": "正中的刻痕只是模糊形状，不能画成可读的字；纸条上也不画字。"
+    },
+    {
+      "id": "art_ico_item_evidence_e32",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只小玻璃瓶：瓶里装着一撮灰黑色的细灰，灰里夹着几粒闪着暖金色的小亮点，瓶口用蜡封住。",
+        "en": "A small glass vial: holding a pinch of gray-black fine ash flecked with a few tiny warm-gold sparkles, its mouth sealed with wax."
+      },
+      "ref": "evidence_e32",
+      "milestone": "M3",
+      "notes": "金色亮点很少很小；不画人影与门。"
+    },
+    {
+      "id": "art_ico_item_evidence_e33",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一卷白纸卷：用一根细红绳系着，纸卷边上隐约透出一个小小的门形水印，纸质细白，和本世界的纸不一样。",
+        "en": "A white paper roll: tied with a thin red string, a small door-shaped watermark faintly visible at its edge, the paper fine and white, unlike paper of this world."
+      },
+      "ref": "evidence_e33",
+      "milestone": "M3",
+      "notes": "门形水印很淡；不画字。"
+    },
+    {
+      "id": "art_ico_item_evidence_e34",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本厚账：象牙白封面，封面正中一架小天平，一边的盘里放着一个小光轮，另一边的盘里放着一撮灰。",
+        "en": "A thick ledger: ivory-white cover with a small balance scale at the center, a little halo wheel in one pan and a pinch of ash in the other."
+      },
+      "ref": "evidence_e34",
+      "milestone": "M3",
+      "notes": "天平两端一光一灰是辨识点。"
+    },
+    {
+      "id": "art_ico_item_evidence_e35",
+      "template": "ico_item",
+      "subject": {
+        "zh": "三张叠在一起的证言纸：错开叠放，每张的封口各压着一枚不同的小蜡印，分别是一柄剑、一本书和一个光轮。",
+        "en": "Three testimony sheets stacked and offset, each sealed with a different small wax seal: a sword, a book and a halo wheel."
+      },
+      "ref": "evidence_e35",
+      "milestone": "M2",
+      "notes": "三枚蜡印要分得清。"
+    },
+    {
+      "id": "art_ico_item_evidence_e36",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块白石碎片：从石柱上剥下的一角，表面刻着螺旋光纹，一道烧黑的裂纹从碎片中间穿过。",
+        "en": "A white stone fragment: a corner chipped from a pillar, its surface carved with spiraling light lines, a scorched black crack running through its middle."
+      },
+      "ref": "evidence_e36",
+      "milestone": "M2",
+      "notes": "与 rl_dawnpillar（整根圣柱）区分：本条只是一块碎片。"
+    },
+    {
+      "id": "art_ico_item_hist_s01",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张粗纸拓片：拓着一块方顶石柱的正面，上半部是几行整齐的刻痕，最下方一道被凿平的粗糙宽痕。",
+        "en": "A coarse paper rubbing of the front of a square-topped stone post: a few neat rows of engraved marks on the upper half, a rough wide chiseled-out band at the bottom."
+      },
+      "ref": "S01",
+      "milestone": "M1",
+      "notes": "史料道具。刻痕不可读，不画字。"
+    },
+    {
+      "id": "art_ico_item_hist_s02",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一根孩子跳绳：麻绳两头是两只木把手，木把手上各画着一扇小小的彩色门，绳子有些起毛。",
+        "en": "A child's skipping rope: a hemp rope with two wooden handles, each painted with a small colorful door, the rope a bit frayed."
+      },
+      "ref": "S02",
+      "milestone": "M1",
+      "notes": "史料道具：童谣，画成跳绳作象征。门是彩色涂画，不用门扉金。"
+    },
+    {
+      "id": "art_ico_item_hist_s03",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张横长的拓片：拓着一排六个小神纹，依次是光轮、断剑、硬币、枝叶、书卷和门形，门形旁边一个被凿空的小框。",
+        "en": "A long horizontal rubbing showing a row of six small divine emblems: a halo wheel, a broken sword, a coin, a leafy branch, a scroll and a door shape, with a small chiseled-out empty frame beside the door."
+      },
+      "ref": "S03",
+      "milestone": "M1",
+      "notes": "史料道具。六个纹样要在 32 像素下大致可辨，可以简化。"
+    },
+    {
+      "id": "art_ico_item_hist_s04",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本摊开的登记簿：左右两页排着一行行墨痕，其中一行被浓墨涂成一道粗黑的长条，书页边夹着一枚小铜扣。",
+        "en": "An open register: rows of ink marks across both pages, one line blotted out into a thick black bar with heavy ink, a small brass clasp at the page edge."
+      },
+      "ref": "S04",
+      "milestone": "M1",
+      "notes": "史料道具。墨痕不可读；涂黑的那一行是辨识点。"
+    },
+    {
+      "id": "art_ico_item_hist_s05",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一页从经书上抄下的单页：米白纸，页首一枚小小的金色光轮，下面是整整齐齐的几行墨痕，纸边对折过。",
+        "en": "A single page copied from a scripture: cream paper with a small gold halo wheel at the top and several neat rows of ink marks beneath, the sheet once folded in half."
+      },
+      "ref": "S05",
+      "milestone": "M1",
+      "notes": "史料道具。与 lb_codex_of_light（整本经书）区分：本条只是一页。"
+    },
+    {
+      "id": "art_ico_item_hist_s06",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只褪色的小布枕：手掌大小，枕面用旧线绣着一只摊开的小手，手心里绣着一扇小小的门。",
+        "en": "A small faded cloth pillow: palm-sized, its face embroidered in old thread with a small open hand, a tiny door stitched into its palm."
+      },
+      "ref": "S06",
+      "milestone": "M1",
+      "notes": "史料道具：摇篮曲，画成婴儿小枕作象征。门用浅色线，不发光。"
+    },
+    {
+      "id": "art_ico_item_hist_s07",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一面勇者祭的小三角旗：白底金边，旗面绣着八道从一点放射出去的金色光芒，系在一根短木杆上。",
+        "en": "A small triangular pennant from the heroes' festival: white with a gold border, eight radiating gold rays embroidered on it, tied to a short wooden stick."
+      },
+      "ref": "S07",
+      "milestone": "M2",
+      "notes": "史料道具：颂歌，画成节庆小旗作象征。八道光芒要数得清。"
+    },
+    {
+      "id": "art_ico_item_hist_s08",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只船工的竹梆子：一截粗竹筒，筒身刻着一道道波浪纹，一端系着打结的麻绳，旁边搁着一根短木槌。",
+        "en": "A boatman's bamboo clapper: a thick bamboo tube carved with wave lines, a knotted hemp cord tied to one end, a short wooden mallet resting beside it."
+      },
+      "ref": "S08",
+      "milestone": "M2",
+      "notes": "史料道具：船工号子，画成打拍子的梆子作象征。"
+    },
+    {
+      "id": "art_ico_item_hist_s09",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块拱形的青铜铭牌：表面布满古旧的纹样刻痕，四角各有一颗铆钉，铜色发绿，拱顶处有一点暖金色的磨亮。",
+        "en": "An arched bronze plaque: its face covered in ancient patterned engravings, a rivet at each corner, greenish bronze, a spot of warm gold rubbed bright at the top of the arch."
+      },
+      "ref": "S09",
+      "milestone": "M2",
+      "notes": "史料道具。刻痕是纹样，不画可读文字。"
+    },
+    {
+      "id": "art_ico_item_hist_s10",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张长长的折页清单：浅灰色纸折成手风琴形，封面一页压着一枚黑色的蜡封，蜡封上是一把锁的图形。",
+        "en": "A long accordion-folded list: pale gray paper folded concertina-style, the cover panel sealed with black wax bearing a lock emblem."
+      },
+      "ref": "S10",
+      "milestone": "M2",
+      "notes": "史料道具。不画字。"
+    },
+    {
+      "id": "art_ico_item_hist_s11",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张拓片：灰纸上拓满密密麻麻的细小刻痕，一行挨着一行，像无数个挤在一起的名字，顶上有一个小小的盾形轮廓。",
+        "en": "A rubbing: gray paper densely covered with tiny engraved marks row upon row, like countless names crowded together, a small shield outline at the top."
+      },
+      "ref": "S11",
+      "milestone": "M2",
+      "notes": "史料道具。刻痕不可读。"
+    },
+    {
+      "id": "art_ico_item_hist_s12",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本红皮史书：封面压着麦穗环绕的王冠纹章，书里夹着一张露出半截的契据，契据上挂着一枚天平图形的蜡封。",
+        "en": "A red leather history book: a crown encircled by wheat ears stamped on its cover, a deed half sticking out from between its pages, hung with a wax seal bearing a balance scale."
+      },
+      "ref": "S12",
+      "milestone": "M2",
+      "notes": "史料道具。与 lb_lotha_law（深红律书，铜扣）区分：本条夹着契据。"
+    },
+    {
+      "id": "art_ico_item_hist_s13",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张灰纸拓片：纸面大部分是空白，只在斜照的一侧看得出几道残缺不全的浅痕，纸角卷起发毛。",
+        "en": "A gray paper rubbing: mostly blank, with a few broken faint marks visible only along the side struck by slanting light, its corner curled."
+      },
+      "ref": "S13",
+      "milestone": "M2",
+      "notes": "史料道具。与七碑拓区分：本条几乎空白，没有系绳。"
+    },
+    {
+      "id": "art_ico_item_hist_s14",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张令文抄件：厚纸被烟熏黑了边，正中压着一枚圆形的日轮印，纸面排着几行端正的墨痕。",
+        "en": "A copy of a decree: thick paper with smoke-blackened edges, a round sun-wheel seal pressed at its center, a few rows of upright ink marks."
+      },
+      "ref": "S14",
+      "milestone": "M2",
+      "notes": "史料道具。墨痕不可读。"
+    },
+    {
+      "id": "art_ico_item_hist_s15",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只灰黑色的小石匣，匣盖打开靠在一边，匣上平摊着一封已经拆开的信，信纸泛黄，折痕清楚。",
+        "en": "A small gray-black stone casket with its lid open and leaning aside, an opened letter laid flat on top, the paper yellowed with clear fold lines."
+      },
+      "ref": "S15",
+      "milestone": "M2",
+      "notes": "史料道具。与 rl_ash_night_letters（信封着、捆着绳）区分：本条信已拆开摊平。"
+    },
+    {
+      "id": "art_ico_item_hist_s16",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一册灰色的手抄本：封皮是粗糙的灰纸板，书脊用细骨线缝着，书页边缘落满了灰，书角夹着一根芦苇笔。",
+        "en": "A gray handwritten volume: a cover of rough gray pasteboard, its spine sewn with fine bone thread, ash all over the page edges, a reed pen tucked at one corner."
+      },
+      "ref": "S16",
+      "milestone": "M2",
+      "notes": "史料道具。与 lb_ash_wall_transcript（抄录本）区分：本条骨线装订。"
+    },
+    {
+      "id": "art_ico_item_hist_s17",
+      "template": "ico_item",
+      "subject": {
+        "zh": "几张私抄的表格纸：折成小方块，展开的一角露出整齐的表格线，格子里有大小不一的小点，纸上有被火燎过的焦边。",
+        "en": "A few privately copied table sheets folded into a small square, one unfolded corner showing neat grid lines with dots of varying sizes in the cells, edges singed by fire."
+      },
+      "ref": "S17",
+      "milestone": "M3",
+      "notes": "史料道具。不画数字。"
+    },
+    {
+      "id": "art_ico_item_hist_s18",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把暗旧的长剑：与勇者圣剑同样的形制，但剑身灰暗无光，护手的光轮金饰已经褪成铜褐，柄上的白革发黑，剑身有几处锈斑。",
+        "en": "A dull old longsword: the same make as the holy sword of heroes, but its blade is gray and lightless, the halo crossguard faded to coppery brown, the white leather grip blackened, rust spots along the blade."
+      },
+      "ref": "S18",
+      "milestone": "M3",
+      "notes": "史料道具。与 rl_hero_sword 同形但必须一眼看出暗旧、无光。"
+    },
+    {
+      "id": "art_ico_item_hist_s19",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本白皮登记簿：封面一枚小小的金色光轮，书口夹着好几根不同颜色的布书签，书页厚而整齐。",
+        "en": "A white leather register: a small gold halo wheel on its cover, several cloth bookmarks of different colors tucked into the fore-edge, thick, neat pages."
+      },
+      "ref": "S19",
+      "milestone": "M3",
+      "notes": "史料道具。与 lb_codex_of_heroes（剑加光轮）区分：本条只有光轮，书签多。"
+    },
+    {
+      "id": "art_ico_item_hist_s20",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张黑纸白拓：黑色厚纸上拓出一段弯曲缠绕的白色刻纹，整张拓片的轮廓像一把高背椅子的椅背。",
+        "en": "A white rubbing on black paper: a passage of curling, intertwined white carved marks, the whole sheet shaped like the back of a high-backed chair."
+      },
+      "ref": "S20",
+      "milestone": "M3",
+      "notes": "史料道具。刻纹不可读。"
+    },
+    {
+      "id": "art_ico_item_hist_s21",
+      "template": "ico_item",
+      "subject": {
+        "zh": "两张叠在一起的纸：上面一张是金边白纸，下面一张是发黄的旧纸，两张纸上的纹样行行对齐，下面那张多出一点。",
+        "en": "Two sheets stacked together: a gold-edged white sheet on top, a yellowed old sheet beneath, their patterned lines aligned row by row, the lower one showing a little more."
+      },
+      "ref": "S21",
+      "milestone": "M1",
+      "notes": "史料道具。纹样不可读。"
+    },
+    {
+      "id": "art_ico_item_hist_s22",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张金箔契书：薄薄的金箔折成长方形，表面压着三枚神印，分别是一枚硬币、一个光轮和一把完整的长剑。",
+        "en": "A gold-leaf covenant: a thin sheet of gold leaf folded into a rectangle, three divine seals pressed into it: a coin, a halo wheel and a whole, unbroken longsword."
+      },
+      "ref": "S22",
+      "milestone": "M3",
+      "notes": "史料道具。三枚印要分得清；剑是完整的，不是断剑。"
+    },
+    {
+      "id": "art_ico_item_hist_s23",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一支细长的木笛：银白色的木头，笛身上开着六个小孔，缠着一片灰色的枯叶，笛孔边磨得发亮。",
+        "en": "A long slender wooden flute: silver-white wood, a gray withered leaf wound around its body, the edges of its finger holes rubbed shiny."
+      },
+      "ref": "S23",
+      "milestone": "M3",
+      "notes": "史料道具：精灵挽歌，画成木笛作象征。"
+    },
+    {
+      "id": "art_ico_item_hist_s24",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块冰蓝发白的小石片：形状不规则，表面刻着几道弯曲盘绕的爪痕状纹路，边缘结着细小的冰晶。",
+        "en": "A small ice-blue, whitish stone fragment, its surface carved with a few curling claw-like grooves, ice crystals along its edges."
+      },
+      "ref": "S24",
+      "milestone": "M3",
+      "notes": "史料道具。与 rl_dragon_tally_stone（竖直等长爪痕）区分：本条纹路是弯曲盘绕的。"
+    },
+    {
+      "id": "art_ico_item_col_garden_creatures",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本挂在木钉上的手绘图鉴摊开着：两页分成八个小格，格里是彩笔画的小雀、像猫的小兽、灯蛾、燕子、小鲤、蜗牛、鹿和一只小鸦剪影，格下没有名字栏。",
+        "en": "A hand-drawn field book hanging open on a wooden peg: two pages divided into eight small cells, each with a colored sketch of a little sparrow, a cat-like creature, a lamp moth, a swallow, a small carp, a snail, a deer and a little crow silhouette; no name lines under the cells."
+      },
+      "extra": {
+        "zh": "这是一整套收藏的图标：把这一组物件整齐地放在一起，一眼看得出是一整套，而不是单件。",
+        "en": "This icon stands for a whole collection: the set of objects arranged together so it reads at a glance as a complete set, not a single item."
+      },
+      "ref": "col_garden_creatures",
+      "milestone": "M1",
+      "notes": "收藏的总图标，表现整套物件放在一起的样子；八格要数得清；格下留白，不画名字栏与字；与 ui_win_codex（合着的厚书夹羽毛）区分：本条摊开并挂在钉上。"
+    },
+    {
+      "id": "art_ico_item_rl_saint_reliquary",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只小屋形的银匣：坡顶匣盖，四角立着矮矮的银脚，匣身压着细密的卷草纹；匣盖与匣身的缝上横贴一条白布封条，封条正中压着一枚金色光轮蜡印。",
+        "en": "A small house-shaped silver casket: a gabled lid, short silver feet at the four corners, fine scrollwork pressed into its sides; a white cloth seal strip runs across the seam between lid and body, with a gold halo wax seal at its center."
+      },
+      "ref": "rl_saint_reliquary",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；匣是封着的，不画里面；光轮用暖金不用神光白金；与 col_pale_reliquary（白石匣、门开着）、evi_reliquary_shard 区分。"
+    },
+    {
+      "id": "art_ico_item_rl_elder_dragon_blood",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只浅浅的白石小盏：盏壁薄而光滑，盏里盛着半盏银色的液体，表面像水银一样亮而稠，盏口浮起两三缕细细的白色冷雾。",
+        "en": "A shallow little cup of white stone: thin smooth walls, half filled with a silver liquid, bright and thick like quicksilver, two or three thin wisps of cold white mist rising from the rim."
+      },
+      "ref": "rl_elder_dragon_blood",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；血是银色不是红色；不画龙与鳞；与 rl_bloodmoon_chalice（高脚杯盛暗红液）、evidence_e19（细颈水晶瓶）区分。"
+    },
+    {
+      "id": "art_ico_item_rl_frosthorn_last_vintage",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只圆肚的粗陶酒坛：坛身土褐，沾着刚挖出来的湿泥，坛口蒙布、外糊一层发黑开裂的封泥，再用麻绳捆紧；坛肩压着一圈葡萄叶纹。",
+        "en": "A round-bellied coarse clay wine jar: earthy brown, clinging with fresh damp soil from being dug up, its mouth covered with cloth under a layer of blackened, cracked clay seal, bound tight with hemp cord; a ring of grape-leaf pattern pressed around its shoulder."
+      },
+      "ref": "rl_frosthorn_last_vintage",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；发黑的封泥与新泥是辨识点，封泥上不画印文；与 rl_frosthorn_vine（枯藤）、tg_seran_altar_wine（白釉细颈坛）区分。"
+    },
+    {
+      "id": "art_ico_item_rl_elwin_door_earring",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚古旧的耳坠：小小的暗铜坠子做成一扇拱顶门的形状，门板上刻着两道竖缝和一个细小的门环，坠子挂在一只细铜钩上，铜面磨得发亮，缝里积着旧垢。",
+        "en": "An old earring: a small dark bronze pendant shaped like an arched door, two vertical seams and a tiny ring knocker engraved on the door, hanging from a thin bronze hook; the bronze is rubbed bright, old grime in the seams."
+      },
+      "ref": "rl_elwin_door_earring",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；只画一枚耳坠，不画耳朵；以暗铜为主，门环处可点一点门扉金；与 rl_door_fee_coin（门形孔铜钱）区分。"
+    },
+    {
+      "id": "art_ico_item_rl_luchen_band",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只黑色的运动手环：细长的软胶表带首尾扣在一起，正中嵌着一块圆角长方形的小屏，屏幕漆黑不亮，带面有几道细小的划痕，扣针是暗银色。",
+        "en": "A black fitness band: a slim soft rubber strap buckled end to end, a small rounded-rectangle screen set in the middle, the screen pitch black and unlit, a few fine scratches on the strap, a dull silver buckle pin."
+      },
+      "ref": "rl_luchen_band",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；地球之物，照实物画；屏幕全黑不发光，不画数字、品牌与标志；与 relic_badge（工牌）等地球物区分。"
+    },
+    {
+      "id": "art_ico_item_rl_yui_nurse_watch",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只小巧的护士挂表：圆形的白色表壳套着浅粉色软胶套，表盘倒过来朝下，上端连着一枚小小的别针扣；表盘上只有一圈等距短刻线和两根细指针。",
+        "en": "A small nurse's fob watch: a round white case in a pale pink soft rubber cover, the dial hung upside down, a small safety-pin clip at its top end; the dial has only a ring of evenly spaced short ticks and two thin hands."
+      },
+      "ref": "rl_yui_nurse_watch",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；地球之物，照实物画；表盘倒挂是辨识点，刻度只画短线，不画数字、品牌与字；与 relic_mint（探视证与糖盒）区分。"
+    },
+    {
+      "id": "art_ico_item_rl_aiden_ballpoint",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一支按动式圆珠笔：笔杆是透明塑料，看得见里面细细的笔芯，蓝墨只剩靠近笔尖的一小截，笔夹与按钮是深蓝色，笔杆上有几道咬过的浅痕。",
+        "en": "A click ballpoint pen: a clear plastic barrel showing the thin refill inside, the blue ink only a short stretch near the tip, a deep blue clip and button, a few faint bite marks on the barrel."
+      },
+      "ref": "rl_aiden_ballpoint",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；地球之物，照实物画；只剩一小截墨是辨识点，不画品牌与字；与 rl_selfwriting_pen（鹅毛笔）、rl_ash_reed_pen（芦苇笔）区分。"
+    },
+    {
+      "id": "art_ico_item_rl_marcus_fire_helmet",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一顶旧消防头盔：黑色盔身被熏得发灰，后沿是长长的护颈檐，正面立着一块空白的皮质徽板，盔顶有一道磕痕，帽带上扣着一只用来挂在背包上的金属挂扣。",
+        "en": "An old firefighter's helmet: a black shell smoked to a sooty gray, a long rear brim to shield the neck, a blank leather front shield plate standing up at the front, a dent on the crown, and a metal clip on the chin strap for hanging it on a backpack."
+      },
+      "ref": "rl_marcus_fire_helmet",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；地球之物，照实物画；正面徽板空白，不画编号、字与标志；与 gen_plate_head_q1 等本世界板甲头盔区分：长后檐是辨识点。"
+    },
+    {
+      "id": "art_ico_item_rl_bond_scar",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一缕极淡的细线：银灰偏冷的颜色，绕成一个松松的小圈，圈上打着一个小结，一头的线梢散开垂下，线边带着一点点霜白的冷光。",
+        "en": "A wisp of very faint thread: a cool silvery gray, wound into a loose little loop with a small knot tied in it, one end fraying and hanging down, a touch of frosty white chill along its edges."
+      },
+      "ref": "rl_bond_scar",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；按实例共用这一张；线要淡但保留深色描边，32 像素下看得出；与 evidence_e21（木纺锤绕金白丝）区分：本条没有纺锤。"
+    },
+    {
+      "id": "art_ico_item_rl_fen_viper_slough",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张完整的蛇蜕：半透明的灰白空皮弯成两道弧，上面印着一节节浅淡的环纹，头部是三角形，两个眼盖是透明的小圆片，皮边微微发黄卷起。",
+        "en": "A whole snake slough: a translucent gray-white empty skin bent into two curves, printed with faint ring bands, a triangular head with two transparent round eye caps, the edges slightly yellowed and curling."
+      },
+      "ref": "rl_fen_viper_slough",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；是空皮不是活蛇，颜色比 pet_fen_viper 淡得多；透明眼盖是辨识点；与 nm_first_molt（蝗虫空壳）、mat_dragon_molt 区分。"
+    },
+    {
+      "id": "art_ico_item_rl_final_work",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一件裹在素白殓布里的器物：长条形，殓布用黑绳缠了三道，一端露出一截打磨精亮的乌木把柄与铜箍，绳结上挂着一枚空白的小木牌。",
+        "en": "An object wrapped in plain white burial linen: long and narrow, the linen bound with three turns of black cord, one end showing a polished ebony handle with a brass ferrule, a small blank wooden tag hanging from the knot."
+      },
+      "ref": "rl_final_work",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；按实例共用这一张；露出的只是一截把柄，不指明是兵器还是工具；木牌空白，不画字与名字。"
+    },
+    {
+      "id": "art_ico_item_rl_rust_whistle_tag",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块锈铁小牌：长方形，四角磨圆，上端打着穿绳孔，整块锈成红褐色，正面刻着一只小哨子的图形，边缘被锈吃出几个缺口。",
+        "en": "A small rusted iron tag: rectangular with rounded corners, a cord hole at the top, rusted red-brown all over, a little whistle shape engraved on the front, rust having eaten a few notches into the edges."
+      },
+      "ref": "rl_rust_whistle_tag",
+      "milestone": "M1",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；可叠放，图标只画一枚；原物的字画成小哨图形，不画字；与 evi_deserter_tag（磨亮钢牌）、nm_brass_dog_tag（铜狗牌）区分。"
+    },
+    {
+      "id": "art_ico_item_rl_ashcity_rag_doll",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一只瘫软的旧布偶：灰褐粗布身子缝满一块块颜色不同的补丁，脸上一只纽扣眼、另一只只剩线头，一条胳膊的缝口露出一点棉絮，蒙着一层细灰。",
+        "en": "A limp old rag doll: a gray-brown coarse cloth body covered in patches of different colors, one button eye on its face and only loose threads where the other was, a bit of stuffing poking from a seam on one arm, dusted with fine ash."
+      },
+      "ref": "rl_ashcity_rag_doll",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；与怪物 ashfall_doll 是同一只布偶：保留补丁与缺一只纽扣眼，但瘫软不动，不画提线；不画可怕的表情。"
+    },
+    {
+      "id": "art_ico_item_rl_ancestor_charm",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一串骨饰：几颗发黄的旧骨珠中间夹着两枚雕成小兽头的骨片，穿在一根崭新的浅色皮绳上，绳结打得干净利落，与旧骨的颜色对比分明。",
+        "en": "A string of bone charms: several yellowed old bone beads with two bone pieces carved into small beast heads between them, threaded on a brand-new pale leather cord with a clean, neat knot, its freshness contrasting sharply with the old bone."
+      },
+      "ref": "rl_ancestor_charm",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；可叠放，图标只画一串；新绳旧骨是辨识点；与 nm_ancestor_beads（骨珠与绿松石交替、垂兽牙）区分：本条没有绿松石。"
+    },
+    {
+      "id": "art_ico_item_rl_ring_guard_blade",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把很短的旧铁刀：直刃双锋，刃身像一片柳叶，护手是一根平直的铁条，柄尾是一只圆铁环；刃根刻着一排深浅不一的短竖痕，铁面发黑带锈斑。",
+        "en": "A very short old iron blade: straight and double-edged, shaped like a willow leaf, a flat straight iron bar for a crossguard, a round iron ring at the pommel; a row of short vertical notches of uneven depth cut at the blade root, the iron blackened with rust spots."
+      },
+      "ref": "rl_ring_guard_blade",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；可叠放，图标只画一把；站号画成短竖痕，不画数字；与 marked_bandit_blade（单刃弯刀、三点暗记）区分。"
+    },
+    {
+      "id": "art_ico_item_rl_pact_remnant",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一角烧焦的契纸：三角形的厚纸片，两条边是整齐的裁边，第三条边焦黑卷曲，纸面中央烙着一个深褐色的断环形焦印，焦印边缘还泛着一点暗红。",
+        "en": "A burnt corner of contract paper: a triangular piece of thick paper, two edges cleanly cut, the third scorched black and curling, a dark brown broken-ring brand seared into its center, its rim still showing a hint of dull red."
+      },
+      "ref": "rl_pact_remnant",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；可叠放，图标只画一片；烙印只是断环图形，不画字，不用澱紫；与 evi_torn_merc_contract（撕成两半的整契）区分。"
+    },
+    {
+      "id": "art_ico_item_rl_duel_sash",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一条褪色的绶带：宽宽的沙黄色布带，两边各有一道黑色细边，中段打成一个紧实的方形战结，两条带尾从结下垂出，尾端的流苏已经磨散。",
+        "en": "A faded sash: a wide sand-yellow cloth band with a thin black stripe along each edge, tied in the middle into a tight square battle knot, two tails hanging down from the knot, their tassels worn loose."
+      },
+      "ref": "rl_duel_sash",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；可叠放，图标只画一条；战结是辨识点；与 nm_hundredth_ribbon（暗红燕尾、缝铁扣）区分：本条沙黄、有结、无扣。"
+    },
+    {
+      "id": "art_ico_item_rl_redgravel_pit_token",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚长方形的铁片：边缘粗糙，像随手剪下的铁皮，正面刻着一道竖梯，梯上的横档里只有最上面一级被刻得最深，铁面沾着红色的砂砾粉。",
+        "en": "A rectangular iron chip: rough edges, like a roughly cut piece of sheet iron, a vertical ladder engraved on its face, only the topmost rung cut deepest, red grit dust clinging to the iron."
+      },
+      "ref": "rl_redgravel_pit_token",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；可叠放，图标只画一枚；梯级只画横档，不画数字；与 rl_edge_trial_token（角片）、col_duel_tokens（一串斗证）区分。"
+    },
+    {
+      "id": "art_ico_item_rl_edge_trial_token",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一截弯弯的角片：从深褐色兽角上锯下的一段，切口平整，角面刻着一个小小的拱形洞口图形，洞口下一道短剑痕，角片一端钻孔穿着皮绳。",
+        "en": "A curved slice of horn: a section sawn from a dark brown beast horn with clean cut ends, a small arched cave-mouth shape carved on its face with a short sword scratch beneath it, one end drilled and threaded with a leather cord."
+      },
+      "ref": "rl_edge_trial_token",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；可叠放，图标只画一枚；窟名画成洞口图形，不画字；与 rl_redgravel_pit_token（铁片刻竖梯）区分：本条是角质。"
+    },
+    {
+      "id": "art_ico_item_rl_greymane_breath_charm",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一节指骨饰：一小节磨光的象牙色骨头，骨面刻着一圈圈细细的螺旋纹，像吹出的一口气，两端穿着灰色细皮绳，绳上系着一小撮灰白的鬃毛。",
+        "en": "A finger-bone charm: a small polished ivory-colored bone, carved with fine spiral lines like a drawn breath, a thin gray leather cord through both ends, a little tuft of gray-white mane tied to the cord."
+      },
+      "ref": "rl_greymane_breath_charm",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；原物刻的名字画成螺旋纹，不画字；与 rl_ancestor_charm（一串骨珠）、nm_bone_whistle（开孔骨哨）区分：只有一节骨、没有孔。"
+    },
+    {
+      "id": "art_ico_item_rl_deadgate_leaf",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一扇旧门扉：单扇窄门板，深褐门木上满是细密的裂纹，两枚铰链锈死，门环垂着不动，锁孔被灰土塞满；门板上的旧刻纹黯淡，不透一点光。",
+        "en": "An old door leaf: a single narrow door panel, dark brown gatewood covered in fine cracks, two hinges rusted solid, the ring knocker hanging still, the keyhole packed with dust; the old carvings on the panel are dull and let through no light."
+      },
+      "ref": "rl_deadgate_leaf",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；场景物的图标，只画门板本身；门已不活，不用门扉金、不发光；与 mat_gatewood（拆下的板段透细金光）区分。"
+    },
+    {
+      "id": "art_ico_item_rl_edge_trial_iron_shard",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块碎铁：巴掌大的不规则铁片，颜色暗灰，一边是旧的钝口，另一边是像刚崩下来的亮白断口，铁面上斜斜横过一道又直又深的细槽。",
+        "en": "A shard of iron: an irregular palm-sized flake, dark gray, one edge old and dull, the other a bright white break as if freshly chipped off, a straight, deep thin groove running diagonally across its face."
+      },
+      "ref": "rl_edge_trial_iron_shard",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；只是一片不规则碎铁，不要画成剑尖或刃片；不发光；与 nm_hiltless_shard（雪亮刃片）区分。"
+    },
+    {
+      "id": "art_ico_item_rl_saltmirror_league_banner",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一面卷起的旧旗：褪色的海蓝旗面卷在一截木旗杆上，露出的一角绣着一个白色圆镜纹，圆中横着一道浪线，旗边破损，杆头是一只小小的青铜船锚。",
+        "en": "A rolled old banner: a faded sea-blue cloth rolled around a short wooden pole, the exposed corner embroidered with a white round mirror emblem crossed by a wave line, the edges frayed, a little bronze anchor as the pole finial."
+      },
+      "ref": "rl_saltmirror_league_banner",
+      "milestone": "M3",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；纹章只画圆镜与浪线；与同盟旗标 league（白帆托金币）、rl_banner_legion（横杆挂旗）区分：本条是卷起的旗。"
+    },
+    {
+      "id": "art_ico_item_rl_banner_redfang",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一面半卷的黑旗：黑色旗面缠在夜铁旗杆上，露出的旗边缀着一排红漆兽牙，旗面上一枚暗红色的獠牙纹，杆头是一枚弯弯的铁獠牙饰。",
+        "en": "A half-rolled black banner: the black cloth wound around a night-iron pole, the exposed edge trimmed with a row of red-lacquered beast teeth, a dark red fang emblem on the cloth, a curved iron fang ornament as the finial."
+      },
+      "ref": "rl_banner_redfang",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；兽牙缀边是辨识点；与夜境旗标 nightrealm（暗红尖塔）、eq_kit_red_fang（军械包）区分：本条是一面卷起的旗。"
+    },
+    {
+      "id": "art_ico_item_rl_banner_white_flame",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一面折起的团旗：深蓝旗面镶一圈金边，叠成长条挂在银色枪尖的旗杆上，露出的一面绣着一团白色焰形光环，旗角垂着一束白流苏。",
+        "en": "A folded order banner: a deep blue cloth bordered in gold, folded into a long strip and hung from a pole with a silver spearhead finial, the visible face embroidered with a white flame-shaped halo, a tuft of white tassel hanging from a corner."
+      },
+      "ref": "rl_banner_white_flame",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；白焰要在深蓝底上清楚；金边用暖金，不用神光白金；与 rl_banner_crusade（白色燕尾长幡）区分。"
+    },
+    {
+      "id": "art_ico_item_rl_banner_crusade",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一面卷起的长幡：窄长的白色幡布卷在一根横木上，镶着红边，幡尾剪成燕尾垂下，露出的一段绣着一圈金色光环与几道短芒，横木两端套着金色小铜帽。",
+        "en": "A rolled long pennant: a narrow white pennant cloth rolled around a crossbar, edged in red, its swallowtail end hanging down, the exposed length embroidered with a gold halo and a few short rays, small gold caps on both ends of the crossbar."
+      },
+      "ref": "rl_banner_crusade",
+      "milestone": "M2",
+      "notes": "遗物不另设品质色，界面边框按标记绘制；燕尾长幡是辨识点；光环用暖金，不用神光白金；与 rl_banner_white_flame（深蓝团旗）、holy_see 旗标区分。"
+    },
+    {
+      "id": "art_ico_item_evi_deserter_tag",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块磨亮的钢军牌：圆角长方形，表面被摩挲得发亮，正面压着一面城墙与盾的小纹章，上端穿着一截细铁珠链，背面朝下看不见。",
+        "en": "A polished steel army tag: a rounded rectangle rubbed bright, a small wall-and-shield emblem stamped on its face, a short length of fine iron ball chain through the top, its back turned down out of sight."
+      },
+      "ref": "evi_deserter_tag",
+      "milestone": "M2",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。背面番号不画；纹章同 gunther_letter 蜡封；与 rl_rust_whistle_tag（锈铁）、evi_rampart_old_tag 区分。"
+    },
+    {
+      "id": "art_ico_item_evi_rampart_old_tag",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块旧铜军牌：椭圆形，铜色发暗长满绿锈，牌面刻着一对交叉的小长矛，矛下一排短短的竖杠，挂孔里还拴着一截朽烂的皮绳。",
+        "en": "An old bronze army tag: oval, the bronze dull and covered in green patina, a pair of small crossed spears engraved on its face above a row of short vertical bars, a scrap of rotten leather cord still tied through the hole."
+      },
+      "ref": "evi_rampart_old_tag",
+      "milestone": "M3",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。番号画成短竖杠（同 rl_banner_legion），不画数字；与 evi_deserter_tag（磨亮钢牌）、rl_gatepicker_tag 区分。"
+    },
+    {
+      "id": "art_ico_item_evi_interrogation_record",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一叠对齐的笔录纸：米白纸页边缘切得笔直，左上角用一只黑铁夹夹紧，最上一页排满工整细密的墨行，页脚压着一枚小小的黑色方印。",
+        "en": "A stack of neatly aligned transcript sheets: off-white pages with dead-straight edges, clamped at the top left corner with a black iron clip, the top page filled with tidy, dense lines of ink, a small black square stamp at its foot."
+      },
+      "ref": "evi_interrogation_record",
+      "milestone": "M2",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。墨行不可读，方印只画图形；与 tribunal_dossier（白皮文件夹、红批注）、lb_report_978_copy（布带捆）区分：本条用黑铁夹。"
+    },
+    {
+      "id": "art_ico_item_evi_wanted_notice",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张从告示板上撕下的通缉令：泛黄粗纸，四角撕得参差，上端留着钉孔，纸面正中画着一个戴兜帽的人头剪影，下方几行墨痕，底端一枚金色光轮小印。",
+        "en": "A wanted notice torn down from a notice board: yellowed coarse paper, ragged at the corners, a nail hole at the top, a hooded head silhouette drawn in the middle, a few lines of ink marks below, a small gold halo stamp at the bottom."
+      },
+      "ref": "evi_wanted_notice",
+      "milestone": "M3",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。人像只画兜帽剪影，不画五官；墨痕与金额不可读；与 bounty_voucher（长条纸票）区分：本条是带钉孔的告示纸。"
+    },
+    {
+      "id": "art_ico_item_evi_crusade_insignia",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一枚光环形的军徽：黄铜铸成一圈圆环，环外伸出八道短芒，背面焊着一枚别针，铜面磕瘪了一处，沾着灰与干泥。",
+        "en": "A halo-shaped military badge: cast brass in a round ring with eight short rays projecting outward, a pin soldered on the back, one dent in the brass, smeared with ash and dried mud."
+      },
+      "ref": "evi_crusade_insignia",
+      "milestone": "M2",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。背面番号不画；是徽章不是硬币；与 rl_gatepicker_tag（长条铭牌加光轮）、S07（八芒小旗）区分。"
+    },
+    {
+      "id": "art_ico_item_evi_doorhole_breastplate",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一片旧胸甲：灰绿色的古金属甲板，弧形，边缘卷着一道包边，胸口正中开着一个上圆下方的门形洞，洞边光滑，像被熔开过，洞里透出背景。",
+        "en": "A piece of an old breastplate: a curved plate of gray-green ancient metal, a rolled rim along its edge, a door-shaped hole, round on top and square below, right in the center of the chest, its edge smooth as if melted through, the background showing through."
+      },
+      "ref": "evi_doorhole_breastplate",
+      "milestone": "M2",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。门形洞透出背景，不填色；洞边不发光、不用门扉金；与 evi_expedition_armor_plate（光轮旧甲片）区分。"
+    },
+    {
+      "id": "art_ico_item_evi_child_slate",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块小石板：深灰色的薄石片，木框缺了一角，板面用白石笔画着三个手拉手的简笔小人，旁边是一扇歪歪的小门，线条稚气，有一处被手指抹花。",
+        "en": "A small slate: a thin dark gray stone tablet in a wooden frame missing one corner, three stick figures holding hands drawn on it in white chalk, a crooked little door beside them, childlike lines, one spot smudged by a finger."
+      },
+      "ref": "evi_child_slate",
+      "milestone": "M2",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。画是孩子的简笔线条，不写字；门是白石笔画的，不用门扉金；与 S01（拓片）等石刻区分：本条有木框。"
+    },
+    {
+      "id": "art_ico_item_evi_old_chisel",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一把通体铁铸的旧凿子：没有木柄，凿身满是暗褐色的锈，顶端被锤得翻卷开花，凿杆上烙着一个圆形日轮小印，只有刃口一线磨得雪亮。",
+        "en": "An old chisel forged entirely of iron: no wooden handle, its body covered in dark brown rust, the top mushroomed from hammering, a small round sun-wheel mark branded on the shank, only a thin line at the edge ground bright."
+      },
+      "ref": "evi_old_chisel",
+      "milestone": "M3",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。与 rl_sunwheel_chisel（木柄嵌铜日轮、刃沾石粉）、nm_unstruck_chisel（缠白布、印被刮花）区分：本条无木柄、通体锈、刃亮。"
+    },
+    {
+      "id": "art_ico_item_evi_expedition_armor_plate",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一片旧式甲片：厚重的胸片斜放着，外侧压着一圈褪色的光轮浮纹，翻起的内侧露出两团深深的刻痕，甲缘一排铆钉孔，铁面带着红褐锈。",
+        "en": "An old-style armor plate: a heavy chest plate set at an angle, a faded halo relief on its outer face, the upturned inner side showing two clusters of deep carved marks, a row of rivet holes along its rim, the iron spotted with red-brown rust."
+      },
+      "ref": "evi_expedition_armor_plate",
+      "milestone": "M2",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。内侧两团刻痕只是痕迹，不画可读的字；与 evi_doorhole_breastplate（门形洞）、evi_demon_army_plates（夜铁甲片）区分。"
+    },
+    {
+      "id": "art_ico_item_evi_reliquary_shard",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块银匣碎片：弯折的银板残片，一面压着卷草纹，断边参差，残片上横贴着半条白布封条，封条上留着半枚金色光轮蜡印，蜡印已经裂开。",
+        "en": "A fragment of a silver casket: a bent scrap of silver plate, scrollwork pressed into one side, jagged broken edges, half a white cloth seal strip stuck across it bearing half a gold halo wax seal, the wax cracked."
+      },
+      "ref": "evi_reliquary_shard",
+      "milestone": "M3",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。与 rl_saint_reliquary（完整银匣）同纹同封条，这里只是碎片；不画匣里的东西；与 nm_procession_seal（只有布条）区分。"
+    },
+    {
+      "id": "art_ico_item_evi_blackmarket_draft",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张窄长的汇票：灰白厚纸，上端本该写抬头的一栏空着，中间几道淡墨线，一侧留着撕下存根的毛边，右下角盖着一枚黑色的小圆印，印面只有图形。",
+        "en": "A narrow promissory draft: grayish-white thick paper, the header strip at the top left blank, a few faint ink lines in the middle, a ragged edge on one side where the stub was torn off, a small black round stamp at the bottom right showing only a figure."
+      },
+      "ref": "evi_blackmarket_draft",
+      "milestone": "M2",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。空着的抬头栏是辨识点，印面只画图形；与 tg_goldbay_draft（三折、金黄蜡封）、bounty_voucher（红色公会印）区分。"
+    },
+    {
+      "id": "art_ico_item_evi_torn_merc_contract",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张撕成两半的契：两片泛黄的羊皮纸略微错开，撕口参差，撕口边缘烙着一道焦黑的细痕，纸底一枚暗红蜡封也被撕成两半，印面是交叉的斧与剑。",
+        "en": "A contract torn in two: two halves of yellowed parchment slightly offset, a ragged tear between them, a thin scorched black line seared along the torn edges, a dark red wax seal at the bottom also split in half, stamped with a crossed axe and sword."
+      },
+      "ref": "evi_torn_merc_contract",
+      "milestone": "M3",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。焦痕只是一道线，不画字；与 rl_pact_remnant（单片烧焦的契纸角）区分：本条是整张撕成两半。"
+    },
+    {
+      "id": "art_ico_item_evi_counterfeit_mold",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一副铸钱的模子：两块黑铁模板用铰链连着，翻开平放，每块上一个圆形钱腔，其中一个钱腔里凹刻着一架天平，腔里粘着几点偏绿的黄铜色碎屑。",
+        "en": "A coin-casting mold: two blackened iron mold halves joined by a hinge, opened flat, each with a round coin cavity, one cavity incised with a balance scale, a few greenish brass-colored flakes stuck inside."
+      },
+      "ref": "evi_counterfeit_mold",
+      "milestone": "M3",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。碎屑是偏绿的假金色，不用门扉金；钱腔只有天平图形，不画字；与带天平的真金币图标、src_pact_1（拟金屑）区分。"
+    },
+    {
+      "id": "art_ico_item_evi_thrall_deed",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张卖身契：粗糙的灰黄纸卷起一半，纸面几行墨痕，末尾按着一枚鲜红的拇指印，纸卷用一截黑铁链环扣住，链环上挂着一枚小铅封。",
+        "en": "A bill of sale for a person: a coarse gray-yellow paper half rolled, a few lines of ink marks on it, a bright red thumbprint pressed at the end, the roll held by a black iron chain link with a small lead seal hanging from it."
+      },
+      "ref": "evi_thrall_deed",
+      "milestone": "M2",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。墨痕不可读，不画人名与价钱；铁链环是辨识点；与 viro_moss_pact（两枚红指印、黑蜡）区分。"
+    },
+    {
+      "id": "art_ico_item_evi_debt_bond",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张债契：窄长的奶白纸，纸面一行行墨线越往下越长，像台阶一样层层往外伸，底部压着一枚金黄色蜡封，印面是一摞叠起的钱币。",
+        "en": "A debt bond: a narrow cream-white paper, its lines of ink growing longer row by row down the page, stepping outward like stairs, a golden yellow wax seal at the bottom stamped with a stack of coins."
+      },
+      "ref": "evi_debt_bond",
+      "milestone": "M3",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。越往下越长的墨线是辨识点，不画数字；与 tg_goldbay_draft（天平蜡封）、rl_golden_contract（金光契卷）区分。"
+    },
+    {
+      "id": "art_ico_item_evi_army_order_leaf",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一页撕下的军令：深灰色的厚纸，一侧是参差的撕口，纸面几行粗重的墨痕，下方压着一枚暗红色蜡印，印面是一对弯角环抱着一个空圈。",
+        "en": "A torn-out army order: dark gray thick paper with a ragged tear on one side, a few heavy lines of ink, a dark red wax seal below, stamped with a pair of curved horns embracing an empty ring."
+      },
+      "ref": "evi_army_order_leaf",
+      "milestone": "M2",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。墨痕不可读；深灰纸不要偏紫；与 intercepted_dispatches（信筒插两卷）区分：本条是单页、弯角蜡印。"
+    },
+    {
+      "id": "art_ico_item_evi_demon_army_plates",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一片旧甲：巴掌大的夜铁甲片，黑中带一点暗红，边上一排铆钉孔，甲面残留着一枚剥落了一半的旧漆纹章，图形陌生，看不出是哪一家。",
+        "en": "A piece of old armor: a palm-sized plate of night-iron, black with a hint of dark red, a row of rivet holes along one edge, the remains of an old painted emblem half flaked away, its shape unfamiliar and unidentifiable."
+      },
+      "ref": "evi_demon_army_plates",
+      "milestone": "M3",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。按实例共用这一张；纹章只画残缺的陌生图形；与 evi_expedition_armor_plate（光轮旧甲片）区分。"
+    },
+    {
+      "id": "art_ico_item_evi_sea_chart_scrap",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一角撕下的海图：浅蓝灰的三角形纸片，画着一小段海岸线和几道虚线航路，靠撕边的一角涂着一片灰白的雾，纸面有海水泡过的白色盐渍。",
+        "en": "A torn corner of a sea chart: a triangular scrap of pale blue-gray paper with a short stretch of coastline and a few dotted sea routes, a patch of gray-white fog painted in the corner near the tear, white salt stains from seawater on the paper."
+      },
+      "ref": "evi_sea_chart_scrap",
+      "milestone": "M3",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。图上不画地名与字；与 lb_mist_edge_chart（整卷）、lb_tidefolk_ring_chart（雾画成圆环）区分：本条只是一角。"
+    },
+    {
+      "id": "art_ico_item_evi_tariff_pledge_copy",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一份借款契的副本：米白纸折成三折，翻开一折露出整齐的墨行，纸底不盖真印，只用墨描着一枚城塔印和一枚城门河波印的轮廓。",
+        "en": "A copy of a loan contract: off-white paper folded in thirds, one fold opened to show tidy lines of ink, no real seal at the bottom, only the ink-traced outlines of a city-tower seal and a river-gate seal."
+      },
+      "ref": "evi_tariff_pledge_copy",
+      "milestone": "M2",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。印只画墨线轮廓，表示是副本；墨行不可读；与 wallenburg_charter_draft（虚线空印圈、羽笔）、count_letter 区分。"
+    },
+    {
+      "id": "art_ico_item_evi_tithe_black_ledger",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本白皮小祈祷书：封面压着一枚金色光轮，书页里斜斜露出半张折起的账页，账页上画着格线与短墨痕，角上画着一小束麦穗。",
+        "en": "A small white-bound prayer book with a gold halo on its cover, half of a folded ledger page sticking out at an angle from between its pages, the page ruled with grid lines and short ink marks, a small sheaf of wheat drawn in its corner."
+      },
+      "ref": "evi_tithe_black_ledger",
+      "milestone": "M2",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。证物是那页账，露出的账页要清楚；不画数字；与 evi_smuggler_ledger_leaf（单张灰账页）、S05（经书单页）区分。"
+    },
+    {
+      "id": "art_ico_item_evi_undercroft_patrol_writ",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张巡查令：硬挺的长条厚纸，四周一道黑边，纸面一列小方块图形后跟着短墨线，最末一行下划着一道粗红线，底端一枚黑蜡印，印面是光轮压着一把小钥匙。",
+        "en": "A patrol writ: a stiff narrow sheet of thick paper with a black border, a column of small square marks each followed by a short ink line, a thick red line drawn under the last row, a black wax seal at the bottom stamped with a halo over a small key."
+      },
+      "ref": "evi_undercroft_patrol_writ",
+      "milestone": "M3",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。小方块代表匣号，不画数字；末行只画红线，不画字；与 evi_interrogation_record（黑铁夹笔录）区分。"
+    },
+    {
+      "id": "art_ico_item_evi_gertrud_complaint",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一截拧开的乌木教鞭柄：柄端是空心的，里面抽出半封折成细条的旧信，信纸发黄，折痕磨得发白，像被折过很多次。",
+        "en": "A twisted-open ebony teaching-rod handle: its end is hollow, and half of an old letter folded into a narrow strip is drawn out of it, the paper yellowed, the creases worn white as if folded many times."
+      },
+      "ref": "evi_gertrud_complaint",
+      "milestone": "M3",
+      "notes": "证物：画物件本身，靠材质、形状与附物区分；不画可读文字。证物是信，空心教鞭柄是辨识点；信纸不画字；与 nm_undelivered_letter（蓝绳捆信、挂门牌）区分。"
+    },
+    {
+      "id": "art_ico_item_ky_seventh_lock_wax",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一块压扁的蜂蜡：淡黄褐色，边缘留着手指捏过的印子，蜡面深深印着一把钥匙的轮廓，钥柄是带缺口的圆盘，钥齿方正，印痕清楚利落。",
+        "en": "A flattened lump of beeswax: pale yellow-brown, fingerprints pressed into its edges, the outline of a key deeply impressed in its face, the bow a round disc with notches, the bit square, the impression crisp and clean."
+      },
+      "ref": "ky_seventh_lock_wax",
+      "milestone": "M2",
+      "notes": "钥物；印痕与 ky_seven_lock_key 同形；不发光；与 ky_last_wax（暗红火漆屑）区分：本条是淡色蜂蜡块。"
+    },
+    {
+      "id": "art_ico_item_ky_gate_era_plaque_key",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一片钥匙形的铁片：扁平的旧铁打成，上半是一块小方门牌，牌上浮着一个门形轮廓和一排小圆点，下半伸出一截带齿的钥杆，铁面发黑带锈。",
+        "en": "A key-shaped iron plate: flat old iron, the upper half a small square doorplate with a raised door outline and a row of small dots, the lower half extending into a toothed key shaft, the iron blackened and rusty."
+      },
+      "ref": "ky_gate_era_plaque_key",
+      "milestone": "M2",
+      "notes": "钥物；门形轮廓可点一点门扉金细线；圆点不画数字；与 outer_ring_doorplate（青铜方门牌、四角钉孔）区分：本条下半是钥杆。"
+    },
+    {
+      "id": "art_ico_item_lb_annals_original",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一部封着铁皮的书：高而窄的深蓝布面旧书，四角包着铁角，封面与书口被几道铁皮条铆死，铁扣上挂着一把小锁，布面上有地窖潮气留下的白霉点。",
+        "en": "A book sealed in iron: a tall, narrow old book bound in deep blue cloth, iron corners on all four, its cover and fore-edge riveted shut by several iron straps, a small padlock hanging from the iron clasp, white mildew spots from cellar damp on the cloth."
+      },
+      "ref": "lb_annals_original",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；与 lb_annals_holy_years（同为深蓝高窄、翻开露空白页）区分：本条合着并被铁皮封死。"
+    },
+    {
+      "id": "art_ico_item_lb_stillmoss_longsong",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一叠叶纸歌稿：几张浅绿叶纸用一缕苔绿丝线穿订，纸上透着叶脉，画满长长的波形细线，中段整整一截突然空白，之后又接着画，纸边夹着一小撮干青苔。",
+        "en": "A sheaf of leaf-paper song sheets: several pale green leaf papers stitched with a strand of moss-green silk, leaf veins showing through, covered in long wavy lines with one whole stretch in the middle suddenly blank before the lines resume, a small tuft of dry moss tucked at the edge."
+      },
+      "ref": "lb_stillmoss_longsong",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；中段空白、前后有线是辨识点；不画音符与字；与 lb_unsung_name（后半张全空）、evidence_e03（叶纸卷）区分。"
+    },
+    {
+      "id": "art_ico_item_lb_gottlieb_anatomy",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一叠手绘解剖图：几张粗纸用铁夹夹着，最上一张用红墨画着分叉的血管，血管两旁顺着长出一粒粒灰白的小晶体，纸角沾着褐色的药渍。",
+        "en": "A stack of hand-drawn anatomy sheets: several coarse pages held by an iron clip, the top one showing branching blood vessels drawn in red ink with small gray-white crystals growing along them, brown medicine stains on the corner."
+      },
+      "ref": "lb_gottlieb_anatomy",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；不画人体全身与字；晶体用灰白，不用澱紫；与 evidence_e14（铜夹星表纸）区分：本条是红墨血管图。"
+    },
+    {
+      "id": "art_ico_item_lb_star_law_autograph",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一卷发黄的星表：粗纸卷半展开，纸上画满整齐的格线与大小一样的小点，卷边斜斜划过三道又深又直的爪痕，纸被划破了一点，卷轴是旧黑木。",
+        "en": "A yellowed scroll of star tables: a coarse paper scroll half unrolled, covered in neat grid lines and dots all the same size, three deep straight claw scratches slashed diagonally across its edge, slightly tearing the paper, an old black wooden roller."
+      },
+      "ref": "lb_star_law_autograph",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；三道爪痕是辨识点，不画龙；与 lb_star_law（深靛书缠黑带）、evidence_e14（夹着的表格纸）区分。"
+    },
+    {
+      "id": "art_ico_item_lb_tidefolk_ring_chart",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张摊开的海图：米黄皮纸四角各压着一枚小白贝壳，纸上一圈灰白的雾环把整片海围在中间，雾环里散着几粒小岛圆点和几道弯弯的航线。",
+        "en": "A sea chart spread flat: buff hide paper held down at each corner by a small white shell, a gray-white ring of fog drawn around the whole sea, a few small island dots and curved routes scattered inside the ring."
+      },
+      "ref": "lb_tidefolk_ring_chart",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；雾画成闭合的圆环是辨识点；不画字；与 tg_tidefolk_sea_chart（半卷、螺旋洋流）、lb_mist_edge_chart（雾封外缘）区分。"
+    },
+    {
+      "id": "art_ico_item_lb_goldbay_charter_original",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一大张宪章原本：厚羊皮纸半展开，系着金色缎带与天平蜡封，纸面一段段工整的墨行里，有一块长方形的段落颜色发褐，和别处的黑墨不一样。",
+        "en": "A large original charter: thick parchment half unrolled, tied with a gold ribbon and a balance-scale wax seal, and among the neat blocks of ink lines, one rectangular passage is a brownish color unlike the black ink elsewhere."
+      },
+      "ref": "lb_goldbay_charter_original",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；颜色不同的那一块是辨识点；墨行不可读；与 lb_goldbay_charter（大小两卷叠放）区分：本条是单张半展开。"
+    },
+    {
+      "id": "art_ico_item_lb_scale_codex_copy",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一卷鳞纹抄本：浅色的新纸卷在一根白骨轴上，纸边描着一排排细小的鳞片纹，卷外缠着一条半透明的蛇蜕带子，打成一个结。",
+        "en": "A scale-patterned copy scroll: pale new paper rolled on a white bone rod, rows of tiny scale patterns drawn along its edges, a strip of translucent snake slough wound around it and tied in a knot."
+      },
+      "ref": "lb_scale_codex_copy",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；与 lb_scale_codex（暗绿鳞片封面的书）区分：本条是卷子、纸是新的；纸面不画字。"
+    },
+    {
+      "id": "art_ico_item_lb_black_file_guest_page",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一页很旧的鉴定单：纸色焦黄发脆，上端一枚褪色的剑与羽笔小印，中间一个画着小水晶的方框，框里的读数栏空着，纸边用黑绳穿在一枚黑骨签上。",
+        "en": "A very old appraisal sheet: the paper scorched-yellow and brittle, a faded small sword-and-quill stamp at the top, a box with a little crystal drawn in it in the middle, its reading field left empty, the edge threaded on black cord to a black bone tag."
+      },
+      "ref": "lb_black_file_guest_page",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；读数栏是空的，不画数字与字；与 guild_card（铜边硬卡嵌水晶）、lb_record_studies 区分：本条是单页纸。"
+    },
+    {
+      "id": "art_ico_item_lb_bron_record",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本翻旧的大账本：棕色皮面又宽又厚，封面有一圈褐色的杯底印，书角卷起，书页间夹满长短不一的批注纸条，外面用一根旧皮带捆着。",
+        "en": "A well-thumbed big account book: a wide, thick brown leather cover with a brown cup-ring stain, curled corners, the pages stuffed with note slips of different lengths, bound around with an old leather strap."
+      },
+      "ref": "lb_bron_record",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；杯底印与 bron_reference_letter 同一语汇；与 lb_moss_second_ledger（窄厚、书口夹铜钥匙）区分；纸条不画字。"
+    },
+    {
+      "id": "art_ico_item_lb_valen_archive_index",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一本摊开的旧目录：发黄的纸页上排满整齐的条目短线，其中几行被浓墨涂成粗黑的长条，书脊处的装订线露在外面，有几处线圈空着。",
+        "en": "An old catalog lying open: yellowed pages lined with neat rows of entry marks, several rows blacked out into thick bars with heavy ink, the binding thread exposed at the spine with a few empty loops."
+      },
+      "ref": "lb_valen_archive_index",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；涂黑的几行与空着的线圈是辨识点；条目不可读；与 S04（只涂黑一行、夹铜扣）区分。"
+    },
+    {
+      "id": "art_ico_item_lb_gatepicker_dig_page",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一页揉皱的旧日志：纸被揉成一团又摊开，满是折痕，沾着靴底的泥和半个鞋印，页首一枚褪色的光轮小印，下面几行歪斜的墨痕。",
+        "en": "A crumpled old log page: crushed into a ball then smoothed out, covered in creases, smeared with boot mud and half a footprint, a faded small halo stamp at the top, a few slanting lines of ink below."
+      },
+      "ref": "lb_gatepicker_dig_page",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；墨痕不可读；与 lb_gatepicker_camp_ledger（木板账簿）、burnt_page（烧掉半页）区分：本条揉皱带泥鞋印，不烧。"
+    },
+    {
+      "id": "art_ico_item_lb_archive_collation_lines",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一条细长的纸条：卷曲的旧纸上只有一行密密的细小墨痕，纸条一端还粘着一小块碎裂的暗青色封蜡，纸色灰黄。",
+        "en": "A long thin strip of paper: curling old paper bearing a single line of dense, tiny ink marks, one end still stuck to a small cracked piece of dark teal sealing wax, the paper grayish yellow."
+      },
+      "ref": "lb_archive_collation_lines",
+      "milestone": "M2",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；可叠放，图标只画一条；只有一行痕迹，不可读；与 lb_greyrobe_marginalia（书边窄纸）区分：本条带封蜡碎块。"
+    },
+    {
+      "id": "art_ico_item_lb_greyrobe_marginalia",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一条从书边撕下的窄纸：纸边留着装订针孔，沿边竖排着细小的灰色字痕，字痕之间画着一个小小的银色锁链圆环，纸角一点暗紫色的污迹。",
+        "en": "A narrow strip torn from a book's margin: binding holes still along its edge, tiny gray writing marks running vertically down it, a small silver chain-ring doodle among the marks, a dot of dark purple stain in the corner."
+      },
+      "ref": "lb_greyrobe_marginalia",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；可叠放，图标只画一条；暗紫污迹用澱紫 #4a3a62，只一点；字痕不可读；与 lb_greyrobe_notes（整本灰书）区分。"
+    },
+    {
+      "id": "art_ico_item_lb_elwin_doorsong_verse",
+      "template": "ico_item",
+      "subject": {
+        "zh": "一张写着读音记号的叶纸：宽大的浅绿叶纸上透着叶脉，纸面排着五组小记号，每组都像一个打好的圆结，纸边用一根细草茎别着。",
+        "en": "A leaf paper with sound marks: a broad pale green leaf paper with veins showing through, five groups of small marks arranged on it, each group shaped like a tied round knot, a thin grass stem pinned through its edge."
+      },
+      "ref": "lb_elwin_doorsong_verse",
+      "milestone": "M3",
+      "notes": "书籍封面与书脊只画图形纹章，不画书名与字；五组结形记号要数得清，不画字；与 lb_stillmoss_longsong（一叠歌稿）、evidence_e03（银线叶纸卷）区分。"
+    }
+  ]
+}

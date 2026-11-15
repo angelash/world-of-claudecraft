@@ -1,0 +1,1640 @@
+{
+  "category": "ui_theme",
+  "title": "界面主题件（卡片底纹、角花、九宫格边框、章节卡、结局卡、标题与载入画面）",
+  "sources": [
+    "docs/50_tech/art_pipeline.md",
+    "docs/40_design/ux_and_onboarding.md",
+    "docs/40_design/content/catalog_doors.md",
+    "docs/40_design/content/catalog_deeds_titles.md",
+    "docs/40_design/content/content_outline.md",
+    "docs/20_world/pantheon.md"
+  ],
+  "items": [
+    {
+      "id": "art_ui_oracle_eluen",
+      "template": "ui_card",
+      "subject": {
+        "zh": "光之神谕卡：纯白底，四角是完全对称的精密几何纹，像缓慢转动的齿轮，白金细线沿四边围成一圈，四边中点各有一个小小的同心圆。",
+        "en": "Oracle card of light: a pure white base, perfectly symmetrical precise geometric ornaments in the four corners like slowly turning gears, a thin white-gold line running around all four edges, a small concentric circle at the midpoint of each edge."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "ref": "eluen",
+      "milestone": "M1",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；神光白金 #f8f0d8 加纯白；对称是她的标志，左右上下必须完全镜像。"
+    },
+    {
+      "id": "art_ui_oracle_valda",
+      "template": "ui_card",
+      "subject": {
+        "zh": "战之神谕卡：暗红近黑的底，四角是交错的刀痕与一只断掉的角，边框像被剑砍出的缺口一样不规则，几道赤红的细裂痕从角上伸向中间又停住。",
+        "en": "Oracle card of war: a dark red, near-black base, crossing blade scars and a single broken horn in the corners, the border jagged like notches hacked by a sword, a few fine crimson cracks reaching from the corners toward the middle and stopping short."
+      },
+      "extra": {
+        "zh": "夜主题：深色底，文字区是平静的深色。",
+        "en": "Night theme: a dark base, the text area a calm dark field."
+      },
+      "ref": "valda",
+      "milestone": "M1",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；红黑 #3a0e0e、赤红 #c83a2a；裂痕不要伸进文字区。"
+    },
+    {
+      "id": "art_ui_oracle_merca",
+      "template": "ui_card",
+      "subject": {
+        "zh": "财之神谕卡：暖米色的账纸底，四角各浮着一枚小金币与一架小秤，四边是账本式的细横线框，右下角有一枚圆形的金色印章纹样。",
+        "en": "Oracle card of fortune: a warm cream ledger-paper base, a small gold coin and a tiny balance scale floating in each corner, a fine ledger-ruled line frame around the edges, a round gold seal motif in the lower right corner."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "ref": "merca",
+      "milestone": "M1",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；币金 #e0a832 加墨褐；印章与账线里都没有字。"
+    },
+    {
+      "id": "art_ui_oracle_sylvie",
+      "template": "ui_card",
+      "subject": {
+        "zh": "林之神谕卡：淡苍绿底，左侧边缘缠着开着新花的藤，右侧边缘是同一根藤上枯萎的花，四角各有一圈年轮纹，整体安静留白很多。",
+        "en": "Oracle card of the wild: a pale sage-green base, a vine of fresh blossoms twining along the left edge and the same vine bearing withered flowers along the right, a ring of tree-growth lines in each corner, quiet with much empty space."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "ref": "sylvie",
+      "milestone": "M3",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；苍绿 #a8c8a0、枯褐、新花粉白；她第四幕起才对玩家说话。"
+    },
+    {
+      "id": "art_ui_oracle_moira",
+      "template": "ui_card",
+      "subject": {
+        "zh": "录之神谕卡：墨蓝底，上下两边是卷起的卷轴边，卷轴一端拖出很长没有尽头，四角是翻起的书页角，右上角一枚镜片形的同心圆纹。",
+        "en": "Oracle card of record: an ink-blue base, curled scroll edges along the top and bottom with one end trailing on endlessly, turned-up page corners in the four corners, a lens-shaped concentric circle motif at the upper right."
+      },
+      "extra": {
+        "zh": "夜主题：深色底，文字区是平静的深色。",
+        "en": "Night theme: a dark base, the text area a calm dark field."
+      },
+      "ref": "moira",
+      "milestone": "M3",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；墨蓝 #1e2a4a、纸白；卷轴与书页上不写字。"
+    },
+    {
+      "id": "art_ui_oracle_dream",
+      "template": "ui_card",
+      "subject": {
+        "zh": "梦之神谕卡：幽暗的底，四边是层层叠叠向内缩小的门框细线，门框之间透出极淡的暖金光，四角各挂一把小钥匙的剪影，整体像从门里往外看。",
+        "en": "Dream oracle card: a dim base, layer upon layer of thin door-frame lines shrinking inward along the edges, a faint warm gold glow between the frames, a small key silhouette hanging in each corner, the whole like looking out from inside a doorway."
+      },
+      "extra": {
+        "zh": "夜主题：深色底，文字区是平静的深色。",
+        "en": "Night theme: a dark base, the text area a calm dark field."
+      },
+      "ref": "door_woman_dream",
+      "milestone": "M1",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；门扉金 #f0d890 只用细线与微光；不画人，不暗示是谁。"
+    },
+    {
+      "id": "art_ui_oracle_revelation",
+      "template": "ui_card",
+      "subject": {
+        "zh": "天启卡：只有纯白与纯黑两色，白底上一道纯黑的细线框，四角各有三道像碑面凿痕的短直线，除此之外什么纹样都没有，冷而肃穆。",
+        "en": "Revelation card: only pure white and pure black, a thin pure black line frame on a white base, three short straight strokes like chisel marks on a stele in each corner, nothing else at all, cold and solemn."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "ref": "revelation",
+      "milestone": "M3",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；天启不借任何女神的颜色；凿痕是短直线，绝不能像字。"
+    },
+    {
+      "id": "art_ui_appraisal_common",
+      "template": "ui_card",
+      "subject": {
+        "zh": "普通鉴定卡：浅灰蓝底，四角是切面水晶的轮廓线，四边是细细的录纹般的几何短线框，右上角一颗小小的棱柱水晶纹样。",
+        "en": "Common appraisal card: a pale grey-blue base, faceted crystal outlines in the four corners, a frame of fine short geometric strokes along the edges like engraved patterns, a small prism crystal motif at the upper right."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "milestone": "M1",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；公会各分部的普通水晶；冷灰蓝 #c8d4e0。"
+    },
+    {
+      "id": "art_ui_appraisal_guild",
+      "template": "ui_card",
+      "subject": {
+        "zh": "公会高级鉴定卡：深一档的灰蓝底，四角是更大的双层水晶轮廓，边框多一道银色细线，顶边正中一枚交叉剑与羽笔的小徽。",
+        "en": "Guild advanced appraisal card: a deeper grey-blue base, larger double-layered crystal outlines in the corners, an extra thin silver line in the frame, a small crossed-sword-and-quill badge at the top center."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "deps": ["art_ui_appraisal_common"],
+      "milestone": "M2",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；与普通鉴定卡同批生成，层级感靠线条数量与银边。"
+    },
+    {
+      "id": "art_ui_appraisal_academy",
+      "template": "ui_card",
+      "subject": {
+        "zh": "学院精密鉴定卡：象牙白底，四边是圆规与直尺画出的同心圆弧与刻度线框，四角各有一个小小的星盘纹样，整体精确冷静。",
+        "en": "Academy precise appraisal card: an ivory base, a frame of concentric arcs and graduated lines drawn by compass and ruler along the edges, a small astrolabe motif in each corner, precise and cool overall."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "deps": ["art_ui_appraisal_common"],
+      "milestone": "M2",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；刻度线只是短线，不画数字。"
+    },
+    {
+      "id": "art_ui_appraisal_altar",
+      "template": "ui_card",
+      "subject": {
+        "zh": "神前鉴定卡：素白底，四边是一圈中性的光芒纹，顶边正中留一块小小的空徽位，四角是烛台的剪影，光芒纹的颜色可以按神殿换色。",
+        "en": "Altar appraisal card: a plain white base, a ring of neutral radiating rays along the edges, a small empty badge space at the top center, candlestick silhouettes in the corners, the ray color meant to be re-tinted per temple."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "deps": ["art_ui_appraisal_common"],
+      "milestone": "M2",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；光芒纹画成中性灰，由界面按神殿所属女神着色；空徽位由界面叠女神纹章。"
+    },
+    {
+      "id": "art_ui_appraisal_personal",
+      "template": "ui_card",
+      "subject": {
+        "zh": "个人鉴定卡：淡褐色的小纸片底，四边是手绘的不规则细线框，右下角一只半睁的眼睛纹样，四角有几道铅笔般的短划线。",
+        "en": "Personal appraisal card: a small pale tan slip of paper, an irregular hand-drawn thin line frame, a half-open eye motif in the lower right corner, a few pencil-like short strokes in the corners."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "deps": ["art_ui_appraisal_common"],
+      "milestone": "M2",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；学者、老职员、商人的个人鉴定；比水晶档更随意。"
+    },
+    {
+      "id": "art_ui_guildcard",
+      "template": "ui_card",
+      "subject": {
+        "zh": "公会卡：结实的浅褐色卡底，顶边一条深褐色的横带，横带正中一枚交叉剑与羽笔的徽，四角是铆钉般的小圆点，右下角留一块圆形的空印位。",
+        "en": "Guild card: a sturdy pale brown card, a dark brown band across the top with a crossed sword and quill emblem at its center, rivet-like small dots in the four corners, an empty round seal space in the lower right."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "ref": "b_rank_card",
+      "milestone": "M1",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；空印位由界面叠级别印；徽里没有字。"
+    },
+    {
+      "id": "art_ui_rumor",
+      "template": "ui_card",
+      "subject": {
+        "zh": "传闻卡：灰米色的纸底，四边是一圈圈像涟漪一样扩散的细线，四角有几个交叠的小气泡轮廓，左边缘留一条窄竖带给来源头像串。",
+        "en": "Rumor card: a grey-cream paper base, rings of fine lines spreading like ripples around the edges, a few overlapping small speech-bubble outlines in the corners, a narrow vertical strip on the left edge left for a chain of source portraits."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "milestone": "M1",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；气泡里是空的。"
+    },
+    {
+      "id": "art_ui_godrecord",
+      "template": "ui_card",
+      "subject": {
+        "zh": "神之记录卡：深墨灰底，四边是一圈六个大小一样的圆形空徽位，用细线连成环，四角是星图般的小点与连线，显得遥远而客观。",
+        "en": "Divine record card: a deep ink-grey base, a ring of six identical empty round badge spaces around the edges joined by a thin line, star-chart dots and lines in the corners, distant and impartial."
+      },
+      "extra": {
+        "zh": "夜主题：深色底，文字区是平静的深色。",
+        "en": "Night theme: a dark base, the text area a calm dark field."
+      },
+      "milestone": "M2",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；空徽位由界面叠女神纹章；第二幕\"神之视线显性化\"之后解锁。"
+    },
+    {
+      "id": "art_ui_deedbook_notches",
+      "template": "ui_card",
+      "subject": {
+        "zh": "门旁的刻痕：冷灰石面般的底，四边是一道道被刀刻出的短竖痕，痕迹有深有浅，四角各有一个小小的拱门剪影，像刻在门框旁的记号。",
+        "en": "Notches by the doors: a cold grey stone-like base, short vertical knife-cut tally marks along the edges, some deep and some shallow, a small arch silhouette in each corner, like marks scratched beside a door frame."
+      },
+      "extra": {
+        "zh": "夜主题：深色底，文字区是平静的深色。",
+        "en": "Night theme: a dark base, the text area a calm dark field."
+      },
+      "ref": "deedbook",
+      "milestone": "M1",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；序章到第一幕的事迹簿形态；刻痕是计数短线，不是字。"
+    },
+    {
+      "id": "art_ui_deedbook_bron",
+      "template": "ui_card",
+      "subject": {
+        "zh": "布伦手录：泛黄的手记纸底，左边是缝线装订的书脊，四边是随手画的细线框，四角有墨水滴与折角，右下角一个小小的手套剪影。",
+        "en": "Bron's handbook: a yellowed notebook-paper base, a stitched binding spine on the left, a casual hand-drawn line frame, ink drops and folded corners, a small glove silhouette in the lower right."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "ref": "deedbook",
+      "milestone": "M2",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；第二到三幕的事迹簿形态；手写感，不要写字。"
+    },
+    {
+      "id": "art_ui_deedbook_register",
+      "template": "ui_card",
+      "subject": {
+        "zh": "人簿·第一页：整洁的米白纸底，四边是端正的双线框，顶边正中一枚由许多小人形剪影围成的圆徽，四角是方正的回纹。",
+        "en": "The people's register, first page: a neat off-white paper base, an orderly double-line frame, a round emblem at the top center formed by a ring of many small human silhouettes, square meander corners."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "ref": "deedbook",
+      "milestone": "M3",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；第四到五幕的事迹簿形态；圆徽是人形剪影，不是字。"
+    },
+    {
+      "id": "art_ui_deedbook_court",
+      "template": "ui_card",
+      "subject": {
+        "zh": "人簿呈堂：米白纸底外再加一圈深褐色的硬封边，四边封边上有对称的压纹，顶边一枚小小的天平与书的合徽，显得郑重。",
+        "en": "The register presented in court: the off-white page set inside a dark brown hard border, symmetrical embossing along it, a small combined emblem of a scale and a book at the top, solemn."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "ref": "deedbook",
+      "milestone": "M3",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；第六幕的事迹簿形态，是审庭的证据。"
+    },
+    {
+      "id": "art_ui_letter_official",
+      "template": "ui_card",
+      "subject": {
+        "zh": "官府信纸：浅灰白的厚纸底，顶边一道深蓝色的横带，四角是方正的回纹，底边正中留一块方形的空印位。",
+        "en": "Official letter paper: a thick pale grey-white base, a dark blue band along the top, square meander corners, an empty square seal space at the bottom center."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "milestone": "M2",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；与官印同批。"
+    },
+    {
+      "id": "art_ui_letter_church",
+      "template": "ui_card",
+      "subject": {
+        "zh": "教会信纸：象牙白纸底，顶边是一排尖拱窗的细线剪影，四边是简洁的双线框，底边正中留一块圆形的空印位。",
+        "en": "Church letter paper: an ivory paper base, a row of pointed-arch window silhouettes in thin line along the top, a simple double-line frame, an empty round seal space at the bottom center."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "milestone": "M2",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；不画几何光环（那是女神神迹）。"
+    },
+    {
+      "id": "art_ui_letter_merchant",
+      "template": "ui_card",
+      "subject": {
+        "zh": "商号信纸：暖米色纸底，四边是细细的账线与小算珠纹样，顶角有一架小秤，底边正中留一块圆形的空印位。",
+        "en": "Merchant letter paper: a warm cream base, fine ledger lines and small abacus-bead motifs along the edges, a small balance scale at a top corner, an empty round seal space at the bottom center."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "milestone": "M2",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；账线里没有数字。"
+    },
+    {
+      "id": "art_ui_letter_private",
+      "template": "ui_card",
+      "subject": {
+        "zh": "私人信纸：素淡的米黄纸底，没有正式的边框，只在一角画着几片小叶与一根细藤，纸边有轻微的折痕。",
+        "en": "Private letter paper: a plain pale yellow base with no formal border, only a few small leaves and a thin vine drawn in one corner, faint fold creases along the edges."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "milestone": "M2",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；最朴素的一张。"
+    },
+    {
+      "id": "art_ui_evidence",
+      "template": "ui_card",
+      "subject": {
+        "zh": "证物夹：深褐色皮面夹板的底，四角是黄铜包角，顶边一枚黄铜夹子，四边是压线的缝边，中间是平整的浅色纸面。",
+        "en": "Evidence folder: a dark brown leather clipboard base, brass corner guards, a brass clip at the top edge, stitched seams along the edges, a smooth pale paper field in the middle."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "milestone": "M1",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；第一幕第一件证物就要用。"
+    },
+    {
+      "id": "art_ui_record",
+      "template": "ui_card",
+      "subject": {
+        "zh": "史料纸：泛黄发脆的旧纸底，四边有虫蛀的小缺口与焦边，四角有褪色的旧墨渍，整体像从档案里抽出的一页。",
+        "en": "Historical record paper: a yellowed, brittle old paper base, small worm-eaten notches and charred edges, faded old ink stains in the corners, like a page pulled from an archive."
+      },
+      "extra": {
+        "zh": "纸主题：浅色纸底，文字区是平静的浅色。",
+        "en": "Paper theme: a light paper base, the text area a calm pale field."
+      },
+      "milestone": "M1",
+      "notes": "中间文字区必须干净，没有任何字与像字的纹样；墨渍不能构成字。"
+    },
+    {
+      "id": "art_ui_seal_official",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "官印：一枚方形印章的平面纹样，外框粗而方正，印面里是对称的城墙垛口与塔楼几何纹，单色深蓝。",
+        "en": "Official seal: a flat square seal design with a thick, square outer frame, its face a symmetrical geometric motif of crenellations and a tower, single-color dark blue."
+      },
+      "milestone": "M2",
+      "notes": "印面里绝不能有字；与官府信纸同批。"
+    },
+    {
+      "id": "art_ui_seal_church",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "教会印：一枚圆形印章的平面纹样，外圈两道细线，印面里是一座钟楼尖拱的对称剪影，单色暗红。",
+        "en": "Church seal: a flat round seal design with two thin rings around it, its face a symmetrical silhouette of a pointed bell tower, single-color dark red."
+      },
+      "milestone": "M2",
+      "notes": "印面里没有字，不画几何光环。"
+    },
+    {
+      "id": "art_ui_seal_merchant",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "商号印：一枚椭圆形印章的平面纹样，外圈一道齿边，印面里是一架秤与两枚叠放的硬币，单色金褐。",
+        "en": "Merchant seal: a flat oval seal design with a toothed rim, its face showing a balance scale and two stacked coins, single-color gold-brown."
+      },
+      "milestone": "M2",
+      "notes": "印面里没有字。"
+    },
+    {
+      "id": "art_ui_seal_private",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "私人火漆：一枚不规则圆形的火漆印纹样，边缘有溢出的蜡滴，印面里是一片简单的叶子，单色深绿。",
+        "en": "Private wax seal: an irregularly round wax-seal design with drips spilling at its edge, its face a single simple leaf, single-color dark green."
+      },
+      "milestone": "M2",
+      "notes": "印面里没有字。"
+    },
+    {
+      "id": "art_ui_rank_f",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "级别印·最低：一枚小小的圆形铁印纹样，印面只有一道横线，边缘朴素无饰，单色铁灰。",
+        "en": "Rank seal, lowest: a small round iron seal design, its face bearing a single horizontal line, the rim plain and bare, single-color iron grey."
+      },
+      "milestone": "M1",
+      "notes": "七枚级别印同批，用金属与纹样的繁简区分等级，不写字母；这是起点。"
+    },
+    {
+      "id": "art_ui_rank_e",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "级别印·二：一枚圆形铜印纹样，印面是两道平行的横线，边缘一圈细小的珠点，造型朴素，单色铜褐。",
+        "en": "Rank seal, second: a round copper seal design, its face bearing two horizontal lines, a ring of fine beads around the rim, single-color copper brown."
+      },
+      "deps": ["art_ui_rank_f"],
+      "milestone": "M1",
+      "notes": "同批第二枚；不写字母。"
+    },
+    {
+      "id": "art_ui_rank_d",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "级别印·三：一枚圆形青铜印纹样，印面是一枚小盾形，边缘一圈细珠点加一道细线，单色青铜绿。",
+        "en": "Rank seal, third: a round bronze seal design, its face a small shield shape, a ring of fine beads plus a thin line around the rim, single-color bronze green."
+      },
+      "deps": ["art_ui_rank_f"],
+      "milestone": "M2",
+      "notes": "同批第三枚；不写字母。"
+    },
+    {
+      "id": "art_ui_rank_c",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "级别印·四：一枚圆形银印纹样，印面是一面盾上交叉的两把小剑，边缘一圈月桂叶，单色银灰。",
+        "en": "Rank seal, fourth: a round silver seal design, its face two small crossed swords over a shield, a ring of laurel leaves around the rim, single-color silver grey."
+      },
+      "deps": ["art_ui_rank_f"],
+      "milestone": "M2",
+      "notes": "同批第四枚；不写字母。"
+    },
+    {
+      "id": "art_ui_rank_b",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "级别印·五：一枚八角形银印纹样，印面是交叉的剑与羽笔，边缘环绕双圈月桂叶，外形由圆转为八角，单色亮银。",
+        "en": "Rank seal, fifth: an octagonal silver seal design, its face a crossed sword and quill, a double ring of laurel leaves around the rim, single-color bright silver."
+      },
+      "deps": ["art_ui_rank_f"],
+      "milestone": "M2",
+      "notes": "同批第五枚；外形从圆变八角表示跨档；不写字母。"
+    },
+    {
+      "id": "art_ui_rank_a",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "级别印·六：一枚八角形金印纹样，印面是交叉剑与羽笔上方一颗小星，边缘双圈月桂叶加放射短线，单色暖金。",
+        "en": "Rank seal, sixth: an octagonal gold seal design, its face a crossed sword and quill beneath a small star, a double laurel ring plus short radiating lines around the rim, single-color warm gold."
+      },
+      "deps": ["art_ui_rank_f"],
+      "milestone": "M3",
+      "notes": "同批第六枚；暖金不用门扉金那种偏白的金，用 #d8a838；不写字母。"
+    },
+    {
+      "id": "art_ui_rank_s",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "级别印·最高：一枚星形外缘的金印纹样，印面是交叉剑与羽笔上方三颗小星，外缘一圈完整的放射光芒，双色金与深红。",
+        "en": "Rank seal, highest: a gold seal design with a star-shaped outer edge, its face a crossed sword and quill beneath three small stars, a full ring of radiating rays around it, two colors of gold and deep red."
+      },
+      "deps": ["art_ui_rank_f"],
+      "milestone": "M3",
+      "notes": "同批第七枚；不写字母。"
+    },
+    {
+      "id": "art_ui_court_mirror",
+      "template": "ui_frame",
+      "subject": {
+        "zh": "庭镜框：方形边框的四角是对称的镜框卷纹，四边是两道平行的细线，线间等距排着七个小小的椅背剪影，中间完全留空给实时画面。",
+        "en": "Court mirror frame: symmetrical mirror-frame scrolls in the four corners, two parallel thin lines along each edge with seven small chair-back silhouettes evenly spaced between them, the middle completely empty for the live view."
+      },
+      "milestone": "M3",
+      "notes": "审庭中间的庭镜；双色：银白与深墨蓝。"
+    },
+    {
+      "id": "art_ui_court_line_fact",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "事实防线牌：一块竖长的盾形牌纹样，牌面中间一只睁开的眼睛，下方三道横线代表厚度，单色冷灰蓝。",
+        "en": "Fact defense plaque: a tall shield-shaped plaque design, an open eye at its center, three horizontal lines below for thickness, single-color cold grey-blue."
+      },
+      "milestone": "M3",
+      "notes": "三种防线牌同批，靠图形区分；牌上不写字。"
+    },
+    {
+      "id": "art_ui_court_line_justice",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "正当防线牌：一块竖长的盾形牌纹样，牌面中间一架两盘平衡的天平，下方三道横线代表厚度，单色冷灰蓝。",
+        "en": "Justice defense plaque: a tall shield-shaped plaque design, a balanced scale at its center, three horizontal lines below for thickness, single-color cold grey-blue."
+      },
+      "deps": ["art_ui_court_line_fact"],
+      "milestone": "M3",
+      "notes": "同批第二块；牌上不写字。"
+    },
+    {
+      "id": "art_ui_court_line_necessity",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "必要防线牌：一块竖长的盾形牌纹样，牌面中间一道被锁住的门，下方三道横线代表厚度，单色冷灰蓝。",
+        "en": "Necessity defense plaque: a tall shield-shaped plaque design, a locked door at its center, three horizontal lines below for thickness, single-color cold grey-blue."
+      },
+      "deps": ["art_ui_court_line_fact"],
+      "milestone": "M3",
+      "notes": "同批第三块；门是简单剪影，不用门扉金；牌上不写字。"
+    },
+    {
+      "id": "art_ui_court_seat_judge",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "庭之席牌：一块横长的席位牌纹样，牌面是一把高背椅的正面剪影，椅背上方一道弧形的光，双色深墨蓝与银白。",
+        "en": "Judge's seat plaque: a wide seat plaque design, the front silhouette of a high-backed chair on its face with an arc of light above the chair back, two colors of deep ink blue and silver white."
+      },
+      "milestone": "M3",
+      "notes": "两种席位牌同批；牌上不写字。"
+    },
+    {
+      "id": "art_ui_court_seat_witness",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "证人席牌：一块横长的席位牌纹样，牌面是一张矮凳与一只举起的手的剪影，双色深墨蓝与银白。",
+        "en": "Witness seat plaque: a wide seat plaque design, the silhouette of a low stool and a raised hand on its face, two colors of deep ink blue and silver white."
+      },
+      "deps": ["art_ui_court_seat_judge"],
+      "milestone": "M3",
+      "notes": "同批第二块；牌上不写字。"
+    },
+    {
+      "id": "art_ui_doorlook_foyer",
+      "template": "prop_large",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "门前厅的门：一扇朴素的木门，门板边缘的缝里漏着光，门边钉子上挂着一件来自日常生活的小物件（一串旧钥匙扣或一只小铃），门框是简单的石框。",
+        "en": "Foyer door: a plain wooden door with light leaking through the gaps around its leaf, a small everyday object (an old keychain or a little bell) hanging from a nail beside it, a simple stone frame."
+      },
+      "extra": {
+        "zh": "四个格依次是同一扇门的四种状态：轮廓淡淡浮现、门缝透出暖金光、门敞开门内有光、门上横着门闩。",
+        "en": "The four cells show the same door in four states in order: its outline faintly surfacing, warm gold light leaking from the gap, standing open with light inside, and barred across with a crossbar."
+      },
+      "deps": ["art_style_door_corridor"],
+      "milestone": "M1",
+      "notes": "回廊门相：千门回廊的门立牌，四格是显影、可开、已开、锁闭四种状态（第五种\"关闭\"由界面叠门楣的痕）；门扉金只用在门缝与门内的光；不写字。"
+    },
+    {
+      "id": "art_ui_doorlook_mirror",
+      "template": "prop_large",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "镜廊的门：门板像一面平静的水面，表面隐约映出许多小窗格，门框是银灰色的细框，门楣挂着一道半掩的薄帘。",
+        "en": "Mirror-hall door: a door leaf like a calm water surface faintly reflecting many small window panes, a slender silver-grey frame, a half-drawn thin curtain hanging from the lintel."
+      },
+      "extra": {
+        "zh": "四个格依次是同一扇门的四种状态：轮廓淡淡浮现、门缝透出暖金光、门敞开门内有光、门上横着门闩。",
+        "en": "The four cells show the same door in four states in order: its outline faintly surfacing, warm gold light leaking from the gap, standing open with light inside, and barred across with a crossbar."
+      },
+      "deps": ["art_style_door_corridor"],
+      "milestone": "M1",
+      "notes": "回廊门相：千门回廊的门立牌，四格是显影、可开、已开、锁闭四种状态（第五种\"关闭\"由界面叠门楣的痕）；门扉金只用在门缝与门内的光；不写字。"
+    },
+    {
+      "id": "art_ui_doorlook_stele",
+      "template": "prop_large",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "七碑廊的门：一块碑形的石门，碑面平整空白，碑顶圆弧，碑座刻着简单的横纹，门缝在碑面正中竖直一道。",
+        "en": "Stele-hall door: a stele-shaped stone door with a smooth blank face, a rounded top and simple horizontal grooves on its base, the door gap running vertically down the middle of the face."
+      },
+      "extra": {
+        "zh": "四个格依次是同一扇门的四种状态：轮廓淡淡浮现、门缝透出暖金光、门敞开门内有光、门上横着门闩。",
+        "en": "The four cells show the same door in four states in order: its outline faintly surfacing, warm gold light leaking from the gap, standing open with light inside, and barred across with a crossbar."
+      },
+      "deps": ["art_style_door_corridor"],
+      "milestone": "M3",
+      "notes": "回廊门相：千门回廊的门立牌，四格是显影、可开、已开、锁闭四种状态（第五种\"关闭\"由界面叠门楣的痕）；门扉金只用在门缝与门内的光；不写字。碑面必须空白（拓片的字由界面另加）。"
+    },
+    {
+      "id": "art_ui_doorlook_vocation",
+      "template": "prop_large",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "九职长廊的门：一扇厚重的橡木门，门板正中嵌着一枚圆形的金属徽座，徽座里是空的，门框两侧各有一根短柱，庄重朴实。",
+        "en": "Vocation-hall door: a heavy oak door with a round metal badge mount set in the middle of its leaf, the mount left empty, a short pillar on each side of the frame, solid and dignified."
+      },
+      "extra": {
+        "zh": "四个格依次是同一扇门的四种状态：轮廓淡淡浮现、门缝透出暖金光、门敞开门内有光、门上横着门闩。",
+        "en": "The four cells show the same door in four states in order: its outline faintly surfacing, warm gold light leaking from the gap, standing open with light inside, and barred across with a crossbar."
+      },
+      "deps": ["art_style_door_corridor"],
+      "milestone": "M1",
+      "notes": "回廊门相：千门回廊的门立牌，四格是显影、可开、已开、锁闭四种状态（第五种\"关闭\"由界面叠门楣的痕）；门扉金只用在门缝与门内的光；不写字。徽座留空，由界面叠九种职能的符号，门上不写字。"
+    },
+    {
+      "id": "art_ui_doorlook_school",
+      "template": "prop_large",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "流派龛的门：一座浅浅的石龛里并排三扇小拱门，三扇门大小一样，门楣上各有一条空白的小横牌，龛顶是简单的尖拱。",
+        "en": "School-niche doors: three small arched doors side by side in a shallow stone niche, all the same size, a blank little plaque above each lintel, a simple pointed arch over the niche."
+      },
+      "extra": {
+        "zh": "四个格依次是同一扇门的四种状态：轮廓淡淡浮现、门缝透出暖金光、门敞开门内有光、门上横着门闩。",
+        "en": "The four cells show the same door in four states in order: its outline faintly surfacing, warm gold light leaking from the gap, standing open with light inside, and barred across with a crossbar."
+      },
+      "deps": ["art_style_door_corridor"],
+      "milestone": "M2",
+      "notes": "回廊门相：千门回廊的门立牌，四格是显影、可开、已开、锁闭四种状态（第五种\"关闭\"由界面叠门楣的痕）；门扉金只用在门缝与门内的光；不写字。横牌空白（师傅的名字由界面另加）；四格状态只作用在中间那扇门。"
+    },
+    {
+      "id": "art_ui_doorlook_crossing",
+      "template": "prop_large",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "交手廊的门：两扇门板共用一个宽门框，左右两扇木色不同，门槛下渗出一道细细的清水，在地上淌成一条亮线。",
+        "en": "Crossing-hall door: two door leaves sharing one wide frame, the left and right in different woods, a thin trickle of clear water seeping from under the threshold and running into a bright line on the floor."
+      },
+      "extra": {
+        "zh": "四个格依次是同一扇门的四种状态：轮廓淡淡浮现、门缝透出暖金光、门敞开门内有光、门上横着门闩。",
+        "en": "The four cells show the same door in four states in order: its outline faintly surfacing, warm gold light leaking from the gap, standing open with light inside, and barred across with a crossbar."
+      },
+      "deps": ["art_style_door_corridor"],
+      "milestone": "M2",
+      "notes": "回廊门相：千门回廊的门立牌，四格是显影、可开、已开、锁闭四种状态（第五种\"关闭\"由界面叠门楣的痕）；门扉金只用在门缝与门内的光；不写字。"
+    },
+    {
+      "id": "art_ui_doorlook_crafts",
+      "template": "prop_large",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "百工廊的门：一扇结实的作坊门，门板上钉着一块空的挂钩板，门框是粗木，门边靠着一个小工具箱，门板上有磨损的手印。",
+        "en": "Craft-hall door: a sturdy workshop door with an empty pegboard nailed to its leaf, a rough timber frame, a small toolbox leaning beside it, worn handprints on the wood."
+      },
+      "extra": {
+        "zh": "四个格依次是同一扇门的四种状态：轮廓淡淡浮现、门缝透出暖金光、门敞开门内有光、门上横着门闩。",
+        "en": "The four cells show the same door in four states in order: its outline faintly surfacing, warm gold light leaking from the gap, standing open with light inside, and barred across with a crossbar."
+      },
+      "deps": ["art_style_door_corridor"],
+      "milestone": "M2",
+      "notes": "回廊门相：千门回廊的门立牌，四格是显影、可开、已开、锁闭四种状态（第五种\"关闭\"由界面叠门楣的痕）；门扉金只用在门缝与门内的光；不写字。挂钩板留空，由界面叠各生业的工具图标。"
+    },
+    {
+      "id": "art_ui_doorlook_six_chairs",
+      "template": "prop_large",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "六椅厅的门：一扇高背椅形状的门，门板就是椅背，门框是椅子的扶手与椅腿，椅背顶端有一道简洁的弧形雕饰。",
+        "en": "Six-chair hall door: a door shaped like a high-backed chair, its leaf the chair back, its frame the armrests and legs, a simple arched carving at the top of the back."
+      },
+      "extra": {
+        "zh": "四个格依次是同一扇门的四种状态：轮廓淡淡浮现、门缝透出暖金光、门敞开门内有光、门上横着门闩。",
+        "en": "The four cells show the same door in four states in order: its outline faintly surfacing, warm gold light leaking from the gap, standing open with light inside, and barred across with a crossbar."
+      },
+      "deps": ["art_style_door_corridor"],
+      "milestone": "M2",
+      "notes": "回廊门相：千门回廊的门立牌，四格是显影、可开、已开、锁闭四种状态（第五种\"关闭\"由界面叠门楣的痕）；门扉金只用在门缝与门内的光；不写字。"
+    },
+    {
+      "id": "art_ui_doorlook_knot",
+      "template": "prop_large",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "结绳廊的门：一扇温暖的木门，门环上系着一根打了许多结的粗绳，绳结疏密不一，绳尾垂到门板中间。",
+        "en": "Knot-hall door: a warm wooden door with a thick rope tied with many knots on its ring, the knots unevenly spaced, the rope end hanging down to the middle of the leaf."
+      },
+      "extra": {
+        "zh": "四个格依次是同一扇门的四种状态：轮廓淡淡浮现、门缝透出暖金光、门敞开门内有光、门上横着门闩。",
+        "en": "The four cells show the same door in four states in order: its outline faintly surfacing, warm gold light leaking from the gap, standing open with light inside, and barred across with a crossbar."
+      },
+      "deps": ["art_style_door_corridor"],
+      "milestone": "M1",
+      "notes": "回廊门相：千门回廊的门立牌，四格是显影、可开、已开、锁闭四种状态（第五种\"关闭\"由界面叠门楣的痕）；门扉金只用在门缝与门内的光；不写字。门环的冷暖由渲染层调色。"
+    },
+    {
+      "id": "art_ui_doorlook_road",
+      "template": "prop_large",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "行路翼的门：一扇旅店式的拱门，门框石头上刻着一圈磨平了的浅槽，门边挂着一盏小提灯，门槛被踩得发亮。",
+        "en": "Road-wing door: an inn-style arched door, a ring of worn-smooth shallow grooves carved in its stone frame, a small lantern hanging beside it, the threshold polished bright by feet."
+      },
+      "extra": {
+        "zh": "四个格依次是同一扇门的四种状态：轮廓淡淡浮现、门缝透出暖金光、门敞开门内有光、门上横着门闩。",
+        "en": "The four cells show the same door in four states in order: its outline faintly surfacing, warm gold light leaking from the gap, standing open with light inside, and barred across with a crossbar."
+      },
+      "deps": ["art_style_door_corridor"],
+      "milestone": "M2",
+      "notes": "回廊门相：千门回廊的门立牌，四格是显影、可开、已开、锁闭四种状态（第五种\"关闭\"由界面叠门楣的痕）；门扉金只用在门缝与门内的光；不写字。门框上的浅槽是磨平的地名，必须看不出字。"
+    },
+    {
+      "id": "art_ui_doorlook_court_wing",
+      "template": "prop_large",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "庭翼的门：一扇家常的院门，门板上有一扇小窗透出灶火的暖光，门边放着一只水桶和一把扫帚，门楣挂着一束干草药。",
+        "en": "Garden-wing door: a homely courtyard door with a small window in its leaf glowing with warm hearth light, a water bucket and a broom beside it, a bundle of dried herbs hanging from the lintel."
+      },
+      "extra": {
+        "zh": "四个格依次是同一扇门的四种状态：轮廓淡淡浮现、门缝透出暖金光、门敞开门内有光、门上横着门闩。",
+        "en": "The four cells show the same door in four states in order: its outline faintly surfacing, warm gold light leaking from the gap, standing open with light inside, and barred across with a crossbar."
+      },
+      "deps": ["art_style_door_corridor"],
+      "milestone": "M2",
+      "notes": "回廊门相：千门回廊的门立牌，四格是显影、可开、已开、锁闭四种状态（第五种\"关闭\"由界面叠门楣的痕）；门扉金只用在门缝与门内的光；不写字。"
+    },
+    {
+      "id": "art_ui_doorlook_ash",
+      "template": "prop_large",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "灰廊的门：一扇半埋在灰里的旧石门，门槛前积着厚厚的灰，门缝里飘出细细的灰尘，门框边缘被灰覆盖成浅灰色。",
+        "en": "Ash-hall door: an old stone door half buried in ash, a thick drift of ash before the threshold, fine dust drifting out of the gap, the frame edges blanketed pale grey."
+      },
+      "extra": {
+        "zh": "四个格依次是同一扇门的四种状态：轮廓淡淡浮现、门缝透出暖金光、门敞开门内有光、门上横着门闩。",
+        "en": "The four cells show the same door in four states in order: its outline faintly surfacing, warm gold light leaking from the gap, standing open with light inside, and barred across with a crossbar."
+      },
+      "deps": ["art_style_door_corridor"],
+      "milestone": "M1",
+      "notes": "回廊门相：千门回廊的门立牌，四格是显影、可开、已开、锁闭四种状态（第五种\"关闭\"由界面叠门楣的痕）；门扉金只用在门缝与门内的光；不写字。"
+    },
+    {
+      "id": "art_ui_doorlook_wind",
+      "template": "prop_large",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "风口的门：一扇窄而高的黑铁门，门上没有锁孔，门缝里吹出的风把门边的布条吹得笔直，门框边缘有风蚀的痕迹。",
+        "en": "Windward door: a narrow, tall black iron door with no keyhole, wind blowing from its gap stretching a strip of cloth beside it straight out, wind-worn marks along the frame."
+      },
+      "extra": {
+        "zh": "四个格依次是同一扇门的四种状态：轮廓淡淡浮现、门缝透出暖金光、门敞开门内有光、门上横着门闩。",
+        "en": "The four cells show the same door in four states in order: its outline faintly surfacing, warm gold light leaking from the gap, standing open with light inside, and barred across with a crossbar."
+      },
+      "deps": ["art_style_door_corridor"],
+      "milestone": "M1",
+      "notes": "回廊门相：千门回廊的门立牌，四格是显影、可开、已开、锁闭四种状态（第五种\"关闭\"由界面叠门楣的痕）；门扉金只用在门缝与门内的光；不写字。危险档由门框裂纹数表现，由界面叠加，不画进本图。"
+    },
+    {
+      "id": "art_ui_doorlook_end",
+      "template": "prop_large",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "尽头的门：一扇极简的白色门，没有任何装饰与门环，门框是一道细细的白线，门前的地面像镜子一样映出门的倒影。",
+        "en": "The final door: an utterly plain white door with no ornament or knocker, its frame a single thin white line, the floor before it mirroring the door's reflection."
+      },
+      "extra": {
+        "zh": "四个格依次是同一扇门的四种状态：轮廓淡淡浮现、门缝透出暖金光、门敞开门内有光、门上横着门闩。",
+        "en": "The four cells show the same door in four states in order: its outline faintly surfacing, warm gold light leaking from the gap, standing open with light inside, and barred across with a crossbar."
+      },
+      "deps": ["art_style_door_corridor"],
+      "milestone": "M3",
+      "notes": "回廊门相：千门回廊的门立牌，四格是显影、可开、已开、锁闭四种状态（第五种\"关闭\"由界面叠门楣的痕）；门扉金只用在门缝与门内的光；不写字。第一格\"显影\"之前它根本不出现。"
+    },
+    {
+      "id": "art_ui_chapter_prologue",
+      "template": "ui_screen",
+      "style": "divine_court",
+      "subject": {
+        "zh": "序章：白石大理石的殿堂深处，一排高背椅在柔和恒定的光里静静排开，椅子上没有人，只有光；殿堂尽头立着一面圆形的灵镜。",
+        "en": "Prologue: deep in a hall of white stone and marble, a row of high-backed chairs standing quietly in soft, unchanging light, no one seated, only light; a round spirit mirror at the far end of the hall."
+      },
+      "extra": {
+        "zh": "左侧三分之一留出安静的空位给竖排菜单，主体放在右侧。",
+        "en": "Leave the left third quiet and empty for a vertical menu; place the subject on the right."
+      },
+      "deps": ["art_style_divine_court"],
+      "milestone": "M1",
+      "notes": "章节卡兼标题主视觉：标题画面按已到达的最高幕切换，开幕时作章节卡；只画这一幕的地点与气氛，不剧透这一幕的事件；椅子上不画女神。"
+    },
+    {
+      "id": "art_ui_chapter_act1",
+      "template": "ui_screen",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "第一幕：傍晚的边陲小镇，灰泥半木屋与陶红瓦顶挤在木栅里，镇外是铁杉林与土路，远处灰色的荒原边缘有一道淡淡的灰雾。",
+        "en": "Act one: a frontier town at dusk, half-timbered houses and terracotta roofs huddled within a wooden palisade, hemlock woods and a dirt road beyond, a faint grey haze along the edge of the ashen waste in the distance."
+      },
+      "extra": {
+        "zh": "左侧三分之一留出安静的空位给竖排菜单，主体放在右侧。",
+        "en": "Leave the left third quiet and empty for a vertical menu; place the subject on the right."
+      },
+      "deps": ["art_style_lothar_plain"],
+      "milestone": "M1",
+      "notes": "章节卡兼标题主视觉：标题画面按已到达的最高幕切换，开幕时作章节卡；只画这一幕的地点与气氛，不剧透这一幕的事件；灰雾只是远景氛围。"
+    },
+    {
+      "id": "art_ui_chapter_act2",
+      "template": "ui_screen",
+      "style": "valen_city",
+      "subject": {
+        "zh": "第二幕：设防的边境大城，蓝灰色石板瓦的屋顶层层叠叠，白钟大教堂的尖塔立在中央，河港码头停着驳船，城墙厚重。",
+        "en": "Act two: a fortified border city, blue-grey slate roofs stacked layer on layer, the spire of a white-bell cathedral at its heart, barges moored at the river docks, the walls massive."
+      },
+      "extra": {
+        "zh": "左侧三分之一留出安静的空位给竖排菜单，主体放在右侧。",
+        "en": "Leave the left third quiet and empty for a vertical menu; place the subject on the right."
+      },
+      "deps": ["art_style_valen_city"],
+      "milestone": "M2",
+      "notes": "章节卡兼标题主视觉：标题画面按已到达的最高幕切换，开幕时作章节卡；只画这一幕的地点与气氛，不剧透这一幕的事件；"
+    },
+    {
+      "id": "art_ui_chapter_act3",
+      "template": "ui_screen",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "第三幕：灰烬荒原与林地交界的防线，木栅与土垒沿着一条小河排开，河上一座窄窄的苇桥，天边红灰色的天光压得很低。",
+        "en": "Act three: a defensive line where the ashen waste meets the woodland, palisades and earthworks strung along a small river, a narrow reed bridge across it, the red-grey sky hanging low on the horizon."
+      },
+      "extra": {
+        "zh": "左侧三分之一留出安静的空位给竖排菜单，主体放在右侧。",
+        "en": "Leave the left third quiet and empty for a vertical menu; place the subject on the right."
+      },
+      "deps": ["art_style_ash_waste"],
+      "milestone": "M2",
+      "notes": "章节卡兼标题主视觉：标题画面按已到达的最高幕切换，开幕时作章节卡；只画这一幕的地点与气氛，不剧透这一幕的事件；"
+    },
+    {
+      "id": "art_ui_chapter_act4",
+      "template": "ui_screen",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "第四幕：从高处望出去的大陆，近处是白石穹顶与钟楼，远处依次是赭红的长垒、海港的白帆与连绵的巨树，地平线上隐约立着几块碑。",
+        "en": "Act four: the continent seen from on high, white domes and bell towers nearby, and beyond them in turn ochre long walls, white sails in a harbor and an unbroken line of giant trees, a few steles faintly standing on the horizon."
+      },
+      "extra": {
+        "zh": "左侧三分之一留出安静的空位给竖排菜单，主体放在右侧。",
+        "en": "Leave the left third quiet and empty for a vertical menu; place the subject on the right."
+      },
+      "deps": ["art_style_holy_see_white"],
+      "milestone": "M3",
+      "notes": "章节卡兼标题主视觉：标题画面按已到达的最高幕切换，开幕时作章节卡；只画这一幕的地点与气氛，不剧透这一幕的事件；远景只是各国风格的剪影，碑面不写字。"
+    },
+    {
+      "id": "art_ui_chapter_act5",
+      "template": "ui_screen",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "第五幕：焦黑岩地上并排扎着各族的营帐与军旗，营火连成一条长线，远处灰烬荒原的中心有一处巨大的坑，坑口泛着微光。",
+        "en": "Act five: the tents and banners of many peoples pitched side by side on scorched black rock, campfires strung into a long line, a vast crater at the heart of the ashen waste in the distance with a faint glow at its rim."
+      },
+      "extra": {
+        "zh": "左侧三分之一留出安静的空位给竖排菜单，主体放在右侧。",
+        "en": "Leave the left third quiet and empty for a vertical menu; place the subject on the right."
+      },
+      "deps": ["art_style_ash_waste"],
+      "milestone": "M3",
+      "notes": "章节卡兼标题主视觉：标题画面按已到达的最高幕切换，开幕时作章节卡；只画这一幕的地点与气氛，不剧透这一幕的事件；坑口的微光不画澱紫，只是暗淡的光。"
+    },
+    {
+      "id": "art_ui_chapter_act6",
+      "template": "ui_screen",
+      "style": "divine_court",
+      "subject": {
+        "zh": "第六幕：同一座白石殿堂，长桌两侧摆着椅子，桌子中央立着一面巨大的圆镜，镜里映着一座微缩的箱庭，光不再柔和而是冷白。",
+        "en": "Act six: the same white stone hall, chairs set along both sides of a long table, a huge round mirror standing at its center reflecting a miniature boxed garden, the light no longer soft but cold white."
+      },
+      "extra": {
+        "zh": "左侧三分之一留出安静的空位给竖排菜单，主体放在右侧。",
+        "en": "Leave the left third quiet and empty for a vertical menu; place the subject on the right."
+      },
+      "deps": ["art_style_divine_court"],
+      "milestone": "M3",
+      "notes": "章节卡兼标题主视觉：标题画面按已到达的最高幕切换，开幕时作章节卡；只画这一幕的地点与气氛，不剧透这一幕的事件；椅子上不画女神。"
+    },
+    {
+      "id": "art_ui_chapter_finale",
+      "template": "ui_screen",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "终章：清晨的乡间小路，路边一扇孤零零的木门立在草地上，门开着一条缝，门外是晨光里的田野与远处的小镇炊烟。",
+        "en": "Finale: a country lane at dawn, a lone wooden door standing in the grass by the road, open just a crack, beyond it fields in the morning light and wisps of chimney smoke from a distant town."
+      },
+      "extra": {
+        "zh": "左侧三分之一留出安静的空位给竖排菜单，主体放在右侧。",
+        "en": "Leave the left third quiet and empty for a vertical menu; place the subject on the right."
+      },
+      "deps": ["art_style_lothar_plain"],
+      "milestone": "M3",
+      "notes": "章节卡兼标题主视觉：标题画面按已到达的最高幕切换，开幕时作章节卡；只画这一幕的地点与气氛，不剧透这一幕的事件；不透露任何结局。"
+    },
+    {
+      "id": "art_ui_ending_release",
+      "template": "ui_card",
+      "subject": {
+        "zh": "离手：下方一只张开的手掌线描，掌心上方一根断开的细线向上飘走，四角是嫩芽与晨光的放射纹，底色是晨白，整体轻而开阔。",
+        "en": "Release: a line drawing of an open palm at the bottom, a severed thin thread drifting upward above it, sprouting shoots and dawn rays in the corners, a morning-white base, light and open."
+      },
+      "ref": "ending_release",
+      "milestone": "M3",
+      "notes": "结局卡：只用象征纹样，不画具体剧情与人物；中间文字区必须干净，没有任何字与像字的纹样；晨白 #fbf8ef、淡绿 #b8d8a0、淡金。"
+    },
+    {
+      "id": "art_ui_ending_release_unfinished",
+      "template": "ui_card",
+      "subject": {
+        "zh": "离手·未竟：同样张开的手掌线描，但细线的一端仍缠在左上角，四角的纹样一半是嫩芽一半是空白的格子，底色偏灰。",
+        "en": "Release, unfinished: the same open palm line drawing, but one end of the thread still caught at the upper left corner, the corner ornaments half sprouting shoots and half empty grid cells, a greyish base."
+      },
+      "ref": "ending_release_unfinished",
+      "milestone": "M3",
+      "notes": "结局卡：只用象征纹样，不画具体剧情与人物；中间文字区必须干净，没有任何字与像字的纹样；与离手同批生成。"
+    },
+    {
+      "id": "art_ui_ending_new_god",
+      "template": "ui_card",
+      "subject": {
+        "zh": "新神：上方正中一个空着的冠形轮廓，被六道细光线从下方托住，四角是层层向中心收束的放射线，黑白两色，庄严而孤独。",
+        "en": "New god: an empty crown outline at the top center held up from below by six thin rays, layered radiating lines converging toward the center in the corners, black and white only, solemn and lonely."
+      },
+      "ref": "ending_new_god",
+      "milestone": "M3",
+      "notes": "结局卡：只用象征纹样，不画具体剧情与人物；中间文字区必须干净，没有任何字与像字的纹样；冠里是空的。"
+    },
+    {
+      "id": "art_ui_ending_rule_eluen",
+      "template": "ui_card",
+      "subject": {
+        "zh": "光之治：四边被精密对称的白金几何齿轮纹完全围满，纹样一层套一层，没有一处不对称，留给文字的空间整齐而狭窄。",
+        "en": "Rule of light: the four edges entirely filled with precise, symmetrical white-gold geometric gear patterns, layer within layer, nowhere asymmetrical, the space left for text orderly and narrow."
+      },
+      "ref": "ending_rule_eluen",
+      "milestone": "M3",
+      "notes": "结局卡：只用象征纹样，不画具体剧情与人物；中间文字区必须干净，没有任何字与像字的纹样；某神之治五张同批，只换女神的纹样与颜色。"
+    },
+    {
+      "id": "art_ui_ending_rule_valda",
+      "template": "ui_card",
+      "subject": {
+        "zh": "战之治：四边布满交错的赤黑刀痕与断剑纹，角上是断掉的角，刀痕一直伸到文字区的边缘才停下。",
+        "en": "Rule of war: the edges covered in crossing red-black blade scars and broken-sword motifs, broken horns in the corners, the scars reaching all the way to the edge of the text area before stopping."
+      },
+      "ref": "ending_rule_valda",
+      "milestone": "M3",
+      "notes": "结局卡：只用象征纹样，不画具体剧情与人物；中间文字区必须干净，没有任何字与像字的纹样；与光之治同批。"
+    },
+    {
+      "id": "art_ui_ending_rule_merca",
+      "template": "ui_card",
+      "subject": {
+        "zh": "财之治：四边是一圈圈金币、秤与账线组成的纹样，像一本没有尽头的账，角上的秤盘一边高一边低。",
+        "en": "Rule of fortune: the edges ringed with patterns of gold coins, scales and ledger lines like an endless account book, the scale pans in the corners one high and one low."
+      },
+      "ref": "ending_rule_merca",
+      "milestone": "M3",
+      "notes": "结局卡：只用象征纹样，不画具体剧情与人物；中间文字区必须干净，没有任何字与像字的纹样；与光之治同批；账线里没有数字。"
+    },
+    {
+      "id": "art_ui_ending_rule_sylvie",
+      "template": "ui_card",
+      "subject": {
+        "zh": "林之治：四边缠满苍绿的藤与四季年轮纹，一边开着新花，一边是枯花，藤蔓慢慢往文字区里长。",
+        "en": "Rule of the wild: the edges wrapped in pale green vines and four-season growth rings, fresh blossoms on one side and withered ones on the other, the vines slowly creeping toward the text area."
+      },
+      "ref": "ending_rule_sylvie",
+      "milestone": "M3",
+      "notes": "结局卡：只用象征纹样，不画具体剧情与人物；中间文字区必须干净，没有任何字与像字的纹样；与光之治同批。"
+    },
+    {
+      "id": "art_ui_ending_rule_moira",
+      "template": "ui_card",
+      "subject": {
+        "zh": "录之治：四边是无尽缠绕的墨蓝卷轴与层叠的书页，卷轴的一端绕过四个角又回到起点，像永远写不完的记录。",
+        "en": "Rule of record: the edges wound with endless ink-blue scrolls and stacked pages, one end of the scroll circling all four corners and returning to its start, like a record never finished."
+      },
+      "ref": "ending_rule_moira",
+      "milestone": "M3",
+      "notes": "结局卡：只用象征纹样，不画具体剧情与人物；中间文字区必须干净，没有任何字与像字的纹样；与光之治同批；书页无字。"
+    },
+    {
+      "id": "art_ui_ending_door_restoration",
+      "template": "ui_card",
+      "subject": {
+        "zh": "门之复辟：四边是层层叠叠的门框细线，门框一圈比一圈大，四角各挂一串钥匙，门缝里透出暖金的光。",
+        "en": "Restoration of the doors: the edges lined with layer upon layer of thin door frames, each larger than the last, a bunch of keys hanging in each corner, warm gold light seeping from the gaps."
+      },
+      "ref": "ending_janu_restored",
+      "milestone": "M3",
+      "notes": "结局卡：只用象征纹样，不画具体剧情与人物；中间文字区必须干净，没有任何字与像字的纹样；门扉金 #f0d890；不画人。"
+    },
+    {
+      "id": "art_ui_ending_reclaim",
+      "template": "ui_card",
+      "subject": {
+        "zh": "回收：四边的纹样从外向内碎成灰色的碎片，碎片向中间飘落，下方一块碑形的轮廓熄成全黑，底色灰暗。",
+        "en": "Reclamation: the edge ornaments crumbling inward into grey fragments that drift toward the middle, a stele-shaped outline at the bottom gone fully black, a dim grey base."
+      },
+      "ref": "ending_reclaim",
+      "milestone": "M3",
+      "notes": "结局卡：只用象征纹样，不画具体剧情与人物；中间文字区必须干净，没有任何字与像字的纹样；灰黑为主，不用澱紫。"
+    },
+    {
+      "id": "art_ui_ending_hidden",
+      "template": "ui_card",
+      "subject": {
+        "zh": "隐藏结局：几乎全是空白，只在右下角用极细的线画着一张小桌与桌上一个信封的轮廓，四边一道极淡的细线框。",
+        "en": "Hidden ending: almost entirely blank, only a tiny table with an envelope on it drawn in hair-thin line at the lower right, a very faint thin frame around the edges."
+      },
+      "ref": "ending_maker",
+      "milestone": "M3",
+      "notes": "结局卡：只用象征纹样，不画具体剧情与人物；中间文字区必须干净，没有任何字与像字的纹样；纸白与淡墨两色；信封上不写字。"
+    },
+    {
+      "id": "art_ui_corner_night",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "夜主题角花：几道细线从角上弯出，像简单的藤蔓卷须，卷须末端一颗小圆点，线条冷银白，简洁不抢眼。",
+        "en": "Night theme corner: a few thin lines curling out from the corner like simple vine tendrils, each ending in a small dot, the lines cold silver-white, simple and unobtrusive."
+      },
+      "milestone": "M1",
+      "notes": "角花朝左上角，界面按需旋转与镜像；夜主题面板通用；单色 #c8d0dc。"
+    },
+    {
+      "id": "art_ui_corner_paper",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "纸主题角花：一枝墨褐色的细藤从角上伸出，藤上两三片小叶，线条像钢笔画，干净温暖。",
+        "en": "Paper theme corner: a thin ink-brown vine reaching from the corner with two or three small leaves, the lines like a pen drawing, clean and warm."
+      },
+      "milestone": "M1",
+      "notes": "角花朝左上角，界面按需旋转与镜像；纸主题面板通用；单色 #5a4a3a。"
+    },
+    {
+      "id": "art_ui_divider_night",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "夜主题分隔线：一道水平的细线，正中一颗小小的菱形，菱形两侧的线渐渐变细收尖，冷银白色。",
+        "en": "Night theme divider: a horizontal thin line with a small diamond at its center, the line tapering to points on either side, cold silver-white."
+      },
+      "milestone": "M1",
+      "notes": "分隔线横向居中，导入时按宽度拉伸两端。"
+    },
+    {
+      "id": "art_ui_divider_paper",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "纸主题分隔线：一道水平的墨褐细线，正中一片小叶，两端各有一个小卷，像书页上的装饰线。",
+        "en": "Paper theme divider: a horizontal ink-brown thin line with a small leaf at its center and a little curl at each end, like a decorative rule on a book page."
+      },
+      "milestone": "M1",
+      "notes": "与纸主题角花同批。"
+    },
+    {
+      "id": "art_ui_corner_door",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "门系角花：一个小小的拱门轮廓立在角上，门边伸出两道细线沿边延展，线上挂一把小钥匙，门扉金色。",
+        "en": "Door corner: a small arch outline standing in the corner, two thin lines extending from it along the edges, a small key hanging from one, door gold."
+      },
+      "milestone": "M1",
+      "notes": "角花朝左上角，界面按需旋转与镜像；回廊门卡与开门弹窗用；门扉金 #f0d890。"
+    },
+    {
+      "id": "art_ui_corner_dian",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "澱警示角花：几道细裂纹从角上向两边蔓延，裂纹之间夹着小小的斑点，澱紫色，看起来不安。",
+        "en": "Sediment warning corner: a few fine cracks spreading from the corner along both edges, small specks between them, sediment purple, unsettling to look at."
+      },
+      "milestone": "M1",
+      "notes": "角花朝左上角，界面按需旋转与镜像；澱度提示与澱病面板用；澱紫 #4a3a62 配亮一阶 #6a5a8a。"
+    },
+    {
+      "id": "art_ui_corner_eluen",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "光之角花：角上一个四分之一的精密齿轮纹，齿与齿完全等距，外圈一道细弧线，白金色，冷静对称。",
+        "en": "Light corner: a quarter of a precise gear pattern in the corner, its teeth perfectly evenly spaced, a thin arc around it, white-gold, cool and symmetrical."
+      },
+      "milestone": "M1",
+      "notes": "角花朝左上角，界面按需旋转与镜像；女神窗口的女神卡；五位女神角花同批。"
+    },
+    {
+      "id": "art_ui_corner_valda",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "战之角花：角上一只断掉的角，两道交叉的刀痕从角下沿两边伸出，线条粗犷有力，赤红色。",
+        "en": "War corner: a broken horn in the corner with two crossing blade scars extending beneath it, rough lines, crimson."
+      },
+      "deps": ["art_ui_corner_eluen"],
+      "milestone": "M1",
+      "notes": "角花朝左上角，界面按需旋转与镜像；与光之角花同批。"
+    },
+    {
+      "id": "art_ui_corner_merca",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "财之角花：角上叠着三枚小硬币，一根账线从硬币边沿两边延伸，线上一个小算珠，币金色。",
+        "en": "Fortune corner: three small coins stacked in the corner, a ledger line extending from them along both edges with a single abacus bead on it, coin gold."
+      },
+      "deps": ["art_ui_corner_eluen"],
+      "milestone": "M1",
+      "notes": "角花朝左上角，界面按需旋转与镜像；与光之角花同批；币金 #e0a832。"
+    },
+    {
+      "id": "art_ui_corner_sylvie",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "林之角花：角上一朵新花与一朵枯花共用一根细藤，藤沿两边伸出，各挂一片小叶，苍绿色。",
+        "en": "Wild corner: a fresh flower and a withered one sharing one vine in the corner, the vine stretching along both edges with a leaf on each, pale green."
+      },
+      "deps": ["art_ui_corner_eluen"],
+      "milestone": "M1",
+      "notes": "角花朝左上角，界面按需旋转与镜像；与光之角花同批。"
+    },
+    {
+      "id": "art_ui_corner_moira",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "录之角花：角上一个卷起的卷轴端，卷轴沿两边展开成细带，角落里一枚小小的镜片同心圆，墨蓝色。",
+        "en": "Record corner: a rolled scroll end in the corner unfurling into thin bands along both edges, a tiny concentric lens circle tucked in the corner, ink blue."
+      },
+      "deps": ["art_ui_corner_eluen"],
+      "milestone": "M1",
+      "notes": "角花朝左上角，界面按需旋转与镜像；与光之角花同批；卷轴上无字。"
+    },
+    {
+      "id": "art_ui_corner_dream",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "梦之角花：角上三道层层缩小的门框线，最里面的门框里一点微光，门框外挂一把小钥匙，暖金细线。",
+        "en": "Dream corner: three nested, shrinking door-frame lines in the corner, a faint glow inside the innermost, a small key hanging outside, thin warm gold lines."
+      },
+      "milestone": "M1",
+      "notes": "角花朝左上角，界面按需旋转与镜像；梦境记录页与梦之神谕卡用；不暗示是谁。"
+    },
+    {
+      "id": "art_ui_corner_guild",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "公会角花：角上一把短剑与一支羽笔交叉成斜十字，两道细线沿两边延展，线条朴实，深褐色。",
+        "en": "Guild corner: a short sword crossed with a quill in the corner, two thin lines extending along the edges, plain lines, dark brown."
+      },
+      "milestone": "M1",
+      "notes": "角花朝左上角，界面按需旋转与镜像；委托板与公会窗口用。"
+    },
+    {
+      "id": "art_ui_corner_church",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "教会角花：角上一个尖拱窗的四分之一轮廓，窗下伸出两道细线，线端各有一朵小小的三叶纹，暗红色。",
+        "en": "Church corner: a quarter outline of a pointed-arch window in the corner, two thin lines extending below it, each ending in a small trefoil, dark red."
+      },
+      "milestone": "M2",
+      "notes": "角花朝左上角，界面按需旋转与镜像；教会信件与审判文书用；不画几何光环。"
+    },
+    {
+      "id": "art_ui_corner_court",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "审庭角花：角上一段四分之一的同心圆弧，像庭镜的边框，弧上等距三个小椅背剪影，深墨蓝与银白。",
+        "en": "Court corner: a quarter segment of concentric arcs in the corner like the rim of the court mirror, three small chair-back silhouettes evenly spaced along it, deep ink blue and silver white."
+      },
+      "milestone": "M3",
+      "notes": "角花朝左上角，界面按需旋转与镜像；审庭面板用。"
+    },
+    {
+      "id": "art_ui_corner_war",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "战场角花：角上一面小三角旗插在短矛上，矛杆沿一边延伸，另一边是一道短短的城垛线，钢灰色。",
+        "en": "Battlefield corner: a small triangular pennant on a short spear in the corner, the shaft extending along one edge, a short line of crenellations along the other, steel grey."
+      },
+      "milestone": "M2",
+      "notes": "角花朝左上角，界面按需旋转与镜像；战场与兵团面板用。"
+    },
+    {
+      "id": "art_ui_corner_city",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "城建角花：角上一段屋檐与一排瓦片的剪影，檐下伸出一道砖缝线沿两边延展，暖陶红色。",
+        "en": "City corner: a silhouette of eaves and roof tiles in the corner, a brick-course line extending beneath it along the edge, warm terracotta."
+      },
+      "milestone": "M2",
+      "notes": "角花朝左上角，界面按需旋转与镜像；领主视图与城建面板用。"
+    },
+    {
+      "id": "art_ui_corner_nation",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "国家角花：角上一块界石的轮廓，界石两侧伸出月桂枝沿边延展，枝上几片叶，深绿与金褐。",
+        "en": "Nation corner: the outline of a boundary stone in the corner, laurel branches extending from both sides along the edges with a few leaves, deep green and gold-brown."
+      },
+      "milestone": "M3",
+      "notes": "角花朝左上角，界面按需旋转与镜像；大陆视图与国家面板用。"
+    },
+    {
+      "id": "art_ui_divider_door",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "门系分隔线：一道水平细线，正中一个小小的拱门轮廓，拱门两侧的线上各有一颗小光点，门扉金色。",
+        "en": "Door divider: a horizontal thin line with a small arch outline at its center and a small dot of light on the line to either side, door gold."
+      },
+      "milestone": "M1",
+      "notes": "门卡与回廊面板用。"
+    },
+    {
+      "id": "art_ui_divider_chapter",
+      "template": "ui_ornament",
+      "subject": {
+        "zh": "章节分隔线：一道水平细线，正中一支斜放的羽毛笔与一滴墨点，线的两端轻轻上翘，墨褐色。",
+        "en": "Chapter divider: a horizontal thin line with a slanted quill and a single ink drop at its center, the line ends curling up gently, ink brown."
+      },
+      "milestone": "M1",
+      "notes": "任务日志与回想页的章节分隔。"
+    },
+    {
+      "id": "art_ui_frame_night",
+      "template": "ui_frame",
+      "subject": {
+        "zh": "夜主题窗口边框：四角是简单的圆角加一个小卷须，四边是一道冷银白的细线，线内侧再有一道更淡的细线。",
+        "en": "Night theme window frame: simple rounded corners each with a small tendril, a thin cold silver-white line along the edges with a fainter line just inside it."
+      },
+      "milestone": "M1",
+      "notes": "九宫格：四角纹样，四边可拉伸，中间完全留空；HUD 与大多数窗口；线色 #c8d0dc。"
+    },
+    {
+      "id": "art_ui_frame_paper",
+      "template": "ui_frame",
+      "subject": {
+        "zh": "纸主题窗口边框：四角是墨褐色的小叶卷纹，四边是一道墨褐细线，像旧书页上印刷的版框。",
+        "en": "Paper theme window frame: small ink-brown leaf scrolls in the corners, a thin ink-brown line along the edges like the border of a printed page."
+      },
+      "milestone": "M1",
+      "notes": "九宫格：四角纹样，四边可拉伸，中间完全留空；传书、书籍、史料与事迹簿；线色 #5a4a3a。"
+    },
+    {
+      "id": "art_ui_frame_tooltip",
+      "template": "ui_frame",
+      "subject": {
+        "zh": "提示框边框：四角是极小的直角折线，四边是一道单像素般的细线，最朴素、最轻的一款。",
+        "en": "Tooltip frame: tiny right-angle brackets in the corners, a single hairline along the edges, the plainest and lightest of the set."
+      },
+      "milestone": "M1",
+      "notes": "九宫格：四角纹样，四边可拉伸，中间完全留空；提示框数量大，边框要轻。"
+    },
+    {
+      "id": "art_ui_frame_dialogue",
+      "template": "ui_frame",
+      "subject": {
+        "zh": "对话框边框：四角是对称的小卷纹，上边正中留出一段空缺给说话人的名字牌，四边是双细线。",
+        "en": "Dialogue frame: small symmetrical scrolls in the corners, a gap left at the top center for the speaker's name tab, double thin lines along the edges."
+      },
+      "milestone": "M1",
+      "notes": "九宫格：四角纹样，四边可拉伸，中间完全留空；名字牌的空缺必须是空的，不写名字。"
+    },
+    {
+      "id": "art_ui_frame_door",
+      "template": "ui_frame",
+      "subject": {
+        "zh": "门卡边框：四角各是一个小小的拱门轮廓，四边是一道暖金细线，上边正中一个钥匙孔的剪影。",
+        "en": "Door card frame: a small arch outline in each corner, a thin warm gold line along the edges, a keyhole silhouette at the top center."
+      },
+      "milestone": "M1",
+      "notes": "九宫格：四角纹样，四边可拉伸，中间完全留空；回廊门卡；门扉金 #f0d890。"
+    },
+    {
+      "id": "art_ui_frame_oracle",
+      "template": "ui_frame",
+      "subject": {
+        "zh": "神谕气泡边框：四角是柔和的圆弧，四边是一道中性白的细线，线外侧有极淡的光晕感纹样。",
+        "en": "Oracle bubble frame: soft rounded arcs in the corners, a thin neutral white line along the edges with a very faint halo-like pattern just outside it."
+      },
+      "milestone": "M1",
+      "notes": "九宫格：四角纹样，四边可拉伸，中间完全留空；神谕气泡通用，由界面按女神换色；画成中性白。"
+    },
+    {
+      "id": "art_ui_frame_dream",
+      "template": "ui_frame",
+      "subject": {
+        "zh": "梦境边框：四角是层层向内缩小的门框线，四边是断断续续的虚线，像梦里看不清楚的边缘。",
+        "en": "Dream frame: nested shrinking door-frame lines in the corners, broken dashed lines along the edges, like the blurry edges of a dream."
+      },
+      "milestone": "M1",
+      "notes": "九宫格：四角纹样，四边可拉伸，中间完全留空；梦境记录与梦中对话；暖金细线。"
+    },
+    {
+      "id": "art_ui_frame_dian_warning",
+      "template": "ui_frame",
+      "subject": {
+        "zh": "澱警示边框：四角是向外裂开的细裂纹，四边是一道带着细小缺口的线，缺口像是被慢慢侵蚀过。",
+        "en": "Sediment warning frame: fine cracks splitting outward in the corners, a line with tiny notches along the edges as if eaten away."
+      },
+      "milestone": "M1",
+      "notes": "九宫格：四角纹样，四边可拉伸，中间完全留空；澱度、澱病与危险门的提示；澱紫 #4a3a62 配亮一阶。"
+    },
+    {
+      "id": "art_ui_frame_battle",
+      "template": "ui_frame",
+      "subject": {
+        "zh": "兵团卡边框：四角是方正的小护角，四边是钢灰色的粗细两道线，上边正中留一块小方形空位给兵种徽记。",
+        "en": "Unit card frame: square little corner guards, a thick and a thin steel-grey line along the edges, a small square space left at the top center for the unit emblem."
+      },
+      "milestone": "M2",
+      "notes": "九宫格：四角纹样，四边可拉伸，中间完全留空；战场拉远时的兵团卡片。"
+    },
+    {
+      "id": "art_ui_frame_nation",
+      "template": "ui_frame",
+      "subject": {
+        "zh": "国家面板边框：四角是月桂叶与一块小界石组成的纹样，四边是深绿与金褐两道平行的细线。",
+        "en": "Nation panel frame: small clusters of laurel leaves and a boundary stone in the corners, two thin lines of deep green and gold-brown along the edges."
+      },
+      "milestone": "M3",
+      "notes": "九宫格：四角纹样，四边可拉伸，中间完全留空；大陆视图与外交面板。"
+    },
+    {
+      "id": "art_ui_title",
+      "template": "ui_screen",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "标题画面：从高处俯看一座被精心照看的微缩箱庭，乡镇、森林、河流与远山都小小的，像一座模型；草地中央立着一扇孤零零的小门，门缝透出一线光。",
+        "en": "Title screen: looking down from on high at a lovingly tended miniature boxed garden, towns, forests, a river and distant mountains all tiny like a model; a single small door standing alone in a meadow at its center with a line of light at its gap."
+      },
+      "extra": {
+        "zh": "左侧三分之一留出安静的空位给竖排菜单，主体放在右侧。",
+        "en": "Leave the left third quiet and empty for a vertical menu; place the subject on the right."
+      },
+      "deps": ["art_style_lothar_plain"],
+      "milestone": "M1",
+      "notes": "启动画面与首次进入标题时的底图；门缝的一线光可以用门扉金；不写标题字（标题由界面叠加）。"
+    },
+    {
+      "id": "art_ui_firstrun",
+      "template": "ui_screen",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "首次启动背景：黎明前的天空下，一片安静的草地与远处小镇的轮廓，色彩极淡、对比极低，大部分画面是柔和的天空。",
+        "en": "First-run background: a quiet meadow and the silhouette of a distant town under the sky just before dawn, very pale colors and very low contrast, most of the frame a soft sky."
+      },
+      "extra": {
+        "zh": "画面中间大面积保持安静、低对比，放设置面板。",
+        "en": "Keep the large center area quiet and low in contrast for the settings panel."
+      },
+      "deps": ["art_style_lothar_plain"],
+      "milestone": "M1",
+      "notes": "首次启动四页（语言、看得清、输入、关于 AI）的底图；画面要极安静，中间放设置面板。"
+    },
+    {
+      "id": "art_ui_disclosure",
+      "template": "ui_screen",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "披露页背景：夜空下的微缩箱庭，零星的窗灯亮着，星空占据画面大半，色彩深而柔，像一段旅程结束后的安静。",
+        "en": "Disclosure page background: the miniature boxed garden beneath a night sky, scattered windows lit, the starry sky filling most of the frame, deep and soft colors, like the quiet after a journey ends."
+      },
+      "extra": {
+        "zh": "画面上方三分之二保持安静的夜空，放滚动文字。",
+        "en": "Keep the upper two thirds a quiet night sky for scrolling text."
+      },
+      "deps": ["art_style_lothar_plain"],
+      "milestone": "M1",
+      "notes": "制作名单后的 AI 生成内容披露页底图；画面大部分是安静的夜空，放滚动文字。"
+    },
+    {
+      "id": "art_ui_loading_lothar_plain",
+      "template": "ui_screen",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "洛萨乡野：午后的田埂与风车，远处是灰泥半木的村舍与石砌礼拜堂，土路蜿蜒穿过绿草，天空明快。",
+        "en": "Lothar countryside: field ridges and a windmill in the afternoon, half-timbered cottages and a stone chapel in the distance, a dirt road winding through green grass, a bright sky."
+      },
+      "extra": {
+        "zh": "画面下方五分之一留出安静的空位给地名与提示文字。",
+        "en": "Leave the bottom fifth quiet and empty for the place name and a tip line."
+      },
+      "deps": ["art_style_lothar_plain"],
+      "milestone": "M1",
+      "notes": "载入插画：边石镇区域与洛萨乡镇。"
+    },
+    {
+      "id": "art_ui_loading_wild_forest",
+      "template": "ui_screen",
+      "style": "wild_forest",
+      "subject": {
+        "zh": "边地野林：幽深的针叶与阔叶混交林，倒木上长满苔藓，林下有斑驳的光斑，一条小径消失在林子深处。",
+        "en": "Frontier wilds: a deep mixed forest of conifers and broadleaves, moss-covered fallen logs, dappled light on the forest floor, a narrow path vanishing into the depths."
+      },
+      "extra": {
+        "zh": "画面下方五分之一留出安静的空位给地名与提示文字。",
+        "en": "Leave the bottom fifth quiet and empty for the place name and a tip line."
+      },
+      "deps": ["art_style_wild_forest"],
+      "milestone": "M1",
+      "notes": "载入插画：边石野地与林缘。"
+    },
+    {
+      "id": "art_ui_loading_sealed_ruins",
+      "template": "ui_screen",
+      "style": "sealed_ruins",
+      "subject": {
+        "zh": "封印遗迹：冷灰石砌的长廊里立着一排门形拱，拱下积着水，远处一点暖色火光，四周安静压抑。",
+        "en": "Sealed ruins: a row of door-shaped arches standing in a long corridor of cold grey stone, water pooled beneath them, a single point of warm firelight far off, quiet and oppressive."
+      },
+      "extra": {
+        "zh": "画面下方五分之一留出安静的空位给地名与提示文字。",
+        "en": "Leave the bottom fifth quiet and empty for the place name and a tip line."
+      },
+      "deps": ["art_style_sealed_ruins"],
+      "milestone": "M1",
+      "notes": "载入插画：封门遗迹与各地地窟。"
+    },
+    {
+      "id": "art_ui_loading_ash_waste",
+      "template": "ui_screen",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "灰烬荒原：焦黑的岩地上立着石化的枯树与一座倒塌的门框残骸，地缝里长出淡紫色的晶体，天光泛着红灰。",
+        "en": "Ashen waste: petrified dead trees and the ruin of a fallen door frame standing on scorched black rock, pale lilac crystals growing from cracks in the ground, a red-grey sky."
+      },
+      "extra": {
+        "zh": "画面下方五分之一留出安静的空位给地名与提示文字。",
+        "en": "Leave the bottom fifth quiet and empty for the place name and a tip line."
+      },
+      "deps": ["art_style_ash_waste"],
+      "milestone": "M1",
+      "notes": "载入插画：灰烬荒原全部分层；地缝晶体是澱晶本色的淡紫。"
+    },
+    {
+      "id": "art_ui_loading_divine_court",
+      "template": "ui_screen",
+      "style": "divine_court",
+      "subject": {
+        "zh": "神庭：白石殿堂外整齐的庭园，泉池倒映着恒定的柔光，金色饰边的拱廊，空中浮着细小的光尘。",
+        "en": "Divine court: neat gardens outside a white stone hall, a fountain pool reflecting a constant soft light, gold-trimmed arcades, fine motes of light floating in the air."
+      },
+      "extra": {
+        "zh": "画面下方五分之一留出安静的空位给地名与提示文字。",
+        "en": "Leave the bottom fifth quiet and empty for the place name and a tip line."
+      },
+      "deps": ["art_style_divine_court"],
+      "milestone": "M1",
+      "notes": "载入插画：神域与候见厅。"
+    },
+    {
+      "id": "art_ui_loading_door_corridor",
+      "template": "ui_screen",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "门廊幽境：无边的幽暗里层层叠叠地悬浮着许多门与门框，门缝里漏出暖金的微光，脚下的暗面像镜子。",
+        "en": "Door corridor: countless doors and frames floating in layers in a boundless dark, faint warm gold light leaking from their gaps, the dark floor below like a mirror."
+      },
+      "extra": {
+        "zh": "画面下方五分之一留出安静的空位给地名与提示文字。",
+        "en": "Leave the bottom fifth quiet and empty for the place name and a tip line."
+      },
+      "deps": ["art_style_door_corridor"],
+      "milestone": "M1",
+      "notes": "载入插画：千门回廊与梦境。"
+    },
+    {
+      "id": "art_ui_loading_earth_modern",
+      "template": "ui_screen",
+      "style": "earth_modern",
+      "subject": {
+        "zh": "地球日常：雨夜的街角，一家亮着荧光灯的小店，湿漉漉的路面倒映着灯光，招牌与玻璃上没有任何文字。",
+        "en": "Everyday Earth: a street corner on a rainy night, a small shop lit by fluorescent lights, the wet pavement mirroring the glow, no writing on any sign or window."
+      },
+      "extra": {
+        "zh": "画面下方五分之一留出安静的空位给地名与提示文字。",
+        "en": "Leave the bottom fifth quiet and empty for the place name and a tip line."
+      },
+      "deps": ["art_style_earth_modern"],
+      "milestone": "M1",
+      "notes": "载入插画：序章的地球开场；招牌必须无字。"
+    },
+    {
+      "id": "art_ui_loading_valen_city",
+      "template": "ui_screen",
+      "style": "valen_city",
+      "subject": {
+        "zh": "瓦伦城邑：雨后的石板街，市集雨棚下摆着货摊，蓝灰色的屋顶后面是白钟大教堂的尖塔与厚重的城墙。",
+        "en": "Valen city: a flagstone street after rain, market stalls under awnings, the spire of the white-bell cathedral and the heavy city walls rising behind blue-grey roofs."
+      },
+      "extra": {
+        "zh": "画面下方五分之一留出安静的空位给地名与提示文字。",
+        "en": "Leave the bottom fifth quiet and empty for the place name and a tip line."
+      },
+      "deps": ["art_style_valen_city"],
+      "milestone": "M2",
+      "notes": "载入插画：瓦伦堡与洛萨诸城。"
+    },
+    {
+      "id": "art_ui_loading_forge_deep",
+      "template": "ui_screen",
+      "style": "forge_deep",
+      "subject": {
+        "zh": "炉火地底：粗凿的矿道里铺着铁轨，一辆矿车停在提灯下，远处地下炉城的熔炉透出橙色的光。",
+        "en": "Forge deep: rails laid through a rough-hewn mine tunnel, a mine cart resting under a lantern, the furnaces of an underground forge-city glowing orange in the distance."
+      },
+      "extra": {
+        "zh": "画面下方五分之一留出安静的空位给地名与提示文字。",
+        "en": "Leave the bottom fifth quiet and empty for the place name and a tip line."
+      },
+      "deps": ["art_style_forge_deep"],
+      "milestone": "M1",
+      "notes": "载入插画：锈岭矿、赤砧山诸炉与深炉。"
+    },
+    {
+      "id": "art_ui_loading_holy_see_white",
+      "template": "ui_screen",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "白石教国：阳光下的白石穹顶与钟楼，朝圣石路穿过橄榄树与葡萄园，金色的圣纹装饰在拱门上。",
+        "en": "White holy see: white stone domes and bell towers in strong sunlight, a pilgrim's stone road passing through olive trees and vineyards, golden sacred patterns on the archways."
+      },
+      "extra": {
+        "zh": "画面下方五分之一留出安静的空位给地名与提示文字。",
+        "en": "Leave the bottom fifth quiet and empty for the place name and a tip line."
+      },
+      "deps": ["art_style_holy_see_white"],
+      "milestone": "M3",
+      "notes": "载入插画：圣艾琉恩教国；圣纹是图案不是文字。"
+    },
+    {
+      "id": "art_ui_loading_grantia_ochre",
+      "template": "ui_screen",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "赭红帝国：赭红夯土的营垒沿着长垒城墙排开，远处圆形竞技场与成片的麦田，军旗整齐地飘着。",
+        "en": "Ochre empire: ochre rammed-earth forts lined along a long wall, a round arena and broad wheat fields beyond, military banners flying in neat rows."
+      },
+      "extra": {
+        "zh": "画面下方五分之一留出安静的空位给地名与提示文字。",
+        "en": "Leave the bottom fifth quiet and empty for the place name and a tip line."
+      },
+      "deps": ["art_style_grantia_ochre"],
+      "milestone": "M3",
+      "notes": "载入插画：格兰提亚帝国；旗面只有纯色与几何徽。"
+    },
+    {
+      "id": "art_ui_loading_mercato_coast",
+      "template": "ui_screen",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "海港同盟：赤陶屋顶的港城，码头吊杆与白帆，商行的拱廊下挂着秤与钱币纹章的招牌，海水湛蓝。",
+        "en": "Harbor league: a port town of terracotta roofs, dockside cranes and white sails, signs with scale and coin emblems hanging under merchant arcades, the sea deep blue."
+      },
+      "extra": {
+        "zh": "画面下方五分之一留出安静的空位给地名与提示文字。",
+        "en": "Leave the bottom fifth quiet and empty for the place name and a tip line."
+      },
+      "deps": ["art_style_mercato_coast"],
+      "milestone": "M3",
+      "notes": "载入插画：梅尔卡托同盟；招牌只有纹章。"
+    },
+    {
+      "id": "art_ui_loading_silva_canopy",
+      "template": "ui_screen",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "林冠秘境：参天巨树之间架着木桥与吊台，银色树皮在雾白的空气里发亮，枝叶间有会发光的苔与花。",
+        "en": "Silva canopy: wooden bridges and hanging platforms strung between towering giant trees, silver bark gleaming in misty white air, glowing moss and flowers among the branches."
+      },
+      "extra": {
+        "zh": "画面下方五分之一留出安静的空位给地名与提示文字。",
+        "en": "Leave the bottom fifth quiet and empty for the place name and a tip line."
+      },
+      "deps": ["art_style_silva_canopy"],
+      "milestone": "M3",
+      "notes": "载入插画：希尔瓦大森林。"
+    },
+    {
+      "id": "art_ui_loading_windfang_steppe",
+      "template": "ui_screen",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "风牙草原：起伏的黄草原上立着獠牙一样的岩柱，圆形毡帐挂着红毡门帘，马群在大朵的云下奔过。",
+        "en": "Windfang steppe: fang-like rock pillars rising from rolling yellow grassland, round felt tents with red felt door flaps, horses running beneath great clouds."
+      },
+      "extra": {
+        "zh": "画面下方五分之一留出安静的空位给地名与提示文字。",
+        "en": "Leave the bottom fifth quiet and empty for the place name and a tip line."
+      },
+      "deps": ["art_style_windfang_steppe"],
+      "milestone": "M3",
+      "notes": "载入插画：风牙草原。"
+    },
+    {
+      "id": "art_ui_loading_night_basalt",
+      "template": "ui_screen",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "黑岩夜境：黑色玄武岩的尖塔与城堡，暗红的灯火与熔岩裂缝，一旁冒着白汽的青白色温泉，长夜幽深而富丽。",
+        "en": "Night basalt: spires and castles of black basalt, dark red lamplight and lava fissures, a pale cyan hot spring steaming nearby, the long night deep and opulent."
+      },
+      "extra": {
+        "zh": "画面下方五分之一留出安静的空位给地名与提示文字。",
+        "en": "Leave the bottom fifth quiet and empty for the place name and a tip line."
+      },
+      "deps": ["art_style_night_basalt"],
+      "milestone": "M3",
+      "notes": "载入插画：夜境。"
+    },
+    {
+      "id": "art_ui_loading_sleepscale_snow",
+      "template": "ui_screen",
+      "style": "sleepscale_snow",
+      "subject": {
+        "zh": "眠鳞雪岭：冰蓝的峭壁下是积雪的松林与石砌的山间驿站，雪原上卧着一具巨大的古龙骸骨，空气清冷透亮。",
+        "en": "Sleepscale snow: snow-laden pines and a stone mountain way-station beneath ice-blue cliffs, a vast ancient dragon skeleton lying on the snowfield, the air cold and crystal clear."
+      },
+      "extra": {
+        "zh": "画面下方五分之一留出安静的空位给地名与提示文字。",
+        "en": "Leave the bottom fifth quiet and empty for the place name and a tip line."
+      },
+      "deps": ["art_style_sleepscale_snow"],
+      "milestone": "M3",
+      "notes": "载入插画：眠鳞山脉。"
+    }
+  ]
+}

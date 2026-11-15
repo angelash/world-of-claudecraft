@@ -1,0 +1,282 @@
+{
+  "category": "maps",
+  "title": "地图插画",
+  "sources": [
+    "docs/50_tech/art_pipeline.md",
+    "docs/40_design/world/world_map.md",
+    "docs/20_world/geography.md",
+    "docs/40_design/content/catalog_relics_lore.md"
+  ],
+  "items": [
+    {
+      "id": "art_map_medius",
+      "template": "map_world",
+      "subject": {
+        "zh": "梅迪乌斯大陆全图：被四片海环绕的大陆，最外圈是一道灰白雾墙；西北灰白荒原、西部绿色河谷、西南白石半岛、中部金黄平原、中东南北走向的雪山、东部巨木林、东南黄色草原、北方黑色火山高地",
+        "en": "The continent of Medius: a landmass ringed by four seas, an outermost wall of gray-white mist; the pale gray waste in the northwest, a green river valley in the west, a white stone peninsula in the southwest, golden plains in the center, a north to south snow range in the center-east, a giant forest in the east, yellow steppe in the southeast, black volcanic highlands in the north"
+      },
+      "extra": {
+        "zh": "布局：西北是一片灰白的盆地，盆地中央一处焦黑的废都与一个黑色坑湖；荒原以南是绿色丘陵与林地，一条大河自东北丘陵向西南流入西海，河心有一座小岛；西南半岛是白色石灰岩丘陵与橄榄绿；中部是广阔的金黄平原，一条大河自东向西再折向南入南海，平原北缘有一道横贯东西的石墙；南海岸海湾与半岛交错，东端一座冒烟的火山；中东是一条南北走向的雪山，最高峰尖如针；东部是深绿的巨木林，中央一棵特别高大的树；东南是黄色草原，中心一根獠牙状的巨岩；北方是黑色火山、冻原与温泉；南海散布群岛；四片海的外圈是一道连续的灰白雾墙。",
+        "en": "Layout: a pale gray basin in the northwest with a charred ruined city and a black crater lake at its center; south of the waste green hills and woods, a great river flowing from the northeastern hills southwest into the western sea with a small island mid-river; the southwestern peninsula of white limestone hills and olive green; broad golden plains in the center, a river running west and then south into the southern sea, a stone wall crossing the northern edge of the plains from east to west; bays and peninsulas along the southern coast with a smoking volcano at the east end; a north to south snow range in the center-east with one needle-sharp highest peak; deep green giant forest in the east with one especially tall tree at its center; yellow steppe in the southeast with a fang-shaped rock at its heart; black volcanoes, tundra and hot springs in the north; islands scattered across the southern sea; a continuous gray-white mist wall beyond all four seas."
+      },
+      "ref": "medius",
+      "milestone": "M3",
+      "notes": "不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_edgestone_area",
+      "template": "map_region",
+      "subject": {
+        "zh": "边石镇区域图：灰烬荒原南缘的一片北境丘陵，中央矮丘上一座木栅小镇，镇北是通往荒原的坡地与一排界石，东边铁杉林，西北锈色山脊，一条灰色溪流从北向南流过镇西",
+        "en": "Regional map of the Edgestone area: northern hill country on the southern rim of the Ashen Waste, a palisaded village on a low hill at the center, slopes rising north toward the waste behind a line of boundary stones, ironhemlock forest to the east, a rust-colored ridge to the northwest, a gray stream flowing south past the west side of the town"
+      },
+      "extra": {
+        "zh": "布局：上北下南；画面北半部是灰白的荒原外缘与一片石化的灰色死林，西北角有一道冲沟与一座断桥边的小驿站；荒原与丘陵之间一排小小的立石横贯画面；镇北约四分之一处是一片古老的石砌遗迹；镇东是深绿的铁杉林带，林带东南端有一处废弃的小村；镇西是灰溪与锈色山脊，山脚有一处矿口；画面南半部是农田与草地，一条土路向南伸出画面。",
+        "en": "Layout: north up; the northern half pale gray waste rim with a petrified gray dead wood, a gully and a small post station by a broken bridge in the northwest corner; a line of small standing stones across the map between waste and hills; an old stone ruin about a quarter of the way north of the town; a deep green ironhemlock belt east of the town with an abandoned hamlet at its southeast end; the gray stream and the rust ridge to the west with a mine mouth at its foot; farmland and meadow across the southern half, a dirt road running south off the map."
+      },
+      "ref": "edgestone_area",
+      "milestone": "M1",
+      "notes": "不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_ashen_waste",
+      "template": "map_region",
+      "subject": {
+        "zh": "灰烬荒原区域图：灰白的平原与浅丘围着中央一个巨大的盆地，盆地里是焦黑的废都遗址与一个黑色坑湖，北临冰冷的海，西临西海，东接黑色高地，南缘是石化林与界石",
+        "en": "Regional map of the Ashen Waste: pale gray plains and low rises around a vast central basin holding a charred ruined city and a black crater lake, a cold sea to the north, the western sea to the west, black highlands to the east, petrified woods and boundary stones along the south"
+      },
+      "extra": {
+        "zh": "布局：外圈是灰白的外缘，西北角有一片灰丘起伏的灰海，盆地南侧有一片反光的玻璃熔原；盆地里的废都是一圈圈门框残骸组成的街区，正中一个漆黑的坑湖；四个方向的外缘与中层交界处各有一处残破的石圈；南缘是石化的灰色死林、冲沟与一座旧遗迹；东南角一条走廊伸向东边的高地；整体色调灰白、铁锈与淡紫。",
+        "en": "Layout: a pale outer rim; in the northwest a sea of rolling ash dunes, south of the basin a glinting fused glass plain; the ruined city inside the basin as rings of broken doorframe districts with a pitch-black crater lake at the very center; a broken stone circle at each of four points where rim meets middle; along the south a petrified gray dead wood, a gully and an old ruin; in the southeast corner a corridor leading east to the highlands; pale gray, rust and pale violet tones overall."
+      },
+      "ref": "ashen_waste",
+      "milestone": "M1",
+      "notes": "不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_valen_valley",
+      "template": "map_region",
+      "subject": {
+        "zh": "瓦伦河谷北段区域图：瓦伦河与一条灰色溪流在一座设防的河边大城交汇，城北是丘陵，一条大路沿灰溪东岸北上到荒原边的小镇，路的中段有一座三拱石桥与一片芦苇沼",
+        "en": "Regional map of the northern Valen valley: the Valen and a gray stream meeting at a fortified riverside city, hills north of the city, a road running north along the east bank of the gray stream to a small town at the edge of the waste, a three-arched stone bridge and a reed marsh halfway along"
+      },
+      "extra": {
+        "zh": "布局：上北下南；画面南部是宽阔的瓦伦河自东向西流过，河北岸的大城在一处台地上，城北面一座岩丘；灰溪自北向南在城东北汇入瓦伦河；大路沿灰溪东岸北上，中段的石桥边是一个小村与大片芦苇沼；画面北缘是边陲小镇与一线灰白的荒原；河南岸是芦苇与一处渡口；城西北有一条通往丘陵西端谷地的小路。",
+        "en": "Layout: north up; the broad Valen flowing east to west across the south, the walled city on a terrace on its north bank with a rocky hill to its north; the gray stream running south to join the Valen northeast of the city; the road north along its east bank with a hamlet and wide reed marshes by the stone bridge halfway; the frontier town and a pale line of waste along the northern edge; reeds and a ferry landing on the south bank; a path northwest of the city toward a valley at the west end of the hills."
+      },
+      "ref": "valen_valley",
+      "milestone": "M2",
+      "notes": "不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_lotha_realm",
+      "template": "map_region",
+      "subject": {
+        "zh": "洛萨王国区域图：一条母亲河自东北丘陵流向西南的海港，河心岛上是王都，北部是丘陵、林地与一座北境要塞，东部沿界河是落叶林与桥头堡，南部是缓丘、葡萄园与牧场",
+        "en": "Regional map of the Kingdom of Lotha: a mother river flowing from the northeastern hills to a southwestern seaport, the royal capital on an island mid-river, hills, woods and a northern fortress in the north, deciduous forest and a bridgehead keep along the border river in the east, gentle hills, vineyards and pastures in the south"
+      },
+      "extra": {
+        "zh": "布局：上北下南；西边是落日海的海岸与河口港；瓦伦河自东北斜贯画面流向西南，沿岸是整齐的麦田；河中游一座岛上是王都；北部是北境丘陵与铁杉林，东北角一座山口要塞，北缘一线灰白的荒原；东部一条南北向的界河，河西是秋色的落叶林与一座桥头堡；南部是缓丘、葡萄园与一条朝圣路伸出画面。",
+        "en": "Layout: north up; the coast and river mouth port of the Sunset Sea in the west; the Valen running diagonally from northeast to southwest lined with neat wheat fields; the capital on an island in the middle course; northern hills and ironhemlock in the north with a pass fortress in the northeast corner and a pale strip of waste along the top; a north to south border river in the east with autumn deciduous woods and a bridgehead keep on its west bank; gentle hills, vineyards and a pilgrim road leaving the map in the south."
+      },
+      "ref": "lotha_realm",
+      "milestone": "M2",
+      "notes": "不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_divine_realm",
+      "template": "map_region",
+      "subject": {
+        "zh": "神域图：无边的白金色云海之上悬着一座白石殿堂，殿前有庭园与泉池，殿堂四周是层层柔光，云海下方远远透出一小片陆地，整幅图洁白而安静",
+        "en": "Map of the divine realm: a white stone hall floating above a boundless sea of white-gold cloud, a garden and fountain pool before it, layers of soft light around the hall, a small patch of land showing far below through the cloud, the whole map white and still"
+      },
+      "extra": {
+        "zh": "布局：殿堂居中偏北，殿前的庭园与泉池向南展开；殿堂南侧有一道长廊通向一间候见的小厅；四周是云海，云海的缝隙里能看到下方很远处的陆地轮廓；色调是白、淡金与淡紫。",
+        "en": "Layout: the hall just north of center with its garden and pool opening southward; a long gallery from its south side leading to a small waiting hall; cloud sea all around, the far-off outline of land visible through gaps; white, pale gold and pale violet tones."
+      },
+      "ref": "divine_realm",
+      "milestone": "M3",
+      "notes": "不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_court_gap",
+      "template": "map_region",
+      "subject": {
+        "zh": "庭间之隙图：无边的雾白之中悬着一座小小的庭院岛，岛上有木屋、园圃、池塘与一道门影，四周远远漂着几座更小的浮岛，岛与岛之间什么也没有",
+        "en": "Map of the gap between courts: a small garden island floating in boundless mist white, with a wooden cottage, a garden plot, a pond and the shadow of a door on it, a few even smaller islands drifting far around it, nothing at all between them"
+      },
+      "extra": {
+        "zh": "布局：庭院岛居中，木屋在西北，园圃在北，池塘在东南，门影在南；岛的外圈留出几圈可以扩建的空地；四周的小浮岛远而淡；色调雾白、浅绿与暖木色。",
+        "en": "Layout: the garden island at center, the cottage in the northwest, the garden in the north, the pond in the southeast, the door shadow in the south; rings of open ground around the island for expansion; the small islands far and faint; mist white, pale green and warm wood tones."
+      },
+      "ref": "court_gap",
+      "milestone": "M3",
+      "notes": "不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_holy_see",
+      "template": "map_region",
+      "subject": {
+        "zh": "圣艾琉恩教国区域图：西南半岛上的白色石灰岩丘陵，橄榄林与葡萄园成片，半岛中部一座白石圣都，南岸与西岸是海，北边一条朝圣路通往邻国",
+        "en": "Regional map of the Holy See of Eluen: white limestone hills on the southwestern peninsula, olive groves and vineyards in broad patches, a white stone holy city at its heart, sea on the south and west coasts, a pilgrim road leading north into the neighboring kingdom"
+      },
+      "extra": {
+        "zh": "布局：上北下南；半岛占画面大部，西与南是海；圣都在中部偏南，白色穹顶群；南岸一处深水港；北部边境一座驿城，朝圣路从那里伸出画面；东北角一座要塞修院；丘陵上散布白色小镇与修院；色调白、金、橄榄绿与海蓝。",
+        "en": "Layout: north up; the peninsula filling most of the map with sea to the west and south; the holy city south of center with its white domes; a deep-water port on the south coast; a border post town in the north where the pilgrim road leaves the map; a fortress monastery in the northeast corner; white towns and abbeys on the hills; white, gold, olive green and sea blue."
+      },
+      "ref": "holy_see",
+      "milestone": "M3",
+      "notes": "不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_grantia",
+      "template": "map_region",
+      "subject": {
+        "zh": "格兰提亚帝国区域图：中部广阔的金黄麦田平原，一条大河自东向西流过帝都再折向南方，北部是冷湿的高沼与一道横贯东西的长垒，东部是雪山前的丘陵矿区",
+        "en": "Regional map of the Grantia Empire: broad golden wheat plains in the center, a great river flowing west past the imperial capital and turning south, cold wet high moors in the north crossed by a long rampart from east to west, foothill mining country before the snow range in the east"
+      },
+      "extra": {
+        "zh": "布局：上北下南；格兰河从东侧雪山西坡流出，向西经过学城与帝都，再折向南出画面；帝都在平原中部，城郭庞大；北缘的长垒连着一串堡垒，中段一座军城；西缘一条南北向的界河，河东一座要塞城；南部低丘接海岸方向；色调麦黄、赭红与钢灰。",
+        "en": "Layout: north up; the Gran rising on the western slopes of the eastern snow range, flowing west past the scholar city and the capital, then south off the map; the vast capital in the middle of the plains; the rampart along the north with a chain of forts and a garrison city at its middle; a north to south border river along the west with a fortress city on its east bank; low hills toward the coast in the south; wheat yellow, ochre red and steel gray."
+      },
+      "ref": "grantia",
+      "milestone": "M3",
+      "notes": "不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_mercato",
+      "template": "map_region",
+      "subject": {
+        "zh": "梅尔卡托同盟与赤砧山区域图：南方海岸的海湾与半岛交错，大河在最大的海湾入海，湾边是港城，内陆是冲积平原与小丘乡里，东端一座冒烟的老火山，海外散着群岛",
+        "en": "Regional map of the Mercato League and Mount Redanvil: bays and peninsulas along the southern coast, a great river entering the sea at the largest bay with a harbor city on its shore, alluvial plains and small hill villages inland, an old smoking volcano at the east end, islands scattered offshore"
+      },
+      "extra": {
+        "zh": "布局：上北下南；海岸线占画面南半，最大的海湾在中部，湾口外有退潮时露出的沉船浅滩；大河从北方流入海湾，河上一座桥城；湾北是起伏的小丘与圆顶小屋的乡里；东端的火山山腹有层层石台；西边一处平如镜面的盐田海港；色调海蓝、赤陶与金。",
+        "en": "Layout: north up; the coastline across the southern half, the largest bay at center with wreck shoals showing at low tide outside its mouth; the great river entering from the north with a bridge city on it; rolling hills of round-doored villages north of the bay; terraces on the flank of the volcano at the east end; a mirror-flat salt harbor to the west; sea blue, terracotta and gold."
+      },
+      "ref": "mercato",
+      "milestone": "M3",
+      "notes": "不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_silva",
+      "template": "map_region",
+      "subject": {
+        "zh": "希尔瓦大森林区域图：东部无边的原始巨木林，林冠如绿色的海，中央一棵远比其他巨树高大的树与一汪泉，北缘渐变为针叶林，东临海，林间多雾的谷地与湖",
+        "en": "Regional map of the Silva Forest: boundless primeval giant forest in the east, its canopy like a green sea, at its center one tree far taller than all the others beside a spring, conifer forest along the northern edge, sea to the east, misty valleys and lakes among the trees"
+      },
+      "extra": {
+        "zh": "布局：上北下南；巨木林铺满画面，林冠用深浅几层绿；中央的大树与泉；大树西南一圈环形的巨树；南部林中一片银灰的聚落；西缘一处隘口与集市，是唯一的入口；林间一处枯黄的环形死林；北缘的针叶林偏冷；东缘是海；色调深绿、银与雾白。",
+        "en": "Layout: north up; giant forest across the whole map in several greens; the great tree and its spring at center; a ring of giant trees southwest of it; a silver-gray settlement in the southern woods; a pass and market on the western edge, the only way in; a withered yellow ring of dead forest somewhere inside; colder conifers along the north; sea on the east; deep green, silver and mist white."
+      },
+      "ref": "silva",
+      "milestone": "M3",
+      "notes": "不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_windfang",
+      "template": "map_region",
+      "subject": {
+        "zh": "风牙草原区域图：东南起伏的黄色草原，季节河纵横，中心矗立一根獠牙状的巨岩，南部是海崖，西北一道隘口通向雪山，北面渐入森林边缘",
+        "en": "Regional map of the Windfang Steppe: rolling yellow grassland in the southeast crossed by seasonal rivers, a fang-shaped rock towering at its center, sea cliffs in the south, a pass in the northwest leading to the snow range, the forest edge creeping in from the north"
+      },
+      "extra": {
+        "zh": "布局：上北下南；巨岩居中，岩脚四周是四片毡帐营地；巨岩西北是一片土丘群；西北角一道隘口与一座毡市镇；西部靠近隘口有一处红色帐篷的战营；一片灰白的古战场在东部；南缘是海崖；色调草黄、天蓝与毡红。",
+        "en": "Layout: north up; the great rock at center with four felt tent camps around its foot; a field of burial mounds northwest of it; a pass and a felt market town in the northwest corner; a red-tented war camp in the west near the pass; a pale old battlefield in the east; sea cliffs along the south; grass yellow, sky blue and felt red."
+      },
+      "ref": "windfang",
+      "milestone": "M3",
+      "notes": "不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_nightrealm",
+      "template": "map_region",
+      "subject": {
+        "zh": "夜境区域图：大陆北部的黑色高地，冻原、黑色火山与冒白汽的温泉沼泽交错，火山盆地里是一座黑岩之城，北临冰冷的海与海崖，南部一道走廊通往荒原与王国",
+        "en": "Regional map of the Nightrealm: black highlands in the north of the continent, tundra, black volcanoes and steaming hot spring marshes interlocking, a black basalt city in a volcanic basin, a cold sea and sea cliffs to the north, a corridor in the south leading to the waste and the kingdom"
+      },
+      "extra": {
+        "zh": "布局：上北下南；黑岩之城在中部的火山盆地；西南角一座扼守走廊的关城；东部是红色岩石的山地；中东一片冒白汽的地热沼泽；北岸是海崖与崖上的巢城；东南一处深谷与谷中的碑；一处深不见底的黑渊；色调黑、暗红与温泉的青白。",
+        "en": "Layout: north up; the black city in a volcanic basin at center; a gate city guarding the corridor in the southwest corner; red rock highlands in the east; a steaming geothermal marsh in the center-east; sea cliffs with a cliff-nest city along the north coast; a deep valley with a stele in the southeast; a bottomless black abyss somewhere in the highlands; black, dark red and the pale teal of hot springs."
+      },
+      "ref": "nightrealm",
+      "milestone": "M3",
+      "notes": "不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_sleepscale",
+      "template": "map_region",
+      "subject": {
+        "zh": "眠鳞山脉区域图：一条南北走向的高大雪山脉，冰川与雪峰连绵，中段最高的一座尖峰几乎刺破天顶，两处隘口横穿山脉，北端没入黑色高地，南端收成一座火山",
+        "en": "Regional map of the Sleepscale Range: a tall north to south snow range of continuous glaciers and peaks, the highest needle peak in the middle almost piercing the sky, two passes crossing the range, its north end sinking into black highlands and its south end narrowing to a volcano"
+      },
+      "extra": {
+        "zh": "布局：上北下南；山脉纵贯画面中央；最高峰下方有一处冰谷；北段一道隘口，西口一座隘口城；南段一道隘口通往东南草原；高处一座隐修的观星石屋与一处高山矿营；北麓一处无名石冢；色调冰蓝、雪白与岩灰。",
+        "en": "Layout: north up; the range running down the middle of the map; an ice valley beneath the highest peak; a pass in the north with a pass city at its western mouth; a pass in the south leading to the southeastern steppe; a hermit stargazing house and a high mining camp up in the heights; a nameless stone cairn on the northern foothills; ice blue, snow white and rock gray."
+      },
+      "ref": "sleepscale",
+      "milestone": "M3",
+      "notes": "不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_lore_ash_road_notes",
+      "template": "map_region",
+      "subject": {
+        "zh": "走私者路书里的手绘草图：一张皱巴巴、被灰弄脏的粗纸，炭笔画着一条弯曲的路线，从断桥边的驿站沿一条溪流北上到一道冲沟，沿途画着几个空门框的小记号与暗号般的小图形",
+        "en": "A hand sketch from a smugglers road book: a crumpled coarse sheet smudged with ash, a winding route drawn in charcoal from a post station by a broken bridge up along a stream to a gully, small empty-doorframe marks and code-like little symbols along the way"
+      },
+      "extra": {
+        "zh": "只用炭笔与褐色墨线，像赶路时匆匆画下的；记号只有门框、断桥、帐篷、骷髅与圆圈等小图形；纸的边缘破损，有手指留下的灰印；没有任何文字。",
+        "en": "Charcoal and brown ink only, as if dashed off on the road; marks only small pictures of doorframes, a broken bridge, tents, a skull and circles; torn edges and ashy fingerprints; no writing at all."
+      },
+      "ref": "lb_ash_road_notes",
+      "milestone": "M1",
+      "notes": "史料道具的展开图（在书籍与收藏界面里看）。不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_lore_north_survey",
+      "template": "map_region",
+      "subject": {
+        "zh": "北境军用舆图：一张整洁的羊皮纸地图，用细墨线与淡彩画着北境丘陵、瓦伦河、林地与城堡，荒原南缘画着一排小小的立石记号，记号以北是一片空白的灰",
+        "en": "A northern military survey map: a neat parchment map in fine ink lines and pale washes showing the northern hills, the Valen, woodland and castles, a row of tiny standing stone marks along the southern edge of the waste, an empty gray beyond them"
+      },
+      "extra": {
+        "zh": "军用图严谨的画风：等高线般的细线丘陵、规整的林地符号、小方块表示的城堡；地名的位置留成空白的小框，由界面另加；立石记号旁也有一个空白小框；没有任何文字。",
+        "en": "The precise style of a military map: hills in fine contour-like lines, regular woodland symbols, castles as small squares; blank little boxes where names would go, filled by the interface; a blank box beside the standing stone marks too; no writing at all."
+      },
+      "ref": "lb_north_survey",
+      "milestone": "M2",
+      "notes": "史料道具的展开图（在书籍与收藏界面里看）。不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_lore_gate_network_chart",
+      "template": "map_region",
+      "subject": {
+        "zh": "门网旧图：一张古老的大幅图纸被撕成五片后又拼回一起，五道撕痕清楚可见，图上画满大大小小的圆圈与连接它们的细线，正中一个最大的圆，从它向外放射出七条线",
+        "en": "The old chart of the gate network: a large ancient sheet torn into five pieces and fitted back together with the five tears clearly visible, covered in circles of every size joined by thin lines, one largest circle at the center with seven lines radiating from it"
+      },
+      "extra": {
+        "zh": "古旧发黄的羊皮与淡金色墨线；除了圆圈与线，只有一圈淡淡的海岸轮廓；五片的颜色与磨损略有不同（来自五个地方）；没有任何文字与数字。",
+        "en": "Old yellowed parchment and pale gold ink lines; apart from the circles and lines only a faint coastline outline; the five pieces differ slightly in color and wear, having come from five places; no writing or numbers at all."
+      },
+      "ref": "lb_gate_network_chart",
+      "milestone": "M2",
+      "notes": "史料道具的展开图（在书籍与收藏界面里看）。不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    },
+    {
+      "id": "art_map_lore_mist_edge_chart",
+      "template": "map_region",
+      "subject": {
+        "zh": "雾缘旧海图：一张褪色的航海图，画着南方的海岸线、零星的群岛与航线，海图的四周画着一道厚厚的灰白雾带，所有航线都在雾带前折回",
+        "en": "An old chart of the mist edge: a faded nautical chart of the southern coastline, scattered islands and sailing routes, a thick band of gray-white mist drawn around its edges, every route turning back before the mist"
+      },
+      "extra": {
+        "zh": "航海图画风：只有线条的罗盘玫瑰（没有字母）、虚线航线、海浪纹与水深的小点；一份浸过水的旧本，纸面有水渍；没有任何文字与数字。",
+        "en": "Nautical chart style: a compass rose of lines only with no letters, dashed routes, wave patterns and small depth dots; an old water-damaged copy with stains on the paper; no writing or numbers at all."
+      },
+      "ref": "lb_mist_edge_chart",
+      "milestone": "M3",
+      "notes": "史料道具的展开图（在书籍与收藏界面里看）。不是像素画，是手绘古地图质感的彩色地形插画；地名、路线、边界与标记全部由界面绘制，图上不能有任何文字、字母、数字与图例；生成后检查是否混进了像字的花纹。"
+    }
+  ]
+}

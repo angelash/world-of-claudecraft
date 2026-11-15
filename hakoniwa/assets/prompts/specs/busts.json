@@ -1,0 +1,1408 @@
+{
+  "category": "busts",
+  "title": "半身立绘：主要角色的基础立绘、表情差分与状态变体",
+  "sources": [
+    "docs/30_story/characters.md",
+    "docs/20_world/pantheon.md",
+    "docs/20_world/races.md",
+    "docs/50_tech/art_pipeline.md",
+    "docs/40_design/content/catalog_characters_lotha.md",
+    "docs/40_design/content/catalog_characters_continent.md"
+  ],
+  "items": [
+    {
+      "id": "art_bust_eluen",
+      "template": "bust_base",
+      "style": "divine_court",
+      "subject": {
+        "zh": "光之女神的模样：高挑的女子，白金长发一丝不乱垂到腰，白金色眼睛，目光像在测量尺寸。白与金的长袍左右绝对对称，领口与袖口镶几何纹金边，白 #f4f2ea、金 #d8b860，背后悬着精密的几何纹光环，像缓慢转动的齿轮。神情端正而冷淡。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The goddess of light as a tall woman: immaculate platinum hair falling straight to the waist, platinum eyes with a measuring gaze. Perfectly symmetrical white and gold robes with geometric gold trim at collar and cuffs, white #f4f2ea, gold #d8b860, a precise geometric halo floating behind her like slowly turning gears. Composed, cool expression. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "双手在身前对称交叠，背后的几何纹光环只露出上半圈。",
+        "en": "Hands folded symmetrically in front, only the upper half of the geometric halo visible behind her."
+      },
+      "ref": "eluen",
+      "deps": ["art_chr_eluen_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 光环是几何纹的齿轮状，不是圆形光圈；衣饰必须左右对称。"
+    },
+    {
+      "id": "art_bust_eluen_expr",
+      "template": "bust_expr",
+      "style": "divine_court",
+      "subject": {
+        "zh": "光之女神的模样：高挑的女子，白金长发一丝不乱垂到腰，白金色眼睛，目光像在测量尺寸。白与金的长袍左右绝对对称，领口与袖口镶几何纹金边，白 #f4f2ea、金 #d8b860，背后悬着精密的几何纹光环，像缓慢转动的齿轮。神情端正而冷淡。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The goddess of light as a tall woman: immaculate platinum hair falling straight to the waist, platinum eyes with a measuring gaze. Perfectly symmetrical white and gold robes with geometric gold trim at collar and cuffs, white #f4f2ea, gold #d8b860, a precise geometric halo floating behind her like slowly turning gears. Composed, cool expression. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：居高临下的审视：下巴微抬，眼神冷淡。",
+        "en": "Panel 6 is the character's signature expression: looking down in appraisal: chin slightly raised, cold eyes."
+      },
+      "ref": "eluen",
+      "deps": ["art_chr_eluen_ref", "art_bust_eluen"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 光环是几何纹的齿轮状，不是圆形光圈；衣饰必须左右对称。"
+    },
+    {
+      "id": "art_bust_valda",
+      "template": "bust_base",
+      "style": "divine_court",
+      "subject": {
+        "zh": "争斗女神的模样：高大健硕的女战士，古铜肤色上满是旧伤疤，暗红蓬乱长发，金红色眼睛，笑起来露出尖牙。头上一对弯角，右角断了半截。红黑战甲 #8a1c1c、#1e1a1a，肩甲满是刀痕，肩上扛着一把断剑。豪爽好斗。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The goddess of strife as a towering, muscular woman warrior: bronze skin covered in old scars, wild dark red long hair, red-gold eyes, a fanged grin. A pair of curved horns, the right one broken halfway. Red and black battle armor #8a1c1c, #1e1a1a, pauldrons covered in blade nicks, a broken sword resting on her shoulder. Boisterous and eager for a fight. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "断剑扛在肩上，咧嘴露出尖牙。",
+        "en": "Broken sword on her shoulder, grinning with fangs showing."
+      },
+      "ref": "valda",
+      "deps": ["art_chr_valda_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 断的是右角；断剑的剑身只剩一半。"
+    },
+    {
+      "id": "art_bust_valda_expr",
+      "template": "bust_expr",
+      "style": "divine_court",
+      "subject": {
+        "zh": "争斗女神的模样：高大健硕的女战士，古铜肤色上满是旧伤疤，暗红蓬乱长发，金红色眼睛，笑起来露出尖牙。头上一对弯角，右角断了半截。红黑战甲 #8a1c1c、#1e1a1a，肩甲满是刀痕，肩上扛着一把断剑。豪爽好斗。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The goddess of strife as a towering, muscular woman warrior: bronze skin covered in old scars, wild dark red long hair, red-gold eyes, a fanged grin. A pair of curved horns, the right one broken halfway. Red and black battle armor #8a1c1c, #1e1a1a, pauldrons covered in blade nicks, a broken sword resting on her shoulder. Boisterous and eager for a fight. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：露出尖牙的开怀大笑。",
+        "en": "Panel 6 is the character's signature expression: a wide laugh showing her fangs."
+      },
+      "ref": "valda",
+      "deps": ["art_chr_valda_ref", "art_bust_valda"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 断的是右角；断剑的剑身只剩一半。"
+    },
+    {
+      "id": "art_bust_merca",
+      "template": "bust_base",
+      "style": "divine_court",
+      "subject": {
+        "zh": "交易女神的模样：半身人般的小个子女人，只到常人胸口，圆脸，脸颊几点雀斑，蜂蜜金卷发扎两个小发髻，金色眼睛笑得弯弯。多口袋的朱红商人外套镶金边 #b8402a、#e0b040，腋下夹一本厚账本，手里捏着一块点心，身边浮着几枚旋转的金币。Q 版约 1.6 头身，头像立绘正常比例。",
+        "en": "The goddess of trade as a halfling-sized woman who reaches an adult's chest: round face with a few freckles, honey-gold curls in two small buns, golden eyes curved in a smile. A vermilion merchant coat full of pockets with gold trim #b8402a, #e0b040, a thick ledger under one arm, a pastry in her hand, a few gold coins spinning in the air around her. Chibi about 1.6 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "腋下夹着账本，手里拿着咬了一口的点心，两枚金币浮在肩旁。",
+        "en": "Ledger under her arm, a bitten pastry in hand, two coins floating by her shoulder."
+      },
+      "ref": "merca",
+      "deps": ["art_chr_merca_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 金币是浮在她身边的几枚小圆片，属于角色本身，不是背景粒子；个子明显比常人矮。"
+    },
+    {
+      "id": "art_bust_merca_expr",
+      "template": "bust_expr",
+      "style": "divine_court",
+      "subject": {
+        "zh": "交易女神的模样：半身人般的小个子女人，只到常人胸口，圆脸，脸颊几点雀斑，蜂蜜金卷发扎两个小发髻，金色眼睛笑得弯弯。多口袋的朱红商人外套镶金边 #b8402a、#e0b040，腋下夹一本厚账本，手里捏着一块点心，身边浮着几枚旋转的金币。Q 版约 1.6 头身，头像立绘正常比例。",
+        "en": "The goddess of trade as a halfling-sized woman who reaches an adult's chest: round face with a few freckles, honey-gold curls in two small buns, golden eyes curved in a smile. A vermilion merchant coat full of pockets with gold trim #b8402a, #e0b040, a thick ledger under one arm, a pastry in her hand, a few gold coins spinning in the air around her. Chibi about 1.6 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：两眼放光的贪吃笑，嘴角沾着点心屑。",
+        "en": "Panel 6 is the character's signature expression: a greedy delighted grin with crumbs at the corner of her mouth."
+      },
+      "ref": "merca",
+      "deps": ["art_chr_merca_ref", "art_bust_merca"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 金币是浮在她身边的几枚小圆片，属于角色本身，不是背景粒子；个子明显比常人矮。"
+    },
+    {
+      "id": "art_bust_sylvie",
+      "template": "bust_base",
+      "style": "divine_court",
+      "subject": {
+        "zh": "生命女神的模样：纤瘦轻盈的女子，苍白肤色，苍绿长发长及膝盖，发间同时插着枯花与新开的花，常闭着眼，神情安静。苔绿与枯叶褐的层叠薄衣像落叶 #6a8a5a、#8a6a42，赤足。动作又轻又慢。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The goddess of life as a slender, weightless woman: pale skin, knee-length pale green hair woven with both withered and freshly opened flowers, eyes usually closed, a quiet expression. Layered thin garments in moss green and dead-leaf brown like fallen leaves #6a8a5a, #8a6a42, barefoot. Moves lightly and slowly. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "闭着眼，双手自然垂在身侧，发间的枯花与新花清楚可见。",
+        "en": "Eyes closed, hands hanging naturally, the withered and fresh flowers in her hair clearly visible."
+      },
+      "ref": "sylvie",
+      "deps": ["art_chr_sylvie_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 身边的半鹿半狼兽是另一个素材，不画进来；脚上不穿鞋。"
+    },
+    {
+      "id": "art_bust_sylvie_expr",
+      "template": "bust_expr",
+      "style": "divine_court",
+      "subject": {
+        "zh": "生命女神的模样：纤瘦轻盈的女子，苍白肤色，苍绿长发长及膝盖，发间同时插着枯花与新开的花，常闭着眼，神情安静。苔绿与枯叶褐的层叠薄衣像落叶 #6a8a5a、#8a6a42，赤足。动作又轻又慢。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The goddess of life as a slender, weightless woman: pale skin, knee-length pale green hair woven with both withered and freshly opened flowers, eyes usually closed, a quiet expression. Layered thin garments in moss green and dead-leaf brown like fallen leaves #6a8a5a, #8a6a42, barefoot. Moves lightly and slowly. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：闭着眼的淡淡微笑。",
+        "en": "Panel 6 is the character's signature expression: a faint smile with closed eyes."
+      },
+      "ref": "sylvie",
+      "deps": ["art_chr_sylvie_ref", "art_bust_sylvie"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 身边的半鹿半狼兽是另一个素材，不画进来；脚上不穿鞋。"
+    },
+    {
+      "id": "art_bust_moira",
+      "template": "bust_base",
+      "style": "divine_court",
+      "subject": {
+        "zh": "记录女神的模样：身形修长的兜帽书记官，墨蓝兜帽长袍 #2a3450，兜帽下露出栗色短发与常带笑的嘴角，左眼前悬一片刻着细纹的圆镜片，指尖沾着墨。腰后拖着一条羊皮纸色长卷轴 #e8dcc0 一直垂到地上，身边浮着一本翻开的书。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The goddess of record as a tall hooded scribe: ink-blue hooded robe #2a3450, chestnut short hair and a ready smile under the hood, a round lens etched with fine lines hovering before her left eye, ink-stained fingertips. A parchment-colored scroll #e8dcc0 trails from her waist down to the ground, an open book floats beside her. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "一手托着翻开的书，左眼前的镜片清楚可见，卷轴从腰后垂下。",
+        "en": "One hand holding an open book, the lens before her left eye clearly visible, the scroll hanging from her waist."
+      },
+      "ref": "moira",
+      "deps": ["art_chr_moira_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 镜片在左眼前；书页与卷轴上一个字也没有，只有空白与淡淡的格线。"
+    },
+    {
+      "id": "art_bust_moira_expr",
+      "template": "bust_expr",
+      "style": "divine_court",
+      "subject": {
+        "zh": "记录女神的模样：身形修长的兜帽书记官，墨蓝兜帽长袍 #2a3450，兜帽下露出栗色短发与常带笑的嘴角，左眼前悬一片刻着细纹的圆镜片，指尖沾着墨。腰后拖着一条羊皮纸色长卷轴 #e8dcc0 一直垂到地上，身边浮着一本翻开的书。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The goddess of record as a tall hooded scribe: ink-blue hooded robe #2a3450, chestnut short hair and a ready smile under the hood, a round lens etched with fine lines hovering before her left eye, ink-stained fingertips. A parchment-colored scroll #e8dcc0 trails from her waist down to the ground, an open book floats beside her. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：看穿一切的狡黠笑，挑起一边眉毛。",
+        "en": "Panel 6 is the character's signature expression: a knowing sly smile with one eyebrow raised."
+      },
+      "ref": "moira",
+      "deps": ["art_chr_moira_ref", "art_bust_moira"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 镜片在左眼前；书页与卷轴上一个字也没有，只有空白与淡淡的格线。"
+    },
+    {
+      "id": "art_bust_door_woman",
+      "template": "bust_base",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "梦里站在门口的女人：高挑的成年女子，深褐长发松松垂到腰，脸的右半边总隐在阴影里，露出的左半边带着温柔的笑，眼睛是暖琥珀色。深夜蓝的及地长袍 #262c48，衣缘一道暖金细边 #f0d890，腰间一圈挂满大小不一的旧钥匙。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The woman who stands in a doorway in dreams: a tall grown woman, dark brown hair loose to the waist, the right half of her face always lost in shadow, the visible left half wearing a gentle smile, warm amber eyes. Floor-length midnight blue robe #262c48 edged with a thin warm gold line #f0d890, a ring of old keys of every size hanging at her waist. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "一只手轻搭在腰间的钥匙上，右半边脸隐在阴影里。",
+        "en": "One hand resting lightly on the keys at her waist, the right half of her face in shadow."
+      },
+      "ref": "door_woman",
+      "deps": ["art_chr_door_woman_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 画面里不出现任何名字与文字；阴影始终在她右半张脸；钥匙是黄铜、铁与骨的旧钥匙。"
+    },
+    {
+      "id": "art_bust_door_woman_expr",
+      "template": "bust_expr",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "梦里站在门口的女人：高挑的成年女子，深褐长发松松垂到腰，脸的右半边总隐在阴影里，露出的左半边带着温柔的笑，眼睛是暖琥珀色。深夜蓝的及地长袍 #262c48，衣缘一道暖金细边 #f0d890，腰间一圈挂满大小不一的旧钥匙。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The woman who stands in a doorway in dreams: a tall grown woman, dark brown hair loose to the waist, the right half of her face always lost in shadow, the visible left half wearing a gentle smile, warm amber eyes. Floor-length midnight blue robe #262c48 edged with a thin warm gold line #f0d890, a ring of old keys of every size hanging at her waist. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：带笑的停顿：嘴角含笑，目光低垂。",
+        "en": "Panel 6 is the character's signature expression: a smiling pause: lips curved, eyes lowered."
+      },
+      "ref": "door_woman",
+      "deps": ["art_chr_door_woman_ref", "art_bust_door_woman"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 画面里不出现任何名字与文字；阴影始终在她右半张脸；钥匙是黄铜、铁与骨的旧钥匙。"
+    },
+    {
+      "id": "art_bust_yeyu",
+      "template": "bust_base",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "外表十五六岁的娇小少女，黑发及肩，发梢化成细羽，左鬓一缕白发，左眼琥珀色，右眼黑色。破旧深灰信使斗篷 #3a3a42 收拢时像一对合起的翅膀，胸前别钥孔形铜别针，腰挂封着暗红火漆 #8a2a2a 的皮信囊，长靴尖包爪形铁片。神情刻薄倔强。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A petite girl who looks fifteen or sixteen: shoulder-length black hair whose tips turn into fine feathers, one white lock at her left temple, left eye amber and right eye black. A worn dark grey messenger cloak #3a3a42 that looks like folded wings when closed, a keyhole-shaped copper pin on the chest, a leather letter pouch sealed with dark red wax #8a2a2a at her waist, long boots with claw-shaped iron toecaps. Sharp-tongued and stubborn. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "斗篷半收，一手按着腰间的信囊。右眼的瞳孔是细长的钥孔形。",
+        "en": "Cloak half closed, one hand on the letter pouch at her waist. The pupil of her right eye is a slender keyhole shape."
+      },
+      "ref": "yeyu",
+      "deps": ["art_chr_yeyu_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 左鬓白发与琥珀色左眼都在角色自己的左侧；左向镜像后若换边，由导入工具出头部修正件；信囊的暗红火漆是全身唯一的暖色。"
+    },
+    {
+      "id": "art_bust_yeyu_expr",
+      "template": "bust_expr",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "外表十五六岁的娇小少女，黑发及肩，发梢化成细羽，左鬓一缕白发，左眼琥珀色，右眼黑色。破旧深灰信使斗篷 #3a3a42 收拢时像一对合起的翅膀，胸前别钥孔形铜别针，腰挂封着暗红火漆 #8a2a2a 的皮信囊，长靴尖包爪形铁片。神情刻薄倔强。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A petite girl who looks fifteen or sixteen: shoulder-length black hair whose tips turn into fine feathers, one white lock at her left temple, left eye amber and right eye black. A worn dark grey messenger cloak #3a3a42 that looks like folded wings when closed, a keyhole-shaped copper pin on the chest, a leather letter pouch sealed with dark red wax #8a2a2a at her waist, long boots with claw-shaped iron toecaps. Sharp-tongued and stubborn. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：嗤之以鼻的\"啧\"：撇嘴，眼神斜睨。右眼的瞳孔是细长的钥孔形。",
+        "en": "Panel 6 is the character's signature expression: a scornful tsk: lips twisted, a sidelong glare. The pupil of her right eye is a slender keyhole shape."
+      },
+      "ref": "yeyu",
+      "deps": ["art_chr_yeyu_ref", "art_bust_yeyu"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 左鬓白发与琥珀色左眼都在角色自己的左侧；左向镜像后若换边，由导入工具出头部修正件；信囊的暗红火漆是全身唯一的暖色。"
+    },
+    {
+      "id": "art_bust_shiya",
+      "template": "bust_base",
+      "style": "wild_forest",
+      "subject": {
+        "zh": "十七岁的狼族兽人少女，浅相：人脸，银灰狼耳与狼尾。精瘦，中等偏高。银灰短发略乱，一侧编细辫挂狼牙与小铜铃，浅金色眼睛。森绿皮质猎装 #3f5a3a 配短披风与皮护臂 #8a6a4a，裸露的小臂有部族纹身，背长弓，腰挂猎刀与狼尾毛饰。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A seventeen-year-old wolf beastfolk girl in light aspect: human face with silver-grey wolf ears and tail. Lean, a little taller than average. Messy short silver-grey hair with one thin braid hung with a wolf fang and a small copper bell, pale gold eyes. Forest green leather hunting gear #3f5a3a with a short cape and leather bracers #8a6a4a, tribal tattoos on her bare forearms, a longbow on her back, a hunting knife and a wolf-tail charm at her belt. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "长弓背在身后，一手搭在猎刀柄上，狼耳竖起。",
+        "en": "Longbow on her back, one hand on the hunting knife hilt, wolf ears up."
+      },
+      "ref": "shiya",
+      "deps": ["art_chr_shiya_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 狼耳与狼尾是剪影特征，在 28 像素高时也要认得出；狼牙与铜铃在细辫那一侧。"
+    },
+    {
+      "id": "art_bust_shiya_expr",
+      "template": "bust_expr",
+      "style": "wild_forest",
+      "subject": {
+        "zh": "十七岁的狼族兽人少女，浅相：人脸，银灰狼耳与狼尾。精瘦，中等偏高。银灰短发略乱，一侧编细辫挂狼牙与小铜铃，浅金色眼睛。森绿皮质猎装 #3f5a3a 配短披风与皮护臂 #8a6a4a，裸露的小臂有部族纹身，背长弓，腰挂猎刀与狼尾毛饰。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A seventeen-year-old wolf beastfolk girl in light aspect: human face with silver-grey wolf ears and tail. Lean, a little taller than average. Messy short silver-grey hair with one thin braid hung with a wolf fang and a small copper bell, pale gold eyes. Forest green leather hunting gear #3f5a3a with a short cape and leather bracers #8a6a4a, tribal tattoos on her bare forearms, a longbow on her back, a hunting knife and a wolf-tail charm at her belt. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：憋笑：抿着嘴，耳朵竖起，尾巴在身后慢摆。",
+        "en": "Panel 6 is the character's signature expression: holding back a laugh: lips pressed, ears up, tail swaying slowly behind."
+      },
+      "ref": "shiya",
+      "deps": ["art_chr_shiya_ref", "art_bust_shiya"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 狼耳与狼尾是剪影特征，在 28 像素高时也要认得出；狼牙与铜铃在细辫那一侧。"
+    },
+    {
+      "id": "art_bust_ron",
+      "template": "bust_base",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "二十四岁的人族青年，中等身材偏瘦长，习惯缩着肩。棕色乱发，满脸雀斑，褐色眼睛，神情紧张又可靠。不太合身的二手皮甲 #6a5a44，脖子上一条褪色的蓝毛线围巾 #5a7a9a，左臂缠满五色护符，左手一面坑坑洼洼的旧铁圆盾，腰挂铜牌与短剑。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-four-year-old human young man, medium build on the lanky side, shoulders habitually hunched. Messy brown hair, a face full of freckles, brown eyes, nervous yet dependable. Ill-fitting second-hand leather armor #6a5a44, a faded blue knitted scarf #5a7a9a around his neck, his left arm wrapped in charms of five colors, a dented old iron round shield on his left arm, a copper tag and a short sword at his belt. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "围巾拉到下巴，旧圆盾挎在左臂，一手挠头。",
+        "en": "Scarf pulled up to his chin, old round shield on his left arm, scratching his head with one hand."
+      },
+      "ref": "ron",
+      "deps": ["art_chr_ron_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 围巾是褪色的蓝，不要画成鲜蓝；盾与护符都在左臂。"
+    },
+    {
+      "id": "art_bust_ron_expr",
+      "template": "bust_expr",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "二十四岁的人族青年，中等身材偏瘦长，习惯缩着肩。棕色乱发，满脸雀斑，褐色眼睛，神情紧张又可靠。不太合身的二手皮甲 #6a5a44，脖子上一条褪色的蓝毛线围巾 #5a7a9a，左臂缠满五色护符，左手一面坑坑洼洼的旧铁圆盾，腰挂铜牌与短剑。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-four-year-old human young man, medium build on the lanky side, shoulders habitually hunched. Messy brown hair, a face full of freckles, brown eyes, nervous yet dependable. Ill-fitting second-hand leather armor #6a5a44, a faded blue knitted scarf #5a7a9a around his neck, his left arm wrapped in charms of five colors, a dented old iron round shield on his left arm, a copper tag and a short sword at his belt. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：苦着脸嘴硬：眉毛下垂，嘴角硬撑着。",
+        "en": "Panel 6 is the character's signature expression: a pained but stubborn face: drooping brows, mouth forcing a brave line."
+      },
+      "ref": "ron",
+      "deps": ["art_chr_ron_ref", "art_bust_ron"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 围巾是褪色的蓝，不要画成鲜蓝；盾与护符都在左臂。"
+    },
+    {
+      "id": "art_bust_nera",
+      "template": "bust_base",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "二十七岁、看着更年轻的狐族兽人女子，浅相：赤狐耳，蓬松大尾，尾尖白。身形纤细。橙红长发松松挽起，琥珀色狐狸眼笑眯眯。墨绿商人外套配金扣 #2e4a3a、#c8a24a，腰间一串算珠形计数珠，指间翻转着一枚旧金币，算账时戴半月形眼镜。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A fox beastfolk woman of twenty-seven who looks younger, light aspect: red fox ears and a big fluffy tail with a white tip. Slender. Orange-red long hair loosely pinned up, smiling amber fox eyes. Dark green merchant coat with gold buttons #2e4a3a, #c8a24a, a string of abacus-bead counters at her waist, a worn gold coin flipping between her fingers, half-moon spectacles for bookkeeping. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "半月形眼镜挂在鼻尖，一手在指间翻转金币，尾巴从身侧绕到身前。",
+        "en": "Half-moon spectacles on the tip of her nose, a coin flipping between her fingers, her tail curling around to the front."
+      },
+      "ref": "nera",
+      "deps": ["art_chr_nera_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 狐耳尖、白色尾尖要清楚，别画成猫耳；金币小而亮。"
+    },
+    {
+      "id": "art_bust_nera_expr",
+      "template": "bust_expr",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "二十七岁、看着更年轻的狐族兽人女子，浅相：赤狐耳，蓬松大尾，尾尖白。身形纤细。橙红长发松松挽起，琥珀色狐狸眼笑眯眯。墨绿商人外套配金扣 #2e4a3a、#c8a24a，腰间一串算珠形计数珠，指间翻转着一枚旧金币，算账时戴半月形眼镜。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A fox beastfolk woman of twenty-seven who looks younger, light aspect: red fox ears and a big fluffy tail with a white tip. Slender. Orange-red long hair loosely pinned up, smiling amber fox eyes. Dark green merchant coat with gold buttons #2e4a3a, #c8a24a, a string of abacus-bead counters at her waist, a worn gold coin flipping between her fingers, half-moon spectacles for bookkeeping. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：眯眼算计的笑，半月形眼镜滑到鼻尖。",
+        "en": "Panel 6 is the character's signature expression: a narrow-eyed calculating smile, the half-moon spectacles slid down to her nose tip."
+      },
+      "ref": "nera",
+      "deps": ["art_chr_nera_ref", "art_bust_nera"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 狐耳尖、白色尾尖要清楚，别画成猫耳；金币小而亮。"
+    },
+    {
+      "id": "art_bust_oola",
+      "template": "bust_base",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "七十一岁的人族老婆婆，瘦小，背微驼，满脸皱纹，灰绿眼睛眼神锐利。乱蓬蓬的白发用草绳束起。粗布裙 #5a4a3a 配打满补丁的苔绿围裙 #3a5a3a，口袋里塞满草药，脚踩木屐。拄一根藤杖，杖头住着一窝麻雀。慈和而固执。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A seventy-one-year-old human granny, small and thin, slightly stooped, deeply wrinkled, sharp grey-green eyes. Unruly white hair tied with straw cord. Coarse cloth skirt #5a4a3a with a heavily patched moss green apron #3a5a3a, pockets stuffed with herbs, wooden clogs. She leans on a vine staff with a nest of sparrows living at its head. Kind but obstinate. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "双手拄着藤杖，杖头的麻雀探出头来。",
+        "en": "Both hands on the vine staff, a sparrow peeking out from its head."
+      },
+      "ref": "oola",
+      "deps": ["art_chr_oola_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 不给她花冠、赤足或任何鹿与狼的元素；麻雀只是杖头的小点。"
+    },
+    {
+      "id": "art_bust_oola_expr",
+      "template": "bust_expr",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "七十一岁的人族老婆婆，瘦小，背微驼，满脸皱纹，灰绿眼睛眼神锐利。乱蓬蓬的白发用草绳束起。粗布裙 #5a4a3a 配打满补丁的苔绿围裙 #3a5a3a，口袋里塞满草药，脚踩木屐。拄一根藤杖，杖头住着一窝麻雀。慈和而固执。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A seventy-one-year-old human granny, small and thin, slightly stooped, deeply wrinkled, sharp grey-green eyes. Unruly white hair tied with straw cord. Coarse cloth skirt #5a4a3a with a heavily patched moss green apron #3a5a3a, pockets stuffed with herbs, wooden clogs. She leans on a vine staff with a nest of sparrows living at its head. Kind but obstinate. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：眯着眼看穿人的锐利目光，嘴角似笑非笑。",
+        "en": "Panel 6 is the character's signature expression: a sharp squint that sees right through you, a half smile."
+      },
+      "ref": "oola",
+      "deps": ["art_chr_oola_ref", "art_bust_oola"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 不给她花冠、赤足或任何鹿与狼的元素；麻雀只是杖头的小点。"
+    },
+    {
+      "id": "art_bust_cassian",
+      "template": "bust_base",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "二十六岁的人族年轻神父，高瘦，站姿笔直。金发剪得一丝不苟，浅蓝眼睛，神情真诚而紧绷。熨得笔挺的白色神父袍 #e8e2d0，袖口打着补丁，胸前挂光环几何纹的圣徽，浅金与灰蓝点缀 #c8a84a、#7a8aa0，手里一本翻烂、夹满书签的圣典。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-six-year-old human young priest, tall and thin with a straight back. Neatly trimmed blond hair, pale blue eyes, sincere but tense. A crisply pressed white priest's robe #e8e2d0 with patched cuffs, a holy symbol of geometric halo design on his chest, pale gold and grey-blue accents #c8a84a, #7a8aa0, a battered scripture stuffed with bookmarks in his hand. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "双手把圣典捧在胸前，圣徽挂在领口下。",
+        "en": "Holding the scripture against his chest with both hands, the holy symbol hanging below the collar."
+      },
+      "ref": "cassian",
+      "deps": ["art_chr_cassian_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 袍子白而旧，袖口的补丁一定要在；圣典上没有字。"
+    },
+    {
+      "id": "art_bust_cassian_expr",
+      "template": "bust_expr",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "二十六岁的人族年轻神父，高瘦，站姿笔直。金发剪得一丝不苟，浅蓝眼睛，神情真诚而紧绷。熨得笔挺的白色神父袍 #e8e2d0，袖口打着补丁，胸前挂光环几何纹的圣徽，浅金与灰蓝点缀 #c8a84a、#7a8aa0，手里一本翻烂、夹满书签的圣典。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-six-year-old human young priest, tall and thin with a straight back. Neatly trimmed blond hair, pale blue eyes, sincere but tense. A crisply pressed white priest's robe #e8e2d0 with patched cuffs, a holy symbol of geometric halo design on his chest, pale gold and grey-blue accents #c8a84a, #7a8aa0, a battered scripture stuffed with bookmarks in his hand. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：等待回应的祈求：仰头，眼神渴望又不安。",
+        "en": "Panel 6 is the character's signature expression: a plea awaiting an answer: face upturned, eyes longing and uneasy."
+      },
+      "ref": "cassian",
+      "deps": ["art_chr_cassian_ref", "art_bust_cassian"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 袍子白而旧，袖口的补丁一定要在；圣典上没有字。"
+    },
+    {
+      "id": "art_bust_martha",
+      "template": "bust_base",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "四十九岁的人族女人，高大结实，小臂粗壮带烫伤疤。深红短发夹着白丝，左颊一道旧刀疤，笑起来很爽朗，深褐眼睛。袖子挽起，酒红衬衫 #8a3a2a 外是旧皮甲改的束腰与深棕围裙 #5a3a2a，手里拿着酒杯与擦布，围裙下藏一把宽刃长刀。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A forty-nine-year-old human woman, tall and sturdy with thick, burn-scarred forearms. Short dark red hair streaked with white, an old blade scar on her left cheek, a hearty laugh, dark brown eyes. Sleeves rolled up, wine red shirt #8a3a2a under a bodice cut from old leather armor and a dark brown apron #5a3a2a, a tankard and polishing cloth in hand, a broad-bladed long sword hidden under the apron. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "一手拿着酒杯，擦布搭在肩上，咧嘴笑着。",
+        "en": "A tankard in one hand, the cloth over her shoulder, grinning."
+      },
+      "ref": "martha",
+      "deps": ["art_chr_martha_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 刀疤在左颊；刀平时藏在围裙下，只在攻击、战斗待机与受击里出鞘。"
+    },
+    {
+      "id": "art_bust_martha_expr",
+      "template": "bust_expr",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "四十九岁的人族女人，高大结实，小臂粗壮带烫伤疤。深红短发夹着白丝，左颊一道旧刀疤，笑起来很爽朗，深褐眼睛。袖子挽起，酒红衬衫 #8a3a2a 外是旧皮甲改的束腰与深棕围裙 #5a3a2a，手里拿着酒杯与擦布，围裙下藏一把宽刃长刀。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A forty-nine-year-old human woman, tall and sturdy with thick, burn-scarred forearms. Short dark red hair streaked with white, an old blade scar on her left cheek, a hearty laugh, dark brown eyes. Sleeves rolled up, wine red shirt #8a3a2a under a bodice cut from old leather armor and a dark brown apron #5a3a2a, a tankard and polishing cloth in hand, a broad-bladed long sword hidden under the apron. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：仰头张口的爽朗大笑。",
+        "en": "Panel 6 is the character's signature expression: a hearty head-thrown-back laugh."
+      },
+      "ref": "martha",
+      "deps": ["art_chr_martha_ref", "art_bust_martha"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 刀疤在左颊；刀平时藏在围裙下，只在攻击、战斗待机与受击里出鞘。"
+    },
+    {
+      "id": "art_bust_bron",
+      "template": "bust_base",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "四十六岁却像六十岁的人族老汉，粗壮，秃顶，灰色络腮胡，酒糟鼻，眯缝的灰眼睛。褪色的公会蓝旧制服 #4a5a7a，纽扣扣错一颗，右臂只剩空袖子别在肩上。左臂夹一本厚得夸张的登记簿，腰挂酒壶 #7a5a3a。粗声粗气。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A human man of forty-six who looks sixty: burly, bald, a grey full beard, a drinker's red nose, squinting grey eyes. A faded guild-blue old uniform #4a5a7a buttoned one hole off, the empty right sleeve pinned to his shoulder. An absurdly thick register clamped under his left arm, a flask #7a5a3a at his belt. Gruff and loud. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "左臂夹着登记簿，右边空袖别在肩上，一手拿酒壶。",
+        "en": "Register under his left arm, the empty right sleeve pinned up, holding the flask."
+      },
+      "ref": "bron",
+      "deps": ["art_chr_bron_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 空袖在右侧，所有动作都用左手；左向镜像后若换边，由导入工具出修正件。"
+    },
+    {
+      "id": "art_bust_bron_expr",
+      "template": "bust_expr",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "四十六岁却像六十岁的人族老汉，粗壮，秃顶，灰色络腮胡，酒糟鼻，眯缝的灰眼睛。褪色的公会蓝旧制服 #4a5a7a，纽扣扣错一颗，右臂只剩空袖子别在肩上。左臂夹一本厚得夸张的登记簿，腰挂酒壶 #7a5a3a。粗声粗气。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A human man of forty-six who looks sixty: burly, bald, a grey full beard, a drinker's red nose, squinting grey eyes. A faded guild-blue old uniform #4a5a7a buttoned one hole off, the empty right sleeve pinned to his shoulder. An absurdly thick register clamped under his left arm, a flask #7a5a3a at his belt. Gruff and loud. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：醉醺醺地眯眼打嗝。",
+        "en": "Panel 6 is the character's signature expression: a tipsy squinting hiccup."
+      },
+      "ref": "bron",
+      "deps": ["art_chr_bron_ref", "art_bust_bron"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 空袖在右侧，所有动作都用左手；左向镜像后若换边，由导入工具出修正件。"
+    },
+    {
+      "id": "art_bust_ash",
+      "template": "bust_base",
+      "style": "sealed_ruins",
+      "subject": {
+        "zh": "骸骨守门人：人形骨架，眼眶里两点灰蓝冷火。披一件褪成灰白的古朴亚麻长袍 #c8c4b8，额骨上嵌一枚铜绿色的门形铜饰 #5a8a7a，指骨间夹一支芦苇笔，身上落着灰。炭黑、冷蓝、铜绿。安静而压迫。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A skeletal gatekeeper: a human skeleton with two points of cold grey-blue fire in its eye sockets. An antique linen robe faded to ash white #c8c4b8, a verdigris door-shaped copper ornament #5a8a7a set into the brow bone, a reed pen held between finger bones, ash settled on him. Charcoal, cold blue, verdigris. Quiet and oppressive. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "骨手夹着芦苇笔举在胸前，额骨上的门形铜饰清楚。",
+        "en": "A bony hand holding the reed pen before the chest, the door-shaped ornament on the brow clearly visible."
+      },
+      "ref": "ash",
+      "deps": ["art_chr_ash_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 是骸骨，不是活人；身边与袍子上不出现任何字。"
+    },
+    {
+      "id": "art_bust_ash_expr",
+      "template": "bust_expr",
+      "style": "sealed_ruins",
+      "subject": {
+        "zh": "骸骨守门人：人形骨架，眼眶里两点灰蓝冷火。披一件褪成灰白的古朴亚麻长袍 #c8c4b8，额骨上嵌一枚铜绿色的门形铜饰 #5a8a7a，指骨间夹一支芦苇笔，身上落着灰。炭黑、冷蓝、铜绿。安静而压迫。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A skeletal gatekeeper: a human skeleton with two points of cold grey-blue fire in its eye sockets. An antique linen robe faded to ash white #c8c4b8, a verdigris door-shaped copper ornament #5a8a7a set into the brow bone, a reed pen held between finger bones, ash settled on him. Charcoal, cold blue, verdigris. Quiet and oppressive. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：眼眶里的冷火骤然变亮。骸骨没有脸部肌肉，表情靠冷火的大小与亮度、下颌开合和头的角度区分。",
+        "en": "Panel 6 is the character's signature expression: the cold fire in his eye sockets flaring bright. A skeleton has no facial muscles: express emotions through the size and brightness of the eye fires, the jaw and the head angle."
+      },
+      "ref": "ash",
+      "deps": ["art_chr_ash_ref", "art_bust_ash"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 是骸骨，不是活人；身边与袍子上不出现任何字。"
+    },
+    {
+      "id": "art_bust_seg_oneeye",
+      "template": "bust_base",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "三十九岁的人族匪首，粗壮精悍，晒黑的方脸，右眼戴黑皮眼罩，左眼是凶狠的灰褐色，下巴满是胡茬，深棕短发剃得很短。锈褐色钉甲 #6a4a32 外披破旧灰斗篷 #5a5a52，腰缠粗皮带，右手一把单手劈斧，斧背沾着灰。狠，但讲规矩。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A thirty-nine-year-old human bandit chief, thickset and hard: a sunburnt square face, a black leather patch over his right eye, a fierce grey-brown left eye, heavy stubble, dark brown hair cropped short. Rust-brown studded brigandine #6a4a32 under a ragged grey cloak #5a5a52, a thick leather belt, a one-handed cleaver axe in his right hand, ash on its back edge. Ruthless but bound by his own rules. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "劈斧扛在肩上，独眼盯着前方。",
+        "en": "Cleaver on his shoulder, his single eye fixed ahead."
+      },
+      "ref": "seg_oneeye",
+      "deps": ["art_chr_seg_oneeye_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 眼罩在右眼；左向镜像后若换边，由导入工具出修正件。"
+    },
+    {
+      "id": "art_bust_seg_oneeye_expr",
+      "template": "bust_expr",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "三十九岁的人族匪首，粗壮精悍，晒黑的方脸，右眼戴黑皮眼罩，左眼是凶狠的灰褐色，下巴满是胡茬，深棕短发剃得很短。锈褐色钉甲 #6a4a32 外披破旧灰斗篷 #5a5a52，腰缠粗皮带，右手一把单手劈斧，斧背沾着灰。狠，但讲规矩。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A thirty-nine-year-old human bandit chief, thickset and hard: a sunburnt square face, a black leather patch over his right eye, a fierce grey-brown left eye, heavy stubble, dark brown hair cropped short. Rust-brown studded brigandine #6a4a32 under a ragged grey cloak #5a5a52, a thick leather belt, a one-handed cleaver axe in his right hand, ash on its back edge. Ruthless but bound by his own rules. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：独眼眯起的狞笑。",
+        "en": "Panel 6 is the character's signature expression: a menacing grin with his one eye narrowed."
+      },
+      "ref": "seg_oneeye",
+      "deps": ["art_chr_seg_oneeye_ref", "art_bust_seg_oneeye"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 眼罩在右眼；左向镜像后若换边，由导入工具出修正件。"
+    },
+    {
+      "id": "art_bust_moss",
+      "template": "bust_base",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "四十四岁的人族代官，中年发福，圆脸油亮，两撇修过的小胡子，黑发抹油梳得服帖，小而精的黑眼睛。紫红丝绒外套 #5a2a4a 镶金边 #c8a84a，胸前一条粗金链，手指戴印戒，捏着一块手帕。圆滑胆小又要体面。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A forty-four-year-old human magistrate, gone soft in middle age: a round shiny face, a neatly trimmed little moustache, oiled black hair combed flat, small sharp black eyes. A plum velvet coat #5a2a4a with gold trim #c8a84a, a heavy gold chain on his chest, signet rings, a handkerchief pinched in his fingers. Slippery and timid but keen on appearances. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "一手捏着手帕，另一手拇指勾着胸前的金链。",
+        "en": "One hand pinching the handkerchief, the other thumb hooked in his gold chain."
+      },
+      "ref": "moss",
+      "deps": ["art_chr_moss_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 他不打架，受击与倒地的动作要显得狼狈；金链与印戒是他的辨识点。"
+    },
+    {
+      "id": "art_bust_moss_expr",
+      "template": "bust_expr",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "四十四岁的人族代官，中年发福，圆脸油亮，两撇修过的小胡子，黑发抹油梳得服帖，小而精的黑眼睛。紫红丝绒外套 #5a2a4a 镶金边 #c8a84a，胸前一条粗金链，手指戴印戒，捏着一块手帕。圆滑胆小又要体面。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A forty-four-year-old human magistrate, gone soft in middle age: a round shiny face, a neatly trimmed little moustache, oiled black hair combed flat, small sharp black eyes. A plum velvet coat #5a2a4a with gold trim #c8a84a, a heavy gold chain on his chest, signet rings, a handkerchief pinched in his fingers. Slippery and timid but keen on appearances. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：假笑：嘴角咧开，眼睛却在打量对方的钱袋。",
+        "en": "Panel 6 is the character's signature expression: a fake smile: mouth stretched wide while his eyes size up your purse."
+      },
+      "ref": "moss",
+      "deps": ["art_chr_moss_ref", "art_bust_moss"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 他不打架，受击与倒地的动作要显得狼狈；金链与印戒是他的辨识点。"
+    },
+    {
+      "id": "art_bust_selene",
+      "template": "bust_base",
+      "style": "valen_city",
+      "subject": {
+        "zh": "二十七岁的人族女审判官，修长挺拔。银白短发齐耳切平，灰色瞳孔，神情冷静。白银甲胄外罩纯白长披风 #eceef2，披风内衬绣细密的光环几何纹，左手戴刻满细纹的黑铁手套，腰佩细长刺剑，胸前天平徽章，挂一点朱红封蜡 #b8302a。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-seven-year-old human inquisitor, tall and poised. Silver-white hair cut straight at the ears, grey eyes, a calm expression. Silver plate under a long pure white cloak #eceef2 whose lining is embroidered with fine geometric halo patterns, a black iron gauntlet covered in fine engraving on her left hand, a slender rapier at her hip, a scales badge on her chest with a dab of vermilion sealing wax #b8302a. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "左手铁手套抬在胸前，披风内衬的几何纹露出一角。",
+        "en": "The iron gauntlet raised before her chest, a corner of the geometric lining showing."
+      },
+      "ref": "selene",
+      "deps": ["art_chr_selene_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 铁手套在左手，刺剑在右手；手套上的纹路只是花纹，不是文字。"
+    },
+    {
+      "id": "art_bust_selene_expr",
+      "template": "bust_expr",
+      "style": "valen_city",
+      "subject": {
+        "zh": "二十七岁的人族女审判官，修长挺拔。银白短发齐耳切平，灰色瞳孔，神情冷静。白银甲胄外罩纯白长披风 #eceef2，披风内衬绣细密的光环几何纹，左手戴刻满细纹的黑铁手套，腰佩细长刺剑，胸前天平徽章，挂一点朱红封蜡 #b8302a。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-seven-year-old human inquisitor, tall and poised. Silver-white hair cut straight at the ears, grey eyes, a calm expression. Silver plate under a long pure white cloak #eceef2 whose lining is embroidered with fine geometric halo patterns, a black iron gauntlet covered in fine engraving on her left hand, a slender rapier at her hip, a scales badge on her chest with a dab of vermilion sealing wax #b8302a. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：冷峻的审视：灰眼睛微微眯起。",
+        "en": "Panel 6 is the character's signature expression: a stern appraisal: grey eyes slightly narrowed."
+      },
+      "ref": "selene",
+      "deps": ["art_chr_selene_ref", "art_bust_selene"],
+      "milestone": "M2",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 铁手套在左手，刺剑在右手；手套上的纹路只是花纹，不是文字。"
+    },
+    {
+      "id": "art_bust_luchen",
+      "template": "bust_base",
+      "style": "valen_city",
+      "subject": {
+        "zh": "十九岁的少年勇者，精瘦，肩膀正在长宽。黑色短发利落，额前一缕翘发，黑眼睛明亮。白金色勇者铠 #e8e8f0，胸甲有光环纹，正红披风 #c8282a，深蓝内衬 #2a3a6a，手持剑身带光纹的圣剑，左手腕戴一只没电的黑色运动手环。热血真诚。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A nineteen-year-old young hero, lean with shoulders still filling out. Neat short black hair with one cowlick at the front, bright black eyes. White-gold hero armor #e8e8f0 with a halo pattern on the breastplate, a true red cape #c8282a, deep blue lining #2a3a6a, a holy sword with glowing lines along the blade, a dead black fitness band on his left wrist. Hot-blooded and sincere. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "圣剑剑尖拄地，双手按在剑柄上，披风搭在一侧肩后。",
+        "en": "Holy sword planted point down, both hands on the hilt, cape draped behind one shoulder."
+      },
+      "ref": "luchen",
+      "deps": ["art_chr_luchen_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 运动手环在左手腕，纯黑，没有任何字母与标志。"
+    },
+    {
+      "id": "art_bust_luchen_expr",
+      "template": "bust_expr",
+      "style": "valen_city",
+      "subject": {
+        "zh": "十九岁的少年勇者，精瘦，肩膀正在长宽。黑色短发利落，额前一缕翘发，黑眼睛明亮。白金色勇者铠 #e8e8f0，胸甲有光环纹，正红披风 #c8282a，深蓝内衬 #2a3a6a，手持剑身带光纹的圣剑，左手腕戴一只没电的黑色运动手环。热血真诚。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A nineteen-year-old young hero, lean with shoulders still filling out. Neat short black hair with one cowlick at the front, bright black eyes. White-gold hero armor #e8e8f0 with a halo pattern on the breastplate, a true red cape #c8282a, deep blue lining #2a3a6a, a holy sword with glowing lines along the blade, a dead black fitness band on his left wrist. Hot-blooded and sincere. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：握拳的热血自信笑。",
+        "en": "Panel 6 is the character's signature expression: a fired-up confident grin with a raised fist."
+      },
+      "ref": "luchen",
+      "deps": ["art_chr_luchen_ref", "art_bust_luchen"],
+      "milestone": "M2",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 运动手环在左手腕，纯黑，没有任何字母与标志。"
+    },
+    {
+      "id": "art_bust_yui",
+      "template": "bust_base",
+      "style": "valen_city",
+      "subject": {
+        "zh": "十七岁的少女圣女，娇小。黑色长直发，齐刘海，系一条白缎带，黑眼睛温柔。纯白圣女长袍 #f4f4f8 镶天蓝边 #7ab0e0，淡金点缀，胸前挂一只小巧的护士表，手持顶端为光环的短杖，腰间别一本手写笔记。温柔认真。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A seventeen-year-old girl saint, petite. Long straight black hair with blunt bangs tied with a white satin ribbon, gentle black eyes. A pure white saint's robe #f4f4f8 with sky blue edging #7ab0e0 and pale gold accents, a small nurse's watch pinned to her chest, a short staff topped with a halo, a handwritten notebook at her waist. Gentle and earnest. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "双手握着短杖，护士表挂在胸前，白缎带垂在肩后。",
+        "en": "Both hands on the short staff, the nurse's watch on her chest, the white ribbon behind her shoulder."
+      },
+      "ref": "yui",
+      "deps": ["art_chr_yui_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 护士表与笔记本上没有字；治疗的光晕由特效层画，不画进素材。"
+    },
+    {
+      "id": "art_bust_yui_expr",
+      "template": "bust_expr",
+      "style": "valen_city",
+      "subject": {
+        "zh": "十七岁的少女圣女，娇小。黑色长直发，齐刘海，系一条白缎带，黑眼睛温柔。纯白圣女长袍 #f4f4f8 镶天蓝边 #7ab0e0，淡金点缀，胸前挂一只小巧的护士表，手持顶端为光环的短杖，腰间别一本手写笔记。温柔认真。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A seventeen-year-old girl saint, petite. Long straight black hair with blunt bangs tied with a white satin ribbon, gentle black eyes. A pure white saint's robe #f4f4f8 with sky blue edging #7ab0e0 and pale gold accents, a small nurse's watch pinned to her chest, a short staff topped with a halo, a handwritten notebook at her waist. Gentle and earnest. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：强忍泪水的微笑。",
+        "en": "Panel 6 is the character's signature expression: a smile holding back tears."
+      },
+      "ref": "yui",
+      "deps": ["art_chr_yui_ref", "art_bust_yui"],
+      "milestone": "M2",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 护士表与笔记本上没有字；治疗的光晕由特效层画，不画进素材。"
+    },
+    {
+      "id": "art_bust_aiden",
+      "template": "bust_base",
+      "style": "valen_city",
+      "subject": {
+        "zh": "二十四岁的人族青年学者，高瘦，背微驼。浅棕卷发乱糟糟，下巴有胡茬，细框眼镜的一片镜片有裂纹，灰蓝眼睛总在盯着人看。深蓝贤者长袍 #2a3a6a 里穿灰色高领毛衣 #8a8a90，铜扣点缀，手里一本皮面笔记本与一支圆珠笔。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-four-year-old human scholar, tall, thin and slightly stooped. Messy light brown curls, stubble on his chin, thin-rimmed glasses with one cracked lens, grey-blue eyes that always study people. A deep blue sage's robe #2a3a6a over a grey turtleneck sweater #8a8a90, copper buttons, a leather-bound notebook and a ballpoint pen in hand. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "一手拿着笔记本，另一手推眼镜。",
+        "en": "Notebook in one hand, pushing up his glasses with the other."
+      },
+      "ref": "aiden",
+      "deps": ["art_chr_aiden_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 裂纹在左边镜片；笔记本上不写字；圆珠笔是这个世界没有的东西，画成一支细长的笔即可。"
+    },
+    {
+      "id": "art_bust_aiden_expr",
+      "template": "bust_expr",
+      "style": "valen_city",
+      "subject": {
+        "zh": "二十四岁的人族青年学者，高瘦，背微驼。浅棕卷发乱糟糟，下巴有胡茬，细框眼镜的一片镜片有裂纹，灰蓝眼睛总在盯着人看。深蓝贤者长袍 #2a3a6a 里穿灰色高领毛衣 #8a8a90，铜扣点缀，手里一本皮面笔记本与一支圆珠笔。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-four-year-old human scholar, tall, thin and slightly stooped. Messy light brown curls, stubble on his chin, thin-rimmed glasses with one cracked lens, grey-blue eyes that always study people. A deep blue sage's robe #2a3a6a over a grey turtleneck sweater #8a8a90, copper buttons, a leather-bound notebook and a ballpoint pen in hand. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：想到答案时眼睛一亮。",
+        "en": "Panel 6 is the character's signature expression: eyes lighting up as the answer clicks."
+      },
+      "ref": "aiden",
+      "deps": ["art_chr_aiden_ref", "art_bust_aiden"],
+      "milestone": "M2",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 裂纹在左边镜片；笔记本上不写字；圆珠笔是这个世界没有的东西，画成一支细长的笔即可。"
+    },
+    {
+      "id": "art_bust_marcus",
+      "template": "bust_base",
+      "style": "valen_city",
+      "subject": {
+        "zh": "三十一岁的人族壮汉，高大魁梧，深棕皮肤，剃短的黑发，修剪整齐的胡子，笑起来一口白牙，深褐眼睛，左前臂有烧伤疤。白银重甲 #c8ccd4，腰间系一条褪色的亮橙反光带 #e8782a，左手持正面浮雕光环的塔盾，背包上挂一顶旧消防头盔。Q 版约 1.8 头身，头像立绘正常比例。",
+        "en": "A thirty-one-year-old human giant of a man, tall and broad: deep brown skin, buzzed black hair, a neatly trimmed beard, a bright white smile, dark brown eyes, a burn scar on his left forearm. Silver-white heavy plate #c8ccd4, a faded bright orange reflective band #e8782a tied at his waist, a tower shield embossed with a halo on his left arm, an old firefighter's helmet hanging from his pack. Chibi about 1.8 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "塔盾立在身侧，一手搭在盾沿，咧嘴笑着。",
+        "en": "Tower shield standing beside him, one hand on its rim, grinning."
+      },
+      "ref": "marcus",
+      "deps": ["art_chr_marcus_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 橙色反光带是他唯一的亮橙色；盾面光环熄灭的那一帧由渲染层压暗光环色样实现，不另出图。"
+    },
+    {
+      "id": "art_bust_marcus_expr",
+      "template": "bust_expr",
+      "style": "valen_city",
+      "subject": {
+        "zh": "三十一岁的人族壮汉，高大魁梧，深棕皮肤，剃短的黑发，修剪整齐的胡子，笑起来一口白牙，深褐眼睛，左前臂有烧伤疤。白银重甲 #c8ccd4，腰间系一条褪色的亮橙反光带 #e8782a，左手持正面浮雕光环的塔盾，背包上挂一顶旧消防头盔。Q 版约 1.8 头身，头像立绘正常比例。",
+        "en": "A thirty-one-year-old human giant of a man, tall and broad: deep brown skin, buzzed black hair, a neatly trimmed beard, a bright white smile, dark brown eyes, a burn scar on his left forearm. Silver-white heavy plate #c8ccd4, a faded bright orange reflective band #e8782a tied at his waist, a tower shield embossed with a halo on his left arm, an old firefighter's helmet hanging from his pack. Chibi about 1.8 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：露出一口白牙的爽朗大哥笑。",
+        "en": "Panel 6 is the character's signature expression: a big-brother laugh showing white teeth."
+      },
+      "ref": "marcus",
+      "deps": ["art_chr_marcus_ref", "art_bust_marcus"],
+      "milestone": "M2",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 橙色反光带是他唯一的亮橙色；盾面光环熄灭的那一帧由渲染层压暗光环色样实现，不另出图。"
+    },
+    {
+      "id": "art_bust_ferryman",
+      "template": "bust_base",
+      "style": "valen_city",
+      "subject": {
+        "zh": "外表七十来岁的人族老船夫，瘦而精悍，晒成皮革色的皮肤，白发扎成短马尾，浅灰绿眼睛，眼角纹路深。褪色的蓝布衣 #4a6a8a，宽檐草帽 #c8b070，腰挂酒葫芦，腰后用油布裹着一把普通铁剑，手持一根长篙。神情懒散。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A human ferryman who looks about seventy, lean and wiry: skin tanned like leather, white hair in a short ponytail, pale grey-green eyes with deep crow's feet. Faded blue cloth clothes #4a6a8a, a wide-brimmed straw hat #c8b070, a gourd flask at his belt, a plain iron sword wrapped in oilcloth at the small of his back, a long punting pole in hand. Easygoing and lazy-looking. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "一手拄着长篙，草帽压低，嘴角带笑。",
+        "en": "One hand on the punting pole, straw hat pulled low, a smile at the corner of his mouth."
+      },
+      "ref": "ferryman",
+      "deps": ["art_chr_ferryman_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 草帽的宽檐要压得住剪影；铁剑平时裹在油布里挂在腰后，只在近战时露出。"
+    },
+    {
+      "id": "art_bust_ferryman_expr",
+      "template": "bust_expr",
+      "style": "valen_city",
+      "subject": {
+        "zh": "外表七十来岁的人族老船夫，瘦而精悍，晒成皮革色的皮肤，白发扎成短马尾，浅灰绿眼睛，眼角纹路深。褪色的蓝布衣 #4a6a8a，宽檐草帽 #c8b070，腰挂酒葫芦，腰后用油布裹着一把普通铁剑，手持一根长篙。神情懒散。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A human ferryman who looks about seventy, lean and wiry: skin tanned like leather, white hair in a short ponytail, pale grey-green eyes with deep crow's feet. Faded blue cloth clothes #4a6a8a, a wide-brimmed straw hat #c8b070, a gourd flask at his belt, a plain iron sword wrapped in oilcloth at the small of his back, a long punting pole in hand. Easygoing and lazy-looking. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：眯眼哼歌的悠然神情。",
+        "en": "Panel 6 is the character's signature expression: a relaxed squint while humming a tune."
+      },
+      "ref": "ferryman",
+      "deps": ["art_chr_ferryman_ref", "art_bust_ferryman"],
+      "milestone": "M2",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 草帽的宽檐要压得住剪影；铁剑平时裹在油布里挂在腰后，只在近战时露出。"
+    },
+    {
+      "id": "art_bust_edric",
+      "template": "bust_base",
+      "style": "valen_city",
+      "subject": {
+        "zh": "三十岁的人族贵族长子，身形端正，一丝不苟的金棕短发，浅褐眼睛，神情严肃。白底金纹的贵族礼服 #f0f0e8、#c8a040，外披短斗篷，胸前的圣徽比别人大一号，腰佩长剑，戴洁白手套。站姿笔挺，守礼而刻板。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A thirty-year-old human noble heir with an upright bearing, meticulously combed golden-brown short hair, light brown eyes, a stern face. A white noble's coat with gold patterns #f0f0e8, #c8a040, a short cape, a holy symbol on his chest one size larger than anyone else's, a longsword at his hip, spotless white gloves. Rigidly proper. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "一手按剑柄，站得笔挺，圣徽显眼。",
+        "en": "One hand on his sword hilt, standing straight, the large holy symbol prominent."
+      },
+      "ref": "edric",
+      "deps": ["art_chr_edric_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 圣徽要比常人的大一号；礼服与手套始终干净。"
+    },
+    {
+      "id": "art_bust_edric_expr",
+      "template": "bust_expr",
+      "style": "valen_city",
+      "subject": {
+        "zh": "三十岁的人族贵族长子，身形端正，一丝不苟的金棕短发，浅褐眼睛，神情严肃。白底金纹的贵族礼服 #f0f0e8、#c8a040，外披短斗篷，胸前的圣徽比别人大一号，腰佩长剑，戴洁白手套。站姿笔挺，守礼而刻板。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A thirty-year-old human noble heir with an upright bearing, meticulously combed golden-brown short hair, light brown eyes, a stern face. A white noble's coat with gold patterns #f0f0e8, #c8a040, a short cape, a holy symbol on his chest one size larger than anyone else's, a longsword at his hip, spotless white gloves. Rigidly proper. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：皱眉训诫的神情。",
+        "en": "Panel 6 is the character's signature expression: a frowning, admonishing look."
+      },
+      "ref": "edric",
+      "deps": ["art_chr_edric_ref", "art_bust_edric"],
+      "milestone": "M2",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 圣徽要比常人的大一号；礼服与手套始终干净。"
+    },
+    {
+      "id": "art_bust_cecilia",
+      "template": "bust_base",
+      "style": "valen_city",
+      "subject": {
+        "zh": "二十六岁的人族贵族次女，利落干练。栗色长发编成实用的发髻，深绿眼睛透着急性子。学院式的深色长裙 #2a5a4a 配墨蓝短外套 #2a3a6a，胸前一枚算盘形胸针，袖口沾着墨迹，手里卷着一沓账单。精明急躁。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-six-year-old human noble daughter, brisk and capable. Chestnut hair braided into a practical bun, dark green eyes full of impatience. An academy-style dark green long dress #2a5a4a with an ink-blue short jacket #2a3a6a, an abacus-shaped brooch on her chest, ink stains on her cuffs, a roll of invoices in her hand. Sharp and hot-tempered. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "手里卷着账单，另一手叉腰。",
+        "en": "Invoices rolled in one hand, the other on her hip."
+      },
+      "ref": "cecilia",
+      "deps": ["art_chr_cecilia_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 账单与胸针上没有字与数字。"
+    },
+    {
+      "id": "art_bust_cecilia_expr",
+      "template": "bust_expr",
+      "style": "valen_city",
+      "subject": {
+        "zh": "二十六岁的人族贵族次女，利落干练。栗色长发编成实用的发髻，深绿眼睛透着急性子。学院式的深色长裙 #2a5a4a 配墨蓝短外套 #2a3a6a，胸前一枚算盘形胸针，袖口沾着墨迹，手里卷着一沓账单。精明急躁。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-six-year-old human noble daughter, brisk and capable. Chestnut hair braided into a practical bun, dark green eyes full of impatience. An academy-style dark green long dress #2a5a4a with an ink-blue short jacket #2a3a6a, an abacus-shaped brooch on her chest, ink stains on her cuffs, a roll of invoices in her hand. Sharp and hot-tempered. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：打断别人时的急躁：挑眉，抬手。",
+        "en": "Panel 6 is the character's signature expression: impatient interruption: eyebrows up, a raised hand."
+      },
+      "ref": "cecilia",
+      "deps": ["art_chr_cecilia_ref", "art_bust_cecilia"],
+      "milestone": "M2",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 账单与胸针上没有字与数字。"
+    },
+    {
+      "id": "art_bust_lucas",
+      "template": "bust_base",
+      "style": "valen_city",
+      "subject": {
+        "zh": "二十三岁的人族青年军官，结实，晒黑的脸上有晒伤与笑纹，黑色短发，深褐眼睛。军灰色军装 #5a5a5a 常年敞着领口，皮革棕的腰带与护腕 #7a5a3a，腰佩一把制式长剑，靴子沾泥。豪爽大嗓门。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-three-year-old human young officer, solidly built: a tanned face with sunburn and laugh lines, short black hair, dark brown eyes. A military grey uniform #5a5a5a always open at the collar, leather brown belt and bracers #7a5a3a, a standard-issue longsword at his hip, muddy boots. Boisterous and loud. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "一手叉腰，一手按剑柄，敞着领口。",
+        "en": "One hand on his hip, the other on his sword hilt, collar open."
+      },
+      "ref": "lucas",
+      "deps": ["art_chr_lucas_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 不画任何兽人特征。"
+    },
+    {
+      "id": "art_bust_lucas_expr",
+      "template": "bust_expr",
+      "style": "valen_city",
+      "subject": {
+        "zh": "二十三岁的人族青年军官，结实，晒黑的脸上有晒伤与笑纹，黑色短发，深褐眼睛。军灰色军装 #5a5a5a 常年敞着领口，皮革棕的腰带与护腕 #7a5a3a，腰佩一把制式长剑，靴子沾泥。豪爽大嗓门。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-three-year-old human young officer, solidly built: a tanned face with sunburn and laugh lines, short black hair, dark brown eyes. A military grey uniform #5a5a5a always open at the collar, leather brown belt and bracers #7a5a3a, a standard-issue longsword at his hip, muddy boots. Boisterous and loud. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：提到出身时的自嘲苦笑。",
+        "en": "Panel 6 is the character's signature expression: a self-mocking wry smile when his birth comes up."
+      },
+      "ref": "lucas",
+      "deps": ["art_chr_lucas_ref", "art_bust_lucas"],
+      "milestone": "M2",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 不画任何兽人特征。"
+    },
+    {
+      "id": "art_bust_vilan_cross",
+      "template": "bust_base",
+      "style": "valen_city",
+      "subject": {
+        "zh": "四十出头的人族男子，瘦削，颧骨突出，下巴尖，深陷的灰眼睛里有求知的狂热。黑发夹白，向后束成短辫。灰黑学者长外套 #2e2e36，领口别一枚磨损的旧徽章，指尖有灼伤的暗痕，手里把玩一枚淡青色的录晶 #8ac8c8。冷淡而专注。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A human man in his early forties, gaunt, with sharp cheekbones and a pointed chin, deep-set grey eyes burning with hunger for knowledge. Black hair streaked with white, tied back in a short tail. A charcoal scholar's long coat #2e2e36, a worn old badge at the collar, dark burn marks on his fingertips, turning a pale cyan recording crystal #8ac8c8 in his fingers. Cool and focused. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "录晶托在掌心，低头凝视。",
+        "en": "The recording crystal resting on his palm, gazing down at it."
+      },
+      "ref": "vilan_cross",
+      "deps": ["art_chr_vilan_cross_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 录晶是淡青色，不用澱紫；徽章上没有字。"
+    },
+    {
+      "id": "art_bust_vilan_cross_expr",
+      "template": "bust_expr",
+      "style": "valen_city",
+      "subject": {
+        "zh": "四十出头的人族男子，瘦削，颧骨突出，下巴尖，深陷的灰眼睛里有求知的狂热。黑发夹白，向后束成短辫。灰黑学者长外套 #2e2e36，领口别一枚磨损的旧徽章，指尖有灼伤的暗痕，手里把玩一枚淡青色的录晶 #8ac8c8。冷淡而专注。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A human man in his early forties, gaunt, with sharp cheekbones and a pointed chin, deep-set grey eyes burning with hunger for knowledge. Black hair streaked with white, tied back in a short tail. A charcoal scholar's long coat #2e2e36, a worn old badge at the collar, dark burn marks on his fingertips, turning a pale cyan recording crystal #8ac8c8 in his fingers. Cool and focused. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：求知的狂热，眼睛发亮。",
+        "en": "Panel 6 is the character's signature expression: a scholar's fervor, eyes gleaming."
+      },
+      "ref": "vilan_cross",
+      "deps": ["art_chr_vilan_cross_ref", "art_bust_vilan_cross"],
+      "milestone": "M2",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 录晶是淡青色，不用澱紫；徽章上没有字。"
+    },
+    {
+      "id": "art_bust_oswald",
+      "template": "bust_base",
+      "style": "valen_city",
+      "subject": {
+        "zh": "七十四岁的人族老王，枯瘦，久病，长长的白须，深陷的眼窝里是清醒的灰蓝眼睛。褪色的王室蓝睡袍外披象牙白毛皮边斗篷 #3a4a7a、#e8e0cc，头上一圈素金细冠。气若游丝，却仍有骑士的气度。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A seventy-four-year-old human king, emaciated and long ill: a long white beard, clear grey-blue eyes in sunken sockets. A faded royal blue nightrobe under an ivory fur-trimmed mantle #3a4a7a, #e8e0cc, a thin plain gold circlet. Barely breathing, yet still carrying himself like a knight. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "披着毛皮边斗篷，一手按在胸前。",
+        "en": "Wrapped in the fur-trimmed mantle, one hand pressed to his chest."
+      },
+      "ref": "oswald",
+      "deps": ["art_chr_oswald_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 床头的骑士剑是场景道具，不画在人物身上；他多数时候在床上，动作要显得虚弱。"
+    },
+    {
+      "id": "art_bust_oswald_expr",
+      "template": "bust_expr",
+      "style": "valen_city",
+      "subject": {
+        "zh": "七十四岁的人族老王，枯瘦，久病，长长的白须，深陷的眼窝里是清醒的灰蓝眼睛。褪色的王室蓝睡袍外披象牙白毛皮边斗篷 #3a4a7a、#e8e0cc，头上一圈素金细冠。气若游丝，却仍有骑士的气度。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A seventy-four-year-old human king, emaciated and long ill: a long white beard, clear grey-blue eyes in sunken sockets. A faded royal blue nightrobe under an ivory fur-trimmed mantle #3a4a7a, #e8e0cc, a thin plain gold circlet. Barely breathing, yet still carrying himself like a knight. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：疲惫而清醒的愧色：眼神低垂，眉间紧锁。",
+        "en": "Panel 6 is the character's signature expression: weary, lucid remorse: eyes lowered, brows knitted."
+      },
+      "ref": "oswald",
+      "deps": ["art_chr_oswald_ref", "art_bust_oswald"],
+      "milestone": "M2",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 床头的骑士剑是场景道具，不画在人物身上；他多数时候在床上，动作要显得虚弱。"
+    },
+    {
+      "id": "art_bust_philip",
+      "template": "bust_base",
+      "style": "valen_city",
+      "subject": {
+        "zh": "二十八岁的人族王太子，清秀单薄，浅亚麻色软发，浅灰蓝眼睛，神情犹豫，总在咬指甲。衣着整洁却不合身，像借来的：浅蓝外套 #8aa8c8 袖子太长，银色纽扣与肩饰 #c0c4cc，胸前一枚小小的王室纹章。软弱而善良。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-eight-year-old human crown prince, delicate and slight: soft flaxen hair, pale grey-blue eyes, a hesitant expression, always biting his nails. Neat clothes that do not fit, as if borrowed: a pale blue coat #8aa8c8 with sleeves too long, silver buttons and epaulettes #c0c4cc, a small royal crest on his chest. Weak-willed but kind. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "一手抬到嘴边咬指甲，肩线垮着。",
+        "en": "One hand raised to his mouth biting a nail, shoulders slumped."
+      },
+      "ref": "philip",
+      "deps": ["art_chr_philip_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 衣服要看得出不合身：袖子长，肩线垮。"
+    },
+    {
+      "id": "art_bust_philip_expr",
+      "template": "bust_expr",
+      "style": "valen_city",
+      "subject": {
+        "zh": "二十八岁的人族王太子，清秀单薄，浅亚麻色软发，浅灰蓝眼睛，神情犹豫，总在咬指甲。衣着整洁却不合身，像借来的：浅蓝外套 #8aa8c8 袖子太长，银色纽扣与肩饰 #c0c4cc，胸前一枚小小的王室纹章。软弱而善良。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-eight-year-old human crown prince, delicate and slight: soft flaxen hair, pale grey-blue eyes, a hesitant expression, always biting his nails. Neat clothes that do not fit, as if borrowed: a pale blue coat #8aa8c8 with sleeves too long, silver buttons and epaulettes #c0c4cc, a small royal crest on his chest. Weak-willed but kind. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：不敢做决定的慌乱：眉毛上扬，嘴唇紧抿。",
+        "en": "Panel 6 is the character's signature expression: panic at having to decide: eyebrows raised, lips pressed tight."
+      },
+      "ref": "philip",
+      "deps": ["art_chr_philip_ref", "art_bust_philip"],
+      "milestone": "M2",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 衣服要看得出不合身：袖子长，肩线垮。"
+    },
+    {
+      "id": "art_bust_drake",
+      "template": "bust_base",
+      "style": "valen_city",
+      "subject": {
+        "zh": "五十八岁的人族宰相，圆润体面，银灰头发向后梳得油亮，右眼戴单片眼镜，浅褐眼睛，嘴角挂着圆滑的笑。深紫丝绒长外套 #4a2a5a 配金扣 #c8a040，领巾雪白，指间一枚刻着秤纹的印戒。精明而怯懦。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A fifty-eight-year-old human chancellor, portly and well-groomed: silver-grey hair slicked back, a monocle in his right eye, light brown eyes, a smooth smile. A deep purple velvet long coat #4a2a5a with gold buttons #c8a040, a snow-white cravat, a signet ring engraved with a scales emblem. Shrewd and cowardly. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "一手扶着单片眼镜，印戒在指间。",
+        "en": "One hand adjusting the monocle, the signet ring on his finger."
+      },
+      "ref": "drake",
+      "deps": ["art_chr_drake_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 单片眼镜在右眼；印戒上是秤的图形，不是字。"
+    },
+    {
+      "id": "art_bust_drake_expr",
+      "template": "bust_expr",
+      "style": "valen_city",
+      "subject": {
+        "zh": "五十八岁的人族宰相，圆润体面，银灰头发向后梳得油亮，右眼戴单片眼镜，浅褐眼睛，嘴角挂着圆滑的笑。深紫丝绒长外套 #4a2a5a 配金扣 #c8a040，领巾雪白，指间一枚刻着秤纹的印戒。精明而怯懦。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A fifty-eight-year-old human chancellor, portly and well-groomed: silver-grey hair slicked back, a monocle in his right eye, light brown eyes, a smooth smile. A deep purple velvet long coat #4a2a5a with gold buttons #c8a040, a snow-white cravat, a signet ring engraved with a scales emblem. Shrewd and cowardly. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：圆滑的假笑，单片眼镜反光。",
+        "en": "Panel 6 is the character's signature expression: a smooth fake smile with a glint on the monocle."
+      },
+      "ref": "drake",
+      "deps": ["art_chr_drake_ref", "art_bust_drake"],
+      "milestone": "M2",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 单片眼镜在右眼；印戒上是秤的图形，不是字。"
+    },
+    {
+      "id": "art_bust_sasha",
+      "template": "bust_base",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "三十二岁的人族女拳手将军，高挑精壮，深红短发向后梳，左眉一道疤把眉毛断开，深褐眼睛带着战意，下颌左侧挂一枚染红的魔物獠牙耳坠。黑红轻甲 #1e1a1a、#8a1c22，不戴头盔，双手缠拳击绷带，戴一对铁拳套 #6a6a70。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A thirty-two-year-old human woman boxer general, tall and hard-muscled: dark red short hair swept back, a scar that splits her left eyebrow, dark brown eyes full of fight, a blood-red monster fang earring hanging at the left of her jaw. Black and red light armor #1e1a1a, #8a1c22, no helmet, boxing wraps on both hands under a pair of iron fist gauntlets #6a6a70. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "双拳在胸前，铁拳套相碰。",
+        "en": "Fists before her chest, iron gauntlets touching."
+      },
+      "ref": "sasha",
+      "deps": ["art_chr_sasha_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 眉疤在左眉，獠牙耳坠在左侧；她不用兵器，只用拳。"
+    },
+    {
+      "id": "art_bust_sasha_expr",
+      "template": "bust_expr",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "三十二岁的人族女拳手将军，高挑精壮，深红短发向后梳，左眉一道疤把眉毛断开，深褐眼睛带着战意，下颌左侧挂一枚染红的魔物獠牙耳坠。黑红轻甲 #1e1a1a、#8a1c22，不戴头盔，双手缠拳击绷带，戴一对铁拳套 #6a6a70。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A thirty-two-year-old human woman boxer general, tall and hard-muscled: dark red short hair swept back, a scar that splits her left eyebrow, dark brown eyes full of fight, a blood-red monster fang earring hanging at the left of her jaw. Black and red light armor #1e1a1a, #8a1c22, no helmet, boxing wraps on both hands under a pair of iron fist gauntlets #6a6a70. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：挑战者的冷笑：一边嘴角上扬，眼神锁定对方。",
+        "en": "Panel 6 is the character's signature expression: a challenger's smirk: one corner of the mouth up, eyes locked on the opponent."
+      },
+      "ref": "sasha",
+      "deps": ["art_chr_sasha_ref", "art_bust_sasha"],
+      "milestone": "M2",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 眉疤在左眉，獠牙耳坠在左侧；她不用兵器，只用拳。"
+    },
+    {
+      "id": "art_bust_matthias_clowen",
+      "template": "bust_base",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "年过半百的人族大审判长，高大清瘦，脸颊凹陷，铁灰头发剪得极短，浅灰眼睛冷而平静。灰色审判长外袍 #6a6a6e 罩在白银板甲上，肩披灰色短披肩，胸前天平徽章，腰挂一柄带翼缘的钉头锤 #8a8a90。冷酷而高效。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A human grand inquisitor past fifty, tall and gaunt with hollow cheeks, iron-grey hair cropped very short, cold and calm pale grey eyes. A grey inquisitor's surcoat #6a6a6e over silver plate, a short grey capelet, a scales badge on the chest, a flanged mace #8a8a90 at his belt. Cold and efficient. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "一手按着胸前的天平徽章，钉头锤垂在身侧。",
+        "en": "One hand on the scales badge, the mace hanging at his side."
+      },
+      "ref": "matthias_clowen",
+      "deps": ["art_chr_matthias_clowen_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 他的外袍是灰色，不是审判官的纯白；徽章上是天平图形。"
+    },
+    {
+      "id": "art_bust_matthias_clowen_expr",
+      "template": "bust_expr",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "年过半百的人族大审判长，高大清瘦，脸颊凹陷，铁灰头发剪得极短，浅灰眼睛冷而平静。灰色审判长外袍 #6a6a6e 罩在白银板甲上，肩披灰色短披肩，胸前天平徽章，腰挂一柄带翼缘的钉头锤 #8a8a90。冷酷而高效。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A human grand inquisitor past fifty, tall and gaunt with hollow cheeks, iron-grey hair cropped very short, cold and calm pale grey eyes. A grey inquisitor's surcoat #6a6a6e over silver plate, a short grey capelet, a scales badge on the chest, a flanged mace #8a8a90 at his belt. Cold and efficient. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：毫无动摇的冷漠。",
+        "en": "Panel 6 is the character's signature expression: utterly unmoved coldness."
+      },
+      "ref": "matthias_clowen",
+      "deps": ["art_chr_matthias_clowen_ref", "art_bust_matthias_clowen"],
+      "milestone": "M2",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 他的外袍是灰色，不是审判官的纯白；徽章上是天平图形。"
+    },
+    {
+      "id": "art_bust_hart",
+      "template": "bust_base",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "四十五岁的人族富商，中等身高，微胖，深色头发梳得一丝不苟，鬓角灰白，金丝眼镜后是深褐眼睛，嘴角带着精明的笑。炭灰三件套西装 #3a3a3e 配酒红领带 #7a1e2a，背心口袋垂着怀表金链，头上歪戴一顶小小的金冠 #d8b040，手里转着一支钢笔。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A forty-five-year-old human magnate, medium height and a little plump: dark hair combed immaculately with grey temples, dark brown eyes behind gold-rimmed glasses, a shrewd smile. A charcoal three-piece suit #3a3a3e with a wine red tie #7a1e2a, a pocket watch chain at the vest, a tiny gold crown #d8b040 perched askew on his head, twirling a fountain pen. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "一手转着钢笔，另一手拿着打开的怀表。",
+        "en": "Twirling the pen in one hand, an open pocket watch in the other."
+      },
+      "ref": "hart",
+      "deps": ["art_chr_hart_ref"],
+      "milestone": "M3",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 西装剪裁像地球的三件套，在这个世界里很显眼；金冠很小，歪戴；怀表表盘没有数字。"
+    },
+    {
+      "id": "art_bust_hart_expr",
+      "template": "bust_expr",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "四十五岁的人族富商，中等身高，微胖，深色头发梳得一丝不苟，鬓角灰白，金丝眼镜后是深褐眼睛，嘴角带着精明的笑。炭灰三件套西装 #3a3a3e 配酒红领带 #7a1e2a，背心口袋垂着怀表金链，头上歪戴一顶小小的金冠 #d8b040，手里转着一支钢笔。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A forty-five-year-old human magnate, medium height and a little plump: dark hair combed immaculately with grey temples, dark brown eyes behind gold-rimmed glasses, a shrewd smile. A charcoal three-piece suit #3a3a3e with a wine red tie #7a1e2a, a pocket watch chain at the vest, a tiny gold crown #d8b040 perched askew on his head, twirling a fountain pen. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：签约成功的满意微笑，笔尖亮起一点金光。",
+        "en": "Panel 6 is the character's signature expression: a satisfied deal-closed smile, a gold glint at the pen nib."
+      },
+      "ref": "hart",
+      "deps": ["art_chr_hart_ref", "art_bust_hart"],
+      "milestone": "M3",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 西装剪裁像地球的三件套，在这个世界里很显眼；金冠很小，歪戴；怀表表盘没有数字。"
+    },
+    {
+      "id": "art_bust_emperor",
+      "template": "bust_base",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "五十八岁的人族皇帝，高大魁伟，铁灰短发与短须，灰色眼睛沉稳，左手小指缺了半截。朴素的黑铁战甲 #2e2e30，披帝国紫披风 #5a2a6a，银色铆钉，腰佩一把毫无装饰的长剑，剑柄上随手挂着帝冠。Q 版约 1.8 头身，头像立绘正常比例。",
+        "en": "A fifty-eight-year-old human emperor, tall and massive: iron-grey short hair and short beard, steady grey eyes, the left little finger missing its upper half. Plain black iron battle armor #2e2e30 with silver rivets under an imperial purple cape #5a2a6a, a completely unadorned longsword at his hip with the imperial crown hung carelessly on its hilt. Chibi about 1.8 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "双手叠在拄地长剑的剑柄上，帝冠挂在剑柄上。",
+        "en": "Both hands on the hilt of the planted longsword, the crown hanging from it."
+      },
+      "ref": "emperor",
+      "deps": ["art_chr_emperor_ref"],
+      "milestone": "M3",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 缺的是左手小指的上半截；帝冠挂在剑柄上，不戴在头上。"
+    },
+    {
+      "id": "art_bust_emperor_expr",
+      "template": "bust_expr",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "五十八岁的人族皇帝，高大魁伟，铁灰短发与短须，灰色眼睛沉稳，左手小指缺了半截。朴素的黑铁战甲 #2e2e30，披帝国紫披风 #5a2a6a，银色铆钉，腰佩一把毫无装饰的长剑，剑柄上随手挂着帝冠。Q 版约 1.8 头身，头像立绘正常比例。",
+        "en": "A fifty-eight-year-old human emperor, tall and massive: iron-grey short hair and short beard, steady grey eyes, the left little finger missing its upper half. Plain black iron battle armor #2e2e30 with silver rivets under an imperial purple cape #5a2a6a, a completely unadorned longsword at his hip with the imperial crown hung carelessly on its hilt. Chibi about 1.8 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：认可强者时的短促一笑。",
+        "en": "Panel 6 is the character's signature expression: a brief smile of respect for a worthy opponent."
+      },
+      "ref": "emperor",
+      "deps": ["art_chr_emperor_ref", "art_bust_emperor"],
+      "milestone": "M3",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 缺的是左手小指的上半截；帝冠挂在剑柄上，不戴在头上。"
+    },
+    {
+      "id": "art_bust_night_queen",
+      "template": "bust_base",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "外表三十来岁的夜魔女子，修长，灰蓝苍白肤色，黑色眼白配新月形银色瞳孔，额上一对后弯细角，长及脚踝的黑发像夜色般微微漂浮。深紫与黑的宫廷长裙 #3a2048、#141218，肩披星点刺绣薄纱，手持银色摄政权杖，腰挂皮绳缠住的旧手记。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A night demon woman who looks about thirty, tall and slender: pale grey-blue skin, black sclera with crescent-shaped silver pupils, a pair of thin horns curving back from her forehead, ankle-length black hair drifting like flowing night. A deep purple and black court gown #3a2048, #141218, a sheer star-embroidered veil over her shoulders, a silver regent's scepter in hand, an old journal bound with leather cord at her waist. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "一手持银色权杖，另一手按着腰间的手记。",
+        "en": "The silver scepter in one hand, the other resting on the journal at her waist."
+      },
+      "ref": "night_queen",
+      "deps": ["art_chr_night_queen_ref"],
+      "milestone": "M3",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 黑发长及脚踝，动作帧里也不要剪短；角是后掠的细角。"
+    },
+    {
+      "id": "art_bust_night_queen_expr",
+      "template": "bust_expr",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "外表三十来岁的夜魔女子，修长，灰蓝苍白肤色，黑色眼白配新月形银色瞳孔，额上一对后弯细角，长及脚踝的黑发像夜色般微微漂浮。深紫与黑的宫廷长裙 #3a2048、#141218，肩披星点刺绣薄纱，手持银色摄政权杖，腰挂皮绳缠住的旧手记。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A night demon woman who looks about thirty, tall and slender: pale grey-blue skin, black sclera with crescent-shaped silver pupils, a pair of thin horns curving back from her forehead, ankle-length black hair drifting like flowing night. A deep purple and black court gown #3a2048, #141218, a sheer star-embroidered veil over her shoulders, a silver regent's scepter in hand, an old journal bound with leather cord at her waist. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：若有所思的冷淡微笑，银瞳半垂。",
+        "en": "Panel 6 is the character's signature expression: a pensive, cool smile, silver eyes half lowered."
+      },
+      "ref": "night_queen",
+      "deps": ["art_chr_night_queen_ref", "art_bust_night_queen"],
+      "milestone": "M3",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 黑发长及脚踝，动作帧里也不要剪短；角是后掠的细角。"
+    },
+    {
+      "id": "art_bust_elwin",
+      "template": "bust_base",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "千岁的精灵长老，极高极瘦，长耳向后上方斜伸，银白长发几乎拖地、发梢仍带苔绿，皮肤上有树皮般的细纹，太阳穴有多圈浅色年轮纹，浅绿眼睛。灰绿长老袍 #7a8a72，左耳挂一枚暗铜色的古旧门形耳坠，手持一根抽着新芽的白木杖。Q 版约 1.8 头身，头像立绘正常比例。",
+        "en": "A thousand-year-old elf elder, extremely tall and thin: long ears sweeping up and back, silver-white hair nearly trailing the ground with moss green still at the tips, skin finely lined like bark, many pale growth-ring marks at the temples, pale green eyes. A grey-green elder's robe #7a8a72, an ancient dark bronze door-shaped earring in his left ear, a white wooden staff sprouting new shoots. Chibi about 1.8 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "双手拄着白木杖，左耳的门形耳坠清楚可见。",
+        "en": "Both hands on the white staff, the door-shaped earring at his left ear clearly visible."
+      },
+      "ref": "elwin",
+      "deps": ["art_chr_elwin_ref"],
+      "milestone": "M3",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 门形耳坠在左耳，暗铜色，不发光；精灵长耳是剪影特征。"
+    },
+    {
+      "id": "art_bust_elwin_expr",
+      "template": "bust_expr",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "千岁的精灵长老，极高极瘦，长耳向后上方斜伸，银白长发几乎拖地、发梢仍带苔绿，皮肤上有树皮般的细纹，太阳穴有多圈浅色年轮纹，浅绿眼睛。灰绿长老袍 #7a8a72，左耳挂一枚暗铜色的古旧门形耳坠，手持一根抽着新芽的白木杖。Q 版约 1.8 头身，头像立绘正常比例。",
+        "en": "A thousand-year-old elf elder, extremely tall and thin: long ears sweeping up and back, silver-white hair nearly trailing the ground with moss green still at the tips, skin finely lined like bark, many pale growth-ring marks at the temples, pale green eyes. A grey-green elder's robe #7a8a72, an ancient dark bronze door-shaped earring in his left ear, a white wooden staff sprouting new shoots. Chibi about 1.8 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：沉入久远回忆的哀伤。",
+        "en": "Panel 6 is the character's signature expression: sorrow sinking into long-ago memories."
+      },
+      "ref": "elwin",
+      "deps": ["art_chr_elwin_ref", "art_bust_elwin"],
+      "milestone": "M3",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 门形耳坠在左耳，暗铜色，不发光；精灵长耳是剪影特征。"
+    },
+    {
+      "id": "art_bust_nitira_moonhorn",
+      "template": "bust_base",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "三十来岁的长角部兽人女萨满，浅相：人脸，一对弯如新月的乳白长角缠着彩绳，垂着的短毛兽耳，健美。深褐长发编成多股细辫，琥珀色眼睛沉静。赭红毡袍 #8a3a2a 配天蓝饰带 #5a8ac8，左肩披满骨饰与彩绘，胸前挂骨串，手持一根挂铃的骨杖。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A horned-tribe beastfolk shaman woman around thirty, light aspect: human face, a pair of milk-white horns curved like crescent moons and wound with colored cords, short furred drooping beast ears, athletic. Dark brown hair in many thin braids, calm amber eyes. A rust-red felt robe #8a3a2a with sky blue sashes #5a8ac8, her left shoulder covered in bone ornaments and painted patterns, a bone necklace, a bone staff hung with bells. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "一手持骨杖，左肩的骨饰与彩绘清楚可见。",
+        "en": "Bone staff in one hand, the bone ornaments and paint on her left shoulder clearly visible."
+      },
+      "ref": "nitira_moonhorn",
+      "deps": ["art_chr_nitira_moonhorn_ref"],
+      "milestone": "M3",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 左肩始终被骨饰与彩绘覆盖；角是新月形，彩绳不同色。"
+    },
+    {
+      "id": "art_bust_nitira_moonhorn_expr",
+      "template": "bust_expr",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "三十来岁的长角部兽人女萨满，浅相：人脸，一对弯如新月的乳白长角缠着彩绳，垂着的短毛兽耳，健美。深褐长发编成多股细辫，琥珀色眼睛沉静。赭红毡袍 #8a3a2a 配天蓝饰带 #5a8ac8，左肩披满骨饰与彩绘，胸前挂骨串，手持一根挂铃的骨杖。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A horned-tribe beastfolk shaman woman around thirty, light aspect: human face, a pair of milk-white horns curved like crescent moons and wound with colored cords, short furred drooping beast ears, athletic. Dark brown hair in many thin braids, calm amber eyes. A rust-red felt robe #8a3a2a with sky blue sashes #5a8ac8, her left shoulder covered in bone ornaments and painted patterns, a bone necklace, a bone staff hung with bells. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：听见祖灵时出神的神情。",
+        "en": "Panel 6 is the character's signature expression: a faraway look as if hearing the ancestors."
+      },
+      "ref": "nitira_moonhorn",
+      "deps": ["art_chr_nitira_moonhorn_ref", "art_bust_nitira_moonhorn"],
+      "milestone": "M3",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 左肩始终被骨饰与彩绘覆盖；角是新月形，彩绳不同色。"
+    },
+    {
+      "id": "art_bust_seraphin_iv",
+      "template": "bust_base",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "八十多岁的人族教皇，瘦削而挺直，满头雪白短发，白眉长垂，淡蓝眼睛温和而疲惫，脸上皱纹深。层叠的白石色教袍 #f2efe6 绣着金色光环几何纹 #d0b060，肩披金边长披肩，头戴顶端是几何光环的白色高冠，手持光环权杖。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A human pope in his eighties, thin but upright: snow-white short hair, long drooping white eyebrows, gentle and tired pale blue eyes, a deeply lined face. Layered white-stone colored vestments #f2efe6 embroidered with gold geometric halos #d0b060, a long gold-edged stole, a tall white mitre topped with a geometric halo, a halo scepter in hand. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "双手把光环权杖握在胸前。",
+        "en": "Holding the halo scepter before his chest in both hands."
+      },
+      "ref": "seraphin_iv",
+      "deps": ["art_chr_seraphin_iv_ref"],
+      "milestone": "M3",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 高冠与权杖的顶端都是几何光环，不用十字或其他宗教符号。"
+    },
+    {
+      "id": "art_bust_seraphin_iv_expr",
+      "template": "bust_expr",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "八十多岁的人族教皇，瘦削而挺直，满头雪白短发，白眉长垂，淡蓝眼睛温和而疲惫，脸上皱纹深。层叠的白石色教袍 #f2efe6 绣着金色光环几何纹 #d0b060，肩披金边长披肩，头戴顶端是几何光环的白色高冠，手持光环权杖。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A human pope in his eighties, thin but upright: snow-white short hair, long drooping white eyebrows, gentle and tired pale blue eyes, a deeply lined face. Layered white-stone colored vestments #f2efe6 embroidered with gold geometric halos #d0b060, a long gold-edged stole, a tall white mitre topped with a geometric halo, a halo scepter in hand. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：聆听神谕时的恍惚与虔诚。",
+        "en": "Panel 6 is the character's signature expression: dazed devotion while listening to an oracle."
+      },
+      "ref": "seraphin_iv",
+      "deps": ["art_chr_seraphin_iv_ref", "art_bust_seraphin_iv"],
+      "milestone": "M3",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 高冠与权杖的顶端都是几何光环，不用十字或其他宗教符号。"
+    },
+    {
+      "id": "art_bust_bazrai_rediron",
+      "template": "bust_base",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "鬼人大诸侯，比常人高出一头多，肌肉夸张，赭红色厚皮，额上两支粗黑角，左角上刻着一道道胜痕，下颌短獠牙，黄褐眼睛凶悍。泛着红锈的夜铁重甲 #2a2a2e、#8a3a22，肩甲宽大，披黑熊皮，双手握一柄赤铁大斧。傲慢好战。Q 版约 1.8 头身，头像立绘正常比例。",
+        "en": "An oni demon high lord, a head and more taller than an ordinary man, exaggerated muscles: thick ochre-red hide, two heavy black horns on his brow with notches of victory cut into the left one, short tusks in his lower jaw, fierce yellow-brown eyes. Night-iron heavy armor with red rust #2a2a2e, #8a3a22, huge pauldrons, a black bear pelt, a red iron great axe gripped in both hands. Arrogant and warlike. Chibi about 1.8 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "赤铁大斧扛在肩上，獠牙外露。",
+        "en": "The red iron great axe on his shoulder, tusks bared."
+      },
+      "ref": "bazrai_rediron",
+      "deps": ["art_chr_bazrai_rediron_ref"],
+      "milestone": "M3",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 高大体型：帧内本体约 33 到 35 像素，比标准人形高；角上的胜痕只是刻痕，不是文字。"
+    },
+    {
+      "id": "art_bust_bazrai_rediron_expr",
+      "template": "bust_expr",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "鬼人大诸侯，比常人高出一头多，肌肉夸张，赭红色厚皮，额上两支粗黑角，左角上刻着一道道胜痕，下颌短獠牙，黄褐眼睛凶悍。泛着红锈的夜铁重甲 #2a2a2e、#8a3a22，肩甲宽大，披黑熊皮，双手握一柄赤铁大斧。傲慢好战。Q 版约 1.8 头身，头像立绘正常比例。",
+        "en": "An oni demon high lord, a head and more taller than an ordinary man, exaggerated muscles: thick ochre-red hide, two heavy black horns on his brow with notches of victory cut into the left one, short tusks in his lower jaw, fierce yellow-brown eyes. Night-iron heavy armor with red rust #2a2a2e, #8a3a22, huge pauldrons, a black bear pelt, a red iron great axe gripped in both hands. Arrogant and warlike. Chibi about 1.8 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "第 6 格的角色专属表情：露出獠牙的嗜战狞笑。",
+        "en": "Panel 6 is the character's signature expression: a bloodthirsty grin baring his tusks."
+      },
+      "ref": "bazrai_rediron",
+      "deps": ["art_chr_bazrai_rediron_ref", "art_bust_bazrai_rediron"],
+      "milestone": "M3",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 高大体型：帧内本体约 33 到 35 像素，比标准人形高；角上的胜痕只是刻痕，不是文字。"
+    },
+    {
+      "id": "art_bust_door_woman_silhouette",
+      "template": "bust_base",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "梦里站在门口的女人：高挑的成年女子，深褐长发松松垂到腰，脸的右半边总隐在阴影里，露出的左半边带着温柔的笑，眼睛是暖琥珀色。深夜蓝的及地长袍 #262c48，衣缘一道暖金细边 #f0d890，腰间一圈挂满大小不一的旧钥匙。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The woman who stands in a doorway in dreams: a tall grown woman, dark brown hair loose to the waist, the right half of her face always lost in shadow, the visible left half wearing a gentle smile, warm amber eyes. Floor-length midnight blue robe #262c48 edged with a thin warm gold line #f0d890, a ring of old keys of every size hanging at her waist. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "这一张是剪影档：整个人逆着身后的暖光成为深色剪影，看不清五官，只看得见长发与长袍的轮廓和腰间钥匙的点点微光。",
+        "en": "This is the silhouette tier: she stands backlit by warm light as a dark silhouette, no features visible, only the outline of her long hair and robe and the faint glints of the keys at her waist."
+      },
+      "ref": "door_woman",
+      "deps": ["art_chr_door_woman_ref", "art_bust_door_woman"],
+      "milestone": "M1",
+      "notes": "附本人的基础半身立绘作参照，取景、角度、大小与姿势完全一致，只改清晰度档。 剪影档用于序章坠落时的那句话与最早的几次梦。 画面里不出现任何名字与文字；阴影始终在她右半张脸；钥匙是黄铜、铁与骨的旧钥匙。"
+    },
+    {
+      "id": "art_bust_door_woman_unveiled",
+      "template": "bust_base",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "高挑的成年女子，深褐长发松松垂到腰，脸上的阴影已经完全褪去，露出整张温柔的面容，眼角有细细的笑纹，两只眼睛都是暖琥珀色，神情释然。深夜蓝的及地长袍 #262c48，衣缘一道暖金细边 #f0d890，腰间一圈挂满大小不一的旧钥匙。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A tall grown woman, dark brown hair loose to the waist, the shadow on her face now completely gone, revealing a gentle face with fine laugh lines at the eyes, both eyes warm amber, a look of release. Floor-length midnight blue robe #262c48 edged with a thin warm gold line #f0d890, a ring of old keys of every size hanging at her waist. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "这一张是全貌档：取景、姿势与基础立绘一致，只是阴影褪去，整张脸清楚可见。",
+        "en": "This is the unveiled tier: framing and pose match the base bust, only the shadow is gone and the whole face is clearly visible."
+      },
+      "ref": "door_woman",
+      "deps": ["art_chr_door_woman_ref", "art_bust_door_woman"],
+      "milestone": "M3",
+      "notes": "附本人的基础半身立绘作参照，取景、角度、大小与姿势完全一致，只改清晰度档。 全貌档在第六幕起使用。 画面里不出现任何名字与文字；钥匙是黄铜、铁与骨的旧钥匙。"
+    },
+    {
+      "id": "art_bust_luchen_unarmored",
+      "template": "bust_base",
+      "style": "valen_city",
+      "subject": {
+        "zh": "十九岁的少年剑士，精瘦，黑色短发凌乱，额前一缕翘发，黑眼睛疲惫却清醒。卸下了红披风，白金铠甲满是划痕与灰尘 #c8c8cc，胸甲的光环纹磨暗了，深蓝内衬 #2a3a6a 露在外面，握一把普通钢剑，左手腕仍戴着没电的黑色运动手环。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A nineteen-year-old young swordsman, lean, short black hair in disarray with one cowlick, tired but clear black eyes. The red cape is gone; his white-gold armor is scratched and dusty #c8c8cc, the halo pattern on the breastplate worn dull, the deep blue lining #2a3a6a showing, a plain steel sword in hand, the dead black fitness band still on his left wrist. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "钢剑拄地，低着头，铠甲上满是划痕。",
+        "en": "Steel sword planted, head lowered, armor covered in scratches."
+      },
+      "ref": "luchen",
+      "deps": ["art_chr_luchen_unarmored_ref"],
+      "milestone": "M3",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 这是陆辰的状态变体：没有红披风，没有圣剑；运动手环仍在左腕。"
+    },
+    {
+      "id": "art_bust_yui_descent",
+      "template": "bust_base",
+      "style": "valen_city",
+      "subject": {
+        "zh": "十七岁的少女圣女被光托起的模样：娇小，黑色长直发与齐刘海被光吹起，白缎带飘散，眼睛变成白金色、没有焦点。纯白圣女长袍 #f4f4f8 镶天蓝边，胸前挂护士表，背后浮着缓慢转动的几何纹光环 #e8dca0，双脚离地。神情空白。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A seventeen-year-old girl saint lifted by light: petite, her long straight black hair and blunt bangs blown upward, the white ribbon streaming loose, her eyes turned white-gold and unfocused. Pure white saint's robe #f4f4f8 with sky blue edging, the nurse's watch on her chest, a slowly turning geometric halo #e8dca0 floating behind her, feet off the ground. A blank expression. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "双臂微张，悬浮在空中，长发向上飘起。",
+        "en": "Arms slightly open, floating, hair drifting upward."
+      },
+      "ref": "yui",
+      "deps": ["art_chr_yui_descent_ref"],
+      "milestone": "M3",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 这是白石结衣的状态变体：眼睛是白金色、没有焦点；双脚始终离地。"
+    }
+  ]
+}

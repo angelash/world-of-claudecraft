@@ -1,0 +1,4033 @@
+{
+  "category": "vfx",
+  "title": "特效序列帧（学派、门系、澱系、通用、神迹、招牌技能、首领大招、环境、叠加纹样）",
+  "sources": [
+    "docs/50_tech/art_pipeline.md",
+    "docs/40_design/systems/combat_and_classes.md",
+    "docs/40_design/content/catalog_doors.md",
+    "docs/40_design/systems/companions_and_party.md",
+    "docs/40_design/content/catalog_dungeons_bosses.md",
+    "docs/30_story/arcs/act1_borderstone.md",
+    "docs/30_story/arcs/act5_war_of_races.md",
+    "docs/40_design/content/catalog_goddess_interventions.md",
+    "data/combat/abilities.json",
+    "data/combat/monsters.json",
+    "docs/20_world/power_system.md"
+  ],
+  "items": [
+    {
+      "id": "art_vfx_school_phys_hit_blunt",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "钝击命中：白黄色的放射状冲击星芒，中心一个短促的白色闪光圈，四周飞出几粒灰白碎屑与尘点，向外扩散后迅速消失，星芒粗短有力。",
+        "en": "Blunt impact hit: a short, chunky radial white-yellow impact starburst with a brief white flash ring at the center, a few grey-white chips and dust specks flying outward, spreading and vanishing quickly."
+      },
+      "milestone": "M0",
+      "notes": "M0 样板之一，也是物理学派的批内参照；只用白、浅黄、浅灰，不带任何学派色；32 像素下要一眼像\"砸中\"。"
+    },
+    {
+      "id": "art_vfx_school_phys_hit_slash",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "锐击命中：一道白色新月形刀光斜切过格子中心，刀光两端细尖，切口处迸出几粒橙白火花，刀光变薄后断成碎片消散。",
+        "en": "Slashing hit: a white crescent blade arc cutting diagonally through the center, both tips needle-thin, a few orange-white sparks bursting at the cut, the arc thinning and breaking into fragments as it fades."
+      },
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M1",
+      "notes": "以钝击命中为参照同批生成；刀光是弧线不是直线，与穿刺区分。"
+    },
+    {
+      "id": "art_vfx_school_phys_hit_pierce",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "穿刺命中：一道细长的白色锥形光线从左向右刺过中心，命中点亮起一圈小白环，后方喷出三四道细线状碎屑，随后收成一点消失。",
+        "en": "Piercing hit: a long thin white cone of light stabbing through the center from left to right, a small white ring flashing at the point of impact, three or four thin line-shaped splinters spraying behind, then shrinking to a dot and vanishing."
+      },
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M1",
+      "notes": "以钝击命中为参照；穿刺是直线加小环，不画弧形刀光。"
+    },
+    {
+      "id": "art_vfx_school_phys_projectile",
+      "template": "vfx_projectile",
+      "subject": {
+        "zh": "箭矢与弩矢的飞行残影：细长的浅灰白箭杆轮廓，箭头一点亮白，箭尾两三道淡灰色短拖尾线，四帧里拖尾长短交替，没有任何元素色。",
+        "en": "Arrow and bolt flight trail: a slim pale grey-white shaft silhouette with a bright white point at the head, two or three faint grey streak lines trailing from the fletching, the trail length alternating across the four frames, no elemental color."
+      },
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M1",
+      "notes": "箭头朝右；箭杆本身也要带亮边，否则加色混合下看不见。"
+    },
+    {
+      "id": "art_vfx_school_fire_cast",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "火焰施法光：手前与脚下聚起橙黄色的火苗旋涡，火星从外圈向中心螺旋收拢，高潮时手前一团亮黄火球成形，随后火苗回落成暗红余烬。",
+        "en": "Fire casting glow: a swirl of orange-yellow flames gathering in front of the hands and at the feet, sparks spiraling inward from the outer ring, a bright yellow fireball forming at the peak, then the flames sinking back into dark red embers."
+      },
+      "deps": ["art_vfx_school_fire_projectile"],
+      "milestone": "M1",
+      "notes": "火系配色：亮黄 #ffd25a、橙 #ff9a3c、深红 #c8321e；只画火光，不画施法者。"
+    },
+    {
+      "id": "art_vfx_school_fire_projectile",
+      "template": "vfx_projectile",
+      "subject": {
+        "zh": "火球弹道：一团亮黄核心的橙色火球，外焰呈泪滴形向左拖出深红尾焰，尾焰里夹着几粒火星，四帧之间火焰形状轻微翻卷。",
+        "en": "Fireball projectile: an orange fireball with a bright yellow core, the outer flame teardrop-shaped and trailing a deep red tail to the left with a few sparks inside it, the flame shape rolling slightly between the four frames."
+      },
+      "milestone": "M0",
+      "notes": "M0 样板之一，也是火系批内参照；火球头部在右；配色亮黄 #ffd25a、橙 #ff9a3c、深红 #c8321e。"
+    },
+    {
+      "id": "art_vfx_school_fire_hit",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "火焰命中：橙黄色的火团在中心爆开，向外喷出一圈深红火舌与飞溅的火星，火舌卷曲上升后化成几缕暗红余烬，最后只剩两三粒火星。",
+        "en": "Fire hit: an orange-yellow fireball bursting at the center, spraying a ring of deep red flame tongues and flying sparks, the tongues curling upward into a few wisps of dark red embers, leaving only two or three sparks at the end."
+      },
+      "deps": ["art_vfx_school_fire_projectile"],
+      "milestone": "M1",
+      "notes": "以火球弹道为参照同批生成；配色同火系。"
+    },
+    {
+      "id": "art_vfx_school_fire_zone",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "燃烧地面：贴地的一片低矮火苗，橙黄火舌此起彼伏，夹杂上升的火星与深红余烬，整体亮度平稳起伏，像一块持续燃烧的地面。",
+        "en": "Burning ground: a patch of low flames hugging the ground, orange-yellow tongues rising and falling in turn, with climbing sparks and deep red embers mixed in, overall brightness rising and falling gently like ground that keeps burning."
+      },
+      "deps": ["art_vfx_school_fire_projectile"],
+      "milestone": "M1",
+      "notes": "持续区域循环；火苗矮而宽，不要画成火柱；第 8 帧接回第 1 帧。"
+    },
+    {
+      "id": "art_vfx_school_frost_cast",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "冰霜施法光：冷蓝色的雪花状晶体在手前凝结，一圈细碎冰晶自外向内旋入，高潮时凝成一枚亮白冰核，随后冰屑向下飘散成细雪。",
+        "en": "Frost casting glow: cold blue snowflake-like crystals condensing in front of the hands, a ring of fine ice shards spiraling inward, a bright white ice core forming at the peak, then the shards drifting downward as fine snow."
+      },
+      "milestone": "M1",
+      "notes": "冰系配色：白 #ffffff、冰蓝 #8fd8ff、深蓝 #3a78c8；冰晶要有棱角。"
+    },
+    {
+      "id": "art_vfx_school_frost_projectile",
+      "template": "vfx_projectile",
+      "subject": {
+        "zh": "寒冰弹道：一支尖锐的冰蓝色冰锥，尖端亮白，后段渐深蓝，尾部散落细小冰晶与白色霜气，四帧之间冰晶依次闪烁。",
+        "en": "Ice projectile: a sharp ice-blue shard with a bright white tip deepening to dark blue toward the back, tiny ice crystals and white frost mist scattering from its tail, the crystals sparkling in turn across the four frames."
+      },
+      "deps": ["art_vfx_school_frost_cast"],
+      "milestone": "M1",
+      "notes": "冰锥尖端朝右；配色同冰系。"
+    },
+    {
+      "id": "art_vfx_school_frost_hit",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "冰霜命中：中心炸开一簇冰蓝色棱角碎晶，碎晶呈放射状飞出，脚下一圈白霜一闪，随后碎晶化为细雪般的光点消失。",
+        "en": "Frost hit: a cluster of angular ice-blue crystal shards bursting at the center and flying outward radially, a ring of white frost flashing underneath, then the shards dissolving into fine snow-like motes."
+      },
+      "deps": ["art_vfx_school_frost_cast"],
+      "milestone": "M1",
+      "notes": "以冰霜施法光为参照同批生成。"
+    },
+    {
+      "id": "art_vfx_school_frost_zone",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "冰冻地面：地面一片冷蓝色的霜纹与浅白雾气，细小冰晶此起彼伏地闪亮，雾气贴地缓慢流动，整体冷而静。",
+        "en": "Frozen ground: a patch of cold blue frost patterns and pale white mist on the ground, tiny ice crystals glinting in turn, the mist drifting slowly along the ground, cold and still overall."
+      },
+      "deps": ["art_vfx_school_frost_cast"],
+      "milestone": "M1",
+      "notes": "持续区域循环；不画冰柱；第 8 帧接回第 1 帧。"
+    },
+    {
+      "id": "art_vfx_school_arcane_cast",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "奥术施法光：手前浮现两圈相反转动的细线光环，青蓝与亮粉色交替，环上点点光粒，高潮时光环收成一颗白色亮点，再散成细碎光尘。",
+        "en": "Arcane casting glow: two thin-line rings rotating in opposite directions in front of the hands, alternating cyan and bright pink, dotted with light grains, collapsing into a single white point at the peak and then scattering into fine light dust."
+      },
+      "milestone": "M1",
+      "notes": "奥术配色：青蓝 #6fe3ff、亮粉 #ff7ad9、白核；不用暗紫，以免与澱紫混淆。"
+    },
+    {
+      "id": "art_vfx_school_arcane_projectile",
+      "template": "vfx_projectile",
+      "subject": {
+        "zh": "奥术飞弹弹道：一颗白色核心的菱形光弹，外层是青蓝与亮粉两层光晕，尾迹是一串逐渐变小的光点，四帧之间光弹缓慢自转。",
+        "en": "Arcane missile projectile: a diamond-shaped bolt with a white core wrapped in two halos of cyan and bright pink, its trail a string of shrinking light dots, the bolt slowly spinning across the four frames."
+      },
+      "deps": ["art_vfx_school_arcane_cast"],
+      "milestone": "M1",
+      "notes": "光弹头部在右；配色同奥术。"
+    },
+    {
+      "id": "art_vfx_school_arcane_hit",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "奥术命中：中心一圈青蓝色细环骤然扩张，环内的亮粉色光点向外弹射，最后细环碎成几段弧线淡出，干净利落。",
+        "en": "Arcane hit: a thin cyan ring suddenly expanding from the center, bright pink light dots bouncing outward from inside it, the ring finally breaking into a few arc segments that fade out, clean and crisp."
+      },
+      "deps": ["art_vfx_school_arcane_cast"],
+      "milestone": "M1",
+      "notes": "以奥术施法光为参照同批生成。"
+    },
+    {
+      "id": "art_vfx_school_arcane_zone",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "奥术力场：地面一圈缓慢转动的细线圆环，环上间隔排列青蓝与亮粉色的小光点，光点依次明灭流转，中心留空通透。",
+        "en": "Arcane field: a slowly rotating thin-line circle on the ground with small cyan and bright pink light dots spaced along it, the dots lighting and dimming in sequence, the center left empty and clear."
+      },
+      "deps": ["art_vfx_school_arcane_cast"],
+      "milestone": "M1",
+      "notes": "持续区域循环；圆环是平躺在地上的透视椭圆；第 8 帧接回第 1 帧。"
+    },
+    {
+      "id": "art_vfx_school_shadow_cast",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "暗影施法光：手前聚起深靛蓝的烟状暗流，边缘勾一圈冷青白细光，烟流向内卷成一团暗核，随后像墨滴入水一样晕散开来。",
+        "en": "Shadow casting glow: smoky deep indigo currents gathering in front of the hands, edged with a thin cold pale-cyan line of light, the smoke curling inward into a dark core and then spreading out like ink dropped into water."
+      },
+      "milestone": "M1",
+      "notes": "暗影配色：深靛 #3a4a7a、靛黑 #20263a、冷青白边 #a8c0e0；不用紫色，以免与澱紫混淆；加色混合：纯黑与很暗的颜色在游戏里看不见，暗色部分必须带亮边才显形。"
+    },
+    {
+      "id": "art_vfx_school_shadow_projectile",
+      "template": "vfx_projectile",
+      "subject": {
+        "zh": "暗影弹道：一团深靛蓝的烟状弹体，核心一点冷青白光，后方拖出扭曲的烟带，烟带边缘有冷白细光，四帧之间烟体翻涌。",
+        "en": "Shadow projectile: a smoky deep indigo bolt with a cold pale-cyan point at its core, trailing a twisting band of smoke edged with thin cold white light, the smoke churning across the four frames."
+      },
+      "deps": ["art_vfx_school_shadow_cast"],
+      "milestone": "M1",
+      "notes": "弹体头部在右；配色同暗影；加色混合：纯黑与很暗的颜色在游戏里看不见，暗色部分必须带亮边才显形。"
+    },
+    {
+      "id": "art_vfx_school_shadow_hit",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "暗影命中：深靛蓝的烟团在中心炸开成不规则的触须状，触须边缘冷青白发光，随即收缩回中心，缩成一点后消散。",
+        "en": "Shadow hit: a deep indigo smoke burst at the center splitting into irregular tendrils with glowing cold pale-cyan edges, which then snap back to the center, shrink to a point and dissipate."
+      },
+      "deps": ["art_vfx_school_shadow_cast"],
+      "milestone": "M1",
+      "notes": "以暗影施法光为参照同批生成。"
+    },
+    {
+      "id": "art_vfx_school_shadow_zone",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "暗影区域：贴地缓慢翻涌的深靛蓝雾，雾面浮着冷青白的细小光点，偶有一缕暗流盘旋而过，边缘清楚。",
+        "en": "Shadow zone: deep indigo mist churning slowly along the ground, tiny cold pale-cyan motes floating on its surface, an occasional dark current swirling past, with a clearly readable edge."
+      },
+      "deps": ["art_vfx_school_shadow_cast"],
+      "milestone": "M1",
+      "notes": "持续区域循环；与澱雾区分：这里是靛蓝加冷白，不是暗紫；第 8 帧接回第 1 帧。"
+    },
+    {
+      "id": "art_vfx_school_holy_cast",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "圣光施法光：几道竖直的冷白光线从上方落下，象牙白的光点自下而上聚拢，高潮时一团柔白光球在手前成形，随后光线向上淡出。",
+        "en": "Holy casting glow: a few vertical cold white light lines falling from above, ivory light motes gathering upward, a soft white orb forming in front of the hands at the peak, then the lines fading out upward."
+      },
+      "milestone": "M1",
+      "notes": "圣光配色：白 #ffffff、象牙白 #fffbea、极淡柠檬黄 #fff3a8；不用暖金（那是门扉金），不画几何光环（那是女神的神迹）。"
+    },
+    {
+      "id": "art_vfx_school_holy_projectile",
+      "template": "vfx_projectile",
+      "subject": {
+        "zh": "圣光弹道：一颗象牙白的光球，核心纯白，外圈一层极淡的柠檬黄光晕，后方拖出几道平行的白色细光线，四帧之间光晕轻轻脉动。",
+        "en": "Holy projectile: an ivory orb with a pure white core and a faint pale-lemon halo, trailing a few parallel thin white light lines, the halo pulsing gently across the four frames."
+      },
+      "deps": ["art_vfx_school_holy_cast"],
+      "milestone": "M1",
+      "notes": "光球头部在右；配色同圣光。"
+    },
+    {
+      "id": "art_vfx_school_holy_hit",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "圣光命中：中心一个短促的四芒白色闪光，周围一圈象牙白光环扩张，几粒光点向上飘起，最后光环变薄消失。",
+        "en": "Holy hit: a brief four-pointed white flash at the center, an ivory ring expanding around it, a few motes floating upward, the ring finally thinning out and vanishing."
+      },
+      "deps": ["art_vfx_school_holy_cast"],
+      "milestone": "M1",
+      "notes": "以圣光施法光为参照同批生成。"
+    },
+    {
+      "id": "art_vfx_school_holy_zone",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "圣光地面：地面一圈柔和的象牙白光晕，光晕里细小的白色光点缓缓上升，边缘有一道极淡的柠檬黄细线，安静而明亮。",
+        "en": "Hallowed ground: a soft ivory glow on the ground with tiny white motes rising slowly inside it, a faint pale-lemon line along its edge, quiet and bright."
+      },
+      "deps": ["art_vfx_school_holy_cast"],
+      "milestone": "M1",
+      "notes": "持续区域循环；平躺的透视椭圆；第 8 帧接回第 1 帧。"
+    },
+    {
+      "id": "art_vfx_school_nature_cast",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "自然施法光：手前与脚下长出几缕嫩绿的光藤与叶片，叶片绕圈飞舞并向中心汇聚，高潮时一团叶绿光团绽开，随后叶片飘落淡出。",
+        "en": "Nature casting glow: a few tendrils of tender green light vines and leaves growing in front of the hands and at the feet, the leaves circling and converging on the center, a leaf-green burst blooming at the peak, then the leaves drifting down and fading."
+      },
+      "milestone": "M1",
+      "notes": "自然配色：叶绿 #7ad04a、嫩绿 #c8f07a、土褐 #8a6a3a；雷电类技能另有招牌特效，这里只画草木。"
+    },
+    {
+      "id": "art_vfx_school_nature_projectile",
+      "template": "vfx_projectile",
+      "subject": {
+        "zh": "自然弹道：一团嫩绿色的光种，外面缠着旋转的叶片与细藤，后方飘落几片小叶与绿色光点，四帧之间叶片绕着光种旋转。",
+        "en": "Nature projectile: a tender green seed of light wrapped in spinning leaves and thin vines, a few small leaves and green motes falling behind it, the leaves circling the seed across the four frames."
+      },
+      "deps": ["art_vfx_school_nature_cast"],
+      "milestone": "M1",
+      "notes": "光种头部在右；圆形弹道也保持头亮尾淡。"
+    },
+    {
+      "id": "art_vfx_school_nature_hit",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "自然命中：中心迸开一簇嫩绿叶片与细小的荆刺，叶片旋转着向外飞散，脚下一圈淡绿光点闪烁，最后只剩两片落叶。",
+        "en": "Nature hit: a cluster of tender green leaves and tiny thorns bursting from the center, the leaves spinning outward, a ring of pale green motes twinkling underneath, leaving only two falling leaves at the end."
+      },
+      "deps": ["art_vfx_school_nature_cast"],
+      "milestone": "M1",
+      "notes": "以自然施法光为参照同批生成。"
+    },
+    {
+      "id": "art_vfx_school_nature_zone",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "自然区域：地面一片轻轻摇曳的嫩绿光草与小花苞，绿色光点与孢子缓慢上升，草叶此起彼伏，生机勃勃。",
+        "en": "Nature zone: a patch of gently swaying tender green glowing grass and small flower buds, green motes and spores rising slowly, the blades swaying in turn, full of life."
+      },
+      "deps": ["art_vfx_school_nature_cast"],
+      "milestone": "M1",
+      "notes": "持续区域循环；第 8 帧接回第 1 帧。"
+    },
+    {
+      "id": "art_vfx_door_open",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "开门：一道竖直的门形光框自地面升起，门缝由细到宽透出暖白偏金的光，光向外倾泻成扇形，高潮后门框收拢成一道竖线，碎成光尘消散。",
+        "en": "Door opening: an upright door-shaped frame of light rising from the ground, the gap between the leaves widening from a hairline to spill warm white-gold light, the light pouring outward in a fan, then after the peak the frame closing into a single vertical line that breaks into dust."
+      },
+      "milestone": "M1",
+      "notes": "门系特效：门扉金 #f0d890 为主色，配暖白；不用澱紫。门框是简洁的拱顶长方形，中心通透；开门仪式（长按开门）与门内庭院都会用。"
+    },
+    {
+      "id": "art_vfx_door_sigil_flash",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "门纹闪：一枚小小的拱门形纹章轮廓在中心一闪亮起，四个角迸出细小的光点，纹章随即变淡收成一点，像手背上的门纹被点亮一下。",
+        "en": "Door sigil flash: a small arch-shaped emblem outline lighting up at the center, tiny motes sparking from its four corners, the emblem then fading and shrinking to a point, like the door mark on a hand lighting up for a moment."
+      },
+      "milestone": "M1",
+      "notes": "门系特效：门扉金 #f0d890 为主色，配暖白；不用澱紫。纹章是门的剪影，不是文字；门系批内参照，门授技能会以它为参照。"
+    },
+    {
+      "id": "art_vfx_door_pact_purify",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "契约之门净化：一圈门形的暖金光框罩住中心，框里翻涌的暗紫雾被一缕缕抽出，在框边化为暖白光尘向上飘散，最后光框里只剩干净的白光。",
+        "en": "Pact door purification: a door-shaped warm gold frame enclosing the center, the dark purple mist churning inside it drawn out strand by strand and turned into warm white dust at the frame edge drifting upward, until only clean white light remains inside."
+      },
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M1",
+      "notes": "门系与澱系同时出现的唯一一件：门扉金 #f0d890 为框，澱紫 #4a3a62 为被抽出的雾；雾在前半段，金光在后半段占主导。"
+    },
+    {
+      "id": "art_vfx_door_garden_return",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "门内庭院往返：地面浮出一道平躺的门形光框，暖金光从框里竖直升起成一道窄光柱，光柱向上收细，最后在顶端合成一点消失。",
+        "en": "Inner garden passage: a door-shaped frame of light appearing flat on the ground, warm gold light rising straight up from it into a narrow pillar, the pillar thinning upward and finally closing into a point at the top."
+      },
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M1",
+      "notes": "门系特效：门扉金 #f0d890 为主色，配暖白；不用澱紫。人物本身不画；进出庭院共用，倒放即为抵达。"
+    },
+    {
+      "id": "art_vfx_door_blank_flash",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "鉴定的空白闪光：一张空白的方形光页在中心一闪展开，页面纯白没有任何纹样，边缘一圈极淡的暖金细线，随即像被风吹散一样碎成白点。",
+        "en": "Blank appraisal flash: a blank square page of light snapping open at the center, pure white with no marks at all, a faint warm gold hairline around its edge, then scattering into white specks as if blown away."
+      },
+      "milestone": "M1",
+      "notes": "门系特效：门扉金 #f0d890 为主色，配暖白；不用澱紫。页面必须是空白的，绝不能出现字或像字的纹路；这就是\"无记载\"的画面。"
+    },
+    {
+      "id": "art_vfx_door_dream",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "梦境门：黑暗中一扇半开的门形轮廓像呼吸一样缓缓明灭，门缝透出暖金光，周围几把小钥匙形的光点绕门慢慢转圈，安静而神秘。",
+        "en": "Dream door: a half-open door outline in the darkness brightening and dimming slowly like breathing, warm gold light seeping from the gap, a few small key-shaped motes circling the door slowly, quiet and mysterious."
+      },
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M1",
+      "notes": "门系特效：门扉金 #f0d890 为主色，配暖白；不用澱紫。梦境场景与回廊共用；钥匙是简单的剪影光点。"
+    },
+    {
+      "id": "art_vfx_dian_mist",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "澱雾：贴地流动的暗紫色雾带，雾里浮着更暗的细小颗粒，雾的外缘有一圈亮一阶的淡紫轮廓，缓慢地向一个方向漂移又回卷。",
+        "en": "Sediment mist: a band of dark purple mist flowing along the ground with darker fine grains floating inside, a lighter lilac outline around its outer edge, drifting slowly one way and curling back."
+      },
+      "milestone": "M1",
+      "notes": "澱系特效：澱紫 #4a3a62 为主色，亮一阶 #6a5a8a、暗一阶 #2a2038；加色混合下纯暗色会消失，边缘要留亮一阶的轮廓；不用门扉金。是可行动信息的一部分，轮廓必须清楚。"
+    },
+    {
+      "id": "art_vfx_dian_surge",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "澱涌：暗紫色的雾从地缝里猛然向上喷涌成一根粗柱，柱身翻滚着更暗的涡流，高潮后柱体向四周塌落成环形雾浪，最后贴地散开。",
+        "en": "Sediment surge: dark purple mist erupting violently upward from a ground fissure into a thick column churning with darker eddies, collapsing outward after the peak into a ring-shaped wave of mist that finally spreads along the ground."
+      },
+      "deps": ["art_vfx_dian_mist"],
+      "milestone": "M1",
+      "notes": "澱系特效：澱紫 #4a3a62 为主色，亮一阶 #6a5a8a、暗一阶 #2a2038；加色混合下纯暗色会消失，边缘要留亮一阶的轮廓；不用门扉金。大型特效，中心保持通透，不画实心色块。"
+    },
+    {
+      "id": "art_vfx_dian_death",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "澱化死亡：倒地处升起暗紫色的碎屑与烟，碎屑先向中心聚拢成一团，再向上炸散，烟淡去后地上留下几粒淡紫色的晶尘闪了两下。",
+        "en": "Sediment death: dark purple debris and smoke rising where a creature fell, the debris first drawing together into a clump, then bursting upward, and when the smoke fades a few pale lilac crystal grains glint twice on the ground."
+      },
+      "deps": ["art_vfx_dian_mist"],
+      "milestone": "M1",
+      "notes": "澱系特效：澱紫 #4a3a62 为主色，亮一阶 #6a5a8a、暗一阶 #2a2038；加色混合下纯暗色会消失，边缘要留亮一阶的轮廓；不用门扉金。魔物本体不画；最后的晶尘是澱晶掉落的提示。"
+    },
+    {
+      "id": "art_vfx_dian_colossus_form",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "巨像成形：四周的暗紫雾、灰与碎石被卷向中心，旋成一道上升的涡柱，涡柱渐渐凝出一个高大空心的人形轮廓，胸口一点暗紫亮核，最后雾散轮廓定形。",
+        "en": "Colossus formation: dark purple mist, ash and rubble swept toward the center into a rising vortex column, which gradually condenses into a tall hollow humanoid outline with one dark purple glowing core in its chest, the mist then clearing as the outline settles."
+      },
+      "deps": ["art_vfx_dian_mist"],
+      "milestone": "M1",
+      "notes": "澱系特效：澱紫 #4a3a62 为主色，亮一阶 #6a5a8a、暗一阶 #2a2038；加色混合下纯暗色会消失，边缘要留亮一阶的轮廓；不用门扉金。只画成形的气流与轮廓，不画巨像的实体细节（巨像有自己的动作表）。"
+    },
+    {
+      "id": "art_vfx_dian_sickness",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "澱病：病人身边缓缓上升的细小暗紫斑点，像灰一样飘，周身一圈若有若无的淡紫雾环，斑点上升到头顶就淡去，节奏缓慢而沉重。",
+        "en": "Sediment sickness: tiny dark purple specks rising slowly around a patient, drifting like ash, a faint lilac ring of mist around the body, each speck fading once it reaches head height, slow and heavy in rhythm."
+      },
+      "deps": ["art_vfx_dian_mist"],
+      "milestone": "M1",
+      "notes": "澱系特效：澱紫 #4a3a62 为主色，亮一阶 #6a5a8a、暗一阶 #2a2038；加色混合下纯暗色会消失，边缘要留亮一阶的轮廓；不用门扉金。画面要克制，只是\"不对劲\"的提示，不要画成攻击特效。"
+    },
+    {
+      "id": "art_vfx_gen_heal",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "通用治疗：柔和的白绿色光点从脚下升起，绕身体螺旋上升，高潮时胸前一团温和的光晕亮起，随后光点向上飘散，最后只剩两三粒。",
+        "en": "Generic heal: soft white-green motes rising from the feet and spiraling up around the body, a gentle glow brightening in front of the chest at the peak, then the motes drifting upward until only two or three remain."
+      },
+      "milestone": "M0",
+      "notes": "M0 样板之一；配色白 #ffffff、淡绿 #b8f0c8，比自然学派更白更柔，不画叶片。"
+    },
+    {
+      "id": "art_vfx_gen_buff",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "获得增益：一圈明亮的细光环从脚下升到头顶，光环经过之处带起向上的光线，到顶后光环收成一颗亮点闪一下，干净利落。",
+        "en": "Buff applied: a bright thin ring of light rising from the feet to above the head, pulling upward light streaks wherever it passes, then shrinking into a bright point that flashes once at the top, clean and crisp."
+      },
+      "milestone": "M1",
+      "notes": "配色白与淡天青 #bfe8ff；方向一律向上，与减益的向下区分。"
+    },
+    {
+      "id": "art_vfx_gen_debuff",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "受到减益：一团灰暗的暗红雾从头顶压下来，沉到脚边散成一圈下沉的斑点，雾里有几道向下的细线，整体是往下坠的感觉。",
+        "en": "Debuff applied: a murky dark red haze pressing down from above the head, sinking to the feet and scattering into a ring of descending specks, with a few thin downward streaks inside it, the whole effect feeling like falling."
+      },
+      "milestone": "M1",
+      "notes": "配色暗红 #a0383a、灰 #7a7a80；不用暗紫（澱专用）；方向一律向下。"
+    },
+    {
+      "id": "art_vfx_gen_pickup",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "拾取闪光：中心一个四芒小星形白光一闪，外圈几粒亮点向上弹起，像物品被拾起时的一下反光，很快消失。",
+        "en": "Pickup sparkle: a small four-pointed white star flashing at the center, a few bright specks bouncing up around it, like a glint of light as an item is picked up, gone quickly."
+      },
+      "milestone": "M1",
+      "notes": "配色纯白加浅黄 #fff2b0；不用门扉金；小而短。"
+    },
+    {
+      "id": "art_vfx_gen_death",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "通用死亡：一团灰白色的烟在中心冒起，烟团分成几缕向上飘散，夹着几粒灰尘落下，最后烟完全淡去。",
+        "en": "Generic death: a puff of grey-white smoke rising at the center, splitting into a few wisps drifting upward with some dust specks falling, until the smoke fades completely."
+      },
+      "milestone": "M1",
+      "notes": "用于非澱生的生灵与人形；配色灰白，不带紫色。"
+    },
+    {
+      "id": "art_vfx_gen_block",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "格挡：一道钢白色的弧形闪光挡在中心前方，弧面上迸出一串橙白火花向两侧弹开，弧光一闪即逝，硬而脆。",
+        "en": "Block: a steel-white arc flash standing in front of the center, a spray of orange-white sparks bouncing off its face to both sides, the arc vanishing in an instant, hard and crisp."
+      },
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M1",
+      "notes": "格挡与招架共用；弧面朝向画面右方，导入时按需镜像。"
+    },
+    {
+      "id": "art_vfx_gen_stun",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "眩晕光点：头顶一圈三颗小小的亮黄色星形光点绕着转，星点之间有细细的白色轨迹线，转一圈正好八帧，循环不停。",
+        "en": "Stun stars: three small bright yellow star-shaped motes circling above the head, thin white trail lines between them, one full lap taking exactly eight frames, looping endlessly."
+      },
+      "milestone": "M0",
+      "notes": "M0 样板之一；星点是像素小星，不是符号字形；配色亮黄 #ffe066 加白；属于可行动信息，任何画质档都显示。"
+    },
+    {
+      "id": "art_vfx_gen_levelup",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "升级：一道明亮的白色光柱从脚下冲起，光柱周围一圈圈细光环向上推送，淡天青色的光点密集上升，高潮后光柱变细，光点慢慢飘散。",
+        "en": "Level up: a bright white pillar of light surging up from the feet, rings of thin light pushed upward around it, dense pale sky-blue motes rising, the pillar thinning after the peak and the motes drifting slowly away."
+      },
+      "milestone": "M1",
+      "notes": "配色白与淡天青 #bfe8ff；不用门扉金（门阶提升另走门系）。"
+    },
+    {
+      "id": "art_vfx_gen_rise",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "起身光柱：倒地处亮起一道柔和的浅青白光柱，光柱底部一圈波纹向外推开，光点自下而上汇入人形的位置，随后光柱收窄熄灭。",
+        "en": "Rising pillar: a soft pale teal-white column of light appearing where someone lay fallen, a ripple ring pushing outward from its base, motes flowing upward into the body position, then the pillar narrowing and going out."
+      },
+      "milestone": "M1",
+      "notes": "用于复苏与救起；配色浅青白 #c8f4f0 加白；人物不画。"
+    },
+    {
+      "id": "art_vfx_gen_root",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "定身藤蔓：脚下缠绕着几根绿褐色的粗藤，藤蔓缓慢收紧又微微松开，藤上冒出细小的叶片与淡绿光点，牢牢锁住双脚的位置。",
+        "en": "Root vines: a few thick green-brown vines coiled around the feet, slowly tightening and loosening slightly, tiny leaves and pale green motes sprouting from them, locking the feet firmly in place."
+      },
+      "deps": ["art_vfx_school_nature_cast"],
+      "milestone": "M1",
+      "notes": "可行动信息，任何画质档都显示；冰系定身改用冰冻地面，不用本图。"
+    },
+    {
+      "id": "art_vfx_gen_silence",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "沉默封印：头顶浮着一枚灰白色的圆形封印纹章，纹章中间一道横向的封条，封条两端轻轻抖动，纹章缓慢上下浮动。",
+        "en": "Silence seal: a grey-white round seal emblem floating above the head with a horizontal binding strip across its middle, the strip ends quivering slightly, the emblem bobbing slowly up and down."
+      },
+      "milestone": "M1",
+      "notes": "纹章里不能有任何字；配色灰白 #d8d8e0 加冷灰；可行动信息。"
+    },
+    {
+      "id": "art_vfx_gen_slow",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "减速：身后拖着几道冷蓝色的残影与雾气，残影一层比一层淡，脚边有一圈缓缓转动的浅蓝雾，整体沉重迟缓。",
+        "en": "Slow: a few cold blue afterimages and mist trailing behind, each layer fainter than the last, a ring of pale blue mist turning slowly at the feet, heavy and sluggish overall."
+      },
+      "milestone": "M1",
+      "notes": "配色冷蓝 #8fb8e8 加白；残影朝画面左方，导入时按朝向镜像；可行动信息。"
+    },
+    {
+      "id": "art_vfx_amb_fireflies",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "萤火：五六个黄绿色的小光点在空中缓缓漂浮，各自按不同的节奏明灭，轨迹弯弯曲曲，安静温柔，像夏夜乡间的萤火虫。",
+        "en": "Fireflies: five or six small yellow-green motes drifting slowly in the air, each blinking at its own rhythm along winding paths, quiet and gentle like fireflies over the countryside on a summer night."
+      },
+      "milestone": "M1",
+      "notes": "配色黄绿 #e8ff9a、#a8e060；洛萨乡野与边地野林的夜间撒布；高档以上观感项。"
+    },
+    {
+      "id": "art_vfx_amb_butterflies",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "蝴蝶：两三只小白蝶与淡黄蝶扑着翅膀绕圈飞，翅膀开合有明暗两帧，飞行轨迹忽高忽低，轻快明亮。",
+        "en": "Butterflies: two or three small white and pale yellow butterflies circling with fluttering wings, each wingbeat shown in a light and a dark frame, their flight dipping and rising, light and cheerful."
+      },
+      "milestone": "M1",
+      "notes": "翅膀要亮色才显形；洛萨乡野白天撒布。"
+    },
+    {
+      "id": "art_vfx_amb_falling_leaves",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "落叶：几片橙褐与暗金的叶子打着旋斜斜飘落，叶面翻转时一亮一暗，落到格子底部又从顶部接上，循环不断。",
+        "en": "Falling leaves: a few orange-brown and dark gold leaves spinning as they drift diagonally down, each leaf flashing light and dark as it turns, reaching the bottom and re-entering from the top in a continuous loop."
+      },
+      "milestone": "M1",
+      "notes": "叶色不要用纯黑；边地野林与秋季撒布。"
+    },
+    {
+      "id": "art_vfx_amb_petals",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "花瓣：粉白色的小花瓣随风斜斜飘过，花瓣在空中翻转，偶尔两片相随，轻盈而缓慢，从格子一侧飘向另一侧。",
+        "en": "Petals: small pinkish-white petals drifting across on the wind at a slant, tumbling in the air, sometimes two drifting together, light and slow, crossing from one side of the cell to the other."
+      },
+      "milestone": "M1",
+      "notes": "配色粉白 #ffe0ea 加白；洛萨乡野春季与神庭庭园撒布。"
+    },
+    {
+      "id": "art_vfx_amb_crow_shadow",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "鸦影掠过：一只乌鸦从左下扑翅飞起，掠过格子后向右上消失，羽缘被天光勾出一圈银灰色的亮边，翅膀张合三次。",
+        "en": "Crow passing: a single crow taking off from the lower left with beating wings, crossing the cell and vanishing to the upper right, its feather edges rimmed in silvery grey by the sky light, wings opening and closing three times."
+      },
+      "milestone": "M1",
+      "notes": "加色混合：纯黑与很暗的颜色在游戏里看不见，暗色部分必须带亮边才显形。乌鸦本体要用银灰亮边 #9aa0aa 勾出；边地野林与灰烬荒原撒布。"
+    },
+    {
+      "id": "art_vfx_amb_pigeons",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "鸽群惊飞：四五只浅灰白的鸽子同时从地面扑翅飞起，朝同一个方向散开上升，羽毛飘落几片，最后飞出格子。",
+        "en": "Startled pigeons: four or five pale grey-white pigeons flapping up from the ground at once, scattering upward in the same direction, a few feathers drifting down, finally flying out of the cell."
+      },
+      "deps": ["art_vfx_amb_crow_shadow"],
+      "milestone": "M2",
+      "notes": "瓦伦城邑的广场与屋顶撒布；鸽子用浅色才显形。"
+    },
+    {
+      "id": "art_vfx_amb_seagulls",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "海鸥：两只白色海鸥张开长翼在空中缓缓滑翔盘旋，偶尔扇动一下翅膀，翼尖一点浅灰，轨迹是平缓的大弧线。",
+        "en": "Seagulls: two white gulls gliding and circling slowly on long outstretched wings, flapping only now and then, pale grey at the wingtips, tracing wide gentle arcs."
+      },
+      "deps": ["art_vfx_amb_crow_shadow"],
+      "milestone": "M3",
+      "notes": "海港同盟的港城与海岸撒布。"
+    },
+    {
+      "id": "art_vfx_amb_glow_spores",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "发光孢子：一簇浅青绿色的小光球从下方缓缓升起，像蒲公英的绒毛一样左右摇摆，升到高处慢慢变淡，静谧古老。",
+        "en": "Glowing spores: a cluster of small pale teal-green light orbs rising slowly from below, swaying left and right like dandelion down, fading as they drift higher, hushed and ancient."
+      },
+      "milestone": "M3",
+      "notes": "配色浅青绿 #a8f0d8 加白；林冠秘境的巨树之间撒布。"
+    },
+    {
+      "id": "art_vfx_ovl_dian_hollow",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "古澱纹样：灰度的细孔与大小不一的门形空洞，空洞边缘像被风蚀过，孔洞成片分布，中间夹着细细的干裂纹。",
+        "en": "Ancient-sediment pattern: grayscale pinholes and door-shaped hollows of varying sizes, their rims looking wind-eroded, the holes scattered in patches with thin dry cracks between them."
+      },
+      "milestone": "M1",
+      "notes": "贴在立牌与墙面轮廓内，由渲染层着色；封门遗迹、灰烬荒原的古澱魔物与墙面用；四方无缝。"
+    },
+    {
+      "id": "art_vfx_ovl_dian_pale",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "光澱纹样：灰度的白瓷开片纹，细密的几何裂纹交织成大小不一的多边形，裂纹笔直规整，像一只裂了的瓷碗表面。",
+        "en": "Pale-sediment pattern: grayscale porcelain crackle, fine geometric cracks interlacing into polygons of varying sizes, the cracks straight and orderly like the surface of a crazed porcelain bowl."
+      },
+      "milestone": "M2",
+      "notes": "光澱魔物与圣所地下的墙面用；四方无缝，不能出现一眼可见的中心。"
+    },
+    {
+      "id": "art_vfx_ovl_dian_mixed",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "混澱纹样：灰度的斑块与裂纹混杂，有的地方是成团的污斑，有的地方是交错的细裂，疏密不一，显得浑浊而杂乱。",
+        "en": "Mixed-sediment pattern: grayscale blotches and cracks jumbled together, clumped stains in some places and crisscrossing fine cracks in others, uneven in density, murky and chaotic."
+      },
+      "milestone": "M1",
+      "notes": "边石旧矿、旧水道等混澱魔物与墙面用；四方无缝。"
+    },
+    {
+      "id": "art_vfx_ovl_dian_pact",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "契澱纹样：灰度的圆形压痕层层叠叠，像许多印章叠盖在一起，压痕边缘有细齿，印面里是看不出意思的几何花纹。",
+        "en": "Pact-sediment pattern: grayscale round impressions layered over one another like many seals stamped on top of each other, their rims finely toothed, the faces filled with meaningless geometric motifs."
+      },
+      "milestone": "M1",
+      "notes": "印面里绝不能出现文字；契澱魔物、宝箱怪与商港地下用；四方无缝。"
+    },
+    {
+      "id": "art_vfx_ovl_dian_script",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "录澱纹样：灰度的似字刻痕排成一行行，笔画短而密，像被反复刮写又擦去的痕迹，行距不匀，绝不构成可读的字。",
+        "en": "Script-sediment pattern: grayscale glyph-like scratches arranged in rows, strokes short and dense like marks written and scraped away again and again, uneven line spacing, never forming readable characters."
+      },
+      "milestone": "M2",
+      "notes": "最容易被淘汰（出现文字）：生成后放大检查，像字的笔画要打乱；千门书库与学城的录澱魔物与墙面用；四方无缝。"
+    },
+    {
+      "id": "art_vfx_ovl_dian_life",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "生澱纹样：灰度的菌斑与细根须网，圆形菌斑大小不一，根须在斑点之间蔓延连接，像湿木头上长满的霉。",
+        "en": "Life-sediment pattern: grayscale fungal spots and a fine net of rootlets, round spots of different sizes connected by creeping rootlets, like mold covering damp wood."
+      },
+      "milestone": "M3",
+      "notes": "根渊、枯环与祖灵冢的生澱魔物与墙面用；四方无缝。"
+    },
+    {
+      "id": "art_vfx_ovl_dian_war",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "战澱纹样：灰度的长短刀痕交错，痕迹边缘翻起，像没有愈合的伤口，深痕与浅痕叠在一起，方向凌乱。",
+        "en": "War-sediment pattern: grayscale long and short blade gashes crisscrossing, their edges curled up like wounds that never healed, deep and shallow marks stacked together in chaotic directions."
+      },
+      "milestone": "M2",
+      "notes": "霜骨墓窟、斗场与角冠宫的战澱魔物与墙面用；不要画成血迹；四方无缝。"
+    },
+    {
+      "id": "art_vfx_ovl_dian_creep",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "澱化侵蚀：灰度的蔓延纹路，像墨水渗进纸里，从粗到细分出许多枝杈，枝杈之间有零星的小斑点，整体在慢慢扩散的样子。",
+        "en": "Sediment creep: grayscale spreading veins like ink soaking into paper, branching from thick to thin into many offshoots with scattered small specks between them, the whole looking as if it slowly spreads."
+      },
+      "milestone": "M1",
+      "notes": "通用的澱化与魔物化叠加，渲染层着澱紫；建筑受澱化与地块积澱也用；四方无缝。"
+    },
+    {
+      "id": "art_vfx_ovl_frost",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "冰霜纹样：灰度的树枝状霜花，从几个点向外长出细密的羽状冰枝，冰枝之间是细小的冰晶颗粒，冷而锐利。",
+        "en": "Frost pattern: grayscale dendritic frost flowers, fine feathery ice branches growing outward from several points with tiny ice crystal grains between them, cold and sharp."
+      },
+      "milestone": "M1",
+      "notes": "冻结状态与冬季墙面用，渲染层着冰蓝；四方无缝。"
+    },
+    {
+      "id": "art_vfx_ovl_scorch",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "焦痕纹样：灰度的不规则焦斑，边缘有一圈烧卷的毛边，焦斑里夹着细小的灰烬颗粒与气泡状的烧痕。",
+        "en": "Scorch pattern: grayscale irregular burn patches with a ring of curled charred fringe at their edges, small ash grains and bubble-like burn marks inside."
+      },
+      "milestone": "M1",
+      "notes": "火烧后的墙面、建筑受损与焦土用；四方无缝。"
+    },
+    {
+      "id": "art_vfx_ovl_crack_light",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "轻损裂纹：灰度的细裂纹，几条主裂从中间分出短枝，裂纹稀疏，墙面大部分仍是完好的，像刚被撞过一下。",
+        "en": "Light damage cracks: grayscale hairline cracks, a few main fractures splitting into short branches, sparse, most of the surface still intact, as if it had just been struck once."
+      },
+      "milestone": "M1",
+      "notes": "城建建筑受损第一档与守城战的墙面用；四方无缝。"
+    },
+    {
+      "id": "art_vfx_ovl_crack_heavy",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "重损裂纹：灰度的粗裂纹与缺块，裂缝纵横交错，有几处整块剥落的缺口，缺口边缘是碎裂的锯齿，像随时会塌。",
+        "en": "Heavy damage cracks: grayscale thick cracks and missing chunks, fractures running in every direction, a few places where whole pieces have fallen out with jagged broken edges, as if about to collapse."
+      },
+      "milestone": "M1",
+      "notes": "城建建筑受损第二档与废墟用；四方无缝。"
+    },
+    {
+      "id": "art_vfx_ovl_moss_stain",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "苔痕水渍：灰度的苔斑与竖直的水渍流痕，苔斑成团贴在下半部分，水渍从上往下拖出细长的痕迹，显得潮湿古旧。",
+        "en": "Moss and water stains: grayscale moss patches and vertical drip streaks, the moss clumped toward the lower part, the stains trailing long thin marks downward, damp and old."
+      },
+      "milestone": "M1",
+      "notes": "遗迹残墙、旧水道与老屋用；四方无缝（上下方向的流痕也要连续）。"
+    },
+    {
+      "id": "art_vfx_ovl_door_glyph",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "门纹浮刻：灰度的浅浮雕纹样，由许多大小不一的拱门形轮廓套叠而成，轮廓之间连着细线，像墙上被磨浅的古老门纹。",
+        "en": "Door glyph relief: a grayscale shallow-relief pattern of many nested arch-shaped door outlines of different sizes joined by thin lines, like ancient door marks worn shallow on a wall."
+      },
+      "milestone": "M1",
+      "notes": "渲染层着门扉金；封门遗迹的神纹大厅、门站与门纹共鸣用；门形轮廓不是文字；四方无缝。"
+    },
+    {
+      "id": "art_vfx_ovl_corrode",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "腐蚀斑：灰度的点蚀坑与向下的流痕，坑洞大小不一、成群出现，坑边一圈细小的起泡，像金属与石头被酸咬过。",
+        "en": "Corrosion pits: grayscale pitting with downward runs, pits of varied sizes appearing in clusters, each ringed by tiny blisters, like metal and stone bitten by acid."
+      },
+      "milestone": "M2",
+      "notes": "腐蚀类命中词缀与深炉的器械用；四方无缝。"
+    },
+    {
+      "id": "art_vfx_ovl_ash_dust",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "积灰：灰度的厚薄不一的灰层，灰面上有细小的颗粒与被风吹出的波纹，低处积得厚，高处只是一层薄雾般的浮灰。",
+        "en": "Ash cover: a grayscale layer of ash of uneven thickness, fine grains and wind-blown ripples on its surface, thick in the low places and only a mist-thin film on the high ones."
+      },
+      "milestone": "M1",
+      "notes": "封门遗迹落灰阶的渗澱地格与灰烬荒原的器物用；四方无缝。"
+    },
+    {
+      "id": "art_vfx_div_oracle_glint",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "神谕微光：一点极淡的白光在中心上方亮起，像烛火被风吹得一晃，光点轻轻颤两下，然后悄无声息地熄灭。",
+        "en": "Oracle glint: one very faint point of white light kindling above the center, like a candle flame flickering in a draft, trembling twice and then going out without a sound."
+      },
+      "ref": "div_all_oracle",
+      "milestone": "M1",
+      "notes": "女神神迹特效，只画现象，不画女神本人。配色白与烛黄 #ffe9b0；极克制，亮度低。"
+    },
+    {
+      "id": "art_vfx_div_bless_glow",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "授予加护：一道很淡的光从上方落下，在肩头停住，像一只手轻轻按了一下，光在那里亮一亮，随即向四周化开消散。",
+        "en": "Blessing glow: a very soft light falling from above and settling on a shoulder like a hand resting there for a moment, brightening briefly before melting away in every direction."
+      },
+      "ref": "div_eluen_bless",
+      "milestone": "M1",
+      "notes": "女神神迹特效，只画现象，不画女神本人。中性白光，按授予者由渲染层着色（艾琉恩白金、瓦尔妲赤、梅尔卡金褐、希尔薇苍绿、莫伊拉墨蓝）。"
+    },
+    {
+      "id": "art_vfx_div_minor_miracle",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "小神迹：一束细细的白金色光从天落下罩住中心，光束里有细微的几何光纹缓缓转动，伤口位置的光点一颗颗上升，最后光束收细消失。",
+        "en": "Minor miracle: a thin shaft of white-gold light falling from the sky over the center, faint geometric light patterns turning slowly inside it, motes rising one by one from the wound, the shaft finally narrowing and vanishing."
+      },
+      "ref": "div_eluen_minor_miracle",
+      "milestone": "M1",
+      "notes": "女神神迹特效，只画现象，不画女神本人。艾琉恩的神迹：神光白金加几何纹样，是这一色的合法用途。"
+    },
+    {
+      "id": "art_vfx_div_radiance",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "显光：一根巨大的白金光柱从天贯下，地面一圈精密的几何光纹由内向外层层展开，光纹像齿轮一样慢慢转动，高潮后光柱变细升回天上。",
+        "en": "Radiance: a colossal white-gold pillar of light driving down from the sky, a ring of precise geometric light patterns unfolding layer by layer on the ground and turning slowly like gears, the pillar thinning after the peak and withdrawing upward."
+      },
+      "ref": "div_eluen_radiance",
+      "milestone": "M2",
+      "notes": "女神神迹特效，只画现象，不画女神本人。中心保持通透；白天也要看得清，所以对比要高。"
+    },
+    {
+      "id": "art_vfx_div_great_miracle",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "大神迹：晨光一样的白金色光潮从一侧漫过来，光潮的前缘是一道整齐的几何光线，光潮经过之处升起无数光点，最后整片光柔和地退去。",
+        "en": "Great miracle: a tide of dawn-like white-gold light rolling in from one side, its leading edge a neat geometric line, countless motes rising wherever it passes, the whole sheet of light then receding softly."
+      },
+      "ref": "div_eluen_great_miracle",
+      "milestone": "M2",
+      "notes": "女神神迹特效，只画现象，不画女神本人。用于一城的大神迹，按屋顶高度平铺多张。"
+    },
+    {
+      "id": "art_vfx_div_pillar_light",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "圣柱降光：一根笔直的白金光柱落地立起，光柱底部的灰色雾气一圈圈退散，柱身有几何刻纹般的光环上下滑动，地面留下一圈整齐的光纹。",
+        "en": "Pillar of light: a perfectly straight white-gold pillar landing and standing upright, the grey haze at its base retreating ring by ring, geometric engraved light rings sliding up and down the shaft, leaving a neat ring of light on the ground."
+      },
+      "ref": "div_eluen_pillar_light",
+      "milestone": "M2",
+      "notes": "女神神迹特效，只画现象，不画女神本人。与\"门纹灼痕\"同场时，门纹的灼痕另用门纹闪表现，不画在这张里。"
+    },
+    {
+      "id": "art_vfx_div_recall_light",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "回光：一道窄而急的白金光束从上方猛地落下，罩住中心后立刻向上抽回，像把什么东西整个拽走，原地只剩一片缓缓飘落的光尘。",
+        "en": "Recall light: a narrow, sudden white-gold beam slamming down from above, enclosing the center and instantly snapping back upward as if yanking something away whole, leaving only a patch of slowly falling light dust."
+      },
+      "ref": "div_eluen_recall_light",
+      "milestone": "M2",
+      "notes": "女神神迹特效，只画现象，不画女神本人。人物不画；节奏要快，前 3 帧落下、第 4 帧抽回。"
+    },
+    {
+      "id": "art_vfx_div_descent",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "神降：中心被一道柔和的白金光托起，光的背后浮出一个巨大的几何光环，像精密齿轮一样缓慢转动，光环外圈有细小的刻度光点，最后光环定住不动。",
+        "en": "Divine descent: the center lifted by a soft white-gold radiance, a huge geometric halo surfacing behind it and turning slowly like precise gears, tiny graduation-like motes on its outer ring, the halo finally holding still."
+      },
+      "ref": "div_eluen_descent",
+      "milestone": "M3",
+      "notes": "女神神迹特效，只画现象，不画女神本人。只画光与光环，不画人；光环必须是几何的、对称的。"
+    },
+    {
+      "id": "art_vfx_div_berserk_flame",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "狂战加护：身上燃起赤黑色的火，火舌是暗红与焦黑交替，外缘一圈亮红轮廓，火苗向上猛蹿又回落，像压不住的怒意。",
+        "en": "Berserk blessing: red-black flame wreathing the body, tongues alternating dark red and scorched black with a bright red outline, flaring upward and falling back like rage that cannot be held down."
+      },
+      "ref": "div_valda_bless",
+      "milestone": "M2",
+      "notes": "女神神迹特效，只画现象，不画女神本人。瓦尔妲的颜色：暗红 #8a1a1a、亮红 #e04030；加色混合：纯黑与很暗的颜色在游戏里看不见，暗色部分必须带亮边才显形。"
+    },
+    {
+      "id": "art_vfx_div_duel_oath",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "决斗之誓：一道细细的红线从左到右横穿中心，红线一亮，中间迸出一小簇火星，随后整根线从中间断开熄灭。",
+        "en": "Duel oath: a thin red thread stretching across the center from left to right, flaring bright, a small cluster of sparks bursting at its midpoint, then the whole thread breaking at the middle and going out."
+      },
+      "ref": "div_valda_duel_oath",
+      "milestone": "M2",
+      "notes": "女神神迹特效，只画现象，不画女神本人。红线连接两名决斗者，导入时按两人距离拉伸；配色亮红 #ff4a3a。"
+    },
+    {
+      "id": "art_vfx_div_dying_voice",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "借口传话：一对小小的红色光点在中心亮起，像一双眼睛里燃起的火，光点闪烁三次，周围一圈极淡的红雾，然后熄灭。",
+        "en": "Borrowed voice: a pair of tiny red lights kindling at the center like fire burning in a pair of eyes, blinking three times inside a faint ring of red haze, then going out."
+      },
+      "ref": "div_valda_dying_voice",
+      "milestone": "M2",
+      "notes": "女神神迹特效，只画现象，不画女神本人。贴在濒死者头部；配色暗红到亮红。"
+    },
+    {
+      "id": "art_vfx_div_tide_gather",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "魔物潮聚拢：一片赤色的雾从画面两侧向中间聚拢，雾里浮现成群的模糊兽影轮廓，影子随雾翻涌，高潮时雾最浓，随后向下沉。",
+        "en": "Monster tide gathering: crimson haze drawing in from both sides toward the middle, crowds of blurred beast silhouettes surfacing inside it and churning with the mist, thickest at the peak, then sinking down."
+      },
+      "ref": "div_valda_monster_tide",
+      "milestone": "M2",
+      "notes": "女神神迹特效，只画现象，不画女神本人。用于地平线方向的征兆；兽影只是亮红轮廓，不画细节；配色赤 #b0303a、暗红。"
+    },
+    {
+      "id": "art_vfx_div_coin_warm",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "硬币发烫：中心一枚金币微微发光发热，金币周围浮着三四枚旋转的小硬币，小硬币绕着它慢慢转圈，金光一明一暗。",
+        "en": "Warm coin: a gold coin at the center glowing faintly with heat, three or four small coins floating and spinning around it in a slow circle, the gold light brightening and dimming."
+      },
+      "ref": "div_merca_token_blessing",
+      "milestone": "M1",
+      "notes": "女神神迹特效，只画现象，不画女神本人。梅尔卡的金：深一些的币金 #e0a832 与亮黄 #ffe080，不用门扉金。"
+    },
+    {
+      "id": "art_vfx_div_pact_glyph",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "契约加护：一张契书形状的淡光平面上，一行行金色的短划痕逐个亮起，亮完后整张契书闪一下金光；后半段划痕变黑剥落，表示违约。",
+        "en": "Pact blessing: on a faint glowing parchment-shaped plane, rows of short golden strokes light up one by one, the whole sheet flashing gold once they are lit; in the latter frames the strokes turn black and flake away, signifying a breach."
+      },
+      "ref": "div_merca_pact_blessing",
+      "milestone": "M1",
+      "notes": "女神神迹特效，只画现象，不画女神本人。划痕是无字的短线，绝不能出现可读文字；前 5 帧亮起，后 3 帧剥落；配色币金 #e0a832。"
+    },
+    {
+      "id": "art_vfx_div_discovery",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "特产发现：地面上一点金色的小闪光，像有人随手丢下一枚钱，闪光跳两下，旁边弹起一粒亮点，随即消失。",
+        "en": "Discovery sparkle: a single small golden glint on the ground as if someone had dropped a coin, hopping twice with one bright speck bouncing beside it, then gone."
+      },
+      "ref": "div_merca_discovery",
+      "milestone": "M1",
+      "notes": "女神神迹特效，只画现象，不画女神本人。配色币金 #e0a832；比拾取闪光更小、更低。"
+    },
+    {
+      "id": "art_vfx_div_omen_birds",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "借兽示警：一群乌鸦从下方同时惊飞，全部朝同一个方向散开上升，羽缘被光勾出银灰亮边，几片黑羽飘落，最后鸦群飞出格子。",
+        "en": "Beast omen: a flock of crows bursting up from below all at once, scattering upward in one single direction, their feather edges rimmed in silvery light, a few black feathers drifting down as the flock leaves the cell."
+      },
+      "ref": "div_sylvie_omen",
+      "deps": ["art_vfx_amb_crow_shadow"],
+      "milestone": "M1",
+      "notes": "女神神迹特效，只画现象，不画女神本人。希尔薇的示警必须对应真实危险；加色混合：纯黑与很暗的颜色在游戏里看不见，暗色部分必须带亮边才显形。鸦群要有银灰亮边 #9aa0aa。"
+    },
+    {
+      "id": "art_vfx_div_beast_guide",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "兽引：地上一串发着淡绿光的兽蹄印，从近到远依次亮起又熄灭，像有一头看不见的兽正往林子深处走，循环往复。",
+        "en": "Beast guide: a trail of faintly green-glowing hoofprints on the ground lighting up and fading one after another from near to far, as if an unseen beast were walking deeper into the woods, over and over."
+      },
+      "ref": "div_sylvie_beast_guide",
+      "milestone": "M1",
+      "notes": "女神神迹特效，只画现象，不画女神本人。希尔薇的苍绿 #a8e0b0；蹄印是鹿蹄形。"
+    },
+    {
+      "id": "art_vfx_div_spring_return",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "归泉之许：一汪泉面的椭圆光圈先静静发亮，前四帧光圈扩开变亮表示放行，后四帧光沉入圈底熄灭表示拒绝，水纹一圈圈荡开。",
+        "en": "Spring answer: an oval of spring-surface light glowing quietly, widening and brightening in the first four frames to grant passage, then in the last four frames sinking to the bottom and dying to refuse, ripples spreading ring by ring."
+      },
+      "ref": "div_sylvie_return",
+      "milestone": "M2",
+      "notes": "女神神迹特效，只画现象，不画女神本人。导入时拆成两段播放；配色苍绿与水白。"
+    },
+    {
+      "id": "art_vfx_div_forest_wither",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "森林吸澱：一片树叶形的光斑由绿褪成灰白，叶片周围的灰色雾气被一缕缕吸向下方的树干位置，雾吸尽后叶片静止成灰白色。",
+        "en": "Forest drawing sediment: a patch of leaf-shaped light fading from green to grey-white, the grey haze around the leaves drawn strand by strand down toward the trunk below, the leaves settling still and grey-white once it is gone."
+      },
+      "ref": "div_sylvie_forest",
+      "milestone": "M3",
+      "notes": "女神神迹特效，只画现象，不画女神本人。被吸的雾用灰，不用澱紫（凡人看到的是灰气）；配色苍绿到灰白。"
+    },
+    {
+      "id": "art_vfx_div_swarm",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "天灾·虫：一道黄褐色的雾线从一侧横扫过来，近处看清是密密麻麻的小虫点，虫云翻卷着掠过中心，最后向另一侧散去。",
+        "en": "Plague of insects: a yellow-brown line of haze sweeping in from one side, resolving up close into dense swarms of tiny insect specks, the cloud tumbling across the center and finally dispersing to the other side."
+      },
+      "ref": "div_sylvie_calamity",
+      "milestone": "M3",
+      "notes": "女神神迹特效，只画现象，不画女神本人。配色黄褐 #c8a040、暗黄；虫点要细小密集。"
+    },
+    {
+      "id": "art_vfx_div_title_script",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "授称号：一行细小的墨蓝色光痕从下方浮上来，像一行很小的字却看不清笔画，停留片刻后又慢慢沉下去，消失无踪。",
+        "en": "Title granted: a line of tiny ink-blue light marks surfacing from below, like a very small line of writing whose strokes cannot be made out, lingering a moment before sinking slowly away."
+      },
+      "ref": "div_moira_title",
+      "milestone": "M1",
+      "notes": "女神神迹特效，只画现象，不画女神本人。光痕是无字的短线，不能出现可读文字；莫伊拉的墨蓝 #3a5a9a 加纸白。"
+    },
+    {
+      "id": "art_vfx_div_awaken_pages",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "觉醒：几张半透明的书页绕着中心转一圈，书页边缘泛着纸白的光，转到正面时其中一页亮起墨蓝色的光，其余书页随即散去。",
+        "en": "Awakening: several translucent pages circling the center once, their edges glowing paper-white, one page lighting up ink-blue as it turns to face front while the others scatter away."
+      },
+      "ref": "div_moira_awaken",
+      "milestone": "M2",
+      "notes": "女神神迹特效，只画现象，不画女神本人。书页上不写字，只有空白与光；配色纸白与墨蓝。"
+    },
+    {
+      "id": "art_vfx_div_prophecy_ink",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "预言：空中浮现几行墨色的笔画，像毛笔写下又随墨晕开，笔画在纸白的微光里停留片刻，然后从边缘开始化成墨雾散去。",
+        "en": "Prophecy: a few lines of ink strokes appearing in the air as if brushed and then bleeding, lingering in a faint paper-white glow before dissolving into ink mist from the edges inward."
+      },
+      "ref": "div_moira_prophecy",
+      "milestone": "M1",
+      "notes": "女神神迹特效，只画现象，不画女神本人。笔画不能构成可读文字；墨色要带纸白亮边才在加色混合下显形。"
+    },
+    {
+      "id": "art_vfx_div_fate_thread",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "命运丝：一根极细的金线横在两点之间，线上有一点亮光来回游走，整根线轻轻颤动，像被风拨动的琴弦。",
+        "en": "Fate thread: a hair-thin golden thread stretched between two points, a single bright spot sliding back and forth along it, the whole line trembling softly like a string plucked by the wind."
+      },
+      "ref": "door_talent_sight",
+      "milestone": "M2",
+      "notes": "女神神迹特效，只画现象，不画女神本人。只在识才之门进阶后可见；线色淡金 #f8e6a0，比门扉金更淡更细，导入时按两人距离拉伸。"
+    },
+    {
+      "id": "art_vfx_div_full_record",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "全录之日：一块棱柱形的鉴定水晶里浮出一张发光的书页，书页由暗到亮，角落里多出一行细小的光痕，随后水晶整体闪一下白光。",
+        "en": "Day of the full record: a glowing page surfacing inside a prism-shaped appraisal crystal, brightening from dim to bright, a small extra line of light appearing in one corner, then the whole crystal flashing white once."
+      },
+      "ref": "div_moira_full_record",
+      "milestone": "M3",
+      "notes": "女神神迹特效，只画现象，不画女神本人。书页与光痕都不能出现可读文字。"
+    },
+    {
+      "id": "art_vfx_div_door_resonance",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "门纹共鸣：一枚手背大小的拱门形纹路发热发光，暖金光从纹路中心向外一圈圈荡开，纹路明灭的节奏像心跳。",
+        "en": "Door mark resonance: a hand-sized arch-shaped mark growing warm and glowing, warm gold light rippling outward from its center ring by ring, brightening and dimming to the rhythm of a heartbeat."
+      },
+      "ref": "div_janu_resonance",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M1",
+      "notes": "门系特效：门扉金 #f0d890 为主色，配暖白；不用澱紫。贴在手背与门纹持有者的立牌上。"
+    },
+    {
+      "id": "art_vfx_div_close_light",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "合光：几个小小的门形光点从四周亮起，彼此连成一条暖金的线，线收拢成一扇门的轮廓，把中间一道白光整个合上，最后门轮廓熄灭。",
+        "en": "Closing the light: several small door-shaped motes lighting up around the edges and linking into one warm gold line, the line drawing in to the outline of a door that closes over a white beam in the middle, then the outline going dark."
+      },
+      "ref": "div_janu_close_light",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M2",
+      "notes": "门系特效：门扉金 #f0d890 为主色，配暖白；不用澱紫。被合上的白光不画几何纹（只是一道光）。"
+    },
+    {
+      "id": "art_vfx_div_door_woman_hand",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "门中出手：地面裂开一道发光的缝，缝里透出暖金光，一只手的轮廓从缝里伸出，手腕上挂着一串钥匙形的光，手张开又收回，裂缝合上。",
+        "en": "Hand from the threshold: a glowing fissure splitting the ground with warm gold light seeping from it, the outline of a hand reaching out with a string of key-shaped lights hanging from its wrist, the hand opening and withdrawing as the fissure closes."
+      },
+      "ref": "div_janu_act",
+      "milestone": "M3",
+      "notes": "门系特效：门扉金 #f0d890 为主色，配暖白；不用澱紫。手只是光的轮廓，不画肤色与细节；第六幕之前不点明是谁。"
+    },
+    {
+      "id": "art_vfx_div_avatar_form",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "化身凝形：四周的光点向中心汇聚，聚成一个模糊的人形轮廓，轮廓由虚到实亮起后停住；倒放即为消散，光点向四周散去。",
+        "en": "Avatar forming: motes converging from all around into a blurry humanoid outline, which brightens from faint to solid and holds; played in reverse it disperses, the motes scattering outward."
+      },
+      "ref": "div_all_avatar",
+      "milestone": "M2",
+      "notes": "女神神迹特效，只画现象，不画女神本人。中性白光，按女神由渲染层着色；人形只是光的轮廓。"
+    },
+    {
+      "id": "art_vfx_div_erosion_light",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "光蚀纹：灰度的白瓷般几何裂纹，裂纹笔直对称，像沿着看不见的尺子划出的放射线与同心折线，干净得让人不安。",
+        "en": "Light erosion: grayscale porcelain-like geometric cracks, straight and symmetrical like radial lines and concentric zigzags drawn along an invisible ruler, unsettlingly clean."
+      },
+      "milestone": "M2",
+      "notes": "越约留下的蚀痕，贴在地面与器物轮廓内，渲染层着白金；与光澱纹样的区别是更规整、更对称；四方无缝。"
+    },
+    {
+      "id": "art_vfx_div_erosion_war",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "战蚀：灰度的长条深痕，像被巨刃劈过，痕迹边缘翻卷如未愈合的伤口，长痕之间有细碎的崩口。",
+        "en": "War erosion: grayscale long deep gashes as if split by a giant blade, the edges curled back like unhealed wounds, with small chipped notches between the long marks."
+      },
+      "milestone": "M3",
+      "notes": "越约留下的蚀痕，渲染层着赤黑；比战澱纹样更长、更深、更少；四方无缝。"
+    },
+    {
+      "id": "art_vfx_div_erosion_pact",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "契蚀：灰度的烫印纹样，一排排短划痕像被烙铁按进石头，排列整齐如契书的行，却看不出任何字形。",
+        "en": "Pact erosion: a grayscale branded pattern, rows of short strokes pressed into stone as if by a hot iron, arranged neatly like the lines of a contract yet showing no legible characters."
+      },
+      "milestone": "M3",
+      "notes": "越约留下的蚀痕，渲染层着币金；划痕不能构成可读文字；四方无缝。"
+    },
+    {
+      "id": "art_vfx_div_stele_glow",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "天启碑亮起：一块碑形的光整体发出纯白的光，碑面上的旧划痕一行行褪去，新的光痕一行行浮现，碑边裂开的凿痕里同时透出细光。",
+        "en": "Revelation stele: a stele-shaped glow shining pure white, the old marks on its face receding row by row as new marks of light surface row by row, fine light leaking from the chisel scars along its edge."
+      },
+      "milestone": "M3",
+      "notes": "天启只用无色（纯白），不借任何女神的颜色；碑面痕迹不能构成可读文字（文字由界面另绘）。"
+    },
+    {
+      "id": "art_vfx_div_echo_birth",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "回声凝形：地面一片浅灰的雾气向中心卷起，凝成一团蠕动的块状轮廓，轮廓渐渐长出四肢的形状后停住，雾散。",
+        "en": "Echo forming: a patch of pale grey haze on the ground curling in toward the center and congealing into a writhing lump of an outline, which gradually grows the shape of limbs and holds as the haze clears."
+      },
+      "ref": "echo_birth",
+      "milestone": "M2",
+      "notes": "画成中性的浅灰，渲染层按澱源着五种色调（苍白、赤黑、金褐、苔绿、墨紫）；只画成形的雾，不画魔物细节。"
+    },
+    {
+      "id": "art_vfx_sig_mortal_strike",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "双手重劈：一道粗重的白色弧光自左上斜劈到右下，落点炸开一道暗红色的深长伤痕光，碎屑四溅，弧光散去后伤痕光还停留两帧。",
+        "en": "Two-handed cleave: a heavy white arc slashing from upper left to lower right, a long deep dark red wound line bursting at the point of impact with debris flying, the wound glow lingering two frames after the arc fades."
+      },
+      "ref": "mortal_strike",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M2",
+      "notes": "斩伐流奥义（一击落定）；物理系，白与暗红 #9a2020；不用门扉金与澱紫。"
+    },
+    {
+      "id": "art_vfx_sig_bloodthirst",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "嗜血连斩：两道交叉的暗红刀光快速划过，交点迸出一团鲜红光点，光点像被吸回一样回流到画面左侧，越到后面越急。",
+        "en": "Bloodthirsty strike: two crossing dark red blade streaks flashing past, a burst of bright red motes at their crossing that flow back toward the left as if being drawn in, faster and faster toward the end."
+      },
+      "ref": "bloodthirst",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M2",
+      "notes": "血涌流奥义（伤越深手越快）；回流方向是施法者一侧；配色暗红 #9a2020、鲜红 #e04040；不用门扉金与澱紫。"
+    },
+    {
+      "id": "art_vfx_sig_shield_slam",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "盾猛击：一面盾形的钢灰光影向前猛撞，撞击点炸开一圈厚实的白色冲击环，环上带着几道放射状的钢色裂光，冲击环迅速扩开后变薄消失。",
+        "en": "Shield slam: a steel-grey shield-shaped afterimage ramming forward, a thick white impact ring exploding at the point of contact with a few radial steel-colored crack lines, the ring expanding quickly then thinning away."
+      },
+      "ref": "shield_slam",
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M2",
+      "notes": "铁卫流奥义（墙在人在）；盾面朝右；配色钢灰 #a8b0b8 加白。"
+    },
+    {
+      "id": "art_vfx_sig_holy_shock",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "圣光震击：一道短促的象牙白光脉冲从中心向外一震，脉冲里夹着细碎的柠檬黄光点，同一张光脉冲对友方是回复的柔光、对敌方是刺眼的闪光。",
+        "en": "Holy shock: a brief ivory pulse of light jolting outward from the center with fine pale-lemon motes inside, the same pulse reading as a soft mending glow on allies and a piercing flash on enemies."
+      },
+      "ref": "holy_shock",
+      "deps": ["art_vfx_school_holy_hit"],
+      "milestone": "M3",
+      "notes": "圣礼派奥义（光不问来处）；圣光学派配色，不画几何光环；不用门扉金与澱紫。"
+    },
+    {
+      "id": "art_vfx_sig_holy_shield",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "誓盾：一面象牙白的圆形光盾浮在身前，盾面一圈细边缓缓流转，受击时边缘一亮，盾心有一道竖直的誓痕光线。",
+        "en": "Oath shield: an ivory round shield of light floating in front of the body, a thin rim circling slowly around its face, the rim flaring when struck, a vertical oath line glowing at its center."
+      },
+      "ref": "holy_shield",
+      "deps": ["art_vfx_school_holy_cast"],
+      "milestone": "M2",
+      "notes": "守誓派奥义（誓在身前）；持续循环；不画几何光环与金色。"
+    },
+    {
+      "id": "art_vfx_sig_crusader_strike",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "裁决一击：一记直劈带着象牙白的光刃落下，命中处印出一枚方正的光痕，光痕四边向外推出细光线，像宣判后落下的印。",
+        "en": "Judgment strike: a straight downward blow carrying an ivory blade of light, stamping a square mark of light where it lands, thin light lines pushing outward from the four sides like a seal dropped after a verdict."
+      },
+      "ref": "crusader_strike",
+      "deps": ["art_vfx_school_holy_hit"],
+      "milestone": "M2",
+      "notes": "裁决派奥义阶（先审后刑）；光痕是方形纹章，不是文字。"
+    },
+    {
+      "id": "art_vfx_sig_bestial_wrath",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "兽怒：兽伴身周燃起一圈琥珀色的鬃毛状光焰，光焰向上竖起，地面一圈兽爪形的光痕向外炸开，随后光焰收在身上持续闪烁。",
+        "en": "Bestial wrath: an amber mane-like flame of light flaring around the beast companion and bristling upward, a ring of claw-shaped light marks bursting outward on the ground, then the flame settling onto the body and flickering on."
+      },
+      "ref": "bestial_wrath",
+      "milestone": "M2",
+      "notes": "兽群流奥义（伴在猎在）；配色琥珀 #f0a040、暗橙；画在兽伴脚下与身周，不画兽。"
+    },
+    {
+      "id": "art_vfx_sig_trueshot_aura",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "冷眼光环：脚下一圈细而锐的白色光环，环上四个对称的短刻线像瞄准刻度，光环极慢地转动，一点冷光沿环游走。",
+        "en": "Steady-eye aura: a thin, sharp white ring at the feet with four symmetrical short tick marks like sighting graduations, turning very slowly, a single cold point of light travelling around it."
+      },
+      "ref": "trueshot_aura",
+      "milestone": "M3",
+      "notes": "冷眼流奥义（一箭之前先等一息）；刻线只是短线，不是数字。"
+    },
+    {
+      "id": "art_vfx_sig_wyvern_sting",
+      "template": "vfx_projectile",
+      "subject": {
+        "zh": "翼蜥钉刺：一枚细长的暗绿色毒刺弹，刺尖亮黄绿，后方拖出一缕摇摆的绿色烟丝，四帧之间烟丝左右扭动。",
+        "en": "Wyvern sting: a long thin dark green venom dart with a bright yellow-green tip, trailing a swaying wisp of green smoke that twists left and right across the four frames."
+      },
+      "ref": "wyvern_sting",
+      "deps": ["art_vfx_school_phys_projectile"],
+      "milestone": "M3",
+      "notes": "野战流奥义；毒刺头部在右；配色暗绿 #3a8a3a、黄绿 #c8f060。"
+    },
+    {
+      "id": "art_vfx_sig_cold_blood",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "冷血：一道极细的冷白刀光一闪而过，刀光之后迸出一圈冰冷的青白碎屑，碎屑凝在半空停了一帧，再一齐落下。",
+        "en": "Cold blood: a razor-thin cold white blade streak flashing past, a ring of icy pale-cyan fragments bursting after it, freezing in midair for one frame before all dropping at once."
+      },
+      "ref": "cold_blood",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M2",
+      "notes": "刃术流奥义（一刀就够）；不是冰系，青白只是冷感；配色冷白与 #c0e8f0。"
+    },
+    {
+      "id": "art_vfx_sig_blade_flurry",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "刃旋连斩：左右两道钢白刀光交替翻飞，刀光之间带出一串旋转的短弧，越转越快，最后两道刀光并成一个白色的圈散开。",
+        "en": "Blade flurry: two steel-white blade streaks whirling alternately left and right, trailing a chain of spinning short arcs between them, faster and faster, the two finally merging into a white ring that breaks apart."
+      },
+      "ref": "blade_flurry",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "搏命流奥义；物理系，钢白加少量橙白火花。"
+    },
+    {
+      "id": "art_vfx_sig_hemorrhage",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "放血刺：一道短促的靛蓝刀光刺入中心，命中处渗出三道向下流的暗红光痕，光痕慢慢变淡，末端一滴光点坠落。",
+        "en": "Hemorrhage stab: a short indigo blade streak stabbing into the center, three dark red streaks of light seeping downward from the wound, slowly fading, a single drop of light falling from the end."
+      },
+      "ref": "hemorrhage",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "诡道流奥义；靛蓝刀光要带冷白亮边；不画血滴的写实质感。"
+    },
+    {
+      "id": "art_vfx_sig_power_infusion",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "灌注：一缕象牙白的光流从上方注入身体，身周一圈细光环缓缓上升，光环里的光点像被加速一样快速流转。",
+        "en": "Power infusion: a stream of ivory light pouring into the body from above, a thin ring of light rising slowly around it, the motes inside the ring circulating quickly as if sped up."
+      },
+      "ref": "power_infusion",
+      "deps": ["art_vfx_school_holy_cast"],
+      "milestone": "M2",
+      "notes": "戒律派奥义（先治己再治人）；持续循环；不用金色与几何光环。"
+    },
+    {
+      "id": "art_vfx_sig_holy_nova",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "圣光新爆：一圈象牙白的光环从中心爆开向四周急扩，光环经过之处升起成串的柔白光点，中心留空，最后光环在外缘碎成光尘。",
+        "en": "Holy nova: an ivory ring of light bursting from the center and racing outward, strings of soft white motes rising wherever it passes, the center left open, the ring finally crumbling into dust at the outer edge."
+      },
+      "ref": "holy_nova",
+      "deps": ["art_vfx_school_holy_hit"],
+      "milestone": "M2",
+      "notes": "恩典派奥义（来的都是客）；中心通透；不画几何纹。"
+    },
+    {
+      "id": "art_vfx_sig_shadowform",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "幽相形态：全身裹着一层深靛蓝的烟状外壳，烟壳边缘冷青白发光，烟丝缓慢向上剥离又补上，像在暗处祈祷的人影。",
+        "en": "Shadowform: the whole body wrapped in a smoky deep indigo shell with a glowing cold pale-cyan rim, wisps peeling slowly upward and filling back in, like a figure praying in the dark."
+      },
+      "ref": "shadowform",
+      "deps": ["art_vfx_school_shadow_zone"],
+      "milestone": "M3",
+      "notes": "晚祷派奥义；靛蓝不是澱紫；加色混合下纯暗色看不见，暗部要带亮边。"
+    },
+    {
+      "id": "art_vfx_sig_elemental_mastery",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "唤雷专注：手前一点白蓝电光迅速膨胀，四周的细小电弧向它汇聚，高潮时电光爆亮成一团，电弧沿手臂方向散开。",
+        "en": "Elemental focus: a point of white-blue electric light swelling quickly in front of the hands, fine arcs converging on it from all around, flaring into a bright ball at the peak, the arcs then spreading out along the arms."
+      },
+      "ref": "elemental_mastery",
+      "milestone": "M3",
+      "notes": "唤雷流奥义（雷是借来的）；配色白 #ffffff、淡青 #c8ecff、电蓝 #6ab4ff。"
+    },
+    {
+      "id": "art_vfx_sig_stormstrike",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "风暴打击：两道武器刃光接连劈下，刃光上缠着细细的白蓝电弧，第二道落下时爆出一团带风旋的电光。",
+        "en": "Stormstrike: two weapon blade streaks falling one after another, thin white-blue arcs coiling along them, the second one exploding into a burst of lightning wrapped in a whirl of wind."
+      },
+      "ref": "stormstrike",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "战魂流奥义（祖灵在刃上）；电光配色同唤雷，风旋用淡白。"
+    },
+    {
+      "id": "art_vfx_sig_chain_heal",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "连潮：一道浅蓝绿的水流光从左跳向右，经过三个落点，每个落点溅开一朵小水花与回复光点，水流越跳越细。",
+        "en": "Chain tide: a pale blue-green stream of water-light leaping from left to right through three landing points, each splashing a small spray and healing motes, the stream growing thinner with every leap."
+      },
+      "ref": "chain_heal",
+      "milestone": "M2",
+      "notes": "愈灵流奥义（风会把病带走）；配色浅蓝绿 #8ae8d8、白；导入时按目标间距拉伸。"
+    },
+    {
+      "id": "art_vfx_sig_temporal_mend",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "回溯治愈：一圈细线圆环在伤处出现并逆向转动，环内的光点倒着飞回伤口，伤处的暗光一点点褪去，最后圆环收成一点。",
+        "en": "Temporal mend: a thin-line ring appearing over a wound and turning backward, the motes inside flying back into the wound in reverse, the dark glow at the wound fading bit by bit, the ring finally closing to a point."
+      },
+      "ref": "temporal_mend",
+      "deps": ["art_vfx_school_arcane_cast"],
+      "milestone": "M2",
+      "notes": "时序学派奥义（同一刻可以读两次）；配色青蓝 #6fe3ff 与白；圆环上不画数字与刻度文字。"
+    },
+    {
+      "id": "art_vfx_sig_pyroblast",
+      "template": "vfx_projectile",
+      "subject": {
+        "zh": "大焰球弹道：一颗巨大的火球，核心亮白偏黄，外焰层层翻卷，后方拖出很粗的橙红尾焰与火星，四帧之间火球表面滚动。",
+        "en": "Great fireball projectile: a huge fireball with a white-yellow core, its outer flames rolling in layers, trailing a thick orange-red tail and sparks, its surface churning across the four frames."
+      },
+      "ref": "pyroblast",
+      "deps": ["art_vfx_school_fire_projectile"],
+      "milestone": "M2",
+      "notes": "焰术学派奥义（火要有边）；比火系弹道更大更亮；头部在右。"
+    },
+    {
+      "id": "art_vfx_sig_ice_lance",
+      "template": "vfx_projectile",
+      "subject": {
+        "zh": "冰枪弹道：一支细长笔直的冰枪，枪尖极尖亮白，枪身是透明的冰蓝棱柱，尾部只有一道很短的霜气，干净冷硬。",
+        "en": "Ice lance projectile: a long, perfectly straight lance of ice with a needle-sharp bright white point, its shaft a translucent ice-blue prism, only a very short wisp of frost at the tail, clean and hard."
+      },
+      "ref": "ice_lance",
+      "deps": ["art_vfx_school_frost_projectile"],
+      "milestone": "M3",
+      "notes": "霜术学派奥义（冷的是手不是心）；比冰系弹道更长更细；头部在右。"
+    },
+    {
+      "id": "art_vfx_sig_siphon_life",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "汲命：一条细长的暗靛蓝光丝从画面右侧连向左侧，光丝里一颗颗暗红光点向左缓缓流动，光丝轻轻摇摆，像慢慢抽走的生气。",
+        "en": "Siphon life: a long thin dark indigo thread of light linking the right side to the left, dark red motes flowing slowly leftward along it one by one, the thread swaying gently like vitality being drawn away little by little."
+      },
+      "ref": "siphon_life",
+      "deps": ["art_vfx_school_shadow_cast"],
+      "milestone": "M2",
+      "notes": "咒蚀派奥义（慢慢来）；光丝带冷白亮边；导入时按两者距离拉伸。"
+    },
+    {
+      "id": "art_vfx_sig_metamorphosis",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "缔约化形：契约者脚下浮出一圈靛蓝的契约环，环里升起暗色烟柱包住全身，烟柱顶端张开一对骨白色的翼形轮廓，随后烟散。",
+        "en": "Pact metamorphosis: an indigo pact circle rising beneath the caster, a dark smoke column climbing from it to wrap the whole body, a pair of bone-white wing-shaped outlines opening at its top, then the smoke clearing."
+      },
+      "ref": "metamorphosis",
+      "deps": ["art_vfx_school_shadow_cast"],
+      "milestone": "M3",
+      "notes": "缔约派奥义（契约两头都有人）；契约环是几何圈与短线，不是文字；不用澱紫。"
+    },
+    {
+      "id": "art_vfx_sig_conflagrate",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "爆燃：目标身上原有的小火苗突然向内一缩，随即炸成一团暗红与亮橙的火球，火舌向四周猛甩，留下翻卷的黑烟亮边。",
+        "en": "Conflagrate: the small flames already on the target suddenly shrinking inward, then exploding into a ball of dark red and bright orange fire, tongues lashing outward, leaving rolling smoke with bright edges."
+      },
+      "ref": "conflagrate",
+      "deps": ["art_vfx_school_fire_hit"],
+      "milestone": "M3",
+      "notes": "灾焰派奥义（烧干净）；火系配色偏暗红；黑烟要有橙边才显形。"
+    },
+    {
+      "id": "art_vfx_sig_moonkin_form",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "月鸮化形：一圈淡银白的月光从上方落下，光中飘起大片羽毛形的光片，光片向中心合拢成一个圆胖的鸮形轮廓，最后月光收成一圈光晕。",
+        "en": "Moon-owl form: a ring of pale silver moonlight falling from above, large feather-shaped flakes of light rising inside it and closing in on the center into a round, plump owl-shaped outline, the moonlight finally gathering into a halo."
+      },
+      "ref": "moonkin_form",
+      "milestone": "M3",
+      "notes": "月林派奥义（月有盈亏）；配色银白 #e0e8f8、淡蓝灰。"
+    },
+    {
+      "id": "art_vfx_sig_feral_charge",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "野牙扑击：一道低伏的琥珀色兽形残影从左向右扑出，扑到尽头炸开一圈爪痕与尘土，残影在途中拖出三道平行的爪光。",
+        "en": "Feral charge: a low amber beast-shaped afterimage pouncing from left to right, bursting into a ring of claw marks and dust at the end, trailing three parallel claw streaks along the way."
+      },
+      "ref": "feral_charge",
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M3",
+      "notes": "野牙派奥义（牙是借的命是自己的）；配色琥珀与土褐。"
+    },
+    {
+      "id": "art_vfx_sig_swiftmend",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "疾愈：伤处猛地绽开一朵嫩绿的光花，花瓣迅速张开又合拢，花心的光点向上一跃，周围几片小叶旋落。",
+        "en": "Swiftmend: a tender green flower of light snapping open over a wound, its petals spreading and closing quickly, the motes at its heart leaping upward, a few small leaves spinning down around it."
+      },
+      "ref": "swiftmend",
+      "deps": ["art_vfx_school_nature_cast"],
+      "milestone": "M2",
+      "notes": "林心派奥义（根在林在）；自然学派配色。"
+    },
+    {
+      "id": "art_vfx_sig_edge_warrior",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "不退之阵：脚下展开一圈钢灰色的方阵光纹，光纹外缘竖起一排排短盾形光片，光片同时向外推出一道冲击环，然后立定不动，像一堵墙。",
+        "en": "Unyielding formation: a steel-grey square formation of light unfolding underfoot, rows of short shield-shaped light plates rising along its outer edge, all pushing out one impact ring together and then standing fast like a wall."
+      },
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M3",
+      "notes": "战士 60 级外缘技；中心通透；配色钢灰与白。"
+    },
+    {
+      "id": "art_vfx_sig_edge_paladin",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "无主之光：一道白光从地面自下而上平静地升起，不从天上来，光柱周围没有任何纹样与光环，光点向四周缓缓扩散，朴素而明亮。",
+        "en": "Light without a master: a white light rising calmly from the ground upward rather than falling from the sky, no patterns or halos anywhere around the pillar, motes spreading slowly outward, plain and bright."
+      },
+      "deps": ["art_vfx_school_holy_cast"],
+      "milestone": "M3",
+      "notes": "圣骑士 60 级外缘技；刻意不画几何纹与金色，与女神神迹区分。"
+    },
+    {
+      "id": "art_vfx_sig_edge_hunter",
+      "template": "vfx_projectile",
+      "subject": {
+        "zh": "千步一矢：一支极细的亮白光矢，后方拖出一道极长的笔直残影线，残影线上等距排着细小的光点，像走过的步数，四帧之间光矢微微颤动。",
+        "en": "A thousand paces, one arrow: an extremely thin bright white arrow of light trailing a very long perfectly straight afterimage line, tiny evenly spaced motes along it like counted steps, the arrow trembling slightly across the four frames."
+      },
+      "deps": ["art_vfx_school_phys_projectile"],
+      "milestone": "M3",
+      "notes": "猎人 60 级外缘技；头部在右；残影线要贯穿整格。"
+    },
+    {
+      "id": "art_vfx_sig_edge_rogue",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "无影一刀：前几帧几乎什么都没有，只有一道极细的白线一闪，第五帧之后才迸开一圈靛蓝的残影碎片，碎片向外飘散。",
+        "en": "A blade without a shadow: almost nothing in the first frames except one hair-thin white line flashing past, then after the fifth frame a ring of indigo afterimage fragments bursts open and drifts outward."
+      },
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "盗贼 60 级外缘技；刻意延迟爆发；靛蓝带冷白亮边。"
+    },
+    {
+      "id": "art_vfx_sig_edge_priest",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "无名之祷：一圈柔和的暖白光环从中心静静地扩开，光环里没有任何纹章与几何，只有像呼吸一样上下浮动的光点，范围内一片安宁。",
+        "en": "A nameless prayer: a soft warm white ring of light spreading quietly from the center, no emblems or geometry inside it, only motes floating up and down like breathing, peace across its whole reach."
+      },
+      "deps": ["art_vfx_school_holy_cast"],
+      "milestone": "M3",
+      "notes": "牧师 60 级外缘技；不向任何一司借光，所以不用任何女神色。"
+    },
+    {
+      "id": "art_vfx_sig_edge_shaman",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "万灵应声：土褐、火橙、水蓝、风白四色灵光从四个方向同时汇入中心，合成一道旋转的光柱，光柱四周飘着四色的细小光点。",
+        "en": "All spirits answer: four spirit lights of earth brown, fire orange, water blue and wind white flowing into the center from four directions at once, merging into a spinning pillar ringed by tiny motes in all four colors."
+      },
+      "milestone": "M3",
+      "notes": "萨满 60 级外缘技；四色分量相等，不偏任何一色。"
+    },
+    {
+      "id": "art_vfx_sig_edge_mage",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "借来的一刻：中心定住一圈像钟面一样的细线圆环，环内所有光点停在半空不动，最后一帧圆环碎裂，光点一齐落下。",
+        "en": "A borrowed moment: a thin-line ring like a clock face holding still at the center, every mote inside it frozen in midair, the ring shattering in the last frame and all the motes falling at once."
+      },
+      "deps": ["art_vfx_school_arcane_cast"],
+      "milestone": "M3",
+      "notes": "法师 60 级外缘技；钟面上没有数字与指针以外的符号；配色青蓝与白。"
+    },
+    {
+      "id": "art_vfx_sig_edge_warlock",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "解结：一团互相缠绕的靛蓝绳结状光束悬在中心，光束一根接一根松开、拉直，向外飘散成骨白色的细线，最后中心空无一物。",
+        "en": "Untying: a knot of intertwined indigo rope-like beams hanging at the center, loosening and straightening one strand after another, drifting outward into bone-white threads until nothing is left at the center."
+      },
+      "deps": ["art_vfx_school_shadow_cast"],
+      "milestone": "M3",
+      "notes": "术士 60 级外缘技；绳结只是光，不画文字；不用澱紫。"
+    },
+    {
+      "id": "art_vfx_sig_edge_druid",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "还形之礼：熊、狼、鹿、鸮四个兽形的光影轮廓依次浮现，又一齐向中心合拢成一个人形的光轮廓，叶片绕着它飘落。",
+        "en": "Rite of returned forms: the light silhouettes of a bear, a wolf, a deer and an owl surfacing one after another, then closing together into the outline of a person, leaves drifting down around it."
+      },
+      "deps": ["art_vfx_school_nature_cast"],
+      "milestone": "M3",
+      "notes": "德鲁伊 60 级外缘技；兽形只是光轮廓；自然学派配色加淡银白。"
+    },
+    {
+      "id": "art_vfx_sig_door_strike",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "门之一击：武器的一道短促斩光在命中点停住，留下一个拱门形的暖金光框，光框一闪，中间的光向外迸散，光框随即碎成小光点。",
+        "en": "Door strike: a short weapon slash stopping at the point of impact and leaving an arch-shaped warm gold frame of light, which flashes, bursts its inner light outward and then crumbles into small motes."
+      },
+      "ref": "door_strike",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M1",
+      "notes": "门授能力：允许门扉金 #f0d890 作点缀；这是玩家从序章末就有的基础技，出现频率最高，画面要简洁。"
+    },
+    {
+      "id": "art_vfx_sig_door_step",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "门之闪身：中心先浮现一个竖立的门形光框，框里的光一亮就收拢成一道竖线消失，前四帧是离开处，后四帧在同一位置倒放成抵达处。",
+        "en": "Door step: an upright door-shaped frame of light appearing at the center, its light flaring and closing into a vertical line that vanishes; the first four frames mark the departure, the last four replay in reverse at the same spot as the arrival."
+      },
+      "ref": "door_step",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M1",
+      "notes": "门授能力：允许门扉金 #f0d890 作点缀；人物不画；导入时前后两段分别播在起点与终点。"
+    },
+    {
+      "id": "art_vfx_sig_release_presence",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "释放灵压：以中心向外推开一圈几乎透明的压力波，波前是一道扭曲空气的细亮线，地面的尘土被压平成环，第二道更大的波紧跟其后。",
+        "en": "Releasing presence: an almost transparent pressure wave pushing out from the center, its front a thin bright line that warps the air, dust on the ground pressed flat into a ring, a second, larger wave following close behind."
+      },
+      "ref": "release_presence",
+      "milestone": "M2",
+      "notes": "收放之门；没有颜色倾向，只用白与浅灰；中心通透。"
+    },
+    {
+      "id": "art_vfx_sig_clear_flow",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "澄流：一股清水般的浅青白光流在中心盘旋，把夹在里面的暗紫颗粒一点点冲散、溶开，暗紫越来越少，最后只剩清亮的白光。",
+        "en": "Clear flow: a stream of light pale cyan-white like clear water swirling at the center, washing apart and dissolving the dark purple grains caught in it bit by bit until only clean bright white remains."
+      },
+      "ref": "clear_flow",
+      "deps": ["art_vfx_dian_surge"],
+      "milestone": "M2",
+      "notes": "澄流之门：暗紫 #4a3a62 只作被净化的对象，前半段多后半段无；光流配色 #d8f8f8。"
+    },
+    {
+      "id": "art_vfx_sig_combo_soup_and_bell",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "汤与铃：正面一道钢白刀光与背后一道靛蓝短刃光同时划过，交叉成 X 形，交点处迸出一圈清亮的白环，像一声铃响。",
+        "en": "Soup and bell: a steel-white blade streak from the front and an indigo short-blade streak from behind passing at the same moment, crossing in an X, a clear white ring bursting at the crossing like the ring of a bell."
+      },
+      "ref": "combo_soup_and_bell",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "合技（刃与影）；两色刀光要分得清。"
+    },
+    {
+      "id": "art_vfx_sig_combo_burning_edge",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "焚锋：武器重重砸地，地面沿砸击方向留下一道笔直的短火线，火线两端翘起火舌，火苗沿线跳动后慢慢变暗。",
+        "en": "Burning edge: a weapon slamming the ground, leaving a short straight line of fire along the strike direction, flame tongues curling up at both ends, the flames dancing along the line before slowly dimming."
+      },
+      "ref": "combo_burning_edge",
+      "deps": ["art_vfx_school_fire_zone"],
+      "milestone": "M3",
+      "notes": "合技（刃与术式）；火线朝画面右方，导入时按朝向旋转。"
+    },
+    {
+      "id": "art_vfx_sig_combo_oath_wall",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "守约之壁：一面盾形的钢灰光幕挡在前方，格挡成功的一刻，盾面向后分出一层淡白的小护罩，像被投出一样飞向身后。",
+        "en": "Oath wall: a steel-grey shield-shaped light screen standing in front, and at the instant of a successful block a thin pale white small ward splitting off its face and flying backward as if thrown."
+      },
+      "ref": "combo_oath_wall",
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M3",
+      "notes": "合技（刃与祷）；护罩飞向画面左后方。"
+    },
+    {
+      "id": "art_vfx_sig_combo_mortal_light",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "凡人光刃：一道朴素的白色光刃斜斩下来，刃光边缘是钢灰色，命中处光屑像灰烬一样静静落下，没有任何纹样。",
+        "en": "Mortal light blade: a plain white blade of light slashing down at an angle, its edges steel grey, flecks of light drifting down like ash where it strikes, with no patterns at all."
+      },
+      "ref": "combo_mortal_light",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "合技（刃与誓光），卸光之后的光刃；刻意不画几何纹与金色，不借任何加护。"
+    },
+    {
+      "id": "art_vfx_sig_combo_horn_charge",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "角骑冲锋：一条贴地的尘土带从左冲到右，尽头炸开一团冲击，紧接着一支白色箭影追上，命中点套上一圈冷蓝的减速光环。",
+        "en": "Horn charge: a band of dust tearing along the ground from left to right and exploding into an impact at the end, immediately followed by a white arrow shadow catching up and wrapping the hit point in a cold blue slowing ring."
+      },
+      "ref": "combo_horn_charge",
+      "deps": ["art_vfx_school_phys_projectile"],
+      "milestone": "M3",
+      "notes": "合技（刃与猎）；冷蓝只是减速提示。"
+    },
+    {
+      "id": "art_vfx_sig_combo_ink_suture",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "止血纹：伤口位置浮现几道墨蓝色的细线缝合纹，暗红的光点被细线一针针收住，随后转为淡绿的回复光点向上飘。",
+        "en": "Ink suture: fine ink-blue stitch lines appearing over a wound, gathering in the dark red motes stitch by stitch, which then turn into pale green healing motes floating upward."
+      },
+      "ref": "combo_ink_suture",
+      "milestone": "M3",
+      "notes": "合技（祷与术式）；缝合纹是线，不是文字。"
+    },
+    {
+      "id": "art_vfx_sig_combo_tree_and_burrow",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "树洞合击：上方落下一道叶绿色的爪痕光，同时下方冒出一道土褐色的爪痕光，两道爪痕在中心交会，迸出一圈叶片与尘土。",
+        "en": "Tree and burrow: a leaf-green claw streak falling from above while an earth-brown claw streak bursts up from below, the two meeting at the center and throwing out a ring of leaves and dust."
+      },
+      "ref": "combo_tree_and_burrow",
+      "deps": ["art_vfx_school_nature_hit"],
+      "milestone": "M3",
+      "notes": "合技（猎与借形）；两色要分得清。"
+    },
+    {
+      "id": "art_vfx_sig_combo_night_raid",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "夜袭：目标位置先亮起一个细线圆圈加四道短刻线的印记，下一刻一道靛蓝刀光从印记中间穿过，印记碎成光点。",
+        "en": "Night raid: a mark of a thin circle with four short ticks lighting up at the target first, and the next instant an indigo blade streak cutting straight through it, the mark shattering into motes."
+      },
+      "ref": "combo_night_raid",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "合技（猎与影）；印记配色琥珀 #f0a040，刀光靛蓝带冷白边。"
+    },
+    {
+      "id": "art_vfx_sig_combo_gather_dian",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "收澱：散开的暗紫雾被一圈青蓝色的细线术式环收拢，雾在环里转了两圈，化成青蓝色的光点被吸向画面左侧。",
+        "en": "Gathering sediment: scattered dark purple mist drawn in by a thin cyan spell ring, circling twice inside it and turning into cyan motes that are pulled toward the left of the frame."
+      },
+      "ref": "combo_gather_dian",
+      "deps": ["art_vfx_dian_surge"],
+      "milestone": "M3",
+      "notes": "合技（渊契与术式）：澱紫只作被收的雾，术式环是几何线不是文字。"
+    },
+    {
+      "id": "art_vfx_sig_combo_poison_curse",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "两层：毒绿色的液滴环与靛蓝色的咒纹环绕着中心缠成双螺旋，两环反向缓慢转动，交叉处不时闪一下。",
+        "en": "Two layers: a ring of poison-green droplets and a ring of indigo curse marks winding around the center in a double helix, turning slowly in opposite directions, flashing now and then where they cross."
+      },
+      "ref": "combo_poison_curse",
+      "milestone": "M3",
+      "notes": "合技（影与渊契）；持续循环；咒纹是几何短线。"
+    },
+    {
+      "id": "art_vfx_sig_combo_two_fangs",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "双牙：武器连挥两下，第一道是钢白刀光，第二道刀光上缠着土褐与雷白的双色元素光，落下时炸开一圈小电弧与碎石。",
+        "en": "Two fangs: a weapon swinging twice, the first a steel-white streak, the second coiled with two-colored elemental light of earth brown and lightning white, bursting into a small ring of arcs and rubble as it lands."
+      },
+      "ref": "combo_two_fangs",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "合技（聆灵与刃）。"
+    },
+    {
+      "id": "art_vfx_sig_combo_spring_barrow",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "泉与冢：亡灵消散处升起浅青白的泉水光点，光点向四周洒落成一圈回复光，地面的灰气被冲淡，像一场安魂。",
+        "en": "Spring and barrow: pale cyan-white spring-water motes rising where an undead dissipates, scattering outward into a ring of healing light, the grey haze on the ground washed thin like a requiem."
+      },
+      "ref": "combo_spring_barrow",
+      "milestone": "M3",
+      "notes": "合技（聆灵与借形）；不用澱紫（凡人看到的是灰气）。"
+    },
+    {
+      "id": "art_vfx_sig_combo_twin_light",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "双光：两道象牙白的光环一大一小交叠扩开，两环相交处亮起柔光，光点同时落向四周，敌我两侧一样明亮。",
+        "en": "Twin light: two ivory rings of light, one large and one small, overlapping as they expand, a soft glow where they intersect, motes falling evenly on every side, friend and foe lit alike."
+      },
+      "ref": "combo_twin_light",
+      "deps": ["art_vfx_school_holy_zone"],
+      "milestone": "M3",
+      "notes": "合技（誓光与祷）；不画几何纹与金色；中心通透。"
+    },
+    {
+      "id": "art_vfx_sig_combo_grove_mist",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "林雾：地面一片淡绿白色的林雾缓慢翻涌，雾里浮着几颗青蓝色的术式光点，光点在雾中忽隐忽现，像落下的棋子。",
+        "en": "Grove mist: a pale green-white forest mist churning slowly along the ground, a few cyan spell motes floating within it, appearing and disappearing in the mist like pieces set on a board."
+      },
+      "ref": "combo_grove_mist",
+      "milestone": "M3",
+      "notes": "合技（借形与术式）；持续循环。"
+    },
+    {
+      "id": "art_vfx_sig_combo_lullaby_rite",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "眠歌：一圈圈柔和的淡蓝白光环像歌声一样缓慢荡开，亡灵位置升起暖白的光点，地面的一层灰被轻轻拂去，节奏平缓。",
+        "en": "Lullaby rite: soft pale blue-white rings spreading slowly like a song, warm white motes rising where the undead stand, a layer of grey ash brushed gently off the ground, unhurried in rhythm."
+      },
+      "ref": "combo_lullaby_rite",
+      "milestone": "M2",
+      "notes": "合技（祷与借形）；不画音符等符号；持续引导循环。"
+    },
+    {
+      "id": "art_vfx_sig_bond_twin_string",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "并弦：两支箭的光轨一前一后平行掠过，第一支命中时一圈细环，第二支命中时爆出一团亮黄的星芒，比第一下大一倍。",
+        "en": "Twin strings: the light trails of two arrows passing in parallel one after the other, the first leaving a thin ring on impact, the second bursting into a bright yellow starburst twice as large."
+      },
+      "ref": "door_bond_shiya",
+      "deps": ["art_vfx_school_phys_projectile"],
+      "milestone": "M3",
+      "notes": "羁绊之门（并弦）；箭轨白色，第二击星芒亮黄 #ffe066。"
+    },
+    {
+      "id": "art_vfx_sig_bond_catch",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "接住：一圈黑羽与银灰光羽从上方合拢，把中心整个包住，像被一只看不见的手接住，羽毛随后散开，留下一团柔光。",
+        "en": "Caught: a ring of black feathers and silvery light-feathers closing in from above to wrap the center whole, as if caught by an unseen hand, then scattering to leave a soft glow behind."
+      },
+      "ref": "door_bond_yeyu",
+      "milestone": "M3",
+      "notes": "羁绊之门（接住）；黑羽要有银灰亮边 #9aa0aa。"
+    },
+    {
+      "id": "art_vfx_sig_bond_unguard",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "卸护：一根长篙形的光影横扫过中心，目标身上一层薄薄的光壳被扫开、剥落成碎片，碎片坠地熄灭。",
+        "en": "Unguarding: a long punt-pole shaped shadow of light sweeping across the center, peeling away a thin shell of light from the target into fragments that fall and go dark."
+      },
+      "ref": "door_bond_ferryman",
+      "milestone": "M2",
+      "notes": "羁绊之门（卸护）；光壳用中性白，表示任何加护；长篙为木褐亮边。"
+    },
+    {
+      "id": "art_vfx_sig_bond_twin_cut",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "同斩：两道平行的白色斩光同时从上方落下，间距一致，像两个人在同一刻出剑，落点各迸出一圈钢白火花。",
+        "en": "Twin cut: two parallel white slashes falling from above at the same moment with even spacing, like two people drawing at the same instant, each landing in a ring of steel-white sparks."
+      },
+      "ref": "door_bond_heroes",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "羁绊合技（同斩）；不带任何加护色。"
+    },
+    {
+      "id": "art_vfx_sig_bond_page_skim",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "录页速读：几页半透明的书页在中心飞快翻过，书页边缘闪着青白光，最后一页停住亮起，随即书页一齐消散。",
+        "en": "Page skim: several translucent pages flipping past rapidly at the center, their edges glinting cyan-white, the last page stopping and lighting up before all of them vanish at once."
+      },
+      "ref": "door_bond_heroes",
+      "milestone": "M3",
+      "notes": "羁绊合技（录页速读）；书页空白无字。"
+    },
+    {
+      "id": "art_vfx_sig_trial_perfect_dodge",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "正格：闪身的一瞬，一个对称的白瓷色菱形光框在中心展开，把身后的残影整整齐齐切掉，光框合拢时迸出一小撮返还的光点。",
+        "en": "Perfect form: at the instant of the dodge a symmetrical porcelain-white diamond frame opening at the center, cleanly cutting away the afterimage behind, a small pinch of returning motes bursting as the frame closes."
+      },
+      "ref": "door_trial_eluen",
+      "milestone": "M2",
+      "notes": "女神试炼之门（正格）；瓷白 #f4f4f0 加冷灰，不用白金几何光环。"
+    },
+    {
+      "id": "art_vfx_sig_trial_spare",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "留手：一记打击在命中前一刻化成一圈柔和的苍绿光环，把目标轻轻按停，光环里落下几片叶子，力道全部散去。",
+        "en": "Holding back: a blow turning into a soft pale-green ring of light the instant before it lands, gently pressing the target to a stop, a few leaves falling inside the ring as all the force drains away."
+      },
+      "ref": "door_trial_sylvie",
+      "deps": ["art_vfx_school_nature_hit"],
+      "milestone": "M2",
+      "notes": "女神试炼之门（留手）；苍绿 #a8e0b0。"
+    },
+    {
+      "id": "art_vfx_sig_trial_chain_edge",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "连锋：武器周围叠着几道赤红色的短刃光痕，一道接一道绕着转，层数越多光痕越亮，像接连的剑痕刻在空中。",
+        "en": "Chain edge: several short crimson blade marks stacked around a weapon, circling one after another, brighter as more layers pile up, like successive sword cuts carved in the air."
+      },
+      "ref": "door_trial_valda",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M2",
+      "notes": "女神试炼之门（连锋）；赤红 #d84030，不用赤黑（那是狂战加护）。"
+    },
+    {
+      "id": "art_vfx_sig_bond_evening_bell",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "晚钟：一圈旧铜色的钟声波纹从中心荡开，把四周压来的灰色压力挡在外面，波纹连荡三次，最后一次最轻。",
+        "en": "Evening bell: a ring of old bronze bell-tone ripples spreading from the center, holding back the grey pressure closing in from all sides, rippling three times with the last the softest."
+      },
+      "ref": "door_bond_martha",
+      "milestone": "M3",
+      "notes": "羁绊之门（晚钟）；铜色 #c08850，不画钟本体。"
+    },
+    {
+      "id": "art_vfx_sig_yeyu_crow_swarm",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "鸦群缠身：一群带银灰亮边的黑鸦绕着中心翻飞成一团漩涡，鸦影一圈圈掠过，羽毛不停飘落，牢牢缠住中间的目标。",
+        "en": "Crow swarm: a flock of black crows with silvery rims whirling around the center in a vortex, crow shadows sweeping past lap after lap, feathers falling without pause, binding the target in the middle."
+      },
+      "ref": "yeyu",
+      "deps": ["art_vfx_amb_crow_shadow"],
+      "milestone": "M1",
+      "notes": "夜羽的标志技能；加色混合下纯暗色看不见，暗部要带亮边。鸦群要有银灰亮边 #9aa0aa。"
+    },
+    {
+      "id": "art_vfx_sig_yeyu_little_crow",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "化为小鸦：一团黑羽带着银灰亮边向外炸散，羽毛中心的光点迅速收缩成小鸦大小，随后羽毛飘落淡去。",
+        "en": "Turning into a little crow: a burst of black feathers with silvery rims exploding outward, the light at their center shrinking rapidly to the size of a small crow, the feathers then drifting down and fading."
+      },
+      "ref": "yeyu",
+      "deps": ["art_vfx_amb_crow_shadow"],
+      "milestone": "M1",
+      "notes": "夜羽的小鸦形态（战斗外）；倒放即为恢复人形。"
+    },
+    {
+      "id": "art_vfx_sig_shiya_huntking_mark",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "猎王印记：目标头顶浮着一枚兽牙形的琥珀色印记，印记外有一圈细圆环缓慢转动，印记随呼吸般明暗起伏。",
+        "en": "Hunt-king mark: an amber fang-shaped mark floating above the target, a thin circle turning slowly around it, the mark brightening and dimming as if breathing."
+      },
+      "ref": "shiya",
+      "milestone": "M2",
+      "notes": "希雅的标志技能（潜质觉醒后）；印记是兽牙剪影；琥珀 #f0a040。"
+    },
+    {
+      "id": "art_vfx_sig_ron_banner",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "举旗：中心竖起一面旗形的暖橙光影，旗面缓缓飘动，旗下一圈光环向外一阵阵扩开，光点向上飘起，鼓舞而稳定。",
+        "en": "Raised banner: a warm orange banner-shaped light standing at the center, its cloth swaying slowly, a ring of light spreading outward beneath it in steady waves, motes floating upward, rousing and steady."
+      },
+      "ref": "ron",
+      "milestone": "M2",
+      "notes": "罗恩的标志技能；旗面只有纯色与简单徽形，不画文字；暖橙 #f0a050。"
+    },
+    {
+      "id": "art_vfx_sig_nera_throat_cut",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "断喉：一道极短的横向刀光划过中心偏上的位置，紧接着一枚灰白色的圆形封口纹章闪现又淡去，干脆利落。",
+        "en": "Throat cut: an extremely short horizontal blade streak slicing just above the center, followed at once by a grey-white round sealing emblem flashing and fading, clean and decisive."
+      },
+      "ref": "nera",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M2",
+      "notes": "奈拉的标志技能（打断加沉默）；封口纹章与沉默封印同形，不画文字。"
+    },
+    {
+      "id": "art_vfx_sig_nera_poison_blade",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "毒刃：一道短刀光划过，刀光末端滴落三颗毒绿色的液滴，命中处冒出一小团毒绿烟，烟里有细小的气泡。",
+        "en": "Poisoned blade: a short blade streak passing, three poison-green drops falling from its end, a small puff of toxic green smoke rising at the hit point with tiny bubbles inside."
+      },
+      "ref": "nera",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M2",
+      "notes": "奈拉的标志技能；毒绿 #7ad04a 偏黄，与自然学派的叶绿区分。"
+    },
+    {
+      "id": "art_vfx_sig_oola_ash_cleanse",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "祛灰：一缕草药般的淡绿烟环绕身体缓缓转圈，把身上的暗紫斑点一粒粒吸出，烟带着斑点飘向上方，最后人形周围干干净净。",
+        "en": "Ash cleansing: a wisp of herb-like pale green smoke circling the body slowly, drawing the dark purple specks out one grain at a time, the smoke carrying them upward until the space around the figure is clean."
+      },
+      "ref": "oola",
+      "deps": ["art_vfx_dian_sickness"],
+      "milestone": "M1",
+      "notes": "欧拉的标志技能；澱紫 #4a3a62 只作被祛除的斑点；淡绿 #c8f0b0。"
+    },
+    {
+      "id": "art_vfx_sig_cassian_lightless_prayer",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "无光之祷：一圈朴素的灯火色暖光从中心扩开，光里没有任何纹章与几何，光点稀疏而平静，恐惧的灰雾被轻轻驱散。",
+        "en": "Lightless prayer: a plain lamp-colored warm glow spreading from the center, no emblems or geometry in it, the motes sparse and calm, the grey haze of fear gently dispelled."
+      },
+      "ref": "cassian",
+      "milestone": "M3",
+      "notes": "卡西安离教之后的标志技能；灯火色 #ffd8a0，不借任何神恩，所以不用圣光学派配色。"
+    },
+    {
+      "id": "art_vfx_sig_martha_evening_bell",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "晚钟一刀：一道沉重的横斩，刀光是旧铜色，命中的一瞬一圈钟声般的同心波纹从落点荡开，波纹连荡两圈，余音般慢慢变淡。",
+        "en": "Evening bell stroke: a heavy horizontal slash, its blade light the color of old bronze, a ring of bell-tone concentric ripples spreading from the point of impact the moment it lands, rippling twice and fading like a lingering tone."
+      },
+      "ref": "martha",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M1",
+      "notes": "玛莎的标志技能（每场一次）；铜色 #c08850 加白；第一幕兽潮之夜出现。"
+    },
+    {
+      "id": "art_vfx_sig_selene_reveal",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "照规：目标面前亮起一面小小的圆镜光影，镜面横扫过去，扫过之处伪装像一层薄膜一样剥落，碎成细光片飘走。",
+        "en": "Rule mirror: a small round mirror of light appearing before the target and sweeping across, wherever it passes a disguise peeling away like a thin film and breaking into fine flakes of light that drift off."
+      },
+      "ref": "selene",
+      "milestone": "M3",
+      "notes": "赛琳的标志技能；镜框只是圆形银边，镜面里没有字；配色银白 #e8eef4。"
+    },
+    {
+      "id": "art_vfx_sig_luchen_light_blade",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "加护光刃：一记斩击带着白金色的光刃落下，刃光边缘有细密规整的几何纹，命中处展开一圈对称的光纹又收拢。",
+        "en": "Blessed light blade: a slash coming down with a white-gold blade of light whose edges carry fine, orderly geometric patterns, a symmetrical ring of light unfolding and closing where it strikes."
+      },
+      "ref": "luchen",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M2",
+      "notes": "陆辰的加护技能；这是艾琉恩的加护，所以允许神光白金加几何纹；卸光后改用凡人光刃。"
+    },
+    {
+      "id": "art_vfx_sig_yui_holy_mend",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "加护圣愈：白金色的光从上方柔和倾泻，伤处展开一朵由对称几何花瓣组成的光纹，花瓣缓缓转动后合拢。",
+        "en": "Blessed holy mend: white-gold light pouring softly from above, a light pattern of symmetrical geometric petals unfolding over the wound, turning slowly before closing."
+      },
+      "ref": "yui",
+      "milestone": "M2",
+      "notes": "白石结衣的加护技能；艾琉恩的加护，允许神光白金加几何纹。"
+    },
+    {
+      "id": "art_vfx_sig_yui_bannerless_mend",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "无旗止血：几条白色绷带般的光条绕着伤口缠两圈，暗红光点停止外流，转成淡绿色的回复光点，朴素而稳当。",
+        "en": "Bannerless mending: a few white bandage-like strips of light wrapping twice around a wound, the dark red motes stopping their outflow and turning into pale green healing motes, plain and steady."
+      },
+      "ref": "yui",
+      "milestone": "M3",
+      "notes": "白石结衣离教之后的技能，同时是羁绊合技；不借任何加护，不用白金与几何纹。"
+    },
+    {
+      "id": "art_vfx_sig_aiden_chant",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "万象咏唱：头顶浮着三圈白金色的同心刻纹环，三环以不同速度同时转动，环上的刻纹是规整的几何短线，光点沿环流动。",
+        "en": "Chant of all things: three white-gold concentric engraved rings floating overhead, each turning at a different speed, their engravings orderly geometric strokes, motes flowing along them."
+      },
+      "ref": "aiden",
+      "milestone": "M2",
+      "notes": "艾登的加护技能；艾琉恩的加护，允许神光白金加几何纹；刻纹不是文字。"
+    },
+    {
+      "id": "art_vfx_sig_aiden_read_pattern",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "读规律：目标身上提前一瞬浮出一道淡淡的青白色轮廓，像动作的预兆，轮廓闪两下后消失。",
+        "en": "Reading the pattern: a faint cyan-white outline surfacing on the target a moment early, like a foreshadowing of its move, blinking twice and vanishing."
+      },
+      "ref": "aiden",
+      "milestone": "M3",
+      "notes": "艾登卸下加护后的能力；配色青白 #c0f0ff；画面要很轻，不遮挡首领的预备动作。"
+    },
+    {
+      "id": "art_vfx_sig_marcus_unfallen_wall",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "不落之壁：前方立着一面白金色的大盾形光壁，盾面刻着规整的几何纹，纹路一圈圈亮起又暗下，受击时整面一亮。",
+        "en": "Unfallen wall: a great white-gold shield-shaped wall of light standing in front, its face engraved with orderly geometric patterns that light up and dim ring by ring, flaring whole when struck."
+      },
+      "ref": "marcus",
+      "milestone": "M2",
+      "notes": "马库斯的加护技能；艾琉恩的加护，允许神光白金加几何纹。"
+    },
+    {
+      "id": "art_vfx_sig_marcus_folk_shield",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "护民之盾：一面朴素的钢灰小盾光影从左侧飞到中心，挡下一击的瞬间盾面迸出一圈火花，随后小盾停住、慢慢淡去。",
+        "en": "Shield of the folk: a plain steel-grey small shield of light flying in from the left to the center, sparks bursting from its face the instant it takes a blow, then hovering still and slowly fading."
+      },
+      "ref": "marcus",
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M2",
+      "notes": "马库斯的标志技能，同时是羁绊合技；不用白金与几何纹。"
+    },
+    {
+      "id": "art_vfx_sig_sasha_temper",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "淬炼：身周叠起一圈圈橙红色的短焰环，像炉火里淬过的铁，每叠一层更亮一分，最外圈迸出细小的火星。",
+        "en": "Tempering: rings of short orange-red flame stacking around the body like iron quenched from the forge, each layer a little brighter, tiny sparks spitting from the outermost ring."
+      },
+      "ref": "sasha",
+      "milestone": "M2",
+      "notes": "萨莎的标志技能；炉火橙红 #f06a30，与狂战加护的赤黑区分。"
+    },
+    {
+      "id": "art_vfx_sig_warrior_quake",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "震地：武器砸进地面，一圈土黄色的冲击环贴地扩散，碎石与尘土向外翻起，地面裂出几道短缝后合拢。",
+        "en": "Ground quake: a weapon smashing into the ground, an earthy yellow shock ring spreading along the surface, rubble and dust flipping outward, a few short cracks opening in the ground and closing again."
+      },
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M1",
+      "notes": "战士技能：震地；配色土黄 #c8a060 与灰白。"
+    },
+    {
+      "id": "art_vfx_sig_warrior_war_cry",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "威吼：从中心向外连推三层声浪般的白色弧形波纹，一层比一层大，地上的尘土被震起，最后一层波纹最淡。",
+        "en": "War cry: three layers of white arc-shaped ripples like sound waves pushed outward from the center, each larger than the last, dust shaken up from the ground, the final ripple the faintest."
+      },
+      "milestone": "M1",
+      "notes": "战士技能：威吼；只用白与浅灰。"
+    },
+    {
+      "id": "art_vfx_sig_warrior_rush",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "突阵：一条贴地拉长的尘土带从左向右冲过，尘土里夹着几道速度线，冲到尽头炸开一小圈冲击与碎石。",
+        "en": "Rushing charge: a long band of dust stretching along the ground from left to right with a few speed lines inside, bursting into a small ring of impact and rubble at the end."
+      },
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M1",
+      "notes": "战士技能：突阵；导入时按冲锋方向旋转与拉伸。"
+    },
+    {
+      "id": "art_vfx_sig_warrior_whirl",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "回旋斩：一圈完整的白色圆形刀光绕中心旋转两周，刀光外缘迸出橙白火花，第二周比第一周更快，最后刀光散成碎弧。",
+        "en": "Whirling slash: a complete white circular blade arc spinning twice around the center, orange-white sparks spitting from its rim, the second lap faster than the first, the arc finally breaking into fragments."
+      },
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M2",
+      "notes": "战士技能：回旋斩；圆形刀光是平躺的透视椭圆。"
+    },
+    {
+      "id": "art_vfx_sig_paladin_hallow_ground",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "献地：地面铺开一块方正的象牙白光纹，光纹四角各有一个小光点，细小的光屑从地面持续向上浮起。",
+        "en": "Hallowed ground: a square ivory pattern of light laid out on the ground, a small mote at each corner, fine flecks of light rising steadily from the surface."
+      },
+      "deps": ["art_vfx_school_holy_zone"],
+      "milestone": "M2",
+      "notes": "圣骑士技能：献地；方形与圣光学派的圆形持续区域区分；不画几何纹。"
+    },
+    {
+      "id": "art_vfx_sig_paladin_hammer",
+      "template": "vfx_projectile",
+      "subject": {
+        "zh": "制裁之锤：一柄旋转的象牙白光锤，锤头方正，锤柄短，四帧之间翻转一周，后方拖出一圈弧形的白色残影。",
+        "en": "Hammer of sanction: a spinning ivory hammer of light with a squared head and short haft, turning over once across the four frames, trailing a curved white afterimage."
+      },
+      "deps": ["art_vfx_school_holy_projectile"],
+      "milestone": "M2",
+      "notes": "圣骑士技能：制裁锤；圆形翻转弹道不分方向。"
+    },
+    {
+      "id": "art_vfx_sig_paladin_bastion",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "圣誓壁：一个半透明的象牙白圆顶护罩罩住全身，罩面有一道道竖直的光线缓缓流下，底边一圈亮线。",
+        "en": "Bastion of the oath: a translucent ivory dome enclosing the whole body, vertical lines of light flowing slowly down its surface, a bright ring along its base."
+      },
+      "deps": ["art_vfx_school_holy_cast"],
+      "milestone": "M2",
+      "notes": "圣骑士技能：圣誓壁；不画几何纹与金色。"
+    },
+    {
+      "id": "art_vfx_sig_paladin_holy_burst",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "圣光崩：以中心为圆心炸开一圈白光，光圈外缘竖起一排短短的光芒，光圈急扩后碎成向上飞的光屑，中心通透。",
+        "en": "Holy burst: a ring of white light exploding from the center, a row of short rays standing along its rim, the ring expanding rapidly and crumbling into flecks flying upward, the center left clear."
+      },
+      "deps": ["art_vfx_school_holy_hit"],
+      "milestone": "M3",
+      "notes": "圣骑士技能：圣光崩；中心通透。"
+    },
+    {
+      "id": "art_vfx_sig_hunter_volley",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "飞羽箭雨：一片箭矢光影从上方斜落，密密麻麻的白色箭影划出平行斜线，地面一片细小的白色命中点此起彼伏。",
+        "en": "Feathered volley: a sheet of arrow shadows falling at a slant from above, dense white arrow streaks tracing parallel diagonals, small white hit points popping up across the ground."
+      },
+      "deps": ["art_vfx_school_phys_projectile"],
+      "milestone": "M2",
+      "notes": "猎人技能：飞羽箭雨；箭影白色带灰边；中心通透。"
+    },
+    {
+      "id": "art_vfx_sig_hunter_flare",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "照明火：一枚亮白的信号火球从下方升起，在高处炸开成一圈明亮的照明光，光圈缓缓下沉，火星稀稀落落地飘下。",
+        "en": "Flare: a bright white signal flare rising from below and bursting high up into a ring of bright illumination, the ring sinking slowly, sparks drifting down sparsely."
+      },
+      "milestone": "M2",
+      "notes": "猎人技能：照明火；配色白与浅黄 #fff2b0。"
+    },
+    {
+      "id": "art_vfx_sig_hunter_frost_trap",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "冰夹：地面猛地弹开一圈冰蓝色的夹齿形冰晶，冰齿向内合拢，合拢处冒出白色霜气，冰晶停留后碎成冰屑。",
+        "en": "Frost trap: a ring of ice-blue jaw-shaped crystals snapping open from the ground, the ice teeth closing inward, white frost mist puffing where they meet, the crystals holding a moment before shattering."
+      },
+      "deps": ["art_vfx_school_frost_hit"],
+      "milestone": "M2",
+      "notes": "猎人技能：冰夹；冰系配色。"
+    },
+    {
+      "id": "art_vfx_sig_hunter_heart_arrow",
+      "template": "vfx_projectile",
+      "subject": {
+        "zh": "穿心箭：一支白色光箭，箭身周围绕着一圈螺旋形的细光环，螺旋随飞行旋转，箭尖极亮。",
+        "en": "Heart-piercing arrow: a white arrow of light wrapped in a spiraling thin ring that turns as it flies, its point extremely bright."
+      },
+      "deps": ["art_vfx_school_phys_projectile"],
+      "milestone": "M3",
+      "notes": "猎人技能：穿心箭；头部在右。"
+    },
+    {
+      "id": "art_vfx_sig_rogue_blade_dance",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "连锋舞：中心周围接连闪出六七道方向不同的靛蓝刀光，刀光交错成一朵锐利的花，最后一齐散成冷白碎片。",
+        "en": "Blade dance: six or seven indigo blade streaks flashing in quick succession around the center in different directions, crossing into a sharp-edged flower, finally scattering together into cold white fragments."
+      },
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "盗贼技能：连锋舞；靛蓝带冷白亮边。"
+    },
+    {
+      "id": "art_vfx_sig_rogue_blinding_powder",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "致盲：一把灰白色的粉末向前扑散成扇形，粉末里闪着细小的亮点，扑到最远处后慢慢沉落消散。",
+        "en": "Blinding powder: a handful of grey-white powder flung forward in a fan, tiny glints sparkling inside it, slowly settling and dispersing at its farthest reach."
+      },
+      "milestone": "M2",
+      "notes": "盗贼技能：致盲；扇形朝画面右方。"
+    },
+    {
+      "id": "art_vfx_sig_rogue_shadow_step",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "暗步：前四帧一团靛蓝烟雾在原处散开，烟里的人形空了；后四帧烟雾在同一位置倒卷聚合，表示在目标身后出现。",
+        "en": "Shadow step: in the first four frames an indigo smoke puff disperses in place, the figure inside gone; in the last four it curls back together at the same spot, marking the reappearance behind the target."
+      },
+      "deps": ["art_vfx_school_shadow_hit"],
+      "milestone": "M3",
+      "notes": "盗贼技能：暗步；导入时前后两段分别播在起点与终点。"
+    },
+    {
+      "id": "art_vfx_sig_rogue_vanish",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "隐退：一团灰白色的烟雾猛地炸开，烟团迅速变大变淡，烟散之后原地什么都不剩，只有两三缕烟丝。",
+        "en": "Vanish: a puff of grey-white smoke bursting open, swelling and thinning quickly, nothing left in place once it clears except two or three wisps."
+      },
+      "milestone": "M2",
+      "notes": "盗贼技能：隐退；不画人物。"
+    },
+    {
+      "id": "art_vfx_sig_priest_psychic_wail",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "心啸：一圈深靛蓝的波纹带着冷白细线从中心向外急扩，波纹边缘扭曲成锯齿，像一声无声的尖叫。",
+        "en": "Psychic wail: a deep indigo ripple with thin cold white lines racing outward from the center, its edge warping into jagged teeth like a soundless scream."
+      },
+      "deps": ["art_vfx_school_shadow_hit"],
+      "milestone": "M2",
+      "notes": "牧师技能：心啸；靛蓝不是澱紫；加色混合下纯暗色看不见，暗部要带亮边。"
+    },
+    {
+      "id": "art_vfx_sig_priest_ward_word",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "护言：一层淡象牙白的球形护罩包住全身，罩面一圈细光沿着球面缓缓转动，受击时罩面泛起一圈涟漪。",
+        "en": "Ward word: a thin ivory spherical ward enclosing the whole body, a fine line of light turning slowly around its surface, rippling when struck."
+      },
+      "deps": ["art_vfx_school_holy_cast"],
+      "milestone": "M2",
+      "notes": "牧师技能：护言；不画金色与几何纹。"
+    },
+    {
+      "id": "art_vfx_sig_priest_mass_prayer",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "群祷愈：一圈柔白光环从中心向外扩散，光环经过的地方同时升起五六处小光柱，小光柱里光点上升后淡去。",
+        "en": "Mass prayer heal: a soft white ring spreading outward from the center, five or six small pillars of light rising at once where it passes, motes climbing inside them before fading."
+      },
+      "deps": ["art_vfx_school_holy_cast"],
+      "milestone": "M2",
+      "notes": "牧师技能：群祷愈；中心通透。"
+    },
+    {
+      "id": "art_vfx_sig_priest_word_barrier",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "圣言障：地面画出一圈象牙白的圆形光幕，光幕从边缘向上立起成一道矮矮的光墙，光墙里的光点缓缓上升。",
+        "en": "Barrier of the word: a ring of ivory light drawn on the ground, rising from its rim into a low wall of light, motes floating slowly upward within it."
+      },
+      "deps": ["art_vfx_school_holy_zone"],
+      "milestone": "M2",
+      "notes": "牧师技能：圣言障；光幕上不画文字。"
+    },
+    {
+      "id": "art_vfx_sig_shaman_chain_lightning",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "连雷：一道白蓝色的闪电折线从左侧跳向右侧，分三段落在三个点上，每个落点炸开一小团电光，闪电越跳越细。",
+        "en": "Chain lightning: a white-blue zigzag bolt leaping from the left to the right in three segments onto three points, each bursting into a small spark of lightning, the bolt growing thinner with each leap."
+      },
+      "milestone": "M2",
+      "notes": "萨满技能：连雷；配色白、淡青 #c8ecff、电蓝 #6ab4ff；导入时按目标间距拉伸。"
+    },
+    {
+      "id": "art_vfx_sig_shaman_totem_earth",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "大地图腾脉动：以图腾脚下为圆心，一圈土褐色的光环贴地缓缓扩开，光环上浮起小石屑，扩到边缘后淡去再起。",
+        "en": "Earth totem pulse: an earth-brown ring of light spreading slowly along the ground from the base of the totem, small rock flecks lifting along it, fading at the edge and starting again."
+      },
+      "milestone": "M2",
+      "notes": "萨满图腾生效范围的提示（半径 6 格内）；图腾本体不画；土褐 #a07840。"
+    },
+    {
+      "id": "art_vfx_sig_shaman_totem_fire",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "火焰图腾脉动：以图腾脚下为圆心，一圈橙红色的光环贴地扩开，光环上跳着细小的火苗，扩到边缘后淡去再起。",
+        "en": "Fire totem pulse: an orange-red ring of light spreading along the ground from the totem base, tiny flames dancing on it, fading at the edge and starting again."
+      },
+      "milestone": "M2",
+      "notes": "萨满图腾生效范围的提示；图腾本体不画；与火系持续区域区分：这里是细环不是一片火。"
+    },
+    {
+      "id": "art_vfx_sig_shaman_totem_water",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "流水图腾脉动：以图腾脚下为圆心，一圈浅蓝绿的水波光环缓缓扩开，光环上闪着水滴形的光点，扩到边缘后淡去再起。",
+        "en": "Water totem pulse: a pale blue-green rippling ring of light spreading slowly from the totem base, droplet-shaped motes glinting along it, fading at the edge and starting again."
+      },
+      "milestone": "M2",
+      "notes": "萨满图腾生效范围的提示；图腾本体不画；浅蓝绿 #8ae8d8。"
+    },
+    {
+      "id": "art_vfx_sig_shaman_totem_wind",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "疾风图腾脉动：以图腾脚下为圆心，几道淡白色的弧形风线绕圈旋转扩开，风线里卷着两三片小叶，扩到边缘后淡去再起。",
+        "en": "Wind totem pulse: a few pale white arc-shaped wind lines circling outward from the totem base, carrying two or three small leaves, fading at the edge and starting again."
+      },
+      "milestone": "M2",
+      "notes": "萨满图腾生效范围的提示；图腾本体不画；淡白 #eef6ff。"
+    },
+    {
+      "id": "art_vfx_sig_shaman_earth_fury",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "大地之怒：地面裂开几道放射状的土褐色光缝，光缝里喷出碎石与尘柱，高潮时中心隆起一圈石刺轮廓，随后碎石落回地面。",
+        "en": "Fury of the earth: radial earth-brown glowing cracks splitting the ground, rubble and dust columns erupting from them, a ring of stone-spike outlines heaving up at the center at the peak, then the rubble falling back."
+      },
+      "milestone": "M2",
+      "notes": "萨满技能：大地之怒；中心通透。"
+    },
+    {
+      "id": "art_vfx_sig_mage_blizzard",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "冰雪暴：一片斜斜落下的冰蓝雪片与细小冰晶，夹着白色的风线横扫，地面一层薄霜忽明忽暗，持续不断。",
+        "en": "Blizzard: a sheet of ice-blue snowflakes and tiny crystals falling at a slant, swept by white wind lines, a thin frost on the ground flickering, unceasing."
+      },
+      "deps": ["art_vfx_school_frost_zone"],
+      "milestone": "M2",
+      "notes": "法师技能：冰雪暴；持续区域循环，按范围平铺；冰系配色。"
+    },
+    {
+      "id": "art_vfx_sig_mage_meteor_flame",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "流星焰：一团拖着长尾的火流星从左上方斜坠而下，落地炸开一圈橙红火浪，碎火四溅，中心留出通透的焦痕。",
+        "en": "Meteor flame: a fiery meteor with a long tail plunging diagonally from the upper left, exploding on impact into a ring of orange-red fire waves, burning fragments scattering, the center left as a clear scorch mark."
+      },
+      "deps": ["art_vfx_school_fire_hit"],
+      "milestone": "M3",
+      "notes": "法师技能：流星焰；中心通透；火系配色。"
+    },
+    {
+      "id": "art_vfx_sig_mage_flame_pillar",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "焰柱：地面先亮起一圈橙色的光圈，随即一根火柱从光圈里笔直喷起，火柱翻卷着升高，最后从顶端散成火星。",
+        "en": "Flame pillar: an orange ring lighting up on the ground first, then a column of fire erupting straight up from it, rolling as it climbs, finally scattering into sparks from the top."
+      },
+      "deps": ["art_vfx_school_fire_cast"],
+      "milestone": "M2",
+      "notes": "法师技能：焰柱；前两帧的地面光圈只作起势。"
+    },
+    {
+      "id": "art_vfx_sig_mage_frost_ring",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "霜环：一圈冰蓝色的冰环从中心向外急扩，冰环上竖着短短的冰刺，经过之处留下一层白霜，最后冰刺碎成冰屑。",
+        "en": "Frost ring: an ice-blue ring racing outward from the center with short ice spikes standing along it, leaving a layer of white frost behind, the spikes finally shattering into ice dust."
+      },
+      "deps": ["art_vfx_school_frost_hit"],
+      "milestone": "M2",
+      "notes": "法师技能：霜环；冰系配色。"
+    },
+    {
+      "id": "art_vfx_sig_mage_blink",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "迁跃：前四帧一团青蓝光点在原处向外散开，后四帧同样的光点在同一位置向内聚拢，像人被拆成光再拼回去。",
+        "en": "Blink: in the first four frames a cloud of cyan motes scatters outward in place, in the last four the same motes gather inward at the same spot, as if a person were taken apart into light and reassembled."
+      },
+      "deps": ["art_vfx_school_arcane_hit"],
+      "milestone": "M2",
+      "notes": "法师技能：迁跃；导入时前后两段分别播在起点与终点。"
+    },
+    {
+      "id": "art_vfx_sig_mage_time_stop",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "时停：一圈灰白色的静止波纹从中心慢慢推开，波纹经过之处的光点与尘埃全部凝在半空，像整块画面被按住。",
+        "en": "Time stop: a grey-white ring of stillness pushing slowly outward from the center, every mote and speck of dust it passes freezing in midair, as if the whole picture were held in place."
+      },
+      "milestone": "M3",
+      "notes": "法师技能：时停；与\"借来的一刻\"区分：这里没有钟面圆环，只有灰白波纹。"
+    },
+    {
+      "id": "art_vfx_sig_warlock_pact_summon",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "召唤契约魔：地面浮出一圈靛蓝色的契约环，环由几何圈与短线组成，环中升起一股暗色烟柱，烟柱顶端亮起一对小光点后散开。",
+        "en": "Pact summoning: an indigo pact circle surfacing on the ground, made of geometric rings and short strokes, a dark smoke column rising from its middle, a pair of small lights kindling at the top before it disperses."
+      },
+      "deps": ["art_vfx_school_shadow_cast"],
+      "milestone": "M1",
+      "notes": "术士技能：召唤契约魔；契约环不画文字；靛蓝带冷白亮边；不用澱紫。"
+    },
+    {
+      "id": "art_vfx_sig_warlock_fire_rain",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "焰雨：暗红与橙色的火点从上方密集落下，每颗火点落地溅开一小团火花，地面一片此起彼伏的火光。",
+        "en": "Rain of fire: dark red and orange embers falling densely from above, each splashing into a small spray of sparks on landing, firelight flaring up and down across the ground."
+      },
+      "deps": ["art_vfx_school_fire_hit"],
+      "milestone": "M2",
+      "notes": "术士技能：焰雨；中心通透；火系偏暗红。"
+    },
+    {
+      "id": "art_vfx_sig_warlock_abyss_fire",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "渊火：暗红与焦黑的火焰从地下翻涌而出，火舌缠成漩涡向上卷，焰心有一点暗紫的亮核，高潮后火焰缩回地缝。",
+        "en": "Abyssal fire: dark red and charred black flames surging up from below the ground, the tongues twisting into a rising vortex with a dark purple glowing core at its heart, retreating into the fissure after the peak."
+      },
+      "deps": ["art_vfx_dian_surge"],
+      "milestone": "M3",
+      "notes": "术士技能：渊火；以澱为力的术，焰心允许澱紫 #4a3a62，其余仍是火色；加色混合下纯暗色看不见，暗部要带亮边。"
+    },
+    {
+      "id": "art_vfx_sig_warlock_blight_realm",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "蚀界：地面蔓开一片靛蓝与暗紫交杂的侵蚀纹，纹路像根须一样缓缓伸缩，纹路之间浮起细小的暗色颗粒。",
+        "en": "Blight realm: a spreading patch of indigo and dark purple corrosion veins on the ground, slowly stretching and retracting like roots, tiny dark grains floating up between them."
+      },
+      "deps": ["art_vfx_dian_mist"],
+      "milestone": "M3",
+      "notes": "术士技能：蚀界；以澱为力的术，允许澱紫；纹路要带亮边。"
+    },
+    {
+      "id": "art_vfx_sig_druid_shapeshift",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "借形换身：一团叶片与绿色光点向外爆散，中心的轮廓在叶片里一缩一胀，叶片落下时轮廓已换成兽形的光影。",
+        "en": "Shapeshift: a burst of leaves and green motes exploding outward, the outline at the center shrinking and swelling among them, and as the leaves fall it has become a beast-shaped silhouette of light."
+      },
+      "deps": ["art_vfx_school_nature_hit"],
+      "milestone": "M1",
+      "notes": "德鲁伊借形的通用转换特效；兽形只是光轮廓；自然学派配色。"
+    },
+    {
+      "id": "art_vfx_sig_druid_cyclone",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "飓风：一道细长的青白旋风柱绕着中心急转，柱身卷着叶片与尘土，把中间的目标托离地面，持续不停。",
+        "en": "Cyclone: a tall thin cyan-white whirlwind spinning rapidly around the center, leaves and dust caught in it, lifting the target off the ground in a continuous loop."
+      },
+      "deps": ["art_vfx_school_nature_cast"],
+      "milestone": "M2",
+      "notes": "德鲁伊技能：飓风；控制类，属于可行动信息。"
+    },
+    {
+      "id": "art_vfx_sig_druid_starfall",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "星落：几颗淡银白的星点拖着细长尾迹从上方斜落，落地各绽开一圈小小的月白光环，星点一颗接一颗。",
+        "en": "Starfall: several pale silver stars falling at a slant from above with long thin trails, each blooming into a small moon-white ring on landing, one after another."
+      },
+      "milestone": "M2",
+      "notes": "德鲁伊技能：星落；银白 #e0e8f8。"
+    },
+    {
+      "id": "art_vfx_sig_druid_tranquility",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "宁静：一圈柔和的嫩绿光雨从上方飘落，光雨里夹着花瓣与叶片，地面一圈淡绿光晕缓缓扩开，安详宁静。",
+        "en": "Tranquility: a soft rain of tender green light drifting down from above with petals and leaves mixed in, a pale green halo spreading slowly on the ground, peaceful and calm."
+      },
+      "deps": ["art_vfx_school_nature_zone"],
+      "milestone": "M2",
+      "notes": "德鲁伊技能：宁静；中心通透。"
+    },
+    {
+      "id": "art_vfx_boss_guardian_raven_feather_storm",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "灰羽风暴：大片灰黑色的羽毛从中心旋卷而出，羽缘带银灰亮边，羽毛像刀片一样绕圈飞旋，越转越大，最后羽毛四散飘落。",
+        "en": "Ash-feather storm: masses of grey-black feathers whirling out from the center, edged in silvery light, spinning like blades in widening circles until they scatter and drift down."
+      },
+      "ref": "guardian_raven",
+      "deps": ["art_vfx_school_shadow_hit"],
+      "milestone": "M1",
+      "notes": "守护巨鸦；羽毛必须带银灰亮边 #9aa0aa 才在加色混合下显形；夹几缕暗紫只作被澱侵蚀的提示，比例很小。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_guardian_raven_wing_buffet",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "翼击：一道巨大的弧形风压从左向右横扫，风压里夹着灰羽与碎石，扫过之处卷起一条尘带，最后风压在右侧散开。",
+        "en": "Wing buffet: a huge arc of wind pressure sweeping from left to right, carrying grey feathers and gravel, raising a band of dust where it passes and dispersing on the right."
+      },
+      "ref": "guardian_raven",
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M1",
+      "notes": "守护巨鸦的击退；风压用淡白与灰；导入时按扇动方向旋转。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_dian_colossus_ash_rain",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "灰雨：一片灰白色的灰烬从上方大片落下，灰粒里夹着暗紫色的亮点，落地处溅起一圈圈灰尘，灰雨越下越密后骤然停止。",
+        "en": "Ash rain: a broad curtain of grey-white ash falling from above with dark purple glints among the grains, each landing raising rings of dust, the rain growing denser before stopping abruptly."
+      },
+      "ref": "dian_colossus",
+      "deps": ["art_vfx_dian_surge"],
+      "milestone": "M1",
+      "notes": "澱巨像的读条大招；灰为主，暗紫只作点缀；躲进门洞是解法，所以落灰要均匀铺满。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_dian_colossus_stomp",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "重踏：巨足落地处炸开一圈厚重的灰色冲击环，碎石与灰尘向外翻滚，冲击环边缘闪着暗紫光，第二圈更大更淡。",
+        "en": "Colossal stomp: a thick grey shockwave ring exploding where the giant foot lands, rubble and dust rolling outward, its rim glinting dark purple, a second ring following larger and fainter."
+      },
+      "ref": "dian_colossus",
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M1",
+      "notes": "澱巨像的短晕技；暗紫只在环边。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_crystal_mother_crystal_fall",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "晶落：一串尖锐的淡紫晶柱从上方坠落，砸进地面后碎成大小不一的晶片向四周飞溅，晶片在地上闪两下熄灭。",
+        "en": "Crystal fall: a volley of sharp pale lilac crystal spikes plunging from above, smashing into the ground and shattering into shards of every size that spray outward, glinting twice on the ground before going dark."
+      },
+      "ref": "crystal_mother",
+      "milestone": "M1",
+      "notes": "晶背之母；晶色淡紫 #c8b0e0 偏亮，与澱紫区分（这是澱晶本身）；晶柱要有棱角。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_crystal_mother_crystal_hide",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "晶甲：地面冒出一圈淡紫色晶刺，晶刺向中心合拢成一层晶壳，晶壳表面流过一道亮光，随后晶刺缩回地下。",
+        "en": "Crystal hide: a ring of pale lilac crystal spikes bursting from the ground and closing toward the center into a crystalline shell, a band of light running across its surface before the spikes withdraw."
+      },
+      "ref": "crystal_mother",
+      "milestone": "M1",
+      "notes": "晶背之母的护甲阶段；配色同晶落。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_seg_oneeye_cleave",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "独眼横劈：一道粗大的白色弧光从左到右横扫半圈，弧光后拖着橙白火花与扬起的尘土，扫过的地面留下一道浅痕。",
+        "en": "One-eye cleave: a broad white arc sweeping half a circle from left to right, trailing orange-white sparks and kicked-up dust, leaving a shallow scar across the ground."
+      },
+      "ref": "seg_oneeye",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M1",
+      "notes": "瑟格\"独眼\"的顺劈；物理系。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_rat_king_regroup",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "聚尾：水面上散开的灰褐色鼠影旋转着向中心汇聚，激起一圈圈水花，鼠影越聚越密，最后水花一冲而起。",
+        "en": "Regrouping tails: scattered grey-brown rat shadows on the water swirling toward the center, throwing up ring after ring of splashes, crowding tighter until a spout of water bursts upward."
+      },
+      "ref": "rat_king",
+      "milestone": "M2",
+      "notes": "百尾鼠王；鼠影只是灰褐亮边的剪影，水花用淡蓝白；混澱。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_rustgate_colossus_sluice_sweep",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "闸臂横扫：一道锈红色的弧形冲击从左向右扫过，弧光里迸出铁锈碎屑与水花，尽头一团浪花向右推出。",
+        "en": "Sluice-arm sweep: a rust-red arc of impact sweeping from left to right, flakes of rust and spray bursting inside it, a burst of foaming water pushed out to the right at its end."
+      },
+      "ref": "rustgate_colossus",
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M2",
+      "notes": "锈闸巨像的击退；锈红 #a85a3a 加水白；导入时按方向旋转。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_book_burner_burning_years",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "焚年：一行横向的火线沿着看不见的墙面缓缓烧过，火线后留下焦黑的空白，火舌是骨白偏黄的冷火，火星像纸灰一样飘起。",
+        "en": "Burning the years: a horizontal line of fire creeping slowly along an unseen wall, leaving a charred blank behind, its tongues a cold bone-white-yellow flame, sparks drifting up like paper ash."
+      },
+      "ref": "book_burner",
+      "deps": ["art_vfx_school_fire_zone"],
+      "milestone": "M2",
+      "notes": "光澱配色：瓷白 #f4f2ea、骨白 #e8e0cc、冷白；焚书者的引导大招；火线烧过的地方不能出现任何字。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_book_burner_page_fire",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "书页燃火：大片焦黄的书页形碎片从中心向外翻飞，每一片都燃着冷白色的火边，碎片飞到外圈后化成灰烬落下。",
+        "en": "Burning pages: a mass of scorched page-shaped fragments flung outward from the center, each edged with cold white flame, turning to ash and falling as they reach the outer ring."
+      },
+      "ref": "book_burner",
+      "deps": ["art_vfx_school_fire_hit"],
+      "milestone": "M2",
+      "notes": "光澱配色：瓷白 #f4f2ea、骨白 #e8e0cc、冷白；焚书者第三阶段的范围脉冲；书页空白无字。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_crystal_centipede_pillar_hum",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "晶柱嗡鸣：四五根瓷白色的晶柱同时亮起，每根柱身外震出一圈细密的声波环，声波环互相交叠扩散，晶柱一齐闪一下后暗下。",
+        "en": "Pillar hum: four or five porcelain-white crystal pillars lighting up together, each shaking out a ring of fine sound-wave circles that overlap as they spread, all the pillars flashing once before dimming."
+      },
+      "ref": "crystal_centipede",
+      "milestone": "M2",
+      "notes": "光澱配色：瓷白 #f4f2ea、骨白 #e8e0cc、冷白；晶脊蜈的钟响脉冲；晶柱本身由场景立牌承担，这里画柱身外的光。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_doorsealer_construct_sealing_doors",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "合扉：四面拱门形的冷灰光框从四周竖起，向中心合拢，门缝里透出暖金的细光，合上的一刻地面一圈门纹亮起，把范围内锁住。",
+        "en": "Closing doors: four arch-shaped cold grey frames of light rising around the edges and closing toward the center, thin warm gold light seeping from the gaps, a ring of door marks lighting on the ground the instant they shut, locking everything inside."
+      },
+      "ref": "doorsealer_construct",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M2",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90；缄门者是千门的构装体，门缝的暖金允许用门扉金 #f0d890。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_doorsealer_construct_plate_shatter",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "澱板碎裂：一块门形的暗紫石板从中间裂开，碎片向外崩散，裂缝里先透出暖金的光，随后暗紫碎屑化成烟消散。",
+        "en": "Plate shatter: a door-shaped dark purple slab cracking down the middle and bursting apart, warm gold light shining through the split first, then the purple fragments dissolving into smoke."
+      },
+      "ref": "doorsealer_construct",
+      "deps": ["art_vfx_dian_surge"],
+      "milestone": "M2",
+      "notes": "缄门者的可碎部位；澱紫是门形澱板，暖金是被释放的门光。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_reynard_walter_duel_exam_strike",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "考题：一记从上而下的沉稳直劈，剑光是明亮的钢白色，落点先停顿一帧，再向两侧推开一道平整的冲击，干净而克制。",
+        "en": "The examiner's question: a steady downward stroke with a bright steel-white blade light, pausing one frame at the point of impact before pushing a flat, even shockwave out to both sides, clean and restrained."
+      },
+      "ref": "reynard_walter_duel",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M2",
+      "notes": "雷纳德·瓦尔特（金狮）的考核大招；不带任何加护色；剑光边缘可有极淡的狮鬃金黄 #f0c860 点缀。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_herada_duel_red_mane_frenzy",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "赤鬃狂意：身周燃起一圈赤红色的鬃毛状光焰，受伤越重焰越高，光焰随呼吸一胀一缩，外圈迸出细碎的红色火星。",
+        "en": "Red-mane frenzy: a ring of crimson mane-like flame flaring around the body, rising higher the more wounded she is, swelling and shrinking with each breath, fine red sparks spitting from its outer edge."
+      },
+      "ref": "herada_duel",
+      "milestone": "M2",
+      "notes": "赫拉妲（赤鬃）；赤红 #d83a2a，不用赤黑（那是瓦尔妲的狂战加护）。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_emil_keywarden_fight_crystal_bomb",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "澱晶爆罐：一只陶罐在中心炸开，淡紫色的晶屑与浑浊的暗紫烟雾向外爆散，烟里夹着细小的玻璃碎片，最后烟贴地散开。",
+        "en": "Crystal bomb: a clay pot bursting at the center, pale lilac crystal grit and murky dark purple smoke exploding outward with tiny glass shards inside, the smoke finally spreading along the ground."
+      },
+      "ref": "emil_keywarden_fight",
+      "deps": ["art_vfx_dian_surge"],
+      "milestone": "M2",
+      "notes": "钥司埃米尔的投掷大招；这是澱晶炸药，允许澱紫。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_river_catfish_king_pounce_wave",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "鲶王扑击：河面猛地隆起一道弧形巨浪，从右向左拍下，浪尖翻着白沫，浪下有一道墨绿的巨大暗影一闪而过。",
+        "en": "Catfish pounce: the river surface heaving into a huge curved wave that crashes down from right to left, white foam curling at its crest, a vast dark green shadow flashing beneath it."
+      },
+      "ref": "river_catfish_king",
+      "milestone": "M2",
+      "notes": "沉河鲶王；水色淡蓝白 #c8e8f0，暗影只给墨绿亮边 #3a6a5a。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_river_catfish_king_river_split",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "劈开河面：一道笔直的白色刀光从上方竖直落下，河面沿刀光向两侧分开成两堵水墙，水墙顶上飞起水沫，片刻后合拢。",
+        "en": "Splitting the river: a perfectly straight white blade light falling vertically from above, the river parting along it into two walls of water with spray flying from their tops, closing again a moment later."
+      },
+      "ref": "river_catfish_king",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M2",
+      "notes": "这是老船夫的一刀（写定演出）；刀光朴素，不带任何加护色。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_frost_pike_captain_frozen_order",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "冻结军令：地面从中心向外迅速结出一片冷蓝的霜面，霜面上竖起一排排短矛形的冰刺，像列阵的士兵，随后冰刺碎成冰屑。",
+        "en": "Frozen order: a cold blue sheet of frost spreading rapidly outward from the center, rows of short spear-shaped ice spikes rising on it like soldiers in ranks, then shattering into ice dust."
+      },
+      "ref": "frost_pike_captain",
+      "deps": ["art_vfx_school_frost_zone"],
+      "milestone": "M2",
+      "notes": "霜矛队长；冰蓝里混少量暗红光点（战澱亡灵）。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_winter_throat_throat_wind",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "冬风灌喉：一股粗大的冷白风流从右向左持续灌过，风里夹着细碎冰晶与雪粒，风线一层叠一层，越往后越猛。",
+        "en": "Winter throat wind: a thick cold white stream of wind pouring continuously from right to left, carrying fine ice crystals and snow grains, wind lines layered one on another, growing fiercer over time."
+      },
+      "ref": "winter_throat",
+      "deps": ["art_vfx_school_frost_zone"],
+      "milestone": "M2",
+      "notes": "冬喉的引导大招；只有冰柱后挡得住，所以风向要清楚。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_winter_throat_pillar_shatter",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "冰柱震碎：几根冰蓝色的冰柱同时炸开，大块冰片向外飞散，中心一圈白色冲击波推出，冰屑像雪一样落下。",
+        "en": "Pillar shatter: several ice-blue pillars exploding at once, large shards flying outward, a ring of white shockwave pushing from the center, ice dust falling like snow."
+      },
+      "ref": "winter_throat",
+      "deps": ["art_vfx_school_frost_hit"],
+      "milestone": "M2",
+      "notes": "冬喉的击退；冰柱本体由场景承担，这里画碎裂。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_rimelight_icon_dawnlight",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "晨光：一道冷白色的光从上方倾泻而下，光里浮着瓷白的光片，光落之处的地面裂出细密的白瓷纹，骨片一样的光点随之升起。",
+        "en": "Dawnlight: a cold white radiance pouring down from above with porcelain-white flakes floating inside, the ground it touches crackling with fine porcelain veins, bone-like motes rising after it."
+      },
+      "ref": "rimelight_icon",
+      "milestone": "M2",
+      "notes": "光澱配色：瓷白 #f4f2ea、骨白 #e8e0cc、冷白；白霜像；不用神光白金与几何光环（凡人看到的只是光）。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_rimelight_icon_light_on_walls",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "光临城头：一圈瓷白色的光环从中心急扩，光环上竖起一圈短短的白色光芒，像城头上一排火把，光环经过后留下飘落的霜屑。",
+        "en": "Light upon the walls: a porcelain-white ring racing outward from the center with a row of short white rays standing along it like torches on a rampart, leaving falling frost flakes in its wake."
+      },
+      "ref": "rimelight_icon",
+      "milestone": "M2",
+      "notes": "光澱配色：瓷白 #f4f2ea、骨白 #e8e0cc、冷白；白霜像的第三阶段脉冲，间隔越来越短。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_ash_scroll_drift_paper_blade_storm",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "纸刃风暴：大片焦边的灰白纸页从中心卷起，像刀片一样绕圈飞旋，纸页边缘冒着细小的火星，旋风扩到最大后纸页四散。",
+        "en": "Paper-blade storm: a mass of charred-edged grey-white pages whirling up from the center, spinning like blades, tiny sparks smoking along their edges, scattering once the whirlwind reaches its widest."
+      },
+      "ref": "ash_scroll_drift",
+      "milestone": "M2",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90；灰页之卷（活性期）；纸页空白无字。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_thousand_bone_walker_bone_draw",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "吸骨：四周散落的灰白骨片被一缕缕灰色的气流牵向中心，骨片一边飞一边旋转，汇入中心时闪一下冷光，循环不断。",
+        "en": "Bone draw: scattered grey-white bone fragments pulled toward the center by strands of grey current, spinning as they fly, flashing a cold light as they merge, endlessly."
+      },
+      "ref": "thousand_bone_walker",
+      "milestone": "M2",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90；千骨行者的吸血机制。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_thousand_bone_walker_bone_split",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "碎骨三分：中心一团骨片猛地炸开，分成三股灰白的骨流向三个方向飞去，每股末端堆成一团，团上冒着冷灰色的烟。",
+        "en": "Bone split: a mass of bones at the center bursting apart into three grey-white streams flying in three directions, each piling into a heap at its end with cold grey smoke rising from it."
+      },
+      "ref": "thousand_bone_walker",
+      "milestone": "M2",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90；50% 时碎成三堆；三个方向要均匀。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_sunken_ash_wyrm_sand_vortex",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "吸沙：地面的灰沙打着旋向中心塌陷，形成一个缓缓转动的漏斗形涡流，涡流边缘的沙粒被卷入，中心是深色的口。",
+        "en": "Sand vortex: grey sand on the ground spiraling down toward the center into a slowly turning funnel, grains at its rim being drawn in, a dark mouth at the middle."
+      },
+      "ref": "sunken_ash_wyrm",
+      "milestone": "M2",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90；沉灰巨蠕的拉拽；涡流方向逆时针。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_sunken_ash_wyrm_ash_dive",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "沉灰：巨大的灰沙浪从中心向外翻起一圈，像有什么东西沉入地下，沙浪落下时激起一圈灰尘，地面剩下几道波纹。",
+        "en": "Ash dive: a huge ring of grey sand heaving outward from the center as if something had sunk below, raising a ring of dust as it falls, leaving a few ripples on the ground."
+      },
+      "ref": "sunken_ash_wyrm",
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M2",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90；沉灰巨蠕第三阶段的范围脉冲。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_gate_warden_captain_halt",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "止步：中心立起一道拱门形的冷灰光框，光框底部向外扫出一圈门纹光环，光环扫过之处亮起一个个短竖线形的光锁，随后熄灭。",
+        "en": "Halt: an arch-shaped cold grey frame of light rising at the center, a ring of door-mark light sweeping out from its base, short vertical light-locks lighting up wherever it passes, then going dark."
+      },
+      "ref": "gate_warden_captain",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M2",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90；残门卫长是门站的构装体，门纹允许门扉金 #f0d890 点缀。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_doorplate_crone_name_call",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "叫名：一道细细的灰白声线从左侧伸向中心，在目标脚下绕成一圈，圈上浮起一排短短的竖线光痕，像被钉住的名字。",
+        "en": "Name call: a thin grey-white thread of voice reaching from the left to the center, coiling into a ring at the target's feet, a row of short vertical marks of light rising on it like a name pinned in place."
+      },
+      "ref": "doorplate_crone",
+      "milestone": "M2",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90；叫门的老妇；光痕不能构成文字。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_doorplate_crone_doorplate_rain",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "门牌雨：一片小小的长方形门牌从上方纷纷落下，门牌灰白带冷灰边，落地时叮当碎开成光屑，越落越密。",
+        "en": "Doorplate rain: a shower of small rectangular doorplates falling from above, grey-white with cold grey rims, shattering into flecks of light as they land, falling ever thicker."
+      },
+      "ref": "doorplate_crone",
+      "milestone": "M2",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90；门牌上不能有任何字或数字，只是空白小牌。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_ink_tide_ink_pool",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "洇墨：地面一片墨蓝色的墨池缓缓洇开，边缘不规则地向外渗，墨面上浮着纸白的细光，像未干的墨在微微反光。",
+        "en": "Spreading ink: a pool of ink-blue spreading slowly across the ground, its edge seeping outward irregularly, fine paper-white glints floating on its surface like wet ink catching the light."
+      },
+      "ref": "ink_tide",
+      "milestone": "M2",
+      "notes": "录澱配色：墨蓝 #2a3a6a、纸白 #f0ead8；墨潮；墨池要有纸白亮边才显形。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_ink_tide_ink_return",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "回墨：几条墨蓝色的墨流从四周的书架方向流向中心，墨流里浮着纸屑一样的白点，汇入中心时一圈墨波向外荡开。",
+        "en": "Ink return: several ink-blue streams flowing toward the center from the surrounding shelves, paper-white flecks floating in them, a ring of ink ripples spreading outward as they merge."
+      },
+      "ref": "ink_tide",
+      "milestone": "M2",
+      "notes": "录澱配色：墨蓝 #2a3a6a、纸白 #f0ead8；墨潮的回复引导；每条墨流都是可打断的目标，要分得清。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_shelf_sealer_wax_seal",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "封：一枚暗红色的圆形封蜡在目标身前压下，封蜡边缘溢出一圈蜡滴，蜡面上是看不出意思的几何压纹，随后封蜡裂开淡去。",
+        "en": "Seal: a dark red round wax seal pressing down before the target, a ring of drips spilling from its rim, its face stamped with meaningless geometric marks, then cracking and fading."
+      },
+      "ref": "shelf_sealer",
+      "milestone": "M2",
+      "notes": "录澱配色：墨蓝 #2a3a6a、纸白 #f0ead8；封书锁（深相专属）；封蜡暗红 #8a2a2a；压纹不是文字。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_blackiron_maw_burrow_burst",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "钻地冲出：地面先隆起一圈裂纹，随即碎石与黑铁屑从中心向上爆出，碎块四散落下，地面留下一个翻开的坑口。",
+        "en": "Burrow burst: a ring of cracks heaving up in the ground, then rubble and black iron shavings erupting upward from the center, chunks scattering and falling, leaving a torn-open pit."
+      },
+      "ref": "blackiron_maw",
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M2",
+      "notes": "黑铁颚；黑铁屑要有银灰亮边；混澱。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_geode_heart_crystal_breath",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "晶息：前四帧四周的晶粉与光点被吸向中心，后四帧中心猛地呼出一圈晶粉冲击向外推开，晶粉在空中闪烁。",
+        "en": "Crystal breath: in the first four frames crystal dust and motes are drawn in toward the center; in the last four the center exhales a ring of crystal dust that bursts outward, glittering in the air."
+      },
+      "ref": "geode_heart",
+      "milestone": "M2",
+      "notes": "晶洞之心；晶粉淡紫与白（澱晶本色），前吸后推要分明。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_geode_heart_cave_close",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "闭洞：画面外圈的岩壁剪影向内挤压，挤压线上迸出碎石与晶片，外圈一圈尘土向中心推进，最后停在更小的一圈。",
+        "en": "Cave closing: rock-wall silhouettes at the outer edge squeezing inward, rubble and crystal chips bursting along the closing line, a ring of dust advancing toward the center and stopping at a smaller circle."
+      },
+      "ref": "geode_heart",
+      "milestone": "M2",
+      "notes": "晶洞之心；岩壁只是灰褐亮边的轮廓。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_sasha_haymaker_shock",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "重拳冲击：一记重拳正面打出，拳风在前方炸开一圈厚实的橙红色冲击环，冲击环后拖着火星，像炉门被一拳打开。",
+        "en": "Haymaker shock: a heavy punch thrown straight ahead, its wind exploding into a thick orange-red shock ring with sparks trailing behind, like a forge door punched open."
+      },
+      "ref": "sasha",
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M2",
+      "notes": "红牙将军萨莎；炉火橙红 #f06a30，与狂战加护的赤黑区分。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_oriana_vest_duel_cold_steel_adapt",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "冷钢适应：剑身周围浮起一层冷灰色的薄光壳，同类的攻击打上来时光壳亮一下、偏开一道火花，光壳一层比一层厚。",
+        "en": "Cold steel adapting: a thin cold grey shell of light rising around the blade, flaring and deflecting a spark each time the same kind of attack lands, growing thicker layer by layer."
+      },
+      "ref": "oriana_vest_duel",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M2",
+      "notes": "奥莉安娜·维斯特（冷钢）；冷灰 #b0b8c0。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_lu_chen_duel_recall_glow",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "回光：白金色的光从上方笼下，伤处的光点倒流回身体，背后闪过一圈规整的几何光纹，随即光纹熄灭。",
+        "en": "Returning light: white-gold light descending from above, motes flowing back into the wounds, a ring of orderly geometric light flashing behind before it goes out."
+      },
+      "ref": "lu_chen_duel",
+      "milestone": "M2",
+      "notes": "陆辰（勇者加护）的一次性回复；艾琉恩的加护，允许神光白金加几何纹。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_archbishop_dawnpillar_pillar_sweep",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "光柱扫场：一根白金光柱从左向右横扫，光柱底部拖出一道灼亮的光带，光带上浮着规整的几何纹，扫到尽头光柱收细。",
+        "en": "Pillar sweep: a white-gold pillar of light sweeping from left to right, dragging a searing band of light along its base lined with orderly geometric patterns, thinning when it reaches the end."
+      },
+      "ref": "archbishop_dawnpillar",
+      "milestone": "M2",
+      "notes": "大主教与曙光圣柱；艾琉恩的神迹之力，允许神光白金加几何纹；导入时按扫场方向旋转。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_archbishop_dawnpillar_sanctify_army",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "圣化全军：一圈白金色的光环从中心向外扩散，光环经过之处升起许多细小的光柱，光柱顶上闪出小小的几何光点。",
+        "en": "Sanctifying the host: a white-gold ring spreading outward from the center, many thin pillars of light rising where it passes, small geometric sparks flashing at their tops."
+      },
+      "ref": "archbishop_dawnpillar",
+      "milestone": "M2",
+      "notes": "大主教与曙光圣柱；中心通透。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_rogo_breakchain_duel_ice_break_charge",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "破冰冲锋：一条冲锋的尘带从左冲到右，尽头的冰面炸开成大块冰片，裂纹向四周蔓延，冰下翻起白色的水花。",
+        "en": "Ice-breaking charge: a charging band of dust tearing from left to right, the ice at its end bursting into large slabs, cracks spreading in all directions, white water churning up from below."
+      },
+      "ref": "rogo_breakchain_duel",
+      "deps": ["art_vfx_school_frost_hit"],
+      "milestone": "M2",
+      "notes": "罗戈（断枷）；冰面碎裂是诱他落水的解法，冰裂要醒目。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_hedwig_seal_ritual_forced_knock",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "强叩封门：中心悬着一个颤抖的拱门形纹路，暖金光被一缕缕暗紫雾强行拉扯，纹路时亮时暗，边缘不停迸出细小的裂光。",
+        "en": "Forced knocking: a trembling arch-shaped mark hanging at the center, its warm gold light dragged at by strands of dark purple mist, flickering bright and dim, tiny cracks of light spitting from its edges."
+      },
+      "ref": "hedwig_seal_ritual",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M2",
+      "notes": "海德薇·诺特的引导；门纹被强用：门扉金与澱紫同场，打断就能救人，所以拉扯感要强。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_grete_bridge_bout_parry_counter",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "格开反击：一道钢白的弧光挡在前方，把来招整齐地格开，弧光随即翻转成一记反刺，刺光笔直向右。",
+        "en": "Parry and counter: a steel-white arc standing in front and cleanly turning aside the incoming blow, then flipping into a counter-thrust that shoots straight to the right."
+      },
+      "ref": "grete_bridge_bout",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M2",
+      "notes": "葛蕾特·铁栏的格挡窗；物理系。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_ashstorm_heart_glass_rain",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "熔门玻璃雨：大片灰白的玻璃碎片从上方落下，碎片在空中排成一个个拱门形的轮廓，落地时碎成闪亮的晶屑。",
+        "en": "Molten-door glass rain: a mass of grey-white glass shards falling from above, arranging into arch-shaped outlines in midair, shattering into glittering grit on landing."
+      },
+      "ref": "ashstorm_heart",
+      "milestone": "M2",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90；灰暴之心（澱涌之主）；门形只是落下的图案，不用门扉金。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_ashstorm_heart_storm_eye",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "风眼：一圈灰白的风暴墙绕着中心旋转，墙里卷着灰与玻璃屑，中心是一块相对安静的空地，风墙慢慢收缩。",
+        "en": "Storm eye: a grey-white wall of storm spinning around the center, ash and glass grit swirling inside it, a relatively calm clearing at the middle, the wall slowly tightening."
+      },
+      "ref": "ashstorm_heart",
+      "milestone": "M2",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90；站出风眼即受伤，所以风墙与中心的分界要清楚。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_frostbell_dirge_bell_toll",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "冻铃钟鸣：一圈冰蓝色的声波环从中心荡开，环上挂着细小的冰晶，声波一圈接一圈，最外一圈带着一层暗红的阴影。",
+        "en": "Frost-bell toll: a ring of ice-blue sound waves spreading from the center, hung with tiny ice crystals, ring after ring, the outermost tinged with a dark red shadow."
+      },
+      "ref": "frostbell_dirge",
+      "deps": ["art_vfx_school_frost_hit"],
+      "milestone": "M2",
+      "notes": "冻铃夜哭（澱涌之主）；冰蓝为主，暗红只在外圈（战澱）。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_frostbell_dirge_ice_sheet",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "冰面：地面铺开一片冷蓝的冰面，冰下有骨白色的影子缓缓游动，冰面不时裂出一道白缝又冻上。",
+        "en": "Ice sheet: a cold blue sheet of ice spread across the ground, bone-white shadows drifting slowly beneath it, white cracks splitting its surface now and then before freezing shut."
+      },
+      "ref": "frostbell_dirge",
+      "deps": ["art_vfx_school_frost_zone"],
+      "milestone": "M2",
+      "notes": "冻铃夜哭第二阶段；冰下的影子只是骨白亮边的轮廓。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_keyfed_crystal_queen_door_spit",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "门吐：中心一团强光从里向外撑开，光里有一枚钥匙形的暖金亮点，光团猛地向右喷出一道晶屑与水花的洪流。",
+        "en": "Door spit: a blaze of light pushing outward from within at the center, a key-shaped warm gold spark inside it, then the mass hurling a torrent of crystal grit and spray to the right."
+      },
+      "ref": "keyfed_crystal_queen",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M3",
+      "notes": "钥饲晶母；钥匙亮点是门钥，允许门扉金；晶屑瓷白（光澱）。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_keyfed_crystal_queen_door_pillars",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "门形晶柱：地面升起几根瓷白色的晶柱，晶柱两两相对长成拱门的形状，门洞里闪着微光，晶柱之间有光点来回穿梭。",
+        "en": "Door-shaped pillars: porcelain-white crystal pillars rising from the ground and growing in pairs into arch shapes, a faint glow in each doorway, motes darting back and forth between them."
+      },
+      "ref": "keyfed_crystal_queen",
+      "milestone": "M3",
+      "notes": "光澱配色：瓷白 #f4f2ea、骨白 #e8e0cc、冷白；钥饲晶母第一阶段；门洞的光用冷白，不用门扉金。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_mute_bell_chase_silent_toll",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "无声钟响：中心一圈铜色的钟声波纹荡开，波纹里所有的光点同时熄灭，像声音被吸走，最后只剩一圈灰白的静。",
+        "en": "Silent toll: a ring of bronze bell ripples spreading from the center, every mote inside it going out at once as if the sound were swallowed, leaving only a ring of grey-white stillness."
+      },
+      "ref": "mute_bell_chase",
+      "milestone": "M3",
+      "notes": "哑钟的沉默；铜色 #c08850 加灰白。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_tiger_warchief_bloodduel_war_roar",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "血战怒吼：一圈赤黑色的吼声冲击波从中心急扩，波面上燃着暗红的火边，火边里浮出一对断角形的红影一闪而过。",
+        "en": "Blood-duel roar: a red-black shockwave of a roar racing outward from the center, its face burning with a dark red fiery rim, a pair of broken-horn red shapes flashing through it."
+      },
+      "ref": "tiger_warchief_bloodduel",
+      "deps": ["art_vfx_school_fire_hit"],
+      "milestone": "M3",
+      "notes": "虎族战首带着瓦尔妲的狂战加护；赤黑与断角是她的标志，允许使用。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_index_hound_file_strike",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "查档重击：目标头顶先浮出一个墨蓝色的方框印记，印记五帧里一闪一闪变亮，第六帧一道墨蓝爪光从上方砸下。",
+        "en": "Filed strike: a square ink-blue mark appearing above the target first, blinking brighter over five frames, and on the sixth an ink-blue claw streak slamming down from above."
+      },
+      "ref": "index_hound",
+      "milestone": "M3",
+      "notes": "录澱配色：墨蓝 #2a3a6a、纸白 #f0ead8；检目犬；方框里不写字；前五帧是可行动的预兆。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_greyrobe_marginalia_annotate",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "批注：目标身上一圈原本向上的白色光环被几道墨蓝色的斜线划过，光环翻转成向下沉的灰色光环。",
+        "en": "Annotation: a ring of rising white light on the target struck through by a few ink-blue slashes, flipping into a sinking grey ring."
+      },
+      "ref": "greyrobe_marginalia",
+      "milestone": "M3",
+      "notes": "录澱配色：墨蓝 #2a3a6a、纸白 #f0ead8；页边低语；斜线不是文字。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_star_ledger_warden_sky_fall",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "天穹落：几颗墨蓝边、纸白芯的星点从上方坠落，拖着细长的直线尾迹，落地炸开一圈星屑，星点按圆弧排开。",
+        "en": "Sky fall: several stars with ink-blue rims and paper-white cores plunging from above with long straight trails, bursting into rings of star grit on landing, arranged along an arc."
+      },
+      "ref": "star_ledger_warden",
+      "milestone": "M3",
+      "notes": "录澱配色：墨蓝 #2a3a6a、纸白 #f0ead8；星簿守；转错星台的惩罚。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_star_ledger_warden_star_dais",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "星台转光：地面一圈七个小光点按圆周排开，光点之间连着细线，一点亮光沿圆周依次跳过七个点，循环不停。",
+        "en": "Star dais: seven small motes arranged around a circle on the ground, joined by thin lines, a single bright light hopping from point to point around the ring in endless order."
+      },
+      "ref": "star_ledger_warden",
+      "milestone": "M3",
+      "notes": "录澱配色：墨蓝 #2a3a6a、纸白 #f0ead8；提示七座星台的次序；细线不能构成文字。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_iron_laurel_champion_crowd_fury",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "欢呼狂潮：身周一圈圈橙红色的声浪纹随着欢呼一阵阵扩开，每一阵更亮更快，脚下扬起斗场的红砾尘土。",
+        "en": "Crowd fury: rings of orange-red sound waves pulsing outward around the body with each cheer, every pulse brighter and faster, red gravel dust kicked up underfoot."
+      },
+      "ref": "iron_laurel_champion",
+      "milestone": "M3",
+      "notes": "铁冕冠军；暗授的狂战加护不在这里显形（揭穿之前看不见）。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_ledger_crab_matriarch_coin_shell",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "账壳：一串暗金褐色的铜币从四周飞向中心，一枚枚贴上一层弧形的壳面，每贴一枚壳面闪一下铜绿光。",
+        "en": "Ledger shell: a string of dark gold-brown coins flying in from all around to the center, sticking one by one onto a curved shell face, which flashes verdigris with each coin."
+      },
+      "ref": "ledger_crab_matriarch",
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；账壳母蟹；铜币要有亮边。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_defaulted_pact_fiend_bind_pact",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "立约：一道暗金褐的细链从中心甩出，缠住目标的手腕位置，链上浮起一枚圆形契印，契印压下后链条隐去。",
+        "en": "Binding pact: a thin dark gold-brown chain flung from the center, wrapping the target's wrist, a round pact seal surfacing on it and pressing down before the chain fades."
+      },
+      "ref": "defaulted_pact_fiend",
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；违约之魔；契印是几何图形，不是文字。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_defaulted_pact_fiend_collect_debt",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "收账：一只巨大的暗金褐爪形光影从上方抓下，爪心里一圈契印碎裂，碎片化成铜绿色的火向外喷散。",
+        "en": "Collecting the debt: a huge dark gold-brown claw of light grasping down from above, a ring of pact seals shattering in its palm, the fragments turning into verdigris fire that sprays outward."
+      },
+      "ref": "defaulted_pact_fiend",
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；违约之魔第二阶段的重击，打向负约最重的同伴。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_tidegate_keeper_close_harbor",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "闭港：两道铜绿色的水墙从左右两侧向中心合拢，水墙顶上翻着白沫，合拢的一刻一圈浪花冲天而起。",
+        "en": "Closing the harbor: two verdigris walls of water closing in from left and right, white foam rolling along their tops, a ring of spray shooting skyward the instant they meet."
+      },
+      "ref": "tidegate_keeper",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；潮门守；门站构装体，水墙中间可有一道极细的暖金门缝。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_tidegate_keeper_rising_tide",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "涨潮：地面的海水一层层漫上来，浪线从画面下方向上推进又退回一点，水面泛着铜绿与白的波光。",
+        "en": "Rising tide: seawater creeping up over the ground layer by layer, the waterline pushing up from the bottom of the frame and slipping back a little, glinting verdigris and white."
+      },
+      "ref": "tidegate_keeper",
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；潮时机制的水面；只剩高台可站，所以浪线要清楚。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_barrow_wardbeast_moss_stomp",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "苔踏：重踏落地处炸开一圈苔绿色的冲击环，冲击环经过之处地面猛地长出苔藓与短藤，藤尖冒着病黄的孢子。",
+        "en": "Moss stomp: a moss-green shock ring bursting where the stomp lands, moss and short vines sprouting abruptly wherever it passes, sickly yellow spores puffing from the vine tips."
+      },
+      "ref": "barrow_wardbeast",
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M3",
+      "notes": "生澱配色：苔绿 #6a8a3a、腐褐 #6a4a2a、病黄绿；守冢兽。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_howling_ancestors_ancestral_howl",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "祖嚎：几道苍白的兽首形烟影从中心向四个方向咆哮冲出，烟影后拖着苔绿与暗红交杂的声浪纹，逐渐淡去。",
+        "en": "Ancestral howl: several pale beast-head shaped wisps of smoke roaring out from the center in four directions, trailing sound-wave ripples of mixed moss green and dark red, fading gradually."
+      },
+      "ref": "howling_ancestors",
+      "milestone": "M3",
+      "notes": "生澱配色：苔绿 #6a8a3a、腐褐 #6a4a2a、病黄绿；祖嚎带战澱，暗红占少量。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_unnamed_shaman_locust_cloud",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "蝗云：一团密密麻麻的黄褐色小虫点翻卷成移动的云团，云团中心悬着一缕苔绿的光，虫点不断绕着光转。",
+        "en": "Locust cloud: a dense mass of yellow-brown insect specks churning into a moving cloud, a wisp of moss-green light hanging at its heart, the specks circling it endlessly."
+      },
+      "ref": "unnamed_shaman",
+      "milestone": "M3",
+      "notes": "生澱配色：苔绿 #6a8a3a、腐褐 #6a4a2a、病黄绿；被除名的祭司；游走的范围脉冲。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_slag_herald_slag_wave",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "熔渣浪：一道橙红色的熔渣浪从左向右翻滚推进，浪头溅起暗金褐的渣滴，浪过之处留下冷却变暗的渣痕。",
+        "en": "Slag wave: an orange-red wave of molten slag rolling from left to right, splashing dark gold-brown droplets from its crest, leaving cooling, darkening slag behind."
+      },
+      "ref": "slag_herald",
+      "deps": ["art_vfx_school_fire_hit"],
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；渣潮使；熔渣橙红 #e0602a。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_slag_herald_slag_wall",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "渣墙：地面一圈冷却中的熔渣缓缓冒着热气，渣面的裂缝里透出暗橙的光，热气一阵阵向上蒸腾。",
+        "en": "Slag wall: a ring of cooling slag on the ground steaming slowly, dark orange light showing through cracks in its crust, heat rising in waves."
+      },
+      "ref": "slag_herald",
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；减速区域；裂缝亮光要清楚。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_oathbound_smiths_reforge",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "重铸：三道暗金褐的锻火光从三个方向射向中心，交汇处迸出大团火星，像铁锤落在铁砧上，火星落下后中心亮起一圈铜绿光。",
+        "en": "Reforging: three dark gold-brown forge-fire beams shooting toward the center from three directions, a great burst of sparks where they meet like a hammer on an anvil, a ring of verdigris light glowing at the center once the sparks fall."
+      },
+      "ref": "oathbound_smiths",
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；誓炉三匠；三个方向要均匀。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_the_unquenched_open_furnace",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "开炉：中心一团炽白偏黄的炉火持续向外喷吐，火焰一阵比一阵高，外圈热浪扭曲成波纹，火星成串飞起。",
+        "en": "Open furnace: a white-hot yellowish forge fire at the center belching outward continuously, each surge higher than the last, the heat warping into ripples around it, strings of sparks flying up."
+      },
+      "ref": "the_unquenched",
+      "deps": ["art_vfx_school_fire_zone"],
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；不熄者的引导大招；炽白 #fff0c0、橙。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_the_unquenched_vent_burst",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "排气喷射：四个方向的排气口同时喷出白色蒸汽柱，蒸汽里夹着火星，喷射后中心的热浪一下降下去。",
+        "en": "Vent burst: white steam columns blasting from vents in four directions at once, sparks mixed into the steam, the heat at the center dropping sharply afterward."
+      },
+      "ref": "the_unquenched",
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；降温的解法提示；蒸汽用白与淡灰。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_stele_shadow_broken_blade_cleave",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "断剑劈斩：一道赤黑色的残缺弧光横扫，弧光像断剑一样缺了一截，扫过之处留下三道向下流的暗红光痕。",
+        "en": "Broken-blade cleave: a red-black arc sweeping across with a chunk missing like a broken sword, leaving three dark red streaks running downward where it passes."
+      },
+      "ref": "stele_shadow",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "战澱配色：赤黑 #5a1414、暗红 #a02424、亮红边 #e04a3a；斗碑之影。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_stele_shadow_red_ring_fire",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "碑前赤火：场地外圈燃起一圈赤红的火墙，火焰向内翻卷，越往外越旺，中心是一块没有火的空地。",
+        "en": "Fire before the stele: a ring of crimson flame burning along the outer edge, tongues curling inward, fiercer toward the outside, an empty space without fire at the center."
+      },
+      "ref": "stele_shadow",
+      "milestone": "M3",
+      "notes": "战澱配色：赤黑 #5a1414、暗红 #a02424、亮红边 #e04a3a；越退越疼，所以火墙与中心的分界要清楚。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_rootrot_matriarch_root_web",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "根网：几根苔绿的根须从地下钻出，根须之间迅速织起一张病黄色的网，网丝收紧后黏住中心。",
+        "en": "Root web: moss-green roots boring up from the ground, a sickly yellow web weaving rapidly between them, the strands tightening to bind the center."
+      },
+      "ref": "rootrot_matriarch",
+      "milestone": "M3",
+      "notes": "生澱配色：苔绿 #6a8a3a、腐褐 #6a4a2a、病黄绿；根腐之母；网丝要有亮边。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_sorrow_seedling_withering_branch",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "枯枝：几根干枯的腐褐色枝条从中心向外伸出，枝尖刺向四周，被刺中的位置冒出淡绿的光点，光点顺着枝条回流到中心。",
+        "en": "Withering branches: dry rot-brown branches reaching out from the center, their tips stabbing outward, pale green motes rising wherever they pierce and flowing back along the branches into the center."
+      },
+      "ref": "sorrow_seedling",
+      "milestone": "M3",
+      "notes": "生澱配色：苔绿 #6a8a3a、腐褐 #6a4a2a、病黄绿；悲苗的抽取大招。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_horn_guard_marshal_charge_cleave",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "冲锋劈斩：一条赤黑色的冲锋残影从左冲到右，尽头一道粗大的暗红弧光横劈，弧光后拖着骨白色的碎屑。",
+        "en": "Charge and cleave: a red-black charging afterimage rushing from left to right, ending in a broad dark red arc slashing across with bone-white debris trailing behind."
+      },
+      "ref": "horn_guard_marshal",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "战澱配色：赤黑 #5a1414、暗红 #a02424、亮红边 #e04a3a；角卫元帅。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_iron_horn_crown_coronation",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "加冕：一顶由四只铁角组成的暗铁色冠影从上方缓缓落下，冠影周围燃着赤黑的火，落定时一圈暗红光环向外压出。",
+        "en": "Coronation: a dark iron crown-shadow of four iron horns descending slowly from above, wreathed in red-black fire, a ring of dark red light pressing outward as it settles."
+      },
+      "ref": "iron_horn_crown",
+      "milestone": "M3",
+      "notes": "战澱配色：赤黑 #5a1414、暗红 #a02424、亮红边 #e04a3a；铁角冠的寻首机制；冠影只是轮廓，铁角要有银灰亮边。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_iron_horn_crown_horn_break",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "断角：一只铁角形的暗铁碎块从中间崩断，断口迸出赤红火星，碎块向外飞散，余火在断口处跳两下熄灭。",
+        "en": "Horn break: a dark iron horn-shaped piece snapping at its middle, crimson sparks bursting from the break, fragments flying outward, embers flickering twice at the break before dying."
+      },
+      "ref": "iron_horn_crown",
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M3",
+      "notes": "战澱配色：赤黑 #5a1414、暗红 #a02424、亮红边 #e04a3a；可碎部位被击碎时。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_first_king_echo_southern_march",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "南征：一道笔直的赤黑色冲锋带从左贯穿到右，带上排着几层骨白色的亡兵残影，冲锋带过后地面留下焦黑的直痕。",
+        "en": "Southern march: a perfectly straight red-black charging band driving through from left to right, rows of bone-white ghostly soldiers within it, leaving a scorched straight scar on the ground."
+      },
+      "ref": "first_king_echo",
+      "milestone": "M3",
+      "notes": "战澱配色：赤黑 #5a1414、暗红 #a02424、亮红边 #e04a3a；角冠残影；直线冲锋，导入时按方向旋转。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_porcelain_deacon_symmetry_judgment",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "对称审：以中心为轴，左右两侧同时亮起对称的瓷白光纹，不对称的位置落下一道冷白的光刺，光纹规整得令人不安。",
+        "en": "Symmetry judgment: mirrored porcelain-white light patterns lighting up on both sides of a central axis at once, a cold white spike of light falling wherever the symmetry breaks, unsettlingly orderly."
+      },
+      "ref": "porcelain_deacon",
+      "milestone": "M3",
+      "notes": "光澱配色：瓷白 #f4f2ea、骨白 #e8e0cc、冷白；白瓷执事；不用神光白金。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_porcelain_deacon_archive",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "归档：一个瓷白色的壁龛形光框从四周合拢，把中心框住，框边浮出细密的开片裂纹，随后光框定住发出冷光。",
+        "en": "Archiving: a porcelain-white niche-shaped frame of light closing in from all sides to enclose the center, fine crackle veins surfacing along its edges, then holding still with a cold glow."
+      },
+      "ref": "porcelain_deacon",
+      "milestone": "M3",
+      "notes": "光澱配色：瓷白 #f4f2ea、骨白 #e8e0cc、冷白；白瓷执事把成员关进壁龛；需队友敲开，所以框要醒目。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_undercroft_warden_holy_smite",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "暗守圣光：一道冷白色的光柱从上方砸下，光柱四周飞溅出骨白色的光屑，地面一圈白光一闪而散。",
+        "en": "Undercroft smite: a cold white pillar of light slamming down from above, bone-white flecks spraying around it, a ring of white light flashing on the ground and dispersing."
+      },
+      "ref": "undercroft_warden",
+      "deps": ["art_vfx_school_holy_hit"],
+      "milestone": "M3",
+      "notes": "光澱配色：瓷白 #f4f2ea、骨白 #e8e0cc、冷白；暗守队长；凡人神职的圣光，不用几何光环。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_martyr_remnant_martyr_sword",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "殉光剑：一道骨白色的光剑横扫半圈，剑光后拖着一圈瓷白的光环向外扩散，光环上竖着短短的光芒。",
+        "en": "Martyr's sword: a bone-white blade of light sweeping half a circle, dragging a porcelain-white ring outward behind it with short rays standing along it."
+      },
+      "ref": "martyr_remnant",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "光澱配色：瓷白 #f4f2ea、骨白 #e8e0cc、冷白；殉光圣者。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_martyr_remnant_self_offering",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "以身献光：中心的光越积越亮，冷白的光从内向外撑开，六帧里一点点膨胀，第七帧炸成一片刺眼的骨白光，最后只剩飘落的光尘。",
+        "en": "Self-offering: the light at the center building ever brighter, cold white pushing outward from within, swelling over six frames, exploding on the seventh into a blinding bone-white flash, leaving only drifting dust."
+      },
+      "ref": "martyr_remnant",
+      "milestone": "M3",
+      "notes": "光澱配色：瓷白 #f4f2ea、骨白 #e8e0cc、冷白；6 秒读条，未打断则全场重伤；前六帧是可行动的蓄力，要明显。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_doorway_leaners_doors_shut",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "闭门：画面四周竖起一圈灰白的门形轮廓，门一扇接一扇关上，关上时迸出一圈冷灰的寒气，寒气向中心涌去。",
+        "en": "Doors shut: a ring of grey-white door outlines rising around the edges, slamming shut one after another, each bursting a ring of cold grey chill that rushes toward the center."
+      },
+      "ref": "doorway_leaners",
+      "milestone": "M3",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90；倚门之群（活性期）；门是冷灰，不用门扉金（这些门已经死了）。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_doorway_leaners_doors_open",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "开门涌澱：四周的门形轮廓一扇扇打开，每扇门里涌出暗紫色的雾，雾流向中心汇聚成一片翻滚的暗潮。",
+        "en": "Doors open: the surrounding door outlines opening one by one, dark purple mist pouring from each and converging toward the center into a churning dark tide."
+      },
+      "ref": "doorway_leaners",
+      "deps": ["art_vfx_dian_surge"],
+      "milestone": "M3",
+      "notes": "倚门之群第二阶段；涌出的是澱，允许澱紫。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_ten_thousand_blades_blade_crown",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "剑冠：大量断剑形的赤黑光影从上方按圆形图案落下，图案一圈比一圈密，断剑插进地面时迸出暗红火星。",
+        "en": "Blade crown: a mass of red-black broken-sword shapes falling from above in a circular pattern, each ring denser than the last, crimson sparks bursting as they pierce the ground."
+      },
+      "ref": "ten_thousand_blades",
+      "milestone": "M3",
+      "notes": "战澱配色：赤黑 #5a1414、暗红 #a02424、亮红边 #e04a3a；万刃冢（澱涌之主）；混少量骨白（光澱）。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_ten_thousand_blades_blade_whirl",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "刃旋：一圈断刃光影绕着中心高速旋转，刃光赤黑带亮红边，旋转中不断有刃片甩出飞向外圈。",
+        "en": "Blade whirl: a ring of broken-blade shapes spinning at high speed around the center, red-black with bright red edges, shards flung out toward the outer ring as they turn."
+      },
+      "ref": "ten_thousand_blades",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "战澱配色：赤黑 #5a1414、暗红 #a02424、亮红边 #e04a3a；万刃冢第一阶段。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_bonecrown_swarm_plague_cloud",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "骨冕蝗云：一团黄褐色的蝗云翻卷游走，云团中心悬着一顶骨白色的冠形轮廓，虫点绕着骨冠转，偶有病绿的斑点落下。",
+        "en": "Bone-crowned swarm: a yellow-brown locust cloud churning and roving, a bone-white crown outline hanging at its center, specks circling it, occasional sickly green spots falling."
+      },
+      "ref": "bonecrown_swarm",
+      "milestone": "M3",
+      "notes": "生澱配色：苔绿 #6a8a3a、腐褐 #6a4a2a、病黄绿；骨冕蝗云（澱涌之主）；第二阶段分成三团时同图复用三份。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_bonecrown_swarm_crown_reveal",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "骨冠显形：蝗云向外散开，露出中心一顶骨白的冠，冠上燃起一圈苔绿与暗红交杂的光，向外压出一道冲击。",
+        "en": "Crown revealed: the locust cloud scattering outward to expose a bone-white crown at the center, which kindles a ring of mixed moss green and dark red light and presses out a shockwave."
+      },
+      "ref": "bonecrown_swarm",
+      "milestone": "M3",
+      "notes": "生澱配色：苔绿 #6a8a3a、腐褐 #6a4a2a、病黄绿；第三阶段的狂暴。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_goldtide_maw_coin_pilfer",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "吞金：一大片暗金褐的小硬币从四周被吸向中心，硬币在空中翻转闪光，汇入中心后凝成一层铜绿边的金甲光。",
+        "en": "Gold-swallowing: a broad swarm of small dark gold-brown coins drawn from all around toward the center, flipping and flashing in the air, congealing into a verdigris-rimmed armor of gold light once they merge."
+      },
+      "ref": "goldtide_maw",
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；吞金潮（澱涌之主）的范围抽成；币金不用门扉金。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_goldtide_maw_tide_split",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "分潮：一片暗金色的潮水从中心向两侧裂开，潮里翻滚着无数小钳子形的光点，潮水拍向两侧后碎成金屑。",
+        "en": "Splitting tide: a sheet of dark gold tide tearing apart from the center to either side, countless small pincer-shaped glints tumbling inside, breaking into gold flakes as it crashes outward."
+      },
+      "ref": "goldtide_maw",
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；第二阶段召拟金蟹。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_pale_choir_chorus_silence",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "圣咏副歌：一圈圈瓷白色的声波纹从中心整齐地荡开，波纹间距完全一致，副歌到来时所有光点同时熄灭成灰。",
+        "en": "Chorus silence: rings of porcelain-white sound waves spreading from the center in perfect order, spaced exactly evenly, every mote going out to grey at once when the refrain arrives."
+      },
+      "ref": "pale_choir",
+      "milestone": "M3",
+      "notes": "光澱配色：瓷白 #f4f2ea、骨白 #e8e0cc、冷白；白瓷圣咏（澱涌之主）的全场沉默。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_pale_choir_reliquary_heal",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "圣骨匣回流：四周几道骨白色的光流从圣骨匣方向流向中心，光流里浮着瓷片一样的碎光，汇入时中心一亮。",
+        "en": "Reliquary flow: several bone-white streams of light flowing toward the center from the reliquaries, porcelain-like shards of light floating within, the center brightening as they merge."
+      },
+      "ref": "pale_choir",
+      "milestone": "M3",
+      "notes": "光澱配色：瓷白 #f4f2ea、骨白 #e8e0cc、冷白；第三阶段的回复引导；每条光流都是可打断的目标。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_emperor_mortal_blade_mortal_blade",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "凡人之剑：一记毫无花样的直劈，剑光是朴素的钢灰色，落点没有爆炸，只有地面被齐齐切开的一道细缝与扬起的尘。",
+        "en": "The mortal blade: a straight downward cut with no flourish at all, its light plain steel grey, no explosion where it lands, only a clean thin slit cut in the ground and rising dust."
+      },
+      "ref": "emperor_mortal_blade",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "剑帝雷欧哈特三世的试剑；刻意朴素，不带任何加护色。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_hatching_mother_spore_fall",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "落粉：一大片病黄色的粉末从上方纷纷扬扬落下，粉粒里夹着细小的翅影，落地处浮起一层淡绿的烟。",
+        "en": "Spore fall: a broad drift of sickly yellow powder falling from above with tiny wing-shapes among the grains, a thin pale green smoke rising where it lands."
+      },
+      "ref": "hatching_mother",
+      "milestone": "M3",
+      "notes": "生澱配色：苔绿 #6a8a3a、腐褐 #6a4a2a、病黄绿；孵蝗母飞起后的范围脉冲。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_regret_bloom_season_turn",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "换季：中心一圈光环依次变成四种颜色：嫩绿的春、炽橙的夏、腐褐的秋、冰蓝的冬，每换一季光环向外推一次。",
+        "en": "Turning season: a ring of light at the center shifting through four colors in turn, tender green spring, blazing orange summer, rot-brown autumn and ice-blue winter, pushing outward once with each change."
+      },
+      "ref": "regret_bloom",
+      "milestone": "M3",
+      "notes": "生澱配色：苔绿 #6a8a3a、腐褐 #6a4a2a、病黄绿；枯环之心；每两帧一季，导入时按季拆段播放。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_regret_bloom_rot_bloom",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "花开即烂：地面一圈花苞同时绽开，花瓣刚张开就转成腐褐色卷曲，烂花里冒出病绿的孢子，孢子向上飘散。",
+        "en": "Bloom and rot: a ring of buds bursting open at once, the petals curling rot-brown the moment they spread, sickly green spores rising from the rotten blossoms."
+      },
+      "ref": "regret_bloom",
+      "milestone": "M3",
+      "notes": "生澱配色：苔绿 #6a8a3a、腐褐 #6a4a2a、病黄绿；枯环之心秋季的烂。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_womb_mouth_abyss_pull",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "渊口吸扯：四周的尘土与暗红光点被拉成一条条细线，全部朝画面一侧的深口涌去，深口边缘是一圈暗紫的亮边。",
+        "en": "Abyss pull: dust and dark red motes all around stretched into thin lines, every one rushing toward a deep mouth at one side, its rim a band of glowing dark purple."
+      },
+      "ref": "womb_mouth",
+      "deps": ["art_vfx_dian_surge"],
+      "milestone": "M3",
+      "notes": "战澱配色：赤黑 #5a1414、暗红 #a02424、亮红边 #e04a3a；胎口的拉拽；深口边缘是澱，允许澱紫。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_bloodmoon_afterimage_eclipse",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "月蚀：画面上方一轮暗红的月形光盘被黑影一点点吞没，月蚀完成时一圈暗红光环向下压出，周围的光点全部熄灭。",
+        "en": "Eclipse: a dark red moon-shaped disk at the top gradually swallowed by a black shadow, a ring of dark red light pressing downward when the eclipse completes, every surrounding mote going out."
+      },
+      "ref": "bloodmoon_afterimage",
+      "milestone": "M3",
+      "notes": "战澱配色：赤黑 #5a1414、暗红 #a02424、亮红边 #e04a3a；血月残像；黑影要有暗红亮边。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_bloodmoon_afterimage_blood_drain",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "血月汲取：几条暗红的光丝从四周连向中心，光丝里的红光点缓缓流向中心，中心一圈月形光晕随之变亮。",
+        "en": "Blood-moon drain: several dark red threads of light linking the surroundings to the center, red motes flowing slowly along them, a moon-shaped halo at the center brightening as they arrive."
+      },
+      "ref": "bloodmoon_afterimage",
+      "milestone": "M3",
+      "notes": "战澱配色：赤黑 #5a1414、暗红 #a02424、亮红边 #e04a3a；满月时的汲取强化。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_skyrend_afterimage_dive_storm",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "天裂俯冲：一道赤黑色的风暴残影从右上俯冲到左下，残影后卷起一圈旋转的风暴，风暴里闪着暗红的电光。",
+        "en": "Skyrend dive: a red-black storm afterimage diving from upper right to lower left, a spinning storm whirling up behind it with dark red lightning flickering inside."
+      },
+      "ref": "skyrend_afterimage",
+      "milestone": "M3",
+      "notes": "战澱配色：赤黑 #5a1414、暗红 #a02424、亮红边 #e04a3a；天裂残像；把人撞向渊边，方向要清楚。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_frosthorn_afterimage_frost_bone_wind",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "霜角寒风：一股冷白的寒风夹着骨白色的碎骨从右向左横扫，风里浮着暗红的霜角轮廓，风过之处结出薄霜。",
+        "en": "Frosthorn wind: a cold white gale carrying bone-white shards sweeping from right to left, dark red frost-horn outlines floating within, thin frost forming where it passes."
+      },
+      "ref": "frosthorn_afterimage",
+      "deps": ["art_vfx_school_frost_hit"],
+      "milestone": "M3",
+      "notes": "战澱配色：赤黑 #5a1414、暗红 #a02424、亮红边 #e04a3a；霜角残像；冰白为主，暗红只是角影。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_unborn_one_vessel_mark",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "择器：目标身周一圈暗紫色的雾环越收越紧，雾环上浮着赤黑的细纹，层数越多雾环越浓，像要把人装进去。",
+        "en": "Vessel mark: a ring of dark purple mist tightening around the target, red-black veins floating on it, denser with every stack, as if to pour the person into a vessel."
+      },
+      "ref": "unborn_one",
+      "deps": ["art_vfx_dian_surge"],
+      "milestone": "M3",
+      "notes": "未生者的择器标记；澱紫为主，可行动信息，层数感要清楚。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_unborn_one_crownless",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "无冠：中心一圈暗紫与赤黑交缠的漩涡猛地张开，漩涡中心空无一物，外圈炸出一圈带骨白碎片的冲击。",
+        "en": "Crownless: a vortex of intertwined dark purple and red-black snapping open at the center, empty at its heart, an outer ring exploding with a shockwave of bone-white fragments."
+      },
+      "ref": "unborn_one",
+      "deps": ["art_vfx_dian_surge"],
+      "milestone": "M3",
+      "notes": "未生者第三阶段；中心必须是空的。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_cairn_shieldbearer_shield_bash",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "冢前盾击：一面暗铁色的大盾影向前猛推，盾面迸出一圈厚重的冲击环，环上带着赤黑的锈光，冲击后尘土落下。",
+        "en": "Cairn shield bash: a great dark iron shield-shadow thrust forward, a heavy shock ring bursting from its face streaked with red-black rust light, dust settling afterward."
+      },
+      "ref": "cairn_shieldbearer",
+      "deps": ["art_vfx_school_phys_hit_blunt"],
+      "milestone": "M3",
+      "notes": "战澱配色：赤黑 #5a1414、暗红 #a02424、亮红边 #e04a3a；冢前盾卫的击退。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_backflow_light_final_cut_echo",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "终斩回响：一道骨白色的巨大斩光从下往上逆着劈起，光一边劈一边向内倒卷，五帧蓄力后在第六帧炸成刺眼的冷光。",
+        "en": "Echo of the final cut: a huge bone-white slash rising backward from below, curling inward as it cuts, charging for five frames before exploding into a blinding cold light on the sixth."
+      },
+      "ref": "backflow_light",
+      "milestone": "M3",
+      "notes": "光澱配色：瓷白 #f4f2ea、骨白 #e8e0cc、冷白；冢中逆光的 5 秒读条；前五帧的蓄力要醒目。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_fallen_hero_remnant_one_man_one_sword",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "一人一剑：一道干净的骨白剑光横斩，剑光边缘夹着一丝赤黑，斩过后两侧各迸出一圈格开的火花。",
+        "en": "One man, one sword: a clean bone-white sword light slashing across with a thread of red-black along its edge, a ring of parried sparks bursting on either side after the cut."
+      },
+      "ref": "fallen_hero_remnant",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "光澱配色：瓷白 #f4f2ea、骨白 #e8e0cc、冷白；堕勇残念；光澱与战澱混合，骨白为主。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_barnacle_choir_tide_hymn",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "藤壶唱诗：一圈圈铜绿色的声浪纹从中心荡开，声浪上浮着小小的贝壳形光点，副歌时声浪变成一圈灰白的静。",
+        "en": "Barnacle hymn: rings of verdigris sound waves spreading from the center with small shell-shaped glints floating on them, turning into a ring of grey-white stillness when the refrain comes."
+      },
+      "ref": "barnacle_choir",
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；藤壶唱诗团；副歌全团沉默。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_fleet_admiral_drowned_cannon_barrage",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "沉舰炮击：几团暗铜绿的炮弹光从上方划出弧线落下，落地炸开成水花与碎木屑，水花里夹着暗金的火星。",
+        "en": "Drowned barrage: several dark verdigris cannonball glows arcing down from above, bursting on impact into spray and splinters with dark gold sparks inside."
+      },
+      "ref": "fleet_admiral_drowned",
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；沉舰提督；落点预警由代码绘制。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_whale_heart_engine_heartbeat",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "鲸心搏动：中心一圈暗金褐的脉冲环随心跳向外扩开，第一下慢、后面越来越快，脉冲之间有短暂的空白。",
+        "en": "Whale-heart beat: a dark gold-brown pulse ring expanding from the center with each heartbeat, the first slow and each after faster, with brief blank gaps between pulses."
+      },
+      "ref": "whale_heart_engine",
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；鲸心；心跳之间才有破绽，空白帧要保留。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_abyss_lord_vestige_swallow_ship",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "吞舟：一张巨大的弧形暗影从下方合拢，暗影边缘是铜绿色的水光与翻卷的浪，合拢时中心一圈水花冲起。",
+        "en": "Swallowing the ship: a huge curved shadow closing from below, its rim a band of verdigris water-light and rolling waves, a ring of spray shooting up at the center as it shuts."
+      },
+      "ref": "abyss_lord_vestige",
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；渊主遗形；暗影要有铜绿亮边。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_abyss_lord_vestige_abyss_tide",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "渊潮：地面暗金褐与铜绿交杂的海水一涨一落，浪里浮着骨白色的肋骨形影子，水面泛着冷光。",
+        "en": "Abyssal tide: dark gold-brown and verdigris seawater rising and falling across the ground, bone-white rib-shaped shadows floating in the waves, a cold sheen on the surface."
+      },
+      "ref": "abyss_lord_vestige",
+      "milestone": "M3",
+      "notes": "契澱配色：暗金褐 #8a6a30、铜绿 #4a8a70、旧金；潮时机制的水面。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_faceless_king_rift_slash",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "裂门斩：一道巨大的扇形斩光向前劈开，斩光像撕开空气的裂缝，裂缝边缘是暗紫与冷灰，裂缝里透出一线门扉金的光。",
+        "en": "Rift slash: a huge fan-shaped slash cleaving forward like a tear ripped through the air, its edges dark purple and cold grey, a thin line of door-gold light showing inside the rift."
+      },
+      "ref": "faceless_king",
+      "deps": ["art_vfx_dian_surge"],
+      "milestone": "M3",
+      "notes": "无貌之王；澱紫为主，门扉金只是裂缝里的一线；扇形朝画面右方。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_faceless_king_dian_mark",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "澱痕：脚下一圈黑色的澱圈缓缓扩开，圈里翻涌着暗紫的雾与细碎的黑点，圈边一圈淡紫亮线，持续不散。",
+        "en": "Sediment mark: a black ring of sediment spreading slowly underfoot, dark purple mist and fine black specks churning inside, a pale lilac bright line around its edge, lingering."
+      },
+      "ref": "faceless_king",
+      "deps": ["art_vfx_dian_mist"],
+      "milestone": "M3",
+      "notes": "无貌之王的持续伤害圈；圈边亮线是可行动信息。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_faceless_king_door_tear",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "撕门：一道竖直的巨大裂缝在中心被一点点撕开，裂缝边缘翻卷着暗紫雾，裂缝深处是层层叠叠的门形暖金光，裂口越撕越宽。",
+        "en": "Tearing the door: a huge vertical rift being torn open bit by bit at the center, dark purple mist curling at its edges, layers of door-shaped warm gold light deep inside, the opening widening."
+      },
+      "ref": "faceless_king",
+      "deps": ["art_vfx_dian_surge"],
+      "milestone": "M3",
+      "notes": "无貌之王的转阶段；澱紫与门扉金同场。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_rotcrown_bloom_rot_regrowth",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "腐冠疯长：地面一片藤墙与花苞疯狂长出，花开到一半就烂成腐褐，烂处又冒出新芽，生与烂不停交替。",
+        "en": "Rotcrown overgrowth: a wall of vines and buds growing wildly across the ground, blossoms rotting brown halfway open, new shoots sprouting from the rot, growth and decay alternating endlessly."
+      },
+      "ref": "rotcrown_bloom",
+      "deps": ["art_vfx_school_nature_zone"],
+      "milestone": "M3",
+      "notes": "生澱配色：苔绿 #6a8a3a、腐褐 #6a4a2a、病黄绿；腐冠花潮（澱涌之主）。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_rotcrown_bloom_spore_plague",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "腐冠孢疫：中心一团腐褐色的烂花猛地炸开，病绿色的孢子雾向外翻滚扩散，孢子雾里夹着枯黄的花瓣。",
+        "en": "Rotcrown spore plague: a mass of rot-brown blossoms bursting at the center, a sickly green spore fog rolling outward with withered yellow petals inside."
+      },
+      "ref": "rotcrown_bloom",
+      "milestone": "M3",
+      "notes": "生澱配色：苔绿 #6a8a3a、腐褐 #6a4a2a、病黄绿；第二阶段的孢疫。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_redhorn_tide_redhorn_charge",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "红角冲：一整排赤黑色的角形冲锋残影从左向右贯穿全场，残影带着暗红的火边，冲过后地面留下几道焦黑直痕。",
+        "en": "Redhorn charge: an entire rank of red-black horn-shaped charging afterimages driving across the whole field from left to right, edged in dark red flame, leaving scorched straight scars behind."
+      },
+      "ref": "redhorn_tide",
+      "milestone": "M3",
+      "notes": "战澱配色：赤黑 #5a1414、暗红 #a02424、亮红边 #e04a3a；红角潮主（澱涌之主）的全场直线冲锋。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_redhorn_tide_war_horn",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "号角战吼：一圈赤黑色的号角声浪从中心推出，声浪里浮现一排角盔的剪影，剪影随声浪向外散去。",
+        "en": "War horn: a ring of red-black horn-blast sound waves pushed out from the center, a row of horned-helm silhouettes surfacing within and dispersing outward with the waves."
+      },
+      "ref": "redhorn_tide",
+      "milestone": "M3",
+      "notes": "战澱配色：赤黑 #5a1414、暗红 #a02424、亮红边 #e04a3a；第二阶段召角卫与渊胎。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_eluen_avatar_bell_barrage",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "钟声弹幕：一圈圈白金色的钟形光环从中心按完全对称的图案放射，光环排列成规整的几何阵列，一波接一波推向外圈。",
+        "en": "Bell barrage: rings of white-gold bell-shaped light radiating from the center in perfectly symmetrical patterns, arranged into an orderly geometric array, wave after wave pushing outward."
+      },
+      "ref": "eluen_avatar",
+      "milestone": "M3",
+      "notes": "光之化身；艾琉恩本人，神光白金加几何纹的正当用途；弹幕之间要留出可走的空隙。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_eluen_avatar_gear_halo",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "齿轮光环：一个巨大的白金色几何光环在中心缓缓转动，光环由多层精密的齿轮状圆环组成，每层转速不同，刻度光点不停闪烁。",
+        "en": "Gear halo: a huge white-gold geometric halo turning slowly at the center, made of several layers of precise gear-like rings each turning at its own speed, graduation motes blinking constantly."
+      },
+      "ref": "eluen_avatar",
+      "milestone": "M3",
+      "notes": "光之化身；光环上不画数字与文字。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_valda_broken_sword_broken_sword_duel",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "断剑之约：一道赤黑色的断剑弧光与一道朴素的钢白弧光在中心相撞，撞击点炸开一圈赤红与白交杂的火花，断剑尖端的红光久久不散。",
+        "en": "Pact of the broken sword: a red-black broken-sword arc and a plain steel-white arc clashing at the center, a ring of mixed crimson and white sparks bursting at the impact, the red glow at the broken tip lingering."
+      },
+      "ref": "valda_broken_sword",
+      "deps": ["art_vfx_school_phys_hit_slash"],
+      "milestone": "M3",
+      "notes": "断剑之约；瓦尔妲的赤黑与断角意象允许使用。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_door_corridor_war_closing_doors",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "回廊关门：层层叠叠的门形暖金光框悬在幽暗里，一扇接一扇重重合上，每合上一扇就熄灭一圈光，熄灭处荡开一圈冷风。",
+        "en": "Closing the corridor: layer upon layer of door-shaped warm gold frames hanging in the dark, slamming shut one after another, each closing extinguishing a ring of light and sending out a ring of cold wind."
+      },
+      "ref": "janu_corridor",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M3",
+      "notes": "千门回廊之战（第六幕）；关门是唯一的伤害手段，门扉金为主色；不点明对手是谁。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_five_courts_siege_five_court_seal",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "五司围庭：五种颜色的光（白金、赤黑、币金、苍绿、墨蓝）从五个方向同时压向中心，在中心交叠成一个五角形的光阵，光阵一层层收紧。",
+        "en": "Siege of the five courts: five lights of white-gold, red-black, coin gold, pale green and ink blue pressing in on the center from five directions at once, overlapping into a five-pointed light formation that tightens layer by layer."
+      },
+      "ref": "five_courts_siege",
+      "milestone": "M3",
+      "notes": "新神路线的五阶段终战；五色分量相等，光阵是几何图形不是文字。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_five_courts_gate_gate_stand",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "五司围门：一扇巨大的门形暖金光框立在中心，五色的光从四周撞向门框，门框每被撞一下就向外迸出一圈金光，岿然不动。",
+        "en": "Five courts at the gate: a huge door-shaped warm gold frame standing at the center, lights of five colors crashing into it from all around, each blow throwing out a ring of gold light while the frame stands unshaken."
+      },
+      "ref": "five_courts_gate",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M3",
+      "notes": "门之复辟路线的终战；门扉金与五色同场。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_proxy_champions_proxy_clash",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "代理之战：两道颜色不同的光柱从两侧冲向中心相撞，撞击处炸开一圈中性的白光，四周浮现一圈规整的约束光环，把战场框住。",
+        "en": "War of proxies: two pillars of light in different colors rushing from either side to clash at the center, a ring of neutral white bursting at the impact, an orderly ring of binding light surfacing around the field to fence it in."
+      },
+      "ref": "proxy_champions",
+      "milestone": "M3",
+      "notes": "某神之治路线；两道光柱画成中性的灰白，由渲染层按代理人所属女神着色。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_ash_vigil_stillness_of_ash",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "灰之静：一圈灰白色的静止波纹从中心推开，波纹经过之处的灰粒全部悬停在半空，画面冷而安静，像时间被按住。",
+        "en": "Stillness of ash: a ring of grey-white stillness pushing outward from the center, every ash grain it passes hanging motionless in midair, the scene cold and quiet as if time were held down."
+      },
+      "ref": "ash_vigil",
+      "milestone": "M3",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90；守门人阿什的威压阶段；整体偏冷。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_boss_ash_vigil_ink_dries",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "墨会干：一道发着冷灰光的划痕沿着看不见的墙缓缓延伸，划痕后的地面变成灼热的灰，灰里冒着细小的火星。",
+        "en": "The ink will dry: a scratch glowing cold grey extending slowly along an unseen wall, the ground behind it turning to searing ash with tiny sparks rising inside."
+      },
+      "ref": "ash_vigil",
+      "milestone": "M3",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90；阿什的引导大招；划痕是无字的发光线，绝不能出现文字。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    }
+  ]
+}

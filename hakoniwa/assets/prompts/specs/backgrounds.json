@@ -1,0 +1,1230 @@
+{
+  "category": "backgrounds",
+  "title": "远景天幕与剧情插画",
+  "sources": [
+    "docs/50_tech/art_pipeline.md",
+    "docs/40_design/world/map_briefs.md",
+    "docs/20_world/geography.md",
+    "docs/30_story/characters.md",
+    "docs/30_story/arcs/prologue_antechamber.md",
+    "docs/30_story/arcs/act1_borderstone.md",
+    "docs/30_story/arcs/act2_wallenburg.md",
+    "docs/30_story/arcs/act3_lothar_crisis.md",
+    "docs/30_story/arcs/act4_continental_board.md",
+    "docs/30_story/arcs/act5_war_of_races.md",
+    "docs/30_story/arcs/act6_review_and_epilogue.md"
+  ],
+  "items": [
+    {
+      "id": "art_bg_lothar_plain_far",
+      "template": "bg_layer",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "洛萨北境的远山：起伏的灰蓝丘陵一层叠一层向远处退去，丘坡覆着暗青色的铁杉林色块，最远处是带着残雪的淡灰山脊，越远越冷越灰",
+        "en": "Far hills of northern Lotha: rolling blue-gray hills receding layer after layer, dark teal ironhemlock forest patches on their slopes, a pale gray ridge with old snow farthest away, colder and grayer with distance"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "lothar_plain",
+      "deps": ["art_style_lothar_plain"],
+      "milestone": "M1",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_lothar_plain_mid",
+      "template": "bg_layer",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "北境乡野的中景：连绵的铁杉林线剪影 #3d6b3a，林间露出几处陶红屋顶、一座礼拜堂的尖顶与一座磨坊的屋脊，林线下缘是金黄的麦田边",
+        "en": "Middle ground of the northern countryside: a continuous ironhemlock treeline silhouette #3d6b3a with a few terracotta roofs, a chapel spire and a mill roof showing among the trees, the edge of golden wheat fields along its foot"
+      },
+      "extra": {
+        "zh": "这是中景层，叠在远山层前面；剪影上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the middle layer, laid in front of the far layer; everything above the silhouette is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "lothar_plain",
+      "deps": ["art_style_lothar_plain"],
+      "milestone": "M1",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_lothar_plain_clouds",
+      "template": "bg_layer",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "北境的云带：一条横向的积云带，云体是暖白与浅灰两级大色块，云底带一点暖灰，云间留出洋红",
+        "en": "A northern cloud band: a horizontal band of cumulus in two large steps of warm white and pale gray, a touch of warm gray along the base, magenta left between the clouds"
+      },
+      "extra": {
+        "zh": "这是云带层，云带悬在画面中上部，云以外全部是洋红；左右两端首尾无缝衔接；渲染时随时间缓慢漂移。",
+        "en": "This is the cloud band, hanging in the upper middle of the strip with magenta everywhere outside the clouds; the left and right ends join seamlessly; the renderer drifts it slowly over time."
+      },
+      "ref": "lothar_plain",
+      "deps": ["art_style_lothar_plain"],
+      "milestone": "M1",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_wild_forest_far",
+      "template": "bg_layer",
+      "style": "wild_forest",
+      "subject": {
+        "zh": "铁杉林的远景：层层叠叠的深绿针叶树冠铺满远处的山坡，最远处是被晨雾冲淡的蓝绿色山影",
+        "en": "Far view of the ironhemlock forest: layer upon layer of deep green conifer crowns covering the distant slopes, blue-green hill shapes washed out by morning mist farthest away"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "wild_forest",
+      "deps": ["art_style_wild_forest"],
+      "milestone": "M1",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_wild_forest_mid",
+      "template": "bg_layer",
+      "style": "wild_forest",
+      "subject": {
+        "zh": "野林的中景林线：高大的铁杉与阔叶树剪影 #2e5a30 参差排开，尖顶与圆冠交替，树冠间挂着薄雾带，林下一片幽暗",
+        "en": "Middle treeline of the wild forest: tall ironhemlock and broadleaf silhouettes in a ragged row, thin bands of mist caught among the crowns, pointed and rounded crowns alternating, darkness beneath"
+      },
+      "extra": {
+        "zh": "这是中景层，叠在远山层前面；剪影上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the middle layer, laid in front of the far layer; everything above the silhouette is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "wild_forest",
+      "deps": ["art_style_wild_forest"],
+      "milestone": "M1",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_wild_forest_clouds",
+      "template": "bg_layer",
+      "style": "wild_forest",
+      "subject": {
+        "zh": "林间的晨雾云带：低垂的白雾带横向延伸，雾体用浅灰绿与雾白两级色块，边缘是有序抖动的破碎边",
+        "en": "A band of forest morning mist: low white mist stretching sideways in two steps of pale gray-green and mist white, its edges broken up with ordered dithering"
+      },
+      "extra": {
+        "zh": "这是云带层，云带悬在画面中上部，云以外全部是洋红；左右两端首尾无缝衔接；渲染时随时间缓慢漂移。",
+        "en": "This is the cloud band, hanging in the upper middle of the strip with magenta everywhere outside the clouds; the left and right ends join seamlessly; the renderer drifts it slowly over time."
+      },
+      "ref": "wild_forest",
+      "deps": ["art_style_wild_forest"],
+      "milestone": "M1",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_ash_waste_far",
+      "template": "bg_layer",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "灰烬荒原的远景：灰白平缓的地平线，远处立着几副巨大的门框残骸剪影与石化树的枯枝，地平线上一线冷白的反光",
+        "en": "Far view of the Ashen Waste: a flat pale gray horizon with the silhouettes of a few colossal broken doorframes and petrified dead branches, a thin line of cold white glare along the horizon"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "ash_waste",
+      "deps": ["art_style_ash_waste"],
+      "milestone": "M1",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_ash_waste_mid",
+      "template": "bg_layer",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "荒原的中景：石化枯树林与倒塌的灰村残墙剪影，几簇淡紫晶体在剪影间闪着微光，地面是起伏的灰丘",
+        "en": "Middle ground of the waste: silhouettes of a petrified dead wood and collapsed hamlet walls, a few pale violet crystal clusters glinting among them, rolling ash dunes"
+      },
+      "extra": {
+        "zh": "这是中景层，叠在远山层前面；剪影上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the middle layer, laid in front of the far layer; everything above the silhouette is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "ash_waste",
+      "deps": ["art_style_ash_waste"],
+      "milestone": "M1",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_ash_waste_clouds",
+      "template": "bg_layer",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "红灰天光下的灰暴云带：沉重的灰褐云层横向铺开，云底泛着暗红，云间飘着细碎的余烬像素",
+        "en": "An ashstorm cloud band under a reddish gray sky: heavy gray-brown cloud spread sideways, a dark red glow along its base, tiny ember pixels drifting through it"
+      },
+      "extra": {
+        "zh": "这是云带层，云带悬在画面中上部，云以外全部是洋红；左右两端首尾无缝衔接；渲染时随时间缓慢漂移。",
+        "en": "This is the cloud band, hanging in the upper middle of the strip with magenta everywhere outside the clouds; the left and right ends join seamlessly; the renderer drifts it slowly over time."
+      },
+      "ref": "ash_waste",
+      "deps": ["art_style_ash_waste"],
+      "milestone": "M1",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_divine_court_far",
+      "template": "bg_layer",
+      "style": "divine_court",
+      "subject": {
+        "zh": "庭间之隙的远景：无边的雾白之中远远悬着几座小小的浮岛，岛上有白石与金色屋顶的剪影，越远越淡",
+        "en": "Far view of the gap between courts: in boundless mist white a few small floating islands hang far off, white stone and gold roof silhouettes on them, fainter with distance"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "divine_court",
+      "deps": ["art_style_divine_court"],
+      "milestone": "M1",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_divine_court_mid",
+      "template": "bg_layer",
+      "style": "divine_court",
+      "subject": {
+        "zh": "门内庭院边缘的中景：修剪整齐的绿篱与白石柱廊剪影，柱廊顶端有金色饰边，后面是柔和的雾白",
+        "en": "Middle ground at the edge of the inner court: trimmed hedges and a white stone colonnade silhouette with gold trim on top, soft mist white behind"
+      },
+      "extra": {
+        "zh": "这是中景层，叠在远山层前面；剪影上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the middle layer, laid in front of the far layer; everything above the silhouette is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "divine_court",
+      "deps": ["art_style_divine_court"],
+      "milestone": "M1",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_divine_court_clouds",
+      "template": "bg_layer",
+      "style": "divine_court",
+      "subject": {
+        "zh": "神庭的光云带：一条柔和的暖白云带 #f4f0e6，云体带淡金与淡紫两级，云边圆润整齐，云间飘着细小的光尘像素",
+        "en": "A band of radiant cloud over the divine court: a soft warm white band #f4f0e6 in two steps of pale gold and pale violet with neat rounded edges, tiny motes of light drifting between the clouds"
+      },
+      "extra": {
+        "zh": "这是云带层，云带悬在画面中上部，云以外全部是洋红；左右两端首尾无缝衔接；渲染时随时间缓慢漂移。",
+        "en": "This is the cloud band, hanging in the upper middle of the strip with magenta everywhere outside the clouds; the left and right ends join seamlessly; the renderer drifts it slowly over time."
+      },
+      "ref": "divine_court",
+      "deps": ["art_style_divine_court"],
+      "milestone": "M1",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_valen_city_far",
+      "template": "bg_layer",
+      "style": "valen_city",
+      "subject": {
+        "zh": "瓦伦河谷的远景：宽阔河谷两侧的灰蓝远山，河面像一条银灰色的带子蜿蜒向远方，远处丘陵上散着田块",
+        "en": "Far view of the Valen valley: blue-gray hills on both sides of the broad valley, the river winding away like a silver-gray ribbon, fields scattered over the distant hills"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "valen_city",
+      "deps": ["art_style_valen_city"],
+      "milestone": "M2",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_valen_city_mid",
+      "template": "bg_layer",
+      "style": "valen_city",
+      "subject": {
+        "zh": "洛萨大城的城郭剪影：厚重城墙与城门塔、山丘上的城堡塔楼、一座大教堂的尖顶与一片蓝灰石板屋顶，河港吊车的剪影立在城墙下",
+        "en": "A large Lothar city skyline: heavy walls and gate towers, castle towers on a hill, the spire of a great cathedral and a mass of blue-gray slate roofs, harbor crane silhouettes below the walls"
+      },
+      "extra": {
+        "zh": "这是中景层，叠在远山层前面；剪影上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the middle layer, laid in front of the far layer; everything above the silhouette is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "valen_city",
+      "deps": ["art_style_valen_city"],
+      "milestone": "M2",
+      "notes": "瓦伦堡与奥瑞恩王都共用这一层，不画任何一座城独有的地标；把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_valen_city_clouds",
+      "template": "bg_layer",
+      "style": "valen_city",
+      "subject": {
+        "zh": "河谷上空的云带：带着雨意的灰白层积云 #aaa59c 横向铺开，云块厚重成片，云底偏冷蓝灰 #56657a，云间露出几处洋红",
+        "en": "A cloud band over the valley: rain-heavy gray-white stratocumulus #aaa59c spread sideways in heavy sheets, its base cool blue-gray #56657a, a few gaps of magenta between"
+      },
+      "extra": {
+        "zh": "这是云带层，云带悬在画面中上部，云以外全部是洋红；左右两端首尾无缝衔接；渲染时随时间缓慢漂移。",
+        "en": "This is the cloud band, hanging in the upper middle of the strip with magenta everywhere outside the clouds; the left and right ends join seamlessly; the renderer drifts it slowly over time."
+      },
+      "ref": "valen_city",
+      "deps": ["art_style_valen_city"],
+      "milestone": "M2",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_holy_see_white_far",
+      "template": "bg_layer",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "白石丘陵的远景：起伏的白垩丘陵与橄榄林色块，丘顶散落着白色的村镇，远处海面一线浅蓝",
+        "en": "Far view of the white hills: rolling chalk hills and olive grove patches, white villages on the hilltops, a line of pale blue sea in the distance"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "holy_see_white",
+      "deps": ["art_style_holy_see_white"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_holy_see_white_mid",
+      "template": "bg_layer",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "瑟兰的穹顶群剪影：一片白石穹顶 #ddd8cc、钟楼与金色尖顶高低错落，最大的穹顶居中，城外是成排的橄榄树",
+        "en": "The domes of Seran: a cluster of white stone domes, bell towers and gold spires at varied heights with the largest dome in the middle, rows of olive trees outside the city"
+      },
+      "extra": {
+        "zh": "这是中景层，叠在远山层前面；剪影上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the middle layer, laid in front of the far layer; everything above the silhouette is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "holy_see_white",
+      "deps": ["art_style_holy_see_white"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_holy_see_white_clouds",
+      "template": "bg_layer",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "教国的晴空云带：几朵边缘清楚的白色积云 #f8f4e8 稀疏地排开，云体明亮饱满，阴面是淡淡的灰蓝 #5a6e8c",
+        "en": "A fair-weather cloud band over the Holy See: a few crisp-edged white cumulus #f8f4e8 spaced apart, bright and full, with faint gray-blue #5a6e8c shaded sides"
+      },
+      "extra": {
+        "zh": "这是云带层，云带悬在画面中上部，云以外全部是洋红；左右两端首尾无缝衔接；渲染时随时间缓慢漂移。",
+        "en": "This is the cloud band, hanging in the upper middle of the strip with magenta everywhere outside the clouds; the left and right ends join seamlessly; the renderer drifts it slowly over time."
+      },
+      "ref": "holy_see_white",
+      "deps": ["art_style_holy_see_white"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_grantia_ochre_far",
+      "template": "bg_layer",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "千穗平原的远景：一望无际的金黄麦浪 #d8b45a 起伏到天边，远处一线钢灰色的长垒 #6a6e74 沿着高地延伸",
+        "en": "Far view of the Thousand-Ear Plain: endless golden wheat #d8b45a rolling to the horizon, a steel-gray line of the Long Rampart #6a6e74 running along the high ground far away"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "grantia_ochre",
+      "deps": ["art_style_grantia_ochre"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_grantia_ochre_mid",
+      "template": "bg_layer",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "帝都的城郭剪影：赭红城墙 #a85a3a、圆形竞技场、钟塔与皇宫塔楼，城外是一片整齐的军营帐篷",
+        "en": "The imperial capital skyline: ochre walls #a85a3a, the round arena, the clock tower and palace towers, an orderly field of legion tents outside the walls"
+      },
+      "extra": {
+        "zh": "这是中景层，叠在远山层前面；剪影上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the middle layer, laid in front of the far layer; everything above the silhouette is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "grantia_ochre",
+      "deps": ["art_style_grantia_ochre"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_grantia_ochre_clouds",
+      "template": "bg_layer",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "平原上空的高积云带：成排整齐的白色小云块 #e8cf86 偏暖，一排排像列队的士兵，阴面偏钢灰 #8e9298",
+        "en": "An altocumulus band over the plain: neat rows of small warm white cloudlets #e8cf86 like soldiers in ranks, steel-gray #8e9298 shaded sides"
+      },
+      "extra": {
+        "zh": "这是云带层，云带悬在画面中上部，云以外全部是洋红；左右两端首尾无缝衔接；渲染时随时间缓慢漂移。",
+        "en": "This is the cloud band, hanging in the upper middle of the strip with magenta everywhere outside the clouds; the left and right ends join seamlessly; the renderer drifts it slowly over time."
+      },
+      "ref": "grantia_ochre",
+      "deps": ["art_style_grantia_ochre"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_mercato_coast_far",
+      "template": "bg_layer",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "金湾的海景远景：海蓝的海面与远处的半岛岬角，海平线上点着几片白帆，最远处一座火山冒着淡淡的烟",
+        "en": "Far seascape of Goldbay: sea-blue water and a distant headland, a few white sails on the horizon, a volcano trailing faint smoke farthest away"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "mercato_coast",
+      "deps": ["art_style_mercato_coast"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_mercato_coast_mid",
+      "template": "bg_layer",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "港城的天际线剪影：赤陶屋顶层层叠叠，交易所的铜绿穹顶、灯塔与码头吊杆，港内停着高桅帆船",
+        "en": "The harbor city skyline: tier upon tier of terracotta roofs, the verdigris dome of the exchange, a lighthouse and wharf cranes, tall-masted ships in the harbor"
+      },
+      "extra": {
+        "zh": "这是中景层，叠在远山层前面；剪影上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the middle layer, laid in front of the far layer; everything above the silhouette is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "mercato_coast",
+      "deps": ["art_style_mercato_coast"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_mercato_coast_clouds",
+      "template": "bg_layer",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "海风吹出的云带：明亮的白云 #f0e6d0 被海风扯成一条条细长的流云，阴面是海蓝灰 #5aa0c8，云条方向一致",
+        "en": "A wind-drawn cloud band: bright white clouds #f0e6d0 pulled by the sea wind into long thin streaks all running the same way, sea-blue gray #5aa0c8 on their shaded sides"
+      },
+      "extra": {
+        "zh": "这是云带层，云带悬在画面中上部，云以外全部是洋红；左右两端首尾无缝衔接；渲染时随时间缓慢漂移。",
+        "en": "This is the cloud band, hanging in the upper middle of the strip with magenta everywhere outside the clouds; the left and right ends join seamlessly; the renderer drifts it slowly over time."
+      },
+      "ref": "mercato_coast",
+      "deps": ["art_style_mercato_coast"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_silva_canopy_far",
+      "template": "bg_layer",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "希尔瓦大森林的远景：参天巨树的树冠连成起伏的绿色云海，远处一棵比其他巨树高出许多的大树剪影没入雾中",
+        "en": "Far view of the Silva Forest: the crowns of towering trees merging into a rolling green sea, the silhouette of one tree far taller than all the rest fading into mist"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "silva_canopy",
+      "deps": ["art_style_silva_canopy"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_silva_canopy_mid",
+      "template": "bg_layer",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "林冠层的中景：巨树树干 #a8b4bc 如石柱般排列，树间挂着藤桥与吊台与几点浅青的灯光，银色树皮在雾中发亮",
+        "en": "Middle ground of the canopy: giant trunks standing like stone pillars, vine bridges, hanging platforms and a few pale blue lamps between them, silver bark #a8b4bc gleaming in the mist"
+      },
+      "extra": {
+        "zh": "这是中景层，叠在远山层前面；剪影上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the middle layer, laid in front of the far layer; everything above the silhouette is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "silva_canopy",
+      "deps": ["art_style_silva_canopy"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_silva_canopy_clouds",
+      "template": "bg_layer",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "雾白的林间云带：大片柔软的雾团 #e8eee8 横向漂浮，带着淡淡的银绿色 #b8c8b0，雾团之间有发光苔花的零星光点",
+        "en": "A band of misty forest cloud: large soft banks of mist #e8eee8 drifting sideways with a faint silver-green #b8c8b0 tint and a few specks of light from glowing moss flowers"
+      },
+      "extra": {
+        "zh": "这是云带层，云带悬在画面中上部，云以外全部是洋红；左右两端首尾无缝衔接；渲染时随时间缓慢漂移。",
+        "en": "This is the cloud band, hanging in the upper middle of the strip with magenta everywhere outside the clouds; the left and right ends join seamlessly; the renderer drifts it slowly over time."
+      },
+      "ref": "silva_canopy",
+      "deps": ["art_style_silva_canopy"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_windfang_steppe_far",
+      "template": "bg_layer",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "风牙草原的远景：低平的黄色草原地平线，远处一根獠牙状的巨岩柱刺向天空，地平线上散落着几点毡帐",
+        "en": "Far view of the Windfang Steppe: a low flat horizon of yellow grassland, a fang-shaped rock pillar stabbing the sky in the distance, a few felt tents dotted along the horizon"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "windfang_steppe",
+      "deps": ["art_style_windfang_steppe"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_windfang_steppe_mid",
+      "template": "bg_layer",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "草原的中景：起伏的黄草坡 #c8b46a 与几座圆形毡帐剪影，一群马与角兽在坡上，营地边立着图腾柱",
+        "en": "Middle ground of the steppe: rolling yellow grassy slopes #c8b46a with round felt tent silhouettes, a herd of horses and horned beasts on the slope, totem poles at the edge of the camp"
+      },
+      "extra": {
+        "zh": "这是中景层，叠在远山层前面；剪影上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the middle layer, laid in front of the far layer; everything above the silhouette is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "windfang_steppe",
+      "deps": ["art_style_windfang_steppe"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_windfang_steppe_clouds",
+      "template": "bg_layer",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "辽阔天空的大朵积云带：巨大的白色积云 #e8dcc4 一朵朵横向排开，云顶高耸，云底平直，阴面淡蓝灰 #a8cce8",
+        "en": "A band of towering cumulus under a vast sky: huge white cumulus #e8dcc4 lined up sideways, tall tops and flat bases, pale blue-gray #a8cce8 shaded sides"
+      },
+      "extra": {
+        "zh": "这是云带层，云带悬在画面中上部，云以外全部是洋红；左右两端首尾无缝衔接；渲染时随时间缓慢漂移。",
+        "en": "This is the cloud band, hanging in the upper middle of the strip with magenta everywhere outside the clouds; the left and right ends join seamlessly; the renderer drifts it slowly over time."
+      },
+      "ref": "windfang_steppe",
+      "deps": ["art_style_windfang_steppe"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_night_basalt_far",
+      "template": "bg_layer",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "夜境的远景：黑色的火山群剪影，最高的火山口冒着暗红的光与烟柱，山脚下是冻原的灰色平地",
+        "en": "Far view of the Nightrealm: black volcano silhouettes, the tallest crater glowing dark red under a column of smoke, gray tundra flats at their feet"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "night_basalt",
+      "deps": ["art_style_night_basalt"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_night_basalt_mid",
+      "template": "bg_layer",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "黯冠城的城郭剪影：黑岩城墙、角冠式尖塔与暗夜王宫的塔楼，窗里透出暗红灯火，城边升起温泉的白汽",
+        "en": "The Duskcrown skyline: black basalt walls, horn-crowned spires and the towers of the night palace, dark red lights in the windows, white steam rising from hot springs at the edge of the city"
+      },
+      "extra": {
+        "zh": "这是中景层，叠在远山层前面；剪影上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the middle layer, laid in front of the far layer; everything above the silhouette is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "night_basalt",
+      "deps": ["art_style_night_basalt"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_night_basalt_clouds",
+      "template": "bg_layer",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "火山烟云带：低垂的黑灰烟云 #2e2a2c 横向翻卷，烟团厚重，云底被火光映成暗红 #8a2a22，烟里夹着零星的火星",
+        "en": "A volcanic smoke band: low heavy black-gray smoke clouds #2e2a2c rolling sideways, their undersides lit dark red #8a2a22 by fire, a few sparks caught in the smoke"
+      },
+      "extra": {
+        "zh": "这是云带层，云带悬在画面中上部，云以外全部是洋红；左右两端首尾无缝衔接；渲染时随时间缓慢漂移。",
+        "en": "This is the cloud band, hanging in the upper middle of the strip with magenta everywhere outside the clouds; the left and right ends join seamlessly; the renderer drifts it slowly over time."
+      },
+      "ref": "night_basalt",
+      "deps": ["art_style_night_basalt"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_sleepscale_snow_far",
+      "template": "bg_layer",
+      "style": "sleepscale_snow",
+      "subject": {
+        "zh": "眠鳞山脉的远景：冰蓝 #7aa0c4 的雪峰层层叠叠，最高的一座尖峰直刺天顶，峰腰缠着白色云海",
+        "en": "Far view of the Sleepscale Range: ice-blue #7aa0c4 snow peaks layered one behind another, the tallest needle peak stabbing up toward the zenith, a white sea of cloud wrapped around its flanks"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "sleepscale_snow",
+      "deps": ["art_style_sleepscale_snow"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_sleepscale_snow_mid",
+      "template": "bg_layer",
+      "style": "sleepscale_snow",
+      "subject": {
+        "zh": "雪岭的中景：积雪的深绿松林与陡峭的冰蓝峭壁 #4a6a8a 剪影，峭壁上挂着一条石砌栈道与驿站小屋",
+        "en": "Middle ground of the snow range: snowy dark green pine woods and steep ice-blue cliff silhouettes #4a6a8a, a stone plankway and a little way station clinging to the cliff"
+      },
+      "extra": {
+        "zh": "这是中景层，叠在远山层前面；剪影上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the middle layer, laid in front of the far layer; everything above the silhouette is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "sleepscale_snow",
+      "deps": ["art_style_sleepscale_snow"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_sleepscale_snow_clouds",
+      "template": "bg_layer",
+      "style": "sleepscale_snow",
+      "subject": {
+        "zh": "峰下的云海带：大片云海平铺开去，云顶雪白 #f6fafc，云底冷蓝 #a8c8e4，远处掠过一道巨大的龙影",
+        "en": "A sea of cloud below the peaks: a wide flat expanse of cloud, snow white #f6fafc on top and cool blue #a8c8e4 underneath, a huge dragon shadow gliding far off"
+      },
+      "extra": {
+        "zh": "这是云带层，云带悬在画面中上部，云以外全部是洋红；左右两端首尾无缝衔接；渲染时随时间缓慢漂移。",
+        "en": "This is the cloud band, hanging in the upper middle of the strip with magenta everywhere outside the clouds; the left and right ends join seamlessly; the renderer drifts it slowly over time."
+      },
+      "ref": "sleepscale_snow",
+      "deps": ["art_style_sleepscale_snow"],
+      "milestone": "M3",
+      "notes": "把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_sky_earth_night_city_far",
+      "template": "bg_layer",
+      "style": "earth_modern",
+      "subject": {
+        "zh": "地球夜城的远景：雨夜里层层叠叠的高楼剪影，窗口亮着零星的冷白与暖黄小灯，楼顶闪着红色的航空灯，没有任何招牌与文字",
+        "en": "Far view of a night city on Earth: layer upon layer of high-rise silhouettes in the rain, scattered cold white and warm yellow window lights, red aircraft lights on the rooftops, no signs or lettering"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "sky_earth_night_city",
+      "deps": ["art_style_earth_modern"],
+      "milestone": "M1",
+      "notes": "特殊天幕。序章四个地球开场的室外远景；招牌、广告牌只用无字色块。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_sky_earth_night_city_near",
+      "template": "bg_layer",
+      "style": "earth_modern",
+      "subject": {
+        "zh": "夜城的近层：一段高架铁轨、电线杆与电线的剪影横贯画面，雨中的路灯光晕画成硬边色块",
+        "en": "Near layer of the night city: an elevated rail line, utility poles and wires in silhouette across the strip, streetlight halos in the rain drawn as hard-edged shapes"
+      },
+      "extra": {
+        "zh": "这是特殊天幕的近层，叠在远层前面；画出的部分以外全部是洋红；左右两端首尾无缝衔接。",
+        "en": "This is the near layer of a special sky, laid in front of its far layer; magenta everywhere outside what is drawn; the left and right ends join seamlessly."
+      },
+      "ref": "sky_earth_night_city",
+      "deps": ["art_style_earth_modern", "art_bg_sky_earth_night_city_far"],
+      "milestone": "M1",
+      "notes": "特殊天幕。序章四个地球开场的室外远景；招牌、广告牌只用无字色块。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_sky_dream_door_sea_far",
+      "template": "bg_layer",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "梦境门海的远景：无边的幽暗里漂着成千上万扇门的剪影，远处的门小如星点，门缝透出暖白偏金的微光",
+        "en": "Far view of the sea of doors in dreams: in boundless dark thousands of door silhouettes drift, the farthest as small as stars, warm white-gold light seeping from their cracks"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "sky_dream_door_sea",
+      "deps": ["art_style_door_corridor"],
+      "milestone": "M1",
+      "notes": "特殊天幕。梦境里不画任何人物。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_sky_dream_door_sea_near",
+      "template": "bg_layer",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "门海的近层：几扇大大小小的旧门 #3a3a46 与空门框横向漂浮，有的半开，门缝透着暖白偏金的光，门后是更深的暗",
+        "en": "Near layer of the sea of doors: a few old doors and empty frames of different sizes floating sideways, some half open with warm white-gold light at the gaps and deeper dark behind them"
+      },
+      "extra": {
+        "zh": "这是特殊天幕的近层，叠在远层前面；画出的部分以外全部是洋红；左右两端首尾无缝衔接。",
+        "en": "This is the near layer of a special sky, laid in front of its far layer; magenta everywhere outside what is drawn; the left and right ends join seamlessly."
+      },
+      "ref": "sky_dream_door_sea",
+      "deps": ["art_style_door_corridor", "art_bg_sky_dream_door_sea_far"],
+      "milestone": "M1",
+      "notes": "特殊天幕。梦境里不画任何人物。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_sky_divine_heights_far",
+      "template": "bg_layer",
+      "style": "divine_court",
+      "subject": {
+        "zh": "神域高空的远景：脚下极远处铺着一整片白金色的云海，云海的缝隙里隐约看得见一片小小的陆地",
+        "en": "Far view of the divine heights: a whole sea of white-gold cloud spread far below, a small patch of land faintly visible through a gap in the clouds"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "sky_divine_heights",
+      "deps": ["art_style_divine_court"],
+      "milestone": "M3",
+      "notes": "特殊天幕。光柱是保留的神光白金，只在这一套天幕里大面积使用。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_sky_divine_heights_near",
+      "template": "bg_layer",
+      "style": "divine_court",
+      "subject": {
+        "zh": "神域高空的近层：几道柔和的白金光柱从上方垂下，穿过近处缓慢漂浮的白云，光柱边缘是硬边",
+        "en": "Near layer of the divine heights: a few soft white-gold shafts of light falling from above through slow nearby clouds, the shafts hard-edged"
+      },
+      "extra": {
+        "zh": "这是特殊天幕的近层，叠在远层前面；画出的部分以外全部是洋红；左右两端首尾无缝衔接。",
+        "en": "This is the near layer of a special sky, laid in front of its far layer; magenta everywhere outside what is drawn; the left and right ends join seamlessly."
+      },
+      "ref": "sky_divine_heights",
+      "deps": ["art_style_divine_court", "art_bg_sky_divine_heights_far"],
+      "milestone": "M3",
+      "notes": "特殊天幕。光柱是保留的神光白金，只在这一套天幕里大面积使用。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_sky_vault_far",
+      "template": "bg_layer",
+      "style": "divine_court",
+      "subject": {
+        "zh": "天穹的远景：一片极其辽阔、微微弯曲的淡色天幕，星辰排成过分整齐的弧线与网格，像被人仔细排列过",
+        "en": "Far view of the Vault: an immense, slightly curved pale sky, its stars arranged in arcs and grids far too orderly, as if placed by hand"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "sky_vault",
+      "deps": ["art_style_divine_court"],
+      "milestone": "M3",
+      "notes": "特殊天幕。第六幕起可见；星点要整齐得让人觉得不对劲，但不能像文字或图案。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_sky_vault_near",
+      "template": "bg_layer",
+      "style": "divine_court",
+      "subject": {
+        "zh": "天穹下缘的光带：一条横贯画面的淡金与淡紫光带，带边是硬边的两级色阶，光带里有细小而规则的光点缓慢移动",
+        "en": "Near layer along the lower edge of the Vault: a band of pale gold and pale violet light across the strip with hard-edged two-step borders, small regular points of light moving slowly inside it"
+      },
+      "extra": {
+        "zh": "这是特殊天幕的近层，叠在远层前面；画出的部分以外全部是洋红；左右两端首尾无缝衔接。",
+        "en": "This is the near layer of a special sky, laid in front of its far layer; magenta everywhere outside what is drawn; the left and right ends join seamlessly."
+      },
+      "ref": "sky_vault",
+      "deps": ["art_style_divine_court", "art_bg_sky_vault_far"],
+      "milestone": "M3",
+      "notes": "特殊天幕。第六幕起可见；星点要整齐得让人觉得不对劲，但不能像文字或图案。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_sky_mist_edge_far",
+      "template": "bg_layer",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "终雾边缘的远景：海平线上一道从海面直立到天顶的灰白雾墙，雾墙表面缓慢翻涌，没有任何缺口",
+        "en": "Far view of the Ending Mist: a gray-white wall of mist rising straight from the sea to the zenith along the horizon, its face slowly churning, without a single gap"
+      },
+      "extra": {
+        "zh": "这是远山层，天幕最远的一层，视差最小；层的上缘以上全部是洋红天空，下缘贴住画面底边；左右两端首尾无缝衔接。",
+        "en": "This is the far layer, the farthest band of the backdrop with the least parallax; everything above its upper edge is magenta sky and its lower edge rests on the image bottom; the left and right ends join seamlessly."
+      },
+      "ref": "sky_mist_edge",
+      "deps": ["art_style_mercato_coast"],
+      "milestone": "M3",
+      "notes": "特殊天幕。结局演出用；雾墙占据远层的整个上半，越往上越接近洋红天空的位置时直接截断。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_sky_mist_edge_near",
+      "template": "bg_layer",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "雾墙前的近层：低低的白色雾带贴着海蓝的海面横向漂浮，雾中露出一座孤零零的石砌望雾塔剪影",
+        "en": "Near layer before the mist wall: low white mist drifting sideways just above the sea-blue water, the lone silhouette of a stone mist-watch tower showing through it"
+      },
+      "extra": {
+        "zh": "这是特殊天幕的近层，叠在远层前面；画出的部分以外全部是洋红；左右两端首尾无缝衔接。",
+        "en": "This is the near layer of a special sky, laid in front of its far layer; magenta everywhere outside what is drawn; the left and right ends join seamlessly."
+      },
+      "ref": "sky_mist_edge",
+      "deps": ["art_style_mercato_coast", "art_bg_sky_mist_edge_far"],
+      "milestone": "M3",
+      "notes": "特殊天幕。结局演出用；雾墙占据远层的整个上半，越往上越接近洋红天空的位置时直接截断。把图左右拼接两次检查首尾衔接；越远越冷越灰；天空必须是平涂洋红，天空渐变、日月与星空由渲染层画；不画人物与文字。"
+    },
+    {
+      "id": "art_bg_cut_floor_door",
+      "template": "bg_cg",
+      "style": "divine_court",
+      "subject": {
+        "zh": "候见厅的判决之后：纯白大厅里，长桌后五位女神被白光勾勒出身影，正中白金长发、背后有几何光环的女神抬着手；桌前玩家脚下的白石地板化作一个门形的洞，没有底，玩家正向下坠落",
+        "en": "After the judgement in the antechamber: in a pure white hall five goddesses sit behind a long table outlined by white light, the one at the center with platinum hair and a geometric halo raising her hand; before the table the white floor under the player has become a bottomless door-shaped hole and the player is falling into it"
+      },
+      "extra": {
+        "zh": "高俯视，长桌在画面上方三分之一，门形的洞在中下部，玩家只是一个正在下坠的剪影，衣角向上飘；洞里纯黑，光来自上方的白。",
+        "en": "High angle: the long table in the upper third, the door-shaped hole in the lower middle, the player only a falling silhouette with clothes fluttering upward; the hole is pure black, the light comes from the white above."
+      },
+      "ref": "cut_p_discard",
+      "deps": [
+        "art_style_divine_court",
+        "art_chr_eluen_ref",
+        "art_chr_valda_ref",
+        "art_chr_merca_ref",
+        "art_chr_sylvie_ref",
+        "art_chr_moira_ref"
+      ],
+      "milestone": "M1",
+      "notes": "序章的高潮画面。女神们的脸可以很小，靠剪影与配色区分：光环、断角、硬币、花发、兜帽。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a1_colossus",
+      "template": "bg_cg",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "兽潮之夜的午夜：边石镇北门外，一具由灰黑碎石与焦木堆成的巨像高过城墙，胸口嵌着一团暗紫发光的核，镇上的钟楼与木栅映着火光，守军举着火把与长枪，夜空无月",
+        "en": "Midnight of the night of the beast tide: outside the north gate of Edgestone a colossus heaped from gray-black rubble and charred timber towers over the wall, a dark purple glowing core lodged in its chest, the town bell tower and palisade lit by fire, defenders holding torches and spears, a moonless sky"
+      },
+      "extra": {
+        "zh": "高机位远景，巨像在画面左上方压下来，木栅与守军在右下；火把的暖光与核的暗紫是仅有的两种光。",
+        "en": "High wide shot, the colossus looming down from the upper left, the palisade and defenders lower right; torch warmth and the dark purple of the core are the only two lights."
+      },
+      "ref": "cut_a1_tide",
+      "deps": ["art_style_lothar_plain"],
+      "milestone": "M1",
+      "notes": "暗紫只用在巨像的核上。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a1_martha_light",
+      "template": "bg_cg",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "黎明前的一刀：边石镇一道栅门前，深红短发、系着围裙的高大女人双手握着一把宽刃长刀，刀光像一道白线横贯夜色，把扑来的灰黑潮水一刀斩断，照亮了半个镇子",
+        "en": "One stroke before dawn: before a palisade gate of Edgestone a tall woman with short crimson hair and an apron holds a broad-bladed long sword in both hands, its light a single white line across the night, cutting the onrushing gray-black tide in two and lighting up half the town"
+      },
+      "extra": {
+        "zh": "高机位远景，刀光的白线斜贯画面中部，女人在线的左端是一个小小的剪影；被斩开的潮水在两侧翻起；远处屋顶上有几个看呆的人影。",
+        "en": "High wide shot, the white line of the stroke slanting across the middle, the woman a small silhouette at its left end; the split tide rearing on both sides; a few stunned figures on distant rooftops."
+      },
+      "ref": "cut_a1_martha",
+      "deps": ["art_style_lothar_plain", "art_chr_martha_ref"],
+      "milestone": "M1",
+      "notes": "看见的人很多、看清的人很少：人物要小，刀光要大。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a1_dream_door",
+      "template": "bg_cg",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "梦中的门口：像夜里关了灯的房间那样的黑，前方一扇门开着一条缝，暖色的光从缝里漏出来，门口站着一个女人，脸有一半在阴影里，腰间挂满一动不动的钥匙",
+        "en": "The doorway in the dream: darkness like a room at night with the lights off, ahead a door open a crack with warm light spilling out, a woman standing in the doorway with half her face in shadow and many keys hanging motionless at her waist"
+      },
+      "extra": {
+        "zh": "标准机位中景，门在画面正中偏右，女人站在门口的光里，只看得清下半张脸与钥匙；其余全是暗。",
+        "en": "Standard angle medium shot, the door just right of center, the woman standing in its light, only the lower half of her face and the keys clearly visible; everything else dark."
+      },
+      "ref": "cut_a1_dream",
+      "deps": ["art_style_door_corridor", "art_chr_door_woman_ref"],
+      "milestone": "M1",
+      "notes": "她只能叫门口的女人：不画任何可以辨认的名字或标记。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a1_dream_court",
+      "template": "bg_cg",
+      "style": "divine_court",
+      "subject": {
+        "zh": "门后的小院：门被推开，门后是一个小小的院子，一间木头小屋、一小片翻过土的园子和一棵树，晨光柔和，一切都很小却很安静，院子正中空着一块地",
+        "en": "The little yard behind the door: the door swings open on a small yard, a wooden cottage, a small patch of turned soil and a single tree, soft morning light, everything small but very quiet, a clear spot left empty in the middle of the yard"
+      },
+      "extra": {
+        "zh": "标准机位全景，从门框里看进去，门框的暗边框住画面；院子正中留一块空地，给叠层画上的第一件物品。",
+        "en": "Standard angle full shot looking in through the doorframe, whose dark edges frame the picture; an empty spot in the middle of the yard for the first object, which is drawn as an overlay."
+      },
+      "ref": "cut_a1_mark",
+      "deps": ["art_style_divine_court"],
+      "milestone": "M1",
+      "notes": "第一件物品有十种，用叠层另画，这张不画。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a1_letter",
+      "template": "bg_cg",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "伯爵来信：清晨的边石镇南门驿站，驿卒刚下马，马鼻喷着白气，独臂的老登记员站在驿站门口拿着一封带暗红火漆的信，门外的南大路穿过麦田缓坡伸向远方的地平线",
+        "en": "The count letter: early morning at the Edgestone south gate post station, a courier just dismounted with his horse breathing white, the one-armed old registrar standing in the station door holding a letter sealed in dark red wax, the south road running out through the sloping wheat fields to the far horizon"
+      },
+      "extra": {
+        "zh": "高机位，人物在画面下方三分之一，南大路占据画面纵深，远处地平线上是淡淡的城影：第一幕最后的拉远。",
+        "en": "High angle, the figures in the lower third, the south road carrying the eye into depth, a faint city outline on the far horizon: the final pull-back of the first act."
+      },
+      "ref": "cut_a1_letter",
+      "deps": ["art_style_lothar_plain", "art_chr_bron_ref"],
+      "milestone": "M1",
+      "notes": "信纸上不画任何字。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_siege_outlets",
+      "template": "bg_cg",
+      "style": "valen_city",
+      "subject": {
+        "zh": "城下潮：夜里俯瞰瓦伦堡下城与河港，泥巷井口、鱼市排水口与河港闸门同时喷出灰黑潮水般的魔物，街道上火把与盾阵排开，仓库与吊车映着火光，上城钟楼亮着警火",
+        "en": "The Undertide: a night view down over the lower town and river harbor of Valenburg, a well head in the Mud Lane, the fish market drain and the harbor sluice all spewing a gray-black tide of monsters at once, torches and shield lines across the streets, warehouses and cranes lit by fire, alarm fires on the bell tower of the upper town"
+      },
+      "extra": {
+        "zh": "顶视偏高的俯瞰，三个喷口在画面里呈三角分布，盾阵在它们之间；河在画面下缘。",
+        "en": "A near-overhead view, the three outlets forming a triangle, the shield lines between them; the river along the bottom edge."
+      },
+      "ref": "cut_a2_siege",
+      "deps": ["art_style_valen_city"],
+      "milestone": "M2",
+      "notes": "第二幕高潮；魔物只画成潮水般的灰黑群体，不画细节。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_no_page_tower",
+      "template": "bg_cg",
+      "style": "valen_city",
+      "subject": {
+        "zh": "黄昏的星笔塔观星台：黄铜支架托着一块水晶的检索仪立在台中央，水晶里一片暗，穿深蓝长袍、戴细框眼镜的贤者背对画面站在仪器前，城下潮的烟还没散尽，远处有人在修钟楼",
+        "en": "The Stylus Tower observatory at dusk: a search device of a crystal held in a brass stand at the center of the platform, the crystal dark, a sage in a deep blue robe and thin-framed glasses standing before it with his back to us, smoke from the Undertide still hanging over the city, someone repairing a bell tower in the distance"
+      },
+      "extra": {
+        "zh": "标准机位中景，仪器在画面中央，贤者在左，城市的黄昏在右后方；水晶是画面里唯一的冷色。",
+        "en": "Standard angle medium shot, the device at center, the sage at left, the city at dusk behind on the right; the crystal is the only cool color."
+      },
+      "ref": "cut_a2_no_page",
+      "deps": ["art_style_valen_city", "art_chr_aiden_ref"],
+      "milestone": "M2",
+      "notes": "水晶里不画字。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_barony_hall",
+      "template": "bg_cg",
+      "style": "valen_city",
+      "subject": {
+        "zh": "鹰丘大厅的清晨：高大的石厅里阳光从高窗斜射进来，王都使者站在台阶上展开文书，厅两侧站着贵族与军官，有人掩口而笑，台阶下站着受封者的背影",
+        "en": "Morning in the Hawkhill hall: sunlight slanting through high windows into a tall stone hall, the royal envoy on the steps unrolling a document, nobles and officers along both sides, someone hiding a laugh behind a hand, the back of the one being ennobled at the foot of the steps"
+      },
+      "extra": {
+        "zh": "标准机位全景，对称构图，使者在台阶顶端，受封者背影在画面下方正中。",
+        "en": "Standard angle full shot, symmetrical, the envoy at the top of the steps, the back of the honoree at the bottom center."
+      },
+      "ref": "cut_a2_barony",
+      "deps": ["art_style_valen_city"],
+      "milestone": "M2",
+      "notes": "文书上不画字；受封者是玩家，只画背影。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a3_ashen_line",
+      "template": "bg_cg",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "灰烬防线：早春融雪的灰溪上一座石桥，西南岸是圣战军的白色旗海与投石机，东岸桥头是灰烬民兵的盾墙与木栅，桥头上空一道白金光柱正在落下，东北丘陵上站着一排魔族剪影",
+        "en": "The Ash Line: a stone bridge over the meltwater-swollen Greybrook in early spring, a sea of white crusade banners and catapults on the southwest bank, the shield wall and palisade of the ash militia at the east bridgehead, a white-gold pillar of light descending over the bridge, a row of demonkin silhouettes on the northeast hills"
+      },
+      "extra": {
+        "zh": "高机位远景，石桥斜贯画面中央，光柱从画面上方落向桥头；两军在两岸，丘陵在右上。",
+        "en": "High wide shot, the bridge slanting across the center, the pillar of light falling from the top onto the bridgehead; the armies on both banks, the hills upper right."
+      },
+      "ref": "cut_a3_ashen_line",
+      "deps": ["art_style_lothar_plain"],
+      "milestone": "M2",
+      "notes": "光柱是神光白金，是这张图的主光；旗帜只画几何纹章。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a3_eluen_speaks",
+      "template": "bg_cg",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "决战第二日的黄昏之后：光柱刚熄，大主教跪倒在桥头，眼白里浮着白金色的光，他地上的影子转成一圈圈精密的几何纹样，像缓慢转动的齿轮，士兵们后退，远处丘顶一个深红短发的女将仰天大笑",
+        "en": "After dusk on the second day of battle: the pillar of light just gone out, the archbishop on his knees at the bridgehead with platinum light in the whites of his eyes, his shadow on the ground turned into rings of precise geometric patterns like slowly turning gears, soldiers backing away, a crimson-haired woman general laughing at the sky on a distant hilltop"
+      },
+      "extra": {
+        "zh": "低机位中景，大主教在画面中央，几何纹样的影子铺满前景地面；远处丘顶的女将是右上角的小剪影。",
+        "en": "Low angle medium shot, the archbishop at center, the geometric shadow spread across the foreground ground; the general a small silhouette at upper right."
+      },
+      "ref": "cut_a3_eluen_speaks",
+      "deps": ["art_style_lothar_plain", "art_chr_sasha_ref"],
+      "milestone": "M2",
+      "notes": "只画影子的形状，不画光的主人。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a3_map",
+      "template": "bg_cg",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "大陆展开：镜头从荒原南沿的封门遗迹升起，遗迹越来越小，大地向四面铺开，西边是河谷王国，东边是平原上的帝国，南方海岸，东方的森林与草原，北方冒烟的高地，最远处一圈灰白终雾",
+        "en": "The continent unfolds: the view rises from the sealed ruins on the southern edge of the waste, the ruins shrinking as the land spreads in every direction, the river kingdom to the west, the empire on its plains to the east, the southern coast, the forests and steppes of the east, the smoking highlands of the north, and farthest of all a ring of gray-white mist"
+      },
+      "extra": {
+        "zh": "顶视的极远景，像从高空看一张立体的地形沙盘；遗迹在画面中下部，终雾在四边。",
+        "en": "An overhead extreme wide shot like looking down on a relief model of the land; the ruins in the lower middle, the mist around all four edges."
+      },
+      "ref": "cut_a3_map",
+      "deps": ["art_style_ash_waste"],
+      "milestone": "M2",
+      "notes": "不画任何边界线与地名，那是界面的事。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a4_conclave",
+      "template": "bg_cg",
+      "style": "sleepscale_snow",
+      "subject": {
+        "zh": "眠鳞会盟：触穹峰顶，七座古老的高背石座排成半环围着一块高耸的天启碑，各国代表坐在石座前，其中一座石座空着，云海在脚下翻涌，碑面泛着微光",
+        "en": "The Sleepscale conclave: on the summit of Vaulttouch seven ancient high-backed stone seats stand in a half ring around a towering revelation stele, envoys of the nations seated before them, one seat empty, a sea of cloud surging below, a faint glow on the stele face"
+      },
+      "extra": {
+        "zh": "高机位全景，碑在画面上方正中，半环的石座朝向镜头展开，空着的那一座要醒目。",
+        "en": "High full shot, the stele at top center, the half ring of seats opening toward the viewer, the empty seat clearly noticeable."
+      },
+      "ref": "cut_a4_conclave",
+      "deps": ["art_style_sleepscale_snow"],
+      "milestone": "M3",
+      "notes": "碑面只有光，不画字。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a4_revelation",
+      "template": "bg_cg",
+      "style": "sleepscale_snow",
+      "subject": {
+        "zh": "天启：会盟表决的那一刻，七席石中央的天启碑亮起一种从没见过的白，白光直冲天空，石座前的代表纷纷起身抬头，远处云海里另有六道光柱同时升起",
+        "en": "The revelation: at the moment of the vote the stele at the center of the Seven Seats lights up with a white no one has ever seen, the light shooting into the sky, the envoys rising from their seats and looking up, six more pillars of light rising at once far away across the sea of cloud"
+      },
+      "extra": {
+        "zh": "低机位远景，碑的白光是画面中心，六道远处的光柱沿地平线分布。",
+        "en": "Low wide shot, the white light of the stele at the center, six distant pillars spread along the horizon."
+      },
+      "ref": "cut_a4_revelation",
+      "deps": ["art_style_sleepscale_snow"],
+      "milestone": "M3",
+      "notes": "碑面显出的字由界面以字幕给出，图上不画字。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a5_gate_ring",
+      "template": "bg_cg",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "众门环：主门坑坑沿的环形石台上立着一圈门框，一道道细细的金线从这里向远方的地平线延伸，执钥人们各守一处门框，坑底是漆黑的湖，灰云低垂",
+        "en": "The ring of gates: on a ring platform at the rim of the main crater a circle of doorframes stands, thin gold lines running from it toward the far horizon, keybearers guarding each frame, a pitch-black lake at the bottom of the crater, low gray clouds"
+      },
+      "extra": {
+        "zh": "高机位远景，环台在画面中部，金线向画面四边放射。",
+        "en": "High wide shot, the ring platform in the middle, gold lines radiating toward the edges."
+      },
+      "ref": "cut_a5_route",
+      "deps": ["art_style_ash_waste"],
+      "milestone": "M3",
+      "notes": "门扉金只在门框与金线上。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a5_final_war",
+      "template": "bg_cg",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "灰烬决战：主门坑上空灰云翻涌，坑底断成两截的巨门框旁，一个巨大的无脸人形站在湖心石台上，脸是一片光滑的空白，身后是倒置扭曲的层层黑紫门扉，坑沿上联军的旗帜与兵团一线排开",
+        "en": "The Ashen final battle: gray clouds churning over the main crater, beside the colossal broken doorframe at the bottom a huge faceless figure stands on a stone island in the lake, its face a smooth blank plane, layers of inverted, twisted black-purple doors behind it, the banners and legions of the alliance ranged along the rim"
+      },
+      "extra": {
+        "zh": "低机位远景，巨大人形在画面中央偏上，联军在前景下缘只是一排小剪影。",
+        "en": "Low wide shot, the huge figure just above center, the alliance only a row of small silhouettes along the bottom edge."
+      },
+      "ref": "cut_a5_final_war",
+      "deps": ["art_style_ash_waste", "art_chr_faceless_ref"],
+      "milestone": "M3",
+      "notes": "澱紫只用在人形与门扉上。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a5_last_door",
+      "template": "bg_cg",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "接住：主门坑的裂缝里伸出一只手，手腕上挂满钥匙，抓住了正在坠落的人；裂缝边显出一个女人的半身，她半边身体是一道门框，脸一半在阴影里、一半在灰光里",
+        "en": "Caught: a hand reaches out of the rift in the main crater, its wrist hung with keys, catching a falling figure; at the edge of the rift half the body of a woman appears, one half of her body a doorframe, her face half in shadow and half in the gray light"
+      },
+      "extra": {
+        "zh": "标准机位近景，手与被抓住的手腕在画面中央，女人在右侧；背景是灰光与裂缝的黑。",
+        "en": "Standard angle close shot, the catching hand and the caught wrist at center, the woman on the right; behind, gray light and the black of the rift."
+      },
+      "ref": "cut_a5_mirror_c",
+      "deps": ["art_style_ash_waste", "art_chr_door_woman_manifest_ref"],
+      "milestone": "M3",
+      "notes": "她只能叫门口的女人。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a5_trial_called",
+      "template": "bg_cg",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "审期至：主门坑上空的灰散开，远处七道光柱同时升起，敞开的封门里透出向上的光，门边站着一具披灰白长袍、眼窝里两点冷蓝火光的骸骨，一个发梢化作羽毛的黑发少女站在门前回头",
+        "en": "The time of judgement: the ash over the main crater parts, seven pillars of light rising at once far away, light streaming upward from the open sealed door, beside it a skeleton in a gray-white robe with two cold blue flames in its eye sockets, a black-haired girl whose hair ends turn to feathers standing at the door looking back"
+      },
+      "extra": {
+        "zh": "低机位全景，门在画面正中，光从门里向上；骸骨在左，少女在门前右侧。",
+        "en": "Low full shot, the door at center with light pouring up out of it; the skeleton at left, the girl at right before the door."
+      },
+      "ref": "cut_a5_trial_called",
+      "deps": ["art_style_ash_waste", "art_chr_ash_ref", "art_chr_yeyu_ref"],
+      "milestone": "M3",
+      "notes": "天上显出的字由界面以字幕给出，图上只画光。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a6_joint_reading",
+      "template": "bg_cg",
+      "style": "divine_court",
+      "subject": {
+        "zh": "共读：纯白审庭中央的庭镜像一汪平静的水，镜面里映出一只巨大的手慢慢松开、把一座小小的庭园放下；庭镜旁，兜帽书记官与一个脸半在阴影里的女人一同低头读着一张摊开的古卷",
+        "en": "The joint reading: at the center of the pure white court the court mirror lies like still water, reflecting a vast hand slowly opening and setting a tiny garden down; beside the mirror a hooded scribe and a woman with half her face in shadow bend together over an unrolled ancient scroll"
+      },
+      "extra": {
+        "zh": "高机位全景，庭镜占画面中央的一大块，两人在镜旁左下。",
+        "en": "High full shot, the mirror filling a large central area, the two figures beside it at lower left."
+      },
+      "ref": "cut_a6_joint_reading",
+      "deps": ["art_style_divine_court", "art_chr_moira_ref", "art_chr_door_woman_ref"],
+      "milestone": "M3",
+      "notes": "古卷上不画可读的字，只有墨色的块。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a6_court_mirror",
+      "template": "bg_cg",
+      "style": "divine_court",
+      "subject": {
+        "zh": "庭镜旁的门：审庭里一扇门打开，门外是无边的暗，暗中远远悬着一个蓝白色的球形世界，四周没有雾墙，星辰不整齐地散在四面八方，五位女神与玩家站在门前望着它",
+        "en": "The door beside the mirror: a door opens in the court onto boundless dark, far away in it hangs a blue and white spherical world with no wall of mist around it and stars scattered irregularly in every direction, five goddesses and the player standing at the door looking out at it"
+      },
+      "extra": {
+        "zh": "标准机位全景，门在画面正中，人物是门前一排剪影；门外的世界小而清楚。",
+        "en": "Standard angle full shot, the door at center, the figures a row of silhouettes before it; the world outside small but clear."
+      },
+      "ref": "cut_a6_earth_truth",
+      "deps": [
+        "art_style_divine_court",
+        "art_chr_eluen_ref",
+        "art_chr_valda_ref",
+        "art_chr_merca_ref",
+        "art_chr_sylvie_ref",
+        "art_chr_moira_ref"
+      ],
+      "milestone": "M3",
+      "notes": "星辰要散乱，与天穹的整齐形成对照。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a6_verdicts",
+      "template": "bg_cg",
+      "style": "divine_court",
+      "subject": {
+        "zh": "冬至审定：审庭的半圆高台上六座庭之席排开，庭镜里的大陆迎来冬至，七座天启碑同时亮起，神庭上方的白闪了一下，五位女神同时抬起头",
+        "en": "The winter solstice verdict: six court seats ranged on the curved dais of the court, the continent in the court mirror reaching the winter solstice with all seven steles lighting at once, the white above the court flashing once, the five goddesses lifting their heads together"
+      },
+      "extra": {
+        "zh": "低机位全景，六座席在画面上方，庭镜在下方，女神们抬头看向画面顶边。",
+        "en": "Low full shot, the six seats along the top, the mirror below, the goddesses looking up toward the top edge."
+      },
+      "ref": "cut_a6_verdicts",
+      "deps": [
+        "art_style_divine_court",
+        "art_chr_eluen_ref",
+        "art_chr_valda_ref",
+        "art_chr_merca_ref",
+        "art_chr_sylvie_ref",
+        "art_chr_moira_ref"
+      ],
+      "milestone": "M3",
+      "notes": "附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a6_light_grid",
+      "template": "bg_cg",
+      "style": "divine_court",
+      "subject": {
+        "zh": "终战：白石审庭化作战场，地面浮起一格一格发光的几何光格，空中一圈齿轮般的几何光环缓慢转动，玩家与同伴站在光格之间，迎着正中的白光",
+        "en": "The final battle: the white court turned into a battlefield, the floor rising into glowing geometric grid squares, a ring of gear-like geometric halos turning slowly in the air, the player and companions standing between the squares facing the white light at the center"
+      },
+      "extra": {
+        "zh": "高机位全景，光格铺满地面，光环在画面上方，人物在下方三分之一。",
+        "en": "High full shot, grid squares covering the floor, the halos at the top, the figures in the lower third."
+      },
+      "ref": "cut_a6_final_battles",
+      "deps": ["art_style_divine_court", "art_chr_eluen_ref"],
+      "milestone": "M3",
+      "notes": "光格与光环是神光白金；对决的对手只画成光的中心，不画清楚的人形。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_a6_letter7",
+      "template": "bg_cg",
+      "style": "divine_court",
+      "subject": {
+        "zh": "审定前夜：候见厅空荡的长椅上，发梢化作羽毛的黑发少女把一封封着暗红火漆的信递过来，她腰间的皮信囊敞开着，墙边庭镜里映着箱庭冬夜的点点灯火",
+        "en": "The eve of the verdict: on an empty bench in the antechamber a black-haired girl whose hair ends turn to feathers holds out a letter sealed in dark red wax, the leather satchel at her waist open, the court mirror by the wall showing the scattered lights of the world on a winter night"
+      },
+      "extra": {
+        "zh": "标准机位近景，信与递信的手在画面中央，少女在左，庭镜的微光在右后。",
+        "en": "Standard angle close shot, the letter and the hand holding it out at center, the girl at left, the faint glow of the mirror behind at right."
+      },
+      "ref": "cut_a6_letter7",
+      "deps": ["art_style_divine_court", "art_chr_yeyu_ref"],
+      "milestone": "M3",
+      "notes": "暗红火漆是画面里唯一的暖色；信封上不画字。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    },
+    {
+      "id": "art_bg_cut_end_release",
+      "template": "bg_cg",
+      "style": "divine_court",
+      "subject": {
+        "zh": "离手：候见厅的门敞开，女神们依次走进门外的光里，最后一个在门口回头，她腰间的钥匙已经不见，留在厅里的人背对画面看着她们离开",
+        "en": "Letting go: the antechamber door stands open, the goddesses walking one by one into the light beyond, the last one turning at the threshold with the keys gone from her waist, the ones who stay behind watching them leave with their backs to us"
+      },
+      "extra": {
+        "zh": "标准机位全景，门在画面正中，门外是明亮的空白，前景是留下的人的背影。",
+        "en": "Standard angle full shot, the door at center opening on bright emptiness, the backs of those who remain in the foreground."
+      },
+      "ref": "cut_end_release",
+      "deps": ["art_style_divine_court", "art_chr_door_woman_ref"],
+      "milestone": "M3",
+      "notes": "这是真结局的画面，光是柔和的，不是神光的白金。附上风格板与列出的人物三视图；人物是 Q 版约 1.7 头身，认得出是谁；画面里不出现任何文字（碑文、信件、书页、招牌都无字）。"
+    }
+  ]
+}

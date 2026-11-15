@@ -1,0 +1,583 @@
+{
+  "version": 1,
+  "negative": {
+    "zh": "带歌词的人声、任何可辨识的语言与台词、旁白与说唱、模仿现有作品的旋律或主题、模仿特定作曲家或乐队、品牌与设备提示音（开机声、手机铃声、通知音）、八位芯片音色（除非特别说明）、电子舞曲鼓组（除非特别说明）、水印、底噪与嘶声、削波失真、低码率压缩痕迹、突兀截断、观众掌声与笑声",
+    "en": "vocals with lyrics, any recognizable language or spoken lines, narration or rap, melodies or themes imitating existing works, imitation of specific composers or bands, branded or device sounds (startup chimes, phone ringtones, notification sounds), 8-bit chiptune timbres unless stated, EDM drum kits unless stated, watermarks, noise floor and hiss, clipping distortion, low-bitrate compression artifacts, abrupt cutoffs, audience applause and laughter"
+  },
+  "styles": {
+    "m_hero_core": {
+      "name": "主题核心",
+      "zh": "温暖的小型管弦乐与室内乐，鲁特琴、木吉他、竖琴与弦乐为核心，偶尔有八音盒；旋律明亮好奇，和声在关键处不完全解决；录音自然，有真实的空间感",
+      "en": "warm small orchestra and chamber ensemble built on lute, acoustic guitar, harp and strings, with an occasional music box; bright curious melodies, harmony that does not fully resolve at key moments; natural recording with a real sense of space"
+    },
+    "m_earth_modern": {
+      "name": "地球的夜",
+      "zh": "现代城市的低保真质感：电钢琴、柔和合成器铺底、轻柔鼓点与贝斯，温暖略带磨损，像深夜耳机里的音乐",
+      "en": "modern city lo-fi texture: electric piano, soft synth pad, gentle drums and bass, warm and slightly worn, like music in headphones late at night"
+    },
+    "m_divine_court": {
+      "name": "神庭",
+      "zh": "空灵而庄重：高音弦乐泛音、竖琴、钢片琴、玻璃琴、无词合唱、管风琴与钟；混响宽广明亮，留白很多",
+      "en": "ethereal and solemn: high string harmonics, harp, celesta, glass harmonica, wordless choir, organ and bells; wide bright reverb, lots of space"
+    },
+    "m_dream": {
+      "name": "梦境",
+      "zh": "朦胧的梦：深混响的钢片琴与八音盒，缓慢的长音与层层回声，柔和的倒放质感",
+      "en": "a hazy dream: celesta and music box in deep reverb, slow sustains and layered echoes, soft reversed textures"
+    },
+    "m_lotha_folk": {
+      "name": "洛萨乡野",
+      "zh": "北方边地的民谣：手摇弦琴持续音、鲁特琴、小提琴、木笛、手鼓、木勺与竖琴；多利亚与混合利底亚色彩；朴素温暖，带一点寒意",
+      "en": "northern frontier folk: hurdy-gurdy drone, lute, fiddle, recorder, frame drum, wooden spoons and harp; Dorian and Mixolydian colors; plain and warm with a touch of chill"
+    },
+    "m_valen_city": {
+      "name": "瓦伦城邦",
+      "zh": "河港城邦：羽管键琴、弦乐、小号、长笛、铃鼓与小军鼓；明快体面，带权谋的机巧",
+      "en": "river-port city: harpsichord, strings, trumpet, flute, tambourine and snare; brisk and respectable with a cunning, political edge"
+    },
+    "m_inner_court": {
+      "name": "门内庭院",
+      "zh": "私密的小天地：八音盒、钢片琴、木吉他、柔和弦乐与长笛；温暖、安全、怀念",
+      "en": "a private little world: music box, celesta, acoustic guitar, soft strings and flute; warm, safe, nostalgic"
+    },
+    "m_ash_waste": {
+      "name": "灰烬荒原",
+      "zh": "荒凉的灰与玻璃：拉弓金属、玻璃琴、极低的长音、稀疏的木质打击与气声笛；大量留白，冷而美",
+      "en": "desolate ash and glass: bowed metal, glass harmonica, very low drones, sparse wooden percussion and breathy flute; lots of silence, cold and beautiful"
+    },
+    "m_sealed_ruins": {
+      "name": "封印遗迹",
+      "zh": "古老的石与门：远钟、石块与木头的敲击、无词低声合唱、八音盒碎片与低音长音；肃穆、神秘",
+      "en": "ancient stone and doors: distant bells, knocks of stone and wood, low wordless choir, music-box fragments and low drones; solemn and mysterious"
+    },
+    "m_holy_see": {
+      "name": "教国",
+      "zh": "白石圣都：管风琴、铜管众赞、钟、弦乐与无词童声合唱；利底亚调式明亮的升四级，对称工整，近乎冰冷",
+      "en": "white-stone holy city: organ, brass chorale, bells, strings and wordless children choir; the bright raised fourth of Lydian, symmetrical and precise, almost cold"
+    },
+    "m_grantia": {
+      "name": "帝国",
+      "zh": "钢与麦：低音弦乐、圆号、军鼓与铁砧；多利亚调式，纪律严明，宽广厚重",
+      "en": "steel and wheat: low strings, French horns, snare and anvil; Dorian, disciplined, broad and heavy"
+    },
+    "m_mercato": {
+      "name": "同盟",
+      "zh": "海湾商都：曼陀林、吉他、手风琴、钟琴、响板与手鼓；混合利底亚调式，摇摆律动，热闹精明",
+      "en": "bay-side merchant cities: mandolin, guitar, accordion, glockenspiel, castanets and frame drum; Mixolydian, swinging, lively and shrewd"
+    },
+    "m_silva": {
+      "name": "希尔瓦",
+      "zh": "原始巨木林：竖琴、弦乐泛音、拇指琴般的拨奏、木鼓、带气声的木笛与无词女声；五声与多利亚，长停顿，古老而疏离",
+      "en": "primeval giant forest: harp, string harmonics, thumb-piano plucks, wooden drums, breathy wooden flute and wordless female voice; pentatonic and Dorian, long pauses, ancient and aloof"
+    },
+    "m_windfang": {
+      "name": "风牙",
+      "zh": "大草原：泛音吟唱式的无词低音长音、双弦拉弦乐器与框鼓的奔马节奏；五声小调，辽阔自由",
+      "en": "great steppe: low wordless overtone-style drones, two-string bowed fiddle and galloping frame drums; minor pentatonic, vast and free"
+    },
+    "m_night_realm": {
+      "name": "夜境",
+      "zh": "黑岩与火山：低音男声无词合唱、低音弦乐、大鼓、扬琴与玻璃铃；弗里吉亚调式，肃杀骄傲而带温度",
+      "en": "black rock and volcanoes: low wordless male choir, low strings, big drums, hammered dulcimer and glass bells; Phrygian, stern and proud yet warm"
+    },
+    "m_sleepscale": {
+      "name": "眠鳞",
+      "zh": "雪峰：号角般的长音、钢琴、钟片与极远的低频；巨大的空间与寒冷的寂静",
+      "en": "snow peaks: horn-like sustains, piano, bell plates and very distant low rumble; vast space and cold silence"
+    },
+    "m_dian": {
+      "name": "澱（迷宫）",
+      "zh": "被扭曲的熟悉：把明亮的动机拉长、倒放、走音或换成不协和音程，配以低频嗡鸣与异质打击；诡异而美，不靠惊吓",
+      "en": "the familiar, distorted: bright motifs stretched, reversed, detuned or bent into dissonant intervals over low hums and strange percussion; eerie and beautiful, never relying on jump scares"
+    },
+    "m_battle": {
+      "name": "战斗管弦",
+      "zh": "冒险战斗管弦乐：弦乐固定音型、铜管、太鼓般的大鼓与无词合唱；推进有力，旋律清晰，不压抑",
+      "en": "adventure battle orchestra: string ostinatos, brass, taiko-like big drums and wordless choir; strong drive, clear melody, never oppressive"
+    },
+    "m_strategy": {
+      "name": "战略与经营",
+      "zh": "沙盘与案头：羽管键琴、室内弦乐、拨奏、木管与轻打击；从容机巧，适合长时间思考",
+      "en": "sand table and desk: harpsichord, chamber strings, pizzicato, woodwinds and light percussion; composed and clever, good for long thinking"
+    },
+    "m_motif": {
+      "name": "动机种子",
+      "zh": "单件乐器的干净独奏录音，近距离收音，轻微房间混响，音高与节奏清楚",
+      "en": "clean solo recording of a single instrument, close-miked, light room reverb, clear pitch and rhythm"
+    },
+    "a_field": {
+      "name": "写实野外录音",
+      "zh": "写实的环境录音质感，立体声宽，没有音乐，没有可辨识的人声字词，动态自然",
+      "en": "realistic field-recording texture, wide stereo, no music, no intelligible words, natural dynamics"
+    },
+    "a_modern": {
+      "name": "现代日常",
+      "zh": "现代日常空间的写实录音，没有品牌提示音与可辨识的广播语音",
+      "en": "realistic recording of an everyday modern space, no branded chimes or intelligible announcements"
+    },
+    "a_otherworld": {
+      "name": "异界空间",
+      "zh": "非现实空间的环境声：写实质感为底，带轻微的超现实处理（拉伸的混响、极高或极低的持续音），没有旋律",
+      "en": "ambience of an unreal space: realistic texture with slight surreal processing (stretched reverb, very high or very low sustained tones), no melody"
+    },
+    "a_interior": {
+      "name": "室内",
+      "zh": "室内写实录音，房间混响与空间大小清楚，没有可辨识的人声字词",
+      "en": "realistic interior recording with clear room reverb and sense of size, no intelligible words"
+    },
+    "s_weapon": {
+      "name": "武器与打击",
+      "zh": "写实的冷兵器与打击拟音，干净近距离收音，低频略厚，适合斜俯视角的动作战斗",
+      "en": "realistic melee weapon and impact foley, clean close-miked, slightly thick low end, suited to top-down action combat"
+    },
+    "s_physical": {
+      "name": "体相",
+      "zh": "体相：气劲、肌肉发力与金属嗡鸣，写实为主，轻微夸张",
+      "en": "physical aspect: force, muscular exertion and metal hum, realistic with slight exaggeration"
+    },
+    "s_arcane": {
+      "name": "玄相",
+      "zh": "玄相：清澈的玻璃泛音、空间扭曲般的嗡鸣与星点闪烁",
+      "en": "arcane aspect: clear glassy harmonics, space-bending hum and starlike twinkles"
+    },
+    "s_fire": {
+      "name": "焰相",
+      "zh": "焰相：火焰呼啸、爆燃与噼啪的火星",
+      "en": "fire aspect: roaring flame, deflagration and crackling sparks"
+    },
+    "s_frost": {
+      "name": "霜相",
+      "zh": "霜相：冰晶生长的细碎咔嚓、寒风与冰面开裂",
+      "en": "frost aspect: tiny crackles of growing ice, freezing wind and cracking ice"
+    },
+    "s_holy": {
+      "name": "光相",
+      "zh": "光相：明亮的钟鸣泛音、温暖的无词合唱般长音与整齐的光之脉动",
+      "en": "holy aspect: bright bell overtones, warm wordless choir-like sustains and an orderly pulse of light"
+    },
+    "s_shadow": {
+      "name": "幽相",
+      "zh": "幽相：低沉的气息、倒放的嘶声、像落叶与睡意一样柔和的暗流，不邪恶",
+      "en": "shadow aspect: low breathy tones, reversed hisses, a soft dark flow like falling leaves and drowsiness, not evil"
+    },
+    "s_nature": {
+      "name": "生相",
+      "zh": "生相：雷与电弧、风、藤蔓生长、雨滴与虫鸣的有机质感",
+      "en": "nature aspect: thunder and arcs, wind, growing vines, organic textures of rain and insects"
+    },
+    "s_dian": {
+      "name": "澱",
+      "zh": "澱：灰的嘶嘶、晶体摩擦、两个半音来回的低频与倒放质感；压抑而不邪恶",
+      "en": "sediment: hissing ash, crystal friction, a low two-half-step pulse and reversed textures; oppressive but not evil"
+    },
+    "s_door": {
+      "name": "门",
+      "zh": "门：木与黄铜的门扉、铰链与锁芯，钥匙的叮当，八音盒般的泛音与温暖的金色嗡鸣",
+      "en": "doors: wooden and brass doors, hinges and lock cylinders, jingling keys, music-box-like harmonics and a warm golden hum"
+    },
+    "s_creature": {
+      "name": "魔物",
+      "zh": "写实的动物与生物发声为底，按描述加入异质处理（灰、晶体、空洞回声）；没有可辨识的语言",
+      "en": "realistic animal and creature vocalizations as a base with strange processing as described (ash, crystal, hollow echoes); no recognizable language"
+    },
+    "s_vocal": {
+      "name": "无词人声",
+      "zh": "无语义的人声：呼喝、喘息、受伤、笑与惊呼；不得包含任何可辨识的语言或字词，不模仿任何真实人物的声音",
+      "en": "non-verbal human voice: shouts, breaths, pain, laughter and gasps; no recognizable language or words, never imitating any real person voice"
+    },
+    "s_ui": {
+      "name": "界面",
+      "zh": "干净现代的界面音：木质轻触、玻璃与小钟，短促柔和，不刺耳，不用芯片音色",
+      "en": "clean modern interface sounds: light wooden taps, glass and small bells, short and soft, never harsh, no chiptune"
+    },
+    "s_foley": {
+      "name": "拟音",
+      "zh": "写实拟音，近距离干净收音",
+      "en": "realistic foley, clean close-miked"
+    },
+    "s_city": {
+      "name": "城建",
+      "zh": "写实的工坊、工地与小镇劳作声，中距离收音",
+      "en": "realistic workshop, building site and town labor sounds, medium distance"
+    },
+    "s_army": {
+      "name": "兵团",
+      "zh": "成群士兵与军乐器（号角、战鼓）的写实声音，规模感强，没有可辨识的口令字词",
+      "en": "realistic massed soldiers and military instruments (horns, war drums), strong sense of scale, no intelligible commands"
+    },
+    "s_strategy": {
+      "name": "沙盘",
+      "zh": "案头与沙盘的细小拟音：羊皮纸、金属棋子、印章、羽毛笔与远处的象征性声音",
+      "en": "small desk and sand-table foley: parchment, metal pieces, seals, quills and distant symbolic sounds"
+    },
+    "s_eluen": {
+      "name": "光之女神",
+      "zh": "精密、对称、明亮而冰冷：钟、齿轮般的咔嗒与玻璃般的光之和声",
+      "en": "precise, symmetrical, bright and cold: bells, gear-like ticks and glassy harmonies of light"
+    },
+    "s_valda": {
+      "name": "争斗女神",
+      "zh": "粗豪、炽烈：战鼓、撕裂、金属与低频冲击",
+      "en": "rough and fiery: war drums, tearing, metal and low impacts"
+    },
+    "s_merca": {
+      "name": "交易女神",
+      "zh": "俏皮、明亮：硬币、算盘、账本与清脆的叮",
+      "en": "playful and bright: coins, abacus, ledgers and crisp dings"
+    },
+    "s_sylvie": {
+      "name": "生命女神",
+      "zh": "自然而轻：鸟兽、风、水与花叶，带一丝哀愁",
+      "en": "natural and light: birds and beasts, wind, water, petals and leaves, with a trace of sorrow"
+    },
+    "s_moira": {
+      "name": "记录女神",
+      "zh": "书卷气：纸页、羽毛笔与符文镜片的细小咔嗒，优雅俏皮",
+      "en": "bookish: pages, quills and tiny clicks of a rune lens, elegant and playful"
+    },
+    "s_door_woman": {
+      "name": "门的女神",
+      "zh": "温柔遥远：钥匙、门轴、门缝里的气声与八音盒",
+      "en": "tender and distant: keys, hinges, breath through a door gap and a music box"
+    },
+    "s_maker": {
+      "name": "造主",
+      "zh": "纯净、绝对：纯音、纯五度、石的研磨与绝对静默",
+      "en": "pure and absolute: pure tones, perfect fifths, grinding stone and absolute silence"
+    },
+    "s_divine": {
+      "name": "神迹通用",
+      "zh": "神迹的通用质感：明亮的泛音、广阔的混响与轻微的超现实处理",
+      "en": "general divine texture: bright overtones, vast reverb and slight surreal processing"
+    },
+    "s_cinematic": {
+      "name": "过场",
+      "zh": "电影化的过场声：低频重击、上升音、空间转场与特写拟音",
+      "en": "cinematic cutscene sound: low hits, risers, spatial transitions and close-up foley"
+    }
+  },
+  "templates": {
+    "music_loop": {
+      "kind": "audio",
+      "title": "可循环主曲（区域、迷宫、战斗、首领、主题）",
+      "duration": "loop",
+      "outDir": "audio/music",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "loudness": "-18 LUFS-I",
+      "truePeak": "-1.5 dBTP",
+      "zh": "游戏配乐，纯器乐，没有带歌词的人声。风格：{style}。内容：{subject}。参数：{extra}。必须可无缝循环：结尾直接接回开头，首尾同调、同速、同配器、同样的能量，不要前奏，不要结束句，不要淡入淡出；各乐器组清楚分开，便于之后分轨。",
+      "en": "Game score, instrumental only, no vocals with lyrics. Style: {style}. Content: {subject}. Parameters: {extra}. Must loop seamlessly: the end flows straight back into the beginning, with the same key, tempo, instrumentation and energy at both ends, no intro, no ending phrase, no fade in or out; keep instrument groups clearly separated for later stem splitting.",
+      "negative": true
+    },
+    "music_cue": {
+      "kind": "audio",
+      "title": "过场、结局与演出曲（不循环）",
+      "duration": 240,
+      "outDir": "audio/music",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "loudness": "-18 LUFS-I",
+      "truePeak": "-1.5 dBTP",
+      "zh": "游戏配乐，纯器乐，没有带歌词的人声。风格：{style}。内容：{subject}。参数：{extra}。有完整的开头、发展与结尾，结尾不截断。",
+      "en": "Game score, instrumental only, no vocals with lyrics. Style: {style}. Content: {subject}. Parameters: {extra}. A complete beginning, development and ending, never cut off.",
+      "negative": true
+    },
+    "music_long": {
+      "kind": "audio",
+      "title": "片尾组曲",
+      "duration": 360,
+      "outDir": "audio/music",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "loudness": "-18 LUFS-I",
+      "truePeak": "-1.5 dBTP",
+      "zh": "游戏片尾组曲，纯器乐，可以有无词合唱，没有带歌词的人声。风格：{style}。内容：{subject}。参数：{extra}。段落之间过渡自然，整体有起伏，结尾完整。",
+      "en": "Game end-credits suite, instrumental, wordless choir allowed, no vocals with lyrics. Style: {style}. Content: {subject}. Parameters: {extra}. Natural transitions between sections, an overall arc, a complete ending.",
+      "negative": true
+    },
+    "music_motif": {
+      "kind": "audio",
+      "title": "动机种子（单件乐器）",
+      "duration": 16,
+      "outDir": "audio/music/motifs",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "loudness": "-18 LUFS-I",
+      "truePeak": "-1.5 dBTP",
+      "zh": "音乐动机种子：单件乐器清楚地奏出一个短动机。风格：{style}。内容：{subject}。参数：{extra}。干净，不加和声铺垫，不加打击乐，音高必须准确。",
+      "en": "Musical motif seed: a single instrument clearly plays a short motif. Style: {style}. Content: {subject}. Parameters: {extra}. Clean, no harmonic pad, no percussion, pitches must be exact.",
+      "negative": true
+    },
+    "music_stinger": {
+      "kind": "audio",
+      "title": "提示短乐句",
+      "duration": 15,
+      "outDir": "audio/music/stingers",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "loudness": "-18 LUFS-I",
+      "truePeak": "-1.5 dBTP",
+      "zh": "游戏提示短乐句，纯器乐。风格：{style}。内容：{subject}。参数：{extra}。一个完整的小乐句，起音干脆，结尾自然衰减，不循环。",
+      "en": "Game stinger, instrumental. Style: {style}. Content: {subject}. Parameters: {extra}. One complete short phrase, crisp start, natural decay, not looping.",
+      "negative": true
+    },
+    "ambience_bed": {
+      "kind": "audio",
+      "title": "环境声底层（循环）",
+      "duration": "loop",
+      "outDir": "audio/ambience",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "loudness": "-26 LUFS-I",
+      "truePeak": "-3 dBTP",
+      "zh": "游戏环境声，写实录音质感，没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。可无缝循环：首尾的密度与音量一致，没有突然的事件。",
+      "en": "Game ambience, realistic recording texture, no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. Seamless loop: the same density and level at both ends, no sudden events.",
+      "negative": true
+    },
+    "ambience_point": {
+      "kind": "audio",
+      "title": "环境点缀（单次事件）",
+      "duration": 10,
+      "outDir": "audio/ambience/points",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "mono",
+      "loudness": "-24 LUFS-S max",
+      "truePeak": "-3 dBTP",
+      "zh": "游戏音效：干净、独立的声音事件，按参数给出一个或多个变体；没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。不带背景噪声，结尾自然衰减到静音。",
+      "en": "Game sound effect: clean, isolated sound events, one or more variations as given in the parameters; no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. No background noise, natural decay to silence at the end.",
+      "negative": true
+    },
+    "effect_combat": {
+      "kind": "audio",
+      "title": "战斗音效",
+      "duration": 3,
+      "outDir": "audio/sfx/combat",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "mono",
+      "loudness": "-14 LUFS-M max",
+      "truePeak": "-1 dBTP",
+      "zh": "游戏音效：干净、独立的声音事件，按参数给出一个或多个变体；没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。不带背景噪声，结尾自然衰减到静音。",
+      "en": "Game sound effect: clean, isolated sound events, one or more variations as given in the parameters; no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. No background noise, natural decay to silence at the end.",
+      "negative": true
+    },
+    "effect_magic": {
+      "kind": "audio",
+      "title": "法术与技能音效",
+      "duration": 4,
+      "outDir": "audio/sfx/magic",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "mono",
+      "loudness": "-14 LUFS-M max",
+      "truePeak": "-1 dBTP",
+      "zh": "游戏音效：干净、独立的声音事件，按参数给出一个或多个变体；没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。不带背景噪声，结尾自然衰减到静音。",
+      "en": "Game sound effect: clean, isolated sound events, one or more variations as given in the parameters; no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. No background noise, natural decay to silence at the end.",
+      "negative": true
+    },
+    "effect_creature": {
+      "kind": "audio",
+      "title": "魔物与首领发声",
+      "duration": 5,
+      "outDir": "audio/sfx/creatures",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "mono",
+      "loudness": "-14 LUFS-M max",
+      "truePeak": "-1 dBTP",
+      "zh": "游戏音效：干净、独立的声音事件，按参数给出一个或多个变体；没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。不带背景噪声，结尾自然衰减到静音。",
+      "en": "Game sound effect: clean, isolated sound events, one or more variations as given in the parameters; no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. No background noise, natural decay to silence at the end.",
+      "negative": true
+    },
+    "effect_vocal": {
+      "kind": "audio",
+      "title": "无词人声",
+      "duration": 4,
+      "outDir": "audio/sfx/vocal",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "mono",
+      "loudness": "-16 LUFS-M max",
+      "truePeak": "-1 dBTP",
+      "zh": "游戏音效：无语义的人声，按参数给出一个或多个变体；没有音乐，不得出现任何可辨识的语言或字词，不模仿任何真实人物。风格：{style}。内容：{subject}。参数：{extra}。干净近距离收音，结尾自然衰减。",
+      "en": "Game sound effect, non-verbal human voice, no music, no recognizable language or words, never imitating a real person. Style: {style}. Content: {subject}. Parameters: {extra}. Clean close-miked recording with natural decay.",
+      "negative": true
+    },
+    "effect_door": {
+      "kind": "audio",
+      "title": "门与回廊音效",
+      "duration": 7,
+      "outDir": "audio/sfx/doors",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "loudness": "-16 LUFS-M max",
+      "truePeak": "-1 dBTP",
+      "zh": "游戏音效：干净、独立的声音事件，按参数给出一个或多个变体；没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。不带背景噪声，结尾自然衰减到静音。",
+      "en": "Game sound effect: clean, isolated sound events, one or more variations as given in the parameters; no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. No background noise, natural decay to silence at the end.",
+      "negative": true
+    },
+    "effect_ui": {
+      "kind": "audio",
+      "title": "界面音效",
+      "duration": 2,
+      "outDir": "audio/ui",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "loudness": "-20 LUFS-M max",
+      "truePeak": "-3 dBTP",
+      "zh": "游戏音效：干净、独立的声音事件，按参数给出一个或多个变体；没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。不带背景噪声，结尾自然衰减到静音。",
+      "en": "Game sound effect: clean, isolated sound events, one or more variations as given in the parameters; no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. No background noise, natural decay to silence at the end.",
+      "negative": true
+    },
+    "effect_ui_loop": {
+      "kind": "audio",
+      "title": "界面循环音",
+      "duration": "loop",
+      "outDir": "audio/ui",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "loudness": "-30 LUFS-I",
+      "truePeak": "-6 dBTP",
+      "zh": "游戏循环音效，没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。可无缝循环，首尾的密度与音量一致。",
+      "en": "Looping game sound effect, no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. Seamless loop, same density and level at both ends.",
+      "negative": true
+    },
+    "effect_item": {
+      "kind": "audio",
+      "title": "物品、经济与生业音效",
+      "duration": 3,
+      "outDir": "audio/sfx/items",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "mono",
+      "loudness": "-18 LUFS-M max",
+      "truePeak": "-3 dBTP",
+      "zh": "游戏音效：干净、独立的声音事件，按参数给出一个或多个变体；没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。不带背景噪声，结尾自然衰减到静音。",
+      "en": "Game sound effect: clean, isolated sound events, one or more variations as given in the parameters; no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. No background noise, natural decay to silence at the end.",
+      "negative": true
+    },
+    "effect_city": {
+      "kind": "audio",
+      "title": "城建与生产音效",
+      "duration": 4,
+      "outDir": "audio/sfx/city",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "mono",
+      "loudness": "-18 LUFS-M max",
+      "truePeak": "-3 dBTP",
+      "zh": "游戏音效：干净、独立的声音事件，按参数给出一个或多个变体；没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。不带背景噪声，结尾自然衰减到静音。",
+      "en": "Game sound effect: clean, isolated sound events, one or more variations as given in the parameters; no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. No background noise, natural decay to silence at the end.",
+      "negative": true
+    },
+    "effect_army": {
+      "kind": "audio",
+      "title": "战场与兵团音效",
+      "duration": 6,
+      "outDir": "audio/sfx/army",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "loudness": "-14 LUFS-M max",
+      "truePeak": "-1 dBTP",
+      "zh": "游戏音效：干净、独立的声音事件，按参数给出一个或多个变体；没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。不带背景噪声，结尾自然衰减到静音。",
+      "en": "Game sound effect: clean, isolated sound events, one or more variations as given in the parameters; no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. No background noise, natural decay to silence at the end.",
+      "negative": true
+    },
+    "effect_strategy": {
+      "kind": "audio",
+      "title": "战略视图音效",
+      "duration": 4,
+      "outDir": "audio/sfx/strategy",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "loudness": "-20 LUFS-M max",
+      "truePeak": "-3 dBTP",
+      "zh": "游戏音效：干净、独立的声音事件，按参数给出一个或多个变体；没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。不带背景噪声，结尾自然衰减到静音。",
+      "en": "Game sound effect: clean, isolated sound events, one or more variations as given in the parameters; no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. No background noise, natural decay to silence at the end.",
+      "negative": true
+    },
+    "effect_divine": {
+      "kind": "audio",
+      "title": "神迹与女神音效",
+      "duration": 7,
+      "outDir": "audio/sfx/divine",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "loudness": "-14 LUFS-M max",
+      "truePeak": "-1 dBTP",
+      "zh": "游戏音效：干净、独立的声音事件，按参数给出一个或多个变体；没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。不带背景噪声，结尾自然衰减到静音。",
+      "en": "Game sound effect: clean, isolated sound events, one or more variations as given in the parameters; no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. No background noise, natural decay to silence at the end.",
+      "negative": true
+    },
+    "effect_foot": {
+      "kind": "audio",
+      "title": "脚步与行动拟音",
+      "duration": 2,
+      "outDir": "audio/sfx/foley",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "mono",
+      "loudness": "-24 LUFS-M max",
+      "truePeak": "-3 dBTP",
+      "zh": "游戏音效：干净、独立的声音事件，按参数给出一个或多个变体；没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。不带背景噪声，结尾自然衰减到静音。",
+      "en": "Game sound effect: clean, isolated sound events, one or more variations as given in the parameters; no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. No background noise, natural decay to silence at the end.",
+      "negative": true
+    },
+    "effect_env": {
+      "kind": "audio",
+      "title": "环境互动音效",
+      "duration": 4,
+      "outDir": "audio/sfx/world",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "mono",
+      "loudness": "-18 LUFS-M max",
+      "truePeak": "-3 dBTP",
+      "zh": "游戏音效：干净、独立的声音事件，按参数给出一个或多个变体；没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。不带背景噪声，结尾自然衰减到静音。",
+      "en": "Game sound effect: clean, isolated sound events, one or more variations as given in the parameters; no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. No background noise, natural decay to silence at the end.",
+      "negative": true
+    },
+    "effect_cine": {
+      "kind": "audio",
+      "title": "过场音效",
+      "duration": 10,
+      "outDir": "audio/sfx/cinematic",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "stereo",
+      "loudness": "-12 LUFS-M max",
+      "truePeak": "-1 dBTP",
+      "zh": "游戏音效：干净、独立的声音事件，按参数给出一个或多个变体；没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。不带背景噪声，结尾自然衰减到静音。",
+      "en": "Game sound effect: clean, isolated sound events, one or more variations as given in the parameters; no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. No background noise, natural decay to silence at the end.",
+      "negative": true
+    },
+    "effect_loop": {
+      "kind": "audio",
+      "title": "循环音效",
+      "duration": "loop",
+      "outDir": "audio/sfx/loops",
+      "ext": "ogg",
+      "sampleRate": 48000,
+      "channels": "mono",
+      "loudness": "-24 LUFS-I",
+      "truePeak": "-3 dBTP",
+      "zh": "游戏循环音效，没有音乐，没有可辨识的人声字词。风格：{style}。内容：{subject}。参数：{extra}。可无缝循环，首尾的密度与音量一致。",
+      "en": "Looping game sound effect, no music, no intelligible words. Style: {style}. Content: {subject}. Parameters: {extra}. Seamless loop, same density and level at both ends.",
+      "negative": true
+    }
+  }
+}

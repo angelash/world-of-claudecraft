@@ -1,0 +1,2456 @@
+{
+  "category": "icons_doors",
+  "title": "门徽",
+  "sources": [
+    "docs/40_design/content/catalog_doors.md",
+    "data/doors/doors.json",
+    "docs/50_tech/art_pipeline.md"
+  ],
+  "items": [
+    {
+      "id": "art_ico_door_awaken",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一只刚睁开的眼睛，眼睛下方横着一柄短剑，眼角放出三道细光；辅色为晨灰蓝；门下一级台阶。",
+        "en": "Central crest motif: A just-opened eye with a short sword lying beneath it and three thin rays from its corner; accent dawn gray-blue; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：门前厅。平顶长方形单扇门，门框厚实朴素，门扇下沿一道细亮的门缝光；外框辅色为温暖的旧木棕（#6b4a32）。",
+        "en": "Frame: the Forehall. A flat-topped rectangular single door with a thick plain frame and a thin bright line of light under the leaf; frame accent warm old-wood brown (#6b4a32)."
+      },
+      "ref": "door_awaken",
+      "milestone": "M0",
+      "notes": "语法：外框=门前厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。M0 样板之一。"
+    },
+    {
+      "id": "art_ico_door_past_life",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一扇小窗里叠着两个错开的剪影，一个在前一个在后，像同一个人的前后两生；辅色为暖灰；门下一级台阶。",
+        "en": "Central crest motif: Two offset silhouettes layered inside a small window, one before the other, like two lives of the same person; accent warm gray; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：门前厅。平顶长方形单扇门，门框厚实朴素，门扇下沿一道细亮的门缝光；外框辅色为温暖的旧木棕（#6b4a32）。",
+        "en": "Frame: the Forehall. A flat-topped rectangular single door with a thick plain frame and a thin bright line of light under the leaf; frame accent warm old-wood brown (#6b4a32)."
+      },
+      "ref": "door_past_life",
+      "milestone": "M1",
+      "notes": "语法：外框=门前厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。剪影只是简单人形，不画脸。"
+    },
+    {
+      "id": "art_ico_door_past_life_abacus",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一把小算盘斜放在门扇中央，上下两排算珠拨得整整齐齐，旁边一枚小铜钱；辅色为暖灰；门下一级台阶。",
+        "en": "Central crest motif: A small abacus lying aslant at the center of the leaf, its upper and lower rows of beads set neatly, a little copper coin beside it; accent warm gray; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：门前厅。平顶长方形单扇门，门框厚实朴素，门扇下沿一道细亮的门缝光；外框辅色为温暖的旧木棕（#6b4a32）。",
+        "en": "Frame: the Forehall. A flat-topped rectangular single door with a thick plain frame and a thin bright line of light under the leaf; frame accent warm old-wood brown (#6b4a32)."
+      },
+      "ref": "past_life_abacus",
+      "milestone": "M1",
+      "notes": "语法：外框=门前厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。前世之门的变体之一（数据层一条记录一枚）；门边挂的地球之物不画字与标志，不画红十字之类的现实标志。"
+    },
+    {
+      "id": "art_ico_door_past_life_nightlight",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一盏蘑菇形的小夜灯，灯罩发着柔和的暖白光，光圈里落着一只小钥匙；辅色为暖灰；门下一级台阶。",
+        "en": "Central crest motif: A little mushroom-shaped night light, its shade glowing a soft warm white, a small key lying in its circle of light; accent warm gray; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：门前厅。平顶长方形单扇门，门框厚实朴素，门扇下沿一道细亮的门缝光；外框辅色为温暖的旧木棕（#6b4a32）。",
+        "en": "Frame: the Forehall. A flat-topped rectangular single door with a thick plain frame and a thin bright line of light under the leaf; frame accent warm old-wood brown (#6b4a32)."
+      },
+      "ref": "past_life_nightlight",
+      "milestone": "M1",
+      "notes": "语法：外框=门前厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。前世之门的变体之一（数据层一条记录一枚）；门边挂的地球之物不画字与标志，不画红十字之类的现实标志。"
+    },
+    {
+      "id": "art_ico_door_past_life_whitecoat",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一件挂在衣钩上的白色长外衣，领口别着一支笔，袖口搭着一卷白绷带；辅色为暖灰；门下一级台阶。",
+        "en": "Central crest motif: A long white coat on a hook with a pen clipped at its collar and a roll of white bandage draped over the cuff; accent warm gray; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：门前厅。平顶长方形单扇门，门框厚实朴素，门扇下沿一道细亮的门缝光；外框辅色为温暖的旧木棕（#6b4a32）。",
+        "en": "Frame: the Forehall. A flat-topped rectangular single door with a thick plain frame and a thin bright line of light under the leaf; frame accent warm old-wood brown (#6b4a32)."
+      },
+      "ref": "past_life_whitecoat",
+      "milestone": "M1",
+      "notes": "语法：外框=门前厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。前世之门的变体之一（数据层一条记录一枚）；门边挂的地球之物不画字与标志，不画红十字之类的现实标志。"
+    },
+    {
+      "id": "art_ico_door_past_life_wrench",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一把活动扳手咬着一枚六角螺母，扳手柄上缠着一圈旧胶布；辅色为暖灰；门下一级台阶。",
+        "en": "Central crest motif: An adjustable wrench gripping a hexagonal nut, a band of old tape wound around its handle; accent warm gray; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：门前厅。平顶长方形单扇门，门框厚实朴素，门扇下沿一道细亮的门缝光；外框辅色为温暖的旧木棕（#6b4a32）。",
+        "en": "Frame: the Forehall. A flat-topped rectangular single door with a thick plain frame and a thin bright line of light under the leaf; frame accent warm old-wood brown (#6b4a32)."
+      },
+      "ref": "past_life_wrench",
+      "milestone": "M1",
+      "notes": "语法：外框=门前厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。前世之门的变体之一（数据层一条记录一枚）；门边挂的地球之物不画字与标志，不画红十字之类的现实标志。"
+    },
+    {
+      "id": "art_ico_door_past_life_notes",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一本摊开的笔记本，纸页上是几道浅浅的横线，一支短铅笔压在页缝里；辅色为暖灰；门下一级台阶。",
+        "en": "Central crest motif: An open notebook with a few faint ruled lines on its pages, a short pencil lying in the gutter; accent warm gray; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：门前厅。平顶长方形单扇门，门框厚实朴素，门扇下沿一道细亮的门缝光；外框辅色为温暖的旧木棕（#6b4a32）。",
+        "en": "Frame: the Forehall. A flat-topped rectangular single door with a thick plain frame and a thin bright line of light under the leaf; frame accent warm old-wood brown (#6b4a32)."
+      },
+      "ref": "past_life_notes",
+      "milestone": "M1",
+      "notes": "语法：外框=门前厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。前世之门的变体之一（数据层一条记录一枚）；门边挂的地球之物不画字与标志，不画红十字之类的现实标志。"
+    },
+    {
+      "id": "art_ico_door_past_life_hearth",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一口小汤锅坐在一团小小的灶火上，锅里冒着热气，锅旁一把汤勺；辅色为暖灰；门下一级台阶。",
+        "en": "Central crest motif: A small soup pot sitting over a little stove flame, steam rising from it, a ladle beside the pot; accent warm gray; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：门前厅。平顶长方形单扇门，门框厚实朴素，门扇下沿一道细亮的门缝光；外框辅色为温暖的旧木棕（#6b4a32）。",
+        "en": "Frame: the Forehall. A flat-topped rectangular single door with a thick plain frame and a thin bright line of light under the leaf; frame accent warm old-wood brown (#6b4a32)."
+      },
+      "ref": "past_life_hearth",
+      "milestone": "M1",
+      "notes": "语法：外框=门前厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。前世之门的变体之一（数据层一条记录一枚）；门边挂的地球之物不画字与标志，不画红十字之类的现实标志。"
+    },
+    {
+      "id": "art_ico_door_past_life_signpost",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一根立着的路标杆，杆顶两块箭头形木牌指向相反的方向，牌上没有字；辅色为暖灰；门下一级台阶。",
+        "en": "Central crest motif: A standing signpost with two arrow-shaped boards at its top pointing opposite ways, nothing written on them; accent warm gray; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：门前厅。平顶长方形单扇门，门框厚实朴素，门扇下沿一道细亮的门缝光；外框辅色为温暖的旧木棕（#6b4a32）。",
+        "en": "Frame: the Forehall. A flat-topped rectangular single door with a thick plain frame and a thin bright line of light under the leaf; frame accent warm old-wood brown (#6b4a32)."
+      },
+      "ref": "past_life_signpost",
+      "milestone": "M1",
+      "notes": "语法：外框=门前厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。前世之门的变体之一（数据层一条记录一枚）；门边挂的地球之物不画字与标志，不画红十字之类的现实标志。"
+    },
+    {
+      "id": "art_ico_door_past_life_podium",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一张小讲台，台面上摊着一本书，书旁一截粉笔；辅色为暖灰；门下一级台阶。",
+        "en": "Central crest motif: A small lectern with an open book on its top and a stick of chalk beside the book; accent warm gray; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：门前厅。平顶长方形单扇门，门框厚实朴素，门扇下沿一道细亮的门缝光；外框辅色为温暖的旧木棕（#6b4a32）。",
+        "en": "Frame: the Forehall. A flat-topped rectangular single door with a thick plain frame and a thin bright line of light under the leaf; frame accent warm old-wood brown (#6b4a32)."
+      },
+      "ref": "past_life_podium",
+      "milestone": "M1",
+      "notes": "语法：外框=门前厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。前世之门的变体之一（数据层一条记录一枚）；门边挂的地球之物不画字与标志，不画红十字之类的现实标志。"
+    },
+    {
+      "id": "art_ico_door_inner_garden",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：三乘三的九格小庭院俯视图，正中一格长着一棵小树，四周是矮墙；辅色为草绿；门下一级台阶。",
+        "en": "Central crest motif: A top view of a little three-by-three courtyard of nine squares with a small tree in the center square, low walls around it; accent grass green; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：门前厅。平顶长方形单扇门，门框厚实朴素，门扇下沿一道细亮的门缝光；外框辅色为温暖的旧木棕（#6b4a32）。",
+        "en": "Frame: the Forehall. A flat-topped rectangular single door with a thick plain frame and a thin bright line of light under the leaf; frame accent warm old-wood brown (#6b4a32)."
+      },
+      "ref": "door_inner_garden",
+      "milestone": "M1",
+      "notes": "语法：外框=门前厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。九格要数得清。"
+    },
+    {
+      "id": "art_ico_door_release",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一只摊开的手掌，掌心向下，一根细线正从指间垂落松开；辅色为素白；门下六级台阶。",
+        "en": "Central crest motif: An open hand, palm down, a thin thread slipping loose from between the fingers; accent plain white; six steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：门前厅。平顶长方形单扇门，门框厚实朴素，门扇下沿一道细亮的门缝光；外框辅色为温暖的旧木棕（#6b4a32）。",
+        "en": "Frame: the Forehall. A flat-topped rectangular single door with a thick plain frame and a thin bright line of light under the leaf; frame accent warm old-wood brown (#6b4a32)."
+      },
+      "ref": "door_release",
+      "milestone": "M3",
+      "notes": "语法：外框=门前厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。只画手与线，不画神像与人物。"
+    },
+    {
+      "id": "art_ico_door_tide_sight",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一圈圈向外扩散的同心波纹，正中一个小亮点，像在读一片水面的起伏；辅色为浅湖蓝；门下一级台阶。",
+        "en": "Central crest motif: Concentric ripples spreading outward from a small bright point, as if reading the rise and fall of water; accent pale lake blue; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：镜廊。上缘为圆拱的单扇门，门扇是一整块泛着水波反光的银蓝镜面板（#9aa8c8），纹样浮在镜面中央。",
+        "en": "Frame: the Mirror Gallery. A single door with a round arched top whose leaf is one silver-blue mirror panel (#9aa8c8) shimmering like water, the motif floating at the center of the mirror."
+      },
+      "ref": "door_tide_sight",
+      "milestone": "M0",
+      "notes": "语法：外框=镜廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。M0 样板之一。"
+    },
+    {
+      "id": "art_ico_door_talent_sight",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一枚放大镜照着一颗小小的种子，种子正冒出一枝嫩芽；辅色为嫩绿；门下一级台阶。",
+        "en": "Central crest motif: A magnifying lens over a small seed sprouting a tender shoot; accent fresh green; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：镜廊。上缘为圆拱的单扇门，门扇是一整块泛着水波反光的银蓝镜面板（#9aa8c8），纹样浮在镜面中央。",
+        "en": "Frame: the Mirror Gallery. A single door with a round arched top whose leaf is one silver-blue mirror panel (#9aa8c8) shimmering like water, the motif floating at the center of the mirror."
+      },
+      "ref": "door_talent_sight",
+      "milestone": "M1",
+      "notes": "语法：外框=镜廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_restraint",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一只握拳的手，指缝里压着几道向外溢的波纹，波纹被收拢回拳心；辅色为钢灰；门下二级台阶。",
+        "en": "Central crest motif: A closed fist with a few outward ripples squeezed between its fingers, drawn back into the palm; accent steel gray; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：镜廊。上缘为圆拱的单扇门，门扇是一整块泛着水波反光的银蓝镜面板（#9aa8c8），纹样浮在镜面中央。",
+        "en": "Frame: the Mirror Gallery. A single door with a round arched top whose leaf is one silver-blue mirror panel (#9aa8c8) shimmering like water, the motif floating at the center of the mirror."
+      },
+      "ref": "door_restraint",
+      "milestone": "M2",
+      "notes": "语法：外框=镜廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_false_record",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一页书上贴着一张错开半格的小纸片，纸片的纹路和底下那页不一样；辅色为羊皮黄；门下二级台阶。",
+        "en": "Central crest motif: A book page with a small slip pasted half a step out of line, its lines not matching the page beneath; accent parchment yellow; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：镜廊。上缘为圆拱的单扇门，门扇是一整块泛着水波反光的银蓝镜面板（#9aa8c8），纹样浮在镜面中央。",
+        "en": "Frame: the Mirror Gallery. A single door with a round arched top whose leaf is one silver-blue mirror panel (#9aa8c8) shimmering like water, the motif floating at the center of the mirror."
+      },
+      "ref": "door_false_record",
+      "milestone": "M2",
+      "notes": "语法：外框=镜廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。纸上只有线条，不画字。"
+    },
+    {
+      "id": "art_ico_door_beyond_door",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一只侧过来的耳朵贴在一道细门缝上，门缝里飘出两道小声波；辅色为暗蓝；门下二级台阶。",
+        "en": "Central crest motif: A sideways ear pressed to a thin door crack, two small sound waves drifting out of the gap; accent dark blue; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：镜廊。上缘为圆拱的单扇门，门扇是一整块泛着水波反光的银蓝镜面板（#9aa8c8），纹样浮在镜面中央。",
+        "en": "Frame: the Mirror Gallery. A single door with a round arched top whose leaf is one silver-blue mirror panel (#9aa8c8) shimmering like water, the motif floating at the center of the mirror."
+      },
+      "ref": "door_beyond_door",
+      "milestone": "M2",
+      "notes": "语法：外框=镜廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_tide_sight_deep",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：同心波纹的最深处多出一圈暗色的旋涡，旋涡里一点暗紫；辅色为深湖蓝；门下三级台阶。",
+        "en": "Central crest motif: Concentric ripples with an extra dark whirl at their deepest point, a fleck of dark purple inside it; accent deep lake blue; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：镜廊。上缘为圆拱的单扇门，门扇是一整块泛着水波反光的银蓝镜面板（#9aa8c8），纹样浮在镜面中央。",
+        "en": "Frame: the Mirror Gallery. A single door with a round arched top whose leaf is one silver-blue mirror panel (#9aa8c8) shimmering like water, the motif floating at the center of the mirror."
+      },
+      "ref": "door_tide_sight_deep",
+      "milestone": "M2",
+      "notes": "语法：外框=镜廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。与观澜之门成对：本门多一个暗旋涡；暗紫只占一点。"
+    },
+    {
+      "id": "art_ico_door_talent_sight_deep",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一枚放大镜里照出一根细细的金丝，金丝从一颗种子牵向远处；辅色为暗金；门下四级台阶。",
+        "en": "Central crest motif: A magnifying lens revealing a fine gold thread drawn from a seed toward the distance; accent dark gold; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：镜廊。上缘为圆拱的单扇门，门扇是一整块泛着水波反光的银蓝镜面板（#9aa8c8），纹样浮在镜面中央。",
+        "en": "Frame: the Mirror Gallery. A single door with a round arched top whose leaf is one silver-blue mirror panel (#9aa8c8) shimmering like water, the motif floating at the center of the mirror."
+      },
+      "ref": "door_talent_sight_deep",
+      "milestone": "M3",
+      "notes": "语法：外框=镜廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。与识才之门成对：本门多一根金丝。"
+    },
+    {
+      "id": "art_ico_door_false_record_deep",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一页书被一块半透明的布帘遮住大半，帘下露出一只兽爪印和一只手印；辅色为烟灰；门下三级台阶。",
+        "en": "Central crest motif: A book page mostly hidden behind a translucent curtain, a paw print and a handprint showing below it; accent smoke gray; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：镜廊。上缘为圆拱的单扇门，门扇是一整块泛着水波反光的银蓝镜面板（#9aa8c8），纹样浮在镜面中央。",
+        "en": "Frame: the Mirror Gallery. A single door with a round arched top whose leaf is one silver-blue mirror panel (#9aa8c8) shimmering like water, the motif floating at the center of the mirror."
+      },
+      "ref": "door_false_record_deep",
+      "milestone": "M2",
+      "notes": "语法：外框=镜廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_beyond_door_deep",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：两扇并排的小门，一个小人剪影从左门消失、右门里露出半个身子；辅色为暗蓝；门下三级台阶。",
+        "en": "Central crest motif: Two small doors side by side, a little figure vanishing into the left one and half emerging from the right; accent dark blue; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：镜廊。上缘为圆拱的单扇门，门扇是一整块泛着水波反光的银蓝镜面板（#9aa8c8），纹样浮在镜面中央。",
+        "en": "Frame: the Mirror Gallery. A single door with a round arched top whose leaf is one silver-blue mirror panel (#9aa8c8) shimmering like water, the motif floating at the center of the mirror."
+      },
+      "ref": "door_beyond_door_deep",
+      "milestone": "M2",
+      "notes": "语法：外框=镜廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。剪影是简笔小人。"
+    },
+    {
+      "id": "art_ico_door_stele_holy",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：碑面中央一个光轮，光轮上方三颗小光点，像一道预兆；辅色为白金；门下四级台阶。",
+        "en": "Central crest motif: A halo wheel at the center of the stele face with three small points of light above it, like an omen; accent white-gold; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：七碑廊。碑形的门，顶部是圆肩的石碑轮廓，门框为灰白石质（#b9b4a8）描门扉金细边，碑面光洁无字，纹样在碑面中央。",
+        "en": "Frame: the Seven-Stele Gallery. A stele-shaped door with a round-shouldered tablet outline, a pale gray stone frame (#b9b4a8) edged in fine door gold, a smooth blank stele face with the motif at its center."
+      },
+      "ref": "door_stele_holy",
+      "milestone": "M3",
+      "notes": "语法：外框=七碑廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。七碑之门共用碑形外框，以纹样区分。"
+    },
+    {
+      "id": "art_ico_door_stele_duel",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：碑面中央一柄断剑，剑尖朝下插在一道刻痕里；辅色为铁红；门下四级台阶。",
+        "en": "Central crest motif: A broken sword at the center of the stele face, its point thrust down into a groove; accent iron red; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：七碑廊。碑形的门，顶部是圆肩的石碑轮廓，门框为灰白石质（#b9b4a8）描门扉金细边，碑面光洁无字，纹样在碑面中央。",
+        "en": "Frame: the Seven-Stele Gallery. A stele-shaped door with a round-shouldered tablet outline, a pale gray stone frame (#b9b4a8) edged in fine door gold, a smooth blank stele face with the motif at its center."
+      },
+      "ref": "door_stele_duel",
+      "milestone": "M3",
+      "notes": "语法：外框=七碑廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_stele_pact",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：碑面中央一枚硬币，硬币上叠着两只相握的手；辅色为暖金；门下四级台阶。",
+        "en": "Central crest motif: A coin at the center of the stele face with two clasped hands over it; accent warm gold; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：七碑廊。碑形的门，顶部是圆肩的石碑轮廓，门框为灰白石质（#b9b4a8）描门扉金细边，碑面光洁无字，纹样在碑面中央。",
+        "en": "Frame: the Seven-Stele Gallery. A stele-shaped door with a round-shouldered tablet outline, a pale gray stone frame (#b9b4a8) edged in fine door gold, a smooth blank stele face with the motif at its center."
+      },
+      "ref": "door_stele_pact",
+      "milestone": "M3",
+      "notes": "语法：外框=七碑廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_stele_root",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：碑面中央一片枝叶，叶下伸出缠绕的根须，根须包住碑座；辅色为林绿；门下四级台阶。",
+        "en": "Central crest motif: A leafy sprig at the center of the stele face, twining roots reaching from beneath it to wrap the base; accent forest green; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：七碑廊。碑形的门，顶部是圆肩的石碑轮廓，门框为灰白石质（#b9b4a8）描门扉金细边，碑面光洁无字，纹样在碑面中央。",
+        "en": "Frame: the Seven-Stele Gallery. A stele-shaped door with a round-shouldered tablet outline, a pale gray stone frame (#b9b4a8) edged in fine door gold, a smooth blank stele face with the motif at its center."
+      },
+      "ref": "door_stele_root",
+      "milestone": "M3",
+      "notes": "语法：外框=七碑廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_stele_record",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：碑面中央一卷展开的书卷，书卷旁一支羽笔；辅色为墨蓝；门下四级台阶。",
+        "en": "Central crest motif: An unrolled scroll at the center of the stele face with a quill beside it; accent ink blue; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：七碑廊。碑形的门，顶部是圆肩的石碑轮廓，门框为灰白石质（#b9b4a8）描门扉金细边，碑面光洁无字，纹样在碑面中央。",
+        "en": "Frame: the Seven-Stele Gallery. A stele-shaped door with a round-shouldered tablet outline, a pale gray stone frame (#b9b4a8) edged in fine door gold, a smooth blank stele face with the motif at its center."
+      },
+      "ref": "door_stele_record",
+      "milestone": "M3",
+      "notes": "语法：外框=七碑廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_stele_mute",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：碑面中央一个空着的长方名框，框边缘布满凿痕，框里什么也没有；辅色为灰白；门下四级台阶。",
+        "en": "Central crest motif: An empty rectangular name frame at the center of the stele face, its edges full of chisel marks, nothing inside it; accent ash white; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：七碑廊。碑形的门，顶部是圆肩的石碑轮廓，门框为灰白石质（#b9b4a8）描门扉金细边，碑面光洁无字，纹样在碑面中央。",
+        "en": "Frame: the Seven-Stele Gallery. A stele-shaped door with a round-shouldered tablet outline, a pale gray stone frame (#b9b4a8) edged in fine door gold, a smooth blank stele face with the motif at its center."
+      },
+      "ref": "door_stele_mute",
+      "milestone": "M3",
+      "notes": "语法：外框=七碑廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。名框必须是空的。"
+    },
+    {
+      "id": "art_ico_door_stele_sky",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：碑面中央一道弧形的天穹线，线下几道竖直等长的爪痕；辅色为冰蓝；门下五级台阶。",
+        "en": "Central crest motif: An arched sky line at the center of the stele face with a few vertical claw marks of equal length beneath it; accent ice blue; five steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：七碑廊。碑形的门，顶部是圆肩的石碑轮廓，门框为灰白石质（#b9b4a8）描门扉金细边，碑面光洁无字，纹样在碑面中央。",
+        "en": "Frame: the Seven-Stele Gallery. A stele-shaped door with a round-shouldered tablet outline, a pale gray stone frame (#b9b4a8) edged in fine door gold, a smooth blank stele face with the motif at its center."
+      },
+      "ref": "door_stele_sky",
+      "milestone": "M3",
+      "notes": "语法：外框=七碑廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_vocation_warrior",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门楣方牌里是一道斜劈的刃痕记号；门扇中央一面圆盾后交叉着一柄长剑与一柄战斧；辅色为铁锈红 #a8543a；门下一级台阶。",
+        "en": "Central crest motif: The lintel plaque holds a slanting blade-stroke mark; at the center of the leaf a round shield with a longsword and a battle axe crossed behind it; accent rust red #a8543a; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：九职长廊。高窄的尖拱单扇门，门楣中央嵌一块小方牌，方牌里是本职能的几何记号（不是字），门扇中央是本职能的纹样。",
+        "en": "Frame: the Hall of Nine Callings. A tall narrow pointed-arch single door with a small square plaque at the center of the lintel holding this calling's geometric mark (not a letter), the calling's motif at the center of the leaf."
+      },
+      "ref": "door_vocation_warrior",
+      "milestone": "M1",
+      "notes": "语法：外框=九职长廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。九职门楣记号：刃为一道斜劈刃痕，不画字。"
+    },
+    {
+      "id": "art_ico_door_vocation_hunter",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门楣方牌里是一枚兽爪印记号；门扇中央一张拉开的弓，弓下蹲着一只狼的侧影；辅色为苔绿 #5a8a3a；门下一级台阶。",
+        "en": "Central crest motif: The lintel plaque holds a paw-print mark; at the center a drawn bow with the side silhouette of a crouching wolf beneath it; accent moss green #5a8a3a; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：九职长廊。高窄的尖拱单扇门，门楣中央嵌一块小方牌，方牌里是本职能的几何记号（不是字），门扇中央是本职能的纹样。",
+        "en": "Frame: the Hall of Nine Callings. A tall narrow pointed-arch single door with a small square plaque at the center of the lintel holding this calling's geometric mark (not a letter), the calling's motif at the center of the leaf."
+      },
+      "ref": "door_vocation_hunter",
+      "milestone": "M1",
+      "notes": "语法：外框=九职长廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。九职门楣记号：兽为爪印。"
+    },
+    {
+      "id": "art_ico_door_vocation_druid",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门楣方牌里是一个叶形的气息旋记号；门扇中央一片叶子正变成一只熊爪的轮廓；辅色为叶褐绿 #7a8a4a；门下一级台阶。",
+        "en": "Central crest motif: The lintel plaque holds a leaf-shaped breath swirl; at the center a leaf turning into the outline of a bear paw; accent olive green #7a8a4a; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：九职长廊。高窄的尖拱单扇门，门楣中央嵌一块小方牌，方牌里是本职能的几何记号（不是字），门扇中央是本职能的纹样。",
+        "en": "Frame: the Hall of Nine Callings. A tall narrow pointed-arch single door with a small square plaque at the center of the lintel holding this calling's geometric mark (not a letter), the calling's motif at the center of the leaf."
+      },
+      "ref": "door_vocation_druid",
+      "milestone": "M1",
+      "notes": "语法：外框=九职长廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。九职门楣记号：息为叶形气旋。"
+    },
+    {
+      "id": "art_ico_door_vocation_warlock",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门楣方牌里是两个相扣的圆环记号；门扇中央一只托起的手掌，掌心浮着一团暗紫的火焰；辅色为澱紫 #4a3a62；门下一级台阶。",
+        "en": "Central crest motif: The lintel plaque holds two interlocked rings; at the center a raised open palm with a dark purple flame floating above it; accent sediment purple #4a3a62; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：九职长廊。高窄的尖拱单扇门，门楣中央嵌一块小方牌，方牌里是本职能的几何记号（不是字），门扇中央是本职能的纹样。",
+        "en": "Frame: the Hall of Nine Callings. A tall narrow pointed-arch single door with a small square plaque at the center of the lintel holding this calling's geometric mark (not a letter), the calling's motif at the center of the leaf."
+      },
+      "ref": "door_vocation_warlock",
+      "milestone": "M1",
+      "notes": "语法：外框=九职长廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。九职门楣记号：契为相扣双环。本门同属风口，门框右侧加两道风的弧线。澱紫在此合乎语义。"
+    },
+    {
+      "id": "art_ico_door_vocation_rogue",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门楣方牌里是一弯月牙形的影子记号；门扇中央两柄交叉的短匕，匕后一团斗篷的阴影；辅色为炭黑 #3a3a46；门下二级台阶。",
+        "en": "Central crest motif: The lintel plaque holds a crescent shadow mark; at the center two crossed short daggers before the shadow of a cloak; accent charcoal #3a3a46; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：九职长廊。高窄的尖拱单扇门，门楣中央嵌一块小方牌，方牌里是本职能的几何记号（不是字），门扇中央是本职能的纹样。",
+        "en": "Frame: the Hall of Nine Callings. A tall narrow pointed-arch single door with a small square plaque at the center of the lintel holding this calling's geometric mark (not a letter), the calling's motif at the center of the leaf."
+      },
+      "ref": "door_vocation_rogue",
+      "milestone": "M2",
+      "notes": "语法：外框=九职长廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。九职门楣记号：影为月牙影。"
+    },
+    {
+      "id": "art_ico_door_vocation_mage",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门楣方牌里是一颗六芒小火花记号；门扇中央一根法杖，杖头悬着一个由线条组成的小法阵；辅色为冰蓝 #6aa0d8；门下二级台阶。",
+        "en": "Central crest motif: The lintel plaque holds a six-pointed spark mark; at the center a staff with a small circle of lines floating at its head; accent ice blue #6aa0d8; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：九职长廊。高窄的尖拱单扇门，门楣中央嵌一块小方牌，方牌里是本职能的几何记号（不是字），门扇中央是本职能的纹样。",
+        "en": "Frame: the Hall of Nine Callings. A tall narrow pointed-arch single door with a small square plaque at the center of the lintel holding this calling's geometric mark (not a letter), the calling's motif at the center of the leaf."
+      },
+      "ref": "door_vocation_mage",
+      "milestone": "M2",
+      "notes": "语法：外框=九职长廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。九职门楣记号：灵为六芒火花。"
+    },
+    {
+      "id": "art_ico_door_vocation_priest",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门楣方牌里是一对合拢的手掌记号；门扇中央一只托着小光球的手，光球洒下几滴光点；辅色为象牙白 #eeeae2；门下二级台阶。",
+        "en": "Central crest motif: The lintel plaque holds a pair of joined palms; at the center a hand holding a small orb of light that sheds a few drops of light; accent ivory #eeeae2; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：九职长廊。高窄的尖拱单扇门，门楣中央嵌一块小方牌，方牌里是本职能的几何记号（不是字），门扇中央是本职能的纹样。",
+        "en": "Frame: the Hall of Nine Callings. A tall narrow pointed-arch single door with a small square plaque at the center of the lintel holding this calling's geometric mark (not a letter), the calling's motif at the center of the leaf."
+      },
+      "ref": "door_vocation_priest",
+      "milestone": "M2",
+      "notes": "语法：外框=九职长廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。九职门楣记号：祷为合掌。"
+    },
+    {
+      "id": "art_ico_door_vocation_paladin",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门楣方牌里是一面小盾记号；门扇中央一柄战锤竖立在一面带光纹的方盾前；辅色为金褐 #b4823a；门下三级台阶。",
+        "en": "Central crest motif: The lintel plaque holds a small shield mark; at the center a war hammer standing upright before a square shield with a light emblem; accent golden brown #b4823a; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：九职长廊。高窄的尖拱单扇门，门楣中央嵌一块小方牌，方牌里是本职能的几何记号（不是字），门扇中央是本职能的纹样。",
+        "en": "Frame: the Hall of Nine Callings. A tall narrow pointed-arch single door with a small square plaque at the center of the lintel holding this calling's geometric mark (not a letter), the calling's motif at the center of the leaf."
+      },
+      "ref": "door_vocation_paladin",
+      "milestone": "M2",
+      "notes": "语法：外框=九职长廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。九职门楣记号：誓为小盾。"
+    },
+    {
+      "id": "art_ico_door_vocation_shaman",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门楣方牌里是三道弧形的风记号；门扇中央一根雕着兽面的图腾柱，柱顶绕着一道闪电；辅色为天青 #4e8aa0；门下三级台阶。",
+        "en": "Central crest motif: The lintel plaque holds three arcing wind strokes; at the center a totem pole carved with a beast face, a lightning bolt coiling around its top; accent sky teal #4e8aa0; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：九职长廊。高窄的尖拱单扇门，门楣中央嵌一块小方牌，方牌里是本职能的几何记号（不是字），门扇中央是本职能的纹样。",
+        "en": "Frame: the Hall of Nine Callings. A tall narrow pointed-arch single door with a small square plaque at the center of the lintel holding this calling's geometric mark (not a letter), the calling's motif at the center of the leaf."
+      },
+      "ref": "door_vocation_shaman",
+      "milestone": "M2",
+      "notes": "语法：外框=九职长廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。九职门楣记号：风为三道弧。"
+    },
+    {
+      "id": "art_ico_door_school_warrior_arms",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一柄双手大剑重重劈下，剑刃下一道深深的裂痕；辅色为铁锈红；门下二级台阶。",
+        "en": "Central crest motif: A two-handed greatsword striking down hard, a deep crack beneath its edge; accent rust red; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_warrior_arms",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。流派龛门的辅色取所属职能色；三扇同职能流派门以纹样区分。"
+    },
+    {
+      "id": "art_ico_door_school_warrior_fury",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：两柄交错挥舞的单手斧，斧刃上溅起几滴红点，周围一圈锯齿形的怒纹；辅色为铁锈红；门下二级台阶。",
+        "en": "Central crest motif: Two one-handed axes swinging crosswise, a few red droplets flying from the blades, a ring of jagged rage lines around them; accent rust red; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_warrior_fury",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_warrior_prot",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一面厚重的塔盾正面，盾上一道被挡下的剑痕，盾沿铆着一圈钉；辅色为铁锈红；门下二级台阶。",
+        "en": "Central crest motif: The face of a heavy tower shield bearing a deflected sword scar, a ring of rivets around its rim; accent rust red; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_warrior_prot",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_paladin_holy",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一只张开的手掌按在一颗发光的心形光团上，光团放出柔和短芒；辅色为金褐；门下三级台阶。",
+        "en": "Central crest motif: An open palm pressed to a glowing heart-shaped orb of light that gives off soft short rays; accent golden brown; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_paladin_holy",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_paladin_protection",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一面方盾上浮着一个光轮，盾周围罩着一层半圆形的光幕；辅色为金褐；门下三级台阶。",
+        "en": "Central crest motif: A square shield with a halo floating over it, a half-dome of light around the shield; accent golden brown; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_paladin_protection",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_paladin_retribution",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一柄大锤从上方砸下，锤头拖着一道光尾，下方一道十字形的裂光；辅色为金褐；门下三级台阶。",
+        "en": "Central crest motif: A great hammer smashing down from above trailing light, a cross-shaped burst of cracked light beneath it; accent golden brown; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_paladin_retribution",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_hunter_beast_mastery",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一只狼头侧影与一个猎人手掌并排，狼眼发亮，四周三道爪痕；辅色为苔绿；门下二级台阶。",
+        "en": "Central crest motif: A wolf head in profile beside a hunter's open hand, the wolf's eye shining, three claw marks around them; accent moss green; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_hunter_beast_mastery",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_hunter_marksmanship",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一支长箭正中一个三环靶心，箭尾羽毛还在颤，靶旁一只眯起的眼；辅色为苔绿；门下三级台阶。",
+        "en": "Central crest motif: A long arrow in the center of a three-ring target, its fletching still quivering, a narrowed eye beside the target; accent moss green; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_hunter_marksmanship",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_hunter_survival",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一把带钩的猎刀与一只捕兽夹交叉，夹齿间缠着一根带刺的藤；辅色为苔绿；门下三级台阶。",
+        "en": "Central crest motif: A hooked hunting knife crossed with a jaw trap, a thorny vine caught in the trap's teeth; accent moss green; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_hunter_survival",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_rogue_assassination",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一柄细匕刃尖挂着一滴绿色的毒液，毒滴正往下落；辅色为炭黑；门下二级台阶。",
+        "en": "Central crest motif: A thin dagger with a drop of green poison hanging from its tip, about to fall; accent charcoal; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_rogue_assassination",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_rogue_combat",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一柄短剑与一柄细剑交叉，剑刃周围一圈旋转的刃风短线；辅色为炭黑；门下四级台阶。",
+        "en": "Central crest motif: A short sword crossed with a rapier, a ring of whirling blade-wind strokes around the edges; accent charcoal; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_rogue_combat",
+      "milestone": "M3",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_rogue_subtlety",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一个半隐在阴影里的兜帽剪影，只露出一道月牙形的刃光；辅色为炭黑；门下二级台阶。",
+        "en": "Central crest motif: A hooded silhouette half hidden in shadow, only a crescent glint of blade showing; accent charcoal; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_rogue_subtlety",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。剪影不画脸。"
+    },
+    {
+      "id": "art_ico_door_school_priest_discipline",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一只手托着一面小盾形的光片，光片上压着一道笔直的横纹；辅色为象牙白；门下三级台阶。",
+        "en": "Central crest motif: A hand holding up a small shield-shaped plate of light crossed by one straight bar; accent ivory; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_priest_discipline",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_priest_holy",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一颗光球向四周放出一圈均匀的光环，光环外落着几片光羽；辅色为象牙白；门下二级台阶。",
+        "en": "Central crest motif: An orb of light sending out an even ring of radiance, a few feathers of light drifting outside the ring; accent ivory; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_priest_holy",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_priest_shadow",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一支燃着的长蜡烛，烛火是暗灰色，烛影比蜡烛本身还长；辅色为象牙白配灰紫；门下三级台阶。",
+        "en": "Central crest motif: A tall burning candle with a dark gray flame, its shadow longer than the candle itself; accent ivory with gray-violet; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_priest_shadow",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。灰紫不要用澱紫。"
+    },
+    {
+      "id": "art_ico_door_school_shaman_elemental",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一道从云中劈下的闪电落在一块石头上，石头四周溅起火星；辅色为天青；门下四级台阶。",
+        "en": "Central crest motif: A lightning bolt striking from a cloud onto a stone, sparks bursting around it; accent sky teal; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_shaman_elemental",
+      "milestone": "M3",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_shaman_enhancement",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一柄缠着风纹与电光的短斧，斧柄上系着一根羽毛；辅色为天青；门下四级台阶。",
+        "en": "Central crest motif: A short axe wrapped in wind lines and crackling light, a feather tied to its haft; accent sky teal; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_shaman_enhancement",
+      "milestone": "M3",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_shaman_restoration",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一道水流从一只托起的贝壳里涌出，连着三滴相连的水珠；辅色为天青；门下三级台阶。",
+        "en": "Central crest motif: A stream of water welling from a raised shell, linked to three chained droplets; accent sky teal; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_shaman_restoration",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_mage_arcane",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一只沙漏，沙漏外绕着一圈逆向转动的箭头，沙粒在半空停住；辅色为冰蓝；门下三级台阶。",
+        "en": "Central crest motif: An hourglass circled by a ring of arrows turning backward, its sand grains frozen in midair; accent ice blue; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_mage_arcane",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_mage_fire",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一颗燃烧的大火球，火球后拖着一道弯曲的火尾；辅色为冰蓝配焰橙；门下二级台阶。",
+        "en": "Central crest motif: A big burning fireball trailing a curved tail of flame; accent ice blue with flame orange; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_mage_fire",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_mage_frost",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一根尖锐的冰枪斜指上方，冰枪周围结着六角形的霜花；辅色为冰蓝；门下五级台阶。",
+        "en": "Central crest motif: A sharp lance of ice pointing upward at a slant, six-sided frost flowers forming around it; accent ice blue; five steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_mage_frost",
+      "milestone": "M3",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_warlock_affliction",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一条细蛇般弯曲的暗色细丝缠住一颗小心形，细丝末端吸着一滴光；辅色为澱紫；门下四级台阶。",
+        "en": "Central crest motif: A thin dark thread curving like a small snake, coiled around a little heart shape, its end drawing off a drop of light; accent sediment purple; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_warlock_affliction",
+      "milestone": "M3",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_warlock_demonology",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一个由两圈线条组成的召唤圈，圈中探出一对弯角的轮廓；辅色为澱紫；门下三级台阶。",
+        "en": "Central crest motif: A summoning circle of two rings of lines, the outline of a pair of curved horns rising from its center; accent sediment purple; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_warlock_demonology",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_warlock_destruction",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一团暗紫的火焰从裂开的地面喷涌而出，火舌向两侧翻卷；辅色为澱紫；门下五级台阶。",
+        "en": "Central crest motif: A dark purple flame erupting from cracked ground, its tongues curling out to both sides; accent sediment purple; five steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_warlock_destruction",
+      "milestone": "M3",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_druid_balance",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一弯新月与一颗小太阳上下相对，中间一片叶子保持平衡；辅色为叶褐绿；门下三级台阶。",
+        "en": "Central crest motif: A crescent moon and a small sun facing each other above and below, a single leaf balanced between them; accent olive green; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_druid_balance",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_druid_feral",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一只张开利爪的猫科兽爪印，爪尖拖出三道撕裂的弧线；辅色为叶褐绿；门下二级台阶。",
+        "en": "Central crest motif: A feline paw print with claws spread, three tearing arcs trailing from the claw tips; accent olive green; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_druid_feral",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_school_druid_restoration",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一株从掌心长出的小树苗，树苗周围绕着一圈绿色的光点；辅色为叶褐绿；门下二级台阶。",
+        "en": "Central crest motif: A small sapling growing from an open palm, a ring of green lights around it; accent olive green; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：流派龛。小巧的圆拱龛门，门框外再套一圈浅浅的壁龛轮廓，门楣上一道横刻线（代替师傅的名字），纹样在门扇中央。",
+        "en": "Frame: the School Niches. A small round-arched niche door set within a shallow alcove outline, a single horizontal groove on the lintel (in place of the master's name), the motif at the center of the leaf."
+      },
+      "ref": "door_school_druid_restoration",
+      "milestone": "M2",
+      "notes": "语法：外框=流派龛，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_clear_flow",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：两扇门扇的下沿渗出一道清水，清水把一团灰色的淤泥冲开；辅色为清水蓝；门下三级台阶。",
+        "en": "Central crest motif: A stream of clear water seeping from beneath both leaves, washing away a lump of gray silt; accent clear water blue; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_clear_flow",
+      "milestone": "M2",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。交手廊之门：本门为\"门下渗出清水\"的门相。"
+    },
+    {
+      "id": "art_ico_door_dual_pulse",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：两扇门扇上各一道竖直的脉线，两条脉线在门柱处交汇成一个光点；辅色为红与蓝；门下二级台阶。",
+        "en": "Central crest motif: One vertical pulse line on each leaf, the two lines meeting at the center post in a point of light; accents red and blue; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_dual_pulse",
+      "milestone": "M2",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_combo_warrior_rogue",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：左扇一柄长剑，右扇一柄短匕，两刃从两侧指向中间一点，像前后夹击；辅色为铁锈红与炭黑；门下四级台阶。",
+        "en": "Central crest motif: A longsword on the left leaf and a short dagger on the right, both blades pointing at one center point as if striking from front and back; accents rust red and charcoal; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_combo_warrior_rogue",
+      "milestone": "M3",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。交手廊合技门：左右门扇各画一个职能的标志物，辅色取两职能色。"
+    },
+    {
+      "id": "art_ico_door_combo_warrior_mage",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：左扇一柄剑刃，右扇一团火，剑刃划过的轨迹燃成一道火线贯穿两扇；辅色为铁锈红与冰蓝；门下四级台阶。",
+        "en": "Central crest motif: A blade on the left leaf and a flame on the right, the blade's path burning into a line of fire across both leaves; accents rust red and ice blue; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_combo_warrior_mage",
+      "milestone": "M3",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_combo_warrior_priest",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：左扇一面挡在前面的圆盾，右扇一只托着光球的手，光球的光落在盾后；辅色为铁锈红与象牙白；门下四级台阶。",
+        "en": "Central crest motif: A round shield guarding on the left leaf and a hand holding an orb of light on the right, its light falling behind the shield; accents rust red and ivory; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_combo_warrior_priest",
+      "milestone": "M3",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_combo_warrior_paladin",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：左扇一柄普通的铁剑，右扇一道光，光顺着剑身亮起，但剑上没有光轮；辅色为铁锈红与金褐；门下五级台阶。",
+        "en": "Central crest motif: A plain iron sword on the left leaf and a beam of light on the right, the light running up the blade, yet no halo on the sword; accents rust red and golden brown; five steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_combo_warrior_paladin",
+      "milestone": "M3",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_combo_warrior_hunter",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：左扇一个冲锋的马蹄印，右扇一支带钩的箭，箭尾缠着一圈表示减速的螺旋；辅色为铁锈红与苔绿；门下四级台阶。",
+        "en": "Central crest motif: A charging hoofprint on the left leaf and a barbed arrow on the right, a slowing spiral wound around its shaft; accents rust red and moss green; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_combo_warrior_hunter",
+      "milestone": "M3",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_combo_priest_mage",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：左扇一道伤口形的裂痕，右扇一个线条法阵，法阵的线把裂痕缝合起来；辅色为象牙白与冰蓝；门下四级台阶。",
+        "en": "Central crest motif: A wound-shaped crack on the left leaf and a circle of lines on the right, whose lines stitch the crack closed; accents ivory and ice blue; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_combo_priest_mage",
+      "milestone": "M3",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_combo_hunter_druid",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一棵树干上开着一个树洞，左扇树洞里探出狼头，右扇探出熊掌；辅色为苔绿与叶褐绿；门下四级台阶。",
+        "en": "Central crest motif: A tree trunk with a hollow, a wolf head peering out on the left leaf and a bear paw on the right; accents moss green and olive green; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_combo_hunter_druid",
+      "milestone": "M3",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_combo_hunter_rogue",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：左扇一个十字瞄准印记，右扇一弯月牙下的匕首，夜色笼着两扇门；辅色为苔绿与炭黑；门下四级台阶。",
+        "en": "Central crest motif: A cross-shaped mark on the left leaf and a dagger under a crescent moon on the right, night shading both leaves; accents moss green and charcoal; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_combo_hunter_rogue",
+      "milestone": "M3",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_combo_warlock_mage",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：左扇一缕散开的暗紫烟，右扇一只敞口的瓶，烟被吸进瓶里变成蓝光；辅色为澱紫与冰蓝；门下四级台阶。",
+        "en": "Central crest motif: A wisp of scattered dark purple smoke on the left leaf and an open flask on the right, the smoke drawn into the flask turning blue; accents sediment purple and ice blue; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_combo_warlock_mage",
+      "milestone": "M3",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_combo_rogue_warlock",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一滴毒液里包着一个更小的暗紫咒环，左右两扇各画一层，像两层叠在一起；辅色为炭黑与澱紫；门下四级台阶。",
+        "en": "Central crest motif: A drop of poison holding a smaller dark purple curse ring, one layer drawn on each leaf as if stacked; accents charcoal and sediment purple; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_combo_rogue_warlock",
+      "milestone": "M3",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_combo_shaman_warrior",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：左扇一根小图腾，右扇两颗獠牙形的刃，刃上带着火与电的小纹；辅色为天青与铁锈红；门下四级台阶。",
+        "en": "Central crest motif: A small totem on the left leaf and two fang-shaped blades on the right, marked with tiny flame and lightning lines; accents sky teal and rust red; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_combo_shaman_warrior",
+      "milestone": "M3",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_combo_shaman_druid",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：左扇一眼小泉，右扇一座圆形石冢，泉水流过冢前；辅色为天青与叶褐绿；门下四级台阶。",
+        "en": "Central crest motif: A small spring on the left leaf and a round stone barrow on the right, the water running past the barrow; accents sky teal and olive green; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_combo_shaman_druid",
+      "milestone": "M3",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_combo_paladin_priest",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：两道光从两扇门扇照向中间一柄放倒在地的剑；辅色为金褐与象牙白；门下五级台阶。",
+        "en": "Central crest motif: Two beams of light shining from both leaves onto a sword laid down on the ground between them; accents golden brown and ivory; five steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_combo_paladin_priest",
+      "milestone": "M3",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_combo_druid_mage",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：左扇一团林间的白雾，右扇一个法阵，法阵的尖角从雾中透出一点亮光；辅色为叶褐绿与冰蓝；门下四级台阶。",
+        "en": "Central crest motif: A bank of white forest mist on the left leaf and a circle of lines on the right, one point of the circle glinting through the mist; accents olive green and ice blue; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_combo_druid_mage",
+      "milestone": "M3",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_combo_priest_druid",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：左扇一盏小灯，右扇一片落叶，两者之间飘着几个表示摇篮曲的小弧线，一缕灰烟往下沉；辅色为象牙白与叶褐绿；门下三级台阶。",
+        "en": "Central crest motif: A small lamp on the left leaf and a falling leaf on the right, a few little lullaby arcs drifting between them, a wisp of gray smoke sinking down; accents ivory and olive green; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：交手廊。两扇窄门共用一个宽门框的双开门，中间一根门柱，纹样横跨或分居两扇门扇。",
+        "en": "Frame: the Crossing Gallery. A double door of two narrow leaves sharing one wide frame with a center post, the motif spanning both leaves or split between them."
+      },
+      "ref": "door_combo_priest_druid",
+      "milestone": "M2",
+      "notes": "语法：外框=交手廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。不画音符符号。"
+    },
+    {
+      "id": "art_ico_door_craft_mining",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：横木上挂着一把十字镐，镐尖下方一块露出矿脉的石头；辅色为铁灰与矿黄；门下一级台阶。",
+        "en": "Central crest motif: A pickaxe hanging from the crossbar, below its point a rock showing a vein of ore; accents iron gray and ore yellow; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：百工廊。方正的作坊木门，门框上缘钉着一根横木（#7a6a52），横木正中挂着本门的工具，工具与它的成品构成纹样。",
+        "en": "Frame: the Hall of Hundred Crafts. A square workshop wooden door with a crossbar (#7a6a52) nailed across the top of the frame, this door's tool hanging from its middle, the tool and its product forming the motif."
+      },
+      "ref": "door_craft_mining",
+      "milestone": "M1",
+      "notes": "语法：外框=百工廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。百工廊之门：横木挂的工具即主体，按门相表一门一件。"
+    },
+    {
+      "id": "art_ico_door_craft_logging",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：横木上挂着一把伐木斧，斧下一截带年轮的圆木；辅色为木褐；门下一级台阶。",
+        "en": "Central crest motif: A felling axe hanging from the crossbar above a log section showing its rings; accent wood brown; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：百工廊。方正的作坊木门，门框上缘钉着一根横木（#7a6a52），横木正中挂着本门的工具，工具与它的成品构成纹样。",
+        "en": "Frame: the Hall of Hundred Crafts. A square workshop wooden door with a crossbar (#7a6a52) nailed across the top of the frame, this door's tool hanging from its middle, the tool and its product forming the motif."
+      },
+      "ref": "door_craft_logging",
+      "milestone": "M1",
+      "notes": "语法：外框=百工廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_craft_herbalism",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：横木上挂着一把小镰刀，镰刀下一株开花的药草；辅色为草绿；门下一级台阶。",
+        "en": "Central crest motif: A small sickle hanging from the crossbar above a flowering herb; accent grass green; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：百工廊。方正的作坊木门，门框上缘钉着一根横木（#7a6a52），横木正中挂着本门的工具，工具与它的成品构成纹样。",
+        "en": "Frame: the Hall of Hundred Crafts. A square workshop wooden door with a crossbar (#7a6a52) nailed across the top of the frame, this door's tool hanging from its middle, the tool and its product forming the motif."
+      },
+      "ref": "door_craft_herbalism",
+      "milestone": "M1",
+      "notes": "语法：外框=百工廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_craft_fishing",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：横木上挂着一根钓竿，钓线垂下，末端钩着一条小鱼；辅色为水蓝；门下二级台阶。",
+        "en": "Central crest motif: A fishing rod hanging from the crossbar, its line dropping down with a small fish on the hook; accent water blue; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：百工廊。方正的作坊木门，门框上缘钉着一根横木（#7a6a52），横木正中挂着本门的工具，工具与它的成品构成纹样。",
+        "en": "Frame: the Hall of Hundred Crafts. A square workshop wooden door with a crossbar (#7a6a52) nailed across the top of the frame, this door's tool hanging from its middle, the tool and its product forming the motif."
+      },
+      "ref": "door_craft_fishing",
+      "milestone": "M2",
+      "notes": "语法：外框=百工廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_craft_engineering",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：横木上挂着一枚大齿轮，齿轮中间咬着一枚小齿轮；辅色为黄铜；门下二级台阶。",
+        "en": "Central crest motif: A large gear hanging from the crossbar with a small gear meshed inside it; accent brass; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：百工廊。方正的作坊木门，门框上缘钉着一根横木（#7a6a52），横木正中挂着本门的工具，工具与它的成品构成纹样。",
+        "en": "Frame: the Hall of Hundred Crafts. A square workshop wooden door with a crossbar (#7a6a52) nailed across the top of the frame, this door's tool hanging from its middle, the tool and its product forming the motif."
+      },
+      "ref": "door_craft_engineering",
+      "milestone": "M2",
+      "notes": "语法：外框=百工廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_craft_alchemy",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：横木上挂着一只圆肚蒸馏瓶，瓶里冒出一个小气泡；辅色为药绿；门下一级台阶。",
+        "en": "Central crest motif: A round-bellied distilling flask hanging from the crossbar, a small bubble rising from it; accent potion green; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：百工廊。方正的作坊木门，门框上缘钉着一根横木（#7a6a52），横木正中挂着本门的工具，工具与它的成品构成纹样。",
+        "en": "Frame: the Hall of Hundred Crafts. A square workshop wooden door with a crossbar (#7a6a52) nailed across the top of the frame, this door's tool hanging from its middle, the tool and its product forming the motif."
+      },
+      "ref": "door_craft_alchemy",
+      "milestone": "M1",
+      "notes": "语法：外框=百工廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_craft_cooking",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：横木上挂着一把长柄木勺，勺下一口冒热气的小锅；辅色为暖橙；门下一级台阶。",
+        "en": "Central crest motif: A long-handled wooden ladle hanging from the crossbar above a small steaming pot; accent warm orange; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：百工廊。方正的作坊木门，门框上缘钉着一根横木（#7a6a52），横木正中挂着本门的工具，工具与它的成品构成纹样。",
+        "en": "Frame: the Hall of Hundred Crafts. A square workshop wooden door with a crossbar (#7a6a52) nailed across the top of the frame, this door's tool hanging from its middle, the tool and its product forming the motif."
+      },
+      "ref": "door_craft_cooking",
+      "milestone": "M1",
+      "notes": "语法：外框=百工廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_craft_leatherworking",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：横木上挂着一把弯刃刮刀，刮刀下一张撑开的兽皮；辅色为皮棕；门下一级台阶。",
+        "en": "Central crest motif: A curved scraping knife hanging from the crossbar above a stretched hide; accent leather brown; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：百工廊。方正的作坊木门，门框上缘钉着一根横木（#7a6a52），横木正中挂着本门的工具，工具与它的成品构成纹样。",
+        "en": "Frame: the Hall of Hundred Crafts. A square workshop wooden door with a crossbar (#7a6a52) nailed across the top of the frame, this door's tool hanging from its middle, the tool and its product forming the motif."
+      },
+      "ref": "door_craft_leatherworking",
+      "milestone": "M1",
+      "notes": "语法：外框=百工廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_craft_tailoring",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：横木上挂着一枚织梭，梭尾拖出一根线，线绕成一小卷布；辅色为布蓝；门下二级台阶。",
+        "en": "Central crest motif: A weaving shuttle hanging from the crossbar, a thread trailing from it into a small roll of cloth; accent cloth blue; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：百工廊。方正的作坊木门，门框上缘钉着一根横木（#7a6a52），横木正中挂着本门的工具，工具与它的成品构成纹样。",
+        "en": "Frame: the Hall of Hundred Crafts. A square workshop wooden door with a crossbar (#7a6a52) nailed across the top of the frame, this door's tool hanging from its middle, the tool and its product forming the motif."
+      },
+      "ref": "door_craft_tailoring",
+      "milestone": "M2",
+      "notes": "语法：外框=百工廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_craft_inscription",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：横木上挂着一支录笔，笔尖下一张画着几何纹的符纸；辅色为墨蓝；门下二级台阶。",
+        "en": "Central crest motif: A scribing pen hanging from the crossbar above a charm paper drawn with a geometric pattern; accent ink blue; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：百工廊。方正的作坊木门，门框上缘钉着一根横木（#7a6a52），横木正中挂着本门的工具，工具与它的成品构成纹样。",
+        "en": "Frame: the Hall of Hundred Crafts. A square workshop wooden door with a crossbar (#7a6a52) nailed across the top of the frame, this door's tool hanging from its middle, the tool and its product forming the motif."
+      },
+      "ref": "door_craft_inscription",
+      "milestone": "M2",
+      "notes": "语法：外框=百工廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。符纸上只有几何纹，不画字。"
+    },
+    {
+      "id": "art_ico_door_craft_enchanting",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：横木上挂着一把纹凿，凿尖下一枚刻着发光纹路的小金属片；辅色为淡紫蓝；门下二级台阶。",
+        "en": "Central crest motif: An engraving chisel hanging from the crossbar above a small metal plate etched with glowing lines; accent pale violet-blue; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：百工廊。方正的作坊木门，门框上缘钉着一根横木（#7a6a52），横木正中挂着本门的工具，工具与它的成品构成纹样。",
+        "en": "Frame: the Hall of Hundred Crafts. A square workshop wooden door with a crossbar (#7a6a52) nailed across the top of the frame, this door's tool hanging from its middle, the tool and its product forming the motif."
+      },
+      "ref": "door_craft_enchanting",
+      "milestone": "M2",
+      "notes": "语法：外框=百工廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。淡紫蓝不要用澱紫。"
+    },
+    {
+      "id": "art_ico_door_craft_jewelcrafting",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：横木上挂着一只琢轮，轮下一颗切面闪亮的宝石；辅色为宝石红；门下二级台阶。",
+        "en": "Central crest motif: A cutting wheel hanging from the crossbar above a sparkling faceted gem; accent gem red; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：百工廊。方正的作坊木门，门框上缘钉着一根横木（#7a6a52），横木正中挂着本门的工具，工具与它的成品构成纹样。",
+        "en": "Frame: the Hall of Hundred Crafts. A square workshop wooden door with a crossbar (#7a6a52) nailed across the top of the frame, this door's tool hanging from its middle, the tool and its product forming the motif."
+      },
+      "ref": "door_craft_jewelcrafting",
+      "milestone": "M2",
+      "notes": "语法：外框=百工廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_craft_weaponcrafting",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：横木上挂着一把锻锤，锤下一块铁砧，砧上一柄未完成的剑坯；辅色为炉火橙；门下一级台阶。",
+        "en": "Central crest motif: A forging hammer hanging from the crossbar above an anvil with an unfinished sword blank on it; accent forge orange; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：百工廊。方正的作坊木门，门框上缘钉着一根横木（#7a6a52），横木正中挂着本门的工具，工具与它的成品构成纹样。",
+        "en": "Frame: the Hall of Hundred Crafts. A square workshop wooden door with a crossbar (#7a6a52) nailed across the top of the frame, this door's tool hanging from its middle, the tool and its product forming the motif."
+      },
+      "ref": "door_craft_weaponcrafting",
+      "milestone": "M1",
+      "notes": "语法：外框=百工廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_craft_armorcrafting",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：横木上挂着一枚甲片，甲片下一副小小的护肩；辅色为钢灰；门下二级台阶。",
+        "en": "Central crest motif: A single armor plate hanging from the crossbar above a small pauldron; accent steel gray; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：百工廊。方正的作坊木门，门框上缘钉着一根横木（#7a6a52），横木正中挂着本门的工具，工具与它的成品构成纹样。",
+        "en": "Frame: the Hall of Hundred Crafts. A square workshop wooden door with a crossbar (#7a6a52) nailed across the top of the frame, this door's tool hanging from its middle, the tool and its product forming the motif."
+      },
+      "ref": "door_craft_armorcrafting",
+      "milestone": "M2",
+      "notes": "语法：外框=百工廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_trial_eluen",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：椅背中央一个光轮，光轮前一道笔直的闪身残影；辅色为白金；门下三级台阶。",
+        "en": "Central crest motif: A halo wheel at the center of the chair back, a straight afterimage of a dodge before it; accent white-gold; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：六椅厅。门的外框是一把高背椅的轮廓（门楣是椅背顶，门框两侧是椅背立柱），纹样在椅背中央。",
+        "en": "Frame: the Hall of Six Chairs. The door's frame is the outline of a high-backed chair (the lintel is the top of the chair back, the jambs are its posts), the motif at the center of the chair back."
+      },
+      "ref": "door_trial_eluen",
+      "milestone": "M2",
+      "notes": "语法：外框=六椅厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。六椅厅之门：椅背外框，中央纹样取该位女神的神纹加试炼奖赏。"
+    },
+    {
+      "id": "art_ico_door_trial_valda",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：椅背中央一柄断剑，断剑旁三道越来越快的连斩弧线；辅色为铁红；门下三级台阶。",
+        "en": "Central crest motif: A broken sword at the center of the chair back, three ever-faster slashing arcs beside it; accent iron red; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：六椅厅。门的外框是一把高背椅的轮廓（门楣是椅背顶，门框两侧是椅背立柱），纹样在椅背中央。",
+        "en": "Frame: the Hall of Six Chairs. The door's frame is the outline of a high-backed chair (the lintel is the top of the chair back, the jambs are its posts), the motif at the center of the chair back."
+      },
+      "ref": "door_trial_valda",
+      "milestone": "M2",
+      "notes": "语法：外框=六椅厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_trial_merca",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：椅背中央一枚硬币，硬币中间开着一只睁开的眼睛；辅色为暖金；门下二级台阶。",
+        "en": "Central crest motif: A coin at the center of the chair back with an open eye in its middle; accent warm gold; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：六椅厅。门的外框是一把高背椅的轮廓（门楣是椅背顶，门框两侧是椅背立柱），纹样在椅背中央。",
+        "en": "Frame: the Hall of Six Chairs. The door's frame is the outline of a high-backed chair (the lintel is the top of the chair back, the jambs are its posts), the motif at the center of the chair back."
+      },
+      "ref": "door_trial_merca",
+      "milestone": "M2",
+      "notes": "语法：外框=六椅厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_trial_sylvie",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：椅背中央一片枝叶，一半是新叶一半是黄叶，叶下压着一束麦穗；辅色为林绿；门下二级台阶。",
+        "en": "Central crest motif: A leafy sprig at the center of the chair back, half fresh and half yellowed, a bundle of wheat beneath it; accent forest green; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：六椅厅。门的外框是一把高背椅的轮廓（门楣是椅背顶，门框两侧是椅背立柱），纹样在椅背中央。",
+        "en": "Frame: the Hall of Six Chairs. The door's frame is the outline of a high-backed chair (the lintel is the top of the chair back, the jambs are its posts), the motif at the center of the chair back."
+      },
+      "ref": "door_trial_sylvie",
+      "milestone": "M2",
+      "notes": "语法：外框=六椅厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_trial_moira",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：椅背中央一卷书卷，书卷边上一道弯弯的批注线；辅色为墨蓝；门下三级台阶。",
+        "en": "Central crest motif: A scroll at the center of the chair back with a curving annotation line along its margin; accent ink blue; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：六椅厅。门的外框是一把高背椅的轮廓（门楣是椅背顶，门框两侧是椅背立柱），纹样在椅背中央。",
+        "en": "Frame: the Hall of Six Chairs. The door's frame is the outline of a high-backed chair (the lintel is the top of the chair back, the jambs are its posts), the motif at the center of the chair back."
+      },
+      "ref": "door_trial_moira",
+      "milestone": "M2",
+      "notes": "语法：外框=六椅厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_trial_dream",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：椅背中央一弯闭着的眼睛形新月，月下飘着几颗小星点，整枚门徽像蒙着一层薄雾；辅色为夜蓝；门下三级台阶。",
+        "en": "Central crest motif: A crescent shaped like a closed eye at the center of the chair back, a few small star points drifting beneath, the whole crest as if veiled in thin mist; accent night blue; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：六椅厅。门的外框是一把高背椅的轮廓（门楣是椅背顶，门框两侧是椅背立柱），纹样在椅背中央。",
+        "en": "Frame: the Hall of Six Chairs. The door's frame is the outline of a high-backed chair (the lintel is the top of the chair back, the jambs are its posts), the motif at the center of the chair back."
+      },
+      "ref": "door_trial_dream",
+      "milestone": "M2",
+      "notes": "语法：外框=六椅厅，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。第六把椅子只在梦里看得见：画得比其余五枚更朦胧，但不画任何人影。"
+    },
+    {
+      "id": "art_ico_door_pact",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门环里两只手的手腕上系着同一根绳，绳结在中间；辅色为暖红；门下一级台阶。",
+        "en": "Central crest motif: Inside the door ring, two wrists tied by the same cord with the knot between them; accent warm red; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：结绳廊。圆拱双开门，门扇正中一枚大门环，门环上系着一根打了几个结的短绳（#b83a2a），纹样在门环之内。",
+        "en": "Frame: the Knotted-Cord Gallery. A round-arched double door with a large door ring at the center, a short cord tied with several knots (#b83a2a) hanging from the ring, the motif inside the ring."
+      },
+      "ref": "door_pact",
+      "milestone": "M1",
+      "notes": "语法：外框=结绳廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。结绳廊之门：门环与系绳是外框的一部分，纹样在环内。"
+    },
+    {
+      "id": "art_ico_door_messenger",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门环里一根黑鸦羽横着穿过一封折起的信；辅色为黑与暗红火漆；门下二级台阶。",
+        "en": "Central crest motif: Inside the door ring, a black crow feather passing through a folded letter; accents black and dark red wax; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：结绳廊。圆拱双开门，门扇正中一枚大门环，门环上系着一根打了几个结的短绳（#b83a2a），纹样在门环之内。",
+        "en": "Frame: the Knotted-Cord Gallery. A round-arched double door with a large door ring at the center, a short cord tied with several knots (#b83a2a) hanging from the ring, the motif inside the ring."
+      },
+      "ref": "door_messenger",
+      "milestone": "M2",
+      "notes": "语法：外框=结绳廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_awaken_talent",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门环里一只手轻轻推开一扇更小的门，小门里透出一点光；辅色为暖红；门下二级台阶。",
+        "en": "Central crest motif: Inside the door ring, a hand gently pushing open a smaller door with a little light inside; accent warm red; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：结绳廊。圆拱双开门，门扇正中一枚大门环，门环上系着一根打了几个结的短绳（#b83a2a），纹样在门环之内。",
+        "en": "Frame: the Knotted-Cord Gallery. A round-arched double door with a large door ring at the center, a short cord tied with several knots (#b83a2a) hanging from the ring, the motif inside the ring."
+      },
+      "ref": "door_awaken_talent",
+      "milestone": "M2",
+      "notes": "语法：外框=结绳廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_resonance",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门环里一只摊开的小手掌，掌心一扇小门发着微光，四周一圈共鸣的波纹；辅色为暖红；门下三级台阶。",
+        "en": "Central crest motif: Inside the door ring, a small open palm with a faintly glowing little door on it, a ring of resonant ripples around; accent warm red; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：结绳廊。圆拱双开门，门扇正中一枚大门环，门环上系着一根打了几个结的短绳（#b83a2a），纹样在门环之内。",
+        "en": "Frame: the Knotted-Cord Gallery. A round-arched double door with a large door ring at the center, a short cord tied with several knots (#b83a2a) hanging from the ring, the motif inside the ring."
+      },
+      "ref": "door_resonance",
+      "milestone": "M2",
+      "notes": "语法：外框=结绳廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_bond_yeyu",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门环里一只张开的鸦爪，正接住一枚落下的小石子；辅色为乌黑；门下五级台阶。",
+        "en": "Central crest motif: Inside the door ring, an open crow's claw catching a small falling pebble; accent jet black; five steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：结绳廊。圆拱双开门，门扇正中一枚大门环，门环上系着一根打了几个结的短绳（#b83a2a），纹样在门环之内。",
+        "en": "Frame: the Knotted-Cord Gallery. A round-arched double door with a large door ring at the center, a short cord tied with several knots (#b83a2a) hanging from the ring, the motif inside the ring."
+      },
+      "ref": "door_bond_yeyu",
+      "milestone": "M3",
+      "notes": "语法：外框=结绳廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_bond_shiya",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门环里两张弓的弓弦并在一起，两支箭并排；辅色为银灰与狼灰；门下四级台阶。",
+        "en": "Central crest motif: Inside the door ring, the strings of two bows drawn together, two arrows side by side; accents silver gray and wolf gray; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：结绳廊。圆拱双开门，门扇正中一枚大门环，门环上系着一根打了几个结的短绳（#b83a2a），纹样在门环之内。",
+        "en": "Frame: the Knotted-Cord Gallery. A round-arched double door with a large door ring at the center, a short cord tied with several knots (#b83a2a) hanging from the ring, the motif inside the ring."
+      },
+      "ref": "door_bond_shiya",
+      "milestone": "M3",
+      "notes": "语法：外框=结绳廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_bond_ron",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门环里一面方盾立在一把空椅子前，像替人守着位子；辅色为钢蓝；门下五级台阶。",
+        "en": "Central crest motif: Inside the door ring, a square shield standing before an empty chair, as if keeping someone's place; accent steel blue; five steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：结绳廊。圆拱双开门，门扇正中一枚大门环，门环上系着一根打了几个结的短绳（#b83a2a），纹样在门环之内。",
+        "en": "Frame: the Knotted-Cord Gallery. A round-arched double door with a large door ring at the center, a short cord tied with several knots (#b83a2a) hanging from the ring, the motif inside the ring."
+      },
+      "ref": "door_bond_ron",
+      "milestone": "M3",
+      "notes": "语法：外框=结绳廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_bond_nera",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门环里一本摊开的账簿，左右两页的笔画互相倒着排；辅色为狐橙；门下四级台阶。",
+        "en": "Central crest motif: Inside the door ring, an open ledger whose two pages run in opposite directions; accent fox orange; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：结绳廊。圆拱双开门，门扇正中一枚大门环，门环上系着一根打了几个结的短绳（#b83a2a），纹样在门环之内。",
+        "en": "Frame: the Knotted-Cord Gallery. A round-arched double door with a large door ring at the center, a short cord tied with several knots (#b83a2a) hanging from the ring, the motif inside the ring."
+      },
+      "ref": "door_bond_nera",
+      "milestone": "M3",
+      "notes": "语法：外框=结绳廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。账页上只有线条，不画数字。"
+    },
+    {
+      "id": "art_ico_door_bond_oola",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门环里一串落叶铺成的小路，路尽头一株小白花；辅色为秋黄；门下三级台阶。",
+        "en": "Central crest motif: Inside the door ring, a little path laid with fallen leaves, a small white flower at its end; accent autumn yellow; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：结绳廊。圆拱双开门，门扇正中一枚大门环，门环上系着一根打了几个结的短绳（#b83a2a），纹样在门环之内。",
+        "en": "Frame: the Knotted-Cord Gallery. A round-arched double door with a large door ring at the center, a short cord tied with several knots (#b83a2a) hanging from the ring, the motif inside the ring."
+      },
+      "ref": "door_bond_oola",
+      "milestone": "M2",
+      "notes": "语法：外框=结绳廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_bond_martha",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门环里一只挂着的小晚钟，钟下横着一柄菜刀与一块擦杯布；辅色为铜褐；门下三级台阶。",
+        "en": "Central crest motif: Inside the door ring, a small hanging evening bell with a kitchen cleaver and a cup-wiping cloth lying beneath it; accent bronze brown; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：结绳廊。圆拱双开门，门扇正中一枚大门环，门环上系着一根打了几个结的短绳（#b83a2a），纹样在门环之内。",
+        "en": "Frame: the Knotted-Cord Gallery. A round-arched double door with a large door ring at the center, a short cord tied with several knots (#b83a2a) hanging from the ring, the motif inside the ring."
+      },
+      "ref": "door_bond_martha",
+      "milestone": "M2",
+      "notes": "语法：外框=结绳廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_bond_bron",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门环里一本摊开的名册，名册旁搁着一只旧皮手套；辅色为皮棕；门下三级台阶。",
+        "en": "Central crest motif: Inside the door ring, an open register with an old leather glove resting beside it; accent leather brown; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：结绳廊。圆拱双开门，门扇正中一枚大门环，门环上系着一根打了几个结的短绳（#b83a2a），纹样在门环之内。",
+        "en": "Frame: the Knotted-Cord Gallery. A round-arched double door with a large door ring at the center, a short cord tied with several knots (#b83a2a) hanging from the ring, the motif inside the ring."
+      },
+      "ref": "door_bond_bron",
+      "milestone": "M2",
+      "notes": "语法：外框=结绳廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_bond_selene",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门环里一面带柄的圆镜，镜面映出一道竖直的细缝；辅色为银白；门下四级台阶。",
+        "en": "Central crest motif: Inside the door ring, a round hand mirror whose face shows a thin vertical seam; accent silver white; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：结绳廊。圆拱双开门，门扇正中一枚大门环，门环上系着一根打了几个结的短绳（#b83a2a），纹样在门环之内。",
+        "en": "Frame: the Knotted-Cord Gallery. A round-arched double door with a large door ring at the center, a short cord tied with several knots (#b83a2a) hanging from the ring, the motif inside the ring."
+      },
+      "ref": "door_bond_selene",
+      "milestone": "M3",
+      "notes": "语法：外框=结绳廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_bond_heroes",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门环里四颗并排的小星，被同一根绳串起来；辅色为白与金；门下四级台阶。",
+        "en": "Central crest motif: Inside the door ring, four small stars side by side strung on the same cord; accents white and gold; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：结绳廊。圆拱双开门，门扇正中一枚大门环，门环上系着一根打了几个结的短绳（#b83a2a），纹样在门环之内。",
+        "en": "Frame: the Knotted-Cord Gallery. A round-arched double door with a large door ring at the center, a short cord tied with several knots (#b83a2a) hanging from the ring, the motif inside the ring."
+      },
+      "ref": "door_bond_heroes",
+      "milestone": "M3",
+      "notes": "语法：外框=结绳廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_bond_sasha",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门环里两只正面相碰的拳头，指节上缠着旧布带，碰撞处迸出几道短线；辅色为赤红；门下四级台阶。",
+        "en": "Central crest motif: Inside the door ring, two fists meeting head-on, their knuckles wrapped in old cloth bands, a few short strokes bursting where they meet; accent crimson; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：结绳廊。圆拱双开门，门扇正中一枚大门环，门环上系着一根打了几个结的短绳（#b83a2a），纹样在门环之内。",
+        "en": "Frame: the Knotted-Cord Gallery. A round-arched double door with a large door ring at the center, a short cord tied with several knots (#b83a2a) hanging from the ring, the motif inside the ring."
+      },
+      "ref": "door_bond_sasha",
+      "milestone": "M3",
+      "notes": "语法：外框=结绳廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_bond_ash",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门环里一扇正在合上的门，门缝里有一缕灰被关在外面，门旁一支芦苇笔；辅色为灰白；门下四级台阶。",
+        "en": "Central crest motif: Inside the door ring, a door swinging shut with a wisp of ash kept outside, a reed pen beside it; accent ash white; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：结绳廊。圆拱双开门，门扇正中一枚大门环，门环上系着一根打了几个结的短绳（#b83a2a），纹样在门环之内。",
+        "en": "Frame: the Knotted-Cord Gallery. A round-arched double door with a large door ring at the center, a short cord tied with several knots (#b83a2a) hanging from the ring, the motif inside the ring."
+      },
+      "ref": "door_bond_ash",
+      "milestone": "M3",
+      "notes": "语法：外框=结绳廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_bond_ferryman",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门环里一支撑船的长篙斜插进水波，水底隐约一扇小门；辅色为河绿；门下二级台阶。",
+        "en": "Central crest motif: Inside the door ring, a long punt pole slanting into ripples, a small door faintly visible on the riverbed; accent river green; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：结绳廊。圆拱双开门，门扇正中一枚大门环，门环上系着一根打了几个结的短绳（#b83a2a），纹样在门环之内。",
+        "en": "Frame: the Knotted-Cord Gallery. A round-arched double door with a large door ring at the center, a short cord tied with several knots (#b83a2a) hanging from the ring, the motif inside the ring."
+      },
+      "ref": "door_bond_ferryman",
+      "milestone": "M2",
+      "notes": "语法：外框=结绳廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_wayfaring",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一枚立在地上的小门标，门标顶端一颗光点，向远处连出一道虚线；辅色为路土赭；门下二级台阶。",
+        "en": "Central crest motif: A small door marker planted in the ground with a point of light on top, a dotted line running off into the distance; accent road ochre; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：行路翼。带小门檐的拱门，门楣上一道磨平的地名刻带（只有刻痕，不是字），门框两侧各立一根矮路标柱，纹样在门扇中央。",
+        "en": "Frame: the Wayfarer Wing. An arched door with a small canopy, a worn place-name band on the lintel (only scratches, no letters), a short waymarker post on each side, the motif at the center of the leaf."
+      },
+      "ref": "door_wayfaring",
+      "milestone": "M2",
+      "notes": "语法：外框=行路翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。行路翼之门：门楣刻带只有磨平的刻痕，不画地名。"
+    },
+    {
+      "id": "art_ico_door_thousand_paths",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：七个小圆点围成一个环，每两点之间连着一道线，环中心一扇小门；辅色为路土赭；门下五级台阶。",
+        "en": "Central crest motif: Seven small dots in a ring, each pair joined by a line, a small door at the center of the ring; accent road ochre; five steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：行路翼。带小门檐的拱门，门楣上一道磨平的地名刻带（只有刻痕，不是字），门框两侧各立一根矮路标柱，纹样在门扇中央。",
+        "en": "Frame: the Wayfarer Wing. An arched door with a small canopy, a worn place-name band on the lintel (only scratches, no letters), a short waymarker post on each side, the motif at the center of the leaf."
+      },
+      "ref": "door_thousand_paths",
+      "milestone": "M3",
+      "notes": "语法：外框=行路翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。七个点要数得清。"
+    },
+    {
+      "id": "art_ico_door_ascent",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一道向上延伸的阶梯，阶梯尽头是一片云上的白色门洞；辅色为天白；门下五级台阶。",
+        "en": "Central crest motif: A stairway climbing upward, ending at a white doorway above the clouds; accent sky white; five steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：行路翼。带小门檐的拱门，门楣上一道磨平的地名刻带（只有刻痕，不是字），门框两侧各立一根矮路标柱，纹样在门扇中央。",
+        "en": "Frame: the Wayfarer Wing. An arched door with a small canopy, a worn place-name band on the lintel (only scratches, no letters), a short waymarker post on each side, the motif at the center of the leaf."
+      },
+      "ref": "door_ascent",
+      "milestone": "M3",
+      "notes": "语法：外框=行路翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。不画神像与人物。"
+    },
+    {
+      "id": "art_ico_door_site_harbor",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一只船锚压在海浪上，锚环里套着一扇小拱门；辅色为海蓝；门下四级台阶。",
+        "en": "Central crest motif: An anchor resting on waves, a small arched door set inside the anchor ring; accent sea blue; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：行路翼。带小门檐的拱门，门楣上一道磨平的地名刻带（只有刻痕，不是字），门框两侧各立一根矮路标柱，纹样在门扇中央。",
+        "en": "Frame: the Wayfarer Wing. An arched door with a small canopy, a worn place-name band on the lintel (only scratches, no letters), a short waymarker post on each side, the motif at the center of the leaf."
+      },
+      "ref": "door_site_harbor",
+      "milestone": "M3",
+      "notes": "语法：外框=行路翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_site_ring",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一捆麦穗立在一圈石环中央，石环外两道运输的虚线；辅色为麦黄；门下四级台阶。",
+        "en": "Central crest motif: A sheaf of wheat standing at the center of a ring of stones, two dotted transport lines outside it; accent wheat yellow; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：行路翼。带小门檐的拱门，门楣上一道磨平的地名刻带（只有刻痕，不是字），门框两侧各立一根矮路标柱，纹样在门扇中央。",
+        "en": "Frame: the Wayfarer Wing. An arched door with a small canopy, a worn place-name band on the lintel (only scratches, no letters), a short waymarker post on each side, the motif at the center of the leaf."
+      },
+      "ref": "door_site_ring",
+      "milestone": "M3",
+      "notes": "语法：外框=行路翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_site_myriad",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：两个并排的人家门框，一个小人剪影从一个门框闪进另一个；辅色为陶红；门下三级台阶。",
+        "en": "Central crest motif: Two house door frames side by side, a little figure flashing from one frame into the other; accent terracotta; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：行路翼。带小门檐的拱门，门楣上一道磨平的地名刻带（只有刻痕，不是字），门框两侧各立一根矮路标柱，纹样在门扇中央。",
+        "en": "Frame: the Wayfarer Wing. An arched door with a small canopy, a worn place-name band on the lintel (only scratches, no letters), a short waymarker post on each side, the motif at the center of the leaf."
+      },
+      "ref": "door_site_myriad",
+      "milestone": "M2",
+      "notes": "语法：外框=行路翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_site_first_array",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一个熄灭的圆形阵纹，阵纹边上贴着一只侧耳；辅色为灰白；门下四级台阶。",
+        "en": "Central crest motif: An extinguished circular array pattern with a sideways ear pressed to its rim; accent ash white; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：行路翼。带小门檐的拱门，门楣上一道磨平的地名刻带（只有刻痕，不是字），门框两侧各立一根矮路标柱，纹样在门扇中央。",
+        "en": "Frame: the Wayfarer Wing. An arched door with a small canopy, a worn place-name band on the lintel (only scratches, no letters), a short waymarker post on each side, the motif at the center of the leaf."
+      },
+      "ref": "door_site_first_array",
+      "milestone": "M3",
+      "notes": "语法：外框=行路翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_nameless_key_3",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一把骨柄缠草绳的古钥横在一片起伏的草浪上；辅色为草黄；门下四级台阶。",
+        "en": "Central crest motif: An ancient key with a bone handle wound in straw cord lying across rolling waves of grass; accent straw yellow; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：行路翼。带小门檐的拱门，门楣上一道磨平的地名刻带（只有刻痕，不是字），门框两侧各立一根矮路标柱，纹样在门扇中央。",
+        "en": "Frame: the Wayfarer Wing. An arched door with a small canopy, a worn place-name band on the lintel (only scratches, no letters), a short waymarker post on each side, the motif at the center of the leaf."
+      },
+      "ref": "door_nameless_key_3",
+      "milestone": "M3",
+      "notes": "语法：外框=行路翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_nameless_key_5",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一把月牙柄的黑铁古钥，钥匙上方一弯新月，四周是夜色；辅色为夜蓝；门下四级台阶。",
+        "en": "Central crest motif: A black iron ancient key with a crescent handle, a new moon above it, night all around; accent night blue; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：行路翼。带小门檐的拱门，门楣上一道磨平的地名刻带（只有刻痕，不是字），门框两侧各立一根矮路标柱，纹样在门扇中央。",
+        "en": "Frame: the Wayfarer Wing. An arched door with a small canopy, a worn place-name band on the lintel (only scratches, no letters), a short waymarker post on each side, the motif at the center of the leaf."
+      },
+      "ref": "door_nameless_key_5",
+      "milestone": "M3",
+      "notes": "语法：外框=行路翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_nameless_key_6",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一把青铜古钥插在一座拱桥形的门洞里，门洞下是流水；辅色为铜绿；门下四级台阶。",
+        "en": "Central crest motif: A bronze ancient key set into an arched bridge-shaped doorway with running water beneath; accent verdigris; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：行路翼。带小门檐的拱门，门楣上一道磨平的地名刻带（只有刻痕，不是字），门框两侧各立一根矮路标柱，纹样在门扇中央。",
+        "en": "Frame: the Wayfarer Wing. An arched door with a small canopy, a worn place-name band on the lintel (only scratches, no letters), a short waymarker post on each side, the motif at the center of the leaf."
+      },
+      "ref": "door_nameless_key_6",
+      "milestone": "M3",
+      "notes": "语法：外框=行路翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。柄上的刻痕不画成数字。"
+    },
+    {
+      "id": "art_ico_door_settlement",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：三座小屋顶挨在一起，中间一口井，屋顶上冒着炊烟；辅色为陶红；门下二级台阶。",
+        "en": "Central crest motif: Three little rooftops clustered together around a well, cooking smoke rising from them; accent terracotta; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：庭翼。带小屋檐与门槛的人家木门，门扇上方一扇小方窗透出暖橙灯光（#ffd58a），纹样在门扇中央。",
+        "en": "Frame: the Courtyard Wing. A homely wooden door with a little eave and a threshold, a small square window above the leaf glowing warm orange (#ffd58a), the motif at the center of the leaf."
+      },
+      "ref": "door_settlement",
+      "milestone": "M2",
+      "notes": "语法：外框=庭翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。庭翼之门：人家木门外框与小方窗暖光是外框的一部分。"
+    },
+    {
+      "id": "art_ico_door_trade_pact",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一架天平，一端是钱袋，一端是一扇小门，两端平衡；辅色为暖金；门下二级台阶。",
+        "en": "Central crest motif: A balance scale with a coin purse on one side and a small door on the other, in balance; accent warm gold; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：庭翼。带小屋檐与门槛的人家木门，门扇上方一扇小方窗透出暖橙灯光（#ffd58a），纹样在门扇中央。",
+        "en": "Frame: the Courtyard Wing. A homely wooden door with a little eave and a threshold, a small square window above the leaf glowing warm orange (#ffd58a), the motif at the center of the leaf."
+      },
+      "ref": "door_trade_pact",
+      "milestone": "M2",
+      "notes": "语法：外框=庭翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_fellowship",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：四个小小的盾形徽排成一个菱形，中间一面小旗；辅色为军蓝；门下二级台阶。",
+        "en": "Central crest motif: Four small shield badges arranged in a diamond around a small flag; accent military blue; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：庭翼。带小屋檐与门槛的人家木门，门扇上方一扇小方窗透出暖橙灯光（#ffd58a），纹样在门扇中央。",
+        "en": "Frame: the Courtyard Wing. A homely wooden door with a little eave and a threshold, a small square window above the leaf glowing warm orange (#ffd58a), the motif at the center of the leaf."
+      },
+      "ref": "door_fellowship",
+      "milestone": "M2",
+      "notes": "语法：外框=庭翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_thousand_legions",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：三排整齐的长枪尖从下往上排开，最前面一面大旗；辅色为军蓝与铁灰；门下三级台阶。",
+        "en": "Central crest motif: Three neat rows of spear points rising from bottom to top with a large banner at the front; accents military blue and iron gray; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：庭翼。带小屋檐与门槛的人家木门，门扇上方一扇小方窗透出暖橙灯光（#ffd58a），纹样在门扇中央。",
+        "en": "Frame: the Courtyard Wing. A homely wooden door with a little eave and a threshold, a small square window above the leaf glowing warm orange (#ffd58a), the motif at the center of the leaf."
+      },
+      "ref": "door_thousand_legions",
+      "milestone": "M2",
+      "notes": "语法：外框=庭翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_governance",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一张桌子上放着一枚大印和一卷文书，印下压着三枚小槽形的印记；辅色为朱红；门下三级台阶。",
+        "en": "Central crest motif: A table bearing a large seal and a rolled document, three small slot-shaped marks beneath the seal; accent vermilion; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：庭翼。带小屋檐与门槛的人家木门，门扇上方一扇小方窗透出暖橙灯光（#ffd58a），纹样在门扇中央。",
+        "en": "Frame: the Courtyard Wing. A homely wooden door with a little eave and a threshold, a small square window above the leaf glowing warm orange (#ffd58a), the motif at the center of the leaf."
+      },
+      "ref": "door_governance",
+      "milestone": "M2",
+      "notes": "语法：外框=庭翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_founding",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：五块不同颜色的石头垒成一座小界石，界石顶上插着一面无纹的旗；辅色为土黄；门下四级台阶。",
+        "en": "Central crest motif: Five stones of different colors piled into a small boundary marker, a plain unmarked flag planted on top; accent earth yellow; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：庭翼。带小屋檐与门槛的人家木门，门扇上方一扇小方窗透出暖橙灯光（#ffd58a），纹样在门扇中央。",
+        "en": "Frame: the Courtyard Wing. A homely wooden door with a little eave and a threshold, a small square window above the leaf glowing warm orange (#ffd58a), the motif at the center of the leaf."
+      },
+      "ref": "door_founding",
+      "milestone": "M3",
+      "notes": "语法：外框=庭翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。五块石头要数得清；旗面无纹。"
+    },
+    {
+      "id": "art_ico_door_doorscrip",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一张长方形的纸券，纸券中央印着一扇小门，四角各有一个圆点；辅色为暖金；门下四级台阶。",
+        "en": "Central crest motif: A rectangular paper note with a small door printed at its center and a dot in each corner; accent warm gold; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：庭翼。带小屋檐与门槛的人家木门，门扇上方一扇小方窗透出暖橙灯光（#ffd58a），纹样在门扇中央。",
+        "en": "Frame: the Courtyard Wing. A homely wooden door with a little eave and a threshold, a small square window above the leaf glowing warm orange (#ffd58a), the motif at the center of the leaf."
+      },
+      "ref": "door_doorscrip",
+      "milestone": "M3",
+      "notes": "语法：外框=庭翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。纸券上不画字与面额。"
+    },
+    {
+      "id": "art_ico_door_allied_host",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：五面不同颜色的小旗交叉插在一起，旗杆底部系在同一根绳上；辅色为五色；门下五级台阶。",
+        "en": "Central crest motif: Five small flags of different colors crossed together, their poles tied by one cord at the base; accents five colors; five steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：庭翼。带小屋檐与门槛的人家木门，门扇上方一扇小方窗透出暖橙灯光（#ffd58a），纹样在门扇中央。",
+        "en": "Frame: the Courtyard Wing. A homely wooden door with a little eave and a threshold, a small square window above the leaf glowing warm orange (#ffd58a), the motif at the center of the leaf."
+      },
+      "ref": "door_allied_host",
+      "milestone": "M3",
+      "notes": "语法：外框=庭翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。旗面只有色块，不用真实纹章。"
+    },
+    {
+      "id": "art_ico_door_garden_granary",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一座圆顶小粮仓，仓顶盖着草，仓门前堆着两袋扎口的粮食；辅色为麦黄；门下一级台阶。",
+        "en": "Central crest motif: A small round-roofed granary with a thatched top, two tied sacks of grain piled before its door; accent wheat yellow; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：庭翼。带小屋檐与门槛的人家木门，门扇上方一扇小方窗透出暖橙灯光（#ffd58a），纹样在门扇中央。",
+        "en": "Frame: the Courtyard Wing. A homely wooden door with a little eave and a threshold, a small square window above the leaf glowing warm orange (#ffd58a), the motif at the center of the leaf."
+      },
+      "ref": "door_garden_granary",
+      "milestone": "M1",
+      "notes": "语法：外框=庭翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。庭院扩建门 I 到 V，与庭院建筑的样子对应。"
+    },
+    {
+      "id": "art_ico_door_garden_drill",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一根缠着草绳的练武木桩，桩身满是砍痕，桩上交叉插着两柄木剑；辅色为木褐；门下二级台阶。",
+        "en": "Central crest motif: A straw-bound wooden training post covered in cut marks, two wooden swords stuck crosswise in it; accent wood brown; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：庭翼。带小屋檐与门槛的人家木门，门扇上方一扇小方窗透出暖橙灯光（#ffd58a），纹样在门扇中央。",
+        "en": "Frame: the Courtyard Wing. A homely wooden door with a little eave and a threshold, a small square window above the leaf glowing warm orange (#ffd58a), the motif at the center of the leaf."
+      },
+      "ref": "door_garden_drill",
+      "milestone": "M2",
+      "notes": "语法：外框=庭翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_garden_study",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一张书桌上摊着一本书，书旁一盏油灯和一个地球仪般的小球；辅色为墨蓝；门下三级台阶。",
+        "en": "Central crest motif: A desk with an open book, an oil lamp beside it and a small orb like a globe; accent ink blue; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：庭翼。带小屋檐与门槛的人家木门，门扇上方一扇小方窗透出暖橙灯光（#ffd58a），纹样在门扇中央。",
+        "en": "Frame: the Courtyard Wing. A homely wooden door with a little eave and a threshold, a small square window above the leaf glowing warm orange (#ffd58a), the motif at the center of the leaf."
+      },
+      "ref": "door_garden_study",
+      "milestone": "M2",
+      "notes": "语法：外框=庭翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。小球上不画真实大陆轮廓。"
+    },
+    {
+      "id": "art_ico_door_garden_hidden_city",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一片叠在一起的小屋顶藏在一道拱门后面，拱门半掩；辅色为暖灰；门下四级台阶。",
+        "en": "Central crest motif: A cluster of little rooftops hidden behind a half-closed arched gate; accent warm gray; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：庭翼。带小屋檐与门槛的人家木门，门扇上方一扇小方窗透出暖橙灯光（#ffd58a），纹样在门扇中央。",
+        "en": "Frame: the Courtyard Wing. A homely wooden door with a little eave and a threshold, a small square window above the leaf glowing warm orange (#ffd58a), the motif at the center of the leaf."
+      },
+      "ref": "door_garden_hidden_city",
+      "milestone": "M3",
+      "notes": "语法：外框=庭翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_garden_dispatch",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一张台面上排着几枚小门形棋子，棋子之间连着箭头；辅色为黄铜；门下五级台阶。",
+        "en": "Central crest motif: A tabletop with a few small door-shaped tokens connected by arrows; accent brass; five steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：庭翼。带小屋檐与门槛的人家木门，门扇上方一扇小方窗透出暖橙灯光（#ffd58a），纹样在门扇中央。",
+        "en": "Frame: the Courtyard Wing. A homely wooden door with a little eave and a threshold, a small square window above the leaf glowing warm orange (#ffd58a), the motif at the center of the leaf."
+      },
+      "ref": "door_garden_dispatch",
+      "milestone": "M3",
+      "notes": "语法：外框=庭翼，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_echoes",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：灰里浮出几道弯弯的回声弧线，弧线中间一个倒塌的小门框；辅色为灰白；门下三级台阶。",
+        "en": "Central crest motif: A few curved echo arcs rising out of the ash around a small collapsed door frame; accent ash white; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：灰廊。门框下半截被灰白积灰（#b9b4a8）埋住，门缝里透出灰色的雾，纹样在门扇上半部。",
+        "en": "Frame: the Ash Gallery. A door whose lower half is buried in pale gray ash (#b9b4a8), gray mist seeping from the gap, the motif on the upper half of the leaf."
+      },
+      "ref": "door_echoes",
+      "milestone": "M2",
+      "notes": "语法：外框=灰廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。灰廊之门：门框下半截埋在灰里，纹样在门扇上半部。"
+    },
+    {
+      "id": "art_ico_door_truth_m02",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：灰雾里一个空着的长方名框，名框前一只张开的嘴形弧线，正要说出什么；辅色为灰白配门扉金；门下六级台阶。",
+        "en": "Central crest motif: An empty rectangular name frame in the gray mist, before it the open curve of a mouth about to speak; accents ash white with door gold; six steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：灰廊。门框下半截被灰白积灰（#b9b4a8）埋住，门缝里透出灰色的雾，纹样在门扇上半部。",
+        "en": "Frame: the Ash Gallery. A door whose lower half is buried in pale gray ash (#b9b4a8), gray mist seeping from the gap, the motif on the upper half of the leaf."
+      },
+      "ref": "door_true_name",
+      "milestone": "M3",
+      "notes": "语法：外框=灰廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。名框里不画任何字与图形。编号去剧透。"
+    },
+    {
+      "id": "art_ico_door_truth_flaw",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一只手背上有一个小小的门形印记，印记边上一道细细的裂纹；辅色为灰白配门扉金；门下一级台阶。",
+        "en": "Central crest motif: The back of a hand bearing a small door-shaped mark with a thin crack beside it; accents ash white with door gold; one step beneath the door."
+      },
+      "extra": {
+        "zh": "外框：灰廊。门框下半截被灰白积灰（#b9b4a8）埋住，门缝里透出灰色的雾，纹样在门扇上半部。",
+        "en": "Frame: the Ash Gallery. A door whose lower half is buried in pale gray ash (#b9b4a8), gray mist seeping from the gap, the motif on the upper half of the leaf."
+      },
+      "ref": "door_truth_flaw",
+      "milestone": "M1",
+      "notes": "语法：外框=灰廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_truth_blank_page",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一本书摊开在一页空白上，空白页四周的书页都有线条，只有这页什么也没有；辅色为灰白；门下二级台阶。",
+        "en": "Central crest motif: A book open to a blank page, the pages around it lined, this one alone empty; accent ash white; two steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：灰廊。门框下半截被灰白积灰（#b9b4a8）埋住，门缝里透出灰色的雾，纹样在门扇上半部。",
+        "en": "Frame: the Ash Gallery. A door whose lower half is buried in pale gray ash (#b9b4a8), gray mist seeping from the gap, the motif on the upper half of the leaf."
+      },
+      "ref": "door_truth_blank_page",
+      "milestone": "M2",
+      "notes": "语法：外框=灰廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_truth_fingerprint",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一枚灰色的指纹印，指纹的纹路里夹着一圈六种深浅不同的灰；辅色为灰白；门下四级台阶。",
+        "en": "Central crest motif: A gray fingerprint whose ridges hold a ring of six different shades of gray; accent ash white; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：灰廊。门框下半截被灰白积灰（#b9b4a8）埋住，门缝里透出灰色的雾，纹样在门扇上半部。",
+        "en": "Frame: the Ash Gallery. A door whose lower half is buried in pale gray ash (#b9b4a8), gray mist seeping from the gap, the motif on the upper half of the leaf."
+      },
+      "ref": "door_truth_fingerprint",
+      "milestone": "M3",
+      "notes": "语法：外框=灰廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。六种灰不要用澱紫。"
+    },
+    {
+      "id": "art_ico_door_truth_blank_era",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一卷编年的长卷，中间一段被齐齐裁掉，留下空白；辅色为灰白；门下三级台阶。",
+        "en": "Central crest motif: A long chronicle scroll with a section cut cleanly out of the middle, leaving a blank; accent ash white; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：灰廊。门框下半截被灰白积灰（#b9b4a8）埋住，门缝里透出灰色的雾，纹样在门扇上半部。",
+        "en": "Frame: the Ash Gallery. A door whose lower half is buried in pale gray ash (#b9b4a8), gray mist seeping from the gap, the motif on the upper half of the leaf."
+      },
+      "ref": "door_truth_blank_era",
+      "milestone": "M2",
+      "notes": "语法：外框=灰廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_truth_half",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一个说话的嘴形弧线只画了一半，另一半被灰盖住；辅色为灰白；门下四级台阶。",
+        "en": "Central crest motif: A speaking mouth curve drawn only by half, the other half covered by ash; accent ash white; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：灰廊。门框下半截被灰白积灰（#b9b4a8）埋住，门缝里透出灰色的雾，纹样在门扇上半部。",
+        "en": "Frame: the Ash Gallery. A door whose lower half is buried in pale gray ash (#b9b4a8), gray mist seeping from the gap, the motif on the upper half of the leaf."
+      },
+      "ref": "door_truth_half",
+      "milestone": "M3",
+      "notes": "语法：外框=灰廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_truth_m08",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一只空着的大肚陶罐，罐身有一道细裂，罐口飘出一缕灰烟；辅色为灰白；门下四级台阶。",
+        "en": "Central crest motif: An empty round-bellied clay jar with a thin crack down its side, a wisp of gray smoke drifting from its mouth; accent ash white; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：灰廊。门框下半截被灰白积灰（#b9b4a8）埋住，门缝里透出灰色的雾，纹样在门扇上半部。",
+        "en": "Frame: the Ash Gallery. A door whose lower half is buried in pale gray ash (#b9b4a8), gray mist seeping from the gap, the motif on the upper half of the leaf."
+      },
+      "ref": "door_truth_vessel",
+      "milestone": "M3",
+      "notes": "语法：外框=灰廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。编号去剧透。"
+    },
+    {
+      "id": "art_ico_door_truth_doorway",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一个站在门口的长发剪影，背对观者，门缝里透着暖光；辅色为灰白配门扉金；门下三级台阶。",
+        "en": "Central crest motif: A long-haired silhouette standing in a doorway, back to the viewer, warm light through the gap; accents ash white with door gold; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：灰廊。门框下半截被灰白积灰（#b9b4a8）埋住，门缝里透出灰色的雾，纹样在门扇上半部。",
+        "en": "Frame: the Ash Gallery. A door whose lower half is buried in pale gray ash (#b9b4a8), gray mist seeping from the gap, the motif on the upper half of the leaf."
+      },
+      "ref": "door_truth_doorway",
+      "milestone": "M2",
+      "notes": "语法：外框=灰廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。剪影只有轮廓，不画脸与五官。"
+    },
+    {
+      "id": "art_ico_door_truth_two_readings",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：两块并立的小石碑，一块的纹样是另一块的倒影；辅色为灰白；门下四级台阶。",
+        "en": "Central crest motif: Two small steles standing side by side, the pattern on one the reflection of the other; accent ash white; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：灰廊。门框下半截被灰白积灰（#b9b4a8）埋住，门缝里透出灰色的雾，纹样在门扇上半部。",
+        "en": "Frame: the Ash Gallery. A door whose lower half is buried in pale gray ash (#b9b4a8), gray mist seeping from the gap, the motif on the upper half of the leaf."
+      },
+      "ref": "door_truth_two_readings",
+      "milestone": "M3",
+      "notes": "语法：外框=灰廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。碑上不画字。"
+    },
+    {
+      "id": "art_ico_door_truth_m11",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一扇窗外是一片普通的草地和一座小屋，天上只有云，窗框四周落着灰；辅色为灰白配天蓝；门下六级台阶。",
+        "en": "Central crest motif: A window looking out on an ordinary meadow and a small house, only clouds in the sky, ash settled around the frame; accents ash white with sky blue; six steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：灰廊。门框下半截被灰白积灰（#b9b4a8）埋住，门缝里透出灰色的雾，纹样在门扇上半部。",
+        "en": "Frame: the Ash Gallery. A door whose lower half is buried in pale gray ash (#b9b4a8), gray mist seeping from the gap, the motif on the upper half of the leaf."
+      },
+      "ref": "door_truth_released_garden",
+      "milestone": "M3",
+      "notes": "语法：外框=灰廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。编号去剧透。"
+    },
+    {
+      "id": "art_ico_door_court_mirror",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一面高大的长镜，镜面里映出七把椅子的剪影；辅色为灰白配白金；门下六级台阶。",
+        "en": "Central crest motif: A tall long mirror reflecting the silhouettes of seven chairs; accents ash white with white-gold; six steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：灰廊。门框下半截被灰白积灰（#b9b4a8）埋住，门缝里透出灰色的雾，纹样在门扇上半部。",
+        "en": "Frame: the Ash Gallery. A door whose lower half is buried in pale gray ash (#b9b4a8), gray mist seeping from the gap, the motif on the upper half of the leaf."
+      },
+      "ref": "door_court_mirror",
+      "milestone": "M3",
+      "notes": "语法：外框=灰廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。七把椅子是空的。"
+    },
+    {
+      "id": "art_ico_door_recall",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一个首尾相接的圆环箭头，环中一扇小门里透出往日的暖光；辅色为灰白配琥珀；门下六级台阶。",
+        "en": "Central crest motif: A circular arrow joined head to tail, a small door at its center shining with the warm light of days gone by; accents ash white with amber; six steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：灰廊。门框下半截被灰白积灰（#b9b4a8）埋住，门缝里透出灰色的雾，纹样在门扇上半部。",
+        "en": "Frame: the Ash Gallery. A door whose lower half is buried in pale gray ash (#b9b4a8), gray mist seeping from the gap, the motif on the upper half of the leaf."
+      },
+      "ref": "door_recall",
+      "milestone": "M3",
+      "notes": "语法：外框=灰廊，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。新周目才可开，按第六段的台阶画。"
+    },
+    {
+      "id": "art_ico_door_soul_ferry",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一只小船载着一盏灯驶向门内，船后的水面是逆流的波纹；辅色为冥蓝；门下四级台阶。",
+        "en": "Central crest motif: A small boat carrying a lamp sailing into the door, the water behind it rippling against the current; accent dusk blue; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：风口。门框歪斜、边缘参差的门，门缝开得最宽，门上没有锁孔，门框一侧有两三道风的弧线（#8a8a96）。",
+        "en": "Frame: the Windward Mouth. A crooked door with a ragged frame, its gap the widest of all, no keyhole on it, two or three wind arcs (#8a8a96) beside the frame."
+      },
+      "ref": "door_soul_ferry",
+      "milestone": "M3",
+      "notes": "语法：外框=风口，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。风口之门：门框歪斜、门缝最宽、没有锁孔，旁边有风的弧线。"
+    },
+    {
+      "id": "art_ico_door_breach",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一扇门的正中被一只拳头砸穿，门板碎片向外飞散；辅色为铁红；门下五级台阶。",
+        "en": "Central crest motif: A door smashed through its center by a fist, splinters flying outward; accent iron red; five steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：风口。门框歪斜、边缘参差的门，门缝开得最宽，门上没有锁孔，门框一侧有两三道风的弧线（#8a8a96）。",
+        "en": "Frame: the Windward Mouth. A crooked door with a ragged frame, its gap the widest of all, no keyhole on it, two or three wind arcs (#8a8a96) beside the frame."
+      },
+      "ref": "door_breach",
+      "milestone": "M3",
+      "notes": "语法：外框=风口，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_dominion",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一张空着的高背椅，椅背顶上悬着一个尚未成形的光环；辅色为白金；门下六级台阶。",
+        "en": "Central crest motif: An empty high-backed chair with an unfinished halo floating above its top; accent white-gold; six steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：风口。门框歪斜、边缘参差的门，门缝开得最宽，门上没有锁孔，门框一侧有两三道风的弧线（#8a8a96）。",
+        "en": "Frame: the Windward Mouth. A crooked door with a ragged frame, its gap the widest of all, no keyhole on it, two or three wind arcs (#8a8a96) beside the frame."
+      },
+      "ref": "door_dominion",
+      "milestone": "M3",
+      "notes": "语法：外框=风口，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。不画人物。"
+    },
+    {
+      "id": "art_ico_door_whisper",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一只侧耳旁飘着三道细细的风声弧线，风里藏着一枚箭头；辅色为风灰蓝；门下三级台阶。",
+        "en": "Central crest motif: Three thin whistling wind arcs drifting beside a sideways ear, an arrowhead hidden in the wind; accent wind gray-blue; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：风口。门框歪斜、边缘参差的门，门缝开得最宽，门上没有锁孔，门框一侧有两三道风的弧线（#8a8a96）。",
+        "en": "Frame: the Windward Mouth. A crooked door with a ragged frame, its gap the widest of all, no keyhole on it, two or three wind arcs (#8a8a96) beside the frame."
+      },
+      "ref": "door_whisper",
+      "milestone": "M2",
+      "notes": "语法：外框=风口，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_rift",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一道竖直撕开的裂缝，裂缝两侧各站着一小排盾牌剪影；辅色为灰紫；门下三级台阶。",
+        "en": "Central crest motif: A vertical torn rift with a small row of shield silhouettes standing on each side; accent gray-violet; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：风口。门框歪斜、边缘参差的门，门缝开得最宽，门上没有锁孔，门框一侧有两三道风的弧线（#8a8a96）。",
+        "en": "Frame: the Windward Mouth. A crooked door with a ragged frame, its gap the widest of all, no keyhole on it, two or three wind arcs (#8a8a96) beside the frame."
+      },
+      "ref": "door_rift",
+      "milestone": "M2",
+      "notes": "语法：外框=风口，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。灰紫不要用澱紫。"
+    },
+    {
+      "id": "art_ico_door_afterimage",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一个由灰白线条勾成的骨架守门人残影，手持长杖站在门里；辅色为灰白；门下三级台阶。",
+        "en": "Central crest motif: The afterimage of a skeletal gatekeeper sketched in pale gray lines, standing in the doorway with a long staff; accent ash white; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：风口。门框歪斜、边缘参差的门，门缝开得最宽，门上没有锁孔，门框一侧有两三道风的弧线（#8a8a96）。",
+        "en": "Frame: the Windward Mouth. A crooked door with a ragged frame, its gap the widest of all, no keyhole on it, two or three wind arcs (#8a8a96) beside the frame."
+      },
+      "ref": "door_afterimage",
+      "milestone": "M2",
+      "notes": "语法：外框=风口，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。残影是线描，不画实体骷髅细节。"
+    },
+    {
+      "id": "art_ico_door_wind_06",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一扇破碎的大门正在拼合，碎片一块块飞回原位，裂缝里透出强烈的门扉金；辅色为门扉金；门下六级台阶。",
+        "en": "Central crest motif: A shattered great door piecing itself back together, fragments flying back into place, intense door gold light in the cracks; accent door gold; six steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：风口。门框歪斜、边缘参差的门，门缝开得最宽，门上没有锁孔，门框一侧有两三道风的弧线（#8a8a96）。",
+        "en": "Frame: the Windward Mouth. A crooked door with a ragged frame, its gap the widest of all, no keyhole on it, two or three wind arcs (#8a8a96) beside the frame."
+      },
+      "ref": "door_restoration",
+      "milestone": "M3",
+      "notes": "语法：外框=风口，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。不画人物。编号去剧透。"
+    },
+    {
+      "id": "art_ico_door_accept_page",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一页书正被递进一只张开的手里，书页上方悬着一个小光轮；辅色为白金；门下四级台阶。",
+        "en": "Central crest motif: A book page being handed into an open hand, a small halo hanging above the page; accent white-gold; four steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：风口。门框歪斜、边缘参差的门，门缝开得最宽，门上没有锁孔，门框一侧有两三道风的弧线（#8a8a96）。",
+        "en": "Frame: the Windward Mouth. A crooked door with a ragged frame, its gap the widest of all, no keyhole on it, two or three wind arcs (#8a8a96) beside the frame."
+      },
+      "ref": "door_accept_page",
+      "milestone": "M3",
+      "notes": "语法：外框=风口，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。"
+    },
+    {
+      "id": "art_ico_door_remnant_page",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：一页被灰紫墨迹写满一半的残页，残页边缘烧焦卷起；辅色为澱紫；门下三级台阶。",
+        "en": "Central crest motif: A fragment of page half filled with gray-violet ink, its edges burned and curled; accent sediment purple; three steps beneath the door."
+      },
+      "extra": {
+        "zh": "外框：风口。门框歪斜、边缘参差的门，门缝开得最宽，门上没有锁孔，门框一侧有两三道风的弧线（#8a8a96）。",
+        "en": "Frame: the Windward Mouth. A crooked door with a ragged frame, its gap the widest of all, no keyhole on it, two or three wind arcs (#8a8a96) beside the frame."
+      },
+      "ref": "door_remnant_page",
+      "milestone": "M2",
+      "notes": "语法：外框=风口，中央纹样=本门能力，门下台阶数=段（一级为序章与第一幕，二到六级为第二到第六幕）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。残页上不画可读文字；澱紫在此合乎语义。"
+    },
+    {
+      "id": "art_ico_door_last",
+      "template": "ico_door",
+      "subject": {
+        "zh": "门徽中央纹样：门形线框之内什么也没有，没有门扇、门环与纹样，只在正中有一个极小的暖白亮点。",
+        "en": "Central crest motif: Nothing inside the door-shaped outline, no leaf, ring or motif, only one tiny warm white point of light at its very center."
+      },
+      "extra": {
+        "zh": "外框：尽头。没有任何装饰，只用一道门扉金的细线勾出一扇门的轮廓，门下没有台阶。",
+        "en": "Frame: the End. No ornament at all, only a single fine line of door gold outlining a door, with no steps beneath it."
+      },
+      "ref": "door_last",
+      "milestone": "M3",
+      "notes": "语法：外框=尽头，没有台阶（尽头在六段之外）。门扉金 #f0d890 为主色，辅色不超过两种；48 像素下纹样要清楚，台阶画成门槛下几道细横条。尽头之门：真结局之后才出现，图案必须几乎是空的。"
+    }
+  ]
+}

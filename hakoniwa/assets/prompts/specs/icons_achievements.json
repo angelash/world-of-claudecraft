@@ -1,0 +1,779 @@
+{
+  "category": "icons_achievements",
+  "title": "Steam 成就图标",
+  "sources": [
+    "docs/50_tech/release_engineering.md",
+    "docs/40_design/content/catalog_deeds_titles.md",
+    "docs/40_design/content/catalog_doors.md",
+    "docs/30_story/arcs/act6_review_and_epilogue.md",
+    "data/scenes/endings.json",
+    "data/quests/acts.json"
+  ],
+  "items": [
+    {
+      "id": "art_ico_ach_act_prologue",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "幕次成就图标，一枚深铜外圈的圆形大奖章，中央圆窗里是一间白石大厅的拱门，门里一排长椅，一张小小的号码牌悬在半空。",
+        "en": "Act achievement icon, a thick round medallion with a dark bronze ring whose round central window shows the arched doorway of a white stone hall with a row of benches inside, a small number tag hanging in midair."
+      },
+      "extra": {
+        "zh": "成就组：幕次。外形为一枚厚实的圆形大奖章，深铜色外圈（#8a5a2a）刻着一圈细小的门形浅纹，中央像一扇圆窗，窗里是这一幕的代表景物。",
+        "en": "Achievement group: acts. A thick round medallion with a dark bronze outer ring (#8a5a2a) engraved with a band of tiny door-shaped grooves, its center like a round window showing the emblematic scene of the act."
+      },
+      "ref": "HK_ACT_PROLOGUE",
+      "milestone": "M2",
+      "notes": "语法：幕次组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。号码牌上不画数字。"
+    },
+    {
+      "id": "art_ico_ach_act_1",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "幕次成就图标，一枚深铜外圈的圆形大奖章，中央圆窗里是一根刻纹的界石柱立在一座小镇的灰泥屋顶前，镇后是一片深绿的树林。",
+        "en": "Act achievement icon, a thick round medallion with a dark bronze ring whose round central window shows a carved boundary post standing before the plaster rooftops of a small town, a dark green forest behind it."
+      },
+      "extra": {
+        "zh": "成就组：幕次。外形为一枚厚实的圆形大奖章，深铜色外圈（#8a5a2a）刻着一圈细小的门形浅纹，中央像一扇圆窗，窗里是这一幕的代表景物。",
+        "en": "Achievement group: acts. A thick round medallion with a dark bronze outer ring (#8a5a2a) engraved with a band of tiny door-shaped grooves, its center like a round window showing the emblematic scene of the act."
+      },
+      "ref": "HK_ACT_1",
+      "milestone": "M2",
+      "notes": "语法：幕次组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。界石上的刻痕不画字。"
+    },
+    {
+      "id": "art_ico_ach_act_2",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "幕次成就图标，一枚深铜外圈的圆形大奖章，中央圆窗里是一座砖石城墙围着的大城，城中一座白色钟楼尖顶，城下河港停着几片白帆。",
+        "en": "Act achievement icon, a thick round medallion with a dark bronze ring whose round central window shows a great city ringed by brick walls, a white bell-tower spire inside, a few white sails moored at the river harbor below."
+      },
+      "extra": {
+        "zh": "成就组：幕次。外形为一枚厚实的圆形大奖章，深铜色外圈（#8a5a2a）刻着一圈细小的门形浅纹，中央像一扇圆窗，窗里是这一幕的代表景物。",
+        "en": "Achievement group: acts. A thick round medallion with a dark bronze outer ring (#8a5a2a) engraved with a band of tiny door-shaped grooves, its center like a round window showing the emblematic scene of the act."
+      },
+      "ref": "HK_ACT_2",
+      "milestone": "M2",
+      "notes": "语法：幕次组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。"
+    },
+    {
+      "id": "art_ico_ach_act_3",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "幕次成就图标，一枚深铜外圈的圆形大奖章，中央圆窗里是一顶倾斜的王冠落在一面撕裂的旗上，旗后升起火光与烟。",
+        "en": "Act achievement icon, a thick round medallion with a dark bronze ring whose round central window shows a tilted crown fallen on a torn banner, fire and smoke rising behind it."
+      },
+      "extra": {
+        "zh": "成就组：幕次。外形为一枚厚实的圆形大奖章，深铜色外圈（#8a5a2a）刻着一圈细小的门形浅纹，中央像一扇圆窗，窗里是这一幕的代表景物。",
+        "en": "Achievement group: acts. A thick round medallion with a dark bronze outer ring (#8a5a2a) engraved with a band of tiny door-shaped grooves, its center like a round window showing the emblematic scene of the act."
+      },
+      "ref": "HK_ACT_3",
+      "milestone": "M2",
+      "notes": "语法：幕次组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。"
+    },
+    {
+      "id": "art_ico_ach_act_4",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "幕次成就图标，一枚深铜外圈的圆形大奖章，中央圆窗里是一张棋盘上立着七枚形状不同的棋子，棋盘下铺着一张大陆的轮廓。",
+        "en": "Act achievement icon, a thick round medallion with a dark bronze ring whose round central window shows seven game pieces of different shapes standing on a board laid over the outline of a continent."
+      },
+      "extra": {
+        "zh": "成就组：幕次。外形为一枚厚实的圆形大奖章，深铜色外圈（#8a5a2a）刻着一圈细小的门形浅纹，中央像一扇圆窗，窗里是这一幕的代表景物。",
+        "en": "Achievement group: acts. A thick round medallion with a dark bronze outer ring (#8a5a2a) engraved with a band of tiny door-shaped grooves, its center like a round window showing the emblematic scene of the act."
+      },
+      "ref": "HK_ACT_4",
+      "milestone": "M3",
+      "notes": "语法：幕次组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。隐藏成就；大陆轮廓不画地名。"
+    },
+    {
+      "id": "art_ico_ach_act_5",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "幕次成就图标，一枚深铜外圈的圆形大奖章，中央圆窗里是剑、弓、斧、杖与长矛交叉在一起，背后是一道灰色的天幕与火光。",
+        "en": "Act achievement icon, a thick round medallion with a dark bronze ring whose round central window shows a sword, a bow, an axe, a staff and a spear crossed together before a gray sky and firelight."
+      },
+      "extra": {
+        "zh": "成就组：幕次。外形为一枚厚实的圆形大奖章，深铜色外圈（#8a5a2a）刻着一圈细小的门形浅纹，中央像一扇圆窗，窗里是这一幕的代表景物。",
+        "en": "Achievement group: acts. A thick round medallion with a dark bronze outer ring (#8a5a2a) engraved with a band of tiny door-shaped grooves, its center like a round window showing the emblematic scene of the act."
+      },
+      "ref": "HK_ACT_5",
+      "milestone": "M3",
+      "notes": "语法：幕次组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。隐藏成就。"
+    },
+    {
+      "id": "art_ico_ach_act_6",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "幕次成就图标，一枚深铜外圈的圆形大奖章，中央圆窗里是一架天平立在一张白石长桌上，桌后几把高背椅的剪影，椅子都空着。",
+        "en": "Act achievement icon, a thick round medallion with a dark bronze ring whose round central window shows a balance scale standing on a long white stone table, the silhouettes of high-backed chairs behind it, all empty."
+      },
+      "extra": {
+        "zh": "成就组：幕次。外形为一枚厚实的圆形大奖章，深铜色外圈（#8a5a2a）刻着一圈细小的门形浅纹，中央像一扇圆窗，窗里是这一幕的代表景物。",
+        "en": "Achievement group: acts. A thick round medallion with a dark bronze outer ring (#8a5a2a) engraved with a band of tiny door-shaped grooves, its center like a round window showing the emblematic scene of the act."
+      },
+      "ref": "HK_ACT_6",
+      "milestone": "M3",
+      "notes": "语法：幕次组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。隐藏成就；不画女神形象。"
+    },
+    {
+      "id": "art_ico_ach_end_release",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "结局成就图标，一块白石框描暗金边的竖长椭圆浮雕牌，中央是一只松开的手，一根细线飘向一片晴空下的田野与村庄。",
+        "en": "Ending achievement icon, a tall oval relief plaque in a white stone frame edged with dark gold, at its center an opened hand, a thin thread drifting away toward fields and villages under a clear sky."
+      },
+      "extra": {
+        "zh": "成就组：结局。外形为一块竖长的椭圆浮雕牌，白石外框（#e8e4d8）描暗金细边（#8a7448），中央是结局的象征图形，背景是两三阶暮色色块。",
+        "en": "Achievement group: endings. A tall oval relief plaque with a white stone frame (#e8e4d8) edged in fine dark gold (#8a7448), the symbolic image of the ending at its center over two or three steps of dusk-colored blocks."
+      },
+      "ref": "HK_END_RELEASE",
+      "milestone": "M3",
+      "notes": "语法：结局组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。结局图标只画象征，不画神与人物的脸。"
+    },
+    {
+      "id": "art_ico_ach_end_release_unfinished",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "结局成就图标，一块白石框描暗金边的竖长椭圆浮雕牌，中央是一只半松开的手，细线还缠在两根手指上，远处的田野一半晴一半灰。",
+        "en": "Ending achievement icon, a tall oval relief plaque in a white stone frame edged with dark gold, at its center a half-opened hand with the thread still caught on two fingers, the distant fields half sunny and half gray."
+      },
+      "extra": {
+        "zh": "成就组：结局。外形为一块竖长的椭圆浮雕牌，白石外框（#e8e4d8）描暗金细边（#8a7448），中央是结局的象征图形，背景是两三阶暮色色块。",
+        "en": "Achievement group: endings. A tall oval relief plaque with a white stone frame (#e8e4d8) edged in fine dark gold (#8a7448), the symbolic image of the ending at its center over two or three steps of dusk-colored blocks."
+      },
+      "ref": "HK_END_RELEASE_UNFINISHED",
+      "milestone": "M3",
+      "notes": "语法：结局组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。"
+    },
+    {
+      "id": "art_ico_ach_end_seat",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "结局成就图标，一块白石框描暗金边的竖长椭圆浮雕牌，中央是一张空着的高背王座立在云上，王座上方悬着一个刚刚成形的光环。",
+        "en": "Ending achievement icon, a tall oval relief plaque in a white stone frame edged with dark gold, at its center an empty high-backed throne standing on clouds, a newly formed halo hanging above it."
+      },
+      "extra": {
+        "zh": "成就组：结局。外形为一块竖长的椭圆浮雕牌，白石外框（#e8e4d8）描暗金细边（#8a7448），中央是结局的象征图形，背景是两三阶暮色色块。",
+        "en": "Achievement group: endings. A tall oval relief plaque with a white stone frame (#e8e4d8) edged in fine dark gold (#8a7448), the symbolic image of the ending at its center over two or three steps of dusk-colored blocks."
+      },
+      "ref": "HK_END_NEW_GOD",
+      "milestone": "M3",
+      "notes": "语法：结局组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。编号去剧透。"
+    },
+    {
+      "id": "art_ico_ach_end_rule_eluen",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "结局成就图标，一块白石框描暗金边的竖长椭圆浮雕牌，中央是一座白石钟楼顶上的光轮照着下方一排排整齐划一的屋顶。",
+        "en": "Ending achievement icon, a tall oval relief plaque in a white stone frame edged with dark gold, at its center a halo wheel atop a white stone bell tower shining down on rows of identical rooftops."
+      },
+      "extra": {
+        "zh": "成就组：结局。外形为一块竖长的椭圆浮雕牌，白石外框（#e8e4d8）描暗金细边（#8a7448），中央是结局的象征图形，背景是两三阶暮色色块。",
+        "en": "Achievement group: endings. A tall oval relief plaque with a white stone frame (#e8e4d8) edged in fine dark gold (#8a7448), the symbolic image of the ending at its center over two or three steps of dusk-colored blocks."
+      },
+      "ref": "HK_END_RULE_ELUEN",
+      "milestone": "M3",
+      "notes": "语法：结局组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。不画女神形象。"
+    },
+    {
+      "id": "art_ico_ach_end_rule_valda",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "结局成就图标，一块白石框描暗金边的竖长椭圆浮雕牌，中央是一柄断剑插在竞技场的沙地中央，四周插满迎风的战旗。",
+        "en": "Ending achievement icon, a tall oval relief plaque in a white stone frame edged with dark gold, at its center a broken sword planted in the middle of an arena's sand, war banners flying all around it."
+      },
+      "extra": {
+        "zh": "成就组：结局。外形为一块竖长的椭圆浮雕牌，白石外框（#e8e4d8）描暗金细边（#8a7448），中央是结局的象征图形，背景是两三阶暮色色块。",
+        "en": "Achievement group: endings. A tall oval relief plaque with a white stone frame (#e8e4d8) edged in fine dark gold (#8a7448), the symbolic image of the ending at its center over two or three steps of dusk-colored blocks."
+      },
+      "ref": "HK_END_RULE_VALDA",
+      "milestone": "M3",
+      "notes": "语法：结局组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。不画女神形象。"
+    },
+    {
+      "id": "art_ico_ach_end_rule_merca",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "结局成就图标，一块白石框描暗金边的竖长椭圆浮雕牌，中央是一架巨大的金天平悬在一座港城上空，两只秤盘里都堆着钱币。",
+        "en": "Ending achievement icon, a tall oval relief plaque in a white stone frame edged with dark gold, at its center a huge gold balance hanging above a harbor city, coins heaped in both of its pans."
+      },
+      "extra": {
+        "zh": "成就组：结局。外形为一块竖长的椭圆浮雕牌，白石外框（#e8e4d8）描暗金细边（#8a7448），中央是结局的象征图形，背景是两三阶暮色色块。",
+        "en": "Achievement group: endings. A tall oval relief plaque with a white stone frame (#e8e4d8) edged in fine dark gold (#8a7448), the symbolic image of the ending at its center over two or three steps of dusk-colored blocks."
+      },
+      "ref": "HK_END_RULE_MERCA",
+      "milestone": "M3",
+      "notes": "语法：结局组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。不画女神形象；钱币不画字。"
+    },
+    {
+      "id": "art_ico_ach_end_rule_sylvie",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "结局成就图标，一块白石框描暗金边的竖长椭圆浮雕牌，中央是一棵巨树的枝叶覆盖着下方的田野与村庄，树根缠住每一条路。",
+        "en": "Ending achievement icon, a tall oval relief plaque in a white stone frame edged with dark gold, at its center a giant tree whose boughs cover the fields and villages below, its roots wrapped around every road."
+      },
+      "extra": {
+        "zh": "成就组：结局。外形为一块竖长的椭圆浮雕牌，白石外框（#e8e4d8）描暗金细边（#8a7448），中央是结局的象征图形，背景是两三阶暮色色块。",
+        "en": "Achievement group: endings. A tall oval relief plaque with a white stone frame (#e8e4d8) edged in fine dark gold (#8a7448), the symbolic image of the ending at its center over two or three steps of dusk-colored blocks."
+      },
+      "ref": "HK_END_RULE_SYLVIE",
+      "milestone": "M3",
+      "notes": "语法：结局组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。不画女神形象。"
+    },
+    {
+      "id": "art_ico_ach_end_rule_moira",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "结局成就图标，一块白石框描暗金边的竖长椭圆浮雕牌，中央是一卷长卷展开在一座城的上空，一支羽笔悬在卷边，城里每扇窗都对着长卷。",
+        "en": "Ending achievement icon, a tall oval relief plaque in a white stone frame edged with dark gold, at its center a long scroll unrolled above a city, a quill hanging at its edge, every window in the city turned toward the scroll."
+      },
+      "extra": {
+        "zh": "成就组：结局。外形为一块竖长的椭圆浮雕牌，白石外框（#e8e4d8）描暗金细边（#8a7448），中央是结局的象征图形，背景是两三阶暮色色块。",
+        "en": "Achievement group: endings. A tall oval relief plaque with a white stone frame (#e8e4d8) edged in fine dark gold (#8a7448), the symbolic image of the ending at its center over two or three steps of dusk-colored blocks."
+      },
+      "ref": "HK_END_RULE_MOIRA",
+      "milestone": "M3",
+      "notes": "语法：结局组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。不画女神形象；长卷不画字。"
+    },
+    {
+      "id": "art_ico_ach_end_restored",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "结局成就图标，一块白石框描暗金边的竖长椭圆浮雕牌，中央是无数扇门在空中层层叠叠地打开，每一道门缝都透出强烈的门扉金。",
+        "en": "Ending achievement icon, a tall oval relief plaque in a white stone frame edged with dark gold, at its center countless doors opening layer upon layer in the air, intense door gold pouring from every gap."
+      },
+      "extra": {
+        "zh": "成就组：结局。外形为一块竖长的椭圆浮雕牌，白石外框（#e8e4d8）描暗金细边（#8a7448），中央是结局的象征图形，背景是两三阶暮色色块。",
+        "en": "Achievement group: endings. A tall oval relief plaque with a white stone frame (#e8e4d8) edged in fine dark gold (#8a7448), the symbolic image of the ending at its center over two or three steps of dusk-colored blocks."
+      },
+      "ref": "HK_END_JANU_RESTORED",
+      "milestone": "M3",
+      "notes": "语法：结局组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。编号去剧透；不画任何人物。"
+    },
+    {
+      "id": "art_ico_ach_end_reclaim",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "结局成就图标，一块白石框描暗金边的竖长椭圆浮雕牌，中央是一座小小的庭院模型上缓缓罩下一只玻璃罩，罩外落着灰。",
+        "en": "Ending achievement icon, a tall oval relief plaque in a white stone frame edged with dark gold, at its center a glass dome slowly lowering over a tiny courtyard model, ash falling outside it."
+      },
+      "extra": {
+        "zh": "成就组：结局。外形为一块竖长的椭圆浮雕牌，白石外框（#e8e4d8）描暗金细边（#8a7448），中央是结局的象征图形，背景是两三阶暮色色块。",
+        "en": "Achievement group: endings. A tall oval relief plaque with a white stone frame (#e8e4d8) edged in fine dark gold (#8a7448), the symbolic image of the ending at its center over two or three steps of dusk-colored blocks."
+      },
+      "ref": "HK_END_RECLAIM",
+      "milestone": "M3",
+      "notes": "语法：结局组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。"
+    },
+    {
+      "id": "art_ico_ach_end_small_room",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "结局成就图标，一块白石框描暗金边的竖长椭圆浮雕牌，中央是一间朴素的小屋，屋门敞开，屋里一张木桌，桌上一盏灯和一只盖着布的小方盒。",
+        "en": "Ending achievement icon, a tall oval relief plaque in a white stone frame edged with dark gold, at its center a plain little room with its door open, a wooden table inside holding a lamp and a small square box covered with a cloth."
+      },
+      "extra": {
+        "zh": "成就组：结局。外形为一块竖长的椭圆浮雕牌，白石外框（#e8e4d8）描暗金细边（#8a7448），中央是结局的象征图形，背景是两三阶暮色色块。",
+        "en": "Achievement group: endings. A tall oval relief plaque with a white stone frame (#e8e4d8) edged in fine dark gold (#8a7448), the symbolic image of the ending at its center over two or three steps of dusk-colored blocks."
+      },
+      "ref": "HK_END_MAKER",
+      "milestone": "M3",
+      "notes": "语法：结局组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。编号去剧透；不画人物。"
+    },
+    {
+      "id": "art_ico_ach_deed_dg_womb_none_chosen",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的迷宫类徽章，石灰边、青灰底的城垛方盾章；中央纹样：一片暗红的深渊上方，几个小小的蛋形轮廓全都没有裂开，一只手护在它们前面。",
+        "en": "Great-deed achievement icon: A dungeons badge wrapped in a golden laurel ring, a stone-gray crenellated square shield badge with a slate field; central motif: above a dark red abyss, several small egg shapes none of them cracked, a hand shielding them."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_DG_WOMB_NONE_CHOSEN",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_dg_womb_none_chosen 一致，只多一圈月桂环。"
+    },
+    {
+      "id": "art_ico_ach_deed_dg_abyss_four_hearts",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的迷宫类徽章，石灰边、青灰底的城垛方盾章；中央纹样：四颗墨蓝色的晶心排成一个菱形，每一颗都已经熄灭。",
+        "en": "Great-deed achievement icon: A dungeons badge wrapped in a golden laurel ring, a stone-gray crenellated square shield badge with a slate field; central motif: four ink-blue crystal hearts arranged in a diamond, every one of them gone dark."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_DG_ABYSS_FOUR_HEARTS",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_dg_abyss_four_hearts 一致，只多一圈月桂环。"
+    },
+    {
+      "id": "art_ico_ach_deed_col_seven_steles",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的收藏类徽章，亮金连珠边、酒红底的圆章；中央纹样：七张拓片并排挂起，每张上都是同样的纹样。",
+        "en": "Great-deed achievement icon: A collections badge wrapped in a golden laurel ring, a bright gold beaded round medal with a wine-red field; central motif: seven rubbings hung side by side, every one bearing the same pattern."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_COL_SEVEN_STELES",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_col_seven_steles 一致，只多一圈月桂环。"
+    },
+    {
+      "id": "art_ico_ach_deed_bond_trial_sasha",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的社交与羁绊类徽章，银边、暖米底、垂着红绶带的圆章；中央纹样：两只缠布的拳头第三次相碰，旁边三道竖痕。",
+        "en": "Great-deed achievement icon: A bonds badge wrapped in a golden laurel ring, a silver-rimmed round medal with a cream field and red ribbons; central motif: two cloth-wrapped fists meeting for the third time, three vertical marks beside them."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_BOND_TRIAL_SASHA",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_bond_trial_sasha 一致，只多一圈月桂环。"
+    },
+    {
+      "id": "art_ico_ach_deed_bond_named_ron",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的社交与羁绊类徽章，银边、暖米底、垂着红绶带的圆章；中央纹样：一面方盾立在地上，盾上方三道传开的弧线。",
+        "en": "Great-deed achievement icon: A bonds badge wrapped in a golden laurel ring, a silver-rimmed round medal with a cream field and red ribbons; central motif: a square shield standing on the ground with three spreading arcs above it."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_BOND_NAMED_RON",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_bond_named_ron 一致，只多一圈月桂环。"
+    },
+    {
+      "id": "art_ico_ach_deed_mgmt_nation_founded",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的经营类徽章，黄铜边、墨绿底的八边形铆钉牌；中央纹样：五块颜色不同的石头垒成的界石，界石顶上插着一面无纹的旗。",
+        "en": "Great-deed achievement icon: A stewardship badge wrapped in a golden laurel ring, a brass-rimmed riveted octagonal plaque with a deep green field; central motif: a boundary marker piled from five stones of different colors, a plain flag planted on top."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_MGMT_NATION_FOUNDED",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_mgmt_nation_founded 一致，只多一圈月桂环。"
+    },
+    {
+      "id": "art_ico_ach_deed_mgmt_craft_outer_edge",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的经营类徽章，黄铜边、墨绿底的八边形铆钉牌；中央纹样：一柄剑身泛着暖金色的长剑立在一座古老的门框残骸前。",
+        "en": "Great-deed achievement icon: A stewardship badge wrapped in a golden laurel ring, a brass-rimmed riveted octagonal plaque with a deep green field; central motif: a longsword whose blade gleams warm gold standing before the wreck of an ancient door frame."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_MGMT_CRAFT_OUTER_EDGE",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_mgmt_craft_outer_edge 一致，只多一圈月桂环。"
+    },
+    {
+      "id": "art_ico_ach_deed_war_seven_nations",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的战争类徽章，钢蓝边、背衬交叉剑尖的尖底盾章；中央纹样：七面颜色不同的小旗插成一个圆，旗杆底部系在一起。",
+        "en": "Great-deed achievement icon: A war badge wrapped in a golden laurel ring, a steel-blue heater shield badge with crossed sword tips behind it; central motif: seven small flags of different colors planted in a circle, their poles tied together at the base."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_WAR_SEVEN_NATIONS",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_war_seven_nations 一致，只多一圈月桂环。"
+    },
+    {
+      "id": "art_ico_ach_deed_war_gate_ring",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的战争类徽章，钢蓝边、背衬交叉剑尖的尖底盾章；中央纹样：七个小门首尾相连围成一个大环，环里透出暖金的光。",
+        "en": "Great-deed achievement icon: A war badge wrapped in a golden laurel ring, a steel-blue heater shield badge with crossed sword tips behind it; central motif: seven little doors joined end to end in a great ring, warm gold light shining within it."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_WAR_GATE_RING",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_war_gate_ring 一致，只多一圈月桂环。"
+    },
+    {
+      "id": "art_ico_ach_deed_war_four_fronts",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的战争类徽章，钢蓝边、背衬交叉剑尖的尖底盾章；中央纹样：四面小旗分别插在十字的四个尖端，正中一个空着的位置。",
+        "en": "Great-deed achievement icon: A war badge wrapped in a golden laurel ring, a steel-blue heater shield badge with crossed sword tips behind it; central motif: four small flags planted at the four tips of a cross, an empty space at its center."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_WAR_FOUR_FRONTS",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_war_four_fronts 一致，只多一圈月桂环。"
+    },
+    {
+      "id": "art_ico_ach_deed_war_faceless_king",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的战争类徽章，钢蓝边、背衬交叉剑尖的尖底盾章；中央纹样：一顶倒在灰里的黑色王冠，冠下没有面孔，只有一片空白。",
+        "en": "Great-deed achievement icon: A war badge wrapped in a golden laurel ring, a steel-blue heater shield badge with crossed sword tips behind it; central motif: a black crown fallen in the ash with no face beneath it, only a blank."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_WAR_FACELESS_KING",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_war_faceless_king 一致，只多一圈月桂环。"
+    },
+    {
+      "id": "art_ico_ach_deed_god_eska_consent",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的诸神类徽章，淡金边、象牙白底的十二芒放射章；中央纹样：一片银白的雪峰上落下一片银鳞，鳞片轻轻落进一只手里。",
+        "en": "Great-deed achievement icon: A goddesses badge wrapped in a golden laurel ring, a pale gold twelve-rayed sunburst badge with an ivory field; central motif: a silver scale drifting down from a silver-white snowy peak, landing gently in a hand."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_GOD_ESKA_CONSENT",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_god_eska_consent 一致，只多一圈月桂环。"
+    },
+    {
+      "id": "art_ico_ach_deed_truth_five_versions",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的真相类徽章，深色木轴、旧米黄纸面的卷轴章；中央纹样：五张撕成两半的纸，每张都只留下一半。",
+        "en": "Great-deed achievement icon: A truths badge wrapped in a golden laurel ring, a scroll badge of old cream parchment on dark wooden rods; central motif: five sheets of paper torn in two, only one half of each left."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_TRUTH_LIES_FIVE",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_truth_five_versions 一致，只多一圈月桂环。编号去剧透。"
+    },
+    {
+      "id": "art_ico_ach_deed_truth_m08",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的真相类徽章，深色木轴、旧米黄纸面的卷轴章；中央纹样：一页书上压着一枚圆印，书页边上一缕被吸走的烟。",
+        "en": "Great-deed achievement icon: A truths badge wrapped in a golden laurel ring, a scroll badge of old cream parchment on dark wooden rods; central motif: a round stamp pressed onto a book page, a wisp of smoke being drawn away from its edge."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_TRUTH_PURGE_CYCLE",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_truth_m08 一致，只多一圈月桂环。编号去剧透。"
+    },
+    {
+      "id": "art_ico_ach_deed_truth_name_spoken",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的真相类徽章，深色木轴、旧米黄纸面的卷轴章；中央纹样：一个空着的长方名框前，一张嘴形弧线正在说话，名框边缘亮了起来。",
+        "en": "Great-deed achievement icon: A truths badge wrapped in a golden laurel ring, a scroll badge of old cream parchment on dark wooden rods; central motif: before an empty rectangular name frame, a mouth curve is speaking and the frame's edge lights up."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_TRUTH_NAME_SPOKEN",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_truth_name_spoken 一致，只多一圈月桂环。"
+    },
+    {
+      "id": "art_ico_ach_deed_truth_earth",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的真相类徽章，深色木轴、旧米黄纸面的卷轴章；中央纹样：一扇窗外是一片普通的草地与小屋，天空里只有太阳与云。",
+        "en": "Great-deed achievement icon: A truths badge wrapped in a golden laurel ring, a scroll badge of old cream parchment on dark wooden rods; central motif: beyond a window lie an ordinary meadow and a cottage, only the sun and clouds in the sky."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_TRUTH_EARTH",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_truth_earth 一致，只多一圈月桂环。"
+    },
+    {
+      "id": "art_ico_ach_deed_truth_charter_read",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "大事迹成就图标：一枚外绕金色月桂环的真相类徽章，深色木轴、旧米黄纸面的卷轴章；中央纹样：一张展开的长卷两端各有一只手扶着，许多只手一起按着长卷的中间。",
+        "en": "Great-deed achievement icon: A truths badge wrapped in a golden laurel ring, a scroll badge of old cream parchment on dark wooden rods; central motif: a long unrolled scroll held at each end by a hand, many hands pressing its middle together."
+      },
+      "extra": {
+        "zh": "成就组：大事迹。在该事迹徽章的外形之外再绕一圈金色月桂环（#c8a04a），月桂环与徽章之间留一道细缝。",
+        "en": "Achievement group: great deeds. The deed badge's own shape wrapped in an outer ring of golden laurel (#c8a04a), a thin gap between the laurel ring and the badge."
+      },
+      "ref": "HK_DEED_TRUTH_CHARTER_READ",
+      "milestone": "M3",
+      "notes": "语法：大事迹组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。纹样与事迹徽章 art_ico_deed_truth_charter_read 一致，只多一圈月桂环。"
+    },
+    {
+      "id": "art_ico_ach_book_grow",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "类满页成就图标：一枚成长类徽章，青铜边、草绿底的圆章；中央是一页摊开的书页，每一行都排满了小小的徽章图形，页面正中叠着一株从书页上长出的麦穗嫩芽。",
+        "en": "Full-page achievement icon: A growth badge, a bronze-rimmed round medal with a grass-green field; at its center an open book page whose every line is filled with tiny badge shapes, with a sprouting ear of wheat growing out of the page laid over the middle of the page."
+      },
+      "extra": {
+        "zh": "类别：成长。外形为圆章：青铜边（#a8703a），边上一圈细小的麦穗刻纹，底色草绿（#5a8a3a）。",
+        "en": "Category: growth. Round medal: bronze rim (#a8703a) with a ring of tiny wheat-ear notches, grass-green field (#5a8a3a)."
+      },
+      "ref": "HK_BOOK_GROW",
+      "milestone": "M3",
+      "notes": "语法：类满页组用该事迹类别的徽章外形（与事迹徽章同边色同底色），中央是摊开的满页加类别纹样。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。表示该类事迹满页；书页上的小徽章只是图形，不画字。"
+    },
+    {
+      "id": "art_ico_ach_book_hunt",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "类满页成就图标：一枚讨伐类徽章，铁灰边、暗红底的尖底盾章；中央是一页摊开的书页，每一行都排满了小小的徽章图形，页面正中叠着一支长矛与一枚狼牙交叉。",
+        "en": "Full-page achievement icon: A hunt badge, an iron-gray-rimmed heater shield badge with a dark red field; at its center an open book page whose every line is filled with tiny badge shapes, with a spear crossed with a wolf fang laid over the middle of the page."
+      },
+      "extra": {
+        "zh": "类别：讨伐。外形为盾章：尖底骑士盾，铁灰边（#6e747a），顶边两角各有一个小尖，底色暗红（#8a2a22）。",
+        "en": "Category: hunt. Shield badge: a pointed heater shield with an iron-gray rim (#6e747a), a small spike at each top corner, dark red field (#8a2a22)."
+      },
+      "ref": "HK_BOOK_HUNT",
+      "milestone": "M3",
+      "notes": "语法：类满页组用该事迹类别的徽章外形（与事迹徽章同边色同底色），中央是摊开的满页加类别纹样。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。表示该类事迹满页；书页上的小徽章只是图形，不画字。"
+    },
+    {
+      "id": "art_ico_ach_book_rare",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "类满页成就图标：一枚异名者类徽章，暗银边、夜蓝底的八角星章；中央是一页摊开的书页，每一行都排满了小小的徽章图形，页面正中叠着一枚八角星形的兽爪印。",
+        "en": "Full-page achievement icon: A named beasts badge, a dark silver eight-pointed star badge with a night-blue field; at its center an open book page whose every line is filled with tiny badge shapes, with an eight-pointed star-shaped paw print laid over the middle of the page."
+      },
+      "extra": {
+        "zh": "类别：异名者。外形为多角章：八角星，暗银边（#9aa0a8），八个角尖各点一粒暗红，底色夜蓝（#2e3a5a）。",
+        "en": "Category: named beasts. Multi-pointed badge: an eight-pointed star with a dark silver rim (#9aa0a8), each point tipped with a dark red dot, night-blue field (#2e3a5a)."
+      },
+      "ref": "HK_BOOK_RARE",
+      "milestone": "M3",
+      "notes": "语法：类满页组用该事迹类别的徽章外形（与事迹徽章同边色同底色），中央是摊开的满页加类别纹样。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。表示该类事迹满页；书页上的小徽章只是图形，不画字。"
+    },
+    {
+      "id": "art_ico_ach_book_dg",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "类满页成就图标：一枚迷宫类徽章，石灰边、青灰底的城垛方盾章；中央是一页摊开的书页，每一行都排满了小小的徽章图形，页面正中叠着一座城垛形的小石门。",
+        "en": "Full-page achievement icon: A dungeons badge, a stone-gray crenellated square shield badge with a slate field; at its center an open book page whose every line is filled with tiny badge shapes, with a small crenellated stone gate laid over the middle of the page."
+      },
+      "extra": {
+        "zh": "类别：迷宫。外形为盾章：顶边是城垛形的平底方盾，石灰色边（#8a8e8a），底色青灰（#464a5a）。",
+        "en": "Category: dungeons. Shield badge: a flat-bottomed square shield with a crenellated top edge, stone-gray rim (#8a8e8a), slate field (#464a5a)."
+      },
+      "ref": "HK_BOOK_DG",
+      "milestone": "M3",
+      "notes": "语法：类满页组用该事迹类别的徽章外形（与事迹徽章同边色同底色），中央是摊开的满页加类别纹样。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。表示该类事迹满页；书页上的小徽章只是图形，不画字。"
+    },
+    {
+      "id": "art_ico_ach_book_exp",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "类满页成就图标：一枚探索类徽章，铜绿边、天蓝底的罗盘圆章；中央是一页摊开的书页，每一行都排满了小小的徽章图形，页面正中叠着一根罗盘指针。",
+        "en": "Full-page achievement icon: A exploration badge, a verdigris round medal with compass points and a sky-blue field; at its center an open book page whose every line is filled with tiny badge shapes, with a compass needle laid over the middle of the page."
+      },
+      "extra": {
+        "zh": "类别：探索。外形为圆章：铜绿色边（#4e8a78），边上四个方位各伸出一个小尖，像罗盘，底色天蓝（#6aa0d8）。",
+        "en": "Category: exploration. Round medal: verdigris copper rim (#4e8a78) with four small compass points on the rim, sky-blue field (#6aa0d8)."
+      },
+      "ref": "HK_BOOK_EXP",
+      "milestone": "M3",
+      "notes": "语法：类满页组用该事迹类别的徽章外形（与事迹徽章同边色同底色），中央是摊开的满页加类别纹样。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。表示该类事迹满页；书页上的小徽章只是图形，不画字。"
+    },
+    {
+      "id": "art_ico_ach_book_col",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "类满页成就图标：一枚收藏类徽章，亮金连珠边、酒红底的圆章；中央是一页摊开的书页，每一行都排满了小小的徽章图形，页面正中叠着一只敞开的小陈列匣。",
+        "en": "Full-page achievement icon: A collections badge, a bright gold beaded round medal with a wine-red field; at its center an open book page whose every line is filled with tiny badge shapes, with a small open display case laid over the middle of the page."
+      },
+      "extra": {
+        "zh": "类别：收藏。外形为圆章：亮金边（#d8b45a），边上一圈连珠，底色酒红（#6e2a3a）。",
+        "en": "Category: collections. Round medal: bright gold rim (#d8b45a) with a ring of beads, wine-red field (#6e2a3a)."
+      },
+      "ref": "HK_BOOK_COL",
+      "milestone": "M3",
+      "notes": "语法：类满页组用该事迹类别的徽章外形（与事迹徽章同边色同底色），中央是摊开的满页加类别纹样。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。表示该类事迹满页；书页上的小徽章只是图形，不画字。"
+    },
+    {
+      "id": "art_ico_ach_book_bond",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "类满页成就图标：一枚社交与羁绊类徽章，银边、暖米底、垂着红绶带的圆章；中央是一页摊开的书页，每一行都排满了小小的徽章图形，页面正中叠着两只相握的手。",
+        "en": "Full-page achievement icon: A bonds badge, a silver-rimmed round medal with a cream field and red ribbons; at its center an open book page whose every line is filled with tiny badge shapes, with two clasped hands laid over the middle of the page."
+      },
+      "extra": {
+        "zh": "类别：社交与羁绊。外形为圆章：银边（#c8ccd0），章下垂着一对打了结的暖红绶带（#b83a2a），底色暖米（#e6d4b0）。",
+        "en": "Category: bonds. Round medal: silver rim (#c8ccd0) with a pair of knotted warm red ribbons (#b83a2a) hanging below, warm cream field (#e6d4b0)."
+      },
+      "ref": "HK_BOOK_BOND",
+      "milestone": "M3",
+      "notes": "语法：类满页组用该事迹类别的徽章外形（与事迹徽章同边色同底色），中央是摊开的满页加类别纹样。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。表示该类事迹满页；书页上的小徽章只是图形，不画字。"
+    },
+    {
+      "id": "art_ico_ach_book_mgmt",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "类满页成就图标：一枚经营类徽章，黄铜边、墨绿底的八边形铆钉牌；中央是一页摊开的书页，每一行都排满了小小的徽章图形，页面正中叠着一座冒着炊烟的小屋顶。",
+        "en": "Full-page achievement icon: A stewardship badge, a brass-rimmed riveted octagonal plaque with a deep green field; at its center an open book page whose every line is filled with tiny badge shapes, with a small rooftop with cooking smoke laid over the middle of the page."
+      },
+      "extra": {
+        "zh": "类别：经营。外形为多角章：八边形牌，黄铜边（#b8943a），四个斜边各钉一颗铆钉，底色墨绿（#2e5a3a）。",
+        "en": "Category: stewardship. Multi-pointed badge: an octagonal plaque with a brass rim (#b8943a), a rivet on each diagonal edge, deep green field (#2e5a3a)."
+      },
+      "ref": "HK_BOOK_MGMT",
+      "milestone": "M3",
+      "notes": "语法：类满页组用该事迹类别的徽章外形（与事迹徽章同边色同底色），中央是摊开的满页加类别纹样。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。表示该类事迹满页；书页上的小徽章只是图形，不画字。"
+    },
+    {
+      "id": "art_ico_ach_book_war",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "类满页成就图标：一枚战争类徽章，钢蓝边、背衬交叉剑尖的尖底盾章；中央是一页摊开的书页，每一行都排满了小小的徽章图形，页面正中叠着一面竖起的军旗。",
+        "en": "Full-page achievement icon: A war badge, a steel-blue heater shield badge with crossed sword tips behind it; at its center an open book page whose every line is filled with tiny badge shapes, with a raised war banner laid over the middle of the page."
+      },
+      "extra": {
+        "zh": "类别：战争。外形为盾章：尖底骑士盾，钢蓝边（#5a6e8c），盾后斜伸出两柄交叉的剑尖，底色钢灰蓝（#3e4a5e）。",
+        "en": "Category: war. Shield badge: a pointed heater shield with a steel-blue rim (#5a6e8c), two crossed sword tips jutting out from behind it, steel slate field (#3e4a5e)."
+      },
+      "ref": "HK_BOOK_WAR",
+      "milestone": "M3",
+      "notes": "语法：类满页组用该事迹类别的徽章外形（与事迹徽章同边色同底色），中央是摊开的满页加类别纹样。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。表示该类事迹满页；书页上的小徽章只是图形，不画字。"
+    },
+    {
+      "id": "art_ico_ach_book_god",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "类满页成就图标：一枚诸神类徽章，淡金边、象牙白底的十二芒放射章；中央是一页摊开的书页，每一行都排满了小小的徽章图形，页面正中叠着五个排成弧形的小神纹：光轮、断剑、硬币、枝叶、书卷。",
+        "en": "Full-page achievement icon: A goddesses badge, a pale gold twelve-rayed sunburst badge with an ivory field; at its center an open book page whose every line is filled with tiny badge shapes, with five small divine emblems in an arc: a halo wheel, a broken sword, a coin, a leafy sprig and a scroll laid over the middle of the page."
+      },
+      "extra": {
+        "zh": "类别：诸神。外形为多角章：十二道短芒的放射章，淡金边（#d0b070），底色象牙白（#eeeae2）。",
+        "en": "Category: the goddesses. Multi-pointed badge: a sunburst badge with twelve short rays, pale gold rim (#d0b070), ivory field (#eeeae2)."
+      },
+      "ref": "HK_BOOK_GOD",
+      "milestone": "M3",
+      "notes": "语法：类满页组用该事迹类别的徽章外形（与事迹徽章同边色同底色），中央是摊开的满页加类别纹样。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。表示该类事迹满页；书页上的小徽章只是图形，不画字。"
+    },
+    {
+      "id": "art_ico_ach_book_mortal",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "类满页成就图标：一枚凡人不信类徽章，铁链挂着、四角包铁的旧木牌章；中央是一页摊开的书页，每一行都排满了小小的徽章图形，页面正中叠着一块裂开的鉴定水晶。",
+        "en": "Full-page achievement icon: A mortals do not believe badge, an iron-bound old wooden plaque badge hung on short chains; at its center an open book page whose every line is filled with tiny badge shapes, with a cracked appraisal crystal laid over the middle of the page."
+      },
+      "extra": {
+        "zh": "类别：凡人不信。外形为卷轴章的变体：一块用两段短铁链挂着的旧木牌，木色（#8a6a4a），四角包铁。",
+        "en": "Category: mortals do not believe. A variant of the scroll badge: an old wooden plaque hung from two short iron chains, wood color (#8a6a4a), iron-bound corners."
+      },
+      "ref": "HK_BOOK_MORTAL",
+      "milestone": "M3",
+      "notes": "语法：类满页组用该事迹类别的徽章外形（与事迹徽章同边色同底色），中央是摊开的满页加类别纹样。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。表示该类事迹满页；书页上的小徽章只是图形，不画字。"
+    },
+    {
+      "id": "art_ico_ach_book_all",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "全簿成就图标，一本立着的深棕色厚书：书脊上一道金箍，十一个小圆点依次是草绿、暗红、夜蓝、青灰、天蓝、酒红、暖米、墨绿、钢灰蓝、象牙白与木色，合上的书页边缘透出一线金光。",
+        "en": "Full-book achievement icon, an upright dark brown thick book: A gold band on the spine, eleven small dots in grass green, dark red, night blue, slate, sky blue, wine red, warm cream, deep green, steel slate, ivory and wood brown, a line of gold light showing at the edge of the closed pages."
+      },
+      "extra": {
+        "zh": "成就组：全簿。外形为一本立着的厚书，书皮深棕（#4a3a2a），四角包金，书的四周绕着一圈小圆点。",
+        "en": "Achievement group: the full book. An upright thick book with a dark brown cover (#4a3a2a) and gold-capped corners, ringed by a circle of small dots."
+      },
+      "ref": "HK_BOOK_ALL",
+      "milestone": "M3",
+      "notes": "语法：全簿组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。十一个圆点对应十一个可计类的底色，要数得清。"
+    },
+    {
+      "id": "art_ico_ach_ironman",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "铁人成就图标，一枚厚铁圆盾，中央是一只铁手套稳稳握着一盏小提灯，灯火是不灭的暖白，手套上有许多旧划痕。",
+        "en": "Iron-rule achievement icon, a thick round iron shield with, at its center, an iron gauntlet steadily holding a small lantern whose warm white flame never goes out, the gauntlet covered in old scratches."
+      },
+      "extra": {
+        "zh": "成就组：铁人。外形为一枚厚铁圆盾（#5a6268），盾沿一圈粗铆钉，中央是图案。",
+        "en": "Achievement group: iron rule. A thick round iron shield (#5a6268) with a ring of heavy rivets around its rim, the image at its center."
+      },
+      "ref": "HK_IRONMAN",
+      "milestone": "M3",
+      "notes": "语法：铁人组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。"
+    },
+    {
+      "id": "art_ico_ach_doors_30",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "开门成就图标，一圈门扉金细圆环里：三扇小门并排站着，门缝都透出暖金的光，门下是一道短短的台阶。",
+        "en": "Doors-opened achievement icon, inside a thin ring of door gold: Three small doors standing side by side, warm gold light through each gap, a short step beneath them."
+      },
+      "extra": {
+        "zh": "成就组：开门。外形为一圈门扉金（#f0d890）细圆环，环内并排叠着若干扇小门，门的数量表示里程碑。",
+        "en": "Achievement group: doors opened. A thin ring of door gold (#f0d890) holding a number of small doors side by side, the number of doors marking the milestone."
+      },
+      "ref": "HK_DOORS_30",
+      "milestone": "M2",
+      "notes": "语法：开门组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。三扇要数得清；不画数字。"
+    },
+    {
+      "id": "art_ico_ach_doors_60",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "开门成就图标，一圈门扉金细圆环里：六扇小门排成两行，门缝都透出暖金的光，门下是两道台阶。",
+        "en": "Doors-opened achievement icon, inside a thin ring of door gold: Six small doors in two rows, warm gold light through each gap, two steps beneath them."
+      },
+      "extra": {
+        "zh": "成就组：开门。外形为一圈门扉金（#f0d890）细圆环，环内并排叠着若干扇小门，门的数量表示里程碑。",
+        "en": "Achievement group: doors opened. A thin ring of door gold (#f0d890) holding a number of small doors side by side, the number of doors marking the milestone."
+      },
+      "ref": "HK_DOORS_60",
+      "milestone": "M2",
+      "notes": "语法：开门组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。六扇要数得清；不画数字。"
+    },
+    {
+      "id": "art_ico_ach_doors_100",
+      "template": "ico_achievement",
+      "subject": {
+        "zh": "开门成就图标，一圈门扉金细圆环里：十扇小门排成一个拱形，门缝都透出暖金的光，拱顶上一点更亮的光。",
+        "en": "Doors-opened achievement icon, inside a thin ring of door gold: Ten small doors arranged in an arch, warm gold light through each gap, a brighter point of light at the top of the arch."
+      },
+      "extra": {
+        "zh": "成就组：开门。外形为一圈门扉金（#f0d890）细圆环，环内并排叠着若干扇小门，门的数量表示里程碑。",
+        "en": "Achievement group: doors opened. A thin ring of door gold (#f0d890) holding a number of small doors side by side, the number of doors marking the milestone."
+      },
+      "ref": "HK_DOORS_100",
+      "milestone": "M3",
+      "notes": "语法：开门组统一外形见补充说明，中央纹样逐条不同。打包时合成在深色底上；未达成的灰图由打包脚本去饱和加压暗生成，不另出提示词。十扇要数得清；不画数字。"
+    }
+  ]
+}

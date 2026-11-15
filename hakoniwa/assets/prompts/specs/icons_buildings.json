@@ -1,0 +1,1074 @@
+{
+  "category": "icons_buildings",
+  "title": "城建建筑小图",
+  "sources": ["docs/40_design/content/catalog_buildings_city.md", "docs/50_tech/art_pipeline.md"],
+  "items": [
+    {
+      "id": "art_ico_bld_shack",
+      "template": "ico_building",
+      "subject": {
+        "zh": "窝棚：斜搭的木板与草帘搭成的矮棚，门口吊一盏小油灯，墙缝里透出暖光，是最简陋的住处，整体是边地木板与草帘拼凑的简陋样式。",
+        "en": "Shack: a low lean-to of slanted boards and straw mats, a small oil lamp hanging at the door, warm light showing through gaps in the walls, the humblest of dwellings, in the makeshift frontier style of patched boards and straw mats."
+      },
+      "ref": "bld_shack",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_cabin",
+      "template": "ico_building",
+      "subject": {
+        "zh": "木屋：原木墙、双坡陶红瓦顶的小屋，窗下一只花盆，屋顶一根小烟囱冒着烟，温暖朴实，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Cabin: a small house of log walls under a gabled terracotta roof, a flowerpot beneath the window, a little chimney sending up smoke, warm and plain, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_cabin",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_row_house",
+      "template": "ico_building",
+      "subject": {
+        "zh": "石砌联排屋：三户连檐的两层石排屋，蓝灰石板瓦，每户门楣上钉一块无字的小木牌，窗户整齐，整体是石砖墙与蓝灰石板瓦的城邑样式。",
+        "en": "Stone row house: three two-story stone homes joined under one eave, blue-grey slate roof, a small blank wooden plate over each door, neat rows of windows, in the city style of stone-and-brick walls and blue-grey slate."
+      },
+      "ref": "bld_row_house",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按瓦伦城式变体（石砖墙、蓝灰石板瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。门牌木牌上不写字。"
+    },
+    {
+      "id": "art_ico_bld_manor",
+      "template": "ico_building",
+      "subject": {
+        "zh": "宅邸：带围墙小院的两层石宅，四坡石板瓦顶，窗上镶着明亮的玻璃，门前一对石灯，体面而安静，整体是石砖墙与蓝灰石板瓦的城邑样式。",
+        "en": "Manor: a two-story stone house with a walled little courtyard, hipped slate roof, bright glass in its windows, a pair of stone lanterns before the door, dignified and quiet, in the city style of stone-and-brick walls and blue-grey slate."
+      },
+      "ref": "bld_manor",
+      "milestone": "M3",
+      "notes": "建造菜单与地块卡的小图，按瓦伦城式变体（石砖墙、蓝灰石板瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_longhouse",
+      "template": "ico_building",
+      "subject": {
+        "zh": "长屋：一字排开的长条原木屋，毡顶上压着石块，屋脊挂着彩绳与兽骨，门口立一面氏族的布旗，整体是原木、毡与彩绳的兽人样式。",
+        "en": "Longhouse: a long, straight log hall with stones weighing down its felt roof, colored cords and animal bones hung along the ridge, a clan banner standing at the door, in the beastfolk style of logs, felt and colored cords."
+      },
+      "ref": "bld_longhouse",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按兽人变体（原木与毡）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。兽人族裔屋；旗面只有纯色与简单纹样。"
+    },
+    {
+      "id": "art_ico_bld_treehouse",
+      "template": "ico_building",
+      "subject": {
+        "zh": "树屋：依托一棵大树建起的环形平台屋，叶片铺成屋顶，藤桥连着树干，几盏小小的萤光灯挂在檐下，整体是活木、藤与叶瓦的精灵样式。",
+        "en": "Treehouse: a ring-shaped platform house built around a great tree, leaves laid as its roof, vine bridges linking it to the trunk, a few small glowing lamps hanging under the eaves, in the elven style of living wood, vines and leaf tiles."
+      },
+      "ref": "bld_treehouse",
+      "milestone": "M3",
+      "notes": "建造菜单与地块卡的小图，按精灵变体（活木与叶瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。精灵族裔屋；不伐树，树是建筑的一部分。"
+    },
+    {
+      "id": "art_ico_bld_rock_hall",
+      "template": "ico_building",
+      "subject": {
+        "zh": "石窟屋：半嵌进岩坡的石门屋，厚重的门楣上刻着矿脉纹，门边一只大铁环，旁边冒着炉烟的烟口，整体是条石与铁铆的矮人样式。",
+        "en": "Rock hall: a stone-doored house set halfway into a rocky slope, a thick lintel carved with ore-vein patterns, a large iron ring beside the door, a smoke vent puffing forge smoke, in the dwarven style of dressed stone and iron rivets."
+      },
+      "ref": "bld_rock_hall",
+      "milestone": "M3",
+      "notes": "建造菜单与地块卡的小图，按矮人变体（条石与铁件）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。矮人族裔屋。"
+    },
+    {
+      "id": "art_ico_bld_hidden_house",
+      "template": "ico_building",
+      "subject": {
+        "zh": "隐庐：不起眼的低檐土屋，朝外的一面没有窗，草顶压得很低，门框的内侧隐约有一道浅浅的刻纹，整体是低矮夯土与旧石的门民样式。",
+        "en": "Hidden house: an unremarkable low-eaved earthen cottage with no windows on its outward face, a low-pressed thatch roof, a faint shallow carving just inside its door frame, in the doorfolk style of low rammed earth and old stone."
+      },
+      "ref": "bld_hidden_house",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按门民变体（低矮夯土与草顶）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。门民族裔屋；刻纹只是浅痕，不用门扉金。"
+    },
+    {
+      "id": "art_ico_bld_farm",
+      "template": "ico_building",
+      "subject": {
+        "zh": "农田：分垄的金黄麦田，一角插着稻草人，边上围着矮木栅，田垄整齐，一眼看出是耕地，整体是洛萨乡野露天田园的样式。",
+        "en": "Farm: golden wheat field divided into neat furrows, a scarecrow standing in one corner, a low wooden fence along the edge, unmistakably farmland, in the open-air countryside style of the Lothar plains."
+      },
+      "ref": "bld_farm",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。小图画秋季的金黄；四季顶面另出。"
+    },
+    {
+      "id": "art_ico_bld_pasture",
+      "template": "ico_building",
+      "subject": {
+        "zh": "牧场：木栏围起的一块草场，一角是草顶的小畜棚与木水槽，草地上一只小羊，整体是洛萨乡野露天田园的样式。",
+        "en": "Pasture: a patch of grassland fenced with wooden rails, a small thatched animal shed and wooden trough in one corner, a single little sheep on the grass, in the open-air countryside style of the Lothar plains."
+      },
+      "ref": "bld_pasture",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_fishing_hut",
+      "template": "ico_building",
+      "subject": {
+        "zh": "渔屋：搭在水边木桩上的小屋，屋旁立着晾网架，门前倒扣一条小船，木瓦屋顶，鱼形木招牌，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Fishing hut: a small house on wooden stilts at the water's edge, a net-drying rack beside it, a small boat upturned before the door, shingle roof, a fish-shaped wooden sign, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_fishing_hut",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_hunter_lodge",
+      "template": "ico_building",
+      "subject": {
+        "zh": "猎人小屋：林缘的木屋，门边挂着兽皮与一对鹿角，屋后支着晾肉架，长苔的木瓦屋顶，整体是原木与长苔木瓦的林缘样式。",
+        "en": "Hunter lodge: a log cabin at the forest edge, a pelt and a pair of antlers hung beside the door, a meat-drying rack behind it, a mossy shingle roof, in the forest-edge style of logs and mossy shingles."
+      },
+      "ref": "bld_hunter_lodge",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按林缘变体（原木、长苔的木瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_herb_garden",
+      "template": "ico_building",
+      "subject": {
+        "zh": "草药圃：一畦畦整齐的药草，竹架上晾着成束的草，角落放着一只大陶缸，绿意浓密，整体是洛萨乡野露天田园的样式。",
+        "en": "Herb garden: neat beds of medicinal herbs, bundles of herbs drying on a bamboo frame, a big clay jar in one corner, lush and green, in the open-air countryside style of the Lothar plains."
+      },
+      "ref": "bld_herb_garden",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_mill_bakery",
+      "template": "ico_building",
+      "subject": {
+        "zh": "磨坊与面包房：石基木身的磨坊，侧面一架水车，炉口冒着热气，门口竹篮里堆着黑面包，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Mill and bakery: a mill of timber on a stone base with a waterwheel at its side, steam rising from the oven mouth, a bamboo basket of dark loaves by the door, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_mill_bakery",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_brewery",
+      "template": "ico_building",
+      "subject": {
+        "zh": "酿酒坊：门前堆着橡木桶的酒坊，屋顶伸出一根铜锅的烟囱，门上挂着麦穗与木桶的招牌，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Brewery: a brewhouse with oak barrels stacked before it, a copper still chimney rising from the roof, a sign of wheat ears and a barrel over the door, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_brewery",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_larder",
+      "template": "ico_building",
+      "subject": {
+        "zh": "腌熏房：半地下的石屋，石顶低矮，屋檐下挂满熏肉，门旁摆着腌缸与盐袋，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Smokehouse: a half-sunken stone house with a low stone roof, smoked meats hanging all along the eaves, a pickling crock and salt sacks beside the door, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_larder",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_salt_pan",
+      "template": "ico_building",
+      "subject": {
+        "zh": "盐田：一片方格浅池连在一起，池边堆着雪白的小盐山，插着一把木耙，挂着一顶草帽，整体是洛萨乡野露天田园的样式。",
+        "en": "Salt pans: a grid of shallow pools joined together, small snow-white heaps of salt at their edge, a wooden rake standing upright with a straw hat hung on it, in the open-air countryside style of the Lothar plains."
+      },
+      "ref": "bld_salt_pan",
+      "milestone": "M3",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_communal_stove",
+      "template": "ico_building",
+      "subject": {
+        "zh": "公灶：露天的大灶棚，木顶敞棚下一排三口大铁锅冒着热气，旁边长桌长凳，灶边堆着柴，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Communal stove: an open-air kitchen shelter, three big iron cauldrons steaming in a row under a timber roof, long tables and benches beside them, firewood piled by the hearth, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_communal_stove",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。众人同灶的象征，锅是主体。"
+    },
+    {
+      "id": "art_ico_bld_well",
+      "template": "ico_building",
+      "subject": {
+        "zh": "水井：石砌的圆井台，上方一架木辘轳与小顶棚，井边放着木桶，旁边一条石槽，整体是洛萨乡野露天田园的样式。",
+        "en": "Well: a round stone well curb with a wooden windlass and a little roof above it, a wooden bucket at its edge, a stone trough beside it, in the open-air countryside style of the Lothar plains."
+      },
+      "ref": "bld_well",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_lumber_camp",
+      "template": "ico_building",
+      "subject": {
+        "zh": "伐木营：林边的锯木台与整齐的原木堆，一把斧头插在木墩上，后面是木瓦敞棚，整体是洛萨乡野露天田园的样式。",
+        "en": "Lumber camp: a sawhorse and neat stacks of logs at the forest edge, an axe sunk into a chopping block, a shingled open shed behind, in the open-air countryside style of the Lothar plains."
+      },
+      "ref": "bld_lumber_camp",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_quarry",
+      "template": "ico_building",
+      "subject": {
+        "zh": "采石场：岩坡上凿出的台阶状石面，一根木吊杆吊着一块方石，脚下是碎石堆，整体是洛萨乡野露天田园的样式。",
+        "en": "Quarry: a stepped stone face cut into a rocky slope, a wooden derrick lifting a squared block, piles of rubble at its foot, in the open-air countryside style of the Lothar plains."
+      },
+      "ref": "bld_quarry",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_mine",
+      "template": "ico_building",
+      "subject": {
+        "zh": "矿井：木构的井架与绞盘立在坑口上方，一条矿车轨道伸进黑洞洞的坑口，坑口挂一盏提灯，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Mine: a timber headframe and winch standing over a shaft mouth, a cart track running into the dark opening, a lantern hanging at its entrance, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_mine",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_charcoal_kiln",
+      "template": "ico_building",
+      "subject": {
+        "zh": "炭窑：一座半球形的土窑冒着白烟，窑旁码着整齐的劈柴，窑口透出一点橙光，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Charcoal kiln: a dome-shaped earthen kiln sending up white smoke, neatly stacked split wood beside it, a little orange glow at its mouth, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_charcoal_kiln",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_brick_kiln",
+      "template": "ico_building",
+      "subject": {
+        "zh": "砖窑：方形的砖砌窑身，窑口烧得橙红，前面一排排晾着的泥坯，砖形木招牌，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Brick kiln: a square brick kiln with its mouth glowing orange-red, rows of drying clay bricks laid out in front, a brick-shaped wooden sign, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_brick_kiln",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_scavenger_camp",
+      "template": "ico_building",
+      "subject": {
+        "zh": "拾遗营：荒原上的几顶帐篷与木栅，筛土的木架立在中间，灰石堆成小山，栅边插着火把，整体是灰石垒墙与覆灰平顶的荒原样式。",
+        "en": "Scavenger camp: a few tents and a wooden stockade out on the waste, a soil-sifting frame standing in the middle, grey stones heaped into a small hill, torches planted along the fence, in the wasteland style of stacked grey stone and ash-covered flat roofs."
+      },
+      "ref": "bld_scavenger_camp",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按荒原就地变体（灰石垒、覆灰平顶）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_smelter",
+      "template": "ico_building",
+      "subject": {
+        "zh": "熔炉：砖砌的高炉与一只大鼓风皮囊，炉口的火光映红地面，旁边堆着矿石与木炭，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Smelter: a tall brick furnace with a big bellows, its mouth casting red firelight across the ground, piles of ore and charcoal beside it, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_smelter",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_smithy",
+      "template": "ico_building",
+      "subject": {
+        "zh": "锻造坊：前檐敞开的瓦顶锻铺，铺里一块大铁砧与水槽，檐下挂着锤与砧的招牌，炉火通红，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Smithy: a tiled forge shop open at the front, a big anvil and quenching trough inside, a hammer-and-anvil sign under the eave, the forge glowing red, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_smithy",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_weavery",
+      "template": "ico_building",
+      "subject": {
+        "zh": "织坊：窗边摆着一架大织机的瓦顶小坊，门口晾着染好的蓝布与红布，梭形招牌，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Weavery: a tiled little workshop with a large loom by the window, freshly dyed blue and red cloth hanging out to dry at the door, a shuttle-shaped sign, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_weavery",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_tannery",
+      "template": "ico_building",
+      "subject": {
+        "zh": "制革坊：水边一格格的鞣池，木架上绷着几张皮子，敞棚下挂着刮刀招牌，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Tannery: rows of tanning pits by the water, hides stretched on wooden frames, a scraper-shaped sign hanging in an open shed, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_tannery",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_settling_pond",
+      "template": "ico_building",
+      "subject": {
+        "zh": "沉淀池：三格阶梯式的石砌水池，水由浑到清一格比一格干净，池边码着灰色的泥饼，整体是洛萨乡野露天田园的样式。",
+        "en": "Settling ponds: three stepped stone basins, the water clearing from murky to clean one basin after another, grey mud cakes stacked along the edge, in the open-air countryside style of the Lothar plains."
+      },
+      "ref": "bld_settling_pond",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。净化链的设施，水色由浑到清是辨识点。"
+    },
+    {
+      "id": "art_ico_bld_apothecary",
+      "template": "ico_building",
+      "subject": {
+        "zh": "药剂所：挂满草束的小屋，窗台上一排陶罐与玻璃瓶，门上挂着药草形的招牌，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Apothecary: a small house hung all over with bundles of herbs, a row of clay jars and glass bottles on the windowsill, an herb-shaped sign over the door, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_apothecary",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_paper_mill",
+      "template": "ico_building",
+      "subject": {
+        "zh": "纸坊：一架水车带动着捣浆槽，院里竖着一排排晾纸的纸帘，纸卷形的招牌，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Paper mill: a waterwheel driving a pulping trough, rows of paper screens standing to dry in the yard, a paper-roll sign, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_paper_mill",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。纸帘上是空白的纸。"
+    },
+    {
+      "id": "art_ico_bld_wright",
+      "template": "ico_building",
+      "subject": {
+        "zh": "机匠铺：院子里停着一辆半成品的车，墙上挂着轮辐与绞盘，门上齿轮形的招牌，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Wright's shop: a half-built cart standing in the yard, wheel spokes and a winch hung on the wall, a gear-shaped sign over the door, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_wright",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_magitech_works",
+      "template": "ico_building",
+      "subject": {
+        "zh": "魔导工房：石墙工房的窗里蓝白色的晶光一闪一闪，屋顶竖着几根排气铜管，门上一枚晶石形招牌，整体是石砖墙与蓝灰石板瓦的城邑样式。",
+        "en": "Magitech works: blue-white crystal light flickering in the windows of a stone-walled workshop, copper exhaust pipes rising from the roof, a crystal-shaped sign over the door, in the city style of stone-and-brick walls and blue-grey slate."
+      },
+      "ref": "bld_magitech_works",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按瓦伦城式变体（石砖墙、蓝灰石板瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_ley_well",
+      "template": "ico_building",
+      "subject": {
+        "zh": "灵脉井：石砌的圆井口罩着一面铅盖，井沿刻着导流的弧纹，井口缝里透出淡青色的光，整体是石砖墙与蓝灰石板瓦的城邑样式。",
+        "en": "Ley well: a round stone well mouth capped with a lead lid, flow-guiding curves carved around its rim, pale cyan light leaking through the gap, in the city style of stone-and-brick walls and blue-grey slate."
+      },
+      "ref": "bld_ley_well",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按瓦伦城式变体（石砖墙、蓝灰石板瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_diansteel_forge",
+      "template": "ico_building",
+      "subject": {
+        "zh": "澱钢炉：黑砖炉身包着铁箍，炉口的火是偏紫的白色，旁边水槽冒着蒸汽，晶石与炉的招牌，整体是石砖墙与蓝灰石板瓦的城邑样式。",
+        "en": "Sediment-steel forge: a black brick furnace bound with iron hoops, its fire a purplish white, steam rising from a trough beside it, a sign of crystal and furnace, in the city style of stone-and-brick walls and blue-grey slate."
+      },
+      "ref": "bld_diansteel_forge",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按瓦伦城式变体（石砖墙、蓝灰石板瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。炉火只带一点点紫，不要画成澱紫主色。"
+    },
+    {
+      "id": "art_ico_bld_shed",
+      "template": "ico_building",
+      "subject": {
+        "zh": "储物棚：三面板墙的敞棚，木板顶，里面堆着鼓鼓的麻袋与木箱，朴素实用，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Storage shed: an open shed with plank walls on three sides and a board roof, stuffed sacks and wooden crates piled inside, plain and practical, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_shed",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_granary",
+      "template": "ico_building",
+      "subject": {
+        "zh": "粮仓：架高在防鼠石墩上的木石粮仓，陶瓦顶，门上挂着麦穗招牌与一块计数木牌，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Granary: a timber-and-stone granary raised on rat-proof stone pillars, terracotta roof, a wheat-ear sign and a tally board hanging on its door, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_granary",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。计数木牌只有刻痕，不写数字。"
+    },
+    {
+      "id": "art_ico_bld_warehouse",
+      "template": "ico_building",
+      "subject": {
+        "zh": "货栈：两层木石货栈，二楼伸出一根吊货梁与滑轮，门口停着一排货车，箱形招牌，整体是石砖墙与蓝灰石板瓦的城邑样式。",
+        "en": "Warehouse: a two-story timber-and-stone warehouse, a hoisting beam and pulley jutting from the upper floor, a row of carts at its door, a crate-shaped sign, in the city style of stone-and-brick walls and blue-grey slate."
+      },
+      "ref": "bld_warehouse",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按瓦伦城式变体（石砖墙、蓝灰石板瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_carter",
+      "template": "ico_building",
+      "subject": {
+        "zh": "车马行：长顶的马棚与车库连在一起，院里停着一辆篷车，马槽边挂着挽具，车轮形招牌，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Carter's yard: a long-roofed stable joined to a carriage house, a covered wagon parked in the yard, harness hanging by the trough, a wheel-shaped sign, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_carter",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_post_station",
+      "template": "ico_building",
+      "subject": {
+        "zh": "驿站：路边的陶瓦驿舍，门前立着一块里程石，侧面马厩里拴着一匹马，马蹄形招牌，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Post station: a roadside terracotta-roofed relay house, a milestone standing before it, a horse tethered in the stable at its side, a horseshoe-shaped sign, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_post_station",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。里程石上不刻字。"
+    },
+    {
+      "id": "art_ico_bld_wharf",
+      "template": "ico_building",
+      "subject": {
+        "zh": "码头：伸进河里的木栈桥，桥头立着一根吊货杆，桥边系着一条平底驳船，锚形招牌，整体是洛萨乡野露天田园的样式。",
+        "en": "Wharf: a timber pier reaching into the river, a cargo boom standing at its head, a flat-bottomed barge moored alongside, an anchor-shaped sign, in the open-air countryside style of the Lothar plains."
+      },
+      "ref": "bld_wharf",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_door_gate",
+      "template": "ico_building",
+      "subject": {
+        "zh": "门扉：空地上立着一道没有墙的石门框，框内的空气微微发亮，门楣是暖金色，像一扇通往别处的门，整体是古老冷灰石框配暖金门楣的样式。",
+        "en": "Door gate: a stone door frame standing alone in open ground with no walls, the air within it faintly shimmering, its lintel warm gold, like a door leading somewhere else, in a style of ancient cold grey stone with a warm gold lintel."
+      },
+      "ref": "bld_door_gate",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按全作统一外观出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。门扉金 #f0d890 是这座建筑的合法用色。"
+    },
+    {
+      "id": "art_ico_bld_market",
+      "template": "ico_building",
+      "subject": {
+        "zh": "市集：广场上一排带条纹雨棚的摊位，摊上堆着货物，中间立着一杆大秤，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Market: a row of stalls under striped awnings in a square, goods heaped on their counters, a large steelyard standing in the middle, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_market",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_company_shop",
+      "template": "ico_building",
+      "subject": {
+        "zh": "门扉商会店铺：门脸干净的小铺，橱窗里摆着玻璃罐与香皂，门楣挂着一块门形轮廓的商号木牌，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Door Company shop: a small shop with a tidy front, glass jars and soap displayed in its window, a door-outline company sign hanging from the lintel, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_company_shop",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。商号木牌是门形图案，不写字，不用门扉金。"
+    },
+    {
+      "id": "art_ico_bld_tavern",
+      "template": "ico_building",
+      "subject": {
+        "zh": "酒馆与旅店：两层木楼挂着麦酒杯招牌，门口长凳与拴马桩，窗子透出暖黄的灯光，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Tavern and inn: a two-story timber house with a tankard sign, a bench and hitching post at the door, warm yellow lamplight glowing from its windows, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_tavern",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_exchange",
+      "template": "ico_building",
+      "subject": {
+        "zh": "汇兑所：石柱门廊的平顶账房，门廊里一张长柜台与一排算盘，门楣上刻着一杆秤与硬币的纹章，整体是石砖墙与蓝灰石板瓦的城邑样式。",
+        "en": "Exchange house: a flat-roofed counting house with a pillared stone portico, a long counter and a row of abacuses inside, a scale-and-coin crest carved over the door, in the city style of stone-and-brick walls and blue-grey slate."
+      },
+      "ref": "bld_exchange",
+      "milestone": "M3",
+      "notes": "建造菜单与地块卡的小图，按瓦伦城式变体（石砖墙、蓝灰石板瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_shrine",
+      "template": "ico_building",
+      "subject": {
+        "zh": "路边神龛：路边的小石龛，龛里一尊小小的雕像，前面摆着烛台与供碗，龛顶留一块圆形的徽位，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Wayside shrine: a little stone niche by the road holding a small statue, a candlestick and offering bowl before it, a round emblem space at its top, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_shrine",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。徽位留空，圣徽按女神另出并由界面叠加。"
+    },
+    {
+      "id": "art_ico_bld_chapel",
+      "template": "ico_building",
+      "subject": {
+        "zh": "礼拜堂：高墙圆窗的石砌礼拜堂，陡坡石板瓦顶，一侧一座钟塔，门前几级石阶，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Chapel: a stone chapel with high walls and a round window, steep slate roof, a bell tower at one side, a few stone steps before the door, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_chapel",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。不画几何光环；圣徽另出。"
+    },
+    {
+      "id": "art_ico_bld_spirit_circle",
+      "template": "ico_building",
+      "subject": {
+        "zh": "祖灵圈：一圈立石围着中间的火塘，石上缠着彩绳，中央立一根刻满兽纹的木柱，整体是原木、毡与彩绳的兽人样式。",
+        "en": "Spirit circle: a ring of standing stones around a central fire pit, colored cords wound about the stones, a wooden post carved with beast patterns standing in the middle, in the beastfolk style of logs, felt and colored cords."
+      },
+      "ref": "bld_spirit_circle",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按兽人变体（原木与毡）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_school",
+      "template": "ico_building",
+      "subject": {
+        "zh": "学堂：长条形的瓦顶教室开着一排窗，门前立着一块空白的石板，台阶上坐着两个小孩，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Schoolhouse: a long tiled classroom with a row of windows, a blank slate board standing before the door, two small children sitting on the steps, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_school",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。石板上不写字。"
+    },
+    {
+      "id": "art_ico_bld_plaza",
+      "template": "ico_building",
+      "subject": {
+        "zh": "广场与戏台：石铺的小广场，一角搭着木戏台挂着彩旗，中央立着一块公告石，整体是洛萨乡野露天田园的样式。",
+        "en": "Plaza and stage: a small paved square, a wooden stage hung with bunting in one corner, a notice stone standing at its center, in the open-air countryside style of the Lothar plains."
+      },
+      "ref": "bld_plaza",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。公告石上不写字。"
+    },
+    {
+      "id": "art_ico_bld_chronicle_hall",
+      "template": "ico_building",
+      "subject": {
+        "zh": "编年馆：石砌的书楼，二层廊下垂挂着几条长卷，门楣上刻着一支羽笔的纹章，整体是石砖墙与蓝灰石板瓦的城邑样式。",
+        "en": "Chronicle hall: a stone library tower, long scrolls hanging beneath its second-floor gallery, a quill crest carved over the door, in the city style of stone-and-brick walls and blue-grey slate."
+      },
+      "ref": "bld_chronicle_hall",
+      "milestone": "M3",
+      "notes": "建造菜单与地块卡的小图，按瓦伦城式变体（石砖墙、蓝灰石板瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。长卷是空白的。"
+    },
+    {
+      "id": "art_ico_bld_observatory",
+      "template": "ico_building",
+      "subject": {
+        "zh": "观星台：圆顶的石塔，圆顶上开着一道可开合的缝，缝里伸出一根铜管，门上星形纹章，整体是石砖墙与蓝灰石板瓦的城邑样式。",
+        "en": "Observatory: a domed stone tower with an opening slit in its dome, a brass tube reaching out of the slit, a star crest over the door, in the city style of stone-and-brick walls and blue-grey slate."
+      },
+      "ref": "bld_observatory",
+      "milestone": "M3",
+      "notes": "建造菜单与地块卡的小图，按瓦伦城式变体（石砖墙、蓝灰石板瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_nameless_shrine",
+      "template": "ico_building",
+      "subject": {
+        "zh": "无名祠：低矮的石台上立着一扇没有门板的小门框，框下摆着一盏门灯与几只打结的绳结，整体是低矮夯土与旧石的门民样式。",
+        "en": "Nameless shrine: a small door frame with no door standing on a low stone platform, a door lamp and a few knotted cords set beneath it, in the doorfolk style of low rammed earth and old stone."
+      },
+      "ref": "bld_nameless_shrine",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按门民变体（低矮夯土与草顶）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。门框是朴素的石色，不用门扉金。"
+    },
+    {
+      "id": "art_ico_bld_pyre_yard",
+      "template": "ico_building",
+      "subject": {
+        "zh": "送魂场：村外矮石墙围着的小坟地，一角是石砌的火葬台，旁边一排陶骨灰瓮，安静肃穆，整体是洛萨乡野露天田园的样式。",
+        "en": "Pyre yard: a small burial ground enclosed by a low stone wall outside the village, a stone cremation platform in one corner, a row of clay urns beside it, quiet and solemn, in the open-air countryside style of the Lothar plains."
+      },
+      "ref": "bld_pyre_yard",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_wall",
+      "template": "ico_building",
+      "subject": {
+        "zh": "围墙：一段灰石垒成的矮墙，墙顶有垛口，墙的一端接着一排削尖的原木木栅，整体是边地石垒与木栅的防御样式。",
+        "en": "Wall: a stretch of low wall built of grey stone with crenellations along its top, joined at one end to a row of sharpened log palisade, in the frontier defensive style of stacked stone and timber palisade."
+      },
+      "ref": "bld_wall",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。小图同时表现木栅与石墙两档，结界墙用界面角标表示。"
+    },
+    {
+      "id": "art_ico_bld_watchtower",
+      "template": "ico_building",
+      "subject": {
+        "zh": "哨塔：四根木柱撑起的高塔，塔顶一间小哨屋，哨屋边一盆烽火正在燃烧，整体是边地石垒与木栅的防御样式。",
+        "en": "Watchtower: a tall tower on four timber posts with a small lookout hut at its top, a brazier of signal fire burning beside the hut, in the frontier defensive style of stacked stone and timber palisade."
+      },
+      "ref": "bld_watchtower",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_gatehouse",
+      "template": "ico_building",
+      "subject": {
+        "zh": "城门楼：两座方塔夹着一道拱门，门洞里吊着铁闸，门洞上方挂着一面纯色的旗，整体是石砖墙与蓝灰石板瓦的城邑样式。",
+        "en": "Gatehouse: two square towers flanking an arched gate with an iron portcullis hanging in the passage, a plain-colored banner hanging above the arch, in the city style of stone-and-brick walls and blue-grey slate."
+      },
+      "ref": "bld_gatehouse",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按瓦伦城式变体（石砖墙、蓝灰石板瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_barracks",
+      "template": "ico_building",
+      "subject": {
+        "zh": "营房：长条形的营舍，长坡瓦顶，墙上挂着一排圆盾，门前一块平整的操练空地，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Barracks: a long barrack house with a long sloping tiled roof, a row of round shields hung on its wall, a level drill ground before the door, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_barracks",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_training_ground",
+      "template": "ico_building",
+      "subject": {
+        "zh": "训练场：一块沙地操场，几个草靶与木桩立在沙上，一侧兵器架上插着长枪，整体是洛萨乡野露天田园的样式。",
+        "en": "Training ground: a sandy drill yard with a few straw targets and wooden posts standing in the sand, spears racked on a weapon stand at one side, in the open-air countryside style of the Lothar plains."
+      },
+      "ref": "bld_training_ground",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_armory",
+      "template": "ico_building",
+      "subject": {
+        "zh": "军械库：厚墙小窗的石库，石平顶，门上挂着交叉长枪的招牌，门口立着一根长枪，整体是石砖墙与蓝灰石板瓦的城邑样式。",
+        "en": "Armory: a thick-walled stone storehouse with small windows and a flat stone roof, a crossed-spears sign over the door, a single spear leaning at the entrance, in the city style of stone-and-brick walls and blue-grey slate."
+      },
+      "ref": "bld_armory",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按瓦伦城式变体（石砖墙、蓝灰石板瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_legion_camp",
+      "template": "ico_building",
+      "subject": {
+        "zh": "千军营：木栅围起的营地，中央一顶大帐挂着连队的纯色旗，营地边一排旗杆，整体是灰石垒墙与覆灰平顶的荒原样式。",
+        "en": "Legion camp: a camp enclosed by a wooden stockade, a large command tent at its center flying a plain company banner, a row of flagpoles along the edge, in the wasteland style of stacked grey stone and ash-covered flat roofs."
+      },
+      "ref": "bld_legion_camp",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按荒原就地变体（灰石垒、覆灰平顶）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_sed_watch",
+      "template": "ico_building",
+      "subject": {
+        "zh": "澱哨：荒原边上细高的石哨塔，塔顶架着一台带刻度的铜仪器，旁边插着几根测杆，整体是灰石垒墙与覆灰平顶的荒原样式。",
+        "en": "Sediment watch: a tall slender stone watch-post at the edge of the waste, a graduated brass instrument mounted at its top, a few measuring poles planted beside it, in the wasteland style of stacked grey stone and ash-covered flat roofs."
+      },
+      "ref": "bld_sed_watch",
+      "milestone": "M3",
+      "notes": "建造菜单与地块卡的小图，按荒原就地变体（灰石垒、覆灰平顶）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。刻度只是短线，不写数字。"
+    },
+    {
+      "id": "art_ico_bld_crystal_cannon_tower",
+      "template": "ico_building",
+      "subject": {
+        "zh": "晶炮台：矮墩的石炮台，垛口间架着一门黑铁炮，炮身后方的晶仓发着红光，整体是条石与铁铆的矮人样式。",
+        "en": "Crystal cannon tower: a squat stone gun platform with a black iron cannon set between its crenellations, the crystal chamber behind the barrel glowing red, in the dwarven style of dressed stone and iron rivets."
+      },
+      "ref": "bld_crystal_cannon_tower",
+      "milestone": "M3",
+      "notes": "建造菜单与地块卡的小图，按矮人变体（条石与铁件）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_hall",
+      "template": "ico_building",
+      "subject": {
+        "zh": "行政中心：带门廊的大木屋，门廊旁立着一块告示板，屋顶上一面小旗，是聚落里最显眼的屋子，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Administrative hall: a large timber house with a porch, a notice board standing beside the porch, a small flag on the roof, the most prominent house in the settlement, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_hall",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。小图画一级的村长屋；告示板上不写字；升级档由立面另出。"
+    },
+    {
+      "id": "art_ico_bld_guardhouse",
+      "template": "ico_building",
+      "subject": {
+        "zh": "卫兵所：一间石平顶的小石屋，侧面一间带铁栅的小牢房，门口挂着一盏值夜提灯，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Guardhouse: a small flat-roofed stone house with a little barred cell at its side, a night-watch lantern hanging at its door, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_guardhouse",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_clinic",
+      "template": "ico_building",
+      "subject": {
+        "zh": "医馆：白墙陶瓦的小院，院里晾着白色绷带，门上挂着一束药草与一只铜盆，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Clinic: a little white-walled courtyard house with terracotta tiles, white bandages hung to dry in the yard, a bundle of herbs and a copper basin hanging over the door, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_clinic",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_guild_branch",
+      "template": "ico_building",
+      "subject": {
+        "zh": "冒险者公会分部：挂着交叉剑与羽笔招牌的木石楼，门口一块告示板上贴满了委托纸，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Adventurers' guild branch: a timber-and-stone building with a crossed sword and quill sign, a notice board at its door covered in commission papers, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_guild_branch",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。委托纸是空白的。"
+    },
+    {
+      "id": "art_ico_bld_inspectorate",
+      "template": "ico_building",
+      "subject": {
+        "zh": "监察署：方正的石衙门，石板瓦顶，门口一对石秤，窗格细密，显得严肃，整体是石砖墙与蓝灰石板瓦的城邑样式。",
+        "en": "Inspectorate: a square, sober stone office with a slate roof, a pair of stone scales at its door, finely latticed windows, stern-looking, in the city style of stone-and-brick walls and blue-grey slate."
+      },
+      "ref": "bld_inspectorate",
+      "milestone": "M3",
+      "notes": "建造菜单与地块卡的小图，按瓦伦城式变体（石砖墙、蓝灰石板瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_pow_camp",
+      "template": "ico_building",
+      "subject": {
+        "zh": "战俘营：木栅围着几排低矮的营舍，四个角上各有一座小哨台，整体是灰石垒墙与覆灰平顶的荒原样式。",
+        "en": "Prisoner camp: rows of low barrack huts surrounded by a wooden stockade, a small watch platform at each of its four corners, in the wasteland style of stacked grey stone and ash-covered flat roofs."
+      },
+      "ref": "bld_pow_camp",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按荒原就地变体（灰石垒、覆灰平顶）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_assembly",
+      "template": "ico_building",
+      "subject": {
+        "zh": "议事厅：长瓦顶的大厅，敞开的门里看得见一张长桌与一圈椅子，墙上挂着一幅地图，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Assembly hall: a long-roofed hall, through its open doors a long table ringed with chairs, a map hanging on the wall, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_assembly",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。地图上不写地名。"
+    },
+    {
+      "id": "art_ico_bld_registry",
+      "template": "ico_building",
+      "subject": {
+        "zh": "人簿所：窄长的书房，墙上一格格木架插满名册，门口摆着一张登记用的小桌，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Registry: a long, narrow record room, wooden pigeonholes on the walls stuffed with registers, a small sign-in table by the door, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_registry",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。名册书脊不写字。"
+    },
+    {
+      "id": "art_ico_bld_courthouse",
+      "template": "ico_building",
+      "subject": {
+        "zh": "法庭：门前一级级石阶的石砌法庭，石板瓦顶，门楣刻着秤与卷轴的纹章，整体是石砖墙与蓝灰石板瓦的城邑样式。",
+        "en": "Courthouse: a stone court building with flights of steps before its door, a slate roof, a crest of scales and a scroll carved over the lintel, in the city style of stone-and-brick walls and blue-grey slate."
+      },
+      "ref": "bld_courthouse",
+      "milestone": "M3",
+      "notes": "建造菜单与地块卡的小图，按瓦伦城式变体（石砖墙、蓝灰石板瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_craft_institute",
+      "template": "ico_building",
+      "subject": {
+        "zh": "工艺研究所：开着大窗的书房兼工坊，窗里桌上摊着图纸与零件，门上尺与锤的招牌，整体是石砖墙与蓝灰石板瓦的城邑样式。",
+        "en": "Craft institute: a study-workshop with large windows, drawings and parts spread on the table inside, a ruler-and-hammer sign over the door, in the city style of stone-and-brick walls and blue-grey slate."
+      },
+      "ref": "bld_craft_institute",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按瓦伦城式变体（石砖墙、蓝灰石板瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。图纸上不写字。"
+    },
+    {
+      "id": "art_ico_bld_magitech_lab",
+      "template": "ico_building",
+      "subject": {
+        "zh": "魔导研究室：石屋窗里一排玻璃器皿与发光的晶石，屋顶竖着一根细长的测灵杆，整体是石砖墙与蓝灰石板瓦的城邑样式。",
+        "en": "Magitech laboratory: a row of glassware and glowing crystals in the window of a stone house, a tall thin spirit-measuring rod rising from the roof, in the city style of stone-and-brick walls and blue-grey slate."
+      },
+      "ref": "bld_magitech_lab",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按瓦伦城式变体（石砖墙、蓝灰石板瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_refinery",
+      "template": "ico_building",
+      "subject": {
+        "zh": "封澱窖与净炼坊：半地下的石窖，窖口包着铅皮，旁边陶顶的净炼坊里一排陶釜冒着白汽，整体是石砖墙与蓝灰石板瓦的城邑样式。",
+        "en": "Sediment cellar and refinery: a half-sunken stone vault with a lead-clad hatch, beside it a clay-roofed refinery where a row of crocks sends up white steam, in the city style of stone-and-brick walls and blue-grey slate."
+      },
+      "ref": "bld_refinery",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按瓦伦城式变体（石砖墙、蓝灰石板瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_ash_well",
+      "template": "ico_building",
+      "subject": {
+        "zh": "祛灰井：井台四周种着一圈草，井绳上挂着草束，井边一条铺草的滤水槽，整体是灰泥半木墙与陶红瓦的乡镇样式。",
+        "en": "Ash-cleansing well: a ring of herbs planted around the well curb, bundles of herbs tied to the rope, a straw-lined filter trough beside it, in the country-town style of half-timbered plaster and terracotta tile."
+      },
+      "ref": "bld_ash_well",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按洛萨乡镇变体（灰泥半木、陶红瓦）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_gate_ring_node",
+      "template": "ico_building",
+      "subject": {
+        "zh": "众门环节点：一座环形石台，中央立着一道发着金光的门框，台边搭着一顶小帐篷，整体是低矮夯土与旧石的门民样式。",
+        "en": "Gate-ring node: a ring-shaped stone platform with a gold-glowing door frame standing at its center, a small tent pitched at its edge, in the doorfolk style of low rammed earth and old stone."
+      },
+      "ref": "bld_gate_ring_node",
+      "milestone": "M3",
+      "notes": "建造菜单与地块卡的小图，按门民变体（低矮夯土与草顶）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。门框可以用门扉金。"
+    },
+    {
+      "id": "art_ico_bld_founding_stele",
+      "template": "ico_building",
+      "subject": {
+        "zh": "立国碑：五种颜色的石头垒成的矮坛，坛前一块无字的石碑，四周一圈石凳，没有神像，整体是灰石基座嵌五色界石的立国样式。",
+        "en": "Founding stele: a low altar built of stones in five colors, a blank stone stele before it, a ring of stone benches around it, no statue of any god, in the young nation style of grey stone footings set with five-colored boundary stones."
+      },
+      "ref": "bld_founding_stele",
+      "milestone": "M3",
+      "notes": "建造菜单与地块卡的小图，按庭外之国变体（灰石基加五色界石纹）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。碑面必须空白。"
+    },
+    {
+      "id": "art_ico_bld_court_cottage",
+      "template": "ico_building",
+      "subject": {
+        "zh": "庭院小屋：带门廊的小木屋，木瓦屋顶，门前一张长椅与一盏灯，窗台上一只空食盆，整体是门内庭院里朴素温暖的小木构样式。",
+        "en": "Garden cottage: a little wooden house with a porch and shingle roof, a bench and a lamp before the door, an empty food bowl on the windowsill, in the simple, warm small-timber style of the inner garden."
+      },
+      "ref": "bld_court_cottage",
+      "milestone": "M1",
+      "notes": "建造菜单与地块卡的小图，按门内庭院的朴素外观出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_court_garden",
+      "template": "ico_building",
+      "subject": {
+        "zh": "庭院园圃：木框围起的小菜畦，一畦药草一畦青菜，整整齐齐，绿得很鲜，整体是门内庭院里安静的庭园样式。",
+        "en": "Garden plots: small vegetable beds framed in wood, one of herbs and one of greens, neat and tidy, a vivid green, in the quiet landscaped style of the inner garden."
+      },
+      "ref": "bld_court_garden",
+      "milestone": "M1",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_court_store",
+      "template": "ico_building",
+      "subject": {
+        "zh": "庭院小仓库：一间木瓦顶的小木仓，门口堆着两只麻袋，墙边靠着一把木铲，整体是门内庭院里朴素温暖的小木构样式。",
+        "en": "Garden storehouse: a small wooden store with a shingle roof, two sacks piled at its door, a wooden shovel leaning against the wall, in the simple, warm small-timber style of the inner garden."
+      },
+      "ref": "bld_court_store",
+      "milestone": "M1",
+      "notes": "建造菜单与地块卡的小图，按门内庭院的朴素外观出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_court_well",
+      "template": "ico_building",
+      "subject": {
+        "zh": "庭井：一口石砌的小井，井水清得看得见井底的石子，井沿放着一只木瓢，整体是门内庭院里古朴的石构样式。",
+        "en": "Garden well: a small stone well whose water is so clear the pebbles at the bottom show, a wooden ladle resting on its rim, in the old, simple stonework style of the inner garden."
+      },
+      "ref": "bld_court_well",
+      "milestone": "M1",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_court_rack",
+      "template": "ico_building",
+      "subject": {
+        "zh": "晾架：两排木架上挂满成束的草，草束一串串垂下来，架脚压着石块，整体是门内庭院里朴素温暖的小木构样式。",
+        "en": "Drying racks: two rows of wooden racks hung full of herb bundles dangling in strings, stones weighing down the feet of the frames, in the simple, warm small-timber style of the inner garden."
+      },
+      "ref": "bld_court_rack",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按门内庭院的朴素外观出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_court_second_house",
+      "template": "ico_building",
+      "subject": {
+        "zh": "第二间屋：比小屋略小的木屋，木瓦屋顶，檐下有一只燕巢，窗里看得见两张床，整体是门内庭院里朴素温暖的小木构样式。",
+        "en": "Second house: a wooden house a little smaller than the cottage, shingle roof, a swallow's nest under the eave, two beds visible through the window, in the simple, warm small-timber style of the inner garden."
+      },
+      "ref": "bld_court_second_house",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按门内庭院的朴素外观出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_court_kennel",
+      "template": "ico_building",
+      "subject": {
+        "zh": "兽舍：低矮的木棚铺着干草，干草顶，门口一排大小不一的食盆，整体是门内庭院里朴素温暖的小木构样式。",
+        "en": "Beast lodge: a low wooden shed bedded with hay under a hay-thatched roof, a row of food bowls of different sizes at its entrance, in the simple, warm small-timber style of the inner garden."
+      },
+      "ref": "bld_court_kennel",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按门内庭院的朴素外观出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_court_pen",
+      "template": "ico_building",
+      "subject": {
+        "zh": "畜栏：小小的木栏圈里有两只羊和一只鸡，栏角堆着一个草垛，整体是门内庭院里朴素温暖的小木构样式。",
+        "en": "Animal pen: a small wooden fold holding two sheep and a chicken, a haystack piled in one corner, in the simple, warm small-timber style of the inner garden."
+      },
+      "ref": "bld_court_pen",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按门内庭院的朴素外观出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_court_training",
+      "template": "ico_building",
+      "subject": {
+        "zh": "训练桩：几根布满剑痕的木桩立在土地上，旁边一排兵器架，整体是门内庭院里朴素温暖的小木构样式。",
+        "en": "Training posts: several wooden posts covered in sword marks standing in packed earth, a weapon rack beside them, in the simple, warm small-timber style of the inner garden."
+      },
+      "ref": "bld_court_training",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按门内庭院的朴素外观出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_court_meditation",
+      "template": "ico_building",
+      "subject": {
+        "zh": "冥想位：一块平整的白石上放着一只蒲团，四周铺着耙出细纹的细砂，整体是门内庭院里安静的庭园样式。",
+        "en": "Meditation seat: a cushion resting on a smooth flat white stone, fine sand raked into thin lines all around it, in the quiet landscaped style of the inner garden."
+      },
+      "ref": "bld_court_meditation",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_court_pond",
+      "template": "ico_building",
+      "subject": {
+        "zh": "庭院池塘：一汪小池，池边几块圆石与一丛芦苇，水面映着一点暖光，整体是门内庭院里安静的庭园样式。",
+        "en": "Garden pond: a small pool with a few round stones and a clump of reeds at its edge, a touch of warm light reflected on the water, in the quiet landscaped style of the inner garden."
+      },
+      "ref": "bld_court_pond",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_court_gate",
+      "template": "ico_building",
+      "subject": {
+        "zh": "庭院门扉：门扉金色的石门框立在庭院里，框内是另一处的风景，像一幅会动的画，门框边爬着细藤，整体是门内庭院里安静的庭园样式。",
+        "en": "Garden-side door gate: a door-gold stone frame standing in the garden, another place's scenery showing within it like a moving painting, thin vines climbing its sides, in the quiet landscaped style of the inner garden."
+      },
+      "ref": "bld_court_gate",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。门扉金是这座建筑的合法用色；与聚落一侧的门扉区分：这里有藤。"
+    },
+    {
+      "id": "art_ico_bld_court_study",
+      "template": "ico_building",
+      "subject": {
+        "zh": "书斋：四壁都是书架的木瓦小屋，窗里看得见书桌上摊着一页纸与一支笔，整体是门内庭院里朴素温暖的小木构样式。",
+        "en": "Study: a little shingle-roofed house lined with bookshelves on every wall, a page and a pen spread on the desk visible through the window, in the simple, warm small-timber style of the inner garden."
+      },
+      "ref": "bld_court_study",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按门内庭院的朴素外观出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。纸上不写字。"
+    },
+    {
+      "id": "art_ico_bld_court_vault",
+      "template": "ico_building",
+      "subject": {
+        "zh": "秘仓：半埋在地里的石室，只露出石顶与一扇铅皮包着的门，门上一把大锁，整体是门内庭院里古朴的石构样式。",
+        "en": "Secret vault: a stone chamber half buried in the ground, only its stone roof and a lead-clad door showing, a big lock on the door, in the old, simple stonework style of the inner garden."
+      },
+      "ref": "bld_court_vault",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_court_workshop",
+      "template": "ico_building",
+      "subject": {
+        "zh": "工坊位：敞棚下的一张工作台，背后一面墙挂满工具，台面中央嵌着一块方石，整体是门内庭院里朴素温暖的小木构样式。",
+        "en": "Workshop bay: a workbench under an open shed, a whole wall of tools hanging behind it, a squared stone set into the middle of its top, in the simple, warm small-timber style of the inner garden."
+      },
+      "ref": "bld_court_workshop",
+      "milestone": "M2",
+      "notes": "建造菜单与地块卡的小图，按门内庭院的朴素外观出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。"
+    },
+    {
+      "id": "art_ico_bld_court_hidden_quarter",
+      "template": "ico_building",
+      "subject": {
+        "zh": "隐城街区：一条小街，两侧是低矮的草顶屋子，每扇门上都钉着一块新的无字门牌，整体是低矮夯土与旧石的门民样式。",
+        "en": "Hidden quarter: a little street lined on both sides with low thatched houses, a new blank doorplate nailed to every door, in the doorfolk style of low rammed earth and old stone."
+      },
+      "ref": "bld_court_hidden_quarter",
+      "milestone": "M3",
+      "notes": "建造菜单与地块卡的小图，按门民变体（低矮夯土与草顶）出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。门牌空白无字。"
+    },
+    {
+      "id": "art_ico_bld_court_dispatch",
+      "template": "ico_building",
+      "subject": {
+        "zh": "门路调度室：圆顶的圆形石厅，从门口看进去，墙上一张由发光细线连成的网状图，整体是门内庭院里古朴的石构样式。",
+        "en": "Door-route dispatch: a round domed stone hall, inside the doorway a web-like chart of glowing thin lines on the wall, in the old, simple stonework style of the inner garden."
+      },
+      "ref": "bld_court_dispatch",
+      "milestone": "M3",
+      "notes": "建造菜单与地块卡的小图，按undefined出图；同一批的建筑小图视角、光向与描边一致，32 像素下要靠剪影认出功能；招牌只画纹章图形。图上只有线与点，不写地名。"
+    }
+  ]
+}

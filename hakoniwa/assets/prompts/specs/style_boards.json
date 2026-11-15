@@ -1,0 +1,269 @@
+{
+  "category": "style_boards",
+  "title": "风格板（每个风格包一张）",
+  "sources": [
+    "assets/prompts/README.md",
+    "assets/prompts/templates.json",
+    "docs/50_tech/art_pipeline.md",
+    "docs/40_design/world/map_briefs.md",
+    "docs/20_world/geography.md"
+  ],
+  "items": [
+    {
+      "id": "art_style_lothar_plain",
+      "template": "bg_cg",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "洛萨北境乡镇的一角：草地与压实的黄褐土路交汇，路边一栋两层灰泥半木民居，奶油色灰泥墙配深褐木筋，陶红瓦双坡屋顶，木门旁挂铁壁灯，窗下有花箱；屋前一口石井与一辆装干草的木推车，一名穿亚麻短衫与褐色背心的镇民提着水桶走过；远处是木栅与铁杉林线",
+        "en": "A corner of a northern Lotha village: green grass meets a packed tan dirt road, beside it a two-story half-timbered house with cream plaster and dark brown beams, a terracotta-red gabled tile roof, an iron wall lamp by the wooden door and a flower box under the window; in front stand a stone well and a wooden handcart of hay, a villager in a linen shirt and brown vest walks past carrying a bucket; a wooden palisade and a line of ironhemlock trees in the distance"
+      },
+      "extra": {
+        "zh": "这是本风格包的风格板，画面要最能代表风格锚描述的气质。",
+        "en": "This is the style board for the pack and should embody the style anchor most faithfully."
+      },
+      "ref": "lothar_plain",
+      "milestone": "M0",
+      "notes": "风格板。M0 全链路样板的第一张。定稿后作为洛萨乡野全部地面、墙面、屋面、立面、远景与道具条目的参照；陶红瓦 #a8543a、灰泥 #e6dcc4、木筋 #5a3e28 是本包最需要守住的三色。主审定稿后，本包的地面、墙面、屋面、条带、立面、地标、远景天幕与道具条目都以这张为参照图。"
+    },
+    {
+      "id": "art_style_valen_city",
+      "template": "bg_cg",
+      "style": "valen_city",
+      "subject": {
+        "zh": "瓦伦堡河港边的街口：磨光的灰石板路接着码头木板，砖石三层联排屋，蓝灰石板瓦屋顶，石砌窗台，铁招牌架上挂着天平纹章；码头边一架木吊车与一堆系着缆绳的木桶，一名披灰斗篷的码头搬运工扛着麻袋；背景是厚重的城墙与白钟大教堂的尖顶",
+        "en": "A street corner by the Valenburg river harbor: worn gray flagstones meet dock planks, a three-story brick and stone row house with a blue-gray slate roof, stone window sills and an iron sign bracket hanging a scales emblem; on the quay a wooden crane and a stack of roped barrels, a dockworker in a gray cloak carries a sack on his shoulder; behind rise the heavy city wall and the spire of the white-bell cathedral"
+      },
+      "extra": {
+        "zh": "这是本风格包的风格板，画面要最能代表风格锚描述的气质。",
+        "en": "This is the style board for the pack and should embody the style anchor most faithfully."
+      },
+      "ref": "valen_city",
+      "milestone": "M2",
+      "notes": "风格板。城邑的灰是冷灰而不是脏灰，要有烟火气：窗台花盆、晾衣绳、炊烟。蓝灰石板瓦 #56657a 与砖红 #a8583e 并存。主审定稿后，本包的地面、墙面、屋面、条带、立面、地标、远景天幕与道具条目都以这张为参照图。"
+    },
+    {
+      "id": "art_style_wild_forest",
+      "template": "bg_cg",
+      "style": "wild_forest",
+      "subject": {
+        "zh": "边地野林的林间空地：苔绿的林地草与铺满落叶的林间土路，一间长满青苔的原木猎户小屋，木瓦屋顶上长着蕨，门边挂兽皮与鹿角；空地中一堆营火与一截长苔的倒木，一名穿绿褐皮甲、背长弓的猎人蹲在火边；四周是高大的铁杉与阔叶树，林下光斑斑驳",
+        "en": "A clearing in the borderland wild forest: mossy forest grass and a leaf-strewn woodland dirt path, a moss-covered log hunting cabin with ferns growing on its wooden shingle roof, hides and antlers hung beside the door; in the clearing a campfire and a mossy fallen log, a hunter in green-brown leather armor with a longbow on his back crouches by the fire; tall ironhemlocks and broadleaf trees all around, dappled light on the forest floor"
+      },
+      "extra": {
+        "zh": "这是本风格包的风格板，画面要最能代表风格锚描述的气质。",
+        "en": "This is the style board for the pack and should embody the style anchor most faithfully."
+      },
+      "ref": "wild_forest",
+      "milestone": "M1",
+      "notes": "风格板。湿润幽深，但要读得清：林下光斑用暖黄小块，不要把整张图压成一片墨绿。主审定稿后，本包的地面、墙面、屋面、条带、立面、地标、远景天幕与道具条目都以这张为参照图。"
+    },
+    {
+      "id": "art_style_sealed_ruins",
+      "template": "bg_cg",
+      "style": "sealed_ruins",
+      "subject": {
+        "zh": "地下封印遗迹的大厅一角：冷灰色的石板地面与积灰的碎石地交界，半高的冷灰石砌墙上刻着门形浮雕，一根倒塌的石柱横在地上，墙边一只燃着暖橙火光的铁火盆与一堆落石，一名举着提灯、裹灰褐斗篷的探险者站在门形石拱下；没有天光，只有冷蓝微光",
+        "en": "A corner of an underground sealed ruin hall: cold gray flagstones meet dusty rubble ground, a half-height cold gray masonry wall carved with door-shaped reliefs, a toppled stone column lying across the floor, beside the wall an iron brazier burning warm orange and a pile of fallen stones, an explorer in a gray-brown cloak holding up a lantern stands under a door-shaped stone arch; no daylight, only a faint cold blue glow"
+      },
+      "extra": {
+        "zh": "这是本风格包的风格板，画面要最能代表风格锚描述的气质。",
+        "en": "This is the style board for the pack and should embody the style anchor most faithfully."
+      },
+      "ref": "sealed_ruins",
+      "milestone": "M1",
+      "notes": "风格板。室内包：画面里不要出现屋顶与天空。门形浮雕只是空门框的形状，不要画成发光的门，门扉金留给真正的门。主审定稿后，本包的地面、墙面、屋面、条带、立面、地标、远景天幕与道具条目都以这张为参照图。"
+    },
+    {
+      "id": "art_style_ash_waste",
+      "template": "bg_cg",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "灰烬荒原的废村边：灰白的灰烬地与带铁锈色的灰沙地，几段灰石垒成的残墙，焦黑木梁搭着覆灰土的平顶，墙洞里卡着一块门形旧木牌；地上一棵石化的枯树与一簇从地缝长出的淡紫色晶体，一名裹防灰头巾与灰褐长袍的拾荒者背着筐走过；红灰色天空下飘着余烬",
+        "en": "The edge of a ruined hamlet in the Ashen Waste: pale ash ground and rust-tinged ash sand, a few stretches of piled gray stone walls, charred beams holding up a flat ash-earth roof, an old door-shaped wooden plaque wedged in a wall gap; a petrified dead tree and a cluster of pale violet crystals growing from a crack in the ground, a scavenger in an ash scarf and gray-brown robe walks past with a basket on her back; embers drift under a reddish gray sky"
+      },
+      "extra": {
+        "zh": "这是本风格包的风格板，画面要最能代表风格锚描述的气质。",
+        "en": "This is the style board for the pack and should embody the style anchor most faithfully."
+      },
+      "ref": "ash_waste",
+      "milestone": "M1",
+      "notes": "风格板。淡紫晶用锚色 #c6b5e0 的浅紫，不要用暗紫：暗紫 #4a3a62 是保留的澱紫，只给侵蚀叠加层。荒凉但不脏乱，大色块。主审定稿后，本包的地面、墙面、屋面、条带、立面、地标、远景天幕与道具条目都以这张为参照图。"
+    },
+    {
+      "id": "art_style_divine_court",
+      "template": "bg_cg",
+      "style": "divine_court",
+      "subject": {
+        "zh": "神庭的庭园一隅：白石地砖与修剪整齐的庭院草地相接，一道带金色饰边的白色大理石柱廊，金箔瓦屋顶，柱间垂着白色帘幕；庭中一座白石泉池与一张长石椅，一名穿着地球便服、手握号牌的候见者站在池边张望；空中悬浮细小光尘，光线柔和恒定，几乎没有影子",
+        "en": "A corner of the divine court garden: white stone floor tiles meet a neatly trimmed garden lawn, a white marble colonnade with gold trim, a gold-leaf tiled roof, white curtains hanging between the columns; in the court a white stone fountain basin and a long stone bench, a waiting visitor in ordinary modern street clothes holding a number tag looks around by the pool; tiny motes of light float in the air, the light is soft and constant, almost shadowless"
+      },
+      "extra": {
+        "zh": "这是本风格包的风格板，画面要最能代表风格锚描述的气质。",
+        "en": "This is the style board for the pack and should embody the style anchor most faithfully."
+      },
+      "ref": "divine_court",
+      "milestone": "M1",
+      "notes": "风格板。庄严洁净但要让人不安：几乎不给阴影。金只用于饰边与屋顶，不要满画面金光；神光白金是保留色，本图不画神迹。主审定稿后，本包的地面、墙面、屋面、条带、立面、地标、远景天幕与道具条目都以这张为参照图。"
+    },
+    {
+      "id": "art_style_holy_see_white",
+      "template": "bg_cg",
+      "style": "holy_see_white",
+      "subject": {
+        "zh": "圣艾琉恩教国的朝圣小镇：白石铺的朝圣路与橄榄树下的白垩土，白石砌的修院高墙，墙头露出白石穹顶与金色圣纹，钟楼拱窗里挂着铜钟；路边一座小圣像龛与一辆朝圣者推车，一名穿白长袍、披金边肩布的朝圣者拄杖走过；阳光强烈，天空明净，影子短而清晰",
+        "en": "A pilgrim town in the Holy See of Eluen: a white stone pilgrim road and chalky soil under olive trees, a high white masonry monastery wall with a white stone dome and golden holy sigils rising above it, a bronze bell hanging in the arched opening of a bell tower; by the road a small statue shrine and a pilgrim handcart, a pilgrim in a white robe and gold-edged stole walks past leaning on a staff; strong sunlight, a clear sky, short crisp shadows"
+      },
+      "extra": {
+        "zh": "这是本风格包的风格板，画面要最能代表风格锚描述的气质。",
+        "en": "This is the style board for the pack and should embody the style anchor most faithfully."
+      },
+      "ref": "holy_see_white",
+      "milestone": "M3",
+      "notes": "风格板。白要分出层次（石白、灰泥白、袍白），否则整张图会糊成一片。金色圣纹是图形，不写任何字。主审定稿后，本包的地面、墙面、屋面、条带、立面、地标、远景天幕与道具条目都以这张为参照图。"
+    },
+    {
+      "id": "art_style_grantia_ochre",
+      "template": "bg_cg",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "格兰提亚帝国长垒脚下的营镇：赭红砖铺的军道与金黄的麦田边，赭红夯土墙的营房，钢灰色瓦顶，墙上挂帝国军旗；路边一座兵器架与一只石马槽，一名穿钢灰胸甲、披赭红披风的帝国士兵扛长枪站岗；远处是绵延的石砌长垒与圆形竞技场的轮廓",
+        "en": "A garrison town at the foot of the Grantia Long Rampart: an ochre-red brick military road beside golden wheat fields, barracks of ochre rammed-earth walls with steel-gray tile roofs and an imperial war banner on the wall; by the road a weapon rack and a stone horse trough, an imperial soldier in a steel-gray breastplate and an ochre-red cloak stands guard with a spear; in the distance the long stone rampart stretches away and the round outline of an arena rises"
+      },
+      "extra": {
+        "zh": "这是本风格包的风格板，画面要最能代表风格锚描述的气质。",
+        "en": "This is the style board for the pack and should embody the style anchor most faithfully."
+      },
+      "ref": "grantia_ochre",
+      "milestone": "M3",
+      "notes": "风格板。严整尚武：线条横平竖直，旗帜与营房排列整齐。军旗只画几何纹章，不写字。主审定稿后，本包的地面、墙面、屋面、条带、立面、地标、远景天幕与道具条目都以这张为参照图。"
+    },
+    {
+      "id": "art_style_mercato_coast",
+      "template": "bg_cg",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "梅尔卡托同盟的港城码头：海港石堤与赤陶街砖交界，白灰墙的商馆配赤陶瓦，拱廊下挂着天平与钱币的纹章招牌；码头边堆着货箱与一卷卷缆绳，一名穿海蓝外套、系金色腰带的商人拿着账本；港内停着白帆商船，阳光下海水湛蓝",
+        "en": "The quay of a Mercato League harbor city: harbor breakwater stone meets terracotta street bricks, a white-plastered merchant house with a terracotta tile roof and emblem signs of scales and coins under its arcade; on the quay stacks of cargo crates and coils of rope, a merchant in a sea-blue coat and gold sash holds a ledger; white-sailed merchant ships at anchor, deep blue water under bright sun"
+      },
+      "extra": {
+        "zh": "这是本风格包的风格板，画面要最能代表风格锚描述的气质。",
+        "en": "This is the style board for the pack and should embody the style anchor most faithfully."
+      },
+      "ref": "mercato_coast",
+      "milestone": "M3",
+      "notes": "风格板。海蓝打底、金色只做点缀；招牌只有天平与钱币图形，账本是空白的。主审定稿后，本包的地面、墙面、屋面、条带、立面、地标、远景天幕与道具条目都以这张为参照图。"
+    },
+    {
+      "id": "art_style_silva_canopy",
+      "template": "bg_cg",
+      "style": "silva_canopy",
+      "subject": {
+        "zh": "希尔瓦大森林的林冠聚落：铺满银苔的根桥与长着青苔的林地，依托参天巨树的环形树屋，银色树皮墙配叶瓦屋顶，藤桥连向另一棵巨树；平台上一盏银灯与一挂藤帘，一名尖耳、穿森绿与银色长衣的精灵弓手站在桥头；雾白的空气里漂着发光的苔花微光",
+        "en": "A canopy settlement in the Silva Forest: a root bridge carpeted with silver moss and mossy forest ground, a ring-shaped treehouse wrapped around a towering giant tree with silver bark walls and a leaf-tile roof, a vine bridge reaching to another giant tree; on the platform a silver lamp and a hanging vine curtain, a pointed-eared elf archer in a forest-green and silver long coat stands at the bridgehead; faint glows from luminous moss blossoms drift in the misty white air"
+      },
+      "extra": {
+        "zh": "这是本风格包的风格板，画面要最能代表风格锚描述的气质。",
+        "en": "This is the style board for the pack and should embody the style anchor most faithfully."
+      },
+      "ref": "silva_canopy",
+      "milestone": "M3",
+      "notes": "风格板。静谧古老：巨树的尺度要大（树干比人宽很多倍），雾白压低远景对比。精灵尖耳在小尺寸下要读得出。主审定稿后，本包的地面、墙面、屋面、条带、立面、地标、远景天幕与道具条目都以这张为参照图。"
+    },
+    {
+      "id": "art_style_windfang_steppe",
+      "template": "bg_cg",
+      "style": "windfang_steppe",
+      "subject": {
+        "zh": "风牙草原的部族营地：起伏的黄色长草地与被踩实的营地土，几座圆形毡帐，白毡墙配红毡门帘，帐顶用绳索压着；营地中一根刻兽纹的图腾柱与一面皮鼓，一名有兽耳兽尾、穿皮毛坎肩的兽人牧人牵着一头角兽；远处一根獠牙状的巨岩柱刺向蓝天与大朵白云",
+        "en": "A clan camp on the Windfang Steppe: rolling tall yellow grass and trampled camp earth, several round felt tents with white felt walls, red felt door curtains and ropes binding the roofs; in the camp a totem pole carved with beast patterns and a hide drum, an orc herder with beast ears and tail in a fur vest leads a horned beast; in the distance a fang-shaped rock pillar stabs into a blue sky with great white clouds"
+      },
+      "extra": {
+        "zh": "这是本风格包的风格板，画面要最能代表风格锚描述的气质。",
+        "en": "This is the style board for the pack and should embody the style anchor most faithfully."
+      },
+      "ref": "windfang_steppe",
+      "milestone": "M3",
+      "notes": "风格板。开阔辽远：地平线放低，天空占画面一半以上。毡红 #b83a2a 只用在门帘与彩绳上。主审定稿后，本包的地面、墙面、屋面、条带、立面、地标、远景天幕与道具条目都以这张为参照图。"
+    },
+    {
+      "id": "art_style_night_basalt",
+      "template": "bg_cg",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "夜境黑岩城的街角：黑色玄武岩铺的路与冒着白汽的青白温泉池边，黑岩砌的尖檐房屋，黑瓦檐口漆成暗红，檐下挂一串暗红灯笼；路边一道发橙红光的熔岩槽，一名头生弯角、披黑红斗篷的魔族卫兵手持长戟；夜空下远处是冒烟的火山与黑岩尖塔",
+        "en": "A street corner in a black basalt city of the Nightrealm: a black basalt paved road beside a pale teal hot spring pool giving off white steam, black stone houses with sharply upturned eaves, black tiles with eaves painted dark red, a string of dark red lanterns under them; by the road a lava trough glowing orange-red, a demonkin guard with curved horns in a black and red cloak holds a halberd; under the night sky a smoking volcano and black basalt spires in the distance"
+      },
+      "extra": {
+        "zh": "这是本风格包的风格板，画面要最能代表风格锚描述的气质。",
+        "en": "This is the style board for the pack and should embody the style anchor most faithfully."
+      },
+      "ref": "night_basalt",
+      "milestone": "M3",
+      "notes": "风格板。幽暗而富丽：黑分出三级（岩黑、瓦黑、铁黑），暗红灯火与青白温泉是仅有的两种亮色。主审定稿后，本包的地面、墙面、屋面、条带、立面、地标、远景天幕与道具条目都以这张为参照图。"
+    },
+    {
+      "id": "art_style_sleepscale_snow",
+      "template": "bg_cg",
+      "style": "sleepscale_snow",
+      "subject": {
+        "zh": "眠鳞山脉的山间驿站：压实的雪路与冰蓝的冰面交界，厚墙石砌驿站，厚石板屋顶边缘挂着冰凌，门边一盏防风灯；驿站旁一根挂着风绳的木杆与半埋在雪里的巨大古龙肋骨，一名裹毛皮斗篷、戴护目的山民背着冰镐；远处冰蓝峭壁上掠过一道巨大的龙影",
+        "en": "A mountain way station in the Sleepscale Range: a packed snow path meets ice-blue ice, a thick-walled stone way station with heavy stone slab roofs fringed with icicles, a storm lantern by the door; beside it a wooden pole strung with wind cords and a giant ancient dragon rib half buried in snow, a mountain dweller in a fur cloak and snow goggles carries an ice axe; far off a huge dragon shadow glides across the ice-blue cliffs"
+      },
+      "extra": {
+        "zh": "这是本风格包的风格板，画面要最能代表风格锚描述的气质。",
+        "en": "This is the style board for the pack and should embody the style anchor most faithfully."
+      },
+      "ref": "sleepscale_snow",
+      "milestone": "M3",
+      "notes": "风格板。空气清冷透亮：雪白里留冷蓝阴面，不要画成纯白。龙影只是远处的剪影。主审定稿后，本包的地面、墙面、屋面、条带、立面、地标、远景天幕与道具条目都以这张为参照图。"
+    },
+    {
+      "id": "art_style_forge_deep",
+      "template": "bg_cg",
+      "style": "forge_deep",
+      "subject": {
+        "zh": "地底炉城的矿道口：粗凿岩壁下的矿道土地与铺着木轨的碎矿石路，原木支护梁撑着岩顶，岩壁上嵌着一道铁与黄铜齿轮的机关门；轨道上一辆装满矿石的矿车与一盏挂在支柱上的提灯，一名留浓密胡子、戴护目镜的矮人矿工扛着镐；深处熔炉的橙光映红湿苔与铁锈",
+        "en": "A mine tunnel mouth in an underground forge city: mine dirt and crushed ore laid with wooden rails under rough-hewn rock walls, log supports propping the rock ceiling, a mechanical door of iron and brass gears set into the rock; on the rails a cart full of ore and a lantern hanging from a post, a dwarf miner with a thick beard and goggles carries a pick on his shoulder; deep inside, furnace orange light reddens the wet moss and rust"
+      },
+      "extra": {
+        "zh": "这是本风格包的风格板，画面要最能代表风格锚描述的气质。",
+        "en": "This is the style board for the pack and should embody the style anchor most faithfully."
+      },
+      "ref": "forge_deep",
+      "milestone": "M1",
+      "notes": "风格板。室内包：没有天空。炉火橙 #e88a3a 是主光源，矿道其余部分偏暗，闷热忙碌。主审定稿后，本包的地面、墙面、屋面、条带、立面、地标、远景天幕与道具条目都以这张为参照图。"
+    },
+    {
+      "id": "art_style_door_corridor",
+      "template": "bg_cg",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "门廊幽境：无边的幽暗中层层叠叠悬浮着大小不一的门与空门框，有木门、石门、铁门，门缝透出暖白偏金的微光；脚下是像镜子一样映出门影的暗面，地上散落几枚旧钥匙与一把挂锁；一条由门槛石连成的小路伸向远处一扇微开的门；安静、神秘，像一场梦",
+        "en": "The Door Corridor: in boundless darkness doors and empty doorframes of every size float in layers, wooden doors, stone doors, iron doors, warm white-gold light seeping from their cracks; underfoot a mirror-like dark surface reflects the doors, a few old keys and a padlock lie scattered on it; a path of threshold stones leads toward a door left slightly ajar far away; quiet, mysterious, like a dream"
+      },
+      "extra": {
+        "zh": "这是本风格包的风格板，画面要最能代表风格锚描述的气质。",
+        "en": "This is the style board for the pack and should embody the style anchor most faithfully."
+      },
+      "ref": "door_corridor",
+      "milestone": "M1",
+      "notes": "风格板。不画人物。门扉金 #f0d890 只出现在门缝的光里，大面积是幽暗的蓝灰。主审定稿后，本包的地面、墙面、屋面、条带、立面、地标、远景天幕与道具条目都以这张为参照图。"
+    },
+    {
+      "id": "art_style_earth_modern",
+      "template": "bg_cg",
+      "style": "earth_modern",
+      "subject": {
+        "zh": "当代地球的雨夜街角：湿漉漉的柏油路面映着灯光，人行道方砖边是一家通宵便利店，白瓷砖外墙与玻璃门，门口雨棚下立着一把收起的雨伞与一台饮料售卖机；一名穿深色西装、拎公文包的疲惫上班族站在门前；远处一列亮着车窗的末班电车驶过高架；招牌与包装无字",
+        "en": "A rainy night street corner on modern Earth: wet asphalt reflects the lights, beside the paved sidewalk an all-night convenience store with white tiled walls and a glass door, under its awning a furled umbrella and a drink vending machine; a tired office worker in a dark suit holding a briefcase stands at the door; in the distance a last train with lit windows passes along an elevated track; no lettering on signs or packaging"
+      },
+      "extra": {
+        "zh": "这是本风格包的风格板，画面要最能代表风格锚描述的气质。",
+        "en": "This is the style board for the pack and should embody the style anchor most faithfully."
+      },
+      "ref": "earth_modern",
+      "milestone": "M1",
+      "notes": "风格板。这是唯一的当代包：荧光灯的冷白与雨水反光是主调。屏幕、招牌、包装上绝不出现文字或像字的花纹。主审定稿后，本包的地面、墙面、屋面、条带、立面、地标、远景天幕与道具条目都以这张为参照图。"
+    }
+  ]
+}

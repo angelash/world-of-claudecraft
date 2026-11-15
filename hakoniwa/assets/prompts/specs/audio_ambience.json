@@ -1,0 +1,1276 @@
+{
+  "category": "audio_ambience",
+  "title": "环境声：底层、生灵层、天气层、澱层与点缀",
+  "sources": [
+    "docs/40_design/audio_direction.md",
+    "docs/20_world/geography.md",
+    "docs/40_design/world/world_map.md",
+    "docs/30_story/arcs/prologue_antechamber.md"
+  ],
+  "items": [
+    {
+      "id": "amb_earth_last_train",
+      "template": "ambience_bed",
+      "style": "a_modern",
+      "subject": {
+        "zh": "深夜地铁末班车车厢内：车轮有节奏地碾过轨道接缝，车厢轻微摇晃的吱嘎，空调低鸣，远处偶尔的到站提示铃（无语音）",
+        "en": "Inside the last subway train late at night: wheels rhythmically clacking over rail joints, faint creaks of a swaying car, air-conditioning hum, an occasional distant station chime with no voice"
+      },
+      "extra": {
+        "zh": "循环体约 60 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 60 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "prologue_a",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_earth_store_rain",
+      "template": "ambience_bed",
+      "style": "a_modern",
+      "subject": {
+        "zh": "深夜便利店里：冰柜压缩机的嗡鸣，窗外大雨打在玻璃与雨棚上，门口自动门偶尔的开合气流声，日光灯的细微电流声",
+        "en": "Inside a convenience store on a rainy night: freezer compressor hum, heavy rain on glass and awning outside, the occasional whoosh of an automatic door, faint buzz of fluorescent lights"
+      },
+      "extra": {
+        "zh": "循环体约 60 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 60 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "prologue_b",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_earth_hospital",
+      "template": "ambience_bed",
+      "style": "a_modern",
+      "subject": {
+        "zh": "凌晨的医院走廊：空调与通风的低鸣，远处护士站轻轻的脚步声，偶尔一声推车轮子，监护仪般的规律电子提示音（很远、很轻），整体极安静",
+        "en": "A hospital corridor before dawn: low hum of ventilation, soft footsteps far off at the nurses station, an occasional cart wheel, a regular electronic monitor beep very faint and distant, overall extremely quiet"
+      },
+      "extra": {
+        "zh": "循环体约 60 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 60 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "prologue_c",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_earth_old_house",
+      "template": "ambience_bed",
+      "style": "a_modern",
+      "subject": {
+        "zh": "一间被搬空的老房子：空房间的回声，木地板受力的吱嘎，窗外远处的街道与鸟鸣，楼下搬家工人隐约的吆喝（不可辨识的字词）与纸箱拖动",
+        "en": "An old house emptied out: echo of an empty room, creaking wooden floorboards, distant street and birds outside the window, faint calls of movers downstairs with no intelligible words, boxes dragged"
+      },
+      "extra": {
+        "zh": "循环体约 60 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 60 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "prologue_d",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_divine_court",
+      "template": "ambience_bed",
+      "style": "a_otherworld",
+      "subject": {
+        "zh": "纯白、无限宽广的大厅：几乎完全的寂静，一个极高极轻的持续音，空气像被拉伸的混响，偶尔远处像布料拂过的声音",
+        "en": "A pure white, infinitely wide hall: near-total silence, an extremely high and faint sustained tone, air like stretched reverb, occasionally a distant sound like fabric brushing past"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "divine_court",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_fall_void",
+      "template": "ambience_bed",
+      "style": "a_otherworld",
+      "subject": {
+        "zh": "无底的黑暗：持续下坠的低频风压，耳边掠过的气流，没有任何回声，偶尔极远处像巨大的门扉在关合的闷响",
+        "en": "A bottomless dark: continuous low-frequency wind pressure of falling, air rushing past the ears, no echo at all, occasionally a muffled sound far away like enormous doors closing"
+      },
+      "extra": {
+        "zh": "循环体约 45 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 45 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "void",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_dream_door",
+      "template": "ambience_bed",
+      "style": "a_otherworld",
+      "subject": {
+        "zh": "梦中的门廊：柔和的混响，远处层层叠叠的风铃，门轴缓慢的嘎吱被拉长，像隔着水听到的声音",
+        "en": "A corridor of doors in a dream: soft reverb, layers of distant wind chimes, slow stretched door-hinge creaks, sounds as if heard through water"
+      },
+      "extra": {
+        "zh": "循环体约 60 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 60 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "dream_door",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_inner_court",
+      "template": "ambience_bed",
+      "style": "a_otherworld",
+      "subject": {
+        "zh": "一个与世隔绝的小庭院：轻柔的风，草叶摩擦，远处一口小井的滴水，偶尔一声门轴般温和的轻响，没有任何外界的嘈杂",
+        "en": "A small courtyard sealed off from the world: gentle breeze, rustling grass, a small well dripping in the distance, an occasional soft hinge-like creak, no noise from the outside world"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "inner_court",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_maker_room",
+      "template": "ambience_bed",
+      "style": "a_interior",
+      "subject": {
+        "zh": "一个普通的小房间：一盏灯的细微电流声，钟表很轻的嘀嗒，纸张偶尔被风翻动，椅子轻轻一响，除此之外什么都没有",
+        "en": "An ordinary small room: faint hum of a single lamp, a very soft clock tick, paper occasionally stirred by a draft, a chair creaking once, nothing else"
+      },
+      "extra": {
+        "zh": "循环体约 60 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 60 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "maker_room",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_town_day",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "北境小镇的白天：远处人群模糊的交谈（不可辨识的字词），铁匠铺的敲打，马车轮压过泥土路，鸡鸣与狗吠零星，风吹过木栅",
+        "en": "A northern small town by day: indistinct distant chatter with no intelligible words, a smithy hammering, cart wheels on a dirt road, scattered chickens and dogs, wind through wooden palisades"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "borderstone",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_town_night",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "小镇的夜：酒馆里隐约的笑声与杯子碰撞（隔着墙），远处狗吠一声，风吹木门，屋檐滴水，人声稀少",
+        "en": "A small town at night: faint laughter and clinking cups from a tavern through the walls, a distant dog barking once, wind against wooden doors, eaves dripping, very few voices"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "borderstone",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_city_day",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "河港城市的白天：更密集的人群与商贩吆喝（不可辨识的字词），石板路上的马车与马蹄，钟楼远远报时，码头的绳索与木船吱嘎",
+        "en": "A river-port city by day: dense crowds and merchants calling with no intelligible words, carts and hooves on cobblestones, a bell tower tolling far off, ropes and wooden boats creaking at the docks"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "wallenburg",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_city_night",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "城市的夜：巡夜人的脚步与灯笼晃动，远处运河的水声，偶尔一扇窗户关上，猫在屋顶走过，夜风穿过小巷",
+        "en": "A city at night: a watchman footsteps and swinging lantern, distant canal water, a window shutting now and then, a cat crossing rooftops, night wind through alleys"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "wallenburg",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_metropolis_day",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "人口百万的大都会：层层叠叠的人群声海（不可辨识的字词），远处广场的鼓乐与集会，大量马车与搬运，石砌建筑间的回声",
+        "en": "A metropolis of a million people: layered sea of crowd sound with no intelligible words, distant drums and gatherings in plazas, heavy carts and hauling, echoes between stone buildings"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "grantis",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_duskcrown_city",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "黑岩之城：低沉的交谈与盔甲碰撞，锁链与铁门的回响，地下温泉蒸汽从石缝喷出的嘶声，远处火山的低吼",
+        "en": "A city of black rock: low conversation and clinking armor, echoes of chains and iron gates, hissing steam from hot springs venting through stone cracks, distant volcanic growl"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "duskcrown",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_camp",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "野外的营地：篝火噼啪，帐篷布被风拍打，远处有人磨刀，马匹喷鼻与蹄子刨地，人声低而零散（不可辨识的字词）",
+        "en": "A field camp: crackling campfire, tent canvas flapping in the wind, someone sharpening a blade far off, horses snorting and pawing, low scattered voices with no intelligible words"
+      },
+      "extra": {
+        "zh": "循环体约 75 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 75 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "camp",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_base_forest",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "针叶与阔叶混交林：风吹过树冠的沙沙声起伏，树干偶尔受力的吱嘎，落叶与松针细碎落下，不含鸟鸣与虫鸣",
+        "en": "Mixed conifer and broadleaf forest: wind rising and falling through the canopy, trunks occasionally creaking under strain, needles and leaves trickling down, no birds or insects"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "forest_edge",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_base_field",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "开阔的原野与麦田：风吹麦浪的连续沙沙，远处风声起伏，偶尔草叶互相拍打，不含鸟鸣与虫鸣",
+        "en": "Open fields and wheat: continuous rustle of wind through grain, distant wind swelling and fading, grass blades slapping now and then, no birds or insects"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "wallenburg_outskirts",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_base_river",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "平缓的河流：持续的水流声，岸边小浪拍打石头，偶尔水中漩涡的咕噜声",
+        "en": "A gentle river: continuous flowing water, small waves lapping stones at the bank, occasional gurgling eddies"
+      },
+      "extra": {
+        "zh": "循环体约 75 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 75 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "river",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_base_coast",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "温暖的海岸：海浪有规律地冲上沙滩又退去，远处更大的浪拍礁石，海风持续吹过",
+        "en": "A warm coast: waves rolling onto sand and drawing back in a steady rhythm, larger waves hitting rocks far off, constant sea breeze"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "goldbay",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_base_volcano",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "火山地带：深沉的地底隆隆声，岩缝里蒸汽与熔岩的嘶声，碎石偶尔滚落，热风",
+        "en": "Volcanic ground: deep subterranean rumbling, steam and lava hissing in rock cracks, gravel occasionally tumbling, hot wind"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "redanvil",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_base_ancient_forest",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "高大的原始巨木林：非常高处的风声，像是在头顶很远的地方，巨木缓慢而深沉的木质呻吟，雾气凝成水珠落在宽叶上",
+        "en": "A towering primeval forest: wind very high above as if far overhead, slow deep wooden groans of giant trunks, mist condensing into drops falling on broad leaves"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "ringwood_court",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_base_steppe",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "起伏的大草原：持续而强劲的风，长草大片倒伏又扬起的沙沙浪声，风中偶尔的呼啸",
+        "en": "Rolling steppe: constant strong wind, waves of long grass flattening and rising, occasional whistling gusts"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "windfang_rock",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_base_mountain",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "高海拔雪峰：凛冽的高空风，雪粒被风扫过岩石的细响，冰层偶尔低沉地开裂，空气稀薄而空旷",
+        "en": "High snow peaks: biting high-altitude wind, fine snow swept across rock, ice occasionally cracking deep and low, thin and vast air"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "seven_seats",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_base_cold_highland",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "寒冷的高地：干冷的风，旗帜与绳索被风抽打，远处冻土与岩石间的风哨",
+        "en": "Cold highlands: dry cold wind, flags and ropes whipped by gusts, wind whistling among frozen ground and rocks in the distance"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "blackoak_keep",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_ash_rim",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "灰覆盆地的边缘：干燥的风卷起细灰的嘶嘶声，枯死的石化树被风吹得空洞地呜咽，没有鸟兽，寂静得让人发慌",
+        "en": "The edge of an ash-covered basin: dry wind lifting fine ash with a hiss, dead petrified trees moaning hollowly in the wind, no birds or animals, a silence that makes you uneasy"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "ash_waste",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_glass_plain",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "一望无际的玻璃原：风掠过玻璃化的地面发出细碎的清脆共鸣，像极远处的风铃，地面偶尔受热开裂的叮声",
+        "en": "An endless glass plain: wind skimming vitrified ground producing fine crystalline resonance like very distant wind chimes, occasional tinkling cracks as the ground heats"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "glass_plain",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_ash_sea",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "灰的海：厚厚的灰层吞掉几乎所有声音，低沉的风像隔着棉花，远处灰暴的隆隆滚动",
+        "en": "A sea of ash: thick ash swallowing almost all sound, low wind as if heard through cotton, the distant rolling rumble of an ash storm"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "ash_sea",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_thousand_gates",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "有成千上万空门框的废城：风穿过不同大小的门框发出高低不同的哨音，像一个巨大的、没有人吹的管风琴，偶尔石块崩落",
+        "en": "A ruined city of countless empty door frames: wind passing through frames of different sizes producing whistles at many pitches, like a vast organ no one plays, occasional falling stones"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "thousand_gates_ring",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_fauna_temperate_day",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "温带白天的鸟兽：云雀与山雀的鸣唱，啄木鸟偶尔敲树，远处杜鹃般的二音鸣叫，蜜蜂掠过",
+        "en": "Temperate daytime wildlife: larks and tits singing, an occasional woodpecker drumming, a distant two-note cuckoo-like call, bees passing"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "fauna",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_fauna_temperate_night",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "温带夜晚的生灵：成片的蟋蟀鸣叫，远处猫头鹰的低鸣，池塘里的蛙声，偶尔夜鸟扑翅",
+        "en": "Temperate night wildlife: fields of crickets, a distant owl hooting, frogs in a pond, an occasional night bird flapping"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "fauna",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_fauna_south_day",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "温暖南方的白天：蝉鸣层层叠叠，海鸥远远叫着，蜥蜴在石头上窸窣",
+        "en": "Warm southern daytime: layers of cicadas, gulls calling far off, lizards rustling on stones"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "fauna",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_fauna_south_night",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "温暖南方的夜：密集的虫鸣，温和的蛙声，远处偶尔夜鹭一声",
+        "en": "A warm southern night: dense insect chorus, mild frogs, an occasional night heron far away"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "fauna",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_fauna_ancient_day",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "原始巨木林的白天：高处陌生而婉转的鸟鸣层层回荡，林冠间有动物轻轻跳过，远处鹿鸣",
+        "en": "Primeval forest by day: unfamiliar, lilting bird calls echoing high above, small animals hopping through the canopy, a deer calling far away"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "fauna",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_fauna_ancient_night",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "原始巨木林的夜：低频的虫鸣如呼吸，树蛙的颤音，远处像笛声一样的夜鸟，偶尔枝叶间轻轻的扑动",
+        "en": "Primeval forest at night: low insect drones like breathing, tree-frog trills, a distant flute-like night bird, occasional soft fluttering among leaves"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "fauna",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_fauna_steppe_day",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "草原的白天：云雀在高空鸣唱，鹰隼偶尔长啸，远处马群奔过的隆隆蹄声",
+        "en": "Steppe by day: skylarks singing high above, a hawk occasionally screeching, a herd of horses galloping far away with rumbling hooves"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "fauna",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_fauna_steppe_night",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "草原的夜：风中的蟋蟀，远方狼群的长嚎此起彼伏，偶尔一声马嘶",
+        "en": "Steppe at night: crickets in the wind, distant wolf packs howling in turns, an occasional horse whinny"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "fauna",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_dg_ruins",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "古老的石构遗迹深处：水滴从高处落进积水，细灰从缝隙簌簌落下，很低的、像门后有东西在呼吸的嗡鸣，远处石块偶尔移动",
+        "en": "Deep in ancient stone ruins: water dripping from high into pools, fine ash trickling through cracks, a very low hum like something breathing behind a door, distant stones shifting now and then"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "seal_ruins",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_dg_mine",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "废弃的矿坑：支撑木在压力下吱嘎，远处滴水回响，碎石偶尔滚落，坑道深处若有若无的风",
+        "en": "An abandoned mine: support timbers creaking under pressure, distant echoing drips, gravel tumbling now and then, faint wind deep in the tunnels"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "rustridge_mine",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_dg_sewer",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "城市地下的旧水道：持续流动的污水，拱顶下长长的回声，老鼠窸窣与吱叫，铁栅偶尔被水流撞响",
+        "en": "Old waterways under a city: constantly flowing sewage, long echoes under vaulted ceilings, rats scurrying and squeaking, iron grates occasionally knocked by the current"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "wallenburg_sewers",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_dg_crypt",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "寒冷的墓窟：冰冷而静止的空气，骨头偶尔沉降的轻响，极远处像合唱一样的模糊长音，冰霜在石面上生长的细微咔嚓",
+        "en": "A cold crypt: icy still air, faint settling of bones, a blurred choir-like sustain very far away, tiny crackles of frost growing on stone"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "frostbone_catacombs",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_dg_archive",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "巨大而古老的书库：纸页被看不见的风翻动的沙沙，尘埃中木书架的吱嘎，像很多人在极远处同时低语但听不出任何字词",
+        "en": "A vast ancient library: pages rustling in an invisible draft, wooden shelves creaking in the dust, like many people whispering very far away without any discernible words"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "thousand_gates_archive",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_dg_forge",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "地底的巨大熔炉：熔岩缓慢流动的咕嘟声，金属冷却的叮当与收缩声，远处风箱巨大的呼吸，热浪嗡鸣",
+        "en": "A vast forge underground: slow bubbling of molten rock, clinks and pings of cooling metal, the giant breathing of distant bellows, a humming heat"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "deep_forge",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_dg_root",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "巨大根系下的深渊：粗根缓慢生长与挤压的木质呻吟，湿润的滴水，孢子在空气中轻轻爆开的噗噗声，虫群在远处嗡鸣",
+        "en": "An abyss beneath vast roots: woody groans of thick roots slowly growing and squeezing, damp drips, soft puffs of spores bursting in the air, insects humming far off"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "root_abyss",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_dg_abyss",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "极深的渊底：从深处传来的低频搏动像巨大的心跳，热风一阵阵涌上来，石壁偶尔发出痛苦般的嘎吱",
+        "en": "The bottom of a very deep abyss: a low-frequency throb from below like a gigantic heartbeat, hot wind surging up in waves, rock walls occasionally creaking as if in pain"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "womb_abyss",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_dg_wreck",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "半沉在海里的巨大船骸：木头在水压下长长地呻吟，海水从缝隙灌入的哗哗声，被水闷住的远处浪涛，气泡上浮",
+        "en": "A giant shipwreck half sunk in the sea: timbers groaning long under water pressure, seawater pouring through gaps, distant waves muffled by water, rising bubbles"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "wreck_bay",
+      "milestone": "M3",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_int_tavern",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "热闹的乡间酒馆：人们的交谈与笑声（不可辨识的字词），木杯碰撞，壁炉里柴火噼啪，木凳拖动，偶尔有人敲桌",
+        "en": "A lively country tavern: chatter and laughter with no intelligible words, wooden mugs clinking, fireplace crackling, stools dragged, someone knocking the table now and then"
+      },
+      "extra": {
+        "zh": "循环体约 75 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 75 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "drunken_moon",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_int_chapel",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "石砌礼拜堂：空旷的长混响，蜡烛火苗的细微噼啪，偶尔长椅的吱嘎，远处钟楼的风声",
+        "en": "A stone chapel: spacious long reverb, faint crackle of candle flames, an occasional creaking pew, wind in the distant bell tower"
+      },
+      "extra": {
+        "zh": "循环体约 75 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 75 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "chapel",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_int_guild",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "忙碌的公会大厅：脚步来来去去，纸张与登记簿翻动，柜台上盖章，低声交谈（不可辨识的字词），木门开合",
+        "en": "A busy guild hall: footsteps coming and going, paper and ledgers flipping, stamps on a counter, low conversation with no intelligible words, wooden doors opening and closing"
+      },
+      "extra": {
+        "zh": "循环体约 75 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 75 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "guild_hall",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_int_home",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "温暖的小屋：壁炉低声燃烧，水壶轻响，木屋梁偶尔的吱嘎，窗外隐约的风",
+        "en": "A warm cottage: fireplace burning low, a kettle softly simmering, roof beams occasionally creaking, faint wind outside the window"
+      },
+      "extra": {
+        "zh": "循环体约 75 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 75 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "house",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_int_palace",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "宏大的宫殿厅堂：高大空间的长混响，远处卫兵盔甲轻碰，地毯上的轻步，石柱间的低声回响",
+        "en": "A grand palace hall: long reverb of a lofty space, guards armor clinking softly far away, light steps on carpet, low echoes between stone columns"
+      },
+      "extra": {
+        "zh": "循环体约 75 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 75 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "palace",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_crowd_festival",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "热闹的集市与节日广场：密集的人群欢声（不可辨识的字词），远处民谣乐手的演奏，摊贩敲锣，孩子跑过的笑声",
+        "en": "A busy market and festival square: dense cheerful crowd with no intelligible words, folk musicians playing far off, a vendor striking a gong, children laughing as they run past"
+      },
+      "extra": {
+        "zh": "循环体约 75 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 75 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "festival",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_crowd_tense",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "情绪紧绷的人群：压低嗓音的议论此起彼伏（不可辨识的字词），偶尔有人高声喊叫又被压下去，脚步在原地不安地挪动",
+        "en": "A tense crowd: lowered voices murmuring in waves with no intelligible words, someone shouting now and then and being hushed, feet shifting uneasily in place"
+      },
+      "extra": {
+        "zh": "循环体约 75 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 75 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "witch_trial",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_battle_far",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "远处的大战：成千人的呐喊汇成一片低沉的轰鸣（不可辨识的字词），金属撞击声密集如雨，远远的号角与战鼓，马蹄如雷",
+        "en": "A great battle in the distance: thousands of voices merging into a low roar with no intelligible words, metal clashes dense as rain, far-off horns and war drums, thundering hooves"
+      },
+      "extra": {
+        "zh": "循环体约 90 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 90 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "battlefield",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_battle_siege_fire",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "燃烧中的城墙与街区：大火呼啸，木梁断裂，砖石崩落，远处投石砸墙的闷响",
+        "en": "Burning walls and streets: roaring fire, wooden beams snapping, masonry collapsing, distant dull impacts of catapult stones against walls"
+      },
+      "extra": {
+        "zh": "循环体约 75 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 75 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "siege",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_strategy_table",
+      "template": "ambience_bed",
+      "style": "a_interior",
+      "subject": {
+        "zh": "一间安静的参谋室：羽毛笔在地图上划写，纸张轻轻挪动，烛火偶尔噼啪，远处窗外的风",
+        "en": "A quiet war room: quills scratching on maps, paper shifting softly, candle flames occasionally crackling, wind beyond the window"
+      },
+      "extra": {
+        "zh": "循环体约 75 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 75 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "strategy_map",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_wx_rain_light",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "轻柔的小雨：细密的雨丝落在树叶、泥土与屋顶上，偶尔檐下滴水",
+        "en": "Gentle light rain: fine drops falling on leaves, soil and roofs, occasional drips from eaves"
+      },
+      "extra": {
+        "zh": "循环体约 75 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 75 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "weather_rain",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_wx_rain_heavy",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "倾盆大雨：密集的雨声砸在地面与屋顶，水流沿沟渠奔涌，风推着雨帘",
+        "en": "A downpour: dense rain pounding ground and roofs, water rushing along gutters, wind pushing curtains of rain"
+      },
+      "extra": {
+        "zh": "循环体约 75 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 75 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "weather_storm",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_wx_wind_storm",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "强风：持续呼啸的大风，阵风撞上建筑与树木，松动的东西被吹得咔嗒作响",
+        "en": "Strong wind: a constant howling gale, gusts slamming into buildings and trees, loose things rattling"
+      },
+      "extra": {
+        "zh": "循环体约 75 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 75 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "weather_wind",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_wx_snow",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "落雪的寂静：几乎无声的雪花，偶尔雪从枝头滑落的扑声，被雪吸掉的世界格外安静，远处很轻的风",
+        "en": "The hush of falling snow: nearly silent flakes, an occasional soft thump of snow sliding off branches, a world made quiet by snow, very soft distant wind"
+      },
+      "extra": {
+        "zh": "循环体约 75 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 75 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "weather_snow",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_wx_ash_storm",
+      "template": "ambience_bed",
+      "style": "a_field",
+      "subject": {
+        "zh": "席卷荒原的灰暴：带着砂砾的狂风咆哮，细灰打在一切表面上的密集嘶嘶，低频的翻滚轰鸣",
+        "en": "An ash storm sweeping the wasteland: a howling gale laden with grit, dense hissing of fine ash against every surface, low rolling rumble"
+      },
+      "extra": {
+        "zh": "循环体约 75 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 75 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "weather_ash",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_dian_low",
+      "template": "ambience_bed",
+      "style": "a_otherworld",
+      "subject": {
+        "zh": "积澱之地的不安：一个几乎察觉不到的低频嗡鸣，带着缓慢的两个半音来回，偶尔像细灰簌簌落下的高频",
+        "en": "The unease of sediment-laden ground: a barely noticeable low hum with a slow back-and-forth of two half-steps, occasional high fizz like fine ash trickling"
+      },
+      "extra": {
+        "zh": "循环体约 60 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 60 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "dian_level_2",
+      "milestone": "M1",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_dian_high",
+      "template": "ambience_bed",
+      "style": "a_otherworld",
+      "subject": {
+        "zh": "深澱之地的压迫：更响、更近的低频脉动，像耳压升高，空气中晶体摩擦般的细响，偶尔有不属于任何东西的低沉叹息般的音色（无人声字词）",
+        "en": "The pressure of deep sediment: a louder, closer low pulse like rising ear pressure, fine crystalline friction in the air, occasionally a low sigh-like tone belonging to nothing, with no words"
+      },
+      "extra": {
+        "zh": "循环体约 60 秒，立体声；首尾衔接处不要有突出的单个事件",
+        "en": "loop body about 60 seconds, stereo; no prominent single event at the loop seam"
+      },
+      "ref": "dian_level_4",
+      "milestone": "M2",
+      "notes": "生成长度为循环体的 1.5 倍，导入时按音频方案第 11.2 节做交叉淡化循环"
+    },
+    {
+      "id": "amb_pt_crow_burst",
+      "template": "ambience_point",
+      "style": "a_field",
+      "subject": {
+        "zh": "一群乌鸦从树上骤然惊飞：大量翅膀扑打与嘈杂鸦鸣，逐渐远去",
+        "en": "A flock of crows suddenly bursting from trees: many wings flapping and harsh cawing, fading away"
+      },
+      "extra": {
+        "zh": "每个变体时长约 4 秒，单个事件；在同一个文件里依次给出 3 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 4 seconds, a single event; give 3 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "crow",
+      "milestone": "M1",
+      "notes": "导入时按静音切成 amb_pt_crow_burst_01 起的变体"
+    },
+    {
+      "id": "amb_pt_wolf_howl_far",
+      "template": "ambience_point",
+      "style": "a_field",
+      "subject": {
+        "zh": "远处一只狼长嚎，另一只应和，带山谷回声",
+        "en": "A distant wolf howling long, another answering, with valley echo"
+      },
+      "extra": {
+        "zh": "每个变体时长约 6 秒，单个事件；在同一个文件里依次给出 3 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 6 seconds, a single event; give 3 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "wolf",
+      "milestone": "M1",
+      "notes": "导入时按静音切成 amb_pt_wolf_howl_far_01 起的变体"
+    },
+    {
+      "id": "amb_pt_church_bell",
+      "template": "ambience_point",
+      "style": "a_field",
+      "subject": {
+        "zh": "小镇礼拜堂的钟连敲数下，余音悠长",
+        "en": "A town chapel bell ringing several times with a long ringing tail"
+      },
+      "extra": {
+        "zh": "每个变体时长约 8 秒，单个事件；在同一个文件里依次给出 2 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 8 seconds, a single event; give 2 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "chapel_bell",
+      "milestone": "M1",
+      "notes": "导入时按静音切成 amb_pt_church_bell_01 起的变体"
+    },
+    {
+      "id": "amb_pt_dog_bark",
+      "template": "ambience_point",
+      "style": "a_field",
+      "subject": {
+        "zh": "院子里的狗吠两三声",
+        "en": "A yard dog barking two or three times"
+      },
+      "extra": {
+        "zh": "每个变体时长约 2 秒，单个事件；在同一个文件里依次给出 4 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 2 seconds, a single event; give 4 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "dog",
+      "milestone": "M1",
+      "notes": "导入时按静音切成 amb_pt_dog_bark_01 起的变体"
+    },
+    {
+      "id": "amb_pt_rooster",
+      "template": "ambience_point",
+      "style": "a_field",
+      "subject": {
+        "zh": "清晨的公鸡长鸣",
+        "en": "A rooster crowing at dawn"
+      },
+      "extra": {
+        "zh": "每个变体时长约 3 秒，单个事件；在同一个文件里依次给出 2 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 3 seconds, a single event; give 2 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "rooster",
+      "milestone": "M1",
+      "notes": "导入时按静音切成 amb_pt_rooster_01 起的变体"
+    },
+    {
+      "id": "amb_pt_owl",
+      "template": "ambience_point",
+      "style": "a_field",
+      "subject": {
+        "zh": "猫头鹰低沉的两声鸣叫",
+        "en": "An owl giving two low hoots"
+      },
+      "extra": {
+        "zh": "每个变体时长约 3 秒，单个事件；在同一个文件里依次给出 3 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 3 seconds, a single event; give 3 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "owl",
+      "milestone": "M1",
+      "notes": "导入时按静音切成 amb_pt_owl_01 起的变体"
+    },
+    {
+      "id": "amb_pt_thunder",
+      "template": "ambience_point",
+      "style": "a_field",
+      "subject": {
+        "zh": "远近不一的雷声，从清脆的炸裂到低沉的滚动",
+        "en": "Thunder at varying distances, from a crisp crack to a low roll"
+      },
+      "extra": {
+        "zh": "每个变体时长约 7 秒，单个事件；在同一个文件里依次给出 4 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 7 seconds, a single event; give 4 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "thunder",
+      "milestone": "M1",
+      "notes": "导入时按静音切成 amb_pt_thunder_01 起的变体"
+    },
+    {
+      "id": "amb_pt_wind_gust",
+      "template": "ambience_point",
+      "style": "a_field",
+      "subject": {
+        "zh": "一阵突然的强风掠过，卷起尘土与树叶后平息",
+        "en": "A sudden strong gust sweeping past, stirring dust and leaves, then settling"
+      },
+      "extra": {
+        "zh": "每个变体时长约 4 秒，单个事件；在同一个文件里依次给出 4 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 4 seconds, a single event; give 4 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "gust",
+      "milestone": "M1",
+      "notes": "导入时按静音切成 amb_pt_wind_gust_01 起的变体"
+    },
+    {
+      "id": "amb_pt_branch_snap",
+      "template": "ambience_point",
+      "style": "a_field",
+      "subject": {
+        "zh": "不远处一根干枯的枝条被踩断",
+        "en": "A dry branch snapping underfoot not far away"
+      },
+      "extra": {
+        "zh": "每个变体时长约 1.5 秒，单个事件；在同一个文件里依次给出 4 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 1.5 seconds, a single event; give 4 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "branch",
+      "milestone": "M1",
+      "notes": "导入时按静音切成 amb_pt_branch_snap_01 起的变体"
+    },
+    {
+      "id": "amb_pt_ash_whistle",
+      "template": "ambience_point",
+      "style": "a_field",
+      "subject": {
+        "zh": "风穿过一具门框残骸，发出空洞的长哨",
+        "en": "Wind passing through a ruined door frame, giving a long hollow whistle"
+      },
+      "extra": {
+        "zh": "每个变体时长约 5 秒，单个事件；在同一个文件里依次给出 3 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 5 seconds, a single event; give 3 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "ash_whistle",
+      "milestone": "M1",
+      "notes": "导入时按静音切成 amb_pt_ash_whistle_01 起的变体"
+    },
+    {
+      "id": "amb_pt_glass_ring",
+      "template": "ambience_point",
+      "style": "a_field",
+      "subject": {
+        "zh": "一片玻璃化的地面受热开裂，清脆地鸣响后余音震颤",
+        "en": "A patch of vitrified ground cracking in the heat, ringing clearly with a trembling tail"
+      },
+      "extra": {
+        "zh": "每个变体时长约 4 秒，单个事件；在同一个文件里依次给出 3 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 4 seconds, a single event; give 3 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "glass",
+      "milestone": "M2",
+      "notes": "导入时按静音切成 amb_pt_glass_ring_01 起的变体"
+    },
+    {
+      "id": "amb_pt_gull",
+      "template": "ambience_point",
+      "style": "a_field",
+      "subject": {
+        "zh": "几只海鸥在头顶鸣叫",
+        "en": "A few gulls crying overhead"
+      },
+      "extra": {
+        "zh": "每个变体时长约 3 秒，单个事件；在同一个文件里依次给出 3 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 3 seconds, a single event; give 3 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "gull",
+      "milestone": "M3",
+      "notes": "导入时按静音切成 amb_pt_gull_01 起的变体"
+    },
+    {
+      "id": "amb_pt_hawk",
+      "template": "ambience_point",
+      "style": "a_field",
+      "subject": {
+        "zh": "高空一只鹰长啸",
+        "en": "A hawk screeching high in the sky"
+      },
+      "extra": {
+        "zh": "每个变体时长约 3 秒，单个事件；在同一个文件里依次给出 2 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 3 seconds, a single event; give 2 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "hawk",
+      "milestone": "M2",
+      "notes": "导入时按静音切成 amb_pt_hawk_01 起的变体"
+    },
+    {
+      "id": "amb_pt_dragon_far",
+      "template": "ambience_point",
+      "style": "a_field",
+      "subject": {
+        "zh": "极远处山脊后传来巨大生物缓慢的呼吸与低沉鸣响，带巨大的山谷回声",
+        "en": "From far behind a ridge, the slow breath and deep call of an enormous creature, with vast valley echo"
+      },
+      "extra": {
+        "zh": "每个变体时长约 8 秒，单个事件；在同一个文件里依次给出 2 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 8 seconds, a single event; give 2 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "dragon",
+      "milestone": "M3",
+      "notes": "导入时按静音切成 amb_pt_dragon_far_01 起的变体"
+    },
+    {
+      "id": "amb_pt_volcano",
+      "template": "ambience_point",
+      "style": "a_field",
+      "subject": {
+        "zh": "地底一声低沉的火山闷响，碎石随之滚落",
+        "en": "A low volcanic boom from underground, gravel tumbling after it"
+      },
+      "extra": {
+        "zh": "每个变体时长约 6 秒，单个事件；在同一个文件里依次给出 3 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 6 seconds, a single event; give 3 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "volcano",
+      "milestone": "M3",
+      "notes": "导入时按静音切成 amb_pt_volcano_01 起的变体"
+    },
+    {
+      "id": "amb_pt_horn_far",
+      "template": "ambience_point",
+      "style": "a_field",
+      "subject": {
+        "zh": "远方传来低沉的号角，风把它吹得时断时续",
+        "en": "A low horn from far away, carried and broken by the wind"
+      },
+      "extra": {
+        "zh": "每个变体时长约 6 秒，单个事件；在同一个文件里依次给出 2 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 6 seconds, a single event; give 2 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "horn",
+      "milestone": "M2",
+      "notes": "导入时按静音切成 amb_pt_horn_far_01 起的变体"
+    }
+  ]
+}
